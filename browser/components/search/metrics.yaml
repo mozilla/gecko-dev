@@ -721,3 +721,816 @@ browser.engagement.navigation:
       - rev-data@mozilla.com
     expires: never
     telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_WEBEXTENSION
+
+browser.search.content:
+  urlbar:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the urlbar. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.urlbar.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_URLBAR
+
+  urlbar_handoff:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via
+      handoff, broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.urlbar_handoff.
+    bugs:
+      - https://bugzil.la/1732429
+    data_reviews:
+      - https://bugzil.la/1732429
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_URLBAR_HANDOFF
+
+  urlbar_persisted:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the urlbar after the search term was shown in
+      the urlbar. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.urlbar_persisted.
+    bugs:
+      - https://bugzil.la/1779471
+    data_reviews:
+      - https://bugzil.la/1779471
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_URLBAR_PERSISTED
+
+  urlbar_searchmode:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the urlbar in search mode. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.urlbar_searchmode.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_URLBAR_SEARCHMODE
+
+  searchbar:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the search bar. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.searchbar.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_SEARCHBAR
+
+  about_home:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the about:home. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.about_home.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_ABOUT_HOME
+
+  about_newtab:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the about:newtab. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.about_newtab.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_ABOUT_NEWTAB
+
+  contextmenu:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the context menu. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.contextmenu.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_CONTEXTMENU
+
+  webextension:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from a webextension. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.webextension.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_WEBEXTENSION
+
+  system:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was most
+      likely started from the system, e.g. command line. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.system.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_SYSTEM
+
+  tabhistory:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was loaded
+      from the tab history. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.tabhistory.
+    bugs:
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_TABHISTORY
+
+  reload:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was loaded
+      by reloading the page. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.reload.
+    bugs:
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_RELOAD
+
+  unknown:
+    type: labeled_counter
+    description: >
+      Records counts for in-content searches where the search was started
+      from a place that could not be determined or not categorized by the
+      other scalars. The key format is
+      <provider>:[tagged|tagged-follow-on|organic]:[code|other|none]
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.content.unknown.
+    bugs:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    data_reviews:
+      - https://bugzil.la/1089670
+      - https://bugzil.la/1475571
+      - https://bugzil.la/1482158
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1634564
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_CONTENT_UNKNOWN
+
+browser.search.withads:
+  urlbar:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from the urlbar. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.urlbar.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_URLBAR
+
+  urlbar_handoff:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via
+      handoff, broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.urlbar_handoff.
+    bugs:
+      - https://bugzil.la/1732429
+    data_reviews:
+      - https://bugzil.la/1732429
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_URLBAR_HANDOFF
+
+  urlbar_persisted:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from the urlbar after the search term was shown in the
+      urlbar. The key format is ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.urlbar_persisted.
+    bugs:
+      - https://bugzil.la/1779471
+    data_reviews:
+      - https://bugzil.la/1779471
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_URLBAR_PERSISTED
+
+  urlbar_searchmode:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from the urlbar in search mode. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.urlbar_searchmode.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_URLBAR_SEARCHMODE
+
+  searchbar:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from the search bar. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.searchbar.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_SEARCHBAR
+
+  about_home:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from about:home. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.about_home.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_ABOUT_HOME
+
+  about_newtab:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from about:newtab. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.about_newtab.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_ABOUT_NEWTAB
+
+  contextmenu:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from the context menu. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.contextmenu.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_CONTEXTMENU
+
+  webextension:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from a webextension. The key format is
+      ‘<provider>:<tagged|organic>’ See https://firefox-source-
+      docs.mozilla.org/browser/search/telemetry.html#browser-search-
+      content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.webextension.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_WEBEXTENSION
+
+  system:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from the system, e.g. command line. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.system.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_SYSTEM
+
+  tabhistory:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was loaded from the tab history. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.tabhistory.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_TABHISTORY
+
+  reload:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was loaded by reloading the page. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.reload.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_RELOAD
+
+  unknown:
+    type: labeled_counter
+    description: >
+      Records counts of SERP pages with adverts displayed where the search
+      was started from a place not categorized by the other scalars. The
+      key format is ‘<provider>:<tagged|organic>’ See https://firefox-
+      source-docs.mozilla.org/browser/search/telemetry.html#browser-
+      search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.withads.unknown.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_WITHADS_UNKNOWN
+
+browser.search.adclicks:
+  urlbar:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from the urlbar. The key format is ‘<provider>:<tagged|organic>’ See
+      https://firefox-source-
+      docs.mozilla.org/browser/search/telemetry.html#browser-search-
+      content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.urlbar.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_URLBAR
+
+  urlbar_handoff:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via
+      handoff, broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.urlbar_handoff.
+    bugs:
+      - https://bugzil.la/1732429
+    data_reviews:
+      - https://bugzil.la/1732429
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_URLBAR_HANDOFF
+
+  urlbar_persisted:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from the urlbar after the search term was shown in the urlbar. The
+      key format is ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.urlbar_persisted.
+    bugs:
+      - https://bugzil.la/1779471
+    data_reviews:
+      - https://bugzil.la/1779471
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_URLBAR_PERSISTED
+
+  urlbar_searchmode:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from the urlbar in search mode. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.urlbar_searchmode.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_URLBAR_SEARCHMODE
+
+  searchbar:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from the search bar. The key format is ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.searchbar.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_SEARCHBAR
+
+  about_home:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from about:home. The key format is ‘<provider>:<tagged|organic>’ See
+      https://firefox-source-
+      docs.mozilla.org/browser/search/telemetry.html#browser-search-
+      content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.about_home.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_ABOUT_HOME
+
+  about_newtab:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from about:newtab. The key format is ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.about_newtab.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_ABOUT_NEWTAB
+
+  contextmenu:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from the context menu. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.contextmenu.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_CONTEXTMENU
+
+  webextension:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from a webextension. The key format is ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.webextension.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_WEBEXTENSION
+
+  system:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from the system, e.g. command line. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.system.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_SYSTEM
+
+  tabhistory:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was loaded
+      from the tab history. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.tabhistory.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_TABHISTORY
+
+  reload:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was loaded
+      by reloading the page. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.reload.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_RELOAD
+
+  unknown:
+    type: labeled_counter
+    description: >
+      Records clicks of adverts on SERP pages where the search was started
+      from a place not categorized by the other scalars. The key format is
+      ‘<provider>:<tagged|organic>’
+      See https://firefox-source-docs.mozilla.org/browser/search/telemetry.html#browser-search-content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.search.adclicks.unknown.
+    bugs:
+      - https://bugzil.la/1664847
+    data_reviews:
+      - https://bugzil.la/1664847
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SEARCH_ADCLICKS_UNKNOWN
