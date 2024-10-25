@@ -246,6 +246,22 @@ class OnboardingTelemetryRecorder {
         )
     }
 
+    /**
+     * Records the add-ons card primary button click event.
+     * @param sequenceId The identifier of the onboarding sequence shown to the user.
+     * @param sequencePosition The sequence position of the page for which the impression occurred.
+     */
+    fun onAddOnsButtonClick(sequenceId: String, sequencePosition: String) {
+        Onboarding.addOnsCardButtonPressed.record(
+            Onboarding.AddOnsCardButtonPressedExtra(
+                action = ACTION_CLICK,
+                elementType = ET_PRIMARY_BUTTON,
+                sequenceId = sequenceId,
+                sequencePosition = sequencePosition,
+            ),
+        )
+    }
+
     companion object {
         private const val ACTION_IMPRESSION = "impression"
         private const val ACTION_CLICK = "click"

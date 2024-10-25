@@ -1366,14 +1366,33 @@ onboarding:
     metadata:
       tags:
         - Onboarding
-  add_ons_card_clicked:
+  add_ons_card_button_pressed:
     type: event
     description:
-      The user clicked the `start browsing` button from the add-ons onboarding card.
+      The user pressed the "start browsing" button from the add-ons onboarding card.
+    extra_keys:
+      element_type:
+        type: string
+        description: |
+          Type of element that was viewed.
+      action:
+        type: string
+        description: |
+          Type of action taken by the user.
+      sequence_position:
+        type: string
+        description: |
+          Position of the onboarding card in the onboarding flow.
+      sequence_id:
+        type: string
+        description: |
+          Identifier for the sequence.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1926243
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926296
     data_reviews:
       - https://phabricator.services.mozilla.com/D226469
+      - https://phabricator.services.mozilla.com/D226633
     data_sensitivity:
       - interaction
     notification_emails:

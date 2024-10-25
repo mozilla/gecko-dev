@@ -179,8 +179,10 @@ class OnboardingFragment : Fragment() {
                 )
             },
             onAddOnsButtonClick = {
-                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1926296
-                throw NotImplementedError()
+                telemetryRecorder.onAddOnsButtonClick(
+                    pagesToDisplay.telemetrySequenceId(),
+                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.ADD_ONS),
+                )
             },
             onFinish = {
                 onFinish(it)
