@@ -219,6 +219,46 @@ class ShutdownBlockingTicket {
 };
 
 /**
+ * A convenience class intended to be subclassed by DOM objects wanting to be
+ * notified when its owning thread shutdown is about to occur.
+ */
+class ShutdownConsumer {
+ public:
+  /**
+   * On the main thread, this is called with the xpcom-will-shutdown event.
+   * On a worker thread, this is called by the WeakWorkerRef callback.
+   */
+  virtual void OnShutdown() = 0;
+};
+
+/**
+ * A convenience class intended to be held by DOM objects wanting to be notified
+ * when its owning thread shutdown is about to occur.
+ */
+class ShutdownWatcher : public nsISupports {
+ public:
+  /**
+   * Create a shutdown watcher for the given consumer.
+   */
+  static already_AddRefed<ShutdownWatcher> Create(ShutdownConsumer* aConsumer);
+
+  /**
+   * Destroy a shutdown watcher. Must be called by the owning object prior to
+   * clearing its reference.
+   */
+  virtual void Destroy() = 0;
+
+ protected:
+  explicit ShutdownWatcher(ShutdownConsumer* aConsumer) : mConsumer(aConsumer) {
+    MOZ_ASSERT(aConsumer);
+  }
+
+  virtual ~ShutdownWatcher() { MOZ_ASSERT(!mConsumer); }
+
+  ShutdownConsumer* mConsumer;
+};
+
+/**
  * Await convenience methods to block until the promise has been resolved or
  * rejected. The Resolve/Reject functions, while called on a different thread,
  * would be running just as on the current thread thanks to the memory barrier

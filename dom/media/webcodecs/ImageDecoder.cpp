@@ -17,11 +17,8 @@
 #include "mozilla/dom/VideoFrame.h"
 #include "mozilla/dom/VideoFrameBinding.h"
 #include "mozilla/dom/WebCodecsUtils.h"
-#include "mozilla/dom/WorkerCommon.h"
-#include "mozilla/dom/WorkerRef.h"
 #include "mozilla/image/ImageUtils.h"
 #include "mozilla/image/SourceBuffer.h"
-#include "mozilla/media/MediaUtils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsComponentManagerUtils.h"
@@ -147,11 +144,14 @@ void ImageDecoder::Destroy() {
     mTracks->Destroy();
   }
 
+  if (mShutdownWatcher) {
+    mShutdownWatcher->Destroy();
+    mShutdownWatcher = nullptr;
+  }
+
   mSourceBuffer = nullptr;
   mDecoder = nullptr;
   mParent = nullptr;
-  mWorkerRef = nullptr;
-  mShutdownBlocker = nullptr;
 }
 
 void ImageDecoder::QueueConfigureMessage(
@@ -564,31 +564,12 @@ void ImageDecoder::CheckOutstandingDecodes() {
 
 void ImageDecoder::Initialize(const GlobalObject& aGlobal,
                               const ImageDecoderInit& aInit, ErrorResult& aRv) {
-  if (NS_IsMainThread()) {
-    mShutdownBlocker = media::ShutdownBlockingTicket::Create(
-        u"ImageDecoder::mShutdownBlocker"_ns,
-        NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
-    if (mShutdownBlocker) {
-      mShutdownBlocker->ShutdownPromise()->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this}](bool /* aUnUsed*/) {
-            self->Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Shutdown"_ns));
-          },
-          [self = RefPtr{this}](bool /* aUnUsed*/) {
-            self->Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Shutdown"_ns));
-          });
-    }
-  } else if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
-    mWorkerRef = WeakWorkerRef::Create(workerPrivate, [self = RefPtr{this}]() {
-      self->Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Shutdown"_ns));
-    });
-  }
-
-  if (NS_WARN_IF(!mWorkerRef && !mShutdownBlocker)) {
+  mShutdownWatcher = media::ShutdownWatcher::Create(this);
+  if (!mShutdownWatcher) {
     MOZ_LOG(
         gWebCodecsLog, LogLevel::Error,
-        ("ImageDecoder %p Initialize -- create shutdown blocker failed", this));
-    aRv.ThrowInvalidStateError("Could not create shutdown blocker");
+        ("ImageDecoder %p Initialize -- create shutdown watcher failed", this));
+    aRv.ThrowInvalidStateError("Could not create shutdown watcher");
     return;
   }
 
@@ -1043,8 +1024,10 @@ void ImageDecoder::Close(const MediaResult& aResult) {
     mComplete = true;
   }
 
-  mWorkerRef = nullptr;
-  mShutdownBlocker = nullptr;
+  if (mShutdownWatcher) {
+    mShutdownWatcher->Destroy();
+    mShutdownWatcher = nullptr;
+  }
 }
 
 void ImageDecoder::Reset() {
@@ -1053,6 +1036,10 @@ void ImageDecoder::Reset() {
 
 void ImageDecoder::Close() {
   Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Closed decoder"_ns));
+}
+
+void ImageDecoder::OnShutdown() {
+  Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Shutdown"_ns));
 }
 
 }  // namespace mozilla::dom

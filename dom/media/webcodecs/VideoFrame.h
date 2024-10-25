@@ -15,7 +15,6 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/VideoColorSpaceBinding.h"
-#include "mozilla/dom/WorkerRef.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/media/MediaUtils.h"
@@ -80,7 +79,9 @@ struct VideoFrameSerializedData : VideoFrameData {
   const gfx::IntSize mCodedSize;
 };
 
-class VideoFrame final : public nsISupports, public nsWrapperCache {
+class VideoFrame final : public nsISupports,
+                         public nsWrapperCache,
+                         public media::ShutdownConsumer {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(VideoFrame)
@@ -166,6 +167,7 @@ class VideoFrame final : public nsISupports, public nsWrapperCache {
 
   void Close();
   bool IsClosed() const;
+  void OnShutdown() override;
 
   // [Serializable] implementations: {Read, Write}StructuredClone
   static JSObject* ReadStructuredClone(JSContext* aCx, nsIGlobalObject* aGlobal,
@@ -263,8 +265,7 @@ class VideoFrame final : public nsISupports, public nsWrapperCache {
   VideoColorSpaceInit mColorSpace;
 
   // The following are used to help monitoring mResource release.
-  UniquePtr<media::ShutdownBlockingTicket> mShutdownBlocker = nullptr;
-  RefPtr<WeakWorkerRef> mWorkerRef = nullptr;
+  RefPtr<media::ShutdownWatcher> mShutdownWatcher = nullptr;
 };
 
 }  // namespace mozilla::dom

@@ -2054,6 +2054,8 @@ void VideoFrame::Close() {
 
 bool VideoFrame::IsClosed() const { return !mResource; }
 
+void VideoFrame::OnShutdown() { CloseIfNeeded(); }
+
 already_AddRefed<layers::Image> VideoFrame::GetImage() const {
   if (!mResource) {
     return nullptr;
@@ -2182,42 +2184,26 @@ already_AddRefed<VideoFrame> VideoFrame::ConvertToRGBFrame(
 void VideoFrame::StartAutoClose() {
   AssertIsOnOwningThread();
 
-  LOG("VideoFrame %p, start monitoring resource release", this);
-
-  if (NS_IsMainThread()) {
-    mShutdownBlocker = media::ShutdownBlockingTicket::Create(
-        u"VideoFrame::mShutdownBlocker"_ns,
-        NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
-    if (mShutdownBlocker) {
-      mShutdownBlocker->ShutdownPromise()->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this}](bool /* aUnUsed*/) {
-            LOG("VideoFrame %p gets shutdown notification", self.get());
-            self->CloseIfNeeded();
-          },
-          [self = RefPtr{this}](bool /* aUnUsed*/) {
-            LOG("VideoFrame %p removes shutdown-blocker before getting "
-                "shutdown "
-                "notification",
-                self.get());
-          });
-    }
-  } else if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
-    // Clean up all the resources when the worker is going away.
-    mWorkerRef = WeakWorkerRef::Create(workerPrivate, [self = RefPtr{this}]() {
-      LOG("VideoFrame %p, worker is going away", self.get());
-      self->CloseIfNeeded();
-    });
+  mShutdownWatcher = media::ShutdownWatcher::Create(this);
+  if (NS_WARN_IF(!mShutdownWatcher)) {
+    LOG("VideoFrame %p, cannot monitor resource release", this);
+    Close();
+    return;
   }
+
+  LOG("VideoFrame %p, start monitoring resource release, watcher %p", this,
+      mShutdownWatcher.get());
 }
 
 void VideoFrame::StopAutoClose() {
   AssertIsOnOwningThread();
 
-  LOG("VideoFrame %p, stop monitoring resource release", this);
-
-  mShutdownBlocker = nullptr;
-  mWorkerRef = nullptr;
+  if (mShutdownWatcher) {
+    LOG("VideoFrame %p, stop monitoring resource release, watcher %p", this,
+        mShutdownWatcher.get());
+    mShutdownWatcher->Destroy();
+    mShutdownWatcher = nullptr;
+  }
 }
 
 void VideoFrame::CloseIfNeeded() {

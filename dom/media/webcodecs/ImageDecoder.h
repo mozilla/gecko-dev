@@ -15,6 +15,7 @@
 #include "mozilla/dom/ImageDecoderBinding.h"
 #include "mozilla/dom/WebCodecsUtils.h"
 #include "mozilla/gfx/Point.h"
+#include "mozilla/media/MediaUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
@@ -33,16 +34,13 @@ struct DecodeFrameCountResult;
 struct DecodeMetadataResult;
 }  // namespace image
 
-namespace media {
-class ShutdownBlockingTicket;
-}  // namespace media
-
 namespace dom {
 class Promise;
-class WeakWorkerRef;
 struct ImageDecoderReadRequest;
 
-class ImageDecoder final : public nsISupports, public nsWrapperCache {
+class ImageDecoder final : public nsISupports,
+                           public nsWrapperCache,
+                           public media::ShutdownConsumer {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(ImageDecoder)
@@ -78,6 +76,8 @@ class ImageDecoder final : public nsISupports, public nsWrapperCache {
   void Reset();
 
   void Close();
+
+  void OnShutdown() override;
 
   void OnSourceBufferComplete(const MediaResult& aResult);
 
@@ -141,8 +141,7 @@ class ImageDecoder final : public nsISupports, public nsWrapperCache {
   void OnDecodeFramesFailed(const nsresult& aErr);
 
   nsCOMPtr<nsIGlobalObject> mParent;
-  UniquePtr<media::ShutdownBlockingTicket> mShutdownBlocker;
-  RefPtr<WeakWorkerRef> mWorkerRef;
+  RefPtr<media::ShutdownWatcher> mShutdownWatcher;
   RefPtr<ImageTrackList> mTracks;
   RefPtr<ImageDecoderReadRequest> mReadRequest;
   RefPtr<Promise> mCompletePromise;
