@@ -30,20 +30,19 @@ pre {
   color: inherit;
   white-space: inherit;
   margin: 0 0 0 5ch;
-}
 
-pre[id]::before,
-span[id]::before {
-  content: counter(line) " ";
-  counter-increment: line;
-  user-select: none;
-  display: inline-block;
-  width: 5ch;
-  margin: 0 0 0 -5ch;
-  text-align: right;
-  color: #ccc;
-  font-weight: normal;
-  font-style: normal;
+  &[id]::before {
+    content: counter(line) " ";
+    counter-increment: line;
+    user-select: none;
+    display: inline-block;
+    width: 5ch;
+    margin: 0 0 0 -5ch;
+    text-align: right;
+    color: #ccc;
+    font-weight: normal;
+    font-style: normal;
+  }
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
@@ -93,8 +92,4 @@ span[id]::before {
 span:not(.error),
 a:not(.error) {
   unicode-bidi: embed;
-}
-
-span[id] {
-  unicode-bidi: isolate;
 }
