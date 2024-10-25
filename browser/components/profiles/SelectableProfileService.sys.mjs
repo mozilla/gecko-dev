@@ -52,6 +52,8 @@ function loadImage(url) {
   });
 }
 
+// This is waiting to be used by bug 1926507.
+// eslint-disable-next-line no-unused-vars
 async function updateTaskbar(iconUrl, profileName, strokeColor, fillColor) {
   try {
     let image = await loadImage(iconUrl);
