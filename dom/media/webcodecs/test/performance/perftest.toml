@@ -1,0 +1,9 @@
+[DEFAULT]
+prefs = ["dom.media.webcodecs.enabled=true"]
+scheme = "https"
+support-files = [
+  "encode_from_canvas.js",
+]
+
+["test_encode_from_canvas.html"]
+skip-if = ["os != 'mac'"]

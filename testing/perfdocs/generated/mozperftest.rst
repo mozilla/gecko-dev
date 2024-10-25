@@ -29,6 +29,28 @@ perftest_browser_xhtml_dom.js
 **Measures the size of the DOM**
 
 
+dom/media/webcodecs/test/performance
+------------------------------------
+Performance tests running through Mochitest for WebCodecs
+
+test_encode_from_canvas.html
+============================
+
+:owner: Media Team
+:name: WebCodecs Video Encoding
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:realtime - frame-to-frame mean (key),unit:ms,shouldAlert:True, name:realtime - frame-to-frame stddev (key),unit:ms,shouldAlert:True, name:realtime - frame-dropping rate (key),unit:ratio,shouldAlert:True, name:realtime - frame-to-frame mean (non key),unit:ms,shouldAlert:True, name:realtime - frame-to-frame stddev (non key),unit:ms,shouldAlert:True, name:realtime - frame-dropping rate (non key),unit:ratio,shouldAlert:True, name:quality - first encode to last output,unit:ms,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor plain
+
+**Test webcodecs video encoding performance**
+
+
 dom/serviceworkers/test/performance
 -----------------------------------
 Performance tests running through Mochitest for Service Workers

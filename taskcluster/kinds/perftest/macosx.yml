@@ -95,6 +95,26 @@ service-worker:
             --flavor mochitest
             --output $MOZ_FETCHES_DIR/../artifacts
 
+webcodecs:
+    description: Run webcodecs tests
+    treeherder:
+        symbol: perftest(macosx-webcodecs)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: [autoland, mozilla-central]
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 -m venv . &&
+            bin/python3 python/mozperftest/mozperftest/runner.py
+            dom/media/webcodecs/test/performance/test_encode_from_canvas.html
+            --mochitest-binary ${MOZ_FETCHES_DIR}/target.dmg
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+
 domcount:
     description: Run DOM test on macOS
     treeherder:

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WebCodecs performance test: Video Encoding</title>
+  </head>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script>
+    const REALTIME = "realtime";
+    const QUALITY = "quality";
+
+    const RESULTS = {};
+    RESULTS[REALTIME] = [
+      { name: "frame-to-frame mean (key)", value: Infinity },
+      { name: "frame-to-frame stddev (key)", value: Infinity },
+      { name: "frame-dropping rate (key)", value: Infinity },
+      { name: "frame-to-frame mean (non key)", value: Infinity },
+      { name: "frame-to-frame stddev (non key)", value: Infinity },
+      { name: "frame-dropping rate (non key)", value: Infinity },
+    ];
+    RESULTS[QUALITY] = [
+      { name: "first encode to last output", value: Infinity },
+    ];
+
+    var perfMetadata = {
+      owner: "Media Team",
+      name: "WebCodecs Video Encoding",
+      description: "Test webcodecs video encoding performance",
+      options: {
+        default: {
+          perfherder: true,
+          perfherder_metrics: [
+            {
+              name: "realtime - frame-to-frame mean (key)",
+              unit: "ms",
+              shouldAlert: true,
+            },
+            {
+              name: "realtime - frame-to-frame stddev (key)",
+              unit: "ms",
+              shouldAlert: true,
+            },
+            {
+              name: "realtime - frame-dropping rate (key)",
+              unit: "ratio",
+              shouldAlert: true,
+            },
+            {
+              name: "realtime - frame-to-frame mean (non key)",
+              unit: "ms",
+              shouldAlert: true,
+            },
+            {
+              name: "realtime - frame-to-frame stddev (non key)",
+              unit: "ms",
+              shouldAlert: true,
+            },
+            {
+              name: "realtime - frame-dropping rate (non key)",
+              unit: "ratio",
+              shouldAlert: true,
+            },
+            {
+              name: "quality - first encode to last output",
+              unit: "ms",
+              shouldAlert: true,
+            },
+          ],
+          verbose: true,
+          manifest: "perftest.toml",
+          manifest_flavor: "plain",
+        },
+      },
+    };
+
+    function createCanvas(width, height) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      document.body.appendChild(canvas);
+      return canvas;
+    }
+
+    function removeCanvas(canvas) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      document.body.removeChild(canvas);
+    }
+
+    function drawClock(canvas) {
+      const ctx = canvas.getContext("2d");
+      ctx.save();
+
+      ctx.fillStyle = "#dfdacd";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      let radius = canvas.height / 2;
+      ctx.translate(radius, radius);
+      radius = radius * 0.7;
+
+      drawFace(ctx, radius);
+      markHours(ctx, radius);
+      markMinutes(ctx, radius);
+      drawTime(ctx, radius);
+
+      ctx.restore();
+    }
+
+    function drawFace(ctx, radius) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = "#feefde";
+      ctx.fill();
+      ctx.strokeStyle = "#6e6d6e";
+      ctx.lineWidth = radius * 0.1;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function markHours(ctx, radius) {
+      ctx.save();
+      ctx.strokeStyle = "#947360";
+      ctx.lineWidth = radius * 0.05;
+      for (let i = 0; i < 12; i++) {
+        ctx.beginPath();
+        ctx.rotate(Math.PI / 6);
+        ctx.moveTo(radius * 0.7, 0);
+        ctx.lineTo(radius * 0.9, 0);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function markMinutes(ctx, radius) {
+      ctx.save();
+      ctx.strokeStyle = "#947360";
+      ctx.lineWidth = radius * 0.01;
+      for (let i = 0; i < 60; i++) {
+        if (i % 5 !== 0) {
+          ctx.beginPath();
+          ctx.moveTo(radius * 0.8, 0);
+          ctx.lineTo(radius * 0.85, 0);
+          ctx.stroke();
+        }
+        ctx.rotate(Math.PI / 30);
+      }
+      ctx.restore();
+    }
+
+    function drawTime(ctx, radius) {
+      ctx.save();
+      const now = new Date();
+      let hour = now.getHours();
+      let minute = now.getMinutes();
+      let second = now.getSeconds() + now.getMilliseconds() / 1000;
+
+      hour = hour % 12;
+      hour =
+        (hour * Math.PI) / 6 +
+        (minute * Math.PI) / (6 * 60) +
+        (second * Math.PI) / (360 * 60);
+      drawHand(ctx, hour, radius * 0.5, radius * 0.07, "#a1afa0");
+
+      minute = (minute * Math.PI) / 30 + (second * Math.PI) / (30 * 60);
+      drawHand(ctx, minute, radius * 0.8, radius * 0.07, "#a1afa0");
+
+      second = (second * Math.PI) / 30;
+      drawHand(ctx, second, radius * 0.9, radius * 0.02, "#970c10");
+      ctx.restore();
+    }
+
+    function drawHand(ctx, pos, length, width, color = "black") {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.lineWidth = width;
+      ctx.lineCap = "round";
+      ctx.moveTo(0, 0);
+      ctx.rotate(pos);
+      ctx.lineTo(0, -length);
+      ctx.stroke();
+      ctx.rotate(-pos);
+      ctx.restore();
+    }
+
+    function configureEncoder(
+      worker,
+      width,
+      height,
+      codec,
+      latencyMode,
+      avcFormat
+    ) {
+      worker.postMessage({
+        command: "configure",
+        codec,
+        width,
+        height,
+        latencyMode,
+        avcFormat,
+      });
+    }
+
+    async function encodeCanvas(
+      worker,
+      canvas,
+      fps,
+      totalDuration,
+      keyFrameIntervalInFrames
+    ) {
+      const frameDuration = Math.round(1000 / fps); // ms
+      let encodeDuration = 0;
+      let frameCount = 0;
+      let intervalId;
+
+      return new Promise((resolve, _) => {
+        // first callback happens after frameDuration.
+        intervalId = setInterval(() => {
+          if (encodeDuration > totalDuration) {
+            clearInterval(intervalId);
+            resolve(encodeDuration);
+            return;
+          }
+          drawClock(canvas);
+          const frame = new VideoFrame(canvas, { timestamp: encodeDuration });
+          worker.postMessage({
+            command: "encode",
+            frame,
+            isKey: frameCount % keyFrameIntervalInFrames == 0,
+          });
+          frameCount += 1;
+          encodeDuration += frameDuration;
+        }, frameDuration);
+      });
+    }
+
+    async function getEncoderResults(worker) {
+      worker.postMessage({ command: "flush" });
+      return new Promise((resolve, _) => {
+        worker.onmessage = event => {
+          if (event.data.command === "result") {
+            const { encodeTimes, outputTimes } = event.data;
+            resolve({ encodeTimes, outputTimes });
+          }
+        };
+      });
+    }
+
+    function getTotalDuration(encodeTimes, outputTimes) {
+      if (!outputTimes.length || encodeTimes.length < outputTimes.length) {
+        return Infinity;
+      }
+      return outputTimes[outputTimes.length - 1].time - encodeTimes[0].time;
+    }
+
+    function calculateRoundTripTimes(encodeTimes, outputTimes) {
+      let roundTripTimes = [];
+      let encodeIndex = 0;
+      let outputIndex = 0;
+      while (
+        encodeIndex < encodeTimes.length &&
+        outputIndex < outputTimes.length
+      ) {
+        const encodeEntry = encodeTimes[encodeIndex];
+        const outputEntry = outputTimes[outputIndex];
+
+        if (encodeEntry.timestamp === outputEntry.timestamp) {
+          const roundTripTime = outputEntry.time - encodeEntry.time;
+          roundTripTimes.push({
+            timestamp: outputEntry.timestamp,
+            time: roundTripTime,
+          });
+          encodeIndex++;
+          outputIndex++;
+        } else if (encodeEntry.timestamp < outputEntry.timestamp) {
+          encodeIndex++;
+        } else {
+          outputIndex++;
+        }
+      }
+      return roundTripTimes;
+    }
+
+    function getMeanAndStandardDeviation(values) {
+      if (!values.length) {
+        return { mean: 0, stddev: 0 };
+      }
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const stddev = Math.sqrt(
+        values.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) /
+          values.length
+      );
+      return { mean, stddev };
+    }
+
+    function reportMetrics(results) {
+      const metrics = {};
+      let text = "\nResults (ms)\n";
+      for (const mode in results) {
+        for (const r of results[mode]) {
+          const name = mode + " - " + r.name;
+          metrics[name] = r.value;
+          text += "    " + mode + " " + r.name + " : " + r.value + "\n";
+        }
+      }
+      dump(text);
+      info("perfMetrics", JSON.stringify(metrics));
+    }
+
+    add_task(async () => {
+      const width = 640;
+      const height = 480;
+      const fps = 30;
+      const totalDuration = 5000; // ms
+      const keyFrameInterval = 15; // 1 key every 15 frames
+
+      const worker = new Worker("encode_from_canvas.js");
+      const h264main = "avc1.4D001E";
+      configureEncoder(worker, width, height, h264main, REALTIME, "annexb");
+
+      const canvas = createCanvas(width, height);
+      await encodeCanvas(worker, canvas, fps, totalDuration, keyFrameInterval);
+      let { encodeTimes, outputTimes } = await getEncoderResults(worker);
+
+      ok(
+        encodeTimes.length >= outputTimes.length,
+        "Should have more encoded samples than outputs"
+      );
+
+      let results = { key: {}, delta: {} };
+      results.key.encodeTimes = encodeTimes.filter(x => x.type == "key");
+      results.delta.encodeTimes = encodeTimes.filter(x => x.type != "key");
+      results.key.outputTimes = outputTimes.filter(x => x.type == "key");
+      results.delta.outputTimes = outputTimes.filter(x => x.type != "key");
+      ok(
+        results.key.encodeTimes.length >= results.key.outputTimes.length,
+        "Should have more encoded samples than outputs (key)"
+      );
+      ok(
+        results.delta.encodeTimes.length >= results.delta.outputTimes.length,
+        "Should have more encoded samples than outputs (delta)"
+      );
+
+      results.key.frameDroppingRate =
+        (results.key.encodeTimes.length - results.key.outputTimes.length) /
+        results.key.encodeTimes.length;
+      results.delta.frameDroppingRate =
+        (results.delta.encodeTimes.length - results.delta.outputTimes.length) /
+        results.delta.encodeTimes.length;
+
+      results.key.roundTripTimes = calculateRoundTripTimes(
+        results.key.encodeTimes,
+        results.key.outputTimes
+      );
+      results.key.roundTripResult = getMeanAndStandardDeviation(
+        results.key.roundTripTimes.map(x => x.time)
+      );
+
+      results.delta.roundTripTimes = calculateRoundTripTimes(
+        results.delta.encodeTimes,
+        results.delta.outputTimes
+      );
+      results.delta.roundTripResult = getMeanAndStandardDeviation(
+        results.delta.roundTripTimes.map(x => x.time)
+      );
+
+      RESULTS[REALTIME][0].value = results.key.roundTripResult.mean;
+      RESULTS[REALTIME][1].value = results.key.roundTripResult.stddev;
+      RESULTS[REALTIME][2].value = results.key.frameDroppingRate;
+
+      RESULTS[REALTIME][3].value = results.delta.roundTripResult.mean;
+      RESULTS[REALTIME][4].value = results.delta.roundTripResult.stddev;
+      RESULTS[REALTIME][5].value = results.delta.frameDroppingRate;
+
+      removeCanvas(canvas);
+      worker.terminate();
+    });
+
+    add_task(async () => {
+      const width = 640;
+      const height = 480;
+      const fps = 30;
+      const totalDuration = 5000; // ms
+      const keyFrameInterval = 15; // 1 key every 15 frames
+
+      const worker = new Worker("encode_from_canvas.js");
+      const h264main = "avc1.4D001E";
+      configureEncoder(worker, width, height, h264main, QUALITY, "annexb");
+
+      const canvas = createCanvas(width, height);
+      await encodeCanvas(worker, canvas, fps, totalDuration, keyFrameInterval);
+      let { encodeTimes, outputTimes } = await getEncoderResults(worker);
+
+      is(
+        encodeTimes.length,
+        outputTimes.length,
+        `frame cannot be dropped in ${QUALITY} mode`
+      );
+      RESULTS[QUALITY][0].value = getTotalDuration(encodeTimes, outputTimes);
+
+      removeCanvas(canvas);
+      worker.terminate();
+    });
+
+    add_task(async () => {
+      reportMetrics(RESULTS);
+    });
+  </script>
+  <body></body>
+</html>

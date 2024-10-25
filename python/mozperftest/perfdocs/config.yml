@@ -48,3 +48,8 @@ suites:
             "Service Worker Fetch": ""
             "Service Worker Registration": ""
             "Service Worker Update": ""
+
+    dom/media/webcodecs/test/performance:
+        description: "Performance tests running through Mochitest for WebCodecs"
+        tests:
+            "WebCodecs Video Encoding": ""
