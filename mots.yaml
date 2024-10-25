@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-24T10:10:07.594281+00:00'
+updated_at: '2024-10-25T15:36:41.074557+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -55,8 +55,7 @@ people:
     bmo_id: 517691
     name: Alastor Wu
     nick: alwu
-  - &amejia
-    bmo_id: 623634
+  - bmo_id: 623634
     name: Arturo Mejia
     nick: amejia
   - &aminomancer
@@ -1128,11 +1127,10 @@ modules:
       - mobile/android/android-components/**/*
     excludes: []
     owners:
-      - *amejia
+      - *jonalmeida
       - *matttighe
     peers:
       - *kaya
-      - *jonalmeida
     meta:
   - machine_name: code_coverage
     name: Code Coverage
@@ -4447,5 +4445,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 45979f8b7cf98f7d77b28ef130a4671b42998e66
-  export: 0be99838aa64c6cb419c3805e5cec0a50e83a2db
+  config: 14b07792fd8653d3dfb05054faecd197997745ad
+  export: 433ee75b293301604103a00cde46efd0a5bf2a50
