@@ -8,7 +8,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
@@ -69,7 +68,6 @@ export class YelpSuggestions extends BaseFeature {
 
   enable(enabled) {
     if (!enabled) {
-      this.#merino = null;
       this.#metadataCache = null;
     }
   }
@@ -283,20 +281,11 @@ export class YelpSuggestions extends BaseFeature {
   }
 
   async #fetchCity() {
-    if (!this.#merino) {
-      this.#merino = new lazy.MerinoClient(this.constructor.name);
-    }
-
-    let results = await this.#merino.fetch({
-      providers: ["geolocation"],
-      query: "",
-    });
-
-    if (!results.length) {
+    let geo = await lazy.QuickSuggest.geolocation();
+    if (!geo) {
       return null;
     }
-
-    let { city, region } = results[0].custom_details.geolocation;
+    let { city, region } = geo;
     return [city, region].filter(loc => !!loc).join(", ");
   }
 
@@ -391,6 +380,5 @@ export class YelpSuggestions extends BaseFeature {
     this.#metadataCache = null;
   }
 
-  #merino = null;
   #metadataCache = null;
 }

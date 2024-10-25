@@ -233,10 +233,42 @@ export class Weather extends BaseFeature {
 
   async filterSuggestions(suggestions) {
     // Rust will return many suggestions when the query matches multiple cities,
-    // one suggestion per city. All suggestions will have the same score, but
-    // they'll be ordered by population size from largest to smallest. Take the
-    // first suggestion, the one with the largest population.
-    return suggestions.length ? [suggestions[0]] : suggestions;
+    // one suggestion per city. All suggestions will have the same score, and
+    // they'll be ordered by population size from largest to smallest.
+
+    if (suggestions.length <= 1) {
+      // (a) No suggestions, (b) one suggestion that doesn't include a city, or
+      // (c) one suggestion that was the only matched city.
+      return suggestions;
+    }
+
+    // Sort the suggestions by how well their locations match the client's
+    // location: First, same region and country; second, same country but
+    // different region; last, everything else. JS `sort()` is stable so if
+    // multiple suggestions are ranked the same according to `score()` below,
+    // they'll retain their relative order (by population) as returned by Rust.
+    let geo = await lazy.QuickSuggest.geolocation();
+    let region = geo?.region_code?.toLowerCase();
+    let country = geo?.country_code?.toLowerCase();
+    if (region || country) {
+      let score = s => {
+        let sameRegion = s.region.toLowerCase() == region;
+        let sameCountry = s.country.toLowerCase() == country;
+        if (sameRegion && sameCountry) {
+          return 0;
+        }
+        if (sameCountry) {
+          return 1;
+        }
+        return 2;
+      };
+      suggestions.sort((a, b) => score(a) - score(b));
+    }
+
+    this.logger.debug(
+      "Returning most proximate suggestion: " + JSON.stringify(suggestions[0])
+    );
+    return [suggestions[0]];
   }
 
   async makeResult(queryContext, suggestion, searchString) {

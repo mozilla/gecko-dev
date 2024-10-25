@@ -452,7 +452,7 @@ add_task(async function nimbusOverride() {
   });
 });
 
-// Does a query that contains a city but no region.
+// Tests queries that include a city but no region.
 //
 // Note that the Rust component handles city/region parsing and has extensive
 // tests for that. Here we only need to make sure that Merino is called with the
@@ -460,75 +460,250 @@ add_task(async function nimbusOverride() {
 add_task(async function cityWithoutRegion() {
   // "waterloo" matches both Waterloo, IA and Waterloo, AL. The Rust component
   // will return an array containing suggestions for both, and the suggestions
-  // will have the same score. We should make a urlbar result for the first
-  // suggestion in the array, which will be Waterloo, IA since it has a larger
-  // population.
+  // will have the same score.
+
   await doCityTest({
+    desc: "Should get geolocation but none returned; so match most populous Waterloo from Rust, Waterloo IA",
     query: "waterloo",
-    city: "Waterloo",
-    region: "IA",
+    geolocation: null,
+    expected: {
+      geolocationCalled: true,
+      weatherParams: {
+        city: "Waterloo",
+        region: "IA",
+        country: "US",
+      },
+      suggestionCity: "Waterloo",
+    },
+  });
+
+  await doCityTest({
+    desc: "Should get geolocation; IA returned; so match Waterloo IA",
+    query: "waterloo",
+    geolocation: {
+      region_code: "IA",
+      country_code: "US",
+    },
+    expected: {
+      geolocationCalled: true,
+      weatherParams: {
+        city: "Waterloo",
+        region: "IA",
+        country: "US",
+      },
+      suggestionCity: "Waterloo",
+    },
+  });
+
+  await doCityTest({
+    desc: "Should get geolocation; AL returned; so match Waterloo AL",
+    query: "waterloo",
+    geolocation: {
+      region_code: "AL",
+      country_code: "US",
+    },
+    expected: {
+      geolocationCalled: true,
+      weatherParams: {
+        city: "Waterloo",
+        region: "AL",
+        country: "US",
+      },
+      suggestionCity: "Waterloo",
+    },
+  });
+
+  await doCityTest({
+    desc: "Should get geolocation; NY returned; but Rust didn't return Waterloo NY, so match most populous Waterloo from Rust, Waterloo IA",
+    query: "waterloo",
+    geolocation: {
+      region_code: "NY",
+      country_code: "US",
+    },
+    expected: {
+      geolocationCalled: true,
+      weatherParams: {
+        city: "Waterloo",
+        region: "IA",
+        country: "US",
+      },
+      suggestionCity: "Waterloo",
+    },
+  });
+
+  await doCityTest({
+    desc: "Should get geolocation; Waterloo ON CA returned; but Rust didn't return Waterloo ON CA, so match most populous Waterloo from Rust, Waterloo IA",
+    query: "waterloo",
+    geolocation: {
+      region_code: "08",
+      country_code: "CA",
+    },
+    expected: {
+      geolocationCalled: true,
+      weatherParams: {
+        city: "Waterloo",
+        region: "IA",
+        country: "US",
+      },
+      suggestionCity: "Waterloo",
+    },
+  });
+
+  await doCityTest({
+    desc: "Query matches a US and CA city; should get geolocation; US returned; so match the US city",
+    query: "us/ca city",
+    geolocation: {
+      region_code: "HI",
+      country_code: "US",
+    },
+    expected: {
+      geolocationCalled: true,
+      weatherParams: {
+        city: "US/CA City",
+        region: "IA",
+        country: "US",
+      },
+      suggestionCity: "US/CA City",
+    },
+  });
+
+  await doCityTest({
+    desc: "Query matches a US and CA city; should get geolocation; CA returned; so match the CA city",
+    query: "us/ca city",
+    geolocation: {
+      region_code: "01",
+      country_code: "CA",
+    },
+    expected: {
+      geolocationCalled: true,
+      weatherParams: {
+        city: "US/CA City",
+        region: "08",
+        country: "CA",
+      },
+      suggestionCity: "US/CA City",
+    },
   });
 });
 
-// Does a query that contains a city and a region.
+// Tests queries that include both a city and a region.
 add_task(async function cityWithRegion() {
   await doCityTest({
+    desc: "Waterloo IA directly queried",
+    query: "waterloo ia",
+    geolocation: null,
+    expected: {
+      geolocationCalled: false,
+      weatherParams: {
+        city: "Waterloo",
+        region: "IA",
+        country: "US",
+      },
+      suggestionCity: "Waterloo",
+    },
+  });
+
+  await doCityTest({
+    desc: "Waterloo AL directly queried",
     query: "waterloo al",
-    city: "Waterloo",
-    region: "AL",
+    geolocation: null,
+    expected: {
+      geolocationCalled: false,
+      weatherParams: {
+        city: "Waterloo",
+        region: "AL",
+        country: "US",
+      },
+      suggestionCity: "Waterloo",
+    },
+  });
+
+  await doCityTest({
+    desc: "Waterloo NY directly queried, but Rust didn't return Waterloo NY, so no match",
+    query: "waterloo ny",
+    geolocation: null,
+    expected: null,
   });
 });
 
-// When the query doesn't have a city, no location params should be passed to
-// Merino.
+// Tests weather queries that don't include a city.
 add_task(async function noCity() {
   await doCityTest({
+    desc: "No city in query, so only one call to Merino should be made and Merino does the geolocation internally",
     query: "weather",
-    city: null,
-    region: null,
-    country: null,
-    expectedResultCity: WEATHER_SUGGESTION.city_name,
+    geolocation: null,
+    expected: {
+      geolocationCalled: false,
+      weatherParams: {},
+      suggestionCity: WEATHER_SUGGESTION.city_name,
+    },
   });
 });
 
-async function doCityTest({
-  query,
-  city,
-  region,
-  country = "US",
-  expectedResultCity = city,
-}) {
-  let expectedParams = {
-    q: "",
-    city,
-    region,
-    country,
-  };
+async function doCityTest({ desc, query, geolocation, expected }) {
+  info("Doing city test: " + JSON.stringify({ desc, query }));
 
-  let merinoCallCount = 0;
+  if (expected) {
+    expected.weatherParams.q ??= "";
+  }
+
+  let callCountsByProvider = {};
 
   MerinoTestUtils.server.requestHandler = req => {
-    merinoCallCount++;
-    // If this fails, the Rust component returned multiple suggestions, which is
-    // fine and expected when a query matches multiple cities, but we should
-    // only ever make a urlbar result for the first one.
-    Assert.equal(merinoCallCount, 1, "Merino should be called only once");
-
     let params = new URLSearchParams(req.queryString);
-    for (let [key, value] of Object.entries(expectedParams)) {
+    let provider = params.get("providers");
+
+    callCountsByProvider[provider] ||= 0;
+    callCountsByProvider[provider]++;
+
+    if (provider == "geolocation") {
+      // Return the geolocation response.
+      return {
+        body: {
+          request_id: "request_id",
+          suggestions: !geolocation
+            ? []
+            : [
+                {
+                  custom_details: { geolocation },
+                },
+              ],
+        },
+      };
+    }
+
+    // Return the accuweather response.
+
+    Assert.equal(
+      provider,
+      "accuweather",
+      "Firefox should have called the 'accuweather' Merino provider"
+    );
+
+    // If this fails, the Rust component returned multiple suggestions, which is
+    // fine and expected when a query matches multiple cities, but then we went
+    // on to make urlbar results for more than one of them, which is not fine.
+    // We should only ever make a result for one suggestion.
+    Assert.equal(
+      callCountsByProvider.accuweather,
+      1,
+      "accuweather provider should be called at most once"
+    );
+
+    for (let [key, value] of Object.entries(expected.weatherParams)) {
       Assert.strictEqual(
         params.get(key),
         value,
-        "Param should be correct: " + key
+        "Weather param should be correct: " + key
       );
     }
 
     let suggestion = { ...WEATHER_SUGGESTION };
-    if (city) {
+    if (expected.suggestionCity) {
       suggestion = {
         ...suggestion,
-        title: "Weather for " + city,
-        city_name: city,
+        title: "Weather for " + expected.suggestionCity,
+        city_name: expected.suggestionCity,
       };
     }
 
@@ -540,22 +715,34 @@ async function doCityTest({
     };
   };
 
+  // Do a search.
   let context = createContext(query, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
   await check_results({
     context,
-    matches: [
-      QuickSuggestTestUtils.weatherResult({ city: expectedResultCity }),
-    ],
+    matches: !expected
+      ? []
+      : [
+          QuickSuggestTestUtils.weatherResult({
+            city: expected.suggestionCity,
+          }),
+        ],
   });
 
+  // Check Merino call counts.
   Assert.equal(
-    merinoCallCount,
-    1,
-    "Merino should have beeen called exactly once"
+    callCountsByProvider.geolocation || 0,
+    expected?.geolocationCalled ? 1 : 0,
+    "geolocation provider should have beeen called the correct number of times"
   );
+  Assert.equal(
+    callCountsByProvider.accuweather || 0,
+    expected ? 1 : 0,
+    "accuweather provider should have beeen called the correct number of times"
+  );
+
   MerinoTestUtils.server.requestHandler = null;
 }
 

@@ -734,6 +734,28 @@ class _QuickSuggestTestUtils {
         population: 2955010,
         alternate_names: ["ia", "iowa"],
       },
+      // Made-up cities with the same name in the US and CA. The CA city has a
+      // larger population.
+      {
+        id: 100,
+        name: "US/CA City",
+        feature_class: "P",
+        feature_code: "PPL",
+        country_code: "US",
+        admin1_code: "IA",
+        population: 1,
+        alternate_names: ["us/ca city"],
+      },
+      {
+        id: 101,
+        name: "US/CA City",
+        feature_class: "P",
+        feature_code: "PPL",
+        country_code: "CA",
+        admin1_code: "08",
+        population: 2,
+        alternate_names: ["us/ca city"],
+      },
     ];
     let [maxLen, maxWordCount] = geonames.reduce(
       ([len, wordCount], geoname) => [

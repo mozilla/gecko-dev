@@ -6,6 +6,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
+  MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   rawSuggestionUrlMatches: "resource://gre/modules/RustSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -268,6 +269,49 @@ class _QuickSuggest {
   }
 
   /**
+   * Fetches the client's geolocation from Merino. Merino gets the geolocation
+   * by looking up the client's IP address in its MaxMind database.
+   *
+   * @returns {object}
+   *   An object with the following properties (see Merino docs for latest):
+   *
+   *   {string} country
+   *     The full country name.
+   *   {string} country_code
+   *     The country ISO code.
+   *   {string} region
+   *     The full region name, e.g., the full name of a U.S. state.
+   *   {string} region_code
+   *     The region ISO code, e.g., the two-letter abbreviation for U.S. states.
+   *   {string} city
+   *     The city name.
+   *   {object} location
+   *     This object has the following properties:
+   *     {number} longitude
+   *       WGS 84 longitude.
+   *     {number} latitude
+   *       WGS 84 latitude.
+   *     {number} radius
+   *       Accuracy radius in meters.
+   */
+  async geolocation() {
+    if (!this.#merino) {
+      this.#merino = new lazy.MerinoClient("QuickSuggest");
+    }
+
+    this.logger.debug("Fetching geolocation from Merino");
+    let results = await this.#merino.fetch({
+      providers: ["geolocation"],
+      query: "",
+    });
+
+    this.logger.debug(
+      "Got geolocation from Merino: " + JSON.stringify(results)
+    );
+    return results.length ? results[0].custom_details.geolocation : null;
+  }
+
+  /**
    * Called when a urlbar pref changes.
    *
    * @param {string} pref
@@ -523,6 +567,9 @@ class _QuickSuggest {
 
   // Maps from preference names to the `Set` of feature instances they enable.
   #featuresByEnablingPrefs = new Map();
+
+  // `MerinoClient`
+  #merino;
 }
 
 export const QuickSuggest = new _QuickSuggest();
