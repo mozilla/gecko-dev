@@ -12082,6 +12082,11 @@ nimbus_system:
       properties:
         is_first_run:
           type: boolean
+        event_query_values:
+          type: object
+          properties:
+            days_opened_in_last_28:
+              type: number
         # Campaign source of the install referrer response
         install_referrer_response_utm_source:
           type: string
