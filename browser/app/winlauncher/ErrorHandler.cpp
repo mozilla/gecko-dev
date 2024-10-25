@@ -305,7 +305,7 @@ static bool AddWscInfo(mozilla::JSONWriter& aJson) {
   const CLSID clsid = __uuidof(WSCProductList);
   const IID iid = __uuidof(IWSCProductList);
 
-  for (uint32_t index = 0; index < std::size(gProvKeys); ++index) {
+  for (uint32_t index = 0; index < mozilla::ArrayLength(gProvKeys); ++index) {
     // NB: A separate instance of IWSCProductList is needed for each distinct
     // security provider type; MSDN says that we cannot reuse the same object
     // and call Initialize() to pave over the previous data.
@@ -368,11 +368,11 @@ static bool AddModuleInfo(const nsAutoHandle& aSnapshot,
 
     wchar_t leaf[_MAX_FNAME] = {};
     if (::_wsplitpath_s(module.szExePath, nullptr, 0, nullptr, 0, leaf,
-                        std::size(leaf), nullptr, 0)) {
+                        mozilla::ArrayLength(leaf), nullptr, 0)) {
       return false;
     }
 
-    if (_wcslwr_s(leaf, std::size(leaf))) {
+    if (_wcslwr_s(leaf, mozilla::ArrayLength(leaf))) {
       return false;
     }
 
@@ -487,7 +487,8 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
   tm gmTm;
   if (!gmtime_s(&gmTm, &now)) {
     char isoTimeBuf[32] = {};
-    if (strftime(isoTimeBuf, std::size(isoTimeBuf), "%FT%T.000Z", &gmTm)) {
+    if (strftime(isoTimeBuf, mozilla::ArrayLength(isoTimeBuf), "%FT%T.000Z",
+                 &gmTm)) {
       aJson.StringProperty("creationDate", isoTimeBuf);
     }
   }
@@ -532,7 +533,7 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
 
   WCHAR localeName[LOCALE_NAME_MAX_LENGTH] = {};
   int localeNameLen =
-      ::GetUserDefaultLocaleName(localeName, std::size(localeName));
+      ::GetUserDefaultLocaleName(localeName, mozilla::ArrayLength(localeName));
   if (localeNameLen) {
     auto localeNameUtf8 = WideToUTF8(localeName, localeNameLen - 1);
     if (localeNameUtf8) {
@@ -646,19 +647,19 @@ static bool DoSendPing(const PingThreadContext& aContext) {
 
   wchar_t drive[_MAX_DRIVE] = {};
   wchar_t dir[_MAX_DIR] = {};
-  if (_wsplitpath_s(exePath.get(), drive, std::size(drive), dir, std::size(dir),
-                    nullptr, 0, nullptr, 0)) {
+  if (_wsplitpath_s(exePath.get(), drive, mozilla::ArrayLength(drive), dir,
+                    mozilla::ArrayLength(dir), nullptr, 0, nullptr, 0)) {
     return false;
   }
 
   wchar_t pingSenderPath[MAX_PATH + 1] = {};
-  if (_wmakepath_s(pingSenderPath, std::size(pingSenderPath), drive, dir,
-                   L"pingsender", L"exe")) {
+  if (_wmakepath_s(pingSenderPath, mozilla::ArrayLength(pingSenderPath), drive,
+                   dir, L"pingsender", L"exe")) {
     return false;
   }
 
   // Construct the telemetry URL
-  wchar_t urlBuf[std::size(kUrl) + kGuidCharLenNoBracesNoNul] = {};
+  wchar_t urlBuf[mozilla::ArrayLength(kUrl) + kGuidCharLenNoBracesNoNul] = {};
   if (wcscpy_s(urlBuf, kUrl)) {
     return false;
   }
@@ -671,8 +672,8 @@ static bool DoSendPing(const PingThreadContext& aContext) {
   wchar_t* pingSenderArgv[] = {pingSenderPath, urlBuf,
                                const_cast<wchar_t*>(fileName.c_str())};
 
-  mozilla::UniquePtr<wchar_t[]> pingSenderCmdLine(
-      mozilla::MakeCommandLine(std::size(pingSenderArgv), pingSenderArgv));
+  mozilla::UniquePtr<wchar_t[]> pingSenderCmdLine(mozilla::MakeCommandLine(
+      mozilla::ArrayLength(pingSenderArgv), pingSenderArgv));
 
   // Now start pingsender to handle the rest
   PROCESS_INFORMATION pi;

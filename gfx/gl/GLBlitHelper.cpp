@@ -724,7 +724,7 @@ GLBlitHelper::GLBlitHelper(GLContext* const gl)
         }                                                                    \n\
     ";
   const char* const parts[] = {mDrawBlitProg_VersionLine.get(), kVertSource};
-  mGL->fShaderSource(mDrawBlitProg_VertShader, std::size(parts), parts,
+  mGL->fShaderSource(mDrawBlitProg_VertShader, ArrayLength(parts), parts,
                      nullptr);
   mGL->fCompileShader(mDrawBlitProg_VertShader);
 }

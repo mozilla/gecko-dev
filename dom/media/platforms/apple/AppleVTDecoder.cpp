@@ -666,11 +666,11 @@ CFDictionaryRef AppleVTDecoder::CreateDecoderExtensions() {
                                                  : CFSTR("av1C");
   ;
   const void* atomsValue[] = {data};
-  static_assert(std::size(atomsKey) == std::size(atomsValue),
+  static_assert(ArrayLength(atomsKey) == ArrayLength(atomsValue),
                 "Non matching keys/values array size");
 
   AutoCFRelease<CFDictionaryRef> atoms = CFDictionaryCreate(
-      kCFAllocatorDefault, atomsKey, atomsValue, std::size(atomsKey),
+      kCFAllocatorDefault, atomsKey, atomsValue, ArrayLength(atomsKey),
       &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 
   const void* extensionKeys[] = {
@@ -680,11 +680,11 @@ CFDictionaryRef AppleVTDecoder::CreateDecoderExtensions() {
 
   const void* extensionValues[] = {kCVImageBufferChromaLocation_Left,
                                    kCVImageBufferChromaLocation_Left, atoms};
-  static_assert(std::size(extensionKeys) == std::size(extensionValues),
+  static_assert(ArrayLength(extensionKeys) == ArrayLength(extensionValues),
                 "Non matching keys/values array size");
 
   return CFDictionaryCreate(kCFAllocatorDefault, extensionKeys, extensionValues,
-                            std::size(extensionKeys),
+                            ArrayLength(extensionKeys),
                             &kCFTypeDictionaryKeyCallBacks,
                             &kCFTypeDictionaryValueCallBacks);
 }
@@ -699,12 +699,12 @@ CFDictionaryRef AppleVTDecoder::CreateDecoderSpecification() {
     // This GPU is blacklisted for hardware decoding.
     specValues[0] = kCFBooleanFalse;
   }
-  static_assert(std::size(specKeys) == std::size(specValues),
+  static_assert(ArrayLength(specKeys) == ArrayLength(specValues),
                 "Non matching keys/values array size");
 
-  return CFDictionaryCreate(kCFAllocatorDefault, specKeys, specValues,
-                            std::size(specKeys), &kCFTypeDictionaryKeyCallBacks,
-                            &kCFTypeDictionaryValueCallBacks);
+  return CFDictionaryCreate(
+      kCFAllocatorDefault, specKeys, specValues, ArrayLength(specKeys),
+      &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 }
 
 CFDictionaryRef AppleVTDecoder::CreateOutputConfiguration() {
@@ -715,11 +715,11 @@ CFDictionaryRef AppleVTDecoder::CreateOutputConfiguration() {
         kCFAllocatorDefault, kCFNumberSInt32Type, &PixelFormatTypeValue);
     const void* outputKeys[] = {kCVPixelBufferPixelFormatTypeKey};
     const void* outputValues[] = {PixelFormatTypeNumber};
-    static_assert(std::size(outputKeys) == std::size(outputValues),
+    static_assert(ArrayLength(outputKeys) == ArrayLength(outputValues),
                   "Non matching keys/values array size");
 
     return CFDictionaryCreate(
-        kCFAllocatorDefault, outputKeys, outputValues, std::size(outputKeys),
+        kCFAllocatorDefault, outputKeys, outputValues, ArrayLength(outputKeys),
         &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
   }
 
@@ -737,13 +737,13 @@ CFDictionaryRef AppleVTDecoder::CreateOutputConfiguration() {
   // Construct IOSurface Properties
   const void* IOSurfaceKeys[] = {kIOSurfaceIsGlobal};
   const void* IOSurfaceValues[] = {kCFBooleanTrue};
-  static_assert(std::size(IOSurfaceKeys) == std::size(IOSurfaceValues),
+  static_assert(ArrayLength(IOSurfaceKeys) == ArrayLength(IOSurfaceValues),
                 "Non matching keys/values array size");
 
   // Contruct output configuration.
   AutoCFRelease<CFDictionaryRef> IOSurfaceProperties = CFDictionaryCreate(
       kCFAllocatorDefault, IOSurfaceKeys, IOSurfaceValues,
-      std::size(IOSurfaceKeys), &kCFTypeDictionaryKeyCallBacks,
+      ArrayLength(IOSurfaceKeys), &kCFTypeDictionaryKeyCallBacks,
       &kCFTypeDictionaryValueCallBacks);
 
   const void* outputKeys[] = {kCVPixelBufferIOSurfacePropertiesKey,
@@ -751,11 +751,11 @@ CFDictionaryRef AppleVTDecoder::CreateOutputConfiguration() {
                               kCVPixelBufferOpenGLCompatibilityKey};
   const void* outputValues[] = {IOSurfaceProperties, PixelFormatTypeNumber,
                                 kCFBooleanTrue};
-  static_assert(std::size(outputKeys) == std::size(outputValues),
+  static_assert(ArrayLength(outputKeys) == ArrayLength(outputValues),
                 "Non matching keys/values array size");
 
   return CFDictionaryCreate(
-      kCFAllocatorDefault, outputKeys, outputValues, std::size(outputKeys),
+      kCFAllocatorDefault, outputKeys, outputValues, ArrayLength(outputKeys),
       &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 }
 

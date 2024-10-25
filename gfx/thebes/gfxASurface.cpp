@@ -340,7 +340,7 @@ static const SurfaceMemoryReporterAttrs sSurfaceMemoryReporterAttrs[] = {
     {"gfx-surface-subsurface", nullptr},
 };
 
-static_assert(std::size(sSurfaceMemoryReporterAttrs) ==
+static_assert(MOZ_ARRAY_LENGTH(sSurfaceMemoryReporterAttrs) ==
                   size_t(gfxSurfaceType::Max),
               "sSurfaceMemoryReporterAttrs exceeds max capacity");
 static_assert(uint32_t(CAIRO_SURFACE_TYPE_SKIA) ==
@@ -375,7 +375,7 @@ class SurfaceMemoryReporter final : public nsIMemoryReporter {
 
   NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
                             nsISupports* aData, bool aAnonymize) override {
-    const size_t len = std::size(sSurfaceMemoryReporterAttrs);
+    const size_t len = ArrayLength(sSurfaceMemoryReporterAttrs);
     for (size_t i = 0; i < len; i++) {
       int64_t amount = sSurfaceMemoryUsed[i];
 

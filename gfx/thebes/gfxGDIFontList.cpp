@@ -543,7 +543,7 @@ nsresult gfxGDIFontList::GetFontSubstitutes() {
 
   for (i = 0, rv = ERROR_SUCCESS; rv != ERROR_NO_MORE_ITEMS; i++) {
     aliasName[0] = 0;
-    lenAlias = std::size(aliasName);
+    lenAlias = ArrayLength(aliasName);
     actualName[0] = 0;
     lenActual = sizeof(actualName);
     rv = RegEnumValueW(hKey, i, aliasName, &lenAlias, nullptr, &valueType,

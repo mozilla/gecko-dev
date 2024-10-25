@@ -230,44 +230,44 @@ nsresult SVGFEConvolveMatrixElement::BindToTree(BindContext& aCtx,
 
 SVGElement::NumberAttributesInfo SVGFEConvolveMatrixElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              std::size(sNumberInfo));
+                              ArrayLength(sNumberInfo));
 }
 
 SVGElement::NumberPairAttributesInfo
 SVGFEConvolveMatrixElement::GetNumberPairInfo() {
   return NumberPairAttributesInfo(mNumberPairAttributes, sNumberPairInfo,
-                                  std::size(sNumberPairInfo));
+                                  ArrayLength(sNumberPairInfo));
 }
 
 SVGElement::IntegerAttributesInfo SVGFEConvolveMatrixElement::GetIntegerInfo() {
   return IntegerAttributesInfo(mIntegerAttributes, sIntegerInfo,
-                               std::size(sIntegerInfo));
+                               ArrayLength(sIntegerInfo));
 }
 
 SVGElement::IntegerPairAttributesInfo
 SVGFEConvolveMatrixElement::GetIntegerPairInfo() {
   return IntegerPairAttributesInfo(mIntegerPairAttributes, sIntegerPairInfo,
-                                   std::size(sIntegerPairInfo));
+                                   ArrayLength(sIntegerPairInfo));
 }
 
 SVGElement::BooleanAttributesInfo SVGFEConvolveMatrixElement::GetBooleanInfo() {
   return BooleanAttributesInfo(mBooleanAttributes, sBooleanInfo,
-                               std::size(sBooleanInfo));
+                               ArrayLength(sBooleanInfo));
 }
 
 SVGElement::EnumAttributesInfo SVGFEConvolveMatrixElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFEConvolveMatrixElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 SVGElement::NumberListAttributesInfo
 SVGFEConvolveMatrixElement::GetNumberListInfo() {
   return NumberListAttributesInfo(mNumberListAttributes, sNumberListInfo,
-                                  std::size(sNumberListInfo));
+                                  ArrayLength(sNumberListInfo));
 }
 
 }  // namespace mozilla::dom

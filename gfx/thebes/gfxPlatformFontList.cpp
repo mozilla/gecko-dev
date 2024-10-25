@@ -172,7 +172,7 @@ static const char* gPrefLangNames[] = {
 #undef FONT_PREF_LANG
 };
 
-static_assert(std::size(gPrefLangNames) == uint32_t(eFontPrefLang_Count),
+static_assert(MOZ_ARRAY_LENGTH(gPrefLangNames) == uint32_t(eFontPrefLang_Count),
               "size of pref lang name array doesn't match pref lang enum size");
 
 class gfxFontListPrefObserver final : public nsIObserver {
@@ -329,8 +329,8 @@ gfxPlatformFontList::gfxPlatformFontList(bool aNeedFullnamePostscriptNames)
   RegisterStrongMemoryReporter(new MemoryReporter());
 
   // initialize lang group pref font defaults (i.e. serif/sans-serif)
-  mDefaultGenericsLangGroup.AppendElements(std::size(gPrefLangNames));
-  for (uint32_t i = 0; i < std::size(gPrefLangNames); i++) {
+  mDefaultGenericsLangGroup.AppendElements(ArrayLength(gPrefLangNames));
+  for (uint32_t i = 0; i < ArrayLength(gPrefLangNames); i++) {
     nsAutoCString prefDefaultFontType("font.default.");
     prefDefaultFontType.Append(GetPrefLangName(eFontPrefLang(i)));
     nsAutoCString serifOrSans;
@@ -2203,7 +2203,7 @@ static nsAtom* PrefLangToLangGroups(uint32_t aIndex) {
 #undef FONT_PREF_LANG
   };
 
-  return aIndex < std::size(gPrefLangToLangGroups)
+  return aIndex < ArrayLength(gPrefLangToLangGroups)
              ? gPrefLangToLangGroups[aIndex]
              : nsGkAtoms::Unicode;
 }
@@ -2212,7 +2212,7 @@ eFontPrefLang gfxPlatformFontList::GetFontPrefLangFor(const char* aLang) {
   if (!aLang || !aLang[0]) {
     return eFontPrefLang_Others;
   }
-  for (uint32_t i = 0; i < std::size(gPrefLangNames); ++i) {
+  for (uint32_t i = 0; i < ArrayLength(gPrefLangNames); ++i) {
     if (!nsCRT::strcasecmp(gPrefLangNames[i], aLang)) {
       return eFontPrefLang(i);
     }
@@ -2242,7 +2242,7 @@ nsAtom* gfxPlatformFontList::GetLangGroupForPrefLang(eFontPrefLang aLang) {
 }
 
 const char* gfxPlatformFontList::GetPrefLangName(eFontPrefLang aLang) {
-  if (uint32_t(aLang) < std::size(gPrefLangNames)) {
+  if (uint32_t(aLang) < ArrayLength(gPrefLangNames)) {
     return gPrefLangNames[uint32_t(aLang)];
   }
   return nullptr;
@@ -2560,7 +2560,7 @@ StyleGenericFontFamily gfxPlatformFontList::GetDefaultGeneric(
 
   AutoLock lock(mLock);
 
-  if (uint32_t(aLang) < std::size(gPrefLangNames)) {
+  if (uint32_t(aLang) < ArrayLength(gPrefLangNames)) {
     return mDefaultGenericsLangGroup[uint32_t(aLang)];
   }
   return StyleGenericFontFamily::Serif;

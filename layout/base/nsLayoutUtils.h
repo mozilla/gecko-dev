@@ -1784,11 +1784,11 @@ class nsLayoutUtils {
                                      mozilla::StyleBorderStyle aBorderStyle) {
     if (aBorderStyle == mozilla::StyleBorderStyle::Dotted) {
       static Float dot[] = {1.f, 1.f};
-      aStrokeOptions.mDashLength = std::size(dot);
+      aStrokeOptions.mDashLength = MOZ_ARRAY_LENGTH(dot);
       aStrokeOptions.mDashPattern = dot;
     } else if (aBorderStyle == mozilla::StyleBorderStyle::Dashed) {
       static Float dash[] = {5.f, 5.f};
-      aStrokeOptions.mDashLength = std::size(dash);
+      aStrokeOptions.mDashLength = MOZ_ARRAY_LENGTH(dash);
       aStrokeOptions.mDashPattern = dash;
     } else {
       aStrokeOptions.mDashLength = 0;

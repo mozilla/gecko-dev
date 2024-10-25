@@ -685,7 +685,7 @@ static int32_t const ATTRIBUTE_HASHES_DATA[] = {
     2024763702, 2026741958, 2026975253, 2060302634, 2065170434, 2066743298,
     2075005220};
 staticJArray<int32_t, int32_t> nsHtml5AttributeName::ATTRIBUTE_HASHES = {
-    ATTRIBUTE_HASHES_DATA, std::size(ATTRIBUTE_HASHES_DATA)};
+    ATTRIBUTE_HASHES_DATA, MOZ_ARRAY_LENGTH(ATTRIBUTE_HASHES_DATA)};
 void nsHtml5AttributeName::initializeStatics() {
   ALL_NO_NS = new int32_t[3];
   ALL_NO_NS[0] = kNameSpaceID_None;

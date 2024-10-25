@@ -38,7 +38,7 @@ SVGClipPathElement::ClipPathUnits() {
 }
 
 SVGElement::EnumAttributesInfo SVGClipPathElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 bool SVGClipPathElement::IsUnitsObjectBoundingBox() const {

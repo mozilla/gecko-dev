@@ -105,12 +105,12 @@ nsresult SVGFEGaussianBlurElement::BindToTree(BindContext& aCtx,
 SVGElement::NumberPairAttributesInfo
 SVGFEGaussianBlurElement::GetNumberPairInfo() {
   return NumberPairAttributesInfo(mNumberPairAttributes, sNumberPairInfo,
-                                  std::size(sNumberPairInfo));
+                                  ArrayLength(sNumberPairInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFEGaussianBlurElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

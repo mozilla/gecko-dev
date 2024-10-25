@@ -3463,7 +3463,7 @@ class nsIFrame : public nsQueryFrame {
    * @see mozilla::LayoutFrameType
    */
   mozilla::LayoutFrameType Type() const {
-    MOZ_ASSERT(uint8_t(mClass) < std::size(sLayoutFrameTypes));
+    MOZ_ASSERT(uint8_t(mClass) < mozilla::ArrayLength(sLayoutFrameTypes));
     return sLayoutFrameTypes[uint8_t(mClass)];
   }
 
@@ -3476,7 +3476,7 @@ class nsIFrame : public nsQueryFrame {
    * @see mozilla::LayoutFrameType
    */
   ClassFlags GetClassFlags() const {
-    MOZ_ASSERT(uint8_t(mClass) < std::size(sLayoutFrameClassFlags));
+    MOZ_ASSERT(uint8_t(mClass) < mozilla::ArrayLength(sLayoutFrameClassFlags));
     return sLayoutFrameClassFlags[uint8_t(mClass)];
   }
 

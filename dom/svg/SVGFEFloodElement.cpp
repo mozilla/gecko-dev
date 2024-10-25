@@ -77,7 +77,7 @@ nsresult SVGFEFloodElement::BindToTree(BindContext& aCtx, nsINode& aParent) {
 
 SVGElement::StringAttributesInfo SVGFEFloodElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

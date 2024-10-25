@@ -388,7 +388,7 @@ bool ScrollbarDrawing::PaintScrollbarButton(
 
   const float kPolygonSize = 17;
 
-  const int32_t arrowNumPoints = std::size(arrowPolygonX);
+  const int32_t arrowNumPoints = ArrayLength(arrowPolygonX);
   switch (aAppearance) {
     case StyleAppearance::ScrollbarbuttonUp:
       break;

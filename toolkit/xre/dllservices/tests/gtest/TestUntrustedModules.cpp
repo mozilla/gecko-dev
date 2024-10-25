@@ -302,7 +302,7 @@ void UntrustedModulesFixture::ValidateUntrustedModules(
 
     size_t match;
     if (BinarySearchIf(
-            kKnownModules, 0, std::size(kKnownModules),
+            kKnownModules, 0, ArrayLength(kKnownModules),
             [&leafNameStr](const auto& aVal) {
               return _wcsicmp(leafNameStr.get(), aVal.mName);
             },
@@ -313,7 +313,7 @@ void UntrustedModulesFixture::ValidateUntrustedModules(
     }
 
     if (BinarySearchIf(
-            kTestModules, 0, std::size(kTestModules),
+            kTestModules, 0, ArrayLength(kTestModules),
             [&leafNameStr](const auto& aVal) {
               return _wcsicmp(leafNameStr.get(), aVal.get());
             },
@@ -431,7 +431,7 @@ TEST_F(UntrustedModulesFixture, Serialize) {
     backup1.Add(std::move(data3));
   }
 
-  ValidateJSValue(kPattern, std::size(kPattern) - 1, cx.GetJSContext(),
+  ValidateJSValue(kPattern, ArrayLength(kPattern) - 1, cx.GetJSContext(),
                   [&backup1, &backup2](
                       Telemetry::UntrustedModulesDataSerializer& aSerializer) {
                     EXPECT_NS_SUCCEEDED(aSerializer.Add(backup1));

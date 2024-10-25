@@ -79,7 +79,7 @@ class TempFile final {
  public:
   TempFile() : mFullPath{0} {
     wchar_t tempDir[MAX_PATH + 1];
-    DWORD len = ::GetTempPathW(std::size(tempDir), tempDir);
+    DWORD len = ::GetTempPathW(ArrayLength(tempDir), tempDir);
     if (!len) {
       return;
     }
@@ -537,7 +537,8 @@ class ChildProcess final {
   ChildProcess(const wchar_t* aExecutable, const wchar_t* aOption)
       : mProcessId(0) {
     const wchar_t* childArgv[] = {aExecutable, aOption};
-    auto cmdLine(mozilla::MakeCommandLine(std::size(childArgv), childArgv));
+    auto cmdLine(
+        mozilla::MakeCommandLine(mozilla::ArrayLength(childArgv), childArgv));
 
     STARTUPINFOW si = {sizeof(si)};
     PROCESS_INFORMATION pi;

@@ -487,7 +487,7 @@ uint32_t gfxGraphiteShaper::GetGraphiteTagForLang(const nsCString& aLang) {
 
   if (!sLanguageTags) {
     // store the registered IANA tags in a hash for convenient validation
-    sLanguageTags = new nsTHashSet<uint32_t>(std::size(sLanguageTagList));
+    sLanguageTags = new nsTHashSet<uint32_t>(ArrayLength(sLanguageTagList));
     for (const uint32_t* tag = sLanguageTagList; *tag != 0; ++tag) {
       sLanguageTags->Insert(*tag);
     }

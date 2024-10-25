@@ -6893,7 +6893,7 @@ def getJSToNativeConversionInfo(
             defaultCode = fill(
                 """
                 static const char data[] = { ${data} };
-                $${declName} = JS_NewStringCopyN(cx, data, std::size(data) - 1);
+                $${declName} = JS_NewStringCopyN(cx, data, ArrayLength(data) - 1);
                 if (!$${declName}) {
                     $*{exceptionCode}
                 }
@@ -12434,7 +12434,7 @@ class CGEnumToJSValue(CGAbstractMethod):
     def definition_body(self):
         return fill(
             """
-            MOZ_ASSERT(uint32_t(aArgument) < std::size(${strings}));
+            MOZ_ASSERT(uint32_t(aArgument) < ArrayLength(${strings}));
             JSString* resultStr =
               JS_NewStringCopyN(aCx, ${strings}[uint32_t(aArgument)].BeginReading(),
                                 ${strings}[uint32_t(aArgument)].Length());
@@ -12528,7 +12528,7 @@ class CGMaxContiguousEnumValue(CGThing):
 
               static_assert(static_cast<${ty}>(dom::${name}::${minValue}) == 0,
                             "We rely on this in ContiguousEnumValues");
-              static_assert(std::size(dom::binding_detail::EnumStrings<dom::${name}>::Values) - 1 == UnderlyingValue(value),
+              static_assert(mozilla::ArrayLength(dom::binding_detail::EnumStrings<dom::${name}>::Values) - 1 == UnderlyingValue(value),
                             "Mismatch between enum strings and enum count");
             };
             """,

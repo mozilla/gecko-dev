@@ -217,11 +217,11 @@ struct ComputedStyleMap {
    * or is currently disabled.
    */
   const Entry* FindEntryForProperty(nsCSSPropertyID aPropID) {
-    if (size_t(aPropID) >= std::size(kEntryIndices)) {
+    if (size_t(aPropID) >= ArrayLength(kEntryIndices)) {
       MOZ_ASSERT(aPropID == eCSSProperty_UNKNOWN);
       return nullptr;
     }
-    MOZ_ASSERT(kEntryIndices[aPropID] < std::size(kEntries));
+    MOZ_ASSERT(kEntryIndices[aPropID] < ArrayLength(kEntries));
     const auto& entry = kEntries[kEntryIndices[aPropID]];
     if (!entry.IsEnabled()) {
       return nullptr;
@@ -250,7 +250,7 @@ struct ComputedStyleMap {
   /**
    * A map of indexes on the nsComputedDOMStyle object to indexes into kEntries.
    */
-  uint32_t mIndexMap[std::size(kEntries)];
+  uint32_t mIndexMap[ArrayLength(kEntries)];
 
  private:
   /**
@@ -274,9 +274,9 @@ struct ComputedStyleMap {
 };
 
 constexpr ComputedStyleMap::Entry
-    ComputedStyleMap::kEntries[std::size(kEntries)];
+    ComputedStyleMap::kEntries[ArrayLength(kEntries)];
 
-constexpr size_t ComputedStyleMap::kEntryIndices[std::size(kEntries)];
+constexpr size_t ComputedStyleMap::kEntryIndices[ArrayLength(kEntries)];
 
 void ComputedStyleMap::Update() {
   if (!IsDirty()) {
@@ -284,7 +284,7 @@ void ComputedStyleMap::Update() {
   }
 
   uint32_t index = 0;
-  for (uint32_t i = 0; i < std::size(kEntries); i++) {
+  for (uint32_t i = 0; i < ArrayLength(kEntries); i++) {
     if (kEntries[i].IsEnumerable()) {
       mIndexMap[index++] = i;
     }

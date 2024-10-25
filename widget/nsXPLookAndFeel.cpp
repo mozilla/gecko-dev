@@ -194,7 +194,7 @@ static const char sIntPrefs[][45] = {
     "ui.fullKeyboardAccess",
 };
 
-static_assert(std::size(sIntPrefs) == size_t(LookAndFeel::IntID::End),
+static_assert(ArrayLength(sIntPrefs) == size_t(LookAndFeel::IntID::End),
               "Should have a pref for each int value");
 
 // This array MUST be kept in the same order as the float id list in
@@ -209,7 +209,7 @@ static const char sFloatPrefs[][37] = {
 };
 // clang-format on
 
-static_assert(std::size(sFloatPrefs) == size_t(LookAndFeel::FloatID::End),
+static_assert(ArrayLength(sFloatPrefs) == size_t(LookAndFeel::FloatID::End),
               "Should have a pref for each float value");
 
 // This array MUST be kept in the same order as the color list in
@@ -322,7 +322,7 @@ static const char sColorPrefs[][41] = {
     "ui.themedScrollbarThumbInactive",
 };
 
-static_assert(std::size(sColorPrefs) == size_t(LookAndFeel::ColorID::End),
+static_assert(ArrayLength(sColorPrefs) == size_t(LookAndFeel::ColorID::End),
               "Should have a pref for each color value");
 
 // This array MUST be kept in the same order as the SystemFont enum.
@@ -339,7 +339,7 @@ static const char sFontPrefs[][41] = {
     "ui.font.-moz-field",
 };
 
-static_assert(std::size(sFontPrefs) == size_t(LookAndFeel::FontID::End),
+static_assert(ArrayLength(sFontPrefs) == size_t(LookAndFeel::FontID::End),
               "Should have a pref for each font value");
 
 const char* nsXPLookAndFeel::GetColorPrefName(ColorID aId) {

@@ -560,10 +560,11 @@ Result CertVerifier::VerifyCert(
       KeySizeStatus keySizeStatuses[] = {KeySizeStatus::LargeMinimumSucceeded,
                                          KeySizeStatus::CompatibilityRisk};
 
-      static_assert(std::size(keySizeOptions) == std::size(keySizeStatuses),
-                    "keySize array lengths differ");
+      static_assert(
+          MOZ_ARRAY_LENGTH(keySizeOptions) == MOZ_ARRAY_LENGTH(keySizeStatuses),
+          "keySize array lengths differ");
 
-      size_t keySizeOptionsCount = std::size(keySizeStatuses);
+      size_t keySizeOptionsCount = MOZ_ARRAY_LENGTH(keySizeStatuses);
 
       for (size_t i = 0; i < keySizeOptionsCount && rv != Success; i++) {
         // invalidate any telemetry info relating to failed chains

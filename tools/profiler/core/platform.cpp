@@ -5746,7 +5746,7 @@ void profiler_start_from_signal() {
       // start the profiler in content/child processes.
       profiler_start(PROFILER_DEFAULT_SIGHANDLE_ENTRIES,
                      PROFILER_DEFAULT_INTERVAL, features, filters,
-                     std::size(filters), 0);
+                     MOZ_ARRAY_LENGTH(filters), 0);
     } else {
       // Directly start the profiler on this thread. We know we're not the main
       // thread here, so this will not start the profiler in child processes,
@@ -5754,15 +5754,16 @@ void profiler_start_from_signal() {
       // stuck.
       profiler_start(PROFILER_DEFAULT_SIGHANDLE_ENTRIES,
                      PROFILER_DEFAULT_INTERVAL, features, filters,
-                     std::size(filters), 0);
+                     MOZ_ARRAY_LENGTH(filters), 0);
       // Now also try and start the profiler from the main thread, so that the
       // ParentProfiler will start child threads.
       NS_DispatchToMainThread(
           NS_NewRunnableFunction("StartProfilerInChildProcesses", [=] {
-            Unused << NotifyProfilerStarted(
-                PROFILER_DEFAULT_SIGHANDLE_ENTRIES, Nothing(),
-                PROFILER_DEFAULT_INTERVAL, features,
-                const_cast<const char**>(filters), std::size(filters), 0);
+            Unused << NotifyProfilerStarted(PROFILER_DEFAULT_SIGHANDLE_ENTRIES,
+                                            Nothing(),
+                                            PROFILER_DEFAULT_INTERVAL, features,
+                                            const_cast<const char**>(filters),
+                                            MOZ_ARRAY_LENGTH(filters), 0);
           }));
     }
   }

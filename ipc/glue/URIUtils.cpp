@@ -25,6 +25,7 @@
 #include "nsIURIMutator.h"
 
 using namespace mozilla::ipc;
+using mozilla::ArrayLength;
 
 namespace {
 

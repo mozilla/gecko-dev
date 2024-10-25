@@ -102,16 +102,16 @@ bool SVGFilterElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGFilterElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 SVGElement::EnumAttributesInfo SVGFilterElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFilterElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

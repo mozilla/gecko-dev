@@ -41,11 +41,11 @@ static CFDictionaryRef BuildEncoderSpec(const bool aHardwareNotAllowed,
           kVTVideoEncoderSpecification_EnableLowLatencyRateControl};
       const void* values[] = {kCFBooleanTrue, kCFBooleanTrue};
 
-      static_assert(std::size(keys) == std::size(values),
+      static_assert(ArrayLength(keys) == ArrayLength(values),
                     "Non matching keys/values array size");
-      return CFDictionaryCreate(kCFAllocatorDefault, keys, values,
-                                std::size(keys), &kCFTypeDictionaryKeyCallBacks,
-                                &kCFTypeDictionaryValueCallBacks);
+      return CFDictionaryCreate(
+          kCFAllocatorDefault, keys, values, ArrayLength(keys),
+          &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
     }
   }
   const void* keys[] = {
@@ -53,10 +53,10 @@ static CFDictionaryRef BuildEncoderSpec(const bool aHardwareNotAllowed,
   const void* values[] = {aHardwareNotAllowed ? kCFBooleanFalse
                                               : kCFBooleanTrue};
 
-  static_assert(std::size(keys) == std::size(values),
+  static_assert(ArrayLength(keys) == ArrayLength(values),
                 "Non matching keys/values array size");
-  return CFDictionaryCreate(kCFAllocatorDefault, keys, values, std::size(keys),
-                            &kCFTypeDictionaryKeyCallBacks,
+  return CFDictionaryCreate(kCFAllocatorDefault, keys, values,
+                            ArrayLength(keys), &kCFTypeDictionaryKeyCallBacks,
                             &kCFTypeDictionaryValueCallBacks);
 }
 
@@ -360,11 +360,11 @@ CFDictionaryRef AppleVTEncoder::BuildSourceImageBufferAttributes() {
       CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &fmt));
   const void* values[] = {kCFBooleanTrue, ioSurfaceProps, pixelFormat};
 
-  MOZ_ASSERT(std::size(keys) == std::size(values),
+  MOZ_ASSERT(ArrayLength(keys) == ArrayLength(values),
              "Non matching keys/values array size");
 
-  return CFDictionaryCreate(kCFAllocatorDefault, keys, values, std::size(keys),
-                            &kCFTypeDictionaryKeyCallBacks,
+  return CFDictionaryCreate(kCFAllocatorDefault, keys, values,
+                            ArrayLength(keys), &kCFTypeDictionaryKeyCallBacks,
                             &kCFTypeDictionaryValueCallBacks);
 }
 
@@ -636,9 +636,9 @@ RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessEncode(
   if (aSample->mKeyframe) {
     CFTypeRef keys[] = {kVTEncodeFrameOptionKey_ForceKeyFrame};
     CFTypeRef values[] = {kCFBooleanTrue};
-    MOZ_ASSERT(std::size(keys) == std::size(values));
+    MOZ_ASSERT(ArrayLength(keys) == ArrayLength(values));
     frameProps = CFDictionaryCreate(
-        kCFAllocatorDefault, keys, values, std::size(keys),
+        kCFAllocatorDefault, keys, values, ArrayLength(keys),
         &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
   };
 

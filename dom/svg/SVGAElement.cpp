@@ -253,7 +253,7 @@ void SVGAElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
 
 SVGElement::StringAttributesInfo SVGAElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 void SVGAElement::DidAnimateAttribute(int32_t aNameSpaceID,

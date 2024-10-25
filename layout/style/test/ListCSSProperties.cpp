@@ -112,7 +112,7 @@ const char* gInaccessibleProperties[] = {
 };
 
 inline int is_inaccessible(const char* aPropName) {
-  for (unsigned j = 0; j < std::size(gInaccessibleProperties); ++j) {
+  for (unsigned j = 0; j < MOZ_ARRAY_LENGTH(gInaccessibleProperties); ++j) {
     if (strcmp(aPropName, gInaccessibleProperties[j]) == 0) return 1;
   }
   return 0;
@@ -167,10 +167,12 @@ void print_array(const char* aName, const PropertyInfo* aProps,
 
 int main() {
   print_array("gLonghandProperties", gLonghandProperties,
-              std::size(gLonghandProperties), gLonghandPropertiesWithDOMProp,
-              std::size(gLonghandPropertiesWithDOMProp));
+              MOZ_ARRAY_LENGTH(gLonghandProperties),
+              gLonghandPropertiesWithDOMProp,
+              MOZ_ARRAY_LENGTH(gLonghandPropertiesWithDOMProp));
   print_array("gShorthandProperties", gShorthandProperties,
-              std::size(gShorthandProperties), gShorthandPropertiesWithDOMProp,
-              std::size(gShorthandPropertiesWithDOMProp));
+              MOZ_ARRAY_LENGTH(gShorthandProperties),
+              gShorthandPropertiesWithDOMProp,
+              MOZ_ARRAY_LENGTH(gShorthandPropertiesWithDOMProp));
   return 0;
 }

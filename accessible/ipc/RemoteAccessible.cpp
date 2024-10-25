@@ -1234,7 +1234,7 @@ nsTArray<bool> RemoteAccessible::PreProcessRelations(AccAttributes* aFields) {
   if (!DomainsAreActive(CacheDomain::Relations)) {
     return {};
   }
-  nsTArray<bool> updateTracker(std::size(kRelationTypeAtoms));
+  nsTArray<bool> updateTracker(ArrayLength(kRelationTypeAtoms));
   for (auto const& data : kRelationTypeAtoms) {
     if (data.mValidTag) {
       // The relation we're currently processing only applies to particular
@@ -1310,7 +1310,7 @@ void RemoteAccessible::PostProcessRelations(const nsTArray<bool>& aToUpdate) {
     return;
   }
   size_t updateCount = aToUpdate.Length();
-  MOZ_ASSERT(updateCount == std::size(kRelationTypeAtoms),
+  MOZ_ASSERT(updateCount == ArrayLength(kRelationTypeAtoms),
              "Did not note update status for every relation type!");
   for (size_t i = 0; i < updateCount; i++) {
     if (aToUpdate.ElementAt(i)) {

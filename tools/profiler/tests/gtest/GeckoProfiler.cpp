@@ -1612,7 +1612,7 @@ TEST(GeckoProfiler, FeaturesAndParams)
 
 #  define PROFILER_DEFAULT_DURATION 20 /* seconds, for tests only */
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                   features, filters, std::size(filters), 100,
+                   features, filters, MOZ_ARRAY_LENGTH(filters), 100,
                    Some(PROFILER_DEFAULT_DURATION));
 
     ASSERT_TRUE(profiler_is_active());
@@ -1621,7 +1621,8 @@ TEST(GeckoProfiler, FeaturesAndParams)
 
     ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
                       PROFILER_DEFAULT_INTERVAL, features, filters,
-                      std::size(filters), 100, Some(PROFILER_DEFAULT_DURATION));
+                      MOZ_ARRAY_LENGTH(filters), 100,
+                      Some(PROFILER_DEFAULT_DURATION));
 
     profiler_stop();
 
@@ -1637,14 +1638,14 @@ TEST(GeckoProfiler, FeaturesAndParams)
     // Testing with some arbitrary buffer size (as could be provided by
     // external code), which we convert to the appropriate power of 2.
     profiler_start(PowerOfTwo32(999999), 3, features, filters,
-                   std::size(filters), 123, Some(25.0));
+                   MOZ_ARRAY_LENGTH(filters), 123, Some(25.0));
 
     ASSERT_TRUE(profiler_is_active());
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::MainThreadIO));
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::IPCMessages));
 
     ActiveParamsCheck(int(PowerOfTwo32(999999).Value()), 3, features, filters,
-                      std::size(filters), 123, Some(25.0));
+                      MOZ_ARRAY_LENGTH(filters), 123, Some(25.0));
 
     profiler_stop();
 
@@ -1658,14 +1659,14 @@ TEST(GeckoProfiler, FeaturesAndParams)
     const char* filters[] = {"GeckoMain", "Foo", "Bar"};
 
     profiler_start(PowerOfTwo32(999999), 3, features, filters,
-                   std::size(filters), 0, Nothing());
+                   MOZ_ARRAY_LENGTH(filters), 0, Nothing());
 
     ASSERT_TRUE(profiler_is_active());
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::MainThreadIO));
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::IPCMessages));
 
     ActiveParamsCheck(int(PowerOfTwo32(999999).Value()), 3, features, filters,
-                      std::size(filters), 0, Nothing());
+                      MOZ_ARRAY_LENGTH(filters), 0, Nothing());
 
     profiler_stop();
 
@@ -1681,14 +1682,14 @@ TEST(GeckoProfiler, FeaturesAndParams)
     availableFeatures &= ~ProfilerFeature::Tracing;
 
     profiler_start(PowerOfTwo32(88888), 10, availableFeatures, filters,
-                   std::size(filters), 0, Some(15.0));
+                   MOZ_ARRAY_LENGTH(filters), 0, Some(15.0));
 
     ASSERT_TRUE(profiler_is_active());
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::MainThreadIO));
     ASSERT_TRUE(profiler_feature_active(ProfilerFeature::IPCMessages));
 
     ActiveParamsCheck(PowerOfTwo32(88888).Value(), 10, availableFeatures,
-                      filters, std::size(filters), 0, Some(15.0));
+                      filters, MOZ_ARRAY_LENGTH(filters), 0, Some(15.0));
 
     // Don't call profiler_stop() here.
   }
@@ -1700,8 +1701,8 @@ TEST(GeckoProfiler, FeaturesAndParams)
 
     // Second profiler_start() call in a row without an intervening
     // profiler_stop(); this will do an implicit profiler_stop() and restart.
-    profiler_start(PowerOfTwo32(0), 0, features, filters, std::size(filters), 0,
-                   Some(0.0));
+    profiler_start(PowerOfTwo32(0), 0, features, filters,
+                   MOZ_ARRAY_LENGTH(filters), 0, Some(0.0));
 
     ASSERT_TRUE(profiler_is_active());
     ASSERT_TRUE(!profiler_feature_active(ProfilerFeature::MainThreadIO));
@@ -1710,7 +1711,7 @@ TEST(GeckoProfiler, FeaturesAndParams)
     // Entries and intervals go to defaults if 0 is specified.
     ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
                       PROFILER_DEFAULT_INTERVAL, features, filters,
-                      std::size(filters), 0, Nothing());
+                      MOZ_ARRAY_LENGTH(filters), 0, Nothing());
 
     profiler_stop();
 
@@ -1733,12 +1734,12 @@ TEST(GeckoProfiler, EnsureStarted)
   {
     // Inactive -> Active
     profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                            features, filters, std::size(filters), 0,
+                            features, filters, MOZ_ARRAY_LENGTH(filters), 0,
                             Some(PROFILER_DEFAULT_DURATION));
 
-    ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
-                      PROFILER_DEFAULT_INTERVAL, features, filters,
-                      std::size(filters), 0, Some(PROFILER_DEFAULT_DURATION));
+    ActiveParamsCheck(
+        PROFILER_DEFAULT_ENTRIES.Value(), PROFILER_DEFAULT_INTERVAL, features,
+        filters, MOZ_ARRAY_LENGTH(filters), 0, Some(PROFILER_DEFAULT_DURATION));
   }
 
   {
@@ -1756,12 +1757,12 @@ TEST(GeckoProfiler, EnsureStarted)
     // Call profiler_ensure_started with the same settings as before.
     // This operation must not clear our buffer!
     profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                            features, filters, std::size(filters), 0,
+                            features, filters, MOZ_ARRAY_LENGTH(filters), 0,
                             Some(PROFILER_DEFAULT_DURATION));
 
-    ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
-                      PROFILER_DEFAULT_INTERVAL, features, filters,
-                      std::size(filters), 0, Some(PROFILER_DEFAULT_DURATION));
+    ActiveParamsCheck(
+        PROFILER_DEFAULT_ENTRIES.Value(), PROFILER_DEFAULT_INTERVAL, features,
+        filters, MOZ_ARRAY_LENGTH(filters), 0, Some(PROFILER_DEFAULT_DURATION));
 
     // Check that our position in the buffer stayed the same or advanced, but
     // not by much, and the range-start after profiler_ensure_started shouldn't
@@ -1783,11 +1784,12 @@ TEST(GeckoProfiler, EnsureStarted)
     // profiler, thereby discarding the buffer contents.
     uint32_t differentFeatures = features | ProfilerFeature::CPUUtilization;
     profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                            differentFeatures, filters, std::size(filters), 0);
+                            differentFeatures, filters,
+                            MOZ_ARRAY_LENGTH(filters), 0);
 
     ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
                       PROFILER_DEFAULT_INTERVAL, differentFeatures, filters,
-                      std::size(filters), 0);
+                      MOZ_ARRAY_LENGTH(filters), 0);
 
     // Check the the buffer was cleared, so its range-start should be at/after
     // its range-end before.
@@ -1874,7 +1876,7 @@ TEST(GeckoProfiler, DifferentThreads)
             "GeckoProfiler_DifferentThreads_Test::TestBody", [&]() {
               profiler_start(PROFILER_DEFAULT_ENTRIES,
                              PROFILER_DEFAULT_INTERVAL, features, filters,
-                             std::size(filters), 0);
+                             MOZ_ARRAY_LENGTH(filters), 0);
             }));
 
     ASSERT_TRUE(profiler_is_active());
@@ -1883,7 +1885,7 @@ TEST(GeckoProfiler, DifferentThreads)
 
     ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
                       PROFILER_DEFAULT_INTERVAL, features, filters,
-                      std::size(filters), 0);
+                      MOZ_ARRAY_LENGTH(filters), 0);
 
     NS_DispatchAndSpinEventLoopUntilComplete(
         "GeckoProfiler_DifferentThreads_Test::TestBody"_ns, thread,
@@ -1900,7 +1902,7 @@ TEST(GeckoProfiler, DifferentThreads)
     const char* filters[] = {"GeckoMain", "Compositor"};
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                   features, filters, std::size(filters), 0);
+                   features, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
     NS_DispatchAndSpinEventLoopUntilComplete(
         "GeckoProfiler_DifferentThreads_Test::TestBody"_ns, thread,
@@ -1914,7 +1916,7 @@ TEST(GeckoProfiler, DifferentThreads)
 
               ActiveParamsCheck(PROFILER_DEFAULT_ENTRIES.Value(),
                                 PROFILER_DEFAULT_INTERVAL, features, filters,
-                                std::size(filters), 0);
+                                MOZ_ARRAY_LENGTH(filters), 0);
             }));
 
     profiler_stop();
@@ -1937,7 +1939,7 @@ TEST(GeckoProfiler, GetBacktrace)
     const char* filters[] = {"GeckoMain"};
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                   features, filters, std::size(filters), 0);
+                   features, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
     // These will be destroyed while the profiler is active.
     static const int N = 100;
@@ -2026,7 +2028,7 @@ TEST(GeckoProfiler, Pause)
   }}.join();
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   ASSERT_TRUE(!profiler_is_paused());
   for (ThreadProfilingFeatures features : scEachAndAnyThreadProfilingFeatures) {
@@ -2289,7 +2291,7 @@ TEST(GeckoProfiler, Markers)
   const char* filters[] = {"GeckoMain"};
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   PROFILER_MARKER("tracing event", OTHER, {}, Tracing, "A");
   PROFILER_MARKER("tracing start", OTHER, MarkerTiming::IntervalStart(),
@@ -3514,7 +3516,7 @@ TEST(GeckoProfiler, Markers)
 
   // Warning: this could be racy
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   // This last marker shouldn't get streamed.
   SpliceableChunkedJSONWriter w2{FailureLatchInfallibleSource::Singleton()};
@@ -3556,13 +3558,14 @@ TEST(GeckoProfiler, Counters)
   NumberAndCount expectedTestCounters[] = {{1u, 10}, {0u, 0}, {1u, 7},
                                            {0u, 0},  {0u, 0}, {1u, -17},
                                            {0u, 0},  {0u, 0}};
-  constexpr size_t expectedTestCountersCount = std::size(expectedTestCounters);
+  constexpr size_t expectedTestCountersCount =
+      MOZ_ARRAY_LENGTH(expectedTestCounters);
 
   bool expectCounter2 = false;
   int64_t testCounters2[] = {10};
   NumberAndCount expectedTestCounters2[] = {{1u, 10}, {0u, 0}};
   constexpr size_t expectedTestCounters2Count =
-      std::size(expectedTestCounters2);
+      MOZ_ARRAY_LENGTH(expectedTestCounters2);
 
   auto checkCountersInJSON = [&](const Json::Value& aRoot) {
     size_t nextExpectedTestCounter = 0u;
@@ -3623,7 +3626,7 @@ TEST(GeckoProfiler, Counters)
 
   // Inactive -> Active
   profiler_ensure_started(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                          features, filters, std::size(filters), 0);
+                          features, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   // Output all "TestCounter"s, with increasing delays (to test different
   // number of counter samplings).
@@ -3666,7 +3669,7 @@ TEST(GeckoProfiler, Time)
 
   // profiler_start() restarts the timer used by profiler_time().
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   double t3 = profiler_time();
   double t4 = profiler_time();
@@ -3687,7 +3690,7 @@ TEST(GeckoProfiler, GetProfile)
   ASSERT_TRUE(!profiler_get_profile());
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   mozilla::Maybe<uint32_t> activeFeatures = profiler_features_if_active();
   ASSERT_TRUE(activeFeatures.isSome());
@@ -3750,7 +3753,7 @@ TEST(GeckoProfiler, StreamJSONForThisProcess)
   MOZ_RELEASE_ASSERT(!w.GetFailure());
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   w.Start();
   ASSERT_TRUE(::profiler_stream_json_for_this_process(w).isOk());
@@ -3814,7 +3817,7 @@ TEST(GeckoProfiler, StreamJSONForThisProcessThreaded)
 
   // Start the profiler on the main thread.
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   // Call profiler_stream_json_for_this_process on a background thread.
   NS_DispatchAndSpinEventLoopUntilComplete(
@@ -3880,7 +3883,7 @@ TEST(GeckoProfiler, ProfilingStack)
         "A::C3", JS, NS_ConvertUTF8toUTF16(dynamic.get()));
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                   features, filters, std::size(filters), 0);
+                   features, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
     ASSERT_TRUE(profiler_get_backtrace());
   }
@@ -3902,14 +3905,14 @@ TEST(GeckoProfiler, Bug1355807)
   const char* fewThreadsFilter[] = {"GeckoMain"};
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 manyThreadsFilter, std::size(manyThreadsFilter), 0);
+                 manyThreadsFilter, MOZ_ARRAY_LENGTH(manyThreadsFilter), 0);
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 fewThreadsFilter, std::size(fewThreadsFilter), 0);
+                 fewThreadsFilter, MOZ_ARRAY_LENGTH(fewThreadsFilter), 0);
 
   // In bug 1355807 this caused an assertion failure in StopJSSampling().
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 fewThreadsFilter, std::size(fewThreadsFilter), 0);
+                 fewThreadsFilter, MOZ_ARRAY_LENGTH(fewThreadsFilter), 0);
 
   profiler_stop();
 }
@@ -3972,7 +3975,7 @@ TEST(GeckoProfiler, SuspendAndSample)
   const char* filters[] = {"GeckoMain", "Compositor"};
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   ASSERT_TRUE(profiler_is_active());
 
@@ -3995,7 +3998,8 @@ TEST(GeckoProfiler, PostSamplingCallback)
       [&](SamplingState) { ASSERT_TRUE(false); }));
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                 ProfilerFeature::StackWalk, filters, std::size(filters), 0);
+                 ProfilerFeature::StackWalk, filters, MOZ_ARRAY_LENGTH(filters),
+                 0);
   {
     // Stack sampling -> This label should appear at least once.
     AUTO_PROFILER_LABEL("PostSamplingCallback completed", OTHER);
@@ -4044,7 +4048,7 @@ TEST(GeckoProfiler, PostSamplingCallback)
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
                  ProfilerFeature::StackWalk | ProfilerFeature::NoStackSampling,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
   {
     // No stack sampling -> This label should not appear.
     AUTO_PROFILER_LABEL("PostSamplingCallback completed (no stacks)", OTHER);
@@ -4108,7 +4112,8 @@ TEST(GeckoProfiler, ProfilingStateCallback)
   CheckStatesIsEmpty();
 
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                 ProfilerFeature::StackWalk, filters, std::size(filters), 0);
+                 ProfilerFeature::StackWalk, filters, MOZ_ARRAY_LENGTH(filters),
+                 0);
 
   CheckStatesOnlyContains(ProfilingState::Started, 1);
 
@@ -4147,7 +4152,7 @@ TEST(GeckoProfiler, ProfilingStateCallback)
   // ProfilingState::Stopping is not notified. See `profiler_start` for details.
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
                  ProfilerFeature::StackWalk | ProfilerFeature::NoStackSampling,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
   CheckStatesOnlyContains(ProfilingState::Started, 1);
   ASSERT_EQ(WaitForSamplingState(), SamplingState::NoStackSamplingCompleted);
   UniquePtr<char[]> profileNoStacks = profiler_get_profile();
@@ -4178,7 +4183,7 @@ TEST(GeckoProfiler, BaseProfilerHandOff)
   // Start the Base Profiler.
   baseprofiler::profiler_start(
       PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-      ProfilerFeature::StackWalk, filters, std::size(filters));
+      ProfilerFeature::StackWalk, filters, MOZ_ARRAY_LENGTH(filters));
 
   ASSERT_TRUE(baseprofiler::profiler_is_active());
   ASSERT_TRUE(!profiler_is_active());
@@ -4196,7 +4201,8 @@ TEST(GeckoProfiler, BaseProfilerHandOff)
   // Start the Gecko Profiler, which should grab the Base Profiler profile and
   // stop it.
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                 ProfilerFeature::StackWalk, filters, std::size(filters), 0);
+                 ProfilerFeature::StackWalk, filters, MOZ_ARRAY_LENGTH(filters),
+                 0);
 
   ASSERT_TRUE(!baseprofiler::profiler_is_active());
   ASSERT_TRUE(profiler_is_active());
@@ -4282,7 +4288,7 @@ TEST(GeckoProfiler, FeatureCombinations)
                             ProfilerFeature::SamplingAllThreads,
                             ProfilerFeature::MarkersAllThreads,
                             ProfilerFeature::UnregisteredThreads};
-  constexpr uint32_t featureCount = uint32_t(std::size(featureList));
+  constexpr uint32_t featureCount = uint32_t(MOZ_ARRAY_LENGTH(featureList));
 
   auto testFeatures = [&](uint32_t features,
                           const std::string& featuresString) {
@@ -4291,7 +4297,7 @@ TEST(GeckoProfiler, FeatureCombinations)
     ASSERT_TRUE(!profiler_is_active());
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                   features, filters, std::size(filters), 0);
+                   features, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
     ASSERT_TRUE(profiler_is_active());
 
@@ -4434,7 +4440,7 @@ TEST(GeckoProfiler, CPUUsage)
         PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
         ProfilerFeature::StackWalk | ProfilerFeature::CPUUtilization |
             (testWithNoStackSampling ? ProfilerFeature::NoStackSampling : 0),
-        filters, std::size(filters), 0);
+        filters, MOZ_ARRAY_LENGTH(filters), 0);
     // Grab a few samples, each with a different label on the stack.
 #  define SAMPLE_LABEL_PREFIX "CPUUsage sample label "
     static constexpr const char* scSampleLabels[] = {
@@ -4686,7 +4692,7 @@ TEST(GeckoProfiler, AllThreads)
     EXPECT_FALSE(profiler_thread_is_being_profiled_for_markers());
 
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                   features, filters, std::size(filters), 0);
+                   features, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
     EXPECT_TRUE(profiler_thread_is_being_profiled(
         ThreadProfilingFeatures::CPUUtilization));
@@ -4875,7 +4881,7 @@ TEST(GeckoProfiler, FailureHandling)
   uint32_t features = ProfilerFeature::StackWalk;
   const char* filters[] = {"GeckoMain"};
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   ASSERT_EQ(WaitForSamplingState(), SamplingState::SamplingCompleted);
 
@@ -4947,7 +4953,7 @@ TEST(GeckoProfiler, NoMarkerStacks)
     // Start the profiler without the NoMarkerStacks feature and make sure we
     // capture stacks.
     profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
-                   /* features */ 0, filters, std::size(filters), 0);
+                   /* features */ 0, filters, MOZ_ARRAY_LENGTH(filters), 0);
 
     ASSERT_TRUE(profiler_capture_backtrace());
     profiler_stop();
@@ -4956,7 +4962,7 @@ TEST(GeckoProfiler, NoMarkerStacks)
   // Start the profiler without the NoMarkerStacks feature and make sure we
   // don't capture stacks.
   profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL, features,
-                 filters, std::size(filters), 0);
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
 
   // Make sure that the active features has the NoMarkerStacks feature.
   mozilla::Maybe<uint32_t> activeFeatures = profiler_features_if_active();

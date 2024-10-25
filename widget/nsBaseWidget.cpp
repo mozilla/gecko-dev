@@ -3353,7 +3353,7 @@ static PrefPair debug_PrefValues[] = {
 bool nsBaseWidget::debug_GetCachedBoolPref(const char* aPrefName) {
   NS_ASSERTION(nullptr != aPrefName, "cmon, pref name is null.");
 
-  for (uint32_t i = 0; i < std::size(debug_PrefValues); i++) {
+  for (uint32_t i = 0; i < ArrayLength(debug_PrefValues); i++) {
     if (strcmp(debug_PrefValues[i].name, aPrefName) == 0) {
       return debug_PrefValues[i].value;
     }
@@ -3365,7 +3365,7 @@ bool nsBaseWidget::debug_GetCachedBoolPref(const char* aPrefName) {
 static void debug_SetCachedBoolPref(const char* aPrefName, bool aValue) {
   NS_ASSERTION(nullptr != aPrefName, "cmon, pref name is null.");
 
-  for (uint32_t i = 0; i < std::size(debug_PrefValues); i++) {
+  for (uint32_t i = 0; i < ArrayLength(debug_PrefValues); i++) {
     if (strcmp(debug_PrefValues[i].name, aPrefName) == 0) {
       debug_PrefValues[i].value = aValue;
 
@@ -3408,7 +3408,7 @@ Debug_PrefObserver::Observe(nsISupports* subject, const char* topic,
   once = false;
 
   nsCOMPtr<nsIObserver> obs(new Debug_PrefObserver());
-  for (uint32_t i = 0; i < std::size(debug_PrefValues); i++) {
+  for (uint32_t i = 0; i < ArrayLength(debug_PrefValues); i++) {
     // Initialize the pref values
     debug_PrefValues[i].value =
         Preferences::GetBool(debug_PrefValues[i].name, false);

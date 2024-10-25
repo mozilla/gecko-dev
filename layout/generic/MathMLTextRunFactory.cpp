@@ -366,23 +366,23 @@ static uint32_t MathvarMappingSearch(uint32_t aKey,
        */
       case StyleMathVariant::Initial:
         mapTable = gArabicInitialMapTable;
-        tableLength = std::size(gArabicInitialMapTable);
+        tableLength = ArrayLength(gArabicInitialMapTable);
         break;
       case StyleMathVariant::Tailed:
         mapTable = gArabicTailedMapTable;
-        tableLength = std::size(gArabicTailedMapTable);
+        tableLength = ArrayLength(gArabicTailedMapTable);
         break;
       case StyleMathVariant::Stretched:
         mapTable = gArabicStretchedMapTable;
-        tableLength = std::size(gArabicStretchedMapTable);
+        tableLength = ArrayLength(gArabicStretchedMapTable);
         break;
       case StyleMathVariant::Looped:
         mapTable = gArabicLoopedMapTable;
-        tableLength = std::size(gArabicLoopedMapTable);
+        tableLength = ArrayLength(gArabicLoopedMapTable);
         break;
       case StyleMathVariant::DoubleStruck:
         mapTable = gArabicDoubleMapTable;
-        tableLength = std::size(gArabicDoubleMapTable);
+        tableLength = ArrayLength(gArabicDoubleMapTable);
         break;
       default:
         // No valid transformations exist
@@ -407,7 +407,7 @@ static uint32_t MathvarMappingSearch(uint32_t aKey,
     // mathematical block, so the spaces where they ought to be are used
     // as keys for a lookup table containing the correct character mappings.
     newChar = MathvarMappingSearch(tempChar, gLatinExceptionMapTable,
-                                   std::size(gLatinExceptionMapTable));
+                                   ArrayLength(gLatinExceptionMapTable));
   }
 
   if (newChar) {

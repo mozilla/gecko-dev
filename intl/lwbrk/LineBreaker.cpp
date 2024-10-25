@@ -452,11 +452,11 @@ static int8_t GetClass(uint32_t u, LineBreakRule aLevel,
       /* E_MODIFIER = 41,                   [EM] */ CLASS_CHARACTER,
       /* ZWJ = 42,                          [ZWJ]*/ CLASS_CHARACTER};
 
-  static_assert(U_LB_COUNT == std::size(sUnicodeLineBreakToClass),
+  static_assert(U_LB_COUNT == mozilla::ArrayLength(sUnicodeLineBreakToClass),
                 "Gecko vs ICU LineBreak class mismatch");
 
   auto cls = GetLineBreakClass(u);
-  MOZ_ASSERT(cls < std::size(sUnicodeLineBreakToClass));
+  MOZ_ASSERT(cls < mozilla::ArrayLength(sUnicodeLineBreakToClass));
 
   // Overrides based on rules for the different line-break values given in
   // https://drafts.csswg.org/css-text-3/#line-break-property

@@ -51,7 +51,7 @@ bool SVGTests::HasExtension(const nsAString& aExtension) const {
 
 bool SVGTests::IsConditionalProcessingAttribute(
     const nsAtom* aAttribute) const {
-  for (uint32_t i = 0; i < std::size(sStringListNames); i++) {
+  for (uint32_t i = 0; i < ArrayLength(sStringListNames); i++) {
     if (aAttribute == sStringListNames[i]) {
       return true;
     }
@@ -197,7 +197,7 @@ bool SVGTests::PassesConditionalProcessingTests() const {
 bool SVGTests::ParseConditionalProcessingAttribute(nsAtom* aAttribute,
                                                    const nsAString& aValue,
                                                    nsAttrValue& aResult) {
-  for (uint32_t i = 0; i < std::size(sStringListNames); i++) {
+  for (uint32_t i = 0; i < ArrayLength(sStringListNames); i++) {
     if (aAttribute == sStringListNames[i]) {
       nsresult rv = mStringListAttributes[i].SetValue(aValue);
       if (NS_FAILED(rv)) {
@@ -212,7 +212,7 @@ bool SVGTests::ParseConditionalProcessingAttribute(nsAtom* aAttribute,
 }
 
 void SVGTests::UnsetAttr(const nsAtom* aAttribute) {
-  for (uint32_t i = 0; i < std::size(sStringListNames); i++) {
+  for (uint32_t i = 0; i < ArrayLength(sStringListNames); i++) {
     if (aAttribute == sStringListNames[i]) {
       mStringListAttributes[i].Clear();
       mPassesConditionalProcessingTests = Nothing();
@@ -227,7 +227,8 @@ nsStaticAtom* SVGTests::GetAttrName(uint8_t aAttrEnum) const {
 }
 
 void SVGTests::GetAttrValue(uint8_t aAttrEnum, nsAttrValue& aValue) const {
-  MOZ_ASSERT(aAttrEnum < std::size(sStringListNames), "aAttrEnum out of range");
+  MOZ_ASSERT(aAttrEnum < ArrayLength(sStringListNames),
+             "aAttrEnum out of range");
   aValue.SetTo(mStringListAttributes[aAttrEnum], nullptr);
 }
 

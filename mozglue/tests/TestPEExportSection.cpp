@@ -350,7 +350,8 @@ class ChildProcess final {
   ChildProcess(const wchar_t* aExecutable, const wchar_t* aOption,
                const nsAutoHandle& aEvent, const nsAutoHandle& aJob) {
     const wchar_t* childArgv[] = {aExecutable, aOption};
-    auto cmdLine(mozilla::MakeCommandLine(std::size(childArgv), childArgv));
+    auto cmdLine(
+        mozilla::MakeCommandLine(mozilla::ArrayLength(childArgv), childArgv));
 
     STARTUPINFOW si = {sizeof(si)};
     PROCESS_INFORMATION pi;

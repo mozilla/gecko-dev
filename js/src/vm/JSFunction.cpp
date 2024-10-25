@@ -10,7 +10,7 @@
 
 #include "vm/JSFunction-inl.h"
 
-#include "mozilla/ArrayUtils.h"
+#include "mozilla/ArrayUtils.h"  // mozilla::ArrayLength
 #include "mozilla/Maybe.h"
 #include "mozilla/Range.h"
 

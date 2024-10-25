@@ -168,27 +168,27 @@ nsresult SVGFETurbulenceElement::BindToTree(BindContext& aCtx,
 
 SVGElement::NumberAttributesInfo SVGFETurbulenceElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              std::size(sNumberInfo));
+                              ArrayLength(sNumberInfo));
 }
 
 SVGElement::NumberPairAttributesInfo
 SVGFETurbulenceElement::GetNumberPairInfo() {
   return NumberPairAttributesInfo(mNumberPairAttributes, sNumberPairInfo,
-                                  std::size(sNumberPairInfo));
+                                  ArrayLength(sNumberPairInfo));
 }
 
 SVGElement::IntegerAttributesInfo SVGFETurbulenceElement::GetIntegerInfo() {
   return IntegerAttributesInfo(mIntegerAttributes, sIntegerInfo,
-                               std::size(sIntegerInfo));
+                               ArrayLength(sIntegerInfo));
 }
 
 SVGElement::EnumAttributesInfo SVGFETurbulenceElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFETurbulenceElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

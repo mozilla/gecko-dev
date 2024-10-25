@@ -2352,61 +2352,61 @@ void nsTreeSanitizer::LogMessage(const char* aMessage, Document* aDoc,
 void nsTreeSanitizer::InitializeStatics() {
   MOZ_ASSERT(!sElementsHTML, "Initializing a second time.");
 
-  sElementsHTML = new AtomsTable(std::size(kElementsHTML));
+  sElementsHTML = new AtomsTable(ArrayLength(kElementsHTML));
   for (uint32_t i = 0; kElementsHTML[i]; i++) {
     sElementsHTML->Insert(kElementsHTML[i]);
   }
 
-  sAttributesHTML = new AtomsTable(std::size(kAttributesHTML));
+  sAttributesHTML = new AtomsTable(ArrayLength(kAttributesHTML));
   for (uint32_t i = 0; kAttributesHTML[i]; i++) {
     sAttributesHTML->Insert(kAttributesHTML[i]);
   }
 
-  sPresAttributesHTML = new AtomsTable(std::size(kPresAttributesHTML));
+  sPresAttributesHTML = new AtomsTable(ArrayLength(kPresAttributesHTML));
   for (uint32_t i = 0; kPresAttributesHTML[i]; i++) {
     sPresAttributesHTML->Insert(kPresAttributesHTML[i]);
   }
 
-  sElementsSVG = new AtomsTable(std::size(kElementsSVG));
+  sElementsSVG = new AtomsTable(ArrayLength(kElementsSVG));
   for (uint32_t i = 0; kElementsSVG[i]; i++) {
     sElementsSVG->Insert(kElementsSVG[i]);
   }
 
-  sAttributesSVG = new AtomsTable(std::size(kAttributesSVG));
+  sAttributesSVG = new AtomsTable(ArrayLength(kAttributesSVG));
   for (uint32_t i = 0; kAttributesSVG[i]; i++) {
     sAttributesSVG->Insert(kAttributesSVG[i]);
   }
 
-  sElementsMathML = new AtomsTable(std::size(kElementsMathML));
+  sElementsMathML = new AtomsTable(ArrayLength(kElementsMathML));
   for (uint32_t i = 0; kElementsMathML[i]; i++) {
     sElementsMathML->Insert(kElementsMathML[i]);
   }
 
-  sAttributesMathML = new AtomsTable(std::size(kAttributesMathML));
+  sAttributesMathML = new AtomsTable(ArrayLength(kAttributesMathML));
   for (uint32_t i = 0; kAttributesMathML[i]; i++) {
     sAttributesMathML->Insert(kAttributesMathML[i]);
   }
 
   sBaselineAttributeAllowlist =
-      new AtomsTable(std::size(kBaselineAttributeAllowlist));
+      new AtomsTable(ArrayLength(kBaselineAttributeAllowlist));
   for (const auto* atom : kBaselineAttributeAllowlist) {
     sBaselineAttributeAllowlist->Insert(atom);
   }
 
   sBaselineElementAllowlist =
-      new AtomsTable(std::size(kBaselineElementAllowlist));
+      new AtomsTable(ArrayLength(kBaselineElementAllowlist));
   for (const auto* atom : kBaselineElementAllowlist) {
     sBaselineElementAllowlist->Insert(atom);
   }
 
   sDefaultConfigurationAttributeAllowlist =
-      new AtomsTable(std::size(kDefaultConfigurationAttributeAllowlist));
+      new AtomsTable(ArrayLength(kDefaultConfigurationAttributeAllowlist));
   for (const auto* atom : kDefaultConfigurationAttributeAllowlist) {
     sDefaultConfigurationAttributeAllowlist->Insert(atom);
   }
 
   sDefaultConfigurationElementAllowlist =
-      new AtomsTable(std::size(kDefaultConfigurationElementAllowlist));
+      new AtomsTable(ArrayLength(kDefaultConfigurationElementAllowlist));
   for (const auto* atom : kDefaultConfigurationElementAllowlist) {
     sDefaultConfigurationElementAllowlist->Insert(atom);
   }

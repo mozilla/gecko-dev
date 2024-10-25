@@ -626,12 +626,12 @@ bool SVGUseElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGUseElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 SVGElement::StringAttributesInfo SVGUseElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 SVGUseFrame* SVGUseElement::GetFrame() const {

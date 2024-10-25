@@ -56,7 +56,7 @@ const ProfilingCategoryPairInfo sProfilingCategoryPairInfo[] = {
 const ProfilingCategoryPairInfo& GetProfilingCategoryPairInfo(
     ProfilingCategoryPair aCategoryPair) {
   static_assert(
-      std::size(sProfilingCategoryPairInfo) ==
+      MOZ_ARRAY_LENGTH(sProfilingCategoryPairInfo) ==
           uint32_t(ProfilingCategoryPair::COUNT),
       "sProfilingCategoryPairInfo and ProfilingCategory need to have the "
       "same order and the same length");

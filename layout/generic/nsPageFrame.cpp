@@ -498,7 +498,7 @@ static void PaintMarginGuides(nsIFrame* aFrame, DrawTarget* aDrawTarget,
                        JoinStyle::MITER_OR_BEVEL, CapStyle::BUTT,
                        /* mitre limit (default, not used) */ 10.0f,
                        /* set dash pattern of 2px stroke, 2px gap */
-                       std::size(dashes), dashes,
+                       ArrayLength(dashes), dashes,
                        /* dash offset */ 0.0f);
   DrawOptions options;
 
