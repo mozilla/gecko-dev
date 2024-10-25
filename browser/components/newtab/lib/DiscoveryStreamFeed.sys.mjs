@@ -103,7 +103,8 @@ const PREF_SPOCS_STARTUP_CACHE_ENABLED =
   "discoverystream.spocs.startupCache.enabled";
 const PREF_CONTEXTUAL_CONTENT_ENABLED =
   "discoverystream.contextualContent.enabled";
-const PREF_FAKESPOT_ENABLED = "discoverystream.contextualContent.enabled";
+const PREF_FAKESPOT_ENABLED =
+  "discoverystream.contextualContent.fakespot.enabled";
 const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED =
   "discoverystream.contextualContent.selectedFeed";
 const PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE =
