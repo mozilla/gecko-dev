@@ -81,7 +81,7 @@ export const PageWireframes = {
     svg.setAttributeNS(null, "viewBox", `0 0 ${width} ${height}`);
     svg.style.backgroundColor = this.nscolorToRGB(wireframe.canvasBackground);
 
-    const DEFAULT_FILL = "color-mix(in srgb, black 10%, transparent)";
+    const DEFAULT_FILL = "color-mix(in srgb, gray 20%, transparent)";
 
     for (let rectObj of wireframe.rects) {
       // For now we'll skip rects that have an unknown classification, since
