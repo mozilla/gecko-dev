@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix
 
-import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
 import android.net.Uri
@@ -611,8 +610,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         }
     }
 
-    @SuppressLint("WrongConstant")
-    // Suppressing erroneous lint warning about using MODE_NIGHT_AUTO_BATTERY, a likely library bug
     private fun setDayNightTheme() {
         val settings = this.settings()
         when {
