@@ -108,7 +108,7 @@ the Web Platform, but the [`oem_cp`](https://crates.io/crates/oem_cp) crate does
 Normalizing text into Unicode Normalization Form C prior to encoding text into
 a legacy encoding minimizes unmappable characters. Text can be normalized to
 Unicode Normalization Form C using the
-[`unic-normal`](https://crates.io/crates/unic-normal) crate.
+[`icu_normalizer`](https://crates.io/crates/icu_normalizer) crate.
 
 The exception is windows-1258, which after normalizing to Unicode Normalization
 Form C requires tone marks to be decomposed in order to minimize unmappable
@@ -391,10 +391,9 @@ To regenerate the generated code:
    next to the `encoding_rs` directory.
  * Clone [`https://github.com/whatwg/encoding`](https://github.com/whatwg/encoding)
    next to the `encoding_rs` directory.
- * Checkout revision `be3337450e7df1c49dca7872153c4c4670dd8256` of the `encoding` repo.
+ * Checkout revision `1d519bf8e5555cef64cf3a712485f41cd1a6a990` of the `encoding` repo.
    (Note: `f381389` was the revision of `encoding` used from before the `encoding` repo
-   license change. So far, only output changed since then has been updated to
-   the new license legend.)
+   license change.)
  * With the `encoding_rs` directory as the working directory, run
    `python generate-encoding-data.py`.
 
@@ -437,6 +436,10 @@ To regenerate the generated code:
 - [ ] Migrate `unsafe` slice access by larger types than `u8`/`u16` to `align_to`.
 
 ## Release Notes
+
+### 0.8.35
+
+* Implement changes for GB18030-2022. (Intentionally not treated as a semver break in practice even if this could be argued to be a breaking change in theory.)
 
 ### 0.8.34
 

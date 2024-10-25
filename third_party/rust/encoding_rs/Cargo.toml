@@ -13,8 +13,13 @@
 edition = "2018"
 rust-version = "1.36"
 name = "encoding_rs"
-version = "0.8.34"
+version = "0.8.35"
 authors = ["Henri Sivonen <hsivonen@hsivonen.fi>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A Gecko-oriented implementation of the Encoding Standard"
 homepage = "https://docs.rs/encoding_rs/"
 documentation = "https://docs.rs/encoding_rs/"
@@ -36,6 +41,10 @@ repository = "https://github.com/hsivonen/encoding_rs"
 
 [profile.release]
 lto = true
+
+[lib]
+name = "encoding_rs"
+path = "src/lib.rs"
 
 [dependencies.any_all_workaround]
 version = "0.1.0"
