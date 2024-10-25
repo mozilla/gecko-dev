@@ -50,6 +50,7 @@ struct SkeletonUISettings {
   bool menubarShown;
   bool bookmarksToolbarShown;
   bool rtlEnabled;
+  bool verticalTabs;
   SkeletonUIDensity uiDensity;
 };
 
@@ -61,12 +62,13 @@ enum class SkeletonUIFlag : uint8_t {
   RtlEnabled,
   TouchDensity,
   CompactDensity,
+  VerticalTabs
 };
 
 struct ThemeColors {
   uint32_t backgroundColor;
   uint32_t toolbarForegroundColor;
-  uint32_t tabBarColor;
+  uint32_t titlebarColor;
   uint32_t tabColor;
   uint32_t tabOutlineColor;
   uint32_t chromeContentDividerColor;
