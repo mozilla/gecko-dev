@@ -1267,12 +1267,13 @@ export class TelemetryFeed {
       case "WALLPAPER_CLICK":
         {
           const { data } = action;
-          const { selected_wallpaper, hadPreviousWallpaper } = data;
+          const { selected_wallpaper, had_previous_wallpaper } = data;
+
           // if either of the wallpaper prefs are truthy, they had a previous wallpaper
           Glean.newtab.wallpaperClick.record({
             newtab_visit_id: session.session_id,
             selected_wallpaper,
-            hadPreviousWallpaper,
+            had_previous_wallpaper,
           });
         }
         break;

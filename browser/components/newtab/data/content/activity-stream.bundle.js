@@ -9853,7 +9853,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     this.props.setPref("newtabWallpapers.wallpaper", id);
     this.handleUserEvent(actionTypes.WALLPAPER_CLICK, {
       selected_wallpaper: id,
-      hadPreviousWallpaper: !!this.props.activeWallpaper
+      had_previous_wallpaper: !!this.props.activeWallpaper
     });
   }
   handleReset() {
@@ -9863,7 +9863,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     this.props.setPref("newtabWallpapers.wallpaper", "");
     this.handleUserEvent(actionTypes.WALLPAPER_CLICK, {
       selected_wallpaper: "none",
-      hadPreviousWallpaper: !!this.props.activeWallpaper
+      had_previous_wallpaper: !!this.props.activeWallpaper
     });
   }
   handleCategory = event => {
