@@ -1,11 +1,5 @@
 // Test if user code in interrupt handler causes the problem.
 
-timeout(0.01, function() {
-  print("timeout!");
-  ins.exports.stop();
-  return true;
-});
-
 // Stay in wasm for long time (double loop) so timeout can be triggerred.
 var ins = wasmEvalText(`(module
   (global $g (mut i32) (i32.const 0))
@@ -55,4 +49,11 @@ var ins = wasmEvalText(`(module
 )`);
 
 var promising = WebAssembly.promising(ins.exports.f);
+
+timeout(0.1, function() {
+  print("timeout!");
+  ins.exports.stop();
+  return true;
+});
+
 promising(200000);
