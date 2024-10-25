@@ -11,14 +11,20 @@
  */
 
 enum CSSBoxType { "margin", "border", "padding", "content" };
-dictionary BoxQuadOptions {
-  CSSBoxType box = "border";
-  GeometryNode relativeTo;
+
+dictionary GeometryUtilsOptions {
   [ChromeOnly]
   boolean createFramesForSuppressedWhitespace = true;
+  [ChromeOnly]
+  boolean flush = true;
 };
 
-dictionary ConvertCoordinateOptions {
+dictionary BoxQuadOptions : GeometryUtilsOptions {
+  CSSBoxType box = "border";
+  GeometryNode relativeTo;
+};
+
+dictionary ConvertCoordinateOptions : GeometryUtilsOptions {
   CSSBoxType fromBox = "border";
   CSSBoxType toBox = "border";
 };
