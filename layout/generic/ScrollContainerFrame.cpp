@@ -7607,6 +7607,11 @@ ScrollSnapInfo ScrollContainerFrame::ComputeScrollSnapInfo() {
   result.InitializeScrollSnapStrictness(writingMode, disp);
 
   result.mSnapportSize = GetSnapportSize();
+  if (result.mSnapportSize.IsEmpty()) {
+    // Ignore any target snap points if the snapport is empty.
+    return result;
+  }
+
   CollectScrollPositionsForSnap(
       mScrolledFrame, mScrolledFrame, GetScrolledRect(), GetScrollPadding(),
       GetLayoutScrollRange(), writingMode, result, &mSnapTargets);
