@@ -179,9 +179,17 @@
 	</ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">沒有網路連線</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">沒有網路連線</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">您的網路連線可能有點問題</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">請檢查您的網路連線是否正常，或者稍後再重新載入頁面。</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">請檢查您的網路連線是否正常，或者稍後再重新載入頁面。</string>
+
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">您可以試著連線到其他裝置、檢查您的數據機或路由器，或將 Wi-Fi 斷線重連。</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">錯誤代碼：NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">重新載入</string>
 

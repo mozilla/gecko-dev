@@ -190,9 +190,16 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Sin conexión a Internet</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Sin conexión a Internet</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">Parece que hay un problema con la conexión a Internet</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Verificá tu conexión a la red o intentá volver a cargar la página en un ratito.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Verificá tu conexión a la red o intentá volver a cargar la página en un ratito.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Probá conectarte a un dispositivo diferente. Verificá tu módem o router. Desconectá y volvé a conectarte al wifi.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Código de error: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Recargar</string>
 

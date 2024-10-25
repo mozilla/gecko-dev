@@ -175,9 +175,16 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Chan eil ceangal ris an eadar-lìon</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Chan eil ceangal ris an eadar-lìon</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">Tha coltas gu bheil duilgheadas ann leis a’ cheangal agad ris an eadar-lìon</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Thoir sùil air a’ cheangal agad ris an lìonra no feuch is ath-luchdaich an duilleag ann an tiotan no dhà.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Thoir sùil air a’ cheangal agad ris an lìonra no feuch is ath-luchdaich an duilleag ann an tiotan no dhà.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Feuch is dèan ceangal air uidheam eile. Thoir sùil air a’ mhòdam no rùtar agad. Dì-cheangail on WiFi is ceangail ris as ùr.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Còd na mearachd: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Ath-luchdaich</string>
 

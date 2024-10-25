@@ -212,9 +212,16 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Пайвасти интернет нест</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Пайвасти интернет нест</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">Чунин ба назар мерасад, ки дар пайвасти Интернети шумо мушкилӣ ба миён омад</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Пайвасти Интернетро санҷед ё саҳифаро пас аз чанд лаҳза аз нав бор кунед.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Пайвасти Интернетро санҷед ё саҳифаро пас аз чанд лаҳза аз нав бор кунед.</string>
+
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Кӯшиш кунед, ки дар дастгоҳи дигар пайваст шавед. Модем ё роутери худро тафтиш кунед. Пайвастшавии «Wi-Fi»-ро қатъ карда, аз нав пайваст шавед.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Рамзи хато: NS_ERROR_OFFLINE</string>
 
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Аз нав бор кардан</string>

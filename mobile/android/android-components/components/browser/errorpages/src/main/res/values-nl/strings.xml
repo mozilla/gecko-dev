@@ -236,9 +236,16 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Geen internetverbinding</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Geen internetverbinding</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">Het lijkt erop dat er een probleem is met uw internetverbinding</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Controleer uw netwerkverbinding of probeer de pagina over enkele ogenblikken opnieuw te laden.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Controleer uw netwerkverbinding of probeer de pagina over enkele ogenblikken opnieuw te laden.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Probeer verbinding te maken op een ander apparaat. Controleer uw modem of router. Verbreek uw wifiverbinding en maak opnieuw verbinding.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Foutcode: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Opnieuw laden</string>
 

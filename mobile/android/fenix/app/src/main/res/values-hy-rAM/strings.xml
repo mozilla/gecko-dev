@@ -422,7 +422,11 @@
     <string name="search_header_menu_item_2">Այս անգամվա որոնումը՝</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description">%s որոնիչ</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s որոնիչ</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">Որոնիչներ՝ %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -1326,6 +1330,10 @@
     <string name="bookmark_navigate_back_button_content_description">Նավարկել հետ</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Հավելել նոր պանակ</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Ջնջել էջանիշը</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Ջնջել պանակը</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Որոնել էջանիշեր</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->

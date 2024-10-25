@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Traduzion no cjatade, ni pe localizazion in %1$s ni pe lenghe predefinide %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s instalât cun sucès</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Impussibil instalâ %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Nol è stât pussibil instalâ cheste estension.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Impussibil instalâ la estension</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Nol è stât pussibil discjariâ cheste estension par vie di un erôr te conession.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -199,9 +201,15 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Impussibil instalâ %1$s parcè che nol è compatibil cun %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">Impussibil instalâ %1$s parcè che al à un risi elevât di causâ problemis di stabilitât e sigurece.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Impussibil instalâ %1$s parcè che al à un risi elevât di causâ problemis di stabilitât e sigurece.</string>
+    <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_blocklisted_2">%1$s al viole lis politichis di Mozilla e nol è pussibil instalâlu in %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Nol è pussibil instalâ %1$s parcè che dome une organizazion che e dopre politichis di imprese e pues instalâlu, e chestis politichis no son supuartadis su cheste plateforme.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s al viole lis politichis di Mozilla e nol è pussibil instalâlu.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">%1$s al viole lis politichis di Mozilla e nol è pussibil instalâlu in %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s abilitât cun sucès</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +254,18 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">Va ben</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Plui informazions</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Viôt i detais</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s al è stât disativât par vie di problemis di sigurece o di stabilitât.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s al è stât disativât par vie di problemis di sigurece o di stabilitât.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">Cheste estension e je blocade parcè che e viole lis politichis di Mozilla e e je stade disativade.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Cheste estension e viole lis politichis di Mozilla e e je stade disativade. Tu puedis tornâ a ativâle, ma al è pussibil che al compuarti cualchi risi.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">Cheste estension e je limitade parcè che e viole lis politichis di Mozilla e e je stade disativade. Tu puedis tornâ a ativâle, ma al è pussibil che al compuarti cualchi risi.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Cheste estension e viole lis politichis di Mozilla. La sô utilizazion e podarès compuartâ cualchi risi.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s al è stât disativât parcè che nol è pussibil verificâlu come sigûr.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

@@ -181,10 +181,17 @@
 	]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">인터넷 연결 안 됨</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">인터넷 연결 안 됨</string>
 
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">인터넷 연결에 문제가 있는 것 같습니다</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">네트워크 연결을 확인하시거나 잠시 후 페이지를 다시 로드하세요.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">네트워크 연결을 확인하시거나 잠시 후 페이지를 다시 로드하세요.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">다른 기기에 연결해 보세요. 모뎀이나 라우터를 확인하세요. Wi-Fi 연결을 끊었다가 다시 연결하세요.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">오류 코드: NS_ERROR_OFFline</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">새로 고침</string>
 

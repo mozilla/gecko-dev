@@ -413,7 +413,11 @@
     <string name="search_header_menu_item_2">Dèan lorg an-seo an turas seo:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description">An t-einnsean-luirg %s</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">An t-einnsean-luirg %s</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">An t-einnsean-luirg: %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -500,9 +504,9 @@
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Tòisich air brabhsadh.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">Rùraich barrachd leudachan</string>
+    <string name="onboarding_add_on_explore_more_extensions_2">Rùraich barrachd leudachan</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">Tòisich air brabhsadh</string>
+    <string name="onboarding_add_on_start_browsing_button_2">Tòisich air brabhsadh</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
     <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -519,6 +523,15 @@
     <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Modh dorcha gnàthaichte airson an lìn mhobile.</string>
+
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">Lèirmheasan: %1$s</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">Ìomhaigheag an tuilleadain</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">Am putan airson tuilleadan a chur ris</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">Rangaichte %1$s à 5</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1305,6 +1318,10 @@
     <string name="bookmark_navigate_back_button_content_description">Air ais</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Cuir pasgan ùr ris</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Sguab an comharra-lìn às</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Sguab am pasgan às</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Lorg sna comharran-lìn</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1765,7 +1782,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Criopto-mhèinneadairean</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Lorgaichean-meur as aithne dhuinn</string>
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Lorgairean-meòir as aithne dhuinn</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Mion-fhiosrachadh</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1816,7 +1833,11 @@
     <string name="etp_redirect_trackers_description">Falamhaich briosgaidean a chaidh a shuidheachadh an cois ath-stiùiridh gu làraichean-lìn a tha nan tracaichean aithnichte.</string>
 
     <!-- Preference for fingerprinting protection for the custom protection settings -->
-    <string name="etp_suspected_fingerprinters_title">Lorgaichean-meur fo amharas</string>
+    <string name="etp_suspected_fingerprinters_title">Lorgairean-meòir fo amharas</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Cuiridh seo an dìon airson lorgan-meòir airson stad a chur air lorgairean-meòir.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Lorgairean-meòir as aithne dhuinn</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Chaidh pàirt dhe na tracaichean comharraichte gu h-ìosal a dhì-bhacadh air an duilleag seo on a ghabh thu eadar-ghnìomh leotha *.</string>
@@ -1869,6 +1890,10 @@
     <!-- Describes the add to homescreen functionality -->
     <string name="add_to_homescreen_description_2">Tha e furasta an duilleag seo a chur ri duilleag-dhachaigh an uidheim agad airson greim fhaighinn air gu luath.</string>
 
+    <!-- Preference for managing the settings for logins and passwords in Fenix -->
+    <string name="preferences_passwords_logins_and_passwords_2">Faclan-faire</string>
+    <!-- Preference for managing the saving of logins and passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_2">Sàbhail na faclan-faire</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Faighnich mus tèid a shàbhaladh</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -1883,10 +1908,15 @@
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Fèin-lìon ainmean-chleachdaichean is faclan-faire ann an aplacaidean eile air an uidheam agad.</string>
 
+    <!-- Preference option for adding a password -->
+    <string name="preferences_logins_add_login_2">Cuir facal-faire ris</string>
+
     <!-- Preference for syncing saved passwords in Fenix -->
     <string name="preferences_passwords_sync_logins_2">Sioncronaich na faclan-faire</string>
     <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
     <string name="preferences_passwords_sync_logins_across_devices_2">Sioncronaich faclan-faire air feadh uidheaman</string>
+    <!-- Preference to access list of saved passwords -->
+    <string name="preferences_passwords_saved_logins_2">Faclan-faire a shàbhail thu</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Eisgeachdan</string>
     <!-- Text on button to remove all saved login exceptions -->

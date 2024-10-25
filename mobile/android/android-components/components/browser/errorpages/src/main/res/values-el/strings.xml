@@ -209,9 +209,16 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Δεν υπάρχει σύνδεση στο διαδίκτυο</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Δεν υπάρχει σύνδεση στο διαδίκτυο</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">Φαίνεται ότι υπάρχει κάποιο πρόβλημα με τη σύνδεσή σας στο διαδίκτυο</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Ελέγξτε τη σύνδεση δικτύου σας ή δοκιμάστε να φορτώσετε εκ νέου τη σελίδα σε λίγα λεπτά.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Ελέγξτε τη σύνδεση δικτύου σας ή δοκιμάστε να φορτώσετε εκ νέου τη σελίδα σε λίγα λεπτά.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Δοκιμάστε να συνδεθείτε από διαφορετική συσκευή. Ελέγξτε το modem ή το router σας. Αποσυνδέστε και επανασυνδέστε το Wi-Fi.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Κωδικός σφάλματος: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Ανανέωση</string>
 

@@ -113,8 +113,6 @@
     <string name="navbar_cfr_title">نویں نیویگیشݨ نال تکھیرا براؤز کرو</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">ڄݙݨ  تساں وادھو براؤزنگ دی جاء تے  ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">ہک ویب سائٹ تے، ڄݙݨ  تساں وادھو براؤزنگ دی جاء تے  ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
@@ -220,8 +218,6 @@
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">%1$s شامل کرو</string>
-    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">ایکسٹنشن شامل کرو</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">ٻیاں ایکسٹنشناں لبھو</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -385,7 +381,7 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">سکین کرو</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">سکین کرو</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">انڄݨ ترتیباں وچ ڳولو</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -409,7 +405,7 @@
     <string name="search_header_menu_item_2">ایں ویلے ایندے وچ ڳول:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">%s ڳولݨ انجݨ</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s ڳولݨ انجݨ</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -435,18 +431,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">بند کرو</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">اطلاع نامے %s نال ودھیک کرݨ وچ تہاݙی مدد کریندن۔</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">آپݨے ٹیباں کوں ڈیوائساں دے درمیان ہم وقت بݨاؤ، ڈاؤن لوڈاں منیج کرو، %s دی رازداری حفاظت بارے گُر گھنو تے ٻیا ٻہوں کجھ۔</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">جاری</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">ہݨ کائناں</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">فائرفوکس رازداری نوٹس</string>
@@ -463,20 +447,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">100 ملین کنوں وَدھ لوک براؤزر دا چوݨ کر کے آپݨی رازداری دی راکھی کرین٘دے ہِن جین٘دی حمایت غیر منافع بخش ہِے۔</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">معلوم ٹریکرز؟ خود کار طریقے نال بلاک تِھی ڳِیا۔ ایکسٹنشناں؟ سبھے 700 کوں اَزماؤ۔ پی ڈی ایف ایس؟ اَساݙا بِلٹ اِن ریڈر اِنّھاں دا انتظام سَوکھا بݨین٘دا ہِے۔</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">اَساݙا غیرمنافع بخش حمایت یافتہ براؤزر کمپنیاں کوں خفیہ طور تے تُہاݙے ویب دے چَودھار چکّر لاوݨ کنوں روکݨ وِچ مَدَت کرین٘دا ہِے۔ \n\n اَساݙی رازداری نوٹس وِچ ٻِیا واضح کرو۔</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">رازداری نوٹس</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">پہلوں مقرر براؤز تے طور تے سیٹ کرو</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">ہݨ کائناں</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">جہڑیلے تُساں ڈیوائساں دے وِچالے ہاپ کرین٘دے ہِیوے تاں انکرپٹ رہؤو۔</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">جہڑیلے تُساں سائن اِن اَتے ہم وقت ہون٘دے ہِیوے تاں، تُساں وَدھ محفوظ تھی وین٘دے ہِیوے۔ فائر فاکس تُہاݙے پاس ورڈز، بُک مارکس اَتے ٻہوں کُجھ اینکرپٹ کرین٘دا ہِے۔</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">جہڑے ویلے تساں ہم وقت تھیندے ہو تاں Firefox تہاݙے پاس ورڈ، نشانیاں تے ٻیا ٻہوں کجھ خفیہ کر ݙیندا ہے۔</string>
@@ -506,6 +482,13 @@
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Firefox ویجٹ شامل کرو</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ہݨ کائناں</string>
+
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">براؤزنگ شروع کرو.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2">ٻیاں ایکسٹنشناں پھلورو</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2">براؤزنگ شروع کرو</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -559,7 +542,7 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">رازداری تے سلامتی</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">سائٹ اجازتاں</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">سائٹ اجازتاں</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">نجی براؤزنگ</string>
     <!-- Preference for opening links in a private tab-->
@@ -1152,8 +1135,6 @@
     <string name="collection_open_tabs">ٹیباں کھولو</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">مجموعہ ناں</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">ناں وٹاؤ</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">ہٹاؤ</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1305,8 +1286,10 @@
 
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">نواں فولڈر شامل کرو</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">نشانیاں بند کرو</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">نشانی مٹاؤ</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">فولڈر مٹاؤ</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">نشانیاں ڳولو</string>
 
@@ -1324,6 +1307,9 @@
     <string name="bookmark_empty_list_authenticated_description">براؤز کرݨ ویلے سائٹاں محفوظ کرو۔ اساں ٻیاں ہم وقت تھیاں ڈیوائساں کنوں نشانیاں وی پکڑ گھنسوں ۔</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name="bookmark_empty_list_folder_description">ڄݙݨ تساں براؤز کرو تاں نشانیاں شامل کرو تاکہ تساں بعد وچ آپݨیاں پسند دیاں سائٹاں لبھ سڳو۔</string>
+
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">نواں فولڈر</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1406,6 +1392,13 @@
     <string name="studies_on">چالو</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">بند</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">اجازتاں</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">مواد</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">ہمشاں ڈیسک ٹاپ سائٹ دی ارداس کرو</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1516,17 +1509,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">نجی ٹیباں بند کرو</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">غیر جانبدار</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">ݙاڈھا غیرتسلی بخش</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">غیر تسلی بخش</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">تسلی بخش</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">ݙاڈھا تسلی بخش</string>
-
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">نجی ٹیباں بند کروں؟</string>
@@ -1609,8 +1591,6 @@
     <string name="tab_collection_dialog_message">بھلا تہاکوں پک ہے جو تساں %1$s مٹاوݨ چاہندے ہو؟</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">مٹاؤ</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">پوری سکرین موڈ وچ داخل تھیندا پئے</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">یوآرایل نقل تھی ڳیا</string>
     <!-- Sample text for accessibility font size -->
@@ -1662,8 +1642,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">مٹاوݨ کیتے وقت دی حد</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">تاریخ (ٻنھاں ڈیوائساں کنوں ہم وقت تھئی تاریخ سمیت)، کوکیاں تے ٻیا براؤزنگ ڈیٹا ہٹیندے۔</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">ہسٹری کوں ہٹا ݙیؤ (بشمول ٻئے ڈیوائساں نال ہم وقت ہسٹری)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1784,8 +1762,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">کریپٹومینرز</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">فنگر پرنٹرز</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">معلوم فنگر پرنٹرز</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">تفصیلاں</string>
@@ -1809,10 +1785,6 @@
     <string name="etp_cryptominers_title">کریپٹومینرز</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ڈیجیٹل کرنسی دی کھدائی کرݨ آلے نقصان دہ سکرپٹ کوں تہاݙی ڈیوائس تائیں پہنچݨ کنوں روکیندے۔</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">فنگر پرنٹرز</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">تہاݙی ڈیوائس بارے نویکلے سُن٘ڄاپُو ڈیٹا کوں کٹھا تھیوݨ کنوں روکیندے۔ جیکوں ٹریک کرݨ کیتے ورتیا ون٘ڄ سڳدے۔</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">تہاݙی ڈیوائس بارے نویکلے سُن٘ڄاپُو ڈیٹا کوں کٹھا تھیوݨ کنوں روکیندے۔ جیکوں ٹریک کرݨ کیتے ورتیا ون٘ڄ سڳدے۔</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2284,8 +2256,6 @@
     <string name="shortcut_name_hint">شارٹ کٹ ناں</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">شارٹ کٹ یوآرایل</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ٹھیک ہے</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">منسوخ کرو</string>
     <!-- Text for the menu button to open the homepage settings. -->
@@ -2350,7 +2320,7 @@
     <string name="radio_preference_info_content_description">ٻیاں تفصیلاں کیتے کلک کرو</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">اُتے ون٘ڄو</string>
+    <string name="action_bar_up_description">اُتے ون٘ڄو</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">بند کرو</string>
@@ -2491,8 +2461,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">ٻیا سِکھو</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">&quot;جیہا، اِیکوں ازماؤ&quot; کوں چُݨ کے تُساں %1$s’ایس دے %2$s اَتے %3$s’ایس %4$s نال سان٘جھ کرین٘دے ہِیوے۔</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">&quot;جیہا، اِیکوں ازماؤ&quot; کوں چُݨ کے تُساں %1$s’ایس دے %2$s اَتے %3$s’ایس %4$s نال سان٘جھ کرین٘دے ہِیوے۔</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">رازداری نوٹس</string>
@@ -2510,8 +2478,6 @@
     <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">بَھلا اِیہ جائزے قابلِ اعتماد ہِن؟ مُرتّب کِیتی ڳئی درجہ بندی ݙیکھݨ کِیتے ہُݨیں دباؤ۔</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">ریویو پڑتالی کھولو</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">ریویو پڑتالی کھولو</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2706,8 +2672,6 @@
     <string name="never_translate_site_dialog_cancel_preference">منسوخ</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">زباناں ڈاؤن لوڈ کرو</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">زباناں ڈاؤن لوڈ کرو</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2764,14 +2728,6 @@
     <string name="delete_language_file_dialog_positive_button_text">مٹاؤ</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">منسوخ</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">%1$s ڈاؤن لوڈ منسوخ کروں؟</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">جیا</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">کو</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2868,8 +2824,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">میں Firefox تے کائنی ڳولیندا</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">میں ہم وقت کرݨ کائنی ورتیندا</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">تساں آپݨے Firefox مکھ پنے نال چوکھے مطمئن ہو؟</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">فائرفوکس وچ پرنٹنگ کوں چنگیرا بݨاوݨ کیتے ساݙی مدد کرو۔ ایں کیتے صرف ہک سیکنڈ لڳسی۔</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2889,8 +2843,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox لوگو</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">سروے فیچر آئیکان</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">سروے کھولو</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">سروے بند کرو</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
