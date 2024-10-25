@@ -4,7 +4,7 @@
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = await mockContentAnalysisService(mockCA);
+  mockCA = mockContentAnalysisService(mockCA);
   await SpecialPowers.pushPrefEnv({
     set: [
       ["dom.events.asyncClipboard.readText", true],

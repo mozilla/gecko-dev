@@ -13,7 +13,7 @@ const PSSVC = Cc["@mozilla.org/gfx/printsettings-service;1"].getService(
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = await mockContentAnalysisService(mockCA);
+  mockCA = mockContentAnalysisService(mockCA);
 });
 
 let testPDFUrl;

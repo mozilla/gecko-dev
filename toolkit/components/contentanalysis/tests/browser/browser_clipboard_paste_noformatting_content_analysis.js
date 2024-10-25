@@ -4,7 +4,7 @@
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = await mockContentAnalysisService(mockCA);
+  mockCA = mockContentAnalysisService(mockCA);
 });
 
 const PAGE_URL =
@@ -51,10 +51,11 @@ async function testClipboardPasteNoFormatting(allowPaste) {
   });
   is(result, true, "Got unexpected result from page");
 
-  // Since we're only pasting plain text we should only need to do one
-  // call.
-  is(mockCA.calls.length, 1, "Correct number of calls to Content Analysis");
+  // Because we call event.clipboardData.getData in the test, this causes another call to
+  // content analysis.
+  is(mockCA.calls.length, 2, "Correct number of calls to Content Analysis");
   assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
+  assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING);
 
   BrowserTestUtils.removeTab(tab);
 }
@@ -72,9 +73,7 @@ function assertContentAnalysisRequest(request, expectedText) {
     "request has correct operationTypeForDisplay"
   );
   is(request.filePath, "", "request filePath should match");
-  if (expectedText !== undefined) {
-    is(request.textContent, expectedText, "request textContent should match");
-  }
+  is(request.textContent, expectedText, "request textContent should match");
   is(request.printDataHandle, 0, "request printDataHandle should not be 0");
   is(request.printDataSize, 0, "request printDataSize should not be 0");
   ok(!!request.requestToken.length, "request requestToken should not be empty");

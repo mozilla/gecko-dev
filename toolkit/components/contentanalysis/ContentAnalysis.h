@@ -14,11 +14,9 @@
 #include "mozilla/dom/Promise.h"
 #include "nsIClipboard.h"
 #include "nsIContentAnalysis.h"
-#include "nsITransferable.h"
 #include "nsProxyRelease.h"
 #include "nsString.h"
 #include "nsTHashMap.h"
-#include "nsTHashSet.h"
 
 #include <atomic>
 #include <regex>
@@ -160,6 +158,8 @@ class ContentAnalysis final : public nsIContentAnalysis {
   ContentAnalysis();
   nsCString GetUserActionId();
   void SetLastResult(nsresult aLastResult) { mLastResult = aLastResult; }
+  void SetCachedDataTimeoutForTesting(uint32_t aNewTimeout);
+  void ResetCachedDataTimeoutForTesting();
 
 #if defined(XP_WIN)
   struct PrintAllowedResult final {
@@ -229,18 +229,12 @@ class ContentAnalysis final : public nsIContentAnalysis {
       nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
       nsITransferable* aTransferable,
       nsIClipboard::ClipboardType aClipboardType,
-      SafeContentAnalysisResultCallback* aResolver,
-      bool aForFullClipboard = false);
-  static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
-  nsresult CancelWithError(nsCString aRequestToken, nsresult aResult);
+      SafeContentAnalysisResultCallback* aResolver);
 
   // Duration the cache holds requests for. This holds strong references
   // to the elements of the request, such as the WindowGlobalParent,
   // for that period.
   static constexpr uint32_t kDefaultCachedDataTimeoutInMs = 5000;
-  // These are the MIME types that Content Analysis can analyze.
-  static constexpr const char* kKnownClipboardTypes[] = {
-      kTextMime, kHTMLMime, kNativeHTMLMime, kCustomTypesMime, kFileMime};
 
  private:
   ~ContentAnalysis();
@@ -261,10 +255,13 @@ class ContentAnalysis final : public nsIContentAnalysis {
   nsresult RunAcknowledgeTask(
       nsIContentAnalysisAcknowledgement* aAcknowledgement,
       const nsACString& aRequestToken);
+  nsresult CancelWithError(nsCString aRequestToken, nsresult aResult);
   void GenerateUserActionId();
+  static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
   static void DoAnalyzeRequest(
       nsCString aRequestToken,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
+      nsCOMPtr<nsIContentAnalysisRequest> aRequestToCache,
       const std::shared_ptr<content_analysis::sdk::Client>& aClient);
   void IssueResponse(RefPtr<ContentAnalysisResponse>& response);
   bool LastRequestSucceeded();
@@ -317,67 +314,64 @@ class ContentAnalysis final : public nsIContentAnalysis {
   };
   DataMutex<nsTHashMap<nsCString, CallbackData>> mCallbackMap;
 
-  class CachedClipboardResponse {
+  class CachedData final {
    public:
-    CachedClipboardResponse() = default;
-    Maybe<nsIContentAnalysisResponse::Action> GetCachedResponse(
-        nsIURI* aURI, int32_t aClipboardSequenceNumber,
-        const nsTArray<nsCString>& aFlavors) {
-      MOZ_ASSERT(NS_IsMainThread(),
-                 "Expecting main thread access only to avoid synchronization");
-      if (Some(aClipboardSequenceNumber) != mClipboardSequenceNumber) {
-        return Nothing();
-      }
-      Maybe<nsIContentAnalysisResponse::Action> possibleAction;
-      for (const auto& entry : mData) {
-        bool uriEquals = false;
-        if (NS_SUCCEEDED(aURI->Equals(entry.first, &uriEquals)) && uriEquals) {
-          possibleAction = Some(entry.second);
-          break;
-        }
-      }
-      if (possibleAction.isNothing()) {
-        return Nothing();
-      }
-      // Make sure the flavors we have checked are a subset of the ones we
-      // checked before
-      for (const auto& flavor : aFlavors) {
-        if (!mFlavors.Contains(flavor)) {
-          // This only matters if it's a flavor that we check for content
-          // analysis
-          for (const char* knownType : kKnownClipboardTypes) {
-            if (flavor.EqualsASCII(knownType)) {
-              return Nothing();
-            }
-          }
-        }
-      }
-      return possibleAction;
+    nsCOMPtr<nsIContentAnalysisRequest> Request() const {
+      MOZ_ASSERT(NS_IsMainThread());
+      return mRequest;
     }
-    void SetCachedResponse(const nsCOMPtr<nsIURI>& aURI,
-                           int32_t aClipboardSequenceNumber,
-                           const nsTArray<nsCString>& aFlavors,
-                           nsIContentAnalysisResponse::Action aAction) {
-      MOZ_ASSERT(NS_IsMainThread(),
-                 "Expecting main thread access only to avoid synchronization");
-      if (mClipboardSequenceNumber != Some(aClipboardSequenceNumber)) {
-        mData.Clear();
-        mClipboardSequenceNumber = Some(aClipboardSequenceNumber);
+    void SetData(nsCOMPtr<nsIContentAnalysisRequest> aRequest,
+                 nsIContentAnalysisResponse::Action aResultAction) {
+      MOZ_ASSERT(NS_IsMainThread());
+      mRequest = aRequest;
+      mResultAction = Some(aResultAction);
+      // For warn responses, don't set the expiration timer until
+      // we get the updated action in UpdateWarnAction()
+      if (aResultAction != nsIContentAnalysisResponse::Action::eWarn) {
+        SetExpirationTimer();
       }
-      mFlavors.Clear();
-      for (const auto& flavor : aFlavors) {
-        mFlavors.Insert(flavor);
-      }
-      mData.AppendElement(std::make_pair(aURI, aAction));
     }
+    Maybe<nsIContentAnalysisResponse::Action> ResultAction() const {
+      MOZ_ASSERT(NS_IsMainThread());
+      return mResultAction;
+    }
+    void SetExpirationTimer();
+    void Clear() {
+      MOZ_ASSERT(NS_IsMainThread());
+      mRequest = nullptr;
+      mResultAction = Nothing();
+      if (mExpirationTimer) {
+        mExpirationTimer->Cancel();
+      }
+    }
+    void UpdateWarnAction(nsIContentAnalysisResponse::Action aAction) {
+      MOZ_ASSERT(NS_IsMainThread());
+      MOZ_ASSERT(mRequest);
+      MOZ_ASSERT(mResultAction ==
+                 Some(nsIContentAnalysisResponse::Action::eWarn));
+      mResultAction = Some(aAction);
+      // We don't set the expiration timer for warn responses until we get the
+      // updated response, so set it here
+      SetExpirationTimer();
+    }
+    enum class CacheResult : uint8_t {
+      CannotBeCached = 0,
+      DoesNotMatchExisting = 1,
+      Matches = 2
+    };
+    CacheResult CompareWithRequest(
+        const RefPtr<nsIContentAnalysisRequest>& aRequest);
 
    private:
-    Maybe<int32_t> mClipboardSequenceNumber;
-    nsTArray<std::pair<nsCOMPtr<nsIURI>, nsIContentAnalysisResponse::Action>>
-        mData;
-    nsTHashSet<nsCString> mFlavors;
+    nsCOMPtr<nsIContentAnalysisRequest> mRequest;
+    Maybe<nsIContentAnalysisResponse::Action> mResultAction;
+    nsCOMPtr<nsITimer> mExpirationTimer;
+    uint32_t mClearTimeout = kDefaultCachedDataTimeoutInMs;
+
+    friend class ContentAnalysis;
   };
-  CachedClipboardResponse mCachedClipboardResponse;
+  // Must only be accessed from the main thread
+  CachedData mCachedData;
 
   struct WarnResponseData {
     WarnResponseData(CallbackData&& aCallbackData,

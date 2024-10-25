@@ -531,8 +531,9 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   // drag and drop.
   mozilla::Maybe<nsIClipboard::ClipboardType> mClipboardType;
 
-  // The nsIClipboardDataSnapshot that is used for getting clipboard formats and
-  // data.
+  // The nsIClipboardDataSnapshot that is used for getting clipboard formats.
+  // XXXedgar we should get the actual data from this in the future, see bug
+  // 1879401.
   nsCOMPtr<nsIClipboardDataSnapshot> mClipboardDataSnapshot;
 
   // The items contained with the DataTransfer

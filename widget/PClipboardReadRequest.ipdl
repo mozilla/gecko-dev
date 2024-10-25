@@ -12,12 +12,11 @@ using nsContentPolicyType from "nsIContentPolicy.h";
 
 namespace mozilla {
 
-sync protocol PClipboardReadRequest {
+protocol PClipboardReadRequest {
   manager PContent;
 
  parent:
   async GetData(nsCString[] aFlavors) returns (IPCTransferableDataOrError aTransferableData);
-  sync GetDataSync(nsCString[] aFlavors) returns (IPCTransferableDataOrError aTransferableData);
 
  both:
   async __delete__();

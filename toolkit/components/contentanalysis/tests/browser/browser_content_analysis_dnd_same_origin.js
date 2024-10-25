@@ -49,7 +49,15 @@ let mockCA = {
 };
 
 add_setup(async function () {
-  mockCA = await mockContentAnalysisService(mockCA);
+  // This pref must be set before calling the test's setup function.
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.contentanalysis.enabled", true]],
+  });
+  registerCleanupFunction(async function () {
+    SpecialPowers.popPrefEnv();
+  });
+
+  mockCA = mockContentAnalysisService(mockCA);
 
   await setup();
 });
