@@ -197,9 +197,7 @@ class nsHtml5Highlighter {
    */
   void EndSpanOrA();
 
-  /**
-   * Ends a wrapper around a run of characters.
-   */
+  /** Ends a wrapper around a run of characters. */
   void EndCharactersAndStartMarkupRun();
 
   /**
@@ -275,6 +273,12 @@ class nsHtml5Highlighter {
    */
   void Push(nsAtom* aName, nsHtml5HtmlAttributes* aAttributes,
             mozilla::dom::HTMLContentCreatorFunction aCreator);
+
+  /**
+   * Pops all inlines from the stack, pushes a pre, and pushes all inlines back
+   * with the same attributes.
+   */
+  void NewLine();
 
   /**
    * Pops the current node off the stack.

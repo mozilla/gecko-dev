@@ -561,13 +561,7 @@ void nsHtml5Highlighter::FlushChars() {
             AppendCharacters(buf, mCStart, len);
             mCStart = i;
           }
-          ++mLineNumber;
-          Push(nsGkAtoms::span, nullptr, NS_NewHTMLSpanElement);
-          nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
-          NS_ASSERTION(treeOp, "Tree op allocation failed.");
-          opAddLineNumberId operation(CurrentNode(), mLineNumber);
-          treeOp->Init(mozilla::AsVariant(operation));
-          Pop();
+          NewLine();
           break;
         }
         default:
@@ -580,6 +574,39 @@ void nsHtml5Highlighter::FlushChars() {
       AppendCharacters(buf, mCStart, len);
       mCStart = mPos;
     }
+  }
+}
+
+// NOTE(emilio): It's important that nothing here ends up calling FlushChars(),
+// since we're in the middle of a flush.
+void nsHtml5Highlighter::NewLine() {
+  ++mLineNumber;
+  AutoTArray<nsIContent**, 8> handleStack;
+  const bool wasInCharacters = mInCharacters;
+  if (mInCharacters) {
+    Pop();
+    mInCharacters = false;
+  }
+  while (mInlinesOpen) {
+    handleStack.AppendElement(CurrentNode());
+    Pop();
+    mInlinesOpen--;
+  }
+  Pop();  // Pop the <pre>
+  Push(nsGkAtoms::pre, nullptr, NS_NewHTMLPreElement);
+  mOpQueue.AppendElement()->Init(
+      mozilla::AsVariant(opAddLineNumberId(CurrentNode(), mLineNumber)));
+  for (nsIContent** handle : Reversed(handleStack)) {
+    nsIContent** dest = AllocateContentHandle();
+    mOpQueue.AppendElement()->Init(mozilla::AsVariant(opShallowCloneInto(
+        handle, dest, CurrentNode(), mozilla::dom::FROM_PARSER_NETWORK)));
+    mStack.AppendElement(dest);
+    ++mInlinesOpen;
+  }
+  if (wasInCharacters) {
+    Push(nsGkAtoms::span, nullptr, NS_NewHTMLSpanElement);
+    mCurrentRun = CurrentNode();
+    mInCharacters = true;
   }
 }
 
@@ -651,14 +678,14 @@ nsIContent** nsHtml5Highlighter::CreateElement(
 }
 
 nsIContent** nsHtml5Highlighter::CurrentNode() {
-  MOZ_ASSERT(mStack.Length() >= 1, "Must have something on stack.");
-  return mStack[mStack.Length() - 1];
+  MOZ_ASSERT(!mStack.IsEmpty(), "Must have something on stack.");
+  return mStack.LastElement();
 }
 
 void nsHtml5Highlighter::Push(
     nsAtom* aName, nsHtml5HtmlAttributes* aAttributes,
     mozilla::dom::HTMLContentCreatorFunction aCreator) {
-  MOZ_ASSERT(mStack.Length() >= 1, "Pushing without root.");
+  MOZ_ASSERT(!mStack.IsEmpty(), "Pushing without root.");
   nsIContent** elt = CreateElement(aName, aAttributes, CurrentNode(),
                                    aCreator);  // Don't inline below!
   opAppend operation(elt, CurrentNode(), mozilla::dom::FROM_PARSER_NETWORK);

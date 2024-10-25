@@ -203,6 +203,8 @@ nsHtml5TreeOperation::~nsHtml5TreeOperation() {
 
     void operator()(const opAddLineNumberId& aOperation) {}
 
+    void operator()(const opShallowCloneInto& aOperation) {}
+
     void operator()(const opStartLayout& aOperation) {}
 
     void operator()(const opEnableEncodingMenu& aOperation) {}
@@ -1205,6 +1207,19 @@ nsresult nsHtml5TreeOperation::Perform(nsHtml5TreeOpExecutor* aBuilder,
       val.AppendInt(lineNumber);
       element->SetAttr(kNameSpaceID_None, nsGkAtoms::id, val, true);
       return NS_OK;
+    }
+
+    nsresult operator()(const opShallowCloneInto& aOperation) {
+      nsIContent* src = *aOperation.mSrc;
+      ErrorResult rv;
+      RefPtr<nsINode> clone = src->CloneNode(false, rv);
+      if (NS_WARN_IF(rv.Failed())) {
+        return rv.StealNSResult();
+      }
+      *aOperation.mDst = clone->AsContent();
+      mBuilder->HoldElement(clone.forget().downcast<nsIContent>());
+      return Append(*aOperation.mDst, *aOperation.mIntendedParent,
+                    aOperation.mFromParser, mBuilder);
     }
 
     nsresult operator()(const opStartLayout& aOperation) {
