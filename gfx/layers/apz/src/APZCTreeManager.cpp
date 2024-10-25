@@ -478,6 +478,7 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
     ancestorTransforms.push(AncestorTransform());
     state.mOverrideFlags.push(EventRegionsOverride::NoOverride);
     nsTArray<Maybe<ZoomConstraints>> zoomConstraintsStack;
+    uint64_t fixedSubtreeDepth = 0;
 
     // push a nothing to be used for anything outside an async zoom container
     zoomConstraintsStack.AppendElement(Nothing());
@@ -547,7 +548,12 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
           }
 
           if (node->GetFixedPositionAnimationId().isSome()) {
-            state.mFixedPositionInfo.emplace_back(node);
+            // Only top-level fixed nodes should be adjusted
+            // for dynamic toolbar movement.
+            if (fixedSubtreeDepth == 0) {
+              state.mFixedPositionInfo.emplace_back(node);
+            }
+            fixedSubtreeDepth += 1;
           }
           if (node->GetStickyPositionAnimationId().isSome()) {
             state.mStickyPositionInfo.emplace_back(node);
@@ -609,6 +615,10 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
           }
           if (aLayerMetrics.GetReferentId()) {
             state.mOverrideFlags.pop();
+          }
+
+          if (aLayerMetrics.GetFixedPositionAnimationId().isSome()) {
+            fixedSubtreeDepth -= 1;
           }
 
           next = parent;
