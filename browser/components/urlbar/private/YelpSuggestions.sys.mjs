@@ -135,6 +135,7 @@ export class YelpSuggestions extends BaseFeature {
           originalUrl: suggestion.url,
           title: [title, lazy.UrlbarUtils.HIGHLIGHT.TYPED],
           bottomTextL10n: { id: "firefox-suggest-yelp-bottom-text" },
+          iconBlob: suggestion.icon_blob,
         })
       ),
       resultProperties
@@ -324,6 +325,7 @@ export class YelpSuggestions extends BaseFeature {
       subjectExactMatch: false,
       locationParam: this.#metadataCache.findLoc,
       hasLocationSign: false,
+      icon_blob: this.#metadataCache.iconBlob,
       source: ml.source,
       provider: ml.provider,
     };
