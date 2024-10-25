@@ -223,3 +223,31 @@ add_task(async function test_sidebar_no_history() {
     "Earlier test with provider from test_sidebar_render is not in history"
   );
 });
+
+/**
+ * Check that keyboard shortcut toggles and enables chatbot
+ */
+add_task(async function test_keyboard_shortcut() {
+  const key = document.getElementById("viewGenaiChatSidebarKb");
+  const enabled = "browser.ml.chat.enabled";
+  await SpecialPowers.pushPrefEnv({ set: [[enabled, false]] });
+
+  key.doCommand();
+
+  Assert.ok(Services.prefs.getBoolPref(enabled), "Enabled with keyboard");
+  Assert.ok(SidebarController.isOpen, "Opened chatbot with keyboard");
+
+  key.doCommand();
+
+  Assert.ok(!SidebarController.isOpen, "Closed chatbot with keyboard");
+  const events = Glean.genaiChatbot.keyboardShortcut.testGetValue();
+  Assert.equal(events.length, 2, "Got 2 keyboard events");
+  Assert.equal(events[0].extra.enabled, "false", "Initially disabled");
+  Assert.equal(events[0].extra.sidebar, "", "Initially closed");
+  Assert.equal(events[1].extra.enabled, "true", "Already enabled");
+  Assert.equal(
+    events[1].extra.sidebar,
+    "viewGenaiChatSidebar",
+    "Already opened"
+  );
+});

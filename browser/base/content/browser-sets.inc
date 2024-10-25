@@ -276,6 +276,9 @@
     <key id="key_stop_mac" modifiers="accel" data-l10n-id="nav-stop-shortcut" command="Browser:Stop"/>
 #endif
 
+    <key id="viewGenaiChatSidebarKb"
+         data-l10n-id="ai-chatbot-sidebar-shortcut"
+         modifiers="accel,shift"/>
     <key id="key_gotoHistory"
          data-l10n-id="history-sidebar-shortcut"
 #ifdef XP_MACOSX
