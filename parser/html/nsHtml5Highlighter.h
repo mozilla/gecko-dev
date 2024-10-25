@@ -391,51 +391,6 @@ class nsHtml5Highlighter {
   nsTArray<nsIContent**> mStack;
 
   /**
-   * The string "comment"
-   */
-  static char16_t sComment[];
-
-  /**
-   * The string "cdata"
-   */
-  static char16_t sCdata[];
-
-  /**
-   * The string "start-tag"
-   */
-  static char16_t sStartTag[];
-
-  /**
-   * The string "attribute-name"
-   */
-  static char16_t sAttributeName[];
-
-  /**
-   * The string "attribute-value"
-   */
-  static char16_t sAttributeValue[];
-
-  /**
-   * The string "end-tag"
-   */
-  static char16_t sEndTag[];
-
-  /**
-   * The string "doctype"
-   */
-  static char16_t sDoctype[];
-
-  /**
-   * The string "entity"
-   */
-  static char16_t sEntity[];
-
-  /**
-   * The string "pi"
-   */
-  static char16_t sPi[];
-
-  /**
    * Whether base is already visited once.
    */
   bool mSeenBase;

@@ -20,30 +20,6 @@ using namespace mozilla;
 // the size of 16 tokens on cnn.com.
 #define NS_HTML5_HIGHLIGHTER_PRE_BREAK_THRESHOLD 1300
 
-char16_t nsHtml5Highlighter::sComment[] = {'c', 'o', 'm', 'm',
-                                           'e', 'n', 't', 0};
-
-char16_t nsHtml5Highlighter::sCdata[] = {'c', 'd', 'a', 't', 'a', 0};
-
-char16_t nsHtml5Highlighter::sEntity[] = {'e', 'n', 't', 'i', 't', 'y', 0};
-
-char16_t nsHtml5Highlighter::sEndTag[] = {'e', 'n', 'd', '-', 't', 'a', 'g', 0};
-
-char16_t nsHtml5Highlighter::sStartTag[] = {'s', 't', 'a', 'r', 't',
-                                            '-', 't', 'a', 'g', 0};
-
-char16_t nsHtml5Highlighter::sAttributeName[] = {
-    'a', 't', 't', 'r', 'i', 'b', 'u', 't', 'e', '-', 'n', 'a', 'm', 'e', 0};
-
-char16_t nsHtml5Highlighter::sAttributeValue[] = {'a', 't', 't', 'r', 'i', 'b',
-                                                  'u', 't', 'e', '-', 'v', 'a',
-                                                  'l', 'u', 'e', 0};
-
-char16_t nsHtml5Highlighter::sDoctype[] = {'d', 'o', 'c', 't',
-                                           'y', 'p', 'e', 0};
-
-char16_t nsHtml5Highlighter::sPi[] = {'p', 'i', 0};
-
 nsHtml5Highlighter::nsHtml5Highlighter(nsAHtml5TreeOpSink* aOpSink)
     : mState(nsHtml5Tokenizer::DATA),
       mCStart(INT32_MAX),
@@ -172,13 +148,13 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::TAG_OPEN:
       switch (aState) {
         case nsHtml5Tokenizer::TAG_NAME:
-          StartSpan(sStartTag);
+          StartSpan(u"start-tag");
           break;
         case nsHtml5Tokenizer::DATA:
           FinishTag();  // DATA
           break;
         case nsHtml5Tokenizer::PROCESSING_INSTRUCTION:
-          AddClass(sPi);
+          AddClass(u"pi");
           break;
       }
       break;
@@ -200,7 +176,7 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::BEFORE_ATTRIBUTE_NAME:
       switch (aState) {
         case nsHtml5Tokenizer::ATTRIBUTE_NAME:
-          StartSpan(sAttributeName);
+          StartSpan(u"attribute-name");
           break;
         case nsHtml5Tokenizer::SELF_CLOSING_START_TAG:
           StartSpan();  // for highlighting the slash
@@ -305,7 +281,7 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
         case nsHtml5Tokenizer::BEFORE_ATTRIBUTE_VALUE:
           break;
         case nsHtml5Tokenizer::ATTRIBUTE_NAME:
-          StartSpan(sAttributeName);
+          StartSpan(u"attribute-name");
           break;
         default:
           FinishTag();
@@ -322,7 +298,7 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::BOGUS_COMMENT_HYPHEN:
     case nsHtml5Tokenizer::COMMENT_LESSTHAN_BANG_DASH_DASH:
       if (aState == nsHtml5Tokenizer::DATA) {
-        AddClass(sComment);
+        AddClass(u"comment");
         FinishTag();
       }
       break;
@@ -330,7 +306,7 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     // highlighting
     case nsHtml5Tokenizer::CDATA_RSQB_RSQB:
       if (aState == nsHtml5Tokenizer::DATA) {
-        AddClass(sCdata);
+        AddClass(u"cdata");
         FinishTag();
       }
       break;
@@ -363,11 +339,11 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::HEX_NCR_LOOP:
       switch (aState) {
         case nsHtml5Tokenizer::HANDLE_NCR_VALUE:
-          AddClass(sEntity);
+          AddClass(u"entity");
           FlushCurrent();
           break;
         case nsHtml5Tokenizer::HANDLE_NCR_VALUE_RECONSUME:
-          AddClass(sEntity);
+          AddClass(u"entity");
           break;
       }
       EndSpanOrA();
@@ -378,7 +354,7 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
           FinishTag();
           break;
         case nsHtml5Tokenizer::TAG_NAME:
-          StartSpan(sEndTag);
+          StartSpan(u"end-tag");
           break;
       }
       break;
@@ -394,17 +370,17 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::NON_DATA_END_TAG_NAME:
       switch (aState) {
         case nsHtml5Tokenizer::BEFORE_ATTRIBUTE_NAME:
-          AddClass(sEndTag);
+          AddClass(u"end-tag");
           EndSpanOrA();
           break;
         case nsHtml5Tokenizer::SELF_CLOSING_START_TAG:
-          AddClass(sEndTag);
+          AddClass(u"end-tag");
           EndSpanOrA();
           StartSpan();  // for highlighting the slash
           mSlash = CurrentNode();
           break;
         case nsHtml5Tokenizer::DATA:  // yes, as a result of emitting the token
-          AddClass(sEndTag);
+          AddClass(u"end-tag");
           FinishTag();
           break;
         default:
@@ -447,7 +423,7 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED:
     case nsHtml5Tokenizer::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED:
       if (aState == nsHtml5Tokenizer::DATA) {
-        AddClass(sDoctype);
+        AddClass(u"doctype");
         FinishTag();
       }
       break;
@@ -470,10 +446,10 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::COMMENT_START_DASH:
     case nsHtml5Tokenizer::BOGUS_COMMENT:
     case nsHtml5Tokenizer::BOGUS_COMMENT_HYPHEN:
-      AddClass(sComment);
+      AddClass(u"comment");
       break;
     case nsHtml5Tokenizer::CDATA_RSQB_RSQB:
-      AddClass(sCdata);
+      AddClass(u"cdata");
       break;
     case nsHtml5Tokenizer::DECIMAL_NRC_LOOP:
     case nsHtml5Tokenizer::HEX_NCR_LOOP:
@@ -494,7 +470,7 @@ int32_t nsHtml5Highlighter::Transition(int32_t aState, bool aReconsume,
     case nsHtml5Tokenizer::BEFORE_DOCTYPE_SYSTEM_IDENTIFIER:
     case nsHtml5Tokenizer::DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED:
     case nsHtml5Tokenizer::DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED:
-      AddClass(sDoctype);
+      AddClass(u"doctype");
       break;
     default:
       break;
@@ -556,7 +532,7 @@ void nsHtml5Highlighter::EndCharactersAndStartMarkupRun() {
 void nsHtml5Highlighter::StartA() {
   FlushChars();
   Push(nsGkAtoms::a, nullptr, NS_NewHTMLAnchorElement);
-  AddClass(sAttributeValue);
+  AddClass(u"attribute-value");
   ++mInlinesOpen;
 }
 
@@ -652,7 +628,7 @@ void nsHtml5Highlighter::MaybeLinkifyAttributeValue(nsHtml5AttributeName* aName,
 }
 
 void nsHtml5Highlighter::CompletedNamedCharacterReference() {
-  AddClass(sEntity);
+  AddClass(u"entity");
 }
 
 nsIContent** nsHtml5Highlighter::AllocateContentHandle() {
