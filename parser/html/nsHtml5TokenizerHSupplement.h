@@ -59,7 +59,7 @@ mozilla::Result<bool, nsresult> FlushViewSource();
 
 void StartViewSource(const nsAutoString& aTitle);
 
-void StartViewSourceCharacters();
+void StartViewSourceBodyContents();
 
 [[nodiscard]] bool EndViewSource();
 

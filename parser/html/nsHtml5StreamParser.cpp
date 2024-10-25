@@ -443,7 +443,7 @@ void nsHtml5StreamParser::SetupDecodingFromBom(
   mTreeBuilder->SetDocumentCharset(mEncoding, mCharsetSource, false);
   mBomState = BOM_SNIFFING_OVER;
   if (mMode == VIEW_SOURCE_HTML) {
-    mTokenizer->StartViewSourceCharacters();
+    mTokenizer->StartViewSourceBodyContents();
   }
 }
 
@@ -460,7 +460,7 @@ void nsHtml5StreamParser::SetupDecodingFromUtf16BogoXml(
   mTreeBuilder->SetDocumentCharset(mEncoding, mCharsetSource, false);
   mBomState = BOM_SNIFFING_OVER;
   if (mMode == VIEW_SOURCE_HTML) {
-    mTokenizer->StartViewSourceCharacters();
+    mTokenizer->StartViewSourceBodyContents();
   }
   auto dst = mLastBuffer->TailAsSpan(READ_BUFFER_SIZE);
   dst[0] = '<';
@@ -782,7 +782,7 @@ nsresult nsHtml5StreamParser::SniffStreamBytes(Span<const uint8_t> aFromSegment,
       MOZ_ASSERT(!mFlushTimerArmed, "How did we end up arming the timer?");
       if (mMode == VIEW_SOURCE_HTML) {
         mTokenizer->SetViewSourceOpSink(speculation);
-        mTokenizer->StartViewSourceCharacters();
+        mTokenizer->StartViewSourceBodyContents();
       } else {
         MOZ_ASSERT(mMode != VIEW_SOURCE_XML);
         mTreeBuilder->SetOpSink(speculation);
@@ -794,7 +794,7 @@ nsresult nsHtml5StreamParser::SniffStreamBytes(Span<const uint8_t> aFromSegment,
       mBufferingBytes = false;
       mDecodingLocalFileWithoutTokenizing = false;
       if (mMode == VIEW_SOURCE_HTML) {
-        mTokenizer->StartViewSourceCharacters();
+        mTokenizer->StartViewSourceBodyContents();
       }
     }
     mTreeBuilder->SetDocumentCharset(mEncoding, mCharsetSource, false);
@@ -1149,7 +1149,7 @@ nsresult nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest) {
     // pre element start.
     mTokenizer->StartViewSource(NS_ConvertUTF8toUTF16(mViewSourceTitle));
     if (mMode == VIEW_SOURCE_XML) {
-      mTokenizer->StartViewSourceCharacters();
+      mTokenizer->StartViewSourceBodyContents();
     }
     // Flush the ops to put them where ContinueAfterScriptsOrEncodingCommitment
     // can find them.
@@ -2019,7 +2019,7 @@ void nsHtml5StreamParser::DiscardMetaSpeculation() {
   MOZ_ASSERT(!mFlushTimerArmed, "How did we end up arming the timer?");
   if (mMode == VIEW_SOURCE_HTML) {
     mTokenizer->SetViewSourceOpSink(speculation);
-    mTokenizer->StartViewSourceCharacters();
+    mTokenizer->StartViewSourceBodyContents();
   } else {
     MOZ_ASSERT(mMode != VIEW_SOURCE_XML);
     mTreeBuilder->SetOpSink(speculation);
