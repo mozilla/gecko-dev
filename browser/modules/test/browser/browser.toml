@@ -55,8 +55,6 @@ run-if = ["crashreporter"]
 ["browser_UsageTelemetry.js"]
 https_first_disabled = true
 
-["browser_UsageTelemetry_content_aboutRestartRequired.js"]
-
 ["browser_UsageTelemetry_domains.js"]
 https_first_disabled = true
 

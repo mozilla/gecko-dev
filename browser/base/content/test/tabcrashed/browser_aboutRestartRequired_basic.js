@@ -7,14 +7,16 @@ requestLongerTimeout(5);
 
 SimpleTest.expectChildProcessCrash();
 
-add_task(async function test_browser_crashed_basic_event() {
-  info("Waiting for oop-browser-crashed event.");
-
-  Services.telemetry.clearScalars();
+async function execTest() {
   is(
-    getFalsePositiveTelemetry(),
+    await getFalsePositiveTelemetry(),
     undefined,
     "Build ID mismatch false positive count should be undefined"
+  );
+  is(
+    await getTrueMismatchTelemetry(),
+    undefined,
+    "Build ID true mismatch count should be undefined"
   );
 
   await forceCleanProcesses();
@@ -23,9 +25,28 @@ add_task(async function test_browser_crashed_basic_event() {
   await eventPromise;
 
   is(
-    getFalsePositiveTelemetry(),
+    await getTrueMismatchTelemetry(),
+    undefined,
+    "Build ID true mismatch count should be undefined"
+  );
+  is(
+    await getFalsePositiveTelemetry(),
     undefined,
     "Build ID mismatch false positive count should be undefined"
   );
+
   await closeTab(tab);
+}
+
+add_task(async function test_telemetry_restartrequired_no_mismatch() {
+  // Do not clear telemetry's scalars, otherwise --verify will break because
+  // the parent process will have kept memory of sent telemetry but that test
+  // will not be aware
+
+  info("Waiting for oop-browser-crashed event.");
+
+  // Run once
+  await execTest();
+  // Run a second time and make sure it has not increased
+  await execTest();
 });

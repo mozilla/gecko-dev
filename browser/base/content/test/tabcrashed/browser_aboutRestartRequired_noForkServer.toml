@@ -13,3 +13,5 @@ prefs = [
 
 ["browser_aboutRestartRequired_buildid_false-positive.js"]
 skip-if = ["win11_2009 && msix && debug"]  # bug 1823581
+
+["browser_aboutRestartRequired_buildid_true.js"]

@@ -518,12 +518,6 @@ export var TabCrashHandler = {
     browser.docShell.displayLoadError(Cr.NS_ERROR_BUILDID_MISMATCH, uri, null);
     tab.setAttribute("crashed", true);
     gBrowser.tabContainer.updateTabIndicatorAttr(tab);
-
-    // Make sure to only count once even if there are multiple windows
-    // that will all show about:restartrequired.
-    if (this._crashedTabCount == 1) {
-      Glean.domContentprocess.buildIdMismatch.add(1);
-    }
   },
 
   /**

@@ -3620,6 +3620,13 @@ static mozilla::Result<bool, nsresult> BuildIDMismatchMemoryAndDisk() {
   nsresult rv;
   nsCOMPtr<nsIFile> file;
 
+  if (const char* forceMismatch = PR_GetEnv("MOZ_FORCE_BUILDID_MISMATCH")) {
+    if (forceMismatch[0] == '1') {
+      NS_WARNING("Forcing a buildid mismatch");
+      return true;
+    }
+  }
+
 #if defined(ANDROID)
   // Android packages on installation will stop existing instance, so we
   // cannot run into this problem.
@@ -3692,7 +3699,10 @@ void nsFrameLoader::MaybeNotifyCrashed(BrowsingContext* aBrowsingContext,
   }
 
 #if defined(MOZ_TELEMETRY_REPORTING)
-  bool sendTelemetry = false;
+  bool sendTelemetryFalsePositive = false, sendTelemetryTrueMismatch = false;
+
+  static bool haveSentTelemetryFalsePositive = false,
+              haveSentTelemetryTrueMismatch = false;
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 
   // Fire the actual crashed event.
@@ -3701,17 +3711,20 @@ void nsFrameLoader::MaybeNotifyCrashed(BrowsingContext* aBrowsingContext,
     auto changedOrError = BuildIDMismatchMemoryAndDisk();
     if (changedOrError.isErr()) {
       NS_WARNING("Error while checking buildid mismatch");
-      eventName = u"oop-browser-buildid-mismatch"_ns;
+      eventName = u"oop-browser-crashed"_ns;
     } else {
       bool aChanged = changedOrError.unwrap();
       if (aChanged) {
         NS_WARNING("True build ID mismatch");
         eventName = u"oop-browser-buildid-mismatch"_ns;
+#if defined(MOZ_TELEMETRY_REPORTING)
+        sendTelemetryTrueMismatch = true;
+#endif  // defined(MOZ_TELEMETRY_REPORTING)
       } else {
         NS_WARNING("build ID mismatch false alarm");
         eventName = u"oop-browser-crashed"_ns;
 #if defined(MOZ_TELEMETRY_REPORTING)
-        sendTelemetry = true;
+        sendTelemetryFalsePositive = true;
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
       }
     }
@@ -3721,8 +3734,14 @@ void nsFrameLoader::MaybeNotifyCrashed(BrowsingContext* aBrowsingContext,
   }
 
 #if defined(MOZ_TELEMETRY_REPORTING)
-  if (sendTelemetry) {
+  if (sendTelemetryFalsePositive && !haveSentTelemetryFalsePositive) {
     glean::dom_contentprocess::build_id_mismatch_false_positive.Add(1);
+    haveSentTelemetryFalsePositive = true;
+  }
+
+  if (sendTelemetryTrueMismatch && !haveSentTelemetryTrueMismatch) {
+    glean::dom_contentprocess::build_id_mismatch.Add(1);
+    haveSentTelemetryTrueMismatch = true;
   }
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 
