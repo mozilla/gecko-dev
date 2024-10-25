@@ -83,6 +83,11 @@
                 android:background="@drawable/background_gradient"
                 android:orientation="horizontal">
 
+                <Space
+                    android:id="@+id/browserToolbarStartSpace"
+                    android:layout_width="8dp"
+                    android:layout_height="match_parent" />
+
                 <mozilla.components.browser.toolbar.BrowserToolbar
                     android:id="@+id/browserToolbar"
                     android:layout_width="0dp"
