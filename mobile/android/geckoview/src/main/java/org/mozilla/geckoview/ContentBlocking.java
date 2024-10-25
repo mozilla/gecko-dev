@@ -665,7 +665,6 @@ public class ContentBlocking {
      *     ContentBlocking.SafeBrowsing} flags.
      * @return This Settings instance.
      */
-    @SuppressLint("WrongConstant") // https://issuetracker.google.com/issues/373506497
     public @NonNull Settings setSafeBrowsing(final @CBSafeBrowsing int cat) {
       mSbMalware.commit(ContentBlocking.catToSbMalware(cat));
       mSbPhishing.commit(ContentBlocking.catToSbPhishing(cat));
@@ -1743,11 +1742,11 @@ public class ContentBlocking {
     return enabled ? SafeBrowsing.PHISHING : SafeBrowsing.NONE;
   }
 
-  /* package */ static boolean catToSbMalware(@CBAntiTracking final int cat) {
+  /* package */ static boolean catToSbMalware(@CBSafeBrowsing final int cat) {
     return (cat & (SafeBrowsing.MALWARE | SafeBrowsing.UNWANTED | SafeBrowsing.HARMFUL)) != 0;
   }
 
-  /* package */ static boolean catToSbPhishing(@CBAntiTracking final int cat) {
+  /* package */ static boolean catToSbPhishing(@CBSafeBrowsing final int cat) {
     return (cat & SafeBrowsing.PHISHING) != 0;
   }
 

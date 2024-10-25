@@ -6,7 +6,6 @@
 
 package org.mozilla.geckoview;
 
-import android.annotation.SuppressLint;
 import android.util.Log;
 import androidx.annotation.AnyThread;
 import androidx.annotation.IntDef;
@@ -966,7 +965,7 @@ public class Autocomplete {
     }
 
     @SuppressWarnings("checkstyle:javadocmethod")
-    public SaveOption(final @NonNull T value, final @SaveOptionHint int hint) {
+    public SaveOption(final @NonNull T value, final int hint) {
       super(value, hint);
     }
   }
@@ -1016,7 +1015,7 @@ public class Autocomplete {
     }
 
     @SuppressWarnings("checkstyle:javadocmethod")
-    public SelectOption(final @NonNull T value, final @SelectOptionHint int hint) {
+    public SelectOption(final @NonNull T value, final int hint) {
       super(value, hint);
     }
 
@@ -1185,7 +1184,6 @@ public class Autocomplete {
      * @param value The {@link LoginEntry} credit card entry selection option.
      * @param hint The {@link Hint} detailing the type of the option.
      */
-    @SuppressLint("WrongConstant") // https://issuetracker.google.com/issues/373506497
     /* package */ CreditCardSelectOption(
         final @NonNull CreditCard value, final @CreditCardSelectHint int hint) {
       super(value, hint);
@@ -1243,7 +1241,6 @@ public class Autocomplete {
      * @param value The {@link LoginEntry} credit card entry selection option.
      * @param hint The {@link Hint} detailing the type of the option.
      */
-    @SuppressLint("WrongConstant") // https://issuetracker.google.com/issues/373506497
     /* package */ AddressSelectOption(
         final @NonNull Address value, final @AddressSelectHint int hint) {
       super(value, hint);

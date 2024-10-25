@@ -4,7 +4,6 @@
 
 package org.mozilla.gecko.media;
 
-import android.annotation.SuppressLint;
 import android.media.DeniedByServerException;
 import android.media.MediaCrypto;
 import android.media.MediaDrm;
@@ -105,7 +104,6 @@ public class GeckoMediaDrmBridgeV21 implements GeckoMediaDrm {
     }
   }
 
-  @SuppressLint("WrongConstant")
   private void configureVendorSpecificProperty() {
     assertTrue(mDrm != null);
     if (mDrm == null) {
@@ -318,7 +316,6 @@ public class GeckoMediaDrmBridgeV21 implements GeckoMediaDrm {
     return mCrypto;
   }
 
-  @SuppressLint("WrongConstant")
   @Override
   public void setServerCertificate(final byte[] cert) {
     if (DEBUG) Log.d(LOGTAG, "setServerCertificate()");
