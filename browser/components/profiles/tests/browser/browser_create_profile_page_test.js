@@ -17,15 +17,9 @@ add_task(async function test_create_profile_name() {
     set: [["browser.profiles.profile-name.updated", false]],
   });
 
-  let profile = await setupMockDB();
-  let rootDir = await profile.rootDir;
-
-  const toolkitProfileObject = { storeID, rootDir };
-  SelectableProfileService.groupToolkitProfile = toolkitProfileObject;
-
-  // re-initialize because we updated the rootDir
-  await SelectableProfileService.uninit();
-  await SelectableProfileService.init();
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
 
   await BrowserTestUtils.withNewTab(
     {
@@ -89,15 +83,8 @@ add_task(async function test_new_profile_avatar() {
     return;
   }
 
-  let profile = await setupMockDB();
-  let rootDir = await profile.rootDir;
-
-  const toolkitProfileObject = { storeID, rootDir };
-  SelectableProfileService.groupToolkitProfile = toolkitProfileObject;
-
-  // re-initialize because we updated the rootDir
-  await SelectableProfileService.uninit();
-  await SelectableProfileService.init();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
 
   await BrowserTestUtils.withNewTab(
     {

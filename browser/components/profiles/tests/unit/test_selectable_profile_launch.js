@@ -3,18 +3,13 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+add_setup(initSelectableProfileService);
+
 add_task(
   {
     skip_if: () => !AppConstants.MOZ_SELECTABLE_PROFILES,
   },
   async function test_launcher() {
-    const { SelectableProfileService } = ChromeUtils.importESModule(
-      "resource:///modules/profiles/SelectableProfileService.sys.mjs"
-    );
-
-    let profile = do_get_profile();
-    await SelectableProfileService.init();
-
     // mock() returns an object with a fake `runw` method that, when
     // called, records its arguments.
     let input = [];
@@ -26,6 +21,9 @@ add_task(
       };
     };
 
+    let profile = await createTestProfile();
+
+    const SelectableProfileService = getSelectableProfileService();
     SelectableProfileService.getExecutableProcess = mock;
     SelectableProfileService.launchInstance(profile);
 

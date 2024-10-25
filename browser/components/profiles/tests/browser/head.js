@@ -3,128 +3,83 @@
 
 "use strict";
 
-const { makeFakeAppDir } = ChromeUtils.importESModule(
-  "resource://testing-common/AppData.sys.mjs"
-);
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
-);
-const { SelectableProfile } = ChromeUtils.importESModule(
-  "resource:///modules/profiles/SelectableProfile.sys.mjs"
-);
+/**
+ * A mock toolkit profile.
+ */
+class MockProfile {
+  #service = null;
+  #storeID = null;
 
-const storeID = "12345678";
-var gFakeAppDirectoryProvider;
-
-function makeFakeProfileDirs() {
-  let dirMode = 0o700;
-  let baseFile = Services.dirsvc.get("ProfD", Ci.nsIFile);
-  let appD = baseFile.clone();
-  appD.append("UAppData");
-
-  if (gFakeAppDirectoryProvider) {
-    return Promise.resolve(appD.path);
+  constructor(service) {
+    this.#service = service;
+    this.name = "Testing";
+    this.rootDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
+    this.localDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
+    this.#storeID = null;
+    this.showProfileSelector = false;
   }
 
-  function makeDir(f) {
-    if (f.exists()) {
-      return;
+  get storeID() {
+    return this.#storeID;
+  }
+
+  set storeID(val) {
+    this.#storeID = val;
+
+    if (val) {
+      this.#service.groupProfile = this;
+    } else {
+      this.#service.groupProfile = null;
     }
+  }
+}
 
-    dump("Creating directory: " + f.path + "\n");
-    f.create(Ci.nsIFile.DIRECTORY_TYPE, dirMode);
+/**
+ * A mock profile service to use with the selectable profile service.
+ */
+class MockProfileService {
+  constructor() {
+    this.currentProfile = new MockProfile(this);
+    this.groupProfile = null;
   }
 
-  makeDir(appD);
+  async asyncFlush() {}
 
-  let profileDir = appD.clone();
-  profileDir.append("Profiles");
-
-  makeDir(profileDir);
-
-  let provider = {
-    getFile(prop, persistent) {
-      persistent.value = true;
-      if (prop === "UAppData") {
-        return appD.clone();
-      } else if (
-        prop === "ProfD" ||
-        prop === "DefProfRt" ||
-        prop === "DefProfLRt"
-      ) {
-        return profileDir.clone();
-      }
-
-      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
-    },
-
-    QueryInterface: ChromeUtils.generateQI(["nsIDirectoryServiceProvider"]),
-  };
-
-  // Register the new provider.
-  Services.dirsvc.registerProvider(provider);
-
-  // And undefine the old one.
-  try {
-    Services.dirsvc.undefine("UAppData");
-  } catch (ex) {}
-
-  gFakeAppDirectoryProvider = provider;
-
-  dump("Successfully installed fake UAppDir\n");
-  return appD.path;
+  async asyncFlushCurrentProfile() {}
 }
 
-function updateProfD(profileDir) {
-  let profD = profileDir.clone();
+const gProfileService = new MockProfileService();
 
-  let provider = {
-    getFile(prop, persistent) {
-      persistent.value = true;
-      if (prop === "ProfD") {
-        return profD.clone();
-      }
+let testRoot = Services.dirsvc.get("ProfD", Ci.nsIFile);
+testRoot.append(`SP${Date.now()}`);
+try {
+  testRoot.remove(true);
+  testRoot.create(Ci.nsIFile.DIRECTORY_TYPE, 0o666);
+} catch (e) {}
 
-      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
-    },
+// UAppData must be above any profile folder.
+let uAppData = Services.dirsvc.get("ProfD", Ci.nsIFile).parent;
+let defProfRt = testRoot.clone();
+defProfRt.append("DefProfRt");
+let defProflLRt = testRoot.clone();
+defProflLRt.append("DefProfLRt");
 
-    QueryInterface: ChromeUtils.generateQI(["nsIDirectoryServiceProvider"]),
-  };
+SelectableProfileService.overrideDirectoryService({
+  UAppData: uAppData,
+  DefProfRt: defProfRt,
+  DefProfLRt: defProflLRt,
+  ProfileGroups: testRoot.path,
+});
 
-  // Register the new provider.
-  Services.dirsvc.registerProvider(provider);
+add_setup(async () => {
+  await SelectableProfileService.resetProfileService(gProfileService);
 
-  // And undefine the old one.
-  try {
-    Services.dirsvc.undefine("ProfD");
-  } catch (ex) {}
-}
-
-async function setupMockDB() {
-  makeFakeProfileDirs();
-
-  await IOUtils.createUniqueFile(
-    PathUtils.join(
-      Services.dirsvc.get("UAppData", Ci.nsIFile).path,
-      "Profile Groups"
-    ),
-    `${storeID}.sqlite`
-  );
-
-  // re-initialize because we updated the dirsvc
-  await SelectableProfileService.uninit();
-  await SelectableProfileService.maybeCreateProfilesStorePath();
-  await SelectableProfileService.init();
-
-  let profile = await SelectableProfileService.createProfile({
-    name: "testProfile",
-    avatar: "star",
-    themeL10nId: "theme-id",
-    themeFg: "redFG",
-    themeBg: "blueBG",
+  registerCleanupFunction(() => {
+    SelectableProfileService.overrideDirectoryService(null);
+    SelectableProfileService.resetProfileService(null);
   });
+});
 
-  updateProfD(await profile.rootDir);
-
-  return profile;
+async function initGroupDatabase() {
+  await SelectableProfileService.maybeSetupDataStore();
 }

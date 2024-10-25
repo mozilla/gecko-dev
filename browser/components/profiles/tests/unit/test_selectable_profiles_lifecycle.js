@@ -8,25 +8,18 @@ add_task(
     skip_if: () => !AppConstants.MOZ_SELECTABLE_PROFILES,
   },
   async function test_SelectableProfileLifecycle() {
-    const { SelectableProfileService } = ChromeUtils.importESModule(
-      "resource:///modules/profiles/SelectableProfileService.sys.mjs"
-    );
-
+    startProfileService();
+    const SelectableProfileService = getSelectableProfileService();
     await SelectableProfileService.init();
 
     let profiles = await SelectableProfileService.getAllProfiles();
 
     Assert.ok(!profiles.length, "No selectable profiles exist yet");
 
-    let createdProfile = await SelectableProfileService.createProfile({
-      name: "testProfile",
-      avatar: "avatar",
-      themeL10nId: "theme-id",
-      themeFg: "redFG",
-      themeBg: "blueBG",
-    });
+    await SelectableProfileService.maybeSetupDataStore();
+    let currentProfile = SelectableProfileService.currentProfile;
 
-    const leafName = (await createdProfile.rootDir).leafName;
+    const leafName = (await currentProfile.rootDir).leafName;
 
     const profilePath = PathUtils.join(
       Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
@@ -62,13 +55,13 @@ add_task(
     for (let attr of ["id", "name", "path"]) {
       Assert.equal(
         profile[attr],
-        createdProfile[attr],
+        currentProfile[attr],
         `We got the correct profile ${attr}`
       );
 
       Assert.equal(
         selectableProfile[attr],
-        createdProfile[attr],
+        currentProfile[attr],
         `We got the correct profile ${attr}`
       );
     }

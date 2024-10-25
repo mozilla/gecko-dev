@@ -81,7 +81,7 @@ export class SelectableProfile {
    */
   get path() {
     return PathUtils.joinRelative(
-      Services.dirsvc.get("UAppData", Ci.nsIFile).path,
+      this.#selectableProfileService.constructor.getDirectory("UAppData").path,
       this.#path
     );
   }

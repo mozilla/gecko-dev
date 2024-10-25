@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { SelectableProfile } = ChromeUtils.importESModule(
+  "resource:///modules/profiles/SelectableProfile.sys.mjs"
+);
+
 add_task(async function test_updateDefaultProfileOnWindowSwitch() {
   if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
     // `mochitest-browser` suite `add_task` does not yet support
@@ -11,26 +15,22 @@ add_task(async function test_updateDefaultProfileOnWindowSwitch() {
     return;
   }
 
-  let profile = await setupMockDB();
-  let rootDir = await profile.rootDir;
+  await initGroupDatabase();
+  let currentProfile = SelectableProfileService.currentProfile;
+  let profileRootDir = await currentProfile.rootDir;
 
-  const toolkitProfileObject = { storeID, rootDir };
-  SelectableProfileService.groupToolkitProfile = toolkitProfileObject;
-
-  // re-initialize because we updated the rootDir
-  await SelectableProfileService.uninit();
-  await SelectableProfileService.init();
-
-  toolkitProfileObject.rootDir = "some/path";
   ok(
     SelectableProfileService.currentProfile instanceof SelectableProfile,
     "The current selectable profile exists"
   );
   is(
-    SelectableProfileService.toolkitProfileRootDir,
-    toolkitProfileObject.rootDir,
-    `The SelectableProfileService rootDir is ${toolkitProfileObject.rootDir}`
+    gProfileService.currentProfile.rootDir.path,
+    profileRootDir.path,
+    `The SelectableProfileService rootDir is correct`
   );
+
+  // Override
+  gProfileService.currentProfile.rootDir = "bad";
 
   let w = await BrowserTestUtils.openNewBrowserWindow();
   w.focus();
@@ -38,13 +38,13 @@ add_task(async function test_updateDefaultProfileOnWindowSwitch() {
   window.focus();
 
   await BrowserTestUtils.waitForCondition(() => {
-    return SelectableProfileService.toolkitProfileRootDir.path === rootDir.path;
-  }, `Waited for SelectableProfileService.toolkitProfileRootDir.path to be updated to ${rootDir.path}, instead got ${SelectableProfileService.toolkitProfileRootDir.path}`);
+    return gProfileService.currentProfile.rootDir.path === profileRootDir.path;
+  }, `Waited for gProfileService.currentProfile.rootDir.path to be updated to ${profileRootDir.path}, instead got ${gProfileService.currentProfile.rootDir.path}`);
 
   is(
-    SelectableProfileService.toolkitProfileRootDir.path,
-    rootDir.path,
-    `The SelectableProfileService rootDir is ${rootDir.path}`
+    gProfileService.currentProfile.rootDir.path,
+    profileRootDir.path,
+    `The SelectableProfileService rootDir is correct`
   );
 
   await BrowserTestUtils.closeWindow(w);

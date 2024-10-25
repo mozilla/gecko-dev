@@ -11,7 +11,8 @@ add_task(async function test_selector_window() {
     return;
   }
 
-  let profile = await setupMockDB();
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
 
   await BrowserTestUtils.withNewTab(
     {

@@ -3,20 +3,17 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+add_setup(initSelectableProfileService);
+
 add_task(
   {
     skip_if: () => !AppConstants.MOZ_SELECTABLE_PROFILES,
   },
   async function test_SharedPrefsLifecycle() {
-    const { SelectableProfileService } = ChromeUtils.importESModule(
-      "resource:///modules/profiles/SelectableProfileService.sys.mjs"
-    );
-
-    await SelectableProfileService.init();
-
+    const SelectableProfileService = getSelectableProfileService();
     let prefs = await SelectableProfileService.getAllPrefs();
 
-    Assert.ok(!prefs.length, "No shared prefs exist yet");
+    Assert.equal(prefs.length, 3, "The default shared prefs exist");
 
     await SelectableProfileService.setIntPref("testPrefInt0", 0);
     await SelectableProfileService.setIntPref("testPrefInt1", 1);
@@ -33,7 +30,7 @@ add_task(
 
     prefs = await SelectableProfileService.getAllPrefs();
 
-    Assert.equal(prefs.length, 7, "7 shared prefs exist");
+    Assert.equal(prefs.length, 10, "10 shared prefs exist");
 
     Assert.equal(
       await SelectableProfileService.getIntPref("testPrefInt0"),

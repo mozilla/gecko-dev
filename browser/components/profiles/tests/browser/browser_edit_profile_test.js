@@ -13,15 +13,9 @@ add_task(async function test_edit_profile_name() {
     return;
   }
 
-  let profile = await setupMockDB();
-  let rootDir = await profile.rootDir;
-
-  const toolkitProfileObject = { storeID, rootDir };
-  SelectableProfileService.groupToolkitProfile = toolkitProfileObject;
-
-  // re-initialize because we updated the rootDir
-  await SelectableProfileService.uninit();
-  await SelectableProfileService.init();
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
 
   await BrowserTestUtils.withNewTab(
     {
@@ -47,6 +41,12 @@ add_task(async function test_edit_profile_name() {
           let nameInput = editProfileCard.nameInput;
           nameInput.value = newProfileName;
           nameInput.dispatchEvent(new content.Event("input"));
+          await ContentTaskUtils.waitForCondition(() => {
+            let editCard = content.document.querySelector("edit-profile-card");
+            let savedMessage =
+              editCard.shadowRoot.querySelector("#saved-message");
+            return ContentTaskUtils.isVisible(savedMessage);
+          });
         }
       );
 
@@ -81,15 +81,8 @@ add_task(async function test_edit_profile_avatar() {
     return;
   }
 
-  let profile = await setupMockDB();
-  let rootDir = await profile.rootDir;
-
-  const toolkitProfileObject = { storeID, rootDir };
-  SelectableProfileService.groupToolkitProfile = toolkitProfileObject;
-
-  // re-initialize because we updated the rootDir
-  await SelectableProfileService.uninit();
-  await SelectableProfileService.init();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
 
   await BrowserTestUtils.withNewTab(
     {

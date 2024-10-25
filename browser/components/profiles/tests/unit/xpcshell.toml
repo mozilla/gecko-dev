@@ -1,5 +1,5 @@
 [DEFAULT]
-head = "head.js"
+head = "../../../../../toolkit/profile/test/xpcshell/head.js head.js"
 firefox-appdir = "browser"
 
 ["test_selectable_profile_launch.js"]
