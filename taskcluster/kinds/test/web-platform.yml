@@ -179,11 +179,7 @@ web-platform-tests-webcodecs:
     chunks: 1
     max-run-time: 1800
     variants: []  # We don't need sw or nofis testing.
-    run-on-projects:
-        by-test-platform:
-            android.*: []
-            .*wayland.*: []
-            default: built-projects
+    run-on-projects: built-projects
     mozharness:
         chunked: true
         extra-options:
