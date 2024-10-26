@@ -1235,6 +1235,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Confirma que quere eliminar este cartafol?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Estás seguro de que queres eliminar os elementos seleccionados?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s eliminará os elementos seleccionados.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1242,7 +1244,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Engadir cartafol</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Marcador gardado!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Marcador gardado!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Gardado en «%s»</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1309,7 +1311,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">Eliminouse %s</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Elementos eliminados: %s</string>
+    <string name="bookmark_delete_multiple_items">Elementos eliminados: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Introduza os termos de busca</string>
 
@@ -1338,7 +1340,7 @@
     <string name="bookmark_empty_list_folder_description">Engade marcadores mentres navegas para que poidas atopar os teus sitios favoritos máis tarde.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Novo cartafol</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Novo cartafol</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1588,9 +1590,9 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Pestanas pechadas: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Marcadores gardados!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Marcadores gardados!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Os marcadores gardáronse en “%s”!</string>
+    <string name="snackbar_message_bookmarks_saved_in">Os marcadores gardáronse en “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Engadido aos atallos!</string>
     <!-- Text shown in snackbar when user closes a private tab -->

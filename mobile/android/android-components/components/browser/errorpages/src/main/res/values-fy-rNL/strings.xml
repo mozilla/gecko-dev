@@ -190,7 +190,7 @@
     <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
     <string name="mozac_browser_errorpages_port_blocked_message"><![CDATA[
       
-      <p>It opfrege adres spesifisearret in poarte (byg. <q>mozilla.org:80</q> foar poarte 80 op mozilla.org) dy’t normaal sprutsen foar <em>oare</em> doeleinen as websneupjen brûkt wurdt. De browser hat it fersyk foar jo beskerming en feilichheid annulearre.</p>
+      <p>It opfrege adres spesifisearret in poarte (byg. <q>mozilla.org:80</q> foar poarte 80 op mozilla.org) dy’t normaal sprutsen foar <em>oare</em> doelen as websneupe brûkt wurdt. De browser hat it fersyk foar jo beskerming en feilichheid annulearre.</p>
     
     ]]></string>
 

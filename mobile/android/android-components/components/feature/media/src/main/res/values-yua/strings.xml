@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+    <!-- Name of the "notification channel" used for displaying media notification. See https://developer.android.com/training/notify-user/channels -->
+    <string name="mozac_feature_media_notification_channel">Multimedia</string>
+
+    <!-- Title of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera">Le cámarao\' táan u meyaj</string>
+
+
+    <!-- Title of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone">Le micrófonoo\' táan u meyaj</string>
+    <!-- Title of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone">Le cámarao\' yéetel le micrófonoo\' táan u meyaj</string>
+
+    <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_text">Pulse uti\'al u je\'ebel le ju\'unil tu\'ux ku meyaj a cámarao\'.</string>
+    <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone_text">Pulse utia\'al Je\'e le ju\'unil tu\'ux ku meyajtiko\'ob a micrófonoo\'.</string>
+    <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_text">Pulse uti\'al u je\'ebel le ju\'unil tu\'ux ku meyaj a micrófonoo\' yéetel a cámarao\'.</string>
+
+
+    <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_reminder_text">K\'a\'ajsajil: %1$s láayli\' táan u meyajtik a cámarao\'. Pulse uti\'al u je\'ebel le ju\'unil tu\'ux yaan.</string>
+    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_microphone_reminder_text_2">K\'a\'ajsajil: %1$s láayli\' táan u meyajtik a micrófonoo\'. Pulse uti\'al u je\'ebel le ju\'unil tu\'ux yaan.</string>
+    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">K\'a\'ajsajil: %1$s láayli\' táan u meyajtik a micrófonoo\' yéetel a cámarao\'. Pulse uti\'al u je\'ebel le ju\'unil tu\'ux yaan.</string>
+
+    <!--This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
+    <string name="mozac_feature_media_notification_action_play">Báaxal</string>
+
+    <!--This is the title of the "pause" action shown in the media notification while web content is playing media. Clicking it will pause currently playing media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
+    <string name="mozac_feature_media_notification_action_pause">Je\'elel</string>
+
+    </resources>

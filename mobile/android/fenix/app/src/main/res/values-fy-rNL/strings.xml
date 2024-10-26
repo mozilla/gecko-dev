@@ -1404,7 +1404,7 @@
     <!-- Label that indicates that a permission must be allowed -->
     <string name="preference_option_phone_feature_allowed">Tastien</string>
     <!--Label that indicates a permission is by the Android OS-->
-    <string name="phone_feature_blocked_by_android">Blokkeare troch Android</string>
+    <string name="phone_feature_blocked_by_android">Blokkearre troch Android</string>
     <!-- Preference for showing a list of websites that the default configurations won't apply to them -->
     <string name="preference_exceptions">Utsûnderingen</string>
     <!-- Summary of tracking protection preference if tracking protection is set to off -->
@@ -1573,7 +1573,7 @@
     <string name="notification_re_engagement_title">Probearje priveenavigaasje</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
     %1$s is a placeholder that will be replaced by the app name. -->
-    <string name="notification_re_engagement_text">Sneupje sûnder bewarre cookies of skiednis yn %1$s</string>
+    <string name="notification_re_engagement_text">Sneup sûnder bewarre cookies of skiednis yn %1$s</string>
 
     <!-- Title A shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_A_title">Sneup sûnder spoaren efter te litten</string>

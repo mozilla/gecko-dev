@@ -421,7 +421,11 @@
     <string name="search_header_menu_item_2">Lần này tìm kiếm trong:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description">Công cụ tìm kiếm %s</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Công cụ tìm kiếm %s</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">Công cụ tìm kiếm: %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -1244,6 +1248,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Bạn có chắc chắn muốn xóa thư mục này?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Bạn có chắc muốn xóa các mục đã chọn không?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s sẽ xóa các mục đã chọn.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1251,7 +1257,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Thêm thư mục</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Đã lưu dấu trang!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Đã lưu dấu trang!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Đã lưu trong “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1318,7 +1324,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">Đã xóa %s</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Đã xoá %s mục</string>
+    <string name="bookmark_delete_multiple_items">Đã xoá %s mục</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Nhập từ tìm kiếm</string>
 
@@ -1326,6 +1332,10 @@
     <string name="bookmark_navigate_back_button_content_description">Điều hướng quay lại</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Thêm một thư mục mới</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Xoá dấu trang</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Xoá thư mục</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Tìm kiếm dấu trang</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1343,7 +1353,7 @@
     <string name="bookmark_empty_list_folder_description">Thêm dấu trang khi bạn duyệt để bạn có thể tìm thấy các trang web yêu thích của mình sau này.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Thư mục mới</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Thư mục mới</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1593,9 +1603,9 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Thẻ đã đóng: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Đã lưu dấu trang!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Đã lưu dấu trang!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Đã lưu dấu trang trong “%s”!</string>
+    <string name="snackbar_message_bookmarks_saved_in">Đã lưu dấu trang trong “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Đã thêm vào lối tắt!</string>
     <!-- Text shown in snackbar when user closes a private tab -->

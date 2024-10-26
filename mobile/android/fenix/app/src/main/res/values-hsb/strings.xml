@@ -1257,6 +1257,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Chceće woprawdźe tutón rjadowak zhašeć?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Chceće woprawdźe wubrane zapiski zhašeć?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s wubrane zapiski zhaša.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1264,7 +1266,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Rjadowak přidać</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Zapołožka je so składowała!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Zapołožka je so składowała!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Do “%s” składowane</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1332,7 +1334,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">%s je zhašany</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Zhašane zapiski: %s</string>
+    <string name="bookmark_delete_multiple_items">Zhašane zapiski: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Pytanske wurazy zapodać</string>
 
@@ -1363,7 +1365,7 @@
     <string name="bookmark_empty_list_folder_description">Přidajće zapołožki, hdyž přehladujeće, zo byšće swoje najlubše sydła pozdźišo namakał.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Nowy rjadowak</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Nowy rjadowak</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1616,9 +1618,9 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Začinjene rajtarki: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Zapołožki su so składowali!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Zapołožki su so składowali!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Zapołožki su so w “%s” składowali!</string>
+    <string name="snackbar_message_bookmarks_saved_in">Zapołožki su so w “%s” składowali!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Zwjazanjam přidate!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
