@@ -78,7 +78,7 @@ int32_t TaskController::GetPoolThreadCount() {
   }
 
   int32_t numCores = 0;
-#if (defined(XP_MACOSX) && defined(__aarch64__)) || defined(XP_WIN)
+#if defined(XP_MACOSX) && defined(__aarch64__)
   if (const auto& cpuInfo = hal::GetHeterogeneousCpuInfo()) {
     // -1 because of the main thread.
     numCores = cpuInfo->mBigCpus.Count() + cpuInfo->mMediumCpus.Count() - 1;
