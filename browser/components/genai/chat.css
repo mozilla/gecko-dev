@@ -136,6 +136,9 @@ browser {
       -moz-context-properties: fill;
       fill: var(--in-content-page-color);
     }
+    &.copilot {
+      background-image: url(assets/brands/copilot.svg);
+    }
     &.gemini {
       background-image: url(assets/brands/gemini.svg);
     }

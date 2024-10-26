@@ -160,12 +160,20 @@ export const GenAI = {
     [
       "https://copilot.microsoft.com",
       {
+        choiceIds: [
+          "genai-onboarding-copilot-generate",
+          "genai-onboarding-copilot-analyze",
+          "genai-onboarding-copilot-price",
+        ],
         id: "copilot",
+        learnId: "genai-onboarding-copilot-learn",
+        learnLink: "https://www.microsoft.com/microsoft-copilot/learn/",
         link1: "https://www.bing.com/new/termsofuse",
         link2: "https://go.microsoft.com/fwlink/?LinkId=521839",
         linksId: "genai-settings-chat-copilot-links",
         name: "Copilot",
         maxLength: 3260,
+        tooltipId: "genai-onboarding-copilot-tooltip",
       },
     ],
     [
@@ -197,7 +205,7 @@ export const GenAI = {
         choiceIds: [
           "genai-onboarding-huggingchat-generate",
           "genai-onboarding-huggingchat-switch",
-          "genai-onboarding-huggingchat-price",
+          "genai-onboarding-huggingchat-price-2",
         ],
         id: "huggingchat",
         learnId: "genai-onboarding-huggingchat-learn",
