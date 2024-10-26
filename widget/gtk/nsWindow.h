@@ -479,6 +479,8 @@ class nsWindow final : public nsBaseWidget {
    */
   void DispatchActivateEventAccessible();
 
+  void GtkWidgetDestroyHandler(GtkWidget* aWidget);
+
  protected:
   virtual ~nsWindow();
 
