@@ -18,31 +18,32 @@
 html,body {
   color:black; background-color:white; font:20px/1 Ahem; padding:0; margin:0;
 }
-html { block-size: 40vh; }
+html { block-size: 1in; }
 
 .ib {
   display: block;
-  inline-size: 50vw;
-  block-size: 210vh;
+  inline-size: 2.5in;
+  block-size: 3in;
   border: 5px solid black;
   margin-left: 20px;
   margin-top: -20px;
 }
 .ib > div {
-  block-size: 220vh; /* creates a bit of scrollable overflow on .ib */
+  block-size: 3.25in; /* creates a bit of scrollable overflow on .ib */
 }
 
 .after {
+  margin-block-start: calc(0.25in - 5px); /* scrollable overflow 0.25in minus border-block-end-width 5px */
   display: block;
-  inline-size: 60vw;
-  block-size: 10vh;
+  inline-size: 2.5in;
+  block-size: 0.25in;
   border: 5px dashed grey;
   background-color: grey;
 }
 </style>
 </head>
 <body>
-  X<span style="display:inline-block; inline-size:50vw; border:5px solid transparent"></span>p
+  X<span style="display:inline-block; inline-size:2.5in; border:5px solid transparent"></span>p
   <div class="ib"><div></div></div>
   <div class="after"></div>
 </body>
