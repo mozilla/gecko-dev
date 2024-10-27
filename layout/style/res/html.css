@@ -890,37 +890,35 @@ slot {
 }
 
 /* Popover UA style, https://html.spec.whatwg.org/#flow-content-3 */
-/* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "dom.element.popover.enabled") {
-  [popover]:not(:popover-open):not(dialog[open]) {
-    display:none;
-  }
 
-  dialog:popover-open {
-    display:block;
-  }
+[popover]:not(:popover-open):not(dialog[open]) {
+  display:none;
+}
 
-  [popover] {
-    position: fixed;
-    inset: 0;
-    width: fit-content;
-    height: fit-content;
-    margin: auto;
-    border: solid;
-    padding: 0.25em;
-    overflow: auto;
-    color: CanvasText;
-    background-color: Canvas;
-  }
+dialog:popover-open {
+  display:block;
+}
 
-  :popover-open {
-    -moz-top-layer: top;
-  }
+[popover] {
+  position: fixed;
+  inset: 0;
+  width: fit-content;
+  height: fit-content;
+  margin: auto;
+  border: solid;
+  padding: 0.25em;
+  overflow: auto;
+  color: CanvasText;
+  background-color: Canvas;
+}
 
-  :popover-open::backdrop {
-    position: fixed;
-    inset: 0;
-    pointer-events: none !important;
-    background-color: transparent;
-  }
+:popover-open {
+  -moz-top-layer: top;
+}
+
+:popover-open::backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none !important;
+  background-color: transparent;
 }

@@ -776,8 +776,7 @@ void nsGenericHTMLElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       SetEventHandler(GetEventNameForAttr(aName), aValue->GetStringValue());
     } else if (aNotify && aName == nsGkAtoms::spellcheck) {
       SyncEditorsOnSubtree(this);
-    } else if (aName == nsGkAtoms::popover &&
-               StaticPrefs::dom_element_popover_enabled()) {
+    } else if (aName == nsGkAtoms::popover) {
       nsContentUtils::AddScriptRunner(
           NewRunnableMethod("nsGenericHTMLElement::AfterSetPopoverAttr", this,
                             &nsGenericHTMLElement::AfterSetPopoverAttr));
@@ -1035,8 +1034,7 @@ bool nsGenericHTMLElement::ParseAttribute(int32_t aNamespaceID,
       return aResult.ParseEnumValue(aValue, kDirTable, false);
     }
 
-    if (aAttribute == nsGkAtoms::popover &&
-        StaticPrefs::dom_element_popover_enabled()) {
+    if (aAttribute == nsGkAtoms::popover) {
       return aResult.ParseEnumValue(aValue, kPopoverTable, false,
                                     kPopoverTableInvalidValueDefault);
     }
@@ -2815,15 +2813,13 @@ bool nsGenericHTMLFormControlElementWithState::ParseAttribute(
     int32_t aNamespaceID, nsAtom* aAttribute, const nsAString& aValue,
     nsIPrincipal* aMaybeScriptedPrincipal, nsAttrValue& aResult) {
   if (aNamespaceID == kNameSpaceID_None) {
-    if (StaticPrefs::dom_element_popover_enabled()) {
-      if (aAttribute == nsGkAtoms::popovertargetaction) {
-        return aResult.ParseEnumValue(aValue, kPopoverTargetActionTable, false,
-                                      kPopoverTargetActionDefault);
-      }
-      if (aAttribute == nsGkAtoms::popovertarget) {
-        aResult.ParseAtom(aValue);
-        return true;
-      }
+    if (aAttribute == nsGkAtoms::popovertargetaction) {
+      return aResult.ParseEnumValue(aValue, kPopoverTargetActionTable, false,
+                                    kPopoverTargetActionDefault);
+    }
+    if (aAttribute == nsGkAtoms::popovertarget) {
+      aResult.ParseAtom(aValue);
+      return true;
     }
 
     if (StaticPrefs::dom_element_invokers_enabled()) {

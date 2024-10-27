@@ -135,11 +135,7 @@ const AVAILABLE_BREAKPOINTS = [
   {
     name: "Control",
     items: [
-      // The condition should be removed when "dom.element.popover.enabled" is removed
-      generalEvent("control", "beforetoggle", () =>
-        // Services.prefs isn't available on worker targets
-        Services.prefs?.getBoolPref("dom.element.popover.enabled")
-      ),
+      generalEvent("control", "beforetoggle"),
       generalEvent("control", "blur"),
       generalEvent("control", "change"),
       generalEvent("control", "focus"),

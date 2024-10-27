@@ -6,7 +6,6 @@
 
 add_task(async function () {
   await pushPref("dom.element.invokers.enabled", true);
-  await pushPref("dom.element.popover.enabled", true);
   await pushPref("dom.events.textevent.enabled", true);
 
   const dbg = await initDebugger(

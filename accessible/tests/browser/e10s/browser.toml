@@ -16,7 +16,6 @@ support-files = [
   "!/accessible/tests/mochitest/moz.png",
 ]
 prefs = [
-  "dom.element.popover.enabled=true",
   "accessibility.ARIAElementReflection.enabled=true"
 ]
 

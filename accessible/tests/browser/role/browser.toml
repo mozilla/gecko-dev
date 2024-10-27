@@ -6,9 +6,5 @@ support-files = [
   "!/accessible/tests/mochitest/*.js",
   "!/accessible/tests/browser/*.mjs",
 ]
-prefs = [
-  "dom.element.popover.enabled=true"
-]
-
 ["browser_computedARIARole.js"]
 ["browser_minimumRole.js"]

@@ -154,9 +154,6 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
-        if matches!(*self, Self::PopoverOpen) {
-            return static_prefs::pref!("dom.element.popover.enabled");
-        }
         if matches!(*self, Self::CustomState(_)) {
             return static_prefs::pref!("dom.element.customstateset.enabled");
         }

@@ -8,6 +8,6 @@
  */
 
 interface mixin PopoverInvokerElement {
-  [Pref="dom.element.popover.enabled", CEReactions] attribute Element? popoverTargetElement;
-  [Pref="dom.element.popover.enabled", CEReactions] attribute DOMString popoverTargetAction;
+  [CEReactions] attribute Element? popoverTargetElement;
+  [CEReactions] attribute DOMString popoverTargetAction;
 };
