@@ -68,7 +68,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-math-increment-script-level", MozMathIncrementScriptLevel, INCREMENT_SCRIPT_LEVEL, _),
 
                 ("required", Required, REQUIRED, _),
-                ("popover-open", PopoverOpen, POPOVER_OPEN, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("popover-open", PopoverOpen, POPOVER_OPEN, _),
                 ("optional", Optional, OPTIONAL_, _),
                 ("valid", Valid, VALID, _),
                 ("invalid", Invalid, INVALID, _),
