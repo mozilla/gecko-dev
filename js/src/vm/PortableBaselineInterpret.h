@@ -330,7 +330,7 @@ enum class PBIResult {
   UnwindRet,
 };
 
-template <bool IsRestart>
+template <bool IsRestart, bool HybridICs>
 PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                     StackVal* sp, JSObject* envChain,
                                     Value* ret, jsbytecode* pc,
