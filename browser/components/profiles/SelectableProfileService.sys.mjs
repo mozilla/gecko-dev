@@ -91,6 +91,7 @@ class SelectableProfileServiceClass {
   #asyncShutdownBlocker = null;
   #initialized = false;
   #groupToolkitProfile = null;
+  #storeID = null;
   #currentProfile = null;
   #everyWindowCallbackId = "SelectableProfileService";
   #defaultAvatars = [
@@ -101,6 +102,7 @@ class SelectableProfileServiceClass {
     "shopping",
     "star",
   ];
+  #initPromise = null;
   static #dirSvc = null;
 
   constructor() {
@@ -111,6 +113,23 @@ class SelectableProfileServiceClass {
 
     this.#groupToolkitProfile =
       this.#profileService.currentProfile ?? this.#profileService.groupProfile;
+
+    this.#storeID = this.#groupToolkitProfile?.storeID;
+
+    if (!this.#storeID) {
+      this.#storeID = Services.prefs.getCharPref(
+        "toolkit.profiles.storeID",
+        ""
+      );
+      if (this.#storeID) {
+        // This can happen if profiles.ini has been reset by a version of Firefox prior to 67 and
+        // the current profile is not the current default for the group. We can recover by
+        // attempting to find the group profile from the database.
+        this.#initPromise = this.restoreStoreID()
+          .catch(console.error)
+          .finally(() => (this.#initPromise = null));
+      }
+    }
   }
 
   /**
@@ -167,6 +186,10 @@ class SelectableProfileServiceClass {
     }
   }
 
+  get storeID() {
+    return this.#storeID;
+  }
+
   get groupToolkitProfile() {
     return this.#groupToolkitProfile;
   }
@@ -188,7 +211,7 @@ class SelectableProfileServiceClass {
   }
 
   async maybeCreateProfilesStorePath() {
-    if (!this.#groupToolkitProfile || this.#groupToolkitProfile.storeID) {
+    if (this.storeID) {
       return;
     }
 
@@ -202,6 +225,7 @@ class SelectableProfileServiceClass {
       .replace("{", "")
       .split("-")[0];
     this.#groupToolkitProfile.storeID = storageID;
+    this.#storeID = storageID;
     await this.#attemptFlushProfileService();
   }
 
@@ -210,22 +234,34 @@ class SelectableProfileServiceClass {
 
     return PathUtils.join(
       SelectableProfileServiceClass.PROFILE_GROUPS_DIR,
-      `${this.#groupToolkitProfile.storeID}.sqlite`
+      `${this.storeID}.sqlite`
     );
   }
 
   /**
    * At startup, store the nsToolkitProfile for the group.
    * Get the groupDBPath from the nsToolkitProfile, and connect to it.
+   *
+   * @returns {Promise}
    */
-  async init() {
+  init() {
+    if (!this.#initPromise) {
+      this.#initPromise = this.#init().finally(
+        () => (this.#initPromise = null)
+      );
+    }
+
+    return this.#initPromise;
+  }
+
+  async #init() {
     if (this.#initialized || !this.groupToolkitProfile) {
       return;
     }
 
     // If the storeID doesn't exist, we don't want to create the db until we
     // need to so we early return.
-    if (!this.groupToolkitProfile.storeID) {
+    if (!this.storeID) {
       return;
     }
 
@@ -347,6 +383,33 @@ class SelectableProfileServiceClass {
     }
   }
 
+  async restoreStoreID() {
+    try {
+      await this.#init();
+
+      for (let profile of await this.getAllProfiles()) {
+        let groupProfile = this.#profileService.getProfileByDir(
+          await profile.rootDir
+        );
+
+        if (groupProfile) {
+          this.#groupToolkitProfile = groupProfile;
+          this.#groupToolkitProfile.storeID = this.storeID;
+          await this.#profileService.asyncFlush();
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // If we were unable to find a matching toolkit profile then assume the
+    // store ID is bogus so clear it and uninit.
+    this.#storeID = null;
+    await this.uninit();
+    Services.prefs.clearUserPref("toolkit.profiles.storeID");
+  }
+
   async handleEvent(event) {
     switch (event.type) {
       case "activate": {
@@ -422,11 +485,12 @@ class SelectableProfileServiceClass {
    * and vacuum the group DB.
    */
   async deleteProfileGroup() {
-    if (this.getAllProfiles().length) {
+    if ((await this.getAllProfiles()).length) {
       return;
     }
 
     this.#groupToolkitProfile.storeID = null;
+    this.#storeID = null;
     await this.#attemptFlushProfileService();
     await this.vacuumAndCloseGroupDB();
   }
