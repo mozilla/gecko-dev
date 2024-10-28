@@ -51,6 +51,7 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/sdk/objc/base/RTCLogging.mm",
     "/third_party/libwebrtc/sdk/objc/base/RTCVideoCapturer.m",
     "/third_party/libwebrtc/sdk/objc/base/RTCVideoCodecInfo.m",
+    "/third_party/libwebrtc/sdk/objc/base/RTCVideoEncoderFactory.mm",
     "/third_party/libwebrtc/sdk/objc/base/RTCVideoEncoderQpThresholds.m",
     "/third_party/libwebrtc/sdk/objc/base/RTCVideoEncoderSettings.m",
     "/third_party/libwebrtc/sdk/objc/base/RTCVideoFrame.mm"
