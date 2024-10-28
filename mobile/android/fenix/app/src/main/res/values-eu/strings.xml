@@ -421,7 +421,11 @@
     <string name="search_header_menu_item_2">Oraingoan, bilatu honekin:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description">%s bilaketa-motorra</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s bilaketa-motorra</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">Bilaketa-motorra: %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -510,9 +514,9 @@
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Hasi nabigatzen.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">Arakatu hedapen gehiago</string>
+    <string name="onboarding_add_on_explore_more_extensions_2">Arakatu hedapen gehiago</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">Hasi nabigatzen</string>
+    <string name="onboarding_add_on_start_browsing_button_2">Hasi nabigatzen</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
     <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -522,13 +526,22 @@
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Jarraipenaren aurkako harribitxia. Gelditu jarraipen-elementu ikusezinak eta espioitza-iragarkiak.</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
-    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Bilatu irudia erabiliz</string>
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
     <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Ikusi irudi interesgarri bat eta lortu berari buruzko argibide gehiago.</string>
     <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
-    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Irakurgailu iluna</string>
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Modu ilun pertsonalizatua mugikorrerako weberako.</string>
+
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">Balorazioak: %1$s</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">Gehigarriaren ikonoa</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">Gehigarria gehitzeko botoia</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">Balorazioa: 5etik %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1242,6 +1255,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Ziur zaude karpeta hau ezabatu nahi duzula?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Ziur zaude hautatutako elementuak ezabatu nahi dituzula?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s(e)k hautatutako elementuak ezabatuko ditu</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1249,7 +1264,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Gehitu karpeta</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Laster-marka gordeta!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Laster-marka gordeta!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">&quot;%s&quot; karpetan gordeta</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1316,7 +1331,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">%s ezabatuta</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Ezabatutako elementuak: %s</string>
+    <string name="bookmark_delete_multiple_items">Ezabatutako elementuak: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Idatzi bilaketa-terminoak</string>
 
@@ -1324,6 +1339,10 @@
     <string name="bookmark_navigate_back_button_content_description">Nabigatu atzera</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Gehitu karpeta berria</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Ezabatu-laster-marka</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Ezabatu karpeta</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Bilatu laster-markak</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1341,7 +1360,7 @@
     <string name="bookmark_empty_list_folder_description">Gehitu laster-markak nabigatu ahala zure gune gogokoenak geroago aurki ditzazun.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Karpeta berria</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Karpeta berria</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1595,9 +1614,9 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Fitxak itxita: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Laster-markak gordeta!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Laster-markak gordeta!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Laster-markak &quot;%s&quot; karpetan gordeta!</string>
+    <string name="snackbar_message_bookmarks_saved_in">Laster-markak &quot;%s&quot; karpetan gordeta!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Lasterbideetara gehituta!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
