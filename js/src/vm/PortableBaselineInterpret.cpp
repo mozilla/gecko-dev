@@ -2447,7 +2447,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
             result = PortableBaselineInterpret<false, kHybridICsInterp>(
                 cx, ctx.state, ctx.stack, sp,
                 /* envChain = */ nullptr, &ret, pc, isd, nullptr, nullptr,
-                PBIResult::Ok);
+                nullptr, PBIResult::Ok);
             if (result != PBIResult::Ok) {
               ctx.error = result;
               return IC_ERROR_SENTINEL();
@@ -2535,7 +2535,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           Value ret;
           result = PortableBaselineInterpret<false, kHybridICsInterp>(
               cx, ctx.state, ctx.stack, sp, /* envChain = */ nullptr, &ret, pc,
-              isd, nullptr, nullptr, PBIResult::Ok);
+              isd, nullptr, nullptr, nullptr, PBIResult::Ok);
           if (result != PBIResult::Ok) {
             ctx.error = result;
             return IC_ERROR_SENTINEL();
@@ -2629,7 +2629,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           Value ret;
           result = PortableBaselineInterpret<false, kHybridICsInterp>(
               cx, ctx.state, ctx.stack, sp, /* envChain = */ nullptr, &ret, pc,
-              isd, nullptr, nullptr, PBIResult::Ok);
+              isd, nullptr, nullptr, nullptr, PBIResult::Ok);
           if (result != PBIResult::Ok) {
             ctx.error = result;
             return IC_ERROR_SENTINEL();
@@ -5966,13 +5966,11 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
   })
 
 template <bool IsRestart, bool HybridICs>
-PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
-                                    StackVal* sp, JSObject* envChain,
-                                    Value* ret, jsbytecode* pc,
-                                    ImmutableScriptData* isd,
-                                    BaselineFrame* restartFrame,
-                                    StackVal* restartEntryFrame,
-                                    PBIResult restartCode) {
+PBIResult PortableBaselineInterpret(
+    JSContext* cx_, State& state, Stack& stack, StackVal* sp,
+    JSObject* envChain, Value* ret, jsbytecode* pc, ImmutableScriptData* isd,
+    jsbytecode* restartEntryPC, BaselineFrame* restartFrame,
+    StackVal* restartEntryFrame, PBIResult restartCode) {
 #define RESTART(code)                                                 \
   if (!IsRestart) {                                                   \
     TRACE_PRINTF("Restarting (code %d sp %p fp %p)\n", int(code), sp, \
@@ -5990,11 +5988,14 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
   } while (0)
 
   // Update local state when we switch to a new script with a new PC.
-#define RESET_PC(new_pc, new_script)          \
-  pc = new_pc;                                \
-  isd = new_script->immutableScriptData();    \
-  icEntries = frame->icScript()->icEntries(); \
-  icEntry = frame->interpreterICEntry();
+#define RESET_PC(new_pc, new_script)                                \
+  pc = new_pc;                                                      \
+  entryPC = new_script->code();                                     \
+  isd = new_script->immutableScriptData();                          \
+  icEntries = frame->icScript()->icEntries();                       \
+  icEntry = frame->interpreterICEntry();                            \
+  argsObjAliasesFormals = frame->script()->argsObjAliasesFormals(); \
+  resumeOffsets = isd->resumeOffsets().data();
 
 #define OPCODE_LABEL(op, ...) LABEL(op),
 #define TRAILING_LABEL(v) LABEL(default),
@@ -6008,6 +6009,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
   BaselineFrame* frame = restartFrame;
   StackVal* entryFrame = restartEntryFrame;
+  jsbytecode* entryPC = restartEntryPC;
 
   if (!IsRestart) {
     PUSHNATIVE(StackValNative(nullptr));  // Fake return address.
@@ -6017,10 +6019,13 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
     // Save the entry frame so that when unwinding, we know when to
     // return from this C++ frame.
     entryFrame = sp;
+    // Save the entry PC so that we can compute offsets locally.
+    entryPC = pc;
   }
 
   bool from_unwind = false;
   uint32_t nfixed = frame->script()->nfixed();
+  bool argsObjAliasesFormals = frame->script()->argsObjAliasesFormals();
 
   PBIResult ic_result = PBIResult::Ok;
   uint64_t ic_arg0 = 0, ic_arg1 = 0, ic_arg2 = 0, ic_ret = 0;
@@ -6028,6 +6033,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
   ICCtx ctx(cx_, frame, state, stack);
   auto* icEntries = frame->icScript()->icEntries();
   auto* icEntry = icEntries;
+  const uint32_t* resumeOffsets = isd->resumeOffsets().data();
 
   if (IsRestart) {
     ic_result = restartCode;
@@ -8385,10 +8391,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           DISPATCH();
         }
 
-        i = uint32_t(i) - uint32_t(low);
-        if ((uint32_t(i) < uint32_t(high - low + 1))) {
-          len = frame->script()->tableSwitchCaseOffset(pc, uint32_t(i)) -
-                frame->script()->pcToOffset(pc);
+        if (i >= low && i <= high) {
+          uint32_t idx = uint32_t(i) - uint32_t(low);
+          uint32_t firstResumeIndex = GET_RESUMEINDEX(pc + 3 * JUMP_OFFSET_LEN);
+          pc = entryPC + resumeOffsets[firstResumeIndex + idx];
+          DISPATCH();
         }
         ADVANCE(len);
         DISPATCH();
@@ -8669,7 +8676,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(GetArg) {
         unsigned i = GET_ARGNO(pc);
-        if (frame->script()->argsObjAliasesFormals()) {
+        if (argsObjAliasesFormals) {
           VIRTPUSH(StackVal(frame->argsObj().arg(i)));
         } else {
           VIRTPUSH(StackVal(frame->unaliasedFormal(i)));
@@ -8794,7 +8801,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(SetArg) {
         unsigned i = GET_ARGNO(pc);
-        if (frame->script()->argsObjAliasesFormals()) {
+        if (argsObjAliasesFormals) {
           frame->argsObj().setArg(i, VIRTSP(0).asValue());
         } else {
           frame->unaliasedFormal(i) = VIRTSP(0).asValue();
@@ -9100,7 +9107,7 @@ restart:
   // before restarting, to match previous behavior.
   return PortableBaselineInterpret<true, HybridICs>(
       ctx.frameMgr.cxForLocalUseOnly(), ctx.state, ctx.stack, sp, envChain, ret,
-      pc, isd, frame, entryFrame, restartCode);
+      pc, isd, entryPC, frame, entryFrame, restartCode);
 
 error:
   TRACE_PRINTF("HandleException: frame %p\n", frame);
@@ -9319,7 +9326,7 @@ bool PortableBaselineTrampoline(JSContext* cx, size_t argc, Value* argv,
   PBIResult ret;
   ret = PortableBaselineInterpret<false, kHybridICsInterp>(
       cx, state, stack, sp, envChain, result, pc, isd, nullptr, nullptr,
-      PBIResult::Ok);
+      nullptr, PBIResult::Ok);
   switch (ret) {
     case PBIResult::Ok:
     case PBIResult::UnwindRet:
