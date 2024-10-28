@@ -17,10 +17,13 @@
 #include "mozilla/Maybe.h"
 #include <algorithm>
 
+#include "fdlibm.h"
 #include "jsapi.h"
 
 #include "builtin/DataViewObject.h"
 #include "builtin/MapObject.h"
+#include "builtin/Object.h"
+#include "builtin/RegExp.h"
 #include "builtin/String.h"
 #include "debugger/DebugAPI.h"
 #include "jit/BaselineFrame.h"
@@ -35,6 +38,7 @@
 #include "jit/VMFunctions.h"
 #include "proxy/DeadObjectProxy.h"
 #include "proxy/DOMProxy.h"
+#include "util/Unicode.h"
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
 #include "vm/DateObject.h"
@@ -44,6 +48,7 @@
 #include "vm/Interpreter.h"
 #include "vm/Iteration.h"
 #include "vm/JitActivation.h"
+#include "vm/JSObject.h"
 #include "vm/JSScript.h"
 #include "vm/Opcodes.h"
 #include "vm/PlainObject.h"
@@ -486,6 +491,23 @@ struct ICCtx {
 static uint64_t CallNextIC(uint64_t arg0, uint64_t arg1, ICStub* stub,
                            ICCtx& ctx);
 
+static double DoubleMinMax(bool isMax, double first, double second) {
+  if (std::isnan(first) || std::isnan(second)) {
+    return JS::GenericNaN();
+  } else if (first == 0 && second == 0) {
+    // -0 and 0 compare as equal, but we have to distinguish
+    // them here: min(-0, 0) = -0, max(-0, 0) = 0.
+    bool firstPos = !std::signbit(first);
+    bool secondPos = !std::signbit(second);
+    bool sign = isMax ? (firstPos || secondPos) : (firstPos && secondPos);
+    return sign ? 0.0 : -0.0;
+  } else {
+    return isMax ? ((first >= second) ? first : second)
+                 : ((first <= second) ? first : second);
+  }
+}
+
+// Interpreter for CacheIR.
 uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
                         ICCtx& ctx) {
   {
@@ -666,6 +688,134 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
     DECLARE_CACHEOP_CASE(LoadTypedArrayElementExistsResult);
     DECLARE_CACHEOP_CASE(LoadDenseElementHoleExistsResult);
     DECLARE_CACHEOP_CASE(LoadTypedArrayElementResult);
+    DECLARE_CACHEOP_CASE(RegExpFlagResult);
+    DECLARE_CACHEOP_CASE(GuardNumberToIntPtrIndex);
+    DECLARE_CACHEOP_CASE(CallRegExpMatcherResult);
+    DECLARE_CACHEOP_CASE(CallRegExpSearcherResult);
+    DECLARE_CACHEOP_CASE(RegExpSearcherLastLimitResult);
+    DECLARE_CACHEOP_CASE(RegExpHasCaptureGroupsResult);
+    DECLARE_CACHEOP_CASE(RegExpBuiltinExecMatchResult);
+    DECLARE_CACHEOP_CASE(RegExpBuiltinExecTestResult);
+    DECLARE_CACHEOP_CASE(CallSubstringKernelResult);
+    DECLARE_CACHEOP_CASE(StringReplaceStringResult);
+    DECLARE_CACHEOP_CASE(StringSplitStringResult);
+    DECLARE_CACHEOP_CASE(RegExpPrototypeOptimizableResult);
+    DECLARE_CACHEOP_CASE(RegExpInstanceOptimizableResult);
+    DECLARE_CACHEOP_CASE(GetFirstDollarIndexResult);
+    DECLARE_CACHEOP_CASE(StringToAtom);
+    DECLARE_CACHEOP_CASE(GuardTagNotEqual);
+    DECLARE_CACHEOP_CASE(IdToStringOrSymbol);
+    DECLARE_CACHEOP_CASE(MegamorphicStoreSlot);
+    DECLARE_CACHEOP_CASE(MegamorphicHasPropResult);
+    DECLARE_CACHEOP_CASE(ObjectToIteratorResult);
+    DECLARE_CACHEOP_CASE(ArrayJoinResult);
+    DECLARE_CACHEOP_CASE(ObjectKeysResult);
+    DECLARE_CACHEOP_CASE(PackedArrayPopResult);
+    DECLARE_CACHEOP_CASE(PackedArrayShiftResult);
+    DECLARE_CACHEOP_CASE(PackedArraySliceResult);
+    DECLARE_CACHEOP_CASE(IsArrayResult);
+    DECLARE_CACHEOP_CASE(IsPackedArrayResult);
+    DECLARE_CACHEOP_CASE(IsCallableResult);
+    DECLARE_CACHEOP_CASE(IsConstructorResult);
+    DECLARE_CACHEOP_CASE(IsCrossRealmArrayConstructorResult);
+    DECLARE_CACHEOP_CASE(IsTypedArrayResult);
+    DECLARE_CACHEOP_CASE(IsTypedArrayConstructorResult);
+    DECLARE_CACHEOP_CASE(ArrayBufferViewByteOffsetInt32Result);
+    DECLARE_CACHEOP_CASE(ArrayBufferViewByteOffsetDoubleResult);
+    DECLARE_CACHEOP_CASE(TypedArrayByteLengthInt32Result);
+    DECLARE_CACHEOP_CASE(TypedArrayByteLengthDoubleResult);
+    DECLARE_CACHEOP_CASE(TypedArrayElementSizeResult);
+    DECLARE_CACHEOP_CASE(NewStringIteratorResult);
+    DECLARE_CACHEOP_CASE(NewRegExpStringIteratorResult);
+    DECLARE_CACHEOP_CASE(ObjectCreateResult);
+    DECLARE_CACHEOP_CASE(NewArrayFromLengthResult);
+    DECLARE_CACHEOP_CASE(NewTypedArrayFromArrayBufferResult);
+    DECLARE_CACHEOP_CASE(NewTypedArrayFromArrayResult);
+    DECLARE_CACHEOP_CASE(NewTypedArrayFromLengthResult);
+    DECLARE_CACHEOP_CASE(StringFromCharCodeResult);
+    DECLARE_CACHEOP_CASE(StringFromCodePointResult);
+    DECLARE_CACHEOP_CASE(StringIncludesResult);
+    DECLARE_CACHEOP_CASE(StringIndexOfResult);
+    DECLARE_CACHEOP_CASE(StringLastIndexOfResult);
+    DECLARE_CACHEOP_CASE(StringStartsWithResult);
+    DECLARE_CACHEOP_CASE(StringEndsWithResult);
+    DECLARE_CACHEOP_CASE(StringToLowerCaseResult);
+    DECLARE_CACHEOP_CASE(StringToUpperCaseResult);
+    DECLARE_CACHEOP_CASE(StringTrimResult);
+    DECLARE_CACHEOP_CASE(StringTrimStartResult);
+    DECLARE_CACHEOP_CASE(StringTrimEndResult);
+    DECLARE_CACHEOP_CASE(MathAbsInt32Result);
+    DECLARE_CACHEOP_CASE(MathAbsNumberResult);
+    DECLARE_CACHEOP_CASE(MathClz32Result);
+    DECLARE_CACHEOP_CASE(MathSignInt32Result);
+    DECLARE_CACHEOP_CASE(MathSignNumberResult);
+    DECLARE_CACHEOP_CASE(MathSignNumberToInt32Result);
+    DECLARE_CACHEOP_CASE(MathImulResult);
+    DECLARE_CACHEOP_CASE(MathSqrtNumberResult);
+    DECLARE_CACHEOP_CASE(MathFRoundNumberResult);
+    DECLARE_CACHEOP_CASE(MathRandomResult);
+    DECLARE_CACHEOP_CASE(MathHypot2NumberResult);
+    DECLARE_CACHEOP_CASE(MathHypot3NumberResult);
+    DECLARE_CACHEOP_CASE(MathHypot4NumberResult);
+    DECLARE_CACHEOP_CASE(MathAtan2NumberResult);
+    DECLARE_CACHEOP_CASE(MathFloorNumberResult);
+    DECLARE_CACHEOP_CASE(MathCeilNumberResult);
+    DECLARE_CACHEOP_CASE(MathTruncNumberResult);
+    DECLARE_CACHEOP_CASE(MathCeilToInt32Result);
+    DECLARE_CACHEOP_CASE(MathFloorToInt32Result);
+    DECLARE_CACHEOP_CASE(MathTruncToInt32Result);
+    DECLARE_CACHEOP_CASE(MathRoundToInt32Result);
+    DECLARE_CACHEOP_CASE(NumberMinMax);
+    DECLARE_CACHEOP_CASE(Int32MinMaxArrayResult);
+    DECLARE_CACHEOP_CASE(NumberMinMaxArrayResult);
+    DECLARE_CACHEOP_CASE(MathFunctionNumberResult);
+    DECLARE_CACHEOP_CASE(NumberParseIntResult);
+    DECLARE_CACHEOP_CASE(DoubleParseIntResult);
+    DECLARE_CACHEOP_CASE(ObjectToStringResult);
+    DECLARE_CACHEOP_CASE(CallNativeSetter);
+    DECLARE_CACHEOP_CASE(CallSetArrayLength);
+    DECLARE_CACHEOP_CASE(CallNumberToString);
+    DECLARE_CACHEOP_CASE(Int32ToStringWithBaseResult);
+    DECLARE_CACHEOP_CASE(BooleanToString);
+    DECLARE_CACHEOP_CASE(BindFunctionResult);
+    DECLARE_CACHEOP_CASE(SpecializedBindFunctionResult);
+    DECLARE_CACHEOP_CASE(CallGetSparseElementResult);
+    DECLARE_CACHEOP_CASE(LoadArgumentsObjectLengthResult);
+    DECLARE_CACHEOP_CASE(LoadArgumentsObjectLength);
+    DECLARE_CACHEOP_CASE(LoadBoundFunctionNumArgs);
+    DECLARE_CACHEOP_CASE(LoadBoundFunctionTarget);
+    DECLARE_CACHEOP_CASE(LoadArrayBufferByteLengthInt32Result);
+    DECLARE_CACHEOP_CASE(LoadArrayBufferByteLengthDoubleResult);
+    DECLARE_CACHEOP_CASE(LinearizeForCodePointAccess);
+    DECLARE_CACHEOP_CASE(LoadArrayBufferViewLengthInt32Result);
+    DECLARE_CACHEOP_CASE(LoadArrayBufferViewLengthDoubleResult);
+    DECLARE_CACHEOP_CASE(LoadStringAtResult);
+    DECLARE_CACHEOP_CASE(LoadStringCodePointResult);
+    DECLARE_CACHEOP_CASE(CallNativeGetterResult);
+    DECLARE_CACHEOP_CASE(LoadUndefinedResult);
+    DECLARE_CACHEOP_CASE(LoadDoubleConstant);
+    DECLARE_CACHEOP_CASE(LoadBooleanConstant);
+    DECLARE_CACHEOP_CASE(LoadUndefined);
+    DECLARE_CACHEOP_CASE(LoadConstantString);
+    DECLARE_CACHEOP_CASE(LoadInstanceOfObjectResult);
+    DECLARE_CACHEOP_CASE(LoadTypeOfObjectResult);
+    DECLARE_CACHEOP_CASE(DoubleAddResult);
+    DECLARE_CACHEOP_CASE(DoubleSubResult);
+    DECLARE_CACHEOP_CASE(DoubleMulResult);
+    DECLARE_CACHEOP_CASE(DoubleDivResult);
+    DECLARE_CACHEOP_CASE(DoubleModResult);
+    DECLARE_CACHEOP_CASE(DoublePowResult);
+    DECLARE_CACHEOP_CASE(Int32LeftShiftResult);
+    DECLARE_CACHEOP_CASE(Int32RightShiftResult);
+    DECLARE_CACHEOP_CASE(Int32URightShiftResult);
+    DECLARE_CACHEOP_CASE(Int32NotResult);
+    DECLARE_CACHEOP_CASE(LoadDoubleTruthyResult);
+    DECLARE_CACHEOP_CASE(NewPlainObjectResult);
+    DECLARE_CACHEOP_CASE(NewArrayObjectResult);
+    DECLARE_CACHEOP_CASE(CompareObjectResult);
+    DECLARE_CACHEOP_CASE(CompareSymbolResult);
+    DECLARE_CACHEOP_CASE(CompareDoubleResult);
+    DECLARE_CACHEOP_CASE(IndirectTruncateInt32Result);
 
     // Define the computed-goto table regardless of dispatch strategy so
     // we don't get unused-label errors. (We need some of the labels
@@ -880,8 +1030,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           DISPATCH_CACHEOP();
         } else if (val.isDouble()) {
           double doubleVal = val.toDouble();
-          if (doubleVal >= double(INT32_MIN) &&
-              doubleVal <= double(INT32_MAX)) {
+          if (int32_t(doubleVal) == doubleVal) {
             WRITE_REG(resultId.id(), int32_t(doubleVal), INT32);
             DISPATCH_CACHEOP();
           }
@@ -1196,8 +1345,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         ObjOperandId objId = cacheIRReader.objOperandId();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         const JSClass* clasp = obj->getClass();
-        if (clasp == &FixedLengthArrayBufferObject::protoClass_ ||
-            clasp == &FixedLengthSharedArrayBufferObject::protoClass_ ||
+        if (clasp == &FixedLengthArrayBufferObject::class_ ||
+            clasp == &FixedLengthSharedArrayBufferObject::class_ ||
             clasp == &ResizableArrayBufferObject::class_ ||
             clasp == &GrowableSharedArrayBufferObject::class_) {
           FAIL_IC();
@@ -1445,9 +1594,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         HeapSlot* slots = nobj->getSlotsUnchecked();
-        // Note that unlike similar opcodes,
-        // GuardDynamicSlotIsSpecificObject takes a slot index rather
-        // than a byte offset.
+        // Note that unlike similar opcodes, GuardDynamicSlotIsSpecificObject
+        // takes a slot index rather than a byte offset.
         Value actual = slots[slot];
         if (actual != ObjectValue(*expected)) {
           FAIL_IC();
@@ -1462,9 +1610,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         uint32_t slot = stubInfo->getStubRawInt32(cstub, slotOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
         HeapSlot* slots = nobj->getSlotsUnchecked();
-        // Note that unlike similar opcodes,
-        // GuardDynamicSlotIsNotObject takes a slot index rather than
-        // a byte offset.
+        // Note that unlike similar opcodes, GuardDynamicSlotIsNotObject takes a
+        // slot index rather than a byte offset.
         Value actual = slots[slot];
         if (actual.isObject()) {
           FAIL_IC();
@@ -1529,8 +1676,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         uint32_t slot = stubInfo->getStubRawInt32(cstub, slotOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
         HeapSlot* slots = nobj->getSlotsUnchecked();
-        // Note that unlike similar opcodes, LoadDynamicSlot takes a slot
-        // index rather than a byte offset.
+        // Note that unlike similar opcodes, LoadDynamicSlot takes a slot index
+        // rather than a byte offset.
         Value actual = slots[slot];
         WRITE_VALUE_REG(resultId.id(), actual);
         DISPATCH_CACHEOP();
@@ -1851,10 +1998,10 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         int32_t numNewSlots =
             stubInfo->getStubRawInt32(cstub, numNewSlotsOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
-        // We have to (re)allocate dynamic slots. Do this first, as
-        // it's the only fallible operation here. Note that
-        // growSlotsPure is fallible but does not GC. Otherwise this
-        // is the same as AddAndStoreDynamicSlot above.
+        // We have to (re)allocate dynamic slots. Do this first, as it's the
+        // only fallible operation here. Note that growSlotsPure is fallible but
+        // does not GC. Otherwise this is the same as AddAndStoreDynamicSlot
+        // above.
         if (!NativeObject::growSlotsPure(ctx.frameMgr.cxForLocalUseOnly(), nobj,
                                          numNewSlots)) {
           FAIL_IC();
@@ -1913,10 +2060,10 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           }
           nobj->setDenseInitializedLength(initLength + 1);
 
-          // Baseline always updates the length field by directly accessing
-          // its offset in ObjectElements. If the object is not an ArrayObject
-          // then this field is never read, so it's okay to skip the update
-          // here in that case.
+          // Baseline always updates the length field by directly accessing its
+          // offset in ObjectElements. If the object is not an ArrayObject then
+          // this field is never read, so it's okay to skip the update here in
+          // that case.
           if (nobj->is<ArrayObject>()) {
             ArrayObject* aobj = &nobj->as<ArrayObject>();
             uint32_t len = aobj->length();
@@ -2254,8 +2401,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         Value* slot = reinterpret_cast<Value*>(
             reinterpret_cast<uintptr_t>(nobj) + offset);
         TRACE_PRINTF(
-            "LoadFixedSlotResult: obj %p offsetOffset %d offset %d slotPtr "
-            "%p "
+            "LoadFixedSlotResult: obj %p offsetOffset %d offset %d slotPtr %p "
             "slot %" PRIx64 "\n",
             nobj, int(offsetOffset), int(offset), slot, slot->asRawBits());
         retValue = slot->asRawBits();
@@ -2292,33 +2438,6 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         }
         retValue = val.asRawBits();
         PREDICT_RETURN();
-        DISPATCH_CACHEOP();
-      }
-
-      CACHEOP_CASE(LoadInt32ArrayLengthResult) {
-        ObjOperandId objId = cacheIRReader.objOperandId();
-        ArrayObject* aobj =
-            reinterpret_cast<ArrayObject*>(READ_REG(objId.id()));
-        uint32_t length = aobj->length();
-        if (length > uint32_t(INT32_MAX)) {
-          FAIL_IC();
-        }
-        retValue = Int32Value(length).asRawBits();
-        PREDICT_RETURN();
-        DISPATCH_CACHEOP();
-      }
-
-      CACHEOP_CASE(LoadInt32ArrayLength) {
-        ObjOperandId objId = cacheIRReader.objOperandId();
-        Int32OperandId resultId = cacheIRReader.int32OperandId();
-        BOUNDSCHECK(resultId);
-        ArrayObject* aobj =
-            reinterpret_cast<ArrayObject*>(READ_REG(objId.id()));
-        uint32_t length = aobj->length();
-        if (length > uint32_t(INT32_MAX)) {
-          FAIL_IC();
-        }
-        WRITE_REG(resultId.id(), length, INT32);
         DISPATCH_CACHEOP();
       }
 
@@ -2400,6 +2519,81 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
+      CACHEOP_CASE(LoadInt32ArrayLengthResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayObject* aobj =
+            reinterpret_cast<ArrayObject*>(READ_REG(objId.id()));
+        uint32_t length = aobj->length();
+        if (length > uint32_t(INT32_MAX)) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(length).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadInt32ArrayLength) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId resultId = cacheIRReader.int32OperandId();
+        BOUNDSCHECK(resultId);
+        ArrayObject* aobj =
+            reinterpret_cast<ArrayObject*>(READ_REG(objId.id()));
+        uint32_t length = aobj->length();
+        if (length > uint32_t(INT32_MAX)) {
+          FAIL_IC();
+        }
+        WRITE_REG(resultId.id(), length, INT32);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadArrayBufferByteLengthInt32Result) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayBufferObject* abo =
+            reinterpret_cast<ArrayBufferObject*>(READ_REG(objId.id()));
+        size_t len = abo->byteLength();
+        if (len > size_t(INT32_MAX)) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(int32_t(len)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadArrayBufferByteLengthDoubleResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayBufferObject* abo =
+            reinterpret_cast<ArrayBufferObject*>(READ_REG(objId.id()));
+        size_t len = abo->byteLength();
+        retValue = DoubleValue(double(len)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadArrayBufferViewLengthInt32Result) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayBufferViewObject* abvo =
+            reinterpret_cast<ArrayBufferViewObject*>(READ_REG(objId.id()));
+        size_t len = size_t(
+            abvo->getFixedSlot(ArrayBufferViewObject::LENGTH_SLOT).toPrivate());
+        if (len > size_t(INT32_MAX)) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(int32_t(len)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadArrayBufferViewLengthDoubleResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayBufferViewObject* abvo =
+            reinterpret_cast<ArrayBufferViewObject*>(READ_REG(objId.id()));
+        size_t len = size_t(
+            abvo->getFixedSlot(ArrayBufferViewObject::LENGTH_SLOT).toPrivate());
+        retValue = DoubleValue(double(len)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
       CACHEOP_CASE(LoadArgumentsObjectArgResult) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         Int32OperandId indexId = cacheIRReader.int32OperandId();
@@ -2424,9 +2618,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         JSString* str = reinterpret_cast<JSLinearString*>(READ_REG(strId.id()));
         (void)indexId;
 
-        if (!str->isRope()) {
-          WRITE_REG(resultId.id(), reinterpret_cast<uintptr_t>(str), STRING);
-        } else {
+        WRITE_REG(resultId.id(), reinterpret_cast<uintptr_t>(str), STRING);
+        if (str->isRope()) {
           PUSH_IC_FRAME();
           JSLinearString* result = LinearizeForCharAccess(cx, str);
           if (!result) {
@@ -2439,7 +2632,30 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
-      CACHEOP_CASE(LoadStringCharResult) {
+      CACHEOP_CASE(LinearizeForCodePointAccess) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        Int32OperandId indexId = cacheIRReader.int32OperandId();
+        StringOperandId resultId = cacheIRReader.stringOperandId();
+        BOUNDSCHECK(resultId);
+        JSString* str = reinterpret_cast<JSLinearString*>(READ_REG(strId.id()));
+        (void)indexId;
+
+        WRITE_REG(resultId.id(), reinterpret_cast<uintptr_t>(str), STRING);
+        if (str->isRope()) {
+          PUSH_IC_FRAME();
+          JSLinearString* result = LinearizeForCharAccess(cx, str);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          WRITE_REG(resultId.id(), reinterpret_cast<uintptr_t>(result), STRING);
+        }
+        PREDICT_NEXT(LoadStringCodePointResult);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadStringCharResult)
+      CACHEOP_CASE_FALLTHROUGH(LoadStringAtResult) {
         StringOperandId strId = cacheIRReader.stringOperandId();
         Int32OperandId indexId = cacheIRReader.int32OperandId();
         bool handleOOB = cacheIRReader.readBool();
@@ -2449,14 +2665,21 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         JSString* result = nullptr;
         if (index < 0 || size_t(index) >= str->length()) {
           if (handleOOB) {
-            // Return an empty string.
-            result = ctx.frameMgr.cxForLocalUseOnly()->names().empty_;
+            if (cacheop == CacheOp::LoadStringCharResult) {
+              // Return an empty string.
+              retValue =
+                  StringValue(ctx.frameMgr.cxForLocalUseOnly()->names().empty_)
+                      .asRawBits();
+            } else {
+              // Return `undefined`.
+              retValue = UndefinedValue().asRawBits();
+            }
           } else {
             FAIL_IC();
           }
         } else {
           char16_t c;
-          // Guaranteed to be always work because this CacheIR op is
+          // Guaranteed to always work because this CacheIR op is
           // always preceded by LinearizeForCharAccess.
           MOZ_ALWAYS_TRUE(str->getChar(/* cx = */ nullptr, index, &c));
           StaticStrings& sstr =
@@ -2471,8 +2694,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
               return IC_ERROR_SENTINEL();
             }
           }
+          retValue = StringValue(result).asRawBits();
         }
-        retValue = StringValue(result).asRawBits();
         PREDICT_RETURN();
         DISPATCH_CACHEOP();
       }
@@ -2494,9 +2717,36 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           }
         } else {
           char16_t c;
-          // Guaranteed to be always work because this CacheIR op is
+          // Guaranteed to always work because this CacheIR op is
           // always preceded by LinearizeForCharAccess.
           MOZ_ALWAYS_TRUE(str->getChar(/* cx = */ nullptr, index, &c));
+          result = Int32Value(c);
+        }
+        retValue = result.asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadStringCodePointResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        Int32OperandId indexId = cacheIRReader.int32OperandId();
+        bool handleOOB = cacheIRReader.readBool();
+
+        JSString* str = reinterpret_cast<JSLinearString*>(READ_REG(strId.id()));
+        int32_t index = int32_t(READ_REG(indexId.id()));
+        Value result;
+        if (index < 0 || size_t(index) >= str->length()) {
+          if (handleOOB) {
+            // Return undefined.
+            result = UndefinedValue();
+          } else {
+            FAIL_IC();
+          }
+        } else {
+          char32_t c;
+          // Guaranteed to be always work because this CacheIR op is
+          // always preceded by LinearizeForCharAccess.
+          MOZ_ALWAYS_TRUE(str->getCodePoint(/* cx = */ nullptr, index, &c));
           result = Int32Value(c);
         }
         retValue = result.asRawBits();
@@ -2595,6 +2845,69 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
+      CACHEOP_CASE(DoubleAddResult) {
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        Value lhs = READ_VALUE_REG(lhsId.id());
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        retValue = DoubleValue(lhs.toNumber() + rhs.toNumber()).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(DoubleSubResult) {
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        Value lhs = READ_VALUE_REG(lhsId.id());
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        retValue = DoubleValue(lhs.toNumber() - rhs.toNumber()).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(DoubleMulResult) {
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        Value lhs = READ_VALUE_REG(lhsId.id());
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        retValue = DoubleValue(lhs.toNumber() * rhs.toNumber()).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(DoubleDivResult) {
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        Value lhs = READ_VALUE_REG(lhsId.id());
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        retValue =
+            DoubleValue(NumberDiv(lhs.toNumber(), rhs.toNumber())).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(DoubleModResult) {
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        Value lhs = READ_VALUE_REG(lhsId.id());
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        retValue =
+            DoubleValue(NumberMod(lhs.toNumber(), rhs.toNumber())).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(DoublePowResult) {
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        Value lhs = READ_VALUE_REG(lhsId.id());
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        retValue =
+            DoubleValue(ecmaPow(lhs.toNumber(), rhs.toNumber())).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
 #define INT32_OP(name, op, extra_check)                    \
   CACHEOP_CASE(Int32##name##Result) {                      \
     Int32OperandId lhsId = cacheIRReader.int32OperandId(); \
@@ -2649,12 +2962,12 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         Int32OperandId lhsId = cacheIRReader.int32OperandId();
         Int32OperandId rhsId = cacheIRReader.int32OperandId();
         int64_t lhs = int64_t(int32_t(READ_REG(lhsId.id())));
-        int64_t rhs = int64_t(int32_t(READ_REG(rhsId.id())));
+        uint64_t rhs = uint64_t(int32_t(READ_REG(rhsId.id())));
         int64_t result;
 
         if (lhs == 1) {
           result = 1;
-        } else if (rhs < 0) {
+        } else if (rhs >= uint64_t(INT64_MIN)) {
           FAIL_IC();
         } else {
           result = 1;
@@ -2694,10 +3007,64 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
+      CACHEOP_CASE(Int32LeftShiftResult) {
+        Int32OperandId lhsId = cacheIRReader.int32OperandId();
+        Int32OperandId rhsId = cacheIRReader.int32OperandId();
+        int32_t lhs = int32_t(READ_REG(lhsId.id()));
+        int32_t rhs = int32_t(READ_REG(rhsId.id()));
+        int32_t result = lhs << (rhs & 0x1F);
+        retValue = Int32Value(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(Int32RightShiftResult) {
+        Int32OperandId lhsId = cacheIRReader.int32OperandId();
+        Int32OperandId rhsId = cacheIRReader.int32OperandId();
+        int32_t lhs = int32_t(READ_REG(lhsId.id()));
+        int32_t rhs = int32_t(READ_REG(rhsId.id()));
+        int32_t result = lhs >> (rhs & 0x1F);
+        retValue = Int32Value(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(Int32URightShiftResult) {
+        Int32OperandId lhsId = cacheIRReader.int32OperandId();
+        Int32OperandId rhsId = cacheIRReader.int32OperandId();
+        bool forceDouble = cacheIRReader.readBool();
+        (void)forceDouble;
+        uint32_t lhs = uint32_t(READ_REG(lhsId.id()));
+        int32_t rhs = int32_t(READ_REG(rhsId.id()));
+        uint32_t result = lhs >> (rhs & 0x1F);
+        retValue = (result >= 0x80000000)
+                       ? DoubleValue(double(result)).asRawBits()
+                       : Int32Value(int32_t(result)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(Int32NotResult) {
+        Int32OperandId inputId = cacheIRReader.int32OperandId();
+        int32_t input = int32_t(READ_REG(inputId.id()));
+        retValue = Int32Value(~input).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
       CACHEOP_CASE(LoadInt32TruthyResult) {
         ValOperandId inputId = cacheIRReader.valOperandId();
         int32_t val = int32_t(READ_REG(inputId.id()));
         retValue = BooleanValue(val != 0).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadDoubleTruthyResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        // NaN is falsy, not truthy.
+        retValue = BooleanValue(input != 0.0 && !std::isnan(input)).asRawBits();
         PREDICT_RETURN();
         DISPATCH_CACHEOP();
       }
@@ -2712,7 +3079,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
 
       CACHEOP_CASE(LoadObjectTruthyResult) {
         ObjOperandId objId = cacheIRReader.objOperandId();
-        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG((objId.id())));
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         const JSClass* cls = obj->getClass();
         if (cls->isProxyObject()) {
           FAIL_IC();
@@ -2739,18 +3106,22 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
       CACHEOP_CASE(CallStringConcatResult) {
         StringOperandId lhsId = cacheIRReader.stringOperandId();
         StringOperandId rhsId = cacheIRReader.stringOperandId();
-        // We don't push a frame and do a CanGC invocation here; we do a
-        // pure (NoGC) invocation only, because it's cheaper.
-        FakeRooted<JSString*> lhs(
-            nullptr, reinterpret_cast<JSString*>(READ_REG(lhsId.id())));
-        FakeRooted<JSString*> rhs(
-            nullptr, reinterpret_cast<JSString*>(READ_REG(rhsId.id())));
-        JSString* result =
-            ConcatStrings<NoGC>(ctx.frameMgr.cxForLocalUseOnly(), lhs, rhs);
-        if (result) {
-          retValue = StringValue(result).asRawBits();
-        } else {
-          FAIL_IC();
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> lhs(
+              &ctx.state.str0,
+              reinterpret_cast<JSString*>(READ_REG(lhsId.id())));
+          ReservedRooted<JSString*> rhs(
+              &ctx.state.str1,
+              reinterpret_cast<JSString*>(READ_REG(rhsId.id())));
+          JSString* result =
+              ConcatStrings<CanGC>(ctx.frameMgr.cxForLocalUseOnly(), lhs, rhs);
+          if (result) {
+            retValue = StringValue(result).asRawBits();
+          } else {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
         }
         PREDICT_RETURN();
         DISPATCH_CACHEOP();
@@ -2770,8 +3141,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
               reinterpret_cast<JSString*>(READ_REG(rhsId.id())));
           bool result;
           if (lhs == rhs) {
-            // If operands point to the same instance, the strings are
-            // trivially equal.
+            // If operands point to the same instance, the strings are trivially
+            // equal.
             result = op == JSOp::Eq || op == JSOp::StrictEq || op == JSOp::Le ||
                      op == JSOp::Ge;
           } else {
@@ -2883,6 +3254,42 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
+      CACHEOP_CASE(CompareDoubleResult) {
+        JSOp op = cacheIRReader.jsop();
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        double lhs = READ_VALUE_REG(lhsId.id()).toNumber();
+        double rhs = READ_VALUE_REG(rhsId.id()).toNumber();
+        bool result;
+        switch (op) {
+          case JSOp::Eq:
+          case JSOp::StrictEq:
+            result = lhs == rhs;
+            break;
+          case JSOp::Ne:
+          case JSOp::StrictNe:
+            result = lhs != rhs;
+            break;
+          case JSOp::Lt:
+            result = lhs < rhs;
+            break;
+          case JSOp::Le:
+            result = lhs <= rhs;
+            break;
+          case JSOp::Gt:
+            result = lhs > rhs;
+            break;
+          case JSOp::Ge:
+            result = lhs >= rhs;
+            break;
+          default:
+            MOZ_CRASH("Unexpected opcode");
+        }
+        retValue = BooleanValue(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
       CACHEOP_CASE(CompareNullUndefinedResult) {
         JSOp op = cacheIRReader.jsop();
         bool isUndefined = cacheIRReader.readBool();
@@ -2918,6 +3325,52 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
+      CACHEOP_CASE(CompareObjectResult) {
+        JSOp op = cacheIRReader.jsop();
+        ObjOperandId lhsId = cacheIRReader.objOperandId();
+        ObjOperandId rhsId = cacheIRReader.objOperandId();
+        (void)op;
+        JSObject* lhs = reinterpret_cast<JSObject*>(READ_REG(lhsId.id()));
+        JSObject* rhs = reinterpret_cast<JSObject*>(READ_REG(rhsId.id()));
+        switch (op) {
+          case JSOp::Eq:
+          case JSOp::StrictEq:
+            retValue = BooleanValue(lhs == rhs).asRawBits();
+            break;
+          case JSOp::Ne:
+          case JSOp::StrictNe:
+            retValue = BooleanValue(lhs != rhs).asRawBits();
+            break;
+          default:
+            FAIL_IC();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CompareSymbolResult) {
+        JSOp op = cacheIRReader.jsop();
+        SymbolOperandId lhsId = cacheIRReader.symbolOperandId();
+        SymbolOperandId rhsId = cacheIRReader.symbolOperandId();
+        (void)op;
+        JS::Symbol* lhs = reinterpret_cast<JS::Symbol*>(READ_REG(lhsId.id()));
+        JS::Symbol* rhs = reinterpret_cast<JS::Symbol*>(READ_REG(rhsId.id()));
+        switch (op) {
+          case JSOp::Eq:
+          case JSOp::StrictEq:
+            retValue = BooleanValue(lhs == rhs).asRawBits();
+            break;
+          case JSOp::Ne:
+          case JSOp::StrictNe:
+            retValue = BooleanValue(lhs != rhs).asRawBits();
+            break;
+          default:
+            FAIL_IC();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
       CACHEOP_CASE(AssertPropertyLookup) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t idOffset = cacheIRReader.stubOffset();
@@ -2926,6 +3379,1832 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         (void)objId;
         (void)idOffset;
         (void)slotOffset;
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathSqrtNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        retValue = NumberValue(sqrt(input)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathAbsInt32Result) {
+        Int32OperandId inputId = cacheIRReader.int32OperandId();
+        int32_t input = int32_t(READ_REG(inputId.id()));
+        if (input == INT32_MIN) {
+          FAIL_IC();
+        }
+        if (input < 0) {
+          input = -input;
+        }
+        retValue = Int32Value(input).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathAbsNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        retValue = DoubleValue(fabs(input)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathClz32Result) {
+        Int32OperandId inputId = cacheIRReader.int32OperandId();
+        int32_t input = int32_t(READ_REG(inputId.id()));
+        int32_t result =
+            (input == 0) ? 32 : mozilla::CountLeadingZeroes32(input);
+        retValue = Int32Value(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathSignInt32Result) {
+        Int32OperandId inputId = cacheIRReader.int32OperandId();
+        int32_t input = int32_t(READ_REG(inputId.id()));
+        int32_t result = (input == 0) ? 0 : ((input > 0) ? 1 : -1);
+        retValue = Int32Value(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathSignNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        double result = 0;
+        if (std::isnan(input)) {
+          result = JS::GenericNaN();
+        } else if (input == 0 && std::signbit(input)) {
+          result = -0.0;
+        } else if (input == 0) {
+          result = 0;
+        } else if (input > 0) {
+          result = 1;
+        } else {
+          result = -1;
+        }
+        retValue = DoubleValue(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathSignNumberToInt32Result) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        int32_t result = 0;
+        if (std::isnan(input) || (input == 0.0 && std::signbit(input))) {
+          FAIL_IC();
+        } else if (input == 0) {
+          result = 0;
+        } else if (input > 0) {
+          result = 1;
+        } else {
+          result = -1;
+        }
+        retValue = Int32Value(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathImulResult) {
+        Int32OperandId lhsId = cacheIRReader.int32OperandId();
+        Int32OperandId rhsId = cacheIRReader.int32OperandId();
+        int32_t lhs = int32_t(READ_REG(lhsId.id()));
+        int32_t rhs = int32_t(READ_REG(rhsId.id()));
+        int32_t result = lhs * rhs;
+        retValue = Int32Value(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathFRoundNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        retValue = DoubleValue(double(float(input))).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathRandomResult) {
+        uint32_t rngOffset = cacheIRReader.stubOffset();
+        auto* rng = reinterpret_cast<mozilla::non_crypto::XorShift128PlusRNG*>(
+            stubInfo->getStubRawWord(cstub, rngOffset));
+        retValue = DoubleValue(rng->nextDouble()).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathHypot2NumberResult) {
+        NumberOperandId firstId = cacheIRReader.numberOperandId();
+        double first = READ_VALUE_REG(firstId.id()).toNumber();
+        NumberOperandId secondId = cacheIRReader.numberOperandId();
+        double second = READ_VALUE_REG(secondId.id()).toNumber();
+        retValue = DoubleValue(ecmaHypot(first, second)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathHypot3NumberResult) {
+        NumberOperandId firstId = cacheIRReader.numberOperandId();
+        double first = READ_VALUE_REG(firstId.id()).toNumber();
+        NumberOperandId secondId = cacheIRReader.numberOperandId();
+        double second = READ_VALUE_REG(secondId.id()).toNumber();
+        NumberOperandId thirdId = cacheIRReader.numberOperandId();
+        double third = READ_VALUE_REG(thirdId.id()).toNumber();
+        retValue = DoubleValue(hypot3(first, second, third)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathHypot4NumberResult) {
+        NumberOperandId firstId = cacheIRReader.numberOperandId();
+        double first = READ_VALUE_REG(firstId.id()).toNumber();
+        NumberOperandId secondId = cacheIRReader.numberOperandId();
+        double second = READ_VALUE_REG(secondId.id()).toNumber();
+        NumberOperandId thirdId = cacheIRReader.numberOperandId();
+        double third = READ_VALUE_REG(thirdId.id()).toNumber();
+        NumberOperandId fourthId = cacheIRReader.numberOperandId();
+        double fourth = READ_VALUE_REG(fourthId.id()).toNumber();
+        retValue =
+            DoubleValue(hypot4(first, second, third, fourth)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathAtan2NumberResult) {
+        NumberOperandId lhsId = cacheIRReader.numberOperandId();
+        double lhs = READ_VALUE_REG(lhsId.id()).toNumber();
+        NumberOperandId rhsId = cacheIRReader.numberOperandId();
+        double rhs = READ_VALUE_REG(rhsId.id()).toNumber();
+        retValue = DoubleValue(ecmaAtan2(lhs, rhs)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathFloorNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        double result = fdlibm_floor(input);
+        retValue = DoubleValue(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathCeilNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        double result = fdlibm_ceil(input);
+        retValue = DoubleValue(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathTruncNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        double result = fdlibm_trunc(input);
+        retValue = DoubleValue(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathFloorToInt32Result) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        if (input == 0.0 && std::signbit(input)) {
+          FAIL_IC();
+        }
+        double result = fdlibm_floor(input);
+        int32_t intResult = int32_t(result);
+        if (double(intResult) != result) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(intResult).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathCeilToInt32Result) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        if (input > -1.0 && std::signbit(input)) {
+          FAIL_IC();
+        }
+        double result = fdlibm_ceil(input);
+        int32_t intResult = int32_t(result);
+        if (double(intResult) != result) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(intResult).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathTruncToInt32Result) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        if (input == 0.0 && std::signbit(input)) {
+          FAIL_IC();
+        }
+        double result = fdlibm_trunc(input);
+        int32_t intResult = int32_t(result);
+        if (double(intResult) != result) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(intResult).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathRoundToInt32Result) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        if (input == 0.0 && std::signbit(input)) {
+          FAIL_IC();
+        }
+        int32_t intResult = int32_t(input);
+        if (double(intResult) != input) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(intResult).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NumberMinMax) {
+        bool isMax = cacheIRReader.readBool();
+        NumberOperandId firstId = cacheIRReader.numberOperandId();
+        NumberOperandId secondId = cacheIRReader.numberOperandId();
+        NumberOperandId resultId = cacheIRReader.numberOperandId();
+        BOUNDSCHECK(resultId);
+        double first = READ_VALUE_REG(firstId.id()).toNumber();
+        double second = READ_VALUE_REG(secondId.id()).toNumber();
+        double result = DoubleMinMax(isMax, first, second);
+        WRITE_VALUE_REG(resultId.id(), DoubleValue(result));
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(Int32MinMaxArrayResult) {
+        ObjOperandId arrayId = cacheIRReader.objOperandId();
+        bool isMax = cacheIRReader.readBool();
+        // ICs that use this opcode depend on implicit unboxing due to
+        // type-overload on ObjOperandId when a value is loaded
+        // directly from an argument slot. We explicitly unbox here.
+        NativeObject* nobj = reinterpret_cast<NativeObject*>(
+            &READ_VALUE_REG(arrayId.id()).toObject());
+        uint32_t len = nobj->getDenseInitializedLength();
+        if (len == 0) {
+          FAIL_IC();
+        }
+        ObjectElements* elems = nobj->getElementsHeader();
+        int32_t accum = 0;
+        for (uint32_t i = 0; i < len; i++) {
+          HeapSlot* slot = &elems->elements()[i];
+          Value val = slot->get();
+          if (!val.isInt32()) {
+            FAIL_IC();
+          }
+          int32_t valInt = val.toInt32();
+          if (i > 0) {
+            accum = isMax ? ((valInt > accum) ? valInt : accum)
+                          : ((valInt < accum) ? valInt : accum);
+          } else {
+            accum = valInt;
+          }
+        }
+        retValue = Int32Value(accum).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NumberMinMaxArrayResult) {
+        ObjOperandId arrayId = cacheIRReader.objOperandId();
+        bool isMax = cacheIRReader.readBool();
+        // ICs that use this opcode depend on implicit unboxing due to
+        // type-overload on ObjOperandId when a value is loaded
+        // directly from an argument slot. We explicitly unbox here.
+        NativeObject* nobj = reinterpret_cast<NativeObject*>(
+            &READ_VALUE_REG(arrayId.id()).toObject());
+        uint32_t len = nobj->getDenseInitializedLength();
+        if (len == 0) {
+          FAIL_IC();
+        }
+        ObjectElements* elems = nobj->getElementsHeader();
+        double accum = 0;
+        for (uint32_t i = 0; i < len; i++) {
+          HeapSlot* slot = &elems->elements()[i];
+          Value val = slot->get();
+          if (!val.isNumber()) {
+            FAIL_IC();
+          }
+          double valDouble = val.toNumber();
+          if (i > 0) {
+            accum = DoubleMinMax(isMax, accum, valDouble);
+          } else {
+            accum = valDouble;
+          }
+        }
+        retValue = DoubleValue(accum).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MathFunctionNumberResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        UnaryMathFunction fun = cacheIRReader.unaryMathFunction();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        auto funPtr = GetUnaryMathFunctionPtr(fun);
+        retValue = DoubleValue(funPtr(input)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NumberParseIntResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        Int32OperandId radixId = cacheIRReader.int32OperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        int32_t radix = int32_t(READ_REG(radixId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<Value> result(&ctx.state.value0);
+          if (!NumberParseInt(cx, str0, radix, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = result.asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(DoubleParseIntResult) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        if (std::isnan(input)) {
+          FAIL_IC();
+        }
+        int32_t result = int32_t(input);
+        if (double(result) != input) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(GuardTagNotEqual) {
+        ValueTagOperandId lhsId = cacheIRReader.valueTagOperandId();
+        ValueTagOperandId rhsId = cacheIRReader.valueTagOperandId();
+        int32_t lhs = int32_t(READ_REG(lhsId.id()));
+        int32_t rhs = int32_t(READ_REG(rhsId.id()));
+        if (lhs == rhs) {
+          FAIL_IC();
+        }
+        if (JSValueTag(lhs) <= JSVAL_TAG_INT32 ||
+            JSValueTag(rhs) <= JSVAL_TAG_INT32) {
+          FAIL_IC();
+        }
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(GuardNumberToIntPtrIndex) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        bool supportOOB = cacheIRReader.readBool();
+        (void)supportOOB;
+        IntPtrOperandId resultId = cacheIRReader.intPtrOperandId();
+        BOUNDSCHECK(resultId);
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        // For simplicity, support only uint32 range for now. This
+        // covers 32-bit and 64-bit systems.
+        if (input < 0.0 || input >= (uint64_t(1) << 32)) {
+          FAIL_IC();
+        }
+        uintptr_t result = static_cast<uintptr_t>(input);
+        // Convert back and compare to detect rounded fractional
+        // parts.
+        if (static_cast<double>(result) != input) {
+          FAIL_IC();
+        }
+        WRITE_REG(resultId.id(), uint64_t(result), OBJECT);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadTypeOfObjectResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        const JSClass* cls = obj->getClass();
+        if (cls->isProxyObject()) {
+          FAIL_IC();
+        }
+        if (obj->is<JSFunction>()) {
+          retValue =
+              StringValue(ctx.frameMgr.cxForLocalUseOnly()->names().function)
+                  .asRawBits();
+        } else if (cls->emulatesUndefined()) {
+          retValue =
+              StringValue(ctx.frameMgr.cxForLocalUseOnly()->names().undefined)
+                  .asRawBits();
+        } else {
+          retValue =
+              StringValue(ctx.frameMgr.cxForLocalUseOnly()->names().object)
+                  .asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(PackedArrayPopResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayObject* aobj =
+            reinterpret_cast<ArrayObject*>(READ_REG(objId.id()));
+        ObjectElements* elements = aobj->getElementsHeader();
+        if (!elements->isPacked() || elements->hasNonwritableArrayLength() ||
+            elements->isNotExtensible() || elements->maybeInIteration()) {
+          FAIL_IC();
+        }
+        size_t len = aobj->length();
+        if (len != aobj->getDenseInitializedLength()) {
+          FAIL_IC();
+        }
+        if (len == 0) {
+          retValue = UndefinedValue().asRawBits();
+        } else {
+          HeapSlot* slot = &elements->elements()[len - 1];
+          retValue = slot->get().asRawBits();
+          len--;
+          aobj->setLength(len);
+          aobj->setDenseInitializedLength(len);
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(PackedArrayShiftResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayObject* aobj =
+            reinterpret_cast<ArrayObject*>(READ_REG(objId.id()));
+        ObjectElements* elements = aobj->getElementsHeader();
+        if (!elements->isPacked() || elements->hasNonwritableArrayLength() ||
+            elements->isNotExtensible() || elements->maybeInIteration()) {
+          FAIL_IC();
+        }
+        size_t len = aobj->length();
+        if (len != aobj->getDenseInitializedLength()) {
+          FAIL_IC();
+        }
+        if (len == 0) {
+          retValue = UndefinedValue().asRawBits();
+        } else {
+          HeapSlot* slot = &elements->elements()[0];
+          retValue = slot->get().asRawBits();
+          ArrayShiftMoveElements(aobj);
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(PackedArraySliceResult) {
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+        ObjOperandId arrayId = cacheIRReader.objOperandId();
+        Int32OperandId beginId = cacheIRReader.int32OperandId();
+        Int32OperandId endId = cacheIRReader.int32OperandId();
+        (void)templateObjectOffset;
+        ArrayObject* aobj =
+            reinterpret_cast<ArrayObject*>(READ_REG(arrayId.id()));
+        int32_t begin = int32_t(READ_REG(beginId.id()));
+        int32_t end = int32_t(READ_REG(endId.id()));
+        if (!aobj->getElementsHeader()->isPacked()) {
+          FAIL_IC();
+        }
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> arr(&ctx.state.obj0, aobj);
+          JSObject* ret = ArraySliceDense(cx, arr, begin, end, nullptr);
+          if (!ret) {
+            FAIL_IC();
+          }
+          retValue = ObjectValue(*ret).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IsPackedArrayResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        if (!obj->is<ArrayObject>()) {
+          retValue = BooleanValue(false).asRawBits();
+          PREDICT_RETURN();
+          DISPATCH_CACHEOP();
+        }
+        ArrayObject* aobj =
+            reinterpret_cast<ArrayObject*>(READ_REG(objId.id()));
+        if (aobj->length() != aobj->getDenseInitializedLength()) {
+          retValue = BooleanValue(false).asRawBits();
+          PREDICT_RETURN();
+          DISPATCH_CACHEOP();
+        }
+        retValue = BooleanValue(aobj->denseElementsArePacked()).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadArgumentsObjectLengthResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArgumentsObject* obj =
+            reinterpret_cast<ArgumentsObject*>(READ_REG(objId.id()));
+        if (obj->hasOverriddenLength()) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(obj->initialLength()).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadArgumentsObjectLength) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId resultId = cacheIRReader.int32OperandId();
+        BOUNDSCHECK(resultId);
+        ArgumentsObject* obj =
+            reinterpret_cast<ArgumentsObject*>(READ_REG(objId.id()));
+        if (obj->hasOverriddenLength()) {
+          FAIL_IC();
+        }
+        WRITE_REG(resultId.id(), obj->initialLength(), INT32);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(ObjectToIteratorResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        uint32_t enumeratorsAddr = cacheIRReader.stubOffset();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        (void)enumeratorsAddr;
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> rootedObj(&ctx.state.obj0, obj);
+          auto* iter = GetIterator(cx, rootedObj);
+          if (!iter) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*iter).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadUndefinedResult) {
+        retValue = UndefinedValue().asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadDoubleConstant) {
+        uint32_t valOffset = cacheIRReader.stubOffset();
+        NumberOperandId resultId = cacheIRReader.numberOperandId();
+        BOUNDSCHECK(resultId);
+        WRITE_VALUE_REG(
+            resultId.id(),
+            Value::fromRawBits(stubInfo->getStubRawInt64(cstub, valOffset)));
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadBooleanConstant) {
+        bool val = cacheIRReader.readBool();
+        BooleanOperandId resultId = cacheIRReader.booleanOperandId();
+        BOUNDSCHECK(resultId);
+        WRITE_REG(resultId.id(), val ? 1 : 0, BOOLEAN);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadUndefined) {
+        ValOperandId resultId = cacheIRReader.numberOperandId();
+        BOUNDSCHECK(resultId);
+        WRITE_VALUE_REG(resultId.id(), UndefinedValue());
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadConstantString) {
+        uint32_t valOffset = cacheIRReader.stubOffset();
+        StringOperandId resultId = cacheIRReader.stringOperandId();
+        BOUNDSCHECK(resultId);
+        JSString* str = reinterpret_cast<JSString*>(
+            stubInfo->getStubRawWord(cstub, valOffset));
+        WRITE_REG(resultId.id(), reinterpret_cast<uint64_t>(str), STRING);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewPlainObjectResult) {
+        uint32_t numFixedSlots = cacheIRReader.uint32Immediate();
+        uint32_t numDynamicSlots = cacheIRReader.uint32Immediate();
+        gc::AllocKind allocKind = cacheIRReader.allocKind();
+        uint32_t shapeOffset = cacheIRReader.stubOffset();
+        uint32_t siteOffset = cacheIRReader.stubOffset();
+        (void)numFixedSlots;
+        (void)numDynamicSlots;
+        SharedShape* shape = reinterpret_cast<SharedShape*>(
+            stubInfo->getStubRawWord(cstub, shapeOffset));
+        gc::AllocSite* site = reinterpret_cast<gc::AllocSite*>(
+            stubInfo->getStubRawWord(cstub, siteOffset));
+        {
+          PUSH_IC_FRAME();
+          Rooted<SharedShape*> rootedShape(cx, shape);
+          auto* result =
+              NewPlainObjectBaselineFallback(cx, rootedShape, allocKind, site);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewArrayObjectResult) {
+        uint32_t arrayLength = cacheIRReader.uint32Immediate();
+        uint32_t shapeOffset = cacheIRReader.stubOffset();
+        uint32_t siteOffset = cacheIRReader.stubOffset();
+        (void)shapeOffset;
+        gc::AllocSite* site = reinterpret_cast<gc::AllocSite*>(
+            stubInfo->getStubRawWord(cstub, siteOffset));
+        gc::AllocKind allocKind = GuessArrayGCKind(arrayLength);
+        MOZ_ASSERT(
+            CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
+        allocKind = ForegroundToBackgroundAllocKind(allocKind);
+        {
+          PUSH_IC_FRAME();
+          auto* result =
+              NewArrayObjectBaselineFallback(cx, arrayLength, allocKind, site);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewArrayFromLengthResult) {
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+        Int32OperandId lengthId = cacheIRReader.int32OperandId();
+        uint32_t siteOffset = cacheIRReader.stubOffset();
+        ArrayObject* templateObject = reinterpret_cast<ArrayObject*>(
+            stubInfo->getStubRawWord(cstub, templateObjectOffset));
+        gc::AllocSite* site = reinterpret_cast<gc::AllocSite*>(
+            stubInfo->getStubRawWord(cstub, siteOffset));
+        int32_t length = int32_t(READ_REG(lengthId.id()));
+        {
+          PUSH_IC_FRAME();
+          Rooted<ArrayObject*> templateObjectRooted(cx, templateObject);
+          auto* result =
+              ArrayConstructorOneArg(cx, templateObjectRooted, length, site);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewTypedArrayFromLengthResult) {
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+        Int32OperandId lengthId = cacheIRReader.int32OperandId();
+        TypedArrayObject* templateObject = reinterpret_cast<TypedArrayObject*>(
+            stubInfo->getStubRawWord(cstub, templateObjectOffset));
+        int32_t length = int32_t(READ_REG(lengthId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> templateObjectRooted(&ctx.state.obj0,
+                                                         templateObject);
+          auto* result = NewTypedArrayWithTemplateAndLength(
+              cx, templateObjectRooted, length);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewTypedArrayFromArrayBufferResult) {
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+        ObjOperandId bufferId = cacheIRReader.objOperandId();
+        ValOperandId byteOffsetId = cacheIRReader.valOperandId();
+        ValOperandId lengthId = cacheIRReader.valOperandId();
+        TypedArrayObject* templateObject = reinterpret_cast<TypedArrayObject*>(
+            stubInfo->getStubRawWord(cstub, templateObjectOffset));
+        JSObject* buffer = reinterpret_cast<JSObject*>(READ_REG(bufferId.id()));
+        Value byteOffset = READ_VALUE_REG(byteOffsetId.id());
+        Value length = READ_VALUE_REG(lengthId.id());
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> templateObjectRooted(&ctx.state.obj0,
+                                                         templateObject);
+          ReservedRooted<JSObject*> bufferRooted(&ctx.state.obj1, buffer);
+          ReservedRooted<Value> byteOffsetRooted(&ctx.state.value0, byteOffset);
+          ReservedRooted<Value> lengthRooted(&ctx.state.value1, length);
+          auto* result = NewTypedArrayWithTemplateAndBuffer(
+              cx, templateObjectRooted, bufferRooted, byteOffsetRooted,
+              lengthRooted);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewTypedArrayFromArrayResult) {
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+        ObjOperandId arrayId = cacheIRReader.objOperandId();
+        TypedArrayObject* templateObject = reinterpret_cast<TypedArrayObject*>(
+            stubInfo->getStubRawWord(cstub, templateObjectOffset));
+        JSObject* array = reinterpret_cast<JSObject*>(READ_REG(arrayId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> templateObjectRooted(&ctx.state.obj0,
+                                                         templateObject);
+          ReservedRooted<JSObject*> arrayRooted(&ctx.state.obj1, array);
+          auto* result = NewTypedArrayWithTemplateAndArray(
+              cx, templateObjectRooted, arrayRooted);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(ObjectToStringResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        {
+          PUSH_IC_FRAME();
+          auto* result = ObjectClassToString(cx, obj);
+          if (!result) {
+            FAIL_IC();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallNativeGetterResult) {
+        ValOperandId receiverId = cacheIRReader.valOperandId();
+        uint32_t getterOffset = cacheIRReader.stubOffset();
+        bool sameRealm = cacheIRReader.readBool();
+        uint32_t nargsAndFlagsOffset = cacheIRReader.stubOffset();
+        (void)sameRealm;
+        (void)nargsAndFlagsOffset;
+        Value receiver = READ_VALUE_REG(receiverId.id());
+        JSFunction* getter = reinterpret_cast<JSFunction*>(
+            stubInfo->getStubRawWord(cstub, getterOffset));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSFunction*> getterRooted(&ctx.state.fun0, getter);
+          ReservedRooted<Value> receiverRooted(&ctx.state.value0, receiver);
+          ReservedRooted<Value> resultRooted(&ctx.state.value1);
+          if (!CallNativeGetter(cx, getterRooted, receiverRooted,
+                                &resultRooted)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = resultRooted.asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallNativeSetter) {
+        ValOperandId receiverId = cacheIRReader.valOperandId();
+        uint32_t setterOffset = cacheIRReader.stubOffset();
+        ObjOperandId rhsId = cacheIRReader.objOperandId();
+        bool sameRealm = cacheIRReader.readBool();
+        uint32_t nargsAndFlagsOffset = cacheIRReader.stubOffset();
+        (void)sameRealm;
+        (void)nargsAndFlagsOffset;
+        JSObject* receiver =
+            reinterpret_cast<JSObject*>(READ_REG(receiverId.id()));
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        JSFunction* setter = reinterpret_cast<JSFunction*>(
+            stubInfo->getStubRawWord(cstub, setterOffset));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSFunction*> setterRooted(&ctx.state.fun0, setter);
+          ReservedRooted<JSObject*> receiverRooted(&ctx.state.obj0, receiver);
+          ReservedRooted<Value> rhsRooted(&ctx.state.value1, rhs);
+          if (!CallNativeSetter(cx, setterRooted, receiverRooted, rhsRooted)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadInstanceOfObjectResult) {
+        ValOperandId lhsId = cacheIRReader.valOperandId();
+        ObjOperandId protoId = cacheIRReader.objOperandId();
+        Value lhs = READ_VALUE_REG(lhsId.id());
+        JSObject* rhsProto =
+            reinterpret_cast<JSObject*>(READ_REG(protoId.id()));
+        if (!lhs.isObject()) {
+          retValue = BooleanValue(false).asRawBits();
+          PREDICT_RETURN();
+          DISPATCH_CACHEOP();
+        }
+
+        JSObject* lhsObj = &lhs.toObject();
+        bool result = false;
+        while (true) {
+          TaggedProto proto = lhsObj->taggedProto();
+          if (proto.isDynamic()) {
+            FAIL_IC();
+          }
+          JSObject* protoObj = proto.toObjectOrNull();
+          if (!protoObj) {
+            result = false;
+            break;
+          }
+          if (protoObj == rhsProto) {
+            result = true;
+            break;
+          }
+          lhsObj = protoObj;
+        }
+        retValue = BooleanValue(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringFromCharCodeResult) {
+        Int32OperandId codeId = cacheIRReader.int32OperandId();
+        uint32_t code = uint32_t(READ_REG(codeId.id()));
+        StaticStrings& sstr = ctx.frameMgr.cxForLocalUseOnly()->staticStrings();
+        if (sstr.hasUnit(code)) {
+          retValue = StringValue(sstr.getUnit(code)).asRawBits();
+        } else {
+          PUSH_IC_FRAME();
+          auto* result = StringFromCharCode(cx, code);
+          if (!result) {
+            FAIL_IC();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringFromCodePointResult) {
+        Int32OperandId codeId = cacheIRReader.int32OperandId();
+        uint32_t code = uint32_t(READ_REG(codeId.id()));
+        if (code > unicode::NonBMPMax) {
+          FAIL_IC();
+        }
+        StaticStrings& sstr = ctx.frameMgr.cxForLocalUseOnly()->staticStrings();
+        if (sstr.hasUnit(code)) {
+          retValue = StringValue(sstr.getUnit(code)).asRawBits();
+        } else {
+          PUSH_IC_FRAME();
+          auto* result = StringFromCodePoint(cx, code);
+          if (!result) {
+            FAIL_IC();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringIncludesResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        StringOperandId searchStrId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSString* searchStr =
+            reinterpret_cast<JSString*>(READ_REG(searchStrId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<JSString*> str1(&ctx.state.str1, searchStr);
+          bool result = false;
+          if (!StringIncludes(cx, str0, str1, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = BooleanValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringIndexOfResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        StringOperandId searchStrId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSString* searchStr =
+            reinterpret_cast<JSString*>(READ_REG(searchStrId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<JSString*> str1(&ctx.state.str1, searchStr);
+          int32_t result = 0;
+          if (!StringIndexOf(cx, str0, str1, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = Int32Value(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringLastIndexOfResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        StringOperandId searchStrId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSString* searchStr =
+            reinterpret_cast<JSString*>(READ_REG(searchStrId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<JSString*> str1(&ctx.state.str1, searchStr);
+          int32_t result = 0;
+          if (!StringLastIndexOf(cx, str0, str1, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = Int32Value(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringStartsWithResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        StringOperandId searchStrId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSString* searchStr =
+            reinterpret_cast<JSString*>(READ_REG(searchStrId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<JSString*> str1(&ctx.state.str1, searchStr);
+          bool result = false;
+          if (!StringStartsWith(cx, str0, str1, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = BooleanValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringEndsWithResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        StringOperandId searchStrId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSString* searchStr =
+            reinterpret_cast<JSString*>(READ_REG(searchStrId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<JSString*> str1(&ctx.state.str1, searchStr);
+          bool result = false;
+          if (!StringEndsWith(cx, str0, str1, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = BooleanValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringToLowerCaseResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = StringToLowerCase(cx, str0);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringToUpperCaseResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = StringToUpperCase(cx, str0);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringTrimResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = StringTrim(cx, str0);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringTrimStartResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = StringTrimStart(cx, str0);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringTrimEndResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = StringTrimEnd(cx, str0);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallSubstringKernelResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        Int32OperandId beginId = cacheIRReader.int32OperandId();
+        Int32OperandId lengthId = cacheIRReader.int32OperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        int32_t begin = int32_t(READ_REG(beginId.id()));
+        int32_t length = int32_t(READ_REG(lengthId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          auto* result = SubstringKernel(cx, str0, begin, length);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringReplaceStringResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        StringOperandId patternId = cacheIRReader.stringOperandId();
+        StringOperandId replacementId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSString* pattern =
+            reinterpret_cast<JSString*>(READ_REG(patternId.id()));
+        JSString* replacement =
+            reinterpret_cast<JSString*>(READ_REG(replacementId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<JSString*> str1(&ctx.state.str1, pattern);
+          ReservedRooted<JSString*> str2(&ctx.state.str2, replacement);
+          auto* result = StringReplace(cx, str0, str1, str2);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringSplitStringResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        StringOperandId separatorId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSString* separator =
+            reinterpret_cast<JSString*>(READ_REG(separatorId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSString*> str0(&ctx.state.str0, str);
+          ReservedRooted<JSString*> str1(&ctx.state.str1, separator);
+          auto* result = StringSplitString(cx, str0, str1, INT32_MAX);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(StringToAtom) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        JSAtom* result =
+            AtomizeStringNoGC(ctx.frameMgr.cxForLocalUseOnly(), str);
+        if (!result) {
+          FAIL_IC();
+        }
+        WRITE_REG(strId.id(), reinterpret_cast<uint64_t>(result), STRING);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IdToStringOrSymbol) {
+        ValOperandId resultId = cacheIRReader.valOperandId();
+        ValOperandId idId = cacheIRReader.valOperandId();
+        BOUNDSCHECK(resultId);
+        Value id = READ_VALUE_REG(idId.id());
+        if (id.isString() || id.isSymbol()) {
+          WRITE_VALUE_REG(resultId.id(), id);
+        } else if (id.isInt32()) {
+          int32_t idInt = id.toInt32();
+          StaticStrings& sstr =
+              ctx.frameMgr.cxForLocalUseOnly()->staticStrings();
+          if (sstr.hasInt(idInt)) {
+            WRITE_VALUE_REG(resultId.id(), StringValue(sstr.getInt(idInt)));
+          } else {
+            PUSH_IC_FRAME();
+            auto* result = Int32ToStringPure(cx, idInt);
+            if (!result) {
+              ctx.error = PBIResult::Error;
+              return IC_ERROR_SENTINEL();
+            }
+            WRITE_VALUE_REG(resultId.id(), StringValue(result));
+          }
+        } else {
+          FAIL_IC();
+        }
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewStringIteratorResult) {
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+        (void)templateObjectOffset;
+        {
+          PUSH_IC_FRAME();
+          auto* result = NewStringIterator(cx);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IsArrayResult) {
+        ValOperandId valId = cacheIRReader.valOperandId();
+        Value val = READ_VALUE_REG(valId.id());
+        if (!val.isObject()) {
+          retValue = BooleanValue(false).asRawBits();
+        } else {
+          JSObject* obj = &val.toObject();
+          if (obj->getClass()->isProxyObject()) {
+            FAIL_IC();
+          }
+          retValue = BooleanValue(obj->is<ArrayObject>()).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IsCallableResult) {
+        ValOperandId valId = cacheIRReader.valOperandId();
+        Value val = READ_VALUE_REG(valId.id());
+        if (!val.isObject()) {
+          retValue = BooleanValue(false).asRawBits();
+        } else {
+          JSObject* obj = &val.toObject();
+          if (obj->getClass()->isProxyObject()) {
+            FAIL_IC();
+          }
+          bool callable =
+              obj->is<JSFunction>() || obj->getClass()->getCall() != nullptr;
+          retValue = BooleanValue(callable).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IsConstructorResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        bool ctor = obj->isConstructor();
+        retValue = BooleanValue(ctor).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IsCrossRealmArrayConstructorResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        bool result =
+            obj->shape()->realm() !=
+                ctx.frameMgr.cxForLocalUseOnly()->realm() &&
+            obj->is<JSFunction>() && obj->as<JSFunction>().isNativeFun() &&
+            obj->as<JSFunction>().nativeUnchecked() == &js::ArrayConstructor;
+        retValue = BooleanValue(result).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IsTypedArrayResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        bool isPossiblyWrapped = cacheIRReader.readBool();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        if (IsTypedArrayClass(obj->getClass())) {
+          retValue = BooleanValue(true).asRawBits();
+        } else if (isPossiblyWrapped) {
+          PUSH_IC_FRAME();
+          bool result;
+          if (!IsPossiblyWrappedTypedArray(cx, obj, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = BooleanValue(result).asRawBits();
+        } else {
+          retValue = BooleanValue(false).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IsTypedArrayConstructorResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        retValue = BooleanValue(IsTypedArrayConstructor(obj)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(ArrayBufferViewByteOffsetInt32Result) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayBufferViewObject* abvo =
+            reinterpret_cast<ArrayBufferViewObject*>(READ_REG(objId.id()));
+        size_t byteOffset =
+            size_t(abvo->getFixedSlot(ArrayBufferViewObject::BYTEOFFSET_SLOT)
+                       .toPrivate());
+        if (byteOffset > size_t(INT32_MAX)) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(int32_t(byteOffset)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(ArrayBufferViewByteOffsetDoubleResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ArrayBufferViewObject* abvo =
+            reinterpret_cast<ArrayBufferViewObject*>(READ_REG(objId.id()));
+        size_t byteOffset =
+            size_t(abvo->getFixedSlot(ArrayBufferViewObject::BYTEOFFSET_SLOT)
+                       .toPrivate());
+        retValue = DoubleValue(double(byteOffset)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(TypedArrayByteLengthInt32Result) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        TypedArrayObject* tao =
+            reinterpret_cast<TypedArrayObject*>(READ_REG(objId.id()));
+        if (!tao->length()) {
+          FAIL_IC();
+        }
+        size_t length = *tao->length() * tao->bytesPerElement();
+        if (length > size_t(INT32_MAX)) {
+          FAIL_IC();
+        }
+        retValue = Int32Value(int32_t(length)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(TypedArrayByteLengthDoubleResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        TypedArrayObject* tao =
+            reinterpret_cast<TypedArrayObject*>(READ_REG(objId.id()));
+        if (!tao->length()) {
+          FAIL_IC();
+        }
+        size_t length = *tao->length() * tao->bytesPerElement();
+        retValue = DoubleValue(double(length)).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(TypedArrayElementSizeResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        TypedArrayObject* tao =
+            reinterpret_cast<TypedArrayObject*>(READ_REG(objId.id()));
+        retValue = Int32Value(int32_t(tao->bytesPerElement())).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MegamorphicStoreSlot) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        uint32_t nameOffset = cacheIRReader.stubOffset();
+        ValOperandId valId = cacheIRReader.valOperandId();
+        bool strict = cacheIRReader.readBool();
+
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        jsid id =
+            jsid::fromRawBits(stubInfo->getStubRawWord(cstub, nameOffset));
+        Value val = READ_VALUE_REG(valId.id());
+
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> objRooted(&ctx.state.obj0, obj);
+          ReservedRooted<jsid> idRooted(&ctx.state.id0, id);
+          ReservedRooted<Value> valRooted(&ctx.state.value0, val);
+          if (!SetPropertyMegamorphic<false>(cx, objRooted, idRooted, valRooted,
+                                             strict)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+        }
+
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(MegamorphicHasPropResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ValOperandId valId = cacheIRReader.valOperandId();
+        bool hasOwn = cacheIRReader.readBool();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        if (!obj->is<NativeObject>()) {
+          FAIL_IC();
+        }
+        Value val[2] = {READ_VALUE_REG(valId.id()), UndefinedValue()};
+        {
+          PUSH_IC_FRAME();
+          bool ok =
+              hasOwn
+                  ? HasNativeDataPropertyPure<true>(cx, obj, nullptr, &val[0])
+                  : HasNativeDataPropertyPure<false>(cx, obj, nullptr, &val[0]);
+          if (!ok) {
+            FAIL_IC();
+          }
+          retValue = val[1].asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(ArrayJoinResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        StringOperandId sepId = cacheIRReader.stringOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        JSString* sep = reinterpret_cast<JSString*>(READ_REG(sepId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> obj0(&ctx.state.obj0, obj);
+          ReservedRooted<JSString*> str0(&ctx.state.str0, sep);
+          auto* result = ArrayJoin(cx, obj0, str0);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallSetArrayLength) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        bool strict = cacheIRReader.readBool();
+        ValOperandId rhsId = cacheIRReader.valOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        Value rhs = READ_VALUE_REG(rhsId.id());
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> obj0(&ctx.state.obj0, obj);
+          ReservedRooted<Value> value0(&ctx.state.value0, rhs);
+          if (!SetArrayLength(cx, obj0, value0, strict)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(ObjectKeysResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> obj0(&ctx.state.obj0, obj);
+          auto* result = ObjectKeys(cx, obj0);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(ObjectCreateResult) {
+        uint32_t templateOffset = cacheIRReader.stubOffset();
+        PlainObject* templateObj = reinterpret_cast<PlainObject*>(
+            stubInfo->getStubRawWord(cstub, templateOffset));
+        {
+          PUSH_IC_FRAME();
+          Rooted<PlainObject*> templateRooted(cx, templateObj);
+          auto* result = ObjectCreateWithTemplate(cx, templateRooted);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallNumberToString) {
+        NumberOperandId inputId = cacheIRReader.numberOperandId();
+        StringOperandId resultId = cacheIRReader.stringOperandId();
+        BOUNDSCHECK(resultId);
+        double input = READ_VALUE_REG(inputId.id()).toNumber();
+        {
+          PUSH_IC_FRAME();
+          auto* result = NumberToStringPure(cx, input);
+          if (!result) {
+            FAIL_IC();
+          }
+          WRITE_REG(resultId.id(), reinterpret_cast<uint64_t>(result), STRING);
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(Int32ToStringWithBaseResult) {
+        Int32OperandId inputId = cacheIRReader.int32OperandId();
+        Int32OperandId baseId = cacheIRReader.int32OperandId();
+        int32_t input = int32_t(READ_REG(inputId.id()));
+        int32_t base = int32_t(READ_REG(baseId.id()));
+        if (base < 2 || base > 36) {
+          FAIL_IC();
+        }
+        {
+          PUSH_IC_FRAME();
+          auto* result = Int32ToStringWithBase(cx, input, base, true);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = StringValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(BooleanToString) {
+        BooleanOperandId inputId = cacheIRReader.booleanOperandId();
+        StringOperandId resultId = cacheIRReader.stringOperandId();
+        BOUNDSCHECK(resultId);
+        bool input = READ_REG(inputId.id()) != 0;
+        auto& names = ctx.frameMgr.cxForLocalUseOnly()->names();
+        JSString* result = input ? names.true_ : names.false_;
+        WRITE_REG(resultId.id(), reinterpret_cast<uint64_t>(result), STRING);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(IndirectTruncateInt32Result) {
+        Int32OperandId valId = cacheIRReader.int32OperandId();
+        int32_t value = int32_t(READ_REG(valId.id()));
+        retValue = Int32Value(value).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(GetFirstDollarIndexResult) {
+        StringOperandId strId = cacheIRReader.stringOperandId();
+        JSString* str = reinterpret_cast<JSString*>(READ_REG(strId.id()));
+        int32_t result = 0;
+        {
+          PUSH_IC_FRAME();
+          if (!GetFirstDollarIndexRaw(cx, str, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = Int32Value(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadBoundFunctionNumArgs) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId resultId = cacheIRReader.int32OperandId();
+        BOUNDSCHECK(resultId);
+        BoundFunctionObject* obj =
+            reinterpret_cast<BoundFunctionObject*>(READ_REG(objId.id()));
+        WRITE_REG(resultId.id(), obj->numBoundArgs(), INT32);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadBoundFunctionTarget) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        ObjOperandId resultId = cacheIRReader.objOperandId();
+        BOUNDSCHECK(resultId);
+        BoundFunctionObject* obj =
+            reinterpret_cast<BoundFunctionObject*>(READ_REG(objId.id()));
+        WRITE_REG(resultId.id(), reinterpret_cast<uint64_t>(obj->getTarget()),
+                  OBJECT);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(BindFunctionResult)
+      CACHEOP_CASE_FALLTHROUGH(SpecializedBindFunctionResult) {
+        ObjOperandId targetId = cacheIRReader.objOperandId();
+        uint32_t argc = cacheIRReader.uint32Immediate();
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+
+        JSObject* target = reinterpret_cast<JSObject*>(READ_REG(targetId.id()));
+        BoundFunctionObject* templateObject =
+            (cacheop == CacheOp::SpecializedBindFunctionResult)
+                ? reinterpret_cast<BoundFunctionObject*>(
+                      stubInfo->getStubRawWord(cstub, templateObjectOffset))
+                : nullptr;
+
+        StackVal* origArgs = ctx.sp();
+        {
+          PUSH_IC_FRAME();
+
+          for (uint32_t i = 0; i < argc; i++) {
+            PUSH(origArgs[i]);
+          }
+          Value* args = reinterpret_cast<Value*>(sp);
+
+          ReservedRooted<JSObject*> targetRooted(&ctx.state.obj0, target);
+          BoundFunctionObject* result;
+          if (cacheop == CacheOp::BindFunctionResult) {
+            result = BoundFunctionObject::functionBindImpl(cx, targetRooted,
+                                                           args, argc, nullptr);
+          } else {
+            Rooted<BoundFunctionObject*> templateObjectRooted(cx,
+                                                              templateObject);
+            result = BoundFunctionObject::functionBindSpecializedBaseline(
+                cx, targetRooted, args, argc, templateObjectRooted);
+          }
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallRegExpMatcherResult)
+      CACHEOP_CASE_FALLTHROUGH(CallRegExpSearcherResult) {
+        ObjOperandId regexpId = cacheIRReader.objOperandId();
+        StringOperandId inputId = cacheIRReader.stringOperandId();
+        Int32OperandId lastIndexId = cacheIRReader.int32OperandId();
+        uint32_t stubOffset = cacheIRReader.stubOffset();
+
+        JSObject* regexp = reinterpret_cast<JSObject*>(READ_REG(regexpId.id()));
+        JSString* input = reinterpret_cast<JSString*>(READ_REG(inputId.id()));
+        int32_t lastIndex = int32_t(READ_REG(lastIndexId.id()));
+        (void)stubOffset;
+
+        {
+          PUSH_IC_FRAME();
+          ReservedRooted<JSObject*> regexpRooted(&ctx.state.obj0, regexp);
+          ReservedRooted<JSString*> inputRooted(&ctx.state.str0, input);
+
+          if (cacheop == CacheOp::CallRegExpMatcherResult) {
+            ReservedRooted<Value> result(&ctx.state.value0, UndefinedValue());
+            if (!RegExpMatcherRaw(cx, regexpRooted, inputRooted, lastIndex,
+                                  nullptr, &result)) {
+              ctx.error = PBIResult::Error;
+              return IC_ERROR_SENTINEL();
+            }
+            retValue = result.asRawBits();
+          } else {
+            int32_t result = 0;
+            if (!RegExpSearcherRaw(cx, regexpRooted, inputRooted, lastIndex,
+                                   nullptr, &result)) {
+              ctx.error = PBIResult::Error;
+              return IC_ERROR_SENTINEL();
+            }
+            retValue = Int32Value(result).asRawBits();
+          }
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(RegExpSearcherLastLimitResult) {
+        uint32_t lastLimit =
+            ctx.frameMgr.cxForLocalUseOnly()->regExpSearcherLastLimit;
+        retValue = Int32Value(lastLimit).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(RegExpHasCaptureGroupsResult) {
+        ObjOperandId regexpId = cacheIRReader.objOperandId();
+        StringOperandId inputId = cacheIRReader.stringOperandId();
+        RegExpObject* regexp =
+            reinterpret_cast<RegExpObject*>(READ_REG(regexpId.id()));
+        JSString* input = reinterpret_cast<JSString*>(READ_REG(inputId.id()));
+        {
+          PUSH_IC_FRAME();
+          Rooted<RegExpObject*> regexpRooted(cx, regexp);
+          ReservedRooted<JSString*> inputRooted(&ctx.state.str0, input);
+          bool result = false;
+          if (!RegExpHasCaptureGroups(cx, regexpRooted, inputRooted, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = BooleanValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(RegExpBuiltinExecMatchResult) {
+        ObjOperandId regexpId = cacheIRReader.objOperandId();
+        StringOperandId inputId = cacheIRReader.stringOperandId();
+        uint32_t stubOffset = cacheIRReader.stubOffset();
+
+        RegExpObject* regexp =
+            reinterpret_cast<RegExpObject*>(READ_REG(regexpId.id()));
+        JSString* input = reinterpret_cast<JSString*>(READ_REG(inputId.id()));
+        (void)stubOffset;
+
+        {
+          PUSH_IC_FRAME();
+          Rooted<RegExpObject*> regexpRooted(cx, regexp);
+          ReservedRooted<JSString*> inputRooted(&ctx.state.str0, input);
+          ReservedRooted<Value> output(&ctx.state.value0, UndefinedValue());
+          if (!RegExpBuiltinExecMatchFromJit(cx, regexpRooted, inputRooted,
+                                             nullptr, &output)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = output.asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(RegExpBuiltinExecTestResult) {
+        ObjOperandId regexpId = cacheIRReader.objOperandId();
+        StringOperandId inputId = cacheIRReader.stringOperandId();
+        uint32_t stubOffset = cacheIRReader.stubOffset();
+
+        RegExpObject* regexp =
+            reinterpret_cast<RegExpObject*>(READ_REG(regexpId.id()));
+        JSString* input = reinterpret_cast<JSString*>(READ_REG(inputId.id()));
+        (void)stubOffset;
+
+        {
+          PUSH_IC_FRAME();
+          Rooted<RegExpObject*> regexpRooted(cx, regexp);
+          ReservedRooted<JSString*> inputRooted(&ctx.state.str0, input);
+          bool result = false;
+          if (!RegExpBuiltinExecTestFromJit(cx, regexpRooted, inputRooted,
+                                            &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = BooleanValue(result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(RegExpFlagResult) {
+        ObjOperandId regexpId = cacheIRReader.objOperandId();
+        uint32_t flagsMask = cacheIRReader.uint32Immediate();
+        RegExpObject* regexp =
+            reinterpret_cast<RegExpObject*>(READ_REG(regexpId.id()));
+        JS::RegExpFlags flags = regexp->getFlags();
+        retValue = BooleanValue((uint32_t(flags.value()) & flagsMask) != 0)
+                       .asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(RegExpPrototypeOptimizableResult) {
+        ObjOperandId protoId = cacheIRReader.objOperandId();
+        JSObject* proto = reinterpret_cast<JSObject*>(READ_REG(protoId.id()));
+        retValue = BooleanValue(RegExpPrototypeOptimizableRaw(
+                                    ctx.frameMgr.cxForLocalUseOnly(), proto))
+                       .asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(RegExpInstanceOptimizableResult) {
+        ObjOperandId regexpId = cacheIRReader.objOperandId();
+        ObjOperandId protoId = cacheIRReader.objOperandId();
+        JSObject* regexp = reinterpret_cast<JSObject*>(READ_REG(regexpId.id()));
+        JSObject* proto = reinterpret_cast<JSObject*>(READ_REG(protoId.id()));
+        retValue =
+            BooleanValue(RegExpInstanceOptimizableRaw(
+                             ctx.frameMgr.cxForLocalUseOnly(), regexp, proto))
+                .asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(NewRegExpStringIteratorResult) {
+        uint32_t templateObjectOffset = cacheIRReader.stubOffset();
+        (void)templateObjectOffset;
+        {
+          PUSH_IC_FRAME();
+          auto* result = NewRegExpStringIterator(cx);
+          if (!result) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ObjectValue(*result).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallGetSparseElementResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId indexId = cacheIRReader.int32OperandId();
+        NativeObject* nobj =
+            reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
+        int32_t index = int32_t(READ_REG(indexId.id()));
+        {
+          PUSH_IC_FRAME();
+          Rooted<NativeObject*> nobjRooted(cx, nobj);
+          ReservedRooted<Value> result(&ctx.state.value0, UndefinedValue());
+          if (!GetSparseElementHelper(cx, nobjRooted, index, &result)) {
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = result.asRawBits();
+        }
+        PREDICT_RETURN();
         DISPATCH_CACHEOP();
       }
 
