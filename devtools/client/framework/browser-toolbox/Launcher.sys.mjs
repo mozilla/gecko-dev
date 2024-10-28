@@ -296,7 +296,6 @@ export class BrowserToolboxLauncher extends EventEmitter {
 
     dumpn("Running chrome debugging process.");
     const args = [
-      "-no-remote",
       "-foreground",
       "-profile",
       profilePath,
