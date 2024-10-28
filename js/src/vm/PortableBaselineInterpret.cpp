@@ -652,6 +652,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
 #define PREDICT_NEXT(name)                       \
   if (cacheIRReader.peekOp() == CacheOp::name) { \
     cacheIRReader.readOp();                      \
+    cacheop = CacheOp::name;                     \
     goto cacheop_##name;                         \
   }
 
