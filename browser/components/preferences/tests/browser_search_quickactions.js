@@ -35,6 +35,10 @@ async function isGroupHidden(tab) {
 }
 
 add_task(async function test_show_prefs() {
+  Services.prefs.setBoolPref(
+    "browser.urlbar.scotchBonnet.enableOverride",
+    false
+  );
   Services.prefs.setBoolPref("browser.urlbar.quickactions.showPrefs", false);
 
   let tab = await BrowserTestUtils.openNewForegroundTab(
@@ -54,6 +58,7 @@ add_task(async function test_show_prefs() {
     "The preferences are shown when pref enabled"
   );
 
+  Services.prefs.clearUserPref("browser.urlbar.scotchBonnet.enableOverride");
   Services.prefs.clearUserPref("browser.urlbar.quickactions.showPrefs");
   await BrowserTestUtils.removeTab(tab);
 });

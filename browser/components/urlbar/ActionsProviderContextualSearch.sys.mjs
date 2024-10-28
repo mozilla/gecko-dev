@@ -81,7 +81,13 @@ class ProviderContextualSearch extends ActionsProvider {
   async fetchEngine() {
     let browser =
       lazy.BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
-    let hostname = browser?.currentURI.host;
+    let hostname;
+    try {
+      // currentURI.host will throw on pages without a host ("about:" pages).
+      hostname = browser.currentURI.host;
+    } catch (e) {
+      return null;
+    }
 
     if (this.engines.has(hostname)) {
       return this.engines.get(hostname);
