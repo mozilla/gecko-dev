@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1,interactive-widget=resizes-visual"
+/>
+<style>
+  html {
+    scrollbar-width: none;
+  }
+  body {
+    margin: 0px;
+    /* This should be precisely covered up by the footer, when you
+     scroll to the very end of the body: */
+    border-bottom: calc(100lvh - 100svh) solid red;
+    background-color: rgb(255, 255, 255);
+  }
+  .footer {
+    height: calc(100lvh - 100svh);
+    width: 100%;
+    position: fixed;
+    background-color: rgb(0, 128, 0);
+    bottom: 0;
+  }
+  .tall {
+    height: 100lvh;
+  }
+</style>
+<div class="tall"></div>
+<div class="footer"></div>

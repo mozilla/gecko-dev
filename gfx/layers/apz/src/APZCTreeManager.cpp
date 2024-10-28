@@ -918,8 +918,8 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
     // We only care about the horizontal scrollbar.
     if (info.mScrollDirection == ScrollDirection::eHorizontal) {
       ScreenPoint translation =
-          apz::ComputeFixedMarginsOffset(GetCompositorFixedLayerMargins(lock),
-                                         SideBits::eBottom, ScreenMargin());
+          ComputeFixedMarginsOffset(GetCompositorFixedLayerMargins(lock),
+                                    SideBits::eBottom, ScreenMargin());
 
       LayerToParentLayerMatrix4x4 transform =
           LayerToParentLayerMatrix4x4::Translation(ViewAs<ParentLayerPixel>(
@@ -936,9 +936,9 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
       continue;
     }
 
-    ScreenPoint translation = apz::ComputeFixedMarginsOffset(
-        GetCompositorFixedLayerMargins(lock), info.mFixedPosSides,
-        mGeckoFixedLayerMargins);
+    ScreenPoint translation =
+        ComputeFixedMarginsOffset(GetCompositorFixedLayerMargins(lock),
+                                  info.mFixedPosSides, mGeckoFixedLayerMargins);
 
     LayerToParentLayerMatrix4x4 transform =
         LayerToParentLayerMatrix4x4::Translation(ViewAs<ParentLayerPixel>(
@@ -956,7 +956,7 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
       continue;
     }
 
-    ScreenPoint translation = apz::ComputeFixedMarginsOffset(
+    ScreenPoint translation = ComputeFixedMarginsOffset(
         GetCompositorFixedLayerMargins(lock), sides, mGeckoFixedLayerMargins);
 
     LayerToParentLayerMatrix4x4 transform =
@@ -2196,7 +2196,7 @@ void APZCTreeManager::AdjustEventPointForDynamicToolbar(
     ScreenIntPoint& aEventPoint, const HitTestResult& aHit) {
   if (aHit.mFixedPosSides != SideBits::eNone) {
     MutexAutoLock lock(mMapLock);
-    aEventPoint -= RoundedToInt(apz::ComputeFixedMarginsOffset(
+    aEventPoint -= RoundedToInt(ComputeFixedMarginsOffset(
         GetCompositorFixedLayerMargins(lock), aHit.mFixedPosSides,
         mGeckoFixedLayerMargins));
   } else if (aHit.mNode && aHit.mNode->GetStickyPositionAnimationId()) {
@@ -2208,8 +2208,8 @@ void APZCTreeManager::AdjustEventPointForDynamicToolbar(
     }
     MutexAutoLock lock(mMapLock);
     aEventPoint -= RoundedToInt(
-        apz::ComputeFixedMarginsOffset(GetCompositorFixedLayerMargins(lock),
-                                       sideBits, mGeckoFixedLayerMargins));
+        ComputeFixedMarginsOffset(GetCompositorFixedLayerMargins(lock),
+                                  sideBits, mGeckoFixedLayerMargins));
   }
 }
 
@@ -3801,6 +3801,21 @@ void APZCTreeManager::SetFixedLayerMargins(ScreenIntCoord aTop,
   MutexAutoLock lock(mMapLock);
   mCompositorFixedLayerMargins.top = ScreenCoord(aTop);
   mCompositorFixedLayerMargins.bottom = ScreenCoord(aBottom);
+}
+
+ScreenPoint APZCTreeManager::ComputeFixedMarginsOffset(
+    const ScreenMargin& aCompositorFixedLayerMargins, SideBits aFixedSides,
+    const ScreenMargin& aGeckoFixedLayerMargins) const {
+  // If the software keybaord is visible and the interactive-widget is not
+  // resizes-content, we don't need to move the position:fixed or sticky
+  // elements at all.
+  if (mIsSoftwareKeyboardVisible &&
+      mInteractiveWidget != dom::InteractiveWidget::ResizesContent) {
+    return ScreenPoint(0, 0);
+  }
+
+  return apz::ComputeFixedMarginsOffset(aCompositorFixedLayerMargins,
+                                        aFixedSides, aGeckoFixedLayerMargins);
 }
 
 /*static*/
