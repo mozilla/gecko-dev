@@ -1131,7 +1131,7 @@ const char* SpeechRecognition::GetName(FSMState aId) {
   };
 
   MOZ_ASSERT(aId < STATE_COUNT);
-  MOZ_ASSERT(ArrayLength(names) == STATE_COUNT);
+  MOZ_ASSERT(std::size(names) == STATE_COUNT);
   return names[aId];
 }
 
@@ -1146,7 +1146,7 @@ const char* SpeechRecognition::GetName(SpeechEvent* aEvent) {
                                 "EVENT_RECOGNITIONSERVICE_ERROR"};
 
   MOZ_ASSERT(aEvent->mType < EVENT_COUNT);
-  MOZ_ASSERT(ArrayLength(names) == EVENT_COUNT);
+  MOZ_ASSERT(std::size(names) == EVENT_COUNT);
   return names[aEvent->mType];
 }
 

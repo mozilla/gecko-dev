@@ -102,7 +102,8 @@ struct FeatureOptions {
   FeatureOptions()
       : isBuiltinModule(false),
         jsStringBuiltins(false),
-        jsStringConstants(false)
+        jsStringConstants(false),
+        requireExnref(false)
 #ifdef ENABLE_WASM_GC
         ,
         requireGC(false)
@@ -124,6 +125,8 @@ struct FeatureOptions {
   bool jsStringConstants;
   SharedChars jsStringConstantsNamespace;
 
+  // Enable exnref support.
+  bool requireExnref;
 #ifdef ENABLE_WASM_GC
   // Enable GC support.
   bool requireGC;

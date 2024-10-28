@@ -391,7 +391,7 @@ static GType GetMaiAtkType(uint16_t interfacesBits) {
   type = g_type_register_static(MAI_TYPE_ATK_OBJECT, atkTypeName, &tinfo,
                                 GTypeFlags(0));
 
-  for (uint32_t index = 0; index < ArrayLength(atk_if_infos); index++) {
+  for (uint32_t index = 0; index < std::size(atk_if_infos); index++) {
     if (interfacesBits & (1 << index)) {
       g_type_add_interface_static(type,
                                   GetAtkTypeForMai((MaiInterfaceType)index),

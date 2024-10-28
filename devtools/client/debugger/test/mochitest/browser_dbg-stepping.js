@@ -30,7 +30,7 @@ add_task(async function test() {
   const whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
   );
-  is(whyPaused, `Paused while stepping`);
+  is(whyPaused, `Paused while stepping\ndebugStatement - bundle.js:52412:10`);
 
   await stepIn(dbg);
   await stepIn(dbg);

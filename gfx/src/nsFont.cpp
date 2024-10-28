@@ -82,8 +82,7 @@ const gfxFontFeature eastAsianDefaults[] = {
     {TRUETYPE_TAG('p', 'w', 'i', 'd'), 1},
     {TRUETYPE_TAG('r', 'u', 'b', 'y'), 1}};
 
-static_assert(MOZ_ARRAY_LENGTH(eastAsianDefaults) ==
-                  StyleFontVariantEastAsian::COUNT,
+static_assert(std::size(eastAsianDefaults) == StyleFontVariantEastAsian::COUNT,
               "eastAsianDefaults[] should be correct");
 
 // StyleFontVariantLigatures::xxx values
@@ -98,7 +97,7 @@ const gfxFontFeature ligDefaults[] = {
     {TRUETYPE_TAG('c', 'a', 'l', 't'), 1},
     {TRUETYPE_TAG('c', 'a', 'l', 't'), 0}};
 
-static_assert(MOZ_ARRAY_LENGTH(ligDefaults) == StyleFontVariantLigatures::COUNT,
+static_assert(std::size(ligDefaults) == StyleFontVariantLigatures::COUNT,
               "ligDefaults[] should be correct");
 
 // StyleFontVariantNumeric::xxx values
@@ -112,8 +111,7 @@ const gfxFontFeature numericDefaults[] = {
     {TRUETYPE_TAG('z', 'e', 'r', 'o'), 1},
     {TRUETYPE_TAG('o', 'r', 'd', 'n'), 1}};
 
-static_assert(MOZ_ARRAY_LENGTH(numericDefaults) ==
-                  StyleFontVariantNumeric::COUNT,
+static_assert(std::size(numericDefaults) == StyleFontVariantNumeric::COUNT,
               "numericDefaults[] should be correct");
 
 template <typename T>

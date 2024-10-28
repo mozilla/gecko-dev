@@ -57,40 +57,37 @@ nsresult AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot) {
   }
   switch (trustedRoot) {
     case nsIX509CertDB::AppXPCShellRoot:
-      mTrustedRoots.AppendElements(xpcshellRoots,
-                                   MOZ_ARRAY_LENGTH(xpcshellRoots));
+      mTrustedRoots.AppendElements(xpcshellRoots, std::size(xpcshellRoots));
       break;
 
     case nsIX509CertDB::AddonsPublicRoot:
       mTrustedRoots.AppendElements(addonsPublicRoots,
-                                   MOZ_ARRAY_LENGTH(addonsPublicRoots));
+                                   std::size(addonsPublicRoots));
       break;
 
     case nsIX509CertDB::AddonsStageRoot:
       mTrustedRoots.AppendElements(addonsStageRoots,
-                                   MOZ_ARRAY_LENGTH(addonsStageRoots));
+                                   std::size(addonsStageRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureLocalRoot:
-      mTrustedRoots.AppendElements(
-          contentSignatureLocalRoots,
-          MOZ_ARRAY_LENGTH(contentSignatureLocalRoots));
+      mTrustedRoots.AppendElements(contentSignatureLocalRoots,
+                                   std::size(contentSignatureLocalRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureProdRoot:
       mTrustedRoots.AppendElements(contentSignatureProdRoots,
-                                   MOZ_ARRAY_LENGTH(contentSignatureProdRoots));
+                                   std::size(contentSignatureProdRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureStageRoot:
-      mTrustedRoots.AppendElements(
-          contentSignatureStageRoots,
-          MOZ_ARRAY_LENGTH(contentSignatureStageRoots));
+      mTrustedRoots.AppendElements(contentSignatureStageRoots,
+                                   std::size(contentSignatureStageRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureDevRoot:
       mTrustedRoots.AppendElements(contentSignatureDevRoots,
-                                   MOZ_ARRAY_LENGTH(contentSignatureDevRoots));
+                                   std::size(contentSignatureDevRoots));
       break;
 
     default:
@@ -102,14 +99,14 @@ nsresult AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot) {
   // The intermediate bundled with signed XPI files may have expired and be
   // considered invalid, which can result in bug 1548973.
   if (trustedRoot == nsIX509CertDB::AddonsPublicRoot) {
-    mAddonsIntermediates.AppendElements(
-        addonsPublicIntermediates, MOZ_ARRAY_LENGTH(addonsPublicIntermediates));
+    mAddonsIntermediates.AppendElements(addonsPublicIntermediates,
+                                        std::size(addonsPublicIntermediates));
   }
   // Similarly to the above logic for production, we hardcode the intermediate
   // stage certificate here, so that stage is equivalent to production.
   if (trustedRoot == nsIX509CertDB::AddonsStageRoot) {
-    mAddonsIntermediates.AppendElements(
-        addonsStageIntermediates, MOZ_ARRAY_LENGTH(addonsStageIntermediates));
+    mAddonsIntermediates.AppendElements(addonsStageIntermediates,
+                                        std::size(addonsStageIntermediates));
   }
 
   return NS_OK;

@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from typing import Any, Dict, List
+
 from taskgraph.util.copy import deepcopy
 
 
@@ -71,7 +73,7 @@ def deep_get(dict_, field):
     return container.get(subfield)
 
 
-def substitute(item, **subs):
+def substitute(item: Any, **subs: Dict[str, Any]) -> Any:
     if isinstance(item, list):
         for i in range(len(item)):
             item[i] = substitute(item[i], **subs)
@@ -87,3 +89,15 @@ def substitute(item, **subs):
         item = item
 
     return item
+
+
+def substitute_task_fields(
+    task: Dict[str, Any], fields: List[str], **subs: Any
+) -> None:
+    for field in fields:
+        container, subfield = task, field
+        while "." in subfield:
+            f, subfield = subfield.split(".", 1)
+            container = container[f]
+
+        container[subfield] = substitute(container[subfield], **subs)

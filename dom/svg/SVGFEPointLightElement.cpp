@@ -68,7 +68,7 @@ already_AddRefed<DOMSVGAnimatedNumber> SVGFEPointLightElement::Z() {
 
 SVGElement::NumberAttributesInfo SVGFEPointLightElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              ArrayLength(sNumberInfo));
+                              std::size(sNumberInfo));
 }
 
 }  // namespace mozilla::dom

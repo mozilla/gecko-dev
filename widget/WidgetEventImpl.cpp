@@ -1442,9 +1442,8 @@ void WidgetKeyboardEvent::GetDOMKeyName(KeyNameIndex aKeyNameIndex,
     return;
   }
 
-  MOZ_RELEASE_ASSERT(
-      static_cast<size_t>(aKeyNameIndex) < ArrayLength(kKeyNames),
-      "Illegal key enumeration value");
+  MOZ_RELEASE_ASSERT(static_cast<size_t>(aKeyNameIndex) < std::size(kKeyNames),
+                     "Illegal key enumeration value");
   aKeyName = kKeyNames[aKeyNameIndex];
 }
 
@@ -1457,7 +1456,7 @@ void WidgetKeyboardEvent::GetDOMCodeName(CodeNameIndex aCodeNameIndex,
   }
 
   MOZ_RELEASE_ASSERT(
-      static_cast<size_t>(aCodeNameIndex) < ArrayLength(kCodeNames),
+      static_cast<size_t>(aCodeNameIndex) < std::size(kCodeNames),
       "Illegal physical code enumeration value");
 
   // Generate some continuous runs of codes, rather than looking them up.
@@ -1496,8 +1495,8 @@ void WidgetKeyboardEvent::GetDOMCodeName(CodeNameIndex aCodeNameIndex,
 /* static */
 KeyNameIndex WidgetKeyboardEvent::GetKeyNameIndex(const nsAString& aKeyValue) {
   if (!sKeyNameIndexHashtable) {
-    sKeyNameIndexHashtable = new KeyNameIndexHashtable(ArrayLength(kKeyNames));
-    for (size_t i = 0; i < ArrayLength(kKeyNames); i++) {
+    sKeyNameIndexHashtable = new KeyNameIndexHashtable(std::size(kKeyNames));
+    for (size_t i = 0; i < std::size(kKeyNames); i++) {
       sKeyNameIndexHashtable->InsertOrUpdate(nsDependentString(kKeyNames[i]),
                                              static_cast<KeyNameIndex>(i));
     }
@@ -1510,9 +1509,8 @@ KeyNameIndex WidgetKeyboardEvent::GetKeyNameIndex(const nsAString& aKeyValue) {
 CodeNameIndex WidgetKeyboardEvent::GetCodeNameIndex(
     const nsAString& aCodeValue) {
   if (!sCodeNameIndexHashtable) {
-    sCodeNameIndexHashtable =
-        new CodeNameIndexHashtable(ArrayLength(kCodeNames));
-    for (size_t i = 0; i < ArrayLength(kCodeNames); i++) {
+    sCodeNameIndexHashtable = new CodeNameIndexHashtable(std::size(kCodeNames));
+    for (size_t i = 0; i < std::size(kCodeNames); i++) {
       sCodeNameIndexHashtable->InsertOrUpdate(nsDependentString(kCodeNames[i]),
                                               static_cast<CodeNameIndex>(i));
     }
@@ -1568,7 +1566,7 @@ uint32_t WidgetKeyboardEvent::GetFallbackKeyCodeOfPunctuationKey(
 #undef NS_DEFINE_COMMAND_WITH_PARAM
 #undef NS_DEFINE_COMMAND_NO_EXEC_COMMAND
 
-  MOZ_RELEASE_ASSERT(static_cast<size_t>(aCommand) < ArrayLength(kCommands),
+  MOZ_RELEASE_ASSERT(static_cast<size_t>(aCommand) < std::size(kCommands),
                      "Illegal command enumeration value");
   return kCommands[static_cast<CommandInt>(aCommand)];
 }
@@ -2181,7 +2179,7 @@ void InternalEditorInputEvent::GetDOMInputTypeName(EditorInputType aInputType,
   }
 
   MOZ_RELEASE_ASSERT(
-      static_cast<size_t>(aInputType) < ArrayLength(kInputTypeNames),
+      static_cast<size_t>(aInputType) < std::size(kInputTypeNames),
       "Illegal input type enumeration value");
   aInputTypeName.Assign(kInputTypeNames[static_cast<size_t>(aInputType)]);
 }
@@ -2194,8 +2192,8 @@ EditorInputType InternalEditorInputEvent::GetEditorInputType(
   }
 
   if (!sInputTypeHashtable) {
-    sInputTypeHashtable = new InputTypeHashtable(ArrayLength(kInputTypeNames));
-    for (size_t i = 0; i < ArrayLength(kInputTypeNames); i++) {
+    sInputTypeHashtable = new InputTypeHashtable(std::size(kInputTypeNames));
+    for (size_t i = 0; i < std::size(kInputTypeNames); i++) {
       sInputTypeHashtable->InsertOrUpdate(nsDependentString(kInputTypeNames[i]),
                                           static_cast<EditorInputType>(i));
     }

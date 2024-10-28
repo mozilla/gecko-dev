@@ -6885,7 +6885,7 @@ void LIRGenerator::visitWasmStackSwitchToMain(MWasmStackSwitchToMain* ins) {
                              useFixedAtStart(ins->fn(), ABINonArgReg1),
                              useFixedAtStart(ins->data(), ABINonArgReg2));
 
-  add(lir, ins);
+  defineReturn(lir, ins);
   assignWasmSafepoint(lir);
 #else
   MOZ_CRASH("NYI");
@@ -6896,7 +6896,8 @@ void LIRGenerator::visitWasmStackContinueOnSuspendable(
     MWasmStackContinueOnSuspendable* ins) {
 #ifdef ENABLE_WASM_JSPI
   auto* lir = new (alloc()) LWasmStackContinueOnSuspendable(
-      useFixedAtStart(ins->suspender(), ABINonArgReg0));
+      useFixedAtStart(ins->suspender(), ABINonArgReg0),
+      useFixedAtStart(ins->result(), ABINonArgReg2));
 
   add(lir, ins);
   assignWasmSafepoint(lir);

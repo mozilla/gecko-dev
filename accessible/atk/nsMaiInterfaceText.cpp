@@ -550,7 +550,7 @@ void textInterfaceInitCB(AtkTextIface* aIface) {
   }
 
   // Cache the string values of the atk text attribute names.
-  for (uint32_t i = 0; i < ArrayLength(sAtkTextAttrNames); i++) {
+  for (uint32_t i = 0; i < std::size(sAtkTextAttrNames); i++) {
     sAtkTextAttrNames[i] =
         atk_text_attribute_get_name(static_cast<AtkTextAttribute>(i));
   }

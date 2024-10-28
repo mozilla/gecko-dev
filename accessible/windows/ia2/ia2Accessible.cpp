@@ -77,7 +77,7 @@ ia2Accessible::get_nRelations(long* aNRelations) {
     return CO_E_OBJNOTCONNECTED;
   }
 
-  for (uint32_t idx = 0; idx < ArrayLength(sRelationTypePairs); idx++) {
+  for (uint32_t idx = 0; idx < std::size(sRelationTypePairs); idx++) {
     if (sRelationTypePairs[idx].second == IA2_RELATION_NULL) continue;
 
     Relation rel = acc->RelationByType(sRelationTypePairs[idx].first);
@@ -98,7 +98,7 @@ ia2Accessible::get_relation(long aRelationIndex,
   }
 
   long relIdx = 0;
-  for (uint32_t idx = 0; idx < ArrayLength(sRelationTypePairs); idx++) {
+  for (uint32_t idx = 0; idx < std::size(sRelationTypePairs); idx++) {
     if (sRelationTypePairs[idx].second == IA2_RELATION_NULL) continue;
 
     RelationType relationType = sRelationTypePairs[idx].first;
@@ -131,7 +131,7 @@ ia2Accessible::get_relations(long aMaxRelations,
   }
 
   for (uint32_t idx = 0;
-       idx < ArrayLength(sRelationTypePairs) && *aNRelations < aMaxRelations;
+       idx < std::size(sRelationTypePairs) && *aNRelations < aMaxRelations;
        idx++) {
     if (sRelationTypePairs[idx].second == IA2_RELATION_NULL) continue;
 
@@ -484,7 +484,7 @@ ia2Accessible::get_relationTargetsOfType(BSTR aType, long aMaxTargets,
   *aNTargets = 0;
 
   Maybe<RelationType> relationType;
-  for (uint32_t idx = 0; idx < ArrayLength(sRelationTypePairs); idx++) {
+  for (uint32_t idx = 0; idx < std::size(sRelationTypePairs); idx++) {
     if (wcscmp(aType, sRelationTypePairs[idx].second) == 0) {
       relationType.emplace(sRelationTypePairs[idx].first);
       break;

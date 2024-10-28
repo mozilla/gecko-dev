@@ -42,6 +42,18 @@ async function initSelectableProfileService() {
   await SelectableProfileService.maybeSetupDataStore();
 }
 
+function getRelativeProfilePath(path) {
+  let relativePath = path.getRelativePath(
+    Services.dirsvc.get("UAppData", Ci.nsIFile)
+  );
+
+  if (AppConstants.platform === "win") {
+    relativePath = relativePath.replace("/", "\\");
+  }
+
+  return relativePath;
+}
+
 async function createTestProfile(profileData = {}) {
   const SelectableProfileService = getSelectableProfileService();
 

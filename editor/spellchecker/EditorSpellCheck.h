@@ -64,15 +64,10 @@ class EditorSpellCheck final : public nsIEditorSpellCheck {
 
   nsTArray<nsString> mSuggestedWordList;
 
-  // these are the words in the current personal dictionary,
-  // GetPersonalDictionary must be called to load them.
-  nsTArray<nsString> mDictionaryList;
-
   nsTArray<nsCString> mPreferredLangs;
 
   uint32_t mTxtSrvFilterType;
   int32_t mSuggestedWordIndex;
-  int32_t mDictionaryIndex;
   uint32_t mDictionaryFetcherGroup;
 
   bool mUpdateDictionaryRunning;

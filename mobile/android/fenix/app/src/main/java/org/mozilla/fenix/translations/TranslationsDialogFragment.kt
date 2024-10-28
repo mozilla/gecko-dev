@@ -301,12 +301,13 @@ class TranslationsDialogFragment : BottomSheetDialogFragment() {
                 )
             },
             onNegativeButtonClicked = {
-                if (translationsDialogState.isTranslated) {
+                if (translationsDialogState.isTranslated || translationsDialogState.isTranslationInProgress) {
                     localView.announceForAccessibility(
                         requireContext().getString(
                             R.string.translations_bottom_sheet_restore_accessibility_announcement,
                         ),
                     )
+                    isTranslationInProgress = false
                     translationsDialogStore.dispatch(TranslationsDialogAction.RestoreTranslation)
                 }
                 dismiss()

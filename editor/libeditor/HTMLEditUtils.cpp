@@ -1404,7 +1404,7 @@ bool HTMLEditUtils::CanNodeContain(nsHTMLTag aParentTagId,
         eHTMLTag_input, eHTMLTag_select,   eHTMLTag_textarea};
 
     uint32_t j;
-    for (j = 0; j < ArrayLength(kButtonExcludeKids); ++j) {
+    for (j = 0; j < std::size(kButtonExcludeKids); ++j) {
       if (kButtonExcludeKids[j] == aChildTagId) {
         return false;
       }

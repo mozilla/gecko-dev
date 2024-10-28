@@ -40,6 +40,8 @@ skip-if = ["os == 'android'"]
 
 ["test_remove_default.js"]
 
+["test_restore_storeID.js"]
+
 ["test_select_backgroundtasks_ephemeral.js"]
 
 ["test_select_backgroundtasks_not_ephemeral_create.js"]

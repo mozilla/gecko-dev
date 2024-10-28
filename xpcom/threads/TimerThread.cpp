@@ -883,7 +883,7 @@ TimerThread::Run() {
                                                      1.0, 1.75, 2.75};
         if (ChaosMode::isActive(ChaosFeature::TimerScheduling)) {
           microseconds *= sChaosFractions[ChaosMode::randomUint32LessThan(
-              ArrayLength(sChaosFractions))];
+              std::size(sChaosFractions))];
           forceRunNextTimer = true;
         }
 
@@ -915,7 +915,7 @@ TimerThread::Run() {
           const double waitInMs = waitFor.ToMilliseconds();
           const double chaosWaitInMs =
               waitInMs * sChaosFractions[ChaosMode::randomUint32LessThan(
-                             ArrayLength(sChaosFractions))];
+                             std::size(sChaosFractions))];
           waitFor = TimeDuration::FromMilliseconds(chaosWaitInMs);
         }
 

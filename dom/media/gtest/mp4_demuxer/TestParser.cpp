@@ -260,7 +260,7 @@ TEST(MP4Metadata, test_case_mp4)
   size_t length = 0;
 
   tests = testFiles;
-  length = ArrayLength(testFiles);
+  length = std::size(testFiles);
 
   for (size_t test = 0; test < length; ++test) {
     nsTArray<uint8_t> buffer = ReadTestFile(tests[test].mFilename);
@@ -382,7 +382,7 @@ TEST(MP4Metadata, test_case_mp4)
 #if 0
 TEST(MP4Metadata, test_case_mp4_subsets) {
   static const size_t step = 1u;
-  for (size_t test = 0; test < ArrayLength(testFiles); ++test) {
+  for (size_t test = 0; test < std::size(testFiles); ++test) {
     nsTArray<uint8_t> buffer = ReadTestFile(testFiles[test].mFilename);
     ASSERT_FALSE(buffer.IsEmpty());
     ASSERT_LE(step, buffer.Length());
@@ -423,7 +423,7 @@ TEST(MoofParser, test_case_mp4)
   size_t length = 0;
 
   tests = testFiles;
-  length = ArrayLength(testFiles);
+  length = std::size(testFiles);
 
   for (size_t test = 0; test < length; ++test) {
     nsTArray<uint8_t> buffer = ReadTestFile(tests[test].mFilename);
@@ -469,7 +469,7 @@ TEST(MoofParser, test_case_mp4)
 TEST(MoofParser, test_case_sample_description_entries)
 {
   const TestFileData* tests = testFiles;
-  size_t length = ArrayLength(testFiles);
+  size_t length = std::size(testFiles);
 
   for (size_t test = 0; test < length; ++test) {
     nsTArray<uint8_t> buffer = ReadTestFile(tests[test].mFilename);
@@ -670,7 +670,7 @@ TEST(MoofParser, test_case_moofs_missing_trafs)
 #if 0
 TEST(MoofParser, test_case_mp4_subsets) {
   const size_t step = 1u;
-  for (size_t test = 0; test < ArrayLength(testFiles); ++test) {
+  for (size_t test = 0; test < std::size(testFiles); ++test) {
     nsTArray<uint8_t> buffer = ReadTestFile(testFiles[test].mFilename);
     ASSERT_FALSE(buffer.IsEmpty());
     ASSERT_LE(step, buffer.Length());

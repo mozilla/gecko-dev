@@ -594,9 +594,9 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
       !aBuilder.PropertyIsSet(eCSSProperty_direction)) {
     auto str = value->GetStringValue();
     static const char dirs[][4] = {"ltr", "rtl"};
-    static const StyleDirection dirValues[MOZ_ARRAY_LENGTH(dirs)] = {
+    static const StyleDirection dirValues[std::size(dirs)] = {
         StyleDirection::Ltr, StyleDirection::Rtl};
-    for (uint32_t i = 0; i < ArrayLength(dirs); ++i) {
+    for (uint32_t i = 0; i < std::size(dirs); ++i) {
       if (str.LowerCaseEqualsASCII(dirs[i])) {
         aBuilder.SetKeywordValue(eCSSProperty_direction, dirValues[i]);
         break;
@@ -611,9 +611,9 @@ void MathMLElement::MapGlobalMathMLAttributesInto(
       !aBuilder.PropertyIsSet(eCSSProperty_math_style)) {
     auto str = value->GetStringValue();
     static const char displaystyles[][6] = {"false", "true"};
-    static const StyleMathStyle mathStyle[MOZ_ARRAY_LENGTH(displaystyles)] = {
+    static const StyleMathStyle mathStyle[std::size(displaystyles)] = {
         StyleMathStyle::Compact, StyleMathStyle::Normal};
-    for (uint32_t i = 0; i < ArrayLength(displaystyles); ++i) {
+    for (uint32_t i = 0; i < std::size(displaystyles); ++i) {
       if (str.LowerCaseEqualsASCII(displaystyles[i])) {
         aBuilder.SetKeywordValue(eCSSProperty_math_style, mathStyle[i]);
         break;

@@ -53,12 +53,12 @@ SVGGradientElement::SVGGradientElement(
 // SVGElement methods
 
 SVGElement::EnumAttributesInfo SVGGradientElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
 }
 
 SVGElement::StringAttributesInfo SVGGradientElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              std::size(sStringInfo));
 }
 
 already_AddRefed<DOMSVGAnimatedEnumeration>
@@ -145,7 +145,7 @@ SVGAnimatedTransformList* SVGGradientElement::GetAnimatedTransformList(
 
 SVGElement::LengthAttributesInfo SVGLinearGradientElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 //-------------------------- Radial Gradients ----------------------------
@@ -218,7 +218,7 @@ bool SVGGradientElement::IsAttributeMapped(const nsAtom* aAttribute) const {
 
 SVGElement::LengthAttributesInfo SVGRadialGradientElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 }  // namespace mozilla::dom

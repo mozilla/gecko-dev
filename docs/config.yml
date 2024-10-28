@@ -122,28 +122,76 @@ redirects:
     tools/lint/coding-style: code-quality/coding-style
     tools/static-analysis/index.html: code-quality/static-analysis.html
 
-fatal warnings:
-    - "WARNING: '([^']*)' reference target not found:((?!.rst).)*$"
-    - "WARNING: Include file '([^']*)' not found or reading it failed"
-    - "WARNING: Non-consecutive header level"
-    - "WARNING: Document headings start at"
-    - "WARNING: Parsing of expression failed"
-    - "WARNING: Title underline too short"
-
-# A regexp of errors we currently allow so that we can fail on new errors,
-# but resolve these at a later date. Please do not add new items to this list
-# unless they are part of the existing known issues.
-allowed_errors:
-    # Bug 1915552 - Various python errors around unexpected indentation.
-    - "mozbuild\\.vendor\\.moz_yaml\\.VALID_SOURCE_HOSTS.* ERROR: Unexpected indentation"
-    - "python/mozbuild/mozbuild/frontend/context\\.py.* ERROR: Unexpected indentation"
-    - "python/mozbuild/mozbuild/backend/configenvironment\\.py.* ERROR: Unexpected indentation"
-    - "python/mozbuild/mozbuild/vendor/rewrite_mozbuild\\.py.* ERROR: Unexpected indentation"
-    - "python/mozbuild/mozpack/errors\\.py.* ERROR: Unexpected indentation"
-    - "python/mozbuild/mozpack/mozjar\\.py.* ERROR: Unexpected indentation"
-    # Bug 1915274 - General issues in nss docs.
-    - "security/nss/releases/nss_3_90\\.rst.* ERROR: Content block expected for the \"container\" directive"
-    - "security/nss/releases/nss_3_94\\.rst.* ERROR: Unknown target name:"
-    - "security/nss/getting_started\\.rst.* CRITICAL: Unexpected section title"
-
-max_num_warnings: 782
+# Please do not add more exceptions to these warnings. Generally they should be
+# fixable. If you need help please ask in the firefox-source-docs channel on Matrix.
+allowed_warnings:
+    # General warnings that need consideration/fixing.
+    - "WARNING: document isn't included in any toctree"
+    - "WARNING: duplicate label"
+    - "WARNING: local id not found in doc"
+    - "WARNING: 'myst' cross-reference target not found"
+    - "WARNING: Lexing literal_block"
+    - "WARNING: dot command 'dot' cannot be run \\(needed for graphviz output\\)"
+    # Specific warnings allowed when the allow list was created.
+    - "accessible/HCMMediaQueries\\.md:.*: WARNING: Lexing literal_block"
+    - "bug-pipeline\\.rst:.*: WARNING: Duplicate explicit target name"
+    - "devtools-user/web_console/remoting/index\\.rst:.*: WARNING: Duplicate explicit target name"
+    - "dom/navigation/BrowsingContext\\.rst:.*: WARNING: Duplicate explicit target name"
+    - "ipc/ipdl\\.rst:.*: WARNING: Duplicate explicit target name"
+    - "ipc/processes\\.rst:.*: WARNING: Duplicate explicit target name"
+    - "js/Debugger/Debugger\\.md:.*: WARNING: Duplicate reference definition"
+    - "l10n/migrations/localizations\\.rst:.* ERROR: Anonymous hyperlink mismatch"
+    - "mobile/android/geckoview/contributor/geckoview-architecture\\.rst:.*: WARNING: Duplicate explicit target name"
+    - "networking/http/prioritization\\.md:.*: ERROR: At least one body element must separate transitions"
+    - "networking/http/prioritization\\.md:.*: ERROR: Document may not end with a transition"
+    - "overview/index\\.rst:.*: WARNING: toctree contains reference to nonexisting document 'mobile/android/overview'"
+    - "testing/automated-testing/manifest-sandbox\\.rst:.*: WARNING: download file not readable"
+    - "UITour-lib.Mozilla.UITour.* WARNING: duplicate class description of Mozilla.UITour"
+    - "mobile/android/shared/android/device_testing\\.md:.*: WARNING: Pygments lexer name"
+    - "widget/windows/windows-pointing-device/index.rst:229: WARNING: image file not readable"
+    # Unknown document warnings
+    - "devtools-user/3d_view/index\\.rst:.*: WARNING: unknown document"
+    - "devtools-user/debugger-api/index\\.rst:.*: WARNING: unknown document"
+    - "devtools-user/memory/aggregate_view/index\\.rst:.*: WARNING: unknown document"
+    - "devtools-user/migrating_from_firebug/index\\.rst:.*: WARNING: unknown document"
+    - "devtools-user/network_monitor/index\\.rst:.*: WARNING: unknown document"
+    - "devtools-user/tips/index\\.rst:.*: WARNING: unknown document"
+    - "devtools-user/tools_toolbox/index\\.rst:.*: WARNING: unknown document"
+    # Undefined label warnings.
+    - "code-quality/.*\\.rst:.*: WARNING: undefined label"
+    - "contributing/.*\\.rst:.*: WARNING: undefined label"
+    - "crash-reporting/index\\.rst:.*: WARNING: undefined label"
+    - "dom/navigation/nav_replace\\.rst:.*: WARNING: undefined label"
+    - "devtools-user/page_inspector/how_to/work_with_animations/index.rst:.*: WARNING: undefined label"
+    - "js/build\\.rst:.*: WARNING: undefined label"
+    - "layout/Reftest\\.rst:.*: WARNING: undefined label"
+    - "mots/index.rst:.*: WARNING: undefined label"
+    - "nspr/.* WARNING: undefined label"
+    - "overview/gecko\\.rst:.*: WARNING: undefined label"
+    - "setup/configuring_build_options\\.rst:.*: WARNING: undefined label"
+    - "setup/windows_build\\.rst:.*: WARNING: undefined label"
+    - "taskcluster/release-promotion-action\\.rst:.*: WARNING: undefined label"
+    - "toolkit/components/messaging-system/docs/index\\.rst:.*: WARNING: undefined label"
+    - "toolkit/components/telemetry/collection/events\\.rst:.*: WARNING: undefined label"
+    - "toolkit/mozapps/extensions/addon-manager/AMRemoteSettings-overview\\.rst:.*: WARNING: undefined label"
+    - "tools/fuzzing/fuzzing_interface\\.rst:.*: WARNING: undefined label"
+    - "tools/try/selectors/chooser\\.rst:.*: WARNING: undefined label"
+    - "tools/try/tasks\\.rst:.*: WARNING: undefined label"
+    # Bug 1915274 - Clean up documentation warnings in NSS
+    - "security/nss/.* WARNING: undefined label"
+    # Various python issues
+    - "\\.py:.*: ERROR: Unexpected indentation."
+    - "\\.py:.* WARNING: duplicate object description"
+    - "docstring of mozbuild.vendor.moz_yaml.VALID_SOURCE_HOSTS:.*: ERROR: Unexpected indentation."
+    - "docstring of mozbuild.vendor.moz_yaml.VALID_SOURCE_HOSTS:.*: WARNING: Inline emphasis start-string without end-string"
+    - "process_define_file:.*: WARNING: Inline emphasis start-string without end-string"
+    - "docstring of marionette_driver.*: WARNING: Field list ends without a blank line"
+    - "missing attribute .* in object mozprocess.ProcessHandlerMixin"
+    - "WARNING: autodoc: failed to import module"
+    - "WARNING: invalid signature for automodule \\('mozbuild.action.xpidl-process'\\)"
+    - "WARNING: don't know which module to import for autodocumenting"
+    # This file has various warnings that need investigation.
+    - "python/mozbuild/mozbuild/frontend/context\\.py"
+    # mozbuild.sphinx extension warnings.
+    - "WARNING: the mozbuild.sphinx extension does not declare"
+    - "WARNING: doing serial read"

@@ -4,7 +4,7 @@ from voluptuous import ALLOW_EXTRA, Any, Optional, Required
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import Schema
-from taskgraph.util.templates import deep_get, substitute
+from taskgraph.util.templates import deep_get, substitute_task_fields
 from taskgraph.util.yaml import load_yaml
 
 SCHEMA = Schema(
@@ -113,12 +113,5 @@ def render_task(config, tasks):
             subs.setdefault("name", task["name"])
 
         # Now that we have our combined context, we can substitute.
-        for field in fields:
-            container, subfield = task, field
-            while "." in subfield:
-                f, subfield = subfield.split(".", 1)
-                container = container[f]
-
-            container[subfield] = substitute(container[subfield], **subs)
-
+        substitute_task_fields(task, fields, **subs)
         yield task

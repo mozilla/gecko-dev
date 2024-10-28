@@ -33,7 +33,10 @@ add_task(async function () {
   const whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
   );
-  is(whyPaused, `Paused on XMLHttpRequest`);
+  is(
+    whyPaused,
+    `Paused on XMLHttpRequest\n(global) - doc-early-xhr.html:10:11`
+  );
 
   await resume(dbg);
 

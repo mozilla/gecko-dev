@@ -25,7 +25,7 @@ add_task(async function () {
   let whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
   );
-  is(whyPaused, "Paused on breakpoint");
+  is(whyPaused, "Paused on breakpoint\n(global) - doc-scripts.html:21:6");
 
   await assertPausedAtSourceAndLine(
     dbg,
@@ -46,7 +46,7 @@ add_task(async function () {
   whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
   );
-  is(whyPaused, "Paused on debugger statement");
+  is(whyPaused, "Paused on debugger statement\n:2:8");
 
   await resume(dbg);
 

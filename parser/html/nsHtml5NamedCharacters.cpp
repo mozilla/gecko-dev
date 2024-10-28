@@ -68,7 +68,7 @@ enum NamePositions {
   DUMMY_FINAL_NAME_VALUE
 };
 
-static_assert(MOZ_ARRAY_LENGTH(ALL_NAMES) < 0x10000,
+static_assert(std::size(ALL_NAMES) < 0x10000,
               "Start positions should fit in 16 bits");
 
 const nsHtml5CharacterName nsHtml5NamedCharacters::NAMES[] = {

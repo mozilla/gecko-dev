@@ -934,9 +934,9 @@ static already_AddRefed<FilterNode> FilterNodeFromPrimitiveDescription(
         static const float allZero[4] = {0, 0, 0, 0};
         filter = mDT->CreateFilter(FilterType::ARITHMETIC_COMBINE);
         // All-zero coefficients sometimes occur in junk filters.
-        if (!filter || (coefficients.Length() == ArrayLength(allZero) &&
+        if (!filter || (coefficients.Length() == std::size(allZero) &&
                         ArrayEqual(coefficients.Elements(), allZero,
-                                   ArrayLength(allZero)))) {
+                                   std::size(allZero)))) {
           return nullptr;
         }
         filter->SetAttribute(ATT_ARITHMETIC_COMBINE_COEFFICIENTS,

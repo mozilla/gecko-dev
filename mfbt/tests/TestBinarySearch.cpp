@@ -10,7 +10,6 @@
 
 #include <cstdlib>
 
-using mozilla::ArrayLength;
 using mozilla::BinarySearch;
 using mozilla::BinarySearchIf;
 using mozilla::Vector;
@@ -91,7 +90,7 @@ static void TestBinarySearch() {
 
 static void TestBinarySearchIf() {
   const int v1[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-  const size_t len = ArrayLength(v1);
+  const size_t len = std::size(v1);
   size_t m;
 
   A(BinarySearchIf(v1, 0, len, RangeFinder(2, 3), &m) && m == 2);

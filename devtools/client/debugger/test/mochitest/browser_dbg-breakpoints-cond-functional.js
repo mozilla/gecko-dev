@@ -39,7 +39,7 @@ add_task(async function () {
   let whyPaused = dbg.win.document.querySelector(".why-paused").innerText;
   is(
     whyPaused,
-    "Error with conditional breakpoint\nexpected expression, got end of script"
+    "Error with conditional breakpoint\nfoo - simple2.js:5:2\nexpected expression, got end of script"
   );
   await resume(dbg);
   assertNotPaused(dbg);
@@ -54,7 +54,7 @@ add_task(async function () {
   whyPaused = dbg.win.document.querySelector(".why-paused").innerText;
   is(
     whyPaused,
-    "Error with conditional breakpoint\nexpected expression, got end of script"
+    "Error with conditional breakpoint\nfoo - simple2.js:5:2\nexpected expression, got end of script"
   );
   await resume(dbg);
 

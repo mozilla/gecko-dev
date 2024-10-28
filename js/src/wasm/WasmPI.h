@@ -22,6 +22,7 @@
 #include "mozilla/DoublyLinkedList.h"  // for DoublyLinkedListElement
 
 #include "js/TypeDecls.h"
+#include "wasm/WasmAnyRef.h"
 #include "wasm/WasmTypeDef.h"
 
 // [SMDOC] JS Promise Integration
@@ -142,6 +143,9 @@ class SuspenderObjectData
   // Stored return address for return to suspendable stack.
   void* suspendedReturnAddress_;
 
+  // Stored main stack exit/top frame pointer.
+  void* mainExitFP_;
+
   SuspenderState state_;
 
   // Identify context that is holding suspended stack, otherwise nullptr.
@@ -169,6 +173,7 @@ class SuspenderObjectData
   inline void* stackMemory() const { return stackMemory_; }
   inline void* mainFP() const { return mainFP_; }
   inline void* mainSP() const { return mainSP_; }
+  inline void* mainExitFP() const { return mainExitFP_; }
   inline void* suspendableFP() const { return suspendableFP_; }
   inline void* suspendableSP() const { return suspendableSP_; }
   inline void* suspendableExitFP() const { return suspendableExitFP_; }
@@ -208,6 +213,10 @@ class SuspenderObjectData
     return offsetof(SuspenderObjectData, suspendableExitFP_);
   }
 
+  static constexpr size_t offsetOfMainExitFP() {
+    return offsetof(SuspenderObjectData, mainExitFP_);
+  }
+
   static constexpr size_t offsetOfSuspendedReturnAddress() {
     return offsetof(SuspenderObjectData, suspendedReturnAddress_);
   }
@@ -236,12 +245,14 @@ SuspenderObject* CreateSuspender(Instance* instance, int reserved);
 PromiseObject* CreatePromisingPromise(Instance* instance,
                                       SuspenderObject* suspender);
 
-JSObject* GetSuspendingPromiseResult(Instance* instance,
+JSObject* GetSuspendingPromiseResult(Instance* instance, void* result,
                                      SuspenderObject* suspender);
 
-int32_t AddPromiseReactions(Instance* instance, SuspenderObject* suspender,
-                            PromiseObject* promise,
-                            JSFunction* continueOnSuspendable);
+void* AddPromiseReactions(Instance* instance, SuspenderObject* suspender,
+                          void* result, JSFunction* continueOnSuspendable);
+
+void* ForwardExceptionToSuspended(Instance* instance,
+                                  SuspenderObject* suspender, void* exception);
 
 int32_t SetPromisingPromiseResults(Instance* instance,
                                    SuspenderObject* suspender,

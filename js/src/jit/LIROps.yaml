@@ -359,6 +359,7 @@
   mir_op: true
 
 - name: WasmStackSwitchToMain
+  result_type: WordSized
   operands:
     suspender: WordSized
     fn: WordSized
@@ -375,6 +376,7 @@
 - name: WasmStackContinueOnSuspendable
   operands:
     suspender: WordSized
+    result: WordSized
   call_instruction: true
 
 - name: WasmInterruptCheck

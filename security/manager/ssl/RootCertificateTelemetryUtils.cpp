@@ -64,7 +64,7 @@ int32_t RootCABinNumber(Span<const uint8_t> cert) {
            digestArray.ElementAt(0), digestArray.ElementAt(1),
            digestArray.ElementAt(2), digestArray.ElementAt(3)));
 
-  if (mozilla::BinarySearchIf(ROOT_TABLE, 0, ArrayLength(ROOT_TABLE),
+  if (mozilla::BinarySearchIf(ROOT_TABLE, 0, std::size(ROOT_TABLE),
                               BinaryHashSearchArrayComparator(
                                   digestArray.Elements(), digestArray.Length()),
                               &idx)) {

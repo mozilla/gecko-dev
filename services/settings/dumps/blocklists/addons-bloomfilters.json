@@ -3,6 +3,22 @@
     {
       "stash": {
         "blocked": [
+          "stellatosevero@gmail.com:1.0.3",
+          "{dd149546-e82e-476e-82a7-a0f079a2b151}:1.0.3",
+          "{b5a90a38-b466-4006-9509-86e2799a5a9e}:1.0.3",
+          "{b5a90a38-b466-4006-9509-86e2799a5a9e}:10.0.3"
+        ],
+        "unblocked": []
+      },
+      "schema": 1729759304449,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1729794905328,
+      "id": "bb9e1287-8447-46c6-8837-8424eee56770",
+      "last_modified": 1729794964993
+    },
+    {
+      "stash": {
+        "blocked": [
           "webextensions@dsdf848hdb327:1.1",
           "webextensions@dsdf848hdb327:1.2",
           "webextensions@dsdf848hdb327:1.5"
@@ -598,5 +614,5 @@
       "last_modified": 1724351846412
     }
   ],
-  "timestamp": 1729686966879
+  "timestamp": 1729794964993
 }

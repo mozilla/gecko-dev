@@ -305,7 +305,7 @@ nsresult CompositionTransaction::SetIMESelection(
   }
 
   IgnoredErrorResult ignoredError;
-  for (uint32_t i = 0; i < ArrayLength(kIMESelections); ++i) {
+  for (uint32_t i = 0; i < std::size(kIMESelections); ++i) {
     RefPtr<Selection> selectionOfIME =
         selectionController->GetSelection(kIMESelections[i]);
     if (!selectionOfIME) {

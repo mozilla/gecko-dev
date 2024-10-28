@@ -109,7 +109,7 @@ SVGFESpotLightElement::LimitingConeAngle() {
 
 SVGElement::NumberAttributesInfo SVGFESpotLightElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              ArrayLength(sNumberInfo));
+                              std::size(sNumberInfo));
 }
 
 }  // namespace mozilla::dom

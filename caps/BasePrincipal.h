@@ -361,7 +361,7 @@ class BasePrincipal : public nsJSPrincipals {
  protected:
   template <size_t EnumValue>
   static inline constexpr const Span<const char>& JSONEnumKeyString() {
-    static_assert(EnumValue < ArrayLength(JSONEnumKeyStrings));
+    static_assert(EnumValue < std::size(JSONEnumKeyStrings));
     return JSONEnumKeyStrings[EnumValue];
   }
   template <size_t EnumValue>

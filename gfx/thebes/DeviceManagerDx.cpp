@@ -905,7 +905,7 @@ bool DeviceManagerDx::CreateDevice(IDXGIAdapter* aAdapter,
       // problematic.
       D3D11_MESSAGE_ID blockIDs[] = {
           D3D11_MESSAGE_ID_DEVICE_DRAW_CONSTANT_BUFFER_TOO_SMALL};
-      filter.DenyList.NumIDs = MOZ_ARRAY_LENGTH(blockIDs);
+      filter.DenyList.NumIDs = std::size(blockIDs);
       filter.DenyList.pIDList = blockIDs;
       infoQueue->PushStorageFilter(&filter);
 

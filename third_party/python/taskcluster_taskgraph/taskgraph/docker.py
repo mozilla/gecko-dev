@@ -47,7 +47,7 @@ def get_image_digest(image_name):
         strict=False,
     )
     tasks = load_tasks_for_kind(params, "docker-image")
-    task = tasks[f"build-docker-image-{image_name}"]
+    task = tasks[f"docker-image-{image_name}"]
     return task.attributes["cached_task"]["digest"]
 
 
@@ -61,7 +61,7 @@ def load_image_by_name(image_name, tag=None):
         strict=False,
     )
     tasks = load_tasks_for_kind(params, "docker-image")
-    task = tasks[f"build-docker-image-{image_name}"]
+    task = tasks[f"docker-image-{image_name}"]
 
     indexes = task.optimization.get("index-search", [])
     task_id = IndexSearch().should_replace_task(task, {}, None, indexes)

@@ -289,7 +289,7 @@ FuncData* Functions[] = {&aio_write_data,
                          &writev_data,          &writev_NOCANCEL_UNIX2003_data,
                          &writev_UNIX2003_data, &writev_NOCANCEL_data};
 
-const int NumFunctions = mozilla::ArrayLength(Functions);
+const int NumFunctions = std::size(Functions);
 
 }  // namespace
 

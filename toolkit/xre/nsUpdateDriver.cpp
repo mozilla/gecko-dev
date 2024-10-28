@@ -79,13 +79,13 @@ static nsresult GetCurrentWorkingDir(nsACString& aOutPath) {
 
 #if defined(XP_WIN)
   wchar_t wpath[MAX_PATH];
-  if (!_wgetcwd(wpath, ArrayLength(wpath))) {
+  if (!_wgetcwd(wpath, std::size(wpath))) {
     return NS_ERROR_FAILURE;
   }
   CopyUTF16toUTF8(nsDependentString(wpath), aOutPath);
 #else
   char path[MAXPATHLEN];
-  if (!getcwd(path, ArrayLength(path))) {
+  if (!getcwd(path, std::size(path))) {
     return NS_ERROR_FAILURE;
   }
   aOutPath = path;

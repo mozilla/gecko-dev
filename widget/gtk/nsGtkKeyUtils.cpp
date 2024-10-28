@@ -531,7 +531,7 @@ void KeymapWrapper::InitBySystemSettingsX11() {
   // mod[0] is Modifier introduced by Mod1.
   MappedModifier mod[5];
   int32_t foundLevel[5];
-  for (uint32_t i = 0; i < ArrayLength(mod); i++) {
+  for (uint32_t i = 0; i < std::size(mod); i++) {
     mod[i] = NOT_MODIFIER;
     foundLevel[i] = INT32_MAX;
   }
@@ -630,7 +630,7 @@ void KeymapWrapper::InitBySystemSettingsX11() {
       default:
         MOZ_CRASH("All indexes must be handled here");
     }
-    for (uint32_t j = 0; j < ArrayLength(mod); j++) {
+    for (uint32_t j = 0; j < std::size(mod); j++) {
       if (modifier == mod[j]) {
         mModifierMasks[i] |= 1 << (j + 3);
       }
@@ -2035,7 +2035,7 @@ bool KeymapWrapper::IsLatinGroup(guint8 aGroup) {
 bool KeymapWrapper::IsAutoRepeatableKey(guint aHardwareKeyCode) {
 #ifdef MOZ_X11
   uint8_t indexOfArray = aHardwareKeyCode / 8;
-  MOZ_ASSERT(indexOfArray < ArrayLength(mKeyboardState.auto_repeats),
+  MOZ_ASSERT(indexOfArray < std::size(mKeyboardState.auto_repeats),
              "invalid index");
   char bitMask = 1 << (aHardwareKeyCode % 8);
   return (mKeyboardState.auto_repeats[indexOfArray] & bitMask) != 0;

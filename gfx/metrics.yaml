@@ -380,22 +380,6 @@ gfx:
     expires: never
     telemetry_mirror: GFX_SUPPORTS_HDR
 
-  tmp_writable:
-    type: boolean
-    description: >
-      Is the system temporary directory writable
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar gfx.tmp_writable.
-    bugs:
-      - https://bugzil.la/1923741
-    data_reviews:
-      - https://bugzil.la/1923741
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - aosmond@mozilla.com
-    expires: 134
-    telemetry_mirror: GFX_TMP_WRITABLE
-
 gfx.display:
   count:
     description: >

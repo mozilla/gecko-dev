@@ -4303,21 +4303,27 @@ inline bool OpIter<Policy>::readStackSwitch(StackSwitchKind* kind,
     return false;
   }
 #  if DEBUG
-  // Verify that the function takes suspender and data as parameters and
-  // returns no values.
+  // Verify that the function takes suspender and data as parameters.
   MOZ_ASSERT((*kind == StackSwitchKind::ContinueOnSuspendable) ==
              stackType.isNullableAsOperand());
   if (!stackType.isNullableAsOperand()) {
     ValType valType = stackType.valType();
     MOZ_ASSERT(valType.isRefType() && valType.typeDef()->isFuncType());
     const FuncType& func = valType.typeDef()->funcType();
-    MOZ_ASSERT(func.args().length() == 2 && func.results().empty() &&
-               func.arg(0).isExternRef() &&
+    MOZ_ASSERT(func.args().length() == 2 && func.arg(0).isExternRef() &&
                ValType::isSubTypeOf(func.arg(1), RefType::any()));
+    MOZ_ASSERT_IF(*kind != StackSwitchKind::SwitchToMain,
+                  func.results().empty());
+    MOZ_ASSERT_IF(*kind == StackSwitchKind::SwitchToMain,
+                  func.results().length() == 1 && func.result(0).isAnyRef());
   }
 #  endif
   if (!popWithType(ValType(RefType::extern_()), suspender)) {
     return false;
+  }
+  // Returns a value only for SwitchToMain.
+  if (*kind == StackSwitchKind::SwitchToMain) {
+    return push(RefType::extern_());
   }
   return true;
 }

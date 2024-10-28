@@ -66,7 +66,7 @@ SVGViewElement::PreserveAspectRatio() {
 // SVGElement methods
 
 SVGElement::EnumAttributesInfo SVGViewElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
 }
 
 SVGAnimatedViewBox* SVGViewElement::GetAnimatedViewBox() { return &mViewBox; }

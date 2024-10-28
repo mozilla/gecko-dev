@@ -130,7 +130,7 @@ void DelayBuffer::ReadChannels(const float aPerFrameDelays[WEBAUDIO_BLOCK_SIZE],
     positions[1] = PositionForDelay(floorDelay) + i;
     positions[0] = positions[1] - 1;
 
-    for (unsigned tick = 0; tick < ArrayLength(positions); ++tick) {
+    for (unsigned tick = 0; tick < std::size(positions); ++tick) {
       int readChunk = ChunkForPosition(positions[tick]);
       // The zero check on interpolationFactor is important because, when
       // currentDelay is integer, positions[0] may be outside the range

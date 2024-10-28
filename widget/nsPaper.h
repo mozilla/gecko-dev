@@ -97,8 +97,7 @@ class nsPaper final : public nsIPaper {
       CommonPaperSize{u"na_ledger"_ns, "tabloid"_ns, {11 in, 17 in}}};
 #undef mm
 #undef in
-  static constexpr size_t kNumCommonPaperSizes =
-      mozilla::ArrayLength(kCommonPaperSizes);
+  static constexpr size_t kNumCommonPaperSizes = std::size(kCommonPaperSizes);
 
  private:
   ~nsPaper();

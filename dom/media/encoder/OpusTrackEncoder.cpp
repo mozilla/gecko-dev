@@ -118,7 +118,7 @@ bool IsSampleRateSupported(TrackRate aSampleRate) {
   AutoTArray<int, 5> supportedSamplingRates;
   supportedSamplingRates.AppendElements(
       kOpusSupportedInputSamplingRates,
-      ArrayLength(kOpusSupportedInputSamplingRates));
+      std::size(kOpusSupportedInputSamplingRates));
   return supportedSamplingRates.Contains(aSampleRate);
 }
 

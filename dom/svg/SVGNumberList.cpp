@@ -29,8 +29,7 @@ void SVGNumberList::GetValueAsString(nsAString& aValue) const {
   for (uint32_t i = 0; i < mNumbers.Length(); ++i) {
     // Would like to use aValue.AppendPrintf("%f", mNumbers[i]), but it's not
     // possible to always avoid trailing zeros.
-    nsTextFormatter::snprintf(buf, ArrayLength(buf), u"%g",
-                              double(mNumbers[i]));
+    nsTextFormatter::snprintf(buf, std::size(buf), u"%g", double(mNumbers[i]));
     // We ignore OOM, since it's not useful for us to return an error.
     aValue.Append(buf);
     if (i != last) {

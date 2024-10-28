@@ -219,6 +219,9 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
     features.tailCalls = true;
   }
 #endif
+  if (options.requireExnref) {
+    features.exnref = true;
+  }
 
   return features;
 }
@@ -1089,7 +1092,7 @@ SharedModule wasm::CompileStreaming(
     }
   }
 
-  const StreamEndData& streamEnd = exclusiveStreamEnd.lock();
+  const StreamEndData streamEnd = exclusiveStreamEnd.lock();
   const Bytes& tailBytes = *streamEnd.tailBytes;
 
   {

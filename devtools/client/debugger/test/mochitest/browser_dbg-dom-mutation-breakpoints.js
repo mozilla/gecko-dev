@@ -96,7 +96,7 @@ add_task(async function () {
   );
   is(
     whyPaused,
-    `Paused on DOM mutation\nDOM Mutation: 'attributeModified'\nbody`
+    `Paused on DOM mutation\nchangeAttribute - dom-mutation.original.js:3:16\nDOM Mutation: 'attributeModified'\nbody`
   );
 
   await resume(dbg);
@@ -125,7 +125,7 @@ add_task(async function () {
   );
   is(
     whyPaused,
-    `Paused on DOM mutation\nDOM Mutation: 'subtreeModified'\nbodyAdded:div#dynamic`
+    `Paused on DOM mutation\naddDivToBody - dom-mutation.js:13:16\nDOM Mutation: 'subtreeModified'\nbodyAdded:div#dynamic`
   );
 
   await resume(dbg);
@@ -140,7 +140,7 @@ add_task(async function () {
   );
   is(
     whyPaused,
-    `Paused on DOM mutation\nDOM Mutation: 'subtreeModified'\nbodyRemoved:div#dynamic`
+    `Paused on DOM mutation\nremoveDivInBody - dom-mutation.js:17:42\nDOM Mutation: 'subtreeModified'\nbodyRemoved:div#dynamic`
   );
 
   await resume(dbg);

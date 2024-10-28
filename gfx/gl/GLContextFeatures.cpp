@@ -532,7 +532,7 @@ static const FeatureInfo sFeatureInfoArr[] = {
       GLContext::Extensions_End}}};
 
 static inline const FeatureInfo& GetFeatureInfo(GLFeature feature) {
-  static_assert(MOZ_ARRAY_LENGTH(sFeatureInfoArr) == size_t(GLFeature::EnumMax),
+  static_assert(std::size(sFeatureInfoArr) == size_t(GLFeature::EnumMax),
                 "Mismatched lengths for sFeatureInfoInfos and GLFeature enums");
 
   MOZ_ASSERT(feature < GLFeature::EnumMax,

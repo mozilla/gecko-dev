@@ -507,7 +507,11 @@ private fun ToolsAndActionsMenuGroup(
             },
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_extension_24),
             onClick = onExtensionsMenuClick,
-            afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
+            afterIconPainter = if (accessPoint != MenuAccessPoint.Home) {
+                painterResource(id = R.drawable.mozac_ic_chevron_right_24)
+            } else {
+                null
+            },
         )
     }
 }

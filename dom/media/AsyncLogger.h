@@ -162,7 +162,7 @@ class AsyncLogger {
     msg->data.mTimestamp = TimeStamp::Now();
     msg->data.mDurationUs = 0;  // unused, duration is end - begin
 
-    StringWriter writer(msg->data.mName, ArrayLength(msg->data.mName));
+    StringWriter writer(msg->data.mName, std::size(msg->data.mName));
 
     size_t commentIndex;
     DebugOnly<bool> truncated = writer.AppendCString(aName, &commentIndex);
@@ -188,7 +188,7 @@ class AsyncLogger {
       msg->data.mTimestamp = TimeStamp::Now();
       msg->data.mDurationUs =
           (static_cast<double>(aFrames) / aSampleRate) * 1e6;
-      size_t len = std::min(strlen(aName), ArrayLength(msg->data.mName));
+      size_t len = std::min(strlen(aName), std::size(msg->data.mName));
       memcpy(msg->data.mName, aName, len);
       msg->data.mName[len] = 0;
       mMessageQueueProfiler.Push(msg);

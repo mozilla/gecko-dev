@@ -42,7 +42,7 @@ constexpr std::pair<std::string_view, Browser> kStringBrowserMap[]{
     {"duckduckgo", Browser::DuckDuckGo},
 };
 
-static_assert(mozilla::ArrayLength(kStringBrowserMap) == kBrowserCount);
+static_assert(std::size(kStringBrowserMap) == kBrowserCount);
 
 std::string GetStringForBrowser(Browser browser) {
   for (const auto& [mapString, mapBrowser] : kStringBrowserMap) {
@@ -127,8 +127,7 @@ BrowserResult TryGetDefaultBrowser() {
   // Unknown - not a real browser.
   // EdgeWithEdgeHTML - duplicate friendly name with EdgeWithBlink with special
   //   handling below.
-  static_assert(mozilla::ArrayLength(kFriendlyNamePrefixes) ==
-                kBrowserCount - 3);
+  static_assert(std::size(kFriendlyNamePrefixes) == kBrowserCount - 3);
 
   for (const auto& [prefix, browser] : kFriendlyNamePrefixes) {
     // Find matching Friendly Name prefix.

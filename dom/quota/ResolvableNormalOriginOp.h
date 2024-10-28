@@ -35,7 +35,7 @@ class ResolvableNormalOriginOp : public NormalOriginOperationBase {
 
   virtual ~ResolvableNormalOriginOp() = default;
 
-  virtual ResolveValueT GetResolveValue() = 0;
+  virtual ResolveValueT UnwrapResolveValue() = 0;
 
  private:
   void SendResults() override {
@@ -44,7 +44,7 @@ class ResolvableNormalOriginOp : public NormalOriginOperationBase {
     }
 
     if (NS_SUCCEEDED(mResultCode)) {
-      mPromiseHolder.ResolveIfExists(GetResolveValue(), __func__);
+      mPromiseHolder.ResolveIfExists(UnwrapResolveValue(), __func__);
     } else {
       mPromiseHolder.RejectIfExists(mResultCode, __func__);
     }

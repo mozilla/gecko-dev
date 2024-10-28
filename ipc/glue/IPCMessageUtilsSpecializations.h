@@ -351,7 +351,7 @@ struct ParamTraits<nsID> {
     WriteParam(aWriter, aParam.m0);
     WriteParam(aWriter, aParam.m1);
     WriteParam(aWriter, aParam.m2);
-    for (unsigned int i = 0; i < mozilla::ArrayLength(aParam.m3); i++) {
+    for (unsigned int i = 0; i < std::size(aParam.m3); i++) {
       WriteParam(aWriter, aParam.m3[i]);
     }
   }
@@ -362,7 +362,7 @@ struct ParamTraits<nsID> {
         !ReadParam(aReader, &(aResult->m2)))
       return false;
 
-    for (unsigned int i = 0; i < mozilla::ArrayLength(aResult->m3); i++)
+    for (unsigned int i = 0; i < std::size(aResult->m3); i++)
       if (!ReadParam(aReader, &(aResult->m3[i]))) return false;
 
     return true;

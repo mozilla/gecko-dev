@@ -135,7 +135,7 @@ static nsresult gssInit() {
         "libcom_err.so", "libkrb5.so",   "libgssapi.so"};
 
     PRLibSpec libSpec;
-    for (size_t i = 0; i < ArrayLength(verLibNames); ++i) {
+    for (size_t i = 0; i < std::size(verLibNames); ++i) {
       libSpec.type = PR_LibSpec_Pathname;
       libSpec.value.pathname = verLibNames[i];
       lib = PR_LoadLibraryWithFlags(libSpec, PR_LD_GLOBAL);
@@ -151,7 +151,7 @@ static nsresult gssInit() {
         "libgssapi.so.1"       /* Heimdal - Suse9, CITI - FC, MDK, Suse10*/
     };
 
-    for (size_t i = 0; i < ArrayLength(verLibNames) && !lib; ++i) {
+    for (size_t i = 0; i < std::size(verLibNames) && !lib; ++i) {
       lib = PR_LoadLibrary(verLibNames[i]);
 
       /* The CITI libgssapi library calls exit() during
@@ -168,7 +168,7 @@ static nsresult gssInit() {
       }
     }
 
-    for (size_t i = 0; i < ArrayLength(libNames) && !lib; ++i) {
+    for (size_t i = 0; i < std::size(libNames) && !lib; ++i) {
       char* libName = PR_GetLibraryName(nullptr, libNames[i]);
       if (libName) {
         lib = PR_LoadLibrary(libName);

@@ -135,7 +135,7 @@ MediaSessionPlaybackState MediaSession::PlaybackState() const {
 
 void MediaSession::SetActionHandler(MediaSessionAction aAction,
                                     MediaSessionActionHandler* aHandler) {
-  MOZ_ASSERT(size_t(aAction) < ArrayLength(mActionHandlers));
+  MOZ_ASSERT(size_t(aAction) < std::size(mActionHandlers));
   // If the media session changes its supported action, then we would propagate
   // this information to the chrome process in order to run the media session
   // actions update algorithm.
@@ -151,7 +151,7 @@ void MediaSession::SetActionHandler(MediaSessionAction aAction,
 
 MediaSessionActionHandler* MediaSession::GetActionHandler(
     MediaSessionAction aAction) const {
-  MOZ_ASSERT(size_t(aAction) < ArrayLength(mActionHandlers));
+  MOZ_ASSERT(size_t(aAction) < std::size(mActionHandlers));
   return mActionHandlers[aAction];
 }
 
@@ -236,7 +236,7 @@ void MediaSession::DispatchNotifyHandler(
 }
 
 bool MediaSession::IsSupportedAction(MediaSessionAction aAction) const {
-  MOZ_ASSERT(size_t(aAction) < ArrayLength(mActionHandlers));
+  MOZ_ASSERT(size_t(aAction) < std::size(mActionHandlers));
   return mActionHandlers[aAction] != nullptr;
 }
 
@@ -284,7 +284,7 @@ void MediaSession::NotifyMediaSessionAttributes() {
   if (mMediaMetadata) {
     NotifyMetadataUpdated();
   }
-  for (size_t idx = 0; idx < ArrayLength(mActionHandlers); idx++) {
+  for (size_t idx = 0; idx < std::size(mActionHandlers); idx++) {
     MediaSessionAction action = static_cast<MediaSessionAction>(idx);
     if (mActionHandlers[action]) {
       NotifyEnableSupportedAction(action);

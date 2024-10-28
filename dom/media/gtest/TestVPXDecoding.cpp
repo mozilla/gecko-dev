@@ -71,7 +71,7 @@ static const TestFileData testFiles[] = {
 
 TEST(libvpx, test_cases)
 {
-  for (size_t test = 0; test < ArrayLength(testFiles); ++test) {
+  for (size_t test = 0; test < std::size(testFiles); ++test) {
     nsTArray<uint8_t> data;
     ReadVPXFile(testFiles[test].mFilename, data);
     ASSERT_GT(data.Length(), 0u);

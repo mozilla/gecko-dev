@@ -3285,7 +3285,7 @@ static void DrawDashedSegment(DrawTarget& aDrawTarget, nsRect aRect,
   dash[1] = dash[0];
 
   strokeOptions.mDashPattern = dash;
-  strokeOptions.mDashLength = MOZ_ARRAY_LENGTH(dash);
+  strokeOptions.mDashLength = std::size(dash);
 
   if (aHorizontal) {
     nsPoint left = (aRect.TopLeft() + aRect.BottomLeft()) / 2;
@@ -4251,7 +4251,7 @@ void nsCSSRendering::PaintDecorationLineInternal(
       dash[0] = dashWidth;
       dash[1] = dashWidth;
       strokeOptions.mDashPattern = dash;
-      strokeOptions.mDashLength = MOZ_ARRAY_LENGTH(dash);
+      strokeOptions.mDashLength = std::size(dash);
       strokeOptions.mLineCap = CapStyle::BUTT;
       aRect = ExpandPaintingRectForDecorationLine(
           aFrame, aParams.style, aRect, aParams.icoordInFrame, dashWidth * 2,
@@ -4272,7 +4272,7 @@ void nsCSSRendering::PaintDecorationLineInternal(
         dash[1] = dashWidth;
       }
       strokeOptions.mDashPattern = dash;
-      strokeOptions.mDashLength = MOZ_ARRAY_LENGTH(dash);
+      strokeOptions.mDashLength = std::size(dash);
       aRect = ExpandPaintingRectForDecorationLine(
           aFrame, aParams.style, aRect, aParams.icoordInFrame, dashWidth * 2,
           aParams.vertical);

@@ -147,7 +147,11 @@
      */
     addTabs(tabs) {
       for (let tab of tabs) {
-        gBrowser.moveTabToGroup(tab, this);
+        let tabToMove =
+          this.ownerGlobal === tab.ownerGlobal
+            ? tab
+            : gBrowser.adoptTab(tab, this.tabs.at(-1)._tPos + 1);
+        gBrowser.moveTabToGroup(tabToMove, this);
       }
     }
 

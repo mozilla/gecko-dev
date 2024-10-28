@@ -124,8 +124,9 @@ promise_test(async () => {
     )
   )`, {m: {import: wasm_js_import}});
   let wrapped_export = WebAssembly.promising(instance.exports.test);
-  await wrapped_export();
+  const p = wrapped_export();
   assert_equals(42, instance.exports.g.value);
+  await p;
 }, "Do not suspend if the import's return value is not a Promise");
 
 test(t => {

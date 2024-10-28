@@ -64,7 +64,7 @@ static const nsPagesPerSheetInfo kSupportedPagesPerSheet[] = {
 inline void SanityCheckPagesPerSheetInfo() {
 #ifdef DEBUG
   // Sanity-checks:
-  MOZ_ASSERT(ArrayLength(kSupportedPagesPerSheet) > 0,
+  MOZ_ASSERT(std::size(kSupportedPagesPerSheet) > 0,
              "Should have at least one pages-per-sheet option.");
   MOZ_ASSERT(kSupportedPagesPerSheet[0].mNumPages == 1,
              "The 0th index is reserved for default 1-page-per-sheet entry");

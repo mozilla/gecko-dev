@@ -277,6 +277,10 @@ class ScalarType:
             ).handle_later()
 
         # Validate operating_systems.
+        if self._strict_type_checks and "operating_systems" in definition:
+            ParserError(
+                f"{self._name} - uses obsolete field 'operating_systems'."
+            ).handle_later()
         operating_systems = definition.get("operating_systems", [])
         for operating_system in operating_systems:
             if not utils.is_valid_os(operating_system):
