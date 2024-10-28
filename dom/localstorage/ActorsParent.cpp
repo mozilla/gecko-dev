@@ -1771,6 +1771,7 @@ class Database final
   // Strings share buffers if possible, so it's not a problem to duplicate the
   // origin here.
   nsCString mOrigin;
+  mozilla::glean::TimerId mRequestAllowToCloseTimerId;
   uint32_t mPrivateBrowsingId;
   bool mAllowedToClose;
   bool mActorDestroyed;
@@ -5335,6 +5336,7 @@ Database::Database(const PrincipalInfo& aPrincipalInfo,
       mPrincipalInfo(aPrincipalInfo),
       mContentParentId(aContentParentId),
       mOrigin(aOrigin),
+      mRequestAllowToCloseTimerId(0),
       mPrivateBrowsingId(aPrivateBrowsingId),
       mAllowedToClose(false),
       mActorDestroyed(false),
@@ -5423,12 +5425,18 @@ void Database::RequestAllowToClose() {
     return;
   }
 
-  if (NS_WARN_IF(!SendRequestAllowToClose()) && !mSnapshot) {
-    // This is not necessary, because there should be a runnable scheduled that
-    // will call ActorDestroy which calls AllowToClose. However we can speedup
-    // the shutdown a bit if we do it here directly, but only if there's no
-    // registered snapshot.
-    AllowToClose();
+  if (NS_WARN_IF(!SendRequestAllowToClose())) {
+    if (!mSnapshot) {
+      // This is not necessary, because there should be a runnable scheduled
+      // that will call ActorDestroy which calls AllowToClose. However we can
+      // speedup the shutdown a bit if we do it here directly, but only if
+      // there's no registered snapshot.
+      AllowToClose();
+    }
+  } else {
+    mRequestAllowToCloseTimerId =
+        glean::localstorage_database::request_allow_to_close_response_time
+            .Start();
   }
 }
 
@@ -5514,6 +5522,9 @@ mozilla::ipc::IPCResult Database::RecvAllowToClose() {
   if (NS_WARN_IF(mAllowedToClose)) {
     return IPC_FAIL(this, "mAllowedToClose already set!");
   }
+
+  glean::localstorage_database::request_allow_to_close_response_time
+      .StopAndAccumulate(std::move(mRequestAllowToCloseTimerId));
 
   AllowToClose();
 

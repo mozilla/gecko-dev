@@ -88,3 +88,22 @@ ls.request:
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
     expires: 135
+localstorage.database:
+  request_allow_to_close_response_time:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      Time it took between sending PBackgroundLSDatabase::RequestAllowToClose
+      and receiving PBackgroundLSDatabase::AllowToClose message. These messages
+      are issued when QuotaManager is shutting down or is aborting operations
+      for a particular origin or process.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925205
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1925205
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: 136
