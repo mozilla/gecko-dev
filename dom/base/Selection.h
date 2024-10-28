@@ -1231,7 +1231,7 @@ class MOZ_RAII AutoHideSelectionChanges final {
 
 constexpr bool IsValidRawSelectionType(RawSelectionType aRawSelectionType) {
   return aRawSelectionType >= nsISelectionController::SELECTION_NONE &&
-         aRawSelectionType <= nsISelectionController::SELECTION_URLSTRIKEOUT;
+         aRawSelectionType <= nsISelectionController::SELECTION_TARGET_TEXT;
 }
 
 constexpr SelectionType ToSelectionType(RawSelectionType aRawSelectionType) {
