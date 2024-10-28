@@ -240,6 +240,7 @@ export class PromptParent extends JSWindowActorParent {
             },
             bag
           );
+          dialog.promptID = promptID;
           this.registerDialog(dialog, promptID);
           await closedPromise;
         } finally {
