@@ -411,9 +411,13 @@ void ICScript::initICEntries(JSContext* cx, JSScript* script) {
 
     BaselineICFallbackKind kind = BaselineICFallbackKind(tableValue);
     TrampolinePtr stubCode =
+#ifdef ENABLE_PORTABLE_BASELINE_INTERP
         !jit::IsPortableBaselineInterpreterEnabled()
             ? fallbackCode.addr(kind)
             : TrampolinePtr(js::pbl::GetPortableFallbackStub(kind));
+#else
+        fallbackCode.addr(kind);
+#endif
 
     // Initialize the ICEntry and ICFallbackStub.
     uint32_t offset = loc.bytecodeToOffset(script);
