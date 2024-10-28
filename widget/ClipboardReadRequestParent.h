@@ -26,6 +26,9 @@ class ClipboardReadRequestParent final : public PClipboardReadRequestParent {
   // PClipboardReadRequestParent
   IPCResult RecvGetData(const nsTArray<nsCString>& aFlavors,
                         GetDataResolver&& aResolver);
+  IPCResult RecvGetDataSync(
+      const nsTArray<nsCString>& aFlavors,
+      dom::IPCTransferableDataOrError* aTransferableDataOrError);
 
  private:
   ~ClipboardReadRequestParent() = default;

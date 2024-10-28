@@ -77,6 +77,19 @@ interface nsIClipboardDataSnapshot : nsISupports {
    */
   void getData(in nsITransferable aTransferable,
                in nsIAsyncClipboardRequestCallback aCallback);
+
+  /**
+   * Filters the flavors that `aTransferable` can import (see
+   * `nsITransferable::flavorsTransferableCanImport`). Every specified flavors
+   * must exist in `flavorList`, or the request will be rejected. If the request
+   * remains valid, it retrieves the data for the first flavor. The data is then
+   * set for `aTransferable`.
+   *
+   * @param  aTransferable
+   *         The transferable which contains the flavors to be read.
+   * @result NS_OK if no errors
+   */
+  void getDataSync(in nsITransferable aTransferable);
 };
 
 [scriptable, uuid(ce23c1c4-58fd-4c33-8579-fa0796d9652c)]

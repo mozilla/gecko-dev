@@ -112,4 +112,37 @@ IPCResult ClipboardReadRequestParent::RecvGetData(
   return IPC_OK();
 }
 
+IPCResult ClipboardReadRequestParent::RecvGetDataSync(
+    const nsTArray<nsCString>& aFlavors,
+    dom::IPCTransferableDataOrError* aTransferableDataOrError) {
+  bool valid = false;
+  if (NS_FAILED(mClipboardDataSnapshot->GetValid(&valid)) || !valid) {
+    Unused << PClipboardReadRequestParent::Send__delete__(this);
+    *aTransferableDataOrError = NS_ERROR_FAILURE;
+    return IPC_OK();
+  }
+
+  // Create transferable
+  auto result = CreateTransferable(aFlavors);
+  if (result.isErr()) {
+    *aTransferableDataOrError = result.unwrapErr();
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsITransferable> trans = result.unwrap();
+  nsresult rv = mClipboardDataSnapshot->GetDataSync(trans);
+  if (NS_FAILED(rv)) {
+    *aTransferableDataOrError = rv;
+    if (NS_FAILED(mClipboardDataSnapshot->GetValid(&valid)) || !valid) {
+      Unused << PClipboardReadRequestParent::Send__delete__(this);
+    }
+    return IPC_OK();
+  }
+  dom::IPCTransferableData ipcTransferableData;
+  nsContentUtils::TransferableToIPCTransferableData(
+      trans, &ipcTransferableData, true /* aInSyncMessage */, mManager);
+  *aTransferableDataOrError = std::move(ipcTransferableData);
+  return IPC_OK();
+}
+
 }  // namespace mozilla
