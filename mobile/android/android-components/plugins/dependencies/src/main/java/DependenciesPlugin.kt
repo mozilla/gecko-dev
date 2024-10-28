@@ -23,7 +23,7 @@ object Versions {
 
     const val robolectric = "4.13"
     const val maven_ant_tasks = "2.1.3"
-    const val jacoco = "0.8.11"
+    const val jacoco = "0.8.12"
     const val okhttp = "4.12.0"
     const val okio = "3.9.0"
     const val androidsvg = "1.4"
