@@ -621,7 +621,7 @@
 }
 
 .ruleview-overridden {
-  text-decoration: line-through solid var(--theme-text-color-alt);
+  text-decoration: line-through solid var(--theme-text-color-inactive);
 }
 
 /**
@@ -747,10 +747,13 @@
   cursor: text;
 }
 
-.ruleview-selector-separator,
+.ruleview-selector-separator {
+  color: var(--theme-text-color-alt);
+}
+
 .ruleview-selector.unmatched,
 .ruleview-property:is(.unused, .ruleview-overridden) :is(.ruleview-propertyname,.ruleview-propertyvalue) {
-  color: var(--theme-text-color-alt);
+  color: var(--theme-text-color-inactive);
 }
 
 /* We use a dimmer color for those unmatching element, but we can't convey state change

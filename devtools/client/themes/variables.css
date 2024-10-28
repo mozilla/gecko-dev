@@ -197,7 +197,7 @@
   --theme-link-color: light-dark(var(--blue-60), #75bfff);
   --theme-internal-link-color: light-dark(var(--blue-70), var(--blue-40));
   --theme-text-color-alt: light-dark(var(--grey-50), var(--grey-45));
-  --theme-text-color-inactive: light-dark(var(--grey-40), var(--grey-50));
+  --theme-text-color-inactive: light-dark(var(--grey-50), var(--grey-45));
   --theme-text-color-error: light-dark(var(--red-60), var(--grey-10));
   --theme-text-color-strong: light-dark(var(--grey-90), var(--grey-30));
   --theme-stack-trace-text: light-dark(var(--red-70), var(--red-20));
@@ -298,6 +298,7 @@
     --theme-selection-color: SelectedItemText;
     --theme-text-color-alt: CanvasText;
     --theme-text-color-strong: CanvasText;
+    --theme-text-color-inactive: GrayText;
     --theme-text-selection-background: Highlight;
     --theme-text-selection-color: HighlightText;
     --theme-text-selection-unfocused-background: Highlight;
