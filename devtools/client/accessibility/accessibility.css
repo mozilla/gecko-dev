@@ -25,6 +25,12 @@
   --accessibility-link-color-active: light-dark(var(--blue-70), var(--blue-40));
   --accessibility-body-background-a90: light-dark(rgba(255, 255, 255, 0.9), rgba(42, 42, 46, 0.9));
   --accessibility-code-background: light-dark(var(--grey-20), var(--grey-70));
+
+  &[forced-colors-active] {
+    --accessibility-unfocused-tree-focused-node-background: GrayText;
+    --accessibility-unfocused-tree-focused-node-color: SelectedItemText;
+    --accessibility-unfocused-tree-focused-node-twisty-fill: SelectedItemText;
+  }
 }
 
 /* General */
@@ -63,7 +69,7 @@ body {
 
 .accessible .tree .node.focused .theme-twisty,
 .treeTable .treeRow.selected .theme-twisty {
-  fill: var(--theme-selection-color);
+  color: var(--theme-selection-color);
 }
 
 .mainFrame {
@@ -373,19 +379,19 @@ body {
 
 .treeTable:not(:focus, :focus-within) .treeRow.selected {
   background-color: var(--accessibility-unfocused-tree-focused-node-background);
-}
 
-.treeTable:not(:focus, :focus-within) .treeRow.selected .theme-twisty {
-  fill: var(--accessibility-unfocused-tree-focused-node-twisty-fill);
-}
+  & .theme-twisty {
+    color: var(--accessibility-unfocused-tree-focused-node-twisty-fill);
+  }
 
-.treeTable:not(:focus, :focus-within) .treeRow.selected *,
-.treeTable:not(:focus, :focus-within) .treeRow.selected .treeLabelCell:after {
-  color: inherit;
-}
+  & *,
+  & .treeLabelCell::after {
+    color: var(--accessibility-unfocused-tree-focused-node-color, inherit);
+  }
 
-.treeTable:not(:focus, :focus-within) .treeRow.selected .objectBox-string {
-  color: var(--string-color);
+  & .objectBox-string {
+    color: var(--accessibility-unfocused-tree-focused-node-color, var(--string-color));
+  }
 }
 
 .treeTable > thead {
@@ -570,11 +576,16 @@ body {
 
 .accessible .tree:not(:focus) .node.focused {
   background-color: var(--accessibility-unfocused-tree-focused-node-background);
+
+  :root[forced-colors-active] & {
+    color: var(--accessibility-unfocused-tree-focused-node-color);
+  }
+
+  & .theme-twisty {
+    color: var(--accessibility-unfocused-tree-focused-node-twisty-fill);
+  }
 }
 
-.accessible .tree:not(:focus) .node.focused .theme-twisty {
-  fill: var(--accessibility-unfocused-tree-focused-node-twisty-fill);
-}
 
 .accessible .tree .node:not(.focused):hover {
   background-color: var(--theme-selection-background-hover);
