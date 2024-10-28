@@ -911,11 +911,10 @@ void PullWithBYOBReader(JSContext* aCx, TeeState* aTeeState,
   RefPtr<ReadIntoRequest> readIntoRequest =
       new PullWithBYOBReader_ReadIntoRequest(aTeeState, aForBranch);
 
-  // Step 16.5. Perform ! ReadableStreamBYOBReaderRead(reader, view, 1,
-  // readIntoRequest).
+  // Step 16.5.
   RefPtr<ReadableStreamBYOBReader> byobReader =
       aTeeState->GetReader()->AsBYOB();
-  ReadableStreamBYOBReaderRead(aCx, byobReader, aView, 1, readIntoRequest, aRv);
+  ReadableStreamBYOBReaderRead(aCx, byobReader, aView, readIntoRequest, aRv);
 }
 
 // See https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee

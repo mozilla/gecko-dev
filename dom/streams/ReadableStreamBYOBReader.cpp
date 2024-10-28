@@ -173,7 +173,7 @@ namespace streams_abstract {
 // https://streams.spec.whatwg.org/#readable-stream-byob-reader-read
 void ReadableStreamBYOBReaderRead(JSContext* aCx,
                                   ReadableStreamBYOBReader* aReader,
-                                  JS::Handle<JSObject*> aView, uint64_t aMin,
+                                  JS::Handle<JSObject*> aView,
                                   ReadIntoRequest* aReadIntoRequest,
                                   ErrorResult& aRv) {
   // Step 1.Let stream be reader.[[stream]].
@@ -195,20 +195,19 @@ void ReadableStreamBYOBReaderRead(JSContext* aCx,
   }
 
   // Step 5. Otherwise, perform
-  // !ReadableByteStreamControllerPullInto(stream.[[controller]], view, min,
+  // !ReadableByteStreamControllerPullInto(stream.[[controller]], view,
   // readIntoRequest).
   MOZ_ASSERT(stream->Controller()->IsByte());
   RefPtr<ReadableByteStreamController> controller(
       stream->Controller()->AsByte());
-  ReadableByteStreamControllerPullInto(aCx, controller, aView, aMin,
-                                       aReadIntoRequest, aRv);
+  ReadableByteStreamControllerPullInto(aCx, controller, aView, aReadIntoRequest,
+                                       aRv);
 }
 }  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#byob-reader-read
 already_AddRefed<Promise> ReadableStreamBYOBReader::Read(
-    const ArrayBufferView& aArray,
-    const ReadableStreamBYOBReaderReadOptions& aOptions, ErrorResult& aRv) {
+    const ArrayBufferView& aArray, ErrorResult& aRv) {
   AutoJSAPI jsapi;
   if (!jsapi.Init(GetParentObject())) {
     aRv.ThrowUnknownError("Internal error");
@@ -248,60 +247,28 @@ already_AddRefed<Promise> ReadableStreamBYOBReader::Read(
     return nullptr;
   }
 
-  // Step 4. If options["min"] is 0, return a promise rejected with a TypeError
-  // exception.
-  if (aOptions.mMin == 0) {
-    aRv.ThrowTypeError(
-        "Zero is not a valid value for 'min' member of "
-        "ReadableStreamBYOBReaderReadOptions.");
-    return nullptr;
-  }
-
-  // Step 5. If view has a [[TypedArrayName]] internal slot,
-  if (JS_IsTypedArrayObject(view)) {
-    // Step 5.1. If options["min"] > view.[[ArrayLength]], return a promise
-    // rejected with a RangeError exception.
-    if (aOptions.mMin > JS_GetTypedArrayLength(view)) {
-      aRv.ThrowRangeError(
-          "Array length exceeded by 'min' member of "
-          "ReadableStreamBYOBReaderReadOptions.");
-      return nullptr;
-    }
-  } else {
-    // Step 6. Otherwise (i.e., it is a DataView),
-    // Step 6.1. If options["min"] > view.[[ByteLength]], return a promise
-    // rejected with a RangeError exception.
-    if (aOptions.mMin > JS_GetArrayBufferViewByteLength(view)) {
-      aRv.ThrowRangeError(
-          "byteLength exceeded by 'min' member of "
-          "ReadableStreamBYOBReaderReadOptions.");
-      return nullptr;
-    }
-  }
-
-  // Step 7. If this.[[stream]] is undefined, return a promise rejected with a
+  // Step 4. If this.[[stream]] is undefined, return a promise rejected with a
   // TypeError exception.
   if (!GetStream()) {
     aRv.ThrowTypeError("Reader has undefined stream");
     return nullptr;
   }
 
-  // Step 8. Let promise be a new promise.
+  // Step 5.
   RefPtr<Promise> promise = Promise::CreateInfallible(GetParentObject());
 
-  // Step 9. Let readIntoRequest be a new read-into request with the following
+  // Step 6. Let readIntoRequest be a new read-into request with the following
   // items:
   RefPtr<ReadIntoRequest> readIntoRequest = new Read_ReadIntoRequest(promise);
 
-  // Step 10. Perform ! ReadableStreamBYOBReaderRead(this, view, options["min"],
+  // Step 7. Perform ! ReadableStreamBYOBReaderRead(this, view,
   // readIntoRequest).
-  ReadableStreamBYOBReaderRead(cx, this, view, aOptions.mMin, readIntoRequest,
-                               aRv);
+  ReadableStreamBYOBReaderRead(cx, this, view, readIntoRequest, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
-  // Step 11. Return promise.
+  // Step 8. Return promise.
   return promise.forget();
 }
 
