@@ -640,15 +640,11 @@ export function logEvenNumbersMainThread(logger,items) {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callSync(
                 64, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_log_even_numbers_main_thread
                 FfiConverterTypeLogger.lower(logger),
                 FfiConverterSequencei32.lower(items),
             )
         }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
+        return handleRustResult(functionCall(), liftResult, liftError);
 }
