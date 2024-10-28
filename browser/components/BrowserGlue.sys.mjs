@@ -3192,11 +3192,11 @@ BrowserGlue.prototype = {
       }
 
       ChromeUtils.idleDispatch(
-        () => {
+        async () => {
           if (!Services.startup.shuttingDown) {
             let startTime = Cu.now();
             try {
-              task.task();
+              await task.task();
             } catch (ex) {
               console.error(ex);
             } finally {
