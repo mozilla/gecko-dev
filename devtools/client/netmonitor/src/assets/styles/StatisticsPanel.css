@@ -70,8 +70,13 @@
   margin-inline-end: 3vw;
 }
 
-tr[data-statistic-name] td:first-of-type {
+/* Use a pseudo element for the "legend" so we can adapt to High Contrast Mode without
+   impacting the cell content */
+tr[data-statistic-name] td:first-of-type::before {
+  content: "";
   border-inline-start: 15px solid var(--stat-color);
+  forced-color-adjust: none;
+  margin-inline-end: 5px;
 }
 
 path[data-statistic-name] {
