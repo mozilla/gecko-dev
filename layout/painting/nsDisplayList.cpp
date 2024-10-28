@@ -505,9 +505,9 @@ nsRect nsDisplayListBuilder::OutOfFlowDisplayData::ComputeVisibleRectForFrame(
 
   bool inPartialUpdate =
       aBuilder->IsRetainingDisplayList() && aBuilder->IsPartialUpdate();
-  if (StaticPrefs::apz_allow_zooming() &&
-      DisplayPortUtils::IsFixedPosFrameInDisplayPort(aFrame) &&
-      aBuilder->IsPaintingToWindow() && !inPartialUpdate) {
+  if (MOZ_LIKELY(StaticPrefs::apz_allow_zooming()) &&
+      aBuilder->IsPaintingToWindow() && !inPartialUpdate &&
+      DisplayPortUtils::IsFixedPosFrameInDisplayPort(aFrame)) {
     dirtyRectRelativeToDirtyFrame =
         nsRect(nsPoint(0, 0), aFrame->GetParent()->GetSize());
 
