@@ -2862,7 +2862,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
       &ctx.state.state_elem,            \
       reinterpret_cast<JSObject*>(ctx.icregs.icVals[(index)]))
 
-DEFINE_IC(Typeof, 1, {
+DEFINE_IC(TypeOf, 1, {
   IC_LOAD_VAL(value0, 0);
   PUSH_FALLBACK_IC_FRAME();
   if (!DoTypeOfFallback(cx, ctx.frame, fallback, value0, &ctx.state.res)) {
@@ -2870,7 +2870,7 @@ DEFINE_IC(Typeof, 1, {
   }
 });
 
-DEFINE_IC(TypeofEq, 1, {
+DEFINE_IC(TypeOfEq, 1, {
   IC_LOAD_VAL(value0, 0);
   PUSH_FALLBACK_IC_FRAME();
   if (!DoTypeOfEqFallback(cx, ctx.frame, fallback, value0, &ctx.state.res)) {
@@ -3453,7 +3453,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_POP_ARG(0);
-          INVOKE_IC(Typeof);
+          INVOKE_IC(TypeOf);
           IC_PUSH_RESULT();
         }
         END_OP(Typeof);
@@ -3471,7 +3471,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_POP_ARG(0);
-          INVOKE_IC(TypeofEq);
+          INVOKE_IC(TypeOfEq);
           IC_PUSH_RESULT();
         }
         END_OP(TypeofEq);
