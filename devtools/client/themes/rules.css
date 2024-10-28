@@ -659,6 +659,17 @@
   /* When the text of the property wraps, we want the wrapping lines to have an indent so
      they don't go under the checkbox */
   text-indent: var(--rule-computed-margin-inline-start) hanging;
+
+  :root[forced-colors-active] & {
+    /* We opt-out of forced-colors because we want the left border to be actually transparent
+       in High Contrast Mode when the declaration isn't new/updated, and green when it is */
+    forced-color-adjust: none;
+    /* But we opt-in forced colors on direct child so we have expected High Contrast colors
+       for the children */
+    & > * {
+      forced-color-adjust: auto;
+    }
+  }
 }
 
 .ruleview-propertycontainer  > * {
