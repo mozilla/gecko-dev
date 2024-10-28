@@ -2754,6 +2754,12 @@
   value: false
   mirror: always
 
+# Is support for HTMLElement.autocorrect enabled?
+- name: dom.forms.autocorrect
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 # Only trusted submit event could trigger form submission.
 - name: dom.forms.submit.trusted_event_only
   type: bool

@@ -24,6 +24,7 @@
 #include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/FormData.h"
+#include "nsCaseTreatment.h"
 #include "nscore.h"
 #include "nsGenericHTMLElement.h"
 #include "nsCOMPtr.h"
@@ -471,6 +472,11 @@ bool nsGenericHTMLElement::Spellcheck() {
   // We'll catch this in the editor itself.
   int32_t spellcheckLevel = Preferences::GetInt("layout.spellcheckDefault", 1);
   return spellcheckLevel == 2;  // "Spellcheck multi- and single-line"
+}
+
+bool nsGenericHTMLElement::Autocorrect() const {
+  return !AttrValueIs(kNameSpaceID_None, nsGkAtoms::autocorrect, nsGkAtoms::OFF,
+                      eIgnoreCase);
 }
 
 bool nsGenericHTMLElement::InNavQuirksMode(Document* aDoc) {
@@ -2594,9 +2600,33 @@ void nsGenericHTMLFormControlElement::GetAutocapitalize(
     return;
   }
 
-  if (mForm && IsAutocapitalizeInheriting()) {
+  if (mForm && IsAutocapitalizeOrAutocorrectInheriting()) {
     mForm->GetAutocapitalize(aValue);
   }
+}
+
+// https://html.spec.whatwg.org/#dom-autocorrect
+bool nsGenericHTMLFormControlElement::Autocorrect() const {
+  auto controlType = ControlType();
+
+  switch (controlType) {
+    case FormControlType::InputEmail:
+    case FormControlType::InputPassword:
+    case FormControlType::InputUrl:
+      return false;
+    default:
+      break;
+  }
+
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::autocorrect)) {
+    return nsGenericHTMLElement::Autocorrect();
+  }
+
+  if (mForm && IsAutocapitalizeOrAutocorrectInheriting()) {
+    return mForm->Autocorrect();
+  }
+
+  return true;
 }
 
 bool nsGenericHTMLFormControlElement::IsHTMLFocusable(IsFocusableFlags aFlags,
@@ -2740,7 +2770,8 @@ void nsGenericHTMLFormControlElement::UpdateRequiredState(bool aIsRequired,
   }
 }
 
-bool nsGenericHTMLFormControlElement::IsAutocapitalizeInheriting() const {
+bool nsGenericHTMLFormControlElement::IsAutocapitalizeOrAutocorrectInheriting()
+    const {
   auto type = ControlType();
   return IsInputElement(type) || IsButtonElement(type) ||
          type == FormControlType::Fieldset || type == FormControlType::Output ||
