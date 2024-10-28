@@ -192,11 +192,19 @@ class ICStub {
     // call JitCode::FromExecutable on the raw pointer.
     return isFallback();
   }
+
+#ifndef ENABLE_PORTABLE_BASELINE_INTERP
   JitCode* jitCode() {
     MOZ_ASSERT(!usesTrampolineCode());
     return JitCode::FromExecutable(stubCode_);
   }
   bool hasJitCode() { return !!stubCode_; }
+#else  // !ENABLE_PORTABLE_BASELINE_INTERP
+  JitCode* jitCode() { return nullptr; }
+  bool hasJitCode() { return false; }
+  uint8_t* rawJitCode() const { return stubCode_; }
+  void updateRawJitCode(uint8_t* ptr) { stubCode_ = ptr; }
+#endif
 
   uint32_t enteredCount() const { return enteredCount_; }
   inline void incrementEnteredCount() { enteredCount_++; }

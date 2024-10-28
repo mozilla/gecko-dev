@@ -468,7 +468,6 @@ struct ICCtx {
   ICRegs icregs;
   Stack& stack;
   StackVal* sp_;
-  ICCacheIRStub* cstub;
   PBIResult error;
   uint64_t arg2;
 
@@ -479,7 +478,6 @@ struct ICCtx {
         icregs(),
         stack(stack_),
         sp_(nullptr),
-        cstub(nullptr),
         error(PBIResult::Ok),
         arg2(0) {}
 
@@ -487,6 +485,18 @@ struct ICCtx {
 };
 
 #define IC_ERROR_SENTINEL() (JS::MagicValue(JS_GENERIC_MAGIC).asRawBits())
+
+// Universal signature for an IC stub function.
+typedef uint64_t (*ICStubFunc)(uint64_t arg0, uint64_t arg1, ICStub* stub,
+                               ICCtx& ctx);
+
+#define PBL_CALL_IC(jitcode, ctx, stubvalue, result, arg0, arg1, arg2value, \
+                    hasarg2)                                                \
+  do {                                                                      \
+    ctx.arg2 = arg2value;                                                   \
+    ICStubFunc func = reinterpret_cast<ICStubFunc>(jitcode);                \
+    result = func(arg0, arg1, stubvalue, ctx);                              \
+  } while (0)
 
 static uint64_t CallNextIC(uint64_t arg0, uint64_t arg1, ICStub* stub,
                            ICCtx& ctx);
@@ -829,7 +839,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
     (void)addresses;
 
 #define CACHEOP_TRACE(name) \
-  TRACE_PRINTF("cacheop (frame %p stub %p): " #name "\n", ctx.frame, ctx.cstub);
+  TRACE_PRINTF("cacheop (frame %p stub %p): " #name "\n", ctx.frame, cstub);
 
 #define FAIL_IC() goto next_ic;
 
@@ -855,7 +865,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
     return retValue;                                     \
   }
 
-    ICCacheIRStub* cstub = ctx.cstub;
+    ICCacheIRStub* cstub = stub->toCacheIRStub();
     const CacheIRStubInfo* stubInfo = cstub->stubInfo();
     CacheIRReader cacheIRReader(stubInfo);
     uint64_t retValue = 0;
@@ -5234,7 +5244,10 @@ static MOZ_NEVER_INLINE uint64_t CallNextIC(uint64_t arg0, uint64_t arg1,
                                             ICStub* stub, ICCtx& ctx) {
   stub = stub->maybeNext();
   MOZ_ASSERT(stub);
-  return ICInterpretOps(arg0, arg1, stub, ctx);
+  uint64_t result;
+  PBL_CALL_IC(stub->rawJitCode(), ctx, stub, result, arg0, arg1, ctx.arg2,
+              true);
+  return result;
 }
 
 /*
@@ -5243,28 +5256,27 @@ static MOZ_NEVER_INLINE uint64_t CallNextIC(uint64_t arg0, uint64_t arg1,
  * -----------------------------------------------
  */
 
-#define DEFINE_IC(kind, arity, fallback_body)                              \
-  static uint64_t MOZ_ALWAYS_INLINE IC##kind(uint64_t arg0, uint64_t arg1, \
-                                             ICStub* stub, ICCtx& ctx) {   \
-    uint64_t retValue = 0;                                                 \
-    uint64_t arg2 = ctx.arg2;                                              \
-    StackVal* sp = ctx.sp();                                               \
-    (void)arg2;                                                            \
-    if (stub->isFallback()) {                                              \
-      ICFallbackStub* fallback = stub->toFallbackStub();                   \
-      fallback_body;                                                       \
-      retValue = ctx.state.res.asRawBits();                                \
-      ctx.state.res = UndefinedValue();                                    \
-      return retValue;                                                     \
-    error:                                                                 \
-      ctx.error = PBIResult::Error;                                        \
-      return IC_ERROR_SENTINEL();                                          \
-    } else {                                                               \
-      ICCacheIRStub* cstub = stub->toCacheIRStub();                        \
-      ctx.cstub = cstub;                                                   \
-      cstub->incrementEnteredCount();                                      \
-      return ICInterpretOps(arg0, arg1, stub, ctx);                        \
-    }                                                                      \
+#define DEFINE_IC(kind, arity, fallback_body)                   \
+  static uint64_t MOZ_ALWAYS_INLINE IC##kind##Fallback(         \
+      uint64_t arg0, uint64_t arg1, ICStub* stub, ICCtx& ctx) { \
+    uint64_t retValue = 0;                                      \
+    uint64_t arg2 = ctx.arg2;                                   \
+    (void)arg2;                                                 \
+    ICFallbackStub* fallback = stub->toFallbackStub();          \
+    StackVal* sp = ctx.sp();                                    \
+    fallback_body;                                              \
+    retValue = ctx.state.res.asRawBits();                       \
+    ctx.state.res = UndefinedValue();                           \
+    return retValue;                                            \
+  error:                                                        \
+    ctx.error = PBIResult::Error;                               \
+    return IC_ERROR_SENTINEL();                                 \
+  }
+
+#define DEFINE_IC_ALIAS(kind, target)                           \
+  static uint64_t MOZ_NEVER_INLINE IC##kind##Fallback(          \
+      uint64_t arg0, uint64_t arg1, ICStub* stub, ICCtx& ctx) { \
+    return IC##target##Fallback(arg0, arg1, stub, ctx);         \
   }
 
 #define IC_LOAD_VAL(state_elem, index)                    \
@@ -5316,6 +5328,8 @@ DEFINE_IC(Call, 1, {
   }
 });
 
+DEFINE_IC_ALIAS(CallConstructing, Call);
+
 DEFINE_IC(SpreadCall, 1, {
   uint32_t argc = uint32_t(arg0);
   uint32_t totalArgs =
@@ -5333,6 +5347,8 @@ DEFINE_IC(SpreadCall, 1, {
     }
   }
 });
+
+DEFINE_IC_ALIAS(SpreadCallConstructing, SpreadCall);
 
 DEFINE_IC(UnaryArith, 1, {
   IC_LOAD_VAL(value0, 0);
@@ -5547,6 +5563,22 @@ DEFINE_IC(CloseIter, 1, {
   }
 });
 
+uint8_t* GetPortableFallbackStub(BaselineICFallbackKind kind) {
+  switch (kind) {
+#define _(ty)                      \
+  case BaselineICFallbackKind::ty: \
+    return reinterpret_cast<uint8_t*>(&IC##ty##Fallback);
+    IC_BASELINE_FALLBACK_CODE_KIND_LIST(_)
+#undef _
+    case BaselineICFallbackKind::Count:
+      MOZ_CRASH("Invalid kind");
+  }
+}
+
+uint8_t* GetICInterpreter() {
+  return reinterpret_cast<uint8_t*>(&ICInterpretOps);
+}
+
 /*
  * -----------------------------------------------
  * Main JSOp interpreter
@@ -5640,28 +5672,26 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
 
 #define NEXT_IC() frame->interpreterICEntry()++;
 
-#define INVOKE_IC(kind, hasarg2)                                        \
-  ctx.sp_ = sp;                                                         \
-  frame->interpreterPC() = pc;                                          \
-  if (hasarg2) {                                                        \
-    ctx.arg2 = ic_arg2;                                                 \
-  }                                                                     \
-  ic_ret = IC##kind(ic_arg0, ic_arg1,                                   \
-                    ctx.frame->interpreterICEntry()->firstStub(), ctx); \
-  if (ic_ret == IC_ERROR_SENTINEL()) {                                  \
-    switch (ctx.error) {                                                \
-      case PBIResult::Ok:                                               \
-        break;                                                          \
-      case PBIResult::Error:                                            \
-        goto error;                                                     \
-      case PBIResult::Unwind:                                           \
-        goto unwind;                                                    \
-      case PBIResult::UnwindError:                                      \
-        goto unwind_error;                                              \
-      case PBIResult::UnwindRet:                                        \
-        goto unwind_ret;                                                \
-    }                                                                   \
-  }                                                                     \
+#define INVOKE_IC(kind, hasarg2)                                           \
+  ctx.sp_ = sp;                                                            \
+  frame->interpreterPC() = pc;                                             \
+  PBL_CALL_IC(frame->interpreterICEntry()->firstStub()->rawJitCode(), ctx, \
+              frame->interpreterICEntry()->firstStub(), ic_ret, ic_arg0,   \
+              ic_arg1, ic_arg2, hasarg2);                                  \
+  if (ic_ret == IC_ERROR_SENTINEL()) {                                     \
+    switch (ctx.error) {                                                   \
+      case PBIResult::Ok:                                                  \
+        break;                                                             \
+      case PBIResult::Error:                                               \
+        goto error;                                                        \
+      case PBIResult::Unwind:                                              \
+        goto unwind;                                                       \
+      case PBIResult::UnwindError:                                         \
+        goto unwind_error;                                                 \
+      case PBIResult::UnwindRet:                                           \
+        goto unwind_ret;                                                   \
+    }                                                                      \
+  }                                                                        \
   NEXT_IC();
 
 PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,

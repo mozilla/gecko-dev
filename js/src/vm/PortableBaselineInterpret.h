@@ -282,6 +282,7 @@
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
 #include "jit/JitContext.h"
+#include "jit/JitRuntime.h"
 #include "jit/JitScript.h"
 #include "vm/Interpreter.h"
 #include "vm/Stack.h"
@@ -332,6 +333,9 @@ enum class PBIResult {
 PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                     StackVal* sp, JSObject* envChain,
                                     Value* ret);
+
+uint8_t* GetPortableFallbackStub(jit::BaselineICFallbackKind kind);
+uint8_t* GetICInterpreter();
 
 } /* namespace pbl */
 } /* namespace js */
