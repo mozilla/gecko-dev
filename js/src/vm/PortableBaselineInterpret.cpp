@@ -6037,14 +6037,16 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
   // Check max stack depth once, so we don't need to check it
   // otherwise below for ordinary stack-manipulation opcodes (just for
   // exit frames).
-  if (!stack.check(sp, sizeof(StackVal) * frame->script()->nslots())) {
+  if (!ctx.stack.check(sp, sizeof(StackVal) * frame->script()->nslots())) {
     PUSH_EXIT_FRAME();
     ReportOverRecursed(ctx.frameMgr.cxForLocalUseOnly());
     return PBIResult::Error;
   }
 
+  SYNCSP();
+  sp -= nfixed;
   for (uint32_t i = 0; i < nfixed; i++) {
-    VIRTPUSH(StackVal(UndefinedValue()));
+    sp[i] = StackVal(UndefinedValue());
   }
   ret->setUndefined();
 
@@ -6096,7 +6098,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 #endif
 
   TRACE_PRINTF("Entering: sp = %p fp = %p frame = %p, script = %p, pc = %p\n",
-               sp, stack.fp, frame, script.get(), pc);
+               sp, ctx.stack.fp, frame, script.get(), pc);
   TRACE_PRINTF("nslots = %d nfixed = %d\n", int(frame->script()->nslots()),
                int(frame->script()->nfixed()));
 
@@ -6117,7 +6119,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
            (int)(frame->interpreterICEntry() -
                  frame->script()->jitScript()->icScript()->icEntries()),
            ctx.frameMgr.cxForLocalUseOnly()->isExceptionPending());
-    printf("sp = %p fp = %p\n", sp, stack.fp);
+    printf("sp = %p fp = %p\n", sp, ctx.stack.fp);
     printf("TOS tag: %d\n", int(sp[0].asValue().asRawBits() >> 47));
     fflush(stdout);
   }
@@ -7778,7 +7780,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                 "Call fastpath: argc = %d origArgs = %p callee = %" PRIx64 "\n",
                 argc, origArgs, callee.get().asRawBits());
 
-            if (!stack.check(sp, sizeof(StackVal) * (totalArgs + 3))) {
+            if (!ctx.stack.check(sp, sizeof(StackVal) * (totalArgs + 3))) {
               TRACE_PRINTF("missed fastpath: would cause stack overrun\n");
               break;
             }
@@ -7809,7 +7811,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             // 1. Push a baseline stub frame. Don't use the frame manager
             // -- we don't want the frame to be auto-freed when we leave
             // this scope, and we don't want to shadow `sp`.
-            StackVal* exitFP = stack.pushExitFrame(sp, frame);
+            StackVal* exitFP = ctx.stack.pushExitFrame(sp, frame);
             MOZ_ASSERT(exitFP);  // safety: stack margin.
             sp = exitFP;
             TRACE_PRINTF("exit frame at %p\n", exitFP);
@@ -7835,8 +7837,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSHNATIVE(StackValNative(nullptr));
             isd = frame->script()->immutableScriptData();
             BaselineFrame* newFrame =
-                stack.pushFrame(sp, ctx.frameMgr.cxForLocalUseOnly(),
-                                /* envChain = */ func->environment());
+                ctx.stack.pushFrame(sp, ctx.frameMgr.cxForLocalUseOnly(),
+                                    /* envChain = */ func->environment());
             MOZ_ASSERT(newFrame);  // safety: stack margin.
             TRACE_PRINTF("callee frame at %p\n", newFrame);
             frame = newFrame;
@@ -8022,7 +8024,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         // gen => rval, gen, resumeKind
         ReservedRooted<JSObject*> obj0(&state.obj0,
                                        &VIRTSP(0).asValue().toObject());
-        uint32_t frameSize = stack.frameSize(sp, frame);
+        uint32_t frameSize = ctx.stack.frameSize(sp, frame);
         {
           PUSH_EXIT_FRAME();
           if (!NormalSuspend(cx, obj0, frame, frameSize, pc)) {
@@ -8038,7 +8040,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         // rval1, gen => rval2, gen, resumeKind
         ReservedRooted<JSObject*> obj0(&state.obj0,
                                        &VIRTPOP().asValue().toObject());
-        uint32_t frameSize = stack.frameSize(sp, frame);
+        uint32_t frameSize = ctx.stack.frameSize(sp, frame);
         {
           PUSH_EXIT_FRAME();
           if (!NormalSuspend(cx, obj0, frame, frameSize, pc)) {
@@ -8333,7 +8335,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         from_unwind = false;
 
         uint32_t argc = frame->numActualArgs();
-        sp = stack.popFrame();
+        sp = ctx.stack.popFrame();
 
         // If FP is higher than the entry frame now, return; otherwise,
         // do an inline state update.
@@ -8347,14 +8349,14 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           TRACE_PRINTF("ret = %" PRIx64 "\n", ret.asRawBits());
 
           // Pop exit frame as well.
-          sp = stack.popFrame();
+          sp = ctx.stack.popFrame();
           // Pop fake return address and descriptor.
           POPNNATIVE(2);
 
           // Set PC, frame, and current script.
           frame = reinterpret_cast<BaselineFrame*>(
               reinterpret_cast<uintptr_t>(stack.fp) - BaselineFrame::Size());
-          TRACE_PRINTF(" sp -> %p, fp -> %p, frame -> %p\n", sp, stack.fp,
+          TRACE_PRINTF(" sp -> %p, fp -> %p, frame -> %p\n", sp, ctx.stack.fp,
                        frame);
           ctx.frameMgr.switchToFrame(frame);
           ctx.frame = frame;
@@ -9028,33 +9030,33 @@ error:
       case ExceptionResumeKind::EntryFrame:
         TRACE_PRINTF(" -> Return from entry frame\n");
         frame->setReturnValue(MagicValue(JS_ION_ERROR));
-        stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
-        stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
-        stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
+        ctx.stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
+        ctx.stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
+        ctx.stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         goto unwind_error;
       case ExceptionResumeKind::Catch:
         pc = frame->interpreterPC();
-        stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
-        stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
-        stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
+        ctx.stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
+        ctx.stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
+        ctx.stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         TRACE_PRINTF(" -> catch to pc %p\n", pc);
         goto unwind;
       case ExceptionResumeKind::Finally:
         pc = frame->interpreterPC();
-        stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
+        ctx.stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
         sp = reinterpret_cast<StackVal*>(rfe.stackPointer);
         TRACE_PRINTF(" -> finally to pc %p\n", pc);
         VIRTPUSH(StackVal(rfe.exception));
         VIRTPUSH(StackVal(rfe.exceptionStack));
         VIRTPUSH(StackVal(BooleanValue(true)));
-        stack.unwindingSP = sp;
-        stack.unwindingFP = stack.fp;
+        ctx.stack.unwindingSP = sp;
+        ctx.stack.unwindingFP = ctx.stack.fp;
         goto unwind;
       case ExceptionResumeKind::ForcedReturnBaseline:
         pc = frame->interpreterPC();
-        stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
-        stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
-        stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
+        ctx.stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
+        ctx.stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
+        ctx.stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         TRACE_PRINTF(" -> forced return\n");
         goto unwind_ret;
       case ExceptionResumeKind::ForcedReturnIon:
@@ -9093,16 +9095,16 @@ ic_fail:
   }
 
 unwind:
-  TRACE_PRINTF("unwind: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
-  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) >
+  TRACE_PRINTF("unwind: fp = %p entryFrame = %p\n", ctx.stack.fp, entryFrame);
+  if (reinterpret_cast<uintptr_t>(ctx.stack.unwindingFP) >
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     TRACE_PRINTF(" -> returning\n");
     return PBIResult::Unwind;
   }
-  sp = stack.unwindingSP;
-  stack.fp = stack.unwindingFP;
+  sp = ctx.stack.unwindingSP;
+  ctx.stack.fp = ctx.stack.unwindingFP;
   frame = reinterpret_cast<BaselineFrame*>(
-      reinterpret_cast<uintptr_t>(stack.fp) - BaselineFrame::Size());
+      reinterpret_cast<uintptr_t>(ctx.stack.fp) - BaselineFrame::Size());
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
@@ -9110,19 +9112,20 @@ unwind:
   isd = frame->script()->immutableScriptData();
   DISPATCH();
 unwind_error:
-  TRACE_PRINTF("unwind_error: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
-  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) >
+  TRACE_PRINTF("unwind_error: fp = %p entryFrame = %p\n", ctx.stack.fp,
+               entryFrame);
+  if (reinterpret_cast<uintptr_t>(ctx.stack.unwindingFP) >
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     return PBIResult::UnwindError;
   }
-  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) ==
+  if (reinterpret_cast<uintptr_t>(ctx.stack.unwindingFP) ==
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     return PBIResult::Error;
   }
-  sp = stack.unwindingSP;
-  stack.fp = stack.unwindingFP;
+  sp = ctx.stack.unwindingSP;
+  ctx.stack.fp = ctx.stack.unwindingFP;
   frame = reinterpret_cast<BaselineFrame*>(
-      reinterpret_cast<uintptr_t>(stack.fp) - BaselineFrame::Size());
+      reinterpret_cast<uintptr_t>(ctx.stack.fp) - BaselineFrame::Size());
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
@@ -9130,20 +9133,21 @@ unwind_error:
   isd = frame->script()->immutableScriptData();
   goto error;
 unwind_ret:
-  TRACE_PRINTF("unwind_ret: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
-  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) >
+  TRACE_PRINTF("unwind_ret: fp = %p entryFrame = %p\n", ctx.stack.fp,
+               entryFrame);
+  if (reinterpret_cast<uintptr_t>(ctx.stack.unwindingFP) >
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     return PBIResult::UnwindRet;
   }
-  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) ==
+  if (reinterpret_cast<uintptr_t>(ctx.stack.unwindingFP) ==
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     *ret = frame->returnValue();
     return PBIResult::Ok;
   }
-  sp = stack.unwindingSP;
-  stack.fp = stack.unwindingFP;
+  sp = ctx.stack.unwindingSP;
+  ctx.stack.fp = ctx.stack.unwindingFP;
   frame = reinterpret_cast<BaselineFrame*>(
-      reinterpret_cast<uintptr_t>(stack.fp) - BaselineFrame::Size());
+      reinterpret_cast<uintptr_t>(ctx.stack.fp) - BaselineFrame::Size());
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
