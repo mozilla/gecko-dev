@@ -158,12 +158,14 @@ struct Stack {
   StackVal* base;
   StackVal* top;
   StackVal* unwindingSP;
+  StackVal* unwindingFP;
 
   explicit Stack(PortableBaselineStack& pbs)
       : fp(reinterpret_cast<StackVal*>(pbs.top)),
         base(reinterpret_cast<StackVal*>(pbs.base)),
         top(reinterpret_cast<StackVal*>(pbs.top)),
-        unwindingSP(nullptr) {}
+        unwindingSP(nullptr),
+        unwindingFP(nullptr) {}
 
   MOZ_ALWAYS_INLINE bool check(StackVal* sp, size_t size, bool margin = true) {
     return reinterpret_cast<uintptr_t>(base) + size +
@@ -307,6 +309,7 @@ struct State {
   RootedObject obj2;
   RootedString str0;
   RootedString str1;
+  RootedString str2;
   RootedScript script0;
   Rooted<PropertyName*> name0;
   Rooted<jsid> id0;
@@ -325,6 +328,7 @@ struct State {
         obj2(cx),
         str0(cx),
         str1(cx),
+        str2(cx),
         script0(cx),
         name0(cx),
         id0(cx),
@@ -5982,11 +5986,13 @@ error:
         frame->setReturnValue(MagicValue(JS_ION_ERROR));
         stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
         stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
+        stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         goto unwind_error;
       case ExceptionResumeKind::Catch:
         pc = frame->interpreterPC();
         stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
         stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
+        stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         TRACE_PRINTF(" -> catch to pc %p\n", pc);
         goto unwind;
       case ExceptionResumeKind::Finally:
@@ -5998,11 +6004,13 @@ error:
         PUSH(StackVal(rfe.exceptionStack));
         PUSH(StackVal(BooleanValue(true)));
         stack.unwindingSP = sp;
+        stack.unwindingFP = stack.fp;
         goto unwind;
       case ExceptionResumeKind::ForcedReturnBaseline:
         pc = frame->interpreterPC();
         stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
         stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
+        stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         TRACE_PRINTF(" -> forced return\n");
         goto unwind_ret;
       case ExceptionResumeKind::ForcedReturnIon:
@@ -6027,12 +6035,13 @@ error:
 
 unwind:
   TRACE_PRINTF("unwind: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
-  if (reinterpret_cast<uintptr_t>(stack.fp) >
+  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) >
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     TRACE_PRINTF(" -> returning\n");
     return PBIResult::Unwind;
   }
   sp = stack.unwindingSP;
+  stack.fp = stack.unwindingFP;
   frame = reinterpret_cast<BaselineFrame*>(
       reinterpret_cast<uintptr_t>(stack.fp) - BaselineFrame::Size());
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
@@ -6042,15 +6051,16 @@ unwind:
   DISPATCH();
 unwind_error:
   TRACE_PRINTF("unwind_error: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
-  if (reinterpret_cast<uintptr_t>(stack.fp) >
+  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) >
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     return PBIResult::UnwindError;
   }
-  if (reinterpret_cast<uintptr_t>(stack.fp) ==
+  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) ==
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     return PBIResult::Error;
   }
   sp = stack.unwindingSP;
+  stack.fp = stack.unwindingFP;
   frame = reinterpret_cast<BaselineFrame*>(
       reinterpret_cast<uintptr_t>(stack.fp) - BaselineFrame::Size());
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
@@ -6060,16 +6070,17 @@ unwind_error:
   goto error;
 unwind_ret:
   TRACE_PRINTF("unwind_ret: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
-  if (reinterpret_cast<uintptr_t>(stack.fp) >
+  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) >
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     return PBIResult::UnwindRet;
   }
-  if (reinterpret_cast<uintptr_t>(stack.fp) ==
+  if (reinterpret_cast<uintptr_t>(stack.unwindingFP) ==
       reinterpret_cast<uintptr_t>(entryFrame) + BaselineFrame::Size()) {
     *ret = frame->returnValue();
     return PBIResult::Ok;
   }
   sp = stack.unwindingSP;
+  stack.fp = stack.unwindingFP;
   frame = reinterpret_cast<BaselineFrame*>(
       reinterpret_cast<uintptr_t>(stack.fp) - BaselineFrame::Size());
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
