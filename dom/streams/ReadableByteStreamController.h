@@ -187,8 +187,8 @@ MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerRespondWithNewView(
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerPullInto(
     JSContext* aCx, ReadableByteStreamController* aController,
-    JS::Handle<JSObject*> aView, ReadIntoRequest* aReadIntoRequest,
-    ErrorResult& aRv);
+    JS::Handle<JSObject*> aView, uint64_t aMin,
+    ReadIntoRequest* aReadIntoRequest, ErrorResult& aRv);
 
 void ReadableByteStreamControllerError(
     ReadableByteStreamController* aController, JS::Handle<JS::Value> aValue,
