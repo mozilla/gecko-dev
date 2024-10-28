@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "jsrust_shared"
 version = "0.1.0"
 authors = ["The Spidermonkey developers"]

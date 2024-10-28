@@ -1,5 +1,6 @@
 
 [package]
+edition = "2015"
 name = "gkrust-shared"
 version = "0.1.0"
 authors = ["The Mozilla Project Developers"]
@@ -149,7 +150,6 @@ test = false
 doctest = false
 bench = false
 doc = false
-plugin = false
 harness = false
 
 [package.metadata.cargo-udeps.ignore]

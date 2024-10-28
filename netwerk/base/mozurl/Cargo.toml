@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "mozurl"
 version = "0.0.1"
 authors = ["Nika Layzell <nika@thelayzells.com>"]

@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "cascade_bloom_filter"
 version = "0.1.0"
 authors = ["Rob Wu <rob@robwu.nl>"]

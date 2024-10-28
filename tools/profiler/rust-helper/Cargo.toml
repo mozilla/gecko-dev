@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "profiler_helper"
 version = "0.1.0"
 authors = ["Markus Stange <mstange@themasta.com>"]

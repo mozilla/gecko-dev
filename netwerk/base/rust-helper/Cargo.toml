@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "netwerk_helper"
 version = "0.0.1"
 authors = ["Jeff Hemphill <jthemphill@mozilla.com>"]

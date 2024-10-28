@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "bitsdownload"
 version = "0.1.0"
 authors = ["Kirk Steuber <bytesized@mozilla.com>"]

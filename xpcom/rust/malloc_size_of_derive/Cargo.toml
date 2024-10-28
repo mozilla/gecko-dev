@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "malloc_size_of_derive"
 version = "0.1.3"
 authors = ["The Servo Project Developers"]

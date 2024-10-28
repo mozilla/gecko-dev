@@ -1,4 +1,5 @@
 [package]
+edition = "2015"
 name = "xpcom-gtest"
 version = "0.1.0"
 authors = ["michael@thelayzells.com"]
