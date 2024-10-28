@@ -17,8 +17,8 @@ using dom::Sequence;
 using dom::UniFFIScaffoldingCallResult;
 using dom::UniFFIScaffoldingValue;
 
-void UniffiHandlerBase::CallSync(
-    UniquePtr<UniffiHandlerBase> aHandler, const GlobalObject& aGlobal,
+void UniffiSyncCallHandler::CallSync(
+    UniquePtr<UniffiSyncCallHandler> aHandler, const GlobalObject& aGlobal,
     const Sequence<UniFFIScaffoldingValue>& aArgs,
     RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
     ErrorResult& aError) {
@@ -30,8 +30,8 @@ void UniffiHandlerBase::CallSync(
   aHandler->ExtractCallResult(aGlobal.Context(), aReturnValue, aError);
 }
 
-already_AddRefed<dom::Promise> UniffiHandlerBase::CallAsync(
-    UniquePtr<UniffiHandlerBase> aHandler, const dom::GlobalObject& aGlobal,
+already_AddRefed<dom::Promise> UniffiSyncCallHandler::CallAsyncWrapper(
+    UniquePtr<UniffiSyncCallHandler> aHandler, const dom::GlobalObject& aGlobal,
     const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs,
     ErrorResult& aError) {
   aHandler->PrepareRustArgs(aArgs, aError);
@@ -51,7 +51,7 @@ already_AddRefed<dom::Promise> UniffiHandlerBase::CallAsync(
   // Create a second promise that gets resolved by a background task that
   // calls the scaffolding function
   RefPtr taskPromise =
-      new MozPromise<UniquePtr<UniffiHandlerBase>, nsresult, true>::Private(
+      new MozPromise<UniquePtr<UniffiSyncCallHandler>, nsresult, true>::Private(
           __func__);
 
   nsresult dispatchResult = NS_DispatchBackgroundTask(
@@ -70,7 +70,7 @@ already_AddRefed<dom::Promise> UniffiHandlerBase::CallAsync(
   taskPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
       [xpcomGlobal, returnPromise](
-          typename MozPromise<UniquePtr<UniffiHandlerBase>, nsresult,
+          typename MozPromise<UniquePtr<UniffiSyncCallHandler>, nsresult,
                               true>::ResolveOrRejectValue&& aResult) {
         if (!aResult.IsResolve()) {
           returnPromise->MaybeRejectWithUnknownError(__func__);
@@ -95,7 +95,7 @@ already_AddRefed<dom::Promise> UniffiHandlerBase::CallAsync(
   return returnPromise.forget();
 }
 
-void UniffiHandlerBase::ExtractCallResult(
+void UniffiSyncCallHandler::ExtractCallResult(
     JSContext* aCx,
     dom::RootedDictionary<dom::UniFFIScaffoldingCallResult>& aDest,
     ErrorResult& aError) {

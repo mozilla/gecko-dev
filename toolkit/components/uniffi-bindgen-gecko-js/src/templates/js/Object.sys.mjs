@@ -14,7 +14,7 @@ export class {{ object.js_name() }} {
     }
 
     {%- for cons in object.constructors() %}
-    {%- if object.is_constructor_async(config) %}
+    {%- if object.use_async_wrapper_for_constructor(config) %}
     /**
      * An async constructor for {{ object.js_name() }}.
      * 
@@ -29,14 +29,14 @@ export class {{ object.js_name() }} {
      */
     {%- endif %}
     static {{ cons.js_name() }}({{cons.js_arg_names()}}) {
-        {%- call js::call_constructor(cons, type_, object.is_constructor_async(config)) -%}
+        {%- call js::call_constructor(cons, type_, object.use_async_wrapper_for_constructor(config)) -%}
     }
     {%- endfor %}
 
     {%- for meth in object.methods() %}
 
     {{ meth.js_name() }}({{ meth.js_arg_names() }}) {
-        {%- call js::call_method(meth, type_, object.is_method_async(meth, config)) %}
+        {%- call js::call_method(meth, type_, object.use_async_wrapper_for_method(meth, config)) %}
     }
     {%- endfor %}
 

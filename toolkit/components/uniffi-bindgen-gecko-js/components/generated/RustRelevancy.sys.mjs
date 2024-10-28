@@ -375,7 +375,7 @@ export class RelevancyStore {
         const liftResult = (result) => FfiConverterTypeInterestMetrics.lift(result);
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callAsyncWrapper(
                 3, // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
                 FfiConverterTypeRelevancyStore.lower(this),
             )
@@ -411,7 +411,7 @@ export class RelevancyStore {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callAsyncWrapper(
                 5, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
                 FfiConverterTypeRelevancyStore.lower(this),
                 FfiConverterSequencestring.lower(topUrlsByFrecency),
@@ -440,7 +440,7 @@ export class RelevancyStore {
         const liftResult = (result) => FfiConverterTypeInterestVector.lift(result);
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callAsyncWrapper(
                 7, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
                 FfiConverterTypeRelevancyStore.lower(this),
             )

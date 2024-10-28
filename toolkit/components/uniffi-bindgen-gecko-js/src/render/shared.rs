@@ -11,33 +11,24 @@ use uniffi_bindgen::interface::{Function, Method, Object};
 ///
 /// `uniffi-bindgen-gecko-js` has special async handling.  Many non-async Rust functions end up
 /// being async in js
-fn is_js_async(config: &Config, spec: &str) -> bool {
-    if config.receiver_thread.main.contains(spec) {
-        false
-    } else if config.receiver_thread.worker.contains(spec) {
-        true
-    } else {
-        match &config.receiver_thread.default {
-            Some(t) => t != "main",
-            _ => true,
-        }
-    }
+fn use_async_wrapper(config: &Config, spec: &str) -> bool {
+    config.async_wrappers.enable && !config.async_wrappers.main_thread.contains(spec)
 }
 
 #[ext]
 pub impl Function {
-    fn is_js_async(&self, config: &Config) -> bool {
-        is_js_async(config, self.name())
+    fn use_async_wrapper(&self, config: &Config) -> bool {
+        use_async_wrapper(config, self.name())
     }
 }
 
 #[ext]
 pub impl Object {
-    fn is_constructor_async(&self, config: &Config) -> bool {
-        is_js_async(config, self.name())
+    fn use_async_wrapper_for_constructor(&self, config: &Config) -> bool {
+        use_async_wrapper(config, self.name())
     }
 
-    fn is_method_async(&self, method: &Method, config: &Config) -> bool {
-        is_js_async(config, &format!("{}.{}", self.name(), method.name()))
+    fn use_async_wrapper_for_method(&self, method: &Method, config: &Config) -> bool {
+        use_async_wrapper(config, &format!("{}.{}", self.name(), method.name()))
     }
 }

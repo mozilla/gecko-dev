@@ -559,7 +559,7 @@ export function setApplicationErrorReporter(errorReporter) {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callAsyncWrapper(
                 0, // errorsupport:uniffi_error_support_fn_func_set_application_error_reporter
                 FfiConverterTypeApplicationErrorReporter.lower(errorReporter),
             )
@@ -576,7 +576,7 @@ export function unsetApplicationErrorReporter() {
         const liftResult = (result) => undefined;
         const liftError = null;
         const functionCall = () => {
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callAsyncWrapper(
                 1, // errorsupport:uniffi_error_support_fn_func_unset_application_error_reporter
             )
         }

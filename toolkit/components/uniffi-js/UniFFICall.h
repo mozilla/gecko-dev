@@ -14,12 +14,12 @@
 
 namespace mozilla::uniffi {
 
-class UniffiHandlerBase {
+class UniffiSyncCallHandler {
  protected:
   // ---- Overridden by subclasses for each call ----
 
   // Convert a sequence of JS arguments and store them in this
-  // UniffiHandlerBase. Called on the main thread.
+  // UniffiSyncCallHandler. Called on the main thread.
   virtual void PrepareRustArgs(
       const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs,
       ErrorResult& aError) = 0;
@@ -62,20 +62,22 @@ class UniffiHandlerBase {
       ErrorResult& aError);
 
  public:
-  virtual ~UniffiHandlerBase() = default;
+  virtual ~UniffiSyncCallHandler() = default;
 
   // ---- Generic entry points ----
 
-  // Call the function synchronously
+  // Call a sync function
   static void CallSync(
-      UniquePtr<UniffiHandlerBase> aHandler, const dom::GlobalObject& aGlobal,
+      UniquePtr<UniffiSyncCallHandler> aHandler,
+      const dom::GlobalObject& aGlobal,
       const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs,
       dom::RootedDictionary<dom::UniFFIScaffoldingCallResult>& aReturnValue,
       ErrorResult& aError);
 
-  // Call the function asynchronously, in a worker queue.
-  static already_AddRefed<dom::Promise> CallAsync(
-      UniquePtr<UniffiHandlerBase> aHandler, const dom::GlobalObject& aGlobal,
+  // Call a sync function asynchronously, in a worker queue.
+  static already_AddRefed<dom::Promise> CallAsyncWrapper(
+      UniquePtr<UniffiSyncCallHandler> aHandler,
+      const dom::GlobalObject& aGlobal,
       const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs,
       ErrorResult& aError);
 };

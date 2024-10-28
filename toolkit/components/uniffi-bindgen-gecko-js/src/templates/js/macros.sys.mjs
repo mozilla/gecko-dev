@@ -1,16 +1,16 @@
 {%- macro call_scaffolding_function(func) %}
-{%- call _call_scaffolding_function(func, func.return_type(), "", func.is_js_async(config)) -%}
+{%- call _call_scaffolding_function(func, func.return_type(), "", func.use_async_wrapper(config)) -%}
 {%- endmacro %}
 
-{%- macro call_constructor(cons, object_type, is_async) %}
-{%- call _call_scaffolding_function(cons, Some(object_type), "", is_async) -%}
+{%- macro call_constructor(cons, object_type, use_async_wrapper) %}
+{%- call _call_scaffolding_function(cons, Some(object_type), "", use_async_wrapper) -%}
 {%- endmacro %}
 
-{%- macro call_method(method, object_type, is_async) %}
-{%- call _call_scaffolding_function(method, method.return_type(), object_type.ffi_converter(), is_async) -%}
+{%- macro call_method(method, object_type, use_async_wrapper) %}
+{%- call _call_scaffolding_function(method, method.return_type(), object_type.ffi_converter(), use_async_wrapper) -%}
 {%- endmacro %}
 
-{%- macro _call_scaffolding_function(func, return_type, receiver_ffi_converter, is_async) %}
+{%- macro _call_scaffolding_function(func, return_type, receiver_ffi_converter, use_async_wrapper) %}
         {%- match return_type %}
         {%- when Some with (return_type) %}
         const liftResult = (result) => {{ return_type.ffi_converter() }}.lift(result);
@@ -35,8 +35,8 @@
             }
             {%- endfor %}
 
-            {%- if is_async %}
-            return UniFFIScaffolding.callAsync(
+            {%- if use_async_wrapper %}
+            return UniFFIScaffolding.callAsyncWrapper(
             {%- else %}
             return UniFFIScaffolding.callSync(
             {%- endif %}
@@ -50,7 +50,7 @@
             )
         }
 
-        {%- if is_async %}
+        {%- if use_async_wrapper %}
         try {
             return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
         }  catch (error) {

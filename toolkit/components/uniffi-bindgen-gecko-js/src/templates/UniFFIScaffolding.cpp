@@ -215,7 +215,7 @@ void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError) {
 {%- for (preprocessor_condition, scaffolding_calls, preprocessor_condition_end) in all_scaffolding_calls.iter() %}
 {{ preprocessor_condition }}
 {%- for scaffolding_call in scaffolding_calls %}
-class {{ scaffolding_call.handler_class_name }} : public UniffiHandlerBase {
+class {{ scaffolding_call.handler_class_name }} : public UniffiSyncCallHandler {
 private:
   // PrepareRustArgs stores the resulting arguments in these fields
   {%- for arg in scaffolding_call.arguments %}
@@ -284,7 +284,7 @@ public:
 {{ preprocessor_condition_end }}
 {%- endfor %}
 
-UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId) {
+UniquePtr<UniffiSyncCallHandler> GetSyncCallHandler(uint64_t aId) {
   switch (aId) {
     {%- for (preprocessor_condition, scaffolding_calls, preprocessor_condition_end) in all_scaffolding_calls.iter() %}
 {{ preprocessor_condition }}

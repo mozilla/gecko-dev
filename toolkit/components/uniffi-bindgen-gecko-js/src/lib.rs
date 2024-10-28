@@ -48,17 +48,18 @@ type Component = uniffi_bindgen::Component<Config>;
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
-    receiver_thread: ReceiverThreadConfig,
+    async_wrappers: AsyncWrappersConfig,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-struct ReceiverThreadConfig {
+struct AsyncWrappersConfig {
+    /// This converts synchronous Rust functions into async JS functions, by wrapping them at the
+    /// C++ layer.
     #[serde(default)]
-    default: Option<String>,
+    enable: bool,
+    /// Functions that should be run on the main thread and not be wrapped
     #[serde(default)]
-    main: HashSet<String>,
-    #[serde(default)]
-    worker: HashSet<String>,
+    main_thread: HashSet<String>,
 }
 
 fn render(out_path: Utf8PathBuf, template: impl Template) -> Result<()> {

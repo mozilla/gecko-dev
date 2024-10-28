@@ -10,9 +10,9 @@
 # TODO: Upgrade the TOML crate and switch to array of tables syntax.
 
 
-[suggest.receiver_thread]
-default = "worker"
-main = [
+[suggest.async_wrappers]
+enable = true
+main_thread = [
   "raw_suggestion_url_matches",
   "SuggestStore",
   "SuggestStore.interrupt",
@@ -24,29 +24,50 @@ main = [
   "SuggestStoreBuilder.build",
 ]
 
-[relevancy.receiver_thread]
-default = "worker"
-main = [
+[relevancy.async_wrappers]
+enable = true
+main_thread = [
   "RelevancyStore",
   "RelevancyStore.close",
   "RelevancyStore.interrupt",
   "score",
 ]
 
-[remote_settings.receiver_thread]
-default = "worker"
-main = [
+[remote_settings.async_wrappers]
+enable = true
+main_thread = [
   "RemoteSettings",
 ]
 
-[uniffi_fixture_refcounts.receiver_thread]
-default = "main"
-
-[uniffi_trait_interfaces.receiver_thread]
-default = "main"
-
-[uniffi_fixture_callbacks.receiver_thread]
-default = "worker"
-main = [
+[uniffi_fixture_callbacks.async_wrappers]
+enable = true
+main_thread = [
   "log_even_numbers_main_thread",
 ]
+
+[error_support.async_wrappers]
+enable = true
+
+[tabs.async_wrappers]
+enable = true
+
+[arithmetical.async_wrappers]
+enable = true
+
+[uniffi_custom_types.async_wrappers]
+enable = true
+
+[uniffi_fixture_external_types.async_wrappers]
+enable = true
+
+[uniffi_geometry.async_wrappers]
+enable = true
+
+[uniffi_rondpoint.async_wrappers]
+enable = true
+
+[uniffi_sprites.async_wrappers]
+enable = true
+
+[uniffi_todolist.async_wrappers]
+enable = true

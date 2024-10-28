@@ -28,11 +28,11 @@ using mozilla::dom::UniFFICallbackHandler;
 using mozilla::dom::UniFFIPointer;
 using mozilla::dom::UniFFIScaffoldingCallResult;
 using mozilla::dom::UniFFIScaffoldingValue;
-using mozilla::uniffi::UniffiHandlerBase;
+using mozilla::uniffi::UniffiSyncCallHandler;
 
 namespace mozilla::uniffi {
 // Implemented in UniFFIGeneratedScaffolding.cpp
-UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId);
+UniquePtr<UniffiSyncCallHandler> GetSyncCallHandler(uint64_t aId);
 Maybe<already_AddRefed<UniFFIPointer>> ReadPointer(
     const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff,
     long aPosition, ErrorResult& aError);
@@ -45,31 +45,33 @@ namespace mozilla::dom {
 
 // Implement the interface using the generated functions
 
-already_AddRefed<Promise> UniFFIScaffolding::CallAsync(
-    const GlobalObject& aGlobal, uint64_t aId,
-    const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
-  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandler(aId)) {
-    return UniffiHandlerBase::CallAsync(std::move(handler), aGlobal, aArgs,
-                                        aError);
-  }
-
-  aError.ThrowUnknownError(
-      nsPrintfCString("Unknown function id: %" PRIu64, aId));
-  return nullptr;
-}
-
 void UniFFIScaffolding::CallSync(
     const GlobalObject& aGlobal, uint64_t aId,
     const Sequence<UniFFIScaffoldingValue>& aArgs,
     RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
     ErrorResult& aError) {
-  if (UniquePtr<UniffiHandlerBase> handler = uniffi::GetHandler(aId)) {
-    return UniffiHandlerBase::CallSync(std::move(handler), aGlobal, aArgs,
-                                       aReturnValue, aError);
+  if (UniquePtr<UniffiSyncCallHandler> handler =
+          uniffi::GetSyncCallHandler(aId)) {
+    return UniffiSyncCallHandler::CallSync(std::move(handler), aGlobal, aArgs,
+                                           aReturnValue, aError);
   }
 
   aError.ThrowUnknownError(
       nsPrintfCString("Unknown function id: %" PRIu64, aId));
+}
+
+already_AddRefed<Promise> UniFFIScaffolding::CallAsyncWrapper(
+    const GlobalObject& aGlobal, uint64_t aId,
+    const Sequence<UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) {
+  if (UniquePtr<UniffiSyncCallHandler> handler =
+          uniffi::GetSyncCallHandler(aId)) {
+    return UniffiSyncCallHandler::CallAsyncWrapper(std::move(handler), aGlobal,
+                                                   aArgs, aError);
+  }
+
+  aError.ThrowUnknownError(
+      nsPrintfCString("Unknown function id: %" PRIu64, aId));
+  return nullptr;
 }
 
 already_AddRefed<UniFFIPointer> UniFFIScaffolding::ReadPointer(
