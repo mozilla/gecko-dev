@@ -108,6 +108,7 @@ skip-if = [
   "os == 'android'",
   "os == 'win'",
   "os == 'mac' && os_version == '10.15'", # Bug 1370784, macosx due to bug 1549058
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && headless", # Bug 1776936
 ]
 
 ["test_animSVGImage2.html"]
