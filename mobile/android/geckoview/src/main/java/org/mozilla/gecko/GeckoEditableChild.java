@@ -268,6 +268,7 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
       final String modeHint,
       final String actionHint,
       final String autocapitalize,
+      final boolean autocorrect,
       final int flags) {
     if (DEBUG) {
       ThreadUtils.assertOnGeckoThread();
@@ -281,7 +282,9 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
           .append(actionHint)
           .append("\", \"")
           .append(autocapitalize)
-          .append("\", 0x")
+          .append("\", ")
+          .append(autocorrect)
+          .append(", 0x")
           .append(Integer.toHexString(flags))
           .append(")");
       Log.d(LOGTAG, sb.toString());
@@ -292,7 +295,14 @@ public final class GeckoEditableChild extends JNIObject implements IGeckoEditabl
 
     try {
       mEditableParent.notifyIMEContext(
-          mEditableChild.asBinder(), state, typeHint, modeHint, actionHint, autocapitalize, flags);
+          mEditableChild.asBinder(),
+          state,
+          typeHint,
+          modeHint,
+          actionHint,
+          autocapitalize,
+          autocorrect,
+          flags);
     } catch (final RemoteException e) {
       Log.e(LOGTAG, "Remote call failed", e);
     }

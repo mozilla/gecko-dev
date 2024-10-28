@@ -1530,7 +1530,7 @@ void GeckoEditableSupport::NotifyIMEContext(const InputContext& aContext,
   mEditable->NotifyIMEContext(static_cast<int32_t>(aContext.mIMEState.mEnabled),
                               aContext.mHTMLInputType, aContext.mHTMLInputMode,
                               aContext.mActionHint, aContext.mAutocapitalize,
-                              flags);
+                              aContext.mAutocorrect, flags);
 }
 
 InputContext GeckoEditableSupport::GetInputContext() {
