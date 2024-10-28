@@ -1621,7 +1621,7 @@ class HomeFragment : Fragment() {
         }
 
         binding.wordmarkText.imageTintList = tintColor
-        binding.privateBrowsingButton.imageTintList = tintColor
+        binding.privateBrowsingButton.buttonTintList = tintColor
     }
 
     private fun observeWallpaperUpdates() {

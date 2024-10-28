@@ -63,7 +63,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithClassNameAndIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
@@ -1107,10 +1106,7 @@ private fun privateBrowsingButton() =
     itemWithResId("$packageName:id/privateBrowsingButton")
 
 private fun isPrivateModeEnabled(): Boolean =
-    itemWithResIdAndDescription(
-        "$packageName:id/privateBrowsingButton",
-        "Disable private browsing",
-    ).exists()
+    itemWithResId("$packageName:id/privateBrowsingButton").isChecked
 
 private fun homepageWordmark() =
     itemWithResId("$packageName:id/wordmark")
