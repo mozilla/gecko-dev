@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE") // for TestMainDispatcher
-
 package mozilla.components.support.test.rule
 
 import kotlinx.coroutines.Dispatchers
@@ -11,7 +9,6 @@ import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.internal.TestMainDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.companionObjectInstance
@@ -43,14 +40,15 @@ fun runTestOnMain(
     testBody: suspend TestScope.() -> Unit,
 ): TestResult {
     val mainDispatcher = Dispatchers.Main
-    require(mainDispatcher is TestMainDispatcher) {
-        "A TestDispatcher is not available. Use MainCoroutineRule or Dispatchers.setMain to set one before calling this method"
-    }
 
     // Get the TestDispatcher set through `Dispatchers.setMain(..)`.
     val companionObject = mainDispatcher::class.companionObject
     val companionInstance = mainDispatcher::class.companionObjectInstance
-    val testDispatcher = companionObject!!.memberProperties.first().getter.call(companionInstance) as TestDispatcher
+    val testDispatcher = requireNotNull(
+        companionObject?.memberProperties?.first()?.getter?.call(companionInstance) as? TestDispatcher,
+    ) {
+        "A TestDispatcher is not available. Use MainCoroutineRule or Dispatchers.setMain to set one before calling."
+    }
 
     // Delegate to the original implementation of `runTest`. Just with a previously set TestDispatcher.
     runTest(testDispatcher, timeout = testTimeoutMs, testBody)
