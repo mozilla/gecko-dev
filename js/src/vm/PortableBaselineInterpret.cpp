@@ -668,7 +668,8 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
     return ICInterpretOpResult::Return;                  \
   }
 
-    CacheIRReader cacheIRReader(ctx.cstub->stubInfo());
+    const CacheIRStubInfo* stubInfo = ctx.cstub->stubInfo();
+    CacheIRReader cacheIRReader(stubInfo);
     CacheOp cacheop;
 
     DISPATCH_CACHEOP();
@@ -927,7 +928,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t shapeOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         uintptr_t expectedShape =
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, shapeOffset);
+            stubInfo->getStubRawWord(ctx.cstub, shapeOffset);
         if (reinterpret_cast<uintptr_t>(obj->shape()) != expectedShape) {
           FAIL_IC();
         }
@@ -950,7 +951,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t protoOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         JSObject* proto = reinterpret_cast<JSObject*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, protoOffset));
+            stubInfo->getStubRawWord(ctx.cstub, protoOffset));
         if (obj->staticPrototype() != proto) {
           FAIL_IC();
         }
@@ -1065,7 +1066,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t claspOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         JSClass* clasp = reinterpret_cast<JSClass*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, claspOffset));
+            stubInfo->getStubRawWord(ctx.cstub, claspOffset));
         if (obj->getClass() != clasp) {
           FAIL_IC();
         }
@@ -1076,10 +1077,9 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t expectedOffset = cacheIRReader.stubOffset();
         uint32_t generationAddrOffset = cacheIRReader.stubOffset();
         uint32_t expected =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, expectedOffset);
-        uint32_t* generationAddr =
-            reinterpret_cast<uint32_t*>(ctx.cstub->stubInfo()->getStubRawWord(
-                ctx.cstub, generationAddrOffset));
+            stubInfo->getStubRawInt32(ctx.cstub, expectedOffset);
+        uint32_t* generationAddr = reinterpret_cast<uint32_t*>(
+            stubInfo->getStubRawWord(ctx.cstub, generationAddrOffset));
         if (*generationAddr != expected) {
           FAIL_IC();
         }
@@ -1091,7 +1091,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t claspOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         JSClass* clasp = reinterpret_cast<JSClass*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, claspOffset));
+            stubInfo->getStubRawWord(ctx.cstub, claspOffset));
         ctx.icregs.icResult =
             BooleanValue(obj->getClass() == clasp).asRawBits();
         PREDICT_RETURN();
@@ -1104,10 +1104,9 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t compartmentOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         JSObject* global = reinterpret_cast<JSObject*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, globalOffset));
+            stubInfo->getStubRawWord(ctx.cstub, globalOffset));
         JS::Compartment* compartment = reinterpret_cast<JS::Compartment*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub,
-                                                  compartmentOffset));
+            stubInfo->getStubRawWord(ctx.cstub, compartmentOffset));
         if (IsDeadProxyObject(global)) {
           FAIL_IC();
         }
@@ -1178,7 +1177,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t handlerOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         BaseProxyHandler* handler = reinterpret_cast<BaseProxyHandler*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, handlerOffset));
+            stubInfo->getStubRawWord(ctx.cstub, handlerOffset));
         if (obj->as<ProxyObject>().handler() != handler) {
           FAIL_IC();
         }
@@ -1200,7 +1199,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t expectedOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         JSObject* expected = reinterpret_cast<JSObject*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, expectedOffset));
+            stubInfo->getStubRawWord(ctx.cstub, expectedOffset));
         if (obj != expected) {
           FAIL_IC();
         }
@@ -1224,7 +1223,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t nargsAndFlagsOffset = cacheIRReader.stubOffset();
         (void)nargsAndFlagsOffset;  // Unused.
         uintptr_t expected =
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, expectedOffset);
+            stubInfo->getStubRawWord(ctx.cstub, expectedOffset);
         if (expected != READ_REG(funId.id())) {
           FAIL_IC();
         }
@@ -1238,7 +1237,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t nargsAndFlagsOffset = cacheIRReader.stubOffset();
         JSFunction* fun = reinterpret_cast<JSFunction*>(READ_REG(objId.id()));
         BaseScript* expected = reinterpret_cast<BaseScript*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, expectedOffset));
+            stubInfo->getStubRawWord(ctx.cstub, expectedOffset));
         (void)nargsAndFlagsOffset;
 
         if (!fun->hasBaseScript() || fun->baseScript() != expected) {
@@ -1253,7 +1252,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         StringOperandId strId = cacheIRReader.stringOperandId();
         uint32_t expectedOffset = cacheIRReader.stubOffset();
         uintptr_t expected =
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, expectedOffset);
+            stubInfo->getStubRawWord(ctx.cstub, expectedOffset);
         if (expected != READ_REG(strId.id())) {
           // TODO: BaselineCacheIRCompiler also checks for equal strings
           FAIL_IC();
@@ -1265,7 +1264,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         SymbolOperandId symId = cacheIRReader.symbolOperandId();
         uint32_t expectedOffset = cacheIRReader.stubOffset();
         uintptr_t expected =
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, expectedOffset);
+            stubInfo->getStubRawWord(ctx.cstub, expectedOffset);
         if (expected != READ_REG(symId.id())) {
           FAIL_IC();
         }
@@ -1369,11 +1368,10 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t idOffset = cacheIRReader.stubOffset();
         uint32_t getterSetterOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        jsid id = jsid::fromRawBits(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, idOffset));
+        jsid id =
+            jsid::fromRawBits(stubInfo->getStubRawWord(ctx.cstub, idOffset));
         GetterSetter* getterSetter = reinterpret_cast<GetterSetter*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub,
-                                                  getterSetterOffset));
+            stubInfo->getStubRawWord(ctx.cstub, getterSetterOffset));
         if (!ObjectHasGetterSetterPure(ctx.frameMgr.cxForLocalUseOnly(), obj,
                                        id, getterSetter)) {
           FAIL_IC();
@@ -1396,8 +1394,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t slotOffset = cacheIRReader.stubOffset();
         JSObject* expected =
             reinterpret_cast<JSObject*>(READ_REG(expectedId.id()));
-        uintptr_t slot =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, slotOffset);
+        uintptr_t slot = stubInfo->getStubRawInt32(ctx.cstub, slotOffset);
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         HeapSlot* slots = nobj->getSlotsUnchecked();
@@ -1414,8 +1411,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t slotOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        uint32_t slot =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, slotOffset);
+        uint32_t slot = stubInfo->getStubRawInt32(ctx.cstub, slotOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
         HeapSlot* slots = nobj->getSlotsUnchecked();
         // Note that unlike similar opcodes, GuardDynamicSlotIsNotObject takes
@@ -1432,10 +1428,9 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t offsetOffset = cacheIRReader.stubOffset();
         uint32_t valOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        uint32_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
-        Value val = Value::fromRawBits(
-            ctx.cstub->stubInfo()->getStubRawInt64(ctx.cstub, valOffset));
+        uint32_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
+        Value val =
+            Value::fromRawBits(stubInfo->getStubRawInt64(ctx.cstub, valOffset));
         GCPtr<Value>* slot = reinterpret_cast<GCPtr<Value>*>(
             reinterpret_cast<uintptr_t>(obj) + offset);
         Value actual = slot->get();
@@ -1450,10 +1445,9 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t offsetOffset = cacheIRReader.stubOffset();
         uint32_t valOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        uint32_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
-        Value val = Value::fromRawBits(
-            ctx.cstub->stubInfo()->getStubRawInt64(ctx.cstub, valOffset));
+        uint32_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
+        Value val =
+            Value::fromRawBits(stubInfo->getStubRawInt64(ctx.cstub, valOffset));
         NativeObject* nobj = &obj->as<NativeObject>();
         HeapSlot* slots = nobj->getSlotsUnchecked();
         Value actual = slots[offset / sizeof(Value)];
@@ -1469,8 +1463,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t offsetOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        uint32_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        uint32_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         GCPtr<Value>* slot = reinterpret_cast<GCPtr<Value>*>(
             reinterpret_cast<uintptr_t>(obj) + offset);
         Value actual = slot->get();
@@ -1484,8 +1477,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t slotOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        uint32_t slot =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, slotOffset);
+        uint32_t slot = stubInfo->getStubRawInt32(ctx.cstub, slotOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
         HeapSlot* slots = nobj->getSlotsUnchecked();
         // Note that unlike similar opcodes, LoadDynamicSlot takes a slot
@@ -1498,7 +1490,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
       CACHEOP_CASE(GuardNoAllocationMetadataBuilder) {
         uint32_t builderAddrOffset = cacheIRReader.stubOffset();
         uintptr_t builderAddr =
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, builderAddrOffset);
+            stubInfo->getStubRawWord(ctx.cstub, builderAddrOffset);
         if (*reinterpret_cast<uintptr_t*>(builderAddr) != 0) {
           FAIL_IC();
         }
@@ -1575,8 +1567,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ObjOperandId resultId = cacheIRReader.objOperandId();
         BOUNDSCHECK(resultId);
         uint32_t objOffset = cacheIRReader.stubOffset();
-        intptr_t obj =
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, objOffset);
+        intptr_t obj = stubInfo->getStubRawWord(ctx.cstub, objOffset);
         WRITE_REG(resultId.id(), obj, OBJECT);
         PREDICT_NEXT(GuardShape);
         DISPATCH_CACHEOP();
@@ -1588,8 +1579,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t protoObjOffset = cacheIRReader.stubOffset();
         ObjOperandId receiverObjId = cacheIRReader.objOperandId();
         (void)receiverObjId;
-        intptr_t obj =
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, protoObjOffset);
+        intptr_t obj = stubInfo->getStubRawWord(ctx.cstub, protoObjOffset);
         WRITE_REG(resultId.id(), obj, OBJECT);
         PREDICT_NEXT(GuardShape);
         DISPATCH_CACHEOP();
@@ -1674,8 +1664,8 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t nameOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        jsid name = jsid::fromRawBits(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, nameOffset));
+        jsid name =
+            jsid::fromRawBits(stubInfo->getStubRawWord(ctx.cstub, nameOffset));
         if (!obj->shape()->isNative()) {
           FAIL_IC();
         }
@@ -1730,8 +1720,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t offsetOffset = cacheIRReader.stubOffset();
         ValOperandId rhsId = cacheIRReader.valOperandId();
-        uintptr_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        uintptr_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         GCPtr<Value>* slot = reinterpret_cast<GCPtr<Value>*>(
@@ -1746,8 +1735,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t offsetOffset = cacheIRReader.stubOffset();
         ValOperandId rhsId = cacheIRReader.valOperandId();
-        uint32_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        uint32_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         HeapSlot* slots = nobj->getSlotsUnchecked();
@@ -1765,11 +1753,10 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ValOperandId rhsId = cacheIRReader.valOperandId();
         uint32_t newShapeOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        int32_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        int32_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         Value rhs = READ_VALUE_REG(rhsId.id());
         Shape* newShape = reinterpret_cast<Shape*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, newShapeOffset));
+            stubInfo->getStubRawWord(ctx.cstub, newShapeOffset));
         obj->setShape(newShape);
         GCPtr<Value>* slot = reinterpret_cast<GCPtr<Value>*>(
             reinterpret_cast<uintptr_t>(obj) + offset);
@@ -1784,11 +1771,10 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         ValOperandId rhsId = cacheIRReader.valOperandId();
         uint32_t newShapeOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        int32_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        int32_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         Value rhs = READ_VALUE_REG(rhsId.id());
         Shape* newShape = reinterpret_cast<Shape*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, newShapeOffset));
+            stubInfo->getStubRawWord(ctx.cstub, newShapeOffset));
         NativeObject* nobj = &obj->as<NativeObject>();
         obj->setShape(newShape);
         HeapSlot* slots = nobj->getSlotsUnchecked();
@@ -1806,13 +1792,12 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t newShapeOffset = cacheIRReader.stubOffset();
         uint32_t numNewSlotsOffset = cacheIRReader.stubOffset();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        int32_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        int32_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         Value rhs = READ_VALUE_REG(rhsId.id());
         Shape* newShape = reinterpret_cast<Shape*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, newShapeOffset));
-        int32_t numNewSlots = ctx.cstub->stubInfo()->getStubRawInt32(
-            ctx.cstub, numNewSlotsOffset);
+            stubInfo->getStubRawWord(ctx.cstub, newShapeOffset));
+        int32_t numNewSlots =
+            stubInfo->getStubRawInt32(ctx.cstub, numNewSlotsOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
         // We have to (re)allocate dynamic slots. Do this first, as it's the
         // only fallible operation here. Note that growSlotsPure is fallible
@@ -2158,8 +2143,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
       CACHEOP_CASE(LoadFixedSlotResult) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t offsetOffset = cacheIRReader.stubOffset();
-        uintptr_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        uintptr_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         Value* slot = reinterpret_cast<Value*>(
@@ -2177,8 +2161,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
       CACHEOP_CASE(LoadDynamicSlotResult) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t offsetOffset = cacheIRReader.stubOffset();
-        uintptr_t offset =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, offsetOffset);
+        uintptr_t offset = stubInfo->getStubRawInt32(ctx.cstub, offsetOffset);
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         HeapSlot* slots = nobj->getSlotsUnchecked();
@@ -2413,8 +2396,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
         uint32_t valOffset = cacheIRReader.stubOffset();
         Int32OperandId resultId = cacheIRReader.int32OperandId();
         BOUNDSCHECK(resultId);
-        uint32_t value =
-            ctx.cstub->stubInfo()->getStubRawInt32(ctx.cstub, valOffset);
+        uint32_t value = stubInfo->getStubRawInt32(ctx.cstub, valOffset);
         WRITE_REG(resultId.id(), value, INT32);
         DISPATCH_CACHEOP();
       }
@@ -2422,7 +2404,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
       CACHEOP_CASE(LoadConstantStringResult) {
         uint32_t strOffset = cacheIRReader.stubOffset();
         JSString* str = reinterpret_cast<JSString*>(
-            ctx.cstub->stubInfo()->getStubRawWord(ctx.cstub, strOffset));
+            stubInfo->getStubRawWord(ctx.cstub, strOffset));
         ctx.icregs.icResult = StringValue(str).asRawBits();
         PREDICT_RETURN();
         DISPATCH_CACHEOP();
@@ -2558,8 +2540,7 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
 
       CACHEOP_CASE(LoadValueResult) {
         uint32_t valOffset = cacheIRReader.stubOffset();
-        ctx.icregs.icResult =
-            ctx.cstub->stubInfo()->getStubRawInt64(ctx.cstub, valOffset);
+        ctx.icregs.icResult = stubInfo->getStubRawInt64(ctx.cstub, valOffset);
         PREDICT_RETURN();
         DISPATCH_CACHEOP();
       }
