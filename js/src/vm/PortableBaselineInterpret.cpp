@@ -436,11 +436,11 @@ class VMFrame {
   StackVal* sp = cx.spBelowFrame(); /* shadow the definition */ \
   (void)sp;                         /* avoid unused-variable warnings */
 
-#define PUSH_IC_FRAME()                   \
-  ctx.error = ICInterpretOpResult::Error; \
+#define PUSH_IC_FRAME()         \
+  ctx.error = PBIResult::Error; \
   PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp)
-#define PUSH_FALLBACK_IC_FRAME()          \
-  ctx.error = ICInterpretOpResult::Error; \
+#define PUSH_FALLBACK_IC_FRAME() \
+  ctx.error = PBIResult::Error;  \
   PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp)
 #define PUSH_EXIT_FRAME()          \
   ctx.frame->interpreterPC() = pc; \
@@ -464,7 +464,7 @@ struct ICCtx {
   Stack& stack;
   StackVal* sp;
   ICCacheIRStub* cstub;
-  ICInterpretOpResult error;
+  PBIResult error;
   uint64_t arg2;
 
   ICCtx(JSContext* cx, BaselineFrame* frame_, State& state_, Stack& stack_)
@@ -475,14 +475,17 @@ struct ICCtx {
         stack(stack_),
         sp(nullptr),
         cstub(nullptr),
-        error(ICInterpretOpResult::Return),
+        error(PBIResult::Ok),
         arg2(0) {}
 };
 
 #define IC_ERROR_SENTINEL() (JS::MagicValue(JS_GENERIC_MAGIC).asRawBits())
 
-uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
-                                          ICStub* stub, ICCtx& ctx) {
+static uint64_t CallNextIC(uint64_t arg0, uint64_t arg1, ICStub* stub,
+                           ICCtx& ctx);
+
+uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
+                        ICCtx& ctx) {
   {
 #define DECLARE_CACHEOP_CASE(name) __label__ cacheop_##name
 
@@ -509,12 +512,6 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
     goto dispatch;
 
 #endif  // !ENABLE_COMPUTED_GOTO_DISPATCH
-
-#define FAIL_IC()                            \
-  do {                                       \
-    ctx.error = ICInterpretOpResult::NextIC; \
-    return IC_ERROR_SENTINEL();              \
-  } while (0)
 
 #define READ_REG(index) ctx.icregs.icVals[(index)]
 #define READ_VALUE_REG(index) \
@@ -673,6 +670,8 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
 
 #define CACHEOP_TRACE(name) \
   TRACE_PRINTF("cacheop (frame %p stub %p): " #name "\n", ctx.frame, ctx.cstub);
+
+#define FAIL_IC() goto next_ic;
 
 // We set a fixed bound on the number of icVals which is smaller than what IC
 // generators may use. As a result we can't evaluate an IC if it defines too
@@ -1737,7 +1736,7 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
           ReservedRooted<Value> value0(&ctx.state.value0, id);
           ReservedRooted<Value> value1(&ctx.state.value1, rhs);
           if (!SetElementMegamorphic<false>(cx, obj0, value0, value1, strict)) {
-            ctx.error = ICInterpretOpResult::Error;
+            ctx.error = PBIResult::Error;
             return IC_ERROR_SENTINEL();
           }
         }
@@ -2087,7 +2086,7 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
 
           if (!ctx.stack.check(sp, sizeof(StackVal) * (totalArgs + 6))) {
             ReportOverRecursed(ctx.frameMgr.cxForLocalUseOnly());
-            ctx.error = ICInterpretOpResult::Error;
+            ctx.error = PBIResult::Error;
             return IC_ERROR_SENTINEL();
           }
 
@@ -2128,7 +2127,7 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
             POPNNATIVE(4);
 
             if (!success) {
-              ctx.error = ICInterpretOpResult::Error;
+              ctx.error = PBIResult::Error;
               return IC_ERROR_SENTINEL();
             }
             retValue = args[0].asRawBits();
@@ -2140,24 +2139,15 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
             PUSHNATIVE(StackValNative(
                 MakeFrameDescriptorForJitCall(FrameType::BaselineStub, argc)));
 
-            switch (PortableBaselineInterpret(
-                cx, ctx.state, ctx.stack, ctx.sp, /* envChain = */ nullptr,
-                reinterpret_cast<Value*>(&retValue))) {
-              case PBIResult::Ok:
-                break;
-              case PBIResult::Error:
-                ctx.error = ICInterpretOpResult::Error;
-                return IC_ERROR_SENTINEL();
-              case PBIResult::Unwind:
-                ctx.error = ICInterpretOpResult::Unwind;
-                return IC_ERROR_SENTINEL();
-              case PBIResult::UnwindError:
-                ctx.error = ICInterpretOpResult::UnwindError;
-                return IC_ERROR_SENTINEL();
-              case PBIResult::UnwindRet:
-                ctx.error = ICInterpretOpResult::UnwindRet;
-                return IC_ERROR_SENTINEL();
+            PBIResult result;
+            Value ret;
+            result = PortableBaselineInterpret(cx, ctx.state, ctx.stack, ctx.sp,
+                                               /* envChain = */ nullptr, &ret);
+            if (result != PBIResult::Ok) {
+              ctx.error = result;
+              return IC_ERROR_SENTINEL();
             }
+            retValue = ret.asRawBits();
           }
         }
 
@@ -2281,7 +2271,7 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
           PUSH_IC_FRAME();
           JSLinearString* result = LinearizeForCharAccess(cx, str);
           if (!result) {
-            ctx.error = ICInterpretOpResult::Error;
+            ctx.error = PBIResult::Error;
             return IC_ERROR_SENTINEL();
           }
           WRITE_REG(resultId.id(), reinterpret_cast<uintptr_t>(result), STRING);
@@ -2318,7 +2308,7 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
             PUSH_IC_FRAME();
             result = StringFromCharCode(cx, c);
             if (!result) {
-              ctx.error = ICInterpretOpResult::Error;
+              ctx.error = PBIResult::Error;
               return IC_ERROR_SENTINEL();
             }
           }
@@ -2638,7 +2628,7 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
                   break;
                 }
                 if (!StringsEqual<EqualityKind::Equal>(cx, lhs, rhs, &result)) {
-                  ctx.error = ICInterpretOpResult::Error;
+                  ctx.error = PBIResult::Error;
                   return IC_ERROR_SENTINEL();
                 }
                 break;
@@ -2654,35 +2644,35 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
                 }
                 if (!StringsEqual<EqualityKind::NotEqual>(cx, lhs, rhs,
                                                           &result)) {
-                  ctx.error = ICInterpretOpResult::Error;
+                  ctx.error = PBIResult::Error;
                   return IC_ERROR_SENTINEL();
                 }
                 break;
               case JSOp::Lt:
                 if (!StringsCompare<ComparisonKind::LessThan>(cx, lhs, rhs,
                                                               &result)) {
-                  ctx.error = ICInterpretOpResult::Error;
+                  ctx.error = PBIResult::Error;
                   return IC_ERROR_SENTINEL();
                 }
                 break;
               case JSOp::Ge:
                 if (!StringsCompare<ComparisonKind::GreaterThanOrEqual>(
                         cx, lhs, rhs, &result)) {
-                  ctx.error = ICInterpretOpResult::Error;
+                  ctx.error = PBIResult::Error;
                   return IC_ERROR_SENTINEL();
                 }
                 break;
               case JSOp::Le:
                 if (!StringsCompare<ComparisonKind::GreaterThanOrEqual>(
                         cx, /* N.B. swapped order */ rhs, lhs, &result)) {
-                  ctx.error = ICInterpretOpResult::Error;
+                  ctx.error = PBIResult::Error;
                   return IC_ERROR_SENTINEL();
                 }
                 break;
               case JSOp::Gt:
                 if (!StringsCompare<ComparisonKind::LessThan>(
                         cx, /* N.B. swapped order */ rhs, lhs, &result)) {
-                  ctx.error = ICInterpretOpResult::Error;
+                  ctx.error = PBIResult::Error;
                   return IC_ERROR_SENTINEL();
                 }
                 break;
@@ -2796,6 +2786,17 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
   FAIL_IC();
   CACHE_IR_OPS(CACHEOP_UNIMPL)
 #undef CACHEOP_UNIMPL
+
+next_ic:
+  TRACE_PRINTF("IC failed; next IC\n");
+  return CallNextIC(arg0, arg1, stub, ctx);
+}
+
+static MOZ_NEVER_INLINE uint64_t CallNextIC(uint64_t arg0, uint64_t arg1,
+                                            ICStub* stub, ICCtx& ctx) {
+  stub = stub->maybeNext();
+  MOZ_ASSERT(stub);
+  return ICInterpretOps(arg0, arg1, stub, ctx);
 }
 
 /*
@@ -2810,31 +2811,20 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
     uint64_t retValue = 0;                                                 \
     uint64_t arg2 = ctx.arg2;                                              \
     (void)arg2;                                                            \
-    while (true) {                                                         \
-    next_stub:                                                             \
-      if (stub->isFallback()) {                                            \
-        ICFallbackStub* fallback = stub->toFallbackStub();                 \
-        fallback_body;                                                     \
-        retValue = ctx.state.res.asRawBits();                              \
-        ctx.state.res = UndefinedValue();                                  \
-        return retValue;                                                   \
-      error:                                                               \
-        ctx.error = ICInterpretOpResult::Error;                            \
-        return IC_ERROR_SENTINEL();                                        \
-      } else {                                                             \
-        ICCacheIRStub* cstub = stub->toCacheIRStub();                      \
-        ctx.cstub = cstub;                                                 \
-        cstub->incrementEnteredCount();                                    \
-        retValue = ICInterpretOps(arg0, arg1, stub, ctx);                  \
-        if (retValue != IC_ERROR_SENTINEL()) {                             \
-          return retValue;                                                 \
-        }                                                                  \
-        if (ctx.error == ICInterpretOpResult::NextIC) {                    \
-          stub = stub->maybeNext();                                        \
-          goto next_stub;                                                  \
-        }                                                                  \
-        return retValue;                                                   \
-      }                                                                    \
+    if (stub->isFallback()) {                                              \
+      ICFallbackStub* fallback = stub->toFallbackStub();                   \
+      fallback_body;                                                       \
+      retValue = ctx.state.res.asRawBits();                                \
+      ctx.state.res = UndefinedValue();                                    \
+      return retValue;                                                     \
+    error:                                                                 \
+      ctx.error = PBIResult::Error;                                        \
+      return IC_ERROR_SENTINEL();                                          \
+    } else {                                                               \
+      ICCacheIRStub* cstub = stub->toCacheIRStub();                        \
+      ctx.cstub = cstub;                                                   \
+      cstub->incrementEnteredCount();                                      \
+      return ICInterpretOps(arg0, arg1, stub, ctx);                        \
     }                                                                      \
   }
 
@@ -3221,16 +3211,15 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
                     ctx.frame->interpreterICEntry()->firstStub(), ctx); \
   if (ic_ret == IC_ERROR_SENTINEL()) {                                  \
     switch (ctx.error) {                                                \
-      case ICInterpretOpResult::Return:                                 \
-      case ICInterpretOpResult::NextIC:                                 \
+      case PBIResult::Ok:                                               \
         break;                                                          \
-      case ICInterpretOpResult::Error:                                  \
+      case PBIResult::Error:                                            \
         goto error;                                                     \
-      case ICInterpretOpResult::Unwind:                                 \
+      case PBIResult::Unwind:                                           \
         goto unwind;                                                    \
-      case ICInterpretOpResult::UnwindError:                            \
+      case PBIResult::UnwindError:                                      \
         goto unwind_error;                                              \
-      case ICInterpretOpResult::UnwindRet:                              \
+      case PBIResult::UnwindRet:                                        \
         goto unwind_ret;                                                \
     }                                                                   \
   }                                                                     \

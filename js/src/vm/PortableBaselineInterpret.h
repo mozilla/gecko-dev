@@ -333,20 +333,6 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                     StackVal* sp, JSObject* envChain,
                                     Value* ret);
 
-enum class ICInterpretOpResult {
-  NextIC,
-  Return,
-  Error,
-  Unwind,
-  UnwindError,
-  UnwindRet,
-};
-
-ICInterpretOpResult MOZ_ALWAYS_INLINE
-ICInterpretOps(jit::BaselineFrame* frame, VMFrameManager& frameMgr,
-               State& state, ICRegs& icregs, Stack& stack, StackVal* sp,
-               jit::ICCacheIRStub* cstub, jsbytecode* pc);
-
 } /* namespace pbl */
 } /* namespace js */
 
