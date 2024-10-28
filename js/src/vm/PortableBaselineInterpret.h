@@ -330,9 +330,14 @@ enum class PBIResult {
   UnwindRet,
 };
 
+template <bool IsRestart>
 PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                     StackVal* sp, JSObject* envChain,
-                                    Value* ret);
+                                    Value* ret, jsbytecode* pc,
+                                    ImmutableScriptData* isd,
+                                    jit::BaselineFrame* restartFrame,
+                                    StackVal* restartEntryFrame,
+                                    PBIResult restartCode);
 
 uint8_t* GetPortableFallbackStub(jit::BaselineICFallbackKind kind);
 uint8_t* GetICInterpreter();
