@@ -133,7 +133,28 @@ If those are not provided in the alert summary, they can always be generated for
    :scale: 75%
    :align: center
 
-Most Raptor/Browsertime tests produce a performance profile by default at the end of their test run, but Talos, MozPerftest, and AWSY tests do not.
+Additionally you can also use the overflow menu and generate a profile:
+
+ .. image:: ./create_profile_triple_dot.png
+   :alt: Creating a profile through the overflow menu
+   :scale: 50%
+   :align: center
+
+Most Raptor/Browsertime tests produce a performance profile by default at the end of their test run, but Talos, MozPerftest, and AWSY tests do not. As previously mentioned, for regression/improvement alerts, you can find a before and after link of these profiles in Comment 0:
+
+ .. image:: ./perf_alert_comment_zero_before-after.png
+   :alt: View before/after profiles from alerts
+   :scale: 50%
+   :align: center
+
+You can also find the profiles in the artifacts tab of the Raptor test:
+
+ .. image:: ./raptor_extra_profiler_run.png
+   :alt: Find extra profiler run profiles in treeherder task
+   :scale: 50%
+   :align: center
+
+To generate the profiles locally, you can pass the flags ``--extra-profiler-run`` or ``--gecko-profile`` which repeat the test for an extra iteration with the profiler enabled, or run the test from the beginning with the profiler enabled for three iterations, respectively.
 
 
 Adding Performance Tests
