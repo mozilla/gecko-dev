@@ -1859,20 +1859,6 @@ public class WebExtension {
     public final @NonNull Image icon;
 
     /**
-     * @deprecated Use {@link MetaData#requiredPermissions} instead.
-     */
-    @Deprecated
-    @DeprecationSchedule(id = "web-extension-required-permissions", version = 133)
-    public final @NonNull String[] promptPermissions;
-
-    /**
-     * @deprecated Use {@link MetaData#requiredPermissions} instead.
-     */
-    @Deprecated
-    @DeprecationSchedule(id = "web-extension-required-permissions", version = 133)
-    public final @NonNull String[] permissions;
-
-    /**
      * Required permissions for this extension.
      *
      * <p>See <a
@@ -1880,13 +1866,6 @@ public class WebExtension {
      * API permissions </a>.
      */
     public final @NonNull String[] requiredPermissions;
-
-    /**
-     * @deprecated Use {@link MetaData#requiredOrigins} instead.
-     */
-    @Deprecated
-    @DeprecationSchedule(id = "web-extension-required-origins", version = 133)
-    public final @NonNull String[] origins;
 
     /**
      * Required origin permissions for this extension.
@@ -2103,9 +2082,6 @@ public class WebExtension {
     /** Override for testing. */
     protected MetaData() {
       icon = null;
-      permissions = null;
-      promptPermissions = null;
-      origins = null;
       requiredPermissions = null;
       requiredOrigins = null;
       optionalPermissions = null;
@@ -2139,10 +2115,7 @@ public class WebExtension {
     }
 
     /* package */ MetaData(final GeckoBundle bundle) {
-      permissions = bundle.getStringArray("requiredPermissions");
-      promptPermissions = bundle.getStringArray("requiredPermissions");
       requiredPermissions = bundle.getStringArray("requiredPermissions");
-      origins = bundle.getStringArray("requiredOrigins");
       requiredOrigins = bundle.getStringArray("requiredOrigins");
       optionalPermissions = bundle.getStringArray("optionalPermissions");
       optionalOrigins = bundle.getStringArray("optionalOrigins");

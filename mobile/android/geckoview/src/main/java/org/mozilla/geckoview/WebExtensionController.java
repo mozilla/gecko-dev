@@ -248,24 +248,6 @@ public class WebExtensionController {
   @UiThread
   public interface PromptDelegate {
     /**
-     * @deprecated This method is no longer called, see the other onInstallPrompt method with the
-     *     explicit permissions and origins arguments.
-     * @param extension The {@link WebExtension} that is about to be installed. You can use {@link
-     *     WebExtension#metaData} to gather information about this extension when building the user
-     *     prompt dialog.
-     * @return A {@link GeckoResult} that completes to either {@link AllowOrDeny#ALLOW ALLOW} if
-     *     this extension should be installed or {@link AllowOrDeny#DENY DENY} if this extension
-     *     should not be installed. A null value will be interpreted as {@link AllowOrDeny#DENY
-     *     DENY}.
-     */
-    @Nullable
-    @Deprecated
-    @DeprecationSchedule(id = "web-extension-required-permissions", version = 133)
-    default GeckoResult<AllowOrDeny> onInstallPrompt(@NonNull final WebExtension extension) {
-      return null;
-    }
-
-    /**
      * @deprecated Please use onInstallPromptRequest instead. Called whenever a new extension is
      *     being installed. This is intended as an opportunity for the app to prompt the user for
      *     the permissions required by this extension.
