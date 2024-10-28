@@ -8000,6 +8000,7 @@ class StreamCacheEntryObject : public NativeObject {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (!args.thisv().isObject() ||
         !args.thisv().toObject().is<StreamCacheEntryObject>()) {
+      JS_ReportErrorASCII(cx, "Expected StreamCacheEntry object");
       return false;
     }
 
@@ -8012,6 +8013,7 @@ class StreamCacheEntryObject : public NativeObject {
     CallArgs args = CallArgsFromVp(argc, vp);
     if (!args.thisv().isObject() ||
         !args.thisv().toObject().is<StreamCacheEntryObject>()) {
+      JS_ReportErrorASCII(cx, "Expected StreamCacheEntry object");
       return false;
     }
 
@@ -8050,6 +8052,7 @@ class StreamCacheEntryObject : public NativeObject {
 
     Uint8Vector bytes;
     if (!bytes.resize(numBytes)) {
+      ReportOutOfMemory(cx);
       return false;
     }
 
