@@ -15773,12 +15773,13 @@
   mirror: always
 
 # The CRLite filter channel to which the user is subscribed.
-# - "all" => bloom-filter cascades that contain all revocations,
-# - "experimental" => clubcards that contain all revocations.
+# - "all" => bloom-filter cascades that contain all revocations. Stash based delta updates.
+# - "experimental" => clubcards that contain all revocations. Stash based delta updates.
+# - "experimental+deltas" => clubcards that contain all revocations. Clubcard based delta updates.
 - name: security.pki.crlite_channel
   type: String
 #ifdef NIGHTLY_BUILD
-  value: "experimental"
+  value: "experimental+deltas"
 #else
   value: "all"
 #endif
