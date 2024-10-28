@@ -8,6 +8,7 @@
   <textarea id="testTextArea" onpaste="handlePaste(event)"></textarea>
 
   <label for="pasteAllowed">Paste allowed?</label><input id="pasteAllowed" type="checkbox">
+  <label for="isEmptyPaste">Is empty paste?</label><input id="isEmptyPaste" type="checkbox">
 </div>
 <script class="testbody" type="application/javascript">
 function is(a, b, msg) {
@@ -19,8 +20,9 @@ function is(a, b, msg) {
 function checkPasteHelper(event) {
   // Set by injected JS in the test
   let filePasteAllowed = document.getElementById("pasteAllowed").checked;
-  is(event.clipboardData.getData('text/plain'), filePasteAllowed ? "Just some text" : "",  "getData(text/plain) should return plain text");
-  is(event.clipboardData.types.length, 1, "Correct number of types");
+  let isEmptyPaste = document.getElementById("isEmptyPaste").checked;
+  is(event.clipboardData.getData('text/plain'), (filePasteAllowed && !isEmptyPaste) ? "Just some text" : "",  "getData(text/plain) should return plain text");
+  is(event.clipboardData.types.length, filePasteAllowed ? 1 : 0, "Correct number of types");
 }
 
 function handlePaste(e) {

@@ -4,7 +4,7 @@
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = mockContentAnalysisService(mockCA);
+  mockCA = await mockContentAnalysisService(mockCA);
 });
 
 const PAGE_URL_OUTER_SAME_ORIGIN =
@@ -41,6 +41,8 @@ async function testClipboardPaste(allowPaste, sameOrigin) {
     });
   });
   await testPasteWithElementId("testInput", browser, allowPaste, sameOrigin);
+  // Set the clipboard data again so we don't use a cached CA result
+  setClipboardData(CLIPBOARD_TEXT_STRING);
   await testPasteWithElementId("testTextArea", browser, allowPaste, sameOrigin);
 
   BrowserTestUtils.removeTab(tab);
@@ -95,16 +97,9 @@ async function testPasteWithElementId(
   let result = await resultPromise;
   is(result, undefined, "Got unexpected result from page");
 
-  // Because we call event.clipboardData.getData in the test, this causes another call to
-  // content analysis.
-  is(mockCA.calls.length, 2, "Correct number of calls to Content Analysis");
+  is(mockCA.calls.length, 1, "Correct number of calls to Content Analysis");
   assertContentAnalysisRequest(
     mockCA.calls[0],
-    CLIPBOARD_TEXT_STRING,
-    sameOrigin
-  );
-  assertContentAnalysisRequest(
-    mockCA.calls[1],
     CLIPBOARD_TEXT_STRING,
     sameOrigin
   );

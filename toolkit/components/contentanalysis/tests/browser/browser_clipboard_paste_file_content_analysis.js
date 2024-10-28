@@ -29,7 +29,7 @@ function setClipboard(path) {
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = mockContentAnalysisService(mockCA);
+  mockCA = await mockContentAnalysisService(mockCA);
 });
 
 const PAGE_URL =
@@ -271,9 +271,9 @@ async function testClipboardPasteDirectoryWithContentAnalysis(allowPaste) {
     "Content Analysis ran one directory, two file and one text check"
   );
   assertContentAnalysisRequestFile(mockCA.calls[0], innerTempDir);
-  assertContentAnalysisRequestFile(mockCA.calls[1], file1);
-  assertContentAnalysisRequestFile(mockCA.calls[2], file2);
-  assertContentAnalysisRequestText(mockCA.calls[3], "Alternate");
+  assertContentAnalysisRequestText(mockCA.calls[1], "Alternate");
+  assertContentAnalysisRequestFile(mockCA.calls[2], file1);
+  assertContentAnalysisRequestFile(mockCA.calls[3], file2);
   mockCA.clearCalls();
 
   // The following part of the test is done in-process (note the use of document here instead of
