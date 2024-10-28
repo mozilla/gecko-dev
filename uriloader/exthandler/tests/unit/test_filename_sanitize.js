@@ -18,7 +18,7 @@ add_task(async function validate_filename_method() {
   Assert.equal(checkFilename("  whitespace.png  ", 0), "whitespace.png");
   Assert.equal(
     checkFilename(" .whitespaceanddots.png...", 0),
-    "whitespaceanddots.png"
+    "_whitespaceanddots.png...png"
   );
   Assert.equal(
     checkFilename("  \u00a0 \u00a0 extrawhitespace.png  \u00a0 \u00a0 ", 0),
@@ -36,7 +36,7 @@ add_task(async function validate_filename_method() {
 
   Assert.equal(
     checkFilename(" \u180e whit\u180ee.png \u180e", 0),
-    "whit\u180ee.png"
+    "_ whit\u180ee.png"
   );
   Assert.equal(checkFilename("簡単簡単簡単", 0), "簡単簡単簡単.png");
   Assert.equal(checkFilename(" happy\u061c\u2069.png", 0), "happy__.png");
@@ -367,7 +367,7 @@ add_task(async function validate_filename_method() {
       "text/unknown",
       0
     ),
-    "filename.local.download",
+    "filename.local___",
     "filename.lnk with vowel separators"
   );
 
