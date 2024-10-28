@@ -207,7 +207,7 @@ struct Stack {
     frame->setEnvironmentChain(envChain);
     JSScript* script = frame->script();
     frame->setICScript(script->jitScript()->icScript());
-    frame->setInterpreterFields(script->code());
+    frame->setInterpreterFieldsForPrologue(script);
 #ifdef DEBUG
     frame->setDebugFrameSize(0);
 #endif
