@@ -68,15 +68,7 @@ void a11y::ProxyDestroyed(RemoteAccessible* aProxy) {
 }
 
 void a11y::PlatformEvent(Accessible* aTarget, uint32_t aEventType) {
-  Accessible* msaaTarget = aTarget;
-  if (aEventType == nsIAccessibleEvent::EVENT_SCROLLING_START &&
-      aTarget->IsTextLeaf()) {
-    // For MSAA/IA2, this event should not be fired on text leaf Accessibles.
-    msaaTarget = aTarget->Parent();
-  }
-  if (msaaTarget) {
-    MsaaAccessible::FireWinEvent(msaaTarget, aEventType);
-  }
+  MsaaAccessible::FireWinEvent(aTarget, aEventType);
   uiaRawElmProvider::RaiseUiaEventForGeckoEvent(aTarget, aEventType);
 }
 

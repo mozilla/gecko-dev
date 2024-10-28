@@ -568,12 +568,8 @@ void nsAccessibilityService::NotifyOfAnchorJumpTo(nsIContent* aTargetNode) {
   const Accessible* focusedAcc = FocusedAccessible();
   if (focusedAcc &&
       (focusedAcc == document || focusedAcc->IsNonInteractive())) {
-    LocalAccessible* targetAcc =
-        document->GetAccessibleOrContainer(aTargetNode);
-    // If targetAcc is the document, this isn't useful. It's possible we just
-    // haven't built the initial tree yet. Regardless, we don't want to fire an
-    // event for the document here.
-    if (targetAcc && !targetAcc->IsDoc()) {
+    LocalAccessible* targetAcc = document->GetAccessible(aTargetNode);
+    if (targetAcc) {
       nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
                               targetAcc);
       document->SetAnchorJump(nullptr);
