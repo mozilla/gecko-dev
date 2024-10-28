@@ -6249,17 +6249,17 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         }
       }
       CASE(Neg) {
-        if (VIRTSP(0).asValue().isInt32()) {
-          int32_t i = VIRTSP(0).asValue().toInt32();
+        Value v = VIRTSP(0).asValue();
+        if (v.isInt32()) {
+          int32_t i = v.toInt32();
           if (i != 0 && i != INT32_MIN) {
             VIRTSPWRITE(0, StackVal(Int32Value(-i)));
             NEXT_IC();
             END_OP(Neg);
           }
         }
-        if (VIRTSP(0).asValue().isNumber()) {
-          VIRTSPWRITE(0,
-                      StackVal(NumberValue(-VIRTSP(0).asValue().toNumber())));
+        if (v.isNumber()) {
+          VIRTSPWRITE(0, StackVal(NumberValue(-v.toNumber())));
           NEXT_IC();
           END_OP(Neg);
         }
@@ -6267,34 +6267,34 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Inc) {
-        if (VIRTSP(0).asValue().isInt32()) {
-          int32_t i = VIRTSP(0).asValue().toInt32();
+        Value v = VIRTSP(0).asValue();
+        if (v.isInt32()) {
+          int32_t i = v.toInt32();
           if (i != INT32_MAX) {
             VIRTSPWRITE(0, StackVal(Int32Value(i + 1)));
             NEXT_IC();
             END_OP(Inc);
           }
         }
-        if (VIRTSP(0).asValue().isNumber()) {
-          VIRTSPWRITE(
-              0, StackVal(NumberValue(VIRTSP(0).asValue().toNumber() + 1)));
+        if (v.isNumber()) {
+          VIRTSPWRITE(0, StackVal(NumberValue(v.toNumber() + 1)));
           NEXT_IC();
           END_OP(Inc);
         }
         goto generic_unary;
       }
       CASE(Dec) {
-        if (VIRTSP(0).asValue().isInt32()) {
-          int32_t i = VIRTSP(0).asValue().toInt32();
+        Value v = VIRTSP(0).asValue();
+        if (v.isInt32()) {
+          int32_t i = v.toInt32();
           if (i != INT32_MIN) {
             VIRTSPWRITE(0, StackVal(Int32Value(i - 1)));
             NEXT_IC();
             END_OP(Dec);
           }
         }
-        if (VIRTSP(0).asValue().isNumber()) {
-          VIRTSPWRITE(
-              0, StackVal(NumberValue(VIRTSP(0).asValue().toNumber() - 1)));
+        if (v.isNumber()) {
+          VIRTSPWRITE(0, StackVal(NumberValue(v.toNumber() - 1)));
           NEXT_IC();
           END_OP(Dec);
         }
@@ -6302,8 +6302,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(BitNot) {
-        if (VIRTSP(0).asValue().isInt32()) {
-          int32_t i = VIRTSP(0).asValue().toInt32();
+        Value v = VIRTSP(0).asValue();
+        if (v.isInt32()) {
+          int32_t i = v.toInt32();
           VIRTSPWRITE(0, StackVal(Int32Value(~i)));
           NEXT_IC();
           END_OP(Inc);
@@ -6343,7 +6344,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Not) {
-        if (HybridICs) {
+        Value v = VIRTSP(0).asValue();
+        if (v.isBoolean()) {
+          VIRTSPWRITE(0, StackVal(BooleanValue(!v.toBoolean())));
+          NEXT_IC();
+        } else if (HybridICs) {
           SYNCSP();
           VIRTSPWRITE(0, StackVal(BooleanValue(!ToBoolean(SPHANDLE(0)))));
           NEXT_IC();
@@ -6360,8 +6365,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(And) {
         bool result;
-        if (HybridICs) {
-          SYNCSP();
+        Value v = VIRTSP(0).asValue();
+        if (v.isBoolean()) {
+          result = v.toBoolean();
+          NEXT_IC();
+        } else if (HybridICs) {
           result = ToBoolean(SPHANDLE(0));
           NEXT_IC();
         } else {
@@ -6383,8 +6391,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
       CASE(Or) {
         bool result;
-        if (HybridICs) {
-          SYNCSP();
+        Value v = VIRTSP(0).asValue();
+        if (v.isBoolean()) {
+          result = v.toBoolean();
+          NEXT_IC();
+        } else if (HybridICs) {
           result = ToBoolean(SPHANDLE(0));
           NEXT_IC();
         } else {
@@ -6406,7 +6417,12 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
       CASE(JumpIfTrue) {
         bool result;
-        if (HybridICs) {
+        Value v = VIRTSP(0).asValue();
+        if (v.isBoolean()) {
+          result = v.toBoolean();
+          VIRTPOP();
+          NEXT_IC();
+        } else if (HybridICs) {
           result = ToBoolean(SPHANDLE(0));
           VIRTPOP();
           NEXT_IC();
@@ -6429,7 +6445,12 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
       CASE(JumpIfFalse) {
         bool result;
-        if (HybridICs) {
+        Value v = VIRTSP(0).asValue();
+        if (v.isBoolean()) {
+          result = v.toBoolean();
+          VIRTPOP();
+          NEXT_IC();
+        } else if (HybridICs) {
           result = ToBoolean(SPHANDLE(0));
           VIRTPOP();
           NEXT_IC();
@@ -6452,26 +6473,29 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Add) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int64_t lhs = VIRTSP(1).asValue().toInt32();
-          int64_t rhs = VIRTSP(0).asValue().toInt32();
-          if (lhs + rhs >= int64_t(INT32_MIN) &&
-              lhs + rhs <= int64_t(INT32_MAX)) {
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int64_t lhs = v1.toInt32();
+            int64_t rhs = v0.toInt32();
+            int64_t result = lhs + rhs;
+            if (result >= int64_t(INT32_MIN) && result <= int64_t(INT32_MAX)) {
+              VIRTPOP();
+              VIRTSPWRITE(0, StackVal(Int32Value(int32_t(result))));
+              NEXT_IC();
+              END_OP(Add);
+            }
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
             VIRTPOP();
-            VIRTSPWRITE(0, StackVal(Int32Value(int32_t(lhs + rhs))));
+            VIRTSPWRITE(0, StackVal(NumberValue(lhs + rhs)));
             NEXT_IC();
             END_OP(Add);
           }
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(NumberValue(lhs + rhs)));
-          NEXT_IC();
-          END_OP(Add);
-        }
-        if (HybridICs) {
+
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6489,26 +6513,29 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Sub) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int64_t lhs = VIRTSP(1).asValue().toInt32();
-          int64_t rhs = VIRTSP(0).asValue().toInt32();
-          if (lhs - rhs >= int64_t(INT32_MIN) &&
-              lhs - rhs <= int64_t(INT32_MAX)) {
-            VIRTPOP();
-            VIRTSPWRITE(0, StackVal(Int32Value(int32_t(lhs - rhs))));
-            NEXT_IC();
-            END_OP(Sub);
-          }
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(NumberValue(lhs - rhs)));
-          NEXT_IC();
-          END_OP(Add);
-        }
         if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int64_t lhs = v1.toInt32();
+            int64_t rhs = v0.toInt32();
+            int64_t result = lhs - rhs;
+            if (result >= int64_t(INT32_MIN) && result <= int64_t(INT32_MAX)) {
+              VIRTPOP();
+              VIRTSPWRITE(0, StackVal(Int32Value(int32_t(result))));
+              NEXT_IC();
+              END_OP(Sub);
+            }
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(NumberValue(lhs - rhs)));
+            NEXT_IC();
+            END_OP(Add);
+          }
+
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6526,27 +6553,31 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Mul) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int64_t lhs = VIRTSP(1).asValue().toInt32();
-          int64_t rhs = VIRTSP(0).asValue().toInt32();
-          int64_t product = lhs * rhs;
-          if (product >= int64_t(INT32_MIN) && product <= int64_t(INT32_MAX) &&
-              (product != 0 || !((lhs < 0) ^ (rhs < 0)))) {
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int64_t lhs = v1.toInt32();
+            int64_t rhs = v0.toInt32();
+            int64_t product = lhs * rhs;
+            if (product >= int64_t(INT32_MIN) &&
+                product <= int64_t(INT32_MAX) &&
+                (product != 0 || !((lhs < 0) ^ (rhs < 0)))) {
+              VIRTPOP();
+              VIRTSPWRITE(0, StackVal(Int32Value(int32_t(product))));
+              NEXT_IC();
+              END_OP(Mul);
+            }
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
             VIRTPOP();
-            VIRTSPWRITE(0, StackVal(Int32Value(int32_t(product))));
+            VIRTSPWRITE(0, StackVal(NumberValue(lhs * rhs)));
             NEXT_IC();
             END_OP(Mul);
           }
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(NumberValue(lhs * rhs)));
-          NEXT_IC();
-          END_OP(Mul);
-        }
-        if (HybridICs) {
+
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6563,15 +6594,18 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         goto generic_binary;
       }
       CASE(Div) {
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(NumberValue(NumberDiv(lhs, rhs))));
-          NEXT_IC();
-          END_OP(Div);
-        }
         if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(NumberValue(NumberDiv(lhs, rhs))));
+            NEXT_IC();
+            END_OP(Div);
+          }
+
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6588,26 +6622,29 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         goto generic_binary;
       }
       CASE(Mod) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int64_t lhs = VIRTSP(1).asValue().toInt32();
-          int64_t rhs = VIRTSP(0).asValue().toInt32();
-          if (lhs > 0 && rhs > 0) {
-            int64_t mod = lhs % rhs;
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int64_t lhs = v1.toInt32();
+            int64_t rhs = v0.toInt32();
+            if (lhs > 0 && rhs > 0) {
+              int64_t mod = lhs % rhs;
+              VIRTPOP();
+              VIRTSPWRITE(0, StackVal(Int32Value(int32_t(mod))));
+              NEXT_IC();
+              END_OP(Mod);
+            }
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
             VIRTPOP();
-            VIRTSPWRITE(0, StackVal(Int32Value(int32_t(mod))));
+            VIRTSPWRITE(0, StackVal(DoubleValue(NumberMod(lhs, rhs))));
             NEXT_IC();
             END_OP(Mod);
           }
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(DoubleValue(NumberMod(lhs, rhs))));
-          NEXT_IC();
-          END_OP(Mod);
-        }
-        if (HybridICs) {
+
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6624,15 +6661,18 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         goto generic_binary;
       }
       CASE(Pow) {
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(NumberValue(ecmaPow(lhs, rhs))));
-          NEXT_IC();
-          END_OP(Pow);
-        }
         if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(NumberValue(ecmaPow(lhs, rhs))));
+            NEXT_IC();
+            END_OP(Pow);
+          }
+
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6649,78 +6689,104 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         goto generic_binary;
       }
       CASE(BitOr) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int32_t lhs = VIRTSP(1).asValue().toInt32();
-          int32_t rhs = VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(Int32Value(lhs | rhs)));
-          NEXT_IC();
-          END_OP(BitOr);
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int32_t lhs = v1.toInt32();
+            int32_t rhs = v0.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(Int32Value(lhs | rhs)));
+            NEXT_IC();
+            END_OP(BitOr);
+          }
         }
         goto generic_binary;
       }
       CASE(BitAnd) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int32_t lhs = VIRTSP(1).asValue().toInt32();
-          int32_t rhs = VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(Int32Value(lhs & rhs)));
-          NEXT_IC();
-          END_OP(BitAnd);
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int32_t lhs = v1.toInt32();
+            int32_t rhs = v0.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(Int32Value(lhs & rhs)));
+            NEXT_IC();
+            END_OP(BitAnd);
+          }
         }
         goto generic_binary;
       }
       CASE(BitXor) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int32_t lhs = VIRTSP(1).asValue().toInt32();
-          int32_t rhs = VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(Int32Value(lhs ^ rhs)));
-          NEXT_IC();
-          END_OP(BitXor);
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int32_t lhs = v1.toInt32();
+            int32_t rhs = v0.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(Int32Value(lhs ^ rhs)));
+            NEXT_IC();
+            END_OP(BitXor);
+          }
         }
         goto generic_binary;
       }
       CASE(Lsh) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          // Unsigned to avoid undefined behavior on left-shift overflow
-          // (see comment in BitLshOperation in Interpreter.cpp).
-          uint32_t lhs = uint32_t(VIRTSP(1).asValue().toInt32());
-          uint32_t rhs = uint32_t(VIRTSP(0).asValue().toInt32());
-          VIRTPOP();
-          rhs &= 31;
-          VIRTSPWRITE(0, StackVal(Int32Value(int32_t(lhs << rhs))));
-          NEXT_IC();
-          END_OP(Lsh);
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            // Unsigned to avoid undefined behavior on left-shift overflow
+            // (see comment in BitLshOperation in Interpreter.cpp).
+            uint32_t lhs = uint32_t(v1.toInt32());
+            uint32_t rhs = uint32_t(v0.toInt32());
+            VIRTPOP();
+            rhs &= 31;
+            VIRTSPWRITE(0, StackVal(Int32Value(int32_t(lhs << rhs))));
+            NEXT_IC();
+            END_OP(Lsh);
+          }
         }
         goto generic_binary;
       }
       CASE(Rsh) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          int32_t lhs = VIRTSP(1).asValue().toInt32();
-          int32_t rhs = VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          rhs &= 31;
-          VIRTSPWRITE(0, StackVal(Int32Value(lhs >> rhs)));
-          NEXT_IC();
-          END_OP(Rsh);
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            int32_t lhs = v1.toInt32();
+            int32_t rhs = v0.toInt32();
+            VIRTPOP();
+            rhs &= 31;
+            VIRTSPWRITE(0, StackVal(Int32Value(lhs >> rhs)));
+            NEXT_IC();
+            END_OP(Rsh);
+          }
         }
         goto generic_binary;
       }
       CASE(Ursh) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          uint32_t lhs = uint32_t(VIRTSP(1).asValue().toInt32());
-          int32_t rhs = VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          rhs &= 31;
-          uint32_t result = lhs >> rhs;
-          if (result <= uint32_t(INT32_MAX)) {
-            VIRTSPWRITE(0, StackVal(Int32Value(int32_t(result))));
-          } else {
-            VIRTSPWRITE(0, StackVal(NumberValue(double(result))));
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            uint32_t lhs = uint32_t(v1.toInt32());
+            int32_t rhs = v0.toInt32();
+            VIRTPOP();
+            rhs &= 31;
+            uint32_t result = lhs >> rhs;
+            StackVal stackResult(0);
+            if (result <= uint32_t(INT32_MAX)) {
+              stackResult = StackVal(Int32Value(int32_t(result)));
+            } else {
+              stackResult = StackVal(NumberValue(double(result)));
+            }
+            VIRTSPWRITE(0, stackResult);
+            NEXT_IC();
+            END_OP(Ursh);
           }
-          NEXT_IC();
-          END_OP(Ursh);
         }
         goto generic_binary;
       }
@@ -6746,152 +6812,168 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Eq) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          bool result =
-              VIRTSP(0).asValue().toInt32() == VIRTSP(1).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Eq);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          bool result = lhs == rhs;
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Eq);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          bool result =
-              VIRTSP(0).asValue().toNumber() == VIRTSP(1).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Eq);
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            bool result = v0.toInt32() == v1.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Eq);
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            bool result = lhs == rhs;
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Eq);
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            bool result = v0.toNumber() == v1.toNumber();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Eq);
+          }
         }
         goto generic_cmp;
       }
 
       CASE(Ne) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          bool result =
-              VIRTSP(0).asValue().toInt32() != VIRTSP(1).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Ne);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          bool result = lhs != rhs;
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Ne);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          bool result =
-              VIRTSP(0).asValue().toNumber() != VIRTSP(1).asValue().toNumber();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Eq);
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            bool result = v0.toInt32() != v1.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Ne);
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            bool result = lhs != rhs;
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Ne);
+          }
+          if (v0.isNumber() && v1.isNumber()) {
+            bool result = v0.toNumber() != v1.toNumber();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Eq);
+          }
         }
         goto generic_cmp;
       }
 
       CASE(Lt) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          bool result =
-              VIRTSP(1).asValue().toInt32() < VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Lt);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          bool result = lhs < rhs;
-          if (std::isnan(lhs) || std::isnan(rhs)) {
-            result = false;
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            bool result = v1.toInt32() < v0.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Lt);
           }
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Lt);
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            bool result = lhs < rhs;
+            if (std::isnan(lhs) || std::isnan(rhs)) {
+              result = false;
+            }
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Lt);
+          }
         }
         goto generic_cmp;
       }
       CASE(Le) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          bool result =
-              VIRTSP(1).asValue().toInt32() <= VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Le);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          bool result = lhs <= rhs;
-          if (std::isnan(lhs) || std::isnan(rhs)) {
-            result = false;
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            bool result = v1.toInt32() <= v0.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Le);
           }
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Le);
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            bool result = lhs <= rhs;
+            if (std::isnan(lhs) || std::isnan(rhs)) {
+              result = false;
+            }
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Le);
+          }
         }
         goto generic_cmp;
       }
       CASE(Gt) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          bool result =
-              VIRTSP(1).asValue().toInt32() > VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Gt);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          bool result = lhs > rhs;
-          if (std::isnan(lhs) || std::isnan(rhs)) {
-            result = false;
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            bool result = v1.toInt32() > v0.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Gt);
           }
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Gt);
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            bool result = lhs > rhs;
+            if (std::isnan(lhs) || std::isnan(rhs)) {
+              result = false;
+            }
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Gt);
+          }
         }
         goto generic_cmp;
       }
       CASE(Ge) {
-        if (VIRTSP(0).asValue().isInt32() && VIRTSP(1).asValue().isInt32()) {
-          bool result =
-              VIRTSP(1).asValue().toInt32() >= VIRTSP(0).asValue().toInt32();
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Ge);
-        }
-        if (VIRTSP(0).asValue().isNumber() && VIRTSP(1).asValue().isNumber()) {
-          double lhs = VIRTSP(1).asValue().toNumber();
-          double rhs = VIRTSP(0).asValue().toNumber();
-          bool result = lhs >= rhs;
-          if (std::isnan(lhs) || std::isnan(rhs)) {
-            result = false;
+        if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
+          if (v0.isInt32() && v1.isInt32()) {
+            bool result = v1.toInt32() >= v0.toInt32();
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Ge);
           }
-          VIRTPOP();
-          VIRTSPWRITE(0, StackVal(BooleanValue(result)));
-          NEXT_IC();
-          END_OP(Ge);
+          if (v0.isNumber() && v1.isNumber()) {
+            double lhs = v1.toNumber();
+            double rhs = v0.toNumber();
+            bool result = lhs >= rhs;
+            if (std::isnan(lhs) || std::isnan(rhs)) {
+              result = false;
+            }
+            VIRTPOP();
+            VIRTSPWRITE(0, StackVal(BooleanValue(result)));
+            NEXT_IC();
+            END_OP(Ge);
+          }
         }
         goto generic_cmp;
       }
@@ -6899,11 +6981,12 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(StrictEq)
       CASE(StrictNe) {
         if (HybridICs) {
+          Value v0 = VIRTSP(0).asValue();
+          Value v1 = VIRTSP(1).asValue();
           bool result;
           HandleValue lval = SPHANDLE(1);
           HandleValue rval = SPHANDLE(0);
-          if (VIRTSP(0).asValue().isString() &&
-              VIRTSP(1).asValue().isString()) {
+          if (v0.isString() && v1.isString()) {
             PUSH_EXIT_FRAME();
             if (!js::StrictlyEqual(cx, lval, rval, &result)) {
               GOTO_ERROR();
