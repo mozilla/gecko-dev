@@ -146,68 +146,6 @@ record_into_store: []
         parse_scalars.ScalarType("CATEGORY", "PROVE", scalar, strict_type_checks=True)
         self.assertRaises(SystemExit, ParserError.exit_func)
 
-    def test_operating_systems_default(self):
-        SAMPLE_SCALAR = """
-description: A nice one-line description.
-expires: never
-record_in_processes:
-  - 'main'
-kind: uint
-notification_emails:
-  - test01@mozilla.com
-products: ["firefox"]
-bug_numbers:
-  - 12345
-"""
-        scalar = load_scalar(SAMPLE_SCALAR)
-        sclr = parse_scalars.ScalarType(
-            "CATEGORY", "PROVE", scalar, strict_type_checks=True
-        )
-        ParserError.exit_func()
-
-        self.assertEqual(sclr.operating_systems, ["all"])
-
-    def test_operating_systems_custom(self):
-        SAMPLE_SCALAR = """
-description: A nice one-line description.
-expires: never
-record_in_processes:
-  - 'main'
-kind: uint
-notification_emails:
-  - test01@mozilla.com
-bug_numbers:
-  - 12345
-products: ["firefox"]
-operating_systems:
-    - windows
-"""
-        scalar = load_scalar(SAMPLE_SCALAR)
-        sclr = parse_scalars.ScalarType(
-            "CATEGORY", "PROVE", scalar, strict_type_checks=True
-        )
-        ParserError.exit_func()
-
-        self.assertEqual(sclr.operating_systems, ["windows"])
-
-    def test_operating_systems_empty(self):
-        SAMPLE_SCALAR = """
-description: A nice one-line description.
-expires: never
-record_in_processes:
-  - 'main'
-kind: uint
-notification_emails:
-  - test01@mozilla.com
-bug_numbers:
-  - 12345
-products: ["firefox"]
-operating_systems: []
-"""
-        scalar = load_scalar(SAMPLE_SCALAR)
-        parse_scalars.ScalarType("CATEGORY", "PROVE", scalar, strict_type_checks=True)
-        self.assertRaises(SystemExit, ParserError.exit_func)
-
     def test_products_absent(self):
         SAMPLE_SCALAR = """
 description: A nice one-line description.

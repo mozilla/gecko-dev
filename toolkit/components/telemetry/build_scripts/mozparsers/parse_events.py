@@ -267,6 +267,10 @@ class EventData:
                 ).handle_later()
 
         # Check operating_systems.
+        if strict_type_checks and "operating_systems" in definition:
+            ParserError(
+                f"{self.identifier}: Uses obsolete field 'operating_systems'."
+            ).handle_later()
         operating_systems = definition.get("operating_systems", [])
         for operating_system in operating_systems:
             if not utils.is_valid_os(operating_system):

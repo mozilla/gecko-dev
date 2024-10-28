@@ -93,8 +93,6 @@ extra_keys:
   key2: test2
 products:
     - fennec
-operating_systems:
-    - windows
 """
         name = "test_event"
         event = load_event(SAMPLE_EVENT)
@@ -105,7 +103,6 @@ operating_systems:
         self.assertEqual(evt.objects, ["object1", "object2"])
         self.assertEqual(evt.record_in_processes, ["content"])
         self.assertEqual(evt.products, ["fennec"])
-        self.assertEqual(evt.operating_systems, ["windows"])
         self.assertEqual(sorted(evt.extra_keys), ["key1", "key2"])
 
     def test_absent_products(self):

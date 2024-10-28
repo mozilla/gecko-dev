@@ -134,15 +134,6 @@ The following event properties are valid:
   - ``firefox`` - Collected in Firefox Desktop for submission via Firefox Telemetry.
   - ``thunderbird`` - Collected in Thunderbird for submission via Thunderbird Telemetry.
 
-- ``operating_systems`` *(optional, list of strings)*: This field restricts recording to certain operating systems only. It defaults to ``all``. Currently supported values are:
-
-   - ``mac``
-   - ``linux``
-   - ``windows``
-   - ``android``
-   - ``unix``
-   - ``all`` (record on all operating systems)
-
 .. note::
 
   Combinations of ``category``, ``method``, and ``object`` defined in the file must be unique.
@@ -235,6 +226,7 @@ Tests involving Event Telemetry often follow this three-step form:
 Version History
 ===============
 
+- Firefox 134: Remove ``operating_systems`` (`bug 1925369 <https://bugzilla.mozilla.org/show_bug.cgi?id=1925369>`_).
 - Firefox 132: recordEvent|registerEvents deprecation and removal (see `bug 1863031 <https://bugzilla.mozilla.org/show_bug.cgi?id=1863031>`__).
 - Firefox 79:  ``geckoview`` support removed (see `bug 1620395 <https://bugzilla.mozilla.org/show_bug.cgi?id=1620395>`__).
 - Firefox 52: Initial event support (`bug 1302663 <https://bugzilla.mozilla.org/show_bug.cgi?id=1302663>`_).

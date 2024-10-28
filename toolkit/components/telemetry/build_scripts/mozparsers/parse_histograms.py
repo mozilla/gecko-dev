@@ -431,24 +431,12 @@ class Histogram:
                 ).handle_later()
 
     def check_operating_systems(self, name, definition):
-        if not self._strict_type_checks:
+        if not self._strict_type_checks or not "operating_systems" in definition:
             return
 
-        field = "operating_systems"
-        operating_systems = definition.get(field)
-
-        DOC_URL = HISTOGRAMS_DOC_URL + "#operating-systems"
-
-        if not operating_systems:
-            # operating_systems is optional
-            return
-
-        for operating_system in operating_systems:
-            if not utils.is_valid_os(operating_system):
-                ParserError(
-                    'Histogram "%s" has unknown operating system "%s" in %s.\n%s'
-                    % (name, operating_system, field, DOC_URL)
-                ).handle_later()
+        ParserError(
+            f"Histogram {name} uses obsolete field 'operating_systems'."
+        ).handle_later()
 
     def check_record_into_store(self, name, definition):
         if not self._strict_type_checks:
