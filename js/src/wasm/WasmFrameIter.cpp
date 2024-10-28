@@ -305,6 +305,7 @@ void WasmFrameIter::popFrame() {
 #endif
 
   MOZ_ASSERT(code_ == &instance()->code());
+
   lineOrBytecode_ = callsite->lineOrBytecode();
   failedUnwindSignatureMismatch_ = false;
 

@@ -54,6 +54,7 @@ def specTypeToMIRType(specType):
         specType == "externref"
         or specType == "anyref"
         or specType == "funcref"
+        or specType == "exnref"
         or isinstance(specType, dict)
     ):
         return "MIRType::WasmAnyRef"
@@ -67,6 +68,8 @@ def specHeapTypeToTypeCode(specHeapType):
         return "Any"
     if specHeapType == "extern":
         return "Extern"
+    if specHeapType == "exn":
+        return "Exn"
     if specHeapType == "array":
         return "Array"
     if specHeapType == "struct":
@@ -80,6 +83,9 @@ def specTypeToValType(specType):
 
     if specType == "externref":
         return "ValType(RefType::extern_())"
+
+    if specType == "exnref":
+        return "ValType(RefType::exn())"
 
     if specType == "anyref":
         return "ValType(RefType::any())"

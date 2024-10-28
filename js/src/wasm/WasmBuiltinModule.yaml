@@ -458,14 +458,28 @@
 - op: AddPromiseReactions
   symbolic_address:
     name: AddPromiseReactions
-    type: Args_Int32_GeneralGeneralGeneralGeneral
+    type: Args_General4
   entry: AddPromiseReactions
   export: addPromiseReactions
   params:
     - 'externref'
     - 'externref'
     - 'funcref'
-  fail_mode: FailOnNegI32
+  result: 'anyref'
+  fail_mode: FailOnInvalidRef
+  uses_memory: false
+
+- op: ForwardExceptionToSuspended
+  symbolic_address:
+    name: ForwardExceptionToSuspended
+    type: Args_General3
+  entry: ForwardExceptionToSuspended
+  export: forwardExceptionToSuspended
+  params:
+    - 'externref'
+    - 'exnref'
+  result: 'anyref'
+  fail_mode: Infallible
   uses_memory: false
 
 - op: SetPromisingPromiseResults
