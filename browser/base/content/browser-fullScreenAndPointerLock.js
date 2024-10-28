@@ -305,6 +305,11 @@ var FullScreen = {
       "permissions.fullscreen.allowed"
     );
 
+    let notificationExitButton = document.getElementById(
+      "fullscreen-exit-button"
+    );
+    notificationExitButton.addEventListener("click", this.exitDomFullScreen);
+
     // Called when the Firefox window go into fullscreen.
     addEventListener("fullscreen", this, true);
 
@@ -400,6 +405,7 @@ var FullScreen = {
   },
 
   exitDomFullScreen() {
+    // Don't use `this` here. It does not reliably refer to this object.
     if (document.fullscreen) {
       document.exitFullscreen();
     }
