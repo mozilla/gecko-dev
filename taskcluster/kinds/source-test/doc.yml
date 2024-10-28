@@ -31,7 +31,7 @@ generate:
             cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-mozilla node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-spidermonkey-js node_modules &&
-            ./mach doc --outdir docs-out --no-open --no-serve --archive --check-num-warnings --dump-trees=/builds/worker/artifacts/trees.json
+            ./mach doc --outdir docs-out --no-open --no-serve --archive --dump-trees=/builds/worker/artifacts/trees.json
         sparse-profile: sphinx-docs
     optimization:
         skip-unless-schedules: [docs]

@@ -92,21 +92,10 @@ BASE_LINK = "http://gecko-docs.mozilla.org-l1.s3-website.us-west-2.amazonaws.com
     "--dump-trees", default=None, help="Dump the Sphinx trees to specified file."
 )
 @CommandArgument(
-    "--disable-fatal-errors",
-    dest="disable_fatal_errors",
+    "--disable-warnings-check",
+    dest="disable_warnings_check",
     action="store_true",
-    help="Disable fatal errors.",
-)
-@CommandArgument(
-    "--disable-fatal-warnings",
-    dest="disable_fatal_warnings",
-    action="store_true",
-    help="Disable fatal warnings.",
-)
-@CommandArgument(
-    "--check-num-warnings",
-    action="store_true",
-    help="Check that the upper bound on the number of warnings is respected.",
+    help="Disable checking for warnings",
 )
 @CommandArgument("--verbose", action="store_true", help="Run Sphinx in verbose mode")
 @CommandArgument(
@@ -128,9 +117,7 @@ def build_docs(
     write_url=None,
     linkcheck=None,
     dump_trees=None,
-    disable_fatal_errors=False,
-    disable_fatal_warnings=False,
-    check_num_warnings=False,
+    disable_warnings_check=False,
     verbose=None,
     no_autodoc=False,
 ):
@@ -188,9 +175,9 @@ def build_docs(
         # We want to verify if the links are valid or not
         fmt = "linkcheck"
     if no_autodoc:
-        if check_num_warnings:
+        if disable_warnings_check:
             return die(
-                "'--no-autodoc' flag may not be used with '--check-num-warnings'"
+                "'--no-autodoc' flag may not be used with '--disable-warnings-check'"
             )
         toggle_no_autodoc()
 
@@ -203,27 +190,17 @@ def build_docs(
         )
     else:
         print("\nGenerated documentation:\n%s" % savedir)
-    msg = ""
 
-    with open(os.path.join(DOC_ROOT, "config.yml"), "r") as fh:
-        docs_config = yaml.safe_load(fh)
+    if not disable_warnings_check:
+        with open(os.path.join(DOC_ROOT, "config.yml"), "r") as fh:
+            docs_config = yaml.safe_load(fh)
 
-    if not disable_fatal_errors:
-        fatal_errors = _check_sphinx_errors(warnings, docs_config)
-        if fatal_errors:
-            msg += f"Error: Got fatal errors:\n{''.join(fatal_errors)}"
-    if not disable_fatal_warnings:
-        fatal_warnings = _check_sphinx_fatal_warnings(warnings, docs_config)
-        if fatal_warnings:
-            msg += f"Error: Got fatal warnings:\n{''.join(fatal_warnings)}"
-    if check_num_warnings:
-        [num_new, num_actual] = _check_sphinx_num_warnings(warnings, docs_config)
-        print("Logged %s warnings\n" % num_actual)
-        if num_new:
-            msg += f"Error: {num_new} new warnings have been introduced compared to the limit in docs/config.yml"
+        [fatal_errors, known_errors] = _check_sphinx_warnings(warnings, docs_config)
 
-    if msg:
-        return dieWithTestFailure(msg)
+        if len(known_errors):
+            log_known_errors(known_errors)
+        if len(fatal_errors):
+            return die_with_test_failure(fatal_errors)
 
     # Upload the artifact containing the link to S3
     # This would be used by code-review to post the link to Phabricator
@@ -344,32 +321,33 @@ def _run_sphinx(docdir, savedir, config=None, fmt="html", jobs=None, verbose=Non
             print(ex)
 
 
-def _check_sphinx_fatal_warnings(warnings, docs_config):
-    fatal_warnings_regex = [re.compile(item) for item in docs_config["fatal warnings"]]
-    fatal_warnings = []
-    for warning in warnings:
-        if any(item.search(warning) for item in fatal_warnings_regex):
-            fatal_warnings.append(warning)
-    return fatal_warnings
-
-
-def _check_sphinx_errors(warnings, docs_config):
-    allowed_errors_regex = [re.compile(item) for item in docs_config["allowed_errors"]]
-    errors = []
-    for warning in warnings:
-        if warning in ["ERROR", "CRITICAL"]:
-            if not (any(item.search(warning) for item in allowed_errors_regex)):
-                errors.append(warning)
-    return errors
-
-
-def _check_sphinx_num_warnings(warnings, docs_config):
+def _check_sphinx_warnings(warnings, docs_config):
+    allowed_warnings_regex = [
+        re.compile(item) for item in docs_config["allowed_warnings"]
+    ]
     # warnings file contains other strings as well
-    num_warnings = len([w for w in warnings if "WARNING" in w])
-    max_num = docs_config["max_num_warnings"]
-    if num_warnings > max_num:
-        return [num_warnings - max_num, num_warnings]
-    return [0, num_warnings]
+    errors = []
+    known_errors = []
+    for warning in warnings:
+        stripped = warning.strip()
+        # Replace slashes so that we can do matching against the Windows paths
+        # whilst not having to change the regexps.
+        stripped_and_slashes_changed = stripped.replace("\\", "/")
+
+        if len(stripped) and any(
+            x in stripped for x in ["ERROR", "CRITICAL", "WARNING"]
+        ):
+            if not (
+                any(
+                    item.search(stripped_and_slashes_changed)
+                    for item in allowed_warnings_regex
+                )
+            ):
+                errors.append(stripped)
+            else:
+                known_errors.append(stripped)
+
+    return [errors, known_errors]
 
 
 def manager():
@@ -554,8 +532,20 @@ def die(msg, exit_code=1):
     return exit_code
 
 
-def dieWithTestFailure(msg, exit_code=1):
-    for m in msg.split("\n"):
-        msg = "TEST-UNEXPECTED-FAILURE | %s %s | %s" % (sys.argv[0], sys.argv[1], m)
-        print(msg, file=sys.stderr)
+def die_with_test_failure(msgs, exit_code=1):
+    for m in msgs:
+        print(
+            "TEST-UNEXPECTED-FAILURE | %s %s | %s" % (sys.argv[0], sys.argv[1], m),
+            file=sys.stderr,
+        )
+    print("Failures: %d" % len(msgs))
     return exit_code
+
+
+def log_known_errors(msgs):
+    for m in msgs:
+        print(
+            "TEST-KNOWN-FAILURE | %s %s | %s" % (sys.argv[0], sys.argv[1], m),
+            file=sys.stderr,
+        )
+    print("Known Failures: %d" % len(msgs))
