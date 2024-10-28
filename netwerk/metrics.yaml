@@ -1124,6 +1124,76 @@ networking:
       - minden@mozilla.com
     expires: never
 
+  http_3_connection_close_reason:
+    type: labeled_counter
+    description: >
+      Number of HTTP3 connections closed, labeled by reason.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926258
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926258
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+    labels:
+      # neqo_transport::CloseReason::Application
+      - Application
+      # neqo_transport::CloseReason::Transport
+      - NoError
+      - InternalError
+      - ConnectionRefused
+      - FlowControlError
+      - StreamLimitError
+      - StreamStateError
+      - FinalSizeError
+      - FrameEncodingError
+      - TransportParameterError
+      - ProtocolViolation
+      - InvalidToken
+      - ApplicationError
+      - CryptoBufferExceeded
+      - CryptoError
+      - QlogError
+      - CryptoAlert
+      - EchRetry
+      - AckedUnsentPacket
+      - ConnectionIdLimitExceeded
+      - ConnectionIdsExhausted
+      - ConnectionState
+      - DecodingFrame
+      - DecryptError
+      - DisabledVersion
+      - HandshakeFailed
+      - IdleTimeout
+      - IntegerOverflow
+      - InvalidInput
+      - InvalidMigration
+      - InvalidPacket
+      - InvalidResumptionToken
+      - InvalidRetry
+      - InvalidStreamId
+      - KeysDiscarded
+      - KeysExhausted
+      - KeysPending
+      - KeyUpdateBlocked
+      - NoAvailablePath
+      - NoMoreData
+      - NotAvailable
+      - NotConnected
+      - PacketNumberOverlap
+      - PeerApplicationError
+      - PeerError
+      - StatelessReset
+      - TooMuchData
+      - UnexpectedMessage
+      - UnknownConnectionId
+      - UnknownFrameType
+      - VersionNegotiation
+      - WrongRole
+
   cache_metadata_first_read_time: &cache_metadata_first_read_time
     type: timing_distribution
     time_unit: millisecond
