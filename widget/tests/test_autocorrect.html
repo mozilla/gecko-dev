@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tests for autocorrect</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/SpecialPowers.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+
+<div>
+<input type="text" id="a1"><br>
+<input type="text" id="a2" autocorrect="on"><br>
+<input type="text" id="a3" autocorrect="off"><br>
+<input type="url" id="a4" autocorrect="on"><br>
+<input type="email" id="a5" autocorrect="on"><br>
+<input type="password" id="a6" autocorrect="on"><br>
+<textarea id="b1"></textarea><br>
+<textarea id="b2" autocorrect="on"></textarea><br>
+<textarea id="b3" autocorrect="off"></textarea><br>
+<div contenteditable id="c1"></div><br>
+<div contenteditable id="c2" autocorrect="on"></div><br>
+<div contenteditable id="c3" autocorrect="off"></div><br>
+<form><input type="text" id="d1" autocorrect="on"></form><br>
+<form autocorrect="on"><input type="text" id="d2"></form><br>
+<form autocorrect="off"><input type="text" id="d3" autocorrect="on"></form><br>
+</div>
+
+<pre id="test">
+<script class="testbody" type="application/javascript">
+SimpleTest.waitForExplicitFinish();
+
+SimpleTest.waitForFocus(async () => {
+  await SpecialPowers.setBoolPref("dom.forms.autocorrect", true);
+
+  const tests = [
+    { id: "a1", autocorrect: true, desc: "input without autocorrect" },
+    { id: "a2", autocorrect: true, desc: "input with autocorrect=on" },
+    { id: "a3", autocorrect: false, desc: "input with autocorrect=off" },
+    { id: "a4", autocorrect: false, desc: "input type=url with autocorrect=on" },
+    { id: "a5", autocorrect: false, desc: "input type=email with autocorrect=on" },
+    { id: "a6", autocorrect: false, desc: "input type=password with autocorrect=on" },
+    { id: "b1", autocorrect: true, desc: "textarea without autocorrect" },
+    { id: "b2", autocorrect: true, desc: "textarea with autocorrect=on" },
+    { id: "b3", autocorrect: false, desc: "textarea with autocorrect=off" },
+    { id: "c1", autocorrect: true, desc: "contenteditable without autocorrect" },
+    { id: "c2", autocorrect: true, desc: "contenteditable with autocorrect=on" },
+    { id: "c3", autocorrect: false, desc: "contenteditable with autocorrect=off" },
+    { id: "d1", autocorrect: true, desc: "input with autocorrect=on in form" },
+    { id: "d2", autocorrect: true, desc: "input in form with autocorrect=on" },
+    { id: "d3", autocorrect: true, desc: "input with autocorrect=on in form" },
+  ];
+
+  for (let test of tests) {
+    document.getElementById(test.id).focus();
+    is(SpecialPowers.DOMWindowUtils.focusedAutocorrect, test.autocorrect, test.desc);
+  }
+
+  SimpleTest.finish();
+});
+</script>
+</pre>
+</body>
+</html>

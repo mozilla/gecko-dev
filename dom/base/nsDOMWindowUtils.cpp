@@ -2317,6 +2317,16 @@ nsDOMWindowUtils::GetFocusedAutocapitalize(nsAString& aAutocapitalize) {
 }
 
 NS_IMETHODIMP
+nsDOMWindowUtils::GetFocusedAutocorrect(bool* aAutocorrect) {
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget) {
+    return NS_ERROR_FAILURE;
+  }
+  *aAutocorrect = widget->GetInputContext().mAutocorrect;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDOMWindowUtils::GetViewId(Element* aElement, nsViewID* aResult) {
   if (aElement && nsLayoutUtils::FindIDFor(aElement, aResult)) {
     return NS_OK;

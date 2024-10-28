@@ -846,6 +846,7 @@ struct ParamTraits<mozilla::widget::InputContext> {
     WriteParam(aWriter, aParam.mHTMLInputMode);
     WriteParam(aWriter, aParam.mActionHint);
     WriteParam(aWriter, aParam.mAutocapitalize);
+    WriteParam(aWriter, aParam.mAutocorrect);
     WriteParam(aWriter, aParam.mOrigin);
     WriteParam(aWriter, aParam.mHasHandledUserInput);
     WriteParam(aWriter, aParam.mInPrivateBrowsing);
@@ -858,6 +859,7 @@ struct ParamTraits<mozilla::widget::InputContext> {
            ReadParam(aReader, &aResult->mHTMLInputMode) &&
            ReadParam(aReader, &aResult->mActionHint) &&
            ReadParam(aReader, &aResult->mAutocapitalize) &&
+           ReadParam(aReader, &aResult->mAutocorrect) &&
            ReadParam(aReader, &aResult->mOrigin) &&
            ReadParam(aReader, &aResult->mHasHandledUserInput) &&
            ReadParam(aReader, &aResult->mInPrivateBrowsing) &&

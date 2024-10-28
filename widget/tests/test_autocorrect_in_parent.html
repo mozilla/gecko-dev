@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Tests for default of autocorrect in parent</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css">
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+
+<div>
+<input type="text" id="a1"><br>
+<input type="text" id="a2" autocorrect="on"><br>
+<textarea id="b1"></textarea><br>
+<textarea id="b2" autocorrect="on"></textarea><br>
+<div contenteditable id="c1"></div><br>
+<div contenteditable id="c2" autocorrect="on"></div><br>
+</div>
+
+<pre id="test">
+<script class="testbody" type="application/javascript">
+SimpleTest.waitForExplicitFinish();
+
+SimpleTest.waitForFocus(async () => {
+  await SpecialPowers.setBoolPref("dom.forms.autocorrect", true);
+
+  const tests = [
+    { id: "a1", autocorrect: false, desc: "input without autocorrect" },
+    { id: "a2", autocorrect: true, desc: "input with autocorrect" },
+    { id: "b1", autocorrect: false, desc: "textarea without autocorrect" },
+    { id: "b2", autocorrect: true, desc: "textarea with autocorrect" },
+    { id: "c1", autocorrect: false, desc: "contenteditable without autocorrect" },
+    { id: "c2", autocorrect: true, desc: "contenteditable with autocorrect" },
+  ];
+
+  for (let test of tests) {
+    document.getElementById(test.id).focus();
+    is(window.windowUtils.focusedAutocorrect, test.autocorrect, test.desc);
+  }
+
+  SimpleTest.finish();
+});
+</script>
+</pre>
+</body>
+</html>

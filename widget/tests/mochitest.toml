@@ -18,6 +18,8 @@ skip-if = [
 
 ["test_autocapitalize.html"]
 
+["test_autocorrect.html"]
+
 ["test_clipboard.html"]
 skip-if = [
   "headless", # bug 1852983

@@ -8,6 +8,8 @@ tags = "os_integration"
 
 ["test_alwaysontop_focus.xhtml"]
 
+["test_autocorrect_in_parent.html"]
+
 # Privacy relevant
 
 ["test_bug343416.xhtml"]

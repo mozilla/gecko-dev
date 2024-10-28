@@ -1780,6 +1780,11 @@ interface nsIDOMWindowUtils : nsISupports {
   readonly attribute AString focusedAutocapitalize;
 
   /**
+   * Get the autocorrect of the currently focused editing host, if any.
+   */
+  readonly attribute boolean focusedAutocorrect;
+
+  /**
    * Find the view ID for a given element. This is the reverse of
    * findElementWithViewId().
    */
