@@ -16,6 +16,22 @@ add_setup(async function test_setup() {
   mockCA = await mockContentAnalysisService(mockCA);
 });
 
+function setClipboardHTMLData(htmlString) {
+  const trans = Cc["@mozilla.org/widget/transferable;1"].createInstance(
+    Ci.nsITransferable
+  );
+  trans.init(null);
+  trans.addDataFlavor("text/html");
+  const str = Cc["@mozilla.org/supports-string;1"].createInstance(
+    Ci.nsISupportsString
+  );
+  str.data = htmlString;
+  trans.setTransferData("text/html", str);
+
+  // Write to clipboard.
+  Services.clipboard.setData(trans, null, Ci.nsIClipboard.kGlobalClipboard);
+}
+
 async function testClipboardWithContentAnalysis(allowPaste) {
   mockCA.setupForTest(allowPaste);
   let tab = BrowserTestUtils.addTab(gBrowser);
@@ -264,23 +280,10 @@ async function testClipboardWithContentAnalysis(allowPaste) {
     );
   });
 
-  // Next, check that the Copy Image command works.
-
-  // The context menu needs to be opened to properly initialize for the copy
-  // image command to run.
-  let contextMenu = document.getElementById("contentAreaContextMenu");
-  let contextMenuShown = promisePopupShown(contextMenu);
-  BrowserTestUtils.synthesizeMouseAtCenter(
-    "#img",
-    { type: "contextmenu", button: 2 },
-    gBrowser.selectedBrowser
+  // Next, put some HTML data on the clipboard
+  setClipboardHTMLData(
+    '<img id="img" tabindex="1" src="http://example.org/browser/browser/base/content/test/general/moz.png">'
   );
-  await contextMenuShown;
-
-  document.getElementById("context-copyimage-contents").doCommand();
-
-  contextMenu.hidePopup();
-  await promisePopupHidden(contextMenu);
 
   // Focus the content again
   await SimpleTest.promiseFocus(browser);
