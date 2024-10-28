@@ -24,7 +24,7 @@ contentblocking:
     data_reviews:
       - https://bugzil.la/1529425
     notification_emails:
-      - privacy-team@mozilla.com
+      - privacy-team@mozilla.org
     expires: never
     unit: content blocking category
     telemetry_mirror: CONTENTBLOCKING_CATEGORY
@@ -40,7 +40,7 @@ contentblocking:
     data_reviews:
       - https://bugzil.la/1522919
     notification_emails:
-      - privacy-team@mozilla.com
+      - privacy-team@mozilla.org
     expires: never
     telemetry_mirror: CONTENTBLOCKING_CRYPTOMINING_BLOCKING_ENABLED
 
@@ -55,7 +55,7 @@ contentblocking:
     data_reviews:
       - https://bugzil.la/1522919
     notification_emails:
-      - privacy-team@mozilla.com
+      - privacy-team@mozilla.org
     expires: never
     telemetry_mirror: CONTENTBLOCKING_FINGERPRINTING_BLOCKING_ENABLED
 
@@ -76,7 +76,6 @@ contentblocking:
       - https://bugzil.la/1645088
       - https://bugzil.la/1678209
     notification_emails:
-      - ewright@mozilla.com
-      - privacy-team@mozilla.com
+      - privacy-team@mozilla.org
     expires: never
     telemetry_mirror: CONTENTBLOCKING_TRACKERS_BLOCKED_COUNT
