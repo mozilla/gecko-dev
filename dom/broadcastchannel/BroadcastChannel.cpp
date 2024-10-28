@@ -169,14 +169,7 @@ already_AddRefed<BroadcastChannel> BroadcastChannel::Constructor(
       return nullptr;
     }
 
-    nsCOMPtr<nsIGlobalObject> incumbent = mozilla::dom::GetIncumbentGlobal();
-
-    if (!incumbent) {
-      aRv.Throw(NS_ERROR_FAILURE);
-      return nullptr;
-    }
-
-    nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(incumbent);
+    nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(global);
     if (NS_WARN_IF(!sop)) {
       aRv.Throw(NS_ERROR_FAILURE);
       return nullptr;
