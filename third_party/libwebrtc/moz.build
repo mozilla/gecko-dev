@@ -38,6 +38,7 @@ DIRS += [
     "/third_party/libwebrtc/api/audio_codecs/opus/audio_encoder_multiopus_gn",
     "/third_party/libwebrtc/api/audio_codecs/opus/audio_encoder_opus_config_gn",
     "/third_party/libwebrtc/api/audio_codecs/opus/audio_encoder_opus_gn",
+    "/third_party/libwebrtc/api/audio_codecs/opus_audio_decoder_factory_gn",
     "/third_party/libwebrtc/api/audio_options_api_gn",
     "/third_party/libwebrtc/api/bitrate_allocation_gn",
     "/third_party/libwebrtc/api/call_api_gn",
