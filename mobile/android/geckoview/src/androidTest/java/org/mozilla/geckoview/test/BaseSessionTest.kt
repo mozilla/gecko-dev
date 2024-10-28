@@ -150,6 +150,7 @@ open class BaseSessionTest(
         const val BUG1912358_HTML_PATH = "/assets/www/bug1912358.html"
         const val POSITION_STICKY_HTML_PATH = "/assets/www/position-sticky.html"
         const val POSITION_STICKY_ON_MAIN_THREAD_HTML_PATH = "/assets/www/position-sticky-on-main-thread.html"
+        const val INTERACTIVE_WIDGET_HTML_PATH = "/assets/www/interactive-widget.html"
 
         const val TEST_ENDPOINT = GeckoSessionTestRule.TEST_ENDPOINT
         const val TEST_HOST = GeckoSessionTestRule.TEST_HOST
