@@ -19,7 +19,7 @@ BOILERPLATES = {
   </body>
 </html>""",
     "xml": """<?xml version="1.0" encoding="{charset}"?>\n{src}""",
-    "js": "{src}",
+    "js": "",
 }
 MIME_TYPES = {
     "html": "text/html",

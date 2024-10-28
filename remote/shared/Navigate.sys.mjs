@@ -145,7 +145,6 @@ export class ProgressListener {
   #errorName;
   #navigationId;
   #navigationListener;
-  #navigationManager;
   #promptListener;
   #seenStartFlag;
   #targetURI;
@@ -205,7 +204,6 @@ export class ProgressListener {
     this.#unloadTimerId = null;
 
     if (navigationManager !== null) {
-      this.#navigationManager = navigationManager;
       this.#navigationListener = new lazy.NavigationListener(navigationManager);
       this.#navigationListener.on(
         "navigation-failed",
@@ -316,31 +314,14 @@ export class ProgressListener {
           return;
         }
 
-        // Handle NS_BINDING_ABORTED status updates.
-        if (status == Cr.NS_BINDING_ABORTED) {
-          if (this.isInitialDocument) {
-            // For an initial document another navigation to the real document will
-            // happen, so we can ignore the NS_BINDING_ABORTED completely.
-            this.#trace(
-              "Ignore aborted navigation error to the initial document."
-            );
-            return;
-          }
-
-          const navigation = this.#getCurrentNavigation();
-          if (
-            navigation &&
-            navigation.navigationId == this.#navigationId &&
-            navigation.state == "started"
-          ) {
-            // If the navigation is currently tracked by the navigation manager
-            // and is still in progress, we should get a more detailed error
-            // message from the NavigationManager once if processes the failure.
-            this.#trace(
-              "Ignore aborted navigation error, waiting for NavigationManager navigation-failed event."
-            );
-            return;
-          }
+        // Handle an aborted navigation. While for an initial document another
+        // navigation to the real document will happen it's not the case for
+        // normal documents. Here we need to stop the listener immediately.
+        if (status == Cr.NS_BINDING_ABORTED && this.isInitialDocument) {
+          this.#trace(
+            "Ignore aborted navigation error to the initial document."
+          );
+          return;
         }
 
         this.stop({ error: new Error(errorName) });
@@ -360,15 +341,6 @@ export class ProgressListener {
       this.#seenStartFlag = false;
       this.#setUnloadTimer();
     }
-  }
-
-  #getCurrentNavigation() {
-    if (!this.#navigationManager) {
-      return null;
-    }
-    return this.#navigationManager.getNavigationForBrowsingContext(
-      this.browsingContext
-    );
   }
 
   #getErrorName(documentURI) {
