@@ -82,6 +82,8 @@ class nsBaseClipboard : public nsIClipboard {
 
   mozilla::Maybe<uint64_t> GetClipboardCacheInnerWindowId(
       ClipboardType aClipboardType);
+  virtual mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
+      ClipboardType aWhichClipboard) = 0;
 
  protected:
   virtual ~nsBaseClipboard();
@@ -95,8 +97,6 @@ class nsBaseClipboard : public nsIClipboard {
                                            ClipboardType aWhichClipboard,
                                            GetDataCallback&& aCallback);
   virtual nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) = 0;
-  virtual mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
-      ClipboardType aWhichClipboard) = 0;
   virtual mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
       const nsTArray<nsCString>& aFlavorList,
       ClipboardType aWhichClipboard) = 0;
