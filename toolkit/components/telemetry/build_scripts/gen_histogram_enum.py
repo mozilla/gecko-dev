@@ -25,6 +25,10 @@ header = """
 #include <cstdint>
 #include <type_traits>
 
+// X11 defines "Success" which collides with a categorical label.
+#pragma push_macro("Success")
+#undef Success
+
 namespace mozilla {
 namespace Telemetry {
 """
@@ -32,6 +36,9 @@ namespace Telemetry {
 footer = """
 } // namespace mozilla
 } // namespace Telemetry
+
+#pragma pop_macro("Success")
+
 #endif // mozilla_TelemetryHistogramEnums_h"""
 
 

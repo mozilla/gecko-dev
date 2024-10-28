@@ -1662,7 +1662,6 @@
     "high": 1024,
     "n_buckets": 21,
     "description": "Number of low-virtual-memory events fired since last ping",
-    "operating_systems": ["windows"],
     "bug_numbers": [711490, 1451005]
   },
   "LOW_MEMORY_EVENTS_PHYSICAL": {
@@ -1674,7 +1673,6 @@
     "high": 1024,
     "n_buckets": 21,
     "description": "Number of low-physical-memory events fired since last ping",
-    "operating_systems": ["windows"],
     "bug_numbers": [711490, 1451005]
   },
   "LOW_MEMORY_EVENTS_COMMIT_SPACE": {
@@ -1686,7 +1684,6 @@
     "high": 1024,
     "n_buckets": 21,
     "description": "Number of low-commit-space events fired since last ping",
-    "operating_systems": ["windows"],
     "bug_numbers": [1451005]
   },
   "PAGE_FAULTS_HARD": {
@@ -1697,8 +1694,7 @@
     "low": 8,
     "high": 65536,
     "n_buckets": 13,
-    "description": "Hard page faults (since last telemetry ping)",
-    "operating_systems": ["unix"]
+    "description": "Hard page faults (since last telemetry ping)"
   },
   "MEMORY_PHC_SLOP": {
     "record_in_processes": ["main", "content"],
@@ -1804,8 +1800,7 @@
     "kind": "exponential",
     "high": 30000,
     "n_buckets": 10,
-    "description": "gfxDWriteFontList::DelayedInitFontList Total (ms)",
-    "operating_systems": ["windows"]
+    "description": "gfxDWriteFontList::DelayedInitFontList Total (ms)"
   },
   "DWRITEFONT_DELAYEDINITFONTLIST_COUNT": {
     "record_in_processes": ["main", "content"],
@@ -1814,8 +1809,7 @@
     "kind": "exponential",
     "high": 10000,
     "n_buckets": 10,
-    "description": "gfxDWriteFontList::DelayedInitFontList Font Family Count",
-    "operating_systems": ["windows"]
+    "description": "gfxDWriteFontList::DelayedInitFontList Font Family Count"
   },
   "DWRITEFONT_DELAYEDINITFONTLIST_COLLECT": {
     "record_in_processes": ["main", "content"],
@@ -1824,8 +1818,7 @@
     "kind": "exponential",
     "high": 30000,
     "n_buckets": 10,
-    "description": "gfxDWriteFontList::DelayedInitFontList GetSystemFontCollection (ms)",
-    "operating_systems": ["windows"]
+    "description": "gfxDWriteFontList::DelayedInitFontList GetSystemFontCollection (ms)"
   },
   "DWRITEFONT_INIT_PROBLEM": {
     "record_in_processes": ["main", "content"],
@@ -1833,8 +1826,7 @@
     "expires_in_version": "never",
     "kind": "enumerated",
     "n_values": 8,
-    "description": "DirectWrite system fontlist initialization problem (1=GDI interop, 2=system font collection, 3=no fonts)",
-    "operating_systems": ["windows"]
+    "description": "DirectWrite system fontlist initialization problem (1=GDI interop, 2=system font collection, 3=no fonts)"
   },
   "GDI_INITFONTLIST_TOTAL": {
     "record_in_processes": ["main", "content"],
@@ -1843,8 +1835,7 @@
     "kind": "exponential",
     "high": 30000,
     "n_buckets": 10,
-    "description": "gfxGDIFontList::InitFontList Total (ms)",
-    "operating_systems": ["windows"]
+    "description": "gfxGDIFontList::InitFontList Total (ms)"
   },
   "MAC_INITFONTLIST_TOTAL": {
     "record_in_processes": ["main", "content"],
@@ -1853,8 +1844,7 @@
     "kind": "exponential",
     "high": 30000,
     "n_buckets": 10,
-    "description": "gfxMacPlatformFontList::InitFontList Total (ms)",
-    "operating_systems": ["mac"]
+    "description": "gfxMacPlatformFontList::InitFontList Total (ms)"
   },
   "SYSTEM_FONT_FALLBACK": {
     "record_in_processes": ["main", "content"],
@@ -7068,8 +7058,7 @@
     "n_values": 99,
     "releaseChannelCollection": "opt-out",
     "bug_numbers": [1343669, 1540193, 1520321],
-    "description": "Update: Result code from downloading a complete update via BITS",
-    "operating_systems": ["windows"]
+    "description": "Update: Result code from downloading a complete update via BITS"
   },
   "UPDATE_BITS_RESULT_PARTIAL": {
     "record_in_processes": ["main"],
@@ -7083,8 +7072,7 @@
     "n_values": 99,
     "releaseChannelCollection": "opt-out",
     "bug_numbers": [1343669, 1540193, 1520321],
-    "description": "Update: Result code from downloading a partial update via BITS",
-    "operating_systems": ["windows"]
+    "description": "Update: Result code from downloading a partial update via BITS"
   },
   "UPDATE_LANGPACK_OVERTIME": {
     "record_in_processes": ["main"],
@@ -8459,18 +8447,6 @@
     "labels": ["CommonLabel", "Label7", "Label8"],
     "description": "a testing histogram; not meant to be touched"
   },
-  "TELEMETRY_TEST_CATEGORICAL_WIN_ONLY": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "bug_numbers": [1539907],
-    "expires_in_version": "never",
-    "kind": "categorical",
-    "n_values": 70,
-    "labels": ["CommonLabel", "Label7", "Label8"],
-    "description": "a testing histogram used as a compile-time check; not meant to be touched",
-    "operating_systems": ["windows"]
-  },
   "TELEMETRY_TEST_KEYED_COUNT_INIT_NO_RECORD": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "thunderbird"],
@@ -8792,58 +8768,6 @@
     "bug_numbers": [1452552],
     "description": "a testing histogram; not meant to be touched",
     "products": ["fennec"]
-  },
-  "TELEMETRY_TEST_OS_ANDROID_ONLY": {
-    "record_in_processes": ["all"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "linear",
-    "low": 1,
-    "high": 10000,
-    "n_buckets": 10,
-    "bug_numbers": [1477213],
-    "description": "a testing histogram; not meant to be touched",
-    "operating_systems": ["android"]
-  },
-  "TELEMETRY_TEST_OS_WIN_ONLY": {
-    "record_in_processes": ["all"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "linear",
-    "low": 1,
-    "high": 10000,
-    "n_buckets": 10,
-    "bug_numbers": [1477213],
-    "description": "a testing histogram; not meant to be touched",
-    "operating_systems": ["windows"]
-  },
-  "TELEMETRY_TEST_OS_LINUX_ONLY": {
-    "record_in_processes": ["all"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "linear",
-    "low": 1,
-    "high": 10000,
-    "n_buckets": 10,
-    "bug_numbers": [1477213],
-    "description": "a testing histogram; not meant to be touched",
-    "operating_systems": ["linux"]
-  },
-  "TELEMETRY_TEST_OS_MAC_ONLY": {
-    "record_in_processes": ["all"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["telemetry-client-dev@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "linear",
-    "low": 1,
-    "high": 10000,
-    "n_buckets": 10,
-    "bug_numbers": [1477213],
-    "description": "a testing histogram; not meant to be touched",
-    "operating_systems": ["mac"]
   },
   "TELEMETRY_TEST_MAIN_ONLY": {
     "record_in_processes": ["main"],
@@ -9176,8 +9100,7 @@
     "releaseChannelCollection": "opt-out",
     "bug_numbers": [795307, 1390269],
     "alert_emails": ["jimm@mozilla.com"],
-    "description": "Boolean indicating if a touch input device is detected.",
-    "operating_systems": ["windows"]
+    "description": "Boolean indicating if a touch input device is detected."
   },
   "COMPONENTS_SHIM_ACCESSED_BY_CONTENT": {
     "record_in_processes": ["main", "content"],
@@ -10584,7 +10507,6 @@
   "BROWSER_SET_DEFAULT_PDF_HANDLER_USER_CHOICE_RESULT": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
-    "operating_systems": ["windows"],
     "expires_in_version": "never",
     "kind": "categorical",
     "labels": [
@@ -10608,7 +10530,6 @@
   "BROWSER_SET_DEFAULT_USER_CHOICE_RESULT": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
-    "operating_systems": ["windows"],
     "expires_in_version": "never",
     "kind": "categorical",
     "labels": [
@@ -10645,8 +10566,7 @@
     "description": "Count for the number of errors encountered trying to determine attribution data: on Windows, from the installers (stub and full); on macOS, from an extended attributed on the .app bundle.",
     "releaseChannelCollection": "opt-out",
     "bug_numbers": [1621402, 1525076, 1874944],
-    "alert_emails": ["aoprea@mozilla.com"],
-    "operating_systems": ["mac", "windows"]
+    "alert_emails": ["aoprea@mozilla.com"]
   },
   "MIXED_CONTENT_PAGE_LOAD": {
     "record_in_processes": ["main", "content"],
@@ -12735,7 +12655,6 @@
     "expires_in_version": "145",
     "releaseChannelCollection": "opt-out",
     "kind": "boolean",
-    "operating_systems": ["linux"],
     "description": "Whether our process succedeed in creating a user namespace"
   },
   "SANDBOX_REJECTED_SYSCALLS": {
@@ -12747,7 +12666,6 @@
     "releaseChannelCollection": "opt-out",
     "kind": "count",
     "keyed": true,
-    "operating_systems": ["linux"],
     "description": "System calls blocked by a seccomp-bpf sandbox policy; limited to syscalls where we would crash on Nightly.  The key is generally the architecture and syscall ID but in some cases we include non-personally-identifying information from the syscall arguments; see the function SubmitToTelemetry in security/sandbox/linux/reporter/SandboxReporter.cpp for details."
   },
   "SANDBOX_FAILED_LAUNCH_KEYED": {
@@ -12759,7 +12677,6 @@
     "keyed": true,
     "n_values": 50,
     "bug_numbers": [1368600],
-    "operating_systems": ["windows"],
     "description": "Error code when a Windows sandboxed process fails to launch, keyed by process type and Windows error code. See https://searchfox.org/mozilla-central/search?q=ResultCode++path%3Asandbox_types.h&redirect=true for definitions of the error codes."
   },
   "SYNC_WORKER_OPERATION": {
