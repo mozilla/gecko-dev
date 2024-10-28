@@ -332,9 +332,39 @@ NS_IMETHODIMP nsClipboardProxy::GetDataSnapshotSync(
                       aWhichClipboard);
     return NS_ERROR_FAILURE;
   }
-
-  ContentChild* contentChild = ContentChild::GetSingleton();
+  if (MOZ_UNLIKELY(nsIContentAnalysis::MightBeActive())) {
+    // If Content Analysis is active we want to fetch all the clipboard data
+    // up front since we need to analyze it anyway.
+    RefPtr<ClipboardContentAnalysisChild> contentAnalysis =
+        ClipboardContentAnalysisChild::GetOrCreate();
+    IPCTransferableDataOrError ipcTransferableDataOrError;
+    bool result = contentAnalysis->SendGetAllClipboardDataSync(
+        aFlavorList, aWhichClipboard, aRequestingWindowContext->InnerWindowId(),
+        &ipcTransferableDataOrError);
+    if (!result) {
+      return NS_ERROR_FAILURE;
+    }
+    if (ipcTransferableDataOrError.type() ==
+        IPCTransferableDataOrError::Tnsresult) {
+      return ipcTransferableDataOrError.get_nsresult();
+    }
+    nsresult rv;
+    nsCOMPtr<nsITransferable> trans =
+        do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    trans->Init(nullptr);
+    rv = nsContentUtils::IPCTransferableDataToTransferable(
+        ipcTransferableDataOrError.get_IPCTransferableData(),
+        true /* aAddDataFlavor */, trans, false /* aFilterUnknownFlavors */);
+    NS_ENSURE_SUCCESS(rv, rv);
+    auto snapshot =
+        mozilla::MakeRefPtr<nsBaseClipboard::ClipboardPopulatedDataSnapshot>(
+            trans);
+    snapshot.forget(_retval);
+    return NS_OK;
+  }
   ClipboardReadRequestOrError requestOrError;
+  ContentChild* contentChild = ContentChild::GetSingleton();
   contentChild->SendGetClipboardDataSnapshotSync(
       aFlavorList, aWhichClipboard, aRequestingWindowContext, &requestOrError);
   auto result = CreateClipboardDataSnapshotProxy(std::move(requestOrError));

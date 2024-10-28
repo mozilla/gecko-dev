@@ -85,6 +85,19 @@ class nsBaseClipboard : public nsIClipboard {
   virtual mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
       ClipboardType aWhichClipboard) = 0;
 
+  class ClipboardPopulatedDataSnapshot final : public nsIClipboardDataSnapshot {
+   public:
+    explicit ClipboardPopulatedDataSnapshot(nsITransferable* aTransferable);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSICLIPBOARDDATASNAPSHOT
+   private:
+    virtual ~ClipboardPopulatedDataSnapshot() = default;
+    nsCOMPtr<nsITransferable> mTransferable;
+    // List of available data types for clipboard content.
+    nsTArray<nsCString> mFlavors;
+  };
+
  protected:
   virtual ~nsBaseClipboard();
 

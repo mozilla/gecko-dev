@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include IPCTransferable;
+include protocol PContent;
 
 include "mozilla/widget/WidgetMessageUtils.h";
 
@@ -18,10 +19,17 @@ sync protocol PClipboardContentAnalysis
 parent:
     // Given a list of supported types, returns the clipboard data for the
     // first type that matches.
-    // aRequestingWindowContext is the window that is requesting the clipboard,
-    // which is used for content analysis.
+    // aRequestingWindowContextId is the ID of the window that is requesting
+    // the clipboard, which is used for content analysis.
     sync GetClipboard(nsCString[] aTypes, ClipboardType aWhichClipboard,
                       uint64_t aRequestingWindowContextId)
+        returns (IPCTransferableDataOrError transferableDataOrError);
+
+    // Requests getting data from clipboard.
+    // aRequestingWindowContextId is the ID of the window that is requesting
+    // the clipboard, which is used for content analysis.
+    sync GetAllClipboardDataSync(nsCString[] aTypes, ClipboardType aWhichClipboard,
+                                 uint64_t aRequestingWindowContextId)
         returns (IPCTransferableDataOrError transferableDataOrError);
 };
 
