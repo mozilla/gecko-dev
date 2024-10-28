@@ -158,8 +158,8 @@ static nsReturnRef<HANDLE> CreateSelfProcess(int argc, wchar_t* argv[]) {
 
   wchar_t* extraArgs[] = {strPid};
 
-  auto cmdLine = mozilla::MakeCommandLine(
-      argc, argv, mozilla::ArrayLength(extraArgs), extraArgs);
+  auto cmdLine =
+      mozilla::MakeCommandLine(argc, argv, std::size(extraArgs), extraArgs);
   if (!cmdLine) {
     PrintErrorMsg("MakeCommandLine failed");
     return empty.out();

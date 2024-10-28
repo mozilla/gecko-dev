@@ -104,7 +104,7 @@ GLuint GLReadTexImageHelper::TextureImageProgramFor(GLenum aTextureTarget,
   }
 
   /* This might be overkill, but assure that we don't access out-of-bounds */
-  MOZ_ASSERT((size_t)variant < ArrayLength(mPrograms));
+  MOZ_ASSERT((size_t)variant < std::size(mPrograms));
   if (!mPrograms[variant]) {
     GLuint vs = mGL->fCreateShader(LOCAL_GL_VERTEX_SHADER);
     const GLchar* vsSourcePtr = &readTextureImageVS[0];

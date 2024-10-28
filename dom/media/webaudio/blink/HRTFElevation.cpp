@@ -40,7 +40,7 @@ namespace WebCore {
 
 const int elevationSpacing = irc_composite_c_r0195_elevation_interval;
 const int firstElevation = irc_composite_c_r0195_first_elevation;
-const int numberOfElevations = MOZ_ARRAY_LENGTH(irc_composite_c_r0195);
+const int numberOfElevations = std::size(irc_composite_c_r0195);
 
 const unsigned HRTFElevation::NumberOfTotalAzimuths = 360 / 15 * 8;
 

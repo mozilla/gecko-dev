@@ -154,8 +154,8 @@ nsresult nsReadConfig::readConfigFile() {
   MOZ_LOG(MCD, LogLevel::Debug,
           ("general.config.filename = %s\n", lockFileName.get()));
 
-  for (size_t index = 0, len = mozilla::ArrayLength(gBlockedConfigs);
-       index < len; ++index) {
+  for (size_t index = 0, len = std::size(gBlockedConfigs); index < len;
+       ++index) {
     if (lockFileName == gBlockedConfigs[index]) {
       // This is NS_OK because we don't want to show an error to the user
       return rv;

@@ -381,7 +381,7 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
 #undef PREF
 
   auto pref = kWorkerPrefs;
-  auto end = kWorkerPrefs + ArrayLength(kWorkerPrefs);
+  auto end = kWorkerPrefs + std::size(kWorkerPrefs);
 
   if (gRuntimeServiceDuringInit) {
     // During init, we want to update every pref in kWorkerPrefs.

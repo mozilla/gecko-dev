@@ -288,7 +288,7 @@ hb_codepoint_t gfxHarfBuzzShaper::GetVerticalPresentationForm(
       {0xff5d, 0xfe38}   // FULLWIDTH RIGHT CURLY BRACKET
   };
   const uint16_t* charPair = static_cast<const uint16_t*>(
-      bsearch(&aUnicode, sVerticalForms, ArrayLength(sVerticalForms),
+      bsearch(&aUnicode, sVerticalForms, std::size(sVerticalForms),
               sizeof(sVerticalForms[0]), VertFormsGlyphCompare));
   return charPair ? charPair[1] : 0;
 }

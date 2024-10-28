@@ -826,8 +826,8 @@ int nsExpatDriver::HandleExternalEntityRef(const char16_t* openEntityNames,
         RLBOX_EXPAT_MCALL(MOZ_XML_ExternalEntityParserCreate, nullptr, *utf16);
     if (entParser) {
       auto baseURI = GetExpatBaseURI(absURI);
-      auto url = TransferBuffer<XML_Char>(Sandbox(), &baseURI[0],
-                                          ArrayLength(baseURI));
+      auto url =
+          TransferBuffer<XML_Char>(Sandbox(), &baseURI[0], std::size(baseURI));
       NS_ENSURE_TRUE(*url, 1);
       Sandbox()->invoke_sandbox_function(MOZ_XML_SetBase, entParser, *url);
 
@@ -1617,7 +1617,7 @@ nsresult nsExpatDriver::Initialize(nsIURI* aURI, nsIContentSink* aSink) {
 
   auto baseURI = GetExpatBaseURI(aURI);
   auto uri =
-      TransferBuffer<XML_Char>(Sandbox(), &baseURI[0], ArrayLength(baseURI));
+      TransferBuffer<XML_Char>(Sandbox(), &baseURI[0], std::size(baseURI));
   RLBOX_EXPAT_MCALL(MOZ_XML_SetBase, *uri);
 
   // Set up the callbacks

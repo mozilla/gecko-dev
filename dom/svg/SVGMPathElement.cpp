@@ -95,7 +95,7 @@ void SVGMPathElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
 
 SVGElement::StringAttributesInfo SVGMPathElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              std::size(sStringInfo));
 }
 
 //----------------------------------------------------------------------

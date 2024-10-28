@@ -367,7 +367,7 @@ FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
                            ? kMozillaExtensionFile
                            : kOtherExtensionFile;
       const auto& extensionNameAndPath =
-          Substring(regexResults[0], ArrayLength("extensions/") - 1);
+          Substring(regexResults[0], std::size("extensions/") - 1);
       return FilenameTypeAndDetails(
           type, Some(OptimizeFileName(extensionNameAndPath)));
     }

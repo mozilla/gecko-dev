@@ -29,7 +29,7 @@
 
 static bool IsWindowsLogonConnected() {
   WCHAR userName[UNLEN + 1];
-  DWORD size = mozilla::ArrayLength(userName);
+  DWORD size = std::size(userName);
   if (!GetUserNameW(userName, &size)) {
     return false;
   }

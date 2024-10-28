@@ -260,8 +260,8 @@ class GMPDiskStorage : public GMPStorage {
     int32_t bytesWritten = 0;
     char buf[sizeof(uint32_t)] = {0};
     LittleEndian::writeUint32(buf, aRecordName.Length());
-    bytesWritten = PR_Write(record->mFileDesc, buf, MOZ_ARRAY_LENGTH(buf));
-    if (bytesWritten != MOZ_ARRAY_LENGTH(buf)) {
+    bytesWritten = PR_Write(record->mFileDesc, buf, std::size(buf));
+    if (bytesWritten != std::size(buf)) {
       NS_WARNING("Failed to write GMPStorage record name length.");
       return GMPRecordCorrupted;
     }

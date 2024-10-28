@@ -112,7 +112,7 @@ static int CompareMCM(const void* aKey, const void* aElement)
   Special##which(uint32_t aChar) \\
   { \\
     const void* p = bsearch(&aChar, CaseSpecials_##which, \\
-                            mozilla::ArrayLength(CaseSpecials_##which), \\
+                            std::size(CaseSpecials_##which), \\
                             sizeof(MultiCharMapping), CompareMCM); \\
     return static_cast<const MultiCharMapping*>(p); \\
   }

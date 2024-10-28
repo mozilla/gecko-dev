@@ -356,7 +356,7 @@ void VRService::ServiceImmersiveMode() {
     mSession->StartFrame(mSystemState);
     mSystemState.sensorState.inputFrameID++;
     size_t historyIndex =
-        mSystemState.sensorState.inputFrameID % ArrayLength(mFrameStartTime);
+        mSystemState.sensorState.inputFrameID % std::size(mFrameStartTime);
     mFrameStartTime[historyIndex] = TimeStamp::Now();
     PushState(mSystemState);
   }
@@ -371,7 +371,7 @@ void VRService::UpdateHaptics() {
   MOZ_ASSERT(IsInServiceThread());
   MOZ_ASSERT(mSession);
 
-  for (size_t i = 0; i < ArrayLength(mBrowserState.hapticState); i++) {
+  for (size_t i = 0; i < std::size(mBrowserState.hapticState); i++) {
     VRHapticState& state = mBrowserState.hapticState[i];
     VRHapticState& lastState = mLastHapticState[i];
     // Note that VRHapticState is asserted to be a POD type, thus memcmp is safe
@@ -391,7 +391,7 @@ void VRService::UpdateHaptics() {
         now = TimeStamp::Now();
       }
       // This is a new haptic pulse, or we are overriding a prior one
-      size_t historyIndex = state.inputFrameID % ArrayLength(mFrameStartTime);
+      size_t historyIndex = state.inputFrameID % std::size(mFrameStartTime);
       float startOffset =
           (float)(now - mFrameStartTime[historyIndex]).ToSeconds();
 

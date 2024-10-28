@@ -32,13 +32,13 @@
   DECLARE_POINTER_TO_FIRST_DLL_BLOCKLIST_ENTRY_FOR(name, gWindowsDllBlocklist)
 
 #define DECLARE_POINTER_TO_LAST_DLL_BLOCKLIST_ENTRY_FOR(name, list) \
-  const DllBlockInfo* name = &list[mozilla::ArrayLength(list) - 1]
+  const DllBlockInfo* name = &list[std::size(list) - 1]
 
 #define DECLARE_POINTER_TO_LAST_DLL_BLOCKLIST_ENTRY(name) \
   DECLARE_POINTER_TO_LAST_DLL_BLOCKLIST_ENTRY_FOR(name, gWindowsDllBlocklist)
 
 #define DECLARE_DLL_BLOCKLIST_NUM_ENTRIES_FOR(name, list) \
-  const size_t name = mozilla::ArrayLength(list) - 1
+  const size_t name = std::size(list) - 1
 
 #define DECLARE_DLL_BLOCKLIST_NUM_ENTRIES(name) \
   DECLARE_DLL_BLOCKLIST_NUM_ENTRIES_FOR(name, gWindowsDllBlocklist)

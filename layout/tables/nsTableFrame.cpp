@@ -5105,7 +5105,7 @@ void nsTableFrame::CalcBCBorders() {
   // We accumulate border widths as we process the cells, so we need
   // to reset it once in the beginning.
   bool tableBorderReset[4];
-  for (uint32_t sideX = 0; sideX < ArrayLength(tableBorderReset); sideX++) {
+  for (uint32_t sideX = 0; sideX < std::size(tableBorderReset); sideX++) {
     tableBorderReset[sideX] = false;
   }
 

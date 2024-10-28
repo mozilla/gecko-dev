@@ -121,9 +121,9 @@ int main() {
 
   MOZ_RELEASE_ASSERT(tree.empty());
 
-  MOZ_RELEASE_ASSERT(!tree.find(SplayInt(0)));
+  MOZ_RELEASE_ASSERT(!tree.find(SplayInt(1)));
 
-  static const int N = mozilla::ArrayLength(gValues);
+  static const int N = std::size(gValues);
 
   // Insert the values, and check each one is findable just after insertion.
   for (int i = 0; i < N; i++) {

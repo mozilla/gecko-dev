@@ -319,7 +319,7 @@ SVGFEImageElement::GetAnimatedPreserveAspectRatio() {
 
 SVGElement::StringAttributesInfo SVGFEImageElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              std::size(sStringInfo));
 }
 
 //----------------------------------------------------------------------

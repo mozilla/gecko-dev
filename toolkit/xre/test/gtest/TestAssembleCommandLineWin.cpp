@@ -143,8 +143,8 @@ TEST(WinRemoteMessage, SendReceiveV2)
 
   EXPECT_NS_SUCCEEDED(receiver.Parse(&data));
   EXPECT_NS_SUCCEEDED(receiver.CommandLineRunner()->GetLength(&len));
-  EXPECT_EQ(static_cast<size_t>(len), ArrayLength(kExpectedArgsW));
-  for (size_t i = 0; i < ArrayLength(kExpectedArgsW); ++i) {
+  EXPECT_EQ(static_cast<size_t>(len), std::size(kExpectedArgsW));
+  for (size_t i = 0; i < std::size(kExpectedArgsW); ++i) {
     EXPECT_TRUE(
         NS_SUCCEEDED(receiver.CommandLineRunner()->GetArgument(i, arg)));
     EXPECT_STREQ(arg.get(), kExpectedArgsW[i]);
@@ -167,7 +167,7 @@ TEST(WinRemoteMessage, SendReceiveV3)
   wchar_t workingDirW[MAX_PATH];
   EXPECT_NE(_wgetcwd(workingDirW, MAX_PATH), nullptr);
 
-  WinRemoteMessageSender v3(ArrayLength(kCommandline), kCommandline,
+  WinRemoteMessageSender v3(std::size(kCommandline), kCommandline,
                             nsDependentString(workingDirW));
 
   WinRemoteMessageReceiver receiver;
@@ -177,8 +177,8 @@ TEST(WinRemoteMessage, SendReceiveV3)
 
   EXPECT_NS_SUCCEEDED(receiver.Parse(v3.CopyData()));
   EXPECT_NS_SUCCEEDED(receiver.CommandLineRunner()->GetLength(&len));
-  EXPECT_EQ(static_cast<size_t>(len), ArrayLength(kExpectedArgsW));
-  for (size_t i = 0; i < ArrayLength(kExpectedArgsW); ++i) {
+  EXPECT_EQ(static_cast<size_t>(len), std::size(kExpectedArgsW));
+  for (size_t i = 0; i < std::size(kExpectedArgsW); ++i) {
     EXPECT_TRUE(
         NS_SUCCEEDED(receiver.CommandLineRunner()->GetArgument(i, arg)));
     EXPECT_STREQ(arg.get(), kExpectedArgsW[i]);

@@ -515,7 +515,7 @@ MOZ_NEVER_INLINE MOZ_ASAN_IGNORE static pid_t DoClone(int aFlags,
 #ifdef __hppa__
   void* stackPtr = miniStack;
 #else
-  void* stackPtr = ArrayEnd(miniStack);
+  void* stackPtr = std::end(miniStack);
 #endif
   return clone(CloneCallee, stackPtr, aFlags, aCtx);
 }

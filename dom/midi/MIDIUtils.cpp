@@ -86,7 +86,7 @@ bool IsValidMessage(const MIDIMessage* aMsg) {
   // much about message validity other than that.
   if ((cmd & kSystemMessage) == kSystemMessage) {
     if (cmd - kSystemMessage >=
-        static_cast<uint8_t>(ArrayLength(kSystemLengths))) {
+        static_cast<uint8_t>(std::size(kSystemLengths))) {
       NS_WARNING("System Message Command byte not valid!");
       return false;
     }
@@ -96,7 +96,7 @@ bool IsValidMessage(const MIDIMessage* aMsg) {
   // of the first byte. Shift this down to give the index of the expected packet
   // length.
   uint8_t cmdIndex = (cmd - kCommandByte) >> 4;
-  if (cmdIndex >= ArrayLength(kCommandLengths)) {
+  if (cmdIndex >= std::size(kCommandLengths)) {
     // If our index is bigger than our array length, command byte is unknown;
     NS_WARNING("Unknown MIDI command!");
     return false;

@@ -30,12 +30,11 @@ static char* SearchSymbolTable(SymbolTable& aTable, uint32_t aOffset) {
 
   // First try demangling as a Rust identifier.
   char demangled[1024];
-  if (!profiler_demangle_rust(symbol.get(), demangled,
-                              ArrayLength(demangled))) {
+  if (!profiler_demangle_rust(symbol.get(), demangled, std::size(demangled))) {
     // Then as a C++ identifier.
-    DemangleSymbol(symbol.get(), demangled, ArrayLength(demangled));
+    DemangleSymbol(symbol.get(), demangled, std::size(demangled));
   }
-  demangled[ArrayLength(demangled) - 1] = '\0';
+  demangled[std::size(demangled) - 1] = '\0';
 
   // Use the mangled name if we didn't successfully demangle.
   return strdup(demangled[0] != '\0' ? demangled : symbol.get());

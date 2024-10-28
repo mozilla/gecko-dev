@@ -268,7 +268,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
    */
   uint32_t DropEffectInt() const { return mDropEffect; }
   void SetDropEffectInt(uint32_t aDropEffectInt) {
-    MOZ_RELEASE_ASSERT(aDropEffectInt < ArrayLength(sEffects),
+    MOZ_RELEASE_ASSERT(aDropEffectInt < std::size(sEffects),
                        "Bogus drop effect value");
     mDropEffect = aDropEffectInt;
   }

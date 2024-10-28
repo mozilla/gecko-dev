@@ -105,7 +105,7 @@ SVGForeignObjectElement::IsAttributeMapped(const nsAtom* name) const {
 
 SVGElement::LengthAttributesInfo SVGForeignObjectElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 nsCSSPropertyID SVGForeignObjectElement::GetCSSPropertyIdForAttrEnum(

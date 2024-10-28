@@ -1573,8 +1573,8 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
         ssl_grp_kem_mlkem768x25519, ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,
         ssl_grp_ec_secp384r1,       ssl_grp_ec_secp521r1,  ssl_grp_ffdhe_2048,
         ssl_grp_ffdhe_3072};
-    if (SECSuccess != SSL_NamedGroupConfig(fd, namedGroups,
-                                           mozilla::ArrayLength(namedGroups))) {
+    if (SECSuccess !=
+        SSL_NamedGroupConfig(fd, namedGroups, std::size(namedGroups))) {
       return NS_ERROR_FAILURE;
     }
     additional_shares += 1;
@@ -1584,8 +1584,8 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
         ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
         ssl_grp_ec_secp521r1,  ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072};
     // Skip the |ssl_grp_kem_mlkem768x25519| entry.
-    if (SECSuccess != SSL_NamedGroupConfig(fd, namedGroups,
-                                           mozilla::ArrayLength(namedGroups))) {
+    if (SECSuccess !=
+        SSL_NamedGroupConfig(fd, namedGroups, std::size(namedGroups))) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -1632,9 +1632,9 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
   // is properly rejected. NSS will not advertise PKCS1 or RSAE schemes (which
   // the |ssl_sig_rsa_pss_*| defines alias, meaning we will not currently accept
   // any RSA DC.
-  if (SECSuccess != SSL_SignatureSchemePrefSet(
-                        fd, sEnabledSignatureSchemes,
-                        mozilla::ArrayLength(sEnabledSignatureSchemes))) {
+  if (SECSuccess !=
+      SSL_SignatureSchemePrefSet(fd, sEnabledSignatureSchemes,
+                                 std::size(sEnabledSignatureSchemes))) {
     return NS_ERROR_FAILURE;
   }
 

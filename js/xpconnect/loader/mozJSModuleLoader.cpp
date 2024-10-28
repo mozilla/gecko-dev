@@ -7,9 +7,9 @@
 #include "ScriptLoadRequest.h"
 #include "mozilla/Assertions.h"  // MOZ_ASSERT, MOZ_ASSERT_IF
 #include "mozilla/Attributes.h"
-#include "mozilla/ArrayUtils.h"  // mozilla::ArrayLength
-#include "mozilla/RefPtr.h"      // RefPtr, mozilla::StaticRefPtr
-#include "mozilla/Utf8.h"        // mozilla::Utf8Unit
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/RefPtr.h"  // RefPtr, mozilla::StaticRefPtr
+#include "mozilla/Utf8.h"    // mozilla::Utf8Unit
 
 #include <cstdarg>
 
@@ -113,14 +113,13 @@ static LazyLogModule gJSCLLog("JSModuleLoader");
   "%s - Symbol '%s' accessed before initialization. Cyclic import?"
 
 static constexpr char JSM_Suffix[] = ".jsm";
-static constexpr size_t JSM_SuffixLength = mozilla::ArrayLength(JSM_Suffix) - 1;
+static constexpr size_t JSM_SuffixLength = std::size(JSM_Suffix) - 1;
 static constexpr char JSM_JS_Suffix[] = ".jsm.js";
-static constexpr size_t JSM_JS_SuffixLength =
-    mozilla::ArrayLength(JSM_JS_Suffix) - 1;
+static constexpr size_t JSM_JS_SuffixLength = std::size(JSM_JS_Suffix) - 1;
 static constexpr char JS_Suffix[] = ".js";
-static constexpr size_t JS_SuffixLength = mozilla::ArrayLength(JS_Suffix) - 1;
+static constexpr size_t JS_SuffixLength = std::size(JS_Suffix) - 1;
 static constexpr char MJS_Suffix[] = ".sys.mjs";
-static constexpr size_t MJS_SuffixLength = mozilla::ArrayLength(MJS_Suffix) - 1;
+static constexpr size_t MJS_SuffixLength = std::size(MJS_Suffix) - 1;
 
 static bool IsJSM(const nsACString& aLocation) {
   if (aLocation.Length() < JSM_SuffixLength) {

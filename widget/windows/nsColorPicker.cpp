@@ -105,9 +105,8 @@ AsyncColorChooser::Run() {
     ScopedRtlShimWindow shim(mParentWidget.get());
 
     // This will overwrite custom colors if default colors were defined.
-    for (size_t i = 0; i < std::min(mozilla::ArrayLength(sCustomColors),
-                                    mDefaultColors.Length());
-         i++) {
+    for (size_t i = 0;
+         i < std::min(std::size(sCustomColors), mDefaultColors.Length()); i++) {
       sCustomColors[i] = ColorStringToRGB(mDefaultColors[i]);
     }
 

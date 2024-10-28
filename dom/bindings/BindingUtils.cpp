@@ -130,7 +130,7 @@ static const JSErrorFormatString ErrorFormatString[] = {
 
 static const JSErrorFormatString* GetErrorMessage(void* aUserRef,
                                                   const unsigned aErrorNumber) {
-  MOZ_ASSERT(aErrorNumber < ArrayLength(ErrorFormatString));
+  MOZ_ASSERT(aErrorNumber < std::size(ErrorFormatString));
   return &ErrorFormatString[aErrorNumber];
 }
 

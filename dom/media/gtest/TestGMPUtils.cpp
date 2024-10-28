@@ -34,14 +34,14 @@ TEST(GeckoMediaPlugins, TestSplitAt)
     const char* input = "1,2,3,4";
     const char* delims = ",";
     const char* tokens[] = {"1", "2", "3", "4"};
-    TestSplitAt(input, delims, MOZ_ARRAY_LENGTH(tokens), tokens);
+    TestSplitAt(input, delims, std::size(tokens), tokens);
   }
 
   {
     const char* input = "a simple, comma, seperated, list";
     const char* delims = ",";
     const char* tokens[] = {"a simple", " comma", " seperated", " list"};
-    TestSplitAt(input, delims, MOZ_ARRAY_LENGTH(tokens), tokens);
+    TestSplitAt(input, delims, std::size(tokens), tokens);
   }
 
   {
@@ -52,7 +52,7 @@ TEST(GeckoMediaPlugins, TestSplitAt)
         "line4";
     const char* delims = "\r\n";
     const char* tokens[] = {"line1", "line2", "line3", "line4"};
-    TestSplitAt(input, delims, MOZ_ARRAY_LENGTH(tokens), tokens);
+    TestSplitAt(input, delims, std::size(tokens), tokens);
   }
 }
 

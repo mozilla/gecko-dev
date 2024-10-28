@@ -303,7 +303,7 @@ bool SVGImageElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGImageElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 SVGAnimatedPreserveAspectRatio*
@@ -313,7 +313,7 @@ SVGImageElement::GetAnimatedPreserveAspectRatio() {
 
 SVGElement::StringAttributesInfo SVGImageElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              std::size(sStringInfo));
 }
 
 void SVGImageElement::DidAnimateAttribute(int32_t aNameSpaceID,

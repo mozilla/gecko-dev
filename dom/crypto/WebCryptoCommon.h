@@ -132,7 +132,7 @@ struct JSStructuredCloneWriter;
 static const uint8_t id_ecDH[] = {0x2b, 0x81, 0x04, 0x70};
 const SECItem SEC_OID_DATA_EC_DH = {
     siBuffer, (unsigned char*)id_ecDH,
-    static_cast<unsigned int>(mozilla::ArrayLength(id_ecDH))};
+    static_cast<unsigned int>(std::size(id_ecDH))};
 
 namespace mozilla::dom {
 

@@ -328,7 +328,7 @@ TEST(MP4Demuxer, CENCFragVideo)
                 nsCString text = ToCryptoString(binding->mSamples[i]->mCrypto);
                 EXPECT_STREQ(video[i++], text.get());
               }
-              EXPECT_EQ(ArrayLength(video), binding->mSamples.Length());
+              EXPECT_EQ(std::size(video), binding->mSamples.Length());
               binding->mTaskQueue->BeginShutdown();
             },
             DO_FAIL);
@@ -543,7 +543,7 @@ TEST(MP4Demuxer, CENCFragAudio)
                 nsCString text = ToCryptoString(binding->mSamples[i]->mCrypto);
                 EXPECT_STREQ(audio[i++], text.get());
               }
-              EXPECT_EQ(ArrayLength(audio), binding->mSamples.Length());
+              EXPECT_EQ(std::size(audio), binding->mSamples.Length());
               binding->mTaskQueue->BeginShutdown();
             },
             DO_FAIL);

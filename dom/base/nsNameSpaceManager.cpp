@@ -167,7 +167,7 @@ const char* nsNameSpaceManager::GetNameSpaceDisplayName(uint32_t aNameSpaceID) {
   static const char* kNSURIs[] = {"([none])", "(xmlns)", "(xml)",    "(xhtml)",
                                   "(XLink)",  "(XSLT)",  "(MathML)", "(RDF)",
                                   "(XUL)",    "(SVG)"};
-  if (aNameSpaceID < ArrayLength(kNSURIs)) {
+  if (aNameSpaceID < std::size(kNSURIs)) {
     return kNSURIs[aNameSpaceID];
   }
   return "";

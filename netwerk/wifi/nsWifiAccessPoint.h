@@ -32,7 +32,7 @@ class nsWifiAccessPoint final : public nsIWifiAccessPoint {
   void setSignal(int signal) { mSignal = signal; }
 
   void setMacRaw(const char* aString) {
-    memcpy(mMac, aString, mozilla::ArrayLength(mMac));
+    memcpy(mMac, aString, std::size(mMac));
   }
 
   void setMac(const unsigned char mac_as_int[6]) {
@@ -53,7 +53,7 @@ class nsWifiAccessPoint final : public nsIWifiAccessPoint {
   }
 
   void setSSIDRaw(const char* aSSID, size_t len) {
-    mSsidLen = std::min(len, mozilla::ArrayLength(mSsid));
+    mSsidLen = std::min(len, std::size(mSsid));
     memcpy(mSsid, aSSID, mSsidLen);
   }
 

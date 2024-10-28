@@ -103,8 +103,8 @@ TEST(AboutThirdParty, InstallLocations)
       {u"C:\\duplicate\\sub\\file.dll"_ns, u""_ns},
   };
 
-  nsTArray<InstallLocationT> locations(ArrayLength(kDirectoriesUnsorted));
-  for (size_t i = 0; i < ArrayLength(kDirectoriesUnsorted); ++i) {
+  nsTArray<InstallLocationT> locations(std::size(kDirectoriesUnsorted));
+  for (size_t i = 0; i < std::size(kDirectoriesUnsorted); ++i) {
     locations.EmplaceBack(kDirectoriesUnsorted[i], new InstalledApplication());
   }
 

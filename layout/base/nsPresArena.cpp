@@ -25,7 +25,7 @@ using namespace mozilla;
 template <size_t ArenaSize, typename ObjectId, size_t ObjectIdCount>
 nsPresArena<ArenaSize, ObjectId, ObjectIdCount>::~nsPresArena() {
 #if defined(MOZ_HAVE_MEM_CHECKS)
-  for (FreeList* entry = mFreeLists; entry != ArrayEnd(mFreeLists); ++entry) {
+  for (FreeList* entry = mFreeLists; entry != std::end(mFreeLists); ++entry) {
     for (void* result : entry->mEntries) {
       MOZ_MAKE_MEM_UNDEFINED(result, entry->mEntrySize);
     }
@@ -39,7 +39,7 @@ void* nsPresArena<ArenaSize, ObjectId, ObjectIdCount>::Allocate(ObjectId aCode,
                                                                 size_t aSize) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aSize > 0, "PresArena cannot allocate zero bytes");
-  MOZ_ASSERT(size_t(aCode) < ArrayLength(mFreeLists));
+  MOZ_ASSERT(size_t(aCode) < std::size(mFreeLists));
 
   // We only hand out aligned sizes
   aSize = mPool.AlignedSize(aSize);
@@ -103,7 +103,7 @@ template <size_t ArenaSize, typename ObjectId, size_t ObjectIdCount>
 void nsPresArena<ArenaSize, ObjectId, ObjectIdCount>::Free(ObjectId aCode,
                                                            void* aPtr) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(size_t(aCode) < ArrayLength(mFreeLists));
+  MOZ_ASSERT(size_t(aCode) < std::size(mFreeLists));
 
   // Try to recycle this entry.
   FreeList* list = &mFreeLists[size_t(aCode)];
@@ -132,7 +132,7 @@ void nsPresArena<ArenaSize, ObjectId, ObjectIdCount>::AddSizeOfExcludingThis(
   size_t mallocSize = mPool.SizeOfExcludingThis(aSizes.mState.mMallocSizeOf);
 
   size_t totalSizeInFreeLists = 0;
-  for (const FreeList* entry = mFreeLists; entry != ArrayEnd(mFreeLists);
+  for (const FreeList* entry = mFreeLists; entry != std::end(mFreeLists);
        ++entry) {
     mallocSize += entry->SizeOfExcludingThis(aSizes.mState.mMallocSizeOf);
 

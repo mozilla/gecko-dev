@@ -704,7 +704,7 @@ NSEvent* nsCocoaUtils::MakeNewCococaEventFromWidgetEvent(
       {MODIFIER_NUMLOCK, NSEventModifierFlagNumericPad}};
 
   NSUInteger modifierFlags = 0;
-  for (uint32_t i = 0; i < ArrayLength(sModifierFlagMap); ++i) {
+  for (uint32_t i = 0; i < std::size(sModifierFlagMap); ++i) {
     if (aKeyEvent.mModifiers & sModifierFlagMap[i][0]) {
       modifierFlags |= sModifierFlagMap[i][1];
     }
@@ -1065,7 +1065,7 @@ uint32_t nsCocoaUtils::ConvertGeckoNameToMacCharCode(
 
   uint32_t keyCodeNameLength = keyCodeName.Length();
   const char* keyCodeNameStr = keyCodeName.get();
-  for (uint16_t i = 0; i < ArrayLength(gKeyConversions); ++i) {
+  for (uint16_t i = 0; i < std::size(gKeyConversions); ++i) {
     if (keyCodeNameLength == gKeyConversions[i].strLength &&
         nsCRT::strcmp(gKeyConversions[i].str, keyCodeNameStr) == 0) {
       return gKeyConversions[i].charCode;
@@ -1080,7 +1080,7 @@ uint32_t nsCocoaUtils::ConvertGeckoKeyCodeToMacCharCode(uint32_t aKeyCode) {
     return 0;
   }
 
-  for (uint16_t i = 0; i < ArrayLength(gKeyConversions); ++i) {
+  for (uint16_t i = 0; i < std::size(gKeyConversions); ++i) {
     if (gKeyConversions[i].geckoKeyCode == aKeyCode) {
       return gKeyConversions[i].charCode;
     }

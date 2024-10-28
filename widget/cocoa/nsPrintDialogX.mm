@@ -390,7 +390,7 @@ static const char sHeaderFooterTags[][4] = {"", "&T", "&U", "&D", "&P", "&PT"};
   [list addItemsWithTitles:items];
 
   NS_ConvertUTF16toUTF8 currentStringUTF8(aCurrentString);
-  for (unsigned int i = 0; i < ArrayLength(sHeaderFooterTags); i++) {
+  for (unsigned int i = 0; i < std::size(sHeaderFooterTags); i++) {
     if (!strcmp(currentStringUTF8.get(), sHeaderFooterTags[i])) {
       [list selectItemAtIndex:i];
       break;
@@ -507,7 +507,7 @@ static const char sHeaderFooterTags[][4] = {"", "&T", "&U", "&D", "&P", "&PT"};
 
 - (const char*)headerFooterStringForList:(NSPopUpButton*)aList {
   NSInteger index = [aList indexOfSelectedItem];
-  NS_ASSERTION(index < NSInteger(ArrayLength(sHeaderFooterTags)),
+  NS_ASSERTION(index < NSInteger(std::size(sHeaderFooterTags)),
                "Index of dropdown is higher than expected!");
   return sHeaderFooterTags[index];
 }

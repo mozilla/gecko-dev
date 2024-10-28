@@ -121,8 +121,7 @@ nsMIMEInfoWin::LaunchWithFile(nsIFile* aFile) {
           appArg.Append(path);
           const wchar_t* argv[] = {appArg.get(), path.get()};
 
-          return ShellExecuteWithIFile(defaultApp, mozilla::ArrayLength(argv),
-                                       argv);
+          return ShellExecuteWithIFile(defaultApp, std::size(argv), argv);
         }
       }
     }
@@ -207,7 +206,7 @@ nsMIMEInfoWin::LaunchWithFile(nsIFile* aFile) {
     nsAutoString path;
     aFile->GetPath(path);
     const wchar_t* argv[] = {path.get()};
-    return ShellExecuteWithIFile(executable, mozilla::ArrayLength(argv), argv);
+    return ShellExecuteWithIFile(executable, std::size(argv), argv);
   }
 
   return NS_ERROR_INVALID_ARG;

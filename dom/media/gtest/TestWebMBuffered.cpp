@@ -44,7 +44,7 @@ TEST(WebMBuffered, BasicTests)
   EXPECT_EQ(parser.mCurrentOffset, 0);
 
   unsigned char buf[] = {0x1a, 0x45, 0xdf, 0xa3};
-  EXPECT_EQ(parser.Append(buf, ArrayLength(buf), mapping), NS_OK);
+  EXPECT_EQ(parser.Append(buf, std::size(buf), mapping), NS_OK);
   EXPECT_TRUE(mapping.IsEmpty());
   EXPECT_EQ(parser.mStartOffset, 0);
   EXPECT_EQ(parser.mCurrentOffset, 4);

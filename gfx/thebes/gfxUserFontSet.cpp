@@ -299,7 +299,7 @@ void gfxUserFontEntry::GetFamilyNameAndURIForLogging(uint32_t aSrcIndex,
       if (aURI.Length() > kMaxURILengthForLogging) {
         aURI.Replace(kMaxURILengthForLogging / 2,
                      aURI.Length() - kMaxURILengthForLogging, kEllipsis,
-                     ArrayLength(kEllipsis));
+                     std::size(kEllipsis));
       }
     } else {
       aURI.AppendLiteral("(invalid URI)");

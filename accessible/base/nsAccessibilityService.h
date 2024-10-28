@@ -311,7 +311,7 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
     const mozilla::a11y::MarkupMapInfo* markupMap =
         GetMarkupMapInfoFor(aSource);
     if (markupMap) {
-      for (size_t i = 0; i < mozilla::ArrayLength(markupMap->attrs); i++) {
+      for (size_t i = 0; i < std::size(markupMap->attrs); i++) {
         const mozilla::a11y::MarkupAttrInfo* info = markupMap->attrs + i;
         if (info->name == aAtom) {
           return info->value;

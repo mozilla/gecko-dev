@@ -153,7 +153,7 @@ nsresult RootAccessible::AddEventListeners() {
 
   if (nstarget) {
     for (const char *const *e = kEventTypes, *const *e_end =
-                                                 ArrayEnd(kEventTypes);
+                                                 std::end(kEventTypes);
          e < e_end; ++e) {
       nsresult rv = nstarget->AddEventListener(NS_ConvertASCIItoUTF16(*e), this,
                                                true, true);
@@ -169,7 +169,7 @@ nsresult RootAccessible::RemoveEventListeners() {
   nsCOMPtr<EventTarget> target = window ? window->GetParentTarget() : nullptr;
   if (target) {
     for (const char *const *e = kEventTypes, *const *e_end =
-                                                 ArrayEnd(kEventTypes);
+                                                 std::end(kEventTypes);
          e < e_end; ++e) {
       target->RemoveEventListener(NS_ConvertASCIItoUTF16(*e), this, true);
     }

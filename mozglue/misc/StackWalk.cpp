@@ -728,13 +728,13 @@ MFBT_API bool MozDescribeCodeAddress(void* aPC,
   if (modInfoRes) {
     strncpy(aDetails->library, modInfo.LoadedImageName,
             sizeof(aDetails->library));
-    aDetails->library[mozilla::ArrayLength(aDetails->library) - 1] = '\0';
+    aDetails->library[std::size(aDetails->library) - 1] = '\0';
     aDetails->loffset = (char*)aPC - (char*)modInfo.BaseOfImage;
 
     if (lineInfo.FileName) {
       strncpy(aDetails->filename, lineInfo.FileName,
               sizeof(aDetails->filename));
-      aDetails->filename[mozilla::ArrayLength(aDetails->filename) - 1] = '\0';
+      aDetails->filename[std::size(aDetails->filename) - 1] = '\0';
       aDetails->lineno = lineInfo.LineNumber;
     }
   }
@@ -751,7 +751,7 @@ MFBT_API bool MozDescribeCodeAddress(void* aPC,
 
   if (ok) {
     strncpy(aDetails->function, pSymbol->Name, sizeof(aDetails->function));
-    aDetails->function[mozilla::ArrayLength(aDetails->function) - 1] = '\0';
+    aDetails->function[std::size(aDetails->function) - 1] = '\0';
     aDetails->foffset = static_cast<ptrdiff_t>(displacement);
   }
 
@@ -933,7 +933,7 @@ bool MFBT_API MozDescribeCodeAddress(void* aPC,
   }
 
   strncpy(aDetails->library, info.dli_fname, sizeof(aDetails->library));
-  aDetails->library[mozilla::ArrayLength(aDetails->library) - 1] = '\0';
+  aDetails->library[std::size(aDetails->library) - 1] = '\0';
   aDetails->loffset = (char*)aPC - (char*)info.dli_fbase;
 
 #  if !defined(XP_FREEBSD)
@@ -951,7 +951,7 @@ bool MFBT_API MozDescribeCodeAddress(void* aPC,
   if (aDetails->function[0] == '\0') {
     // Just use the mangled symbol if demangling failed.
     strncpy(aDetails->function, symbol, sizeof(aDetails->function));
-    aDetails->function[mozilla::ArrayLength(aDetails->function) - 1] = '\0';
+    aDetails->function[std::size(aDetails->function) - 1] = '\0';
   }
 
   aDetails->foffset = (char*)aPC - (char*)info.dli_saddr;

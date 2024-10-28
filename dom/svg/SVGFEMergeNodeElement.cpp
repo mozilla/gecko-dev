@@ -41,7 +41,7 @@ already_AddRefed<DOMSVGAnimatedString> SVGFEMergeNodeElement::In1() {
 
 SVGElement::StringAttributesInfo SVGFEMergeNodeElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              std::size(sStringInfo));
 }
 
 }  // namespace mozilla::dom

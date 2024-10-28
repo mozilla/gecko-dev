@@ -1819,13 +1819,13 @@ static inline bool IsVoidTag(nsAtom* aTag) {
   static bool sInitialized = false;
   if (!sInitialized) {
     sInitialized = true;
-    for (uint32_t i = 0; i < ArrayLength(voidElements); ++i) {
+    for (uint32_t i = 0; i < std::size(voidElements); ++i) {
       sFilter.add(voidElements[i]);
     }
   }
 
   if (sFilter.mightContain(aTag)) {
-    for (uint32_t i = 0; i < ArrayLength(voidElements); ++i) {
+    for (uint32_t i = 0; i < std::size(voidElements); ++i) {
       if (aTag == voidElements[i]) {
         return true;
       }

@@ -29,11 +29,11 @@ static const nsLiteralCString kPermissionTypes[] = {
 
 const size_t kPermissionNameCount = ContiguousEnumSize<PermissionName>::value;
 
-static_assert(MOZ_ARRAY_LENGTH(kPermissionTypes) == kPermissionNameCount,
+static_assert(std::size(kPermissionTypes) == kPermissionNameCount,
               "kPermissionTypes and PermissionName count should match");
 
 const nsLiteralCString& PermissionNameToType(PermissionName aName) {
-  MOZ_ASSERT((size_t)aName < ArrayLength(kPermissionTypes));
+  MOZ_ASSERT((size_t)aName < std::size(kPermissionTypes));
   return kPermissionTypes[static_cast<size_t>(aName)];
 }
 
@@ -50,7 +50,7 @@ Maybe<PermissionName> TypeToPermissionName(const nsACString& aType) {
     return Some(PermissionName::Storage_access);
   }
 
-  for (size_t i = 0; i < ArrayLength(kPermissionTypes); ++i) {
+  for (size_t i = 0; i < std::size(kPermissionTypes); ++i) {
     if (kPermissionTypes[i].Equals(aType)) {
       return Some(static_cast<PermissionName>(i));
     }

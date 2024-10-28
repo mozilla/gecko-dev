@@ -113,7 +113,7 @@ bool GetRawMachineId(std::vector<uint8_t>* sid_bytes, int* volume_id) {
   // Calculate the Windows SID.
 
   wchar_t computer_name[MAX_COMPUTERNAME_LENGTH + 1] = {0};
-  DWORD size = mozilla::ArrayLength(computer_name);
+  DWORD size = std::size(computer_name);
 
   if (GetComputerNameW(computer_name, &size)) {
     char sid_buffer[SECURITY_MAX_SID_SIZE];

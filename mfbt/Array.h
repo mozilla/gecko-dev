@@ -75,6 +75,9 @@ class Array {
   constexpr const_iterator end() const { return mArr + Length; }
   constexpr const_iterator cend() const { return end(); }
 
+  // Method for std::size.
+  constexpr size_t size() const { return Length; }
+
   // Methods for reverse iterating.
   reverse_iterator rbegin() { return reverse_iterator(end()); }
   const_reverse_iterator rbegin() const {

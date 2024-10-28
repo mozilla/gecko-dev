@@ -216,7 +216,7 @@ static nsCString GetCLSIDNameStr(REFCLSID aCLSID) {
 
 static nsCString GetGUIDNameStr(REFGUID aGUID) {
   OLECHAR str[40];
-  int len = ::StringFromGUID2(aGUID, str, ArrayLength(str));
+  int len = ::StringFromGUID2(aGUID, str, std::size(str));
   if (!len || !str[0]) {
     return ""_ns;
   }

@@ -43,7 +43,7 @@ static const char* XAtomNames[] = {
     MOZILLA_VERSION_PROP,    MOZILLA_LOCK_PROP,    MOZILLA_RESPONSE_PROP,
     MOZILLA_USER_PROP,       MOZILLA_PROFILE_PROP, MOZILLA_PROGRAM_PROP,
     MOZILLA_COMMANDLINE_PROP};
-static Atom XAtoms[MOZ_ARRAY_LENGTH(XAtomNames)];
+static Atom XAtoms[std::size(XAtomNames)];
 
 Atom nsXRemoteServer::sMozVersionAtom;
 Atom nsXRemoteServer::sMozLockAtom;
@@ -152,7 +152,7 @@ void nsXRemoteServer::EnsureAtoms(void) {
   if (sMozVersionAtom) return;
 
   XInternAtoms(mozilla::DefaultXDisplay(), const_cast<char**>(XAtomNames),
-               ArrayLength(XAtomNames), X11False, XAtoms);
+               std::size(XAtomNames), X11False, XAtoms);
 
   int i = 0;
   sMozVersionAtom = XAtoms[i++];

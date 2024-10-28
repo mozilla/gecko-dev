@@ -107,11 +107,11 @@ TEST(Escape, nsAppendEscapedHTML)
       "foo&#39;&quot;&amp;&gt;&lt;abc",
   };
 
-  ASSERT_EQ(ArrayLength(srcs), ArrayLength(dsts1));
-  ASSERT_EQ(ArrayLength(srcs), ArrayLength(dsts2));
+  ASSERT_EQ(std::size(srcs), std::size(dsts1));
+  ASSERT_EQ(std::size(srcs), std::size(dsts2));
 
   // Test when the destination is empty.
-  for (size_t i = 0; i < ArrayLength(srcs); i++) {
+  for (size_t i = 0; i < std::size(srcs); i++) {
     nsCString src(srcs[i]);
     nsCString dst;
     nsAppendEscapedHTML(src, dst);
@@ -120,7 +120,7 @@ TEST(Escape, nsAppendEscapedHTML)
 
   // Test when the destination is non-empty.
   nsCString dst;
-  for (size_t i = 0; i < ArrayLength(srcs); i++) {
+  for (size_t i = 0; i < std::size(srcs); i++) {
     nsCString src(srcs[i]);
     nsAppendEscapedHTML(src, dst);
     ASSERT_TRUE(dst.Equals(dsts2[i]));
@@ -227,7 +227,7 @@ TEST(Escape, EscapeURLExternalHandlerURLs)
       "web+foo://user:1234@example.com:8080?foo=bar"_ns,
       "ext+bar://id='myId'"_ns};
 
-  for (size_t i = 0; i < ArrayLength(input); i++) {
+  for (size_t i = 0; i < std::size(input); i++) {
     nsCString src(input[i]);
     nsCString dst;
     nsresult rv =

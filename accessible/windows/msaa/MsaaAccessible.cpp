@@ -216,7 +216,7 @@ void MsaaAccessible::FireWinEvent(Accessible* aTarget, uint32_t aEventType) {
                     nsIAccessibleEvent::EVENT_LAST_ENTRY,
                 "MSAA event map skewed");
 
-  if (aEventType == 0 || aEventType >= ArrayLength(gWinEventMap)) {
+  if (aEventType == 0 || aEventType >= std::size(gWinEventMap)) {
     MOZ_ASSERT_UNREACHABLE("invalid event type");
     return;
   }

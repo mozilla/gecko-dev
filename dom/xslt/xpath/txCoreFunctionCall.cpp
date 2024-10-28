@@ -647,7 +647,7 @@ bool txCoreFunctionCall::isSensitiveTo(ContextSensitivity aContext) {
 // static
 bool txCoreFunctionCall::getTypeFromAtom(nsAtom* aName, eType& aType) {
   uint32_t i;
-  for (i = 0; i < ArrayLength(descriptTable); ++i) {
+  for (i = 0; i < std::size(descriptTable); ++i) {
     if (aName == descriptTable[i].mName) {
       aType = static_cast<eType>(i);
 

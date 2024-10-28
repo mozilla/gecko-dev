@@ -694,12 +694,11 @@ nsCString RestyleManager::ChangeHintToString(nsChangeHint aHint) {
                          "UpdateTableCellSpans",
                          "VisibilityChange"};
   static_assert(nsChangeHint_AllHints ==
-                    static_cast<uint32_t>((1ull << ArrayLength(names)) - 1),
+                    static_cast<uint32_t>((1ull << std::size(names)) - 1),
                 "Name list doesn't match change hints.");
-  uint32_t hint =
-      aHint & static_cast<uint32_t>((1ull << ArrayLength(names)) - 1);
+  uint32_t hint = aHint & static_cast<uint32_t>((1ull << std::size(names)) - 1);
   uint32_t rest =
-      aHint & ~static_cast<uint32_t>((1ull << ArrayLength(names)) - 1);
+      aHint & ~static_cast<uint32_t>((1ull << std::size(names)) - 1);
   if ((hint & NS_STYLE_HINT_REFLOW) == NS_STYLE_HINT_REFLOW) {
     result.AppendLiteral("NS_STYLE_HINT_REFLOW");
     hint = hint & ~NS_STYLE_HINT_REFLOW;
@@ -714,7 +713,7 @@ nsCString RestyleManager::ChangeHintToString(nsChangeHint aHint) {
     hint = hint & ~NS_STYLE_HINT_VISUAL;
     any = true;
   }
-  for (uint32_t i = 0; i < ArrayLength(names); i++) {
+  for (uint32_t i = 0; i < std::size(names); i++) {
     if (hint & (1u << i)) {
       if (any) {
         result.AppendLiteral(" | ");

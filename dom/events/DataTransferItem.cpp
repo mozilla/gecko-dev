@@ -94,7 +94,7 @@ void DataTransferItem::SetData(nsIVariant* aData) {
     MOZ_ASSERT(!mType.EqualsASCII(kNativeImageMime));
 
     mKind = KIND_STRING;
-    for (uint32_t i = 0; i < ArrayLength(kFileMimeNameMap); ++i) {
+    for (uint32_t i = 0; i < std::size(kFileMimeNameMap); ++i) {
       if (mType.EqualsASCII(kFileMimeNameMap[i].mMimeName)) {
         mKind = KIND_FILE;
         break;
@@ -415,7 +415,7 @@ already_AddRefed<FileSystemEntry> DataTransferItem::GetAsEntry(
 already_AddRefed<File> DataTransferItem::CreateFileFromInputStream(
     nsIInputStream* aStream) {
   const char* key = nullptr;
-  for (uint32_t i = 0; i < ArrayLength(kFileMimeNameMap); ++i) {
+  for (uint32_t i = 0; i < std::size(kFileMimeNameMap); ++i) {
     if (mType.EqualsASCII(kFileMimeNameMap[i].mMimeName)) {
       key = kFileMimeNameMap[i].mFileName;
       break;

@@ -26,7 +26,7 @@ static constexpr nsLiteralCString kUrlClassifierFeatures[] = {
     "socialtracking-protection"_ns,
     "tracking-protection"_ns,
 };
-static_assert(ArrayLength(kUrlClassifierFeatures) > 0,
+static_assert(std::size(kUrlClassifierFeatures) > 0,
               "At least one URL classifier feature must be defined");
 
 // List of features for classifying bounce trackers that have been purged.

@@ -31,7 +31,6 @@ namespace {
 
 using namespace mozilla;
 using namespace mozilla::dom;
-using mozilla::ArrayLength;
 
 // USB HID usage tables, page 1, 0x30 = X
 const uint32_t kAxisMinimumUsageNumber = 0x30;
@@ -92,7 +91,7 @@ const struct {
                     {XINPUT_GAMEPAD_B, 1},
                     {XINPUT_GAMEPAD_X, 2},
                     {XINPUT_GAMEPAD_Y, 3}};
-const size_t kNumMappings = ArrayLength(kXIButtonMap);
+const size_t kNumMappings = std::size(kXIButtonMap);
 
 enum GamepadType { kNoGamepad = 0, kRawInputGamepad, kXInputGamepad };
 
@@ -164,7 +163,7 @@ class XInputLoader {
     // xinput1_3.dll shipped with the DirectX SDK
     const wchar_t* dlls[] = {L"xinput1_4.dll", L"xinput9_1_0.dll",
                              L"xinput1_3.dll"};
-    const size_t kNumDLLs = ArrayLength(dlls);
+    const size_t kNumDLLs = std::size(dlls);
     for (size_t i = 0; i < kNumDLLs; ++i) {
       module = LoadLibraryW(dlls[i]);
       if (module) {
@@ -229,7 +228,7 @@ double ScaleAxis(ULONG value, LONG min, LONG max) {
  * know how to handle.
  */
 bool SupportedUsage(USHORT page, USHORT usage) {
-  for (unsigned i = 0; i < ArrayLength(kUsagePages); i++) {
+  for (unsigned i = 0; i < std::size(kUsagePages); i++) {
     if (page == kUsagePages[i].usagePage && usage == kUsagePages[i].usage) {
       return true;
     }
@@ -675,7 +674,7 @@ bool WindowsGamepadService::GetRawGamepad(HANDLE handle) {
   }
   if (gamepad_name.Length() == 0 || !gamepad_name[0]) {
     const char kUnknown[] = "Unknown Gamepad";
-    gamepad_name.SetLength(ArrayLength(kUnknown));
+    gamepad_name.SetLength(std::size(kUnknown));
     strcpy_s(gamepad_name.Elements(), gamepad_name.Length(), kUnknown);
   }
 
@@ -987,8 +986,8 @@ void WindowsGamepadService::DevicesChanged(bool aIsStablizing) {
 }
 
 bool RegisterRawInput(HWND hwnd, bool enable) {
-  nsTArray<RAWINPUTDEVICE> rid(ArrayLength(kUsagePages));
-  rid.SetLength(ArrayLength(kUsagePages));
+  nsTArray<RAWINPUTDEVICE> rid(std::size(kUsagePages));
+  rid.SetLength(std::size(kUsagePages));
 
   for (unsigned i = 0; i < rid.Length(); i++) {
     rid[i].usUsagePage = kUsagePages[i].usagePage;

@@ -222,9 +222,8 @@ static mozilla::WindowsError SendDesktopTelemetryPing(
 
   const wchar_t* pingsenderArgs[] = {pingsenderPath.c_str(), url.c_str(),
                                      pingFilePath.c_str()};
-  mozilla::UniquePtr<wchar_t[]> pingsenderCmdLine(
-      mozilla::MakeCommandLine(mozilla::ArrayLength(pingsenderArgs),
-                               const_cast<wchar_t**>(pingsenderArgs)));
+  mozilla::UniquePtr<wchar_t[]> pingsenderCmdLine(mozilla::MakeCommandLine(
+      std::size(pingsenderArgs), const_cast<wchar_t**>(pingsenderArgs)));
 
   PROCESS_INFORMATION pi;
   STARTUPINFOW si = {sizeof(si)};

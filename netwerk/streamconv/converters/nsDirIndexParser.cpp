@@ -92,7 +92,7 @@ void nsDirIndexParser::ParseFormat(const char* aFormatStr) {
       }
     }
 
-  } while (*aFormatStr && (formatNum < (ArrayLength(mFormat) - 1)));
+  } while (*aFormatStr && (formatNum < (std::size(mFormat) - 1)));
 }
 
 void nsDirIndexParser::ParseData(nsIDirIndex* aIdx, char* aDataStr,

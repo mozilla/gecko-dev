@@ -1132,7 +1132,7 @@ JS_PUBLIC_API JS::ProfiledFrameRange JS::GetProfiledFrames(JSContext* cx,
 
   if (entry) {
     result.depth_ = entry->callStackAtAddr(rt, addr, result.labels_,
-                                           MOZ_ARRAY_LENGTH(result.labels_));
+                                           std::size(result.labels_));
   }
   return result;
 }

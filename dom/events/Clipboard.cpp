@@ -292,7 +292,7 @@ void Clipboard::RequestRead(Promise* aPromise, ReadRequestType aType,
         return;
       }
 
-      AutoTArray<nsCString, ArrayLength(kMandatoryDataTypes)> types;
+      AutoTArray<nsCString, std::size(kMandatoryDataTypes)> types;
       types.AppendElements(Span<const nsLiteralCString>(kMandatoryDataTypes));
 
       callback = MakeRefPtr<ClipboardGetCallbackForRead>(global, std::move(p));

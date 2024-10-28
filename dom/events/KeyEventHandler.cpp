@@ -487,7 +487,7 @@ int32_t KeyEventHandler::GetMatchingKeyCode(const nsAString& aKeyName) {
 
   uint32_t keyNameLength = keyName.Length();
   const char* keyNameStr = keyName.get();
-  for (unsigned long i = 0; i < ArrayLength(gKeyCodes) - 1; ++i) {
+  for (unsigned long i = 0; i < std::size(gKeyCodes) - 1; ++i) {
     if (keyNameLength == gKeyCodes[i].strlength &&
         !nsCRT::strcmp(gKeyCodes[i].str, keyNameStr)) {
       return gKeyCodes[i].keycode;

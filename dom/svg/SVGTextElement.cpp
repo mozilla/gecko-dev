@@ -24,12 +24,12 @@ SVGTextElement::SVGTextElement(
     : SVGTextElementBase(std::move(aNodeInfo)) {}
 
 SVGElement::EnumAttributesInfo SVGTextElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
 }
 
 SVGElement::LengthAttributesInfo SVGTextElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 //----------------------------------------------------------------------

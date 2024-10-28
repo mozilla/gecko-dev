@@ -167,7 +167,7 @@ static bool IsHeaderBlacklistedForRedirectCopy(nsHttpAtom const& aHeader) {
   };
 
   size_t unused;
-  return BinarySearchIf(blackList, 0, ArrayLength(blackList),
+  return BinarySearchIf(blackList, 0, std::size(blackList),
                         HttpAtomComparator(aHeader), &unused);
 }
 

@@ -76,7 +76,7 @@ bool FFmpegRuntimeLinker::Init() {
   // more precise error if possible.
   sLinkStatus = LinkStatus_NOT_FOUND;
 
-  for (size_t i = 0; i < ArrayLength(sLibs); i++) {
+  for (size_t i = 0; i < std::size(sLibs); i++) {
     const char* lib = sLibs[i];
     PRLibSpec lspec;
     lspec.type = PR_LibSpec_Pathname;
@@ -139,7 +139,7 @@ bool FFmpegRuntimeLinker::Init() {
   }
 
   FFMPEGV_LOG("H264/AAC codecs unsupported without [");
-  for (size_t i = 0; i < ArrayLength(sLibs); i++) {
+  for (size_t i = 0; i < std::size(sLibs); i++) {
     FFMPEGV_LOG("%s %s", i ? "," : " ", sLibs[i]);
   }
   FFMPEGV_LOG(" ]\n");

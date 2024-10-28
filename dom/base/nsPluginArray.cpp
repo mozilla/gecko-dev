@@ -36,12 +36,12 @@ nsPluginArray::nsPluginArray(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {
   mPlugins[0] = MakeRefPtr<nsPluginElement>(this, aWindow, kMainPluginName);
 
   mozilla::Array<RefPtr<nsMimeType>, 2> mimeTypes;
-  for (uint32_t i = 0; i < ArrayLength(kMimeTypeNames); ++i) {
+  for (uint32_t i = 0; i < std::size(kMimeTypeNames); ++i) {
     mimeTypes[i] = MakeRefPtr<nsMimeType>(mPlugins[0], kMimeTypeNames[i]);
   }
   mMimeTypeArray = MakeRefPtr<nsMimeTypeArray>(aWindow, mimeTypes);
 
-  for (uint32_t i = 0; i < ArrayLength(kExtraPluginNames); ++i) {
+  for (uint32_t i = 0; i < std::size(kExtraPluginNames); ++i) {
     mPlugins[i + 1] =
         MakeRefPtr<nsPluginElement>(this, aWindow, kExtraPluginNames[i]);
   }
@@ -60,7 +60,7 @@ JSObject* nsPluginArray::WrapObject(JSContext* aCx,
 }
 
 nsPluginElement* nsPluginArray::IndexedGetter(uint32_t aIndex, bool& aFound) {
-  if (!ForceNoPlugins() && aIndex < ArrayLength(mPlugins)) {
+  if (!ForceNoPlugins() && aIndex < std::size(mPlugins)) {
     aFound = true;
     return mPlugins[aIndex];
   }
