@@ -8,7 +8,7 @@ The JavaScript sources executed by the browser are often transformed in some way
 
 - JavaScript running in a page is often machine-generated, as when compiled from a language like `CoffeeScript <https://coffeescript.org/>`_ or `TypeScript <https://www.typescriptlang.org/>`_
 
-In these situations, it's much easier to debug the original source, rather than the source in the transformed state that the browser has downloaded. A `source map <https://www.html5rocks.com/en/tutorials/developertools/sourcemaps/>`_ is a file that maps from the transformed source to the original source, enabling the browser to reconstruct the original source and present the reconstructed original in the debugger.
+In these situations, it's much easier to debug the original source, rather than the source in the transformed state that the browser has downloaded. A `source map <https://web.dev/articles/source-maps>`_ is a file that maps from the transformed source to the original source, enabling the browser to reconstruct the original source and present the reconstructed original in the debugger.
 
 To enable the debugger to work with a source map, you must:
 
