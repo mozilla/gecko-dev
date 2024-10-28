@@ -104,14 +104,11 @@ class StatusBar extends Component {
     return div(
       { className: "devtools-toolbar devtools-toolbar-bottom" },
       !toolbox.isBrowserToolbox
-        ? button(
-            {
-              className: "devtools-button requests-list-network-summary-button",
-              title: TOOLTIP_PERF,
-              onClick: openStatistics,
-            },
-            div({ className: "summary-info-icon" })
-          )
+        ? button({
+            className: "devtools-button requests-list-network-summary-button",
+            title: TOOLTIP_PERF,
+            onClick: openStatistics,
+          })
         : null,
       div(
         {

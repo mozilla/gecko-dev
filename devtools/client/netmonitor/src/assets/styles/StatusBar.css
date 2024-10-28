@@ -63,17 +63,9 @@
   margin-top: 3px;
   margin-bottom: 3px;
   margin-inline-end: 1em;
-}
 
-.requests-list-network-summary-button > .summary-info-icon {
-  background: url(chrome://devtools/skin/images/profiler-stopwatch.svg) no-repeat;
-  -moz-context-properties: fill;
-  fill: var(--theme-toolbar-color);
-  width: 16px;
-  height: 16px;
-  opacity: 0.8;
-}
-
-.requests-list-network-summary-button:hover > .summary-info-icon {
-  opacity: 1;
+  &::before {
+    background-image: url(chrome://devtools/skin/images/profiler-stopwatch.svg);
+    fill: var(--theme-icon-color);
+  }
 }
