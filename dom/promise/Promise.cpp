@@ -108,8 +108,13 @@ already_AddRefed<Promise> Promise::CreateInfallible(
   RefPtr<Promise> p = new Promise(aGlobal);
   IgnoredErrorResult rv;
   p->CreateWrapper(rv, aPropagateUserInteraction);
-  if (rv.Failed() && rv.ErrorCodeIs(NS_ERROR_OUT_OF_MEMORY)) {
-    MOZ_CRASH("Out of memory");
+  if (rv.Failed()) {
+    if (rv.ErrorCodeIs(NS_ERROR_OUT_OF_MEMORY)) {
+      NS_ABORT_OOM(0);  // (0 meaning unknown size)
+    }
+    if (rv.ErrorCodeIs(NS_ERROR_NOT_INITIALIZED)) {
+      MOZ_CRASH("Failed to create promise wrapper for unknown non-OOM reason");
+    }
   }
 
   // We may have failed to init the wrapper here, because nsIGlobalObject had
@@ -292,8 +297,10 @@ void Promise::CreateWrapper(
   JSContext* cx = jsapi.cx();
   mPromiseObj = JS::NewPromiseObject(cx, nullptr);
   if (!mPromiseObj) {
+    nsresult error = JS_IsThrowingOutOfMemory(cx) ? NS_ERROR_OUT_OF_MEMORY
+                                                  : NS_ERROR_NOT_INITIALIZED;
     JS_ClearPendingException(cx);
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    aRv.Throw(error);
     return;
   }
   if (aPropagateUserInteraction == ePropagateUserInteraction) {
