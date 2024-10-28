@@ -7829,6 +7829,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                   "missed fastpath: constructor called without `new`\n");
               break;
             }
+            if (constructing && !func->isConstructor()) {
+              TRACE_PRINTF(
+                  "missed fastpath: constructing with a non-constructor\n");
+              break;
+            }
             if (!func->baseScript()->hasBytecode()) {
               TRACE_PRINTF("missed fastpath: no bytecode\n");
               break;
