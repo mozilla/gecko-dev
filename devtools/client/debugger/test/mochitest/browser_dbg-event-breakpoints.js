@@ -28,7 +28,7 @@ add_task(async function () {
   );
   is(
     whyPaused,
-    `Paused on event breakpoint\nDOM 'click' event`,
+    `Paused on event breakpoint\nclickTargetClicked - event-breakpoints.js:12:2\nDOM 'click' event`,
     "whyPaused does state that the debugger is paused as a result of a click event breakpoint"
   );
   await resume(dbg);

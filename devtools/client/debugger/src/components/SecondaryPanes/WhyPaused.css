@@ -6,15 +6,24 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border-bottom: 1px solid var(--theme-splitter-color);
   background-color: var(--paused-background-color);
   color: var(--paused-color);
   font-size: 12px;
   cursor: default;
-  min-height: 44px;
-  padding: 6px;
   white-space: normal;
   font-weight: bold;
+
+  &:not(.hidden) {
+    min-height: 44px;
+    border-bottom: 1px solid var(--theme-splitter-color);
+    padding: 6px;
+  }
+
+  /* The component is always rendered as it's an aria live region and always need to
+     be in the DOM for it to properly announce changes */
+  &.hidden {
+    opacity: 0;
+  }
 }
 
 .why-paused > div {
@@ -36,18 +45,18 @@
   padding-right: 4px;
 }
 
-.why-paused .message {
-  font-style: italic;
-  font-weight: 100;
+.why-paused .location {
+  color: var(--paused-color);
+  padding-block: 2px;
 }
 
-.why-paused .mutationNode {
-  font-weight: normal;
-}
-
-.why-paused .message.warning {
-  color: var(--theme-graphs-full-red);
+.why-paused :is(.location, .message, .mutationNode) {
   font-family: var(--monospace-font-family);
+  font-weight: normal;
   font-size: 10px;
+}
+
+.why-paused .message.error {
+  color: var(--paused-error-color);
   font-style: normal;
 }

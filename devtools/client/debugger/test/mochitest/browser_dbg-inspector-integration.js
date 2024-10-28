@@ -22,13 +22,13 @@ add_task(async function () {
   // expression, which can break synthesizeMouseAtCenter. So here we wait for the
   // whyPaused element to be displayed then hidden before testing the highlight feature.
   const onWhyPausedDisplayed = waitUntil(() =>
-    dbg.win.document.querySelector(".why-paused")
+    dbg.win.document.querySelector(".why-paused:not(.hidden)")
   );
   await addExpression(dbg, "window.document.querySelector('button')");
   // TODO: Remove when Bug 1562165 lands.
   await onWhyPausedDisplayed;
   // TODO: Remove when Bug 1562165 lands.
-  await waitUntil(() => !dbg.win.document.querySelector(".why-paused"));
+  await waitUntil(() => dbg.win.document.querySelector(".why-paused.hidden"));
 
   info(
     "Check that hovering over DOM element highlights the node in content panel"

@@ -26,6 +26,7 @@
   --theme-inline-preview-label-trace-background: light-dark(rgb(244, 230, 255), #3f2e5f);
   --paused-background-color: light-dark(hsl(54, 100%, 92%), hsl(42, 37%, 19%));
   --paused-color: light-dark(var(--theme-body-color), hsl(43, 94%, 81%));
+  --paused-error-color: light-dark(var(--red-70), var(--red-20));
 }
 
 /* Animations */

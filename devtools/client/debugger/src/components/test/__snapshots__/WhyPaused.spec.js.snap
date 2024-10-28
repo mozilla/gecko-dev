@@ -5,6 +5,7 @@ exports[`WhyPaused should pause reason with message 1`] = `
   bundles={Array []}
 >
   <div
+    aria-live="polite"
     className="pane why-paused"
   >
     <div>
@@ -33,9 +34,14 @@ exports[`WhyPaused should pause reason with message 1`] = `
 `;
 
 exports[`WhyPaused should show an empty div when there is no pause reason 1`] = `
-<div
-  className=""
-/>
+<LocalizationProvider
+  bundles={Array []}
+>
+  <div
+    aria-live="polite"
+    className="pane why-paused hidden"
+  />
+</LocalizationProvider>
 `;
 
 exports[`WhyPaused should show pause reason with exception details 1`] = `
@@ -43,6 +49,7 @@ exports[`WhyPaused should show pause reason with exception details 1`] = `
   bundles={Array []}
 >
   <div
+    aria-live="polite"
     className="pane why-paused"
   >
     <div>
@@ -60,7 +67,7 @@ exports[`WhyPaused should show pause reason with exception details 1`] = `
           id="whypaused-exception"
         />
         <div
-          className="message warning"
+          className="message error"
         >
           ReferenceError: o is not defined
         </div>
@@ -75,6 +82,7 @@ exports[`WhyPaused should show pause reason with exception string 1`] = `
   bundles={Array []}
 >
   <div
+    aria-live="polite"
     className="pane why-paused"
   >
     <div>
@@ -92,7 +100,7 @@ exports[`WhyPaused should show pause reason with exception string 1`] = `
           id="whypaused-exception"
         />
         <div
-          className="message warning"
+          className="message error"
         >
           Not Available
         </div>

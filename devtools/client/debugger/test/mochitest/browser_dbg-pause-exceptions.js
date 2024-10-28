@@ -35,7 +35,10 @@ add_task(async function () {
   const whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
   );
-  is(whyPaused, `Paused on exception\nunreachable`);
+  is(
+    whyPaused,
+    `Paused on exception\nuncaughtException - exceptions.js:2:2\nunreachable`
+  );
 
   await resume(dbg);
 
