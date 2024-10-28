@@ -155,7 +155,7 @@ class AppLinksInterceptor(
                 launchFromInterceptor &&
                 result is RequestInterceptor.InterceptionResponse.AppIntent
             ) {
-                handleAppIntent(tabSessionState, uri, redirect.appIntent)
+                handleIntent(tabSessionState, uri, redirect.appIntent, redirect.marketplaceIntent)
                 return null
             }
 
@@ -226,33 +226,41 @@ class AppLinksInterceptor(
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal fun handleAppIntent(
+    internal fun handleIntent(
         sessionState: SessionState?,
         url: String,
         appIntent: Intent?,
+        marketingIntent: Intent?,
     ) {
-        if (appIntent == null) {
-            return
+        var isAuthenticationFlow = false
+
+        val targetIntent = when {
+            appIntent != null -> {
+                // Without fragment manager we are unable to prompt
+                // Only non private tabs can be redirected to external app without prompt
+                // Authentication flow should not prompt
+                isAuthenticationFlow =
+                    sessionState?.let { isAuthentication(sessionState, appIntent) } == true
+                appIntent
+            }
+            marketingIntent != null -> marketingIntent
+            else -> return
         }
+
         val fragmentManager = fragmentManager
 
         val isPrivate = sessionState?.content?.private == true
         val doNotOpenApp = {
-            addUserDoNotIntercept(url, appIntent, sessionState?.id)
+            addUserDoNotIntercept(url, targetIntent, sessionState?.id)
         }
 
         val doOpenApp = {
             useCases.openAppLink(
-                appIntent,
+                targetIntent,
                 failedToLaunchAction = failedToLaunchAction,
             )
         }
 
-        // Without fragment manager we are unable to prompt
-        // Only non private tabs we can redirect to external app without prompt
-        // Authentication flow should not prompt
-        val isAuthenticationFlow =
-            sessionState?.let { isAuthentication(sessionState, appIntent) } == true
         val shouldShowPrompt = isPrivate || shouldPrompt()
         if (fragmentManager == null || !shouldShowPrompt || isAuthenticationFlow) {
             doOpenApp()
