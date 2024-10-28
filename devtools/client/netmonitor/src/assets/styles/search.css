@@ -29,7 +29,7 @@
 
 /* Color for resource label */
 .search-panel .resourceCell {
-  color: var(--theme-text-color-inactive);
+  color: var(--theme-text-color-alt);
 }
 
 .search-panel .treeTable tbody {

@@ -128,7 +128,7 @@
   background-repeat: no-repeat;
   background-size: contain;
   -moz-context-properties: fill;
-  fill: var(--theme-text-color-inactive);
+  fill: var(--theme-icon-dimmed-color);
 }
 
 .computed-other-property-value:dir(rtl)::before {

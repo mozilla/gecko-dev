@@ -19,12 +19,6 @@ html[dir="rtl"] .command-bar {
   flex-grow: 1;
 }
 
-.command-bar .step-position {
-  color: var(--theme-text-color-inactive);
-  padding-top: 8px;
-  margin-inline-end: 4px;
-}
-
 .command-bar .divider {
   width: 1px;
   background: var(--theme-splitter-color);

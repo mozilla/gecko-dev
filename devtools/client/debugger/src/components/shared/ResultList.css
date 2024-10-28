@@ -115,7 +115,7 @@
 }
 
 .theme-dark .result-list.big li .subtitle {
-  color: var(--theme-text-color-inactive);
+  color: var(--theme-text-color-alt);
 }
 
 .search-bar .result-list li.selected .subtitle {
