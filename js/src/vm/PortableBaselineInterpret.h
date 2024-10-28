@@ -335,6 +335,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                     StackVal* sp, JSObject* envChain,
                                     Value* ret, jsbytecode* pc,
                                     ImmutableScriptData* isd,
+                                    jsbytecode* restartEntryPC,
                                     jit::BaselineFrame* restartFrame,
                                     StackVal* restartEntryFrame,
                                     PBIResult restartCode);
