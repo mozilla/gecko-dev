@@ -5989,6 +5989,13 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
     goto error;                \
   } while (0)
 
+  // Update local state when we switch to a new script with a new PC.
+#define RESET_PC(new_pc, new_script)          \
+  pc = new_pc;                                \
+  isd = new_script->immutableScriptData();    \
+  icEntries = frame->icScript()->icEntries(); \
+  icEntry = frame->interpreterICEntry();
+
 #define OPCODE_LABEL(op, ...) LABEL(op),
 #define TRAILING_LABEL(v) LABEL(default),
 
@@ -7929,11 +7936,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             frame = newFrame;
             ctx.frameMgr.switchToFrame(frame);
             ctx.frame = frame;
-            icEntries = frame->icScript()->icEntries();
-            icEntry = frame->interpreterICEntry();
             // 6. Set up PC and SP for callee.
             sp = reinterpret_cast<StackVal*>(frame);
-            pc = calleeScript->code();
+            RESET_PC(calleeScript->code(), calleeScript);
             // 7. Check callee stack space for max stack depth.
             if (!stack.check(sp, sizeof(StackVal) * calleeScript->nslots())) {
               PUSH_EXIT_FRAME();
@@ -8447,10 +8452,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                        frame);
           ctx.frameMgr.switchToFrame(frame);
           ctx.frame = frame;
-          pc = frame->interpreterPC();
-          isd = frame->script()->immutableScriptData();
-          icEntries = frame->icScript()->icEntries();
-          icEntry = frame->interpreterICEntry();
+          RESET_PC(frame->interpreterPC(), frame->script());
 
           // Adjust caller's stack to complete the call op that PC still points
           // to in that frame (pop args, push return value).
@@ -9124,14 +9126,14 @@ error:
         ctx.stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         goto unwind_error;
       case ExceptionResumeKind::Catch:
-        pc = frame->interpreterPC();
+        RESET_PC(frame->interpreterPC(), frame->script());
         ctx.stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
         ctx.stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
         ctx.stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
         TRACE_PRINTF(" -> catch to pc %p\n", pc);
         goto unwind;
       case ExceptionResumeKind::Finally:
-        pc = frame->interpreterPC();
+        RESET_PC(frame->interpreterPC(), frame->script());
         ctx.stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
         sp = reinterpret_cast<StackVal*>(rfe.stackPointer);
         TRACE_PRINTF(" -> finally to pc %p\n", pc);
@@ -9142,7 +9144,7 @@ error:
         ctx.stack.unwindingFP = ctx.stack.fp;
         goto unwind;
       case ExceptionResumeKind::ForcedReturnBaseline:
-        pc = frame->interpreterPC();
+        RESET_PC(frame->interpreterPC(), frame->script());
         ctx.stack.fp = reinterpret_cast<StackVal*>(rfe.framePointer);
         ctx.stack.unwindingSP = reinterpret_cast<StackVal*>(rfe.stackPointer);
         ctx.stack.unwindingFP = reinterpret_cast<StackVal*>(rfe.framePointer);
@@ -9197,10 +9199,7 @@ unwind:
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
-  icEntries = frame->icScript()->icEntries();
-  icEntry = frame->interpreterICEntry();
-  pc = frame->interpreterPC();
-  isd = frame->script()->immutableScriptData();
+  RESET_PC(frame->interpreterPC(), frame->script());
   DISPATCH();
 unwind_error:
   TRACE_PRINTF("unwind_error: fp = %p entryFrame = %p\n", ctx.stack.fp,
@@ -9220,10 +9219,7 @@ unwind_error:
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
-  icEntries = frame->icScript()->icEntries();
-  icEntry = frame->interpreterICEntry();
-  pc = frame->interpreterPC();
-  isd = frame->script()->immutableScriptData();
+  RESET_PC(frame->interpreterPC(), frame->script());
   goto error;
 unwind_ret:
   TRACE_PRINTF("unwind_ret: fp = %p entryFrame = %p\n", ctx.stack.fp,
@@ -9244,10 +9240,7 @@ unwind_ret:
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
-  icEntries = frame->icScript()->icEntries();
-  icEntry = frame->interpreterICEntry();
-  pc = frame->interpreterPC();
-  isd = frame->script()->immutableScriptData();
+  RESET_PC(frame->interpreterPC(), frame->script());
   from_unwind = true;
   goto do_return;
 
@@ -9260,7 +9253,7 @@ debug:;
       TRACE_PRINTF("HandleDebugTrap returned error\n");
       goto error;
     }
-    pc = frame->interpreterPC();
+    RESET_PC(frame->interpreterPC(), frame->script());
     TRACE_PRINTF("HandleDebugTrap done\n");
   }
   goto dispatch;
