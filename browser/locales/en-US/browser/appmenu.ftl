@@ -120,9 +120,12 @@ appmenu-fxa-sync-and-save-data2 = Sync and save data
 appmenu-fxa-signed-in-label = Sign In
 appmenu-fxa-setup-sync =
     .label = Turn On Syncing…
-
+appmenu-fxa-setup-sync-new = Turn On
 appmenuitem-save-page =
     .label = Save page as…
+
+appmenuitem-fxa-sync-off-title = Sync is off
+appmenuitem-fxa-sync-off-description = Protect and access your bookmarks, passwords, and more anywhere.
 
 ## What's New panel in App menu.
 

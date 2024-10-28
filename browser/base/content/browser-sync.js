@@ -792,6 +792,9 @@ var gSync = {
       case "PanelUI-fxa-menu-setup-sync-button":
         this.openPrefsFromFxaMenu("sync_settings", button);
         break;
+      case "PanelUI-fxa-menu-setup-sync-button-new":
+        this.openChooseWhatToSync("sync_settings", button);
+        break;
 
       case "PanelUI-fxa-menu-sendtab-connect-device-button":
       // fall through
@@ -1118,9 +1121,14 @@ var gSync = {
       "PanelUI-fxa-menu-connect-device-button"
     );
 
-    const syncSetupButtonEl = PanelMultiView.getViewNode(
+    const isNewSyncSetupFlowEnabled =
+      NimbusFeatures.syncDecouplingUpdates.getVariable("syncSetup");
+
+    const syncSetupEl = PanelMultiView.getViewNode(
       document,
-      "PanelUI-fxa-menu-setup-sync-button"
+      isNewSyncSetupFlowEnabled
+        ? "PanelUI-fxa-menu-setup-sync-container"
+        : "PanelUI-fxa-menu-setup-sync-button"
     );
 
     const syncNowButtonEl = PanelMultiView.getViewNode(
@@ -1139,11 +1147,11 @@ var gSync = {
     );
 
     cadButtonEl.setAttribute("disabled", true);
+    cadButtonEl.hidden = isNewSyncSetupFlowEnabled;
     syncNowButtonEl.hidden = true;
     signedInContainer.hidden = true;
     fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
     fxaMenuAccountButtonEl.removeAttribute("closemenu");
-    syncSetupButtonEl.removeAttribute("hidden");
 
     let headerTitleL10nId = this.FXA_CTA_MENU_ENABLED
       ? "synced-tabs-fxa-sign-in"
@@ -1199,8 +1207,8 @@ var gSync = {
 
       if (state.syncEnabled) {
         syncNowButtonEl.removeAttribute("hidden");
-        syncSetupButtonEl.hidden = true;
       }
+      syncSetupEl.setAttribute("hidden", state.syncEnabled);
 
       headerTitleL10nId = "appmenuitem-fxa-manage-account";
       headerDescription = state.displayName || state.email;
@@ -2131,10 +2139,10 @@ var gSync = {
     this.emitFxaToolbarTelemetry("sync_now", sourceElement);
   },
 
-  openPrefs(entryPoint = "syncbutton", origin = undefined) {
+  openPrefs(entryPoint = "syncbutton", origin = undefined, urlParams = {}) {
     window.openPreferences("paneSync", {
       origin,
-      urlParams: { entrypoint: entryPoint },
+      urlParams: { ...urlParams, entrypoint: entryPoint },
     });
   },
 
@@ -2142,6 +2150,12 @@ var gSync = {
     this.emitFxaToolbarTelemetry(type, sourceElement);
     let entryPoint = this._getEntryPointForElement(sourceElement);
     this.openPrefs(entryPoint);
+  },
+
+  openChooseWhatToSync(type, sourceElement) {
+    this.emitFxaToolbarTelemetry(type, sourceElement);
+    let entryPoint = this._getEntryPointForElement(sourceElement);
+    this.openPrefs(entryPoint, null, { action: "choose-what-to-sync" });
   },
 
   openSyncedTabsPanel() {

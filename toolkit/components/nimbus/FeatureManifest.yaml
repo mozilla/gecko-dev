@@ -2692,6 +2692,16 @@ fxaButtonVisibility:
         branch: user
         pref: identity.fxaccounts.toolbar.pxiToolbarEnabled.vpnEnabled
 
+syncDecouplingUpdates:
+  description: Prefs to control the updated Mozilla account panel flow for users without sync enabled.
+  owner: skhamis@mozilla.com
+  hasExposure: false
+  variables:
+    syncSetup:
+      description: True if we should show the user the updated sync set-up UI
+      type: boolean
+      fallbackPref: identity.fxaccounts.toolbar.syncSetup.enabled
+
 fxaClientAssociation:
   description: Prefs to control the client association ping.
   owner: mconley@mozilla.com

@@ -615,6 +615,7 @@
       <toolbarbutton id="PanelUI-fxa-menu-setup-sync-button"
                       class="subviewbutton"
                       data-l10n-id="appmenu-fxa-setup-sync"
+                      hidden="true"
                       />
       <!-- The `Connect Another Device` button is disabled by default until the user logs into Sync. -->
       <toolbarbutton id="PanelUI-fxa-menu-connect-device-button"
@@ -622,6 +623,26 @@
                       data-l10n-id="fxa-menu-connect-another-device"
                       disabled="true"
                       />
+      <vbox id="PanelUI-fxa-menu-setup-sync-container" hidden="true">
+        <toolbarseparator id="PanelUI-set-up-sync-separator" />
+        <vbox class="PanelUI-fxa-menu-setup-sync" flex="1">
+          <hbox class="sync-status-container" align="center">
+            <image class="sync-status-indicator" role="presentation"/>
+            <image class="sync-setup-icon" alt="Sync Status Icon" />
+            <label id="sync-status-text"
+                  class="sync-setup-title"
+                  data-l10n-id="appmenuitem-fxa-sync-off-title"
+                  crop="end" />
+          </hbox>
+          <label id="sync-description-text"
+                class="sync-setup-description"
+                data-l10n-id="appmenuitem-fxa-sync-off-description"
+                crop="end"/>
+          <toolbarbutton id="PanelUI-fxa-menu-setup-sync-button-new"
+                  class="subviewbutton"
+                  data-l10n-id="appmenu-fxa-setup-sync-new"/>
+        </vbox>
+    </vbox>
       <toolbarbutton id="PanelUI-fxa-menu-sendtab-button"
                       class="subviewbutton subviewbutton-nav"
                       data-l10n-id="fxa-menu-send-tab-to-device"

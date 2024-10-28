@@ -746,6 +746,63 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   }
 }
 
+.PanelUI-fxa-menu-setup-sync {
+  padding: 16px;
+}
+
+.sync-setup-icon,
+.sync-status-indicator {
+  width: 20px;
+  height: 20px;
+  box-shadow: none;
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+.sync-setup-icon {
+  list-style-image: url("chrome://browser/skin/sync-off.svg");
+}
+
+.sync-status-indicator {
+  background: url("chrome://browser/skin/notification-fill-12.svg") no-repeat center;
+  margin-inline-end: var(--space-xsmall);
+  fill: var(--warning-icon-bgcolor);
+  background-size: 18px;
+}
+
+.sync-setup-title {
+  font-size: 1.1em;
+  font-weight: 400;
+  margin-block: auto;
+}
+
+.sync-setup-description {
+  padding: var(--space-large) 0;
+}
+
+#PanelUI-fxa-menu-setup-sync-button-new,
+.sync-status-container {
+  margin-inline-start: var(--space-small);
+}
+
+#PanelUI-fxa-menu-setup-sync-button-new {
+  padding: 6px 12px;
+  background-color: var(--button-background-color);
+  font-size: 0.9em;
+  font-weight: 500;
+  max-width: fit-content;
+  border-radius: var(--button-border-radius);
+
+  &:hover {
+    background-color: var(--button-background-color-hover);
+  }
+
+  &:hover:active {
+    background-color: var(--button-background-color-active);
+  }
+}
+
+
 /* Firefox Account Toolbar Panel */
 
 #fxa-avatar-image {
