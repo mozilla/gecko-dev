@@ -23,6 +23,8 @@
 #include "NotifyRankingChanged.h"
 
 #include "mozilla/storage.h"
+#include "mozIStorageResultSet.h"
+#include "mozIStorageRow.h"
 #include "mozilla/dom/Link.h"
 #include "nsDocShellCID.h"
 #include "mozilla/Components.h"
@@ -394,15 +396,40 @@ class VisitedQuery final : public AsyncStatementCallback {
  public:
   NS_DECL_ISUPPORTS_INHERITED
 
-  static nsresult Start(nsIURI* aURI,
-                        History::ContentParentSet&& aContentProcessesToNotify) {
-    MOZ_ASSERT(aURI, "Null URI");
+  struct VisitedUrlInfo {
+    VisitedUrlInfo(nsCOMPtr<nsIURI>&& aURI,
+                   History::ContentParentSet&& aContentParentSet)
+        : mURI(std::move(aURI)),
+          mContentParentSet(std::move(aContentParentSet)) {}
+    nsCOMPtr<nsIURI> mURI;
+    bool mIsVisited{};
+    History::ContentParentSet mContentParentSet;
+  };
+
+  using PendingVisitedQueries =
+      nsTHashMap<nsURIHashKey, History::ContentParentSet>;
+
+  using VisitedUrlsToContentParentSet =
+      nsTHashMap<nsCStringHashKey, VisitedUrlInfo>;
+
+  static nsresult Start(PendingVisitedQueries&& aURIsToContentParentSet) {
     MOZ_ASSERT(XRE_IsParentProcess());
+    MOZ_ASSERT(NS_IsMainThread());
 
     History* history = History::GetService();
     NS_ENSURE_STATE(history);
-    RefPtr<VisitedQuery> query =
-        new VisitedQuery(aURI, std::move(aContentProcessesToNotify));
+
+    VisitedUrlsToContentParentSet urls(aURIsToContentParentSet.Count());
+    for (auto& origEntry : aURIsToContentParentSet) {
+      auto& data = *origEntry.GetModifiableData();
+      nsCOMPtr<nsIURI> URI = origEntry.GetKey();
+      nsAutoCString spec;
+      if (NS_SUCCEEDED(URI->GetSpec(spec))) {
+        VisitedUrlInfo info = VisitedUrlInfo(std::move(URI), std::move(data));
+        urls.InsertOrUpdate(spec, std::move(info));
+      }
+    }
+    RefPtr<VisitedQuery> query = new VisitedQuery(std::move(urls));
     return history->QueueVisitedStatement(std::move(query));
   }
 
@@ -410,6 +437,7 @@ class VisitedQuery final : public AsyncStatementCallback {
                         mozIVisitedStatusCallback* aCallback = nullptr) {
     MOZ_ASSERT(aURI, "Null URI");
     MOZ_ASSERT(XRE_IsParentProcess());
+    MOZ_ASSERT(NS_IsMainThread());
 
     nsMainThreadPtrHandle<mozIVisitedStatusCallback> callback(
         new nsMainThreadPtrHolder<mozIVisitedStatusCallback>(
@@ -417,33 +445,45 @@ class VisitedQuery final : public AsyncStatementCallback {
 
     History* history = History::GetService();
     NS_ENSURE_STATE(history);
-    RefPtr<VisitedQuery> query = new VisitedQuery(aURI, callback);
+    VisitedUrlsToContentParentSet urls;
+    nsAutoCString spec;
+    if (NS_SUCCEEDED(aURI->GetSpec(spec))) {
+      nsCOMPtr<nsIURI> uri = aURI;
+      VisitedUrlInfo info =
+          VisitedUrlInfo(std::move(uri), History::ContentParentSet());
+      urls.InsertOrUpdate(spec, std::move(info));
+    }
+    RefPtr<VisitedQuery> query = new VisitedQuery(std::move(urls), callback);
     return history->QueueVisitedStatement(std::move(query));
   }
 
   void Execute(mozIStorageAsyncStatement& aStatement) {
-    // Bind by index for performance.
-    nsresult rv = URIBinder::Bind(&aStatement, 0, mURI);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-
+    nsTArray<nsCString> urls =
+        ToTArray<nsTArray<nsCString>>(mUrlsToContentParentSet.Keys());
+    MOZ_ALWAYS_SUCCEEDS(aStatement.BindArrayOfUTF8StringsByIndex(0, urls));
     nsCOMPtr<mozIStoragePendingStatement> handle;
-    rv = aStatement.ExecuteAsync(this, getter_AddRefs(handle));
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    Unused << rv;
+    MOZ_ALWAYS_SUCCEEDS(aStatement.ExecuteAsync(this, getter_AddRefs(handle)));
   }
 
-  NS_IMETHOD HandleResult(mozIStorageResultSet* aResults) override {
-    // If this method is called, we've gotten results, which means we have a
-    // visit.
-    mIsVisited = true;
+  NS_IMETHOD HandleResult(mozIStorageResultSet* aResultSet) override {
+    nsCOMPtr<mozIStorageRow> row;
+    while (NS_SUCCEEDED(aResultSet->GetNextRow(getter_AddRefs(row))) && row) {
+      nsAutoCString spec;
+      nsresult rv = row->GetUTF8String(0, spec);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        // Ignore this error and continue updating others.
+        continue;
+      }
+      if (auto entry = mUrlsToContentParentSet.Lookup(spec)) {
+        entry.Data().mIsVisited = !!row->AsInt64(1);
+      }
+    }
     return NS_OK;
   }
 
-  NS_IMETHOD HandleError(mozIStorageError* aError) override {
-    // mIsVisited is already set to false, and that's the assumption we will
-    // make if an error occurred.
+  NS_IMETHOD
+  HandleError(mozIStorageError* aError) override {
+    // We'll assume unvisited, that is the default value.
     return NS_OK;
   }
 
@@ -457,34 +497,38 @@ class VisitedQuery final : public AsyncStatementCallback {
   void NotifyVisitedStatus() {
     // If an external handling callback is provided, just notify through it.
     if (mCallback) {
-      mCallback->IsVisited(mURI, mIsVisited);
+      MOZ_DIAGNOSTIC_ASSERT(
+          mUrlsToContentParentSet.Count() == 1,
+          "Should only have 1 URI when a callback is provided");
+      const auto iter = mUrlsToContentParentSet.ConstIter();
+      if (!iter.Done()) {
+        const VisitedUrlInfo& info = iter.Data();
+        mCallback->IsVisited(info.mURI, info.mIsVisited);
+      }
       return;
     }
 
     if (History* history = History::GetService()) {
-      auto status = mIsVisited ? IHistory::VisitedStatus::Visited
-                               : IHistory::VisitedStatus::Unvisited;
-      history->NotifyVisited(mURI, status, &mContentProcessesToNotify);
+      for (const auto& entry : mUrlsToContentParentSet) {
+        const VisitedUrlInfo& info = entry.GetData();
+        auto status = info.mIsVisited ? IHistory::VisitedStatus::Visited
+                                      : IHistory::VisitedStatus::Unvisited;
+        history->NotifyVisited(info.mURI, status, &info.mContentParentSet);
+      }
     }
   }
 
  private:
-  explicit VisitedQuery(
-      nsIURI* aURI,
-      const nsMainThreadPtrHandle<mozIVisitedStatusCallback>& aCallback)
-      : mURI(aURI), mCallback(aCallback) {}
-
-  explicit VisitedQuery(nsIURI* aURI,
-                        History::ContentParentSet&& aContentProcessesToNotify)
-      : mURI(aURI),
-        mContentProcessesToNotify(std::move(aContentProcessesToNotify)) {}
+  explicit VisitedQuery(VisitedUrlsToContentParentSet&& aUrlsToContentParentSet,
+                        const nsMainThreadPtrHandle<mozIVisitedStatusCallback>&
+                            aCallback = nullptr)
+      : mUrlsToContentParentSet(std::move(aUrlsToContentParentSet)),
+        mCallback(aCallback) {}
 
   ~VisitedQuery() = default;
 
-  nsCOMPtr<nsIURI> mURI;
+  VisitedUrlsToContentParentSet mUrlsToContentParentSet;
   nsMainThreadPtrHandle<mozIVisitedStatusCallback> mCallback;
-  History::ContentParentSet mContentProcessesToNotify;
-  bool mIsVisited = false;
 };
 
 NS_IMPL_ISUPPORTS_INHERITED0(VisitedQuery, AsyncStatementCallback)
@@ -1023,7 +1067,7 @@ class InsertVisitedURIs final : public Runnable {
 #ifdef DEBUG
     for (nsTArray<VisitData>::size_type i = 0; i < mPlaces.Length(); i++) {
       nsCOMPtr<nsIURI> uri;
-      MOZ_ASSERT(NS_SUCCEEDED(NS_NewURI(getter_AddRefs(uri), mPlaces[i].spec)));
+      MOZ_ALWAYS_SUCCEEDS((NS_NewURI(getter_AddRefs(uri), mPlaces[i].spec)));
       MOZ_ASSERT(CanAddURI(uri),
                  "Passed a VisitData with a URI we cannot add to history!");
     }
@@ -1522,14 +1566,18 @@ class ConcurrentStatementsHolder final : public mozIStorageCompletionCallback {
     // Now we can create our cached statements.
 
     if (!mIsVisitedStatement) {
+      // Bind by index to save a name lookup.
       (void)mReadOnlyDBConn->CreateAsyncStatement(
-          nsLiteralCString("SELECT 1 FROM moz_places h "
-                           "WHERE url_hash = hash(?1) AND url = ?1 AND "
-                           "last_visit_date NOTNULL "),
+          nsLiteralCString("WITH urls (url, url_hash) AS ( "
+                           "  SELECT value, hash(value) FROM carray(?1) "
+                           ") "
+                           "SELECT url, last_visit_date NOTNULL "
+                           "FROM moz_places "
+                           "JOIN urls USING(url_hash, url) "),
           getter_AddRefs(mIsVisitedStatement));
       MOZ_ASSERT(mIsVisitedStatement);
-      auto queries = std::move(mVisitedQueries);
       if (mIsVisitedStatement) {
+        auto queries = std::move(mVisitedQueries);
         for (auto& query : queries) {
           query->Execute(*mIsVisitedStatement);
         }
@@ -1539,11 +1587,12 @@ class ConcurrentStatementsHolder final : public mozIStorageCompletionCallback {
     return NS_OK;
   }
 
-  void QueueVisitedStatement(RefPtr<VisitedQuery> aCallback) {
+  void QueueVisitedStatement(RefPtr<VisitedQuery>&& aVisitedQuery) {
     if (mIsVisitedStatement) {
-      aCallback->Execute(*mIsVisitedStatement);
+      RefPtr<VisitedQuery> query = std::move(aVisitedQuery);
+      query->Execute(*mIsVisitedStatement);
     } else {
-      mVisitedQueries.AppendElement(std::move(aCallback));
+      mVisitedQueries.AppendElement(aVisitedQuery);
     }
   }
 
@@ -1553,11 +1602,9 @@ class ConcurrentStatementsHolder final : public mozIStorageCompletionCallback {
       mVisitedQueries.Clear();
       DebugOnly<nsresult> rv;
       if (mIsVisitedStatement) {
-        rv = mIsVisitedStatement->Finalize();
-        MOZ_ASSERT(NS_SUCCEEDED(rv));
+        MOZ_ALWAYS_SUCCEEDS(mIsVisitedStatement->Finalize());
       }
-      rv = mReadOnlyDBConn->AsyncClose(nullptr);
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
+      MOZ_ALWAYS_SUCCEEDS(mReadOnlyDBConn->AsyncClose(nullptr));
       mReadOnlyDBConn = nullptr;
     }
   }
@@ -1573,7 +1620,7 @@ class ConcurrentStatementsHolder final : public mozIStorageCompletionCallback {
 
 NS_IMPL_ISUPPORTS(ConcurrentStatementsHolder, mozIStorageCompletionCallback)
 
-nsresult History::QueueVisitedStatement(RefPtr<VisitedQuery> aQuery) {
+nsresult History::QueueVisitedStatement(RefPtr<VisitedQuery>&& aQuery) {
   MOZ_ASSERT(NS_IsMainThread());
   if (IsShuttingDown()) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -2436,13 +2483,7 @@ void History::StartPendingVisitedQueries(PendingVisitedQueries&& aQueries) {
       Unused << cpc->SendStartVisitedQueries(uris);
     }
   } else {
-    // TODO(bug 1594368): We could do a single query, as long as we can
-    // then notify each URI individually.
-    for (auto& entry : aQueries) {
-      nsresult queryStatus = VisitedQuery::Start(
-          entry.GetKey(), std::move(*entry.GetModifiableData()));
-      Unused << NS_WARN_IF(NS_FAILED(queryStatus));
-    }
+    VisitedQuery::Start(std::move(aQueries));
   }
 }
 
