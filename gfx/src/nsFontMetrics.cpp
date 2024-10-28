@@ -120,9 +120,6 @@ nsFontMetrics::nsFontMetrics(const nsFont& aFont, const Params& aParams,
       mP2A(aContext->DeviceContext()->AppUnitsPerDevPixel()),
       mOrientation(aParams.orientation),
       mExplicitLanguage(aParams.explicitLanguage),
-#ifdef XP_WIN
-      mAllowForceGDIClassic(aParams.allowForceGDIClassic),
-#endif
       mTextRunRTL(false),
       mVertical(false),
       mTextOrientation(mozilla::StyleTextOrientation::Mixed) {
@@ -130,9 +127,6 @@ nsFontMetrics::nsFontMetrics(const nsFont& aFont, const Params& aParams,
                      gfxFloat(aFont.size.ToAppUnits()) / mP2A, aFont.sizeAdjust,
                      aFont.family.is_system_font,
                      aContext->DeviceContext()->IsPrinterContext(),
-#ifdef XP_WIN
-                     mAllowForceGDIClassic,
-#endif
                      aFont.synthesisWeight == StyleFontSynthesis::Auto,
                      aFont.synthesisStyle == StyleFontSynthesis::Auto,
                      aFont.synthesisSmallCaps == StyleFontSynthesis::Auto,

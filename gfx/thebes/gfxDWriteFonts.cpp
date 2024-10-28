@@ -685,7 +685,7 @@ int32_t gfxDWriteFont::GetGlyphWidth(uint16_t aGID) {
 }
 
 bool gfxDWriteFont::GetForceGDIClassic() const {
-  return sForceGDIClassicEnabled && mStyle.allowForceGDIClassic &&
+  return sForceGDIClassicEnabled &&
          static_cast<gfxDWriteFontEntry*>(mFontEntry.get())
              ->GetForceGDIClassic() &&
          GetAdjustedSize() <= gfxDWriteFontList::PlatformFontList()
