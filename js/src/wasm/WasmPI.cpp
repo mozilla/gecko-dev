@@ -128,6 +128,7 @@ void SuspenderObjectData::switchSimulatorToSuspendable() {
 const size_t SUSPENDER_SLOT = 0;
 const size_t WRAPPED_FN_SLOT = 1;
 const size_t CONTINUE_ON_SUSPENDABLE_SLOT = 1;
+const size_t PROMISE_SLOT = 2;
 
 SuspenderContext::SuspenderContext()
     : activeSuspender_(nullptr), suspendedStacks_() {}
@@ -211,7 +212,7 @@ class SuspenderObject : public NativeObject {
  public:
   static const JSClass class_;
 
-  enum { DataSlot, PromisingPromiseSlot, SuspendingPromiseSlot, SlotCount };
+  enum { DataSlot, PromisingPromiseSlot, SlotCount };
 
   static SuspenderObject* create(JSContext* cx) {
     for (;;) {
@@ -253,7 +254,6 @@ class SuspenderObject : public NativeObject {
 
     suspender->initReservedSlot(DataSlot, PrivateValue(data));
     suspender->initReservedSlot(PromisingPromiseSlot, NullValue());
-    suspender->initReservedSlot(SuspendingPromiseSlot, NullValue());
     return suspender;
   }
 
@@ -265,16 +265,6 @@ class SuspenderObject : public NativeObject {
 
   void setPromisingPromise(Handle<PromiseObject*> promise) {
     setReservedSlot(PromisingPromiseSlot, ObjectOrNullValue(promise));
-  }
-
-  PromiseObject* suspendingPromise() const {
-    return &getReservedSlot(SuspendingPromiseSlot)
-                .toObject()
-                .as<PromiseObject>();
-  }
-
-  void setSuspendingPromise(Handle<PromiseObject*> promise) {
-    setReservedSlot(SuspendingPromiseSlot, ObjectOrNullValue(promise));
   }
 
   JS::NativeStackLimit getStackMemoryLimit() {
@@ -930,11 +920,12 @@ class SuspendingFunctionModuleFactory {
 
   // Builds function that is called on main stack:
   // (func $suspending.continue-on-suspendable
-  //   (param $params (ref $suspender))
+  //   (param $params (ref $suspender)) (param $results externref)
   //   (result externref)
   //   local.get $suspender
   //   ref.null funcref
-  //   ref.null anyref
+  //   local.get $results
+  //   any.convert_extern
   //   stack-switch ContinueOnSuspendable
   // )
   bool encodeContinueOnSuspendableFunction(CodeMetadata& codeMeta,
@@ -946,6 +937,8 @@ class SuspendingFunctionModuleFactory {
     }
 
     const uint32_t SuspenderIndex = 0;
+    const uint32_t ResultsIndex = 1;
+
     if (!encoder.writeOp(Op::LocalGet) ||
         !encoder.writeVarU32(SuspenderIndex)) {
       return false;
@@ -954,8 +947,8 @@ class SuspendingFunctionModuleFactory {
         !encoder.writeValType(ValType(RefType::func()))) {
       return false;
     }
-    if (!encoder.writeOp(Op::RefNull) ||
-        !encoder.writeValType(ValType(RefType::any()))) {
+    if (!encoder.writeOp(Op::LocalGet) || !encoder.writeVarU32(ResultsIndex) ||
+        !encoder.writeOp(GcOp::AnyConvertExtern)) {
       return false;
     }
 
@@ -1137,8 +1130,10 @@ class SuspendingFunctionModuleFactory {
 // Reaction on resolved/rejected suspending promise.
 static bool WasmPISuspendTaskContinue(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
+  // The arg[0] has result of resolved promise, or rejection reason.
   Rooted<JSFunction*> callee(cx, &args.callee().as<JSFunction>());
   RootedValue suspender(cx, callee->getExtendedSlot(SUSPENDER_SLOT));
+  RootedValue suspendingPromise(cx, callee->getExtendedSlot(PROMISE_SLOT));
 
   // Convert result of the promise into the parameters/arguments for the
   // $suspending.continue-on-suspendable.
@@ -1146,16 +1141,9 @@ static bool WasmPISuspendTaskContinue(JSContext* cx, unsigned argc, Value* vp) {
       cx, &callee->getExtendedSlot(CONTINUE_ON_SUSPENDABLE_SLOT)
                .toObject()
                .as<JSFunction>());
-  RootedValueVector argv(cx);
-  if (!argv.emplaceBack(suspender)) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-  MOZ_ASSERT(args.length() > 0);
-  if (!argv.emplaceBack(args[0])) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
+  JS::RootedValueArray<2> argv(cx);
+  argv[0].set(suspender);
+  argv[1].set(suspendingPromise);
 
   JS::Rooted<JS::Value> rval(cx);
   if (Call(cx, UndefinedHandleValue, continueOnSuspendable, argv, &rval)) {
@@ -1684,14 +1672,12 @@ PromiseObject* CreatePromisingPromise(Instance* instance,
 // Converts promise results into actual function result, or exception/trap
 // if rejected.
 // Seen as $builtin.get-suspending-promise-result to wasm.
-JSObject* GetSuspendingPromiseResult(Instance* instance,
+JSObject* GetSuspendingPromiseResult(Instance* instance, PromiseObject* promise,
                                      SuspenderObject* suspender) {
   MOZ_ASSERT(SASigGetSuspendingPromiseResult.failureMode ==
              FailureMode::FailOnNullPtr);
   JSContext* cx = instance->cx();
   Rooted<SuspenderObject*> suspenderObject(cx, suspender);
-
-  Rooted<PromiseObject*> promise(cx, suspenderObject->suspendingPromise());
 
   if (promise->state() == JS::PromiseState::Rejected) {
     RootedValue reason(cx, promise->reason());
@@ -1769,14 +1755,13 @@ int32_t AddPromiseReactions(Instance* instance, SuspenderObject* suspender,
   Rooted<PromiseObject*> promiseObject(cx, promise);
   RootedFunction fn(cx, continueOnSuspendable);
 
-  suspenderObject->setSuspendingPromise(promiseObject);
-
   // Add promise reactions
   RootedFunction then_(
       cx, NewNativeFunction(cx, WasmPISuspendTaskContinue, 1, nullptr,
                             gc::AllocKind::FUNCTION_EXTENDED, GenericObject));
   then_->initExtendedSlot(SUSPENDER_SLOT, ObjectValue(*suspenderObject));
   then_->initExtendedSlot(CONTINUE_ON_SUSPENDABLE_SLOT, ObjectValue(*fn));
+  then_->initExtendedSlot(PROMISE_SLOT, ObjectValue(*promiseObject));
   return JS::AddPromiseReactions(cx, promiseObject, then_, then_) ? 0 : -1;
 }
 

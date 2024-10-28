@@ -3084,8 +3084,9 @@ class FunctionCompiler {
     return emitInstanceCallN(lineOrBytecode, callee, args, 6, result);
   }
 
-  [[nodiscard]] bool stackSwitch(MDefinition* suspender, MDefinition* fn,
-                                 MDefinition* data, StackSwitchKind kind) {
+  [[nodiscard]] MDefinition* stackSwitch(MDefinition* suspender,
+                                         MDefinition* fn, MDefinition* data,
+                                         StackSwitchKind kind) {
     MOZ_ASSERT(!inDeadCode());
 
     MInstruction* ins;
@@ -3097,16 +3098,16 @@ class FunctionCompiler {
         ins = MWasmStackSwitchToSuspendable::New(alloc(), suspender, fn, data);
         break;
       case StackSwitchKind::ContinueOnSuspendable:
-        ins = MWasmStackContinueOnSuspendable::New(alloc(), suspender);
+        ins = MWasmStackContinueOnSuspendable::New(alloc(), suspender, data);
         break;
     }
     if (!ins) {
-      return false;
+      return nullptr;
     }
 
     curBlock_->add(ins);
 
-    return true;
+    return ins;
   }
 
 #ifdef ENABLE_WASM_GC
@@ -6141,8 +6142,13 @@ static bool EmitStackSwitch(FunctionCompiler& f) {
   if (!f.iter().readStackSwitch(&kind, &suspender, &fn, &data)) {
     return false;
   }
-  if (!f.stackSwitch(suspender, fn, data, kind)) {
+  MDefinition* result = f.stackSwitch(suspender, fn, data, kind);
+  if (!result) {
     return false;
+  }
+
+  if (kind == StackSwitchKind::SwitchToMain) {
+    f.iter().setResult(result);
   }
   return true;
 }

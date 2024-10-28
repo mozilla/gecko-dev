@@ -22,6 +22,7 @@
 #include "mozilla/DoublyLinkedList.h"  // for DoublyLinkedListElement
 
 #include "js/TypeDecls.h"
+#include "wasm/WasmAnyRef.h"
 #include "wasm/WasmTypeDef.h"
 
 // [SMDOC] JS Promise Integration
@@ -236,7 +237,7 @@ SuspenderObject* CreateSuspender(Instance* instance, int reserved);
 PromiseObject* CreatePromisingPromise(Instance* instance,
                                       SuspenderObject* suspender);
 
-JSObject* GetSuspendingPromiseResult(Instance* instance,
+JSObject* GetSuspendingPromiseResult(Instance* instance, PromiseObject* promise,
                                      SuspenderObject* suspender);
 
 int32_t AddPromiseReactions(Instance* instance, SuspenderObject* suspender,

@@ -445,10 +445,11 @@
 - op: GetSuspendingPromiseResult
   symbolic_address:
     name: GetSuspendingPromiseResult
-    type: Args_General2
+    type: Args_General3
   entry: GetSuspendingPromiseResult
   export: getSuspendingPromiseResult
   params:
+    - 'externref'
     - 'externref'
   result: 'anyref'
   fail_mode: FailOnNullPtr

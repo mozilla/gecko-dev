@@ -3536,6 +3536,7 @@
     suspender: Object
     fn: Object
     data: WasmAnyRef
+  result_type: WasmAnyRef
   type_policy: none
 
 - name: WasmStackSwitchToSuspendable
@@ -3548,6 +3549,7 @@
 - name: WasmStackContinueOnSuspendable
   operands:
     suspender: Object
+    result: WasmAnyRef
   type_policy: none
 
 - name: WasmBinarySimd128

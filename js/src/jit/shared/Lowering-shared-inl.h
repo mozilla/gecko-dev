@@ -313,6 +313,7 @@ void LIRGeneratorShared::defineReturn(LInstruction* lir, MDefinition* mir) {
         case LDefinition::OBJECT:
         case LDefinition::SLOTS:
         case LDefinition::STACKRESULTS:
+        case LDefinition::WASM_ANYREF:
           lir->setDef(0, LDefinition(vreg, type, LGeneralReg(ReturnReg)));
           break;
         case LDefinition::DOUBLE:
