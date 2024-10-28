@@ -494,7 +494,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_webconsole_location_debugger_link.js"]
 
 ["browser_webconsole_location_logpoint_debugger_link.js"]
-skip-if = ["ccov"] #Bug 1594897
+skip-if = [
+  "ccov", #Bug 1594897
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1844156
+]
 
 ["browser_webconsole_location_styleeditor_link.js"]
 
