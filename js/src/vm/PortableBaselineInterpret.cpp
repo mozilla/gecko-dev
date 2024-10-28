@@ -8678,21 +8678,21 @@ PBIResult PortableBaselineInterpret(
         if (argsObjAliasesFormals) {
           VIRTPUSH(StackVal(frame->argsObj().arg(i)));
         } else {
-          VIRTPUSH(StackVal(frame->unaliasedFormal(i)));
+          VIRTPUSH(StackVal(frame->argv()[i]));
         }
         END_OP(GetArg);
       }
 
       CASE(GetFrameArg) {
         uint32_t i = GET_ARGNO(pc);
-        VIRTPUSH(StackVal(frame->unaliasedFormal(i, DONT_CHECK_ALIASING)));
+        VIRTPUSH(StackVal(frame->argv()[i]));
         END_OP(GetFrameArg);
       }
 
       CASE(GetLocal) {
         uint32_t i = GET_LOCALNO(pc);
         TRACE_PRINTF(" -> local: %d\n", int(i));
-        VIRTPUSH(StackVal(frame->unaliasedLocal(i)));
+        VIRTPUSH(StackVal(GETLOCAL(i)));
         END_OP(GetLocal);
       }
 
@@ -8803,7 +8803,7 @@ PBIResult PortableBaselineInterpret(
         if (argsObjAliasesFormals) {
           frame->argsObj().setArg(i, VIRTSP(0).asValue());
         } else {
-          frame->unaliasedFormal(i) = VIRTSP(0).asValue();
+          frame->argv()[i] = VIRTSP(0).asValue();
         }
         END_OP(SetArg);
       }
@@ -8811,7 +8811,7 @@ PBIResult PortableBaselineInterpret(
       CASE(SetLocal) {
         uint32_t i = GET_LOCALNO(pc);
         TRACE_PRINTF(" -> local: %d\n", int(i));
-        frame->unaliasedLocal(i) = VIRTSP(0).asValue();
+        SETLOCAL(i, VIRTSP(0).asValue());
         END_OP(SetLocal);
       }
 
