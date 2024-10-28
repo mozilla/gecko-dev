@@ -32,7 +32,6 @@
 #include "vm/JSFunction.h"
 #include "vm/JSScript.h"
 #include "vm/Opcodes.h"
-#include "vm/PortableBaselineInterpret.h"
 #include "vm/TypeofEqOperand.h"  // TypeofEqOperand
 #ifdef MOZ_VTUNE
 #  include "vtune/VTuneWrapper.h"
@@ -410,10 +409,9 @@ void ICScript::initICEntries(JSContext* cx, JSScript* script) {
                "Unexpected fallback kind for non-JOF_IC op");
 
     BaselineICFallbackKind kind = BaselineICFallbackKind(tableValue);
-    TrampolinePtr stubCode =
-        !jit::IsPortableBaselineInterpreterEnabled()
-            ? fallbackCode.addr(kind)
-            : TrampolinePtr(js::pbl::GetPortableFallbackStub(kind));
+    TrampolinePtr stubCode = !jit::IsPortableBaselineInterpreterEnabled()
+                                 ? fallbackCode.addr(kind)
+                                 : TrampolinePtr();
 
     // Initialize the ICEntry and ICFallbackStub.
     uint32_t offset = loc.bytecodeToOffset(script);
