@@ -834,6 +834,9 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
     DECLARE_CACHEOP_CASE(CompareSymbolResult);
     DECLARE_CACHEOP_CASE(CompareDoubleResult);
     DECLARE_CACHEOP_CASE(IndirectTruncateInt32Result);
+    DECLARE_CACHEOP_CASE(CallScriptedSetter);
+    DECLARE_CACHEOP_CASE(CallBoundScriptedFunction);
+    DECLARE_CACHEOP_CASE(CallScriptedGetterResult);
 
     // Define the computed-goto table regardless of dispatch strategy so
     // we don't get unused-label errors. (We need some of the labels
@@ -2452,6 +2455,184 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
             }
             retValue = ret.asRawBits();
           }
+        }
+
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallScriptedGetterResult)
+      CACHEOP_CASE_FALLTHROUGH(CallScriptedSetter) {
+        bool isSetter = cacheop == CacheOp::CallScriptedSetter;
+        ObjOperandId receiverId = cacheIRReader.objOperandId();
+        uint32_t getterSetterOffset = cacheIRReader.stubOffset();
+        ValOperandId rhsId =
+            isSetter ? cacheIRReader.valOperandId() : ValOperandId();
+        bool sameRealm = cacheIRReader.readBool();
+        uint32_t nargsAndFlagsOffset = cacheIRReader.stubOffset();
+        (void)nargsAndFlagsOffset;
+
+        Value receiver = isSetter ? ObjectValue(*reinterpret_cast<JSObject*>(
+                                        READ_REG(receiverId.id())))
+                                  : READ_VALUE_REG(receiverId.id());
+        JSFunction* callee = reinterpret_cast<JSFunction*>(
+            stubInfo->getStubRawWord(cstub, getterSetterOffset));
+        Value rhs = isSetter ? READ_VALUE_REG(rhsId.id()) : UndefinedValue();
+
+        if (!sameRealm) {
+          FAIL_IC();
+        }
+
+        if (!callee->hasBaseScript() || !callee->baseScript()->hasBytecode() ||
+            !callee->baseScript()->hasJitScript()) {
+          FAIL_IC();
+        }
+
+        // For now, fail any arg-underflow case.
+        if (callee->nargs() != isSetter ? 1 : 0) {
+          TRACE_PRINTF(
+              "failing: getter/setter does not have exactly 0/1 arg (has %d "
+              "instead)\n",
+              int(callee->nargs()));
+          FAIL_IC();
+        }
+
+        {
+          PUSH_IC_FRAME();
+
+          if (!ctx.stack.check(sp, sizeof(StackVal) * 8)) {
+            ReportOverRecursed(ctx.frameMgr.cxForLocalUseOnly());
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+
+          // This will not be an Exit frame but a BaselineStub frame, so
+          // replace the ExitFrameType with the ICStub pointer.
+          POPNNATIVE(1);
+          PUSHNATIVE(StackValNative(cstub));
+
+          if (isSetter) {
+            // Push arg: value.
+            PUSH(StackVal(rhs));
+          }
+          TRACE_PRINTF("pushing receiver: %" PRIx64 "\n", receiver.asRawBits());
+          // Push thisv: receiver.
+          PUSH(StackVal(receiver));
+
+          TRACE_PRINTF("pushing callee: %p\n", callee);
+          PUSHNATIVE(StackValNative(
+              CalleeToToken(callee, /* isConstructing = */ false)));
+
+          PUSHNATIVE(StackValNative(MakeFrameDescriptorForJitCall(
+              FrameType::BaselineStub, /* argc = */ isSetter ? 1 : 0)));
+
+          JSScript* script = callee->nonLazyScript();
+          jsbytecode* pc = script->code();
+          ImmutableScriptData* isd = script->immutableScriptData();
+          PBIResult result;
+          Value ret;
+          result = PortableBaselineInterpret<false>(
+              cx, ctx.state, ctx.stack, sp, /* envChain = */ nullptr, &ret, pc,
+              isd, nullptr, nullptr, PBIResult::Ok);
+          if (result != PBIResult::Ok) {
+            ctx.error = result;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ret.asRawBits();
+        }
+
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(CallBoundScriptedFunction) {
+        ObjOperandId calleeId = cacheIRReader.objOperandId();
+        ObjOperandId targetId = cacheIRReader.objOperandId();
+        Int32OperandId argcId = cacheIRReader.int32OperandId();
+        CallFlags flags = cacheIRReader.callFlags();
+        uint32_t numBoundArgs = cacheIRReader.uint32Immediate();
+
+        BoundFunctionObject* boundFunc =
+            reinterpret_cast<BoundFunctionObject*>(READ_REG(calleeId.id()));
+        JSFunction* callee = &boundFunc->getTarget()->as<JSFunction>();
+        uint32_t argc = uint32_t(READ_REG(argcId.id()));
+        (void)targetId;
+
+        if (!callee->hasBaseScript() || !callee->baseScript()->hasBytecode() ||
+            !callee->baseScript()->hasJitScript()) {
+          FAIL_IC();
+        }
+
+        // For now, fail any constructing or different-realm cases.
+        if (flags.isConstructing()) {
+          TRACE_PRINTF("failing: constructing\n");
+          FAIL_IC();
+        }
+        if (!flags.isSameRealm()) {
+          TRACE_PRINTF("failing: not same realm\n");
+          FAIL_IC();
+        }
+        // And support only "standard" arg formats.
+        if (flags.getArgFormat() != CallFlags::Standard) {
+          TRACE_PRINTF("failing: not standard arg format\n");
+          FAIL_IC();
+        }
+
+        uint32_t totalArgs = numBoundArgs + argc;
+
+        // For now, fail any arg-underflow case.
+        if (totalArgs < callee->nargs()) {
+          TRACE_PRINTF("failing: too few args\n");
+          FAIL_IC();
+        }
+
+        StackVal* origArgs = ctx.sp();
+
+        {
+          PUSH_IC_FRAME();
+
+          if (!ctx.stack.check(sp, sizeof(StackVal) * (totalArgs + 6))) {
+            ReportOverRecursed(ctx.frameMgr.cxForLocalUseOnly());
+            ctx.error = PBIResult::Error;
+            return IC_ERROR_SENTINEL();
+          }
+
+          // This will not be an Exit frame but a BaselineStub frame, so
+          // replace the ExitFrameType with the ICStub pointer.
+          POPNNATIVE(1);
+          PUSHNATIVE(StackValNative(cstub));
+
+          // Push args.
+          for (uint32_t i = 0; i < argc; i++) {
+            PUSH(origArgs[i]);
+          }
+          // Push bound args.
+          for (uint32_t i = 0; i < numBoundArgs; i++) {
+            PUSH(StackVal(boundFunc->getBoundArg(numBoundArgs - 1 - i)));
+          }
+          // Push bound `this`.
+          PUSH(StackVal(boundFunc->getBoundThis()));
+
+          TRACE_PRINTF("pushing callee: %p\n", callee);
+          PUSHNATIVE(StackValNative(
+              CalleeToToken(callee, /* isConstructing = */ false)));
+
+          PUSHNATIVE(StackValNative(MakeFrameDescriptorForJitCall(
+              FrameType::BaselineStub, totalArgs)));
+
+          JSScript* script = callee->nonLazyScript();
+          jsbytecode* pc = script->code();
+          ImmutableScriptData* isd = script->immutableScriptData();
+          PBIResult result;
+          Value ret;
+          result = PortableBaselineInterpret<false>(
+              cx, ctx.state, ctx.stack, sp, /* envChain = */ nullptr, &ret, pc,
+              isd, nullptr, nullptr, PBIResult::Ok);
+          if (result != PBIResult::Ok) {
+            ctx.error = result;
+            return IC_ERROR_SENTINEL();
+          }
+          retValue = ret.asRawBits();
         }
 
         PREDICT_RETURN();
