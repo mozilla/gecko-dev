@@ -7,6 +7,7 @@ package org.mozilla.geckoview.test
 import android.graphics.* // ktlint-disable no-wildcard-imports
 import android.graphics.Bitmap
 import android.os.SystemClock
+import android.util.Base64
 import android.view.MotionEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -24,7 +25,7 @@ import org.mozilla.geckoview.PanZoomController
 import org.mozilla.geckoview.ScreenLength
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.WithDisplay
-import org.mozilla.geckoview.test.util.AssertUtils
+import java.io.ByteArrayOutputStream
 
 private const val SCREEN_WIDTH = 100
 private const val SCREEN_HEIGHT = 200
@@ -48,7 +49,29 @@ class DynamicToolbarTest : BaseSessionTest() {
 
     private fun assertScreenshotResult(result: GeckoResult<Bitmap>, comparisonImage: Bitmap) {
         sessionRule.waitForResult(result).let {
-            AssertUtils.assertScreenshotResult(it, comparisonImage)
+            assertThat(
+                "Screenshot is not null",
+                it,
+                notNullValue(),
+            )
+            assertThat("Widths are the same", comparisonImage.width, equalTo(it.width))
+            assertThat("Heights are the same", comparisonImage.height, equalTo(it.height))
+            assertThat("Byte counts are the same", comparisonImage.byteCount, equalTo(it.byteCount))
+            assertThat("Configs are the same", comparisonImage.config, equalTo(it.config))
+
+            if (!comparisonImage.sameAs(it)) {
+                val outputForComparison = ByteArrayOutputStream()
+                comparisonImage.compress(Bitmap.CompressFormat.PNG, 100, outputForComparison)
+
+                val outputForActual = ByteArrayOutputStream()
+                it.compress(Bitmap.CompressFormat.PNG, 100, outputForActual)
+                val actualString: String = Base64.encodeToString(outputForActual.toByteArray(), Base64.DEFAULT)
+                val comparisonString: String = Base64.encodeToString(outputForComparison.toByteArray(), Base64.DEFAULT)
+
+                assertThat("Encoded strings are the same", comparisonString, equalTo(actualString))
+            }
+
+            assertThat("Bytes are the same", comparisonImage.sameAs(it), equalTo(true))
         }
     }
 

@@ -3155,11 +3155,6 @@ void nsPresContext::UpdateKeyboardHeight(ScreenIntCoord aHeight) {
   }
 }
 
-bool nsPresContext::IsKeyboardHiddenOrResizesContentMode() const {
-  return mKeyboardHeight == 0 ||
-         mDocument->InteractiveWidget() == InteractiveWidget::ResizesContent;
-}
-
 DynamicToolbarState nsPresContext::GetDynamicToolbarState() const {
   if (!HasDynamicToolbar()) {
     return DynamicToolbarState::None;

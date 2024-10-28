@@ -38,10 +38,6 @@
 namespace mozilla {
 class MultiTouchInput;
 
-namespace dom {
-enum class InteractiveWidget : uint8_t;
-}  // namespace dom
-
 namespace wr {
 class TransactionWrapper;
 class WebRenderAPI;
@@ -810,10 +806,6 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   ScreenMargin GetCompositorFixedLayerMargins(
       const MutexAutoLock& aProofOfMapLock) const;
 
-  ScreenPoint ComputeFixedMarginsOffset(
-      const ScreenMargin& aCompositorFixedLayerMargins, SideBits aFixedSides,
-      const ScreenMargin& aGeckoFixedLayerMargins) const;
-
  protected:
   /* The input queue where input events are held until we know enough to
    * figure out where they're going. Protected so gtests can access it.
@@ -1085,13 +1077,6 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   // APZCTreeManager.
   ScrollGenerationCounter mScrollGenerationCounter;
   mozilla::Mutex mScrollGenerationLock;
-
-  // The interactive-widget of the top level content document.
-  // https://drafts.csswg.org/css-viewport/#interactive-widget-section
-  dom::InteractiveWidget mInteractiveWidget;
-
-  // Whether the software keyboard is visible or not.
-  bool mIsSoftwareKeyboardVisible;
 
 #if defined(MOZ_WIDGET_ANDROID)
  private:

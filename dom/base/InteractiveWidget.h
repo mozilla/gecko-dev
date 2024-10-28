@@ -7,8 +7,6 @@
 #ifndef DOM_INTERACTIVE_WIDGET_H_
 #define DOM_INTERACTIVE_WIDGET_H_
 
-#include "mozilla/StaticPrefs_dom.h"
-
 namespace mozilla::dom {
 // https://drafts.csswg.org/css-viewport/#interactive-widget-section
 enum class InteractiveWidget : uint8_t {
@@ -16,16 +14,6 @@ enum class InteractiveWidget : uint8_t {
   ResizesContent,
   ResizesVisual,
 };
-
-class InteractiveWidgetUtils {
- public:
-  static InteractiveWidget DefaultInteractiveWidgetMode() {
-    return StaticPrefs::dom_interactive_widget_default_resizes_visual()
-               ? InteractiveWidget::ResizesVisual
-               : InteractiveWidget::ResizesContent;
-  }
-};
-
 }  // namespace mozilla::dom
 
 #endif  // DOM_INTERACTIVE_WIDGET_H_

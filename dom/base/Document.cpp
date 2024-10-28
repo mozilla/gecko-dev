@@ -1285,6 +1285,12 @@ void DOMStyleSheetSetList::EnsureFresh() {
 
 Document::PendingFrameStaticClone::~PendingFrameStaticClone() = default;
 
+static InteractiveWidget DefaultInteractiveWidget() {
+  return StaticPrefs::dom_interactive_widget_default_resizes_visual()
+             ? InteractiveWidget::ResizesVisual
+             : InteractiveWidget::ResizesContent;
+}
+
 // ==================================================================
 // =
 // ==================================================================
@@ -1443,8 +1449,7 @@ Document::Document(const char* aContentType)
       mHttpsOnlyStatus(nsILoadInfo::HTTPS_ONLY_UNINITIALIZED),
       mViewportType(Unknown),
       mViewportFit(ViewportFitType::Auto),
-      mInteractiveWidgetMode(
-          InteractiveWidgetUtils::DefaultInteractiveWidgetMode()),
+      mInteractiveWidgetMode(DefaultInteractiveWidget()),
       mHeaderData(nullptr),
       mServoRestyleRootDirtyBits(0),
       mThrowOnDynamicMarkupInsertionCounter(0),
@@ -11125,7 +11130,7 @@ ViewportMetaData Document::GetViewportMetaData() const {
 static InteractiveWidget ParseInteractiveWidget(
     const ViewportMetaData& aViewportMetaData) {
   if (aViewportMetaData.mInteractiveWidgetMode.IsEmpty()) {
-    return InteractiveWidgetUtils::DefaultInteractiveWidgetMode();
+    return DefaultInteractiveWidget();
   }
 
   if (aViewportMetaData.mInteractiveWidgetMode.EqualsIgnoreCase(
@@ -11140,7 +11145,7 @@ static InteractiveWidget ParseInteractiveWidget(
           "overlays-content")) {
     return InteractiveWidget::OverlaysContent;
   }
-  return InteractiveWidgetUtils::DefaultInteractiveWidgetMode();
+  return DefaultInteractiveWidget();
 }
 
 void Document::SetMetaViewportData(UniquePtr<ViewportMetaData> aData) {

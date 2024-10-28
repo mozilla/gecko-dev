@@ -8643,11 +8643,6 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
               0));
         }
       }
-
-      metadata.SetIsSoftwareKeyboardVisible(presContext->GetKeyboardHeight() >
-                                            0);
-      metadata.SetInteractiveWidget(
-          presContext->Document()->InteractiveWidget());
     }
 
     metrics.SetScrollGeneration(
@@ -9828,14 +9823,6 @@ template <typename SizeType>
 /* static */ SizeType ExpandHeightForDynamicToolbarImpl(
     const nsPresContext* aPresContext, const SizeType& aSize) {
   MOZ_ASSERT(aPresContext);
-
-  // This expansion is applicable only for cases where the software keyboard is
-  // hidden or the document is `interactive-widget=resizes-content` mode
-  // because in other cases the visual viewport size is always smaller than
-  // the layout viewport so that there should be room to scroll.
-  if (!aPresContext->IsKeyboardHiddenOrResizesContentMode()) {
-    return aSize;
-  }
 
   LayoutDeviceIntSize displaySize;
   if (RefPtr<MobileViewportManager> MVM =
