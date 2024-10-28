@@ -148,6 +148,7 @@ DIRS += [
     "/third_party/libwebrtc/common_audio/third_party/spl_sqrt_floor/spl_sqrt_floor_gn",
     "/third_party/libwebrtc/common_video/common_video_gn",
     "/third_party/libwebrtc/common_video/frame_counts_gn",
+    "/third_party/libwebrtc/common_video/frame_instrumentation_data_gn",
     "/third_party/libwebrtc/common_video/generic_frame_descriptor/generic_frame_descriptor_gn",
     "/third_party/libwebrtc/experiments/registered_field_trials_gn",
     "/third_party/libwebrtc/experiments/registered_field_trials_header_gn",
