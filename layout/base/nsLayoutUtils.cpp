@@ -8643,6 +8643,11 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
               0));
         }
       }
+
+      metadata.SetIsSoftwareKeyboardVisible(presContext->GetKeyboardHeight() >
+                                            0);
+      metadata.SetInteractiveWidget(
+          presContext->Document()->InteractiveWidget());
     }
 
     metrics.SetScrollGeneration(

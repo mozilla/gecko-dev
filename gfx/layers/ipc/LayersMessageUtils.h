@@ -579,6 +579,13 @@ struct ParamTraits<mozilla::ScrollPositionUpdate> {
 };
 
 template <>
+struct ParamTraits<mozilla::dom::InteractiveWidget>
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::dom::InteractiveWidget,
+          mozilla::dom::InteractiveWidget::OverlaysContent,
+          mozilla::dom::InteractiveWidget::ResizesVisual> {};
+
+template <>
 struct ParamTraits<mozilla::layers::ScrollMetadata>
     : BitfieldHelper<mozilla::layers::ScrollMetadata> {
   typedef mozilla::layers::ScrollMetadata paramType;
@@ -590,6 +597,7 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
     WriteParam(aWriter, aParam.GetContentDescription());
     WriteParam(aWriter, aParam.mLineScrollAmount);
     WriteParam(aWriter, aParam.mPageScrollAmount);
+    WriteParam(aWriter, aParam.mInteractiveWidget);
     WriteParam(aWriter, aParam.mHasScrollgrab);
     WriteParam(aWriter, aParam.mIsLayersIdRoot);
     WriteParam(aWriter, aParam.mIsAutoDirRootContentRTL);
@@ -600,6 +608,7 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
     WriteParam(aWriter, aParam.mForceMousewheelAutodir);
     WriteParam(aWriter, aParam.mForceMousewheelAutodirHonourRoot);
     WriteParam(aWriter, aParam.mIsPaginatedPresentation);
+    WriteParam(aWriter, aParam.mIsSoftwareKeyboardVisible);
     WriteParam(aWriter, aParam.mDisregardedDirection);
     WriteParam(aWriter, aParam.mOverscrollBehavior);
     WriteParam(aWriter, aParam.mOverflow);
@@ -623,6 +632,7 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
             ReadContentDescription(aReader, aResult) &&
             ReadParam(aReader, &aResult->mLineScrollAmount) &&
             ReadParam(aReader, &aResult->mPageScrollAmount) &&
+            ReadParam(aReader, &aResult->mInteractiveWidget) &&
             ReadBoolForBitfield(aReader, aResult,
                                 &paramType::SetHasScrollgrab) &&
             ReadBoolForBitfield(aReader, aResult,
@@ -644,6 +654,8 @@ struct ParamTraits<mozilla::layers::ScrollMetadata>
                &paramType::SetForceMousewheelAutodirHonourRoot) &&
            ReadBoolForBitfield(aReader, aResult,
                                &paramType::SetIsPaginatedPresentation) &&
+           ReadBoolForBitfield(aReader, aResult,
+                               &paramType::SetIsSoftwareKeyboardVisible) &&
            ReadParam(aReader, &aResult->mDisregardedDirection) &&
            ReadParam(aReader, &aResult->mOverscrollBehavior) &&
            ReadParam(aReader, &aResult->mOverflow) &&

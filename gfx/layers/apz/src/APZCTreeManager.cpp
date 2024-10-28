@@ -17,9 +17,10 @@
 #include "WRHitTester.h"            // for WRHitTester
 #include "apz/src/APZUtils.h"
 #include "mozilla/RecursiveMutex.h"
-#include "mozilla/dom/MouseEventBinding.h"  // for MouseEvent constants
 #include "mozilla/dom/BrowserParent.h"      // for AreRecordReplayTabsActive
-#include "mozilla/dom/Touch.h"              // for Touch
+#include "mozilla/dom/MouseEventBinding.h"  // for MouseEvent constants
+#include "mozilla/dom/InteractiveWidget.h"
+#include "mozilla/dom/Touch.h"  // for Touch
 #include "mozilla/gfx/CompositorHitTestInfo.h"
 #include "mozilla/gfx/LoggingConstants.h"
 #include "mozilla/gfx/Matrix.h"
@@ -284,7 +285,10 @@ APZCTreeManager::APZCTreeManager(LayersId aRootLayersId,
       mTestDataLock("APZTestDataLock"),
       mDPI(160.0),
       mHitTester(std::move(aHitTester)),
-      mScrollGenerationLock("APZScrollGenerationLock") {
+      mScrollGenerationLock("APZScrollGenerationLock"),
+      mInteractiveWidget(
+          dom::InteractiveWidgetUtils::DefaultInteractiveWidgetMode()),
+      mIsSoftwareKeyboardVisible(false) {
   AsyncPanZoomController::InitializeGlobalState();
   mApzcTreeLog.ConditionOnPrefFunction(StaticPrefs::apz_printtree);
 
@@ -510,6 +514,10 @@ std::vector<LayersId> APZCTreeManager::UpdateHitTestingTree(
             MutexAutoLock lock(mMapLock);
             mGeckoFixedLayerMargins =
                 aLayerMetrics.Metrics().GetFixedLayerMargins();
+            mInteractiveWidget =
+                aLayerMetrics.Metadata().GetInteractiveWidget();
+            mIsSoftwareKeyboardVisible =
+                aLayerMetrics.Metadata().IsSoftwareKeyboardVisible();
           } else {
             MOZ_ASSERT(aLayerMetrics.Metrics().GetFixedLayerMargins() ==
                            ScreenMargin(),
