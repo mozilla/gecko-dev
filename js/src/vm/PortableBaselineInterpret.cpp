@@ -449,9 +449,9 @@ class VMFrame {
 #define PUSH_FALLBACK_IC_FRAME() \
   ctx.error = PBIResult::Error;  \
   PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), sp)
-#define PUSH_EXIT_FRAME()          \
-  ctx.frame->interpreterPC() = pc; \
-  SYNCSP();                        \
+#define PUSH_EXIT_FRAME()      \
+  frame->interpreterPC() = pc; \
+  SYNCSP();                    \
   PUSH_EXIT_FRAME_OR_RET(PBIResult::Error, sp)
 
 /*
@@ -2326,7 +2326,6 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         uint32_t undefArgs = (!isNative && (argc < callee->nargs()))
                                  ? (callee->nargs() - argc)
                                  : 0;
-
         uint32_t extra = 1 + flags.isConstructing() + isNative;
         uint32_t totalArgs = argc + undefArgs + extra;
         StackVal* origArgs = ctx.sp();
