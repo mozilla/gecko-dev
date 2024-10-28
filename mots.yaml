@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-25T15:36:41.074557+00:00'
+updated_at: '2024-10-26T06:47:31.795894+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -989,6 +989,10 @@ people:
     bmo_id: 164722
     name: Tantek Çelik
     nick: tantek
+  - &tarek
+    bmo_id: 385707
+    name: Tarek Ziadé
+    nick: tarek
   - &tcampbell
     bmo_id: 586681
     name: Ted Campbell
@@ -2109,6 +2113,22 @@ modules:
       - *kershaw
       - *jesup
     machine_name: core_libjar
+
+  - machine_name: core_machine_learning
+    name: 'Core: Machine Learning'
+    description: AI services and local inference
+    includes:
+      - browser/components/genai/
+      - toolkit/components/aboutinference/
+      - toolkit/components/ml/
+    meta:
+      components:
+        - Core::Machine Learning
+    owners:
+      - *Mardak
+      - *tarek
+    peers:
+      - *gregtatum
 
   - name: 'Core: MathML'
     description: MathML is a low-level specification for describing mathematics which
@@ -4445,5 +4465,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 14b07792fd8653d3dfb05054faecd197997745ad
-  export: 433ee75b293301604103a00cde46efd0a5bf2a50
+  config: 3755a48cc09fef9cee3aa188063e25160d63ed56
+  export: 3f6354326f463e53dbc19cca9b00505d9950c96a
