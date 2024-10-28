@@ -109,10 +109,15 @@ add_task(async function testTextFragmentSamePage() {
   // could miss it if we used addAccessibleTask.
   const docUrl = snippetToURL(snippet);
   const initialUrl = docUrl + "#:~:text=first%20phrase";
-  let scrolled = waitForEvent(EVENT_SCROLLING_START, "first");
+  let scrolled = waitForEvent(
+    EVENT_SCROLLING_START,
+    event =>
+      event.accessible.role == ROLE_TEXT_LEAF &&
+      getAccessibleDOMNodeID(event.accessible.parent) == "first"
+  );
   await BrowserTestUtils.withNewTab(initialUrl, async function (browser) {
     info("Waiting for scroll to first");
-    const first = (await scrolled).accessible;
+    const first = (await scrolled).accessible.parent;
     info("Checking ranges");
     await waitForTextAttrRanges(
       first,
@@ -126,7 +131,9 @@ add_task(async function testTextFragmentSamePage() {
     await waitForTextAttrRanges(second, [], fragmentAttrs, false);
 
     info("Navigating to second");
-    scrolled = waitForEvent(EVENT_SCROLLING_START, second);
+    // The text fragment begins with the text "second", which is the second
+    // child of the `second` Accessible.
+    scrolled = waitForEvent(EVENT_SCROLLING_START, second.getChildAt(1));
     let rangeCheck = waitForTextAttrRanges(
       second,
       [
