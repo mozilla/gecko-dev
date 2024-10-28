@@ -331,14 +331,11 @@ enum class PBIResult {
 };
 
 template <bool IsRestart, bool HybridICs>
-PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
-                                    StackVal* sp, JSObject* envChain,
-                                    Value* ret, jsbytecode* pc,
-                                    ImmutableScriptData* isd,
-                                    jsbytecode* restartEntryPC,
-                                    jit::BaselineFrame* restartFrame,
-                                    StackVal* restartEntryFrame,
-                                    PBIResult restartCode);
+PBIResult PortableBaselineInterpret(
+    JSContext* cx_, State& state, Stack& stack, StackVal* sp,
+    JSObject* envChain, Value* ret, jsbytecode* pc, ImmutableScriptData* isd,
+    jsbytecode* restartEntryPC, jit::BaselineFrame* restartFrame,
+    StackVal* restartEntryFrame, PBIResult restartCode);
 
 uint8_t* GetPortableFallbackStub(jit::BaselineICFallbackKind kind);
 uint8_t* GetICInterpreter();
