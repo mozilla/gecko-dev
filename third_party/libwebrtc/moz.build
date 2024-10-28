@@ -149,6 +149,7 @@ DIRS += [
     "/third_party/libwebrtc/common_audio/third_party/ooura/fft_size_256_gn",
     "/third_party/libwebrtc/common_audio/third_party/spl_sqrt_floor/spl_sqrt_floor_gn",
     "/third_party/libwebrtc/common_video/common_video_gn",
+    "/third_party/libwebrtc/common_video/corruption_detection_message_gn",
     "/third_party/libwebrtc/common_video/frame_counts_gn",
     "/third_party/libwebrtc/common_video/frame_instrumentation_data_gn",
     "/third_party/libwebrtc/common_video/generic_frame_descriptor/generic_frame_descriptor_gn",
