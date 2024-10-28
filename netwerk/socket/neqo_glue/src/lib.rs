@@ -1029,63 +1029,6 @@ impl From<TransportError> for CloseError {
     }
 }
 
-// Keep in sync with `netwerk/metrics.yaml` `http_3_connection_close_reason` metric labels.
-fn transport_error_to_glean_label(error: &TransportError) -> &'static str {
-    match error {
-        TransportError::NoError => "NoError",
-        TransportError::InternalError => "InternalError",
-        TransportError::ConnectionRefused => "ConnectionRefused",
-        TransportError::FlowControlError => "FlowControlError",
-        TransportError::StreamLimitError => "StreamLimitError",
-        TransportError::StreamStateError => "StreamStateError",
-        TransportError::FinalSizeError => "FinalSizeError",
-        TransportError::FrameEncodingError => "FrameEncodingError",
-        TransportError::TransportParameterError => "TransportParameterError",
-        TransportError::ProtocolViolation => "ProtocolViolation",
-        TransportError::InvalidToken => "InvalidToken",
-        TransportError::ApplicationError => "ApplicationError",
-        TransportError::CryptoBufferExceeded => "CryptoBufferExceeded",
-        TransportError::CryptoError(_) => "CryptoError",
-        TransportError::QlogError => "QlogError",
-        TransportError::CryptoAlert(_) => "CryptoAlert",
-        TransportError::EchRetry(_) => "EchRetry",
-        TransportError::AckedUnsentPacket => "AckedUnsentPacket",
-        TransportError::ConnectionIdLimitExceeded => "ConnectionIdLimitExceeded",
-        TransportError::ConnectionIdsExhausted => "ConnectionIdsExhausted",
-        TransportError::ConnectionState => "ConnectionState",
-        TransportError::DecodingFrame => "DecodingFrame",
-        TransportError::DecryptError => "DecryptError",
-        TransportError::DisabledVersion => "DisabledVersion",
-        TransportError::HandshakeFailed => "HandshakeFailed",
-        TransportError::IdleTimeout => "IdleTimeout",
-        TransportError::IntegerOverflow => "IntegerOverflow",
-        TransportError::InvalidInput => "InvalidInput",
-        TransportError::InvalidMigration => "InvalidMigration",
-        TransportError::InvalidPacket => "InvalidPacket",
-        TransportError::InvalidResumptionToken => "InvalidResumptionToken",
-        TransportError::InvalidRetry => "InvalidRetry",
-        TransportError::InvalidStreamId => "InvalidStreamId",
-        TransportError::KeysDiscarded(_) => "KeysDiscarded",
-        TransportError::KeysExhausted => "KeysExhausted",
-        TransportError::KeysPending(_) => "KeysPending",
-        TransportError::KeyUpdateBlocked => "KeyUpdateBlocked",
-        TransportError::NoAvailablePath => "NoAvailablePath",
-        TransportError::NoMoreData => "NoMoreData",
-        TransportError::NotAvailable => "NotAvailable",
-        TransportError::NotConnected => "NotConnected",
-        TransportError::PacketNumberOverlap => "PacketNumberOverlap",
-        TransportError::PeerApplicationError(_) => "PeerApplicationError",
-        TransportError::PeerError(_) => "PeerError",
-        TransportError::StatelessReset => "StatelessReset",
-        TransportError::TooMuchData => "TooMuchData",
-        TransportError::UnexpectedMessage => "UnexpectedMessage",
-        TransportError::UnknownConnectionId => "UnknownConnectionId",
-        TransportError::UnknownFrameType => "UnknownFrameType",
-        TransportError::VersionNegotiation => "VersionNegotiation",
-        TransportError::WrongRole => "WrongRole",
-    }
-}
-
 impl From<neqo_transport::CloseReason> for CloseError {
     fn from(error: neqo_transport::CloseReason) -> CloseError {
         match error {
@@ -1469,8 +1412,8 @@ pub extern "C" fn neqo_http3conn_event(
             Http3ClientEvent::GoawayReceived => Http3Event::GoawayReceived,
             Http3ClientEvent::StateChange(state) => match state {
                 Http3State::Connected => Http3Event::ConnectionConnected,
-                Http3State::Closing(reason) => {
-                    match reason {
+                Http3State::Closing(error_code) => {
+                    match error_code {
                         neqo_transport::CloseReason::Transport(TransportError::CryptoError(
                             neqo_crypto::Error::EchRetry(ref c),
                         ))
@@ -1480,22 +1423,8 @@ pub extern "C" fn neqo_http3conn_event(
                         }
                         _ => {}
                     }
-
-                    #[cfg(not(target_os = "android"))]
-                    {
-                        let glean_label = match &reason {
-                            neqo_transport::CloseReason::Application(_) => "Application",
-                            neqo_transport::CloseReason::Transport(r) => {
-                                transport_error_to_glean_label(r)
-                            }
-                        };
-                        firefox_on_glean::metrics::networking::http_3_connection_close_reason
-                            .get(glean_label)
-                            .add(1);
-                    }
-
                     Http3Event::ConnectionClosing {
-                        error: reason.into(),
+                        error: error_code.into(),
                     }
                 }
                 Http3State::Closed(error_code) => {
