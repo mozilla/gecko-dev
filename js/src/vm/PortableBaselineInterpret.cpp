@@ -324,7 +324,6 @@ struct ICRegs {
   uint64_t icResult;
   uint64_t icTags[kMaxICVals];  // Shifted tags.
   int extraArgs;
-  bool spreadCall;
 };
 
 struct State {
@@ -2898,18 +2897,27 @@ DEFINE_IC(Call, 1, {
   std::reverse(args, args + totalArgs);
   {
     PUSH_FALLBACK_IC_FRAME();
-    if (ctx.icregs.spreadCall) {
-      if (!DoSpreadCallFallback(cx, ctx.frame, fallback, args,
-                                &ctx.state.res)) {
-        std::reverse(args, args + totalArgs);
-        goto error;
-      }
-    } else {
-      if (!DoCallFallback(cx, ctx.frame, fallback, argc, args,
-                          &ctx.state.res)) {
-        std::reverse(args, args + totalArgs);
-        goto error;
-      }
+    if (!DoCallFallback(cx, ctx.frame, fallback, argc, args, &ctx.state.res)) {
+      std::reverse(args, args + totalArgs);
+      goto error;
+    }
+  }
+});
+
+DEFINE_IC(SpreadCall, 1, {
+  uint32_t argc = uint32_t(ctx.icregs.icVals[0]);
+  uint32_t totalArgs =
+      argc + ctx.icregs.extraArgs;  // this, callee, (constructing?), func args
+  Value* args = reinterpret_cast<Value*>(&ctx.sp[0]);
+  TRACE_PRINTF("Call fallback: argc %d totalArgs %d args %p\n", argc, totalArgs,
+               args);
+  // Reverse values on the stack.
+  std::reverse(args, args + totalArgs);
+  {
+    PUSH_FALLBACK_IC_FRAME();
+    if (!DoSpreadCallFallback(cx, ctx.frame, fallback, args, &ctx.state.res)) {
+      std::reverse(args, args + totalArgs);
+      goto error;
     }
   }
 });
@@ -5080,7 +5088,6 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         // Slow path: use the IC!
         ctx.icregs.icVals[0] = argc;
         ctx.icregs.extraArgs = 2 + constructing;
-        ctx.icregs.spreadCall = false;
         INVOKE_IC(Call);
         POPN(argc + 2 + constructing);
         PUSH(StackVal(Value::fromRawBits(ctx.icregs.icResult)));
@@ -5094,8 +5101,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         static_assert(JSOpLength_SpreadCall == JSOpLength_StrictSpreadEval);
         ctx.icregs.icVals[0] = 1;
         ctx.icregs.extraArgs = 2;
-        ctx.icregs.spreadCall = true;
-        INVOKE_IC(Call);
+        INVOKE_IC(SpreadCall);
         POPN(3);
         PUSH(StackVal(Value::fromRawBits(ctx.icregs.icResult)));
         END_OP(SpreadCall);
@@ -5106,8 +5112,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         static_assert(JSOpLength_SpreadSuperCall == JSOpLength_SpreadNew);
         ctx.icregs.icVals[0] = 1;
         ctx.icregs.extraArgs = 3;
-        ctx.icregs.spreadCall = true;
-        INVOKE_IC(Call);
+        INVOKE_IC(SpreadCall);
         POPN(4);
         PUSH(StackVal(Value::fromRawBits(ctx.icregs.icResult)));
         END_OP(SpreadSuperCall);
