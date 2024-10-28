@@ -6050,19 +6050,20 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         END_OP(ToNumeric);
       }
 
-    generic_unary: {
-      static_assert(JSOpLength_Pos == JSOpLength_Neg);
-      static_assert(JSOpLength_Pos == JSOpLength_BitNot);
-      static_assert(JSOpLength_Pos == JSOpLength_Inc);
-      static_assert(JSOpLength_Pos == JSOpLength_Dec);
-      static_assert(JSOpLength_Pos == JSOpLength_ToNumeric);
-      IC_POP_ARG(0);
-      IC_ZERO_ARG(1);
-      IC_ZERO_ARG(2);
-      INVOKE_IC(UnaryArith, false);
-      IC_PUSH_RESULT();
-      END_OP(Pos);
-    }
+    generic_unary:;
+      {
+        static_assert(JSOpLength_Pos == JSOpLength_Neg);
+        static_assert(JSOpLength_Pos == JSOpLength_BitNot);
+        static_assert(JSOpLength_Pos == JSOpLength_Inc);
+        static_assert(JSOpLength_Pos == JSOpLength_Dec);
+        static_assert(JSOpLength_Pos == JSOpLength_ToNumeric);
+        IC_POP_ARG(0);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(UnaryArith, false);
+        IC_PUSH_RESULT();
+        END_OP(Pos);
+      }
 
       CASE(Not) {
         if (kHybridICs) {
@@ -6443,25 +6444,26 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         goto generic_binary;
       }
 
-    generic_binary: {
-      static_assert(JSOpLength_BitOr == JSOpLength_BitXor);
-      static_assert(JSOpLength_BitOr == JSOpLength_BitAnd);
-      static_assert(JSOpLength_BitOr == JSOpLength_Lsh);
-      static_assert(JSOpLength_BitOr == JSOpLength_Rsh);
-      static_assert(JSOpLength_BitOr == JSOpLength_Ursh);
-      static_assert(JSOpLength_BitOr == JSOpLength_Add);
-      static_assert(JSOpLength_BitOr == JSOpLength_Sub);
-      static_assert(JSOpLength_BitOr == JSOpLength_Mul);
-      static_assert(JSOpLength_BitOr == JSOpLength_Div);
-      static_assert(JSOpLength_BitOr == JSOpLength_Mod);
-      static_assert(JSOpLength_BitOr == JSOpLength_Pow);
-      IC_POP_ARG(1);
-      IC_POP_ARG(0);
-      IC_ZERO_ARG(2);
-      INVOKE_IC(BinaryArith, false);
-      IC_PUSH_RESULT();
-      END_OP(Div);
-    }
+    generic_binary:;
+      {
+        static_assert(JSOpLength_BitOr == JSOpLength_BitXor);
+        static_assert(JSOpLength_BitOr == JSOpLength_BitAnd);
+        static_assert(JSOpLength_BitOr == JSOpLength_Lsh);
+        static_assert(JSOpLength_BitOr == JSOpLength_Rsh);
+        static_assert(JSOpLength_BitOr == JSOpLength_Ursh);
+        static_assert(JSOpLength_BitOr == JSOpLength_Add);
+        static_assert(JSOpLength_BitOr == JSOpLength_Sub);
+        static_assert(JSOpLength_BitOr == JSOpLength_Mul);
+        static_assert(JSOpLength_BitOr == JSOpLength_Div);
+        static_assert(JSOpLength_BitOr == JSOpLength_Mod);
+        static_assert(JSOpLength_BitOr == JSOpLength_Pow);
+        IC_POP_ARG(1);
+        IC_POP_ARG(0);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(BinaryArith, false);
+        IC_PUSH_RESULT();
+        END_OP(Div);
+      }
 
       CASE(Eq) {
         if (sp[0].asValue().isInt32() && sp[1].asValue().isInt32()) {
@@ -6634,21 +6636,22 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         }
       }
 
-    generic_cmp: {
-      static_assert(JSOpLength_Eq == JSOpLength_Ne);
-      static_assert(JSOpLength_Eq == JSOpLength_StrictEq);
-      static_assert(JSOpLength_Eq == JSOpLength_StrictNe);
-      static_assert(JSOpLength_Eq == JSOpLength_Lt);
-      static_assert(JSOpLength_Eq == JSOpLength_Gt);
-      static_assert(JSOpLength_Eq == JSOpLength_Le);
-      static_assert(JSOpLength_Eq == JSOpLength_Ge);
-      IC_POP_ARG(1);
-      IC_POP_ARG(0);
-      IC_ZERO_ARG(2);
-      INVOKE_IC(Compare, false);
-      IC_PUSH_RESULT();
-      END_OP(Eq);
-    }
+    generic_cmp:;
+      {
+        static_assert(JSOpLength_Eq == JSOpLength_Ne);
+        static_assert(JSOpLength_Eq == JSOpLength_StrictEq);
+        static_assert(JSOpLength_Eq == JSOpLength_StrictNe);
+        static_assert(JSOpLength_Eq == JSOpLength_Lt);
+        static_assert(JSOpLength_Eq == JSOpLength_Gt);
+        static_assert(JSOpLength_Eq == JSOpLength_Le);
+        static_assert(JSOpLength_Eq == JSOpLength_Ge);
+        IC_POP_ARG(1);
+        IC_POP_ARG(0);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(Compare, false);
+        IC_PUSH_RESULT();
+        END_OP(Eq);
+      }
 
       CASE(Instanceof) {
         IC_POP_ARG(1);
@@ -8849,16 +8852,17 @@ unwind_ret:
   goto do_return;
 
 #ifndef __wasi__
-debug: {
-  TRACE_PRINTF("hit debug point\n");
-  PUSH_EXIT_FRAME();
-  if (!HandleDebugTrap(cx, frame, pc)) {
-    TRACE_PRINTF("HandleDebugTrap returned error\n");
-    goto error;
+debug:;
+  {
+    TRACE_PRINTF("hit debug point\n");
+    PUSH_EXIT_FRAME();
+    if (!HandleDebugTrap(cx, frame, pc)) {
+      TRACE_PRINTF("HandleDebugTrap returned error\n");
+      goto error;
+    }
+    pc = frame->interpreterPC();
+    TRACE_PRINTF("HandleDebugTrap done\n");
   }
-  pc = frame->interpreterPC();
-  TRACE_PRINTF("HandleDebugTrap done\n");
-}
   goto dispatch;
 #endif
 }
