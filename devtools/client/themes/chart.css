@@ -7,14 +7,7 @@
 .generic-chart-container {
   /* Hack: force hardware acceleration */
   transform: translateZ(1px);
-}
-
-.theme-dark .generic-chart-container {
-  color: var(--theme-selection-color);
-}
-
-.theme-light .generic-chart-container {
-  color: var(--theme-text-color-alt);
+  color: light-dark(var(--theme-text-color-alt), var(--theme-selection-color));
 }
 
 .chart-colored-blob {
@@ -27,37 +20,22 @@
 .pie-chart-slice {
   stroke-width: 1px;
   cursor: pointer;
-}
+  stroke: light-dark(rgba(255,255,255,0.8), rgba(0,0,0,0.2)) ;
 
-.theme-dark .pie-chart-slice {
-  stroke: rgba(0,0,0,0.2);
-}
-
-.theme-light .pie-chart-slice {
-  stroke: rgba(255,255,255,0.8);
+  &[largest] {
+    stroke: light-dark(#000, #fff);
+  }
 }
 
 .theme-dark .pie-chart-slice[largest] {
   stroke-width: 2px;
-  stroke: #fff;
-}
-
-.theme-light .pie-chart-slice[largest] {
-  stroke: #000;
 }
 
 .pie-chart-label {
   text-anchor: middle;
   dominant-baseline: middle;
   pointer-events: none;
-}
-
-.theme-dark .pie-chart-label {
-  fill: #000;
-}
-
-.theme-light .pie-chart-label {
-  fill: #fff;
+  fill: light-dark(#fff, #000);
 }
 
 .pie-chart-container[slices="1"] > .pie-chart-slice {
@@ -124,12 +102,5 @@
 .table-chart-summary-label {
   font-weight: 600;
   padding: 1px 0px;
-}
-
-.theme-dark .table-chart-summary-label {
-  color: var(--theme-selection-color);
-}
-
-.theme-light .table-chart-summary-label {
-  color: var(--theme-body-color);
+  color: light-dark(var(--theme-body-color), var(--theme-selection-color));
 }
