@@ -401,9 +401,8 @@ class VMFrame {
   void* prevSavedStack;
 
  public:
-  VMFrame(VMFrameManager& mgr, Stack& stack_, StackVal* sp, jsbytecode* pc)
+  VMFrame(VMFrameManager& mgr, Stack& stack_, StackVal* sp)
       : cx(mgr.cx), stack(stack_) {
-    mgr.frame->interpreterPC() = pc;
     exitFP = stack.pushExitFrame(sp, mgr.frame);
     if (!exitFP) {
       return;
@@ -429,8 +428,8 @@ class VMFrame {
   bool success() const { return exitFP != nullptr; }
 };
 
-#define PUSH_EXIT_FRAME_OR_RET(value, init_sp, init_pc)         \
-  VMFrame cx(ctx.frameMgr, ctx.stack, init_sp, init_pc);        \
+#define PUSH_EXIT_FRAME_OR_RET(value, init_sp)                  \
+  VMFrame cx(ctx.frameMgr, ctx.stack, init_sp);                 \
   if (!cx.success()) {                                          \
     return value;                                               \
   }                                                             \
@@ -439,11 +438,13 @@ class VMFrame {
 
 #define PUSH_IC_FRAME()                   \
   ctx.error = ICInterpretOpResult::Error; \
-  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp, ctx.pc)
+  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp)
 #define PUSH_FALLBACK_IC_FRAME()          \
   ctx.error = ICInterpretOpResult::Error; \
-  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp, ctx.pc)
-#define PUSH_EXIT_FRAME() PUSH_EXIT_FRAME_OR_RET(PBIResult::Error, sp, pc)
+  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp)
+#define PUSH_EXIT_FRAME()          \
+  ctx.frame->interpreterPC() = pc; \
+  PUSH_EXIT_FRAME_OR_RET(PBIResult::Error, sp)
 
 /*
  * -----------------------------------------------
@@ -463,7 +464,6 @@ struct ICCtx {
   Stack& stack;
   StackVal* sp;
   ICCacheIRStub* cstub;
-  jsbytecode* pc;
   ICInterpretOpResult error;
   uint64_t arg2;
 
@@ -475,7 +475,6 @@ struct ICCtx {
         stack(stack_),
         sp(nullptr),
         cstub(nullptr),
-        pc(nullptr),
         error(ICInterpretOpResult::Return),
         arg2(0) {}
 };
@@ -3214,7 +3213,7 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
 
 #define INVOKE_IC(kind, hasarg2)                                        \
   ctx.sp = sp;                                                          \
-  ctx.pc = pc;                                                          \
+  frame->interpreterPC() = pc;                                          \
   if (hasarg2) {                                                        \
     ctx.arg2 = ic_arg2;                                                 \
   }                                                                     \
