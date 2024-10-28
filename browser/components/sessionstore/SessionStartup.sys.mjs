@@ -33,6 +33,7 @@ const lazy = {};
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
   CrashMonitor: "resource://gre/modules/CrashMonitor.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SessionFile: "resource:///modules/sessionstore/SessionFile.sys.mjs",
@@ -200,10 +201,8 @@ export var SessionStartup = {
       lazy.sessionStoreLogger.debug(
         `initialState contains ${pinnedTabCount} pinned tabs`
       );
-      Services.telemetry.scalarSetMaximum(
-        "browser.engagement.max_concurrent_tab_pinned_count",
-        pinnedTabCount
-      );
+
+      lazy.BrowserUsageTelemetry.updateMaxTabPinnedCount(pinnedTabCount);
     }, 60000);
 
     let isAutomaticRestoreEnabled = this.isAutomaticRestoreEnabled();

@@ -124,6 +124,95 @@ browser.engagement:
     expires: never
     telemetry_mirror: BROWSER_ENGAGEMENT_PROFILE_COUNT
 
+  max_concurrent_tab_count:
+    type: quantity
+    description: >
+      The count of maximum number of tabs open during a subsession, across
+      all windows, including tabs in private windows and restored at
+      startup.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.max_concurrent_tab_count.
+    bugs:
+      - https://bugzil.la/1271304
+    data_reviews:
+      - https://bugzil.la/1271304
+    notification_emails:
+      - rweiss@mozilla.com
+    expires: never
+    unit: tabs
+    telemetry_mirror: BROWSER_ENGAGEMENT_MAX_CONCURRENT_TAB_COUNT
+
+  max_concurrent_vertical_tab_count:
+    type: quantity
+    description: >
+      The count of maximum number of tabs with vertical tabs enabled.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.max_concurrent_vertical_tab_count.
+    bugs:
+      - https://bugzil.la/1899352
+    data_reviews:
+      - https://bugzil.la/1899352
+    notification_emails:
+      - vsabino@mozilla.com
+    expires: never
+    unit: vertical tabs
+    telemetry_mirror: BROWSER_ENGAGEMENT_MAX_CONCURRENT_VERTICAL_TAB_COUNT
+
+  max_concurrent_window_count:
+    type: quantity
+    description: >
+      The count of maximum number of browser windows open during a
+      subsession. This includes private windows and the ones opened when
+      starting the browser.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.max_concurrent_window_count.
+    bugs:
+      - https://bugzil.la/1271304
+    data_reviews:
+      - https://bugzil.la/1271304
+    notification_emails:
+      - rweiss@mozilla.com
+    expires: never
+    unit: windows
+    telemetry_mirror: BROWSER_ENGAGEMENT_MAX_CONCURRENT_WINDOW_COUNT
+
+  max_concurrent_tab_pinned_count:
+    type: quantity
+    description: >
+      The count of maximum number of pinned tabs open during a subsession.
+      This includes private windows and the ones opened when starting the
+      browser. Starting Firefox 85 this includes number of restored pinned
+      tabs at startup.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.max_concurrent_tab_pinned_count.
+    bugs:
+      - https://bugzil.la/1505535
+    data_reviews:
+      - https://bugzil.la/1505535
+    notification_emails:
+      - bmiroglio@mozilla.com
+      - aoprea@mozilla.com
+    expires: never
+    unit: pinned tabs
+    telemetry_mirror: BROWSER_ENGAGEMENT_MAX_CONCURRENT_TAB_PINNED_COUNT
+
+  max_concurrent_vertical_tab_pinned_count:
+    type: quantity
+    description: >
+      The count of maximum number of pinned tabs with vertical tabs
+      enabled.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.max_concurrent_vertical_tab_pinned_count.
+    bugs:
+      - https://bugzil.la/1899352
+    data_reviews:
+      - https://bugzil.la/1899352
+    notification_emails:
+      - vsabino@mozilla.com
+    expires: never
+    unit: vertical pinned tabs
+    telemetry_mirror: BROWSER_ENGAGEMENT_MAX_CONCURRENT_VERTICAL_TAB_PINNED_COUNT
+
 installation.first_seen:
   failure_reason:
     type: string

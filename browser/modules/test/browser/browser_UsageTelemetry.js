@@ -113,10 +113,17 @@ let checkScalars = (countsObject, skipGleanCheck = false) => {
   }
 };
 
-add_task(async function test_tabsAndWindows() {
-  // Let's reset the counts.
+function resetTelemetry() {
   Services.telemetry.clearScalars();
   Services.fog.testResetFOG();
+  BrowserUsageTelemetry.maxTabCount = 0;
+  BrowserUsageTelemetry.maxTabPinnedCount = 0;
+  BrowserUsageTelemetry.maxWindowCount = 0;
+}
+
+add_task(async function test_tabsAndWindows() {
+  // Let's reset the counts.
+  resetTelemetry();
 
   let openedTabs = [];
   let expectedTabOpenCount = 0;
@@ -240,7 +247,7 @@ add_task(async function test_tabsAndWindows() {
 
 add_task(async function test_subsessionSplit() {
   // Let's reset the counts.
-  Services.telemetry.clearScalars();
+  resetTelemetry();
 
   // Add a new window (that will have 4 tabs).
   let win = await BrowserTestUtils.openNewBrowserWindow();
@@ -631,7 +638,7 @@ add_task(async function test_loadedTabsHistogram() {
 add_task(async function test_restored_max_pinned_count() {
   // Following pinned tab testing example from
   // https://searchfox.org/mozilla-central/rev/1843375acbbca68127713e402be222350ac99301/browser/components/sessionstore/test/browser_pinned_tabs.js
-  Services.telemetry.clearScalars();
+  resetTelemetry();
   const { E10SUtils } = ChromeUtils.importESModule(
     "resource://gre/modules/E10SUtils.sys.mjs"
   );
