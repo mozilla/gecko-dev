@@ -438,10 +438,10 @@ class VMFrame {
 
 #define PUSH_IC_FRAME()         \
   ctx.error = PBIResult::Error; \
-  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp)
+  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp())
 #define PUSH_FALLBACK_IC_FRAME() \
   ctx.error = PBIResult::Error;  \
-  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), ctx.sp)
+  PUSH_EXIT_FRAME_OR_RET(IC_ERROR_SENTINEL(), sp)
 #define PUSH_EXIT_FRAME()          \
   ctx.frame->interpreterPC() = pc; \
   PUSH_EXIT_FRAME_OR_RET(PBIResult::Error, sp)
@@ -462,7 +462,7 @@ struct ICCtx {
   State& state;
   ICRegs icregs;
   Stack& stack;
-  StackVal* sp;
+  StackVal* sp_;
   ICCacheIRStub* cstub;
   PBIResult error;
   uint64_t arg2;
@@ -473,10 +473,12 @@ struct ICCtx {
         state(state_),
         icregs(),
         stack(stack_),
-        sp(nullptr),
+        sp_(nullptr),
         cstub(nullptr),
         error(PBIResult::Ok),
         arg2(0) {}
+
+  StackVal* sp() { return sp_; }
 };
 
 #define IC_ERROR_SENTINEL() (JS::MagicValue(JS_GENERIC_MAGIC).asRawBits())
@@ -656,6 +658,14 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
     DECLARE_CACHEOP_CASE(CompareInt32Result);
     DECLARE_CACHEOP_CASE(CompareNullUndefinedResult);
     DECLARE_CACHEOP_CASE(AssertPropertyLookup);
+    DECLARE_CACHEOP_CASE(GuardIsFixedLengthTypedArray);
+    DECLARE_CACHEOP_CASE(GuardIndexIsNotDenseElement);
+    DECLARE_CACHEOP_CASE(LoadFixedSlotTypedResult);
+    DECLARE_CACHEOP_CASE(LoadDenseElementHoleResult);
+    DECLARE_CACHEOP_CASE(LoadDenseElementExistsResult);
+    DECLARE_CACHEOP_CASE(LoadTypedArrayElementExistsResult);
+    DECLARE_CACHEOP_CASE(LoadDenseElementHoleExistsResult);
+    DECLARE_CACHEOP_CASE(LoadTypedArrayElementResult);
 
     // Define the computed-goto table regardless of dispatch strategy so
     // we don't get unused-label errors. (We need some of the labels
@@ -1186,8 +1196,10 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         ObjOperandId objId = cacheIRReader.objOperandId();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         const JSClass* clasp = obj->getClass();
-        if (clasp == &ArrayBufferObject::protoClass_ ||
-            clasp == &SharedArrayBufferObject::protoClass_) {
+        if (clasp == &FixedLengthArrayBufferObject::protoClass_ ||
+            clasp == &FixedLengthSharedArrayBufferObject::protoClass_ ||
+            clasp == &ResizableArrayBufferObject::class_ ||
+            clasp == &GrowableSharedArrayBufferObject::class_) {
           FAIL_IC();
         }
         DISPATCH_CACHEOP();
@@ -1197,6 +1209,15 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         ObjOperandId objId = cacheIRReader.objOperandId();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         if (!IsTypedArrayClass(obj->getClass())) {
+          FAIL_IC();
+        }
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(GuardIsFixedLengthTypedArray) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        if (!IsFixedLengthTypedArrayClass(obj->getClass())) {
           FAIL_IC();
         }
         DISPATCH_CACHEOP();
@@ -1424,8 +1445,9 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         HeapSlot* slots = nobj->getSlotsUnchecked();
-        // Note that unlike similar opcodes, GuardDynamicSlotIsSpecificObject
-        // takes a slot index rather than a byte offset.
+        // Note that unlike similar opcodes,
+        // GuardDynamicSlotIsSpecificObject takes a slot index rather
+        // than a byte offset.
         Value actual = slots[slot];
         if (actual != ObjectValue(*expected)) {
           FAIL_IC();
@@ -1440,8 +1462,9 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         uint32_t slot = stubInfo->getStubRawInt32(cstub, slotOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
         HeapSlot* slots = nobj->getSlotsUnchecked();
-        // Note that unlike similar opcodes, GuardDynamicSlotIsNotObject takes
-        // a slot index rather than a byte offset.
+        // Note that unlike similar opcodes,
+        // GuardDynamicSlotIsNotObject takes a slot index rather than
+        // a byte offset.
         Value actual = slots[slot];
         if (actual.isObject()) {
           FAIL_IC();
@@ -1618,7 +1641,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
         WRITE_REG(resultId.id(),
-                  reinterpret_cast<uintptr_t>(nobj->staticPrototype()), OBJECT);
+                  reinterpret_cast<uint64_t>(nobj->staticPrototype()), OBJECT);
         DISPATCH_CACHEOP();
       }
 
@@ -1628,7 +1651,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         BOUNDSCHECK(resultId);
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         JSObject* env = &obj->as<EnvironmentObject>().enclosingEnvironment();
-        WRITE_REG(resultId.id(), reinterpret_cast<uintptr_t>(env), OBJECT);
+        WRITE_REG(resultId.id(), reinterpret_cast<uint64_t>(env), OBJECT);
         DISPATCH_CACHEOP();
       }
 
@@ -1659,7 +1682,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         ValOperandId resultId = cacheIRReader.valOperandId();
         BOUNDSCHECK(resultId);
         uint8_t slotIndex = cacheIRReader.readByte();
-        Value val = ctx.sp[slotIndex].asValue();
+        StackVal* sp = ctx.sp();
+        Value val = sp[slotIndex].asValue();
         TRACE_PRINTF(" -> slot %d: val %" PRIx64 "\n", int(slotIndex),
                      val.asRawBits());
         WRITE_VALUE_REG(resultId.id(), val);
@@ -1672,7 +1696,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         Int32OperandId argcId = cacheIRReader.int32OperandId();
         uint8_t slotIndex = cacheIRReader.readByte();
         int32_t argc = int32_t(READ_REG(argcId.id()));
-        Value val = ctx.sp[slotIndex + argc].asValue();
+        StackVal* sp = ctx.sp();
+        Value val = sp[slotIndex + argc].asValue();
         WRITE_VALUE_REG(resultId.id(), val);
         DISPATCH_CACHEOP();
       }
@@ -1826,10 +1851,10 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         int32_t numNewSlots =
             stubInfo->getStubRawInt32(cstub, numNewSlotsOffset);
         NativeObject* nobj = &obj->as<NativeObject>();
-        // We have to (re)allocate dynamic slots. Do this first, as it's the
-        // only fallible operation here. Note that growSlotsPure is fallible
-        // but does not GC. Otherwise this is the same as
-        // AddAndStoreDynamicSlot above.
+        // We have to (re)allocate dynamic slots. Do this first, as
+        // it's the only fallible operation here. Note that
+        // growSlotsPure is fallible but does not GC. Otherwise this
+        // is the same as AddAndStoreDynamicSlot above.
         if (!NativeObject::growSlotsPure(ctx.frameMgr.cxForLocalUseOnly(), nobj,
                                          numNewSlots)) {
           FAIL_IC();
@@ -1957,6 +1982,8 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         IntPtrOperandId indexId = cacheIRReader.intPtrOperandId();
         uint32_t rhsId = cacheIRReader.rawOperandId();
         bool handleOOB = cacheIRReader.readBool();
+        ArrayBufferViewKind kind = cacheIRReader.arrayBufferViewKind();
+        (void)kind;
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         uintptr_t index = uintptr_t(READ_REG(indexId.id()));
         uint64_t rhs = READ_REG(rhsId);
@@ -2010,6 +2037,54 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
                                                obj0, index, value0, result));
           MOZ_ALWAYS_TRUE(result.ok());
         }
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadTypedArrayElementExistsResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        IntPtrOperandId indexId = cacheIRReader.intPtrOperandId();
+        ArrayBufferViewKind kind = cacheIRReader.arrayBufferViewKind();
+        (void)kind;
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        uintptr_t index = uintptr_t(READ_REG(indexId.id()));
+        if (obj->as<TypedArrayObject>().length().isNothing()) {
+          FAIL_IC();
+        }
+        retValue =
+            BooleanValue(index < obj->as<TypedArrayObject>().length().value())
+                .asRawBits();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadTypedArrayElementResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        IntPtrOperandId indexId = cacheIRReader.intPtrOperandId();
+        Scalar::Type elementType = cacheIRReader.scalarType();
+        bool handleOOB = cacheIRReader.readBool();
+        bool forceDoubleForUint32 = cacheIRReader.readBool();
+        ArrayBufferViewKind kind = cacheIRReader.arrayBufferViewKind();
+        (void)kind;
+        (void)elementType;
+        (void)handleOOB;
+        JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
+        uintptr_t index = uintptr_t(READ_REG(indexId.id()));
+        if (obj->as<TypedArrayObject>().length().isNothing()) {
+          FAIL_IC();
+        }
+        if (index >= obj->as<TypedArrayObject>().length().value()) {
+          FAIL_IC();
+        }
+        Value v;
+        if (!obj->as<TypedArrayObject>().getElementPure(index, &v)) {
+          FAIL_IC();
+        }
+        if (forceDoubleForUint32) {
+          if (v.isInt32()) {
+            v.setNumber(v.toInt32());
+          }
+        }
+        retValue = v.asRawBits();
+        PREDICT_RETURN();
         DISPATCH_CACHEOP();
       }
 
@@ -2078,7 +2153,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
 
         uint32_t extra = 1 + flags.isConstructing() + isNative;
         uint32_t totalArgs = argc + extra;
-        StackVal* sp = ctx.sp;
+        StackVal* sp = ctx.sp();
         StackVal* origArgs = sp;
 
         {
@@ -2141,8 +2216,9 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
 
             PBIResult result;
             Value ret;
-            result = PortableBaselineInterpret(cx, ctx.state, ctx.stack, ctx.sp,
-                                               /* envChain = */ nullptr, &ret);
+            result =
+                PortableBaselineInterpret(cx, ctx.state, ctx.stack, ctx.sp(),
+                                          /* envChain = */ nullptr, &ret);
             if (result != PBIResult::Ok) {
               ctx.error = result;
               return IC_ERROR_SENTINEL();
@@ -2164,9 +2240,14 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
-      CACHEOP_CASE(LoadFixedSlotResult) {
+      CACHEOP_CASE(LoadFixedSlotResult)
+      CACHEOP_CASE_FALLTHROUGH(LoadFixedSlotTypedResult) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         uint32_t offsetOffset = cacheIRReader.stubOffset();
+        if (cacheop == CacheOp::LoadFixedSlotTypedResult) {
+          // Type is unused here.
+          (void)cacheIRReader.valueType();
+        }
         uintptr_t offset = stubInfo->getStubRawInt32(cstub, offsetOffset);
         NativeObject* nobj =
             reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
@@ -2238,6 +2319,84 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           FAIL_IC();
         }
         WRITE_REG(resultId.id(), length, INT32);
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadDenseElementHoleResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId indexId = cacheIRReader.int32OperandId();
+        NativeObject* nobj =
+            reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
+        ObjectElements* elems = nobj->getElementsHeader();
+        int32_t index = int32_t(READ_REG(indexId.id()));
+        if (index < 0 || uint32_t(index) >= nobj->getDenseInitializedLength()) {
+          FAIL_IC();
+        }
+        HeapSlot* slot = &elems->elements()[index];
+        Value val = slot->get();
+        if (val.isMagic()) {
+          val.setUndefined();
+        }
+        retValue = val.asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadDenseElementExistsResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId indexId = cacheIRReader.int32OperandId();
+        NativeObject* nobj =
+            reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
+        ObjectElements* elems = nobj->getElementsHeader();
+        int32_t index = int32_t(READ_REG(indexId.id()));
+        if (index < 0 || uint32_t(index) >= nobj->getDenseInitializedLength()) {
+          FAIL_IC();
+        }
+        HeapSlot* slot = &elems->elements()[index];
+        Value val = slot->get();
+        if (val.isMagic()) {
+          FAIL_IC();
+        }
+        retValue = BooleanValue(true).asRawBits();
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(LoadDenseElementHoleExistsResult) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId indexId = cacheIRReader.int32OperandId();
+        NativeObject* nobj =
+            reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
+        ObjectElements* elems = nobj->getElementsHeader();
+        int32_t index = int32_t(READ_REG(indexId.id()));
+        if (index < 0 || uint32_t(index) >= nobj->getDenseInitializedLength()) {
+          retValue = BooleanValue(false).asRawBits();
+        } else {
+          HeapSlot* slot = &elems->elements()[index];
+          Value val = slot->get();
+          retValue = BooleanValue(!val.isMagic()).asRawBits();
+        }
+        PREDICT_RETURN();
+        DISPATCH_CACHEOP();
+      }
+
+      CACHEOP_CASE(GuardIndexIsNotDenseElement) {
+        ObjOperandId objId = cacheIRReader.objOperandId();
+        Int32OperandId indexId = cacheIRReader.int32OperandId();
+        NativeObject* nobj =
+            reinterpret_cast<NativeObject*>(READ_REG(objId.id()));
+        ObjectElements* elems = nobj->getElementsHeader();
+        int32_t index = int32_t(READ_REG(indexId.id()));
+        if (index < 0 || uint32_t(index) >= nobj->getDenseInitializedLength()) {
+          // OK -- not in the dense index range.
+        } else {
+          HeapSlot* slot = &elems->elements()[index];
+          Value val = slot->get();
+          if (!val.isMagic()) {
+            // Not a magic value -- not the hole, so guard fails.
+            FAIL_IC();
+          }
+        }
         DISPATCH_CACHEOP();
       }
 
@@ -2810,6 +2969,7 @@ static MOZ_NEVER_INLINE uint64_t CallNextIC(uint64_t arg0, uint64_t arg1,
                                              ICStub* stub, ICCtx& ctx) {   \
     uint64_t retValue = 0;                                                 \
     uint64_t arg2 = ctx.arg2;                                              \
+    StackVal* sp = ctx.sp();                                               \
     (void)arg2;                                                            \
     if (stub->isFallback()) {                                              \
       ICFallbackStub* fallback = stub->toFallbackStub();                   \
@@ -2863,7 +3023,7 @@ DEFINE_IC(Call, 1, {
   uint32_t argc = uint32_t(arg0);
   uint32_t totalArgs =
       argc + ctx.icregs.extraArgs;  // this, callee, (constructing?), func args
-  Value* args = reinterpret_cast<Value*>(&ctx.sp[0]);
+  Value* args = reinterpret_cast<Value*>(&sp[0]);
   TRACE_PRINTF("Call fallback: argc %d totalArgs %d args %p\n", argc, totalArgs,
                args);
   // Reverse values on the stack.
@@ -2881,7 +3041,7 @@ DEFINE_IC(SpreadCall, 1, {
   uint32_t argc = uint32_t(arg0);
   uint32_t totalArgs =
       argc + ctx.icregs.extraArgs;  // this, callee, (constructing?), func args
-  Value* args = reinterpret_cast<Value*>(&ctx.sp[0]);
+  Value* args = reinterpret_cast<Value*>(&sp[0]);
   TRACE_PRINTF("Call fallback: argc %d totalArgs %d args %p\n", argc, totalArgs,
                args);
   // Reverse values on the stack.
@@ -3202,7 +3362,7 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
 #define NEXT_IC() frame->interpreterICEntry()++;
 
 #define INVOKE_IC(kind, hasarg2)                                        \
-  ctx.sp = sp;                                                          \
+  ctx.sp_ = sp;                                                         \
   frame->interpreterPC() = pc;                                          \
   if (hasarg2) {                                                        \
     ctx.arg2 = ic_arg2;                                                 \
