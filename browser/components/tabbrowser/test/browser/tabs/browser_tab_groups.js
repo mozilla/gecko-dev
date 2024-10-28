@@ -820,6 +820,36 @@ add_task(async function test_tabGroupContextMenuMoveTabToExistingGroup() {
 });
 
 /*
+ * Same as above, but for groups in different windows
+ */
+add_task(
+  async function test_tabGroupContextMenuMoveTabToExistingGroupInDifferentWindow() {
+    let otherWindow = await BrowserTestUtils.openNewBrowserWindow();
+    let otherTab = BrowserTestUtils.addTab(
+      otherWindow.gBrowser,
+      "about:blank",
+      {
+        skipAnimation: true,
+      }
+    );
+    let group = otherWindow.gBrowser.addTabGroup([otherTab]);
+
+    let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+
+    let tabGrouped = BrowserTestUtils.waitForEvent(otherWindow, "TabGrouped");
+    await withTabMenu(tab, async (_, moveTabToGroupItem) => {
+      moveTabToGroupItem.querySelector(`[tab-group-id="${group.id}"]`).click();
+    });
+    await tabGrouped;
+    Assert.equal(group.tabs.length, 2, "group has 2 tabs");
+
+    await BrowserTestUtils.closeWindow(otherWindow);
+  }
+);
+
+/*
  * Tests that when groups exist, and the context menu tab has a group,
  * that group does not exist in the context menu list
  */
