@@ -5931,19 +5931,19 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
 #  define COUNT_COVERAGE_MAIN() ;
 #endif
 
-#define NEXT_IC() frame->interpreterICEntry()++;
+#define NEXT_IC() icEntry++
 
-#define INVOKE_IC(kind, hasarg2)                                           \
-  ctx.sp_ = sp;                                                            \
-  frame->interpreterPC() = pc;                                             \
-  SYNCSP();                                                                \
-  PBL_CALL_IC(frame->interpreterICEntry()->firstStub()->rawJitCode(), ctx, \
-              frame->interpreterICEntry()->firstStub(), ic_ret, ic_arg0,   \
-              ic_arg1, ic_arg2, hasarg2);                                  \
-  if (ic_ret == IC_ERROR_SENTINEL()) {                                     \
-    ic_result = ctx.error;                                                 \
-    goto ic_fail;                                                          \
-  }                                                                        \
+#define INVOKE_IC(kind, hasarg2)                                             \
+  ctx.sp_ = sp;                                                              \
+  frame->interpreterPC() = pc;                                               \
+  frame->interpreterICEntry() = icEntry;                                     \
+  SYNCSP();                                                                  \
+  PBL_CALL_IC(icEntry->firstStub()->rawJitCode(), ctx, icEntry->firstStub(), \
+              ic_ret, ic_arg0, ic_arg1, ic_arg2, hasarg2);                   \
+  if (ic_ret == IC_ERROR_SENTINEL()) {                                       \
+    ic_result = ctx.error;                                                   \
+    goto ic_fail;                                                            \
+  }                                                                          \
   NEXT_IC();
 
 #define INVOKE_IC_AND_PUSH(kind, hasarg2) \
@@ -6019,6 +6019,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
   uint64_t ic_arg0 = 0, ic_arg1 = 0, ic_arg2 = 0, ic_ret = 0;
 
   ICCtx ctx(cx_, frame, state, stack);
+  auto* icEntries = frame->icScript()->icEntries();
+  auto* icEntry = icEntries;
 
   if (IsRestart) {
     ic_result = restartCode;
@@ -6099,7 +6101,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 #endif
 
   TRACE_PRINTF("Entering: sp = %p fp = %p frame = %p, script = %p, pc = %p\n",
-               sp, ctx.stack.fp, frame, script.get(), pc);
+               sp, ctx.stack.fp, frame, frame->script(), pc);
   TRACE_PRINTF("nslots = %d nfixed = %d\n", int(frame->script()->nslots()),
                int(frame->script()->nfixed()));
 
@@ -6115,11 +6117,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
     JSOp op = JSOp(*pc);
     printf("sp[0] = %" PRIx64 " sp[1] = %" PRIx64 " sp[2] = %" PRIx64 "\n",
            sp[0].asUInt64(), sp[1].asUInt64(), sp[2].asUInt64());
-    printf("script = %p pc = %p: %s (ic %d) pending = %d\n", script.get(), pc,
-           CodeName(op),
-           (int)(frame->interpreterICEntry() -
-                 frame->script()->jitScript()->icScript()->icEntries()),
-           ctx.frameMgr.cxForLocalUseOnly()->isExceptionPending());
+    printf("script = %p pc = %p: %s (ic %d entry %p) pending = %d\n",
+           frame->script(), pc, CodeName(op), (int)(icEntry - icEntries),
+           icEntry, ctx.frameMgr.cxForLocalUseOnly()->isExceptionPending());
     printf("sp = %p fp = %p\n", sp, ctx.stack.fp);
     printf("TOS tag: %d\n", int(sp[0].asValue().asRawBits() >> 47));
     fflush(stdout);
@@ -7888,9 +7888,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
               }
             }
 
-            // 0. Save current PC in current frame, so we can retrieve
-            // it later.
+            // 0. Save current PC and interpreter IC pointer in
+            // current frame, so we can retrieve them later.
             frame->interpreterPC() = pc;
+            frame->interpreterICEntry() = icEntry;
 
             // 1. Push a baseline stub frame. Don't use the frame manager
             // -- we don't want the frame to be auto-freed when we leave
@@ -7928,6 +7929,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             frame = newFrame;
             ctx.frameMgr.switchToFrame(frame);
             ctx.frame = frame;
+            icEntries = frame->icScript()->icEntries();
+            icEntry = frame->interpreterICEntry();
             // 6. Set up PC and SP for callee.
             sp = reinterpret_cast<StackVal*>(frame);
             pc = calleeScript->code();
@@ -8297,13 +8300,13 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(JumpTarget) {
         int32_t icIndex = GET_INT32(pc);
-        frame->interpreterICEntry() = frame->icScript()->icEntries() + icIndex;
+        icEntry = icEntries + icIndex;
         COUNT_COVERAGE_PC(pc);
         END_OP(JumpTarget);
       }
       CASE(LoopHead) {
         int32_t icIndex = GET_INT32(pc);
-        frame->interpreterICEntry() = frame->icScript()->icEntries() + icIndex;
+        icEntry = icEntries + icIndex;
 #ifdef ENABLE_INTERRUPT_CHECKS
         if (ctx.frameMgr.cxForLocalUseOnly()->hasAnyPendingInterrupt()) {
           PUSH_EXIT_FRAME();
@@ -8317,7 +8320,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
       CASE(AfterYield) {
         int32_t icIndex = GET_INT32(pc);
-        frame->interpreterICEntry() = frame->icScript()->icEntries() + icIndex;
+        icEntry = icEntries + icIndex;
         if (frame->script()->isDebuggee()) {
           TRACE_PRINTF("doing DebugAfterYield\n");
           PUSH_EXIT_FRAME();
@@ -8446,6 +8449,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ctx.frame = frame;
           pc = frame->interpreterPC();
           isd = frame->script()->immutableScriptData();
+          icEntries = frame->icScript()->icEntries();
+          icEntry = frame->interpreterICEntry();
 
           // Adjust caller's stack to complete the call op that PC still points
           // to in that frame (pop args, push return value).
@@ -9192,6 +9197,8 @@ unwind:
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
+  icEntries = frame->icScript()->icEntries();
+  icEntry = frame->interpreterICEntry();
   pc = frame->interpreterPC();
   isd = frame->script()->immutableScriptData();
   DISPATCH();
@@ -9213,6 +9220,8 @@ unwind_error:
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
+  icEntries = frame->icScript()->icEntries();
+  icEntry = frame->interpreterICEntry();
   pc = frame->interpreterPC();
   isd = frame->script()->immutableScriptData();
   goto error;
@@ -9235,6 +9244,8 @@ unwind_ret:
   TRACE_PRINTF(" -> setting sp to %p, frame to %p\n", sp, frame);
   ctx.frameMgr.switchToFrame(frame);
   ctx.frame = frame;
+  icEntries = frame->icScript()->icEntries();
+  icEntry = frame->interpreterICEntry();
   pc = frame->interpreterPC();
   isd = frame->script()->immutableScriptData();
   from_unwind = true;
