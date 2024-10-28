@@ -4310,8 +4310,7 @@ inline bool OpIter<Policy>::readStackSwitch(StackSwitchKind* kind,
     ValType valType = stackType.valType();
     MOZ_ASSERT(valType.isRefType() && valType.typeDef()->isFuncType());
     const FuncType& func = valType.typeDef()->funcType();
-    MOZ_ASSERT(func.args().length() == 2 &&
-               func.arg(0).isExternRef() &&
+    MOZ_ASSERT(func.args().length() == 2 && func.arg(0).isExternRef() &&
                ValType::isSubTypeOf(func.arg(1), RefType::any()));
     MOZ_ASSERT_IF(*kind != StackSwitchKind::SwitchToMain,
                   func.results().empty());
