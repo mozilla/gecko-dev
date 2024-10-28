@@ -10,7 +10,7 @@
 #define OS_NAME linux
 #define av_restrict restrict
 #define EXTERN_PREFIX ""
-#define EXTERN_ASM 
+#define EXTERN_ASM
 #define BUILDSUF ""
 #define SLIBSUF ".so"
 #define HAVE_MMX2 HAVE_MMXEXT
@@ -479,7 +479,7 @@
 #define CONFIG_LIBCACA 0
 #define CONFIG_LIBCELT 0
 #define CONFIG_LIBCODEC2 0
-#define CONFIG_LIBDAV1D 0
+#define CONFIG_LIBDAV1D 1
 #define CONFIG_LIBDC1394 0
 #define CONFIG_LIBDRM 0
 #define CONFIG_LIBFLITE 0
