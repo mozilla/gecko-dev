@@ -1889,12 +1889,13 @@ void Http3Session::CloseStreamInternal(Http3StreamBase* aStream,
       MOZ_ASSERT(mConnectionIdleStart);
       MOZ_ASSERT(mConnectionIdleEnd);
 
+#ifndef ANDROID
       if (mConnectionIdleStart) {
-        Telemetry::AccumulateTimeDelta(
-            Telemetry::HTTP3_TIME_TO_REUSE_IDLE_CONNECTTION_MS,
-            NS_SUCCEEDED(aResult) ? "succeeded"_ns : "failed"_ns,
-            mConnectionIdleStart, mConnectionIdleEnd);
+        mozilla::glean::netwerk::http3_time_to_reuse_idle_connection
+            .Get(NS_SUCCEEDED(aResult) ? "succeeded"_ns : "failed"_ns)
+            .AccumulateRawDuration(mConnectionIdleEnd - mConnectionIdleStart);
       }
+#endif
 
       mConnectionIdleStart = TimeStamp();
       mConnectionIdleEnd = TimeStamp();

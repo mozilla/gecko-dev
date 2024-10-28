@@ -69,6 +69,24 @@ netwerk:
       - not_used
     expires: never
 
+  http3_time_to_reuse_idle_connection:
+    type: labeled_timing_distribution
+    time_unit: millisecond
+    description: >
+      The time to reuse an idle connection in HTTP3 (ms); keyed by the transaction reusing an idle connection has succeeded or failed
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1655566
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906360
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1655566
+    notification_emails:
+      - necko@mozilla.com
+    labels:
+      - succeeded
+      - failed
+    expires: never
+    telemetry_mirror: HTTP3_TIME_TO_REUSE_IDLE_CONNECTTION_MS
+
 network:
   byte_range_request:
     type: labeled_counter
