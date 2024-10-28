@@ -465,6 +465,7 @@ struct ICCtx {
   ICCacheIRStub* cstub;
   jsbytecode* pc;
   ICInterpretOpResult error;
+  uint64_t arg2;
 
   ICCtx(JSContext* cx, BaselineFrame* frame_, State& state_, Stack& stack_)
       : frame(frame_),
@@ -475,12 +476,14 @@ struct ICCtx {
         sp(nullptr),
         cstub(nullptr),
         pc(nullptr),
-        error(ICInterpretOpResult::Return) {}
+        error(ICInterpretOpResult::Return),
+        arg2(0) {}
 };
 
 #define IC_ERROR_SENTINEL() (JS::MagicValue(JS_GENERIC_MAGIC).asRawBits())
 
-uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
+uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(uint64_t arg0, uint64_t arg1,
+                                          ICStub* stub, ICCtx& ctx) {
   {
 #define DECLARE_CACHEOP_CASE(name) __label__ cacheop_##name
 
@@ -699,6 +702,10 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
     CacheIRReader cacheIRReader(stubInfo);
     uint64_t retValue = 0;
     CacheOp cacheop;
+
+    WRITE_VALUE_REG(0, Value::fromRawBits(arg0));
+    WRITE_VALUE_REG(1, Value::fromRawBits(arg1));
+    WRITE_VALUE_REG(2, Value::fromRawBits(ctx.arg2));
 
     DISPATCH_CACHEOP();
 
@@ -2798,88 +2805,46 @@ uint64_t MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
  * -----------------------------------------------
  */
 
-#define SAVE_INPUTS(arity)                \
-  do {                                    \
-    switch (arity) {                      \
-      case 0:                             \
-        break;                            \
-      case 1:                             \
-        inputs[0] = ctx.icregs.icVals[0]; \
-        break;                            \
-      case 2:                             \
-        inputs[0] = ctx.icregs.icVals[0]; \
-        inputs[1] = ctx.icregs.icVals[1]; \
-        break;                            \
-      case 3:                             \
-        inputs[0] = ctx.icregs.icVals[0]; \
-        inputs[1] = ctx.icregs.icVals[1]; \
-        inputs[2] = ctx.icregs.icVals[2]; \
-        break;                            \
-    }                                     \
-  } while (0)
-
-#define RESTORE_INPUTS(arity)             \
-  do {                                    \
-    switch (arity) {                      \
-      case 0:                             \
-        break;                            \
-      case 1:                             \
-        ctx.icregs.icVals[0] = inputs[0]; \
-        break;                            \
-      case 2:                             \
-        ctx.icregs.icVals[0] = inputs[0]; \
-        ctx.icregs.icVals[1] = inputs[1]; \
-        break;                            \
-      case 3:                             \
-        ctx.icregs.icVals[0] = inputs[0]; \
-        ctx.icregs.icVals[1] = inputs[1]; \
-        ctx.icregs.icVals[2] = inputs[2]; \
-        break;                            \
-    }                                     \
-  } while (0)
-
-#define DEFINE_IC(kind, arity, fallback_body)                    \
-  static uint64_t MOZ_ALWAYS_INLINE IC##kind(ICCtx& ctx) {       \
-    ICStub* stub = ctx.frame->interpreterICEntry()->firstStub(); \
-    uint64_t inputs[3];                                          \
-    uint64_t retValue = 0;                                       \
-    SAVE_INPUTS(arity);                                          \
-    while (true) {                                               \
-    next_stub:                                                   \
-      if (stub->isFallback()) {                                  \
-        ICFallbackStub* fallback = stub->toFallbackStub();       \
-        fallback_body;                                           \
-        retValue = ctx.state.res.asRawBits();                    \
-        ctx.state.res = UndefinedValue();                        \
-        return retValue;                                         \
-      error:                                                     \
-        ctx.error = ICInterpretOpResult::Error;                  \
-        return IC_ERROR_SENTINEL();                              \
-      } else {                                                   \
-        ICCacheIRStub* cstub = stub->toCacheIRStub();            \
-        ctx.cstub = cstub;                                       \
-        cstub->incrementEnteredCount();                          \
-        retValue = ICInterpretOps(ctx);                          \
-        if (retValue != IC_ERROR_SENTINEL()) {                   \
-          return retValue;                                       \
-        }                                                        \
-        if (ctx.error == ICInterpretOpResult::NextIC) {          \
-          stub = stub->maybeNext();                              \
-          RESTORE_INPUTS(arity);                                 \
-          goto next_stub;                                        \
-        }                                                        \
-        return retValue;                                         \
-      }                                                          \
-    }                                                            \
+#define DEFINE_IC(kind, arity, fallback_body)                              \
+  static uint64_t MOZ_ALWAYS_INLINE IC##kind(uint64_t arg0, uint64_t arg1, \
+                                             ICStub* stub, ICCtx& ctx) {   \
+    uint64_t retValue = 0;                                                 \
+    uint64_t arg2 = ctx.arg2;                                              \
+    (void)arg2;                                                            \
+    while (true) {                                                         \
+    next_stub:                                                             \
+      if (stub->isFallback()) {                                            \
+        ICFallbackStub* fallback = stub->toFallbackStub();                 \
+        fallback_body;                                                     \
+        retValue = ctx.state.res.asRawBits();                              \
+        ctx.state.res = UndefinedValue();                                  \
+        return retValue;                                                   \
+      error:                                                               \
+        ctx.error = ICInterpretOpResult::Error;                            \
+        return IC_ERROR_SENTINEL();                                        \
+      } else {                                                             \
+        ICCacheIRStub* cstub = stub->toCacheIRStub();                      \
+        ctx.cstub = cstub;                                                 \
+        cstub->incrementEnteredCount();                                    \
+        retValue = ICInterpretOps(arg0, arg1, stub, ctx);                  \
+        if (retValue != IC_ERROR_SENTINEL()) {                             \
+          return retValue;                                                 \
+        }                                                                  \
+        if (ctx.error == ICInterpretOpResult::NextIC) {                    \
+          stub = stub->maybeNext();                                        \
+          goto next_stub;                                                  \
+        }                                                                  \
+        return retValue;                                                   \
+      }                                                                    \
+    }                                                                      \
   }
 
 #define IC_LOAD_VAL(state_elem, index)                    \
   ReservedRooted<Value> state_elem(&ctx.state.state_elem, \
-                                   READ_VALUE_REG((index)))
+                                   Value::fromRawBits(arg##index))
 #define IC_LOAD_OBJ(state_elem, index)  \
   ReservedRooted<JSObject*> state_elem( \
-      &ctx.state.state_elem,            \
-      reinterpret_cast<JSObject*>(ctx.icregs.icVals[(index)]))
+      &ctx.state.state_elem, reinterpret_cast<JSObject*>(arg##index))
 
 DEFINE_IC(TypeOf, 1, {
   IC_LOAD_VAL(value0, 0);
@@ -2906,7 +2871,7 @@ DEFINE_IC(GetName, 1, {
 });
 
 DEFINE_IC(Call, 1, {
-  uint32_t argc = uint32_t(ctx.icregs.icVals[0]);
+  uint32_t argc = uint32_t(arg0);
   uint32_t totalArgs =
       argc + ctx.icregs.extraArgs;  // this, callee, (constructing?), func args
   Value* args = reinterpret_cast<Value*>(&ctx.sp[0]);
@@ -2924,7 +2889,7 @@ DEFINE_IC(Call, 1, {
 });
 
 DEFINE_IC(SpreadCall, 1, {
-  uint32_t argc = uint32_t(ctx.icregs.icVals[0]);
+  uint32_t argc = uint32_t(arg0);
   uint32_t totalArgs =
       argc + ctx.icregs.extraArgs;  // this, callee, (constructing?), func args
   Value* args = reinterpret_cast<Value*>(&ctx.sp[0]);
@@ -3210,12 +3175,12 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
 #define END_OP(op) ADVANCE_AND_DISPATCH(JSOpLength_##op);
 
 #define IC_SET_ARG_FROM_STACK(index, stack_index) \
-  ctx.icregs.icVals[(index)] = sp[(stack_index)].asUInt64();
-#define IC_POP_ARG(index) ctx.icregs.icVals[(index)] = (*sp++).asUInt64();
-#define IC_SET_VAL_ARG(index, expr) \
-  ctx.icregs.icVals[(index)] = (expr).asRawBits();
+  ic_arg##index = sp[(stack_index)].asUInt64();
+#define IC_POP_ARG(index) ic_arg##index = (*sp++).asUInt64();
+#define IC_SET_VAL_ARG(index, expr) ic_arg##index = (expr).asRawBits();
 #define IC_SET_OBJ_ARG(index, expr) \
-  ctx.icregs.icVals[(index)] = reinterpret_cast<uint64_t>(expr);
+  ic_arg##index = reinterpret_cast<uint64_t>(expr);
+#define IC_ZERO_ARG(index) ic_arg##index = 0;
 #define IC_PUSH_RESULT() PUSH(StackVal(ic_ret));
 
 #if !defined(TRACE_INTERP)
@@ -3247,25 +3212,29 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
 
 #define NEXT_IC() frame->interpreterICEntry()++;
 
-#define INVOKE_IC(kind)                      \
-  ctx.sp = sp;                               \
-  ctx.pc = pc;                               \
-  ic_ret = IC##kind(ctx);                    \
-  if (ic_ret == IC_ERROR_SENTINEL()) {       \
-    switch (ctx.error) {                     \
-      case ICInterpretOpResult::Return:      \
-      case ICInterpretOpResult::NextIC:      \
-        break;                               \
-      case ICInterpretOpResult::Error:       \
-        goto error;                          \
-      case ICInterpretOpResult::Unwind:      \
-        goto unwind;                         \
-      case ICInterpretOpResult::UnwindError: \
-        goto unwind_error;                   \
-      case ICInterpretOpResult::UnwindRet:   \
-        goto unwind_ret;                     \
-    }                                        \
-  }                                          \
+#define INVOKE_IC(kind, hasarg2)                                        \
+  ctx.sp = sp;                                                          \
+  ctx.pc = pc;                                                          \
+  if (hasarg2) {                                                        \
+    ctx.arg2 = ic_arg2;                                                 \
+  }                                                                     \
+  ic_ret = IC##kind(ic_arg0, ic_arg1,                                   \
+                    ctx.frame->interpreterICEntry()->firstStub(), ctx); \
+  if (ic_ret == IC_ERROR_SENTINEL()) {                                  \
+    switch (ctx.error) {                                                \
+      case ICInterpretOpResult::Return:                                 \
+      case ICInterpretOpResult::NextIC:                                 \
+        break;                                                          \
+      case ICInterpretOpResult::Error:                                  \
+        goto error;                                                     \
+      case ICInterpretOpResult::Unwind:                                 \
+        goto unwind;                                                    \
+      case ICInterpretOpResult::UnwindError:                            \
+        goto unwind_error;                                              \
+      case ICInterpretOpResult::UnwindRet:                              \
+        goto unwind_ret;                                                \
+    }                                                                   \
+  }                                                                     \
   NEXT_IC();
 
 PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
@@ -3295,7 +3264,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
   bool from_unwind = false;
 
   ICCtx ctx(cx_, frame, state, stack);
-  uint64_t ic_ret = 0;
+  uint64_t ic_arg0 = 0, ic_arg1 = 0, ic_arg2 = 0, ic_ret = 0;
 
   AutoCheckRecursionLimit recursion(ctx.frameMgr.cxForLocalUseOnly());
   if (!recursion.checkDontReport(ctx.frameMgr.cxForLocalUseOnly())) {
@@ -3477,7 +3446,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_POP_ARG(0);
-          INVOKE_IC(TypeOf);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(TypeOf, false);
           IC_PUSH_RESULT();
         }
         END_OP(Typeof);
@@ -3495,7 +3466,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_POP_ARG(0);
-          INVOKE_IC(TypeOfEq);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(TypeOfEq, false);
           IC_PUSH_RESULT();
         }
         END_OP(TypeofEq);
@@ -3593,7 +3566,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       static_assert(JSOpLength_Pos == JSOpLength_Dec);
       static_assert(JSOpLength_Pos == JSOpLength_ToNumeric);
       IC_POP_ARG(0);
-      INVOKE_IC(UnaryArith);
+      IC_ZERO_ARG(1);
+      IC_ZERO_ARG(2);
+      INVOKE_IC(UnaryArith, false);
       IC_PUSH_RESULT();
       END_OP(Pos);
     }
@@ -3604,7 +3579,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_POP_ARG(0);
-          INVOKE_IC(ToBool);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(ToBool, false);
           PUSH(StackVal(BooleanValue(!Value::fromRawBits(ic_ret).toBoolean())));
         }
         END_OP(Not);
@@ -3617,7 +3594,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_SET_ARG_FROM_STACK(0, 0);
-          INVOKE_IC(ToBool);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(ToBool, false);
           result = Value::fromRawBits(ic_ret).toBoolean();
         }
         int32_t jumpOffset = GET_JUMP_OFFSET(pc);
@@ -3637,7 +3616,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_SET_ARG_FROM_STACK(0, 0);
-          INVOKE_IC(ToBool);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(ToBool, false);
           result = Value::fromRawBits(ic_ret).toBoolean();
         }
         int32_t jumpOffset = GET_JUMP_OFFSET(pc);
@@ -3658,7 +3639,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_POP_ARG(0);
-          INVOKE_IC(ToBool);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(ToBool, false);
           result = Value::fromRawBits(ic_ret).toBoolean();
         }
         int32_t jumpOffset = GET_JUMP_OFFSET(pc);
@@ -3679,7 +3662,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
         } else {
           IC_POP_ARG(0);
-          INVOKE_IC(ToBool);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(ToBool, false);
           result = Value::fromRawBits(ic_ret).toBoolean();
         }
         int32_t jumpOffset = GET_JUMP_OFFSET(pc);
@@ -3981,7 +3966,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       static_assert(JSOpLength_BitOr == JSOpLength_Pow);
       IC_POP_ARG(1);
       IC_POP_ARG(0);
-      INVOKE_IC(BinaryArith);
+      IC_ZERO_ARG(2);
+      INVOKE_IC(BinaryArith, false);
       IC_PUSH_RESULT();
       END_OP(Div);
     }
@@ -4167,7 +4153,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       static_assert(JSOpLength_Eq == JSOpLength_Ge);
       IC_POP_ARG(1);
       IC_POP_ARG(0);
-      INVOKE_IC(Compare);
+      IC_ZERO_ARG(2);
+      INVOKE_IC(Compare, false);
       IC_PUSH_RESULT();
       END_OP(Eq);
     }
@@ -4175,7 +4162,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(Instanceof) {
         IC_POP_ARG(1);
         IC_POP_ARG(0);
-        INVOKE_IC(InstanceOf);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(InstanceOf, false);
         IC_PUSH_RESULT();
         END_OP(Instanceof);
       }
@@ -4183,14 +4171,17 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(In) {
         IC_POP_ARG(1);
         IC_POP_ARG(0);
-        INVOKE_IC(In);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(In, false);
         IC_PUSH_RESULT();
         END_OP(In);
       }
 
       CASE(ToPropertyKey) {
         IC_POP_ARG(0);
-        INVOKE_IC(ToPropertyKey);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(ToPropertyKey, false);
         IC_PUSH_RESULT();
         END_OP(ToPropertyKey);
       }
@@ -4297,7 +4288,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(NewInit);
         } else {
-          INVOKE_IC(NewObject);
+          IC_ZERO_ARG(0);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(NewObject, false);
           IC_PUSH_RESULT();
           END_OP(NewInit);
         }
@@ -4316,7 +4310,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(NewObject);
         } else {
-          INVOKE_IC(NewObject);
+          IC_ZERO_ARG(0);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(NewObject, false);
           IC_PUSH_RESULT();
           END_OP(NewObject);
         }
@@ -4359,10 +4356,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         if (JSOp(*pc) == JSOp::SetElem || JSOp(*pc) == JSOp::StrictSetElem) {
           sp[0] = val;
         }
-        INVOKE_IC(SetElem);
+        INVOKE_IC(SetElem, true);
         if (JSOp(*pc) == JSOp::InitElemInc) {
-          PUSH(StackVal(Int32Value(
-              Value::fromRawBits(ctx.icregs.icVals[1]).toInt32() + 1)));
+          PUSH(StackVal(Int32Value(Value::fromRawBits(ic_arg1).toInt32() + 1)));
         }
         END_OP(InitElem);
       }
@@ -4423,14 +4419,17 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(GetBoundName) {
         static_assert(JSOpLength_GetProp == JSOpLength_GetBoundName);
         IC_POP_ARG(0);
-        INVOKE_IC(GetProp);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(GetProp, false);
         IC_PUSH_RESULT();
         END_OP(GetProp);
       }
       CASE(GetPropSuper) {
         IC_POP_ARG(0);
         IC_POP_ARG(1);
-        INVOKE_IC(GetPropSuper);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(GetPropSuper, false);
         IC_PUSH_RESULT();
         END_OP(GetPropSuper);
       }
@@ -4470,7 +4469,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
         IC_POP_ARG(1);
         IC_POP_ARG(0);
-        INVOKE_IC(GetElem);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(GetElem, false);
         IC_PUSH_RESULT();
         END_OP(GetElem);
       }
@@ -4482,7 +4482,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         IC_POP_ARG(1);
         IC_POP_ARG(2);
         IC_POP_ARG(0);
-        INVOKE_IC(GetElemSuper);
+        INVOKE_IC(GetElemSuper, true);
         IC_PUSH_RESULT();
         END_OP(GetElemSuper);
       }
@@ -4553,7 +4553,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(HasOwn) {
         IC_POP_ARG(1);
         IC_POP_ARG(0);
-        INVOKE_IC(HasOwn);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(HasOwn, false);
         IC_PUSH_RESULT();
         END_OP(HasOwn);
       }
@@ -4561,7 +4562,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(CheckPrivateField) {
         IC_SET_ARG_FROM_STACK(1, 0);
         IC_SET_ARG_FROM_STACK(0, 1);
-        INVOKE_IC(CheckPrivateField);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(CheckPrivateField, false);
         IC_PUSH_RESULT();
         END_OP(CheckPrivateField);
       }
@@ -4648,7 +4650,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(Iter) {
         IC_POP_ARG(0);
-        INVOKE_IC(GetIterator);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(GetIterator, false);
         IC_PUSH_RESULT();
         END_OP(Iter);
       }
@@ -4676,7 +4680,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(CloseIter) {
         IC_SET_OBJ_ARG(0, &POP().asValue().toObject());
-        INVOKE_IC(CloseIter);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(CloseIter, false);
         END_OP(CloseIter);
       }
 
@@ -4754,7 +4760,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(NewArray);
         } else {
-          INVOKE_IC(NewArray);
+          IC_ZERO_ARG(0);
+          IC_ZERO_ARG(1);
+          IC_ZERO_ARG(2);
+          INVOKE_IC(NewArray, false);
           IC_PUSH_RESULT();
           END_OP(NewArray);
         }
@@ -5109,9 +5118,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         } while (0);
 
         // Slow path: use the IC!
-        ctx.icregs.icVals[0] = argc;
+        ic_arg0 = argc;
         ctx.icregs.extraArgs = 2 + constructing;
-        INVOKE_IC(Call);
+        INVOKE_IC(Call, false);
         POPN(argc + 2 + constructing);
         PUSH(StackVal(Value::fromRawBits(ic_ret)));
         END_OP(Call);
@@ -5122,9 +5131,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(StrictSpreadEval) {
         static_assert(JSOpLength_SpreadCall == JSOpLength_SpreadEval);
         static_assert(JSOpLength_SpreadCall == JSOpLength_StrictSpreadEval);
-        ctx.icregs.icVals[0] = 1;
+        ic_arg0 = 1;
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
         ctx.icregs.extraArgs = 2;
-        INVOKE_IC(SpreadCall);
+        INVOKE_IC(SpreadCall, false);
         POPN(3);
         PUSH(StackVal(Value::fromRawBits(ic_ret)));
         END_OP(SpreadCall);
@@ -5133,9 +5144,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(SpreadSuperCall)
       CASE(SpreadNew) {
         static_assert(JSOpLength_SpreadSuperCall == JSOpLength_SpreadNew);
-        ctx.icregs.icVals[0] = 1;
+        ic_arg0 = 1;
         ctx.icregs.extraArgs = 3;
-        INVOKE_IC(SpreadCall);
+        INVOKE_IC(SpreadCall, false);
         POPN(4);
         PUSH(StackVal(Value::fromRawBits(ic_ret)));
         END_OP(SpreadSuperCall);
@@ -5143,14 +5154,18 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(OptimizeSpreadCall) {
         IC_POP_ARG(0);
-        INVOKE_IC(OptimizeSpreadCall);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(OptimizeSpreadCall, false);
         IC_PUSH_RESULT();
         END_OP(OptimizeSpreadCall);
       }
 
       CASE(OptimizeGetIterator) {
         IC_POP_ARG(0);
-        INVOKE_IC(OptimizeGetIterator);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(OptimizeGetIterator, false);
         IC_PUSH_RESULT();
         END_OP(OptimizeGetIterator);
       }
@@ -5735,19 +5750,25 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         IC_SET_OBJ_ARG(
             0,
             &ctx.frameMgr.cxForLocalUseOnly()->global()->lexicalEnvironment());
-        INVOKE_IC(BindName);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(BindName, false);
         IC_PUSH_RESULT();
         END_OP(BindUnqualifiedGName);
       }
       CASE(BindName) {
         IC_SET_OBJ_ARG(0, frame->environmentChain());
-        INVOKE_IC(BindName);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(BindName, false);
         IC_PUSH_RESULT();
         END_OP(BindName);
       }
       CASE(BindUnqualifiedName) {
         IC_SET_OBJ_ARG(0, frame->environmentChain());
-        INVOKE_IC(BindName);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(BindName, false);
         IC_PUSH_RESULT();
         END_OP(BindUnqualifiedName);
       }
@@ -5755,13 +5776,17 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         IC_SET_OBJ_ARG(
             0,
             &ctx.frameMgr.cxForLocalUseOnly()->global()->lexicalEnvironment());
-        INVOKE_IC(GetName);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(GetName, false);
         IC_PUSH_RESULT();
         END_OP(GetGName);
       }
       CASE(GetName) {
         IC_SET_OBJ_ARG(0, frame->environmentChain());
-        INVOKE_IC(GetName);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(GetName, false);
         IC_PUSH_RESULT();
         END_OP(GetName);
       }
@@ -5828,7 +5853,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(GetIntrinsic) {
-        INVOKE_IC(GetIntrinsic);
+        IC_ZERO_ARG(0);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(GetIntrinsic, false);
         IC_PUSH_RESULT();
         END_OP(GetIntrinsic);
       }
@@ -5861,8 +5889,9 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         static_assert(JSOpLength_SetProp == JSOpLength_StrictSetGName);
         IC_POP_ARG(1);
         IC_POP_ARG(0);
-        PUSH(StackVal(ctx.icregs.icVals[1]));
-        INVOKE_IC(SetProp);
+        IC_ZERO_ARG(2);
+        PUSH(StackVal(ic_arg1));
+        INVOKE_IC(SetProp, false);
         END_OP(SetProp);
       }
 
@@ -5873,7 +5902,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         static_assert(JSOpLength_InitProp == JSOpLength_InitLockedProp);
         IC_POP_ARG(1);
         IC_SET_ARG_FROM_STACK(0, 0);
-        INVOKE_IC(SetProp);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(SetProp, false);
         END_OP(InitProp);
       }
       CASE(InitGLexical) {
@@ -5881,7 +5911,8 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         IC_SET_OBJ_ARG(
             0,
             &ctx.frameMgr.cxForLocalUseOnly()->global()->lexicalEnvironment());
-        INVOKE_IC(SetProp);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(SetProp, false);
         END_OP(InitGLexical);
       }
 
@@ -6081,7 +6112,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Rest) {
-        INVOKE_IC(Rest);
+        IC_ZERO_ARG(0);
+        IC_ZERO_ARG(1);
+        IC_ZERO_ARG(2);
+        INVOKE_IC(Rest, false);
         IC_PUSH_RESULT();
         END_OP(Rest);
       }
