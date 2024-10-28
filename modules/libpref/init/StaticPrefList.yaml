@@ -2298,7 +2298,7 @@
 # Enable experimental popup blocker changes.
 - name: dom.popup.experimental
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
   # Enable CacheAPI in private browsing mode with encryption
