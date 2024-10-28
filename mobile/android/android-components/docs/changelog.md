@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 133.0 (In Development)
+# 134.0 (In Development)
+
+# 133.0
 * **browser-store**
     * Adds `desktopMode` property to the `BrowserStore` to know whether or not browsing is in desktop mode. The pre-existing Action to update a tab's desktop mode has been renamed to disambiguate its intended use case. [Bug 1910768](https://bugzilla.mozilla.org/show_bug.cgi?id=1910768)
 
