@@ -523,11 +523,11 @@ menupopup::part(drop-indicator) {
   margin-inline: 7px;
 
   :root:not([privatebrowsingmode=temporary]) &,
-  #nav-bar:not([tabs-hidden]) > & {
+  #navigator-toolbox:not([tabs-hidden]) #nav-bar > & {
     display: none;
   }
 
-  #nav-bar[tabs-hidden] > & {
+  #navigator-toolbox[tabs-hidden] #nav-bar > & {
     margin-inline-end: 12px;
 
   /* Hide the private browsing indicator
