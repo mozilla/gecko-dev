@@ -290,6 +290,7 @@ const char* const ApplicationReputationService::kBinaryFileExtensions[] = {
     //".jse", exec // JScript
     ".ksh",  // Linux shell
     //".lha",
+    //".library-ms", exec // Windows
     //".lnk", exec // Windows
     ".local",  // Windows
     //".lpaq1",
