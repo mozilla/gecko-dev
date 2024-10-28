@@ -81,22 +81,6 @@ interface nsIEditorSpellCheck : nsISupports
   void          IgnoreWordAllOccurrences(in AString word);
 
   /**
-   * Fills an internal list of words added to the personal dictionary. These
-   * words can be retrieved using GetPersonalDictionaryWord()
-   *
-   * @see mozSpellChecker::GetPersonalDictionary
-   * @see GetPersonalDictionaryWord
-   */
-  void          GetPersonalDictionary();
-
-  /**
-   * Used after you call GetPersonalDictionary() to iterate through all the
-   * words added to the personal dictionary. Will return the empty string when
-   * there are no more words.
-   */
-  AString       GetPersonalDictionaryWord();
-
-  /**
    * Adds a word to the current personal dictionary.
    *
    * @see mozSpellChecker::AddWordToDictionary

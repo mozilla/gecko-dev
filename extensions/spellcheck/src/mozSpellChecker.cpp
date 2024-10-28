@@ -345,21 +345,6 @@ nsresult mozSpellChecker::RemoveWordFromPersonalDictionary(
   return res;
 }
 
-nsresult mozSpellChecker::GetPersonalDictionary(nsTArray<nsString>* aWordList) {
-  if (!aWordList || !mPersonalDictionary) return NS_ERROR_NULL_POINTER;
-
-  nsCOMPtr<nsIStringEnumerator> words;
-  mPersonalDictionary->GetWordList(getter_AddRefs(words));
-
-  bool hasMore;
-  nsAutoString word;
-  while (NS_SUCCEEDED(words->HasMore(&hasMore)) && hasMore) {
-    words->GetNext(word);
-    aWordList->AppendElement(word);
-  }
-  return NS_OK;
-}
-
 nsresult mozSpellChecker::GetDictionaryList(
     nsTArray<nsCString>* aDictionaryList) {
   MOZ_ASSERT(aDictionaryList->IsEmpty());

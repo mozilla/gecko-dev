@@ -113,13 +113,6 @@ class mozSpellChecker final {
   nsresult RemoveWordFromPersonalDictionary(const nsAString& aWord);
 
   /**
-   * Returns the list of words in the user's personal dictionary.
-   * @param aWordList is an array of nsStrings that represent the
-   * list of words in the user's personal dictionary.
-   */
-  nsresult GetPersonalDictionary(nsTArray<nsString>* aWordList);
-
-  /**
    * Returns the list of strings representing the dictionaries
    * the spellchecker supports. It was suggested that the strings
    * returned be in the RFC 1766 format. This format looks something
