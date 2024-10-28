@@ -130,6 +130,8 @@ DIRS += [
     "/third_party/libwebrtc/call/bitrate_configurator_gn",
     "/third_party/libwebrtc/call/call_gn",
     "/third_party/libwebrtc/call/call_interfaces_gn",
+    "/third_party/libwebrtc/call/payload_type_gn",
+    "/third_party/libwebrtc/call/payload_type_picker_gn",
     "/third_party/libwebrtc/call/receive_stream_interface_gn",
     "/third_party/libwebrtc/call/rtp_interfaces_gn",
     "/third_party/libwebrtc/call/rtp_receiver_gn",
