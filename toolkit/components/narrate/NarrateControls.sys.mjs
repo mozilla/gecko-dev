@@ -234,11 +234,15 @@ NarrateControls.prototype = {
       case "click":
         this._onButtonClick(evt);
         break;
-      case "keydown":
-        if (evt.key === "Tab") {
+      case "keydown": {
+        let popup = this._doc.querySelector(
+          ".narrate-dropdown > .dropdown-popup"
+        );
+        if (evt.key === "Tab" && popup.contains(evt.target)) {
           this._handleFocus(evt);
         }
         break;
+      }
       case "voiceschanged":
         this._setupVoices();
         break;

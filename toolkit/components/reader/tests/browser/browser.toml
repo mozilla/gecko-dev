@@ -79,6 +79,8 @@ support-files = [
   "setSameSiteCookie.html^headers^",
 ]
 
+["browser_readerMode_tabnavigation.js"]
+
 ["browser_readerMode_textLayoutPref.js"]
 support-files = ["readerModeArticle.html"]
 
