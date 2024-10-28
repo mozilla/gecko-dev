@@ -83,6 +83,12 @@ class PushManager final : public nsISupports, public nsWrapperCache {
       SubscriptionAction aAction, const PushSubscriptionOptionsInit& aOptions,
       ErrorResult& aRv);
 
+  // Web IDL members:
+
+  static void GetSupportedContentEncodings(
+      GlobalObject& aGlobal, JS::MutableHandle<JSObject*> aEncodings,
+      ErrorResult& aRv);
+
   already_AddRefed<Promise> Subscribe(
       const PushSubscriptionOptionsInit& aOptions, ErrorResult& aRv);
 

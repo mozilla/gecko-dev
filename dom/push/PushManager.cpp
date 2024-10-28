@@ -419,6 +419,41 @@ bool PushManager::IsEnabled(JSContext* aCx, JSObject* aGlobal) {
   return StaticPrefs::dom_push_enabled() && ServiceWorkersEnabled(aCx, aGlobal);
 }
 
+// https://w3c.github.io/push-api/#dom-pushmanager-supportedcontentencodings
+void PushManager::GetSupportedContentEncodings(
+    GlobalObject& aGlobal, JS::MutableHandle<JSObject*> aEncodings,
+    ErrorResult& aRv) {
+  JSContext* cx = aGlobal.Context();
+
+  nsTArray<nsString> encodings{u"aes128gcm"_ns};
+  if (StaticPrefs::dom_push_indicate_aesgcm_support_enabled()) {
+    // The spec does not define orders, but Chrome is returning ["aes128gcm",
+    // "aesgcm"] and there are a bunch of code like below, which is copypasted
+    // from Minishlink/web-push-php-example endorsed by
+    // web-push-libs/web-push-php. Which means practically the preferred
+    // algorithm should go to the first place.
+    //
+    // (PushManager.supportedContentEncodings || ['aesgcm'])[0];
+    encodings.AppendElement(u"aesgcm"_ns);
+  }
+
+  JS::Rooted<JS::Value> encodingsValue(cx);
+  if (!ToJSValue(cx, encodings, &encodingsValue)) {
+    if (JS_IsThrowingOutOfMemory(cx)) {
+      MOZ_CRASH("Out of memory");
+    } else {
+      aRv.NoteJSContextException(cx);
+      return;
+    }
+  };
+  JS::Rooted<JSObject*> object(cx, &encodingsValue.toObject());
+  if (!JS_FreezeObject(cx, object)) {
+    aRv.NoteJSContextException(cx);
+    return;
+  }
+  aEncodings.set(object);
+}
+
 already_AddRefed<Promise> PushManager::Subscribe(
     const PushSubscriptionOptionsInit& aOptions, ErrorResult& aRv) {
   if (mImpl) {
