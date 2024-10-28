@@ -3,6 +3,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifndef mozilla_widget_UIKitUtils_h__
+#define mozilla_widget_UIKitUtils_h__
+
 #import <UIKit/UIKit.h>
 
 #include "IMEData.h"
@@ -18,6 +21,10 @@ class UIKitUtils final {
   static UIReturnKeyType GetUIReturnKeyType(const InputContext& aContext);
   static UITextAutocapitalizationType GetUITextAutocapitalizationType(
       const InputContext& aContext);
+  static UITextAutocorrectionType GetUITextAutocorrectionType(
+      const InputContext& aContext);
 };
 
 }  // namespace mozilla::widget
+
+#endif
