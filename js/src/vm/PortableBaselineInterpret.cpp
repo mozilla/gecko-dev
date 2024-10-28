@@ -7308,11 +7308,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(GetElem) {
-        HandleValue lhs = SPHANDLE(1);
-        HandleValue rhs = SPHANDLE(0);
-        uint32_t index;
-        if (IsDefinitelyIndex(rhs, &index)) {
-          if (lhs.isString()) {
+        if (HybridICs && VIRTSP(1).asValue().isString()) {
+          HandleValue lhs = SPHANDLE(1);
+          HandleValue rhs = SPHANDLE(0);
+          uint32_t index;
+          if (IsDefinitelyIndex(rhs, &index)) {
             JSString* str = lhs.toString();
             if (index < str->length() && str->isLinear()) {
               JSLinearString* linear = &str->asLinear();
@@ -7320,22 +7320,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
               StaticStrings& sstr =
                   ctx.frameMgr.cxForLocalUseOnly()->staticStrings();
               if (sstr.hasUnit(c)) {
-                VIRTSPWRITE(1, StackVal(StringValue(sstr.getUnit(c))));
                 VIRTPOP();
+                VIRTSPWRITE(0, StackVal(StringValue(sstr.getUnit(c))));
                 NEXT_IC();
                 END_OP(GetElem);
               }
-            }
-          }
-          if (lhs.isObject()) {
-            JSObject* obj = &lhs.toObject();
-            Value ret;
-            if (GetElementNoGC(ctx.frameMgr.cxForLocalUseOnly(), obj, lhs,
-                               index, &ret)) {
-              VIRTSPWRITE(1, StackVal(ret));
-              VIRTPOP();
-              NEXT_IC();
-              END_OP(GetElem);
             }
           }
         }
