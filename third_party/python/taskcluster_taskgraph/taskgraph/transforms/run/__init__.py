@@ -121,7 +121,9 @@ def rewrite_when_to_optimization(config, tasks):
         files_changed = when.get("files-changed")
 
         # implicitly add task config directory.
-        files_changed.append(f"{config.path}/**")
+        files_changed.append(f"{config.path}/kind.yml")
+        if task.get("task-from") and task["task-from"] != "kind.yml":
+            files_changed.append(f"{config.path}/{task['task-from']}")
 
         # "only when files changed" implies "skip if files have not changed"
         task["optimization"] = {"skip-unless-changed": files_changed}

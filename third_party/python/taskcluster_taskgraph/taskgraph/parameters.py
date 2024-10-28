@@ -193,7 +193,7 @@ class Parameters(ReadOnlyDict):
         if spec is None:
             return "defaults"
 
-        if any(spec.startswith(s) for s in ("task-id=", "project=")):
+        if any(spec.startswith(s) for s in ("task-id=", "project=", "index=")):
             return spec
 
         result = urlparse(spec)
@@ -327,16 +327,19 @@ def load_parameters_file(
         task_id = None
         if spec.startswith("task-id="):
             task_id = spec.split("=")[1]
-        elif spec.startswith("project="):
-            if trust_domain is None:
-                raise ValueError(
-                    "Can't specify parameters by project "
-                    "if trust domain isn't supplied.",
+        elif spec.startswith("project=") or spec.startswith("index="):
+            if spec.startswith("project="):
+                if trust_domain is None:
+                    raise ValueError(
+                        "Can't specify parameters by project "
+                        "if trust domain isn't supplied.",
+                    )
+                index = "{trust_domain}.v2.{project}.latest.taskgraph.decision".format(
+                    trust_domain=trust_domain,
+                    project=spec.split("=")[1],
                 )
-            index = "{trust_domain}.v2.{project}.latest.taskgraph.decision".format(
-                trust_domain=trust_domain,
-                project=spec.split("=")[1],
-            )
+            else:
+                index = spec.split("=")[1]
             task_id = find_task_id(index)
 
         if task_id:

@@ -149,7 +149,7 @@ def stream_context_tar(topsrcdir, context_dir, out_file, image_name=None, args=N
         for f in files:
             source_path = os.path.join(root, f)
             archive_path = source_path[len(context_dir) + 1 :]
-            archive_files[archive_path] = open(source_path, "rb")
+            archive_files[archive_path] = source_path
 
     # Parse Dockerfile for special syntax of extra files to include.
     content = []
