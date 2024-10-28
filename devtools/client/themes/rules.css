@@ -712,14 +712,9 @@
   }
 }
 
-.ruleview-namecontainer > .ruleview-propertyname,
-.ruleview-propertyvaluecontainer > .ruleview-propertyvalue {
-  border-bottom: 1px dashed transparent;
-}
-
 .ruleview-namecontainer:hover > .ruleview-propertyname,
 .ruleview-propertyvaluecontainer:hover > .ruleview-propertyvalue {
-  border-bottom-color: hsl(0,0%,50%);
+  text-decoration: 1px underline dashed hsl(0,0%,50%);
 }
 
 /* ancestor rules info element (parent at-rules, parent of nested rules, …) */
