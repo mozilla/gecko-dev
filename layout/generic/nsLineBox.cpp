@@ -272,9 +272,9 @@ nsIFrame* nsLineBox::LastChild() const {
 }
 #endif
 
-int32_t nsLineBox::IndexOf(nsIFrame* aFrame) const {
+int32_t nsLineBox::IndexOf(const nsIFrame* aFrame) const {
   int32_t i, n = GetChildCount();
-  nsIFrame* frame = mFirstChild;
+  const nsIFrame* frame = mFirstChild;
   for (i = 0; i < n; i++) {
     if (frame == aFrame) {
       return i;
@@ -284,28 +284,45 @@ int32_t nsLineBox::IndexOf(nsIFrame* aFrame) const {
   return -1;
 }
 
-int32_t nsLineBox::RIndexOf(nsIFrame* aFrame,
-                            nsIFrame* aLastFrameInLine) const {
-  nsIFrame* frame = aLastFrameInLine;
-  for (int32_t i = GetChildCount() - 1; i >= 0; --i) {
-    MOZ_ASSERT(i != 0 || frame == mFirstChild,
-               "caller provided incorrect last frame");
-    if (frame == aFrame) {
-      return i;
+int32_t nsLineBox::RLIndexOf(const nsIFrame* aFrame,
+                             const nsIFrame* aLastFrameInLine) const {
+  const nsIFrame* leftFrame = mFirstChild;
+  const nsIFrame* rightFrame = aLastFrameInLine;
+  int32_t leftIndex = 0, rightIndex = GetChildCount() - 1;
+  while (true) {
+    if (aFrame == rightFrame) {
+      return rightIndex;
     }
-    frame = frame->GetPrevSibling();
+    if (leftIndex == rightIndex) {
+      MOZ_ASSERT(leftFrame == rightFrame,
+                 "caller provided incorrect last frame");
+      break;
+    }
+    if (aFrame == leftFrame) {
+      return leftIndex;
+    }
+    if (++leftIndex == rightIndex) {
+      MOZ_ASSERT(leftFrame->GetNextSibling() == rightFrame,
+                 "caller provided incorrect last frame");
+      break;
+    }
+    leftFrame = leftFrame->GetNextSibling();
+    rightFrame = rightFrame->GetPrevSibling();
+    --rightIndex;
   }
   return -1;
 }
 
 bool nsLineBox::IsEmpty() const {
-  if (IsBlock()) return mFirstChild->IsEmpty();
+  if (IsBlock()) {
+    return mFirstChild->IsEmpty();
+  }
 
-  int32_t n;
-  nsIFrame* kid;
-  for (n = GetChildCount(), kid = mFirstChild; n > 0;
-       --n, kid = kid->GetNextSibling()) {
-    if (!kid->IsEmpty()) return false;
+  nsIFrame* kid = mFirstChild;
+  for (int32_t n = GetChildCount(); n > 0; --n, kid = kid->GetNextSibling()) {
+    if (!kid->IsEmpty()) {
+      return false;
+    }
   }
   if (HasMarker()) {
     return false;
@@ -326,11 +343,9 @@ bool nsLineBox::CachedIsEmpty() {
   if (IsBlock()) {
     result = mFirstChild->CachedIsEmpty();
   } else {
-    int32_t n;
-    nsIFrame* kid;
+    nsIFrame* kid = mFirstChild;
     result = true;
-    for (n = GetChildCount(), kid = mFirstChild; n > 0;
-         --n, kid = kid->GetNextSibling()) {
+    for (int32_t n = GetChildCount(); n > 0; --n, kid = kid->GetNextSibling()) {
       if (!kid->CachedIsEmpty()) {
         result = false;
         break;

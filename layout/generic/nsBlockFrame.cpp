@@ -6337,7 +6337,7 @@ void nsBlockFrame::AddFrames(nsFrameList&& aFrameList, nsIFrame* aPrevSibling,
     nsIFrame* lastFrameInLine = nextLine == lineList->end()
                                     ? frames->LastChild()
                                     : nextLine->mFirstChild->GetPrevSibling();
-    prevSiblingIndex = prevSibLine->RIndexOf(aPrevSibling, lastFrameInLine);
+    prevSiblingIndex = prevSibLine->RLIndexOf(aPrevSibling, lastFrameInLine);
     MOZ_ASSERT(prevSiblingIndex >= 0,
                "aPrevSibling must be in aPrevSiblingLine");
   } else {
