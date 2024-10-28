@@ -94,8 +94,8 @@ void nsHtml5Tokenizer::StartViewSource(const nsAutoString& aTitle) {
   mViewSource->Start(aTitle);
 }
 
-void nsHtml5Tokenizer::StartViewSourceBodyContents() {
-  mViewSource->StartBodyContents();
+void nsHtml5Tokenizer::StartViewSourceCharacters() {
+  mViewSource->StartCharacters();
 }
 
 [[nodiscard]] bool nsHtml5Tokenizer::EndViewSource() {

@@ -511,22 +511,6 @@ struct opAddErrorType {
   };
 };
 
-struct opShallowCloneInto {
-  nsIContent** mSrc;
-  nsIContent** mDst;
-  nsIContent** mIntendedParent;
-  mozilla::dom::FromParser mFromParser;
-
-  opShallowCloneInto(nsIContentHandle* aSrc, nsIContentHandle* aDst,
-                     nsIContentHandle* aIntendedParent,
-                     mozilla::dom::FromParser aFromParser)
-      : mFromParser(aFromParser) {
-    mSrc = static_cast<nsIContent**>(aSrc);
-    mDst = static_cast<nsIContent**>(aDst);
-    mIntendedParent = static_cast<nsIContent**>(aIntendedParent);
-  };
-};
-
 struct opAddLineNumberId {
   nsIContent** mElement;
   int32_t mLineNumber;
@@ -560,7 +544,7 @@ typedef mozilla::Variant<
     opSetScriptLineAndColumnNumberAndFreeze, opSvgLoad,
     opMaybeComplainAboutCharset, opMaybeComplainAboutDeepTree, opAddClass,
     opAddViewSourceHref, opAddViewSourceBase, opAddErrorType, opAddLineNumberId,
-    opStartLayout, opEnableEncodingMenu, opShallowCloneInto>
+    opStartLayout, opEnableEncodingMenu>
     treeOperation;
 
 class nsHtml5TreeOperation final {

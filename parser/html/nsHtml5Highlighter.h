@@ -173,15 +173,12 @@ class nsHtml5Highlighter {
    */
   void AddBase(nsHtml5String aValue);
 
-  /** Starts the body */
-  void StartBodyContents();
-
- private:
   /**
    * Starts a wrapper around a run of characters.
    */
   void StartCharacters();
 
+ private:
   /**
    * Starts a span with no class.
    */
@@ -200,7 +197,9 @@ class nsHtml5Highlighter {
    */
   void EndSpanOrA();
 
-  /** Ends a wrapper around a run of characters. */
+  /**
+   * Ends a wrapper around a run of characters.
+   */
   void EndCharactersAndStartMarkupRun();
 
   /**
@@ -276,15 +275,6 @@ class nsHtml5Highlighter {
    */
   void Push(nsAtom* aName, nsHtml5HtmlAttributes* aAttributes,
             mozilla::dom::HTMLContentCreatorFunction aCreator);
-
-  /** Pushes a <pre id="line<lineno>"> */
-  void PushCurrentLinePre();
-
-  /**
-   * Pops all inlines from the stack, pushes a pre, and pushes all inlines back
-   * with the same attributes.
-   */
-  void NewLine();
 
   /**
    * Pops the current node off the stack.
