@@ -87,10 +87,12 @@ using namespace js::jit;
     } while (0)
 #endif
 
+#define PBL_HYBRID_ICS_DEFAULT true
+
 // Whether we are using the "hybrid" strategy for ICs (see the [SMDOC]
 // in PortableBaselineInterpret.h for more). This is currently a
 // constant, but may become configurable in the future.
-static const bool kHybridICs = true;
+static const bool kHybridICsInterp = PBL_HYBRID_ICS_DEFAULT;
 
 // Whether to compile interpreter dispatch loops using computed gotos
 // or direct switches.
@@ -2443,7 +2445,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
             ImmutableScriptData* isd = script->immutableScriptData();
             PBIResult result;
             Value ret;
-            result = PortableBaselineInterpret<false>(
+            result = PortableBaselineInterpret<false, kHybridICsInterp>(
                 cx, ctx.state, ctx.stack, sp,
                 /* envChain = */ nullptr, &ret, pc, isd, nullptr, nullptr,
                 PBIResult::Ok);
@@ -2532,7 +2534,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           ImmutableScriptData* isd = script->immutableScriptData();
           PBIResult result;
           Value ret;
-          result = PortableBaselineInterpret<false>(
+          result = PortableBaselineInterpret<false, kHybridICsInterp>(
               cx, ctx.state, ctx.stack, sp, /* envChain = */ nullptr, &ret, pc,
               isd, nullptr, nullptr, PBIResult::Ok);
           if (result != PBIResult::Ok) {
@@ -2626,7 +2628,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           ImmutableScriptData* isd = script->immutableScriptData();
           PBIResult result;
           Value ret;
-          result = PortableBaselineInterpret<false>(
+          result = PortableBaselineInterpret<false, kHybridICsInterp>(
               cx, ctx.state, ctx.stack, sp, /* envChain = */ nullptr, &ret, pc,
               isd, nullptr, nullptr, PBIResult::Ok);
           if (result != PBIResult::Ok) {
@@ -5964,7 +5966,7 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
     Stack::handleMut(&sp[(index)]); \
   })
 
-template <bool IsRestart>
+template <bool IsRestart, bool HybridICs>
 PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                     StackVal* sp, JSObject* envChain,
                                     Value* ret, jsbytecode* pc,
@@ -6202,7 +6204,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(Typeof)
       CASE(TypeofExpr) {
         static_assert(JSOpLength_Typeof == JSOpLength_TypeofExpr);
-        if (kHybridICs) {
+        if (HybridICs) {
           SYNCSP();
           VIRTSPWRITE(
               0,
@@ -6219,7 +6221,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(TypeofEq) {
-        if (kHybridICs) {
+        if (HybridICs) {
           TypeofEqOperand operand =
               TypeofEqOperand::fromRawValue(GET_UINT8(pc));
           bool result = js::TypeOfValue(SPHANDLE(0)) == operand.type();
@@ -6312,7 +6314,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       CASE(ToNumeric) {
         if (VIRTSP(0).asValue().isNumeric()) {
           NEXT_IC();
-        } else if (kHybridICs) {
+        } else if (HybridICs) {
           SYNCSP();
           MutableHandleValue val = SPHANDLEMUT(0);
           PUSH_EXIT_FRAME();
@@ -6341,7 +6343,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(Not) {
-        if (kHybridICs) {
+        if (HybridICs) {
           SYNCSP();
           VIRTSPWRITE(0, StackVal(BooleanValue(!ToBoolean(SPHANDLE(0)))));
           NEXT_IC();
@@ -6358,7 +6360,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(And) {
         bool result;
-        if (kHybridICs) {
+        if (HybridICs) {
           SYNCSP();
           result = ToBoolean(SPHANDLE(0));
           NEXT_IC();
@@ -6381,7 +6383,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
       CASE(Or) {
         bool result;
-        if (kHybridICs) {
+        if (HybridICs) {
           SYNCSP();
           result = ToBoolean(SPHANDLE(0));
           NEXT_IC();
@@ -6404,7 +6406,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
       CASE(JumpIfTrue) {
         bool result;
-        if (kHybridICs) {
+        if (HybridICs) {
           result = ToBoolean(SPHANDLE(0));
           VIRTPOP();
           NEXT_IC();
@@ -6427,7 +6429,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
       CASE(JumpIfFalse) {
         bool result;
-        if (kHybridICs) {
+        if (HybridICs) {
           result = ToBoolean(SPHANDLE(0));
           VIRTPOP();
           NEXT_IC();
@@ -6469,7 +6471,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(Add);
         }
-        if (kHybridICs) {
+        if (HybridICs) {
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6506,7 +6508,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(Add);
         }
-        if (kHybridICs) {
+        if (HybridICs) {
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6544,7 +6546,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(Mul);
         }
-        if (kHybridICs) {
+        if (HybridICs) {
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6569,7 +6571,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(Div);
         }
-        if (kHybridICs) {
+        if (HybridICs) {
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6605,7 +6607,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(Mod);
         }
-        if (kHybridICs) {
+        if (HybridICs) {
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6630,7 +6632,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           NEXT_IC();
           END_OP(Pow);
         }
-        if (kHybridICs) {
+        if (HybridICs) {
           MutableHandleValue lhs = SPHANDLEMUT(1);
           MutableHandleValue rhs = SPHANDLEMUT(0);
           MutableHandleValue result = SPHANDLEMUT(1);
@@ -6896,7 +6898,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
       CASE(StrictEq)
       CASE(StrictNe) {
-        if (kHybridICs) {
+        if (HybridICs) {
           bool result;
           HandleValue lval = SPHANDLE(1);
           HandleValue rval = SPHANDLE(0);
@@ -7054,7 +7056,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(NewInit) {
-        if (kHybridICs) {
+        if (HybridICs) {
           JSObject* obj;
           {
             PUSH_EXIT_FRAME();
@@ -7076,7 +7078,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         }
       }
       CASE(NewObject) {
-        if (kHybridICs) {
+        if (HybridICs) {
           JSObject* obj;
           {
             PUSH_EXIT_FRAME();
@@ -7531,7 +7533,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       }
 
       CASE(NewArray) {
-        if (kHybridICs) {
+        if (HybridICs) {
           ArrayObject* obj;
           {
             PUSH_EXIT_FRAME();
@@ -9013,7 +9015,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 restart:
   // This is a `goto` target so that we exit any on-stack exit frames
   // before restarting, to match previous behavior.
-  return PortableBaselineInterpret<true>(
+  return PortableBaselineInterpret<true, HybridICs>(
       ctx.frameMgr.cxForLocalUseOnly(), ctx.state, ctx.stack, sp, envChain, ret,
       pc, isd, frame, entryFrame, restartCode);
 
@@ -9235,9 +9237,9 @@ bool PortableBaselineTrampoline(JSContext* cx, size_t argc, Value* argv,
   jsbytecode* pc = script->code();
   ImmutableScriptData* isd = script->immutableScriptData();
   PBIResult ret;
-  ret = PortableBaselineInterpret<false>(cx, state, stack, sp, envChain, result,
-                                         pc, isd, nullptr, nullptr,
-                                         PBIResult::Ok);
+  ret = PortableBaselineInterpret<false, kHybridICsInterp>(
+      cx, state, stack, sp, envChain, result, pc, isd, nullptr, nullptr,
+      PBIResult::Ok);
   switch (ret) {
     case PBIResult::Ok:
     case PBIResult::UnwindRet:
