@@ -328,7 +328,7 @@ class NavigationRegistry extends EventEmitter {
       // we can't reliable use it.
       notifyNavigationFailed({
         contextDetails,
-        errorName: "A new navigation interrupted an unfinished navigation",
+        errorName: "Navigation was aborted by another navigation",
         url: navigation.url,
       });
     }
@@ -423,7 +423,7 @@ class NavigationRegistry extends EventEmitter {
       // we can't reliable use it.
       notifyNavigationFailed({
         contextDetails,
-        errorName: "A new navigation interrupted an unfinished navigation",
+        errorName: "Navigation was aborted by another navigation",
         url: navigation.url,
       });
     }
