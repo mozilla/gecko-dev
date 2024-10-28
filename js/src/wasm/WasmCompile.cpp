@@ -1092,7 +1092,7 @@ SharedModule wasm::CompileStreaming(
     }
   }
 
-  const StreamEndData& streamEnd = exclusiveStreamEnd.lock();
+  const StreamEndData streamEnd = exclusiveStreamEnd.lock();
   const Bytes& tailBytes = *streamEnd.tailBytes;
 
   {
