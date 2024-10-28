@@ -7,7 +7,7 @@
 .generic-chart-container {
   /* Hack: force hardware acceleration */
   transform: translateZ(1px);
-  color: light-dark(var(--theme-text-color-alt), var(--theme-selection-color));
+  color: light-dark(var(--theme-text-color-alt), var(--theme-text-color-strong));
 }
 
 .chart-colored-blob {
@@ -65,17 +65,26 @@
   cursor: pointer;
 }
 
-.table-chart-grid:hover .table-chart-row {
-  transition: opacity 0.1s ease-in-out;
+/* Only adjust opacity when not in high Contrast Mode */
+:root:not([forced-colors-active]) {
+  .table-chart-grid:hover .table-chart-row {
+    transition: opacity 0.1s ease-in-out;
+  }
+
+  .table-chart-grid:not(:hover) .table-chart-row {
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  .generic-chart-container:hover > .table-chart-grid:hover .table-chart-row:not(:hover),
+  .generic-chart-container:hover ~ .table-chart-container > .table-chart-grid .table-chart-row:not([focused]) {
+    opacity: 0.4;
+  }
 }
 
-.table-chart-grid:not(:hover) .table-chart-row {
-  transition: opacity 0.2s ease-in-out;
-}
-
-.generic-chart-container:hover > .table-chart-grid:hover .table-chart-row:not(:hover),
-.generic-chart-container:hover ~ .table-chart-container > .table-chart-grid .table-chart-row:not([focused]) {
-  opacity: 0.4;
+/* Add specific hover style for High Contrast Mode */
+:root[forced-colors-active] tbody .table-chart-row:hover {
+  outline: 1px solid SelectedItem;
+  outline-offset: 2px;
 }
 
 .table-chart-row-box {
@@ -102,5 +111,5 @@
 .table-chart-summary-label {
   font-weight: 600;
   padding: 1px 0px;
-  color: light-dark(var(--theme-body-color), var(--theme-selection-color));
+  color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
 }
