@@ -1971,6 +1971,12 @@ void nsBidiPresUtils::RemoveBidiContinuation(BidiParagraphData* aBpd,
                                              nsIFrame* aFrame,
                                              int32_t aFirstIndex,
                                              int32_t aLastIndex) {
+  // If we're only processing one frame, and it is already a fluid continuation
+  // (next-in-flow), there's nothing to do.
+  if (aLastIndex == aFirstIndex + 1 &&
+      aFrame->GetNextInFlow() == aFrame->GetNextContinuation()) {
+    return;
+  }
   FrameBidiData bidiData = aFrame->GetBidiData();
   bidiData.precedingControl = kBidiLevelNone;
   for (int32_t index = aFirstIndex + 1; index <= aLastIndex; index++) {
