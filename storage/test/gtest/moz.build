@@ -10,6 +10,7 @@ UNIFIED_SOURCES += [
     "test_async_callbacks_with_spun_event_loops.cpp",
     "test_async_thread_naming.cpp",
     "test_asyncStatementExecution_transaction.cpp",
+    "test_binding_arrays.cpp",
     "test_binding_params.cpp",
     "test_file_perms.cpp",
     "test_interruptSynchronousConnection.cpp",

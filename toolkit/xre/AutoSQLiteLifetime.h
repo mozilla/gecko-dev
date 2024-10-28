@@ -16,6 +16,7 @@ class AutoSQLiteLifetime final {
  public:
   AutoSQLiteLifetime();
   ~AutoSQLiteLifetime();
+  static void Init();
   static int getInitResult() { return AutoSQLiteLifetime::sResult; }
 };
 

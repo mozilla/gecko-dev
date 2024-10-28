@@ -13,9 +13,9 @@
 #include "nsError.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/CondVar.h"
-#include "nsQueryObject.h"
 #include "nsThreadUtils.h"
 #include "nsJSUtils.h"
+#include "nsIInterfaceRequestorUtils.h"
 
 #include "Variant.h"
 #include "mozStoragePrivateHelpers.h"
@@ -95,8 +95,9 @@ void checkAndLogStatementPerformance(sqlite3_stmt* aStatement) {
 
   // CREATE INDEX always sorts (sorting is a necessary step in creating
   // an index).  So ignore the warning there.
-  if (::strstr(sql, "CREATE INDEX") || ::strstr(sql, "CREATE UNIQUE INDEX"))
+  if (::strstr(sql, "CREATE INDEX") || ::strstr(sql, "CREATE UNIQUE INDEX")) {
     return;
+  }
 
   nsAutoCString message("Suboptimal indexes for the SQL statement ");
 #ifdef MOZ_STORAGE_SORTWARNING_SQL_DUMP
@@ -147,11 +148,14 @@ nsIVariant* convertJSValToVariant(JSContext* aCtx, const JS::Value& aValue) {
 }
 
 Variant_base* convertVariantToStorageVariant(nsIVariant* aVariant) {
-  RefPtr<Variant_base> variant = do_QueryObject(aVariant);
+  nsCOMPtr<nsIInterfaceRequestor> variant = do_QueryInterface(aVariant);
   if (variant) {
     // JS helpers already convert the JS representation to a Storage Variant,
     // in such a case there's nothing left to do here, so just pass-through.
-    return variant;
+    RefPtr<Variant_base> variantObj = do_GetInterface(variant);
+    if (variantObj) {
+      return variantObj;
+    }
   }
 
   if (!aVariant) return new NullVariant();
@@ -199,6 +203,10 @@ Variant_base* convertVariantToStorageVariant(nsIVariant* aVariant) {
       NS_ENSURE_SUCCESS(rv, nullptr);
       return new TextVariant(v);
     }
+    case nsIDataType::VTYPE_EMPTY:
+    case nsIDataType::VTYPE_EMPTY_ARRAY:
+    case nsIDataType::VTYPE_VOID:
+      return new NullVariant();
     case nsIDataType::VTYPE_ARRAY: {
       uint16_t type;
       nsIID iid;
@@ -212,17 +220,19 @@ Variant_base* convertVariantToStorageVariant(nsIVariant* aVariant) {
         // Take ownership of the data avoiding a further copy.
         return new AdoptedBlobVariant(v);
       }
+      // We don't convert other kind of arrays because it makes the API more
+      // error prone, especially on the javascript side where it may not be
+      // so uncommon to mistakenly pass an array instead of a primitive.
+      // Consumers should instead use the dedicated `BindArrayOf` methods.
       [[fallthrough]];
     }
-    case nsIDataType::VTYPE_EMPTY:
-    case nsIDataType::VTYPE_EMPTY_ARRAY:
-    case nsIDataType::VTYPE_VOID:
-      return new NullVariant();
     case nsIDataType::VTYPE_ID:
     case nsIDataType::VTYPE_INTERFACE:
     case nsIDataType::VTYPE_INTERFACE_IS:
     default:
-      NS_WARNING("Unsupported variant type");
+      NS_WARNING(
+          nsPrintfCString("Unsupported variant type: %d", dataType).get());
+      MOZ_ASSERT_UNREACHABLE("Tried to bind an unsupported Variant type");
       return nullptr;
   }
 }

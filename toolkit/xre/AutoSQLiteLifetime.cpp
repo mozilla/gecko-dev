@@ -126,6 +126,11 @@ AutoSQLiteLifetime::AutoSQLiteLifetime() {
     MOZ_CRASH("multiple instances of AutoSQLiteLifetime constructed!");
   }
 
+  Init();
+}
+
+// static
+void AutoSQLiteLifetime::Init() {
 #ifdef MOZ_MEMORY
   sResult = ::sqlite3_config(SQLITE_CONFIG_MALLOC, &memMethods);
 #else

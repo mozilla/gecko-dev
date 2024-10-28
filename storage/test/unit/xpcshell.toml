@@ -9,6 +9,8 @@ support-files = [
   "VacuumParticipant.sys.mjs",
 ]
 
+["test_bindArray.js"]
+
 ["test_bug-365166.js"]
 
 ["test_bug-393952.js"]

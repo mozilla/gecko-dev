@@ -1528,13 +1528,16 @@ PT.Remove.prototype = {
     await removeThem();
 
     this.undo = async function () {
+      let createdItems = [];
       for (let info of removedItems) {
         try {
           await createItemsFromBookmarksTree(info, true);
+          createdItems.push(info);
         } catch (ex) {
           console.error(`Unable to undo removal of ${info.guid}`);
         }
       }
+      removedItems = createdItems;
     };
     this.redo = removeThem;
   },

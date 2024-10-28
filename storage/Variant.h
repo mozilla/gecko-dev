@@ -7,11 +7,10 @@
 #ifndef mozilla_storage_Variant_h__
 #define mozilla_storage_Variant_h__
 
-#include <utility>
-
+#include "nsIInterfaceRequestor.h"
 #include "nsIVariant.h"
+#include "nsCOMPtr.h"
 #include "nsString.h"
-#include "nsTArray.h"
 
 #define VARIANT_BASE_IID                             \
   { /* 78888042-0fa3-4f7a-8b19-7996f99bf1aa */       \
@@ -30,6 +29,9 @@
  * nsCString -> TEXT (use UTF8TextVariant)
  * uint8_t[] -> BLOB (use BlobVariant)
  * nullptr   -> NULL (use NullVariant)
+ * int64_t[] -> ARRAY (use ArrayOfIntegersVariant)
+ * double[]  -> ARRAY (use ArrayOfDoublesVariant)
+ * nsCString[]  -> ARRAY (use ArrayOfUTF8StringsVariant)
  *
  * The kvstore component also reuses this class as a common implementation
  * of a simple threadsafe variant for the storage of primitive values only.
@@ -39,17 +41,32 @@
  * Bug 1494102 tracks that work.
  */
 
-namespace mozilla {
-namespace storage {
+namespace mozilla::storage {
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Base Class
 
-class Variant_base : public nsIVariant {
+class Variant_base : public nsIVariant, public nsIInterfaceRequestor {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIVARIANT
   NS_DECLARE_STATIC_IID_ACCESSOR(VARIANT_BASE_IID)
+
+  NS_IMETHOD
+  GetInterface(const nsIID& aIID, void** aResult) override {
+    NS_ENSURE_ARG_POINTER(aResult);
+    *aResult = nullptr;
+
+    // This is used to recognize nsIVariant instances derived from Variant_base
+    // from other implementations like XPCVariant that may not be thread-safe.
+    if (aIID.Equals(VARIANT_BASE_IID) || aIID.Equals(NS_GET_IID(nsIVariant))) {
+      nsCOMPtr<nsIVariant> result(static_cast<nsIVariant*>(this));
+      result.forget(aResult);
+      return NS_OK;
+    }
+
+    return NS_NOINTERFACE;
+  }
 
  protected:
   virtual ~Variant_base() = default;
@@ -71,8 +88,8 @@ struct variant_traits {
 
 template <typename DataType, bool Adopting = false>
 struct variant_storage_traits {
-  typedef DataType ConstructorType;
-  typedef DataType StorageType;
+  using ConstructorType = DataType;
+  using StorageType = DataType;
   static inline void storage_conversion(const ConstructorType aData,
                                         StorageType* _storage) {
     *_storage = aData;
@@ -85,30 +102,30 @@ struct variant_storage_traits {
 
 template <typename DataType, bool Adopting = false>
 struct variant_boolean_traits {
-  typedef typename variant_storage_traits<DataType, Adopting>::StorageType
-      StorageType;
+  using StorageType =
+      typename variant_storage_traits<DataType, Adopting>::StorageType;
   static inline nsresult asBool(const StorageType&, bool*) { NO_CONVERSION }
 };
 
 template <typename DataType, bool Adopting = false>
 struct variant_integer_traits {
-  typedef typename variant_storage_traits<DataType, Adopting>::StorageType
-      StorageType;
+  using StorageType =
+      typename variant_storage_traits<DataType, Adopting>::StorageType;
   static inline nsresult asInt32(const StorageType&, int32_t*) { NO_CONVERSION }
   static inline nsresult asInt64(const StorageType&, int64_t*) { NO_CONVERSION }
 };
 
 template <typename DataType, bool Adopting = false>
 struct variant_float_traits {
-  typedef typename variant_storage_traits<DataType, Adopting>::StorageType
-      StorageType;
+  using StorageType =
+      typename variant_storage_traits<DataType, Adopting>::StorageType;
   static inline nsresult asDouble(const StorageType&, double*) { NO_CONVERSION }
 };
 
 template <typename DataType, bool Adopting = false>
 struct variant_text_traits {
-  typedef typename variant_storage_traits<DataType, Adopting>::StorageType
-      StorageType;
+  using StorageType =
+      typename variant_storage_traits<DataType, Adopting>::StorageType;
   static inline nsresult asUTF8String(const StorageType&, nsACString&) {
     NO_CONVERSION
   }
@@ -118,9 +135,9 @@ struct variant_text_traits {
 };
 
 template <typename DataType, bool Adopting = false>
-struct variant_blob_traits {
-  typedef typename variant_storage_traits<DataType, Adopting>::StorageType
-      StorageType;
+struct variant_array_traits {
+  using StorageType =
+      typename variant_storage_traits<DataType, Adopting>::StorageType;
   static inline nsresult asArray(const StorageType&, uint16_t*, uint32_t*,
                                  void**) {
     NO_CONVERSION
@@ -164,8 +181,9 @@ struct variant_traits<int64_t> {
 template <>
 struct variant_integer_traits<int64_t> {
   static inline nsresult asInt32(int64_t aValue, int32_t* _result) {
-    if (aValue > INT32_MAX || aValue < INT32_MIN)
+    if (aValue > INT32_MAX || aValue < INT32_MIN) {
       return NS_ERROR_CANNOT_CONVERT_DATA;
+    }
 
     *_result = static_cast<int32_t>(aValue);
     return NS_OK;
@@ -210,8 +228,8 @@ struct variant_traits<nsString> {
 };
 template <>
 struct variant_storage_traits<nsString> {
-  typedef const nsAString& ConstructorType;
-  typedef nsString StorageType;
+  using ConstructorType = const nsAString&;
+  using StorageType = nsString;
   static inline void storage_conversion(ConstructorType aText,
                                         StorageType* _outData) {
     *_outData = aText;
@@ -237,8 +255,8 @@ struct variant_traits<nsCString> {
 };
 template <>
 struct variant_storage_traits<nsCString> {
-  typedef const nsACString& ConstructorType;
-  typedef nsCString StorageType;
+  using ConstructorType = const nsACString&;
+  using StorageType = nsCString;
   static inline void storage_conversion(ConstructorType aText,
                                         StorageType* _outData) {
     *_outData = aText;
@@ -259,84 +277,148 @@ struct variant_text_traits<nsCString> {
 };
 
 /**
- * BLOB types
+ * ARRAY types
  */
 
+// NOLINTBEGIN(bugprone-macro-parentheses)
+
+#define SPECIALIZE_ARRAY_TO_NUMERIC_VARIANT(Type, DataType)                    \
+  template <>                                                                  \
+  struct variant_traits<Type[]> {                                              \
+    static inline uint16_t type() { return nsIDataType::VTYPE_ARRAY; }         \
+  };                                                                           \
+                                                                               \
+  template <>                                                                  \
+  struct variant_storage_traits<Type[], false> {                               \
+    using ConstructorType = std::pair<const void*, int>;                       \
+    using StorageType = FallibleTArray<Type>;                                  \
+    static inline void storage_conversion(ConstructorType aArrayAndLength,     \
+                                          StorageType* _outData) {             \
+      _outData->Clear();                                                       \
+      MOZ_ALWAYS_TRUE(_outData->AppendElements(                                \
+          static_cast<const Type*>(aArrayAndLength.first),                     \
+          aArrayAndLength.second, fallible));                                  \
+    }                                                                          \
+    static inline void destroy(const StorageType& _outData) {}                 \
+  };                                                                           \
+                                                                               \
+  template <>                                                                  \
+  struct variant_storage_traits<Type[], true> {                                \
+    using ConstructorType = std::pair<Type*, int>;                             \
+    using StorageType = std::pair<Type*, int>;                                 \
+    static inline void storage_conversion(ConstructorType aArrayAndLength,     \
+                                          StorageType* _outData) {             \
+      *_outData = aArrayAndLength;                                             \
+    }                                                                          \
+    static inline void destroy(StorageType& aArrayAndLength) {                 \
+      if (aArrayAndLength.first) {                                             \
+        free(aArrayAndLength.first);                                           \
+        aArrayAndLength.first = nullptr;                                       \
+      }                                                                        \
+    }                                                                          \
+  };                                                                           \
+                                                                               \
+  template <>                                                                  \
+  struct variant_array_traits<Type[], false> {                                 \
+    static inline nsresult asArray(FallibleTArray<Type>& aData,                \
+                                   uint16_t* _type, uint32_t* _size,           \
+                                   void** _result) {                           \
+      /* For empty arrays, we return nullptr. */                               \
+      if (aData.Length() == 0) {                                               \
+        *_result = nullptr;                                                    \
+        *_type = DataType;                                                     \
+        *_size = 0;                                                            \
+        return NS_OK;                                                          \
+      }                                                                        \
+      /* Otherwise, we copy the array. */                                      \
+      *_result = moz_xmemdup(aData.Elements(), aData.Length() * sizeof(Type)); \
+      *_type = DataType;                                                       \
+      *_size = aData.Length();                                                 \
+      return NS_OK;                                                            \
+    }                                                                          \
+  };                                                                           \
+                                                                               \
+  template <>                                                                  \
+  struct variant_array_traits<Type[], true> {                                  \
+    static inline nsresult asArray(std::pair<Type*, int>& aData,               \
+                                   uint16_t* _type, uint32_t* _size,           \
+                                   void** _result) {                           \
+      /* For empty arrays, we return nullptr. */                               \
+      if (aData.second == 0) {                                                 \
+        *_result = nullptr;                                                    \
+        *_type = DataType;                                                     \
+        *_size = 0;                                                            \
+        return NS_OK;                                                          \
+      }                                                                        \
+      /* Otherwise, transfer the data out. */                                  \
+      *_result = aData.first;                                                  \
+      aData.first = nullptr;                                                   \
+      /* If we asked for it twice, better not use adopting! */                 \
+      MOZ_ASSERT(*_result);                                                    \
+      *_type = DataType;                                                       \
+      *_size = aData.second;                                                   \
+      return NS_OK;                                                            \
+    }                                                                          \
+  }
+
+// NOLINTEND(bugprone-macro-parentheses)
+
+SPECIALIZE_ARRAY_TO_NUMERIC_VARIANT(uint8_t, nsIDataType::VTYPE_UINT8);
+SPECIALIZE_ARRAY_TO_NUMERIC_VARIANT(int64_t, nsIDataType::VTYPE_INT64);
+SPECIALIZE_ARRAY_TO_NUMERIC_VARIANT(double, nsIDataType::VTYPE_DOUBLE);
+
 template <>
-struct variant_traits<uint8_t[]> {
+struct variant_traits<nsCString[]> {
   static inline uint16_t type() { return nsIDataType::VTYPE_ARRAY; }
 };
+
 template <>
-struct variant_storage_traits<uint8_t[], false> {
-  typedef std::pair<const void*, int> ConstructorType;
-  typedef FallibleTArray<uint8_t> StorageType;
-  static inline void storage_conversion(ConstructorType aBlob,
+struct variant_storage_traits<nsCString[], false> {
+  using ConstructorType = std::pair<const void*, int>;
+  using StorageType = FallibleTArray<nsCString>;
+  static inline void storage_conversion(ConstructorType aArrayAndLength,
                                         StorageType* _outData) {
     _outData->Clear();
-    (void)_outData->AppendElements(static_cast<const uint8_t*>(aBlob.first),
-                                   aBlob.second, fallible);
+    if (!_outData->SetCapacity(aArrayAndLength.second, fallible)) {
+      MOZ_ASSERT_UNREACHABLE("Cannot allocate.");
+      return;
+    }
+    // We can avoid copying the strings as we're asking SQLite to do it on bind
+    // by using SQLITE_TRANSIENT.
+    const nsCString* str = static_cast<const nsCString*>(aArrayAndLength.first);
+    for (int32_t i = 0; i < aArrayAndLength.second; ++i, str++) {
+      MOZ_ALWAYS_TRUE(_outData->AppendElement(*str, fallible));
+    }
   }
+
   static inline void destroy(const StorageType& _outData) {}
 };
+
 template <>
-struct variant_storage_traits<uint8_t[], true> {
-  typedef std::pair<uint8_t*, int> ConstructorType;
-  typedef std::pair<uint8_t*, int> StorageType;
-  static inline void storage_conversion(ConstructorType aBlob,
-                                        StorageType* _outData) {
-    *_outData = aBlob;
-  }
-  static inline void destroy(StorageType& aData) {
-    if (aData.first) {
-      free(aData.first);
-      aData.first = nullptr;
-    }
-  }
-};
-template <>
-struct variant_blob_traits<uint8_t[], false> {
-  static inline nsresult asArray(FallibleTArray<uint8_t>& aData,
+struct variant_array_traits<nsCString[], false> {
+  static inline nsresult asArray(FallibleTArray<nsCString>& aData,
                                  uint16_t* _type, uint32_t* _size,
                                  void** _result) {
-    // For empty blobs, we return nullptr.
+    // For empty arrays, we return nullptr.
     if (aData.Length() == 0) {
       *_result = nullptr;
-      *_type = nsIDataType::VTYPE_UINT8;
+      *_type = nsIDataType::VTYPE_UTF8STRING;
       *_size = 0;
       return NS_OK;
     }
-
     // Otherwise, we copy the array.
-    *_result = moz_xmemdup(aData.Elements(), aData.Length() * sizeof(uint8_t));
-
-    // Set type and size
-    *_type = nsIDataType::VTYPE_UINT8;
-    *_size = aData.Length();
-    return NS_OK;
-  }
-};
-
-template <>
-struct variant_blob_traits<uint8_t[], true> {
-  static inline nsresult asArray(std::pair<uint8_t*, int>& aData,
-                                 uint16_t* _type, uint32_t* _size,
-                                 void** _result) {
-    // For empty blobs, we return nullptr.
-    if (aData.second == 0) {
-      *_result = nullptr;
-      *_type = nsIDataType::VTYPE_UINT8;
-      *_size = 0;
-      return NS_OK;
+    // This memory will be freed up after Sqlite made its own copy in
+    // sqlite3_T_array. The string buffers are owned by mData.
+    const char** strings =
+        (const char**)moz_xmalloc(sizeof(char*) * aData.Length());
+    const char** iter = strings;
+    for (const nsCString& str : aData) {
+      *iter = str.get();
+      iter++;
     }
-
-    // Otherwise, transfer the data out.
-    *_result = aData.first;
-    aData.first = nullptr;
-    MOZ_ASSERT(*_result);  // We asked for it twice, better not use adopting!
-
-    // Set type and size
-    *_type = nsIDataType::VTYPE_UINT8;
-    *_size = aData.second;
+    *_result = strings;
+    *_type = nsIDataType::VTYPE_UTF8STRING;
+    *_size = aData.Length();
     return NS_OK;
   }
 };
@@ -405,11 +487,11 @@ class Variant final : public Variant_base {
 
   NS_IMETHOD GetAsArray(uint16_t* _type, nsIID*, uint32_t* _size,
                         void** _data) override {
-    return variant_blob_traits<DataType, Adopting>::asArray(mData, _type, _size,
-                                                            _data);
+    return variant_array_traits<DataType, Adopting>::asArray(mData, _type,
+                                                             _size, _data);
   }
 
- private:
+ protected:
   typename variant_storage_traits<DataType, Adopting>::StorageType mData;
 };
 
@@ -418,17 +500,21 @@ class Variant final : public Variant_base {
 
 // Currently, BooleanVariant is only useful for kvstore.
 // Bug 1494102 tracks implementing full boolean variant support for mozStorage.
-typedef Variant<bool> BooleanVariant;
+using BooleanVariant = Variant<bool>;
 
-typedef Variant<int64_t> IntegerVariant;
-typedef Variant<double> FloatVariant;
-typedef Variant<nsString> TextVariant;
-typedef Variant<nsCString> UTF8TextVariant;
-typedef Variant<uint8_t[], false> BlobVariant;
-typedef Variant<uint8_t[], true> AdoptedBlobVariant;
+using IntegerVariant = Variant<int64_t>;
+using FloatVariant = Variant<double>;
+using TextVariant = Variant<nsString>;
+using UTF8TextVariant = Variant<nsCString>;
+using BlobVariant = Variant<uint8_t[], false>;
+using AdoptedBlobVariant = Variant<uint8_t[], true>;
+using ArrayOfIntegersVariant = Variant<int64_t[], false>;
+using AdoptedArrayOfIntegersVariant = Variant<int64_t[], true>;
+using ArrayOfDoublesVariant = Variant<double[], false>;
+using AdoptedArrayOfDoublesVariant = Variant<double[], true>;
+using ArrayOfUTF8StringsVariant = Variant<nsCString[], false>;
 
-}  // namespace storage
-}  // namespace mozilla
+}  // namespace mozilla::storage
 
 #include "Variant_inl.h"
 

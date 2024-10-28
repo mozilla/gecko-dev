@@ -42,6 +42,7 @@
 #include "SQLCollations.h"
 #include "FileSystemModule.h"
 #include "mozStorageHelper.h"
+#include "sqlite3_static_ext.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
@@ -167,6 +168,12 @@ int sqlite3_T_null(sqlite3_context* aCtx) {
 int sqlite3_T_blob(sqlite3_context* aCtx, const void* aData, int aSize) {
   ::sqlite3_result_blob(aCtx, aData, aSize, free);
   return SQLITE_OK;
+}
+
+int sqlite3_T_array(sqlite3_context* aCtx, const void* aData, int aSize,
+                    int aType) {
+  // Not supported for now.
+  return SQLITE_MISUSE;
 }
 
 #include "variantToSQLiteT_impl.h"

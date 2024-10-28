@@ -18,6 +18,7 @@
 #include "nsIThread.h"
 #include "nsThreadUtils.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "mozilla/AutoSQLiteLifetime.h"
 
 #include "mozIStorageService.h"
 #include "mozIStorageConnection.h"
@@ -159,7 +160,9 @@ class HookSqliteMutex {
   ~HookSqliteMutex() {
     do_check_ok(sqlite3_shutdown());
     do_check_ok(::sqlite3_config(SQLITE_CONFIG_MUTEX, &orig_mutex_methods));
-    do_check_ok(sqlite3_initialize());
+    mozilla::AutoSQLiteLifetime::Init();
+    int rc = mozilla::AutoSQLiteLifetime::getInitResult();
+    MOZ_RELEASE_ASSERT(rc == SQLITE_OK);
   }
 };
 

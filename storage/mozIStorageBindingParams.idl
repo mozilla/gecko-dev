@@ -19,6 +19,7 @@ interface mozIStorageBindingParams : nsISupports {
    *        The name of the parameter to bind aValue to.
    * @param aValue
    *        The value to bind.
+   * @warning To bind an array use a specific `bindArrayOf` method instead.
    */
    void bindByName(in AUTF8String aName,
                    in nsIVariant aValue);
@@ -56,6 +57,17 @@ interface mozIStorageBindingParams : nsISupports {
                               in octetPtr aValue,
                               in unsigned long aValueSize);
 
+   // These allow to bind arrays through the carray() tabled-valued function,
+   // thus they should only be used when the query contains `carray(?N)`.
+   void bindArrayOfIntegersByName(in AUTF8String aName,
+                                  in Array<int64_t> aValue);
+   void bindArrayOfDoublesByName(in AUTF8String aName,
+                                 in Array<double> aValue);
+   void bindArrayOfStringsByName(in AUTF8String aName,
+                                 in Array<AString> aValue);
+   void bindArrayOfUTF8StringsByName(in AUTF8String aName,
+                                     in Array<AUTF8String> aValue);
+
    /**
     * Binds aValue to the parameter with the index aIndex.
     *
@@ -63,6 +75,7 @@ interface mozIStorageBindingParams : nsISupports {
     *        The zero-based index of the parameter to bind aValue to.
     * @param aValue
     *        The value to bind.
+    * @warning To bind an array use a specific `bindArrayOf` method instead.
     */
    void bindByIndex(in unsigned long aIndex,
                     in nsIVariant aValue);
@@ -100,4 +113,15 @@ interface mozIStorageBindingParams : nsISupports {
    void bindAdoptedBlobByIndex(in unsigned long aIndex,
                                in octetPtr aValue,
                                in unsigned long aValueSize);
+
+   // These allow to bind arrays through the carray() tabled-valued function,
+   // thus they should only be used when the query contains `carray(?N)`.
+   void bindArrayOfIntegersByIndex(in unsigned long aIndex,
+                                   in Array<int64_t> aValue);
+   void bindArrayOfDoublesByIndex(in unsigned long aIndex,
+                                  in Array<double> aValue);
+   void bindArrayOfStringsByIndex(in unsigned long aIndex,
+                                  in Array<AString> aValue);
+   void bindArrayOfUTF8StringsByIndex(in unsigned long aIndex,
+                                      in Array<AUTF8String> aValue);
 };
