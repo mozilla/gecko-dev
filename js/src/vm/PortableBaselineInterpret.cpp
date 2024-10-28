@@ -242,6 +242,10 @@ struct Stack {
       StackVal* sp, BaselineFrame* prevFrame) {
     uint8_t* prevFP =
         reinterpret_cast<uint8_t*>(prevFrame) + BaselineFrame::Size();
+    TRACE_PRINTF(
+        "pushExitFrame: prevFrame = %p sp = %p BaselineFrame::Size() = %d -> "
+        "computed prevFP = %p actual fp = %p\n",
+        prevFrame, sp, int(BaselineFrame::Size()), prevFP, fp);
     MOZ_ASSERT(reinterpret_cast<StackVal*>(prevFP) == fp);
     setFrameSize(sp, prevFrame);
 
