@@ -311,8 +311,18 @@ struct Stack {
 
 struct ICRegs {
   static const int kMaxICVals = 16;
+  // Values can be split across two OR'd halves: unboxed bits and
+  // tags.  We mostly rely on the CacheIRWriter/Reader typed OperandId
+  // system to ensure "type safety" in CacheIR w.r.t. unboxing: the
+  // existence of an ObjOperandId implies that the value is unboxed,
+  // so `icVals` contains a pointer (reinterpret-casted to a
+  // `uint64_t`) and `icTags` contains the tag bits. An operator that
+  // requires a tagged Value can OR the two together (this corresponds
+  // to `useValueRegister` rather than `useRegister` in the native
+  // baseline compiler).
   uint64_t icVals[kMaxICVals];
   uint64_t icResult;
+  uint64_t icTags[kMaxICVals];  // Shifted tags.
   int extraArgs;
   bool spreadCall;
 };
@@ -497,10 +507,18 @@ ICInterpretOpResult MOZ_ALWAYS_INLINE ICInterpretOps(ICCtx& ctx) {
 #define FAIL_IC() return ICInterpretOpResult::NextIC;
 
 #define READ_REG(index) ctx.icregs.icVals[(index)]
-#define READ_VALUE_REG(index) Value::fromRawBits(READ_REG(index))
-#define WRITE_REG(index, value, _tag) ctx.icregs.icVals[(index)] = (value)
-#define WRITE_VALUE_REG(index, value) \
-  ctx.icregs.icVals[(index)] = (value).asRawBits()
+#define READ_VALUE_REG(index) \
+  Value::fromRawBits(ctx.icregs.icVals[(index)] | ctx.icregs.icTags[(index)])
+#define WRITE_REG(index, value, tag)                                           \
+  do {                                                                         \
+    ctx.icregs.icVals[(index)] = (value);                                      \
+    ctx.icregs.icTags[(index)] = uint64_t(JSVAL_TAG_##tag) << JSVAL_TAG_SHIFT; \
+  } while (0)
+#define WRITE_VALUE_REG(index, value)                 \
+  do {                                                \
+    ctx.icregs.icVals[(index)] = (value).asRawBits(); \
+    ctx.icregs.icTags[(index)] = 0;                   \
+  } while (0)
 
     DECLARE_CACHEOP_CASE(ReturnFromIC);
     DECLARE_CACHEOP_CASE(GuardToObject);
