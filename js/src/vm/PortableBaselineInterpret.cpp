@@ -498,6 +498,14 @@ typedef uint64_t (*ICStubFunc)(uint64_t arg0, uint64_t arg1, ICStub* stub,
     result = func(arg0, arg1, stubvalue, ctx);                              \
   } while (0)
 
+typedef PBIResult (*PBIFunc)(JSContext* cx_, State& state, Stack& stack,
+                             StackVal* sp, JSObject* envChain, Value* ret,
+                             jsbytecode* pc, ImmutableScriptData* isd,
+                             jsbytecode* restartEntryPC,
+                             BaselineFrame* restartFrame,
+                             StackVal* restartEntryFrame,
+                             PBIResult restartCode);
+
 static uint64_t CallNextIC(uint64_t arg0, uint64_t arg1, ICStub* stub,
                            ICCtx& ctx);
 
@@ -2371,11 +2379,15 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
             PUSHNATIVE(StackValNative(
                 MakeFrameDescriptorForJitCall(FrameType::BaselineStub, argc)));
 
+            JSScript* script = callee->nonLazyScript();
+            jsbytecode* pc = script->code();
+            ImmutableScriptData* isd = script->immutableScriptData();
             PBIResult result;
             Value ret;
-            result =
-                PortableBaselineInterpret(cx, ctx.state, ctx.stack, ctx.sp(),
-                                          /* envChain = */ nullptr, &ret);
+            result = PortableBaselineInterpret<false>(
+                cx, ctx.state, ctx.stack, ctx.sp(),
+                /* envChain = */ nullptr, &ret, pc, isd, nullptr, nullptr,
+                PBIResult::Ok);
             if (result != PBIResult::Ok) {
               ctx.error = result;
               return IC_ERROR_SENTINEL();
@@ -5257,7 +5269,7 @@ static MOZ_NEVER_INLINE uint64_t CallNextIC(uint64_t arg0, uint64_t arg1,
  */
 
 #define DEFINE_IC(kind, arity, fallback_body)                   \
-  static uint64_t MOZ_ALWAYS_INLINE IC##kind##Fallback(         \
+  static uint64_t MOZ_NEVER_INLINE IC##kind##Fallback(          \
       uint64_t arg0, uint64_t arg1, ICStub* stub, ICCtx& ctx) { \
     uint64_t retValue = 0;                                      \
     uint64_t arg2 = ctx.arg2;                                   \
@@ -5679,24 +5691,33 @@ static EnvironmentObject& getEnvironmentFromCoordinate(
               frame->interpreterICEntry()->firstStub(), ic_ret, ic_arg0,   \
               ic_arg1, ic_arg2, hasarg2);                                  \
   if (ic_ret == IC_ERROR_SENTINEL()) {                                     \
-    switch (ctx.error) {                                                   \
-      case PBIResult::Ok:                                                  \
-        break;                                                             \
-      case PBIResult::Error:                                               \
-        goto error;                                                        \
-      case PBIResult::Unwind:                                              \
-        goto unwind;                                                       \
-      case PBIResult::UnwindError:                                         \
-        goto unwind_error;                                                 \
-      case PBIResult::UnwindRet:                                           \
-        goto unwind_ret;                                                   \
-    }                                                                      \
+    ic_result = ctx.error;                                                 \
+    goto ic_fail;                                                          \
   }                                                                        \
   NEXT_IC();
 
+template <bool IsRestart>
 PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                     StackVal* sp, JSObject* envChain,
-                                    Value* ret) {
+                                    Value* ret, jsbytecode* pc,
+                                    ImmutableScriptData* isd,
+                                    BaselineFrame* restartFrame,
+                                    StackVal* restartEntryFrame,
+                                    PBIResult restartCode) {
+#define RESTART(code)                                                 \
+  if (!IsRestart) {                                                   \
+    TRACE_PRINTF("Restarting (code %d sp %p fp %p)\n", int(code), sp, \
+                 ctx.stack.fp);                                       \
+    restartCode = code;                                               \
+    goto restart;                                                     \
+  }
+
+#define GOTO_ERROR()           \
+  do {                         \
+    RESTART(PBIResult::Error); \
+    goto error;                \
+  } while (0)
+
 #define OPCODE_LABEL(op, ...) LABEL(op),
 #define TRAILING_LABEL(v) LABEL(default),
 
@@ -5707,27 +5728,41 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 #undef OPCODE_LABEL
 #undef TRAILING_LABEL
 
-  PUSHNATIVE(StackValNative(nullptr));  // Fake return address.
-  BaselineFrame* frame = stack.pushFrame(sp, cx_, envChain);
-  MOZ_ASSERT(frame);  // safety: stack margin.
-  sp = reinterpret_cast<StackVal*>(frame);
+  BaselineFrame* frame = restartFrame;
+  StackVal* entryFrame = restartEntryFrame;
 
-  // Save the entry frame so that when unwinding, we know when to
-  // return from this C++ frame.
-  StackVal* entryFrame = sp;
+  if (!IsRestart) {
+    PUSHNATIVE(StackValNative(nullptr));  // Fake return address.
+    frame = stack.pushFrame(sp, cx_, envChain);
+    MOZ_ASSERT(frame);  // safety: stack margin.
+    sp = reinterpret_cast<StackVal*>(frame);
+    // Save the entry frame so that when unwinding, we know when to
+    // return from this C++ frame.
+    entryFrame = sp;
+  }
 
   RootedScript script(cx_, frame->script());
-  jsbytecode* pc = frame->interpreterPC();
   bool from_unwind = false;
+  uint32_t nfixed = script->nfixed();
 
-  ICCtx ctx(cx_, frame, state, stack);
+  PBIResult ic_result = PBIResult::Ok;
   uint64_t ic_arg0 = 0, ic_arg1 = 0, ic_arg2 = 0, ic_ret = 0;
 
-  AutoCheckRecursionLimit recursion(ctx.frameMgr.cxForLocalUseOnly());
-  if (!recursion.checkDontReport(ctx.frameMgr.cxForLocalUseOnly())) {
-    PUSH_EXIT_FRAME();
-    ReportOverRecursed(ctx.frameMgr.cxForLocalUseOnly());
-    return PBIResult::Error;
+  ICCtx ctx(cx_, frame, state, stack);
+
+  if (IsRestart) {
+    ic_result = restartCode;
+    TRACE_PRINTF(
+        "Enter from restart: sp = %p ctx.stack.fp = %p ctx.frame = %p\n", sp,
+        ctx.stack.fp, ctx.frame);
+    goto ic_fail;
+  } else {
+    AutoCheckRecursionLimit recursion(ctx.frameMgr.cxForLocalUseOnly());
+    if (!recursion.checkDontReport(ctx.frameMgr.cxForLocalUseOnly())) {
+      PUSH_EXIT_FRAME();
+      ReportOverRecursed(ctx.frameMgr.cxForLocalUseOnly());
+      return PBIResult::Error;
+    }
   }
 
   // Check max stack depth once, so we don't need to check it
@@ -5739,7 +5774,6 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
     return PBIResult::Error;
   }
 
-  uint32_t nfixed = script->nfixed();
   for (uint32_t i = 0; i < nfixed; i++) {
     PUSH(StackVal(UndefinedValue()));
   }
@@ -5758,7 +5792,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
     if (func->needsFunctionEnvironmentObjects()) {
       PUSH_EXIT_FRAME();
       if (!js::InitFunctionEnvironmentObjects(cx, frame)) {
-        goto error;
+        GOTO_ERROR();
       }
       TRACE_PRINTF("callee is func %p; created environment object: %p\n", func,
                    frame->environmentChain());
@@ -5769,7 +5803,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
   if (script->isDebuggee()) {
     PUSH_EXIT_FRAME();
     if (!DebugPrologue(cx, frame)) {
-      goto error;
+      GOTO_ERROR();
     }
   }
 
@@ -5777,7 +5811,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
     if (ctx.frameMgr.cxForLocalUseOnly()->realm()->collectCoverageForDebug()) {
       PUSH_EXIT_FRAME();
       if (!script->initScriptCounts(cx)) {
-        goto error;
+        GOTO_ERROR();
       }
     }
   }
@@ -5787,7 +5821,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
   if (ctx.frameMgr.cxForLocalUseOnly()->hasAnyPendingInterrupt()) {
     PUSH_EXIT_FRAME();
     if (!InterruptCheck(cx)) {
-      goto error;
+      GOTO_ERROR();
     }
   }
 #endif
@@ -6007,7 +6041,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           MutableHandleValue val = Stack::handleMut(&sp[0]);
           PUSH_EXIT_FRAME();
           if (!ToNumeric(cx, val)) {
-            goto error;
+            GOTO_ERROR();
           }
           NEXT_IC();
         } else {
@@ -6162,7 +6196,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!AddOperation(cx, lhs, rhs, result)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POP();
@@ -6199,7 +6233,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!SubOperation(cx, lhs, rhs, result)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POP();
@@ -6237,7 +6271,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!MulOperation(cx, lhs, rhs, result)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POP();
@@ -6262,7 +6296,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!DivOperation(cx, lhs, rhs, result)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POP();
@@ -6298,7 +6332,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!ModOperation(cx, lhs, rhs, result)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POP();
@@ -6323,7 +6357,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!PowOperation(cx, lhs, rhs, result)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POP();
@@ -6583,11 +6617,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           if (sp[0].asValue().isString() && sp[1].asValue().isString()) {
             PUSH_EXIT_FRAME();
             if (!js::StrictlyEqual(cx, lval, rval, &result)) {
-              goto error;
+              GOTO_ERROR();
             }
           } else {
             if (!js::StrictlyEqual(nullptr, lval, rval, &result)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POP();
@@ -6657,7 +6691,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
               PUSH_EXIT_FRAME();
               result = ToString<CanGC>(cx, value0);
               if (!result) {
-                goto error;
+                GOTO_ERROR();
               }
             }
             PUSH(StackVal(StringValue(result)));
@@ -6710,7 +6744,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             promise = StartDynamicModuleImport(cx, script, value1, value0);
             if (!promise) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(ObjectValue(*promise)));
@@ -6724,7 +6758,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           PUSH_EXIT_FRAME();
           metaObject = ImportMetaOperation(cx, script);
           if (!metaObject) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(ObjectValue(*metaObject)));
@@ -6738,7 +6772,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             obj = NewObjectOperation(cx, script, pc);
             if (!obj) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(ObjectValue(*obj)));
@@ -6760,7 +6794,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             obj = NewObjectOperation(cx, script, pc);
             if (!obj) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(ObjectValue(*obj)));
@@ -6787,7 +6821,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             obj = ObjectWithProtoOperation(cx, value0);
             if (!obj) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           sp[0] = StackVal(ObjectValue(*obj));
@@ -6839,7 +6873,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!InitPropGetterSetterOperation(cx, pc, obj0, name0, obj1)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -6865,7 +6899,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!InitElemGetterSetterOperation(cx, pc, obj0, value0, obj1)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -6953,7 +6987,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!DelPropOperation<false>(cx, value0, name0, &res)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(BooleanValue(res)));
@@ -6969,7 +7003,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!DelPropOperation<true>(cx, value0, name0, &res)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(BooleanValue(res)));
@@ -6984,7 +7018,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!DelElemOperation<false>(cx, value0, value1, &res)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(BooleanValue(res)));
@@ -6999,7 +7033,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!DelElemOperation<true>(cx, value0, value1, &res)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(BooleanValue(res)));
@@ -7033,7 +7067,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             symbol = NewPrivateName(cx, atom0);
             if (!symbol) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(SymbolValue(symbol)));
@@ -7072,7 +7106,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             // SetPropertySuper(cx, lval, receiver, name, rval, strict)
             // (N.B.: lval and receiver are transposed!)
             if (!SetPropertySuper(cx, value1, value0, name0, value2, strict)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(value2));
@@ -7097,7 +7131,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             // SetElementSuper(cx, lval, receiver, index, rval, strict)
             // (N.B.: lval, receiver and index are rotated!)
             if (!SetElementSuper(cx, value2, value0, value1, value3, strict)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(value3));  // value
@@ -7149,7 +7183,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           MOZ_ALWAYS_FALSE(
               js::ThrowCheckIsObject(cx, js::CheckIsObjectKind(GET_UINT8(pc))));
           /* abandon frame; error handler will re-establish sp */
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(CheckIsObj);
       }
@@ -7161,7 +7195,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             MOZ_ALWAYS_FALSE(ThrowObjectCoercible(cx, value0));
             /* abandon frame; error handler will re-establish sp */
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(CheckObjCoercible);
@@ -7178,7 +7212,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             result = CreateAsyncFromSyncIterator(cx, obj0, value0);
             if (!result) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(ObjectValue(*result)));
@@ -7195,7 +7229,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!MutatePrototype(cx, obj0.as<PlainObject>(), value0)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -7210,7 +7244,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             uint32_t length = GET_UINT32(pc);
             obj = NewArrayOperation(cx, length);
             if (!obj) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(ObjectValue(*obj)));
@@ -7252,7 +7286,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ReservedRooted<JSObject*> obj0(&state.obj0, script->getRegExp(pc));
           obj = CloneRegExpObject(cx, obj0.as<RegExpObject>());
           if (!obj) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(ObjectValue(*obj)));
@@ -7270,7 +7304,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             res = js::Lambda(cx, fun0, obj0);
             if (!res) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(ObjectValue(*res)));
@@ -7288,7 +7322,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!SetFunctionName(cx, fun0, value0, prefixKind)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -7316,7 +7350,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!CheckClassHeritageOperation(cx, value0)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -7337,7 +7371,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             obj = FunWithProtoOperation(cx, fun0, obj1, obj0);
             if (!obj) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(ObjectValue(*obj)));
@@ -7352,7 +7386,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           PUSH_EXIT_FRAME();
           builtin = BuiltinObjectOperation(cx, kind);
           if (!builtin) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(ObjectValue(*builtin)));
@@ -7467,7 +7501,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                 // it continuing to exist while we evaluate the fastpath.
                 AutoKeepJitScripts keepJitScript(cx);
                 if (!CreateThis(cx, func, obj0, GenericObject, thisv)) {
-                  goto error;
+                  GOTO_ERROR();
                 }
 
                 TRACE_PRINTF("created %" PRIx64 "\n", thisv.get().asRawBits());
@@ -7506,6 +7540,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             // 5. Push fake return address, set script, push baseline frame.
             PUSHNATIVE(StackValNative(nullptr));
             script.set(calleeScript);
+            isd = frame->script()->immutableScriptData();
             BaselineFrame* newFrame =
                 stack.pushFrame(sp, ctx.frameMgr.cxForLocalUseOnly(),
                                 /* envChain = */ func->environment());
@@ -7521,7 +7556,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             if (!stack.check(sp, sizeof(StackVal) * calleeScript->nslots())) {
               PUSH_EXIT_FRAME();
               ReportOverRecursed(ctx.frameMgr.cxForLocalUseOnly());
-              goto error;
+              GOTO_ERROR();
             }
             // 8. Push local slots, and set return value to `undefined` by
             // default.
@@ -7534,7 +7569,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             if (func->needsFunctionEnvironmentObjects()) {
               PUSH_EXIT_FRAME();
               if (!js::InitFunctionEnvironmentObjects(cx, frame)) {
-                goto error;
+                GOTO_ERROR();
               }
             }
             // 10. Set debug flag, if appropriate.
@@ -7544,7 +7579,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
               PUSH_EXIT_FRAME();
               if (!DebugPrologue(cx, frame)) {
-                goto error;
+                GOTO_ERROR();
               }
             }
             // 11. Check for interrupts.
@@ -7552,7 +7587,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             if (ctx.frameMgr.cxForLocalUseOnly()->hasAnyPendingInterrupt()) {
               PUSH_EXIT_FRAME();
               if (!InterruptCheck(cx)) {
-                goto error;
+                GOTO_ERROR();
               }
             }
 #endif
@@ -7563,7 +7598,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                       ->collectCoverageForDebug()) {
                 PUSH_EXIT_FRAME();
                 if (!script->initScriptCounts(cx)) {
-                  goto error;
+                  GOTO_ERROR();
                 }
               }
             }
@@ -7665,7 +7700,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         if (sp[0].asValue().isMagic(JS_UNINITIALIZED_LEXICAL)) {
           PUSH_EXIT_FRAME();
           MOZ_ALWAYS_FALSE(ThrowUninitializedThis(cx));
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(CheckThis);
       }
@@ -7674,7 +7709,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         if (!sp[0].asValue().isMagic(JS_UNINITIALIZED_LEXICAL)) {
           PUSH_EXIT_FRAME();
           MOZ_ALWAYS_FALSE(ThrowInitializedThis(cx));
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(CheckThisReinit);
       }
@@ -7685,7 +7720,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           PUSH_EXIT_FRAME();
           generator = CreateGeneratorFromFrame(cx, frame);
           if (!generator) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(ObjectValue(*generator)));
@@ -7700,7 +7735,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!NormalSuspend(cx, obj0, frame, frameSize, pc)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         frame->setReturnValue(sp[0].asValue());
@@ -7716,7 +7751,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!NormalSuspend(cx, obj0, frame, frameSize, pc)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         frame->setReturnValue(sp[0].asValue());
@@ -7730,7 +7765,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!FinalSuspend(cx, obj0, pc)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         goto do_return;
@@ -7754,7 +7789,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           promise = AsyncFunctionAwait(
               cx, obj0.as<AsyncFunctionGeneratorObject>(), value0);
           if (!promise) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(ObjectValue(*promise)));
@@ -7773,7 +7808,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           promise = AsyncFunctionResolve(
               cx, obj0.as<AsyncFunctionGeneratorObject>(), value0);
           if (!promise) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(ObjectValue(*promise)));
@@ -7794,7 +7829,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           promise = AsyncFunctionReject(
               cx, obj0.as<AsyncFunctionGeneratorObject>(), value1, value0);
           if (!promise) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(ObjectValue(*promise)));
@@ -7808,7 +7843,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ReservedRooted<Value> value0(&state.value0, sp[0].asValue());
           PUSH_EXIT_FRAME();
           if (!CanSkipAwait(cx, value0, &result)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(BooleanValue(result)));
@@ -7824,7 +7859,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           if (can_skip.toBoolean()) {
             PUSH_EXIT_FRAME();
             if (!ExtractAwaitValue(cx, value0, &value0)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(value0));
@@ -7852,7 +7887,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             MOZ_ALWAYS_FALSE(GeneratorThrowOrReturn(
                 cx, frame, obj0.as<AbstractGeneratorObject>(), value0,
                 resumeKind));
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(CheckResumeKind);
@@ -7868,7 +7903,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
             PUSH_EXIT_FRAME();
             TRACE_PRINTF("Going to C++ interp for Resume\n");
             if (!InterpretResume(cx, obj0, callerSP, &value0)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           POPN(2);
@@ -7890,7 +7925,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         if (ctx.frameMgr.cxForLocalUseOnly()->hasAnyPendingInterrupt()) {
           PUSH_EXIT_FRAME();
           if (!InterruptCheck(cx)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
 #endif
@@ -7906,11 +7941,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           if (DebugAPI::hasAnyBreakpointsOrStepMode(script) &&
               !HandleDebugTrap(cx, frame, pc)) {
             TRACE_PRINTF("HandleDebugTrap returned error\n");
-            goto error;
+            GOTO_ERROR();
           }
           if (!DebugAfterYield(cx, frame)) {
             TRACE_PRINTF("DebugAfterYield returned error\n");
-            goto error;
+            GOTO_ERROR();
           }
         }
         COUNT_COVERAGE_PC(pc);
@@ -8026,6 +8061,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ctx.frame = frame;
           pc = frame->interpreterPC();
           script.set(frame->script());
+          isd = script->immutableScriptData();
 
           // Adjust caller's stack to complete the call op that PC still points
           // to in that frame (pop args, push return value).
@@ -8046,7 +8082,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           PUSH(StackVal(ret));
 
           if (!ok) {
-            goto error;
+            GOTO_ERROR();
           }
 
           // Advance past call instruction, and advance past IC.
@@ -8069,11 +8105,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           MOZ_ALWAYS_FALSE(ReportValueError(cx, JSMSG_BAD_DERIVED_RETURN,
                                             JSDVG_IGNORE_STACK, retVal,
                                             nullptr));
-          goto error;
+          GOTO_ERROR();
         } else if (thisval.isMagic(JS_UNINITIALIZED_LEXICAL)) {
           PUSH_EXIT_FRAME();
           MOZ_ALWAYS_FALSE(ThrowUninitializedThis(cx));
-          goto error;
+          GOTO_ERROR();
         } else {
           PUSH(StackVal(thisval));
         }
@@ -8085,7 +8121,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ReservedRooted<Value> value0(&state.value0, POP().asValue());
           PUSH_EXIT_FRAME();
           MOZ_ALWAYS_FALSE(ThrowOperation(cx, value0));
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(Throw);
       }
@@ -8096,7 +8132,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ReservedRooted<Value> value1(&state.value1, POP().asValue());
           PUSH_EXIT_FRAME();
           MOZ_ALWAYS_FALSE(ThrowWithStackOperation(cx, value1, value0));
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(ThrowWithStack);
       }
@@ -8105,7 +8141,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           MOZ_ALWAYS_FALSE(ThrowMsgOperation(cx, GET_UINT8(pc)));
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(ThrowMsg);
       }
@@ -8114,7 +8150,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           ReportRuntimeLexicalError(cx, JSMSG_BAD_CONST_ASSIGN, script, pc);
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(ThrowSetConst);
       }
@@ -8129,7 +8165,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!GetAndClearException(cx, &state.res)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(state.res));
@@ -8143,10 +8179,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!cx.getCx()->getPendingExceptionStack(&value0)) {
-              goto error;
+              GOTO_ERROR();
             }
             if (!GetAndClearException(cx, &state.res)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(state.res));
@@ -8161,7 +8197,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         if (ctx.frameMgr.cxForLocalUseOnly()->hasAnyPendingInterrupt()) {
           PUSH_EXIT_FRAME();
           if (!InterruptCheck(cx)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
 #endif
@@ -8189,7 +8225,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           PUSH_EXIT_FRAME();
           ReportRuntimeLexicalError(cx, JSMSG_UNINITIALIZED_LEXICAL, script,
                                     pc);
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(CheckLexical);
       }
@@ -8198,7 +8234,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           PUSH_EXIT_FRAME();
           ReportRuntimeLexicalError(cx, JSMSG_UNINITIALIZED_LEXICAL, script,
                                     pc);
-          goto error;
+          GOTO_ERROR();
         }
         END_OP(CheckAliasedLexical);
       }
@@ -8301,7 +8337,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!GetImportOperation(cx, obj0, script, pc, &value0)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
           PUSH(StackVal(value0));
@@ -8404,7 +8440,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!SetIntrinsicOperation(cx, script, pc, value0)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -8417,7 +8453,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           {
             PUSH_EXIT_FRAME();
             if (!frame->pushLexicalEnvironment(cx, scope0.as<LexicalScope>())) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -8428,7 +8464,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           TRACE_PRINTF("doing DebugLeaveThenPopLexicalEnv\n");
           PUSH_EXIT_FRAME();
           if (!DebugLeaveThenPopLexicalEnv(cx, frame, pc)) {
-            goto error;
+            GOTO_ERROR();
           }
         } else {
           frame->popOffEnvironmentChain<LexicalEnvironmentObject>();
@@ -8440,7 +8476,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           TRACE_PRINTF("doing DebugLeaveLexicalEnv\n");
           PUSH_EXIT_FRAME();
           if (!DebugLeaveLexicalEnv(cx, frame, pc)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(DebugLeaveLexicalEnv);
@@ -8452,11 +8488,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           if (frame->isDebuggee()) {
             TRACE_PRINTF("doing DebuggeeRecreateLexicalEnv\n");
             if (!DebuggeeRecreateLexicalEnv(cx, frame, pc)) {
-              goto error;
+              GOTO_ERROR();
             }
           } else {
             if (!frame->recreateLexicalEnvironment<false>(cx)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -8469,11 +8505,11 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           if (frame->isDebuggee()) {
             TRACE_PRINTF("doing DebuggeeFreshenLexicalEnv\n");
             if (!DebuggeeFreshenLexicalEnv(cx, frame, pc)) {
-              goto error;
+              GOTO_ERROR();
             }
           } else {
             if (!frame->freshenLexicalEnvironment<false>(cx)) {
-              goto error;
+              GOTO_ERROR();
             }
           }
         }
@@ -8485,7 +8521,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           PUSH_EXIT_FRAME();
           if (!frame->pushClassBodyEnvironment(cx,
                                                scope0.as<ClassBodyScope>())) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(PushClassBodyEnv);
@@ -8495,7 +8531,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ReservedRooted<Scope*> scope0(&state.scope0, script->getScope(pc));
           PUSH_EXIT_FRAME();
           if (!frame->pushVarEnvironment(cx, scope0)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(PushVarEnv);
@@ -8506,7 +8542,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
           ReservedRooted<Value> value0(&state.value0, POP().asValue());
           PUSH_EXIT_FRAME();
           if (!EnterWithOperation(cx, frame, value0, scope0.as<WithScope>())) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(EnterWith);
@@ -8534,7 +8570,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                          frame->environmentChain());
           PUSH_EXIT_FRAME();
           if (!GlobalOrEvalDeclInstantiation(cx, obj0, script, lastFun)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(GlobalOrEvalDeclInstantiation);
@@ -8548,7 +8584,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
                                          frame->environmentChain());
           PUSH_EXIT_FRAME();
           if (!DeleteNameOperation(cx, name0, obj0, &state.res)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(state.res));
@@ -8560,7 +8596,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!NewArgumentsObject(cx, frame, &state.res)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(state.res));
@@ -8581,7 +8617,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!js::GetFunctionThis(cx, frame, &state.res)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         PUSH(StackVal(state.res));
@@ -8639,7 +8675,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!Debug_CheckSelfHosted(cx, val)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(DebugCheckSelfHosted);
@@ -8651,7 +8687,7 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
         {
           PUSH_EXIT_FRAME();
           if (!OnDebuggerStatement(cx, frame)) {
-            goto error;
+            GOTO_ERROR();
           }
         }
         END_OP(Debugger);
@@ -8664,6 +8700,13 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       MOZ_CRASH("Bad opcode");
     }
   }
+
+restart:
+  // This is a `goto` target so that we exit any on-stack exit frames
+  // before restarting, to match previous behavior.
+  return PortableBaselineInterpret<true>(
+      ctx.frameMgr.cxForLocalUseOnly(), ctx.state, ctx.stack, sp, envChain, ret,
+      pc, isd, frame, entryFrame, restartCode);
 
 error:
   TRACE_PRINTF("HandleException: frame %p\n", frame);
@@ -8727,6 +8770,21 @@ error:
 
   DISPATCH();
 
+ic_fail:
+  RESTART(ic_result);
+  switch (ic_result) {
+    case PBIResult::Ok:
+      MOZ_CRASH("Unreachable: ic_result must be an error if we reach ic_fail");
+    case PBIResult::Error:
+      goto error;
+    case PBIResult::Unwind:
+      goto unwind;
+    case PBIResult::UnwindError:
+      goto unwind_error;
+    case PBIResult::UnwindRet:
+      goto unwind_ret;
+  }
+
 unwind:
   TRACE_PRINTF("unwind: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
   if (reinterpret_cast<uintptr_t>(stack.unwindingFP) >
@@ -8743,6 +8801,7 @@ unwind:
   ctx.frame = frame;
   pc = frame->interpreterPC();
   script.set(frame->script());
+  isd = script->immutableScriptData();
   DISPATCH();
 unwind_error:
   TRACE_PRINTF("unwind_error: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
@@ -8763,6 +8822,7 @@ unwind_error:
   ctx.frame = frame;
   pc = frame->interpreterPC();
   script.set(frame->script());
+  isd = script->immutableScriptData();
   goto error;
 unwind_ret:
   TRACE_PRINTF("unwind_ret: fp = %p entryFrame = %p\n", stack.fp, entryFrame);
@@ -8784,6 +8844,7 @@ unwind_ret:
   ctx.frame = frame;
   pc = frame->interpreterPC();
   script.set(frame->script());
+  isd = script->immutableScriptData();
   from_unwind = true;
   goto do_return;
 
@@ -8861,7 +8922,14 @@ bool PortableBaselineTrampoline(JSContext* cx, size_t argc, Value* argv,
   PUSHNATIVE(StackValNative(
       MakeFrameDescriptorForJitCall(FrameType::CppToJSJit, numActuals)));
 
-  switch (PortableBaselineInterpret(cx, state, stack, sp, envChain, result)) {
+  JSScript* script = ScriptFromCalleeToken(calleeToken);
+  jsbytecode* pc = script->code();
+  ImmutableScriptData* isd = script->immutableScriptData();
+  PBIResult ret;
+  ret = PortableBaselineInterpret<false>(cx, state, stack, sp, envChain, result,
+                                         pc, isd, nullptr, nullptr,
+                                         PBIResult::Ok);
+  switch (ret) {
     case PBIResult::Ok:
     case PBIResult::UnwindRet:
       TRACE_PRINTF("PBI returned Ok/UnwindRet with result %" PRIx64 "\n",
