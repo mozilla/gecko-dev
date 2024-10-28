@@ -955,11 +955,20 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   js::ContextData<js::Debugger*> insideExclusiveDebuggerOnEval;
 
 #ifdef MOZ_EXECUTION_TRACING
+ private:
   // This holds onto the JS execution tracer, a system which when turned on
   // records function calls and other information about the JS which has been
   // run under this context.
   js::UniquePtr<js::ExecutionTracer> executionTracer_;
 
+  // See suspendExecutionTracing
+  bool executionTracerSuspended_ = false;
+
+  // Cleans up caches and realm flags associated with execution tracing, while
+  // leaving the underlying tracing buffers intact to be read from later.
+  void cleanUpExecutionTracingState();
+
+ public:
   js::ExecutionTracer& getExecutionTracer() {
     MOZ_ASSERT(hasExecutionTracer());
     return *executionTracer_;
@@ -969,9 +978,17 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   [[nodiscard]] bool enableExecutionTracing();
   void disableExecutionTracing();
 
+  // suspendExecutionTracing will turn off tracing, and clean up the relevant
+  // flags on this context's realms, but still leave the trace around to be
+  // collected. This currently is only called when an error occurs during
+  // tracing.
+  void suspendExecutionTracing();
+
   // Returns true if there is currently an ExecutionTracer tracing this
   // context's execution.
-  bool hasExecutionTracer() { return !!executionTracer_; }
+  bool hasExecutionTracer() {
+    return !!executionTracer_ && !executionTracerSuspended_;
+  }
 #else
   bool hasExecutionTracer() { return false; }
 #endif

@@ -85,6 +85,10 @@ struct ExecutionTrace {
     FunctionLeave = 1,
     LabelEnter = 2,
     LabelLeave = 3,
+
+    // NOTE: the `Error` event has no TracedEvent payload, and will always
+    // represent the end of the trace when encountered.
+    Error = 4,
   };
 
   enum class ImplementationType : uint8_t {

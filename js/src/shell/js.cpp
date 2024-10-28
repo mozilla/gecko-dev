@@ -9476,6 +9476,10 @@ static bool GetExecutionTrace(JSContext* cx, unsigned argc, JS::Value* vp) {
   if (!labelLeaveStr) {
     return false;
   }
+  JS::Rooted<JSString*> errorStr(cx, JS_AtomizeString(cx, "Error"));
+  if (!errorStr) {
+    return false;
+  }
 
   JS::Rooted<JSString*> interpreterStr(cx, JS_AtomizeString(cx, "interpreter"));
   if (!interpreterStr) {
@@ -9569,6 +9573,9 @@ static bool GetExecutionTrace(JSContext* cx, unsigned argc, JS::Value* vp) {
         case JS::ExecutionTrace::EventKind::LabelLeave:
           str = labelLeaveStr;
           break;
+        case JS::ExecutionTrace::EventKind::Error:
+          str = errorStr;
+          break;
         default:
           MOZ_CRASH("Unexpected EventKind");
           break;
@@ -9650,7 +9657,8 @@ static bool GetExecutionTrace(JSContext* cx, unsigned argc, JS::Value* vp) {
             return false;
           }
         }
-      } else {
+      } else if (event.kind == JS::ExecutionTrace::EventKind::LabelEnter ||
+                 event.kind == JS::ExecutionTrace::EventKind::LabelLeave) {
         str = JS_NewStringCopyUTF8Z(
             cx, JS::ConstUTF8CharsZ(trace.stringBuffer.begin() +
                                     event.labelEvent.label));
@@ -9664,9 +9672,11 @@ static bool GetExecutionTrace(JSContext* cx, unsigned argc, JS::Value* vp) {
         }
       }
 
-      if (!JS_DefinePropertyById(cx, eventObj, timeId, event.time,
-                                 JSPROP_ENUMERATE)) {
-        return false;
+      if (event.kind != JS::ExecutionTrace::EventKind::Error) {
+        if (!JS_DefinePropertyById(cx, eventObj, timeId, event.time,
+                                   JSPROP_ENUMERATE)) {
+          return false;
+        }
       }
 
       if (!NewbornArrayPush(cx, eventsArray, JS::ObjectValue(*eventObj))) {

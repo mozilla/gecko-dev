@@ -25,6 +25,7 @@ enum class InlineEntryType : uint8_t {
   StackFunctionLeave,
   LabelEnter,
   LabelLeave,
+  Error,
 };
 
 mozilla::Vector<ExecutionTracer*> ExecutionTracer::globalInstances;
@@ -89,6 +90,14 @@ static DebuggerFrameType GetFrameType(AbstractFramePtr frame) {
 static double GetNowMilliseconds() {
   return (mozilla::TimeStamp::Now() - mozilla::TimeStamp::ProcessCreation())
       .ToMilliseconds();
+}
+
+void ExecutionTracer::handleError(JSContext* cx) {
+  inlineData_.beginWritingEntry();
+  inlineData_.write(uint8_t(InlineEntryType::Error));
+  inlineData_.finishWritingEntry();
+  cx->clearPendingException();
+  cx->suspendExecutionTracing();
 }
 
 void ExecutionTracer::writeScriptUrl(ScriptSource* scriptSource) {
@@ -178,7 +187,7 @@ bool ExecutionTracer::writeFunctionFrame(JSContext* cx,
   return true;
 }
 
-bool ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
+void ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
   LockGuard<Mutex> guard(bufferLock_);
 
   DebuggerFrameType type = GetFrameType(frame);
@@ -187,16 +196,16 @@ bool ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
       inlineData_.beginWritingEntry();
       inlineData_.write(uint8_t(InlineEntryType::StackFunctionEnter));
       if (!writeFunctionFrame(cx, frame)) {
-        return false;
+        handleError(cx);
+        return;
       }
 
       inlineData_.finishWritingEntry();
     }
   }
-  return true;
 }
 
-bool ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
+void ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
   LockGuard<Mutex> guard(bufferLock_);
 
   DebuggerFrameType type = GetFrameType(frame);
@@ -205,13 +214,12 @@ bool ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
       inlineData_.beginWritingEntry();
       inlineData_.write(uint8_t(InlineEntryType::StackFunctionLeave));
       if (!writeFunctionFrame(cx, frame)) {
-        return false;
+        handleError(cx);
+        return;
       }
       inlineData_.finishWritingEntry();
     }
   }
-
-  return true;
 }
 
 template <typename CharType, TracerStringEncoding Encoding>
@@ -317,6 +325,16 @@ bool ExecutionTracer::readInlineEntry(
       if (!readLabel(kind, event, scratchBuffer, stringBuffer)) {
         return false;
       }
+
+      if (!events.append(std::move(event))) {
+        return false;
+      }
+
+      return true;
+    }
+    case InlineEntryType::Error: {
+      JS::ExecutionTrace::TracedEvent event;
+      event.kind = JS::ExecutionTrace::EventKind::Error;
 
       if (!events.append(std::move(event))) {
         return false;

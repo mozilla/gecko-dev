@@ -376,6 +376,16 @@ class ExecutionTracer {
   // be true everywhere.
   mozilla::baseprofiler::BaseProfilerThreadId threadId_;
 
+  // When we encounter an error during tracing, we write one final Error entry
+  // and suspend tracing indefinitely. This allows the consumer to get some
+  // information about what led up to the error, while preventing any
+  // additional future overhead. An alternative to this approach would be to
+  // clean up all of our buffers on error, but since the user must have elected
+  // to turn on tracing, we assume that they would rather have a greater chance
+  // of more information about what led up to the error rather than a greater
+  // chance of avoiding a crash due to OOM.
+  void handleError(JSContext* cx);
+
   void writeScriptUrl(ScriptSource* scriptSource);
 
   // Writes an atom into the outOfLineData_, associating it with the specified
@@ -442,8 +452,8 @@ class ExecutionTracer {
     return true;
   }
 
-  bool onEnterFrame(JSContext* cx, AbstractFramePtr frame);
-  bool onLeaveFrame(JSContext* cx, AbstractFramePtr frame);
+  void onEnterFrame(JSContext* cx, AbstractFramePtr frame);
+  void onLeaveFrame(JSContext* cx, AbstractFramePtr frame);
 
   template <typename CharType, TracerStringEncoding Encoding>
   void onEnterLabel(const CharType* eventType);
