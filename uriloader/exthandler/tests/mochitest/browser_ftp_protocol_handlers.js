@@ -5,6 +5,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.sys.mjs",
+  PermissionTestUtils: "resource://testing-common/PermissionTestUtils.sys.mjs",
 });
 
 let testURL =
@@ -12,9 +13,12 @@ let testURL =
   "uriloader/exthandler/tests/mochitest/FTPprotocolHandler.html";
 
 add_task(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["security.external_protocol_requires_permission", false]],
-  });
+  // Preload permission to bypass permission dialog.
+  PermissionTestUtils.add(
+    "https://example.com",
+    "open-protocol-handler^ftp",
+    Services.perms.ALLOW_ACTION
+  );
 
   // Load a page registering a protocol handler.
   let browser = gBrowser.selectedBrowser;
@@ -108,4 +112,6 @@ add_task(async function () {
   protoInfo.preferredApplicationHandler = null;
   handlers.removeElementAt(0);
   handlerSvc.store(protoInfo);
+  // Clear preloaded permission.
+  Services.perms.removeAll();
 });

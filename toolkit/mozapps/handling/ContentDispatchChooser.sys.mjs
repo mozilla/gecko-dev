@@ -277,11 +277,6 @@ export class nsContentDispatchChooser {
    * @returns {boolean} - true if permission is set, false otherwise.
    */
   _hasProtocolHandlerPermission(scheme, aPrincipal, aTriggeredExternally) {
-    // Permission disabled by pref
-    if (!nsContentDispatchChooser.isPermissionEnabled) {
-      return true;
-    }
-
     // If a handler is set to open externally by default we skip the dialog.
     if (
       Services.prefs.getBoolPref(
@@ -396,7 +391,6 @@ export class nsContentDispatchChooser {
   _updatePermission(aPrincipal, aScheme, aAllow) {
     // If enabled, store open-protocol-handler permission for content principals.
     if (
-      !nsContentDispatchChooser.isPermissionEnabled ||
       aPrincipal.isSystemPrincipal ||
       !this._isSupportedPrincipal(aPrincipal)
     ) {
@@ -456,10 +450,3 @@ nsContentDispatchChooser.prototype.classID = Components.ID(
 nsContentDispatchChooser.prototype.QueryInterface = ChromeUtils.generateQI([
   "nsIContentDispatchChooser",
 ]);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  nsContentDispatchChooser,
-  "isPermissionEnabled",
-  "security.external_protocol_requires_permission",
-  true
-);

@@ -1,5 +1,6 @@
 ChromeUtils.defineESModuleGetters(this, {
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.sys.mjs",
+  PermissionTestUtils: "resource://testing-common/PermissionTestUtils.sys.mjs",
 });
 
 let testURL =
@@ -7,9 +8,11 @@ let testURL =
   "uriloader/exthandler/tests/mochitest/protocolHandler.html";
 
 add_task(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["security.external_protocol_requires_permission", false]],
-  });
+  PermissionTestUtils.add(
+    "https://example.com",
+    "open-protocol-handler^web+testprotocol",
+    Services.perms.ALLOW_ACTION
+  );
 
   // Load a page registering a protocol handler.
   let browser = gBrowser.selectedBrowser;
@@ -56,6 +59,10 @@ add_task(async function () {
   const expectedURL =
     "https://example.com/foobar?uri=web%2Btestprotocol%3Atest";
 
+  // This request uses a null principal so we can't preload a permission. We
+  // need to handle the dialog manually.
+  let permDialogHandledPromise = acceptNextProtocolPermissionDialog(browser);
+
   // Create a framed link:
   await SpecialPowers.spawn(browser, [], async function () {
     let iframe = content.document.createElement("iframe");
@@ -65,6 +72,9 @@ add_task(async function () {
     await ContentTaskUtils.waitForEvent(iframe, "load");
     iframe.contentDocument.querySelector("a").click();
   });
+
+  await permDialogHandledPromise;
+
   let kidContext = browser.browsingContext.children[0];
   await TestUtils.waitForCondition(() => {
     let spec = kidContext.currentWindowGlobal?.documentURI?.spec || "";
@@ -127,4 +137,5 @@ add_task(async function () {
   protoInfo.preferredApplicationHandler = null;
   handlers.removeElementAt(0);
   handlerSvc.store(protoInfo);
+  Services.perms.removeAll();
 });

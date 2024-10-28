@@ -364,16 +364,6 @@ async function testCheckbox(
 }
 
 /**
- * Get the dialog element which is a child of the SubDialogs browser frame.
- * @param {SubDialog} subDialog - Dialog to get the dialog element for.
- */
-function getDialogElementFromSubDialog(subDialog) {
-  let dialogEl = subDialog._frame.contentDocument.querySelector("dialog");
-  ok(dialogEl, "SubDialog should have dialog element");
-  return dialogEl;
-}
-
-/**
  * Wait for the test handler to be opened.
  * @param {MozBrowser} browser - The browser the load should occur in.
  * @param {string} scheme - Scheme which triggered the handler to open.
@@ -475,9 +465,6 @@ registerCleanupFunction(function () {
 });
 
 add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["security.external_protocol_requires_permission", true]],
-  });
   initTestHandlers();
 });
 
@@ -659,26 +646,6 @@ add_task(async function test_permission_system_principal_have_default() {
       ),
     });
   });
-});
-
-/**
- * Tests that we don't show the permission dialog if the permission is disabled
- * by pref.
- */
-add_task(async function test_permission_disabled() {
-  let scheme = TEST_PROTOS[0];
-
-  await SpecialPowers.pushPrefEnv({
-    set: [["security.external_protocol_requires_permission", false]],
-  });
-
-  await BrowserTestUtils.withNewTab(ORIGIN1, async browser => {
-    await testOpenProto(browser, scheme, {
-      chooserDialogOptions: { hasCheckbox: true, actionConfirm: true },
-    });
-  });
-
-  await SpecialPowers.popPrefEnv();
 });
 
 /**

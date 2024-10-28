@@ -76,7 +76,8 @@ user_pref("privacy.trackingprotection.enabled", false);
 user_pref("privacy.trackingprotection.introURL", "http://127.0.0.1/trackingprotection/tour");
 user_pref("privacy.trackingprotection.pbmode.enabled", false);
 user_pref("security.enable_java", false);
-user_pref("security.external_protocol_requires_permission", false);
+user_pref("network.protocol-handler.external.ext+damp", true);
+user_pref("network.protocol-handler.external.ext+twinopen", true);
 user_pref("security.fileuri.strict_origin_policy", false);
 user_pref("toolkit.telemetry.server", "https://127.0.0.1/telemetry-dummy/");
 // Default Glean to "record but don't report" mode, and to never trigger

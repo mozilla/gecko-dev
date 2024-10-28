@@ -198,6 +198,41 @@ async function waitForProtocolPermissionDialog(browser, state) {
 }
 
 /**
+ * Get the dialog element which is a child of the SubDialogs browser frame.
+ * @param {SubDialog} subDialog - Dialog to get the dialog element for.
+ */
+function getDialogElementFromSubDialog(subDialog) {
+  let dialogEl = subDialog._frame.contentDocument.querySelector("dialog");
+  ok(dialogEl, "SubDialog should have dialog element");
+  return dialogEl;
+}
+
+/**
+ * Accept the next protocol permission dialog.
+ * @param {MozBrowser} browser - Browser element the dialog belongs to.
+ * @returns {Promise} - Returns a promise which resolves once the dialog has
+ * been accepted.
+ *
+ * Note: This function will bypass the security delay.
+ *
+ */
+async function acceptNextProtocolPermissionDialog(browser) {
+  let dialog = await waitForProtocolPermissionDialog(browser, true);
+  let dialogWindowClosePromise = waitForProtocolPermissionDialog(
+    browser,
+    false
+  );
+
+  let dialogEl = getDialogElementFromSubDialog(dialog);
+
+  // Bypass the security delay.
+  dialogEl.setAttribute("buttondisabledaccept", "false");
+  dialogEl.acceptDialog();
+
+  await dialogWindowClosePromise;
+}
+
+/**
  * Wait for protocol app chooser dialog open/close.
  * @param {MozBrowser} browser - Browser element the dialog belongs to.
  * @param {boolean} state - true: dialog open, false: dialog close
