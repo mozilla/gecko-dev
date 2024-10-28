@@ -7927,7 +7927,6 @@ PBIResult PortableBaselineInterpret(
 
             // 5. Push fake return address, set script, push baseline frame.
             PUSHNATIVE(StackValNative(nullptr));
-            isd = frame->script()->immutableScriptData();
             BaselineFrame* newFrame =
                 ctx.stack.pushFrame(sp, ctx.frameMgr.cxForLocalUseOnly(),
                                     /* envChain = */ func->environment());
