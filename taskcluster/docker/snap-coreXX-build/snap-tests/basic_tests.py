@@ -85,6 +85,8 @@ class SnapTestsBase:
         channel = self.update_channel()
         if self.is_esr_115():
             channel = "esr-115"
+        if self.is_esr_128():
+            channel = "esr-128"
         for m in object_methods:
             self._logger.test_start(m)
             expectations = (
@@ -210,6 +212,9 @@ class SnapTestsBase:
 
     def is_esr_115(self):
         return self.update_channel() == "esr" and self.version_major() == "115"
+
+    def is_esr_128(self):
+        return self.update_channel() == "esr" and self.version_major() == "128"
 
     def assert_rendering(self, exp, element_or_driver):
         # wait a bit for things to settle down
