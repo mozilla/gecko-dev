@@ -61,22 +61,6 @@ const TELEMETRY_SUBSESSIONSPLIT_TOPIC =
   "internal-telemetry-after-subsession-split";
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
 
-// Probe names.
-const TAB_OPEN_EVENT_COUNT_SCALAR_NAME =
-  "browser.engagement.tab_open_event_count";
-const VERTICAL_TAB_OPEN_EVENT_COUNT_SCALAR_NAME =
-  "browser.engagement.vertical_tab_open_event_count";
-const TAB_PINNED_EVENT_COUNT_SCALAR_NAME =
-  "browser.engagement.tab_pinned_event_count";
-const VERTICAL_TAB_PINNED_EVENT_COUNT_SCALAR_NAME =
-  "browser.engagement.vertical_tab_pinned_event_count";
-const WINDOW_OPEN_EVENT_COUNT_SCALAR_NAME =
-  "browser.engagement.window_open_event_count";
-const UNIQUE_DOMAINS_COUNT_SCALAR_NAME =
-  "browser.engagement.unique_domains_count";
-const UNFILTERED_URI_COUNT_SCALAR_NAME =
-  "browser.engagement.unfiltered_uri_count";
-
 export const MINIMUM_TAB_COUNT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes, in ms
 
 // The elements we consider to be interactive.
@@ -336,7 +320,10 @@ export let URICountListener = {
       // If we have troubles parsing the spec, still count this as
       // an unfiltered URI.
       if (shouldCountURI) {
-        Services.telemetry.scalarAdd(UNFILTERED_URI_COUNT_SCALAR_NAME, 1);
+        Services.telemetry.scalarAdd(
+          "browser.engagement.unfiltered_uri_count",
+          1
+        );
       }
       return;
     }
@@ -359,7 +346,10 @@ export let URICountListener = {
     // If this is an http(s) URI, this also gets counted by the "total_uri_count"
     // probe.
     if (shouldCountURI) {
-      Services.telemetry.scalarAdd(UNFILTERED_URI_COUNT_SCALAR_NAME, 1);
+      Services.telemetry.scalarAdd(
+        "browser.engagement.unfiltered_uri_count",
+        1
+      );
     }
 
     if (!this.isHttpURI(uri)) {
@@ -410,7 +400,7 @@ export let URICountListener = {
     if (this._domainSet.size < MAX_UNIQUE_VISITED_DOMAINS) {
       this._domainSet.add(baseDomain);
       Services.telemetry.scalarSet(
-        UNIQUE_DOMAINS_COUNT_SCALAR_NAME,
+        "browser.engagement.unique_domains_count",
         this._domainSet.size
       );
     }
@@ -498,12 +488,6 @@ export let BrowserUsageTelemetry = {
       : Glean.browserEngagement.maxConcurrentTabCount;
   },
 
-  get tabOpenEventCountScalarName() {
-    return lazy.sidebarVerticalTabs
-      ? VERTICAL_TAB_OPEN_EVENT_COUNT_SCALAR_NAME
-      : TAB_OPEN_EVENT_COUNT_SCALAR_NAME;
-  },
-
   maxTabPinnedCount: 0,
   updateMaxTabPinnedCount(pinnedTabs) {
     if (pinnedTabs > this.maxTabPinnedCount) {
@@ -516,12 +500,6 @@ export let BrowserUsageTelemetry = {
         Glean.browserEngagement.maxConcurrentTabPinnedCount.set(pinnedTabs);
       }
     }
-  },
-
-  get tabPinnedEventCountScalarName() {
-    return lazy.sidebarVerticalTabs
-      ? VERTICAL_TAB_PINNED_EVENT_COUNT_SCALAR_NAME
-      : TAB_PINNED_EVENT_COUNT_SCALAR_NAME;
   },
 
   /**
@@ -1163,7 +1141,17 @@ export let BrowserUsageTelemetry = {
    */
   _onTabOpen() {
     // Update the "tab opened" count and its maximum.
-    Services.telemetry.scalarAdd(this.tabOpenEventCountScalarName, 1);
+    if (lazy.sidebarVerticalTabs) {
+      Services.telemetry.scalarAdd(
+        "browser.engagement.vertical_tab_open_event_count",
+        1
+      );
+    } else {
+      Services.telemetry.scalarAdd(
+        "browser.engagement.tab_open_event_count",
+        1
+      );
+    }
 
     // In the case of opening multiple tabs at once, avoid enumerating all open
     // tabs and windows each time a tab opens.
@@ -1188,7 +1176,17 @@ export let BrowserUsageTelemetry = {
     const pinnedTabs = getPinnedTabsCount();
 
     // Update the "tab pinned" count and its maximum.
-    Services.telemetry.scalarAdd(this.tabPinnedEventCountScalarName, 1);
+    if (lazy.sidebarVerticalTabs) {
+      Services.telemetry.scalarAdd(
+        "browser.engagement.vertical_tab_pinned_event_count",
+        1
+      );
+    } else {
+      Services.telemetry.scalarAdd(
+        "browser.engagement.tab_pinned_event_count",
+        1
+      );
+    }
     this.updateMaxTabPinnedCount(pinnedTabs);
   },
 
@@ -1216,7 +1214,10 @@ export let BrowserUsageTelemetry = {
       this._registerWindow(win);
       // Track the window open event and check the maximum.
       const counts = getOpenTabsAndWinsCounts();
-      Services.telemetry.scalarAdd(WINDOW_OPEN_EVENT_COUNT_SCALAR_NAME, 1);
+      Services.telemetry.scalarAdd(
+        "browser.engagement.window_open_event_count",
+        1
+      );
 
       if (counts.winCount > this.maxWindowCount) {
         this.maxWindowCount = counts.winCount;
