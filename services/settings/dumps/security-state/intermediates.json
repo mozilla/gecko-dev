@@ -16399,24 +16399,6 @@
       "last_modified": 1666727868402
     },
     {
-      "schema": 1666727443828,
-      "derHash": "iyVXlJH4XPV37CFyz60tskyiJVdC5uU0HPBuLL7F2QY=",
-      "subject": "CN=EUNETIC - EuropeanSSL Extended Validation Server CA 2,OU=Controlled by COMODO exclusively for EUNETIC GmbH,O=EUNETIC GmbH,L=Durmersheim,ST=Baden-Württemberg,C=DE",
-      "subjectDN": "MIHTMQswCQYDVQQGEwJERTEbMBkGA1UECAwSQmFkZW4tV8O8cnR0ZW1iZXJnMRQwEgYDVQQHEwtEdXJtZXJzaGVpbTEVMBMGA1UEChMMRVVORVRJQyBHbWJIMTowOAYDVQQLEzFDb250cm9sbGVkIGJ5IENPTU9ETyBleGNsdXNpdmVseSBmb3IgRVVORVRJQyBHbWJIMT4wPAYDVQQDEzVFVU5FVElDIC0gRXVyb3BlYW5TU0wgRXh0ZW5kZWQgVmFsaWRhdGlvbiBTZXJ2ZXIgQ0EgMg==",
-      "whitelist": false,
-      "attachment": {
-        "hash": "c47c7d793fe9b357172de812fda6db8ed893185264b3194523595576b41b3875",
-        "size": 2284,
-        "filename": "nWdB0jAAGzhZiLNjLocqdxL16ZnFE4xjHkhnauNoK-A=.pem",
-        "location": "security-state-staging/intermediates/5168333b-0a9d-45be-9011-6097eff0da60.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "nWdB0jAAGzhZiLNjLocqdxL16ZnFE4xjHkhnauNoK+A=",
-      "crlite_enrolled": false,
-      "id": "917dad42-ff25-4a3c-9939-309aedcf6437",
-      "last_modified": 1666727868389
-    },
-    {
       "schema": 1666727356765,
       "derHash": "KAu8NKmMx5YGqJaQ5Sq3L9xf/yddw2bEgnsWVjE+l5A=",
       "subject": "CN=Don Dominio / MrDomain RSA DV CA,O=Soluciones Corporativas IP\\, SL,L=Manacor,ST=Illes Balears,C=ES",
@@ -16523,24 +16505,6 @@
       "crlite_enrolled": false,
       "id": "cbdd61d4-cfd4-4cc5-bed0-c07b21c7b361",
       "last_modified": 1666727868288
-    },
-    {
-      "schema": 1666727372741,
-      "derHash": "PF45H9jKOyFhRJViSuWynzntBmEktZRDj5SUs0NDx5U=",
-      "subject": "CN=EuropeanSSL High Assurance Server CA 2,O=EUNETIC GmbH,L=Durmersheim,ST=Baden-Württemberg,C=DE",
-      "subjectDN": "MIGIMQswCQYDVQQGEwJERTEbMBkGA1UECAwSQmFkZW4tV8O8cnR0ZW1iZXJnMRQwEgYDVQQHEwtEdXJtZXJzaGVpbTEVMBMGA1UEChMMRVVORVRJQyBHbWJIMS8wLQYDVQQDEyZFdXJvcGVhblNTTCBIaWdoIEFzc3VyYW5jZSBTZXJ2ZXIgQ0EgMg==",
-      "whitelist": false,
-      "attachment": {
-        "hash": "5464f66ed6e738614353c26984e502e03754193da19418723dbfbe3870e51502",
-        "size": 2166,
-        "filename": "HhU8wZ-rl8VgXaRRv_XdnUCKI8eLRVXfTeY77HdaQ3Y=.pem",
-        "location": "security-state-staging/intermediates/4a71f925-90b9-453b-9980-d39183584fa8.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "HhU8wZ+rl8VgXaRRv/XdnUCKI8eLRVXfTeY77HdaQ3Y=",
-      "crlite_enrolled": false,
-      "id": "78cebd0b-8491-4b2c-9cd1-7336300e2870",
-      "last_modified": 1666727868274
     },
     {
       "schema": 1666727347850,
@@ -16975,24 +16939,6 @@
       "last_modified": 1666727867921
     },
     {
-      "schema": 1666727398289,
-      "derHash": "Zc+Tj9n7NCAMn235Pe1zqltxw2nMdKfEkfDkeh1edL4=",
-      "subject": "CN=MarketWare Server CA 2,O=MarketWare - Soluções para Mercados Digitais\\, Lda.,L=Lisboa,ST=Lisboa,C=PT",
-      "subjectDN": "MIGPMQswCQYDVQQGEwJQVDEPMA0GA1UECBMGTGlzYm9hMQ8wDQYDVQQHEwZMaXNib2ExPTA7BgNVBAoMNE1hcmtldFdhcmUgLSBTb2x1w6fDtWVzIHBhcmEgTWVyY2Fkb3MgRGlnaXRhaXMsIExkYS4xHzAdBgNVBAMTFk1hcmtldFdhcmUgU2VydmVyIENBIDI=",
-      "whitelist": false,
-      "attachment": {
-        "hash": "360fccc13877914bb6cc44e726c3721d0ae013fa70446ce52f3cab127f1d149a",
-        "size": 2174,
-        "filename": "nDi1HIiT115x0MuCzNMX50C66I0SdrTtqTFxWKBs9TA=.pem",
-        "location": "security-state-staging/intermediates/a097c915-3a7b-4933-9e75-314b3d75bbc3.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "nDi1HIiT115x0MuCzNMX50C66I0SdrTtqTFxWKBs9TA=",
-      "crlite_enrolled": false,
-      "id": "7bca5e9e-3b2f-486e-aecd-dd57caae9675",
-      "last_modified": 1666727867908
-    },
-    {
       "schema": 1666727375856,
       "derHash": "myLn+gjT+MbW6fQg2PdWx5E15m0bLXCweQNyHwPb5bY=",
       "subject": "CN=DOMENY SSL OV Certification Authority,O=DOMENY.PL sp. z o.o,L=Kraków,ST=Małopolskie,C=PL",
@@ -17333,24 +17279,6 @@
       "crlite_enrolled": false,
       "id": "0b3bf6a0-56f2-4b0d-a820-4bba8fff8038",
       "last_modified": 1666727867582
-    },
-    {
-      "schema": 1666727392577,
-      "derHash": "CCf2v9u/MOoP6s8be9Bu72XbJxrNfptdJpoPLzcrIek=",
-      "subject": "CN=EuropeanSSL Server CA 2,O=EUNETIC GmbH,L=Durmersheim,ST=Baden-Württemberg,C=DE",
-      "subjectDN": "MHkxCzAJBgNVBAYTAkRFMRswGQYDVQQIDBJCYWRlbi1Xw7xydHRlbWJlcmcxFDASBgNVBAcTC0R1cm1lcnNoZWltMRUwEwYDVQQKEwxFVU5FVElDIEdtYkgxIDAeBgNVBAMTF0V1cm9wZWFuU1NMIFNlcnZlciBDQSAy",
-      "whitelist": false,
-      "attachment": {
-        "hash": "0777ef7e31ab4d9ebe86d4a6dc4821e28e3ee50c30293916120b70c77e31d7c6",
-        "size": 2142,
-        "filename": "voGNYzoU7vT-Rbv9zjL5yL6Z294ZkClnxHkt0bjiTWM=.pem",
-        "location": "security-state-staging/intermediates/56dc27c8-1780-43ce-8db7-d3e3f6a44dc9.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "voGNYzoU7vT+Rbv9zjL5yL6Z294ZkClnxHkt0bjiTWM=",
-      "crlite_enrolled": false,
-      "id": "7bc85549-a6b2-4184-85b9-8603ff9a2a2d",
-      "last_modified": 1666727867569
     },
     {
       "schema": 1666727403737,
@@ -17837,24 +17765,6 @@
       "crlite_enrolled": false,
       "id": "472efb80-09e6-4cc4-9723-321570fb3080",
       "last_modified": 1666727867170
-    },
-    {
-      "schema": 1666727331677,
-      "derHash": "2VEjGV+gLBzEBXMzbmTI36IQsXc+PGEQtusm5UN+I6U=",
-      "subject": "CN=McAfee OV SSL CA 2,O=McAfee\\, Inc.,L=Santa Clara,ST=CA,C=US",
-      "subjectDN": "MGQxCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEUMBIGA1UEBxMLU2FudGEgQ2xhcmExFTATBgNVBAoTDE1jQWZlZSwgSW5jLjEbMBkGA1UEAxMSTWNBZmVlIE9WIFNTTCBDQSAy",
-      "whitelist": false,
-      "attachment": {
-        "hash": "57cb84d53e8a3cd439300a62db89c170f0cbb916e38c7ee179bd0114c2aac1be",
-        "size": 2117,
-        "filename": "KKKPHEdd8Vi-l7k78OoSVKsWZubT8CNhOr4ZCATqRXU=.pem",
-        "location": "security-state-staging/intermediates/8de7b884-3af8-4122-9fb0-9eb402f55e2e.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "KKKPHEdd8Vi+l7k78OoSVKsWZubT8CNhOr4ZCATqRXU=",
-      "crlite_enrolled": false,
-      "id": "a2a3a289-36e1-4286-a263-9755102af1e4",
-      "last_modified": 1666727867156
     },
     {
       "schema": 1666727412860,
@@ -30727,5 +30637,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1729695422530
+  "timestamp": 1729954622687
 }
