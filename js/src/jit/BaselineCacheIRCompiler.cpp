@@ -23,6 +23,7 @@
 #include "proxy/DeadObjectProxy.h"
 #include "proxy/Proxy.h"
 #include "util/Unicode.h"
+#include "vm/PortableBaselineInterpret.h"
 #include "vm/StaticStrings.h"
 
 #include "jit/JitScript-inl.h"
@@ -2722,6 +2723,11 @@ ICAttachResult js::jit::AttachBaselineCacheIRStub(
   auto newStub = new (newStubMem) ICCacheIRStub(code, stubInfo);
   writer.copyStubData(newStub->stubDataStart());
   newStub->setTypeData(writer.typeData());
+
+#ifdef ENABLE_PORTABLE_BASELINE_INTERP
+  newStub->updateRawJitCode(pbl::GetICInterpreter());
+#endif
+
   stub->addNewStub(icEntry, newStub);
 
   JSScript* owningScript = icScript->isInlined()
