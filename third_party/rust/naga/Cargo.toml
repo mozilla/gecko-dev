@@ -128,6 +128,10 @@ features = ["derive"]
 version = "0.3"
 features = ["deserialize"]
 
+[dev-dependencies.strum]
+version = "0.25.0"
+features = ["derive"]
+
 [build-dependencies.cfg_aliases]
 version = "0.1"
 

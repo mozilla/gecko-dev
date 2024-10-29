@@ -71,11 +71,11 @@ version = "0.7"
 version = "2.6"
 
 [dependencies.bytemuck]
-version = "1.18"
+version = "1.19"
 optional = true
 
 [dependencies.glow]
-version = "0.14.1"
+version = "0.14.2"
 optional = true
 
 [dependencies.log]
@@ -190,10 +190,10 @@ vulkan = [
 version = "0.3.70"
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wasm-bindgen]
-version = "0.2.87"
+version = "0.2.95"
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.web-sys]
-version = "0.3.70"
+version = "0.3.72"
 features = [
     "Window",
     "HtmlCanvasElement",

@@ -1,4 +1,9 @@
 use crate::front::wgsl::error::{Error, ExpectedToken};
+use crate::front::wgsl::parse::directive::enable_extension::{
+    EnableExtension, EnableExtensions, UnimplementedEnableExtension,
+};
+use crate::front::wgsl::parse::directive::language_extension::LanguageExtension;
+use crate::front::wgsl::parse::directive::DirectiveKind;
 use crate::front::wgsl::parse::lexer::{Lexer, Token};
 use crate::front::wgsl::parse::number::Number;
 use crate::front::wgsl::Scalar;
@@ -7,6 +12,7 @@ use crate::{Arena, FastIndexSet, Handle, ShaderStage, Span};
 
 pub mod ast;
 pub mod conv;
+pub mod directive;
 pub mod lexer;
 pub mod number;
 
@@ -136,6 +142,7 @@ enum Rule {
     SingularExpr,
     UnaryExpr,
     GeneralExpr,
+    Directive,
 }
 
 struct ParsedAttribute<T> {
@@ -663,7 +670,15 @@ impl Parser {
             }
             (Token::Number(res), span) => {
                 let _ = lexer.next();
-                let num = res.map_err(|err| Error::BadNumber(span, err))?;
+                let num = res.map_err(|err| match err {
+                    super::error::NumberError::UnimplementedF16 => {
+                        Error::EnableExtensionNotEnabled {
+                            kind: EnableExtension::Unimplemented(UnimplementedEnableExtension::F16),
+                            span,
+                        }
+                    }
+                    err => Error::BadNumber(span, err),
+                })?;
                 ast::Expression::Literal(ast::Literal::Number(num))
             }
             (Token::Word("RAY_FLAG_NONE"), _) => {
@@ -2255,6 +2270,35 @@ impl Parser {
         Ok(fun)
     }
 
+    fn directive_ident_list<'a>(
+        &self,
+        lexer: &mut Lexer<'a>,
+        handler: impl FnMut(&'a str, Span) -> Result<(), Error<'a>>,
+    ) -> Result<(), Error<'a>> {
+        let mut handler = handler;
+        'next_arg: loop {
+            let (ident, span) = lexer.next_ident_with_span()?;
+            handler(ident, span)?;
+
+            let expected_token = match lexer.peek().0 {
+                Token::Separator(',') => {
+                    let _ = lexer.next();
+                    if matches!(lexer.peek().0, Token::Word(..)) {
+                        continue 'next_arg;
+                    }
+                    ExpectedToken::AfterIdentListComma
+                }
+                _ => ExpectedToken::AfterIdentListArg,
+            };
+
+            if !matches!(lexer.next().0, Token::Separator(';')) {
+                return Err(Error::Unexpected(span, expected_token));
+            }
+
+            break Ok(());
+        }
+    }
+
     fn global_decl<'a>(
         &mut self,
         lexer: &mut Lexer<'a>,
@@ -2357,6 +2401,9 @@ impl Parser {
         let start = lexer.start_byte_offset();
         let kind = match lexer.next() {
             (Token::Separator(';'), _) => None,
+            (Token::Word(word), directive_span) if DirectiveKind::from_ident(word).is_some() => {
+                return Err(Error::DirectiveAfterFirstGlobalDecl { directive_span });
+            }
             (Token::Word("struct"), _) => {
                 let name = lexer.next_ident()?;
 
@@ -2474,6 +2521,60 @@ impl Parser {
 
         let mut lexer = Lexer::new(source);
         let mut tu = ast::TranslationUnit::default();
+        let mut enable_extensions = EnableExtensions::empty();
+
+        // Parse directives.
+        while let Ok((ident, span)) = lexer.peek_ident_with_span() {
+            if let Some(kind) = DirectiveKind::from_ident(ident) {
+                self.push_rule_span(Rule::Directive, &mut lexer);
+                let _ = lexer.next_ident_with_span().unwrap();
+                match kind {
+                    DirectiveKind::Enable => {
+                        self.directive_ident_list(&mut lexer, |ident, span| {
+                            let kind = EnableExtension::from_ident(ident, span)?;
+                            let extension = match kind {
+                                EnableExtension::Implemented(kind) => kind,
+                                EnableExtension::Unimplemented(kind) => {
+                                    return Err(Error::EnableExtensionNotYetImplemented {
+                                        kind,
+                                        span,
+                                    })
+                                }
+                            };
+                            enable_extensions.add(extension);
+                            Ok(())
+                        })?;
+                    }
+                    DirectiveKind::Requires => {
+                        self.directive_ident_list(&mut lexer, |ident, span| {
+                            match LanguageExtension::from_ident(ident) {
+                                Some(LanguageExtension::Implemented(_kind)) => {
+                                    // NOTE: No further validation is needed for an extension, so
+                                    // just throw parsed information away. If we ever want to apply
+                                    // what we've parsed to diagnostics, maybe we'll want to refer
+                                    // to enabled extensions later?
+                                    Ok(())
+                                }
+                                Some(LanguageExtension::Unimplemented(kind)) => {
+                                    Err(Error::LanguageExtensionNotYetImplemented { kind, span })
+                                }
+                                None => Err(Error::UnknownLanguageExtension(span, ident)),
+                            }
+                        })?;
+                    }
+                    DirectiveKind::Unimplemented(kind) => {
+                        return Err(Error::DirectiveNotYetImplemented { kind, span })
+                    }
+                }
+                self.pop_rule_span(&lexer);
+            } else {
+                break;
+            }
+        }
+
+        lexer.enable_extensions = enable_extensions.clone();
+        tu.enable_extensions = enable_extensions;
+
         loop {
             match self.global_decl(&mut lexer, &mut tu) {
                 Err(error) => return Err(error),

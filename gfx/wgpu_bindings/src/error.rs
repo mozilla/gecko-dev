@@ -496,12 +496,11 @@ mod foreign {
                 TransferError::MemoryInitFailure(e) => e.error_type(),
 
                 TransferError::SameSourceDestinationBuffer
-                | TransferError::MissingRenderAttachmentUsageFlag(_)
                 | TransferError::BufferOverrun { .. }
                 | TransferError::TextureOverrun { .. }
                 | TransferError::InvalidTextureAspect { .. }
                 | TransferError::InvalidTextureMipLevel { .. }
-                | TransferError::InvalidDimensionExternal(_)
+                | TransferError::InvalidDimensionExternal
                 | TransferError::UnalignedBufferOffset(_)
                 | TransferError::UnalignedCopySize(_)
                 | TransferError::UnalignedCopyWidth

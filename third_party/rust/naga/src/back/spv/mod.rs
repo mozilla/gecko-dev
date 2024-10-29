@@ -144,7 +144,41 @@ struct Function {
     signature: Option<Instruction>,
     parameters: Vec<FunctionArgument>,
     variables: crate::FastHashMap<Handle<crate::LocalVariable>, LocalVariable>,
-    internal_variables: Vec<LocalVariable>,
+
+    /// A map taking an expression that yields a composite value (array, matrix)
+    /// to the temporary variables we have spilled it to, if any. Spilling
+    /// allows us to render an arbitrary chain of [`Access`] and [`AccessIndex`]
+    /// expressions as an `OpAccessChain` and an `OpLoad` (plus bounds checks).
+    /// This supports dynamic indexing of by-value arrays and matrices, which
+    /// SPIR-V does not.
+    ///
+    /// [`Access`]: crate::Expression::Access
+    /// [`AccessIndex`]: crate::Expression::AccessIndex
+    spilled_composites: crate::FastIndexMap<Handle<crate::Expression>, LocalVariable>,
+
+    /// A set of expressions that are either in [`spilled_composites`] or refer
+    /// to some component/element of such.
+    ///
+    /// [`spilled_composites`]: Function::spilled_composites
+    spilled_accesses: crate::arena::HandleSet<crate::Expression>,
+
+    /// A map taking each expression to the number of [`Access`] and
+    /// [`AccessIndex`] expressions that uses it as a base value. If an
+    /// expression has no entry, its count is zero: it is never used as a
+    /// [`Access`] or [`AccessIndex`] base.
+    ///
+    /// We use this, together with [`ExpressionInfo::ref_count`], to recognize
+    /// the tips of chains of [`Access`] and [`AccessIndex`] expressions that
+    /// access spilled values --- expressions in [`spilled_composites`]. We
+    /// defer generating code for the chain until we reach its tip, so we can
+    /// handle it with a single instruction.
+    ///
+    /// [`Access`]: crate::Expression::Access
+    /// [`AccessIndex`]: crate::Expression::AccessIndex
+    /// [`ExpressionInfo::ref_count`]: crate::valid::ExpressionInfo
+    /// [`spilled_composites`]: Function::spilled_composites
+    access_uses: crate::FastHashMap<Handle<crate::Expression>, usize>,
+
     blocks: Vec<TerminatedBlock>,
     entry_point_context: Option<EntryPointContext>,
 }
@@ -179,7 +213,7 @@ impl Function {
 /// where practical.
 #[derive(Debug, PartialEq, Hash, Eq, Copy, Clone)]
 struct LocalImageType {
-    sampled_type: crate::ScalarKind,
+    sampled_type: crate::Scalar,
     dim: spirv::Dim,
     flags: ImageTypeFlags,
     image_format: spirv::ImageFormat,
@@ -210,19 +244,22 @@ impl LocalImageType {
 
         match class {
             crate::ImageClass::Sampled { kind, multi } => LocalImageType {
-                sampled_type: kind,
+                sampled_type: crate::Scalar { kind, width: 4 },
                 dim,
                 flags: make_flags(multi, ImageTypeFlags::SAMPLED),
                 image_format: spirv::ImageFormat::Unknown,
             },
             crate::ImageClass::Depth { multi } => LocalImageType {
-                sampled_type: crate::ScalarKind::Float,
+                sampled_type: crate::Scalar {
+                    kind: crate::ScalarKind::Float,
+                    width: 4,
+                },
                 dim,
                 flags: make_flags(multi, ImageTypeFlags::DEPTH | ImageTypeFlags::SAMPLED),
                 image_format: spirv::ImageFormat::Unknown,
             },
             crate::ImageClass::Storage { format, access: _ } => LocalImageType {
-                sampled_type: crate::ScalarKind::from(format),
+                sampled_type: format.into(),
                 dim,
                 flags: make_flags(false, ImageTypeFlags::empty()),
                 image_format: format.into(),
@@ -244,6 +281,27 @@ enum NumericType {
         rows: crate::VectorSize,
         scalar: crate::Scalar,
     },
+}
+
+impl NumericType {
+    const fn from_inner(inner: &crate::TypeInner) -> Option<Self> {
+        match *inner {
+            crate::TypeInner::Scalar(scalar) | crate::TypeInner::Atomic(scalar) => {
+                Some(NumericType::Scalar(scalar))
+            }
+            crate::TypeInner::Vector { size, scalar } => Some(NumericType::Vector { size, scalar }),
+            crate::TypeInner::Matrix {
+                columns,
+                rows,
+                scalar,
+            } => Some(NumericType::Matrix {
+                columns,
+                rows,
+                scalar,
+            }),
+            _ => None,
+        }
+    }
 }
 
 /// A SPIR-V type constructed during code generation.
@@ -367,21 +425,14 @@ struct LookupFunctionType {
 impl LocalType {
     fn from_inner(inner: &crate::TypeInner) -> Option<Self> {
         Some(match *inner {
-            crate::TypeInner::Scalar(scalar) | crate::TypeInner::Atomic(scalar) => {
-                LocalType::Numeric(NumericType::Scalar(scalar))
+            crate::TypeInner::Scalar(_)
+            | crate::TypeInner::Atomic(_)
+            | crate::TypeInner::Vector { .. }
+            | crate::TypeInner::Matrix { .. } => {
+                // We expect `NumericType::from_inner` to handle all
+                // these cases, so unwrap.
+                LocalType::Numeric(NumericType::from_inner(inner).unwrap())
             }
-            crate::TypeInner::Vector { size, scalar } => {
-                LocalType::Numeric(NumericType::Vector { size, scalar })
-            }
-            crate::TypeInner::Matrix {
-                columns,
-                rows,
-                scalar,
-            } => LocalType::Numeric(NumericType::Matrix {
-                columns,
-                rows,
-                scalar,
-            }),
             crate::TypeInner::Pointer { base, space } => LocalType::Pointer {
                 base,
                 class: helpers::map_storage_class(space),

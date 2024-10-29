@@ -32,7 +32,7 @@ impl Function {
                 for local_var in self.variables.values() {
                     local_var.instruction.to_words(sink);
                 }
-                for internal_var in self.internal_variables.iter() {
+                for internal_var in self.spilled_composites.values() {
                     internal_var.instruction.to_words(sink);
                 }
             }
@@ -138,54 +138,6 @@ impl Writer {
         self.capabilities_used.insert(spirv::Capability::Shader);
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn promote_access_expression_to_variable(
-        &mut self,
-        result_type_id: Word,
-        container_id: Word,
-        container_ty: Handle<crate::Type>,
-        index_id: Word,
-        element_ty: Handle<crate::Type>,
-        block: &mut Block,
-    ) -> Result<(Word, LocalVariable), Error> {
-        let pointer_type_id = self.get_pointer_id(container_ty, spirv::StorageClass::Function);
-
-        let variable = {
-            let id = self.id_gen.next();
-            LocalVariable {
-                id,
-                instruction: Instruction::variable(
-                    pointer_type_id,
-                    id,
-                    spirv::StorageClass::Function,
-                    None,
-                ),
-            }
-        };
-        block
-            .body
-            .push(Instruction::store(variable.id, container_id, None));
-
-        let element_pointer_id = self.id_gen.next();
-        let element_pointer_type_id =
-            self.get_pointer_id(element_ty, spirv::StorageClass::Function);
-        block.body.push(Instruction::access_chain(
-            element_pointer_type_id,
-            element_pointer_id,
-            variable.id,
-            &[index_id],
-        ));
-        let id = self.id_gen.next();
-        block.body.push(Instruction::load(
-            result_type_id,
-            id,
-            element_pointer_id,
-            None,
-        ));
-
-        Ok((id, variable))
-    }
-
     /// Indicate that the code requires any one of the listed capabilities.
     ///
     /// If nothing in `capabilities` appears in the available capabilities
@@ -274,6 +226,24 @@ impl Writer {
         }))
     }
 
+    /// Return a SPIR-V type for a pointer to `resolution`.
+    ///
+    /// The given `resolution` must be one that we can represent
+    /// either as a `LocalType::Pointer` or `LocalType::LocalPointer`.
+    pub(super) fn get_resolution_pointer_id(
+        &mut self,
+        resolution: &TypeResolution,
+        class: spirv::StorageClass,
+    ) -> Word {
+        match *resolution {
+            TypeResolution::Handle(handle) => self.get_pointer_id(handle, class),
+            TypeResolution::Value(ref inner) => {
+                let base = NumericType::from_inner(inner).unwrap();
+                self.get_type_id(LookupType::Local(LocalType::LocalPointer { base, class }))
+            }
+        }
+    }
+
     pub(super) fn get_uint_type_id(&mut self) -> Word {
         let local_type = LocalType::Numeric(NumericType::Scalar(crate::Scalar::U32));
         self.get_type_id(local_type.into())
@@ -337,6 +307,7 @@ impl Writer {
         mut interface: Option<FunctionInterface>,
         debug_info: &Option<DebugInfoInner>,
     ) -> Result<Word, Error> {
+        log::trace!("Generating code for {:?}", ir_function.name);
         let mut function = Function::default();
 
         let prelude_id = self.id_gen.next();
@@ -664,10 +635,20 @@ impl Writer {
                 .insert(handle, LocalVariable { id, instruction });
         }
 
-        // cache local variable expressions
         for (handle, expr) in ir_function.expressions.iter() {
-            if matches!(*expr, crate::Expression::LocalVariable(_)) {
-                context.cache_expression_value(handle, &mut prelude)?;
+            match *expr {
+                crate::Expression::LocalVariable(_) => {
+                    // Cache the `OpVariable` instruction we generated above as
+                    // the value of this expression.
+                    context.cache_expression_value(handle, &mut prelude)?;
+                }
+                crate::Expression::Access { base, .. }
+                | crate::Expression::AccessIndex { base, .. } => {
+                    // Count references to `base` by `Access` and `AccessIndex`
+                    // instructions. See `access_uses` for details.
+                    *context.function.access_uses.entry(base).or_insert(0) += 1;
+                }
+                _ => {}
             }
         }
 
@@ -921,10 +902,7 @@ impl Writer {
                 Instruction::type_pointer(id, class, type_id)
             }
             LocalType::Image(image) => {
-                let local_type = LocalType::Numeric(NumericType::Scalar(crate::Scalar {
-                    kind: image.sampled_type,
-                    width: 4,
-                }));
+                let local_type = LocalType::Numeric(NumericType::Scalar(image.sampled_type));
                 let type_id = self.get_type_id(LookupType::Local(local_type));
                 Instruction::type_image(id, type_id, image.dim, image.flags, image.image_format)
             }

@@ -57,7 +57,7 @@ version = "1"
 features = ["derive"]
 
 [dev-dependencies.serde_json]
-version = "1.0.128"
+version = "1.0.132"
 
 [features]
 counters = []
@@ -69,7 +69,7 @@ strict_asserts = []
 version = "0.3.70"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
-version = "0.3.70"
+version = "0.3.72"
 features = [
     "ImageBitmap",
     "ImageData",
