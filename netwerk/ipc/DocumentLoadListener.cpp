@@ -2564,34 +2564,6 @@ DocumentLoadListener::OnStartRequest(nsIRequest* aRequest) {
     return NS_OK;
   }
 
-  // Bug 1909110: Block top-level MediaDocument loads, if they are triggered by
-  // a page that would block those loads coming from a normal e.g. <img>
-  // element.
-  {
-    nsAutoCString contentType;
-    mChannel->GetContentType(contentType);
-
-    using DocumentKind = nsContentDLF::DocumentKind;
-    DocumentKind kind = nsContentDLF::DocumentKindForContentType(contentType);
-    if (kind == DocumentKind::Image || kind == DocumentKind::Video) {
-      if (!nsContentSecurityUtils::CheckCSPMediaDocumentLoad(mChannel, kind)) {
-        mChannel->Cancel(NS_ERROR_CSP_BLOCKED_MEDIA_DOCUMENT);
-        if (loadingContext) {
-          RefPtr<MaybeCloseWindowHelper> maybeCloseWindowHelper =
-              new MaybeCloseWindowHelper(loadingContext);
-          // If a new window was opened specifically for this request, close it
-          // after blocking the navigation.
-          maybeCloseWindowHelper->SetShouldCloseWindow(
-              IsFirstLoadInWindow(mChannel));
-          Unused << maybeCloseWindowHelper->MaybeCloseWindow();
-        }
-        DisconnectListeners(NS_ERROR_CSP_BLOCKED_MEDIA_DOCUMENT,
-                            NS_ERROR_CSP_BLOCKED_MEDIA_DOCUMENT);
-        return NS_OK;
-      }
-    }
-  }
-
   // Generally we want to switch to a real channel even if the request failed,
   // since the listener might want to access protocol-specific data (like http
   // response headers) in its error handling.

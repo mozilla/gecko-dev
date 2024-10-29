@@ -3374,10 +3374,6 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
     // CSP error
     cssClass.AssignLiteral("neterror");
     error = "cspBlocked";
-  } else if (NS_ERROR_CSP_BLOCKED_MEDIA_DOCUMENT == aError) {
-    // CSP MediaDocument error
-    cssClass.AssignLiteral("neterror");
-    error = "cspMediaBlocked";
   } else if (NS_ERROR_XFO_VIOLATION == aError) {
     // XFO error
     cssClass.AssignLiteral("neterror");

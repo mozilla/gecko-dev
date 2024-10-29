@@ -14,13 +14,11 @@
 #include "nsIDocShell.h"
 #include "nsCharsetSource.h"  // kCharsetFrom* macro definition
 #include "nsNodeInfoManager.h"
-#include "nsContentSecurityUtils.h"
 #include "nsContentUtils.h"
 #include "nsDocElementCreatedNotificationRunner.h"
-#include "mozilla/Components.h"
 #include "mozilla/Encoding.h"
-#include "mozilla/NullPrincipal.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/Components.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIPrincipal.h"
 #include "nsIMultiPartChannel.h"
@@ -144,22 +142,6 @@ nsresult MediaDocument::StartDocumentLoad(
                                             aContainer, aDocListener, aReset);
   if (NS_FAILED(rv)) {
     return rv;
-  }
-
-  // Bug 1909110: Block MediaDocument loads, if they are triggered by a page
-  // that would block those loads coming from a normal e.g. <img> element.
-  // (This is also checked by DocumentLoadListener::OnStartRequest)
-  nsContentDLF::DocumentKind kind =
-      MediaDocumentKind() == MediaDocumentKind::Image
-          ? nsContentDLF::DocumentKind::Image
-          : nsContentDLF::DocumentKind::Video;
-  if (!nsContentSecurityUtils::CheckCSPMediaDocumentLoad(aChannel, kind)) {
-    aChannel->Cancel(NS_ERROR_CSP_BLOCKED_MEDIA_DOCUMENT);
-    // Ensure the document can't leak to the opener, similar to the CSP/XFO
-    // check in Document::StartDocumentLoad.
-    RefPtr<NullPrincipal> nullPrincipal =
-        NullPrincipal::CreateWithInheritedAttributes(NodePrincipal());
-    SetPrincipals(nullPrincipal, nullPrincipal);
   }
 
   // We try to set the charset of the current document to that of the

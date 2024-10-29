@@ -14,7 +14,6 @@
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "nsComponentManagerUtils.h"
-#include "nsContentDLF.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
@@ -1138,54 +1137,6 @@ bool nsContentSecurityUtils::CheckCSPFrameAncestorAndXFO(nsIChannel* aChannel) {
 
   return FramingChecker::CheckFrameOptions(aChannel, csp,
                                            isFrameOptionsIgnored);
-}
-
-/* static */
-bool nsContentSecurityUtils::CheckCSPMediaDocumentLoad(
-    nsIChannel* aChannel, nsContentDLF::DocumentKind aKind) {
-  using DocumentKind = nsContentDLF::DocumentKind;
-  MOZ_ASSERT(aKind == DocumentKind::Image || aKind == DocumentKind::Video);
-
-  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  if (loadInfo->GetExternalContentPolicyType() !=
-      ExtContentPolicy::TYPE_DOCUMENT) {
-    return true;
-  }
-
-  nsCOMPtr<nsIContentSecurityPolicy> csp = loadInfo->GetCspToInherit();
-  if (!csp) {
-    return true;
-  }
-
-  nsCOMPtr<nsIPrincipal> loadingPrincipal = loadInfo->GetLoadingPrincipal();
-  if (!loadingPrincipal) {
-    loadingPrincipal = loadInfo->TriggeringPrincipal();
-  }
-
-  nsContentPolicyType contentPolicyType =
-      aKind == DocumentKind::Image ? nsIContentPolicy::TYPE_IMAGE
-                                   : nsIContentPolicy::TYPE_INTERNAL_VIDEO;
-
-  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new net::LoadInfo(
-      loadingPrincipal, loadInfo->TriggeringPrincipal(), nullptr,
-      nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK, contentPolicyType);
-
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
-  NS_ENSURE_SUCCESS(rv, false);
-
-  int16_t shouldLoad = nsIContentPolicy::ACCEPT;
-  rv = csp->ShouldLoad(secCheckLoadInfo->InternalContentPolicyType(),
-                       nullptr /* aCSPEventListener */, secCheckLoadInfo, uri,
-                       nullptr /* aOriginalURIIfRedirect */,
-                       loadInfo->GetSendCSPViolationEvents(), &shouldLoad);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  if (NS_CP_REJECTED(shouldLoad)) {
-    return false;
-  }
-
-  return true;
 }
 
 // https://w3c.github.io/webappsec-csp/#is-element-nonceable
