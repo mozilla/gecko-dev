@@ -1387,7 +1387,7 @@ class ASRouterAdminInner extends (react__WEBPACK_IMPORTED_MODULE_1___default().P
   }
   onChangeAttributionParameters(event) {
     const {
-      eventName,
+      name: eventName,
       value
     } = event.target;
     this.setState(({

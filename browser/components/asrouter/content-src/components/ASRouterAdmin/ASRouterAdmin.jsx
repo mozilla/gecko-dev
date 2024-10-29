@@ -1216,7 +1216,7 @@ export class ASRouterAdminInner extends React.PureComponent {
   }
 
   onChangeAttributionParameters(event) {
-    const { eventName, value } = event.target;
+    const { name: eventName, value } = event.target;
 
     this.setState(({ attributionParameters }) => {
       const updatedParameters = { ...attributionParameters };
