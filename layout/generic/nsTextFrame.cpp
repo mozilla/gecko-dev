@@ -10374,8 +10374,11 @@ bool nsTextFrame::AppendRenderedText(AppendRenderedTextState& aState,
 
   TrimmedOffsets trimmedOffsets =
       GetTrimmedOffsets(aState.mTextFrag, trimFlags);
-  bool trimmedSignificantNewline = trimmedOffsets.GetEnd() < GetContentEnd() &&
-                                   HasSignificantTerminalNewline();
+  bool trimmedSignificantNewline =
+      (trimmedOffsets.GetEnd() < GetContentEnd() ||
+       StyleText()->mWhiteSpaceCollapse ==
+           StyleWhiteSpaceCollapse::PreserveBreaks) &&
+      HasSignificantTerminalNewline();
   uint32_t skippedToRenderedStringOffset =
       aState.mOffsetInRenderedString -
       tmpIter.ConvertOriginalToSkipped(trimmedOffsets.mStart);
@@ -10441,34 +10444,32 @@ bool nsTextFrame::AppendRenderedText(AppendRenderedTextState& aState,
   trimmedOffsets.mLength =
       std::min<uint32_t>(origTrimmedOffsetsEnd, endOffset) -
       trimmedOffsets.mStart;
-  if (trimmedOffsets.mLength <= 0) {
-    aState.mOffsetInRenderedString = nextOffsetInRenderedString;
-    return true;
-  }
 
-  const nsStyleText* textStyle = StyleText();
-  iter.SetOriginalOffset(trimmedOffsets.mStart);
-  while (iter.GetOriginalOffset() < trimmedOffsets.GetEnd()) {
-    int32_t runLength;
-    bool isSkipped = iter.IsOriginalCharSkipped(&runLength);
-    runLength =
-        std::min(runLength, trimmedOffsets.GetEnd() - iter.GetOriginalOffset());
-    if (isSkipped) {
-      MOZ_ASSERT(runLength >= 0);
-      for (uint32_t i = 0; i < static_cast<uint32_t>(runLength); ++i) {
-        const char16_t ch = aState.mTextFrag->CharAt(
-            AssertedCast<uint32_t>(iter.GetOriginalOffset() + i));
-        if (ch == CH_SHY) {
-          // We should preserve soft hyphens. They can't be transformed.
-          aResult.mString.Append(ch);
+  if (trimmedOffsets.mLength > 0) {
+    const nsStyleText* textStyle = StyleText();
+    iter.SetOriginalOffset(trimmedOffsets.mStart);
+    while (iter.GetOriginalOffset() < trimmedOffsets.GetEnd()) {
+      int32_t runLength;
+      bool isSkipped = iter.IsOriginalCharSkipped(&runLength);
+      runLength = std::min(runLength,
+                           trimmedOffsets.GetEnd() - iter.GetOriginalOffset());
+      if (isSkipped) {
+        MOZ_ASSERT(runLength >= 0);
+        for (uint32_t i = 0; i < static_cast<uint32_t>(runLength); ++i) {
+          const char16_t ch = aState.mTextFrag->CharAt(
+              AssertedCast<uint32_t>(iter.GetOriginalOffset() + i));
+          if (ch == CH_SHY) {
+            // We should preserve soft hyphens. They can't be transformed.
+            aResult.mString.Append(ch);
+          }
         }
+      } else {
+        TransformChars(this, textStyle, mTextRun, iter.GetSkippedOffset(),
+                       aState.mTextFrag, iter.GetOriginalOffset(), runLength,
+                       aResult.mString);
       }
-    } else {
-      TransformChars(this, textStyle, mTextRun, iter.GetSkippedOffset(),
-                     aState.mTextFrag, iter.GetOriginalOffset(), runLength,
-                     aResult.mString);
+      iter.AdvanceOriginal(runLength);
     }
-    iter.AdvanceOriginal(runLength);
   }
 
   if (trimmedSignificantNewline && GetContentEnd() <= endOffset) {
