@@ -535,6 +535,12 @@ async function assertGutterBlackBoxBoxContextMenuItems(dbg, testFixtures) {
     info(
       "Asserts that the gutter context menu items when clicking on the gutter of a nonBlackboxed line"
     );
+
+    // Wait for CM6 to complete any updates so the popup
+    // does not lose focus while asserting the context menu items due
+    // late updates completion.
+    await waitForDocumentLoadComplete(dbg);
+
     const popup = await openContextMenuInDebugger(
       dbg,
       "gutterElement",
