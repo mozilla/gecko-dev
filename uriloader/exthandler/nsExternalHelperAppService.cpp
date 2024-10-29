@@ -733,7 +733,7 @@ nsresult nsExternalHelperAppService::DoContentContentProcessHelper(
 
   uint32_t reason = nsIHelperAppLauncherDialog::REASON_CANTHANDLE;
 
-  SanitizeFileName(fileName, VALIDATE_SANITIZE_ONLY);
+  SanitizeFileName(fileName, 0);
 
   RefPtr<nsExternalAppHandler> handler =
       new nsExternalAppHandler(nullptr, u""_ns, aContentContext, aWindowContext,
@@ -3335,12 +3335,14 @@ nsExternalHelperAppService::ValidateFileNameForSaving(
                       aMimeType.EqualsLiteral(BINARY_OCTET_STREAM) ||
                       aMimeType.EqualsLiteral("application/x-msdownload");
 
-  bool urlIsFile = !!aURI && aURI->SchemeIs("file");
-
   // We don't want to save hidden files starting with a dot, so remove any
   // leading periods. This is done first, so that the remainder will be
   // treated as the filename, and not an extension.
-  fileName.Trim(".", true, false);
+  // Also, Windows ignores terminating dots. So we have to as well, so
+  // that our security checks do "the right thing"
+  fileName.Trim(".");
+
+  bool urlIsFile = !!aURI && aURI->SchemeIs("file");
 
   // We get the mime service here even though we're the default implementation
   // of it, so it's possible to override only the mime service and not need to
@@ -3534,14 +3536,6 @@ void nsExternalHelperAppService::SanitizeFileName(nsAString& aFileName,
                                                   uint32_t aFlags) {
   nsAutoString fileName(aFileName);
 
-  // If VALIDATE_SANITIZE_ONLY is not set, then the trimming of leading dots
-  // was already done at the start of ValidateFileNameForSaving.
-  if (aFlags & VALIDATE_SANITIZE_ONLY) {
-    fileName.Trim(".", true, false);
-  }
-
-  MOZ_ASSERT(fileName.IsEmpty() || fileName.CharAt(0) != '.');
-
   // Replace known invalid characters.
   fileName.ReplaceChar(u"" KNOWN_PATH_SEPARATORS FILE_ILLEGAL_CHARACTERS "%",
                        u'_');
@@ -3624,21 +3618,25 @@ void nsExternalHelperAppService::SanitizeFileName(nsAString& aFileName,
       }
     } else {
       lastWasWhitespace = false;
-
-      // Don't add any periods or vowel separators at the beginning
-      //  of the string.
       if (nextChar == '.' || nextChar == u'\u180e') {
+        // Don't add any periods or vowel separators at the beginning of the
+        // string. Note also that lastNonTrimmable is not adjusted in this
+        // case, because periods and vowel separators are included in the
+        // set of characters to trim at the end of the filename.
         if (outFileName.IsEmpty()) {
+          continue;
+        }
+      } else {
+        if (unicodeCategory == HB_UNICODE_GENERAL_CATEGORY_FORMAT) {
+          // Replace formatting characters with an underscore.
           nextChar = '_';
         }
-      } else if (unicodeCategory == HB_UNICODE_GENERAL_CATEGORY_FORMAT) {
-        // Replace formatting characters with an underscore.
-        nextChar = '_';
-      }
 
-      // Don't truncate surrogate pairs in the middle.
-      lastNonTrimmable = int32_t(outFileName.Length()) +
-                         (NS_IS_HIGH_SURROGATE(H_SURROGATE(nextChar)) ? 2 : 1);
+        // Don't truncate surrogate pairs in the middle.
+        lastNonTrimmable =
+            int32_t(outFileName.Length()) +
+            (NS_IS_HIGH_SURROGATE(H_SURROGATE(nextChar)) ? 2 : 1);
+      }
     }
 
     if (maxBytes) {
@@ -3720,14 +3718,6 @@ void nsExternalHelperAppService::SanitizeFileName(nsAString& aFileName,
     // Otherwise, the filename wasn't too long, so just trim off the
     // extra whitespace and periods at the end.
     outFileName.Truncate(lastNonTrimmable);
-  }
-
-  // Windows ignores terminating dots. Convert any trailing dots and
-  // vowel separators to underscores.
-  for (int32_t pos = outFileName.Length() - 1;
-       pos >= 0 && (outFileName[pos] == u'.' || outFileName[pos] == u'\u180e');
-       pos--) {
-    outFileName.Replace(pos, 1, '_');
   }
 
   if (!(aFlags & VALIDATE_ALLOW_DIRECTORY_NAMES)) {
