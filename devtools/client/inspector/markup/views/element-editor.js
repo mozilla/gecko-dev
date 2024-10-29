@@ -235,7 +235,7 @@ ElementEditor.prototype = {
     this.elt.appendChild(close);
 
     this.closeTag = this.doc.createElement("span");
-    this.closeTag.classList.add("tag");
+    this.closeTag.classList.add("tag", "force-color-on-flash");
     this.closeTag.textContent = this.node.displayName;
     close.appendChild(this.closeTag);
 

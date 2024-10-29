@@ -320,5 +320,10 @@
     /* Menu/Autocomplete items */
     --theme-popup-hover-background: SelectedItem;
     --theme-popup-hover-color: SelectedItemText;
+
+    /* Flashing colors used to highlight updates */
+    --theme-contrast-background: Mark;
+    --theme-contrast-background-alpha: var(--theme-contrast-background);
+    --theme-contrast-color: MarkText;
   }
 }
