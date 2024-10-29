@@ -15,13 +15,14 @@ import org.mozilla.focus.helpers.FeatureSettingsHelper
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.MockWebServerHelper
 import org.mozilla.focus.helpers.TestAssetHelper.getStorageTestAsset
+import org.mozilla.focus.helpers.TestSetup
 import java.io.IOException
 
 /**
  * Test that Global Privacy Control is always enabled in Focus.
  */
 @RunWith(AndroidJUnit4ClassRunner::class)
-class GlobalPrivacyControlTest {
+class GlobalPrivacyControlTest : TestSetup() {
     private lateinit var webServer: MockWebServer
 
     private val featureSettingsHelper = FeatureSettingsHelper()
@@ -30,7 +31,8 @@ class GlobalPrivacyControlTest {
     var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()
             start()

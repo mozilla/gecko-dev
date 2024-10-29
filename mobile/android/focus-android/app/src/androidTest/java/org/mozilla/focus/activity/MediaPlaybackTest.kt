@@ -16,9 +16,10 @@ import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.MockWebServerHelper
 import org.mozilla.focus.helpers.TestAssetHelper.getMediaTestAsset
 import org.mozilla.focus.helpers.TestHelper.mDevice
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
-class MediaPlaybackTest {
+class MediaPlaybackTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
 
@@ -26,7 +27,8 @@ class MediaPlaybackTest {
     var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()

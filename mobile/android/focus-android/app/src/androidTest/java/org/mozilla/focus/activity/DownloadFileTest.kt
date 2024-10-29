@@ -27,11 +27,12 @@ import org.mozilla.focus.helpers.TestHelper.permAllowBtn
 import org.mozilla.focus.helpers.TestHelper.verifyDownloadedFileOnStorage
 import org.mozilla.focus.helpers.TestHelper.verifySnackBarText
 import org.mozilla.focus.helpers.TestHelper.waitingTime
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 import java.io.IOException
 
 @RunWith(AndroidJUnit4ClassRunner::class)
-class DownloadFileTest {
+class DownloadFileTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
     private val downloadTestPage = "https://storage.googleapis.com/mobile_test_assets/test_app/downloads.html"
@@ -45,7 +46,8 @@ class DownloadFileTest {
     val retryTestRule = RetryTestRule(3)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()

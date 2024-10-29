@@ -18,13 +18,14 @@ import org.mozilla.focus.helpers.RetryTestRule
 import org.mozilla.focus.helpers.TestAssetHelper.getGenericTabAsset
 import org.mozilla.focus.helpers.TestHelper.randomString
 import org.mozilla.focus.helpers.TestHelper.waitingTime
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
 /**
  * Tests to verify the functionality of Add to homescreen from the main menu
  */
 @RunWith(AndroidJUnit4ClassRunner::class)
-class AddToHomescreenTest {
+class AddToHomescreenTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
 
@@ -36,7 +37,8 @@ class AddToHomescreenTest {
     val retryTestRule = RetryTestRule(3)
 
     @Before
-    fun setup() {
+    override fun setUp() {
+        super.setUp()
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()
             start()

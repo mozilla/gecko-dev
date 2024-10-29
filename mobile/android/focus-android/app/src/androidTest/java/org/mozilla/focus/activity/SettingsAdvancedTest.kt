@@ -16,11 +16,12 @@ import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.MockWebServerHelper
 import org.mozilla.focus.helpers.TestAssetHelper.getGenericTabAsset
 import org.mozilla.focus.helpers.TestHelper.waitingTimeShort
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
 // These tests check the advanced settings options
 @RunWith(AndroidJUnit4ClassRunner::class)
-class SettingsAdvancedTest {
+class SettingsAdvancedTest : TestSetup() {
     private lateinit var webServer: MockWebServer
 
     private val featureSettingsHelper = FeatureSettingsHelper()
@@ -29,7 +30,8 @@ class SettingsAdvancedTest {
     var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
-    fun setup() {
+    override fun setUp() {
+        super.setUp()
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()
             start()

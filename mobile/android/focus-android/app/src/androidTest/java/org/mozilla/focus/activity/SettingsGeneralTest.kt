@@ -32,12 +32,13 @@ import org.mozilla.focus.helpers.StringsHelper.FR_LANGUAGE_SYSTEM_DEFAULT
 import org.mozilla.focus.helpers.StringsHelper.FR_SETTINGS
 import org.mozilla.focus.helpers.TestHelper.exitToTop
 import org.mozilla.focus.helpers.TestHelper.verifyTranslatedTextExists
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.locale.Locales
 import org.mozilla.focus.testAnnotations.SmokeTest
 import org.mozilla.gecko.util.ThreadUtils.runOnUiThread
 
 // Tests for the General settings sub-menu: changing theme, locale and default browser
-class SettingsGeneralTest {
+class SettingsGeneralTest : TestSetup() {
     @get: Rule
     var mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 

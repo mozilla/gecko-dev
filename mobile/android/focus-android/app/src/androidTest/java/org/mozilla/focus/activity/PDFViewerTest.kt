@@ -16,9 +16,10 @@ import org.mozilla.focus.helpers.TestHelper.getTargetContext
 import org.mozilla.focus.helpers.TestHelper.permAllowBtn
 import org.mozilla.focus.helpers.TestHelper.verifyDownloadedFileOnStorage
 import org.mozilla.focus.helpers.TestHelper.waitingTime
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
-class PDFViewerTest {
+class PDFViewerTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
     private val pdfLink = "PDF file"
@@ -27,7 +28,8 @@ class PDFViewerTest {
     var mActivityTestRule = MainActivityIntentsTestRule(showFirstRun = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()

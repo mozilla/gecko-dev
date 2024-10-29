@@ -29,11 +29,12 @@ import org.mozilla.focus.helpers.TestHelper.mDevice
 import org.mozilla.focus.helpers.TestHelper.pressHomeKey
 import org.mozilla.focus.helpers.TestHelper.restartApp
 import org.mozilla.focus.helpers.TestHelper.verifySnackBarText
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
 // These tests verify interaction with the browsing notification and erasing browsing data
 @RunWith(AndroidJUnit4ClassRunner::class)
-class EraseBrowsingDataTest {
+class EraseBrowsingDataTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
 
@@ -45,7 +46,8 @@ class EraseBrowsingDataTest {
     val retryTestRule = RetryTestRule(3)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()
             start()

@@ -12,11 +12,12 @@ import org.mozilla.focus.activity.robots.searchScreen
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.TestHelper.exitToTop
 import org.mozilla.focus.helpers.TestHelper.mDevice
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
 // Tests url autocompletion and adding custom autocomplete urls
 @RunWith(AndroidJUnit4ClassRunner::class)
-class URLAutocompleteTest {
+class URLAutocompleteTest : TestSetup() {
     private val searchTerm = "mozilla"
     private val autocompleteSuggestion = "mozilla.org"
     private val pageUrl = "https://www.mozilla.org/"

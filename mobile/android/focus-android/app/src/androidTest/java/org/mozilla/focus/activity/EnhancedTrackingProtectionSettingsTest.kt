@@ -22,11 +22,12 @@ import org.mozilla.focus.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.focus.helpers.TestHelper.exitToBrowser
 import org.mozilla.focus.helpers.TestHelper.exitToTop
 import org.mozilla.focus.helpers.TestHelper.waitingTime
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 import java.io.IOException
 
 @RunWith(AndroidJUnit4ClassRunner::class)
-class EnhancedTrackingProtectionSettingsTest {
+class EnhancedTrackingProtectionSettingsTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
 
@@ -34,7 +35,8 @@ class EnhancedTrackingProtectionSettingsTest {
     var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()

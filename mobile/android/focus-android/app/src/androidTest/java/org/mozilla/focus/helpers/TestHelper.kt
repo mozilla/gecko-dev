@@ -376,4 +376,14 @@ object TestHelper {
             assertFalse(imm.isAcceptingText)
         }
     }
+
+    // Prevent or allow the System UI from reading the clipboard content
+    // By preventing, the quick share or nearby share dialog will not be displayed
+    fun allowOrPreventSystemUIFromReadingTheClipboard(allowToReadClipboard: Boolean) {
+        if (allowToReadClipboard) {
+            mDevice.executeShellCommand("appops set com.android.systemui READ_CLIPBOARD allow")
+        } else {
+            mDevice.executeShellCommand("appops set com.android.systemui READ_CLIPBOARD deny")
+        }
+    }
 }

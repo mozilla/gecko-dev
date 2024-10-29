@@ -15,17 +15,19 @@ import org.mozilla.focus.helpers.FeatureSettingsHelper
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.TestHelper.getStringResource
 import org.mozilla.focus.helpers.TestHelper.setNetworkEnabled
+import org.mozilla.focus.helpers.TestSetup
 
 // This tests verify invalid URL and no network connection error pages
 @RunWith(AndroidJUnit4ClassRunner::class)
-class ErrorPagesTest {
+class ErrorPagesTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
 
     @get: Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
     }
 
