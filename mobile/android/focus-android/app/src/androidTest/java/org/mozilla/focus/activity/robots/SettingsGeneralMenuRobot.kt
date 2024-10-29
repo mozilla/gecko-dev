@@ -100,6 +100,11 @@ class SettingsGeneralMenuRobot {
             .click()
     }
 
+    fun selectSystemDefault() {
+        languageMenu.scrollToBeginning(2)
+        languageMenu.getChild(UiSelector().index(0)).click()
+    }
+
     fun verifyThemesList() {
         darkThemeToggle.check(matches(isDisplayed()))
         lightThemeToggle.check(matches(isDisplayed()))

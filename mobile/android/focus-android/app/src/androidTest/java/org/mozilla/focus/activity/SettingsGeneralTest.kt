@@ -22,7 +22,6 @@ import org.mozilla.focus.helpers.MainActivityIntentsTestRule
 import org.mozilla.focus.helpers.StringsHelper.AF_GENERAL_HEADING
 import org.mozilla.focus.helpers.StringsHelper.AF_HELP
 import org.mozilla.focus.helpers.StringsHelper.AF_LANGUAGE_MENU
-import org.mozilla.focus.helpers.StringsHelper.AF_LANGUAGE_SYSTEM_DEFAULT
 import org.mozilla.focus.helpers.StringsHelper.AF_SETTINGS
 import org.mozilla.focus.helpers.StringsHelper.EN_AFRIKAANS_LOCALE
 import org.mozilla.focus.helpers.StringsHelper.EN_LANGUAGE_MENU_HEADING
@@ -88,7 +87,7 @@ class SettingsGeneralTest : TestSetup() {
             verifyTranslatedTextExists(AF_LANGUAGE_MENU)
             exitToTop()
         }
-        /* Exit to main and see the UI is in French as well */
+        /* Exit to main and see the UI is localized as well */
         homeScreen {
         }.openMainMenu {
             verifyTranslatedTextExists(AF_SETTINGS)
@@ -97,7 +96,7 @@ class SettingsGeneralTest : TestSetup() {
         }.openSettings(AF_SETTINGS) {
         }.openGeneralSettingsMenu(AF_GENERAL_HEADING) {
             openLanguageSelectionMenu(AF_LANGUAGE_MENU)
-            selectLanguage(AF_LANGUAGE_SYSTEM_DEFAULT)
+            selectSystemDefault()
             verifyTranslatedTextExists(EN_LANGUAGE_MENU_HEADING)
             exitToTop()
         }

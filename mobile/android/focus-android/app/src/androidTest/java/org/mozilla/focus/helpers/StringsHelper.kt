@@ -17,7 +17,6 @@ object StringsHelper {
     const val AF_SETTINGS = "Instellings"
     const val AF_HELP = "Hulp"
     const val AF_GENERAL_HEADING = "Algemeen"
-    const val AF_LANGUAGE_SYSTEM_DEFAULT = "System default"
 
     // App package names
     const val GMAIL_APP = "com.google.android.gm"
