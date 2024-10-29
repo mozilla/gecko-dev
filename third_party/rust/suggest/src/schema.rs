@@ -19,7 +19,7 @@ use sql_support::{
 ///     [`SuggestConnectionInitializer::upgrade_from`].
 ///     a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
 ///        the migration.
-pub const VERSION: u32 = 27;
+pub const VERSION: u32 = 28;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -193,11 +193,13 @@ CREATE TABLE geonames(
     id INTEGER PRIMARY KEY,
     record_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
     feature_class TEXT NOT NULL,
     feature_code TEXT NOT NULL,
     country_code TEXT NOT NULL,
     admin1_code TEXT NOT NULL,
-    population INTEGER
+    population INTEGER NOT NULL
 );
 CREATE INDEX geonames_feature_class ON geonames(feature_class);
 CREATE INDEX geonames_feature_code ON geonames(feature_code);
@@ -517,6 +519,33 @@ CREATE TABLE geonames_metrics(
     max_name_length INTEGER NOT NULL,
     max_name_word_count INTEGER NOT NULL
 ) WITHOUT ROWID;
+                    ",
+                )?;
+                Ok(())
+            }
+            27 => {
+                // Add latitude and longitude to the geonames table. Clear the
+                // database so geonames are reingested.
+                clear_database(tx)?;
+                tx.execute_batch(
+                    "
+DROP INDEX geonames_feature_class;
+DROP INDEX geonames_feature_code;
+DROP TABLE geonames;
+CREATE TABLE geonames(
+    id INTEGER PRIMARY KEY,
+    record_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    feature_class TEXT NOT NULL,
+    feature_code TEXT NOT NULL,
+    country_code TEXT NOT NULL,
+    admin1_code TEXT NOT NULL,
+    population INTEGER NOT NULL
+);
+CREATE INDEX geonames_feature_class ON geonames(feature_class);
+CREATE INDEX geonames_feature_code ON geonames(feature_code);
                     ",
                 )?;
                 Ok(())

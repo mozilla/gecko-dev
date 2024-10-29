@@ -13,12 +13,13 @@
 use rusqlite::{named_params, Connection};
 use serde::Deserialize;
 use sql_support::ConnExt;
+use std::hash::{Hash, Hasher};
 
 use crate::{
     db::SuggestDao,
     error::RusqliteResultExt,
-    metrics::DownloadTimer,
-    rs::{Client, Record, SuggestRecordId},
+    metrics::MetricsContext,
+    rs::{deserialize_f64_or_default, Client, Record, SuggestRecordId},
     store::SuggestStoreInner,
     Result,
 };
@@ -27,7 +28,6 @@ use crate::{
 pub enum GeonameType {
     City,
     Region,
-    Other,
 }
 
 /// This corresponds to a single row in the main "geoname" table described in
@@ -35,18 +35,20 @@ pub enum GeonameType {
 /// fields we don't need.
 ///
 /// [1] https://download.geonames.org/export/dump/readme.txt
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct Geoname {
     /// The `geonameid` straight from the geoname table.
     pub geoname_id: i64,
-    /// This is not present in the geoname table. Added for convenience.
-    pub geoname_type: GeonameType,
     /// This is pretty much the place's canonical name. Usually there will be a
     /// row in the alternates table with the same name, but not always. When
     /// there is such a row, it doesn't always have `is_preferred_name` set, and
     /// in fact fact there may be another row with a different name with
     /// `is_preferred_name` set.
     pub name: String,
+    /// Latitude in decimal degrees.
+    pub latitude: f64,
+    /// Longitude in decimal degrees.
+    pub longitude: f64,
     /// ISO-3166 two-letter uppercase country code, e.g., "US".
     pub country_code: String,
     /// The top-level administrative region for the place within its country,
@@ -63,6 +65,20 @@ impl Geoname {
     /// located in the region.
     pub fn has_same_region(&self, other: &Self) -> bool {
         self.admin1_code == other.admin1_code && self.country_code == other.country_code
+    }
+}
+
+impl PartialEq for Geoname {
+    fn eq(&self, other: &Geoname) -> bool {
+        self.geoname_id == other.geoname_id
+    }
+}
+
+impl Eq for Geoname {}
+
+impl Hash for Geoname {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.geoname_id.hash(state)
     }
 }
 
@@ -113,6 +129,12 @@ pub(crate) struct DownloadedGeoname {
     /// This can be helpful for resolving name conflicts. If two geonames have
     /// the same name, we might prefer the one with the larger population.
     pub population: u64,
+    /// Latitude in decimal degrees. Expected to be a string in the RS data.
+    #[serde(deserialize_with = "deserialize_f64_or_default")]
+    pub latitude: f64,
+    /// Longitude in decimal degrees. Expected to be a string in the RS data.
+    #[serde(deserialize_with = "deserialize_f64_or_default")]
+    pub longitude: f64,
     /// List of lowercase names that the place is known by. Despite the word
     /// "alternate", this often includes the place's proper name. This list is
     /// pulled from the "alternate names" table described in the GeoNames
@@ -132,7 +154,10 @@ impl SuggestDao<'_> {
     /// returned geonames will have at least one name prefixed by `query`. If
     /// `false`, returned geonames will have at least one name equal to `query`.
     ///
-    /// `geoname_type` restricts returned geonames to the specified type.
+    /// `geoname_type` restricts returned geonames to the specified type. `None`
+    /// restricts geonames to cities and regions. There's no way to return
+    /// geonames of other types, but we shouldn't ingest other types to begin
+    /// with.
     ///
     /// `filter` restricts returned geonames to certain cities or regions.
     /// Cities can be restricted to certain regions by including the regions in
@@ -154,7 +179,6 @@ impl SuggestDao<'_> {
             None => format!("({} OR {})", city_pred, region_pred),
             Some(GeonameType::City) => city_pred.to_string(),
             Some(GeonameType::Region) => region_pred.to_string(),
-            Some(GeonameType::Other) => format!("((NOT {}) AND (NOT {}))", city_pred, region_pred),
         };
         Ok(self
             .conn
@@ -164,6 +188,8 @@ impl SuggestDao<'_> {
                     SELECT
                         g.id,
                         g.name,
+                        g.latitude,
+                        g.longitude,
                         g.feature_class,
                         g.country_code,
                         g.admin1_code,
@@ -194,14 +220,11 @@ impl SuggestDao<'_> {
                     let geoname = Geoname {
                         geoname_id: row.get("id")?,
                         name: row.get("name")?,
+                        latitude: row.get("latitude")?,
+                        longitude: row.get("longitude")?,
                         country_code: row.get("country_code")?,
                         admin1_code: row.get("admin1_code")?,
                         population: row.get("population")?,
-                        geoname_type: match row.get::<_, String>("feature_class")?.as_str() {
-                            "P" => GeonameType::City,
-                            "A" => GeonameType::Region,
-                            _ => GeonameType::Other,
-                        },
                     };
                     if let Some(geonames) = &filter {
                         geonames
@@ -287,9 +310,9 @@ where
         &self,
         dao: &mut SuggestDao,
         record: &Record,
-        download_timer: &mut DownloadTimer,
+        context: &mut MetricsContext,
     ) -> Result<()> {
-        self.download_attachment(dao, record, download_timer, |dao, record_id, data| {
+        self.download_attachment(dao, record, context, |dao, record_id, data| {
             dao.insert_geonames(record_id, data)
         })
     }
@@ -304,13 +327,15 @@ impl<'conn> GeonameInsertStatement<'conn> {
                  id,
                  record_id,
                  name,
+                 latitude,
+                 longitude,
                  feature_class,
                  feature_code,
                  country_code,
                  admin1_code,
                  population
              )
-             VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ",
         )?))
     }
@@ -321,6 +346,8 @@ impl<'conn> GeonameInsertStatement<'conn> {
                 &g.id,
                 record_id.as_str(),
                 &g.name,
+                &g.latitude,
+                &g.longitude,
                 &g.feature_class,
                 &g.feature_code,
                 &g.country_code,
@@ -404,6 +431,8 @@ pub(crate) mod tests {
                     {
                         "id": 1,
                         "name": "Waterloo",
+                        "latitude": "34.91814",
+                        "longitude": "-88.0642",
                         "feature_class": "P",
                         "feature_code": "PPL",
                         "country_code": "US",
@@ -415,6 +444,8 @@ pub(crate) mod tests {
                     {
                         "id": 2,
                         "name": "Alabama",
+                        "latitude": "32.75041",
+                        "longitude": "-86.75026",
                         "feature_class": "A",
                         "feature_code": "ADM1",
                         "country_code": "US",
@@ -426,6 +457,8 @@ pub(crate) mod tests {
                     {
                         "id": 3,
                         "name": "Waterloo",
+                        "latitude": "42.49276",
+                        "longitude": "-92.34296",
                         "feature_class": "P",
                         "feature_code": "PPLA2",
                         "country_code": "US",
@@ -437,6 +470,8 @@ pub(crate) mod tests {
                     {
                         "id": 4,
                         "name": "Iowa",
+                        "latitude": "42.00027",
+                        "longitude": "-93.50049",
                         "feature_class": "A",
                         "feature_code": "ADM1",
                         "country_code": "US",
@@ -448,6 +483,8 @@ pub(crate) mod tests {
                     {
                         "id": 5,
                         "name": "waterloo lake",
+                        "latitude": "31.25044",
+                        "longitude": "-99.25061",
                         "feature_class": "H",
                         "feature_code": "LK",
                         "country_code": "US",
@@ -459,6 +496,8 @@ pub(crate) mod tests {
                     {
                         "id": 6,
                         "name": "New York City",
+                        "latitude": "40.71427",
+                        "longitude": "-74.00597",
                         "feature_class": "P",
                         "feature_code": "PPL",
                         "country_code": "US",
@@ -470,6 +509,8 @@ pub(crate) mod tests {
                     {
                         "id": 7,
                         "name": "Rochester",
+                        "latitude": "43.15478",
+                        "longitude": "-77.61556",
                         "feature_class": "P",
                         "feature_code": "PPLA2",
                         "country_code": "US",
@@ -481,6 +522,8 @@ pub(crate) mod tests {
                     {
                         "id": 8,
                         "name": "New York",
+                        "latitude": "43.00035",
+                        "longitude": "-75.4999",
                         "feature_class": "A",
                         "feature_code": "ADM1",
                         "country_code": "US",
@@ -488,10 +531,12 @@ pub(crate) mod tests {
                         "population": 19274244,
                         "alternate_names": ["ny", "new york"],
                     },
-                    // long name
+                    // Made-up city with a long name
                     {
                         "id": 999,
                         "name": "Long Name",
+                        "latitude": "38.06084",
+                        "longitude": "-97.92977",
                         "feature_class": "P",
                         "feature_code": "PPLA2",
                         "country_code": "US",
@@ -504,66 +549,96 @@ pub(crate) mod tests {
         ))
     }
 
-    fn waterloo_al() -> Geoname {
+    pub(crate) fn waterloo_al() -> Geoname {
         Geoname {
             geoname_id: 1,
-            geoname_type: GeonameType::City,
             name: "Waterloo".to_string(),
+            latitude: 34.91814,
+            longitude: -88.0642,
             country_code: "US".to_string(),
             admin1_code: "AL".to_string(),
             population: 200,
         }
     }
 
-    fn waterloo_ia() -> Geoname {
+    pub(crate) fn waterloo_ia() -> Geoname {
         Geoname {
             geoname_id: 3,
-            geoname_type: GeonameType::City,
             name: "Waterloo".to_string(),
+            latitude: 42.49276,
+            longitude: -92.34296,
             country_code: "US".to_string(),
             admin1_code: "IA".to_string(),
             population: 68460,
         }
     }
 
-    fn ny_city() -> Geoname {
+    pub(crate) fn nyc() -> Geoname {
         Geoname {
             geoname_id: 6,
-            geoname_type: GeonameType::City,
             name: "New York City".to_string(),
+            latitude: 40.71427,
+            longitude: -74.00597,
             country_code: "US".to_string(),
             admin1_code: "NY".to_string(),
             population: 8804190,
         }
     }
 
-    fn al() -> Geoname {
+    pub(crate) fn rochester() -> Geoname {
+        Geoname {
+            geoname_id: 7,
+            name: "Rochester".to_string(),
+            latitude: 43.15478,
+            longitude: -77.61556,
+            country_code: "US".to_string(),
+            admin1_code: "NY".to_string(),
+            population: 209802,
+        }
+    }
+
+    pub(crate) fn long_name_city() -> Geoname {
+        Geoname {
+            geoname_id: 999,
+            name: "Long Name".to_string(),
+            latitude: 38.06084,
+            longitude: -97.92977,
+            country_code: "US".to_string(),
+            admin1_code: "NY".to_string(),
+            population: 2,
+        }
+    }
+
+    pub(crate) fn al() -> Geoname {
         Geoname {
             geoname_id: 2,
-            geoname_type: GeonameType::Region,
             name: "Alabama".to_string(),
+            latitude: 32.75041,
+            longitude: -86.75026,
             country_code: "US".to_string(),
             admin1_code: "AL".to_string(),
             population: 4530315,
         }
     }
 
-    fn ia() -> Geoname {
+    pub(crate) fn ia() -> Geoname {
         Geoname {
             geoname_id: 4,
-            geoname_type: GeonameType::Region,
             name: "Iowa".to_string(),
+            latitude: 42.00027,
+            longitude: -93.50049,
             country_code: "US".to_string(),
             admin1_code: "IA".to_string(),
             population: 2955010,
         }
     }
 
-    fn ny_state() -> Geoname {
+    pub(crate) fn ny_state() -> Geoname {
         Geoname {
             geoname_id: 8,
-            geoname_type: GeonameType::Region,
             name: "New York".to_string(),
+            latitude: 43.00035,
+            longitude: -75.4999,
             country_code: "US".to_string(),
             admin1_code: "NY".to_string(),
             population: 19274244,
@@ -630,13 +705,6 @@ pub(crate) mod tests {
                 query: "ia",
                 prefix: false,
                 geoname_type: Some(GeonameType::City),
-                filter: None,
-                expected: vec![],
-            },
-            Test {
-                query: "ia",
-                prefix: false,
-                geoname_type: Some(GeonameType::Other),
                 filter: None,
                 expected: vec![],
             },
@@ -718,35 +786,35 @@ pub(crate) mod tests {
                 geoname_type: None,
                 filter: None,
                 // NYC should be first since cities are ordered before regions.
-                expected: vec![ny_city(), ny_state()],
+                expected: vec![nyc(), ny_state()],
             },
             Test {
                 query: "ny",
                 prefix: true,
                 geoname_type: None,
                 filter: None,
-                expected: vec![ny_city(), ny_state()],
+                expected: vec![nyc(), ny_state()],
             },
             Test {
                 query: "ny",
                 prefix: false,
                 geoname_type: None,
-                filter: Some(vec![ny_city()]),
-                expected: vec![ny_city(), ny_state()],
+                filter: Some(vec![nyc()]),
+                expected: vec![nyc(), ny_state()],
             },
             Test {
                 query: "ny",
                 prefix: false,
                 geoname_type: None,
                 filter: Some(vec![ny_state()]),
-                expected: vec![ny_city(), ny_state()],
+                expected: vec![nyc(), ny_state()],
             },
             Test {
                 query: "ny",
                 prefix: false,
                 geoname_type: Some(GeonameType::City),
                 filter: None,
-                expected: vec![ny_city()],
+                expected: vec![nyc()],
             },
             Test {
                 query: "ny",
@@ -756,25 +824,18 @@ pub(crate) mod tests {
                 expected: vec![ny_state()],
             },
             Test {
-                query: "ny",
-                prefix: false,
-                geoname_type: Some(GeonameType::Other),
-                filter: None,
-                expected: vec![],
-            },
-            Test {
                 query: "NeW YoRk",
                 prefix: false,
                 geoname_type: None,
                 filter: None,
-                expected: vec![ny_city(), ny_state()],
+                expected: vec![nyc(), ny_state()],
             },
             Test {
                 query: "NY",
                 prefix: false,
                 geoname_type: None,
                 filter: None,
-                expected: vec![ny_city(), ny_state()],
+                expected: vec![nyc(), ny_state()],
             },
             Test {
                 query: "new",
@@ -788,7 +849,7 @@ pub(crate) mod tests {
                 prefix: true,
                 geoname_type: None,
                 filter: None,
-                expected: vec![ny_city(), ny_state()],
+                expected: vec![nyc(), ny_state()],
             },
             Test {
                 query: "new york foo",
@@ -839,8 +900,9 @@ pub(crate) mod tests {
                 filter: None,
                 expected: vec![Geoname {
                     geoname_id: 999,
-                    geoname_type: GeonameType::City,
                     name: "Long Name".to_string(),
+                    latitude: 38.06084,
+                    longitude: -97.92977,
                     country_code: "US".to_string(),
                     admin1_code: "NY".to_string(),
                     population: 2,
@@ -853,8 +915,9 @@ pub(crate) mod tests {
                 filter: None,
                 expected: vec![Geoname {
                     geoname_id: 999,
-                    geoname_type: GeonameType::City,
                     name: "Long Name".to_string(),
+                    latitude: 38.06084,
+                    longitude: -97.92977,
                     country_code: "US".to_string(),
                     admin1_code: "NY".to_string(),
                     population: 2,

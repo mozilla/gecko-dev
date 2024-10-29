@@ -172,7 +172,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     readPointerCalc() {
-        const pointerId = 13; // uniffi_trait_interfaces:Calc
+        const pointerId = 15; // uniffi_trait_interfaces:Calc
         const res = UniFFIScaffolding.readPointer(pointerId, this.dataView.buffer, this.pos);
         this.pos += 8;
         return res;
@@ -182,7 +182,7 @@ class ArrayBufferDataStream {
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
     writePointerCalc(value) {
-        const pointerId = 13; // uniffi_trait_interfaces:Calc
+        const pointerId = 15; // uniffi_trait_interfaces:Calc
         UniFFIScaffolding.writePointer(pointerId, value, this.dataView.buffer, this.pos);
         this.pos += 8;
     }
@@ -350,7 +350,7 @@ export class Calc {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                153, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_method_calc_add
+                161, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_method_calc_add
                 FfiConverterTypeCalc.lower(this),
                 FfiConverterU32.lower(a),
                 FfiConverterU32.lower(b),
@@ -400,7 +400,7 @@ export function makeBuggyCalculator() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                151, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_buggy_calculator
+                159, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_buggy_calculator
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
@@ -412,7 +412,7 @@ export function makeCalculator() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                152, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_calculator
+                160, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_calculator
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);

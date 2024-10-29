@@ -2,23 +2,172 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{fs::File, io::prelude::Write};
+use std::{collections::HashMap, fs::File, io::prelude::Write, sync::Arc};
 
-use error_support::handle_error;
+use error_support::{convert_log_report_error, handle_error};
+use url::Url;
 
 pub mod cache;
 pub mod client;
 pub mod config;
 pub mod error;
+pub mod service;
+pub mod storage;
 
 pub use client::{Attachment, RemoteSettingsRecord, RemoteSettingsResponse, RsJsonObject};
-pub use config::{RemoteSettingsConfig, RemoteSettingsServer};
+pub use config::{RemoteSettingsConfig, RemoteSettingsConfig2, RemoteSettingsServer};
 pub use error::{ApiResult, RemoteSettingsError, Result};
 
 use client::Client;
 use error::Error;
+use storage::Storage;
 
 uniffi::setup_scaffolding!("remote_settings");
+
+/// Application-level Remote Settings manager.
+///
+/// This handles application-level operations, like syncing all the collections, and acts as a
+/// factory for creating clients.
+#[derive(uniffi::Object)]
+pub struct RemoteSettingsService {
+    // This struct adapts server::RemoteSettingsService into the public API
+    internal: service::RemoteSettingsService,
+}
+
+#[uniffi::export]
+impl RemoteSettingsService {
+    /// Construct a [RemoteSettingsService]
+    ///
+    /// This is typically done early in the application-startup process
+    #[uniffi::constructor]
+    #[handle_error(Error)]
+    pub fn new(storage_dir: String, config: RemoteSettingsConfig2) -> ApiResult<Self> {
+        Ok(Self {
+            internal: service::RemoteSettingsService::new(storage_dir, config)?,
+        })
+    }
+
+    /// Create a new Remote Settings client
+    #[handle_error(Error)]
+    pub fn make_client(&self, collection_name: String) -> ApiResult<Arc<RemoteSettingsClient>> {
+        self.internal.make_client(collection_name)
+    }
+
+    /// Sync collections for all active clients
+    #[handle_error(Error)]
+    pub fn sync(&self) -> ApiResult<Vec<String>> {
+        self.internal.sync()
+    }
+
+    /// Update the remote settings config
+    ///
+    /// This will cause all current and future clients to use new config and will delete any stored
+    /// records causing the clients to return new results from the new config.
+    ///
+    /// Only intended for QA/debugging.  Swapping the remote settings server in the middle of
+    /// execution can cause weird effects.
+    #[handle_error(Error)]
+    pub fn update_config(&self, config: RemoteSettingsConfig2) -> ApiResult<()> {
+        self.internal.update_config(config)
+    }
+}
+
+/// Client for a single Remote Settings collection
+///
+/// Use [RemoteSettingsService::make_client] to create these.
+#[derive(uniffi::Object)]
+pub struct RemoteSettingsClient {
+    // This struct adapts client::RemoteSettingsClient into the public API
+    internal: client::RemoteSettingsClient,
+}
+
+#[uniffi::export]
+impl RemoteSettingsClient {
+    /// Collection this client is for
+    pub fn collection_name(&self) -> String {
+        self.internal.collection_name().to_owned()
+    }
+
+    /// Get the current set of records.
+    ///
+    /// This method normally fetches records from the last sync.  This means that it returns fast
+    /// and does not make any network requests.
+    ///
+    /// If records have not yet been synced it will return None.  Use `sync_if_empty = true` to
+    /// change this behavior and perform a network request in this case.  That this is probably a
+    /// bad idea if you want to fetch the setting in application startup or when building the UI.
+    ///
+    /// None will also be returned on disk IO errors or other unexpected errors.  The reason for
+    /// this is that there is not much an application can do in this situation other than fall back
+    /// to the same default handling as if records have not been synced.
+    ///
+    /// TODO(Bug 1919141):
+    ///
+    /// Application-services schedules regular dumps of the server data for specific collections.
+    /// For these collections, `get_records` will never return None.  If you would like to add your
+    /// collection to this list, please reach out to the DISCO team.
+    #[uniffi::method(default(sync_if_empty = false))]
+    pub fn get_records(&self, sync_if_empty: bool) -> Option<Vec<RemoteSettingsRecord>> {
+        match self.internal.get_records(sync_if_empty) {
+            Ok(records) => records,
+            Err(e) => {
+                // Log/report the error
+                log::trace!("get_records error: {e}");
+                convert_log_report_error(e);
+                // Throw away the converted result and return None, there's nothing a client can
+                // really do with an error except treat it as the None case
+                None
+            }
+        }
+    }
+
+    /// Get the current set of records as a map of record_id -> record.
+    ///
+    /// See [Self::get_records] for an explanation of when this makes network requests, error
+    /// handling, and how the `sync_if_empty` param works.
+    #[uniffi::method(default(sync_if_empty = false))]
+    pub fn get_records_map(
+        &self,
+        sync_if_empty: bool,
+    ) -> Option<HashMap<String, RemoteSettingsRecord>> {
+        self.get_records(sync_if_empty)
+            .map(|records| records.into_iter().map(|r| (r.id.clone(), r)).collect())
+    }
+
+    /// Get attachment data for a remote settings record
+    ///
+    /// Attachments are large binary blobs used for data that doesn't fit in a normal record.  They
+    /// are handled differently than other record data:
+    ///
+    ///   - Attachments are not downloaded in [RemoteSettingsService::sync]
+    ///   - This method will make network requests if the attachment is not cached
+    ///   - This method will throw if there is a network or other error when fetching the
+    ///     attachment data.
+    #[handle_error(Error)]
+    pub fn get_attachment(&self, attachment_id: String) -> ApiResult<Vec<u8>> {
+        self.internal.get_attachment(&attachment_id)
+    }
+}
+
+impl RemoteSettingsClient {
+    /// Create a new client.  This is not exposed to foreign code, consumers need to call
+    /// [RemoteSettingsService::make_client]
+    fn new(
+        base_url: Url,
+        bucket_name: String,
+        collection_name: String,
+        storage: Storage,
+    ) -> Result<Self> {
+        Ok(Self {
+            internal: client::RemoteSettingsClient::new(
+                base_url,
+                bucket_name,
+                collection_name,
+                storage,
+            )?,
+        })
+    }
+}
 
 #[derive(uniffi::Object)]
 pub struct RemoteSettings {

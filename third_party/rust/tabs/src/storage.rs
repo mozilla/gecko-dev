@@ -124,6 +124,7 @@ impl TabsStorage {
             &crate::schema::TabsMigrationLogic,
         ) {
             Ok(conn) => {
+                log::info!("tabs storage is opening an existing database");
                 self.db_connection = DbConnection::Open(conn);
                 match self.db_connection {
                     DbConnection::Open(ref conn) => Ok(Some(conn)),
@@ -133,6 +134,7 @@ impl TabsStorage {
             Err(open_database::Error::SqlError(rusqlite::Error::SqliteFailure(code, _)))
                 if code.code == rusqlite::ErrorCode::CannotOpen =>
             {
+                log::info!("tabs storage could not open an existing database and hasn't been asked to create one");
                 Ok(None)
             }
             Err(e) => Err(e.into()),
@@ -155,6 +157,7 @@ impl TabsStorage {
             flags,
             &crate::schema::TabsMigrationLogic,
         )?;
+        log::info!("tabs storage is creating a database connection");
         self.db_connection = DbConnection::Open(conn);
         match self.db_connection {
             DbConnection::Open(ref conn) => Ok(conn),
@@ -163,7 +166,9 @@ impl TabsStorage {
     }
 
     pub fn update_local_state(&mut self, local_state: Vec<RemoteTab>) {
+        let num_tabs = local_state.len();
         self.local_tabs.borrow_mut().replace(local_state);
+        log::info!("update_local_state has {num_tabs} tab entries");
     }
 
     // We try our best to fit as many tabs in a payload as possible, this includes
@@ -197,8 +202,15 @@ impl TabsStorage {
             // Sort the tabs so when we trim tabs it's the oldest tabs
             sanitized_tabs.sort_by(|a, b| b.last_used.cmp(&a.last_used));
             trim_tabs_length(&mut sanitized_tabs, MAX_PAYLOAD_SIZE);
+            log::info!(
+                "prepare_local_tabs_for_upload found {} tabs",
+                sanitized_tabs.len()
+            );
             return Some(sanitized_tabs);
         }
+        // It's a less than ideal outcome if at startup (or any time) we are asked to
+        // sync tabs before the app has told us what the tabs are, so make noise.
+        log::warn!("prepare_local_tabs_for_upload - have no local tabs");
         None
     }
 

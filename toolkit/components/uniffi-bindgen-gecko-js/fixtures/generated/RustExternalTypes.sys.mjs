@@ -394,7 +394,7 @@ export function gradient(value) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                61, // external_types:uniffi_uniffi_fixture_external_types_fn_func_gradient
+                69, // external_types:uniffi_uniffi_fixture_external_types_fn_func_gradient
                 FfiConverterOptionalTypeLine.lower(value),
             )
         }
@@ -427,7 +427,7 @@ export function intersection(ln1,ln2) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                62, // external_types:uniffi_uniffi_fixture_external_types_fn_func_intersection
+                70, // external_types:uniffi_uniffi_fixture_external_types_fn_func_intersection
                 FfiConverterTypeLine.lower(ln1),
                 FfiConverterTypeLine.lower(ln2),
             )

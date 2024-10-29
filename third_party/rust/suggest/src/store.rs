@@ -20,11 +20,11 @@ use crate::{
     config::{SuggestGlobalConfig, SuggestProviderConfig},
     db::{ConnectionType, IngestedRecord, Sqlite3Extension, SuggestDao, SuggestDb},
     error::Error,
-    metrics::{DownloadTimer, SuggestIngestionMetrics, SuggestQueryMetrics},
+    metrics::{MetricsContext, SuggestIngestionMetrics, SuggestQueryMetrics},
     provider::{SuggestionProvider, SuggestionProviderConstraints, DEFAULT_INGEST_PROVIDERS},
     rs::{
-        Client, Collection, Record, RemoteSettingsClient, SuggestAttachment, SuggestRecord,
-        SuggestRecordId, SuggestRecordType,
+        Client, Collection, DownloadedExposureRecord, Record, RemoteSettingsClient,
+        SuggestAttachment, SuggestRecord, SuggestRecordId, SuggestRecordType,
     },
     suggestion::AmpSuggestionType,
     QueryWithMetricsResult, Result, SuggestApiResult, Suggestion, SuggestionQuery,
@@ -302,6 +302,19 @@ impl SuggestIngestionConstraints {
             ..Self::default()
         }
     }
+
+    fn matches_exposure_record(&self, record: &DownloadedExposureRecord) -> bool {
+        match self
+            .provider_constraints
+            .as_ref()
+            .and_then(|c| c.exposure_suggestion_types.as_ref())
+        {
+            None => false,
+            Some(suggestion_types) => suggestion_types
+                .iter()
+                .any(|t| *t == record.suggestion_type),
+        }
+    }
 }
 
 /// The implementation of the store. This is generic over the Remote Settings
@@ -492,7 +505,7 @@ where
             // [Self::ingest_records]
             for record_type in record_types {
                 breadcrumb!("Ingesting record_type: {record_type}");
-                metrics.measure_ingest(record_type.to_string(), |download_timer| {
+                metrics.measure_ingest(record_type.to_string(), |context| {
                     let changes = RecordChanges::new(
                         records.iter().filter(|r| r.record_type() == record_type),
                         ingested_records.iter().filter(|i| {
@@ -501,7 +514,7 @@ where
                         }),
                     );
                     write_scope.write(|dao| {
-                        self.process_changes(dao, collection, changes, &constraints, download_timer)
+                        self.process_changes(dao, collection, changes, &constraints, context)
                     })
                 })?;
                 write_scope.err_if_interrupted()?;
@@ -518,11 +531,11 @@ where
         collection: Collection,
         changes: RecordChanges<'_>,
         constraints: &SuggestIngestionConstraints,
-        download_timer: &mut DownloadTimer,
+        context: &mut MetricsContext,
     ) -> Result<()> {
         for record in &changes.new {
             log::trace!("Ingesting record ID: {}", record.id.as_str());
-            self.process_record(dao, record, constraints, download_timer)?;
+            self.process_record(dao, record, constraints, context)?;
         }
         for record in &changes.updated {
             // Drop any data that we previously ingested from this record.
@@ -531,12 +544,12 @@ where
             // more complicated than dropping and re-ingesting all of them.
             log::trace!("Reingesting updated record ID: {}", record.id.as_str());
             dao.delete_record_data(&record.id)?;
-            self.process_record(dao, record, constraints, download_timer)?;
+            self.process_record(dao, record, constraints, context)?;
         }
         for record in &changes.unchanged {
-            if self.should_reprocess_record(dao, record)? {
+            if self.should_reprocess_record(dao, record, constraints)? {
                 log::trace!("Reingesting unchanged record ID: {}", record.id.as_str());
-                self.process_record(dao, record, constraints, download_timer)?;
+                self.process_record(dao, record, constraints, context)?;
             }
         }
         for record in &changes.deleted {
@@ -557,28 +570,18 @@ where
         dao: &mut SuggestDao,
         record: &Record,
         constraints: &SuggestIngestionConstraints,
-        download_timer: &mut DownloadTimer,
+        context: &mut MetricsContext,
     ) -> Result<()> {
         match &record.payload {
             SuggestRecord::AmpWikipedia => {
-                self.download_attachment(
-                    dao,
-                    record,
-                    download_timer,
-                    |dao, record_id, suggestions| {
-                        dao.insert_amp_wikipedia_suggestions(record_id, suggestions)
-                    },
-                )?;
+                self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
+                    dao.insert_amp_wikipedia_suggestions(record_id, suggestions)
+                })?;
             }
             SuggestRecord::AmpMobile => {
-                self.download_attachment(
-                    dao,
-                    record,
-                    download_timer,
-                    |dao, record_id, suggestions| {
-                        dao.insert_amp_mobile_suggestions(record_id, suggestions)
-                    },
-                )?;
+                self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
+                    dao.insert_amp_mobile_suggestions(record_id, suggestions)
+                })?;
             }
             SuggestRecord::Icon => {
                 let (Some(icon_id), Some(attachment)) =
@@ -589,89 +592,59 @@ where
                     // malformed, so skip to the next record.
                     return Ok(());
                 };
-                let data = self.settings_client.download_attachment(record)?;
+                let data = context
+                    .measure_download(|| self.settings_client.download_attachment(record))?;
                 dao.put_icon(icon_id, &data, &attachment.mimetype)?;
             }
             SuggestRecord::Amo => {
-                self.download_attachment(
-                    dao,
-                    record,
-                    download_timer,
-                    |dao, record_id, suggestions| {
-                        dao.insert_amo_suggestions(record_id, suggestions)
-                    },
-                )?;
+                self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
+                    dao.insert_amo_suggestions(record_id, suggestions)
+                })?;
             }
             SuggestRecord::Pocket => {
-                self.download_attachment(
-                    dao,
-                    record,
-                    download_timer,
-                    |dao, record_id, suggestions| {
-                        dao.insert_pocket_suggestions(record_id, suggestions)
-                    },
-                )?;
+                self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
+                    dao.insert_pocket_suggestions(record_id, suggestions)
+                })?;
             }
             SuggestRecord::Yelp => {
-                self.download_attachment(
-                    dao,
-                    record,
-                    download_timer,
-                    |dao, record_id, suggestions| match suggestions.first() {
+                self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
+                    match suggestions.first() {
                         Some(suggestion) => dao.insert_yelp_suggestions(record_id, suggestion),
                         None => Ok(()),
-                    },
-                )?;
+                    }
+                })?;
             }
             SuggestRecord::Mdn => {
-                self.download_attachment(
-                    dao,
-                    record,
-                    download_timer,
-                    |dao, record_id, suggestions| {
-                        dao.insert_mdn_suggestions(record_id, suggestions)
-                    },
-                )?;
+                self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
+                    dao.insert_mdn_suggestions(record_id, suggestions)
+                })?;
             }
-            SuggestRecord::Weather => self.process_weather_record(dao, record, download_timer)?,
+            SuggestRecord::Weather => self.process_weather_record(dao, record, context)?,
             SuggestRecord::GlobalConfig(config) => {
                 dao.put_global_config(&SuggestGlobalConfig::from(config))?
             }
             SuggestRecord::Fakespot => {
-                self.download_attachment(
-                    dao,
-                    record,
-                    download_timer,
-                    |dao, record_id, suggestions| {
-                        dao.insert_fakespot_suggestions(record_id, suggestions)
-                    },
-                )?;
+                self.download_attachment(dao, record, context, |dao, record_id, suggestions| {
+                    dao.insert_fakespot_suggestions(record_id, suggestions)
+                })?;
             }
             SuggestRecord::Exposure(r) => {
-                // Ingest this record's attachment if its suggestion type
-                // matches a type in the constraints.
-                if let Some(suggestion_types) = constraints
-                    .provider_constraints
-                    .as_ref()
-                    .and_then(|c| c.exposure_suggestion_types.as_ref())
-                {
-                    if suggestion_types.iter().any(|t| *t == r.suggestion_type) {
-                        self.download_attachment(
-                            dao,
-                            record,
-                            download_timer,
-                            |dao, record_id, suggestions| {
-                                dao.insert_exposure_suggestions(
-                                    record_id,
-                                    &r.suggestion_type,
-                                    suggestions,
-                                )
-                            },
-                        )?;
-                    }
+                if constraints.matches_exposure_record(r) {
+                    self.download_attachment(
+                        dao,
+                        record,
+                        context,
+                        |dao, record_id, suggestions| {
+                            dao.insert_exposure_suggestions(
+                                record_id,
+                                &r.suggestion_type,
+                                suggestions,
+                            )
+                        },
+                    )?;
                 }
             }
-            SuggestRecord::Geonames => self.process_geoname_record(dao, record, download_timer)?,
+            SuggestRecord::Geonames => self.process_geoname_record(dao, record, context)?,
         }
         Ok(())
     }
@@ -680,7 +653,7 @@ where
         &self,
         dao: &mut SuggestDao,
         record: &Record,
-        download_timer: &mut DownloadTimer,
+        context: &mut MetricsContext,
         ingestion_handler: impl FnOnce(&mut SuggestDao<'_>, &SuggestRecordId, &[T]) -> Result<()>,
     ) -> Result<()>
     where
@@ -691,7 +664,7 @@ where
         };
 
         let attachment_data =
-            download_timer.measure_download(|| self.settings_client.download_attachment(record))?;
+            context.measure_download(|| self.settings_client.download_attachment(record))?;
         match serde_json::from_slice::<SuggestAttachment<T>>(&attachment_data) {
             Ok(attachment) => ingestion_handler(dao, &record.id, attachment.suggestions()),
             // If the attachment doesn't match our expected schema, just skip it.  It's possible
@@ -701,15 +674,21 @@ where
         }
     }
 
-    fn should_reprocess_record(&self, dao: &mut SuggestDao, record: &Record) -> Result<bool> {
+    fn should_reprocess_record(
+        &self,
+        dao: &mut SuggestDao,
+        record: &Record,
+        constraints: &SuggestIngestionConstraints,
+    ) -> Result<bool> {
         match &record.payload {
-            SuggestRecord::Exposure(_) => {
+            SuggestRecord::Exposure(r) => {
                 // Even though the record was previously ingested, its
                 // suggestion wouldn't have been if it never matched the
                 // provider constraints of any ingest. Return true if the
-                // suggestion is not ingested. If the provider constraints of
-                // the current ingest do match the suggestion, we'll ingest it.
-                Ok(!dao.is_exposure_suggestion_ingested(&record.id)?)
+                // suggestion is not ingested and the provider constraints of
+                // the current ingest do match the suggestion.
+                Ok(!dao.is_exposure_suggestion_ingested(&record.id)?
+                    && constraints.matches_exposure_record(r))
             }
             _ => Ok(false),
         }
@@ -774,7 +753,7 @@ where
 
     pub fn ingest_records_by_type(&self, ingest_record_type: SuggestRecordType) {
         let writer = &self.dbs().unwrap().writer;
-        let mut timer = DownloadTimer::default();
+        let mut context = MetricsContext::default();
         let ingested_records = writer.read(|dao| dao.get_ingested_records()).unwrap();
         let records = writer
             .write(|dao| {
@@ -798,7 +777,7 @@ where
                     ingest_record_type.collection(),
                     changes,
                     &SuggestIngestionConstraints::default(),
-                    &mut timer,
+                    &mut context,
                 )
             })
             .unwrap();

@@ -92,7 +92,7 @@ fn link_nss_libs(kind: LinkingKind) {
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     if target_arch == "x86_64" && target_os == "android" {
         let android_home = env::var("ANDROID_HOME").expect("ANDROID_HOME not set");
-        const ANDROID_NDK_VERSION: &str = "27.0.12077973";
+        const ANDROID_NDK_VERSION: &str = "27.2.12479018";
         // One of these will exist, depending on the host platform.
         const DARWIN_X86_64_LIB_DIR: &str =
             "/toolchains/llvm/prebuilt/darwin-x86_64/lib/clang/18/lib/linux/";

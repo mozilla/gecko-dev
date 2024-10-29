@@ -390,7 +390,7 @@ export function add(a,b) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                56, // arithmetic:uniffi_arithmetical_fn_func_add
+                64, // arithmetic:uniffi_arithmetical_fn_func_add
                 FfiConverterU64.lower(a),
                 FfiConverterU64.lower(b),
             )
@@ -424,7 +424,7 @@ export function div(dividend,divisor) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                57, // arithmetic:uniffi_arithmetical_fn_func_div
+                65, // arithmetic:uniffi_arithmetical_fn_func_div
                 FfiConverterU64.lower(dividend),
                 FfiConverterU64.lower(divisor),
             )
@@ -458,7 +458,7 @@ export function equal(a,b) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                58, // arithmetic:uniffi_arithmetical_fn_func_equal
+                66, // arithmetic:uniffi_arithmetical_fn_func_equal
                 FfiConverterU64.lower(a),
                 FfiConverterU64.lower(b),
             )
@@ -492,7 +492,7 @@ export function sub(a,b) {
                 throw e;
             }
             return UniFFIScaffolding.callAsyncWrapper(
-                59, // arithmetic:uniffi_arithmetical_fn_func_sub
+                67, // arithmetic:uniffi_arithmetical_fn_func_sub
                 FfiConverterU64.lower(a),
                 FfiConverterU64.lower(b),
             )

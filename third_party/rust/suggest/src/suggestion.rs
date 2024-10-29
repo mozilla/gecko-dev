@@ -82,6 +82,8 @@ pub enum Suggestion {
         city: Option<String>,
         region: Option<String>,
         country: Option<String>,
+        latitude: Option<f64>,
+        longitude: Option<f64>,
         score: f64,
     },
     Fakespot {

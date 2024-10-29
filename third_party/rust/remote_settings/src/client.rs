@@ -4,6 +4,7 @@
 
 use crate::config::RemoteSettingsConfig;
 use crate::error::{Error, Result};
+use crate::storage::Storage;
 use crate::{RemoteSettingsServer, UniffiCustomTypeConverter};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -18,13 +19,237 @@ const HEADER_BACKOFF: &str = "Backoff";
 const HEADER_ETAG: &str = "ETag";
 const HEADER_RETRY_AFTER: &str = "Retry-After";
 
+/// Internal Remote settings client API
+///
+/// This stores an ApiClient implementation.  In the real-world, this is always ViaductApiClient,
+/// but the tests use a mock client.
+pub struct RemoteSettingsClient<C = ViaductApiClient> {
+    // This is immutable, so it can be outside the mutex
+    collection_name: String,
+    inner: Mutex<RemoteSettingsClientInner<C>>,
+}
+
+struct RemoteSettingsClientInner<C> {
+    storage: Storage,
+    api_client: C,
+}
+
+impl<C: ApiClient> RemoteSettingsClient<C> {
+    pub fn new_from_parts(collection_name: String, storage: Storage, api_client: C) -> Self {
+        Self {
+            collection_name,
+            inner: Mutex::new(RemoteSettingsClientInner {
+                storage,
+                api_client,
+            }),
+        }
+    }
+    pub fn collection_name(&self) -> &str {
+        &self.collection_name
+    }
+
+    /// Get the current set of records.
+    ///
+    /// If records are not present in storage this will normally return None.  Use `sync_if_empty =
+    /// true` to change this behavior and perform a network request in this case.
+    pub fn get_records(&self, sync_if_empty: bool) -> Result<Option<Vec<RemoteSettingsRecord>>> {
+        let mut inner = self.inner.lock();
+        let collection_url = inner.api_client.collection_url();
+
+        let cached_records = inner.storage.get_records(&collection_url)?;
+        if cached_records.is_some() || !sync_if_empty {
+            return Ok(cached_records);
+        }
+
+        let records = inner.api_client.get_records(None)?;
+        inner.storage.set_records(&collection_url, &records)?;
+        Ok(Some(records))
+    }
+
+    pub fn sync(&self) -> Result<()> {
+        let mut inner = self.inner.lock();
+        let collection_url = inner.api_client.collection_url();
+        let mtime = inner.storage.get_last_modified_timestamp(&collection_url)?;
+        let records = inner.api_client.get_records(mtime)?;
+        inner.storage.set_records(&collection_url, &records)
+    }
+
+    /// Downloads an attachment from [attachment_location]. NOTE: there are no guarantees about a
+    /// maximum size, so use care when fetching potentially large attachments.
+    pub fn get_attachment(&self, attachment_location: &str) -> Result<Vec<u8>> {
+        self.inner
+            .lock()
+            .api_client
+            .get_attachment(attachment_location)
+    }
+}
+
+impl RemoteSettingsClient<ViaductApiClient> {
+    pub fn new(
+        server_url: Url,
+        bucket_name: String,
+        collection_name: String,
+        storage: Storage,
+    ) -> Result<Self> {
+        let api_client = ViaductApiClient::new(server_url, &bucket_name, &collection_name)?;
+        Ok(Self::new_from_parts(collection_name, storage, api_client))
+    }
+
+    pub fn update_config(&self, server_url: Url, bucket_name: String) -> Result<()> {
+        let mut inner = self.inner.lock();
+        inner.api_client = ViaductApiClient::new(server_url, &bucket_name, &self.collection_name)?;
+        inner.storage.empty()
+    }
+}
+
+#[cfg_attr(test, mockall::automock)]
+pub trait ApiClient {
+    /// Get the Bucket URL for this client.
+    ///
+    /// This is a URL that includes the server URL, bucket name, and collection name.  This is used
+    /// to check if the application has switched the remote settings config and therefore we should
+    /// throw away any cached data
+    ///
+    /// Returns it as a String, since that's what the storage expects
+    fn collection_url(&self) -> String;
+
+    /// Fetch records from the server
+    fn get_records(&mut self, timestamp: Option<u64>) -> Result<Vec<RemoteSettingsRecord>>;
+
+    /// Fetch an attachment from the server
+    fn get_attachment(&mut self, attachment_location: &str) -> Result<Vec<u8>>;
+}
+
+/// Client for Remote settings API requests
+pub struct ViaductApiClient {
+    endpoints: RemoteSettingsEndpoints,
+    remote_state: RemoteState,
+}
+
+impl ViaductApiClient {
+    fn new(base_url: Url, bucket_name: &str, collection_name: &str) -> Result<Self> {
+        Ok(Self {
+            endpoints: RemoteSettingsEndpoints::new(&base_url, bucket_name, collection_name)?,
+            remote_state: RemoteState::default(),
+        })
+    }
+
+    fn make_request(&mut self, url: Url) -> Result<Response> {
+        log::trace!("make_request: {url}");
+        self.ensure_no_backoff()?;
+
+        let req = Request::get(url);
+        let resp = req.send()?;
+
+        self.handle_backoff_hint(&resp)?;
+
+        if resp.is_success() {
+            Ok(resp)
+        } else {
+            Err(Error::ResponseError(format!(
+                "status code: {}",
+                resp.status
+            )))
+        }
+    }
+
+    fn ensure_no_backoff(&mut self) -> Result<()> {
+        if let BackoffState::Backoff {
+            observed_at,
+            duration,
+        } = self.remote_state.backoff
+        {
+            let elapsed_time = observed_at.elapsed();
+            if elapsed_time >= duration {
+                self.remote_state.backoff = BackoffState::Ok;
+            } else {
+                let remaining = duration - elapsed_time;
+                return Err(Error::BackoffError(remaining.as_secs()));
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_backoff_hint(&mut self, response: &Response) -> Result<()> {
+        let extract_backoff_header = |header| -> Result<u64> {
+            Ok(response
+                .headers
+                .get_as::<u64, _>(header)
+                .transpose()
+                .unwrap_or_default() // Ignore number parsing errors.
+                .unwrap_or(0))
+        };
+        // In practice these two headers are mutually exclusive.
+        let backoff = extract_backoff_header(HEADER_BACKOFF)?;
+        let retry_after = extract_backoff_header(HEADER_RETRY_AFTER)?;
+        let max_backoff = backoff.max(retry_after);
+
+        if max_backoff > 0 {
+            self.remote_state.backoff = BackoffState::Backoff {
+                observed_at: Instant::now(),
+                duration: Duration::from_secs(max_backoff),
+            };
+        }
+        Ok(())
+    }
+}
+
+impl ApiClient for ViaductApiClient {
+    fn collection_url(&self) -> String {
+        self.endpoints.collection_url.to_string()
+    }
+
+    fn get_records(&mut self, timestamp: Option<u64>) -> Result<Vec<RemoteSettingsRecord>> {
+        let mut url = self.endpoints.changeset_url.clone();
+        // 0 is used as an arbitrary value for `_expected` because the current implementation does
+        // not leverage push timestamps or polling from the monitor/changes endpoint. More
+        // details:
+        //
+        // https://remote-settings.readthedocs.io/en/latest/client-specifications.html#cache-busting
+        url.query_pairs_mut().append_pair("_expected", "0");
+        if let Some(timestamp) = timestamp {
+            url.query_pairs_mut()
+                .append_pair("_since", &timestamp.to_string());
+        }
+
+        let resp = self.make_request(url)?;
+
+        if resp.is_success() {
+            Ok(resp.json::<ChangesetResponse>()?.changes)
+        } else {
+            Err(Error::ResponseError(format!(
+                "status code: {}",
+                resp.status
+            )))
+        }
+    }
+
+    fn get_attachment(&mut self, attachment_location: &str) -> Result<Vec<u8>> {
+        let attachments_base_url = match &self.remote_state.attachments_base_url {
+            Some(attachments_base_url) => attachments_base_url.to_owned(),
+            None => {
+                let server_info = self
+                    .make_request(self.endpoints.root_url.clone())?
+                    .json::<ServerInfo>()?;
+                let attachments_base_url = match server_info.capabilities.attachments {
+                    Some(capability) => Url::parse(&capability.base_url)?,
+                    None => Err(Error::AttachmentsUnsupportedError)?,
+                };
+                self.remote_state.attachments_base_url = Some(attachments_base_url.clone());
+                attachments_base_url
+            }
+        };
+
+        let resp = self.make_request(attachments_base_url.join(attachment_location)?)?;
+        Ok(resp.body)
+    }
+}
+
 /// A simple HTTP client that can retrieve Remote Settings data using the properties by [ClientConfig].
 /// Methods defined on this will fetch data from
-/// <base_url>/v1/buckets/<bucket_name>/collections/<collection_name>/
+/// <base_url>/buckets/<bucket_name>/collections/<collection_name>/
 pub struct Client {
-    pub(crate) base_url: Url,
-    pub(crate) bucket_name: String,
-    pub(crate) collection_name: String,
+    endpoints: RemoteSettingsEndpoints,
     pub(crate) remote_state: Mutex<RemoteState>,
 }
 
@@ -41,12 +266,14 @@ impl Client {
         };
 
         let bucket_name = config.bucket_name.unwrap_or_else(|| String::from("main"));
-        let base_url = server.get_url()?;
+        let endpoints = RemoteSettingsEndpoints::new(
+            &server.get_url()?,
+            &bucket_name,
+            &config.collection_name,
+        )?;
 
         Ok(Self {
-            base_url,
-            bucket_name,
-            collection_name: config.collection_name,
+            endpoints,
             remote_state: Default::default(),
         })
     }
@@ -103,11 +330,7 @@ impl Client {
     /// Fetches a raw network [Response] for records from this client's
     /// collection with the given options.
     pub fn get_records_raw_with_options(&self, options: &GetItemsOptions) -> Result<Response> {
-        let path = format!(
-            "v1/buckets/{}/collections/{}/records",
-            &self.bucket_name, &self.collection_name
-        );
-        let mut url = self.base_url.join(&path)?;
+        let mut url = self.endpoints.records_url.clone();
         for (name, value) in options.iter_query_pairs() {
             url.query_pairs_mut().append_pair(&name, &value);
         }
@@ -133,7 +356,7 @@ impl Client {
             Some(attachments_base_url) => attachments_base_url,
             None => {
                 let server_info = self
-                    .make_request(self.base_url.clone())?
+                    .make_request(self.endpoints.root_url.clone())?
                     .json::<ServerInfo>()?;
                 let attachments_base_url = match server_info.capabilities.attachments {
                     Some(capability) => Url::parse(&capability.base_url)?,
@@ -213,6 +436,82 @@ impl Client {
     }
 }
 
+/// Stores all the endpoints for a Remote Settings server
+///
+/// There's actually not to many of these, so we can just pack them all into a struct
+struct RemoteSettingsEndpoints {
+    /// Root URL for Remote Settings server
+    ///
+    /// This has the form `[base-url]/`. It's where we get the attachment base url from.
+    root_url: Url,
+    /// URL for the collections endpoint
+    ///
+    /// This has the form:
+    /// `[base-url]/buckets/[bucket-name]/collections/[collection-name]`.
+    ///
+    /// It can be used to fetch some metadata about the collection, but the real reason we use it
+    /// is to get a URL that uniquely identifies the server + bucket name.  This is used by the
+    /// [Storage] component to know when to throw away cached records because the user has changed
+    /// one of these,
+    collection_url: Url,
+    /// URL for the changeset request
+    ///
+    /// This has the form:
+    /// `[base-url]/buckets/[bucket-name]/collections/[collection-name]/changeset`.
+    ///
+    /// This is the URL for fetching records and changes to records
+    changeset_url: Url,
+    /// URL for the records request
+    ///
+    /// This has the form:
+    /// `[base-url]/buckets/[bucket-name]/collections/[collection-name]/records`.
+    ///
+    /// This is the old/deprecated way to get records
+    records_url: Url,
+}
+
+impl RemoteSettingsEndpoints {
+    /// Construct a new RemoteSettingsEndpoints
+    ///
+    /// `base_url` should have the form `https://[domain]/v1` (no trailing slash).
+    fn new(base_url: &Url, bucket_name: &str, collection_name: &str) -> Result<Self> {
+        let mut root_url = base_url.clone();
+        // Push the empty string to add the trailing slash.
+        Self::path_segments_mut(&mut root_url)?.push("");
+
+        let mut collection_url = base_url.clone();
+        Self::path_segments_mut(&mut collection_url)?
+            .push("buckets")
+            .push(bucket_name)
+            .push("collections")
+            .push(collection_name);
+
+        let mut records_url = collection_url.clone();
+        Self::path_segments_mut(&mut records_url)?.push("records");
+
+        let mut changeset_url = collection_url.clone();
+        Self::path_segments_mut(&mut changeset_url)?.push("changeset");
+
+        Ok(Self {
+            root_url,
+            collection_url,
+            records_url,
+            changeset_url,
+        })
+    }
+
+    /// Utility method for calling [Url::path_segments_mut]
+    ///
+    /// The issue we're working around is that path_segments_mut uses `()` as the error type, which
+    /// can't be converted into our `Error` type.
+    fn path_segments_mut(url: &mut Url) -> Result<url::PathSegmentsMut<'_>> {
+        url.path_segments_mut()
+            // path_segments_mut uses `()` as the error type, but the docs say that it only will
+            // error for cannot-be-a-base URLs.
+            .map_err(|_| Error::UrlParsingError(url::ParseError::RelativeUrlWithCannotBeABaseBase))
+    }
+}
+
 /// Data structure representing the top-level response from the Remote Settings.
 /// [last_modified] will be extracted from the etag header of the response.
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, uniffi::Record)]
@@ -224,6 +523,11 @@ pub struct RemoteSettingsResponse {
 #[derive(Deserialize, Serialize)]
 struct RecordsResponse {
     data: Vec<RemoteSettingsRecord>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct ChangesetResponse {
+    changes: Vec<RemoteSettingsRecord>,
 }
 
 /// A parsed Remote Settings record. Records can contain arbitrary fields, so clients
@@ -536,10 +840,9 @@ mod test {
         };
         let client = Client::new(config).unwrap();
         assert_eq!(
-            Url::parse("https://firefox.settings.services.mozilla.com").unwrap(),
-            client.base_url
+            Url::parse("https://firefox.settings.services.mozilla.com/v1/buckets/main/collections/the-collection").unwrap(),
+            client.endpoints.collection_url
         );
-        assert_eq!(String::from("main"), client.bucket_name);
     }
 
     #[test]
@@ -551,7 +854,10 @@ mod test {
             collection_name: String::from("the-collection"),
         };
         let client = Client::new(config).unwrap();
-        assert_eq!(Url::parse("https://example.com").unwrap(), client.base_url);
+        assert_eq!(
+            Url::parse("https://example.com/v1/buckets/main/collections/the-collection").unwrap(),
+            client.endpoints.collection_url
+        );
     }
 
     #[test]
@@ -572,7 +878,7 @@ mod test {
     #[test]
     fn test_attachment_can_be_downloaded() {
         viaduct_reqwest::use_reqwest_backend();
-        let server_info_m = mock("GET", "/")
+        let server_info_m = mock("GET", "/v1/")
             .with_body(attachment_metadata(mockito::server_url()))
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -611,7 +917,7 @@ mod test {
     #[test]
     fn test_attachment_errors_if_server_not_configured_for_attachments() {
         viaduct_reqwest::use_reqwest_backend();
-        let server_info_m = mock("GET", "/")
+        let server_info_m = mock("GET", "/v1/")
             .with_body(NO_ATTACHMENTS_METADATA)
             .with_status(200)
             .with_header("content-type", "application/json")
@@ -1154,4 +1460,80 @@ mod test {
       "deleted": true
     }
   "#;
+}
+
+#[cfg(test)]
+mod test_new_client {
+    use super::*;
+
+    use serde_json::json;
+
+    #[test]
+    fn test_endpoints() {
+        let endpoints = RemoteSettingsEndpoints::new(
+            &Url::parse("http://rs.example.com/v1").unwrap(),
+            "main",
+            "test-collection",
+        )
+        .unwrap();
+        assert_eq!(endpoints.root_url.to_string(), "http://rs.example.com/v1/");
+        assert_eq!(
+            endpoints.collection_url.to_string(),
+            "http://rs.example.com/v1/buckets/main/collections/test-collection",
+        );
+        assert_eq!(
+            endpoints.records_url.to_string(),
+            "http://rs.example.com/v1/buckets/main/collections/test-collection/records",
+        );
+        assert_eq!(
+            endpoints.changeset_url.to_string(),
+            "http://rs.example.com/v1/buckets/main/collections/test-collection/changeset",
+        );
+    }
+
+    #[test]
+    fn test_get_records_none_cached() {
+        let mut api_client = MockApiClient::new();
+        api_client.expect_collection_url().returning(|| {
+            "http://rs.example.com/v1/buckets/main/collections/test-collection".into()
+        });
+        // Note, don't make any api_client.expect_*() calls, the RemoteSettingsClient should not
+        // attempt to make any requests for this scenario
+        let storage = Storage::new(":memory:".into()).expect("Error creating storage");
+        let rs_client =
+            RemoteSettingsClient::new_from_parts("test-collection".into(), storage, api_client);
+        assert_eq!(
+            rs_client.get_records(false).expect("Error getting records"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_get_records_none_cached_sync_with_empty() {
+        let mut api_client = MockApiClient::new();
+        let records = vec![RemoteSettingsRecord {
+            id: "record-0001".into(),
+            last_modified: 100,
+            deleted: false,
+            attachment: None,
+            fields: json!({"foo": "bar"}).as_object().unwrap().clone(),
+        }];
+        api_client.expect_collection_url().returning(|| {
+            "http://rs.example.com/v1/buckets/main/collections/test-collection".into()
+        });
+        api_client.expect_get_records().returning({
+            let records = records.clone();
+            move |timestamp| {
+                assert_eq!(timestamp, None);
+                Ok(records.clone())
+            }
+        });
+        let storage = Storage::new(":memory:".into()).expect("Error creating storage");
+        let rs_client =
+            RemoteSettingsClient::new_from_parts("test-collection".into(), storage, api_client);
+        assert_eq!(
+            rs_client.get_records(true).expect("Error getting records"),
+            Some(records)
+        );
+    }
 }
