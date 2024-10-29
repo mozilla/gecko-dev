@@ -18,7 +18,7 @@ interface ChildSHistory {
   [Pure]
   readonly attribute long index;
 
-  boolean canGo(long aOffset);
+  boolean canGo(long aOffset, optional boolean aRequireUserInteraction = false);
   [Throws] undefined go(long aOffset, optional boolean aRequireUserInteraction = false, optional boolean aUserActivation = false);
 
   /**

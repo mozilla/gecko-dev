@@ -137,6 +137,7 @@ add_task(async function test_subframes() {
 
   // Navigate the subframe.
   await SpecialPowers.spawn(browser, [], async function () {
+    content.document.notifyUserGestureActivation();
     content.document.querySelector("#a1").click();
   });
   await promiseBrowserLoaded(

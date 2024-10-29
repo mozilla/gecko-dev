@@ -64,8 +64,14 @@ class ChildSHistory : public nsISupports, public nsWrapperCache {
    * The CanGo and Go methods are called with an offset from the current index.
    * Positive numbers go forward in history, while negative numbers go
    * backwards.
+   * aRequireUserInteraction is used in order to enable the back-button
+   * intervention. This causes an additional check that there must be a previous
+   * entry that has been user-interacted. This check is unnecessary when going
+   * forwards as the latest entry is always available, whether it has been
+   * interacted with or not. This feature is gated by the
+   * browser.navigation.requireUserInteraction pref.
    */
-  bool CanGo(int32_t aOffset);
+  bool CanGo(int32_t aOffset, bool aRequireUserInteraction);
   void Go(int32_t aOffset, bool aRequireUserInteraction, bool aUserActivation,
           ErrorResult& aRv);
   void AsyncGo(int32_t aOffset, bool aRequireUserInteraction,

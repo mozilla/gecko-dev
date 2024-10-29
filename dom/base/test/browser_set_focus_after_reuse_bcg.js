@@ -27,6 +27,7 @@ async function test_set_focus_after_reuse_bcg() {
       SITE_B_URL
     );
     await SpecialPowers.spawn(tab.linkedBrowser, [], async function () {
+      content.document.notifyUserGestureActivation();
       var button = content.document.querySelector("button");
       button.click();
     });

@@ -254,6 +254,11 @@ add_task(async function test_aboutwelcome_addonspicker() {
     ["button[data-l10n-id='btn-1-install']"]
   );
 
+  // Mark the first entry as having been interacted with.
+  SpecialPowers.spawn(browser, [], () => {
+    content.document.notifyUserGestureActivation();
+  });
+
   // Navigate to the next screen to test state on forward/back navigation
   await clickVisibleButton(browser, "button[value='secondary_button']");
   // Update the message stub to reflect the addon install

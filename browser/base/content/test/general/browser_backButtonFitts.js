@@ -9,6 +9,9 @@ add_task(async function () {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, firstLocation);
 
   await ContentTask.spawn(gBrowser.selectedBrowser, {}, async function () {
+    // Mark the first entry as having been interacted with.
+    content.document.notifyUserGestureActivation();
+
     // Push the state before maximizing the window and clicking below.
     content.history.pushState("page2", "page2", "page2");
   });
