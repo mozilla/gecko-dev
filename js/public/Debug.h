@@ -117,6 +117,10 @@ struct ExecutionTrace {
         // and/or scripts)
         uint32_t scriptId;
 
+        // ID to the realm that the frame was in. It's used for finding which
+        // frame comes from which window/page.
+        uint64_t realmID;
+
         // Keys into the thread's atoms HashMap. This key can be missing from
         // the HashMap as well (see comment above scriptId)
         uint32_t functionNameId;

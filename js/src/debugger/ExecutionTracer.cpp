@@ -151,6 +151,8 @@ bool ExecutionTracer::writeFunctionFrame(JSContext* cx,
     inlineData_.write(fn->baseScript()->lineno());
     inlineData_.write(fn->baseScript()->column().oneOriginValue());
     inlineData_.write(scriptSourceId);
+    inlineData_.write(
+        fn->baseScript()->realm()->creationOptions().profilerRealmID());
   } else {
     // In the case of no baseScript, we just fill it out with 0s. 0 is an
     // invalid script source ID, so it is distinguishable from a real one
@@ -256,6 +258,7 @@ bool ExecutionTracer::readFunctionFrame(
   inlineData_.read(&event.functionEvent.lineNumber);
   inlineData_.read(&event.functionEvent.column);
   inlineData_.read(&event.functionEvent.scriptId);
+  inlineData_.read(&event.functionEvent.realmID);
   inlineData_.read(&event.functionEvent.functionNameId);
   inlineData_.read(&implementation);
   inlineData_.read(&event.time);
