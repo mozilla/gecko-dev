@@ -373,7 +373,7 @@ ocsp_request_time:
 
 networking:
   nss_initialization:
-    type: timespan
+    type: quantity
     description: >
       The time in milliseconds to initialize the NSS component in the
       parent process.
@@ -387,11 +387,11 @@ networking:
       - mconley@mozilla.com
       - dkeeler@mozilla.com
     expires: never
-    time_unit: millisecond
+    unit: millisecond
     telemetry_mirror: NETWORKING_NSS_INITIALIZATION
 
   loading_certs_task:
-    type: timespan
+    type: quantity
     description: >
       The time in milliseconds to load any external certificates. This
       occurs off of the main-thread, but can block main-thread operations.
@@ -405,7 +405,7 @@ networking:
       - mconley@mozilla.com
       - dkeeler@mozilla.com
     expires: never
-    time_unit: millisecond
+    unit: millisecond
     telemetry_mirror: NETWORKING_LOADING_CERTS_TASK
 
 security:
