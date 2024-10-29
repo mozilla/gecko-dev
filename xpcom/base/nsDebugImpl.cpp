@@ -361,6 +361,20 @@ struct DebugBreakMarker {
 
 }  // namespace geckoprofiler::markers
 
+#ifdef ANDROID
+static void NS_PrintStackFrame(const char* aBuf) {
+  __android_log_print(ANDROID_LOG_INFO, "Gecko", "%s", aBuf);
+}
+#endif
+
+static void NS_PrintStackTrace() {
+#ifdef ANDROID
+  MozWalkTheStackWithWriter(NS_PrintStackFrame);
+#else
+  MozWalkTheStack(stderr);
+#endif
+}
+
 EXPORT_XPCOM_API(void)
 NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
               const char* aFile, int32_t aLine) {
@@ -466,7 +480,7 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
       RealBreak();
 #endif
 #if defined(DEBUG)
-      MozWalkTheStack(stderr);
+      NS_PrintStackTrace();
 #endif
       Abort(buf.buffer);
       return;
@@ -490,11 +504,11 @@ NS_DebugBreak(uint32_t aSeverity, const char* aStr, const char* aExpr,
       return;
 
     case NS_ASSERT_STACK:
-      MozWalkTheStack(stderr);
+      NS_PrintStackTrace();
       return;
 
     case NS_ASSERT_STACK_AND_ABORT:
-      MozWalkTheStack(stderr);
+      NS_PrintStackTrace();
       // Fall through to abort
       [[fallthrough]];
 
