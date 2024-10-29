@@ -170,15 +170,30 @@ static int DupReadOnly(int fd) {
 #  endif  // OS selection
 #endif    // HAVE_MEMFD_CREATE
 
-// Runtime detection for memfd support.
-static bool HaveMemfd() {
+// Runtime detection for memfd support.  Returns `Nothing()` if not
+// supported, or `Some(flags)` if supported, where `flags` contains
+// flags like `MFD_CLOEXEC` that should be passed to all calls.
+static Maybe<unsigned> HaveMemfd() {
 #ifdef USE_MEMFD_CREATE
-  static const bool kHave = [] {
+  static const Maybe<unsigned> kHave = []() -> Maybe<unsigned> {
+    unsigned flags = MFD_CLOEXEC | MFD_ALLOW_SEALING;
+#ifdef MFD_NOEXEC_SEAL
+    flags |= MFD_NOEXEC_SEAL;
+#endif
+
     mozilla::UniqueFileHandle fd(
-        memfd_create("mozilla-ipc-test", MFD_CLOEXEC | MFD_ALLOW_SEALING));
+        memfd_create("mozilla-ipc-test", flags));
+
+#ifdef MFD_NOEXEC_SEAL
+    if (!fd && errno == EINVAL) {
+      flags &= ~MFD_NOEXEC_SEAL;
+      fd.reset(memfd_create("mozilla-ipc-test", flags));
+    }
+#endif
+
     if (!fd) {
       DCHECK_EQ(errno, ENOSYS);
-      return false;
+      return Nothing();
     }
 
     // Verify that DupReadOnly works; on Linux it's known to fail if:
@@ -203,14 +218,14 @@ static bool HaveMemfd() {
       if (!rofd) {
         CHROMIUM_LOG(WARNING) << "read-only dup failed (" << strerror(errno)
                               << "); not using memfd";
-        return false;
+        return Nothing();
       }
     }
-    return true;
+    return Some(flags);
   }();
   return kHave;
 #else
-  return false;
+  return Nothing();
 #endif  // USE_MEMFD_CREATE
 }
 
@@ -249,9 +264,8 @@ bool SharedMemory::CreateImpl(size_t size, bool freezable) {
   bool is_memfd = false;
 
 #ifdef USE_MEMFD_CREATE
-  if (HaveMemfd()) {
-    const unsigned flags = MFD_CLOEXEC | (freezable ? MFD_ALLOW_SEALING : 0);
-    fd.reset(memfd_create("mozilla-ipc", flags));
+  if (auto flags = HaveMemfd()) {
+    fd.reset(memfd_create("mozilla-ipc", *flags));
     if (!fd) {
       // In general it's too late to fall back here -- in a sandboxed
       // child process, shm_open is already blocked.  And it shouldn't

@@ -295,24 +295,40 @@ TEST(IPCSharedMemory, BasicIsZero)
 #endif
 
 #if defined(XP_LINUX) && !defined(ANDROID)
+class IPCSharedMemoryLinuxTest : public ::testing::Test {
+  int mMajor = 0;
+  int mMinor = 0;
+ protected:
+  void SetUp() override {
+    if (mMajor != 0) {
+      return;
+    }
+    struct utsname uts;
+    ASSERT_EQ(uname(&uts), 0) << strerror(errno);
+    ASSERT_STREQ(uts.sysname, "Linux");
+    ASSERT_EQ(sscanf(uts.release, "%d.%d", &mMajor, &mMinor), 2);
+  }
+
+  bool HaveKernelVersion(int aMajor, int aMinor) {
+    return mMajor > aMajor || (mMajor == aMajor && mMinor >= aMinor);
+  }
+
+  bool ShouldHaveMemfd() {
+    return HaveKernelVersion(3, 17);
+  }
+
+  bool ShouldHaveMemfdNoExec() {
+    return HaveKernelVersion(6, 3);
+  }
+};
+
 // Test that memfd_create is used where expected.
 //
 // More precisely: if memfd_create support is expected, verify that
 // shared memory isn't subject to a filesystem size limit.
-TEST(IPCSharedMemory, IsMemfd)
+TEST_F(IPCSharedMemoryLinuxTest, IsMemfd)
 {
-  static constexpr int kMajor = 3;
-  static constexpr int kMinor = 17;
-
-  struct utsname uts;
-  ASSERT_EQ(uname(&uts), 0) << strerror(errno);
-  ASSERT_STREQ(uts.sysname, "Linux");
-  int major, minor;
-  ASSERT_EQ(sscanf(uts.release, "%d.%d", &major, &minor), 2);
-  bool expectMemfd = major > kMajor || (major == kMajor && minor >= kMinor);
-
   auto shm = MakeRefPtr<ipc::SharedMemory>();
-
   ASSERT_TRUE(shm->Create(1));
   UniqueFileHandle fd = shm->TakeHandleAndUnmap();
   ASSERT_TRUE(fd);
@@ -321,7 +337,7 @@ TEST(IPCSharedMemory, IsMemfd)
   ASSERT_EQ(fstatfs(fd.get(), &fs), 0) << strerror(errno);
   EXPECT_EQ(fs.f_type, TMPFS_MAGIC);
   static constexpr decltype(fs.f_blocks) kNoLimit = 0;
-  if (expectMemfd) {
+  if (ShouldHaveMemfd()) {
     EXPECT_EQ(fs.f_blocks, kNoLimit);
   } else {
     // On older kernels, we expect the memfd / no-limit test to fail.
@@ -329,6 +345,23 @@ TEST(IPCSharedMemory, IsMemfd)
     // if that ever happens, this check can be removed.)
     EXPECT_NE(fs.f_blocks, kNoLimit);
   }
+}
+
+TEST_F(IPCSharedMemoryLinuxTest, MemfdNoExec)
+{
+  const bool expectExec = ShouldHaveMemfd() && !ShouldHaveMemfdNoExec();
+
+  auto shm = MakeRefPtr<ipc::SharedMemory>();
+  ASSERT_TRUE(shm->Create(1));
+  UniqueFileHandle fd = shm->TakeHandleAndUnmap();
+  ASSERT_TRUE(fd);
+
+  struct stat sb;
+  ASSERT_EQ(fstat(fd.get(), &sb), 0) << strerror(errno);
+  // Check that mode is reasonable.
+  EXPECT_EQ(sb.st_mode & (S_IRUSR | S_IWUSR), mode_t(S_IRUSR | S_IWUSR));
+  // Chech the exec bit
+  EXPECT_EQ(sb.st_mode & S_IXUSR, mode_t(expectExec ? S_IXUSR : 0));
 }
 #endif
 

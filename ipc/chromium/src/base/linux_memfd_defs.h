@@ -50,6 +50,10 @@ static_assert(MEMFD_CREATE_NR == SYS_memfd_create,
 #  define MFD_ALLOW_SEALING 0x0002U
 #endif
 
+#ifndef MFD_NOEXEC_SEAL
+#  define MFD_NOEXEC_SEAL 0x0008U
+#endif
+
 #ifndef F_ADD_SEALS
 #  ifndef F_LINUX_SPECIFIC_BASE
 #    define F_LINUX_SPECIFIC_BASE 1024
