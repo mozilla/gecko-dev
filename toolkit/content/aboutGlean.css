@@ -18,3 +18,8 @@
   transform: translateX(-50%);
   bottom: var(--space-medium);
 }
+
+#log-pings {
+  vertical-align: text-top;
+  margin-inline-end: 0;
+}
