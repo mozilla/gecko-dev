@@ -242,7 +242,7 @@ static bool IsZombieProcess(pid_t pid) {
     return true;
   }
   if (rparen[2] == 'Z') {
-    CHROMIUM_LOG(ERROR) << "process " << pid << " is a zombie";
+    DLOG(ERROR) << "process " << pid << " is a zombie";
     return true;
   }
   return false;
@@ -274,7 +274,7 @@ bool IsProcessDead(ProcessHandle handle, bool blocking) {
         }
         return mozilla::Some(true);
       }
-      // Annoying edge case (bug NNNNNNN): if pid 1 isn't a real
+      // Annoying edge case (bug 1881386): if pid 1 isn't a real
       // `init`, like in some container environments, and if the child
       // exited after the fork server, it could become a permanent
       // zombie.  We treat it as dead in that case.
