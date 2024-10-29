@@ -8,8 +8,21 @@
     <script type="application/javascript">
     // Since BFCache in parent requires no opener, use BroadcastChannel
     // to communicate with file_same_url.html.
-    let bc = new BroadcastChannel("test_same_url");
+
     async function test() {
+        await SimpleTest.enableLegacyUnpartitionedStorage();
+        let bc = new BroadcastChannel("test_same_url");
+        async function waitForLoad() {
+            return new Promise(resolve => {
+                let listener = e => {
+                    if (e.data.bodyOnLoad) {
+                        bc.removeEventListener("message", listener);
+                        setTimeout(() => resolve(e.data.bodyOnLoad), 0);
+                    }
+                };
+                bc.addEventListener("message", listener);
+            });
+        }
         var promise;
         let historyLength;
 
@@ -27,17 +40,6 @@
         SimpleTest.finish();
     }
 
-    async function waitForLoad() {
-        return new Promise(resolve => {
-            let listener = e => {
-                if (e.data.bodyOnLoad) {
-                    bc.removeEventListener("message", listener);
-                    setTimeout(() => resolve(e.data.bodyOnLoad), 0);
-                }
-            };
-            bc.addEventListener("message", listener);
-        });
-    }
     </script>
 </head>
 

@@ -5,30 +5,31 @@
   <title>test bug 1583110</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
-  <script>
+  <script defer>
     SimpleTest.waitForExplicitFinish();
-    var bc = new BroadcastChannel("bug1583110");
-    var pageshowCount = 0;
-    bc.onmessage = function(event) {
-      ok(event.data.type == "pageshow");
-      ++pageshowCount;
-      if (pageshowCount == 1) {
-        bc.postMessage("loadnext");
-      } else if (pageshowCount == 2) {
-        bc.postMessage("back");
-      } else {
-        ok(event.data.persisted, "Should have persisted the first page");
-        bc.close();
-        SimpleTest.finish();
-      }
-    }
 
-    function test() {
+    SimpleTest.enableLegacyUnpartitionedStorage().then( () => {
+      var bc = new BroadcastChannel("bug1583110");
+      var pageshowCount = 0;
+      bc.onmessage = function(event) {
+        ok(event.data.type == "pageshow");
+        ++pageshowCount;
+        if (pageshowCount == 1) {
+          bc.postMessage("loadnext");
+        } else if (pageshowCount == 2) {
+          bc.postMessage("back");
+        } else {
+          ok(event.data.persisted, "Should have persisted the first page");
+          bc.close();
+          SimpleTest.finish();
+        }
+      };
       window.open("file_bug1583110.html", "", "noopener");
-    }
+    });
+
   </script>
 </head>
-<body onload="test()">
+<body>
 <p id="display"></p>
 <div id="content" style="display: none"></div>
 <pre id="test"></pre>

@@ -6,7 +6,7 @@
     <script src="/tests/SimpleTest/SimpleTest.js"></script>
     <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
   </head>
-  <script>
+  <script defer>
     SimpleTest.waitForExplicitFinish();
 
     /*
@@ -22,33 +22,31 @@
      * (4) Page A then navigates back to page B to check if page B has
      *     been successfully added to BFCache.
      */
-
-    var bc = new BroadcastChannel("ship_beforeunload");
-    var pageshowCount = 0;
-    var beforeUnloadFired = false;
-    bc.onmessage = function(event) {
-      if (event.data.type == "pageshow") {
-        ++pageshowCount;
-        if (pageshowCount == 1) {
-          bc.postMessage({action: "navigate_to_page_b"});
-        } else if (pageshowCount == 2) {
-          ok(!event.data.persisted, "?pageb shouldn't in BFCache because it's the first navigation");
-          bc.postMessage({action: "register_beforeunload", loadNextPageFromSessionHistory: true});
-        } else if (pageshowCount == 3) {
-          ok(event.data.persisted, "navigated back to page A that was in BFCacache from page B");
-          ok(beforeUnloadFired, "beforeunload has fired on page B");
-          bc.postMessage({action: "back_to_page_b", forwardNavigateToPageB: true});
-        } else if (pageshowCount == 4) {
-          ok(event.data.persisted, "page B has beforeunload fired and also entered BFCache");
-          bc.postMessage({action: "close"});
-          SimpleTest.finish();
+     SimpleTest.enableLegacyUnpartitionedStorage().then( () => {
+      var bc = new BroadcastChannel("ship_beforeunload");
+      var pageshowCount = 0;
+      var beforeUnloadFired = false;
+      bc.onmessage = function(event) {
+        if (event.data.type == "pageshow") {
+          ++pageshowCount;
+          if (pageshowCount == 1) {
+            bc.postMessage({action: "navigate_to_page_b"});
+          } else if (pageshowCount == 2) {
+            ok(!event.data.persisted, "?pageb shouldn't in BFCache because it's the first navigation");
+            bc.postMessage({action: "register_beforeunload", loadNextPageFromSessionHistory: true});
+          } else if (pageshowCount == 3) {
+            ok(event.data.persisted, "navigated back to page A that was in BFCacache from page B");
+            ok(beforeUnloadFired, "beforeunload has fired on page B");
+            bc.postMessage({action: "back_to_page_b", forwardNavigateToPageB: true});
+          } else if (pageshowCount == 4) {
+            ok(event.data.persisted, "page B has beforeunload fired and also entered BFCache");
+            bc.postMessage({action: "close"});
+            SimpleTest.finish();
+          }
+        } else if (event.data == "beforeunload_fired") {
+          beforeUnloadFired = true;
         }
-      } else if (event.data == "beforeunload_fired") {
-        beforeUnloadFired = true;
       }
-    }
-
-    function runTest() {
       SpecialPowers.pushPrefEnv({"set": [
           ["fission.bfcacheInParent", true],
           ["docshell.shistory.bfcache.ship_allow_beforeunload_listeners", true]
@@ -57,7 +55,7 @@
           window.open("file_ship_beforeunload_fired.html", "", "noopener");
         }
       );
-    }
+    });
   </script>
-  <body onload="runTest()"></body>
+  <body></body>
 </html>

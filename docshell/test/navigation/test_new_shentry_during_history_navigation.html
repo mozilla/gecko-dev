@@ -51,6 +51,7 @@
     }
 
     async function testBfcache() {
+      await SimpleTest.enableLegacyUnpartitionedStorage();
       let bc = new BroadcastChannel("new_shentry_during_history_navigation");
       let pageshowCount = 0;
       bc.onmessage = function(event) {

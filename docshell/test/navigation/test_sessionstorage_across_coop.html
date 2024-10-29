@@ -45,6 +45,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1790666
         "set": [["dom.securecontext.allowlist", "mochi.test"]],
       });
 
+      await SimpleTest.enableLegacyUnpartitionedStorage();
+
       await singleTest("short test value", "short test value");
 
       let longValue = "A".repeat(SpecialPowers.getIntPref("browser.sessionstore.dom_storage_limit") * 2);

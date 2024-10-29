@@ -8,7 +8,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
-<body onload="runTest()">
+<body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1155730">Mozilla Bug 1155730</a>
 <p id="display"></p>
 <div id="content" style="display: none">
@@ -201,13 +201,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=
       window.open("file_scrollRestoration_bfcache_and_nobfcache.html", "", "width=360,height=480,noopener");
     }
 
-    function runTest() {
+    SimpleTest.enableLegacyUnpartitionedStorage().then(() => {
       // If Fission is disabled, the pref is no-op.
       SpecialPowers.pushPrefEnv({set: [["fission.bfcacheInParent", true]]}, () => {
         test1();
       });
-    }
-
+    });
   </script>
 </pre>
 </body>
