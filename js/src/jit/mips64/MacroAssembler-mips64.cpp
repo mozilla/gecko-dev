@@ -2821,7 +2821,6 @@ void MacroAssembler::convertUInt64ToFloat32(Register64 src_, FloatRegister dest,
   bind(&done);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 void MacroAssembler::wasmMarkCallAsSlow() { mov(ra, ra); }
 
 const int32_t SlowCallMarker = 0x37ff0000;  // ori ra, ra, 0
@@ -2839,6 +2838,5 @@ CodeOffset MacroAssembler::wasmMarkedSlowCall(const wasm::CallSiteDesc& desc,
   wasmMarkCallAsSlow();
   return offset;
 }
-#endif  // ENABLE_WASM_TAIL_CALLS
 
 //}}} check_macroassembler_style

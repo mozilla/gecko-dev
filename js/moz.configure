@@ -730,38 +730,6 @@ option(
     help="Force disable all wasm experimental features for testing.",
 )
 
-# Support for WebAssembly tail-calls.
-# ===========================
-
-
-@depends(target)
-def default_wasm_tail_calls(target):
-    if target.cpu in ("x86", "x86_64", "arm", "aarch64", "loongarch64", "mips64"):
-        return True
-
-
-option(
-    "--enable-wasm-tail-calls",
-    default=default_wasm_tail_calls,
-    help="{Enable|Disable} WebAssembly tail-calls",
-)
-
-
-@depends("--enable-wasm-tail-calls", target)
-def wasm_tail_calls(value, target):
-    if not value:
-        return
-
-    if target.cpu in ("x86", "x86_64", "arm", "aarch64", "loongarch64", "mips64"):
-        return True
-
-    die(
-        "--enable-wasm-tail-calls only possible when targeting the x86_64/x86/arm64/arm/loongarch64/mips64 jits"
-    )
-
-
-set_config("ENABLE_WASM_TAIL_CALLS", wasm_tail_calls)
-set_define("ENABLE_WASM_TAIL_CALLS", wasm_tail_calls)
 
 # Support for JS PI spec.
 # ===========================
@@ -771,20 +739,15 @@ set_define("ENABLE_WASM_TAIL_CALLS", wasm_tail_calls)
     milestone.is_nightly,
     "--enable-jit",
     "--enable-simulator",
-    "--enable-wasm-tail-calls",
     target,
 )
 def default_wasm_jspi(
     is_nightly,
     jit_enabled,
     simulator,
-    tail_calls,
     target,
 ):
     if not jit_enabled:
-        return
-
-    if not tail_calls:
         return
 
     if not is_nightly:
@@ -808,19 +771,15 @@ option(
     "--enable-wasm-jspi",
     "--enable-jit",
     "--enable-simulator",
-    "--enable-wasm-tail-calls",
     "--wasm-no-experimental",
     target,
 )
-def wasm_jspi(value, jit_enabled, simulator, tail_calls, no_experimental, target):
+def wasm_jspi(value, jit_enabled, simulator, no_experimental, target):
     if no_experimental or not value:
         return
 
     if not jit_enabled:
         die("--enable-wasm-jspi requires --enable-jit")
-
-    if not tail_calls:
-        die("--enable-wasm-jspi requires --enable-wasm-tail-calls")
 
     if simulator and not (simulator[0] == "arm64" or simulator[0] == "arm"):
         die("--enable-wasm-jspi is only supported for arm64/arm simulators")

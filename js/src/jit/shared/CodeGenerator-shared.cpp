@@ -100,7 +100,6 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph,
       // argument stack depth separately.
       MOZ_ASSERT(graph->argumentSlotCount() == 0);
 
-#ifdef ENABLE_WASM_TAIL_CALLS
       // An MWasmCall does not align the stack pointer at calls sites but
       // instead relies on the a priori stack adjustment. We need to insert
       // padding so that pushing the callee's frame maintains frame alignment.
@@ -115,15 +114,6 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph,
 
       // Add the callee frame padding and stack args to frameDepth.
       frameDepth_ += calleeFramePadding + stackArgsWithPadding;
-#else
-      frameDepth_ += gen->wasmMaxStackArgBytes();
-
-      // An MWasmCall does not align the stack pointer at calls sites but
-      // instead relies on the a priori stack adjustment. This must be the
-      // last adjustment of frameDepth_.
-      frameDepth_ += ComputeByteAlignment(sizeof(wasm::Frame) + frameDepth_,
-                                          WasmStackAlignment);
-#endif
     }
 
 #ifdef JS_CODEGEN_ARM64

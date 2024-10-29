@@ -3122,7 +3122,6 @@ class FunctionCompiler {
            collectCallResults(resultType, callState.stackResultArea, results);
   }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
   [[nodiscard]]
   bool returnCallRef(const FuncType& funcType, MDefinition* ref,
                      uint32_t lineOrBytecode, const DefVector& args,
@@ -3148,8 +3147,6 @@ class FunctionCompiler {
     curBlock_ = nullptr;
     return true;
   }
-
-#endif  // ENABLE_WASM_TAIL_CALLS
 
   [[nodiscard]] MDefinition* stringCast(MDefinition* string) {
     auto* ins = MWasmTrapIfAnyRefIsNotJSString::New(
@@ -6146,7 +6143,6 @@ static bool EmitStackSwitch(FunctionCompiler& f) {
 }
 #endif
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 static bool EmitReturnCall(FunctionCompiler& f) {
   uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
 
@@ -6199,9 +6195,7 @@ static bool EmitReturnCallIndirect(FunctionCompiler& f) {
   return f.returnCallIndirect(funcTypeIndex, tableIndex, callee, lineOrBytecode,
                               args, &results);
 }
-#endif
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 static bool EmitReturnCallRef(FunctionCompiler& f) {
   uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
 
@@ -6220,7 +6214,6 @@ static bool EmitReturnCallRef(FunctionCompiler& f) {
   DefVector results;
   return f.returnCallRef(*funcType, callee, lineOrBytecode, args, &results);
 }
-#endif
 
 static bool EmitGetLocal(FunctionCompiler& f) {
   uint32_t id;
@@ -9313,20 +9306,12 @@ bool EmitBodyExprs(FunctionCompiler& f) {
       case uint16_t(Op::I64Extend32S):
         CHECK(EmitSignExtend(f, 4, 8));
 
-#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCall): {
-        if (!f.codeMeta().tailCallsEnabled()) {
-          return f.iter().unrecognizedOpcode(&op);
-        }
         CHECK(EmitReturnCall(f));
       }
       case uint16_t(Op::ReturnCallIndirect): {
-        if (!f.codeMeta().tailCallsEnabled()) {
-          return f.iter().unrecognizedOpcode(&op);
-        }
         CHECK(EmitReturnCallIndirect(f));
       }
-#endif
 
       case uint16_t(Op::RefAsNonNull):
         CHECK(EmitRefAsNonNull(f));
@@ -9340,14 +9325,9 @@ bool EmitBodyExprs(FunctionCompiler& f) {
         CHECK(EmitCallRef(f));
       }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCallRef): {
-        if (!f.codeMeta().tailCallsEnabled()) {
-          return f.iter().unrecognizedOpcode(&op);
-        }
         CHECK(EmitReturnCallRef(f));
       }
-#endif
 
       // Gc operations
       case uint16_t(Op::GcPrefix): {

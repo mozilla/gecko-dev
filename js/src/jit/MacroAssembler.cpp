@@ -5648,7 +5648,6 @@ std::pair<CodeOffset, uint32_t> MacroAssembler::wasmReserveStackChecked(
   return std::pair<CodeOffset, uint32_t>(trapInsnOffset, amount);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 static void MoveDataBlock(MacroAssembler& masm, Register base, int32_t from,
                           int32_t to, uint32_t size) {
   MOZ_ASSERT(base != masm.getStackPointer());
@@ -5656,20 +5655,20 @@ static void MoveDataBlock(MacroAssembler& masm, Register base, int32_t from,
     return;  // noop
   }
 
-#  ifdef JS_CODEGEN_ARM64
+#ifdef JS_CODEGEN_ARM64
   vixl::UseScratchRegisterScope temps(&masm);
   const Register scratch = temps.AcquireX().asUnsized();
-#  elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_X86)
+#elif defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_X86)
   static constexpr Register scratch = ABINonArgReg0;
   masm.push(scratch);
-#  elif defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_MIPS64) || \
-      defined(JS_CODEGEN_RISCV64)
+#elif defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_MIPS64) || \
+    defined(JS_CODEGEN_RISCV64)
   ScratchRegisterScope scratch(masm);
-#  elif !defined(JS_CODEGEN_NONE)
+#elif !defined(JS_CODEGEN_NONE)
   const Register scratch = ScratchReg;
-#  else
+#else
   const Register scratch = InvalidReg;
-#  endif
+#endif
 
   if (to < from) {
     for (uint32_t i = 0; i < size; i += sizeof(void*)) {
@@ -5684,17 +5683,17 @@ static void MoveDataBlock(MacroAssembler& masm, Register base, int32_t from,
     }
   }
 
-#  if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_X86)
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_X86)
   masm.pop(scratch);
-#  endif
+#endif
 }
 
 struct ReturnCallTrampolineData {
-#  ifdef JS_CODEGEN_ARM
+#ifdef JS_CODEGEN_ARM
   uint32_t trampolineOffset;
-#  else
+#else
   CodeLabel trampoline;
-#  endif
+#endif
 };
 
 static ReturnCallTrampolineData MakeReturnCallTrampoline(MacroAssembler& masm) {
@@ -5703,19 +5702,19 @@ static ReturnCallTrampolineData MakeReturnCallTrampoline(MacroAssembler& masm) {
   ReturnCallTrampolineData data;
 
   {
-#  if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
     AutoForbidPoolsAndNops afp(&masm, 1);
-#  elif defined(JS_CODEGEN_RISCV64)
+#elif defined(JS_CODEGEN_RISCV64)
     BlockTrampolinePoolScope block_trampoline_pool(&masm, 1);
-#  endif
+#endif
 
     // Build simple trampoline code: load the instance slot from the frame,
     // restore FP, and return to prevous caller.
-#  ifdef JS_CODEGEN_ARM
+#ifdef JS_CODEGEN_ARM
     data.trampolineOffset = masm.currentOffset();
-#  else
+#else
     masm.bind(&data.trampoline);
-#  endif
+#endif
 
     masm.setFramePushed(AlignBytes(
         wasm::FrameWithInstances::sizeOfInstanceFieldsAndShadowStack(),
@@ -5729,16 +5728,16 @@ static ReturnCallTrampolineData MakeReturnCallTrampoline(MacroAssembler& masm) {
       InstanceReg);
   masm.switchToWasmInstanceRealm(ABINonArgReturnReg0, ABINonArgReturnReg1);
   masm.moveToStackPtr(FramePointer);
-#  ifdef JS_CODEGEN_ARM64
+#ifdef JS_CODEGEN_ARM64
   masm.pop(FramePointer, lr);
   masm.append(wasm::CodeRangeUnwindInfo::UseFpLr, masm.currentOffset());
   masm.Mov(PseudoStackPointer64, vixl::sp);
   masm.abiret();
-#  else
+#else
   masm.pop(FramePointer);
   masm.append(wasm::CodeRangeUnwindInfo::UseFp, masm.currentOffset());
   masm.ret();
-#  endif
+#endif
 
   masm.append(wasm::CodeRangeUnwindInfo::Normal, masm.currentOffset());
   masm.setFramePushed(savedPushed);
@@ -5799,9 +5798,9 @@ static void CollapseWasmFrameFast(MacroAssembler& masm,
   static constexpr Register tempForCaller = WasmTailCallInstanceScratchReg;
   static constexpr Register tempForFP = WasmTailCallFPScratchReg;
   static constexpr Register tempForRA = WasmTailCallRAScratchReg;
-#  ifndef JS_USE_LINK_REGISTER
+#ifndef JS_USE_LINK_REGISTER
   masm.push(tempForRA);
-#  endif
+#endif
 
   // Load the FP, RA, and instance slots into registers to preserve them while
   // the new frame is collapsed over the current one.
@@ -5839,10 +5838,10 @@ static void CollapseWasmFrameFast(MacroAssembler& masm,
       InstanceReg,
       Address(FramePointer, newArgDest + WasmCalleeInstanceOffsetBeforeCall));
 
-#  ifdef JS_USE_LINK_REGISTER
+#ifdef JS_USE_LINK_REGISTER
   // RA is already in its place, just move stack.
   masm.addToStackPtr(Imm32(framePushedAtStart + newArgDest));
-#  else
+#else
   // Push RA to new frame: store RA, restore temp, and move stack.
   int32_t newFrameOffset = newArgDest - sizeof(wasm::Frame);
   masm.storePtr(tempForRA,
@@ -5857,7 +5856,7 @@ static void CollapseWasmFrameFast(MacroAssembler& masm,
   masm.append(wasm::CodeRangeUnwindInfo::RestoreFp, masm.currentOffset());
   masm.addToStackPtr(Imm32(framePushedAtStart + newFrameOffset +
                            wasm::Frame::returnAddressOffset() + sizeof(void*)));
-#  endif
+#endif
 
   masm.movePtr(tempForFP, FramePointer);
   // Setting framePushed to pre-collapse state, to properly set that in the
@@ -5913,9 +5912,9 @@ static void CollapseWasmFrameSlow(MacroAssembler& masm,
                           : 0;
   masm.reserveStack(reserved);
 
-#  ifndef JS_USE_LINK_REGISTER
+#ifndef JS_USE_LINK_REGISTER
   masm.push(tempForRA);
-#  endif
+#endif
 
   // Load FP, RA and instance slots to preserve them from being overwritten.
   masm.loadPtr(Address(FramePointer, wasm::Frame::callerFPOffset()), tempForFP);
@@ -5956,7 +5955,7 @@ static void CollapseWasmFrameSlow(MacroAssembler& masm,
       InstanceReg,
       Address(FramePointer, newArgDest + WasmCalleeInstanceOffsetBeforeCall));
 
-#  ifdef JS_CODEGEN_ARM
+#ifdef JS_CODEGEN_ARM
   // ARM has no CodeLabel -- calculate PC directly.
   masm.mov(pc, tempForRA);
   masm.computeEffectiveAddress(
@@ -5964,20 +5963,20 @@ static void CollapseWasmFrameSlow(MacroAssembler& masm,
               int32_t(data.trampolineOffset - masm.currentOffset() - 4)),
       tempForRA);
   masm.append(desc, CodeOffset(data.trampolineOffset));
-#  else
+#else
   masm.mov(&data.trampoline, tempForRA);
 
   masm.addCodeLabel(data.trampoline);
   // Add slow trampoline callsite description, to be annotated in
   // stack/frame iterators.
   masm.append(desc, *data.trampoline.target());
-#  endif
+#endif
 
-#  ifdef JS_USE_LINK_REGISTER
+#ifdef JS_USE_LINK_REGISTER
   masm.freeStack(reserved);
   // RA is already in its place, just move stack.
   masm.addToStackPtr(Imm32(framePushedAtStart + newArgDest));
-#  else
+#else
   // Push RA to new frame: store RA, restore temp, and move stack.
   int32_t newFrameOffset = newArgDest - sizeof(wasm::Frame);
   masm.storePtr(tempForRA,
@@ -5993,7 +5992,7 @@ static void CollapseWasmFrameSlow(MacroAssembler& masm,
   masm.addToStackPtr(Imm32(framePushedAtStart + newFrameOffset +
                            wasm::Frame::returnAddressOffset() + reserved +
                            sizeof(void*)));
-#  endif
+#endif
 
   // Point FramePointer to hidden frame.
   masm.computeEffectiveAddress(Address(FramePointer, newFPOffset),
@@ -6030,7 +6029,6 @@ void MacroAssembler::wasmCollapseFrameSlow(
 
   bind(&done);
 }
-#endif  // ENABLE_WASM_TAIL_CALLS
 
 CodeOffset MacroAssembler::wasmCallImport(const wasm::CallSiteDesc& desc,
                                           const wasm::CalleeDesc& callee) {
@@ -6069,15 +6067,9 @@ CodeOffset MacroAssembler::wasmCallImport(const wasm::CallSiteDesc& desc,
            Address(getStackPointer(), WasmCalleeInstanceOffsetBeforeCall));
   loadWasmPinnedRegsFromInstance();
 
-#ifdef ENABLE_WASM_TAIL_CALLS
-  CodeOffset res = wasmMarkedSlowCall(desc, ABINonArgReg0);
-#else
-  CodeOffset res = call(desc, ABINonArgReg0);
-#endif
-  return res;
+  return wasmMarkedSlowCall(desc, ABINonArgReg0);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 CodeOffset MacroAssembler::wasmReturnCallImport(
     const wasm::CallSiteDesc& desc, const wasm::CalleeDesc& callee,
     const ReturnCallAdjustmentInfo& retCallInfo) {
@@ -6092,9 +6084,9 @@ CodeOffset MacroAssembler::wasmReturnCallImport(
                                offsetof(wasm::FuncImportInstanceData, code))),
       ABINonArgReg0);
 
-#  if !defined(JS_CODEGEN_NONE) && !defined(JS_CODEGEN_WASM32)
+#if !defined(JS_CODEGEN_NONE) && !defined(JS_CODEGEN_WASM32)
   static_assert(ABINonArgReg0 != InstanceReg, "by constraint");
-#  endif
+#endif
 
   // Switch to the callee's realm.
   loadPtr(
@@ -6133,7 +6125,6 @@ CodeOffset MacroAssembler::wasmReturnCall(
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
   return offset;
 }
-#endif  // ENABLE_WASM_TAIL_CALLS
 
 CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
     const wasm::CallSiteDesc& desc, const ABIArg& instanceArg,
@@ -6341,11 +6332,7 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
   loadPtr(Address(calleeScratch, offsetof(wasm::FunctionTableElem, code)),
           calleeScratch);
 
-#ifdef ENABLE_WASM_TAIL_CALLS
   *slowCallOffset = wasmMarkedSlowCall(desc, calleeScratch);
-#else
-  *slowCallOffset = call(desc, calleeScratch);
-#endif
 
   // Restore registers and realm and join up with the fast path.
 
@@ -6377,7 +6364,6 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
   bind(&done);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 void MacroAssembler::wasmReturnCallIndirect(
     const wasm::CallSiteDesc& desc, const wasm::CalleeDesc& callee,
     Label* boundsCheckFailedLabel, Label* nullCheckFailedLabel,
@@ -6458,18 +6444,18 @@ void MacroAssembler::wasmReturnCallIndirect(
            Address(getStackPointer(), WasmCallerInstanceOffsetBeforeCall));
   movePtr(newInstanceTemp, InstanceReg);
 
-#  ifdef WASM_HAS_HEAPREG
+#ifdef WASM_HAS_HEAPREG
   // Use the null pointer exception resulting from loading HeapReg from a null
   // instance to handle a call to a null slot.
   MOZ_ASSERT(nullCheckFailedLabel == nullptr);
   loadWasmPinnedRegsFromInstance(mozilla::Some(trapOffset));
-#  else
+#else
   MOZ_ASSERT(nullCheckFailedLabel != nullptr);
   branchTestPtr(Assembler::Zero, InstanceReg, InstanceReg,
                 nullCheckFailedLabel);
 
   loadWasmPinnedRegsFromInstance();
-#  endif
+#endif
   switchToWasmInstanceRealm(index, WasmTableCallScratchReg1);
 
   loadPtr(Address(calleeScratch, offsetof(wasm::FunctionTableElem, code)),
@@ -6492,7 +6478,6 @@ void MacroAssembler::wasmReturnCallIndirect(
   jump(calleeScratch);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
 }
-#endif  // ENABLE_WASM_TAIL_CALLS
 
 void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
                                  const wasm::CalleeDesc& callee,
@@ -6535,11 +6520,7 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
       FunctionExtended::WASM_FUNC_UNCHECKED_ENTRY_SLOT);
   loadPtr(Address(calleeFnObj, uncheckedEntrySlotOffset), calleeScratch);
 
-#ifdef ENABLE_WASM_TAIL_CALLS
   *slowCallOffset = wasmMarkedSlowCall(desc, calleeScratch);
-#else
-  *slowCallOffset = call(desc, calleeScratch);
-#endif
 
   // Restore registers and realm and back to this caller's.
   loadPtr(Address(getStackPointer(), WasmCallerInstanceOffsetBeforeCall),
@@ -6565,7 +6546,6 @@ void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
   bind(&done);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 void MacroAssembler::wasmReturnCallRef(
     const wasm::CallSiteDesc& desc, const wasm::CalleeDesc& callee,
     const ReturnCallAdjustmentInfo& retCallInfo) {
@@ -6623,7 +6603,6 @@ void MacroAssembler::wasmReturnCallRef(
   jump(calleeScratch);
   append(wasm::CodeRangeUnwindInfo::Normal, currentOffset());
 }
-#endif
 
 void MacroAssembler::wasmBoundsCheckRange32(
     Register index, Register length, Register limit, Register tmp,

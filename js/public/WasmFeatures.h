@@ -52,11 +52,6 @@
 #else
 #  define WASM_MEMORY_CONTROL_ENABLED 0
 #endif
-#ifdef ENABLE_WASM_TAIL_CALLS
-#  define WASM_TAIL_CALLS_ENABLED 1
-#else
-#  define WASM_TAIL_CALLS_ENABLED 0
-#endif
 #ifdef ENABLE_WASM_JSPI
 #  define WASM_JSPI_ENABLED 1
 #else
@@ -139,15 +134,6 @@
     /* flag force enable  */ false,                                     \
     /* flag fuzz enable   */ true,                                      \
     /* preference name    */ multi_memory)                              \
-  FEATURE(                                                              \
-    /* capitalized name   */ TailCalls,                                 \
-    /* lower case name    */ tailCalls,                                 \
-    /* compile predicate  */ WASM_TAIL_CALLS_ENABLED,                   \
-    /* compiler predicate */ AnyCompilerAvailable(cx),                  \
-    /* flag predicate     */ true,                                      \
-    /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ true,                                      \
-    /* preference name    */ tail_calls)                                \
   FEATURE(                                                              \
     /* capitalized name   */ JSPromiseIntegration,                      \
     /* lower case name    */ jsPromiseIntegration,                      \

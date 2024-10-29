@@ -223,40 +223,27 @@ static bool DecodeFunctionBodyExprs(const CodeMetadata& codeMeta,
         CHECK(iter.readCallIndirect(&unusedIndex, &unusedIndex2, &nothing,
                                     &unusedArgs));
       }
-#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCall): {
-        if (!codeMeta.tailCallsEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         uint32_t unusedIndex;
         NothingVector unusedArgs{};
         CHECK(iter.readReturnCall(&unusedIndex, &unusedArgs));
       }
       case uint16_t(Op::ReturnCallIndirect): {
-        if (!codeMeta.tailCallsEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         uint32_t unusedIndex, unusedIndex2;
         NothingVector unusedArgs{};
         CHECK(iter.readReturnCallIndirect(&unusedIndex, &unusedIndex2, &nothing,
                                           &unusedArgs));
       }
-#endif
       case uint16_t(Op::CallRef): {
         const FuncType* unusedType;
         NothingVector unusedArgs{};
         CHECK(iter.readCallRef(&unusedType, &nothing, &unusedArgs));
       }
-#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCallRef): {
-        if (!codeMeta.tailCallsEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         const FuncType* unusedType;
         NothingVector unusedArgs{};
         CHECK(iter.readReturnCallRef(&unusedType, &nothing, &unusedArgs));
       }
-#endif
       case uint16_t(Op::I32Const): {
         int32_t unused;
         CHECK(iter.readI32Const(&unused));

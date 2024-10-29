@@ -1879,14 +1879,12 @@ class OutOfLineAbortingTrap : public OutOfLineCode {
   }
 };
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 static ReturnCallAdjustmentInfo BuildReturnCallAdjustmentInfo(
     const FuncType& callerType, const FuncType& calleeType) {
   return ReturnCallAdjustmentInfo(
       StackArgAreaSizeUnaligned(ArgTypeVector(calleeType)),
       StackArgAreaSizeUnaligned(ArgTypeVector(callerType)));
 }
-#endif
 
 bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
                                 const Stk& indexVal, const FunctionCall& call,
@@ -1921,14 +1919,10 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
     masm.wasmCallIndirect(desc, callee, oob->entry(), nullCheckFailed,
                           mozilla::Nothing(), fastCallOffset, slowCallOffset);
   } else {
-#ifdef ENABLE_WASM_TAIL_CALLS
     ReturnCallAdjustmentInfo retCallInfo = BuildReturnCallAdjustmentInfo(
         this->funcType(), (*codeMeta_.types)[funcTypeIndex].funcType());
     masm.wasmReturnCallIndirect(desc, callee, oob->entry(), nullCheckFailed,
                                 mozilla::Nothing(), retCallInfo);
-#else
-    MOZ_CRASH("not available");
-#endif
   }
   return true;
 }
@@ -2047,7 +2041,6 @@ bool BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
   return true;
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 void BaseCompiler::returnCallRef(const Stk& calleeRef, const FunctionCall& call,
                                  const FuncType* funcType) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::FuncRef);
@@ -2058,7 +2051,6 @@ void BaseCompiler::returnCallRef(const Stk& calleeRef, const FunctionCall& call,
       BuildReturnCallAdjustmentInfo(this->funcType(), *funcType);
   masm.wasmReturnCallRef(desc, callee, retCallInfo);
 }
-#endif
 
 // Precondition: sync()
 
@@ -5457,7 +5449,6 @@ bool BaseCompiler::emitCall() {
   return pushCallResults(baselineCall, resultType, results);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 bool BaseCompiler::emitReturnCall() {
   uint32_t funcIndex;
   BaseNothingVector args_{};
@@ -5510,7 +5501,6 @@ bool BaseCompiler::emitReturnCall() {
   deadCode_ = true;
   return true;
 }
-#endif
 
 bool BaseCompiler::emitCallIndirect() {
   uint32_t funcTypeIndex;
@@ -5576,7 +5566,6 @@ bool BaseCompiler::emitCallIndirect() {
   return pushCallResults(baselineCall, resultType, results);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 bool BaseCompiler::emitReturnCallIndirect() {
   uint32_t funcTypeIndex;
   uint32_t tableIndex;
@@ -5630,7 +5619,6 @@ bool BaseCompiler::emitReturnCallIndirect() {
   deadCode_ = true;
   return true;
 }
-#endif
 
 bool BaseCompiler::emitCallRef() {
   const FuncType* funcType;
@@ -5702,7 +5690,6 @@ bool BaseCompiler::emitCallRef() {
   return pushCallResults(baselineCall, resultType, results);
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 bool BaseCompiler::emitReturnCallRef() {
   const FuncType* funcType;
   Nothing unused_callee;
@@ -5745,7 +5732,6 @@ bool BaseCompiler::emitReturnCallRef() {
   deadCode_ = true;
   return true;
 }
-#endif
 
 void BaseCompiler::emitRound(RoundingMode roundingMode, ValType operandType) {
   if (operandType == ValType::F32) {
@@ -10442,27 +10428,14 @@ bool BaseCompiler::emitBody() {
         CHECK_NEXT(emitCall());
       case uint16_t(Op::CallIndirect):
         CHECK_NEXT(emitCallIndirect());
-#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCall):
-        if (!codeMeta_.tailCallsEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(emitReturnCall());
       case uint16_t(Op::ReturnCallIndirect):
-        if (!codeMeta_.tailCallsEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(emitReturnCallIndirect());
-#endif
       case uint16_t(Op::CallRef):
         CHECK_NEXT(emitCallRef());
-#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCallRef):
-        if (!codeMeta_.tailCallsEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(emitReturnCallRef());
-#endif
 
       // Locals and globals
       case uint16_t(Op::LocalGet):

@@ -1733,7 +1733,6 @@ void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
   }
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 void MacroAssembler::wasmMarkCallAsSlow() {
   static_assert(InstanceReg == r14);
   orPtr(Imm32(0), r14);
@@ -1747,7 +1746,6 @@ void MacroAssembler::wasmCheckSlowCallsite(Register ra, Label* notSlow,
   cmp32(Address(ra, 0), Imm32(SlowCallMarker));
   j(Assembler::NotEqual, notSlow);
 }
-#endif  // ENABLE_WASM_TAIL_CALLS
 
 // ========================================================================
 // Integer compare-then-conditionally-load/move operations.

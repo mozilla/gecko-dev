@@ -990,10 +990,8 @@ struct BaseCompiler final {
   bool callRef(const Stk& calleeRef, const FunctionCall& call,
                mozilla::Maybe<size_t> callRefIndex, CodeOffset* fastCallOffset,
                CodeOffset* slowCallOffset);
-#ifdef ENABLE_WASM_TAIL_CALLS
   void returnCallRef(const Stk& calleeRef, const FunctionCall& call,
                      const FuncType* funcType);
-#endif
   CodeOffset builtinCall(SymbolicAddress builtin, const FunctionCall& call);
   CodeOffset builtinInstanceMethodCall(const SymbolicAddressSignature& builtin,
                                        const ABIArg& instanceArg,

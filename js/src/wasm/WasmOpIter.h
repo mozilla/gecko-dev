@@ -721,19 +721,15 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   [[nodiscard]] bool readCallIndirect(uint32_t* funcTypeIndex,
                                       uint32_t* tableIndex, Value* callee,
                                       ValueVector* argValues);
-#ifdef ENABLE_WASM_TAIL_CALLS
   [[nodiscard]] bool readReturnCall(uint32_t* funcIndex,
                                     ValueVector* argValues);
   [[nodiscard]] bool readReturnCallIndirect(uint32_t* funcTypeIndex,
                                             uint32_t* tableIndex, Value* callee,
                                             ValueVector* argValues);
-#endif
   [[nodiscard]] bool readCallRef(const FuncType** funcType, Value* callee,
                                  ValueVector* argValues);
-#ifdef ENABLE_WASM_TAIL_CALLS
   [[nodiscard]] bool readReturnCallRef(const FuncType** funcType, Value* callee,
                                        ValueVector* argValues);
-#endif
   [[nodiscard]] bool readOldCallDirect(uint32_t numFuncImports,
                                        uint32_t* funcIndex,
                                        ValueVector* argValues);
@@ -2575,7 +2571,6 @@ inline bool OpIter<Policy>::readCall(uint32_t* funcIndex,
   return push(ResultType::Vector(funcType.results()));
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 template <typename Policy>
 inline bool OpIter<Policy>::readReturnCall(uint32_t* funcIndex,
                                            ValueVector* argValues) {
@@ -2608,7 +2603,6 @@ inline bool OpIter<Policy>::readReturnCall(uint32_t* funcIndex,
   afterUnconditionalBranch();
   return true;
 }
-#endif
 
 template <typename Policy>
 inline bool OpIter<Policy>::readCallIndirect(uint32_t* funcTypeIndex,
@@ -2658,7 +2652,6 @@ inline bool OpIter<Policy>::readCallIndirect(uint32_t* funcTypeIndex,
   return push(ResultType::Vector(funcType.results()));
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 template <typename Policy>
 inline bool OpIter<Policy>::readReturnCallIndirect(uint32_t* funcTypeIndex,
                                                    uint32_t* tableIndex,
@@ -2716,7 +2709,6 @@ inline bool OpIter<Policy>::readReturnCallIndirect(uint32_t* funcTypeIndex,
   afterUnconditionalBranch();
   return true;
 }
-#endif
 
 template <typename Policy>
 inline bool OpIter<Policy>::readCallRef(const FuncType** funcType,
@@ -2742,7 +2734,6 @@ inline bool OpIter<Policy>::readCallRef(const FuncType** funcType,
   return push(ResultType::Vector((*funcType)->results()));
 }
 
-#ifdef ENABLE_WASM_TAIL_CALLS
 template <typename Policy>
 inline bool OpIter<Policy>::readReturnCallRef(const FuncType** funcType,
                                               Value* callee,
@@ -2778,7 +2769,6 @@ inline bool OpIter<Policy>::readReturnCallRef(const FuncType** funcType,
   afterUnconditionalBranch();
   return true;
 }
-#endif
 
 template <typename Policy>
 inline bool OpIter<Policy>::readOldCallDirect(uint32_t numFuncImports,

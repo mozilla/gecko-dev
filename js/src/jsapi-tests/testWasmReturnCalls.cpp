@@ -15,7 +15,7 @@
 using namespace js;
 using namespace js::jit;
 
-#if defined(ENABLE_WASM_TAIL_CALLS) && !defined(JS_CODEGEN_NONE)
+#ifndef JS_CODEGEN_NONE
 
 // Check if wasmMarkCallAsSlow produces the byte sequence that can
 // wasmCheckSlowCallsite detect.
@@ -94,4 +94,4 @@ BEGIN_TEST(testWasmCheckSlowCallMarkerMiss) {
 }
 END_TEST(testWasmCheckSlowCallMarkerMiss)
 
-#endif  // ENABLE_WASM_TAIL_CALLS
+#endif
