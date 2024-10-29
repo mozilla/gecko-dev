@@ -23,5 +23,7 @@ XPIDL_SOURCES += [
     "nsIGleanPing.idl",
 ]
 
+DEFINES["MOZ_APP_VERSION_DISPLAY"] = CONFIG["MOZ_APP_VERSION_DISPLAY"]
+
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Telemetry")
