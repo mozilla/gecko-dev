@@ -1703,6 +1703,35 @@ SimpleTest.monitorConsole = function (
 };
 
 /**
+ * Enter this window to legacy unpartitioned storage mode.
+ * This disables Storage and cookie partitioning for this frame.
+ * This is useful where the test utilized BroadcastChannels
+ * to coordinate with opened windows and aren't validating
+ * storage partitioning behavior.
+ */
+SimpleTest.enableLegacyUnpartitionedStorage = async function () {
+  if (isXOrigin) {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "privacy.partition.always_partition_third_party_non_cookie_storage",
+          false,
+        ],
+      ],
+    });
+    SpecialPowers.wrap(window.document).notifyUserGestureActivation();
+    await SpecialPowers.pushPermissions([
+      {
+        type: "storageAccessAPI",
+        allow: true,
+        context: window.document,
+      },
+    ]);
+    await SpecialPowers.wrap(window.document).requestStorageAccess();
+  }
+};
+
+/**
  * Stop monitoring console output.
  */
 SimpleTest.endMonitorConsole = function () {
