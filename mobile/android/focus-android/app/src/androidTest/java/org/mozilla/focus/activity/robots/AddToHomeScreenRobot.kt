@@ -62,7 +62,7 @@ private val addToHSOKBtn = mDevice.findObject(
 private val addAutomaticallyBtn = mDevice.findObject(
     UiSelector()
         .className("android.widget.Button")
-        .textContains("Add automatically"),
+        .textContains("Add to home screen"),
 )
 
 private val shortcutTitle = mDevice.findObject(
