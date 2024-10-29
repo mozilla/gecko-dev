@@ -298,6 +298,7 @@ TEST(IPCSharedMemory, BasicIsZero)
 class IPCSharedMemoryLinuxTest : public ::testing::Test {
   int mMajor = 0;
   int mMinor = 0;
+
  protected:
   void SetUp() override {
     if (mMajor != 0) {
@@ -313,21 +314,16 @@ class IPCSharedMemoryLinuxTest : public ::testing::Test {
     return mMajor > aMajor || (mMajor == aMajor && mMinor >= aMinor);
   }
 
-  bool ShouldHaveMemfd() {
-    return HaveKernelVersion(3, 17);
-  }
+  bool ShouldHaveMemfd() { return HaveKernelVersion(3, 17); }
 
-  bool ShouldHaveMemfdNoExec() {
-    return HaveKernelVersion(6, 3);
-  }
+  bool ShouldHaveMemfdNoExec() { return HaveKernelVersion(6, 3); }
 };
 
 // Test that memfd_create is used where expected.
 //
 // More precisely: if memfd_create support is expected, verify that
 // shared memory isn't subject to a filesystem size limit.
-TEST_F(IPCSharedMemoryLinuxTest, IsMemfd)
-{
+TEST_F(IPCSharedMemoryLinuxTest, IsMemfd) {
   auto shm = MakeRefPtr<ipc::SharedMemory>();
   ASSERT_TRUE(shm->Create(1));
   UniqueFileHandle fd = shm->TakeHandleAndUnmap();
@@ -347,8 +343,7 @@ TEST_F(IPCSharedMemoryLinuxTest, IsMemfd)
   }
 }
 
-TEST_F(IPCSharedMemoryLinuxTest, MemfdNoExec)
-{
+TEST_F(IPCSharedMemoryLinuxTest, MemfdNoExec) {
   const bool expectExec = ShouldHaveMemfd() && !ShouldHaveMemfdNoExec();
 
   auto shm = MakeRefPtr<ipc::SharedMemory>();

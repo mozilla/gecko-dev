@@ -177,19 +177,18 @@ static Maybe<unsigned> HaveMemfd() {
 #ifdef USE_MEMFD_CREATE
   static const Maybe<unsigned> kHave = []() -> Maybe<unsigned> {
     unsigned flags = MFD_CLOEXEC | MFD_ALLOW_SEALING;
-#ifdef MFD_NOEXEC_SEAL
+#  ifdef MFD_NOEXEC_SEAL
     flags |= MFD_NOEXEC_SEAL;
-#endif
+#  endif
 
-    mozilla::UniqueFileHandle fd(
-        memfd_create("mozilla-ipc-test", flags));
+    mozilla::UniqueFileHandle fd(memfd_create("mozilla-ipc-test", flags));
 
-#ifdef MFD_NOEXEC_SEAL
+#  ifdef MFD_NOEXEC_SEAL
     if (!fd && errno == EINVAL) {
       flags &= ~MFD_NOEXEC_SEAL;
       fd.reset(memfd_create("mozilla-ipc-test", flags));
     }
-#endif
+#  endif
 
     if (!fd) {
       DCHECK_EQ(errno, ENOSYS);
