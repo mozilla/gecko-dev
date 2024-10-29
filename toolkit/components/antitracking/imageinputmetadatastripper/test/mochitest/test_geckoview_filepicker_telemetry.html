@@ -1,0 +1,56 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Tests for GeckoView Image Input Telemetry</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="head.js" type="application/javascript"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+  <input type="file"></input>
+<script class="testbody" type="text/javascript">
+
+async function openFilePicker(window) {
+    const image = new File(["some data"], "hello.jpg", { type: "image/jpg" });
+    const txt = new File(["some data"], "hello.txt", { type: "plain/txt" });
+    const files = [ image, txt]
+
+    await SpecialPowers.spawn(window, [files], async files => {
+      let filePicker = content.SpecialPowers.MockFilePicker;
+      filePicker.init(content.browsingContext);
+      let filePickerShow = new Promise(resolve => {
+        filePicker.showCallback = () => {
+          filePicker.setFiles(files);
+          filePicker.returnValue = filePicker.returnOk;
+          info("MockFilePicker shown, files set!");
+          resolve();
+        };
+      });
+
+      let input = content.document.querySelector("input[type=file]");
+      content.document.notifyUserGestureActivation();
+      input.click();
+
+      return filePickerShow;
+  });
+}
+
+add_task(async function test_imageinput_telemetry() {
+  let snapshot = await GleanTest.imageInputTelemetry.imageInput.testGetValue();
+  is(snapshot, null, "Glean - Initially no event gathered!");
+
+  await openFilePicker(window);
+
+  snapshot = await GleanTest.imageInputTelemetry.imageInput.testGetValue();
+  is(snapshot.length, 1, "Glean - One telemetry event gathered!");
+  is(snapshot[0].name, "image_input", "Glean - Received correct event!");
+  is(snapshot[0].extra.image_type, "image/jpg", "Glean - Event extra correct image type!");
+  is(snapshot[0].extra.input_type, "FilePicker", "Glean - Event extra correct input type!");
+
+});
+
+</script>
+</body>
+</html>

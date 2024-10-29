@@ -7,6 +7,7 @@
 #include "mozilla/dom/ClipboardEvent.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/ImageInputTelemetry.h"
 #include "mozilla/dom/DataTransfer.h"
 #include "nsIClipboard.h"
 
@@ -72,6 +73,17 @@ DataTransfer* ClipboardEvent::GetClipboardData() {
           ToSupports(this), event->mMessage, event->mMessage == ePaste,
           Some(nsIClipboard::kGlobalClipboard));
     }
+  }
+
+  // Only collect image input telemetry on external paste events, unless in
+  // automation. In tests we skip this check using the pref, since we cannot
+  // synthesize external events.
+  if ((!mEventIsInternal ||
+       StaticPrefs::privacy_imageInputTelemetry_enableTestMode()) &&
+      !mImageInputTelemetryCollected) {
+    ImageInputTelemetry::MaybeRecordPasteImageInputTelemetry(
+        event, GetParentObject()->PrincipalOrNull());
+    mImageInputTelemetryCollected = true;
   }
 
   return event->mClipboardData;

@@ -42,6 +42,9 @@ class DragEvent : public MouseEvent {
                                                  const nsAString& aType,
                                                  const DragEventInit& aParam);
 
+ private:
+  bool mImageInputTelemetryCollected = false;
+
  protected:
   ~DragEvent() = default;
 };

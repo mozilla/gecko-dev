@@ -50,6 +50,7 @@ gecko_metrics = [
     "services/common/metrics.yaml",
     "services/sync/modules/metrics.yaml",
     "toolkit/components/antitracking/bouncetrackingprotection/metrics.yaml",
+    "toolkit/components/antitracking/imageinputmetadatastripper/metrics.yaml",
     "toolkit/components/antitracking/metrics.yaml",
     "toolkit/components/cookiebanners/metrics.yaml",
     "toolkit/components/downloads/metrics.yaml",

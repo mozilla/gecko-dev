@@ -35,6 +35,9 @@ class ClipboardEvent : public Event {
   void InitClipboardEvent(const nsAString& aType, bool aCanBubble,
                           bool aCancelable, DataTransfer* aClipboardData);
 
+ private:
+  bool mImageInputTelemetryCollected = false;
+
  protected:
   ~ClipboardEvent() = default;
 };

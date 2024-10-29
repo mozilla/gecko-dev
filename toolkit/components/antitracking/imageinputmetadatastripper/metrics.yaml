@@ -1,0 +1,34 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Privacy: Anti-Tracking'
+
+image.input.telemetry:
+  image_input:
+    type: event
+    description: >
+      Type of user image file(s) input and browser input type and platform.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1899117
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223316
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - lschwarz@mozilla.com
+      - bvandersloot@mozilla.com
+    expires: 139
+    extra_keys:
+      image_type:
+        description: User input image file type(s).
+        type: string
+      input_type:
+        description: User input type.
+        type: string
