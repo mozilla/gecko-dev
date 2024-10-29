@@ -3,89 +3,9 @@
 
 "use strict";
 
-/**
- * @type {typeof import("../../content/translations-document.sys.mjs")}
- */
-const { TranslationsDocument, LRUCache } = ChromeUtils.importESModule(
-  "chrome://global/content/translations/translations-document.sys.mjs"
-);
-/**
- * @param {string} html
- * @param {{
- *  mockedTranslatorPort?: (message: string) => Promise<string>,
- *  mockedReportVisibleChange?: () => void
- * }} [options]
- */
-async function createDoc(html, options) {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.translations.enable", true],
-      ["browser.translations.logLevel", "All"],
-    ],
-  });
-
-  const parser = new DOMParser();
-  const document = parser.parseFromString(html, "text/html");
-
-  // For some reason, the document <body> here from the DOMParser is "display: flex" by
-  // default. Ensure that it is "display: block" instead, otherwise the children of the
-  // <body> will not be "display: inline".
-  document.body.style.display = "block";
-
-  const translate = () => {
-    info("Creating the TranslationsDocument.");
-    return new TranslationsDocument(
-      document,
-      "en",
-      "EN",
-      0, // This is a fake innerWindowID
-      options?.mockedTranslatorPort ?? createMockedTranslatorPort(),
-      () => {
-        throw new Error("Cannot request a new port");
-      },
-      options?.mockedReportVisibleChange ?? (() => {}),
-      performance.now(),
-      () => performance.now(),
-      new LRUCache()
-    );
-  };
-
-  /**
-   * Test utility to check that the document matches the expected markup
-   *
-   * @param {string} message
-   * @param {string} html
-   */
-  async function htmlMatches(message, html) {
-    const expected = naivelyPrettify(html);
-    try {
-      await waitForCondition(
-        () => naivelyPrettify(document.body.innerHTML) === expected,
-        "Waiting for HTML to match."
-      );
-      ok(true, message);
-    } catch (error) {
-      console.error(error);
-
-      // Provide a nice error message.
-      const actual = naivelyPrettify(document.body.innerHTML);
-      ok(
-        false,
-        `${message}\n\nExpected HTML:\n\n${expected}\n\nActual HTML:\n\n${actual}\n\n`
-      );
-    }
-  }
-
-  function cleanup() {
-    SpecialPowers.popPrefEnv();
-  }
-
-  return { htmlMatches, cleanup, translate, document };
-}
-
 add_task(async function test_translated_div_element_and_visible_change() {
   let hasVisibleChangeOccurred = false;
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
     <div>
       This is a simple translation.
@@ -114,8 +34,8 @@ add_task(async function test_translated_div_element_and_visible_change() {
   cleanup();
 });
 
-add_task(async function test_translated_txtnode() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+add_task(async function test_translated_textnode() {
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     "This is a simple text translation."
   );
 
@@ -130,7 +50,8 @@ add_task(async function test_translated_txtnode() {
 });
 
 add_task(async function test_no_text_trees() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div>
       <div></div>
       <span></span>
@@ -153,14 +74,15 @@ add_task(async function test_no_text_trees() {
 });
 
 add_task(async function test_no_text_trees() {
-  const { translate, htmlMatches, cleanup } = await createDoc("");
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc("");
   translate();
   await htmlMatches("No text is still no text", "");
   cleanup();
 });
 
 add_task(async function test_translated_title() {
-  const { cleanup, document, translate } = await createDoc(/* html */ `
+  const { cleanup, document, translate } =
+    await createTranslationsDoc(/* html */ `
     <!DOCTYPE html>
     <html>
     <head>
@@ -185,7 +107,8 @@ add_task(async function test_translated_title() {
 });
 
 add_task(async function test_translated_nested_elements() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div class="menu-main-menu-container">
       <ul class="menu-list">
         <li class="menu-item menu-item-top-level">
@@ -237,7 +160,8 @@ add_task(async function test_translated_nested_elements() {
  * Only translate elements with a matching "from" language.
  */
 add_task(async function test_translated_language() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div>
       <div>
         No lang property
@@ -299,7 +223,8 @@ add_task(async function test_translated_language() {
  * Test elements that have been marked as ignored.
  */
 add_task(async function test_ignored_translations() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div translate="yes">
       This is translated.
     </div>
@@ -359,7 +284,8 @@ add_task(async function test_ignored_translations() {
  * Test excluded tags.
  */
 add_task(async function test_excluded_tags() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div>
       This is translated.
     </div>
@@ -398,7 +324,8 @@ add_task(async function test_excluded_tags() {
 });
 
 add_task(async function test_comments() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <!-- Comments don't make it to the DOM -->
     <div>
       <!-- These will be ignored in the translation. -->
@@ -425,7 +352,7 @@ add_task(async function test_comments() {
  * Test the batching behavior on what is sent in for a translation.
  */
 add_task(async function test_translation_batching() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <div>
         This is a simple section.
@@ -465,8 +392,9 @@ add_task(async function test_translation_batching() {
  * Test the inline/block behavior on what is sent in for a translation.
  */
 add_task(async function test_translation_inline_styling() {
-  const { document, translate, htmlMatches, cleanup } = await createDoc(
-    /* html */ `
+  const { document, translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(
+      /* html */ `
       Bare text is sent in a batch.
       <span>
         Inline text is sent in a <b>batch</b>.
@@ -475,8 +403,8 @@ add_task(async function test_translation_inline_styling() {
         Display "block" overrides the inline designation.
       </span>
     `,
-    { mockedTranslatorPort: createBatchedMockedTranslatorPort() }
-  );
+      { mockedTranslatorPort: createBatchedMockedTranslatorPort() }
+    );
 
   info("Setting a span as display: block.");
   const span = document.getElementById("spanAsBlock");
@@ -509,7 +437,7 @@ add_task(async function test_translation_inline_styling() {
  * Test what happens when there are many inline elements.
  */
 add_task(async function test_many_inlines() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <div>
         <span>
@@ -570,7 +498,7 @@ add_task(async function test_many_inlines() {
  * Test what happens when there are many inline elements.
  */
 add_task(async function test_many_inlines() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <div>
         <div>
@@ -631,7 +559,7 @@ add_task(async function test_many_inlines() {
  * Test a mix of inline text and block elements.
  */
 add_task(async function test_presumed_inlines1() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <div>
         Text node
@@ -662,7 +590,7 @@ add_task(async function test_presumed_inlines1() {
  * Test what happens when there are many inline elements.
  */
 add_task(async function test_presumed_inlines2() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <div>
         Text node
@@ -694,7 +622,7 @@ add_task(async function test_presumed_inlines2() {
 });
 
 add_task(async function test_presumed_inlines3() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <div>
         Text node
@@ -737,7 +665,7 @@ add_task(async function test_presumed_inlines3() {
  * Test the display "none" properties properly subdivide in block elements.
  */
 add_task(async function test_display_none() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <p>
         This is some text.
@@ -779,7 +707,7 @@ add_task(async function test_display_none() {
  * elements. The div with "display; none;" is still block, not "none".
  */
 add_task(async function test_display_none_div() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <div>
         <span>
@@ -833,7 +761,7 @@ add_task(async function test_display_none_div() {
 });
 
 add_task(async function test_chunking_large_text() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <pre>
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque fermentum est ante, ut porttitor enim molestie et. Nam mattis ullamcorper justo a ultrices. Ut ac sodales lorem. Sed feugiat ultricies lacus. Proin dapibus sit amet nunc a ullamcorper. Donec leo purus, convallis quis urna non, semper pulvinar augue. Nulla placerat turpis arcu, sit amet imperdiet sapien tincidunt ut. Donec sit amet luctus lorem, sed consectetur lectus. Pellentesque est nisi, feugiat et ipsum quis, vestibulum blandit nulla.
@@ -874,7 +802,7 @@ add_task(async function test_chunking_large_text() {
 });
 
 add_task(async function test_reordering() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       <span>
         B - This was first.
@@ -910,7 +838,7 @@ add_task(async function test_reordering() {
 });
 
 add_task(async function test_reordering2() {
-  const { translate, htmlMatches, cleanup } = await createDoc(
+  const { translate, htmlMatches, cleanup } = await createTranslationsDoc(
     /* html */ `
       B - This was first.
       <span>
@@ -942,7 +870,7 @@ ${"      "}
 
 add_task(async function test_mutations() {
   const { translate, htmlMatches, cleanup, document } =
-    await createDoc(/* html */ `
+    await createTranslationsDoc(/* html */ `
     <div>
       This is a simple translation.
     </div>
@@ -995,7 +923,8 @@ add_task(async function test_mutations() {
 });
 
 add_task(async function test_svgs() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div>
       <div>Text before is translated</div>
       <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
@@ -1042,7 +971,8 @@ add_task(async function test_svgs() {
 });
 
 add_task(async function test_svgs_more() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
       <foreignObject x="20" y="20" width="160" height="160">
         <div xmlns="http://www.w3.org/1999/xhtml">
@@ -1071,7 +1001,8 @@ add_task(async function test_svgs_more() {
 });
 
 add_task(async function test_tables() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <table>
       <tr>
         <th>Table header 1</th>
@@ -1116,7 +1047,8 @@ add_task(async function test_tables() {
 });
 
 add_task(async function test_option_values() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
       <select>
           <option>Red</option>
           <option>Orange</option>
@@ -1147,7 +1079,8 @@ add_task(async function test_option_values() {
 });
 
 add_task(async function test_basic_attributes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <label title="Titles are user visible">Enter information:</label>
     <input type="text" placeholder="This is a placeholder">
   `);
@@ -1168,7 +1101,8 @@ add_task(async function test_basic_attributes() {
 });
 
 add_task(async function test_html_lang_attribute() {
-  const { translate, document, cleanup } = await createDoc(/* html */ `
+  const { translate, document, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <!DOCTYPE html>
     <html lang="en" >
     <head>
@@ -1190,7 +1124,8 @@ add_task(async function test_html_lang_attribute() {
 });
 
 add_task(async function test_attributes_with_innerhtml() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div title="Titles are user visible">
     Simple translation.
     </div>
@@ -1211,7 +1146,8 @@ add_task(async function test_attributes_with_innerhtml() {
 });
 
 add_task(async function test_multiple_attributes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <input type="text" placeholder="This is a placeholder" title="Titles are user visible">
   `);
 
@@ -1227,7 +1163,8 @@ add_task(async function test_multiple_attributes() {
 });
 
 add_task(async function test_translated_title() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div title="The title is translated" class="do-not-translate-this">
       Inner text is translated.
     </div>
@@ -1248,7 +1185,8 @@ add_task(async function test_translated_title() {
 });
 
 add_task(async function test_translated_aria_attributes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div aria-label="label" aria-description="description">
       Content
     </div>
@@ -1269,7 +1207,8 @@ add_task(async function test_translated_aria_attributes() {
 });
 
 add_task(async function test_title_attribute_subnodes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div>
       <span>Span text 1</span>
       <span>Span text 2</span>
@@ -1300,7 +1239,8 @@ add_task(async function test_title_attribute_subnodes() {
 });
 
 add_task(async function test_title_attribute_subnodes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div title="Title in div">
       <span title="Title 1">Span text 1</span>
       <span title="Title 2">Span text 2</span>
@@ -1331,7 +1271,8 @@ add_task(async function test_title_attribute_subnodes() {
 });
 
 add_task(async function test_nested_text_in_attributes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div>
       This is the outer div
       <label>
@@ -1360,7 +1301,8 @@ add_task(async function test_nested_text_in_attributes() {
 });
 
 add_task(async function test_attributes_with_nested_attributes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div title="Titles are user visible">
       This is the outer div
       <label>
@@ -1390,7 +1332,8 @@ add_task(async function test_attributes_with_nested_attributes() {
 
 add_task(
   async function test_notranslate_is_respected_for_attribute_translations() {
-    const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+    const { translate, htmlMatches, cleanup } =
+      await createTranslationsDoc(/* html */ `
     <div class="notranslate" title="A parent element with no-translate">
       This is the outer div
       <label>
@@ -1424,7 +1367,8 @@ add_task(
 );
 
 add_task(async function test_attribute_translation_for_input_elements() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
       <div>
         <!-- Translate [title] and [value] attributes -->
         <input type="button" title="button_title" value="button_value" alt="button_alt">
@@ -1499,7 +1443,8 @@ add_task(async function test_attribute_translation_for_input_elements() {
 });
 
 add_task(async function test_attribute_translation_for_track_elements() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
       <div>
         <track kind="captions" label="Track label">
       </div>
@@ -1520,7 +1465,8 @@ add_task(async function test_attribute_translation_for_track_elements() {
 });
 
 add_task(async function test_nested_elements() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div>
       This is the outer div
       <label>
@@ -1553,7 +1499,8 @@ add_task(async function test_nested_elements() {
 });
 
 add_task(async function test_node_specific_attributes() {
-  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+  const { translate, htmlMatches, cleanup } =
+    await createTranslationsDoc(/* html */ `
     <div value="Do not translate div[value]"></div>
     <input type="text" placeholder="This is a placeholder" value="This is a value">
   `);
@@ -1574,7 +1521,7 @@ add_task(async function test_node_specific_attributes() {
 
 add_task(async function test_mutations_with_attributes() {
   const { translate, htmlMatches, cleanup, document } =
-    await createDoc(/* html */ `
+    await createTranslationsDoc(/* html */ `
     <div>
       This is a simple translation.
     </div>
@@ -1666,7 +1613,7 @@ add_task(async function test_mutations_with_attributes() {
 
 add_task(async function test_mutations_subtree_attributes() {
   const { translate, htmlMatches, cleanup, document } =
-    await createDoc(/* html */ `
+    await createTranslationsDoc(/* html */ `
     <div>
       This is a simple translation.
     </div>
@@ -1711,7 +1658,7 @@ add_task(async function test_mutations_subtree_attributes() {
 
 add_task(async function test_node_specific_attribute_mutation() {
   const { translate, htmlMatches, cleanup, document } =
-    await createDoc(/* html */ `
+    await createTranslationsDoc(/* html */ `
       <div value="Do not translate"></div>
       <input type="button" value="Input value">
     `);

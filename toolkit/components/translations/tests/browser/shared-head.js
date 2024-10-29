@@ -315,6 +315,106 @@ function createMockedTranslatorPort(transformNode = upperCaseNode) {
 }
 
 /**
+ * @type {typeof import("../../content/translations-document.sys.mjs")}
+ */
+const { TranslationsDocument, LRUCache } = ChromeUtils.importESModule(
+  "chrome://global/content/translations/translations-document.sys.mjs"
+);
+
+/**
+ * @param {string} html
+ * @param {{
+ *  mockedTranslatorPort?: (message: string) => Promise<string>,
+ *  mockedReportVisibleChange?: () => void
+ * }} [options]
+ */
+async function createTranslationsDoc(html, options) {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.translations.enable", true],
+      ["browser.translations.logLevel", "All"],
+    ],
+  });
+
+  const parser = new DOMParser();
+  const document = parser.parseFromString(html, "text/html");
+
+  // For some reason, the document <body> here from the DOMParser is "display: flex" by
+  // default. Ensure that it is "display: block" instead, otherwise the children of the
+  // <body> will not be "display: inline".
+  document.body.style.display = "block";
+
+  const translate = () => {
+    info("Creating the TranslationsDocument.");
+    return new TranslationsDocument(
+      document,
+      "en",
+      "EN",
+      0, // This is a fake innerWindowID
+      options?.mockedTranslatorPort ?? createMockedTranslatorPort(),
+      () => {
+        throw new Error("Cannot request a new port");
+      },
+      options?.mockedReportVisibleChange ?? (() => {}),
+      performance.now(),
+      () => performance.now(),
+      new LRUCache()
+    );
+  };
+
+  /**
+   * Test utility to check that the document matches the expected markup
+   *
+   * @param {string} message
+   * @param {string} html
+   */
+  async function htmlMatches(message, html, element = document.body) {
+    const expected = naivelyPrettify(html);
+    try {
+      await waitForCondition(
+        () => naivelyPrettify(element.innerHTML) === expected,
+        "Waiting for HTML to match."
+      );
+      ok(true, message);
+    } catch (error) {
+      console.error(error);
+
+      // Provide a nice error message.
+      const actual = naivelyPrettify(element.innerHTML);
+      ok(
+        false,
+        `${message}\n\nExpected HTML:\n\n${expected}\n\nActual HTML:\n\n${actual}\n\n`
+      );
+    }
+  }
+
+  function cleanup() {
+    SpecialPowers.popPrefEnv();
+  }
+
+  return { htmlMatches, cleanup, translate, document };
+}
+
+/**
+ * Perform a double requestAnimationFrame, which is used by the TranslationsDocument
+ * to handle mutations.
+ *
+ * @param {Document} doc
+ */
+function doubleRaf(doc) {
+  return new Promise(resolve => {
+    doc.ownerGlobal.requestAnimationFrame(() => {
+      doc.ownerGlobal.requestAnimationFrame(() => {
+        resolve(
+          // Wait for a tick to be after anything that resolves with a double rAF.
+          TestUtils.waitForTick()
+        );
+      });
+    });
+  });
+}
+
+/**
  * This mocked translator reports on the batching of calls by replacing the text
  * with a letter. Each call of the function moves the letter forward alphabetically.
  *
