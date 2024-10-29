@@ -82,10 +82,8 @@ add_task(async function () {
       );
     }
 
-    const pressedButton = container.querySelector(
-      `button[aria-pressed="true"]`
-    );
-    const labelId = pressedButton.querySelector(".breadcrumbs-widget-item-id");
+    const checkedButton = container.querySelector("button[checked]");
+    const labelId = checkedButton.querySelector(".breadcrumbs-widget-item-id");
     const id = inspector.selection.nodeFront.id;
     is(
       labelId.textContent,
@@ -93,7 +91,7 @@ add_task(async function () {
       "Node " + node.selector + ": selection matches"
     );
 
-    const labelTag = pressedButton.querySelector(
+    const labelTag = checkedButton.querySelector(
       ".breadcrumbs-widget-item-tag"
     );
     is(
@@ -103,7 +101,7 @@ add_task(async function () {
     );
 
     is(
-      pressedButton.getAttribute("title"),
+      checkedButton.getAttribute("title"),
       node.title,
       "Node " + node.selector + " has the expected tooltip"
     );
@@ -145,14 +143,14 @@ async function testComments(inspector, container) {
   info("Checking for comment elements");
 
   const breadcrumbs = inspector.breadcrumbs;
-  const pressedButtonIndex = 2;
-  const button = container.childNodes[pressedButtonIndex];
+  const checkedButtonIndex = 2;
+  const button = container.childNodes[checkedButtonIndex];
 
   let onBreadcrumbsUpdated = inspector.once("breadcrumbs-updated");
   button.click();
   await onBreadcrumbsUpdated;
 
-  is(breadcrumbs.currentIndex, pressedButtonIndex, "New button is selected");
+  is(breadcrumbs.currentIndex, checkedButtonIndex, "New button is selected");
   ok(
     breadcrumbs.outer.hasAttribute("aria-activedescendant"),
     "Active descendant must be set"
@@ -169,7 +167,7 @@ async function testComments(inspector, container) {
   is(
     breadcrumbs.currentIndex,
     -1,
-    "When comment is selected no breadcrumb should be pressed"
+    "When comment is selected no breadcrumb should be checked"
   );
   ok(
     !breadcrumbs.outer.hasAttribute("aria-activedescendant"),
@@ -183,7 +181,7 @@ async function testComments(inspector, container) {
 
   is(
     breadcrumbs.currentIndex,
-    pressedButtonIndex,
+    checkedButtonIndex,
     "Same button is selected again"
   );
   ok(
