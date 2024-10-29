@@ -4,6 +4,7 @@ import os
 import re
 import socket
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -215,6 +216,8 @@ class Geckodriver:
         return self
 
     def processOutputLine(self, line):
+        sys.stdout.write(line)
+
         if self.port is None:
             m = self.PORT_RE.match(line)
             if m is not None:
