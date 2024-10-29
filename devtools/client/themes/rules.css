@@ -4,10 +4,10 @@
 
 /* CSS Variables specific to this panel that aren't defined by the themes */
 :root {
-  --rule-highlight-propertyname: var(--blue-60);
-  --rule-highlight-propertyvalue: var(--magenta-70);
-  --rule-highlight-unmatched-unused-color: var(--grey-55);
-  --rule-header-background-color: var(--theme-toolbar-background);
+  --rule-highlight-propertyname: light-dark(var(--blue-60), var(--theme-highlight-blue));
+  --rule-highlight-propertyvalue: light-dark(var(--magenta-70), var(--theme-highlight-red));
+  --rule-highlight-unmatched-unused-color: light-dark(var(--grey-55), var(--grey-40));
+  --rule-header-background-color: light-dark(var(--theme-toolbar-background), #222225);
   --rule-computed-margin-inline-start: 35px;
   --rule-enableproperty-size: 12px;
   --rule-enableproperty-margin-inline-start: 3px;
@@ -19,13 +19,6 @@
     --rule-enableproperty-margin-inline-start: 0px;
     --rule-enableproperty-margin-inline-end: 10px;
   }
-}
-
-:root.theme-dark {
-  --rule-highlight-propertyname: var(--theme-highlight-blue);
-  --rule-highlight-propertyvalue: var(--theme-highlight-red);
-  --rule-highlight-unmatched-unused-color: var(--grey-40);
-  --rule-header-background-color: #222225;
 }
 
 /* Rule View Tabpanel */
