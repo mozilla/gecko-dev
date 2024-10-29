@@ -64,6 +64,36 @@ const tests = [
     },
   },
   {
+    description: "Test CTRL/ALT SHIFT LEFT starting from full selection",
+    openPanel() {
+      EventUtils.synthesizeKey("l", { accelKey: true });
+    },
+    get selection() {
+      return [0, gURLBar.value.length];
+    },
+    manipulate() {
+      if (AppConstants.platform == "macosx") {
+        // Synthesized key events work differently from native ones, here
+        // we simulate the native behavior.
+        EventUtils.synthesizeKey("KEY_ArrowLeft", {
+          type: "keydown",
+          altKey: true,
+          shiftKey: true,
+        });
+        EventUtils.synthesizeKey("KEY_ArrowLeft", { type: "keyup" });
+        EventUtils.synthesizeKey("KEY_Meta", { type: "keyup" });
+      } else {
+        EventUtils.synthesizeKey("KEY_ArrowLeft", {
+          ctrlKey: true,
+          shiftKey: true,
+        });
+      }
+    },
+    get modifiedSelection() {
+      return [0, gURLBar.value.lastIndexOf(".") + 1];
+    },
+  },
+  {
     description: "Test CTRL A starting from full selection",
     skipIf() {
       return AppConstants.platform != "macosx";
