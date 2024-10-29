@@ -12,7 +12,7 @@ const boldAttrs = { "font-weight": "700" };
 const fragmentAttrs = { mark: "true" };
 const snippet = `
 <p id="first">The first phrase.</p>
-<p id="second">The second <b>phrase.</b></p>
+<p id="second">The <i>second <b>phrase.</b></i></p>
 `;
 
 /**
