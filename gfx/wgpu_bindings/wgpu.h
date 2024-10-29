@@ -58,6 +58,7 @@ class DefaultDelete<webgpu::ffi::WGPUGlobal> {
   }
 };
 
+#if !defined(XP_MACOSX)
 template <>
 class DefaultDelete<webgpu::ffi::WGPUVkImageHandle> {
  public:
@@ -65,6 +66,7 @@ class DefaultDelete<webgpu::ffi::WGPUVkImageHandle> {
     webgpu::ffi::wgpu_vkimage_delete(aPtr);
   }
 };
+#endif
 
 }  // namespace mozilla
 

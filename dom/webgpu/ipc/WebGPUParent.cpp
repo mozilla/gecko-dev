@@ -108,6 +108,7 @@ extern int32_t wgpu_server_get_dma_buf_fd(void* aParam, WGPUTextureId aId) {
 #endif
 }
 
+#if !defined(XP_MACOSX)
 extern WGPUVkImageHandle* wgpu_server_get_vk_image_handle(void* aParam,
                                                           WGPUTextureId aId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
@@ -118,16 +119,17 @@ extern WGPUVkImageHandle* wgpu_server_get_vk_image_handle(void* aParam,
     return nullptr;
   }
 
-#if defined(MOZ_WIDGET_GTK)
+#  if defined(MOZ_WIDGET_GTK)
   auto* textureDMABuf = texture->AsExternalTextureDMABuf();
   if (!textureDMABuf) {
     return nullptr;
   }
   return textureDMABuf->GetHandle();
-#else
+#  else
   return nullptr;
-#endif
+#  endif
 }
+#endif
 
 }  // namespace ffi
 

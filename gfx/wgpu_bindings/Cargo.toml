@@ -65,3 +65,4 @@ serde = "1"
 nsstring = { path = "../../xpcom/rust/nsstring" }
 static_prefs = { path = "../../modules/libpref/init/static_prefs" }
 arrayvec = "0.7"
+ash = "0.38"

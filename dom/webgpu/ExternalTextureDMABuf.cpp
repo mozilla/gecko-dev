@@ -79,7 +79,7 @@ UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
 }
 
 ExternalTextureDMABuf::ExternalTextureDMABuf(
-    UniquePtr<ffi::WGPUVkImageHandle> aVkImageHandle, const uint32_t aWidth,
+    UniquePtr<ffi::WGPUVkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
     const uint32_t aHeight, const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, RefPtr<DMABufSurface>&& aSurface,
     const layers::SurfaceDescriptorDMABuf& aSurfaceDescriptor)
