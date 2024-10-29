@@ -20,6 +20,8 @@ class RetryModule extends Module {
    * Commands
    */
 
+  async _internalForward() {}
+
   // Resolves only if called while on the example.net domain.
   async blockedOnNetDomain(params) {
     // Note: we do not store a call counter here, because this is used for a

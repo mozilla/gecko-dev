@@ -7,6 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ContextDescriptorType:
     "chrome://remote/content/shared/messagehandler/MessageHandler.sys.mjs",
+  error: "chrome://remote/content/shared/messagehandler/Errors.sys.mjs",
   isBrowsingContextCompatible:
     "chrome://remote/content/shared/messagehandler/transports/BrowsingContextUtils.sys.mjs",
   isInitialDocument:
@@ -66,8 +67,8 @@ export class RootTransport {
     if (command.destination.id) {
       const browsingContext = BrowsingContext.get(command.destination.id);
       if (!browsingContext) {
-        throw new Error(
-          "Unable to find a BrowsingContext for id " + command.destination.id
+        throw new lazy.error.DiscardedBrowsingContextError(
+          `Unable to find a BrowsingContext for id "${command.destination.id}"`
         );
       }
       return this._sendCommandToBrowsingContext(command, browsingContext);
@@ -109,11 +110,6 @@ export class RootTransport {
   async _sendCommandToBrowsingContext(command, browsingContext) {
     const name = `${command.moduleName}.${command.commandName}`;
 
-    // The browsing context might be destroyed by a navigation. Keep a reference
-    // to the webProgress, which will persist, and always use it to retrieve the
-    // currently valid browsing context.
-    const webProgress = browsingContext.webProgress;
-
     let retryOnAbort = true;
     if (command.retryOnAbort !== undefined) {
       // The caller should always be able to force a value.
@@ -121,6 +117,27 @@ export class RootTransport {
     } else if (!lazy.prefRetryOnAbort) {
       // If we don't retry by default do it at least for the initial document.
       retryOnAbort = lazy.isInitialDocument(browsingContext);
+    }
+
+    // If a top-level browsing context was replaced and retrying is allowed,
+    // retrieve the new one for the current browser.
+    if (
+      browsingContext.isReplaced &&
+      browsingContext.top === browsingContext &&
+      retryOnAbort
+    ) {
+      browsingContext = BrowsingContext.getCurrentTopByBrowserId(
+        browsingContext.browserId
+      );
+    }
+
+    // Keep a reference to the webProgress, which will persist, and always use
+    // it to retrieve the currently valid browsing context.
+    const webProgress = browsingContext.webProgress;
+    if (!webProgress) {
+      throw new lazy.error.DiscardedBrowsingContextError(
+        `BrowsingContext with id "${browsingContext.id}" does no longer exist`
+      );
     }
 
     let attempts = 0;
@@ -133,10 +150,15 @@ export class RootTransport {
           .getActor("MessageHandlerFrame")
           .sendCommand(command, this._messageHandler.sessionId);
       } catch (e) {
-        if (!retryOnAbort || e.name != "AbortError") {
-          // Only retry if the command supports retryOnAbort and when the
-          // JSWindowActor pair gets destroyed.
+        // Re-throw the error in case it is not an AbortError.
+        if (e.name != "AbortError") {
           throw e;
+        }
+
+        // Only retry if the command supports retryOnAbort and when the
+        // JSWindowActor pair gets destroyed.
+        if (!retryOnAbort) {
+          throw new lazy.error.DiscardedBrowsingContextError(e.message);
         }
 
         if (++attempts > MAX_RETRY_ATTEMPTS) {
@@ -144,7 +166,7 @@ export class RootTransport {
             `RootTransport reached the limit of retry attempts (${MAX_RETRY_ATTEMPTS})` +
               ` for command ${name} and browsing context ${webProgress.browsingContext.id}.`
           );
-          throw e;
+          throw new lazy.error.DiscardedBrowsingContextError(e.message);
         }
 
         lazy.logger.trace(
