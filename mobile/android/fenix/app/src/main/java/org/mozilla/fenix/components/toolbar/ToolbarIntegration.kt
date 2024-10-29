@@ -22,11 +22,14 @@ import mozilla.components.feature.toolbar.ToolbarPresenter
 import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.ui.tabcounter.TabCounterMenu
+import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.AddressToolbar
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
+import org.mozilla.fenix.components.toolbar.ui.createShareBrowserAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
@@ -158,7 +161,9 @@ class DefaultToolbarIntegration(
             DisplayToolbar.Indicators.HIGHLIGHT,
         )
 
-        if (!context.isTabStripEnabled()) {
+        if (context.isTabStripEnabled()) {
+            addShareBrowserAction()
+        } else {
             addNewTabBrowserAction()
         }
 
@@ -202,6 +207,18 @@ class DefaultToolbarIntegration(
         tabCounterAction.updateCount(tabCount)
 
         toolbar.addBrowserAction(tabCounterAction)
+    }
+
+    private fun addShareBrowserAction() {
+        toolbar.addBrowserAction(
+            BrowserToolbar.createShareBrowserAction(
+                context = context,
+                listener = {
+                    AddressToolbar.shareTapped.record((NoExtras()))
+                    interactor.onShareActionClicked()
+                },
+            ),
+        )
     }
 
     override fun start() {

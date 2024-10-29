@@ -47,6 +47,7 @@ import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
+import org.mozilla.fenix.components.toolbar.ui.createShareBrowserAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
@@ -158,24 +159,16 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     private fun initSharePageAction(context: Context) {
-        if (!context.settings().navigationToolbarEnabled) {
+        if (!context.settings().navigationToolbarEnabled || context.isTabStripEnabled()) {
             return
         }
 
-        val sharePageAction =
-            BrowserToolbar.Button(
-                imageDrawable = AppCompatResources.getDrawable(
-                    context,
-                    R.drawable.mozac_ic_share_android_24,
-                )!!,
-                contentDescription = getString(R.string.browser_menu_share),
-                weight = { SHARE_WEIGHT },
-                iconTintColorResource = ThemeManager.resolveAttribute(R.attr.textPrimary, context),
-                listener = {
-                    AddressToolbar.shareTapped.record((NoExtras()))
-                    browserToolbarInteractor.onShareActionClicked()
-                },
-            )
+        val sharePageAction = BrowserToolbar.createShareBrowserAction(
+            context = context,
+        ) {
+            AddressToolbar.shareTapped.record((NoExtras()))
+            browserToolbarInteractor.onShareActionClicked()
+        }
 
         browserToolbarView.view.addPageAction(sharePageAction)
     }
