@@ -321,6 +321,8 @@
     --theme-popup-hover-background: SelectedItem;
     --theme-popup-hover-color: SelectedItemText;
 
+    --theme-splitter-color: CanvasText;
+
     /* Flashing colors used to highlight updates */
     --theme-contrast-background: Mark;
     --theme-contrast-background-alpha: var(--theme-contrast-background);
