@@ -53,5 +53,6 @@ run-if = ["os == 'mac'"] # Mac only feature
 ["browser_vertical_tabs_cui_reset.js"]
 
 ["browser_vertical_tabs_stacking_context.js"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1922725
 
 ["browser_view_sidebar_menu.js"]
