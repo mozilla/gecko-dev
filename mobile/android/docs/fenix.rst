@@ -73,9 +73,9 @@ Lint
 
 You can run the following commands to verify that your code is formatted correctly:
 
-    - ``./mach lint android-fenix`` to lint changes made in fenix directory
-    - ``./mach lint android-focus`` to lint changes made in focus directory
-    - ``./mach lint android-ac`` to lint changes made in android-components directory
+    - ``./mach lint -l android-fenix`` to lint changes made in fenix directory
+    - ``./mach lint -l android-focus`` to lint changes made in focus directory
+    - ``./mach lint -l android-ac`` to lint changes made in android-components directory
 
 You can find more linters by running ``./mach lint --list``
 You can pass an extra argument ``--fix`` to autofix certain types of reported issues.
