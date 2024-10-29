@@ -11,7 +11,7 @@
     <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
     <string name="content_description_menu">More options</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-    <string name="content_description_private_browsing_button">Private browsing</string>
+    <string name="content_description_private_browsing_button">Enable private browsing</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Disable private browsing</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
