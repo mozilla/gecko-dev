@@ -69,3 +69,37 @@ dom.quota.try:
           Optionally, the stack within process_id.
         type: string
     telemetry_mirror: DomQuotaTry_Error_Step
+quotamanager.initialize.repository:
+  number_of_iterations:
+    type: labeled_custom_distribution
+    description: >
+      This metric logs the count of directory entries iterated within the
+      QuotaManager::InitializeRepository function for each repository type.
+      Each instance of this metric is labeled with one of three repository
+      types: "persistent", "temporary" or "default" (there's also "private"
+      repository but that should never be iterated by the function).
+      The main purpose is to track and analyze iteration counts during the
+      initialization process of each repository type, helping to identify
+      performance trends or potential inefficiencies across these repositories.
+      This can provide insight into the impacts of specific code changes,
+      including potential optimizations or regressions.
+    range_min: 0
+    range_max: 65535
+    bucket_count: 50
+    histogram_type: exponential
+    unit: integer
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927260
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927260
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: 137
+    labels:
+      - persistent
+      - temporary
+      - default
+      - private
