@@ -1495,6 +1495,12 @@ class BrowsingContextModule extends RootBiDiModule {
 
     const context = this.#getBrowsingContext(contextId);
 
+    if (context.parent) {
+      throw new lazy.error.InvalidArgumentError(
+        `Browsing Context with id ${contextId} is not top-level`
+      );
+    }
+
     lazy.assert.integer(
       delta,
       lazy.pprint`Expected "delta" to be an integer, got ${delta}`
