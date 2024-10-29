@@ -63,3 +63,5 @@ skip-if = ["os == 'linux'"]  # Bug 1821461
 ["browser_translations_text_cleaning.js"]
 
 ["browser_translations_translation_document.js"]
+
+["browser_translations_translation_document_mutations.js"]

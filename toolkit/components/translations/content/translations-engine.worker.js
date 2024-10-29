@@ -130,7 +130,13 @@ function handleMessages(engine) {
 
       switch (data.type) {
         case "translation-request": {
-          const { sourceText, messageId, isHTML, innerWindowId } = data;
+          const {
+            sourceText,
+            messageId,
+            translationId,
+            isHTML,
+            innerWindowId,
+          } = data;
           if (discardPromise) {
             // Wait for messages to be discarded if there are any.
             await discardPromise;
@@ -146,7 +152,8 @@ function handleMessages(engine) {
             let targetText = await engine.translate(
               cleanedSourceText,
               isHTML,
-              innerWindowId
+              innerWindowId,
+              translationId
             );
 
             // Ensure the whitespace is retained.
@@ -165,6 +172,7 @@ function handleMessages(engine) {
             postMessage({
               type: "translation-response",
               targetText,
+              translationId,
               messageId,
             });
           } catch (error) {
@@ -201,6 +209,13 @@ function handleMessages(engine) {
           postMessage({
             type: "translations-discarded",
           });
+          break;
+        }
+        case "cancel-single-translation": {
+          engine.discardSingleTranslation(
+            data.innerWindowId,
+            data.translationsId
+          );
           break;
         }
         default:
@@ -266,11 +281,12 @@ class Engine {
    * @param {string} sourceText
    * @param {boolean} isHTML
    * @param {number} innerWindowId - This is required
+   * @param {number} translationId
    *
    * @returns {Promise<string>}sourceText
    */
-  translate(sourceText, isHTML, innerWindowId) {
-    return this.#getWorkQueue(innerWindowId).runTask(() =>
+  translate(sourceText, isHTML, innerWindowId, translationId) {
+    return this.#getWorkQueue(innerWindowId).runTask(translationId, () =>
       this.#syncTranslate(sourceText, isHTML, innerWindowId)
     );
   }
@@ -309,6 +325,20 @@ class Engine {
     if (workQueue) {
       workQueue.cancelWork();
       this.#workQueues.delete(innerWindowId);
+    }
+  }
+
+  /**
+   * Cancels any in-progress translations by removing the work queue.
+   *
+   * @param {number} innerWindowId
+   * @param {number} translationsId
+   */
+  discardSingleTranslation(innerWindowId, translationsId) {
+    const workQueue = this.#workQueues.get(innerWindowId);
+    if (workQueue) {
+      trace("Discarding translation with translationsId", translationsId);
+      workQueue.cancelTask(translationsId);
     }
   }
 
@@ -626,8 +656,13 @@ class WorkQueue {
   #TIME_BUDGET = 100; // ms
   #RUN_IMMEDIATELY_COUNT = 20;
 
-  /** @type {Array<{task: Function, resolve: Function}>} */
-  #tasks = [];
+  /**
+   * This is the list of work to be done. While it is a Map, it is treated as a FIFO
+   * queue, but with work that can be canceled via the translationId.
+   *
+   * @type {Map<number, {task: Function, resolve: Function}>}
+   */
+  #tasksByTranslationId = new Map();
   #isRunning = false;
   #isWorkCancelled = false;
   #runImmediately = this.#RUN_IMMEDIATELY_COUNT;
@@ -643,10 +678,11 @@ class WorkQueue {
    * Run the task and return the result.
    *
    * @template {any} T
+   * @param {number} translationId
    * @param {() => T} task
    * @returns {Promise<T>}
    */
-  runTask(task) {
+  runTask(translationId, task) {
     if (this.#runImmediately > 0) {
       // Run the first N translations immediately, most likely these are the user-visible
       // translations on the page, as they are sent in first. The setTimeout of 0 can
@@ -655,9 +691,16 @@ class WorkQueue {
       return Promise.resolve(task());
     }
     return new Promise((resolve, reject) => {
-      this.#tasks.push({ task, resolve, reject });
+      this.#tasksByTranslationId.set(translationId, { task, resolve, reject });
       this.#run().catch(error => console.error(error));
     });
+  }
+
+  /**
+   * @param {number} translationId
+   */
+  cancelTask(translationId) {
+    this.#tasksByTranslationId.delete(translationId);
   }
 
   /**
@@ -683,7 +726,7 @@ class WorkQueue {
       );
     };
 
-    while (this.#tasks.length !== 0) {
+    while (this.#tasksByTranslationId.size) {
       if (this.#isWorkCancelled) {
         // The work was already cancelled.
         break;
@@ -703,12 +746,20 @@ class WorkQueue {
       }
 
       // Check this between every `await`.
-      if (this.#isWorkCancelled || !this.#tasks.length) {
+      if (this.#isWorkCancelled || !this.#tasksByTranslationId.size) {
         break;
       }
 
       tasksInBatch++;
-      const { task, resolve, reject } = this.#tasks.shift();
+
+      // Treat the `this.#tasksByTranslationId` Map as a FIFO queue, and take the oldest
+      // item out by manually using the `entries()` iterator.
+      const [translationId, taskAndResolvers] = this.#tasksByTranslationId
+        .entries()
+        .next().value;
+      const { task, resolve, reject } = taskAndResolvers;
+      this.#tasksByTranslationId.delete(translationId);
+
       try {
         const result = await task();
 
@@ -728,7 +779,7 @@ class WorkQueue {
 
   async cancelWork() {
     this.#isWorkCancelled = true;
-    this.#tasks = [];
+    this.#tasksByTranslationId = new Map();
     await new Promise(resolve => setTimeout(resolve, 0));
     this.#isWorkCancelled = false;
   }

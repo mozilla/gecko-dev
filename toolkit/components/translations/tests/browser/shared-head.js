@@ -275,11 +275,34 @@ function upperCaseNode(node) {
 }
 
 /**
+ * Recursively transforms all child nodes to have diacriticized text. This is useful
+ * to spot multiple translations.
+ *
+ * @param {Node} node
+ */
+function diacriticizeNode(node) {
+  if (typeof node.nodeValue === "string") {
+    let result = "";
+    for (let i = 0; i < node.nodeValue.length; i++) {
+      const ch = node.nodeValue[i];
+      result += ch;
+      if ("abcdefghijklmnopqrstuvwxyz".includes(ch.toLowerCase())) {
+        result += "\u0305";
+      }
+    }
+    node.nodeValue = result;
+  }
+  for (const childNode of node.childNodes) {
+    diacriticizeNode(childNode);
+  }
+}
+
+/**
  * Creates a mocked message port for translations.
  *
  * @returns {MessagePort} This is mocked
  */
-function createMockedTranslatorPort(transformNode = upperCaseNode) {
+function createMockedTranslatorPort(transformNode = upperCaseNode, delay = 0) {
   const parser = new DOMParser();
   const mockedPort = {
     async postMessage(message) {
@@ -296,15 +319,18 @@ function createMockedTranslatorPort(transformNode = upperCaseNode) {
           });
           break;
         case "TranslationsPort:TranslationRequest": {
-          const { messageId, sourceText } = message;
+          const { translationId, sourceText } = message;
 
           const translatedDoc = parser.parseFromString(sourceText, "text/html");
           transformNode(translatedDoc.body);
+          if (delay) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
           mockedPort.onmessage({
             data: {
               type: "TranslationsPort:TranslationResponse",
               targetText: translatedDoc.body.innerHTML,
-              messageId,
+              translationId,
             },
           });
         }
@@ -312,6 +338,98 @@ function createMockedTranslatorPort(transformNode = upperCaseNode) {
     },
   };
   return mockedPort;
+}
+
+class TranslationResolver {
+  resolvers = Promise.withResolvers();
+  resolveCount = 0;
+  getPromise() {
+    return this.resolvers.promise;
+  }
+}
+
+/**
+ * Creates a mocked message port for translations.
+ *
+ * @returns {MessagePort} This is mocked
+ */
+function createControlledTranslatorPort() {
+  const parser = new DOMParser();
+
+  const canceledTranslations = new Set();
+  let resolvers = Promise.withResolvers();
+  let translationCount = 0;
+
+  async function resolveRequests() {
+    info("Resolving all pending translation requests");
+    await TestUtils.waitForTick();
+    resolvers.resolve();
+    resolvers = Promise.withResolvers();
+    await TestUtils.waitForTick();
+    const count = translationCount;
+    translationCount = 0;
+    return count;
+  }
+
+  const mockedTranslatorPort = {
+    async postMessage(message) {
+      switch (message.type) {
+        case "TranslationsPort:CancelSingleTranslation":
+          info("Canceling translation id:" + message.translationId);
+          canceledTranslations.add(message.translationId);
+          break;
+        case "TranslationsPort:GetEngineStatusRequest":
+          mockedTranslatorPort.onmessage({
+            data: {
+              type: "TranslationsPort:GetEngineStatusResponse",
+              status: "ready",
+            },
+          });
+          break;
+        case "TranslationsPort:TranslationRequest": {
+          const { translationId, sourceText } = message;
+
+          // Create a short debug version of the text.
+          let debugText = sourceText.trim().replaceAll("\n", "");
+          if (debugText.length > 50) {
+            debugText = debugText.slice(0, 50) + "...";
+          }
+
+          info(
+            `Translation requested (id:${message.translationId}) "${debugText}"`
+          );
+          await resolvers.promise;
+
+          if (canceledTranslations.has(translationId)) {
+            info("Cancelled translation id:" + translationId);
+          } else {
+            info(
+              "Translation completed, responding id:" + message.translationId
+            );
+            translationCount++;
+            const translatedDoc = parser.parseFromString(
+              sourceText,
+              "text/html"
+            );
+            diacriticizeNode(translatedDoc.body);
+            const targetText =
+              translatedDoc.body.innerHTML.trim() + ` (id:${translationId})`;
+
+            info("Translation response: " + targetText.replaceAll("\n", ""));
+            mockedTranslatorPort.onmessage({
+              data: {
+                type: "TranslationsPort:TranslationResponse",
+                targetText,
+                translationId,
+              },
+            });
+          }
+        }
+      }
+    },
+  };
+
+  return { mockedTranslatorPort, resolveRequests };
 }
 
 /**

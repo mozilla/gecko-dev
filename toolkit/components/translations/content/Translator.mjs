@@ -55,7 +55,7 @@ export class Translator {
    *
    * @type {number}
    */
-  #nextMessageId = 0;
+  #nextTranslationId = 0;
 
   /**
    * Tie together a message id to a resolved response.
@@ -182,10 +182,10 @@ export class Translator {
     this.#port.onmessage = ({ data }) => {
       switch (data.type) {
         case "TranslationsPort:TranslationResponse": {
-          const { targetText, messageId } = data;
-          // A request may not match match a messageId if there is a race during the pausing
+          const { targetText, translationId } = data;
+          // A request may not match match a translationId if there is a race during the pausing
           // and discarding of the queue.
-          this.#requests.get(messageId)?.resolve(targetText);
+          this.#requests.get(translationId)?.resolve(targetText);
           break;
         }
         case "TranslationsPort:GetEngineStatusResponse": {
@@ -223,11 +223,11 @@ export class Translator {
     await this.#ready;
 
     const { promise, resolve, reject } = Promise.withResolvers();
-    const messageId = this.#nextMessageId++;
+    const translationId = this.#nextTranslationId++;
 
     // Store the "resolve" for the promise. It will be matched back up with the
-    // `messageId` in #handlePortMessage.
-    this.#requests.set(messageId, {
+    // `translationId` in #handlePortMessage.
+    this.#requests.set(translationId, {
       sourceText,
       isHTML,
       resolve,
@@ -235,7 +235,7 @@ export class Translator {
     });
     this.#port.postMessage({
       type: "TranslationsPort:TranslationRequest",
-      messageId,
+      translationId,
       sourceText,
       isHTML,
     });
