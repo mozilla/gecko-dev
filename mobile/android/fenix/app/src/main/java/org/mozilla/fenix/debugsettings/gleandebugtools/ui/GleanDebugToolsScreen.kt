@@ -36,6 +36,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * Glean Debug Tools UI that allows for glean test pings to be sent.
+ *
+ * @param gleanDebugToolsStore [GleanDebugToolsStore] used to access [GleanDebugToolsState].
  */
 @Composable
 fun GleanDebugToolsScreen(
