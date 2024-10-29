@@ -40,9 +40,7 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityComposeTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.assertItemTextEquals
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.SessionLoadedIdlingResource
@@ -196,19 +194,6 @@ class NavigationToolbarRobot {
         for (textSelectionOption in textSelectionOptions) {
             mDevice.waitNotNull(Until.findObject(textContains(textSelectionOption)), waitingTime)
         }
-    }
-
-    fun verifyRedesignedNavigationToolbarItems() {
-        assertUIObjectExists(
-            itemWithDescription(getStringResource(R.string.browser_menu_back)),
-            itemWithDescription(getStringResource(R.string.browser_menu_forward)),
-            itemWithDescription(getStringResource(R.string.search_hint)),
-            itemWithResIdAndDescription(
-                "$packageName:id/icon",
-                getStringResource(R.string.mozac_browser_menu_button),
-            ),
-            itemWithResId("$packageName:id/counter_box"),
-        )
     }
 
     class Transition {

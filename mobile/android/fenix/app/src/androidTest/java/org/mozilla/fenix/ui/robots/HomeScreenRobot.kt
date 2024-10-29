@@ -608,25 +608,18 @@ class HomeScreenRobot {
         return publisher
     }
 
-    fun verifyAddressBarPosition(bottomPosition: Boolean) {
-        Log.i(TAG, "verifyAddressBarPosition: Trying to verify toolbar is set to top: $bottomPosition")
+    fun verifyToolbarPosition(defaultPosition: Boolean) {
+        Log.i(TAG, "verifyToolbarPosition: Trying to verify toolbar is set to top: $defaultPosition")
         onView(withId(R.id.toolbarLayout))
             .check(
-                if (bottomPosition) {
+                if (defaultPosition) {
                     isPartiallyBelow(withId(R.id.sessionControlRecyclerView))
                 } else {
                     isCompletelyAbove(withId(R.id.homeAppBar))
                 },
             )
-        Log.i(TAG, "verifyAddressBarPosition: Verified toolbar position is set to top: $bottomPosition")
+        Log.i(TAG, "verifyToolbarPosition: Verified toolbar position is set to top: $defaultPosition")
     }
-
-    fun verifyNavigationToolbarIsSetToTheBottomOfTheHomeScreen() {
-        Log.i(TAG, "verifyAddressBarPosition: Trying to verify that the navigation toolbar is set to bottom")
-        onView(withId(R.id.toolbar_navbar_container)).check(isPartiallyBelow(withId(R.id.sessionControlRecyclerView)))
-        Log.i(TAG, "verifyAddressBarPosition: Verified that the navigation toolbar is set to bottom")
-    }
-
     fun verifyNimbusMessageCard(title: String, text: String, action: String) {
         val textView = UiSelector()
             .className(ComposeView::class.java)
@@ -698,15 +691,6 @@ class HomeScreenRobot {
                 threeDotButton().perform(click())
                 Log.i(TAG, "openThreeDotMenu: Clicked main menu button")
             }
-
-            ThreeDotMenuMainRobot().interact()
-            return ThreeDotMenuMainRobot.Transition()
-        }
-
-        fun openThreeDotMenuFromRedesignedToolbar(interact: ThreeDotMenuMainRobot.() -> Unit): ThreeDotMenuMainRobot.Transition {
-            Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Trying to click main menu button")
-            threeDotButtonFromRedesignedToolbar().click()
-            Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Clicked main menu button")
 
             ThreeDotMenuMainRobot().interact()
             return ThreeDotMenuMainRobot.Transition()
@@ -1100,12 +1084,6 @@ private fun homeScreenList() =
     ).setAsVerticalList()
 
 private fun threeDotButton() = onView(allOf(withId(R.id.menuButton)))
-
-private fun threeDotButtonFromRedesignedToolbar() =
-    itemWithResIdAndDescription(
-        "$packageName:id/icon",
-        getStringResource(R.string.mozac_browser_menu_button),
-    )
 
 private fun saveTabsToCollectionButton() = onView(withId(R.id.add_tabs_to_collections_button))
 

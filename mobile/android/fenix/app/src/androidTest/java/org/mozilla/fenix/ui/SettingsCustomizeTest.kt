@@ -59,21 +59,21 @@ class SettingsCustomizeTest : TestSetup() {
         }.openThreeDotMenu {
         }.openSettings {
         }.openCustomizeSubMenu {
-            verifyAddressBarPositionPreference("Bottom")
+            verifyToolbarPositionPreference("Bottom")
             clickTopToolbarToggle()
-            verifyAddressBarPositionPreference("Top")
+            verifyToolbarPositionPreference("Top")
         }.goBack {
         }.goBack {
-            verifyAddressBarPosition(bottomPosition = false)
+            verifyToolbarPosition(defaultPosition = false)
         }.openThreeDotMenu {
         }.openSettings {
         }.openCustomizeSubMenu {
             clickBottomToolbarToggle()
-            verifyAddressBarPositionPreference("Bottom")
+            verifyToolbarPositionPreference("Bottom")
             exitMenu()
         }
         homeScreen {
-            verifyAddressBarPosition(bottomPosition = true)
+            verifyToolbarPosition(defaultPosition = true)
         }
     }
 
