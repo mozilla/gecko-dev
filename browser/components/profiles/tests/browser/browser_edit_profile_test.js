@@ -41,20 +41,14 @@ add_task(async function test_edit_profile_name() {
           let nameInput = editProfileCard.nameInput;
           nameInput.value = newProfileName;
           nameInput.dispatchEvent(new content.Event("input"));
+
           await ContentTaskUtils.waitForCondition(() => {
-            let editCard = content.document.querySelector("edit-profile-card");
             let savedMessage =
-              editCard.shadowRoot.querySelector("#saved-message");
+              editProfileCard.shadowRoot.querySelector("#saved-message");
             return ContentTaskUtils.isVisible(savedMessage);
           });
         }
       );
-
-      // We debounce input events on the edit profile page. A name change will
-      // be saved after 2 seconds so we wait for 2 seconds before checking the
-      // database.
-      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-      await new Promise(r => setTimeout(r, 2500));
 
       let curProfile = await SelectableProfileService.getProfile(profile.id);
 

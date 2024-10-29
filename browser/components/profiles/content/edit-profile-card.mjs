@@ -7,6 +7,49 @@
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
+/**
+ * Like DeferredTask but usable from content.
+ */
+class Debounce {
+  timeout = null;
+  #callback = null;
+  #timeoutId = null;
+
+  constructor(callback, timeout) {
+    this.#callback = callback;
+    this.timeout = timeout;
+    this.#timeoutId = null;
+  }
+
+  #trigger() {
+    this.#timeoutId = null;
+    this.#callback();
+  }
+
+  arm() {
+    this.disarm();
+    this.#timeoutId = setTimeout(() => this.#trigger(), this.timeout);
+  }
+
+  disarm() {
+    if (this.isArmed) {
+      clearTimeout(this.#timeoutId);
+      this.#timeoutId = null;
+    }
+  }
+
+  finalize() {
+    if (this.isArmed) {
+      this.disarm();
+      this.#callback();
+    }
+  }
+
+  get isArmed() {
+    return this.#timeoutId !== null;
+  }
+}
+
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-card.mjs";
 // eslint-disable-next-line import/no-unassigned-import
@@ -41,6 +84,23 @@ export class EditProfileCard extends MozLitElement {
     themeCards: { all: "profiles-theme-card" },
   };
 
+  updateNameDebouncer = null;
+  clearSavedMessageTimer = null;
+
+  constructor() {
+    super();
+
+    this.updateNameDebouncer = new Debounce(
+      () => this.updateName(),
+      SAVE_NAME_TIMEOUT
+    );
+
+    this.clearSavedMessageTimer = new Debounce(
+      () => this.hideSavedMessage(),
+      SAVED_MESSAGE_TIMEOUT
+    );
+  }
+
   connectedCallback() {
     super.connectedCallback();
 
@@ -54,9 +114,13 @@ export class EditProfileCard extends MozLitElement {
       return;
     }
 
-    let { currentProfile, profiles, themes } = await RPMSendQuery(
-      "Profiles:GetEditProfileContent"
-    );
+    let { currentProfile, profiles, themes, isInAutomation } =
+      await RPMSendQuery("Profiles:GetEditProfileContent");
+
+    if (isInAutomation) {
+      this.updateNameDebouncer.timeout = 50;
+    }
+
     this.profile = currentProfile;
     this.profiles = profiles;
     this.themes = themes;
@@ -71,21 +135,12 @@ export class EditProfileCard extends MozLitElement {
         if (newName === "") {
           this.showErrorMessage("edit-profile-page-no-name");
           event.preventDefault();
-        } else if (!this.isDuplicateName(newName)) {
-          this.updateName();
+        } else {
+          this.updateNameDebouncer.finalize();
         }
         break;
       }
     }
-  }
-
-  debounce(callback) {
-    return () => {
-      clearTimeout(this.timeoutID);
-      this.timeoutID = setTimeout(() => {
-        callback();
-      }, SAVE_NAME_TIMEOUT);
-    };
   }
 
   updated() {
@@ -101,13 +156,8 @@ export class EditProfileCard extends MozLitElement {
   }
 
   updateName() {
+    this.updateNameDebouncer.disarm();
     this.showSavedMessage();
-    if (this.saveMessageTimeoutId) {
-      clearTimeout(this.saveMessageTimeoutId);
-    }
-    this.saveMessageTimeoutId = setTimeout(() => {
-      this.hideSavedMessage();
-    }, SAVED_MESSAGE_TIMEOUT);
 
     let newName = this.nameInput.value.trim();
     if (!newName) {
@@ -156,14 +206,12 @@ export class EditProfileCard extends MozLitElement {
       this.showErrorMessage("edit-profile-page-duplicate-name");
     } else {
       this.hideErrorMessage();
-      this.debounce(() => {
-        this.updateName();
-      })();
+      this.updateNameDebouncer.arm();
     }
   }
 
   showErrorMessage(l10nId) {
-    clearTimeout(this.timeoutID);
+    this.updateNameDebouncer.disarm();
     document.l10n.setAttributes(this.errorMessage, l10nId);
     this.errorMessage.parentElement.hidden = false;
   }
@@ -174,10 +222,12 @@ export class EditProfileCard extends MozLitElement {
 
   showSavedMessage() {
     this.savedMessage.parentElement.hidden = false;
+    this.clearSavedMessageTimer.arm();
   }
 
   hideSavedMessage() {
     this.savedMessage.parentElement.hidden = true;
+    this.clearSavedMessageTimer.disarm();
   }
 
   headerTemplate() {

@@ -18,9 +18,13 @@ export class NewProfileCard extends EditProfileCard {
       return;
     }
 
-    let { currentProfile, profiles, themes } = await RPMSendQuery(
-      "Profiles:GetNewProfileContent"
-    );
+    let { currentProfile, profiles, themes, isInAutomation } =
+      await RPMSendQuery("Profiles:GetNewProfileContent");
+
+    if (isInAutomation) {
+      this.updateNameDebouncer.timeout = 50;
+    }
+
     this.profile = currentProfile;
     this.profiles = profiles;
     this.themes = themes;

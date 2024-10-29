@@ -164,6 +164,7 @@ export class ProfilesParent extends JSWindowActorParent {
           currentProfile: currentProfile.toObject(),
           profiles: profiles.map(p => p.toObject()),
           themes,
+          isInAutomation: Cu.isInAutomation,
         };
       }
       case "Profiles:OpenDeletePage": {
