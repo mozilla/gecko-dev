@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Output type is non-nullable if the input type is non-nullable
 wasmValidateText(`(module
 	(func (param externref) (result anyref)

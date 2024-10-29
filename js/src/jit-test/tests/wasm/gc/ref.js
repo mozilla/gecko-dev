@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Parsing and resolving.
 
 var text = `(module
@@ -172,24 +170,6 @@ assertErrorMessage(() => wasmEvalText(`
  (func $f (param (ref null $s)) (result (ref null $t)) (local.get 0)))
 `),
 WebAssembly.CompileError, /expression has type \(ref null.*\) but expected \(ref null.*\)/);
-
-if (!wasmGcEnabled()) {
-  // Ref type can't reference a function type
-
-  assertErrorMessage(() => wasmEvalText(`
-(module
- (type $x (func (param i32)))
- (func $f (param (ref null $x)) (unreachable)))
-`),
-  WebAssembly.CompileError, /does not reference a gc type/);
-
-  assertErrorMessage(() => wasmEvalText(`
-(module
- (type (func (param i32)))
- (func $f (param (ref null 0)) (unreachable)))
-`),
-  WebAssembly.CompileError, /does not reference a gc type/);
-}
 
 // No automatic downcast from eqref
 

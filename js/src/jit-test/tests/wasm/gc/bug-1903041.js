@@ -1,4 +1,4 @@
-// |jit-test| test-also=--setpref=wasm_test_serialization=true; skip-if: !wasmGcEnabled()
+// |jit-test| test-also=--setpref=wasm_test_serialization=true
 
 wasmFailValidateText(`(module
   (type $a (struct))

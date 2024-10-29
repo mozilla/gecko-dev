@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 let { testArray, testStructInline, testStructOutline } = wasmEvalText(`
   (module
   (type $array (array i32))

@@ -383,18 +383,3 @@ assertEq(tbl.get(0).foo, 42);
         (func)
     )`), WebAssembly.CompileError, /expression has type (funcref|\(ref 0\)) but expected externref/);
 }
-
-// non-GC: mutable globals are rejected (global.get is constant only if the global is constant)
-if (!wasmGcEnabled()) {
-    assertErrorMessage(() => {
-        wasmEvalText(`(module
-            (global (import "test" "g1") (mut externref))
-            (global (import "test" "g2") (mut externref))
-            (table $t externref (elem (global.get 0) (global.get 1)))
-
-            (func (export "get") (param i32) (result externref)
-                (table.get $t (local.get 0))
-            )
-        )`, { test: { g1: "hello", g2: ["yay", "arrays"] } });
-    }, WebAssembly.CompileError, /global.get in initializer expression must reference a global immutable import/);
-}

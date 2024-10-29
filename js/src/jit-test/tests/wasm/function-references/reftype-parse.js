@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // RefType/ValueType as a simple string
 const t01 = new WebAssembly.Table({element: 'funcref', initial: 3});
 const t02 = new WebAssembly.Table({element: 'externref', initial: 8});

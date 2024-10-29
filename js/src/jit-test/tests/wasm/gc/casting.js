@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Test all possible casting combinations of the following graph:
 //
 //  A1       A2

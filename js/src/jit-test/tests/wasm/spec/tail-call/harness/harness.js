@@ -138,10 +138,6 @@ class ExternRefResult {
 // ref.host values created by spectests will be whatever the JS API does to
 // convert the given value to anyref. It should implicitly be like any.convert_extern.
 function hostref(v) {
-  if (!wasmGcEnabled()) {
-    throw new Error("ref.host only works when wasm GC is enabled");
-  }
-
   const { internalizeNum } = new WebAssembly.Instance(
     new WebAssembly.Module(wasmTextToBinary(`(module
       (func (import "test" "coerce") (param i32) (result anyref))
@@ -239,7 +235,7 @@ function get(instanceish, field) {
 function assert_trap(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected trap but got no error (${message})`);
+    throw new Error(`got no error`);
   } catch (err) {
     if (err instanceof WebAssembly.RuntimeError) {
       return;
@@ -260,7 +256,7 @@ try {
 function assert_exhaustion(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected exhaustion but got no error (${message})`);
+    throw new Error(`got no error`);
   } catch (err) {
     if (err instanceof StackOverflow) {
       return;
@@ -273,7 +269,7 @@ function assert_exhaustion(thunk, message) {
 function assert_invalid(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected invalid module but got no error (${message})`);
+    throw new Error(`got no error`);
   } catch (err) {
     if (err instanceof WebAssembly.LinkError || err instanceof WebAssembly.CompileError) {
       return;
@@ -286,7 +282,7 @@ function assert_invalid(thunk, message) {
 function assert_unlinkable(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected an unlinkable module (${message})`);
+    throw new Error(`got no error`);
   } catch (err) {
     if (err instanceof WebAssembly.LinkError || err instanceof WebAssembly.CompileError) {
       return;
@@ -299,7 +295,7 @@ function assert_unlinkable(thunk, message) {
 function assert_malformed(thunk, message) {
   try {
     thunk();
-    throw new Error(`expected a malformed module (${message})`);
+    throw new Error(`got no error`);
   } catch (err) {
     if (
       err instanceof TypeError ||

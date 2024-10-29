@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // table.set in bounds with i32 x eqref - works, no value generated
 // table.set with (ref null T) - works
 // table.set with null - works

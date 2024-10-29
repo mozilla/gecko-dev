@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 load(libdir + "wasm-binary.js");
 
 function checkInvalid(body, errorMessage) {

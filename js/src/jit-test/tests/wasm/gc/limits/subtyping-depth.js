@@ -1,4 +1,4 @@
-// |jit-test| --setpref=wasm_gc; include:wasm.js; include: wasm-binary.js;
+// |jit-test| include:wasm.js; include: wasm-binary.js;
 
 // Limit of subtyping hierarchy 63 deep
 function moduleSubtypingDepth(depth) {

@@ -1,4 +1,4 @@
-// |jit-test| --setpref=wasm_gc; test-also=--wasm-compiler=optimizing; test-also=--wasm-compiler=baseline; include:wasm.js;
+// |jit-test| test-also=--wasm-compiler=optimizing; test-also=--wasm-compiler=baseline; include:wasm.js;
 
 loadRelativeToScript("load-mod.js");
 

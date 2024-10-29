@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Checking that we are correctly validating all subtyping rules.
 // In this example, $b should be a subtype of $a, even if their field types
 // will be loaded later.

@@ -1,5 +1,3 @@
-// |jit-test| --setpref=wasm_gc=true; skip-if: !wasmGcEnabled()
-
 // Validates if imported globals are accounted for in init expressions.
 
 var ins = wasmEvalText(`(module

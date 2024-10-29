@@ -62,7 +62,6 @@ name = "function-references"
 url = "https://github.com/WebAssembly/function-references"
 branch = "main"
 parent = "spec"
-directive = "; --setpref=wasm_gc=true; skip-if: !wasmGcEnabled()"
 excluded_tests = [
   # duplicate tail calls tests
   "return_call.wast",
@@ -96,7 +95,6 @@ name = "extended-const"
 url = "https://github.com/WebAssembly/extended-const"
 branch = "main"
 parent = "spec"
-directive = "; --setpref=wasm_gc=false"
 excluded_tests = []
 
 [[repos]]
@@ -123,7 +121,6 @@ name = "gc"
 url = "https://github.com/WebAssembly/gc"
 branch = "main"
 parent = "function-references"
-directive = "; --setpref=wasm_gc=true; skip-if: !wasmGcEnabled()"
 excluded_tests = [
   # tail call tests that snuck in
   "return_call.wast",

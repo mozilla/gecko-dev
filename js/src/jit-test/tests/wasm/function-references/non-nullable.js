@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // non-null values are subtype of null values
 wasmValidateText(`(module
   (func (param $a (ref extern))

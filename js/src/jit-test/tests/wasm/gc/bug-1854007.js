@@ -1,4 +1,4 @@
-// |jit-test| test-also=--setpref=wasm_test_serialization=true; skip-if: !wasmGcEnabled()
+// |jit-test| test-also=--setpref=wasm_test_serialization=true
 
 let {run} = wasmEvalText(`(module
   (rec (type $$t1 (func (result (ref null $$t1)))))

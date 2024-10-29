@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Generates combinations of different block types and operations for
 // non-defaultable locals (local.set / .tee / .get).
 // See the function references specification on the updated algorithm

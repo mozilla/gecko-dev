@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 let InvalidI31Values = [
   null,
   Number.EPSILON,

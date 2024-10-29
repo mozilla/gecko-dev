@@ -1,17 +1,15 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Tests of dynamic type checks
 test('anyref', WasmAnyrefValues, []);
 test('eqref', WasmEqrefValues, WasmNonAnyrefValues);
 test('structref', WasmStructrefValues, WasmNonAnyrefValues);
 test('arrayref', WasmArrayrefValues, WasmNonAnyrefValues);
-let { newStruct } = wasmEvalText(`
+let { makeStruct } = wasmEvalText(`
   (module
     (type $s (struct))
-    (func (export "newStruct") (result anyref)
+    (func (export "makeStruct") (result anyref)
         struct.new $s)
   )`).exports;
-test('(ref null 0)', [newStruct()], WasmNonAnyrefValues, '(type (struct))');
+test('(ref null 0)', [makeStruct()], WasmNonAnyrefValues, '(type (struct))');
 test('nullref', [null], WasmNonAnyrefValues);
 
 function test(type, validValues, invalidValues, typeSection = "") {

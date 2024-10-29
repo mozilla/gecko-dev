@@ -1,4 +1,4 @@
-// |jit-test| slow; skip-if: !wasmGcEnabled()
+// |jit-test| slow
 
 const { test } = wasmEvalText(`(module
   (type $t1 (array (mut i16)))

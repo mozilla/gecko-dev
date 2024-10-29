@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // implicit null funcref value
 {
   const { t, get } = wasmEvalText(`(module

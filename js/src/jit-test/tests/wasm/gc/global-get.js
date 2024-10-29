@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // global.get cannot refer to self or after globals after self
 
 assertErrorMessage(() => wasmEvalText(`(module

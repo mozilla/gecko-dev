@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 const INSTRUCTIONS = [
   "struct.new $s",
   "struct.new_default $s",

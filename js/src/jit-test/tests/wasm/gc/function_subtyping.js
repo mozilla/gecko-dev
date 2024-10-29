@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Validate rules for function subtyping:
 // - Same number of parameters and results
 // - Function return types are covariant

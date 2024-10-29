@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Basic private-to-module functionality.  At the moment all we have is null
 // pointers, not very exciting.
 

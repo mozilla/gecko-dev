@@ -1,4 +1,4 @@
-// |jit-test| --fuzzing-safe; --ion-offthread-compile=off; skip-if: !wasmGcEnabled()
+// |jit-test| --fuzzing-safe; --ion-offthread-compile=off
 
 function f() {
 }

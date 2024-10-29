@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 let {f} = wasmEvalText(`(module
 	(type (struct))
 	(func (export "f") (result anyref)

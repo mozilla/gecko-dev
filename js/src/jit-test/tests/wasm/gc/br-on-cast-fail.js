@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 function typingModule(types, from, to, brParams, branchResults, fallthroughResults) {
   return `(module
     ${types}

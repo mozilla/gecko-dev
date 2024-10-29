@@ -1,4 +1,4 @@
-// |jit-test| --setpref=wasm_gc=true; skip-if: !wasmGcEnabled() || getBuildConfiguration("simulator")
+// |jit-test| skip-if: getBuildConfiguration("simulator")
 
 // Tests GC references passed as arguments during return calls.
 // Similar to js/src/jit-test/tests/wasm/gc/trailers-gc-stress.js

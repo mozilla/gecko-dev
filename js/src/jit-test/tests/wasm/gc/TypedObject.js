@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // We can read the object fields from JS via a builtin
 {
     let ins = wasmEvalText(`(module

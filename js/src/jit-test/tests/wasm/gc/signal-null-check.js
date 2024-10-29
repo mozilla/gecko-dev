@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-//
 // Checks if null dereference works.
 
 for (let [fieldType, signedness, defaultValue] of [

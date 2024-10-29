@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Casting an external value is an expected failure
 let { refCast, refTest, brOnCast, brOnCastFail } = wasmEvalText(`
   (module

@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 const { test } = wasmEvalText(`
   (module
     (type $f (func (result i32)))

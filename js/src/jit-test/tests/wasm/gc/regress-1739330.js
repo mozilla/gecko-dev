@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 try {
   gczeal(4);
   function a(b) {

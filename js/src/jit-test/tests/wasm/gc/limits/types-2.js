@@ -1,4 +1,4 @@
-// |jit-test| --setpref=wasm_gc; include:wasm.js;
+// |jit-test| include:wasm.js;
 
 loadRelativeToScript("load-mod.js");
 

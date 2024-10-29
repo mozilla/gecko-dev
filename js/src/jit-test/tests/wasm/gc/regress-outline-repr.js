@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // White-box test for bug 1617908.  The significance of this test is that the
 // type $S is too large to fit in an inline WasmGcObject, and the write barrier
 // logic must take this into account when storing the (ref $S2) into the last

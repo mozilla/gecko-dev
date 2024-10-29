@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Globals have identity now
 {
   const { g, same } = wasmEvalText(`(module

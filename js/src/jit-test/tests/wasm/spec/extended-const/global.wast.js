@@ -496,17 +496,21 @@ assert_invalid(
   `unknown global`,
 );
 
-// ./test/core/global.wast:363
-assert_invalid(
-  () => instantiate(`(module (global i32 (i32.const 0)) (global i32 (global.get 0)))`),
-  `unknown global`,
-);
+// The GC proposal allows global initializers to reference previously-defined
+// immutable globals. These tests are out of date.
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=1926357
 
-// ./test/core/global.wast:367
-assert_invalid(
-  () => instantiate(`(module (global $$g i32 (i32.const 0)) (global i32 (global.get $$g)))`),
-  `unknown global`,
-);
+// // ./test/core/global.wast:363
+// assert_invalid(
+//   () => instantiate(`(module (global i32 (i32.const 0)) (global i32 (global.get 0)))`),
+//   `unknown global`,
+// );
+
+// // ./test/core/global.wast:367
+// assert_invalid(
+//   () => instantiate(`(module (global $$g i32 (i32.const 0)) (global i32 (global.get $$g)))`),
+//   `unknown global`,
+// );
 
 // ./test/core/global.wast:372
 assert_invalid(

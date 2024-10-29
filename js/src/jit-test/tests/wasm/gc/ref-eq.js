@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-//
 // ref.eq is part of the gc feature, not the reftypes feature.
 
 let { exports: { make, ref_eq, ref_eq_for_control } } = wasmEvalText(`(module

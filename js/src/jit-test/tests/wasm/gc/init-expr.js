@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Test wasm::InitExpr GC specific constant expressions
 
 // struct.new and struct.new_default

@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 let { table, func } = wasmEvalText(`(module
   (type (func))
   (func (type 0))

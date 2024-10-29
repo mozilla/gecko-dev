@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 const { test } = wasmEvalText(`(module
   (type $a (array i32))
   (func (export "test") (result anyref)

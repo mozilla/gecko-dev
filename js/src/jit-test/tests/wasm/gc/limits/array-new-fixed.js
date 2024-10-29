@@ -1,4 +1,4 @@
-// |jit-test| --setpref=wasm_gc; include:wasm.js;
+// |jit-test| include:wasm.js;
 
 // array.new_fixed has limit of 10_000 operands
 wasmFailValidateText(`(module

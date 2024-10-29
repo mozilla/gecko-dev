@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Attempt to test intercalls from ion to baseline and back.
 //
 // We get into this situation when the modules are compiled with different

@@ -70,7 +70,6 @@ let releasedFeatures = [
     wasmTailCallsEnabled(),
     `(module (func) (func (return_call 0)))`
   ],
-  ['gc', wasmGcEnabled(), `(module (type (struct)))`],
   [
     'multi-memory',
     wasmMultiMemoryEnabled(),

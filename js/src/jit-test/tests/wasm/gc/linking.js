@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 function linkGlobals(typeSection, exportInit, linkType) {
     let {global} = wasmEvalText(`(module
         ${typeSection}

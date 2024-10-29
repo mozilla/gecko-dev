@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmGcEnabled(); test-also=-P wasm_lazy_tiering --setpref=wasm_lazy_tiering_synchronous;
+// |jit-test| test-also=-P wasm_lazy_tiering --setpref=wasm_lazy_tiering_synchronous;
 
 let {a} = wasmEvalText(`(module
   (type $t (func))

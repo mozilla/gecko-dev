@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmGcEnabled() || wasmCompileMode().includes("ion")
+// |jit-test| skip-if: wasmCompileMode().includes("ion")
 
 load(libdir + "asserts.js");
 

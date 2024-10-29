@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Validate that incorrect subtyping examples are failing as expected
 const typeError = /incompatible super type/;
 

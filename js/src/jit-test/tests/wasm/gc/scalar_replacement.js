@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmGcEnabled()
-
 // Scalar Replacement of wasm structures.
 
 // A very simple example, this struct should be replaced.
