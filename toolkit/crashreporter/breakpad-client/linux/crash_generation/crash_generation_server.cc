@@ -387,8 +387,15 @@ void
 CrashGenerationServer::ReserveFileDescriptors() {
   for (size_t i = 0; i < CrashGenerationServer::RESERVED_FDS_NUM; i++) {
     assert(reserved_fds_[i] < 0);
-    reserved_fds_[i] =
-      static_cast<int>(syscall(__NR_memfd_create, "mozreserved", 0));
+
+    // This fd is just taking up space in the file table, so it can be
+    // anything that's self-contained and simple to create.
+    int fds[2];
+    int rv = pipe2(fds, O_CLOEXEC);
+    if (rv == 0) {
+      close(fds[0]);
+      reserved_fds_[i] = fds[1];
+    }
   }
 }
 
