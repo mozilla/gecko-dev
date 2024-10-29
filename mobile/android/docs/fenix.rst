@@ -34,6 +34,13 @@ From the root mozilla-central directory, build Fenix:
 You can then find the generated debug apks in objdir under
 ``gradle/build/mobile/android/fenix/outputs/apk/fenix/debug``
 
+To sign your release builds with your debug key automatically, add the following to `<proj-root>/local.properties`:
+
+.. code-block:: shell
+
+    autosignReleaseWithDebugKey
+
+
 Run Fenix or other Android projects using command line
 ---------------------------------------------------------
 .. _run_fenix_from_commandline:
