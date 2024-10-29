@@ -48,6 +48,18 @@ class nsContentDLF final : public nsIDocumentLoaderFactory {
       nsILoadGroup* aLoadGroup, nsIPrincipal* aPrincipal,
       nsIPrincipal* aPartitionedPrincipal, nsDocShell* aContainer);
 
+  enum class DocumentKind {
+    HTML,
+    XML,
+    SVG,
+    Video,
+    Image,
+    None,
+  };
+
+  static DocumentKind DocumentKindForContentType(
+      const nsACString& aContentType);
+
  private:
   static nsresult EnsureUAStyleSheet();
   static bool IsImageContentType(const nsACString&);

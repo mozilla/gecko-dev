@@ -11,6 +11,7 @@
 
 #include <utility>
 #include "mozilla/Maybe.h"
+#include "nsContentDLF.h"
 #include "nsStringFwd.h"
 
 struct JSContext;
@@ -65,6 +66,12 @@ class nsContentSecurityUtils {
   // 1. CSP frame-ancestors properties
   // 2. x-frame-options
   static bool CheckCSPFrameAncestorAndXFO(nsIChannel* aChannel);
+
+  // Returns false if a MediaDocument load should be blocked, because the
+  // inherited CSP would block it as a regular <audio>/<video>/<img> load as
+  // well.
+  static bool CheckCSPMediaDocumentLoad(nsIChannel* aChannel,
+                                        nsContentDLF::DocumentKind aKind);
 
   // Implements https://w3c.github.io/webappsec-csp/#is-element-nonceable.
   //

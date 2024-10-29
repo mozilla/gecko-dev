@@ -172,7 +172,7 @@ CanPlayStatus DecoderTraits::CanHandleContainerType(
 
 /* static */
 bool DecoderTraits::ShouldHandleMediaType(
-    const char* aMIMEType, DecoderDoctorDiagnostics* aDiagnostics) {
+    const nsACString& aMIMEType, DecoderDoctorDiagnostics* aDiagnostics) {
   Maybe<MediaContainerType> containerType = MakeMediaContainerType(aMIMEType);
   if (!containerType) {
     return false;

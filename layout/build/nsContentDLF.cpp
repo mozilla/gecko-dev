@@ -75,6 +75,39 @@ nsContentDLF::~nsContentDLF() = default;
 
 NS_IMPL_ISUPPORTS(nsContentDLF, nsIDocumentLoaderFactory)
 
+/* static */
+nsContentDLF::DocumentKind nsContentDLF::DocumentKindForContentType(
+    const nsACString& aContentType) {
+  // Try html or plaintext; both use the same document CID
+  if (IsTypeInList(aContentType, gHTMLTypes) ||
+      nsContentUtils::IsPlainTextType(aContentType)) {
+    return DocumentKind::HTML;
+  }
+
+  // Try XML
+  if (IsTypeInList(aContentType, gXMLTypes)) {
+    return DocumentKind::XML;
+  }
+
+  // Try SVG
+  if (IsTypeInList(aContentType, gSVGTypes)) {
+    return DocumentKind::SVG;
+  }
+
+  if (mozilla::DecoderTraits::ShouldHandleMediaType(
+          aContentType,
+          /* DecoderDoctorDiagnostics* */ nullptr)) {
+    return DocumentKind::Video;
+  }
+
+  // Try image types
+  if (IsImageContentType(aContentType)) {
+    return DocumentKind::Image;
+  }
+
+  return DocumentKind::None;
+}
+
 NS_IMETHODIMP
 nsContentDLF::CreateInstance(const char* aCommand, nsIChannel* aChannel,
                              nsILoadGroup* aLoadGroup,
@@ -118,72 +151,76 @@ nsContentDLF::CreateInstance(const char* aCommand, nsIChannel* aChannel,
 
   nsresult rv;
   bool imageDocument = false;
-  // Try html or plaintext; both use the same document CID
-  if (IsTypeInList(contentType, gHTMLTypes) ||
-      nsContentUtils::IsPlainTextType(contentType)) {
-    rv = CreateDocument(
-        aCommand, aChannel, aLoadGroup, aContainer,
-        []() -> already_AddRefed<Document> {
-          RefPtr<Document> doc;
-          nsresult rv =
-              NS_NewHTMLDocument(getter_AddRefs(doc), nullptr, nullptr);
-          NS_ENSURE_SUCCESS(rv, nullptr);
-          return doc.forget();
-        },
-        aDocListener, aDocViewer);
-  }  // Try XML
-  else if (IsTypeInList(contentType, gXMLTypes)) {
-    rv = CreateDocument(
-        aCommand, aChannel, aLoadGroup, aContainer,
-        []() -> already_AddRefed<Document> {
-          RefPtr<Document> doc;
-          nsresult rv =
-              NS_NewXMLDocument(getter_AddRefs(doc), nullptr, nullptr);
-          NS_ENSURE_SUCCESS(rv, nullptr);
-          return doc.forget();
-        },
-        aDocListener, aDocViewer);
-  }  // Try SVG
-  else if (IsTypeInList(contentType, gSVGTypes)) {
-    rv = CreateDocument(
-        aCommand, aChannel, aLoadGroup, aContainer,
-        []() -> already_AddRefed<Document> {
-          RefPtr<Document> doc;
-          nsresult rv =
-              NS_NewSVGDocument(getter_AddRefs(doc), nullptr, nullptr);
-          NS_ENSURE_SUCCESS(rv, nullptr);
-          return doc.forget();
-        },
-        aDocListener, aDocViewer);
-  } else if (mozilla::DecoderTraits::ShouldHandleMediaType(
-                 contentType.get(),
-                 /* DecoderDoctorDiagnostics* */ nullptr)) {
-    rv = CreateDocument(
-        aCommand, aChannel, aLoadGroup, aContainer,
-        []() -> already_AddRefed<Document> {
-          RefPtr<Document> doc;
-          nsresult rv =
-              NS_NewVideoDocument(getter_AddRefs(doc), nullptr, nullptr);
-          NS_ENSURE_SUCCESS(rv, nullptr);
-          return doc.forget();
-        },
-        aDocListener, aDocViewer);
-  }  // Try image types
-  else if (IsImageContentType(contentType)) {
-    imageDocument = true;
-    rv = CreateDocument(
-        aCommand, aChannel, aLoadGroup, aContainer,
-        []() -> already_AddRefed<Document> {
-          RefPtr<Document> doc;
-          nsresult rv =
-              NS_NewImageDocument(getter_AddRefs(doc), nullptr, nullptr);
-          NS_ENSURE_SUCCESS(rv, nullptr);
-          return doc.forget();
-        },
-        aDocListener, aDocViewer);
-  } else {
-    // If we get here, then we weren't able to create anything. Sorry!
-    return NS_ERROR_FAILURE;
+  switch (DocumentKindForContentType(contentType)) {
+    case DocumentKind::HTML: {
+      rv = CreateDocument(
+          aCommand, aChannel, aLoadGroup, aContainer,
+          []() -> already_AddRefed<Document> {
+            RefPtr<Document> doc;
+            nsresult rv =
+                NS_NewHTMLDocument(getter_AddRefs(doc), nullptr, nullptr);
+            NS_ENSURE_SUCCESS(rv, nullptr);
+            return doc.forget();
+          },
+          aDocListener, aDocViewer);
+      break;
+    }
+    case DocumentKind::XML: {
+      rv = CreateDocument(
+          aCommand, aChannel, aLoadGroup, aContainer,
+          []() -> already_AddRefed<Document> {
+            RefPtr<Document> doc;
+            nsresult rv =
+                NS_NewXMLDocument(getter_AddRefs(doc), nullptr, nullptr);
+            NS_ENSURE_SUCCESS(rv, nullptr);
+            return doc.forget();
+          },
+          aDocListener, aDocViewer);
+      break;
+    }
+    case DocumentKind::SVG: {
+      rv = CreateDocument(
+          aCommand, aChannel, aLoadGroup, aContainer,
+          []() -> already_AddRefed<Document> {
+            RefPtr<Document> doc;
+            nsresult rv =
+                NS_NewSVGDocument(getter_AddRefs(doc), nullptr, nullptr);
+            NS_ENSURE_SUCCESS(rv, nullptr);
+            return doc.forget();
+          },
+          aDocListener, aDocViewer);
+      break;
+    }
+    case DocumentKind::Video: {
+      rv = CreateDocument(
+          aCommand, aChannel, aLoadGroup, aContainer,
+          []() -> already_AddRefed<Document> {
+            RefPtr<Document> doc;
+            nsresult rv =
+                NS_NewVideoDocument(getter_AddRefs(doc), nullptr, nullptr);
+            NS_ENSURE_SUCCESS(rv, nullptr);
+            return doc.forget();
+          },
+          aDocListener, aDocViewer);
+      break;
+    }
+    case DocumentKind::Image: {
+      imageDocument = true;
+      rv = CreateDocument(
+          aCommand, aChannel, aLoadGroup, aContainer,
+          []() -> already_AddRefed<Document> {
+            RefPtr<Document> doc;
+            nsresult rv =
+                NS_NewImageDocument(getter_AddRefs(doc), nullptr, nullptr);
+            NS_ENSURE_SUCCESS(rv, nullptr);
+            return doc.forget();
+          },
+          aDocListener, aDocViewer);
+      break;
+    }
+    default:
+      // If we get here, then we weren't able to create anything. Sorry!
+      return NS_ERROR_FAILURE;
   }
 
   if (NS_SUCCEEDED(rv) && !imageDocument) {

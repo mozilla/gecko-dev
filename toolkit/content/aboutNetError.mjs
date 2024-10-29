@@ -354,6 +354,17 @@ function initPage() {
       tryAgain.hidden = true;
       break;
 
+    case "cspMediaBlocked":
+      bodyTitleId = "csp-xfo-error-title";
+
+      // Remove the "Try again" button for XFO and CSP violations,
+      // since it's almost certainly useless. (Bug 553180)
+      tryAgain.hidden = true;
+
+      // Does not contain anything useful.
+      longDesc = null;
+
+      break;
     case "cspBlocked":
     case "xfoBlocked": {
       bodyTitleId = "csp-xfo-error-title";
