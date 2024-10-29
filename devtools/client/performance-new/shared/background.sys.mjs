@@ -37,6 +37,7 @@ const AppConstants = ChromeUtils.importESModule(
  * @typedef {import("../@types/perf").SymbolicationService} SymbolicationService
  * @typedef {import("../@types/perf").ProfilerBrowserInfo} ProfilerBrowserInfo
  * @typedef {import("../@types/perf").ProfileCaptureResult} ProfileCaptureResult
+ * @typedef {import("../@types/perf").ProfilerFaviconData} ProfilerFaviconData
  */
 
 /** @type {PerformancePref["Entries"]} */
@@ -63,7 +64,7 @@ const PREF_PREFIX = "devtools.performance.recording.";
 // capabilities of the WebChannel. The front-end can handle old WebChannel
 // versions and has a full list of versions and capabilities here:
 // https://github.com/firefox-devtools/profiler/blob/main/src/app-logic/web-channel.js
-const CURRENT_WEBCHANNEL_VERSION = 3;
+const CURRENT_WEBCHANNEL_VERSION = 4;
 
 const lazyRequire = {};
 // eslint-disable-next-line mozilla/lazy-getter-object-name
@@ -101,6 +102,9 @@ const lazy = createLazyLoaders({
     ChromeUtils.importESModule(
       "resource://devtools/client/performance-new/popup/menu-button.sys.mjs"
     ),
+  PlacesUtils: () =>
+    ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs")
+      .PlacesUtils,
 });
 
 // The presets that we find in all interfaces are defined here.
@@ -870,6 +874,10 @@ async function getResponseForMessage(request, browser) {
       }
       return [];
     }
+    case "GET_PAGE_FAVICONS": {
+      const { pageUrls } = request;
+      return getPageFavicons(pageUrls);
+    }
     default: {
       console.error(
         "An unknown message type was received by the profiler's WebChannel handler.",
@@ -979,4 +987,44 @@ export function registerProfileCaptureForBrowser(
     profileCaptureResult,
     symbolicationService,
   });
+}
+
+/**
+ * Get page favicons data and return them.
+ *
+ * @param {Array<string>} pageUrls
+ *
+ * @returns {Promise<Array<ProfilerFaviconData | null>>} favicon data as binary array.
+ */
+async function getPageFavicons(pageUrls) {
+  if (!pageUrls || pageUrls.length === 0) {
+    // Return early if the pages are not provided.
+    return [];
+  }
+
+  // Get the data of favicons and return them.
+  const { promiseFaviconData } = lazy.PlacesUtils();
+
+  const promises = pageUrls.map(pageUrl =>
+    promiseFaviconData(pageUrl, /* preferredWidth = */ 32)
+      .then(favicon => {
+        // Check if data is found in the database and return it if so.
+        if (favicon.dataLen > 0 && favicon.data) {
+          return {
+            // PlacesUtils returns a number array for the data. Converting it to
+            // the Uint8Array here to send it to the tab more efficiently.
+            data: new Uint8Array(favicon.data).buffer,
+            mimeType: favicon.mimeType,
+          };
+        }
+
+        return null;
+      })
+      .catch(() => {
+        // Couldn't find a favicon for this page, return null explicitly.
+        return null;
+      })
+  );
+
+  return Promise.all(promises);
 }

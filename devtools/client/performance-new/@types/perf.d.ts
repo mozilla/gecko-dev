@@ -129,6 +129,10 @@ export type ThunkDispatch = <Returns>(action: ThunkAction<Returns>) => Returns;
 export type PlainDispatch = (action: Action) => Action;
 export type GetState = () => State;
 export type SymbolTableAsTuple = [Uint32Array, Uint32Array, Uint8Array];
+export type ProfilerFaviconData = {
+  data: ArrayBuffer;
+  mimeType: string;
+};
 
 /**
  * The `dispatch` function can accept either a plain action or a thunk action.
@@ -490,7 +494,8 @@ export type RequestFromFrontend =
   | GetExternalMarkersRequest
   | GetExternalPowerTracksRequest
   | GetSymbolTableRequest
-  | QuerySymbolicationApiRequest;
+  | QuerySymbolicationApiRequest
+  | GetPageFaviconsRequest;
 
 type StatusQueryRequest = { type: "STATUS_QUERY" };
 type EnableMenuButtonRequest = { type: "ENABLE_MENU_BUTTON" };
@@ -514,6 +519,10 @@ type QuerySymbolicationApiRequest = {
   type: "QUERY_SYMBOLICATION_API";
   path: string;
   requestJson: string;
+};
+type GetPageFaviconsRequest = {
+  type: "GET_PAGE_FAVICONS";
+  pageUrls: Array<string>;
 };
 
 export type MessageToFrontend<R> =
@@ -545,7 +554,8 @@ export type ResponseToFrontend =
   | GetExternalMarkersResponse
   | GetExternalPowerTracksResponse
   | GetSymbolTableResponse
-  | QuerySymbolicationApiResponse;
+  | QuerySymbolicationApiResponse
+  | GetPageFaviconsResponse;
 
 type StatusQueryResponse = {
   menuButtonIsEnabled: boolean;
@@ -573,6 +583,7 @@ type GetExternalMarkersResponse = Array<object>;
 type GetExternalPowerTracksResponse = Array<object>;
 type GetSymbolTableResponse = SymbolTableAsTuple;
 type QuerySymbolicationApiResponse = string;
+type GetPageFaviconsResponse = Array<ProfilerFaviconData | null>;
 
 /**
  * This represents an event channel that can talk to a content page on the web.
