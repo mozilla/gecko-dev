@@ -912,30 +912,10 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
 
   return rv;
 }
-
-Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
-    nsDirection aDirection, ExtendSelection aContinueSelection,
-    const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
-    const nsPoint& aDesiredCaretPos) const {
-  if (!mPresShell) {
-    return Err(NS_ERROR_NULL_POINTER);
-  }
-
-  Selection* selection =
-      mDomSelections[GetIndexFromSelectionType(SelectionType::eNormal)];
-  if (!selection) {
-    return Err(NS_ERROR_NULL_POINTER);
-  }
-
-  nsIContent* content = nsIContent::FromNodeOrNull(selection->GetFocusNode());
-  if (!content) {
-    return Err(NS_ERROR_FAILURE);
-  }
-  MOZ_ASSERT(mPresShell->GetDocument() == content->GetComposedDoc());
-
-  const bool visualMovement =
-      mCaret.IsVisualMovement(aContinueSelection, aMovementStyle);
-
+Result<PeekOffsetOptions, nsresult>
+nsFrameSelection::CreatePeekOffsetOptionsForCaretMove(
+    dom::Selection* aSelection, ExtendSelection aContinueSelection,
+    CaretMovementStyle aMovementStyle) const {
   PeekOffsetOptions options;
   // set data using mLimiters.mLimiter to stop on scroll views.  If we have a
   // limiter then we stop peeking when we hit scrollable views.  If no limiter
@@ -943,16 +923,40 @@ Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
   if (mLimiters.mLimiter) {
     options += PeekOffsetOption::StopAtScroller;
   }
+  const bool visualMovement =
+      mCaret.IsVisualMovement(aContinueSelection, aMovementStyle);
   if (visualMovement) {
     options += PeekOffsetOption::Visual;
   }
   if (aContinueSelection == ExtendSelection::Yes) {
     options += PeekOffsetOption::Extend;
   }
-  const Element* ancestorLimiter =
-      Element::FromNodeOrNull(GetAncestorLimiter());
-  if (selection->IsEditorSelection()) {
+
+  MOZ_ASSERT(aSelection);
+  if (aSelection->IsEditorSelection()) {
     options += PeekOffsetOption::ForceEditableRegion;
+  }
+  return options;
+}
+
+Result<Element*, nsresult>
+nsFrameSelection::GetAncestorLimiterForCaretMove(
+    dom::Selection* aSelection) const {
+  if (!mPresShell) {
+    return Err(NS_ERROR_NULL_POINTER);
+  }
+
+  MOZ_ASSERT(aSelection);
+  nsIContent* content = nsIContent::FromNodeOrNull(aSelection->GetFocusNode());
+  if (!content) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  MOZ_ASSERT(mPresShell->GetDocument() == content->GetComposedDoc());
+
+  Element* ancestorLimiter =
+      Element::FromNodeOrNull(GetAncestorLimiter());
+  if (aSelection->IsEditorSelection()) {
     // If the editor has not receive `focus` event, it may have not set ancestor
     // limiter.  Then, we need to compute it here for the caret move.
     if (!ancestorLimiter) {
@@ -962,14 +966,14 @@ Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
       // host of selection range container.  On the other hand, selection ranges
       // may be outside of focused editing host.  In such case, we should use
       // the closest editing host as the ancestor limiter instead.
-      PresShell* const presShell = selection->GetPresShell();
+      PresShell* const presShell = aSelection->GetPresShell();
       const Document* const doc =
           presShell ? presShell->GetDocument() : nullptr;
       if (const nsPIDOMWindowInner* const win =
               doc ? doc->GetInnerWindow() : nullptr) {
-        const Element* const focusedElement = win->GetFocusedElement();
-        const Element* closestEditingHost = nullptr;
-        for (const Element* element :
+        Element* const focusedElement = win->GetFocusedElement();
+        Element* closestEditingHost = nullptr;
+        for (Element* element :
              content->InclusiveAncestorsOfType<Element>()) {
           if (element->IsEditingHost()) {
             if (!closestEditingHost) {
@@ -992,10 +996,34 @@ Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
       }
     }
   }
+  return ancestorLimiter;
+}
+Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
+    nsDirection aDirection, ExtendSelection aContinueSelection,
+    const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
+    const nsPoint& aDesiredCaretPos) const {
+  Selection* selection =
+      mDomSelections[GetIndexFromSelectionType(SelectionType::eNormal)];
+  if (!selection) {
+    return Err(NS_ERROR_NULL_POINTER);
+  }
+  Result<PeekOffsetOptions, nsresult> options =
+      CreatePeekOffsetOptionsForCaretMove(selection, aContinueSelection,
+                                          aMovementStyle);
+  if (options.isErr()) {
+    return options.propagateErr();
+  }
+  Result<const dom::Element*, nsresult> ancestorLimiter =
+      GetAncestorLimiterForCaretMove(selection);
+  if(ancestorLimiter.isErr()) {
+    return ancestorLimiter.propagateErr();
+  }
+  nsIContent* content = nsIContent::FromNodeOrNull(selection->GetFocusNode());
 
   return SelectionMovementUtils::PeekOffsetForCaretMove(
       content, selection->FocusOffset(), aDirection, GetHint(),
-      GetCaretBidiLevel(), aAmount, aDesiredCaretPos, options, ancestorLimiter);
+      GetCaretBidiLevel(), aAmount, aDesiredCaretPos, options.unwrap(),
+      ancestorLimiter.unwrap());
 }
 
 nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(

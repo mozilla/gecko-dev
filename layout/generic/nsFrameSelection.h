@@ -900,6 +900,31 @@ class nsFrameSelection final {
                                         CaretMovementStyle aMovementStyle);
 
   /**
+   * @brief Creates `PeekOffsetOptions` for caret move operations.
+   *
+   * @param aSelection         The selection object. Must be non-null
+   * @param aContinueSelection Whether the selection should be extended or not
+   * @param aMovementStyle     The `CaretMovementStyle` (logical or visual)
+   * @return mozilla::Result<mozilla::PeekOffsetOptions, nsresult>
+   */
+  mozilla::Result<mozilla::PeekOffsetOptions, nsresult>
+  CreatePeekOffsetOptionsForCaretMove(mozilla::dom::Selection* aSelection,
+                                      ExtendSelection aContinueSelection,
+                                      CaretMovementStyle aMovementStyle) const;
+
+  /**
+   * @brief Get the Ancestor Limiter for caret move operation.
+   *
+   * If the selection is an editor selection, the correct editing host is
+   * identified and chosen as limiting element.
+   *
+   * @param aSelection The selection object. Must be non-null
+   * @return The ancestor limiter, or nullptr.
+   */
+  mozilla::Result<mozilla::dom::Element*, nsresult>
+  GetAncestorLimiterForCaretMove(mozilla::dom::Selection* aSelection) const;
+
+  /**
    * PeekOffsetForCaretMove() only peek offset for caret move from the focus
    * point of the normal selection.  I.e., won't change selection ranges nor
    * bidi information.
