@@ -494,10 +494,7 @@ void WebExtensionPolicy::SetAllowedOrigins(MatchPatternSet& aAllowedOrigins) {
 }
 
 void WebExtensionPolicy::InjectContentScripts(ErrorResult& aRv) {
-  nsresult rv = EPS().InjectContentScripts(this);
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
-  }
+  EPS().InjectContentScripts(this, aRv);
 }
 
 /* static */

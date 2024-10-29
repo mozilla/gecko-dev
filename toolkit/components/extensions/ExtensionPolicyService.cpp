@@ -340,7 +340,7 @@ nsresult ExtensionPolicyService::Observe(nsISupports* aSubject,
 
 already_AddRefed<Promise> ExtensionPolicyService::ExecuteContentScript(
     nsPIDOMWindowInner* aWindow, WebExtensionContentScript& aScript) {
-  if (!aWindow->IsCurrentInnerWindow()) {
+  if (NS_WARN_IF(!aWindow) || !aWindow->IsCurrentInnerWindow()) {
     return nullptr;
   }
 
@@ -349,7 +349,7 @@ already_AddRefed<Promise> ExtensionPolicyService::ExecuteContentScript(
   return promise.forget();
 }
 
-RefPtr<Promise> ExtensionPolicyService::ExecuteContentScripts(
+already_AddRefed<Promise> ExtensionPolicyService::ExecuteContentScripts(
     JSContext* aCx, nsPIDOMWindowInner* aWindow,
     const nsTArray<RefPtr<WebExtensionContentScript>>& aScripts) {
   AutoTArray<RefPtr<Promise>, 8> promises;
@@ -361,8 +361,8 @@ RefPtr<Promise> ExtensionPolicyService::ExecuteContentScripts(
   }
 
   RefPtr<Promise> promise = Promise::All(aCx, promises, IgnoreErrors());
-  MOZ_RELEASE_ASSERT(promise);
-  return promise;
+  Unused << NS_WARN_IF(!promise);
+  return promise.forget();
 }
 
 // Use browser's MessageManagerGroup to decide if we care about it, to inject
@@ -400,8 +400,8 @@ static nsTArray<RefPtr<dom::BrowsingContext>> GetAllInProcessContentBCs() {
   return contentBCs;
 }
 
-nsresult ExtensionPolicyService::InjectContentScripts(
-    WebExtensionPolicy* aExtension) {
+void ExtensionPolicyService::InjectContentScripts(
+    WebExtensionPolicy* aExtension, ErrorResult& aRv) {
   AutoJSAPI jsapi;
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
 
@@ -432,29 +432,64 @@ nsresult ExtensionPolicyService::InjectContentScripts(
 
     nsCOMPtr<nsPIDOMWindowInner> inner = win->GetCurrentInnerWindow();
 
-    MOZ_TRY(ExecuteContentScripts(jsapi.cx(), inner,
-                                  GetScripts(RunAt::Document_start))
-                ->ThenWithCycleCollectedArgs(
-                    [](JSContext* aCx, JS::Handle<JS::Value> aValue,
-                       ErrorResult& aRv, ExtensionPolicyService* aSelf,
-                       nsPIDOMWindowInner* aInner, Scripts&& aScripts) {
-                      return aSelf->ExecuteContentScripts(aCx, aInner, aScripts)
-                          .forget();
-                    },
-                    this, inner, GetScripts(RunAt::Document_end))
-                .andThen([&](auto aPromise) {
-                  return aPromise->ThenWithCycleCollectedArgs(
-                      [](JSContext* aCx, JS::Handle<JS::Value> aValue,
-                         ErrorResult& aRv, ExtensionPolicyService* aSelf,
-                         nsPIDOMWindowInner* aInner, Scripts&& aScripts) {
-                        return aSelf
-                            ->ExecuteContentScripts(aCx, aInner, aScripts)
-                            .forget();
-                      },
-                      this, inner, GetScripts(RunAt::Document_idle));
-                }));
+    RefPtr<Promise> nextPromise = ExecuteContentScripts(
+        jsapi.cx(), inner, GetScripts(RunAt::Document_start));
+
+    // Throw an UnknownError when the first ExecuteContentScripts call
+    // for document_start content scripts fails to return a non-null Promise,
+    // the other two ExecuteContentScripts calls from the promise chain
+    // that follows will also log a similar execption and the promise chain
+    // rejected right away.
+    // NOTE: ExecuteContentScripts will be returning a nullptr if the call to
+    // Promise::All returned a nullptr, see Bug 1916569).
+    if (!nextPromise) {
+      aRv.ThrowUnknownError(
+          "The execution of document_start content scripts failed for an "
+          "unknown reason");
+      return;
+    }
+
+    auto result =
+        nextPromise
+            ->ThenWithCycleCollectedArgs(
+                [](JSContext* aCx, JS::Handle<JS::Value> aValue,
+                   ErrorResult& aRv, ExtensionPolicyService* aSelf,
+                   nsPIDOMWindowInner* aInner, Scripts&& aScripts) {
+                  RefPtr<Promise> newPromise =
+                      aSelf->ExecuteContentScripts(aCx, aInner, aScripts);
+                  if (NS_WARN_IF(!newPromise)) {
+                    aRv.ThrowUnknownError(
+                        "The execution of document_end content scripts failed "
+                        "for an unknown reason");
+                  }
+                  return newPromise.forget();
+                },
+                this, inner, GetScripts(RunAt::Document_end))
+            .andThen([&](auto aPromise) {
+              return aPromise->ThenWithCycleCollectedArgs(
+                  [](JSContext* aCx, JS::Handle<JS::Value> aValue,
+                     ErrorResult& aRv, ExtensionPolicyService* aSelf,
+                     nsPIDOMWindowInner* aInner, Scripts&& aScripts) {
+                    RefPtr<Promise> newPromise =
+                        aSelf->ExecuteContentScripts(aCx, aInner, aScripts);
+                    if (NS_WARN_IF(!newPromise)) {
+                      aRv.ThrowUnknownError(
+                          "The execution of document_end content scripts "
+                          "failed "
+                          "for an unknown reason");
+                    }
+                    return newPromise.forget();
+                  },
+                  this, inner, GetScripts(RunAt::Document_idle));
+            });
+
+    if (result.isErr()) {
+      aRv.ThrowUnknownError(
+          "The execution of document_end and document_idle content scripts "
+          "failed for an unknown reason");
+      return;
+    }
   }
-  return NS_OK;
 }
 
 // Checks a request for matching content scripts, and begins pre-loading them
