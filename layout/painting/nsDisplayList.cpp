@@ -6350,6 +6350,13 @@ auto nsDisplayTransform::ShouldPrerenderTransformedContent(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
     nsRect* aDirtyRect) -> PrerenderInfo {
   PrerenderInfo result;
+
+  // Prerendering only makes sense if we are painting to the window so that the
+  // extra prerendered content can be animated into view by the compositor.
+  if (!aBuilder->IsPaintingToWindow()) {
+    return result;
+  }
+
   // If we are in a preserve-3d tree, and we've disallowed async animations, we
   // return No prerender decision directly.
   if ((aFrame->Extend3DContext() ||
