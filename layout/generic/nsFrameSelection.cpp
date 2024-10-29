@@ -444,13 +444,12 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 bool nsFrameSelection::Caret::IsVisualMovement(
-    ExtendSelection aContinueSelection,
-    CaretMovementStyle aMovementStyle) const {
+    ExtendSelection aExtendSelection, CaretMovementStyle aMovementStyle) const {
   int32_t movementFlag = StaticPrefs::bidi_edit_caret_movement_style();
   return aMovementStyle == eVisual ||
          (aMovementStyle == eUsePrefStyle &&
           (movementFlag == 1 ||
-           (movementFlag == 2 && aContinueSelection == ExtendSelection::No)));
+           (movementFlag == 2 && aExtendSelection == ExtendSelection::No)));
 }
 
 // Get the x (or y, in vertical writing mode) position requested
@@ -698,7 +697,7 @@ static nsDirection GetCaretDirection(const nsIFrame& aFrame,
 }
 
 nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
-                                     ExtendSelection aContinueSelection,
+                                     ExtendSelection aExtendSelection,
                                      const nsSelectionAmount aAmount,
                                      CaretMovementStyle aMovementStyle) {
   NS_ENSURE_STATE(mPresShell);
@@ -730,7 +729,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   }
 
   const bool doCollapse = [&] {
-    if (sel->IsCollapsed() || aContinueSelection == ExtendSelection::Yes) {
+    if (sel->IsCollapsed() || aExtendSelection == ExtendSelection::Yes) {
       return false;
     }
     if (aAmount > eSelectLine) {
@@ -768,7 +767,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   }
 
   bool visualMovement =
-      mCaret.IsVisualMovement(aContinueSelection, aMovementStyle);
+      mCaret.IsVisualMovement(aExtendSelection, aMovementStyle);
   const PrimaryFrameData frameForFocus =
       sel->GetPrimaryFrameForCaretAtFocusNode(visualMovement);
   if (!frameForFocus.mFrame) {
@@ -822,7 +821,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
                       // mCaret.mHint until it is necessary
 
   Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
-      direction, aContinueSelection, aAmount, aMovementStyle, desiredPos);
+      direction, aExtendSelection, aAmount, aMovementStyle, desiredPos);
   nsresult rv;
   if (result.isOk() && result.inspect().mResultContent) {
     const PeekOffsetStruct& pos = result.inspect();
@@ -883,13 +882,13 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
     }
     // "pos" is on the stack, so pos.mResultContent has stack lifetime, so using
     // MOZ_KnownLive is ok.
-    const FocusMode focusMode = aContinueSelection == ExtendSelection::Yes
+    const FocusMode focusMode = aExtendSelection == ExtendSelection::Yes
                                     ? FocusMode::kExtendSelection
                                     : FocusMode::kCollapseToNewPoint;
     rv = TakeFocus(MOZ_KnownLive(*pos.mResultContent), pos.mContentOffset,
                    pos.mContentOffset, tHint, focusMode);
   } else if (aAmount <= eSelectWordNoSpace && direction == eDirNext &&
-             aContinueSelection == ExtendSelection::No) {
+             aExtendSelection == ExtendSelection::No) {
     // Collapse selection if PeekOffset failed, we either
     //  1. bumped into the BRFrame, bug 207623
     //  2. had select-all in a text input (DIV range), bug 352759.
@@ -914,7 +913,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
 }
 Result<PeekOffsetOptions, nsresult>
 nsFrameSelection::CreatePeekOffsetOptionsForCaretMove(
-    dom::Selection* aSelection, ExtendSelection aContinueSelection,
+    dom::Selection* aSelection, ExtendSelection aExtendSelection,
     CaretMovementStyle aMovementStyle) const {
   PeekOffsetOptions options;
   // set data using mLimiters.mLimiter to stop on scroll views.  If we have a
@@ -924,11 +923,11 @@ nsFrameSelection::CreatePeekOffsetOptionsForCaretMove(
     options += PeekOffsetOption::StopAtScroller;
   }
   const bool visualMovement =
-      mCaret.IsVisualMovement(aContinueSelection, aMovementStyle);
+      mCaret.IsVisualMovement(aExtendSelection, aMovementStyle);
   if (visualMovement) {
     options += PeekOffsetOption::Visual;
   }
-  if (aContinueSelection == ExtendSelection::Yes) {
+  if (aExtendSelection == ExtendSelection::Yes) {
     options += PeekOffsetOption::Extend;
   }
 
@@ -999,7 +998,7 @@ nsFrameSelection::GetAncestorLimiterForCaretMove(
   return ancestorLimiter;
 }
 Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
-    nsDirection aDirection, ExtendSelection aContinueSelection,
+    nsDirection aDirection, ExtendSelection aExtendSelection,
     const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
     const nsPoint& aDesiredCaretPos) const {
   Selection* selection =
@@ -1008,7 +1007,7 @@ Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
     return Err(NS_ERROR_NULL_POINTER);
   }
   Result<PeekOffsetOptions, nsresult> options =
-      CreatePeekOffsetOptionsForCaretMove(selection, aContinueSelection,
+      CreatePeekOffsetOptionsForCaretMove(selection, aExtendSelection,
                                           aMovementStyle);
   if (options.isErr()) {
     return options.propagateErr();
@@ -1485,7 +1484,7 @@ nsresult nsFrameSelection::TakeFocus(nsIContent& aNewFocus,
 
         // XXXX We need to REALLY get the current key shift state
         //  (we'd need to add event listener -- let's not bother for now)
-        event.mModifiers &= ~MODIFIER_SHIFT;  // aContinueSelection;
+        event.mModifiers &= ~MODIFIER_SHIFT;  // aExtendSelection;
         if (parentAndOffset.mParent) {
           mTableSelection.mClosestInclusiveTableCellAncestor =
               inclusiveTableCellAncestor;

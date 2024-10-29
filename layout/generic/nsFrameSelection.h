@@ -895,21 +895,21 @@ class nsFrameSelection final {
   enum CaretMovementStyle { eLogical, eVisual, eUsePrefStyle };
   enum class ExtendSelection : bool { No, Yes };
   MOZ_CAN_RUN_SCRIPT nsresult MoveCaret(nsDirection aDirection,
-                                        ExtendSelection aContinueSelection,
+                                        ExtendSelection aExtendSelection,
                                         nsSelectionAmount aAmount,
                                         CaretMovementStyle aMovementStyle);
 
   /**
    * @brief Creates `PeekOffsetOptions` for caret move operations.
    *
-   * @param aSelection         The selection object. Must be non-null
-   * @param aContinueSelection Whether the selection should be extended or not
-   * @param aMovementStyle     The `CaretMovementStyle` (logical or visual)
+   * @param aSelection       The selection object. Must be non-null
+   * @param aExtendSelection Whether the selection should be extended or not
+   * @param aMovementStyle   The `CaretMovementStyle` (logical or visual)
    * @return mozilla::Result<mozilla::PeekOffsetOptions, nsresult>
    */
   mozilla::Result<mozilla::PeekOffsetOptions, nsresult>
   CreatePeekOffsetOptionsForCaretMove(mozilla::dom::Selection* aSelection,
-                                      ExtendSelection aContinueSelection,
+                                      ExtendSelection aExtendSelection,
                                       CaretMovementStyle aMovementStyle) const;
 
   /**
@@ -930,7 +930,7 @@ class nsFrameSelection final {
    * bidi information.
    */
   mozilla::Result<mozilla::PeekOffsetStruct, nsresult> PeekOffsetForCaretMove(
-      nsDirection aDirection, ExtendSelection aContinueSelection,
+      nsDirection aDirection, ExtendSelection aExtendSelection,
       const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
       const nsPoint& aDesiredCaretPos) const;
 
@@ -1109,7 +1109,7 @@ class nsFrameSelection final {
     CaretAssociationHint mHint = CaretAssociationHint::Before;
     mozilla::intl::BidiEmbeddingLevel mBidiLevel = BIDI_LEVEL_UNDEFINED;
 
-    bool IsVisualMovement(ExtendSelection aContinueSelection,
+    bool IsVisualMovement(ExtendSelection aExtendSelection,
                           CaretMovementStyle aMovementStyle) const;
   };
 
