@@ -5179,6 +5179,10 @@ const JSClass& WasmSuspendingObject::protoClass_ = PlainObject::class_;
 bool WasmSuspendingObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  if (!ThrowIfNotConstructing(cx, args, "WebAssembly.Suspending")) {
+    return false;
+  }
+
   if (!args.requireAtLeast(cx, "WebAssembly.Suspending", 1)) {
     return false;
   }

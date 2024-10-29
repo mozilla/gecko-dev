@@ -1250,9 +1250,7 @@ static bool WasmPIWrapSuspendingImport(JSContext* cx, unsigned argc,
                                        Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   Rooted<JSFunction*> callee(cx, &args.callee().as<JSFunction>());
-  RootedFunction originalImportFunc(
-      cx,
-      &callee->getExtendedSlot(WRAPPED_FN_SLOT).toObject().as<JSFunction>());
+  RootedValue originalImportFunc(cx, callee->getExtendedSlot(WRAPPED_FN_SLOT));
 
   // Catching exceptions here.
   RootedValue rval(cx);
