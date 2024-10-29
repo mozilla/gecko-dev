@@ -15214,6 +15214,13 @@
   value: false
   mirror: always
 
+# To be used in automated test environments to enable event telemetry
+# collection.
+- name: privacy.imageInputTelemetry.enableTestMode
+  type: bool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "prompts."
 #---------------------------------------------------------------------------

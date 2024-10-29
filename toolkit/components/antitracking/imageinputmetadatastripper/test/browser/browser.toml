@@ -1,0 +1,9 @@
+[DEFAULT]
+head = ["head.js"]
+prefs = ["privacy.imageInputTelemetry.enableTestMode=true", "browser.newtab.preload=false"]
+
+["browser_dragimage_telemetry.js"]
+
+["browser_filepicker_telemetry.js"]
+
+["browser_pasteimage_telemetry.js"]

@@ -11,6 +11,7 @@ JAR_MANIFESTS += ["jar.mn"]
 
 DIRS += [
     "bouncetrackingprotection",
+    "imageinputmetadatastripper",
 ]
 
 XPIDL_SOURCES += [
