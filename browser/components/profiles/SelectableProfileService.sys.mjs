@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
-  return new Localization(["preview/profiles.ftl"], true);
+  return new Localization(["browser/profiles.ftl"], true);
 });
 
 const PROFILES_CRYPTO_SALT_LENGTH_BYTES = 16;

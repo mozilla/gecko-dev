@@ -54,13 +54,3 @@ delete-profile-logins = Passwords
 # Button labels
 delete-profile-cancel = Cancel
 delete-profile-confirm = Delete
-
-appmenu-other-profiles = Other profiles
-appmenu-manage-profiles =
-    .label = Manage profiles
-appmenu-create-profile =
-    .label = New profile
-appmenu-edit-profile =
-    .aria-label = Edit profile
-
-appmenu-profiles = Profiles

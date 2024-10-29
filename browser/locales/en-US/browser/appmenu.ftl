@@ -315,3 +315,14 @@ appmenuitem-relay-title = { -relay-brand-short-name }
 appmenuitem-relay-description = Mask your real email and phone
 appmenuitem-vpn-title = { -mozilla-vpn-brand-name }
 appmenuitem-vpn-description = Protect your online activity
+
+## Profiles panel
+
+appmenu-profiles = Profiles
+appmenu-other-profiles = Other profiles
+appmenu-manage-profiles =
+    .label = Manage profiles
+appmenu-create-profile =
+    .label = New profile
+appmenu-edit-profile =
+    .aria-label = Edit profile
