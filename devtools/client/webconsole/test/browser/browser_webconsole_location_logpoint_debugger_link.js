@@ -29,6 +29,10 @@ add_task(async function () {
   const dbg = createDebuggerContext(toolbox);
   await selectSource(dbg, "test-location-debugger-link-logpoint-1.js");
 
+  // Wait a bit for CM6 to complete any updates so the log panel
+  // does not lose focus after the it has been opened
+  await waitForDocumentLoadComplete(dbg);
+
   info("Add a logpoint with an invalid expression");
   await setLogPoint(dbg, 7, "undefinedVariable");
 
