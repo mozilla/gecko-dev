@@ -359,6 +359,7 @@ skip-if = ["win11_2009 && bits == 32 && !debug"] # high frequency win7 intermitt
 support-files = ["browser_tab_dragdrop2_frame1.xhtml"]
 
 ["browser_tab_groups.js"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1920294
 
 ["browser_tab_label_during_reload.js"]
 
