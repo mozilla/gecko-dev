@@ -29,7 +29,8 @@ var Readerable = {
     // Only care about 'real' HTML documents:
     if (
       doc.mozSyntheticDocument ||
-      !doc.defaultView.HTMLDocument.isInstance(doc)
+      !doc.defaultView.HTMLDocument.isInstance(doc) ||
+      doc.contentType == "application/pdf"
     ) {
       return false;
     }
