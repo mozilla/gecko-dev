@@ -41,6 +41,7 @@
 #include "mozilla/Try.h"
 #include "mozilla/UniquePtr.h"
 #include "XREChildData.h"
+#include "XREShellData.h"
 
 /* Android headers don't define RUSAGE_THREAD */
 #ifndef RUSAGE_THREAD
@@ -381,15 +382,48 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(JNIEnv* jenv, jclass jc,
 #ifdef MOZ_LINKER
     ElfLoader::Singleton.ExpectShutdown(false);
 #endif
-    const char* outFilePathRaw = nullptr;
+    gBootstrap->XRE_SetGeckoThreadEnv(jenv);
+    if (!argv) {
+      __android_log_print(ANDROID_LOG_FATAL, "mozglue",
+                          "Failed to get arguments for %s",
+                          xpcshell ? "XRE_XPCShellMain" : "XRE_main");
+      return;
+    }
     if (xpcshell) {
       MOZ_ASSERT(outFilePath);
-      outFilePathRaw = jenv->GetStringUTFChars(outFilePath, nullptr);
-    }
-    gBootstrap->GeckoStart(jenv, argv, argc, sAppData, xpcshell,
-                           outFilePathRaw);
-    if (outFilePathRaw) {
-      jenv->ReleaseStringUTFChars(outFilePath, outFilePathRaw);
+      const char* outFilePathRaw =
+          jenv->GetStringUTFChars(outFilePath, nullptr);
+      FILE* outFile = outFilePathRaw ? fopen(outFilePathRaw, "w") : nullptr;
+      if (outFile) {
+        XREShellData shellData;
+        // We redirect both stdout and stderr to the same file, to conform with
+        // what runxpcshell.py does on Desktop.
+        shellData.outFile = outFile;
+        shellData.errFile = outFile;
+        int result =
+            gBootstrap->XRE_XPCShellMain(argc, argv, nullptr, &shellData);
+        fclose(shellData.outFile);
+        if (result) {
+          __android_log_print(ANDROID_LOG_INFO, "mozglue",
+                              "XRE_XPCShellMain returned %d", result);
+        }
+      } else {
+        __android_log_print(ANDROID_LOG_FATAL, "mozglue",
+                            "XRE_XPCShellMain cannot open %s", outFilePathRaw);
+      }
+      if (outFilePathRaw) {
+        jenv->ReleaseStringUTFChars(outFilePath, outFilePathRaw);
+      }
+    } else {
+      BootstrapConfig config;
+      config.appData = &sAppData;
+      config.appDataPath = nullptr;
+
+      int result = gBootstrap->XRE_main(argc, argv, config);
+      if (result) {
+        __android_log_print(ANDROID_LOG_INFO, "mozglue", "XRE_main returned %d",
+                            result);
+      }
     }
 #ifdef MOZ_LINKER
     ElfLoader::Singleton.ExpectShutdown(true);

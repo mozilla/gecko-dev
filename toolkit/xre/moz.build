@@ -124,11 +124,6 @@ if CONFIG["MOZ_X11"]:
         "nsX11ErrorHandler.cpp",
     ]
 
-if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
-    UNIFIED_SOURCES += [
-        "nsAndroidStartup.cpp",
-    ]
-
 if CONFIG["MOZ_WIDGET_TOOLKIT"] != "android":
     UNIFIED_SOURCES += [
         "MultiInstanceLock.cpp",

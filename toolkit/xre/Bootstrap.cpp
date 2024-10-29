@@ -13,6 +13,7 @@
 #endif  // XP_WIN && _M_X64 && MOZ_DIAGNOSTIC_ASSERT_ENABLED
 
 #ifdef MOZ_WIDGET_ANDROID
+#  include "mozilla/jni/Utils.h"
 #  ifdef MOZ_PROFILE_GENERATE
 extern "C" int __llvm_profile_dump(void);
 #  endif
@@ -68,10 +69,8 @@ class BootstrapImpl final : public Bootstrap {
   }
 
 #ifdef MOZ_WIDGET_ANDROID
-  virtual void GeckoStart(JNIEnv* aEnv, char** argv, int argc,
-                          const StaticXREAppData& aAppData, bool xpcshell,
-                          const char* outFilePath) override {
-    ::GeckoStart(aEnv, argv, argc, aAppData, xpcshell, outFilePath);
+  virtual void XRE_SetGeckoThreadEnv(JNIEnv* aEnv) override {
+    mozilla::jni::SetGeckoThreadEnv(aEnv);
   }
 
   virtual void XRE_SetAndroidChildFds(JNIEnv* aEnv, jintArray aFds) override {
