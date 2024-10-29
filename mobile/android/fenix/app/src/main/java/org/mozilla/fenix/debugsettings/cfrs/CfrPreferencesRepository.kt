@@ -61,6 +61,11 @@ interface CfrPreferencesRepository {
      * Update [CfrPreferenceUpdate.preferenceType] with [CfrPreferenceUpdate.value].
      */
     fun updateCfrPreference(preferenceUpdate: CfrPreferenceUpdate)
+
+    /**
+     * Reset lastCfrShownTimeInMillis to 0.
+     */
+    fun resetLastCfrTimestamp()
 }
 
 /**
@@ -170,5 +175,9 @@ class DefaultCfrPreferencesRepository(
                 settings.shouldShowOpenInAppBanner = !preferenceUpdate.value
             }
         }
+    }
+
+    override fun resetLastCfrTimestamp() {
+        settings.lastCfrShownTimeInMillis = 0
     }
 }

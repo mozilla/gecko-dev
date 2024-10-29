@@ -97,6 +97,9 @@ class CfrToolsPreferencesMiddleware(
                 // This will be implemented at a later date due to its complex nature.
                 // See https://bugzilla.mozilla.org/show_bug.cgi?id=1908225 for more details.
             }
+            is CfrToolsAction.ResetLastCFRTimestampButtonClicked -> {
+                cfrPreferencesRepository.resetLastCfrTimestamp()
+            }
             is CfrToolsAction.CfrPreferenceUpdate -> {} // No-op
         }
     }

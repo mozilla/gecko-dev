@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.flowOf
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -55,6 +56,8 @@ class CfrToolsPreferencesMiddlewareTest {
             }
 
             override fun updateCfrPreference(preferenceUpdate: CfrPreferencesRepository.CfrPreferenceUpdate) {}
+
+            override fun resetLastCfrTimestamp() {}
         }
 
         val store = CfrToolsStore(
@@ -384,5 +387,33 @@ class CfrToolsPreferencesMiddlewareTest {
                 ),
             )
         }
+    }
+
+    @Test
+    fun `WHEN the reset lastCfrShownTimeInMillis action is dispatched THEN lastCfrShownTimeInMillis should be set to at least 3 days ago`() {
+        var resetCalled = false
+        val repository = object : CfrPreferencesRepository {
+            override val cfrPreferenceUpdates: Flow<CfrPreferencesRepository.CfrPreferenceUpdate> = flowOf()
+
+            override fun init() {}
+
+            override fun updateCfrPreference(preferenceUpdate: CfrPreferencesRepository.CfrPreferenceUpdate) {}
+
+            override fun resetLastCfrTimestamp() {
+                resetCalled = true
+            }
+        }
+
+        val store = CfrToolsStore(
+            middlewares = listOf(
+                CfrToolsPreferencesMiddleware(
+                    cfrPreferencesRepository = repository,
+                ),
+            ),
+        )
+
+        assertFalse(resetCalled)
+        store.dispatch(CfrToolsAction.ResetLastCFRTimestampButtonClicked)
+        assertTrue(resetCalled)
     }
 }

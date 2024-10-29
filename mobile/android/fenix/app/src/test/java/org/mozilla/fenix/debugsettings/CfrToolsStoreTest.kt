@@ -236,6 +236,15 @@ class CfrToolsStoreTest {
     }
 
     @Test
+    fun `WHEN the last CFR shown timestamp action is reset THEN the state remains the same`() {
+        val store = CfrToolsStore()
+
+        val previousState = store.state
+        store.dispatch(CfrToolsAction.ResetLastCFRTimestampButtonClicked)
+        assertEquals(previousState, store.state)
+    }
+
+    @Test
     fun `GIVEN the homepage sync CFR has not been shown WHEN the corresponding CfrPreferenceUpdate is dispatched THEN update its state to true`() {
         val store = CfrToolsStore(
             initialState = CfrToolsState(

@@ -24,10 +24,13 @@ import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
+import org.mozilla.fenix.compose.button.SecondaryButton
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * CFR Tools UI that allows for the CFR states to be reset.
+ *
+ * @param cfrToolsStore [CfrToolsStore] used to access [CfrToolsState].
  */
 @Composable
 fun CfrTools(
@@ -76,6 +79,14 @@ private fun ResetCfrTool(
                 color = FirefoxTheme.colors.textPrimary,
                 style = FirefoxTheme.typography.caption,
             )
+
+            Spacer(modifier = Modifier.height(height = FirefoxTheme.space.xSmall))
+
+            SecondaryButton(
+                text = stringResource(R.string.debug_drawer_cfr_tools_reset_cfr_timestamp),
+            ) {
+                cfrToolsStore.dispatch(CfrToolsAction.ResetLastCFRTimestampButtonClicked)
+            }
         }
 
         Column(
@@ -235,14 +246,15 @@ private fun CfrSectionTitle(
 @Composable
 @FlexibleWindowLightDarkPreview
 private fun CfrToolsPreview() {
-    val cfrToolsStore = CfrToolsStore()
     FirefoxTheme {
         Column(
             modifier = Modifier.background(
                 color = FirefoxTheme.colors.layer1,
             ),
         ) {
-            CfrTools(cfrToolsStore = cfrToolsStore)
+            CfrTools(
+                cfrToolsStore = CfrToolsStore(),
+            )
         }
     }
 }

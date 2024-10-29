@@ -167,8 +167,8 @@ private fun FenixOverlayPreview() {
         browserStore = BrowserStore(
             BrowserState(selectedTabId = selectedTab.id, tabs = listOf(selectedTab)),
         ),
-        gleanDebugToolsStore = GleanDebugToolsStore(),
         cfrToolsStore = CfrToolsStore(),
+        gleanDebugToolsStore = GleanDebugToolsStore(),
         inactiveTabsEnabled = true,
         loginsStorage = FakeLoginsStorage(),
     )

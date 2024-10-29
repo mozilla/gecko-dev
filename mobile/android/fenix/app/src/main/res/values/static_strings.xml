@@ -151,6 +151,8 @@
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The description of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_description">Toggle off a CFR to reset it. Toggle on a CFR to mark it as shown.</string>
+    <!-- The text of the reset CFR timestamp button in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_timestamp">Reset last CFR shown timestamp</string>
     <!-- The title of the homepage CFRs section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_cfr_title">Homepage CFRs</string>
     <!-- The title of the tabs tray CFRs section in CFR Tools -->

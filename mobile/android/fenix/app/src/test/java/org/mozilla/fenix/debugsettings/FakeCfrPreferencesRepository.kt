@@ -14,4 +14,6 @@ class FakeCfrPreferencesRepository : CfrPreferencesRepository {
     override fun init() { }
 
     override fun updateCfrPreference(preferenceUpdate: CfrPreferencesRepository.CfrPreferenceUpdate) { }
+
+    override fun resetLastCfrTimestamp() { }
 }

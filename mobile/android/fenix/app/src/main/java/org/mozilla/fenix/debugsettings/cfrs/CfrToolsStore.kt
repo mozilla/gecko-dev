@@ -83,6 +83,11 @@ sealed class CfrToolsAction : Action {
     data object PwaShownToggled : CfrToolsAction()
 
     /**
+     * Reset lastCfrShownTimeInMillis to 0.
+     */
+    data object ResetLastCFRTimestampButtonClicked : CfrToolsAction()
+
+    /**
      * [Action] fired when the user toggles a CFR.
      */
     sealed interface CfrPreferenceUpdate
@@ -175,6 +180,7 @@ internal object CfrToolsReducer {
                 state.copy(openInAppShown = !state.openInAppShown)
             is CfrToolsAction.PwaShownToggled ->
                 state.copy(pwaShown = !state.pwaShown)
+            is CfrToolsAction.ResetLastCFRTimestampButtonClicked -> state
             is CfrToolsAction.AddPrivateTabToHomeCfrUpdated ->
                 state.copy(addPrivateTabToHomeShown = action.newValue)
             is CfrToolsAction.HomepageNavToolbarCfrUpdated ->
