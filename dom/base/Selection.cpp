@@ -4097,7 +4097,8 @@ void Selection::Modify(const nsAString& aAlter, const nsAString& aDirection,
   // the beginning/end of the line.
   RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
   rv = frameSelection->MoveCaret(
-      forward ? eDirNext : eDirPrevious, extend, amount,
+      forward ? eDirNext : eDirPrevious,
+      nsFrameSelection::ExtendSelection(extend), amount,
       visual ? nsFrameSelection::eVisual : nsFrameSelection::eLogical);
 
   if (aGranularity.LowerCaseEqualsLiteral("line") && NS_FAILED(rv)) {

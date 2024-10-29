@@ -444,11 +444,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 bool nsFrameSelection::Caret::IsVisualMovement(
-    bool aContinueSelection, CaretMovementStyle aMovementStyle) const {
+    ExtendSelection aContinueSelection,
+    CaretMovementStyle aMovementStyle) const {
   int32_t movementFlag = StaticPrefs::bidi_edit_caret_movement_style();
   return aMovementStyle == eVisual ||
          (aMovementStyle == eUsePrefStyle &&
-          (movementFlag == 1 || (movementFlag == 2 && !aContinueSelection)));
+          (movementFlag == 1 ||
+           (movementFlag == 2 && aContinueSelection == ExtendSelection::No)));
 }
 
 // Get the x (or y, in vertical writing mode) position requested
@@ -696,7 +698,7 @@ static nsDirection GetCaretDirection(const nsIFrame& aFrame,
 }
 
 nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
-                                     bool aContinueSelection,
+                                     ExtendSelection aContinueSelection,
                                      const nsSelectionAmount aAmount,
                                      CaretMovementStyle aMovementStyle) {
   NS_ENSURE_STATE(mPresShell);
@@ -728,7 +730,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
   }
 
   const bool doCollapse = [&] {
-    if (sel->IsCollapsed() || aContinueSelection) {
+    if (sel->IsCollapsed() || aContinueSelection == ExtendSelection::Yes) {
       return false;
     }
     if (aAmount > eSelectLine) {
@@ -881,13 +883,13 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
     }
     // "pos" is on the stack, so pos.mResultContent has stack lifetime, so using
     // MOZ_KnownLive is ok.
-    const FocusMode focusMode = aContinueSelection
+    const FocusMode focusMode = aContinueSelection == ExtendSelection::Yes
                                     ? FocusMode::kExtendSelection
                                     : FocusMode::kCollapseToNewPoint;
     rv = TakeFocus(MOZ_KnownLive(*pos.mResultContent), pos.mContentOffset,
                    pos.mContentOffset, tHint, focusMode);
   } else if (aAmount <= eSelectWordNoSpace && direction == eDirNext &&
-             !aContinueSelection) {
+             aContinueSelection == ExtendSelection::No) {
     // Collapse selection if PeekOffset failed, we either
     //  1. bumped into the BRFrame, bug 207623
     //  2. had select-all in a text input (DIV range), bug 352759.
@@ -912,7 +914,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
 }
 
 Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
-    nsDirection aDirection, bool aContinueSelection,
+    nsDirection aDirection, ExtendSelection aContinueSelection,
     const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
     const nsPoint& aDesiredCaretPos) const {
   if (!mPresShell) {
@@ -944,7 +946,7 @@ Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
   if (visualMovement) {
     options += PeekOffsetOption::Visual;
   }
-  if (aContinueSelection) {
+  if (aContinueSelection == ExtendSelection::Yes) {
     options += PeekOffsetOption::Extend;
   }
   const Element* ancestorLimiter =
@@ -1950,21 +1952,22 @@ nsresult nsFrameSelection::PhysicalMove(int16_t aDirection, int16_t aAmount,
           ? wm.IsVerticalLR() ? verticalLR[aDirection] : verticalRL[aDirection]
           : horizontal[aDirection];
 
-  nsresult rv =
-      MoveCaret(mapping.direction, aExtend, mapping.amounts[aAmount], eVisual);
+  nsresult rv = MoveCaret(mapping.direction, ExtendSelection(aExtend),
+                          mapping.amounts[aAmount], eVisual);
   if (NS_FAILED(rv)) {
     // If we tried to do a line move, but couldn't move in the given direction,
     // then we'll "promote" this to a line-edge move instead.
     if (mapping.amounts[aAmount] == eSelectLine) {
-      rv = MoveCaret(mapping.direction, aExtend, mapping.amounts[aAmount + 1],
-                     eVisual);
+      rv = MoveCaret(mapping.direction, ExtendSelection(aExtend),
+                     mapping.amounts[aAmount + 1], eVisual);
     }
     // And if it was a next-word move that failed (which can happen when
     // eat_space_to_next_word is true, see bug 1153237), then just move forward
     // to the line-edge.
     else if (mapping.amounts[aAmount] == eSelectWord &&
              mapping.direction == eDirNext) {
-      rv = MoveCaret(eDirNext, aExtend, eSelectEndLine, eVisual);
+      rv = MoveCaret(eDirNext, ExtendSelection(aExtend), eSelectEndLine,
+                     eVisual);
     }
   }
 
@@ -1972,26 +1975,27 @@ nsresult nsFrameSelection::PhysicalMove(int16_t aDirection, int16_t aAmount,
 }
 
 nsresult nsFrameSelection::CharacterMove(bool aForward, bool aExtend) {
-  return MoveCaret(aForward ? eDirNext : eDirPrevious, aExtend, eSelectCluster,
-                   eUsePrefStyle);
+  return MoveCaret(aForward ? eDirNext : eDirPrevious, ExtendSelection(aExtend),
+                   eSelectCluster, eUsePrefStyle);
 }
 
 nsresult nsFrameSelection::WordMove(bool aForward, bool aExtend) {
-  return MoveCaret(aForward ? eDirNext : eDirPrevious, aExtend, eSelectWord,
-                   eUsePrefStyle);
+  return MoveCaret(aForward ? eDirNext : eDirPrevious, ExtendSelection(aExtend),
+                   eSelectWord, eUsePrefStyle);
 }
 
 nsresult nsFrameSelection::LineMove(bool aForward, bool aExtend) {
-  return MoveCaret(aForward ? eDirNext : eDirPrevious, aExtend, eSelectLine,
-                   eUsePrefStyle);
+  return MoveCaret(aForward ? eDirNext : eDirPrevious, ExtendSelection(aExtend),
+                   eSelectLine, eUsePrefStyle);
 }
 
 nsresult nsFrameSelection::IntraLineMove(bool aForward, bool aExtend) {
   if (aForward) {
-    return MoveCaret(eDirNext, aExtend, eSelectEndLine, eLogical);
-  } else {
-    return MoveCaret(eDirPrevious, aExtend, eSelectBeginLine, eLogical);
+    return MoveCaret(eDirNext, ExtendSelection(aExtend), eSelectEndLine,
+                     eLogical);
   }
+  return MoveCaret(eDirPrevious, ExtendSelection(aExtend), eSelectBeginLine,
+                   eLogical);
 }
 
 template <typename RangeType>
@@ -2024,7 +2028,7 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
     return Err(NS_ERROR_FAILURE);
   }
   Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
-      aDirection, true, aAmount, aMovementStyle, nsPoint(0, 0));
+      aDirection, ExtendSelection::Yes, aAmount, aMovementStyle, nsPoint(0, 0));
   if (result.isErr()) {
     return Err(NS_ERROR_FAILURE);
   }
