@@ -149,11 +149,12 @@ var gBrowserInit = {
       false
     );
     let nonRemovables;
-    let isPopup = !window.toolbar.visible;
 
     // We don't want these normally non-removable elements to get put back into the
-    // tabstrip if we're initializing with vertical tabs
-    if (isVerticalTabs && !isPopup) {
+    // tabstrip if we're initializing with vertical tabs.
+    // We should refrain from excluding popups here to make sure CUI doesn't
+    // get into a blank saved state.
+    if (isVerticalTabs) {
       nonRemovables = [gBrowser.tabContainer];
       for (let elem of nonRemovables) {
         elem.setAttribute("removable", "true");
@@ -168,7 +169,7 @@ var gBrowserInit = {
         CustomizableUI.registerToolbarNode(node);
       }
     }
-    if (isVerticalTabs && !isPopup) {
+    if (isVerticalTabs) {
       // Show the vertical tabs toolbar
       setToolbarVisibility(
         document.getElementById(CustomizableUI.AREA_VERTICAL_TABSTRIP),
