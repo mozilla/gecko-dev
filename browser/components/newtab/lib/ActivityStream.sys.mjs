@@ -47,6 +47,11 @@ import {
   actionTypes as at,
 } from "resource://activity-stream/common/Actions.mjs";
 
+const REGION_WEATHER_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.region-weather-config";
+const LOCALE_WEATHER_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.locale-weather-config";
+
 const REGION_TOPICS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.topicSelection.region-topics-config";
 const LOCALE_TOPICS_CONFIG =
@@ -92,19 +97,10 @@ function showSpocs({ geo }) {
 }
 
 function showWeather({ geo, locale }) {
-  const weatherGeoString =
-    lazy.NimbusFeatures.pocketNewtab.getVariable("regionWeatherConfig") || "";
-  const weatherLocaleString =
-    lazy.NimbusFeatures.pocketNewtab.getVariable("localeWeatherConfig") || "";
-  const weatherGeo = weatherGeoString
-    .split(",")
-    .map(s => s.trim())
-    .filter(item => item);
-  const weatherLocale = weatherLocaleString
-    .split(",")
-    .map(s => s.trim())
-    .filter(item => item);
-  return weatherGeo.includes(geo) && weatherLocale.includes(locale);
+  return (
+    csvPrefHasValue(REGION_WEATHER_CONFIG, geo) &&
+    csvPrefHasValue(LOCALE_WEATHER_CONFIG, locale)
+  );
 }
 
 function showTopicsSelection({ geo, locale }) {

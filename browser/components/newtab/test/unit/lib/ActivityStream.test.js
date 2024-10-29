@@ -302,6 +302,79 @@ describe("ActivityStream", () => {
       assert.isFalse(featureCheck);
     });
   });
+  describe("showWeather", () => {
+    let stub;
+    let getStringPrefStub;
+    const FEATURE_ENABLED_PREF = "system.showWeather";
+    const REGION_WEATHER_CONFIG =
+      "browser.newtabpage.activity-stream.discoverystream.region-weather-config";
+    const LOCALE_WEATHER_CONFIG =
+      "browser.newtabpage.activity-stream.discoverystream.locale-weather-config";
+    beforeEach(() => {
+      stub = sandbox.stub(global.Region, "home");
+
+      sandbox
+        .stub(global.Services.locale, "appLocaleAsBCP47")
+        .get(() => "en-US");
+
+      getStringPrefStub = sandbox.stub(global.Services.prefs, "getStringPref");
+
+      // Set default regions
+      getStringPrefStub.withArgs(REGION_WEATHER_CONFIG).returns("US, CA");
+
+      // Set default locales
+      getStringPrefStub
+        .withArgs(LOCALE_WEATHER_CONFIG)
+        .returns("en-US,en-GB,en-CA");
+    });
+    it("should turn off when region and locale are not set", () => {
+      stub.get(() => "");
+      sandbox.stub(global.Services.locale, "appLocaleAsBCP47").get(() => "");
+      as._updateDynamicPrefs();
+      assert.isFalse(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+    it("should turn off when region is not set", () => {
+      stub.get(() => "");
+      as._updateDynamicPrefs();
+      assert.isFalse(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+    it("should turn on when region is supported", () => {
+      stub.get(() => "US");
+      as._updateDynamicPrefs();
+      assert.isTrue(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+    it("should turn off when region is not supported", () => {
+      stub.get(() => "FR");
+      as._updateDynamicPrefs();
+      assert.isFalse(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+    it("should turn off when locale is not set", () => {
+      stub.get(() => "US");
+      sandbox.stub(global.Services.locale, "appLocaleAsBCP47").get(() => "");
+      as._updateDynamicPrefs();
+      assert.isFalse(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+    it("should turn on when locale is supported", () => {
+      stub.get(() => "US");
+      sandbox
+        .stub(global.Services.locale, "appLocaleAsBCP47")
+        .get(() => "en-US");
+      as._updateDynamicPrefs();
+      assert.isTrue(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+    it("should turn off when locale is not supported", () => {
+      stub.get(() => "US");
+      sandbox.stub(global.Services.locale, "appLocaleAsBCP47").get(() => "fr");
+      as._updateDynamicPrefs();
+      assert.isFalse(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+    it("should turn off when region and locale are both not supported", () => {
+      stub.get(() => "FR");
+      sandbox.stub(global.Services.locale, "appLocaleAsBCP47").get(() => "fr");
+      as._updateDynamicPrefs();
+      assert.isFalse(PREFS_CONFIG.get(FEATURE_ENABLED_PREF).value);
+    });
+  });
   describe("showTopicsSelection", () => {
     let stub;
     let getStringPrefStub;
@@ -646,82 +719,6 @@ describe("ActivityStream", () => {
       assert.isFalse(
         PREFS_CONFIG.get("discoverystream.region-basic-layout").value
       );
-    });
-  });
-  describe("discoverystream.region-weather-config", () => {
-    let getVariableStub;
-    beforeEach(() => {
-      getVariableStub = sandbox.stub(
-        global.NimbusFeatures.pocketNewtab,
-        "getVariable"
-      );
-      sandbox.stub(global.Region, "home").get(() => "CA");
-      sandbox
-        .stub(global.Services.locale, "appLocaleAsBCP47")
-        .get(() => "en-CA");
-      getVariableStub
-        .withArgs("localeWeatherConfig")
-        .returns("en-US,en-CA,en-GB");
-    });
-    it("should turn off weather system pref if no region weather config is set and no geo is set", () => {
-      getVariableStub.withArgs("regionWeatherConfig").returns("");
-      sandbox.stub(global.Region, "home").get(() => "");
-
-      as._updateDynamicPrefs();
-
-      assert.isFalse(PREFS_CONFIG.get("system.showWeather").value);
-    });
-    it("should turn on weather system pref based on region weather config pref", () => {
-      getVariableStub.withArgs("regionWeatherConfig").returns("CA");
-
-      as._updateDynamicPrefs();
-
-      assert.isTrue(PREFS_CONFIG.get("system.showWeather").value);
-    });
-    it("should turn off weather system pref if no region weather config is set", () => {
-      getVariableStub.withArgs("regionWeatherConfig").returns("");
-
-      as._updateDynamicPrefs();
-
-      assert.isFalse(PREFS_CONFIG.get("system.showWeather").value);
-    });
-  });
-  describe("discoverystream.locale-weather-config", () => {
-    let getVariableStub;
-    beforeEach(() => {
-      getVariableStub = sandbox.stub(
-        global.NimbusFeatures.pocketNewtab,
-        "getVariable"
-      );
-      sandbox.stub(global.Region, "home").get(() => "CA");
-      sandbox
-        .stub(global.Services.locale, "appLocaleAsBCP47")
-        .get(() => "en-CA");
-      getVariableStub.withArgs("regionWeatherConfig").returns("CA");
-    });
-    it("should turn off weather system pref if no locale weather config is set and no locale is set", () => {
-      getVariableStub.withArgs("localeWeatherConfig").returns("");
-      sandbox.stub(global.Services.locale, "appLocaleAsBCP47").get(() => "");
-
-      as._updateDynamicPrefs();
-
-      assert.isFalse(PREFS_CONFIG.get("system.showWeather").value);
-    });
-    it("should turn on weather system pref based on locale weather config pref", () => {
-      getVariableStub
-        .withArgs("localeWeatherConfig")
-        .returns("en-US,en-CA,en-GB");
-
-      as._updateDynamicPrefs();
-
-      assert.isTrue(PREFS_CONFIG.get("system.showWeather").value);
-    });
-    it("should turn off weather system pref if no locale weather config is set", () => {
-      getVariableStub.withArgs("localeWeatherConfig").returns("");
-
-      as._updateDynamicPrefs();
-
-      assert.isFalse(PREFS_CONFIG.get("system.showWeather").value);
     });
   });
   describe("_updateDynamicPrefs topstories default value", () => {
