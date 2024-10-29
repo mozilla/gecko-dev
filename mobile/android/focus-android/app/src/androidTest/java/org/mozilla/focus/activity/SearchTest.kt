@@ -17,10 +17,11 @@ import org.mozilla.focus.helpers.TestHelper.exitToTop
 import org.mozilla.focus.helpers.TestHelper.pressEnterKey
 import org.mozilla.focus.helpers.TestHelper.verifyKeyboardVisibility
 import org.mozilla.focus.helpers.TestHelper.waitingTime
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
 // This test checks the search engine can be changed and that search suggestions appear
-class SearchTest {
+class SearchTest : TestSetup() {
     private lateinit var searchString: String
     private val enginesList = listOf("DuckDuckGo", "Google", "Wikipedia")
     private val featureSettingsHelper = FeatureSettingsHelper()
@@ -29,7 +30,8 @@ class SearchTest {
     var mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
         featureSettingsHelper.setSearchWidgetDialogEnabled(false)
     }

@@ -14,10 +14,11 @@ import org.mozilla.focus.activity.robots.homeScreen
 import org.mozilla.focus.helpers.FeatureSettingsHelper
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.MockWebServerHelper
+import org.mozilla.focus.helpers.TestSetup
 
 // Tests the First run onboarding screens
 @RunWith(AndroidJUnit4ClassRunner::class)
-class OldFirstRunTest {
+class OldFirstRunTest : TestSetup() {
     private lateinit var webServer: MockWebServer
     private val featureSettingsHelper = FeatureSettingsHelper()
 
@@ -25,7 +26,8 @@ class OldFirstRunTest {
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = true, showNewOnboarding = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         webServer = MockWebServer().apply {
             dispatcher = MockWebServerHelper.AndroidAssetDispatcher()
             start()

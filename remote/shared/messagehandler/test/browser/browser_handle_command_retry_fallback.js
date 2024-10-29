@@ -86,7 +86,7 @@ add_task(async function test_default_fallback_retry_initial_document_only() {
 
     await Assert.rejects(
       onBlockedOneTime,
-      e => e.name == "AbortError",
+      e => e.name == "DiscardedBrowsingContextError",
       "Caught the expected abort error when reloading"
     );
   } finally {

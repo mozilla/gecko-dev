@@ -54,7 +54,7 @@ add_task(async function test_destination_error() {
           id: fakeBrowsingContextId,
         },
       }),
-    err => err.message == `Unable to find a BrowsingContext for id -1`
+    err => err.message == `Unable to find a BrowsingContext for id "-1"`
   );
 
   rootMessageHandler.destroy();

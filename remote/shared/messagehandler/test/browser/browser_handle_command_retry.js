@@ -6,6 +6,9 @@
 const { isInitialDocument } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/messagehandler/transports/BrowsingContextUtils.sys.mjs"
 );
+const { RootMessageHandler } = ChromeUtils.importESModule(
+  "chrome://remote/content/shared/messagehandler/RootMessageHandler.sys.mjs"
+);
 
 // We are forcing the actors to shutdown while queries are unresolved.
 const { PromiseTestUtils } = ChromeUtils.importESModule(
@@ -116,8 +119,81 @@ add_task(async function test_forced_no_retry() {
 
     await Assert.rejects(
       onBlockedOneTime,
-      e => e.name == "AbortError",
-      "Caught the expected abort error when reloading"
+      e => e.name == "DiscardedBrowsingContextError",
+      "Caught the expected error when reloading"
+    );
+  } finally {
+    await cleanup(rootMessageHandler, tab);
+  }
+});
+
+// Test that without retry behavior, a pending command rejects when the
+// underlying browsing context is discarded.
+add_task(async function test_forced_no_retry_cross_group() {
+  const tab = BrowserTestUtils.addTab(
+    gBrowser,
+    "https://example.com/document-builder.sjs?html=COM" +
+      // Attach an unload listener to prevent the page from going into bfcache,
+      // so that pending queries will be rejected with an AbortError.
+      "<script type='text/javascript'>window.onunload = function() {};</script>"
+  );
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  const browsingContext = tab.linkedBrowser.browsingContext;
+
+  const rootMessageHandler = createRootMessageHandler("session-id-no-retry");
+
+  try {
+    const onBlockedOneTime = rootMessageHandler.handleCommand({
+      moduleName: "retry",
+      commandName: "blockedOneTime",
+      destination: {
+        type: WindowGlobalMessageHandler.type,
+        id: browsingContext.id,
+      },
+      retryOnAbort: false,
+    });
+
+    // This command will return when the old browsing context was discarded.
+    const onDiscarded = rootMessageHandler.handleCommand({
+      moduleName: "retry",
+      commandName: "waitForDiscardedBrowsingContext",
+      destination: {
+        type: RootMessageHandler.type,
+      },
+      params: {
+        browsingContext,
+        retryOnAbort: false,
+      },
+    });
+
+    ok(
+      !(await hasPromiseResolved(onBlockedOneTime)),
+      "blockedOneTime should not have resolved yet"
+    );
+    // Bug 1927144: Causes a "A promise chain failed to handle a rejection" error.
+    // ok(
+    //   !(await hasPromiseResolved(onDiscarded)),
+    //   "waitForDiscardedBrowsingContext should not have resolved yet"
+    // );
+
+    info(
+      "Navigate to example.net with COOP headers to destroy browsing context"
+    );
+    await loadURL(
+      tab.linkedBrowser,
+      "https://example.net/document-builder.sjs?headers=Cross-Origin-Opener-Policy:same-origin&html=NET"
+    );
+
+    await Assert.rejects(
+      onBlockedOneTime,
+      e => e.name == "DiscardedBrowsingContextError",
+      "Caught the expected error when navigating"
+    );
+
+    await Assert.rejects(
+      onDiscarded,
+      e => e.name == "DiscardedBrowsingContextError",
+      "Caught the expected error when navigating"
     );
   } finally {
     await cleanup(rootMessageHandler, tab);
@@ -218,8 +294,8 @@ add_task(async function test_forced_retry() {
     );
     await Assert.rejects(
       onBlockedElevenTimes,
-      e => e.name == "AbortError",
-      "Caught the expected abort error when reloading"
+      e => e.name == "DiscardedBrowsingContextError",
+      "Caught the expected error when reloading"
     );
   } finally {
     await cleanup(rootMessageHandler, tab);
@@ -262,11 +338,27 @@ add_task(async function test_retry_cross_group() {
       retryOnAbort: true,
     });
 
+    // This command will return when the old browsing context was discarded.
+    const onDiscarded = rootMessageHandler.handleCommand({
+      moduleName: "retry",
+      commandName: "waitForDiscardedBrowsingContext",
+      destination: {
+        type: RootMessageHandler.type,
+      },
+      params: {
+        browsingContext,
+        retryOnAbort: true,
+      },
+    });
+
     info("Reload one time");
     await BrowserTestUtils.reloadTab(tab);
 
     info("blockedOnNetDomain should not have resolved yet");
     ok(!(await hasPromiseResolved(onBlockedOnNetDomain)));
+
+    info("waitForDiscardedBrowsingContext should not have resolved yet");
+    ok(!(await hasPromiseResolved(onDiscarded)));
 
     info(
       "Navigate to example.net with COOP headers to destroy browsing context"
@@ -279,6 +371,9 @@ add_task(async function test_retry_cross_group() {
     info("blockedOnNetDomain should resolve now");
     let { foo } = await onBlockedOnNetDomain;
     is(foo, "bar", "The parameter was sent when the command was retried");
+
+    info("waitForDiscardedBrowsingContext should resolve now");
+    await onDiscarded;
   } finally {
     await cleanup(rootMessageHandler, tab);
   }

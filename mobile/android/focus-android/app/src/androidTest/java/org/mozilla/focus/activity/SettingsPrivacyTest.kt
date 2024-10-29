@@ -22,11 +22,12 @@ import org.mozilla.focus.helpers.RetryTestRule
 import org.mozilla.focus.helpers.TestAssetHelper.getStorageTestAsset
 import org.mozilla.focus.helpers.TestHelper.exitToTop
 import org.mozilla.focus.helpers.TestHelper.waitingTime
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
 // These tests the Privacy and Security settings menus and options
 @RunWith(AndroidJUnit4ClassRunner::class)
-class SettingsPrivacyTest {
+class SettingsPrivacyTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
     private lateinit var webServer: MockWebServer
 
@@ -38,7 +39,8 @@ class SettingsPrivacyTest {
     val retryTestRule = RetryTestRule(3)
 
     @Before
-    fun setup() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
         featureSettingsHelper.setSearchWidgetDialogEnabled(false)
         webServer = MockWebServer().apply {

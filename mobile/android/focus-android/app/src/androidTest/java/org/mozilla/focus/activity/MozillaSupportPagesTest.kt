@@ -15,18 +15,20 @@ import org.mozilla.focus.activity.robots.homeScreen
 import org.mozilla.focus.helpers.FeatureSettingsHelper
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.TestHelper.getTargetContext
+import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
 
 // This test visits each About page and checks whether some essential elements are being displayed
 @RunWith(AndroidJUnit4ClassRunner::class)
-class MozillaSupportPagesTest {
+class MozillaSupportPagesTest : TestSetup() {
     private val featureSettingsHelper = FeatureSettingsHelper()
 
     @get: Rule
     val mActivityTestRule = MainActivityFirstrunTestRule(showFirstRun = false)
 
     @Before
-    fun setUp() {
+    override fun setUp() {
+        super.setUp()
         featureSettingsHelper.setCfrForTrackingProtectionEnabled(false)
     }
 

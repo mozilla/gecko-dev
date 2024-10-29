@@ -16,6 +16,7 @@ ChromeUtils.defineESModuleGetters(modules.root, {
   command: `${BASE_FOLDER}/root/command.sys.mjs`,
   event: `${BASE_FOLDER}/root/event.sys.mjs`,
   invalid: `${BASE_FOLDER}/root/invalid.sys.mjs`,
+  retry: `${BASE_FOLDER}/root/retry.sys.mjs`,
   rootOnly: `${BASE_FOLDER}/root/rootOnly.sys.mjs`,
   windowglobaltoroot: `${BASE_FOLDER}/root/windowglobaltoroot.sys.mjs`,
 });
