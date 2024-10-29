@@ -600,6 +600,21 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       aResult = enable;
       break;
     }
+    case IntID::PointingDeviceKinds: {
+      LookAndFeel::PointingDeviceKinds result =
+          LookAndFeel::PointingDeviceKinds::None;
+      if (WinUtils::SystemHasMouse()) {
+        result |= LookAndFeel::PointingDeviceKinds::Mouse;
+      }
+      if (WinUtils::SystemHasTouch()) {
+        result |= LookAndFeel::PointingDeviceKinds::Touch;
+      }
+      if (WinUtils::SystemHasPen()) {
+        result |= LookAndFeel::PointingDeviceKinds::Pen;
+      }
+      aResult = static_cast<int32_t>(result);
+      break;
+    }
     default:
       aResult = 0;
       res = NS_ERROR_FAILURE;

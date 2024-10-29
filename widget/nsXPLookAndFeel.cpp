@@ -22,6 +22,7 @@
 #include "SurfaceCacheUtils.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/ServoStyleSet.h"
@@ -192,6 +193,7 @@ static const char sIntPrefs[][45] = {
     "ui.hideCursorWhileTyping",
     "ui.gtkThemeFamily",
     "ui.fullKeyboardAccess",
+    "ui.pointingDeviceKinds",
 };
 
 static_assert(std::size(sIntPrefs) == size_t(LookAndFeel::IntID::End),
@@ -1165,6 +1167,19 @@ void nsXPLookAndFeel::RecordTelemetry() {
   int32_t i;
   glean::widget::dark_mode.Set(
       NS_SUCCEEDED(GetIntValue(IntID::SystemUsesDarkTheme, i)) && i != 0);
+
+  auto devices =
+      static_cast<PointingDeviceKinds>(GetInt(IntID::PointingDeviceKinds, 0));
+
+  glean::widget::pointing_devices
+      .EnumGet(glean::widget::PointingDevicesLabel::eMouse)
+      .Set(!!(devices & PointingDeviceKinds::Mouse));
+  glean::widget::pointing_devices
+      .EnumGet(glean::widget::PointingDevicesLabel::eTouch)
+      .Set(!!(devices & PointingDeviceKinds::Touch));
+  glean::widget::pointing_devices
+      .EnumGet(glean::widget::PointingDevicesLabel::ePen)
+      .Set(!!(devices & PointingDeviceKinds::Pen));
 
   RecordLookAndFeelSpecificTelemetry();
 }

@@ -463,9 +463,11 @@ class WinUtils {
   static PointerCapabilities GetPrimaryPointerCapabilities();
   // For any-pointer and any-hover media queries features.
   static PointerCapabilities GetAllPointerCapabilities();
-  // Returns a string containing a comma-separated list of Fluent IDs
-  // representing the currently active pointing devices
-  static void GetPointerExplanation(nsAString* aExplanation);
+
+  // Returns whether the system has any active device for each pointer type.
+  static bool SystemHasMouse();
+  static bool SystemHasTouch();
+  static bool SystemHasPen();
 
   /**
    * Fully resolves a path to its final path name. So if path contains

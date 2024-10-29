@@ -384,6 +384,10 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       aResult = 1;
       break;
 
+    case IntID::PointingDeviceKinds:
+      aResult = java::GeckoAppShell::GetPointingDeviceKinds();
+      break;
+
     default:
       aResult = 0;
       rv = NS_ERROR_FAILURE;

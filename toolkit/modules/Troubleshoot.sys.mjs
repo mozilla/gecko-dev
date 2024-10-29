@@ -257,9 +257,19 @@ var dataProviders = {
 
     try {
       // Windows - Get info about attached pointing devices
-      data.pointingDevices = Services.sysinfo
-        .getProperty("pointingDevices")
-        .split(",");
+      data.pointingDevices = [];
+      if (Services.sysinfo.getProperty("hasMouse")) {
+        data.pointingDevices.push("pointing-device-mouse");
+      }
+      if (Services.sysinfo.getProperty("hasTouch")) {
+        data.pointingDevices.push("pointing-device-touchscreen");
+      }
+      if (Services.sysinfo.getProperty("hasPen")) {
+        data.pointingDevices.push("pointing-device-pen-digitizer");
+      }
+      if (!data.pointingDevices.length) {
+        data.pointingDevices.push("pointing-device-none");
+      }
     } catch (e) {}
 
     data.numTotalWindows = 0;

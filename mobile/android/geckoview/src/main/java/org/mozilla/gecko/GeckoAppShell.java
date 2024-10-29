@@ -1394,6 +1394,58 @@ public class GeckoAppShell {
     return result;
   }
 
+  /*
+   * Keep in sync with PointingDevices in LookAndFeel.h
+   */
+  private static final int POINTING_DEVICE_NONE = 0x00000000;
+  private static final int POINTING_DEVICE_MOUSE = 0x00000001;
+  private static final int POINTING_DEVICE_TOUCH = 0x00000002;
+  private static final int POINTING_DEVICE_PEN = 0x00000004;
+
+  private static int getPointingDeviceKinds(final InputDevice inputDevice) {
+    int result = POINTING_DEVICE_NONE;
+    final int sources = inputDevice.getSources();
+
+    // TODO(krosylight): For now this code is for telemetry purpose, but ultimately we want to
+    // replace the capabilities code above and move the capabilities computation into layout. We'll
+    // then have to add all the extra devices too that are not mouse/touch/pen. (Bug 1918207)
+    // We don't treat other devices properly for pointerType after all:
+    // https://searchfox.org/mozilla-central/rev/3b59c739df66574d94022a684596845cd05e7c65/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/PanZoomController.java#749-761
+
+    if (hasInputDeviceSource(sources, InputDevice.SOURCE_MOUSE)) {
+      result |= POINTING_DEVICE_MOUSE;
+    }
+    if (hasInputDeviceSource(sources, InputDevice.SOURCE_TOUCHSCREEN)) {
+      result |= POINTING_DEVICE_TOUCH;
+    }
+    if (hasInputDeviceSource(sources, InputDevice.SOURCE_STYLUS)) {
+      result |= POINTING_DEVICE_PEN;
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+        && hasInputDeviceSource(sources, InputDevice.SOURCE_BLUETOOTH_STYLUS)) {
+      result |= POINTING_DEVICE_PEN;
+    }
+
+    return result;
+  }
+
+  @WrapForJNI(calledFrom = "gecko")
+  // For pointing devices telemetry.
+  private static int getPointingDeviceKinds() {
+    int result = POINTING_DEVICE_NONE;
+
+    for (final int deviceId : InputDevice.getDeviceIds()) {
+      final InputDevice inputDevice = InputDevice.getDevice(deviceId);
+      if (inputDevice == null || !InputDeviceUtils.isPointerTypeDevice(inputDevice)) {
+        continue;
+      }
+
+      result |= getPointingDeviceKinds(inputDevice);
+    }
+
+    return result;
+  }
+
   private static boolean hasInputDeviceSource(final int sources, final int inputDeviceSource) {
     return (sources & inputDeviceSource) == inputDeviceSource;
   }

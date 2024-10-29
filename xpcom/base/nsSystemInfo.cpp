@@ -1460,15 +1460,20 @@ nsresult nsSystemInfo::Init() {
     return rv;
   }
 
-  if (XRE_IsParentProcess()) {
-    nsString pointerExplanation;
-    widget::WinUtils::GetPointerExplanation(&pointerExplanation);
-    rv = SetPropertyAsAString(u"pointingDevices"_ns, pointerExplanation);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-  }
+#endif
 
+#if defined(XP_WIN) || defined(ANDROID)
+  // TODO(krosylight): Enable this on other platforms too when implemented
+  if (XRE_IsParentProcess()) {
+    auto kinds = static_cast<LookAndFeel::PointingDeviceKinds>(
+        LookAndFeel::GetInt(LookAndFeel::IntID::PointingDeviceKinds, 0));
+    MOZ_TRY(SetPropertyAsBool(
+        u"hasMouse"_ns, !!(kinds & LookAndFeel::PointingDeviceKinds::Mouse)));
+    MOZ_TRY(SetPropertyAsBool(
+        u"hasTouch"_ns, !!(kinds & LookAndFeel::PointingDeviceKinds::Touch)));
+    MOZ_TRY(SetPropertyAsBool(
+        u"hasPen"_ns, !!(kinds & LookAndFeel::PointingDeviceKinds::Pen)));
+  }
 #endif
 
 #if defined(XP_MACOSX)

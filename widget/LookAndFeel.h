@@ -321,6 +321,13 @@ class LookAndFeel {
     /* Whether macOS' full keyboard access is enabled */
     FullKeyboardAccess,
 
+    // TODO(krosylight): This should ultimately be able to replace
+    // IntID::AllPointerCapabilities. (Bug 1918207)
+    //
+    // Note that PrimaryPointerCapabilities may not be replaceable as it has a
+    // bit more system specific heuristic, e.g. IsTabletMode on Windows.
+    PointingDeviceKinds,
+
     /*
      * Not an ID; used to define the range of valid IDs.  Must be last.
      */
@@ -388,6 +395,13 @@ class LookAndFeel {
   };
 
   using FontID = mozilla::StyleSystemFont;
+
+  enum class PointingDeviceKinds : uint8_t {
+    None = 0,
+    Mouse = 1 << 0,
+    Touch = 1 << 1,
+    Pen = 1 << 2,
+  };
 
   static ColorScheme SystemColorScheme() {
     return GetInt(IntID::SystemUsesDarkTheme) ? ColorScheme::Dark
@@ -573,6 +587,8 @@ class LookAndFeel {
   // no need to notify it from more than one prescontext.
   static bool sGlobalThemeChanged;
 };
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(LookAndFeel::PointingDeviceKinds);
 
 }  // namespace mozilla
 

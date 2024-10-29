@@ -26,3 +26,20 @@ widget:
       - cmccormack@mozilla.com
     expires: never
     telemetry_mirror: WIDGET_DARK_MODE
+
+  pointing_devices:
+    type: labeled_boolean
+    labels:
+      - mouse
+      - touch
+      - pen
+    description: >
+      Whether the system has any matching pointing device for each label.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907575
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1907575
+    notification_emails:
+      - krosylight@mozilla.com
+      - dom-core@mozilla.com
+    expires: never
