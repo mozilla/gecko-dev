@@ -1,21 +1,17 @@
 import pytest
 
-URL = "https://www.cmbchina.com/"
-DESKTOP_CSS = "#aspnetForm"
-MOBILE_CSS = ".swiper-container-android"
+URL = "https://www.midwayurban.com/"
 
 
 @pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
-    await client.navigate(URL)
-    assert client.await_css(MOBILE_CSS)
+    assert await client.test_entrata_banner_hidden(URL)
 
 
 @pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
-    await client.navigate(URL)
-    assert client.await_css(DESKTOP_CSS)
+    assert not await client.test_entrata_banner_hidden(URL)

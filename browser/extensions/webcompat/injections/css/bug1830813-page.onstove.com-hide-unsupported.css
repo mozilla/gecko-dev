@@ -9,10 +9,11 @@
  */
 
 .gnb-alerts.gnb-old-browser {
-  max-height: 0;
+  max-height: 0 !important;
+  height: 0 !important;
 }
 
 .isCampaign .gnb-stove.gnb-default-fixed,
 .isCampaign .layout.layout-base .layout-header {
-  height: 68px;
+  height: 68px !important;
 }

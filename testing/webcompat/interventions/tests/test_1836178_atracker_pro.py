@@ -6,7 +6,7 @@ LOGIN_CSS = "a[onclick='openWebVersionWindow()']"
 
 async def get_login_popup_url(client, popup_url):
     popup = await client.await_popup(popup_url)
-    await client.navigate(URL, wait="load")
+    await client.navigate(URL, wait="load", timeout=30)
     client.soft_click(client.await_css(LOGIN_CSS))
     return await popup
 

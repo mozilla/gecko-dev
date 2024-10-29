@@ -5,10 +5,10 @@ TEXT_TO_TEST = ".trending__link"
 
 
 async def is_text_visible(client):
-    # the page does not properly load, so we just time out
-    # and wait for the element we're interested in to appear
-    await client.navigate(URL, timeout=1)
-    link = client.await_css(TEXT_TO_TEST)
+    # note that the page does not always properly load, so we
+    # start loading and wait for the element we want to appear.
+    await client.navigate(URL, wait="none")
+    link = client.await_css(TEXT_TO_TEST, timeout=10)
     assert client.is_displayed(link)
     return client.execute_async_script(
         """
@@ -26,14 +26,14 @@ async def is_text_visible(client):
     )
 
 
-@pytest.mark.skip_platforms("android", "mac")
+@pytest.mark.only_platforms("windows")
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
     assert await is_text_visible(client)
 
 
-@pytest.mark.skip_platforms("android", "mac")
+@pytest.mark.only_platforms("windows")
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):

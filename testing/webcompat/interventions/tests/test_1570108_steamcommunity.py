@@ -3,22 +3,18 @@ import pytest
 URL = "https://steamcommunity.com/chat"
 
 
-USERID_CSS = "input[type='text'][class*='newlogindialog']"
-PASSWORD_CSS = "input[type='password'][class*='newlogindialog']"
-SIGNIN_CSS = "button[type='submit'][class*='newlogindialog']"
+USERID_CSS = "[data-featuretarget=login] input[type=text]"
+PASSWORD_CSS = "[data-featuretarget=login] input[type=password]"
+SIGNIN_CSS = "[data-featuretarget=login] button[type=submit]"
 GEAR_CSS = ".friendListButton"
-LOGIN_FAIL_XPATH = (
-    "//*[contains(text(), 'try again') and " "contains(@class, 'FormError')]"
-)
-AUTH_CSS = "[class*='newlogindialog_ProtectingAccount']"
-AUTH_DIGITS_CSS = "[class*='segmentedinputs_SegmentedCharacterInput'] input.Focusable"
-AUTH_RETRY_CSS = "[class*='newlogindialog_FormError']"
-AUTH_RETRY_LOADER_CSS = "[class*='newlogindialog_Loading']"
-RATE_TEXT = "too many login failures"
-VOICE_XPATH = (
-    "//*[contains(text(), 'Voice') and "
-    "contains(@class, 'pagedsettings_PagedSettingsDialog_PageListItem')]"
-)
+LOGIN_FAIL_TEXT = "Please check your password and account name and try again."
+AUTH_CSS = "[data-featuretarget=login] input.Focusable"
+AUTH_DIGITS_CSS = "[data-featuretarget=login] input.Focusable"
+AUTH_RETRY_TEXT = "Incorrect code, please try again"
+AUTH_RETRY_LOADER_CSS = "[data-featuretarget=login] div:has(+ input.Focusable)"
+AUTH_RETRY_EXPIRED_TEXT = "Expired"
+RATE_TEXT = "Too Many Retries"
+VOICE_XPATH = "//*[contains(text(), 'Voice')]"
 MIC_BUTTON_CSS = "button.LocalMicTestButton"
 UNSUPPORTED_TEXT = "currently unsupported in Firefox"
 
@@ -30,6 +26,7 @@ async def do_2fa(client):
     loader = client.css(AUTH_RETRY_LOADER_CSS)
     if client.find_element(loader):
         client.await_element_hidden(loader)
+
     for digit in digits:
         if digit.property("value"):
             digit.send_keys("\ue003")  # backspace
@@ -64,9 +61,9 @@ async def load_mic_test(client, credentials, should_do_2fa):
         auth, retry, gear, fail, rate = client.await_first_element_of(
             [
                 client.css(AUTH_CSS),
-                client.css(AUTH_RETRY_CSS),
+                client.text(AUTH_RETRY_TEXT),
                 client.css(GEAR_CSS),
-                client.xpath(LOGIN_FAIL_XPATH),
+                client.text(LOGIN_FAIL_TEXT),
                 client.text(RATE_TEXT),
             ],
             is_displayed=True,
@@ -89,7 +86,7 @@ async def load_mic_test(client, credentials, should_do_2fa):
 
             pytest.skip(
                 "Two-factor authentication requested; disable Steam Guard"
-                " or run this test with --do-2fa to live-input codes"
+                " or run this test with --do2fa to live-input codes"
             )
             return None
         elif fail:
@@ -120,3 +117,16 @@ async def test_enabled(client, credentials, should_do_2fa):
         mic_test.click()
 
     assert not client.find_text(UNSUPPORTED_TEXT)
+
+
+@pytest.mark.skip_platforms("android")
+@pytest.mark.asyncio
+@pytest.mark.without_interventions
+async def test_disabled(client, credentials, should_do_2fa):
+    mic_test = await load_mic_test(client, credentials, should_do_2fa)
+    if not mic_test:
+        return
+
+    mic_test.click()
+
+    assert client.await_text(UNSUPPORTED_TEXT, is_displayed=True)

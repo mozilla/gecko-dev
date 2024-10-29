@@ -11,6 +11,6 @@
  * element, which is not supported in Firefox, so the element has zero height.
  */
 
-.ec-44lvm8 {
+:has(> .mapboxgl-map) {
   height: 100%;
 }

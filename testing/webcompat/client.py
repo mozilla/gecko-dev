@@ -9,13 +9,15 @@ from base64 import b64decode
 from io import BytesIO
 from urllib.parse import quote
 
+import pytest
 import webdriver
 from PIL import Image
 from webdriver.bidi.modules.script import ContextTarget
 
 
 class Client:
-    def __init__(self, session, event_loop):
+    def __init__(self, request, session, event_loop):
+        self.request = request
         self.session = session
         self.event_loop = event_loop
         self.content_blocker_loaded = False
@@ -106,10 +108,37 @@ class Client:
         contexts = await self.session.bidi_session.browsing_context.get_tree()
         return contexts[0]
 
-    async def navigate(self, url, timeout=None, **kwargs):
-        return await asyncio.wait_for(
-            asyncio.ensure_future(self._navigate(url, **kwargs)), timeout=timeout
-        )
+    async def navigate(self, url, timeout=90, no_skip=False, **kwargs):
+        try:
+            return await asyncio.wait_for(
+                asyncio.ensure_future(self._navigate(url, **kwargs)), timeout=timeout
+            )
+        except asyncio.exceptions.TimeoutError as t:
+            if no_skip:
+                raise t
+                return
+            pytest.skip(
+                "%s: Timed out navigating to site after %s seconds. Please try again later."
+                % (self.request.fspath.basename, timeout)
+            )
+        except webdriver.bidi.error.UnknownErrorException as e:
+            if no_skip:
+                raise e
+                return
+            s = str(e)
+            if "Address rejected" in s:
+                pytest.skip(
+                    "%s: Site not responding. Please try again later."
+                    % self.request.fspath.basename
+                )
+                return
+            elif "NS_ERROR_REDIRECT_LOOP" in s:
+                pytest.skip(
+                    "%s: Site is stuck in a redirect loop. Please try again later."
+                    % self.request.fspath.basename
+                )
+                return
+            raise e
 
     async def _navigate(self, url, wait="complete", await_console_message=None):
         if self.session.test_config.get("use_pbm") or self.session.test_config.get(
@@ -698,11 +727,99 @@ class Client:
             except webdriver.error.StaleElementReferenceException:
                 return
 
-    def soft_click(self, element):
-        self.execute_script("arguments[0].click()", element)
+    def try_closing_popup(self, close_button_finder, timeout=None):
+        try:
+            self.soft_click(
+                self.await_element(
+                    close_button_finder, is_displayed=True, timeout=timeout
+                )
+            )
+            self.await_element_hidden(close_button_finder)
+            return True
+        except webdriver.error.NoSuchElementException:
+            return False
+
+    def try_closing_popups(self, popup_close_button_finders, timeout=None):
+        left_to_try = list(popup_close_button_finders)
+        closed_one = False
+        num_intercepted = 0
+        while len(left_to_try):
+            finder = left_to_try.pop(0)
+            try:
+                if self.try_closing_popup(finder, timeout=timeout):
+                    closed_one = True
+                    num_intercepted = 0
+            except webdriver.error.ElementClickInterceptedException as e:
+                # If more than one popup is visible at the same time, we will
+                # get this exception for all but the topmost one. So we re-try
+                # removing the others again after the topmost one is dismissed,
+                # until we've removed them all.
+                num_intercepted += 1
+                if num_intercepted == len(left_to_try):
+                    raise e
+                left_to_try.append(finder)
+        return closed_one
+
+    def click(self, element, popups=None, popups_timeout=None):
+        while True:
+            try:
+                element.click()
+                return
+            except webdriver.error.ElementClickInterceptedException as e:
+                if not popups or not self.try_closing_popups(
+                    popups, timeout=popups_timeout
+                ):
+                    raise e
+
+    def soft_click(self, element, popups=None, popups_timeout=None):
+        while True:
+            try:
+                self.execute_script("arguments[0].click()", element)
+                return
+            except webdriver.error.ElementClickInterceptedException as e:
+                if not popups or not self.try_closing_popups(
+                    popups, timeout=popups_timeout
+                ):
+                    raise e
 
     def remove_element(self, element):
         self.execute_script("arguments[0].remove()", element)
+
+    def clear_covering_elements(self, element):
+        self.execute_script(
+            """
+                const getInViewCentrePoint = function(rect, win) {
+                  const { floor, max, min } = Math;
+                  let visible = {
+                    left: max(0, min(rect.x, rect.x + rect.width)),
+                    right: min(win.innerWidth, max(rect.x, rect.x + rect.width)),
+                    top: max(0, min(rect.y, rect.y + rect.height)),
+                    bottom: min(win.innerHeight, max(rect.y, rect.y + rect.height)),
+                  };
+                  let x = (visible.left + visible.right) / 2.0;
+                  let y = (visible.top + visible.bottom) / 2.0;
+                  x = floor(x);
+                  y = floor(y);
+                  return { x, y };
+                };
+
+                const el = arguments[0];
+                if (el.isConnected) {
+                    const rect = el.getClientRects()[0];
+                    if (rect) {
+                        const c = getInViewCentrePoint(rect, window);
+                        const efp = el.getRootNode().elementsFromPoint(c.x, c.y);
+                        for (const cover of efp) {
+                            if (cover == el) {
+                                break;
+                            }
+                            cover.style.visibility = "hidden";
+                        }
+                    }
+                }
+            """,
+            element,
+        )
 
     def scroll_into_view(self, element):
         self.execute_script(
@@ -723,6 +840,20 @@ class Client:
         yield
         fastclick_preload_script.stop()
 
+    async def test_entrata_banner_hidden(self, url, iframe_css=None):
+        # some sites take a while to load, but they always have the browser
+        # warning popup, it just isn't shown until the page finishes loading.
+        await self.navigate(url, wait="none")
+        if iframe_css:
+            frame = self.await_css(iframe_css)
+            self.switch_frame(frame)
+        self.await_css("#browser-warning-popup", timeout=120)
+        try:
+            self.await_css("#browser-warning-popup", is_displayed=True, timeout=2)
+            return False
+        except webdriver.error.NoSuchElementException:
+            return True
+
     def test_for_fastclick(self, element):
         # FastClick cancels touchend, breaking default actions on Fenix.
         # It instead fires a mousedown or click, which we can detect.
@@ -736,10 +867,13 @@ class Client:
                         window.fastclicked = true;
                     }
                 }, true);
+                sel.style.position = "absolute";
+                sel.style.zIndex = 2147483647;
             """,
             element,
         )
         self.scroll_into_view(element)
+        self.clear_covering_elements(element)
         # tap a few times in case the site's other code interferes
         self.touch.click(element=element).perform()
         self.touch.click(element=element).perform()

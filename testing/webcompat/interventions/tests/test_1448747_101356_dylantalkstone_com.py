@@ -1,22 +1,18 @@
+import time
+
 import pytest
 
-URL = "https://www.wellcare.com/en/Oregon"
-ALERT_CSS = ".alert-box"
-MENU_CSS = "a[title='login DDL']"
-SELECT_CSS = "select#userSelect"
+URL = "https://dylantalkstone.com/collections/tele-pickups/products/flat-6-tele-pickups"
+SELECT_CSS = "select#productSelect-option-0"
 
 
 async def is_fastclick_active(client):
     async with client.ensure_fastclick_activates():
-        await client.navigate(URL, wait="load")
-        # there can be multiple alerts
-        while True:
-            alert = client.find_css(ALERT_CSS)
-            if not alert:
-                break
-            client.remove_element(alert)
-        menu = client.await_css(MENU_CSS)
-        client.soft_click(menu)
+        # The page endlessly stalls while loading, but if we force-stop it then
+        # that triggers it to show the broken selector right away.
+        await client.navigate(URL, wait="none")
+        time.sleep(3)
+        client.execute_script("window.stop()")
         return client.test_for_fastclick(
             client.await_css(SELECT_CSS, is_displayed=True)
         )

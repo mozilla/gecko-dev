@@ -4,13 +4,20 @@
 
 import asyncio
 import json
+import os
 import re
 import subprocess
+from datetime import datetime
 
 import pytest
 import webdriver
 
 from client import Client
+
+try:
+    import pathlib
+except ImportError:
+    import pathlib2 as pathlib
 
 APS_PREF = "privacy.partition.always_partition_third_party_non_cookie_storage"
 CB_PBM_PREF = "network.cookie.cookieBehavior.pbmode"
@@ -164,14 +171,53 @@ def driver(pytestconfig):
         yield driver_instance
 
 
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    setattr(item, "rep_" + rep.when, rep)
+
+
+@pytest.fixture(scope="function", autouse=True)
+async def test_failed_check(request):
+    yield
+    if request.node.rep_setup.passed and request.node.rep_call.failed:
+        session = request.node.funcargs["session"]
+        try:
+            file_name = f'{request.node.nodeid}_failure_{datetime.today().strftime("%Y-%m-%d_%H:%M")}.png'.replace(
+                "/", "_"
+            ).replace(
+                "::", "__"
+            )
+            await take_screenshot(session, file_name)
+            print("Saved failure screenshot to: ", file_name)
+        except Exception as e:
+            print("Error saving screenshot: ", e)
+
+
+async def take_screenshot(session, file_name):
+    cwd = pathlib.Path(os.getcwd())
+    path = cwd / file_name
+
+    top = await session.bidi_session.browsing_context.get_tree()
+    screenshot = await session.bidi_session.browsing_context.capture_screenshot(
+        context=top[0]["context"]
+    )
+
+    with path.open("wb") as strm:
+        strm.write(screenshot)
+
+    return file_name
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     return asyncio.get_event_loop_policy().new_event_loop()
 
 
 @pytest.fixture(scope="function")
-async def client(session, event_loop):
-    return Client(session, event_loop)
+async def client(request, session, event_loop):
+    return Client(request, session, event_loop)
 
 
 def install_addon(session, addon_file_path):
@@ -263,15 +309,21 @@ def platform(session):
 @pytest.fixture(autouse=True)
 def only_platforms(bug_number, platform, request, session):
     if request.node.get_closest_marker("only_platforms"):
-        for only in request.node.get_closest_marker("only_platforms").args:
+        plats = request.node.get_closest_marker("only_platforms").args
+        for only in plats:
             if only == platform:
                 return
-        pytest.skip(f"Bug #{bug_number} skipped on platform ({platform})")
+        pytest.skip(
+            f"Bug #{bug_number} skipped on platform ({platform}, test only for {' or '.join(plats)})"
+        )
 
 
 @pytest.fixture(autouse=True)
 def skip_platforms(bug_number, platform, request, session):
     if request.node.get_closest_marker("skip_platforms"):
-        for skipped in request.node.get_closest_marker("skip_platforms").args:
+        plats = request.node.get_closest_marker("skip_platforms").args
+        for skipped in plats:
             if skipped == platform:
-                pytest.skip(f"Bug #{bug_number} skipped on platform ({platform})")
+                pytest.skip(
+                    f"Bug #{bug_number} skipped on platform ({platform}, test skipped for {' and '.join(plats)})"
+                )

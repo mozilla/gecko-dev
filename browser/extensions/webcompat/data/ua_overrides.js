@@ -961,23 +961,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1836112 - UA override for www.capcut.cn
-     *
-     * The site's content is not loaded unless a Chrome UA is used.
-     */
-    id: "bug1836112",
-    platform: "all",
-    domain: "www.capcut.cn",
-    bug: "1836112",
-    config: {
-      matches: ["*://www.capcut.cn/editor*"],
-      uaTransformer: () => {
-        return UAHelpers.getDeviceAppropriateChromeUA();
-      },
-    },
-  },
-  {
-    /*
      * Bug 1836135 - UA override for gts-pro.sdimedia.com
      *
      * The site's content is not loaded without a Chrome UA spoof.
@@ -1024,25 +1007,6 @@ const AVAILABLE_UA_OVERRIDES = [
       matches: ["*://atracker.pro/*"],
       uaTransformer: originalUA => {
         return originalUA + " Chrome/113.0.0.0";
-      },
-    },
-  },
-  {
-    /*
-     * Bug 1849018 - UA override for carefirst.com
-     * Webcompat issue #125341 - https://webcompat.com/issues/125341
-     *
-     * The site is showing "Application Blocked" message
-     * for Firefox UA.
-     */
-    id: "bug1849018",
-    platform: "all",
-    domain: "carefirst.com",
-    bug: "1849018",
-    config: {
-      matches: ["*://*.carefirst.com/myaccount*"],
-      uaTransformer: () => {
-        return UAHelpers.getDeviceAppropriateChromeUA();
       },
     },
   },

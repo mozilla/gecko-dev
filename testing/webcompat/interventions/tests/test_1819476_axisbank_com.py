@@ -1,7 +1,7 @@
 import pytest
 
 URL = "https://www.axisbank.com/retail/cards/credit-card"
-SITE_CSS = "#ulCreditCard:not(:empty)"
+SITE_CSS = "#quick-links:not(:empty)"
 ERROR_MSG = "webkitSpeechRecognition is not defined"
 
 

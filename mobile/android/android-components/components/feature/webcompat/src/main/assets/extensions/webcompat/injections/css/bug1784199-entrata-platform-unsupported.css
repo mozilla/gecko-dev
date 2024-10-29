@@ -12,6 +12,7 @@
   color: unset;
 }
 
+#browser-warning-popup,
 #propertyProduct,
 .banner_overlay {
   display: none;
