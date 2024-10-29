@@ -233,6 +233,18 @@ var DownloadsPanel = {
   handleEvent(aEvent) {
     switch (aEvent.type) {
       case "command":
+        if (aEvent.currentTarget == DownloadsView.downloadsHistory) {
+          DownloadsPanel.showDownloadsHistory();
+          return;
+        }
+
+        if (
+          aEvent.currentTarget == DownloadsBlockedSubview.elements.deleteButton
+        ) {
+          DownloadsBlockedSubview.confirmBlock();
+          return;
+        }
+
         // Handle the commands defined in downloadsPanel.inc.xhtml.
         // Every command "id" is also its corresponding command.
         goDoCommand(aEvent.target.id);
@@ -355,6 +367,12 @@ var DownloadsPanel = {
     this.panel.addEventListener("mousemove", this);
     DownloadsView.richListBox.addEventListener("focus", this);
     DownloadsView.richListBox.addEventListener("select", this);
+
+    DownloadsView.downloadsHistory.addEventListener("command", this);
+    DownloadsBlockedSubview.elements.deleteButton.addEventListener(
+      "command",
+      this
+    );
   },
 
   /**
@@ -367,6 +385,11 @@ var DownloadsPanel = {
     this.panel.removeEventListener("mousemove", this);
     DownloadsView.richListBox.removeEventListener("focus", this);
     DownloadsView.richListBox.removeEventListener("select", this);
+    DownloadsView.downloadsHistory.removeEventListener("command", this);
+    DownloadsBlockedSubview.elements.deleteButton.removeEventListener(
+      "command",
+      this
+    );
   },
 
   _onKeyPress(aEvent) {
