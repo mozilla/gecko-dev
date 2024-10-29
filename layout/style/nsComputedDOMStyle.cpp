@@ -1748,18 +1748,6 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetPaddingRight() {
   return GetPaddingWidthFor(eSideRight);
 }
 
-already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetBorderSpacing() {
-  RefPtr<nsDOMCSSValueList> valueList = GetROCSSValueList(false);
-
-  const nsStyleTableBorder* border = StyleTableBorder();
-  valueList->AppendCSSValue(
-      PixelsToCSSValue(border->mBorderSpacing.width.ToCSSPixels()));
-  valueList->AppendCSSValue(
-      PixelsToCSSValue(border->mBorderSpacing.height.ToCSSPixels()));
-
-  return valueList.forget();
-}
-
 already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetBorderTopWidth() {
   return GetBorderWidthFor(eSideTop);
 }
