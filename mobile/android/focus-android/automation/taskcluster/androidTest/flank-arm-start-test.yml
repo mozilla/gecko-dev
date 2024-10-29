@@ -25,8 +25,8 @@ gcloud:
     - class org.mozilla.focus.activity.MozillaSupportPagesTest#openLibrariesThatWeUse
 
   device:
-    - model: Pixel2.arm
-      version: 30
+    - model: MediumPhone.arm
+      version: 34
       locale: en_US
 
 flank:
