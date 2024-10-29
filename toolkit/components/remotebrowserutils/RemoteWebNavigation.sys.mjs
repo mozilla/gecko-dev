@@ -34,16 +34,7 @@ export class RemoteWebNavigation {
 
   get canGoBack() {
     if (Services.appinfo.sessionHistoryInParent) {
-      const sessionHistory = this._browser.browsingContext.sessionHistory;
-      return sessionHistory?.canGoBackFromEntryAtIndex(sessionHistory?.index);
-    }
-    return this._canGoBack;
-  }
-
-  get canGoBackIgnoringUserInteraction() {
-    if (Services.appinfo.sessionHistoryInParent) {
-      const sessionHistory = this._browser.browsingContext.sessionHistory;
-      return sessionHistory?.index > 0;
+      return this._browser.browsingContext.sessionHistory?.index > 0;
     }
     return this._canGoBack;
   }

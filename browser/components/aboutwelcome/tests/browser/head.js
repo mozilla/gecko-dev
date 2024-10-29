@@ -39,10 +39,6 @@ async function openMRAboutWelcome() {
     "about:welcome",
     true
   );
-  await ContentTask.spawn(gBrowser.selectedBrowser, {}, async function () {
-    // Mark the first entry as having been interacted with.
-    content.document.notifyUserGestureActivation();
-  });
 
   return {
     browser: tab.linkedBrowser,

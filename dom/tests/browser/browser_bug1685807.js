@@ -36,9 +36,6 @@ add_task(async function doTests() {
       browser,
       [TEST_URI, testDocDomain],
       (aTestURI, aTestDocDomain) => {
-        // Mark the first entry as having been interacted with.
-        content.document.notifyUserGestureActivation();
-
         content.name = "Test";
 
         if (aTestDocDomain) {

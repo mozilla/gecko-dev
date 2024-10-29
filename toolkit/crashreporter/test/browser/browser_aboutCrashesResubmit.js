@@ -195,9 +195,6 @@ function test() {
   );
 
   BrowserTestUtils.openNewForegroundTab(gBrowser, "about:crashes").then(tab => {
-    // Mark the first entry as having been interacted with.
-    content.document.notifyUserGestureActivation();
-
     SpecialPowers.spawn(tab.linkedBrowser, [crashes], check_crash_list).then(
       () => check_submit_pending(tab, crashes)
     );

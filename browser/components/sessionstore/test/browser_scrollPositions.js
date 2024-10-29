@@ -186,11 +186,6 @@ async function test_scroll_background_tabs(aURL) {
   let browser = tab.linkedBrowser;
   await BrowserTestUtils.browserLoaded(browser);
 
-  // Add user interaction to the first entry.
-  await SpecialPowers.spawn(browser, [], () => {
-    content.document.notifyUserGestureActivation();
-  });
-
   // Scroll down a little.
   await setScrollPosition(browser, SCROLL_X, SCROLL_Y);
   await checkScroll(

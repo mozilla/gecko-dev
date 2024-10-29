@@ -22,9 +22,6 @@ add_task(async function checkReturnToAboutHome() {
   for (let useFrame of [false, true]) {
     let tab = await openErrorPage(BAD_CERT, useFrame);
     let browser = tab.linkedBrowser;
-    await SpecialPowers.spawn(browser, [], () => {
-      content.document.notifyUserGestureActivation();
-    });
 
     is(browser.webNavigation.canGoBack, false, "!webNavigation.canGoBack");
     is(
@@ -86,9 +83,6 @@ add_task(async function checkReturnToPreviousPage() {
     if (useFrame) {
       tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, GOOD_PAGE);
       browser = tab.linkedBrowser;
-      await SpecialPowers.spawn(browser, [], () => {
-        content.document.notifyUserGestureActivation();
-      });
 
       BrowserTestUtils.startLoadingURIString(browser, GOOD_PAGE_2);
       await BrowserTestUtils.browserLoaded(browser, false, GOOD_PAGE_2);
@@ -96,9 +90,6 @@ add_task(async function checkReturnToPreviousPage() {
     } else {
       tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, GOOD_PAGE);
       browser = gBrowser.selectedBrowser;
-      await SpecialPowers.spawn(browser, [], () => {
-        content.document.notifyUserGestureActivation();
-      });
 
       info("Loading and waiting for the cert error");
       let certErrorLoaded = BrowserTestUtils.waitForErrorPage(browser);
