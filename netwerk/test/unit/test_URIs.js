@@ -1027,11 +1027,12 @@ add_task(async function test_bug1875119() {
   // but it's scheme is now file.
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=1876483 to disallow this
   uri2 = uri2.mutate().setSpec("file:///path2").finalize();
-  Assert.throws(
-    () => uri1.equals(uri2),
-    /(NS_NOINTERFACE)|(NS_ERROR_FILE_UNRECOGNIZED_PATH)/,
-    "uri2 is in an invalid state and should throw"
-  );
+  // NOTE: this test was originally expecting `uri1.equals(uri2)` to be throwing
+  // a NS_NOINTERFACE error (instead of hitting a crash) when the new test landed
+  // as part of Bug 1875119, then as a side-effect of the fix applied by Bug 1926106
+  // the expected behavior is for the call to not raise an NS_NOINTERFACE error anymore
+  // but to be returning false instead (and so the test has been adjusted accordingly).
+  Assert.ok(!uri1.equals(uri2), "Expect uri1.equals(uri2) to be false");
 });
 
 add_task(async function test_bug1843717() {

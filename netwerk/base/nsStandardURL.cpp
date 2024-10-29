@@ -2144,8 +2144,12 @@ nsresult nsStandardURL::EqualsInternal(
 
     rv = EnsureFile();
     nsresult rv2 = other->EnsureFile();
-    // special case for resource:// urls that don't resolve to files
-    if (rv == NS_ERROR_NO_INTERFACE && rv == rv2) {
+
+    // Special case for resource:// urls that don't resolve to files,
+    // and for moz-extension://UUID/_generated_background_page.html
+    // because it doesn't resolve to a file (instead it resolves to a data: URI,
+    // see ExtensionProtocolHandler::ResolveSpecialCases, see Bug 1926106).
+    if (rv == NS_ERROR_NO_INTERFACE || rv2 == NS_ERROR_NO_INTERFACE) {
       return NS_OK;
     }
 
@@ -2155,6 +2159,7 @@ nsresult nsStandardURL::EqualsInternal(
       return rv;
     }
     NS_ASSERTION(mFile, "EnsureFile() lied!");
+
     rv = rv2;
     if (NS_FAILED(rv)) {
       LOG(
