@@ -405,12 +405,14 @@ var SidebarController = {
     }
 
     requestIdleCallback(() => {
-      const shouldLoadBackupState =
+      const isPopup = !window.toolbar.visible;
+      const windowPrivacyMatches =
         !window.opener || this.windowPrivacyMatches(window.opener, window);
       // If other sources (like session store or source window) haven't set the
       // UI state at this point, load the backup state. (Do not load the backup
-      // state if we are coming from a window of a different privacy level.)
-      if (!this.uiStateInitialized && shouldLoadBackupState) {
+      // state if this is a popup, or we are coming from a window of a different
+      // privacy level.)
+      if (!this.uiStateInitialized && !isPopup && windowPrivacyMatches) {
         const backupState = this.SidebarManager.getBackupState();
         this.setUIState(backupState);
       }
