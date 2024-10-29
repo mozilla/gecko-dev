@@ -25,7 +25,7 @@ add_task(async function test_shadow_dom_translation() {
         function () {
           return content.document.querySelector("h1");
         },
-        "ESTO SE CONTENTA EN LUZ DOM [es to en, html]"
+        "NORMAL DOM CONTENT [es to en, html]"
       );
 
       await TranslationsTest.assertTranslationResult(
@@ -34,7 +34,7 @@ add_task(async function test_shadow_dom_translation() {
           const root = content.document.getElementById("host").shadowRoot;
           return root.querySelector("p");
         },
-        "ESTO SE CONTENTO EN SHADOW DOM [es to en, html]"
+        "THIS IS SHADOW DOM CONTENT [es to en, html]"
       );
 
       await TranslationsTest.assertTranslationResult(
@@ -44,7 +44,7 @@ add_task(async function test_shadow_dom_translation() {
           const innerRoot = outerRoot.querySelector("div").shadowRoot;
           return innerRoot.querySelector("p");
         },
-        "ESTO SE CONTENTA EN RAÍZ INTERIOR [es to en, html]"
+        "THIS IS CONTENT IN A NESTED SHADOW DOM [es to en, html]"
       );
 
       await TranslationsTest.assertTranslationResult(
@@ -53,7 +53,7 @@ add_task(async function test_shadow_dom_translation() {
           const root = content.document.getElementById("host2").shadowRoot;
           return root.querySelector("p");
         },
-        "ESTO SE CONTENTO EN SHADOW DOM 2 [es to en, html]"
+        "THIS IS A SECOND SHADOW DOM ELEMENT [es to en, html]"
       );
     },
   });
@@ -75,7 +75,7 @@ add_task(async function test_shadow_dom_translation_slotted() {
         function () {
           return content.document.getElementById("host");
         },
-        "ESTO SE CONTENTA EN LUZ DOM [es to en]"
+        "NORMAL DOM CONTENT [es to en]"
       );
     },
   });
