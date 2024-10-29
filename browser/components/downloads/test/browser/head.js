@@ -169,9 +169,9 @@ function promisePanelOpened() {
 
   return new Promise(resolve => {
     // Hook to wait until the panel is shown.
-    let originalOnPopupShown = DownloadsPanel.onPopupShown;
-    DownloadsPanel.onPopupShown = function () {
-      DownloadsPanel.onPopupShown = originalOnPopupShown;
+    let originalOnPopupShown = DownloadsPanel._onPopupShown;
+    DownloadsPanel._onPopupShown = function () {
+      DownloadsPanel._onPopupShown = originalOnPopupShown;
       originalOnPopupShown.apply(this, arguments);
 
       // Defer to the next tick of the event loop so that we don't continue

@@ -54,8 +54,8 @@ add_task(async function test_first_download_panel() {
   });
   // Next, make sure that if we start another download, we don't open the
   // panel automatically.
-  let originalOnPopupShown = DownloadsPanel.onPopupShown;
-  DownloadsPanel.onPopupShown = function () {
+  let originalOnPopupShown = DownloadsPanel._onPopupShown;
+  DownloadsPanel._onPopupShown = function () {
     originalOnPopupShown.apply(this, arguments);
     ok(false, "Should not have opened the downloads panel.");
   };
@@ -64,5 +64,5 @@ add_task(async function test_first_download_panel() {
 
   // Wait 2 seconds to ensure that the panel does not open.
   await new Promise(resolve => setTimeout(resolve, 2000));
-  DownloadsPanel.onPopupShown = originalOnPopupShown;
+  DownloadsPanel._onPopupShown = originalOnPopupShown;
 });

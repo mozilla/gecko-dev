@@ -273,6 +273,12 @@ var DownloadsPanel = {
       case "select":
         this._onSelect(aEvent);
         break;
+      case "popupshown":
+        this._onPopupShown(aEvent);
+        break;
+      case "popuphidden":
+        this._onPopupHidden(aEvent);
+        break;
     }
   },
 
@@ -292,9 +298,9 @@ var DownloadsPanel = {
     DownloadsPanel.terminate();
   },
 
-  onPopupShown(aEvent) {
+  _onPopupShown(aEvent) {
     // Ignore events raised by nested popups.
-    if (aEvent.target != aEvent.currentTarget) {
+    if (aEvent.target != this.panel) {
       return;
     }
 
@@ -312,9 +318,9 @@ var DownloadsPanel = {
     this._focusPanel();
   },
 
-  onPopupHidden(aEvent) {
+  _onPopupHidden(aEvent) {
     // Ignore events raised by nested popups.
-    if (aEvent.target != aEvent.currentTarget) {
+    if (aEvent.target != this.panel) {
       return;
     }
 
@@ -365,6 +371,8 @@ var DownloadsPanel = {
     // the richlistbox, for keyboard navigation.
     this.panel.addEventListener("keypress", this);
     this.panel.addEventListener("mousemove", this);
+    this.panel.addEventListener("popupshown", this);
+    this.panel.addEventListener("popuphidden", this);
     DownloadsView.richListBox.addEventListener("focus", this);
     DownloadsView.richListBox.addEventListener("select", this);
 
@@ -383,6 +391,8 @@ var DownloadsPanel = {
     this.panel.removeEventListener("keydown", this);
     this.panel.removeEventListener("keypress", this);
     this.panel.removeEventListener("mousemove", this);
+    this.panel.removeEventListener("popupshown", this);
+    this.panel.removeEventListener("popuphidden", this);
     DownloadsView.richListBox.removeEventListener("focus", this);
     DownloadsView.richListBox.removeEventListener("select", this);
     DownloadsView.downloadsHistory.removeEventListener("command", this);
