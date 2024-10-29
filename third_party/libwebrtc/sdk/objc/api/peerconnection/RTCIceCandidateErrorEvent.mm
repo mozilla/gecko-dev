@@ -29,7 +29,8 @@
                             url:(const std::string&)url
                       errorCode:(const int)errorCode
                       errorText:(const std::string&)errorText {
-  if (self = [self init]) {
+  self = [self init];
+  if (self) {
     _address = [NSString stringForStdString:address];
     _port = port;
     _url = [NSString stringForStdString:url];

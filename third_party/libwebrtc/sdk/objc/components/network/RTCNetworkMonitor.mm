@@ -54,7 +54,8 @@ rtc::AdapterType AdapterTypeFromInterfaceType(nw_interface_type_t interfaceType)
 
 - (instancetype)initWithObserver:(webrtc::NetworkMonitorObserver *)observer {
   RTC_DCHECK(observer);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _observer = observer;
     if (@available(iOS 12, *)) {
       _pathMonitor = nw_path_monitor_create();
@@ -89,6 +90,7 @@ rtc::AdapterType AdapterTypeFromInterfaceType(nw_interface_type_t interfaceType)
               RTCLog(@"NW path monitor available interface: %s", name);
               rtc::AdapterType adapterType = AdapterTypeFromInterfaceType(interfaceType);
               map->insert(std::pair<std::string, rtc::AdapterType>(name, adapterType));
+              return true;
             });
         @synchronized(strongSelf) {
           webrtc::NetworkMonitorObserver *observer = strongSelf->_observer;

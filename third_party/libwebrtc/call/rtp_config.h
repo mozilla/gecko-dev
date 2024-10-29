@@ -14,10 +14,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 
@@ -166,11 +166,11 @@ struct RtpConfig {
   bool IsMediaSsrc(uint32_t ssrc) const;
   bool IsRtxSsrc(uint32_t ssrc) const;
   bool IsFlexfecSsrc(uint32_t ssrc) const;
-  absl::optional<uint32_t> GetRtxSsrcAssociatedWithMediaSsrc(
+  std::optional<uint32_t> GetRtxSsrcAssociatedWithMediaSsrc(
       uint32_t media_ssrc) const;
   uint32_t GetMediaSsrcAssociatedWithRtxSsrc(uint32_t rtx_ssrc) const;
   uint32_t GetMediaSsrcAssociatedWithFlexfecSsrc(uint32_t flexfec_ssrc) const;
-  absl::optional<std::string> GetRidForSsrc(uint32_t ssrc) const;
+  std::optional<std::string> GetRidForSsrc(uint32_t ssrc) const;
 };
 }  // namespace webrtc
 #endif  // CALL_RTP_CONFIG_H_

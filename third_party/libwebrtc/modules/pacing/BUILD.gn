@@ -30,9 +30,11 @@ rtc_library("pacing") {
 
   deps = [
     ":interval_budget",
+    "../../api:array_view",
     "../../api:field_trials_view",
     "../../api:field_trials_view",
     "../../api:function_view",
+    "../../api:rtp_headers",
     "../../api:rtp_packet_sender",
     "../../api:sequence_checker",
     "../../api/rtc_event_log",
@@ -51,6 +53,7 @@ rtc_library("pacing") {
     "../../rtc_base:logging",
     "../../rtc_base:macromagic",
     "../../rtc_base:rtc_numerics",
+    "../../rtc_base:safe_conversions",
     "../../rtc_base:timeutils",
     "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/synchronization:mutex",
@@ -64,7 +67,6 @@ rtc_library("pacing") {
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -95,6 +97,9 @@ if (rtc_include_tests) {
     deps = [
       ":interval_budget",
       ":pacing",
+      "../../api:array_view",
+      "../../api:rtp_headers",
+      "../../api:sequence_checker",
       "../../api/task_queue:task_queue",
       "../../api/transport:field_trial_based_config",
       "../../api/transport:network_control",

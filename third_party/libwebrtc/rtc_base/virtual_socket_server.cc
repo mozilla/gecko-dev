@@ -162,7 +162,7 @@ void VirtualSocket::SafetyBlock::SetNotAlive() {
     for (const SocketAddress& remote_addr : *listen_queue_) {
       server->Disconnect(remote_addr);
     }
-    listen_queue_ = absl::nullopt;
+    listen_queue_ = std::nullopt;
   }
 
   // Cancel potential connects

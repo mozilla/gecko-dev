@@ -17,11 +17,11 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_options.h"
 #include "api/candidate.h"
 #include "api/jsep.h"
@@ -111,7 +111,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
 
   bool NeedsIceRestart(const std::string& content_name) const override;
   bool IceRestartPending(const std::string& content_name) const override;
-  absl::optional<rtc::SSLRole> GetDtlsRole(
+  std::optional<rtc::SSLRole> GetDtlsRole(
       const std::string& mid) const override;
 
   void RestartIce();
@@ -155,7 +155,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   bool AddStream(MediaStreamInterface* local_stream);
   void RemoveStream(MediaStreamInterface* local_stream);
 
-  absl::optional<bool> is_caller() const;
+  std::optional<bool> is_caller() const;
   bool HasNewIceCredentials();
   void UpdateNegotiationNeeded();
   void AllocateSctpSids();
@@ -163,7 +163,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
   // directly getting the information from the transport.
   // This is used for allocating stream ids for data channels.
   // See also `InternalDataChannelInit::fallback_ssl_role`.
-  absl::optional<rtc::SSLRole> GuessSslRole() const;
+  std::optional<rtc::SSLRole> GuessSslRole() const;
 
   // Destroys all media BaseChannels.
   void DestroyMediaChannels();
@@ -531,9 +531,9 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
       const SessionDescriptionInterface* session_desc,
       RtpTransceiverDirection audio_direction,
       RtpTransceiverDirection video_direction,
-      absl::optional<size_t>* audio_index,
-      absl::optional<size_t>* video_index,
-      absl::optional<size_t>* data_index,
+      std::optional<size_t>* audio_index,
+      std::optional<size_t>* video_index,
+      std::optional<size_t>* data_index,
       cricket::MediaSessionOptions* session_options);
 
   // Generates the active MediaDescriptionOptions for the local data channel
@@ -605,7 +605,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
       RTC_GUARDED_BY(signaling_thread()) = PeerConnectionInterface::kStable;
 
   // Whether this peer is the caller. Set when the local description is applied.
-  absl::optional<bool> is_caller_ RTC_GUARDED_BY(signaling_thread());
+  std::optional<bool> is_caller_ RTC_GUARDED_BY(signaling_thread());
 
   // Streams added via AddStream.
   const rtc::scoped_refptr<StreamCollection> local_streams_
@@ -678,7 +678,7 @@ class SdpOfferAnswerHandler : public SdpStateProvider {
 
   // Whether we are the initial offerer on the association. This
   // determines the SSL role.
-  absl::optional<bool> initial_offerer_ RTC_GUARDED_BY(signaling_thread());
+  std::optional<bool> initial_offerer_ RTC_GUARDED_BY(signaling_thread());
 
   rtc::WeakPtrFactory<SdpOfferAnswerHandler> weak_ptr_factory_
       RTC_GUARDED_BY(signaling_thread());

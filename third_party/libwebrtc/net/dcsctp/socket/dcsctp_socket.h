@@ -103,9 +103,9 @@ class DcSctpSocket : public DcSctpSocketInterface {
   size_t buffered_amount(StreamID stream_id) const override;
   size_t buffered_amount_low_threshold(StreamID stream_id) const override;
   void SetBufferedAmountLowThreshold(StreamID stream_id, size_t bytes) override;
-  absl::optional<Metrics> GetMetrics() const override;
+  std::optional<Metrics> GetMetrics() const override;
   HandoverReadinessStatus GetHandoverReadiness() const override;
-  absl::optional<DcSctpSocketHandoverState> GetHandoverStateAndClose() override;
+  std::optional<DcSctpSocketHandoverState> GetHandoverStateAndClose() override;
   SctpImplementation peer_implementation() const override {
     return metrics_.peer_implementation;
   }
@@ -191,7 +191,7 @@ class DcSctpSocket : public DcSctpSocketInterface {
   // Returns true if the parsing of a chunk of type `T` succeeded. If it didn't,
   // it reports an error and returns false.
   template <class T>
-  bool ValidateParseSuccess(const absl::optional<T>& c) {
+  bool ValidateParseSuccess(const std::optional<T>& c) {
     if (c.has_value()) {
       return true;
     }

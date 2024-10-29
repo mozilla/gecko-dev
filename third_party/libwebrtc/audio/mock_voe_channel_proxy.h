@@ -62,7 +62,7 @@ class MockChannelReceive : public voe::ChannelReceiveInterface {
               (int sample_rate_hz, AudioFrame*),
               (override));
   MOCK_METHOD(int, PreferredSampleRate, (), (const, override));
-  MOCK_METHOD(void, SetSourceTracker, (SourceTracker*), (override));
+  MOCK_METHOD(std::vector<RtpSource>, GetSources, (), (const, override));
   MOCK_METHOD(void,
               SetAssociatedSendChannel,
               (const voe::ChannelSendInterface*),
@@ -75,18 +75,18 @@ class MockChannelReceive : public voe::ChannelReceiveInterface {
               SetEstimatedPlayoutNtpTimestampMs,
               (int64_t ntp_timestamp_ms, int64_t time_ms),
               (override));
-  MOCK_METHOD(absl::optional<int64_t>,
+  MOCK_METHOD(std::optional<int64_t>,
               GetCurrentEstimatedPlayoutNtpTimestampMs,
               (int64_t now_ms),
               (const, override));
-  MOCK_METHOD(absl::optional<Syncable::Info>,
+  MOCK_METHOD(std::optional<Syncable::Info>,
               GetSyncInfo,
               (),
               (const, override));
   MOCK_METHOD(bool, SetMinimumPlayoutDelay, (int delay_ms), (override));
   MOCK_METHOD(bool, SetBaseMinimumPlayoutDelayMs, (int delay_ms), (override));
   MOCK_METHOD(int, GetBaseMinimumPlayoutDelayMs, (), (const, override));
-  MOCK_METHOD((absl::optional<std::pair<int, SdpAudioFormat>>),
+  MOCK_METHOD((std::optional<std::pair<int, SdpAudioFormat>>),
               GetReceiveCodec,
               (),
               (const, override));
@@ -182,7 +182,7 @@ class MockChannelSend : public voe::ChannelSendInterface {
       SetEncoderToPacketizerFrameTransformer,
       (rtc::scoped_refptr<webrtc::FrameTransformerInterface> frame_transformer),
       (override));
-  MOCK_METHOD(absl::optional<DataRate>, GetUsedRate, (), (const, override));
+  MOCK_METHOD(std::optional<DataRate>, GetUsedRate, (), (const, override));
   MOCK_METHOD(void,
               RegisterPacketOverhead,
               (int packet_byte_overhead),

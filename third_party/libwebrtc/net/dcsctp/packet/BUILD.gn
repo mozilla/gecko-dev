@@ -29,7 +29,6 @@ rtc_library("tlv_trait") {
     "../../../api:array_view",
     "../../../rtc_base:checks",
     "../../../rtc_base:logging",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "tlv_trait.cc",
@@ -73,7 +72,6 @@ rtc_library("parameter") {
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "parameter/add_incoming_streams_request_parameter.cc",
@@ -118,7 +116,6 @@ rtc_library("error_cause") {
     "../public:types",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "error_cause/cookie_received_while_shutting_down_cause.cc",
@@ -166,7 +163,6 @@ rtc_library("chunk") {
     "../packet:bounded_io",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "chunk/abort_chunk.cc",
@@ -235,7 +231,6 @@ rtc_library("sctp_packet") {
     "../common:math",
     "../public:types",
     "//third_party/abseil-cpp/absl/memory",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "sctp_packet.cc",
@@ -265,7 +260,6 @@ if (rtc_include_tests) {
       "../common:math",
       "../public:types",
       "../testing:testing_macros",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
     sources = [
       "bounded_byte_reader_test.cc",

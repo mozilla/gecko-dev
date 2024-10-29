@@ -56,7 +56,7 @@ class HeartbeatHandlerTestBase : public testing::Test {
   void AdvanceTime(webrtc::TimeDelta duration) {
     callbacks_.AdvanceTime(duration);
     for (;;) {
-      absl::optional<TimeoutID> timeout_id = callbacks_.GetNextExpiredTimeout();
+      std::optional<TimeoutID> timeout_id = callbacks_.GetNextExpiredTimeout();
       if (!timeout_id.has_value()) {
         break;
       }

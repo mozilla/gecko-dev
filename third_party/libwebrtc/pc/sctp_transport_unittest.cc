@@ -10,11 +10,11 @@
 
 #include "pc/sctp_transport.h"
 
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/memory/memory.h"
-#include "absl/types/optional.h"
 #include "api/dtls_transport_interface.h"
 #include "api/priority.h"
 #include "api/transport/data_channel_transport_interface.h"
@@ -58,10 +58,10 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
   bool ReadyToSendData() override { return true; }
   void set_debug_name_for_testing(const char* debug_name) override {}
   int max_message_size() const override { return 0; }
-  absl::optional<int> max_outbound_streams() const override {
+  std::optional<int> max_outbound_streams() const override {
     return max_outbound_streams_;
   }
-  absl::optional<int> max_inbound_streams() const override {
+  std::optional<int> max_inbound_streams() const override {
     return max_inbound_streams_;
   }
   size_t buffered_amount(int sid) const override { return 0; }
@@ -79,8 +79,8 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
   void set_max_inbound_streams(int streams) { max_inbound_streams_ = streams; }
 
  private:
-  absl::optional<int> max_outbound_streams_;
-  absl::optional<int> max_inbound_streams_;
+  std::optional<int> max_outbound_streams_;
+  std::optional<int> max_inbound_streams_;
   std::function<void()> on_connected_callback_;
 };
 

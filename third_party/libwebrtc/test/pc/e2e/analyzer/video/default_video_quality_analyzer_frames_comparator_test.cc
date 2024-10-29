@@ -50,8 +50,8 @@ VideoFrame CreateFrame(uint16_t frame_id,
                        Timestamp timestamp) {
   std::unique_ptr<test::FrameGeneratorInterface> frame_generator =
       test::CreateSquareFrameGenerator(width, height,
-                                       /*type=*/absl::nullopt,
-                                       /*num_squares=*/absl::nullopt);
+                                       /*type=*/std::nullopt,
+                                       /*num_squares=*/std::nullopt);
   test::FrameGeneratorInterface::VideoFrameData frame_data =
       frame_generator->NextFrame();
   return VideoFrame::Builder()
@@ -177,8 +177,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, peers_count,
                                   stream_start_time, stream_start_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kRegular, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -223,12 +223,12 @@ TEST(
   comparator.EnsureStatsForStream(stream, sender, peers_count,
                                   stream_start_time, stream_start_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kRegular, frame_stats1);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kRegular, frame_stats2);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -311,13 +311,13 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
                                   stream_start_time, stream_start_time);
   for (size_t i = 0; i < stats.size() - 1; ++i) {
     comparator.AddComparison(stats_key,
-                             /*captured=*/absl::nullopt,
-                             /*rendered=*/absl::nullopt,
+                             /*captured=*/std::nullopt,
+                             /*rendered=*/std::nullopt,
                              FrameComparisonType::kFrameInFlight, stats[i]);
   }
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kRegular,
                            stats[stats.size() - 1]);
   comparator.Stop(/*last_rendered_frame_times=*/{});
@@ -378,8 +378,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kFrameInFlight, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -439,8 +439,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kFrameInFlight, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -512,8 +512,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kFrameInFlight, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -589,8 +589,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kFrameInFlight, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -671,8 +671,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kFrameInFlight, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -763,8 +763,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kFrameInFlight, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -854,8 +854,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kFrameInFlight, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -923,8 +923,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kDroppedFrame, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -984,8 +984,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kDroppedFrame, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -1057,8 +1057,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kDroppedFrame, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -1134,8 +1134,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kDroppedFrame, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -1212,8 +1212,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kDroppedFrame, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -1301,8 +1301,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kDroppedFrame, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -1389,8 +1389,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
                                   captured_time, captured_time);
   comparator.AddComparison(stats_key,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kDroppedFrame, frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 
@@ -1628,21 +1628,21 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
 
   // Add 5 frames which were rendered with 30 fps (~30ms between frames)
   // Frame ids are in [1..5] and last frame is with 120ms offset from first.
-  absl::optional<Timestamp> prev_frame_rendered_time = absl::nullopt;
+  std::optional<Timestamp> prev_frame_rendered_time = std::nullopt;
   for (int i = 0; i < 5; ++i) {
     FrameStats frame_stats = FrameStatsWith10msDeltaBetweenPhasesAnd10x10Frame(
         /*frame_id=*/i + 1, stream_start_time + TimeDelta::Millis(30 * i));
     frame_stats.prev_frame_rendered_time = prev_frame_rendered_time;
     frame_stats.time_between_rendered_frames =
         prev_frame_rendered_time.has_value()
-            ? absl::optional<TimeDelta>(frame_stats.rendered_time -
-                                        *prev_frame_rendered_time)
-            : absl::nullopt;
+            ? std::optional<TimeDelta>(frame_stats.rendered_time -
+                                       *prev_frame_rendered_time)
+            : std::nullopt;
     prev_frame_rendered_time = frame_stats.rendered_time;
 
     comparator.AddComparison(stats_key,
-                             /*captured=*/absl::nullopt,
-                             /*rendered=*/absl::nullopt,
+                             /*captured=*/std::nullopt,
+                             /*rendered=*/std::nullopt,
                              FrameComparisonType::kRegular, frame_stats);
   }
 
@@ -1657,8 +1657,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
 
   comparator.AddComparison(stats_key,
                            /*skipped_between_rendered=*/4,
-                           /*captured=*/absl::nullopt,
-                           /*rendered=*/absl::nullopt,
+                           /*captured=*/std::nullopt,
+                           /*rendered=*/std::nullopt,
                            FrameComparisonType::kRegular, freeze_frame_stats);
   comparator.Stop(/*last_rendered_frame_times=*/{});
 

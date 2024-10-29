@@ -13,10 +13,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <optional>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/scoped_refptr.h"
 #include "api/video/encoded_image.h"
@@ -25,6 +25,7 @@
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_frame_type.h"
 #include "api/video_codecs/video_codec.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "modules/include/module_common_types_public.h"
 #include "modules/video_coding/utility/qp_parser.h"
 #include "rtc_base/logging.h"
@@ -34,7 +35,7 @@
 namespace webrtc {
 namespace {
 
-absl::optional<FilterSettings> GetCorruptionFilterSettings(
+std::optional<FilterSettings> GetCorruptionFilterSettings(
     const EncodedImage& encoded_image,
     VideoCodecType video_codec_type,
     int layer_id) {
@@ -51,13 +52,13 @@ absl::optional<FilterSettings> GetCorruptionFilterSettings(
 
   int qp = encoded_image.qp_;
   if (qp == -1) {
-    absl::optional<uint32_t> parsed_qp = QpParser().Parse(
+    std::optional<uint32_t> parsed_qp = QpParser().Parse(
         video_codec_type, layer_id, encoded_image.data(), encoded_image.size());
     if (!parsed_qp.has_value()) {
       RTC_LOG(LS_VERBOSE) << "Missing QP for "
                           << CodecTypeToPayloadString(video_codec_type)
                           << " layer " << layer_id << ".";
-      return absl::nullopt;
+      return std::nullopt;
     }
     qp = *parsed_qp;
   }
@@ -75,7 +76,7 @@ void FrameInstrumentationGenerator::OnCapturedFrame(VideoFrame frame) {
   captured_frames_.push(frame);
 }
 
-absl::optional<
+std::optional<
     absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
 FrameInstrumentationGenerator::OnEncodedImage(
     const EncodedImage& encoded_image) {
@@ -89,7 +90,7 @@ FrameInstrumentationGenerator::OnEncodedImage(
       captured_frames_.front().rtp_timestamp() != rtp_timestamp_encoded_image) {
     RTC_LOG(LS_VERBOSE) << "No captured frames for RTC timestamp "
                         << rtp_timestamp_encoded_image << ".";
-    return absl::nullopt;
+    return std::nullopt;
   }
   VideoFrame captured_frame = captured_frames_.front();
 
@@ -116,7 +117,7 @@ FrameInstrumentationGenerator::OnEncodedImage(
   } else if (contexts_.find(layer_id) == contexts_.end()) {
     RTC_LOG(LS_INFO) << "The first frame of a spatial or simulcast layer is "
                         "not a key frame.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   int sequence_index = contexts_[layer_id].frame_sampler.GetCurrentIndex();
@@ -128,16 +129,16 @@ FrameInstrumentationGenerator::OnEncodedImage(
               /*sample_size=*/13);
   if (sample_coordinates.empty()) {
     if (!is_key_frame) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     return FrameInstrumentationSyncData{.sequence_index = sequence_index,
-                                        .is_key_frame = true};
+                                        .communicate_upper_bits = true};
   }
 
-  absl::optional<FilterSettings> filter_settings =
+  std::optional<FilterSettings> filter_settings =
       GetCorruptionFilterSettings(encoded_image, video_codec_type_, layer_id);
   if (!filter_settings.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   scoped_refptr<I420BufferInterface> captured_frame_buffer_as_i420 =
@@ -147,12 +148,12 @@ FrameInstrumentationGenerator::OnEncodedImage(
                       << VideoFrameBufferTypeToString(
                              captured_frame.video_frame_buffer()->type())
                       << " image to I420.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   FrameInstrumentationData data = {
       .sequence_index = sequence_index,
-      .is_key_frame = is_key_frame,
+      .communicate_upper_bits = is_key_frame,
       .std_dev = filter_settings->std_dev,
       .luma_error_threshold = filter_settings->luma_error_threshold,
       .chroma_error_threshold = filter_settings->chroma_error_threshold};

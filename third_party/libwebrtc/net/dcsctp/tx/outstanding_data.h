@@ -12,11 +12,11 @@
 
 #include <deque>
 #include <map>
+#include <optional>
 #include <set>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/units/timestamp.h"
 #include "net/dcsctp/common/internal_types.h"
 #include "net/dcsctp/common/sequence_numbers.h"
@@ -132,8 +132,8 @@ class OutstandingData {
 
   // Schedules `data` to be sent, with the provided partial reliability
   // parameters. Returns the TSN if the item was actually added and scheduled to
-  // be sent, and absl::nullopt if it shouldn't be sent.
-  absl::optional<UnwrappedTSN> Insert(
+  // be sent, and std::nullopt if it shouldn't be sent.
+  std::optional<UnwrappedTSN> Insert(
       OutgoingMessageId message_id,
       const Data& data,
       webrtc::Timestamp time_sent,

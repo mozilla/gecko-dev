@@ -43,6 +43,8 @@ class AudioCodingModuleImpl final : public AudioCodingModule {
   explicit AudioCodingModuleImpl();
   ~AudioCodingModuleImpl() override;
 
+  void Reset() override;
+
   /////////////////////////////////////////
   //   Sender
   //
@@ -108,7 +110,7 @@ class AudioCodingModuleImpl final : public AudioCodingModule {
   // TODO(bugs.webrtc.org/10739): change `absolute_capture_timestamp_ms` to
   // int64_t when it always receives a valid value.
   int Encode(const InputData& input_data,
-             absl::optional<int64_t> absolute_capture_timestamp_ms)
+             std::optional<int64_t> absolute_capture_timestamp_ms)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(acm_mutex_);
 
   bool HaveValidEncoder(absl::string_view caller_name) const
@@ -152,7 +154,7 @@ class AudioCodingModuleImpl final : public AudioCodingModule {
   bool first_frame_ RTC_GUARDED_BY(acm_mutex_);
   uint32_t last_timestamp_ RTC_GUARDED_BY(acm_mutex_);
   uint32_t last_rtp_timestamp_ RTC_GUARDED_BY(acm_mutex_);
-  absl::optional<int64_t> absolute_capture_timestamp_ms_
+  std::optional<int64_t> absolute_capture_timestamp_ms_
       RTC_GUARDED_BY(acm_mutex_);
 
   Mutex callback_mutex_;
@@ -198,7 +200,7 @@ AudioCodingModuleImpl::~AudioCodingModuleImpl() = default;
 
 int32_t AudioCodingModuleImpl::Encode(
     const InputData& input_data,
-    absl::optional<int64_t> absolute_capture_timestamp_ms) {
+    std::optional<int64_t> absolute_capture_timestamp_ms) {
   // TODO(bugs.webrtc.org/10739): add dcheck that
   // `audio_frame.absolute_capture_timestamp_ms()` always has a value.
   AudioEncoder::EncodedInfo encoded_info;
@@ -280,7 +282,7 @@ int32_t AudioCodingModuleImpl::Encode(
           absolute_capture_timestamp_ms_.value_or(-1));
     }
   }
-  absolute_capture_timestamp_ms_ = absl::nullopt;
+  absolute_capture_timestamp_ms_.reset();
   previous_pltype_ = encoded_info.payload_type;
   return static_cast<int32_t>(encode_buffer_.size());
 }
@@ -288,6 +290,14 @@ int32_t AudioCodingModuleImpl::Encode(
 /////////////////////////////////////////
 //   Sender
 //
+
+void AudioCodingModuleImpl::Reset() {
+  MutexLock lock(&acm_mutex_);
+  absolute_capture_timestamp_ms_.reset();
+  if (HaveValidEncoder("Reset")) {
+    encoder_stack_->Reset();
+  }
+}
 
 void AudioCodingModuleImpl::ModifyEncoder(
     rtc::FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) {

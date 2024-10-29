@@ -13,11 +13,11 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/audio_codecs/opus/audio_encoder_opus_config.h"
@@ -36,13 +36,13 @@ class AudioEncoderOpusImpl final : public AudioEncoder {
   // defined by complexity_threshold_bps +/- complexity_threshold_window_bps.
   // Otherwise, returns the current complexity depending on whether the
   // current bitrate is above or below complexity_threshold_bps.
-  static absl::optional<int> GetNewComplexity(
+  static std::optional<int> GetNewComplexity(
       const AudioEncoderOpusConfig& config);
 
   // Returns OPUS_AUTO if the the current bitrate is above wideband threshold.
   // Returns empty if it is below, but bandwidth coincides with the desired one.
   // Otherwise returns the desired bandwidth.
-  static absl::optional<int> GetNewBandwidth(
+  static std::optional<int> GetNewBandwidth(
       const AudioEncoderOpusConfig& config,
       OpusEncInst* inst);
 
@@ -90,16 +90,15 @@ class AudioEncoderOpusImpl final : public AudioEncoder {
   void OnReceivedUplinkPacketLossFraction(
       float uplink_packet_loss_fraction) override;
   void OnReceivedTargetAudioBitrate(int target_audio_bitrate_bps) override;
-  void OnReceivedUplinkBandwidth(
-      int target_audio_bitrate_bps,
-      absl::optional<int64_t> bwe_period_ms) override;
+  void OnReceivedUplinkBandwidth(int target_audio_bitrate_bps,
+                                 std::optional<int64_t> bwe_period_ms) override;
   void OnReceivedUplinkAllocation(BitrateAllocationUpdate update) override;
   void OnReceivedRtt(int rtt_ms) override;
   void OnReceivedOverhead(size_t overhead_bytes_per_packet) override;
   void SetReceiverFrameLengthRange(int min_frame_length_ms,
                                    int max_frame_length_ms) override;
   ANAStats GetANAStats() const override;
-  absl::optional<std::pair<TimeDelta, TimeDelta> > GetFrameLengthRange()
+  std::optional<std::pair<TimeDelta, TimeDelta> > GetFrameLengthRange()
       const override;
   rtc::ArrayView<const int> supported_frame_lengths_ms() const {
     return config_.supported_frame_lengths_ms;
@@ -129,7 +128,7 @@ class AudioEncoderOpusImpl final : public AudioEncoder {
       const AudioNetworkAdaptorCreator& audio_network_adaptor_creator,
       std::unique_ptr<SmoothingFilter> bitrate_smoother);
 
-  static absl::optional<AudioEncoderOpusConfig> SdpToConfig(
+  static std::optional<AudioEncoderOpusConfig> SdpToConfig(
       const SdpAudioFormat& format);
   static void AppendSupportedEncoders(std::vector<AudioCodecSpec>* specs);
   static AudioCodecInfo QueryAudioEncoder(const AudioEncoderOpusConfig& config);
@@ -144,8 +143,8 @@ class AudioEncoderOpusImpl final : public AudioEncoder {
 
   void OnReceivedUplinkBandwidth(
       int target_audio_bitrate_bps,
-      absl::optional<int64_t> bwe_period_ms,
-      absl::optional<int64_t> link_capacity_allocation);
+      std::optional<int64_t> bwe_period_ms,
+      std::optional<int64_t> link_capacity_allocation);
 
   // TODO(minyue): remove "override" when we can deprecate
   // `AudioEncoder::SetTargetBitrate`.
@@ -177,9 +176,9 @@ class AudioEncoderOpusImpl final : public AudioEncoder {
   std::unique_ptr<PacketLossFractionSmoother> packet_loss_fraction_smoother_;
   const AudioNetworkAdaptorCreator audio_network_adaptor_creator_;
   std::unique_ptr<AudioNetworkAdaptor> audio_network_adaptor_;
-  absl::optional<size_t> overhead_bytes_per_packet_;
+  std::optional<size_t> overhead_bytes_per_packet_;
   const std::unique_ptr<SmoothingFilter> bitrate_smoother_;
-  absl::optional<int64_t> bitrate_smoother_last_update_time_;
+  std::optional<int64_t> bitrate_smoother_last_update_time_;
   int consecutive_dtx_frames_;
 
   friend struct AudioEncoderOpus;

@@ -120,7 +120,8 @@
               nativeMediaStream:
                   (rtc::scoped_refptr<webrtc::MediaStreamInterface>)nativeMediaStream {
   NSParameterAssert(nativeMediaStream);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _factory = factory;
     _signalingThread = factory.signalingThread;
 

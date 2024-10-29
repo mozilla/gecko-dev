@@ -14,10 +14,10 @@
 
 #include <algorithm>
 #include <fstream>
+#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
 #include "test/gmock.h"
@@ -45,7 +45,7 @@ std::string Path(absl::string_view path) {
 void CleanDir(absl::string_view dir, size_t* num_deleted_entries) {
   RTC_DCHECK(num_deleted_entries);
   *num_deleted_entries = 0;
-  absl::optional<std::vector<std::string>> dir_content = ReadDirectory(dir);
+  std::optional<std::vector<std::string>> dir_content = ReadDirectory(dir);
   EXPECT_TRUE(dir_content);
   for (const auto& entry : *dir_content) {
     if (DirExists(entry)) {
@@ -271,7 +271,7 @@ TEST_F(FileUtilsTest, WriteReadDeleteFilesAndDirs) {
   EXPECT_TRUE(DirExists(temp_subdir));
 
   // Checks.
-  absl::optional<std::vector<std::string>> dir_content =
+  std::optional<std::vector<std::string>> dir_content =
       ReadDirectory(temp_directory);
   EXPECT_TRUE(dir_content);
   EXPECT_EQ(2u, dir_content->size());

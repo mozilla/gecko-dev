@@ -11,6 +11,7 @@
 #include "modules/rtp_rtcp/source/rtp_sender.h"
 
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
@@ -23,7 +24,6 @@
 #include "api/units/timestamp.h"
 #include "api/video/video_codec_constants.h"
 #include "api/video/video_timing.h"
-#include "logging/rtc_event_log/mock/mock_rtc_event_log.h"
 #include "modules/rtp_rtcp/include/rtp_cvo.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -142,13 +142,10 @@ class RtpSenderTest : public ::testing::Test {
 
   RtpRtcpInterface::Configuration GetDefaultConfig() {
     RtpRtcpInterface::Configuration config;
-    config.clock = &env_.clock();
     config.local_media_ssrc = kSsrc;
     config.rtx_send_ssrc = kRtxSsrc;
-    config.event_log = &mock_rtc_event_log_;
     config.retransmission_rate_limiter = &retransmission_rate_limiter_;
     config.paced_sender = &mock_paced_sender_;
-    config.field_trials = &env_.field_trials();
     // Configure rid unconditionally, it has effect only if
     // corresponding header extension is enabled.
     config.rid = std::string(kRid);
@@ -157,24 +154,23 @@ class RtpSenderTest : public ::testing::Test {
 
   void CreateSender(const RtpRtcpInterface::Configuration& config) {
     packet_history_ = std::make_unique<RtpPacketHistory>(
-        config.clock, RtpPacketHistory::PaddingMode::kRecentLargePacket);
+        &env_.clock(), RtpPacketHistory::PaddingMode::kRecentLargePacket);
     sequencer_.emplace(kSsrc, kRtxSsrc,
                        /*require_marker_before_media_padding=*/!config.audio,
                        &env_.clock());
-    rtp_sender_ = std::make_unique<RTPSender>(config, packet_history_.get(),
-                                              config.paced_sender);
+    rtp_sender_ = std::make_unique<RTPSender>(
+        env_, config, packet_history_.get(), config.paced_sender);
     sequencer_->set_media_sequence_number(kSeqNum);
     rtp_sender_->SetTimestampOffset(0);
   }
 
   GlobalSimulatedTimeController time_controller_;
   const Environment env_;
-  NiceMock<MockRtcEventLog> mock_rtc_event_log_;
   MockRtpPacketPacer mock_paced_sender_;
   RateLimiter retransmission_rate_limiter_;
   FlexfecSender flexfec_sender_;
 
-  absl::optional<PacketSequencer> sequencer_;
+  std::optional<PacketSequencer> sequencer_;
   std::unique_ptr<RtpPacketHistory> packet_history_;
   std::unique_ptr<RTPSender> rtp_sender_;
 
@@ -434,8 +430,9 @@ TEST_F(RtpSenderTest, NoPaddingAsFirstPacketWithoutBweExtensions) {
 
 TEST_F(RtpSenderTest, RequiresRtxSsrcToEnableRtx) {
   RtpRtcpInterface::Configuration config = GetDefaultConfig();
-  config.rtx_send_ssrc = absl::nullopt;
-  RTPSender rtp_sender(config, packet_history_.get(), config.paced_sender);
+  config.rtx_send_ssrc = std::nullopt;
+  RTPSender rtp_sender(env_, config, packet_history_.get(),
+                       config.paced_sender);
   rtp_sender.SetRtxPayloadType(kRtxPayload, kPayload);
 
   rtp_sender.SetRtxStatus(kRtxRetransmitted);
@@ -446,7 +443,8 @@ TEST_F(RtpSenderTest, RequiresRtxSsrcToEnableRtx) {
 TEST_F(RtpSenderTest, RequiresRtxPayloadTypesToEnableRtx) {
   RtpRtcpInterface::Configuration config = GetDefaultConfig();
   config.rtx_send_ssrc = kRtxSsrc;
-  RTPSender rtp_sender(config, packet_history_.get(), config.paced_sender);
+  RTPSender rtp_sender(env_, config, packet_history_.get(),
+                       config.paced_sender);
 
   rtp_sender.SetRtxStatus(kRtxRetransmitted);
 
@@ -456,7 +454,8 @@ TEST_F(RtpSenderTest, RequiresRtxPayloadTypesToEnableRtx) {
 TEST_F(RtpSenderTest, CanEnableRtxWhenRtxSsrcAndPayloadTypeAreConfigured) {
   RtpRtcpInterface::Configuration config = GetDefaultConfig();
   config.rtx_send_ssrc = kRtxSsrc;
-  RTPSender rtp_sender(config, packet_history_.get(), config.paced_sender);
+  RTPSender rtp_sender(env_, config, packet_history_.get(),
+                       config.paced_sender);
   rtp_sender.SetRtxPayloadType(kRtxPayload, kPayload);
 
   ASSERT_EQ(rtp_sender.RtxStatus(), kRtxOff);
@@ -1078,6 +1077,43 @@ TEST_F(RtpSenderTest, GeneratedPaddingHasBweExtensions) {
   EXPECT_GT(payload_padding->payload_size(), 0u);
 }
 
+TEST_F(RtpSenderTest, GeneratedPaddingHasMidRidExtensions) {
+  EnableMidSending("mid");
+  EnableRidSending();
+
+  // Send a dummy video packet so it ends up in the packet history. Since we
+  // are not using RTX, it should never be used as padding.
+  packet_history_->SetStorePacketsStatus(
+      RtpPacketHistory::StorageMode::kStoreAndCull, 1);
+  std::unique_ptr<RtpPacketToSend> packet =
+      BuildRtpPacket(kPayload, true, 0, env_.clock().CurrentTime());
+  packet->set_allow_retransmission(true);
+  packet->SetPayloadSize(1234);
+  packet->set_packet_type(RtpPacketMediaType::kVideo);
+  sequencer_->Sequence(*packet);
+  packet_history_->PutRtpPacket(std::move(packet), env_.clock().CurrentTime());
+
+  std::vector<std::unique_ptr<RtpPacketToSend>> padding_packets =
+      GeneratePadding(/*target_size_bytes=*/1);
+  ASSERT_THAT(padding_packets, SizeIs(1));
+
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RtpMid>());
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RtpStreamId>());
+}
+
+TEST_F(RtpSenderTest, GeneratedPaddingOnRtxHasMidRidExtensions) {
+  EnableRtx();
+  EnableMidSending("mid");
+  EnableRidSending();
+
+  std::vector<std::unique_ptr<RtpPacketToSend>> padding_packets =
+      GeneratePadding(/*target_size_bytes=*/1);
+  ASSERT_THAT(padding_packets, SizeIs(1));
+
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RtpMid>());
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RepairedRtpStreamId>());
+}
+
 TEST_F(RtpSenderTest, GeneratePaddingResendsOldPacketsWithRtx) {
   // Min requested size in order to use RTX payload.
   const size_t kMinPaddingSize = 50;
@@ -1332,7 +1368,7 @@ TEST_F(RtpSenderTest, MarksPacketsWithKeyframeStatus) {
   RTPSenderVideo rtp_sender_video(video_config);
 
   const uint8_t kPayloadType = 127;
-  const absl::optional<VideoCodecType> kCodecType =
+  const std::optional<VideoCodecType> kCodecType =
       VideoCodecType::kVideoCodecGeneric;
 
   const uint32_t kCaptureTimeMsToRtpTimestamp = 90;  // 90 kHz clock

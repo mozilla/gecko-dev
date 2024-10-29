@@ -68,7 +68,7 @@ void FecControllerPlrBased::MakeDecision(AudioEncoderRuntimeConfig* config) {
 }
 
 bool FecControllerPlrBased::FecEnablingDecision(
-    const absl::optional<float>& packet_loss) const {
+    const std::optional<float>& packet_loss) const {
   if (!uplink_bandwidth_bps_ || !packet_loss) {
     return false;
   } else {
@@ -79,7 +79,7 @@ bool FecControllerPlrBased::FecEnablingDecision(
 }
 
 bool FecControllerPlrBased::FecDisablingDecision(
-    const absl::optional<float>& packet_loss) const {
+    const std::optional<float>& packet_loss) const {
   if (!uplink_bandwidth_bps_ || !packet_loss) {
     return false;
   } else {

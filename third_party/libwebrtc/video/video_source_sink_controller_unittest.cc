@@ -70,7 +70,7 @@ TEST(VideoSourceSinkControllerTest, UnconstrainedByDefault) {
                    const rtc::VideoSinkWants& wants) {
         EXPECT_FALSE(wants.rotation_applied);
         EXPECT_EQ(wants.max_pixel_count, kIntUnconstrained);
-        EXPECT_EQ(wants.target_pixel_count, absl::nullopt);
+        EXPECT_EQ(wants.target_pixel_count, std::nullopt);
         EXPECT_EQ(wants.max_framerate_fps, kIntUnconstrained);
         EXPECT_EQ(wants.resolution_alignment, 1);
         EXPECT_FALSE(wants.requested_resolution.has_value());

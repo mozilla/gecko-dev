@@ -82,7 +82,7 @@ class VideoStreamBufferController {
   void Stop();
   void SetProtectionMode(VCMVideoProtection protection_mode);
   void Clear();
-  absl::optional<int64_t> InsertFrame(std::unique_ptr<EncodedFrame> frame);
+  std::optional<int64_t> InsertFrame(std::unique_ptr<EncodedFrame> frame);
   void UpdateRtt(int64_t max_rtt_ms);
   void SetMaxWaits(TimeDelta max_wait_for_keyframe,
                    TimeDelta max_wait_for_frame);

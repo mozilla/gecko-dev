@@ -79,6 +79,9 @@ if (!build_with_chromium && !build_with_mozilla) {
         "video:sv_loopback",
         "video:video_loopback",
       ]
+      if (use_libfuzzer) {
+        deps += [ "test/fuzzers" ]
+      }
       if (!is_asan) {
         # Do not build :webrtc_lib_link_test because lld complains on some OS
         # (e.g. when target_os = "mac") when is_asan=true. For more details,
@@ -520,6 +523,18 @@ config("common_objc") {
 }
 }
 
+if (!rtc_build_ssl) {
+  config("external_ssl_library") {
+    if (rtc_ssl_root != "") {
+      include_dirs = [ rtc_ssl_root ]
+    }
+    libs = [
+      "crypto",
+      "ssl",
+    ]
+  }
+}
+
 if (!build_with_chromium) {
   # Target to build all the WebRTC production code.
   rtc_static_library("webrtc") {
@@ -540,6 +555,7 @@ if (!build_with_chromium) {
       "api:libjingle_peerconnection_api",
       "api:rtc_error",
       "api:transport_api",
+      "api/audio_codecs:opus_audio_decoder_factory",
       "api/crypto",
       "api/rtc_event_log:rtc_event_log_factory",
       "api/task_queue",

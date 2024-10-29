@@ -224,11 +224,14 @@ webrtc_fuzzer_test("rtp_video_frame_assembler_fuzzer") {
 webrtc_fuzzer_test("rtcp_receiver_fuzzer") {
   sources = [ "rtcp_receiver_fuzzer.cc" ]
   deps = [
+    "../../api:array_view",
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../modules/rtp_rtcp",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../rtc_base:checks",
     "../../system_wrappers",
-    "../../system_wrappers:field_trial",
+    "../../test:explicit_key_value_config",
   ]
   seed_corpus = "corpora/rtcp-corpus"
 }
@@ -236,8 +239,8 @@ webrtc_fuzzer_test("rtcp_receiver_fuzzer") {
 webrtc_fuzzer_test("rtp_packet_fuzzer") {
   sources = [ "rtp_packet_fuzzer.cc" ]
   deps = [
+    "../../common_video:corruption_detection_message",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   seed_corpus = "corpora/rtp-corpus"
 }
@@ -306,7 +309,6 @@ rtc_library("audio_decoder_fuzzer") {
     "../../api/audio_codecs:audio_codecs_api",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../rtc_base:checks",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -451,7 +453,7 @@ webrtc_fuzzer_test("sdp_parser_fuzzer") {
 if (!build_with_chromium) {
   # This target depends on test infrastructure that can't be built
   # with Chromium at the moment.
-  # TODO(bugs.chromium.org/12534): Make this fuzzer build in Chromium.
+  # TODO: bugs.webrtc.org/42222682 - Make this fuzzer build in Chromium.
 
   webrtc_fuzzer_test("sdp_integration_fuzzer") {
     sources = [ "sdp_integration_fuzzer.cc" ]
@@ -589,7 +591,6 @@ webrtc_fuzzer_test("aec3_fuzzer") {
     "../../api/audio:audio_processing",
     "../../modules/audio_processing:audio_buffer",
     "../../modules/audio_processing/aec3",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -739,4 +740,83 @@ webrtc_fuzzer_test("vp9_replay_fuzzer") {
   sources = [ "vp9_replay_fuzzer.cc" ]
   deps = [ "utils:rtp_replayer" ]
   seed_corpus = "corpora/rtpdump-corpus/vp9"
+}
+
+group("fuzzers") {
+  testonly = true
+  deps = [
+    ":aec3_config_json_fuzzer",
+    ":aec3_fuzzer",
+    ":agc_fuzzer",
+    ":audio_decoder_fuzzer",
+    ":audio_decoder_g722_fuzzer",
+    ":audio_decoder_ilbc_fuzzer",
+    ":audio_decoder_multiopus_fuzzer",
+    ":audio_decoder_opus_fuzzer",
+    ":audio_decoder_opus_redundant_fuzzer",
+    ":audio_decoder_pcm16b_fuzzer",
+    ":audio_decoder_pcm_fuzzer",
+    ":audio_encoder_fuzzer",
+    ":audio_encoder_opus_fuzzer",
+    ":audio_processing_fuzzer",
+    ":audio_processing_sample_rate_fuzzer",
+    ":comfort_noise_decoder_fuzzer",
+    ":dcsctp_socket_fuzzer",
+    ":field_trial_fuzzer",
+    ":flexfec_header_reader_fuzzer",
+    ":flexfec_receiver_fuzzer",
+    ":flexfec_sender_fuzzer",
+    ":forward_error_correction_fuzzer",
+    ":frame_buffer_fuzzer",
+    ":h264_bitstream_parser_fuzzer",
+    ":h264_depacketizer_fuzzer",
+    ":neteq_rtp_fuzzer",
+    ":neteq_signal_fuzzer",
+    ":pseudotcp_parser_fuzzer",
+    ":receive_side_congestion_controller_fuzzer",
+    ":residual_echo_detector_fuzzer",
+    ":rtcp_receiver_fuzzer",
+    ":rtp_depacketizer_av1_assemble_frame_fuzzer",
+    ":rtp_dependency_descriptor_fuzzer",
+    ":rtp_format_h264_fuzzer",
+    ":rtp_format_vp8_fuzzer",
+    ":rtp_format_vp9_fuzzer",
+    ":rtp_frame_reference_finder_fuzzer",
+    ":rtp_packet_fuzzer",
+    ":rtp_packetizer_av1_fuzzer",
+    ":rtp_video_frame_assembler_fuzzer",
+    ":rtp_video_layers_allocation_fuzzer",
+    ":sctp_utils_fuzzer",
+    ":sdp_parser_fuzzer",
+    ":ssl_certificate_fuzzer",
+    ":string_to_number_fuzzer",
+    ":stun_parser_fuzzer",
+    ":stun_validator_fuzzer",
+    ":turn_unwrap_fuzzer",
+    ":ulpfec_generator_fuzzer",
+    ":ulpfec_header_reader_fuzzer",
+    ":ulpfec_receiver_fuzzer",
+    ":vp8_depacketizer_fuzzer",
+    ":vp8_qp_parser_fuzzer",
+    ":vp8_replay_fuzzer",
+    ":vp9_depacketizer_fuzzer",
+    ":vp9_qp_parser_fuzzer",
+    ":vp9_replay_fuzzer",
+  ]
+  if (rtc_use_h265) {
+    deps += [
+      ":h265_bitstream_parser_fuzzer",
+      ":h265_depacketizer_fuzzer",
+    ]
+  }
+
+  if (rtc_build_libvpx) {
+    deps += [ ":vp9_encoder_references_fuzzer" ]
+  }
+
+  if (!build_with_chromium) {
+    # TODO: bugs.webrtc.org/42222682 - Add unconditionally when this fuzzer
+    # builds in Chromium.
+    deps += [ ":sdp_integration_fuzzer" ]
+  }
 }

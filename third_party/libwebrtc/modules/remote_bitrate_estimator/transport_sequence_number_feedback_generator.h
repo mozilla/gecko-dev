@@ -14,9 +14,9 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/rtp_headers.h"
 #include "api/transport/network_control.h"
@@ -95,8 +95,8 @@ class TransportSequenceNumberFeedbackGenenerator
   DataSize packet_overhead_ RTC_GUARDED_BY(&lock_);
 
   // The next sequence number that should be the start sequence number during
-  // periodic reporting. Will be absl::nullopt before the first seen packet.
-  absl::optional<int64_t> periodic_window_start_seq_ RTC_GUARDED_BY(&lock_);
+  // periodic reporting. Will be std::nullopt before the first seen packet.
+  std::optional<int64_t> periodic_window_start_seq_ RTC_GUARDED_BY(&lock_);
 
   // Packet arrival times, by sequence number.
   PacketArrivalTimeMap packet_arrival_times_ RTC_GUARDED_BY(&lock_);

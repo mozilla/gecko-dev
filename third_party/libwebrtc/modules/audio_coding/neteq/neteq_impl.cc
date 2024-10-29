@@ -201,7 +201,7 @@ void NetEqImpl::InsertEmptyPacket(const RTPHeader& rtp_header) {
 int NetEqImpl::GetAudio(AudioFrame* audio_frame,
                         bool* muted,
                         int* current_sample_rate_hz,
-                        absl::optional<Operation> action_override) {
+                        std::optional<Operation> action_override) {
   TRACE_EVENT0("webrtc", "NetEqImpl::GetAudio");
   MutexLock lock(&mutex_);
   if (GetAudioInternal(audio_frame, action_override) != 0) {
@@ -357,14 +357,14 @@ NetEqOperationsAndState NetEqImpl::GetOperationsAndState() const {
   return result;
 }
 
-absl::optional<uint32_t> NetEqImpl::GetPlayoutTimestamp() const {
+std::optional<uint32_t> NetEqImpl::GetPlayoutTimestamp() const {
   MutexLock lock(&mutex_);
   if (first_packet_ || last_mode_ == Mode::kRfc3389Cng ||
       last_mode_ == Mode::kCodecInternalCng) {
     // We don't have a valid RTP timestamp until we have decoded our first
     // RTP packet. Also, the RTP timestamp is not accurate while playing CNG,
     // which is indicated by returning an empty value.
-    return absl::nullopt;
+    return std::nullopt;
   }
   return timestamp_scaler_->ToExternal(playout_timestamp_);
 }
@@ -374,23 +374,21 @@ int NetEqImpl::last_output_sample_rate_hz() const {
   return last_output_sample_rate_hz_;
 }
 
-absl::optional<NetEq::DecoderFormat> NetEqImpl::GetDecoderFormat(
-    int payload_type) const {
+std::optional<NetEq::DecoderFormat> NetEqImpl::GetCurrentDecoderFormat() const {
   MutexLock lock(&mutex_);
-  const DecoderDatabase::DecoderInfo* const di =
-      decoder_database_->GetDecoderInfo(payload_type);
-  if (di) {
-    const AudioDecoder* const decoder = di->GetDecoder();
-    // TODO(kwiberg): Why the special case for RED?
-    return DecoderFormat{
-        /*sample_rate_hz=*/di->IsRed() ? 8000 : di->SampleRateHz(),
-        /*num_channels=*/
-        decoder ? rtc::dchecked_cast<int>(decoder->Channels()) : 1,
-        /*sdp_format=*/di->GetFormat()};
-  } else {
-    // Payload type not registered.
-    return absl::nullopt;
+  if (!current_rtp_payload_type_.has_value()) {
+    return std::nullopt;
   }
+  const DecoderDatabase::DecoderInfo* di =
+      decoder_database_->GetDecoderInfo(*current_rtp_payload_type_);
+  if (di == nullptr) {
+    return std::nullopt;
+  }
+  return DecoderFormat{
+      /*payload_type=*/*current_rtp_payload_type_,
+      /*sample_rate_hz=*/di->SampleRateHz(),
+      /*num_channels=*/rtc::dchecked_cast<int>(di->GetDecoder()->Channels()),
+      /*sdp_format=*/di->GetFormat()};
 }
 
 void NetEqImpl::FlushBuffers() {
@@ -714,7 +712,7 @@ bool NetEqImpl::MaybeChangePayloadType(uint8_t payload_type) {
     if (current_cng_rtp_payload_type_ &&
         *current_cng_rtp_payload_type_ != payload_type) {
       // New CNG payload type implies new codec type.
-      current_rtp_payload_type_ = absl::nullopt;
+      current_rtp_payload_type_ = std::nullopt;
       changed = true;
     }
     current_cng_rtp_payload_type_ = payload_type;
@@ -725,7 +723,7 @@ bool NetEqImpl::MaybeChangePayloadType(uint8_t payload_type) {
         (current_cng_rtp_payload_type_ &&
          !EqualSampleRates(payload_type, *current_cng_rtp_payload_type_,
                            *decoder_database_))) {
-      current_cng_rtp_payload_type_ = absl::nullopt;
+      current_cng_rtp_payload_type_ = std::nullopt;
       changed = true;
     }
     current_rtp_payload_type_ = payload_type;
@@ -734,7 +732,7 @@ bool NetEqImpl::MaybeChangePayloadType(uint8_t payload_type) {
 }
 
 int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
-                                absl::optional<Operation> action_override) {
+                                std::optional<Operation> action_override) {
   PacketList packet_list;
   DtmfEvent dtmf_event;
   Operation operation;
@@ -988,7 +986,7 @@ int NetEqImpl::GetDecision(Operation* operation,
                            PacketList* packet_list,
                            DtmfEvent* dtmf_event,
                            bool* play_dtmf,
-                           absl::optional<Operation> action_override) {
+                           std::optional<Operation> action_override) {
   // Initialize output variables.
   *play_dtmf = false;
   *operation = Operation::kUndefined;
@@ -1913,7 +1911,7 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
   // Packet extraction loop.
   do {
     timestamp_ = next_packet->timestamp;
-    absl::optional<Packet> packet = packet_buffer_->GetNextPacket();
+    std::optional<Packet> packet = packet_buffer_->GetNextPacket();
     // `next_packet` may be invalid after the `packet_buffer_` operation.
     next_packet = nullptr;
     if (!packet) {
@@ -1981,7 +1979,7 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
         !has_cng_packet;
 
     packet_list->push_back(std::move(*packet));  // Store packet in list.
-    packet = absl::nullopt;  // Ensure it's never used after the move.
+    packet = std::nullopt;  // Ensure it's never used after the move.
   } while (extracted_samples < required_samples && next_packet_available);
 
   if (extracted_samples > 0) {

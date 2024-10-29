@@ -13,10 +13,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/async_dns_resolver.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
@@ -125,18 +125,18 @@ struct InjectableComponents {
 // to set up peer connection.
 struct Params {
   // Peer name. If empty - default one will be set by the fixture.
-  absl::optional<std::string> name;
+  std::optional<std::string> name;
   // If `audio_config` is set audio stream will be configured
-  absl::optional<AudioConfig> audio_config;
+  std::optional<AudioConfig> audio_config;
   // Flags to set on `cricket::PortAllocator`. These flags will be added
   // to the default ones that are presented on the port allocator.
   uint32_t port_allocator_extra_flags = cricket::kDefaultPortAllocatorFlags;
   // If `rtc_event_log_path` is set, an RTCEventLog will be saved in that
   // location and it will be available for further analysis.
-  absl::optional<std::string> rtc_event_log_path;
+  std::optional<std::string> rtc_event_log_path;
   // If `aec_dump_path` is set, an AEC dump will be saved in that location and
   // it will be available for further analysis.
-  absl::optional<std::string> aec_dump_path;
+  std::optional<std::string> aec_dump_path;
 
   bool use_ulp_fec = false;
   bool use_flex_fec = false;
@@ -190,7 +190,7 @@ struct RunParams {
   // If specified echo emulation will be done, by mixing the render audio into
   // the capture signal. In such case input signal will be reduced by half to
   // avoid saturation or compression in the echo path simulation.
-  absl::optional<EchoEmulationConfig> echo_emulation_config;
+  std::optional<EchoEmulationConfig> echo_emulation_config;
 };
 
 }  // namespace webrtc_pc_e2e

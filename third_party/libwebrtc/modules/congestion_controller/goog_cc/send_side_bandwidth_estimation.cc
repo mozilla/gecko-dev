@@ -16,10 +16,10 @@
 #include <cstdio>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/transport/bandwidth_usage.h"
@@ -125,7 +125,7 @@ void LinkCapacityTracker::OnStartingRate(DataRate start_rate) {
     capacity_estimate_bps_ = start_rate.bps<double>();
 }
 
-void LinkCapacityTracker::OnRateUpdate(absl::optional<DataRate> acknowledged,
+void LinkCapacityTracker::OnRateUpdate(std::optional<DataRate> acknowledged,
                                        DataRate target,
                                        Timestamp at_time) {
   if (!acknowledged)
@@ -278,7 +278,7 @@ void SendSideBandwidthEstimation::OnRouteChange() {
 }
 
 void SendSideBandwidthEstimation::SetBitrates(
-    absl::optional<DataRate> send_bitrate,
+    std::optional<DataRate> send_bitrate,
     DataRate min_bitrate,
     DataRate max_bitrate,
     Timestamp at_time) {
@@ -354,7 +354,7 @@ void SendSideBandwidthEstimation::UpdateDelayBasedEstimate(Timestamp at_time,
 }
 
 void SendSideBandwidthEstimation::SetAcknowledgedRate(
-    absl::optional<DataRate> acknowledged_rate,
+    std::optional<DataRate> acknowledged_rate,
     Timestamp at_time) {
   acknowledged_rate_ = acknowledged_rate;
   if (!acknowledged_rate.has_value()) {
@@ -373,7 +373,7 @@ void SendSideBandwidthEstimation::SetAcknowledgedRate(
 void SendSideBandwidthEstimation::UpdateLossBasedEstimator(
     const TransportPacketsFeedback& report,
     BandwidthUsage delay_detector_state,
-    absl::optional<DataRate> probe_bitrate,
+    std::optional<DataRate> probe_bitrate,
     bool in_alr) {
   if (LossBasedBandwidthEstimatorV1Enabled()) {
     loss_based_bandwidth_estimator_v1_.UpdateLossStatistics(

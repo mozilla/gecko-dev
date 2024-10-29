@@ -65,7 +65,8 @@ const int64_t kNanosecondsPerSecond = 1000000000;
 // This initializer is used for testing.
 - (instancetype)initWithDelegate:(__weak id<RTC_OBJC_TYPE(RTCVideoCapturerDelegate)>)delegate
                   captureSession:(AVCaptureSession *)captureSession {
-  if (self = [super initWithDelegate:delegate]) {
+  self = [super initWithDelegate:delegate];
+  if (self) {
     // Create the capture session and all relevant inputs and outputs. We need
     // to do this in init because the application may want the capture session
     // before we start the capturer for e.g. AVCapturePreviewLayer. All objects

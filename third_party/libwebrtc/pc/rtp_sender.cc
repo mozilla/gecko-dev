@@ -18,6 +18,7 @@
 
 #include "absl/algorithm/container.h"
 #include "api/audio_options.h"
+#include "api/environment/environment.h"
 #include "api/media_stream_interface.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
@@ -148,10 +149,12 @@ bool UnimplementedRtpParameterHasValue(const RtpParameters& parameters) {
   return false;
 }
 
-RtpSenderBase::RtpSenderBase(rtc::Thread* worker_thread,
+RtpSenderBase::RtpSenderBase(const Environment& env,
+                             rtc::Thread* worker_thread,
                              const std::string& id,
                              SetStreamsObserver* set_streams_observer)
-    : signaling_thread_(rtc::Thread::Current()),
+    : env_(env),
+      signaling_thread_(rtc::Thread::Current()),
       worker_thread_(worker_thread),
       id_(id),
       set_streams_observer_(set_streams_observer) {
@@ -248,7 +251,8 @@ void RtpSenderBase::SetParametersInternal(const RtpParameters& parameters,
   }
   if (!media_channel_ || !ssrc_) {
     auto result = cricket::CheckRtpParametersInvalidModificationAndValues(
-        init_parameters_, parameters, send_codecs_, absl::nullopt);
+        init_parameters_, parameters, send_codecs_, std::nullopt,
+        env_.field_trials());
     if (result.ok()) {
       init_parameters_ = parameters;
     }
@@ -266,7 +270,7 @@ void RtpSenderBase::SetParametersInternal(const RtpParameters& parameters,
     }
 
     RTCError result = cricket::CheckRtpParametersInvalidModificationAndValues(
-        old_parameters, rtp_parameters);
+        old_parameters, rtp_parameters, env_.field_trials());
     if (!result.ok()) {
       InvokeSetParametersCallback(callback, result);
       return;
@@ -299,7 +303,8 @@ RTCError RtpSenderBase::SetParametersInternalWithAllLayers(
   }
   if (!media_channel_ || !ssrc_) {
     auto result = cricket::CheckRtpParametersInvalidModificationAndValues(
-        init_parameters_, parameters, send_codecs_, absl::nullopt);
+        init_parameters_, parameters, send_codecs_, std::nullopt,
+        env_.field_trials());
     if (result.ok()) {
       init_parameters_ = parameters;
     }
@@ -339,11 +344,11 @@ RTCError RtpSenderBase::CheckSetParameters(const RtpParameters& parameters) {
 }
 
 RTCError RtpSenderBase::CheckCodecParameters(const RtpParameters& parameters) {
-  absl::optional<cricket::Codec> send_codec = media_channel_->GetSendCodec();
+  std::optional<cricket::Codec> send_codec = media_channel_->GetSendCodec();
 
   // Match the currently used codec against the codec preferences to gather
   // the SVC capabilities.
-  absl::optional<cricket::Codec> send_codec_with_svc_info;
+  std::optional<cricket::Codec> send_codec_with_svc_info;
   if (send_codec && send_codec->type == cricket::Codec::Type::kVideo) {
     auto codec_match = absl::c_find_if(
         send_codecs_, [&](auto& codec) { return send_codec->Matches(codec); });
@@ -498,7 +503,7 @@ void RtpSenderBase::SetSsrc(uint32_t ssrc) {
           init_parameters_.degradation_preference;
       media_channel_->SetRtpSendParameters(ssrc_, current_parameters, nullptr);
       init_parameters_.encodings.clear();
-      init_parameters_.degradation_preference = absl::nullopt;
+      init_parameters_.degradation_preference = std::nullopt;
     });
   }
   // Attempt to attach the frame decryptor to the current media channel.
@@ -606,7 +611,7 @@ void LocalAudioSinkAdapter::OnData(
     int sample_rate,
     size_t number_of_channels,
     size_t number_of_frames,
-    absl::optional<int64_t> absolute_capture_timestamp_ms) {
+    std::optional<int64_t> absolute_capture_timestamp_ms) {
   TRACE_EVENT2("webrtc", "LocalAudioSinkAdapter::OnData", "sample_rate",
                sample_rate, "number_of_frames", number_of_frames);
   MutexLock lock(&lock_);
@@ -624,19 +629,21 @@ void LocalAudioSinkAdapter::SetSink(cricket::AudioSource::Sink* sink) {
 }
 
 rtc::scoped_refptr<AudioRtpSender> AudioRtpSender::Create(
+    const webrtc::Environment& env,
     rtc::Thread* worker_thread,
     const std::string& id,
     LegacyStatsCollectorInterface* stats,
     SetStreamsObserver* set_streams_observer) {
-  return rtc::make_ref_counted<AudioRtpSender>(worker_thread, id, stats,
+  return rtc::make_ref_counted<AudioRtpSender>(env, worker_thread, id, stats,
                                                set_streams_observer);
 }
 
-AudioRtpSender::AudioRtpSender(rtc::Thread* worker_thread,
+AudioRtpSender::AudioRtpSender(const webrtc::Environment& env,
+                               rtc::Thread* worker_thread,
                                const std::string& id,
                                LegacyStatsCollectorInterface* legacy_stats,
                                SetStreamsObserver* set_streams_observer)
-    : RtpSenderBase(worker_thread, id, set_streams_observer),
+    : RtpSenderBase(env, worker_thread, id, set_streams_observer),
       legacy_stats_(legacy_stats),
       dtmf_sender_(DtmfSender::Create(rtc::Thread::Current(), this)),
       dtmf_sender_proxy_(
@@ -777,17 +784,19 @@ void AudioRtpSender::ClearSend() {
 }
 
 rtc::scoped_refptr<VideoRtpSender> VideoRtpSender::Create(
+    const Environment& env,
     rtc::Thread* worker_thread,
     const std::string& id,
     SetStreamsObserver* set_streams_observer) {
-  return rtc::make_ref_counted<VideoRtpSender>(worker_thread, id,
+  return rtc::make_ref_counted<VideoRtpSender>(env, worker_thread, id,
                                                set_streams_observer);
 }
 
-VideoRtpSender::VideoRtpSender(rtc::Thread* worker_thread,
+VideoRtpSender::VideoRtpSender(const Environment& env,
+                               rtc::Thread* worker_thread,
                                const std::string& id,
                                SetStreamsObserver* set_streams_observer)
-    : RtpSenderBase(worker_thread, id, set_streams_observer) {}
+    : RtpSenderBase(env, worker_thread, id, set_streams_observer) {}
 
 VideoRtpSender::~VideoRtpSender() {
   Stop();

@@ -11,13 +11,15 @@
 #ifndef MODULES_VIDEO_CODING_INCLUDE_VIDEO_CODEC_INTERFACE_H_
 #define MODULES_VIDEO_CODING_INCLUDE_VIDEO_CODEC_INTERFACE_H_
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
+#include "absl/types/variant.h"
 #include "api/video/video_frame.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/video_decoder.h"
 #include "api/video_codecs/video_encoder.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "common_video/generic_frame_descriptor/generic_frame_info.h"
 #include "modules/video_coding/codecs/h264/include/h264_globals.h"
 #include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
@@ -116,9 +118,14 @@ struct RTC_EXPORT CodecSpecificInfo {
   VideoCodecType codecType;
   CodecSpecificInfoUnion codecSpecific;
   bool end_of_picture = true;
-  absl::optional<GenericFrameInfo> generic_frame_info;
-  absl::optional<FrameDependencyStructure> template_structure;
-  absl::optional<ScalabilityMode> scalability_mode;
+  std::optional<GenericFrameInfo> generic_frame_info;
+  std::optional<FrameDependencyStructure> template_structure;
+  std::optional<ScalabilityMode> scalability_mode;
+
+  // Required for automatic corruption detection.
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      frame_instrumentation_data;
 };
 
 }  // namespace webrtc

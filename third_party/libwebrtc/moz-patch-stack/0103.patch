@@ -1,52 +1,31 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Thu, 2 May 2024 00:47:00 -0700
-Subject: Bug 1892299 - fix-afaae4e38a - fix adapted_track_source build
- exclusion;r?mjf
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Mon, 6 May 2024 07:28:00 +0000
+Subject: Bug 1892329 - Fix threading issues in VideoCaptureModuleV4L2 once and
+ for all. r=webrtc-reviewers,mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecfe7527e75629dbc65fc9cbc1
+Differential Revision: https://phabricator.services.mozilla.com/D208187
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/65e120a9c1dcb9c8f1c8930e808b03aa149eaf40
 ---
- media/BUILD.gn | 17 +++++++++++------
- 1 file changed, 11 insertions(+), 6 deletions(-)
+ modules/video_capture/linux/video_capture_v4l2.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 2b99bc948c..b3592df7c5 100644
---- a/media/BUILD.gn
-+++ b/media/BUILD.gn
-@@ -56,6 +56,11 @@ rtc_library("rtc_media_base") {
-     "base/video_broadcaster.h",  # Used downstream
-     "base/video_common.h",  # Used downstream
-   ]
-+  if (build_with_mozilla) {
-+    sources -= [
-+      "base/adapted_video_track_source.h",
-+    ]
-+  }
-   deps = [
-     ":adapted_video_track_source",
-     ":codec",
-@@ -128,12 +133,6 @@ rtc_library("rtc_media_base") {
-     "../video/config:encoder_config",
-     "//third_party/abseil-cpp/absl/types:optional",
-   ]
--    if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.cc",
--      "base/adapted_video_track_source.h",
--    ]
+diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
+index 29ca864e19..b6e7e79a2a 100644
+--- a/modules/video_capture/linux/video_capture_v4l2.cc
++++ b/modules/video_capture/linux/video_capture_v4l2.cc
+@@ -300,7 +300,6 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
+   _requestedCapability = capability;
+   _captureStarted = true;
+   _streaming = true;
 -  }
- }
  
- rtc_library("adapted_video_track_source") {
-@@ -141,6 +140,12 @@ rtc_library("adapted_video_track_source") {
-     "base/adapted_video_track_source.cc",
-     "base/adapted_video_track_source.h",
-   ]
-+  if (build_with_mozilla) {
-+    sources -= [
-+      "base/adapted_video_track_source.cc",
-+      "base/adapted_video_track_source.h",
-+    ]
+   // start capture thread;
+   if (!_captureThread.empty()) {
+@@ -308,6 +307,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
+   }
+ 
+   quit_ = false;
 +  }
-   deps = [
-     ":video_adapter",
-     ":video_broadcaster",
+ 
+   _captureThread = rtc::PlatformThread::SpawnJoinable(
+       [self = scoped_refptr(this)] {

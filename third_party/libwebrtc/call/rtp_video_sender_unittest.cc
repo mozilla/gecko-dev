@@ -10,31 +10,65 @@
 
 #include "call/rtp_video_sender.h"
 
-#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <map>
 #include <memory>
-#include <string>
-#include <utility>
+#include <optional>
+#include <vector>
 
-#include "absl/functional/any_invocable.h"
+#include "api/array_view.h"
+#include "api/call/bitrate_allocation.h"
+#include "api/call/transport.h"
+#include "api/crypto/crypto_options.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/frame_transformer_interface.h"
+#include "api/make_ref_counted.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/test/mock_frame_transformer.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/transport/bitrate_settings.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_frame_type.h"
+#include "api/video_codecs/video_encoder.h"
+#include "call/rtp_config.h"
+#include "call/rtp_transport_config.h"
 #include "call/rtp_transport_controller_send.h"
+#include "call/rtp_transport_controller_send_interface.h"
+#include "call/video_send_stream.h"
+#include "common_video/frame_counts.h"
+#include "common_video/generic_frame_descriptor/generic_frame_info.h"
+#include "modules/rtp_rtcp/include/report_block_data.h"
+#include "modules/rtp_rtcp/include/rtcp_statistics.h"
+#include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/nack.h"
 #include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_packet.h"
+#include "modules/rtp_rtcp/source/rtp_sender_video.h"
+#include "modules/video_coding/codecs/interface/common_constants.h"
 #include "modules/video_coding/fec_controller_default.h"
 #include "modules/video_coding/include/video_codec_interface.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/rate_limiter.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_transport.h"
 #include "test/scenario/scenario.h"
+#include "test/scenario/scenario_config.h"
 #include "test/scoped_key_value_config.h"
 #include "test/time_controller/simulated_time_controller.h"
+#include "video/config/video_encoder_config.h"
 #include "video/send_statistics_proxy.h"
 
 namespace webrtc {
@@ -723,7 +757,7 @@ TEST(RtpVideoSenderTest, SupportsDependencyDescriptor) {
 
   // Send in delta frame.
   encoded_image._frameType = VideoFrameType::kVideoFrameDelta;
-  codec_specific.template_structure = absl::nullopt;
+  codec_specific.template_structure = std::nullopt;
   codec_specific.generic_frame_info =
       GenericFrameInfo::Builder().T(1).Dtis("D").Build();
   codec_specific.generic_frame_info->encoder_buffers = {{0, true, false}};
@@ -1000,7 +1034,7 @@ TEST(RtpVideoSenderTest, SupportsDependencyDescriptorForVp9) {
   EXPECT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
             EncodedImageCallback::Result::OK);
   // Send in 2nd spatial layer.
-  codec_specific.template_structure = absl::nullopt;
+  codec_specific.template_structure = std::nullopt;
   codec_specific.generic_frame_info =
       GenericFrameInfo::Builder().S(1).Dtis("-S").Build();
   codec_specific.generic_frame_info->encoder_buffers = {{0, true, false},
@@ -1164,7 +1198,7 @@ TEST(RtpVideoSenderTest, SupportsStoppingUsingDependencyDescriptor) {
 
   // Send in a new key frame without the support for the dependency descriptor.
   encoded_image._frameType = VideoFrameType::kVideoFrameKey;
-  codec_specific.template_structure = absl::nullopt;
+  codec_specific.template_structure = std::nullopt;
   EXPECT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
             EncodedImageCallback::Result::OK);
   test.AdvanceTime(TimeDelta::Millis(33));

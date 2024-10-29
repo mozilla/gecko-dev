@@ -411,7 +411,7 @@ TEST(RtpPacketTest, FailsToSetUnregisteredExtension) {
   EXPECT_FALSE(packet.SetExtension<TransportSequenceNumber>(42));
 
   EXPECT_FALSE(packet.HasExtension<TransportSequenceNumber>());
-  EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), absl::nullopt);
+  EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), std::nullopt);
 }
 
 TEST(RtpPacketTest, CreateWithDynamicSizedExtensionCsrcAudioLevel) {
@@ -635,7 +635,7 @@ TEST(RtpPacketTest, GetExtensionWithoutParametersReturnsOptionalValue) {
   auto time_offset = packet.GetExtension<TransmissionOffset>();
   static_assert(
       std::is_same<decltype(time_offset),
-                   absl::optional<TransmissionOffset::value_type>>::value,
+                   std::optional<TransmissionOffset::value_type>>::value,
       "");
   EXPECT_EQ(time_offset, kTimeOffset);
   EXPECT_FALSE(packet.GetExtension<RtpStreamId>().has_value());
@@ -1073,7 +1073,7 @@ TEST(RtpPacketTest,
 
   constexpr AbsoluteCaptureTime kAbsoluteCaptureTime{
       /*absolute_capture_timestamp=*/9876543210123456789ULL,
-      /*estimated_capture_clock_offset=*/absl::nullopt};
+      /*estimated_capture_clock_offset=*/std::nullopt};
   ASSERT_TRUE(send_packet.SetExtension<AbsoluteCaptureTimeExtension>(
       kAbsoluteCaptureTime));
 
@@ -1129,7 +1129,7 @@ TEST(RtpPacketTest, CreateAndParseTransportSequenceNumberV2) {
 
   constexpr int kTransportSequenceNumber = 12345;
   send_packet.SetExtension<TransportSequenceNumberV2>(kTransportSequenceNumber,
-                                                      absl::nullopt);
+                                                      std::nullopt);
   EXPECT_EQ(send_packet.GetRawExtension<TransportSequenceNumberV2>().size(),
             2u);
 
@@ -1138,7 +1138,7 @@ TEST(RtpPacketTest, CreateAndParseTransportSequenceNumberV2) {
   EXPECT_TRUE(receive_packet.Parse(send_packet.Buffer()));
 
   uint16_t received_transport_sequeunce_number;
-  absl::optional<FeedbackRequest> received_feedback_request;
+  std::optional<FeedbackRequest> received_feedback_request;
   EXPECT_TRUE(receive_packet.GetExtension<TransportSequenceNumberV2>(
       &received_transport_sequeunce_number, &received_feedback_request));
   EXPECT_EQ(received_transport_sequeunce_number, kTransportSequenceNumber);
@@ -1160,7 +1160,7 @@ TEST(RtpPacketTest, CreateAndParseTransportSequenceNumberV2Preallocated) {
   send_packet.SetSsrc(kSsrc);
 
   constexpr int kTransportSequenceNumber = 12345;
-  constexpr absl::optional<FeedbackRequest> kNoFeedbackRequest =
+  constexpr std::optional<FeedbackRequest> kNoFeedbackRequest =
       FeedbackRequest{/*include_timestamps=*/false, /*sequence_count=*/0};
   send_packet.ReserveExtension<TransportSequenceNumberV2>();
   send_packet.SetExtension<TransportSequenceNumberV2>(kTransportSequenceNumber,
@@ -1173,7 +1173,7 @@ TEST(RtpPacketTest, CreateAndParseTransportSequenceNumberV2Preallocated) {
   EXPECT_TRUE(receive_packet.Parse(send_packet.Buffer()));
 
   uint16_t received_transport_sequeunce_number;
-  absl::optional<FeedbackRequest> received_feedback_request;
+  std::optional<FeedbackRequest> received_feedback_request;
   EXPECT_TRUE(receive_packet.GetExtension<TransportSequenceNumberV2>(
       &received_transport_sequeunce_number, &received_feedback_request));
   EXPECT_EQ(received_transport_sequeunce_number, kTransportSequenceNumber);
@@ -1193,7 +1193,7 @@ TEST(RtpPacketTest,
   send_packet.SetSsrc(kSsrc);
 
   constexpr int kTransportSequenceNumber = 12345;
-  constexpr absl::optional<FeedbackRequest> kFeedbackRequest =
+  constexpr std::optional<FeedbackRequest> kFeedbackRequest =
       FeedbackRequest{/*include_timestamps=*/true, /*sequence_count=*/3};
   send_packet.SetExtension<TransportSequenceNumberV2>(kTransportSequenceNumber,
                                                       kFeedbackRequest);
@@ -1204,7 +1204,7 @@ TEST(RtpPacketTest,
 
   // Parse transport sequence number and feedback request.
   uint16_t received_transport_sequeunce_number;
-  absl::optional<FeedbackRequest> received_feedback_request;
+  std::optional<FeedbackRequest> received_feedback_request;
   EXPECT_TRUE(receive_packet.GetExtension<TransportSequenceNumberV2>(
       &received_transport_sequeunce_number, &received_feedback_request));
   EXPECT_EQ(received_transport_sequeunce_number, kTransportSequenceNumber);

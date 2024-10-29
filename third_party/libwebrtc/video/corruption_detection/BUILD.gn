@@ -21,11 +21,11 @@ rtc_library("frame_instrumentation_generator") {
     "../../api/video:video_frame",
     "../../api/video:video_frame_type",
     "../../api/video_codecs:video_codecs_api",
+    "../../common_video:frame_instrumentation_data",
     "../../modules:module_api_public",
     "../../modules/video_coding:video_coding_utility",
     "../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/algorithm:container",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
@@ -53,7 +53,6 @@ rtc_library("halton_frame_sampler") {
     "../../api/video:video_frame",
     "../../rtc_base:checks",
     "../../rtc_base:logging",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -75,8 +74,8 @@ if (rtc_include_tests) {
       "../../api/video:encoded_image",
       "../../api/video:video_frame",
       "../../api/video:video_frame_type",
+      "../../common_video:frame_instrumentation_data",
       "../../test:test_support",
-      "//third_party/abseil-cpp/absl/types:optional",
       "//third_party/abseil-cpp/absl/types:variant",
     ]
   }

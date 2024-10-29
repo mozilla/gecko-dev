@@ -12,10 +12,10 @@
 #define API_TEST_MOCK_DATA_CHANNEL_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "api/data_channel_interface.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
@@ -43,8 +43,8 @@ class MockDataChannelInterface
   MOCK_METHOD(bool, ordered, (), (const, override));
   MOCK_METHOD(uint16_t, maxRetransmitTime, (), (const, override));
   MOCK_METHOD(uint16_t, maxRetransmits, (), (const, override));
-  MOCK_METHOD(absl::optional<int>, maxRetransmitsOpt, (), (const, override));
-  MOCK_METHOD(absl::optional<int>, maxPacketLifeTime, (), (const, override));
+  MOCK_METHOD(std::optional<int>, maxRetransmitsOpt, (), (const, override));
+  MOCK_METHOD(std::optional<int>, maxPacketLifeTime, (), (const, override));
   MOCK_METHOD(std::string, protocol, (), (const, override));
   MOCK_METHOD(bool, negotiated, (), (const, override));
   MOCK_METHOD(int, id, (), (const, override));

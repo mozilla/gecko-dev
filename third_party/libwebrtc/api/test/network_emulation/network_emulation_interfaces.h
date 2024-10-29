@@ -14,9 +14,9 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
@@ -263,12 +263,12 @@ class EmulatedEndpoint : public EmulatedNetworkReceiverInterface {
   //
   // Returns the port, that should be used (it will be equals to desired, if
   // `desired_port` != 0 and is free or will be the one, selected by endpoint)
-  // or absl::nullopt if desired_port in used. Also fails if there are no more
+  // or std::nullopt if desired_port in used. Also fails if there are no more
   // free ports to bind to.
   //
   // The Bind- and Unbind-methods must not be called from within a bound
   // receiver's OnPacketReceived method.
-  virtual absl::optional<uint16_t> BindReceiver(
+  virtual std::optional<uint16_t> BindReceiver(
       uint16_t desired_port,
       EmulatedNetworkReceiverInterface* receiver) = 0;
   // Unbinds receiver from the specified port. Do nothing if no receiver was

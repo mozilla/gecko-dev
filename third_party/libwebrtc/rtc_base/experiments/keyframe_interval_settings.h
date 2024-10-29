@@ -11,7 +11,8 @@
 #ifndef RTC_BASE_EXPERIMENTS_KEYFRAME_INTERVAL_SETTINGS_H_
 #define RTC_BASE_EXPERIMENTS_KEYFRAME_INTERVAL_SETTINGS_H_
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/field_trials_view.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 
@@ -26,7 +27,7 @@ class KeyframeIntervalSettings final {
 
   // Sender side.
   // The encoded keyframe send rate is <= 1/MinKeyframeSendIntervalMs().
-  absl::optional<int> MinKeyframeSendIntervalMs() const;
+  std::optional<int> MinKeyframeSendIntervalMs() const;
 
  private:
   FieldTrialOptional<int> min_keyframe_send_interval_ms_;

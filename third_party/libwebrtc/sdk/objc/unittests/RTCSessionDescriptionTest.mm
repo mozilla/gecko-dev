@@ -11,6 +11,7 @@
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
+#include "api/jsep.h"
 #include "rtc_base/gunit.h"
 
 #import "api/peerconnection/RTCSessionDescription+Private.h"
@@ -42,15 +43,11 @@
 }
 
 - (void)testInitFromNativeSessionDescription {
-  webrtc::SessionDescriptionInterface *nativeDescription;
+  const auto nativeDescription =
+      webrtc::CreateSessionDescription(webrtc::SdpType::kAnswer, [self sdp].stdString, nullptr);
 
-  nativeDescription = webrtc::CreateSessionDescription(
-      webrtc::SessionDescriptionInterface::kAnswer,
-      [self sdp].stdString,
-      nullptr);
-
-  RTC_OBJC_TYPE(RTCSessionDescription) *description =
-      [[RTC_OBJC_TYPE(RTCSessionDescription) alloc] initWithNativeDescription:nativeDescription];
+  RTC_OBJC_TYPE(RTCSessionDescription) *description = [[RTC_OBJC_TYPE(RTCSessionDescription) alloc]
+      initWithNativeDescription:nativeDescription.get()];
   EXPECT_EQ(webrtc::SessionDescriptionInterface::kAnswer,
             [RTC_OBJC_TYPE(RTCSessionDescription) stdStringForType:description.type]);
   EXPECT_TRUE([[self sdp] isEqualToString:description.sdp]);

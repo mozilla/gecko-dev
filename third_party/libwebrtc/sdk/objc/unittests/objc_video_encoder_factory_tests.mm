@@ -52,6 +52,55 @@ id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)> CreateErrorEncoderFactory() {
   return CreateEncoderFactoryReturning(WEBRTC_VIDEO_CODEC_ERROR);
 }
 
+@interface RTCVideoEncoderFactoryFake : NSObject <RTC_OBJC_TYPE (RTCVideoEncoderFactory)>
+
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithScalabilityMode:(NSString *)scalabilityMode;
+- (instancetype)initWithScalabilityMode:(NSString *)scalabilityMode
+                       isPowerEfficient:(bool)isPowerEfficient NS_DESIGNATED_INITIALIZER;
+@end
+@implementation RTCVideoEncoderFactoryFake
+
+NSString *_scalabilityMode;
+bool _isPowerEfficient;
+
+- (instancetype)initWithScalabilityMode:(NSString *)scalabilityMode {
+  return [self initWithScalabilityMode:scalabilityMode isPowerEfficient:false];
+}
+
+- (instancetype)initWithScalabilityMode:(NSString *)scalabilityMode
+                       isPowerEfficient:(bool)isPowerEfficient {
+  self = [super init];
+  if (self) {
+    _scalabilityMode = scalabilityMode;
+    _isPowerEfficient = isPowerEfficient;
+  }
+  return self;
+}
+
+- (nullable id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder:
+    (RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
+  return nil;
+}
+
+- (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
+  return @[];
+}
+
+- (RTC_OBJC_TYPE(RTCVideoEncoderCodecSupport) *)
+    queryCodecSupport:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info
+      scalabilityMode:(nullable NSString *)scalabilityMode {
+  if (_scalabilityMode ? [_scalabilityMode isEqualToString:scalabilityMode] :
+                         scalabilityMode == nil) {
+    return [[RTC_OBJC_TYPE(RTCVideoEncoderCodecSupport) alloc] initWithSupported:true
+                                                                isPowerEfficient:_isPowerEfficient];
+  } else {
+    return [[RTC_OBJC_TYPE(RTCVideoEncoderCodecSupport) alloc] initWithSupported:false];
+  }
+}
+
+@end
+
 std::unique_ptr<webrtc::VideoEncoder> GetObjCEncoder(
     id<RTC_OBJC_TYPE(RTCVideoEncoderFactory)> factory) {
   webrtc::ObjCVideoEncoderFactory encoder_factory(factory);
@@ -130,6 +179,36 @@ std::unique_ptr<webrtc::VideoEncoder> GetObjCEncoder(
   std::unique_ptr<webrtc::VideoEncoder> encoder = GetObjCEncoder(CreateErrorEncoderFactory());
 
   EXPECT_EQ(encoder->Release(), WEBRTC_VIDEO_CODEC_ERROR);
+}
+
+- (void)testQueryCodecSupportDelegatesToObjcFactoryConvertsNulloptModeToNil {
+  id fakeEncoderFactory = [[RTCVideoEncoderFactoryFake alloc] initWithScalabilityMode:nil];
+  webrtc::SdpVideoFormat codec("VP8");
+  webrtc::ObjCVideoEncoderFactory encoder_factory(fakeEncoderFactory);
+
+  webrtc::VideoEncoderFactory::CodecSupport s =
+      encoder_factory.QueryCodecSupport(codec, std::nullopt);
+
+  EXPECT_TRUE(s.is_supported);
+}
+
+- (void)testQueryCodecSupportDelegatesToObjcFactoryMayReturnUnsupported {
+  id fakeEncoderFactory = [[RTCVideoEncoderFactoryFake alloc] initWithScalabilityMode:@"L1T2"];
+  webrtc::SdpVideoFormat codec("VP8");
+  webrtc::ObjCVideoEncoderFactory encoder_factory(fakeEncoderFactory);
+
+  EXPECT_FALSE(encoder_factory.QueryCodecSupport(codec, "S2T1").is_supported);
+}
+
+- (void)testQueryCodecSupportDelegatesToObjcFactoryIncludesPowerEfficientFlag {
+  id fakeEncoderFactory = [[RTCVideoEncoderFactoryFake alloc] initWithScalabilityMode:@"L1T2"
+                                                                     isPowerEfficient:true];
+  webrtc::SdpVideoFormat codec("VP8");
+  webrtc::ObjCVideoEncoderFactory encoder_factory(fakeEncoderFactory);
+
+  webrtc::VideoEncoderFactory::CodecSupport s = encoder_factory.QueryCodecSupport(codec, "L1T2");
+  EXPECT_TRUE(s.is_supported);
+  EXPECT_TRUE(s.is_power_efficient);
 }
 
 - (void)testGetSupportedFormats {

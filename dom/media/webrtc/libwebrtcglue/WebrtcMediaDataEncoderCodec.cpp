@@ -76,7 +76,7 @@ static const char* PacketModeStr(const webrtc::CodecSpecificInfo& aInfo) {
 
 static std::pair<H264_PROFILE, H264_LEVEL> ConvertProfileLevel(
     const webrtc::CodecParameterMap& aParameters) {
-  const absl::optional<webrtc::H264ProfileLevelId> profileLevel =
+  const std::optional<webrtc::H264ProfileLevelId> profileLevel =
       webrtc::ParseSdpForH264ProfileLevelId(aParameters);
 
   if (!profileLevel) {

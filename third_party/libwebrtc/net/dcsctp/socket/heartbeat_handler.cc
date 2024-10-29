@@ -13,13 +13,13 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/units/time_delta.h"
 #include "net/dcsctp/packet/bounded_byte_reader.h"
@@ -65,12 +65,12 @@ class HeartbeatInfo {
     return data;
   }
 
-  static absl::optional<HeartbeatInfo> Deserialize(
+  static std::optional<HeartbeatInfo> Deserialize(
       rtc::ArrayView<const uint8_t> data) {
     if (data.size() != kBufferSize) {
       RTC_LOG(LS_WARNING) << "Invalid heartbeat info: " << data.size()
                           << " bytes";
-      return absl::nullopt;
+      return std::nullopt;
     }
 
     BoundedByteReader<kBufferSize> reader(data);
@@ -142,14 +142,14 @@ void HeartbeatHandler::HandleHeartbeatRequest(HeartbeatRequestChunk chunk) {
 
 void HeartbeatHandler::HandleHeartbeatAck(HeartbeatAckChunk chunk) {
   timeout_timer_->Stop();
-  absl::optional<HeartbeatInfoParameter> info_param = chunk.info();
+  std::optional<HeartbeatInfoParameter> info_param = chunk.info();
   if (!info_param.has_value()) {
     ctx_->callbacks().OnError(
         ErrorKind::kParseFailed,
         "Failed to parse HEARTBEAT-ACK; No Heartbeat Info parameter");
     return;
   }
-  absl::optional<HeartbeatInfo> info =
+  std::optional<HeartbeatInfo> info =
       HeartbeatInfo::Deserialize(info_param->info());
   if (!info.has_value()) {
     ctx_->callbacks().OnError(ErrorKind::kParseFailed,

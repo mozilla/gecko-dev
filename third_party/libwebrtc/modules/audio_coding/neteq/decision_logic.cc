@@ -14,8 +14,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_controller.h"
 #include "modules/audio_coding/neteq/packet_arrival_history.h"
@@ -171,13 +171,12 @@ int DecisionLogic::GetFilteredBufferLevel() const {
   return buffer_level_filter_->filtered_current_level();
 }
 
-absl::optional<int> DecisionLogic::PacketArrived(
-    int fs_hz,
-    bool should_update_stats,
-    const PacketArrivedInfo& info) {
+std::optional<int> DecisionLogic::PacketArrived(int fs_hz,
+                                                bool should_update_stats,
+                                                const PacketArrivedInfo& info) {
   buffer_flush_ = buffer_flush_ || info.buffer_flush;
   if (!should_update_stats || info.is_cng_or_dtmf) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   if (info.packet_length_samples > 0 && fs_hz > 0 &&
       info.packet_length_samples != packet_length_samples_) {
@@ -188,7 +187,7 @@ absl::optional<int> DecisionLogic::PacketArrived(
                                                   info.packet_length_samples);
   if (!inserted || packet_arrival_history_->size() < 2) {
     // No meaningful delay estimate unless at least 2 packets have arrived.
-    return absl::nullopt;
+    return std::nullopt;
   }
   int arrival_delay_ms =
       packet_arrival_history_->GetDelayMs(info.main_timestamp);

@@ -12,26 +12,22 @@
 #define PC_JSEP_TRANSPORT_H_
 
 #include <functional>
-#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
-#include "api/candidate.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/transport/data_channel_transport_interface.h"
+#include "call/payload_type_picker.h"
 #include "media/sctp/sctp_transport_internal.h"
-#include "p2p/base/dtls_transport.h"
 #include "p2p/base/dtls_transport_internal.h"
 #include "p2p/base/ice_transport_internal.h"
-#include "p2p/base/p2p_constants.h"
 #include "p2p/base/transport_description.h"
-#include "p2p/base/transport_info.h"
 #include "pc/dtls_srtp_transport.h"
 #include "pc/dtls_transport.h"
 #include "pc/rtcp_mux_filter.h"
@@ -41,7 +37,6 @@
 #include "pc/session_description.h"
 #include "pc/srtp_transport.h"
 #include "pc/transport_stats.h"
-#include "rtc_base/checks.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_stream_adapter.h"
@@ -97,7 +92,8 @@ class JsepTransport {
       std::unique_ptr<DtlsTransportInternal> rtp_dtls_transport,
       std::unique_ptr<DtlsTransportInternal> rtcp_dtls_transport,
       std::unique_ptr<SctpTransportInternal> sctp_transport,
-      std::function<void()> rtcp_mux_active_callback);
+      std::function<void()> rtcp_mux_active_callback,
+      webrtc::PayloadTypePicker& suggester);
 
   ~JsepTransport();
 
@@ -147,9 +143,9 @@ class JsepTransport {
     return needs_ice_restart_;
   }
 
-  // Returns role if negotiated, or empty absl::optional if it hasn't been
+  // Returns role if negotiated, or empty std::optional if it hasn't been
   // negotiated yet.
-  absl::optional<rtc::SSLRole> GetDtlsRole() const;
+  std::optional<rtc::SSLRole> GetDtlsRole() const;
 
   // TODO(deadbeef): Make this const. See comment in transportcontroller.h.
   bool GetStats(TransportStats* stats);
@@ -234,6 +230,27 @@ class JsepTransport {
 
   void SetActiveResetSrtpParams(bool active_reset_srtp_params);
 
+  // Record the PT mappings from a single media section.
+  // This is used to store info needed when generating subsequent SDP.
+  webrtc::RTCError RecordPayloadTypes(bool local,
+                                      webrtc::SdpType type,
+                                      const ContentInfo& content);
+
+  const webrtc::PayloadTypeRecorder& remote_payload_types() const {
+    return remote_payload_types_;
+  }
+  const webrtc::PayloadTypeRecorder& local_payload_types() const {
+    return local_payload_types_;
+  }
+  webrtc::PayloadTypeRecorder& local_payload_types() {
+    return local_payload_types_;
+  }
+  void CommitPayloadTypes() {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    local_payload_types_.Commit();
+    remote_payload_types_.Commit();
+  }
+
  private:
   bool SetRtcpMux(bool enable, webrtc::SdpType type, ContentSource source);
 
@@ -254,7 +271,7 @@ class JsepTransport {
       webrtc::SdpType local_description_type,
       ConnectionRole local_connection_role,
       ConnectionRole remote_connection_role,
-      absl::optional<rtc::SSLRole>* negotiated_dtls_role);
+      std::optional<rtc::SSLRole>* negotiated_dtls_role);
 
   // Pushes down the ICE parameters from the remote description.
   void SetRemoteIceParameters(const IceParameters& ice_parameters,
@@ -263,7 +280,7 @@ class JsepTransport {
   // Pushes down the DTLS parameters obtained via negotiation.
   static webrtc::RTCError SetNegotiatedDtlsParameters(
       DtlsTransportInternal* dtls_transport,
-      absl::optional<rtc::SSLRole> dtls_role,
+      std::optional<rtc::SSLRole> dtls_role,
       rtc::SSLFingerprint* remote_fingerprint);
 
   bool GetTransportStats(DtlsTransportInternal* dtls_transport,
@@ -304,15 +321,22 @@ class JsepTransport {
   RtcpMuxFilter rtcp_mux_negotiator_ RTC_GUARDED_BY(network_thread_);
 
   // Cache the encrypted header extension IDs for SDES negoitation.
-  absl::optional<std::vector<int>> send_extension_ids_
+  std::optional<std::vector<int>> send_extension_ids_
       RTC_GUARDED_BY(network_thread_);
-  absl::optional<std::vector<int>> recv_extension_ids_
+  std::optional<std::vector<int>> recv_extension_ids_
       RTC_GUARDED_BY(network_thread_);
 
   // This is invoked when RTCP-mux becomes active and
   // `rtcp_dtls_transport_` is destroyed. The JsepTransportController will
   // receive the callback and update the aggregate transport states.
   std::function<void()> rtcp_mux_active_callback_;
+
+  // Assigned PTs from the remote description, used when sending.
+  webrtc::PayloadTypeRecorder remote_payload_types_
+      RTC_GUARDED_BY(network_thread_);
+  // Assigned PTs from the local description, used when receiving.
+  webrtc::PayloadTypeRecorder local_payload_types_
+      RTC_GUARDED_BY(network_thread_);
 };
 
 }  // namespace cricket

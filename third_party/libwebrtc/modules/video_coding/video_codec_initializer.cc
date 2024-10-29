@@ -14,8 +14,8 @@
 #include <string.h>
 
 #include <algorithm>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
@@ -81,8 +81,7 @@ VideoCodec VideoCodecInitializer::SetupCodec(
 
   int max_framerate = 0;
 
-  absl::optional<ScalabilityMode> scalability_mode =
-      streams[0].scalability_mode;
+  std::optional<ScalabilityMode> scalability_mode = streams[0].scalability_mode;
   for (size_t i = 0; i < streams.size(); ++i) {
     SimulcastStream* sim_stream = &video_codec.simulcastStream[i];
     RTC_DCHECK_GT(streams[i].width, 0);
@@ -338,7 +337,7 @@ VideoCodec VideoCodecInitializer::SetupCodec(
       break;
   }
 
-  const absl::optional<DataRate> experimental_min_bitrate =
+  const std::optional<DataRate> experimental_min_bitrate =
       GetExperimentalMinVideoBitrate(field_trials, video_codec.codecType);
   if (experimental_min_bitrate) {
     const int experimental_min_bitrate_kbps =

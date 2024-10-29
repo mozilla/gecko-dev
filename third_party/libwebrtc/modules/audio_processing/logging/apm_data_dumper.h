@@ -20,8 +20,9 @@
 #include <unordered_map>
 #endif
 
+#include <optional>
+
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #if WEBRTC_APM_DEBUG_DUMP == 1
 #include "common_audio/wav_file.h"
@@ -391,7 +392,7 @@ class ApmDataDumper {
  private:
 #if WEBRTC_APM_DEBUG_DUMP == 1
   static bool recording_activated_;
-  static absl::optional<int> dump_set_to_use_;
+  static std::optional<int> dump_set_to_use_;
   static constexpr size_t kOutputDirMaxLength = 1024;
   static char output_dir_[kOutputDirMaxLength];
   const int instance_index_;

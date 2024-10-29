@@ -15,10 +15,10 @@
 #include <stdint.h>
 
 #include <map>
+#include <optional>
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
@@ -73,7 +73,7 @@ class RemoteBitrateEstimatorSingleStream : public RemoteBitrateEstimator {
   BitrateTracker incoming_bitrate_;
   DataRate last_valid_incoming_bitrate_;
   AimdRateControl remote_rate_;
-  absl::optional<Timestamp> last_process_time_;
+  std::optional<Timestamp> last_process_time_;
   TimeDelta process_interval_;
   bool uma_recorded_;
 };

@@ -13,13 +13,16 @@
 
 #include <stddef.h>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/audio_codecs/audio_format.h"
@@ -29,6 +32,7 @@
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
+#include "modules/rtp_rtcp/source/rtcp_packet.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/congestion_control_feedback.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/remote_estimate.h"
 #include "system_wrappers/include/clock.h"
@@ -84,6 +88,7 @@ enum RTPExtensionType : int {
       kRtpExtensionDependencyDescriptor,
   kRtpExtensionColorSpace,
   kRtpExtensionVideoFrameTrackingId,
+  kRtpExtensionCorruptionDetection,
   kRtpExtensionNumberOfExtensions  // Must be the last entity in the enum.
 };
 
@@ -203,11 +208,11 @@ struct RtpPacketSendInfo {
                                 const PacedPacketInfo& pacing_info);
 
   uint16_t transport_sequence_number = 0;
-  absl::optional<uint32_t> media_ssrc;
+  std::optional<uint32_t> media_ssrc;
   uint16_t rtp_sequence_number = 0;  // Only valid if `media_ssrc` is set.
   uint32_t rtp_timestamp = 0;
   size_t length = 0;
-  absl::optional<RtpPacketMediaType> packet_type;
+  std::optional<RtpPacketMediaType> packet_type;
   PacedPacketInfo pacing_info;
 };
 
@@ -244,7 +249,7 @@ class StreamFeedbackObserver {
 
     // `rtp_sequence_number` and `is_retransmission` are only valid if `ssrc`
     // is populated.
-    absl::optional<uint32_t> ssrc;
+    std::optional<uint32_t> ssrc;
     uint16_t rtp_sequence_number;
     bool is_retransmission;
   };
@@ -406,7 +411,7 @@ struct RtpReceiveStats {
 
   // Time of the last packet received in unix epoch,
   // i.e. Timestamp::Zero() represents 1st Jan 1970 00:00
-  absl::optional<Timestamp> last_packet_received;
+  std::optional<Timestamp> last_packet_received;
 
   // Counters exposed in RTCInboundRtpStreamStats, see
   // https://w3c.github.io/webrtc-stats/#inboundrtpstats-dict*
@@ -428,7 +433,7 @@ class BitrateStatisticsObserver {
 class SendPacketObserver {
  public:
   virtual ~SendPacketObserver() = default;
-  virtual void OnSendPacket(absl::optional<uint16_t> packet_id,
+  virtual void OnSendPacket(std::optional<uint16_t> packet_id,
                             Timestamp capture_time,
                             uint32_t ssrc) = 0;
 };

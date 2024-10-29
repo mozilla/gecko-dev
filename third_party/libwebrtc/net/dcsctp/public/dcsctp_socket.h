@@ -12,11 +12,11 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/units/timestamp.h"
@@ -51,11 +51,11 @@ struct SendOptions {
   // If set, will discard messages that haven't been correctly sent and
   // received before the lifetime has expired. This is only available if the
   // peer supports Partial Reliability Extension (RFC3758).
-  absl::optional<DurationMs> lifetime = absl::nullopt;
+  std::optional<DurationMs> lifetime = std::nullopt;
 
   // If set, limits the number of retransmissions. This is only available
   // if the peer supports Partial Reliability Extension (RFC3758).
-  absl::optional<size_t> max_retransmissions = absl::nullopt;
+  std::optional<size_t> max_retransmissions = std::nullopt;
 
   // If set, will generate lifecycle events for this message. See e.g.
   // `DcSctpSocketCallbacks::OnLifecycleMessageFullySent`. This value is decided
@@ -621,10 +621,10 @@ class DcSctpSocketInterface {
                                              size_t bytes) = 0;
 
   // Retrieves the latest metrics. If the socket is not fully connected,
-  // `absl::nullopt` will be returned. Note that metrics are not guaranteed to
+  // `std::nullopt` will be returned. Note that metrics are not guaranteed to
   // be carried over if this socket is handed over by calling
   // `GetHandoverStateAndClose`.
-  virtual absl::optional<Metrics> GetMetrics() const = 0;
+  virtual std::optional<Metrics> GetMetrics() const = 0;
 
   // Returns empty bitmask if the socket is in the state in which a snapshot of
   // the state can be made by `GetHandoverStateAndClose()`. Return value is
@@ -637,7 +637,7 @@ class DcSctpSocketInterface {
   // The method fails if the socket is not in a state ready for handover.
   // nullopt indicates the failure. `DcSctpSocketCallbacks::OnClosed` will be
   // called on success.
-  virtual absl::optional<DcSctpSocketHandoverState>
+  virtual std::optional<DcSctpSocketHandoverState>
   GetHandoverStateAndClose() = 0;
 
   // Returns the detected SCTP implementation of the peer. As this is not

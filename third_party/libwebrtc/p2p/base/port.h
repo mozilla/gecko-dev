@@ -17,6 +17,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <type_traits>
@@ -25,7 +26,6 @@
 
 #include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/candidate.h"
 #include "api/field_trials_view.h"
 #include "api/packet_socket_factory.h"
@@ -102,7 +102,7 @@ class CandidateStats {
   CandidateStats(const CandidateStats&) = default;
   CandidateStats(CandidateStats&&) = default;
   CandidateStats(Candidate candidate,
-                 absl::optional<StunStats> stats = absl::nullopt)
+                 std::optional<StunStats> stats = std::nullopt)
       : candidate_(std::move(candidate)), stun_stats_(std::move(stats)) {}
   ~CandidateStats() = default;
 
@@ -110,18 +110,18 @@ class CandidateStats {
 
   const Candidate& candidate() const { return candidate_; }
 
-  const absl::optional<StunStats>& stun_stats() const { return stun_stats_; }
+  const std::optional<StunStats>& stun_stats() const { return stun_stats_; }
 
  private:
   Candidate candidate_;
   // STUN port stats if this candidate is a STUN candidate.
-  absl::optional<StunStats> stun_stats_;
+  std::optional<StunStats> stun_stats_;
 };
 
 typedef std::vector<CandidateStats> CandidateStatsList;
 
 const char* ProtoToString(ProtocolType proto);
-absl::optional<ProtocolType> StringToProto(absl::string_view proto_name);
+std::optional<ProtocolType> StringToProto(absl::string_view proto_name);
 
 struct ProtocolAddress {
   rtc::SocketAddress address;
@@ -363,7 +363,7 @@ class RTC_EXPORT Port : public PortInterface, public sigslot::has_slots<> {
 
   int16_t network_cost() const override { return network_cost_; }
 
-  void GetStunStats(absl::optional<StunStats>* stats) override {}
+  void GetStunStats(std::optional<StunStats>* stats) override {}
 
  protected:
   void UpdateNetworkCost() override;

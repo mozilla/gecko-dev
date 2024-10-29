@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <type_traits>
@@ -28,13 +29,11 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
 #include "api/candidate.h"
 #include "api/jsep_ice_candidate.h"
 #include "api/jsep_session_description.h"
 #include "api/media_types.h"
-// for RtpExtension
-#include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
@@ -503,11 +502,11 @@ static absl::string_view TrimReturnChar(absl::string_view line) {
 
 // Gets line of `message` starting at `pos`, and checks overall SDP syntax. On
 // success, advances `pos` to the next line.
-static absl::optional<absl::string_view> GetLine(absl::string_view message,
-                                                 size_t* pos) {
+static std::optional<absl::string_view> GetLine(absl::string_view message,
+                                                size_t* pos) {
   size_t line_end = message.find(kNewLineChar, *pos);
   if (line_end == absl::string_view::npos) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   absl::string_view line =
       TrimReturnChar(message.substr(*pos, line_end - *pos));
@@ -528,7 +527,7 @@ static absl::optional<absl::string_view> GetLine(absl::string_view message,
   if (line.length() < 3 || !islower(static_cast<unsigned char>(line[0])) ||
       line[1] != kSdpDelimiterEqualChar ||
       (line[0] != kLineTypeSessionName && line[2] == kSdpDelimiterSpaceChar)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   *pos = line_end + 1;
   return line;
@@ -571,12 +570,12 @@ static bool IsLineType(absl::string_view line, const char type) {
   return IsLineType(line, type, 0);
 }
 
-static absl::optional<absl::string_view>
+static std::optional<absl::string_view>
 GetLineWithType(absl::string_view message, size_t* pos, const char type) {
   if (IsLineType(message, type, *pos)) {
     return GetLine(message, pos);
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 static bool HasAttribute(absl::string_view line, absl::string_view attribute) {
@@ -1102,7 +1101,7 @@ bool ParseCandidate(absl::string_view message,
   }
   SocketAddress address(connection_address, port);
 
-  absl::optional<cricket::ProtocolType> protocol =
+  std::optional<cricket::ProtocolType> protocol =
       cricket::StringToProto(transport);
   if (!protocol) {
     return ParseFailed(first_line, "Unsupported transport type.", error);
@@ -2096,7 +2095,7 @@ bool ParseSessionDescription(absl::string_view message,
                              rtc::SocketAddress* connection_addr,
                              cricket::SessionDescription* desc,
                              SdpParseError* error) {
-  absl::optional<absl::string_view> line;
+  std::optional<absl::string_view> line;
 
   desc->set_msid_signaling(cricket::kMsidSignalingNotUsed);
   desc->set_extmap_allow_mixed(false);
@@ -2153,7 +2152,7 @@ bool ParseSessionDescription(absl::string_view message,
   // RFC 4566
   // c=* (connection information -- not required if included in
   //      all media)
-  if (absl::optional<absl::string_view> cline =
+  if (std::optional<absl::string_view> cline =
           GetLineWithType(message, pos, kLineTypeConnection);
       cline.has_value()) {
     if (!ParseConnectionData(*cline, connection_addr, error)) {
@@ -2198,7 +2197,7 @@ bool ParseSessionDescription(absl::string_view message,
 
   // RFC 4566
   // a=* (zero or more session attribute lines)
-  while (absl::optional<absl::string_view> aline =
+  while (std::optional<absl::string_view> aline =
              GetLineWithType(message, pos, kLineTypeAttributes)) {
     if (HasAttribute(*aline, kAttributeGroup)) {
       if (!ParseGroupAttribute(*aline, desc, error)) {
@@ -2320,7 +2319,7 @@ static bool ParseDtlsSetup(absl::string_view line,
   if (fields.size() != expected_fields) {
     return ParseFailedExpectFieldNum(line, expected_fields, error);
   }
-  if (absl::optional<cricket::ConnectionRole> role =
+  if (std::optional<cricket::ConnectionRole> role =
           cricket::StringToConnectionRole(fields[1]);
       role.has_value()) {
     *role_ptr = *role;
@@ -2702,7 +2701,7 @@ bool ParseMediaDescription(
   // Zero or more media descriptions
   // RFC 4566
   // m=<media> <port> <proto> <fmt>
-  while (absl::optional<absl::string_view> mline =
+  while (std::optional<absl::string_view> mline =
              GetLineWithType(message, pos, kLineTypeMedia)) {
     ++mline_index;
 
@@ -2984,7 +2983,7 @@ void UpdateVideoCodecPacketization(MediaContentDescription* desc,
   AddOrReplaceCodec(desc, codec);
 }
 
-absl::optional<cricket::Codec> PopWildcardCodec(
+std::optional<cricket::Codec> PopWildcardCodec(
     std::vector<cricket::Codec>* codecs) {
   RTC_DCHECK(codecs);
   for (auto iter = codecs->begin(); iter != codecs->end(); ++iter) {
@@ -2994,13 +2993,13 @@ absl::optional<cricket::Codec> PopWildcardCodec(
       return wildcard_codec;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void UpdateFromWildcardCodecs(cricket::MediaContentDescription* desc) {
   RTC_DCHECK(desc);
   auto codecs = desc->codecs();
-  absl::optional<cricket::Codec> wildcard_codec = PopWildcardCodec(&codecs);
+  std::optional<cricket::Codec> wildcard_codec = PopWildcardCodec(&codecs);
   if (!wildcard_codec) {
     return;
   }
@@ -3063,7 +3062,7 @@ bool ParseContent(absl::string_view message,
 
   // Loop until the next m line
   while (!IsLineType(message, kLineTypeMedia, *pos)) {
-    absl::optional<absl::string_view> line = GetLine(message, pos);
+    std::optional<absl::string_view> line = GetLine(message, pos);
     if (!line.has_value()) {
       if (*pos >= message.size()) {
         break;  // Done parsing

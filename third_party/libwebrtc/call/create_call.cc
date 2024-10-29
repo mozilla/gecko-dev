@@ -10,72 +10,14 @@
 
 #include "call/create_call.h"
 
-#include <stdio.h>
-
 #include <memory>
-#include <string>
-#include <utility>
-#include <vector>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/test/simulated_network.h"
 #include "api/units/time_delta.h"
 #include "call/call.h"
-#include "call/degraded_call.h"
-#include "rtc_base/checks.h"
-#include "rtc_base/experiments/field_trial_list.h"
-#include "rtc_base/experiments/field_trial_parser.h"
 
 namespace webrtc {
-namespace {
-using TimeScopedNetworkConfig = DegradedCall::TimeScopedNetworkConfig;
-
-std::vector<TimeScopedNetworkConfig> GetNetworkConfigs(
-    const FieldTrialsView& trials,
-    bool send) {
-  FieldTrialStructList<TimeScopedNetworkConfig> trials_list(
-      {FieldTrialStructMember("queue_length_packets",
-                              [](TimeScopedNetworkConfig* p) {
-                                // FieldTrialParser does not natively support
-                                // size_t type, so use this ugly cast as
-                                // workaround.
-                                return reinterpret_cast<unsigned*>(
-                                    &p->queue_length_packets);
-                              }),
-       FieldTrialStructMember(
-           "queue_delay_ms",
-           [](TimeScopedNetworkConfig* p) { return &p->queue_delay_ms; }),
-       FieldTrialStructMember("delay_standard_deviation_ms",
-                              [](TimeScopedNetworkConfig* p) {
-                                return &p->delay_standard_deviation_ms;
-                              }),
-       FieldTrialStructMember(
-           "link_capacity_kbps",
-           [](TimeScopedNetworkConfig* p) { return &p->link_capacity_kbps; }),
-       FieldTrialStructMember(
-           "loss_percent",
-           [](TimeScopedNetworkConfig* p) { return &p->loss_percent; }),
-       FieldTrialStructMember(
-           "allow_reordering",
-           [](TimeScopedNetworkConfig* p) { return &p->allow_reordering; }),
-       FieldTrialStructMember("avg_burst_loss_length",
-                              [](TimeScopedNetworkConfig* p) {
-                                return &p->avg_burst_loss_length;
-                              }),
-       FieldTrialStructMember(
-           "packet_overhead",
-           [](TimeScopedNetworkConfig* p) { return &p->packet_overhead; }),
-       FieldTrialStructMember(
-           "duration",
-           [](TimeScopedNetworkConfig* p) { return &p->duration; })},
-      {});
-  ParseFieldTrial({&trials_list},
-                  trials.Lookup(send ? "WebRTC-FakeNetworkSendConfig"
-                                     : "WebRTC-FakeNetworkReceiveConfig"));
-  return trials_list.Get();
-}
-
-}  // namespace
 
 std::unique_ptr<Call> CreateCall(CallConfig config) {
   std::vector<DegradedCall::TimeScopedNetworkConfig> send_degradation_configs =

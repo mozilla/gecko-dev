@@ -10,11 +10,11 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/test/pclf/media_configuration.h"
 #include "api/test/video/video_frame_writer.h"
 #include "api/video/video_frame.h"
@@ -60,7 +60,7 @@ TEST(PclfVideoSubscriptionTest, WhenSpecIsNotSetFieldsAreCompared) {
 }
 
 TEST(PclfVideoSubscriptionTest, GetMaxResolutionForEmptyReturnsNullopt) {
-  absl::optional<VideoResolution> resolution =
+  std::optional<VideoResolution> resolution =
       VideoSubscription::GetMaxResolution(std::vector<VideoConfig>{});
   ASSERT_FALSE(resolution.has_value());
 }
@@ -70,7 +70,7 @@ TEST(PclfVideoSubscriptionTest, GetMaxResolutionSelectMaxForEachDimention) {
   VideoConfig max_height(/*width=*/1, /*height=*/100, /*fps=*/1);
   VideoConfig max_fps(/*width=*/1, /*height=*/1, /*fps=*/10);
 
-  absl::optional<VideoResolution> resolution =
+  std::optional<VideoResolution> resolution =
       VideoSubscription::GetMaxResolution(
           std::vector<VideoConfig>{max_width, max_height, max_fps});
   ASSERT_TRUE(resolution.has_value());

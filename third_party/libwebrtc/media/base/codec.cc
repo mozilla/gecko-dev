@@ -13,12 +13,12 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/media_types.h"
 #include "api/rtp_parameters.h"
@@ -197,15 +197,15 @@ Codec::Codec(Type type,
       bitrate(0),
       channels(channels) {}
 
-Codec::Codec(Type type) : Codec(type, 0, "", 0) {}
+Codec::Codec(Type type) : Codec(type, kIdNotSet, "", 0) {}
 
 Codec::Codec(const webrtc::SdpAudioFormat& c)
-    : Codec(Type::kAudio, 0, c.name, c.clockrate_hz, c.num_channels) {
+    : Codec(Type::kAudio, kIdNotSet, c.name, c.clockrate_hz, c.num_channels) {
   params = c.parameters;
 }
 
 Codec::Codec(const webrtc::SdpVideoFormat& c)
-    : Codec(Type::kVideo, 0, c.name, kVideoCodecClockrate) {
+    : Codec(Type::kVideo, kIdNotSet, c.name, kVideoCodecClockrate) {
   params = c.parameters;
   scalability_modes = c.scalability_modes;
 }
@@ -498,7 +498,7 @@ void AddH264ConstrainedBaselineProfileToSupportedFormats(
   for (auto it = supported_formats->cbegin(); it != supported_formats->cend();
        ++it) {
     if (it->name == cricket::kH264CodecName) {
-      const absl::optional<webrtc::H264ProfileLevelId> profile_level_id =
+      const std::optional<webrtc::H264ProfileLevelId> profile_level_id =
           webrtc::ParseSdpForH264ProfileLevelId(it->parameters);
       if (profile_level_id &&
           profile_level_id->profile !=
@@ -539,7 +539,7 @@ Codec CreateAudioCodec(const webrtc::SdpAudioFormat& c) {
 }
 
 Codec CreateVideoCodec(const std::string& name) {
-  return CreateVideoCodec(0, name);
+  return CreateVideoCodec(Codec::kIdNotSet, name);
 }
 
 Codec CreateVideoCodec(int id, const std::string& name) {

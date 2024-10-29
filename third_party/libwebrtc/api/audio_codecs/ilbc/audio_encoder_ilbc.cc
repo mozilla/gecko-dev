@@ -12,12 +12,12 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -46,11 +46,11 @@ int GetIlbcBitrate(int ptime) {
 }
 }  // namespace
 
-absl::optional<AudioEncoderIlbcConfig> AudioEncoderIlbc::SdpToConfig(
+std::optional<AudioEncoderIlbcConfig> AudioEncoderIlbc::SdpToConfig(
     const SdpAudioFormat& format) {
   if (!absl::EqualsIgnoreCase(format.name.c_str(), "ILBC") ||
       format.clockrate_hz != 8000 || format.num_channels != 1) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   AudioEncoderIlbcConfig config;
@@ -64,7 +64,7 @@ absl::optional<AudioEncoderIlbcConfig> AudioEncoderIlbc::SdpToConfig(
   }
   if (!config.IsOk()) {
     RTC_DCHECK_NOTREACHED();
-    return absl::nullopt;
+    return std::nullopt;
   }
   return config;
 }
@@ -85,7 +85,7 @@ AudioCodecInfo AudioEncoderIlbc::QueryAudioEncoder(
 std::unique_ptr<AudioEncoder> AudioEncoderIlbc::MakeAudioEncoder(
     const AudioEncoderIlbcConfig& config,
     int payload_type,
-    absl::optional<AudioCodecPairId> /*codec_pair_id*/,
+    std::optional<AudioCodecPairId> /*codec_pair_id*/,
     const FieldTrialsView* field_trials) {
   if (!config.IsOk()) {
     RTC_DCHECK_NOTREACHED();

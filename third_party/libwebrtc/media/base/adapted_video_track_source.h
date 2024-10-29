@@ -13,7 +13,8 @@
 
 #include <stdint.h>
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/media_stream_interface.h"
 #include "api/notifier.h"
 #include "api/video/video_frame.h"
@@ -94,7 +95,7 @@ class RTC_EXPORT AdaptedVideoTrackSource
   cricket::VideoAdapter video_adapter_;
 
   webrtc::Mutex stats_mutex_;
-  absl::optional<Stats> stats_ RTC_GUARDED_BY(stats_mutex_);
+  std::optional<Stats> stats_ RTC_GUARDED_BY(stats_mutex_);
 
   VideoBroadcaster broadcaster_;
 };

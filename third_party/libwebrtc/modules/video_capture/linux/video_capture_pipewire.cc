@@ -83,9 +83,9 @@ int32_t VideoCaptureModulePipeWire::Init(const char* deviceUniqueId) {
   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
   RTC_DCHECK_RUN_ON(&api_checker_);
 
-  absl::optional<int> id;
+  std::optional<int> id;
   id = rtc::StringToNumber<int>(deviceUniqueId);
-  if (id == absl::nullopt)
+  if (id == std::nullopt)
     return -1;
 
   node_id_ = id.value();

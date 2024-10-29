@@ -11,11 +11,11 @@
 #ifndef CALL_AUDIO_SEND_STREAM_H_
 #define CALL_AUDIO_SEND_STREAM_H_
 
-#include <memory>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
@@ -25,11 +25,12 @@
 #include "api/crypto/crypto_options.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/frame_transformer_interface.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_setparameters_callback.h"
 #include "api/scoped_refptr.h"
+#include "api/units/time_delta.h"
 #include "call/audio_sender.h"
-#include "call/rtp_config.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 
@@ -55,7 +56,7 @@ class AudioSendStream : public AudioSender {
     int32_t packets_lost = -1;
     float fraction_lost = -1.0f;
     std::string codec_name;
-    absl::optional<int> codec_payload_type;
+    std::optional<int> codec_payload_type;
     int32_t jitter_ms = -1;
     int64_t rtt_ms = -1;
     int16_t audio_level = 0;
@@ -131,7 +132,7 @@ class AudioSendStream : public AudioSender {
 
     // Defines whether to turn on audio network adaptor, and defines its config
     // string.
-    absl::optional<std::string> audio_network_adaptor_config;
+    std::optional<std::string> audio_network_adaptor_config;
 
     struct SendCodecSpec {
       SendCodecSpec(int payload_type, const SdpAudioFormat& format);
@@ -148,15 +149,15 @@ class AudioSendStream : public AudioSender {
       bool nack_enabled = false;
       bool transport_cc_enabled = false;
       bool enable_non_sender_rtt = false;
-      absl::optional<int> cng_payload_type;
-      absl::optional<int> red_payload_type;
+      std::optional<int> cng_payload_type;
+      std::optional<int> red_payload_type;
       // If unset, use the encoder's default target bitrate.
-      absl::optional<int> target_bitrate_bps;
+      std::optional<int> target_bitrate_bps;
     };
 
-    absl::optional<SendCodecSpec> send_codec_spec;
+    std::optional<SendCodecSpec> send_codec_spec;
     rtc::scoped_refptr<AudioEncoderFactory> encoder_factory;
-    absl::optional<AudioCodecPairId> codec_pair_id;
+    std::optional<AudioCodecPairId> codec_pair_id;
 
     // Track ID as specified during track creation.
     std::string track_id;

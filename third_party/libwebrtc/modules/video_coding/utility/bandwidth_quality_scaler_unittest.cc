@@ -125,7 +125,7 @@ class BandwidthQualityScalerTest : public ::testing::Test {
     return -1;
   }
 
-  absl::optional<VideoEncoder::ResolutionBitrateLimits>
+  std::optional<VideoEncoder::ResolutionBitrateLimits>
   GetDefaultSuitableBitrateLimit(int frame_size_pixels) {
     return EncoderInfoSettings::
         GetSinglecastBitrateLimitForResolutionWhenQpIsUntrusted(
@@ -150,7 +150,7 @@ class BandwidthQualityScalerTest : public ::testing::Test {
     TimeDelta delay = TimeDelta::Zero();
     int num_delayed_tasks = 0;
     for (const FrameConfig& config : frame_configs) {
-      absl::optional<VideoEncoder::ResolutionBitrateLimits> suitable_bitrate =
+      std::optional<VideoEncoder::ResolutionBitrateLimits> suitable_bitrate =
           GetDefaultSuitableBitrateLimit(config.actual_width *
                                          config.actual_height);
       EXPECT_TRUE(suitable_bitrate);

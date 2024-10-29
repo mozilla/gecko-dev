@@ -80,7 +80,6 @@ rtc_library("saturation_protector") {
     "../../../rtc_base:checks",
     "../../../rtc_base:safe_compare",
     "../../../rtc_base:safe_minmax",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -117,7 +116,6 @@ rtc_library("clipping_predictor") {
     "../../../rtc_base:checks",
     "../../../rtc_base:logging",
     "../../../rtc_base:safe_minmax",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -220,7 +218,6 @@ rtc_library("input_volume_controller") {
     "../../../rtc_base:safe_minmax",
     "../../../system_wrappers:field_trial",
     "../../../system_wrappers:metrics",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -486,7 +483,6 @@ rtc_library("input_volume_stats_reporter") {
     "../../../rtc_base:stringutils",
     "../../../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

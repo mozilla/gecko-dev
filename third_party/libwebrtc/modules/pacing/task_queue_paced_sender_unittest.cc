@@ -11,20 +11,20 @@
 #include "modules/pacing/task_queue_paced_sender.h"
 
 #include <algorithm>
-#include <any>
-#include <atomic>
-#include <list>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
+#include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "modules/pacing/pacing_controller.h"
 #include "modules/pacing/packet_router.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -36,10 +36,7 @@
 using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::AtMost;
-using ::testing::Lt;
 using ::testing::NiceMock;
-using ::testing::Return;
-using ::testing::SaveArg;
 
 namespace webrtc {
 namespace {

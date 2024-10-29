@@ -109,7 +109,7 @@ void FineAudioBuffer::GetPlayoutData(rtc::ArrayView<int16_t> audio_buffer,
 void FineAudioBuffer::DeliverRecordedData(
     rtc::ArrayView<const int16_t> audio_buffer,
     int record_delay_ms,
-    absl::optional<int64_t> capture_time_ns) {
+    std::optional<int64_t> capture_time_ns) {
   RTC_DCHECK(IsReadyForRecord());
   // Always append new data and grow the buffer when needed.
   record_buffer_.AppendData(audio_buffer.data(), audio_buffer.size());

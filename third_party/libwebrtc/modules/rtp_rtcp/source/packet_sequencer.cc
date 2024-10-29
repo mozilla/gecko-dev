@@ -24,7 +24,7 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 }  // namespace
 
 PacketSequencer::PacketSequencer(uint32_t media_ssrc,
-                                 absl::optional<uint32_t> rtx_ssrc,
+                                 std::optional<uint32_t> rtx_ssrc,
                                  bool require_marker_before_media_padding,
                                  Clock* clock)
     : media_ssrc_(media_ssrc),

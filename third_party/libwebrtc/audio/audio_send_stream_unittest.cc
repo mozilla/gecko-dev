@@ -128,13 +128,13 @@ rtc::scoped_refptr<MockAudioEncoderFactory> SetupEncoderFactoryMock() {
           std::begin(kCodecSpecs), std::end(kCodecSpecs))));
   ON_CALL(*factory, QueryAudioEncoder)
       .WillByDefault(
-          [](const SdpAudioFormat& format) -> absl::optional<AudioCodecInfo> {
+          [](const SdpAudioFormat& format) -> std::optional<AudioCodecInfo> {
             for (const auto& spec : kCodecSpecs) {
               if (format == spec.format) {
                 return spec.info;
               }
             }
-            return absl::nullopt;
+            return std::nullopt;
           });
   ON_CALL(*factory, Create).WillByDefault(WithArg<1>(&SetupAudioEncoderMock));
   return factory;
@@ -183,7 +183,7 @@ struct ConfigHelper {
         CreateEnvironment(&field_trials, time_controller_.GetClock(),
                           time_controller_.GetTaskQueueFactory()),
         stream_config_, audio_state_, &rtp_transport_, &bitrate_allocator_,
-        absl::nullopt,
+        std::nullopt,
         std::unique_ptr<voe::ChannelSendInterface>(channel_send_));
   }
 

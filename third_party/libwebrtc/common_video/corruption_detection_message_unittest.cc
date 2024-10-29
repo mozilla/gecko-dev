@@ -10,9 +10,9 @@
 
 #include "common_video/corruption_detection_message.h"
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "test/gtest.h"
 
 namespace webrtc {
@@ -22,36 +22,36 @@ TEST(CorruptionDetectionMessageTest, FailsToCreateWhenSequenceIndexIsTooLarge) {
   EXPECT_EQ(CorruptionDetectionMessage::Builder()
                 .WithSequenceIndex(0b1000'0000)
                 .Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest, FailsToCreateWhenSequenceIndexIsTooSmall) {
   EXPECT_EQ(CorruptionDetectionMessage::Builder().WithSequenceIndex(-1).Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest, FailsToCreateWhenStddevIsTooLarge) {
   EXPECT_EQ(CorruptionDetectionMessage::Builder().WithStdDev(45.0).Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest, FailsToCreateWhenStddevIsTooSmall) {
   EXPECT_EQ(CorruptionDetectionMessage::Builder().WithStdDev(-1.0).Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest,
      FailsToCreateWhenLumaErrorThresholdIsTooLarge) {
   EXPECT_EQ(
       CorruptionDetectionMessage::Builder().WithLumaErrorThreshold(16).Build(),
-      absl::nullopt);
+      std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest,
      FailsToCreateWhenLumaErrorThresholdIsTooSmall) {
   EXPECT_EQ(
       CorruptionDetectionMessage::Builder().WithLumaErrorThreshold(-1).Build(),
-      absl::nullopt);
+      std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest,
@@ -59,7 +59,7 @@ TEST(CorruptionDetectionMessageTest,
   EXPECT_EQ(CorruptionDetectionMessage::Builder()
                 .WithChromaErrorThreshold(16)
                 .Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest,
@@ -67,7 +67,7 @@ TEST(CorruptionDetectionMessageTest,
   EXPECT_EQ(CorruptionDetectionMessage::Builder()
                 .WithChromaErrorThreshold(-1)
                 .Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest,
@@ -79,7 +79,7 @@ TEST(CorruptionDetectionMessageTest,
   EXPECT_EQ(CorruptionDetectionMessage::Builder()
                 .WithSampleValues(kSampleValues)
                 .Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest, FailsToCreateWhenSampleValueIsTooLarge) {
@@ -88,7 +88,7 @@ TEST(CorruptionDetectionMessageTest, FailsToCreateWhenSampleValueIsTooLarge) {
   EXPECT_EQ(CorruptionDetectionMessage::Builder()
                 .WithSampleValues(kSampleValues)
                 .Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest, FailsToCreateWhenSampleValueIsTooSmall) {
@@ -97,12 +97,12 @@ TEST(CorruptionDetectionMessageTest, FailsToCreateWhenSampleValueIsTooSmall) {
   EXPECT_EQ(CorruptionDetectionMessage::Builder()
                 .WithSampleValues(kSampleValues)
                 .Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest,
      CreatesDefaultWhenNoParametersAreSpecified) {
-  EXPECT_NE(CorruptionDetectionMessage::Builder().Build(), absl::nullopt);
+  EXPECT_NE(CorruptionDetectionMessage::Builder().Build(), std::nullopt);
 }
 
 TEST(CorruptionDetectionMessageTest, CreatesWhenValidParametersAreSpecified) {
@@ -117,7 +117,7 @@ TEST(CorruptionDetectionMessageTest, CreatesWhenValidParametersAreSpecified) {
                 .WithChromaErrorThreshold(15)
                 .WithSampleValues(kSampleValues)
                 .Build(),
-            absl::nullopt);
+            std::nullopt);
 }
 
 }  // namespace

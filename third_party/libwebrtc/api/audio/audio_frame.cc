@@ -13,8 +13,8 @@
 #include <string.h>
 
 #include <cstdint>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_view.h"
 #include "api/audio/channel_layout.h"
@@ -62,7 +62,7 @@ void AudioFrame::ResetWithoutMuting() {
   vad_activity_ = kVadUnknown;
   profile_timestamp_ms_ = 0;
   packet_infos_ = RtpPacketInfos();
-  absolute_capture_timestamp_ms_ = absl::nullopt;
+  absolute_capture_timestamp_ms_ = std::nullopt;
 }
 
 void AudioFrame::UpdateFrame(uint32_t timestamp,

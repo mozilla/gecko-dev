@@ -95,7 +95,7 @@ enum class UseDependencyDescriptor {
 struct SvcTestParameters {
   static SvcTestParameters Create(const std::string& codec_name,
                                   const std::string& scalability_mode_str) {
-    absl::optional<ScalabilityMode> scalability_mode =
+    std::optional<ScalabilityMode> scalability_mode =
         ScalabilityModeFromString(scalability_mode_str);
     RTC_CHECK(scalability_mode.has_value())
         << "Unsupported scalability mode: " << scalability_mode_str;
@@ -177,8 +177,8 @@ class SvcVideoQualityAnalyzer : public DefaultVideoQualityAnalyzer {
                       const EncodedImage& encoded_image,
                       const EncoderStats& stats,
                       bool discarded) override {
-    absl::optional<int> spatial_id = encoded_image.SpatialIndex();
-    absl::optional<int> temporal_id = encoded_image.TemporalIndex();
+    std::optional<int> spatial_id = encoded_image.SpatialIndex();
+    std::optional<int> temporal_id = encoded_image.TemporalIndex();
     encoder_layers_seen_[spatial_id.value_or(0)][temporal_id.value_or(0)]++;
     DefaultVideoQualityAnalyzer::OnFrameEncoded(
         peer_name, frame_id, encoded_image, stats, discarded);
@@ -187,8 +187,8 @@ class SvcVideoQualityAnalyzer : public DefaultVideoQualityAnalyzer {
   void OnFramePreDecode(absl::string_view peer_name,
                         uint16_t frame_id,
                         const EncodedImage& input_image) override {
-    absl::optional<int> spatial_id = input_image.SpatialIndex();
-    absl::optional<int> temporal_id = input_image.TemporalIndex();
+    std::optional<int> spatial_id = input_image.SpatialIndex();
+    std::optional<int> temporal_id = input_image.TemporalIndex();
     if (!spatial_id) {
       decoder_layers_seen_[0][temporal_id.value_or(0)]++;
     } else {
@@ -223,14 +223,14 @@ class SvcVideoQualityAnalyzer : public DefaultVideoQualityAnalyzer {
   const SpatialTemporalLayerCounts& decoder_layers_seen() const {
     return decoder_layers_seen_;
   }
-  const absl::optional<std::string> reported_scalability_mode() const {
+  const std::optional<std::string> reported_scalability_mode() const {
     return reported_scalability_mode_;
   }
 
  private:
   SpatialTemporalLayerCounts encoder_layers_seen_;
   SpatialTemporalLayerCounts decoder_layers_seen_;
-  absl::optional<std::string> reported_scalability_mode_;
+  std::optional<std::string> reported_scalability_mode_;
 };
 
 MATCHER_P2(HasSpatialAndTemporalLayers,

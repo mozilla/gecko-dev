@@ -13,11 +13,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtc_event_log/rtc_event.h"
 #include "logging/rtc_event_log/encoder/bit_writer.h"
@@ -88,7 +88,7 @@ std::string EncodeSingleValue(uint64_t value, FieldType field_type) {
   return std::string();
 }
 
-absl::optional<FieldType> ConvertFieldType(uint64_t value) {
+std::optional<FieldType> ConvertFieldType(uint64_t value) {
   switch (value) {
     case static_cast<uint64_t>(FieldType::kFixed8):
       return FieldType::kFixed8;
@@ -101,7 +101,7 @@ absl::optional<FieldType> ConvertFieldType(uint64_t value) {
     case static_cast<uint64_t>(FieldType::kString):
       return FieldType::kString;
     default:
-      return absl::nullopt;
+      return std::nullopt;
   }
 }
 
@@ -185,7 +185,7 @@ void EventEncoder::EncodeField(const FieldParameters& params,
     RTC_DCHECK_EQ(values.size(), batch_size_);
   }
 
-  if (values.size() == 0) {
+  if (values.empty()) {
     // If all values for a particular field is empty/nullopt,
     // then we completely skip the field even if the the batch is non-empty.
     return;
@@ -240,7 +240,7 @@ void EventEncoder::EncodeField(const FieldParameters& params,
                                const std::vector<absl::string_view>& values) {
   RTC_DCHECK_EQ(values.size(), batch_size_);
 
-  if (values.size() == 0) {
+  if (values.empty()) {
     // If all values for a particular field is empty/nullopt,
     // then we completely skip the field even if the the batch is non-empty.
     return;

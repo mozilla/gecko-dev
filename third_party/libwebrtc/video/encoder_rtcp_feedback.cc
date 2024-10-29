@@ -11,9 +11,9 @@
 #include "video/encoder_rtcp_feedback.h"
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/video_codecs/video_encoder.h"
 #include "rtc_base/checks.h"
@@ -124,7 +124,7 @@ void EncoderRtcpFeedback::OnReceivedLossNotification(
     loss_notification.dependencies_of_last_received_decodable =
         decodability_flag;
     loss_notification.last_received_decodable =
-        !decodability_flag ? absl::make_optional(false) : absl::nullopt;
+        !decodability_flag ? std::make_optional(false) : std::nullopt;
   } else if (!last_received.is_first && last_received.is_last) {
     if (decodability_flag) {
       // The frame has been received in full, and found to be decodable.
@@ -136,7 +136,7 @@ void EncoderRtcpFeedback::OnReceivedLossNotification(
       // It is impossible to tell whether some dependencies were undecodable,
       // or whether the frame was unassemblable, but in either case, the frame
       // itself was undecodable.
-      loss_notification.dependencies_of_last_received_decodable = absl::nullopt;
+      loss_notification.dependencies_of_last_received_decodable = std::nullopt;
       loss_notification.last_received_decodable = false;
     }
   } else {  // !last_received.is_first && !last_received.is_last
@@ -146,12 +146,12 @@ void EncoderRtcpFeedback::OnReceivedLossNotification(
       // (Messages of this type are not sent by WebRTC at the moment, but are
       // theoretically possible, for example for serving as acks.)
       loss_notification.dependencies_of_last_received_decodable = true;
-      loss_notification.last_received_decodable = absl::nullopt;
+      loss_notification.last_received_decodable = std::nullopt;
     } else {
       // It is impossible to tell whether some dependencies were undecodable,
       // or whether the frame was unassemblable, but in either case, the frame
       // itself was undecodable.
-      loss_notification.dependencies_of_last_received_decodable = absl::nullopt;
+      loss_notification.dependencies_of_last_received_decodable = std::nullopt;
       loss_notification.last_received_decodable = false;
     }
   }

@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -20,7 +21,6 @@
 #include "absl/base/macros.h"
 #include "absl/base/nullability.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
@@ -120,10 +120,10 @@ class LibaomAv1Encoder final : public VideoEncoder {
   void MaybeRewrapImgWithFormat(const aom_img_fmt_t fmt);
 
   std::unique_ptr<ScalableVideoController> svc_controller_;
-  absl::optional<ScalabilityMode> scalability_mode_;
+  std::optional<ScalabilityMode> scalability_mode_;
   bool inited_;
   bool rates_configured_;
-  absl::optional<aom_svc_params_t> svc_params_;
+  std::optional<aom_svc_params_t> svc_params_;
   VideoCodec encoder_settings_;
   LibaomAv1EncoderSettings settings_;
   aom_image_t* frame_for_encode_;
@@ -164,14 +164,6 @@ int32_t VerifyCodecSettings(const VideoCodec& codec_settings) {
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
   return WEBRTC_VIDEO_CODEC_OK;
-}
-
-int GetMaxConsecDrops(double framerate_fps) {
-  // Consecutive frame drops result in a video freeze. We want to minimize the
-  // max number of consecutive drops and, at the same time, keep the value high
-  // enough to let encoder drain the buffer at overshoot.
-  constexpr double kMaxFreezeSeconds = 0.25;
-  return std::ceil(kMaxFreezeSeconds * framerate_fps);
 }
 
 LibaomAv1Encoder::LibaomAv1Encoder(const Environment& env,
@@ -307,21 +299,7 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
     SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_PALETTE, 0);
   }
 
-  if (cfg_.g_threads == 8) {
-    // Values passed to AV1E_SET_TILE_ROWS and AV1E_SET_TILE_COLUMNS are log2()
-    // based.
-    // Use 4 tile columns x 2 tile rows for 8 threads.
-    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_TILE_ROWS, 1);
-    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_TILE_COLUMNS, 2);
-  } else if (cfg_.g_threads == 4) {
-    // Use 2 tile columns x 2 tile rows for 4 threads.
-    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_TILE_ROWS, 1);
-    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_TILE_COLUMNS, 1);
-  } else {
-    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_TILE_COLUMNS,
-                                      static_cast<int>(log2(cfg_.g_threads)));
-  }
-
+  SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_AUTO_TILES, 1);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ROW_MT, 1);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_OBMC, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_NOISE_SENSITIVITY, 0);
@@ -352,6 +330,11 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_SMOOTH_INTERINTRA, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_TX64, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_REFERENCE_FRAMES, 3);
+
+  if (adaptive_max_consec_drops_) {
+    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR,
+                                      250);
+  }
 
   return WEBRTC_VIDEO_CODEC_OK;
 }
@@ -448,7 +431,7 @@ bool LibaomAv1Encoder::SetSvcParams(
   bool svc_enabled =
       svc_config.num_spatial_layers > 1 || svc_config.num_temporal_layers > 1;
   if (!svc_enabled) {
-    svc_params_ = absl::nullopt;
+    svc_params_ = std::nullopt;
     return true;
   }
   if (svc_config.num_spatial_layers < 1 || svc_config.num_spatial_layers > 4) {
@@ -666,7 +649,7 @@ int32_t LibaomAv1Encoder::Encode(
     // The libaom AV1 encoder requires that `aom_codec_encode` is called for
     // every spatial layer, even if the configured bitrate for that layer is
     // zero. For zero bitrate spatial layers no frames will be produced.
-    absl::optional<ScalableVideoController::LayerFrameConfig>
+    std::optional<ScalableVideoController::LayerFrameConfig>
         non_encoded_layer_frame;
     ScalableVideoController::LayerFrameConfig* layer_frame;
     if (next_layer_frame != layer_frames.end() &&
@@ -827,17 +810,6 @@ void LibaomAv1Encoder::SetRates(const RateControlParameters& parameters) {
       }
     }
     SetEncoderControlParameters(AV1E_SET_SVC_PARAMS, &*svc_params_);
-  }
-
-  if (adaptive_max_consec_drops_ &&
-      (!rates_configured_ || framerate_fps_ != parameters.framerate_fps)) {
-    int max_consec_drops = GetMaxConsecDrops(parameters.framerate_fps);
-    if (!SetEncoderControlParameters(AV1E_SET_MAX_CONSEC_FRAME_DROP_CBR,
-                                     max_consec_drops)) {
-      RTC_LOG(LS_WARNING)
-          << "Failed to set AV1E_SET_MAX_CONSEC_FRAME_DROP_CBR to "
-          << max_consec_drops;
-    }
   }
 
   framerate_fps_ = parameters.framerate_fps;

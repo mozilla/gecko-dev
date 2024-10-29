@@ -32,7 +32,8 @@
 
 - (instancetype)initWithNativeParameters:
     (const webrtc::RtpParameters &)nativeParameters {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _transactionId = [NSString stringForStdString:nativeParameters.transaction_id];
     _rtcp =
         [[RTC_OBJC_TYPE(RTCRtcpParameters) alloc] initWithNativeParameters:nativeParameters.rtcp];
@@ -101,7 +102,7 @@
 }
 
 + (NSNumber *)degradationPreferenceFromNativeDegradationPreference:
-    (absl::optional<webrtc::DegradationPreference>)nativeDegradationPreference {
+    (std::optional<webrtc::DegradationPreference>)nativeDegradationPreference {
   if (!nativeDegradationPreference.has_value()) {
     return nil;
   }

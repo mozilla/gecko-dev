@@ -12,12 +12,13 @@
 #define MODULES_PACING_BITRATE_PROBER_H_
 
 #include <stddef.h>
-#include <stdint.h>
 
+#include <optional>
 #include <queue>
 
 #include "api/field_trials_view.h"
 #include "api/transport/network_types.h"
+#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/experiments/field_trial_parser.h"
@@ -72,7 +73,7 @@ class BitrateProber {
   Timestamp NextProbeTime(Timestamp now) const;
 
   // Information about the current probing cluster.
-  absl::optional<PacedPacketInfo> CurrentCluster(Timestamp now);
+  std::optional<PacedPacketInfo> CurrentCluster(Timestamp now);
 
   // Returns the minimum number of bytes that the prober recommends for
   // the next probe, or zero if not probing. A probe can consist of multiple

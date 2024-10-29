@@ -13,9 +13,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/ref_count.h"
 #include "api/scoped_refptr.h"
@@ -56,8 +56,8 @@ class TransformableFrameInterface {
 
   // TODO(https://bugs.webrtc.org/14878): Change this to pure virtual after it
   // is implemented everywhere.
-  virtual absl::optional<Timestamp> GetCaptureTimeIdentifier() const {
-    return absl::nullopt;
+  virtual std::optional<Timestamp> GetCaptureTimeIdentifier() const {
+    return std::nullopt;
   }
 
   enum class Direction {
@@ -92,9 +92,9 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
 
   virtual rtc::ArrayView<const uint32_t> GetContributingSources() const = 0;
 
-  virtual const absl::optional<uint16_t> SequenceNumber() const = 0;
+  virtual const std::optional<uint16_t> SequenceNumber() const = 0;
 
-  virtual absl::optional<uint64_t> AbsoluteCaptureTimestamp() const = 0;
+  virtual std::optional<uint64_t> AbsoluteCaptureTimestamp() const = 0;
 
   enum class FrameType { kEmptyFrame, kAudioFrameSpeech, kAudioFrameCN };
 
@@ -105,11 +105,11 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
   // Audio level in -dBov. Values range from 0 to 127, representing 0 to -127
   // dBov. 127 represents digital silence. Only present on remote frames if
   // the audio level header extension was included.
-  virtual absl::optional<uint8_t> AudioLevel() const = 0;
+  virtual std::optional<uint8_t> AudioLevel() const = 0;
 
   // Timestamp at which the packet has been first seen on the network interface.
   // Only defined for received audio packet.
-  virtual absl::optional<Timestamp> ReceiveTime() const = 0;
+  virtual std::optional<Timestamp> ReceiveTime() const = 0;
 };
 
 // Objects implement this interface to be notified with the transformed frame.

@@ -13,11 +13,11 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/sctp_transport_interface.h"
 #include "pc/peer_connection_internal.h"
@@ -229,7 +229,7 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
     return IceGatheringState::kIceGatheringNew;
   }
 
-  absl::optional<bool> can_trickle_ice_candidates() { return absl::nullopt; }
+  std::optional<bool> can_trickle_ice_candidates() { return std::nullopt; }
 
   void AddAdaptationResource(rtc::scoped_refptr<Resource> resource) {}
 
@@ -262,13 +262,11 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
     return {};
   }
 
-  absl::optional<std::string> sctp_transport_name() const override {
-    return absl::nullopt;
+  std::optional<std::string> sctp_transport_name() const override {
+    return std::nullopt;
   }
 
-  absl::optional<std::string> sctp_mid() const override {
-    return absl::nullopt;
-  }
+  std::optional<std::string> sctp_mid() const override { return std::nullopt; }
 
   std::map<std::string, cricket::TransportStats> GetTransportStatsByNames(
       const std::set<std::string>& transport_names) override {
@@ -277,8 +275,8 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
 
   Call::Stats GetCallStats() override { return Call::Stats(); }
 
-  absl::optional<AudioDeviceModule::Stats> GetAudioDeviceStats() override {
-    return absl::nullopt;
+  std::optional<AudioDeviceModule::Stats> GetAudioDeviceStats() override {
+    return std::nullopt;
   }
 
   bool GetLocalCertificate(
@@ -327,8 +325,8 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
   cricket::PortAllocator* port_allocator() override { return nullptr; }
   LegacyStatsCollector* legacy_stats() override { return nullptr; }
   PeerConnectionObserver* Observer() const override { return nullptr; }
-  absl::optional<rtc::SSLRole> GetSctpSslRole_n() override {
-    return absl::nullopt;
+  std::optional<rtc::SSLRole> GetSctpSslRole_n() override {
+    return std::nullopt;
   }
   PeerConnectionInterface::IceConnectionState ice_connection_state_internal()
       override {
@@ -373,9 +371,22 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
     return nullptr;
   }
 
+  PayloadTypePicker& payload_type_picker() override {
+    return payload_type_picker_;
+  }
+
+  cricket::CandidateStatsList GetPooledCandidateStats() const override {
+    return {};
+  }
+
  protected:
   test::ScopedKeyValueConfig field_trials_;
+  PayloadTypePicker payload_type_picker_;
 };
+
+static_assert(
+    !std::is_abstract_v<rtc::RefCountedObject<FakePeerConnectionBase>>,
+    "");
 
 }  // namespace webrtc
 

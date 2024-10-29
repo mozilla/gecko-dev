@@ -72,7 +72,7 @@ bool StreamStatisticianImpl::UpdateOutOfOrder(const RtpPacketReceived& packet,
     --cumulative_loss_;
 
     uint16_t expected_sequence_number = *received_seq_out_of_order_ + 1;
-    received_seq_out_of_order_ = absl::nullopt;
+    received_seq_out_of_order_ = std::nullopt;
     if (packet.SequenceNumber() == expected_sequence_number) {
       // Ignore sequence number gap caused by stream restart for packet loss
       // calculation, by setting received_seq_max_ to the sequence number just
@@ -283,13 +283,13 @@ void StreamStatisticianImpl::MaybeAppendReportBlockAndReset(
   last_report_seq_max_ = received_seq_max_;
 }
 
-absl::optional<int> StreamStatisticianImpl::GetFractionLostInPercent() const {
+std::optional<int> StreamStatisticianImpl::GetFractionLostInPercent() const {
   if (!ReceivedRtpPacket()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   int64_t expected_packets = 1 + received_seq_max_ - received_seq_first_;
   if (expected_packets <= 0) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   if (cumulative_loss_ <= 0) {
     return 0;

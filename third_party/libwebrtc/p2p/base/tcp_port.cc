@@ -151,13 +151,8 @@ Connection* TCPPort::CreateConnection(const Candidate& address,
     socket->DeregisterReceivedPacketCallback();
     conn = new TCPConnection(NewWeakPtr(), address, socket);
   } else {
-    // Outgoing connection, which will create a new socket for which we still
-    // need to connect SignalReadyToSend and SignalSentPacket.
+    // Outgoing connection, which will create a new socket.
     conn = new TCPConnection(NewWeakPtr(), address);
-    if (conn->socket()) {
-      conn->socket()->SignalReadyToSend.connect(this, &TCPPort::OnReadyToSend);
-      conn->socket()->SignalSentPacket.connect(this, &TCPPort::OnSentPacket);
-    }
   }
   AddOrReplaceConnection(conn);
   return conn;
@@ -415,6 +410,14 @@ int TCPConnection::GetError() {
   return error_;
 }
 
+void TCPConnection::OnSentPacket(rtc::AsyncPacketSocket* socket,
+                                 const rtc::SentPacket& sent_packet) {
+  RTC_DCHECK_RUN_ON(network_thread());
+  if (port()) {
+    port()->SignalSentPacket(sent_packet);
+  }
+}
+
 void TCPConnection::OnConnectionRequestResponse(StunRequest* req,
                                                 StunMessage* response) {
   // Process the STUN response before we inform upper layer ready to send.
@@ -606,14 +609,20 @@ void TCPConnection::CreateOutgoingTcpSocket() {
 }
 
 void TCPConnection::ConnectSocketSignals(rtc::AsyncPacketSocket* socket) {
+  // Incoming connections register SignalSentPacket and SignalReadyToSend
+  // directly on the port in TCPPort::OnNewConnection.
   if (outgoing_) {
     socket->SignalConnect.connect(this, &TCPConnection::OnConnect);
+    socket->SignalSentPacket.connect(this, &TCPConnection::OnSentPacket);
+    socket->SignalReadyToSend.connect(this, &TCPConnection::OnReadyToSend);
   }
+
+  // For incoming connections, this re-register ReceivedPacketCallback to the
+  // connection instead of the port.
   socket->RegisterReceivedPacketCallback(
       [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
         OnReadPacket(socket, packet);
       });
-  socket->SignalReadyToSend.connect(this, &TCPConnection::OnReadyToSend);
   socket->SubscribeCloseEvent(this, [this, safety = network_safety_.flag()](
                                         rtc::AsyncPacketSocket* s, int err) {
     if (safety->alive())
@@ -623,10 +632,12 @@ void TCPConnection::ConnectSocketSignals(rtc::AsyncPacketSocket* socket) {
 
 void TCPConnection::DisconnectSocketSignals(rtc::AsyncPacketSocket* socket) {
   if (outgoing_) {
+    // Incoming connections do not register these signals in TCPConnection.
     socket->SignalConnect.disconnect(this);
+    socket->SignalReadyToSend.disconnect(this);
+    socket->SignalSentPacket.disconnect(this);
   }
   socket->DeregisterReceivedPacketCallback();
-  socket->SignalReadyToSend.disconnect(this);
   socket->UnsubscribeCloseEvent(this);
 }
 

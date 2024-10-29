@@ -45,8 +45,8 @@ BYPASS_PROXY_CONSTMETHOD0(bool, reliable)
 BYPASS_PROXY_CONSTMETHOD0(bool, ordered)
 BYPASS_PROXY_CONSTMETHOD0(uint16_t, maxRetransmitTime)
 BYPASS_PROXY_CONSTMETHOD0(uint16_t, maxRetransmits)
-BYPASS_PROXY_CONSTMETHOD0(absl::optional<int>, maxRetransmitsOpt)
-BYPASS_PROXY_CONSTMETHOD0(absl::optional<int>, maxPacketLifeTime)
+BYPASS_PROXY_CONSTMETHOD0(std::optional<int>, maxRetransmitsOpt)
+BYPASS_PROXY_CONSTMETHOD0(std::optional<int>, maxPacketLifeTime)
 BYPASS_PROXY_CONSTMETHOD0(std::string, protocol)
 BYPASS_PROXY_CONSTMETHOD0(bool, negotiated)
 // Can't bypass the proxy since the id may change.
@@ -85,7 +85,7 @@ InternalDataChannelInit::InternalDataChannelInit(const DataChannelInit& base)
     if (*maxRetransmits < 0) {
       RTC_LOG(LS_ERROR)
           << "Accepting maxRetransmits < 0 for backwards compatibility";
-      maxRetransmits = absl::nullopt;
+      maxRetransmits = std::nullopt;
     } else if (*maxRetransmits > std::numeric_limits<uint16_t>::max()) {
       maxRetransmits = std::numeric_limits<uint16_t>::max();
     }
@@ -95,7 +95,7 @@ InternalDataChannelInit::InternalDataChannelInit(const DataChannelInit& base)
     if (*maxRetransmitTime < 0) {
       RTC_LOG(LS_ERROR)
           << "Accepting maxRetransmitTime < 0 for backwards compatibility";
-      maxRetransmitTime = absl::nullopt;
+      maxRetransmitTime = std::nullopt;
     } else if (*maxRetransmitTime > std::numeric_limits<uint16_t>::max()) {
       maxRetransmitTime = std::numeric_limits<uint16_t>::max();
     }
@@ -119,7 +119,7 @@ bool InternalDataChannelInit::IsValid() const {
   return true;
 }
 
-absl::optional<StreamId> SctpSidAllocator::AllocateSid(rtc::SSLRole role) {
+std::optional<StreamId> SctpSidAllocator::AllocateSid(rtc::SSLRole role) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   int potential_sid = (role == rtc::SSL_CLIENT) ? 0 : 1;
   while (potential_sid <= static_cast<int>(cricket::kMaxSctpSid)) {
@@ -129,7 +129,7 @@ absl::optional<StreamId> SctpSidAllocator::AllocateSid(rtc::SSLRole role) {
     potential_sid += 2;
   }
   RTC_LOG(LS_ERROR) << "SCTP sid allocation pool exhausted.";
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 bool SctpSidAllocator::ReserveSid(StreamId sid) {
@@ -315,7 +315,7 @@ SctpDataChannel::SctpDataChannel(
     rtc::Thread* network_thread)
     : signaling_thread_(signaling_thread),
       network_thread_(network_thread),
-      id_n_(config.id == -1 ? absl::nullopt : absl::make_optional(config.id)),
+      id_n_(config.id == -1 ? std::nullopt : std::make_optional(config.id)),
       internal_id_(GenerateUniqueId()),
       label_(label),
       protocol_(config.protocol),
@@ -459,11 +459,11 @@ uint16_t SctpDataChannel::maxRetransmits() const {
   return max_retransmits_ ? *max_retransmits_ : static_cast<uint16_t>(-1);
 }
 
-absl::optional<int> SctpDataChannel::maxPacketLifeTime() const {
+std::optional<int> SctpDataChannel::maxPacketLifeTime() const {
   return max_retransmit_time_;
 }
 
-absl::optional<int> SctpDataChannel::maxRetransmitsOpt() const {
+std::optional<int> SctpDataChannel::maxRetransmitsOpt() const {
   return max_retransmits_;
 }
 

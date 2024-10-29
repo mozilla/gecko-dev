@@ -13,10 +13,10 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/video_frame.h"
 #include "modules/video_coding/include/video_error_codes.h"
@@ -156,8 +156,8 @@ void QualityAnalyzingVideoDecoder::DecoderCallback::SetDelegateCallback(
 // method on `delegate_callback_`, as was called on `this` callback.
 int32_t QualityAnalyzingVideoDecoder::DecoderCallback::Decoded(
     VideoFrame& decodedImage) {
-  decoder_->OnFrameDecoded(&decodedImage, /*decode_time_ms=*/absl::nullopt,
-                           /*qp=*/absl::nullopt);
+  decoder_->OnFrameDecoded(&decodedImage, /*decode_time_ms=*/std::nullopt,
+                           /*qp=*/std::nullopt);
 
   MutexLock lock(&callback_mutex_);
   RTC_DCHECK(delegate_callback_);
@@ -167,7 +167,7 @@ int32_t QualityAnalyzingVideoDecoder::DecoderCallback::Decoded(
 int32_t QualityAnalyzingVideoDecoder::DecoderCallback::Decoded(
     VideoFrame& decodedImage,
     int64_t decode_time_ms) {
-  decoder_->OnFrameDecoded(&decodedImage, decode_time_ms, /*qp=*/absl::nullopt);
+  decoder_->OnFrameDecoded(&decodedImage, decode_time_ms, /*qp=*/std::nullopt);
 
   MutexLock lock(&callback_mutex_);
   RTC_DCHECK(delegate_callback_);
@@ -176,8 +176,8 @@ int32_t QualityAnalyzingVideoDecoder::DecoderCallback::Decoded(
 
 void QualityAnalyzingVideoDecoder::DecoderCallback::Decoded(
     VideoFrame& decodedImage,
-    absl::optional<int32_t> decode_time_ms,
-    absl::optional<uint8_t> qp) {
+    std::optional<int32_t> decode_time_ms,
+    std::optional<uint8_t> qp) {
   decoder_->OnFrameDecoded(&decodedImage, decode_time_ms, qp);
 
   MutexLock lock(&callback_mutex_);
@@ -197,7 +197,7 @@ QualityAnalyzingVideoDecoder::DecoderCallback::IrrelevantSimulcastStreamDecoded(
           .build();
   MutexLock lock(&callback_mutex_);
   RTC_DCHECK(delegate_callback_);
-  delegate_callback_->Decoded(dummy_frame, absl::nullopt, absl::nullopt);
+  delegate_callback_->Decoded(dummy_frame, std::nullopt, std::nullopt);
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
@@ -212,9 +212,9 @@ QualityAnalyzingVideoDecoder::DecoderCallback::GetDummyFrameBuffer() {
 
 void QualityAnalyzingVideoDecoder::OnFrameDecoded(
     VideoFrame* frame,
-    absl::optional<int32_t> decode_time_ms,
-    absl::optional<uint8_t> qp) {
-  absl::optional<uint16_t> frame_id;
+    std::optional<int32_t> decode_time_ms,
+    std::optional<uint8_t> qp) {
+  std::optional<uint16_t> frame_id;
   std::string codec_name;
   {
     MutexLock lock(&mutex_);

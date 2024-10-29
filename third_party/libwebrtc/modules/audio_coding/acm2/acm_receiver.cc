@@ -61,10 +61,7 @@ AcmReceiver::AcmReceiver(const Environment& env, Config config)
       neteq_(CreateNetEq(config.neteq_factory,
                          config.neteq_config,
                          env_,
-                         std::move(config.decoder_factory))),
-      resampled_last_output_frame_(true) {
-  ClearSamples(last_audio_buffer_);
-}
+                         std::move(config.decoder_factory))) {}
 
 AcmReceiver::~AcmReceiver() = default;
 
@@ -90,12 +87,13 @@ int AcmReceiver::GetBaseMinimumDelayMs() const {
   return neteq_->GetBaseMinimumDelayMs();
 }
 
-absl::optional<int> AcmReceiver::last_packet_sample_rate_hz() const {
-  MutexLock lock(&mutex_);
-  if (!last_decoder_) {
-    return absl::nullopt;
+std::optional<int> AcmReceiver::last_packet_sample_rate_hz() const {
+  std::optional<NetEq::DecoderFormat> decoder =
+      neteq_->GetCurrentDecoderFormat();
+  if (!decoder) {
+    return std::nullopt;
   }
-  return last_decoder_->sample_rate_hz;
+  return decoder->sample_rate_hz;
 }
 
 int AcmReceiver::last_output_sample_rate_hz() const {
@@ -109,36 +107,6 @@ int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
     neteq_->InsertEmptyPacket(rtp_header);
     return 0;
   }
-
-  int payload_type = rtp_header.payloadType;
-  auto format = neteq_->GetDecoderFormat(payload_type);
-  if (format && absl::EqualsIgnoreCase(format->sdp_format.name, "red")) {
-    // This is a RED packet. Get the format of the audio codec.
-    payload_type = incoming_payload[0] & 0x7f;
-    format = neteq_->GetDecoderFormat(payload_type);
-  }
-  if (!format) {
-    RTC_LOG_F(LS_ERROR) << "Payload-type " << payload_type
-                        << " is not registered.";
-    return -1;
-  }
-
-  {
-    MutexLock lock(&mutex_);
-    if (absl::EqualsIgnoreCase(format->sdp_format.name, "cn")) {
-      if (last_decoder_ && last_decoder_->num_channels > 1) {
-        // This is a CNG and the audio codec is not mono, so skip pushing in
-        // packets into NetEq.
-        return 0;
-      }
-    } else {
-      last_decoder_ = DecoderInfo{/*payload_type=*/payload_type,
-                                  /*sample_rate_hz=*/format->sample_rate_hz,
-                                  /*num_channels=*/format->num_channels,
-                                  /*sdp_format=*/std::move(format->sdp_format)};
-    }
-  }  // `mutex_` is released.
-
   if (neteq_->InsertPacket(rtp_header, incoming_payload, receive_time) < 0) {
     RTC_LOG(LS_ERROR) << "AcmReceiver::InsertPacket "
                       << static_cast<int>(rtp_header.payloadType)
@@ -157,60 +125,13 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
     RTC_LOG(LS_ERROR) << "AcmReceiver::GetAudio - NetEq Failed.";
     return -1;
   }
-
-  RTC_DCHECK_NE(current_sample_rate_hz, 0);
-
-  // Update if resampling is required.
-  const bool need_resampling =
-      (desired_freq_hz != -1) && (current_sample_rate_hz != desired_freq_hz);
+  RTC_DCHECK_EQ(audio_frame->sample_rate_hz_, current_sample_rate_hz);
 
   // Accessing members, take the lock.
   MutexLock lock(&mutex_);
-  if (need_resampling && !resampled_last_output_frame_) {
-    // Prime the resampler with the last frame.
-    int16_t temp_output[AudioFrame::kMaxDataSizeSamples];
-    int samples_per_channel_int = resampler_.Resample10Msec(
-        last_audio_buffer_.data(), current_sample_rate_hz, desired_freq_hz,
-        audio_frame->num_channels_, AudioFrame::kMaxDataSizeSamples,
-        temp_output);
-    if (samples_per_channel_int < 0) {
-      RTC_LOG(LS_ERROR) << "AcmReceiver::GetAudio - "
-                           "Resampling last_audio_buffer_ failed.";
-      return -1;
-    }
+  if (!resampler_helper_.MaybeResample(desired_freq_hz, audio_frame)) {
+    return -1;
   }
-
-  // TODO(bugs.webrtc.org/3923) Glitches in the output may appear if the output
-  // rate from NetEq changes.
-  if (need_resampling) {
-    // TODO(yujo): handle this more efficiently for muted frames.
-    int samples_per_channel_int = resampler_.Resample10Msec(
-        audio_frame->data(), current_sample_rate_hz, desired_freq_hz,
-        audio_frame->num_channels_, AudioFrame::kMaxDataSizeSamples,
-        audio_frame->mutable_data());
-    if (samples_per_channel_int < 0) {
-      RTC_LOG(LS_ERROR)
-          << "AcmReceiver::GetAudio - Resampling audio_buffer_ failed.";
-      return -1;
-    }
-    audio_frame->samples_per_channel_ =
-        static_cast<size_t>(samples_per_channel_int);
-    audio_frame->sample_rate_hz_ = desired_freq_hz;
-    RTC_DCHECK_EQ(
-        audio_frame->sample_rate_hz_,
-        rtc::dchecked_cast<int>(audio_frame->samples_per_channel_ * 100));
-    resampled_last_output_frame_ = true;
-  } else {
-    resampled_last_output_frame_ = false;
-    // We might end up here ONLY if codec is changed.
-  }
-
-  // Store current audio in `last_audio_buffer_` for next time.
-  // TODO: b/335805780 - Use CopySamples().
-  memcpy(last_audio_buffer_.data(), audio_frame->data(),
-         sizeof(int16_t) * audio_frame->samples_per_channel_ *
-             audio_frame->num_channels_);
-
   call_stats_.DecodedByNetEq(audio_frame->speech_type_, audio_frame->muted());
   return 0;
 }
@@ -223,7 +144,7 @@ void AcmReceiver::FlushBuffers() {
   neteq_->FlushBuffers();
 }
 
-absl::optional<uint32_t> AcmReceiver::GetPlayoutTimestamp() {
+std::optional<uint32_t> AcmReceiver::GetPlayoutTimestamp() {
   return neteq_->GetPlayoutTimestamp();
 }
 
@@ -235,14 +156,13 @@ int AcmReceiver::TargetDelayMs() const {
   return neteq_->TargetDelayMs();
 }
 
-absl::optional<std::pair<int, SdpAudioFormat>> AcmReceiver::LastDecoder()
-    const {
-  MutexLock lock(&mutex_);
-  if (!last_decoder_) {
-    return absl::nullopt;
+std::optional<std::pair<int, SdpAudioFormat>> AcmReceiver::LastDecoder() const {
+  std::optional<NetEq::DecoderFormat> decoder =
+      neteq_->GetCurrentDecoderFormat();
+  if (!decoder) {
+    return std::nullopt;
   }
-  RTC_DCHECK_NE(-1, last_decoder_->payload_type);
-  return std::make_pair(last_decoder_->payload_type, last_decoder_->sdp_format);
+  return std::make_pair(decoder->payload_type, decoder->sdp_format);
 }
 
 void AcmReceiver::GetNetworkStatistics(

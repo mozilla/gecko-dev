@@ -85,7 +85,7 @@ int32_t QualityAnalyzingVideoEncoder::InitEncode(
   MutexLock lock(&mutex_);
   codec_settings_ = *codec_settings;
   mode_ = SimulcastMode::kNormal;
-  absl::optional<InterLayerPredMode> inter_layer_pred_mode;
+  std::optional<InterLayerPredMode> inter_layer_pred_mode;
   if (codec_settings->GetScalabilityMode().has_value()) {
     inter_layer_pred_mode = ScalabilityModeToInterLayerPredMode(
         *codec_settings->GetScalabilityMode());
@@ -399,7 +399,7 @@ QualityAnalyzingVideoEncoderFactory::GetSupportedFormats() const {
 VideoEncoderFactory::CodecSupport
 QualityAnalyzingVideoEncoderFactory::QueryCodecSupport(
     const SdpVideoFormat& format,
-    absl::optional<std::string> scalability_mode) const {
+    std::optional<std::string> scalability_mode) const {
   return delegate_->QueryCodecSupport(format, scalability_mode);
 }
 

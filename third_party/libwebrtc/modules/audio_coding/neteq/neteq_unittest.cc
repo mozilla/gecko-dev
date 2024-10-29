@@ -513,7 +513,7 @@ TEST_F(NetEqDecodingTest, DiscardDuplicateCng) {
   ASSERT_EQ(0, neteq_->GetAudio(&out_frame_, &muted));
   ASSERT_EQ(kBlockSize16kHz, out_frame_.samples_per_channel_);
   EXPECT_EQ(AudioFrame::kNormalSpeech, out_frame_.speech_type_);
-  absl::optional<uint32_t> playout_timestamp = neteq_->GetPlayoutTimestamp();
+  std::optional<uint32_t> playout_timestamp = neteq_->GetPlayoutTimestamp();
   ASSERT_TRUE(playout_timestamp);
   EXPECT_EQ(first_speech_timestamp + kSamples - algorithmic_delay_samples,
             *playout_timestamp);
@@ -1005,7 +1005,7 @@ TEST(NetEqNoTimeStretchingMode, RunTest) {
       {8, kRtpExtensionVideoTiming}};
   std::unique_ptr<NetEqInput> input = CreateNetEqRtpDumpInput(
       webrtc::test::ResourcePath("audio_coding/neteq_universal_new", "rtp"),
-      rtp_ext_map, absl::nullopt /*No SSRC filter*/);
+      rtp_ext_map, std::nullopt /*No SSRC filter*/);
   std::unique_ptr<TimeLimitedNetEqInput> input_time_limit(
       new TimeLimitedNetEqInput(std::move(input), 20000));
   std::unique_ptr<AudioSink> output(new VoidAudioSink);

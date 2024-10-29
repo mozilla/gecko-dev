@@ -16,12 +16,12 @@
 #include <array>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 #include <atomic>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_frame.h"
 #include "api/audio_codecs/audio_decoder.h"
@@ -44,6 +44,7 @@ struct RTPHeader;
 
 namespace acm2 {
 
+// This class is deprecated. See https://issues.webrtc.org/issues/42225167.
 class AcmReceiver {
  public:
   struct Config {
@@ -148,7 +149,7 @@ class AcmReceiver {
   // packet. If no packet of a registered non-CNG codec has been received, the
   // return value is empty. Also, if the decoder was unregistered since the last
   // packet was inserted, the return value is empty.
-  absl::optional<int> last_packet_sample_rate_hz() const;
+  std::optional<int> last_packet_sample_rate_hz() const;
 
   // Returns last_output_sample_rate_hz from the NetEq instance.
   int last_output_sample_rate_hz() const;
@@ -169,7 +170,7 @@ class AcmReceiver {
 
   // Returns the RTP timestamp for the last sample delivered by GetAudio().
   // The return value will be empty if no valid timestamp is available.
-  absl::optional<uint32_t> GetPlayoutTimestamp();
+  std::optional<uint32_t> GetPlayoutTimestamp();
 
   // Returns the current total delay from NetEq (packet buffer and sync buffer)
   // in ms, with smoothing applied to even out short-time fluctuations due to
@@ -184,9 +185,9 @@ class AcmReceiver {
 
   //
   // Get payload type and format of the last non-CNG/non-DTMF received payload.
-  // If no non-CNG/non-DTMF packet is received absl::nullopt is returned.
+  // If no non-CNG/non-DTMF packet is received std::nullopt is returned.
   //
-  absl::optional<std::pair<int, SdpAudioFormat>> LastDecoder() const;
+  std::optional<std::pair<int, SdpAudioFormat>> LastDecoder() const;
 
   //
   // Enable NACK and set the maximum size of the NACK list. If NACK is already
@@ -220,24 +221,13 @@ class AcmReceiver {
   void GetDecodingCallStatistics(AudioDecodingCallStats* stats) const;
 
  private:
-  struct DecoderInfo {
-    int payload_type;
-    int sample_rate_hz;
-    int num_channels;
-    SdpAudioFormat sdp_format;
-  };
-
   uint32_t NowInTimestamp(int decoder_sampling_rate) const;
 
   const Environment env_;
   mutable Mutex mutex_;
-  absl::optional<DecoderInfo> last_decoder_ RTC_GUARDED_BY(mutex_);
-  ACMResampler resampler_ RTC_GUARDED_BY(mutex_);
   CallStatistics call_stats_ RTC_GUARDED_BY(mutex_);
   const std::unique_ptr<NetEq> neteq_;  // NetEq is thread-safe; no lock needed.
-  bool resampled_last_output_frame_ RTC_GUARDED_BY(mutex_);
-  std::array<int16_t, AudioFrame::kMaxDataSizeSamples> last_audio_buffer_
-      RTC_GUARDED_BY(mutex_);
+  ResamplerHelper resampler_helper_ RTC_GUARDED_BY(mutex_);
 };
 
 }  // namespace acm2

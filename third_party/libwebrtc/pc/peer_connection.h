@@ -16,11 +16,11 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/adaptation/resource.h"
 #include "api/async_dns_resolver.h"
 #include "api/candidate.h"
@@ -185,7 +185,7 @@ class PeerConnection : public PeerConnectionInternal,
   IceConnectionState standardized_ice_connection_state() override;
   PeerConnectionState peer_connection_state() override;
   IceGatheringState ice_gathering_state() override;
-  absl::optional<bool> can_trickle_ice_candidates() override;
+  std::optional<bool> can_trickle_ice_candidates() override;
 
   const SessionDescriptionInterface* local_description() const override;
   const SessionDescriptionInterface* remote_description() const override;
@@ -286,15 +286,15 @@ class PeerConnection : public PeerConnectionInternal,
 
   std::vector<DataChannelStats> GetDataChannelStats() const override;
 
-  absl::optional<std::string> sctp_transport_name() const override;
-  absl::optional<std::string> sctp_mid() const override;
+  std::optional<std::string> sctp_transport_name() const override;
+  std::optional<std::string> sctp_mid() const override;
 
   cricket::CandidateStatsList GetPooledCandidateStats() const override;
   std::map<std::string, cricket::TransportStats> GetTransportStatsByNames(
       const std::set<std::string>& transport_names) override;
   Call::Stats GetCallStats() override;
 
-  absl::optional<AudioDeviceModule::Stats> GetAudioDeviceStats() override;
+  std::optional<AudioDeviceModule::Stats> GetAudioDeviceStats() override;
 
   bool GetLocalCertificate(
       const std::string& transport_name,
@@ -315,7 +315,7 @@ class PeerConnection : public PeerConnectionInternal,
            sdp_handler_->signaling_state() == PeerConnectionInterface::kClosed;
   }
   // Get current SSL role used by SCTP's underlying transport.
-  absl::optional<rtc::SSLRole> GetSctpSslRole_n() override;
+  std::optional<rtc::SSLRole> GetSctpSslRole_n() override;
 
   void OnSctpDataChannelStateChanged(
       int channel_id,
@@ -423,7 +423,7 @@ class PeerConnection : public PeerConnectionInternal,
   // this session.
   bool SrtpRequired() const override;
 
-  absl::optional<std::string> SetupDataChannelTransport_n(absl::string_view mid)
+  std::optional<std::string> SetupDataChannelTransport_n(absl::string_view mid)
       RTC_RUN_ON(network_thread());
   void TeardownDataChannelTransport_n(RTCError error)
       RTC_RUN_ON(network_thread());
@@ -447,6 +447,9 @@ class PeerConnection : public PeerConnectionInternal,
     RTC_DCHECK_RUN_ON(worker_thread());
     RTC_DCHECK(call_);
     return call_->GetTransportControllerSend()->GetNetworkController();
+  }
+  PayloadTypePicker& payload_type_picker() override {
+    return payload_type_picker_;
   }
 
  protected:
@@ -521,7 +524,7 @@ class PeerConnection : public PeerConnectionInternal,
       int candidate_pool_size,
       PortPrunePolicy turn_port_prune_policy,
       TurnCustomizer* turn_customizer,
-      absl::optional<int> stun_candidate_keepalive_interval,
+      std::optional<int> stun_candidate_keepalive_interval,
       bool have_local_description);
 
   // Starts output of an RTC event log to the given output object.
@@ -677,8 +680,8 @@ class PeerConnection : public PeerConnectionInternal,
   // There is one copy on the signaling thread and another copy on the
   // networking thread. Changes are always initiated from the signaling
   // thread, but applied first on the networking thread via an invoke().
-  absl::optional<std::string> sctp_mid_s_ RTC_GUARDED_BY(signaling_thread());
-  absl::optional<std::string> sctp_mid_n_ RTC_GUARDED_BY(network_thread());
+  std::optional<std::string> sctp_mid_s_ RTC_GUARDED_BY(signaling_thread());
+  std::optional<std::string> sctp_mid_n_ RTC_GUARDED_BY(network_thread());
   std::string sctp_transport_name_s_ RTC_GUARDED_BY(signaling_thread());
 
   // The machinery for handling offers and answers. Const after initialization.
@@ -707,6 +710,7 @@ class PeerConnection : public PeerConnectionInternal,
   // Used to gather metrics only the first such state change.
   bool was_ever_connected_ RTC_GUARDED_BY(signaling_thread()) = false;
 
+  PayloadTypePicker payload_type_picker_;
   // This variable needs to be the last one in the class.
   rtc::WeakPtrFactory<PeerConnection> weak_factory_;
 };

@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/simulated_network.h"
 #include "api/units/time_delta.h"
@@ -196,11 +198,11 @@ TEST_F(BandwidthEndToEndTest, RembWithSendSideBwe) {
     explicit BweObserver(TaskQueueBase* task_queue)
         : EndToEndTest(test::VideoTestConstants::kDefaultTimeout),
           sender_call_(nullptr),
-          clock_(Clock::GetRealTimeClock()),
+          env_(CreateEnvironment()),
           sender_ssrc_(0),
           remb_bitrate_bps_(1000000),
           state_(kWaitForFirstRampUp),
-          retransmission_rate_limiter_(clock_, 1000),
+          retransmission_rate_limiter_(&env_.clock(), 1000),
           task_queue_(task_queue) {}
 
     void OnStreamsStopped() override { rtp_rtcp_ = nullptr; }
@@ -238,12 +240,11 @@ TEST_F(BandwidthEndToEndTest, RembWithSendSideBwe) {
         SimulatedNetworkInterface* /*receiver_network*/) override {
       RtpRtcpInterface::Configuration config;
       config.receiver_only = true;
-      config.clock = clock_;
       config.outgoing_transport = to_sender;
       config.retransmission_rate_limiter = &retransmission_rate_limiter_;
       config.local_media_ssrc = remb_sender_local_ssrc_;
 
-      rtp_rtcp_ = ModuleRtpRtcpImpl2::Create(config);
+      rtp_rtcp_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, config);
       rtp_rtcp_->SetRemoteSSRC(remb_sender_remote_ssrc_);
       rtp_rtcp_->SetRTCPStatus(RtcpMode::kReducedSize);
     }
@@ -294,7 +295,7 @@ TEST_F(BandwidthEndToEndTest, RembWithSendSideBwe) {
     enum TestState { kWaitForFirstRampUp, kWaitForRemb, kWaitForSecondRampUp };
 
     Call* sender_call_;
-    Clock* const clock_;
+    const Environment env_;
     uint32_t sender_ssrc_;
     uint32_t remb_sender_local_ssrc_ = 0;
     uint32_t remb_sender_remote_ssrc_ = 0;

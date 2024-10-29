@@ -39,8 +39,8 @@ struct FrameInfo {
   // This is likely not optional, but some inputs seem to sometimes be negative.
   // TODO(bugs.webrtc.org/13756): See if this can be replaced with Timestamp
   // once all inputs to this field use Timestamp instead of an integer.
-  absl::optional<Timestamp> render_time;
-  absl::optional<Timestamp> decode_start;
+  std::optional<Timestamp> render_time;
+  std::optional<Timestamp> decode_start;
   VideoRotation rotation;
   VideoContentType content_type;
   EncodedImage::Timing timing;
@@ -62,8 +62,8 @@ class VCMDecodedFrameCallback : public DecodedImageCallback {
   int32_t Decoded(VideoFrame& decodedImage) override;
   int32_t Decoded(VideoFrame& decodedImage, int64_t decode_time_ms) override;
   void Decoded(VideoFrame& decodedImage,
-               absl::optional<int32_t> decode_time_ms,
-               absl::optional<uint8_t> qp) override;
+               std::optional<int32_t> decode_time_ms,
+               std::optional<uint8_t> qp) override;
 
   void OnDecoderInfoChanged(const VideoDecoder::DecoderInfo& decoder_info);
 
@@ -71,7 +71,7 @@ class VCMDecodedFrameCallback : public DecodedImageCallback {
   void ClearTimestampMap();
 
  private:
-  std::pair<absl::optional<FrameInfo>, size_t> FindFrameInfo(
+  std::pair<std::optional<FrameInfo>, size_t> FindFrameInfo(
       uint32_t rtp_timestamp) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
   SequenceChecker construction_thread_;

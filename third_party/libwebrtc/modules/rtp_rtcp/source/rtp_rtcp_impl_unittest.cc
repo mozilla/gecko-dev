@@ -10,17 +10,36 @@
 
 #include "modules/rtp_rtcp/source/rtp_rtcp_impl.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
-#include <set>
+#include <optional>
+#include <vector>
 
+#include "api/array_view.h"
+#include "api/call/transport.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
+#include "api/rtp_headers.h"
 #include "api/units/time_delta.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_content_type.h"
+#include "api/video/video_frame_type.h"
+#include "api/video/video_rotation.h"
+#include "modules/rtp_rtcp/include/receive_statistics.h"
+#include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
-#include "modules/rtp_rtcp/source/rtcp_packet.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/nack.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/sender_report.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
 #include "modules/rtp_rtcp/source/rtp_sender_video.h"
-#include "rtc_base/rate_limiter.h"
+#include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
+#include "modules/video_coding/codecs/interface/common_constants.h"
+#include "modules/video_coding/codecs/vp8/include/vp8_globals.h"
+#include "system_wrappers/include/clock.h"
+#include "system_wrappers/include/ntp_time.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
@@ -110,13 +129,15 @@ class SendTransport : public Transport {
 class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
  public:
   RtpRtcpModule(SimulatedClock* clock, bool is_sender)
-      : is_sender_(is_sender),
+      : env_(CreateEnvironment(clock)),
+        is_sender_(is_sender),
         receive_statistics_(ReceiveStatistics::Create(clock)),
         clock_(clock) {
     CreateModuleImpl();
     transport_.SimulateNetworkDelay(kOneWayNetworkDelay.ms(), clock);
   }
 
+  const Environment env_;
   const bool is_sender_;
   RtcpPacketTypeCounter packets_sent_;
   RtcpPacketTypeCounter packets_received_;
@@ -167,7 +188,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
     config.need_rtp_packet_infos = true;
     config.non_sender_rtt_measurement = true;
 
-    impl_.reset(new ModuleRtpRtcpImpl(config));
+    impl_.reset(new ModuleRtpRtcpImpl(env_, config));
     impl_->SetRemoteSSRC(is_sender_ ? kReceiverSsrc : kSenderSsrc);
     impl_->SetRTCPStatus(RtcpMode::kCompound);
   }
@@ -599,7 +620,7 @@ TEST_F(RtpRtcpImplTest, StoresPacketInfoForSentPackets) {
 
 // Checks that the remote sender stats are not available if no RTCP SR was sent.
 TEST_F(RtpRtcpImplTest, SenderReportStatsNotAvailable) {
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(absl::nullopt));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(std::nullopt));
 }
 
 // Checks that the remote sender stats are available if an RTCP SR was sent.
@@ -608,7 +629,7 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsAvailable) {
   SendFrame(&sender_, sender_video_.get(), kBaseLayerTid);
   // Send an SR.
   ASSERT_THAT(sender_.impl_->SendRTCP(kRtcpReport), Eq(0));
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Not(Eq(absl::nullopt)));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Not(Eq(std::nullopt)));
 }
 
 // Checks that the remote sender stats are not available if an RTCP SR with an
@@ -624,7 +645,7 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsNotUpdatedWithUnexpectedSsrc) {
   sr.SetPacketCount(123u);
   sr.SetOctetCount(456u);
   receiver_.impl_->IncomingRtcpPacket(sr.Build());
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(absl::nullopt));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(std::nullopt));
 }
 
 // Checks the stats derived from the last received RTCP SR are set correctly.
@@ -672,7 +693,7 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsArrivalTimestampSet) {
   // Send an SR.
   ASSERT_THAT(sender_.impl_->SendRTCP(kRtcpReport), Eq(0));
   auto stats = receiver_.impl_->GetSenderReportStats();
-  ASSERT_THAT(stats, Not(Eq(absl::nullopt)));
+  ASSERT_THAT(stats, Not(Eq(std::nullopt)));
   EXPECT_TRUE(stats->last_arrival_timestamp.Valid());
 }
 

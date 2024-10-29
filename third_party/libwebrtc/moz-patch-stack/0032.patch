@@ -15,7 +15,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d380a43d59f4f7cbc
  4 files changed, 35 insertions(+)
 
 diff --git a/audio/audio_send_stream.cc b/audio/audio_send_stream.cc
-index fc194c931a..998e86c389 100644
+index 6e5bd18fef..831e6c2815 100644
 --- a/audio/audio_send_stream.cc
 +++ b/audio/audio_send_stream.cc
 @@ -413,6 +413,7 @@ webrtc::AudioSendStream::Stats AudioSendStream::GetStats(
@@ -27,7 +27,7 @@ index fc194c931a..998e86c389 100644
    stats.header_and_padding_bytes_sent =
        call_stats.header_and_padding_bytes_sent;
 diff --git a/audio/channel_send.cc b/audio/channel_send.cc
-index b683cc335e..967feb75c8 100644
+index fa8a42146c..70d3eaabbd 100644
 --- a/audio/channel_send.cc
 +++ b/audio/channel_send.cc
 @@ -57,6 +57,31 @@ constexpr int64_t kMinRetransmissionWindowMs = 30;
@@ -71,7 +71,7 @@ index b683cc335e..967feb75c8 100644
    PacketRouter* packet_router_ RTC_GUARDED_BY(&worker_thread_checker_) =
        nullptr;
    const std::unique_ptr<RtpPacketSenderProxy> rtp_packet_pacer_proxy_;
-@@ -456,6 +483,7 @@ ChannelSend::ChannelSend(
+@@ -472,6 +499,7 @@ ChannelSend::ChannelSend(
      RtpTransportControllerSendInterface* transport_controller)
      : env_(env),
        ssrc_(ssrc),
@@ -79,16 +79,16 @@ index b683cc335e..967feb75c8 100644
        rtp_packet_pacer_proxy_(new RtpPacketSenderProxy()),
        retransmission_rate_limiter_(
            new RateLimiter(&env_.clock(), kMaxRetransmissionWindowMs)),
-@@ -480,6 +508,8 @@ ChannelSend::ChannelSend(
+@@ -493,6 +521,8 @@ ChannelSend::ChannelSend(
  
-   configuration.event_log = &env_.event_log();
+   configuration.paced_sender = rtp_packet_pacer_proxy_.get();
    configuration.rtt_stats = rtcp_rtt_stats;
 +  configuration.rtcp_packet_type_counter_observer =
 +      rtcp_counter_observer_.get();
    if (env_.field_trials().IsDisabled("WebRTC-DisableRtxRateLimiter")) {
      configuration.retransmission_rate_limiter =
          retransmission_rate_limiter_.get();
-@@ -749,6 +779,7 @@ CallSendStatistics ChannelSend::GetRTCPStatistics() const {
+@@ -760,6 +790,7 @@ CallSendStatistics ChannelSend::GetRTCPStatistics() const {
    RTC_DCHECK_RUN_ON(&worker_thread_checker_);
    CallSendStatistics stats = {0};
    stats.rttMs = GetRTT();
@@ -97,7 +97,7 @@ index b683cc335e..967feb75c8 100644
    StreamDataCounters rtp_stats;
    StreamDataCounters rtx_stats;
 diff --git a/audio/channel_send.h b/audio/channel_send.h
-index 6082c0e60a..d2d7e908e3 100644
+index 02215e49cb..a1b09feb5e 100644
 --- a/audio/channel_send.h
 +++ b/audio/channel_send.h
 @@ -41,6 +41,7 @@ struct CallSendStatistics {
@@ -109,18 +109,18 @@ index 6082c0e60a..d2d7e908e3 100644
    // Within this list, the sender-source SSRC pair is unique and per-pair the
    // ReportBlockData represents the latest Report Block that was received for
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
-index ca38f82c3c..6017d73b8f 100644
+index c60526771e..949bb32a88 100644
 --- a/call/audio_send_stream.h
 +++ b/call/audio_send_stream.h
-@@ -31,6 +31,7 @@
+@@ -32,6 +32,7 @@
+ #include "api/units/time_delta.h"
  #include "call/audio_sender.h"
- #include "call/rtp_config.h"
  #include "modules/rtp_rtcp/include/report_block_data.h"
 +#include "modules/rtp_rtcp/include/rtcp_statistics.h"
  
  namespace webrtc {
  
-@@ -65,6 +66,7 @@ class AudioSendStream : public AudioSender {
+@@ -66,6 +67,7 @@ class AudioSendStream : public AudioSender {
  
      ANAStats ana_statistics;
      AudioProcessingStats apm_statistics;

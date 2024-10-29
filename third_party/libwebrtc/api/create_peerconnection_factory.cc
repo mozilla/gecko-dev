@@ -14,11 +14,17 @@
 #include <utility>
 
 #include "api/audio/audio_device.h"
+#include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/enable_media.h"
+#include "api/field_trials_view.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_event_log/rtc_event_log_factory.h"
 #include "api/scoped_refptr.h"
+#include "api/video_codecs/video_decoder_factory.h"
+#include "api/video_codecs/video_encoder_factory.h"
 #include "rtc_base/thread.h"
 
 namespace webrtc {

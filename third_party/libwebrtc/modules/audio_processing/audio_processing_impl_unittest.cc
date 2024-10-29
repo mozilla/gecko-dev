@@ -13,9 +13,9 @@
 #include <algorithm>
 #include <array>
 #include <memory>
+#include <optional>
 #include <tuple>
 
-#include "absl/types/optional.h"
 #include "api/audio/audio_processing.h"
 #include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"

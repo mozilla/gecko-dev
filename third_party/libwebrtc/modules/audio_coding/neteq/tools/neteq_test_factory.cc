@@ -47,7 +47,7 @@ namespace webrtc {
 namespace test {
 namespace {
 
-absl::optional<int> CodecSampleRate(
+std::optional<int> CodecSampleRate(
     uint8_t payload_type,
     webrtc::test::NetEqTestFactory::Config config) {
   if (payload_type == config.pcmu || payload_type == config.pcma ||
@@ -66,7 +66,7 @@ absl::optional<int> CodecSampleRate(
     return 48000;
   if (payload_type == config.red)
     return 0;
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace
@@ -98,7 +98,7 @@ class SsrcSwitchDetector : public NetEqPostInsertPacket {
 
  private:
   NetEqPostInsertPacket* other_callback_;
-  absl::optional<uint32_t> last_ssrc_;
+  std::optional<uint32_t> last_ssrc_;
 };
 
 NetEqTestFactory::NetEqTestFactory() = default;
@@ -172,11 +172,6 @@ std::unique_ptr<NetEqTest> NetEqTestFactory::InitializeTest(
     return nullptr;
   }
 
-  if (!config.field_trial_string.empty()) {
-    field_trials_ =
-        std::make_unique<ScopedFieldTrials>(config.field_trial_string);
-  }
-
   // Skip some initial events/packets if requested.
   if (config.skip_get_audio_events > 0) {
     std::cout << "Skipping " << config.skip_get_audio_events
@@ -202,9 +197,9 @@ std::unique_ptr<NetEqTest> NetEqTestFactory::InitializeTest(
   }
 
   // Check the sample rate.
-  absl::optional<int> sample_rate_hz;
+  std::optional<int> sample_rate_hz;
   std::set<std::pair<int, uint32_t>> discarded_pt_and_ssrc;
-  while (absl::optional<RTPHeader> first_rtp_header = input->NextHeader()) {
+  while (std::optional<RTPHeader> first_rtp_header = input->NextHeader()) {
     RTC_DCHECK(first_rtp_header);
     sample_rate_hz = CodecSampleRate(first_rtp_header->payloadType, config);
     if (sample_rate_hz) {
@@ -300,7 +295,7 @@ std::unique_ptr<NetEqTest> NetEqTestFactory::InitializeTest(
     decoder_factory = rtc::make_ref_counted<FunctionAudioDecoderFactory>(
         [decoder_factory, config](
             const Environment& env, const SdpAudioFormat& format,
-            absl::optional<AudioCodecPairId> codec_pair_id) {
+            std::optional<AudioCodecPairId> codec_pair_id) {
           std::unique_ptr<AudioDecoder> decoder =
               decoder_factory->Create(env, format, codec_pair_id);
           if (!decoder && format.name == "replacement") {
@@ -345,9 +340,10 @@ std::unique_ptr<NetEqTest> NetEqTestFactory::InitializeTest(
   neteq_config.sample_rate_hz = *sample_rate_hz;
   neteq_config.max_packets_in_buffer = config.max_nr_packets_in_buffer;
   neteq_config.enable_fast_accelerate = config.enable_fast_accelerate;
-  return std::make_unique<NetEqTest>(
-      neteq_config, decoder_factory, codecs, std::move(text_log), factory,
-      std::move(input), std::move(output), callbacks);
+  return std::make_unique<NetEqTest>(neteq_config, decoder_factory, codecs,
+                                     std::move(text_log), factory,
+                                     std::move(input), std::move(output),
+                                     callbacks, config.field_trial_string);
 }
 
 }  // namespace test

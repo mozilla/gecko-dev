@@ -186,6 +186,7 @@
         'rtti_no_sctp': 'rtti_no_sctp_x64',
         'disable_trace_events': 'disable_trace_events_x64',
         'perfetto': 'perfetto_x64',
+        'openssl': 'openssl_x64',
       },
       'linux_msan': 'msan_clang_release_bot_x64',
       'linux_rel': 'release_bot_x64',
@@ -492,7 +493,7 @@
       'gn_args': 'is_msan=true msan_track_origins=2',
     },
     'no_build_ssl': {
-      'gn_args': 'rtc_build_ssl=false',
+      'gn_args': 'rtc_build_ssl=false libsrtp_build_boringssl=false',
     },
     'no_ios_code_signing': {
       'gn_args': 'ios_enable_code_signing=false',

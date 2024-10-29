@@ -16,7 +16,7 @@
 #import "RTCShader.h"
 #import "base/RTCLogging.h"
 
-#include "absl/types/optional.h"
+#include <optional>
 
 static const int kYTextureUnit = 0;
 static const int kUTextureUnit = 1;
@@ -69,7 +69,7 @@ static const char kNV12FragmentShaderSource[] =
   GLuint _vertexBuffer;
   GLuint _vertexArray;
   // Store current rotation and only upload new vertex data when rotation changes.
-  absl::optional<RTCVideoRotation> _currentRotation;
+  std::optional<RTCVideoRotation> _currentRotation;
 
   GLuint _i420Program;
   GLuint _nv12Program;
@@ -138,7 +138,7 @@ static const char kNV12FragmentShaderSource[] =
 
   glBindBuffer(GL_ARRAY_BUFFER, _vertexBuffer);
   if (!_currentRotation || rotation != *_currentRotation) {
-    _currentRotation = absl::optional<RTCVideoRotation>(rotation);
+    _currentRotation = std::optional<RTCVideoRotation>(rotation);
     RTCSetVertexData(*_currentRotation);
   }
   return YES;

@@ -126,8 +126,8 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
     std::unique_ptr<webrtc::RtpTransport> unencrypted_rtp_transport;
     std::unique_ptr<webrtc::SrtpTransport> sdes_transport;
     std::unique_ptr<webrtc::DtlsSrtpTransport> dtls_srtp_transport;
-        dtls_srtp_transport = CreateDtlsSrtpTransport(
-            rtp_dtls_transport.get(), rtcp_dtls_transport.get());
+    dtls_srtp_transport = CreateDtlsSrtpTransport(rtp_dtls_transport.get(),
+                                                  rtcp_dtls_transport.get());
 
     auto jsep_transport = std::make_unique<JsepTransport>(
         kTransportName, /*local_certificate=*/nullptr, std::move(ice),
@@ -135,7 +135,8 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
         std::move(sdes_transport), std::move(dtls_srtp_transport),
         std::move(rtp_dtls_transport), std::move(rtcp_dtls_transport),
         /*sctp_transport=*/nullptr,
-        /*rtcp_mux_active_callback=*/[&]() { OnRtcpMuxActive(); });
+        /*rtcp_mux_active_callback=*/[&]() { OnRtcpMuxActive(); },
+        payload_type_picker_);
 
     signal_rtcp_mux_active_received_ = false;
     return jsep_transport;
@@ -179,6 +180,7 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
   webrtc::SrtpTransport* sdes_transport_ = nullptr;
 
   webrtc::test::ScopedKeyValueConfig field_trials_;
+  webrtc::PayloadTypePicker payload_type_picker_;
 };
 
 // The parameterized tests cover both cases when RTCP mux is enable and
@@ -800,7 +802,7 @@ TEST_F(JsepTransport2Test, RemoteOfferWithCurrentNegotiatedDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  absl::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
   EXPECT_EQ(rtc::SSL_CLIENT, *role);
 
@@ -845,7 +847,7 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesNegotiatedDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  absl::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
   EXPECT_EQ(rtc::SSL_CLIENT, *role);
 
@@ -896,7 +898,7 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesFingerprintAndDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  absl::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
   EXPECT_EQ(rtc::SSL_CLIENT, *role);
 
@@ -945,7 +947,7 @@ TEST_F(JsepTransport2Test, DtlsSetupWithLegacyAsAnswerer) {
           ->SetRemoteJsepTransportDescription(remote_desc, SdpType::kAnswer)
           .ok());
 
-  absl::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
   // Since legacy answer omitted setup atribute, and we offered actpass, we
   // should act as passive (server).

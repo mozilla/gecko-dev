@@ -11,31 +11,43 @@
 #ifndef CALL_RTP_VIDEO_SENDER_H_
 #define CALL_RTP_VIDEO_SENDER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
-#include <unordered_set>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
+#include "api/call/bitrate_allocation.h"
 #include "api/call/transport.h"
+#include "api/crypto/crypto_options.h"
 #include "api/environment/environment.h"
 #include "api/fec_controller.h"
-#include "api/fec_controller_override.h"
+#include "api/frame_transformer_interface.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/frequency.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_layers_allocation.h"
 #include "api/video_codecs/video_encoder.h"
 #include "call/rtp_config.h"
 #include "call/rtp_payload_params.h"
 #include "call/rtp_transport_controller_send_interface.h"
 #include "call/rtp_video_sender_interface.h"
-#include "modules/rtp_rtcp/include/flexfec_sender.h"
+#include "common_video/frame_counts.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_impl2.h"
 #include "modules/rtp_rtcp/source/rtp_sender.h"
 #include "modules/rtp_rtcp/source/rtp_sender_video.h"
 #include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
-#include "modules/rtp_rtcp/source/rtp_video_header.h"
+#include "modules/rtp_rtcp/source/video_fec_generator.h"
 #include "rtc_base/rate_limiter.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
@@ -182,7 +194,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
   const std::vector<webrtc_internal_rtp_video_sender::RtpStreamSender>
       rtp_streams_;
   const RtpConfig rtp_config_;
-  const absl::optional<VideoCodecType> codec_type_;
+  const std::optional<VideoCodecType> codec_type_;
   RtpTransportControllerSendInterface* const transport_;
 
   // When using the generic descriptor we want all simulcast streams to share

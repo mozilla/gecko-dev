@@ -195,7 +195,7 @@ TEST_F(DecisionLogicTest, TimeStrechComfortNoise) {
 
 TEST_F(DecisionLogicTest, CngTimeout) {
   auto status = CreateNetEqStatus(NetEq::Mode::kCodecInternalCng, 0);
-  status.next_packet = absl::nullopt;
+  status.next_packet = std::nullopt;
   status.generated_noise_samples = kSamplesPerMs * 500;
   bool reset_decoder = false;
   EXPECT_EQ(decision_logic_->GetDecision(status, &reset_decoder),

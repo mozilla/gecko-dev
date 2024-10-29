@@ -13,17 +13,18 @@
 #include <stddef.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "api/media_types.h"
 #include "api/sequence_checker.h"
 #include "api/video_codecs/video_decoder_factory.h"
@@ -50,6 +51,7 @@
 #include "rtc_base/string_encode.h"
 #include "rtc_base/time_utils.h"
 #include "test/gtest.h"
+#include "test/scoped_key_value_config.h"
 
 namespace {
 
@@ -81,7 +83,7 @@ class FuzzyMatchedVideoEncoderFactory : public webrtc::VideoEncoderFactory {
   std::unique_ptr<webrtc::VideoEncoder> Create(
       const Environment& env,
       const webrtc::SdpVideoFormat& format) override {
-    if (absl::optional<webrtc::SdpVideoFormat> original_format =
+    if (std::optional<webrtc::SdpVideoFormat> original_format =
             webrtc::FuzzyMatchSdpVideoFormat(factory_.GetSupportedFormats(),
                                              format)) {
       return std::make_unique<webrtc::SimulcastEncoderAdapter>(
@@ -93,7 +95,7 @@ class FuzzyMatchedVideoEncoderFactory : public webrtc::VideoEncoderFactory {
 
   CodecSupport QueryCodecSupport(
       const webrtc::SdpVideoFormat& format,
-      absl::optional<std::string> scalability_mode) const override {
+      std::optional<std::string> scalability_mode) const override {
     return factory_.QueryCodecSupport(format, scalability_mode);
   }
 
@@ -125,6 +127,21 @@ PeerConnectionTestWrapper::PeerConnectionTestWrapper(
     rtc::Thread* network_thread,
     rtc::Thread* worker_thread)
     : name_(name),
+      socket_server_(socket_server),
+      network_thread_(network_thread),
+      worker_thread_(worker_thread),
+      pending_negotiation_(false) {
+  pc_thread_checker_.Detach();
+}
+
+PeerConnectionTestWrapper::PeerConnectionTestWrapper(
+    const std::string& name,
+    rtc::SocketServer* socket_server,
+    rtc::Thread* network_thread,
+    rtc::Thread* worker_thread,
+    webrtc::test::ScopedKeyValueConfig& field_trials)
+    : field_trials_(field_trials, ""),
+      name_(name),
       socket_server_(socket_server),
       network_thread_(network_thread),
       worker_thread_(worker_thread),
@@ -173,7 +190,8 @@ bool PeerConnectionTestWrapper::CreatePc(
           webrtc::LibvpxVp9DecoderTemplateAdapter,
           webrtc::OpenH264DecoderTemplateAdapter,
           webrtc::Dav1dDecoderTemplateAdapter>>(),
-      nullptr /* audio_mixer */, nullptr /* audio_processing */);
+      nullptr /* audio_mixer */, nullptr /* audio_processing */, nullptr,
+      std::make_unique<webrtc::test::ScopedKeyValueConfig>(field_trials_, ""));
   if (!peer_connection_factory_) {
     return false;
   }
@@ -207,7 +225,7 @@ PeerConnectionTestWrapper::CreateDataChannel(
   return result.MoveValue();
 }
 
-absl::optional<webrtc::RtpCodecCapability>
+std::optional<webrtc::RtpCodecCapability>
 PeerConnectionTestWrapper::FindFirstSendCodecWithName(
     cricket::MediaType media_type,
     const std::string& name) const {
@@ -218,7 +236,7 @@ PeerConnectionTestWrapper::FindFirstSendCodecWithName(
       return codec;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void PeerConnectionTestWrapper::WaitForNegotiation() {

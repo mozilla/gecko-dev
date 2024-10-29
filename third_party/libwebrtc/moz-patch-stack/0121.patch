@@ -1,23 +1,48 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 19 Sep 2024 13:23:00 -0500
-Subject: Bug 1918268 - (fix-2bc77cebf2) our base-toolchains builds need the
- struct name to build
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Thu, 12 Sep 2024 22:36:00 +0000
+Subject: Bug 1918096 - In ScreenCapturerSck skip some processing when
+ possible. r=webrtc-reviewers,ng
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1055b3892393f16136a29d12e616f29b010ab2c9
+No need to update the last frame unless it has changed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D221942
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8d52f2fd575479da72508033b3a2151906e2bf19
 ---
- modules/audio_coding/neteq/neteq_impl.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .../desktop_capture/mac/screen_capturer_sck.mm  | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
 
-diff --git a/modules/audio_coding/neteq/neteq_impl.cc b/modules/audio_coding/neteq/neteq_impl.cc
-index f4d01f570a..0a8b4bef8d 100644
---- a/modules/audio_coding/neteq/neteq_impl.cc
-+++ b/modules/audio_coding/neteq/neteq_impl.cc
-@@ -108,7 +108,7 @@ NetEqImpl::Dependencies::Dependencies(
-                                      stats.get())),
-       neteq_controller(controller_factory.Create(
-           env,
--          {.allow_time_stretching = !config.for_test_no_time_stretching,
-+          NetEqController::Config{.allow_time_stretching = !config.for_test_no_time_stretching,
-            .max_packets_in_buffer =
-                static_cast<int>(config.max_packets_in_buffer),
-            .base_min_delay_ms = config.min_delay_ms,
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index f331bafdfd..ddaf9a9624 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -511,6 +511,7 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+   CGRect contentRect = {};
+   CGRect boundingRect = {};
+   CGRect overlayRect = {};
++  SCFrameStatus status = SCFrameStatusStopped;
+   const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
+   if (auto factor = (NSNumber *)attachment[SCStreamFrameInfoScaleFactor]) {
+     scaleFactor = [factor floatValue];
+@@ -536,6 +537,22 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+     }
+   }
+ 
++  if (auto statusNr = (NSNumber *)attachment[SCStreamFrameInfoStatus]) {
++    status = (SCFrameStatus)[statusNr integerValue];
++  }
++
++  switch (status) {
++    case SCFrameStatusBlank:
++    case SCFrameStatusIdle:
++    case SCFrameStatusSuspended:
++    case SCFrameStatusStopped:
++      // No new frame. Ignore.
++      return;
++    case SCFrameStatusComplete:
++    case SCFrameStatusStarted:
++      // New frame. Process it.
++      break;
++  }
+ 
+   auto imgBoundingRect = CGRectMake(
+       scaleFactor * boundingRect.origin.x,

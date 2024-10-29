@@ -12,11 +12,11 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
@@ -959,10 +959,10 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
   auto caller = CreatePeerConnection();
 
   auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
-  EXPECT_EQ(absl::nullopt, transceiver->mid());
+  EXPECT_EQ(std::nullopt, transceiver->mid());
   EXPECT_FALSE(transceiver->stopped());
   EXPECT_EQ(RtpTransceiverDirection::kSendRecv, transceiver->direction());
-  EXPECT_EQ(absl::nullopt, transceiver->current_direction());
+  EXPECT_EQ(std::nullopt, transceiver->current_direction());
 }
 
 // Test that adding a transceiver with the audio kind creates an audio sender

@@ -237,7 +237,7 @@ webrtc::RTCError DtlsTransport::SetRemoteParameters(
     absl::string_view digest_alg,
     const uint8_t* digest,
     size_t digest_len,
-    absl::optional<rtc::SSLRole> role) {
+    std::optional<rtc::SSLRole> role) {
   rtc::Buffer remote_fingerprint_value(digest, digest_len);
   bool is_dtls_restart =
       dtls_active_ && remote_fingerprint_value_ != remote_fingerprint_value;
@@ -506,7 +506,7 @@ int DtlsTransport::GetError() {
   return ice_transport_->GetError();
 }
 
-absl::optional<rtc::NetworkRoute> DtlsTransport::network_route() const {
+std::optional<rtc::NetworkRoute> DtlsTransport::network_route() const {
   return ice_transport_->network_route();
 }
 
@@ -759,7 +759,7 @@ void DtlsTransport::OnDtlsEvent(int sig, int err) {
 }
 
 void DtlsTransport::OnNetworkRouteChanged(
-    absl::optional<rtc::NetworkRoute> network_route) {
+    std::optional<rtc::NetworkRoute> network_route) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   SignalNetworkRouteChanged(network_route);
 }
@@ -872,7 +872,7 @@ void DtlsTransport::OnDtlsHandshakeError(rtc::SSLHandshakeError error) {
 
 void DtlsTransport::ConfigureHandshakeTimeout() {
   RTC_DCHECK(dtls_);
-  absl::optional<int> rtt = ice_transport_->GetRttEstimate();
+  std::optional<int> rtt = ice_transport_->GetRttEstimate();
   if (rtt) {
     // Limit the timeout to a reasonable range in case the ICE RTT takes
     // extreme values.

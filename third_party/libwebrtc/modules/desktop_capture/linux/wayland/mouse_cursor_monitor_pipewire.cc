@@ -40,7 +40,7 @@ void MouseCursorMonitorPipeWire::Capture() {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   RTC_DCHECK(callback_);
 
-  absl::optional<DesktopVector> mouse_cursor_position =
+  std::optional<DesktopVector> mouse_cursor_position =
       options_.screencast_stream()->CaptureCursorPosition();
   // Invalid cursor or position
   if (!mouse_cursor_position) {

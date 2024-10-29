@@ -12,9 +12,9 @@
 #define VIDEO_QUALITY_CONVERGENCE_CONTROLLER_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/video/video_codec_type.h"
@@ -25,7 +25,7 @@ namespace webrtc {
 class QualityConvergenceController {
  public:
   void Initialize(int number_of_layers,
-                  absl::optional<int> static_qp_threshold,
+                  std::optional<int> static_qp_threshold,
                   VideoCodecType codec,
                   const FieldTrialsView& trials);
 

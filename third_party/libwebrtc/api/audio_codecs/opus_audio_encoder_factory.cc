@@ -11,9 +11,9 @@
 #include "api/audio_codecs/opus_audio_encoder_factory.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
@@ -31,8 +31,7 @@ namespace {
 template <typename T>
 struct NotAdvertised {
   using Config = typename T::Config;
-  static absl::optional<Config> SdpToConfig(
-      const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
     return T::SdpToConfig(audio_format);
   }
   static void AppendSupportedEncoders(std::vector<AudioCodecSpec>* specs) {
@@ -44,7 +43,7 @@ struct NotAdvertised {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config& config,
       int payload_type,
-      absl::optional<AudioCodecPairId> codec_pair_id = absl::nullopt,
+      std::optional<AudioCodecPairId> codec_pair_id = std::nullopt,
       const FieldTrialsView* field_trials = nullptr) {
     return T::MakeAudioEncoder(config, payload_type, codec_pair_id,
                                field_trials);

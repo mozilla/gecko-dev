@@ -23,8 +23,8 @@ bool PacketTransportInternal::GetOption(rtc::Socket::Option opt, int* value) {
   return false;
 }
 
-absl::optional<NetworkRoute> PacketTransportInternal::network_route() const {
-  return absl::optional<NetworkRoute>();
+std::optional<NetworkRoute> PacketTransportInternal::network_route() const {
+  return std::optional<NetworkRoute>();
 }
 
 void PacketTransportInternal::RegisterReceivedPacketCallback(

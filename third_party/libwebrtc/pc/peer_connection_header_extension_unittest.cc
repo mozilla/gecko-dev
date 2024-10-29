@@ -9,13 +9,13 @@
  */
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
@@ -76,7 +76,7 @@ class PeerConnectionHeaderExtensionTest
 
   std::unique_ptr<PeerConnectionWrapper> CreatePeerConnection(
       cricket::MediaType media_type,
-      absl::optional<SdpSemantics> semantics) {
+      std::optional<SdpSemantics> semantics) {
     auto media_engine = std::make_unique<cricket::FakeMediaEngine>();
     if (media_type == cricket::MediaType::MEDIA_TYPE_AUDIO)
       media_engine->fake_voice_engine()->SetRtpHeaderExtensions(extensions_);

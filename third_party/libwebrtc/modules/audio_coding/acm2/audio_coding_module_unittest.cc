@@ -249,7 +249,7 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
   RTPHeader rtp_header_;
   AudioFrame input_frame_;
 
-  absl::optional<SdpAudioFormat> audio_format_;
+  std::optional<SdpAudioFormat> audio_format_;
   int pac_size_ = -1;
 };
 
@@ -522,6 +522,17 @@ class AudioPacketizationCallbackMock : public AudioPacketizationCallback {
               (override));
 };
 
+TEST(AudioCodingModule, DoesResetEncoder) {
+  std::unique_ptr<AudioCodingModule> acm = AudioCodingModule::Create();
+  auto encoder = std::make_unique<MockAudioEncoder>();
+  MockAudioEncoder* encoder_mock = encoder.get();
+
+  acm->SetEncoder(std::move(encoder));
+
+  EXPECT_CALL(*encoder_mock, Reset()).Times(1);
+  acm->Reset();
+}
+
 class AcmAbsoluteCaptureTimestamp : public ::testing::Test {
  public:
   AcmAbsoluteCaptureTimestamp() : audio_frame_(kSampleRateHz, kNumChannels) {}
@@ -580,6 +591,40 @@ TEST_F(AcmAbsoluteCaptureTimestamp, HaveBeginningOfFrameCaptureTime) {
       transport_,
       SendData(_, _, _, _, _, first_absolute_capture_timestamp_ms + kPTimeMs))
       .Times(1);
+  for (int k = 0; k < 5; ++k) {
+    acm_->Add10MsData(
+        GetAudioWithAbsoluteCaptureTimestamp(absolute_capture_timestamp_ms));
+    absolute_capture_timestamp_ms += 10;
+  }
+}
+
+TEST_F(AcmAbsoluteCaptureTimestamp, DoesResetWhenAudioCodingModuleDo) {
+  constexpr int64_t first_absolute_capture_timestamp_ms = 123456789;
+
+  int64_t absolute_capture_timestamp_ms = first_absolute_capture_timestamp_ms;
+  EXPECT_CALL(transport_,
+              SendData(_, _, _, _, _, first_absolute_capture_timestamp_ms))
+      .Times(1);
+  EXPECT_CALL(
+      transport_,
+      SendData(_, _, _, _, _, first_absolute_capture_timestamp_ms + kPTimeMs))
+      .Times(1);
+  for (int k = 0; k < 5; ++k) {
+    acm_->Add10MsData(
+        GetAudioWithAbsoluteCaptureTimestamp(absolute_capture_timestamp_ms));
+    absolute_capture_timestamp_ms += 10;
+  }
+
+  acm_->Reset();
+  constexpr int64_t after_reset_absolute_capture_timestamp_ms = 523456789;
+  EXPECT_CALL(transport_, SendData(_, _, _, _, _,
+                                   after_reset_absolute_capture_timestamp_ms))
+      .Times(1);
+  EXPECT_CALL(transport_,
+              SendData(_, _, _, _, _,
+                       after_reset_absolute_capture_timestamp_ms + kPTimeMs))
+      .Times(1);
+  absolute_capture_timestamp_ms = after_reset_absolute_capture_timestamp_ms;
   for (int k = 0; k < 5; ++k) {
     acm_->Add10MsData(
         GetAudioWithAbsoluteCaptureTimestamp(absolute_capture_timestamp_ms));

@@ -107,7 +107,7 @@ float SuppressionGain::UpperBandsGain(
     rtc::ArrayView<const std::array<float, kFftLengthBy2Plus1>> echo_spectrum,
     rtc::ArrayView<const std::array<float, kFftLengthBy2Plus1>>
         comfort_noise_spectrum,
-    const absl::optional<int>& narrow_peak_band,
+    const std::optional<int>& narrow_peak_band,
     bool saturated_echo,
     const Block& render,
     const std::array<float, kFftLengthBy2Plus1>& low_band_gain) const {
@@ -394,7 +394,7 @@ void SuppressionGain::GetGain(
                 low_band_gain);
 
   // Compute the gain for the upper bands.
-  const absl::optional<int> narrow_peak_band =
+  const std::optional<int> narrow_peak_band =
       render_signal_analyzer.NarrowPeakBand();
 
   *high_bands_gain =

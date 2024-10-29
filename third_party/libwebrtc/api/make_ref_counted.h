@@ -13,6 +13,8 @@
 #include <type_traits>
 #include <utility>
 
+#include "api/ref_count.h"
+#include "api/scoped_refptr.h"
 #include "rtc_base/ref_counted_object.h"
 
 namespace webrtc {

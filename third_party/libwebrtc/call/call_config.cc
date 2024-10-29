@@ -12,6 +12,7 @@
 
 #include "api/environment/environment.h"
 #include "api/task_queue/task_queue_base.h"
+#include "call/rtp_transport_config.h"
 
 namespace webrtc {
 

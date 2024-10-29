@@ -11,9 +11,9 @@
 #include "pc/sctp_transport.h"
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/dtls_transport_interface.h"
 #include "api/priority.h"
 #include "api/sequence_checker.h"
@@ -28,8 +28,8 @@ SctpTransport::SctpTransport(
     : owner_thread_(rtc::Thread::Current()),
       info_(SctpTransportState::kConnecting,
             dtls_transport,
-            /*max_message_size=*/absl::nullopt,
-            /*max_channels=*/absl::nullopt),
+            /*max_message_size=*/std::nullopt,
+            /*max_channels=*/std::nullopt),
       internal_sctp_transport_(std::move(internal)),
       dtls_transport_(dtls_transport) {
   RTC_DCHECK(internal_sctp_transport_.get());

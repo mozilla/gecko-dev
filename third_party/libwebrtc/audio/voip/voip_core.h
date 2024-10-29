@@ -69,7 +69,7 @@ class VoipCore : public VoipEngine,
 
   // Implements VoipBase interfaces.
   ChannelId CreateChannel(Transport* transport,
-                          absl::optional<uint32_t> local_ssrc) override;
+                          std::optional<uint32_t> local_ssrc) override;
   VoipResult ReleaseChannel(ChannelId channel_id) override;
   VoipResult StartSend(ChannelId channel_id) override;
   VoipResult StopSend(ChannelId channel_id) override;

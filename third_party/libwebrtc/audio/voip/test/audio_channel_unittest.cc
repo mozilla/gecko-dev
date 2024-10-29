@@ -163,7 +163,7 @@ TEST_F(AudioChannelTest, TestIngressStatistics) {
   audio_mixer_->Mix(/*number_of_channels=*/1, &audio_frame);
   audio_mixer_->Mix(/*number_of_channels=*/1, &audio_frame);
 
-  absl::optional<IngressStatistics> ingress_stats =
+  std::optional<IngressStatistics> ingress_stats =
       audio_channel_->GetIngressStatistics();
   EXPECT_TRUE(ingress_stats);
   EXPECT_EQ(ingress_stats->neteq_stats.total_samples_received, 160ULL);
@@ -254,7 +254,7 @@ TEST_F(AudioChannelTest, TestChannelStatistics) {
   // in loop_rtcp above.
   audio_channel_->SendRTCPReportForTesting(kRtcpSr);
 
-  absl::optional<ChannelStatistics> channel_stats =
+  std::optional<ChannelStatistics> channel_stats =
       audio_channel_->GetChannelStatistics();
   EXPECT_TRUE(channel_stats);
 
@@ -336,7 +336,7 @@ TEST_F(AudioChannelTest, RttIsAvailableAfterChangeOfRemoteSsrc) {
   send_recv_rtcp(audio_channel_, ac_2);
   send_recv_rtcp(ac_2, audio_channel_);
 
-  absl::optional<ChannelStatistics> channel_stats =
+  std::optional<ChannelStatistics> channel_stats =
       audio_channel_->GetChannelStatistics();
   ASSERT_TRUE(channel_stats);
   EXPECT_EQ(channel_stats->remote_ssrc, kAc2Ssrc);

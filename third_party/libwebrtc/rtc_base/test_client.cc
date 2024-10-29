@@ -113,7 +113,7 @@ bool TestClient::CheckNextPacket(const char* buf,
 }
 
 bool TestClient::CheckTimestamp(
-    absl::optional<webrtc::Timestamp> packet_timestamp) {
+    std::optional<webrtc::Timestamp> packet_timestamp) {
   bool res = true;
   if (!packet_timestamp) {
     res = false;

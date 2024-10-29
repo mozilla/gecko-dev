@@ -214,7 +214,7 @@ TEST_F(TestVp8Impl, EncodeNv12FrameSimulcast) {
   CodecSpecificInfo codec_specific_info;
   input_frame_generator_ = test::CreateSquareFrameGenerator(
       kWidth, kHeight, test::FrameGeneratorInterface::OutputType::kNV12,
-      absl::nullopt);
+      std::nullopt);
   EncodeAndWaitForFrame(NextInputFrame(), &encoded_frame, &codec_specific_info);
 
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, encoder_->Release());
@@ -231,11 +231,11 @@ TEST_F(TestVp8Impl, EncodeI420FrameAfterNv12Frame) {
   CodecSpecificInfo codec_specific_info;
   input_frame_generator_ = test::CreateSquareFrameGenerator(
       kWidth, kHeight, test::FrameGeneratorInterface::OutputType::kNV12,
-      absl::nullopt);
+      std::nullopt);
   EncodeAndWaitForFrame(NextInputFrame(), &encoded_frame, &codec_specific_info);
   input_frame_generator_ = test::CreateSquareFrameGenerator(
       kWidth, kHeight, test::FrameGeneratorInterface::OutputType::kI420,
-      absl::nullopt);
+      std::nullopt);
   EncodeAndWaitForFrame(NextInputFrame(), &encoded_frame, &codec_specific_info);
 
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, encoder_->Release());
@@ -288,7 +288,7 @@ TEST_F(TestVp8Impl, DecodedQpEqualsEncodedQp) {
   encoded_frame._frameType = VideoFrameType::kVideoFrameKey;
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, decoder_->Decode(encoded_frame, -1));
   std::unique_ptr<VideoFrame> decoded_frame;
-  absl::optional<uint8_t> decoded_qp;
+  std::optional<uint8_t> decoded_qp;
   ASSERT_TRUE(WaitForDecodedFrame(&decoded_frame, &decoded_qp));
   ASSERT_TRUE(decoded_frame);
   ASSERT_TRUE(decoded_qp);
@@ -504,7 +504,7 @@ TEST_F(TestVp8Impl, MAYBE_AlignedStrideEncodeDecode) {
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, decoder_->Decode(encoded_frame, -1));
 
   std::unique_ptr<VideoFrame> decoded_frame;
-  absl::optional<uint8_t> decoded_qp;
+  std::optional<uint8_t> decoded_qp;
   ASSERT_TRUE(WaitForDecodedFrame(&decoded_frame, &decoded_qp));
   ASSERT_TRUE(decoded_frame);
   // Compute PSNR on all planes (faster than SSIM).
@@ -574,7 +574,7 @@ TEST_F(TestVp8Impl, DontDropKeyframes) {
   input_frame_generator_ = test::CreateSquareFrameGenerator(
       codec_settings_.width, codec_settings_.height,
       test::FrameGeneratorInterface::OutputType::kI420,
-      /* num_squares = */ absl::optional<int>(300));
+      /* num_squares = */ std::optional<int>(300));
 
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
             encoder_->InitEncode(&codec_settings_, kSettings));

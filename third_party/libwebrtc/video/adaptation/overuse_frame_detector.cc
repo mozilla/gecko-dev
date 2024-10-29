@@ -110,12 +110,12 @@ class SendProcessingUsage1 : public OveruseFrameDetector::ProcessingUsage {
         frame.timestamp_us(), frame.rtp_timestamp(), time_when_first_seen_us));
   }
 
-  absl::optional<int> FrameSent(
+  std::optional<int> FrameSent(
       uint32_t timestamp,
       int64_t time_sent_in_us,
       int64_t /* capture_time_us */,
-      absl::optional<int> /* encode_duration_us */) override {
-    absl::optional<int> encode_duration_us;
+      std::optional<int> /* encode_duration_us */) override {
+    std::optional<int> encode_duration_us;
     // Delay before reporting actual encoding time, used to have the ability to
     // detect total encoding time when encoding more than one layer. Encoding is
     // here assumed to finish within a second (or that we get enough long-time
@@ -242,11 +242,10 @@ class SendProcessingUsage2 : public OveruseFrameDetector::ProcessingUsage {
                      int64_t time_when_first_seen_us,
                      int64_t last_capture_time_us) override {}
 
-  absl::optional<int> FrameSent(
-      uint32_t /* timestamp */,
-      int64_t /* time_sent_in_us */,
-      int64_t capture_time_us,
-      absl::optional<int> encode_duration_us) override {
+  std::optional<int> FrameSent(uint32_t /* timestamp */,
+                               int64_t /* time_sent_in_us */,
+                               int64_t capture_time_us,
+                               std::optional<int> encode_duration_us) override {
     if (encode_duration_us) {
       int duration_per_frame_us =
           DurationPerInputFrame(capture_time_us, *encode_duration_us);
@@ -364,13 +363,13 @@ class OverdoseInjector : public OveruseFrameDetector::ProcessingUsage {
     usage_->FrameCaptured(frame, time_when_first_seen_us, last_capture_time_us);
   }
 
-  absl::optional<int> FrameSent(
+  std::optional<int> FrameSent(
       // These two argument used by old estimator.
       uint32_t timestamp,
       int64_t time_sent_in_us,
       // And these two by the new estimator.
       int64_t capture_time_us,
-      absl::optional<int> encode_duration_us) override {
+      std::optional<int> encode_duration_us) override {
     return usage_->FrameSent(timestamp, time_sent_in_us, capture_time_us,
                              encode_duration_us);
   }
@@ -405,7 +404,7 @@ class OverdoseInjector : public OveruseFrameDetector::ProcessingUsage {
       }
     }
 
-    absl::optional<int> overried_usage_value;
+    std::optional<int> overried_usage_value;
     switch (state_) {
       case State::kNormal:
         break;
@@ -473,7 +472,7 @@ OveruseFrameDetector::OveruseFrameDetector(
     : env_(env),
       metrics_observer_(metrics_observer),
       num_process_times_(0),
-      // TODO(bugs.webrtc.org/9078): Use absl::optional
+      // TODO(bugs.webrtc.org/9078): Use std::optional
       last_capture_time_us_(-1),
       num_pixels_(0),
       max_framerate_(kDefaultFrameRate),
@@ -543,7 +542,7 @@ void OveruseFrameDetector::ResetAll(int num_pixels) {
   usage_->Reset();
   last_capture_time_us_ = -1;
   num_process_times_ = 0;
-  encode_usage_percent_ = absl::nullopt;
+  encode_usage_percent_ = std::nullopt;
   OnTargetFramerateUpdated(max_framerate_);
 }
 
@@ -571,7 +570,7 @@ void OveruseFrameDetector::FrameCaptured(const VideoFrame& frame,
 void OveruseFrameDetector::FrameSent(uint32_t timestamp,
                                      int64_t time_sent_in_us,
                                      int64_t capture_time_us,
-                                     absl::optional<int> encode_duration_us) {
+                                     std::optional<int> encode_duration_us) {
   RTC_DCHECK_RUN_ON(&task_checker_);
   encode_duration_us = usage_->FrameSent(timestamp, time_sent_in_us,
                                          capture_time_us, encode_duration_us);

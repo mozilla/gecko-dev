@@ -51,7 +51,6 @@ rtc_library("remote_bitrate_estimator") {
     "../rtp_rtcp:rtp_rtcp_format",
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -89,7 +88,6 @@ rtc_library("transport_sequence_number_feedback_generator") {
     "../../rtc_base/synchronization:mutex",
     "../../system_wrappers",
     "../rtp_rtcp:rtp_rtcp_format",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -182,7 +180,6 @@ if (rtc_include_tests) {
       "../../test:test_support",
       "../pacing",
       "../rtp_rtcp:rtp_rtcp_format",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }

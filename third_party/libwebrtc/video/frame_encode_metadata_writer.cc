@@ -141,8 +141,8 @@ void FrameEncodeMetadataWriter::FillMetadataAndTimingInfo(
     size_t simulcast_svc_idx,
     EncodedImage* encoded_image) {
   MutexLock lock(&lock_);
-  absl::optional<size_t> outlier_frame_size;
-  absl::optional<int64_t> encode_start_ms;
+  std::optional<size_t> outlier_frame_size;
+  std::optional<int64_t> encode_start_ms;
   uint8_t timing_flags = VideoSendTiming::kNotTriggered;
 
   int64_t encode_done_ms = rtc::TimeMillis();
@@ -225,11 +225,11 @@ void FrameEncodeMetadataWriter::Reset() {
   stalled_encoder_logged_messages_ = 0;
 }
 
-absl::optional<int64_t>
+std::optional<int64_t>
 FrameEncodeMetadataWriter::ExtractEncodeStartTimeAndFillMetadata(
     size_t simulcast_svc_idx,
     EncodedImage* encoded_image) {
-  absl::optional<int64_t> result;
+  std::optional<int64_t> result;
   size_t num_simulcast_svc_streams = timing_frames_info_.size();
   if (simulcast_svc_idx < num_simulcast_svc_streams) {
     auto metadata_list = &timing_frames_info_[simulcast_svc_idx].frames;

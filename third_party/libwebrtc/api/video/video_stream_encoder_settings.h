@@ -53,6 +53,10 @@ struct VideoStreamEncoderSettings {
   // Negotiated capabilities which the VideoEncoder may expect the other
   // side to use.
   VideoEncoder::Capabilities capabilities;
+
+  // Enables the frame instrumentation generator that is required for automatic
+  // corruption detection.
+  bool enable_frame_instrumentation_generator = false;
 };
 
 }  // namespace webrtc

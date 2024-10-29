@@ -16,13 +16,13 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/cleanup/cleanup.h"
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
@@ -82,8 +82,8 @@ constexpr std::array<VideoFrameBuffer::Type, 2> kSupportedInputFormats = {
 constexpr std::array<Rational, 7> kSupportedScalingFactors = {
     {{8, 1}, {4, 1}, {2, 1}, {1, 1}, {1, 2}, {1, 4}, {1, 8}}};
 
-absl::optional<Rational> GetScalingFactor(const Resolution& from,
-                                          const Resolution& to) {
+std::optional<Rational> GetScalingFactor(const Resolution& from,
+                                         const Resolution& to) {
   auto it = absl::c_find_if(kSupportedScalingFactors, [&](const Rational& r) {
     return (from.width * r.numerator / r.denominator) == to.width &&
            (from.height * r.numerator / r.denominator) == to.height;
@@ -114,10 +114,10 @@ class LibaomAv1Encoder : public VideoEncoderInterface {
   aom_codec_ctx_t ctx_;
   aom_codec_enc_cfg_t cfg_;
 
-  absl::optional<VideoCodecMode> current_content_type_;
-  std::array<absl::optional<int>, kMaxSpatialLayersWtf> current_effort_level_;
+  std::optional<VideoCodecMode> current_content_type_;
+  std::array<std::optional<int>, kMaxSpatialLayersWtf> current_effort_level_;
   int max_number_of_threads_;
-  std::array<absl::optional<Resolution>, 8> last_resolution_in_buffer_;
+  std::array<std::optional<Resolution>, 8> last_resolution_in_buffer_;
 };
 
 template <typename T>
@@ -273,7 +273,7 @@ bool ValidateEncodeParams(
     const VideoEncoderInterface::TemporalUnitSettings& tu_settings,
     const std::vector<VideoEncoderInterface::FrameEncodeSettings>&
         frame_settings,
-    const std::array<absl::optional<Resolution>, 8>& last_resolution_in_buffer,
+    const std::array<std::optional<Resolution>, 8>& last_resolution_in_buffer,
     aom_rc_mode rc_mode) {
   if (frame_settings.empty()) {
     RTC_LOG(LS_ERROR) << "No frame settings provided.";
@@ -343,7 +343,7 @@ bool ValidateEncodeParams(
 
       // Figure out which frame resolution a certain buffer will hold when the
       // frame described by `settings` is encoded.
-      absl::optional<Resolution> referenced_resolution;
+      std::optional<Resolution> referenced_resolution;
       bool keyframe_on_previous_layer = false;
 
       // Will some other frame in this temporal unit update the buffer?
@@ -560,7 +560,7 @@ aom_svc_params_t GetSvcParams(
 
   for (const VideoEncoderInterface::FrameEncodeSettings& settings :
        frame_settings) {
-    absl::optional<Rational> scaling_factor = GetScalingFactor(
+    std::optional<Rational> scaling_factor = GetScalingFactor(
         {frame_buffer.width(), frame_buffer.height()}, settings.resolution);
     RTC_CHECK(scaling_factor);
     svc_params.scaling_factor_num[settings.spatial_id] =

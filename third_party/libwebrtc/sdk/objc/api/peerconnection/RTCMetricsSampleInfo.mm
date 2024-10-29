@@ -24,7 +24,8 @@
 
 - (instancetype)initWithNativeSampleInfo:
     (const webrtc::metrics::SampleInfo &)info {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _name = [NSString stringForStdString:info.name];
     _min = info.min;
     _max = info.max;

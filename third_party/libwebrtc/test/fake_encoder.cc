@@ -105,7 +105,7 @@ int32_t FakeEncoder::Encode(const VideoFrame& input_image,
   RateControlParameters rates;
   bool keyframe;
   uint32_t counter;
-  absl::optional<int> qp;
+  std::optional<int> qp;
   {
     MutexLock lock(&mutex_);
     max_framerate = config_.maxFramerate;

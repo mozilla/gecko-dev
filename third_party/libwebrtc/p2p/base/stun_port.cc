@@ -102,7 +102,7 @@ class StunBindingRequest : public StunRequest {
                       << port_->GetLocalAddress().ToSensitiveString() << " ("
                       << port_->Network()->name() << ")";
     port_->OnStunBindingOrResolveRequestFailed(
-        server_addr_, SERVER_NOT_REACHABLE_ERROR,
+        server_addr_, STUN_ERROR_SERVER_NOT_REACHABLE,
         "STUN binding request timed out.");
   }
 
@@ -341,11 +341,11 @@ ProtocolType UDPPort::GetProtocol() const {
   return PROTO_UDP;
 }
 
-void UDPPort::GetStunStats(absl::optional<StunStats>* stats) {
+void UDPPort::GetStunStats(std::optional<StunStats>* stats) {
   *stats = stats_;
 }
 
-void UDPPort::set_stun_keepalive_delay(const absl::optional<int>& delay) {
+void UDPPort::set_stun_keepalive_delay(const std::optional<int>& delay) {
   stun_keepalive_delay_ = delay.value_or(STUN_KEEPALIVE_INTERVAL);
 }
 
@@ -442,7 +442,7 @@ void UDPPort::OnResolveResult(const rtc::SocketAddress& input, int error) {
     RTC_LOG(LS_WARNING) << ToString()
                         << ": StunPort: stun host lookup received error "
                         << error;
-    OnStunBindingOrResolveRequestFailed(input, SERVER_NOT_REACHABLE_ERROR,
+    OnStunBindingOrResolveRequestFailed(input, STUN_ERROR_SERVER_NOT_REACHABLE,
                                         "STUN host lookup received error.");
     return;
   }
@@ -466,11 +466,13 @@ void UDPPort::SendStunBindingRequest(const rtc::SocketAddress& stun_addr) {
           new StunBindingRequest(this, stun_addr, rtc::TimeMillis()));
     } else {
       // Since we can't send stun messages to the server, we should mark this
-      // port ready.
-      const char* reason = "STUN server address is incompatible.";
-      RTC_LOG(LS_WARNING) << reason;
-      OnStunBindingOrResolveRequestFailed(stun_addr, SERVER_NOT_REACHABLE_ERROR,
-                                          reason);
+      // port ready. This is not an error but similar to ignoring
+      // a mismatch of th address family when pairing candidates.
+      RTC_LOG(LS_WARNING) << ToString()
+                          << ": STUN server address is incompatible.";
+      OnStunBindingOrResolveRequestFailed(
+          stun_addr, STUN_ERROR_NOT_AN_ERROR,
+          "STUN server address is incompatible.");
     }
   }
 }
@@ -534,12 +536,14 @@ void UDPPort::OnStunBindingOrResolveRequestFailed(
     const rtc::SocketAddress& stun_server_addr,
     int error_code,
     absl::string_view reason) {
-  rtc::StringBuilder url;
-  url << "stun:" << stun_server_addr.ToString();
-  SignalCandidateError(
-      this, IceCandidateErrorEvent(GetLocalAddress().HostAsSensitiveURIString(),
-                                   GetLocalAddress().port(), url.str(),
-                                   error_code, reason));
+  if (error_code != STUN_ERROR_NOT_AN_ERROR) {
+    rtc::StringBuilder url;
+    url << "stun:" << stun_server_addr.ToString();
+    SignalCandidateError(
+        this, IceCandidateErrorEvent(
+                  GetLocalAddress().HostAsSensitiveURIString(),
+                  GetLocalAddress().port(), url.str(), error_code, reason));
+  }
   if (bind_request_failed_servers_.find(stun_server_addr) !=
       bind_request_failed_servers_.end()) {
     return;
@@ -610,7 +614,7 @@ std::unique_ptr<StunPort> StunPort::Create(
     uint16_t min_port,
     uint16_t max_port,
     const ServerAddresses& servers,
-    absl::optional<int> stun_keepalive_interval) {
+    std::optional<int> stun_keepalive_interval) {
   // Using `new` to access a non-public constructor.
   auto port = absl::WrapUnique(new StunPort(args, min_port, max_port, servers));
   port->set_stun_keepalive_delay(stun_keepalive_interval);
@@ -629,7 +633,7 @@ std::unique_ptr<StunPort> StunPort::Create(
     absl::string_view username,
     absl::string_view password,
     const ServerAddresses& servers,
-    absl::optional<int> stun_keepalive_interval,
+    std::optional<int> stun_keepalive_interval,
     const webrtc::FieldTrialsView* field_trials) {
   return Create({.network_thread = thread,
                  .socket_factory = factory,

@@ -12,10 +12,10 @@
 #define API_VIDEO_CODECS_SDP_VIDEO_FORMAT_H_
 
 #include <map>
+#include <optional>
 #include <string>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtp_parameters.h"
 #include "api/video_codecs/scalability_mode.h"
@@ -86,7 +86,7 @@ struct RTC_EXPORT SdpVideoFormat {
 // SdpVideoFormat, which makes instances that should compare equal to not match
 // anymore. Until we stop misusing SdpVideoFormats provide this convenience
 // function to perform fuzzy matching.
-absl::optional<SdpVideoFormat> FuzzyMatchSdpVideoFormat(
+std::optional<SdpVideoFormat> FuzzyMatchSdpVideoFormat(
     rtc::ArrayView<const SdpVideoFormat> supported_formats,
     const SdpVideoFormat& format);
 

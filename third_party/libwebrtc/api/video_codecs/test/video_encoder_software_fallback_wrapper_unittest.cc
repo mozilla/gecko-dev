@@ -14,11 +14,11 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/fec_controller_override.h"
@@ -164,7 +164,7 @@ class VideoEncoderSoftwareFallbackWrapperTestBase : public ::testing::Test {
     bool supports_native_handle_ = false;
     bool is_qp_trusted_ = false;
     std::string implementation_name_ = "fake-encoder";
-    absl::optional<VideoFrame> last_video_frame_;
+    std::optional<VideoFrame> last_video_frame_;
   };
 
   void InitEncode();

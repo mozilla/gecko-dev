@@ -11,6 +11,7 @@
 #import "RTCDtmfSender.h"
 
 #include "api/dtmf_sender_interface.h"
+#include "api/scoped_refptr.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

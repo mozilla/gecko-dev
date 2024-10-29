@@ -104,7 +104,6 @@ AudioReceiveStreamImpl::AudioReceiveStreamImpl(
     std::unique_ptr<voe::ChannelReceiveInterface> channel_receive)
     : config_(config),
       audio_state_(audio_state),
-      source_tracker_(&env.clock()),
       channel_receive_(std::move(channel_receive)) {
   RTC_LOG(LS_INFO) << "AudioReceiveStreamImpl: " << config.rtp.remote_ssrc;
   RTC_DCHECK(config.decoder_factory);
@@ -115,11 +114,6 @@ AudioReceiveStreamImpl::AudioReceiveStreamImpl(
   RTC_DCHECK(packet_router);
   // Configure bandwidth estimation.
   channel_receive_->RegisterReceiverCongestionControlObjects(packet_router);
-
-  // When output is muted, ChannelReceive will directly notify the source
-  // tracker of "delivered" frames, so RtpReceiver information will continue to
-  // be updated.
-  channel_receive_->SetSourceTracker(&source_tracker_);
 
   // Complete configuration.
   // TODO(solenberg): Config NACK history window (which is a packet count),
@@ -265,13 +259,15 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
 
   webrtc::CallReceiveStatistics call_stats =
       channel_receive_->GetRTCPStatistics();
-  // TODO(solenberg): Don't return here if we can't get the codec - return the
-  //                  stats we *can* get.
   auto receive_codec = channel_receive_->GetReceiveCodec();
-  if (!receive_codec) {
-    return stats;
+  if (receive_codec) {
+    stats.codec_name = receive_codec->second.name;
+    stats.codec_payload_type = receive_codec->first;
+    int clockrate_khz = receive_codec->second.clockrate_hz / 1000;
+    if (clockrate_khz > 0) {
+      stats.jitter_ms = call_stats.jitterSamples / clockrate_khz;
+    }
   }
-
   stats.payload_bytes_received = call_stats.payload_bytes_received;
   stats.header_and_padding_bytes_received =
       call_stats.header_and_padding_bytes_received;
@@ -280,12 +276,6 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
   stats.nacks_sent = call_stats.nacks_sent;
   stats.capture_start_ntp_time_ms = call_stats.capture_start_ntp_time_ms_;
   stats.last_packet_received = call_stats.last_packet_received;
-  stats.codec_name = receive_codec->second.name;
-  stats.codec_payload_type = receive_codec->first;
-  int clockrate_khz = receive_codec->second.clockrate_hz / 1000;
-  if (clockrate_khz > 0) {
-    stats.jitter_ms = call_stats.jitterSamples / clockrate_khz;
-  }
   stats.delay_estimate_ms = channel_receive_->GetDelayEstimate();
   stats.audio_level = channel_receive_->GetSpeechOutputLevelFullRange();
   stats.total_output_energy = channel_receive_->GetTotalOutputEnergy();
@@ -379,19 +369,13 @@ int AudioReceiveStreamImpl::GetBaseMinimumPlayoutDelayMs() const {
 }
 
 std::vector<RtpSource> AudioReceiveStreamImpl::GetSources() const {
-  return source_tracker_.GetSources();
+  return channel_receive_->GetSources();
 }
 
 AudioMixer::Source::AudioFrameInfo
 AudioReceiveStreamImpl::GetAudioFrameWithInfo(int sample_rate_hz,
                                               AudioFrame* audio_frame) {
-  AudioMixer::Source::AudioFrameInfo audio_frame_info =
-      channel_receive_->GetAudioFrameWithInfo(sample_rate_hz, audio_frame);
-  if (audio_frame_info != AudioMixer::Source::AudioFrameInfo::kError &&
-      !audio_frame->packet_infos_.empty()) {
-    source_tracker_.OnFrameDelivered(audio_frame->packet_infos_);
-  }
-  return audio_frame_info;
+  return channel_receive_->GetAudioFrameWithInfo(sample_rate_hz, audio_frame);
 }
 
 int AudioReceiveStreamImpl::Ssrc() const {
@@ -407,7 +391,7 @@ uint32_t AudioReceiveStreamImpl::id() const {
   return remote_ssrc();
 }
 
-absl::optional<Syncable::Info> AudioReceiveStreamImpl::GetInfo() const {
+std::optional<Syncable::Info> AudioReceiveStreamImpl::GetInfo() const {
   // TODO(bugs.webrtc.org/11993): This is called via RtpStreamsSynchronizer,
   // expect to be called on the network thread.
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);

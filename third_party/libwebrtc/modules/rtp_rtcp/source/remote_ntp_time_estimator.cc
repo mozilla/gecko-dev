@@ -97,11 +97,11 @@ NtpTime RemoteNtpTimeEstimator::EstimateNtp(uint32_t rtp_timestamp) {
   return receiver_capture;
 }
 
-absl::optional<int64_t>
+std::optional<int64_t>
 RemoteNtpTimeEstimator::EstimateRemoteToLocalClockOffset() {
   if (ntp_clocks_offset_estimator_.GetNumberOfSamplesStored() <
       kMinimumNumberOfSamples) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return ntp_clocks_offset_estimator_.GetFilteredValue();
 }

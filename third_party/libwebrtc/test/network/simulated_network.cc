@@ -13,9 +13,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/test/simulated_network.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
@@ -188,12 +188,12 @@ bool SimulatedNetwork::EnqueuePacket(PacketInFlightInfo packet) {
   return true;
 }
 
-absl::optional<int64_t> SimulatedNetwork::NextDeliveryTimeUs() const {
+std::optional<int64_t> SimulatedNetwork::NextDeliveryTimeUs() const {
   RTC_DCHECK_RUNS_SERIALIZED(&process_checker_);
   if (next_process_time_.IsFinite()) {
     return next_process_time_.us();
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void SimulatedNetwork::UpdateCapacityQueue(ConfigState state,

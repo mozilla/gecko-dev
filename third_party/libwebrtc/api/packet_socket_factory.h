@@ -11,12 +11,14 @@
 #ifndef API_PACKET_SOCKET_FACTORY_H_
 #define API_PACKET_SOCKET_FACTORY_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "api/async_dns_resolver.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace rtc {

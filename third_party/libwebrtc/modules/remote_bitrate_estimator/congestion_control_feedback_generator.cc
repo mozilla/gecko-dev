@@ -103,8 +103,8 @@ void CongestionControlFeedbackGenerator::SendFeedback(Timestamp now) {
   std::vector<rtcp::CongestionControlFeedback::PacketInfo> rtcp_packet_info;
   rtcp_packet_info.reserve(packets_.size());
 
-  absl::optional<uint32_t> previous_ssrc;
-  absl::optional<int64_t> previous_seq_no;
+  std::optional<uint32_t> previous_ssrc;
+  std::optional<int64_t> previous_seq_no;
   for (const PacketInfo packet : packets_) {
     if (previous_ssrc == packet.ssrc &&
         previous_seq_no == packet.unwrapped_sequence_number) {

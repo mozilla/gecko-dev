@@ -56,12 +56,12 @@ class TransformableOutgoingAudioFrame
       uint32_t rtp_timestamp_with_offset,
       const uint8_t* payload_data,
       size_t payload_size,
-      absl::optional<uint64_t> absolute_capture_timestamp_ms,
+      std::optional<uint64_t> absolute_capture_timestamp_ms,
       uint32_t ssrc,
       std::vector<uint32_t> csrcs,
       const std::string& codec_mime_type,
-      absl::optional<uint16_t> sequence_number,
-      absl::optional<uint8_t> audio_level_dbov)
+      std::optional<uint16_t> sequence_number,
+      std::optional<uint8_t> audio_level_dbov)
       : TransformableAudioFrameInterface(Passkey()),
         frame_type_(frame_type),
         payload_type_(payload_type),
@@ -93,7 +93,7 @@ class TransformableOutgoingAudioFrame
     return csrcs_;
   }
 
-  const absl::optional<uint16_t> SequenceNumber() const override {
+  const std::optional<uint16_t> SequenceNumber() const override {
     return sequence_number_;
   }
 
@@ -101,29 +101,27 @@ class TransformableOutgoingAudioFrame
     rtp_timestamp_with_offset_ = rtp_timestamp_with_offset;
   }
 
-  absl::optional<uint64_t> AbsoluteCaptureTimestamp() const override {
+  std::optional<uint64_t> AbsoluteCaptureTimestamp() const override {
     return absolute_capture_timestamp_ms_;
   }
 
-  absl::optional<uint8_t> AudioLevel() const override {
+  std::optional<uint8_t> AudioLevel() const override {
     return audio_level_dbov_;
   }
 
-  absl::optional<Timestamp> ReceiveTime() const override {
-    return absl::nullopt;
-  }
+  std::optional<Timestamp> ReceiveTime() const override { return std::nullopt; }
 
  private:
   AudioFrameType frame_type_;
   uint8_t payload_type_;
   uint32_t rtp_timestamp_with_offset_;
   rtc::Buffer payload_;
-  absl::optional<uint64_t> absolute_capture_timestamp_ms_;
+  std::optional<uint64_t> absolute_capture_timestamp_ms_;
   uint32_t ssrc_;
   std::vector<uint32_t> csrcs_;
   std::string codec_mime_type_;
-  absl::optional<uint16_t> sequence_number_;
-  absl::optional<uint8_t> audio_level_dbov_;
+  std::optional<uint16_t> sequence_number_;
+  std::optional<uint8_t> audio_level_dbov_;
 };
 
 ChannelSendFrameTransformerDelegate::ChannelSendFrameTransformerDelegate(
@@ -156,7 +154,7 @@ void ChannelSendFrameTransformerDelegate::Transform(
     int64_t absolute_capture_timestamp_ms,
     uint32_t ssrc,
     const std::string& codec_mimetype,
-    absl::optional<uint8_t> audio_level_dbov) {
+    std::optional<uint8_t> audio_level_dbov) {
   {
     MutexLock lock(&send_lock_);
     if (short_circuit_) {
@@ -172,7 +170,7 @@ void ChannelSendFrameTransformerDelegate::Transform(
           frame_type, payload_type, rtp_timestamp, payload_data, payload_size,
           absolute_capture_timestamp_ms, ssrc,
           /*csrcs=*/std::vector<uint32_t>(), codec_mimetype,
-          /*sequence_number=*/absl::nullopt, audio_level_dbov));
+          /*sequence_number=*/std::nullopt, audio_level_dbov));
 }
 
 void ChannelSendFrameTransformerDelegate::OnTransformedFrame(

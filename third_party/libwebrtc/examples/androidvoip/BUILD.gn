@@ -69,6 +69,7 @@ if (is_android) {
       "//api/audio_codecs:builtin_audio_decoder_factory",
       "//api/audio_codecs:builtin_audio_encoder_factory",
       "//api/task_queue:default_task_queue_factory",
+      "//api/units:time_delta",
       "//api/voip:voip_api",
       "//api/voip:voip_engine_factory",
       "//rtc_base/network:received_packet",

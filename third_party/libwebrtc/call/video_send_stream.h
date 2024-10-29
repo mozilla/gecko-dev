@@ -14,23 +14,24 @@
 #include <stdint.h>
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/adaptation/resource.h"
 #include "api/call/transport.h"
 #include "api/crypto/crypto_options.h"
+#include "api/crypto/frame_encryptor_interface.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_setparameters_callback.h"
 #include "api/scoped_refptr.h"
 #include "api/video/video_content_type.h"
 #include "api/video/video_frame.h"
-#include "api/video/video_sink_interface.h"
 #include "api/video/video_source_interface.h"
 #include "api/video/video_stream_encoder_settings.h"
 #include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/video_encoder_factory.h"
 #include "call/rtp_config.h"
 #include "common_video/frame_counts.h"
 #include "common_video/include/quality_limitation_reason.h"
@@ -72,7 +73,7 @@ class VideoSendStream {
     // If `type` is kRtx or kFlexfec this value is present. The referenced SSRC
     // is the kMedia stream that this stream is performing retransmissions or
     // FEC for. If `type` is kMedia, this value is null.
-    absl::optional<uint32_t> referenced_media_ssrc;
+    std::optional<uint32_t> referenced_media_ssrc;
     FrameCounts frame_counts;
     int width = 0;
     int height = 0;
@@ -87,21 +88,21 @@ class VideoSendStream {
     RtcpPacketTypeCounter rtcp_packet_type_counts;
     // A snapshot of the most recent Report Block with additional data of
     // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
-    absl::optional<ReportBlockData> report_block_data;
+    std::optional<ReportBlockData> report_block_data;
     double encode_frame_rate = 0.0;
     int frames_encoded = 0;
-    absl::optional<uint64_t> qp_sum;
+    std::optional<uint64_t> qp_sum;
     uint64_t total_encode_time_ms = 0;
     uint64_t total_encoded_bytes_target = 0;
     uint32_t huge_frames_sent = 0;
-    absl::optional<ScalabilityMode> scalability_mode;
+    std::optional<ScalabilityMode> scalability_mode;
   };
 
   struct Stats {
     Stats();
     ~Stats();
     std::string ToString(int64_t time_ms) const;
-    absl::optional<std::string> encoder_implementation_name;
+    std::optional<std::string> encoder_implementation_name;
     double input_frame_rate = 0;
     int encode_frame_rate = 0;
     int avg_encode_time_ms = 0;
@@ -145,7 +146,7 @@ class VideoSendStream {
         webrtc::VideoContentType::UNSPECIFIED;
     uint32_t frames_sent = 0;
     uint32_t huge_frames_sent = 0;
-    absl::optional<bool> power_efficient_encoder;
+    std::optional<bool> power_efficient_encoder;
   };
 
   struct Config {

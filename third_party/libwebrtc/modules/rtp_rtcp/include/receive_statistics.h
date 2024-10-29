@@ -13,9 +13,9 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "call/rtp_packet_sink_interface.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -41,7 +41,7 @@ class StreamStatistician {
   virtual RtpReceiveStats GetStats() const = 0;
 
   // Returns average over the stream life time.
-  virtual absl::optional<int> GetFractionLostInPercent() const = 0;
+  virtual std::optional<int> GetFractionLostInPercent() const = 0;
 
   // TODO(bugs.webrtc.org/10679): Delete, migrate users to the above GetStats
   // method (and extend RtpReceiveStats if needed).

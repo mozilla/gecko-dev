@@ -145,7 +145,7 @@ class LibvpxVp8Encoder : public VideoEncoder {
 
   const LibvpxVp8EncoderInfoSettings encoder_info_override_;
 
-  absl::optional<TimeDelta> max_frame_drop_interval_;
+  std::optional<TimeDelta> max_frame_drop_interval_;
 
   bool android_specific_threading_settings_;
 };

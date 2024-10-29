@@ -1,39 +1,52 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Wed, 10 Apr 2024 21:54:00 +0000
-Subject: Bug 1888181 - (fix-52fec7d3) Limit scope of race checker in
- VideoCaptureModuleV4L2::StartCapture. r=mjf
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 2 May 2024 00:47:00 -0700
+Subject: Bug 1892299 - fix-afaae4e38a - fix adapted_track_source build
+ exclusion;r?mjf
 
-TSAN detects a race between destroying the scoped race checker in StartCapture
-and creating the scoped race checker in CaptureProcess, because once the capture
-thread has been created (and given its run function) there is no synchronization
-before the run function starts to run.
-
-This patch avoids the race by destroying the StartCapture scoped race checker
-before creating the capture thread.
-
-Differential Revision: https://phabricator.services.mozilla.com/D207203
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b046a1446cee5ab485d4868b3ca9784b16b2d02f
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecfe7527e75629dbc65fc9cbc1
 ---
- modules/video_capture/linux/video_capture_v4l2.cc | 2 ++
- 1 file changed, 2 insertions(+)
+ media/BUILD.gn | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
 
-diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index 6d8a5e463f..db2450a2c7 100644
---- a/modules/video_capture/linux/video_capture_v4l2.cc
-+++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -129,6 +129,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-     }
-   }
- 
-+  {
-   // We don't want members above to be guarded by capture_checker_ as
-   // it's meant to be for members that are accessed on the API thread
-   // only when we are not capturing. The code above can be called many
-@@ -298,6 +299,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   _requestedCapability = capability;
-   _captureStarted = true;
-   _streaming = true;
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index c55930ca14..808222978a 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -55,6 +55,11 @@ rtc_library("rtc_media_base") {
+     "base/video_broadcaster.h",  # Used downstream
+     "base/video_common.h",  # Used downstream
+   ]
++  if (build_with_mozilla) {
++    sources -= [
++      "base/adapted_video_track_source.h",
++    ]
 +  }
+   deps = [
+     ":adapted_video_track_source",
+     ":codec",
+@@ -126,12 +131,6 @@ rtc_library("rtc_media_base") {
+     "../rtc_base/third_party/sigslot",
+     "../video/config:encoder_config",
+   ]
+-    if (build_with_mozilla) {
+-    sources -= [
+-      "base/adapted_video_track_source.cc",
+-      "base/adapted_video_track_source.h",
+-    ]
+-  }
+ }
  
-   // start capture thread;
-   if (_captureThread.empty()) {
+ rtc_library("adapted_video_track_source") {
+@@ -139,6 +138,12 @@ rtc_library("adapted_video_track_source") {
+     "base/adapted_video_track_source.cc",
+     "base/adapted_video_track_source.h",
+   ]
++  if (build_with_mozilla) {
++    sources -= [
++      "base/adapted_video_track_source.cc",
++      "base/adapted_video_track_source.h",
++    ]
++  }
+   deps = [
+     ":video_adapter",
+     ":video_broadcaster",

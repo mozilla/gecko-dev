@@ -1,47 +1,30 @@
-From: stransky <stransky@redhat.com>
-Date: Tue, 29 Aug 2023 12:43:00 +0000
-Subject: Bug 1821629 [Pipewire/DMABuf] Don't create dmabuf backend if it's
- disabled r=ng,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 5 Oct 2023 14:21:00 +0000
+Subject: Bug 1857037 - pt1 - add shim gni files to limit BUILD.gn changes.
+ r=ng,webrtc-reviewers
 
-Depends on D172224
-
-Differential Revision: https://phabricator.services.mozilla.com/D172229
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/237d19fe96dd7d25b6a817415ee4e6854678d648
+Differential Revision: https://phabricator.services.mozilla.com/D190104
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a84d39db037cbe34aa19588b0d18335eb5e2d79b
 ---
- .../linux/wayland/shared_screencast_stream.cc            | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+ testing/libfuzzer/fuzzer_test.gni | 2 ++
+ testing/test.gni                  | 2 ++
+ 2 files changed, 4 insertions(+)
+ create mode 100644 testing/libfuzzer/fuzzer_test.gni
+ create mode 100644 testing/test.gni
 
-diff --git a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-index 61fe3a8137..b8cac318ff 100644
---- a/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-+++ b/modules/desktop_capture/linux/wayland/shared_screencast_stream.cc
-@@ -406,7 +406,9 @@ bool SharedScreenCastStreamPrivate::StartScreenCastStream(
-     RTC_LOG(LS_ERROR) << "Unable to open PipeWire library";
-     return false;
-   }
--  egl_dmabuf_ = std::make_unique<EglDmaBuf>();
-+  if (mozilla::gfx::IsDMABufEnabled()) {
-+    egl_dmabuf_ = std::make_unique<EglDmaBuf>();
-+  }
- 
-   pw_stream_node_id_ = stream_node_id;
- 
-@@ -495,7 +497,8 @@ bool SharedScreenCastStreamPrivate::StartScreenCastStream(
-     for (uint32_t format : {SPA_VIDEO_FORMAT_BGRA, SPA_VIDEO_FORMAT_RGBA,
-                             SPA_VIDEO_FORMAT_BGRx, SPA_VIDEO_FORMAT_RGBx}) {
-       // Modifiers can be used with PipeWire >= 0.3.33
--      if (has_required_pw_client_version && has_required_pw_server_version) {
-+      if (egl_dmabuf_ &&
-+          has_required_pw_client_version && has_required_pw_server_version) {
-         modifiers_ = egl_dmabuf_->QueryDmaBufModifiers(format);
- 
-         if (!modifiers_.empty()) {
-@@ -938,7 +941,7 @@ bool SharedScreenCastStreamPrivate::ProcessDMABuffer(
- 
-   const uint n_planes = spa_buffer->n_datas;
- 
--  if (!n_planes) {
-+  if (!n_planes || !egl_dmabuf_) {
-     return false;
-   }
- 
+diff --git a/testing/libfuzzer/fuzzer_test.gni b/testing/libfuzzer/fuzzer_test.gni
+new file mode 100644
+index 0000000000..8fdf3cdad2
+--- /dev/null
++++ b/testing/libfuzzer/fuzzer_test.gni
+@@ -0,0 +1,2 @@
++# "empty" file in place of importing new testing/libfuzzer
++# to allow BUILD.gn imports to succeed.
+diff --git a/testing/test.gni b/testing/test.gni
+new file mode 100644
+index 0000000000..f46fa82778
+--- /dev/null
++++ b/testing/test.gni
+@@ -0,0 +1,2 @@
++# "empty" file in place of importing new testing/test.gni
++# to allow BUILD.gn imports to succeed.

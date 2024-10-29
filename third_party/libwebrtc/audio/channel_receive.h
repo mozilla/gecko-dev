@@ -13,10 +13,10 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/call/audio_sink.h"
@@ -63,17 +63,17 @@ struct CallReceiveStatistics {
   // The timestamp at which the last packet was received, i.e. the time of the
   // local clock when it was received - not the RTP timestamp of that packet.
   // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-lastpacketreceivedtimestamp
-  absl::optional<Timestamp> last_packet_received;
+  std::optional<Timestamp> last_packet_received;
   // Remote outbound stats derived by the received RTCP sender reports.
   // Note that the timestamps below correspond to the time elapsed since the
   // Unix epoch.
   // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
-  absl::optional<int64_t> last_sender_report_timestamp_ms;
-  absl::optional<int64_t> last_sender_report_remote_timestamp_ms;
+  std::optional<int64_t> last_sender_report_timestamp_ms;
+  std::optional<int64_t> last_sender_report_remote_timestamp_ms;
   uint64_t sender_reports_packets_sent = 0;
   uint64_t sender_reports_bytes_sent = 0;
   uint64_t sender_reports_reports_count = 0;
-  absl::optional<TimeDelta> round_trip_time;
+  std::optional<TimeDelta> round_trip_time;
   TimeDelta total_round_trip_time = TimeDelta::Zero();
   int round_trip_time_measurements;
 };
@@ -98,7 +98,7 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
   virtual void StopPlayout() = 0;
 
   // Payload type and format of last received RTP packet, if any.
-  virtual absl::optional<std::pair<int, SdpAudioFormat>> GetReceiveCodec()
+  virtual std::optional<std::pair<int, SdpAudioFormat>> GetReceiveCodec()
       const = 0;
 
   virtual void ReceivedRTCPPacket(const uint8_t* data, size_t length) = 0;
@@ -122,7 +122,7 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
                                       int64_t* time_ms) const = 0;
   virtual void SetEstimatedPlayoutNtpTimestampMs(int64_t ntp_timestamp_ms,
                                                  int64_t time_ms) = 0;
-  virtual absl::optional<int64_t> GetCurrentEstimatedPlayoutNtpTimestampMs(
+  virtual std::optional<int64_t> GetCurrentEstimatedPlayoutNtpTimestampMs(
       int64_t now_ms) const = 0;
 
   // Audio quality.
@@ -132,7 +132,7 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
   virtual int GetBaseMinimumPlayoutDelayMs() const = 0;
 
   // Produces the transport-related timestamps; current_delay_ms is left unset.
-  virtual absl::optional<Syncable::Info> GetSyncInfo() const = 0;
+  virtual std::optional<Syncable::Info> GetSyncInfo() const = 0;
 
   virtual void RegisterReceiverCongestionControlObjects(
       PacketRouter* packet_router) = 0;
@@ -149,9 +149,7 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
 
   virtual int PreferredSampleRate() const = 0;
 
-  // Sets the source tracker to notify about "delivered" packets when output is
-  // muted.
-  virtual void SetSourceTracker(SourceTracker* source_tracker) = 0;
+  virtual std::vector<RtpSource> GetSources() const = 0;
 
   // Associate to a send channel.
   // Used for obtaining RTT for a receive-only channel.
@@ -183,7 +181,7 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
     int jitter_buffer_min_delay_ms,
     bool enable_non_sender_rtt,
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory,
-    absl::optional<AudioCodecPairId> codec_pair_id,
+    std::optional<AudioCodecPairId> codec_pair_id,
     rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
     const webrtc::CryptoOptions& crypto_options,
     rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,

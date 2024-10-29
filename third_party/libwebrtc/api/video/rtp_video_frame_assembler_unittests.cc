@@ -11,9 +11,9 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/transport/rtp/dependency_descriptor.h"
 #include "api/video/encoded_frame.h"
@@ -86,10 +86,10 @@ class PacketBuilder {
   }
 
  private:
-  absl::optional<VideoCodecType> GetVideoCodecType() {
+  std::optional<VideoCodecType> GetVideoCodecType() {
     switch (format_) {
       case PayloadFormat::kRaw: {
-        return absl::nullopt;
+        return std::nullopt;
       }
       case PayloadFormat::kH264: {
         return kVideoCodecH264;
@@ -111,7 +111,7 @@ class PacketBuilder {
       }
     }
     RTC_DCHECK_NOTREACHED();
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   const RtpVideoFrameAssembler::PayloadFormat format_;

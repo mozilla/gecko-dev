@@ -38,7 +38,6 @@ using ::testing::Mock;
 using ::testing::Property;
 using ::testing::Ref;
 using ::testing::Return;
-using ::testing::StrEq;
 
 class MockEventEncoder : public RtcEventLogEncoder {
  public:

@@ -13,6 +13,8 @@
 #include <memory>
 #include <vector>
 
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
@@ -65,24 +67,22 @@ class RtpSenderAudioTest : public ::testing::Test {
  public:
   RtpSenderAudioTest()
       : fake_clock_(kStartTime),
-        rtp_module_(ModuleRtpRtcpImpl2::Create([&] {
-          RtpRtcpInterface::Configuration config;
-          config.audio = true;
-          config.clock = &fake_clock_;
-          config.outgoing_transport = &transport_;
-          config.local_media_ssrc = kSsrc;
-          return config;
-        }())),
+        env_(CreateEnvironment(&fake_clock_)),
+        rtp_module_(env_,
+                    {.audio = true,
+                     .outgoing_transport = &transport_,
+                     .local_media_ssrc = kSsrc}),
         rtp_sender_audio_(
             std::make_unique<RTPSenderAudio>(&fake_clock_,
-                                             rtp_module_->RtpSender())) {
-    rtp_module_->SetSequenceNumber(kSeqNum);
+                                             rtp_module_.RtpSender())) {
+    rtp_module_.SetSequenceNumber(kSeqNum);
   }
 
   rtc::AutoThread main_thread_;
   SimulatedClock fake_clock_;
+  const Environment env_;
   LoopbackTransportTest transport_;
-  std::unique_ptr<ModuleRtpRtcpImpl2> rtp_module_;
+  ModuleRtpRtcpImpl2 rtp_module_;
   std::unique_ptr<RTPSenderAudio> rtp_sender_audio_;
 };
 
@@ -102,8 +102,8 @@ TEST_F(RtpSenderAudioTest, SendAudio) {
 
 TEST_F(RtpSenderAudioTest, SendAudioWithAudioLevelExtension) {
   const uint8_t kAudioLevel = 0x5a;
-  rtp_module_->RegisterRtpHeaderExtension(AudioLevelExtension::Uri(),
-                                          kAudioLevelExtensionId);
+  rtp_module_.RegisterRtpHeaderExtension(AudioLevelExtension::Uri(),
+                                         kAudioLevelExtensionId);
 
   const char payload_name[] = "PAYLOAD_NAME";
   const uint8_t payload_type = 127;
@@ -148,8 +148,8 @@ TEST_F(RtpSenderAudioTest, SendAudioWithoutAbsoluteCaptureTime) {
 
 TEST_F(RtpSenderAudioTest,
        SendAudioWithAbsoluteCaptureTimeWithCaptureClockOffset) {
-  rtp_module_->RegisterRtpHeaderExtension(AbsoluteCaptureTimeExtension::Uri(),
-                                          kAbsoluteCaptureTimeExtensionId);
+  rtp_module_.RegisterRtpHeaderExtension(AbsoluteCaptureTimeExtension::Uri(),
+                                         kAbsoluteCaptureTimeExtensionId);
   constexpr Timestamp kAbsoluteCaptureTimestamp = Timestamp::Millis(521);
   const char payload_name[] = "audio";
   const uint8_t payload_type = 127;

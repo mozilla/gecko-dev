@@ -17,10 +17,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b3ba8452e77105c72
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/call/rtp_demuxer.cc b/call/rtp_demuxer.cc
-index 525acf7b99..2140c6ad52 100644
+index 5dce864e7a..90a156f588 100644
 --- a/call/rtp_demuxer.cc
 +++ b/call/rtp_demuxer.cc
-@@ -274,13 +274,17 @@ RtpPacketSinkInterface* RtpDemuxer::ResolveSink(
+@@ -282,13 +282,17 @@ RtpPacketSinkInterface* RtpDemuxer::ResolveSink(
    // RSID and RRID are routed to the same sinks. If an RSID is specified on a
    // repair packet, it should be ignored and the RRID should be used.
    std::string packet_mid, packet_rsid;
@@ -39,7 +39,7 @@ index 525acf7b99..2140c6ad52 100644
    // The BUNDLE spec says to drop any packets with unknown MIDs, even if the
    // SSRC is known/latched.
    if (has_mid && known_mids_.find(packet_mid) == known_mids_.end()) {
-@@ -354,6 +358,7 @@ RtpPacketSinkInterface* RtpDemuxer::ResolveSink(
+@@ -362,6 +366,7 @@ RtpPacketSinkInterface* RtpDemuxer::ResolveSink(
      }
    }
  

@@ -11,9 +11,9 @@
 #define MODULES_VIDEO_CODING_SVC_CREATE_SCALABILITY_STRUCTURE_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "modules/video_coding/svc/scalable_video_controller.h"
 
@@ -27,7 +27,7 @@ std::unique_ptr<ScalableVideoController> CreateScalabilityStructure(
 
 // Returns description of the scalability structure identified by 'name',
 // Return nullopt for unknown name.
-absl::optional<ScalableVideoController::StreamLayersConfig>
+std::optional<ScalableVideoController::StreamLayersConfig>
 ScalabilityStructureConfig(ScalabilityMode name);
 
 }  // namespace webrtc

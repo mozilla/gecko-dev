@@ -15,12 +15,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/units/timestamp.h"
 #include "p2p/base/p2p_constants.h"
@@ -387,7 +387,7 @@ int Connection::unwritable_timeout() const {
   return unwritable_timeout_.value_or(CONNECTION_WRITE_CONNECT_TIMEOUT);
 }
 
-void Connection::set_unwritable_timeout(const absl::optional<int>& value_ms) {
+void Connection::set_unwritable_timeout(const std::optional<int>& value_ms) {
   RTC_DCHECK_RUN_ON(network_thread_);
   unwritable_timeout_ = value_ms;
 }
@@ -397,7 +397,7 @@ int Connection::unwritable_min_checks() const {
   return unwritable_min_checks_.value_or(CONNECTION_WRITE_CONNECT_FAILURES);
 }
 
-void Connection::set_unwritable_min_checks(const absl::optional<int>& value) {
+void Connection::set_unwritable_min_checks(const std::optional<int>& value) {
   RTC_DCHECK_RUN_ON(network_thread_);
   unwritable_min_checks_ = value;
 }
@@ -407,7 +407,7 @@ int Connection::inactive_timeout() const {
   return inactive_timeout_.value_or(CONNECTION_WRITE_TIMEOUT);
 }
 
-void Connection::set_inactive_timeout(const absl::optional<int>& value) {
+void Connection::set_inactive_timeout(const std::optional<int>& value) {
   RTC_DCHECK_RUN_ON(network_thread_);
   inactive_timeout_ = value;
 }
@@ -418,7 +418,7 @@ int Connection::receiving_timeout() const {
 }
 
 void Connection::set_receiving_timeout(
-    absl::optional<int> receiving_timeout_ms) {
+    std::optional<int> receiving_timeout_ms) {
   RTC_DCHECK_RUN_ON(network_thread_);
   receiving_timeout_ = receiving_timeout_ms;
 }
@@ -1095,7 +1095,7 @@ int64_t Connection::last_ping_response_received() const {
   return last_ping_response_received_;
 }
 
-const absl::optional<std::string>& Connection::last_ping_id_received() const {
+const std::optional<std::string>& Connection::last_ping_id_received() const {
   RTC_DCHECK_RUN_ON(network_thread_);
   return last_ping_id_received_;
 }
@@ -1113,7 +1113,7 @@ int64_t Connection::last_ping_received() const {
   return last_ping_received_;
 }
 
-void Connection::ReceivedPing(const absl::optional<std::string>& request_id) {
+void Connection::ReceivedPing(const std::optional<std::string>& request_id) {
   RTC_DCHECK_RUN_ON(network_thread_);
   last_ping_received_ = rtc::TimeMillis();
   last_ping_id_received_ = request_id;
@@ -1156,7 +1156,7 @@ int64_t Connection::last_data_received() const {
 void Connection::ReceivedPingResponse(
     int rtt,
     absl::string_view request_id,
-    const absl::optional<uint32_t>& nomination) {
+    const std::optional<uint32_t>& nomination) {
   RTC_DCHECK_RUN_ON(network_thread_);
   RTC_DCHECK_GE(rtt, 0);
   // We've already validated that this is a STUN binding response with
@@ -1420,7 +1420,7 @@ void Connection::OnConnectionRequestResponse(StunRequest* request,
                       ", rtt="
                    << rtt << ", pings_since_last_response=" << pings;
   }
-  absl::optional<uint32_t> nomination;
+  std::optional<uint32_t> nomination;
   const std::string request_id = request->id();
   auto iter = absl::c_find_if(
       pings_since_last_response_,
@@ -1563,7 +1563,7 @@ void Connection::MaybeSetRemoteIceParametersAndGeneration(
   }
   // TODO(deadbeef): A value of '0' for the generation is used for both
   // generation 0 and "generation unknown". It should be changed to an
-  // absl::optional to fix this.
+  // std::optional to fix this.
   if (remote_candidate_.username() == ice_params.ufrag &&
       remote_candidate_.password() == ice_params.pwd &&
       remote_candidate_.generation() == 0) {
@@ -1725,7 +1725,7 @@ bool Connection::missing_responses(int64_t now) const {
 }
 
 bool Connection::TooManyOutstandingPings(
-    const absl::optional<int>& max_outstanding_pings) const {
+    const std::optional<int>& max_outstanding_pings) const {
   RTC_DCHECK_RUN_ON(network_thread_);
   if (!max_outstanding_pings.has_value()) {
     return false;

@@ -121,17 +121,17 @@ TEST(InternalEncoderFactoryTest, Av1) {
 TEST(InternalEncoderFactoryTest, QueryCodecSupportNoScalabilityModeAv1) {
   InternalEncoderFactory factory;
   EXPECT_THAT(factory.QueryCodecSupport(SdpVideoFormat::AV1Profile0(),
-                                        /*scalability_mode=*/absl::nullopt),
+                                        /*scalability_mode=*/std::nullopt),
               Support(kSupported));
 }
 
 TEST(InternalEncoderFactoryTest, QueryCodecSupportNoScalabilityMode) {
   InternalEncoderFactory factory;
   EXPECT_THAT(factory.QueryCodecSupport(SdpVideoFormat::VP8(),
-                                        /*scalability_mode=*/absl::nullopt),
+                                        /*scalability_mode=*/std::nullopt),
               Support(kSupported));
   EXPECT_THAT(factory.QueryCodecSupport(SdpVideoFormat::VP9Profile0(),
-                                        /*scalability_mode=*/absl::nullopt),
+                                        /*scalability_mode=*/std::nullopt),
               Support(kVp9Enabled ? kSupported : kUnsupported));
 }
 

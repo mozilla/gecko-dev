@@ -13,6 +13,8 @@
 #include <memory>
 #include <utility>
 
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/mock_frame_transformer.h"
 #include "api/video/video_codec_type.h"
@@ -34,24 +36,25 @@
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/logging.h"
 #include "system_wrappers/include/clock.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_transport.h"
 #include "test/rtcp_packet_parser.h"
-#include "test/scoped_key_value_config.h"
 #include "test/time_controller/simulated_task_queue.h"
 #include "test/time_controller/simulated_time_controller.h"
 
+namespace webrtc {
+
+namespace {
+
+using test::ExplicitKeyValueConfig;
 using ::testing::_;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::Invoke;
 using ::testing::SizeIs;
 using ::testing::Values;
-
-namespace webrtc {
-
-namespace {
 
 const uint8_t kH264StartCode[] = {0x00, 0x00, 0x00, 0x01};
 
@@ -149,19 +152,21 @@ class RtpVideoStreamReceiver2Test : public ::testing::Test,
   RtpVideoStreamReceiver2Test() : RtpVideoStreamReceiver2Test("") {}
   explicit RtpVideoStreamReceiver2Test(std::string field_trials)
       : time_controller_(Timestamp::Millis(100)),
+        env_(CreateEnvironment(
+            std::make_unique<ExplicitKeyValueConfig>(field_trials),
+            time_controller_.GetClock(),
+            time_controller_.GetTaskQueueFactory())),
         task_queue_(time_controller_.GetTaskQueueFactory()->CreateTaskQueue(
             "RtpVideoStreamReceiver2Test",
             TaskQueueFactory::Priority::NORMAL)),
         task_queue_setter_(task_queue_.get()),
-        field_trials_(field_trials),
         config_(CreateConfig()) {
-    rtp_receive_statistics_ =
-        ReceiveStatistics::Create(Clock::GetRealTimeClock());
+    rtp_receive_statistics_ = ReceiveStatistics::Create(&env_.clock());
     rtp_video_stream_receiver_ = std::make_unique<RtpVideoStreamReceiver2>(
-        TaskQueueBase::Current(), Clock::GetRealTimeClock(), &mock_transport_,
-        nullptr, nullptr, &config_, rtp_receive_statistics_.get(), nullptr,
-        nullptr, &nack_periodic_processor_, &mock_on_complete_frame_callback_,
-        nullptr, nullptr, field_trials_, nullptr);
+        env_, TaskQueueBase::Current(), &mock_transport_, nullptr, nullptr,
+        &config_, rtp_receive_statistics_.get(), nullptr, nullptr,
+        &nack_periodic_processor_, &mock_on_complete_frame_callback_, nullptr,
+        nullptr);
     rtp_video_stream_receiver_->AddReceiveCodec(kPayloadType,
                                                 kVideoCodecGeneric, {},
                                                 /*raw_payload=*/false);
@@ -229,10 +234,10 @@ class RtpVideoStreamReceiver2Test : public ::testing::Test,
   }
 
   GlobalSimulatedTimeController time_controller_;
+  Environment env_;
   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> task_queue_;
   TokenTaskQueue::CurrentTaskQueueSetter task_queue_setter_;
 
-  webrtc::test::ScopedKeyValueConfig field_trials_;
   VideoReceiveStreamInterface::Config config_;
   NackPeriodicProcessor nack_periodic_processor_;
   test::RtcpPacketParser rtcp_packet_parser_;
@@ -395,7 +400,7 @@ TEST_F(RtpVideoStreamReceiver2Test, PacketInfoIsPropagatedIntoVideoFrames) {
   rtp_packet.SetSsrc(kSsrc);
   rtp_packet.SetExtension<AbsoluteCaptureTimeExtension>(
       AbsoluteCaptureTime{kAbsoluteCaptureTimestamp,
-                          /*estimated_capture_clock_offset=*/absl::nullopt});
+                          /*estimated_capture_clock_offset=*/std::nullopt});
 
   RTPVideoHeader video_header =
       GetGenericVideoHeader(VideoFrameType::kVideoFrameKey);
@@ -428,7 +433,7 @@ TEST_F(RtpVideoStreamReceiver2Test,
   rtp_packet.SetSsrc(kSsrc);
   rtp_packet.SetExtension<AbsoluteCaptureTimeExtension>(
       AbsoluteCaptureTime{kAbsoluteCaptureTimestamp,
-                          /*estimated_capture_clock_offset=*/absl::nullopt});
+                          /*estimated_capture_clock_offset=*/std::nullopt});
 
   RTPVideoHeader video_header =
       GetGenericVideoHeader(VideoFrameType::kVideoFrameKey);
@@ -624,8 +629,8 @@ TEST_P(RtpVideoStreamReceiver2TestH264, OutOfBandFmtpSpsPps) {
   // IDR frames without SPS/PPS are not returned by
   // |H26xPacketBuffer.InsertPacket| until SPS and PPS are received when
   // WebRTC-SpsPpsIdrIsH264Keyframe is enabled.
-  if (!field_trials_.IsEnabled("WebRTC-SpsPpsIdrIsH264Keyframe") ||
-      !field_trials_.IsEnabled("WebRTC-Video-H26xPacketBuffer")) {
+  if (!env_.field_trials().IsEnabled("WebRTC-SpsPpsIdrIsH264Keyframe") ||
+      !env_.field_trials().IsEnabled("WebRTC-Video-H26xPacketBuffer")) {
     EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame(_));
   }
   rtp_video_stream_receiver_->OnReceivedPayloadData(data, rtp_packet,
@@ -636,7 +641,7 @@ TEST_P(RtpVideoStreamReceiver2TestH264, ForceSpsPpsIdrIsKeyframe) {
   constexpr int kPayloadType = 99;
   webrtc::CodecParameterMap codec_params;
   // Forcing can be done either with field trial or codec_params.
-  if (!field_trials_.IsEnabled("WebRTC-SpsPpsIdrIsH264Keyframe")) {
+  if (!env_.field_trials().IsEnabled("WebRTC-SpsPpsIdrIsH264Keyframe")) {
     codec_params.insert({cricket::kH264FmtpSpsPpsIdrInKeyframe, ""});
   }
   rtp_video_stream_receiver_->AddReceiveCodec(kPayloadType, kVideoCodecH264,
@@ -699,7 +704,7 @@ TEST_P(RtpVideoStreamReceiver2TestH264, ForceSpsPpsIdrIsKeyframe) {
   // IDR frames without SPS/PPS are not returned by
   // |H26xPacketBuffer.InsertPacket| until SPS and PPS are received, while
   // |PacketBuffer| returns it as a delta frame.
-  if (field_trials_.IsEnabled("WebRTC-Video-H26xPacketBuffer")) {
+  if (env_.field_trials().IsEnabled("WebRTC-Video-H26xPacketBuffer")) {
     EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame).Times(0);
   } else {
     EXPECT_CALL(mock_on_complete_frame_callback_, DoOnCompleteFrame)
@@ -1278,10 +1283,10 @@ TEST_F(RtpVideoStreamReceiver2Test, TransformFrame) {
   EXPECT_CALL(*mock_frame_transformer,
               RegisterTransformedFrameSinkCallback(_, config_.rtp.remote_ssrc));
   auto receiver = std::make_unique<RtpVideoStreamReceiver2>(
-      TaskQueueBase::Current(), Clock::GetRealTimeClock(), &mock_transport_,
-      nullptr, nullptr, &config_, rtp_receive_statistics_.get(), nullptr,
-      nullptr, &nack_periodic_processor_, &mock_on_complete_frame_callback_,
-      nullptr, mock_frame_transformer, field_trials_, nullptr);
+      env_, TaskQueueBase::Current(), &mock_transport_, nullptr, nullptr,
+      &config_, rtp_receive_statistics_.get(), nullptr, nullptr,
+      &nack_periodic_processor_, &mock_on_complete_frame_callback_, nullptr,
+      mock_frame_transformer);
   receiver->AddReceiveCodec(kPayloadType, kVideoCodecGeneric, {},
                             /*raw_payload=*/false);
 

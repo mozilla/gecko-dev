@@ -18,6 +18,7 @@
 namespace webrtc {
 namespace {
 constexpr int kStaticQpThreshold = 13;
+
 constexpr QualityConvergenceMonitor::Parameters kParametersOnlyStaticThreshold =
     {.static_qp_threshold = kStaticQpThreshold,
      .dynamic_detection_enabled = false};

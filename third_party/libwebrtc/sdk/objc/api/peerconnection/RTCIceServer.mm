@@ -84,7 +84,8 @@
                   tlsAlpnProtocols:(NSArray<NSString *> *)tlsAlpnProtocols
                  tlsEllipticCurves:(NSArray<NSString *> *)tlsEllipticCurves {
   NSParameterAssert(urlStrings.count);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _urlStrings = [[NSArray alloc] initWithArray:urlStrings copyItems:YES];
     _username = [username copy];
     _credential = [credential copy];

@@ -11,8 +11,8 @@
 #include "rtc_base/numerics/sample_counter.h"
 
 #include <initializer_list>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
@@ -23,9 +23,9 @@ namespace rtc {
 TEST(SampleCounterTest, ProcessesNoSamples) {
   constexpr int kMinSamples = 1;
   SampleCounter counter;
-  EXPECT_THAT(counter.Avg(kMinSamples), Eq(absl::nullopt));
-  EXPECT_THAT(counter.Max(), Eq(absl::nullopt));
-  EXPECT_THAT(counter.Min(), Eq(absl::nullopt));
+  EXPECT_THAT(counter.Avg(kMinSamples), Eq(std::nullopt));
+  EXPECT_THAT(counter.Max(), Eq(std::nullopt));
+  EXPECT_THAT(counter.Min(), Eq(std::nullopt));
 }
 
 TEST(SampleCounterTest, NotEnoughSamples) {
@@ -34,8 +34,8 @@ TEST(SampleCounterTest, NotEnoughSamples) {
   for (int value : {1, 2, 3, 4, 5}) {
     counter.Add(value);
   }
-  EXPECT_THAT(counter.Avg(kMinSamples), Eq(absl::nullopt));
-  EXPECT_THAT(counter.Sum(kMinSamples), Eq(absl::nullopt));
+  EXPECT_THAT(counter.Avg(kMinSamples), Eq(std::nullopt));
+  EXPECT_THAT(counter.Sum(kMinSamples), Eq(std::nullopt));
   EXPECT_THAT(counter.Max(), Eq(5));
   EXPECT_THAT(counter.Min(), Eq(1));
 }
@@ -72,8 +72,8 @@ TEST(SampleCounterTest, AggregatesTwoCounters) {
     counter2.Add(value);
   }
   // Before aggregation there is not enough samples.
-  EXPECT_THAT(counter1.Avg(kMinSamples), Eq(absl::nullopt));
-  EXPECT_THAT(counter1.Variance(kMinSamples), Eq(absl::nullopt));
+  EXPECT_THAT(counter1.Avg(kMinSamples), Eq(std::nullopt));
+  EXPECT_THAT(counter1.Variance(kMinSamples), Eq(std::nullopt));
   // Aggregate counter2 in counter1.
   counter1.Add(counter2);
   EXPECT_THAT(counter1.Avg(kMinSamples), Eq(3));

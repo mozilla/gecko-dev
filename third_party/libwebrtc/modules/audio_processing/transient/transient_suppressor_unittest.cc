@@ -10,9 +10,9 @@
 
 #include "modules/audio_processing/transient/transient_suppressor.h"
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "modules/audio_processing/transient/common.h"
 #include "modules/audio_processing/transient/transient_suppressor_impl.h"
 #include "test/gtest.h"
@@ -23,13 +23,13 @@ constexpr int kMono = 1;
 
 // Returns the index of the first non-zero sample in `samples` or an unspecified
 // value if no value is zero.
-absl::optional<int> FindFirstNonZeroSample(const std::vector<float>& samples) {
+std::optional<int> FindFirstNonZeroSample(const std::vector<float>& samples) {
   for (size_t i = 0; i < samples.size(); ++i) {
     if (samples[i] != 0.0f) {
       return i;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace
@@ -138,7 +138,7 @@ TEST_P(TransientSuppressorSampleRateParametrization,
         /*key_pressed=*/false);
 
     // Detect the algorithmic delay of `TransientSuppressorImpl`.
-    absl::optional<int> frame_delay = FindFirstNonZeroSample(frame);
+    std::optional<int> frame_delay = FindFirstNonZeroSample(frame);
 
     // Check that the delayed voice probability is delayed according to the
     // measured delay.

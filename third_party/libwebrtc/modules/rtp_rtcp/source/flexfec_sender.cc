@@ -196,7 +196,7 @@ DataRate FlexfecSender::CurrentFecRate() const {
       .value_or(DataRate::Zero());
 }
 
-absl::optional<RtpState> FlexfecSender::GetRtpState() {
+std::optional<RtpState> FlexfecSender::GetRtpState() {
   RtpState rtp_state;
   rtp_state.sequence_number = seq_num_;
   rtp_state.start_timestamp = timestamp_offset_;

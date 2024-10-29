@@ -13,11 +13,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/base/macros.h"
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/video/video_codec_type.h"
 #include "common_video/h264/h264_common.h"
@@ -61,17 +61,17 @@ bool ParseApStartOffsets(const uint8_t* nalu_ptr,
 // https://datatracker.ietf.org/doc/html/rfc7798#section-4.4.1
 // Aggregation Packet (AP) strcture
 // https://datatracker.ietf.org/doc/html/rfc7798#section-4.4.2
-absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
+std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
     rtc::CopyOnWriteBuffer rtp_payload) {
   // Skip the single NALU header (payload header), aggregated packet case will
   // be checked later.
   if (rtp_payload.size() <= kH265PayloadHeaderSizeBytes) {
     RTC_LOG(LS_ERROR) << "Single NALU header truncated.";
-    return absl::nullopt;
+    return std::nullopt;
   }
   const uint8_t* const payload_data = rtp_payload.cdata();
-  absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
-      absl::in_place);
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
+      std::in_place);
   parsed_payload->video_header.width = 0;
   parsed_payload->video_header.height = 0;
   parsed_payload->video_header.codec = kVideoCodecH265;
@@ -86,13 +86,13 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
     // Skip the aggregated packet header (Aggregated packet NAL type + length).
     if (rtp_payload.size() <= kH265ApHeaderSizeBytes) {
       RTC_LOG(LS_ERROR) << "Aggregated packet header truncated.";
-      return absl::nullopt;
+      return std::nullopt;
     }
 
     if (!ParseApStartOffsets(nalu_start, nalu_length, &nalu_start_offsets)) {
       RTC_LOG(LS_ERROR)
           << "Aggregated packet with incorrect NALU packet lengths.";
-      return absl::nullopt;
+      return std::nullopt;
     }
 
     nal_type = (payload_data[kH265ApHeaderSizeBytes] & kH265TypeMask) >> 1;
@@ -110,7 +110,7 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
     size_t end_offset = nalu_start_offsets[i + 1] - kH265LengthFieldSizeBytes;
     if (end_offset - start_offset < kH265NalHeaderSizeBytes) {
       RTC_LOG(LS_ERROR) << "Aggregated packet too short";
-      return absl::nullopt;
+      return std::nullopt;
     }
 
     // Insert start code before each NALU in aggregated packet.
@@ -143,7 +143,7 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
         if (start_offset)
           output_buffer->AppendData(payload_data, start_offset);
 
-        absl::optional<H265SpsParser::SpsState> sps =
+        std::optional<H265SpsParser::SpsState> sps =
             H265SpsParser::ParseSps(nalu_data);
 
         if (sps) {
@@ -175,7 +175,7 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
       case H265::NaluType::kFu:
       case H265::NaluType::kPaci:
         RTC_LOG(LS_WARNING) << "Unexpected AP, FU or PACI received.";
-        return absl::nullopt;
+        return std::nullopt;
     }
   }
   parsed_payload->video_payload = video_payload;
@@ -184,14 +184,14 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
 
 // Fragmentation Unit (FU) structure:
 // https://datatracker.ietf.org/doc/html/rfc7798#section-4.4.3
-absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
+std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
     rtc::CopyOnWriteBuffer rtp_payload) {
   if (rtp_payload.size() < kH265FuHeaderSizeBytes + kH265NalHeaderSizeBytes) {
     RTC_LOG(LS_ERROR) << "FU NAL units truncated.";
-    return absl::nullopt;
+    return std::nullopt;
   }
-  absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
-      absl::in_place);
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
+      std::in_place);
 
   uint8_t f = rtp_payload.cdata()[0] & kH265FBit;
   uint8_t layer_id_h = rtp_payload.cdata()[0] & kH265LayerIDHMask;
@@ -234,11 +234,11 @@ absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
 
 }  // namespace
 
-absl::optional<VideoRtpDepacketizer::ParsedRtpPayload>
+std::optional<VideoRtpDepacketizer::ParsedRtpPayload>
 VideoRtpDepacketizerH265::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
   if (rtp_payload.empty()) {
     RTC_LOG(LS_ERROR) << "Empty payload.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   uint8_t nal_type = (rtp_payload.cdata()[0] & kH265TypeMask) >> 1;
@@ -249,7 +249,7 @@ VideoRtpDepacketizerH265::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
   } else if (nal_type == H265::NaluType::kPaci) {
     // TODO(bugs.webrtc.org/13485): Implement PACI parse for H265
     RTC_LOG(LS_ERROR) << "Not support type:" << nal_type;
-    return absl::nullopt;
+    return std::nullopt;
   } else {
     // Single NAL unit packet or Aggregated packets (AP).
     return ProcessApOrSingleNalu(std::move(rtp_payload));

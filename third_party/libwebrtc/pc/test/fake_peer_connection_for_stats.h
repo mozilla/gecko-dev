@@ -52,7 +52,7 @@ class FakeVoiceMediaSendChannelForStats
   }
 
  private:
-  absl::optional<cricket::VoiceMediaSendInfo> send_stats_;
+  std::optional<cricket::VoiceMediaSendInfo> send_stats_;
 };
 
 class FakeVoiceMediaReceiveChannelForStats
@@ -80,7 +80,7 @@ class FakeVoiceMediaReceiveChannelForStats
   }
 
  private:
-  absl::optional<cricket::VoiceMediaReceiveInfo> receive_stats_;
+  std::optional<cricket::VoiceMediaReceiveInfo> receive_stats_;
 };
 
 // Fake VideoMediaChannel where the result of GetStats can be configured.
@@ -108,7 +108,7 @@ class FakeVideoMediaSendChannelForStats
   }
 
  private:
-  absl::optional<cricket::VideoMediaSendInfo> send_stats_;
+  std::optional<cricket::VideoMediaSendInfo> send_stats_;
 };
 
 class FakeVideoMediaReceiveChannelForStats
@@ -134,7 +134,7 @@ class FakeVideoMediaReceiveChannelForStats
   }
 
  private:
-  absl::optional<cricket::VideoMediaReceiveInfo> receive_stats_;
+  std::optional<cricket::VideoMediaReceiveInfo> receive_stats_;
 };
 
 constexpr bool kDefaultRtcpMuxRequired = true;
@@ -387,7 +387,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
   void SetCallStats(const Call::Stats& call_stats) { call_stats_ = call_stats; }
 
   void SetAudioDeviceStats(
-      absl::optional<AudioDeviceModule::Stats> audio_device_stats) {
+      std::optional<AudioDeviceModule::Stats> audio_device_stats) {
     audio_device_stats_ = audio_device_stats;
   }
 
@@ -473,7 +473,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
 
   Call::Stats GetCallStats() override { return call_stats_; }
 
-  absl::optional<AudioDeviceModule::Stats> GetAudioDeviceStats() override {
+  std::optional<AudioDeviceModule::Stats> GetAudioDeviceStats() override {
     return audio_device_stats_;
   }
 
@@ -498,6 +498,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
       return nullptr;
     }
   }
+  PayloadTypePicker& payload_type_picker() { return payload_type_picker_; }
 
  private:
   cricket::TransportStats GetTransportStatsByName(
@@ -557,12 +558,13 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
 
   Call::Stats call_stats_;
 
-  absl::optional<AudioDeviceModule::Stats> audio_device_stats_;
+  std::optional<AudioDeviceModule::Stats> audio_device_stats_;
 
   std::map<std::string, rtc::scoped_refptr<rtc::RTCCertificate>>
       local_certificates_by_transport_;
   std::map<std::string, std::unique_ptr<rtc::SSLCertChain>>
       remote_cert_chains_by_transport_;
+  PayloadTypePicker payload_type_picker_;
 };
 
 }  // namespace webrtc

@@ -81,7 +81,8 @@ NSString * const kRTCMediaStreamTrackKindVideo =
                            type:(RTCMediaStreamTrackType)type {
   NSParameterAssert(nativeTrack);
   NSParameterAssert(factory);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _factory = factory;
     _nativeTrack = nativeTrack;
     _type = type;

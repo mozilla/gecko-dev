@@ -11,9 +11,9 @@
 #include "test/testsupport/ivf_video_frame_generator.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/test/create_frame_generator.h"
@@ -118,7 +118,7 @@ class IvfVideoFrameGeneratorTest : public ::testing::Test {
     std::unique_ptr<test::FrameGeneratorInterface> frame_generator =
         test::CreateSquareFrameGenerator(
             kWidth, kHeight, test::FrameGeneratorInterface::OutputType::kI420,
-            absl::nullopt);
+            std::nullopt);
 
     VideoCodec codec_settings;
     webrtc::test::CodecSettings(video_codec_type, &codec_settings);
@@ -170,7 +170,7 @@ class IvfVideoFrameGeneratorTest : public ::testing::Test {
 TEST_F(IvfVideoFrameGeneratorTest, DoesNotKnowFps) {
   CreateTestVideoFile(VideoCodecType::kVideoCodecVP8, CreateVp8Encoder(env_));
   IvfVideoFrameGenerator generator(env_, file_name_);
-  EXPECT_EQ(generator.fps(), absl::nullopt);
+  EXPECT_EQ(generator.fps(), std::nullopt);
 }
 
 TEST_F(IvfVideoFrameGeneratorTest, Vp8) {

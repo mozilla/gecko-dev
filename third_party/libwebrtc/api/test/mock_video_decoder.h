@@ -12,8 +12,8 @@
 #define API_TEST_MOCK_VIDEO_DECODER_H_
 
 #include <cstdint>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/video/encoded_image.h"
 #include "api/video/video_frame.h"
 #include "api/video_codecs/video_decoder.h"
@@ -38,8 +38,8 @@ class MockDecodedImageCallback : public DecodedImageCallback {
   MOCK_METHOD(void,
               Decoded,
               (VideoFrame & decoded_image,  // NOLINT
-               absl::optional<int32_t> decode_time_ms,
-               absl::optional<uint8_t> qp),
+               std::optional<int32_t> decode_time_ms,
+               std::optional<uint8_t> qp),
               (override));
 };
 

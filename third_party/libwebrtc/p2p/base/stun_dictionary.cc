@@ -87,7 +87,7 @@ const StunUInt16ListAttribute* StunDictionaryView::GetUInt16List(
 
 const StunAttribute* StunDictionaryView::GetOrNull(
     int key,
-    absl::optional<StunAttributeValueType> type) const {
+    std::optional<StunAttributeValueType> type) const {
   const auto it = attrs_.find(key);
   if (it == attrs_.end()) {
     return nullptr;

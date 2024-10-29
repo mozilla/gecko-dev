@@ -12,16 +12,15 @@
 #define API_AUDIO_CODECS_AUDIO_DECODER_FACTORY_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/environment/environment.h"
 #include "api/ref_count.h"
-#include "rtc_base/checks.h"
 
 namespace webrtc {
 
@@ -46,29 +45,10 @@ class AudioDecoderFactory : public RefCountInterface {
   // Note: Implementations need to be robust against combinations other than
   // one encoder, one decoder getting the same ID; such decoders must still
   // work.
-  [[deprecated("bugs.webrtc.org/356878416 - Use `Create` instead")]]  //
-  virtual std::unique_ptr<AudioDecoder>
-  MakeAudioDecoder(const SdpAudioFormat& format,
-                   absl::optional<AudioCodecPairId> codec_pair_id) {
-    RTC_DCHECK_NOTREACHED();
-    return nullptr;
-  }
-
-  // TODO: bugs.webrtc.org/356878416 - Make pure virtual when  implemented by
-  // derived classes instead of the MakeAudioDecoder.
   virtual absl::Nullable<std::unique_ptr<AudioDecoder>> Create(
       const Environment& env,
       const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id) {
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    return MakeAudioDecoder(format, codec_pair_id);
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-  }
+      std::optional<AudioCodecPairId> codec_pair_id) = 0;
 };
 
 }  // namespace webrtc

@@ -12,11 +12,11 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/units/time_delta.h"
 #include "net/dcsctp/packet/chunk/data_chunk.h"
 #include "net/dcsctp/packet/chunk/forward_tsn_chunk.h"
@@ -66,7 +66,7 @@ TransmissionControlBlock::TransmissionControlBlock(
           absl::bind_front(&TransmissionControlBlock::OnRtxTimerExpiry, this),
           TimerOptions(options.rto_initial.ToTimeDelta(),
                        TimerBackoffAlgorithm::kExponential,
-                       /*max_restarts=*/absl::nullopt,
+                       /*max_restarts=*/std::nullopt,
                        options.max_timer_backoff_duration.has_value()
                            ? options.max_timer_backoff_duration->ToTimeDelta()
                            : TimeDelta::PlusInfinity()))),
@@ -169,7 +169,6 @@ void TransmissionControlBlock::MaybeSendForwardTsn(SctpPacket::Builder& builder,
     } else {
       builder.Add(retransmission_queue_.CreateForwardTsn());
     }
-    Send(builder);
     // https://datatracker.ietf.org/doc/html/rfc3758
     // "IMPLEMENTATION NOTE: An implementation may wish to limit the number of
     // duplicate FORWARD TSN chunks it sends by ... waiting a full RTT before
@@ -233,7 +232,7 @@ void TransmissionControlBlock::SendBufferedPackets(SctpPacket::Builder& builder,
             reassembly_queue_.remaining_bytes()));
       }
       MaybeSendForwardTsn(builder, now);
-      absl::optional<ReConfigChunk> reconfig =
+      std::optional<ReConfigChunk> reconfig =
           stream_reset_handler_.MakeStreamResetRequest();
       if (reconfig.has_value()) {
         builder.Add(*reconfig);

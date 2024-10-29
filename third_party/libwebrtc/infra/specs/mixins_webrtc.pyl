@@ -51,7 +51,7 @@
     'swarming': {
       'idempotent': False,
       'dimensions': {
-        'os': 'iOS-17.5.1',
+        'os': 'iOS-17.6.1',
         'pool': 'WebRTC',
         #'device_status': 'available'
       },
@@ -189,5 +189,14 @@
     'args': [
       '--xctest',
     ],
+  },
+  'xcode_15_main': {
+    'args': ['--xcode-build-version', '15f31d'],
+    'swarming': {
+      'named_caches': [{
+        'name': 'xcode_ios_15f31d',
+        'path': 'Xcode.app'
+      }]
+    }
   },
 }

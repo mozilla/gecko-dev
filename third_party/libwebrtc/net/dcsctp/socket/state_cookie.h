@@ -11,9 +11,9 @@
 #define NET_DCSCTP_SOCKET_STATE_COOKIE_H_
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/common/internal_types.h"
 #include "net/dcsctp/socket/capabilities.h"
@@ -47,8 +47,8 @@ class StateCookie {
   // Returns a serialized version of this cookie.
   std::vector<uint8_t> Serialize();
 
-  // Deserializes the cookie, and returns absl::nullopt if that failed.
-  static absl::optional<StateCookie> Deserialize(
+  // Deserializes the cookie, and returns std::nullopt if that failed.
+  static std::optional<StateCookie> Deserialize(
       rtc::ArrayView<const uint8_t> cookie);
 
   VerificationTag peer_tag() const { return peer_tag_; }

@@ -65,7 +65,7 @@ TEST_F(RRSendQueueTest, AddAndGetSingleChunk) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, {1, 2, 4, 5, 6}));
 
   EXPECT_FALSE(buf_.IsEmpty());
-  absl::optional<SendQueue::DataToSend> chunk_opt =
+  std::optional<SendQueue::DataToSend> chunk_opt =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_opt.has_value());
   EXPECT_TRUE(chunk_opt->data.is_beginning);
@@ -76,19 +76,19 @@ TEST_F(RRSendQueueTest, CarveOutBeginningMiddleAndEnd) {
   std::vector<uint8_t> payload(60);
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_beg =
+  std::optional<SendQueue::DataToSend> chunk_beg =
       buf_.Produce(kNow, /*max_size=*/20);
   ASSERT_TRUE(chunk_beg.has_value());
   EXPECT_TRUE(chunk_beg->data.is_beginning);
   EXPECT_FALSE(chunk_beg->data.is_end);
 
-  absl::optional<SendQueue::DataToSend> chunk_mid =
+  std::optional<SendQueue::DataToSend> chunk_mid =
       buf_.Produce(kNow, /*max_size=*/20);
   ASSERT_TRUE(chunk_mid.has_value());
   EXPECT_FALSE(chunk_mid->data.is_beginning);
   EXPECT_FALSE(chunk_mid->data.is_end);
 
-  absl::optional<SendQueue::DataToSend> chunk_end =
+  std::optional<SendQueue::DataToSend> chunk_end =
       buf_.Produce(kNow, /*max_size=*/20);
   ASSERT_TRUE(chunk_end.has_value());
   EXPECT_FALSE(chunk_end->data.is_beginning);
@@ -102,7 +102,7 @@ TEST_F(RRSendQueueTest, GetChunksFromTwoMessages) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
   buf_.Add(kNow, DcSctpMessage(StreamID(3), PPID(54), payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.stream_id, kStreamID);
@@ -110,7 +110,7 @@ TEST_F(RRSendQueueTest, GetChunksFromTwoMessages) {
   EXPECT_TRUE(chunk_one->data.is_beginning);
   EXPECT_TRUE(chunk_one->data.is_end);
 
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_EQ(chunk_two->data.stream_id, StreamID(3));
@@ -132,14 +132,14 @@ TEST_F(RRSendQueueTest, BufferBecomesFullAndEmptied) {
   buf_.Add(kNow, DcSctpMessage(StreamID(5), PPID(55), payload));
   EXPECT_GE(buf_.total_buffered_amount(), 1000u);
 
-  absl::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 1000);
+  std::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 1000);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.stream_id, kStreamID);
   EXPECT_EQ(chunk_one->data.ppid, kPPID);
 
   EXPECT_GE(buf_.total_buffered_amount(), 1000u);
 
-  absl::optional<SendQueue::DataToSend> chunk_two = buf_.Produce(kNow, 1000);
+  std::optional<SendQueue::DataToSend> chunk_two = buf_.Produce(kNow, 1000);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_EQ(chunk_two->data.stream_id, StreamID(3));
   EXPECT_EQ(chunk_two->data.ppid, PPID(54));
@@ -147,7 +147,7 @@ TEST_F(RRSendQueueTest, BufferBecomesFullAndEmptied) {
   EXPECT_LT(buf_.total_buffered_amount(), 1000u);
   EXPECT_FALSE(buf_.IsEmpty());
 
-  absl::optional<SendQueue::DataToSend> chunk_three = buf_.Produce(kNow, 1000);
+  std::optional<SendQueue::DataToSend> chunk_three = buf_.Produce(kNow, 1000);
   ASSERT_TRUE(chunk_three.has_value());
   EXPECT_EQ(chunk_three->data.stream_id, StreamID(5));
   EXPECT_EQ(chunk_three->data.ppid, PPID(55));
@@ -161,7 +161,7 @@ TEST_F(RRSendQueueTest, DefaultsToOrderedSend) {
 
   // Default is ordered
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_FALSE(chunk_one->data.is_unordered);
@@ -170,7 +170,7 @@ TEST_F(RRSendQueueTest, DefaultsToOrderedSend) {
   SendOptions opts;
   opts.unordered = IsUnordered(true);
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload), opts);
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_TRUE(chunk_two->data.is_unordered);
@@ -222,20 +222,20 @@ TEST_F(RRSendQueueTest, DiscardPartialPackets) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
   buf_.Add(kNow, DcSctpMessage(StreamID(2), PPID(54), payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_FALSE(chunk_one->data.is_end);
   EXPECT_EQ(chunk_one->data.stream_id, kStreamID);
   buf_.Discard(chunk_one->data.stream_id, chunk_one->message_id);
 
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_FALSE(chunk_two->data.is_end);
   EXPECT_EQ(chunk_two->data.stream_id, StreamID(2));
 
-  absl::optional<SendQueue::DataToSend> chunk_three =
+  std::optional<SendQueue::DataToSend> chunk_three =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_three.has_value());
   EXPECT_TRUE(chunk_three->data.is_end);
@@ -268,7 +268,7 @@ TEST_F(RRSendQueueTest, PrepareResetStreamsNotPartialPackets) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 50);
+  std::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 50);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.stream_id, kStreamID);
   EXPECT_EQ(buf_.total_buffered_amount(), 2 * payload.size() - 50);
@@ -297,7 +297,7 @@ TEST_F(RRSendQueueTest, EnqueuedItemsArePausedDuringStreamReset) {
   buf_.CommitResetStreams();
   EXPECT_EQ(buf_.total_buffered_amount(), payload.size());
 
-  absl::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 50);
+  std::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 50);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.stream_id, kStreamID);
   EXPECT_EQ(buf_.total_buffered_amount(), 0u);
@@ -311,7 +311,7 @@ TEST_F(RRSendQueueTest, PausedStreamsStillSendPartialMessagesUntilEnd) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kFragmentSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.stream_id, kStreamID);
@@ -322,7 +322,7 @@ TEST_F(RRSendQueueTest, PausedStreamsStillSendPartialMessagesUntilEnd) {
   EXPECT_EQ(buf_.total_buffered_amount(), 1 * kPayloadSize - kFragmentSize);
 
   // Should still produce fragments until end of message.
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kFragmentSize);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_EQ(chunk_two->data.stream_id, kStreamID);
@@ -338,12 +338,12 @@ TEST_F(RRSendQueueTest, CommittingResetsSSN) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.ssn, SSN(0));
 
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_EQ(chunk_two->data.ssn, SSN(1));
@@ -358,7 +358,7 @@ TEST_F(RRSendQueueTest, CommittingResetsSSN) {
               UnorderedElementsAre(StreamID(1)));
   buf_.CommitResetStreams();
 
-  absl::optional<SendQueue::DataToSend> chunk_three =
+  std::optional<SendQueue::DataToSend> chunk_three =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_three.has_value());
   EXPECT_EQ(chunk_three->data.ssn, SSN(0));
@@ -396,13 +396,13 @@ TEST_F(RRSendQueueTest, CommittingResetsSSNForPausedStreamsOnly) {
   buf_.Add(kNow, DcSctpMessage(StreamID(1), kPPID, payload));
   buf_.Add(kNow, DcSctpMessage(StreamID(3), kPPID, payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.stream_id, StreamID(1));
   EXPECT_EQ(chunk_one->data.ssn, SSN(0));
 
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_EQ(chunk_two->data.stream_id, StreamID(3));
@@ -420,13 +420,13 @@ TEST_F(RRSendQueueTest, CommittingResetsSSNForPausedStreamsOnly) {
 
   buf_.CommitResetStreams();
 
-  absl::optional<SendQueue::DataToSend> chunk_three =
+  std::optional<SendQueue::DataToSend> chunk_three =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_three.has_value());
   EXPECT_EQ(chunk_three->data.stream_id, StreamID(1));
   EXPECT_EQ(chunk_three->data.ssn, SSN(1));
 
-  absl::optional<SendQueue::DataToSend> chunk_four =
+  std::optional<SendQueue::DataToSend> chunk_four =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_four.has_value());
   EXPECT_EQ(chunk_four->data.stream_id, StreamID(3));
@@ -439,12 +439,12 @@ TEST_F(RRSendQueueTest, RollBackResumesSSN) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload));
 
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.ssn, SSN(0));
 
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_two.has_value());
   EXPECT_EQ(chunk_two->data.ssn, SSN(1));
@@ -459,7 +459,7 @@ TEST_F(RRSendQueueTest, RollBackResumesSSN) {
               UnorderedElementsAre(StreamID(1)));
   buf_.RollbackResetStreams();
 
-  absl::optional<SendQueue::DataToSend> chunk_three =
+  std::optional<SendQueue::DataToSend> chunk_three =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_three.has_value());
   EXPECT_EQ(chunk_three->data.ssn, SSN(2));
@@ -744,7 +744,7 @@ TEST_F(RRSendQueueTest, TriggersOnTotalBufferedAmountLowWhenCrossing) {
 
   // Drain it a bit - will trigger.
   EXPECT_CALL(callbacks_, OnTotalBufferedAmountLow).Times(1);
-  absl::optional<SendQueue::DataToSend> chunk_two =
+  std::optional<SendQueue::DataToSend> chunk_two =
       buf_.Produce(kNow, kOneFragmentPacketSize);
 }
 
@@ -858,7 +858,7 @@ TEST_F(RRSendQueueTest, WillSendLifecycleExpireWhenDiscardingDuringPause) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload),
            SendOptions{.lifecycle_id = LifecycleId(2)});
 
-  absl::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 50);
+  std::optional<SendQueue::DataToSend> chunk_one = buf_.Produce(kNow, 50);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_EQ(chunk_one->data.stream_id, kStreamID);
   EXPECT_EQ(buf_.total_buffered_amount(), 2 * payload.size() - 50);
@@ -876,7 +876,7 @@ TEST_F(RRSendQueueTest, WillSendLifecycleExpireWhenDiscardingExplicitly) {
   buf_.Add(kNow, DcSctpMessage(kStreamID, kPPID, payload),
            SendOptions{.lifecycle_id = LifecycleId(1)});
 
-  absl::optional<SendQueue::DataToSend> chunk_one =
+  std::optional<SendQueue::DataToSend> chunk_one =
       buf_.Produce(kNow, kOneFragmentPacketSize);
   ASSERT_TRUE(chunk_one.has_value());
   EXPECT_FALSE(chunk_one->data.is_end);

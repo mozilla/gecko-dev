@@ -15,19 +15,22 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
+#include "api/rtp_packet_sender.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/pacing/pacing_controller.h"
 #include "modules/pacing/rtp_packet_pacer.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
-#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/numerics/exp_filter.h"
 #include "rtc_base/thread_annotations.h"
 
@@ -107,7 +110,7 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
   DataSize QueueSizeData() const override;
 
   // Returns the time when the first packet was sent;
-  absl::optional<Timestamp> FirstSentPacketTime() const override;
+  std::optional<Timestamp> FirstSentPacketTime() const override;
 
   // Returns the number of milliseconds it will take to send the current
   // packets in the queue, given the current size and bitrate, ignoring prio.
@@ -127,7 +130,7 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
     Timestamp oldest_packet_enqueue_time;
     DataSize queue_size;
     TimeDelta expected_queue_time;
-    absl::optional<Timestamp> first_sent_packet_time;
+    std::optional<Timestamp> first_sent_packet_time;
   };
   void OnStatsUpdated(const Stats& stats);
 

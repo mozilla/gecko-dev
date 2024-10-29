@@ -13,9 +13,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
@@ -69,7 +69,7 @@ class VideoEncoderInterface {
     int spatial_id = 0;
     Resolution resolution;
     std::vector<int> reference_buffers;
-    absl::optional<int> update_buffer;
+    std::optional<int> update_buffer;
     int effort_level = 0;
 
     std::unique_ptr<FrameOutput> frame_output;

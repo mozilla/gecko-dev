@@ -343,16 +343,16 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  rtc_base/BUILD.gn                             |   6 +
  rtc_base/logging.cc                           |  21 +-
  rtc_base/logging.h                            |   9 +
- test/fuzzers/rtp_packet_fuzzer.cc             |   5 +
+ test/fuzzers/rtp_packet_fuzzer.cc             |   4 +
  test/vcm_capturer.cc                          |   2 +-
  webrtc.gni                                    |   2 +-
- 39 files changed, 566 insertions(+), 81 deletions(-)
+ 39 files changed, 565 insertions(+), 81 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
-index 8813e0f4c2..b5e08cea2c 100644
+index c272ccae06..0271714c44 100644
 --- a/api/rtp_headers.cc
 +++ b/api/rtp_headers.cc
-@@ -31,7 +31,8 @@ RTPHeaderExtension::RTPHeaderExtension()
+@@ -35,7 +35,8 @@ RTPHeaderExtension::RTPHeaderExtension()
        videoRotation(kVideoRotation_0),
        hasVideoContentType(false),
        videoContentType(VideoContentType::UNSPECIFIED),
@@ -363,7 +363,7 @@ index 8813e0f4c2..b5e08cea2c 100644
  RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
      default;
 diff --git a/api/rtp_headers.h b/api/rtp_headers.h
-index 129ab5f499..5a867bbd77 100644
+index 6ba3292fca..5d3a731864 100644
 --- a/api/rtp_headers.h
 +++ b/api/rtp_headers.h
 @@ -113,6 +113,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
@@ -388,12 +388,12 @@ index 129ab5f499..5a867bbd77 100644
    RTPHeaderExtension(const RTPHeaderExtension& other);
 @@ -171,12 +184,12 @@ struct RTPHeaderExtension {
  
-   absl::optional<ColorSpace> color_space;
+   std::optional<ColorSpace> color_space;
  
 +  CsrcAudioLevelList csrcAudioLevels;
 +
   private:
-   absl::optional<AudioLevel> audio_level_;
+   std::optional<AudioLevel> audio_level_;
  };
  
 -enum { kRtpCsrcSize = 15 };  // RFC 3550 page 13
@@ -402,10 +402,10 @@ index 129ab5f499..5a867bbd77 100644
    RTPHeader();
    RTPHeader(const RTPHeader& other);
 diff --git a/api/rtp_parameters.cc b/api/rtp_parameters.cc
-index 283d238e77..da06138ce8 100644
+index c919f7c1dd..117aba6a0f 100644
 --- a/api/rtp_parameters.cc
 +++ b/api/rtp_parameters.cc
-@@ -164,7 +164,8 @@ bool RtpExtension::IsSupportedForAudio(absl::string_view uri) {
+@@ -165,7 +165,8 @@ bool RtpExtension::IsSupportedForAudio(absl::string_view uri) {
           uri == webrtc::RtpExtension::kTransportSequenceNumberV2Uri ||
           uri == webrtc::RtpExtension::kMidUri ||
           uri == webrtc::RtpExtension::kRidUri ||
@@ -416,7 +416,7 @@ index 283d238e77..da06138ce8 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index f57f9e0d3c..9f2833196d 100644
+index f53d0bdbf6..8f706f8ce3 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -438,10 +438,10 @@ index f57f9e0d3c..9f2833196d 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 59ffd39548..71b5f12982 100644
+index 08ac664edc..3b09c2d78c 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
-@@ -216,6 +216,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -232,6 +232,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
        // disabled.
        KeyFrameReqMethod keyframe_method = KeyFrameReqMethod::kPliRtcp;
  
@@ -451,17 +451,17 @@ index 59ffd39548..71b5f12982 100644
        LntfConfig lntf;
  
 diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
-index 92305da0e6..3257f5fff0 100644
+index 47de3bc9fd..26d09c23ee 100644
 --- a/modules/audio_coding/acm2/acm_receiver.h
 +++ b/modules/audio_coding/acm2/acm_receiver.h
-@@ -19,6 +19,7 @@
+@@ -20,6 +20,7 @@
  #include <string>
  #include <utility>
  #include <vector>
 +#include <atomic>
  
- #include "absl/types/optional.h"
  #include "api/array_view.h"
+ #include "api/audio/audio_frame.h"
 diff --git a/modules/audio_coding/neteq/dtmf_buffer.cc b/modules/audio_coding/neteq/dtmf_buffer.cc
 index 9f78aca6e2..115bfcf97b 100644
 --- a/modules/audio_coding/neteq/dtmf_buffer.cc
@@ -757,11 +757,11 @@ index 3745e9cba5..f68cfb94c1 100644
        device_names->push_back(rtc::ToUtf8(device.DeviceName));
      }
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 7ec3b17929..cd516d3d6f 100644
+index 51ace1cf75..051d77c4f7 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
-@@ -200,7 +200,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
-     next_time_to_send_rtcp_ = absl::nullopt;
+@@ -211,7 +211,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
+     next_time_to_send_rtcp_ = std::nullopt;
    } else if (method_ == RtcpMode::kOff) {
      // When switching on, reschedule the next packet
 -    SetNextRtcpSendEvaluationDuration(report_interval_ / 2);
@@ -770,7 +770,7 @@ index 7ec3b17929..cd516d3d6f 100644
    method_ = new_method;
  }
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.cc b/modules/rtp_rtcp/source/rtp_header_extensions.cc
-index 43770a728a..bcdc9a036b 100644
+index 46c82180eb..bb035729f8 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.cc
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.cc
 @@ -423,6 +423,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
@@ -820,7 +820,7 @@ index 43770a728a..bcdc9a036b 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index 02a1543e00..05e771a56d 100644
+index b8495f4ba6..ed816caa10 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
 @@ -308,6 +308,21 @@ class ColorSpaceExtension {
@@ -846,10 +846,10 @@ index 02a1543e00..05e771a56d 100644
  // Subclasses must defined kId and kUri static constexpr members.
  class BaseRtpStringExtension {
 diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
-index 2a95a3a816..b152cdbd9e 100644
+index 19372880b2..3192c27a49 100644
 --- a/modules/rtp_rtcp/source/rtp_packet.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet.cc
-@@ -205,6 +205,10 @@ void RtpPacket::ZeroMutableExtensions() {
+@@ -212,6 +212,10 @@ void RtpPacket::ZeroMutableExtensions() {
          // Non-mutable extension. Don't change it.
          break;
        }
@@ -861,7 +861,7 @@ index 2a95a3a816..b152cdbd9e 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_packet_unittest.cc b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
-index ccdb5f8a75..da4abe0131 100644
+index 5f9544dcab..7c2b93e219 100644
 --- a/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 @@ -123,6 +123,18 @@ constexpr uint8_t kPacketWithMid[] = {
@@ -884,7 +884,7 @@ index ccdb5f8a75..da4abe0131 100644
  constexpr uint8_t kPayload[] = {'p', 'a', 'y', 'l', 'o', 'a', 'd'};
  constexpr uint8_t kPacketPaddingSize = 8;
 @@ -402,6 +414,24 @@ TEST(RtpPacketTest, FailsToSetUnregisteredExtension) {
-   EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), absl::nullopt);
+   EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), std::nullopt);
  }
  
 +TEST(RtpPacketTest, CreateWithDynamicSizedExtensionCsrcAudioLevel) {
@@ -929,10 +929,10 @@ index 0b87d6d065..d69ae9420b 100644
  }  // namespace webrtc
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index ed805e7a2b..65a9d58314 100644
+index 9d1f423ae4..258bfa1885 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
-@@ -128,6 +128,10 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -140,6 +140,10 @@ bool IsNonVolatile(RTPExtensionType type) {
      case kRtpExtensionNumberOfExtensions:
        RTC_DCHECK_NOTREACHED();
        return false;
@@ -1437,26 +1437,26 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index fc3640cee0..b4508a224e 100644
+index a82d33ab36..ea7cb5767e 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-@@ -255,6 +255,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
-       first_frame_in_picture_(true),
-       ss_info_needed_(false),
+@@ -258,6 +258,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
        force_all_active_layers_(false),
+       enable_svc_for_simulcast_(
+           !env.field_trials().IsDisabled("WebRTC-VP9-SvcForSimulcast")),
 +      num_cores_(0),
        is_flexible_mode_(false),
        variable_framerate_controller_(variable_framerate_screenshare::kMinFps),
        quality_scaler_experiment_(ParseQualityScalerConfig(env.field_trials())),
-@@ -528,6 +529,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
+@@ -543,6 +544,7 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
  
    force_key_frame_ = true;
    pics_since_key_ = 0;
 +  num_cores_ = settings.number_of_cores;
  
-   scalability_mode_ = inst->GetScalabilityMode();
+   scalability_mode_ = codec_.GetScalabilityMode();
    if (scalability_mode_.has_value()) {
-@@ -1098,6 +1100,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1110,6 +1112,14 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
      config_changed_ = false;
    }
  
@@ -1471,7 +1471,7 @@ index fc3640cee0..b4508a224e 100644
    RTC_DCHECK_EQ(input_image.width(), raw_->d_w);
    RTC_DCHECK_EQ(input_image.height(), raw_->d_h);
  
-@@ -1220,6 +1230,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
+@@ -1232,6 +1242,48 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
    return WEBRTC_VIDEO_CODEC_OK;
  }
  
@@ -1518,36 +1518,36 @@ index fc3640cee0..b4508a224e 100644
 +}
 +
  bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
-                                              absl::optional<int>* spatial_idx,
-                                              absl::optional<int>* temporal_idx,
+                                              std::optional<int>* spatial_idx,
+                                              std::optional<int>* temporal_idx,
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
-index 0134e3ea58..86d1bdda16 100644
+index f08d452346..b4342125a7 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
-@@ -68,6 +68,9 @@ class LibvpxVp9Encoder : public VideoEncoder {
+@@ -71,6 +71,9 @@ class LibvpxVp9Encoder : public VideoEncoder {
    // Call encoder initialize function and set control settings.
-   int InitAndSetControlSettings(const VideoCodec* inst);
+   int InitAndSetControlSettings();
  
 +  // Update frame size for codec.
 +  int UpdateCodecFrameSize(const VideoFrame& input_image);
 +
    bool PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
-                              absl::optional<int>* spatial_idx,
-                              absl::optional<int>* temporal_idx,
-@@ -150,6 +153,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
+                              std::optional<int>* spatial_idx,
+                              std::optional<int>* temporal_idx,
+@@ -153,6 +156,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
    VideoBitrateAllocation current_bitrate_allocation_;
    bool ss_info_needed_;
    bool force_all_active_layers_;
 +  uint8_t num_cores_;
  
-   std::unique_ptr<ScalableVideoController> svc_controller_;
-   absl::optional<ScalabilityMode> scalability_mode_;
+   const bool enable_svc_for_simulcast_;
+   std::optional<SimulcastToSvcConverter> simulcast_to_svc_converter_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 4743a46d9d..2bdbb971ef 100644
+index e1282d7293..ef2a93fbb8 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -469,6 +469,12 @@ rtc_library("logging") {
-     "//third_party/abseil-cpp/absl/types:optional",
+@@ -444,6 +444,12 @@ rtc_library("logging") {
+     "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  
 +  # Added to allow including apm_data_dumper.h in rtc_base/logging.cc
@@ -1606,7 +1606,7 @@ index 61a3c667ba..ad2303735e 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index b171cfe11e..df7f173f58 100644
+index 165a83b467..4280f32125 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
 @@ -581,6 +581,12 @@ class LogMessage {
@@ -1633,21 +1633,20 @@ index b171cfe11e..df7f173f58 100644
  
  //////////////////////////////////////////////////////////////////////
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index be4e9a3e85..23a1828915 100644
+index eaa423e855..6a7b233e29 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
-@@ -164,6 +164,11 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
-         // This extension requires state to read and so complicated that
-         // deserves own fuzzer.
+@@ -170,6 +170,10 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
+         CorruptionDetectionMessage message;
+         packet.GetExtension<CorruptionDetectionExtension>(&message);
          break;
 +      case kRtpExtensionCsrcAudioLevel: {
 +        CsrcAudioLevelList levels;
 +        packet.GetExtension<CsrcAudioLevel>(&levels);
 +        break;
-+      }
+       }
      }
    }
- 
 diff --git a/test/vcm_capturer.cc b/test/vcm_capturer.cc
 index 0a9226ef6f..620c1c02f3 100644
 --- a/test/vcm_capturer.cc

@@ -15,9 +15,9 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
@@ -53,13 +53,13 @@ constexpr bool kIsArm = true;
 constexpr bool kIsArm = false;
 #endif
 
-absl::optional<LibvpxVp8Decoder::DeblockParams> DefaultDeblockParams() {
+std::optional<LibvpxVp8Decoder::DeblockParams> DefaultDeblockParams() {
   return LibvpxVp8Decoder::DeblockParams(/*max_level=*/8,
                                          /*degrade_qp=*/60,
                                          /*min_qp=*/30);
 }
 
-absl::optional<LibvpxVp8Decoder::DeblockParams>
+std::optional<LibvpxVp8Decoder::DeblockParams>
 GetPostProcParamsFromFieldTrialGroup(const FieldTrialsView& field_trials) {
   std::string group = field_trials.Lookup(kIsArm ? kVp8PostProcArmFieldTrial
                                                  : kVp8PostProcFieldTrial);
@@ -127,7 +127,7 @@ LibvpxVp8Decoder::LibvpxVp8Decoder(const Environment& env)
       key_frame_required_(true),
       deblock_params_(use_postproc_ ? GetPostProcParamsFromFieldTrialGroup(
                                           env.field_trials())
-                                    : absl::nullopt),
+                                    : std::nullopt),
       qp_smoother_(use_postproc_ ? new QpSmoother() : nullptr) {}
 
 LibvpxVp8Decoder::~LibvpxVp8Decoder() {
@@ -160,7 +160,7 @@ bool LibvpxVp8Decoder::Configure(const Settings& settings) {
 
   // Always start with a complete key frame.
   key_frame_required_ = true;
-  if (absl::optional<int> buffer_pool_size = settings.buffer_pool_size()) {
+  if (std::optional<int> buffer_pool_size = settings.buffer_pool_size()) {
     if (!buffer_pool_.Resize(*buffer_pool_size)) {
       return false;
     }
@@ -305,7 +305,7 @@ int LibvpxVp8Decoder::ReturnFrame(
                                  .set_rtp_timestamp(timestamp)
                                  .set_color_space(explicit_color_space)
                                  .build();
-  decode_complete_callback_->Decoded(decoded_image, absl::nullopt, qp);
+  decode_complete_callback_->Decoded(decoded_image, std::nullopt, qp);
 
   return WEBRTC_VIDEO_CODEC_OK;
 }

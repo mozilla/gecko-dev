@@ -158,10 +158,10 @@ class RtcEventLogSession
     temp_filename_ = test::OutputPath() + test_name;
   }
 
-  // Create and buffer the config events and `num_events_before_log_start`
+  // Create and buffer the config events and `num_events_before_start`
   // randomized non-config events. Then call StartLogging and finally create and
   // write the remaining non-config events.
-  void WriteLog(EventCounts count, size_t num_events_before_log_start);
+  void WriteLog(EventCounts count, size_t num_events_before_start);
   void ReadAndVerifyLog();
 
   bool IsNewFormat() {

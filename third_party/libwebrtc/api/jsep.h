@@ -23,10 +23,10 @@
 #include <stddef.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/ref_count.h"
 #include "api/rtc_error.h"
 #include "rtc_base/system/rtc_export.h"
@@ -117,7 +117,7 @@ RTC_EXPORT const char* SdpTypeToString(SdpType type);
 // Returns the SdpType from its string form. The string form can be one of the
 // constants defined in SessionDescriptionInterface. Passing in any other string
 // results in nullopt.
-RTC_EXPORT absl::optional<SdpType> SdpTypeFromString(
+RTC_EXPORT std::optional<SdpType> SdpTypeFromString(
     const std::string& type_str);
 
 // Class representation of an SDP session description.
@@ -192,12 +192,14 @@ class RTC_EXPORT SessionDescriptionInterface {
 // Creates a SessionDescriptionInterface based on the SDP string and the type.
 // Returns null if the sdp string can't be parsed or the type is unsupported.
 // `error` may be null.
-// TODO(steveanton): This function is deprecated. Please use the functions below
-// which take an SdpType enum instead. Remove this once it is no longer used.
-RTC_EXPORT SessionDescriptionInterface* CreateSessionDescription(
-    const std::string& type,
-    const std::string& sdp,
-    SdpParseError* error);
+// TODO(https://issues.webrtc.org/360909068): This function is deprecated.
+// Please use the functions below which take an SdpType enum instead. Remove
+// this once it is no longer used.
+[[deprecated("Use version with SdpType argument")]] RTC_EXPORT
+    SessionDescriptionInterface*
+    CreateSessionDescription(const std::string& type,
+                             const std::string& sdp,
+                             SdpParseError* error);
 
 // Creates a SessionDescriptionInterface based on the SDP string and the type.
 // Returns null if the SDP string cannot be parsed.

@@ -9,12 +9,12 @@
  */
 
 #include <iostream>
+#include <optional>
 #include <string>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "modules/audio_coding/neteq/tools/neteq_test.h"
 #include "modules/audio_coding/neteq/tools/neteq_test_factory.h"
 #include "rtc_base/strings/string_builder.h"
@@ -262,13 +262,13 @@ bool ValidateOutputFilesOptions(bool textlog,
   return true;
 }
 
-absl::optional<std::string> CreateOptionalOutputFileName(
+std::optional<std::string> CreateOptionalOutputFileName(
     bool output_requested,
     absl::string_view basename,
     absl::string_view output_audio_filename,
     absl::string_view suffix) {
   if (!output_requested) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   if (!basename.empty()) {
     // Override the automatic assignment.
@@ -283,7 +283,7 @@ absl::optional<std::string> CreateOptionalOutputFileName(
     return sb.str();
   }
   std::cout << "Error: invalid text log file parameters.";
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace
@@ -394,7 +394,7 @@ int main(int argc, char* argv[]) {
     uint32_t ssrc;
     RTC_CHECK(ParseSsrc(absl::GetFlag(FLAGS_ssrc), &ssrc))
         << "Flag verification has failed.";
-    config.ssrc_filter = absl::make_optional(ssrc);
+    config.ssrc_filter = std::make_optional(ssrc);
   }
 
   std::unique_ptr<webrtc::test::NetEqTest> test =

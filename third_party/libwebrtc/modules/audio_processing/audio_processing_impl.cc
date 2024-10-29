@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -21,7 +22,6 @@
 #include "absl/base/nullability.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_frame.h"
 #include "api/task_queue/task_queue_base.h"
@@ -1400,7 +1400,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
   if (submodules_.agc_manager) {
     submodules_.agc_manager->Process(*capture_buffer);
 
-    absl::optional<int> new_digital_gain =
+    std::optional<int> new_digital_gain =
         submodules_.agc_manager->GetDigitalComressionGain();
     if (new_digital_gain && submodules_.gain_control) {
       submodules_.gain_control->set_compression_gain_db(*new_digital_gain);
@@ -1446,7 +1446,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
       // TODO(bugs.webrtc.org/7494): Let AGC2 detect applied input volume
       // changes.
       submodules_.gain_controller2->Process(
-          /*speech_probability=*/absl::nullopt,
+          /*speech_probability=*/std::nullopt,
           capture_.applied_input_volume_changed, capture_buffer);
     }
 
@@ -1725,7 +1725,7 @@ void AudioProcessingImpl::set_stream_analog_level_locked(int level) {
 
   // Invalidate any previously recommended input volume which will be updated by
   // `ProcessStream()`.
-  capture_.recommended_input_volume = absl::nullopt;
+  capture_.recommended_input_volume = std::nullopt;
 
   if (submodules_.agc_manager) {
     submodules_.agc_manager->set_stream_analog_level(level);
@@ -1758,7 +1758,7 @@ void AudioProcessingImpl::UpdateRecommendedInputVolumeLocked() {
   if (!capture_.applied_input_volume.has_value()) {
     // When `set_stream_analog_level()` is not called, no input level can be
     // recommended.
-    capture_.recommended_input_volume = absl::nullopt;
+    capture_.recommended_input_volume = std::nullopt;
     return;
   }
 
@@ -1890,7 +1890,7 @@ void AudioProcessingImpl::InitializeEchoController() {
       RTC_DCHECK(submodules_.echo_controller);
     } else {
       EchoCanceller3Config config;
-      absl::optional<EchoCanceller3Config> multichannel_config;
+      std::optional<EchoCanceller3Config> multichannel_config;
       if (use_setup_specific_default_aec3_config_) {
         multichannel_config = EchoCanceller3::CreateDefaultMultichannelConfig();
       }

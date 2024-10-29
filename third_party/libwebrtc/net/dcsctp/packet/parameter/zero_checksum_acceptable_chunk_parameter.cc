@@ -11,9 +11,9 @@
 
 #include <stdint.h>
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "rtc_base/strings/string_builder.h"
 
@@ -29,17 +29,17 @@ namespace dcsctp {
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 constexpr int ZeroChecksumAcceptableChunkParameter::kType;
 
-absl::optional<ZeroChecksumAcceptableChunkParameter>
+std::optional<ZeroChecksumAcceptableChunkParameter>
 ZeroChecksumAcceptableChunkParameter::Parse(
     rtc::ArrayView<const uint8_t> data) {
-  absl::optional<BoundedByteReader<kHeaderSize>> reader = ParseTLV(data);
+  std::optional<BoundedByteReader<kHeaderSize>> reader = ParseTLV(data);
   if (!reader.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   ZeroChecksumAlternateErrorDetectionMethod method(reader->Load32<4>());
   if (method == ZeroChecksumAlternateErrorDetectionMethod::None()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return ZeroChecksumAcceptableChunkParameter(method);
 }

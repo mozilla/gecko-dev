@@ -81,13 +81,13 @@ class MockDcSctpSocket : public DcSctpSocketInterface {
               (StreamID stream_id, size_t bytes),
               (override));
 
-  MOCK_METHOD(absl::optional<Metrics>, GetMetrics, (), (const, override));
+  MOCK_METHOD(std::optional<Metrics>, GetMetrics, (), (const, override));
 
   MOCK_METHOD(HandoverReadinessStatus,
               GetHandoverReadiness,
               (),
               (const, override));
-  MOCK_METHOD(absl::optional<DcSctpSocketHandoverState>,
+  MOCK_METHOD(std::optional<DcSctpSocketHandoverState>,
               GetHandoverStateAndClose,
               (),
               (override));

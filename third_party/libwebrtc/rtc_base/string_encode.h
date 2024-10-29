@@ -13,12 +13,12 @@
 
 #include <stddef.h>
 
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/string_to_number.h"
@@ -91,7 +91,7 @@ template <typename T,
                                   int>::type = 0>
 static bool FromString(absl::string_view s, T* t) {
   RTC_DCHECK(t);
-  absl::optional<T> result = StringToNumber<T>(s);
+  std::optional<T> result = StringToNumber<T>(s);
 
   if (result)
     *t = *result;

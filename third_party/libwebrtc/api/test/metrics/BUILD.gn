@@ -49,10 +49,7 @@ rtc_library("metric") {
     "metric.cc",
     "metric.h",
   ]
-  deps = [
-    "../../../api/units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
-  ]
+  deps = [ "../../../api/units:timestamp" ]
 }
 
 rtc_library("metrics_logger") {
@@ -71,7 +68,6 @@ rtc_library("metrics_logger") {
     "../../numerics",
     "../../units:timestamp",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -111,7 +107,6 @@ rtc_library("stdout_metrics_exporter") {
     ":metrics_exporter",
     "../..:array_view",
     "../../../rtc_base:stringutils",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -203,7 +198,6 @@ if (rtc_include_tests) {
       "../../../test:test_support",
       "../../numerics",
       "../../units:timestamp",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -215,7 +209,6 @@ if (rtc_include_tests) {
       ":metrics_accumulator",
       "../../../test:test_support",
       "../../units:timestamp",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -251,7 +244,6 @@ if (rtc_include_tests) {
       ":metrics_logger",
       "../../../system_wrappers",
       "../../../test:test_support",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 

@@ -1,23 +1,44 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Fri, 19 Apr 2024 06:09:00 +0000
-Subject: Bug 1892221 - Initialize VideoCaptureModuleV4L2::_streaming in ctor.
- r=webrtc-reviewers,dbaker
+Date: Mon, 6 May 2024 07:28:00 +0000
+Subject: Bug 1892329 - Invert _captureThread check in
+ VideoCaptureModuleV4L2::StartCapture. r=webrtc-reviewers,mjf
 
-Differential Revision: https://phabricator.services.mozilla.com/D207926
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/00c4bd7039dc8992dd93d4a5948a9260b72ec2a8
+Differential Revision: https://phabricator.services.mozilla.com/D208186
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6ed6737b8214bf664642eb17cbf66a8c8450e569
 ---
- modules/video_capture/linux/video_capture_v4l2.cc | 1 +
- 1 file changed, 1 insertion(+)
+ .../video_capture/linux/video_capture_v4l2.cc | 21 +++++++++++--------
+ 1 file changed, 12 insertions(+), 9 deletions(-)
 
 diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index db2450a2c7..74af348a6c 100644
+index 74af348a6c..29ca864e19 100644
 --- a/modules/video_capture/linux/video_capture_v4l2.cc
 +++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -62,6 +62,7 @@ VideoCaptureModuleV4L2::VideoCaptureModuleV4L2()
-       _deviceId(-1),
-       _deviceFd(-1),
-       _buffersAllocatedByDevice(-1),
-+      _streaming(false),
-       _captureStarted(false),
-       _pool(NULL) {}
+@@ -303,16 +303,19 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
+   }
+ 
+   // start capture thread;
+-  if (_captureThread.empty()) {
+-    quit_ = false;
+-    _captureThread = rtc::PlatformThread::SpawnJoinable(
+-        [self = scoped_refptr(this)] {
+-          while (self->CaptureProcess()) {
+-          }
+-        },
+-        "CaptureThread",
+-        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
++  if (!_captureThread.empty()) {
++    return 0;
+   }
++
++  quit_ = false;
++
++  _captureThread = rtc::PlatformThread::SpawnJoinable(
++      [self = scoped_refptr(this)] {
++        while (self->CaptureProcess()) {
++        }
++      },
++      "CaptureThread",
++      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
+   return 0;
+ }
  

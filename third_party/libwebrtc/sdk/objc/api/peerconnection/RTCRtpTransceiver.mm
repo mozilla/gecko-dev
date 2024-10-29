@@ -29,7 +29,8 @@ NSString *const kRTCRtpTransceiverErrorDomain = @"org.webrtc.RTCRtpTranceiver";
 @synthesize sendEncodings = _sendEncodings;
 
 - (instancetype)init {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _direction = RTCRtpTransceiverDirectionSendRecv;
   }
   return self;
@@ -166,7 +167,8 @@ NSString *const kRTCRtpTransceiverErrorDomain = @"org.webrtc.RTCRtpTranceiver";
                (rtc::scoped_refptr<webrtc::RtpTransceiverInterface>)nativeRtpTransceiver {
   NSParameterAssert(factory);
   NSParameterAssert(nativeRtpTransceiver);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _factory = factory;
     _nativeRtpTransceiver = nativeRtpTransceiver;
     _sender = [[RTC_OBJC_TYPE(RTCRtpSender) alloc] initWithFactory:_factory

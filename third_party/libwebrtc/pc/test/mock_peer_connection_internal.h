@@ -200,7 +200,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               AddAdaptationResource,
               (rtc::scoped_refptr<Resource>),
               (override));
-  MOCK_METHOD(absl::optional<bool>, can_trickle_ice_candidates, (), (override));
+  MOCK_METHOD(std::optional<bool>, can_trickle_ice_candidates, (), (override));
   MOCK_METHOD(bool,
               StartRtcEventLog,
               (std::unique_ptr<RtcEventLogOutput>, int64_t),
@@ -216,7 +216,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   // PeerConnectionSdpMethods
   MOCK_METHOD(std::string, session_id, (), (const, override));
   MOCK_METHOD(bool, NeedsIceRestart, (const std::string&), (const, override));
-  MOCK_METHOD(absl::optional<std::string>, sctp_mid, (), (const, override));
+  MOCK_METHOD(std::optional<std::string>, sctp_mid, (), (const, override));
   MOCK_METHOD(PeerConnectionInterface::RTCConfiguration*,
               configuration,
               (),
@@ -243,7 +243,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(cricket::PortAllocator*, port_allocator, (), (override));
   MOCK_METHOD(LegacyStatsCollector*, legacy_stats, (), (override));
   MOCK_METHOD(PeerConnectionObserver*, Observer, (), (const, override));
-  MOCK_METHOD(absl::optional<rtc::SSLRole>, GetSctpSslRole_n, (), (override));
+  MOCK_METHOD(std::optional<rtc::SSLRole>, GetSctpSslRole_n, (), (override));
   MOCK_METHOD(PeerConnectionInterface::IceConnectionState,
               ice_connection_state_internal,
               (),
@@ -295,7 +295,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               GetDataChannelStats,
               (),
               (const, override));
-  MOCK_METHOD(absl::optional<std::string>,
+  MOCK_METHOD(std::optional<std::string>,
               sctp_transport_name,
               (),
               (const, override));
@@ -308,7 +308,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (const std::set<std::string>&),
               (override));
   MOCK_METHOD(Call::Stats, GetCallStats, (), (override));
-  MOCK_METHOD(absl::optional<AudioDeviceModule::Stats>,
+  MOCK_METHOD(std::optional<AudioDeviceModule::Stats>,
               GetAudioDeviceStats,
               (),
               (override));
@@ -334,6 +334,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               GetNetworkController,
               (),
               (override));
+  MOCK_METHOD(PayloadTypePicker&, payload_type_picker, (), (override));
 };
 
 }  // namespace webrtc

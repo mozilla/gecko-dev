@@ -15,8 +15,8 @@
 
 #include <deque>
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/neteq/tick_timer.h"
 #include "modules/audio_coding/neteq/histogram.h"
@@ -34,8 +34,8 @@ class DelayManager {
     // Options that can be configured via field trial.
     double quantile = 0.95;
     double forget_factor = 0.983;
-    absl::optional<double> start_forget_weight = 2;
-    absl::optional<int> resample_interval_ms = 500;
+    std::optional<double> start_forget_weight = 2;
+    std::optional<int> resample_interval_ms = 500;
 
     bool use_reorder_optimizer = true;
     double reorder_forget_factor = 0.9993;

@@ -9,8 +9,8 @@
  */
 
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/test/video/function_video_encoder_factory.h"
 #include "api/video/color_space.h"
@@ -52,7 +52,7 @@ class CodecObserver : public test::EndToEndTest,
  public:
   CodecObserver(int no_frames_to_wait_for,
                 VideoRotation rotation_to_test,
-                absl::optional<ColorSpace> color_space_to_test,
+                std::optional<ColorSpace> color_space_to_test,
                 const std::string& payload_name,
                 VideoEncoderFactory* encoder_factory,
                 VideoDecoderFactory* decoder_factory)
@@ -98,8 +98,8 @@ class CodecObserver : public test::EndToEndTest,
     if (expected_color_space_) {
       EXPECT_EQ(expected_color_space_,
                 video_frame.color_space()
-                    ? absl::make_optional(*video_frame.color_space())
-                    : absl::nullopt);
+                    ? std::make_optional(*video_frame.color_space())
+                    : std::nullopt);
     }
     if (++frame_counter_ == no_frames_to_wait_for_)
       observation_complete_.Set();
@@ -114,7 +114,7 @@ class CodecObserver : public test::EndToEndTest,
  private:
   int no_frames_to_wait_for_;
   VideoRotation expected_rotation_;
-  absl::optional<ColorSpace> expected_color_space_;
+  std::optional<ColorSpace> expected_color_space_;
   std::string payload_name_;
   VideoEncoderFactory* encoder_factory_;
   VideoDecoderFactory* decoder_factory_;
@@ -130,8 +130,8 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP8) {
       [](const Environment& env, const SdpVideoFormat& format) {
         return CreateVp8Decoder(env);
       });
-  CodecObserver test(5, kVideoRotation_0, absl::nullopt, "VP8",
-                     &encoder_factory, &decoder_factory);
+  CodecObserver test(5, kVideoRotation_0, std::nullopt, "VP8", &encoder_factory,
+                     &decoder_factory);
   RunBaseTest(&test);
 }
 
@@ -144,7 +144,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP8Rotation90) {
       [](const Environment& env, const SdpVideoFormat& format) {
         return CreateVp8Decoder(env);
       });
-  CodecObserver test(5, kVideoRotation_90, absl::nullopt, "VP8",
+  CodecObserver test(5, kVideoRotation_90, std::nullopt, "VP8",
                      &encoder_factory, &decoder_factory);
   RunBaseTest(&test);
 }
@@ -157,7 +157,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP9) {
       });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return VP9Decoder::Create(); });
-  CodecObserver test(500, kVideoRotation_0, absl::nullopt, "VP9",
+  CodecObserver test(500, kVideoRotation_0, std::nullopt, "VP9",
                      &encoder_factory, &decoder_factory);
   RunBaseTest(&test);
 }
@@ -169,7 +169,7 @@ TEST_F(CodecEndToEndTest, SendsAndReceivesVP9VideoRotation90) {
       });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return VP9Decoder::Create(); });
-  CodecObserver test(5, kVideoRotation_90, absl::nullopt, "VP9",
+  CodecObserver test(5, kVideoRotation_90, std::nullopt, "VP9",
                      &encoder_factory, &decoder_factory);
   RunBaseTest(&test);
 }
@@ -229,7 +229,7 @@ TEST_P(EndToEndTestH264, SendsAndReceivesH264) {
       });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
-  CodecObserver test(500, kVideoRotation_0, absl::nullopt, "H264",
+  CodecObserver test(500, kVideoRotation_0, std::nullopt, "H264",
                      &encoder_factory, &decoder_factory);
   RunBaseTest(&test);
 }
@@ -241,7 +241,7 @@ TEST_P(EndToEndTestH264, SendsAndReceivesH264VideoRotation90) {
       });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
-  CodecObserver test(5, kVideoRotation_90, absl::nullopt, "H264",
+  CodecObserver test(5, kVideoRotation_90, std::nullopt, "H264",
                      &encoder_factory, &decoder_factory);
   RunBaseTest(&test);
 }
@@ -255,7 +255,7 @@ TEST_P(EndToEndTestH264, SendsAndReceivesH264PacketizationMode0) {
       });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
-  CodecObserver test(500, kVideoRotation_0, absl::nullopt, "H264",
+  CodecObserver test(500, kVideoRotation_0, std::nullopt, "H264",
                      &encoder_factory, &decoder_factory);
   RunBaseTest(&test);
 }
@@ -269,7 +269,7 @@ TEST_P(EndToEndTestH264, SendsAndReceivesH264PacketizationMode1) {
       });
   test::FunctionVideoDecoderFactory decoder_factory(
       []() { return H264Decoder::Create(); });
-  CodecObserver test(500, kVideoRotation_0, absl::nullopt, "H264",
+  CodecObserver test(500, kVideoRotation_0, std::nullopt, "H264",
                      &encoder_factory, &decoder_factory);
   RunBaseTest(&test);
 }

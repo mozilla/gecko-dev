@@ -10,7 +10,13 @@
 
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 
+#include <cstdint>
+
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
+#include "api/rtp_parameters.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/corruption_detection_extension.h"
 #include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
@@ -53,6 +59,7 @@ constexpr ExtensionInfo kExtensions[] = {
     CreateExtensionInfo<ColorSpaceExtension>(),
     CreateExtensionInfo<InbandComfortNoiseExtension>(),
     CreateExtensionInfo<VideoFrameTrackingIdExtension>(),
+    CreateExtensionInfo<CorruptionDetectionExtension>(),
 };
 
 // Because of kRtpExtensionNone, NumberOfExtension is 1 bigger than the actual

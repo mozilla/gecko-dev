@@ -16,9 +16,9 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/sequence_checker.h"
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "rtc_base/async_packet_socket.h"
@@ -57,7 +57,7 @@ class TestController {
   void SendConnectTo(const std::string& hostname, int port);
 
   void SendData(const NetworkTesterPacket& packet,
-                absl::optional<size_t> data_size);
+                std::optional<size_t> data_size);
 
   void OnTestDone();
 

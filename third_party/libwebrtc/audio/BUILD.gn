@@ -81,6 +81,7 @@ rtc_library("audio") {
     "../modules/audio_coding:audio_coding_module_typedefs",
     "../modules/audio_coding:audio_encoder_cng",
     "../modules/audio_coding:audio_network_adaptor_config",
+    "../modules/audio_coding:default_neteq_factory",
     "../modules/audio_coding:red",
     "../modules/audio_device",
     "../modules/audio_processing",
@@ -116,7 +117,6 @@ rtc_library("audio") {
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 if (rtc_include_tests) {
@@ -163,6 +163,7 @@ if (rtc_include_tests) {
       ":audio_end_to_end_test",
       ":channel_receive_unittest",
       "../api:array_view",
+      "../api:bitrate_allocation",
       "../api:frame_transformer_factory",
       "../api:frame_transformer_interface",
       "../api:libjingle_peerconnection_api",
@@ -174,6 +175,7 @@ if (rtc_include_tests) {
       "../api:mock_transformable_audio_frame",
       "../api:rtp_headers",
       "../api:scoped_refptr",
+      "../api:transport_api",
       "../api/audio:audio_frame_api",
       "../api/audio:audio_processing_statistics",
       "../api/audio_codecs:audio_codecs_api",
@@ -181,10 +183,13 @@ if (rtc_include_tests) {
       "../api/audio_codecs/opus:audio_decoder_opus",
       "../api/audio_codecs/opus:audio_encoder_opus",
       "../api/crypto:frame_decryptor_interface",
+      "../api/crypto:options",
       "../api/environment",
       "../api/environment:environment_factory",
       "../api/task_queue:default_task_queue_factory",
       "../api/task_queue/test:mock_task_queue_base",
+      "../api/transport:bitrate_settings",
+      "../api/units:data_rate",
       "../api/units:time_delta",
       "../api/units:timestamp",
       "../call:mock_bitrate_allocator",
@@ -226,7 +231,6 @@ if (rtc_include_tests) {
       "utility:utility_tests",
       "//testing/gtest",
       "//third_party/abseil-cpp/absl/memory",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 

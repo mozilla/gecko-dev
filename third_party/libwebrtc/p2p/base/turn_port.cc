@@ -13,13 +13,13 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/transport/stun.h"
 #include "api/turn_customizer.h"
@@ -391,7 +391,8 @@ std::vector<std::string> TurnPort::GetTlsEllipticCurves() const {
 
 void TurnPort::PrepareAddress() {
   if (credentials_.username.empty() || credentials_.password.empty()) {
-    RTC_LOG(LS_ERROR) << "Allocation can't be started without setting the"
+    RTC_LOG(LS_ERROR) << ToString()
+                      << ": Allocation can't be started without setting the"
                          " TURN server credentials for the user.";
     OnAllocateError(STUN_ERROR_UNAUTHORIZED,
                     "Missing TURN server credentials.");
@@ -406,7 +407,8 @@ void TurnPort::PrepareAddress() {
   if (!AllowedTurnPort(server_address_.address.port(), &field_trials())) {
     // This can only happen after a 300 ALTERNATE SERVER, since the port can't
     // be created with a disallowed port number.
-    RTC_LOG(LS_ERROR) << "Attempt to start allocation with disallowed port# "
+    RTC_LOG(LS_ERROR) << ToString()
+                      << ": Attempt to start allocation with disallowed port# "
                       << server_address_.address.port();
     OnAllocateError(STUN_ERROR_SERVER_ERROR,
                     "Attempt to start allocation to a disallowed port");
@@ -417,11 +419,12 @@ void TurnPort::PrepareAddress() {
   } else {
     // If protocol family of server address doesn't match with local, return.
     if (!IsCompatibleAddress(server_address_.address)) {
-      RTC_LOG(LS_ERROR) << "IP address family does not match. server: "
+      RTC_LOG(LS_ERROR) << ToString()
+                        << ": IP address family does not match. Server: "
                         << server_address_.address.family()
                         << " local: " << Network()->GetBestIP().family();
-      OnAllocateError(STUN_ERROR_GLOBAL_FAILURE,
-                      "IP address family does not match.");
+      OnAllocateError(STUN_ERROR_NOT_AN_ERROR,
+                      "TURN server address is incompatible.");
       return;
     }
 
@@ -433,8 +436,9 @@ void TurnPort::PrepareAddress() {
         << ProtoToString(server_address_.proto) << " @ "
         << server_address_.address.ToSensitiveNameAndAddressString();
     if (!CreateTurnClientSocket()) {
-      RTC_LOG(LS_ERROR) << "Failed to create TURN client socket";
-      OnAllocateError(SERVER_NOT_REACHABLE_ERROR,
+      RTC_LOG(LS_ERROR) << ToString()
+                        << ": Failed to create TURN client socket";
+      OnAllocateError(STUN_ERROR_SERVER_NOT_REACHABLE,
                       "Failed to create TURN client socket.");
       return;
     }
@@ -540,26 +544,26 @@ void TurnPort::OnSocketConnect(rtc::AsyncPacketSocket* socket) {
                         return socket_address.ipaddr() == addr;
                       })) {
     if (socket->GetLocalAddress().IsLoopbackIP()) {
-      RTC_LOG(LS_WARNING) << "Socket is bound to the address:"
+      RTC_LOG(LS_WARNING) << ToString() << ": Socket is bound to the address:"
                           << socket_address.ToSensitiveNameAndAddressString()
                           << ", rather than an address associated with network:"
                           << Network()->ToString()
                           << ". Still allowing it since it's localhost.";
     } else if (IPIsAny(Network()->GetBestIP())) {
       RTC_LOG(LS_WARNING)
-          << "Socket is bound to the address:"
+          << ToString() << ": Socket is bound to the address:"
           << socket_address.ToSensitiveNameAndAddressString()
           << ", rather than an address associated with network:"
           << Network()->ToString()
           << ". Still allowing it since it's the 'any' address"
              ", possibly caused by multiple_routes being disabled.";
     } else {
-      RTC_LOG(LS_WARNING) << "Socket is bound to the address:"
+      RTC_LOG(LS_WARNING) << ToString() << ": Socket is bound to the address:"
                           << socket_address.ToSensitiveNameAndAddressString()
                           << ", rather than an address associated with network:"
                           << Network()->ToString() << ". Discarding TURN port.";
       OnAllocateError(
-          STUN_ERROR_GLOBAL_FAILURE,
+          STUN_ERROR_SERVER_NOT_REACHABLE,
           "Address not associated with the desired network interface.");
       return;
     }
@@ -835,7 +839,8 @@ bool TurnPort::SetAlternateServer(const rtc::SocketAddress& address) {
 
   // If protocol family of server address doesn't match with local, return.
   if (!IsCompatibleAddress(address)) {
-    RTC_LOG(LS_WARNING) << "Server IP address family does not match with "
+    RTC_LOG(LS_WARNING) << ToString()
+                        << ": Server IP address family does not match with "
                            "local host address family type";
     return false;
   }
@@ -876,7 +881,7 @@ void TurnPort::ResolveTurnAddress(const rtc::SocketAddress& address) {
     if (result.GetError() != 0 && (server_address_.proto == PROTO_TCP ||
                                    server_address_.proto == PROTO_TLS)) {
       if (!CreateTurnClientSocket()) {
-        OnAllocateError(SERVER_NOT_REACHABLE_ERROR,
+        OnAllocateError(STUN_ERROR_SERVER_NOT_REACHABLE,
                         "TURN host lookup received error.");
       }
       return;
@@ -891,7 +896,7 @@ void TurnPort::ResolveTurnAddress(const rtc::SocketAddress& address) {
       RTC_LOG(LS_WARNING) << ToString() << ": TURN host lookup received error "
                           << result.GetError();
       error_ = result.GetError();
-      OnAllocateError(SERVER_NOT_REACHABLE_ERROR,
+      OnAllocateError(STUN_ERROR_SERVER_NOT_REACHABLE,
                       "TURN host lookup received error.");
       return;
     }
@@ -955,8 +960,11 @@ void TurnPort::OnAllocateError(int error_code, absl::string_view reason) {
     address.clear();
     port = 0;
   }
-  SignalCandidateError(this, IceCandidateErrorEvent(address, port, server_url_,
-                                                    error_code, reason));
+  if (error_code != STUN_ERROR_NOT_AN_ERROR) {
+    SignalCandidateError(
+        this,
+        IceCandidateErrorEvent(address, port, server_url_, error_code, reason));
+  }
 }
 
 void TurnPort::OnRefreshError() {
@@ -990,7 +998,7 @@ void TurnPort::Release() {
 void TurnPort::Close() {
   if (!ready()) {
     OnAllocateError(
-        SERVER_NOT_REACHABLE_ERROR,
+        STUN_ERROR_SERVER_NOT_REACHABLE,
         GetProtocol() != PROTO_UDP ? "Failed to establish connection" : "");
   }
   request_manager_.Clear();
@@ -1037,7 +1045,7 @@ void TurnPort::TryAlternateServer() {
 }
 
 void TurnPort::OnAllocateRequestTimeout() {
-  OnAllocateError(SERVER_NOT_REACHABLE_ERROR,
+  OnAllocateError(STUN_ERROR_SERVER_NOT_REACHABLE,
                   "TURN allocate request timed out.");
 }
 
@@ -1212,7 +1220,8 @@ bool TurnPort::UpdateNonce(StunMessage* response) {
   const StunByteStringAttribute* realm_attr =
       response->GetByteString(STUN_ATTR_REALM);
   if (!realm_attr) {
-    RTC_LOG(LS_ERROR) << "Missing STUN_ATTR_REALM attribute in "
+    RTC_LOG(LS_ERROR) << ToString()
+                      << ": Missing STUN_ATTR_REALM attribute in "
                          "stale nonce error response.";
     return false;
   }
@@ -1221,7 +1230,8 @@ bool TurnPort::UpdateNonce(StunMessage* response) {
   const StunByteStringAttribute* nonce_attr =
       response->GetByteString(STUN_ATTR_NONCE);
   if (!nonce_attr) {
-    RTC_LOG(LS_ERROR) << "Missing STUN_ATTR_NONCE attribute in "
+    RTC_LOG(LS_ERROR) << ToString()
+                      << ": Missing STUN_ATTR_NONCE attribute in "
                          "stale nonce error response.";
     return false;
   }

@@ -130,8 +130,8 @@ class DataChannelController : public SctpDataChannelControllerInterface,
   // will still be unassigned upon return, but will be assigned later.
   // If the pool has been exhausted or a sid has already been reserved, an
   // error will be returned.
-  RTCError ReserveOrAllocateSid(absl::optional<StreamId>& sid,
-                                absl::optional<rtc::SSLRole> fallback_ssl_role)
+  RTCError ReserveOrAllocateSid(std::optional<StreamId>& sid,
+                                std::optional<rtc::SSLRole> fallback_ssl_role)
       RTC_RUN_ON(network_thread());
 
   // Called when all data channels need to be notified of a transport channel

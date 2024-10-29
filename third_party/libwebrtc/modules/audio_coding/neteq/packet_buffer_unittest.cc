@@ -36,7 +36,7 @@ class MockEncodedAudioFrame : public webrtc::AudioDecoder::EncodedAudioFrame {
 
   MOCK_METHOD(bool, IsDtxPacket, (), (const, override));
 
-  MOCK_METHOD(absl::optional<DecodeResult>,
+  MOCK_METHOD(std::optional<DecodeResult>,
               Decode,
               (rtc::ArrayView<int16_t> decoded),
               (const, override));
@@ -253,7 +253,7 @@ TEST(PacketBuffer, ExtractOrderRedundancy) {
   EXPECT_EQ(kExpectPacketsInBuffer, buffer.NumPacketsInBuffer());
 
   for (size_t i = 0; i < kExpectPacketsInBuffer; ++i) {
-    const absl::optional<Packet> packet = buffer.GetNextPacket();
+    const std::optional<Packet> packet = buffer.GetNextPacket();
     EXPECT_EQ(packet, expect_order[i]);  // Compare contents.
   }
   EXPECT_TRUE(buffer.Empty());
@@ -356,7 +356,7 @@ TEST(PacketBuffer, Reordering) {
   // Extract them and make sure that come out in the right order.
   uint32_t current_ts = start_ts;
   for (int i = 0; i < 10; ++i) {
-    const absl::optional<Packet> packet = buffer.GetNextPacket();
+    const std::optional<Packet> packet = buffer.GetNextPacket();
     ASSERT_TRUE(packet);
     EXPECT_EQ(current_ts, packet->timestamp);
     current_ts += ts_increment;

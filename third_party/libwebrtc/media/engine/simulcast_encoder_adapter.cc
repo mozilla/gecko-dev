@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -24,7 +25,6 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/base/nullability.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
@@ -441,6 +441,7 @@ int SimulcastEncoderAdapter::InitEncode(
         parent, std::move(encoder_context),
         std::make_unique<FramerateController>(stream_codec.maxFramerate),
         stream_idx, stream_codec.width, stream_codec.height, is_paused);
+    encoder_context = nullptr;
   }
 
   // To save memory, don't store encoders that we don't use.
@@ -809,7 +810,7 @@ webrtc::VideoCodec SimulcastEncoderAdapter::MakeStreamCodec(
   // By default, `scalability_mode` comes from SimulcastStream when
   // SimulcastEncoderAdapter is used. This allows multiple encodings of L1Tx,
   // but SimulcastStream currently does not support multiple spatial layers.
-  absl::optional<ScalabilityMode> scalability_mode =
+  std::optional<ScalabilityMode> scalability_mode =
       stream_params.GetScalabilityMode();
   // To support the full set of scalability modes in the event that this is the
   // only active encoding, prefer VideoCodec::GetScalabilityMode() if all other
@@ -907,7 +908,7 @@ VideoEncoder::EncoderInfo SimulcastEncoderAdapter::GetEncoderInfo() const {
   encoder_info.requested_resolution_alignment = 1;
   encoder_info.apply_alignment_to_all_simulcast_layers = false;
   encoder_info.supports_native_handle = true;
-  encoder_info.scaling_settings.thresholds = absl::nullopt;
+  encoder_info.scaling_settings.thresholds = std::nullopt;
 
   if (stream_contexts_.empty()) {
     // GetEncoderInfo queried before InitEncode. Only alignment info is needed

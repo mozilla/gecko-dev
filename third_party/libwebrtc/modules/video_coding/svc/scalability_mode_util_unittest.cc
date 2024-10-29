@@ -10,12 +10,12 @@
 
 #include "modules/video_coding/svc/scalability_mode_util.h"
 
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
@@ -30,8 +30,8 @@ TEST(ScalabilityModeUtil, ConvertsL1T2) {
 }
 
 TEST(ScalabilityModeUtil, RejectsUnknownString) {
-  EXPECT_EQ(ScalabilityModeFromString(""), absl::nullopt);
-  EXPECT_EQ(ScalabilityModeFromString("not-a-mode"), absl::nullopt);
+  EXPECT_EQ(ScalabilityModeFromString(""), std::nullopt);
+  EXPECT_EQ(ScalabilityModeFromString("not-a-mode"), std::nullopt);
 }
 
 TEST(ScalabilityModeUtil, MakeScalabilityModeRoundTrip) {
@@ -40,7 +40,7 @@ TEST(ScalabilityModeUtil, MakeScalabilityModeRoundTrip) {
        numerical_enum++) {
     ScalabilityMode scalability_mode =
         static_cast<ScalabilityMode>(numerical_enum);
-    absl::optional<ScalabilityMode> created_mode = MakeScalabilityMode(
+    std::optional<ScalabilityMode> created_mode = MakeScalabilityMode(
         ScalabilityModeToNumSpatialLayers(scalability_mode),
         ScalabilityModeToNumTemporalLayers(scalability_mode),
         ScalabilityModeToInterLayerPredMode(scalability_mode),

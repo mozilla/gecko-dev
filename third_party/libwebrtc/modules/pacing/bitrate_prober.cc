@@ -11,11 +11,17 @@
 #include "modules/pacing/bitrate_prober.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <optional>
 
 #include "api/field_trials_view.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
 
 namespace webrtc {
@@ -139,9 +145,9 @@ Timestamp BitrateProber::NextProbeTime(Timestamp now) const {
   return next_probe_time_;
 }
 
-absl::optional<PacedPacketInfo> BitrateProber::CurrentCluster(Timestamp now) {
+std::optional<PacedPacketInfo> BitrateProber::CurrentCluster(Timestamp now) {
   if (clusters_.empty() || probing_state_ != ProbingState::kActive) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (next_probe_time_.IsFinite() &&
@@ -153,7 +159,7 @@ absl::optional<PacedPacketInfo> BitrateProber::CurrentCluster(Timestamp now) {
     clusters_.pop();
     if (clusters_.empty()) {
       probing_state_ = ProbingState::kInactive;
-      return absl::nullopt;
+      return std::nullopt;
     }
   }
 

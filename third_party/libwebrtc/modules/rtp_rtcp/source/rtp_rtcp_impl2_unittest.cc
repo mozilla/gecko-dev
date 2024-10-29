@@ -13,10 +13,10 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/field_trials_registry.h"
@@ -194,7 +194,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
     counter_map_[ssrc] = packet_counter;
   }
 
-  void OnSendPacket(absl::optional<uint16_t> packet_id,
+  void OnSendPacket(std::optional<uint16_t> packet_id,
                     Timestamp capture_time,
                     uint32_t ssrc) override {
     if (packet_id.has_value()) {
@@ -202,7 +202,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
     }
   }
 
-  absl::optional<SentPacket> last_sent_packet() const {
+  std::optional<SentPacket> last_sent_packet() const {
     return last_sent_packet_;
   }
 
@@ -238,7 +238,6 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
   void CreateModuleImpl() {
     RtpRtcpInterface::Configuration config;
     config.audio = false;
-    config.clock = &env_.clock();
     config.outgoing_transport = &transport_;
     config.receive_statistics = receive_statistics_.get();
     config.rtcp_packet_type_counter_observer = this;
@@ -246,20 +245,19 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
     config.rtcp_report_interval_ms = rtcp_report_interval_.ms();
     config.local_media_ssrc = is_sender_ ? kSenderSsrc : kReceiverSsrc;
     config.rtx_send_ssrc =
-        is_sender_ ? absl::make_optional(kRtxSenderSsrc) : absl::nullopt;
+        is_sender_ ? std::make_optional(kRtxSenderSsrc) : std::nullopt;
     config.need_rtp_packet_infos = true;
     config.non_sender_rtt_measurement = true;
-    config.field_trials = &env_.field_trials();
     config.send_packet_observer = this;
     config.fec_generator = fec_generator_;
-    impl_.reset(new ModuleRtpRtcpImpl2(config));
+    impl_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, config);
     impl_->SetRemoteSSRC(is_sender_ ? kReceiverSsrc : kSenderSsrc);
     impl_->SetRTCPStatus(RtcpMode::kCompound);
   }
 
  private:
   std::map<uint32_t, RtcpPacketTypeCounter> counter_map_;
-  absl::optional<SentPacket> last_sent_packet_;
+  std::optional<SentPacket> last_sent_packet_;
   VideoFecGenerator* fec_generator_ = nullptr;
   TimeDelta rtcp_report_interval_ = kDefaultReportInterval;
 };
@@ -304,7 +302,7 @@ class RtpRtcpImpl2Test : public ::testing::Test {
   }
 
   void ReinitWithFec(VideoFecGenerator* fec_generator,
-                     absl::optional<int> red_payload_type) {
+                     std::optional<int> red_payload_type) {
     sender_.ReinintWithFec(fec_generator);
     EXPECT_EQ(0, sender_.impl_->SetSendingStatus(true));
     sender_.impl_->SetSendingMediaStatus(true);
@@ -767,7 +765,7 @@ TEST_F(RtpRtcpImpl2Test, StoresPacketInfoForSentPackets) {
 
 // Checks that the sender report stats are not available if no RTCP SR was sent.
 TEST_F(RtpRtcpImpl2Test, SenderReportStatsNotAvailable) {
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(absl::nullopt));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(std::nullopt));
 }
 
 // Checks that the sender report stats are available if an RTCP SR was sent.
@@ -777,7 +775,7 @@ TEST_F(RtpRtcpImpl2Test, SenderReportStatsAvailable) {
   // Send an SR.
   ASSERT_THAT(sender_.impl_->SendRTCP(kRtcpReport), Eq(0));
   AdvanceTime(kOneWayNetworkDelay);
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Not(Eq(absl::nullopt)));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Not(Eq(std::nullopt)));
 }
 
 // Checks that the sender report stats are not available if an RTCP SR with an
@@ -794,7 +792,7 @@ TEST_F(RtpRtcpImpl2Test, SenderReportStatsNotUpdatedWithUnexpectedSsrc) {
   sr.SetOctetCount(456u);
   auto raw_packet = sr.Build();
   receiver_.impl_->IncomingRtcpPacket(raw_packet);
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(absl::nullopt));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(std::nullopt));
 }
 
 // Checks the stats derived from the last received RTCP SR are set correctly.
@@ -846,7 +844,7 @@ TEST_F(RtpRtcpImpl2Test, SenderReportStatsArrivalTimestampSet) {
   ASSERT_THAT(sender_.impl_->SendRTCP(kRtcpReport), Eq(0));
   AdvanceTime(kOneWayNetworkDelay);
   auto stats = receiver_.impl_->GetSenderReportStats();
-  ASSERT_THAT(stats, Not(Eq(absl::nullopt)));
+  ASSERT_THAT(stats, Not(Eq(std::nullopt)));
   EXPECT_TRUE(stats->last_arrival_timestamp.Valid());
 }
 
@@ -1008,7 +1006,7 @@ TEST_F(RtpRtcpImpl2Test, GeneratesFlexfec) {
   FlexfecSender flexfec_sender(env_, kFlexfecPayloadType, kFlexfecSsrc,
                                kSenderSsrc, kNoMid, kNoRtpExtensions,
                                kNoRtpExtensionSizes, &start_state);
-  ReinitWithFec(&flexfec_sender, /*red_payload_type=*/absl::nullopt);
+  ReinitWithFec(&flexfec_sender, /*red_payload_type=*/std::nullopt);
 
   // Parameters selected to generate a single FEC packet per media packet.
   FecProtectionParams params;

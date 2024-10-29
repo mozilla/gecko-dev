@@ -12,9 +12,9 @@
 #define API_TRANSPORT_NETWORK_CONTROL_H_
 
 #include <memory>
+#include <optional>
 
 #include "absl/base/attributes.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/rtc_event_log/rtc_event_log.h"
@@ -119,7 +119,7 @@ class NetworkControllerFactoryInterface {
 class NetworkStateEstimator {
  public:
   // Gets the current best estimate according to the estimator.
-  virtual absl::optional<NetworkStateEstimate> GetCurrentEstimate() = 0;
+  virtual std::optional<NetworkStateEstimate> GetCurrentEstimate() = 0;
   // Called with per packet feedback regarding receive time.
   // Used when the NetworkStateEstimator runs in the sending endpoint.
   virtual void OnTransportPacketsFeedback(const TransportPacketsFeedback&) = 0;

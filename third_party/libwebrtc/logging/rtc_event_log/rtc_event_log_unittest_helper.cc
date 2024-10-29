@@ -17,12 +17,12 @@
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/candidate.h"
 #include "api/dtls_transport_interface.h"
@@ -136,13 +136,13 @@ void ShuffleInPlace(Random* prng, rtc::ArrayView<T> array) {
   }
 }
 
-absl::optional<int> GetExtensionId(const std::vector<RtpExtension>& extensions,
-                                   absl::string_view uri) {
+std::optional<int> GetExtensionId(const std::vector<RtpExtension>& extensions,
+                                  absl::string_view uri) {
   for (const auto& extension : extensions) {
     if (extension.uri == uri)
       return extension.id;
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace
@@ -629,7 +629,7 @@ EventGenerator::NewGenericPacketReceived() {
 }
 std::unique_ptr<RtcEventGenericAckReceived>
 EventGenerator::NewGenericAckReceived() {
-  absl::optional<int64_t> receive_timestamp = absl::nullopt;
+  std::optional<int64_t> receive_timestamp = std::nullopt;
   if (prng_.Rand(0, 2) > 0) {
     receive_timestamp = prng_.Rand(0, 100000);
   }

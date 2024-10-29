@@ -143,7 +143,7 @@ TEST_P(UnsignaledStreamTest, ReplacesUnsignaledStreamOnCompletedSignaling) {
 
   uint32_t first_ssrc = 0;
   uint32_t second_ssrc = 0;
-  absl::optional<int> mid_header_extension_id = absl::nullopt;
+  std::optional<int> mid_header_extension_id = std::nullopt;
 
   signaling.NegotiateSdp(
       /* munge_sdp = */

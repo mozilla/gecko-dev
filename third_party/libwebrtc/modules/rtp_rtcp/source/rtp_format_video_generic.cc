@@ -12,7 +12,8 @@
 
 #include <string.h>
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"

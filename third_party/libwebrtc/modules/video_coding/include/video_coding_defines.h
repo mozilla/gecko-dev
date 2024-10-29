@@ -14,7 +14,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/video/video_content_type.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_timing.h"
@@ -51,7 +52,7 @@ enum VCMVideoProtection {
 class VCMReceiveCallback {
  public:
   virtual int32_t FrameToRender(VideoFrame& videoFrame,  // NOLINT
-                                absl::optional<uint8_t> qp,
+                                std::optional<uint8_t> qp,
                                 TimeDelta decode_time,
                                 VideoContentType content_type,
                                 VideoFrameType frame_type) = 0;

@@ -63,7 +63,6 @@ rtc_library("video_file_reader") {
     "../rtc_base:refcount",
     "../rtc_base:stringutils",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -109,7 +108,6 @@ rtc_library("video_quality_analysis") {
     "../common_video",
     "../rtc_base:checks",
     "../rtc_base:logging",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/libyuv",
   ]
 }
@@ -362,6 +360,7 @@ if (!build_with_chromium) {
         "../api:scoped_refptr",
         "../api/audio_codecs:audio_codecs_api",  # TODO(kwiberg): Remove this
                                                  # dependency.
+        "../api/environment",
         "../api/environment:environment_factory",
         "../api/neteq:neteq_api",
         "../api/rtc_event_log:rtc_event_log",
@@ -405,12 +404,12 @@ if (!build_with_chromium) {
         "../rtc_base:stringutils",
         "../rtc_base/network:sent_packet",
         "../system_wrappers",
+        "../system_wrappers:field_trial",
         "../test:explicit_key_value_config",
         "//third_party/abseil-cpp/absl/algorithm:container",
         "//third_party/abseil-cpp/absl/base:core_headers",
         "//third_party/abseil-cpp/absl/functional:bind_front",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 
@@ -443,7 +442,6 @@ if (!build_with_chromium) {
         "//rtc_base/system:file_wrapper",
         "//test:fileutils",
         "//test:test_support",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
   }
@@ -511,7 +509,6 @@ if (rtc_include_tests) {
           "//third_party/abseil-cpp/absl/flags:parse",
           "//third_party/abseil-cpp/absl/flags:usage",
           "//third_party/abseil-cpp/absl/strings",
-          "//third_party/abseil-cpp/absl/types:optional",
         ]
       }
 

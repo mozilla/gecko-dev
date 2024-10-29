@@ -22,7 +22,6 @@ rtc_library("timer") {
     "../public:types",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "fake_timeout.h",
@@ -66,7 +65,6 @@ if (rtc_include_tests) {
       "../../../test:test_support",
       "../../../test/time_controller:time_controller",
       "../public:socket",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
     sources = [
       "task_queue_timeout_test.cc",

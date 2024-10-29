@@ -15,11 +15,11 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio/audio_mixer.h"
 #include "api/rtp_packet_info.h"
 #include "api/rtp_packet_infos.h"
@@ -448,7 +448,7 @@ TEST(AudioMixer, ShouldIncludeRtpPacketInfoFromAllMixedSources) {
   const uint32_t kCsrc3 = 23;
   const int kAudioLevel0 = 10;
   const int kAudioLevel1 = 40;
-  const absl::optional<uint32_t> kAudioLevel2 = absl::nullopt;
+  const std::optional<uint32_t> kAudioLevel2 = std::nullopt;
   const uint32_t kRtpTimestamp0 = 300;
   const uint32_t kRtpTimestamp1 = 400;
   const Timestamp kReceiveTime0 = Timestamp::Millis(10);

@@ -12,11 +12,11 @@
 
 #include <array>
 #include <cstddef>
+#include <optional>
 #include <type_traits>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/video_codec.h"
 #include "rtc_base/checks.h"
@@ -31,7 +31,7 @@ struct ScalabilityModeParameters {
   const int num_spatial_layers;
   const int num_temporal_layers;
   const InterLayerPredMode inter_layer_pred;
-  const absl::optional<ScalabilityModeResolutionRatio> ratio =
+  const std::optional<ScalabilityModeResolutionRatio> ratio =
       ScalabilityModeResolutionRatio::kTwoToOne;
   const bool shift = false;
 };
@@ -45,19 +45,19 @@ constexpr ScalabilityModeParameters kScalabilityModeParams[] = {
                               .num_spatial_layers = 1,
                               .num_temporal_layers = 1,
                               .inter_layer_pred = InterLayerPredMode::kOff,
-                              .ratio = absl::nullopt},
+                              .ratio = std::nullopt},
     ScalabilityModeParameters{.scalability_mode = ScalabilityMode::kL1T2,
                               .name = "L1T2",
                               .num_spatial_layers = 1,
                               .num_temporal_layers = 2,
                               .inter_layer_pred = InterLayerPredMode::kOff,
-                              .ratio = absl::nullopt},
+                              .ratio = std::nullopt},
     ScalabilityModeParameters{.scalability_mode = ScalabilityMode::kL1T3,
                               .name = "L1T3",
                               .num_spatial_layers = 1,
                               .num_temporal_layers = 3,
                               .inter_layer_pred = InterLayerPredMode::kOff,
-                              .ratio = absl::nullopt},
+                              .ratio = std::nullopt},
     ScalabilityModeParameters{
         .scalability_mode = ScalabilityMode::kL2T1,
         .name = "L2T1",
@@ -312,11 +312,11 @@ constexpr auto Idx(ScalabilityMode s) {
 
 }  // namespace
 
-absl::optional<ScalabilityMode> MakeScalabilityMode(
+std::optional<ScalabilityMode> MakeScalabilityMode(
     int num_spatial_layers,
     int num_temporal_layers,
     InterLayerPredMode inter_layer_pred,
-    absl::optional<ScalabilityModeResolutionRatio> ratio,
+    std::optional<ScalabilityModeResolutionRatio> ratio,
     bool shift) {
   for (const auto& candidate_mode : kScalabilityModeParams) {
     if (candidate_mode.num_spatial_layers == num_spatial_layers &&
@@ -328,10 +328,10 @@ absl::optional<ScalabilityMode> MakeScalabilityMode(
       }
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
-absl::optional<ScalabilityMode> ScalabilityModeFromString(
+std::optional<ScalabilityMode> ScalabilityModeFromString(
     absl::string_view mode_string) {
   const auto it =
       absl::c_find_if(kScalabilityModeParams,
@@ -341,7 +341,7 @@ absl::optional<ScalabilityMode> ScalabilityModeFromString(
   if (it != std::end(kScalabilityModeParams)) {
     return it->scalability_mode;
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 InterLayerPredMode ScalabilityModeToInterLayerPredMode(
@@ -357,7 +357,7 @@ int ScalabilityModeToNumTemporalLayers(ScalabilityMode scalability_mode) {
   return kScalabilityModeParams[Idx(scalability_mode)].num_temporal_layers;
 }
 
-absl::optional<ScalabilityModeResolutionRatio> ScalabilityModeToResolutionRatio(
+std::optional<ScalabilityModeResolutionRatio> ScalabilityModeToResolutionRatio(
     ScalabilityMode scalability_mode) {
   return kScalabilityModeParams[Idx(scalability_mode)].ratio;
 }

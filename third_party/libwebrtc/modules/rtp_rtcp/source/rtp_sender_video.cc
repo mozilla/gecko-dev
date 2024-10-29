@@ -100,18 +100,18 @@ bool IsBaseLayer(const RTPVideoHeader& video_header) {
   return true;
 }
 
-absl::optional<VideoPlayoutDelay> LoadVideoPlayoutDelayOverride(
+std::optional<VideoPlayoutDelay> LoadVideoPlayoutDelayOverride(
     const FieldTrialsView* key_value_config) {
   RTC_DCHECK(key_value_config);
-  FieldTrialOptional<int> playout_delay_min_ms("min_ms", absl::nullopt);
-  FieldTrialOptional<int> playout_delay_max_ms("max_ms", absl::nullopt);
+  FieldTrialOptional<int> playout_delay_min_ms("min_ms", std::nullopt);
+  FieldTrialOptional<int> playout_delay_max_ms("max_ms", std::nullopt);
   ParseFieldTrial({&playout_delay_max_ms, &playout_delay_min_ms},
                   key_value_config->Lookup("WebRTC-ForceSendPlayoutDelay"));
   return playout_delay_max_ms && playout_delay_min_ms
-             ? absl::make_optional<VideoPlayoutDelay>(
+             ? std::make_optional<VideoPlayoutDelay>(
                    TimeDelta::Millis(*playout_delay_min_ms),
                    TimeDelta::Millis(*playout_delay_max_ms))
-             : absl::nullopt;
+             : std::nullopt;
 }
 
 // Some packets can be skipped and the stream can still be decoded. Those
@@ -457,7 +457,7 @@ void RTPSenderVideo::AddRtpHeaderExtensions(const RTPVideoHeader& video_header,
 }
 
 bool RTPSenderVideo::SendVideo(int payload_type,
-                               absl::optional<VideoCodecType> codec_type,
+                               std::optional<VideoCodecType> codec_type,
                                uint32_t rtp_timestamp,
                                Timestamp capture_time,
                                rtc::ArrayView<const uint8_t> payload,
@@ -747,7 +747,7 @@ bool RTPSenderVideo::SendVideo(int payload_type,
 }
 
 bool RTPSenderVideo::SendEncodedImage(int payload_type,
-                                      absl::optional<VideoCodecType> codec_type,
+                                      std::optional<VideoCodecType> codec_type,
                                       uint32_t rtp_timestamp,
                                       const EncodedImage& encoded_image,
                                       RTPVideoHeader video_header,
@@ -833,7 +833,7 @@ bool RTPSenderVideo::UpdateConditionalRetransmit(
       Timestamp expected_next_frame_time = Timestamp::PlusInfinity();
       for (int i = temporal_id - 1; i >= 0; --i) {
         TemporalLayerStats* stats = &frame_stats_by_temporal_layer_[i];
-        absl::optional<Frequency> rate = stats->frame_rate.Rate(now);
+        std::optional<Frequency> rate = stats->frame_rate.Rate(now);
         if (rate > Frequency::Zero()) {
           Timestamp tl_next = stats->last_frame_time + 1 / *rate;
           if (tl_next - now > -expected_retransmission_time &&
@@ -857,7 +857,7 @@ bool RTPSenderVideo::UpdateConditionalRetransmit(
 
 void RTPSenderVideo::MaybeUpdateCurrentPlayoutDelay(
     const RTPVideoHeader& header) {
-  absl::optional<VideoPlayoutDelay> requested_delay =
+  std::optional<VideoPlayoutDelay> requested_delay =
       forced_playout_delay_.has_value() ? forced_playout_delay_
                                         : header.playout_delay;
 

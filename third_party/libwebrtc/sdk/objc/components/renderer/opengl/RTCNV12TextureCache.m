@@ -29,7 +29,8 @@
 }
 
 - (instancetype)initWithContext:(EAGLContext *)context {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     CVReturn ret = CVOpenGLESTextureCacheCreate(
         kCFAllocatorDefault, NULL,
 #if COREVIDEO_USE_EAGLCONTEXT_CLASS_IN_API

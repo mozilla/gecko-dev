@@ -30,6 +30,7 @@
 #include "rtc_base/ssl_certificate.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
+#include "rtc_base/strings/string_builder.h"
 #ifdef OPENSSL_IS_BORINGSSL
 #include <openssl/base.h>
 #include <openssl/pool.h>
@@ -783,65 +784,34 @@ bool OpenSSLAdapter::SSLPostConnectionCheck(SSL* ssl, absl::string_view host) {
   return is_valid_cert_name;
 }
 
-void OpenSSLAdapter::SSLInfoCallback(const SSL* s, int where, int value) {
-  std::string type;
-  bool info_log = false;
-  bool alert_log = false;
+void OpenSSLAdapter::SSLInfoCallback(const SSL* ssl, int where, int ret) {
   switch (where) {
-    case SSL_CB_EXIT:
-      info_log = true;
-      type = "exit";
-      break;
-    case SSL_CB_ALERT:
-      alert_log = true;
-      type = "alert";
-      break;
-    case SSL_CB_READ_ALERT:
-      alert_log = true;
-      type = "read_alert";
-      break;
-    case SSL_CB_WRITE_ALERT:
-      alert_log = true;
-      type = "write_alert";
-      break;
-    case SSL_CB_ACCEPT_LOOP:
-      info_log = true;
-      type = "accept_loop";
-      break;
-    case SSL_CB_ACCEPT_EXIT:
-      info_log = true;
-      type = "accept_exit";
-      break;
-    case SSL_CB_CONNECT_LOOP:
-      info_log = true;
-      type = "connect_loop";
-      break;
-    case SSL_CB_CONNECT_EXIT:
-      info_log = true;
-      type = "connect_exit";
-      break;
-    case SSL_CB_HANDSHAKE_START:
-      info_log = true;
-      type = "handshake_start";
-      break;
-    case SSL_CB_HANDSHAKE_DONE:
-      info_log = true;
-      type = "handshake_done";
-      break;
     case SSL_CB_LOOP:
     case SSL_CB_READ:
     case SSL_CB_WRITE:
+      return;
     default:
       break;
   }
-
-  if (info_log) {
-    RTC_LOG(LS_INFO) << type << " " << SSL_state_string_long(s);
+  char buf[1024];
+  rtc::SimpleStringBuilder ss(buf);
+  ss << SSL_state_string_long(ssl);
+  if (ret == 0) {
+    RTC_LOG(LS_ERROR) << "Error during " << ss.str() << "\n";
+    return;
   }
-  if (alert_log) {
-    RTC_LOG(LS_WARNING) << type << " " << SSL_alert_type_string_long(value)
-                        << " " << SSL_alert_desc_string_long(value) << " "
-                        << SSL_state_string_long(s);
+  // See SSL_alert_type_string_long.
+  int severity_class = where >> 8;
+  switch (severity_class) {
+    case SSL3_AL_WARNING:
+    case SSL3_AL_FATAL:
+      ss << " " << SSL_alert_type_string_long(ret);
+      ss << " " << SSL_alert_desc_string_long(ret);
+      RTC_LOG(LS_WARNING) << ss.str();
+      break;
+    default:
+      RTC_LOG(LS_INFO) << ss.str();
+      break;
   }
 }
 
@@ -1029,10 +999,6 @@ SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode,
   // CBC-mode ECDSA ciphers. Finally, disable 3DES.
   SSL_CTX_set_cipher_list(
       ctx, "ALL:!SHA256:!SHA384:!aPSK:!ECDSA+SHA1:!ADH:!LOW:!EXP:!MD5:!3DES");
-
-  if (mode == SSL_MODE_DTLS) {
-    SSL_CTX_set_read_ahead(ctx, 1);
-  }
 
   if (enable_cache) {
     SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);

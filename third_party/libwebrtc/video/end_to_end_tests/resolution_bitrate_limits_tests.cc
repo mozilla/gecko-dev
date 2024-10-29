@@ -103,13 +103,13 @@ class InitEncodeTest : public test::EndToEndTest,
                        public test::FakeEncoder {
  public:
   struct Bitrate {
-    const absl::optional<DataRate> min;
-    const absl::optional<DataRate> max;
+    const std::optional<DataRate> min;
+    const std::optional<DataRate> max;
   };
   struct TestConfig {
     const bool active;
     const Bitrate bitrate;
-    const absl::optional<ScalabilityMode> scalability_mode;
+    const std::optional<ScalabilityMode> scalability_mode;
   };
   struct Expectation {
     const uint32_t pixels = 0;
@@ -252,7 +252,7 @@ TEST_F(ResolutionBitrateLimitsWithScalabilityModeTest,
         .scalability_mode = ScalabilityMode::kL2T1}},
       // Expectations:
       {{.pixels = 1280 * 720,
-        .ne_bitrate = {absl::nullopt, DataRate::KilobitsPerSec(3000)}}});
+        .ne_bitrate = {std::nullopt, DataRate::KilobitsPerSec(3000)}}});
   RunBaseTest(&test);
 }
 TEST_F(ResolutionBitrateLimitsWithScalabilityModeTest,
@@ -369,7 +369,7 @@ TEST_P(ResolutionBitrateLimitsTest, EncodingMinBitrateAppliedMiddleActive) {
 }
 
 TEST_P(ResolutionBitrateLimitsTest, DefaultLimitsAppliedMiddleActive) {
-  const absl::optional<VideoEncoder::ResolutionBitrateLimits>
+  const std::optional<VideoEncoder::ResolutionBitrateLimits>
       kDefaultSinglecastLimits360p =
           EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsForResolution(
               PayloadStringToCodecType(payload_name_), 640 * 360);
@@ -388,7 +388,7 @@ TEST_P(ResolutionBitrateLimitsTest, DefaultLimitsAppliedMiddleActive) {
 
 TEST_F(ResolutionBitrateLimitsWithScalabilityModeTest,
        DefaultLimitsAppliedForOneSpatialLayer) {
-  const absl::optional<VideoEncoder::ResolutionBitrateLimits>
+  const std::optional<VideoEncoder::ResolutionBitrateLimits>
       kDefaultSinglecastLimits720p =
           EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsForResolution(
               PayloadStringToCodecType("VP9"), 1280 * 720);

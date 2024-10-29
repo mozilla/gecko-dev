@@ -14,10 +14,10 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
@@ -51,7 +51,7 @@ class StreamStatisticianImpl : public StreamStatisticianImplInterface {
 
   // Implements StreamStatistician
   RtpReceiveStats GetStats() const override;
-  absl::optional<int> GetFractionLostInPercent() const override;
+  std::optional<int> GetFractionLostInPercent() const override;
   StreamDataCounters GetReceiveStreamDataCounters() const override;
   uint32_t BitrateReceived() const override;
 
@@ -96,14 +96,14 @@ class StreamStatisticianImpl : public StreamStatisticianImplInterface {
   // senders, in particular, our own loss-based bandwidth estimator.
   int32_t cumulative_loss_rtcp_offset_;
 
-  absl::optional<Timestamp> last_receive_time_;
+  std::optional<Timestamp> last_receive_time_;
   uint32_t last_received_timestamp_;
   RtpSequenceNumberUnwrapper seq_unwrapper_;
   int64_t received_seq_first_;
   int64_t received_seq_max_;
   // Assume that the other side restarted when there are two sequential packets
   // with large jump from received_seq_max_.
-  absl::optional<uint16_t> received_seq_out_of_order_;
+  std::optional<uint16_t> received_seq_out_of_order_;
 
   // Current counter values.
   StreamDataCounters receive_counters_;
@@ -129,7 +129,7 @@ class StreamStatisticianLocked : public StreamStatisticianImplInterface {
     MutexLock lock(&stream_lock_);
     return impl_.GetStats();
   }
-  absl::optional<int> GetFractionLostInPercent() const override {
+  std::optional<int> GetFractionLostInPercent() const override {
     MutexLock lock(&stream_lock_);
     return impl_.GetFractionLostInPercent();
   }

@@ -62,7 +62,6 @@ rtc_library("audio_coding") {
     "../../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -76,7 +75,6 @@ rtc_library("legacy_encoded_audio_frame") {
     "../../api/audio_codecs:audio_codecs_api",
     "../../rtc_base:buffer",
     "../../rtc_base:checks",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -109,7 +107,6 @@ rtc_library("audio_encoder_cng") {
     "../../api/units:time_delta",
     "../../common_audio",
     "../../rtc_base:checks",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -131,7 +128,6 @@ rtc_library("red") {
     "../../rtc_base:checks",
     "../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -152,7 +148,6 @@ rtc_library("g711") {
     "../../api/units:time_delta",
     "../../rtc_base:buffer",
     "../../rtc_base:checks",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   public_deps += [ ":g711_c" ]  # no-presubmit-check TODO(webrtc:8603)
 }
@@ -185,7 +180,6 @@ rtc_library("g722") {
     "../../rtc_base:buffer",
     "../../rtc_base:checks",
     "../../rtc_base:safe_conversions",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   public_deps += [ ":g722_c" ]  # no-presubmit-check TODO(webrtc:8603)
 }
@@ -220,7 +214,6 @@ rtc_library("ilbc") {
     "../../rtc_base:checks",
     "../../rtc_base:logging",
     "../../rtc_base:safe_conversions",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   public_deps += [ ":ilbc_c" ]  # no-presubmit-check TODO(webrtc:8603)
 }
@@ -452,7 +445,6 @@ rtc_library("audio_coding_opus_common") {
     "../../rtc_base:checks",
     "../../rtc_base:stringutils",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -488,7 +480,6 @@ rtc_library("webrtc_opus") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   public_deps +=  # no-presubmit-check TODO(webrtc:8603)
       [ ":webrtc_opus_wrapper" ]
@@ -522,7 +513,6 @@ rtc_library("webrtc_multiopus") {
     "../../rtc_base:stringutils",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   public_deps +=  # no-presubmit-check TODO(webrtc:8603)
       [ ":webrtc_opus_wrapper" ]
@@ -574,7 +564,6 @@ rtc_library("audio_network_adaptor_config") {
     "audio_network_adaptor/audio_network_adaptor_config.cc",
     "audio_network_adaptor/include/audio_network_adaptor_config.h",
   ]
-  deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
 rtc_library("audio_network_adaptor") {
@@ -624,7 +613,6 @@ rtc_library("audio_network_adaptor") {
     "../../system_wrappers:field_trial",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 
   if (rtc_enable_protobuf) {
@@ -739,7 +727,6 @@ rtc_library("neteq") {
     "../../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -784,6 +771,7 @@ rtc_library("neteq_tools_minimal") {
     ":default_neteq_factory",
     ":neteq",
     "../../api:array_view",
+    "../../api:field_trials",
     "../../api:neteq_simulator_api",
     "../../api:rtp_headers",
     "../../api/audio:audio_frame_api",
@@ -801,7 +789,6 @@ rtc_library("neteq_tools_minimal") {
     "../../rtc_base:stringutils",
     "../../system_wrappers",
     "../rtp_rtcp:rtp_rtcp_format",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   defines = audio_codec_defines
 }
@@ -836,13 +823,13 @@ rtc_library("neteq_test_tools") {
     "../../common_audio",
     "../../rtc_base:buffer",
     "../../rtc_base:checks",
+    "../../rtc_base:copy_on_write_buffer",
     "../../rtc_base:digest",
     "../../rtc_base:stringutils",
     "../../rtc_base/system:arch",
     "../../test:rtp_test_utils",
     "../rtp_rtcp:rtp_rtcp_format",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -875,7 +862,6 @@ rtc_library("neteq_tools") {
     "../rtp_rtcp",
     "../rtp_rtcp:rtp_rtcp_format",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 
   if (rtc_enable_protobuf) {
@@ -960,7 +946,6 @@ rtc_library("audio_coding_modules_tests_shared") {
     "//testing/gtest",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   defines = audio_coding_defines
 
@@ -1243,7 +1228,6 @@ if (rtc_include_tests) {
         "../../rtc_base:refcount",
         "../../test:fileutils",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
       sources = [
         "neteq/tools/neteq_test_factory.cc",
@@ -1277,7 +1261,6 @@ if (rtc_include_tests) {
         "//third_party/abseil-cpp/absl/flags:flag",
         "//third_party/abseil-cpp/absl/flags:parse",
         "//third_party/abseil-cpp/absl/strings",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
       sources = [ "neteq/tools/neteq_rtpplay.cc" ]
     }
@@ -1398,6 +1381,7 @@ if (rtc_include_tests) {
 
       deps = [
         ":audio_coding",
+        ":audio_coding_module_typedefs",
         ":audio_encoder_cng",
         ":neteq_input_audio_tools",
         "../../api/audio:audio_frame_api",
@@ -1407,10 +1391,11 @@ if (rtc_include_tests) {
         "../../api/audio_codecs/ilbc:audio_encoder_ilbc",
         "../../api/audio_codecs/opus:audio_encoder_opus",
         "../../api/environment:environment_factory",
+        "../../rtc_base:checks",
+        "../../rtc_base:ip_address",
         "../../rtc_base:safe_conversions",
         "//third_party/abseil-cpp/absl/flags:flag",
         "//third_party/abseil-cpp/absl/flags:parse",
-        "//third_party/abseil-cpp/absl/memory",
       ]
 
       deps += audio_coding_deps
@@ -1750,7 +1735,6 @@ if (rtc_include_tests) {
         "//third_party/abseil-cpp/absl/flags:flag",
         "//third_party/abseil-cpp/absl/memory",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
 
       defines = audio_coding_defines

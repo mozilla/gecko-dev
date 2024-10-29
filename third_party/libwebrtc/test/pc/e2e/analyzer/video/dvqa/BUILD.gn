@@ -72,7 +72,6 @@ rtc_library("frames_storage") {
     "../../../../../../api/units:timestamp",
     "../../../../../../api/video:video_frame",
     "../../../../../../system_wrappers",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

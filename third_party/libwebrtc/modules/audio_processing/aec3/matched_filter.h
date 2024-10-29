@@ -13,9 +13,9 @@
 
 #include <stddef.h>
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "modules/audio_processing/aec3/aec3_common.h"
 #include "rtc_base/gtest_prod_util.h"
@@ -133,7 +133,7 @@ class MatchedFilter {
   void Reset(bool full_reset);
 
   // Returns the current lag estimates.
-  absl::optional<const MatchedFilter::LagEstimate> GetBestLagEstimate() const {
+  std::optional<const MatchedFilter::LagEstimate> GetBestLagEstimate() const {
     return reported_lag_estimate_;
   }
 
@@ -158,8 +158,8 @@ class MatchedFilter {
   std::vector<std::vector<float>> accumulated_error_;
   std::vector<float> instantaneous_accumulated_error_;
   std::vector<float> scratch_memory_;
-  absl::optional<MatchedFilter::LagEstimate> reported_lag_estimate_;
-  absl::optional<size_t> winner_lag_;
+  std::optional<MatchedFilter::LagEstimate> reported_lag_estimate_;
+  std::optional<size_t> winner_lag_;
   int last_detected_best_lag_filter_ = -1;
   std::vector<size_t> filters_offsets_;
   int number_pre_echo_updates_ = 0;

@@ -15,10 +15,10 @@
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <optional>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "api/transport/network_types.h"
@@ -42,7 +42,7 @@ bool IsValid(DataRate datarate) {
   return datarate.IsFinite();
 }
 
-bool IsValid(absl::optional<DataRate> datarate) {
+bool IsValid(std::optional<DataRate> datarate) {
   return datarate.has_value() && IsValid(datarate.value());
 }
 
@@ -396,7 +396,7 @@ bool LossBasedBweV2::IsEstimateIncreasingWhenLossLimited(
 
 // Returns a `LossBasedBweV2::Config` iff the `key_value_config` specifies a
 // configuration for the `LossBasedBweV2` which is explicitly enabled.
-absl::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
+std::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
     const FieldTrialsView* key_value_config) {
   FieldTrialParameter<bool> enabled("Enabled", true);
   FieldTrialParameter<double> bandwidth_rampup_upper_bound_factor(
@@ -514,7 +514,7 @@ absl::optional<LossBasedBweV2::Config> LossBasedBweV2::CreateConfig(
   }
 
   if (!enabled.Get()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   Config config;
   config.bandwidth_rampup_upper_bound_factor =

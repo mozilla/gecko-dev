@@ -10,6 +10,7 @@
 
 #include "video/quality_convergence_monitor.h"
 
+#include <algorithm>
 #include <numeric>
 
 #include "rtc_base/checks.h"
@@ -25,7 +26,10 @@ struct DynamicDetectionConfig {
   bool enabled = false;
   // alpha is a percentage of the codec-specific max QP value that is used to
   // determine the dynamic QP threshold:
-  //   dynamic_qp_threshold = static_qp_threshold + alpha * max_QP
+  //   dynamic_qp_threshold = static_min_qp_threshold + alpha * max_QP
+  // Please note that although the static threshold is overridden, the dynamic
+  // threshold is calculated from static_min_qp_threshold reported by the
+  // encoder.
   double alpha = kDefaultAlpha;
   int recent_length = kDefaultRecentWindowLength;
   int past_length = kDefaultPastWindowLength;
@@ -76,7 +80,7 @@ QualityConvergenceMonitor::Parameters GetParameters(
   if (dynamic_config.enabled) {
     params.dynamic_detection_enabled = dynamic_config.enabled;
     params.dynamic_qp_threshold =
-        params.static_qp_threshold + max_qp * dynamic_config.alpha;
+        static_qp_threshold + max_qp * dynamic_config.alpha;
     params.recent_window_length = dynamic_config.recent_length;
     params.past_window_length = dynamic_config.past_length;
   }

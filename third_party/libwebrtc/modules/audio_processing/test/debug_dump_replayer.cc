@@ -54,9 +54,9 @@ bool DebugDumpReplayer::SetDumpFile(absl::string_view filename) {
 }
 
 // Get next event that has not run.
-absl::optional<audioproc::Event> DebugDumpReplayer::GetNextEvent() const {
+std::optional<audioproc::Event> DebugDumpReplayer::GetNextEvent() const {
   if (!has_next_event_)
-    return absl::nullopt;
+    return std::nullopt;
   else
     return next_event_;
 }

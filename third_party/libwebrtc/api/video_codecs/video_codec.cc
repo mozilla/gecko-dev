@@ -12,10 +12,10 @@
 
 #include <string.h>
 
+#include <optional>
 #include <string>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/video/video_codec_type.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/simulcast_stream.h"
@@ -86,7 +86,7 @@ std::string VideoCodec::ToString() const {
      << (mode == VideoCodecMode::kRealtimeVideo ? "RealtimeVideo"
                                                 : "Screensharing");
   if (IsSinglecast()) {
-    absl::optional<ScalabilityMode> scalability_mode = GetScalabilityMode();
+    std::optional<ScalabilityMode> scalability_mode = GetScalabilityMode();
     if (scalability_mode.has_value()) {
       ss << ", Singlecast: {" << width << "x" << height << " "
          << ScalabilityModeToString(*scalability_mode)
@@ -96,7 +96,7 @@ std::string VideoCodec::ToString() const {
     ss << ", Simulcast: {";
     for (size_t i = 0; i < numberOfSimulcastStreams; ++i) {
       const SimulcastStream stream = simulcastStream[i];
-      absl::optional<ScalabilityMode> scalability_mode =
+      std::optional<ScalabilityMode> scalability_mode =
           stream.GetScalabilityMode();
       if (scalability_mode.has_value()) {
         ss << "[" << stream.width << "x" << stream.height << " "

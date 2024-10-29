@@ -10,14 +10,17 @@
 
 #include "modules/pacing/prioritized_packet_queue.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <utility>
 
+#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/checks.h"
-#include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {

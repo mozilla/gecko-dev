@@ -12,10 +12,10 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/task_queue/task_queue_base.h"
 #include "net/dcsctp/common/handover_testing.h"
@@ -131,7 +131,7 @@ class StreamResetHandlerTest : public testing::Test {
   void AdvanceTime(TimeDelta duration) {
     callbacks_.AdvanceTime(duration);
     for (;;) {
-      absl::optional<TimeoutID> timeout_id = callbacks_.GetNextExpiredTimeout();
+      std::optional<TimeoutID> timeout_id = callbacks_.GetNextExpiredTimeout();
       if (!timeout_id.has_value()) {
         break;
       }
@@ -152,7 +152,7 @@ class StreamResetHandlerTest : public testing::Test {
     }
 
     std::vector<ReconfigurationResponseParameter> responses;
-    absl::optional<SctpPacket> p = SctpPacket::Parse(payload, DcSctpOptions());
+    std::optional<SctpPacket> p = SctpPacket::Parse(payload, DcSctpOptions());
     if (!p.has_value()) {
       EXPECT_TRUE(false);
       return {};
@@ -161,7 +161,7 @@ class StreamResetHandlerTest : public testing::Test {
       EXPECT_TRUE(false);
       return {};
     }
-    absl::optional<ReConfigChunk> response_chunk =
+    std::optional<ReConfigChunk> response_chunk =
         ReConfigChunk::Parse(p->descriptors()[0].data);
     if (!response_chunk.has_value()) {
       EXPECT_TRUE(false);
@@ -169,7 +169,7 @@ class StreamResetHandlerTest : public testing::Test {
     }
     for (const auto& desc : response_chunk->parameters().descriptors()) {
       if (desc.type == ReconfigurationResponseParameter::kType) {
-        absl::optional<ReconfigurationResponseParameter> response =
+        std::optional<ReconfigurationResponseParameter> response =
             ReconfigurationResponseParameter::Parse(desc.data);
         if (!response.has_value()) {
           EXPECT_TRUE(false);
@@ -482,7 +482,7 @@ TEST_F(StreamResetHandlerTest, SendOutgoingRequestDirectly) {
   EXPECT_CALL(producer_, GetStreamsReadyToBeReset())
       .WillOnce(Return(std::vector<StreamID>({StreamID(42)})));
 
-  absl::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req,
@@ -510,7 +510,7 @@ TEST_F(StreamResetHandlerTest, ResetMultipleStreamsInOneRequest) {
       .WillOnce(Return(
           std::vector<StreamID>({StreamID(40), StreamID(41), StreamID(42),
                                  StreamID(43), StreamID(44)})));
-  absl::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req,
@@ -546,7 +546,7 @@ TEST_F(StreamResetHandlerTest, SendOutgoingResettingOnPositiveResponse) {
   EXPECT_CALL(producer_, GetStreamsReadyToBeReset())
       .WillOnce(Return(std::vector<StreamID>({StreamID(42)})));
 
-  absl::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req,
@@ -574,7 +574,7 @@ TEST_F(StreamResetHandlerTest, SendOutgoingResetRollbackOnError) {
   EXPECT_CALL(producer_, GetStreamsReadyToBeReset())
       .WillOnce(Return(std::vector<StreamID>({StreamID(42)})));
 
-  absl::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req,
@@ -604,7 +604,7 @@ TEST_F(StreamResetHandlerTest, SendOutgoingResetRetransmitOnInProgress) {
   EXPECT_CALL(producer_, GetStreamsReadyToBeReset())
       .WillOnce(Return(std::vector<StreamID>({kStreamToReset})));
 
-  absl::optional<ReConfigChunk> reconfig1 = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig1 = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig1.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req1,
@@ -656,7 +656,7 @@ TEST_F(StreamResetHandlerTest, ResetWhileRequestIsSentWillQueue) {
   EXPECT_CALL(producer_, GetStreamsReadyToBeReset())
       .WillOnce(Return(std::vector<StreamID>({StreamID(42)})));
 
-  absl::optional<ReConfigChunk> reconfig1 = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig1 = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig1.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req1,
@@ -671,7 +671,7 @@ TEST_F(StreamResetHandlerTest, ResetWhileRequestIsSentWillQueue) {
   EXPECT_CALL(producer_, PrepareResetStream(StreamID(43)));
   StreamID stream_ids[] = {StreamID(41), StreamID(43)};
   handler_->ResetStreams(stream_ids);
-  EXPECT_EQ(handler_->MakeStreamResetRequest(), absl::nullopt);
+  EXPECT_EQ(handler_->MakeStreamResetRequest(), std::nullopt);
 
   Parameters::Builder builder;
   builder.Add(ReconfigurationResponseParameter(
@@ -691,7 +691,7 @@ TEST_F(StreamResetHandlerTest, ResetWhileRequestIsSentWillQueue) {
   EXPECT_CALL(producer_, GetStreamsReadyToBeReset())
       .WillOnce(Return(std::vector<StreamID>({StreamID(41), StreamID(43)})));
 
-  absl::optional<ReConfigChunk> reconfig2 = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig2 = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig2.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req2,
@@ -811,7 +811,7 @@ TEST_F(StreamResetHandlerTest, HandoverInInitialState) {
   EXPECT_CALL(producer_, GetStreamsReadyToBeReset())
       .WillOnce(Return(std::vector<StreamID>({StreamID(42)})));
 
-  absl::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
+  std::optional<ReConfigChunk> reconfig = handler_->MakeStreamResetRequest();
   ASSERT_TRUE(reconfig.has_value());
   ASSERT_HAS_VALUE_AND_ASSIGN(
       OutgoingSSNResetRequestParameter req,

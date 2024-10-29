@@ -11,11 +11,11 @@
 #include "api/test/create_peer_connection_quality_test_frame_generator.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/test/create_frame_generator.h"
 #include "api/test/frame_generator_interface.h"
 #include "api/test/pclf/media_configuration.h"
@@ -55,9 +55,9 @@ void ValidateScreenShareConfig(const VideoConfig& video_config,
 
 std::unique_ptr<test::FrameGeneratorInterface> CreateSquareFrameGenerator(
     const VideoConfig& video_config,
-    absl::optional<test::FrameGeneratorInterface::OutputType> type) {
+    std::optional<test::FrameGeneratorInterface::OutputType> type) {
   return test::CreateSquareFrameGenerator(
-      video_config.width, video_config.height, std::move(type), absl::nullopt);
+      video_config.width, video_config.height, std::move(type), std::nullopt);
 }
 
 std::unique_ptr<test::FrameGeneratorInterface> CreateFromYuvFileFrameGenerator(

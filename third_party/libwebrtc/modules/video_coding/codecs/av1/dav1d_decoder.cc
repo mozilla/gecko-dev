@@ -197,9 +197,9 @@ int32_t Dav1dDecoder::Decode(const EncodedImage& encoded_image,
   // doi: 10.1109/JPROC.2021.3058584. keywords:
   // {Encoding;Codecs;Decoding;Streaming media;Video compression;Media;Alliance
   // of Open Media;AV1;video compression},
-  absl::optional<uint8_t> qp = dav1d_picture.frame_hdr->quant.yac;
+  std::optional<uint8_t> qp = dav1d_picture.frame_hdr->quant.yac;
   decode_complete_callback_->Decoded(decoded_frame,
-                                     /*decode_time_ms=*/absl::nullopt, qp);
+                                     /*decode_time_ms=*/std::nullopt, qp);
 
   return WEBRTC_VIDEO_CODEC_OK;
 }

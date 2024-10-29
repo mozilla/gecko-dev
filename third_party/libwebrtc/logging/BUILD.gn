@@ -66,7 +66,6 @@ rtc_library("rtc_event_field") {
     "../rtc_base:logging",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -176,7 +175,6 @@ rtc_library("rtc_event_bwe") {
     "../rtc_base:checks",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -218,7 +216,6 @@ rtc_library("rtc_event_generic_packet_events") {
     "../rtc_base:timeutils",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -318,7 +315,6 @@ rtc_library("rtc_event_log_optional_blob_encoding") {
     "../rtc_base:checks",
     "../rtc_base:logging",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -336,7 +332,6 @@ rtc_library("rtc_event_log_delta_encoding") {
     "../rtc_base:safe_conversions",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -357,7 +352,6 @@ rtc_library("rtc_event_log_impl_encoder") {
     "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base:safe_conversions",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 
   if (rtc_enable_protobuf) {
@@ -418,7 +412,6 @@ if (rtc_enable_protobuf) {
       "../rtc_base:checks",
       "../rtc_base:logging",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }
@@ -559,7 +552,6 @@ if (rtc_enable_protobuf) {
       "//third_party/abseil-cpp/absl/base:core_headers",
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -645,7 +637,6 @@ if (rtc_enable_protobuf) {
         "//third_party/abseil-cpp/absl/algorithm:container",
         "//third_party/abseil-cpp/absl/memory",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 
@@ -670,7 +661,6 @@ if (rtc_enable_protobuf) {
           "//third_party/abseil-cpp/absl/flags:usage",
           "//third_party/abseil-cpp/absl/memory",
           "//third_party/abseil-cpp/absl/strings",
-          "//third_party/abseil-cpp/absl/types:optional",
         ]
       }
     }

@@ -14,10 +14,10 @@
 
 #include <cstdint>
 #include <deque>
+#include <optional>
 #include <queue>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/sequence_checker.h"
 #include "api/test/simulated_network.h"
 #include "api/units/timestamp.h"
@@ -70,7 +70,7 @@ class RTC_EXPORT SimulatedNetwork : public SimulatedNetworkInterface {
   std::vector<PacketDeliveryInfo> DequeueDeliverablePackets(
       int64_t receive_time_us) override;
 
-  absl::optional<int64_t> NextDeliveryTimeUs() const override;
+  std::optional<int64_t> NextDeliveryTimeUs() const override;
   void RegisterDeliveryTimeChangedCallback(
       absl::AnyInvocable<void()> callback) override;
 

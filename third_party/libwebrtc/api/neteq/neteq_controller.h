@@ -15,8 +15,8 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/tick_timer.h"
 
@@ -86,7 +86,7 @@ class NetEqController {
     uint32_t target_timestamp;
     int16_t expand_mutefactor;
     size_t last_packet_samples;
-    absl::optional<PacketInfo> next_packet;
+    std::optional<PacketInfo> next_packet;
     NetEq::Mode last_mode;
     bool play_dtmf;
     size_t generated_noise_samples;
@@ -161,9 +161,9 @@ class NetEqController {
 
   // Notify the NetEqController that a packet has arrived. Returns the relative
   // arrival delay, if it can be computed.
-  virtual absl::optional<int> PacketArrived(int fs_hz,
-                                            bool should_update_stats,
-                                            const PacketArrivedInfo& info) = 0;
+  virtual std::optional<int> PacketArrived(int fs_hz,
+                                           bool should_update_stats,
+                                           const PacketArrivedInfo& info) = 0;
 
   // Notify the NetEqController that we are currently in muted state.
   // TODO(bugs.webrtc.org/14270): Make pure virtual when downstream is updated.

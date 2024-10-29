@@ -12,8 +12,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "common_video/corruption_detection_message.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
@@ -25,7 +25,7 @@ using ::testing::DoubleEq;
 using ::testing::ElementsAre;
 
 TEST(CorruptionDetectionExtensionTest, ValueSizeIs1UnlessSamplesAreSpecified) {
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSequenceIndex(0b0110'1111)
           .WithInterpretSequenceIndexAsMostSignificantBits(true)
@@ -33,53 +33,53 @@ TEST(CorruptionDetectionExtensionTest, ValueSizeIs1UnlessSamplesAreSpecified) {
           .WithSampleValues({})
           .Build();
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_EQ(CorruptionDetectionExtension::ValueSize(*kMessage), size_t{1});
 }
 
 TEST(CorruptionDetectionExtensionTest,
      GivenSamplesTheValueSizeIsTheSumOfTheNumberOfSamplesPlus3) {
   const double kSampleValues[] = {1.0, 2.0, 3.0, 4.0};
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSampleValues(kSampleValues)
           .Build();
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_EQ(CorruptionDetectionExtension::ValueSize(*kMessage), size_t{7});
 }
 
 TEST(CorruptionDetectionExtensionTest,
      WritesMandatoryWhenEnoughMemoryIsAllocatedWithoutSamples) {
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSequenceIndex(0b0110'1111)
           .WithInterpretSequenceIndexAsMostSignificantBits(true)
           .Build();
   uint8_t data[] = {0};
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_TRUE(CorruptionDetectionExtension::Write(data, *kMessage));
   EXPECT_THAT(data, ElementsAre(0b1110'1111));
 }
 
 TEST(CorruptionDetectionExtensionTest,
      FailsToWriteWhenTooMuchMemoryIsAllocatedWithoutSamples) {
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSequenceIndex(0b0110'1111)
           .WithInterpretSequenceIndexAsMostSignificantBits(true)
           .Build();
   uint8_t data[] = {0, 0, 0};
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_FALSE(CorruptionDetectionExtension::Write(data, *kMessage));
 }
 
 TEST(CorruptionDetectionExtensionTest,
      FailsToWriteWhenTooMuchMemoryIsAllocatedWithSamples) {
   const double kSampleValues[] = {1.0};
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSequenceIndex(0b0110'1111)
           .WithInterpretSequenceIndexAsMostSignificantBits(true)
@@ -88,14 +88,14 @@ TEST(CorruptionDetectionExtensionTest,
           .Build();
   uint8_t data[] = {0, 0, 0, 0, 0};
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_FALSE(CorruptionDetectionExtension::Write(data, *kMessage));
 }
 
 TEST(CorruptionDetectionExtensionTest,
      WritesEverythingWhenEnoughMemoryIsAllocatedWithSamples) {
   const double kSampleValues[] = {1.0};
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSequenceIndex(0b0110'1111)
           .WithInterpretSequenceIndexAsMostSignificantBits(true)
@@ -104,7 +104,7 @@ TEST(CorruptionDetectionExtensionTest,
           .Build();
   uint8_t data[] = {0, 0, 0, 0};
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_TRUE(CorruptionDetectionExtension::Write(data, *kMessage));
   EXPECT_THAT(data, ElementsAre(0b1110'1111, 51, 0, 1));
 }
@@ -113,7 +113,7 @@ TEST(CorruptionDetectionExtensionTest,
      WritesEverythingToExtensionWhenUpperBitsAreUsedForSequenceIndex) {
   const double kSampleValues[] = {1.0, 2.0, 3.0,  4.0,  5.0,  6.0, 7.0,
                                   8.0, 9.0, 10.0, 11.0, 12.0, 13.0};
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSequenceIndex(0b0110'1111)
           .WithInterpretSequenceIndexAsMostSignificantBits(true)
@@ -124,7 +124,7 @@ TEST(CorruptionDetectionExtensionTest,
           .Build();
   uint8_t data[16];
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_TRUE(CorruptionDetectionExtension::Write(data, *kMessage));
   EXPECT_THAT(data, ElementsAre(0b1110'1111, 220, 0b1110'1111, 1, 2, 3, 4, 5, 6,
                                 7, 8, 9, 10, 11, 12, 13));
@@ -134,7 +134,7 @@ TEST(CorruptionDetectionExtensionTest,
      WritesEverythingToExtensionWhenLowerBitsAreUsedForSequenceIndex) {
   const double kSampleValues[] = {1.0, 2.0, 3.0,  4.0,  5.0,  6.0, 7.0,
                                   8.0, 9.0, 10.0, 11.0, 12.0, 13.0};
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSequenceIndex(0b0110'1111)
           .WithInterpretSequenceIndexAsMostSignificantBits(false)
@@ -145,7 +145,7 @@ TEST(CorruptionDetectionExtensionTest,
           .Build();
   uint8_t data[16];
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_TRUE(CorruptionDetectionExtension::Write(data, *kMessage));
   EXPECT_THAT(data, ElementsAre(0b0110'1111, 220, 0b1110'1111, 1, 2, 3, 4, 5, 6,
                                 7, 8, 9, 10, 11, 12, 13));
@@ -153,13 +153,13 @@ TEST(CorruptionDetectionExtensionTest,
 
 TEST(CorruptionDetectionExtensionTest, TruncatesSampleValuesWhenWriting) {
   const double kSampleValues[] = {1.4, 2.5, 3.6};
-  const absl::optional<CorruptionDetectionMessage> kMessage =
+  const std::optional<CorruptionDetectionMessage> kMessage =
       CorruptionDetectionMessage::Builder()
           .WithSampleValues(kSampleValues)
           .Build();
   uint8_t data[6];
 
-  ASSERT_NE(kMessage, absl::nullopt);
+  ASSERT_NE(kMessage, std::nullopt);
   EXPECT_TRUE(CorruptionDetectionExtension::Write(data, *kMessage));
   EXPECT_THAT(data, ElementsAre(0, 0, 0, 1, 2, 3));
 }

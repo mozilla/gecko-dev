@@ -41,7 +41,7 @@ class MockVCMReceiveCallback : public VCMReceiveCallback {
   MOCK_METHOD(int32_t,
               FrameToRender,
               (VideoFrame&,
-               absl::optional<uint8_t>,
+               std::optional<uint8_t>,
                TimeDelta,
                VideoContentType,
                VideoFrameType),

@@ -64,6 +64,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
 #include "rtc_base/event.h"

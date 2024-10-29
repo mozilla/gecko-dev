@@ -10,18 +10,28 @@
 
 #import "RTCVideoCodecInfo+Private.h"
 
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/scalability_mode_helper.h"
 #import "helpers/NSString+StdString.h"
 
 @implementation RTC_OBJC_TYPE (RTCVideoCodecInfo)
 (Private)
 
     - (instancetype)initWithNativeSdpVideoFormat : (webrtc::SdpVideoFormat)format {
-  NSMutableDictionary *params = [NSMutableDictionary dictionary];
-  for (auto it = format.parameters.begin(); it != format.parameters.end(); ++it) {
-    [params setObject:[NSString stringForStdString:it->second]
-               forKey:[NSString stringForStdString:it->first]];
+  NSMutableDictionary* params = [NSMutableDictionary dictionary];
+  for (const auto& [key, value] : format.parameters) {
+    [params setObject:[NSString stringForStdString:value] forKey:[NSString stringForStdString:key]];
   }
-  return [self initWithName:[NSString stringForStdString:format.name] parameters:params];
+
+  NSMutableArray<NSString*>* scalabilityModes =
+      [NSMutableArray arrayWithCapacity:format.scalability_modes.size()];
+  for (webrtc::ScalabilityMode mode : format.scalability_modes) {
+    [scalabilityModes addObject:[NSString stringForAbslStringView:ScalabilityModeToString(mode)]];
+  }
+
+  return [self initWithName:[NSString stringForStdString:format.name]
+                 parameters:params
+           scalabilityModes:scalabilityModes];
 }
 
 - (webrtc::SdpVideoFormat)nativeSdpVideoFormat {
@@ -32,7 +42,17 @@
     parameters[key] = value;
   }
 
-  return webrtc::SdpVideoFormat([NSString stdStringForString:self.name], parameters);
+  absl::InlinedVector<webrtc::ScalabilityMode, webrtc::kScalabilityModeCount> scalability_modes;
+  for (NSString* mode_name in self.scalabilityModes) {
+    std::optional<webrtc::ScalabilityMode> mode =
+        webrtc::ScalabilityModeStringToEnum([NSString stdStringForString:mode_name]);
+    if (mode.has_value()) {
+      scalability_modes.push_back(*mode);
+    }
+  }
+
+  return webrtc::SdpVideoFormat(
+      [NSString stdStringForString:self.name], parameters, scalability_modes);
 }
 
 @end

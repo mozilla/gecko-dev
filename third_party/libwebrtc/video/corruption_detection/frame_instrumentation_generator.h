@@ -13,32 +13,17 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <queue>
-#include <vector>
 
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/video/encoded_image.h"
 #include "api/video/video_codec_type.h"
 #include "api/video/video_frame.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "video/corruption_detection/halton_frame_sampler.h"
 
 namespace webrtc {
-
-// TODO: b/358039777 - Error handling: negative values etc.
-struct FrameInstrumentationSyncData {
-  int sequence_index;
-  bool is_key_frame;
-};
-
-struct FrameInstrumentationData {
-  int sequence_index;
-  bool is_key_frame;
-  double std_dev;
-  int luma_error_threshold;
-  int chroma_error_threshold;
-  std::vector<double> sample_values;
-};
 
 class FrameInstrumentationGenerator {
  public:
@@ -52,7 +37,7 @@ class FrameInstrumentationGenerator {
   ~FrameInstrumentationGenerator() = default;
 
   void OnCapturedFrame(VideoFrame frame);
-  absl::optional<
+  std::optional<
       absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
   OnEncodedImage(const EncodedImage& encoded_image);
 

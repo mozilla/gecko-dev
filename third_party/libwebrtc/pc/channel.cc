@@ -12,28 +12,44 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <memory>
+#include <optional>
 #include <string>
-#include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
+#include "api/crypto/crypto_options.h"
+#include "api/jsep.h"
+#include "api/media_types.h"
 #include "api/rtp_parameters.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
-#include "api/units/timestamp.h"
+#include "api/task_queue/task_queue_base.h"
 #include "media/base/codec.h"
+#include "media/base/media_channel.h"
 #include "media/base/rid_description.h"
 #include "media/base/rtp_utils.h"
+#include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "p2p/base/dtls_transport_internal.h"
 #include "pc/rtp_media_utils.h"
+#include "pc/rtp_transport_internal.h"
+#include "pc/session_description.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/containers/flat_set.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/strings/string_format.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/trace_event.h"
+#include "rtc_base/unique_id_generator.h"
 
 namespace cricket {
 namespace {
@@ -170,7 +186,7 @@ bool BaseChannel::ConnectToRtpTransport_n() {
   rtp_transport_->SubscribeReadyToSend(
       this, [this](bool ready) { OnTransportReadyToSend(ready); });
   rtp_transport_->SubscribeNetworkRouteChanged(
-      this, [this](absl::optional<rtc::NetworkRoute> route) {
+      this, [this](std::optional<rtc::NetworkRoute> route) {
         OnNetworkRouteChanged(route);
       });
   rtp_transport_->SubscribeWritableState(
@@ -335,7 +351,7 @@ void BaseChannel::OnWritableState(bool writable) {
 }
 
 void BaseChannel::OnNetworkRouteChanged(
-    absl::optional<rtc::NetworkRoute> network_route) {
+    std::optional<rtc::NetworkRoute> network_route) {
   RTC_DCHECK_RUN_ON(network_thread());
   RTC_DCHECK(network_initialized());
 
@@ -449,7 +465,7 @@ void BaseChannel::OnRtpPacket(const webrtc::RtpPacketReceived& parsed_packet) {
 
 bool BaseChannel::MaybeUpdateDemuxerAndRtpExtensions_w(
     bool update_demuxer,
-    absl::optional<RtpHeaderExtensions> extensions,
+    std::optional<RtpHeaderExtensions> extensions,
     std::string& error_desc) {
   if (extensions) {
     if (rtp_header_extensions_ == extensions) {
@@ -878,6 +894,7 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
       content, header_extensions,
       webrtc::RtpTransceiverDirectionHasRecv(content->direction()),
       &recv_params);
+  recv_params.mid = mid();
 
   if (!media_receive_channel()->SetReceiverParameters(recv_params)) {
     error_desc = StringFormat(
@@ -906,16 +923,18 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
   set_local_content_direction(content->direction());
   UpdateMediaSendRecvState_w();
 
-  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(0);
+  // Disabled because suggeting PTs takes thread jumps.
+  // TODO: https://issues.webrtc.org/360058654 - reenable after cleanup
+  // RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(0);
 
   bool success = MaybeUpdateDemuxerAndRtpExtensions_w(
       criteria_modified,
       update_header_extensions
-          ? absl::optional<RtpHeaderExtensions>(std::move(header_extensions))
-          : absl::nullopt,
+          ? std::optional<RtpHeaderExtensions>(std::move(header_extensions))
+          : std::nullopt,
       error_desc);
 
-  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(1);
+  // RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(1);
 
   return success;
 }
@@ -1056,7 +1075,7 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
       }
 
       if (may_ignore_packetization) {
-        send_codec.packetization = absl::nullopt;
+        send_codec.packetization = std::nullopt;
         needs_send_params_update = true;
       } else if (!has_matching_packetization) {
         error_desc = StringFormat(
@@ -1113,8 +1132,8 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
   bool success = MaybeUpdateDemuxerAndRtpExtensions_w(
       criteria_modified,
       update_header_extensions
-          ? absl::optional<RtpHeaderExtensions>(std::move(header_extensions))
-          : absl::nullopt,
+          ? std::optional<RtpHeaderExtensions>(std::move(header_extensions))
+          : std::nullopt,
       error_desc);
 
   RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(1);
@@ -1170,7 +1189,7 @@ bool VideoChannel::SetRemoteContent_w(const MediaContentDescription* content,
       }
 
       if (may_ignore_packetization) {
-        recv_codec.packetization = absl::nullopt;
+        recv_codec.packetization = std::nullopt;
         needs_recv_params_update = true;
       } else if (!has_matching_packetization) {
         error_desc = StringFormat(

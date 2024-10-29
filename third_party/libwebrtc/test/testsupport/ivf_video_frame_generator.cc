@@ -83,7 +83,7 @@ IvfVideoFrameGenerator::~IvfVideoFrameGenerator() {
   video_decoder_.reset();
   {
     MutexLock frame_lock(&frame_decode_lock_);
-    next_frame_ = absl::nullopt;
+    next_frame_ = std::nullopt;
     // Set event in case another thread is waiting on it.
     next_frame_decoded_.Set();
   }
@@ -96,7 +96,7 @@ FrameGeneratorInterface::VideoFrameData IvfVideoFrameGenerator::NextFrame() {
   if (!file_reader_->HasMoreFrames()) {
     file_reader_->Reset();
   }
-  absl::optional<EncodedImage> image = file_reader_->NextFrame();
+  std::optional<EncodedImage> image = file_reader_->NextFrame();
   RTC_CHECK(image);
   // Last parameter is undocumented and there is no usage of it found.
   RTC_CHECK_EQ(WEBRTC_VIDEO_CODEC_OK,
@@ -127,7 +127,7 @@ void IvfVideoFrameGenerator::SkipNextFrame() {
   if (!file_reader_->HasMoreFrames()) {
     file_reader_->Reset();
   }
-  absl::optional<EncodedImage> image = file_reader_->NextFrame();
+  std::optional<EncodedImage> image = file_reader_->NextFrame();
   RTC_CHECK(image);
   // Last parameter is undocumented and there is no usage of it found.
   // Frame has to be decoded in case it is a key frame.
@@ -159,8 +159,8 @@ int32_t IvfVideoFrameGenerator::DecodedCallback::Decoded(
 }
 void IvfVideoFrameGenerator::DecodedCallback::Decoded(
     VideoFrame& decoded_image,
-    absl::optional<int32_t> decode_time_ms,
-    absl::optional<uint8_t> qp) {
+    std::optional<int32_t> decode_time_ms,
+    std::optional<uint8_t> qp) {
   reader_->OnFrameDecoded(decoded_image);
 }
 

@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -23,8 +24,9 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
+#include "api/candidate.h"
+#include "api/jsep.h"
 #include "api/jsep_session_description.h"
 #include "api/media_types.h"
 #include "api/rtp_parameters.h"
@@ -2281,6 +2283,8 @@ TEST_F(WebRtcSdpTest, ParseSslTcpCandidate) {
 
 TEST_F(WebRtcSdpTest, SerializeSessionDescriptionWithH264) {
   cricket::Codec h264_codec = cricket::CreateVideoCodec("H264");
+  // Id must be valid, but value doesn't matter.
+  h264_codec.id = 123;
   h264_codec.SetParam("profile-level-id", "42e01f");
   h264_codec.SetParam("level-asymmetry-allowed", "1");
   h264_codec.SetParam("packetization-mode", "1");
@@ -3352,11 +3356,11 @@ TEST_F(WebRtcSdpTest, DeserializePacketizationAttributeWithIllegalValue) {
   cricket::Codec vp9 = vcd->codecs()[1];
   EXPECT_EQ(vp9.name, "VP9");
   EXPECT_EQ(vp9.id, 121);
-  EXPECT_EQ(vp9.packetization, absl::nullopt);
+  EXPECT_EQ(vp9.packetization, std::nullopt);
   cricket::Codec h264 = vcd->codecs()[2];
   EXPECT_EQ(h264.name, "H264");
   EXPECT_EQ(h264.id, 122);
-  EXPECT_EQ(h264.packetization, absl::nullopt);
+  EXPECT_EQ(h264.packetization, std::nullopt);
 }
 
 TEST_F(WebRtcSdpTest, SerializeAudioFmtpWithUnknownParameter) {

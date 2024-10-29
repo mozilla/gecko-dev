@@ -12,9 +12,9 @@
 #define API_AUDIO_CODECS_AUDIO_ENCODER_FACTORY_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -44,7 +44,7 @@ class AudioEncoderFactory : public RefCountInterface {
     // Note: Implementations need to be robust against combinations other than
     // one encoder, one decoder getting the same ID; such encoders must still
     // work.
-    absl::optional<AudioCodecPairId> codec_pair_id;
+    std::optional<AudioCodecPairId> codec_pair_id;
   };
 
   // Returns a prioritized list of audio codecs, to use for signaling etc.
@@ -53,7 +53,7 @@ class AudioEncoderFactory : public RefCountInterface {
   // Returns information about how this format would be encoded, provided it's
   // supported. More format and format variations may be supported than those
   // returned by GetSupportedEncoders().
-  virtual absl::optional<AudioCodecInfo> QueryAudioEncoder(
+  virtual std::optional<AudioCodecInfo> QueryAudioEncoder(
       const SdpAudioFormat& format) = 0;
 
   // Creates an AudioEncoder for the specified format.

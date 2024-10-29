@@ -120,7 +120,7 @@ class TransmissionControlBlock : public Context {
 
   // Called when the COOKIE ACK chunk has been received, to allow further
   // packets to be sent.
-  void ClearCookieEchoChunk() { cookie_echo_chunk_ = absl::nullopt; }
+  void ClearCookieEchoChunk() { cookie_echo_chunk_ = std::nullopt; }
 
   bool has_cookie_echo_chunk() const { return cookie_echo_chunk_.has_value(); }
 
@@ -187,7 +187,7 @@ class TransmissionControlBlock : public Context {
   // including a COOKIE ECHO). So if `cookie_echo_chunk_` is present, the
   // SendBufferedChunks will always only just send one packet, with this chunk
   // as the first chunk in the packet.
-  absl::optional<CookieEchoChunk> cookie_echo_chunk_ = absl::nullopt;
+  std::optional<CookieEchoChunk> cookie_echo_chunk_ = std::nullopt;
 };
 }  // namespace dcsctp
 

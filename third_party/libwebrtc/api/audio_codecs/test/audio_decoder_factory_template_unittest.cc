@@ -11,10 +11,10 @@
 #include "api/audio_codecs/audio_decoder_factory_template.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/L16/audio_decoder_L16.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
@@ -33,8 +33,13 @@
 #include "test/mock_audio_decoder.h"
 
 namespace webrtc {
-
 namespace {
+
+using ::testing::NiceMock;
+using ::testing::NotNull;
+using ::testing::Pointer;
+using ::testing::Property;
+using ::testing::Return;
 
 struct BogusParams {
   static SdpAudioFormat AudioFormat() { return {"bogus", 8000, 1}; }
@@ -54,13 +59,12 @@ struct AudioDecoderFakeApi {
     SdpAudioFormat audio_format;
   };
 
-  static absl::optional<Config> SdpToConfig(
-      const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
     if (Params::AudioFormat() == audio_format) {
       Config config = {audio_format};
       return config;
     } else {
-      return absl::nullopt;
+      return std::nullopt;
     }
   }
 
@@ -74,7 +78,7 @@ struct AudioDecoderFakeApi {
 
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
       const Config&,
-      absl::optional<AudioCodecPairId> /*codec_pair_id*/ = absl::nullopt) {
+      std::optional<AudioCodecPairId> /*codec_pair_id*/ = std::nullopt) {
     auto dec = std::make_unique<testing::StrictMock<MockAudioDecoder>>();
     EXPECT_CALL(*dec, SampleRateHz())
         .WillOnce(::testing::Return(Params::CodecInfo().sample_rate_hz));
@@ -83,7 +87,72 @@ struct AudioDecoderFakeApi {
   }
 };
 
-}  // namespace
+// Trait to pass as template parameter to `CreateAudioDecoderFactory` with
+// all the functions except the functions to create the audio decoder.
+struct BaseAudioDecoderApi {
+  struct Config {};
+
+  static SdpAudioFormat AudioFormat() { return {"fake", 16'000, 2, {}}; }
+
+  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
+    return Config();
+  }
+
+  static void AppendSupportedDecoders(std::vector<AudioCodecSpec>* specs) {
+    specs->push_back({.format = AudioFormat(), .info = {16'000, 2, 23456}});
+  }
+};
+
+struct TraitWithTwoMakeAudioDecoders : BaseAudioDecoderApi {
+  // Create Decoders with different sample rates depending if it is created
+  // through one or another `MAkeAudioDecoder` so that a test may detect which
+  // method was used.
+  static constexpr int kRateWithoutEnv = 10'000;
+  static constexpr int kRateWithEnv = 20'000;
+
+  static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+      const Config& config,
+      std::optional<AudioCodecPairId> codec_pair_id) {
+    auto decoder = std::make_unique<NiceMock<MockAudioDecoder>>();
+    ON_CALL(*decoder, SampleRateHz).WillByDefault(Return(kRateWithoutEnv));
+    return decoder;
+  }
+
+  static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+      const Environment& env,
+      const Config& config,
+      std::optional<AudioCodecPairId> codec_pair_id) {
+    auto decoder = std::make_unique<NiceMock<MockAudioDecoder>>();
+    ON_CALL(*decoder, SampleRateHz).WillByDefault(Return(kRateWithEnv));
+    return decoder;
+  }
+};
+
+TEST(AudioDecoderFactoryTemplateTest,
+     PrefersToPassEnvironmentToMakeAudioDecoder) {
+  const Environment env = CreateEnvironment();
+  auto factory = CreateAudioDecoderFactory<TraitWithTwoMakeAudioDecoders>();
+
+  EXPECT_THAT(factory->Create(env, BaseAudioDecoderApi::AudioFormat(), {}),
+              Pointer(Property(&AudioDecoder::SampleRateHz,
+                               TraitWithTwoMakeAudioDecoders::kRateWithEnv)));
+}
+
+struct AudioDecoderApiWithV1Make : BaseAudioDecoderApi {
+  static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+      const Config& config,
+      std::optional<AudioCodecPairId> codec_pair_id) {
+    return std::make_unique<NiceMock<MockAudioDecoder>>();
+  }
+};
+
+TEST(AudioDecoderFactoryTemplateTest,
+     CanUseMakeAudioDecoderWithoutPassingEnvironment) {
+  const Environment env = CreateEnvironment();
+  auto factory = CreateAudioDecoderFactory<AudioDecoderApiWithV1Make>();
+  EXPECT_THAT(factory->Create(env, BaseAudioDecoderApi::AudioFormat(), {}),
+              NotNull());
+}
 
 TEST(AudioDecoderFactoryTemplateTest, NoDecoderTypes) {
   const Environment env = CreateEnvironment();
@@ -92,7 +161,7 @@ TEST(AudioDecoderFactoryTemplateTest, NoDecoderTypes) {
           audio_decoder_factory_template_impl::AudioDecoderFactoryT<>>());
   EXPECT_THAT(factory->GetSupportedDecoders(), ::testing::IsEmpty());
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, std::nullopt));
 }
 
 TEST(AudioDecoderFactoryTemplateTest, OneDecoderType) {
@@ -103,8 +172,8 @@ TEST(AudioDecoderFactoryTemplateTest, OneDecoderType) {
                   AudioCodecSpec{{"bogus", 8000, 1}, {8000, 1, 12345}}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"bogus", 8000, 1}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
-  auto dec = factory->Create(env, {"bogus", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, std::nullopt));
+  auto dec = factory->Create(env, {"bogus", 8000, 1}, std::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(8000, dec->SampleRateHz());
 }
@@ -122,13 +191,13 @@ TEST(AudioDecoderFactoryTemplateTest, TwoDecoderTypes) {
   EXPECT_TRUE(factory->IsSupportedDecoder({"bogus", 8000, 1}));
   EXPECT_TRUE(
       factory->IsSupportedDecoder({"sham", 16000, 2, {{"param", "value"}}}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
-  auto dec1 = factory->Create(env, {"bogus", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, std::nullopt));
+  auto dec1 = factory->Create(env, {"bogus", 8000, 1}, std::nullopt);
   ASSERT_NE(nullptr, dec1);
   EXPECT_EQ(8000, dec1->SampleRateHz());
-  EXPECT_EQ(nullptr, factory->Create(env, {"sham", 16000, 2}, absl::nullopt));
+  EXPECT_EQ(nullptr, factory->Create(env, {"sham", 16000, 2}, std::nullopt));
   auto dec2 = factory->Create(env, {"sham", 16000, 2, {{"param", "value"}}},
-                              absl::nullopt);
+                              std::nullopt);
   ASSERT_NE(nullptr, dec2);
   EXPECT_EQ(16000, dec2->SampleRateHz());
 }
@@ -143,11 +212,11 @@ TEST(AudioDecoderFactoryTemplateTest, G711) {
   EXPECT_FALSE(factory->IsSupportedDecoder({"G711", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"PCMU", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"pcma", 8000, 1}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"pcmu", 16000, 1}, absl::nullopt));
-  auto dec1 = factory->Create(env, {"pcmu", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"pcmu", 16000, 1}, std::nullopt));
+  auto dec1 = factory->Create(env, {"pcmu", 8000, 1}, std::nullopt);
   ASSERT_NE(nullptr, dec1);
   EXPECT_EQ(8000, dec1->SampleRateHz());
-  auto dec2 = factory->Create(env, {"PCMA", 8000, 1}, absl::nullopt);
+  auto dec2 = factory->Create(env, {"PCMA", 8000, 1}, std::nullopt);
   ASSERT_NE(nullptr, dec2);
   EXPECT_EQ(8000, dec2->SampleRateHz());
 }
@@ -160,16 +229,16 @@ TEST(AudioDecoderFactoryTemplateTest, G722) {
                   AudioCodecSpec{{"G722", 8000, 1}, {16000, 1, 64000}}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"G722", 8000, 1}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
-  auto dec1 = factory->Create(env, {"G722", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, std::nullopt));
+  auto dec1 = factory->Create(env, {"G722", 8000, 1}, std::nullopt);
   ASSERT_NE(nullptr, dec1);
   EXPECT_EQ(16000, dec1->SampleRateHz());
   EXPECT_EQ(1u, dec1->Channels());
-  auto dec2 = factory->Create(env, {"G722", 8000, 2}, absl::nullopt);
+  auto dec2 = factory->Create(env, {"G722", 8000, 2}, std::nullopt);
   ASSERT_NE(nullptr, dec2);
   EXPECT_EQ(16000, dec2->SampleRateHz());
   EXPECT_EQ(2u, dec2->Channels());
-  auto dec3 = factory->Create(env, {"G722", 8000, 3}, absl::nullopt);
+  auto dec3 = factory->Create(env, {"G722", 8000, 3}, std::nullopt);
   ASSERT_EQ(nullptr, dec3);
 }
 
@@ -181,8 +250,8 @@ TEST(AudioDecoderFactoryTemplateTest, Ilbc) {
                   AudioCodecSpec{{"ILBC", 8000, 1}, {8000, 1, 13300}}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"ilbc", 8000, 1}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 8000, 1}, absl::nullopt));
-  auto dec = factory->Create(env, {"ilbc", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 8000, 1}, std::nullopt));
+  auto dec = factory->Create(env, {"ilbc", 8000, 1}, std::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(8000, dec->SampleRateHz());
 }
@@ -202,8 +271,8 @@ TEST(AudioDecoderFactoryTemplateTest, L16) {
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"L16", 48000, 1}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"L16", 96000, 1}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"L16", 8000, 0}, absl::nullopt));
-  auto dec = factory->Create(env, {"L16", 48000, 2}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"L16", 8000, 0}, std::nullopt));
+  auto dec = factory->Create(env, {"L16", 48000, 2}, std::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(48000, dec->SampleRateHz());
 }
@@ -220,10 +289,11 @@ TEST(AudioDecoderFactoryTemplateTest, Opus) {
               ::testing::ElementsAre(AudioCodecSpec{opus_format, opus_info}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"opus", 48000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"opus", 48000, 2}));
-  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
-  auto dec = factory->Create(env, {"opus", 48000, 2}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, std::nullopt));
+  auto dec = factory->Create(env, {"opus", 48000, 2}, std::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(48000, dec->SampleRateHz());
 }
 
+}  // namespace
 }  // namespace webrtc

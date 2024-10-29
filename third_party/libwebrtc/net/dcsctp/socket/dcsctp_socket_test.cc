@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,7 +21,6 @@
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/common/handover_testing.h"
 #include "net/dcsctp/common/math.h"
@@ -84,7 +84,7 @@ constexpr int kMaxBurstPackets = 4;
 constexpr DcSctpOptions kDefaultOptions;
 
 MATCHER_P(HasChunks, chunks, "") {
-  absl::optional<SctpPacket> packet = SctpPacket::Parse(arg, kDefaultOptions);
+  std::optional<SctpPacket> packet = SctpPacket::Parse(arg, kDefaultOptions);
   if (!packet.has_value()) {
     *result_listener << "data didn't parse as an SctpPacket";
     return false;
@@ -103,7 +103,7 @@ MATCHER_P(IsDataChunk, properties, "") {
     return false;
   }
 
-  absl::optional<DataChunk> chunk = DataChunk::Parse(arg.data);
+  std::optional<DataChunk> chunk = DataChunk::Parse(arg.data);
   if (!chunk.has_value()) {
     *result_listener << "The chunk didn't parse as a data chunk";
     return false;
@@ -118,7 +118,7 @@ MATCHER_P(IsSack, properties, "") {
     return false;
   }
 
-  absl::optional<SackChunk> chunk = SackChunk::Parse(arg.data);
+  std::optional<SackChunk> chunk = SackChunk::Parse(arg.data);
   if (!chunk.has_value()) {
     *result_listener << "The chunk didn't parse as a sack chunk";
     return false;
@@ -133,7 +133,7 @@ MATCHER_P(IsReConfig, properties, "") {
     return false;
   }
 
-  absl::optional<ReConfigChunk> chunk = ReConfigChunk::Parse(arg.data);
+  std::optional<ReConfigChunk> chunk = ReConfigChunk::Parse(arg.data);
   if (!chunk.has_value()) {
     *result_listener << "The chunk didn't parse as a re-config chunk";
     return false;
@@ -148,7 +148,7 @@ MATCHER_P(IsHeartbeatAck, properties, "") {
     return false;
   }
 
-  absl::optional<HeartbeatAckChunk> chunk = HeartbeatAckChunk::Parse(arg.data);
+  std::optional<HeartbeatAckChunk> chunk = HeartbeatAckChunk::Parse(arg.data);
   if (!chunk.has_value()) {
     *result_listener << "The chunk didn't parse as a HeartbeatAckChunk";
     return false;
@@ -163,7 +163,7 @@ MATCHER_P(IsHeartbeatRequest, properties, "") {
     return false;
   }
 
-  absl::optional<HeartbeatRequestChunk> chunk =
+  std::optional<HeartbeatRequestChunk> chunk =
       HeartbeatRequestChunk::Parse(arg.data);
   if (!chunk.has_value()) {
     *result_listener << "The chunk didn't parse as a HeartbeatRequestChunk";
@@ -185,7 +185,7 @@ MATCHER_P(IsOutgoingResetRequest, properties, "") {
     return false;
   }
 
-  absl::optional<OutgoingSSNResetRequestParameter> parameter =
+  std::optional<OutgoingSSNResetRequestParameter> parameter =
       OutgoingSSNResetRequestParameter::Parse(arg.data);
   if (!parameter.has_value()) {
     *result_listener
@@ -203,7 +203,7 @@ MATCHER_P(IsReconfigurationResponse, properties, "") {
     return false;
   }
 
-  absl::optional<ReconfigurationResponseParameter> parameter =
+  std::optional<ReconfigurationResponseParameter> parameter =
       ReconfigurationResponseParameter::Parse(arg.data);
   if (!parameter.has_value()) {
     *result_listener
@@ -264,7 +264,7 @@ void ExchangeMessages(SocketUnderTest& a, SocketUnderTest& z) {
 
 void RunTimers(SocketUnderTest& s) {
   for (;;) {
-    absl::optional<TimeoutID> timeout_id = s.cb.GetNextExpiredTimeout();
+    std::optional<TimeoutID> timeout_id = s.cb.GetNextExpiredTimeout();
     if (!timeout_id.has_value()) {
       break;
     }
@@ -324,7 +324,7 @@ std::unique_ptr<SocketUnderTest> HandoverSocket(
   if (!is_closed) {
     EXPECT_CALL(sut->cb, OnClosed).Times(1);
   }
-  absl::optional<DcSctpSocketHandoverState> handover_state =
+  std::optional<DcSctpSocketHandoverState> handover_state =
       sut->socket.GetHandoverStateAndClose();
   EXPECT_TRUE(handover_state.has_value());
   g_handover_state_transformer_for_test(&*handover_state);
@@ -340,7 +340,7 @@ std::unique_ptr<SocketUnderTest> HandoverSocket(
 std::vector<uint32_t> GetReceivedMessagePpids(SocketUnderTest& z) {
   std::vector<uint32_t> ppids;
   for (;;) {
-    absl::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
+    std::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
     if (!msg.has_value()) {
       break;
     }
@@ -382,7 +382,7 @@ class DcSctpSocketParametrizedTest
     a.socket.Send(DcSctpMessage(StreamID(1), PPID(53), {1, 2}), kSendOptions);
     ExchangeMessages(a, *z);
 
-    absl::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
+    std::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
     ASSERT_TRUE(msg.has_value());
     EXPECT_EQ(msg->stream_id(), StreamID(1));
   }
@@ -792,7 +792,7 @@ TEST(DcSctpSocketTest, EstablishConnectionWhileSendingData) {
   EXPECT_EQ(a.socket.state(), SocketState::kConnected);
   EXPECT_EQ(z.socket.state(), SocketState::kConnected);
 
-  absl::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
 }
@@ -806,7 +806,7 @@ TEST(DcSctpSocketTest, SendMessageAfterEstablished) {
   a.socket.Send(DcSctpMessage(StreamID(1), PPID(53), {1, 2}), kSendOptions);
   z.socket.ReceivePacket(a.cb.ConsumeSentPacket());
 
-  absl::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
 }
@@ -826,7 +826,7 @@ TEST_P(DcSctpSocketParametrizedTest, TimeoutResendsPacket) {
 
   z->socket.ReceivePacket(a.cb.ConsumeSentPacket());
 
-  absl::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
 
@@ -851,7 +851,7 @@ TEST_P(DcSctpSocketParametrizedTest, SendALotOfBytesMissedSecondPacket) {
   // Retransmit and handle the rest
   ExchangeMessages(a, *z);
 
-  absl::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
   EXPECT_THAT(msg->payload(), testing::ElementsAreArray(payload));
@@ -1051,7 +1051,7 @@ TEST_P(DcSctpSocketParametrizedTest, ResetStream) {
   a.socket.Send(DcSctpMessage(StreamID(1), PPID(53), {1, 2}), {});
   z->socket.ReceivePacket(a.cb.ConsumeSentPacket());
 
-  absl::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
 
@@ -1071,6 +1071,38 @@ TEST_P(DcSctpSocketParametrizedTest, ResetStream) {
   a.socket.ReceivePacket(z->cb.ConsumeSentPacket());
 
   MaybeHandoverSocketAndSendMessage(a, std::move(z));
+}
+
+TEST(DcSctpSocketTest, SendReconfigWhenStreamsReady) {
+  DcSctpOptions options = {.cwnd_mtus_initial = 1};
+  SocketUnderTest a("A", options);
+  SocketUnderTest z("Z", options);
+
+  ConnectSockets(a, z);
+
+  // Send a message so large so that it will not be sent in full, and still
+  // remaining in the send queue.
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(51),
+                              std::vector<uint8_t>(options.mtu * 3)),
+                {.unordered = IsUnordered(false)});
+
+  // Reset the outgoing stream. RECONFIG can't be sent immediately as the stream
+  // is pending (not paused).
+  a.socket.ResetStreams(std::vector<StreamID>({StreamID(1)}));
+
+  // This message sent directly after should be received eventually.
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(53), std::vector<uint8_t>(100)),
+                {.unordered = IsUnordered(false)});
+
+  ExchangeMessagesAndAdvanceTime(a, z);
+
+  std::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
+  ASSERT_TRUE(msg1.has_value());
+  EXPECT_EQ(msg1->ppid(), PPID(51));
+
+  std::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
+  ASSERT_TRUE(msg2.has_value());
+  EXPECT_EQ(msg2->ppid(), PPID(53));
 }
 
 TEST_P(DcSctpSocketParametrizedTest, ResetStreamWillMakeChunksStartAtZeroSsn) {
@@ -1100,11 +1132,11 @@ TEST_P(DcSctpSocketParametrizedTest, ResetStreamWillMakeChunksStartAtZeroSsn) {
   // Handle SACK
   a.socket.ReceivePacket(z->cb.ConsumeSentPacket());
 
-  absl::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_EQ(msg1->stream_id(), StreamID(1));
 
-  absl::optional<DcSctpMessage> msg2 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg2 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg2.has_value());
   EXPECT_EQ(msg2->stream_id(), StreamID(1));
 
@@ -1182,19 +1214,19 @@ TEST_P(DcSctpSocketParametrizedTest,
   a.socket.ReceivePacket(z->cb.ConsumeSentPacket());
 
   // Receive all messages.
-  absl::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_EQ(msg1->stream_id(), StreamID(1));
 
-  absl::optional<DcSctpMessage> msg2 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg2 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg2.has_value());
   EXPECT_EQ(msg2->stream_id(), StreamID(1));
 
-  absl::optional<DcSctpMessage> msg3 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg3 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg3.has_value());
   EXPECT_EQ(msg3->stream_id(), StreamID(3));
 
-  absl::optional<DcSctpMessage> msg4 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg4 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg4.has_value());
   EXPECT_EQ(msg4->stream_id(), StreamID(3));
 
@@ -1253,7 +1285,7 @@ TEST_P(DcSctpSocketParametrizedTest, OnePeerReconnects) {
   // have the wrong verification tag, those will yield errors.
   ExchangeMessages(a, z2);
 
-  absl::optional<DcSctpMessage> msg = z2.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z2.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
   EXPECT_THAT(msg->payload(), testing::ElementsAreArray(payload));
@@ -1304,15 +1336,15 @@ TEST_P(DcSctpSocketParametrizedTest, SendMessageWithLimitedRtx) {
   // Which will trigger a SACK
   a.socket.ReceivePacket(z->cb.ConsumeSentPacket());
 
-  absl::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_EQ(msg1->ppid(), PPID(51));
 
-  absl::optional<DcSctpMessage> msg2 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg2 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg2.has_value());
   EXPECT_EQ(msg2->ppid(), PPID(53));
 
-  absl::optional<DcSctpMessage> msg3 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg3 = z->cb.ConsumeReceivedMessage();
   EXPECT_FALSE(msg3.has_value());
 
   MaybeHandoverSocketAndSendMessage(a, std::move(z));
@@ -1395,7 +1427,7 @@ TEST_P(DcSctpSocketParametrizedTest, SendManyFragmentedMessagesWithLimitedRtx) {
 
   ExchangeMessages(a, *z);
 
-  absl::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_EQ(msg1->ppid(), PPID(54));
 
@@ -2154,7 +2186,7 @@ TEST(DcSctpSocketTest, SendMessagesAfterHandover) {
 
   z = HandoverSocket(std::move(z));
 
-  absl::optional<DcSctpMessage> msg;
+  std::optional<DcSctpMessage> msg;
 
   RTC_LOG(LS_INFO) << "Sending A #1";
 
@@ -2241,7 +2273,7 @@ TEST_P(DcSctpSocketParametrizedTest, CanLoseFirstOrderedMessage) {
   ExchangeMessages(a, *z);
 
   // The Z socket should receive the second message, but not the first.
-  absl::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->ppid(), PPID(52));
 
@@ -2380,13 +2412,13 @@ TEST(DcSctpSocketTest, CloseStreamsWithPendingRequest) {
   ExchangeMessages(a, z);
 
   // Receive these messages
-  absl::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_EQ(msg1->stream_id(), StreamID(1));
-  absl::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg2.has_value());
   EXPECT_EQ(msg2->stream_id(), StreamID(2));
-  absl::optional<DcSctpMessage> msg3 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg3 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg3.has_value());
   EXPECT_EQ(msg3->stream_id(), StreamID(3));
 
@@ -2415,13 +2447,13 @@ TEST(DcSctpSocketTest, CloseStreamsWithPendingRequest) {
   ExchangeMessages(a, z);
 
   // Receive these messages
-  absl::optional<DcSctpMessage> msg4 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg4 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg4.has_value());
   EXPECT_EQ(msg4->stream_id(), StreamID(1));
-  absl::optional<DcSctpMessage> msg5 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg5 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg5.has_value());
   EXPECT_EQ(msg5->stream_id(), StreamID(2));
-  absl::optional<DcSctpMessage> msg6 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg6 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg6.has_value());
   EXPECT_EQ(msg6->stream_id(), StreamID(3));
 }
@@ -2527,7 +2559,7 @@ TEST(DcSctpSocketTest, SmallSentMessagesWithPrioWillArriveInSpecificOrder) {
 
   std::vector<uint32_t> received_ppids;
   for (;;) {
-    absl::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
+    std::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
     if (!msg.has_value()) {
       break;
     }
@@ -2800,13 +2832,13 @@ TEST(DcSctpSocketTest, ResetStreamsDeferred) {
   z.socket.ReceivePacket(data2);
   z.socket.ReceivePacket(data3);
 
-  absl::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_EQ(msg1->stream_id(), StreamID(1));
   EXPECT_EQ(msg1->ppid(), PPID(53));
   EXPECT_EQ(msg1->payload().size(), kTwoFragmentsSize);
 
-  absl::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg2.has_value());
   EXPECT_EQ(msg2->stream_id(), StreamID(1));
   EXPECT_EQ(msg2->ppid(), PPID(54));
@@ -2835,13 +2867,27 @@ TEST(DcSctpSocketTest, ResetStreamsDeferred) {
                                      kSuccessPerformed))))))));
   a.socket.ReceivePacket(reconfig3);
 
+  EXPECT_THAT(
+      data1,
+      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(0))))));
+  EXPECT_THAT(
+      data2,
+      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(0))))));
+  EXPECT_THAT(
+      data3,
+      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(1))))));
+  EXPECT_THAT(reconfig, HasChunks(ElementsAre(IsReConfig(HasParameters(
+                            ElementsAre(IsOutgoingResetRequest(Property(
+                                &OutgoingSSNResetRequestParameter::stream_ids,
+                                ElementsAre(StreamID(1))))))))));
+
   // Send a new message after the stream has been reset.
   a.socket.Send(DcSctpMessage(StreamID(1), PPID(55),
                               std::vector<uint8_t>(kSmallMessageSize)),
                 {});
   ExchangeMessages(a, z);
 
-  absl::optional<DcSctpMessage> msg3 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg3 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg3.has_value());
   EXPECT_EQ(msg3->stream_id(), StreamID(1));
   EXPECT_EQ(msg3->ppid(), PPID(55));
@@ -2869,13 +2915,13 @@ TEST(DcSctpSocketTest, ResetStreamsWithPausedSenderResumesWhenPerformed) {
   EXPECT_CALL(z.cb, OnIncomingStreamsReset(ElementsAre(StreamID(1))));
   ExchangeMessages(a, z);
 
-  absl::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_EQ(msg1->stream_id(), StreamID(1));
   EXPECT_EQ(msg1->ppid(), PPID(51));
   EXPECT_EQ(msg1->payload().size(), kSmallMessageSize);
 
-  absl::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg2.has_value());
   EXPECT_EQ(msg2->stream_id(), StreamID(1));
   EXPECT_EQ(msg2->ppid(), PPID(52));
@@ -3043,11 +3089,11 @@ TEST_P(DcSctpSocketParametrizedTest, AllPacketsAfterConnectHaveZeroChecksum) {
     }
   }
 
-  absl::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg1 = z->cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg1.has_value());
   EXPECT_THAT(msg1->payload(), SizeIs(kLargeMessageSize));
 
-  absl::optional<DcSctpMessage> msg2 = a.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg2 = a.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg2.has_value());
   EXPECT_THAT(msg2->payload(), SizeIs(kLargeMessageSize));
 
@@ -3209,7 +3255,7 @@ TEST(DcSctpSocketResendInitTest, ConnectionCanContinueFromFirstInitAck) {
   // Then let the rest continue.
   ExchangeMessages(a, z);
 
-  absl::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
   EXPECT_THAT(msg->payload(), SizeIs(kLargeMessageSize));
@@ -3246,7 +3292,7 @@ TEST(DcSctpSocketResendInitTest, ConnectionCanContinueFromSecondInitAck) {
   // Then let the rest continue.
   ExchangeMessages(a, z);
 
-  absl::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
+  std::optional<DcSctpMessage> msg = z.cb.ConsumeReceivedMessage();
   ASSERT_TRUE(msg.has_value());
   EXPECT_EQ(msg->stream_id(), StreamID(1));
   EXPECT_THAT(msg->payload(), SizeIs(kLargeMessageSize));

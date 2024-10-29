@@ -11,10 +11,10 @@
 #include "media/engine/internal_encoder_factory.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder_factory.h"
@@ -57,7 +57,7 @@ std::unique_ptr<VideoEncoder> InternalEncoderFactory::Create(
 
 VideoEncoderFactory::CodecSupport InternalEncoderFactory::QueryCodecSupport(
     const SdpVideoFormat& format,
-    absl::optional<std::string> scalability_mode) const {
+    std::optional<std::string> scalability_mode) const {
   auto original_format =
       FuzzyMatchSdpVideoFormat(Factory().GetSupportedFormats(), format);
   return original_format

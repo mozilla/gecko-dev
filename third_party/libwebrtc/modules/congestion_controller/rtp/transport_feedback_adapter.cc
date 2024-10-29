@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/units/timestamp.h"
@@ -108,7 +109,7 @@ void TransportFeedbackAdapter::AddPacket(const RtpPacketSendInfo& packet_info,
   history_.insert(std::make_pair(packet.sent.sequence_number, packet));
 }
 
-absl::optional<SentPacket> TransportFeedbackAdapter::ProcessSentPacket(
+std::optional<SentPacket> TransportFeedbackAdapter::ProcessSentPacket(
     const rtc::SentPacket& sent_packet) {
   auto send_time = Timestamp::Millis(sent_packet.send_time_ms);
   // TODO(srte): Only use one way to indicate that packet feedback is used.
@@ -144,16 +145,16 @@ absl::optional<SentPacket> TransportFeedbackAdapter::ProcessSentPacket(
         DataSize::Bytes(sent_packet.info.packet_size_bytes);
     last_untracked_send_time_ = std::max(last_untracked_send_time_, send_time);
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
-absl::optional<TransportPacketsFeedback>
+std::optional<TransportPacketsFeedback>
 TransportFeedbackAdapter::ProcessTransportFeedback(
     const rtcp::TransportFeedback& feedback,
     Timestamp feedback_receive_time) {
   if (feedback.GetPacketStatusCount() == 0) {
     RTC_LOG(LS_INFO) << "Empty transport feedback packet received.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   TransportPacketsFeedback msg;
@@ -161,7 +162,7 @@ TransportFeedbackAdapter::ProcessTransportFeedback(
   msg.packet_feedbacks =
       ProcessTransportFeedbackInner(feedback, feedback_receive_time);
   if (msg.packet_feedbacks.empty())
-    return absl::nullopt;
+    return std::nullopt;
   msg.data_in_flight = in_flight_.GetOutstandingData(network_route_);
 
   return msg;

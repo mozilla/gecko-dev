@@ -117,7 +117,8 @@ void RtpReceiverDelegateAdapter::OnFirstPacketReceived(
 - (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
               nativeRtpReceiver:
                   (rtc::scoped_refptr<webrtc::RtpReceiverInterface>)nativeRtpReceiver {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _factory = factory;
     _nativeRtpReceiver = nativeRtpReceiver;
     RTCLogInfo(@"RTC_OBJC_TYPE(RTCRtpReceiver)(%p): created receiver: %@", self, self.description);

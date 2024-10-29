@@ -34,7 +34,7 @@ RtpFrameObject::RtpFrameObject(
     VideoRotation rotation,
     VideoContentType content_type,
     const RTPVideoHeader& video_header,
-    const absl::optional<webrtc::ColorSpace>& color_space,
+    const std::optional<webrtc::ColorSpace>& color_space,
     RtpPacketInfos packet_infos,
     rtc::scoped_refptr<EncodedImageBuffer> image_buffer)
     : image_buffer_(image_buffer),

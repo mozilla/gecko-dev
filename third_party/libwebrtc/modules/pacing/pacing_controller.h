@@ -15,26 +15,23 @@
 #include <stdint.h>
 
 #include <array>
-#include <atomic>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
+#include "api/array_view.h"
 #include "api/field_trials_view.h"
-#include "api/function_view.h"
 #include "api/rtp_packet_sender.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "modules/pacing/bitrate_prober.h"
-#include "modules/pacing/interval_budget.h"
 #include "modules/pacing/prioritized_packet_queue.h"
-#include "modules/pacing/rtp_packet_pacer.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
-#include "rtc_base/experiments/field_trial_parser.h"
-#include "rtc_base/thread_annotations.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -62,8 +59,8 @@ class PacingController {
     virtual void OnAbortedRetransmissions(
         uint32_t ssrc,
         rtc::ArrayView<const uint16_t> sequence_numbers) {}
-    virtual absl::optional<uint32_t> GetRtxSsrcForMedia(uint32_t ssrc) const {
-      return absl::nullopt;
+    virtual std::optional<uint32_t> GetRtxSsrcForMedia(uint32_t ssrc) const {
+      return std::nullopt;
     }
   };
 
@@ -179,7 +176,7 @@ class PacingController {
   DataSize CurrentBufferLevel() const;
 
   // Returns the time when the first packet was sent.
-  absl::optional<Timestamp> FirstSentPacketTime() const;
+  std::optional<Timestamp> FirstSentPacketTime() const;
 
   // Returns the number of milliseconds it will take to send the current
   // packets in the queue, given the current size and bitrate, ignoring prio.
@@ -275,7 +272,7 @@ class PacingController {
 
   Timestamp last_process_time_;
   Timestamp last_send_time_;
-  absl::optional<Timestamp> first_sent_packet_time_;
+  std::optional<Timestamp> first_sent_packet_time_;
   bool seen_first_packet_;
 
   PrioritizedPacketQueue packet_queue_;

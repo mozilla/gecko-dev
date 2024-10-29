@@ -13,11 +13,11 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <tuple>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/units/data_size.h"
@@ -121,8 +121,8 @@ class TestAv1Decoder {
       return 0;
     }
     void Decoded(VideoFrame& /*decoded_image*/,
-                 absl::optional<int32_t> /*decode_time_ms*/,
-                 absl::optional<uint8_t> /*qp*/) override {
+                 std::optional<int32_t> /*decode_time_ms*/,
+                 std::optional<uint8_t> /*qp*/) override {
       ++num_called_;
     }
 
@@ -182,7 +182,7 @@ struct LayerId {
 
 struct SvcTestParam {
   ScalabilityMode GetScalabilityMode() const {
-    absl::optional<ScalabilityMode> scalability_mode =
+    std::optional<ScalabilityMode> scalability_mode =
         ScalabilityModeFromString(name);
     RTC_CHECK(scalability_mode.has_value());
     return *scalability_mode;

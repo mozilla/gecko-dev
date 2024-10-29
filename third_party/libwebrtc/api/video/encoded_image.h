@@ -15,9 +15,9 @@
 
 #include <cstddef>
 #include <map>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/ref_count.h"
 #include "api/rtp_packet_infos.h"
 #include "api/scoped_refptr.h"
@@ -43,6 +43,9 @@ class EncodedImageBufferInterface : public RefCountInterface {
   // this non-const data method.
   virtual uint8_t* data() = 0;
   virtual size_t size() const = 0;
+
+  const uint8_t* begin() const { return data(); }
+  const uint8_t* end() const { return data() + size(); }
 };
 
 // Basic implementation of EncodedImageBufferInterface.
@@ -94,33 +97,33 @@ class RTC_EXPORT EncodedImage {
 
   // Every simulcast layer (= encoding) has its own encoder and RTP stream.
   // There can be no dependencies between different simulcast layers.
-  absl::optional<int> SimulcastIndex() const { return simulcast_index_; }
-  void SetSimulcastIndex(absl::optional<int> simulcast_index) {
+  std::optional<int> SimulcastIndex() const { return simulcast_index_; }
+  void SetSimulcastIndex(std::optional<int> simulcast_index) {
     RTC_DCHECK_GE(simulcast_index.value_or(0), 0);
     RTC_DCHECK_LT(simulcast_index.value_or(0), kMaxSimulcastStreams);
     simulcast_index_ = simulcast_index;
   }
 
-  const absl::optional<Timestamp>& CaptureTimeIdentifier() const {
+  const std::optional<Timestamp>& CaptureTimeIdentifier() const {
     return capture_time_identifier_;
   }
   void SetCaptureTimeIdentifier(
-      const absl::optional<Timestamp>& capture_time_identifier) {
+      const std::optional<Timestamp>& capture_time_identifier) {
     capture_time_identifier_ = capture_time_identifier;
   }
 
   // Encoded images can have dependencies between spatial and/or temporal
   // layers, depending on the scalability mode used by the encoder. See diagrams
   // at https://w3c.github.io/webrtc-svc/#dependencydiagrams*.
-  absl::optional<int> SpatialIndex() const { return spatial_index_; }
-  void SetSpatialIndex(absl::optional<int> spatial_index) {
+  std::optional<int> SpatialIndex() const { return spatial_index_; }
+  void SetSpatialIndex(std::optional<int> spatial_index) {
     RTC_DCHECK_GE(spatial_index.value_or(0), 0);
     RTC_DCHECK_LT(spatial_index.value_or(0), kMaxSpatialLayers);
     spatial_index_ = spatial_index;
   }
 
-  absl::optional<int> TemporalIndex() const { return temporal_index_; }
-  void SetTemporalIndex(absl::optional<int> temporal_index) {
+  std::optional<int> TemporalIndex() const { return temporal_index_; }
+  void SetTemporalIndex(std::optional<int> temporal_index) {
     RTC_DCHECK_GE(temporal_index_.value_or(0), 0);
     RTC_DCHECK_LT(temporal_index_.value_or(0), kMaxTemporalStreams);
     temporal_index_ = temporal_index;
@@ -128,30 +131,30 @@ class RTC_EXPORT EncodedImage {
 
   // These methods can be used to set/get size of subframe with spatial index
   // `spatial_index` on encoded frames that consist of multiple spatial layers.
-  absl::optional<size_t> SpatialLayerFrameSize(int spatial_index) const;
+  std::optional<size_t> SpatialLayerFrameSize(int spatial_index) const;
   void SetSpatialLayerFrameSize(int spatial_index, size_t size_bytes);
 
   const webrtc::ColorSpace* ColorSpace() const {
     return color_space_ ? &*color_space_ : nullptr;
   }
-  void SetColorSpace(const absl::optional<webrtc::ColorSpace>& color_space) {
+  void SetColorSpace(const std::optional<webrtc::ColorSpace>& color_space) {
     color_space_ = color_space;
   }
 
-  absl::optional<VideoPlayoutDelay> PlayoutDelay() const {
+  std::optional<VideoPlayoutDelay> PlayoutDelay() const {
     return playout_delay_;
   }
 
-  void SetPlayoutDelay(absl::optional<VideoPlayoutDelay> playout_delay) {
+  void SetPlayoutDelay(std::optional<VideoPlayoutDelay> playout_delay) {
     playout_delay_ = playout_delay;
   }
 
   // These methods along with the private member video_frame_tracking_id_ are
   // meant for media quality testing purpose only.
-  absl::optional<uint16_t> VideoFrameTrackingId() const {
+  std::optional<uint16_t> VideoFrameTrackingId() const {
     return video_frame_tracking_id_;
   }
-  void SetVideoFrameTrackingId(absl::optional<uint16_t> tracking_id) {
+  void SetVideoFrameTrackingId(std::optional<uint16_t> tracking_id) {
     video_frame_tracking_id_ = tracking_id;
   }
 
@@ -191,13 +194,16 @@ class RTC_EXPORT EncodedImage {
     return encoded_data_ ? encoded_data_->data() : nullptr;
   }
 
+  const uint8_t* begin() const { return data(); }
+  const uint8_t* end() const { return data() + size(); }
+
   // Returns whether the encoded image can be considered to be of target
   // quality.
-  bool IsAtTargetQuality() const { return at_target_quality_; }
+  [[deprecated]] bool IsAtTargetQuality() const { return at_target_quality_; }
 
   // Sets that the encoded image can be considered to be of target quality to
   // true or false.
-  void SetAtTargetQuality(bool at_target_quality) {
+  [[deprecated]] void SetAtTargetQuality(bool at_target_quality) {
     at_target_quality_ = at_target_quality;
   }
 
@@ -249,20 +255,20 @@ class RTC_EXPORT EncodedImage {
 
   // When set, indicates that all future frames will be constrained with those
   // limits until the application indicates a change again.
-  absl::optional<VideoPlayoutDelay> playout_delay_;
+  std::optional<VideoPlayoutDelay> playout_delay_;
 
   rtc::scoped_refptr<EncodedImageBufferInterface> encoded_data_;
   size_t size_ = 0;  // Size of encoded frame data.
   uint32_t timestamp_rtp_ = 0;
-  absl::optional<int> simulcast_index_;
-  absl::optional<Timestamp> capture_time_identifier_;
-  absl::optional<int> spatial_index_;
-  absl::optional<int> temporal_index_;
+  std::optional<int> simulcast_index_;
+  std::optional<Timestamp> capture_time_identifier_;
+  std::optional<int> spatial_index_;
+  std::optional<int> temporal_index_;
   std::map<int, size_t> spatial_layer_frame_size_bytes_;
-  absl::optional<webrtc::ColorSpace> color_space_;
+  std::optional<webrtc::ColorSpace> color_space_;
   // This field is meant for media quality testing purpose only. When enabled it
   // carries the webrtc::VideoFrame id field from the sender to the receiver.
-  absl::optional<uint16_t> video_frame_tracking_id_;
+  std::optional<uint16_t> video_frame_tracking_id_;
   // Information about packets used to assemble this video frame. This is needed
   // by `SourceTracker` when the frame is delivered to the RTCRtpReceiver's
   // MediaStreamTrack, in order to implement getContributingSources(). See:

@@ -21,7 +21,7 @@
 // RTC_LOG(sev) logs the given stream at severity "sev", which must be a
 //     compile-time constant of the LoggingSeverity type, without the namespace
 //     prefix.
-// RTC_LOG_IF(sev, condition) logs the given stream at severitye "sev" if
+// RTC_LOG_IF(sev, condition) logs the given stream at severity "sev" if
 //     "condition" is true.
 // RTC_LOG_V(sev) Like RTC_LOG(), but sev is a run-time variable of the
 //     LoggingSeverity type (basically, it just doesn't prepend the namespace).
@@ -59,6 +59,7 @@
 #include <errno.h>
 
 #include <atomic>
+#include <optional>
 #include <sstream>  // no-presubmit-check TODO(webrtc:8982)
 #include <string>
 #include <type_traits>
@@ -67,7 +68,6 @@
 #include "absl/base/attributes.h"
 #include "absl/meta/type_traits.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/platform_thread_types.h"
 #include "rtc_base/strings/string_builder.h"
@@ -126,7 +126,7 @@ class LogLineRef {
   absl::string_view message() const { return message_; }
   absl::string_view filename() const { return filename_; }
   int line() const { return line_; }
-  absl::optional<PlatformThreadId> thread_id() const { return thread_id_; }
+  std::optional<PlatformThreadId> thread_id() const { return thread_id_; }
   webrtc::Timestamp timestamp() const { return timestamp_; }
   absl::string_view tag() const { return tag_; }
   LoggingSeverity severity() const { return severity_; }
@@ -142,7 +142,7 @@ class LogLineRef {
   void set_message(std::string message) { message_ = std::move(message); }
   void set_filename(absl::string_view filename) { filename_ = filename; }
   void set_line(int line) { line_ = line; }
-  void set_thread_id(absl::optional<PlatformThreadId> thread_id) {
+  void set_thread_id(std::optional<PlatformThreadId> thread_id) {
     thread_id_ = thread_id;
   }
   void set_timestamp(webrtc::Timestamp timestamp) { timestamp_ = timestamp; }
@@ -152,7 +152,7 @@ class LogLineRef {
   std::string message_;
   absl::string_view filename_;
   int line_ = 0;
-  absl::optional<PlatformThreadId> thread_id_;
+  std::optional<PlatformThreadId> thread_id_;
   webrtc::Timestamp timestamp_ = webrtc::Timestamp::MinusInfinity();
   // The default Android debug output tag.
   absl::string_view tag_ = "libjingle";

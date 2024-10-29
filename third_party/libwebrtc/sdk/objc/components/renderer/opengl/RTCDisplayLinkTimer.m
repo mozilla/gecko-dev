@@ -19,7 +19,8 @@
 
 - (instancetype)initWithTimerHandler:(void (^)(void))timerHandler {
   NSParameterAssert(timerHandler);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _timerHandler = timerHandler;
     _displayLink =
         [CADisplayLink displayLinkWithTarget:self

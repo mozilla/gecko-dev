@@ -10,6 +10,9 @@
 
 #include "modules/congestion_controller/include/receive_side_congestion_controller.h"
 
+#include <memory>
+#include <vector>
+
 #include "api/environment/environment_factory.h"
 #include "api/media_types.h"
 #include "api/test/network_emulation/create_cross_traffic.h"

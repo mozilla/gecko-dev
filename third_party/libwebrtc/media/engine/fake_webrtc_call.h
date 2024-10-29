@@ -20,24 +20,56 @@
 #ifndef MEDIA_ENGINE_FAKE_WEBRTC_CALL_H_
 #define MEDIA_ENGINE_FAKE_WEBRTC_CALL_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "api/adaptation/resource.h"
+#include "api/audio/audio_frame.h"
+#include "api/audio_codecs/audio_format.h"
+#include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment.h"
+#include "api/frame_transformer_interface.h"
+#include "api/media_types.h"
+#include "api/rtc_error.h"
+#include "api/rtp_headers.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_sender_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/bitrate_settings.h"
+#include "api/transport/rtp/rtp_source.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "api/video/video_frame.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
+#include "api/video_codecs/video_codec.h"
 #include "call/audio_receive_stream.h"
 #include "call/audio_send_stream.h"
 #include "call/call.h"
 #include "call/flexfec_receive_stream.h"
+#include "call/packet_receiver.h"
+#include "call/payload_type.h"
+#include "call/payload_type_picker.h"
+#include "call/rtp_transport_controller_send_interface.h"
 #include "call/test/mock_rtp_transport_controller_send.h"
 #include "call/video_receive_stream.h"
 #include "call/video_send_stream.h"
+#include "media/base/codec.h"
+#include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/buffer.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/network/sent_packet.h"
+#include "test/gmock.h"
+#include "video/config/video_encoder_config.h"
 
 namespace cricket {
 class FakeAudioSendStream final : public webrtc::AudioSendStream {
@@ -234,7 +266,7 @@ class FakeVideoSendStream final
   bool framerate_scaling_enabled_;
   rtc::VideoSourceInterface<webrtc::VideoFrame>* source_;
   int num_swapped_frames_;
-  absl::optional<webrtc::VideoFrame> last_frame_;
+  std::optional<webrtc::VideoFrame> last_frame_;
   webrtc::VideoSendStream::Stats stats_;
   int num_encoder_reconfigurations_ = 0;
   std::vector<std::string> keyframes_requested_by_rid_;
@@ -363,6 +395,26 @@ class FakeFlexfecReceiveStream final : public webrtc::FlexfecReceiveStream {
   webrtc::FlexfecReceiveStream::Config config_;
 };
 
+// Fake payload type suggester.
+// This is injected into FakeCall at initialization.
+class FakePayloadTypeSuggester : public webrtc::PayloadTypeSuggester {
+ public:
+  webrtc::RTCErrorOr<webrtc::PayloadType> SuggestPayloadType(
+      const std::string& mid,
+      cricket::Codec codec) override {
+    // Ignores mid argument.
+    return pt_picker_.SuggestMapping(codec, nullptr);
+  }
+  webrtc::RTCError AddLocalMapping(const std::string& mid,
+                                   webrtc::PayloadType payload_type,
+                                   const cricket::Codec& codec) override {
+    return webrtc::RTCError::OK();
+  }
+
+ private:
+  webrtc::PayloadTypePicker pt_picker_;
+};
+
 class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
  public:
   explicit FakeCall(const webrtc::Environment& env);
@@ -370,6 +422,10 @@ class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
            webrtc::TaskQueueBase* worker_thread,
            webrtc::TaskQueueBase* network_thread);
   ~FakeCall() override;
+
+  webrtc::PayloadTypeSuggester* GetPayloadTypeSuggester() {
+    return &pt_suggester_;
+  }
 
   webrtc::MockRtpTransportControllerSend* GetMockTransportControllerSend() {
     return &transport_controller_send_;
@@ -501,6 +557,8 @@ class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
 
   int num_created_send_streams_;
   int num_created_receive_streams_;
+
+  FakePayloadTypeSuggester pt_suggester_;
 };
 
 }  // namespace cricket

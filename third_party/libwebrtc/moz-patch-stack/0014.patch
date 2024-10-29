@@ -21,7 +21,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/e83c311e5293902be
  1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/rtc_base/platform_thread.cc b/rtc_base/platform_thread.cc
-index 6433323fc2..26b23369bd 100644
+index 6af1f3f616..f75ce8c3dc 100644
 --- a/rtc_base/platform_thread.cc
 +++ b/rtc_base/platform_thread.cc
 @@ -191,15 +191,17 @@ PlatformThread PlatformThread::SpawnThread(

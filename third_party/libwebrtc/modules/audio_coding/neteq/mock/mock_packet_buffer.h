@@ -36,7 +36,7 @@ class MockPacketBuffer : public PacketBuffer {
               (uint32_t timestamp, uint32_t* next_timestamp),
               (const, override));
   MOCK_METHOD(const Packet*, PeekNextPacket, (), (const, override));
-  MOCK_METHOD(absl::optional<Packet>, GetNextPacket, (), (override));
+  MOCK_METHOD(std::optional<Packet>, GetNextPacket, (), (override));
   MOCK_METHOD(int, DiscardNextPacket, (), (override));
   MOCK_METHOD(void,
               DiscardOldPackets,

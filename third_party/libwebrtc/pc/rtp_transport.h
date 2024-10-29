@@ -14,9 +14,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
+#include "api/field_trials_view.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/units/timestamp.h"
 #include "call/rtp_demuxer.h"
@@ -47,8 +48,10 @@ class RtpTransport : public RtpTransportInternal {
   RtpTransport(const RtpTransport&) = delete;
   RtpTransport& operator=(const RtpTransport&) = delete;
 
-  explicit RtpTransport(bool rtcp_mux_enabled)
-      : rtcp_mux_enabled_(rtcp_mux_enabled) {}
+  RtpTransport(bool rtcp_mux_enabled, const FieldTrialsView& field_trials)
+      : set_ready_to_send_false_if_send_fail_(
+            field_trials.IsEnabled("WebRTC-SetReadyToSendFalseIfSendFail")),
+        rtcp_mux_enabled_(rtcp_mux_enabled) {}
 
   bool rtcp_mux_enabled() const override { return rtcp_mux_enabled_; }
   void SetRtcpMuxEnabled(bool enable) override;
@@ -104,7 +107,7 @@ class RtpTransport : public RtpTransportInternal {
 
   // Overridden by SrtpTransport.
   virtual void OnNetworkRouteChanged(
-      absl::optional<rtc::NetworkRoute> network_route);
+      std::optional<rtc::NetworkRoute> network_route);
   virtual void OnRtpPacketReceived(const rtc::ReceivedPacket& packet);
   virtual void OnRtcpPacketReceived(const rtc::ReceivedPacket& packet);
   // Overridden by SrtpTransport and DtlsSrtpTransport.
@@ -125,6 +128,7 @@ class RtpTransport : public RtpTransportInternal {
 
   bool IsTransportWritable();
 
+  const bool set_ready_to_send_false_if_send_fail_;
   bool rtcp_mux_enabled_;
 
   rtc::PacketTransportInternal* rtp_packet_transport_ = nullptr;

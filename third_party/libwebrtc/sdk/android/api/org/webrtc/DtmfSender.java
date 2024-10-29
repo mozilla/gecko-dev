@@ -93,4 +93,4 @@ public class DtmfSender {
   private static native String nativeTones(long dtmfSender);
   private static native int nativeDuration(long dtmfSender);
   private static native int nativeInterToneGap(long dtmfSender);
-};
+}

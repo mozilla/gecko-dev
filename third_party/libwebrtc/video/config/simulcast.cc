@@ -14,11 +14,11 @@
 #include <stdio.h>
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/video/video_codec_constants.h"
 #include "media/base/media_constants.h"
@@ -198,7 +198,7 @@ int FindSimulcastFormatIndex(int width,
 SimulcastFormat InterpolateSimulcastFormat(
     int width,
     int height,
-    absl::optional<double> max_roundup_rate,
+    std::optional<double> max_roundup_rate,
     bool enable_lowres_bitrate_interpolation,
     webrtc::VideoCodecType codec) {
   const auto formats =
@@ -247,7 +247,7 @@ std::vector<webrtc::VideoStream> GetNormalSimulcastLayers(
     layers[s].num_temporal_layers = num_temporal_layers;
 
     SimulcastFormat interpolated_format = InterpolateSimulcastFormat(
-        layers[s].width, layers[s].height, /*max_roundup_rate=*/absl::nullopt,
+        layers[s].width, layers[s].height, /*max_roundup_rate=*/std::nullopt,
         enable_lowres_bitrate_interpolation, codec);
 
     layers[s].max_bitrate_bps = interpolated_format.max_bitrate.bps();

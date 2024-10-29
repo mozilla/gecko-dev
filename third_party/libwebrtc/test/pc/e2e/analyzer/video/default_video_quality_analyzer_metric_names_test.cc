@@ -160,8 +160,8 @@ std::vector<std::string> ToTestCases(const std::vector<Metric>& metrics) {
 TEST(DefaultVideoQualityAnalyzerMetricNamesTest, MetricNamesForP2PAreCorrect) {
   std::unique_ptr<test::FrameGeneratorInterface> frame_generator =
       test::CreateSquareFrameGenerator(kFrameWidth, kFrameHeight,
-                                       /*type=*/absl::nullopt,
-                                       /*num_squares=*/absl::nullopt);
+                                       /*type=*/std::nullopt,
+                                       /*num_squares=*/std::nullopt);
 
   DefaultVideoQualityAnalyzerOptions options = AnalyzerOptionsForTest();
   DefaultMetricsLogger metrics_logger(Clock::GetRealTimeClock());
@@ -336,8 +336,8 @@ TEST(DefaultVideoQualityAnalyzerMetricNamesTest,
      MetricNamesFor3PeersAreCorrect) {
   std::unique_ptr<test::FrameGeneratorInterface> frame_generator =
       test::CreateSquareFrameGenerator(kFrameWidth, kFrameHeight,
-                                       /*type=*/absl::nullopt,
-                                       /*num_squares=*/absl::nullopt);
+                                       /*type=*/std::nullopt,
+                                       /*num_squares=*/std::nullopt);
 
   DefaultVideoQualityAnalyzerOptions options = AnalyzerOptionsForTest();
   DefaultMetricsLogger metrics_logger(Clock::GetRealTimeClock());
@@ -662,8 +662,8 @@ TEST(DefaultVideoQualityAnalyzerMetricNamesTest,
      TestCaseFor3PeerIsTheSameAfterAllPeersLeft) {
   std::unique_ptr<test::FrameGeneratorInterface> frame_generator =
       test::CreateSquareFrameGenerator(kFrameWidth, kFrameHeight,
-                                       /*type=*/absl::nullopt,
-                                       /*num_squares=*/absl::nullopt);
+                                       /*type=*/std::nullopt,
+                                       /*num_squares=*/std::nullopt);
 
   DefaultVideoQualityAnalyzerOptions options = AnalyzerOptionsForTest();
   DefaultMetricsLogger metrics_logger(Clock::GetRealTimeClock());

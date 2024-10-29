@@ -8,13 +8,13 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "absl/types/optional.h"
 #include "api/test/simulated_network.h"
 #include "api/test/test_dependency_factory.h"
 #include "api/test/video_quality_test_fixture.h"

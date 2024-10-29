@@ -69,7 +69,7 @@ std::vector<VideoStream> CreateEncoderStreams(
     const FieldTrialsView& field_trials,
     const Resolution& resolution,
     const VideoEncoderConfig& encoder_config,
-    absl::optional<VideoSourceRestrictions> restrictions = absl::nullopt) {
+    std::optional<VideoSourceRestrictions> restrictions = std::nullopt) {
   VideoEncoder::EncoderInfo encoder_info;
   auto factory =
       rtc::make_ref_counted<EncoderStreamFactory>(encoder_info, restrictions);
@@ -99,8 +99,8 @@ TEST(EncoderStreamFactory, SinglecastRequestedResolutionWithAdaptation) {
   ExplicitKeyValueConfig field_trials("");
   VideoSourceRestrictions restrictions(
       /* max_pixels_per_frame= */ (320 * 320),
-      /* target_pixels_per_frame= */ absl::nullopt,
-      /* max_frame_rate= */ absl::nullopt);
+      /* target_pixels_per_frame= */ std::nullopt,
+      /* max_frame_rate= */ std::nullopt);
   VideoEncoderConfig encoder_config;
   encoder_config.number_of_streams = 1;
   encoder_config.simulcast_layers.resize(1);

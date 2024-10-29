@@ -57,17 +57,17 @@ H264Level H264LevelMin(H264Level a, H264Level b) {
   return H264LevelIsLess(a, b) ? a : b;
 }
 
-absl::optional<int> ParsePositiveNumberFromParams(
+std::optional<int> ParsePositiveNumberFromParams(
     const CodecParameterMap& params,
     const char* parameter_name) {
   const auto max_frame_rate_it = params.find(parameter_name);
   if (max_frame_rate_it == params.end())
-    return absl::nullopt;
+    return std::nullopt;
 
-  const absl::optional<int> i =
+  const std::optional<int> i =
       rtc::StringToNumber<int>(max_frame_rate_it->second);
   if (!i.has_value() || i.value() <= 0)
-    return absl::nullopt;
+    return std::nullopt;
   return i;
 }
 
@@ -102,9 +102,9 @@ void H265GenerateProfileTierLevelForAnswer(
   }
 
   // Parse profile-tier-level.
-  const absl::optional<H265ProfileTierLevel> local_profile_tier_level =
+  const std::optional<H265ProfileTierLevel> local_profile_tier_level =
       ParseSdpForH265ProfileTierLevel(local_supported_params);
-  const absl::optional<H265ProfileTierLevel> remote_profile_tier_level =
+  const std::optional<H265ProfileTierLevel> remote_profile_tier_level =
       ParseSdpForH265ProfileTierLevel(remote_offered_params);
   // Profile and tier for local and remote codec must be valid and equal.
   RTC_DCHECK(local_profile_tier_level);
@@ -138,9 +138,9 @@ void H264GenerateProfileLevelIdForAnswer(
   }
 
   // Parse profile-level-ids.
-  const absl::optional<H264ProfileLevelId> local_profile_level_id =
+  const std::optional<H264ProfileLevelId> local_profile_level_id =
       ParseSdpForH264ProfileLevelId(local_supported_params);
-  const absl::optional<H264ProfileLevelId> remote_profile_level_id =
+  const std::optional<H264ProfileLevelId> remote_profile_level_id =
       ParseSdpForH264ProfileLevelId(remote_offered_params);
   // The local and remote codec must have valid and equal H264 Profiles.
   RTC_DCHECK(local_profile_level_id);
@@ -167,17 +167,15 @@ void H264GenerateProfileLevelIdForAnswer(
       H264ProfileLevelId(local_profile_level_id->profile, answer_level));
 }
 
-absl::optional<int> ParseSdpForVPxMaxFrameRate(
-    const CodecParameterMap& params) {
+std::optional<int> ParseSdpForVPxMaxFrameRate(const CodecParameterMap& params) {
   return ParsePositiveNumberFromParams(params, kVPxFmtpMaxFrameRate);
 }
 
-absl::optional<int> ParseSdpForVPxMaxFrameSize(
-    const CodecParameterMap& params) {
-  const absl::optional<int> i =
+std::optional<int> ParseSdpForVPxMaxFrameSize(const CodecParameterMap& params) {
+  const std::optional<int> i =
       ParsePositiveNumberFromParams(params, kVPxFmtpMaxFrameSize);
-  return i ? absl::make_optional(i.value() * kVPxFmtpFrameSizeSubBlockPixels)
-           : absl::nullopt;
+  return i ? std::make_optional(i.value() * kVPxFmtpFrameSizeSubBlockPixels)
+           : std::nullopt;
 }
 
 bool SupportsPerLayerPictureLossIndication(const CodecParameterMap& params) {

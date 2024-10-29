@@ -14,11 +14,11 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/function_view.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -190,7 +190,7 @@ class RtpPacketHistory {
   // Total number of packets with inserted.
   uint64_t packets_inserted_ RTC_GUARDED_BY(lock_);
 
-  absl::optional<RtpPacketToSend> large_payload_packet_ RTC_GUARDED_BY(lock_);
+  std::optional<RtpPacketToSend> large_payload_packet_ RTC_GUARDED_BY(lock_);
 };
 }  // namespace webrtc
 #endif  // MODULES_RTP_RTCP_SOURCE_RTP_PACKET_HISTORY_H_

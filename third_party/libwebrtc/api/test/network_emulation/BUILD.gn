@@ -48,6 +48,7 @@ rtc_library("network_emulation") {
     "../../../rtc_base:copy_on_write_buffer",
     "../../../rtc_base:ip_address",
     "../../../rtc_base:net_helper",
+    "../../../rtc_base:net_helpers",
     "../../../rtc_base:socket_address",
     "../../numerics",
     "../../task_queue",
@@ -55,7 +56,6 @@ rtc_library("network_emulation") {
     "../../units:data_size",
     "../../units:time_delta",
     "../../units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

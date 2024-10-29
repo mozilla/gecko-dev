@@ -25,7 +25,8 @@
 
 - (instancetype)initWithNativeRtpHeaderExtensionCapability:
     (const webrtc::RtpHeaderExtensionCapability &)nativeRtpHeaderExtensionCapability {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _uri = [NSString stringForStdString:nativeRtpHeaderExtensionCapability.uri];
     if (nativeRtpHeaderExtensionCapability.preferred_id) {
       _preferredId = [NSNumber numberWithInt:*nativeRtpHeaderExtensionCapability.preferred_id];
@@ -47,7 +48,7 @@
   webrtc::RtpHeaderExtensionCapability rtpHeaderExtensionCapability;
   rtpHeaderExtensionCapability.uri = [NSString stdStringForString:_uri];
   if (_preferredId != nil) {
-    rtpHeaderExtensionCapability.preferred_id = absl::optional<int>(_preferredId.intValue);
+    rtpHeaderExtensionCapability.preferred_id = std::optional<int>(_preferredId.intValue);
   }
   rtpHeaderExtensionCapability.preferred_encrypt = _preferredEncrypted;
   return rtpHeaderExtensionCapability;

@@ -39,6 +39,7 @@ SOURCES += [
 UNIFIED_SOURCES += [
     "/third_party/libwebrtc/modules/rtp_rtcp/include/report_block_data.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/include/rtp_rtcp_defines.cc",
+    "/third_party/libwebrtc/modules/rtp_rtcp/source/corruption_detection_extension.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/app.cc",
     "/third_party/libwebrtc/modules/rtp_rtcp/source/rtcp_packet/bye.cc",

@@ -1,34 +1,21 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Wed, 4 Sep 2024 13:43:00 +0000
-Subject: Bug 1830275 - WebRTC backport: PipeWire camera: make member variable
- with the PipeWire status updated r=pehrsons,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Wed, 18 Sep 2024 11:14:00 -0500
+Subject: Bug 1918268 - (fix-ec5a968070) readd an include that upstream removed
 
-We keep information about the PipeWire camera status as a member of the
-PipeWire session, but it's never updated and remains in uninitialized
-state. Make sure it gets updated once PipeWire is initialized or when it
-fails. There is currently no use for this member variable, but there is
-a plan to use it so I'm rather keeping it instead of removing it.
-
-This is a simple backport of an WebRTC upstream change.
-
-Upstream commit: 3881cb65cfcec90b6f0a56ce7223a471aa0115f2
-
-Differential Revision: https://phabricator.services.mozilla.com/D220895
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/78bd1d147bff20fcd00d7c61cd367848387ba163
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8c080511a17a87c65771747faa74f859b7fe70bb
 ---
- modules/video_capture/linux/pipewire_session.cc | 2 ++
- 1 file changed, 2 insertions(+)
+ api/transport/network_control.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index fd93b31063..e17e28a65f 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -422,6 +422,8 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
- }
- 
- void PipeWireSession::Finish(VideoCaptureOptions::Status status) {
-+  status_ = status;
-+
-   webrtc::MutexLock lock(&callback_lock_);
- 
-   if (callback_) {
+diff --git a/api/transport/network_control.h b/api/transport/network_control.h
+index 90cdebe9bb..0f712da8bb 100644
+--- a/api/transport/network_control.h
++++ b/api/transport/network_control.h
+@@ -17,6 +17,7 @@
+ #include "absl/base/attributes.h"
+ #include "api/environment/environment.h"
+ #include "api/field_trials_view.h"
++#include "api/rtc_event_log/rtc_event_log.h"
+ #include "api/transport/network_types.h"
+ #include "api/units/data_rate.h"
+ #include "api/units/time_delta.h"

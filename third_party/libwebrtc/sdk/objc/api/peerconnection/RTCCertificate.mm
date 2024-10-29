@@ -28,7 +28,8 @@
 }
 
 - (instancetype)initWithPrivateKey:(NSString *)private_key certificate:(NSString *)certificate {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _private_key = [private_key copy];
     _certificate = [certificate copy];
   }
@@ -50,7 +51,7 @@
                                                                        expirationTimestamp);
   } else {
     cc_certificate =
-        rtc::RTCCertificateGenerator::GenerateCertificate(rtc::KeyParams(keyType), absl::nullopt);
+        rtc::RTCCertificateGenerator::GenerateCertificate(rtc::KeyParams(keyType), std::nullopt);
   }
   if (!cc_certificate) {
     RTCLogError(@"Failed to generate certificate.");

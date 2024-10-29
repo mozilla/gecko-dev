@@ -71,7 +71,6 @@ rtc_library("libaom_av1_encoder") {
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/libaom",
   ]
 }
@@ -110,7 +109,6 @@ if (rtc_include_tests) {
         "../../svc:scalability_mode_util",
         "../../svc:scalability_structures",
         "../../svc:scalable_video_controller",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
   }

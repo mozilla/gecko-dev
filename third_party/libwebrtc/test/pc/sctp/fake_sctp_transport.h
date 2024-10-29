@@ -45,11 +45,11 @@ class FakeSctpTransport : public cricket::SctpTransportInternal {
   void set_debug_name_for_testing(const char* debug_name) override {}
 
   int max_message_size() const override { return max_message_size_; }
-  absl::optional<int> max_outbound_streams() const override {
-    return absl::nullopt;
+  std::optional<int> max_outbound_streams() const override {
+    return std::nullopt;
   }
-  absl::optional<int> max_inbound_streams() const override {
-    return absl::nullopt;
+  std::optional<int> max_inbound_streams() const override {
+    return std::nullopt;
   }
   size_t buffered_amount(int sid) const override { return 0; }
   size_t buffered_amount_low_threshold(int sid) const override { return 0; }
@@ -64,8 +64,8 @@ class FakeSctpTransport : public cricket::SctpTransportInternal {
   }
 
  private:
-  absl::optional<int> local_port_;
-  absl::optional<int> remote_port_;
+  std::optional<int> local_port_;
+  std::optional<int> remote_port_;
   int max_message_size_;
 };
 

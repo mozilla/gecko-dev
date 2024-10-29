@@ -15,8 +15,8 @@
 #include <math.h>
 
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "modules/audio_coding/neteq/histogram.h"
 #include "modules/audio_coding/neteq/mock/mock_histogram.h"
 #include "modules/audio_coding/neteq/mock/mock_statistics_calculator.h"

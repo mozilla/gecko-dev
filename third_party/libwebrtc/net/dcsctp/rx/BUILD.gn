@@ -21,7 +21,6 @@ rtc_library("data_tracker") {
     "../timer",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "data_tracker.cc",
@@ -72,7 +71,6 @@ rtc_library("traditional_reassembly_streams") {
     "../public:types",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "traditional_reassembly_streams.cc",
@@ -99,7 +97,6 @@ rtc_library("reassembly_queue") {
     "../public:types",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   sources = [
     "reassembly_queue.cc",
@@ -129,7 +126,6 @@ if (rtc_include_tests) {
       "../public:types",
       "../testing:data_generator",
       "../timer",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
     sources = [
       "data_tracker_test.cc",

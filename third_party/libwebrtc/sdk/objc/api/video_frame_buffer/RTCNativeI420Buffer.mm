@@ -20,10 +20,10 @@
 @implementation RTC_OBJC_TYPE (RTCI420Buffer)
 
 - (instancetype)initWithWidth:(int)width height:(int)height {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _i420Buffer = webrtc::I420Buffer::Create(width, height);
   }
-
   return self;
 }
 
@@ -32,7 +32,8 @@
                         dataY:(const uint8_t *)dataY
                         dataU:(const uint8_t *)dataU
                         dataV:(const uint8_t *)dataV {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _i420Buffer = webrtc::I420Buffer::Copy(
         width, height, dataY, width, dataU, (width + 1) / 2, dataV, (width + 1) / 2);
   }
@@ -44,18 +45,18 @@
                       strideY:(int)strideY
                       strideU:(int)strideU
                       strideV:(int)strideV {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _i420Buffer = webrtc::I420Buffer::Create(width, height, strideY, strideU, strideV);
   }
-
   return self;
 }
 
 - (instancetype)initWithFrameBuffer:(rtc::scoped_refptr<webrtc::I420BufferInterface>)i420Buffer {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _i420Buffer = i420Buffer;
   }
-
   return self;
 }
 

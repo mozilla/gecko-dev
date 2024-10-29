@@ -16,6 +16,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -23,7 +24,6 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_frame_processor.h"
 #include "api/audio/audio_mixer.h"
@@ -34,13 +34,14 @@
 #include "api/audio_codecs/audio_format.h"
 #include "api/audio_options.h"
 #include "api/call/audio_sink.h"
-#include "api/call/transport.h"
 #include "api/crypto/crypto_options.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/field_trials_view.h"
 #include "api/frame_transformer_interface.h"
+#include "api/media_types.h"
 #include "api/rtc_error.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
@@ -57,12 +58,11 @@
 #include "media/base/media_channel_impl.h"
 #include "media/base/media_config.h"
 #include "media/base/media_engine.h"
-#include "media/base/rtp_utils.h"
 #include "media/base/stream_params.h"
 #include "modules/async_audio_processing/async_audio_processing.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "rtc_base/buffer.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/system/file_wrapper.h"
@@ -130,7 +130,7 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   // Stops AEC dump.
   void StopAecDump() override;
 
-  absl::optional<webrtc::AudioDeviceModule::Stats> GetAudioDeviceStats()
+  std::optional<webrtc::AudioDeviceModule::Stats> GetAudioDeviceStats()
       override;
 
  private:
@@ -146,9 +146,6 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   webrtc::AudioDeviceModule* adm();
   webrtc::AudioProcessing* apm() const;
   webrtc::AudioState* audio_state();
-
-  std::vector<Codec> CollectCodecs(
-      const std::vector<webrtc::AudioCodecSpec>& specs) const;
 
   webrtc::SequenceChecker signal_thread_checker_{
       webrtc::SequenceChecker::kDetached};
@@ -177,6 +174,7 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   int audio_jitter_buffer_min_delay_ms_ = 0;
 
   const bool minimized_remsampling_on_mobile_trial_enabled_;
+  const bool payload_types_in_transport_trial_enabled_;
 };
 
 class WebRtcVoiceSendChannel final : public MediaChannelUtil,
@@ -202,7 +200,7 @@ class WebRtcVoiceSendChannel final : public MediaChannelUtil,
   }
   VoiceMediaSendChannelInterface* AsVoiceSendChannel() override { return this; }
 
-  absl::optional<Codec> GetSendCodec() const override;
+  std::optional<Codec> GetSendCodec() const override;
 
   // Functions imported from MediaChannelUtil
   void SetInterface(MediaChannelNetworkInterface* iface) override {
@@ -285,7 +283,7 @@ class WebRtcVoiceSendChannel final : public MediaChannelUtil,
  private:
   bool SetOptions(const AudioOptions& options);
   bool SetSendCodecs(const std::vector<Codec>& codecs,
-                     absl::optional<Codec> preferred_codec);
+                     std::optional<Codec> preferred_codec);
   bool SetLocalSource(uint32_t ssrc, AudioSource* source);
   bool MuteStream(uint32_t ssrc, bool mute);
 
@@ -303,7 +301,7 @@ class WebRtcVoiceSendChannel final : public MediaChannelUtil,
 
   int max_send_bitrate_bps_ = 0;
   AudioOptions options_;
-  absl::optional<int> dtmf_payload_type_;
+  std::optional<int> dtmf_payload_type_;
   int dtmf_payload_freq_ = -1;
   bool enable_non_sender_rtt_ = false;
   bool send_ = false;
@@ -318,7 +316,7 @@ class WebRtcVoiceSendChannel final : public MediaChannelUtil,
   std::string mid_;
   webrtc::RtcpMode rtcp_mode_;
 
-  absl::optional<webrtc::AudioSendStream::Config::SendCodecSpec>
+  std::optional<webrtc::AudioSendStream::Config::SendCodecSpec>
       send_codec_spec_;
 
   // TODO(kwiberg): Per-SSRC codec pair IDs?
@@ -381,7 +379,7 @@ class WebRtcVoiceReceiveChannel final
   bool AddRecvStream(const StreamParams& sp) override;
   bool RemoveRecvStream(uint32_t ssrc) override;
   void ResetUnsignaledRecvStream() override;
-  absl::optional<uint32_t> GetUnsignaledSsrc() const override;
+  std::optional<uint32_t> GetUnsignaledSsrc() const override;
 
   void ChooseReceiverReportSsrc(const std::set<uint32_t>& choices) override;
 
@@ -401,8 +399,7 @@ class WebRtcVoiceReceiveChannel final
   bool SetDefaultOutputVolume(double volume) override;
 
   bool SetBaseMinimumPlayoutDelayMs(uint32_t ssrc, int delay_ms) override;
-  absl::optional<int> GetBaseMinimumPlayoutDelayMs(
-      uint32_t ssrc) const override;
+  std::optional<int> GetBaseMinimumPlayoutDelayMs(uint32_t ssrc) const override;
 
   void OnPacketReceived(const webrtc::RtpPacketReceived& packet) override;
   bool GetStats(VoiceMediaReceiveInfo* info,
@@ -496,7 +493,7 @@ class WebRtcVoiceReceiveChannel final
   std::vector<webrtc::RtpExtension> recv_rtp_extensions_;
   webrtc::RtpHeaderExtensionMap recv_rtp_extension_map_;
 
-  absl::optional<webrtc::AudioSendStream::Config::SendCodecSpec>
+  std::optional<webrtc::AudioSendStream::Config::SendCodecSpec>
       send_codec_spec_;
 
   // TODO(kwiberg): Per-SSRC codec pair IDs?

@@ -33,7 +33,8 @@
 
 - (instancetype)initWithNativeRtpCodecCapability:
     (const webrtc::RtpCodecCapability &)nativeRtpCodecCapability {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     if (nativeRtpCodecCapability.preferred_payload_type) {
       _preferredPayloadType =
           [NSNumber numberWithInt:*nativeRtpCodecCapability.preferred_payload_type];
@@ -87,7 +88,7 @@
 - (webrtc::RtpCodecCapability)nativeRtpCodecCapability {
   webrtc::RtpCodecCapability rtpCodecCapability;
   if (_preferredPayloadType != nil) {
-    rtpCodecCapability.preferred_payload_type = absl::optional<int>(_preferredPayloadType.intValue);
+    rtpCodecCapability.preferred_payload_type = std::optional<int>(_preferredPayloadType.intValue);
   }
   rtpCodecCapability.name = [NSString stdStringForString:_name];
   // NSString pointer comparison is safe here since "kind" is readonly and only
@@ -100,10 +101,10 @@
     RTC_DCHECK_NOTREACHED();
   }
   if (_clockRate != nil) {
-    rtpCodecCapability.clock_rate = absl::optional<int>(_clockRate.intValue);
+    rtpCodecCapability.clock_rate = std::optional<int>(_clockRate.intValue);
   }
   if (_numChannels != nil) {
-    rtpCodecCapability.num_channels = absl::optional<int>(_numChannels.intValue);
+    rtpCodecCapability.num_channels = std::optional<int>(_numChannels.intValue);
   }
   for (NSString *paramKey in _parameters.allKeys) {
     std::string key = [NSString stdStringForString:paramKey];

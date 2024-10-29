@@ -77,7 +77,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 
 /** This initializer provides a way for unit tests to inject a fake/mock audio session. */
 - (instancetype)initWithAudioSession:(id)audioSession {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _session = audioSession;
 
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];

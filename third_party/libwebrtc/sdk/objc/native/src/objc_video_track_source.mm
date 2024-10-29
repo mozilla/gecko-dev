@@ -48,7 +48,7 @@ bool ObjCVideoTrackSource::is_screencast() const {
   return is_screencast_;
 }
 
-absl::optional<bool> ObjCVideoTrackSource::needs_denoising() const {
+std::optional<bool> ObjCVideoTrackSource::needs_denoising() const {
   return false;
 }
 

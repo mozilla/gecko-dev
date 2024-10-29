@@ -54,8 +54,8 @@ struct RtpGeneratorOptions {
 };
 
 // Attempts to parse RtpGeneratorOptions from a JSON file. Any failures
-// will result in absl::nullopt.
-absl::optional<RtpGeneratorOptions> ParseRtpGeneratorOptionsFromFile(
+// will result in std::nullopt.
+std::optional<RtpGeneratorOptions> ParseRtpGeneratorOptionsFromFile(
     const std::string& options_file);
 
 // The RtpGenerator allows generating of corpus material intended to be

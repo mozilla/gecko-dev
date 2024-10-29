@@ -75,7 +75,8 @@ class AudioDeviceDelegateImpl final : public rtc::RefCountedNonVirtual<AudioDevi
                     (rtc::scoped_refptr<webrtc::objc_adm::ObjCAudioDeviceModule>)audioDeviceModule
                         audioDeviceThread:(rtc::Thread*)thread {
   RTC_DCHECK_RUN_ON(thread);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     impl_ = rtc::make_ref_counted<AudioDeviceDelegateImpl>(audioDeviceModule, thread);
     preferredInputSampleRate_ = kPreferredInputSampleRate;
     preferredInputIOBufferDuration_ = kPeferredInputIOBufferDuration;

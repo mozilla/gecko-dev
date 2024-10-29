@@ -93,11 +93,11 @@ class FrameCadenceAdapterInterface
   // zero-hertz operation. If absl:::nullopt is passed, the cadence adapter will
   // switch to passthrough mode.
   virtual void SetZeroHertzModeEnabled(
-      absl::optional<ZeroHertzModeParams> params) = 0;
+      std::optional<ZeroHertzModeParams> params) = 0;
 
   // Returns the input framerate. This is measured by RateStatistics when
   // zero-hertz mode is off, and returns the max framerate in zero-hertz mode.
-  virtual absl::optional<uint32_t> GetInputFrameRateFps() = 0;
+  virtual std::optional<uint32_t> GetInputFrameRateFps() = 0;
 
   // Updates quality convergence status for an enabled spatial layer.
   // Convergence means QP has dropped to a low-enough level to warrant ceasing
@@ -112,7 +112,7 @@ class FrameCadenceAdapterInterface
   // The new `max_frame_rate` will only affect the cadence of Callback::OnFrame
   // for non-idle (non converged) repeated frames.
   virtual void UpdateVideoSourceRestrictions(
-      absl::optional<double> max_frame_rate) = 0;
+      std::optional<double> max_frame_rate) = 0;
 
   // Conditionally requests a refresh frame via
   // Callback::RequestRefreshFrame.

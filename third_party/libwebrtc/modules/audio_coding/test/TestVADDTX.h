@@ -64,7 +64,7 @@ class TestVadDtx {
  protected:
   // Returns true iff CN was added.
   bool RegisterCodec(const SdpAudioFormat& codec_format,
-                     absl::optional<Vad::Aggressiveness> vad_mode);
+                     std::optional<Vad::Aggressiveness> vad_mode);
 
   // Encoding a file and see if the numbers that various packets occur follow
   // the expectation. Saves result to a file.

@@ -13,8 +13,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/media_stream_interface.h"
 #include "test/gmock.h"
 
@@ -38,7 +38,7 @@ class MockAudioSink : public webrtc::AudioTrackSinkInterface {
                int sample_rate,
                size_t number_of_channels,
                size_t number_of_frames,
-               absl::optional<int64_t> absolute_capture_timestamp_ms),
+               std::optional<int64_t> absolute_capture_timestamp_ms),
               (override));
 };
 

@@ -11,16 +11,24 @@
 #include "modules/pacing/pacing_controller.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
+#include "api/array_view.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "modules/pacing/bitrate_prober.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "system_wrappers/include/clock.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
@@ -134,7 +142,7 @@ class MockPacingControllerCallback : public PacingController::PacketSender {
               OnAbortedRetransmissions,
               (uint32_t, rtc::ArrayView<const uint16_t>),
               (override));
-  MOCK_METHOD(absl::optional<uint32_t>,
+  MOCK_METHOD(std::optional<uint32_t>,
               GetRtxSsrcForMedia,
               (uint32_t),
               (const, override));
@@ -162,7 +170,7 @@ class MockPacketSender : public PacingController::PacketSender {
               OnAbortedRetransmissions,
               (uint32_t, rtc::ArrayView<const uint16_t>),
               (override));
-  MOCK_METHOD(absl::optional<uint32_t>,
+  MOCK_METHOD(std::optional<uint32_t>,
               GetRtxSsrcForMedia,
               (uint32_t),
               (const, override));
@@ -200,8 +208,8 @@ class PacingControllerPadding : public PacingController::PacketSender {
 
   void OnAbortedRetransmissions(uint32_t,
                                 rtc::ArrayView<const uint16_t>) override {}
-  absl::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
-    return absl::nullopt;
+  std::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
+    return std::nullopt;
   }
 
   void OnBatchComplete() override {}
@@ -261,8 +269,8 @@ class PacingControllerProbing : public PacingController::PacketSender {
 
   void OnAbortedRetransmissions(uint32_t,
                                 rtc::ArrayView<const uint16_t>) override {}
-  absl::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
-    return absl::nullopt;
+  std::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
+    return std::nullopt;
   }
   void OnBatchComplete() override {}
 

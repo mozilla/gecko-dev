@@ -10,10 +10,6 @@
 
 #include "api/transport/stun.h"
 
-#if defined(WEBRTC_POSIX)
-#include <netinet/in.h>
-#include <sys/socket.h>
-#endif
 #include <string.h>
 
 #include <algorithm>  // IWYU pragma: keep
@@ -36,6 +32,7 @@
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/message_digest.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/socket_address.h"
 #include "system_wrappers/include/metrics.h"
 

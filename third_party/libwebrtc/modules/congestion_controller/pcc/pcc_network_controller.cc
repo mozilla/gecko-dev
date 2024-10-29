@@ -11,8 +11,8 @@
 #include "modules/congestion_controller/pcc/pcc_network_controller.h"
 
 #include <algorithm>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/units/data_size.h"
 #include "rtc_base/checks.h"
 

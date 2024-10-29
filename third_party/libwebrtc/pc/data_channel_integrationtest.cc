@@ -12,12 +12,12 @@
 
 #include <cstdlib>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/data_channel_interface.h"
 #include "api/dtls_transport_interface.h"
 #include "api/peer_connection_interface.h"
@@ -111,8 +111,8 @@ class DataChannelIntegrationTestUnifiedPlan
       : PeerConnectionIntegrationBaseTest(SdpSemantics::kUnifiedPlan) {}
 };
 
-void MakeActiveSctpOffer(cricket::SessionDescription* desc) {
-  auto& transport_infos = desc->transport_infos();
+void MakeActiveSctpOffer(std::unique_ptr<SessionDescriptionInterface>& desc) {
+  auto& transport_infos = desc->description()->transport_infos();
   for (auto& transport_info : transport_infos) {
     transport_info.description.connection_role = cricket::CONNECTIONROLE_ACTIVE;
   }
@@ -770,9 +770,10 @@ TEST_P(DataChannelIntegrationTest, SctpDataChannelToAudioVideoUpgrade) {
   ASSERT_TRUE(ExpectNewFrames(media_expectations));
 }
 
-static void MakeSpecCompliantSctpOffer(cricket::SessionDescription* desc) {
+static void MakeSpecCompliantSctpOffer(
+    std::unique_ptr<SessionDescriptionInterface>& desc) {
   cricket::SctpDataContentDescription* dcd_offer =
-      GetFirstSctpDataContentDescription(desc);
+      GetFirstSctpDataContentDescription(desc->description());
   // See https://crbug.com/webrtc/11211 - this function is a no-op
   ASSERT_TRUE(dcd_offer);
   dcd_offer->set_use_sctpmap(false);
@@ -913,10 +914,11 @@ TEST_P(DataChannelIntegrationTest,
   ConnectFakeSignaling();
   caller()->CreateDataChannel();
 
-  callee()->SetReceivedSdpMunger([this](cricket::SessionDescription* desc) {
-    MakeActiveSctpOffer(desc);
-    callee()->CreateDataChannel();
-  });
+  callee()->SetReceivedSdpMunger(
+      [this](std::unique_ptr<SessionDescriptionInterface>& desc) {
+        MakeActiveSctpOffer(desc);
+        callee()->CreateDataChannel();
+      });
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
   ASSERT_TRUE_WAIT(caller()->data_observer()->IsOpen(), kDefaultTimeout);

@@ -44,6 +44,7 @@ static const SocketAddress kStunAddr2("127.0.0.1", 4000);
 static const SocketAddress kStunAddr3("127.0.0.1", 3000);
 static const SocketAddress kIPv6StunAddr1("::1", 5000);
 static const SocketAddress kBadAddr("0.0.0.1", 5000);
+static const SocketAddress kIPv6BadAddr("::ffff:0:1", 5000);
 static const SocketAddress kValidHostnameAddr("valid-hostname", 5000);
 static const SocketAddress kBadHostnameAddr("not-a-real-hostname", 5000);
 // STUN timeout (with all retries) is cricket::STUN_TOTAL_TIMEOUT.
@@ -143,7 +144,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
          .ice_username_fragment = rtc::CreateRandomString(16),
          .ice_password = rtc::CreateRandomString(22),
          .field_trials = field_trials},
-        0, 0, stun_servers, absl::nullopt);
+        0, 0, stun_servers, std::nullopt);
     stun_port_->SetIceTiebreaker(kTiebreakerDefault);
     stun_port_->set_stun_keepalive_delay(stun_keepalive_delay_);
     // If `stun_keepalive_lifetime_` is negative, let the stun port
@@ -180,7 +181,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
          .ice_username_fragment = rtc::CreateRandomString(16),
          .ice_password = rtc::CreateRandomString(22),
          .field_trials = field_trials},
-        socket_.get(), false, absl::nullopt);
+        socket_.get(), false, std::nullopt);
     ASSERT_TRUE(stun_port_ != NULL);
     stun_port_->SetIceTiebreaker(kTiebreakerDefault);
     ServerAddresses stun_servers;
@@ -300,13 +301,24 @@ TEST_F(StunPortTest, TestPrepareAddressFail) {
   EXPECT_TRUE(error());
   EXPECT_EQ(0U, port()->Candidates().size());
   EXPECT_EQ_SIMULATED_WAIT(error_event_.error_code,
-                           cricket::SERVER_NOT_REACHABLE_ERROR, kTimeoutMs,
+                           cricket::STUN_ERROR_SERVER_NOT_REACHABLE, kTimeoutMs,
                            fake_clock);
-  ASSERT_NE(error_event_.error_text.find('.'), std::string::npos);
-  ASSERT_NE(error_event_.address.find(kLocalAddr.HostAsSensitiveURIString()),
+  EXPECT_NE(error_event_.error_text.find('.'), std::string::npos);
+  EXPECT_NE(error_event_.address.find(kLocalAddr.HostAsSensitiveURIString()),
             std::string::npos);
   std::string server_url = "stun:" + kBadAddr.ToString();
-  ASSERT_EQ(error_event_.url, server_url);
+  EXPECT_EQ(error_event_.url, server_url);
+}
+
+// Test that we fail without emitting an error if we try to get an address from
+// a STUN server with a different address family. IPv4 local, IPv6 STUN.
+TEST_F(StunPortTest, TestServerAddressFamilyMismatch) {
+  CreateStunPort(kIPv6StunAddr1);
+  PrepareAddress();
+  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE(error());
+  EXPECT_EQ(0U, port()->Candidates().size());
+  EXPECT_EQ(0, error_event_.error_code);
 }
 
 class StunPortWithMockDnsResolverTest : public StunPortTest {
@@ -383,8 +395,8 @@ TEST_F(StunPortTestWithRealClock, TestPrepareAddressHostnameFail) {
   EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   EXPECT_TRUE(error());
   EXPECT_EQ(0U, port()->Candidates().size());
-  EXPECT_EQ_WAIT(error_event_.error_code, cricket::SERVER_NOT_REACHABLE_ERROR,
-                 kTimeoutMs);
+  EXPECT_EQ_WAIT(error_event_.error_code,
+                 cricket::STUN_ERROR_SERVER_NOT_REACHABLE, kTimeoutMs);
 }
 
 // This test verifies keepalive response messages don't result in
@@ -658,20 +670,31 @@ TEST_F(StunIPv6PortTest, TestPrepareAddress) {
 
 // Test that we fail properly if we can't get an address.
 TEST_F(StunIPv6PortTest, TestPrepareAddressFail) {
-  CreateStunPort(kBadAddr);
+  CreateStunPort(kIPv6BadAddr);
   PrepareAddress();
   EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
   EXPECT_TRUE(error());
   EXPECT_EQ(0U, port()->Candidates().size());
   EXPECT_EQ_SIMULATED_WAIT(error_event_.error_code,
-                           cricket::SERVER_NOT_REACHABLE_ERROR, kTimeoutMs,
+                           cricket::STUN_ERROR_SERVER_NOT_REACHABLE, kTimeoutMs,
                            fake_clock);
-  ASSERT_NE(error_event_.error_text.find('.'), std::string::npos);
-  ASSERT_NE(
+  EXPECT_NE(error_event_.error_text.find('.'), std::string::npos);
+  EXPECT_NE(
       error_event_.address.find(kIPv6LocalAddr.HostAsSensitiveURIString()),
       std::string::npos);
-  std::string server_url = "stun:" + kBadAddr.ToString();
-  ASSERT_EQ(error_event_.url, server_url);
+  std::string server_url = "stun:" + kIPv6BadAddr.ToString();
+  EXPECT_EQ(error_event_.url, server_url);
+}
+
+// Test that we fail without emitting an error if we try to get an address from
+// a STUN server with a different address family. IPv6 local, IPv4 STUN.
+TEST_F(StunIPv6PortTest, TestServerAddressFamilyMismatch) {
+  CreateStunPort(kStunAddr1);
+  PrepareAddress();
+  EXPECT_TRUE_SIMULATED_WAIT(done(), kTimeoutMs, fake_clock);
+  EXPECT_TRUE(error());
+  EXPECT_EQ(0U, port()->Candidates().size());
+  EXPECT_EQ(0, error_event_.error_code);
 }
 
 // Test that we handle hostname lookup failures properly with a real clock.
@@ -681,8 +704,8 @@ TEST_F(StunIPv6PortTestWithRealClock, TestPrepareAddressHostnameFail) {
   EXPECT_TRUE_WAIT(done(), kTimeoutMs);
   EXPECT_TRUE(error());
   EXPECT_EQ(0U, port()->Candidates().size());
-  EXPECT_EQ_WAIT(error_event_.error_code, cricket::SERVER_NOT_REACHABLE_ERROR,
-                 kTimeoutMs);
+  EXPECT_EQ_WAIT(error_event_.error_code,
+                 cricket::STUN_ERROR_SERVER_NOT_REACHABLE, kTimeoutMs);
 }
 
 class StunIPv6PortTestWithMockDnsResolver : public StunIPv6PortTest {

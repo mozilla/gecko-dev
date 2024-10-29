@@ -17,10 +17,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "api/priority.h"
 #include "api/ref_count.h"
 #include "api/rtc_error.h"
@@ -31,7 +31,7 @@
 namespace webrtc {
 
 // C++ version of: https://www.w3.org/TR/webrtc/#idl-def-rtcdatachannelinit
-// TODO(deadbeef): Use absl::optional for the "-1 if unset" things.
+// TODO(deadbeef): Use std::optional for the "-1 if unset" things.
 struct DataChannelInit {
   // Deprecated. Reliability is assumed, and channel will be unreliable if
   // maxRetransmitTime or MaxRetransmits is set.
@@ -46,13 +46,13 @@ struct DataChannelInit {
   // Cannot be set along with `maxRetransmits`.
   // This is called `maxPacketLifeTime` in the WebRTC JS API.
   // Negative values are ignored, and positive values are clamped to [0-65535]
-  absl::optional<int> maxRetransmitTime;
+  std::optional<int> maxRetransmitTime;
 
   // The max number of retransmissions.
   //
   // Cannot be set along with `maxRetransmitTime`.
   // Negative values are ignored, and positive values are clamped to [0-65535]
-  absl::optional<int> maxRetransmits;
+  std::optional<int> maxRetransmits;
 
   // This is set by the application and opaque to the WebRTC implementation.
   std::string protocol;
@@ -67,7 +67,7 @@ struct DataChannelInit {
   int id = -1;
 
   // https://w3c.github.io/webrtc-priority/#new-rtcdatachannelinit-member
-  absl::optional<PriorityValue> priority;
+  std::optional<PriorityValue> priority;
 };
 
 // At the JavaScript level, data can be passed in as a string or a blob, so
@@ -163,8 +163,8 @@ class RTC_EXPORT DataChannelInterface : public RefCountInterface {
   // TODO(hta): Deprecate and remove the following two functions.
   virtual uint16_t maxRetransmitTime() const;
   virtual uint16_t maxRetransmits() const;
-  virtual absl::optional<int> maxRetransmitsOpt() const;
-  virtual absl::optional<int> maxPacketLifeTime() const;
+  virtual std::optional<int> maxRetransmitsOpt() const;
+  virtual std::optional<int> maxPacketLifeTime() const;
   virtual std::string protocol() const;
   virtual bool negotiated() const;
 

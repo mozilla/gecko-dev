@@ -13,8 +13,8 @@
 #include <stddef.h>
 
 #include <cstdint>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/priority.h"
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/copy_on_write_buffer.h"
@@ -122,8 +122,8 @@ bool ParseDataChannelOpenMessage(const rtc::CopyOnWriteBuffer& payload,
       config->ordered = false;
   }
 
-  config->maxRetransmits = absl::nullopt;
-  config->maxRetransmitTime = absl::nullopt;
+  config->maxRetransmits = std::nullopt;
+  config->maxRetransmitTime = std::nullopt;
   switch (channel_type) {
     case DCOMCT_ORDERED_PARTIAL_RTXS:
     case DCOMCT_UNORDERED_PARTIAL_RTXS:
@@ -162,10 +162,10 @@ bool WriteDataChannelOpenMessage(const std::string& label,
 
 bool WriteDataChannelOpenMessage(const std::string& label,
                                  const std::string& protocol,
-                                 absl::optional<PriorityValue> opt_priority,
+                                 std::optional<PriorityValue> opt_priority,
                                  bool ordered,
-                                 absl::optional<int> max_retransmits,
-                                 absl::optional<int> max_retransmit_time,
+                                 std::optional<int> max_retransmits,
+                                 std::optional<int> max_retransmit_time,
                                  rtc::CopyOnWriteBuffer* payload) {
   // Format defined at
   // http://tools.ietf.org/html/draft-ietf-rtcweb-data-protocol-09#section-5.1

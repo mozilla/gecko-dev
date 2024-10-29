@@ -10,33 +10,46 @@
 
 #include "call/call.h"
 
+#include <cstdint>
 #include <list>
-#include <map>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
-#include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/adaptation/resource.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/make_ref_counted.h"
 #include "api/media_types.h"
+#include "api/scoped_refptr.h"
 #include "api/test/mock_audio_mixer.h"
 #include "api/test/video/function_video_encoder_factory.h"
 #include "api/units/timestamp.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
+#include "api/video_codecs/sdp_video_format.h"
 #include "audio/audio_receive_stream.h"
 #include "audio/audio_send_stream.h"
 #include "call/adaptation/test/fake_resource.h"
 #include "call/adaptation/test/mock_resource_listener.h"
+#include "call/audio_receive_stream.h"
+#include "call/audio_send_stream.h"
 #include "call/audio_state.h"
+#include "call/call_config.h"
+#include "call/flexfec_receive_stream.h"
+#include "call/video_send_stream.h"
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
-#include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "test/fake_encoder.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_audio_decoder_factory.h"
 #include "test/mock_transport.h"
 #include "test/run_loop.h"
+#include "video/config/video_encoder_config.h"
 
 namespace webrtc {
 namespace {

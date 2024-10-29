@@ -35,7 +35,7 @@ class TestRedFec final {
  private:
   void RegisterSendCodec(const std::unique_ptr<AudioCodingModule>& acm,
                          const SdpAudioFormat& codec_format,
-                         absl::optional<Vad::Aggressiveness> vad_mode,
+                         std::optional<Vad::Aggressiveness> vad_mode,
                          bool use_red);
   void Run();
   void OpenOutFile(int16_t testNumber);

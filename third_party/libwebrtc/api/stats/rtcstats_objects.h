@@ -15,10 +15,10 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/stats/rtc_stats.h"
 #include "rtc_base/system/rtc_export.h"
 
@@ -31,10 +31,10 @@ class RTC_EXPORT RTCCertificateStats final : public RTCStats {
   RTCCertificateStats(std::string id, Timestamp timestamp);
   ~RTCCertificateStats() override;
 
-  absl::optional<std::string> fingerprint;
-  absl::optional<std::string> fingerprint_algorithm;
-  absl::optional<std::string> base64_certificate;
-  absl::optional<std::string> issuer_certificate_id;
+  std::optional<std::string> fingerprint;
+  std::optional<std::string> fingerprint_algorithm;
+  std::optional<std::string> base64_certificate;
+  std::optional<std::string> issuer_certificate_id;
 };
 
 // https://w3c.github.io/webrtc-stats/#codec-dict*
@@ -44,12 +44,12 @@ class RTC_EXPORT RTCCodecStats final : public RTCStats {
   RTCCodecStats(std::string id, Timestamp timestamp);
   ~RTCCodecStats() override;
 
-  absl::optional<std::string> transport_id;
-  absl::optional<uint32_t> payload_type;
-  absl::optional<std::string> mime_type;
-  absl::optional<uint32_t> clock_rate;
-  absl::optional<uint32_t> channels;
-  absl::optional<std::string> sdp_fmtp_line;
+  std::optional<std::string> transport_id;
+  std::optional<uint32_t> payload_type;
+  std::optional<std::string> mime_type;
+  std::optional<uint32_t> clock_rate;
+  std::optional<uint32_t> channels;
+  std::optional<std::string> sdp_fmtp_line;
 };
 
 // https://w3c.github.io/webrtc-stats/#dcstats-dict*
@@ -59,14 +59,14 @@ class RTC_EXPORT RTCDataChannelStats final : public RTCStats {
   RTCDataChannelStats(std::string id, Timestamp timestamp);
   ~RTCDataChannelStats() override;
 
-  absl::optional<std::string> label;
-  absl::optional<std::string> protocol;
-  absl::optional<int32_t> data_channel_identifier;
-  absl::optional<std::string> state;
-  absl::optional<uint32_t> messages_sent;
-  absl::optional<uint64_t> bytes_sent;
-  absl::optional<uint32_t> messages_received;
-  absl::optional<uint64_t> bytes_received;
+  std::optional<std::string> label;
+  std::optional<std::string> protocol;
+  std::optional<int32_t> data_channel_identifier;
+  std::optional<std::string> state;
+  std::optional<uint32_t> messages_sent;
+  std::optional<uint64_t> bytes_sent;
+  std::optional<uint32_t> messages_received;
+  std::optional<uint64_t> bytes_received;
 };
 
 // https://w3c.github.io/webrtc-stats/#candidatepair-dict*
@@ -76,35 +76,35 @@ class RTC_EXPORT RTCIceCandidatePairStats final : public RTCStats {
   RTCIceCandidatePairStats(std::string id, Timestamp timestamp);
   ~RTCIceCandidatePairStats() override;
 
-  absl::optional<std::string> transport_id;
-  absl::optional<std::string> local_candidate_id;
-  absl::optional<std::string> remote_candidate_id;
-  absl::optional<std::string> state;
+  std::optional<std::string> transport_id;
+  std::optional<std::string> local_candidate_id;
+  std::optional<std::string> remote_candidate_id;
+  std::optional<std::string> state;
   // Obsolete: priority
-  absl::optional<uint64_t> priority;
-  absl::optional<bool> nominated;
+  std::optional<uint64_t> priority;
+  std::optional<bool> nominated;
   // `writable` does not exist in the spec and old comments suggest it used to
   // exist but was incorrectly implemented.
   // TODO(https://crbug.com/webrtc/14171): Standardize and/or modify
   // implementation.
-  absl::optional<bool> writable;
-  absl::optional<uint64_t> packets_sent;
-  absl::optional<uint64_t> packets_received;
-  absl::optional<uint64_t> bytes_sent;
-  absl::optional<uint64_t> bytes_received;
-  absl::optional<double> total_round_trip_time;
-  absl::optional<double> current_round_trip_time;
-  absl::optional<double> available_outgoing_bitrate;
-  absl::optional<double> available_incoming_bitrate;
-  absl::optional<uint64_t> requests_received;
-  absl::optional<uint64_t> requests_sent;
-  absl::optional<uint64_t> responses_received;
-  absl::optional<uint64_t> responses_sent;
-  absl::optional<uint64_t> consent_requests_sent;
-  absl::optional<uint64_t> packets_discarded_on_send;
-  absl::optional<uint64_t> bytes_discarded_on_send;
-  absl::optional<double> last_packet_received_timestamp;
-  absl::optional<double> last_packet_sent_timestamp;
+  std::optional<bool> writable;
+  std::optional<uint64_t> packets_sent;
+  std::optional<uint64_t> packets_received;
+  std::optional<uint64_t> bytes_sent;
+  std::optional<uint64_t> bytes_received;
+  std::optional<double> total_round_trip_time;
+  std::optional<double> current_round_trip_time;
+  std::optional<double> available_outgoing_bitrate;
+  std::optional<double> available_incoming_bitrate;
+  std::optional<uint64_t> requests_received;
+  std::optional<uint64_t> requests_sent;
+  std::optional<uint64_t> responses_received;
+  std::optional<uint64_t> responses_sent;
+  std::optional<uint64_t> consent_requests_sent;
+  std::optional<uint64_t> packets_discarded_on_send;
+  std::optional<uint64_t> bytes_discarded_on_send;
+  std::optional<double> last_packet_received_timestamp;
+  std::optional<double> last_packet_sent_timestamp;
 };
 
 // https://w3c.github.io/webrtc-stats/#icecandidate-dict*
@@ -113,28 +113,28 @@ class RTC_EXPORT RTCIceCandidateStats : public RTCStats {
   WEBRTC_RTCSTATS_DECL();
   ~RTCIceCandidateStats() override;
 
-  absl::optional<std::string> transport_id;
+  std::optional<std::string> transport_id;
   // Obsolete: is_remote
-  absl::optional<bool> is_remote;
-  absl::optional<std::string> network_type;
-  absl::optional<std::string> ip;
-  absl::optional<std::string> address;
-  absl::optional<int32_t> port;
-  absl::optional<std::string> protocol;
-  absl::optional<std::string> relay_protocol;
-  absl::optional<std::string> candidate_type;
-  absl::optional<int32_t> priority;
-  absl::optional<std::string> url;
-  absl::optional<std::string> foundation;
-  absl::optional<std::string> related_address;
-  absl::optional<int32_t> related_port;
-  absl::optional<std::string> username_fragment;
-  absl::optional<std::string> tcp_type;
+  std::optional<bool> is_remote;
+  std::optional<std::string> network_type;
+  std::optional<std::string> ip;
+  std::optional<std::string> address;
+  std::optional<int32_t> port;
+  std::optional<std::string> protocol;
+  std::optional<std::string> relay_protocol;
+  std::optional<std::string> candidate_type;
+  std::optional<int32_t> priority;
+  std::optional<std::string> url;
+  std::optional<std::string> foundation;
+  std::optional<std::string> related_address;
+  std::optional<int32_t> related_port;
+  std::optional<std::string> username_fragment;
+  std::optional<std::string> tcp_type;
 
   // The following metrics are NOT exposed to JavaScript. We should consider
   // standardizing or removing them.
-  absl::optional<bool> vpn;
-  absl::optional<std::string> network_adapter_type;
+  std::optional<bool> vpn;
+  std::optional<std::string> network_adapter_type;
 
  protected:
   RTCIceCandidateStats(std::string id, Timestamp timestamp, bool is_remote);
@@ -169,8 +169,8 @@ class RTC_EXPORT RTCPeerConnectionStats final : public RTCStats {
   RTCPeerConnectionStats(std::string id, Timestamp timestamp);
   ~RTCPeerConnectionStats() override;
 
-  absl::optional<uint32_t> data_channels_opened;
-  absl::optional<uint32_t> data_channels_closed;
+  std::optional<uint32_t> data_channels_opened;
+  std::optional<uint32_t> data_channels_closed;
 };
 
 // https://w3c.github.io/webrtc-stats/#streamstats-dict*
@@ -179,10 +179,10 @@ class RTC_EXPORT RTCRtpStreamStats : public RTCStats {
   WEBRTC_RTCSTATS_DECL();
   ~RTCRtpStreamStats() override;
 
-  absl::optional<uint32_t> ssrc;
-  absl::optional<std::string> kind;
-  absl::optional<std::string> transport_id;
-  absl::optional<std::string> codec_id;
+  std::optional<uint32_t> ssrc;
+  std::optional<std::string> kind;
+  std::optional<std::string> transport_id;
+  std::optional<std::string> codec_id;
 
  protected:
   RTCRtpStreamStats(std::string id, Timestamp timestamp);
@@ -194,8 +194,8 @@ class RTC_EXPORT RTCReceivedRtpStreamStats : public RTCRtpStreamStats {
   WEBRTC_RTCSTATS_DECL();
   ~RTCReceivedRtpStreamStats() override;
 
-  absl::optional<double> jitter;
-  absl::optional<int32_t> packets_lost;  // Signed per RFC 3550
+  std::optional<double> jitter;
+  std::optional<int32_t> packets_lost;  // Signed per RFC 3550
 
  protected:
   RTCReceivedRtpStreamStats(std::string id, Timestamp timestamp);
@@ -207,8 +207,8 @@ class RTC_EXPORT RTCSentRtpStreamStats : public RTCRtpStreamStats {
   WEBRTC_RTCSTATS_DECL();
   ~RTCSentRtpStreamStats() override;
 
-  absl::optional<uint64_t> packets_sent;
-  absl::optional<uint64_t> bytes_sent;
+  std::optional<uint64_t> packets_sent;
+  std::optional<uint64_t> bytes_sent;
 
  protected:
   RTCSentRtpStreamStats(std::string id, Timestamp timestamp);
@@ -222,51 +222,51 @@ class RTC_EXPORT RTCInboundRtpStreamStats final
   RTCInboundRtpStreamStats(std::string id, Timestamp timestamp);
   ~RTCInboundRtpStreamStats() override;
 
-  absl::optional<std::string> playout_id;
-  absl::optional<std::string> track_identifier;
-  absl::optional<std::string> mid;
-  absl::optional<std::string> remote_id;
-  absl::optional<uint32_t> packets_received;
-  absl::optional<uint64_t> packets_discarded;
-  absl::optional<uint64_t> fec_packets_received;
-  absl::optional<uint64_t> fec_bytes_received;
-  absl::optional<uint64_t> fec_packets_discarded;
+  std::optional<std::string> playout_id;
+  std::optional<std::string> track_identifier;
+  std::optional<std::string> mid;
+  std::optional<std::string> remote_id;
+  std::optional<uint32_t> packets_received;
+  std::optional<uint64_t> packets_discarded;
+  std::optional<uint64_t> fec_packets_received;
+  std::optional<uint64_t> fec_bytes_received;
+  std::optional<uint64_t> fec_packets_discarded;
   // Inbound FEC SSRC. Only present if a mechanism like FlexFEC is negotiated.
-  absl::optional<uint32_t> fec_ssrc;
-  absl::optional<uint64_t> bytes_received;
-  absl::optional<uint64_t> header_bytes_received;
+  std::optional<uint32_t> fec_ssrc;
+  std::optional<uint64_t> bytes_received;
+  std::optional<uint64_t> header_bytes_received;
   // Inbound RTX stats. Only defined when RTX is used and it is therefore
   // possible to distinguish retransmissions.
-  absl::optional<uint64_t> retransmitted_packets_received;
-  absl::optional<uint64_t> retransmitted_bytes_received;
-  absl::optional<uint32_t> rtx_ssrc;
+  std::optional<uint64_t> retransmitted_packets_received;
+  std::optional<uint64_t> retransmitted_bytes_received;
+  std::optional<uint32_t> rtx_ssrc;
 
-  absl::optional<double> last_packet_received_timestamp;
-  absl::optional<double> jitter_buffer_delay;
-  absl::optional<double> jitter_buffer_target_delay;
-  absl::optional<double> jitter_buffer_minimum_delay;
-  absl::optional<uint64_t> jitter_buffer_emitted_count;
-  absl::optional<uint64_t> total_samples_received;
-  absl::optional<uint64_t> concealed_samples;
-  absl::optional<uint64_t> silent_concealed_samples;
-  absl::optional<uint64_t> concealment_events;
-  absl::optional<uint64_t> inserted_samples_for_deceleration;
-  absl::optional<uint64_t> removed_samples_for_acceleration;
-  absl::optional<double> audio_level;
-  absl::optional<double> total_audio_energy;
-  absl::optional<double> total_samples_duration;
+  std::optional<double> last_packet_received_timestamp;
+  std::optional<double> jitter_buffer_delay;
+  std::optional<double> jitter_buffer_target_delay;
+  std::optional<double> jitter_buffer_minimum_delay;
+  std::optional<uint64_t> jitter_buffer_emitted_count;
+  std::optional<uint64_t> total_samples_received;
+  std::optional<uint64_t> concealed_samples;
+  std::optional<uint64_t> silent_concealed_samples;
+  std::optional<uint64_t> concealment_events;
+  std::optional<uint64_t> inserted_samples_for_deceleration;
+  std::optional<uint64_t> removed_samples_for_acceleration;
+  std::optional<double> audio_level;
+  std::optional<double> total_audio_energy;
+  std::optional<double> total_samples_duration;
   // Stats below are only implemented or defined for video.
-  absl::optional<uint32_t> frames_received;
-  absl::optional<uint32_t> frame_width;
-  absl::optional<uint32_t> frame_height;
-  absl::optional<double> frames_per_second;
-  absl::optional<uint32_t> frames_decoded;
-  absl::optional<uint32_t> key_frames_decoded;
-  absl::optional<uint32_t> frames_dropped;
-  absl::optional<double> total_decode_time;
-  absl::optional<double> total_processing_delay;
-  absl::optional<double> total_assembly_time;
-  absl::optional<uint32_t> frames_assembled_from_multiple_packets;
+  std::optional<uint32_t> frames_received;
+  std::optional<uint32_t> frame_width;
+  std::optional<uint32_t> frame_height;
+  std::optional<double> frames_per_second;
+  std::optional<uint32_t> frames_decoded;
+  std::optional<uint32_t> key_frames_decoded;
+  std::optional<uint32_t> frames_dropped;
+  std::optional<double> total_decode_time;
+  std::optional<double> total_processing_delay;
+  std::optional<double> total_assembly_time;
+  std::optional<uint32_t> frames_assembled_from_multiple_packets;
   // TODO(https://crbug.com/webrtc/15600): Implement framesRendered, which is
   // incremented at the same time that totalInterFrameDelay and
   // totalSquaredInterFrameDelay is incremented. (Dividing inter-frame delay by
@@ -278,43 +278,43 @@ class RTC_EXPORT RTCInboundRtpStreamStats final
   // at delivery to sink, not at actual render time. When we have an actual
   // frame rendered callback, move the calculating of these metrics to there in
   // order to make them more accurate.
-  absl::optional<double> total_inter_frame_delay;
-  absl::optional<double> total_squared_inter_frame_delay;
-  absl::optional<uint32_t> pause_count;
-  absl::optional<double> total_pauses_duration;
-  absl::optional<uint32_t> freeze_count;
-  absl::optional<double> total_freezes_duration;
+  std::optional<double> total_inter_frame_delay;
+  std::optional<double> total_squared_inter_frame_delay;
+  std::optional<uint32_t> pause_count;
+  std::optional<double> total_pauses_duration;
+  std::optional<uint32_t> freeze_count;
+  std::optional<double> total_freezes_duration;
   // https://w3c.github.io/webrtc-provisional-stats/#dom-rtcinboundrtpstreamstats-contenttype
-  absl::optional<std::string> content_type;
+  std::optional<std::string> content_type;
   // Only populated if audio/video sync is enabled.
   // TODO(https://crbug.com/webrtc/14177): Expose even if A/V sync is off?
-  absl::optional<double> estimated_playout_timestamp;
+  std::optional<double> estimated_playout_timestamp;
   // Only defined for video.
   // In JavaScript, this is only exposed if HW exposure is allowed.
-  absl::optional<std::string> decoder_implementation;
+  std::optional<std::string> decoder_implementation;
   // FIR and PLI counts are only defined for |kind == "video"|.
-  absl::optional<uint32_t> fir_count;
-  absl::optional<uint32_t> pli_count;
-  absl::optional<uint32_t> nack_count;
-  absl::optional<uint64_t> qp_sum;
+  std::optional<uint32_t> fir_count;
+  std::optional<uint32_t> pli_count;
+  std::optional<uint32_t> nack_count;
+  std::optional<uint64_t> qp_sum;
   // This is a remnant of the legacy getStats() API. When the "video-timing"
   // header extension is used,
   // https://webrtc.github.io/webrtc-org/experiments/rtp-hdrext/video-timing/,
   // `googTimingFrameInfo` is exposed with the value of
   // TimingFrameInfo::ToString().
   // TODO(https://crbug.com/webrtc/14586): Unship or standardize this metric.
-  absl::optional<std::string> goog_timing_frame_info;
+  std::optional<std::string> goog_timing_frame_info;
   // In JavaScript, this is only exposed if HW exposure is allowed.
-  absl::optional<bool> power_efficient_decoder;
+  std::optional<bool> power_efficient_decoder;
 
   // The following metrics are NOT exposed to JavaScript. We should consider
   // standardizing or removing them.
-  absl::optional<uint64_t> jitter_buffer_flushes;
-  absl::optional<uint64_t> delayed_packet_outage_samples;
-  absl::optional<double> relative_packet_arrival_delay;
-  absl::optional<uint32_t> interruption_count;
-  absl::optional<double> total_interruption_duration;
-  absl::optional<double> min_playout_delay;
+  std::optional<uint64_t> jitter_buffer_flushes;
+  std::optional<uint64_t> delayed_packet_outage_samples;
+  std::optional<double> relative_packet_arrival_delay;
+  std::optional<uint32_t> interruption_count;
+  std::optional<double> total_interruption_duration;
+  std::optional<double> min_playout_delay;
 };
 
 // https://w3c.github.io/webrtc-stats/#outboundrtpstats-dict*
@@ -325,46 +325,46 @@ class RTC_EXPORT RTCOutboundRtpStreamStats final
   RTCOutboundRtpStreamStats(std::string id, Timestamp timestamp);
   ~RTCOutboundRtpStreamStats() override;
 
-  absl::optional<std::string> media_source_id;
-  absl::optional<std::string> remote_id;
-  absl::optional<std::string> mid;
-  absl::optional<std::string> rid;
-  absl::optional<uint64_t> retransmitted_packets_sent;
-  absl::optional<uint64_t> header_bytes_sent;
-  absl::optional<uint64_t> retransmitted_bytes_sent;
-  absl::optional<double> target_bitrate;
-  absl::optional<uint32_t> frames_encoded;
-  absl::optional<uint32_t> key_frames_encoded;
-  absl::optional<double> total_encode_time;
-  absl::optional<uint64_t> total_encoded_bytes_target;
-  absl::optional<uint32_t> frame_width;
-  absl::optional<uint32_t> frame_height;
-  absl::optional<double> frames_per_second;
-  absl::optional<uint32_t> frames_sent;
-  absl::optional<uint32_t> huge_frames_sent;
-  absl::optional<double> total_packet_send_delay;
-  absl::optional<std::string> quality_limitation_reason;
-  absl::optional<std::map<std::string, double>> quality_limitation_durations;
+  std::optional<std::string> media_source_id;
+  std::optional<std::string> remote_id;
+  std::optional<std::string> mid;
+  std::optional<std::string> rid;
+  std::optional<uint64_t> retransmitted_packets_sent;
+  std::optional<uint64_t> header_bytes_sent;
+  std::optional<uint64_t> retransmitted_bytes_sent;
+  std::optional<double> target_bitrate;
+  std::optional<uint32_t> frames_encoded;
+  std::optional<uint32_t> key_frames_encoded;
+  std::optional<double> total_encode_time;
+  std::optional<uint64_t> total_encoded_bytes_target;
+  std::optional<uint32_t> frame_width;
+  std::optional<uint32_t> frame_height;
+  std::optional<double> frames_per_second;
+  std::optional<uint32_t> frames_sent;
+  std::optional<uint32_t> huge_frames_sent;
+  std::optional<double> total_packet_send_delay;
+  std::optional<std::string> quality_limitation_reason;
+  std::optional<std::map<std::string, double>> quality_limitation_durations;
   // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-qualitylimitationresolutionchanges
-  absl::optional<uint32_t> quality_limitation_resolution_changes;
+  std::optional<uint32_t> quality_limitation_resolution_changes;
   // https://w3c.github.io/webrtc-provisional-stats/#dom-rtcoutboundrtpstreamstats-contenttype
-  absl::optional<std::string> content_type;
+  std::optional<std::string> content_type;
   // In JavaScript, this is only exposed if HW exposure is allowed.
   // Only implemented for video.
   // TODO(https://crbug.com/webrtc/14178): Implement for audio as well.
-  absl::optional<std::string> encoder_implementation;
+  std::optional<std::string> encoder_implementation;
   // FIR and PLI counts are only defined for |kind == "video"|.
-  absl::optional<uint32_t> fir_count;
-  absl::optional<uint32_t> pli_count;
-  absl::optional<uint32_t> nack_count;
-  absl::optional<uint64_t> qp_sum;
-  absl::optional<bool> active;
+  std::optional<uint32_t> fir_count;
+  std::optional<uint32_t> pli_count;
+  std::optional<uint32_t> nack_count;
+  std::optional<uint64_t> qp_sum;
+  std::optional<bool> active;
   // In JavaScript, this is only exposed if HW exposure is allowed.
-  absl::optional<bool> power_efficient_encoder;
-  absl::optional<std::string> scalability_mode;
+  std::optional<bool> power_efficient_encoder;
+  std::optional<std::string> scalability_mode;
 
   // RTX ssrc. Only present if RTX is negotiated.
-  absl::optional<uint32_t> rtx_ssrc;
+  std::optional<uint32_t> rtx_ssrc;
 };
 
 // https://w3c.github.io/webrtc-stats/#remoteinboundrtpstats-dict*
@@ -375,11 +375,11 @@ class RTC_EXPORT RTCRemoteInboundRtpStreamStats final
   RTCRemoteInboundRtpStreamStats(std::string id, Timestamp timestamp);
   ~RTCRemoteInboundRtpStreamStats() override;
 
-  absl::optional<std::string> local_id;
-  absl::optional<double> round_trip_time;
-  absl::optional<double> fraction_lost;
-  absl::optional<double> total_round_trip_time;
-  absl::optional<int32_t> round_trip_time_measurements;
+  std::optional<std::string> local_id;
+  std::optional<double> round_trip_time;
+  std::optional<double> fraction_lost;
+  std::optional<double> total_round_trip_time;
+  std::optional<int32_t> round_trip_time_measurements;
 };
 
 // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
@@ -390,12 +390,12 @@ class RTC_EXPORT RTCRemoteOutboundRtpStreamStats final
   RTCRemoteOutboundRtpStreamStats(std::string id, Timestamp timestamp);
   ~RTCRemoteOutboundRtpStreamStats() override;
 
-  absl::optional<std::string> local_id;
-  absl::optional<double> remote_timestamp;
-  absl::optional<uint64_t> reports_sent;
-  absl::optional<double> round_trip_time;
-  absl::optional<uint64_t> round_trip_time_measurements;
-  absl::optional<double> total_round_trip_time;
+  std::optional<std::string> local_id;
+  std::optional<double> remote_timestamp;
+  std::optional<uint64_t> reports_sent;
+  std::optional<double> round_trip_time;
+  std::optional<uint64_t> round_trip_time_measurements;
+  std::optional<double> total_round_trip_time;
 };
 
 // https://w3c.github.io/webrtc-stats/#dom-rtcmediasourcestats
@@ -404,8 +404,8 @@ class RTC_EXPORT RTCMediaSourceStats : public RTCStats {
   WEBRTC_RTCSTATS_DECL();
   ~RTCMediaSourceStats() override;
 
-  absl::optional<std::string> track_identifier;
-  absl::optional<std::string> kind;
+  std::optional<std::string> track_identifier;
+  std::optional<std::string> kind;
 
  protected:
   RTCMediaSourceStats(std::string id, Timestamp timestamp);
@@ -418,11 +418,11 @@ class RTC_EXPORT RTCAudioSourceStats final : public RTCMediaSourceStats {
   RTCAudioSourceStats(std::string id, Timestamp timestamp);
   ~RTCAudioSourceStats() override;
 
-  absl::optional<double> audio_level;
-  absl::optional<double> total_audio_energy;
-  absl::optional<double> total_samples_duration;
-  absl::optional<double> echo_return_loss;
-  absl::optional<double> echo_return_loss_enhancement;
+  std::optional<double> audio_level;
+  std::optional<double> total_audio_energy;
+  std::optional<double> total_samples_duration;
+  std::optional<double> echo_return_loss;
+  std::optional<double> echo_return_loss_enhancement;
 };
 
 // https://w3c.github.io/webrtc-stats/#dom-rtcvideosourcestats
@@ -432,10 +432,10 @@ class RTC_EXPORT RTCVideoSourceStats final : public RTCMediaSourceStats {
   RTCVideoSourceStats(std::string id, Timestamp timestamp);
   ~RTCVideoSourceStats() override;
 
-  absl::optional<uint32_t> width;
-  absl::optional<uint32_t> height;
-  absl::optional<uint32_t> frames;
-  absl::optional<double> frames_per_second;
+  std::optional<uint32_t> width;
+  std::optional<uint32_t> height;
+  std::optional<uint32_t> frames;
+  std::optional<double> frames_per_second;
 };
 
 // https://w3c.github.io/webrtc-stats/#transportstats-dict*
@@ -445,23 +445,23 @@ class RTC_EXPORT RTCTransportStats final : public RTCStats {
   RTCTransportStats(std::string id, Timestamp timestamp);
   ~RTCTransportStats() override;
 
-  absl::optional<uint64_t> bytes_sent;
-  absl::optional<uint64_t> packets_sent;
-  absl::optional<uint64_t> bytes_received;
-  absl::optional<uint64_t> packets_received;
-  absl::optional<std::string> rtcp_transport_stats_id;
-  absl::optional<std::string> dtls_state;
-  absl::optional<std::string> selected_candidate_pair_id;
-  absl::optional<std::string> local_certificate_id;
-  absl::optional<std::string> remote_certificate_id;
-  absl::optional<std::string> tls_version;
-  absl::optional<std::string> dtls_cipher;
-  absl::optional<std::string> dtls_role;
-  absl::optional<std::string> srtp_cipher;
-  absl::optional<uint32_t> selected_candidate_pair_changes;
-  absl::optional<std::string> ice_role;
-  absl::optional<std::string> ice_local_username_fragment;
-  absl::optional<std::string> ice_state;
+  std::optional<uint64_t> bytes_sent;
+  std::optional<uint64_t> packets_sent;
+  std::optional<uint64_t> bytes_received;
+  std::optional<uint64_t> packets_received;
+  std::optional<std::string> rtcp_transport_stats_id;
+  std::optional<std::string> dtls_state;
+  std::optional<std::string> selected_candidate_pair_id;
+  std::optional<std::string> local_certificate_id;
+  std::optional<std::string> remote_certificate_id;
+  std::optional<std::string> tls_version;
+  std::optional<std::string> dtls_cipher;
+  std::optional<std::string> dtls_role;
+  std::optional<std::string> srtp_cipher;
+  std::optional<uint32_t> selected_candidate_pair_changes;
+  std::optional<std::string> ice_role;
+  std::optional<std::string> ice_local_username_fragment;
+  std::optional<std::string> ice_state;
 };
 
 // https://w3c.github.io/webrtc-stats/#playoutstats-dict*
@@ -471,12 +471,12 @@ class RTC_EXPORT RTCAudioPlayoutStats final : public RTCStats {
   RTCAudioPlayoutStats(const std::string& id, Timestamp timestamp);
   ~RTCAudioPlayoutStats() override;
 
-  absl::optional<std::string> kind;
-  absl::optional<double> synthesized_samples_duration;
-  absl::optional<uint64_t> synthesized_samples_events;
-  absl::optional<double> total_samples_duration;
-  absl::optional<double> total_playout_delay;
-  absl::optional<uint64_t> total_samples_count;
+  std::optional<std::string> kind;
+  std::optional<double> synthesized_samples_duration;
+  std::optional<uint64_t> synthesized_samples_events;
+  std::optional<double> total_samples_duration;
+  std::optional<double> total_playout_delay;
+  std::optional<uint64_t> total_samples_count;
 };
 
 }  // namespace webrtc

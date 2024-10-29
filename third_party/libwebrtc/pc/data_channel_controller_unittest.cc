@@ -159,8 +159,8 @@ TEST_F(DataChannelControllerTest, MaxChannels) {
   int channel_id = 0;
 
   ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() {
-    return absl::optional<rtc::SSLRole>((channel_id & 1) ? rtc::SSL_SERVER
-                                                         : rtc::SSL_CLIENT);
+    return std::optional<rtc::SSLRole>((channel_id & 1) ? rtc::SSL_SERVER
+                                                        : rtc::SSL_CLIENT);
   });
 
   DataChannelControllerForTest dcc(pc_.get(), &transport);

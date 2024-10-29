@@ -53,7 +53,8 @@
 @synthesize outputVolume = _outputVolume;
 
 - (instancetype)init {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _outputVolume = -1;
   }
   return self;
@@ -98,7 +99,8 @@
 @implementation RTCTestRemoveOnDeallocDelegate
 
 - (instancetype)init {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     RTC_OBJC_TYPE(RTCAudioSession) *session = [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
     [session addDelegate:self];
   }

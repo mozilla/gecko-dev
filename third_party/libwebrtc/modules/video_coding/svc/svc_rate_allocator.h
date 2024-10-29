@@ -14,6 +14,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <vector>
+
 #include "absl/container/inlined_vector.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "api/video/video_bitrate_allocator.h"
@@ -42,12 +44,12 @@ class SvcRateAllocator : public VideoBitrateAllocator {
   };
 
   static NumLayers GetNumLayers(const VideoCodec& codec);
-  VideoBitrateAllocation GetAllocationNormalVideo(
+  std::vector<DataRate> DistributeAllocationToSpatialLayersNormalVideo(
       DataRate total_bitrate,
       size_t first_active_layer,
       size_t num_spatial_layers) const;
 
-  VideoBitrateAllocation GetAllocationScreenSharing(
+  std::vector<DataRate> DistributeAllocationToSpatialLayersScreenSharing(
       DataRate total_bitrate,
       size_t first_active_layer,
       size_t num_spatial_layers) const;

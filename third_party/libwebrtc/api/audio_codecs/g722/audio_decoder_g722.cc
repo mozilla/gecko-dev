@@ -11,10 +11,10 @@
 #include "api/audio_codecs/g722/audio_decoder_g722.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -25,14 +25,14 @@
 
 namespace webrtc {
 
-absl::optional<AudioDecoderG722::Config> AudioDecoderG722::SdpToConfig(
+std::optional<AudioDecoderG722::Config> AudioDecoderG722::SdpToConfig(
     const SdpAudioFormat& format) {
   if (absl::EqualsIgnoreCase(format.name, "G722") &&
       format.clockrate_hz == 8000 &&
       (format.num_channels == 1 || format.num_channels == 2)) {
     return Config{rtc::dchecked_cast<int>(format.num_channels)};
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void AudioDecoderG722::AppendSupportedDecoders(
@@ -42,7 +42,7 @@ void AudioDecoderG722::AppendSupportedDecoders(
 
 std::unique_ptr<AudioDecoder> AudioDecoderG722::MakeAudioDecoder(
     Config config,
-    absl::optional<AudioCodecPairId> /*codec_pair_id*/,
+    std::optional<AudioCodecPairId> /*codec_pair_id*/,
     const FieldTrialsView* field_trials) {
   if (!config.IsOk()) {
     RTC_DCHECK_NOTREACHED();

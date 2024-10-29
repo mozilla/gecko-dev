@@ -13,7 +13,8 @@
 
 #include <stdint.h>
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/sequence_checker.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_size.h"
@@ -38,11 +39,11 @@ class CongestionControlHandler {
   void SetTargetRate(TargetTransferRate new_target_rate);
   void SetNetworkAvailability(bool network_available);
   void SetPacerQueue(TimeDelta expected_queue_time);
-  absl::optional<TargetTransferRate> GetUpdate();
+  std::optional<TargetTransferRate> GetUpdate();
 
  private:
-  absl::optional<TargetTransferRate> last_incoming_;
-  absl::optional<TargetTransferRate> last_reported_;
+  std::optional<TargetTransferRate> last_incoming_;
+  std::optional<TargetTransferRate> last_reported_;
   bool network_available_ = true;
   bool encoder_paused_in_last_report_ = false;
 

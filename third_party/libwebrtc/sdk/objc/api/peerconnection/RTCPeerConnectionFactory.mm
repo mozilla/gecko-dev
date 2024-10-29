@@ -119,7 +119,8 @@
 }
 
 - (instancetype)initNative {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _networkThread = rtc::Thread::CreateWithSocketServer();
     _networkThread->SetName("network_thread", _networkThread.get());
     BOOL result = _networkThread->Start();
@@ -139,7 +140,8 @@
 }
 
 - (instancetype)initWithNoMedia {
-  if (self = [self initNative]) {
+  self = [self initNative];
+  if (self) {
     webrtc::PeerConnectionFactoryDependencies dependencies;
     dependencies.network_thread = _networkThread.get();
     dependencies.worker_thread = _workerThread.get();
@@ -186,7 +188,8 @@
                          networkControllerFactory:
                              (std::unique_ptr<webrtc::NetworkControllerFactoryInterface>)
                                  networkControllerFactory {
-  if (self = [self initNative]) {
+  self = [self initNative];
+  if (self) {
     webrtc::PeerConnectionFactoryDependencies dependencies;
     dependencies.network_thread = _networkThread.get();
     dependencies.worker_thread = _workerThread.get();

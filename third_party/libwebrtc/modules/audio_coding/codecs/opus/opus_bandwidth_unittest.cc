@@ -114,7 +114,7 @@ TEST(BandwidthAdaptationTest, BandwidthAdaptationTest) {
 
   // Create encoder.
   AudioEncoderOpusConfig enc_config;
-  enc_config.bitrate_bps = absl::optional<int>(7999);
+  enc_config.bitrate_bps = std::optional<int>(7999);
   enc_config.num_channels = kNumChannels;
   auto encoder =
       AudioEncoderOpus::MakeAudioEncoder(env, enc_config, {.payload_type = 17});

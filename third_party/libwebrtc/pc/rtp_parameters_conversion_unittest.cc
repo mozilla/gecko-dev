@@ -344,7 +344,7 @@ TEST(RtpParametersConversionTest, ToCricketStreamParamsVecMultipleEncodings) {
 }
 
 TEST(RtpParametersConversionTest, ToRtcpFeedback) {
-  absl::optional<RtcpFeedback> result = ToRtcpFeedback({"ccm", "fir"});
+  std::optional<RtcpFeedback> result = ToRtcpFeedback({"ccm", "fir"});
   EXPECT_EQ(RtcpFeedback(RtcpFeedbackType::CCM, RtcpFeedbackMessageType::FIR),
             *result);
 
@@ -369,7 +369,7 @@ TEST(RtpParametersConversionTest, ToRtcpFeedback) {
 
 TEST(RtpParametersConversionTest, ToRtcpFeedbackErrors) {
   // CCM with missing or invalid message type.
-  absl::optional<RtcpFeedback> result = ToRtcpFeedback({"ccm", "pli"});
+  std::optional<RtcpFeedback> result = ToRtcpFeedback({"ccm", "pli"});
   EXPECT_FALSE(result);
 
   result = ToRtcpFeedback(cricket::FeedbackParam("ccm"));

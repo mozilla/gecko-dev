@@ -20,12 +20,12 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/candidate.h"
 #include "api/field_trials_view.h"
 #include "api/legacy_stats_types.h"
@@ -194,8 +194,8 @@ class LegacyStatsCollector : public LegacyStatsCollectorInterface {
   SessionStats ExtractSessionInfo_n(
       const std::vector<rtc::scoped_refptr<
           RtpTransceiverProxyWithInternal<RtpTransceiver>>>& transceivers,
-      absl::optional<std::string> sctp_transport_name,
-      absl::optional<std::string> sctp_mid);
+      std::optional<std::string> sctp_transport_name,
+      std::optional<std::string> sctp_mid);
   void ExtractSessionInfo_s(SessionStats& session_stats);
 
   // A collection for all of our stats reports.

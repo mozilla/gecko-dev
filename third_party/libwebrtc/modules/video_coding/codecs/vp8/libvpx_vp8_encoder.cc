@@ -117,8 +117,8 @@ static_assert(Vp8EncoderConfig::TemporalLayerConfig::kMaxLayers ==
 // Allow a newer value to override a current value only if the new value
 // is set.
 template <typename T>
-bool MaybeSetNewValue(const absl::optional<T>& new_value,
-                      absl::optional<T>* base_value) {
+bool MaybeSetNewValue(const std::optional<T>& new_value,
+                      std::optional<T>* base_value) {
   if (new_value.has_value() && new_value != *base_value) {
     *base_value = new_value;
     return true;
@@ -254,7 +254,7 @@ class FrameDropConfigOverride {
   const uint32_t original_frame_drop_threshold_;
 };
 
-absl::optional<TimeDelta> ParseFrameDropInterval(
+std::optional<TimeDelta> ParseFrameDropInterval(
     const FieldTrialsView& field_trials) {
   FieldTrialFlag disabled = FieldTrialFlag("Disabled");
   FieldTrialParameter<TimeDelta> interval("interval",
@@ -263,7 +263,7 @@ absl::optional<TimeDelta> ParseFrameDropInterval(
                   field_trials.Lookup("WebRTC-VP8-MaxFrameInterval"));
   if (disabled.Get()) {
     // Kill switch set, don't use any max frame interval.
-    return absl::nullopt;
+    return std::nullopt;
   }
   return interval.Get();
 }
@@ -494,7 +494,7 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
-  if (absl::optional<ScalabilityMode> scalability_mode =
+  if (std::optional<ScalabilityMode> scalability_mode =
           inst->GetScalabilityMode();
       scalability_mode.has_value() &&
       !VP8SupportsScalabilityMode(*scalability_mode)) {
@@ -1159,7 +1159,7 @@ void LibvpxVp8Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
   frame_buffer_controller_->OnEncodeDone(stream_idx, timestamp,
                                          encoded_images_[encoder_idx].size(),
                                          is_keyframe, qp, codec_specific);
-  if (is_keyframe && codec_specific->template_structure != absl::nullopt) {
+  if (is_keyframe && codec_specific->template_structure != std::nullopt) {
     // Number of resolutions must match number of spatial layers, VP8 structures
     // expected to use single spatial layer. Templates must be ordered by
     // spatial_id, so assumption there is exactly one spatial layer is same as

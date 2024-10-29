@@ -365,7 +365,8 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
   if (!config) {
     return nil;
   }
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _observer.reset(new webrtc::PeerConnectionDelegateAdapter(self));
     _nativeConstraints = constraints.nativeConstraints;
     CopyConstraintsIntoRtcConfiguration(_nativeConstraints.get(), config.get());
@@ -621,13 +622,13 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
               maxBitrateBps:(nullable NSNumber *)maxBitrateBps {
   webrtc::BitrateSettings params;
   if (minBitrateBps != nil) {
-    params.min_bitrate_bps = absl::optional<int>(minBitrateBps.intValue);
+    params.min_bitrate_bps = std::optional<int>(minBitrateBps.intValue);
   }
   if (currentBitrateBps != nil) {
-    params.start_bitrate_bps = absl::optional<int>(currentBitrateBps.intValue);
+    params.start_bitrate_bps = std::optional<int>(currentBitrateBps.intValue);
   }
   if (maxBitrateBps != nil) {
-    params.max_bitrate_bps = absl::optional<int>(maxBitrateBps.intValue);
+    params.max_bitrate_bps = std::optional<int>(maxBitrateBps.intValue);
   }
   return _peerConnection->SetBitrate(params).ok();
 }

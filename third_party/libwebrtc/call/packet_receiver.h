@@ -13,7 +13,6 @@
 #include "absl/functional/any_invocable.h"
 #include "api/media_types.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
 
 namespace webrtc {

@@ -63,10 +63,10 @@ void RateUtilizationTracker::OnDataProduced(DataSize size, Timestamp time) {
   CullOldData(time);
 }
 
-absl::optional<double> RateUtilizationTracker::GetRateUtilizationFactor(
+std::optional<double> RateUtilizationTracker::GetRateUtilizationFactor(
     Timestamp time) const {
   if (data_points_.empty()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   RTC_CHECK_GE(time, data_points_.back().time);
@@ -104,7 +104,7 @@ absl::optional<double> RateUtilizationTracker::GetRateUtilizationFactor(
 
   if (allocated_send_data_size.IsZero() && current_rate_.IsZero()) {
     // No allocated rate across all of the data points, ignore.
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Calculate the rate past the very last data point until the polling time.

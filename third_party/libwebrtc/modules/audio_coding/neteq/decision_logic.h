@@ -70,9 +70,9 @@ class DecisionLogic : public NetEqController {
 
   int UnlimitedTargetLevelMs() const override;
 
-  absl::optional<int> PacketArrived(int fs_hz,
-                                    bool should_update_stats,
-                                    const PacketArrivedInfo& info) override;
+  std::optional<int> PacketArrived(int fs_hz,
+                                   bool should_update_stats,
+                                   const PacketArrivedInfo& info) override;
 
   void RegisterEmptyPacket() override {}
 

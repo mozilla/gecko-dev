@@ -91,7 +91,7 @@ class AudioBitrateAccountant {
   void Reset() {
     rate_last_frame_ = DataRate::BitsPerSec(0);
     next_frame_duration_ = TimeDelta::Millis(0);
-    report_rate_ = absl::nullopt;
+    report_rate_ = std::nullopt;
   }
 
   // A new frame is formed when bytesize is nonzero.
@@ -114,13 +114,13 @@ class AudioBitrateAccountant {
     next_frame_duration_ = TimeDelta::Millis(0);
   }
 
-  absl::optional<DataRate> GetUsedRate() const { return report_rate_; }
+  std::optional<DataRate> GetUsedRate() const { return report_rate_; }
 
  private:
   TimeDelta next_frame_duration_ = TimeDelta::Millis(0);
   DataSize packet_overhead_ = DataSize::Bytes(72);
   DataRate rate_last_frame_ = DataRate::BitsPerSec(0);
-  absl::optional<DataRate> report_rate_;
+  std::optional<DataRate> report_rate_;
 };
 
 class ChannelSend : public ChannelSendInterface,
@@ -219,7 +219,7 @@ class ChannelSend : public ChannelSendInterface,
   void OnReportBlockDataUpdated(ReportBlockData report_block) override;
 
   // Reports actual bitrate used (vs allocated).
-  absl::optional<DataRate> GetUsedRate() const override {
+  std::optional<DataRate> GetUsedRate() const override {
     MutexLock lock(&bitrate_accountant_mutex_);
     return bitrate_accountant_.GetUsedRate();
   }
@@ -246,7 +246,7 @@ class ChannelSend : public ChannelSendInterface,
                        rtc::ArrayView<const uint8_t> payload,
                        int64_t absolute_capture_timestamp_ms,
                        rtc::ArrayView<const uint32_t> csrcs,
-                       absl::optional<uint8_t> audio_level_dbov)
+                       std::optional<uint8_t> audio_level_dbov)
       RTC_RUN_ON(encoder_queue_checker_);
 
   void OnReceivedRtt(int64_t rtt_ms);
@@ -279,7 +279,7 @@ class ChannelSend : public ChannelSendInterface,
 
   // This is just an offset, RTP module will add its own random offset.
   uint32_t timestamp_ RTC_GUARDED_BY(audio_thread_race_checker_) = 0;
-  absl::optional<int64_t> last_capture_timestamp_ms_
+  std::optional<int64_t> last_capture_timestamp_ms_
       RTC_GUARDED_BY(audio_thread_race_checker_);
 
   RmsLevel rms_level_ RTC_GUARDED_BY(encoder_queue_checker_);
@@ -340,16 +340,28 @@ class RtpPacketSenderProxy : public RtpPacketSender {
   void EnqueuePackets(
       std::vector<std::unique_ptr<RtpPacketToSend>> packets) override {
     MutexLock lock(&mutex_);
-    if (rtp_packet_pacer_) {
-      rtp_packet_pacer_->EnqueuePackets(std::move(packets));
+
+    // Since we allow having an instance with no rtp_packet_pacer_ set we
+    // should handle calls to member functions in this state gracefully rather
+    // than null dereferencing.
+    if (!rtp_packet_pacer_) {
+      RTC_DLOG(LS_WARNING)
+          << "Dropping packets queued while rtp_packet_pacer_ is null.";
+      return;
     }
+    rtp_packet_pacer_->EnqueuePackets(std::move(packets));
   }
 
   void RemovePacketsForSsrc(uint32_t ssrc) override {
     MutexLock lock(&mutex_);
-    if (rtp_packet_pacer_) {
-      rtp_packet_pacer_->RemovePacketsForSsrc(ssrc);
+
+    // Since we allow having an instance with no rtp_packet_pacer_ set we
+    // should handle calls to member functions in this state gracefully rather
+    // than null dereferencing.
+    if (!rtp_packet_pacer_) {
+      return;
     }
+    rtp_packet_pacer_->RemovePacketsForSsrc(ssrc);
   }
 
  private:
@@ -367,7 +379,7 @@ int32_t ChannelSend::SendData(AudioFrameType frameType,
   RTC_DCHECK_RUN_ON(&encoder_queue_checker_);
   rtc::ArrayView<const uint8_t> payload(payloadData, payloadSize);
 
-  absl::optional<uint8_t> audio_level_dbov;
+  std::optional<uint8_t> audio_level_dbov;
   if (include_audio_level_indication_.load()) {
     // Take the averaged audio levels from rms_level_ and reset it before
     // invoking any async transformer.
@@ -398,7 +410,7 @@ int32_t ChannelSend::SendRtpAudio(AudioFrameType frameType,
                                   rtc::ArrayView<const uint8_t> payload,
                                   int64_t absolute_capture_timestamp_ms,
                                   rtc::ArrayView<const uint32_t> csrcs,
-                                  absl::optional<uint8_t> audio_level_dbov) {
+                                  std::optional<uint8_t> audio_level_dbov) {
   // E2EE Custom Audio Frame Encryption (This is optional).
   // Keep this buffer around for the lifetime of the send call.
   rtc::Buffer encrypted_audio_payload;
@@ -504,13 +516,10 @@ ChannelSend::ChannelSend(
   configuration.report_block_data_observer = this;
   configuration.network_link_rtcp_observer =
       transport_controller->GetRtcpObserver();
-  configuration.clock = &env_.clock();
   configuration.audio = true;
   configuration.outgoing_transport = rtp_transport;
 
   configuration.paced_sender = rtp_packet_pacer_proxy_.get();
-
-  configuration.event_log = &env_.event_log();
   configuration.rtt_stats = rtcp_rtt_stats;
   configuration.rtcp_packet_type_counter_observer =
       rtcp_counter_observer_.get();
@@ -521,15 +530,13 @@ ChannelSend::ChannelSend(
   configuration.extmap_allow_mixed = extmap_allow_mixed;
   configuration.rtcp_report_interval_ms = rtcp_report_interval_ms;
   configuration.rtcp_packet_type_counter_observer = this;
-
   configuration.local_media_ssrc = ssrc;
-  configuration.field_trials = &env_.field_trials();
 
-  rtp_rtcp_ = ModuleRtpRtcpImpl2::Create(configuration);
+  rtp_rtcp_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, configuration);
   rtp_rtcp_->SetSendingMediaStatus(false);
 
-  rtp_sender_audio_ = std::make_unique<RTPSenderAudio>(configuration.clock,
-                                                       rtp_rtcp_->RtpSender());
+  rtp_sender_audio_ =
+      std::make_unique<RTPSenderAudio>(&env_.clock(), rtp_rtcp_->RtpSender());
 
   // Ensure that RTCP is enabled by default for the created channel.
   rtp_rtcp_->SetRTCPStatus(RtcpMode::kCompound);
@@ -583,7 +590,7 @@ void ChannelSend::StopSend() {
   rtc::Event flush;
   encoder_queue_->PostTask([this, &flush]() {
     RTC_DCHECK_RUN_ON(&encoder_queue_checker_);
-    CallEncoder([](AudioEncoder* encoder) { encoder->Reset(); });
+    audio_coding_->Reset();
     flush.Set();
   });
   flush.Wait(rtc::Event::kForever);
@@ -964,7 +971,7 @@ void ChannelSend::InitFrameTransformerDelegate(
              rtc::ArrayView<const uint8_t> payload,
              int64_t absolute_capture_timestamp_ms,
              rtc::ArrayView<const uint32_t> csrcs,
-             absl::optional<uint8_t> audio_level_dbov) {
+             std::optional<uint8_t> audio_level_dbov) {
         RTC_DCHECK_RUN_ON(&encoder_queue_checker_);
         return SendRtpAudio(
             frameType, payloadType,

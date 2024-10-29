@@ -8,12 +8,35 @@
 
 import("../webrtc.gni")
 
+rtc_library("corruption_detection_converters") {
+  sources = [
+    "corruption_detection_converters.cc",
+    "corruption_detection_converters.h",
+  ]
+  deps = [
+    ":corruption_detection_message",
+    ":frame_instrumentation_data",
+    "../rtc_base:checks",
+  ]
+}
+
+rtc_library("corruption_detection_message") {
+  sources = [ "corruption_detection_message.h" ]
+  deps = [
+    "../api:array_view",
+    "//third_party/abseil-cpp/absl/container:inlined_vector",
+  ]
+}
+
+rtc_library("frame_instrumentation_data") {
+  sources = [ "frame_instrumentation_data.h" ]
+}
+
 rtc_library("common_video") {
   visibility = [ "*" ]
 
   sources = [
     "bitrate_adjuster.cc",
-    "corruption_detection_message.h",
     "frame_rate_estimator.cc",
     "frame_rate_estimator.h",
     "framerate_controller.cc",
@@ -86,9 +109,7 @@ rtc_library("common_video") {
     "../rtc_base/synchronization:mutex",
     "../rtc_base/system:rtc_export",
     "../system_wrappers:metrics",
-    "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/numeric:bits",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/libyuv",
   ]
   if (rtc_use_h265) {
@@ -116,12 +137,31 @@ if (rtc_include_tests && !build_with_chromium) {
     }
   }
 
+  rtc_library("corruption_detection_converters_unittest") {
+    testonly = true
+    sources = [ "corruption_detection_converters_unittest.cc" ]
+    deps = [
+      ":corruption_detection_converters",
+      ":corruption_detection_message",
+      ":frame_instrumentation_data",
+      "../test:test_support",
+    ]
+  }
+
+  rtc_library("corruption_detection_message_unittest") {
+    testonly = true
+    sources = [ "corruption_detection_message_unittest.cc" ]
+    deps = [
+      ":corruption_detection_message",
+      "../test:test_support",
+    ]
+  }
+
   rtc_test("common_video_unittests") {
     testonly = true
 
     sources = [
       "bitrate_adjuster_unittest.cc",
-      "corruption_detection_message_unittest.cc",
       "frame_rate_estimator_unittest.cc",
       "framerate_controller_unittest.cc",
       "h264/h264_bitstream_parser_unittest.cc",
@@ -144,6 +184,8 @@ if (rtc_include_tests && !build_with_chromium) {
 
     deps = [
       ":common_video",
+      ":corruption_detection_converters_unittest",
+      ":corruption_detection_message_unittest",
       "../api:scoped_refptr",
       "../api/units:time_delta",
       "../api/video:video_frame",
@@ -164,7 +206,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "../test:test_support",
       "../test:video_test_common",
       "//testing/gtest",
-      "//third_party/abseil-cpp/absl/types:optional",
       "//third_party/libyuv",
     ]
 

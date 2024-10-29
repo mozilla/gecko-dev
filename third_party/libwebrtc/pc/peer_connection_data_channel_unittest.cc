@@ -9,12 +9,12 @@
  */
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
@@ -82,11 +82,11 @@ class PeerConnectionWrapperForDataChannelTest : public PeerConnectionWrapper {
     sctp_transport_factory_ = sctp_transport_factory;
   }
 
-  absl::optional<std::string> sctp_mid() {
+  std::optional<std::string> sctp_mid() {
     return GetInternalPeerConnection()->sctp_mid();
   }
 
-  absl::optional<std::string> sctp_transport_name() {
+  std::optional<std::string> sctp_transport_name() {
     return GetInternalPeerConnection()->sctp_transport_name();
   }
 

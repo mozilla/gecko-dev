@@ -14,12 +14,12 @@
 
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
 #include "api/field_trials_view.h"
@@ -83,7 +83,7 @@ struct ForcedFallbackParams {
 const char kVp8ForceFallbackEncoderFieldTrial[] =
     "WebRTC-VP8-Forced-Fallback-Encoder-v2";
 
-absl::optional<ForcedFallbackParams> ParseFallbackParamsFromFieldTrials(
+std::optional<ForcedFallbackParams> ParseFallbackParamsFromFieldTrials(
     const FieldTrialsView& field_trials,
     const VideoEncoder& main_encoder) {
   // Ignore WebRTC-VP8-Forced-Fallback-Encoder-v2 if
@@ -101,7 +101,7 @@ absl::optional<ForcedFallbackParams> ParseFallbackParamsFromFieldTrials(
   const std::string field_trial =
       field_trials.Lookup(kVp8ForceFallbackEncoderFieldTrial);
   if (!absl::StartsWith(field_trial, "Enabled")) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   int max_pixels_lower_bound =
@@ -115,23 +115,23 @@ absl::optional<ForcedFallbackParams> ParseFallbackParamsFromFieldTrials(
              &params.max_pixels, &min_bps) != 3) {
     RTC_LOG(LS_WARNING)
         << "Invalid number of forced fallback parameters provided.";
-    return absl::nullopt;
+    return std::nullopt;
   } else if (params.min_pixels <= 0 ||
              params.max_pixels < max_pixels_lower_bound ||
              params.max_pixels < params.min_pixels || min_bps <= 0) {
     RTC_LOG(LS_WARNING) << "Invalid forced fallback parameter value provided.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   params.vp8_specific_resolution_switch = true;
   return params;
 }
 
-absl::optional<ForcedFallbackParams> GetForcedFallbackParams(
+std::optional<ForcedFallbackParams> GetForcedFallbackParams(
     const FieldTrialsView& field_trials,
     bool prefer_temporal_support,
     const VideoEncoder& main_encoder) {
-  absl::optional<ForcedFallbackParams> params =
+  std::optional<ForcedFallbackParams> params =
       ParseFallbackParamsFromFieldTrials(field_trials, main_encoder);
   if (prefer_temporal_support) {
     if (!params.has_value()) {
@@ -203,15 +203,15 @@ class VideoEncoderSoftwareFallbackWrapper final : public VideoEncoder {
   // Settings used in the last InitEncode call and used if a dynamic fallback to
   // software is required.
   VideoCodec codec_settings_;
-  absl::optional<VideoEncoder::Settings> encoder_settings_;
+  std::optional<VideoEncoder::Settings> encoder_settings_;
 
   // The last rate control settings, if set.
-  absl::optional<RateControlParameters> rate_control_parameters_;
+  std::optional<RateControlParameters> rate_control_parameters_;
 
   // The last channel parameters set.
-  absl::optional<float> packet_loss_;
-  absl::optional<int64_t> rtt_;
-  absl::optional<LossNotification> loss_notification_;
+  std::optional<float> packet_loss_;
+  std::optional<int64_t> rtt_;
+  std::optional<LossNotification> loss_notification_;
 
   enum class EncoderState {
     kUninitialized,
@@ -226,7 +226,7 @@ class VideoEncoderSoftwareFallbackWrapper final : public VideoEncoder {
 
   EncodedImageCallback* callback_;
 
-  const absl::optional<ForcedFallbackParams> fallback_params_;
+  const std::optional<ForcedFallbackParams> fallback_params_;
   int32_t EncodeWithMainEncoder(const VideoFrame& frame,
                                 const std::vector<VideoFrameType>* frame_types);
 };
@@ -327,7 +327,7 @@ int32_t VideoEncoderSoftwareFallbackWrapper::InitEncode(
   codec_settings_ = *codec_settings;
   encoder_settings_ = settings;
   // Clear stored rate/channel parameters.
-  rate_control_parameters_ = absl::nullopt;
+  rate_control_parameters_ = std::nullopt;
 
   RTC_DCHECK_EQ(encoder_state_, EncoderState::kUninitialized)
       << "InitEncode() should never be called on an active instance!";
@@ -342,6 +342,9 @@ int32_t VideoEncoderSoftwareFallbackWrapper::InitEncode(
   if (ret == WEBRTC_VIDEO_CODEC_OK) {
     encoder_state_ = EncoderState::kMainEncoderUsed;
     PrimeEncoder(current_encoder());
+    return ret;
+  }
+  if (ret == WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED) {
     return ret;
   }
   RTC_LOG(LS_WARNING) << "[VESFW] Hardware encoder initialization failed with"

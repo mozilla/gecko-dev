@@ -54,7 +54,8 @@ const char *kRTCFileLoggerRotatingLogPrefix = "rotating_log";
                    rotationType:(RTCFileLoggerRotationType)rotationType {
   NSParameterAssert(dirPath.length);
   NSParameterAssert(maxFileSize);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     BOOL isDir = NO;
     NSFileManager *fileManager = [NSFileManager defaultManager];
     if ([fileManager fileExistsAtPath:dirPath isDirectory:&isDir]) {

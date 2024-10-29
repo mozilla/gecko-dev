@@ -12,8 +12,8 @@
 #define VIDEO_RATE_UTILIZATION_TRACKER_H_
 
 #include <deque>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
@@ -46,7 +46,7 @@ class RateUtilizationTracker {
   // The timestamps used should never decrease relative the last one.
   void OnDataRateChanged(DataRate rate, Timestamp time);
   void OnDataProduced(DataSize size, Timestamp time);
-  absl::optional<double> GetRateUtilizationFactor(Timestamp time) const;
+  std::optional<double> GetRateUtilizationFactor(Timestamp time) const;
 
  private:
   struct RateUsageUpdate {

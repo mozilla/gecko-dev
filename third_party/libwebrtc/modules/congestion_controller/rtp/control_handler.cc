@@ -38,10 +38,10 @@ void CongestionControlHandler::SetPacerQueue(TimeDelta expected_queue_time) {
   pacer_expected_queue_ms_ = expected_queue_time.ms();
 }
 
-absl::optional<TargetTransferRate> CongestionControlHandler::GetUpdate() {
+std::optional<TargetTransferRate> CongestionControlHandler::GetUpdate() {
   RTC_DCHECK_RUN_ON(&sequenced_checker_);
   if (!last_incoming_.has_value())
-    return absl::nullopt;
+    return std::nullopt;
   TargetTransferRate new_outgoing = *last_incoming_;
   DataRate log_target_rate = new_outgoing.target_rate;
   bool pause_encoding = false;
@@ -67,7 +67,7 @@ absl::optional<TargetTransferRate> CongestionControlHandler::GetUpdate() {
     last_reported_ = new_outgoing;
     return new_outgoing;
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace webrtc

@@ -18,15 +18,16 @@ PeerConnectionInterface::RTCOfferAnswerOptions IceRestartOfferAnswerOptions() {
   return options;
 }
 
-void RemoveSsrcsAndMsids(cricket::SessionDescription* desc) {
-  for (ContentInfo& content : desc->contents()) {
+void RemoveSsrcsAndMsids(std::unique_ptr<SessionDescriptionInterface>& sdp) {
+  for (ContentInfo& content : sdp->description()->contents()) {
     content.media_description()->mutable_streams().clear();
   }
-  desc->set_msid_signaling(0);
+  sdp->description()->set_msid_signaling(0);
 }
 
-void RemoveSsrcsAndKeepMsids(cricket::SessionDescription* desc) {
-  for (ContentInfo& content : desc->contents()) {
+void RemoveSsrcsAndKeepMsids(
+    std::unique_ptr<SessionDescriptionInterface>& sdp) {
+  for (ContentInfo& content : sdp->description()->contents()) {
     std::string track_id;
     std::vector<std::string> stream_ids;
     if (!content.media_description()->streams().empty()) {
@@ -41,6 +42,13 @@ void RemoveSsrcsAndKeepMsids(cricket::SessionDescription* desc) {
     new_stream.set_stream_ids(stream_ids);
     content.media_description()->AddStream(new_stream);
   }
+}
+
+void SetSdpType(std::unique_ptr<SessionDescriptionInterface>& sdp,
+                SdpType sdpType) {
+  std::string str;
+  sdp->ToString(&str);
+  sdp = CreateSessionDescription(sdpType, str);
 }
 
 int FindFirstMediaStatsIndexByKind(

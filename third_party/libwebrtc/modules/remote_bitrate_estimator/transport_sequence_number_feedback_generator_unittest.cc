@@ -12,9 +12,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/transport/test/mock_network_control.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
@@ -86,7 +86,7 @@ class TransportSequenceNumberFeedbackGeneneratorTest : public ::testing::Test {
  protected:
   void IncomingPacket(uint16_t seq,
                       Timestamp arrival_time,
-                      absl::optional<uint32_t> abs_send_time = absl::nullopt) {
+                      std::optional<uint32_t> abs_send_time = std::nullopt) {
     RtpHeaderExtensionMap map;
     map.Register<TransportSequenceNumber>(1);
     map.Register<AbsoluteSendTime>(2);
@@ -102,7 +102,7 @@ class TransportSequenceNumberFeedbackGeneneratorTest : public ::testing::Test {
   void IncomingPacketV2(
       uint16_t seq,
       Timestamp arrival_time,
-      absl::optional<FeedbackRequest> feedback_request = absl::nullopt) {
+      std::optional<FeedbackRequest> feedback_request = std::nullopt) {
     RtpHeaderExtensionMap map;
     map.Register<TransportSequenceNumberV2>(1);
     RtpPacketReceived packet(&map, arrival_time);

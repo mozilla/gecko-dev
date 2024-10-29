@@ -1,25 +1,28 @@
-From: Dan Baker <dbaker@mozilla.com>
-Date: Tue, 27 Aug 2024 14:09:00 -0600
-Subject: Bug 1912989 - (fix-2360208f7d) Removed build command causing failure.
- - moz.build file updates
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Wed, 28 Aug 2024 07:50:00 +0000
+Subject: Bug 1915082 - From ScreenCapturerSck request frames in sRGB
+ colorspace. r=webrtc-reviewers,ng
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd4bc7427678a45283f0f56418ee2c70fac711e6
+The desktop capture path has no colorspace handling for RGB, and libyuv assumes
+sRGB by default. ScreenCaptureKit returns frames in the display's colorspace
+unless told otherwise. On modern macs this is 'Display P3' and will render
+inaccurately when interpreted as sRGB.
+
+Differential Revision: https://phabricator.services.mozilla.com/D220219
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6f6acc479b373662d4ed3ef3be84c3581622297f
 ---
- .gn | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/.gn b/.gn
-index 8325a46ed3..52acee7e60 100644
---- a/.gn
-+++ b/.gn
-@@ -38,7 +38,9 @@ no_check_targets = [
- exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
-                         [ "//build_overrides/build.gni" ]
- 
--export_compile_commands = [ "*" ]
-+# Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
-+# available yet.
-+#export_compile_commands = [ "*" ]
- 
- default_args = {
-   # Webrtc does not support component builds because we are not using the
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index ab4d9137a0..af1a4e360b 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -245,6 +245,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
+                                                     excludingWindows:@[]];
+   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
+   config.pixelFormat = kCVPixelFormatType_32BGRA;
++  config.colorSpaceName = kCGColorSpaceSRGB;
+   config.showsCursor = capture_options_.prefer_cursor_embedded();
+   config.width = filter.contentRect.size.width * filter.pointPixelScale;
+   config.height = filter.contentRect.size.height * filter.pointPixelScale;

@@ -89,7 +89,6 @@ rtc_library("emulated_network") {
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -138,7 +137,6 @@ rtc_library("cross_traffic_unittest") {
     "../../rtc_base:rtc_event",
     "../time_controller",
     "//third_party/abseil-cpp/absl/memory",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -223,7 +221,6 @@ rtc_library("simulated_network") {
     "../../rtc_base:race_checker",
     "../../rtc_base:random",
     "../../rtc_base/synchronization:mutex",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

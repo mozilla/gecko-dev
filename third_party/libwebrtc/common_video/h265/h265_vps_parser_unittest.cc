@@ -32,7 +32,7 @@ class H265VpsParserTest : public ::testing::Test {
   H265VpsParserTest() {}
   ~H265VpsParserTest() override {}
 
-  absl::optional<H265VpsParser::VpsState> vps_;
+  std::optional<H265VpsParser::VpsState> vps_;
 };
 
 TEST_F(H265VpsParserTest, TestSampleVPSId) {

@@ -12,9 +12,9 @@
 
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -170,7 +170,7 @@ class FeedbackTester {
   std::vector<TimeDelta> expected_deltas_;
   size_t expected_size_;
   TimeDelta default_delta_;
-  absl::optional<TransportFeedback> feedback_;
+  std::optional<TransportFeedback> feedback_;
   rtc::Buffer serialized_;
   bool include_timestamps_;
 };

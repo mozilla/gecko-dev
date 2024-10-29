@@ -24,12 +24,12 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio/echo_control.h"
@@ -49,8 +49,6 @@ class StreamConfig;
 class ProcessingConfig;
 
 class EchoDetector;
-class CustomAudioAnalyzer;
-class CustomProcessing;
 
 // The Audio Processing Module (APM) provides a collection of voice processing
 // components designed for real-time communications software.
@@ -735,6 +733,35 @@ class RTC_EXPORT AudioProcessing : public RefCountInterface {
   static int GetFrameSize(int sample_rate_hz) { return sample_rate_hz / 100; }
 };
 
+// Experimental interface for a custom analysis submodule.
+class CustomAudioAnalyzer {
+ public:
+  // (Re-) Initializes the submodule.
+  virtual void Initialize(int sample_rate_hz, int num_channels) = 0;
+  // Analyzes the given capture or render signal.
+  virtual void Analyze(const AudioBuffer* audio) = 0;
+  // Returns a string representation of the module state.
+  virtual std::string ToString() const = 0;
+
+  virtual ~CustomAudioAnalyzer() {}
+};
+
+// Interface for a custom processing submodule.
+class CustomProcessing {
+ public:
+  // (Re-)Initializes the submodule.
+  virtual void Initialize(int sample_rate_hz, int num_channels) = 0;
+  // Processes the given capture or render signal.
+  virtual void Process(AudioBuffer* audio) = 0;
+  // Returns a string representation of the module state.
+  virtual std::string ToString() const = 0;
+  // Handles RuntimeSettings. TODO(webrtc:9262): make pure virtual
+  // after updating dependencies.
+  virtual void SetRuntimeSetting(AudioProcessing::RuntimeSetting setting);
+
+  virtual ~CustomProcessing() {}
+};
+
 class RTC_EXPORT AudioProcessingBuilder {
  public:
   AudioProcessingBuilder();
@@ -887,35 +914,6 @@ class ProcessingConfig {
   StreamConfig streams[StreamName::kNumStreamNames];
 };
 
-// Experimental interface for a custom analysis submodule.
-class CustomAudioAnalyzer {
- public:
-  // (Re-) Initializes the submodule.
-  virtual void Initialize(int sample_rate_hz, int num_channels) = 0;
-  // Analyzes the given capture or render signal.
-  virtual void Analyze(const AudioBuffer* audio) = 0;
-  // Returns a string representation of the module state.
-  virtual std::string ToString() const = 0;
-
-  virtual ~CustomAudioAnalyzer() {}
-};
-
-// Interface for a custom processing submodule.
-class CustomProcessing {
- public:
-  // (Re-)Initializes the submodule.
-  virtual void Initialize(int sample_rate_hz, int num_channels) = 0;
-  // Processes the given capture or render signal.
-  virtual void Process(AudioBuffer* audio) = 0;
-  // Returns a string representation of the module state.
-  virtual std::string ToString() const = 0;
-  // Handles RuntimeSettings. TODO(webrtc:9262): make pure virtual
-  // after updating dependencies.
-  virtual void SetRuntimeSetting(AudioProcessing::RuntimeSetting setting);
-
-  virtual ~CustomProcessing() {}
-};
-
 // Interface for an echo detector submodule.
 class EchoDetector : public RefCountInterface {
  public:
@@ -933,8 +931,8 @@ class EchoDetector : public RefCountInterface {
       rtc::ArrayView<const float> capture_audio) = 0;
 
   struct Metrics {
-    absl::optional<double> echo_likelihood;
-    absl::optional<double> echo_likelihood_recent_max;
+    std::optional<double> echo_likelihood;
+    std::optional<double> echo_likelihood_recent_max;
   };
 
   // Collect current metrics from the echo detector.

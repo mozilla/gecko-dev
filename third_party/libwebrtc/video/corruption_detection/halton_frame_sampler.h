@@ -12,9 +12,9 @@
 #define VIDEO_CORRUPTION_DETECTION_HALTON_FRAME_SAMPLER_H_
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/scoped_refptr.h"
 #include "api/video/video_frame_buffer.h"
 #include "video/corruption_detection/halton_sequence.h"
@@ -56,7 +56,7 @@ class HaltonFrameSampler {
   Coordinates GetNextSampleCoordinates();
 
   HaltonSequence coordinate_sampler_prng_;
-  absl::optional<uint32_t> rtp_timestamp_last_frame_sampled_;
+  std::optional<uint32_t> rtp_timestamp_last_frame_sampled_;
   int frames_sampled_ = 0;
   int frames_until_next_sample_ = 0;
 };

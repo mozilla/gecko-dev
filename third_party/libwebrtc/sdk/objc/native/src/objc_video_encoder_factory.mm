@@ -10,6 +10,7 @@
 
 #include "sdk/objc/native/src/objc_video_encoder_factory.h"
 
+#include <optional>
 #include <string>
 
 #import "base/RTCMacros.h"
@@ -120,22 +121,22 @@ class ObjcVideoEncoderSelector : public VideoEncoderFactory::EncoderSelectorInte
         [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithNativeSdpVideoFormat:format];
     [selector_ registerCurrentEncoderInfo:info];
   }
-  absl::optional<SdpVideoFormat> OnEncoderBroken() override {
+  std::optional<SdpVideoFormat> OnEncoderBroken() override {
     RTC_OBJC_TYPE(RTCVideoCodecInfo) *info = [selector_ encoderForBrokenEncoder];
     if (info) {
       return [info nativeSdpVideoFormat];
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
-  absl::optional<SdpVideoFormat> OnAvailableBitrate(const DataRate &rate) override {
+  std::optional<SdpVideoFormat> OnAvailableBitrate(const DataRate &rate) override {
     RTC_OBJC_TYPE(RTCVideoCodecInfo) *info = [selector_ encoderForBitrate:rate.kbps<NSInteger>()];
     if (info) {
       return [info nativeSdpVideoFormat];
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 
-  absl::optional<SdpVideoFormat> OnResolutionChange(const RenderResolution &resolution) override {
+  std::optional<SdpVideoFormat> OnResolutionChange(const RenderResolution &resolution) override {
     if ([selector_ respondsToSelector:@selector(encoderForResolutionChangeBySize:)]) {
       RTC_OBJC_TYPE(RTCVideoCodecInfo) *info = [selector_
           encoderForResolutionChangeBySize:CGSizeMake(resolution.Width(), resolution.Height())];
@@ -143,7 +144,7 @@ class ObjcVideoEncoderSelector : public VideoEncoderFactory::EncoderSelectorInte
         return [info nativeSdpVideoFormat];
       }
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 
  private:
@@ -182,6 +183,25 @@ std::vector<SdpVideoFormat> ObjCVideoEncoderFactory::GetImplementations() const 
     return supported_formats;
   }
   return GetSupportedFormats();
+}
+
+VideoEncoderFactory::CodecSupport ObjCVideoEncoderFactory::QueryCodecSupport(
+    const SdpVideoFormat &format, std::optional<std::string> scalability_mode) const {
+  if ([encoder_factory_ respondsToSelector:@selector(queryCodecSupport:scalabilityMode:)]) {
+    RTC_OBJC_TYPE(RTCVideoCodecInfo) *info =
+        [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithNativeSdpVideoFormat:format];
+    NSString *mode;
+    if (scalability_mode.has_value()) {
+      mode = [NSString stringForAbslStringView:*scalability_mode];
+    }
+
+    RTC_OBJC_TYPE(RTCVideoEncoderCodecSupport) *result = [encoder_factory_ queryCodecSupport:info
+                                                                             scalabilityMode:mode];
+    return {.is_supported = result.isSupported, .is_power_efficient = result.isPowerEfficient};
+  }
+
+  // Use default implementation.
+  return VideoEncoderFactory::QueryCodecSupport(format, scalability_mode);
 }
 
 std::unique_ptr<VideoEncoder> ObjCVideoEncoderFactory::Create(const Environment &env,

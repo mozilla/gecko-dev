@@ -157,7 +157,6 @@ rtc_library("aec3") {
     "../../../system_wrappers:metrics",
     "../utility:cascaded_biquad_filter",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 
   if (target_cpu == "x86" || target_cpu == "x64") {
@@ -228,7 +227,6 @@ rtc_source_set("matched_filter") {
     "../../../api:array_view",
     "../../../rtc_base:gtest_prod",
     "../../../rtc_base/system:arch",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -323,7 +321,6 @@ if (rtc_include_tests) {
       "../../../test:field_trial",
       "../../../test:test_support",
       "../utility:cascaded_biquad_filter",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
 
     defines = []

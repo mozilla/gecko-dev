@@ -15,13 +15,13 @@
 #include <deque>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 #include "absl/memory/memory.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/metronome/test/fake_metronome.h"
@@ -84,8 +84,8 @@ auto RenderedFrameWith(::testing::Matcher<VideoFrame> m) {
 auto RenderedFrame() {
   return RenderedFrameWith(_);
 }
-testing::Matcher<absl::optional<VideoFrame>> DidNotReceiveFrame() {
-  return Eq(absl::nullopt);
+testing::Matcher<std::optional<VideoFrame>> DidNotReceiveFrame() {
+  return Eq(std::nullopt);
 }
 
 constexpr TimeDelta kDefaultTimeOut = TimeDelta::Millis(50);
@@ -115,14 +115,14 @@ class FakeVideoRenderer : public rtc::VideoSinkInterface<VideoFrame> {
   }
 
   // If `advance_time`, then the clock will always advance by `timeout`.
-  absl::optional<VideoFrame> WaitForFrame(TimeDelta timeout,
-                                          bool advance_time = false) {
+  std::optional<VideoFrame> WaitForFrame(TimeDelta timeout,
+                                         bool advance_time = false) {
     auto start = time_controller_->GetClock()->CurrentTime();
     if (last_frame_.empty()) {
       time_controller_->AdvanceTime(TimeDelta::Zero());
       time_controller_->Wait([this] { return !last_frame_.empty(); }, timeout);
     }
-    absl::optional<VideoFrame> ret;
+    std::optional<VideoFrame> ret;
     if (!last_frame_.empty()) {
       ret = last_frame_.front();
       last_frame_.pop_front();
@@ -232,8 +232,8 @@ class VideoReceiveStream2Test : public ::testing::TestWithParam<bool> {
   }
 
   void RecreateReceiveStream(
-      absl::optional<VideoReceiveStreamInterface::RecordingState> state =
-          absl::nullopt) {
+      std::optional<VideoReceiveStreamInterface::RecordingState> state =
+          std::nullopt) {
     if (video_receive_stream_) {
       video_receive_stream_->UnregisterFromTransport();
       video_receive_stream_ = nullptr;
@@ -379,7 +379,7 @@ TEST_P(VideoReceiveStream2Test, MaxCompositionDelaySetFromMaxPlayoutDelay) {
           .Build();
   video_receive_stream_->OnCompleteFrame(std::move(test_frame0));
   EXPECT_THAT(timing_->RenderParameters().max_composition_delay_in_frames,
-              Eq(absl::nullopt));
+              Eq(std::nullopt));
   time_controller_.AdvanceTime(k30FpsDelay);
 
   // Max composition delay not set for playout delay 0,0.
@@ -393,7 +393,7 @@ TEST_P(VideoReceiveStream2Test, MaxCompositionDelaySetFromMaxPlayoutDelay) {
           .Build();
   video_receive_stream_->OnCompleteFrame(std::move(test_frame1));
   EXPECT_THAT(timing_->RenderParameters().max_composition_delay_in_frames,
-              Eq(absl::nullopt));
+              Eq(std::nullopt));
   time_controller_.AdvanceTime(k30FpsDelay);
 
   // Max composition delay not set for playout delay X,Y, where X,Y>0.
@@ -407,7 +407,7 @@ TEST_P(VideoReceiveStream2Test, MaxCompositionDelaySetFromMaxPlayoutDelay) {
           .Build();
   video_receive_stream_->OnCompleteFrame(std::move(test_frame2));
   EXPECT_THAT(timing_->RenderParameters().max_composition_delay_in_frames,
-              Eq(absl::nullopt));
+              Eq(std::nullopt));
 
   time_controller_.AdvanceTime(k30FpsDelay);
 
@@ -1066,7 +1066,7 @@ TEST_P(VideoReceiveStream2Test, PoorConnectionWithFpsChangeDuringLostFrame) {
             .AsLast()
             .Build());
     EXPECT_THAT(fake_renderer_.WaitForFrame(k30FpsDelay, /*advance_time=*/true),
-                Eq(absl::nullopt));
+                Eq(std::nullopt));
   }
   uint32_t current_rtp = RtpTimestampForFrame(id);
   Timestamp send_15fps_end_time =
@@ -1084,7 +1084,7 @@ TEST_P(VideoReceiveStream2Test, PoorConnectionWithFpsChangeDuringLostFrame) {
             .AsLast()
             .Build());
     EXPECT_THAT(fake_renderer_.WaitForFrame(k15FpsDelay, /*advance_time=*/true),
-                Eq(absl::nullopt));
+                Eq(std::nullopt));
   }
 
   ++id;

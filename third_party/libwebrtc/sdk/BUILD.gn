@@ -36,7 +36,6 @@ rtc_library("media_constraints") {
   deps = [
     "../api:audio_options_api",
     "../api:libjingle_peerconnection_api",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -111,6 +110,7 @@ if (is_ios || is_mac) {
       "objc/base/RTCVideoDecoderFactory.h",
       "objc/base/RTCVideoEncoder.h",
       "objc/base/RTCVideoEncoderFactory.h",
+      "objc/base/RTCVideoEncoderFactory.mm",
       "objc/base/RTCVideoEncoderQpThresholds.h",
       "objc/base/RTCVideoEncoderQpThresholds.m",
       "objc/base/RTCVideoEncoderSettings.h",
@@ -453,7 +453,6 @@ if (is_ios || is_mac) {
           "../media:rtc_media_base",
           "../rtc_base:checks",
           "../rtc_base:logging",
-          "//third_party/abseil-cpp/absl/types:optional",
         ]
 
         configs += [
@@ -782,8 +781,11 @@ if (is_ios || is_mac) {
 
       deps = [
         ":base_objc",
+        ":helpers_objc",
         ":wrapped_native_codec_objc",
+        "../api/video_codecs:scalability_mode",
         "../modules/video_coding:webrtc_vp8",
+        "../modules/video_coding:webrtc_vp8_scalability",
       ]
     }
 
@@ -799,7 +801,9 @@ if (is_ios || is_mac) {
 
       deps = [
         ":base_objc",
+        ":helpers_objc",
         ":wrapped_native_codec_objc",
+        "../api/video_codecs:scalability_mode",
         "../modules/video_coding:webrtc_vp9",
       ]
     }
@@ -830,7 +834,10 @@ if (is_ios || is_mac) {
 
       deps = [
         ":base_objc",
+        ":helpers_objc",
         ":wrapped_native_codec_objc",
+        "../api/video_codecs:scalability_mode",
+        "../modules/video_coding/codecs/av1:av1_svc_config",
         "../modules/video_coding/codecs/av1:libaom_av1_encoder",
       ]
     }
@@ -921,6 +928,8 @@ if (is_ios || is_mac) {
         ":base_objc",
         ":helpers_objc",
         "../api/video:encoded_image",
+        "../api/video_codecs:scalability_mode",
+        "../api/video_codecs:scalability_mode_helper",
         "../api/video_codecs:video_codecs_api",
         "../modules/video_coding:video_codec_interface",
         "../rtc_base:refcount",
@@ -1191,6 +1200,7 @@ if (is_ios || is_mac) {
             ":videoframebuffer_objc",
             ":videosource_objc",
             ":videotoolbox_objc",
+            "../api:libjingle_peerconnection_api",
             "../api:scoped_refptr",
             "../api/audio:audio_device",
             "../api/audio:audio_processing",

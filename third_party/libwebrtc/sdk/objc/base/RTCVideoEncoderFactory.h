@@ -32,6 +32,22 @@ RTC_OBJC_EXPORT
 
 @end
 
+/** RTCVideoEncoderCodecSupport is an Objective-C version of
+ * webrtc::VideoEncoderFactory::CodecSupport. */
+RTC_OBJC_EXPORT
+@interface RTC_OBJC_TYPE (RTCVideoEncoderCodecSupport) : NSObject
+
+- (instancetype)init NS_UNAVAILABLE;
+
+- (instancetype)initWithSupported:(bool)isSupported;
+- (instancetype)initWithSupported:(bool)isSupported
+                 isPowerEfficient:(bool)isPowerEfficient NS_DESIGNATED_INITIALIZER;
+
+@property(nonatomic, readonly) bool isSupported;
+@property(nonatomic, readonly) bool isPowerEfficient;
+
+@end
+
 /** RTCVideoEncoderFactory is an Objective-C version of webrtc::VideoEncoderFactory.
  */
 RTC_OBJC_EXPORT
@@ -46,6 +62,10 @@ RTC_OBJC_EXPORT
 @optional
 - (NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)implementations;
 - (nullable id<RTC_OBJC_TYPE(RTCVideoEncoderSelector)>)encoderSelector;
+/* TODO: b/299588022 - move to non-optional section when implemented by all derived classes. */
+- (RTC_OBJC_TYPE(RTCVideoEncoderCodecSupport) *)
+    queryCodecSupport:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info
+      scalabilityMode:(nullable NSString *)scalabilityMode;
 
 @end
 

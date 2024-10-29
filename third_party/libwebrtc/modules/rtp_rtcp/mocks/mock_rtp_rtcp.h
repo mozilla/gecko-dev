@@ -12,13 +12,13 @@
 #define MODULES_RTP_RTCP_MOCKS_MOCK_RTP_RTCP_H_
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
@@ -69,9 +69,9 @@ class MockRtpRtcpInterface : public RtpRtcpInterface {
   MOCK_METHOD(void, SetMid, (absl::string_view mid), (override));
   MOCK_METHOD(void, SetRtxSendStatus, (int modes), (override));
   MOCK_METHOD(int, RtxSendStatus, (), (const, override));
-  MOCK_METHOD(absl::optional<uint32_t>, RtxSsrc, (), (const, override));
+  MOCK_METHOD(std::optional<uint32_t>, RtxSsrc, (), (const, override));
   MOCK_METHOD(void, SetRtxSendPayloadType, (int, int), (override));
-  MOCK_METHOD(absl::optional<uint32_t>, FlexfecSsrc, (), (const, override));
+  MOCK_METHOD(std::optional<uint32_t>, FlexfecSsrc, (), (const, override));
   MOCK_METHOD(int32_t, SetSendingStatus, (bool sending), (override));
   MOCK_METHOD(bool, Sending, (), (const, override));
   MOCK_METHOD(void, SetSendingMediaStatus, (bool sending), (override));
@@ -132,7 +132,7 @@ class MockRtpRtcpInterface : public RtpRtcpInterface {
   MOCK_METHOD(RtcpMode, RTCP, (), (const, override));
   MOCK_METHOD(void, SetRTCPStatus, (RtcpMode method), (override));
   MOCK_METHOD(int32_t, SetCNAME, (absl::string_view cname), (override));
-  MOCK_METHOD(absl::optional<TimeDelta>, LastRtt, (), (const, override));
+  MOCK_METHOD(std::optional<TimeDelta>, LastRtt, (), (const, override));
   MOCK_METHOD(TimeDelta, ExpectedRetransmissionTime, (), (const, override));
   MOCK_METHOD(int32_t, SendRTCP, (RTCPPacketType packet_type), (override));
   MOCK_METHOD(void,
@@ -143,11 +143,11 @@ class MockRtpRtcpInterface : public RtpRtcpInterface {
               GetLatestReportBlockData,
               (),
               (const, override));
-  MOCK_METHOD(absl::optional<SenderReportStats>,
+  MOCK_METHOD(std::optional<SenderReportStats>,
               GetSenderReportStats,
               (),
               (const, override));
-  MOCK_METHOD(absl::optional<NonSenderRttStats>,
+  MOCK_METHOD(std::optional<NonSenderRttStats>,
               GetNonSenderRttStats,
               (),
               (const, override));

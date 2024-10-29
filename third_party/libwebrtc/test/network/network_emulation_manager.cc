@@ -99,7 +99,7 @@ NetworkEmulationManagerImpl::NodeBuilder() {
 
 EmulatedEndpointImpl* NetworkEmulationManagerImpl::CreateEndpoint(
     EmulatedEndpointConfig config) {
-  absl::optional<rtc::IPAddress> ip = config.ip;
+  std::optional<rtc::IPAddress> ip = config.ip;
   if (!ip) {
     switch (config.generated_ip_family) {
       case EmulatedEndpointConfig::IpAddressFamily::kIpv4:
@@ -272,7 +272,7 @@ CrossTrafficGenerator* NetworkEmulationManagerImpl::StartCrossTraffic(
 
 void NetworkEmulationManagerImpl::StopCrossTraffic(
     CrossTrafficGenerator* generator) {
-  task_queue_.PostTask([=]() {
+  task_queue_.PostTask([this, generator]() {
     auto it = std::find_if(cross_traffics_.begin(), cross_traffics_.end(),
                            [=](const CrossTrafficSource& el) {
                              return el.first.get() == generator;
@@ -341,7 +341,7 @@ void NetworkEmulationManagerImpl::GetStats(
       });
 }
 
-absl::optional<rtc::IPAddress>
+std::optional<rtc::IPAddress>
 NetworkEmulationManagerImpl::GetNextIPv4Address() {
   uint32_t addresses_count = kMaxIPv4Address - kMinIPv4Address;
   for (uint32_t i = 0; i < addresses_count; i++) {
@@ -355,7 +355,7 @@ NetworkEmulationManagerImpl::GetNextIPv4Address() {
       return ip;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 Timestamp NetworkEmulationManagerImpl::Now() const {

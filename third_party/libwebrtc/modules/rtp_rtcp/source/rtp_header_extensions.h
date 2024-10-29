@@ -165,16 +165,16 @@ class TransportSequenceNumberV2 {
 
   static bool Parse(rtc::ArrayView<const uint8_t> data,
                     uint16_t* transport_sequence_number,
-                    absl::optional<FeedbackRequest>* feedback_request);
+                    std::optional<FeedbackRequest>* feedback_request);
   static size_t ValueSize(
       uint16_t /*transport_sequence_number*/,
-      const absl::optional<FeedbackRequest>& feedback_request) {
+      const std::optional<FeedbackRequest>& feedback_request) {
     return feedback_request ? kValueSizeBytes
                             : kValueSizeBytesWithoutFeedbackRequest;
   }
   static bool Write(rtc::ArrayView<uint8_t> data,
                     uint16_t transport_sequence_number,
-                    const absl::optional<FeedbackRequest>& feedback_request);
+                    const std::optional<FeedbackRequest>& feedback_request);
 
  private:
   static constexpr uint16_t kIncludeTimestampsBit = 1 << 15;
@@ -363,7 +363,7 @@ class RtpMid : public BaseRtpStringExtension {
 
 class InbandComfortNoiseExtension {
  public:
-  using value_type = absl::optional<uint8_t>;
+  using value_type = std::optional<uint8_t>;
 
   static constexpr RTPExtensionType kId = kRtpExtensionInbandComfortNoise;
   static constexpr uint8_t kValueSizeBytes = 1;
@@ -372,12 +372,11 @@ class InbandComfortNoiseExtension {
   static constexpr absl::string_view Uri() { return kUri; }
 
   static bool Parse(rtc::ArrayView<const uint8_t> data,
-                    absl::optional<uint8_t>* level);
-  static size_t ValueSize(absl::optional<uint8_t> level) {
+                    std::optional<uint8_t>* level);
+  static size_t ValueSize(std::optional<uint8_t> level) {
     return kValueSizeBytes;
   }
-  static bool Write(rtc::ArrayView<uint8_t> data,
-                    absl::optional<uint8_t> level);
+  static bool Write(rtc::ArrayView<uint8_t> data, std::optional<uint8_t> level);
 };
 
 class VideoFrameTrackingIdExtension {

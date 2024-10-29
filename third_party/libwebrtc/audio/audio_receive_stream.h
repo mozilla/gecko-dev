@@ -25,7 +25,6 @@
 #include "audio/audio_state.h"
 #include "call/audio_receive_stream.h"
 #include "call/syncable.h"
-#include "modules/rtp_rtcp/source/source_tracker.h"
 #include "rtc_base/system/no_unique_address.h"
 
 namespace webrtc {
@@ -109,7 +108,7 @@ class AudioReceiveStreamImpl final : public webrtc::AudioReceiveStreamInterface,
 
   // Syncable
   uint32_t id() const override;
-  absl::optional<Syncable::Info> GetInfo() const override;
+  std::optional<Syncable::Info> GetInfo() const override;
   bool GetPlayoutRtpTimestamp(uint32_t* rtp_timestamp,
                               int64_t* time_ms) const override;
   void SetEstimatedPlayoutNtpTimestampMs(int64_t ntp_timestamp_ms,
@@ -156,7 +155,6 @@ class AudioReceiveStreamImpl final : public webrtc::AudioReceiveStreamInterface,
       SequenceChecker::kDetached};
   webrtc::AudioReceiveStreamInterface::Config config_;
   rtc::scoped_refptr<webrtc::AudioState> audio_state_;
-  SourceTracker source_tracker_;
   const std::unique_ptr<voe::ChannelReceiveInterface> channel_receive_;
   AudioSendStream* associated_send_stream_
       RTC_GUARDED_BY(packet_sequence_checker_) = nullptr;

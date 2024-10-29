@@ -20,8 +20,6 @@
 namespace webrtc {
 namespace test {
 
-using ::testing::_;
-
 TEST(CongestionWindowPushbackControllerTest, FullCongestionWindow) {
   CongestionWindowPushbackController cwnd_controller(
       ExplicitKeyValueConfig(""));

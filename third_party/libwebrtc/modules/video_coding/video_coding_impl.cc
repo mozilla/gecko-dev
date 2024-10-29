@@ -55,7 +55,7 @@ VideoDecoder* DEPRECATED_VCMDecoderDataBase::DeregisterExternalDecoder(
   // frame after RegisterReceiveCodec).
   if (current_decoder_ && current_decoder_->IsSameDecoder(it->second)) {
     // Release it if it was registered and in use.
-    current_decoder_ = absl::nullopt;
+    current_decoder_ = std::nullopt;
   }
   VideoDecoder* ret = it->second;
   decoders_.erase(it);
@@ -85,7 +85,7 @@ void DEPRECATED_VCMDecoderDataBase::RegisterReceiveCodec(
     const VideoDecoder::Settings& settings) {
   // If payload value already exists, erase old and insert new.
   if (payload_type == current_payload_type_) {
-    current_payload_type_ = absl::nullopt;
+    current_payload_type_ = std::nullopt;
   }
   decoder_settings_[payload_type] = settings;
 }
@@ -97,7 +97,7 @@ bool DEPRECATED_VCMDecoderDataBase::DeregisterReceiveCodec(
   }
   if (payload_type == current_payload_type_) {
     // This codec is currently in use.
-    current_payload_type_ = absl::nullopt;
+    current_payload_type_ = std::nullopt;
   }
   return true;
 }
@@ -113,12 +113,12 @@ VCMGenericDecoder* DEPRECATED_VCMDecoderDataBase::GetDecoder(
   }
   // If decoder exists - delete.
   if (current_decoder_.has_value()) {
-    current_decoder_ = absl::nullopt;
-    current_payload_type_ = absl::nullopt;
+    current_decoder_ = std::nullopt;
+    current_payload_type_ = std::nullopt;
   }
 
   CreateAndInitDecoder(frame);
-  if (current_decoder_ == absl::nullopt) {
+  if (current_decoder_ == std::nullopt) {
     return nullptr;
   }
 
@@ -126,7 +126,7 @@ VCMGenericDecoder* DEPRECATED_VCMDecoderDataBase::GetDecoder(
   callback->OnIncomingPayloadType(payload_type);
   if (current_decoder_->RegisterDecodeCompleteCallback(decoded_frame_callback) <
       0) {
-    current_decoder_ = absl::nullopt;
+    current_decoder_ = std::nullopt;
     return nullptr;
   }
 
@@ -162,7 +162,7 @@ void DEPRECATED_VCMDecoderDataBase::CreateAndInitDecoder(
     decoder_item->second.set_max_render_resolution(frame_resolution);
   }
   if (!current_decoder_->Configure(decoder_item->second)) {
-    current_decoder_ = absl::nullopt;
+    current_decoder_ = std::nullopt;
     RTC_LOG(LS_ERROR) << "Failed to initialize decoder.";
   }
 }

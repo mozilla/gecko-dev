@@ -51,7 +51,7 @@ class FlexfecSender : public VideoFecGenerator {
   FecType GetFecType() const override {
     return VideoFecGenerator::FecType::kFlexFec;
   }
-  absl::optional<uint32_t> FecSsrc() override { return ssrc_; }
+  std::optional<uint32_t> FecSsrc() override { return ssrc_; }
 
   // Sets the FEC rate, max frames sent before FEC packets are sent,
   // and what type of generator matrices are used.
@@ -72,7 +72,7 @@ class FlexfecSender : public VideoFecGenerator {
   DataRate CurrentFecRate() const override;
 
   // Only called on the VideoSendStream queue, after operation has shut down.
-  absl::optional<RtpState> GetRtpState() override;
+  std::optional<RtpState> GetRtpState() override;
 
  private:
   // Utility.

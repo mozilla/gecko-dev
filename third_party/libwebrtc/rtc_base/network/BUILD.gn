@@ -13,10 +13,7 @@ rtc_library("sent_packet") {
     "sent_packet.cc",
     "sent_packet.h",
   ]
-  deps = [
-    "../system:rtc_export",
-    "//third_party/abseil-cpp/absl/types:optional",
-  ]
+  deps = [ "../system:rtc_export" ]
 }
 
 rtc_source_set("ecn_marking") {
@@ -36,6 +33,5 @@ rtc_library("received_packet") {
     "../../api:array_view",
     "../../api/units:timestamp",
     "../system:rtc_export",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }

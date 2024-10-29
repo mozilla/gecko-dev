@@ -13,7 +13,8 @@
 
 #include <stdint.h>
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "logging/rtc_event_log/events/logged_rtp_rtcp.h"
 #include "logging/rtc_event_log/events/rtc_event_alr_state.h"
 #include "logging/rtc_event_log/events/rtc_event_audio_network_adaptation.h"
@@ -101,9 +102,9 @@ template <>
 class TieBreaker<LoggedStartEvent> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::Start);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedStartEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -111,9 +112,9 @@ template <>
 class TieBreaker<LoggedStopEvent> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::Stop);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedStopEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -121,9 +122,9 @@ template <>
 class TieBreaker<LoggedAudioRecvConfig> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::StreamConfig);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedAudioRecvConfig&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -131,9 +132,9 @@ template <>
 class TieBreaker<LoggedAudioSendConfig> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::StreamConfig);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedAudioSendConfig&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -141,9 +142,9 @@ template <>
 class TieBreaker<LoggedVideoRecvConfig> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::StreamConfig);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedVideoRecvConfig&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -151,9 +152,9 @@ template <>
 class TieBreaker<LoggedVideoSendConfig> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::StreamConfig);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedVideoSendConfig&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -162,9 +163,9 @@ class TieBreaker<LoggedIceCandidatePairConfig> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::IceCondidateConfig);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedIceCandidatePairConfig&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -173,9 +174,9 @@ class TieBreaker<LoggedIceCandidatePairEvent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::IceCandidateEvent);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedIceCandidatePairEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -184,9 +185,9 @@ class TieBreaker<LoggedDtlsTransportState> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::DtlsTransportState);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedDtlsTransportState&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -194,9 +195,9 @@ template <>
 class TieBreaker<LoggedDtlsWritableState> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::DtlsWritable);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedDtlsWritableState&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -204,9 +205,9 @@ template <>
 class TieBreaker<LoggedRouteChangeEvent> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::RouteChange);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRouteChangeEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -215,9 +216,9 @@ class TieBreaker<LoggedRemoteEstimateEvent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::BweRemoteEstimate);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRemoteEstimateEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -226,9 +227,9 @@ class TieBreaker<LoggedBweProbeFailureEvent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::BweProbeFailure);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedBweProbeFailureEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -237,9 +238,9 @@ class TieBreaker<LoggedBweProbeSuccessEvent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::BweProbeSuccess);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedBweProbeSuccessEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -247,9 +248,9 @@ template <>
 class TieBreaker<LoggedBweDelayBasedUpdate> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::BweDelayBased);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedBweDelayBasedUpdate&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -257,9 +258,9 @@ template <>
 class TieBreaker<LoggedBweLossBasedUpdate> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::BweLossBased);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedBweLossBasedUpdate&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -268,9 +269,9 @@ class TieBreaker<LoggedBweProbeClusterCreatedEvent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::BweProbeCreated);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedBweProbeClusterCreatedEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -279,9 +280,9 @@ class TieBreaker<LoggedAudioNetworkAdaptationEvent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::AudioNetworkAdaptation);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedAudioNetworkAdaptationEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -290,9 +291,9 @@ class TieBreaker<LoggedNetEqSetMinimumDelayEvent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::NetEqSetMinDelay);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedNetEqSetMinimumDelayEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -300,9 +301,9 @@ template <>
 class TieBreaker<LoggedAudioPlayoutEvent> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::AudioPlayout);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedAudioPlayoutEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -310,9 +311,9 @@ template <>
 class TieBreaker<LoggedFrameDecoded> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::FrameDecoded);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedFrameDecoded&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -321,9 +322,9 @@ class TieBreaker<LoggedGenericPacketReceived> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::GenericPacketIn);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedGenericPacketReceived&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -331,9 +332,9 @@ template <>
 class TieBreaker<LoggedGenericAckReceived> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::GenericAckIn);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedGenericAckReceived&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -342,9 +343,9 @@ class TieBreaker<LoggedGenericPacketSent> {
  public:
   static constexpr int type_order =
       static_cast<int>(TypeOrder::GenericPacketOut);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedGenericPacketSent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -356,11 +357,11 @@ class TieBreaker<LoggedRtpPacket> {
                                 ? TypeOrder::RtpIn
                                 : TypeOrder::RtpOut);
   }
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRtpPacket& p) {
     return p.header.extension.hasTransportSequenceNumber
                ? p.header.extension.transportSequenceNumber
-               : absl::optional<uint16_t>();
+               : std::optional<uint16_t>();
   }
 };
 
@@ -372,10 +373,10 @@ class TieBreaker<LoggedPacketInfo> {
                                 ? TypeOrder::RtpIn
                                 : TypeOrder::RtpOut);
   }
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedPacketInfo& p) {
     return p.has_transport_seq_no ? p.transport_seq_no
-                                  : absl::optional<uint16_t>();
+                                  : std::optional<uint16_t>();
   }
 };
 
@@ -383,11 +384,11 @@ template <>
 class TieBreaker<LoggedRtpPacketIncoming> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::RtpIn);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRtpPacketIncoming& p) {
     return p.rtp.header.extension.hasTransportSequenceNumber
                ? p.rtp.header.extension.transportSequenceNumber
-               : absl::optional<uint16_t>();
+               : std::optional<uint16_t>();
   }
 };
 
@@ -395,11 +396,11 @@ template <>
 class TieBreaker<LoggedRtpPacketOutgoing> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::RtpOut);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRtpPacketOutgoing& p) {
     return p.rtp.header.extension.hasTransportSequenceNumber
                ? p.rtp.header.extension.transportSequenceNumber
-               : absl::optional<uint16_t>();
+               : std::optional<uint16_t>();
   }
 };
 
@@ -407,9 +408,9 @@ template <>
 class TieBreaker<LoggedRtcpPacketIncoming> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::RtcpIn);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRtcpPacketIncoming&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -417,9 +418,9 @@ template <>
 class TieBreaker<LoggedRtcpPacketOutgoing> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::RtcpOut);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRtcpPacketOutgoing&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -431,9 +432,9 @@ class TieBreaker<LoggedRtcpPacketTransportFeedback> {
                                 ? TypeOrder::RtcpIn
                                 : TypeOrder::RtcpOut);
   }
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRtcpPacketTransportFeedback&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -445,9 +446,9 @@ class TieBreaker<LoggedRtcpPacketReceiverReport> {
                                 ? TypeOrder::RtcpIn
                                 : TypeOrder::RtcpOut);
   }
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedRtcpPacketReceiverReport&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 
@@ -455,9 +456,9 @@ template <>
 class TieBreaker<LoggedAlrStateEvent> {
  public:
   static constexpr int type_order = static_cast<int>(TypeOrder::AlrState);
-  static absl::optional<uint16_t> transport_seq_num_accessor(
+  static std::optional<uint16_t> transport_seq_num_accessor(
       const LoggedAlrStateEvent&) {
-    return absl::optional<uint16_t>();
+    return std::optional<uint16_t>();
   }
 };
 

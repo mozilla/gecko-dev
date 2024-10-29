@@ -12,9 +12,9 @@
 #define API_DTLS_TRANSPORT_INTERFACE_H_
 
 #include <memory>
+#include <optional>
 
 #include "absl/base/attributes.h"
-#include "absl/types/optional.h"
 #include "api/ice_transport_interface.h"
 #include "api/ref_count.h"
 #include "api/rtc_error.h"
@@ -49,17 +49,17 @@ class RTC_EXPORT DtlsTransportInformation {
   explicit DtlsTransportInformation(DtlsTransportState state);
   DtlsTransportInformation(
       DtlsTransportState state,
-      absl::optional<DtlsTransportTlsRole> role,
-      absl::optional<int> tls_version,
-      absl::optional<int> ssl_cipher_suite,
-      absl::optional<int> srtp_cipher_suite,
+      std::optional<DtlsTransportTlsRole> role,
+      std::optional<int> tls_version,
+      std::optional<int> ssl_cipher_suite,
+      std::optional<int> srtp_cipher_suite,
       std::unique_ptr<rtc::SSLCertChain> remote_ssl_certificates);
   ABSL_DEPRECATED("Use version with role parameter")
   DtlsTransportInformation(
       DtlsTransportState state,
-      absl::optional<int> tls_version,
-      absl::optional<int> ssl_cipher_suite,
-      absl::optional<int> srtp_cipher_suite,
+      std::optional<int> tls_version,
+      std::optional<int> ssl_cipher_suite,
+      std::optional<int> srtp_cipher_suite,
       std::unique_ptr<rtc::SSLCertChain> remote_ssl_certificates);
 
   // Copy and assign
@@ -71,10 +71,10 @@ class RTC_EXPORT DtlsTransportInformation {
       default;
 
   DtlsTransportState state() const { return state_; }
-  absl::optional<DtlsTransportTlsRole> role() const { return role_; }
-  absl::optional<int> tls_version() const { return tls_version_; }
-  absl::optional<int> ssl_cipher_suite() const { return ssl_cipher_suite_; }
-  absl::optional<int> srtp_cipher_suite() const { return srtp_cipher_suite_; }
+  std::optional<DtlsTransportTlsRole> role() const { return role_; }
+  std::optional<int> tls_version() const { return tls_version_; }
+  std::optional<int> ssl_cipher_suite() const { return ssl_cipher_suite_; }
+  std::optional<int> srtp_cipher_suite() const { return srtp_cipher_suite_; }
   // The accessor returns a temporary pointer, it does not release ownership.
   const rtc::SSLCertChain* remote_ssl_certificates() const {
     return remote_ssl_certificates_.get();
@@ -82,10 +82,10 @@ class RTC_EXPORT DtlsTransportInformation {
 
  private:
   DtlsTransportState state_;
-  absl::optional<DtlsTransportTlsRole> role_;
-  absl::optional<int> tls_version_;
-  absl::optional<int> ssl_cipher_suite_;
-  absl::optional<int> srtp_cipher_suite_;
+  std::optional<DtlsTransportTlsRole> role_;
+  std::optional<int> tls_version_;
+  std::optional<int> ssl_cipher_suite_;
+  std::optional<int> srtp_cipher_suite_;
   std::unique_ptr<rtc::SSLCertChain> remote_ssl_certificates_;
 };
 

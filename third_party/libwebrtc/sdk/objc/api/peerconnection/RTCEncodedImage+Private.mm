@@ -73,7 +73,8 @@ class ObjCEncodedImageBuffer : public webrtc::EncodedImageBufferInterface {
 }
 
 - (instancetype)initWithNativeEncodedImage:(const webrtc::EncodedImage &)encodedImage {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     // A reference to the encodedData must be stored so that it's kept alive as long
     // self.buffer references its underlying data.
     self.encodedData = encodedImage.GetEncodedData();

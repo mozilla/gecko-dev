@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "absl/algorithm/container.h"
+#include "api/field_trials_view.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/string_encode.h"
@@ -68,7 +69,7 @@ std::vector<webrtc::RtpExtension> GetDefaultEnabledRtpHeaderExtensions(
 webrtc::RTCError CheckScalabilityModeValues(
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    absl::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec) {
   using webrtc::RTCErrorType;
 
   if (send_codecs.empty()) {
@@ -140,9 +141,11 @@ webrtc::RTCError CheckScalabilityModeValues(
 webrtc::RTCError CheckRtpParametersValues(
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    absl::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec,
+    const webrtc::FieldTrialsView& field_trials) {
   using webrtc::RTCErrorType;
 
+  bool has_requested_resolution = false;
   for (size_t i = 0; i < rtp_parameters.encodings.size(); ++i) {
     if (rtp_parameters.encodings[i].bitrate_priority <= 0) {
       LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_RANGE,
@@ -181,19 +184,28 @@ webrtc::RTCError CheckRtpParametersValues(
       }
     }
 
-    if (rtp_parameters.encodings[i].requested_resolution &&
-        rtp_parameters.encodings[i].scale_resolution_down_by) {
-      LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_RANGE,
-                           "Attempted to set scale_resolution_down_by and "
-                           "requested_resolution simultaniously.");
+    if (rtp_parameters.encodings[i].requested_resolution.has_value()) {
+      has_requested_resolution = true;
     }
 
-    if (i > 0 && rtp_parameters.encodings[i - 1].codec !=
-                     rtp_parameters.encodings[i].codec) {
-      LOG_AND_RETURN_ERROR(RTCErrorType::UNSUPPORTED_OPERATION,
-                           "Attempted to use different codec values for "
-                           "different encodings.");
+    if (!field_trials.IsEnabled("WebRTC-MixedCodecSimulcast")) {
+      if (i > 0 && rtp_parameters.encodings[i - 1].codec !=
+                       rtp_parameters.encodings[i].codec) {
+        LOG_AND_RETURN_ERROR(RTCErrorType::UNSUPPORTED_OPERATION,
+                             "Attempted to use different codec values for "
+                             "different encodings.");
+      }
     }
+  }
+
+  if (has_requested_resolution &&
+      absl::c_any_of(rtp_parameters.encodings,
+                     [](const webrtc::RtpEncodingParameters& encoding) {
+                       return !encoding.requested_resolution.has_value();
+                     })) {
+    LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
+                         "If a resolution is specified on any encoding then "
+                         "it must be specified on all encodings.");
   }
 
   return CheckScalabilityModeValues(rtp_parameters, send_codecs, send_codec);
@@ -201,16 +213,18 @@ webrtc::RTCError CheckRtpParametersValues(
 
 webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_rtp_parameters,
-    const webrtc::RtpParameters& rtp_parameters) {
+    const webrtc::RtpParameters& rtp_parameters,
+    const webrtc::FieldTrialsView& field_trials) {
   return CheckRtpParametersInvalidModificationAndValues(
-      old_rtp_parameters, rtp_parameters, {}, absl::nullopt);
+      old_rtp_parameters, rtp_parameters, {}, std::nullopt, field_trials);
 }
 
 webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_rtp_parameters,
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    absl::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec,
+    const webrtc::FieldTrialsView& field_trials) {
   using webrtc::RTCErrorType;
   if (rtp_parameters.encodings.size() != old_rtp_parameters.encodings.size()) {
     LOG_AND_RETURN_ERROR(
@@ -245,7 +259,8 @@ webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
                          "Attempted to set RtpParameters with modified SSRC");
   }
 
-  return CheckRtpParametersValues(rtp_parameters, send_codecs, send_codec);
+  return CheckRtpParametersValues(rtp_parameters, send_codecs, send_codec,
+                                  field_trials);
 }
 
 CompositeMediaEngine::CompositeMediaEngine(

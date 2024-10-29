@@ -10,14 +10,31 @@
 
 #include "modules/rtp_rtcp/source/deprecated/deprecated_rtp_sender_egress.h"
 
-#include <limits>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
-#include <utility>
+#include <optional>
+#include <vector>
 
-#include "absl/strings/match.h"
+#include "api/array_view.h"
+#include "api/call/transport.h"
+#include "api/environment/environment.h"
+#include "api/rtc_event_log/rtc_event_log.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "logging/rtc_event_log/events/rtc_event_rtp_packet_outgoing.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/packet_sequencer.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
+#include "modules/rtp_rtcp/source/rtp_packet_history.h"
+#include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
+#include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
+#include "rtc_base/bitrate_tracker.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 
 namespace webrtc {
 namespace {
@@ -57,17 +74,17 @@ void DEPRECATED_RtpSenderEgress::NonPacedPacketSender::EnqueuePackets(
 }
 
 DEPRECATED_RtpSenderEgress::DEPRECATED_RtpSenderEgress(
+    const Environment& env,
     const RtpRtcpInterface::Configuration& config,
     RtpPacketHistory* packet_history)
-    : ssrc_(config.local_media_ssrc),
+    : env_(env),
+      ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       flexfec_ssrc_(config.fec_generator ? config.fec_generator->FecSsrc()
-                                         : absl::nullopt),
+                                         : std::nullopt),
       populate_network2_timestamp_(config.populate_network2_timestamp),
-      clock_(config.clock),
       packet_history_(packet_history),
       transport_(config.outgoing_transport),
-      event_log_(config.event_log),
       need_rtp_packet_infos_(config.need_rtp_packet_infos),
       transport_feedback_observer_(config.transport_feedback_callback),
       send_packet_observer_(config.send_packet_observer),
@@ -90,7 +107,7 @@ void DEPRECATED_RtpSenderEgress::SendPacket(
   const uint32_t packet_ssrc = packet->Ssrc();
   RTC_DCHECK(packet->packet_type().has_value());
   RTC_DCHECK(HasCorrectSsrc(*packet));
-  Timestamp now = clock_->CurrentTime();
+  Timestamp now = env_.clock().CurrentTime();
   int64_t now_ms = now.ms();
   PacketOptions options;
   {
@@ -190,7 +207,7 @@ RtpSendRates DEPRECATED_RtpSenderEgress::GetSendRates() const {
 }
 
 RtpSendRates DEPRECATED_RtpSenderEgress::GetSendRatesLocked() const {
-  const Timestamp now = clock_->CurrentTime();
+  const Timestamp now = env_.clock().CurrentTime();
   RtpSendRates current_rates;
   for (size_t i = 0; i < kNumMediaTypes; ++i) {
     RtpPacketMediaType type = static_cast<RtpPacketMediaType>(i);
@@ -302,26 +319,18 @@ bool DEPRECATED_RtpSenderEgress::SendPacketToNetwork(
     const RtpPacketToSend& packet,
     const PacketOptions& options,
     const PacedPacketInfo& pacing_info) {
-  int bytes_sent = -1;
-  if (transport_) {
-    bytes_sent = transport_->SendRtp(packet, options)
-                     ? static_cast<int>(packet.size())
-                     : -1;
-    if (event_log_ && bytes_sent > 0) {
-      event_log_->Log(std::make_unique<RtcEventRtpPacketOutgoing>(
-          packet, pacing_info.probe_cluster_id));
-    }
-  }
-
-  if (bytes_sent <= 0) {
+  if (transport_ == nullptr || !transport_->SendRtp(packet, options)) {
     RTC_LOG(LS_WARNING) << "Transport failed to send packet.";
     return false;
   }
+
+  env_.event_log().Log(std::make_unique<RtcEventRtpPacketOutgoing>(
+      packet, pacing_info.probe_cluster_id));
   return true;
 }
 
 void DEPRECATED_RtpSenderEgress::UpdateRtpStats(const RtpPacketToSend& packet) {
-  Timestamp now = clock_->CurrentTime();
+  Timestamp now = env_.clock().CurrentTime();
 
   StreamDataCounters* counters =
       packet.Ssrc() == rtx_ssrc_ ? &rtx_rtp_stats_ : &rtp_stats_;

@@ -14,9 +14,9 @@
 #include <cmath>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/test/frame_generator_interface.h"
@@ -67,7 +67,7 @@ void FrameGeneratorCapturer::SetFakeRotation(VideoRotation rotation) {
 }
 
 void FrameGeneratorCapturer::SetFakeColorSpace(
-    absl::optional<ColorSpace> color_space) {
+    std::optional<ColorSpace> color_space) {
   MutexLock lock(&lock_);
   fake_color_space_ = color_space;
 }
@@ -112,7 +112,7 @@ void FrameGeneratorCapturer::InsertFrame() {
   }
 }
 
-absl::optional<FrameGeneratorCapturer::Resolution>
+std::optional<FrameGeneratorCapturer::Resolution>
 FrameGeneratorCapturer::GetResolution() const {
   FrameGeneratorInterface::Resolution resolution =
       frame_generator_->GetResolution();
@@ -175,7 +175,7 @@ int FrameGeneratorCapturer::GetFrameHeight() const {
 void FrameGeneratorCapturer::OnOutputFormatRequest(
     int width,
     int height,
-    const absl::optional<int>& max_fps) {
+    const std::optional<int>& max_fps) {
   TestVideoCapturer::OnOutputFormatRequest(width, height, max_fps);
 }
 

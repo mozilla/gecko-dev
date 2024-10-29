@@ -263,7 +263,7 @@ std::unique_ptr<FrameGeneratorInterface> CreateFrameGenerator(
     case Capture::kGenerator:
       return CreateSquareFrameGenerator(
           source.generator.width, source.generator.height,
-          source.generator.pixel_format, /*num_squares*/ absl::nullopt);
+          source.generator.pixel_format, /*num_squares*/ std::nullopt);
     case Capture::kVideoFile:
       RTC_CHECK(source.video_file.width && source.video_file.height);
       return CreateFromYuvFileFrameGenerator(

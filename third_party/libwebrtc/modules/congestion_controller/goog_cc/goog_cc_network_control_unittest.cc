@@ -12,13 +12,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/test/network_emulation/create_cross_traffic.h"
@@ -94,9 +94,9 @@ CallClient* CreateVideoSendingClient(
 
 NetworkRouteChange CreateRouteChange(
     Timestamp time,
-    absl::optional<DataRate> start_rate = absl::nullopt,
-    absl::optional<DataRate> min_rate = absl::nullopt,
-    absl::optional<DataRate> max_rate = absl::nullopt) {
+    std::optional<DataRate> start_rate = std::nullopt,
+    std::optional<DataRate> min_rate = std::nullopt,
+    std::optional<DataRate> max_rate = std::nullopt) {
   NetworkRouteChange route_change;
   route_change.at_time = time;
   route_change.constraints.at_time = time;
@@ -121,13 +121,13 @@ PacketResult CreatePacketResult(Timestamp arrival_time,
 
 // Simulate sending packets and receiving transport feedback during
 // `runtime_ms`, then return the final target birate.
-absl::optional<DataRate> PacketTransmissionAndFeedbackBlock(
+std::optional<DataRate> PacketTransmissionAndFeedbackBlock(
     NetworkControllerInterface* controller,
     int64_t runtime_ms,
     int64_t delay,
     Timestamp& current_time) {
   NetworkControlUpdate update;
-  absl::optional<DataRate> target_bitrate;
+  std::optional<DataRate> target_bitrate;
   int64_t delay_buildup = 0;
   int64_t start_time_ms = current_time.ms();
   while (current_time.ms() - start_time_ms < runtime_ms) {
@@ -423,14 +423,14 @@ TEST(GoogCcNetworkControllerTest, UpdatesDelayBasedEstimate) {
   // The test must run and insert packets/feedback long enough that the
   // BWE computes a valid estimate. This is first done in an environment which
   // simulates no bandwidth limitation, and therefore not built-up delay.
-  absl::optional<DataRate> target_bitrate_before_delay =
+  std::optional<DataRate> target_bitrate_before_delay =
       PacketTransmissionAndFeedbackBlock(controller.get(), kRunTimeMs, 0,
                                          current_time);
   ASSERT_TRUE(target_bitrate_before_delay.has_value());
 
   // Repeat, but this time with a building delay, and make sure that the
   // estimation is adjusted downwards.
-  absl::optional<DataRate> target_bitrate_after_delay =
+  std::optional<DataRate> target_bitrate_after_delay =
       PacketTransmissionAndFeedbackBlock(controller.get(), kRunTimeMs, 50,
                                          current_time);
   EXPECT_LT(*target_bitrate_after_delay, *target_bitrate_before_delay);
@@ -1098,7 +1098,7 @@ TEST_P(GoogCcRttTest, CalculatesRttFromTransporFeedback) {
       fixture.CreateController();
   Timestamp current_time = Timestamp::Millis(123);
   TimeDelta one_way_delay = TimeDelta::Millis(10);
-  absl::optional<TimeDelta> rtt = absl::nullopt;
+  std::optional<TimeDelta> rtt = std::nullopt;
 
   TransportPacketsFeedback feedback = CreateTransportPacketsFeedback(
       /*per_packet_network_delay=*/TimeDelta::Millis(50), one_way_delay,

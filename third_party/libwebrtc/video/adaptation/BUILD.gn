@@ -68,7 +68,6 @@ rtc_library("video_adaptation") {
     "../../video/config:encoder_config",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:core_headers",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -112,7 +111,6 @@ if (rtc_include_tests) {
       "../../test:test_support",
       "../../test/time_controller:time_controller",
       "//third_party/abseil-cpp/absl/functional:any_invocable",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }

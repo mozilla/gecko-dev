@@ -720,7 +720,6 @@ if (is_linux || is_chromeos || is_win) {
       "../test:platform_video_capturer",
       "../test:rtp_test_utils",
       "//third_party/abseil-cpp/absl/memory",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
     if (is_win) {
       sources += [
@@ -793,6 +792,8 @@ if (is_linux || is_chromeos || is_win) {
     ]
     deps = [
       "../rtc_base:checks",
+      "../rtc_base:ip_address",
+      "../rtc_base:net_helpers",
       "../rtc_base:stringutils",
       "../system_wrappers:field_trial",
       "../test:field_trial",

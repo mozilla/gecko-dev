@@ -114,7 +114,8 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
 @synthesize values = _values;
 
 - (instancetype)initWithStatistics:(const webrtc::RTCStats &)statistics {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _id = [NSString stringForStdString:statistics.id()];
     _timestamp_us = statistics.timestamp().us();
     _type = [NSString stringWithCString:statistics.type() encoding:NSUTF8StringEncoding];
@@ -161,7 +162,8 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
 @implementation RTC_OBJC_TYPE (RTCStatisticsReport) (Private)
 
 - (instancetype)initWithReport : (const webrtc::RTCStatsReport &)report {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _timestamp_us = report.timestamp().us();
 
     NSMutableDictionary *statisticsById =

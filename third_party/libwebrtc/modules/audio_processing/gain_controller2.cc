@@ -156,7 +156,7 @@ void GainController2::SetFixedGainDb(float gain_db) {
 
 void GainController2::Analyze(int applied_input_volume,
                               const AudioBuffer& audio_buffer) {
-  recommended_input_volume_ = absl::nullopt;
+  recommended_input_volume_ = std::nullopt;
 
   RTC_DCHECK_GE(applied_input_volume, 0);
   RTC_DCHECK_LE(applied_input_volume, 255);
@@ -167,10 +167,10 @@ void GainController2::Analyze(int applied_input_volume,
   }
 }
 
-void GainController2::Process(absl::optional<float> speech_probability,
+void GainController2::Process(std::optional<float> speech_probability,
                               bool input_volume_changed,
                               AudioBuffer* audio) {
-  recommended_input_volume_ = absl::nullopt;
+  recommended_input_volume_ = std::nullopt;
 
   data_dumper_.DumpRaw("agc2_applied_input_volume_changed",
                        input_volume_changed);
@@ -203,13 +203,13 @@ void GainController2::Process(absl::optional<float> speech_probability,
 
   // Compute audio, noise and speech levels.
   AudioLevels audio_levels = ComputeAudioLevels(float_frame, data_dumper_);
-  absl::optional<float> noise_rms_dbfs;
+  std::optional<float> noise_rms_dbfs;
   if (noise_level_estimator_) {
     // TODO(bugs.webrtc.org/7494): Pass `audio_levels` to remove duplicated
     // computation in `noise_level_estimator_`.
     noise_rms_dbfs = noise_level_estimator_->Analyze(float_frame);
   }
-  absl::optional<SpeechLevel> speech_level;
+  std::optional<SpeechLevel> speech_level;
   if (speech_level_estimator_) {
     RTC_DCHECK(speech_probability.has_value());
     speech_level_estimator_->Update(
@@ -228,8 +228,8 @@ void GainController2::Process(absl::optional<float> speech_probability,
           input_volume_controller_->RecommendInputVolume(
               *speech_probability,
               speech_level->is_confident
-                  ? absl::optional<float>(speech_level->rms_dbfs)
-                  : absl::nullopt);
+                  ? std::optional<float>(speech_level->rms_dbfs)
+                  : std::nullopt);
     }
   }
 

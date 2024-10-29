@@ -12,10 +12,10 @@
 #define API_TEST_MOCK_TRANSFORMABLE_VIDEO_FRAME_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <type_traits>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/frame_transformer_interface.h"
 #include "api/units/timestamp.h"
@@ -45,7 +45,7 @@ class MockTransformableVideoFrame
               (const, override));
   MOCK_METHOD(std::string, GetMimeType, (), (const, override));
   MOCK_METHOD(VideoFrameMetadata, Metadata, (), (const, override));
-  MOCK_METHOD(absl::optional<Timestamp>,
+  MOCK_METHOD(std::optional<Timestamp>,
               GetCaptureTimeIdentifier,
               (),
               (const, override));

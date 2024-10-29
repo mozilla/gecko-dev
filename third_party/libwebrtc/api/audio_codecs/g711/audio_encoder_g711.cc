@@ -15,11 +15,11 @@
 #include <initializer_list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -32,7 +32,7 @@
 
 namespace webrtc {
 
-absl::optional<AudioEncoderG711::Config> AudioEncoderG711::SdpToConfig(
+std::optional<AudioEncoderG711::Config> AudioEncoderG711::SdpToConfig(
     const SdpAudioFormat& format) {
   const bool is_pcmu = absl::EqualsIgnoreCase(format.name, "PCMU");
   const bool is_pcma = absl::EqualsIgnoreCase(format.name, "PCMA");
@@ -51,11 +51,11 @@ absl::optional<AudioEncoderG711::Config> AudioEncoderG711::SdpToConfig(
     }
     if (!config.IsOk()) {
       RTC_DCHECK_NOTREACHED();
-      return absl::nullopt;
+      return std::nullopt;
     }
     return config;
   } else {
-    return absl::nullopt;
+    return std::nullopt;
   }
 }
 
@@ -75,7 +75,7 @@ AudioCodecInfo AudioEncoderG711::QueryAudioEncoder(const Config& config) {
 std::unique_ptr<AudioEncoder> AudioEncoderG711::MakeAudioEncoder(
     const Config& config,
     int payload_type,
-    absl::optional<AudioCodecPairId> /*codec_pair_id*/,
+    std::optional<AudioCodecPairId> /*codec_pair_id*/,
     const FieldTrialsView* field_trials) {
   if (!config.IsOk()) {
     RTC_DCHECK_NOTREACHED();

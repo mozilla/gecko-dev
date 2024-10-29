@@ -13,11 +13,11 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/adaptation/resource.h"
 #include "api/candidate.h"
 #include "api/data_channel_interface.h"
@@ -223,7 +223,7 @@ class MockPeerConnectionInterface : public webrtc::PeerConnectionInterface {
               AddAdaptationResource,
               (rtc::scoped_refptr<Resource>),
               (override));
-  MOCK_METHOD(absl::optional<bool>, can_trickle_ice_candidates, (), (override));
+  MOCK_METHOD(std::optional<bool>, can_trickle_ice_candidates, (), (override));
   MOCK_METHOD(bool,
               StartRtcEventLog,
               (std::unique_ptr<RtcEventLogOutput>, int64_t),

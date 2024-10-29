@@ -30,8 +30,8 @@ class FuzzerTest : public PeerConnectionIntegrationBaseTest {
         rtc::make_ref_counted<FakeSetRemoteDescriptionObserver>();
 
     SdpParseError error;
-    std::unique_ptr<SessionDescriptionInterface> sdp(
-        CreateSessionDescription("offer", std::string(message), &error));
+    std::unique_ptr<SessionDescriptionInterface> sdp =
+        CreateSessionDescription(SdpType::kOffer, std::string(message), &error);
     caller()->pc()->SetRemoteDescription(std::move(sdp), srd_observer);
     // Wait a short time for observer to be called. Timeout is short
     // because the fuzzer should be trying many branches.

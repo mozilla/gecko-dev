@@ -14,11 +14,11 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/scoped_refptr.h"
 #include "api/transport/rtp/dependency_descriptor.h"
 #include "api/units/timestamp.h"
@@ -36,7 +36,7 @@ class SimpleEncoderWrapper {
     std::vector<uint8_t> bitstream_data;
     FrameType frame_type;
     GenericFrameInfo generic_frame_info;
-    absl::optional<FrameDependencyStructure> dependency_structure;
+    std::optional<FrameDependencyStructure> dependency_structure;
   };
 
   using EncodeResultCallback = std::function<void(const EncodeResult& result)>;

@@ -19,7 +19,6 @@ rtc_source_set("scalability_mode_util") {
     "../../../rtc_base:checks",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -61,7 +60,6 @@ rtc_source_set("scalability_structures") {
     "../../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -82,6 +80,23 @@ rtc_source_set("svc_rate_allocator") {
   ]
 }
 
+rtc_source_set("simulcast_to_svc_converter") {
+  sources = [
+    "simulcast_to_svc_converter.cc",
+    "simulcast_to_svc_converter.h",
+  ]
+  deps = [
+    ":scalability_mode_util",
+    ":scalability_structures",
+    ":scalable_video_controller",
+    "../../../api/video:encoded_image",
+    "../../../api/video_codecs:video_codecs_api",
+    "../../../modules/video_coding:video_codec_interface",
+    "../../../rtc_base:checks",
+    "../../../rtc_base/system:rtc_export",
+  ]
+}
+
 if (rtc_include_tests) {
   rtc_source_set("scalability_structure_tests") {
     testonly = true
@@ -98,6 +113,7 @@ if (rtc_include_tests) {
       ":scalability_mode_util",
       ":scalability_structures",
       ":scalable_video_controller",
+      ":simulcast_to_svc_converter",
       "..:chain_diff_calculator",
       "..:frame_dependencies_calculator",
       "../../../api:array_view",
@@ -109,7 +125,6 @@ if (rtc_include_tests) {
       "../../../rtc_base:stringutils",
       "../../../test:test_support",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -119,8 +134,22 @@ if (rtc_include_tests) {
     deps = [
       ":svc_rate_allocator",
       "..:webrtc_vp9_helpers",
+      "../../../api/video:video_frame",
+      "../../../modules/video_coding/codecs/av1:av1_svc_config",
       "../../../rtc_base:checks",
       "../../../test:field_trial",
+      "../../../test:test_support",
+    ]
+  }
+
+  rtc_source_set("simulcast_to_svc_converter_tests") {
+    testonly = true
+    sources = [ "simulcast_to_svc_converter_unittest.cc" ]
+    deps = [
+      ":scalability_structures",
+      ":scalable_video_controller",
+      ":simulcast_to_svc_converter",
+      "../../../rtc_base:checks",
       "../../../test:test_support",
     ]
   }

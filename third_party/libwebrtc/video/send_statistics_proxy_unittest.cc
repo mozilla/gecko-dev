@@ -382,7 +382,7 @@ TEST_F(SendStatisticsProxyTest, OnSendEncodedImageIncreasesQpSum) {
   EncodedImage encoded_image;
   CodecSpecificInfo codec_info;
   auto ssrc = config_.rtp.ssrcs[0];
-  EXPECT_EQ(absl::nullopt,
+  EXPECT_EQ(std::nullopt,
             statistics_proxy_->GetStats().substreams[ssrc].qp_sum);
   encoded_image.qp_ = 3;
   statistics_proxy_->OnSendEncodedImage(encoded_image, &codec_info);
@@ -397,10 +397,10 @@ TEST_F(SendStatisticsProxyTest, OnSendEncodedImageWithoutQpQpSumWontExist) {
   CodecSpecificInfo codec_info;
   auto ssrc = config_.rtp.ssrcs[0];
   encoded_image.qp_ = -1;
-  EXPECT_EQ(absl::nullopt,
+  EXPECT_EQ(std::nullopt,
             statistics_proxy_->GetStats().substreams[ssrc].qp_sum);
   statistics_proxy_->OnSendEncodedImage(encoded_image, &codec_info);
-  EXPECT_EQ(absl::nullopt,
+  EXPECT_EQ(std::nullopt,
             statistics_proxy_->GetStats().substreams[ssrc].qp_sum);
 }
 
@@ -412,16 +412,16 @@ TEST_F(SendStatisticsProxyTest,
   ScalabilityMode layer1_mode = ScalabilityMode::kL1T3;
   auto ssrc0 = config_.rtp.ssrcs[0];
   auto ssrc1 = config_.rtp.ssrcs[1];
-  EXPECT_EQ(absl::nullopt,
+  EXPECT_EQ(std::nullopt,
             statistics_proxy_->GetStats().substreams[ssrc0].scalability_mode);
-  EXPECT_EQ(absl::nullopt,
+  EXPECT_EQ(std::nullopt,
             statistics_proxy_->GetStats().substreams[ssrc1].scalability_mode);
   encoded_image.SetSimulcastIndex(0);
   codec_info.scalability_mode = layer0_mode;
   statistics_proxy_->OnSendEncodedImage(encoded_image, &codec_info);
   EXPECT_THAT(statistics_proxy_->GetStats().substreams[ssrc0].scalability_mode,
               layer0_mode);
-  EXPECT_EQ(absl::nullopt,
+  EXPECT_EQ(std::nullopt,
             statistics_proxy_->GetStats().substreams[ssrc1].scalability_mode);
   encoded_image.SetSimulcastIndex(1);
   codec_info.scalability_mode = layer1_mode;
@@ -2533,7 +2533,7 @@ TEST_F(SendStatisticsProxyTest, GetStatsReportsIsRtx) {
 
   EXPECT_NE(GetStreamStats(kFirstSsrc).type,
             VideoSendStream::StreamStats::StreamType::kRtx);
-  EXPECT_EQ(GetStreamStats(kFirstSsrc).referenced_media_ssrc, absl::nullopt);
+  EXPECT_EQ(GetStreamStats(kFirstSsrc).referenced_media_ssrc, std::nullopt);
   EXPECT_EQ(GetStreamStats(kFirstRtxSsrc).type,
             VideoSendStream::StreamStats::StreamType::kRtx);
   EXPECT_EQ(GetStreamStats(kFirstRtxSsrc).referenced_media_ssrc, kFirstSsrc);
@@ -2553,7 +2553,7 @@ TEST_F(SendStatisticsProxyTest, GetStatsReportsIsFlexFec) {
 
   EXPECT_NE(GetStreamStats(kFirstSsrc).type,
             VideoSendStream::StreamStats::StreamType::kFlexfec);
-  EXPECT_EQ(GetStreamStats(kFirstSsrc).referenced_media_ssrc, absl::nullopt);
+  EXPECT_EQ(GetStreamStats(kFirstSsrc).referenced_media_ssrc, std::nullopt);
   EXPECT_EQ(GetStreamStats(kFlexFecSsrc).type,
             VideoSendStream::StreamStats::StreamType::kFlexfec);
   EXPECT_EQ(GetStreamStats(kFlexFecSsrc).referenced_media_ssrc, kFirstSsrc);

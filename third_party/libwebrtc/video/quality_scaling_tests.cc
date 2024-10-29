@@ -57,17 +57,17 @@ class QualityScalingTest : public test::CallTest {
  protected:
   const std::string kPrefix = "WebRTC-Video-QualityScaling/Enabled-";
   const std::string kEnd = ",0,0,0.9995,0.9999,1/";
-  const absl::optional<VideoEncoder::ResolutionBitrateLimits>
+  const std::optional<VideoEncoder::ResolutionBitrateLimits>
       kSinglecastLimits720pVp8 =
           EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsForResolution(
               kVideoCodecVP8,
               1280 * 720);
-  const absl::optional<VideoEncoder::ResolutionBitrateLimits>
+  const std::optional<VideoEncoder::ResolutionBitrateLimits>
       kSinglecastLimits360pVp9 =
           EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsForResolution(
               kVideoCodecVP9,
               640 * 360);
-  const absl::optional<VideoEncoder::ResolutionBitrateLimits>
+  const std::optional<VideoEncoder::ResolutionBitrateLimits>
       kSinglecastLimits720pVp9 =
           EncoderInfoSettings::GetDefaultSinglecastBitrateLimitsForResolution(
               kVideoCodecVP9,
@@ -78,7 +78,7 @@ class ScalingObserver : public test::SendTest {
  protected:
   struct TestParams {
     bool active;
-    absl::optional<ScalabilityMode> scalability_mode;
+    std::optional<ScalabilityMode> scalability_mode;
   };
   ScalingObserver(const std::string& payload_name,
                   const std::vector<TestParams>& test_params,
