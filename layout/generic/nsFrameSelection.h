@@ -925,16 +925,6 @@ class nsFrameSelection final {
   GetAncestorLimiterForCaretMove(mozilla::dom::Selection* aSelection) const;
 
   /**
-   * PeekOffsetForCaretMove() only peek offset for caret move from the focus
-   * point of the normal selection.  I.e., won't change selection ranges nor
-   * bidi information.
-   */
-  mozilla::Result<mozilla::PeekOffsetStruct, nsresult> PeekOffsetForCaretMove(
-      nsDirection aDirection, ExtendSelection aExtendSelection,
-      const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
-      const nsPoint& aDesiredCaretPos) const;
-
-  /**
    * CreateRangeExtendedToSomewhere() is common method to implement
    * CreateRangeExtendedTo*().  This method creates a range extended from
    * normal selection range.

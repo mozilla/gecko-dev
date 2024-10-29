@@ -820,8 +820,24 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
       mCaret.mHint);  // temporary variable so we dont set
                       // mCaret.mHint until it is necessary
 
-  Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
-      direction, aExtendSelection, aAmount, aMovementStyle, desiredPos);
+  Result<PeekOffsetOptions, nsresult> options =
+      CreatePeekOffsetOptionsForCaretMove(sel, aExtendSelection,
+                                          aMovementStyle);
+  if (options.isErr()) {
+    return options.propagateErr();
+  }
+  Result<const dom::Element*, nsresult> ancestorLimiter =
+      GetAncestorLimiterForCaretMove(sel);
+  if (ancestorLimiter.isErr()) {
+    return ancestorLimiter.propagateErr();
+  }
+  nsIContent* content = nsIContent::FromNodeOrNull(sel->GetFocusNode());
+
+  Result<PeekOffsetStruct, nsresult> result =
+      SelectionMovementUtils::PeekOffsetForCaretMove(
+          content, sel->FocusOffset(), direction, GetHint(),
+          GetCaretBidiLevel(), aAmount, desiredPos, options.unwrap(),
+          ancestorLimiter.unwrap());
   nsresult rv;
   if (result.isOk() && result.inspect().mResultContent) {
     const PeekOffsetStruct& pos = result.inspect();
@@ -996,33 +1012,6 @@ nsFrameSelection::GetAncestorLimiterForCaretMove(
     }
   }
   return ancestorLimiter;
-}
-Result<PeekOffsetStruct, nsresult> nsFrameSelection::PeekOffsetForCaretMove(
-    nsDirection aDirection, ExtendSelection aExtendSelection,
-    const nsSelectionAmount aAmount, CaretMovementStyle aMovementStyle,
-    const nsPoint& aDesiredCaretPos) const {
-  Selection* selection =
-      mDomSelections[GetIndexFromSelectionType(SelectionType::eNormal)];
-  if (!selection) {
-    return Err(NS_ERROR_NULL_POINTER);
-  }
-  Result<PeekOffsetOptions, nsresult> options =
-      CreatePeekOffsetOptionsForCaretMove(selection, aExtendSelection,
-                                          aMovementStyle);
-  if (options.isErr()) {
-    return options.propagateErr();
-  }
-  Result<const dom::Element*, nsresult> ancestorLimiter =
-      GetAncestorLimiterForCaretMove(selection);
-  if(ancestorLimiter.isErr()) {
-    return ancestorLimiter.propagateErr();
-  }
-  nsIContent* content = nsIContent::FromNodeOrNull(selection->GetFocusNode());
-
-  return SelectionMovementUtils::PeekOffsetForCaretMove(
-      content, selection->FocusOffset(), aDirection, GetHint(),
-      GetCaretBidiLevel(), aAmount, aDesiredCaretPos, options.unwrap(),
-      ancestorLimiter.unwrap());
 }
 
 nsPrevNextBidiLevels nsFrameSelection::GetPrevNextBidiLevels(
