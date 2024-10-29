@@ -26,9 +26,9 @@
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/fs/IPCRejectReporter.h"
-#include "mozilla/dom/fs/TargetPtrHolder.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/TargetPtrHolder.h"
 #include "mozilla/ipc/RandomAccessStreamUtils.h"
 #include "nsNetCID.h"
 #include "nsStringStream.h"
@@ -231,7 +231,7 @@ RefPtr<BoolPromise> FileSystemSyncAccessHandle::BeginClose() {
   mState = State::Closing;
 
   InvokeAsync(mIOTaskQueue, __func__,
-              [selfHolder = fs::TargetPtrHolder(this)]() {
+              [selfHolder = quota::TargetPtrHolder(this)]() {
                 if (selfHolder->mStream) {
                   LOG(("%p: Closing", selfHolder->mStream.get()));
 
@@ -337,7 +337,7 @@ void FileSystemSyncAccessHandle::Truncate(uint64_t aSize, ErrorResult& aError) {
 
   InvokeAsync(
       mIOTaskQueue, __func__,
-      [selfHolder = fs::TargetPtrHolder(this), aSize]() {
+      [selfHolder = quota::TargetPtrHolder(this), aSize]() {
         QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
                CreateAndRejectBoolPromise);
 
@@ -398,7 +398,7 @@ uint64_t FileSystemSyncAccessHandle::GetSize(ErrorResult& aError) {
   int64_t size;
 
   InvokeAsync(mIOTaskQueue, __func__,
-              [selfHolder = fs::TargetPtrHolder(this)]() {
+              [selfHolder = quota::TargetPtrHolder(this)]() {
                 QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
                        CreateAndRejectSizePromise);
 
@@ -457,7 +457,7 @@ void FileSystemSyncAccessHandle::Flush(ErrorResult& aError) {
   });
 
   InvokeAsync(mIOTaskQueue, __func__,
-              [selfHolder = fs::TargetPtrHolder(this)]() {
+              [selfHolder = quota::TargetPtrHolder(this)]() {
                 QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
                        CreateAndRejectBoolPromise);
 
@@ -562,7 +562,7 @@ uint64_t FileSystemSyncAccessHandle::ReadOrWrite(
   ProcessTypedArraysFixed(aBuffer, [&](const Span<uint8_t> aData) {
     InvokeAsync(
         mIOTaskQueue, __func__,
-        [selfHolder = fs::TargetPtrHolder(this), aData,
+        [selfHolder = quota::TargetPtrHolder(this), aData,
          use_offset = aOptions.mAt.WasPassed(), offset, aRead, syncLoopTarget,
          &totalCount]() {
           QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),

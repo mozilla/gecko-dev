@@ -27,9 +27,9 @@
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WritableStreamDefaultController.h"
-#include "mozilla/dom/fs/TargetPtrHolder.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/TargetPtrHolder.h"
 #include "mozilla/ipc/RandomAccessStreamUtils.h"
 #include "nsAsyncStreamCopier.h"
 #include "nsIInputStream.h"
@@ -418,7 +418,7 @@ RefPtr<BoolPromise> FileSystemWritableFileStream::BeginFinishing(
   if (mCloseHandler->SetClosing()) {
     Finish()
         ->Then(mTaskQueue, __func__,
-               [selfHolder = fs::TargetPtrHolder(this)]() mutable {
+               [selfHolder = quota::TargetPtrHolder(this)]() mutable {
                  if (selfHolder->mStreamOwner) {
                    selfHolder->mStreamOwner->Close();
                  } else {
@@ -857,7 +857,7 @@ RefPtr<Int64Promise> FileSystemWritableFileStream::WriteImpl(
     nsCOMPtr<nsIInputStream> aInputStream, const Maybe<uint64_t> aPosition) {
   return InvokeAsync(
       mTaskQueue, __func__,
-      [selfHolder = fs::TargetPtrHolder(this),
+      [selfHolder = quota::TargetPtrHolder(this),
        inputStream = std::move(aInputStream), aPosition]() {
         QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
                CreateAndRejectInt64Promise);
@@ -911,7 +911,7 @@ RefPtr<BoolPromise> FileSystemWritableFileStream::Seek(uint64_t aPosition) {
 
   return InvokeAsync(
       mTaskQueue, __func__,
-      [selfHolder = fs::TargetPtrHolder(this), aPosition]() mutable {
+      [selfHolder = quota::TargetPtrHolder(this), aPosition]() mutable {
         QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
                CreateAndRejectBoolPromise);
 
@@ -927,7 +927,7 @@ RefPtr<BoolPromise> FileSystemWritableFileStream::Truncate(uint64_t aSize) {
 
   return InvokeAsync(
       mTaskQueue, __func__,
-      [selfHolder = fs::TargetPtrHolder(this), aSize]() mutable {
+      [selfHolder = quota::TargetPtrHolder(this), aSize]() mutable {
         QM_TRY(MOZ_TO_RESULT(selfHolder->EnsureStream()),
                CreateAndRejectBoolPromise);
 

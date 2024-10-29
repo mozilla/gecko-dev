@@ -4,15 +4,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef DOM_FS_SHARED_TARGETPTRHOLDER_H_
-#define DOM_FS_SHARED_TARGETPTRHOLDER_H_
+#ifndef DOM_QUOTA_TARGETPTRHOLDER_H_
+#define DOM_QUOTA_TARGETPTRHOLDER_H_
 
 #include "mozilla/RefPtr.h"
 #include "nsCOMPtr.h"
 #include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
 
-namespace mozilla::dom::fs {
+namespace mozilla::dom::quota {
 
 // TODO: Remove this ad hoc class when bug 1805830 is fixed.
 template <typename T>
@@ -54,6 +54,6 @@ class TargetPtrHolder {
   RefPtr<T> mPtr;
 };
 
-}  // namespace mozilla::dom::fs
+}  // namespace mozilla::dom::quota
 
-#endif  // DOM_FS_SHARED_TARGETPTRHOLDER_H_
+#endif  // DOM_QUOTA_TARGETPTRHOLDER_H_

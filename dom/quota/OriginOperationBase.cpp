@@ -9,10 +9,10 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/dom/fs/TargetPtrHolder.h"
 #include "mozilla/dom/quota/OriginOperationCallbacks.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/TargetPtrHolder.h"
 #include "nsError.h"
 #include "nsIThread.h"
 #include "nsThreadUtils.h"
@@ -88,7 +88,7 @@ void OriginOperationBase::RunImmediately() {
              })
 #endif
       ->Then(mQuotaManager->IOThread(), __func__,
-             [selfHolder = fs::TargetPtrHolder(this)](
+             [selfHolder = TargetPtrHolder(this)](
                  const BoolPromise::ResolveOrRejectValue& aValue) {
                if (aValue.IsReject()) {
                  return BoolPromise::CreateAndReject(aValue.RejectValue(),
