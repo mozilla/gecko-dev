@@ -94,7 +94,8 @@ class EraseBrowsingDataTest : TestSetup() {
         // Pull down system bar and select Erase and Open
         mDevice.openNotification()
         notificationTray {
-            verifySystemNotificationExists(getStringResource(R.string.notification_erase_text))
+            verifySystemNotificationExists("Erase browsing history?")
+            verifySystemNotificationExists(getStringResource(R.string.notification_erase_text_android_14_1))
             expandEraseBrowsingNotification()
         }.clickEraseAndOpenNotificationButton {
             verifySnackBarText(getStringResource(R.string.feedback_erase2))
@@ -132,7 +133,7 @@ class EraseBrowsingDataTest : TestSetup() {
         }.loadPage(testPage.url) { }
         mDevice.openNotification()
         notificationTray {
-            verifySystemNotificationExists(getStringResource(R.string.notification_erase_text))
+            verifySystemNotificationExists("Erase browsing history?")
             expandEraseBrowsingNotification()
         }.clickNotificationMessage {
             verifyEmptySearchBar()
@@ -144,7 +145,7 @@ class EraseBrowsingDataTest : TestSetup() {
         pressHomeKey()
         mDevice.openNotification()
         notificationTray {
-            verifySystemNotificationExists(getStringResource(R.string.notification_erase_text))
+            verifySystemNotificationExists("Erase browsing history?")
             expandEraseBrowsingNotification()
         }.clickNotificationMessage {
             // Wait for launcher

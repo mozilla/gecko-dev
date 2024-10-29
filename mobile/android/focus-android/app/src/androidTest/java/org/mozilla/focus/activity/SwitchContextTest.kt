@@ -16,14 +16,12 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.focus.R
 import org.mozilla.focus.activity.robots.notificationTray
 import org.mozilla.focus.activity.robots.searchScreen
 import org.mozilla.focus.helpers.FeatureSettingsHelper
 import org.mozilla.focus.helpers.MainActivityFirstrunTestRule
 import org.mozilla.focus.helpers.MockWebServerHelper
 import org.mozilla.focus.helpers.TestAssetHelper
-import org.mozilla.focus.helpers.TestHelper.getStringResource
 import org.mozilla.focus.helpers.TestHelper.mDevice
 import org.mozilla.focus.helpers.TestHelper.pressHomeKey
 import org.mozilla.focus.helpers.TestHelper.waitingTime
@@ -79,7 +77,7 @@ class SwitchContextTest : TestSetup() {
         // Pull down system bar and select Open
         mDevice.openNotification()
         notificationTray {
-            verifySystemNotificationExists(getStringResource(R.string.notification_erase_text))
+            verifySystemNotificationExists("Erase browsing history?")
             expandEraseBrowsingNotification()
         }.clickNotificationOpenButton {
             verifyBrowserView()
@@ -125,7 +123,7 @@ class SwitchContextTest : TestSetup() {
         // switch to Focus
         mDevice.openNotification()
         notificationTray {
-            verifySystemNotificationExists(getStringResource(R.string.notification_erase_text))
+            verifySystemNotificationExists("Erase browsing history?")
             expandEraseBrowsingNotification()
         }.clickNotificationOpenButton {
             verifyBrowserView()
