@@ -1991,8 +1991,7 @@ main section {
 }
 .personalize-button:focus-visible {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
 }
 .personalize-button.personalize-animate-exit-done {
   visibility: hidden;
@@ -3065,8 +3064,7 @@ main section {
 }
 .card-outer:is(:focus):not(.placeholder) {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
   transition: none;
 }
 .card-outer:hover {
@@ -3095,8 +3093,7 @@ main section {
 }
 .card-outer > a:is(:focus) .card {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
 }
 .card-outer > a:is(.active, :focus) .card {
   box-shadow: 0 0 0 5px var(--newtab-element-secondary-color);
@@ -4157,8 +4154,7 @@ main section {
 }
 .ds-card-grid .ds-card-link:focus {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
   transition: none;
   border-radius: 8px;
 }
@@ -4363,8 +4359,7 @@ main section {
 .outer-wrapper .ds-card-grid.ds-card-grid-hide-background .ds-card:not(.placeholder) .ds-card-link:focus .img-wrapper .img img,
 .outer-wrapper.newtab-experience .ds-card-grid.ds-card-grid-hide-background .ds-card:not(.placeholder) .ds-card-link:focus .img-wrapper .img img {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
 }
 .outer-wrapper .ds-card-grid.ds-card-grid-hide-background .ds-card:not(.placeholder) .img-wrapper .img img,
 .outer-wrapper.newtab-experience .ds-card-grid.ds-card-grid-hide-background .ds-card:not(.placeholder) .img-wrapper .img img {
@@ -4663,8 +4658,7 @@ main section {
 /* stylelint-disable max-nesting-depth */
 .outer-wrapper .ds-top-sites .top-sites .top-site-outer .top-site-inner > a:is(.active, :focus) .tile {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
 }
 .outer-wrapper .ds-top-sites .top-sites .top-site-outer .top-site-inner > a:is(:hover) .top-site-inner {
   box-shadow: 0 0 0 5px var(--newtab-background-color-secondary);
@@ -4997,8 +4991,7 @@ main section {
 }
 .ds-card .ds-card-link:focus {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
   transition: none;
 }
 .ds-card .ds-card-topic {

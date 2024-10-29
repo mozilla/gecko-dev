@@ -10313,6 +10313,11 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("button", {
       className: "icon icon-settings personalize-button",
       onClick: () => this.props.onOpen(),
+      onKeyDown: e => {
+        if (e.key === 13) {
+          this.props.onOpen();
+        }
+      },
       "data-l10n-id": "newtab-personalize-icon-label",
       ref: c => this.openButton = c
     })), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {

@@ -157,8 +157,7 @@ $customize-menu-border-tint: 1px solid rgba(0, 0, 0, 15%);
 
 @mixin ds-focus {
   border: 0;
-  outline: 0;
-  box-shadow: 0 0 0 3px var(--newtab-primary-action-background-dimmed), 0 0 0 1px var(--newtab-primary-action-background);
+  outline: var(--focus-outline);
 }
 
 @mixin context-menu-button {

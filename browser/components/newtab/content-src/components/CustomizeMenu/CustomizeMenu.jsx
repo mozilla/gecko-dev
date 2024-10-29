@@ -39,6 +39,11 @@ export class _CustomizeMenu extends React.PureComponent {
           <button
             className="icon icon-settings personalize-button"
             onClick={() => this.props.onOpen()}
+            onKeyDown={e => {
+              if (e.key === 13) {
+                this.props.onOpen();
+              }
+            }}
             data-l10n-id="newtab-personalize-icon-label"
             ref={c => (this.openButton = c)}
           />
