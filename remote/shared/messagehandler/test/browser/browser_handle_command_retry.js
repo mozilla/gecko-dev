@@ -170,11 +170,10 @@ add_task(async function test_forced_no_retry_cross_group() {
       !(await hasPromiseResolved(onBlockedOneTime)),
       "blockedOneTime should not have resolved yet"
     );
-    // Bug 1927144: Causes a "A promise chain failed to handle a rejection" error.
-    // ok(
-    //   !(await hasPromiseResolved(onDiscarded)),
-    //   "waitForDiscardedBrowsingContext should not have resolved yet"
-    // );
+    ok(
+      !(await hasPromiseResolved(onDiscarded)),
+      "waitForDiscardedBrowsingContext should not have resolved yet"
+    );
 
     info(
       "Navigate to example.net with COOP headers to destroy browsing context"

@@ -120,7 +120,10 @@ function createTestMarkupWithFrames() {
 
 const hasPromiseResolved = async function (promise) {
   let resolved = false;
-  promise.finally(() => (resolved = true));
+
+  // Note that the catch() is only here to avoid leaking promise rejections.
+  // In all cases the resolved flag should be successfully flipped in finally().
+  promise.finally(() => (resolved = true)).catch(() => {});
   // Make sure microtasks have time to run.
   await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
   return resolved;
