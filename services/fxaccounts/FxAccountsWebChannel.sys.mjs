@@ -88,6 +88,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+ChromeUtils.defineLazyGetter(lazy, "l10n", function () {
+  return new Localization(["browser/sync.ftl"], true);
+});
+
 // These engines were added years after Sync had been introduced, they need
 // special handling since they are system add-ons and are un-available on
 // older versions of Firefox.
@@ -843,16 +847,19 @@ FxAccountsWebChannelHelpers.prototype = {
    * @private
    */
   _promptForRelink(acctName) {
-    let sb = Services.strings.createBundle(
-      "chrome://browser/locale/syncSetup.properties"
-    );
-    let continueLabel = sb.GetStringFromName("continue.label");
-    let title = sb.GetStringFromName("relinkVerify.title");
-    let description = sb.formatStringFromName("relinkVerify.description", [
-      acctName,
-    ]);
-    let body =
-      sb.GetStringFromName("relinkVerify.heading") + "\n\n" + description;
+    let [continueLabel, title, heading, description] =
+      lazy.l10n.formatValuesSync([
+        { id: "sync-setup-verify-continue" },
+        { id: "sync-setup-verify-title" },
+        { id: "sync-setup-verify-heading" },
+        {
+          id: "sync-setup-verify-description",
+          args: {
+            email: acctName,
+          },
+        },
+      ]);
+    let body = heading + "\n\n" + description;
     let ps = Services.prompt;
     let buttonFlags =
       ps.BUTTON_POS_0 * ps.BUTTON_TITLE_IS_STRING +

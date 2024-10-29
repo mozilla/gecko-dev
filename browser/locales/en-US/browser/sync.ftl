@@ -43,3 +43,16 @@ fxa-menu-sign-out =
 
 fxa-menu-sync-title = Sync
 fxa-menu-sync-description = Access your web anywhere
+
+
+# Dialog strings that we show the user when signing into Mozilla account/setting up sync
+
+sync-setup-verify-continue = Continue
+sync-setup-verify-title = Merge Warning
+sync-setup-verify-heading = Are you sure you want to sign in to sync?
+
+# The user was previously signed into sync. This dialog confirms to the user
+# that they will be merging the data from the previously signed in into the newly signed in one
+# Variables:
+#   $email - Email address of a user previously signed into sync.
+sync-setup-verify-description = A different user was previously signed in to sync on this computer. Signing in will merge this browser’s bookmarks, passwords and other settings with { $email }
