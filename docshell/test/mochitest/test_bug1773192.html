@@ -21,6 +21,8 @@
       });
     }
     async function runTest() {
+      await SimpleTest.enableLegacyUnpartitionedStorage();
+
       let bc = new BroadcastChannel("bug1743353");
 
       let getData = waitForData(bc);

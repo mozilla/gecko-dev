@@ -8,7 +8,9 @@
   <script>
     SimpleTest.waitForExplicitFinish();
 
-    function runTest() {
+    async function runTest() {
+      await SimpleTest.enableLegacyUnpartitionedStorage();
+
       let bc = new BroadcastChannel("bug1747033");
       new Promise(resolve => {
         bc.addEventListener("message", ({ data: { historyLength } }) => {

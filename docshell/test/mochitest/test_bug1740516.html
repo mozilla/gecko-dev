@@ -26,6 +26,8 @@
       });
     }
     async function runTest() {
+      await SimpleTest.enableLegacyUnpartitionedStorage();
+
       let outerBC = new BroadcastChannel("bug1740516_1");
       let innerBC = new BroadcastChannel("bug1740516_1_inner");
 
