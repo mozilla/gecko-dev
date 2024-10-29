@@ -166,10 +166,8 @@ enum class OpKind {
   ReturnCall,
   CallIndirect,
   ReturnCallIndirect,
-#  ifdef ENABLE_WASM_GC
   CallRef,
   ReturnCallRef,
-#  endif
   OldCallDirect,
   OldCallIndirect,
   Return,
@@ -428,11 +426,6 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   TypeAndValueStack elseParamStack_;
   ControlStack controlStack_;
   UnsetLocalsState unsetLocals_;
-  // The exclusive max index of a global that can be accessed by global.get in
-  // this expression. When GC is enabled, this is any previously defined
-  // immutable global. Otherwise this is always set to zero, and only imported
-  // immutable globals are allowed.
-  uint32_t maxInitializedGlobalsIndexPlus1_;
   FeatureUsage featureUsage_;
   uint32_t lastBranchHintIndex_;
   BranchHintVector* branchHintVector_;
@@ -539,10 +532,8 @@ class MOZ_STACK_CLASS OpIter : private Policy {
 
   inline bool checkIsSubtypeOf(ResultType params, ResultType results);
 
-#ifdef ENABLE_WASM_GC
   inline bool checkIsSubtypeOf(uint32_t actualTypeIndex,
                                uint32_t expectedTypeIndex);
-#endif
 
  public:
 #ifdef DEBUG
@@ -551,7 +542,6 @@ class MOZ_STACK_CLASS OpIter : private Policy {
       : kind_(kind),
         d_(decoder),
         codeMeta_(codeMeta),
-        maxInitializedGlobalsIndexPlus1_(0),
         featureUsage_(FeatureUsage::None),
         branchHintVector_(nullptr),
         op_(OpBytes(Op::Limit)),
@@ -562,7 +552,6 @@ class MOZ_STACK_CLASS OpIter : private Policy {
       : kind_(kind),
         d_(decoder),
         codeMeta_(codeMeta),
-        maxInitializedGlobalsIndexPlus1_(0),
         featureUsage_(FeatureUsage::None),
         offsetOfLastReadOp_(0) {}
 #endif
@@ -739,14 +728,11 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                             uint32_t* tableIndex, Value* callee,
                                             ValueVector* argValues);
 #endif
-#ifdef ENABLE_WASM_GC
   [[nodiscard]] bool readCallRef(const FuncType** funcType, Value* callee,
                                  ValueVector* argValues);
-
-#  ifdef ENABLE_WASM_TAIL_CALLS
+#ifdef ENABLE_WASM_TAIL_CALLS
   [[nodiscard]] bool readReturnCallRef(const FuncType** funcType, Value* callee,
                                        ValueVector* argValues);
-#  endif
 #endif
   [[nodiscard]] bool readOldCallDirect(uint32_t numFuncImports,
                                        uint32_t* funcIndex,
@@ -792,7 +778,6 @@ class MOZ_STACK_CLASS OpIter : private Policy {
 
   [[nodiscard]] bool readTableSize(uint32_t* tableIndex);
 
-#ifdef ENABLE_WASM_GC
   [[nodiscard]] bool readStructNew(uint32_t* typeIndex, ValueVector* argValues);
   [[nodiscard]] bool readStructNewDefault(uint32_t* typeIndex);
   [[nodiscard]] bool readStructGet(uint32_t* typeIndex, uint32_t* fieldIndex,
@@ -837,7 +822,6 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                   ResultType* labelType, ValueVector* values);
   [[nodiscard]] bool readRefConversion(RefType operandType, RefType resultType,
                                        Value* operandValue);
-#endif
 
 #ifdef ENABLE_WASM_SIMD
   [[nodiscard]] bool readLaneIndex(uint32_t inputLanes, uint32_t* laneIndex);
@@ -974,7 +958,6 @@ inline bool OpIter<Policy>::checkIsSubtypeOf(ResultType params,
   return true;
 }
 
-#ifdef ENABLE_WASM_GC
 template <typename Policy>
 inline bool OpIter<Policy>::checkIsSubtypeOf(uint32_t actualTypeIndex,
                                              uint32_t expectedTypeIndex) {
@@ -985,7 +968,6 @@ inline bool OpIter<Policy>::checkIsSubtypeOf(uint32_t actualTypeIndex,
       ValType(RefType::fromTypeDef(&actualTypeDef, true)),
       ValType(RefType::fromTypeDef(&expectedTypeDef, true)));
 }
-#endif
 
 template <typename Policy>
 inline bool OpIter<Policy>::unrecognizedOpcode(const OpBytes* expr) {
@@ -1308,7 +1290,6 @@ inline bool OpIter<Policy>::startFunction(uint32_t funcIndex,
   MOZ_ASSERT(valueStack_.empty());
   MOZ_ASSERT(controlStack_.empty());
   MOZ_ASSERT(op_.b0 == uint16_t(Op::Limit));
-  MOZ_ASSERT(maxInitializedGlobalsIndexPlus1_ == 0);
   BlockType type = BlockType::FuncResults(codeMeta_.getFuncType(funcIndex));
 
   // Initialize information related to branch hinting.
@@ -1352,14 +1333,6 @@ inline bool OpIter<Policy>::startInitExpr(ValType expected) {
   MOZ_ASSERT(controlStack_.empty());
   MOZ_ASSERT(op_.b0 == uint16_t(Op::Limit));
   lastBranchHintIndex_ = 0;
-
-  // GC allows accessing any previously defined global, not just those that are
-  // imported and immutable.
-  if (codeMeta_.features().gc) {
-    maxInitializedGlobalsIndexPlus1_ = codeMeta_.globals.length();
-  } else {
-    maxInitializedGlobalsIndexPlus1_ = codeMeta_.numGlobalImports;
-  }
 
   BlockType type = BlockType::VoidToSingle(expected);
   return pushControl(LabelKind::Body, type);
@@ -2329,8 +2302,7 @@ inline bool OpIter<Policy>::readGetGlobal(uint32_t* id) {
 
   // Initializer expressions can access immutable imported globals, or any
   // previously defined immutable global with GC enabled.
-  if (kind_ == OpIter::InitExpr && (codeMeta_.globals[*id].isMutable() ||
-                                    *id >= maxInitializedGlobalsIndexPlus1_)) {
+  if (kind_ == OpIter::InitExpr && codeMeta_.globals[*id].isMutable()) {
     return fail(
         "global.get in initializer expression must reference a global "
         "immutable import");
@@ -2445,16 +2417,9 @@ inline bool OpIter<Policy>::readRefFunc(uint32_t* funcIndex) {
         "function index is not declared in a section before the code section");
   }
 
-#ifdef ENABLE_WASM_GC
-  // When function references enabled, push type index on the stack, e.g. for
-  // validation of the call_ref instruction.
-  if (codeMeta_.gcEnabled()) {
-    const uint32_t typeIndex = codeMeta_.funcs[*funcIndex].typeIndex;
-    const TypeDef& typeDef = codeMeta_.types->type(typeIndex);
-    return push(RefType::fromTypeDef(&typeDef, false));
-  }
-#endif
-  return push(RefType::func());
+  const uint32_t typeIndex = codeMeta_.funcs[*funcIndex].typeIndex;
+  const TypeDef& typeDef = codeMeta_.types->type(typeIndex);
+  return push(RefType::fromTypeDef(&typeDef, false));
 }
 
 template <typename Policy>
@@ -2753,7 +2718,6 @@ inline bool OpIter<Policy>::readReturnCallIndirect(uint32_t* funcTypeIndex,
 }
 #endif
 
-#ifdef ENABLE_WASM_GC
 template <typename Policy>
 inline bool OpIter<Policy>::readCallRef(const FuncType** funcType,
                                         Value* callee, ValueVector* argValues) {
@@ -2777,9 +2741,8 @@ inline bool OpIter<Policy>::readCallRef(const FuncType** funcType,
 
   return push(ResultType::Vector((*funcType)->results()));
 }
-#endif
 
-#if defined(ENABLE_WASM_TAIL_CALLS) && defined(ENABLE_WASM_GC)
+#ifdef ENABLE_WASM_TAIL_CALLS
 template <typename Policy>
 inline bool OpIter<Policy>::readReturnCallRef(const FuncType** funcType,
                                               Value* callee,
@@ -3380,8 +3343,6 @@ inline bool OpIter<Policy>::readFieldIndex(uint32_t* fieldIndex,
 
   return true;
 }
-
-#ifdef ENABLE_WASM_GC
 
 template <typename Policy>
 inline bool OpIter<Policy>::readStructNew(uint32_t* typeIndex,
@@ -4089,8 +4050,6 @@ inline bool OpIter<Policy>::readRefConversion(RefType operandType,
   infalliblePush(ValType(resultType.withIsNullable(outputNullable)));
   return true;
 }
-
-#endif  // ENABLE_WASM_GC
 
 #ifdef ENABLE_WASM_SIMD
 

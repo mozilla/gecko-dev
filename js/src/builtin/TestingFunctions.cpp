@@ -2308,7 +2308,6 @@ static bool WasmBuiltinI8VecMul(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-#ifdef ENABLE_WASM_GC
 static bool WasmGcReadField(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   RootedObject callee(cx, &args.callee());
@@ -2359,7 +2358,6 @@ static bool WasmGcArrayLength(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setInt32(int32_t(arr.numElements_));
   return true;
 }
-#endif  // ENABLE_WASM_GC
 
 static bool LargeArrayBufferSupported(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -10092,7 +10090,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "wasmBuiltinI8VecMul()",
 "  Returns a module that implements an i8 vector pairwise multiplication intrinsic."),
 
-#ifdef ENABLE_WASM_GC
     JS_FN_HELP("wasmGcReadField", WasmGcReadField, 2, 0,
 "wasmGcReadField(obj, index)",
 "  Gets a field of a WebAssembly GC struct or array."),
@@ -10100,7 +10097,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
     JS_FN_HELP("wasmGcArrayLength", WasmGcArrayLength, 1, 0,
 "wasmGcArrayLength(arr)",
 "  Gets the length of a WebAssembly GC array."),
-#endif // ENABLE_WASM_GC
 
 #ifdef ENABLE_WASM_BRANCH_HINTING
     JS_FN_HELP("wasmParsedBranchHints", WasmParsedBranchHints, 1, 0,

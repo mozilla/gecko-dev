@@ -137,7 +137,6 @@ class MOZ_STACK_CLASS InitExprInterpreter {
     uint64_t a = popI64();
     return pushI64(a * b);
   }
-#ifdef ENABLE_WASM_GC
   bool evalStructNew(JSContext* cx, uint32_t typeIndex) {
     const TypeDef& typeDef = instance().codeMeta().types->type(typeIndex);
     const StructType& structType = typeDef.structType();
@@ -241,7 +240,6 @@ class MOZ_STACK_CLASS InitExprInterpreter {
     stack.popBack();
     return pushRef(RefType::any(), ref);
   }
-#endif  // ENABLE_WASM_GC
 };
 
 bool InitExprInterpreter::evaluate(JSContext* cx, Decoder& d) {
@@ -354,7 +352,6 @@ bool InitExprInterpreter::evaluate(JSContext* cx, Decoder& d) {
         }
         CHECK(evalI64Mul());
       }
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::GcPrefix): {
         switch (op.b1) {
           case uint32_t(GcOp::StructNew): {
@@ -410,7 +407,6 @@ bool InitExprInterpreter::evaluate(JSContext* cx, Decoder& d) {
         }
         break;
       }
-#endif
       default: {
         MOZ_CRASH();
       }
@@ -554,11 +550,7 @@ bool wasm::DecodeConstantExpression(Decoder& d, CodeMetadata* codeMeta,
         *literal = Nothing();
         break;
       }
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::GcPrefix): {
-        if (!codeMeta->gcEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         switch (op.b1) {
           case uint32_t(GcOp::StructNew): {
             uint32_t typeIndex;
@@ -627,7 +619,6 @@ bool wasm::DecodeConstantExpression(Decoder& d, CodeMetadata* codeMeta,
         *literal = Nothing();
         break;
       }
-#endif
       default: {
         return iter.unrecognizedOpcode(&op);
       }

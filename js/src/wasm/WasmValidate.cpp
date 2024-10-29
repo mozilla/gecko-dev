@@ -242,25 +242,20 @@ static bool DecodeFunctionBodyExprs(const CodeMetadata& codeMeta,
                                           &unusedArgs));
       }
 #endif
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::CallRef): {
-        if (!codeMeta.gcEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         const FuncType* unusedType;
         NothingVector unusedArgs{};
         CHECK(iter.readCallRef(&unusedType, &nothing, &unusedArgs));
       }
-#  ifdef ENABLE_WASM_TAIL_CALLS
+#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCallRef): {
-        if (!codeMeta.gcEnabled() || !codeMeta.tailCallsEnabled()) {
+        if (!codeMeta.tailCallsEnabled()) {
           return iter.unrecognizedOpcode(&op);
         }
         const FuncType* unusedType;
         NothingVector unusedArgs{};
         CHECK(iter.readReturnCallRef(&unusedType, &nothing, &unusedArgs));
       }
-#  endif
 #endif
       case uint16_t(Op::I32Const): {
         int32_t unused;
@@ -582,11 +577,7 @@ static bool DecodeFunctionBodyExprs(const CodeMetadata& codeMeta,
         CHECK(iter.readReturn(&nothings));
       case uint16_t(Op::Unreachable):
         CHECK(iter.readUnreachable());
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::GcPrefix): {
-        if (!codeMeta.gcEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         switch (op.b1) {
           case uint32_t(GcOp::StructNew): {
             uint32_t unusedUint;
@@ -750,7 +741,6 @@ static bool DecodeFunctionBodyExprs(const CodeMetadata& codeMeta,
         }
         break;
       }
-#endif
 
 #ifdef ENABLE_WASM_SIMD
       case uint16_t(Op::SimdPrefix): {
@@ -1247,38 +1237,22 @@ static bool DecodeFunctionBodyExprs(const CodeMetadata& codeMeta,
         }
         break;
       }
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefAsNonNull): {
-        if (!codeMeta.gcEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         CHECK(iter.readRefAsNonNull(&nothing));
       }
       case uint16_t(Op::BrOnNull): {
-        if (!codeMeta.gcEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         uint32_t unusedDepth;
         CHECK(
             iter.readBrOnNull(&unusedDepth, &unusedType, &nothings, &nothing));
       }
       case uint16_t(Op::BrOnNonNull): {
-        if (!codeMeta.gcEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         uint32_t unusedDepth;
         CHECK(iter.readBrOnNonNull(&unusedDepth, &unusedType, &nothings,
                                    &nothing));
       }
-#endif
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefEq): {
-        if (!codeMeta.gcEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         CHECK(iter.readComparison(RefType::eq(), &nothing, &nothing));
       }
-#endif
       case uint16_t(Op::RefFunc): {
         uint32_t unusedIndex;
         CHECK(iter.readRefFunc(&unusedIndex));
@@ -1609,10 +1583,6 @@ static bool DecodeFuncType(Decoder& d, CodeMetadata* codeMeta,
 
 static bool DecodeStructType(Decoder& d, CodeMetadata* codeMeta,
                              StructType* structType) {
-  if (!codeMeta->gcEnabled()) {
-    return d.fail("gc not enabled");
-  }
-
   uint32_t numFields;
   if (!d.readVarU32(&numFields)) {
     return d.fail("Bad number of fields");
@@ -1654,10 +1624,6 @@ static bool DecodeStructType(Decoder& d, CodeMetadata* codeMeta,
 
 static bool DecodeArrayType(Decoder& d, CodeMetadata* codeMeta,
                             ArrayType* arrayType) {
-  if (!codeMeta->gcEnabled()) {
-    return d.fail("gc not enabled");
-  }
-
   StorageType elementType;
   if (!d.readStorageType(*codeMeta->types, codeMeta->features(),
                          &elementType)) {
@@ -1701,22 +1667,18 @@ static bool DecodeTypeSection(Decoder& d, CodeMetadata* codeMeta) {
        recGroupIndex++) {
     uint32_t recGroupLength = 1;
 
-    // Decode an optional recursion group length, if the GC proposal is
-    // enabled.
-    if (codeMeta->gcEnabled()) {
-      uint8_t firstTypeCode;
-      if (!d.peekByte(&firstTypeCode)) {
-        return d.fail("expected type form");
-      }
+    uint8_t firstTypeCode;
+    if (!d.peekByte(&firstTypeCode)) {
+      return d.fail("expected type form");
+    }
 
-      if (firstTypeCode == (uint8_t)TypeCode::RecGroup) {
-        // Skip over the prefix byte that was peeked.
-        d.uncheckedReadFixedU8();
+    if (firstTypeCode == (uint8_t)TypeCode::RecGroup) {
+      // Skip over the prefix byte that was peeked.
+      d.uncheckedReadFixedU8();
 
-        // Read the number of types in this recursion group
-        if (!d.readVarU32(&recGroupLength)) {
-          return d.fail("expected recursion group length");
-        }
+      // Read the number of types in this recursion group
+      if (!d.readVarU32(&recGroupLength)) {
+        return d.fail("expected recursion group length");
       }
     }
 
@@ -1751,11 +1713,9 @@ static bool DecodeTypeSection(Decoder& d, CodeMetadata* codeMeta) {
       // By default, all types are final unless the sub keyword is specified.
       bool finalTypeFlag = true;
 
-      // Decode an optional declared super type index, if the GC proposal is
-      // enabled.
-      if (codeMeta->gcEnabled() && d.peekByte(&form) &&
-          (form == (uint8_t)TypeCode::SubNoFinalType ||
-           form == (uint8_t)TypeCode::SubFinalType)) {
+      // Decode an optional declared super type index.
+      if (d.peekByte(&form) && (form == (uint8_t)TypeCode::SubNoFinalType ||
+                                form == (uint8_t)TypeCode::SubFinalType)) {
         if (form == (uint8_t)TypeCode::SubNoFinalType) {
           finalTypeFlag = false;
         }
@@ -1836,8 +1796,7 @@ static bool DecodeTypeSection(Decoder& d, CodeMetadata* codeMeta) {
       }
 
       if (typeDef->isFuncType()) {
-        typeDef->funcType().initImmediateTypeId(codeMeta->gcEnabled(),
-                                                typeDef->isFinal(),
+        typeDef->funcType().initImmediateTypeId(typeDef->isFinal(),
                                                 superTypeDef, recGroupLength);
       }
     }

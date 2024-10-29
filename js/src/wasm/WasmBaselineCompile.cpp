@@ -1933,7 +1933,6 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
   return true;
 }
 
-#ifdef ENABLE_WASM_GC
 class OutOfLineUpdateCallRefMetrics : public OutOfLineCode {
  public:
   virtual void generate(MacroAssembler* masm) override {
@@ -2048,7 +2047,7 @@ bool BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
   return true;
 }
 
-#  ifdef ENABLE_WASM_TAIL_CALLS
+#ifdef ENABLE_WASM_TAIL_CALLS
 void BaseCompiler::returnCallRef(const Stk& calleeRef, const FunctionCall& call,
                                  const FuncType* funcType) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::FuncRef);
@@ -2059,8 +2058,6 @@ void BaseCompiler::returnCallRef(const Stk& calleeRef, const FunctionCall& call,
       BuildReturnCallAdjustmentInfo(this->funcType(), *funcType);
   masm.wasmReturnCallRef(desc, callee, retCallInfo);
 }
-#  endif
-
 #endif
 
 // Precondition: sync()
@@ -3602,7 +3599,6 @@ bool BaseCompiler::jumpConditionalWithResults(BranchState* b, Cond cond,
   return true;
 }
 
-#ifdef ENABLE_WASM_GC
 bool BaseCompiler::jumpConditionalWithResults(BranchState* b, RegRef object,
                                               RefType sourceType,
                                               RefType destType,
@@ -3644,7 +3640,6 @@ bool BaseCompiler::jumpConditionalWithResults(BranchState* b, RegRef object,
   freeRegistersForBranchIfRefSubtype(regs);
   return true;
 }
-#endif
 
 // sniffConditionalControl{Cmp,Eqz} may modify the latentWhatever_ state in
 // the BaseCompiler so that a subsequent conditional branch can be compiled
@@ -4280,7 +4275,6 @@ bool BaseCompiler::emitBrIf() {
   return emitBranchPerform(&b);
 }
 
-#ifdef ENABLE_WASM_GC
 bool BaseCompiler::emitBrOnNull() {
   MOZ_ASSERT(!hasLatentOp());
 
@@ -4365,7 +4359,6 @@ bool BaseCompiler::emitBrOnNonNull() {
 
   return true;
 }
-#endif
 
 bool BaseCompiler::emitBrTable() {
   Uint32Vector depths;
@@ -5639,7 +5632,6 @@ bool BaseCompiler::emitReturnCallIndirect() {
 }
 #endif
 
-#ifdef ENABLE_WASM_GC
 bool BaseCompiler::emitCallRef() {
   const FuncType* funcType;
   Nothing unused_callee;
@@ -5710,7 +5702,7 @@ bool BaseCompiler::emitCallRef() {
   return pushCallResults(baselineCall, resultType, results);
 }
 
-#  ifdef ENABLE_WASM_TAIL_CALLS
+#ifdef ENABLE_WASM_TAIL_CALLS
 bool BaseCompiler::emitReturnCallRef() {
   const FuncType* funcType;
   Nothing unused_callee;
@@ -5753,8 +5745,6 @@ bool BaseCompiler::emitReturnCallRef() {
   deadCode_ = true;
   return true;
 }
-#  endif
-
 #endif
 
 void BaseCompiler::emitRound(RoundingMode roundingMode, ValType operandType) {
@@ -6650,7 +6640,6 @@ bool BaseCompiler::emitRefIsNull() {
   return true;
 }
 
-#ifdef ENABLE_WASM_GC
 bool BaseCompiler::emitRefAsNonNull() {
   Nothing nothing;
   if (!iter_.readRefAsNonNull(&nothing)) {
@@ -6670,7 +6659,6 @@ bool BaseCompiler::emitRefAsNonNull() {
 
   return true;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -7363,18 +7351,16 @@ void BaseCompiler::emitBarrieredClear(RegPtr valueAddr) {
 //
 // GC proposal.
 
-#ifdef ENABLE_WASM_GC
-
 RegPtr BaseCompiler::loadTypeDefInstanceData(uint32_t typeIndex) {
   RegPtr rp = needPtr();
   RegPtr instance;
-#  ifndef RABALDR_PIN_INSTANCE
+#ifndef RABALDR_PIN_INSTANCE
   instance = rp;
   fr.loadInstancePtr(instance);
-#  else
+#else
   // We can use the pinned instance register.
   instance = RegPtr(InstanceReg);
-#  endif
+#endif
   masm.computeEffectiveAddress(
       Address(instance, Instance::offsetInData(
                             codeMeta_.offsetOfTypeDefInstanceData(typeIndex))),
@@ -7385,15 +7371,15 @@ RegPtr BaseCompiler::loadTypeDefInstanceData(uint32_t typeIndex) {
 RegPtr BaseCompiler::loadSuperTypeVector(uint32_t typeIndex) {
   RegPtr rp = needPtr();
   RegPtr instance;
-#  ifndef RABALDR_PIN_INSTANCE
+#ifndef RABALDR_PIN_INSTANCE
   // We need to load the instance register, but can use the destination
   // register as a temporary.
   instance = rp;
   fr.loadInstancePtr(rp);
-#  else
+#else
   // We can use the pinned instance register.
   instance = RegPtr(InstanceReg);
-#  endif
+#endif
   masm.loadPtr(
       Address(instance, Instance::offsetInData(
                             codeMeta_.offsetOfSuperTypeVector(typeIndex))),
@@ -7491,14 +7477,14 @@ void BaseCompiler::emitGcGet(StorageType type, FieldWideningOp wideningOp,
     case StorageType::I64: {
       MOZ_ASSERT(wideningOp == FieldWideningOp::None);
       RegI64 r = needI64();
-#  ifdef JS_64BIT
+#ifdef JS_64BIT
       FaultingCodeOffset fco = masm.load64(src, r);
       NullCheckPolicy::emitTrapSite(this, fco, TrapMachineInsn::Load64);
-#  else
+#else
       FaultingCodeOffsetPair fcop = masm.load64(src, r);
       NullCheckPolicy::emitTrapSite(this, fcop.first, TrapMachineInsn::Load32);
       NullCheckPolicy::emitTrapSite(this, fcop.second, TrapMachineInsn::Load32);
-#  endif
+#endif
       pushI64(r);
       break;
     }
@@ -7518,7 +7504,7 @@ void BaseCompiler::emitGcGet(StorageType type, FieldWideningOp wideningOp,
       pushF64(r);
       break;
     }
-#  ifdef ENABLE_WASM_SIMD
+#ifdef ENABLE_WASM_SIMD
     case StorageType::V128: {
       MOZ_ASSERT(wideningOp == FieldWideningOp::None);
       RegV128 r = needV128();
@@ -7527,7 +7513,7 @@ void BaseCompiler::emitGcGet(StorageType type, FieldWideningOp wideningOp,
       pushV128(r);
       break;
     }
-#  endif
+#endif
     case StorageType::Ref: {
       MOZ_ASSERT(wideningOp == FieldWideningOp::None);
       RegRef r = needRef();
@@ -7562,15 +7548,15 @@ void BaseCompiler::emitGcSetScalar(const T& dst, StorageType type,
       break;
     }
     case StorageType::I64: {
-#  ifdef JS_64BIT
+#ifdef JS_64BIT
       FaultingCodeOffset fco = masm.store64(value.i64(), dst);
       NullCheckPolicy::emitTrapSite(this, fco, TrapMachineInsn::Store64);
-#  else
+#else
       FaultingCodeOffsetPair fcop = masm.store64(value.i64(), dst);
       NullCheckPolicy::emitTrapSite(this, fcop.first, TrapMachineInsn::Store32);
       NullCheckPolicy::emitTrapSite(this, fcop.second,
                                     TrapMachineInsn::Store32);
-#  endif
+#endif
       break;
     }
     case StorageType::F32: {
@@ -7583,13 +7569,13 @@ void BaseCompiler::emitGcSetScalar(const T& dst, StorageType type,
       NullCheckPolicy::emitTrapSite(this, fco, TrapMachineInsn::Store64);
       break;
     }
-#  ifdef ENABLE_WASM_SIMD
+#ifdef ENABLE_WASM_SIMD
     case StorageType::V128: {
       FaultingCodeOffset fco = masm.storeUnalignedSimd128(value.v128(), dst);
       NullCheckPolicy::emitTrapSite(this, fco, TrapMachineInsn::Store128);
       break;
     }
-#  endif
+#endif
     default: {
       MOZ_CRASH("Unexpected field type");
     }
@@ -7712,14 +7698,14 @@ bool BaseCompiler::emitStructAlloc(uint32_t typeIndex, RegRef* object,
     RegPtr instance;
     *object = RegRef(ReturnReg);
     needRef(*object);
-#  ifndef RABALDR_PIN_INSTANCE
+#ifndef RABALDR_PIN_INSTANCE
     // We reuse the result register for the instance.
     instance = RegPtr(ReturnReg);
     fr.loadInstancePtr(instance);
-#  else
+#else
     // We can use the pinned instance register.
     instance = RegPtr(InstanceReg);
-#  endif
+#endif
 
     RegPtr typeDefData = loadTypeDefInstanceData(typeIndex);
     RegPtr temp1 = needPtr();
@@ -7987,15 +7973,15 @@ bool BaseCompiler::emitArrayAlloc(uint32_t typeIndex, RegRef object,
   sync();
 
   RegPtr instance;
-#  ifndef RABALDR_PIN_INSTANCE
+#ifndef RABALDR_PIN_INSTANCE
   // We reuse the object register for the instance. This is ok because object is
   // not live until instance is dead.
   instance = RegPtr(object);
   fr.loadInstancePtr(instance);
-#  else
+#else
   // We can use the pinned instance register.
   instance = RegPtr(InstanceReg);
-#  endif
+#endif
 
   RegPtr typeDefData = loadTypeDefInstanceData(typeIndex);
   RegPtr temp = needPtr();
@@ -8052,15 +8038,15 @@ bool BaseCompiler::emitArrayAllocFixed(uint32_t typeIndex, RegRef object,
   sync();
 
   RegPtr instance;
-#  ifndef RABALDR_PIN_INSTANCE
+#ifndef RABALDR_PIN_INSTANCE
   // We reuse the object register for the instance. This is ok because object is
   // not live until instance is dead.
   instance = RegPtr(object);
   fr.loadInstancePtr(instance);
-#  else
+#else
   // We can use the pinned instance register.
   instance = RegPtr(InstanceReg);
-#  endif
+#endif
 
   RegPtr typeDefData = loadTypeDefInstanceData(typeIndex);
   RegPtr temp1 = needPtr();
@@ -8549,12 +8535,12 @@ bool BaseCompiler::emitArrayFill() {
   }
 
   // Set up a pointer to the Instance, so we can do manual spills/reloads
-#  ifdef RABALDR_PIN_INSTANCE
+#ifdef RABALDR_PIN_INSTANCE
   RegPtr instancePtr = RegPtr(InstanceReg);
-#  else
+#else
   RegPtr instancePtr = needPtr();
   fr.loadInstancePtr(instancePtr);
-#  endif
+#endif
 
   // Pull operands off the instance stack and stash the non-Any ones
   RegI32 numElements = popI32();
@@ -8588,11 +8574,11 @@ bool BaseCompiler::emitArrayFill() {
   // 3: instancePtr arrayNumElements index
 
   // Reload numElements into the reg that currently holds instancePtr
-#  ifdef RABALDR_PIN_INSTANCE
+#ifdef RABALDR_PIN_INSTANCE
   numElements = needI32();
-#  else
+#else
   numElements = RegI32(instancePtr);
-#  endif
+#endif
   unstashWord(instancePtr, 0, RegPtr(numElements));
   instancePtr = RegPtr::Invalid();
   // 3: arrayNumElements index numElements
@@ -8617,12 +8603,12 @@ bool BaseCompiler::emitArrayFill() {
   // 1: index
 
   // Re-set-up the instance pointer; we had to ditch it earlier.
-#  ifdef RABALDR_PIN_INSTANCE
+#ifdef RABALDR_PIN_INSTANCE
   instancePtr = RegPtr(InstanceReg);
-#  else
+#else
   instancePtr = needPtr();
   fr.loadInstancePtr(instancePtr);
-#  endif
+#endif
   // 2: index instancePtr
 
   // Reload rp
@@ -8631,12 +8617,12 @@ bool BaseCompiler::emitArrayFill() {
   // 3: index instancePtr rp
 
   // Drop instancePtr
-#  ifdef RABALDR_PIN_INSTANCE
+#ifdef RABALDR_PIN_INSTANCE
   instancePtr = RegPtr::Invalid();
-#  else
+#else
   freePtr(instancePtr);
   instancePtr = RegPtr::Invalid();
-#  endif
+#endif
   // 2: index rp
 
   // Acquire the data pointer from the object
@@ -8651,9 +8637,9 @@ bool BaseCompiler::emitArrayFill() {
     masm.lshift32(Imm32(shift), index);
     // `index` is a 32 bit value, so we must zero-extend it to 64 bits before
     // adding it on to `rdata`.
-#  ifdef JS_64BIT
+#ifdef JS_64BIT
     masm.move32To64ZeroExtend(index, widenI32(index));
-#  endif
+#endif
   }
   masm.addPtr(index, rdata);
   // `index` is not used after this point.
@@ -8669,24 +8655,24 @@ bool BaseCompiler::emitArrayFill() {
   // 2: rp rdata
 
   // Re-re-set-up the instance pointer; we had to ditch it earlier.
-#  ifdef RABALDR_PIN_INSTANCE
+#ifdef RABALDR_PIN_INSTANCE
   instancePtr = RegPtr(InstanceReg);
-#  else
+#else
   instancePtr = needPtr();
   fr.loadInstancePtr(instancePtr);
-#  endif
+#endif
   // 3: rp rdata instancePtr
 
   // And reload numElements.
-#  ifdef RABALDR_PIN_INSTANCE
+#ifdef RABALDR_PIN_INSTANCE
   numElements = needI32();
   unstashWord(instancePtr, 0, RegPtr(numElements));
   instancePtr = RegPtr::Invalid();
-#  else
+#else
   numElements = RegI32(instancePtr);
   unstashWord(instancePtr, 0, RegPtr(numElements));
   instancePtr = RegPtr::Invalid();
-#  endif
+#endif
   // 3: numElements rp rdata
 
   // Free the barrier reg after we've allocated all registers
@@ -8939,8 +8925,6 @@ bool BaseCompiler::emitExternConvertAny() {
   Nothing nothing;
   return iter_.readRefConversion(RefType::any(), RefType::extern_(), &nothing);
 }
-
-#endif  // ENABLE_WASM_GC
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -10470,19 +10454,14 @@ bool BaseCompiler::emitBody() {
         }
         CHECK_NEXT(emitReturnCallIndirect());
 #endif
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::CallRef):
-        if (!codeMeta_.gcEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(emitCallRef());
-#  ifdef ENABLE_WASM_TAIL_CALLS
+#ifdef ENABLE_WASM_TAIL_CALLS
       case uint16_t(Op::ReturnCallRef):
-        if (!codeMeta_.gcEnabled() || !codeMeta_.tailCallsEnabled()) {
+        if (!codeMeta_.tailCallsEnabled()) {
           return iter_.unrecognizedOpcode(&op);
         }
         CHECK_NEXT(emitReturnCallRef());
-#  endif
 #endif
 
       // Locals and globals
@@ -11015,31 +10994,15 @@ bool BaseCompiler::emitBody() {
       case uint16_t(Op::MemorySize):
         CHECK_NEXT(emitMemorySize());
 
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefAsNonNull):
-        if (!codeMeta_.gcEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(emitRefAsNonNull());
       case uint16_t(Op::BrOnNull):
-        if (!codeMeta_.gcEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(emitBrOnNull());
       case uint16_t(Op::BrOnNonNull):
-        if (!codeMeta_.gcEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(emitBrOnNonNull());
-#endif
-#ifdef ENABLE_WASM_GC
       case uint16_t(Op::RefEq):
-        if (!codeMeta_.gcEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         CHECK_NEXT(dispatchComparison0(emitCompareRef, RefType::eq(),
                                        Assembler::Equal));
-#endif
       case uint16_t(Op::RefFunc):
         CHECK_NEXT(emitRefFunc());
         break;
@@ -11050,12 +11013,8 @@ bool BaseCompiler::emitBody() {
         CHECK_NEXT(emitRefIsNull());
         break;
 
-#ifdef ENABLE_WASM_GC
       // "GC" operations
       case uint16_t(Op::GcPrefix): {
-        if (!codeMeta_.gcEnabled()) {
-          return iter_.unrecognizedOpcode(&op);
-        }
         switch (op.b1) {
           case uint32_t(GcOp::StructNew):
             CHECK_NEXT(emitStructNew());
@@ -11124,7 +11083,6 @@ bool BaseCompiler::emitBody() {
         }  // switch (op.b1)
         return iter_.unrecognizedOpcode(&op);
       }
-#endif
 
 #ifdef ENABLE_WASM_SIMD
       // SIMD operations

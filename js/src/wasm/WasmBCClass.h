@@ -986,15 +986,13 @@ struct BaseCompiler final {
                     bool tailCall, CodeOffset* fastCallOffset,
                     CodeOffset* slowCallOffset);
   CodeOffset callImport(unsigned instanceDataOffset, const FunctionCall& call);
-#ifdef ENABLE_WASM_GC
   bool updateCallRefMetrics(size_t callRefIndex);
   bool callRef(const Stk& calleeRef, const FunctionCall& call,
                mozilla::Maybe<size_t> callRefIndex, CodeOffset* fastCallOffset,
                CodeOffset* slowCallOffset);
-#  ifdef ENABLE_WASM_TAIL_CALLS
+#ifdef ENABLE_WASM_TAIL_CALLS
   void returnCallRef(const Stk& calleeRef, const FunctionCall& call,
                      const FuncType* funcType);
-#  endif
 #endif
   CodeOffset builtinCall(SymbolicAddress builtin, const FunctionCall& call);
   CodeOffset builtinInstanceMethodCall(const SymbolicAddressSignature& builtin,
@@ -1398,14 +1396,12 @@ struct BaseCompiler final {
   template <typename Cond, typename Lhs, typename Rhs>
   [[nodiscard]] bool jumpConditionalWithResults(BranchState* b, Cond cond,
                                                 Lhs lhs, Rhs rhs);
-#ifdef ENABLE_WASM_GC
   // Jump to the given branch, passing results, if the WasmGcObject, `object`,
   // is a subtype of `destType`.
   [[nodiscard]] bool jumpConditionalWithResults(BranchState* b, RegRef object,
                                                 RefType sourceType,
                                                 RefType destType,
                                                 bool onSuccess);
-#endif
   template <typename Cond>
   [[nodiscard]] bool sniffConditionalControlCmp(Cond compareOp,
                                                 ValType operandType);
@@ -1663,13 +1659,11 @@ struct BaseCompiler final {
   [[nodiscard]] bool emitRefFunc();
   [[nodiscard]] bool emitRefNull();
   [[nodiscard]] bool emitRefIsNull();
-#ifdef ENABLE_WASM_GC
   [[nodiscard]] bool emitRefAsNonNull();
   [[nodiscard]] bool emitBrOnNull();
   [[nodiscard]] bool emitBrOnNonNull();
   [[nodiscard]] bool emitCallRef();
   [[nodiscard]] bool emitReturnCallRef();
-#endif
 
   [[nodiscard]] bool emitAtomicCmpXchg(ValType type, Scalar::Type viewType);
   [[nodiscard]] bool emitAtomicLoad(ValType type, Scalar::Type viewType);
@@ -1703,7 +1697,6 @@ struct BaseCompiler final {
   [[nodiscard]] bool emitTableGetAnyRef(uint32_t tableIndex);
   [[nodiscard]] bool emitTableSetAnyRef(uint32_t tableIndex);
 
-#ifdef ENABLE_WASM_GC
   [[nodiscard]] bool emitStructNew();
   [[nodiscard]] bool emitStructNewDefault();
   [[nodiscard]] bool emitStructGet(FieldWideningOp wideningOp);
@@ -1794,7 +1787,6 @@ struct BaseCompiler final {
   [[nodiscard]] bool emitGcArraySet(RegRef object, RegPtr data, RegI32 index,
                                     const ArrayType& array, AnyReg value,
                                     PreBarrierKind preBarrierKind);
-#endif  // ENABLE_WASM_GC
 
 #ifdef ENABLE_WASM_SIMD
   void emitVectorAndNot();

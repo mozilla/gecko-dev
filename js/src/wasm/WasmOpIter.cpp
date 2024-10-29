@@ -24,24 +24,8 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
-#ifdef ENABLE_WASM_GC
-#  ifndef ENABLE_WASM_GC
-#    error "GC types require the function-references feature"
-#  endif
-#endif
-
 #ifdef DEBUG
 
-#  ifdef ENABLE_WASM_GC
-#    define WASM_FUNCTION_REFERENCES_OP(code) return code
-#  else
-#    define WASM_FUNCTION_REFERENCES_OP(code) break
-#  endif
-#  ifdef ENABLE_WASM_GC
-#    define WASM_GC_OP(code) return code
-#  else
-#    define WASM_GC_OP(code) break
-#  endif
 #  ifdef ENABLE_WASM_SIMD
 #    define WASM_SIMD_OP(code) return code
 #  else
@@ -257,9 +241,9 @@ OpKind wasm::Classify(OpBytes op) {
     case Op::ReturnCallIndirect:
       return OpKind::ReturnCallIndirect;
     case Op::CallRef:
-      WASM_FUNCTION_REFERENCES_OP(OpKind::CallRef);
+      return OpKind::CallRef;
     case Op::ReturnCallRef:
-      WASM_FUNCTION_REFERENCES_OP(OpKind::ReturnCallRef);
+      return OpKind::ReturnCallRef;
     case Op::Return:
     case Op::Limit:
       // Accept Limit, for use in decoding the end of a function after the body.
@@ -297,71 +281,71 @@ OpKind wasm::Classify(OpBytes op) {
     case Op::RefFunc:
       return OpKind::RefFunc;
     case Op::RefAsNonNull:
-      WASM_FUNCTION_REFERENCES_OP(OpKind::RefAsNonNull);
+      return OpKind::RefAsNonNull;
     case Op::BrOnNull:
-      WASM_FUNCTION_REFERENCES_OP(OpKind::BrOnNull);
+      return OpKind::BrOnNull;
     case Op::BrOnNonNull:
-      WASM_FUNCTION_REFERENCES_OP(OpKind::BrOnNonNull);
+      return OpKind::BrOnNonNull;
     case Op::RefEq:
-      WASM_GC_OP(OpKind::Comparison);
+      return OpKind::Comparison;
     case Op::GcPrefix: {
       switch (GcOp(op.b1)) {
         case GcOp::Limit:
           // Reject Limit for GcPrefix encoding
           break;
         case GcOp::StructNew:
-          WASM_GC_OP(OpKind::StructNew);
+          return OpKind::StructNew;
         case GcOp::StructNewDefault:
-          WASM_GC_OP(OpKind::StructNewDefault);
+          return OpKind::StructNewDefault;
         case GcOp::StructGet:
         case GcOp::StructGetS:
         case GcOp::StructGetU:
-          WASM_GC_OP(OpKind::StructGet);
+          return OpKind::StructGet;
         case GcOp::StructSet:
-          WASM_GC_OP(OpKind::StructSet);
+          return OpKind::StructSet;
         case GcOp::ArrayNew:
-          WASM_GC_OP(OpKind::ArrayNew);
+          return OpKind::ArrayNew;
         case GcOp::ArrayNewFixed:
-          WASM_GC_OP(OpKind::ArrayNewFixed);
+          return OpKind::ArrayNewFixed;
         case GcOp::ArrayNewDefault:
-          WASM_GC_OP(OpKind::ArrayNewDefault);
+          return OpKind::ArrayNewDefault;
         case GcOp::ArrayNewData:
-          WASM_GC_OP(OpKind::ArrayNewData);
+          return OpKind::ArrayNewData;
         case GcOp::ArrayNewElem:
-          WASM_GC_OP(OpKind::ArrayNewElem);
+          return OpKind::ArrayNewElem;
         case GcOp::ArrayInitData:
-          WASM_GC_OP(OpKind::ArrayInitData);
+          return OpKind::ArrayInitData;
         case GcOp::ArrayInitElem:
-          WASM_GC_OP(OpKind::ArrayInitElem);
+          return OpKind::ArrayInitElem;
         case GcOp::ArrayGet:
         case GcOp::ArrayGetS:
         case GcOp::ArrayGetU:
-          WASM_GC_OP(OpKind::ArrayGet);
+          return OpKind::ArrayGet;
         case GcOp::ArraySet:
-          WASM_GC_OP(OpKind::ArraySet);
+          return OpKind::ArraySet;
         case GcOp::ArrayLen:
-          WASM_GC_OP(OpKind::ArrayLen);
+          return OpKind::ArrayLen;
         case GcOp::ArrayCopy:
-          WASM_GC_OP(OpKind::ArrayCopy);
+          return OpKind::ArrayCopy;
         case GcOp::ArrayFill:
-          WASM_GC_OP(OpKind::ArrayFill);
+          return OpKind::ArrayFill;
         case GcOp::RefI31:
         case GcOp::I31GetS:
         case GcOp::I31GetU:
-          WASM_GC_OP(OpKind::Conversion);
+          return OpKind::Conversion;
         case GcOp::RefTest:
         case GcOp::RefTestNull:
-          WASM_GC_OP(OpKind::RefTest);
+          return OpKind::RefTest;
         case GcOp::RefCast:
         case GcOp::RefCastNull:
-          WASM_GC_OP(OpKind::RefCast);
+          return OpKind::RefCast;
         case GcOp::BrOnCast:
         case GcOp::BrOnCastFail:
-          WASM_GC_OP(OpKind::BrOnCast);
+          return OpKind::BrOnCast;
         case GcOp::AnyConvertExtern:
-          WASM_GC_OP(OpKind::RefConversion);
+          return OpKind::RefConversion;
         case GcOp::ExternConvertAny:
-          WASM_GC_OP(OpKind::RefConversion);
+          return OpKind::RefConversion;
       }
       break;
     }
@@ -821,9 +805,6 @@ OpKind wasm::Classify(OpBytes op) {
   }
   MOZ_CRASH("unimplemented opcode");
 }
-
-#  undef WASM_GC_OP
-#  undef WASM_REF_OP
 
 #endif  // DEBUG
 

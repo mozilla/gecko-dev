@@ -42,11 +42,6 @@
 #else
 #  define WASM_RELAXED_SIMD_ENABLED 0
 #endif
-#ifdef ENABLE_WASM_GC
-#  define WASM_GC_ENABLED 1
-#else
-#  define WASM_GC_ENABLED 0
-#endif
 #ifdef ENABLE_WASM_MEMORY64
 #  define WASM_MEMORY64_ENABLED 1
 #else
@@ -99,15 +94,6 @@
     /* flag force enable  */ false,                                     \
     /* flag fuzz enable   */ true,                                      \
     /* preference name    */ exnref)                                    \
-  FEATURE(                                                              \
-    /* capitalized name   */ Gc,                                        \
-    /* lower case name    */ gc,                                        \
-    /* compile predicate  */ WASM_GC_ENABLED,                           \
-    /* compiler predicate */ AnyCompilerAvailable(cx),                  \
-    /* flag predicate     */ true,                                      \
-    /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ true,                                      \
-    /* preference name    */ gc)                                        \
   FEATURE(                                                              \
     /* capitalized name   */ JSStringBuiltins,                          \
     /* lower case name    */ jsStringBuiltins,                          \

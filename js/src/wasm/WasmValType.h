@@ -472,10 +472,8 @@ class StorageTypeTraits {
 
   static bool isValidTypeCode(TypeCode tc) {
     switch (tc) {
-#ifdef ENABLE_WASM_GC
       case TypeCode::I8:
       case TypeCode::I16:
-#endif
       case TypeCode::I32:
       case TypeCode::I64:
       case TypeCode::F32:
@@ -487,7 +485,6 @@ class StorageTypeTraits {
       case TypeCode::ExternRef:
       case TypeCode::ExnRef:
       case TypeCode::NullExnRef:
-#ifdef ENABLE_WASM_GC
       case TypeCode::AnyRef:
       case TypeCode::EqRef:
       case TypeCode::I31Ref:
@@ -496,10 +493,7 @@ class StorageTypeTraits {
       case TypeCode::NullFuncRef:
       case TypeCode::NullExternRef:
       case TypeCode::NullAnyRef:
-#endif
-#ifdef ENABLE_WASM_GC
       case AbstractTypeRefCode:
-#endif
         return true;
       default:
         return false;
@@ -520,11 +514,9 @@ class StorageTypeTraits {
 
   static bool isPackedTypeCode(TypeCode tc) {
     switch (tc) {
-#ifdef ENABLE_WASM_GC
       case TypeCode::I8:
       case TypeCode::I16:
         return true;
-#endif
       default:
         return false;
     }
@@ -566,7 +558,6 @@ class ValTypeTraits {
       case TypeCode::ExternRef:
       case TypeCode::ExnRef:
       case TypeCode::NullExnRef:
-#ifdef ENABLE_WASM_GC
       case TypeCode::AnyRef:
       case TypeCode::EqRef:
       case TypeCode::I31Ref:
@@ -575,10 +566,7 @@ class ValTypeTraits {
       case TypeCode::NullFuncRef:
       case TypeCode::NullExternRef:
       case TypeCode::NullAnyRef:
-#endif
-#ifdef ENABLE_WASM_GC
       case AbstractTypeRefCode:
-#endif
         return true;
       default:
         return false;

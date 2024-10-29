@@ -31,13 +31,11 @@ bool StaticTypeDefs::init() {
     return false;
   }
 
-#ifdef ENABLE_WASM_GC
   arrayMutI16 = types->addType(ArrayType(StorageType::I16, true));
   if (!arrayMutI16) {
     return false;
   }
   arrayMutI16->recGroup().AddRef();
-#endif
 
   return true;
 }

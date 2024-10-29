@@ -1034,7 +1034,6 @@ class SuspendingFunctionModuleFactory {
                      ValTypeVector&& results) {
     FeatureOptions options;
     options.isBuiltinModule = true;
-    options.requireGC = true;
     options.requireExnref = true;
 
     ScriptedCaller scriptedCaller;
@@ -1486,7 +1485,6 @@ class PromisingFunctionModuleFactory {
 
     FeatureOptions options;
     options.isBuiltinModule = true;
-    options.requireGC = true;
 
     ScriptedCaller scriptedCaller;
     SharedCompileArgs compileArgs =

@@ -220,8 +220,7 @@ static ImmediateType EncodeImmediateFuncType(const FuncType& funcType) {
 //=========================================================================
 // FuncType
 
-void FuncType::initImmediateTypeId(bool gcEnabled, bool isFinal,
-                                   const TypeDef* superTypeDef,
+void FuncType::initImmediateTypeId(bool isFinal, const TypeDef* superTypeDef,
                                    uint32_t recGroupLength) {
   // To improve the performance of the structural type check in
   // the call_indirect function prologue, we attempt to encode the
@@ -237,7 +236,7 @@ void FuncType::initImmediateTypeId(bool gcEnabled, bool isFinal,
   // same reason applies. And finally, types in recursion groups of
   // size > 1 may not be considered equivalent even if they are
   // structurally equivalent in every respect.
-  if (gcEnabled && (!isFinal || superTypeDef || recGroupLength != 1)) {
+  if (!isFinal || superTypeDef || recGroupLength != 1) {
     immediateTypeId_ = NO_IMMEDIATE_TYPE_ID;
     return;
   }

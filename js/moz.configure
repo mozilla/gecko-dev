@@ -763,23 +763,6 @@ def wasm_tail_calls(value, target):
 set_config("ENABLE_WASM_TAIL_CALLS", wasm_tail_calls)
 set_define("ENABLE_WASM_TAIL_CALLS", wasm_tail_calls)
 
-# Support for WebAssembly GC.
-# ===========================
-
-
-option("--disable-wasm-gc", default=True, help="{Enable|Disable} WebAssembly GC")
-
-
-@depends("--disable-wasm-gc")
-def wasm_gc(value):
-    if not value:
-        return
-    return True
-
-
-set_config("ENABLE_WASM_GC", wasm_gc)
-set_define("ENABLE_WASM_GC", wasm_gc)
-
 # Support for JS PI spec.
 # ===========================
 
@@ -788,7 +771,6 @@ set_define("ENABLE_WASM_GC", wasm_gc)
     milestone.is_nightly,
     "--enable-jit",
     "--enable-simulator",
-    "--enable-wasm-gc",
     "--enable-wasm-tail-calls",
     target,
 )
@@ -796,14 +778,13 @@ def default_wasm_jspi(
     is_nightly,
     jit_enabled,
     simulator,
-    gc,
     tail_calls,
     target,
 ):
     if not jit_enabled:
         return
 
-    if not gc or not tail_calls:
+    if not tail_calls:
         return
 
     if not is_nightly:
@@ -827,20 +808,16 @@ option(
     "--enable-wasm-jspi",
     "--enable-jit",
     "--enable-simulator",
-    "--enable-wasm-gc",
     "--enable-wasm-tail-calls",
     "--wasm-no-experimental",
     target,
 )
-def wasm_jspi(value, jit_enabled, simulator, gc, tail_calls, no_experimental, target):
+def wasm_jspi(value, jit_enabled, simulator, tail_calls, no_experimental, target):
     if no_experimental or not value:
         return
 
     if not jit_enabled:
         die("--enable-wasm-jspi requires --enable-jit")
-
-    if not gc:
-        die("--enable-wasm-jspi requires --enable-wasm-gc")
 
     if not tail_calls:
         die("--enable-wasm-jspi requires --enable-wasm-tail-calls")
