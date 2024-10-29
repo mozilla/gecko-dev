@@ -97,7 +97,6 @@ class ImageAnalzer:
                 video_location,
             ]
         )
-        time.sleep(1)
 
         # Navigate to a page
         adb_shell(self.nav_start_command + APP_LINK_STARTUP_WEBSITE)
