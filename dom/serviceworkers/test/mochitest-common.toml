@@ -215,7 +215,7 @@ support-files = [
 ]
 
 ["test_abrupt_completion.html"]
-skip-if = ["os == 'linux'"] # Bug 1615164
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == '18.04'"] # Bug 1615164
 
 ["test_async_waituntil.html"]
 
@@ -288,9 +288,9 @@ support-files = [
 
 ["test_hsts_upgrade_intercept.html"]
 skip-if = [
-  "win11_2009 && !debug", # Bug 1797751
-  "os == 'linux' && bits == 64 && debug", # Bug 1749068
-  "apple_catalina && !debug", # Bug 1717091
+  "win11_2009 && opt", # Bug 1797751
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1749068
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1717091
 ]
 scheme = "https"
 
@@ -302,8 +302,8 @@ skip-if = [
 
 ["test_imagecache_max_age.html"]
 skip-if = [
-  "os == 'linux' && bits == 64 && !debug && asan && os_version == '18.04'", # Bug 1585668
-  "display == 'wayland' && os_version == '22.04' && debug",  # Bug 1856980
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1585668
+  "os == 'linux' && os_version == '22.04' && debug && display == 'wayland'",  # Bug 1856980
   "http3",
   "http2",
 ]
@@ -333,7 +333,7 @@ skip-if = ["os == 'android'"]
 
 ["test_navigationPreload_disable_crash.html"]
 scheme = "https"
-skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1749068
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"] # Bug 1749068
 
 ["test_navigator.html"]
 
@@ -403,10 +403,7 @@ disabled = "https://bugzilla.mozilla.org/show_bug.cgi?id=1853173"
 skip-if = ["true"]
 
 ["test_self_update_worker.html"]
-skip-if = [
-  "true",
-  "os == 'android'",
-]
+skip-if = ["true"]
 
 ["test_service_worker_allowed.html"]
 

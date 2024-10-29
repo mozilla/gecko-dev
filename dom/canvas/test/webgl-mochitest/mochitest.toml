@@ -39,15 +39,15 @@ fail-if = ["os == 'android'"]
 ["ensure-exts/test_EXT_texture_compression_bptc.html"]
 fail-if = [
   "os == 'android'",
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
 ["ensure-exts/test_EXT_texture_compression_rgtc.html"]
 fail-if = ["os == 'android'"]
 
 ["ensure-exts/test_EXT_texture_filter_anisotropic.html"]
-fail-if = ["os == 'linux' && display != 'wayland'"]
+fail-if = ["os == 'linux'  && os_version == '18.04' && processor == 'x86_64'"]
 
 ["ensure-exts/test_OES_draw_buffers_indexed.html"]
 
@@ -57,34 +57,36 @@ fail-if = ["os == 'linux' && display != 'wayland'"]
 
 ["ensure-exts/test_OVR_multiview2.html"]
 fail-if = [
-  "os == 'linux'",
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
 ["ensure-exts/test_WEBGL_color_buffer_float.html"]
 
 ["ensure-exts/test_WEBGL_compressed_texture_astc.html"]
 fail-if = [
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
 ]
 
 ["ensure-exts/test_WEBGL_compressed_texture_etc.html"]
 fail-if = [
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
 ]
 
 ["ensure-exts/test_WEBGL_compressed_texture_etc1.html"]
 fail-if = [
-  "os == 'linux'",
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
 ]
@@ -92,9 +94,10 @@ fail-if = [
 ["ensure-exts/test_WEBGL_compressed_texture_pvrtc.html"]
 fail-if = [
   "os == 'android'",
-  "os == 'linux'",
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
 ]
@@ -110,7 +113,8 @@ fail-if = ["os == 'android'"]
 ["ensure-exts/test_WEBGL_provoking_vertex.html"]
 fail-if = [
   "os == 'android'",
-  "os == 'linux'",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
 ]
 
 ["ensure-exts/test_common.html"]
@@ -152,9 +156,10 @@ support-files = ["../captureStream_common.js"]
 
 ["test_has_rbab.html"]
 fail-if = [
-  "os == 'linux'",
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
 ["test_hidden_alpha.html"]
@@ -175,7 +180,7 @@ fail-if = [
 skip-if = [
   "win10_2009", # Unofficial DXGL support regressed by bug 1632249
   "win11_2009", # Unofficial DXGL support regressed by bug 1632249
-  "apple_silicon",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
 ]
 
 ["test_privileged_exts.html"]
@@ -207,17 +212,17 @@ skip-if = ["win11_2009 && bits == 32"] # No fast video path for h264 decoder (do
 
 ["test_video_fastpath_vp8.html"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04'",
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win11_2009 && bits == 32", # No fast video path for vp8 decoder (done in RDD, can't be read in content)
 ]
 
 ["test_video_fastpath_vp9.html"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04'",
-  "apple_catalina",
-  "apple_silicon",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "win11_2009 && bits == 32", # No fast video path for vp9 decoder (done in RDD, can't be read in content)
 ]
 
