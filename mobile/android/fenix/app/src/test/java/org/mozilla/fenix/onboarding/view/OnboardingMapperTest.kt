@@ -159,6 +159,7 @@ class OnboardingMapperTest {
                 "test 1 add-on description",
                 "5",
                 "12,345",
+                "url1",
             ),
             OnboardingAddOn(
                 R.drawable.ic_extensions_onboarding,
@@ -166,6 +167,7 @@ class OnboardingMapperTest {
                 "test 2 add-on description",
                 "4.5",
                 "1,234",
+                "url2",
             ),
             OnboardingAddOn(
                 R.drawable.ic_extensions_onboarding,
@@ -173,6 +175,7 @@ class OnboardingMapperTest {
                 "test 3 add-on description",
                 "4",
                 "123",
+                "url3",
             ),
         )
         val expected = OnboardingPageState(

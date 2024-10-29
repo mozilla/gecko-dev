@@ -58,6 +58,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onAddFirefoxWidgetClick Invoked when positive button on add search widget page is clicked.
  * @param onSkipFirefoxWidgetClick Invoked when negative button on add search widget page is clicked.
  * @param onAddOnsButtonClick Invoked when the primary button on add-ons page is clicked.
+ * @param onInstallAddOnButtonClick Invoked when a button for installing an add-on is clicked.
  * @param onFinish Invoked when the onboarding is completed.
  * @param onImpression Invoked when a page in the pager is displayed.
  */
@@ -74,6 +75,7 @@ fun OnboardingScreen(
     onAddFirefoxWidgetClick: () -> Unit,
     onSkipFirefoxWidgetClick: () -> Unit,
     onAddOnsButtonClick: () -> Unit,
+    onInstallAddOnButtonClick: (AddOnID) -> Unit,
     onFinish: (pageType: OnboardingPageUiData) -> Unit,
     onImpression: (pageType: OnboardingPageUiData) -> Unit,
 ) {
@@ -157,6 +159,7 @@ fun OnboardingScreen(
             scrollToNextPageOrDismiss()
             onAddOnsButtonClick()
         },
+        onInstallAddOnButtonClick = onInstallAddOnButtonClick,
     )
 }
 
@@ -174,6 +177,7 @@ private fun OnboardingContent(
     onAddFirefoxWidgetClick: () -> Unit,
     onSkipFirefoxWidgetClick: () -> Unit,
     onAddOnsButtonClick: () -> Unit,
+    onInstallAddOnButtonClick: (AddOnID) -> Unit,
 ) {
     val nestedScrollConnection = remember { DisableForwardSwipeNestedScrollConnection(pagerState) }
 
@@ -203,7 +207,7 @@ private fun OnboardingContent(
                 onAddFirefoxWidgetSkipClick = onSkipFirefoxWidgetClick,
                 onAddOnsButtonClick = onAddOnsButtonClick,
             )
-            OnboardingPageForType(pageUiState.type, onboardingPageState)
+            OnboardingPageForType(pageUiState.type, onboardingPageState, onInstallAddOnButtonClick)
         }
 
         PagerIndicator(
@@ -219,7 +223,11 @@ private fun OnboardingContent(
 }
 
 @Composable
-private fun OnboardingPageForType(type: OnboardingPageUiData.Type, state: OnboardingPageState) {
+private fun OnboardingPageForType(
+    type: OnboardingPageUiData.Type,
+    state: OnboardingPageState,
+    onInstallAddOnButtonClick: (AddOnID) -> Unit,
+) {
     when (type) {
         OnboardingPageUiData.Type.DEFAULT_BROWSER,
         OnboardingPageUiData.Type.SYNC_SIGN_IN,
@@ -227,7 +235,7 @@ private fun OnboardingPageForType(type: OnboardingPageUiData.Type, state: Onboar
         OnboardingPageUiData.Type.NOTIFICATION_PERMISSION,
         -> OnboardingPage(state)
 
-        OnboardingPageUiData.Type.ADD_ONS -> AddOnsOnboardingPage(state)
+        OnboardingPageUiData.Type.ADD_ONS -> AddOnsOnboardingPage(state, onInstallAddOnButtonClick)
     }
 }
 
@@ -271,6 +279,7 @@ private fun OnboardingScreenPreview() {
             onAddFirefoxWidgetClick = {},
             onSkipFirefoxWidgetClick = {},
             onAddOnsButtonClick = {},
+            onInstallAddOnButtonClick = {},
         )
     }
 }

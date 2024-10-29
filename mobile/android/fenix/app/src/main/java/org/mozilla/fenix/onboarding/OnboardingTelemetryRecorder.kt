@@ -247,6 +247,18 @@ class OnboardingTelemetryRecorder {
     }
 
     /**
+     * Records an add-on was installed.
+     *  @param addOnId The id of the installed add-on.
+     */
+    fun onAddOnInstalled(addOnId: String) {
+        Onboarding.addOnInstalled.record(
+            Onboarding.AddOnInstalledExtra(
+                addOnId,
+            ),
+        )
+    }
+
+    /**
      * Records the add-ons card primary button click event.
      * @param sequenceId The identifier of the onboarding sequence shown to the user.
      * @param sequencePosition The sequence position of the page for which the impression occurred.

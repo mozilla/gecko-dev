@@ -55,4 +55,5 @@ data class OnboardingAddOn(
     val description: String,
     val averageRating: String,
     val reviewCount: String,
+    val installUrl: String,
 )
