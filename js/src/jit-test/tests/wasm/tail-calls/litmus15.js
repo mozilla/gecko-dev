@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // On systems with up to four register arguments, this alternately grows and then shrinks
 // the stack frame across tail call boundaries.  All functions are in the same
 // module.

@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // Mutually recursive functions implement a multi-entry loop using indirect tail
 // calls, with exception handling.
 //

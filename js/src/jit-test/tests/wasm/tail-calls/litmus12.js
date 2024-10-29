@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // Basically try to assert that the instance is restored properly when
 // performing an import call.  We do this by accessing the instance once we get
 // out of the tail call chain.

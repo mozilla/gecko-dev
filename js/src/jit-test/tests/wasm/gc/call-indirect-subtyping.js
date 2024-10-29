@@ -80,12 +80,10 @@ for (let {type} of TESTS) {
 		(drop (ref.cast (ref ${i}) (table.get local.get 0)))
 		(call_indirect (type ${i}) local.get 0)
 	)\n`;
-	if (wasmTailCallsEnabled()) {
-		returnCallIndirectFuncs += `(func (export "return_call_indirect ${i}") (param i32)
-			(drop (ref.cast (ref ${i}) (table.get local.get 0)))
-			(return_call_indirect (type ${i}) local.get 0)
-		)\n`;
-	}
+	returnCallIndirectFuncs += `(func (export "return_call_indirect ${i}") (param i32)
+		(drop (ref.cast (ref ${i}) (table.get local.get 0)))
+		(return_call_indirect (type ${i}) local.get 0)
+	)\n`;
 	i++;
 }
 let moduleText = `(module
@@ -123,10 +121,8 @@ for (let callerTypeIndex = 0; callerTypeIndex < TESTS.length; callerTypeIndex++)
 		let test = () => {
 			exports[`call_indirect ${callerTypeIndex}`](calleeImportFuncIndex)
 			exports[`call_indirect ${callerTypeIndex}`](calleeDefinedFuncIndex)
-			if (wasmTailCallsEnabled()) {
-				exports[`return_call_indirect ${callerTypeIndex}`](calleeImportFuncIndex)
-				exports[`return_call_indirect ${callerTypeIndex}`](calleeDefinedFuncIndex)
-			}
+			exports[`return_call_indirect ${callerTypeIndex}`](calleeImportFuncIndex)
+			exports[`return_call_indirect ${callerTypeIndex}`](calleeDefinedFuncIndex)	
 		};
 		if (shouldPass) {
 			test();

@@ -1898,26 +1898,22 @@ for (const test of table64Tests) {
     (func (export "callRef") (param i64 i32) (result i32)
       (call_ref $ft (local.get 1) (ref.cast (ref null $ft) (table.get $int (local.get 0))))
     )
-    ${ !wasmTailCallsEnabled() ? "" : `
-      (func (export "returnCallIndirect") (param i64 i32) (result i32)
-        (return_call_indirect $int (type $ft) (local.get 1) (local.get 0))
-      )
-      (func (export "returnCallRef") (param i64 i32) (result i32)
-        (return_call_ref $ft (local.get 1) (ref.cast (ref null $ft) (table.get $int (local.get 0))))
-      )
-    `}
+    (func (export "returnCallIndirect") (param i64 i32) (result i32)
+      (return_call_indirect $int (type $ft) (local.get 1) (local.get 0))
+    )
+    (func (export "returnCallRef") (param i64 i32) (result i32)
+      (return_call_ref $ft (local.get 1) (ref.cast (ref null $ft) (table.get $int (local.get 0))))
+    )
   )`).exports;
 
   assertEq(callIndirect(0n, 1), 11);
   assertEq(callRef(0n, 2), 12);
   assertErrorMessage(() => callIndirect(1n, 1), WebAssembly.RuntimeError, /indirect call to null/);
   assertErrorMessage(() => callRef(1n, 2), WebAssembly.RuntimeError, /dereferencing null pointer/);
-  if (wasmTailCallsEnabled()) {
-    assertEq(returnCallIndirect(0n, 3), 13);
-    assertEq(returnCallRef(0n, 4), 14);
-    assertErrorMessage(() => returnCallIndirect(1n, 3), WebAssembly.RuntimeError, /indirect call to null/);
-    assertErrorMessage(() => returnCallRef(1n, 4), WebAssembly.RuntimeError, /dereferencing null pointer/);
-  }
+  assertEq(returnCallIndirect(0n, 3), 13);
+  assertEq(returnCallRef(0n, 4), 14);
+  assertErrorMessage(() => returnCallIndirect(1n, 3), WebAssembly.RuntimeError, /indirect call to null/);
+  assertErrorMessage(() => returnCallRef(1n, 4), WebAssembly.RuntimeError, /dereferencing null pointer/);
 
   // Test bounds checks
   const indexes = [
@@ -1932,10 +1928,8 @@ for (const test of table64Tests) {
   for (const index of indexes) {
     assertErrorMessage(() => callIndirect(BigInt(index), 1), WebAssembly.RuntimeError, /index out of bounds/);
     assertErrorMessage(() => callRef(BigInt(index), 2), WebAssembly.RuntimeError, /table index out of bounds/);
-    if (wasmTailCallsEnabled()) {
-      assertErrorMessage(() => returnCallIndirect(BigInt(index), 3), WebAssembly.RuntimeError, /index out of bounds/);
-      assertErrorMessage(() => returnCallRef(BigInt(index), 4), WebAssembly.RuntimeError, /table index out of bounds/);
-    }
+    assertErrorMessage(() => returnCallIndirect(BigInt(index), 3), WebAssembly.RuntimeError, /index out of bounds/);
+    assertErrorMessage(() => returnCallRef(BigInt(index), 4), WebAssembly.RuntimeError, /table index out of bounds/);
   }
 }
 

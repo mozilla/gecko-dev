@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // Tail-call litmus test with multiple results
 //
 // Mutually recursive functions implement a multi-entry loop using indirect tail

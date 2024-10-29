@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // Test that unwinding will find the right instance in the middle of a tail call
 // chain.  This test is mostly useful on the simulators, as they will walk the
 // stack, looking for the innermost instance, on every memory reference.  The

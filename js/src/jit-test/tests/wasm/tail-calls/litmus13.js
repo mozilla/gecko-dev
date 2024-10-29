@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // Once we exhaust the register arguments this will alternately grow and then
 // shrink the stack frame across tail call boundaries because the increment of
 // stack allocation is 16 bytes and our variability exceeds that.

@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // Mutually recursive functions implement a multi-entry loop using tail calls.
 // The functions do not have the same signatures, so if all arguments are stack
 // arguments then these use different amounts of stack space.

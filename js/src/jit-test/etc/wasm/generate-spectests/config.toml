@@ -102,7 +102,6 @@ name = "tail-call"
 url = "https://github.com/WebAssembly/tail-call"
 branch = "main"
 parent = "spec"
-directive = "; --setpref=wasm_tail_calls=true; skip-if: !wasmTailCallsEnabled()"
 excluded_tests = []
 
 [[repos]]

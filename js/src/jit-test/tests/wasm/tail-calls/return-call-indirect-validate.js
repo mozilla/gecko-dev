@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 wasmValidateText(
     `(module
        (type (func))

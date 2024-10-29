@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // This alternately grows and then shrinks the stack frame across tail call boundaries.  
 // Here we go cross-module as well.  There is enough ballast that the stack frame will
 // alternately have to grow and shrink across some of the calls.

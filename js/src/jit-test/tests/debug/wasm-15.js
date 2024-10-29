@@ -1,4 +1,4 @@
-// |jit-test| test-also=--wasm-compiler=optimizing; skip-if: !wasmDebuggingEnabled() || !wasmTailCallsEnabled()
+// |jit-test| test-also=--wasm-compiler=optimizing; skip-if: !wasmDebuggingEnabled()
 
 // Tests that wasm module scripts raises onEnterFrame and onLeaveFrame events in
 // wasm return calls.

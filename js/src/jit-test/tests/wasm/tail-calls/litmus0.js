@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 // Loop implemented using tail calls - the call passes as many arguments as
 // the function receives, of the same types.
 //

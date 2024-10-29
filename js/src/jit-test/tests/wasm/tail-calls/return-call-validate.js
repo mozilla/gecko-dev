@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 wasmValidateText(
     `(module
        (func $arity-1-vs-0

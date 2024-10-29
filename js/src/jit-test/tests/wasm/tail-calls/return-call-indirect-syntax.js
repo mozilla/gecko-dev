@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmTailCallsEnabled()
-
 function assertInvalidSyntax(module) {
     assertErrorMessage(() => wasmTextToBinary(module), SyntaxError,
                        /wasm text error/);
