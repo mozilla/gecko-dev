@@ -11,6 +11,10 @@
     var(--theme-highlight-yellow),
     #521C76
   );
+
+  &[forced-colors-active] {
+    --inspector-highlight-background-color: Mark;
+  }
 }
 
 .empty-css-variable {

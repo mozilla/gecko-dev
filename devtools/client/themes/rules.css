@@ -19,6 +19,12 @@
     --rule-enableproperty-margin-inline-start: 0px;
     --rule-enableproperty-margin-inline-end: 10px;
   }
+
+  &[forced-colors-active] {
+    --rule-highlight-propertyname: var(--theme-contrast-color);
+    --rule-highlight-propertyvalue: var(--theme-contrast-color);
+    --rule-highlight-unmatched-unused-color: var(--theme-contrast-color);
+  }
 }
 
 /* Rule View Tabpanel */
@@ -702,6 +708,20 @@
   & .inspector-unmatched,
   .ruleview-property:is(.unused, .ruleview-overridden) & :is(.ruleview-propertyname, .ruleview-propertyvalue) {
     color: var(--rule-highlight-unmatched-unused-color);
+  }
+
+  /* In High Contrast Mode, we need to specifiy an additional color for elements which
+     don't have specific highlighted colors (selectors, semi colons, stylesheet location, ...) */
+  :root[forced-colors-active] & {
+    color: var(--theme-contrast-color);
+    a {
+      color: var(--theme-contrast-color);
+    }
+
+    /* the overridden class is set on a parent element of the ruleview-highlight one */
+    .ruleview-overridden:has(&) {
+      text-decoration-color: var(--theme-contrast-color);
+    }
   }
 }
 
