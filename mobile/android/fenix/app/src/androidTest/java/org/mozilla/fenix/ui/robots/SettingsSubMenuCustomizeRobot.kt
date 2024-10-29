@@ -72,11 +72,11 @@ class SettingsSubMenuCustomizeRobot {
         Log.i(TAG, "clickBottomToolbarToggle: Clicked the \"Bottom\" toolbar option")
     }
 
-    fun verifyToolbarPositionPreference(selectedPosition: String) {
-        Log.i(TAG, "verifyToolbarPositionPreference: Trying to verify that the $selectedPosition toolbar option is checked")
+    fun verifyAddressBarPositionPreference(selectedPosition: String) {
+        Log.i(TAG, "verifyAddressBarPositionPreference: Trying to verify that the $selectedPosition toolbar option is checked")
         onView(withText(selectedPosition))
             .check(matches(hasSibling(allOf(withId(R.id.radio_button), isChecked()))))
-        Log.i(TAG, "verifyToolbarPositionPreference: Verified that the $selectedPosition toolbar option is checked")
+        Log.i(TAG, "verifyAddressBarPositionPreference: Verified that the $selectedPosition toolbar option is checked")
     }
 
     fun clickSwipeToolbarToSwitchTabToggle() {
