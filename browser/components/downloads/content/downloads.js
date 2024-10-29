@@ -263,6 +263,18 @@ var DownloadsPanel = {
           this._focusPanel();
         }
         break;
+      case "mouseover":
+        DownloadsView._onDownloadMouseOver(aEvent);
+        break;
+      case "mouseout":
+        DownloadsView._onDownloadMouseOut(aEvent);
+        break;
+      case "contextmenu":
+        DownloadsView._onDownloadContextMenu(aEvent);
+        break;
+      case "dragstart":
+        DownloadsView._onDownloadDragStart(aEvent);
+        break;
       case "keydown":
         this._onKeyDown(aEvent);
         break;
@@ -375,6 +387,10 @@ var DownloadsPanel = {
     this.panel.addEventListener("popuphidden", this);
     DownloadsView.richListBox.addEventListener("focus", this);
     DownloadsView.richListBox.addEventListener("select", this);
+    DownloadsView.richListBox.addEventListener("mouseover", this);
+    DownloadsView.richListBox.addEventListener("mouseout", this);
+    DownloadsView.richListBox.addEventListener("contextmenu", this);
+    DownloadsView.richListBox.addEventListener("dragstart", this);
 
     DownloadsView.downloadsHistory.addEventListener("command", this);
     DownloadsBlockedSubview.elements.deleteButton.addEventListener(
@@ -395,6 +411,10 @@ var DownloadsPanel = {
     this.panel.removeEventListener("popuphidden", this);
     DownloadsView.richListBox.removeEventListener("focus", this);
     DownloadsView.richListBox.removeEventListener("select", this);
+    DownloadsView.richListBox.removeEventListener("mouseover", this);
+    DownloadsView.richListBox.removeEventListener("mouseout", this);
+    DownloadsView.richListBox.removeEventListener("contextmenu", this);
+    DownloadsView.richListBox.removeEventListener("dragstart", this);
     DownloadsView.downloadsHistory.removeEventListener("command", this);
     DownloadsBlockedSubview.elements.deleteButton.removeEventListener(
       "command",
@@ -986,7 +1006,7 @@ var DownloadsView = {
   /**
    * Mouse listeners to handle selection on hover.
    */
-  onDownloadMouseOver(aEvent) {
+  _onDownloadMouseOver(aEvent) {
     let item = aEvent.target.closest("richlistitem,richlistbox");
     if (item.localName != "richlistitem") {
       return;
@@ -1006,7 +1026,7 @@ var DownloadsView = {
     }
   },
 
-  onDownloadMouseOut(aEvent) {
+  _onDownloadMouseOut(aEvent) {
     let item = aEvent.target.closest("richlistitem,richlistbox");
     if (item.localName != "richlistitem") {
       return;
@@ -1023,7 +1043,7 @@ var DownloadsView = {
     }
   },
 
-  onDownloadContextMenu(aEvent) {
+  _onDownloadContextMenu(aEvent) {
     let element = aEvent.originalTarget.closest("richlistitem");
     if (!element) {
       aEvent.preventDefault();
@@ -1043,7 +1063,7 @@ var DownloadsView = {
       !element._shell.download.source?.url;
   },
 
-  onDownloadDragStart(aEvent) {
+  _onDownloadDragStart(aEvent) {
     let element = aEvent.target.closest("richlistitem");
     if (!element) {
       return;
