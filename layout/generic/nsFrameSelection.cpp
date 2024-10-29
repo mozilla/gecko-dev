@@ -2055,25 +2055,36 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
   if (!firstRange || !firstRange->IsPositioned()) {
     return Err(NS_ERROR_FAILURE);
   }
-  Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
-      aDirection, ExtendSelection::Yes, aAmount, aMovementStyle, nsPoint(0, 0));
-  if (result.isErr()) {
-    return Err(NS_ERROR_FAILURE);
+  Result<PeekOffsetOptions, nsresult> options =
+      CreatePeekOffsetOptionsForCaretMove(selection, ExtendSelection::Yes,
+                                          aMovementStyle);
+  if (options.isErr()) {
+    return options.propagateErr();
   }
-  const PeekOffsetStruct& pos = result.inspect();
+  Result<const Element*, nsresult> ancestorLimiter =
+      GetAncestorLimiterForCaretMove(selection);
+  if (ancestorLimiter.isErr()) {
+    return ancestorLimiter.propagateErr();
+  }
+  Result<RawRangeBoundary, nsresult> result =
+      SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+          selection->FocusRef().AsRaw(), aDirection, GetHint(),
+          GetCaretBidiLevel(), aAmount, options.unwrap(),
+          ancestorLimiter.unwrap());
+  if (result.isErr()) {
+    return result.propagateErr();
+  }
   RefPtr<RangeType> range;
-  if (NS_WARN_IF(!pos.mResultContent)) {
+  RawRangeBoundary rangeBoundary = result.unwrap();
+  if (!rangeBoundary.IsSetAndValid()) {
     return range;
   }
   if (aDirection == eDirPrevious) {
-    range = RangeType::Create(
-        RawRangeBoundary(pos.mResultContent, pos.mContentOffset),
-        firstRange->EndRef(), IgnoreErrors());
+    range =
+        RangeType::Create(rangeBoundary, firstRange->EndRef(), IgnoreErrors());
   } else {
-    range = RangeType::Create(
-        firstRange->StartRef(),
-        RawRangeBoundary(pos.mResultContent, pos.mContentOffset),
-        IgnoreErrors());
+    range = RangeType::Create(firstRange->StartRef(), rangeBoundary,
+                              IgnoreErrors());
   }
   return range;
 }

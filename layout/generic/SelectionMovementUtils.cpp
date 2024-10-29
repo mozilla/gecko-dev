@@ -30,6 +30,57 @@
 
 namespace mozilla {
 using namespace dom;
+template Result<RangeBoundary, nsresult>
+SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+    const RangeBoundary& aRangeBoundary, nsDirection aDirection,
+    CaretAssociationHint aHint, intl::BidiEmbeddingLevel aCaretBidiLevel,
+    nsSelectionAmount aAmount, PeekOffsetOptions aOptions,
+    const dom::Element* aAncestorLimiter);
+
+template Result<RawRangeBoundary, nsresult>
+SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+    const RawRangeBoundary& aRangeBoundary, nsDirection aDirection,
+    CaretAssociationHint aHint, intl::BidiEmbeddingLevel aCaretBidiLevel,
+    nsSelectionAmount aAmount, PeekOffsetOptions aOptions,
+    const dom::Element* aAncestorLimiter);
+
+template <typename ParentType, typename RefType>
+Result<RangeBoundaryBase<ParentType, RefType>, nsresult>
+SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
+    const RangeBoundaryBase<ParentType, RefType>& aRangeBoundary,
+    nsDirection aDirection, CaretAssociationHint aHint,
+    intl::BidiEmbeddingLevel aCaretBidiLevel, nsSelectionAmount aAmount,
+    PeekOffsetOptions aOptions, const dom::Element* aAncestorLimiter) {
+  MOZ_ASSERT(aDirection == eDirNext || aDirection == eDirPrevious);
+  MOZ_ASSERT(aAmount == eSelectCharacter || aAmount == eSelectCluster ||
+             aAmount == eSelectWord || aAmount == eSelectBeginLine ||
+             aAmount == eSelectEndLine);
+
+  if (!aRangeBoundary.IsSetAndValid()) {
+    return Err(NS_ERROR_FAILURE);
+  }
+  if (!aRangeBoundary.Container()->IsContent()) {
+    return Err(NS_ERROR_FAILURE);
+  }
+  Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
+      aRangeBoundary.Container()->AsContent(),
+      *aRangeBoundary.Offset(
+          RangeBoundaryBase<ParentType,
+                            RefType>::OffsetFilter::kValidOrInvalidOffsets),
+      aDirection, aHint, aCaretBidiLevel, aAmount, nsPoint{0, 0}, aOptions,
+      aAncestorLimiter);
+  if (result.isErr()) {
+    return Err(NS_ERROR_FAILURE);
+  }
+  const PeekOffsetStruct& pos = result.unwrap();
+  if (NS_WARN_IF(!pos.mResultContent)) {
+    return RangeBoundaryBase<ParentType, RefType>{};
+  }
+
+  return RangeBoundaryBase<ParentType, RefType>{
+      pos.mResultContent, static_cast<uint32_t>(pos.mContentOffset)};
+}
+
 // FYI: This was done during a call of GetPrimaryFrameForCaretAtFocusNode.
 // Therefore, this may not be intended by the original author.
 
