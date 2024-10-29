@@ -8,6 +8,7 @@ import android.Manifest
 import android.content.Context
 import android.hardware.camera2.CameraManager
 import androidx.test.rule.GrantPermissionRule
+import kotlinx.coroutines.runBlocking
 import mozilla.components.support.ktx.util.PromptAbuserDetector
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -27,6 +28,8 @@ import org.mozilla.focus.helpers.TestAssetHelper.getMediaTestAsset
 import org.mozilla.focus.helpers.TestHelper.exitToTop
 import org.mozilla.focus.helpers.TestHelper.getTargetContext
 import org.mozilla.focus.helpers.TestHelper.grantAppPermission
+import org.mozilla.focus.helpers.TestHelper.mDevice
+import org.mozilla.focus.helpers.TestHelper.packageName
 import org.mozilla.focus.helpers.TestHelper.waitingTime
 import org.mozilla.focus.helpers.TestSetup
 import org.mozilla.focus.testAnnotations.SmokeTest
@@ -235,7 +238,11 @@ class SitePermissionsTest : TestSetup() {
     @SmokeTest
     @Test
     fun testLocationSharingAllowed() {
-        mockLocationUpdatesRule.setMockLocation()
+        runBlocking {
+            mDevice.executeShellCommand("pm grant $packageName android.permission.ACCESS_FINE_LOCATION")
+            // Set the mock location to a known value
+            mockLocationUpdatesRule.setMockLocation()
+        }
 
         searchScreen {
         }.loadPage(permissionsPage) {

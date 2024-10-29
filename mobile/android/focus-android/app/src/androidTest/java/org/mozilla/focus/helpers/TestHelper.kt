@@ -188,15 +188,17 @@ object TestHelper {
     // Method for granting app permission to access location/camera/mic
     fun grantAppPermission() {
         if (SDK_INT >= 23) {
-            mDevice.findObject(
-                UiSelector().textContains(
-                    when (SDK_INT) {
-                        Build.VERSION_CODES.R ->
-                            "While using the app"
-                        else -> "Allow"
-                    },
-                ),
-            ).click()
+            val permissionOption =
+                mDevice.findObject(
+                    UiSelector().textContains(
+                        when {
+                            SDK_INT >= 30 -> "While using the app"
+                            else -> "Allow"
+                        },
+                    ),
+                )
+            permissionOption.waitForExists(waitingTime)
+            permissionOption.click()
         }
     }
 
