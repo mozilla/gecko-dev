@@ -103,6 +103,8 @@
   left: -3px;
   margin: 0 4px 0 -1px;
   top: -1px;
+  -moz-context-properties: fill;
+  fill: var(--theme-icon-disabled-color);
 }
 
 .breadcrumbs-widget-item[checked] .breadcrumbs-widget-item-id {
