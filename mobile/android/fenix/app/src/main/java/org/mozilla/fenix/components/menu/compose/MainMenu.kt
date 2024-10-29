@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -19,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.compose.cfr.CFRPopup
 import mozilla.components.compose.cfr.CFRPopupLayout
 import mozilla.components.compose.cfr.CFRPopupProperties
+import mozilla.components.feature.addons.Addon
+import mozilla.components.feature.addons.ui.displayName
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.service.fxa.manager.AccountState
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
@@ -43,6 +46,7 @@ private const val INDICATOR_START_OFFSET = 46
  * @param accessPoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
  * @param store The [MenuStore] that is used for the current state.
  * @param syncStore The [SyncStore] used to determine account information.
+ * @param installedAddons A list of installed [Addon]s to be shown.
  * @param showQuitMenu Whether or not to show the [QuitMenuGroup].
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the current site is in desktop mode.
@@ -59,6 +63,7 @@ internal fun MainMenuWithCFR(
     accessPoint: MenuAccessPoint,
     store: MenuStore,
     syncStore: SyncStore,
+    installedAddons: List<Addon>,
     showQuitMenu: Boolean,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
@@ -114,6 +119,7 @@ internal fun MainMenuWithCFR(
             accessPoint = accessPoint,
             store = store,
             syncStore = syncStore,
+            installedAddons = installedAddons,
             showQuitMenu = showQuitMenu,
             isPrivate = isPrivate,
             isDesktopMode = isDesktopMode,
@@ -133,6 +139,7 @@ internal fun MainMenuWithCFR(
  * @param accessPoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
  * @param store The [MenuStore] that is used for the current state.
  * @param syncStore The [SyncStore] used to determine account information.
+ * @param installedAddons A list of installed [Addon]s to be shown.
  * @param showQuitMenu Whether or not to show the [QuitMenuGroup].
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the current site is in desktop mode.
@@ -149,6 +156,7 @@ internal fun MainMenu(
     accessPoint: MenuAccessPoint,
     store: MenuStore,
     syncStore: SyncStore,
+    installedAddons: List<Addon>,
     showQuitMenu: Boolean,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
@@ -168,6 +176,7 @@ internal fun MainMenu(
         accessPoint = accessPoint,
         account = account,
         accountState = accountState,
+        installedAddons = installedAddons,
         isPrivate = isPrivate,
         isDesktopMode = isDesktopMode,
         isPdf = isPdf,
@@ -249,6 +258,7 @@ internal fun MainMenu(
  * @param accessPoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
  * @param account [Account] information available for a synced account.
  * @param accountState The [AccountState] of a Mozilla account.
+ * @param installedAddons A list of installed [Addon]s to be shown.
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
@@ -282,6 +292,7 @@ internal fun MainMenu(
     accessPoint: MenuAccessPoint,
     account: Account?,
     accountState: AccountState,
+    installedAddons: List<Addon>,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
@@ -326,6 +337,7 @@ internal fun MainMenu(
 
         ToolsAndActionsMenuGroup(
             accessPoint = accessPoint,
+            installedAddons = installedAddons,
             isDesktopMode = isDesktopMode,
             isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
@@ -419,10 +431,11 @@ private fun NewTabsMenuGroup(
     }
 }
 
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
+    installedAddons: List<Addon>,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
@@ -498,7 +511,16 @@ private fun ToolsAndActionsMenuGroup(
             description = if (isExtensionsProcessDisabled) {
                 stringResource(R.string.browser_menu_extensions_disabled_description)
             } else {
-                null
+                if (installedAddons.isEmpty()) {
+                    stringResource(R.string.browser_menu_no_extensions_installed_description)
+                } else {
+                    var description: String? = ""
+                    val context = LocalContext.current
+                    for (addon in installedAddons) {
+                        description += addon.displayName(context) + if (installedAddons.size > 1) ", " else ""
+                    }
+                    description
+                }
             },
             descriptionState = if (isExtensionsProcessDisabled) {
                 MenuItemState.WARNING
@@ -593,6 +615,7 @@ private fun MenuDialogPreview() {
                 accessPoint = MenuAccessPoint.Browser,
                 account = null,
                 accountState = NotAuthenticated,
+                installedAddons = emptyList(),
                 isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,
@@ -633,6 +656,7 @@ private fun MenuDialogPrivatePreview() {
                 accessPoint = MenuAccessPoint.Home,
                 account = null,
                 accountState = NotAuthenticated,
+                installedAddons = emptyList(),
                 isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,
