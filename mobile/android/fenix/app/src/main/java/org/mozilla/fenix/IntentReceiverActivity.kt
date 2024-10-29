@@ -149,8 +149,15 @@ class IntentReceiverActivity : Activity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
             return
         }
-        // NB: referrer can be spoofed by the calling application. Use with caution.
-        val r = referrer ?: return
+        // unfortunately you can get a RuntimeException thrown from android here
+        @Suppress("TooGenericExceptionCaught")
+        val r = try {
+            // NB: referrer can be spoofed by the calling application. Use with caution.
+            referrer
+        } catch (e: RuntimeException) {
+            // this could happen if the referrer intent contains data we can't deserialize
+            return
+        } ?: return
         intent.putExtra(EXTRA_ACTIVITY_REFERRER_PACKAGE, r.host)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Category is supported for API>=26.
