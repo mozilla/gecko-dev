@@ -954,8 +954,7 @@ nsFrameSelection::CreatePeekOffsetOptionsForCaretMove(
   return options;
 }
 
-Result<Element*, nsresult>
-nsFrameSelection::GetAncestorLimiterForCaretMove(
+Result<Element*, nsresult> nsFrameSelection::GetAncestorLimiterForCaretMove(
     dom::Selection* aSelection) const {
   if (!mPresShell) {
     return Err(NS_ERROR_NULL_POINTER);
@@ -969,8 +968,7 @@ nsFrameSelection::GetAncestorLimiterForCaretMove(
 
   MOZ_ASSERT(mPresShell->GetDocument() == content->GetComposedDoc());
 
-  Element* ancestorLimiter =
-      Element::FromNodeOrNull(GetAncestorLimiter());
+  Element* ancestorLimiter = Element::FromNodeOrNull(GetAncestorLimiter());
   if (aSelection->IsEditorSelection()) {
     // If the editor has not receive `focus` event, it may have not set ancestor
     // limiter.  Then, we need to compute it here for the caret move.
@@ -988,8 +986,7 @@ nsFrameSelection::GetAncestorLimiterForCaretMove(
               doc ? doc->GetInnerWindow() : nullptr) {
         Element* const focusedElement = win->GetFocusedElement();
         Element* closestEditingHost = nullptr;
-        for (Element* element :
-             content->InclusiveAncestorsOfType<Element>()) {
+        for (Element* element : content->InclusiveAncestorsOfType<Element>()) {
           if (element->IsEditingHost()) {
             if (!closestEditingHost) {
               closestEditingHost = element;
