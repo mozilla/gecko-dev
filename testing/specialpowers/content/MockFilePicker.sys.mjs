@@ -20,21 +20,16 @@ if (import.meta.url.includes("specialpowers")) {
 var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
 var oldClassID;
 var newClassID = Services.uuid.generateUUID();
-var newFactory = function (window, mode) {
+var newFactory = function (window) {
   return {
     createInstance(aIID) {
-      return new MockFilePickerInstance(window, mode).QueryInterface(aIID);
+      return new MockFilePickerInstance(window).QueryInterface(aIID);
     },
     QueryInterface: ChromeUtils.generateQI(["nsIFactory"]),
   };
 };
 
 export var MockFilePicker = {
-  modeOpen: Ci.nsIFilePicker.modeOpen,
-  modeSave: Ci.nsIFilePicker.modeSave,
-  modeGetFolder: Ci.nsIFilePicker.modeGetFolder,
-  modeOpenMultiple: Ci.nsIFilePicker.modeOpenMultiple,
-
   returnOK: Ci.nsIFilePicker.returnOK,
   returnCancel: Ci.nsIFilePicker.returnCancel,
   returnReplace: Ci.nsIFilePicker.returnReplace,
@@ -53,11 +48,11 @@ export var MockFilePicker = {
   window: null,
   pendingPromises: [],
 
-  init(browsingContext, mode) {
+  init(browsingContext) {
     this.window = browsingContext.window;
 
     this.reset();
-    this.factory = newFactory(this.window, mode);
+    this.factory = newFactory(this.window);
     if (!registrar.isCIDRegistered(newClassID)) {
       oldClassID = registrar.contractIDToCID(CONTRACT_ID);
       registrar.registerFactory(newClassID, "", CONTRACT_ID, this.factory);
@@ -166,16 +161,15 @@ export var MockFilePicker = {
   },
 };
 
-function MockFilePickerInstance(window, mode) {
+function MockFilePickerInstance(window) {
   this.window = window;
-  this.mode = mode;
   this.showCallback = null;
   this.showCallbackWrapped = null;
 }
 MockFilePickerInstance.prototype = {
   QueryInterface: ChromeUtils.generateQI(["nsIFilePicker"]),
-  // eslint-disable-next-line no-unused-vars
   init(aParent, aTitle, aMode) {
+    this.mode = aMode;
     this.filterIndex = MockFilePicker.filterIndex;
     this.parent = aParent;
   },
