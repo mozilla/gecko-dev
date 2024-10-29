@@ -76,13 +76,10 @@ struct moz_pthread_atfork_handler mozPthreadHandlers;
 
 extern const void* const __dso_handle;
 using register_atfork_t = int (*)(void (*)(), void (*)(), void (*)(),
-                                  const void* const) noexcept;
+                                  const void* const);
 static register_atfork_t real_register_atfork = nullptr;
-
-using cxa_finalize_t = void (*)(void*) noexcept;
-static cxa_finalize_t real_cxa_finalize = nullptr;
 #  else
-using pthread_atfork_t = int (*)(void (*)(), void (*)(), void (*)()) noexcept;
+using pthread_atfork_t = int (*)(void (*)(), void (*)(), void (*)());
 static pthread_atfork_t real_pthread_atfork = nullptr;
 #  endif
 
@@ -150,6 +147,7 @@ MFBT_API int pthread_atfork(void (*aPrefork)(void),
 
 #  if defined(LIBC_GLIBC)
 MFBT_API void __cxa_finalize(void* handle) {
+  static const auto real_cxa_finalize = GET_REAL_SYMBOL(__cxa_finalize);
   real_cxa_finalize(handle);
   mozPthreadHandlers.remove(handle);
 }
@@ -159,44 +157,7 @@ MFBT_API void __cxa_finalize(void* handle) {
 #  if defined(LIBC_GLIBC)
 __attribute__((used)) __attribute__((constructor)) void register_atfork_setup(
     void) {
-  const char* glibc_version_register =
-#    if defined(__x86_64__) || defined(__i386__)
-      "GLIBC_2.3.2"
-#    elif defined(__aarch64__)
-      "GLIBC_2.17"
-#    else
-#      error \
-          "Missing GLIBC version for __register_atfork(). Please objdump -tTC libc.so.6 and add"
-#    endif
-      ;
-
-  // Use dlvsym() otherwise symbol resolution may find the interposed version
-  real_register_atfork = (register_atfork_t)dlvsym(nullptr, "__register_atfork",
-                                                   glibc_version_register);
-
-  MOZ_ASSERT(real_register_atfork != nullptr, "Found real_register_atfork");
-  MOZ_ASSERT(real_register_atfork != __register_atfork,
-             "Found register_atfork from libc");
-
-  const char* glibc_version_finalize =
-#    if defined(__i386__)
-      "GLIBC_2.1.3"
-#    elif defined(__x86_64__)
-      "GLIBC_2.2.5"
-#    elif defined(__aarch64__)
-      "GLIBC_2.17"
-#    else
-#      error \
-          "Missing GLIBC version for __cxa_finalize(). Please objdump -tTC libc.so.6 and add"
-#    endif
-      ;
-  // Use dlvsym() otherwise symbol resolution may find the interposed version
-  real_cxa_finalize =
-      (cxa_finalize_t)dlvsym(nullptr, "__cxa_finalize", glibc_version_finalize);
-
-  MOZ_ASSERT(real_cxa_finalize != nullptr, "Found real_cxa_finalize");
-  MOZ_ASSERT(real_cxa_finalize != __cxa_finalize,
-             "Found cxa_finalize from libc");
+  real_register_atfork = GET_REAL_SYMBOL(__register_atfork);
 
   if (notReadyCount > 0) {
     for (int i = 0; i < notReadyCount; ++i) {
@@ -210,11 +171,7 @@ __attribute__((used)) __attribute__((constructor)) void register_atfork_setup(
 #  else
 __attribute__((used)) __attribute__((constructor)) void pthread_atfork_setup(
     void) {
-  real_pthread_atfork = (pthread_atfork_t)dlsym(RTLD_NEXT, "pthread_atfork");
-
-  MOZ_ASSERT(real_pthread_atfork != nullptr, "Found real_pthread_atfork");
-  MOZ_ASSERT(real_pthread_atfork != pthread_atfork,
-             "Found pthread_atfork from libc");
+  real_pthread_atfork = GET_REAL_SYMBOL(pthread_atfork);
 
   if (notReadyCount > 0) {
     for (int i = 0; i < notReadyCount; ++i) {
