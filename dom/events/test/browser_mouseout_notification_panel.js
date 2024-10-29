@@ -90,7 +90,10 @@ add_setup(async function init() {
   ok(PopupNotifications.panel, "PopupNotifications panel exists");
 
   await SpecialPowers.pushPrefEnv({
-    set: [["test.events.async.enabled", true]],
+    set: [
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
+      ["test.events.async.enabled", true],
+    ],
   });
 
   info(`Show notification to get its size and position`);
