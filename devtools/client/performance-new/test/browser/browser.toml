@@ -12,6 +12,7 @@ support-files = [
   "helpers.js",
   "fake-frontend.html",
   "webchannel.html",
+  "webchannel-favicons.html",
 ]
 
 ["browser_aboutprofiling-entries.js"]
@@ -74,4 +75,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 https_first_disabled = true
 
 ["browser_webchannel-enable-menu-button.js"]
+https_first_disabled = true
+
+["browser_webchannel-page-favicon-data.js"]
 https_first_disabled = true

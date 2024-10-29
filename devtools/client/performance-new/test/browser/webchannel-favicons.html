@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title></title>
+  </head>
+  <body>
+    <script>
+      "use strict";
+      // This file is used to test the retrieval of favicons from a front-end.
+      // Rather than using some kind of complicated message passing scheme to
+      // talk to the test harness, modify the title of the page. The tests can
+      // easily read the window title to see if things worked as expected.
+
+      // The following are the titles used to communicate the page's state to the tests.
+      // Keep these in sync with any tests that read them.
+      const initialTitle = "Waiting for the favicons";
+      const successTitle = "Favicons received";
+      const errorTitle = "Error"
+
+      document.title = initialTitle;
+
+      // A function which requests the favicons from the browser using the GET_PAGE_FAVICONS
+      // WebChannel message.
+      function getPageFavicons() {
+        return new Promise((resolve, reject) => {
+          const requestId = 0;
+
+
+          function listener(event) {
+            window.removeEventListener(
+              "WebChannelMessageToContent",
+              listener,
+              true
+            );
+
+            const { id, message } = event.detail;
+
+            if (id !== "profiler.firefox.com" ||
+              !message ||
+              typeof message !== "object"
+            ) {
+              console.error(message);
+              reject(new Error("A malformed WebChannel event was received."));
+              return;
+            }
+
+            if (!message.type) {
+              console.error(message);
+              reject(new Error("The WebChannel event indicates an error."));
+              return;
+            }
+
+            if (message.requestId === requestId) {
+              if (message.type === "SUCCESS_RESPONSE") {
+                resolve(message.response);
+              } else {
+                reject(new Error(message.error));
+              }
+            }
+          }
+
+          window.addEventListener("WebChannelMessageToContent", listener, true);
+
+          window.dispatchEvent(
+            new CustomEvent("WebChannelMessageToChrome", {
+              detail: JSON.stringify({
+                id: "profiler.firefox.com",
+                message: { type: "GET_PAGE_FAVICONS", requestId, pageUrls: [
+                  "https://profiler.firefox.com"
+                ] },
+              }),
+            })
+          );
+        })
+      }
+
+      async function runTest() {
+        try {
+          // Get the favicons.
+          const favicons = await getPageFavicons();
+
+          // Check that the favicons are reasonable.
+          // After the check, modify the title of the document, so the tab title gets
+          // updated. This is an easy way to pass a message to the test script.
+          if (
+            favicons &&
+            Array.isArray(favicons) &&
+            favicons[0] &&
+            favicons[0].data &&
+            favicons[0].mimeType === "image/png"
+          ) {
+            // The favicon looks good!
+            document.title = successTitle;
+          } else {
+            // The favicons don't look right, surface the error to the terminal.
+            dump('The favicons were malformed in webchannel-favicons.html\n');
+            dump(`Favicons: ${JSON.stringify(favicons)}\n`);
+
+            // Also to the web console.
+            console.error(
+              "The favicons were malformed in webchannel-favicons.html",
+              favicons
+            );
+
+            // Report the error to the tab title.
+            document.title = errorTitle;
+          }
+        } catch (error) {
+          // Catch any error and notify the test.
+          document.title = errorTitle;
+          dump('An error was caught in webchannel-favicons.html\n');
+          dump(`${error}\n`);
+          console.error(
+            "An error was caught in webchannel-favicons.html",
+            error
+          );
+        }
+      }
+
+      runTest();
+    </script>
+  </body>
+</html>
