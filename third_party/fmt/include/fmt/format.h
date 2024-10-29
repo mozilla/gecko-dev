@@ -3454,8 +3454,8 @@ FMT_CONSTEXPR20 auto format_float(Float value, int precision,
 // we're doing this. This copied from and should be kept in sync with
 // PrintfTarget::cvt_f in Gecko's mozglue/misc/Printf.cpp.
 template <typename Float>
-FMT_CONSTEXPR20 auto format_float_gecko(Float value, int precision, format_specs specs,
-                                  buffer<char>& buf) -> int {
+auto format_float_gecko(Float value, int precision, format_specs specs,
+                        buffer<char>& buf) -> int {
   FMT_ASSERT(detail::isfinite(value),
     "Non-finite values are to be handled ahead of calling this");
   using double_conversion::DoubleToStringConverter;
