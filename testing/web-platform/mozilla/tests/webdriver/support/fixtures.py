@@ -35,6 +35,18 @@ def browser(configuration, firefox_options):
     ):
         nonlocal current_browser
 
+        webdriver_args = configuration["webdriver"]["args"]
+        log_level = None
+        truncate_enabled = True
+
+        if "-vv" or "-vvv" in webdriver_args:
+            log_level = "Trace"
+
+            if "-vvv" in webdriver_args:
+                truncate_enabled = False
+        elif "-v" in webdriver_args:
+            log_level = "Debug"
+
         # If the requested preferences and arguments match the ones for the
         # already started firefox, we can reuse the current firefox instance,
         # return the instance immediately.
@@ -46,6 +58,8 @@ def browser(configuration, firefox_options):
                 and current_browser.use_bidi == use_bidi
                 and current_browser.use_cdp == use_cdp
                 and current_browser.use_marionette == use_marionette
+                and current_browser.log_level == log_level
+                and current_browser.truncate_enabled == truncate_enabled
             ):
                 return current_browser
 
@@ -68,6 +82,8 @@ def browser(configuration, firefox_options):
             extra_args=extra_args,
             extra_prefs=extra_prefs,
             env=env,
+            log_level=log_level,
+            truncate_enabled=truncate_enabled,
             use_bidi=use_bidi,
             use_cdp=use_cdp,
             use_marionette=use_marionette,
