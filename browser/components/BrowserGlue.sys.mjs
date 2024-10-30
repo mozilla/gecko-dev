@@ -3686,7 +3686,12 @@ BrowserGlue.prototype = {
       if (!(await lazy.PlacesBackups.hasRecentBackup())) {
         idleTime /= 2;
       }
-      this._userIdleService.addIdleObserver(this, idleTime);
+
+      if (!this._isObservingIdle) {
+        this._userIdleService.addIdleObserver(this, idleTime);
+        this._isObservingIdle = true;
+      }
+
       this._bookmarksBackupIdleTime = idleTime;
 
       if (this._isNewProfile) {
