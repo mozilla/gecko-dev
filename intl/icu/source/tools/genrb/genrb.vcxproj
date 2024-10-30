@@ -34,7 +34,6 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
-      <DisableLanguageExtensions>true</DisableLanguageExtensions>
       <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\toolutil;..\..\i18n;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderOutputFile>$(OutDir)/genrb.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>$(OutDir)/</AssemblerListingLocation>
@@ -75,25 +74,15 @@
     <ClCompile Include="errmsg.c" />
     <ClCompile Include="filterrb.cpp" />
     <ClCompile Include="genrb.cpp" />
-    <ClCompile Include="parse.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="prscmnts.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="parse.cpp" />
+    <ClCompile Include="prscmnts.cpp" />
     <ClCompile Include="rbutil.c" />
     <ClCompile Include="read.c" />
-    <ClCompile Include="reslist.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="reslist.cpp" />
     <ClCompile Include="rle.c" />
     <ClCompile Include="ustr.c" />
-    <ClCompile Include="wrtjava.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="wrtxml.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="wrtjava.cpp" />
+    <ClCompile Include="wrtxml.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="errmsg.h" />

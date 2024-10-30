@@ -161,9 +161,7 @@ fLog(log)
 }
 
 TestDataModule::~TestDataModule() {
-  if(fInfo != nullptr) {
-    delete fInfo;
-  }
+  delete fInfo;
 }
 
 const char * TestDataModule::getName() const

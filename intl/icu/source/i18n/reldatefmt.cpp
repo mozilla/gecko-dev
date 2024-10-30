@@ -701,7 +701,7 @@ static UBool getDateTimePattern(
     return getStringByIndex(topLevel.getAlias(), dateTimeFormatOffset, result, status);
 }
 
-template<> 
+template<>
 const RelativeDateTimeCacheData *LocaleCacheKey<RelativeDateTimeCacheData>::createObject(const void * /*unused*/, UErrorCode &status) const {
     const char *localeId = fLoc.getName();
     LocalUResourceBundlePointer topLevel(ures_open(nullptr, localeId, &status));
@@ -803,6 +803,10 @@ RelativeDateTimeFormatter::RelativeDateTimeFormatter(
         fOptBreakIterator(nullptr),
         fLocale(locale) {
     if (U_FAILURE(status)) {
+        return;
+    }
+    if (styl < 0 || UDAT_STYLE_COUNT <= styl) {
+        status = U_ILLEGAL_ARGUMENT_ERROR;
         return;
     }
     if ((capitalizationContext >> 8) != UDISPCTX_TYPE_CAPITALIZATION) {
@@ -1027,6 +1031,10 @@ void RelativeDateTimeFormatter::formatNumericImpl(
     if (U_FAILURE(status)) {
         return;
     }
+    if (unit < 0 || UDAT_REL_UNIT_COUNT <= unit) {
+        status = U_ILLEGAL_ARGUMENT_ERROR;
+        return;
+    }
     UDateDirection direction = UDAT_DIRECTION_NEXT;
     if (std::signbit(offset)) { // needed to handle -0.0
         direction = UDAT_DIRECTION_LAST;
@@ -1095,7 +1103,9 @@ void RelativeDateTimeFormatter::formatAbsoluteImpl(
     if (U_FAILURE(status)) {
         return;
     }
-    if (unit == UDAT_ABSOLUTE_NOW && direction != UDAT_DIRECTION_PLAIN) {
+    if ((unit < 0 || UDAT_ABSOLUTE_UNIT_COUNT <= unit) ||
+        (direction < 0 || UDAT_DIRECTION_COUNT <= direction) ||
+        (unit == UDAT_ABSOLUTE_NOW && direction != UDAT_DIRECTION_PLAIN)) {
         status = U_ILLEGAL_ARGUMENT_ERROR;
         return;
     }
@@ -1151,7 +1161,8 @@ void RelativeDateTimeFormatter::formatRelativeImpl(
     if (offset > -2.1 && offset < 2.1) {
         // Allow a 1% epsilon, so offsets in -1.01..-0.99 map to LAST
         double offsetx100 = offset * 100.0;
-        int32_t intoffset = (offsetx100 < 0)? (int32_t)(offsetx100-0.5) : (int32_t)(offsetx100+0.5);
+        int32_t intoffset = offsetx100 < 0 ? static_cast<int32_t>(offsetx100 - 0.5)
+                                           : static_cast<int32_t>(offsetx100 + 0.5);
         switch (intoffset) {
             case -200/*-2*/: direction = UDAT_DIRECTION_LAST_2; break;
             case -100/*-1*/: direction = UDAT_DIRECTION_LAST; break;
@@ -1370,7 +1381,7 @@ ureldatefmt_formatNumericToResult(
     if (U_FAILURE(*status)) {
         return;
     }
-    auto* fmt = reinterpret_cast<const RelativeDateTimeFormatter*>(reldatefmt);
+    const auto* fmt = reinterpret_cast<const RelativeDateTimeFormatter*>(reldatefmt);
     auto* resultImpl = UFormattedRelativeDateTimeApiHelper::validate(result, *status);
     resultImpl->fImpl = fmt->formatNumericToValue(offset, unit, *status);
 }
@@ -1413,7 +1424,7 @@ ureldatefmt_formatToResult(
     if (U_FAILURE(*status)) {
         return;
     }
-    auto* fmt = reinterpret_cast<const RelativeDateTimeFormatter*>(reldatefmt);
+    const auto* fmt = reinterpret_cast<const RelativeDateTimeFormatter*>(reldatefmt);
     auto* resultImpl = UFormattedRelativeDateTimeApiHelper::validate(result, *status);
     resultImpl->fImpl = fmt->formatToValue(offset, unit, *status);
 }
@@ -1437,8 +1448,8 @@ ureldatefmt_combineDateAndTime( const URelativeDateTimeFormatter* reldatefmt,
         *status = U_ILLEGAL_ARGUMENT_ERROR;
         return 0;
     }
-    UnicodeString relDateStr((UBool)(relativeDateStringLen == -1), relativeDateString, relativeDateStringLen);
-    UnicodeString timeStr((UBool)(timeStringLen == -1), timeString, timeStringLen);
+    UnicodeString relDateStr(relativeDateStringLen == -1, relativeDateString, relativeDateStringLen);
+    UnicodeString timeStr(timeStringLen == -1, timeString, timeStringLen);
     UnicodeString res(result, 0, resultCapacity);
     ((RelativeDateTimeFormatter*)reldatefmt)->combineDateAndTime(relDateStr, timeStr, res, *status);
     if (U_FAILURE(*status)) {

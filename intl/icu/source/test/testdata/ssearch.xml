@@ -83,7 +83,7 @@
     </test-case>
 
 
-    <!-- Test cases from usrchdat.c  BREAKITERATOREXACT -->
+    <!-- Test cases from usrchdat.inc  BREAKITERATOREXACT -->
 
     <test-case id="test10" strength="TERTIARY">
       <pattern>fox</pattern>
@@ -116,7 +116,7 @@
     </test-case>
 
 
-    <!-- Test cases from usrchdat.c  STRENGTH -->
+    <!-- Test cases from usrchdat.inc  STRENGTH -->
 
 
     <test-case id="test15" strength="PRIMARY" locale="en">
@@ -195,7 +195,7 @@
     </test-case>
 
 
-    <!--  Test Cases from usrchdat.c,  VARIABLE -->
+    <!--  Test Cases from usrchdat.inc,  VARIABLE -->
     <test-case id="test27" strength="TERTIARY" locale="en">
       <pattern>blackbird</pattern>
       <pre>black-bird </pre><m>blackbird</m><post>...</post>
@@ -226,7 +226,7 @@
     </test-case>
 
 
-    <!--  Normalization test cases from usrchdat.c  -->
+    <!--  Normalization test cases from usrchdat.inc  -->
     <test-case id="test32" strength="TERTIARY"  norm="ON">
       <pattern>a\u0325\u0300</pattern>
       <pre></pre><m>a\u0300\u0325</m>
@@ -239,7 +239,7 @@
     </test-case>
 
 
-    <!-- COMPOSITEBOUNDARIES from usrchdat.c
+    <!-- COMPOSITEBOUNDARIES from usrchdat.inc
          Boundaries are not identical to original test data because
          of matching only full combining sequences
     -->
@@ -260,7 +260,7 @@
 
 
 
-    <!-- SUPPLEMENTARYCANONICAL from usrchdat.c  -->
+    <!-- SUPPLEMENTARYCANONICAL from usrchdat.inc  -->
     <test-case id="test50" strength="TERTIARY">
       <pattern>\uD800\uDC00</pattern>
       <pre>abc \uD802\uDC00 \uD800\uDC01 \uD801\uDC00 </pre><m>\uD800\uDC00</m>

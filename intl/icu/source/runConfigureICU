@@ -46,13 +46,14 @@ The following names can be supplied as the argument for platform:
     FreeBSD             Use the clang/clang++ or GNU gcc/g++ compilers on FreeBSD
     HP-UX/ACC           Use the HP ANSI C/Advanced C++ compilers on HP-UX 11
     IBMi                Use the iCC compilers on IBM i, i5/OS, OS/400
-    Linux               Use the clang/clang++ or GNU gcc/g++ compilers on Linux
+    Linux               Use the default cc/c++ compilers on Linux
+    Linux/clang         Use the clang/clang++ compilers on Linux
     Linux/gcc           Use the GNU gcc/g++ compilers on Linux
     Linux/ECC           Use the Intel ECC compiler on Linux
     Linux/ICC           Use the Intel ICC compiler on Linux
     Linux/VA            Use the IBM XL compiler on Power PC Linux
-    MacOSX              Use the default compilers on MacOS X (Darwin)
-    MacOSX/GCC          Use the GNU gcc/g++ compilers on MacOSX (Darwin)
+    macOS               Use the default compilers on macOS (Darwin)
+    macOS/gcc           Use the GNU gcc/g++ compilers on macOS (Darwin)
     MinGW               Use the GNU gcc/g++ compilers on MinGW
     MSYS/MSVC           Use the Microsoft Visual C++ compiler on MSYS
     QNX                 Use the QNX QCC compiler on QNX/Neutrino
@@ -60,8 +61,7 @@ The following names can be supplied as the argument for platform:
     Solaris/GCC         Use the GNU gcc/g++ compilers on Solaris
     SolarisX86          Use the Sun cc/CC compilers on Solaris x86
     TRU64V5.1/CXX       Use the Compaq cxx compiler on Tru64 (OSF)
-    zOS                 Use the IBM cxx compiler on z/OS (os/390)
-    zOSV1R2             Use the IBM cxx compiler for z/OS 1.2
+    zOS                 Use the IBM Open XL C/C++ 2.1 for z/OS compiler on z/OS (OS/390)
 EOE
     fi
 
@@ -259,9 +259,19 @@ case $platform in
         DEBUG_CFLAGS='-g'
         DEBUG_CXXFLAGS='-g'
         ;;
+    Linux/clang)
+        THE_OS="Linux"
+        THE_COMP="the Clang C++"
+        CC=clang; export CC
+        CXX=clang++; export CXX
+        RELEASE_CFLAGS='-O3'
+        RELEASE_CXXFLAGS='-O3'
+        DEBUG_CFLAGS='-g'
+        DEBUG_CXXFLAGS='-g'
+        ;;
     Linux*)
         THE_OS="Linux"
-        THE_COMP="the clang or else GNU C++"
+        THE_COMP="the default C++"
         RELEASE_CFLAGS='-O3'
         RELEASE_CXXFLAGS='-O3'
         DEBUG_CFLAGS='-g'
@@ -307,7 +317,7 @@ case $platform in
         DEBUG_CXXFLAGS='/Zi'
         DEBUG_LDFLAGS='/DEBUG'
         ;;
-    MacOSX)
+    macOS|MacOSX)
         THE_OS="MacOS X (Darwin)"
         THE_COMP="the default"
         RELEASE_CFLAGS='-O2'
@@ -315,7 +325,7 @@ case $platform in
         DEBUG_CFLAGS='-g -O0'
         DEBUG_CXXFLAGS='-g -O0'
         ;;
-    MacOSX/GCC)
+    macOS/gcc|MacOSX/GCC)
         THE_OS="MacOS X (Darwin)"
         THE_COMP="the GNU C++"
         RELEASE_CFLAGS='-O2'
@@ -363,24 +373,21 @@ case $platform in
         ;;
     zOS)
         THE_OS="z/OS (OS/390)"
-        THE_COMP="z/OS C/C++"
-        CC=xlc; export CC
-        CXX=xlC; export CXX
-        RELEASE_CFLAGS="-O2 -Wc,'inline(AUTO,NOREPORT,1000,8000)'"
-        RELEASE_CXXFLAGS="-O2 -Wc,'inline(AUTO,NOREPORT,1000,8000)'"
-        ;;
-    zOSV1R2)
-        THE_OS="z/OS 1.2"
-        THE_COMP="z/OS 1.2 C/C++"
-        CC=cc; export CC
-        CXX=cxx; export CXX
-        export COMPILE_LINK_ENVVAR='_CXX_CICC_VER}=0x41020000 _C89_CVERSION=0x41020000 _CC_CVERSION=0x41020000 _CXX_PVERSION=0x41020000 _C89_PVERSION=0x41020000 _CC_PVERSION=0x41020000'
-        export _CXX_CVERSION=0x41020000 _C89_CVERSION=0x41020000 _CC_CVERSION=0x41020000 _CXX_PVERSION=0x41020000 _C89_PVERSION=0x41020000 _CC_PVERSION=0x41020000
-        export LDFLAGS="-Wl,'compat=pm3'"
-        export CFLAGS="-Wc,'target(zOSV1R2)'"
-        export CXXFLAGS="-Wc,'target(zOSV1R2)'"
-        RELEASE_CFLAGS="-2 -Wc,'inline(auto,noreport,500,4000)'"
-        RELEASE_CXXFLAGS="-2 -Wc,'inline(auto,noreport,500,4000)'"
+        THE_COMP="IBM OpenXL C/C++"
+        CC=`which ibm-clang`; export CC
+        if [ ! -x $CC ]; then
+           echo "ERROR: ibm-clang was not found, please check the PATH to make sure it is correct."; exit 1
+        fi
+        CXX=`which ibm-clang++`; export CXX
+        if [ ! -x $CXX ]; then
+           echo "ERROR: ibm-clang++ was not found, please check the PATH to make sure it is correct."; exit 1
+        fi
+        RELEASE_CFLAGS='-O2 -m32 -D_UNIX03_SOURCE -D_UNIX03_THREADS -D_POSIX_SOURCE -D_POSIX_THREADS -D_OPEN_SYS_SOCK_IPV6=1 -D_XOPEN_SOURCE_EXTENDED=1 -DOE_SOCKETS -D_OPEN_SYS_IF_EXT=1'
+        RELEASE_CXXFLAGS='-O2 -m32 -D_UNIX03_SOURCE -D_UNIX03_THREADS -D_POSIX_SOURCE -D_POSIX_THREADS -D_OPEN_SYS_SOCK_IPV6=1 -D_XOPEN_SOURCE_EXTENDED=1 -DOE_SOCKETS -D_OPEN_SYS_IF_EXT=1'
+        RELEASE_LDFLAGS='-m32'
+        DEBUG_CFLAGS='-g -O0 -m32 -D_UNIX03_SOURCE -D_UNIX03_THREADS -D_POSIX_SOURCE -D_POSIX_THREADS -D_OPEN_SYS_SOCK_IPV6=1 -D_XOPEN_SOURCE_EXTENDED=1 -DOE_SOCKETS -D_OPEN_SYS_IF_EXT=1'
+        DEBUG_CXXFLAGS='-g -O0 -m32 -D_UNIX03_SOURCE -D_UNIX03_THREADS -D_POSIX_SOURCE -D_POSIX_THREADS -D_OPEN_SYS_SOCK_IPV6=1 -D_XOPEN_SOURCE_EXTENDED=1 -DOE_SOCKETS -D_OPEN_SYS_IF_EXT=1'
+        DEBUG_LDFLAGS='-m32'
         ;;
     *)
         >&2 echo "$me: unrecognized platform \"$platform\" (use --help for help)"

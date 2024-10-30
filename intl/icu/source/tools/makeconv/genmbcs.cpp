@@ -109,15 +109,15 @@ U_CDECL_END
 
 static inline char
 hexDigit(uint8_t digit) {
-    return digit<=9 ? (char)('0'+digit) : (char)('a'-10+digit);
+    return digit <= 9 ? static_cast<char>('0' + digit) : static_cast<char>('a' - 10 + digit);
 }
 
 static inline char *
 printBytes(char *buffer, const uint8_t *bytes, int32_t length) {
     char *s=buffer;
     while(length>0) {
-        *s++=hexDigit((uint8_t)(*bytes>>4));
-        *s++=hexDigit((uint8_t)(*bytes&0xf));
+        *s++ = hexDigit(static_cast<uint8_t>(*bytes >> 4));
+        *s++ = hexDigit(static_cast<uint8_t>(*bytes & 0xf));
         ++bytes;
         --length;
     }
@@ -204,14 +204,14 @@ MBCSStartMappings(MBCSData *mbcsData) {
     /* allocate the code unit array and prefill it with "unassigned" values */
     sum=mbcsData->ucm->states.countToUCodeUnits;
     if(VERBOSE) {
-        printf("the total number of offsets is 0x%lx=%ld\n", (long)sum, (long)sum);
+        printf("the total number of offsets is 0x%lx=%ld\n", static_cast<long>(sum), static_cast<long>(sum));
     }
 
     if(sum>0) {
-        mbcsData->unicodeCodeUnits=(uint16_t *)uprv_malloc(sum*sizeof(uint16_t));
+        mbcsData->unicodeCodeUnits = static_cast<uint16_t*>(uprv_malloc(sum * sizeof(uint16_t)));
         if(mbcsData->unicodeCodeUnits==nullptr) {
             fprintf(stderr, "error: out of memory allocating %ld 16-bit code units\n",
-                (long)sum);
+                static_cast<long>(sum));
             return false;
         }
         for(i=0; i<sum; ++i) {
@@ -230,9 +230,9 @@ MBCSStartMappings(MBCSData *mbcsData) {
         /* allocate 1M * maxCharLength bytes for at most 1M mappings */
         sum=0x100000*maxCharLength;
     }
-    mbcsData->fromUBytes=(uint8_t *)uprv_malloc(sum);
+    mbcsData->fromUBytes = static_cast<uint8_t*>(uprv_malloc(sum));
     if(mbcsData->fromUBytes==nullptr) {
-        fprintf(stderr, "error: out of memory allocating %ld B for target mappings\n", (long)sum);
+        fprintf(stderr, "error: out of memory allocating %ld B for target mappings\n", static_cast<long>(sum));
         return false;
     }
     uprv_memset(mbcsData->fromUBytes, 0, sum);
@@ -331,7 +331,7 @@ setFallback(MBCSData *mbcsData, uint32_t offset, UChar32 c) {
         /* if there is no fallback for this offset, then add one */
         i=mbcsData->countToUFallbacks;
         if(i>=MBCS_MAX_FALLBACK_COUNT) {
-            fprintf(stderr, "error: too many toUnicode fallbacks, currently at: U+%x\n", (int)c);
+            fprintf(stderr, "error: too many toUnicode fallbacks, currently at: U+%x\n", static_cast<int>(c));
             return false;
         } else {
             mbcsData->toUFallbacks[i].offset=offset;
@@ -352,7 +352,7 @@ removeFallback(MBCSData *mbcsData, uint32_t offset) {
 
         toUFallbacks=mbcsData->toUFallbacks;
         limit=mbcsData->countToUFallbacks;
-        old=(int32_t)toUFallbacks[i].codePoint;
+        old = static_cast<int32_t>(toUFallbacks[i].codePoint);
 
         /* copy the last fallback entry here to keep the list contiguous */
         toUFallbacks[i].offset=toUFallbacks[limit-1].offset;
@@ -400,29 +400,29 @@ MBCSAddToUnicode(MBCSData *mbcsData,
         if(MBCS_ENTRY_IS_TRANSITION(entry)) {
             if(i==length) {
                 fprintf(stderr, "error: byte sequence too short, ends in non-final state %hu: 0x%s (U+%x)\n",
-                    (short)state, printBytes(buffer, bytes, length), (int)c);
+                    static_cast<short>(state), printBytes(buffer, bytes, length), static_cast<int>(c));
                 return false;
             }
-            state=(uint8_t)MBCS_ENTRY_TRANSITION_STATE(entry);
+            state = static_cast<uint8_t>(MBCS_ENTRY_TRANSITION_STATE(entry));
             offset+=MBCS_ENTRY_TRANSITION_OFFSET(entry);
         } else {
             if(i<length) {
                 fprintf(stderr, "error: byte sequence too long by %d bytes, final state %u: 0x%s (U+%x)\n",
-                    (int)(length-i), state, printBytes(buffer, bytes, length), (int)c);
+                    static_cast<int>(length - i), state, printBytes(buffer, bytes, length), static_cast<int>(c));
                 return false;
             }
             switch(MBCS_ENTRY_FINAL_ACTION(entry)) {
             case MBCS_STATE_ILLEGAL:
                 fprintf(stderr, "error: byte sequence ends in illegal state at U+%04x<->0x%s\n",
-                    (int)c, printBytes(buffer, bytes, length));
+                    static_cast<int>(c), printBytes(buffer, bytes, length));
                 return false;
             case MBCS_STATE_CHANGE_ONLY:
                 fprintf(stderr, "error: byte sequence ends in state-change-only at U+%04x<->0x%s\n",
-                    (int)c, printBytes(buffer, bytes, length));
+                    static_cast<int>(c), printBytes(buffer, bytes, length));
                 return false;
             case MBCS_STATE_UNASSIGNED:
                 fprintf(stderr, "error: byte sequence ends in unassigned state at U+%04x<->0x%s\n",
-                    (int)c, printBytes(buffer, bytes, length));
+                    static_cast<int>(c), printBytes(buffer, bytes, length));
                 return false;
             case MBCS_STATE_FALLBACK_DIRECT_16:
             case MBCS_STATE_VALID_DIRECT_16:
@@ -437,11 +437,11 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                     }
                     if(flag>=0) {
                         fprintf(stderr, "error: duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            (int)c, printBytes(buffer, bytes, length), (int)old);
+                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
                         return false;
                     } else if(VERBOSE) {
                         fprintf(stderr, "duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            (int)c, printBytes(buffer, bytes, length), (int)old);
+                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
                     }
                     /*
                      * Continue after the above warning
@@ -467,16 +467,16 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                 if((old=mbcsData->unicodeCodeUnits[offset])!=0xfffe || (old=removeFallback(mbcsData, offset))!=-1) {
                     if(flag>=0) {
                         fprintf(stderr, "error: duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            (int)c, printBytes(buffer, bytes, length), (int)old);
+                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
                         return false;
                     } else if(VERBOSE) {
                         fprintf(stderr, "duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            (int)c, printBytes(buffer, bytes, length), (int)old);
+                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
                     }
                 }
                 if(c>=0x10000) {
                     fprintf(stderr, "error: code point does not fit into valid-16-bit state at U+%04x<->0x%s\n",
-                        (int)c, printBytes(buffer, bytes, length));
+                        static_cast<int>(c), printBytes(buffer, bytes, length));
                     return false;
                 }
                 if(flag>0) {
@@ -485,7 +485,7 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                         return setFallback(mbcsData, offset, c);
                     }
                 } else {
-                    mbcsData->unicodeCodeUnits[offset]=(uint16_t)c;
+                    mbcsData->unicodeCodeUnits[offset] = static_cast<uint16_t>(c);
                 }
                 break;
             case MBCS_STATE_VALID_16_PAIR:
@@ -505,11 +505,11 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                     }
                     if(flag>=0) {
                         fprintf(stderr, "error: duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            (int)c, printBytes(buffer, bytes, length), (int)real);
+                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(real));
                         return false;
                     } else if(VERBOSE) {
                         fprintf(stderr, "duplicate codepage byte sequence at U+%04x<->0x%s see U+%04x\n",
-                            (int)c, printBytes(buffer, bytes, length), (int)real);
+                            static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(real));
                     }
                 }
                 if(flag>0) {
@@ -519,31 +519,31 @@ MBCSAddToUnicode(MBCSData *mbcsData,
                     } else if(c<=0xffff) {
                         /* set a BMP fallback code point as a pair with 0xe001 */
                         mbcsData->unicodeCodeUnits[offset++]=0xe001;
-                        mbcsData->unicodeCodeUnits[offset]=(uint16_t)c;
+                        mbcsData->unicodeCodeUnits[offset] = static_cast<uint16_t>(c);
                     } else {
                         /* set a fallback surrogate pair with two second surrogates */
-                        mbcsData->unicodeCodeUnits[offset++]=(uint16_t)(0xdbc0+(c>>10));
-                        mbcsData->unicodeCodeUnits[offset]=(uint16_t)(0xdc00+(c&0x3ff));
+                        mbcsData->unicodeCodeUnits[offset++] = static_cast<uint16_t>(0xdbc0 + (c >> 10));
+                        mbcsData->unicodeCodeUnits[offset] = static_cast<uint16_t>(0xdc00 + (c & 0x3ff));
                     }
                 } else {
                     if(c<0xd800) {
                         /* set a BMP code point */
-                        mbcsData->unicodeCodeUnits[offset]=(uint16_t)c;
+                        mbcsData->unicodeCodeUnits[offset] = static_cast<uint16_t>(c);
                     } else if(c<=0xffff) {
                         /* set a BMP code point above 0xd800 as a pair with 0xe000 */
                         mbcsData->unicodeCodeUnits[offset++]=0xe000;
-                        mbcsData->unicodeCodeUnits[offset]=(uint16_t)c;
+                        mbcsData->unicodeCodeUnits[offset] = static_cast<uint16_t>(c);
                     } else {
                         /* set a surrogate pair */
-                        mbcsData->unicodeCodeUnits[offset++]=(uint16_t)(0xd7c0+(c>>10));
-                        mbcsData->unicodeCodeUnits[offset]=(uint16_t)(0xdc00+(c&0x3ff));
+                        mbcsData->unicodeCodeUnits[offset++] = static_cast<uint16_t>(0xd7c0 + (c >> 10));
+                        mbcsData->unicodeCodeUnits[offset] = static_cast<uint16_t>(0xdc00 + (c & 0x3ff));
                     }
                 }
                 break;
             default:
                 /* reserved, must never occur */
                 fprintf(stderr, "internal error: byte sequence reached reserved action code, entry 0x%02x: 0x%s (U+%x)\n",
-                    (int)entry, printBytes(buffer, bytes, length), (int)c);
+                    static_cast<int>(entry), printBytes(buffer, bytes, length), static_cast<int>(c));
                 return false;
             }
 
@@ -559,7 +559,7 @@ MBCSIsValid(NewConverter *cnvData,
             const uint8_t *bytes, int32_t length) {
     MBCSData *mbcsData=(MBCSData *)cnvData;
 
-    return (UBool)(1==ucm_countChars(&mbcsData->ucm->states, bytes, length));
+    return 1==ucm_countChars(&mbcsData->ucm->states, bytes, length);
 }
 U_CDECL_END
 static UBool
@@ -585,7 +585,7 @@ MBCSSingleAddFromUnicode(MBCSData *mbcsData,
      * Note that the first stage 2 and 3 blocks are reserved for all-unassigned mappings.
      * We assume that length<=maxCharLength and that c<=0x10ffff.
      */
-    stage3=(uint16_t *)mbcsData->fromUBytes;
+    stage3 = reinterpret_cast<uint16_t*>(mbcsData->fromUBytes);
     b=*bytes;
 
     /* inspect stage 1 */
@@ -607,7 +607,7 @@ MBCSSingleAddFromUnicode(MBCSData *mbcsData,
         newTop=newBlock+MBCS_STAGE_2_BLOCK_SIZE;
 
         if(newTop>MBCS_MAX_STAGE_2_TOP) {
-            fprintf(stderr, "error: too many stage 2 entries at U+%04x<->0x%02x\n", (int)c, b);
+            fprintf(stderr, "error: too many stage 2 entries at U+%04x<->0x%02x\n", static_cast<int>(c), b);
             return false;
         }
 
@@ -615,7 +615,7 @@ MBCSSingleAddFromUnicode(MBCSData *mbcsData,
          * each stage 2 block contains 64 16-bit words:
          * 6 code point bits 9..4 with 1 stage 3 index
          */
-        mbcsData->stage1[idx]=(uint16_t)newBlock;
+        mbcsData->stage1[idx] = static_cast<uint16_t>(newBlock);
         mbcsData->stage2Top=newTop;
     }
 
@@ -641,13 +641,13 @@ MBCSSingleAddFromUnicode(MBCSData *mbcsData,
         newTop=newBlock+blockSize;
 
         if(newTop>MBCS_STAGE_3_SBCS_SIZE) {
-            fprintf(stderr, "error: too many code points at U+%04x<->0x%02x\n", (int)c, b);
+            fprintf(stderr, "error: too many code points at U+%04x<->0x%02x\n", static_cast<int>(c), b);
             return false;
         }
         /* each block has 16 uint16_t entries */
         i=idx;
         while(newBlock<newTop) {
-            mbcsData->stage2Single[i++]=(uint16_t)newBlock;
+            mbcsData->stage2Single[i++] = static_cast<uint16_t>(newBlock);
             newBlock+=MBCS_STAGE_3_BLOCK_SIZE;
         }
         mbcsData->stage3Top=newTop; /* ==newBlock */
@@ -657,22 +657,22 @@ MBCSSingleAddFromUnicode(MBCSData *mbcsData,
     p=stage3+mbcsData->stage2Single[idx]+nextOffset;
     old=*p;
     if(flag<=0) {
-        *p=(uint16_t)(0xf00|b);
+        *p = static_cast<uint16_t>(0xf00 | b);
     } else if(IS_PRIVATE_USE(c)) {
-        *p=(uint16_t)(0xc00|b);
+        *p = static_cast<uint16_t>(0xc00 | b);
     } else {
-        *p=(uint16_t)(0x800|b);
+        *p = static_cast<uint16_t>(0x800 | b);
     }
 
     /* check that this Unicode code point was still unassigned */
     if(old>=0x100) {
         if(flag>=0) {
             fprintf(stderr, "error: duplicate Unicode code point at U+%04x<->0x%02x see 0x%02x\n",
-                (int)c, b, old&0xff);
+                static_cast<int>(c), b, old & 0xff);
             return false;
         } else if(VERBOSE) {
             fprintf(stderr, "duplicate Unicode code point at U+%04x<->0x%02x see 0x%02x\n",
-                (int)c, b, old&0xff);
+                static_cast<int>(c), b, old & 0xff);
         }
         /* continue after the above warning if the precision of the mapping is unspecified */
     }
@@ -699,13 +699,13 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
         (!IGNORE_SISO_CHECK && (*bytes==0xe || *bytes==0xf))
     ) {
         fprintf(stderr, "error: illegal mapping to SI or SO for SI/SO codepage: U+%04x<->0x%s\n",
-            (int)c, printBytes(buffer, bytes, length));
+            static_cast<int>(c), printBytes(buffer, bytes, length));
         return false;
     }
 
     if(flag==1 && length==1 && *bytes==0) {
         fprintf(stderr, "error: unable to encode a |1 fallback from U+%04x to 0x%02x\n",
-            (int)c, *bytes);
+            static_cast<int>(c), *bytes);
         return false;
     }
 
@@ -738,7 +738,7 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
 
         if(newTop>MBCS_MAX_STAGE_2_TOP) {
             fprintf(stderr, "error: too many stage 2 entries at U+%04x<->0x%s\n",
-                (int)c, printBytes(buffer, bytes, length));
+                static_cast<int>(c), printBytes(buffer, bytes, length));
             return false;
         }
 
@@ -748,7 +748,7 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
          */
         i=idx;
         while(newBlock<newTop) {
-            mbcsData->stage1[i++]=(uint16_t)newBlock;
+            mbcsData->stage1[i++] = static_cast<uint16_t>(newBlock);
             newBlock+=MBCS_STAGE_2_BLOCK_SIZE;
         }
         mbcsData->stage2Top=newTop; /* ==newBlock */
@@ -784,9 +784,9 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
         }
         newTop=newBlock+blockSize;
 
-        if(newTop>MBCS_STAGE_3_MBCS_SIZE*(uint32_t)maxCharLength) {
+        if (newTop > MBCS_STAGE_3_MBCS_SIZE * static_cast<uint32_t>(maxCharLength)) {
             fprintf(stderr, "error: too many code points at U+%04x<->0x%s\n",
-                (int)c, printBytes(buffer, bytes, length));
+                static_cast<int>(c), printBytes(buffer, bytes, length));
             return false;
         }
         /* each block has 16*maxCharLength bytes */
@@ -798,7 +798,7 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
         mbcsData->stage3Top=newTop; /* ==newBlock */
     }
 
-    stage3Index=MBCS_STAGE_3_GRANULARITY*(uint32_t)(uint16_t)mbcsData->stage2[idx];
+    stage3Index = MBCS_STAGE_3_GRANULARITY * static_cast<uint32_t>(static_cast<uint16_t>(mbcsData->stage2[idx]));
 
     /* Build an alternate, UTF-8-friendly stage table as well. */
     if(mbcsData->utf8Friendly && c<=mbcsData->utf8Max) {
@@ -828,7 +828,7 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
              * The stage 3 block has been assigned for the regular trie.
              * Just copy its index into stageUTF8[], without the granularity.
              */
-            mbcsData->stageUTF8[c>>MBCS_UTF8_STAGE_SHIFT]=(uint16_t)stage3Index;
+            mbcsData->stageUTF8[c >> MBCS_UTF8_STAGE_SHIFT] = static_cast<uint16_t>(stage3Index);
         }
     }
 
@@ -857,20 +857,20 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
     p=stage3+(stage3Index+nextOffset)*maxCharLength;
     switch(maxCharLength) {
     case 2:
-        old=*(uint16_t *)p;
-        *(uint16_t *)p=(uint16_t)b;
+        old = *reinterpret_cast<uint16_t*>(p);
+        *reinterpret_cast<uint16_t*>(p) = static_cast<uint16_t>(b);
         break;
     case 3:
-        old=(uint32_t)*p<<16;
-        *p++=(uint8_t)(b>>16);
-        old|=(uint32_t)*p<<8;
-        *p++=(uint8_t)(b>>8);
+        old = static_cast<uint32_t>(*p) << 16;
+        *p++ = static_cast<uint8_t>(b >> 16);
+        old |= static_cast<uint32_t>(*p) << 8;
+        *p++ = static_cast<uint8_t>(b >> 8);
         old|=*p;
-        *p=(uint8_t)b;
+        *p = static_cast<uint8_t>(b);
         break;
     case 4:
-        old=*(uint32_t *)p;
-        *(uint32_t *)p=b;
+        old = *reinterpret_cast<uint32_t*>(p);
+        *reinterpret_cast<uint32_t*>(p) = b;
         break;
     default:
         /* will never occur */
@@ -881,11 +881,11 @@ MBCSAddFromUnicode(MBCSData *mbcsData,
     if((mbcsData->stage2[idx+(nextOffset>>MBCS_STAGE_2_SHIFT)]&(1UL<<(16+(c&0xf))))!=0 || old!=0) {
         if(flag>=0) {
             fprintf(stderr, "error: duplicate Unicode code point at U+%04x<->0x%s see 0x%02x\n",
-                (int)c, printBytes(buffer, bytes, length), (int)old);
+                static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
             return false;
         } else if(VERBOSE) {
             fprintf(stderr, "duplicate Unicode code point at U+%04x<->0x%s see 0x%02x\n",
-                (int)c, printBytes(buffer, bytes, length), (int)old);
+                static_cast<int>(c), printBytes(buffer, bytes, length), static_cast<int>(old));
         }
         /* continue after the above warning if the precision of the mapping is
            unspecified */
@@ -970,7 +970,7 @@ MBCSAddTable(NewConverter *cnvData, UCMTable *table, UConverterStaticData *stati
      * a sorted table, which makeconv generates when explicit precision
      * indicators are used.
      */
-    mbcsData->utf8Friendly=utf8Friendly=(UBool)((table->flagsType&UCM_FLAGS_EXPLICIT)!=0);
+    mbcsData->utf8Friendly = utf8Friendly = (table->flagsType & UCM_FLAGS_EXPLICIT) != 0;
     if(utf8Friendly) {
         mbcsData->utf8Max=MBCS_UTF8_MAX;
         if(SMALL && maxCharLength>1) {
@@ -1115,7 +1115,7 @@ transformEUC(MBCSData *mbcsData) {
     p8=mbcsData->fromUBytes;
 
     /* modify outputType and adjust stage3Top */
-    mbcsData->ucm->states.outputType=(int8_t)(MBCS_OUTPUT_3_EUC+oldLength-3);
+    mbcsData->ucm->states.outputType = static_cast<int8_t>(MBCS_OUTPUT_3_EUC + oldLength - 3);
     mbcsData->stage3Top=(old3Top*(oldLength-1))/oldLength;
 
     /*
@@ -1126,43 +1126,43 @@ transformEUC(MBCSData *mbcsData) {
      * This also must reverse the byte order if the platform is little-endian!
      */
     if(oldLength==3) {
-        uint16_t *q=(uint16_t *)p8;
+        uint16_t* q = reinterpret_cast<uint16_t*>(p8);
         for(i=0; i<old3Top; i+=oldLength) {
             b=*p8;
             if(b==0) {
                 /* short sequences are stored directly */
                 /* code set 0 or 1 */
-                (*q++)=(uint16_t)((p8[1]<<8)|p8[2]);
+                (*q++) = static_cast<uint16_t>((p8[1] << 8) | p8[2]);
             } else if(b==0x8e) {
                 /* code set 2 */
-                (*q++)=(uint16_t)(((p8[1]&0x7f)<<8)|p8[2]);
+                (*q++) = static_cast<uint16_t>(((p8[1] & 0x7f) << 8) | p8[2]);
             } else /* b==0x8f */ {
                 /* code set 3 */
-                (*q++)=(uint16_t)((p8[1]<<8)|(p8[2]&0x7f));
+                (*q++) = static_cast<uint16_t>((p8[1] << 8) | (p8[2] & 0x7f));
             }
             p8+=3;
         }
     } else /* oldLength==4 */ {
         uint8_t *q=p8;
-        uint32_t *p32=(uint32_t *)p8;
+        uint32_t* p32 = reinterpret_cast<uint32_t*>(p8);
         for(i=0; i<old3Top; i+=4) {
             value=(*p32++);
             if(value<=0xffffff) {
                 /* short sequences are stored directly */
                 /* code set 0 or 1 */
-                (*q++)=(uint8_t)(value>>16);
-                (*q++)=(uint8_t)(value>>8);
-                (*q++)=(uint8_t)value;
+                (*q++) = static_cast<uint8_t>(value >> 16);
+                (*q++) = static_cast<uint8_t>(value >> 8);
+                (*q++) = static_cast<uint8_t>(value);
             } else if(value<=0x8effffff) {
                 /* code set 2 */
-                (*q++)=(uint8_t)((value>>16)&0x7f);
-                (*q++)=(uint8_t)(value>>8);
-                (*q++)=(uint8_t)value;
+                (*q++) = static_cast<uint8_t>((value >> 16) & 0x7f);
+                (*q++) = static_cast<uint8_t>(value >> 8);
+                (*q++) = static_cast<uint8_t>(value);
             } else /* first byte is 0x8f */ {
                 /* code set 3 */
-                (*q++)=(uint8_t)(value>>16);
-                (*q++)=(uint8_t)((value>>8)&0x7f);
-                (*q++)=(uint8_t)value;
+                (*q++) = static_cast<uint8_t>(value >> 16);
+                (*q++) = static_cast<uint8_t>((value >> 8) & 0x7f);
+                (*q++) = static_cast<uint8_t>(value);
             }
         }
     }
@@ -1189,17 +1189,17 @@ singleCompactStage2(MBCSData *mbcsData) {
     /* begin with the first block after the all-unassigned one */
     start=newStart=MBCS_STAGE_2_FIRST_ASSIGNED;
     while(start<mbcsData->stage2Top) {
-        prevEnd=(uint16_t)(newStart-1);
+        prevEnd = static_cast<uint16_t>(newStart - 1);
 
         /* find the size of the overlap */
         for(i=0; i<MBCS_STAGE_2_BLOCK_SIZE && mbcsData->stage2Single[start+i]==0 && mbcsData->stage2Single[prevEnd-i]==0; ++i) {}
 
         if(i>0) {
-            map[start>>MBCS_STAGE_2_BLOCK_SIZE_SHIFT]=(uint16_t)(newStart-i);
+            map[start >> MBCS_STAGE_2_BLOCK_SIZE_SHIFT] = static_cast<uint16_t>(newStart - i);
 
             /* move the non-overlapping indexes to their new positions */
             start+=i;
-            for(i=(uint16_t)(MBCS_STAGE_2_BLOCK_SIZE-i); i>0; --i) {
+            for (i = static_cast<uint16_t>(MBCS_STAGE_2_BLOCK_SIZE - i); i > 0; --i) {
                 mbcsData->stage2Single[newStart++]=mbcsData->stage2Single[start++];
             }
         } else if(newStart<start) {
@@ -1217,8 +1217,8 @@ singleCompactStage2(MBCSData *mbcsData) {
     /* adjust stage2Top */
     if(VERBOSE && newStart<mbcsData->stage2Top) {
         printf("compacting stage 2 from stage2Top=0x%lx to 0x%lx, saving %ld bytes\n",
-                (unsigned long)mbcsData->stage2Top, (unsigned long)newStart,
-                (long)(mbcsData->stage2Top-newStart)*2);
+               static_cast<unsigned long>(mbcsData->stage2Top), static_cast<unsigned long>(newStart),
+               static_cast<long>(mbcsData->stage2Top - newStart) * 2);
     }
     mbcsData->stage2Top=newStart;
 
@@ -1231,7 +1231,7 @@ singleCompactStage2(MBCSData *mbcsData) {
 /* Compact stage 3 for SBCS - same algorithm as above. */
 static void
 singleCompactStage3(MBCSData *mbcsData) {
-    uint16_t *stage3=(uint16_t *)mbcsData->fromUBytes;
+    uint16_t* stage3 = reinterpret_cast<uint16_t*>(mbcsData->fromUBytes);
 
     /* this array maps the ordinal number of a stage 3 block to its new stage 2 index */
     uint16_t map[0x1000];
@@ -1243,17 +1243,17 @@ singleCompactStage3(MBCSData *mbcsData) {
     /* begin with the first block after the all-unassigned one */
     start=newStart=16;
     while(start<mbcsData->stage3Top) {
-        prevEnd=(uint16_t)(newStart-1);
+        prevEnd = static_cast<uint16_t>(newStart - 1);
 
         /* find the size of the overlap */
         for(i=0; i<16 && stage3[start+i]==0 && stage3[prevEnd-i]==0; ++i) {}
 
         if(i>0) {
-            map[start>>4]=(uint16_t)(newStart-i);
+            map[start >> 4] = static_cast<uint16_t>(newStart - i);
 
             /* move the non-overlapping indexes to their new positions */
             start+=i;
-            for(i=(uint16_t)(16-i); i>0; --i) {
+            for (i = static_cast<uint16_t>(16 - i); i > 0; --i) {
                 stage3[newStart++]=stage3[start++];
             }
         } else if(newStart<start) {
@@ -1271,8 +1271,8 @@ singleCompactStage3(MBCSData *mbcsData) {
     /* adjust stage3Top */
     if(VERBOSE && newStart<mbcsData->stage3Top) {
         printf("compacting stage 3 from stage3Top=0x%lx to 0x%lx, saving %ld bytes\n",
-                (unsigned long)mbcsData->stage3Top, (unsigned long)newStart,
-                (long)(mbcsData->stage3Top-newStart)*2);
+               static_cast<unsigned long>(mbcsData->stage3Top), static_cast<unsigned long>(newStart),
+               static_cast<long>(mbcsData->stage3Top - newStart) * 2);
     }
     mbcsData->stage3Top=newStart;
 
@@ -1301,17 +1301,17 @@ compactStage2(MBCSData *mbcsData) {
     /* begin with the first block after the all-unassigned one */
     start=newStart=MBCS_STAGE_2_FIRST_ASSIGNED;
     while(start<mbcsData->stage2Top) {
-        prevEnd=(uint16_t)(newStart-1);
+        prevEnd = static_cast<uint16_t>(newStart - 1);
 
         /* find the size of the overlap */
         for(i=0; i<MBCS_STAGE_2_BLOCK_SIZE && mbcsData->stage2[start+i]==0 && mbcsData->stage2[prevEnd-i]==0; ++i) {}
 
         if(i>0) {
-            map[start>>MBCS_STAGE_2_BLOCK_SIZE_SHIFT]=(uint16_t)(newStart-i);
+            map[start >> MBCS_STAGE_2_BLOCK_SIZE_SHIFT] = static_cast<uint16_t>(newStart - i);
 
             /* move the non-overlapping indexes to their new positions */
             start+=i;
-            for(i=(uint16_t)(MBCS_STAGE_2_BLOCK_SIZE-i); i>0; --i) {
+            for (i = static_cast<uint16_t>(MBCS_STAGE_2_BLOCK_SIZE - i); i > 0; --i) {
                 mbcsData->stage2[newStart++]=mbcsData->stage2[start++];
             }
         } else if(newStart<start) {
@@ -1329,8 +1329,8 @@ compactStage2(MBCSData *mbcsData) {
     /* adjust stage2Top */
     if(VERBOSE && newStart<mbcsData->stage2Top) {
         printf("compacting stage 2 from stage2Top=0x%lx to 0x%lx, saving %ld bytes\n",
-                (unsigned long)mbcsData->stage2Top, (unsigned long)newStart,
-                (long)(mbcsData->stage2Top-newStart)*4);
+                static_cast<unsigned long>(mbcsData->stage2Top), static_cast<unsigned long>(newStart),
+                static_cast<long>(mbcsData->stage2Top - newStart) * 4);
     }
     mbcsData->stage2Top=newStart;
 
@@ -1382,12 +1382,12 @@ MBCSPostprocess(MBCSData *mbcsData, const UConverterStaticData * /*staticData*/)
 
         printf("fromUnicode number of uint%s_t in stage 2: 0x%lx=%lu\n",
                maxCharLength==1 ? "16" : "32",
-               (unsigned long)mbcsData->stage2Top,
-               (unsigned long)mbcsData->stage2Top);
+               static_cast<unsigned long>(mbcsData->stage2Top),
+               static_cast<unsigned long>(mbcsData->stage2Top));
         printf("fromUnicode number of %d-byte stage 3 mapping entries: 0x%lx=%lu\n",
-               (int)stage3Width,
-               (unsigned long)mbcsData->stage3Top/stage3Width,
-               (unsigned long)mbcsData->stage3Top/stage3Width);
+               static_cast<int>(stage3Width),
+               static_cast<unsigned long>(mbcsData->stage3Top) / stage3Width,
+               static_cast<unsigned long>(mbcsData->stage3Top) / stage3Width);
 #if 0
         c=0;
         for(i1=0; i1<MBCS_STAGE_1_SIZE; ++i1) {
@@ -1517,7 +1517,7 @@ MBCSWrite(NewConverter *cnvData, const UConverterStaticData *staticData,
     header.version[1]=4;
     /* header.version[2] set above for utf8Friendly data */
 
-    header.options|=(uint32_t)headerLength;
+    header.options |= headerLength;
 
     header.countStates=mbcsData->ucm->states.countStates;
     header.countToUFallbacks=mbcsData->countToUFallbacks;

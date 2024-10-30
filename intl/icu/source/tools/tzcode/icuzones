@@ -31,13 +31,24 @@ Rule	SystemV	1975	only	-	Oct	lastSun	2:00	0	S
 Rule	SystemV	1976	max	-	Apr	lastSun	2:00	1:00	D
 Rule	SystemV	1976	max	-	Oct	lastSun	2:00	0	S
 
+# Note: 1901 Dec 13 20:45:52u is the minimum value of int32 seconds.
+# A zone with infinite "min" year rule cannot be supported by 64 bit TZif,
+# so adding explicit transition to zones with SystemV rule at the minimum
+# int32 seconds.
+
 # Zone	NAME		GMTOFF	RULES/SAVE	FORMAT	[UNTIL]
-Zone	SystemV/AST4ADT	-4:00	SystemV		A%sT
-Zone	SystemV/EST5EDT	-5:00	SystemV		E%sT
-Zone	SystemV/CST6CDT	-6:00	SystemV		C%sT
-Zone	SystemV/MST7MDT	-7:00	SystemV		M%sT
-Zone	SystemV/PST8PDT	-8:00	SystemV		P%sT
-Zone	SystemV/YST9YDT	-9:00	SystemV		Y%sT
+Zone	SystemV/AST4ADT	-4:00	-		AST	1901 Dec 13 20:45:52u
+			-4:00	SystemV		A%sT
+Zone	SystemV/EST5EDT	-5:00	-		EST	1901 Dec 13 20:45:52u
+			-5:00	SystemV		E%sT
+Zone	SystemV/CST6CDT	-6:00	-		CST	1901 Dec 13 20:45:52u
+			-6:00	SystemV		C%sT
+Zone	SystemV/MST7MDT	-7:00	-		MST	1901 Dec 13 20:45:52u
+			-7:00	SystemV		M%sT
+Zone	SystemV/PST8PDT	-8:00	-		PST	1901 Dec 13 20:45:52u
+			-8:00	SystemV		P%sT
+Zone	SystemV/YST9YDT	-9:00	-		YST	1901 Dec 13 20:45:52u
+			-9:00	SystemV		Y%sT
 Zone	SystemV/AST4	-4:00	-		AST
 Zone	SystemV/EST5	-5:00	-		EST
 Zone	SystemV/CST6	-6:00	-		CST

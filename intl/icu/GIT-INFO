@@ -1,5 +1,5 @@
-commit 5861e1fd52f1d7673eee38bc3c965aa18b336062
-Author: Peter Edberg <pedberg@unicode.org>
-Date:   Tue Apr 11 10:32:35 2023 -0700
+commit 8eca245c7484ac6cc179e3e5f7c1ea7680810f39
+Author: Rahul Pandey <rp9.next@gmail.com>
+Date:   Mon Oct 21 16:21:38 2024 +0530
 
-    ICU-22221 update cldr-icu instructions, and ICU tag for integration
+    ICU-22724 BRS_76_GA Update version number to 76.1 (No more -SNAPSHOT)

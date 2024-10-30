@@ -197,7 +197,7 @@ static    int32_t uprv_initFrequency(UTimer* /*timer*/)
     }
 static    void uprv_start(UTimer* timer)
     {
-        gettimeofday(&timer->start, 0);
+        gettimeofday(&timer->start, nullptr);
     }
 static    double uprv_delta(UTimer* timer1, UTimer* timer2){
         double t1, t2;

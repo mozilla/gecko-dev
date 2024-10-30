@@ -15,6 +15,9 @@
 
 #include "collunsafe.h"
 
+using icu::Collator;
+using icu::Locale;
+using icu::UnicodeSet;
 
 int main(int argc, const char *argv[]) {
   puts("verify");

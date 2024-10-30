@@ -213,6 +213,42 @@
     <ClCompile Include="measure.cpp">
       <Filter>formatting</Filter>
     </ClCompile>
+    <ClCompile Include="messageformat2.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_arguments.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_checker.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_context.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_data_model.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_errors.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_evaluation.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_formattable.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_formatter.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_function_registry.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_parser.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
+    <ClCompile Include="messageformat2_serializer.cpp">
+      <Filter>formatting</Filter>
+    </ClCompile>
     <ClCompile Include="msgfmt.cpp">
       <Filter>formatting</Filter>
     </ClCompile>

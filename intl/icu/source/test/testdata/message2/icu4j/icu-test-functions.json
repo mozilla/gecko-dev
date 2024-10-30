@@ -1,0 +1,220 @@
+{
+  "Date and time formats": [
+    {
+      "src": "Expires on {$exp}",
+      "exp": "Expires on 8/3/24, 9:43 PM",
+      "comment": "Modified from ICU4J copy to add params (likewise with the other date/time tests); 1722746637000 is 2024-08-03 21:43:57 PDT",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime}",
+      "exp": "Expires on 8/3/24, 9:43 PM",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime icu:skeleton=yMMMMdjmsSSEE}",
+      "exp": "Expires on Sat, August 3, 2024 at 9:43:57.00 PM",
+      "params": {"exp": { "date": 1722746637000 } },
+      "ignoreTest": "ICU-22754 Skeleton option not implemented yet"
+    },
+    {
+      "src": "Expires on {$exp :datetime dateStyle=full}",
+      "exp": "Expires on Saturday, August 3, 2024",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime dateStyle=long}",
+      "exp": "Expires on August 3, 2024",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime dateStyle=medium}",
+      "exp": "Expires on Aug 3, 2024",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime timeStyle=long}",
+      "exp": "Expires on 9:43:57 PM PDT",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime timeStyle=medium}",
+      "exp": "Expires on 9:43:57 PM",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime timeStyle=short}",
+      "exp": "Expires on 9:43 PM",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime dateStyle=full timeStyle=medium}",
+      "exp": "Expires on Saturday, August 3, 2024 at 9:43:57 PM",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime year=numeric month=long}",
+      "exp": "Expires on August 2024",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "src": "Expires on {$exp :datetime year=numeric month=medium day=numeric weekday=long hour=numeric minute=numeric}",
+      "exp": "Expires on 3 Saturday 2024, 9:43 PM",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "comment": "Make sure we ignore date / time fields if needed",
+      "src": "Expires on {$exp :date year=numeric month=medium day=numeric weekday=long hour=numeric minute=numeric}",
+      "exp": "Expires on 3 Saturday 2024",
+      "params": {"exp": { "date": 1722746637000 } },
+      "ignoreTest": "ICU-22754 ICU4C doesn't accept field options for `:date` or `:time` -- see spec"
+    },
+    {
+      "comment": "Make sure we ignore date / time fields if needed",
+      "src": "Expires at {$exp :time year=numeric month=medium day=numeric weekday=long hour=numeric minute=numeric}",
+      "exp": "Expires at 9:43 PM",
+      "params": {"exp": { "date": 1722746637000 } },
+      "ignoreTest": "ICU-22754 ICU4C doesn't accept field options for `:date` or `:time` -- see spec"
+    },
+    {
+      "comment": "Make sure we ignore date / time fields if needed",
+      "src": "Expires at {$exp :time style=long dateStyle=full timeStyle=medium}",
+      "exp": "Expires at 9:43:57 PM PDT",
+      "params": {"exp": { "date": 1722746637000 } }
+    },
+    {
+      "comment": "Make sure we ignore date / time fields if needed",
+      "src": "Expires on {$exp :date style=long dateStyle=full timeStyle=medium}",
+      "exp": "Expires on August 3, 2024",
+      "params": {"exp": { "date": 1722746637000 } }
+    }
+  ],
+  "Literals" : [
+    {
+      "src": "Expires on {|2025-02-27| :datetime dateStyle=full}",
+      "exp": "Expires on Thursday, February 27, 2025"
+    },
+    {
+      "src": "Expires at {|2024-07-02T19:23:45| :datetime timeStyle=full}",
+      "exp": "Expires at 7:23:45 PM Pacific Daylight Time"
+    },
+    {
+      "src": "Expires at {|2024-07-02T19:23:45.123| :datetime timeStyle=full}",
+      "exp": "Expires at 7:23:45 PM Pacific Daylight Time"
+    },
+    {
+      "src": "Expires on {|2025-02-27T19:23:45| :datetime dateStyle=full}",
+      "exp": "Expires on Thursday, February 27, 2025"
+    },
+    {
+      "src": "Expires at {|2024-07-02T19:23:45Z| :datetime timeStyle=long}",
+      "exp": "Expires at 7:23:45 PM GMT",
+      "ignoreTest": "ICU-22754 Time zones not working yet (bug)"
+    },
+    {
+      "src": "Expires at {|2024-07-02T19:23:45+03:30| :datetime timeStyle=full}",
+      "exp": "Expires at 7:23:45 PM GMT+03:30",
+      "ignoreTest": "ICU-22754 Time zones not working yet (bug)"
+    }
+  ],
+  "Chaining" : [
+    {
+      "comment": "Horibly long, but I really wanted to test multiple declarations with overrides, and you can't join strings in JSON",
+      "srcs": [
+        ".input {$exp :datetime timeStyle=short}\n",
+        ".input {$user :string}\n",
+        ".local $longExp = {$exp :datetime dateStyle=long}\n",
+        ".local $zooExp = {$exp :datetime dateStyle=short timeStyle=$tsOver}\n",
+        "{{Hello John, you want '{$exp}', '{$longExp}', or '{$zooExp}' or even '{$exp :datetime dateStyle=full}'?}}"
+      ],
+      "exp": "Hello John, you want '9:43 PM', 'August 3, 2024 at 9:43 PM', or '8/3/24, 9:43:57 PM Pacific Daylight Time' or even 'Saturday, August 3, 2024 at 9:43 PM'?",
+      "params": {"exp": { "date": 1722746637000 }, "user": "John", "tsOver" : "long" },
+      "ignoreTest": "ICU-22754 ICU4C doesn't implement this kind of function composition yet. See https://github.com/unicode-org/message-format-wg/issues/515"
+    },
+    {
+      "srcs": [
+        ".input {$exp :datetime year=numeric month=numeric day=|2-digit|}\n",
+        ".local $longExp = {$exp :datetime month=long weekday=long}\n",
+        "{{Expires on '{$exp}' ('{$longExp}').}}"
+      ],
+      "exp": "Expires on '8/03/2024' ('Saturday, August 03, 2024').",
+      "params": {"exp": { "date": 1722746637000 } }
+    }
+  ],
+  "Number formatter" : [
+    {
+      "src": "Format {$val} number",
+      "params": { "val": 31 },
+      "exp": "Format 31 number"
+    },
+    {
+      "src": "Format {123456789.9876} number",
+      "locale": "en-IN",
+      "exp": "Format 12,34,56,789.9876 number",
+      "ignoreTest": "ICU-22754 No default formatting for numbers, so it's formatted as a literal string. Is this in the spec?"
+    },
+    {
+      "src": "Format {|3.1416|} number",
+      "locale": "ar-AR-u-nu-latn",
+      "exp": "Format 3.1416 number"
+    },
+    {
+      "src": "Format {|3.1416|} number",
+      "locale": "ar-AR-u-nu-arab",
+      "exp": "Format ٣٫١٤١٦ number",
+      "ignoreTest": "ICU-22754 No default formatting for numbers, so it's formatted as a literal string. Is this in the spec?"
+    },
+    {
+      "src": "Format {3.1415926 :number}",
+      "exp": "Format 3.141593"
+    },
+    {
+      "src": "Format {3.1415926 :number maximumFractionDigits=4}",
+      "exp": "Format 3.1416"
+    },
+    {
+      "src": "Format {3 :number minimumFractionDigits=2}",
+      "exp": "Format 3.00"
+    },
+    {
+      "src": "Format {3.2 :number minimumFractionDigits=2}",
+      "exp": "Format 3.20"
+    },
+    {
+      "src": "Format {123456789.97531 :number maximumSignificantDigits=4}",
+      "exp": "Format 123,500,000"
+    },
+    {
+      "src": "Format {3.1415926 :number}",
+      "exp": "Format 3.141593"
+    },
+    {
+      "src": "Numbering system {123456 :number numberingSystem=deva}",
+      "exp": "Numbering system १२३,४५६"
+    },
+    {
+      "src": "Percent {0.1416 :number style=percent}",
+      "exp": "Percent 14.16%"
+    },
+    {
+      "src": "Scientific {123456789.97531 :number notation=scientific}",
+      "exp": "Scientific 1.234568E8"
+    },
+    {
+      "src": "Engineering {123456789.97531 :number notation=engineering}",
+      "exp": "Engineering 123.45679E6"
+    },
+    {
+      "src": "Compact {123456789.97531 :number notation=compact}",
+      "exp": "Compact 123M"
+    },
+    {
+      "src": "Compact {123456789.97531 :number notation=compact compactDisplay=long}",
+      "exp": "Compact 123 million"
+    },
+    {
+      "src": "Compact {123456789.97531 :number notation=compact compactDisplay=short}",
+      "exp": "Compact 123M"
+    }
+  ]
+}

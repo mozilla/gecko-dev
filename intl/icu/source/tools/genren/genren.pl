@@ -154,9 +154,17 @@ for(;@ARGV; shift(@ARGV)) {
             chop $qtype;
         } elsif ($mode =~ /Mach-O/) {
             ($address, $type, $_) = split(/ /);
-            if(/^_(.*)$/) {
+            if (/^(.*)\(/) {
+            	# on Mac, C++ functions and methods are NOT prefixed with an underscore,
+            	# but do contain their parameter lists (in patentheses)-- remove
+            	# the parameter list
+            	$_ = $1;
+            } elsif(/^_(.*)$/) {
+            	# C function names (and maybe also C++ functions on Linux?) are all
+            	# prefixed with an underscore-- remove it
                 $_ = $1;
             } else {
+            	# skip symbols in any other format
                 next;
             }
         } else {

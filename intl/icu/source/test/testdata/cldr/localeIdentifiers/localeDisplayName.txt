@@ -1,0 +1,3183 @@
+# Test data for locale display name generation
+#  Copyright © 1991-2024 Unicode, Inc.
+#  For terms of use, see http://www.unicode.org/copyright.html
+#  SPDX-License-Identifier: Unicode-3.0
+#  CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+# Format:
+# @locale=<locale to display in>
+# @languageDisplay=[standard|dialect]
+#    standard - always display additional subtags like region in parentheses
+#    dialect - form compounds like "Flemish" for nl_BE
+# <locale to display> ; <expected display name>
+
+@locale=en
+@languageDisplay=standard
+
+
+# Simple cases: Language, script, region, variants
+
+en-MM; English (Myanmar [Burma])
+es; Spanish
+es-419; Spanish (Latin America)
+es-Cyrl-MX; Spanish (Cyrillic, Mexico)
+hi-Latn; Hindi (Latin)
+nl-BE; Dutch (Belgium)
+nl-Latn-BE; Dutch (Latin, Belgium)
+zh-Hans-fonipa; Chinese (Simplified, IPA Phonetics)
+
+#Note that the order of the variants is alphabetized before generating names
+
+en-Latn-GB-scouse-fonipa; English (Latin, United Kingdom, IPA Phonetics, Scouse)
+
+# Add extensions, and verify their order
+
+en-u-nu-deva-t-de; English (Transform: German, Devanagari Digits)
+en-u-nu-thai-ca-islamic-civil; English (Hijri Calendar [tabular, civil epoch], Thai Digits)
+hi-u-nu-latn-t-en-h0-hybrid; Hindi (Hybrid: English, Western Digits)
+
+# Test ordering of extensions (include well-formed but invalid cases)
+
+fr-z-zz-zzz-v-vv-vvv-u-uu-uuu-t-ru-Cyrl-s-ss-sss-a-aa-aaa-x-u-x; French (Transform: Russian [Cyrillic], uu: uuu, a: aa-aaa, s: ss-sss, v: vv-vvv, x: u-x, z: zz-zzz)
+
+# Comprehensive list (mostly comprehensive: currencies, subdivisions, timezones have abbreviated lists)
+
+en-u-ca-buddhist; English (Buddhist Calendar)
+en-u-ca-chinese; English (Chinese Calendar)
+en-u-ca-coptic; English (Coptic Calendar)
+en-u-ca-dangi; English (Dangi Calendar)
+en-u-ca-ethioaa; English (Ethiopic Amete Alem Calendar)
+en-u-ca-ethiopic; English (Ethiopic Calendar)
+en-u-ca-gregory; English (Gregorian Calendar)
+en-u-ca-hebrew; English (Hebrew Calendar)
+en-u-ca-indian; English (Indian National Calendar)
+en-u-ca-islamic; English (Hijri Calendar)
+en-u-ca-islamic-civil; English (Hijri Calendar [tabular, civil epoch])
+en-u-ca-islamic-rgsa; English (Hijri Calendar [Saudi Arabia, sighting])
+en-u-ca-islamic-tbla; English (Hijri Calendar [tabular, astronomical epoch])
+en-u-ca-islamic-umalqura; English (Hijri Calendar [Umm al-Qura])
+en-u-ca-iso8601; English (ISO-8601 Calendar)
+en-u-ca-japanese; English (Japanese Calendar)
+en-u-ca-persian; English (Persian Calendar)
+en-u-ca-roc; English (Minguo Calendar)
+en-u-cf-account; English (Accounting Currency Format)
+en-u-cf-standard; English (Standard Currency Format)
+en-u-co-big5han; English (Traditional Chinese Sort Order - Big5)
+en-u-co-compat; English (Previous Sort Order, for compatibility)
+en-u-co-dict; English (Dictionary Sort Order)
+en-u-co-ducet; English (Default Unicode Sort Order)
+en-u-co-emoji; English (Emoji Sort Order)
+en-u-co-eor; English (European Ordering Rules)
+en-u-co-gb2312; English (Simplified Chinese Sort Order - GB2312)
+en-u-co-phonebk; English (Phonebook Sort Order)
+en-u-co-phonetic; English (Phonetic Sort Order)
+en-u-co-pinyin; English (Pinyin Sort Order)
+en-u-co-search; English (General-Purpose Search)
+en-u-co-searchjl; English (Search By Hangul Initial Consonant)
+en-u-co-standard; English (Standard Sort Order)
+en-u-co-stroke; English (Stroke Sort Order)
+en-u-co-trad; English (Traditional Sort Order)
+en-u-co-unihan; English (Radical-Stroke Sort Order)
+en-u-co-zhuyin; English (Zhuyin Sort Order)
+en-u-cu-eur; English (Currency: €)
+en-u-cu-jpy; English (Currency: ¥)
+en-u-cu-usd; English (Currency: $)
+en-u-cu-chf; English (Currency: CHF)
+en-t-d0-accents; English (To Accented Characters From ASCII Sequence)
+en-t-d0-ascii; English (To ASCII)
+en-t-d0-casefold; English (To Casefolded)
+en-t-d0-charname; English (To Unicode Character Names)
+en-t-d0-digit; English (To Digit Form Of Accent)
+en-t-d0-fcc; English (To Unicode FCC)
+en-t-d0-fcd; English (To Unicode FCD)
+en-t-d0-fwidth; English (To Fullwidth)
+en-t-d0-hex; English (To Hexadecimal Codes)
+en-t-d0-hwidth; English (To Halfwidth)
+en-t-d0-lower; English (To Lowercase)
+en-t-d0-morse; English (To Morse Code)
+en-t-d0-nfc; English (To Unicode NFC)
+en-t-d0-nfd; English (To Unicode NFD)
+en-t-d0-nfkc; English (To Unicode NFKC)
+en-t-d0-nfkd; English (To Unicode NFKD)
+en-t-d0-npinyin; English (To Pinyin With Numeric Tones)
+en-t-d0-null; English (No Change)
+en-t-d0-publish; English (To Publishing Characters From ASCII)
+en-t-d0-remove; English (To Empty String)
+en-t-d0-title; English (To Titlecase)
+en-t-d0-upper; English (To Uppercase)
+en-t-d0-zawgyi; English (To Zawgyi Myanmar Encoding)
+en-u-dx-thai; English (Dictionary Break Exclusions: thai)
+en-u-em-default; English (Use Default Presentation For Emoji Characters)
+en-u-em-emoji; English (Prefer Emoji Presentation For Emoji Characters)
+en-u-em-text; English (Prefer Text Presentation For Emoji Characters)
+en-u-fw-fri; English (First Day of Week Is Friday)
+en-u-fw-mon; English (First Day of Week Is Monday)
+en-u-fw-sat; English (First Day of Week Is Saturday)
+en-u-fw-sun; English (First Day of Week Is Sunday)
+en-u-fw-thu; English (First Day of Week Is Thursday)
+en-u-fw-tue; English (First Day of Week Is Tuesday)
+en-u-fw-wed; English (First Day of Week Is Wednesday)
+en-t-h0-hybrid; English
+en-u-hc-h11; English (12 Hour System [0–11])
+en-u-hc-h12; English (12 Hour System [1–12])
+en-u-hc-h23; English (24 Hour System [0–23])
+en-u-hc-h24; English (24 Hour System [1–24])
+en-t-i0-handwrit; English (Handwriting Input Method)
+en-t-i0-pinyin; English (Pinyin Input Method)
+en-t-i0-und; English (Unspecified Input Method)
+en-t-i0-wubi; English (Wubi Input Method)
+en-t-k0-101key; English (101-Key Keyboard)
+en-t-k0-102key; English (102-Key Keyboard)
+en-t-k0-600dpi; English (600 dpi Keyboard)
+en-t-k0-768dpi; English (768 dpi Keyboard)
+en-t-k0-android; English (Android Keyboard)
+en-t-k0-azerty; English (AZERTY-Based Keyboard)
+en-t-k0-chromeos; English (ChromeOS Keyboard)
+en-t-k0-colemak; English (Colemak Keyboard)
+en-t-k0-dvorak; English (Dvorak Keyboard)
+en-t-k0-dvorakl; English (Dvorak Left-Handed Keyboard)
+en-t-k0-dvorakr; English (Dvorak Right-Handed Keyboard)
+en-t-k0-el220; English (Greek 220 Keyboard)
+en-t-k0-el319; English (Greek 319 Keyboard)
+en-t-k0-extended; English (Keyboard With Many Extra Characters)
+en-t-k0-googlevk; English (Google Virtual Keyboard)
+en-t-k0-isiri; English (Persian ISIRI Keyboard)
+en-t-k0-legacy; English (Legacy Keyboard)
+en-t-k0-lt1205; English (Lithuanian LST 1205 Keyboard)
+en-t-k0-lt1582; English (Lithuanian LST 1582 Keyboard)
+en-t-k0-nutaaq; English (Inuktitut Nutaaq Keyboard)
+en-t-k0-osx; English (macOS Keyboard)
+en-t-k0-patta; English (Thai Pattachote Keyboard)
+en-t-k0-qwerty; English (QWERTY-Based Keyboard)
+en-t-k0-qwertz; English (QWERTZ-Based Keyboard)
+en-t-k0-ta99; English (Tamil 99 Keyboard)
+en-t-k0-und; English (Unspecified Keyboard)
+en-t-k0-var; English (Keyboard Variant)
+en-t-k0-viqr; English (Vietnamese VIQR Keyboard)
+en-t-k0-windows; English (Windows Keyboard)
+en-u-ka-noignore; English (Sort Symbols)
+en-u-ka-shifted; English (Sort Ignoring Symbols)
+en-u-kb-false; English (Sort Accents Normally)
+en-u-kb-true; English (Sort Accents Reversed)
+en-u-kc-false; English (Sort Case Insensitive)
+en-u-kc-true; English (Sort Case Sensitive)
+en-u-kf-false; English (Sort Normal Case Order)
+en-u-kf-lower; English (Sort Lowercase First)
+en-u-kf-upper; English (Sort Uppercase First)
+en-u-kk-false; English (Sort Without Normalization)
+en-u-kk-true; English (Sort Unicode Normalized)
+en-u-kn-false; English (Sort Digits Individually)
+en-u-kn-true; English (Sort Digits Numerically)
+en-u-kr-arab; English (Script/Block Reordering: Arabic)
+en-u-kr-digit-deva-latn; English (Script/Block Reordering: Digits, Devanagari, Latin)
+en-u-kr-currency; English (Currency)
+en-u-kr-digit; English (Digits)
+en-u-kr-punct; English (Punctuation)
+en-u-kr-space; English (Whitespace)
+en-u-kr-symbol; English (Symbol)
+en-u-ks-identic; English (Sort All)
+en-u-ks-level1; English (Sort Base Letters Only)
+en-u-ks-level2; English (Sort Accents)
+en-u-ks-level3; English (Sort Accents/Case/Width)
+en-u-ks-level4; English (Sort Accents/Case/Width/Kana)
+en-u-kv-currency; English (Ignore Symbols affects spaces, punctuation, all symbols)
+en-u-kv-punct; English (Ignore Symbols affects spaces and punctuation only)
+en-u-kv-space; English (Ignore Symbols affects spaces only)
+en-u-kv-symbol; English (Ignore Symbols affects spaces, punctuation, non-currency symbols)
+en-u-lb-loose; English (Loose Line Break Style)
+en-u-lb-normal; English (Normal Line Break Style)
+en-u-lb-strict; English (Strict Line Break Style)
+en-u-lw-breakall; English (Allow Line Breaks In All Words)
+en-u-lw-keepall; English (Prevent Line Breaks In All Words)
+en-u-lw-normal; English (Normal Line Breaks For Words)
+en-u-lw-phrase; English (Prevent Line Breaks In Phrases)
+en-t-m0-aethiopi; English (Encylopedia Aethiopica Transliteration)
+en-t-m0-alaloc; English (US ALA-LOC Transliteration)
+en-t-m0-betamets; English (Beta Maṣāḥǝft Transliteration)
+en-t-m0-bgn; English (US BGN Transliteration)
+en-t-m0-buckwalt; English (Buckwalter Arabic Transliteration)
+en-t-m0-c11; English (Hex transform using C11 syntax)
+en-t-m0-css; English (Hex transform using CSS syntax)
+en-t-m0-din; English (German DIN Transliteration)
+en-t-m0-es3842; English (Ethiopian Standards Agency ES 3842:2014 Ethiopic-Latin Transliteration)
+en-t-m0-ewts; English (Extended Wylie Transliteration Scheme)
+en-t-m0-gost; English (CIS GOST Transliteration)
+en-t-m0-gurage; English (Gurage Legacy to Modern Transliteration)
+en-t-m0-gutgarts; English (Yaros Gutgarts Ethiopic-Cyrillic Transliteration)
+en-t-m0-iast; English (International Alphabet of Sanskrit Transliteration)
+en-t-m0-iesjes; English (IES/JES Amharic Transliteration)
+en-t-m0-iso; English (ISO Transliteration)
+en-t-m0-java; English (Hex transform using Java syntax)
+en-t-m0-lambdin; English (Thomas Oden Lambdin Ethiopic-Latin Transliteration)
+en-t-m0-mcst; English (Korean MCST Transliteration)
+en-t-m0-mns; English (Mongolian National Standard Transliteration)
+en-t-m0-percent; English (Hex transform using percent syntax)
+en-t-m0-perl; English (Hex transform using Perl syntax)
+en-t-m0-plain; English (Hex transform with no surrounding syntax)
+en-t-m0-prprname; English (Personal name transliteration variant)
+en-t-m0-satts; English (Standard Arabic Technical Transliteration)
+en-t-m0-sera; English (System for Ethiopic Representation in ASCII)
+en-t-m0-tekieali; English (Tekie Alibekit Blin-Latin Transliteration)
+en-t-m0-ungegn; English (UN GEGN Transliteration)
+en-t-m0-unicode; English (Hex transform using Unicode syntax)
+en-t-m0-xaleget; English (Eritrean Ministry of Education Blin-Latin Transliteration)
+en-t-m0-xml; English (Hex transform using XML syntax)
+en-t-m0-xml10; English (Hex transform using XML decimal syntax)
+en-u-ms-metric; English (Metric System)
+en-u-ms-uksystem; English (Imperial Measurement System)
+en-u-ms-ussystem; English (US Measurement System)
+en-u-mu-celsius; English (Celsius)
+en-u-mu-fahrenhe; English (Fahrenheit)
+en-u-mu-kelvin; English (Kelvin)
+en-u-nu-adlm; English (Adlam Digits)
+en-u-nu-ahom; English (Ahom Digits)
+en-u-nu-arab; English (Arabic-Indic Digits)
+en-u-nu-arabext; English (Extended Arabic-Indic Digits)
+en-u-nu-armn; English (Armenian Numerals)
+en-u-nu-armnlow; English (Armenian Lowercase Numerals)
+en-u-nu-bali; English (Balinese Digits)
+en-u-nu-beng; English (Bangla Digits)
+en-u-nu-bhks; English (Bhaiksuki Digits)
+en-u-nu-brah; English (Brahmi Digits)
+en-u-nu-cakm; English (Chakma Digits)
+en-u-nu-cham; English (Cham Digits)
+en-u-nu-cyrl; English (Cyrillic Numerals)
+en-u-nu-deva; English (Devanagari Digits)
+en-u-nu-diak; English (Dives Akuru Digits)
+en-u-nu-ethi; English (Ethiopic Numerals)
+en-u-nu-finance; English (Financial Numerals)
+en-u-nu-fullwide; English (Full-Width Digits)
+en-u-nu-gara; English (Garay Digits)
+en-u-nu-geor; English (Georgian Numerals)
+en-u-nu-gong; English (Gunjala Gondi digits)
+en-u-nu-gonm; English (Masaram Gondi digits)
+en-u-nu-grek; English (Greek Numerals)
+en-u-nu-greklow; English (Greek Lowercase Numerals)
+en-u-nu-gujr; English (Gujarati Digits)
+en-u-nu-gukh; English (Gurung Khema Digits)
+en-u-nu-guru; English (Gurmukhi Digits)
+en-u-nu-hanidays; English (Chinese Calendar Day-of-Month Numerals)
+en-u-nu-hanidec; English (Chinese Decimal Numerals)
+en-u-nu-hans; English (Simplified Chinese Numerals)
+en-u-nu-hansfin; English (Simplified Chinese Financial Numerals)
+en-u-nu-hant; English (Traditional Chinese Numerals)
+en-u-nu-hantfin; English (Traditional Chinese Financial Numerals)
+en-u-nu-hebr; English (Hebrew Numerals)
+en-u-nu-hmng; English (Pahawh Hmong Digits)
+en-u-nu-hmnp; English (Nyiakeng Puachue Hmong Digits)
+en-u-nu-java; English (Javanese Digits)
+en-u-nu-jpan; English (Japanese Numerals)
+en-u-nu-jpanfin; English (Japanese Financial Numerals)
+en-u-nu-jpanyear; English (Japanese Calendar Gannen Year Numerals)
+en-u-nu-kali; English (Kayah Li Digits)
+en-u-nu-kawi; English (Kawi Digits)
+en-u-nu-khmr; English (Khmer Digits)
+en-u-nu-knda; English (Kannada Digits)
+en-u-nu-krai; English (Kirat Rai Digits)
+en-u-nu-lana; English (Tai Tham Hora Digits)
+en-u-nu-lanatham; English (Tai Tham Tham Digits)
+en-u-nu-laoo; English (Lao Digits)
+en-u-nu-latn; English (Western Digits)
+en-u-nu-lepc; English (Lepcha Digits)
+en-u-nu-limb; English (Limbu Digits)
+en-u-nu-mathbold; English (Mathematical Bold Digits)
+en-u-nu-mathdbl; English (Mathematical Double-Struck Digits)
+en-u-nu-mathmono; English (Mathematical Monospace Digits)
+en-u-nu-mathsanb; English (Mathematical Sans-Serif Bold Digits)
+en-u-nu-mathsans; English (Mathematical Sans-Serif Digits)
+en-u-nu-mlym; English (Malayalam Digits)
+en-u-nu-modi; English (Modi Digits)
+en-u-nu-mong; English (Mongolian Digits)
+en-u-nu-mroo; English (Mro Digits)
+en-u-nu-mtei; English (Meetei Mayek Digits)
+en-u-nu-mymr; English (Myanmar Digits)
+en-u-nu-mymrepka; English (Myanmar Eastern Pwo Karen Digits)
+en-u-nu-mymrpao; English (Myanmar Pao Digits)
+en-u-nu-mymrshan; English (Myanmar Shan Digits)
+en-u-nu-mymrtlng; English (Myanmar Tai Laing Digits)
+en-u-nu-nagm; English (Nag Mundari Digits)
+en-u-nu-native; English (Native Digits)
+en-u-nu-newa; English (Newa Digits)
+en-u-nu-nkoo; English (N’Ko Digits)
+en-u-nu-olck; English (Ol Chiki Digits)
+en-u-nu-onao; English (Ol Onal Digits)
+en-u-nu-orya; English (Odia Digits)
+en-u-nu-osma; English (Osmanya Digits)
+en-u-nu-outlined; English (Outlined Digits)
+en-u-nu-rohg; English (Hanifi Rohingya digits)
+en-u-nu-roman; English (Roman Numerals)
+en-u-nu-romanlow; English (Roman Lowercase Numerals)
+en-u-nu-saur; English (Saurashtra Digits)
+en-u-nu-segment; English (Segmented Digits)
+en-u-nu-shrd; English (Sharada Digits)
+en-u-nu-sind; English (Khudawadi Digits)
+en-u-nu-sinh; English (Sinhala Lith Digits)
+en-u-nu-sora; English (Sora Sompeng Digits)
+en-u-nu-sund; English (Sundanese Digits)
+en-u-nu-sunu; English (Sunuwar Digits)
+en-u-nu-takr; English (Takri Digits)
+en-u-nu-talu; English (New Tai Lue Digits)
+en-u-nu-taml; English (Traditional Tamil Numerals)
+en-u-nu-tamldec; English (Tamil Digits)
+en-u-nu-telu; English (Telugu Digits)
+en-u-nu-thai; English (Thai Digits)
+en-u-nu-tibt; English (Tibetan Digits)
+en-u-nu-tirh; English (Tirhuta Digits)
+en-u-nu-tnsa; English (Tangsa Digits)
+en-u-nu-traditio; English (Traditional Numerals)
+en-u-nu-vaii; English (Vai Digits)
+en-u-nu-wara; English (Warang Citi Digits)
+en-u-nu-wcho; English (Wancho Digits)
+en-u-rg-gbsct; English (Region For Supplemental Data: Scotland)
+en-u-rg-gbeng; English (Region For Supplemental Data: England)
+en-t-s0-accents; English (From Accented Characters To ASCII Sequence)
+en-t-s0-ascii; English (From ASCII)
+en-t-s0-hex; English (From Hexadecimal Codes)
+en-t-s0-morse; English (From Morse Code)
+en-t-s0-npinyin; English (From Pinyin With Numeric Tones)
+en-t-s0-publish; English (From Publishing Punctuation To ASCII)
+en-t-s0-zawgyi; English (From Zawgyi Myanmar Encoding)
+en-u-sd-gbsct; English (Region Subdivision: Scotland)
+en-u-sd-gbwls; English (Region Subdivision: Wales)
+en-u-ss-none; English (Sentence Breaks Without Abbreviation Handling)
+en-u-ss-standard; English (Suppress Sentence Breaks After Standard Abbreviations)
+en-t-t0-und; English (Unspecified Machine Translation)
+en-u-tz-uslax; English (Time Zone: Los Angeles Time)
+en-u-tz-gblon; English (Time Zone: United Kingdom Time)
+en-u-tz-chzrh; English (Time Zone: Switzerland Time)
+en-u-va-posix; English (POSIX Compliant Locale)
+en-t-x0-foobar2; English (Private-Use Transform: foobar2)
+
+
+@locale=af
+@languageDisplay=standard
+
+en-MM; Engels (Mianmar [Birma])
+es; Spaans
+es-419; Spaans (Latyns-Amerika)
+es-Cyrl-MX; Spaans (Cyrillies, Meksiko)
+hi-Latn; Hindi (Latyn)
+nl-BE; Nederlands (België)
+nl-Latn-BE; Nederlands (Latyn, België)
+zh-Hans-fonipa; Chinees (Vereenvoudig, FONIPA)
+
+
+@locale=af
+@languageDisplay=dialect
+
+en-MM; Engels (Mianmar [Birma])
+es; Spaans
+es-419; Spaans (Latyns-Amerika)
+es-Cyrl-MX; Spaans (Cyrillies, Meksiko)
+hi-Latn; Hindi (Latyn)
+nl-BE; Vlaams
+nl-Latn-BE; Vlaams (Latyn)
+zh-Hans-fonipa; Chinees (Vereenvoudig, FONIPA)
+
+
+@locale=am
+@languageDisplay=standard
+
+en-MM; እንግሊዝኛ (ማይናማር[በርማ])
+es; ስፓኒሽ
+es-419; ስፓኒሽ (ላቲን አሜሪካ)
+es-Cyrl-MX; ስፓኒሽ (ሲይሪልክ፣ ሜክሲኮ)
+hi-Latn; ሕንድኛ (ላቲን)
+nl-BE; ደች (ቤልጄም)
+nl-Latn-BE; ደች (ላቲን፣ ቤልጄም)
+zh-Hans-fonipa; ቻይንኛ (ቀለል ያለ፣ FONIPA)
+
+
+@locale=am
+@languageDisplay=dialect
+
+en-MM; እንግሊዝኛ (ማይናማር[በርማ])
+es; ስፓኒሽ
+es-419; የላቲን አሜሪካ ስፓኒሽ
+es-Cyrl-MX; የሜክሲኮ ስፓኒሽ (ሲይሪልክ)
+hi-Latn; ሕንድኛ [ላቲን]
+nl-BE; ፍሌሚሽ
+nl-Latn-BE; ፍሌሚሽ (ላቲን)
+zh-Hans-fonipa; ቀለል ያለ ቻይንኛ (FONIPA)
+
+
+@locale=ar
+@languageDisplay=standard
+
+en-MM; الإنجليزية (ميانمار [بورما])
+es; الإسبانية
+es-419; الإسبانية (أمريكا اللاتينية)
+es-Cyrl-MX; الإسبانية (السيريلية، المكسيك)
+hi-Latn; الهندية (اللاتينية)
+nl-BE; الهولندية (بلجيكا)
+nl-Latn-BE; الهولندية (اللاتينية، بلجيكا)
+zh-Hans-fonipa; الصينية (المبسطة، FONIPA)
+
+
+@locale=ar
+@languageDisplay=dialect
+
+en-MM; الإنجليزية (ميانمار [بورما])
+es; الإسبانية
+es-419; الإسبانية أمريكا اللاتينية
+es-Cyrl-MX; الإسبانية المكسيكية (السيريلية)
+hi-Latn; الهندية (اللاتينية)
+nl-BE; الهولندية (بلجيكا)
+nl-Latn-BE; الهولندية (اللاتينية، بلجيكا)
+zh-Hans-fonipa; الصينية المبسطة (FONIPA)
+
+
+@locale=as
+@languageDisplay=standard
+
+en-MM; ইংৰাজী (ম্যানমাৰ [বাৰ্মা])
+es; স্পেনিচ
+es-419; স্পেনিচ (লেটিন আমেৰিকা)
+es-Cyrl-MX; স্পেনিচ (চিৰিলিক, মেক্সিকো)
+hi-Latn; হিন্দী (লেটিন)
+nl-BE; ডাচ (বেলজিয়াম)
+nl-Latn-BE; ডাচ (লেটিন, বেলজিয়াম)
+zh-Hans-fonipa; চীনা (সৰলীকৃত, FONIPA)
+
+
+@locale=as
+@languageDisplay=dialect
+
+en-MM; ইংৰাজী (ম্যানমাৰ [বাৰ্মা])
+es; স্পেনিচ
+es-419; লেটিন আমেৰিকান স্পেনিচ
+es-Cyrl-MX; মেক্সিকান স্পেনিচ (চিৰিলিক)
+hi-Latn; হিন্দী (লেটিন)
+nl-BE; ফ্লেমিচ
+nl-Latn-BE; ফ্লেমিচ (লেটিন)
+zh-Hans-fonipa; সৰলীকৃত চীনা (FONIPA)
+
+
+@locale=az
+@languageDisplay=standard
+
+en-MM; ingilis (Myanma)
+es; ispan
+es-419; ispan (Latın Amerikası)
+es-Cyrl-MX; ispan (kiril, Meksika)
+hi-Latn; hind (latın)
+nl-BE; holland (Belçika)
+nl-Latn-BE; holland (latın, Belçika)
+zh-Hans-fonipa; çin (sadələşmiş, FONIPA)
+
+
+@locale=az
+@languageDisplay=dialect
+
+en-MM; ingilis (Myanma)
+es; ispan
+es-419; Latın Amerikası ispancası
+es-Cyrl-MX; Meksika ispancası (kiril)
+hi-Latn; Hindi [latın]
+nl-BE; flamand
+nl-Latn-BE; flamand (latın)
+zh-Hans-fonipa; sadələşmiş çin (FONIPA)
+
+
+@locale=az_Latn
+@languageDisplay=standard
+
+en-MM; ingilis (Myanma)
+es; ispan
+es-419; ispan (Latın Amerikası)
+es-Cyrl-MX; ispan (kiril, Meksika)
+hi-Latn; hind (latın)
+nl-BE; holland (Belçika)
+nl-Latn-BE; holland (latın, Belçika)
+zh-Hans-fonipa; çin (sadələşmiş, FONIPA)
+
+
+@locale=az_Latn
+@languageDisplay=dialect
+
+en-MM; ingilis (Myanma)
+es; ispan
+es-419; Latın Amerikası ispancası
+es-Cyrl-MX; Meksika ispancası (kiril)
+hi-Latn; Hindi [latın]
+nl-BE; flamand
+nl-Latn-BE; flamand (latın)
+zh-Hans-fonipa; sadələşmiş çin (FONIPA)
+
+
+@locale=be
+@languageDisplay=standard
+
+en-MM; англійская (М’янма [Бірма])
+es; іспанская
+es-419; іспанская (Лацінская Амерыка)
+es-Cyrl-MX; іспанская (кірыліца, Мексіка)
+hi-Latn; хіндзі (лацініца)
+nl-BE; нідэрландская (Бельгія)
+nl-Latn-BE; нідэрландская (лацініца, Бельгія)
+zh-Hans-fonipa; кітайская (спрошчанае кітайскае, FONIPA)
+
+
+@locale=be
+@languageDisplay=dialect
+
+en-MM; англійская (М’янма [Бірма])
+es; іспанская
+es-419; лацінаамерыканская іспанская
+es-Cyrl-MX; мексіканская іспанская (кірыліца)
+hi-Latn; хіндзі (лацініца)
+nl-BE; фламандская
+nl-Latn-BE; фламандская (лацініца)
+zh-Hans-fonipa; кітайская [спрошчаныя іерогліфы] (FONIPA)
+
+
+@locale=bg
+@languageDisplay=standard
+
+en-MM; английски (Мианмар [Бирма])
+es; испански
+es-419; испански (Латинска Америка)
+es-Cyrl-MX; испански (кирилица, Мексико)
+hi-Latn; хинди (латиница)
+nl-BE; нидерландски (Белгия)
+nl-Latn-BE; нидерландски (латиница, Белгия)
+zh-Hans-fonipa; китайски (опростена, Международна фонетична азбука)
+
+
+@locale=bg
+@languageDisplay=dialect
+
+en-MM; английски (Мианмар [Бирма])
+es; испански
+es-419; испански (Латинска Америка)
+es-Cyrl-MX; испански (кирилица, Мексико)
+hi-Latn; хинди (латиница)
+nl-BE; фламандски
+nl-Latn-BE; фламандски (латиница)
+zh-Hans-fonipa; китайски [опростен] (Международна фонетична азбука)
+
+
+@locale=bn
+@languageDisplay=standard
+
+en-MM; ইংরেজি (মায়ানমার [বার্মা])
+es; স্প্যানিশ
+es-419; স্প্যানিশ (লাতিন আমেরিকা)
+es-Cyrl-MX; স্প্যানিশ (সিরিলিক, মেক্সিকো)
+hi-Latn; হিন্দি (ল্যাটিন)
+nl-BE; ওলন্দাজ (বেলজিয়াম)
+nl-Latn-BE; ওলন্দাজ (ল্যাটিন, বেলজিয়াম)
+zh-Hans-fonipa; চীনা (সরলীকৃত, FONIPA)
+
+
+@locale=bn
+@languageDisplay=dialect
+
+en-MM; ইংরেজি (মায়ানমার [বার্মা])
+es; স্প্যানিশ
+es-419; স্প্যানিশ (লাতিন আমেরিকা)
+es-Cyrl-MX; স্প্যানিশ (সিরিলিক, মেক্সিকো)
+hi-Latn; হিন্দি (ল্যাটিন)
+nl-BE; ফ্লেমিশ
+nl-Latn-BE; ফ্লেমিশ (ল্যাটিন)
+zh-Hans-fonipa; চীনা (সরলীকৃত, FONIPA)
+
+
+@locale=bs
+@languageDisplay=standard
+
+en-MM; engleski (Mijanmar)
+es; španski
+es-419; španski (Latinska Amerika)
+es-Cyrl-MX; španski (ćirilica, Meksiko)
+hi-Latn; hindi (latinica)
+nl-BE; nizozemski (Belgija)
+nl-Latn-BE; nizozemski (latinica, Belgija)
+zh-Hans-fonipa; kineski (pojednostavljeno, IPA fonetika)
+
+
+@locale=bs
+@languageDisplay=dialect
+
+en-MM; engleski (Mijanmar)
+es; španski
+es-419; španski (Latinska Amerika)
+es-Cyrl-MX; španski (ćirilica, Meksiko)
+hi-Latn; hindi (latinica)
+nl-BE; flamanski
+nl-Latn-BE; flamanski (latinica)
+zh-Hans-fonipa; kineski [pojednostavljeni] (IPA fonetika)
+
+
+@locale=bs_Latn
+@languageDisplay=standard
+
+en-MM; engleski (Mijanmar)
+es; španski
+es-419; španski (Latinska Amerika)
+es-Cyrl-MX; španski (ćirilica, Meksiko)
+hi-Latn; hindi (latinica)
+nl-BE; nizozemski (Belgija)
+nl-Latn-BE; nizozemski (latinica, Belgija)
+zh-Hans-fonipa; kineski (pojednostavljeno, IPA fonetika)
+
+
+@locale=bs_Latn
+@languageDisplay=dialect
+
+en-MM; engleski (Mijanmar)
+es; španski
+es-419; španski (Latinska Amerika)
+es-Cyrl-MX; španski (ćirilica, Meksiko)
+hi-Latn; hindi (latinica)
+nl-BE; flamanski
+nl-Latn-BE; flamanski (latinica)
+zh-Hans-fonipa; kineski [pojednostavljeni] (IPA fonetika)
+
+
+@locale=ca
+@languageDisplay=standard
+
+en-MM; anglès (Myanmar [Birmània])
+es; espanyol
+es-419; espanyol (Amèrica Llatina)
+es-Cyrl-MX; espanyol (ciríl·lic, Mèxic)
+hi-Latn; hindi (llatí)
+nl-BE; neerlandès (Bèlgica)
+nl-Latn-BE; neerlandès (llatí, Bèlgica)
+zh-Hans-fonipa; xinès (simplificat, alfabet fonètic internacional)
+
+
+@locale=ca
+@languageDisplay=dialect
+
+en-MM; anglès (Myanmar [Birmània])
+es; espanyol
+es-419; espanyol llatinoamericà
+es-Cyrl-MX; espanyol de Mèxic (ciríl·lic)
+hi-Latn; hindi (llatí)
+nl-BE; flamenc
+nl-Latn-BE; flamenc (llatí)
+zh-Hans-fonipa; xinès simplificat (alfabet fonètic internacional)
+
+
+@locale=chr
+@languageDisplay=standard
+
+en-MM; ᎩᎵᏏ (ᎹᏯᎹᎵ [ᏇᎵᎹ])
+es; ᏍᏆᏂ
+es-419; ᏍᏆᏂ (ᎳᏘᏂ ᎠᎹᏰᏟ)
+es-Cyrl-MX; ᏍᏆᏂ (ᏲᏂᎢ ᏗᎪᏪᎵ, ᎠᏂᏍᏆᏂ)
+hi-Latn; ᎯᏂᏗ (ᎳᏘᏂ)
+nl-BE; ᏛᏥ (ᏇᎵᏥᎥᎻ)
+nl-Latn-BE; ᏛᏥ (ᎳᏘᏂ, ᏇᎵᏥᎥᎻ)
+zh-Hans-fonipa; ᏓᎶᏂᎨ (ᎠᎯᏗᎨ, FONIPA)
+
+
+@locale=chr
+@languageDisplay=dialect
+
+en-MM; ᎩᎵᏏ (ᎹᏯᎹᎵ [ᏇᎵᎹ])
+es; ᏍᏆᏂ
+es-419; ᏔᏘᏂ ᎠᎹᏰᏟ ᏍᏆᏂ
+es-Cyrl-MX; ᏍᏆᏂᏱ ᏍᏆᏂ (ᏲᏂᎢ ᏗᎪᏪᎵ)
+hi-Latn; ᎯᏂᏗ (ᎳᏘᏂ)
+nl-BE; ᏊᎵᏥᎥᎻ ᏛᏥ
+nl-Latn-BE; ᏊᎵᏥᎥᎻ ᏛᏥ (ᎳᏘᏂ)
+zh-Hans-fonipa; ᎠᎯᏗᎨ ᏓᎶᏂᎨ (FONIPA)
+
+
+@locale=cs
+@languageDisplay=standard
+
+en-MM; angličtina (Myanmar [Barma])
+es; španělština
+es-419; španělština (Latinská Amerika)
+es-Cyrl-MX; španělština (cyrilice, Mexiko)
+hi-Latn; hindština (latinka)
+nl-BE; nizozemština (Belgie)
+nl-Latn-BE; nizozemština (latinka, Belgie)
+zh-Hans-fonipa; čínština (zjednodušené, FONIPA)
+
+
+@locale=cs
+@languageDisplay=dialect
+
+en-MM; angličtina (Myanmar [Barma])
+es; španělština
+es-419; španělština (Latinská Amerika)
+es-Cyrl-MX; španělština (cyrilice, Mexiko)
+hi-Latn; hindština (latinka)
+nl-BE; vlámština
+nl-Latn-BE; vlámština (latinka)
+zh-Hans-fonipa; čínština [zjednodušená] (FONIPA)
+
+
+@locale=cy
+@languageDisplay=standard
+
+en-MM; Saesneg (Myanmar [Burma])
+es; Sbaeneg
+es-419; Sbaeneg (America Ladin)
+es-Cyrl-MX; Sbaeneg (Cyrilig, Mecsico)
+hi-Latn; Hindi (Lladin)
+nl-BE; Iseldireg (Gwlad Belg)
+nl-Latn-BE; Iseldireg (Lladin, Gwlad Belg)
+zh-Hans-fonipa; Tsieinëeg (Symledig, Seineg IPA)
+
+
+@locale=cy
+@languageDisplay=dialect
+
+en-MM; Saesneg (Myanmar [Burma])
+es; Sbaeneg
+es-419; Sbaeneg America Ladin
+es-Cyrl-MX; Sbaeneg Mecsico (Cyrilig)
+hi-Latn; Hindi (Lladin)
+nl-BE; Fflemeg
+nl-Latn-BE; Fflemeg (Lladin)
+zh-Hans-fonipa; Tsieinëeg Symledig (Seineg IPA)
+
+
+@locale=da
+@languageDisplay=standard
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; spansk (Latinamerika)
+es-Cyrl-MX; spansk (kyrillisk, Mexico)
+hi-Latn; hindi (latinsk)
+nl-BE; nederlandsk (Belgien)
+nl-Latn-BE; nederlandsk (latinsk, Belgien)
+zh-Hans-fonipa; kinesisk (forenklet, det internationale fonetiske alfabet)
+
+
+@locale=da
+@languageDisplay=dialect
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; latinamerikansk spansk
+es-Cyrl-MX; mexicansk spansk (kyrillisk)
+hi-Latn; hindi (latinsk)
+nl-BE; flamsk
+nl-Latn-BE; flamsk (latinsk)
+zh-Hans-fonipa; forenklet kinesisk (det internationale fonetiske alfabet)
+
+
+@locale=de
+@languageDisplay=standard
+
+en-MM; Englisch (Myanmar)
+es; Spanisch
+es-419; Spanisch (Lateinamerika)
+es-Cyrl-MX; Spanisch (Kyrillisch, Mexiko)
+hi-Latn; Hindi (Lateinisch)
+nl-BE; Niederländisch (Belgien)
+nl-Latn-BE; Niederländisch (Lateinisch, Belgien)
+zh-Hans-fonipa; Chinesisch (Vereinfacht, IPA Phonetisch)
+
+
+@locale=de
+@languageDisplay=dialect
+
+en-MM; Englisch (Myanmar)
+es; Spanisch
+es-419; Spanisch (Lateinamerika)
+es-Cyrl-MX; Spanisch (Kyrillisch, Mexiko)
+hi-Latn; Hindi [lateinisch]
+nl-BE; Flämisch
+nl-Latn-BE; Flämisch (Lateinisch)
+zh-Hans-fonipa; Chinesisch [vereinfacht] (IPA Phonetisch)
+
+
+@locale=dsb
+@languageDisplay=standard
+
+en-MM; engelšćina (Myanmar)
+es; špańšćina
+es-419; špańšćina (Łatyńska Amerika)
+es-Cyrl-MX; špańšćina (kyriliski, Mexiko)
+hi-Latn; hindišćina (łatyński)
+nl-BE; nižozemšćina (Belgiska)
+nl-Latn-BE; nižozemšćina (łatyński, Belgiska)
+zh-Hans-fonipa; chinšćina (zjadnorjone, FONIPA)
+
+
+@locale=dsb
+@languageDisplay=dialect
+
+en-MM; engelšćina (Myanmar)
+es; špańšćina
+es-419; łatyńskoamerikańska špańšćina
+es-Cyrl-MX; mexikańska špańšćina (kyriliski)
+hi-Latn; hindišćina (łatyński)
+nl-BE; flamšćina
+nl-Latn-BE; flamšćina (łatyński)
+zh-Hans-fonipa; chinšćina [zjadnorjona] (FONIPA)
+
+
+@locale=el
+@languageDisplay=standard
+
+en-MM; Αγγλικά (Μιανμάρ [Βιρμανία])
+es; Ισπανικά
+es-419; Ισπανικά (Λατινική Αμερική)
+es-Cyrl-MX; Ισπανικά (Κυριλλικό, Μεξικό)
+hi-Latn; Χίντι (Λατινικό)
+nl-BE; Ολλανδικά (Βέλγιο)
+nl-Latn-BE; Ολλανδικά (Λατινικό, Βέλγιο)
+zh-Hans-fonipa; Κινεζικά (Απλοποιημένο, Διεθνής φωνητική αλφάβητος)
+
+
+@locale=el
+@languageDisplay=dialect
+
+en-MM; Αγγλικά (Μιανμάρ [Βιρμανία])
+es; Ισπανικά
+es-419; Ισπανικά Λατινικής Αμερικής
+es-Cyrl-MX; Ισπανικά Μεξικού (Κυριλλικό)
+hi-Latn; Χίντι (Λατινικό)
+nl-BE; Φλαμανδικά
+nl-Latn-BE; Φλαμανδικά (Λατινικό)
+zh-Hans-fonipa; Απλοποιημένα Κινεζικά (Διεθνής φωνητική αλφάβητος)
+
+
+@locale=en
+@languageDisplay=standard
+
+en-MM; English (Myanmar [Burma])
+es; Spanish
+es-419; Spanish (Latin America)
+es-Cyrl-MX; Spanish (Cyrillic, Mexico)
+hi-Latn; Hindi (Latin)
+nl-BE; Dutch (Belgium)
+nl-Latn-BE; Dutch (Latin, Belgium)
+zh-Hans-fonipa; Chinese (Simplified, IPA Phonetics)
+
+
+@locale=en
+@languageDisplay=dialect
+
+en-MM; English (Myanmar [Burma])
+es; Spanish
+es-419; Latin American Spanish
+es-Cyrl-MX; Mexican Spanish (Cyrillic)
+hi-Latn; Hindi [Latin]
+nl-BE; Flemish
+nl-Latn-BE; Flemish (Latin)
+zh-Hans-fonipa; Simplified Chinese (IPA Phonetics)
+
+
+@locale=es
+@languageDisplay=standard
+
+en-MM; inglés (Myanmar [Birmania])
+es; español
+es-419; español (Latinoamérica)
+es-Cyrl-MX; español (cirílico, México)
+hi-Latn; hindi (latino)
+nl-BE; neerlandés (Bélgica)
+nl-Latn-BE; neerlandés (latino, Bélgica)
+zh-Hans-fonipa; chino (simplificado, Alfabeto fonético internacional IPA)
+
+
+@locale=es
+@languageDisplay=dialect
+
+en-MM; inglés (Myanmar [Birmania])
+es; español
+es-419; español latinoamericano
+es-Cyrl-MX; español de México (cirílico)
+hi-Latn; hindi (latino)
+nl-BE; flamenco
+nl-Latn-BE; flamenco (latino)
+zh-Hans-fonipa; chino simplificado (Alfabeto fonético internacional IPA)
+
+
+@locale=et
+@languageDisplay=standard
+
+en-MM; inglise (Myanmar [Birma])
+es; hispaania
+es-419; hispaania (Ladina-Ameerika)
+es-Cyrl-MX; hispaania (kirillitsa, Mehhiko)
+hi-Latn; hindi (ladina)
+nl-BE; hollandi (Belgia)
+nl-Latn-BE; hollandi (ladina, Belgia)
+zh-Hans-fonipa; hiina (lihtsustatud, IPA foneetika)
+
+
+@locale=et
+@languageDisplay=dialect
+
+en-MM; inglise (Myanmar [Birma])
+es; hispaania
+es-419; Ladina-Ameerika hispaania
+es-Cyrl-MX; Mehhiko hispaania (kirillitsa)
+hi-Latn; hindi (ladina)
+nl-BE; flaami
+nl-Latn-BE; flaami (ladina)
+zh-Hans-fonipa; lihtsustatud hiina (IPA foneetika)
+
+
+@locale=eu
+@languageDisplay=standard
+
+en-MM; ingelesa (Myanmar [Birmania])
+es; gaztelania
+es-419; gaztelania (Latinoamerika)
+es-Cyrl-MX; gaztelania (zirilikoa, Mexiko)
+hi-Latn; hindia (latinoa)
+nl-BE; nederlandera (Belgika)
+nl-Latn-BE; nederlandera (latinoa, Belgika)
+zh-Hans-fonipa; txinera (sinplifikatua, IPA ahoskera)
+
+
+@locale=eu
+@languageDisplay=dialect
+
+en-MM; ingelesa (Myanmar [Birmania])
+es; gaztelania
+es-419; Latinoamerikako gaztelania
+es-Cyrl-MX; Mexikoko gaztelania (zirilikoa)
+hi-Latn; hindia [latindarra]
+nl-BE; flandriera
+nl-Latn-BE; flandriera (latinoa)
+zh-Hans-fonipa; txinera sinplifikatua (IPA ahoskera)
+
+
+@locale=fa
+@languageDisplay=standard
+
+en-MM; انگلیسی (میانمار [برمه])
+es; اسپانیایی
+es-419; اسپانیایی (امریکای لاتین)
+es-Cyrl-MX; اسپانیایی (سیریلی، مکزیک)
+hi-Latn; هندی (لاتین)
+nl-BE; هلندی (بلژیک)
+nl-Latn-BE; هلندی (لاتین، بلژیک)
+zh-Hans-fonipa; چینی (ساده‌شده، فونتیک IPA)
+
+
+@locale=fa
+@languageDisplay=dialect
+
+en-MM; انگلیسی (میانمار [برمه])
+es; اسپانیایی
+es-419; اسپانیایی امریکای لاتین
+es-Cyrl-MX; اسپانیایی مکزیک (سیریلی)
+hi-Latn; هندی (لاتین)
+nl-BE; فلمنگی
+nl-Latn-BE; فلمنگی (لاتین)
+zh-Hans-fonipa; چینی ساده‌شده (فونتیک IPA)
+
+
+@locale=fi
+@languageDisplay=standard
+
+en-MM; englanti (Myanmar [Burma])
+es; espanja
+es-419; espanja (Latinalainen Amerikka)
+es-Cyrl-MX; espanja (kyrillinen, Meksiko)
+hi-Latn; hindi (latinalainen)
+nl-BE; hollanti (Belgia)
+nl-Latn-BE; hollanti (latinalainen, Belgia)
+zh-Hans-fonipa; kiina (yksinkertaistettu, kansainvälinen foneettinen aakkosto IPA)
+
+
+@locale=fi
+@languageDisplay=dialect
+
+en-MM; englanti (Myanmar [Burma])
+es; espanja
+es-419; amerikanespanja
+es-Cyrl-MX; meksikonespanja (kyrillinen)
+hi-Latn; hindi (latinalainen)
+nl-BE; flaami
+nl-Latn-BE; flaami (latinalainen)
+zh-Hans-fonipa; kiina (yksinkertaistettu, kansainvälinen foneettinen aakkosto IPA)
+
+
+@locale=fil
+@languageDisplay=standard
+
+en-MM; Ingles (Myanmar [Burma])
+es; Spanish
+es-419; Spanish (Latin America)
+es-Cyrl-MX; Spanish (Cyrillic, Mexico)
+hi-Latn; Hindi (Latin)
+nl-BE; Dutch (Belgium)
+nl-Latn-BE; Dutch (Latin, Belgium)
+zh-Hans-fonipa; Chinese (Pinasimple, FONIPA)
+
+
+@locale=fil
+@languageDisplay=dialect
+
+en-MM; Ingles (Myanmar [Burma])
+es; Spanish
+es-419; Latin American na Espanyol
+es-Cyrl-MX; Mexican na Espanyol (Cyrillic)
+hi-Latn; Hindi (Latin)
+nl-BE; Flemish
+nl-Latn-BE; Flemish (Latin)
+zh-Hans-fonipa; Pinasimpleng Chinese (FONIPA)
+
+
+@locale=fr
+@languageDisplay=standard
+
+en-MM; anglais (Myanmar [Birmanie])
+es; espagnol
+es-419; espagnol (Amérique latine)
+es-Cyrl-MX; espagnol (cyrillique, Mexique)
+hi-Latn; hindi (latin)
+nl-BE; néerlandais (Belgique)
+nl-Latn-BE; néerlandais (latin, Belgique)
+zh-Hans-fonipa; chinois (simplifié, alphabet phonétique international)
+
+
+@locale=fr
+@languageDisplay=dialect
+
+en-MM; anglais (Myanmar [Birmanie])
+es; espagnol
+es-419; espagnol d’Amérique latine
+es-Cyrl-MX; espagnol du Mexique (cyrillique)
+hi-Latn; hindi (latin)
+nl-BE; flamand
+nl-Latn-BE; flamand (latin)
+zh-Hans-fonipa; chinois simplifié (alphabet phonétique international)
+
+
+@locale=ga
+@languageDisplay=standard
+
+en-MM; Béarla (Maenmar [Burma])
+es; Spáinnis
+es-419; Spáinnis (Meiriceá Laidineach)
+es-Cyrl-MX; Spáinnis (Coireallach, Meicsiceo)
+hi-Latn; Hiondúis (Laidineach)
+nl-BE; Ollainnis (an Bheilg)
+nl-Latn-BE; Ollainnis (Laidineach, an Bheilg)
+zh-Hans-fonipa; Sínis (Simplithe, Fogharscríobh IPA)
+
+
+@locale=ga
+@languageDisplay=dialect
+
+en-MM; Béarla (Maenmar [Burma])
+es; Spáinnis
+es-419; Spáinnis Mheiriceá Laidinigh
+es-Cyrl-MX; Spáinnis Mheicsiceach (Coireallach)
+hi-Latn; Hiondúis (Laidineach)
+nl-BE; Pléimeannais
+nl-Latn-BE; Pléimeannais (Laidineach)
+zh-Hans-fonipa; Sínis Shimplithe (Fogharscríobh IPA)
+
+
+@locale=gd
+@languageDisplay=standard
+
+en-MM; Beurla (Miànmar)
+es; Spàinntis
+es-419; Spàinntis (Aimeireaga Laidinneach)
+es-Cyrl-MX; Spàinntis (Cirilis, Meagsago)
+hi-Latn; Hindis (Laideann)
+nl-BE; Duitsis (A’ Bheilg)
+nl-Latn-BE; Duitsis (Laideann, A’ Bheilg)
+zh-Hans-fonipa; Sìnis (Simplichte, Comharran fuaim-eòlais an IPA)
+
+
+@locale=gd
+@languageDisplay=dialect
+
+en-MM; Beurla (Miànmar)
+es; Spàinntis
+es-419; Spàinntis na h-Aimeireaga Laidinneach
+es-Cyrl-MX; Spàinntis Mheagsagach (Cirilis)
+hi-Latn; Hindis (Laideann)
+nl-BE; Flànrais
+nl-Latn-BE; Flànrais (Laideann)
+zh-Hans-fonipa; Sìnis Shimplichte (Comharran fuaim-eòlais an IPA)
+
+
+@locale=gl
+@languageDisplay=standard
+
+en-MM; inglés (Myanmar [Birmania])
+es; español
+es-419; español (América Latina)
+es-Cyrl-MX; español (cirílico, México)
+hi-Latn; hindi (latino)
+nl-BE; neerlandés (Bélxica)
+nl-Latn-BE; neerlandés (latino, Bélxica)
+zh-Hans-fonipa; chinés (simplificado, FONIPA)
+
+
+@locale=gl
+@languageDisplay=dialect
+
+en-MM; inglés (Myanmar [Birmania])
+es; español
+es-419; español de América
+es-Cyrl-MX; español de México (cirílico)
+hi-Latn; hindi [alfabeto latino]
+nl-BE; flamengo
+nl-Latn-BE; flamengo (latino)
+zh-Hans-fonipa; chinés simplificado (FONIPA)
+
+
+@locale=gu
+@languageDisplay=standard
+
+en-MM; અંગ્રેજી (મ્યાંમાર [બર્મા])
+es; સ્પેનિશ
+es-419; સ્પેનિશ (લેટિન અમેરિકા)
+es-Cyrl-MX; સ્પેનિશ (સિરિલિક, મેક્સિકો)
+hi-Latn; હિન્દી (લેટિન)
+nl-BE; ડચ (બેલ્જીયમ)
+nl-Latn-BE; ડચ (લેટિન, બેલ્જીયમ)
+zh-Hans-fonipa; ચાઇનીઝ (સરળીકૃત, FONIPA)
+
+
+@locale=gu
+@languageDisplay=dialect
+
+en-MM; અંગ્રેજી (મ્યાંમાર [બર્મા])
+es; સ્પેનિશ
+es-419; લેટિન અમેરિકન સ્પેનિશ
+es-Cyrl-MX; મેક્સિકન સ્પેનિશ (સિરિલિક)
+hi-Latn; હિન્દી (લેટિન)
+nl-BE; ફ્લેમિશ
+nl-Latn-BE; ફ્લેમિશ (લેટિન)
+zh-Hans-fonipa; સરળીકૃત ચાઇનીઝ (FONIPA)
+
+
+@locale=ha
+@languageDisplay=standard
+
+en-MM; Turanci (Burma, Miyamar)
+es; Sifaniyanci
+es-419; Sifaniyanci (Latin Amurka)
+es-Cyrl-MX; Sifaniyanci (Cyrillic, Mesiko)
+hi-Latn; Harshen Hindi (Latin)
+nl-BE; Holanci (Belgiyom)
+nl-Latn-BE; Holanci (Latin, Belgiyom)
+zh-Hans-fonipa; Harshen Sinanci (Sauƙaƙaƙƙe, FONIPA)
+
+
+@locale=ha
+@languageDisplay=dialect
+
+en-MM; Turanci (Burma, Miyamar)
+es; Sifaniyanci
+es-419; Sifaniyancin Latin Amirka
+es-Cyrl-MX; Sifaniyanci Mesiko (Cyrillic)
+hi-Latn; Harshen Hindi (Latin)
+nl-BE; Holanci (Belgiyom)
+nl-Latn-BE; Holanci (Latin, Belgiyom)
+zh-Hans-fonipa; Sauƙaƙaƙƙen Sinanci (FONIPA)
+
+
+@locale=he
+@languageDisplay=standard
+
+en-MM; אנגלית (מיאנמר [בורמה])
+es; ספרדית
+es-419; ספרדית (אמריקה הלטינית)
+es-Cyrl-MX; ספרדית (קירילי, מקסיקו)
+hi-Latn; הינדי (לטיני)
+nl-BE; הולנדית (בלגיה)
+nl-Latn-BE; הולנדית (לטיני, בלגיה)
+zh-Hans-fonipa; סינית (פשוט, אלפבית פונטי בינלאומי)
+
+
+@locale=he
+@languageDisplay=dialect
+
+en-MM; אנגלית (מיאנמר [בורמה])
+es; ספרדית
+es-419; ספרדית (אמריקה הלטינית)
+es-Cyrl-MX; ספרדית (קירילי, מקסיקו)
+hi-Latn; הינדי (לטיני)
+nl-BE; הולנדית [פלמית]
+nl-Latn-BE; הולנדית [פלמית] (לטיני)
+zh-Hans-fonipa; סינית פשוטה (אלפבית פונטי בינלאומי)
+
+
+@locale=hi
+@languageDisplay=standard
+
+en-MM; अंग्रेज़ी (म्यांमार [बर्मा])
+es; स्पेनिश
+es-419; स्पेनिश (लैटिन अमेरिका)
+es-Cyrl-MX; स्पेनिश (सिरिलिक, मैक्सिको)
+hi-Latn; हिन्दी (लैटिन)
+nl-BE; डच (बेल्जियम)
+nl-Latn-BE; डच (लैटिन, बेल्जियम)
+zh-Hans-fonipa; चीनी (सरलीकृत, FONIPA)
+
+
+@locale=hi
+@languageDisplay=dialect
+
+en-MM; अंग्रेज़ी (म्यांमार [बर्मा])
+es; स्पेनिश
+es-419; लैटिन अमेरिकी स्पेनिश
+es-Cyrl-MX; मैक्सिकन स्पेनिश (सिरिलिक)
+hi-Latn; हिन्दी (लैटिन)
+nl-BE; फ़्लेमिश
+nl-Latn-BE; फ़्लेमिश (लैटिन)
+zh-Hans-fonipa; सरलीकृत चीनी (FONIPA)
+
+
+@locale=hi_Latn
+@languageDisplay=standard
+
+en-MM; English (Myanmar [Burma])
+es; Spanish
+es-419; Spanish (Latin America)
+es-Cyrl-MX; Spanish (Cyrillic, Mexico)
+hi-Latn; Hindi (Latin)
+nl-BE; Dutch (Belgium)
+nl-Latn-BE; Dutch (Latin, Belgium)
+zh-Hans-fonipa; Chinese (Simplified, IPA Phonetics)
+
+
+@locale=hi_Latn
+@languageDisplay=dialect
+
+en-MM; English (Myanmar [Burma])
+es; Spanish
+es-419; Latin American Spanish
+es-Cyrl-MX; Mexican Spanish (Cyrillic)
+hi-Latn; Hindi [Latin]
+nl-BE; Flemish
+nl-Latn-BE; Flemish (Latin)
+zh-Hans-fonipa; Simplified Chinese (IPA Phonetics)
+
+
+@locale=hr
+@languageDisplay=standard
+
+en-MM; engleski (Mjanmar [Burma])
+es; španjolski
+es-419; španjolski (Latinska Amerika)
+es-Cyrl-MX; španjolski (ćirilica, Meksiko)
+hi-Latn; hindski (latinica)
+nl-BE; nizozemski (Belgija)
+nl-Latn-BE; nizozemski (latinica, Belgija)
+zh-Hans-fonipa; kineski (pojednostavljeno pismo, IPA fonetika)
+
+
+@locale=hr
+@languageDisplay=dialect
+
+en-MM; engleski (Mjanmar [Burma])
+es; španjolski
+es-419; latinoamerički španjolski
+es-Cyrl-MX; meksički španjolski (ćirilica)
+hi-Latn; hindski (latinica)
+nl-BE; flamanski
+nl-Latn-BE; flamanski (latinica)
+zh-Hans-fonipa; kineski [pojednostavljeni] (IPA fonetika)
+
+
+@locale=hsb
+@languageDisplay=standard
+
+en-MM; jendźelšćina (Myanmar)
+es; španišćina
+es-419; španišćina (Łaćonska Amerika)
+es-Cyrl-MX; španišćina (kyrilisce, Mexiko)
+hi-Latn; hindišćina (łaćonsce)
+nl-BE; nižozemšćina (Belgiska)
+nl-Latn-BE; nižozemšćina (łaćonsce, Belgiska)
+zh-Hans-fonipa; chinšćina (zjednorjene, FONIPA)
+
+
+@locale=hsb
+@languageDisplay=dialect
+
+en-MM; jendźelšćina (Myanmar)
+es; španišćina
+es-419; łaćonskoameriska španišćina
+es-Cyrl-MX; mexiska španišćina (kyrilisce)
+hi-Latn; hindišćina (łaćonsce)
+nl-BE; flamšćina
+nl-Latn-BE; flamšćina (łaćonsce)
+zh-Hans-fonipa; chinšćina [zjednorjena] (FONIPA)
+
+
+@locale=hu
+@languageDisplay=standard
+
+en-MM; angol (Mianmar)
+es; spanyol
+es-419; spanyol (Latin-Amerika)
+es-Cyrl-MX; spanyol (Cirill, Mexikó)
+hi-Latn; hindi (Latin)
+nl-BE; holland (Belgium)
+nl-Latn-BE; holland (Latin, Belgium)
+zh-Hans-fonipa; kínai (Egyszerűsített, IPA fonetika)
+
+
+@locale=hu
+@languageDisplay=dialect
+
+en-MM; angol (Mianmar)
+es; spanyol
+es-419; latin-amerikai spanyol
+es-Cyrl-MX; spanyol [mexikói] (Cirill)
+hi-Latn; hindi [latin]
+nl-BE; flamand
+nl-Latn-BE; flamand (Latin)
+zh-Hans-fonipa; egyszerűsített kínai (IPA fonetika)
+
+
+@locale=hy
+@languageDisplay=standard
+
+en-MM; անգլերեն (Մյանմա [Բիրմա])
+es; իսպաներեն
+es-419; իսպաներեն (Լատինական Ամերիկա)
+es-Cyrl-MX; իսպաներեն (կյուրեղագիր, Մեքսիկա)
+hi-Latn; հինդի (լատինական)
+nl-BE; հոլանդերեն (Բելգիա)
+nl-Latn-BE; հոլանդերեն (լատինական, Բելգիա)
+zh-Hans-fonipa; չինարեն (պարզեցված, FONIPA)
+
+
+@locale=hy
+@languageDisplay=dialect
+
+en-MM; անգլերեն (Մյանմա [Բիրմա])
+es; իսպաներեն
+es-419; լատինամերիկյան իսպաներեն
+es-Cyrl-MX; մեքսիկական իսպաներեն (կյուրեղագիր)
+hi-Latn; հինդի [լատինատառ]
+nl-BE; ֆլամանդերեն
+nl-Latn-BE; ֆլամանդերեն (լատինական)
+zh-Hans-fonipa; պարզեցված չինարեն (FONIPA)
+
+
+@locale=id
+@languageDisplay=standard
+
+en-MM; Inggris (Myanmar [Burma])
+es; Spanyol
+es-419; Spanyol (Amerika Latin)
+es-Cyrl-MX; Spanyol (Sirilik, Meksiko)
+hi-Latn; Hindi (Latin)
+nl-BE; Belanda (Belgia)
+nl-Latn-BE; Belanda (Latin, Belgia)
+zh-Hans-fonipa; Tionghoa (Sederhana, Fonetik IPA)
+
+
+@locale=id
+@languageDisplay=dialect
+
+en-MM; Inggris (Myanmar [Burma])
+es; Spanyol
+es-419; Spanyol (Amerika Latin)
+es-Cyrl-MX; Spanyol (Sirilik, Meksiko)
+hi-Latn; Hindi (Latin)
+nl-BE; Belanda (Belgia)
+nl-Latn-BE; Belanda (Latin, Belgia)
+zh-Hans-fonipa; Tionghoa (Sederhana, Fonetik IPA)
+
+
+@locale=ig
+@languageDisplay=standard
+
+en-MM; Bekee (Myanmar [Burma])
+es; Spanish
+es-419; Spanish (Latin America)
+es-Cyrl-MX; Spanish (Cyrillic, Mexico)
+hi-Latn; Hindi (Latin)
+nl-BE; Dutch (Belgium)
+nl-Latn-BE; Dutch (Latin, Belgium)
+zh-Hans-fonipa; Chaịniiz (Nke dị mfe, FONIPA)
+
+
+@locale=ig
+@languageDisplay=dialect
+
+en-MM; Bekee (Myanmar [Burma])
+es; Spanish
+es-419; Spanish ndị Latin America
+es-Cyrl-MX; Spanish ndị Mexico (Cyrillic)
+hi-Latn; Hindi (Latin)
+nl-BE; Flemish
+nl-Latn-BE; Flemish (Latin)
+zh-Hans-fonipa; Asụsụ Chaịniiz dị mfe (FONIPA)
+
+
+@locale=is
+@languageDisplay=standard
+
+en-MM; enska (Mjanmar [Búrma])
+es; spænska
+es-419; spænska (Rómanska Ameríka)
+es-Cyrl-MX; spænska (kyrillískt, Mexíkó)
+hi-Latn; hindí (latneskt)
+nl-BE; hollenska (Belgía)
+nl-Latn-BE; hollenska (latneskt, Belgía)
+zh-Hans-fonipa; kínverska (einfaldað, FONIPA)
+
+
+@locale=is
+@languageDisplay=dialect
+
+en-MM; enska (Mjanmar [Búrma])
+es; spænska
+es-419; rómönsk-amerísk spænska
+es-Cyrl-MX; mexíkósk spænska (kyrillískt)
+hi-Latn; hindí (latneskt)
+nl-BE; flæmska
+nl-Latn-BE; flæmska (latneskt)
+zh-Hans-fonipa; kínverska [einfölduð] (FONIPA)
+
+
+@locale=it
+@languageDisplay=standard
+
+en-MM; inglese (Myanmar [Birmania])
+es; spagnolo
+es-419; spagnolo (America Latina)
+es-Cyrl-MX; spagnolo (cirillico, Messico)
+hi-Latn; hindi (latino)
+nl-BE; olandese (Belgio)
+nl-Latn-BE; olandese (latino, Belgio)
+zh-Hans-fonipa; cinese (semplificato, alfabeto fonetico internazionale IPA)
+
+
+@locale=it
+@languageDisplay=dialect
+
+en-MM; inglese (Myanmar [Birmania])
+es; spagnolo
+es-419; spagnolo latinoamericano
+es-Cyrl-MX; spagnolo messicano (cirillico)
+hi-Latn; hindi (latino)
+nl-BE; fiammingo
+nl-Latn-BE; fiammingo (latino)
+zh-Hans-fonipa; cinese semplificato (alfabeto fonetico internazionale IPA)
+
+
+@locale=ja
+@languageDisplay=standard
+
+en-MM; 英語 (ミャンマー [ビルマ])
+es; スペイン語
+es-419; スペイン語 (ラテンアメリカ)
+es-Cyrl-MX; スペイン語 (キリル文字、メキシコ)
+hi-Latn; ヒンディー語 (ラテン文字)
+nl-BE; オランダ語 (ベルギー)
+nl-Latn-BE; オランダ語 (ラテン文字、ベルギー)
+zh-Hans-fonipa; 中国語 (簡体字、国際音声記号)
+
+
+@locale=ja
+@languageDisplay=dialect
+
+en-MM; 英語 (ミャンマー [ビルマ])
+es; スペイン語
+es-419; スペイン語 (ラテンアメリカ)
+es-Cyrl-MX; スペイン語 (キリル文字、メキシコ)
+hi-Latn; ヒンディー語 (ラテン文字)
+nl-BE; フラマン語
+nl-Latn-BE; フラマン語 (ラテン文字)
+zh-Hans-fonipa; 簡体中国語 (国際音声記号)
+
+
+@locale=jv
+@languageDisplay=standard
+
+en-MM; Inggris (Myanmar [Burma])
+es; Spanyol
+es-419; Spanyol (Amérika Latin)
+es-Cyrl-MX; Spanyol (Sirilik, Mèksiko)
+hi-Latn; India (Latin)
+nl-BE; Walanda (Bèlgi)
+nl-Latn-BE; Walanda (Latin, Bèlgi)
+zh-Hans-fonipa; Tyonghwa (Prasaja, FONIPA)
+
+
+@locale=jv
+@languageDisplay=dialect
+
+en-MM; Inggris (Myanmar [Burma])
+es; Spanyol
+es-419; Spanyol [Amerika Latin]
+es-Cyrl-MX; Spanyol [Meksiko] (Sirilik)
+hi-Latn; India (Latin)
+nl-BE; Flemis
+nl-Latn-BE; Flemis (Latin)
+zh-Hans-fonipa; Tyonghwa [Ringkes] (FONIPA)
+
+
+@locale=ka
+@languageDisplay=standard
+
+en-MM; ინგლისური (მიანმარი [ბირმა])
+es; ესპანური
+es-419; ესპანური (ლათინური ამერიკა)
+es-Cyrl-MX; ესპანური (კირილიცა, მექსიკა)
+hi-Latn; ჰინდი (ლათინური)
+nl-BE; ნიდერლანდური (ბელგია)
+nl-Latn-BE; ნიდერლანდური (ლათინური, ბელგია)
+zh-Hans-fonipa; ჩინური (გამარტივებული, FONIPA)
+
+
+@locale=ka
+@languageDisplay=dialect
+
+en-MM; ინგლისური (მიანმარი [ბირმა])
+es; ესპანური
+es-419; ლათინურ ამერიკული ესპანური
+es-Cyrl-MX; მექსიკური ესპანური (კირილიცა)
+hi-Latn; ჰინდი (ლათინური)
+nl-BE; ფლამანდიური
+nl-Latn-BE; ფლამანდიური (ლათინური)
+zh-Hans-fonipa; გამარტივებული ჩინური (FONIPA)
+
+
+@locale=kk
+@languageDisplay=standard
+
+en-MM; ағылшын тілі (Мьянма [Бирма])
+es; испан тілі
+es-419; испан тілі (Латын Америкасы)
+es-Cyrl-MX; испан тілі (кирилл жазуы, Мексика)
+hi-Latn; хинди тілі (латын жазуы)
+nl-BE; нидерланд тілі (Бельгия)
+nl-Latn-BE; нидерланд тілі (латын жазуы, Бельгия)
+zh-Hans-fonipa; қытай тілі (жеңілдетілген жазу, Халықаралық фонетикалық әліпби)
+
+
+@locale=kk
+@languageDisplay=dialect
+
+en-MM; ағылшын тілі (Мьянма [Бирма])
+es; испан тілі
+es-419; испан тілі (Латын Америкасы)
+es-Cyrl-MX; испан тілі (кирилл жазуы, Мексика)
+hi-Latn; хинди тілі (латын жазуы)
+nl-BE; фламанд тілі
+nl-Latn-BE; фламанд тілі (латын жазуы)
+zh-Hans-fonipa; жеңілдетілген қытай тілі (Халықаралық фонетикалық әліпби)
+
+
+@locale=kk_Cyrl
+@languageDisplay=standard
+
+en-MM; ағылшын тілі (Мьянма [Бирма])
+es; испан тілі
+es-419; испан тілі (Латын Америкасы)
+es-Cyrl-MX; испан тілі (кирилл жазуы, Мексика)
+hi-Latn; хинди тілі (латын жазуы)
+nl-BE; нидерланд тілі (Бельгия)
+nl-Latn-BE; нидерланд тілі (латын жазуы, Бельгия)
+zh-Hans-fonipa; қытай тілі (жеңілдетілген жазу, Халықаралық фонетикалық әліпби)
+
+
+@locale=kk_Cyrl
+@languageDisplay=dialect
+
+en-MM; ағылшын тілі (Мьянма [Бирма])
+es; испан тілі
+es-419; испан тілі (Латын Америкасы)
+es-Cyrl-MX; испан тілі (кирилл жазуы, Мексика)
+hi-Latn; хинди тілі (латын жазуы)
+nl-BE; фламанд тілі
+nl-Latn-BE; фламанд тілі (латын жазуы)
+zh-Hans-fonipa; жеңілдетілген қытай тілі (Халықаралық фонетикалық әліпби)
+
+
+@locale=km
+@languageDisplay=standard
+
+en-MM; អង់គ្លេស (មីយ៉ាន់ម៉ា [ភូមា])
+es; អេស្ប៉ាញ
+es-419; អេស្ប៉ាញ (អាមេរិក​ឡាទីន)
+es-Cyrl-MX; អេស្ប៉ាញ (ស៊ីរីលីក, ម៉ិកស៊ិក)
+hi-Latn; ហិណ្ឌី (ឡាតាំង)
+nl-BE; ហូឡង់ (បែលហ្ស៊ិក)
+nl-Latn-BE; ហូឡង់ (ឡាតាំង, បែលហ្ស៊ិក)
+zh-Hans-fonipa; ចិន (អក្សរ​ចិន​កាត់, FONIPA)
+
+
+@locale=km
+@languageDisplay=dialect
+
+en-MM; អង់គ្លេស (មីយ៉ាន់ម៉ា [ភូមា])
+es; អេស្ប៉ាញ
+es-419; អេស្ប៉ាញ (អាមេរិក​ឡាទីន)
+es-Cyrl-MX; អេស្ប៉ាញ (ស៊ីរីលីក, ម៉ិកស៊ិក)
+hi-Latn; ហិណ្ឌី (ឡាតាំង)
+nl-BE; ផ្លាមីស
+nl-Latn-BE; ផ្លាមីស (ឡាតាំង)
+zh-Hans-fonipa; ចិន​អក្សរ​កាត់ (FONIPA)
+
+
+@locale=kn
+@languageDisplay=standard
+
+en-MM; ಇಂಗ್ಲಿಷ್ (ಮಯನ್ಮಾರ್ [ಬರ್ಮಾ])
+es; ಸ್ಪ್ಯಾನಿಷ್
+es-419; ಸ್ಪ್ಯಾನಿಷ್ (ಲ್ಯಾಟಿನ್ ಅಮೇರಿಕಾ)
+es-Cyrl-MX; ಸ್ಪ್ಯಾನಿಷ್ (ಸಿರಿಲಿಕ್, ಮೆಕ್ಸಿಕೊ)
+hi-Latn; ಹಿಂದಿ (ಲ್ಯಾಟಿನ್)
+nl-BE; ಡಚ್ (ಬೆಲ್ಜಿಯಮ್)
+nl-Latn-BE; ಡಚ್ (ಲ್ಯಾಟಿನ್, ಬೆಲ್ಜಿಯಮ್)
+zh-Hans-fonipa; ಚೈನೀಸ್ (ಸರಳೀಕೃತ, FONIPA)
+
+
+@locale=kn
+@languageDisplay=dialect
+
+en-MM; ಇಂಗ್ಲಿಷ್ (ಮಯನ್ಮಾರ್ [ಬರ್ಮಾ])
+es; ಸ್ಪ್ಯಾನಿಷ್
+es-419; ಲ್ಯಾಟಿನ್ ಅಮೇರಿಕನ್ ಸ್ಪ್ಯಾನಿಷ್
+es-Cyrl-MX; ಮೆಕ್ಸಿಕನ್ ಸ್ಪ್ಯಾನಿಷ್ (ಸಿರಿಲಿಕ್)
+hi-Latn; ಹಿಂದಿ (ಲ್ಯಾಟಿನ್)
+nl-BE; ಫ್ಲೆಮಿಷ್
+nl-Latn-BE; ಫ್ಲೆಮಿಷ್ (ಲ್ಯಾಟಿನ್)
+zh-Hans-fonipa; ಸರಳೀಕೃತ ಚೈನೀಸ್ (FONIPA)
+
+
+@locale=ko
+@languageDisplay=standard
+
+en-MM; 영어(미얀마)
+es; 스페인어
+es-419; 스페인어(라틴 아메리카)
+es-Cyrl-MX; 스페인어(키릴 문자, 멕시코)
+hi-Latn; 힌디어(로마자)
+nl-BE; 네덜란드어(벨기에)
+nl-Latn-BE; 네덜란드어(로마자, 벨기에)
+zh-Hans-fonipa; 중국어(간체, FONIPA)
+
+
+@locale=ko
+@languageDisplay=dialect
+
+en-MM; 영어(미얀마)
+es; 스페인어
+es-419; 스페인어(라틴 아메리카)
+es-Cyrl-MX; 스페인어(키릴 문자, 멕시코)
+hi-Latn; 힌디어(로마자)
+nl-BE; 플라망어
+nl-Latn-BE; 플라망어(로마자)
+zh-Hans-fonipa; 중국어(간체, FONIPA)
+
+
+@locale=kok
+@languageDisplay=standard
+
+en-MM; इंग्लीश (म्यानमार [बर्मा])
+es; स्पॅनीश
+es-419; स्पॅनीश (लॅटीन अमेरिका)
+es-Cyrl-MX; स्पॅनीश (सिरिलिक, मेक्सिको)
+hi-Latn; हिन्दी (लॅटीन)
+nl-BE; डच (बेल्जियम)
+nl-Latn-BE; डच (लॅटीन, बेल्जियम)
+zh-Hans-fonipa; चिनी (सोंपी, FONIPA)
+
+
+@locale=kok
+@languageDisplay=dialect
+
+en-MM; इंग्लीश (म्यानमार [बर्मा])
+es; स्पॅनीश
+es-419; लातीं अमेरिकन स्पॅनीश
+es-Cyrl-MX; मॅक्सिकन स्पॅनीश (सिरिलिक)
+hi-Latn; हिन्दी (लॅटीन)
+nl-BE; फ्लेमिश
+nl-Latn-BE; फ्लेमिश (लॅटीन)
+zh-Hans-fonipa; सोंपी चिनी (FONIPA)
+
+
+@locale=kok_Deva
+@languageDisplay=standard
+
+en-MM; इंग्लीश (म्यानमार [बर्मा])
+es; स्पॅनीश
+es-419; स्पॅनीश (लॅटीन अमेरिका)
+es-Cyrl-MX; स्पॅनीश (सिरिलिक, मेक्सिको)
+hi-Latn; हिन्दी (लॅटीन)
+nl-BE; डच (बेल्जियम)
+nl-Latn-BE; डच (लॅटीन, बेल्जियम)
+zh-Hans-fonipa; चिनी (सोंपी, FONIPA)
+
+
+@locale=kok_Deva
+@languageDisplay=dialect
+
+en-MM; इंग्लीश (म्यानमार [बर्मा])
+es; स्पॅनीश
+es-419; लातीं अमेरिकन स्पॅनीश
+es-Cyrl-MX; मॅक्सिकन स्पॅनीश (सिरिलिक)
+hi-Latn; हिन्दी (लॅटीन)
+nl-BE; फ्लेमिश
+nl-Latn-BE; फ्लेमिश (लॅटीन)
+zh-Hans-fonipa; सोंपी चिनी (FONIPA)
+
+
+@locale=ky
+@languageDisplay=standard
+
+en-MM; англисче (Мьянма [Бирма])
+es; испанча
+es-419; испанча (Латын Америкасы)
+es-Cyrl-MX; испанча (Кирилл, Мексика)
+hi-Latn; хиндиче (Латын)
+nl-BE; голландча (Бельгия)
+nl-Latn-BE; голландча (Латын, Бельгия)
+zh-Hans-fonipa; кытайча (Жөнөкөйлөштүрүлгөн, FONIPA)
+
+
+@locale=ky
+@languageDisplay=dialect
+
+en-MM; англисче (Мьянма [Бирма])
+es; испанча
+es-419; испанча (Латын Америкасы)
+es-Cyrl-MX; испанча (Кирилл, Мексика)
+hi-Latn; хиндиче (Латын)
+nl-BE; фламандча
+nl-Latn-BE; фламандча (Латын)
+zh-Hans-fonipa; кытайча [жөнөкөйлөштүрүлгөн] (FONIPA)
+
+
+@locale=lo
+@languageDisplay=standard
+
+en-MM; ອັງກິດ (ມຽນມາ [ເບີມາ])
+es; ສະແປນນິຊ
+es-419; ສະແປນນິຊ (ລາຕິນ ອາເມລິກາ)
+es-Cyrl-MX; ສະແປນນິຊ (ຊີຣິວລິກ, ເມັກຊິໂກ)
+hi-Latn; ຮິນດິ (ລາຕິນ)
+nl-BE; ດັຊ (ເບວຢຽມ)
+nl-Latn-BE; ດັຊ (ລາຕິນ, ເບວຢຽມ)
+zh-Hans-fonipa; ຈີນ (ແບບຮຽບງ່າຍ, ສັດທະສາດອັກສອນສາກົນ)
+
+
+@locale=lo
+@languageDisplay=dialect
+
+en-MM; ອັງກິດ (ມຽນມາ [ເບີມາ])
+es; ສະແປນນິຊ
+es-419; ລາຕິນ ອາເມຣິກັນ ສະແປນນິຊ
+es-Cyrl-MX; ເມັກຊິກັນ ສະແປນນິຊ (ຊີຣິວລິກ)
+hi-Latn; ຮິນດິ (ລາຕິນ)
+nl-BE; ຟລີມິຊ
+nl-Latn-BE; ຟລີມິຊ (ລາຕິນ)
+zh-Hans-fonipa; ຈີນແບບຮຽບງ່າຍ (ສັດທະສາດອັກສອນສາກົນ)
+
+
+@locale=lt
+@languageDisplay=standard
+
+en-MM; anglų (Mianmaras [Birma])
+es; ispanų
+es-419; ispanų (Lotynų Amerika)
+es-Cyrl-MX; ispanų (kirilica, Meksika)
+hi-Latn; hindi (lotynų)
+nl-BE; olandų (Belgija)
+nl-Latn-BE; olandų (lotynų, Belgija)
+zh-Hans-fonipa; kinų (supaprastinti, Tarptautinės abėcėlės fonetika)
+
+
+@locale=lt
+@languageDisplay=dialect
+
+en-MM; anglų (Mianmaras [Birma])
+es; ispanų
+es-419; ispanų (Lotynų Amerika)
+es-Cyrl-MX; ispanų (kirilica, Meksika)
+hi-Latn; hindi (lotynų)
+nl-BE; flamandų
+nl-Latn-BE; flamandų (lotynų)
+zh-Hans-fonipa; supaprastintoji kinų (Tarptautinės abėcėlės fonetika)
+
+
+@locale=lv
+@languageDisplay=standard
+
+en-MM; angļu (Mjanma [Birma])
+es; spāņu
+es-419; spāņu (Latīņamerika)
+es-Cyrl-MX; spāņu (kirilica, Meksika)
+hi-Latn; hindi (latīņu)
+nl-BE; holandiešu (Beļģija)
+nl-Latn-BE; holandiešu (latīņu, Beļģija)
+zh-Hans-fonipa; ķīniešu (vienkāršotā, Starptautiskais fonētiskais alfabēts)
+
+
+@locale=lv
+@languageDisplay=dialect
+
+en-MM; angļu (Mjanma [Birma])
+es; spāņu
+es-419; spāņu (Latīņamerika)
+es-Cyrl-MX; spāņu (kirilica, Meksika)
+hi-Latn; hindi (latīņu)
+nl-BE; flāmu
+nl-Latn-BE; flāmu (latīņu)
+zh-Hans-fonipa; ķīniešu vienkāršotā (Starptautiskais fonētiskais alfabēts)
+
+
+@locale=mk
+@languageDisplay=standard
+
+en-MM; англиски (Мјанмар [Бурма])
+es; шпански
+es-419; шпански (Латинска Америка)
+es-Cyrl-MX; шпански (кирилско писмо, Мексико)
+hi-Latn; хинди (латинично писмо)
+nl-BE; холандски (Белгија)
+nl-Latn-BE; холандски (латинично писмо, Белгија)
+zh-Hans-fonipa; кинески (поедноставено, FONIPA)
+
+
+@locale=mk
+@languageDisplay=dialect
+
+en-MM; англиски (Мјанмар [Бурма])
+es; шпански
+es-419; латиноамерикански шпански
+es-Cyrl-MX; мексикански шпански (кирилско писмо)
+hi-Latn; хинди (латинично писмо)
+nl-BE; фламански
+nl-Latn-BE; фламански (латинично писмо)
+zh-Hans-fonipa; поедноставен кинески (FONIPA)
+
+
+@locale=ml
+@languageDisplay=standard
+
+en-MM; ഇംഗ്ലീഷ് (മ്യാൻമാർ [ബർമ്മ])
+es; സ്‌പാനിഷ്
+es-419; സ്‌പാനിഷ് (ലാറ്റിനമേരിക്ക)
+es-Cyrl-MX; സ്‌പാനിഷ് (സിറിലിക്, മെക്സിക്കോ)
+hi-Latn; ഹിന്ദി (ലാറ്റിൻ)
+nl-BE; ഡച്ച് (ബെൽജിയം)
+nl-Latn-BE; ഡച്ച് (ലാറ്റിൻ, ബെൽജിയം)
+zh-Hans-fonipa; ചൈനീസ് (ലളിതവൽക്കരിച്ചത്, ഐപി‌എ സ്വനവ്യവസ്ഥ)
+
+
+@locale=ml
+@languageDisplay=dialect
+
+en-MM; ഇംഗ്ലീഷ് (മ്യാൻമാർ [ബർമ്മ])
+es; സ്‌പാനിഷ്
+es-419; ലാറ്റിൻ അമേരിക്കൻ സ്‌പാനിഷ്
+es-Cyrl-MX; മെക്സിക്കൻ സ്പാനിഷ് (സിറിലിക്)
+hi-Latn; ഹിന്ദി (ലാറ്റിൻ)
+nl-BE; ഫ്ലമിഷ്
+nl-Latn-BE; ഫ്ലമിഷ് (ലാറ്റിൻ)
+zh-Hans-fonipa; ലളിതമാക്കിയ ചൈനീസ് (ഐപി‌എ സ്വനവ്യവസ്ഥ)
+
+
+@locale=mn
+@languageDisplay=standard
+
+en-MM; англи (Мьянмар)
+es; испани
+es-419; испани (Латин Америк)
+es-Cyrl-MX; испани (кирилл, Мексик)
+hi-Latn; хинди (латин)
+nl-BE; нидерланд (Бельги)
+nl-Latn-BE; нидерланд (латин, Бельги)
+zh-Hans-fonipa; хятад (хялбаршуулсан, FONIPA)
+
+
+@locale=mn
+@languageDisplay=dialect
+
+en-MM; англи (Мьянмар)
+es; испани
+es-419; испани хэл [Латин Америк]
+es-Cyrl-MX; испани хэл [Мексик] (кирилл)
+hi-Latn; хинди (латин)
+nl-BE; фламанд
+nl-Latn-BE; фламанд (латин)
+zh-Hans-fonipa; хялбаршуулсан хятад (FONIPA)
+
+
+@locale=mr
+@languageDisplay=standard
+
+en-MM; इंग्रजी (म्यानमार [बर्मा])
+es; स्पॅनिश
+es-419; स्पॅनिश (लॅटिन अमेरिका)
+es-Cyrl-MX; स्पॅनिश (सीरिलिक, मेक्सिको)
+hi-Latn; हिंदी (लॅटिन)
+nl-BE; डच (बेल्जियम)
+nl-Latn-BE; डच (लॅटिन, बेल्जियम)
+zh-Hans-fonipa; चीनी (सरलीकृत, FONIPA)
+
+
+@locale=mr
+@languageDisplay=dialect
+
+en-MM; इंग्रजी (म्यानमार [बर्मा])
+es; स्पॅनिश
+es-419; लॅटिन अमेरिकन स्पॅनिश
+es-Cyrl-MX; मेक्सिकन स्पॅनिश (सीरिलिक)
+hi-Latn; हिंदी (लॅटिन)
+nl-BE; फ्लेमिश
+nl-Latn-BE; फ्लेमिश (लॅटिन)
+zh-Hans-fonipa; सरलीकृत चीनी (FONIPA)
+
+
+@locale=ms
+@languageDisplay=standard
+
+en-MM; Inggeris (Myanmar [Burma])
+es; Sepanyol
+es-419; Sepanyol (Amerika Latin)
+es-Cyrl-MX; Sepanyol (Cyril, Mexico)
+hi-Latn; Hindi (Latin)
+nl-BE; Belanda (Belgium)
+nl-Latn-BE; Belanda (Latin, Belgium)
+zh-Hans-fonipa; Cina (Ringkas, Fonetik IPA)
+
+
+@locale=ms
+@languageDisplay=dialect
+
+en-MM; Inggeris (Myanmar [Burma])
+es; Sepanyol
+es-419; Sepanyol Amerika Latin
+es-Cyrl-MX; Sepanyol Mexico (Cyril)
+hi-Latn; Hindi (Latin)
+nl-BE; Flemish
+nl-Latn-BE; Flemish (Latin)
+zh-Hans-fonipa; Cina Ringkas (Fonetik IPA)
+
+
+@locale=my
+@languageDisplay=standard
+
+en-MM; အင်္ဂလိပ် (မြန်မာ)
+es; စပိန်
+es-419; စပိန် (လက်တင်အမေရိက)
+es-Cyrl-MX; စပိန် (စစ်ရိလစ်/ မက်ကဆီကို)
+hi-Latn; ဟိန္ဒီ (လက်တင်)
+nl-BE; ဒတ်ခ်ျ (ဘယ်လ်ဂျီယမ်)
+nl-Latn-BE; ဒတ်ခ်ျ (လက်တင်/ ဘယ်လ်ဂျီယမ်)
+zh-Hans-fonipa; တရုတ် (ရိုးရှင်း/ IPA အသံထွက်)
+
+
+@locale=my
+@languageDisplay=dialect
+
+en-MM; အင်္ဂလိပ် (မြန်မာ)
+es; စပိန်
+es-419; စပိန် (လက်တင်အမေရိက)
+es-Cyrl-MX; စပိန် [မက္ကဆီကို] (စစ်ရိလစ်)
+hi-Latn; ဟိန္ဒီ [လက်တင်]
+nl-BE; ဖလီမစ်ရှ်
+nl-Latn-BE; ဖလီမစ်ရှ် (လက်တင်)
+zh-Hans-fonipa; တရုတ် (ရိုးရှင်း/ IPA အသံထွက်)
+
+
+@locale=nb
+@languageDisplay=standard
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; spansk (Latin-Amerika)
+es-Cyrl-MX; spansk (kyrillisk, Mexico)
+hi-Latn; hindi (latinsk)
+nl-BE; nederlandsk (Belgia)
+nl-Latn-BE; nederlandsk (latinsk, Belgia)
+zh-Hans-fonipa; kinesisk (forenklet, det internasjonale fonetiske alfabet [IPA])
+
+
+@locale=nb
+@languageDisplay=dialect
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; spansk (Latin-Amerika)
+es-Cyrl-MX; spansk (kyrillisk, Mexico)
+hi-Latn; hindi (latinsk)
+nl-BE; flamsk
+nl-Latn-BE; flamsk (latinsk)
+zh-Hans-fonipa; forenklet kinesisk (det internasjonale fonetiske alfabet [IPA])
+
+
+@locale=ne
+@languageDisplay=standard
+
+en-MM; अङ्ग्रेजी (म्यान्मार [बर्मा])
+es; स्पेनी
+es-419; स्पेनी (ल्याटिन अमेरिका)
+es-Cyrl-MX; स्पेनी (सिरिलिक, मेक्सिको)
+hi-Latn; हिन्दी (ल्याटिन)
+nl-BE; डच (बेल्जियम)
+nl-Latn-BE; डच (ल्याटिन, बेल्जियम)
+zh-Hans-fonipa; चिनियाँ (सरलिकृत चिनियाँ, FONIPA)
+
+
+@locale=ne
+@languageDisplay=dialect
+
+en-MM; अङ्ग्रेजी (म्यान्मार [बर्मा])
+es; स्पेनी
+es-419; ल्याटिन अमेरिकी स्पेनी
+es-Cyrl-MX; मेक्सिकन स्पेनी (सिरिलिक)
+hi-Latn; हिन्दी (ल्याटिन)
+nl-BE; फ्लेमिस
+nl-Latn-BE; फ्लेमिस (ल्याटिन)
+zh-Hans-fonipa; सरलिकृत चिनियाँ (FONIPA)
+
+
+@locale=nl
+@languageDisplay=standard
+
+en-MM; Engels (Myanmar [Birma])
+es; Spaans
+es-419; Spaans (Latijns-Amerika)
+es-Cyrl-MX; Spaans (Cyrillisch, Mexico)
+hi-Latn; Hindi (Latijns)
+nl-BE; Nederlands (België)
+nl-Latn-BE; Nederlands (Latijns, België)
+zh-Hans-fonipa; Chinees (vereenvoudigd, Internationaal Fonetisch Alfabet)
+
+
+@locale=nl
+@languageDisplay=dialect
+
+en-MM; Engels (Myanmar [Birma])
+es; Spaans
+es-419; Spaans (Latijns-Amerika)
+es-Cyrl-MX; Spaans (Cyrillisch, Mexico)
+hi-Latn; Hindi (Latijns)
+nl-BE; Vlaams
+nl-Latn-BE; Vlaams (Latijns)
+zh-Hans-fonipa; Chinees (vereenvoudigd, Internationaal Fonetisch Alfabet)
+
+
+@locale=nn
+@languageDisplay=standard
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; spansk (Latin-Amerika)
+es-Cyrl-MX; spansk (kyrillisk, Mexico)
+hi-Latn; hindi (latinsk)
+nl-BE; nederlandsk (Belgia)
+nl-Latn-BE; nederlandsk (latinsk, Belgia)
+zh-Hans-fonipa; kinesisk (forenkla, det internasjonale fonetiske alfabetet [IPA])
+
+
+@locale=nn
+@languageDisplay=dialect
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; spansk (Latin-Amerika)
+es-Cyrl-MX; spansk (kyrillisk, Mexico)
+hi-Latn; hindi (latinsk)
+nl-BE; flamsk
+nl-Latn-BE; flamsk (latinsk)
+zh-Hans-fonipa; forenkla kinesisk (det internasjonale fonetiske alfabetet [IPA])
+
+
+@locale=no
+@languageDisplay=standard
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; spansk (Latin-Amerika)
+es-Cyrl-MX; spansk (kyrillisk, Mexico)
+hi-Latn; hindi (latinsk)
+nl-BE; nederlandsk (Belgia)
+nl-Latn-BE; nederlandsk (latinsk, Belgia)
+zh-Hans-fonipa; kinesisk (forenklet, det internasjonale fonetiske alfabet [IPA])
+
+
+@locale=no
+@languageDisplay=dialect
+
+en-MM; engelsk (Myanmar [Burma])
+es; spansk
+es-419; spansk (Latin-Amerika)
+es-Cyrl-MX; spansk (kyrillisk, Mexico)
+hi-Latn; hindi (latinsk)
+nl-BE; flamsk
+nl-Latn-BE; flamsk (latinsk)
+zh-Hans-fonipa; forenklet kinesisk (det internasjonale fonetiske alfabet [IPA])
+
+
+@locale=or
+@languageDisplay=standard
+
+en-MM; ଇଂରାଜୀ (ମିଆଁମାର)
+es; ସ୍ପାନିସ୍‌
+es-419; ସ୍ପାନିସ୍‌ (ଲାଟିନ୍‌ ଆମେରିକା)
+es-Cyrl-MX; ସ୍ପାନିସ୍‌ (ସିରିଲିକ୍, ମେକ୍ସିକୋ)
+hi-Latn; ହିନ୍ଦୀ (ଲାଟିନ୍)
+nl-BE; ଡଚ୍ (ବେଲଜିୟମ୍)
+nl-Latn-BE; ଡଚ୍ (ଲାଟିନ୍, ବେଲଜିୟମ୍)
+zh-Hans-fonipa; ଚାଇନିଜ୍‌ (ସରଳୀକୃତ, FONIPA)
+
+
+@locale=or
+@languageDisplay=dialect
+
+en-MM; ଇଂରାଜୀ (ମିଆଁମାର)
+es; ସ୍ପାନିସ୍‌
+es-419; ଲାଟିନ୍‌ ଆମେରିକୀୟ ସ୍ପାନିସ୍‌
+es-Cyrl-MX; ମେକ୍ସିକାନ ସ୍ପାନିସ୍‌ (ସିରିଲିକ୍)
+hi-Latn; ହିନ୍ଦୀ (ଲାଟିନ୍)
+nl-BE; ଫ୍ଲେମିଶ୍
+nl-Latn-BE; ଫ୍ଲେମିଶ୍ (ଲାଟିନ୍)
+zh-Hans-fonipa; ସରଳୀକୃତ ଚାଇନିଜ (FONIPA)
+
+
+@locale=pa
+@languageDisplay=standard
+
+en-MM; ਅੰਗਰੇਜ਼ੀ (ਮਿਆਂਮਾਰ [ਬਰਮਾ])
+es; ਸਪੇਨੀ
+es-419; ਸਪੇਨੀ (ਲਾਤੀਨੀ ਅਮਰੀਕਾ)
+es-Cyrl-MX; ਸਪੇਨੀ (ਸਿਰਿਲਿਕ, ਮੈਕਸੀਕੋ)
+hi-Latn; ਹਿੰਦੀ (ਲਾਤੀਨੀ)
+nl-BE; ਡੱਚ (ਬੈਲਜੀਅਮ)
+nl-Latn-BE; ਡੱਚ (ਲਾਤੀਨੀ, ਬੈਲਜੀਅਮ)
+zh-Hans-fonipa; ਚੀਨੀ (ਸਰਲ, FONIPA)
+
+
+@locale=pa
+@languageDisplay=dialect
+
+en-MM; ਅੰਗਰੇਜ਼ੀ (ਮਿਆਂਮਾਰ [ਬਰਮਾ])
+es; ਸਪੇਨੀ
+es-419; ਸਪੇਨੀ [ਲਾਤੀਨੀ ਅਮਰੀਕੀ]
+es-Cyrl-MX; ਸਪੇਨੀ (ਸਿਰਿਲਿਕ, ਮੈਕਸੀਕੋ)
+hi-Latn; ਹਿੰਦੀ (ਲਾਤੀਨੀ)
+nl-BE; ਫਲੈਮਿਸ਼
+nl-Latn-BE; ਫਲੈਮਿਸ਼ (ਲਾਤੀਨੀ)
+zh-Hans-fonipa; ਚੀਨੀ (ਸਰਲ, FONIPA)
+
+
+@locale=pa_Guru
+@languageDisplay=standard
+
+en-MM; ਅੰਗਰੇਜ਼ੀ (ਮਿਆਂਮਾਰ [ਬਰਮਾ])
+es; ਸਪੇਨੀ
+es-419; ਸਪੇਨੀ (ਲਾਤੀਨੀ ਅਮਰੀਕਾ)
+es-Cyrl-MX; ਸਪੇਨੀ (ਸਿਰਿਲਿਕ, ਮੈਕਸੀਕੋ)
+hi-Latn; ਹਿੰਦੀ (ਲਾਤੀਨੀ)
+nl-BE; ਡੱਚ (ਬੈਲਜੀਅਮ)
+nl-Latn-BE; ਡੱਚ (ਲਾਤੀਨੀ, ਬੈਲਜੀਅਮ)
+zh-Hans-fonipa; ਚੀਨੀ (ਸਰਲ, FONIPA)
+
+
+@locale=pa_Guru
+@languageDisplay=dialect
+
+en-MM; ਅੰਗਰੇਜ਼ੀ (ਮਿਆਂਮਾਰ [ਬਰਮਾ])
+es; ਸਪੇਨੀ
+es-419; ਸਪੇਨੀ [ਲਾਤੀਨੀ ਅਮਰੀਕੀ]
+es-Cyrl-MX; ਸਪੇਨੀ (ਸਿਰਿਲਿਕ, ਮੈਕਸੀਕੋ)
+hi-Latn; ਹਿੰਦੀ (ਲਾਤੀਨੀ)
+nl-BE; ਫਲੈਮਿਸ਼
+nl-Latn-BE; ਫਲੈਮਿਸ਼ (ਲਾਤੀਨੀ)
+zh-Hans-fonipa; ਚੀਨੀ (ਸਰਲ, FONIPA)
+
+
+@locale=pcm
+@languageDisplay=standard
+
+en-MM; Ínglish (Miánma [Bọ́ma])
+es; Spánish Lángwej
+es-419; Spánish Lángwej (Látín Amẹ́ríka)
+es-Cyrl-MX; Spánish Lángwej (Sírílik, Mẹ́ksíko)
+hi-Latn; Híndi Lángwej (Látin)
+nl-BE; Dọch Lángwej (Bẹ́ljọm)
+nl-Latn-BE; Dọch Lángwej (Látin, Bẹ́ljọm)
+zh-Hans-fonipa; Mandarín Chainíz Lángwej (Ízí Chainíz Lángwej, FONIPA)
+
+
+@locale=pcm
+@languageDisplay=dialect
+
+en-MM; Ínglish (Miánma [Bọ́ma])
+es; Spánish Lángwej
+es-419; Látín Amẹ́ríka Spánish
+es-Cyrl-MX; Mẹ́ksiko Spánish (Sírílik)
+hi-Latn; Híndi [Látin]
+nl-BE; Flẹ́mish Lángwej
+nl-Latn-BE; Flẹ́mish Lángwej (Látin)
+zh-Hans-fonipa; Mandarín Chainíz Lángwej (Ízí Chainíz Lángwej, FONIPA)
+
+
+@locale=pl
+@languageDisplay=standard
+
+en-MM; angielski (Mjanma [Birma])
+es; hiszpański
+es-419; hiszpański (Ameryka Łacińska)
+es-Cyrl-MX; hiszpański (cyrylica, Meksyk)
+hi-Latn; hindi (łacińskie)
+nl-BE; niderlandzki (Belgia)
+nl-Latn-BE; niderlandzki (łacińskie, Belgia)
+zh-Hans-fonipa; chiński (uproszczone, fonetyczny międzynarodowy)
+
+
+@locale=pl
+@languageDisplay=dialect
+
+en-MM; angielski (Mjanma [Birma])
+es; hiszpański
+es-419; amerykański hiszpański
+es-Cyrl-MX; meksykański hiszpański (cyrylica)
+hi-Latn; hindi [alfabet łaciński]
+nl-BE; flamandzki
+nl-Latn-BE; flamandzki (łacińskie)
+zh-Hans-fonipa; chiński uproszczony (fonetyczny międzynarodowy)
+
+
+@locale=ps
+@languageDisplay=standard
+
+en-MM; انګليسي (ميانمار [برما])
+es; هسپانوي
+es-419; هسپانوي (لاتیني امریکا)
+es-Cyrl-MX; هسپانوي (سیریلیک, میکسیکو)
+hi-Latn; هندي (لاتين/لاتيني)
+nl-BE; هالېنډي (بیلجیم)
+nl-Latn-BE; هالېنډي (لاتين/لاتيني, بیلجیم)
+zh-Hans-fonipa; چیني (ساده شوی, FONIPA)
+
+
+@locale=ps
+@languageDisplay=dialect
+
+en-MM; انګليسي (ميانمار [برما])
+es; هسپانوي
+es-419; لاتيني امريکايي هسپانوي
+es-Cyrl-MX; ميکسيکي هسپانوي (سیریلیک)
+hi-Latn; هندي [لاتيني]
+nl-BE; فلېمېشي
+nl-Latn-BE; فلېمېشي (لاتين/لاتيني)
+zh-Hans-fonipa; چیني (ساده شوی, FONIPA)
+
+
+@locale=pt
+@languageDisplay=standard
+
+en-MM; inglês (Mianmar [Birmânia])
+es; espanhol
+es-419; espanhol (América Latina)
+es-Cyrl-MX; espanhol (cirílico, México)
+hi-Latn; híndi (latim)
+nl-BE; holandês (Bélgica)
+nl-Latn-BE; holandês (latim, Bélgica)
+zh-Hans-fonipa; chinês (simplificado, fonética do Alfabeto Fonético Internacional)
+
+
+@locale=pt
+@languageDisplay=dialect
+
+en-MM; inglês (Mianmar [Birmânia])
+es; espanhol
+es-419; espanhol (América Latina)
+es-Cyrl-MX; espanhol (cirílico, México)
+hi-Latn; híndi (latim)
+nl-BE; flamengo
+nl-Latn-BE; flamengo (latim)
+zh-Hans-fonipa; chinês simplificado (fonética do Alfabeto Fonético Internacional)
+
+
+@locale=ro
+@languageDisplay=standard
+
+en-MM; engleză (Myanmar [Birmania])
+es; spaniolă
+es-419; spaniolă (America Latină)
+es-Cyrl-MX; spaniolă (chirilică, Mexic)
+hi-Latn; hindi (latină)
+nl-BE; neerlandeză (Belgia)
+nl-Latn-BE; neerlandeză (latină, Belgia)
+zh-Hans-fonipa; chineză (simplificată, alfabet fonetic internațional)
+
+
+@locale=ro
+@languageDisplay=dialect
+
+en-MM; engleză (Myanmar [Birmania])
+es; spaniolă
+es-419; spaniolă (America Latină)
+es-Cyrl-MX; spaniolă (chirilică, Mexic)
+hi-Latn; hindi (latină)
+nl-BE; flamandă
+nl-Latn-BE; flamandă (latină)
+zh-Hans-fonipa; chineză simplificată (alfabet fonetic internațional)
+
+
+@locale=root
+@languageDisplay=standard
+
+en-MM; en (MM)
+es; es
+es-419; es (419)
+es-Cyrl-MX; es (Cyrl, MX)
+hi-Latn; hi (Latn)
+nl-BE; nl (BE)
+nl-Latn-BE; nl (Latn, BE)
+zh-Hans-fonipa; zh (Hans, FONIPA)
+
+
+@locale=root
+@languageDisplay=dialect
+
+en-MM; en (MM)
+es; es
+es-419; es_419
+es-Cyrl-MX; es (Cyrl, MX)
+hi-Latn; hi (Latn)
+nl-BE; nl (BE)
+nl-Latn-BE; nl (Latn, BE)
+zh-Hans-fonipa; zh (Hans, FONIPA)
+
+
+@locale=ru
+@languageDisplay=standard
+
+en-MM; английский (Мьянма [Бирма])
+es; испанский
+es-419; испанский (Латинская Америка)
+es-Cyrl-MX; испанский (кириллица, Мексика)
+hi-Latn; хинди (латиница)
+nl-BE; нидерландский (Бельгия)
+nl-Latn-BE; нидерландский (латиница, Бельгия)
+zh-Hans-fonipa; китайский (упрощенная, Международный фонетический алфавит)
+
+
+@locale=ru
+@languageDisplay=dialect
+
+en-MM; английский (Мьянма [Бирма])
+es; испанский
+es-419; латиноамериканский испанский
+es-Cyrl-MX; мексиканский испанский (кириллица)
+hi-Latn; хинди (латиница)
+nl-BE; фламандский
+nl-Latn-BE; фламандский (латиница)
+zh-Hans-fonipa; китайский, упрощенное письмо (Международный фонетический алфавит)
+
+
+@locale=sd
+@languageDisplay=standard
+
+en-MM; انگريزي (ميانمار [برما])
+es; هسپانوي
+es-419; هسپانوي (لاطيني آمريڪا)
+es-Cyrl-MX; هسپانوي (سيريلي, ميڪسيڪو)
+hi-Latn; هندي (لاطيني)
+nl-BE; ڊچ (بيلجيم)
+nl-Latn-BE; ڊچ (لاطيني, بيلجيم)
+zh-Hans-fonipa; چيني (سادي, FONIPA)
+
+
+@locale=sd
+@languageDisplay=dialect
+
+en-MM; انگريزي (ميانمار [برما])
+es; هسپانوي
+es-419; لاطيني آمريڪي اسپينش
+es-Cyrl-MX; ميڪسيڪين اسپيني (سيريلي)
+hi-Latn; هندي (لاطيني)
+nl-BE; فليمش
+nl-Latn-BE; فليمش (لاطيني)
+zh-Hans-fonipa; چيني (سادي, FONIPA)
+
+
+@locale=sd_Arab
+@languageDisplay=standard
+
+en-MM; انگريزي (ميانمار [برما])
+es; هسپانوي
+es-419; هسپانوي (لاطيني آمريڪا)
+es-Cyrl-MX; هسپانوي (سيريلي, ميڪسيڪو)
+hi-Latn; هندي (لاطيني)
+nl-BE; ڊچ (بيلجيم)
+nl-Latn-BE; ڊچ (لاطيني, بيلجيم)
+zh-Hans-fonipa; چيني (سادي, FONIPA)
+
+
+@locale=sd_Arab
+@languageDisplay=dialect
+
+en-MM; انگريزي (ميانمار [برما])
+es; هسپانوي
+es-419; لاطيني آمريڪي اسپينش
+es-Cyrl-MX; ميڪسيڪين اسپيني (سيريلي)
+hi-Latn; هندي (لاطيني)
+nl-BE; فليمش
+nl-Latn-BE; فليمش (لاطيني)
+zh-Hans-fonipa; چيني (سادي, FONIPA)
+
+
+@locale=si
+@languageDisplay=standard
+
+en-MM; ඉංග්‍රීසි (මියන්මාරය [බුරුමය])
+es; ස්පාඤ්ඤ
+es-419; ස්පාඤ්ඤ (ලතින් ඇමෙරිකාව)
+es-Cyrl-MX; ස්පාඤ්ඤ (සිරිලික්, මෙක්සිකෝව)
+hi-Latn; හින්දි (ලතින්)
+nl-BE; ලන්දේසි (බෙල්ජියම)
+nl-Latn-BE; ලන්දේසි (ලතින්, බෙල්ජියම)
+zh-Hans-fonipa; චීන (සුළුකළ, FONIPA)
+
+
+@locale=si
+@languageDisplay=dialect
+
+en-MM; ඉංග්‍රීසි (මියන්මාරය [බුරුමය])
+es; ස්පාඤ්ඤ
+es-419; ලතින් ඇමරිකානු ස්පාඤ්ඤ
+es-Cyrl-MX; මෙක්සිකානු ස්පාඤ්ඤ (සිරිලික්)
+hi-Latn; හින්දි (ලතින්)
+nl-BE; ෆ්ලෙමිශ්
+nl-Latn-BE; ෆ්ලෙමිශ් (ලතින්)
+zh-Hans-fonipa; සරල චීන (FONIPA)
+
+
+@locale=sk
+@languageDisplay=standard
+
+en-MM; angličtina (Mjanmarsko)
+es; španielčina
+es-419; španielčina (Latinská Amerika)
+es-Cyrl-MX; španielčina (cyrilika, Mexiko)
+hi-Latn; hindčina (latinka)
+nl-BE; holandčina (Belgicko)
+nl-Latn-BE; holandčina (latinka, Belgicko)
+zh-Hans-fonipa; čínština (zjednodušené, FONIPA)
+
+
+@locale=sk
+@languageDisplay=dialect
+
+en-MM; angličtina (Mjanmarsko)
+es; španielčina
+es-419; španielčina [latinskoamerická]
+es-Cyrl-MX; španielčina [mexická] (cyrilika)
+hi-Latn; hindčina (latinka)
+nl-BE; flámčina
+nl-Latn-BE; flámčina (latinka)
+zh-Hans-fonipa; čínština [zjednodušená] (FONIPA)
+
+
+@locale=sl
+@languageDisplay=standard
+
+en-MM; angleščina (Mjanmar [Burma])
+es; španščina
+es-419; španščina (Latinska Amerika)
+es-Cyrl-MX; španščina (cirilica, Mehika)
+hi-Latn; hindijščina (latinica)
+nl-BE; nizozemščina (Belgija)
+nl-Latn-BE; nizozemščina (latinica, Belgija)
+zh-Hans-fonipa; kitajščina (poenostavljena pisava, mednarodna fonetična pisava IPA)
+
+
+@locale=sl
+@languageDisplay=dialect
+
+en-MM; angleščina (Mjanmar [Burma])
+es; španščina
+es-419; latinskoameriška španščina
+es-Cyrl-MX; mehiška španščina (cirilica)
+hi-Latn; hindijščina (latinica)
+nl-BE; flamščina
+nl-Latn-BE; flamščina (latinica)
+zh-Hans-fonipa; poenostavljena kitajščina (mednarodna fonetična pisava IPA)
+
+
+@locale=so
+@languageDisplay=standard
+
+en-MM; Ingiriisi (Mayanmar)
+es; Isbaanish
+es-419; Isbaanish (Laatiin Ameerika)
+es-Cyrl-MX; Isbaanish (Siriylik, Meksiko)
+hi-Latn; Hindi (Laatiin)
+nl-BE; Holandays (Biljam)
+nl-Latn-BE; Holandays (Laatiin, Biljam)
+zh-Hans-fonipa; Shinees (La fududeeyay, FONIPA)
+
+
+@locale=so
+@languageDisplay=dialect
+
+en-MM; Ingiriisi (Mayanmar)
+es; Isbaanish
+es-419; Isbaanishka Laatiin Ameerika
+es-Cyrl-MX; Isbaanishka Mexico (Siriylik)
+hi-Latn; Hindi [Latin]
+nl-BE; Af faleemi
+nl-Latn-BE; Af faleemi (Laatiin)
+zh-Hans-fonipa; Shiinaha Rasmiga ah (FONIPA)
+
+
+@locale=sq
+@languageDisplay=standard
+
+en-MM; anglisht (Mianmar [Burmë])
+es; spanjisht
+es-419; spanjisht (Amerika Latine)
+es-Cyrl-MX; spanjisht (cirilik, Meksikë)
+hi-Latn; indisht (latin)
+nl-BE; holandisht (Belgjikë)
+nl-Latn-BE; holandisht (latin, Belgjikë)
+zh-Hans-fonipa; kinezisht (i thjeshtuar, FONIPA)
+
+
+@locale=sq
+@languageDisplay=dialect
+
+en-MM; anglisht (Mianmar [Burmë])
+es; spanjisht
+es-419; spanjishte amerikano-latine
+es-Cyrl-MX; spanjishte meksikane (cirilik)
+hi-Latn; hindisht [latine]
+nl-BE; flamandisht
+nl-Latn-BE; flamandisht (latin)
+zh-Hans-fonipa; kinezishte e thjeshtuar (FONIPA)
+
+
+@locale=sr
+@languageDisplay=standard
+
+en-MM; енглески (Мијанмар [Бурма])
+es; шпански
+es-419; шпански (Латинска Америка)
+es-Cyrl-MX; шпански (ћирилица, Мексико)
+hi-Latn; хинди (латиница)
+nl-BE; холандски (Белгија)
+nl-Latn-BE; холандски (латиница, Белгија)
+zh-Hans-fonipa; кинески (поједностављено кинеско писмо, ИПА фонетика)
+
+
+@locale=sr
+@languageDisplay=dialect
+
+en-MM; енглески (Мијанмар [Бурма])
+es; шпански
+es-419; шпански (Латинска Америка)
+es-Cyrl-MX; шпански (ћирилица, Мексико)
+hi-Latn; хинди (латиница)
+nl-BE; фламански
+nl-Latn-BE; фламански (латиница)
+zh-Hans-fonipa; поједностављени кинески (ИПА фонетика)
+
+
+@locale=sr_Cyrl
+@languageDisplay=standard
+
+en-MM; енглески (Мијанмар [Бурма])
+es; шпански
+es-419; шпански (Латинска Америка)
+es-Cyrl-MX; шпански (ћирилица, Мексико)
+hi-Latn; хинди (латиница)
+nl-BE; холандски (Белгија)
+nl-Latn-BE; холандски (латиница, Белгија)
+zh-Hans-fonipa; кинески (поједностављено кинеско писмо, ИПА фонетика)
+
+
+@locale=sr_Cyrl
+@languageDisplay=dialect
+
+en-MM; енглески (Мијанмар [Бурма])
+es; шпански
+es-419; шпански (Латинска Америка)
+es-Cyrl-MX; шпански (ћирилица, Мексико)
+hi-Latn; хинди (латиница)
+nl-BE; фламански
+nl-Latn-BE; фламански (латиница)
+zh-Hans-fonipa; поједностављени кинески (ИПА фонетика)
+
+
+@locale=sr_Latn
+@languageDisplay=standard
+
+en-MM; engleski (Mijanmar [Burma])
+es; španski
+es-419; španski (Latinska Amerika)
+es-Cyrl-MX; španski (ćirilica, Meksiko)
+hi-Latn; hindi (latinica)
+nl-BE; holandski (Belgija)
+nl-Latn-BE; holandski (latinica, Belgija)
+zh-Hans-fonipa; kineski (pojednostavljeno kinesko pismo, IPA fonetika)
+
+
+@locale=sr_Latn
+@languageDisplay=dialect
+
+en-MM; engleski (Mijanmar [Burma])
+es; španski
+es-419; španski (Latinska Amerika)
+es-Cyrl-MX; španski (ćirilica, Meksiko)
+hi-Latn; hindi (latinica)
+nl-BE; flamanski
+nl-Latn-BE; flamanski (latinica)
+zh-Hans-fonipa; pojednostavljeni kineski (IPA fonetika)
+
+
+@locale=sv
+@languageDisplay=standard
+
+en-MM; engelska (Myanmar [Burma])
+es; spanska
+es-419; spanska (Latinamerika)
+es-Cyrl-MX; spanska (kyrilliska, Mexiko)
+hi-Latn; hindi (latinska)
+nl-BE; nederländska (Belgien)
+nl-Latn-BE; nederländska (latinska, Belgien)
+zh-Hans-fonipa; kinesiska (förenklad, internationell fonetisk notation - IPA)
+
+
+@locale=sv
+@languageDisplay=dialect
+
+en-MM; engelska (Myanmar [Burma])
+es; spanska
+es-419; latinamerikansk spanska
+es-Cyrl-MX; mexikansk spanska (kyrilliska)
+hi-Latn; hindi [latinsk]
+nl-BE; flamländska
+nl-Latn-BE; flamländska (latinska)
+zh-Hans-fonipa; förenklad kinesiska (internationell fonetisk notation - IPA)
+
+
+@locale=sw
+@languageDisplay=standard
+
+en-MM; Kiingereza (Myanmar [Burma])
+es; Kihispania
+es-419; Kihispania (Amerika ya Kilatini)
+es-Cyrl-MX; Kihispania (Kisiriliki, Meksiko)
+hi-Latn; Kihindi (Kilatini)
+nl-BE; Kiholanzi (Ubelgiji)
+nl-Latn-BE; Kiholanzi (Kilatini, Ubelgiji)
+zh-Hans-fonipa; Kichina (Rahisi, FONIPA)
+
+
+@locale=sw
+@languageDisplay=dialect
+
+en-MM; Kiingereza (Myanmar [Burma])
+es; Kihispania
+es-419; Kihispania [Amerika ya Latini]
+es-Cyrl-MX; Kihispania (Kisiriliki, Meksiko)
+hi-Latn; Kihindi (Kilatini)
+nl-BE; Kiflemi
+nl-Latn-BE; Kiflemi (Kilatini)
+zh-Hans-fonipa; Kichina [Kilichorahisishwa] (FONIPA)
+
+
+@locale=ta
+@languageDisplay=standard
+
+en-MM; ஆங்கிலம் (மியான்மார் [பர்மா])
+es; ஸ்பானிஷ்
+es-419; ஸ்பானிஷ் (லத்தீன் அமெரிக்கா)
+es-Cyrl-MX; ஸ்பானிஷ் (சிரிலிக், மெக்சிகோ)
+hi-Latn; இந்தி (லத்தின்)
+nl-BE; டச்சு (பெல்ஜியம்)
+nl-Latn-BE; டச்சு (லத்தின், பெல்ஜியம்)
+zh-Hans-fonipa; சீனம் (எளிதாக்கப்பட்டது, FONIPA)
+
+
+@locale=ta
+@languageDisplay=dialect
+
+en-MM; ஆங்கிலம் (மியான்மார் [பர்மா])
+es; ஸ்பானிஷ்
+es-419; லத்தின் அமெரிக்க ஸ்பானிஷ்
+es-Cyrl-MX; மெக்ஸிகன் ஸ்பானிஷ் (சிரிலிக்)
+hi-Latn; இந்தி (லத்தின்)
+nl-BE; ஃப்லெமிஷ்
+nl-Latn-BE; ஃப்லெமிஷ் (லத்தின்)
+zh-Hans-fonipa; எளிதாக்கப்பட்ட சீனம் (FONIPA)
+
+
+@locale=te
+@languageDisplay=standard
+
+en-MM; ఇంగ్లీష్ (మయన్మార్)
+es; స్పానిష్
+es-419; స్పానిష్ (లాటిన్ అమెరికా)
+es-Cyrl-MX; స్పానిష్ (సిరిలిక్, మెక్సికో)
+hi-Latn; హిందీ (లాటిన్)
+nl-BE; డచ్ (బెల్జియం)
+nl-Latn-BE; డచ్ (లాటిన్, బెల్జియం)
+zh-Hans-fonipa; చైనీస్ (సరళీకృతం, FONIPA)
+
+
+@locale=te
+@languageDisplay=dialect
+
+en-MM; ఇంగ్లీష్ (మయన్మార్)
+es; స్పానిష్
+es-419; లాటిన్ అమెరికన్ స్పానిష్
+es-Cyrl-MX; మెక్సికన్ స్పానిష్ (సిరిలిక్)
+hi-Latn; హిందీ (లాటిన్)
+nl-BE; ఫ్లెమిష్
+nl-Latn-BE; ఫ్లెమిష్ (లాటిన్)
+zh-Hans-fonipa; సరళీకృత చైనీస్ (FONIPA)
+
+
+@locale=th
+@languageDisplay=standard
+
+en-MM; อังกฤษ (เมียนมา [พม่า])
+es; สเปน
+es-419; สเปน (ละตินอเมริกา)
+es-Cyrl-MX; สเปน (ซีริลลิก, เม็กซิโก)
+hi-Latn; ฮินดี (ละติน)
+nl-BE; ดัตช์ (เบลเยียม)
+nl-Latn-BE; ดัตช์ (ละติน, เบลเยียม)
+zh-Hans-fonipa; จีน (ตัวย่อ, สัทอักษรสากล)
+
+
+@locale=th
+@languageDisplay=dialect
+
+en-MM; อังกฤษ (เมียนมา [พม่า])
+es; สเปน
+es-419; สเปน - ละตินอเมริกา
+es-Cyrl-MX; สเปน - เม็กซิโก (ซีริลลิก)
+hi-Latn; ฮินดี (ละติน)
+nl-BE; เฟลมิช
+nl-Latn-BE; เฟลมิช (ละติน)
+zh-Hans-fonipa; จีนตัวย่อ (สัทอักษรสากล)
+
+
+@locale=ti
+@languageDisplay=standard
+
+en-MM; እንግሊዝኛ (ሚያንማር [በርማ])
+es; ስጳንኛ
+es-419; ስጳንኛ (ላቲን ኣመሪካ)
+es-Cyrl-MX; ስጳንኛ (ቋንቋ ሲሪል፣ ሜክሲኮ)
+hi-Latn; ሂንዲ (ላቲን)
+nl-BE; ዳች (ቤልጅዩም)
+nl-Latn-BE; ዳች (ላቲን፣ ቤልጅዩም)
+zh-Hans-fonipa; ቻይንኛ (ዝተቐለለ፣ FONIPA)
+
+
+@locale=ti
+@languageDisplay=dialect
+
+en-MM; እንግሊዝኛ (ሚያንማር [በርማ])
+es; ስጳንኛ
+es-419; ስጳንኛ (ላቲን ኣመሪካ)
+es-Cyrl-MX; ስጳንኛ (ቋንቋ ሲሪል፣ ሜክሲኮ)
+hi-Latn; ሂንዲ (ላቲን)
+nl-BE; ፍላሚሽ
+nl-Latn-BE; ፍላሚሽ (ላቲን)
+zh-Hans-fonipa; ቀሊል ቻይንኛ (FONIPA)
+
+
+@locale=tk
+@languageDisplay=standard
+
+en-MM; iňlis dili (Mýanma [Birma])
+es; ispan dili
+es-419; ispan dili (Latyn Amerikasy)
+es-Cyrl-MX; ispan dili (Kiril elipbiýi, Meksika)
+hi-Latn; hindi dili (Latyn elipbiýi)
+nl-BE; niderland dili (Belgiýa)
+nl-Latn-BE; niderland dili (Latyn elipbiýi, Belgiýa)
+zh-Hans-fonipa; hytaý dili (Ýönekeýleşdirilen, FONIPA)
+
+
+@locale=tk
+@languageDisplay=dialect
+
+en-MM; iňlis dili (Mýanma [Birma])
+es; ispan dili
+es-419; ispan dili (Latyn Amerikasy)
+es-Cyrl-MX; ispan dili (Kiril elipbiýi, Meksika)
+hi-Latn; hindi dili (Latyn elipbiýi)
+nl-BE; flamand dili
+nl-Latn-BE; flamand dili (Latyn elipbiýi)
+zh-Hans-fonipa; ýönekeýleşdirilen hytaý dili (FONIPA)
+
+
+@locale=tr
+@languageDisplay=standard
+
+en-MM; İngilizce (Myanmar [Burma])
+es; İspanyolca
+es-419; İspanyolca (Latin Amerika)
+es-Cyrl-MX; İspanyolca (Kiril, Meksika)
+hi-Latn; Hintçe (Latin)
+nl-BE; Felemenkçe (Belçika)
+nl-Latn-BE; Felemenkçe (Latin, Belçika)
+zh-Hans-fonipa; Çince (Basitleştirilmiş, IPA Ses Bilimi)
+
+
+@locale=tr
+@languageDisplay=dialect
+
+en-MM; İngilizce (Myanmar [Burma])
+es; İspanyolca
+es-419; Latin Amerika İspanyolcası
+es-Cyrl-MX; Meksika İspanyolcası (Kiril)
+hi-Latn; Hintçe (Latin)
+nl-BE; Flamanca
+nl-Latn-BE; Flamanca (Latin)
+zh-Hans-fonipa; Basitleştirilmiş Çince (IPA Ses Bilimi)
+
+
+@locale=uk
+@languageDisplay=standard
+
+en-MM; англійська (Мʼянма [Бірма])
+es; іспанська
+es-419; іспанська (Латинська Америка)
+es-Cyrl-MX; іспанська (кирилиця, Мексика)
+hi-Latn; гінді (латиниця)
+nl-BE; нідерландська (Бельгія)
+nl-Latn-BE; нідерландська (латиниця, Бельгія)
+zh-Hans-fonipa; китайська (спрощена, Міжнародний фонетичний алфавіт)
+
+
+@locale=uk
+@languageDisplay=dialect
+
+en-MM; англійська (Мʼянма [Бірма])
+es; іспанська
+es-419; іспанська (Латинська Америка)
+es-Cyrl-MX; іспанська (кирилиця, Мексика)
+hi-Latn; гінді (латиниця)
+nl-BE; фламандська
+nl-Latn-BE; фламандська (латиниця)
+zh-Hans-fonipa; китайська [спрощене письмо] (Міжнародний фонетичний алфавіт)
+
+
+@locale=ur
+@languageDisplay=standard
+
+en-MM; انگریزی (میانمار [برما])
+es; ہسپانوی
+es-419; ہسپانوی (لاطینی امریکہ)
+es-Cyrl-MX; ہسپانوی (سیریلک،میکسیکو)
+hi-Latn; ہندی (لاطینی)
+nl-BE; ڈچ (بیلجیم)
+nl-Latn-BE; ڈچ (لاطینی،بیلجیم)
+zh-Hans-fonipa; چینی (آسان،FONIPA)
+
+
+@locale=ur
+@languageDisplay=dialect
+
+en-MM; انگریزی (میانمار [برما])
+es; ہسپانوی
+es-419; لاطینی امریکی ہسپانوی
+es-Cyrl-MX; میکسیکن ہسپانوی (سیریلک)
+hi-Latn; ہندی (لاطینی)
+nl-BE; فلیمِش
+nl-Latn-BE; فلیمِش (لاطینی)
+zh-Hans-fonipa; چینی [آسان کردہ] (FONIPA)
+
+
+@locale=uz
+@languageDisplay=standard
+
+en-MM; inglizcha (Myanma [Birma])
+es; ispancha
+es-419; ispancha (Lotin Amerikasi)
+es-Cyrl-MX; ispancha (kirill, Meksika)
+hi-Latn; hind (lotin)
+nl-BE; niderland (Belgiya)
+nl-Latn-BE; niderland (lotin, Belgiya)
+zh-Hans-fonipa; xitoy (soddalashgan, FONIPA)
+
+
+@locale=uz
+@languageDisplay=dialect
+
+en-MM; inglizcha (Myanma [Birma])
+es; ispancha
+es-419; ispan [Lotin Amerikasi]
+es-Cyrl-MX; ispan [Meksika] (kirill)
+hi-Latn; hind (lotin)
+nl-BE; flamand
+nl-Latn-BE; flamand (lotin)
+zh-Hans-fonipa; xitoy [soddalashgan] (FONIPA)
+
+
+@locale=uz_Latn
+@languageDisplay=standard
+
+en-MM; inglizcha (Myanma [Birma])
+es; ispancha
+es-419; ispancha (Lotin Amerikasi)
+es-Cyrl-MX; ispancha (kirill, Meksika)
+hi-Latn; hind (lotin)
+nl-BE; niderland (Belgiya)
+nl-Latn-BE; niderland (lotin, Belgiya)
+zh-Hans-fonipa; xitoy (soddalashgan, FONIPA)
+
+
+@locale=uz_Latn
+@languageDisplay=dialect
+
+en-MM; inglizcha (Myanma [Birma])
+es; ispancha
+es-419; ispan [Lotin Amerikasi]
+es-Cyrl-MX; ispan [Meksika] (kirill)
+hi-Latn; hind (lotin)
+nl-BE; flamand
+nl-Latn-BE; flamand (lotin)
+zh-Hans-fonipa; xitoy [soddalashgan] (FONIPA)
+
+
+@locale=vi
+@languageDisplay=standard
+
+en-MM; Tiếng Anh (Myanmar [Miến Điện])
+es; Tiếng Tây Ban Nha
+es-419; Tiếng Tây Ban Nha (Châu Mỹ La-tinh)
+es-Cyrl-MX; Tiếng Tây Ban Nha (Chữ Kirin, Mexico)
+hi-Latn; Tiếng Hindi (Chữ La tinh)
+nl-BE; Tiếng Hà Lan (Bỉ)
+nl-Latn-BE; Tiếng Hà Lan (Chữ La tinh, Bỉ)
+zh-Hans-fonipa; Tiếng Trung (Giản thể, Ngữ âm học IPA)
+
+
+@locale=vi
+@languageDisplay=dialect
+
+en-MM; Tiếng Anh (Myanmar [Miến Điện])
+es; Tiếng Tây Ban Nha
+es-419; Tiếng Tây Ban Nha [Mỹ La tinh]
+es-Cyrl-MX; Tiếng Tây Ban Nha (Chữ Kirin, Mexico)
+hi-Latn; Tiếng Hindi (Chữ La tinh)
+nl-BE; Tiếng Hà Lan (Bỉ)
+nl-Latn-BE; Tiếng Hà Lan (Chữ La tinh, Bỉ)
+zh-Hans-fonipa; Tiếng Trung (Giản thể, Ngữ âm học IPA)
+
+
+@locale=yo
+@languageDisplay=standard
+
+en-MM; Èdè Gẹ̀ẹ́sì (Manamari)
+es; Èdè Sípáníìṣì
+es-419; Èdè Sípáníìṣì (Látín Amẹ́ríkà)
+es-Cyrl-MX; Èdè Sípáníìṣì (èdè ilẹ̀ Rọ́ṣíà, Mesiko)
+hi-Latn; Èdè Híńdì (Èdè Látìn)
+nl-BE; Èdè Dọ́ọ̀ṣì (Bégíọ́mù)
+nl-Latn-BE; Èdè Dọ́ọ̀ṣì (Èdè Látìn, Bégíọ́mù)
+zh-Hans-fonipa; Edè Ṣáínà (tí wọ́n mú rọrùn., FONIPA)
+
+
+@locale=yo
+@languageDisplay=dialect
+
+en-MM; Èdè Gẹ̀ẹ́sì (Manamari)
+es; Èdè Sípáníìṣì
+es-419; Èdè Sípáníìṣì [orílẹ̀-èdè Látìn-Amẹ́ríkà]
+es-Cyrl-MX; Èdè Sípáníìṣì [orílẹ̀-èdè Mẹ́síkò] (èdè ilẹ̀ Rọ́ṣíà)
+hi-Latn; Èdè Híndì [Látìnì]
+nl-BE; Èdè Flemiṣi
+nl-Latn-BE; Èdè Flemiṣi (Èdè Látìn)
+zh-Hans-fonipa; Ẹdè Ṣáínà Onírọ̀rùn (FONIPA)
+
+
+@locale=yue
+@languageDisplay=standard
+
+en-MM; 英文 (緬甸)
+es; 西班牙文
+es-419; 西班牙文 (拉丁美洲)
+es-Cyrl-MX; 西班牙文 (斯拉夫文，墨西哥)
+hi-Latn; 北印度文 (拉丁文)
+nl-BE; 荷蘭文 (比利時)
+nl-Latn-BE; 荷蘭文 (拉丁文，比利時)
+zh-Hans-fonipa; 中文 (簡體，IPA 拼音)
+
+
+@locale=yue
+@languageDisplay=dialect
+
+en-MM; 英文 (緬甸)
+es; 西班牙文
+es-419; 西班牙文 (拉丁美洲)
+es-Cyrl-MX; 西班牙文 (斯拉夫文，墨西哥)
+hi-Latn; 北印度文 (拉丁文)
+nl-BE; 佛蘭芒文
+nl-Latn-BE; 佛蘭芒文 (拉丁文)
+zh-Hans-fonipa; 簡體中文 (IPA 拼音)
+
+
+@locale=yue_Hans
+@languageDisplay=standard
+
+en-MM; 英文 (缅甸)
+es; 西班牙文
+es-419; 西班牙文 (拉丁美洲)
+es-Cyrl-MX; 西班牙文 (斯拉夫文，墨西哥)
+hi-Latn; 北印度文 (拉丁文)
+nl-BE; 荷兰文 (比利时)
+nl-Latn-BE; 荷兰文 (拉丁文，比利时)
+zh-Hans-fonipa; 中文 (简体，IPA 拼音)
+
+
+@locale=yue_Hans
+@languageDisplay=dialect
+
+en-MM; 英文 (缅甸)
+es; 西班牙文
+es-419; 西班牙文 (拉丁美洲)
+es-Cyrl-MX; 西班牙文 (斯拉夫文，墨西哥)
+hi-Latn; 北印度文 (拉丁文)
+nl-BE; 佛兰芒文
+nl-Latn-BE; 佛兰芒文 (拉丁文)
+zh-Hans-fonipa; 简体中文 (IPA 拼音)
+
+
+@locale=yue_Hant
+@languageDisplay=standard
+
+en-MM; 英文 (緬甸)
+es; 西班牙文
+es-419; 西班牙文 (拉丁美洲)
+es-Cyrl-MX; 西班牙文 (斯拉夫文，墨西哥)
+hi-Latn; 北印度文 (拉丁文)
+nl-BE; 荷蘭文 (比利時)
+nl-Latn-BE; 荷蘭文 (拉丁文，比利時)
+zh-Hans-fonipa; 中文 (簡體，IPA 拼音)
+
+
+@locale=yue_Hant
+@languageDisplay=dialect
+
+en-MM; 英文 (緬甸)
+es; 西班牙文
+es-419; 西班牙文 (拉丁美洲)
+es-Cyrl-MX; 西班牙文 (斯拉夫文，墨西哥)
+hi-Latn; 北印度文 (拉丁文)
+nl-BE; 佛蘭芒文
+nl-Latn-BE; 佛蘭芒文 (拉丁文)
+zh-Hans-fonipa; 簡體中文 (IPA 拼音)
+
+
+@locale=zh
+@languageDisplay=standard
+
+en-MM; 英语（缅甸）
+es; 西班牙语
+es-419; 西班牙语（拉丁美洲）
+es-Cyrl-MX; 西班牙语（西里尔文，墨西哥）
+hi-Latn; 印地语（拉丁文）
+nl-BE; 荷兰语（比利时）
+nl-Latn-BE; 荷兰语（拉丁文，比利时）
+zh-Hans-fonipa; 中文（简体，国际音标）
+
+
+@locale=zh
+@languageDisplay=dialect
+
+en-MM; 英语（缅甸）
+es; 西班牙语
+es-419; 拉丁美洲西班牙语
+es-Cyrl-MX; 墨西哥西班牙语（西里尔文）
+hi-Latn; 印地语［拉丁字母］
+nl-BE; 弗拉芒语
+nl-Latn-BE; 弗拉芒语（拉丁文）
+zh-Hans-fonipa; 简体中文（国际音标）
+
+
+@locale=zh_Hans
+@languageDisplay=standard
+
+en-MM; 英语（缅甸）
+es; 西班牙语
+es-419; 西班牙语（拉丁美洲）
+es-Cyrl-MX; 西班牙语（西里尔文，墨西哥）
+hi-Latn; 印地语（拉丁文）
+nl-BE; 荷兰语（比利时）
+nl-Latn-BE; 荷兰语（拉丁文，比利时）
+zh-Hans-fonipa; 中文（简体，国际音标）
+
+
+@locale=zh_Hans
+@languageDisplay=dialect
+
+en-MM; 英语（缅甸）
+es; 西班牙语
+es-419; 拉丁美洲西班牙语
+es-Cyrl-MX; 墨西哥西班牙语（西里尔文）
+hi-Latn; 印地语［拉丁字母］
+nl-BE; 弗拉芒语
+nl-Latn-BE; 弗拉芒语（拉丁文）
+zh-Hans-fonipa; 简体中文（国际音标）
+
+
+@locale=zh_Hant
+@languageDisplay=standard
+
+en-MM; 英文（緬甸）
+es; 西班牙文
+es-419; 西班牙文（拉丁美洲）
+es-Cyrl-MX; 西班牙文（西里爾文字，墨西哥）
+hi-Latn; 印地文（拉丁字母）
+nl-BE; 荷蘭文（比利時）
+nl-Latn-BE; 荷蘭文（拉丁字母，比利時）
+zh-Hans-fonipa; 中文（簡體，IPA 拼音）
+
+
+@locale=zh_Hant
+@languageDisplay=dialect
+
+en-MM; 英文（緬甸）
+es; 西班牙文
+es-419; 西班牙文（拉丁美洲）
+es-Cyrl-MX; 西班牙文（西里爾文字，墨西哥）
+hi-Latn; 印地語［拉丁文］
+nl-BE; 法蘭德斯文
+nl-Latn-BE; 法蘭德斯文（拉丁字母）
+zh-Hans-fonipa; 簡體中文（IPA 拼音）
+
+
+@locale=zu
+@languageDisplay=standard
+
+en-MM; i-English (i-Myanmar [Burma])
+es; isi-Spanish
+es-419; isi-Spanish (i-Latin America)
+es-Cyrl-MX; isi-Spanish (isi-Cyrillic, i-Mexico)
+hi-Latn; isi-Hindi (isi-Latin)
+nl-BE; isi-Dutch (i-Belgium)
+nl-Latn-BE; isi-Dutch (isi-Latin, i-Belgium)
+zh-Hans-fonipa; isi-Chinese (enziwe lula, Ifonotiki ye-IPA)
+
+
+@locale=zu
+@languageDisplay=dialect
+
+en-MM; i-English (i-Myanmar [Burma])
+es; isi-Spanish
+es-419; isi-Latin American Spanish
+es-Cyrl-MX; isi-Mexican Spanish (isi-Cyrillic)
+hi-Latn; isi-Hindi (isi-Latin)
+nl-BE; isi-Flemish
+nl-Latn-BE; isi-Flemish (isi-Latin)
+zh-Hans-fonipa; isi-Chinese [esenziwe-lula] (Ifonotiki ye-IPA)
+

@@ -125,10 +125,10 @@ ICULIBS_COMMON_LIB_NAME_A = ${LIBICU}${COMMON_STUBNAME}${ICULIBSUFFIX}.${A}
 ICULIBS = $(ICULIBS_BASE) $(ICULIBS_I18N) $(ICULIBS_COMMON) $(ICULIBS_DATA) 
 
 # Proper echo newline handling is needed in icu-config
-ECHO_N=@ICU_ECHO_N@
-ECHO_C=@ICU_ECHO_C@
+ECHO_N=@ECHO_N@
+ECHO_C=@ECHO_C@
 # Not currently being used but good to have for proper tab handling
-ECHO_T=@ICU_ECHO_T@
+ECHO_T=@ECHO_T@
 
 ##################################################################
 ##################################################################

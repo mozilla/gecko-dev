@@ -234,7 +234,7 @@ int  main(int argc, char **argv) {
                                               &errType, &parseError, &status);
     if (U_FAILURE(status)) {
         fprintf(stderr, "gencfu: uspoof_openFromSource error \"%s\"  at file %s, line %d, column %d\n",
-                u_errorName(status), confFileName, (int)parseError.line, (int)parseError.offset);
+                u_errorName(status), confFileName, static_cast<int>(parseError.line), static_cast<int>(parseError.offset));
         exit(status);
     }
 
@@ -307,7 +307,7 @@ int  main(int argc, char **argv) {
     FILE        *file;
 
     file = fopen(fileName, "rb");
-    if( file == 0 ) {
+    if (file == nullptr) {
         return nullptr;
     }
     fseek(file, 0, SEEK_END);

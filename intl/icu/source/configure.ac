@@ -6,15 +6,16 @@ AC_COPYRIGHT([ Copyright (C) 2016 and later: Unicode, Inc. and others. License &
 
 # NOTE: please use 'autoreconf' to rebuild, otherwise 'aclocal && autoconf'.
 
-# Check for autoconf version
-AC_PREREQ(2.69)
+# Check for minimum autoconf version. Use exactly this version when rebuilding
+# 'aclocal.m4' and 'configure' for merging upstream, to avoid spurious diffs.
+AC_PREREQ([2.72])
 
 # Process this file with autoreconf to produce a configure script
 AC_INIT([ICU],
-        m4_esyscmd_s([sed -n 's/^[ 	]*#[ 	]*define[ 	]*U_ICU_VERSION[ 	]*"\([^"]*\)".*/\1/p' "./common/unicode/uvernum.h]"),
-        [http://icu-project.org/bugs],
-        [International Components for Unicode],
-        [http://icu-project.org])
+        m4_esyscmd_s([sed -n 's/^[ 	]*#[ 	]*define[ 	]*U_ICU_VERSION[ 	]*"\([^"]*\)".*/\1/p' common/unicode/uvernum.h]),
+        [https://icu.unicode.org/bugs],
+        [icu4c],
+        [https://icu.unicode.org/])
 
 # Instruct Python to never write any byte code to the ICU source tree.
 PYTHONDONTWRITEBYTECODE=1
@@ -25,24 +26,6 @@ AC_CONFIG_SRCDIR([common/unicode/utypes.h])
 
 PACKAGE="icu"
 AC_SUBST(PACKAGE)
-
-# Use custom echo test for newline option
-# Current autoconf (2.65) gives incorrect echo newline option
-# for icu-config
-# This may be removed later - mow (June 17, 2010)
-ICU_ECHO_C= ICU_ECHO_N= ICU_ECHO_T=
-case `/bin/sh -c "echo -n x"` in
--n*)
-  case `/bin/sh -c "echo 'x\c'"` in
-  *c*) ICU_ECHO_T=' ';;     # ECHO_T is single tab character.
-  *)   ICU_ECHO_C='\c';;
-  esac;;
-*)
-  ICU_ECHO_N='-n';;
-esac
-AC_SUBST(ICU_ECHO_N)
-AC_SUBST(ICU_ECHO_C)
-AC_SUBST(ICU_ECHO_T)
 
 AC_MSG_CHECKING(for ICU version numbers)
 
@@ -147,10 +130,15 @@ AC_SUBST(ENABLE_RELEASE)
 : ${CXXFLAGS=""}
 
 # Checks for compilers
-AC_PROG_CC([clang gcc cc c99 c89 xlc_r xlc cl.exe icc])
-# Make sure that we try clang++ first, which provides C++11 support.
-# The g++ compiler is less likely to support C++11.
-AC_PROG_CXX([clang++ g++ c++ gpp xlC_r xlC aCC CC cxx cc++ cl.exe icc FCC KCC RCC])
+AC_PROG_CC([cc clang gcc c99 c89 xlc_r xlc cl.exe icc])
+AC_PROG_CXX([c++ clang++ g++ gpp xlC_r xlC aCC CC cxx cc++ cl.exe icc FCC KCC RCC])
+
+AC_MSG_NOTICE([versions of the compilers used:])
+(
+    set -x
+    $CC --version
+    $CXX --version
+) 2>&1 | sed 's/^/  /' >&AS_MESSAGE_FD
 
 # pkg-config is needed for harfbuzz support
 PKG_PROG_PKG_CONFIG([0.20])
@@ -175,6 +163,21 @@ if test "$GCC" = yes; then
             CXXFLAGS="$CXXFLAGS -O2"
         fi
     fi
+    # if CFLAGS does not have a "-std=" setting, set it now to -std=c11,
+    # and check that the compiler still works.
+    if ! echo "$CFLAGS" | grep '\-std=' >/dev/null 2>&1; then
+        OLD_CFLAGS="${CFLAGS}"
+        CFLAGS="$CFLAGS -std=c11"
+        AC_MSG_CHECKING([[if we have a C11 compiler]])
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],[c11_okay=yes],[c11_okay=no])
+        AC_MSG_RESULT($c11_okay)
+        if [[ $c11_okay = yes ]]; then
+            AC_MSG_NOTICE([Adding CFLAGS option -std=c11])
+            UCONFIG_CFLAGS="${UCONFIG_CFLAGS} -std=c11"
+        else
+            CFLAGS="$OLD_CFLAGS"
+        fi
+    fi
 fi
 
 AC_PROG_CPP
@@ -183,11 +186,6 @@ AC_PROG_INSTALL
 
 AC_SUBST(cross_compiling)
 
-dnl use the pld hack to get ac_fn_cxx_try_link defined globally and not local
-AC_LANG_PUSH([C++])
-AC_LINK_IFELSE([AC_LANG_PROGRAM()])
-AC_LANG_POP([C++])
-
 # make sure install is relative to srcdir - if a script
 if test "$srcdir" = "."; then
   # If srcdir isn't just ., then (srcdir) is already prepended.
@@ -195,11 +193,6 @@ if test "$srcdir" = "."; then
    INSTALL="\\\$(top_srcdir)/${ac_install_sh}"
   fi
 fi
-
-#AC_CHECK_PROG(AUTOCONF, autoconf, autoconf, true)
-#AC_CHECK_PROG(STRIP, strip, strip, true)
-
-m4_ifndef([AX_CHECK_COMPILE_FLAG], [AC_MSG_ERROR(['autoconf-archive' is missing])])
 
 # TODO(ICU-20301): Remove fallback to Python 2.
 AC_CHECK_PROGS(PYTHON, python3 "py -3" python "py")
@@ -313,7 +306,7 @@ if test "$ENABLE_STATIC" = "YES"; then
             OLD_LDFLAGS="${LDFLAGS}"
 
             case "${host}" in
-            *-linux*|i*86-*-*bsd*|i*86-pc-gnu)
+            *-linux*|i*86-*-*bsd*|i*86-pc-gnu|*-haiku*)
                 if test "$GCC" = yes; then
                     CPPFLAGS="${CPPFLAGS} -ffunction-sections -fdata-sections"
                     LDFLAGS="${LDFLAGS} -Wl,--gc-sections"
@@ -350,24 +343,6 @@ AC_ARG_ENABLE(auto-cleanup,
 )
 AC_MSG_RESULT($enabled)
 AC_SUBST(UCLN_NO_AUTO_CLEANUP)
-
-# MSVC floating-point option
-MSVC_RELEASE_FLAG=""
-if test $enabled = yes
-then
-    if test $icu_cv_host_frag = mh-cygwin-msvc -o $icu_cv_host_frag = mh-msys-msvc
-    then
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-    #if defined _MSC_VER && _MSC_VER >= 1400
-    #else
-    Microsoft Visual C++ < 2005
-    #endif
-        ]], [[]])],[MSVC_RELEASE_FLAG="/fp:precise"],[MSVC_RELEASE_FLAG="/Op"])
-
-        CFLAGS="${CFLAGS} ${MSVC_RELEASE_FLAG}"
-        CXXFLAGS="${CXXFLAGS} ${MSVC_RELEASE_FLAG}"
-    fi
-fi
 
 # Check whether to enabled draft APIs
 AC_MSG_CHECKING([whether to enable draft APIs])
@@ -515,17 +490,17 @@ else
 fi
 
 if [[ "$GXX" = yes ]]; then
-    # if CXXFLAGS does not have a "-std=" setting, set it now to -std=c++11,
+    # if CXXFLAGS does not have a "-std=" setting, set it now to -std=c++17,
     # and check that the compiler still works.
     if ! echo "$CXXFLAGS" | grep '\-std=' >/dev/null 2>&1; then
         OLD_CXXFLAGS="${CXXFLAGS}"
-        CXXFLAGS="$CXXFLAGS -std=c++11"
-        AC_MSG_CHECKING([[if we have a C++11 compiler]])
-        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],[cxx11_okay=yes],[cxx11_okay=no])
-        AC_MSG_RESULT($cxx11_okay)
-        if [[ $cxx11_okay = yes ]]; then
-            AC_MSG_NOTICE([Adding CXXFLAGS option -std=c++11])
-            UCONFIG_CXXFLAGS="${UCONFIG_CXXFLAGS} -std=c++11"
+        CXXFLAGS="$CXXFLAGS -std=c++17"
+        AC_MSG_CHECKING([[if we have a C++17 compiler]])
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]],[[]])],[cxx17_okay=yes],[cxx17_okay=no])
+        AC_MSG_RESULT($cxx17_okay)
+        if [[ $cxx17_okay = yes ]]; then
+            AC_MSG_NOTICE([Adding CXXFLAGS option -std=c++17])
+            UCONFIG_CXXFLAGS="${UCONFIG_CXXFLAGS} -std=c++17"
         else
             CXXFLAGS="$OLD_CXXFLAGS"
         fi
@@ -672,22 +647,7 @@ AC_SUBST(GENCCODE_ASSEMBLY)
 AC_MSG_RESULT($GENCCODE_ASSEMBLY)
 
 # Checks for header files
-AC_CHECK_HEADERS(inttypes.h)
-if test $ac_cv_header_inttypes_h = no; then
- U_HAVE_INTTYPES_H=0
- CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_INTTYPES_H=0"
-else
- U_HAVE_INTTYPES_H=1
-fi
-if test "$CC" = ccc; then
- AC_MSG_RESULT("C compiler set to CCC ${CC}" )
- case "${host}" in
-        alpha*-*-*) U_HAVE_INTTYPES_H=0;
-        CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_INTTYPES_H=0"
- esac
-fi
 
-AC_SUBST(U_HAVE_INTTYPES_H)
 
 AC_CHECK_HEADERS(dirent.h)
 if test $ac_cv_header_dirent_h = no; then
@@ -700,14 +660,13 @@ fi
 AC_SUBST(U_HAVE_DIRENT_H)
 
 # Check for endianness
-AC_C_BIGENDIAN()
-if test $ac_cv_c_bigendian = no; then
-U_IS_BIG_ENDIAN=0
-U_ENDIAN_CHAR="l"
-else
-U_IS_BIG_ENDIAN=1
-U_ENDIAN_CHAR="b"
-fi
+AC_C_BIGENDIAN([
+    U_IS_BIG_ENDIAN=1
+    U_ENDIAN_CHAR="b"
+  ], [
+    U_IS_BIG_ENDIAN=0
+    U_ENDIAN_CHAR="l"
+  ], [], AC_MSG_ERROR([universal endianness not supported]))
 AC_SUBST(U_IS_BIG_ENDIAN)
 
 # Do various POSIX related checks
@@ -737,20 +696,7 @@ fi
 AC_SUBST(U_HAVE_NL_LANGINFO_CODESET)
 AC_SUBST(U_NL_LANGINFO_CODESET)
 
-# Namespace support checks
 AC_LANG(C++)
-AC_MSG_CHECKING([for namespace support])
-AC_CACHE_VAL(ac_cv_namespace_ok,
-    [AC_LINK_IFELSE([AC_LANG_PROGRAM([namespace x_version {void f(){}}
-    namespace x = x_version;
-    using namespace x_version;
-    ], [f();])],[ac_cv_namespace_ok=yes],[ac_cv_namespace_ok=no])] )
-AC_MSG_RESULT($ac_cv_namespace_ok)
-if test $ac_cv_namespace_ok = no
-then
-    AC_MSG_ERROR(Namespace support is required to build ICU.)
-fi
-
 AC_MSG_CHECKING([for properly overriding new and delete])
 U_OVERRIDE_CXX_ALLOCATION=0
 U_HAVE_PLACEMENT_NEW=0
@@ -899,56 +845,6 @@ else
     U_HAVE_STRTOD_L=0
 fi
 AC_SUBST(U_HAVE_STRTOD_L)
-
-# Check if C++17 std::string_view is available.
-AC_LANG_PUSH([C++])
-AC_CHECK_TYPE(std::string_view, [], [], [[#include <string_view>]])
-if test "x$ac_cv_type_std__string_view" = xyes; then :
-  CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_STRING_VIEW=1"
-fi
-AC_LANG_POP([C++])
-
-# Checks for typedefs
-AC_CHECK_TYPE(int8_t,signed char)
-AC_CHECK_TYPE(uint8_t,unsigned char)
-AC_CHECK_TYPE(int16_t,signed short)
-AC_CHECK_TYPE(uint16_t,unsigned short)
-AC_CHECK_TYPE(int32_t,signed long)
-AC_CHECK_TYPE(uint32_t,unsigned long)
-AC_CHECK_TYPE(int64_t,signed long long)
-AC_CHECK_TYPE(uint64_t,unsigned long long)
-
-if test $ac_cv_type_int8_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_INT8_T=0"
-fi
-
-if test $ac_cv_type_uint8_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_UINT8_T=0"
-fi
-
-if test $ac_cv_type_int16_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_INT16_T=0"
-fi
-
-if test $ac_cv_type_uint16_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_UINT16_T=0"
-fi
-
-if test $ac_cv_type_int32_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_INT32_T=0"
-fi
-
-if test $ac_cv_type_uint32_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_UINT32_T=0"
-fi
-
-if test $ac_cv_type_int64_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_INT64_T=0"
-fi
-
-if test $ac_cv_type_uint64_t = no; then
-CONFIG_CPPFLAGS="${CONFIG_CPPFLAGS} -DU_HAVE_UINT64_T=0"
-fi
 
 # Do various wchar_t related checks
 AC_CHECK_HEADER(wchar.h)
@@ -1295,6 +1191,7 @@ case "${host}" in
 	*-*-nto*)	platform=U_QNX ;;
 	*-dec-osf*) 	platform=U_OSF ;;
 	*-*-beos)		platform=U_BEOS ;;
+	*-*-haiku)	platform=U_HAIKU ;;
 	*-*-irix*)		platform=U_IRIX ;;
 	*-ncr-*)		platform=U_MPRAS ;;
 	*) 		platform=U_UNKNOWN_PLATFORM ;;
@@ -1313,16 +1210,6 @@ fi
 
 # Now that we're done using CPPFLAGS etc. for tests, we can change it
 # for build.
-
-AC_LANG_PUSH([C++])
-# Silence a Clang warning about ambiguous operators with C++20 rewritten
-# expressions that possibly or maybe even probably is a mistake (ICU-20973).
-AX_CHECK_COMPILE_FLAG(
-  [-Wambiguous-reversed-operator],
-  [CXXFLAGS+=" -Wno-ambiguous-reversed-operator"],
-  [],
-  [-Werror])
-AC_LANG_POP([C++])
 
 if test "${CC}" = "clang"; then
    CLANGCFLAGS="-Qunused-arguments -Wno-parentheses-equality"
@@ -1419,8 +1306,7 @@ AC_CONFIG_FILES([icudefs.mk \
 		test/perf/utrie2perf/Makefile \
 		test/perf/leperf/Makefile \
 		test/fuzzer/Makefile \
-		samples/Makefile samples/date/Makefile \
-		samples/cal/Makefile samples/layout/Makefile])
+		samples/Makefile])
 AC_OUTPUT
 
 if test -z "$PYTHON";

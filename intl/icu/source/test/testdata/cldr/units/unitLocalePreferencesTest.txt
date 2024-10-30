@@ -1,0 +1,42 @@
+# Test data for unit locale preferences
+#  Copyright © 1991-2024 Unicode, Inc.
+#  For terms of use, see http://www.unicode.org/copyright.html
+#  SPDX-License-Identifier: Unicode-3.0
+#  CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+#
+# Format:
+#	input-unit; amount; usage;	languageTag; expected-unit; expected-amount # comment
+#
+#   • The amounts are both rationals
+#   • The comment is optional (if it isn't present the # can be omitted)
+#
+# Use: Convert the Input amount & unit according to the Usage and Locale.
+#	 The result should match the Expected amount and unit.
+#
+#	 The input and expected output units are unit identifers; in particular, the output does not have further processing:
+#		 • no localization
+#
+fahrenheit;	1;	default;	en-u-rg-uszzzz-ms-ussystem-mu-celsius;	celsius;	-155/9	# mu > ms > rg > (likely) region
+fahrenheit;	1;	default;	en-u-rg-uszzzz-ms-ussystem-mu-celsius;	celsius;	-155/9
+fahrenheit;	1;	default;	en-u-rg-uszzzz-ms-metric;	celsius;	-155/9
+fahrenheit;	1;	default;	en-u-rg-dezzzz;	celsius;	-155/9
+fahrenheit;	1;	default;	en-DE;	celsius;	-155/9	# explicit region > likely region
+fahrenheit;	1;	default;	en-US;	fahrenheit;	1
+fahrenheit;	1;	default;	en;	fahrenheit;	1	# likely region = US
+gallon-imperial;	2.5;	fluid;	en-u-rg-uszzzz-ms-metric;	liter;	11.365225
+gallon-imperial;	2.5;	fluid;	en-u-rg-dezzzz;	liter;	11.365225
+gallon-imperial;	2.5;	fluid;	en-DE;	liter;	11.365225
+gallon-imperial;	2.5;	fluid;	en-US-u-rg-uszzzz-ms-uksystem;	gallon-imperial;	2.5	# ms-uksystem should behave like GB
+gallon-imperial;	2.5;	fluid;	en-u-rg-gbzzzz;	gallon-imperial;	2.5
+gallon-imperial;	2.5;	fluid;	en-GB;	gallon-imperial;	2.5
+gallon-imperial;	2.5;	fluid;	en-u-rg-uszzzz-ms-ussystem;	gallon;	1,420,653,125/473176473
+gallon-imperial;	2.5;	fluid;	en-u-rg-uszzzz;	gallon;	1,420,653,125/473176473
+gallon-imperial;	2.5;	fluid;	en-US;	gallon;	1,420,653,125/473176473
+gallon-imperial;	2.5;	fluid;	en;	gallon;	1,420,653,125/473176473	# likely region = US
+ampere;	2.5;	default;	en;	ampere;	2.5	# an input unit whose quantity has no preference data should get base units
+pound-force-foot;	12,345;	default;	en;	kilowatt-hour;	0.004649325714486427205
+kilocandela;	1;	default;	en;	candela;	1,000	# an input unit whose quantity has no preference data should get base units
+candela-per-byte;	1;	default;	en;	candela-per-bit;	0.125	# an input unit that has no quantity should get base units
+candela-per-cubic-foot;	1;	default;	en;	candela-per-cubic-meter;	1,953,125,000/55306341	# an input unit that has no quantity should get base units
+foot;	1;	default;	de-u-mu-celsius;	centimeter;	30.48	# a -mu unit that is not convertible from the input unit should get ignored
+#pound;	28;	default;	en-u-mu-stone;	stone;	2 # only temperature units are supported

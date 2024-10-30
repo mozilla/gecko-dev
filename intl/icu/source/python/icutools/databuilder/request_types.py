@@ -228,9 +228,10 @@ class RepeatedOrSingleExecutionRequest(AbstractExecutionRequest):
 
 
 class PrintFileRequest(AbstractRequest):
-    def __init__(self, **kwargs):
+    def __init__(self, shall_be_utf8 = False, **kwargs):
         self.output_file = None
         self.content = None
+        self.shall_be_utf8 = shall_be_utf8
         super(PrintFileRequest, self).__init__(**kwargs)
 
     def all_output_files(self):
@@ -317,6 +318,7 @@ class IndexRequest(AbstractRequest):
             PrintFileRequest(
                 name = self.name,
                 output_file = self.txt_file,
+                shall_be_utf8 = True,
                 content = self._generate_index_file(common_vars)
             ).flatten(config, all_requests, common_vars) +
             SingleExecutionRequest(

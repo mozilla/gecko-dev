@@ -273,6 +273,12 @@ main(int argc, char* argv[]) {
 
     const char* sourcedir = options[SOURCEDIR].value;
     if (sourcedir != NULL && *sourcedir != 0) {
+        if (strlen(sourcedir) + strlen(path) + 2 > sizeof(pathBuf)) {
+            fprintf(stderr,
+                    "The source file name is too long, it must be less than %d in bytes.\n",
+                    (int) sizeof(pathBuf) - 1);
+            exit(U_ILLEGAL_ARGUMENT_ERROR);
+        }
         char *end;
         uprv_strcpy(pathBuf, sourcedir);
         end = uprv_strchr(pathBuf, 0);
@@ -844,7 +850,6 @@ resolveAliasToConverter(uint16_t alias, uint16_t *tagNum, uint16_t *converterNum
     fprintf(stderr, "%s: warning: alias %s not found\n",
         path,
         GET_ALIAS_STR(alias));
-    return;
 }
 
 /* The knownAliases should be sorted before calling this function */

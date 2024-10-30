@@ -29,9 +29,8 @@
   <!-- Options that are common to *all* project configurations -->
   <ItemDefinitionGroup>
     <ClCompile>
-       <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\..\i18n;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\..\i18n;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>U_TOOLUTIL_IMPLEMENTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
     </ClCompile>
@@ -197,31 +196,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="collationinfo.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="collationinfo.cpp" />
     <ClCompile Include="denseranges.cpp" />
     <ClCompile Include="filestrm.cpp" />
     <ClCompile Include="filetools.cpp" />
     <ClCompile Include="flagparser.cpp" />
     <ClCompile Include="package.cpp" />
-    <ClCompile Include="pkg_genc.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="pkg_gencmn.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="pkg_genc.cpp" />
+    <ClCompile Include="pkg_gencmn.cpp" />
     <ClCompile Include="pkg_icu.cpp" />
     <ClCompile Include="pkgitems.cpp" />
-    <ClCompile Include="ppucd.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="swapimpl.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="toolutil.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="ppucd.cpp" />
+    <ClCompile Include="swapimpl.cpp" />
+    <ClCompile Include="toolutil.cpp" />
     <ClCompile Include="ucbuf.cpp" />
     <ClCompile Include="ucm.cpp" />
     <ClCompile Include="ucmstate.cpp" />
@@ -229,18 +216,10 @@
     <ClCompile Include="uoptions.cpp" />
     <ClCompile Include="uparse.cpp" />
     <ClCompile Include="writesrc.cpp" />
-    <ClCompile Include="xmlparser.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="dbgutil.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="udbgutil.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="ucln_tu.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="xmlparser.cpp" />
+    <ClCompile Include="dbgutil.cpp" />
+    <ClCompile Include="udbgutil.cpp" />
+    <ClCompile Include="ucln_tu.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="collationinfo.h" />

@@ -99,7 +99,6 @@ inline int32_t umtx_atomic_dec(u_atomic_int32_t *var) {
 #else
 
 typedef int32_t u_atomic_int32_t;
-#define ATOMIC_INT32_T_INITIALIZER(val) val
 
 inline int32_t umtx_loadAcquire(u_atomic_int32_t &var) {
     return var;

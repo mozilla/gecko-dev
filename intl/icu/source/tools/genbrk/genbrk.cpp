@@ -22,9 +22,8 @@
 //
 //   The input rule file is a plain text file containing break rules
 //    in the input format accepted by RuleBasedBreakIterators.  The
-//    file can be encoded as utf-8, or utf-16 (either endian), or
-//    in the default code page (platform dependent.).  utf encoded
-//    files must include a BOM.
+//    file can be encoded as UTF-8 or UTF-16 (either endian).  Files
+//    encoded as UTF-16 must include a BOM.
 //
 //--------------------------------------------------------------------
 
@@ -63,7 +62,9 @@ static UOption options[]={
 
 void usageAndDie(int retCode) {
         printf("Usage: %s [-v] [-options] -r rule-file -o output-file\n", progName);
-        printf("\tRead in break iteration rules text and write out the binary data\n"
+        printf("\tRead in break iteration rules text and write out the binary data.\n"
+            "\tIf the rule file does not have a Unicode signature byte sequence, it is assumed\n"
+            "\tto be UTF-8.\n"
             "options:\n"
             "\t-h or -? or --help  this usage text\n"
             "\t-V or --version     show a version message\n"
@@ -207,7 +208,7 @@ int  main(int argc, char **argv) {
     char        *ruleBufferC;
 
     file = fopen(ruleFileName, "rb");
-    if( file == 0 ) {
+    if (file == nullptr) {
         fprintf(stderr, "Could not open file \"%s\"\n", ruleFileName);
         exit(-1);
     }
@@ -216,7 +217,7 @@ int  main(int argc, char **argv) {
     fseek(file, 0, SEEK_SET);
     ruleBufferC = new char[ruleFileSize+10];
 
-    result = (long)fread(ruleBufferC, 1, ruleFileSize, file);
+    result = static_cast<long>(fread(ruleBufferC, 1, ruleFileSize, file));
     if (result != ruleFileSize)  {
         fprintf(stderr, "Error reading file \"%s\"\n", ruleFileName);
         exit (-1);
@@ -234,7 +235,10 @@ int  main(int argc, char **argv) {
     if (U_FAILURE(status)) {
         exit(status);
     }
-    if(encoding!=nullptr ){
+    if (encoding == nullptr) {
+        // In the absence of a BOM, assume the rule file is in UTF-8.
+        encoding = "UTF-8";
+    } else {
         ruleSourceC  += signatureLength;
         ruleFileSize -= signatureLength;
     }
@@ -294,7 +298,7 @@ int  main(int argc, char **argv) {
     RuleBasedBreakIterator *bi = new RuleBasedBreakIterator(ruleSourceS, parseError, status);
     if (U_FAILURE(status)) {
         fprintf(stderr, "createRuleBasedBreakIterator: ICU Error \"%s\"  at line %d, column %d\n",
-                u_errorName(status), (int)parseError.line, (int)parseError.offset);
+                u_errorName(status), static_cast<int>(parseError.line), static_cast<int>(parseError.offset));
         exit(status);
     }
 

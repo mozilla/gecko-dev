@@ -62,7 +62,7 @@ fileSize(FILE *f) {
     int32_t size;
 
     fseek(f, 0, SEEK_END);
-    size=(int32_t)ftell(f);
+    size = static_cast<int32_t>(ftell(f));
     fseek(f, 0, SEEK_SET);
     return size;
 }
@@ -138,7 +138,7 @@ main(int argc, char *argv[]) {
     }
 
     /* parse the output type option */
-    data=(char *)options[OPT_OUT_TYPE].value;
+    data = const_cast<char*>(options[OPT_OUT_TYPE].value);
     if(data[0]==0 || data[1]!=0) {
         /* the type must be exactly one letter */
         return printUsage(pname, false);
@@ -184,7 +184,7 @@ main(int argc, char *argv[]) {
      * because the last item may be resorted into the middle and then needs
      * additional padding bytes
      */
-    data=(char *)malloc(length+DEFAULT_PADDING_LENGTH);
+    data = static_cast<char*>(malloc(length + DEFAULT_PADDING_LENGTH));
     if(data==nullptr) {
         fprintf(stderr, "%s: error allocating memory for \"%s\"\n", pname, argv[1]);
         rc=2;
@@ -194,7 +194,7 @@ main(int argc, char *argv[]) {
     /* set the last 15 bytes to the usual padding byte, see udata_swapPackage() */
     uprv_memset(data+length-DEFAULT_PADDING_LENGTH, 0xaa, DEFAULT_PADDING_LENGTH);
 
-    if(length!=(int32_t)fread(data, 1, length, in)) {
+    if (length != static_cast<int32_t>(fread(data, 1, length, in))) {
         fprintf(stderr, "%s: error reading \"%s\"\n", pname, argv[1]);
         rc=3;
         goto done;
@@ -217,7 +217,7 @@ main(int argc, char *argv[]) {
     ds->printErrorContext=stderr;
 
     /* speculative cast, protected by the following length check */
-    pInfo=(const UDataInfo *)((const char *)data+4);
+    pInfo = reinterpret_cast<const UDataInfo*>(data + 4);
 
     if( length>=20 &&
         pInfo->dataFormat[0]==0x43 &&   /* dataFormat="CmnD" */
@@ -259,7 +259,7 @@ main(int argc, char *argv[]) {
         goto done;
     }
 
-    if(length!=(int32_t)fwrite(data, 1, length, out)) {
+    if (length != static_cast<int32_t>(fwrite(data, 1, length, out))) {
         fprintf(stderr, "%s: error writing \"%s\"\n", pname, argv[2]);
         rc=6;
         goto done;
@@ -298,7 +298,7 @@ extractPackageName(const UDataSwapper *ds, const char *filename,
     }
 
     basename=findBasename(filename);
-    len=(int32_t)uprv_strlen(basename)-4; /* -4: subtract the length of ".dat" */
+    len = static_cast<int32_t>(uprv_strlen(basename)) - 4; /* -4: subtract the length of ".dat" */
 
     if(len<=0 || 0!=uprv_strcmp(basename+len, ".dat")) {
         udata_printError(ds, "udata_swapPackage(): \"%s\" is not recognized as a package filename (must end with .dat)\n",
@@ -309,7 +309,7 @@ extractPackageName(const UDataSwapper *ds, const char *filename,
 
     if(len>=capacity) {
         udata_printError(ds, "udata_swapPackage(): the package name \"%s\" is too long (>=%ld)\n",
-                         (long)capacity);
+                         static_cast<long>(capacity));
         *pErrorCode=U_ILLEGAL_ARGUMENT_ERROR;
         return 0;
     }
