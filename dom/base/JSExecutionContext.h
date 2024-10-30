@@ -63,12 +63,6 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   // result is carried by mRv.
   bool mSkip;
 
-  // Should the result be serialized before being returned.
-  bool mCoerceToString;
-
-  // Encode the bytecode before it is being executed.
-  bool mEncodeBytecode;
-
   bool mKeepStencil = false;
 
 #ifdef DEBUG
@@ -82,7 +76,8 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   // Compile a script contained in a SourceText.
   template <typename Unit>
   void InternalCompile(JS::CompileOptions& aCompileOptions,
-                       JS::SourceText<Unit>& aSrcBuf, ErrorResult& aRv);
+                       JS::SourceText<Unit>& aSrcBuf, bool aEncodeBytecode,
+                       ErrorResult& aRv);
 
  public:
   // Enter compartment in which the code would be executed.  The JSContext
@@ -111,37 +106,24 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   void SetKeepStencil() { mKeepStencil = true; }
   already_AddRefed<JS::Stencil> StealStencil() { return mStencil.forget(); }
 
-  // The returned value would be converted to a string if the
-  // |aCoerceToString| is flag set.
-  JSExecutionContext& SetCoerceToString(bool aCoerceToString) {
-    mCoerceToString = aCoerceToString;
-    return *this;
-  }
-
-  // When set, this flag records and encodes the bytecode as soon as it is
-  // being compiled, and before it is being executed. The bytecode can then be
-  // requested by using |JS::FinishIncrementalEncoding| with the mutable
-  // handle |aScript| argument of |CompileAndExec| or |JoinAndExec|.
-  JSExecutionContext& SetEncodeBytecode(bool aEncodeBytecode) {
-    mEncodeBytecode = aEncodeBytecode;
-    return *this;
-  }
-
   // After getting a notification that an off-thread compile/decode finished,
   // this function will take the result of the off-thread operation and move it
   // to the main thread.
   void JoinOffThread(JS::CompileOptions& aCompileOptions,
-                     ScriptLoadContext* aContext, ErrorResult& aRv);
+                     ScriptLoadContext* aContext, ErrorResult& aRv,
+                     bool aEncodeBytecode = false);
 
   // Compile a script contained in a SourceText.
   void Compile(JS::CompileOptions& aCompileOptions,
-               JS::SourceText<char16_t>& aSrcBuf, ErrorResult& aRv);
+               JS::SourceText<char16_t>& aSrcBuf, ErrorResult& aRv,
+               bool aEncodeBytecode = false);
   void Compile(JS::CompileOptions& aCompileOptions,
-               JS::SourceText<mozilla::Utf8Unit>& aSrcBuf, ErrorResult& aRv);
+               JS::SourceText<mozilla::Utf8Unit>& aSrcBuf, ErrorResult& aRv,
+               bool aEncodeBytecode = false);
 
   // Compile a script contained in a string.
   void Compile(JS::CompileOptions& aCompileOptions, const nsAString& aScript,
-               ErrorResult& aRv);
+               ErrorResult& aRv, bool aEncodeBytecode = false);
 
   // Decode a script contained in a buffer.
   void Decode(JS::CompileOptions& aCompileOptions,
@@ -152,7 +134,7 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   void InstantiateStencil(JS::CompileOptions& aCompileOptions,
                           RefPtr<JS::Stencil>&& aStencil,
                           bool& incrementalEncodingAlreadyStarted,
-                          ErrorResult& aRv,
+                          ErrorResult& aRv, bool aEncodeBytecode = false,
                           JS::InstantiationStorage* aStorage = nullptr);
 
   // Get a successfully compiled script.
@@ -174,7 +156,11 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   // compartment given as argument to the JSExecutionContext constructor. If the
   // caller is in a different compartment, then the out-param value should be
   // wrapped by calling |JS_WrapValue|.
-  void ExecScript(JS::MutableHandle<JS::Value> aRetValue, ErrorResult& aRv);
+  //
+  // The returned value will be converted to a string if the
+  // |aCoerceToString| is flag set.
+  void ExecScript(JS::MutableHandle<JS::Value> aRetValue, ErrorResult& aRv,
+                  bool aCoerceToString = false);
 };
 }  // namespace dom
 }  // namespace mozilla

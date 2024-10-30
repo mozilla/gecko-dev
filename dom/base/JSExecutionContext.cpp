@@ -77,9 +77,7 @@ JSExecutionContext::JSExecutionContext(
       mScript(aCx),
       mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
       mDebuggerIntroductionScript(aCx, aDebuggerIntroductionScript),
-      mSkip(false),
-      mCoerceToString(false),
-      mEncodeBytecode(false)
+      mSkip(false)
 #ifdef DEBUG
       ,
       mWantsReturnValue(false),
@@ -101,7 +99,8 @@ JSExecutionContext::JSExecutionContext(
 
 void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
                                        ScriptLoadContext* aContext,
-                                       ErrorResult& aRv) {
+                                       ErrorResult& aRv,
+                                       bool aEncodeBytecode /* = false */) {
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(!mWantsReturnValue);
@@ -125,12 +124,13 @@ void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
 
   bool unused;
   InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv,
-                     &storage);
+                     aEncodeBytecode, &storage);
 }
 
 template <typename Unit>
 void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
                                          JS::SourceText<Unit>& aSrcBuf,
+                                         bool aEncodeBytecode,
                                          ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
@@ -158,23 +158,27 @@ void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
   }
 
   bool unused;
-  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv);
+  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv,
+                     aEncodeBytecode);
 }
 
 void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<char16_t>& aSrcBuf,
-                                 ErrorResult& aRv) {
-  InternalCompile(aCompileOptions, aSrcBuf, aRv);
+                                 ErrorResult& aRv,
+                                 bool aEncodeBytecode /*= false */) {
+  InternalCompile(aCompileOptions, aSrcBuf, aEncodeBytecode, aRv);
 }
 
 void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<Utf8Unit>& aSrcBuf,
-                                 ErrorResult& aRv) {
-  InternalCompile(aCompileOptions, aSrcBuf, aRv);
+                                 ErrorResult& aRv,
+                                 bool aEncodeBytecode /*= false */) {
+  InternalCompile(aCompileOptions, aSrcBuf, aEncodeBytecode, aRv);
 }
 
 void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
-                                 const nsAString& aScript, ErrorResult& aRv) {
+                                 const nsAString& aScript, ErrorResult& aRv,
+                                 bool aEncodeBytecode /*= false */) {
   MOZ_ASSERT(!mSkip);
 
   const nsPromiseFlatString& flatScript = PromiseFlatString(aScript);
@@ -186,7 +190,7 @@ void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
     return;
   }
 
-  Compile(aCompileOptions, srcBuf, aRv);
+  Compile(aCompileOptions, srcBuf, aRv, aEncodeBytecode);
 }
 
 void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
@@ -227,7 +231,7 @@ void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
 void JSExecutionContext::InstantiateStencil(
     JS::CompileOptions& aCompileOptions, RefPtr<JS::Stencil>&& aStencil,
     bool& incrementalEncodingAlreadyStarted, ErrorResult& aRv,
-    JS::InstantiationStorage* aStorage) {
+    bool aEncodeBytecode /* = false */, JS::InstantiationStorage* aStorage) {
   JS::InstantiateOptions instantiateOptions(aCompileOptions);
   JS::Rooted<JSScript*> script(
       mCx, JS::InstantiateGlobalStencil(mCx, instantiateOptions, aStencil,
@@ -238,7 +242,7 @@ void JSExecutionContext::InstantiateStencil(
     return;
   }
 
-  if (mEncodeBytecode) {
+  if (aEncodeBytecode) {
     if (!JS::StartIncrementalEncoding(mCx, std::move(aStencil),
                                       incrementalEncodingAlreadyStarted)) {
       mSkip = true;
@@ -297,7 +301,8 @@ static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
 }
 
 void JSExecutionContext::ExecScript(JS::MutableHandle<JS::Value> aRetValue,
-                                    ErrorResult& aRv) {
+                                    ErrorResult& aRv,
+                                    bool aCoerceToString /* = false */) {
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(mScript);
@@ -312,7 +317,7 @@ void JSExecutionContext::ExecScript(JS::MutableHandle<JS::Value> aRetValue,
 #ifdef DEBUG
   mWantsReturnValue = false;
 #endif
-  if (mCoerceToString && IsPromiseValue(mCx, aRetValue)) {
+  if (aCoerceToString && IsPromiseValue(mCx, aRetValue)) {
     // We're a javascript: url and we should treat Promise return values as
     // undefined.
     //
@@ -321,7 +326,7 @@ void JSExecutionContext::ExecScript(JS::MutableHandle<JS::Value> aRetValue,
     aRetValue.setUndefined();
   }
 
-  if (mCoerceToString && !aRetValue.isUndefined()) {
+  if (aCoerceToString && !aRetValue.isUndefined()) {
     JSString* str = JS::ToString(mCx, aRetValue);
     if (!str) {
       // ToString can be a function call, so an exception can be raised while

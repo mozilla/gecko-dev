@@ -329,10 +329,9 @@ nsresult nsJSThunk::EvaluateScript(
     mozilla::ErrorResult erv;
     JSExecutionContext exec(cx, globalJSObject, options, erv);
     if (!erv.Failed()) {
-      exec.SetCoerceToString(true);
       exec.Compile(options, NS_ConvertUTF8toUTF16(script), erv);
       if (!erv.Failed()) {
-        exec.ExecScript(&v, erv);
+        exec.ExecScript(&v, erv, /* aCoerceToString */ true);
       }
     }
     rv = mozilla::dom::EvaluationExceptionToNSResult(erv);
