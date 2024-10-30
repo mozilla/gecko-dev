@@ -94,9 +94,8 @@ skip-if = [
 
 ["browser_fontSize_change.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && asan", # Bug 1775867
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && tsan", # Bug 1775867
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && swgl", # Bug 1775867
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking", # Bug 1775867
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl", # Bug 1775867
 ]
 
 ["browser_fullscreen.js"]
