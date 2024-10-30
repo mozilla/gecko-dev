@@ -760,16 +760,15 @@ def process_test_results(results, num_tests, pb, options, slog):
                     output_dict[res.test.path] = res.out
 
             doing = "after {}".format(res.test.relpath_tests)
-            match status:
-                case OutputStatus.SKIPPED:
-                    skipped += 1
-                case OutputStatus.FAILED:
-                    failures.append(res)
-                    if res.timed_out:
-                        pb.message("TIMEOUT - {}".format(res.test.relpath_tests))
-                        timeouts += 1
-                    else:
-                        pb.message("FAIL - {}".format(res.test.relpath_tests))
+            if status == OutputStatus.SKIPPED:
+                skipped += 1
+            elif status == OutputStatus.FAILED:
+                failures.append(res)
+                if res.timed_out:
+                    pb.message("TIMEOUT - {}".format(res.test.relpath_tests))
+                    timeouts += 1
+                else:
+                    pb.message("FAIL - {}".format(res.test.relpath_tests))
 
             if options.format == "automation":
                 print_automation_format(status, res, slog)
