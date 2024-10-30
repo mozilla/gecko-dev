@@ -45,9 +45,11 @@ import mozilla.components.browser.state.state.availableSearchEngines
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.ContextualMenu
-import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.compose.menu.DropdownMenu
+import org.mozilla.fenix.compose.menu.MenuItem
+import org.mozilla.fenix.compose.menu.MenuItem.FixedItem.Level
+import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -192,24 +194,23 @@ private fun SearchItem(
                         tint = FirefoxTheme.colors.iconPrimary,
                     )
 
-                    ContextualMenu(
-                        showMenu = isMenuExpanded.value,
-                        onDismissRequest = { isMenuExpanded.value = false },
+                    DropdownMenu(
                         menuItems = listOf(
-                            MenuItem(
-                                stringResource(R.string.search_engine_edit),
-                                color = FirefoxTheme.colors.textCritical,
-                            ) {
-                                onEditEngineClicked(engine)
-                            },
-                            MenuItem(
-                                stringResource(R.string.search_engine_delete),
-                                color = FirefoxTheme.colors.textCritical,
-                            ) {
-                                onDeleteEngineClicked(engine)
-                            },
+                            MenuItem.TextItem(
+                                text = Text.Resource(R.string.search_engine_edit),
+                                level = Level.Critical,
+                                onClick = { onEditEngineClicked(engine) },
+                            ),
+                            MenuItem.TextItem(
+                                text = Text.Resource(R.string.search_engine_delete),
+                                level = Level.Critical,
+                                onClick = { onDeleteEngineClicked(engine) },
+                            ),
                         ),
+                        expanded = isMenuExpanded.value,
+                        modifier = Modifier,
                         offset = DpOffset(x = 0.dp, y = (-24).dp),
+                        onDismissRequest = { isMenuExpanded.value = false },
                     )
                 }
             }

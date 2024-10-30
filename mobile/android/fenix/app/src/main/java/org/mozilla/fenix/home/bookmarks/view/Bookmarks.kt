@@ -108,6 +108,7 @@ fun Bookmarks(
     ExperimentalComposeUiApi::class,
 )
 @Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927718
 private fun BookmarkItem(
     bookmark: Bookmark,
     menuItems: List<BookmarksMenuItem>,

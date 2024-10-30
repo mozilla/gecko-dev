@@ -61,7 +61,7 @@ private val expandedCollectionShape = RoundedCornerShape(topStart = 8.dp, topEnd
  * @param onCollectionShareTabsClicked Invoked when the user clicks to share the collection.
  */
 @Composable
-@Suppress("LongMethod")
+@Suppress("LongMethod", "Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927713
 fun Collection(
     collection: TabCollection,
     expanded: Boolean,

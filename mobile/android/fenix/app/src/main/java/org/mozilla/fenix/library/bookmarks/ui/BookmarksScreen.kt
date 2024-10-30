@@ -744,6 +744,7 @@ private fun EmptyList(
 }
 
 @Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927718
 private fun BookmarkListOverflowMenu(
     showMenu: Boolean,
     onDismissRequest: () -> Unit,
@@ -776,6 +777,7 @@ private fun BookmarkListOverflowMenu(
 }
 
 @Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927718
 private fun BookmarkListItemMenu(
     showMenu: Boolean,
     onDismissRequest: () -> Unit,
@@ -817,6 +819,7 @@ private fun BookmarkListItemMenu(
 }
 
 @Composable
+@Suppress("Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927718
 private fun BookmarkListFolderMenu(
     showMenu: Boolean,
     onDismissRequest: () -> Unit,

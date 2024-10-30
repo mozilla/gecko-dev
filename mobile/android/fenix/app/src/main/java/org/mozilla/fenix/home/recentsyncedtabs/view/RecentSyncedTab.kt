@@ -44,11 +44,12 @@ import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.concept.sync.DeviceType
 import mozilla.components.support.ktx.kotlin.trimmed
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Image
-import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.ThumbnailCard
 import org.mozilla.fenix.compose.button.SecondaryButton
+import org.mozilla.fenix.compose.menu.DropdownMenu
+import org.mozilla.fenix.compose.menu.MenuItem
+import org.mozilla.fenix.compose.text.Text
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -190,14 +191,14 @@ fun RecentSyncedTab(
         }
     }
 
-    ContextualMenu(
-        showMenu = isDropdownExpanded && tab != null,
-        onDismissRequest = { isDropdownExpanded = false },
+    DropdownMenu(
         menuItems = listOf(
-            MenuItem(stringResource(id = R.string.recent_synced_tab_menu_item_remove)) {
+            MenuItem.TextItem(Text.Resource(R.string.recent_synced_tab_menu_item_remove)) {
                 tab?.let { removeSyncedTab(it) }
             },
         ),
+        expanded = isDropdownExpanded && tab != null,
+        onDismissRequest = { isDropdownExpanded = false },
     )
 }
 

@@ -56,7 +56,7 @@ private val ICON_SIZE = 24.dp
  * not specified, the best width will be determined based on the dropdown items provided.
  * @param isInLandscapeMode Whether the device is in landscape mode.
  */
-@Suppress("LongMethod")
+@Suppress("LongMethod", "Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927716
 @Composable
 fun Dropdown(
     label: String,

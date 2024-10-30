@@ -275,7 +275,7 @@ data class TopSiteColors(
  * @param onTopSiteLongClick Invoked when the user long clicks on a top site.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
-@Suppress("LongMethod")
+@Suppress("LongMethod", "Deprecation") // https://bugzilla.mozilla.org/show_bug.cgi?id=1927713
 @OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 private fun TopSiteItem(

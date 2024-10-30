@@ -162,6 +162,15 @@ private fun Menu(
  * @param offset Offset to be added to the position of the menu.
  * @param onDismissRequest Invoked when user dismisses the menu or on orientation changes.
  */
+@Deprecated(
+    message = "Use DropdownMenu instead with updated parameters and MenuItem type",
+    replaceWith = ReplaceWith(
+        expression = "DropdownMenu( menuItems = menuItems, expanded = showMenu, modifier = modifier," +
+            " offset = offset, onDismissRequest = onDismissRequest)",
+        imports = ["org.mozilla.fenix.compose.menu.DropdownMenu", "org.mozilla.fenix.compose.menu.MenuItem"],
+    ),
+    level = DeprecationLevel.WARNING,
+)
 @Composable
 fun ContextualMenu(
     menuItems: List<MenuItem>,
@@ -201,6 +210,7 @@ data class MenuItem(
 
 @LightDarkPreview
 @Composable
+@Suppress("Deprecation")
 private fun ContextualMenuPreview() {
     var showMenu by remember { mutableStateOf(false) }
     FirefoxTheme {
