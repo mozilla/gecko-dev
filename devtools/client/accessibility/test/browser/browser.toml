@@ -9,6 +9,8 @@ support-files = [
   "!/devtools/client/shared/test/telemetry-test-helpers.js",
 ]
 
+["browser_accessibility.js"]
+
 ["browser_accessibility_context_menu_browser.js"]
 
 ["browser_accessibility_context_menu_inspector.js"]
