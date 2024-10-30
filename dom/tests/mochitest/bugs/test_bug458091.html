@@ -92,7 +92,8 @@ function test3()
 }
 
 var gTests = [test1, test2, test3];
-runNextTest();
+
+SimpleTest.enableLegacyUnpartitionedStorage().then(runNextTest);
 
 </script>
 </pre>
