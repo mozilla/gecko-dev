@@ -326,9 +326,6 @@ void AppShutdown::AnnotateShutdownReason(AppShutdownReason aReason) {
     case AppShutdownReason::OSShutdown:
       reasonStr = "OSShutdown";
       break;
-    case AppShutdownReason::WinUnexpectedMozQuit:
-      reasonStr = "WinUnexpectedMozQuit";
-      break;
     default:
       MOZ_ASSERT_UNREACHABLE("We should know the given reason for shutdown.");
       reasonStr = "Unknown";

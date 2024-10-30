@@ -32,8 +32,6 @@ enum class AppShutdownReason {
   OSSessionEnd,
   // The system is shutting down (and maybe restarting).
   OSShutdown,
-  // We unexpectedly received MOZ_WM_APP_QUIT, see bug 1827807.
-  WinUnexpectedMozQuit,
 };
 
 class AppShutdown {

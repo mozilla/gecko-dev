@@ -10,9 +10,6 @@
  * MOZ_WM_* messages
  ****************************************************************************/
 
-// A magic APP message that can be sent to quit, sort of like a
-// QUERYENDSESSION/ENDSESSION, but without the query.
-#define MOZ_WM_APP_QUIT (WM_APP + 0x0300)
 // accessibility priming
 #define MOZ_WM_STARTA11Y (WM_APP + 0x0302)
 // Our internal message for WM_MOUSEWHEEL, WM_MOUSEHWHEEL, WM_VSCROLL and

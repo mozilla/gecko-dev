@@ -814,7 +814,7 @@ ShutdownProgress:
 ShutdownReason:
   description: >
     One out of "Unknown", "AppClose", "AppRestart", "OSForceClose",
-    "OSSessionEnd", "OSShutdown" or "WinUnexpectedMozQuit".
+    "OSSessionEnd" or "OSShutdown".
   type: string
   ping: true
 
