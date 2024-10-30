@@ -38,62 +38,35 @@ class TextAttrsMgr {
   explicit TextAttrsMgr(HyperTextAccessible* aHyperTextAcc)
       : mOffsetAcc(nullptr),
         mHyperTextAcc(aHyperTextAcc),
-        mOffsetAccIdx(-1),
         mIncludeDefAttrs(true) {}
 
   /**
-   * Constructor. Used to expose text attributes at the given offset.
+   * Constructor. Used to expose text attributes at the given child.
    *
    * @param aHyperTextAcc    [in] hyper text accessible text attributes are
    *                          calculated for
    * @param aIncludeDefAttrs [optional] indicates whether default text
    *                          attributes should be included into list of exposed
    *                          text attributes
-   * @param oOffsetAcc       [optional] offset an accessible the text attributes
+   * @param aOffsetAcc       [optional] The child accessible the text attributes
    *                          should be calculated for
-   * @param oOffsetAccIdx    [optional] index in parent of offset accessible
    */
   TextAttrsMgr(HyperTextAccessible* aHyperTextAcc, bool aIncludeDefAttrs,
-               LocalAccessible* aOffsetAcc, int32_t aOffsetAccIdx)
+               LocalAccessible* aOffsetAcc)
       : mOffsetAcc(aOffsetAcc),
         mHyperTextAcc(aHyperTextAcc),
-        mOffsetAccIdx(aOffsetAccIdx),
         mIncludeDefAttrs(aIncludeDefAttrs) {}
 
   /*
-   * Return text attributes and hyper text offsets where these attributes are
-   * applied. Offsets are calculated in the case of non default attributes.
-   *
-   * @note In the case of default attributes pointers on hyper text offsets
-   *       must be skipped.
+   * Return text attributes.
    *
    * @param aAttributes    [in, out] text attributes list
-   * @param aStartHTOffset [out, optional] start hyper text offset
-   * @param aEndHTOffset   [out, optional] end hyper text offset
    */
-  void GetAttributes(AccAttributes* aAttributes,
-                     uint32_t* aStartHTOffset = nullptr,
-                     uint32_t* aEndHTOffset = nullptr);
-
- protected:
-  /**
-   * Calculates range (start and end offsets) of text where the text attributes
-   * are stretched. New offsets may be smaller if one of text attributes changes
-   * its value before or after the given offsets.
-   *
-   * @param aTextAttrArray  [in] text attributes array
-   * @param aAttrArrayLen   [in] text attributes array length
-   * @param aStartHTOffset  [in, out] the start offset
-   * @param aEndHTOffset    [in, out] the end offset
-   */
-  class TextAttr;
-  void GetRange(TextAttr* aAttrArray[], uint32_t aAttrArrayLen,
-                uint32_t* aStartOffset, uint32_t* aEndOffset);
+  void GetAttributes(AccAttributes* aAttributes);
 
  private:
   LocalAccessible* mOffsetAcc;
   HyperTextAccessible* mHyperTextAcc;
-  int32_t mOffsetAccIdx;
   bool mIncludeDefAttrs;
 
  protected:
@@ -111,12 +84,6 @@ class TextAttrsMgr {
      */
     virtual void Expose(AccAttributes* aAttributes,
                         bool aIncludeDefAttrValue) = 0;
-
-    /**
-     * Return true if the text attribute value on the given element equals with
-     * predefined attribute value.
-     */
-    virtual bool Equal(LocalAccessible* aAccessible) = 0;
   };
 
   /**
@@ -147,25 +114,9 @@ class TextAttrsMgr {
       }
     }
 
-    virtual bool Equal(LocalAccessible* aAccessible) override {
-      T nativeValue;
-      bool isDefined = GetValueFor(aAccessible, &nativeValue);
-
-      if (!mIsDefined && !isDefined) return true;
-
-      if (mIsDefined && isDefined) return nativeValue == mNativeValue;
-
-      if (mIsDefined) return mNativeValue == mRootNativeValue;
-
-      return nativeValue == mRootNativeValue;
-    }
-
    protected:
     // Expose the text attribute with the given value to attribute set.
     virtual void ExposeValue(AccAttributes* aAttributes, const T& aValue) = 0;
-
-    // Return native value for the given DOM element.
-    virtual bool GetValueFor(LocalAccessible* aAccessible, T* aValue) = 0;
 
     // Indicates if root value should be exposed.
     bool mGetRootValue;
@@ -192,9 +143,6 @@ class TextAttrsMgr {
     virtual ~LangTextAttr();
 
    protected:
-    // TextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             nsString* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const nsString& aValue) override;
 
@@ -217,8 +165,6 @@ class TextAttrsMgr {
     enum { eFalse, eGrammar, eSpelling, eTrue };
 
     // TextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             uint32_t* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const uint32_t& aValue) override;
 
@@ -237,8 +183,6 @@ class TextAttrsMgr {
 
    protected:
     // TextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             nscolor* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const nscolor& aValue) override;
 
@@ -257,8 +201,6 @@ class TextAttrsMgr {
 
    protected:
     // TTextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             nscolor* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const nscolor& aValue) override;
   };
@@ -273,8 +215,6 @@ class TextAttrsMgr {
 
    protected:
     // TTextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             nsString* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const nsString& aValue) override;
 
@@ -292,8 +232,6 @@ class TextAttrsMgr {
 
    protected:
     // TTextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             nscoord* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const nscoord& aValue) override;
 
@@ -311,8 +249,6 @@ class TextAttrsMgr {
 
    protected:
     // TTextAttr
-    virtual bool GetValueFor(LocalAccessible* aContent,
-                             mozilla::FontSlantStyle* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const mozilla::FontSlantStyle& aValue) override;
   };
@@ -327,8 +263,6 @@ class TextAttrsMgr {
 
    protected:
     // TTextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             mozilla::FontWeight* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const mozilla::FontWeight& aValue) override;
 
@@ -347,8 +281,6 @@ class TextAttrsMgr {
 
    protected:
     // TextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             bool* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const bool& aValue) override;
   };
@@ -399,8 +331,6 @@ class TextAttrsMgr {
 
    protected:
     // TextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             TextDecorValue* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const TextDecorValue& aValue) override;
   };
@@ -419,8 +349,6 @@ class TextAttrsMgr {
 
    protected:
     // TextAttr
-    virtual bool GetValueFor(LocalAccessible* aAccessible,
-                             Maybe<TextPosValue>* aValue) override;
     virtual void ExposeValue(AccAttributes* aAttributes,
                              const Maybe<TextPosValue>& aValue) override;
 
