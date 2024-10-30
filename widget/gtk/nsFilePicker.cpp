@@ -421,6 +421,11 @@ nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
     return NS_OK;
   }
 
+  // Don't attempt to open a real file-picker in headless mode.
+  if (gfxPlatform::IsHeadless()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   NS_ConvertUTF16toUTF8 title(mTitle);
 
   GtkWindow* parent_widget =
