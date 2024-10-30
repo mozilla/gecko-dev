@@ -35,13 +35,7 @@ class ScriptLoadContext;
 nsresult EvaluationExceptionToNSResult(ErrorResult& aRv);
 
 class MOZ_STACK_CLASS JSExecutionContext final {
-  // Register stack annotations for the Gecko profiler.
-  mozilla::AutoProfilerLabel mAutoProfilerLabel;
-
   JSContext* mCx;
-
-  // Handles switching to our global's realm.
-  JSAutoRealm mRealm;
 
   // Set to a valid handle if a return value is expected.
   JS::Rooted<JS::Value> mRetValue;

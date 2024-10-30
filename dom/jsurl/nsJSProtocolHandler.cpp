@@ -329,6 +329,10 @@ nsresult nsJSThunk::EvaluateScript(
     mozilla::ErrorResult erv;
     JSExecutionContext exec(cx, globalJSObject, options, erv);
     if (!erv.Failed()) {
+      mozilla::AutoProfilerLabel autoProfilerLabel(
+          "JSExecutionContext",
+          /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
+      JSAutoRealm autoRealm(cx, globalJSObject);
       exec.Compile(options, NS_ConvertUTF8toUTF16(script), erv);
       if (!erv.Failed()) {
         exec.ExecScript(&v, erv, /* aCoerceToString */ true);

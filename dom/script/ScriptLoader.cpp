@@ -3009,6 +3009,10 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   if (erv.Failed()) {
     return EvaluationExceptionToNSResult(erv);
   }
+  mozilla::AutoProfilerLabel autoProfilerLabel("JSExecutionContext",
+                                               /* dynamicStr */ nullptr,
+                                               JS::ProfilingCategoryPair::JS);
+  JSAutoRealm autoRealm(cx, global);
   InstantiateClassicScriptFromAny(cx, exec, options, aRequest, erv);
 
   if (!erv.Failed()) {

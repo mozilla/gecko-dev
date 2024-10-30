@@ -6095,6 +6095,10 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
     IgnoredErrorResult erv;
     JSExecutionContext exec(aes.cx(), global, options, erv);
     if (!erv.Failed()) {
+      mozilla::AutoProfilerLabel autoProfilerLabel(
+          "JSExecutionContext",
+          /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
+      JSAutoRealm autoRealm(aes.cx(), global);
       exec.Compile(options, mExpr, erv);
 
       JS::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());

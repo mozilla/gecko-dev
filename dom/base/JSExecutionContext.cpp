@@ -68,11 +68,7 @@ JSExecutionContext::JSExecutionContext(
     JS::CompileOptions& aCompileOptions, ErrorResult& aRv,
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript)
-    : mAutoProfilerLabel("JSExecutionContext",
-                         /* dynamicStr */ nullptr,
-                         JS::ProfilingCategoryPair::JS),
-      mCx(aCx),
-      mRealm(aCx, aGlobal),
+    : mCx(aCx),
       mRetValue(aCx),
       mScript(aCx),
       mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
