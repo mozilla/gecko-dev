@@ -75,3 +75,36 @@ split-dismiss-button-manage-settings-option-label = Manage settings
 
 sidebar-button-callout-title = Show tab titles in the sidebar
 sidebar-button-callout-subtitle = Use the sidebar button to expand the sidebar, so you can see tab titles.
+
+## Sidebar Callout Survey Strings
+
+sidebar-callout-survey-title = Help improve { -brand-short-name }
+sidebar-callout-survey-satisfaction-question = How satisfied are you with the sidebar experience in { -brand-short-name }?
+sidebar-callout-survey-privacy-notice-link = Privacy Notice
+sidebar-callout-survey-very-satisfied = Very satisfied
+sidebar-callout-survey-satisfied = Satisfied
+sidebar-callout-survey-neutral = Neutral
+sidebar-callout-survey-dissatisfied = Unsatisfied
+sidebar-callout-survey-very-dissatisfied = Very unsatisfied
+sidebar-callout-survey-dont-use-it = I don’t use it
+sidebar-callout-survey-productive-question =
+    To what extent do you agree or disagree with this statement:<br/>
+    “The { -brand-short-name } sidebar helps me be more productive”?
+sidebar-callout-survey-strongly-agree = Strongly Agree
+sidebar-callout-survey-agree = Agree
+sidebar-callout-survey-disagree = Disagree
+sidebar-callout-survey-strongly-disagree = Strongly disagree
+sidebar-callout-survey-features-question = The following are potential sidebar features. Which would improve your productivity in { -brand-short-name } the most?
+sidebar-callout-survey-split-view = View any two websites at once, in a side-by-side split view
+sidebar-callout-survey-keep-website-open = Keep a website, like email or calendar, open in the sidebar as you browse
+sidebar-callout-survey-saved-websites = Quick access to all your saved websites
+sidebar-callout-survey-none-of-above = None of the above
+sidebar-callout-survey-submit = Submit
+sidebar-callout-survey-thank-you = Thank you for your feedback!
+
+# Sidebar GenAI Survey Strings
+
+sidebar-genai-survey-satisfaction-question = How satisfied are you with having access to an AI chatbot in the sidebar?
+sidebar-genai-survey-productive-question =
+    To what extent do you agree or disagree with this statement:<br/>
+    “The AI chatbot in the sidebar helps me be more productive”?
