@@ -4,8 +4,8 @@
 #include <stddef.h>
 
 struct MOZ_HEAP_CLASS Heap {
-  int i;
-  Heap() {}
+  int i = 0;
+  constexpr Heap() {}
   MOZ_IMPLICIT Heap(int a) {}
   Heap(int a, int b) {}
   void *operator new(size_t x) throw() { return 0; }

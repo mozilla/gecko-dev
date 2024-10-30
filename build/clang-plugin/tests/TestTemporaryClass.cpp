@@ -4,8 +4,8 @@
 #include <stddef.h>
 
 struct MOZ_TEMPORARY_CLASS Temporary {
-  int i;
-  Temporary() {}
+  int i = 0;
+  constexpr Temporary() {}
   MOZ_IMPLICIT Temporary(int a) {}
   Temporary(int a, int b) {}
   void *operator new(size_t x) throw() { return 0; }

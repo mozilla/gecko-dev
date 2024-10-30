@@ -394,11 +394,14 @@ C/C++ practices
 -  One-argument constructors, that are not copy or move constructors,
    should generally be marked explicit. Exceptions should be annotated
    with ``MOZ_IMPLICIT``.
--  Global variables with runtimle initialization should be avoided. Flagging
+-  Global variables with runtime initialization should be avoided. Flagging
    them as ``constexpr`` or ``MOZ_CONSTINIT`` is a good way to make sure the
    initialization happens at compile-time. If runtime initialization cannot be
    avoided, use the attribute ``MOZ_RUNINIT`` to identify those and tell the
-   linter to ignore that variable.
+   linter to ignore that variable. If a variable is flagged as ``MOZ_RUNINIT``
+   while the linter detects it could be ``MOZ_CONSTINIT``, you get an error. In
+   case where the status of the global variable varies (e.g. depending on
+   template parameter), just flag it ``MOZ_GLOBINIT``.
 -  Use ``char32_t`` as the return type or argument type of a method that
    returns or takes as argument a single Unicode scalar value. (Don't
    use UTF-32 strings, though.)

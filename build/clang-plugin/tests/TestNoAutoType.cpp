@@ -1,4 +1,5 @@
 #define MOZ_NON_AUTOABLE __attribute__((annotate("moz_non_autoable")))
+#define MOZ_RUNINIT  __attribute__((annotate("moz_global_var")))
 
 template<class T>
 struct MOZ_NON_AUTOABLE ExplicitTypeTemplate {};
@@ -35,7 +36,7 @@ void f() {
 }
 
 ExplicitType A;
-auto B = A; // expected-error {{Cannot use auto to declare a variable of type 'ExplicitType'}} expected-note {{Please write out this type explicitly}}
+MOZ_RUNINIT  auto B = A; // expected-error {{Cannot use auto to declare a variable of type 'ExplicitType'}} expected-note {{Please write out this type explicitly}}
 
 NonExplicitType C;
-auto D = C;
+MOZ_RUNINIT  auto D = C;

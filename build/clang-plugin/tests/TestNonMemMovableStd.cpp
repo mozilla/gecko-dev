@@ -1,4 +1,5 @@
 #define MOZ_NEEDS_MEMMOVABLE_TYPE __attribute__((annotate("moz_needs_memmovable_type")))
+#define MOZ_RUNINIT  __attribute__((annotate("moz_global_var")))
 
 template<class T>
 class MOZ_NEEDS_MEMMOVABLE_TYPE Mover { T mForceInst; }; // expected-error-re 9 {{Cannot instantiate 'Mover<{{.*}}>' with non-memmovable template argument '{{.*}}'}}
@@ -50,19 +51,19 @@ struct has_trivial_move {
 
 class HasString { std::string m; }; // expected-note {{'HasString' is a non-memmove()able type because member 'm' is a non-memmove()able type 'std::string' (aka 'basic_string<char>')}}
 
-static Mover<std::string> bad; // expected-note-re {{instantiation of 'Mover<std::basic_string<char>{{ ?}}>' requested here}}
-static Mover<HasString> bad_mem; // expected-note {{instantiation of 'Mover<HasString>' requested here}}
+MOZ_RUNINIT  static Mover<std::string> bad; // expected-note-re {{instantiation of 'Mover<std::basic_string<char>{{ ?}}>' requested here}}
+MOZ_RUNINIT  static Mover<HasString> bad_mem; // expected-note {{instantiation of 'Mover<HasString>' requested here}}
 static Mover<std::pair<bool, int>> good;
-static Mover<std::pair<bool, std::string>> not_good; // expected-note-re {{instantiation of 'Mover<std::pair<bool, std::basic_string<char>{{ ?}}>{{ ?}}>' requested here}}
+MOZ_RUNINIT  static Mover<std::pair<bool, std::string>> not_good; // expected-note-re {{instantiation of 'Mover<std::pair<bool, std::basic_string<char>{{ ?}}>{{ ?}}>' requested here}}
 
-static Mover<std::has_nontrivial_dtor> nontrivial_dtor; // expected-note {{instantiation of 'Mover<std::has_nontrivial_dtor>' requested here}}
+MOZ_RUNINIT  static Mover<std::has_nontrivial_dtor> nontrivial_dtor; // expected-note {{instantiation of 'Mover<std::has_nontrivial_dtor>' requested here}}
 static Mover<std::has_nontrivial_copy> nontrivial_copy; // expected-note {{instantiation of 'Mover<std::has_nontrivial_copy>' requested here}}
 static Mover<std::has_nontrivial_move> nontrivial_move; // expected-note {{instantiation of 'Mover<std::has_nontrivial_move>' requested here}}
 static Mover<std::has_trivial_dtor> trivial_dtor;
 static Mover<std::has_trivial_copy> trivial_copy;
 static Mover<std::has_trivial_move> trivial_move;
 
-static Mover<std::pair<bool, std::has_nontrivial_dtor>> pair_nontrivial_dtor; // expected-note {{instantiation of 'Mover<std::pair<bool, std::has_nontrivial_dtor>>' requested here}}
+MOZ_RUNINIT  static Mover<std::pair<bool, std::has_nontrivial_dtor>> pair_nontrivial_dtor; // expected-note {{instantiation of 'Mover<std::pair<bool, std::has_nontrivial_dtor>>' requested here}}
 static Mover<std::pair<bool, std::has_nontrivial_copy>> pair_nontrivial_copy; // expected-note {{instantiation of 'Mover<std::pair<bool, std::has_nontrivial_copy>>' requested here}}
 static Mover<std::pair<bool, std::has_nontrivial_move>> pair_nontrivial_move; // expected-note {{instantiation of 'Mover<std::pair<bool, std::has_nontrivial_move>>' requested here}}
 static Mover<std::pair<bool, std::has_trivial_dtor>> pair_trivial_dtor;

@@ -1,11 +1,12 @@
 #define MOZ_NON_TEMPORARY_CLASS __attribute__((annotate("moz_non_temporary_class")))
 #define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
+#define MOZ_RUNINIT  __attribute__((annotate("moz_global_var")))
 
 #include <stddef.h>
 
 struct MOZ_NON_TEMPORARY_CLASS NonTemporary {
-  int i;
-  NonTemporary() {}
+  int i = 0;
+  constexpr NonTemporary() {}
   MOZ_IMPLICIT NonTemporary(int a) {}
   NonTemporary(int a, int b) {}
   void *operator new(size_t x) throw() { return 0; }

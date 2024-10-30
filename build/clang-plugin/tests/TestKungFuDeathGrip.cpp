@@ -1,6 +1,7 @@
 #include <utility>
 
 #define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
+#define MOZ_RUNINIT  __attribute__((annotate("moz_global_var")))
 
 template <typename T>
 class already_AddRefed {
@@ -139,4 +140,4 @@ void f(nsCOMPtr<Type> ignoredArgument, Type *param) {
   RefPtr<Type> kfdg_p4 = param;
 }
 
-nsCOMPtr<Type> Type::someStaticCOMPtr(nullptr);
+MOZ_RUNINIT nsCOMPtr<Type> Type::someStaticCOMPtr(nullptr);

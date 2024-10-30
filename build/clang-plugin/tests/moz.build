@@ -15,6 +15,7 @@ SOURCES += [
     "TestDanglingOnTemporary.cpp",
     "TestExplicitOperatorBool.cpp",
     "TestGlobalClass.cpp",
+    "TestGlobalVariableInitialization.cpp",
     "TestHeapClass.cpp",
     "TestInheritTypeAnnotationsFromTemplateArgs.cpp",
     "TestJSHandleRootedTypedef.cpp",

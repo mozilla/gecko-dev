@@ -25,8 +25,8 @@ namespace {
 class ImageCallbackHelper;
 
 MOZ_RUNINIT
-    HashSet<RefPtr<ImageCallbackHelper>, PointerHasher<ImageCallbackHelper*>>
-        gDecodeRequests;
+HashSet<RefPtr<ImageCallbackHelper>, PointerHasher<ImageCallbackHelper*>>
+    gDecodeRequests;
 
 class ImageCallbackHelper : public imgIContainerCallback,
                             public imgINotificationObserver {
