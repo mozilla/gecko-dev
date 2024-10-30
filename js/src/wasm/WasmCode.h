@@ -185,22 +185,8 @@ enum class CodeBlockKind {
   LazyStubs
 };
 
-// CodeSegment contains common helpers for determining the base and length of a
-// code segment and if a pc belongs to this segment. It is inherited by:
-// - ModuleSegment, i.e. the code segment of a Module, generated
-// eagerly when a Module is instanciated.
-// - LazyStubSegment, i.e. the code segment of entry stubs that are lazily
-// generated.
-
-// LazyStubSegment is a code segment lazily generated for function entry stubs
-// (both interpreter and jit ones).
-//
-// Because a stub is usually small (a few KiB) and an executable code segment
-// isn't (64KiB), a given stub segment can contain entry stubs of many
-// functions.
-
-// A wasm ModuleSegment owns the allocated executable code for a wasm module.
-
+// CodeSegment is a fixed-size chunk of executable memory that we can
+// bump-allocate smaller allocations from.
 class CodeSegment : public ShareableBase<CodeSegment> {
  private:
   const UniqueCodeBytes bytes_;
@@ -278,23 +264,24 @@ class CodeSegment : public ShareableBase<CodeSegment> {
     return capacityBytes_;
   }
 
-  static size_t PageSize() { return gc::SystemPageSize(); }
-  static size_t PageRoundup(uintptr_t bytes) {
-    // All new code allocations must be rounded to the system page size
-    return AlignBytes(bytes, gc::SystemPageSize());
-  }
-  static bool IsPageAligned(uintptr_t bytes) {
-    return bytes == PageRoundup(bytes);
-  }
-  bool hasSpace(size_t bytes) const {
-    MOZ_ASSERT(IsPageAligned(bytes));
-    return bytes <= capacityBytes() && lengthBytes_ <= capacityBytes() - bytes;
-  }
-  void claimSpace(size_t bytes, uint8_t** claimedBase) {
-    MOZ_RELEASE_ASSERT(hasSpace(bytes));
-    *claimedBase = base() + lengthBytes_;
-    lengthBytes_ += bytes;
-  }
+  // Returns the alignment that all allocations within a code segment must be.
+  //
+  // If we are write-protecting code, then we must start every new allocation
+  // on a new system page, otherwise we can re-use system pages for new
+  // allocations.
+  static size_t AllocationAlignment();
+  // Align `bytes` to be at least the allocation alignment. See above.
+  static size_t AlignAllocationBytes(uintptr_t bytes);
+  // Returns whether `bytes` is aligned to the allocation alignment.
+  static bool IsAligned(uintptr_t bytes);
+
+  // Checks if this code segment has enough room for an allocation of bytes.
+  // The bytes must be aligned to allocation alignment.
+  bool hasSpace(size_t bytes) const;
+
+  // Claims space in this code segment for an allocation of bytes. The bytes
+  // must be aligned to allocation alignment.
+  void claimSpace(size_t bytes, uint8_t** claimedBase);
 
   const Code& code() const { return *code_; }
 

@@ -63,7 +63,7 @@ size_t LinkData::SymbolicLinkArray::sizeOfExcludingThis(
   return size;
 }
 
-static uint32_t RoundupCodeLength(uint32_t codeLength) {
+static uint32_t RoundupExecutableCodePageSize(uint32_t codeLength) {
   // AllocateExecutableMemory() requires a multiple of ExecutableCodePageSize.
   return RoundUp(codeLength, ExecutableCodePageSize);
 }
@@ -76,7 +76,7 @@ UniqueCodeBytes wasm::AllocateCodeBytes(
   }
 
   static_assert(MaxCodeBytesPerProcess <= INT32_MAX, "rounding won't overflow");
-  uint32_t roundedCodeLength = RoundupCodeLength(codeLength);
+  uint32_t roundedCodeLength = RoundupExecutableCodePageSize(codeLength);
 
   void* p =
       AllocateExecutableMemory(roundedCodeLength, ProtectionSetting::Writable,
@@ -113,7 +113,7 @@ UniqueCodeBytes wasm::AllocateCodeBytes(
 
 void FreeCode::operator()(uint8_t* bytes) {
   MOZ_ASSERT(codeLength);
-  MOZ_ASSERT(codeLength == RoundupCodeLength(codeLength));
+  MOZ_ASSERT(codeLength == RoundupExecutableCodePageSize(codeLength));
 
 #ifdef MOZ_VTUNE
   vtune::UnmarkBytes(bytes, codeLength);
@@ -283,15 +283,46 @@ static void SendCodeRangesToProfiler(
   }
 }
 
+size_t CodeSegment::AllocationAlignment() {
+  // If we are write-protecting code, all new code allocations must be rounded
+  // to the system page size.
+  if (JitOptions.writeProtectCode) {
+    return gc::SystemPageSize();
+  }
+
+  // Otherwise we can just use the standard JIT code alignment.
+  return jit::CodeAlignment;
+}
+
+size_t CodeSegment::AlignAllocationBytes(uintptr_t bytes) {
+  return AlignBytes(bytes, AllocationAlignment());
+}
+
+bool CodeSegment::IsAligned(uintptr_t bytes) {
+  return bytes == AlignAllocationBytes(bytes);
+}
+
+bool CodeSegment::hasSpace(size_t bytes) const {
+  MOZ_ASSERT(CodeSegment::IsAligned(bytes));
+  return bytes <= capacityBytes() && lengthBytes_ <= capacityBytes() - bytes;
+}
+
+void CodeSegment::claimSpace(size_t bytes, uint8_t** claimedBase) {
+  MOZ_RELEASE_ASSERT(hasSpace(bytes));
+  *claimedBase = base() + lengthBytes_;
+  lengthBytes_ += bytes;
+}
+
 bool CodeSegment::linkAndMakeExecutableSubRange(
     jit::AutoMarkJitCodeWritableForThread& writable, const LinkData& linkData,
     const Code* maybeCode, uint8_t* pageStart, uint8_t* codeStart,
     uint32_t codeLength) {
   // See ASCII art at CodeSegment::createFromMasmWithBumpAlloc (implementation)
   // for the meaning of pageStart/codeStart/fuzz/codeLength.
-  MOZ_ASSERT(CodeSegment::IsPageAligned(uintptr_t(pageStart)));
+  MOZ_ASSERT(CodeSegment::IsAligned(uintptr_t(pageStart)));
   MOZ_ASSERT(codeStart >= pageStart);
-  MOZ_ASSERT(codeStart - pageStart < ptrdiff_t(CodeSegment::PageSize()));
+  MOZ_ASSERT(codeStart - pageStart <
+             ptrdiff_t(CodeSegment::AllocationAlignment()));
   uint32_t fuzz = codeStart - pageStart;
   if (!StaticallyLink(writable, codeStart, linkData, maybeCode)) {
     return false;
@@ -311,14 +342,14 @@ bool CodeSegment::linkAndMakeExecutable(
   return linkAndMakeExecutableSubRange(
       writable, linkData, maybeCode,
       /*pageStart=*/base(), /*codeStart=*/base(),
-      /*codeLength=*/RoundupCodeLength(lengthBytes()));
+      /*codeLength=*/RoundupExecutableCodePageSize(lengthBytes()));
 }
 
 /* static */
 SharedCodeSegment CodeSegment::createEmpty(size_t capacityBytes,
                                            bool allowLastDitchGC) {
   uint32_t codeLength = 0;
-  uint32_t codeCapacity = RoundupCodeLength(capacityBytes);
+  uint32_t codeCapacity = RoundupExecutableCodePageSize(capacityBytes);
   Maybe<AutoMarkJitCodeWritableForThread> writable;
   UniqueCodeBytes codeBytes =
       AllocateCodeBytes(writable, codeCapacity, allowLastDitchGC);
@@ -339,7 +370,7 @@ SharedCodeSegment CodeSegment::createFromMasm(MacroAssembler& masm,
     return js_new<CodeSegment>(nullptr, 0, 0);
   }
 
-  uint32_t codeCapacity = RoundupCodeLength(codeLength);
+  uint32_t codeCapacity = RoundupExecutableCodePageSize(codeLength);
   Maybe<AutoMarkJitCodeWritableForThread> writable;
   UniqueCodeBytes codeBytes =
       AllocateCodeBytes(writable, codeCapacity, allowLastDitchGC);
@@ -369,7 +400,7 @@ SharedCodeSegment CodeSegment::createFromBytes(const uint8_t* unlinkedBytes,
     return js_new<CodeSegment>(nullptr, 0, 0);
   }
 
-  uint32_t codeCapacity = RoundupCodeLength(codeLength);
+  uint32_t codeCapacity = RoundupExecutableCodePageSize(codeLength);
   Maybe<AutoMarkJitCodeWritableForThread> writable;
   UniqueCodeBytes codeBytes =
       AllocateCodeBytes(writable, codeLength, allowLastDitchGC);
@@ -394,7 +425,7 @@ SharedCodeSegment js::wasm::AllocateCodePagesFrom(
     SharedCodeSegmentVector& lazySegments, uint32_t bytesNeeded,
     bool allowLastDitchGC, size_t* offsetInSegment,
     size_t* roundedUpAllocationSize) {
-  size_t codeLength = CodeSegment::PageRoundup(bytesNeeded);
+  size_t codeLength = CodeSegment::AlignAllocationBytes(bytesNeeded);
 
   if (lazySegments.length() == 0 ||
       !lazySegments[lazySegments.length() - 1]->hasSpace(codeLength)) {
@@ -464,7 +495,7 @@ SharedCodeSegment CodeSegment::createFromMasmWithBumpAlloc(
   // case we can move the real start point of the code forward a bit, so as to
   // spread it out over more icache sets.  We'll compute the required movement
   // into `fuzz`.
-  uint32_t fuzz;
+  uint32_t fuzz = 0;
 
   // The number of bytes that we need, really.
   uint32_t codeLength = masm.bytesNeeded();
@@ -482,10 +513,10 @@ SharedCodeSegment CodeSegment::createFromMasmWithBumpAlloc(
     // to universally true.
     const uint32_t cacheLineSize = 64;
     int32_t bytesUnusedAtEndOfPage =
-        int32_t(CodeSegment::PageRoundup(codeLength) - codeLength);
+        int32_t(CodeSegment::AlignAllocationBytes(codeLength) - codeLength);
     MOZ_RELEASE_ASSERT(bytesUnusedAtEndOfPage >= 0 &&
                        bytesUnusedAtEndOfPage <
-                           int32_t(CodeSegment::PageSize()));
+                           int32_t(CodeSegment::AllocationAlignment()));
     uint32_t fuzzLinesAvailable =
         uint32_t(bytesUnusedAtEndOfPage) / cacheLineSize;
     // But don't overdo it (important if hardware page size is > 4k)
@@ -499,8 +530,8 @@ SharedCodeSegment CodeSegment::createFromMasmWithBumpAlloc(
     requestLength = fuzz + codeLength;
     // "adding on the fuzz area doesn't change the total number of pages
     //  required"
-    MOZ_RELEASE_ASSERT(CodeSegment::PageRoundup(requestLength) ==
-                       CodeSegment::PageRoundup(codeLength));
+    MOZ_RELEASE_ASSERT(CodeSegment::AlignAllocationBytes(requestLength) ==
+                       CodeSegment::AlignAllocationBytes(codeLength));
 
     // Find a CodeSegment that has enough space
     size_t offsetInSegment = 0;
@@ -510,8 +541,8 @@ SharedCodeSegment CodeSegment::createFromMasmWithBumpAlloc(
     if (!segment) {
       return nullptr;
     }
-    MOZ_ASSERT(CodeSegment::IsPageAligned(uintptr_t(segment->base())));
-    MOZ_ASSERT(CodeSegment::IsPageAligned(offsetInSegment));
+    MOZ_ASSERT(CodeSegment::IsAligned(uintptr_t(segment->base())));
+    MOZ_ASSERT(CodeSegment::IsAligned(offsetInSegment));
 
     pageStart = segment->base() + offsetInSegment;
     codeStart = pageStart + fuzz;
@@ -635,7 +666,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
     return false;
   }
   uint8_t* codePtr = segment->base() + offsetInSegment;
-  MOZ_ASSERT(CodeSegment::IsPageAligned(codeLength));
+  MOZ_ASSERT(CodeSegment::IsAligned(codeLength));
 
   UniqueCodeBlock stubCodeBlock =
       MakeUnique<CodeBlock>(CodeBlockKind::LazyStubs);
