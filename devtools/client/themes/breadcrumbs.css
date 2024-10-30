@@ -3,14 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
  :root {
-  --breadcrumb-id-class-color: light-dark(#909090, var(--theme-text-color-strong));
-  --breadcrumb-tag-color: light-dark(var(--theme-body-color), var(--theme-contrast-color));
+  --breadcrumb-id-class-color: #909090;
+ }
 
-  &[forced-colors-active] {
-    --breadcrumb-id-class-color: ButtonText;
-    --breadcrumb-tag-color: ButtonText;
-  }
-}
+ .theme-dark:root {
+  --breadcrumb-id-class-color: var(--theme-text-color-strong);
+ }
 
 /* Inspector HTMLBreadcrumbs */
 
@@ -87,58 +85,42 @@
 }
 
 .breadcrumbs-widget-item {
-  --separator-width: 8px;
-  --inline-padding: 6px;
-  background: none;
+  background-color: transparent;
   border: none;
-  padding: 0 var(--inline-padding);
-
-  &[aria-pressed="true"] {
-    color: var(--theme-highlight-blue);
-
-    .breadcrumbs-widget-item-id {
-      color: var(--theme-highlight-purple);
-    }
-
-    :is(
-      .breadcrumbs-widget-item-tag,
-      .breadcrumbs-widget-item-pseudo-classes,
-      .breadcrumbs-widget-item-classes
-    ) {
-      color: currentColor;
-    }
-
-    :root[forced-colors-active] & {
-      background-color: SelectedItem;
-      color: SelectedItemText;
-    }
-  }
+  margin-inline: 10px 1px;
+  padding: 0;
 }
 
-/* We display a separator before all items except the first one */
-.breadcrumbs-widget-item:not(:first-child) {
-  /* We don't want the separator to be part of the button visually, so
-     we'll move it "between" the items */
-  margin-inline-start: var(--separator-width);
-  padding-inline-start: 0;
-
-  &::before {
-    content: url(chrome://devtools/skin/images/breadcrumbs-divider.svg);
-    background: none;
-    display: inline-block;
-    text-align: center;
-    width: var(--separator-width);
-    /* move the separator "out" of the breadcrumb item */
-    margin-inline-start: calc(-1 * var(--separator-width));
-    /* and add margin after to simulate padding for the "inside" of the button */
-    margin-inline-end: var(--inline-padding);
-    -moz-context-properties: fill;
-    fill: var(--theme-icon-disabled-color);
-  }
+.breadcrumbs-widget-item:first-child::before {
+  /* The first crumb does not need any separator before itself */
+  content: unset;
 }
 
-.breadcrumbs-widget-item-tag {
-  color: var(--breadcrumb-tag-color);
+.breadcrumbs-widget-item:not(:first-child)::before {
+  content: url(chrome://devtools/skin/images/breadcrumbs-divider.svg);
+  background: none;
+  position: relative;
+  left: -3px;
+  margin: 0 4px 0 -1px;
+  top: -1px;
+}
+
+.breadcrumbs-widget-item[checked] .breadcrumbs-widget-item-id {
+  color: var(--theme-highlight-purple);
+}
+
+.breadcrumbs-widget-item[checked] .breadcrumbs-widget-item-tag,
+.breadcrumbs-widget-item[checked] .breadcrumbs-widget-item-pseudo-classes,
+.breadcrumbs-widget-item[checked] .breadcrumbs-widget-item-classes {
+  color: var(--theme-highlight-blue);
+}
+
+.theme-dark .breadcrumbs-widget-item {
+  color: var(--theme-selection-color);
+}
+
+.theme-light .breadcrumbs-widget-item {
+  color: var(--theme-body-color);
 }
 
 .breadcrumbs-widget-item-id,

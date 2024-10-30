@@ -681,13 +681,10 @@ HTMLBreadcrumbs.prototype = {
       this.currentIndex > -1 &&
       this.currentIndex < this.nodeHierarchy.length
     ) {
-      this.nodeHierarchy[this.currentIndex].button.setAttribute(
-        "aria-pressed",
-        "false"
-      );
+      this.nodeHierarchy[this.currentIndex].button.removeAttribute("checked");
     }
     if (index > -1) {
-      this.nodeHierarchy[index].button.setAttribute("aria-pressed", "true");
+      this.nodeHierarchy[index].button.setAttribute("checked", "true");
     } else {
       // Unset active active descendant when all buttons are unselected.
       this.outer.removeAttribute("aria-activedescendant");

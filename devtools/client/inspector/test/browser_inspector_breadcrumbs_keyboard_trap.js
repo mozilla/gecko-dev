@@ -56,7 +56,7 @@ add_task(async function () {
   info("Clicking on the corresponding breadcrumbs node to focus it");
   const container = doc.getElementById("inspector-breadcrumbs");
 
-  const button = container.querySelector(`button[aria-pressed="true"]`);
+  const button = container.querySelector("button[checked]");
   const onHighlight = waitForHighlighterTypeShown(
     inspector.highlighters.TYPES.BOXMODEL
   );
