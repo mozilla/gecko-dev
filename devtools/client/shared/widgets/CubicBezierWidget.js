@@ -159,10 +159,19 @@ BezierCanvas.prototype = {
   plot(settings = {}) {
     const xy = this.bezier.coordinates;
 
+    const win = this.canvas.ownerGlobal;
+    const computedStyle = win.getComputedStyle(win.document.documentElement);
+
     const defaultSettings = {
-      handleColor: "#666",
+      handleColor: computedStyle.getPropertyValue(
+        "--timing-function-control-point-background"
+      ),
       handleThickness: 0.008,
-      bezierColor: "#4C9ED9",
+      diagonalThickness: 0.01,
+      diagonalColor: computedStyle.getPropertyValue("--bezier-diagonal-color"),
+      bezierColor: computedStyle.getPropertyValue(
+        "--timing-function-line-color"
+      ),
       bezierThickness: 0.015,
       drawHandles: true,
     };
@@ -181,7 +190,6 @@ BezierCanvas.prototype = {
     if (defaultSettings.drawHandles) {
       // Draw control handles
       this.ctx.beginPath();
-      this.ctx.fillStyle = defaultSettings.handleColor;
       this.ctx.lineWidth = defaultSettings.handleThickness;
       this.ctx.strokeStyle = defaultSettings.handleColor;
 
@@ -193,16 +201,14 @@ BezierCanvas.prototype = {
       this.ctx.stroke();
       this.ctx.closePath();
 
-      const circle = (ctx, cx, cy, r) => {
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, 2 * Math.PI, !1);
-        ctx.closePath();
-      };
-
-      circle(this.ctx, xy[0], xy[1], 1.5 * defaultSettings.handleThickness);
-      this.ctx.fill();
-      circle(this.ctx, xy[2], xy[3], 1.5 * defaultSettings.handleThickness);
-      this.ctx.fill();
+      // Draw diagonal between points
+      this.ctx.beginPath();
+      this.ctx.lineWidth = defaultSettings.diagonalThickness;
+      this.ctx.strokeStyle = defaultSettings.diagonalColor;
+      this.ctx.moveTo(0, 0);
+      this.ctx.lineTo(1, 1);
+      this.ctx.stroke();
+      this.ctx.closePath();
     }
 
     // Draw bezier curve
@@ -304,9 +310,26 @@ CubicBezierWidget.prototype = {
     plane.appendChild(p2);
 
     const curve = doc.createElementNS(XHTML_NS, "canvas");
-    curve.setAttribute("width", 150);
-    curve.setAttribute("height", 370);
     curve.className = "curve";
+    const parentComputedStyle = this.parent.ownerGlobal.getComputedStyle(
+      this.parent
+    );
+    // We need to set the canvas dimension to the actual rendered dimension
+    // to avoid the canvas to scale. We can retriev the CSS variable values
+    // and striping their unit.
+    const dimensionRegex = /(?<size>\d+)px$/;
+    curve.setAttribute(
+      "width",
+      dimensionRegex.exec(
+        parentComputedStyle.getPropertyValue("--bezier-curve-width")
+      ).groups.size
+    );
+    curve.setAttribute(
+      "height",
+      dimensionRegex.exec(
+        parentComputedStyle.getPropertyValue("--bezier-curve-height")
+      ).groups.size
+    );
 
     plane.appendChild(curve);
     wrap.appendChild(plane);
@@ -865,16 +888,28 @@ TimingFunctionPreviewWidget.prototype = {
     // The timing function passed to this function is applied to the keyframes that
     // actually move the dot. This way it can be previewed in both direction, instead of
     // being spread over the whole animation.
+    const translateStart = "calc(var(--bezier-curve-width) / -2)";
+    const translateEnd = "calc(var(--bezier-curve-width) / 2)";
     this.dot.animate(
       [
-        { left: "-7px", opacity: 0.5, offset: 0 },
-        { left: "-7px", opacity: 0.5, offset: 0.19 },
-        { left: "-7px", opacity: 1, offset: 0.2, easing: timingFunction },
-        { left: "143px", opacity: 1, offset: 0.5 },
-        { left: "143px", opacity: 0.5, offset: 0.51 },
-        { left: "143px", opacity: 0.5, offset: 0.7 },
-        { left: "143px", opacity: 1, offset: 0.71, easing: timingFunction },
-        { left: "-7px", opacity: 1, offset: 1 },
+        { translate: translateStart, opacity: 0.5, offset: 0 },
+        { translate: translateStart, opacity: 0.5, offset: 0.19 },
+        {
+          translate: translateStart,
+          opacity: 1,
+          offset: 0.2,
+          easing: timingFunction,
+        },
+        { translate: translateEnd, opacity: 1, offset: 0.5 },
+        { translate: translateEnd, opacity: 0.5, offset: 0.51 },
+        { translate: translateEnd, opacity: 0.5, offset: 0.7 },
+        {
+          translate: translateEnd,
+          opacity: 1,
+          offset: 0.71,
+          easing: timingFunction,
+        },
+        { translate: translateStart, opacity: 1, offset: 1 },
       ],
       {
         duration: this.PREVIEW_DURATION * 2,

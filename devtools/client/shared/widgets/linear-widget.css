@@ -63,4 +63,9 @@
   border-radius: 50%;
   border: 2px solid var(--timing-function-preview-dot-border);
   background: var(--timing-function-line-color);
+  /* We need to opt-out of forced color as --timing-function-line-color is
+     a registered color and gets computed to an rgb color which means the color
+     will be forced, even if the declaration value is a system color.
+     All the colors used here have High Contrast re-declaration so it should be fine */
+     forced-color-adjust: none;
 }
