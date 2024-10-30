@@ -65,6 +65,9 @@ document.addEventListener(
           case "cmd_closeWindow":
             BrowserCommands.tryToCloseWindow(event);
             break;
+          case "cmd_minimizeWindow":
+            window.minimize();
+            break;
           case "cmd_toggleMute":
             gBrowser.toggleMuteAudioOnMultiSelectedTabs(gBrowser.selectedTab);
             break;
@@ -235,9 +238,6 @@ document.addEventListener(
             break;
           case "windowRecordingCmd":
             gGfxUtils.toggleWindowRecording();
-            break;
-          case "minimizeWindow":
-            window.minimize();
             break;
           case "zoomWindow":
             zoomWindow();

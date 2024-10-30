@@ -406,7 +406,7 @@
                    data-l10n-id="menu-window-menu">
                 <menupopup id="windowPopup">
                     <menuseparator/>
-                    <menuitem command="minimizeWindow" key="key_minimizeWindow"/>
+                    <menuitem command="cmd_minimizeWindow" key="key_minimizeWindow" data-l10n-id="window-minimize-command" />
                     <menuitem command="zoomWindow"/>
                     <!-- decomment when "BringAllToFront" is implemented
                         <menuseparator/>

@@ -79,7 +79,7 @@ function nonBrowserWindowStartup() {
     // close, minimize and zoom menu commands as well.
     var hiddenWindowDisabledItems = [
       "cmd_close",
-      "minimizeWindow",
+      "cmd_minimizeWindow",
       "zoomWindow",
     ];
     for (let hiddenWindowDisabledItem of hiddenWindowDisabledItems) {

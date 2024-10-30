@@ -34,6 +34,7 @@
     <command id="cmd_help_importFromAnotherBrowser" />
     <command id="cmd_close" />
     <command id="cmd_closeWindow" />
+    <command id="cmd_minimizeWindow" />
     <command id="cmd_toggleMute" />
     <command id="cmd_CustomizeToolbars" oncommand="gCustomizeMode.enter();" />
     <command id="cmd_toggleOfflineStatus" />
@@ -104,7 +105,6 @@
     <command id="windowRecordingCmd" />
 #endif
 #ifdef XP_MACOSX
-    <command id="minimizeWindow" data-l10n-id="window-minimize-command" />
     <command id="zoomWindow" data-l10n-id="window-zoom-command" />
 #endif
   </commandset>
@@ -365,7 +365,7 @@
 #endif
 #ifdef XP_MACOSX
     <key id="key_minimizeWindow"
-         command="minimizeWindow"
+         command="cmd_minimizeWindow"
          data-l10n-id="window-minimize-shortcut"
          modifiers="accel"
          internal="true"/>
