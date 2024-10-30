@@ -903,11 +903,16 @@ class HomeFragment : Fragment() {
     }
 
     private fun resetToolbarViewUI() {
+        val elevation = if (context?.settings()?.navigationToolbarEnabled == true) {
+            0f
+        } else {
+            requireContext().resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
+        }
         _binding?.homeLayout?.removeView(bottomToolbarContainerView.toolbarContainerView)
         updateToolbarViewUI(
             R.drawable.home_bottom_bar_background,
             View.VISIBLE,
-            requireContext().resources.getDimension(R.dimen.browser_fragment_toolbar_elevation),
+            elevation,
         )
     }
 

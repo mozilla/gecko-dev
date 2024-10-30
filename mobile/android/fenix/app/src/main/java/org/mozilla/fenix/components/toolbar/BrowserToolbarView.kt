@@ -36,6 +36,7 @@ import org.mozilla.fenix.customtabs.CustomTabToolbarIntegration
 import org.mozilla.fenix.customtabs.CustomTabToolbarMenu
 import org.mozilla.fenix.ext.bookmarkStorage
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.ToolbarPopupWindow
@@ -116,7 +117,11 @@ class BrowserToolbarView(
 
         with(context) {
             val isPinningSupported = components.useCases.webAppUseCases.isPinningSupported()
-            layout.elevation = resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
+            layout.elevation = if (shouldShowDropShadow()) {
+                resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
+            } else {
+                0.0f
+            }
 
             view.apply {
                 setToolbarBehavior()
@@ -354,6 +359,8 @@ class BrowserToolbarView(
             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
     }
+
+    private fun shouldShowDropShadow() = !context.settings().navigationToolbarEnabled
 
     private fun shouldShowTabStrip() =
         customTabSession == null && context.isTabStripEnabled()
