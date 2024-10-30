@@ -49,7 +49,7 @@ software = [ "swgl" ]
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.11"
-mozangle = { version = "0.3.2", features = ["egl"] }
+mozangle = { version = "0.5.2", features = ["egl"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 libc = "0.2"
