@@ -26,6 +26,7 @@
 #include "WindowDestroyedEvent.h"
 #include "WindowNamedPropertiesHandler.h"
 #include "js/ComparisonOperators.h"
+#include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
 #include "js/friend/PerformanceHint.h"
 #include "js/Id.h"
@@ -6114,7 +6115,9 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
           mInitiatingScript->AssociateWithScript(script);
         }
 
-        ExecScript(aes.cx(), script, erv);
+        if (!JS_ExecuteScript(aes.cx(), script)) {
+          erv.NoteJSContextException(aes.cx());
+        }
       }
     }
 

@@ -2637,8 +2637,7 @@ class MOZ_RAII AutoSetProcessingScriptTag {
   ~AutoSetProcessingScriptTag() { mContext->SetProcessingScriptTag(mOldTag); }
 };
 
-static void ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
-                                  ClassicScript* aLoaderScript,
+static void ExecuteCompiledScript(JSContext* aCx, ClassicScript* aLoaderScript,
                                   JS::Handle<JSScript*> aScript,
                                   ErrorResult& aRv) {
   if (!aScript) {
@@ -2651,7 +2650,9 @@ static void ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
     aLoaderScript->AssociateWithScript(aScript);
   }
 
-  ExecScript(aCx, aScript, aRv);
+  if (!JS_ExecuteScript(aCx, aScript)) {
+    aRv.NoteJSContextException(aCx);
+  }
 }
 
 nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
@@ -3086,7 +3087,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                 profilerLabelString);
 
       MOZ_ASSERT(options.noScriptRval);
-      ExecuteCompiledScript(cx, exec, classicScript, script, erv);
+      ExecuteCompiledScript(cx, classicScript, script, erv);
     }
   }
   rv = EvaluationExceptionToNSResult(erv);

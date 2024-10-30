@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "js/CompilationAndEvaluation.h"
 #include "nsCOMPtr.h"
 #include "jsapi.h"
 #include "js/Wrapper.h"
@@ -167,6 +168,64 @@ static bool AllowedByCSP(nsIContentSecurityPolicy* aCSP,
                             &allowsInlineScript);
 
   return (NS_SUCCEEDED(rv) && allowsInlineScript);
+}
+
+static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+  if (!aValue.isObject()) {
+    return false;
+  }
+
+  // We only care about Promise here, so CheckedUnwrapStatic is fine.
+  JS::Rooted<JSObject*> obj(aCx, js::CheckedUnwrapStatic(&aValue.toObject()));
+  if (!obj) {
+    return false;
+  }
+
+  return JS::IsPromiseObject(obj);
+}
+
+// Execute the compiled script a get the return value, coerced to a string.
+//
+// Copy the returned value into the mutable handle argument. In case of a
+// evaluation failure either during the execution or the conversion of the
+// result to a string, the nsresult is be set to the corresponding result
+// code and the mutable handle argument remains unchanged.
+//
+// The value returned in the mutable handle argument is part of the
+// compartment given as argument to the JSExecutionContext constructor. If the
+// caller is in a different compartment, then the out-param value should be
+// wrapped by calling |JS_WrapValue|.
+//
+static void ExecScriptAndCoerceToString(JSContext* aCx,
+                                        JS::Handle<JSScript*> aScript,
+                                        JS::MutableHandle<JS::Value> aRetValue,
+                                        mozilla::ErrorResult& aRv) {
+  MOZ_ASSERT(aScript);
+
+  if (!JS_ExecuteScript(aCx, aScript, aRetValue)) {
+    aRv.NoteJSContextException(aCx);
+    return;
+  }
+
+  if (IsPromiseValue(aCx, aRetValue)) {
+    // We're a javascript: url and we should treat Promise return values as
+    // undefined.
+    //
+    // Once bug 1477821 is fixed this code might be able to go away, or will
+    // become enshrined in the spec, depending.
+    aRetValue.setUndefined();
+  }
+
+  if (!aRetValue.isUndefined()) {
+    JSString* str = JS::ToString(aCx, aRetValue);
+    if (!str) {
+      // ToString can be a function call, so an exception can be raised while
+      // executing the function.
+      aRv.NoteJSContextException(aCx);
+      return;
+    }
+    aRetValue.set(JS::StringValue(str));
+  }
 }
 
 nsresult nsJSThunk::EvaluateScript(
@@ -345,8 +404,7 @@ nsresult nsJSThunk::EvaluateScript(
 
       if (!erv.Failed()) {
         MOZ_ASSERT(!options.noScriptRval);
-        mozilla::dom::ExecScript(cx, compiledScript, &v, erv,
-                                 /* aCoerceToString */ true);
+        ExecScriptAndCoerceToString(cx, compiledScript, &v, erv);
       }
     }
     rv = mozilla::dom::EvaluationExceptionToNSResult(erv);
