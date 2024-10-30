@@ -64,13 +64,6 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   }
 };
 
-// After getting a notification that an off-thread compile/decode finished,
-// this function will take the result of the off-thread operation and move it
-// to the main thread.
-void JoinOffThread(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-                   ScriptLoadContext* aContext, RefPtr<JS::Stencil>& aStencil,
-                   JS::InstantiationStorage& aStorage, ErrorResult& aRv);
-
 // Compile a script contained in a string.
 void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
              const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,

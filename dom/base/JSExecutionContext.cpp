@@ -83,18 +83,6 @@ JSExecutionContext::JSExecutionContext(
 
 namespace mozilla::dom {
 
-void JoinOffThread(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-                   ScriptLoadContext* aContext, RefPtr<JS::Stencil>& aStencil,
-                   JS::InstantiationStorage& aStorage, ErrorResult& aRv) {
-  MOZ_ASSERT(aCompileOptions.noScriptRval);
-
-  aStencil = aContext->StealOffThreadResult(aCx, &aStorage);
-  if (!aStencil) {
-    aRv.NoteJSContextException(aCx);
-    return;
-  }
-}
-
 void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
              const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,
              ErrorResult& aRv) {

@@ -2758,8 +2758,13 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
            aRequest));
       RefPtr<JS::Stencil> stencil;
       JS::InstantiationStorage storage;
-      JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
-                    stencil, storage, aRv);
+      MOZ_ASSERT(aCompileOptions.noScriptRval);
+      stencil =
+          aRequest->GetScriptLoadContext()->StealOffThreadResult(aCx, &storage);
+      if (!stencil) {
+        aRv.NoteJSContextException(aCx);
+        return;
+      }
       if (!aRv.Failed() && aKeepStencil) {
         aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
         if (!aStencilDup) {
@@ -2767,12 +2772,11 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
           return;
         }
       }
-      if (stencil) {
-        bool unused;
-        InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
-                           unused, aDebuggerPrivateValue,
-                           aDebuggerIntroductionScript, aRv, false, &storage);
-      }
+
+      bool unused;
+      InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
+                         unused, aDebuggerPrivateValue,
+                         aDebuggerIntroductionScript, aRv, false, &storage);
     } else {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode and Execute", aRequest));
       AUTO_PROFILER_MARKER_TEXT("BytecodeDecodeMainThread", JS,
@@ -2816,8 +2820,13 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     MOZ_ASSERT(aRequest->IsTextSource());
     RefPtr<JS::Stencil> stencil;
     JS::InstantiationStorage storage;
-    JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
-                  stencil, storage, aRv);
+    MOZ_ASSERT(aCompileOptions.noScriptRval);
+    stencil =
+        aRequest->GetScriptLoadContext()->StealOffThreadResult(aCx, &storage);
+    if (!stencil) {
+      aRv.NoteJSContextException(aCx);
+      return;
+    }
     if (!aRv.Failed() && aKeepStencil) {
       aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
       if (!aStencilDup) {
@@ -2825,13 +2834,12 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
         return;
       }
     }
-    if (stencil) {
-      bool unused;
-      InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
-                         unused, aDebuggerPrivateValue,
-                         aDebuggerIntroductionScript, aRv, encodeBytecode,
-                         &storage);
-    }
+
+    bool unused;
+    InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
+                       unused, aDebuggerPrivateValue,
+                       aDebuggerIntroductionScript, aRv, encodeBytecode,
+                       &storage);
   } else {
     // Main thread parsing (inline and small scripts)
     LOG(("ScriptLoadRequest (%p): Compile And Exec", aRequest));
