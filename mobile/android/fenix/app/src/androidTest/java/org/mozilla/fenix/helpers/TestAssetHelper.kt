@@ -153,4 +153,11 @@ object TestAssetHelper {
 
         return TestAsset(url, "", "")
     }
+
+    fun getTextFragmentAsset(server: MockWebServer): TestAsset {
+        val url = server.url("pages/textFragment.html").toString().toUri()!!
+        val title = "Text_Fragment"
+
+        return TestAsset(url, "", title)
+    }
 }
