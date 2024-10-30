@@ -142,6 +142,17 @@ class DisplayToolbar internal constructor(
         BOTTOM,
     }
 
+    /**
+     * Data class holding the customizable margins for views in "display mode".
+     *
+     * @property goneStartMargin The start margin to be applied when the constraint target is gone.
+     * @property goneEndMargin The end margin to be applied when the constraint target is gone.
+     */
+    data class DisplayMargins(
+        val goneStartMargin: Int?,
+        val goneEndMargin: Int?,
+    )
+
     internal val views = DisplayToolbarViews(
         browserActions = rootView.findViewById(R.id.mozac_browser_toolbar_browser_actions),
         pageActions = rootView.findViewById(R.id.mozac_browser_toolbar_page_actions),
@@ -307,6 +318,24 @@ class DisplayToolbar internal constructor(
      */
     fun setUrlBackground(background: Drawable?) {
         views.background.setImageDrawable(background)
+    }
+
+    /**
+     * Sets the margins for the background view using the provided DisplayMargins.
+     *
+     * @param margins The DisplayMargins containing the start and end margins to be applied.
+     */
+    fun setUrlBackgroundMargins(margins: DisplayMargins) {
+        val layoutParams = views.background.layoutParams as? ConstraintLayout.LayoutParams
+        layoutParams?.let {
+            margins.goneStartMargin?.let { goneStartMargin ->
+                it.goneStartMargin = goneStartMargin
+            }
+
+            margins.goneEndMargin?.let { goneEndMargin ->
+                it.goneEndMargin = goneEndMargin
+            }
+        }
     }
 
     /**

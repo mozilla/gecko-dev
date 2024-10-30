@@ -22,6 +22,10 @@ permalink: /changelog/
 * **ui-widgets**
   * 🆕 New `mozac_material_ripple_minimum_interaction_size` drawable for a 48dp ripple to be used when `selectableItemBackgroundBorderless` is too big and `selectableItemBackground` is too small. [Bug 1920554](https://bugzilla.mozilla.org/show_bug.cgi?id=1920554).
 
+* **browser-toolbar**
+  * Added internal data class `DisplayMargins` in `DisplayToolbar` class that can be used to specify margins for `DisplayToolbar`'s views
+  * Added `setUrlBackgroundMargins` method in `DisplayToolbar` class that client apps can use to specify custom `DisplayMargins` for the `background` view. [Bug 1927778](https://bugzilla.mozilla.org/show_bug.cgi?id=1927778)
+
 # 132.0
 * **feature-awesomebar**
   * The `onCancelEditing` now returns a result based on the `onStartEditing` and `onStopEditing` callback. [Bug 1917496](https://bugzilla.mozilla.org/show_bug.cgi?id=1917496)
