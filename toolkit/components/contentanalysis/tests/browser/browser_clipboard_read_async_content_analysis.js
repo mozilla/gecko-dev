@@ -18,88 +18,93 @@ const PAGE_URL =
   "https://example.com/browser/toolkit/components/contentanalysis/tests/browser/clipboard_read_async.html";
 const CLIPBOARD_TEXT_STRING = "Some plain text";
 const CLIPBOARD_HTML_STRING = "<b>Some HTML</b>";
-async function testClipboardReadAsync(allowPaste) {
-  mockCA.setupForTest(allowPaste);
+const TEST_MODES = Object.freeze({
+  ALLOW: {
+    caAllow: true,
+    caError: false,
+    shouldPaste: true,
+    shouldRunCA: true,
+  },
+  BLOCK: {
+    caAllow: false,
+    caError: false,
+    shouldPaste: false,
+    shouldRunCA: true,
+  },
+  ERROR: {
+    caAllow: false,
+    caError: true,
+    shouldPaste: false,
+    shouldRunCA: true,
+  },
+  PREFOFF: {
+    caAllow: false,
+    caError: false,
+    shouldPaste: true,
+    shouldRunCA: false,
+  },
+});
+
+async function testClipboardReadAsync(testMode) {
+  if (testMode.caError) {
+    mockCA.setupForTestWithError(Cr.NS_ERROR_NOT_AVAILABLE);
+  } else {
+    mockCA.setupForTest(testMode.caAllow);
+  }
 
   setClipboardData();
 
+  if (testMode.caError) {
+    // This test throws a number of exceptions, so tell the framework this is OK.
+    // If an exception is thrown we won't get the right response from setDataAndStartTest()
+    // so this should be safe to do.
+    ignoreAllUncaughtExceptions();
+  }
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE_URL);
   let browser = tab.linkedBrowser;
   {
-    let result = await setDataAndStartTest(browser, allowPaste, "read");
+    let result = await setDataAndStartTest(
+      browser,
+      testMode.shouldPaste,
+      "read",
+      testMode.caError
+    );
     is(result, true, "Got unexpected result from page for read()");
 
     is(
       mockCA.calls.length,
-      2,
+      testMode.shouldRunCA ? 2 : 0,
       "Correct number of calls to Content Analysis for read()"
     );
-    // On Windows, widget adds extra data into HTML clipboard.
-    let expectedHtml = navigator.platform.includes("Win")
-      ? `<html><body>\n<!--StartFragment-->${CLIPBOARD_HTML_STRING}<!--EndFragment-->\n</body>\n</html>`
-      : CLIPBOARD_HTML_STRING;
+    if (testMode.shouldRunCA) {
+      // On Windows, widget adds extra data into HTML clipboard.
+      let expectedHtml = navigator.platform.includes("Win")
+        ? `<html><body>\n<!--StartFragment-->${CLIPBOARD_HTML_STRING}<!--EndFragment-->\n</body>\n</html>`
+        : CLIPBOARD_HTML_STRING;
 
-    assertContentAnalysisRequest(mockCA.calls[0], expectedHtml);
-    assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING);
+      assertContentAnalysisRequest(mockCA.calls[0], expectedHtml);
+      assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING);
+    }
     mockCA.clearCalls();
   }
 
   {
-    let result = await setDataAndStartTest(browser, allowPaste, "readText");
+    let result = await setDataAndStartTest(
+      browser,
+      testMode.shouldPaste,
+      "readText",
+      testMode.caError
+    );
     is(result, true, "Got unexpected result from page for readText()");
 
     is(
       mockCA.calls.length,
-      1,
+      testMode.shouldRunCA ? 1 : 0,
       "Correct number of calls to Content Analysis for read()"
     );
-    assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
-    mockCA.clearCalls();
-  }
-
-  BrowserTestUtils.removeTab(tab);
-}
-
-async function testClipboardReadAsyncWithErrorHelper() {
-  mockCA.setupForTestWithError(Cr.NS_ERROR_NOT_AVAILABLE);
-
-  setClipboardData();
-
-  // This test throws a number of exceptions, so tell the framework this is OK.
-  // If an exception is thrown we won't get the right response from setDataAndStartTest()
-  // so this should be safe to do.
-  ignoreAllUncaughtExceptions();
-  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE_URL);
-  let browser = tab.linkedBrowser;
-  {
-    let result = await setDataAndStartTest(browser, false, "read", true);
-    is(result, true, "Got unexpected result from page for read()");
-
-    is(
-      mockCA.calls.length,
-      2,
-      "Correct number of calls to Content Analysis for read()"
-    );
-    // On Windows, widget adds extra data into HTML clipboard.
-    let expectedHtml = navigator.platform.includes("Win")
-      ? `<html><body>\n<!--StartFragment-->${CLIPBOARD_HTML_STRING}<!--EndFragment-->\n</body>\n</html>`
-      : CLIPBOARD_HTML_STRING;
-
-    assertContentAnalysisRequest(mockCA.calls[0], expectedHtml);
-    assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING);
-    mockCA.clearCalls();
-  }
-
-  {
-    let result = await setDataAndStartTest(browser, false, "readText", true);
-    is(result, true, "Got unexpected result from page for readText()");
-
-    is(
-      mockCA.calls.length,
-      1,
-      "Correct number of calls to Content Analysis for read()"
-    );
-    assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
+    if (testMode.shouldRunCA) {
+      assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
+    }
     mockCA.clearCalls();
   }
 
@@ -183,13 +188,25 @@ function setClipboardData() {
 }
 
 add_task(async function testClipboardReadAsyncWithContentAnalysisAllow() {
-  await testClipboardReadAsync(true);
+  await testClipboardReadAsync(TEST_MODES.ALLOW);
 });
 
 add_task(async function testClipboardReadAsyncWithContentAnalysisBlock() {
-  await testClipboardReadAsync(false);
+  await testClipboardReadAsync(TEST_MODES.BLOCK);
 });
 
+add_task(
+  async function testClipboardReadAsyncWithContentAnalysisBlockButPrefOff() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["browser.contentanalysis.interception_point.clipboard.enabled", false],
+      ],
+    });
+    await testClipboardReadAsync(TEST_MODES.PREFOFF);
+    await SpecialPowers.popPrefEnv();
+  }
+);
+
 add_task(async function testClipboardReadAsyncWithError() {
-  await testClipboardReadAsyncWithErrorHelper();
+  await testClipboardReadAsync(TEST_MODES.ERROR);
 });

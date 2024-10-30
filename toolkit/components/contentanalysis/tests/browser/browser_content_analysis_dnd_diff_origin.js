@@ -59,6 +59,27 @@ Services.scriptloader.loadSubScript(
   this
 );
 
+const TEST_MODES = Object.freeze({
+  ALLOW: {
+    caAllow: true,
+    turnOffPref: false,
+    shouldDrag: true,
+    shouldRunCA: true,
+  },
+  BLOCK: {
+    caAllow: false,
+    turnOffPref: false,
+    shouldDrag: false,
+    shouldRunCA: true,
+  },
+  PREFOFF: {
+    caAllow: false,
+    turnOffPref: true,
+    shouldDrag: true,
+    shouldRunCA: false,
+  },
+});
+
 runTest = async function (
   testRootName,
   sourceBrowsingCxt,
@@ -92,30 +113,59 @@ runTest = async function (
     return;
   }
 
-  for (let caShouldAllow of [false, true]) {
-    let name = `${testRootName}:${caShouldAllow ? "allow_drop" : "deny_drop"}`;
+  for (let testMode of [
+    TEST_MODES.ALLOW,
+    TEST_MODES.BLOCK,
+    TEST_MODES.PREFOFF,
+  ]) {
+    let description;
+    if (testMode.shouldRunCA) {
+      description = testMode.caAllow ? "allow_drop" : "deny_drop";
+    } else {
+      description = "no_run_ca_because_of_pref";
+    }
+    let name = `${testRootName}:${description}`;
     info(name);
     testName = name;
-    mockCA.caShouldAllow = caShouldAllow;
+    if (testMode.turnOffPref) {
+      await SpecialPowers.pushPrefEnv({
+        set: [
+          [
+            "browser.contentanalysis.interception_point.drag_and_drop.enabled",
+            false,
+          ],
+        ],
+      });
+    }
+    mockCA.caShouldAllow = testMode.caAllow;
     mockCA.numAnalyzeContentRequestCalls = 0;
     mockCA.numGetURIForDropEvent = 0;
     let dropPromise = new Promise(res => {
-      resolveDropPromise = res;
+      if (testMode.shouldRunCA) {
+        resolveDropPromise = res;
+      } else {
+        // CA won't get called, just resolve the promise now
+        res();
+      }
     });
     await runDnd(name, sourceBrowsingCxt, targetBrowsingCxt, {
       dropPromise,
-      expectDragLeave: !caShouldAllow,
+      expectDragLeave: !testMode.shouldDrag,
       ...dndOptions,
     });
+    const expectedCaCalls = testMode.shouldRunCA ? 1 : 0;
     is(
       mockCA.numAnalyzeContentRequestCalls,
-      1,
-      `[${testName}]| Called AnalyzeContentRequest once`
+      expectedCaCalls,
+      `[${testName}]| Called AnalyzeContentRequest correct number of times`
     );
     is(
       mockCA.numGetURIForDropEvent,
-      1,
-      `[${testName}]| GetURIForDropEvent was called exactly once`
+      expectedCaCalls,
+      `[${testName}]| GetURIForDropEvent was called correct number of times`
     );
+    if (testMode.turnOffPref) {
+      await SpecialPowers.popPrefEnv();
+    }
   }
 };

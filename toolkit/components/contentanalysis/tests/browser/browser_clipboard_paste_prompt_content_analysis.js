@@ -15,8 +15,26 @@ add_setup(async function test_setup() {
 const PAGE_URL =
   "https://example.com/browser/toolkit/components/contentanalysis/tests/browser/clipboard_paste_prompt.html";
 const CLIPBOARD_TEXT_STRING = "Just some text";
-async function testClipboardPaste(allowPaste) {
-  mockCA.setupForTest(allowPaste);
+const TEST_MODES = Object.freeze({
+  ALLOW: {
+    caAllow: true,
+    shouldPaste: true,
+    shouldRunCA: true,
+  },
+  BLOCK: {
+    caAllow: false,
+    shouldPaste: false,
+    shouldRunCA: true,
+  },
+  PREFOFF: {
+    caAllow: false,
+    shouldPaste: true,
+    shouldRunCA: false,
+  },
+});
+
+async function testClipboardPaste(testMode) {
+  mockCA.setupForTest(testMode.caAllow);
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE_URL);
   let browser = tab.linkedBrowser;
@@ -42,11 +60,11 @@ async function testClipboardPaste(allowPaste) {
       { once: true }
     );
   });
-  let ev = new ClipboardEvent("paste", {
-    dataType: "text/plain",
-    data: CLIPBOARD_TEXT_STRING,
-  });
-  prompt.ui.loginTextbox.dispatchEvent(ev);
+  // Paste text into prompt()
+  setClipboardData(CLIPBOARD_TEXT_STRING);
+  prompt.ui.loginTextbox.focus();
+  await EventUtils.synthesizeKey("v", { accelKey: true });
+
   await pastePromise;
 
   // Close the prompt
@@ -55,14 +73,20 @@ async function testClipboardPaste(allowPaste) {
   let result = await promptPromise;
   is(
     result,
-    allowPaste ? CLIPBOARD_TEXT_STRING : "",
+    testMode.shouldPaste ? CLIPBOARD_TEXT_STRING : "",
     "prompt has correct value"
   );
-  is(mockCA.calls.length, 1, "Correct number of calls to Content Analysis");
-  assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
+  is(
+    mockCA.calls.length,
+    testMode.shouldRunCA ? 1 : 0,
+    "Correct number of calls to Content Analysis"
+  );
+  if (testMode.shouldRunCA) {
+    assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
+  }
   is(
     mockCA.browsingContextsForURIs.length,
-    1,
+    testMode.shouldRunCA ? 1 : 0,
     "Correct number of calls to getURIForBrowsingContext()"
   );
 
@@ -88,10 +112,36 @@ function assertContentAnalysisRequest(request, expectedText) {
   ok(!!request.requestToken.length, "request requestToken should not be empty");
 }
 
+function setClipboardData(clipboardString) {
+  const trans = Cc["@mozilla.org/widget/transferable;1"].createInstance(
+    Ci.nsITransferable
+  );
+  trans.init(null);
+  trans.addDataFlavor("text/plain");
+  const str = Cc["@mozilla.org/supports-string;1"].createInstance(
+    Ci.nsISupportsString
+  );
+  str.data = clipboardString;
+  trans.setTransferData("text/plain", str);
+
+  // Write to clipboard.
+  Services.clipboard.setData(trans, null, Ci.nsIClipboard.kGlobalClipboard);
+}
+
 add_task(async function testClipboardPasteWithContentAnalysisAllow() {
-  await testClipboardPaste(true);
+  await testClipboardPaste(TEST_MODES.ALLOW);
 });
 
 add_task(async function testClipboardPasteWithContentAnalysisBlock() {
-  await testClipboardPaste(false);
+  await testClipboardPaste(TEST_MODES.BLOCK);
+});
+
+add_task(async function testClipboardPasteWithContentAnalysisBlockButPrefOff() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.contentanalysis.interception_point.clipboard.enabled", false],
+    ],
+  });
+  await testClipboardPaste(TEST_MODES.PREFOFF);
+  await SpecialPowers.popPrefEnv();
 });

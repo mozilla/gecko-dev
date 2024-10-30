@@ -200,6 +200,32 @@ add_task(
   }
 );
 
+add_task(
+  async function testPrintToStreamWithContentAnalysisActiveAndBlockingButPrefOff() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["browser.contentanalysis.interception_point.print.enabled", false],
+      ],
+    });
+    await PrintHelper.withTestPage(
+      async helper => {
+        mockCA.setupForTest(false);
+
+        let filePath = await printToDestination(
+          helper.sourceBrowser,
+          Ci.nsIPrintSettings.kOutputDestinationFile
+        );
+        is(mockCA.calls.length, 0, "Should be no calls to Content Analysis");
+
+        await IOUtils.remove(filePath);
+      },
+      TEST_PAGE_URL,
+      true
+    );
+    await SpecialPowers.popPrefEnv();
+  }
+);
+
 add_task(async function testPrintToStreamWithContentAnalysisReturningError() {
   await PrintHelper.withTestPage(
     async helper => {
@@ -284,6 +310,36 @@ add_task(
       TEST_PAGE_URL,
       true
     );
+  }
+);
+
+add_task(
+  async function testPrintThroughDialogWithContentAnalysisActiveAndBlockingButPrefOff() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["browser.contentanalysis.interception_point.print.enabled", false],
+      ],
+    });
+    await PrintHelper.withTestPage(
+      async helper => {
+        mockCA.setupForTest(false);
+
+        await helper.startPrint();
+        let fileName = addUniqueSuffix(`printDialogTest`);
+        let file = helper.mockFilePicker(fileName);
+        info(`Printing to ${file.path}`);
+        await helper.assertPrintToFile(file, () => {
+          EventUtils.sendKey("return", helper.win);
+        });
+
+        is(mockCA.calls.length, 0, "Should be no calls to Content Analysis");
+
+        await IOUtils.remove(file.path);
+      },
+      TEST_PAGE_URL,
+      true
+    );
+    await SpecialPowers.popPrefEnv();
   }
 );
 
