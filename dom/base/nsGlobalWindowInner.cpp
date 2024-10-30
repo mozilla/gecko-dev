@@ -6092,19 +6092,24 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   options.setIntroductionType("domTimer");
   JS::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
-    JSExecutionContext exec(aes.cx(), global, options);
-    nsresult rv = exec.Compile(mExpr);
+    ErrorResult erv;
+    JSExecutionContext exec(aes.cx(), global, options, erv);
+    if (!erv.Failed()) {
+      exec.Compile(mExpr, erv);
 
-    JS::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());
-    if (script) {
-      if (mInitiatingScript) {
-        mInitiatingScript->AssociateWithScript(script);
+      JS::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());
+      if (script) {
+        MOZ_ASSERT(!erv.Failed());
+        if (mInitiatingScript) {
+          mInitiatingScript->AssociateWithScript(script);
+        }
+
+        exec.ExecScript(erv);
       }
-
-      rv = exec.ExecScript();
     }
 
-    if (rv == NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW_UNCATCHABLE) {
+    if (EvaluationExceptionToNSResult(erv) ==
+        NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW_UNCATCHABLE) {
       return false;
     }
   }

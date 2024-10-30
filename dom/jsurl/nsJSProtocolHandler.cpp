@@ -42,6 +42,7 @@
 #include "nsTextToSubURI.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/DOMSecurityMonitor.h"
 #include "mozilla/dom/JSExecutionContext.h"
@@ -325,10 +326,16 @@ nsresult nsJSThunk::EvaluateScript(
   options.setFileAndLine(mURL.get(), 1);
   options.setIntroductionType("javascriptURL");
   {
-    JSExecutionContext exec(cx, globalJSObject, options);
-    exec.SetCoerceToString(true);
-    exec.Compile(NS_ConvertUTF8toUTF16(script));
-    rv = exec.ExecScript(&v);
+    mozilla::ErrorResult erv;
+    JSExecutionContext exec(cx, globalJSObject, options, erv);
+    if (!erv.Failed()) {
+      exec.SetCoerceToString(true);
+      exec.Compile(NS_ConvertUTF8toUTF16(script), erv);
+      if (!erv.Failed()) {
+        exec.ExecScript(&v, erv);
+      }
+    }
+    rv = mozilla::dom::EvaluationExceptionToNSResult(erv);
   }
 
   js::AssertSameCompartment(cx, v);
