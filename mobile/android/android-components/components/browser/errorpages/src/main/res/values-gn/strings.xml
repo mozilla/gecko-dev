@@ -181,9 +181,12 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Ndaikatúi eike ñandutípe</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Ndaikatúi eike ñandutípe</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Ehechajey ne ñanduti juajuha térã emyanyhẽjey pe kuatiarogue ag̃amieve.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Ehechajey ne ñanduti juajuha térã emyanyhẽjey pe kuatiarogue ag̃amieve.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Ayvu jejavygua: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Myanyhẽjey</string>
 

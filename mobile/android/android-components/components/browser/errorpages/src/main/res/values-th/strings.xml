@@ -171,9 +171,12 @@
       </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">ไม่มีการเชื่อมต่ออินเทอร์เน็ต</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">ไม่มีการเชื่อมต่ออินเทอร์เน็ต</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">ดูเหมือนว่ามีปัญหาเกี่ยวกับการเชื่อมต่ออินเทอร์เน็ตของคุณ</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">ตรวจสอบการเชื่อมต่อเครือข่ายของคุณหรือลองโหลดหน้านี้อีกครั้งในอีกสักครู่</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">ตรวจสอบการเชื่อมต่อเครือข่ายของคุณหรือลองโหลดหน้านี้อีกครั้งในอีกสักครู่</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">เรียกใหม่</string>
 
