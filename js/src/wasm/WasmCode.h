@@ -229,7 +229,7 @@ class CodeSegment : public ShareableBase<CodeSegment> {
   //
   // There are two important ranges created, an 'allocation' range and a 'code
   // range'.
-  // 
+  //
   // The allocation range is a superset of the code range. The allocation start
   // offset will be aligned to `AllocationAlignment` which is either the system
   // page size or just executable code alignment.
