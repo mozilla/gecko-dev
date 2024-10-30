@@ -21,7 +21,11 @@
   --theme-arrowpanel-border-radius: 3.5px;
 
   --bezier-diagonal-color: light-dark(rgba(0, 0, 0, 0.2), #eee);
-  --bezier-grid-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1));
+  --timing-function-grid-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1));
+  --timing-function-line-color: #4C9ED9;
+  --timing-function-preview-scale: light-dark(var(--grey-43), var(--grey-40));
+  --timing-function-preview-dot-border: white;
+  --timing-function-control-point-background: light-dark(var(--grey-55), var(--grey-20));
 
   /* Tooltips */
   --theme-tooltip-color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
