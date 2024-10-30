@@ -47,7 +47,7 @@ add_task(async function () {
   info("Clicking on the corresponding breadcrumbs node to focus it");
   const container = inspector.panelDoc.getElementById("inspector-breadcrumbs");
 
-  const button = container.querySelector("button[checked]");
+  const button = container.querySelector(`button[aria-pressed="true"]`);
   button.click();
 
   let currentSelection = "#id2";
@@ -73,7 +73,7 @@ add_task(async function () {
     );
     is(
       container.getAttribute("aria-activedescendant"),
-      container.querySelector("button[checked]").id,
+      container.querySelector(`button[aria-pressed="true"]`).id,
       "aria-activedescendant is set correctly"
     );
 

@@ -50,7 +50,9 @@ add_task(async function () {
 
     info("Performing checks for node " + node.selector);
 
-    const checkedButton = container.querySelector("button[checked]");
+    const checkedButton = container.querySelector(
+      `button[aria-pressed="true"]`
+    );
 
     const labelTag = checkedButton.querySelector(
       ".breadcrumbs-widget-item-tag"
