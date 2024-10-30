@@ -8679,15 +8679,21 @@ nsDisplayListBuilder::AutoBuildingDisplayList::AutoBuildingDisplayList(
           aBuilder->mAncestorHasApzAwareEventHandler),
       mPrevBuildingInvisibleItems(aBuilder->mBuildingInvisibleItems),
       mPrevInInvalidSubtree(aBuilder->mInInvalidSubtree) {
-  if (aIsTransformed) {
-    aBuilder->mCurrentOffsetToReferenceFrame =
-        aBuilder->AdditionalOffset().refOr(nsPoint());
-    aBuilder->mCurrentReferenceFrame = aForChild;
-  } else if (aBuilder->mCurrentFrame == aForChild->GetParent()) {
-    aBuilder->mCurrentOffsetToReferenceFrame += aForChild->GetPosition();
-  } else {
-    aBuilder->mCurrentReferenceFrame = aBuilder->FindReferenceFrameFor(
-        aForChild, &aBuilder->mCurrentOffsetToReferenceFrame);
+  // If the last AutoBuildingDisplayList on the stack that we created was for
+  // this same frame then we are already up to date and can skip this work (this
+  // happens eg when BuildDisplayListForChild calls
+  // BuildDisplayListForStackingContext).
+  if (aForChild != mPrevFrame) {
+    if (aIsTransformed) {
+      aBuilder->mCurrentOffsetToReferenceFrame =
+          aBuilder->AdditionalOffset().refOr(nsPoint());
+      aBuilder->mCurrentReferenceFrame = aForChild;
+    } else if (aBuilder->mCurrentFrame == aForChild->GetParent()) {
+      aBuilder->mCurrentOffsetToReferenceFrame += aForChild->GetPosition();
+    } else {
+      aBuilder->mCurrentReferenceFrame = aBuilder->FindReferenceFrameFor(
+          aForChild, &aBuilder->mCurrentOffsetToReferenceFrame);
+    }
   }
 
   // If aForChild is being visited from a frame other than it's ancestor frame,
