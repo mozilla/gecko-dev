@@ -3025,6 +3025,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                 MarkerInnerWindowIdFromJSContext(cx),
                                 profilerLabelString);
 
+      MOZ_ASSERT(options.noScriptRval);
       ExecuteCompiledScript(cx, exec, classicScript, erv);
     }
   }

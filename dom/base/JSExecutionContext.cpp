@@ -69,14 +69,12 @@ JSExecutionContext::JSExecutionContext(
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript)
     : mCx(aCx),
-      mRetValue(aCx),
       mScript(aCx),
       mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
       mDebuggerIntroductionScript(aCx, aDebuggerIntroductionScript),
       mSkip(false)
 #ifdef DEBUG
       ,
-      mWantsReturnValue(false),
       mScriptUsed(false)
 #endif
 {
@@ -84,7 +82,6 @@ JSExecutionContext::JSExecutionContext(
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(CycleCollectedJSContext::Get() &&
              CycleCollectedJSContext::Get()->MicroTaskLevel());
-  MOZ_ASSERT(mRetValue.isUndefined());
 
   MOZ_ASSERT(JS_IsGlobalObject(aGlobal));
   if (MOZ_UNLIKELY(!xpc::Scriptability::Get(aGlobal).Allowed())) {
@@ -99,7 +96,7 @@ void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
                                        bool aEncodeBytecode /* = false */) {
   MOZ_ASSERT(!mSkip);
 
-  MOZ_ASSERT(!mWantsReturnValue);
+  MOZ_ASSERT(aCompileOptions.noScriptRval);
 
   JS::InstantiationStorage storage;
   RefPtr<JS::Stencil> stencil = aContext->StealOffThreadResult(mCx, &storage);
@@ -131,10 +128,6 @@ void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(aSrcBuf.get());
-  MOZ_ASSERT(mRetValue.isUndefined());
-#ifdef DEBUG
-  mWantsReturnValue = !aCompileOptions.noScriptRval;
-#endif
 
   RefPtr<JS::Stencil> stencil =
       CompileGlobalScriptToStencil(mCx, aCompileOptions, aSrcBuf);
@@ -197,7 +190,7 @@ void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
   JS::DecodeOptions decodeOptions(aCompileOptions);
   decodeOptions.borrowBuffer = true;
 
-  MOZ_ASSERT(!mWantsReturnValue);
+  MOZ_ASSERT(aCompileOptions.noScriptRval);
   RefPtr<JS::Stencil> stencil;
   JS::TranscodeResult tr = JS::DecodeStencil(mCx, decodeOptions, aBytecodeBuf,
                                              getter_AddRefs(stencil));
@@ -302,7 +295,6 @@ void JSExecutionContext::ExecScript(JS::MutableHandle<JS::Value> aRetValue,
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(mScript);
-  MOZ_ASSERT(mWantsReturnValue);
 
   if (!JS_ExecuteScript(mCx, mScript, aRetValue)) {
     mSkip = true;
@@ -310,9 +302,6 @@ void JSExecutionContext::ExecScript(JS::MutableHandle<JS::Value> aRetValue,
     return;
   }
 
-#ifdef DEBUG
-  mWantsReturnValue = false;
-#endif
   if (aCoerceToString && IsPromiseValue(mCx, aRetValue)) {
     // We're a javascript: url and we should treat Promise return values as
     // undefined.

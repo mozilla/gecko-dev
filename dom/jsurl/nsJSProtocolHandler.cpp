@@ -335,6 +335,7 @@ nsresult nsJSThunk::EvaluateScript(
       JSAutoRealm autoRealm(cx, globalJSObject);
       exec.Compile(options, NS_ConvertUTF8toUTF16(script), erv);
       if (!erv.Failed()) {
+        MOZ_ASSERT(!options.noScriptRval);
         exec.ExecScript(&v, erv, /* aCoerceToString */ true);
       }
     }

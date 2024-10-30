@@ -37,9 +37,6 @@ nsresult EvaluationExceptionToNSResult(ErrorResult& aRv);
 class MOZ_STACK_CLASS JSExecutionContext final {
   JSContext* mCx;
 
-  // Set to a valid handle if a return value is expected.
-  JS::Rooted<JS::Value> mRetValue;
-
   // The compiled script.
   JS::Rooted<JSScript*> mScript;
 
@@ -60,9 +57,6 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   bool mKeepStencil = false;
 
 #ifdef DEBUG
-  // Should we set the return value.
-  bool mWantsReturnValue;
-
   bool mScriptUsed;
 #endif
 
@@ -90,7 +84,7 @@ class MOZ_STACK_CLASS JSExecutionContext final {
 
   ~JSExecutionContext() {
     // This flag is reset when the returned value is extracted.
-    MOZ_ASSERT_IF(!mSkip, !mWantsReturnValue);
+    // MOZ_ASSERT_IF(!mSkip, !mWantsReturnValue);
 
     // If encoding was started we expect the script to have been
     // used when ending the encoding.
