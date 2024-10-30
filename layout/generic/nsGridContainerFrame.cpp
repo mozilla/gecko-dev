@@ -3102,12 +3102,6 @@ struct MOZ_STACK_CLASS nsGridContainerFrame::GridReflowInput {
                                   SizingConstraint aConstraint);
 
   /**
-   * Calculate our track sizes.
-   */
-  void CalculateTrackSizes(const Grid& aGrid, const LogicalSize& aContentBox,
-                           SizingConstraint aConstraint);
-
-  /**
    * Return the percentage basis for a grid item in its writing-mode.
    * If aAxis is LogicalAxis::Inline then we return NS_UNCONSTRAINEDSIZE in
    * both axes since we know all track sizes are indefinite at this point
@@ -4124,15 +4118,6 @@ void nsGridContainerFrame::GridReflowInput::CalculateTrackSizesForAxis(
 
   // positions and sizes are now final
   tracks.mCanResolveLineRangeSize = true;
-}
-
-void nsGridContainerFrame::GridReflowInput::CalculateTrackSizes(
-    const Grid& aGrid, const LogicalSize& aContentBox,
-    SizingConstraint aConstraint) {
-  CalculateTrackSizesForAxis(LogicalAxis::Inline, aGrid, aContentBox.ISize(mWM),
-                             aConstraint);
-  CalculateTrackSizesForAxis(LogicalAxis::Block, aGrid, aContentBox.BSize(mWM),
-                             aConstraint);
 }
 
 // Align an item's margin box in its aAxis inside aCBSize.
@@ -8954,9 +8939,13 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
       }
       return computedBSize;
     }();
-    const LogicalSize containLogicalSize(wm, computedISize, trackSizingBSize);
-    gridReflowInput.CalculateTrackSizes(grid, containLogicalSize,
-                                        SizingConstraint::NoConstraint);
+    const LogicalSize containSize(wm, computedISize, trackSizingBSize);
+    gridReflowInput.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
+                                               containSize.ISize(wm),
+                                               SizingConstraint::NoConstraint);
+    gridReflowInput.CalculateTrackSizesForAxis(LogicalAxis::Block, grid,
+                                               containSize.BSize(wm),
+                                               SizingConstraint::NoConstraint);
     if (containBSize) {
       bSize = *containBSize;
     } else {
