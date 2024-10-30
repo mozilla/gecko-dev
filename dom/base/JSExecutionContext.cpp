@@ -119,59 +119,50 @@ template <typename Unit>
 void JSExecutionContext::InternalCompile(JSContext* aCx,
                                          JS::CompileOptions& aCompileOptions,
                                          JS::SourceText<Unit>& aSrcBuf,
-                                         JS::MutableHandle<JSScript*> aScript,
-                                         bool aEncodeBytecode,
+                                         RefPtr<JS::Stencil>& aStencil,
                                          ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(aSrcBuf.get());
 
-  RefPtr<JS::Stencil> stencil =
-      CompileGlobalScriptToStencil(aCx, aCompileOptions, aSrcBuf);
-  if (!stencil) {
+  aStencil = CompileGlobalScriptToStencil(aCx, aCompileOptions, aSrcBuf);
+  if (!aStencil) {
     mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
   }
 
   if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(aCx, stencil.get());
+    mStencil = JS::DuplicateStencil(aCx, aStencil.get());
     if (!mStencil) {
       mSkip = true;
       aRv.NoteJSContextException(aCx);
       return;
     }
   }
-
-  bool unused;
-  InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript, unused,
-                     aRv, aEncodeBytecode);
 }
 
 void JSExecutionContext::Compile(JSContext* aCx,
                                  JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<char16_t>& aSrcBuf,
-                                 JS::MutableHandle<JSScript*> aScript,
-                                 ErrorResult& aRv,
-                                 bool aEncodeBytecode /*= false */) {
-  InternalCompile(aCx, aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
+                                 RefPtr<JS::Stencil>& aStencil,
+                                 ErrorResult& aRv) {
+  InternalCompile(aCx, aCompileOptions, aSrcBuf, aStencil, aRv);
 }
 
 void JSExecutionContext::Compile(JSContext* aCx,
                                  JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<Utf8Unit>& aSrcBuf,
-                                 JS::MutableHandle<JSScript*> aScript,
-                                 ErrorResult& aRv,
-                                 bool aEncodeBytecode /*= false */) {
-  InternalCompile(aCx, aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
+                                 RefPtr<JS::Stencil>& aStencil,
+                                 ErrorResult& aRv) {
+  InternalCompile(aCx, aCompileOptions, aSrcBuf, aStencil, aRv);
 }
 
 void JSExecutionContext::Compile(JSContext* aCx,
                                  JS::CompileOptions& aCompileOptions,
                                  const nsAString& aScript,
-                                 JS::MutableHandle<JSScript*> aScriptOut,
-                                 ErrorResult& aRv,
-                                 bool aEncodeBytecode /*= false */) {
+                                 RefPtr<JS::Stencil>& aStencil,
+                                 ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
   const nsPromiseFlatString& flatScript = PromiseFlatString(aScript);
@@ -183,13 +174,13 @@ void JSExecutionContext::Compile(JSContext* aCx,
     return;
   }
 
-  Compile(aCx, aCompileOptions, srcBuf, aScriptOut, aRv, aEncodeBytecode);
+  Compile(aCx, aCompileOptions, srcBuf, aStencil, aRv);
 }
 
 void JSExecutionContext::Decode(JSContext* aCx,
                                 JS::CompileOptions& aCompileOptions,
                                 const JS::TranscodeRange& aBytecodeBuf,
-                                JS::MutableHandle<JSScript*> aScript,
+                                RefPtr<JS::Stencil>& aStencil,
                                 ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
@@ -197,9 +188,8 @@ void JSExecutionContext::Decode(JSContext* aCx,
   decodeOptions.borrowBuffer = true;
 
   MOZ_ASSERT(aCompileOptions.noScriptRval);
-  RefPtr<JS::Stencil> stencil;
   JS::TranscodeResult tr = JS::DecodeStencil(aCx, decodeOptions, aBytecodeBuf,
-                                             getter_AddRefs(stencil));
+                                             getter_AddRefs(aStencil));
   // These errors are external parameters which should be handled before the
   // decoding phase, and which are the only reasons why you might want to
   // fallback on decoding failures.
@@ -211,17 +201,13 @@ void JSExecutionContext::Decode(JSContext* aCx,
   }
 
   if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(aCx, stencil.get());
+    mStencil = JS::DuplicateStencil(aCx, aStencil.get());
     if (!mStencil) {
       mSkip = true;
       aRv.NoteJSContextException(aCx);
       return;
     }
   }
-
-  bool unused;
-  InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript, unused,
-                     aRv);
 }
 
 void JSExecutionContext::InstantiateStencil(
@@ -229,6 +215,7 @@ void JSExecutionContext::InstantiateStencil(
     RefPtr<JS::Stencil>&& aStencil, JS::MutableHandle<JSScript*> aScript,
     bool& incrementalEncodingAlreadyStarted, ErrorResult& aRv,
     bool aEncodeBytecode /* = false */, JS::InstantiationStorage* aStorage) {
+  MOZ_ASSERT(!mSkip);
   JS::InstantiateOptions instantiateOptions(aCompileOptions);
   JS::Rooted<JSScript*> script(
       aCx, JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil,

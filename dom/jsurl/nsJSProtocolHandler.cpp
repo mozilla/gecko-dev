@@ -333,9 +333,15 @@ nsresult nsJSThunk::EvaluateScript(
           "JSExecutionContext",
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
       JSAutoRealm autoRealm(cx, globalJSObject);
+      RefPtr<JS::Stencil> stencil;
       JS::Rooted<JSScript*> compiledScript(cx);
-      exec.Compile(cx, options, NS_ConvertUTF8toUTF16(script), &compiledScript,
-                   erv);
+      exec.Compile(cx, options, NS_ConvertUTF8toUTF16(script), stencil, erv);
+      if (stencil) {
+        bool unused;
+        exec.InstantiateStencil(aes.cx(), options, std::move(stencil),
+                                &compiledScript, unused, erv);
+      }
+
       if (!erv.Failed()) {
         MOZ_ASSERT(!options.noScriptRval);
         mozilla::dom::ExecScript(cx, compiledScript, &v, erv,

@@ -2740,7 +2740,13 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
                                 MarkerInnerWindowIdFromJSContext(aCx),
                                 profilerLabelString);
 
-      aExec.Decode(aCx, aCompileOptions, aRequest->Bytecode(), aScript, aRv);
+      RefPtr<JS::Stencil> stencil;
+      aExec.Decode(aCx, aCompileOptions, aRequest->Bytecode(), stencil, aRv);
+      if (stencil) {
+        bool unused;
+        aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
+                                 aScript, unused, aRv);
+      }
     }
 
     // We do not expect to be saving anything when we already have some
@@ -2774,14 +2780,20 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
                                 MarkerInnerWindowIdFromJSContext(aCx),
                                 profilerLabelString);
 
+      RefPtr<JS::Stencil> stencil;
       auto compile = [&](auto& source) {
-        aExec.Compile(aCx, aCompileOptions, source, aScript, aRv,
-                      encodeBytecode);
+        aExec.Compile(aCx, aCompileOptions, source, stencil, aRv);
       };
 
       MOZ_ASSERT(!maybeSource.empty());
       TimeStamp startTime = TimeStamp::Now();
       maybeSource.mapNonEmpty(compile);
+      if (stencil) {
+        bool unused;
+        aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
+                                 aScript, unused, aRv);
+      }
+
       mMainThreadParseTime += TimeStamp::Now() - startTime;
     }
   }

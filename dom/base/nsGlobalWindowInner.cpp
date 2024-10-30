@@ -6099,8 +6099,14 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
           "JSExecutionContext",
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
       JSAutoRealm autoRealm(aes.cx(), global);
+      RefPtr<JS::Stencil> stencil;
       JS::Rooted<JSScript*> script(aes.cx());
-      exec.Compile(aes.cx(), options, mExpr, &script, erv);
+      exec.Compile(aes.cx(), options, mExpr, stencil, erv);
+      if (stencil) {
+        bool unused;
+        exec.InstantiateStencil(aes.cx(), options, std::move(stencil), &script,
+                                unused, erv);
+      }
 
       if (script) {
         MOZ_ASSERT(!erv.Failed());
