@@ -103,32 +103,6 @@ void JSExecutionContext::JoinOffThread(JSContext* aCx,
 
 namespace mozilla::dom {
 
-// Compile a script contained in a SourceText.
-template <typename Unit>
-void InternalCompile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-                     JS::SourceText<Unit>& aSrcBuf,
-                     RefPtr<JS::Stencil>& aStencil, ErrorResult& aRv) {
-  MOZ_ASSERT(aSrcBuf.get());
-
-  aStencil = CompileGlobalScriptToStencil(aCx, aCompileOptions, aSrcBuf);
-  if (!aStencil) {
-    aRv.NoteJSContextException(aCx);
-    return;
-  }
-}
-
-void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-             JS::SourceText<char16_t>& aSrcBuf, RefPtr<JS::Stencil>& aStencil,
-             ErrorResult& aRv) {
-  InternalCompile(aCx, aCompileOptions, aSrcBuf, aStencil, aRv);
-}
-
-void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-             JS::SourceText<Utf8Unit>& aSrcBuf, RefPtr<JS::Stencil>& aStencil,
-             ErrorResult& aRv) {
-  InternalCompile(aCx, aCompileOptions, aSrcBuf, aStencil, aRv);
-}
-
 void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
              const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,
              ErrorResult& aRv) {
@@ -140,7 +114,10 @@ void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
     return;
   }
 
-  Compile(aCx, aCompileOptions, srcBuf, aStencil, aRv);
+  aStencil = CompileGlobalScriptToStencil(aCx, aCompileOptions, srcBuf);
+  if (!aStencil) {
+    aRv.NoteJSContextException(aCx);
+  }
 }
 
 void Decode(JSContext* aCx, JS::CompileOptions& aCompileOptions,

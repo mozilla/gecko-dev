@@ -88,14 +88,6 @@ class MOZ_STACK_CLASS JSExecutionContext final {
                           JS::InstantiationStorage* aStorage = nullptr);
 };
 
-// Compile a script contained in a SourceText.
-void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-             JS::SourceText<char16_t>& aSrcBuf, RefPtr<JS::Stencil>& aStencil,
-             ErrorResult& aRv);
-void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-             JS::SourceText<mozilla::Utf8Unit>& aSrcBuf,
-             RefPtr<JS::Stencil>& aStencil, ErrorResult& aRv);
-
 // Compile a script contained in a string.
 void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
              const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,

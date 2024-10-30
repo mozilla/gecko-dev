@@ -2822,7 +2822,10 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       RefPtr<JS::Stencil> stencil;
       ErrorResult erv;
       auto compile = [&](auto& source) {
-        Compile(aCx, aCompileOptions, source, stencil, erv);
+        stencil = CompileGlobalScriptToStencil(aCx, aCompileOptions, source);
+        if (!stencil) {
+          erv.NoteJSContextException(aCx);
+        }
       };
 
       MOZ_ASSERT(!maybeSource.empty());
