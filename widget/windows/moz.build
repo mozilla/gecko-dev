@@ -112,6 +112,7 @@ UNIFIED_SOURCES += [
     "WindowsConsole.cpp",
     "WinEventObserver.cpp",
     "WinIMEHandler.cpp",
+    "WinMouseScrollHandler.cpp",
     "WinPointerEvents.cpp",
     "WinRegistry.cpp",
     "WinTaskbar.cpp",
@@ -133,7 +134,6 @@ SOURCES += [
     "WinCompositorWidget.cpp",
     "WindowsSMTCProvider.cpp",
     "WindowsUIUtils.cpp",
-    "WinMouseScrollHandler.cpp",
 ]
 
 # Needs INITGUID and we don't allow INITGUID in unified sources since bug 970429.
