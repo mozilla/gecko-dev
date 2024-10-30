@@ -99,15 +99,6 @@ void JSExecutionContext::JoinOffThread(JSContext* aCx,
     aRv.NoteJSContextException(aCx);
     return;
   }
-
-  if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(aCx, aStencil.get());
-    if (!mStencil) {
-      mSkip = true;
-      aRv.NoteJSContextException(aCx);
-      return;
-    }
-  }
 }
 
 template <typename Unit>
@@ -125,15 +116,6 @@ void JSExecutionContext::InternalCompile(JSContext* aCx,
     mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
-  }
-
-  if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(aCx, aStencil.get());
-    if (!mStencil) {
-      mSkip = true;
-      aRv.NoteJSContextException(aCx);
-      return;
-    }
   }
 }
 
@@ -193,15 +175,6 @@ void JSExecutionContext::Decode(JSContext* aCx,
     mSkip = true;
     aRv = NS_ERROR_DOM_JS_DECODING_ERROR;
     return;
-  }
-
-  if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(aCx, aStencil.get());
-    if (!mStencil) {
-      mSkip = true;
-      aRv.NoteJSContextException(aCx);
-      return;
-    }
   }
 }
 

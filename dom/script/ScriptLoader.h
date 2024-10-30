@@ -648,10 +648,14 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   // Instantiate classic script from one of the following data:
   //   * text source
   //   * encoded bytecode
+  //
+  // If keepStencil is true and this function is successful, aStencilDup will
+  // contain a copy of the compiled stencil for use by the caller.
   void InstantiateClassicScriptFromMaybeEncodedSource(
       JSContext* aCx, JSExecutionContext& aExec,
       JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-      JS::MutableHandle<JSScript*> aScript, ErrorResult& aRv);
+      JS::MutableHandle<JSScript*> aScript, bool keepStencil,
+      RefPtr<JS::Stencil>& aStencilDup, ErrorResult& aRv);
 
   // Instantiate classic script from the following data:
   //   * cached stencil

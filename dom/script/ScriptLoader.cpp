@@ -2724,7 +2724,8 @@ nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
 void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     JSContext* aCx, JSExecutionContext& aExec,
     JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-    JS::MutableHandle<JSScript*> aScript, ErrorResult& aRv) {
+    JS::MutableHandle<JSScript*> aScript, bool aKeepStencil,
+    RefPtr<JS::Stencil>& aStencilDup, ErrorResult& aRv) {
   nsAutoCString profilerLabelString;
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
 
@@ -2737,6 +2738,13 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       aExec.JoinOffThread(aCx, aCompileOptions,
                           aRequest->GetScriptLoadContext(), stencil, storage,
                           aRv);
+      if (!aRv.Failed() && aKeepStencil) {
+        aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
+        if (!aStencilDup) {
+          aRv.NoteJSContextException(aCx);
+          return;
+        }
+      }
       if (stencil) {
         bool unused;
         aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
@@ -2750,6 +2758,14 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
 
       RefPtr<JS::Stencil> stencil;
       aExec.Decode(aCx, aCompileOptions, aRequest->Bytecode(), stencil, aRv);
+      if (!aRv.Failed() && aKeepStencil) {
+        aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
+        if (!aStencilDup) {
+          aRv.NoteJSContextException(aCx);
+          return;
+        }
+      }
+
       if (stencil) {
         bool unused;
         aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
@@ -2778,6 +2794,13 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     JS::InstantiationStorage storage;
     aExec.JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
                         stencil, storage, aRv);
+    if (!aRv.Failed() && aKeepStencil) {
+      aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
+      if (!aStencilDup) {
+        aRv.NoteJSContextException(aCx);
+        return;
+      }
+    }
     if (stencil) {
       bool unused;
       aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
@@ -2796,20 +2819,29 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
                                 profilerLabelString);
 
       RefPtr<JS::Stencil> stencil;
+      ErrorResult erv;
       auto compile = [&](auto& source) {
-        aExec.Compile(aCx, aCompileOptions, source, stencil, aRv);
+        aExec.Compile(aCx, aCompileOptions, source, stencil, erv);
       };
 
       MOZ_ASSERT(!maybeSource.empty());
       TimeStamp startTime = TimeStamp::Now();
       maybeSource.mapNonEmpty(compile);
+      if (!erv.Failed() && aKeepStencil) {
+        aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
+        if (!aStencilDup) {
+          erv.NoteJSContextException(aCx);
+        }
+      }
+
       if (stencil) {
         bool unused;
         aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                                 aScript, unused, aRv);
+                                 aScript, unused, erv);
       }
 
       mMainThreadParseTime += TimeStamp::Now() - startTime;
+      aRv = std::move(erv);
     }
   }
 }
@@ -2856,18 +2888,17 @@ void ScriptLoader::InstantiateClassicScriptFromAny(
       // NOTE: Avoid creating cache regardless of CSP.
       createCache = false;
     }
-
-    if (createCache) {
-      aExec.SetKeepStencil();
-    }
   }
 
+  RefPtr<JS::Stencil> stencilDup;
   InstantiateClassicScriptFromMaybeEncodedSource(aCx, aExec, aCompileOptions,
-                                                 aRequest, aScript, aRv);
+                                                 aRequest, aScript, createCache,
+                                                 stencilDup, aRv);
   if (!aRv.Failed()) {
     if (createCache) {
       MOZ_ASSERT(mCache);
-      aRequest->SetStencil(aExec.StealStencil());
+      MOZ_ASSERT(stencilDup);
+      aRequest->SetStencil(stencilDup.forget());
       auto loadData = MakeRefPtr<ScriptLoadData>(this, aRequest);
       mCache->Insert(*loadData);
     }

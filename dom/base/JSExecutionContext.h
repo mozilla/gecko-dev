@@ -43,13 +43,9 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   JS::Rooted<JS::Value> mDebuggerPrivateValue;
   JS::Rooted<JSScript*> mDebuggerIntroductionScript;
 
-  RefPtr<JS::Stencil> mStencil;
-
   // Used to skip upcoming phases in case of a failure.  In such case the
   // result is carried by mRv.
   bool mSkip;
-
-  bool mKeepStencil = false;
 
  private:
   // Compile a script contained in a SourceText.
@@ -81,9 +77,6 @@ class MOZ_STACK_CLASS JSExecutionContext final {
     // used when ending the encoding.
     // MOZ_ASSERT_IF(mEncodeBytecode && mScript && mRv == NS_OK, mScriptUsed);
   }
-
-  void SetKeepStencil() { mKeepStencil = true; }
-  already_AddRefed<JS::Stencil> StealStencil() { return mStencil.forget(); }
 
   // After getting a notification that an off-thread compile/decode finished,
   // this function will take the result of the off-thread operation and move it
