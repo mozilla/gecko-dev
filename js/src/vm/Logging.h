@@ -83,7 +83,7 @@ class LogModule {
 
 #define FOR_EACH_JS_LOG_MODULE(_)                                            \
   _(debug)                /* A predefined log module for casual debugging */ \
-  _(wasmCodeMetaStats)    /* Wasm code statistics */                         \
+  _(wasmPerf)             /* Wasm performance statistics */                  \
   JITSPEW_CHANNEL_LIST(_) /* A module for each JitSpew channel. */
 
 // Declare Log modules

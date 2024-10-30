@@ -1091,7 +1091,7 @@ bool ModuleGenerator::prepareTier1() {
 
 bool ModuleGenerator::startCompleteTier() {
 #ifdef JS_JITSPEW
-  JS_LOG(wasmCodeMetaStats, mozilla::LogLevel::Info,
+  JS_LOG(wasmPerf, mozilla::LogLevel::Info,
          "CM=..%06lx  MG::startCompleteTier (%s, %u imports, %u functions)",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL),
          tier() == Tier::Baseline ? "BL" : "OPT",
@@ -1183,7 +1183,7 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
   uint32_t bytecodeLen =
       codeMeta_->funcDefRanges[funcIndex - codeMeta_->numFuncImports]
           .bodyLength;
-  JS_LOG(wasmCodeMetaStats, mozilla::LogLevel::Info,
+  JS_LOG(wasmPerf, mozilla::LogLevel::Info,
          "CM=..%06lx  MG::startPartialTier  fI=%-5u  sz=%-5u  %s",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL), funcIndex,
          bytecodeLen, name.length() > 0 ? name.begin() : "(unknown-name)");
@@ -1419,7 +1419,7 @@ SharedModule ModuleGenerator::finishModule(
   }
 
 #ifdef JS_JITSPEW
-  JS_LOG(wasmCodeMetaStats, mozilla::LogLevel::Info,
+  JS_LOG(wasmPerf, mozilla::LogLevel::Info,
          "CM=..%06lx  MG::finishModule      (%s, complete tier)",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL),
          tier() == Tier::Baseline ? "BL" : "OPT");
