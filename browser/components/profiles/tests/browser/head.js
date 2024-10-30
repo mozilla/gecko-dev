@@ -54,8 +54,16 @@ let testRoot = Services.dirsvc.get("ProfD", Ci.nsIFile);
 testRoot.append(`SP${Date.now()}`);
 try {
   testRoot.remove(true);
-  testRoot.create(Ci.nsIFile.DIRECTORY_TYPE, 0o666);
-} catch (e) {}
+} catch (e) {
+  if (e.result != Cr.NS_ERROR_FILE_NOT_FOUND) {
+    console.error(e);
+  }
+}
+try {
+  testRoot.create(Ci.nsIFile.DIRECTORY_TYPE, 0o777);
+} catch (e) {
+  console.error(e);
+}
 
 // UAppData must be above any profile folder.
 let uAppData = Services.dirsvc.get("ProfD", Ci.nsIFile).parent;

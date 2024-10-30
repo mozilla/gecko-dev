@@ -151,6 +151,7 @@ class SelectableProfileServiceClass {
       );
     this.#groupToolkitProfile =
       this.#profileService.currentProfile ?? this.#profileService.groupProfile;
+    this.#storeID = this.#groupToolkitProfile?.storeID;
     await this.init();
   }
 
