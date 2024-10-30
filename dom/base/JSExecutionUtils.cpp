@@ -59,41 +59,4 @@ void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
   }
 }
 
-void InstantiateStencil(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-                        RefPtr<JS::Stencil>&& aStencil,
-                        JS::MutableHandle<JSScript*> aScript,
-                        bool& incrementalEncodingAlreadyStarted,
-                        JS::Handle<JS::Value> aDebuggerPrivateValue,
-                        JS::Handle<JSScript*> aDebuggerIntroductionScript,
-                        ErrorResult& aRv, bool aEncodeBytecode /* = false */,
-                        JS::InstantiationStorage* aStorage) {
-  JS::InstantiateOptions instantiateOptions(aCompileOptions);
-  JS::Rooted<JSScript*> script(
-      aCx, JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil,
-                                        aStorage));
-  if (!script) {
-    aRv.NoteJSContextException(aCx);
-    return;
-  }
-
-  if (aEncodeBytecode) {
-    if (!JS::StartIncrementalEncoding(aCx, std::move(aStencil),
-                                      incrementalEncodingAlreadyStarted)) {
-      aRv.NoteJSContextException(aCx);
-      return;
-    }
-  }
-
-  MOZ_ASSERT(!aScript);
-  aScript.set(script);
-
-  if (instantiateOptions.deferDebugMetadata) {
-    if (!JS::UpdateDebugMetadata(aCx, aScript, instantiateOptions,
-                                 aDebuggerPrivateValue, nullptr,
-                                 aDebuggerIntroductionScript, nullptr)) {
-      aRv = NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-}
-
 }  // namespace mozilla::dom
