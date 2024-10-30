@@ -555,6 +555,7 @@ add_task(async function test_ml_custom_hub() {
  * Make sure we don't get race conditions when running several inference runs in parallel
  *
  */
+
 add_task(async function test_ml_engine_parallel() {
   const { cleanup, remoteClients } = await setup();
 
@@ -824,7 +825,17 @@ const pipelineOptionsCases = [
     expected: { modelId: test.value },
   })),
 
-  // Invalid dtype, device, executionPriority, featureId and logLevel cases
+  // Invalid values
+  {
+    description: "Invalid timeoutMS",
+    options: { timeoutMS: -3 },
+    expectedError: /Invalid value/,
+  },
+  {
+    description: "Invalid timeoutMS",
+    options: { timeoutMS: 40000000 },
+    expectedError: /Invalid value/,
+  },
   {
     description: "Invalid featureId",
     options: { featureId: "unknown" },
@@ -851,7 +862,18 @@ const pipelineOptionsCases = [
     expectedError: /Invalid value/,
   },
 
-  // Valid cases for dtype, device, executionPriority, and logLevel
+  // Valid values
+  {
+    description: "valid timeoutMS",
+    options: { timeoutMS: 12345 },
+    expected: { timeoutMS: 12345 },
+  },
+  {
+    description: "valid timeoutMS",
+    options: { timeoutMS: -1 },
+    expected: { timeoutMS: -1 },
+  },
+
   {
     description: "Valid dtype",
     options: { dtype: QuantizationLevel.FP16 },
@@ -960,4 +982,37 @@ add_task(async function test_pipeline_options_validation() {
       });
     }
   });
+});
+
+add_task(async function test_ml_engine_infinite_worker() {
+  const { cleanup, remoteClients } = await setup();
+
+  const options = { taskName: "moz-echo", timeoutMS: -1 };
+  const engineInstance = await createEngine(options);
+
+  info("Check the inference process is running");
+  Assert.equal(await checkForRemoteType("inference"), true);
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  const res = await inferencePromise;
+  Assert.equal(
+    res.output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  Assert.equal(res.output.timeoutMS, -1, "This should be an infinite worker.");
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+
+  await cleanup();
 });
