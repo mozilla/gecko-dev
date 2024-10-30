@@ -285,6 +285,9 @@ impl RenderTarget {
                     if !pic_task.can_use_shared_surface {
                         self.clear_color = pic_task.clear_color;
                     }
+                    if let Some(clear_color) = pic_task.clear_color {
+                        self.clears.push((target_rect, clear_color));
+                    }
 
                     // TODO(gw): The type names of AlphaBatchBuilder and BatchBuilder
                     //           are still confusing. Once more of the picture caching
