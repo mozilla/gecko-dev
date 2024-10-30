@@ -29,8 +29,9 @@
 
 using namespace mozilla;
 
-static const CLLocationAccuracy kHIGH_ACCURACY = kCLLocationAccuracyBest;
-static const CLLocationAccuracy kDEFAULT_ACCURACY =
+MOZ_RUNINIT static const CLLocationAccuracy kHIGH_ACCURACY =
+    kCLLocationAccuracyBest;
+MOZ_RUNINIT static const CLLocationAccuracy kDEFAULT_ACCURACY =
     kCLLocationAccuracyNearestTenMeters;
 
 @interface LocationDelegate : NSObject <CLLocationManagerDelegate> {

@@ -15,7 +15,8 @@ class gfxDWriteFontFileStream;
 
 static mozilla::StaticMutex sFontFileStreamsMutex MOZ_UNANNOTATED;
 static uint64_t sNextFontFileKey = 0;
-static std::unordered_map<uint64_t, gfxDWriteFontFileStream*> sFontFileStreams;
+MOZ_RUNINIT static std::unordered_map<uint64_t, gfxDWriteFontFileStream*>
+    sFontFileStreams;
 
 IDWriteFontFileLoader* gfxDWriteFontFileLoader::mInstance = nullptr;
 

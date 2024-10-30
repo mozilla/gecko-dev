@@ -22,7 +22,7 @@
 
 namespace mozilla::dom {
 
-static SVGAttrTearoffTable<SVGAnimatedLength, DOMSVGLength>
+MOZ_CONSTINIT static SVGAttrTearoffTable<SVGAnimatedLength, DOMSVGLength>
     sBaseSVGLengthTearOffTable, sAnimSVGLengthTearOffTable;
 
 // We could use NS_IMPL_CYCLE_COLLECTION(, except that in Unlink() we need to

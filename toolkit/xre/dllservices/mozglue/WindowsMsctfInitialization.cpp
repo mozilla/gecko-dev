@@ -29,7 +29,7 @@ struct LPARAM20000 {
   uintptr_t Reserved2;  // Used as a boolean (though never saw it set to true)
 };
 
-static WindowsDllInterceptor MsctfIntercept;
+MOZ_RUNINIT static WindowsDllInterceptor MsctfIntercept;
 
 typedef uintptr_t(WINAPI* TF_Notify_func)(UINT uMsg, WPARAM wParam,
                                           LPARAM lParam);

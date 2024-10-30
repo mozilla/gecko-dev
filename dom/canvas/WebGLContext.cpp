@@ -102,7 +102,7 @@ WebGLContextOptions::WebGLContextOptions() {
 }
 
 StaticMutex WebGLContext::sLruMutex;
-std::list<WebGLContext*> WebGLContext::sLru;
+MOZ_RUNINIT std::list<WebGLContext*> WebGLContext::sLru;
 
 WebGLContext::LruPosition::LruPosition() {
   StaticMutexAutoLock lock(sLruMutex);

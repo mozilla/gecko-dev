@@ -16,7 +16,7 @@
 #include "jsapi-tests/tests.h"
 #include "util/Text.h"
 
-static TestJSPrincipals system_principals(1);
+MOZ_RUNINIT static TestJSPrincipals system_principals(1);
 
 static const JSClass global_class = {
     "global",
@@ -24,8 +24,8 @@ static const JSClass global_class = {
     &JS::DefaultGlobalClassOps,
 };
 
-static JS::PersistentRootedObject trusted_glob;
-static JS::PersistentRootedObject trusted_fun;
+MOZ_RUNINIT static JS::PersistentRootedObject trusted_glob;
+MOZ_RUNINIT static JS::PersistentRootedObject trusted_fun;
 
 static bool CallTrusted(JSContext* cx, unsigned argc, JS::Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);

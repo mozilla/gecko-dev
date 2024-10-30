@@ -51,7 +51,7 @@ namespace mozilla::gl {
 using namespace mozilla::gfx;
 using namespace mozilla::widget;
 
-GLXLibrary sGLXLibrary;
+MOZ_RUNINIT GLXLibrary sGLXLibrary;
 
 static inline bool HasExtension(const char* aExtensions,
                                 const char* aRequiredExtension) {

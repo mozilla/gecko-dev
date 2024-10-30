@@ -22,7 +22,7 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::dom::ipc;
 
-JS::PersistentRooted<JSObject*> global;
+MOZ_RUNINIT JS::PersistentRooted<JSObject*> global;
 
 static int FuzzingInitDomSC(int* argc, char*** argv) {
   JSObject* simpleGlobal =

@@ -104,7 +104,7 @@ void PopulateDuration(Duration& aDest, const MyDuration& aSrc) {
 // The expected match data.
 static MyDuration EXPECTED_MIN_WAIT_DURATION = {12, 10};
 static MyDuration EXPECTED_NEG_CACHE_DURATION = {120, 9};
-static const struct ExpectedMatch {
+MOZ_RUNINIT static const struct ExpectedMatch {
   nsCString mCompleteHash;
   ThreatType mThreatType;
   MyDuration mPerHashCacheDuration;

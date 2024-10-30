@@ -61,8 +61,9 @@ namespace mozilla {
 using media::ShutdownBlockingTicket;
 namespace camera {
 
-std::map<uint32_t, const char*> sDeviceUniqueIDs;
-std::map<uint32_t, webrtc::VideoCaptureCapability> sAllRequestedCapabilities;
+MOZ_RUNINIT std::map<uint32_t, const char*> sDeviceUniqueIDs;
+MOZ_RUNINIT std::map<uint32_t, webrtc::VideoCaptureCapability>
+    sAllRequestedCapabilities;
 
 uint32_t ResolutionFeasibilityDistance(int32_t candidate, int32_t requested) {
   // The purpose of this function is to find a smallest resolution

@@ -374,7 +374,7 @@ class scoped_ptr_malloc {
 };
 
 template <typename T, typename FP>
-FP const scoped_ptr_malloc<T, FP>::free_ = FP();
+MOZ_RUNINIT FP const scoped_ptr_malloc<T, FP>::free_ = FP();
 
 template <typename T, typename FP>
 inline void swap(scoped_ptr_malloc<T, FP>& a, scoped_ptr_malloc<T, FP>& b) {

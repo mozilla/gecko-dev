@@ -147,7 +147,7 @@ AutoProfilerMessageMarker::~AutoProfilerMessageMarker() {
 
 // Using an unordered_set so we can initialize this with nice syntax instead of
 // having to add them one at a time to a mozilla::HashSet.
-std::unordered_set<UINT> gEventsToLogOriginalParams = {
+MOZ_RUNINIT std::unordered_set<UINT> gEventsToLogOriginalParams = {
     WM_WINDOWPOSCHANGING,  // (dummy comments for clang-format)
     WM_SIZING,             //
     WM_STYLECHANGING,
@@ -160,7 +160,7 @@ std::unordered_set<UINT> gEventsToLogOriginalParams = {
 // If you add an event here, you must add cases for these to
 // MakeMessageSpecificData() and AppendFriendlyMessageSpecificData()
 // in nsWindowLoggedMessages.cpp.
-std::unordered_set<UINT> gEventsToRecordInAboutPage = {
+MOZ_RUNINIT std::unordered_set<UINT> gEventsToRecordInAboutPage = {
     WM_WINDOWPOSCHANGING,  // (dummy comments for clang-format)
     WM_WINDOWPOSCHANGED,   //
     WM_SIZING,
@@ -1000,7 +1000,7 @@ nsAutoCString WmSizeParamInfo(uint64_t wParam, uint64_t lParam,
   return result;
 }
 
-const nsTArray<EnumValueAndName> windowPositionFlags = {
+MOZ_RUNINIT const nsTArray<EnumValueAndName> windowPositionFlags = {
     VALANDNAME_ENTRY(SWP_DRAWFRAME),  VALANDNAME_ENTRY(SWP_HIDEWINDOW),
     VALANDNAME_ENTRY(SWP_NOACTIVATE), VALANDNAME_ENTRY(SWP_NOCOPYBITS),
     VALANDNAME_ENTRY(SWP_NOMOVE),     VALANDNAME_ENTRY(SWP_NOOWNERZORDER),
@@ -1188,7 +1188,7 @@ void ResolutionParamInfo(nsCString& result, uint64_t value, const char* name,
       #_msg, _msg, nullptr, wParamInfoFn, wParamName, lParamInfoFn, lParamName \
     }                                                                          \
   }
-std::unordered_map<UINT, EventMsgInfo> gAllEvents = {
+MOZ_RUNINIT std::unordered_map<UINT, EventMsgInfo> gAllEvents = {
     ENTRY_WITH_NO_PARAM_INFO(WM_NULL),
     ENTRY_WITH_SPLIT_PARAM_INFOS(WM_CREATE, nullptr, nullptr,
                                  CreateStructParamInfo, "createStruct"),

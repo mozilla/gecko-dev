@@ -23,7 +23,7 @@ NTSTATUS NTAPI NtMapViewOfSection(
 
 using namespace mozilla;
 
-static WindowsDllInterceptor NtdllIntercept;
+MOZ_RUNINIT static WindowsDllInterceptor NtdllIntercept;
 
 static WindowsDllInterceptor::FuncHookType<decltype(&::NtMapViewOfSection)>
     stub_NtMapViewOfSection;
@@ -80,7 +80,7 @@ class MappedViewsInfoCollector {
 };
 
 static bool sIsTestRunning = false;
-static MappedViewsInfoCollector sMappedViewsInfoCollector;
+MOZ_RUNINIT static MappedViewsInfoCollector sMappedViewsInfoCollector;
 
 NTSTATUS NTAPI patched_NtMapViewOfSection(
     HANDLE aSection, HANDLE aProcess, PVOID* aBaseAddress, ULONG_PTR aZeroBits,

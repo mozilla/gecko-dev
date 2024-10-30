@@ -423,6 +423,7 @@ void QuotaManagerDependencyFixture::EnsureQuotaManager() {
                      [&resolver]() { return resolver->IsDone(); });
 }
 
-nsCOMPtr<nsISerialEventTarget> QuotaManagerDependencyFixture::sBackgroundTarget;
+MOZ_RUNINIT nsCOMPtr<nsISerialEventTarget>
+    QuotaManagerDependencyFixture::sBackgroundTarget;
 
 }  // namespace mozilla::dom::quota::test

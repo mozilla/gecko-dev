@@ -121,7 +121,7 @@ int sInCommunicationCount = 0;
 
 const char kBrandBundleURL[] = "chrome://branding/locale/brand.properties";
 
-std::unordered_map<std::string, LABELS_MEDIA_AUDIO_BACKEND>
+MOZ_RUNINIT std::unordered_map<std::string, LABELS_MEDIA_AUDIO_BACKEND>
     kTelemetryBackendLabel = {
         {"audiounit", LABELS_MEDIA_AUDIO_BACKEND::audiounit},
         {"audiounit-rust", LABELS_MEDIA_AUDIO_BACKEND::audiounit_rust},

@@ -120,8 +120,8 @@ void test_wait_checkpoint() {
 // These variables are shared between part 1 and part 2 of the test.  Part 2
 // sets the nsCOMPtr's to nullptr, freeing the reference.
 namespace test_unvisited_does_not_notify {
-nsCOMPtr<nsIURI> testURI;
-RefPtr<mock_Link> testLink;
+MOZ_RUNINIT nsCOMPtr<nsIURI> testURI;
+MOZ_RUNINIT RefPtr<mock_Link> testLink;
 }  // namespace test_unvisited_does_not_notify
 void test_unvisited_does_not_notify_part1() {
   using namespace test_unvisited_does_not_notify;

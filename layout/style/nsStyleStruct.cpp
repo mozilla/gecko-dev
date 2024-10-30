@@ -51,7 +51,8 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-static const nscoord kMediumBorderWidth = nsPresContext::CSSPixelsToAppUnits(3);
+MOZ_RUNINIT static const nscoord kMediumBorderWidth =
+    nsPresContext::CSSPixelsToAppUnits(3);
 
 // We set the size limit of style structs to 504 bytes so that when they
 // are allocated by Servo side with Arc, the total size doesn't exceed
@@ -309,7 +310,7 @@ static StyleRect<T> StyleRectWithAllSides(const T& aSide) {
   return {aSide, aSide, aSide, aSide};
 }
 
-const StyleMargin nsStyleMargin::kZeroMargin =
+MOZ_RUNINIT const StyleMargin nsStyleMargin::kZeroMargin =
     StyleMargin::LengthPercentage(StyleLengthPercentage::Zero());
 
 nsStyleMargin::nsStyleMargin()
@@ -1357,9 +1358,10 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
   return {StyleAlignFlags::NORMAL};
 }
 
-const StyleInset nsStylePosition::kAutoInset = StyleInset::Auto();
-const StyleSize nsStylePosition::kAutoSize = StyleSize::Auto();
-const StyleMaxSize nsStylePosition::kNoneMaxSize = StyleMaxSize::None();
+MOZ_RUNINIT const StyleInset nsStylePosition::kAutoInset = StyleInset::Auto();
+MOZ_RUNINIT const StyleSize nsStylePosition::kAutoSize = StyleSize::Auto();
+MOZ_RUNINIT const StyleMaxSize nsStylePosition::kNoneMaxSize =
+    StyleMaxSize::None();
 
 // --------------------
 // nsStyleTable

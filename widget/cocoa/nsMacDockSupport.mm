@@ -293,7 +293,7 @@ CFURLRef _CFURLCreateFromPropertyListRepresentation(
 
 namespace {
 
-const NSArray* const browserAppNames = [NSArray
+MOZ_RUNINIT const NSArray* const browserAppNames = [NSArray
     arrayWithObjects:@"Firefox.app", @"Firefox Beta.app",
                      @"Firefox Nightly.app", @"Safari.app", @"WebKit.app",
                      @"Google Chrome.app", @"Google Chrome Canary.app",

@@ -247,14 +247,15 @@ class UntrustedModulesFixture : public TelemetryTestFixture {
   }
 };
 
-const nsString UntrustedModulesFixture::kTestModules[] = {
+MOZ_RUNINIT const nsString UntrustedModulesFixture::kTestModules[] = {
     // Sorted for binary-search
     u"TestUntrustedModules_Dll1.dll"_ns,
     u"TestUntrustedModules_Dll2.dll"_ns,
 };
 
 INIT_ONCE UntrustedModulesFixture::sInitLoadOnce = INIT_ONCE_STATIC_INIT;
-UntrustedModulesCollector UntrustedModulesFixture::sInitLoadDataCollector;
+MOZ_RUNINIT UntrustedModulesCollector
+    UntrustedModulesFixture::sInitLoadDataCollector;
 
 void UntrustedModulesFixture::ValidateUntrustedModules(
     const UntrustedModulesData& aData, bool aIsTruncatedData) {

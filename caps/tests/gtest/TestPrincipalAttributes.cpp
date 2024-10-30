@@ -29,7 +29,7 @@ TEST_P(PrincipalAttributesTest, PrincipalAttributesTest) {
   ASSERT_EQ(principal->GetIsIpAddress(), GetParam().expectIsIpAddress);
 }
 
-static const PrincipalAttributesParam kAttributes[] = {
+MOZ_RUNINIT static const PrincipalAttributesParam kAttributes[] = {
     {nsAutoCString("https://mozilla.com"), false},
     {nsAutoCString("https://127.0.0.1"), true},
     {nsAutoCString("https://[::1]"), true},

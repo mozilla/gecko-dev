@@ -826,7 +826,7 @@ public class CodeGenerator {
             + "};\n"
             + "\n"
             + "template<class Impl>\n"
-            + "const JNINativeMethod "
+            + "MOZ_GLOBINIT const JNINativeMethod "
             + clsName
             + "::Natives<Impl>::methods[] = {"
             + nativesInits

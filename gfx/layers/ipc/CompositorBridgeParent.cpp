@@ -108,8 +108,9 @@ using mozilla::Telemetry::LABELS_CONTENT_FRAME_TIME_REASON;
 StaticMonitor CompositorBridgeParent::sIndirectLayerTreesLock;
 
 /* static */
-CompositorBridgeParent::LayerTreeMap CompositorBridgeParent::sIndirectLayerTrees
-    MOZ_GUARDED_BY(CompositorBridgeParent::sIndirectLayerTreesLock);
+MOZ_RUNINIT CompositorBridgeParent::LayerTreeMap
+    CompositorBridgeParent::sIndirectLayerTrees MOZ_GUARDED_BY(
+        CompositorBridgeParent::sIndirectLayerTreesLock);
 
 CompositorBridgeParentBase::CompositorBridgeParentBase(
     CompositorManagerParent* aManager)

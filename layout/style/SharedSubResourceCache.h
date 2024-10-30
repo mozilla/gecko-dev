@@ -261,7 +261,7 @@ class SharedSubResourceCache {
  protected:
   // Lazily created in the first Get() call.
   // The singleton should be deleted by DeleteSingleton() during shutdown.
-  inline static StaticRefPtr<Derived> sSingleton;
+  inline static MOZ_GLOBINIT StaticRefPtr<Derived> sSingleton;
 };
 
 template <typename Traits, typename Derived>

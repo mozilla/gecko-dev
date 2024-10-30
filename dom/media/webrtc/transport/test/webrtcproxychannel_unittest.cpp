@@ -19,7 +19,7 @@
 static const uint32_t kDefaultTestTimeout = 2000;
 static const char kReadData[] = "Hello, World!";
 static const size_t kReadDataLength = sizeof(kReadData) - 1;
-static const std::string kReadDataString =
+MOZ_RUNINIT static const std::string kReadDataString =
     std::string(kReadData, kReadDataLength);
 static int kDataLargeOuterLoopCount = 128;
 static int kDataLargeInnerLoopCount = 1024;

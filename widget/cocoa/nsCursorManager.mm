@@ -10,7 +10,7 @@
 
 static nsCursorManager* gInstance;
 static CGFloat sCurrentCursorScaleFactor = 0.0f;
-static nsIWidget::Cursor sCurrentCursor;
+MOZ_RUNINIT static nsIWidget::Cursor sCurrentCursor;
 static constexpr nsCursor kCustomCursor = eCursorCount;
 
 /*! @category nsCursorManager(PrivateMethods)

@@ -42,7 +42,7 @@
 static float sProgress;  // between 0 and 100
 static BOOL sQuit = FALSE;
 static BOOL sIndeterminate = FALSE;
-static StringTable sUIStrings;
+MOZ_RUNINIT static StringTable sUIStrings;
 
 static BOOL GetStringsFile(WCHAR filename[MAX_PATH]) {
   if (!GetModuleFileNameW(nullptr, filename, MAX_PATH)) {

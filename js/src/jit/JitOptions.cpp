@@ -19,7 +19,7 @@ using mozilla::Maybe;
 namespace js {
 namespace jit {
 
-DefaultJitOptions JitOptions;
+MOZ_RUNINIT DefaultJitOptions JitOptions;
 
 static void Warn(const char* env, const char* value) {
   fprintf(stderr, "Warning: I didn't understand %s=\"%s\"\n", env, value);

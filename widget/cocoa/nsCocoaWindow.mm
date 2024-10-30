@@ -3093,9 +3093,9 @@ static NSMutableSet* gSwizzledFrameViewClasses = nil;
     }
   }
 
-  static IMP our_closeButtonOrigin = class_getMethodImplementation(
+  MOZ_RUNINIT static IMP our_closeButtonOrigin = class_getMethodImplementation(
       [NSView class], @selector(FrameView__closeButtonOrigin));
-  static IMP our_titlebarHeight = class_getMethodImplementation(
+  MOZ_RUNINIT static IMP our_titlebarHeight = class_getMethodImplementation(
       [NSView class], @selector(FrameView__titlebarHeight));
 
   if (![gSwizzledFrameViewClasses containsObject:frameViewClass]) {

@@ -26,7 +26,7 @@
 // Template taken from security/nss/lib/util/templates.c
 // This (or SGN_EncodeDigestInfo) would ideally be exported
 // by NSS and until that happens we have to keep our own copy.
-const SEC_ASN1Template SGN_DigestInfoTemplate[] = {
+MOZ_GLOBINIT const SEC_ASN1Template SGN_DigestInfoTemplate[] = {
     {SEC_ASN1_SEQUENCE, 0, NULL, sizeof(SGNDigestInfo)},
     {SEC_ASN1_INLINE, offsetof(SGNDigestInfo, digestAlgorithm),
      SEC_ASN1_GET(SECOID_AlgorithmIDTemplate)},

@@ -20,7 +20,8 @@
 
 nsAppShell* nsAppShell::gAppShell = NULL;
 UIWindow* nsAppShell::gWindow = nil;
-NSMutableArray* nsAppShell::gTopLevelViews = [[NSMutableArray alloc] init];
+MOZ_RUNINIT NSMutableArray* nsAppShell::gTopLevelViews =
+    [[NSMutableArray alloc] init];
 
 #define ALOG(args...)    \
   fprintf(stderr, args); \

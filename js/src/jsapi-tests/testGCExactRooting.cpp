@@ -217,7 +217,7 @@ BEGIN_TEST(testGCRootedStaticStructInternalStackStorageAugmented) {
 }
 END_TEST(testGCRootedStaticStructInternalStackStorageAugmented)
 
-static JS::PersistentRooted<JSObject*> sLongLived;
+MOZ_RUNINIT static JS::PersistentRooted<JSObject*> sLongLived;
 BEGIN_TEST(testGCPersistentRootedOutlivesRuntime) {
   sLongLived.init(cx, JS_NewObject(cx, nullptr));
   CHECK(sLongLived);
@@ -229,7 +229,7 @@ END_TEST(testGCPersistentRootedOutlivesRuntime)
 // performance and simplicity reasons, PersistentRooted<Traceable> is not
 // allowed to outlive the container it belongs to. The following commented out
 // test can be used to verify that the relevant assertion fires as expected.
-static JS::PersistentRooted<MyContainer> sContainer;
+MOZ_RUNINIT static JS::PersistentRooted<MyContainer> sContainer;
 BEGIN_TEST(testGCPersistentRootedTraceableCannotOutliveRuntime) {
   JS::Rooted<MyContainer> container(cx);
   container.obj() = JS_NewObject(cx, nullptr);

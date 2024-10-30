@@ -289,9 +289,9 @@ static DynamicBlockList ConvertStaticBlocklistToDynamic(
   return blockList;
 }
 
-const DynamicBlockList gFullList =
+MOZ_RUNINIT const DynamicBlockList gFullList =
     ConvertStaticBlocklistToDynamic(gWindowsDllBlocklist);
-const DynamicBlockList gShortList =
+MOZ_RUNINIT const DynamicBlockList gShortList =
     ConvertStaticBlocklistToDynamic(kDllBlocklistShort);
 
 static bool TestDependentModules() {

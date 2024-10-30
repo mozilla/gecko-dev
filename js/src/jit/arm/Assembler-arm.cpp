@@ -1065,7 +1065,7 @@ O2RegRegShift jit::asr(Register r, Register amt) {
 static js::jit::DoubleEncoder doubleEncoder;
 
 /* static */
-const js::jit::VFPImm js::jit::VFPImm::One(0x3FF00000);
+MOZ_RUNINIT const js::jit::VFPImm js::jit::VFPImm::One(0x3FF00000);
 
 js::jit::VFPImm::VFPImm(uint32_t top) {
   data_ = -1;

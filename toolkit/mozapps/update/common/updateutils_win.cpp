@@ -9,6 +9,12 @@
 #include <shlwapi.h>
 #include <string.h>
 
+#ifdef MOZ_CLANG_PLUGIN
+#  define MOZ_RUNINIT __attribute__((annotate("moz_global_var")))
+#else
+#  define MOZ_RUNINIT
+#endif
+
 /**
  * Note: The reason that these functions are separated from those in
  *       updatehelper.h/updatehelper.cpp is that those functions are strictly
@@ -19,7 +25,7 @@
 // This section implements the minimum set of dirent APIs used by updater.cpp on
 // Windows.  If updater.cpp is modified to use more of this API, we need to
 // implement those parts here too.
-static dirent gDirEnt;
+MOZ_RUNINIT static dirent gDirEnt;
 
 DIR::DIR(const WCHAR* path) : findHandle(INVALID_HANDLE_VALUE) {
   memset(name, 0, sizeof(name));

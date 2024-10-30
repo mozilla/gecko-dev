@@ -16,7 +16,7 @@ using mozilla::MakeCompactPair;
 // verify our attempts at compactness through EBO are moderately functional,
 // *somewhere*.
 #define INSTANTIATE(T1, T2, name, size)                                        \
-  CompactPair<T1, T2> name##_1(T1(0), T2(0));                                  \
+  MOZ_GLOBINIT CompactPair<T1, T2> name##_1(T1(0), T2(0));                     \
   static_assert(sizeof(name##_1.first()) > 0,                                  \
                 "first method should work on CompactPair<" #T1 ", " #T2 ">");  \
                                                                                \
@@ -26,7 +26,7 @@ using mozilla::MakeCompactPair;
   static_assert(sizeof(name##_1) == (size),                                    \
                 "CompactPair<" #T1 ", " #T2 "> has an unexpected size");       \
                                                                                \
-  CompactPair<T2, T1> name##_2(T2(0), T1(0));                                  \
+  MOZ_GLOBINIT CompactPair<T2, T1> name##_2(T2(0), T1(0));                     \
   static_assert(sizeof(name##_2.first()) > 0,                                  \
                 "first method should work on CompactPair<" #T2 ", " #T1 ">");  \
                                                                                \

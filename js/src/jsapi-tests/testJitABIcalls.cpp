@@ -695,9 +695,10 @@ class JitABICall final : public JSAPIRuntimeTest, public DefineCheckArgs<Sig> {
 
 // For each VMFunction and ABIFunction, create an instance of a JitABICall
 // class to register a jsapi-tests test case.
-#define TEST_INSTANCE(Name, Sig)                                             \
-  static JitABICall<Sig> MOZ_CONCAT(MOZ_CONCAT(cls_jitabicall, __COUNTER__), \
-                                    _instance)("JIT ABI for " Name);
+#define TEST_INSTANCE(Name, Sig)                 \
+  MOZ_RUNINIT static JitABICall<Sig> MOZ_CONCAT( \
+      MOZ_CONCAT(cls_jitabicall, __COUNTER__),   \
+      _instance)("JIT ABI for " Name);
 #define TEST_INSTANCE_ABIFUN_TO_ALLFUN(...) \
   APPLY(TEST_INSTANCE, ABIFUN_TO_ALLFUN(__VA_ARGS__))
 #define TEST_INSTANCE_ABIFUN_AND_SIG_TO_ALLFUN(...) \

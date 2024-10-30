@@ -17,7 +17,7 @@
 
 namespace mozilla {
 
-static OnSingleStepCallback sOnSingleStepCallback{};
+MOZ_RUNINIT static OnSingleStepCallback sOnSingleStepCallback{};
 static void* sOnSingleStepCallbackState = nullptr;
 static bool sIsSingleStepping = false;
 

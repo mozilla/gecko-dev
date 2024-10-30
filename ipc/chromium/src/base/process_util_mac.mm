@@ -34,7 +34,7 @@ int responsibility_spawnattrs_setdisclaim(posix_spawnattr_t attrs, int disclaim)
 
 namespace {
 
-static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
+MOZ_RUNINIT static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 
 }  // namespace
 

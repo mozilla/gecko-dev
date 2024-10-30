@@ -5,10 +5,16 @@
 
 #include <windows.h>
 
+#ifdef MOZ_CLANG_PLUGIN
+#  define MOZ_RUNINIT __attribute__((annotate("moz_global_var")))
+#else
+#  define MOZ_RUNINIT
+#endif
+
 // Delayed load libraries are loaded when the first symbol is used.
 // The following ensures that we load the delayed loaded libraries from the
 // system directory.
-struct AutoLoadSystemDependencies {
+MOZ_RUNINIT struct AutoLoadSystemDependencies {
   AutoLoadSystemDependencies() {
     // Remove the current directory from the search path for dynamically loaded
     // DLLs as a precaution.  This call has no effect for delay load DLLs.

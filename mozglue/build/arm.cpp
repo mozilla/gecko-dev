@@ -5,6 +5,7 @@
 /* compile-time and runtime tests for whether to use various ARM extensions */
 
 #include "arm.h"
+#include "mozilla/Attributes.h"
 
 #if defined(MOZILLA_ARM_HAVE_CPUID_DETECTION)
 
@@ -88,7 +89,7 @@ static unsigned get_arm_cpu_flags(void) {
 }
 
 // Cache a local copy so we only have to read /proc/cpuinfo once.
-static unsigned arm_cpu_flags = get_arm_cpu_flags();
+MOZ_RUNINIT static unsigned arm_cpu_flags = get_arm_cpu_flags();
 
 #    if !defined(MOZILLA_PRESUME_EDSP)
 static bool check_edsp(void) {
@@ -125,19 +126,19 @@ static bool check_aes(void) {
 namespace mozilla {
 namespace arm_private {
 #  if !defined(MOZILLA_PRESUME_EDSP)
-bool edsp_enabled = check_edsp();
+MOZ_RUNINIT bool edsp_enabled = check_edsp();
 #  endif
 #  if !defined(MOZILLA_PRESUME_ARMV6)
-bool armv6_enabled = check_armv6();
+MOZ_RUNINIT bool armv6_enabled = check_armv6();
 #  endif
 #  if !defined(MOZILLA_PRESUME_ARMV7)
-bool armv7_enabled = check_armv7();
+MOZ_RUNINIT bool armv7_enabled = check_armv7();
 #  endif
 #  if !defined(MOZILLA_PRESUME_NEON)
-bool neon_enabled = check_neon();
+MOZ_RUNINIT bool neon_enabled = check_neon();
 #  endif
 #  if !defined(MOZILLA_PRESUME_ARM_AES)
-bool aes_enabled = check_aes();
+MOZ_RUNINIT bool aes_enabled = check_aes();
 #  endif
 }  // namespace arm_private
 }  // namespace mozilla

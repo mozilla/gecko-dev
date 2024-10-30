@@ -56,7 +56,7 @@ static uint32_t sInitFlags;
 static bool sBlocklistInitAttempted;
 static bool sBlocklistInitFailed;
 static bool sUser32BeforeBlocklist;
-static WritableBuffer sBlocklistWriter;
+MOZ_RUNINIT static WritableBuffer sBlocklistWriter;
 
 typedef MOZ_NORETURN_PTR void(__fastcall* BaseThreadInitThunk_func)(
     BOOL aIsInitialThread, void* aStartAddress, void* aThreadParam);
@@ -562,13 +562,13 @@ static MOZ_NORETURN void __fastcall patched_BaseThreadInitThunk(
   stub_BaseThreadInitThunk(aIsInitialThread, aStartAddress, aThreadParam);
 }
 
-static WindowsDllInterceptor NtDllIntercept;
-static WindowsDllInterceptor Kernel32Intercept;
+MOZ_RUNINIT static WindowsDllInterceptor NtDllIntercept;
+MOZ_RUNINIT static WindowsDllInterceptor Kernel32Intercept;
 
 static void GetNativeNtBlockSetWriter();
 
 static glue::LoaderObserver gMozglueLoaderObserver;
-static nt::WinLauncherServices gWinLauncher;
+MOZ_RUNINIT static nt::WinLauncherServices gWinLauncher;
 
 MFBT_API void DllBlocklist_Initialize(uint32_t aInitFlags) {
   if (sBlocklistInitAttempted) {

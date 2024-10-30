@@ -75,7 +75,7 @@ nsOSXSystemProxySettings::GetSystemWPADSetting(bool* aSystemWPADSetting) {
 }
 
 // Mapping of URI schemes to SystemConfiguration keys
-const nsOSXSystemProxySettings::SchemeMapping
+MOZ_RUNINIT const nsOSXSystemProxySettings::SchemeMapping
     nsOSXSystemProxySettings::gSchemeMappingList[] = {
         {"http", kSCPropNetProxiesHTTPEnable, kSCPropNetProxiesHTTPProxy,
          kSCPropNetProxiesHTTPPort, false},

@@ -27,7 +27,7 @@ using namespace mozilla;
 using namespace webrtc;
 using namespace videocapturemodule;
 
-static NSArray* camera_presets = @[
+MOZ_RUNINIT static NSArray* camera_presets = @[
   AVCaptureSessionPreset352x288, AVCaptureSessionPreset640x480,
   AVCaptureSessionPreset1280x720
 ];

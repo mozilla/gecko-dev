@@ -49,10 +49,10 @@ struct ExternalStringCallbacks : public JSExternalStringCallbacks {
   }
 };
 
-static const ExternalStringCallbacks callbacks1(&finalized1, true);
-static const ExternalStringCallbacks callbacks2(&finalized2, true);
-static const ExternalStringCallbacks callbacks3(&finalized3, false);
-static const ExternalStringCallbacks callbacks4(&finalized4, false);
+MOZ_RUNINIT static const ExternalStringCallbacks callbacks1(&finalized1, true);
+MOZ_RUNINIT static const ExternalStringCallbacks callbacks2(&finalized2, true);
+MOZ_RUNINIT static const ExternalStringCallbacks callbacks3(&finalized3, false);
+MOZ_RUNINIT static const ExternalStringCallbacks callbacks4(&finalized4, false);
 
 BEGIN_TEST(testExternalStrings) {
   const unsigned N = 1000;

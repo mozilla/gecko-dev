@@ -21,8 +21,8 @@ struct UrlClassifierFeaturePhishingProtection::PhishingProtectionFeature {
 
 namespace {
 
-struct UrlClassifierFeaturePhishingProtection::PhishingProtectionFeature
-    sPhishingProtectionFeaturesMap[] = {
+MOZ_RUNINIT struct UrlClassifierFeaturePhishingProtection::
+    PhishingProtectionFeature sPhishingProtectionFeaturesMap[] = {
         {"malware", "urlclassifier.malwareTable",
          StaticPrefs::browser_safebrowsing_malware_enabled},
         {"phishing", "urlclassifier.phishTable",

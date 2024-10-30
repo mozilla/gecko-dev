@@ -115,7 +115,8 @@ static ColorCaches sColorCaches;
 
 static EnumeratedCache<FloatID, Maybe<float>, FloatID::End> sFloatCache;
 static EnumeratedCache<IntID, Maybe<int32_t>, IntID::End> sIntCache;
-static EnumeratedCache<FontID, widget::LookAndFeelFont, FontID::End> sFontCache;
+MOZ_RUNINIT static EnumeratedCache<FontID, widget::LookAndFeelFont, FontID::End>
+    sFontCache;
 
 // To make one of these prefs toggleable from a reftest add a user
 // pref in testing/profiles/reftest/user.js. For example, to make

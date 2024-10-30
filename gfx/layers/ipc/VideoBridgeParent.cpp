@@ -24,7 +24,7 @@ using VideoBridgeTable = EnumeratedArray<VideoBridgeSource, VideoBridgeParent*,
 NS_IMPL_NONLOGGING_ADDREF_INHERITED(VideoBridgeParent, HostIPCAllocator)
 NS_IMPL_NONLOGGING_RELEASE_INHERITED(VideoBridgeParent, HostIPCAllocator)
 
-static StaticDataMutex<VideoBridgeTable> sVideoBridgeFromProcess(
+MOZ_RUNINIT static StaticDataMutex<VideoBridgeTable> sVideoBridgeFromProcess(
     "VideoBridges");
 static Atomic<bool> sVideoBridgeParentShutDown(false);
 

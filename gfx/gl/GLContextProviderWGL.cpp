@@ -30,7 +30,7 @@ namespace gl {
 using namespace mozilla::gfx;
 using namespace mozilla::widget;
 
-WGLLibrary sWGLLib;
+MOZ_RUNINIT WGLLibrary sWGLLib;
 
 /*
 ScopedWindow::~ScopedWindow()

@@ -28,7 +28,7 @@
 using mozilla::dom::AutoJSAPI;
 
 static AutoJSAPI* gJsapi = nullptr;
-static std::string gFuzzModuleName;
+MOZ_RUNINIT static std::string gFuzzModuleName;
 
 static void CrashOnPendingException() {
   if (gJsapi->HasException()) {

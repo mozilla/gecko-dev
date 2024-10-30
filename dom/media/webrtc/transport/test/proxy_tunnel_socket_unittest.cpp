@@ -19,7 +19,8 @@
 using namespace mozilla;
 
 // update TestReadMultipleSizes if you change this
-const std::string kHelloMessage = "HELLO IS IT ME YOU'RE LOOKING FOR?";
+MOZ_RUNINIT const std::string kHelloMessage =
+    "HELLO IS IT ME YOU'RE LOOKING FOR?";
 
 class NrTcpSocketTest : public MtransportTest {
  public:

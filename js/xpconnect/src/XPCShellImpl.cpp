@@ -90,8 +90,8 @@
 #ifdef FUZZING_INTERFACES
 #  include "xpcrtfuzzing/xpcrtfuzzing.h"
 #  include "XREShellData.h"
-static bool fuzzDoDebug = !!getenv("MOZ_FUZZ_DEBUG");
-static bool fuzzHaveModule = !!getenv("FUZZER");
+MOZ_RUNINIT static bool fuzzDoDebug = !!getenv("MOZ_FUZZ_DEBUG");
+MOZ_RUNINIT static bool fuzzHaveModule = !!getenv("FUZZER");
 #endif  // FUZZING_INTERFACES
 
 using namespace mozilla;

@@ -17,7 +17,7 @@ GUID CLSID_TestShellEx = {
     0x10a9521e, 0x205, 0x4cc7, {0x93, 0xa1, 0x62, 0xf3, 0xa, 0x9a, 0x54, 0xb3}};
 wchar_t kFriendlyName[] = L"Minimum Shell Extension for Firefox testing";
 
-std::wstring gDllPath;
+MOZ_RUNINIT std::wstring gDllPath;
 
 BOOL APIENTRY DllMain(HMODULE aModule, DWORD aReason, LPVOID) {
   wchar_t buf[MAX_PATH];

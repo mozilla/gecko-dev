@@ -78,8 +78,7 @@ class SafeThreadLocal final {
 };
 
 template <typename T>
-MOZ_THREAD_LOCAL(T)
-SafeThreadLocal<T>::sThreadLocal;
+MOZ_GLOBINIT MOZ_THREAD_LOCAL(T) SafeThreadLocal<T>::sThreadLocal;
 
 template <typename T>
 T SafeThreadLocal<T>::sGlobal = nullptr;

@@ -204,3 +204,4 @@ tools/profiler/core/vtune/
 xpcom/build/mach_override.c
 xpcom/build/mach_override.h
 xpcom/io/crc32c.c
+rlbox/rlbox_sandbox.hpp

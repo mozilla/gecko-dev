@@ -23,7 +23,7 @@
 
 using namespace mozilla;
 
-JS::PersistentRootedObject gGlobal;
+MOZ_RUNINIT JS::PersistentRootedObject gGlobal;
 JSContext* gCx = nullptr;
 
 static const JSClass* getGlobalClass() {

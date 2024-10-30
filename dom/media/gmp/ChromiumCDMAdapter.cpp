@@ -175,7 +175,7 @@ bool ChromiumCDMAdapter::Supports(int32_t aModuleVersion,
 
 #ifdef XP_WIN
 
-static WindowsDllInterceptor sKernel32Intercept;
+MOZ_RUNINIT static WindowsDllInterceptor sKernel32Intercept;
 
 typedef DWORD(WINAPI* QueryDosDeviceWFnPtr)(_In_opt_ LPCWSTR lpDeviceName,
                                             _Out_ LPWSTR lpTargetPath,

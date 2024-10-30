@@ -56,7 +56,7 @@ static void CancelOffThreadWasmPartialTier2CompileLocked(
 
 namespace js {
 
-Mutex gHelperThreadLock(mutexid::GlobalHelperThreadState);
+MOZ_RUNINIT Mutex gHelperThreadLock(mutexid::GlobalHelperThreadState);
 GlobalHelperThreadState* gHelperThreadState = nullptr;
 
 }  // namespace js

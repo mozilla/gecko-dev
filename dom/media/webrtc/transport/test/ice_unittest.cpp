@@ -61,14 +61,14 @@ static unsigned int kDefaultTimeout = 7000;
 
 // TODO: It would be nice to have a test STUN/TURN server that can run with
 // gtest.
-const std::string kDefaultStunServerHostname((char*)"");
-const std::string kBogusStunServerHostname(
+MOZ_RUNINIT const std::string kDefaultStunServerHostname((char*)"");
+MOZ_RUNINIT const std::string kBogusStunServerHostname(
     (char*)"stun-server-nonexistent.invalid");
 const uint16_t kDefaultStunServerPort = 19305;
-const std::string kBogusIceCandidate(
+MOZ_RUNINIT const std::string kBogusIceCandidate(
     (char*)"candidate:0 2 UDP 2113601790 192.168.178.20 50769 typ");
 
-const std::string kUnreachableHostIceCandidate(
+MOZ_RUNINIT const std::string kUnreachableHostIceCandidate(
     (char*)"candidate:0 1 UDP 2113601790 192.168.178.20 50769 typ host");
 
 namespace {

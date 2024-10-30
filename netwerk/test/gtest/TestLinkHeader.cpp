@@ -141,7 +141,7 @@ TEST_P(SimpleParseTest, Simple) {
 // Some test data copied and adapted from
 // https://source.chromium.org/chromium/chromium/src/+/main:components/link_header_util/link_header_util_unittest.cc
 // the different behavior of the parser is commented above each test case.
-const SimpleParseTestData simple_parse_tests[] = {
+MOZ_RUNINIT const SimpleParseTestData simple_parse_tests[] = {
     {u"<s.css>; rel=stylesheet; fetchpriority=\"auto\""_ns, true, u"s.css"_ns,
      u"stylesheet"_ns, u""_ns, u"auto"_ns},
     {u"<s.css>; rel=stylesheet; fetchpriority=\"low\""_ns, true, u"s.css"_ns,
@@ -306,7 +306,7 @@ struct AnchorTestData {
 
 class AnchorTest : public ::testing::TestWithParam<AnchorTestData> {};
 
-const AnchorTestData anchor_tests[] = {
+MOZ_RUNINIT const AnchorTestData anchor_tests[] = {
     {u"http://example.com/path/to/index.html"_ns, u""_ns, u"page.html"_ns,
      "http://example.com/path/to/page.html"},
     {u"http://example.com/path/to/index.html"_ns,

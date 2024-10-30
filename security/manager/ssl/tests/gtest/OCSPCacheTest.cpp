@@ -60,10 +60,10 @@ static void PutAndGet(
   ASSERT_EQ(time, timeOut);
 }
 
-Input fakeIssuer1(LiteralInput("CN=issuer1"));
-Input fakeKey000(LiteralInput("key000"));
-Input fakeKey001(LiteralInput("key001"));
-Input fakeSerial0000(LiteralInput("0000"));
+MOZ_RUNINIT Input fakeIssuer1(LiteralInput("CN=issuer1"));
+MOZ_RUNINIT Input fakeKey000(LiteralInput("key000"));
+MOZ_RUNINIT Input fakeKey001(LiteralInput("key001"));
+MOZ_RUNINIT Input fakeSerial0000(LiteralInput("0000"));
 
 TEST_F(psm_OCSPCacheTest, TestPutAndGet) {
   Input fakeSerial000(LiteralInput("000"));

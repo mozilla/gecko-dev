@@ -327,10 +327,10 @@ bool gCanRecordBase;
 bool gCanRecordExtended;
 
 // The EventName -> EventKey cache map.
-nsTHashMap<nsCStringHashKey, EventKey> gEventNameIDMap(kEventCount);
+MOZ_RUNINIT nsTHashMap<nsCStringHashKey, EventKey> gEventNameIDMap(kEventCount);
 
 // The CategoryName set.
-nsTHashSet<nsCString> gCategoryNames;
+MOZ_RUNINIT nsTHashSet<nsCString> gCategoryNames;
 
 // The main event storage. Events are inserted here, keyed by process id and
 // in recording order.
@@ -339,7 +339,7 @@ typedef nsTArray<EventRecord> EventRecordArray;
 typedef nsClassHashtable<ProcessIDHashKey, EventRecordArray>
     EventRecordsMapType;
 
-EventRecordsMapType gEventRecords;
+MOZ_RUNINIT EventRecordsMapType gEventRecords;
 
 // The details on dynamic events that are recorded from addons are registered
 // here.

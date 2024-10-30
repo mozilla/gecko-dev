@@ -176,7 +176,7 @@ int RunGTestFunc(int* argc, char** argv) {
 // RunGTest is initialized to nullptr but if GTest (this file)
 // is linked in then RunGTest will be set here indicating
 // GTest is supported.
-class _InitRunGTest {
+MOZ_RUNINIT class _InitRunGTest {
  public:
   _InitRunGTest() { RunGTest = RunGTestFunc; }
 } InitRunGTest;

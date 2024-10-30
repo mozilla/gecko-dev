@@ -40,12 +40,12 @@ using namespace mozilla;
 
 static gfx::IntSize kImageSize(WIDTH, HEIGHT);
 // Set codec to avc1.42001E - Base profile, constraint 0, level 30.
-const H264Specific kH264SpecificAnnexB(H264_PROFILE_BASE,
-                                       H264_LEVEL::H264_LEVEL_3,
-                                       H264BitStreamFormat::ANNEXB);
-const H264Specific kH264SpecificAVCC(H264_PROFILE_BASE,
-                                     H264_LEVEL::H264_LEVEL_3,
-                                     H264BitStreamFormat::AVC);
+MOZ_RUNINIT const H264Specific kH264SpecificAnnexB(H264_PROFILE_BASE,
+                                                   H264_LEVEL::H264_LEVEL_3,
+                                                   H264BitStreamFormat::ANNEXB);
+MOZ_RUNINIT const H264Specific kH264SpecificAVCC(H264_PROFILE_BASE,
+                                                 H264_LEVEL::H264_LEVEL_3,
+                                                 H264BitStreamFormat::AVC);
 
 class MediaDataEncoderTest : public testing::Test {
  protected:

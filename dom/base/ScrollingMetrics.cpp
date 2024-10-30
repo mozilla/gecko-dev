@@ -13,7 +13,7 @@ namespace mozilla {
 static TimeStamp gScrollingStartTime;
 static TimeStamp gScrollingEndTime;
 static uint32_t gScrollDistanceCSSPixels = 0;
-static dom::InteractionData gScrollingInteraction = {};
+MOZ_RUNINIT static dom::InteractionData gScrollingInteraction = {};
 
 void ScrollingMetrics::OnScrollingInteractionEnded() {
   // We are only interested in content process scrolling

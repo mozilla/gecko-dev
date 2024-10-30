@@ -58,7 +58,7 @@ class MOZ_RAII SharedLibrariesLock {
   static mozilla::baseprofiler::detail::BaseProfilerMutex sSharedLibrariesMutex;
 };
 
-mozilla::baseprofiler::detail::BaseProfilerMutex
+MOZ_RUNINIT mozilla::baseprofiler::detail::BaseProfilerMutex
     SharedLibrariesLock::sSharedLibrariesMutex;
 
 static void SharedLibraryAddImage(const struct mach_header* mh,

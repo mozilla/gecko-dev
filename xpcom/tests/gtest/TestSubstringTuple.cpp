@@ -12,9 +12,9 @@ namespace TestSubstringTuple {
 
 static const auto kFooLiteral = u"foo"_ns;
 
-static const auto kFoo = nsCString("foo");
-static const auto kBar = nsCString("bar");
-static const auto kBaz = nsCString("baz");
+MOZ_RUNINIT static const auto kFoo = nsCString("foo");
+MOZ_RUNINIT static const auto kBar = nsCString("bar");
+MOZ_RUNINIT static const auto kBaz = nsCString("baz");
 
 // The test must be done in a macro to ensure that tuple is always a temporary.
 #define DO_SUBSTRING_TUPLE_TEST(tuple, dependentString, expectedLength, \

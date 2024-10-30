@@ -12,6 +12,6 @@ static void __cdecl RaiseHandler(const std::exception& e) {
   mozalloc_abort(e.what());
 }
 
-static struct StaticScopeStruct final {
+MOZ_RUNINIT static struct StaticScopeStruct final {
   StaticScopeStruct() { std::exception::_Set_raise_handler(RaiseHandler); }
 } StaticScopeInvoke;

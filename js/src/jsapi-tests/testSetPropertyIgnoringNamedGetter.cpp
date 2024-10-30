@@ -42,7 +42,7 @@ class CustomProxyHandler : public Wrapper {
   }
 };
 
-const CustomProxyHandler customProxyHandler;
+MOZ_RUNINIT const CustomProxyHandler customProxyHandler;
 
 BEGIN_TEST(testSetPropertyIgnoringNamedGetter_direct) {
   RootedValue protov(cx);

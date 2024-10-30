@@ -24,7 +24,8 @@ namespace ipc {
 
 extern LazyLogModule gForkServiceLog;
 
-mozilla::UniquePtr<ForkServiceChild> ForkServiceChild::sForkServiceChild;
+MOZ_RUNINIT mozilla::UniquePtr<ForkServiceChild>
+    ForkServiceChild::sForkServiceChild;
 Atomic<bool> ForkServiceChild::sForkServiceUsed;
 
 #ifndef SOCK_CLOEXEC

@@ -89,7 +89,7 @@ struct ModifierKey final {
         mLockable(aLockable) {}
 };
 
-static const ModifierKey kModifierKeys[] = {
+MOZ_RUNINIT static const ModifierKey kModifierKeys[] = {
     ModifierKey(MODIFIER_ALT, KEY_NAME_INDEX_Alt, false),
     ModifierKey(MODIFIER_ALTGRAPH, KEY_NAME_INDEX_AltGraph, false),
     ModifierKey(MODIFIER_CONTROL, KEY_NAME_INDEX_Control, false),

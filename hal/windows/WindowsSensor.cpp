@@ -16,7 +16,7 @@ using namespace mozilla::hal;
 namespace mozilla {
 namespace hal_impl {
 
-static RefPtr<ISensor> sAccelerometer;
+MOZ_RUNINIT static RefPtr<ISensor> sAccelerometer;
 
 class SensorEvent final : public ISensorEvents {
  public:

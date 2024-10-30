@@ -23,7 +23,8 @@ namespace mozilla {
 namespace gfx {
 
 #define FONT_NAME_MAX 32
-static StaticDataMutex<std::unordered_map<void*, nsAutoCStringN<FONT_NAME_MAX>>>
+MOZ_RUNINIT static StaticDataMutex<
+    std::unordered_map<void*, nsAutoCStringN<FONT_NAME_MAX>>>
     sWeakFontDataMap("WeakFonts");
 
 void FontDataDeallocate(void*, void* info) {

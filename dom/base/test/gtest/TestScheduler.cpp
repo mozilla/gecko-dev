@@ -11,11 +11,12 @@
 
 using namespace mozilla;
 
-static TimeDuration kOneSecond = TimeDuration::FromSeconds(1);
-static TimeDuration kTenthSecond = TimeDuration::FromSeconds(0.1);
-static TimeDuration kFrameDuration = TimeDuration::FromSeconds(1.0 / 60.0);
+MOZ_RUNINIT static TimeDuration kOneSecond = TimeDuration::FromSeconds(1);
+MOZ_RUNINIT static TimeDuration kTenthSecond = TimeDuration::FromSeconds(0.1);
+MOZ_RUNINIT static TimeDuration kFrameDuration =
+    TimeDuration::FromSeconds(1.0 / 60.0);
 
-static mozilla::TimeStamp sNow = TimeStamp::Now();
+MOZ_RUNINIT static mozilla::TimeStamp sNow = TimeStamp::Now();
 
 static mozilla::TimeStamp AdvanceTime(TimeDuration aDuration) {
   sNow += aDuration;
@@ -328,10 +329,10 @@ static bool BasicScenario(CCGCScheduler& aScheduler, TestGC* aTestGC,
   return true;
 }
 
-static CCGCScheduler scheduler;
-static TestGC gc(scheduler);
-static TestIdleCC ccIdle(scheduler);
-static TestNonIdleCC ccNonIdle(scheduler);
+MOZ_RUNINIT static CCGCScheduler scheduler;
+MOZ_RUNINIT static TestGC gc(scheduler);
+MOZ_RUNINIT static TestIdleCC ccIdle(scheduler);
+MOZ_RUNINIT static TestNonIdleCC ccNonIdle(scheduler);
 
 TEST(TestScheduler, Idle)
 {

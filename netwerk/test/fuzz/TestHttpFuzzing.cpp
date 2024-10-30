@@ -30,8 +30,8 @@ namespace net {
 
 // Target spec and optional proxy type to use, set by the respective
 // initialization function so we can cover all combinations.
-static nsAutoCString httpSpec;
-static nsAutoCString proxyType;
+MOZ_RUNINIT static nsAutoCString httpSpec;
+MOZ_RUNINIT static nsAutoCString proxyType;
 static size_t minSize;
 
 static int FuzzingInitNetworkHttp(int* argc, char*** argv) {

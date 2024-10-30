@@ -25,10 +25,10 @@ static const wchar_t kLauncherSuffix[] = L"|Launcher";
 static const wchar_t kImageSuffix[] = L"|Image";
 static const wchar_t kTelemetrySuffix[] = L"|Telemetry";
 
-static std::wstring gBrowserValue;
-static std::wstring gLauncherValue;
-static std::wstring gImageValue;
-static std::wstring gTelemetryValue;
+MOZ_RUNINIT static std::wstring gBrowserValue;
+MOZ_RUNINIT static std::wstring gLauncherValue;
+MOZ_RUNINIT static std::wstring gImageValue;
+MOZ_RUNINIT static std::wstring gTelemetryValue;
 
 static DWORD gMyImageTimestamp;
 

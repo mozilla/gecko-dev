@@ -19,7 +19,8 @@ namespace gfx {
 
 static StaticMutex sFontFileStreamsMutex MOZ_UNANNOTATED;
 static uint64_t sNextFontFileKey = 0;
-static std::unordered_map<uint64_t, IDWriteFontFileStream*> sFontFileStreams;
+MOZ_RUNINIT static std::unordered_map<uint64_t, IDWriteFontFileStream*>
+    sFontFileStreams;
 
 class DWriteFontFileLoader : public IDWriteFontFileLoader {
  public:

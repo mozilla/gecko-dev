@@ -28,8 +28,9 @@ enum class InlineEntryType : uint8_t {
   Error,
 };
 
-mozilla::Vector<ExecutionTracer*> ExecutionTracer::globalInstances;
-Mutex ExecutionTracer::globalInstanceLock(mutexid::ExecutionTracerGlobalLock);
+MOZ_RUNINIT mozilla::Vector<ExecutionTracer*> ExecutionTracer::globalInstances;
+MOZ_RUNINIT Mutex
+    ExecutionTracer::globalInstanceLock(mutexid::ExecutionTracerGlobalLock);
 
 static JS::ExecutionTrace::ImplementationType GetImplementation(
     AbstractFramePtr frame) {

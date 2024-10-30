@@ -17,7 +17,7 @@ namespace mozilla {
 // fuzzerRunner is initialized to nullptr but if this file is linked in,
 // then fuzzerRunner will be set here indicating that
 // we want to call into either LibFuzzer's main or the AFL entrypoint.
-class _InitFuzzer {
+MOZ_RUNINIT class _InitFuzzer {
  public:
   _InitFuzzer() { fuzzerRunner = new FuzzerRunner(); }
   void InitXPCOM() { mScopedXPCOM = new ScopedXPCOM("Fuzzer"); }

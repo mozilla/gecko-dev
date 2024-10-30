@@ -620,7 +620,7 @@ class KnownModule final {
   KnownModule& operator=(const KnownModule&) = delete;
 };
 
-KnownModule KnownModule::sKnownExtensions[] = {
+MOZ_RUNINIT KnownModule KnownModule::sKnownExtensions[] = {
     {HandlerType::Multi, u"TIP"_ns},
     {HandlerType::Multi, u"ShellIconOverlayIdentifiers"_ns},
     {HandlerType::Multi, u"ContextMenuHandlers"_ns},

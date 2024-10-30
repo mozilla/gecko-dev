@@ -11,7 +11,8 @@
 
 namespace mozilla {
 
-static SVGAttrTearoffTable<SVGAnimatedClassOrString, dom::DOMSVGAnimatedString>
+MOZ_CONSTINIT static SVGAttrTearoffTable<SVGAnimatedClassOrString,
+                                         dom::DOMSVGAnimatedString>
     sSVGAnimatedClassOrStringTearoffTable;
 
 already_AddRefed<dom::DOMSVGAnimatedString>

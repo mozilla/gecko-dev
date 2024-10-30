@@ -63,7 +63,7 @@ class IonSpewer {
 };
 
 // IonSpewer singleton.
-static IonSpewer ionspewer;
+MOZ_RUNINIT static IonSpewer ionspewer;
 
 bool jitspew::detail::LoggingChecked = false;
 static_assert(JitSpew_Terminator <= 64,

@@ -20,97 +20,98 @@ struct CurrentPlaybackPositionFixture {
 class CurrentPlaybackPositionTest
     : public testing::TestWithParam<CurrentPlaybackPositionFixture> {};
 
-static const std::initializer_list<CurrentPlaybackPositionFixture> kFixtures = {
-    // position must be positive
-    {
-        10.0,
-        1.0,
-        0.0,
-        TimeDuration::FromSeconds(-1.0),
-        0.0,
-    },
-    // no time elapsed
-    {
-        10.0,
-        1.0,
-        0.0,
-        TimeDuration::FromSeconds(0.0),
-        0.0,
-    },
-    {
-        10.0,
-        1.0,
-        0.0,
-        TimeDuration::FromSeconds(3.0),
-        3.0,
-    },
-    {
-        10.0,
-        1.0,
-        0.0,
-        TimeDuration::FromSeconds(10.0),
-        10.0,
-    },
-    // position is clamped to the duration
-    {
-        10.0,
-        1.0,
-        0.0,
-        TimeDuration::FromSeconds(20.0),
-        10.0,
-    },
-    {
-        10.0,
-        1.0,
-        5.0,
-        TimeDuration::FromSeconds(-1.0),
-        4.0,
-    },
-    {
-        10.0,
-        1.0,
-        5.0,
-        TimeDuration::FromSeconds(-6.0),
-        0.0,
-    },
-    {
-        10.0,
-        1.0,
-        5.0,
-        TimeDuration::FromSeconds(6.0),
-        10.0,
-    },
-    // expected: 5s + 2 * 2s
-    {
-        10.0,
-        2.0,
-        5.0,
-        TimeDuration::FromSeconds(2.0),
-        9.0,
-    },
-    // expected: 5s + 0.5 * 2s
-    {
-        10.0,
-        0.5,
-        5.0,
-        TimeDuration::FromSeconds(2.0),
-        6.0,
-    },
-    {
-        5.0,
-        4.0,
-        10.0,
-        TimeDuration::FromSeconds(20.0),
-        5.0,
-    },
-    // empty media (0s)
-    {
-        0.0,
-        4.0,
-        5.0,
-        TimeDuration::FromSeconds(20.0),
-        0.0,
-    },
+MOZ_RUNINIT static const std::initializer_list<CurrentPlaybackPositionFixture>
+    kFixtures = {
+        // position must be positive
+        {
+            10.0,
+            1.0,
+            0.0,
+            TimeDuration::FromSeconds(-1.0),
+            0.0,
+        },
+        // no time elapsed
+        {
+            10.0,
+            1.0,
+            0.0,
+            TimeDuration::FromSeconds(0.0),
+            0.0,
+        },
+        {
+            10.0,
+            1.0,
+            0.0,
+            TimeDuration::FromSeconds(3.0),
+            3.0,
+        },
+        {
+            10.0,
+            1.0,
+            0.0,
+            TimeDuration::FromSeconds(10.0),
+            10.0,
+        },
+        // position is clamped to the duration
+        {
+            10.0,
+            1.0,
+            0.0,
+            TimeDuration::FromSeconds(20.0),
+            10.0,
+        },
+        {
+            10.0,
+            1.0,
+            5.0,
+            TimeDuration::FromSeconds(-1.0),
+            4.0,
+        },
+        {
+            10.0,
+            1.0,
+            5.0,
+            TimeDuration::FromSeconds(-6.0),
+            0.0,
+        },
+        {
+            10.0,
+            1.0,
+            5.0,
+            TimeDuration::FromSeconds(6.0),
+            10.0,
+        },
+        // expected: 5s + 2 * 2s
+        {
+            10.0,
+            2.0,
+            5.0,
+            TimeDuration::FromSeconds(2.0),
+            9.0,
+        },
+        // expected: 5s + 0.5 * 2s
+        {
+            10.0,
+            0.5,
+            5.0,
+            TimeDuration::FromSeconds(2.0),
+            6.0,
+        },
+        {
+            5.0,
+            4.0,
+            10.0,
+            TimeDuration::FromSeconds(20.0),
+            5.0,
+        },
+        // empty media (0s)
+        {
+            0.0,
+            4.0,
+            5.0,
+            TimeDuration::FromSeconds(20.0),
+            0.0,
+        },
 };
 
 TEST_P(CurrentPlaybackPositionTest, Run) {

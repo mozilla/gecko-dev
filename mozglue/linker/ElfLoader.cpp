@@ -367,7 +367,7 @@ const void* SystemElf::FindExidx(int* pcount) const {
  */
 
 /* Unique ElfLoader instance */
-ElfLoader ElfLoader::Singleton;
+MOZ_RUNINIT ElfLoader ElfLoader::Singleton;
 
 already_AddRefed<LibHandle> ElfLoader::Load(const char* path, int flags,
                                             LibHandle* parent) {

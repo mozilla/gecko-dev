@@ -12,9 +12,9 @@
 
 namespace mozilla {
 #if ENABLE_TESTS
-nsDependentString testEntryString(DynamicBlockList::kTestDll,
-                                  DynamicBlockList::kTestDllBytes /
-                                      sizeof(DynamicBlockList::kTestDll[0]));
+MOZ_RUNINIT nsDependentString testEntryString(
+    DynamicBlockList::kTestDll,
+    DynamicBlockList::kTestDllBytes / sizeof(DynamicBlockList::kTestDll[0]));
 #endif
 
 bool ShouldWriteEntry(const nsAString& name) {

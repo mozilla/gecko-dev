@@ -12,7 +12,7 @@
 
 namespace mozilla {
 
-static WindowsDllInterceptor sOleAut32Intercept;
+MOZ_RUNINIT static WindowsDllInterceptor sOleAut32Intercept;
 static WindowsDllInterceptor::FuncHookType<decltype(&::VariantClear)>
     stub_VariantClear;
 

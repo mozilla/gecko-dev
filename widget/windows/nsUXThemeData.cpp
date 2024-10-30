@@ -17,7 +17,7 @@
 using namespace mozilla;
 using namespace mozilla::widget;
 
-nsUXThemeData::ThemeHandle nsUXThemeData::sThemes[eUXNumClasses];
+MOZ_RUNINIT nsUXThemeData::ThemeHandle nsUXThemeData::sThemes[eUXNumClasses];
 
 nsUXThemeData::ThemeHandle::~ThemeHandle() { Close(); }
 

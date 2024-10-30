@@ -14,7 +14,7 @@
 namespace mozilla {
 
 #if defined(_M_AMD64) || defined(_M_ARM64)
-static WindowsDllInterceptor NtDllIntercept;
+MOZ_RUNINIT static WindowsDllInterceptor NtDllIntercept;
 
 typedef NTSTATUS(NTAPI* LdrUnloadDll_func)(HMODULE module);
 static WindowsDllInterceptor::FuncHookType<LdrUnloadDll_func> stub_LdrUnloadDll;

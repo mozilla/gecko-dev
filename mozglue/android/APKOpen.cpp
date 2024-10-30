@@ -135,7 +135,7 @@ void abortThroughJava(const char* msg) {
   env->PopLocalFrame(nullptr);
 }
 
-Bootstrap::UniquePtr gBootstrap;
+MOZ_RUNINIT Bootstrap::UniquePtr gBootstrap;
 #ifndef MOZ_FOLD_LIBS
 static void* sqlite_handle = nullptr;
 static void* nspr_handle = nullptr;

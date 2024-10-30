@@ -31,7 +31,7 @@
 using mozilla::MakeUnique;
 using namespace mozilla::dmd;
 
-DMDFuncs::Singleton DMDFuncs::sSingleton;
+MOZ_RUNINIT DMDFuncs::Singleton DMDFuncs::sSingleton;
 
 class FpWriteFunc final : public mozilla::JSONWriteFunc {
  public:

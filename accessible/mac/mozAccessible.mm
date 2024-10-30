@@ -411,7 +411,7 @@ struct RoleDescrMap {
   const nsString description;
 };
 
-static const RoleDescrMap sRoleDescrMap[] = {
+MOZ_RUNINIT static const RoleDescrMap sRoleDescrMap[] = {
     {@"AXApplicationAlert", u"alert"_ns},
     {@"AXApplicationAlertDialog", u"alertDialog"_ns},
     {@"AXApplicationDialog", u"dialog"_ns},

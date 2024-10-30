@@ -86,7 +86,7 @@ void gfxAndroidPlatform::FontAPIInitializeCallback(void* aUnused) {
 }
 
 PRThread* gfxAndroidPlatform::sFontAPIInitializeThread = nullptr;
-nsCString gfxAndroidPlatform::sManufacturer;
+MOZ_RUNINIT nsCString gfxAndroidPlatform::sManufacturer;
 
 // static
 bool gfxAndroidPlatform::IsFontAPIDisabled(bool aDontCheckPref) {

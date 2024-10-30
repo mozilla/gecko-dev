@@ -77,7 +77,7 @@ struct GDBFragment {
     static FRAGMENT_CLASS_NAME(category, subname) singleton;          \
   };                                                                  \
   FRAGMENT_CLASS_NAME(category, subname)                              \
-  FRAGMENT_CLASS_NAME(category, subname)::singleton;                  \
+  MOZ_RUNINIT FRAGMENT_CLASS_NAME(category, subname)::singleton;      \
   void FRAGMENT_CLASS_NAME(category, subname)::run(JSContext* cx,     \
                                                    const char**& argv)
 

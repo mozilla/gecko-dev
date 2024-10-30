@@ -135,7 +135,7 @@ class WaylandPointerEvent {
   float mDeltaY = 0;
 };
 
-static WaylandPointerEvent sHoldGesture;
+MOZ_RUNINIT static WaylandPointerEvent sHoldGesture;
 
 static void gesture_hold_begin(void* data,
                                struct zwp_pointer_gesture_hold_v1* hold,
@@ -164,7 +164,7 @@ static void gesture_hold_end(void* data,
 static const struct zwp_pointer_gesture_hold_v1_listener gesture_hold_listener =
     {gesture_hold_begin, gesture_hold_end};
 
-static WaylandPointerEvent sScrollEvent;
+MOZ_RUNINIT static WaylandPointerEvent sScrollEvent;
 
 static void pointer_handle_enter(void* data, struct wl_pointer* pointer,
                                  uint32_t serial, struct wl_surface* surface,

@@ -26,7 +26,7 @@
 #include "jsep/JsepSessionImpl.h"
 
 namespace mozilla {
-static std::string kAEqualsCandidate("a=candidate:");
+MOZ_RUNINIT static std::string kAEqualsCandidate("a=candidate:");
 const static size_t kNumCandidatesPerComponent = 3;
 
 class JsepSessionTestBase : public ::testing::Test {
@@ -5533,7 +5533,7 @@ TEST_F(JsepSessionTest, CreateOfferDontReceiveVideoRemoveVideoTrack) {
   CreateOffer(Some(options));
 }
 
-static const std::string strSampleCandidate =
+MOZ_RUNINIT static const std::string strSampleCandidate =
     "a=candidate:1 1 UDP 2130706431 192.168.2.1 50005 typ host\r\n";
 
 static const unsigned short nSamplelevel = 2;

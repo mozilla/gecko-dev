@@ -104,7 +104,7 @@ private:
   // The actual type of the vector is std::vector<rlbox_sandbox<T_Sbx>*>
   // However clang 5, 6 have bugs where compilation seg-faults on this type
   // So we just use this std::vector<void*>
-  static inline std::vector<void*> sandbox_list;
+  static inline MOZ_RUNINIT std::vector<void*> sandbox_list;
 
   RLBOX_SHARED_LOCK(func_ptr_cache_lock);
   std::map<std::string, void*> func_ptr_map;

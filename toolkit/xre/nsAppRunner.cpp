@@ -311,8 +311,8 @@ extern const char gToolkitBuildID[];
 
 static nsIProfileLock* gProfileLock;
 #if defined(MOZ_HAS_REMOTE)
-static RefPtr<nsRemoteService> gRemoteService;
-static RefPtr<nsStartupLock> gStartupLock;
+MOZ_RUNINIT static RefPtr<nsRemoteService> gRemoteService;
+MOZ_RUNINIT static RefPtr<nsStartupLock> gStartupLock;
 #endif
 
 int gRestartArgc;
@@ -328,10 +328,10 @@ int gKioskMonitor = -1;
 
 bool gAllowContentAnalysisArgPresent = false;
 
-nsString gAbsoluteArgv0Path;
+MOZ_RUNINIT nsString gAbsoluteArgv0Path;
 
 #if defined(XP_WIN)
-nsString gProcessStartupShortcut;
+MOZ_RUNINIT nsString gProcessStartupShortcut;
 #endif
 
 #if defined(MOZ_WIDGET_GTK)
@@ -349,7 +349,7 @@ nsString gProcessStartupShortcut;
 #endif
 
 #if defined(MOZ_WAYLAND)
-std::unique_ptr<WaylandProxy> gWaylandProxy;
+MOZ_RUNINIT std::unique_ptr<WaylandProxy> gWaylandProxy;
 #endif
 
 #include "BinaryPath.h"
@@ -1287,8 +1287,8 @@ nsXULAppInfo::GetRemoteType(nsACString& aRemoteType) {
   return NS_OK;
 }
 
-static nsCString gLastAppVersion;
-static nsCString gLastAppBuildID;
+MOZ_RUNINIT static nsCString gLastAppVersion;
+MOZ_RUNINIT static nsCString gLastAppBuildID;
 
 NS_IMETHODIMP
 nsXULAppInfo::GetLastAppVersion(nsACString& aResult) {
@@ -2906,7 +2906,7 @@ static ReturnAbortOnError ShowProfileSelector(
 
 static bool gDoMigration = false;
 static bool gDoProfileReset = false;
-static nsCOMPtr<nsIToolkitProfile> gResetOldProfile;
+MOZ_RUNINIT static nsCOMPtr<nsIToolkitProfile> gResetOldProfile;
 
 static nsresult LockProfile(nsINativeAppSupport* aNative, nsIFile* aRootDir,
                             nsIFile* aLocalDir, nsIToolkitProfile* aProfile,
@@ -6321,7 +6321,7 @@ struct InstallRustHooks {
   InstallRustHooks() { install_rust_hooks(); }
 };
 
-InstallRustHooks sInstallRustHooks;
+MOZ_RUNINIT InstallRustHooks sInstallRustHooks;
 
 #ifdef MOZ_ASAN_REPORTER
 void setASanReporterPath(nsIFile* aDir) {

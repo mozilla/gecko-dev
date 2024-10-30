@@ -266,7 +266,8 @@ class DOM_Quota_EncryptedStream : public ::testing::Test {
   struct NSSInitContextDeleter {
     void operator()(NSSInitContext* p) { NSS_ShutdownContext(p); }
   };
-  inline static std::unique_ptr<NSSInitContext, NSSInitContextDeleter>
+  MOZ_RUNINIT inline static std::unique_ptr<NSSInitContext,
+                                            NSSInitContextDeleter>
       sNssContext;
 };
 

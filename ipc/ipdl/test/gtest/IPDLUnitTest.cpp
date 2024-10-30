@@ -25,7 +25,8 @@
 
 namespace mozilla::_ipdltest {
 
-static std::unordered_map<std::string_view, ipc::IToplevelProtocol* (*)()>
+MOZ_RUNINIT static std::unordered_map<std::string_view,
+                                      ipc::IToplevelProtocol* (*)()>
     sAllocChildActorRegistry;
 
 const char* RegisterAllocChildActor(const char* aName,
@@ -298,7 +299,7 @@ extern UniquePtr<ipc::ProcessChild> (*gMakeIPDLUnitTestProcessChild)(
     IPC::Channel::ChannelHandle, base::ProcessId, const nsID&);
 
 // Initialize gMakeIPDLUnitTestProcessChild in a static constructor.
-int _childProcessEntryPointStaticConstructor = ([] {
+MOZ_RUNINIT int _childProcessEntryPointStaticConstructor = ([] {
   gMakeIPDLUnitTestProcessChild =
       [](IPC::Channel::ChannelHandle aClientChannel, base::ProcessId aParentPid,
          const nsID& aMessageChannelId) -> UniquePtr<ipc::ProcessChild> {

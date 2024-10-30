@@ -354,7 +354,7 @@ ValidityPair& ValidityMap::operator[](uint32_t aIdx) {
 
 StaticMutex DetailedCacheHitTelemetry::sLock;
 uint32_t DetailedCacheHitTelemetry::sRecordCnt = 0;
-DetailedCacheHitTelemetry::HitRate
+MOZ_RUNINIT DetailedCacheHitTelemetry::HitRate
     DetailedCacheHitTelemetry::sHRStats[kNumOfRanges];
 
 DetailedCacheHitTelemetry::HitRate::HitRate() { Reset(); }
@@ -452,7 +452,8 @@ void DetailedCacheHitTelemetry::AddRecord(ERecType aType,
 }
 
 StaticMutex CachePerfStats::sLock;
-CachePerfStats::PerfData CachePerfStats::sData[CachePerfStats::LAST];
+MOZ_RUNINIT CachePerfStats::PerfData
+    CachePerfStats::sData[CachePerfStats::LAST];
 uint32_t CachePerfStats::sCacheSlowCnt = 0;
 uint32_t CachePerfStats::sCacheNotSlowCnt = 0;
 

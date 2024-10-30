@@ -22,7 +22,7 @@ struct TestNode : public GraphNodeBase<TestNode> {
 
 using TestComponentFinder = ComponentFinder<TestNode>;
 
-static TestNode Vertex[MaxVertices];
+MOZ_RUNINIT static TestNode Vertex[MaxVertices];
 
 BEGIN_TEST(testFindSCCs) {
   // no vertices

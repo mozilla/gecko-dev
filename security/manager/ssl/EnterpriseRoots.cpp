@@ -75,7 +75,7 @@ struct CertStoreLocation {
 // The documentation doesn't make this clear, but the certificate location
 // identified by "ROOT" contains trusted root certificates. The certificate
 // location identified by "CA" contains intermediate certificates.
-const CertStoreLocation kCertStoreLocations[] = {
+MOZ_RUNINIT const CertStoreLocation kCertStoreLocations[] = {
     CertStoreLocation(L"ROOT", true), CertStoreLocation(L"CA", false)};
 
 // Because HCERTSTORE is just a typedef void*, we can't use any of the nice

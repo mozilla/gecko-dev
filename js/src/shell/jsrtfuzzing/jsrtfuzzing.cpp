@@ -39,7 +39,7 @@
 #include "vm/JSContext-inl.h"
 
 static JSContext* gCx = nullptr;
-static std::string gFuzzModuleName;
+MOZ_RUNINIT static std::string gFuzzModuleName;
 
 static void CrashOnPendingException() {
   if (JS_IsExceptionPending(gCx)) {

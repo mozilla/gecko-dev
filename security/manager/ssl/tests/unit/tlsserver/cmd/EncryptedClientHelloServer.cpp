@@ -23,7 +23,7 @@ struct EchHost {
   const char* mCertName;
 };
 
-const std::vector<uint32_t> kSuiteChaCha = {
+MOZ_RUNINIT const std::vector<uint32_t> kSuiteChaCha = {
     (static_cast<uint32_t>(HpkeKdfHkdfSha256) << 16) |
     HpkeAeadChaCha20Poly1305};
 

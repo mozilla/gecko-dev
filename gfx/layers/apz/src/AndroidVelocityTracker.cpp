@@ -19,7 +19,7 @@ namespace layers {
 // stopped moving. Some input devices do not send move events in the
 // case where a pointer has stopped.  We need to detect this case so that we can
 // accurately predict the velocity after the pointer starts moving again.
-static const TimeDuration kAssumePointerMoveStoppedTime =
+MOZ_RUNINIT static const TimeDuration kAssumePointerMoveStoppedTime =
     TimeDuration::FromMilliseconds(40);
 
 // The degree of the approximation.

@@ -14,7 +14,7 @@
 namespace mozilla {
 
 #ifdef JS_STANDALONE
-static bool fuzzing_verbose = !!getenv("MOZ_FUZZ_LOG");
+MOZ_RUNINIT static bool fuzzing_verbose = !!getenv("MOZ_FUZZ_LOG");
 void fuzzing_log(const char* aFmt, ...) {
   if (fuzzing_verbose) {
     va_list ap;

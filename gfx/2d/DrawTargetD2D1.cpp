@@ -34,7 +34,7 @@ uint64_t DrawTargetD2D1::mVRAMUsageDT;
 uint64_t DrawTargetD2D1::mVRAMUsageSS;
 StaticRefPtr<ID2D1Factory1> DrawTargetD2D1::mFactory;
 
-const D2D1_MATRIX_5X4_F kLuminanceMatrix =
+MOZ_RUNINIT const D2D1_MATRIX_5X4_F kLuminanceMatrix =
     D2D1::Matrix5x4F(0, 0, 0, 0.2125f, 0, 0, 0, 0.7154f, 0, 0, 0, 0.0721f, 0, 0,
                      0, 0, 0, 0, 0, 0);
 

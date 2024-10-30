@@ -68,8 +68,8 @@ static BOOL WINAPI patched_ApiSetQueryApiSetPresence(
   return stub_ApiSetQueryApiSetPresence(aNamespace, aPresent);
 }
 
-static WindowsDllInterceptor Kernel32Intercept;
-static WindowsDllInterceptor gApiQueryIntercept;
+MOZ_RUNINIT static WindowsDllInterceptor Kernel32Intercept;
+MOZ_RUNINIT static WindowsDllInterceptor gApiQueryIntercept;
 
 static bool EnableHandleCloseMonitoring() {
   Kernel32Intercept.Init("kernel32.dll");

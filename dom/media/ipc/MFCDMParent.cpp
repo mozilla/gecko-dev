@@ -90,11 +90,12 @@ DEFINE_PROPERTYKEY(EME_CONTENTDECRYPTIONMODULE_ORIGIN_ID, 0x1218a3e2, 0xcfb0,
   } while (false)
 
 StaticMutex sFactoryMutex;
-static nsTHashMap<nsStringHashKey, ComPtr<IMFContentDecryptionModuleFactory>>
+MOZ_RUNINIT static nsTHashMap<nsStringHashKey,
+                              ComPtr<IMFContentDecryptionModuleFactory>>
     sFactoryMap;
-static CopyableTArray<MFCDMCapabilitiesIPDL> sCapabilities;
+MOZ_RUNINIT static CopyableTArray<MFCDMCapabilitiesIPDL> sCapabilities;
 StaticMutex sCapabilitesMutex;
-static ComPtr<IUnknown> sMediaEngineClassFactory;
+MOZ_RUNINIT static ComPtr<IUnknown> sMediaEngineClassFactory;
 
 // RAIIized PROPVARIANT. See
 // third_party/libwebrtc/modules/audio_device/win/core_audio_utility_win.h

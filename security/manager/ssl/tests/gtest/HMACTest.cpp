@@ -18,7 +18,7 @@ struct HMACTestCase {
 
 #define EXPECTED_RESULT(val) std::string(val, sizeof(val) - 1)
 
-static const HMACTestCase HMACTestCases[] = {
+MOZ_RUNINIT static const HMACTestCase HMACTestCases[] = {
     {
         SEC_OID_MD5,
         EXPECTED_RESULT(

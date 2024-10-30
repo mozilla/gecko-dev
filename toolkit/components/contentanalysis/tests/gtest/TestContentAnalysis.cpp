@@ -111,8 +111,8 @@ class ContentAnalysisTest : public testing::Test {
     return mContentAnalysis->FilterByUrlLists(aReq);
   }
 };
-nsString ContentAnalysisTest::mPipeName;
-MozAgentInfo ContentAnalysisTest::mAgentInfo;
+MOZ_RUNINIT nsString ContentAnalysisTest::mPipeName;
+MOZ_RUNINIT MozAgentInfo ContentAnalysisTest::mAgentInfo;
 
 TEST_F(ContentAnalysisTest, AllowUrlList) {
   MOZ_ALWAYS_SUCCEEDS(

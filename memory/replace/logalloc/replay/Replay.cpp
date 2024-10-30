@@ -38,7 +38,7 @@ static void die(const char* message) {
 }
 
 #ifdef XP_LINUX
-static size_t sPageSize = []() { return sysconf(_SC_PAGESIZE); }();
+MOZ_RUNINIT static size_t sPageSize = []() { return sysconf(_SC_PAGESIZE); }();
 #endif
 
 /* We don't want to be using malloc() to allocate our internal tracking
@@ -1077,7 +1077,7 @@ class Replay {
 #endif  // XP_LINUX
 };
 
-static Replay replay;
+MOZ_RUNINIT static Replay replay;
 
 int main(int argc, const char* argv[]) {
   size_t first_pid = 0;
