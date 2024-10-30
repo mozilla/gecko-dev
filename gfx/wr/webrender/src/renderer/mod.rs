@@ -3477,6 +3477,191 @@ impl Renderer {
         }
     }
 
+    fn clear_render_target(
+        &mut self,
+        target: &RenderTarget,
+        draw_target: DrawTarget,
+        render_tasks: &RenderTaskGraph,
+        framebuffer_kind: FramebufferKind,
+        projection: &default::Transform3D<f32>,
+        stats: &mut RendererStats,
+    ) {
+        let needs_depth = target.needs_depth();
+
+        let clear_depth = if needs_depth {
+            Some(1.0)
+        } else {
+            None
+        };
+
+        let _timer = self.gpu_profiler.start_timer(GPU_TAG_SETUP_TARGET);
+
+        self.device.disable_depth();
+        self.set_blend(false, framebuffer_kind);
+
+        let zero_color = [0.0, 0.0, 0.0, 0.0];
+        let one_color = [1.0, 1.0, 1.0, 1.0];
+        let is_alpha = target.target_kind == RenderTargetKind::Alpha;
+        let require_precise_clear = target.cached;
+
+        // On some Mali-T devices we have observed crashes in subsequent draw calls
+        // immediately after clearing the alpha render target regions with glClear().
+        // Using the shader to clear the regions avoids the crash. See bug 1638593.
+        let clear_with_quads = (target.cached && self.clear_caches_with_quads)
+            || (is_alpha && self.clear_alpha_targets_with_quads);
+
+        let favor_partial_updates = self.device.get_capabilities().supports_render_target_partial_update
+            && self.enable_clear_scissor;
+
+        // On some Adreno 4xx devices we have seen render tasks to alpha targets have no
+        // effect unless the target is fully cleared prior to rendering. See bug 1714227.
+        let full_clears_on_adreno = is_alpha && self.device.get_capabilities().requires_alpha_target_full_clear;
+        let require_full_clear = !require_precise_clear
+            && (full_clears_on_adreno || !favor_partial_updates);
+
+        let clear_color = target
+            .clear_color
+            .map(|color| color.to_array());
+
+        let mut cleared_depth = false;
+        if clear_with_quads {
+            // Will be handled last. Only specific rects will be cleared.
+        } else if require_precise_clear {
+            // Only clear specific rects
+            for rect in &target.clears {
+                self.device.clear_target(
+                    Some(zero_color),
+                    None,
+                    Some(draw_target.to_framebuffer_rect(*rect)),
+                );
+            }
+            for task_id in &target.zero_clears {
+                let rect = render_tasks[*task_id].get_target_rect();
+                self.device.clear_target(
+                    Some(zero_color),
+                    None,
+                    Some(draw_target.to_framebuffer_rect(rect)),
+                );
+            }
+            for task_id in &target.one_clears {
+                let rect = render_tasks[*task_id].get_target_rect();
+                self.device.clear_target(
+                    Some(one_color),
+                    None,
+                    Some(draw_target.to_framebuffer_rect(rect)),
+                );
+            }
+        } else {
+            // At this point we know we don't require precise clears for correctness.
+            // We may still attempt to restruct the clear rect as an optimization on
+            // some configurations.
+            let clear_rect = if require_full_clear {
+                None
+            } else {
+                match draw_target {
+                    DrawTarget::Default { rect, total_size, .. } => {
+                        if rect.min == FramebufferIntPoint::zero() && rect.size() == total_size {
+                            // Whole screen is covered, no need for scissor
+                            None
+                        } else {
+                            Some(rect)
+                        }
+                    }
+                    DrawTarget::Texture { .. } => {
+                        // TODO(gw): Applying a scissor rect and minimal clear here
+                        // is a very large performance win on the Intel and nVidia
+                        // GPUs that I have tested with. It's possible it may be a
+                        // performance penalty on other GPU types - we should test this
+                        // and consider different code paths.
+                        //
+                        // Note: The above measurements were taken when render
+                        // target slices were minimum 2048x2048. Now that we size
+                        // them adaptively, this may be less of a win (except perhaps
+                        // on a mostly-unused last slice of a large texture array).
+                        target.used_rect.map(|rect| draw_target.to_framebuffer_rect(rect))
+                    }
+                    // Full clear.
+                    _ => None,
+                }
+            };
+
+            self.device.clear_target(
+                clear_color,
+                clear_depth,
+                clear_rect,
+            );
+            cleared_depth = true;
+        }
+
+        // Make sure to clear the depth buffer if it is used.
+        if needs_depth && !cleared_depth {
+            // TODO: We could also clear the depth buffer via ps_clear. This
+            // is done by picture cache targets in some cases.
+            self.device.clear_target(None, clear_depth, None);
+        }
+
+        // Finally, if we decided to clear with quads or if we need to clear
+        // some areas with specific colors that don't match the global clear
+        // color, clear more areas using a draw call.
+
+        let mut clear_instances = Vec::with_capacity(
+            target.one_clears.len()
+                + target.zero_clears.len()
+                + target.clears.len()
+        );
+        if clear_with_quads || (!require_precise_clear && target.clear_color != Some(ColorF::WHITE)) {
+            for task_id in &target.one_clears {
+                let rect = render_tasks[*task_id].get_target_rect().to_f32();
+                clear_instances.push(ClearInstance {
+                    rect: [
+                        rect.min.x, rect.min.y,
+                        rect.max.x, rect.max.y,
+                    ],
+                    color: one_color,
+                })
+            }
+        }
+
+        if clear_with_quads || (!require_precise_clear && target.clear_color != Some(ColorF::TRANSPARENT)) {
+            for task_id in &target.zero_clears {
+                let rect = render_tasks[*task_id].get_target_rect().to_f32();
+                clear_instances.push(ClearInstance {
+                    rect: [
+                        rect.min.x, rect.min.y,
+                        rect.max.x, rect.max.y,
+                    ],
+                    color: zero_color,
+                });
+            }
+            for rect in &target.clears {
+                let rect = rect.to_f32();
+                clear_instances.push(ClearInstance {
+                    rect: [
+                        rect.min.x, rect.min.y,
+                        rect.max.x, rect.max.y,
+                    ],
+                    color: zero_color,
+                });
+            }
+        }
+
+        if !clear_instances.is_empty() {
+            self.shaders.borrow_mut().ps_clear.bind(
+                &mut self.device,
+                &projection,
+                None,
+                &mut self.renderer_errors,
+                &mut self.profile,
+            );
+            self.draw_instanced_batch(
+                &clear_instances,
+                VertexArrayKind::Clear,
+                &BatchTextures::empty(),
+                stats,
+            );
+        }
+    }
+
     fn draw_render_target(
         &mut self,
         texture_id: CacheTextureId,
@@ -3498,12 +3683,6 @@ impl Renderer {
             texture,
             needs_depth,
         );
-
-        let clear_depth = if needs_depth {
-            Some(1.0)
-        } else {
-            None
-        };
 
         let projection = Transform3D::ortho(
             0.0,
@@ -3539,194 +3718,38 @@ impl Renderer {
             FramebufferKind::Other
         };
 
-        {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_SETUP_TARGET);
-            self.device.bind_draw_target(draw_target);
+        self.device.bind_draw_target(draw_target);
 
-            if self.device.get_capabilities().supports_qcom_tiled_rendering {
-                let preserve_mask = match target.clear_color {
-                    Some(_) => 0,
-                    None => gl::COLOR_BUFFER_BIT0_QCOM,
-                };
-                if let Some(used_rect) = target.used_rect {
-                    self.device.gl().start_tiling_qcom(
-                        used_rect.min.x.max(0) as _,
-                        used_rect.min.y.max(0) as _,
-                        used_rect.width() as _,
-                        used_rect.height() as _,
-                        preserve_mask,
-                    );
-                }
-            }
-
-            self.device.disable_depth();
-            self.set_blend(false, framebuffer_kind);
-
-            if needs_depth {
-                self.device.enable_depth_write();
-            } else {
-                self.device.disable_depth_write();
-            }
-
-            let zero_color = [0.0, 0.0, 0.0, 0.0];
-            let one_color = [1.0, 1.0, 1.0, 1.0];
-
-            // On some Adreno 4xx devices we have seen render tasks to alpha targets have no
-            // effect unless the target is fully cleared prior to rendering. See bug 1714227.
-            if target.target_kind == RenderTargetKind::Alpha
-                && !target.cached
-                && self.device.get_capabilities().requires_alpha_target_full_clear {
-
-                self.device.clear_target(
-                    Some(zero_color),
-                    clear_depth,
-                    None,
-                );
-            } else if target.cached && needs_depth {
-                // Make sure to clear the depth buffer if it used in a cached target.
-                self.device.clear_target(None, clear_depth, None);
-            }
-
-            // On some Mali-T devices we have observed crashes in subsequent draw calls
-            // immediately after clearing the alpha render target regions with glClear().
-            // Using the shader to clear the regions avoids the crash. See bug 1638593.
-            let clear_with_quads = (target.cached && self.clear_caches_with_quads)
-                || (target.target_kind == RenderTargetKind::Alpha && self.clear_alpha_targets_with_quads);
-
-            let has_clear_instances = !(target.zero_clears.is_empty() && target.one_clears.is_empty() && target.clears.is_empty());
-
-            if has_clear_instances {
-                if clear_with_quads {
-                    let zeroes = target.zero_clears
-                        .iter()
-                        .map(|task_id| {
-                            let rect = render_tasks[*task_id].get_target_rect().to_f32();
-                            ClearInstance {
-                                rect: [
-                                    rect.min.x, rect.min.y,
-                                    rect.max.x, rect.max.y,
-                                ],
-                                color: zero_color,
-                            }
-                        });
-
-                    let ones = target.one_clears
-                        .iter()
-                        .map(|task_id| {
-                            let rect = render_tasks[*task_id].get_target_rect().to_f32();
-                            ClearInstance {
-                                rect: [
-                                    rect.min.x, rect.min.y,
-                                    rect.max.x, rect.max.y,
-                                ],
-                                color: one_color,
-                            }
-                        });
-
-                    let other_zeroes = target.clears
-                        .iter()
-                        .map(|r| ClearInstance {
-                            rect: [
-                                r.min.x as f32, r.min.y as f32,
-                                r.max.x as f32, r.max.y as f32,
-                            ],
-                            color: zero_color,
-                        })
-                        .collect::<Vec<_>>();
-
-                    let instances = zeroes.chain(ones).chain(other_zeroes).collect::<Vec<_>>();
-                    self.shaders.borrow_mut().ps_clear.bind(
-                        &mut self.device,
-                        &projection,
-                        None,
-                        &mut self.renderer_errors,
-                        &mut self.profile,
-                    );
-                    self.draw_instanced_batch(
-                        &instances,
-                        VertexArrayKind::Clear,
-                        &BatchTextures::empty(),
-                        stats,
-                    );
-                } else {
-                    // TODO(gw): Applying a scissor rect and minimal clear here
-                    // is a very large performance win on the Intel and nVidia
-                    // GPUs that I have tested with. It's possible it may be a
-                    // performance penalty on other GPU types - we should test this
-                    // and consider different code paths.
-                    for &task_id in &target.zero_clears {
-                        let rect = render_tasks[task_id].get_target_rect();
-                        self.device.clear_target(
-                            Some(zero_color),
-                            clear_depth,
-                            Some(draw_target.to_framebuffer_rect(rect)),
-                        );
-                    }
-
-                    for &task_id in &target.one_clears {
-                        let rect = render_tasks[task_id].get_target_rect();
-                        self.device.clear_target(
-                            Some(one_color),
-                            clear_depth,
-                            Some(draw_target.to_framebuffer_rect(rect)),
-                        );
-                    }
-
-                    for rect in &target.clears {
-                        self.device.clear_target(
-                            Some(zero_color),
-                            clear_depth,
-                            Some(draw_target.to_framebuffer_rect(*rect)),
-                        );
-                    }
-                }
-            } else if !target.cached && target.target_kind == RenderTargetKind::Color {
-                // TODO: There is an implicit assumption that non-cached color targets
-                // need to be cleared, unless they have clear instances.
-                // This is error-prone, and will probably mesh poorly with pictures
-                // soon being optionally cached. We should instead have the code that
-                // builds the target specify whether this single-clear code path is needed.
-
-                let clear_color = target
-                    .clear_color
-                    .map(|color| color.to_array());
-
-                let clear_rect = match draw_target {
-                    DrawTarget::NativeSurface { .. } => {
-                        unreachable!("bug: native compositor surface in child target");
-                    }
-                    DrawTarget::Default { rect, total_size, .. } if rect.min == FramebufferIntPoint::zero() && rect.size() == total_size => {
-                        // whole screen is covered, no need for scissor
-                        None
-                    }
-                    DrawTarget::Default { rect, .. } => {
-                        Some(rect)
-                    }
-                    DrawTarget::Texture { .. } if self.enable_clear_scissor => {
-                        // TODO(gw): Applying a scissor rect and minimal clear here
-                        // is a very large performance win on the Intel and nVidia
-                        // GPUs that I have tested with. It's possible it may be a
-                        // performance penalty on other GPU types - we should test this
-                        // and consider different code paths.
-                        //
-                        // Note: The above measurements were taken when render
-                        // target slices were minimum 2048x2048. Now that we size
-                        // them adaptively, this may be less of a win (except perhaps
-                        // on a mostly-unused last slice of a large texture array).
-                        target.used_rect.map(|rect| draw_target.to_framebuffer_rect(rect))
-                    }
-                    DrawTarget::Texture { .. } | DrawTarget::External { .. } => {
-                        None
-                    }
-                };
-
-                self.device.clear_target(
-                    clear_color,
-                    clear_depth,
-                    clear_rect,
+        if self.device.get_capabilities().supports_qcom_tiled_rendering {
+            let preserve_mask = match target.clear_color {
+                Some(_) => 0,
+                None => gl::COLOR_BUFFER_BIT0_QCOM,
+            };
+            if let Some(used_rect) = target.used_rect {
+                self.device.gl().start_tiling_qcom(
+                    used_rect.min.x.max(0) as _,
+                    used_rect.min.y.max(0) as _,
+                    used_rect.width() as _,
+                    used_rect.height() as _,
+                    preserve_mask,
                 );
             }
         }
+
+        if needs_depth {
+            self.device.enable_depth_write();
+        } else {
+            self.device.disable_depth_write();
+        }
+
+        self.clear_render_target(
+            target,
+            draw_target,
+            render_tasks,
+            framebuffer_kind,
+            &projection,
+            stats,
+        );
 
         if needs_depth {
             self.device.disable_depth_write();

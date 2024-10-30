@@ -166,12 +166,7 @@ pub struct RenderTarget {
     pub svg_nodes: FrameVec<(BatchTextures, FrameVec<SVGFEFilterInstance>)>,
     pub blits: FrameVec<BlitJob>,
     alpha_tasks: FrameVec<RenderTaskId>,
-    // Track the used rect of the render target, so that
-    // we can set a scissor rect and only clear to the
-    // used portion of the target as an optimization.
-    pub used_rect: Option<DeviceIntRect>,
     pub resolve_ops: FrameVec<ResolveOp>,
-    pub clear_color: Option<ColorF>,
 
     pub prim_instances: [FastHashMap<TextureSource, FrameVec<PrimitiveInstanceData>>; NUM_PATTERNS],
     pub prim_instances_with_scissor: FastHashMap<(DeviceIntRect, PatternKind), FastHashMap<TextureSource, FrameVec<PrimitiveInstanceData>>>,
@@ -187,20 +182,36 @@ pub struct RenderTarget {
     pub conic_gradients: FrameVec<ConicGradientInstance>,
 
     pub clip_batcher: ClipBatcher,
-    // TODO: Clearing a render target is very ad-hoc and error-prone. Previously,
-    // alpha, color and cached render targets were entirely separate implementations
-    // with a fair amount of overlap but also divergent approaches to tackle common
-    // functionality. The unified code retains this quirk for the clearing logic.
-    // In a nutshell:
-    //  - Non-cached color targets expect to be globally cleared in draw_render_target.
-    //  - Cached targets obviously can't since some of their content is cached from
-    //    previous frames, so clearing specific parts is done as needed via `clears`.
-    //  - Alpha targets also have special clearing needs that are specified before the
-    //    render tasks rects are allocated, so they are provided as render task ids instead.
-    // See also the clearing code in `Renderer::draw_render_target`.
+
+    // Clearing render targets has a fair amount of special cases.
+    // The general rules are:
+    // - Depth (for at least the used potion of the target) is always cleared if it
+    //   is used by the target. The rest of this explaination focuses on clearing
+    //   color/alpha textures.
+    // - For non-cached targets we either clear the entire target or the used portion
+    //   (unless clear_color is None).
+    // - Cached render targets require precise partial clears which are specified
+    //   via the vectors below (if clearing is needed at all).
+    //
+    // See also: Renderer::clear_render_target
+
+    // Areas that *must* be cleared.
+    // Even if a global target clear is done, we try to honor clearing the rects that
+    // have a different color than the global clear color.
     pub clears: FrameVec<DeviceIntRect>,
     pub zero_clears: FrameVec<RenderTaskId>,
     pub one_clears: FrameVec<RenderTaskId>,
+
+    // Optionally track the used rect of the render target, to give the renderer
+    // an opportunity to only clear the used portion of the target as an optimization.
+    // Note: We make the simplifying assumption that if clear vectors AND used_rect
+    // are specified, then the rects from the clear vectors are contained in
+    // used_rect.
+    pub used_rect: Option<DeviceIntRect>,
+    // The global clear color is Some(TRANSPARENT) by default. If we are drawing
+    // a single render task in this target, it can be set to something else.
+    // If clear_color is None, only the clears/zero_clears/one_clears are done.
+    pub clear_color: Option<ColorF>,
 }
 
 impl RenderTarget {
