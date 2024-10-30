@@ -27,7 +27,7 @@ TEST(IntlNumberFormat, Basic)
   ASSERT_EQ(std::u16string_view(res16), u"1,234.56");
 
   UniquePtr<NumberFormat> nfAr =
-      NumberFormat::TryCreate("ar", options).unwrap();
+      NumberFormat::TryCreate("ar-EG", options).unwrap();
   ASSERT_TRUE(nfAr->format(1234.56, buf8).isOk());
   ASSERT_EQ(buf8.get_string_view(), "١٬٢٣٤٫٥٦");
   ASSERT_TRUE(nfAr->format(1234.56, buf16).isOk());
