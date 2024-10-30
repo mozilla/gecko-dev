@@ -13,34 +13,19 @@
 
 #include "mozilla/dom/JSExecutionContext.h"
 
-#include <utility>
-#include "ErrorList.h"
-#include "MainThreadUtils.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/CompileOptions.h"
-#include "js/Conversions.h"
-#include "js/experimental/JSStencil.h"
-#include "js/HeapAPI.h"
-#include "js/ProfilingCategory.h"
-#include "js/Promise.h"
-#include "js/SourceText.h"
-#include "js/Transcoding.h"
-#include "js/Value.h"
-#include "js/Wrapper.h"
-#include "jsapi.h"
-#include "mozilla/CycleCollectedJSContext.h"
-#include "mozilla/dom/ScriptLoadContext.h"
-#include "mozilla/Likely.h"
-#include "nsContentUtils.h"
-#include "nsTPromiseFlatString.h"
-#include "xpcpublic.h"
+#include <utility>      // std::move
+#include "ErrorList.h"  // NS_ERROR_OUT_OF_MEMORY, NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW, NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW_UNCATCHABLE
+#include "js/CompilationAndEvaluation.h"  // JS::UpdateDebugMetadata
+#include "js/experimental/JSStencil.h"    // JS::StartIncrementalEncoding
+#include "js/SourceText.h"                // JS::SourceText, JS::SourceOwnership
+#include "jsapi.h"                        // JS_IsExceptionPending
+#include "nsTPromiseFlatString.h"         // PromiseFlatString
 
 #if !defined(DEBUG) && !defined(MOZ_ENABLE_JS_DUMP)
 #  include "mozilla/StaticPrefs_browser.h"
 #endif
 
 using namespace mozilla;
-using mozilla::dom::JSExecutionContext;
 
 namespace mozilla::dom {
 
@@ -53,35 +38,9 @@ nsresult EvaluationExceptionToNSResult(ErrorResult& aRv) {
     aRv.SuppressException();
     return NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW_UNCATCHABLE;
   }
-  if (aRv.ErrorCodeIs(NS_ERROR_DOM_NOT_ALLOWED_ERR)) {
-    aRv.SuppressException();
-    return NS_OK;
-  }
   // cases like NS_OK, NS_ERROR_DOM_JS_DECODING_ERROR and NS_ERROR_OUT_OF_MEMORY
   return aRv.StealNSResult();
 }
-
-}  // namespace mozilla::dom
-
-JSExecutionContext::JSExecutionContext(
-    JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-    JS::CompileOptions& aCompileOptions, ErrorResult& aRv,
-    JS::Handle<JS::Value> aDebuggerPrivateValue,
-    JS::Handle<JSScript*> aDebuggerIntroductionScript)
-    : mSkip(false) {
-  MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(CycleCollectedJSContext::Get() &&
-             CycleCollectedJSContext::Get()->MicroTaskLevel());
-
-  MOZ_ASSERT(JS_IsGlobalObject(aGlobal));
-  if (MOZ_UNLIKELY(!xpc::Scriptability::Get(aGlobal).Allowed())) {
-    mSkip = true;
-    aRv = NS_ERROR_DOM_NOT_ALLOWED_ERR;
-  }
-}
-
-namespace mozilla::dom {
 
 void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
              const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,

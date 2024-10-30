@@ -2743,10 +2743,9 @@ static void Decode(JSContext* aCx, JS::CompileOptions& aCompileOptions,
 }
 
 void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
-    JSContext* aCx, JSExecutionContext& aExec,
-    JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-    JS::MutableHandle<JSScript*> aScript, bool aKeepStencil,
-    RefPtr<JS::Stencil>& aStencilDup,
+    JSContext* aCx, JS::CompileOptions& aCompileOptions,
+    ScriptLoadRequest* aRequest, JS::MutableHandle<JSScript*> aScript,
+    bool aKeepStencil, RefPtr<JS::Stencil>& aStencilDup,
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv) {
   nsAutoCString profilerLabelString;
@@ -2885,9 +2884,9 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
 }
 
 void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
-    JSContext* aCx, JSExecutionContext& aExec,
-    JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-    JS::Stencil* aStencil, JS::MutableHandle<JSScript*> aScript,
+    JSContext* aCx, JS::CompileOptions& aCompileOptions,
+    ScriptLoadRequest* aRequest, JS::Stencil* aStencil,
+    JS::MutableHandle<JSScript*> aScript,
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv) {
   RefPtr<JS::Stencil> stencil = JS::DuplicateStencil(aCx, aStencil);
@@ -2907,16 +2906,15 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
 }
 
 void ScriptLoader::InstantiateClassicScriptFromAny(
-    JSContext* aCx, JSExecutionContext& aExec,
-    JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-    JS::MutableHandle<JSScript*> aScript,
+    JSContext* aCx, JS::CompileOptions& aCompileOptions,
+    ScriptLoadRequest* aRequest, JS::MutableHandle<JSScript*> aScript,
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv) {
   if (aRequest->IsStencil()) {
     RefPtr<JS::Stencil> stencil = aRequest->GetStencil();
     InstantiateClassicScriptFromCachedStencil(
-        aCx, aExec, aCompileOptions, aRequest, stencil, aScript,
-        aDebuggerPrivateValue, aDebuggerIntroductionScript, aRv);
+        aCx, aCompileOptions, aRequest, stencil, aScript, aDebuggerPrivateValue,
+        aDebuggerIntroductionScript, aRv);
     return;
   }
 
@@ -2935,7 +2933,7 @@ void ScriptLoader::InstantiateClassicScriptFromAny(
 
   RefPtr<JS::Stencil> stencilDup;
   InstantiateClassicScriptFromMaybeEncodedSource(
-      aCx, aExec, aCompileOptions, aRequest, aScript, createCache, stencilDup,
+      aCx, aCompileOptions, aRequest, aScript, createCache, stencilDup,
       aDebuggerPrivateValue, aDebuggerIntroductionScript, aRv);
   if (!aRv.Failed()) {
     if (createCache) {
@@ -3106,18 +3104,16 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
 
   TRACE_FOR_TEST(aRequest, "scriptloader_execute");
   JS::Rooted<JSObject*> global(cx, aGlobalObject->GetGlobalJSObject());
-  ErrorResult erv;
-  JSExecutionContext exec(cx, global, options, erv, classicScriptValue,
-                          introductionScript);
-  if (erv.Failed()) {
-    return EvaluationExceptionToNSResult(erv);
+  if (MOZ_UNLIKELY(!xpc::Scriptability::Get(global).Allowed())) {
+    return NS_OK;
   }
+  ErrorResult erv;
   mozilla::AutoProfilerLabel autoProfilerLabel("JSExecutionContext",
                                                /* dynamicStr */ nullptr,
                                                JS::ProfilingCategoryPair::JS);
   JSAutoRealm autoRealm(cx, global);
   JS::Rooted<JSScript*> script(cx);
-  InstantiateClassicScriptFromAny(cx, exec, options, aRequest, &script,
+  InstantiateClassicScriptFromAny(cx, options, aRequest, &script,
                                   classicScriptValue, introductionScript, erv);
 
   if (!erv.Failed()) {

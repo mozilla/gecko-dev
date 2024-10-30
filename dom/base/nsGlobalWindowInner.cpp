@@ -6094,8 +6094,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   JS::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
     IgnoredErrorResult erv;
-    JSExecutionContext exec(aes.cx(), global, options, erv);
-    if (!erv.Failed()) {
+    if (MOZ_LIKELY(xpc::Scriptability::Get(global).Allowed())) {
       mozilla::AutoProfilerLabel autoProfilerLabel(
           "JSExecutionContext",
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);

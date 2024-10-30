@@ -7,62 +7,19 @@
 #ifndef DOM_BASE_JSEXECUTIONCONTEXT_H_
 #define DOM_BASE_JSEXECUTIONCONTEXT_H_
 
-#include "js/GCVector.h"
-#include "js/TypeDecls.h"
-#include "js/Value.h"
-#include "js/experimental/JSStencil.h"
-#include "jsapi.h"
-#include "mozilla/Assertions.h"
-#include "mozilla/Attributes.h"
-#include "mozilla/ErrorResult.h"
-#include "mozilla/ProfilerLabels.h"
-#include "mozilla/Vector.h"
-#include "nsStringFwd.h"
-#include "nscore.h"
-
-class nsIScriptContext;
-class nsIScriptElement;
-class nsIScriptGlobalObject;
-class nsXBLPrototypeBinding;
+#include "js/TypeDecls.h"               // JSScript, MutableHandle
+#include "js/Value.h"                   // JS::UndefinedHandleValue
+#include "js/experimental/JSStencil.h"  // JS::Stencil
+#include "js/CompileOptions.h"          // JS::CompileOptions
+#include "js/RootingAPI.h"              // JS::Handle
+#include "mozilla/ErrorResult.h"        // ErrorResult
+#include "nsStringFwd.h"                // nsAString
 
 namespace mozilla {
-union Utf8Unit;
 
 namespace dom {
 
-class ScriptLoadContext;
-
 nsresult EvaluationExceptionToNSResult(ErrorResult& aRv);
-
-class MOZ_STACK_CLASS JSExecutionContext final {
-  // Used to skip upcoming phases in case of a failure.  In such case the
-  // result is carried by mRv.
-  bool mSkip;
-
- public:
-  // Enter compartment in which the code would be executed.  The JSContext
-  // must come from an AutoEntryScript.
-  //
-  // The JS engine can associate metadata for the debugger with scripts at
-  // compile time. The optional last arguments here cover that metadata.
-  JSExecutionContext(
-      JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-      JS::CompileOptions& aCompileOptions, ErrorResult& aRv,
-      JS::Handle<JS::Value> aDebuggerPrivateValue = JS::UndefinedHandleValue,
-      JS::Handle<JSScript*> aDebuggerIntroductionScript = nullptr);
-
-  JSExecutionContext(const JSExecutionContext&) = delete;
-  JSExecutionContext(JSExecutionContext&&) = delete;
-
-  ~JSExecutionContext() {
-    // This flag is reset when the returned value is extracted.
-    // MOZ_ASSERT_IF(!mSkip, !mWantsReturnValue);
-
-    // If encoding was started we expect the script to have been
-    // used when ending the encoding.
-    // MOZ_ASSERT_IF(mEncodeBytecode && mScript && mRv == NS_OK, mScriptUsed);
-  }
-};
 
 // Compile a script contained in a string.
 void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,

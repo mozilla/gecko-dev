@@ -59,7 +59,6 @@
 
 using mozilla::IsAscii;
 using mozilla::dom::AutoEntryScript;
-using mozilla::dom::JSExecutionContext;
 
 static NS_DEFINE_CID(kJSURICID, NS_JSURI_CID);
 
@@ -191,10 +190,9 @@ static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
 // result to a string, the nsresult is be set to the corresponding result
 // code and the mutable handle argument remains unchanged.
 //
-// The value returned in the mutable handle argument is part of the
-// compartment given as argument to the JSExecutionContext constructor. If the
-// caller is in a different compartment, then the out-param value should be
-// wrapped by calling |JS_WrapValue|.
+// The value returned in the mutable handle argument is part of |aCx|'s
+// compartment. If the caller is in a different compartment, then the out-param
+// value should be wrapped by calling |JS_WrapValue|.
 //
 static void ExecScriptAndCoerceToString(JSContext* aCx,
                                         JS::Handle<JSScript*> aScript,
@@ -386,8 +384,7 @@ nsresult nsJSThunk::EvaluateScript(
   options.setIntroductionType("javascriptURL");
   {
     mozilla::ErrorResult erv;
-    JSExecutionContext exec(cx, globalJSObject, options, erv);
-    if (!erv.Failed()) {
+    if (MOZ_LIKELY(xpc::Scriptability::Get(globalJSObject).Allowed())) {
       mozilla::AutoProfilerLabel autoProfilerLabel(
           "JSExecutionContext",
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
