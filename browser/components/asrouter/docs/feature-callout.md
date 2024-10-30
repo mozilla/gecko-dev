@@ -344,6 +344,9 @@ interface FeatureCallout {
                 // don't set up real event listeners, but instead invoke the
                 // action on a timer.
                 interval?: number;
+                // Extend addEventListener to all windows? Not compatible with
+                // `interval`.
+                every_window: boolean;
               };
             };
             action: {
