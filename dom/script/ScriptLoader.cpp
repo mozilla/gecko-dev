@@ -2651,7 +2651,7 @@ static void ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
     aLoaderScript->AssociateWithScript(aScript);
   }
 
-  aExec.ExecScript(aCx, aScript, aRv);
+  ExecScript(aCx, aScript, aRv);
 }
 
 nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {

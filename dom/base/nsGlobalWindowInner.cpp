@@ -6108,7 +6108,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
           mInitiatingScript->AssociateWithScript(script);
         }
 
-        exec.ExecScript(aes.cx(), script, erv);
+        ExecScript(aes.cx(), script, erv);
       }
     }
 

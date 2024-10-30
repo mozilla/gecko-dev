@@ -40,7 +40,7 @@
 #endif
 
 using namespace mozilla;
-using namespace mozilla::dom;
+using mozilla::dom::JSExecutionContext;
 
 namespace mozilla::dom {
 
@@ -260,15 +260,13 @@ void JSExecutionContext::InstantiateStencil(
   }
 }
 
-void JSExecutionContext::ExecScript(JSContext* aCx,
-                                    JS::Handle<JSScript*> aScript,
-                                    ErrorResult& aRv) {
-  MOZ_ASSERT(!mSkip);
+namespace mozilla::dom {
 
+void ExecScript(JSContext* aCx, JS::Handle<JSScript*> aScript,
+                ErrorResult& aRv) {
   MOZ_ASSERT(aScript);
 
   if (!JS_ExecuteScript(aCx, aScript)) {
-    mSkip = true;
     aRv.NoteJSContextException(aCx);
   }
 }
@@ -287,17 +285,12 @@ static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   return JS::IsPromiseObject(obj);
 }
 
-void JSExecutionContext::ExecScript(JSContext* aCx,
-                                    JS::Handle<JSScript*> aScript,
-                                    JS::MutableHandle<JS::Value> aRetValue,
-                                    ErrorResult& aRv,
-                                    bool aCoerceToString /* = false */) {
-  MOZ_ASSERT(!mSkip);
-
+void ExecScript(JSContext* aCx, JS::Handle<JSScript*> aScript,
+                JS::MutableHandle<JS::Value> aRetValue, ErrorResult& aRv,
+                bool aCoerceToString /* = false */) {
   MOZ_ASSERT(aScript);
 
   if (!JS_ExecuteScript(aCx, aScript, aRetValue)) {
-    mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
   }
@@ -316,10 +309,11 @@ void JSExecutionContext::ExecScript(JSContext* aCx,
     if (!str) {
       // ToString can be a function call, so an exception can be raised while
       // executing the function.
-      mSkip = true;
       aRv.NoteJSContextException(aCx);
       return;
     }
     aRetValue.set(JS::StringValue(str));
   }
 }
+
+}  // namespace mozilla::dom

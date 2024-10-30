@@ -338,8 +338,8 @@ nsresult nsJSThunk::EvaluateScript(
                    erv);
       if (!erv.Failed()) {
         MOZ_ASSERT(!options.noScriptRval);
-        exec.ExecScript(cx, compiledScript, &v, erv,
-                        /* aCoerceToString */ true);
+        mozilla::dom::ExecScript(cx, compiledScript, &v, erv,
+                                 /* aCoerceToString */ true);
       }
     }
     rv = mozilla::dom::EvaluationExceptionToNSResult(erv);

@@ -123,28 +123,29 @@ class MOZ_STACK_CLASS JSExecutionContext final {
                           bool& incrementalEncodingAlreadyStarted,
                           ErrorResult& aRv, bool aEncodeBytecode = false,
                           JS::InstantiationStorage* aStorage = nullptr);
-
-  // Execute the compiled script and ignore the return value.
-  void ExecScript(JSContext* aCx, JS::Handle<JSScript*> aScript,
-                  ErrorResult& aRv);
-
-  // Execute the compiled script a get the return value.
-  //
-  // Copy the returned value into the mutable handle argument. In case of a
-  // evaluation failure either during the execution or the conversion of the
-  // result to a string, the mutable handle argument remains unchanged.
-  //
-  // The value returned in the mutable handle argument is part of the
-  // compartment given as argument to the JSExecutionContext constructor. If the
-  // caller is in a different compartment, then the out-param value should be
-  // wrapped by calling |JS_WrapValue|.
-  //
-  // The returned value will be converted to a string if the
-  // |aCoerceToString| is flag set.
-  void ExecScript(JSContext* aCx, JS::Handle<JSScript*> aScript,
-                  JS::MutableHandle<JS::Value> aRetValue, ErrorResult& aRv,
-                  bool aCoerceToString = false);
 };
+
+// Execute the compiled script and ignore the return value.
+void ExecScript(JSContext* aCx, JS::Handle<JSScript*> aScript,
+                ErrorResult& aRv);
+
+// Execute the compiled script a get the return value.
+//
+// Copy the returned value into the mutable handle argument. In case of a
+// evaluation failure either during the execution or the conversion of the
+// result to a string, the nsresult is be set to the corresponding result
+// code and the mutable handle argument remains unchanged.
+//
+// The value returned in the mutable handle argument is part of the
+// compartment given as argument to the JSExecutionContext constructor. If the
+// caller is in a different compartment, then the out-param value should be
+// wrapped by calling |JS_WrapValue|.
+//
+// The returned value will be converted to a string if the
+// |aCoerceToString| is flag set.
+void ExecScript(JSContext* aCx, JS::Handle<JSScript*> aScript,
+                JS::MutableHandle<JS::Value> aRetValue, ErrorResult& aRv,
+                bool aCoerceToString = false);
 }  // namespace dom
 }  // namespace mozilla
 
