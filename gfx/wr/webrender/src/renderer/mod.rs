@@ -3481,7 +3481,6 @@ impl Renderer {
         &mut self,
         target: &RenderTarget,
         draw_target: DrawTarget,
-        render_tasks: &RenderTaskGraph,
         framebuffer_kind: FramebufferKind,
         projection: &default::Transform3D<f32>,
         stats: &mut RendererStats,
@@ -3499,8 +3498,6 @@ impl Renderer {
         self.device.disable_depth();
         self.set_blend(false, framebuffer_kind);
 
-        let zero_color = [0.0, 0.0, 0.0, 0.0];
-        let one_color = [1.0, 1.0, 1.0, 1.0];
         let is_alpha = target.target_kind == RenderTargetKind::Alpha;
         let require_precise_clear = target.cached;
 
@@ -3528,27 +3525,11 @@ impl Renderer {
             // Will be handled last. Only specific rects will be cleared.
         } else if require_precise_clear {
             // Only clear specific rects
-            for rect in &target.clears {
+            for (rect, color) in &target.clears {
                 self.device.clear_target(
-                    Some(zero_color),
+                    Some(color.to_array()),
                     None,
                     Some(draw_target.to_framebuffer_rect(*rect)),
-                );
-            }
-            for task_id in &target.zero_clears {
-                let rect = render_tasks[*task_id].get_target_rect();
-                self.device.clear_target(
-                    Some(zero_color),
-                    None,
-                    Some(draw_target.to_framebuffer_rect(rect)),
-                );
-            }
-            for task_id in &target.one_clears {
-                let rect = render_tasks[*task_id].get_target_rect();
-                self.device.clear_target(
-                    Some(one_color),
-                    None,
-                    Some(draw_target.to_framebuffer_rect(rect)),
                 );
             }
         } else {
@@ -3604,44 +3585,17 @@ impl Renderer {
         // some areas with specific colors that don't match the global clear
         // color, clear more areas using a draw call.
 
-        let mut clear_instances = Vec::with_capacity(
-            target.one_clears.len()
-                + target.zero_clears.len()
-                + target.clears.len()
-        );
-        if clear_with_quads || (!require_precise_clear && target.clear_color != Some(ColorF::WHITE)) {
-            for task_id in &target.one_clears {
-                let rect = render_tasks[*task_id].get_target_rect().to_f32();
-                clear_instances.push(ClearInstance {
-                    rect: [
-                        rect.min.x, rect.min.y,
-                        rect.max.x, rect.max.y,
-                    ],
-                    color: one_color,
-                })
-            }
-        }
-
-        if clear_with_quads || (!require_precise_clear && target.clear_color != Some(ColorF::TRANSPARENT)) {
-            for task_id in &target.zero_clears {
-                let rect = render_tasks[*task_id].get_target_rect().to_f32();
-                clear_instances.push(ClearInstance {
-                    rect: [
-                        rect.min.x, rect.min.y,
-                        rect.max.x, rect.max.y,
-                    ],
-                    color: zero_color,
-                });
-            }
-            for rect in &target.clears {
+        let mut clear_instances = Vec::with_capacity(target.clears.len());
+        for (rect, color) in &target.clears {
+            if clear_with_quads || (!require_precise_clear && target.clear_color != Some(*color)) {
                 let rect = rect.to_f32();
                 clear_instances.push(ClearInstance {
                     rect: [
                         rect.min.x, rect.min.y,
                         rect.max.x, rect.max.y,
                     ],
-                    color: zero_color,
-                });
+                    color: color.to_array(),
+                })
             }
         }
 
@@ -3745,7 +3699,6 @@ impl Renderer {
         self.clear_render_target(
             target,
             draw_target,
-            render_tasks,
             framebuffer_kind,
             &projection,
             stats,
