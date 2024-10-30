@@ -3883,14 +3883,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "minidump-analyzer-export"
-version = "0.1.0"
-dependencies = [
- "minidump-analyzer",
- "mozilla-central-workspace-hack",
-]
-
-[[package]]
 name = "minidump-common"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4076,7 +4068,6 @@ dependencies = [
  "futures",
  "futures-channel",
  "futures-core",
- "futures-executor",
  "futures-sink",
  "futures-util",
  "getrandom",
