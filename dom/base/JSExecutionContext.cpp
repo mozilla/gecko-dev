@@ -101,52 +101,41 @@ void JSExecutionContext::JoinOffThread(JSContext* aCx,
   }
 }
 
-template <typename Unit>
-void JSExecutionContext::InternalCompile(JSContext* aCx,
-                                         JS::CompileOptions& aCompileOptions,
-                                         JS::SourceText<Unit>& aSrcBuf,
-                                         RefPtr<JS::Stencil>& aStencil,
-                                         ErrorResult& aRv) {
-  MOZ_ASSERT(!mSkip);
+namespace mozilla::dom {
 
+// Compile a script contained in a SourceText.
+template <typename Unit>
+void InternalCompile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+                     JS::SourceText<Unit>& aSrcBuf,
+                     RefPtr<JS::Stencil>& aStencil, ErrorResult& aRv) {
   MOZ_ASSERT(aSrcBuf.get());
 
   aStencil = CompileGlobalScriptToStencil(aCx, aCompileOptions, aSrcBuf);
   if (!aStencil) {
-    mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
   }
 }
 
-void JSExecutionContext::Compile(JSContext* aCx,
-                                 JS::CompileOptions& aCompileOptions,
-                                 JS::SourceText<char16_t>& aSrcBuf,
-                                 RefPtr<JS::Stencil>& aStencil,
-                                 ErrorResult& aRv) {
+void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+             JS::SourceText<char16_t>& aSrcBuf, RefPtr<JS::Stencil>& aStencil,
+             ErrorResult& aRv) {
   InternalCompile(aCx, aCompileOptions, aSrcBuf, aStencil, aRv);
 }
 
-void JSExecutionContext::Compile(JSContext* aCx,
-                                 JS::CompileOptions& aCompileOptions,
-                                 JS::SourceText<Utf8Unit>& aSrcBuf,
-                                 RefPtr<JS::Stencil>& aStencil,
-                                 ErrorResult& aRv) {
+void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+             JS::SourceText<Utf8Unit>& aSrcBuf, RefPtr<JS::Stencil>& aStencil,
+             ErrorResult& aRv) {
   InternalCompile(aCx, aCompileOptions, aSrcBuf, aStencil, aRv);
 }
 
-void JSExecutionContext::Compile(JSContext* aCx,
-                                 JS::CompileOptions& aCompileOptions,
-                                 const nsAString& aScript,
-                                 RefPtr<JS::Stencil>& aStencil,
-                                 ErrorResult& aRv) {
-  MOZ_ASSERT(!mSkip);
-
+void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+             const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,
+             ErrorResult& aRv) {
   const nsPromiseFlatString& flatScript = PromiseFlatString(aScript);
   JS::SourceText<char16_t> srcBuf;
   if (!srcBuf.init(aCx, flatScript.get(), flatScript.Length(),
                    JS::SourceOwnership::Borrowed)) {
-    mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
   }
@@ -154,13 +143,9 @@ void JSExecutionContext::Compile(JSContext* aCx,
   Compile(aCx, aCompileOptions, srcBuf, aStencil, aRv);
 }
 
-void JSExecutionContext::Decode(JSContext* aCx,
-                                JS::CompileOptions& aCompileOptions,
-                                const JS::TranscodeRange& aBytecodeBuf,
-                                RefPtr<JS::Stencil>& aStencil,
-                                ErrorResult& aRv) {
-  MOZ_ASSERT(!mSkip);
-
+void Decode(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+            const JS::TranscodeRange& aBytecodeBuf,
+            RefPtr<JS::Stencil>& aStencil, ErrorResult& aRv) {
   JS::DecodeOptions decodeOptions(aCompileOptions);
   decodeOptions.borrowBuffer = true;
 
@@ -172,11 +157,11 @@ void JSExecutionContext::Decode(JSContext* aCx,
   // fallback on decoding failures.
   MOZ_ASSERT(tr != JS::TranscodeResult::Failure_BadBuildId);
   if (tr != JS::TranscodeResult::Ok) {
-    mSkip = true;
     aRv = NS_ERROR_DOM_JS_DECODING_ERROR;
     return;
   }
 }
+}  // namespace mozilla::dom
 
 void JSExecutionContext::InstantiateStencil(
     JSContext* aCx, JS::CompileOptions& aCompileOptions,

@@ -335,7 +335,8 @@ nsresult nsJSThunk::EvaluateScript(
       JSAutoRealm autoRealm(cx, globalJSObject);
       RefPtr<JS::Stencil> stencil;
       JS::Rooted<JSScript*> compiledScript(cx);
-      exec.Compile(cx, options, NS_ConvertUTF8toUTF16(script), stencil, erv);
+      mozilla::dom::Compile(cx, options, NS_ConvertUTF8toUTF16(script), stencil,
+                            erv);
       if (stencil) {
         bool unused;
         exec.InstantiateStencil(aes.cx(), options, std::move(stencil),

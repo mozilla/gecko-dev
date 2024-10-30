@@ -6101,7 +6101,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
       JSAutoRealm autoRealm(aes.cx(), global);
       RefPtr<JS::Stencil> stencil;
       JS::Rooted<JSScript*> script(aes.cx());
-      exec.Compile(aes.cx(), options, mExpr, stencil, erv);
+      Compile(aes.cx(), options, mExpr, stencil, erv);
       if (stencil) {
         bool unused;
         exec.InstantiateStencil(aes.cx(), options, std::move(stencil), &script,

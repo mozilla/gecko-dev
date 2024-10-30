@@ -2757,7 +2757,7 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
                                 profilerLabelString);
 
       RefPtr<JS::Stencil> stencil;
-      aExec.Decode(aCx, aCompileOptions, aRequest->Bytecode(), stencil, aRv);
+      Decode(aCx, aCompileOptions, aRequest->Bytecode(), stencil, aRv);
       if (!aRv.Failed() && aKeepStencil) {
         aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
         if (!aStencilDup) {
@@ -2821,7 +2821,7 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       RefPtr<JS::Stencil> stencil;
       ErrorResult erv;
       auto compile = [&](auto& source) {
-        aExec.Compile(aCx, aCompileOptions, source, stencil, erv);
+        Compile(aCx, aCompileOptions, source, stencil, erv);
       };
 
       MOZ_ASSERT(!maybeSource.empty());
