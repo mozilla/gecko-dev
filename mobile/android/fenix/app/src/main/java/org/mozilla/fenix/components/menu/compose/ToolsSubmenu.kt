@@ -210,7 +210,7 @@ private fun ToolsSubmenuPreview() {
                         enabled = true,
                         icon = BitmapFactory.decodeResource(
                             LocalContext.current.resources,
-                            R.drawable.googleg_standard_color_18,
+                            R.drawable.mozac_ic_web_extension_default_icon,
                         ),
                         badgeText = "1",
                         badgeTextColor = Color.White.toArgb(),
@@ -253,7 +253,7 @@ private fun ToolsSubmenuPrivatePreview() {
                         enabled = true,
                         icon = BitmapFactory.decodeResource(
                             LocalContext.current.resources,
-                            R.drawable.googleg_standard_color_18,
+                            R.drawable.mozac_ic_web_extension_default_icon,
                         ),
                         badgeText = "1",
                         badgeTextColor = Color.White.toArgb(),
