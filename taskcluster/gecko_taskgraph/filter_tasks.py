@@ -60,26 +60,38 @@ def target_tasks_try_select(full_task_graph, parameters, graph_config):
 def target_tasks_try_select_uncommon(full_task_graph, parameters, graph_config):
     from gecko_taskgraph.decision import PER_PROJECT_PARAMETERS
 
-    # Union the tasks between autoland and mozilla-central as a sensible
-    # default. This is likely the set of tasks that most users are
-    # attempting to select from.
-    projects = ("autoland", "mozilla-central")
-    if parameters["project"] not in projects:
-        projects = (parameters["project"],)
-
-    tasks = set()
-    for project in projects:
-        params = dict(parameters)
-        params["project"] = project
-        parameters = Parameters(**params)
-
-        try:
-            target_tasks_method = PER_PROJECT_PARAMETERS[project]["target_tasks_method"]
-        except KeyError:
-            target_tasks_method = "default"
-
-        tasks.update(
-            get_method(target_tasks_method)(full_task_graph, parameters, graph_config)
+    if parameters["target_tasks_method"] != "default":
+        # A parameter set using a custom target_tasks_method was explicitly
+        # passed in to `./mach try` via `--parameters`. In this case, don't
+        # override it or do anything special.
+        tasks = get_method(parameters["target_tasks_method"])(
+            full_task_graph, parameters, graph_config
         )
+    else:
+        # Union the tasks between autoland and mozilla-central as a sensible
+        # default. This is likely the set of tasks that most users are
+        # attempting to select from.
+        projects = ("autoland", "mozilla-central")
+        if parameters["project"] not in projects:
+            projects = (parameters["project"],)
+
+        tasks = set()
+        for project in projects:
+            params = dict(parameters)
+            params["project"] = project
+            parameters = Parameters(**params)
+
+            try:
+                target_tasks_method = PER_PROJECT_PARAMETERS[project][
+                    "target_tasks_method"
+                ]
+            except KeyError:
+                target_tasks_method = "default"
+
+            tasks.update(
+                get_method(target_tasks_method)(
+                    full_task_graph, parameters, graph_config
+                )
+            )
 
     return sorted(tasks)
