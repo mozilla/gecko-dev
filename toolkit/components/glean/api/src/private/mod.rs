@@ -90,6 +90,8 @@ impl From<u32> for MetricId {
 // gated with the same #[cfg(feature...)]
 #[cfg(feature = "with_gecko")]
 pub(crate) mod profiler_utils {
+    pub(crate) use super::truncate_string_for_marker;
+
     #[derive(Debug)]
     pub(crate) enum LookupError {
         NullPointer,
@@ -141,5 +143,152 @@ pub(crate) mod profiler_utils {
                 }
             }
         }
+    }
+
+}
+
+// These two methods "live" within profiler_utils, but as we need them available
+// testing, when we might not have gecko available, we use a different cfg
+// set of features to enable them in both cases.
+#[cfg(any(feature = "with_gecko", test))]
+pub(crate) fn truncate_string_for_marker(input: String) -> String {
+    const MAX_STRING_BYTE_LENGTH: usize = 1024;
+    truncate_string_for_marker_to_length(input, MAX_STRING_BYTE_LENGTH)
+}
+
+#[cfg(any(feature = "with_gecko", test))]
+#[inline]
+fn truncate_string_for_marker_to_length(mut input: String, byte_length: usize) -> String {
+    // Truncating an arbitrary string in Rust is not not exactly easy, as
+    // Strings are UTF-8 encoded. The "built-in" String::truncate, however,
+    // operates on bytes, and panics if the truncation crosses a character
+    // boundary.
+    // To avoid this, we need to find the first unicode char boundary that
+    // is less than the size that we're looking for. Note that we're
+    // interested in how many *bytes* the string takes up (when we add it
+    // to a marker), so we truncate to `MAX_STRING_BYTE_LENGTH` bytes, or
+    // (by walking the truncation point back) to a number of bytes that
+    // still represents valid UTF-8.
+    // Note, this truncation may not provide a valid json result, and
+    // truncation acts on glyphs, not graphemes, so the resulting text
+    // may not render exactly the same as before it was truncated.
+
+    // Copied from src/core/num/mod.rs
+    // Check if a given byte is a utf8 character boundary
+    #[inline]
+    const fn is_utf8_char_boundary(b: u8) -> bool {
+        // This is bit magic equivalent to: b < 128 || b >= 192
+        (b as i8) >= -0x40
+    }
+
+    // Check if our truncation point is a char boundary. If it isn't, move
+    // it "back" along the string until it is.
+    // Note, this is an almost direct port of the rust standard library
+    // function `str::floor_char_boundary`. We re-produce it as this API is
+    // not yet stable, and we make some small changes (such as modifying
+    // the input in-place) that are more convenient for this method.
+    if byte_length < input.len() {
+        let lower_bound = byte_length.saturating_sub(3);
+
+        let new_byte_length = input.as_bytes()[lower_bound..=byte_length]
+            .iter()
+            .rposition(|b| is_utf8_char_boundary(*b));
+
+        // SAFETY: we know that the character boundary will be within four bytes
+        let truncation_point = unsafe { lower_bound + new_byte_length.unwrap_unchecked() };
+        input.truncate(truncation_point)
+    }
+    input
+}
+
+#[cfg(test)]
+mod truncation_tests {
+    use crate::private::truncate_string_for_marker;
+    use crate::private::truncate_string_for_marker_to_length;
+
+    // Testing is heavily inspired/copied from the existing tests for the
+    // standard library function `floor_char_boundary`.
+    // See: https://github.com/rust-lang/rust/blob/bca5fdebe0e539d123f33df5f2149d5976392e76/library/alloc/tests/str.rs#L2363
+
+    // Check a series of truncation points (i.e. string lengths), and assert
+    // that they all produce the same trunctated string from the input.
+    fn check_many(s: &str, arg: impl IntoIterator<Item = usize>, truncated: &str) {
+        for len in arg {
+            assert_eq!(
+                truncate_string_for_marker_to_length(s.to_string(), len),
+                truncated,
+                "truncate_string_for_marker_to_length({:?}, {:?}) != {:?}",
+                len,
+                s,
+                truncated
+            );
+        }
+    }
+
+    #[test]
+    fn truncate_1byte_chars() {
+        check_many("jp", [0], "");
+        check_many("jp", [1], "j");
+        check_many("jp", 2..4, "jp");
+    }
+
+    #[test]
+    fn truncate_2byte_chars() {
+        check_many("ĵƥ", 0..2, "");
+        check_many("ĵƥ", 2..4, "ĵ");
+        check_many("ĵƥ", 4..6, "ĵƥ");
+    }
+
+    #[test]
+    fn truncate_3byte_chars() {
+        check_many("日本", 0..3, "");
+        check_many("日本", 3..6, "日");
+        check_many("日本", 6..8, "日本");
+    }
+
+    #[test]
+    fn truncate_4byte_chars() {
+        check_many("🇯🇵", 0..4, "");
+        check_many("🇯🇵", 4..8, "🇯");
+        check_many("🇯🇵", 8..10, "🇯🇵");
+    }
+
+    // Check a single string against it's expected truncated outcome
+    fn check_one(s: String, truncated: String) {
+        assert_eq!(
+            truncate_string_for_marker(s.clone()),
+            truncated,
+            "truncate_string_for_marker({:?}) != {:?}",
+            s,
+            truncated
+        );
+    }
+
+    #[test]
+    fn full_truncation() {
+        // Keep the values in this up to date with MAX_STRING_BYTE_LENGTH
+
+        // For each of these tests, we use a padding value to get near to 1024
+        // bytes, then add on a variety of further characters that push us up
+        // to or over the limit. We then check that we correctly truncated to
+        // the correct character or grapheme.
+        let pad = |reps: usize| -> String { "-".repeat(reps) };
+
+        // Note: len(jpjpj) = 5
+        check_one(pad(1020) + "jpjpj", pad(1020) + "jpjp");
+
+        // Note: len(ĵƥ) = 4
+        check_one(pad(1020) + "ĵƥ", pad(1020) + "ĵƥ");
+        check_one(pad(1021) + "ĵƥ", pad(1021) + "ĵ");
+
+        // Note: len(日本) = 6
+        check_one(pad(1018) + "日本", pad(1018) + "日本");
+        check_one(pad(1020) + "日本", pad(1020) + "日");
+        check_one(pad(1022) + "日本", pad(1022));
+
+        // Note: len(🇯🇵) = 8, len(🇯) = 4
+        check_one(pad(1016) + "🇯🇵", pad(1016) + "🇯🇵");
+        check_one(pad(1017) + "🇯🇵", pad(1017) + "🇯");
+        check_one(pad(1021) + "🇯🇵", pad(1021) + "");
     }
 }
