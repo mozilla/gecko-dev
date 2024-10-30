@@ -977,10 +977,9 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     // GC here as we may be running in OOL-code that is not ready for a GC.
     uint8_t* codeStart = nullptr;
     uint32_t codeLength = 0;
-    uint32_t metadataBias = 0;
-    codeBlock_->segment = CodeSegment::createFromMasmWithBumpAlloc(
-        *masm_, *linkData_, partialTieringCode_, /* allowLastDitchGC = */ false,
-        &codeStart, &codeLength, &metadataBias);
+    codeBlock_->segment = partialTieringCode_->createFuncCodeSegmentFromPool(
+        *masm_, *linkData_, /* allowLastDitchGC = */ false, &codeStart,
+        &codeLength);
     if (!codeBlock_->segment) {
       warnf("failed to allocate executable memory for module");
       return nullptr;
@@ -988,11 +987,11 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     codeBlock_->codeBase = codeStart;
     codeBlock_->codeLength = codeLength;
 
-    // In `codeBlock_`s metadata, we have a bunch of offsets which are
-    // relative to the start of the segment.  But we're placing the code at
-    // `metadataBias` forwards from the start of the segment, so we have to
-    // swizzle the metadata offsets accordingly.
-    codeBlock_->offsetMetadataBy(metadataBias);
+    // All metadata in code block is relative to the start of the code segment
+    // we were placed in, so we must adjust offsets for where we were
+    // allocated.
+    uint32_t codeBlockOffset = codeStart - codeBlock_->segment->base();
+    codeBlock_->offsetMetadataBy(codeBlockOffset);
   } else {
     // Create a new CodeSegment for the code and use that.
     codeBlock_->segment = CodeSegment::createFromMasm(
