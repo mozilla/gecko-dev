@@ -80,6 +80,7 @@
     --timing-function-line-color: var(--theme-highlight-blue);
     --timing-function-preview-dot-border: CanvasText;
     --timing-function-control-point-background: ButtonText;
+    --bezier-diagonal-color: CanvasText;
   }
 }
 
