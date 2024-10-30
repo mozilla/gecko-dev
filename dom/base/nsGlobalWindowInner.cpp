@@ -138,7 +138,7 @@
 #include "mozilla/dom/ImageBitmapSource.h"
 #include "mozilla/dom/InstallTriggerBinding.h"
 #include "mozilla/dom/IntlUtils.h"
-#include "mozilla/dom/JSExecutionContext.h"
+#include "mozilla/dom/JSExecutionUtils.h"  // mozilla::dom::Compile, mozilla::dom::InstantiateStencil, mozilla::dom::EvaluationExceptionToNSResult
 #include "mozilla/dom/LSObject.h"
 #include "mozilla/dom/LocalStorage.h"
 #include "mozilla/dom/LocalStorageCommon.h"

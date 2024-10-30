@@ -26,7 +26,6 @@
 #include "nsIScriptLoaderObserver.h"
 #include "nsURIHashKey.h"
 #include "mozilla/CORSMode.h"
-#include "mozilla/dom/JSExecutionContext.h"  // JSExecutionContext
 #include "ModuleLoader.h"
 #include "mozilla/MaybeOneOf.h"
 #include "mozilla/MozPromise.h"

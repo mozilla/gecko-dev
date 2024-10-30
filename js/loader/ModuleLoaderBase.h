@@ -23,7 +23,6 @@
 #include "nsURIHashKey.h"
 #include "mozilla/Attributes.h"  // MOZ_RAII
 #include "mozilla/CORSMode.h"
-#include "mozilla/dom/JSExecutionContext.h"
 #include "mozilla/MaybeOneOf.h"
 #include "mozilla/UniquePtr.h"
 #include "ResolveResult.h"

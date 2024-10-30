@@ -46,7 +46,7 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/DOMSecurityMonitor.h"
-#include "mozilla/dom/JSExecutionContext.h"
+#include "mozilla/dom/JSExecutionUtils.h"  // mozilla::dom::Compile, mozilla::dom::InstantiateStencil, mozilla::dom::EvaluationExceptionToNSResult
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "nsContentSecurityManager.h"

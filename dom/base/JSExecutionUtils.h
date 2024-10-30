@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef DOM_BASE_JSEXECUTIONCONTEXT_H_
-#define DOM_BASE_JSEXECUTIONCONTEXT_H_
+#ifndef DOM_BASE_JSEXECUTIONUTILS_H_
+#define DOM_BASE_JSEXECUTIONUTILS_H_
 
 #include "js/TypeDecls.h"               // JSScript, MutableHandle
 #include "js/Value.h"                   // JS::UndefinedHandleValue
@@ -15,9 +15,7 @@
 #include "mozilla/ErrorResult.h"        // ErrorResult
 #include "nsStringFwd.h"                // nsAString
 
-namespace mozilla {
-
-namespace dom {
+namespace mozilla::dom {
 
 nsresult EvaluationExceptionToNSResult(ErrorResult& aRv);
 
@@ -43,7 +41,6 @@ void InstantiateStencil(JSContext* aCx, JS::CompileOptions& aCompileOptions,
                         ErrorResult& aRv, bool aEncodeBytecode = false,
                         JS::InstantiationStorage* aStorage = nullptr);
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
-#endif /* DOM_BASE_JSEXECUTIONCONTEXT_H_ */
+#endif /* DOM_BASE_JSEXECUTIONUTILS_H_ */

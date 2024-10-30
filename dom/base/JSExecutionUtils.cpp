@@ -11,7 +11,7 @@
  * the generated code itself.
  */
 
-#include "mozilla/dom/JSExecutionContext.h"
+#include "mozilla/dom/JSExecutionUtils.h"
 
 #include <utility>      // std::move
 #include "ErrorList.h"  // NS_ERROR_OUT_OF_MEMORY, NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW, NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW_UNCATCHABLE
