@@ -103,24 +103,6 @@ export class SearchEngineSelector {
     return this._configuration;
   }
 
-  async findContextualSearchEngineByHost(host) {
-    for (let config of this._configuration) {
-      if (config.recordType !== "engine") {
-        continue;
-      }
-      let searchHost = new URL(config.base.urls.search.base).hostname;
-      if (searchHost.startsWith("www.")) {
-        searchHost = searchHost.slice(4);
-      }
-      if (searchHost.startsWith(host)) {
-        let engine = structuredClone(config.base);
-        engine.identifier = config.identifier;
-        return engine;
-      }
-    }
-    return null;
-  }
-
   /**
    * Used by tests to get the configuration overrides.
    *

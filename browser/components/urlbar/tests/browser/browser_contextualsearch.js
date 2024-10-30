@@ -11,35 +11,6 @@ const { AddonTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/AddonTestUtils.sys.mjs"
 );
 
-const CONFIG = [
-  {
-    identifier: "default-engine",
-    base: {
-      urls: {
-        search: { base: "https://example.com", searchTermParamName: "q" },
-      },
-    },
-  },
-  {
-    identifier: "config-engine",
-    base: {
-      urls: {
-        search: { base: "https://example.org", searchTermParamName: "q" },
-      },
-    },
-  },
-];
-
-let loadUri = async uri => {
-  let loaded = BrowserTestUtils.browserLoaded(
-    gBrowser.selectedBrowser,
-    false,
-    uri
-  );
-  BrowserTestUtils.startLoadingURIString(gBrowser.selectedBrowser, uri);
-  await loaded;
-};
-
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -152,8 +123,6 @@ add_task(async function test_selectContextualSearchResult_not_installed() {
     value: query,
   });
 
-  await UrlbarTestUtils.promiseSearchComplete(window);
-
   Assert.ok(
     !Services.search.getEngineByName("Foo"),
     "Engine is not currently installed."
@@ -173,7 +142,6 @@ add_task(async function test_selectContextualSearchResult_not_installed() {
     engineName: "Foo",
     entry: "other",
   });
-
   Assert.equal(
     gBrowser.selectedBrowser.currentURI.spec,
     EXPECTED_URL,
@@ -187,59 +155,8 @@ add_task(async function test_selectContextualSearchResult_not_installed() {
     true,
     "Engine was marks as auto installed."
   );
-
-  window.document.querySelector("#searchmode-switcher-close").click();
-  await UrlbarTestUtils.promisePopupClose(window);
-
   await Services.search.removeEngine(engine);
-  ActionsProviderContextualSearch.resetForTesting();
-});
-
-add_task(async function test_contextual_search_engine() {
-  await waitForIdle();
-  SearchTestUtils.setRemoteSettingsConfig(CONFIG);
-  await Services.search.wrappedJSObject.reset();
-  await Services.search.init();
-  await loadUri("https://example.org/");
-
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "test",
-  });
-
-  let expectedUrl = "https://example.org/?q=test";
-  info("Focus and select the contextual search result");
-  let onLoad = BrowserTestUtils.browserLoaded(
-    gBrowser.selectedBrowser,
-    false,
-    expectedUrl
-  );
-
-  EventUtils.synthesizeKey("KEY_Tab");
-  EventUtils.synthesizeKey("KEY_Enter");
-  await onLoad;
-
-  Assert.equal(
-    gBrowser.selectedBrowser.currentURI.spec,
-    expectedUrl,
-    "Selecting the contextual search result opens the search URL"
-  );
-
-  let engine = Services.search.getEngineByName("config-engine");
-  Assert.ok(engine != null, "Engine was installed.");
-  Assert.equal(engine.name, "config-engine", "Correct engine was installed.");
 
   window.document.querySelector("#searchmode-switcher-close").click();
-  await UrlbarTestUtils.promisePopupClose(window);
-
-  await Services.search.wrappedJSObject.reset();
-  await Services.search.init();
-
   ActionsProviderContextualSearch.resetForTesting();
 });
-
-async function waitForIdle() {
-  for (let i = 0; i < 10; i++) {
-    await new Promise(resolve => Services.tm.idleDispatchToMainThread(resolve));
-  }
-}

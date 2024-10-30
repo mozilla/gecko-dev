@@ -22,10 +22,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const ENABLED_PREF = "contextualSearch.enabled";
 
-const INSTALLED_ENGINE = "installed-engine";
-const OPEN_SEARCH_ENGINE = "opensearch-engine";
-const CONTEXTUAL_SEARCH_ENGINE = "contextual-search-engine";
-
 /**
  * A provider that returns an option for using the search engine provided
  * by the active view if it utilizes OpenSearch.
@@ -57,7 +53,7 @@ class ProviderContextualSearch extends ActionsProvider {
       return null;
     }
 
-    let { engine } = await this.fetchEngineDetails();
+    let engine = await this.fetchEngine();
     let icon = engine?.icon || (await engine?.getIconURL?.());
     let defaultEngine = lazy.UrlbarSearchUtils.getDefaultEngine();
 
@@ -82,7 +78,7 @@ class ProviderContextualSearch extends ActionsProvider {
     ];
   }
 
-  async fetchEngineDetails() {
+  async fetchEngine() {
     let browser =
       lazy.BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
     let hostname;
@@ -94,7 +90,7 @@ class ProviderContextualSearch extends ActionsProvider {
     }
 
     if (this.engines.has(hostname)) {
-      return { type: INSTALLED_ENGINE, engine: this.engines.get(hostname) };
+      return this.engines.get(hostname);
     }
 
     // Strip www. to allow for partial matches when looking for an engine.
@@ -104,71 +100,38 @@ class ProviderContextualSearch extends ActionsProvider {
     let engines = await lazy.UrlbarSearchUtils.enginesForDomainPrefix(host, {
       matchAllDomainLevels: true,
     });
-
-    if (engines.length) {
-      return { type: INSTALLED_ENGINE, engine: engines[0] };
-    }
-
-    let contextualEngineConfig =
-      await Services.search.findContextualSearchEngineByHost(host);
-    if (contextualEngineConfig) {
-      return {
-        type: CONTEXTUAL_SEARCH_ENGINE,
-        engine: contextualEngineConfig,
-      };
-    }
-
-    if (browser?.engines?.length) {
-      return { type: OPEN_SEARCH_ENGINE, engine: browser.engines[0] };
-    }
-
-    return {};
+    return engines[0] ?? browser?.engines?.[0];
   }
 
-  async pickAction(queryContext, controller, _element) {
-    let { type, engine } = await this.fetchEngineDetails();
+  async pickAction(queryContext, controller) {
+    let engine = await this.fetchEngine();
     let enterSeachMode = true;
-    let engineObj;
 
-    if (
-      (type == CONTEXTUAL_SEARCH_ENGINE || type == OPEN_SEARCH_ENGINE) &&
-      !queryContext.isPrivate
-    ) {
-      engineObj = await this.#installEngine({ type, engine }, controller);
-    } else if (type == OPEN_SEARCH_ENGINE) {
-      let openSearchEngineData = await lazy.loadAndParseOpenSearchEngine(
+    if (engine.uri && !queryContext.private) {
+      engine = await this.#installEngine(engine, controller);
+    } else if (engine.uri) {
+      let engineData = await lazy.loadAndParseOpenSearchEngine(
         Services.io.newURI(engine.uri)
       );
-      engineObj = new lazy.OpenSearchEngine({
-        engineData: openSearchEngineData,
-      });
+      engine = new lazy.OpenSearchEngine({ engineData });
       enterSeachMode = false;
-    } else if (type == INSTALLED_ENGINE || type == CONTEXTUAL_SEARCH_ENGINE) {
-      engineObj = engine;
     }
-
     this.#performSearch(
-      engineObj,
+      engine,
       queryContext.searchString,
       controller.input,
       enterSeachMode
     );
   }
 
-  async #installEngine({ type, engine }, controller) {
-    let engineObj;
-    if (type == CONTEXTUAL_SEARCH_ENGINE) {
-      await Services.search.addContextualSearchEngine(engine);
-      engineObj = engine;
-    } else {
-      engineObj = await Services.search.addOpenSearchEngine(
-        engine.uri,
-        engine.icon,
-        controller.input.browsingContext
-      );
-    }
-    engineObj.setAttr("auto-installed", true);
-    return engineObj;
+  async #installEngine(engineDetails, controller) {
+    let engine = await Services.search.addOpenSearchEngine(
+      engineDetails.uri,
+      engineDetails.icon,
+      controller.input.browsingContext
+    );
+    engine.setAttr("auto-installed", true);
+    return engine;
   }
 
   async #performSearch(engine, search, input, enterSearchMode) {

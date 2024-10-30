@@ -416,23 +416,6 @@ interface nsISearchService : nsISupports
   Promise getEnginesByExtensionID(in AString extensionID);
 
   /**
-   * Returns an engine definition if it's search url matches the host provided.
-   *
-   * @param   host
-   *          The host to search for.
-   * @returns An nsISearchEngine engine object if one matched.
-   */
-  Promise findContextualSearchEngineByHost(in AString host);
-
-  /**
-   * Installs an engine into the users engine list.
-   *
-   * @param   engine
-   *          An engine configuration definition.
-   */
-  Promise addContextualSearchEngine(in jsval engine);
-
-  /**
    * Moves a visible search engine.
    *
    * @param  engine
