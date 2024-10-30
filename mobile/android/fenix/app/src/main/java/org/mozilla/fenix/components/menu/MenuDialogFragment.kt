@@ -408,12 +408,16 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         isTranslationSupported = isTranslationSupported,
                                         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                         onExtensionsMenuClick = {
-                                            contentState = Route.ExtensionsMenu
-                                            Events.browserMenuAction.record(
-                                                Events.BrowserMenuActionExtra(
-                                                    item = "extensions_submenu",
-                                                ),
-                                            )
+                                            if (!isExtensionsProcessDisabled) {
+                                                contentState = Route.ExtensionsMenu
+                                                Events.browserMenuAction.record(
+                                                    Events.BrowserMenuActionExtra(
+                                                        item = "extensions_submenu",
+                                                    ),
+                                                )
+                                            } else {
+                                                store.dispatch(MenuAction.Navigate.ManageExtensions)
+                                            }
                                         },
                                         onSaveMenuClick = {
                                             contentState = Route.SaveMenu
@@ -435,12 +439,16 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         isTranslationSupported = isTranslationSupported,
                                         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                         onExtensionsMenuClick = {
-                                            contentState = Route.ExtensionsMenu
-                                            Events.browserMenuAction.record(
-                                                Events.BrowserMenuActionExtra(
-                                                    item = "extensions_submenu",
-                                                ),
-                                            )
+                                            if (!isExtensionsProcessDisabled) {
+                                                contentState = Route.ExtensionsMenu
+                                                Events.browserMenuAction.record(
+                                                    Events.BrowserMenuActionExtra(
+                                                        item = "extensions_submenu",
+                                                    ),
+                                                )
+                                            } else {
+                                                store.dispatch(MenuAction.Navigate.ManageExtensions)
+                                            }
                                         },
                                         onSaveMenuClick = {
                                             contentState = Route.SaveMenu
