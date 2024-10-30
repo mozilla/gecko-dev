@@ -137,7 +137,7 @@ add_task(async function () {
       "#inspector-breadcrumbs .html-arrowscrollbox-inner"
     );
     is(
-      breadcrumbs.querySelector("button[checked=true]").textContent,
+      breadcrumbs.querySelector("button[aria-pressed=true]").textContent,
       crumbLabel,
       "The right breadcrumb is selected"
     );

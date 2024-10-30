@@ -104,8 +104,8 @@ async function testBreadcrumbs(selector, inspector) {
 
   const b = inspector.breadcrumbs;
   const expectedText = b.prettyPrintNodeAsText(nodeFront);
-  const button = b.container.querySelector("button[checked=true]");
-  ok(button, "A crumbs is checked=true");
+  const button = b.container.querySelector("button[aria-pressed=true]");
+  ok(button, "A crumbs is pressed");
   is(
     button.getAttribute("title"),
     expectedText,
