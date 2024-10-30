@@ -39,6 +39,10 @@
     --button-outer-padding-inline: var(--space-medium);
     --button-outer-padding-block: var(--space-xxsmall);
 
+    &::part(button) {
+      height: var(--tab-min-height);
+    }
+
     &:first-of-type {
       --button-outer-padding-block-start: var(--space-small);
     }
