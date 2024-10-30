@@ -823,17 +823,21 @@ MarkupContainer.prototype = {
    * Try to put keyboard focus on the current editor.
    *
    * @param {Object} options
-   * @param {Boolean} options.fromMouseEvent: Set to true if this is called from a mouse
-   *                  event to avoid applying :focus-visible style.
+   * @param {Boolean} options.fromMouseEvent: Set to true if this is called from a mouse event.
    */
   focus({ fromMouseEvent = false } = {}) {
     // Elements with tabindex of -1 are not focusable.
     const focusable = this.editor.elt.querySelector("[tabindex='0']");
     if (focusable) {
       if (fromMouseEvent) {
-        // When focus is coming from a mouse event,
-        // prevent :focus-visible to be applied to the element
-        Services.focus.setFocus(focusable, Services.focus.FLAG_NOSHOWRING);
+        // When focus is coming from a mouse event:
+        // - prevent :focus-visible to be applied to the element
+        // - don't scroll element into view, as this could change the horizontal scroll,
+        //   and the element is already visible since the user clicked on it.
+        Services.focus.setFocus(
+          focusable,
+          Services.focus.FLAG_NOSHOWRING | Services.focus.FLAG_NOSCROLL
+        );
       } else {
         focusable.focus();
       }
