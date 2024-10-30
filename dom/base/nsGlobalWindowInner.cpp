@@ -6095,7 +6095,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
     IgnoredErrorResult erv;
     JSExecutionContext exec(aes.cx(), global, options, erv);
     if (!erv.Failed()) {
-      exec.Compile(mExpr, erv);
+      exec.Compile(options, mExpr, erv);
 
       JS::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());
       if (script) {

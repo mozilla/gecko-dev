@@ -75,7 +75,6 @@ JSExecutionContext::JSExecutionContext(
       mRealm(aCx, aGlobal),
       mRetValue(aCx),
       mScript(aCx),
-      mCompileOptions(aCompileOptions),
       mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
       mDebuggerIntroductionScript(aCx, aDebuggerIntroductionScript),
       mSkip(false),
@@ -100,7 +99,8 @@ JSExecutionContext::JSExecutionContext(
   }
 }
 
-void JSExecutionContext::JoinOffThread(ScriptLoadContext* aContext,
+void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
+                                       ScriptLoadContext* aContext,
                                        ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
@@ -124,22 +124,24 @@ void JSExecutionContext::JoinOffThread(ScriptLoadContext* aContext,
   }
 
   bool unused;
-  InstantiateStencil(std::move(stencil), unused, aRv, &storage);
+  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv,
+                     &storage);
 }
 
 template <typename Unit>
-void JSExecutionContext::InternalCompile(JS::SourceText<Unit>& aSrcBuf,
+void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
+                                         JS::SourceText<Unit>& aSrcBuf,
                                          ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(aSrcBuf.get());
   MOZ_ASSERT(mRetValue.isUndefined());
 #ifdef DEBUG
-  mWantsReturnValue = !mCompileOptions.noScriptRval;
+  mWantsReturnValue = !aCompileOptions.noScriptRval;
 #endif
 
   RefPtr<JS::Stencil> stencil =
-      CompileGlobalScriptToStencil(mCx, mCompileOptions, aSrcBuf);
+      CompileGlobalScriptToStencil(mCx, aCompileOptions, aSrcBuf);
   if (!stencil) {
     mSkip = true;
     aRv.NoteJSContextException(mCx);
@@ -156,20 +158,23 @@ void JSExecutionContext::InternalCompile(JS::SourceText<Unit>& aSrcBuf,
   }
 
   bool unused;
-  InstantiateStencil(std::move(stencil), unused, aRv);
+  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv);
 }
 
-void JSExecutionContext::Compile(JS::SourceText<char16_t>& aSrcBuf,
+void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
+                                 JS::SourceText<char16_t>& aSrcBuf,
                                  ErrorResult& aRv) {
-  InternalCompile(aSrcBuf, aRv);
+  InternalCompile(aCompileOptions, aSrcBuf, aRv);
 }
 
-void JSExecutionContext::Compile(JS::SourceText<Utf8Unit>& aSrcBuf,
+void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
+                                 JS::SourceText<Utf8Unit>& aSrcBuf,
                                  ErrorResult& aRv) {
-  InternalCompile(aSrcBuf, aRv);
+  InternalCompile(aCompileOptions, aSrcBuf, aRv);
 }
 
-void JSExecutionContext::Compile(const nsAString& aScript, ErrorResult& aRv) {
+void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
+                                 const nsAString& aScript, ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
   const nsPromiseFlatString& flatScript = PromiseFlatString(aScript);
@@ -181,14 +186,15 @@ void JSExecutionContext::Compile(const nsAString& aScript, ErrorResult& aRv) {
     return;
   }
 
-  Compile(srcBuf, aRv);
+  Compile(aCompileOptions, srcBuf, aRv);
 }
 
-void JSExecutionContext::Decode(const JS::TranscodeRange& aBytecodeBuf,
+void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
+                                const JS::TranscodeRange& aBytecodeBuf,
                                 ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
-  JS::DecodeOptions decodeOptions(mCompileOptions);
+  JS::DecodeOptions decodeOptions(aCompileOptions);
   decodeOptions.borrowBuffer = true;
 
   MOZ_ASSERT(!mWantsReturnValue);
@@ -215,13 +221,14 @@ void JSExecutionContext::Decode(const JS::TranscodeRange& aBytecodeBuf,
   }
 
   bool unused;
-  InstantiateStencil(std::move(stencil), unused, aRv);
+  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv);
 }
 
 void JSExecutionContext::InstantiateStencil(
-    RefPtr<JS::Stencil>&& aStencil, bool& incrementalEncodingAlreadyStarted,
-    ErrorResult& aRv, JS::InstantiationStorage* aStorage) {
-  JS::InstantiateOptions instantiateOptions(mCompileOptions);
+    JS::CompileOptions& aCompileOptions, RefPtr<JS::Stencil>&& aStencil,
+    bool& incrementalEncodingAlreadyStarted, ErrorResult& aRv,
+    JS::InstantiationStorage* aStorage) {
+  JS::InstantiateOptions instantiateOptions(aCompileOptions);
   JS::Rooted<JSScript*> script(
       mCx, JS::InstantiateGlobalStencil(mCx, instantiateOptions, aStencil,
                                         aStorage));

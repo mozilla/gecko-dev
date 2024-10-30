@@ -330,7 +330,7 @@ nsresult nsJSThunk::EvaluateScript(
     JSExecutionContext exec(cx, globalJSObject, options, erv);
     if (!erv.Failed()) {
       exec.SetCoerceToString(true);
-      exec.Compile(NS_ConvertUTF8toUTF16(script), erv);
+      exec.Compile(options, NS_ConvertUTF8toUTF16(script), erv);
       if (!erv.Failed()) {
         exec.ExecScript(&v, erv);
       }
