@@ -43,8 +43,7 @@ support-files = ["file_link_modulepreload.html"]
 
 ["browser_print_coop.js"]
 support-files = [
-  "file_coop_header.html",
-  "file_coop_header.html^headers^",
+  "file_print_coop_helper.html",
 ]
 
 ["browser_print_copies.js"]

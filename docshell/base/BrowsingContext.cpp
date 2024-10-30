@@ -420,6 +420,10 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
         topPolicy == nsILoadInfo::OPENER_POLICY_UNSAFE_NONE ||
         topPolicy == nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_ALLOW_POPUPS ||
         aOptions.isForPrinting);
+    if (aOptions.isForPrinting) {
+      // Ensure our opener policy is consistent for printing for our top.
+      fields.Get<IDX_OpenerPolicy>() = topPolicy;
+    }
   } else if (!aParent && group->IsPotentiallyCrossOriginIsolated()) {
     // If we're creating a brand-new toplevel BC in a potentially cross-origin
     // isolated group, it should start out with a strict opener policy.

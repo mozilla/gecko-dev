@@ -69,17 +69,19 @@ async function handleRequest(request, response) {
     });
   }
 
-  response.setHeader("Cache-Control", "no-cache", false);
-  if (html) {
-    response.setHeader("Content-Type", "text/html", false);
-
+  function setHeaders() {
     if (queryString.has("headers")) {
       for (const header of queryString.getAll("headers")) {
         const [key, value] = header.split(":");
         response.setHeader(key, value, false);
       }
     }
+  }
 
+  response.setHeader("Cache-Control", "no-cache", false);
+  if (html) {
+    response.setHeader("Content-Type", "text/html", false);
+    setHeaders();
     response.write(html);
   } else {
     const path = queryString.get("file");
@@ -89,6 +91,7 @@ async function handleRequest(request, response) {
       path.endsWith(".xhtml") ? "application/xhtml+xml" : "text/html",
       false
     );
+    setHeaders();
     // This is a hack to set the correct id for the content document that is to be
     // loaded in the iframe.
     response.write(doc.replace(`id="body"`, `id="default-iframe-body-id"`));
