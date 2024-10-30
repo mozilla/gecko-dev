@@ -120,24 +120,6 @@ void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
   }
 }
 
-void Decode(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-            const JS::TranscodeRange& aBytecodeBuf,
-            RefPtr<JS::Stencil>& aStencil, ErrorResult& aRv) {
-  JS::DecodeOptions decodeOptions(aCompileOptions);
-  decodeOptions.borrowBuffer = true;
-
-  MOZ_ASSERT(aCompileOptions.noScriptRval);
-  JS::TranscodeResult tr = JS::DecodeStencil(aCx, decodeOptions, aBytecodeBuf,
-                                             getter_AddRefs(aStencil));
-  // These errors are external parameters which should be handled before the
-  // decoding phase, and which are the only reasons why you might want to
-  // fallback on decoding failures.
-  MOZ_ASSERT(tr != JS::TranscodeResult::Failure_BadBuildId);
-  if (tr != JS::TranscodeResult::Ok) {
-    aRv = NS_ERROR_DOM_JS_DECODING_ERROR;
-    return;
-  }
-}
 }  // namespace mozilla::dom
 
 void JSExecutionContext::InstantiateStencil(

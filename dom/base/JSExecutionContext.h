@@ -93,11 +93,6 @@ void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
              const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,
              ErrorResult& aRv);
 
-// Decode a script contained in a buffer.
-void Decode(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-            const JS::TranscodeRange& aBytecodeBuf,
-            RefPtr<JS::Stencil>& aStencil, ErrorResult& aRv);
-
 }  // namespace dom
 }  // namespace mozilla
 
