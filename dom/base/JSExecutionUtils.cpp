@@ -60,21 +60,6 @@ void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
 }
 
 void InstantiateStencil(JSContext* aCx, JS::CompileOptions& aCompileOptions,
-                        RefPtr<JS::Stencil>& aStencil,
-                        JS::MutableHandle<JSScript*> aScript,
-                        ErrorResult& aRv) {
-  MOZ_ASSERT(!JS::InstantiateOptions(aCompileOptions).deferDebugMetadata);
-  MOZ_ASSERT(!aScript);
-
-  JS::InstantiateOptions instantiateOptions(aCompileOptions);
-  aScript.set(
-      JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil, nullptr));
-  if (!aScript) {
-    aRv.NoteJSContextException(aCx);
-  }
-}
-
-void InstantiateStencil(JSContext* aCx, JS::CompileOptions& aCompileOptions,
                         RefPtr<JS::Stencil>&& aStencil,
                         JS::MutableHandle<JSScript*> aScript,
                         bool& incrementalEncodingAlreadyStarted,

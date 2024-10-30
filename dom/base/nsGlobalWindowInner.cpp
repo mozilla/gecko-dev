@@ -138,7 +138,7 @@
 #include "mozilla/dom/ImageBitmapSource.h"
 #include "mozilla/dom/InstallTriggerBinding.h"
 #include "mozilla/dom/IntlUtils.h"
-#include "mozilla/dom/JSExecutionUtils.h"  // mozilla::dom::Compile, mozilla::dom::InstantiateStencil, mozilla::dom::EvaluationExceptionToNSResult
+#include "mozilla/dom/JSExecutionUtils.h"  // mozilla::dom::Compile, mozilla::dom::EvaluationExceptionToNSResult
 #include "mozilla/dom/LSObject.h"
 #include "mozilla/dom/LocalStorage.h"
 #include "mozilla/dom/LocalStorageCommon.h"
@@ -6103,7 +6103,13 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
       JS::Rooted<JSScript*> script(aes.cx());
       Compile(aes.cx(), options, mExpr, stencil, erv);
       if (stencil) {
-        InstantiateStencil(aes.cx(), options, stencil, &script, erv);
+        JS::InstantiateOptions instantiateOptions(options);
+        MOZ_ASSERT(!instantiateOptions.deferDebugMetadata);
+        script.set(JS::InstantiateGlobalStencil(
+            aes.cx(), instantiateOptions, stencil, /* storage */ nullptr));
+        if (!script) {
+          erv.NoteJSContextException(aes.cx());
+        }
       }
 
       if (script) {

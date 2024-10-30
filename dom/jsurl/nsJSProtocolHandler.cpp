@@ -46,7 +46,7 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/DOMSecurityMonitor.h"
-#include "mozilla/dom/JSExecutionUtils.h"  // mozilla::dom::Compile, mozilla::dom::InstantiateStencil, mozilla::dom::EvaluationExceptionToNSResult
+#include "mozilla/dom/JSExecutionUtils.h"  // mozilla::dom::Compile, mozilla::dom::EvaluationExceptionToNSResult
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "nsContentSecurityManager.h"
@@ -394,8 +394,13 @@ nsresult nsJSThunk::EvaluateScript(
       mozilla::dom::Compile(cx, options, NS_ConvertUTF8toUTF16(script), stencil,
                             erv);
       if (stencil) {
-        mozilla::dom::InstantiateStencil(aes.cx(), options, stencil,
-                                         &compiledScript, erv);
+        JS::InstantiateOptions instantiateOptions(options);
+        MOZ_ASSERT(!instantiateOptions.deferDebugMetadata);
+        compiledScript.set(JS::InstantiateGlobalStencil(
+            aes.cx(), instantiateOptions, stencil, /* storage */ nullptr));
+        if (!compiledScript) {
+          erv.NoteJSContextException(aes.cx());
+        }
       }
 
       if (!erv.Failed()) {
