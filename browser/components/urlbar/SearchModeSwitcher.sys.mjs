@@ -87,6 +87,7 @@ export class SearchModeSwitcher {
       () => {
         anchor.removeAttribute("open");
         anchor.setAttribute("aria-expanded", false);
+        this.#input.focus();
         this.#input.view.restoreVisibility();
       },
       { once: true }
@@ -150,6 +151,19 @@ export class SearchModeSwitcher {
   }
 
   handleEvent(event) {
+    if (
+      event.keyCode == KeyEvent.DOM_VK_TAB &&
+      event.shiftKey &&
+      this.#input.view.isOpen
+    ) {
+      // In this case, switcher button got focus by shift+tab from urlbar.
+      // So, move the focus on the last element of urlbar view to make cyclable.
+      this.#input.focus();
+      this.#input.view.selectBy(1, { reverse: true, userPressedTab: true });
+      event.preventDefault();
+      return;
+    }
+
     let action = event.currentTarget.dataset.action ?? event.type;
 
     switch (action) {

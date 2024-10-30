@@ -242,6 +242,7 @@ async function test_navigate_switcher(navKey, navTimes, searchMode) {
     EventUtils.synthesizeKey(navKey);
   }
   EventUtils.synthesizeKey("KEY_Enter");
+  await UrlbarTestUtils.promiseSearchComplete(window);
 
   await UrlbarTestUtils.assertSearchMode(window, searchMode);
 
@@ -712,6 +713,127 @@ add_task(async function test_open_state() {
     });
     Assert.ok(true, "The 'open' attribute should not be set");
   }
+});
+
+add_task(async function test_focus_on_switcher_by_tab() {
+  for (const input of ["", "abc"]) {
+    info(`Open urlbar view with query [${input}]`);
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: input,
+    });
+
+    if (input) {
+      info("Focus on input field by tab");
+      EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+    }
+
+    info("Focus on Dedicated Search by tab");
+    EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+
+    await TestUtils.waitForCondition(
+      () => document.activeElement.id == "urlbar-searchmode-switcher"
+    );
+    Assert.ok(true, "Dedicated Search button gets the focus");
+    let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
+    Assert.equal(popup.state, "closed", "Switcher popup should not be opened");
+    Assert.ok(gURLBar.view.isOpen, "Urlbar view panel has been opening");
+    Assert.equal(gURLBar.value, input, "Inputted value still be on urlbar");
+
+    info("Open the switcher popup by key");
+    let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
+    EventUtils.synthesizeKey("KEY_Enter");
+    await promiseMenuOpen;
+    Assert.notEqual(
+      document.activeElement.id,
+      "urlbar-searchmode-switcher",
+      "Dedicated Search button loses the focus"
+    );
+    Assert.equal(
+      gURLBar.view.panel.hasAttribute("hide-temporarily"),
+      true,
+      "Urlbar view panel is closed"
+    );
+    Assert.equal(gURLBar.value, input, "Inputted value still be on urlbar");
+
+    info("Close the switcher popup by Escape");
+    let promiseMenuClose = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+    EventUtils.synthesizeKey("KEY_Escape");
+    await promiseMenuClose;
+    Assert.equal(
+      document.activeElement.id,
+      "urlbar-input",
+      "Urlbar gets the focus"
+    );
+    Assert.equal(
+      gURLBar.view.panel.hasAttribute("hide-temporarily"),
+      false,
+      "Urlbar view panel is opened"
+    );
+    Assert.equal(gURLBar.value, input, "Inputted value still be on urlbar");
+  }
+});
+
+add_task(async function test_focus_order_by_tab() {
+  await PlacesTestUtils.addBookmarkWithDetails({
+    uri: "https://example.com/",
+    title: "abc",
+  });
+
+  const FOCUS_ORDER_ASSERTIONS = [
+    () =>
+      Assert.equal(
+        gURLBar.view.selectedElement,
+        gURLBar.view.getLastSelectableElement()
+      ),
+    () =>
+      Assert.equal(
+        document.activeElement,
+        document.getElementById("urlbar-searchmode-switcher")
+      ),
+    () => Assert.equal(document.activeElement, gURLBar.inputField),
+    () =>
+      Assert.equal(
+        gURLBar.view.selectedElement,
+        gURLBar.view.getFirstSelectableElement()
+      ),
+    () =>
+      Assert.equal(
+        gURLBar.view.selectedElement,
+        gURLBar.view.getLastSelectableElement()
+      ),
+    () =>
+      Assert.equal(
+        document.activeElement,
+        document.getElementById("urlbar-searchmode-switcher")
+      ),
+    () => Assert.equal(document.activeElement, gURLBar.inputField),
+  ];
+
+  for (const shiftKey of [false, true]) {
+    info("Open urlbar view");
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "abc",
+    });
+    Assert.equal(document.activeElement, gURLBar.inputField);
+    Assert.equal(
+      gURLBar.view.selectedElement,
+      gURLBar.view.getFirstSelectableElement()
+    );
+
+    let resultCount = UrlbarTestUtils.getResultCount(window);
+    Assert.equal(resultCount, 2, "This test needs exact 2 results");
+
+    for (const assert of shiftKey
+      ? [...FOCUS_ORDER_ASSERTIONS].reverse()
+      : FOCUS_ORDER_ASSERTIONS) {
+      EventUtils.synthesizeKey("KEY_Tab", { shiftKey });
+      assert();
+    }
+  }
+
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
 add_task(async function nimbusScotchBonnetEnableOverride() {
