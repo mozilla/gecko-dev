@@ -6093,34 +6093,36 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   options.setIntroductionType("domTimer");
   JS::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
+    if (MOZ_UNLIKELY(!xpc::Scriptability::Get(global).Allowed())) {
+      return true;
+    }
+
     IgnoredErrorResult erv;
-    if (MOZ_LIKELY(xpc::Scriptability::Get(global).Allowed())) {
-      mozilla::AutoProfilerLabel autoProfilerLabel(
-          "JSExecutionContext",
-          /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
-      JSAutoRealm autoRealm(aes.cx(), global);
-      RefPtr<JS::Stencil> stencil;
-      JS::Rooted<JSScript*> script(aes.cx());
-      Compile(aes.cx(), options, mExpr, stencil, erv);
-      if (stencil) {
-        JS::InstantiateOptions instantiateOptions(options);
-        MOZ_ASSERT(!instantiateOptions.deferDebugMetadata);
-        script.set(JS::InstantiateGlobalStencil(
-            aes.cx(), instantiateOptions, stencil, /* storage */ nullptr));
-        if (!script) {
-          erv.NoteJSContextException(aes.cx());
-        }
+    mozilla::AutoProfilerLabel autoProfilerLabel("JSExecutionContext",
+                                                 /* dynamicStr */ nullptr,
+                                                 JS::ProfilingCategoryPair::JS);
+    JSAutoRealm autoRealm(aes.cx(), global);
+    RefPtr<JS::Stencil> stencil;
+    JS::Rooted<JSScript*> script(aes.cx());
+    Compile(aes.cx(), options, mExpr, stencil, erv);
+    if (stencil) {
+      JS::InstantiateOptions instantiateOptions(options);
+      MOZ_ASSERT(!instantiateOptions.deferDebugMetadata);
+      script.set(JS::InstantiateGlobalStencil(aes.cx(), instantiateOptions,
+                                              stencil, /* storage */ nullptr));
+      if (!script) {
+        erv.NoteJSContextException(aes.cx());
+      }
+    }
+
+    if (script) {
+      MOZ_ASSERT(!erv.Failed());
+      if (mInitiatingScript) {
+        mInitiatingScript->AssociateWithScript(script);
       }
 
-      if (script) {
-        MOZ_ASSERT(!erv.Failed());
-        if (mInitiatingScript) {
-          mInitiatingScript->AssociateWithScript(script);
-        }
-
-        if (!JS_ExecuteScript(aes.cx(), script)) {
-          erv.NoteJSContextException(aes.cx());
-        }
+      if (!JS_ExecuteScript(aes.cx(), script)) {
+        erv.NoteJSContextException(aes.cx());
       }
     }
 
