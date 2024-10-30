@@ -9,7 +9,7 @@
  */
 
 /*
- * Created on Wed Oct 26 05:55:58 2022 from CLDR data file cldr-common-42.0.zip.
+ * Created on Mon Oct 28 17:36:48 2024 from CLDR data file /tmp/cldr-common-46.0.zip.
  *
  * * * * * This file contains MACHINE-GENERATED DATA, do not edit! * * * * *
  *
@@ -18,27 +18,28 @@
 
 static const LangQuotesRec sLangQuotes[] = {
   // clang-format off
-  { "af\0ak\0as\0asa\0az\0bem\0bez\0bn\0brx\0ccp\0ceb\0cgg\0chr\0cy\0da\0dav\0dje\0doi\0dz\0ebu\0ee\0en\0es-419\0ff-Adlm\0fil\0fo\0gd\0gl\0gu\0guz\0hi\0id\0jmc\0jv\0kam\0kde\0kea\0khq\0ki\0kln\0km\0kn\0ko\0kok\0ksb\0ku\0lg\0ln\0lo\0lrc\0lu\0luo\0lv\0mas\0mer\0mfe\0mgo\0mi\0ml\0mn\0mr\0ms\0mt\0my\0naq\0nd\0ne\0nus\0nyn\0or\0pa\0pcm\0pis\0rof\0rwk\0saq\0sat\0sbp\0sd\0seh\0ses\0si\0sw\0ta\0te\0teo\0th\0to\0tr\0tt\0twq\0tzm\0uz-Cyrl\0vai\0vi\0vun\0wo\0xh\0xog\0yo\0yue-Hans\0zh\0zu\0", { { 0x201c, 0x201d, 0x2018, 0x2019 } } },
+  { "aa\0ab\0af\0ak\0an\0ann\0apc\0arn\0as\0asa\0az\0ba\0bal\0bem\0bew\0bez\0bgc\0bgn\0bho\0blt\0bn\0bo\0brx\0bss\0byn\0cad\0cch\0ccp\0ce\0ceb\0cgg\0cho\0chr\0cic\0ckb\0co\0csw\0cu\0cy\0da\0dav\0dje\0doi\0dv\0dz\0ebu\0ee\0en\0eo\0es\0fil\0fo\0frr\0fur\0fy\0ga\0gaa\0gd\0gez\0gl\0gn\0gu\0guz\0gv\0ha\0haw\0hi\0hnj\0id\0ig\0ii\0io\0iu\0jbo\0jmc\0jv\0kaa\0kaj\0kam\0kcg\0kde\0kea\0ken\0kgp\0khq\0ki\0kl\0kln\0km\0kn\0ko\0kok\0kpe\0ks\0ksb\0ksh\0ku\0kw\0kxv\0la\0lg\0lkt\0lmo\0ln\0lo\0lrc\0ltg\0lu\0luo\0lv\0mai\0mas\0mdf\0mer\0mfe\0mgh\0mgo\0mhn\0mi\0mic\0ml\0mn\0mni\0moh\0mr\0ms\0mt\0mus\0my\0myv\0naq\0nb\0nd\0nds\0ne\0nn\0nqo\0nr\0nus\0nv\0ny\0nyn\0oc\0om\0or\0os\0osa\0pa\0pap\0pcm\0pis\0prg\0ps\0pt\0qu\0quc\0raj\0rhg\0rif\0rm\0rof\0rwk\0sa\0saq\0sat\0sbp\0scn\0sd\0se\0seh\0ses\0shn\0si\0sid\0skr\0sma\0smj\0smn\0sms\0so\0ss\0ssy\0su\0sw\0szl\0ta\0te\0teo\0tg\0th\0tig\0to\0tok\0tpi\0tr\0trv\0trw\0ts\0tt\0twq\0tyv\0tzm\0ug\0vai\0ve\0vec\0vi\0vmw\0vo\0vun\0wa\0wae\0wal\0wbp\0wo\0xh\0xnr\0xog\0yi\0yo\0yrl\0za\0zh\0zu\0", { { 0x201c, 0x201d, 0x2018, 0x2019 } } },
   { "agq\0ff\0", { { 0x201e, 0x201d, 0x201a, 0x2019 } } },
-  { "am\0az-Cyrl\0fa\0fr-CH\0gsw\0jgo\0kkj\0mzn\0", { { 0xab, 0xbb, 0x2039, 0x203a } } },
-  { "ar\0ur\0", { { 0x201d, 0x201c, 0x2019, 0x2018 } } },
-  { "ast\0bm\0br\0ca\0dyo\0el\0es\0eu\0ewo\0it\0kab\0kk\0mg\0mua\0nnh\0pt-PT\0sc\0sg\0sq\0ti\0", { { 0xab, 0xbb, 0x201c, 0x201d } } },
+  { "am\0az-Arab\0az-Cyrl\0fa\0fr-CH\0gsw\0jgo\0kkj\0mzn\0sdh\0", { { 0xab, 0xbb, 0x2039, 0x203a } } },
+  { "ar\0lld\0ms-Arab\0syr\0ur\0", { { 0x201d, 0x201c, 0x2019, 0x2018 } } },
+  { "ast\0blo\0bm\0br\0ca\0dyo\0el\0es-US\0eu\0ewo\0ie\0it\0kab\0kk\0lij\0mg\0mua\0nnh\0pt-PT\0sc\0sg\0sq\0ti\0", { { 0xab, 0xbb, 0x201c, 0x201d } } },
   { "bas\0be\0cv\0ky\0ru\0sah\0uk\0", { { 0xab, 0xbb, 0x201e, 0x201c } } },
   { "bg\0lt\0", { { 0x201e, 0x201c, 0x201e, 0x201c } } },
   { "bs-Cyrl\0cs\0de\0dsb\0et\0hr\0hsb\0is\0lb\0luy\0mk\0sk\0sl\0", { { 0x201e, 0x201c, 0x201a, 0x2018 } } },
   { "bs\0", { { 0x201e, 0x201d, 0x2018, 0x2019 } } },
-  { "dua\0ksf\0no\0rw\0", { { 0xab, 0xbb, 0x2018, 0x2019 } } },
+  { "dua\0el-POLYTON\0ksf\0no\0rw\0", { { 0xab, 0xbb, 0x2018, 0x2019 } } },
   { "fi\0he\0lag\0rn\0sn\0sv\0", { { 0x201d, 0x201d, 0x2019, 0x2019 } } },
   { "fr-CA\0", { { 0xab, 0xbb, 0x201d, 0x201c } } },
   { "fr\0hy\0yav\0", { { 0xab, 0xbb, 0xab, 0xbb } } },
   { "hu\0", { { 0x201e, 0x201d, 0xbb, 0xab } } },
-  { "ia\0ti-ER\0", { { 0x2018, 0x2019, 0x201c, 0x201d } } },
+  { "ia\0nso\0ti-ER\0tn\0", { { 0x2018, 0x2019, 0x201c, 0x201d } } },
   { "ja\0yue\0zh-Hant\0", { { 0x300c, 0x300d, 0x300e, 0x300f } } },
   { "ka\0", { { 0x201e, 0x201c, 0xab, 0xbb } } },
   { "nl\0", { { 0x2018, 0x2019, 0x2018, 0x2019 } } },
   { "nmg\0pl\0ro\0", { { 0x201e, 0x201d, 0xab, 0xbb } } },
   { "shi\0zgh\0", { { 0xab, 0xbb, 0x201e, 0x201d } } },
-  { "sr\0", { { 0x201e, 0x201c, 0x2018, 0x2018 } } },
+  { "sr\0", { { 0x201e, 0x201d, 0x2019, 0x2019 } } },
+  { "st\0", { { 0x201c, 0x2019, 0x201c, 0x201d } } },
   { "tk\0", { { 0x201c, 0x201d, 0x201c, 0x201d } } },
   { "uz\0", { { 0x201c, 0x201d, 0x2019, 0x2018 } } },
   // clang-format on

@@ -35,6 +35,12 @@ while ($status > 0) {
   if ($name =~ m@common/main/([A-Za-z0-9_]+)\.xml@) {
     my $lang = $1;
     $lang =~ s/_/-/;
+
+    $langQuotes{$lang}[0] = "";
+    $langQuotes{$lang}[1] = "";
+    $langQuotes{$lang}[2] = "";
+    $langQuotes{$lang}[3] = "";
+
     while (<$zip>) {
       $langQuotes{$lang}[0] = $1 if (m!<quotationStart>(.+)<!);
       $langQuotes{$lang}[1] = $1 if (m!<quotationEnd>(.+)<!);

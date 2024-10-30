@@ -9,32 +9,32 @@
  */
 
 /*
- * Created on Wed Sep 25 08:09:45 2024 from UCD data files with version info:
+ * Created on Mon Oct 28 17:12:38 2024 from UCD data files with version info:
  *
 
 # Unicode Character Database
-# Date: 2022-09-02
-# © 2022 Unicode®, Inc.
+# Date: 2024-08-25
+# © 2024 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
-# For terms of use, see https://www.unicode.org/terms_of_use.html
+# For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
 # For documentation, see the following:
 # NamesList.html
 # UAX #38, "Unicode Han Database (Unihan)"
 # UAX #44, "Unicode Character Database"
 # UTS #51, "Unicode Emoji"
+# UAX #57, "Unicode Egyptian Hieroglyph Database"
 #
-# The UAXes and UTS #51 can be accessed at https://www.unicode.org/versions/Unicode15.0.0/
+# The UAXes and UTS #51 can be accessed at https://www.unicode.org/versions/Unicode16.0.0/
 
-This directory contains the final data files
-for the Unicode Character Database, for Version 15.0.0 of the Unicode Standard.
+This directory contains final data files
+for the Unicode Character Database, for Version 16.0.0 of the Unicode Standard.
 
 # IdentifierStatus.txt
-# Date: 2022-08-26, 16:49:09 GMT
+# Date: 2024-05-04, 21:31:06 GMT
 
-#
 # Unihan_Variants.txt
-# Date: 2022-08-01 16:36:07 GMT [JHJ]
+# Date: 2024-07-31 00:00:00 GMT [KL]
 
  *
  * * * * * This file contains MACHINE-GENERATED DATA, do not edit! * * * * *
@@ -245,8 +245,16 @@ enum class Script : int16_t {
   VITHKUQI = 197,
   KAWI = 198,
   NAG_MUNDARI = 199,
+  ARABIC_NASTALIQ = 200,
+  GARAY = 201,
+  GURUNG_KHEMA = 202,
+  KIRAT_RAI = 203,
+  OL_ONAL = 204,
+  SUNUWAR = 205,
+  TODHRI = 206,
+  TULU_TIGALARI = 207,
 
-  NUM_SCRIPT_CODES = 200,
+  NUM_SCRIPT_CODES = 208,
 
   INVALID = -1
 };
