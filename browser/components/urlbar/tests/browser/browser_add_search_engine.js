@@ -291,6 +291,13 @@ add_task(async function context_after_customize() {
     gCustomizeMode.exit();
     await promise;
 
+    // Wait for the urlbar to pop out again before trying to show the context
+    // menu. Otherwise the reframing might hide the context menu (this is a
+    // long-standing XUL issue).
+    await TestUtils.waitForCondition(() => {
+      return window.gURLBar.textbox.hasAttribute("breakout");
+    });
+
     await UrlbarTestUtils.withContextMenu(window, async popup => {
       info("The separator and the add engine item should be present.");
       let elt = popup.parentNode.getMenuItem("add-engine-separator");
