@@ -6,47 +6,27 @@
    See https://github.com/LeaVerou/cubic-bezier */
 
 .cubic-bezier-container {
-  /* These should be kept in pixels as they're used in CubicBezierWidget.js to set the canvas size */
-  --bezier-curve-width: 150px;
-  --bezier-curve-height: 330px;
-  --bezier-preview-height: 40px;
-  --bezier-tooltip-container-height:  calc(var(--bezier-curve-height) + var(--bezier-preview-height));
-  display: grid;
-  grid-template-areas:
-    "presets curve"
-    "presets preview";
-  grid-template-columns: 50% 50%;
-  grid-template-rows: var(--bezier-curve-height) var(--bezier-preview-height);
+  display: flex;
   width: 510px;
-  height: var(--bezier-tooltip-container-height);
+  height: 370px;
+  flex-direction: row-reverse;
   overflow: hidden;
   padding: 5px;
   box-sizing: border-box;
+}
 
-  .preset-pane {
-    grid-area: presets;
-    border-inline-end: 1px solid var(--theme-splitter-color);
-    padding-inline-end: 4px; /* Visual balance for the panel-arrowcontent border on inline start */
-  }
-
-  .display-wrap {
-    grid-area: curve;
-    text-align: center;
-    overflow: hidden;
-  }
-
-  .timing-function-preview {
-    grid-area: preview;
-    align-self: center;
-    justify-self: center;
-  }
+.cubic-bezier-container .display-wrap {
+  width: 50%;
+  height: 100%;
+  text-align: center;
+  overflow: hidden;
 }
 
 /* Coordinate Plane */
 
 .cubic-bezier-container .coordinate-plane {
-  width: var(--bezier-curve-width);
-  height: var(--bezier-tooltip-container-height);
+  width: 150px;
+  height: 370px;
   margin: 0 auto;
   position: relative;
 }
@@ -57,84 +37,88 @@
   height: 10px;
   width: 10px;
   border: 0;
-  background: var(--timing-function-control-point-background);
+  background: #666;
   display: block;
   margin: -5px 0 0 -5px;
   outline: none;
   border-radius: 5px;
   padding: 0;
   cursor: pointer;
-  /* opt-out of forced colors as --timing-function-control-point-background
-     is a registered property, so the engine will compute it to an rgb color,
-     which means it won't be seen as a system color in High Contrast Mode
-     and a default color would be used. */
-     forced-color-adjust: none;
 }
 
 .cubic-bezier-container .display-wrap {
   background:
   repeating-linear-gradient(0deg,
     transparent,
-    var(--timing-function-grid-color) 0,
-    var(--timing-function-grid-color) 1px,
+    var(--bezier-grid-color) 0,
+    var(--bezier-grid-color) 1px,
     transparent 1px,
     transparent 15px) no-repeat,
   repeating-linear-gradient(90deg,
     transparent,
-    var(--timing-function-grid-color) 0,
-    var(--timing-function-grid-color) 1px,
+    var(--bezier-grid-color) 0,
+    var(--bezier-grid-color) 1px,
     transparent 1px,
     transparent 15px) no-repeat;
   background-size: 100% 100%, 100% 100%;
+  background-position: -2px 5px, -2px 5px;
   user-select: none;
+}
 
-  :root[forced-colors-active] & {
-    /* opt-out of forced colors so we can see still the lines in High Contrast Mode.
-     --timing-function-grid-color does have a specific value in HCM so it should be fine */
-    forced-color-adjust: none;
-
-    /* And set the forced colors on children so High Contrast Mode behaves as expected */
-    & > * {
-      forced-color-adjust: auto;
-    }
-  }
+.cubic-bezier-container canvas.curve {
+  background:
+    linear-gradient(-45deg,
+      transparent 49.7%,
+      var(--bezier-diagonal-color) 49.7%,
+      var(--bezier-diagonal-color) 50.3%,
+      transparent 50.3%) center no-repeat;
+  background-size: 100% 100%;
+  background-position: 0 0;
 }
 
 /* Timing Function Preview Widget */
 
 .cubic-bezier-container .timing-function-preview {
-  width: var(--bezier-curve-width);
-
-  /* Stack the line and the dot on top of each other */
-  display: grid;
-  align-items: center;
-  justify-items: center;
-  :is(.scale, .dot) {
-    grid-column: 1 / 1;
-    grid-row: 1 / 1;
-  }
+  position: absolute;
+  bottom: 20px;
+  right: 45px;
+  width: 150px;
 }
 
 .cubic-bezier-container .timing-function-preview .scale {
-  width: 100%;
+  position: absolute;
+  top: 6px;
+  left: 0;
+  z-index: 1;
+
+  width: 150px;
   height: 1px;
-  background-color: var(--timing-function-preview-scale);
-  /* opt-out of forced colors so we can see the line in High Contrast Mode */
-    forced-color-adjust: none;
+
+  background: #ccc;
 }
 
 .cubic-bezier-container .timing-function-preview .dot {
+  position: absolute;
+  top: 0;
+  left: -7px;
+  z-index: 2;
+
   width: 10px;
   height: 10px;
+
   border-radius: 50%;
-  border: 2px solid var(--timing-function-preview-dot-border);
-  background: var(--timing-function-line-color);
-  /* opt-out of forced colors as --timing-function-line-color is using
-     a non system but high contrast color */
-  forced-color-adjust: none;
+  border: 2px solid white;
+  background: #4C9ED9;
 }
 
 /* Preset Widget */
+
+.cubic-bezier-container .preset-pane {
+  width: 50%;
+  height: 100%;
+  border-right: 1px solid var(--theme-splitter-color);
+  padding-right: 4px; /* Visual balance for the panel-arrowcontent border on the left */
+}
 
 #preset-categories {
   display: flex;
@@ -145,20 +129,20 @@
   margin: 3px auto 0 auto;
 }
 
+#preset-categories .category:last-child {
+  border-right: none;
+}
+
 .cubic-bezier-container .category {
   padding: 5px 0px;
   width: 33.33%;
   text-align: center;
   text-transform: capitalize;
-  border-inline-end: 1px solid var(--theme-splitter-color);
+  border-right: 1px solid var(--theme-splitter-color);
   cursor: default;
   color: var(--theme-body-color);
   text-overflow: ellipsis;
   overflow: hidden;
-
-  &:last-child {
-    border-inline-end: none;
-  }
 }
 
 .cubic-bezier-container .category:hover {

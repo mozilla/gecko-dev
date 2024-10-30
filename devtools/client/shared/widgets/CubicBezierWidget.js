@@ -159,19 +159,10 @@ BezierCanvas.prototype = {
   plot(settings = {}) {
     const xy = this.bezier.coordinates;
 
-    const win = this.canvas.ownerGlobal;
-    const computedStyle = win.getComputedStyle(win.document.documentElement);
-
     const defaultSettings = {
-      handleColor: computedStyle.getPropertyValue(
-        "--timing-function-control-point-background"
-      ),
+      handleColor: "#666",
       handleThickness: 0.008,
-      diagonalThickness: 0.01,
-      diagonalColor: computedStyle.getPropertyValue("--bezier-diagonal-color"),
-      bezierColor: computedStyle.getPropertyValue(
-        "--timing-function-line-color"
-      ),
+      bezierColor: "#4C9ED9",
       bezierThickness: 0.015,
       drawHandles: true,
     };
@@ -190,6 +181,7 @@ BezierCanvas.prototype = {
     if (defaultSettings.drawHandles) {
       // Draw control handles
       this.ctx.beginPath();
+      this.ctx.fillStyle = defaultSettings.handleColor;
       this.ctx.lineWidth = defaultSettings.handleThickness;
       this.ctx.strokeStyle = defaultSettings.handleColor;
 
@@ -201,14 +193,16 @@ BezierCanvas.prototype = {
       this.ctx.stroke();
       this.ctx.closePath();
 
-      // Draw diagonal between points
-      this.ctx.beginPath();
-      this.ctx.lineWidth = defaultSettings.diagonalThickness;
-      this.ctx.strokeStyle = defaultSettings.diagonalColor;
-      this.ctx.moveTo(0, 0);
-      this.ctx.lineTo(1, 1);
-      this.ctx.stroke();
-      this.ctx.closePath();
+      const circle = (ctx, cx, cy, r) => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI, !1);
+        ctx.closePath();
+      };
+
+      circle(this.ctx, xy[0], xy[1], 1.5 * defaultSettings.handleThickness);
+      this.ctx.fill();
+      circle(this.ctx, xy[2], xy[3], 1.5 * defaultSettings.handleThickness);
+      this.ctx.fill();
     }
 
     // Draw bezier curve
@@ -310,26 +304,9 @@ CubicBezierWidget.prototype = {
     plane.appendChild(p2);
 
     const curve = doc.createElementNS(XHTML_NS, "canvas");
+    curve.setAttribute("width", 150);
+    curve.setAttribute("height", 370);
     curve.className = "curve";
-    const parentComputedStyle = this.parent.ownerGlobal.getComputedStyle(
-      this.parent
-    );
-    // We need to set the canvas dimension to the actual rendered dimension
-    // to avoid the canvas to scale. We can retriev the CSS variable values
-    // and striping their unit.
-    const dimensionRegex = /(?<size>\d+)px$/;
-    curve.setAttribute(
-      "width",
-      dimensionRegex.exec(
-        parentComputedStyle.getPropertyValue("--bezier-curve-width")
-      ).groups.size
-    );
-    curve.setAttribute(
-      "height",
-      dimensionRegex.exec(
-        parentComputedStyle.getPropertyValue("--bezier-curve-height")
-      ).groups.size
-    );
 
     plane.appendChild(curve);
     wrap.appendChild(plane);
@@ -883,39 +860,21 @@ TimingFunctionPreviewWidget.prototype = {
     // And start the new one.
     // The animation consists of a few keyframes that move the dot to the right of the
     // container, and then move it back to the left.
-    // It also contains some pause where the dot is greyed-out, before it moves to
+    // It also contains some pause where the dot is semi transparent, before it moves to
     // the right, and once again, before it comes back to the left.
     // The timing function passed to this function is applied to the keyframes that
     // actually move the dot. This way it can be previewed in both direction, instead of
     // being spread over the whole animation.
-    const translateStart = "calc(var(--bezier-curve-width) / -2)";
-    const translateEnd = "calc(var(--bezier-curve-width) / 2)";
-    const grayscaleFilter = "grayscale(100%)";
-
     this.dot.animate(
       [
-        { translate: translateStart, filter: grayscaleFilter, offset: 0 },
-        {
-          translate: translateStart,
-          filter: grayscaleFilter,
-          offset: 0.19,
-        },
-        {
-          translate: translateStart,
-          filter: "none",
-          offset: 0.2,
-          easing: timingFunction,
-        },
-        { translate: translateEnd, filter: "none", offset: 0.5 },
-        { translate: translateEnd, filter: grayscaleFilter, offset: 0.51 },
-        { translate: translateEnd, filter: grayscaleFilter, offset: 0.7 },
-        {
-          translate: translateEnd,
-          filter: "none",
-          offset: 0.71,
-          easing: timingFunction,
-        },
-        { translate: translateStart, filter: "none", offset: 1 },
+        { left: "-7px", opacity: 0.5, offset: 0 },
+        { left: "-7px", opacity: 0.5, offset: 0.19 },
+        { left: "-7px", opacity: 1, offset: 0.2, easing: timingFunction },
+        { left: "143px", opacity: 1, offset: 0.5 },
+        { left: "143px", opacity: 0.5, offset: 0.51 },
+        { left: "143px", opacity: 0.5, offset: 0.7 },
+        { left: "143px", opacity: 1, offset: 0.71, easing: timingFunction },
+        { left: "-7px", opacity: 1, offset: 1 },
       ],
       {
         duration: this.PREVIEW_DURATION * 2,

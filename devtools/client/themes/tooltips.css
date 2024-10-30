@@ -17,32 +17,11 @@
  */
 @import url(chrome://devtools/skin/compatibility.css) layer(shared);
 
-/* The following properties values are consumed by the client for drawing in canvas
- * (e.g. for the CubicBezierWidget).
- * Since they're defined in :root with light-dark(), we need to register them so we'll get
- * the actual final (rgb) color, and not the declaration with substituted variables
- */
- @property --bezier-diagonal-color {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: transparent;
-}
-
-@property --timing-function-control-point-background {
-  syntax: '<color>';
-  inherits: true;
-  initial-value: transparent;
-}
-
 :root {
   --theme-arrowpanel-border-radius: 3.5px;
 
   --bezier-diagonal-color: light-dark(rgba(0, 0, 0, 0.2), #eee);
-  --timing-function-grid-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1));
-  --timing-function-line-color: #4C9ED9;
-  --timing-function-preview-scale: light-dark(var(--grey-43), var(--grey-40));
-  --timing-function-preview-dot-border: white;
-  --timing-function-control-point-background: light-dark(var(--grey-55), var(--grey-20));
+  --bezier-grid-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1));
 
   /* Tooltips */
   --theme-tooltip-color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
@@ -64,23 +43,6 @@
     --theme-arrowpanel-active-background: SelectedItem;
     --theme-arrowpanel-active-color: SelectedItemText;
     --theme-arrowpanel-active-outline-color: ButtonText;
-
-    /* This is used in a repeated gradient to create a grid pattern.
-       Using GrayText directly makes it hard to distinguish the
-       other elements in the chart, so lower the color opacity a bit.
-       It should be fine as it's not an important element. Also, this can
-       work even if we don't have a resulting system color, as the
-       consumers of this variable already need to opt out of forced colors
-       so it can be used in the background gradient */
-    --timing-function-grid-color: light-dark(
-      /* In light mode, the grid appears much more contrasted, so lower the opacity even more */
-      rgb(from GrayText r g b / 0.4),
-      rgb(from GrayText r g b / 0.7)
-    );
-    --timing-function-line-color: var(--theme-highlight-blue);
-    --timing-function-preview-dot-border: CanvasText;
-    --timing-function-control-point-background: ButtonText;
-    --bezier-diagonal-color: CanvasText;
   }
 }
 
