@@ -50,7 +50,15 @@ add_setup(async function() {
   },
   // requestStorageAccess
   function testRequestStorageAccess(aCallback) {
-    document.requestStorageAccess().then(aCallback);
+    SpecialPowers.pushPermissions([
+      {
+        type: "storageAccessAPI",
+        allow: true,
+        context: window.document,
+      },
+    ]).then(
+      () => document.requestStorageAccess().then(aCallback)
+    );
   },
   // serviceWorker.getRegistration
   function testGetServiceWorkerRegistration(aCallback) {

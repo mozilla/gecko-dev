@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="/tests/SimpleTest/test.css"/>
   <script>
     SimpleTest.waitForExplicitFinish();
-    var b = new BroadcastChannel("windowclose");
 
     const link = "link";
     const windowopen = "window.open()";
@@ -43,7 +42,9 @@
     async function start() {
       // If Fission is disabled, the pref is no-op.
       await SpecialPowers.pushPrefEnv({set: [["fission.bfcacheInParent", true]]});
+      await SimpleTest.enableLegacyUnpartitionedStorage();
 
+      var b = new BroadcastChannel("windowclose");
       for (let test of tests) {
         await SpecialPowers.pushPrefEnv({ set: [["dom.allow_scripts_to_close_windows", false]]});
         if (test.type == windowopen) {
