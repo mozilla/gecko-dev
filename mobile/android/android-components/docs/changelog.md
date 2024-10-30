@@ -12,6 +12,10 @@ permalink: /changelog/
   * `AbstractFetchDownloadService.createOpenFileIntent` will create an intent to open PDF files from the caller application if it can open PDFs. See [Bug 1920092](https://bugzilla.mozilla.org/show_bug.cgi?id=1920092).
   * `AbstractFetchDownloadService.openFile` will open PDF files from the caller application if it can open PDFs. See [Bug 1920092](https://bugzilla.mozilla.org/show_bug.cgi?id=1920092).
 
+* **browser-toolbar**
+    * Added internal data class `DisplayMargins` in `DisplayToolbar` class that can be used to specify margins for `DisplayToolbar`'s views
+    * Added `setUrlBackgroundMargins` method in `DisplayToolbar` class that client apps can use to specify custom `DisplayMargins` for the `background` view. [Bug 1927778](https://bugzilla.mozilla.org/show_bug.cgi?id=1927778)
+
 # 133.0
 * **browser-store**
     * Adds `desktopMode` property to the `BrowserStore` to know whether or not browsing is in desktop mode. The pre-existing Action to update a tab's desktop mode has been renamed to disambiguate its intended use case. [Bug 1910768](https://bugzilla.mozilla.org/show_bug.cgi?id=1910768)

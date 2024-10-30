@@ -7,6 +7,7 @@ package mozilla.components.browser.toolbar.display
 import android.graphics.Color
 import android.os.Build
 import android.view.View
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
@@ -568,6 +569,22 @@ class DisplayToolbarTest {
         displayToolbar.setUrlBackground(null)
 
         assertNull(displayToolbar.views.background.drawable)
+    }
+
+    @Test
+    fun `setUrlBackgroundMargins sets the correct margins`() {
+        val (_, displayToolbar) = createDisplayToolbar()
+
+        val margins = DisplayToolbar.DisplayMargins(
+            goneStartMargin = 16,
+            goneEndMargin = 8,
+        )
+        displayToolbar.setUrlBackgroundMargins(margins)
+
+        val layoutParams = displayToolbar.views.background.layoutParams as? ConstraintLayout.LayoutParams
+        assertNotNull(layoutParams)
+        assertEquals(margins.goneStartMargin, layoutParams?.goneStartMargin)
+        assertEquals(margins.goneEndMargin, layoutParams?.goneEndMargin)
     }
 
     @Test
