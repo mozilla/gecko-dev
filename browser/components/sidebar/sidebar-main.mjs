@@ -12,11 +12,6 @@ import {
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
-});
-
 const TOOLS_OVERFLOW_LIMIT = 5;
 
 /**
@@ -53,10 +48,6 @@ export default class SidebarMain extends MozLitElement {
     this.open = window.SidebarController.isOpen;
     this.contextMenuTarget = null;
     this.expanded = false;
-    this.clickCounts = {
-      genai: 0,
-      totalToolsMinusGenai: 0,
-    };
   }
 
   connectedCallback() {
@@ -249,32 +240,7 @@ export default class SidebarMain extends MozLitElement {
     }
   }
 
-  async checkShouldShowCalloutSurveys(view) {
-    const { currentID, toolsAndExtensions } = window.SidebarController;
-    let isToolOpening =
-      (!currentID || (currentID && currentID !== view)) &&
-      toolsAndExtensions.has(view);
-    if (isToolOpening) {
-      if (view == "viewGenaiChatSidebar") {
-        this.clickCounts.genai++;
-      } else {
-        this.clickCounts.totalToolsMinusGenai++;
-      }
-
-      await lazy.ASRouter.waitForInitialized;
-      lazy.ASRouter.sendTriggerMessage({
-        browser: window.gBrowser.selectedBrowser,
-        id: "sidebarToolOpened",
-        context: {
-          view,
-          clickCounts: this.clickCounts,
-        },
-      });
-    }
-  }
-
-  async showView(view) {
-    await this.checkShouldShowCalloutSurveys(view);
+  showView(view) {
     window.SidebarController.recordIconClick(view, this.expanded);
     window.SidebarController.toggle(view);
     if (view === "viewCustomizeSidebar") {
@@ -321,7 +287,7 @@ export default class SidebarMain extends MozLitElement {
       type=${isActiveView ? "icon" : "icon ghost"}
       aria-pressed="${isActiveView}"
       view=${action.view}
-      @click=${async () => await this.showView(action.view)}
+      @click=${() => this.showView(action.view)}
       title=${!this.expanded ? actionLabel : nothing}
       .iconSrc=${action.iconUrl}
       ?extension=${action.view?.includes("-sidebar-action")}
