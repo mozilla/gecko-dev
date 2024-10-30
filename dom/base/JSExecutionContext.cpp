@@ -69,15 +69,9 @@ JSExecutionContext::JSExecutionContext(
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript)
     : mCx(aCx),
-      mScript(aCx),
       mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
       mDebuggerIntroductionScript(aCx, aDebuggerIntroductionScript),
-      mSkip(false)
-#ifdef DEBUG
-      ,
-      mScriptUsed(false)
-#endif
-{
+      mSkip(false) {
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(CycleCollectedJSContext::Get() &&
@@ -92,6 +86,7 @@ JSExecutionContext::JSExecutionContext(
 
 void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
                                        ScriptLoadContext* aContext,
+                                       JS::MutableHandle<JSScript*> aScript,
                                        ErrorResult& aRv,
                                        bool aEncodeBytecode /* = false */) {
   MOZ_ASSERT(!mSkip);
@@ -116,13 +111,14 @@ void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
   }
 
   bool unused;
-  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv,
+  InstantiateStencil(aCompileOptions, std::move(stencil), aScript, unused, aRv,
                      aEncodeBytecode, &storage);
 }
 
 template <typename Unit>
 void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
                                          JS::SourceText<Unit>& aSrcBuf,
+                                         JS::MutableHandle<JSScript*> aScript,
                                          bool aEncodeBytecode,
                                          ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
@@ -147,26 +143,30 @@ void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
   }
 
   bool unused;
-  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv,
+  InstantiateStencil(aCompileOptions, std::move(stencil), aScript, unused, aRv,
                      aEncodeBytecode);
 }
 
 void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<char16_t>& aSrcBuf,
+                                 JS::MutableHandle<JSScript*> aScript,
                                  ErrorResult& aRv,
                                  bool aEncodeBytecode /*= false */) {
-  InternalCompile(aCompileOptions, aSrcBuf, aEncodeBytecode, aRv);
+  InternalCompile(aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
 }
 
 void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<Utf8Unit>& aSrcBuf,
+                                 JS::MutableHandle<JSScript*> aScript,
                                  ErrorResult& aRv,
                                  bool aEncodeBytecode /*= false */) {
-  InternalCompile(aCompileOptions, aSrcBuf, aEncodeBytecode, aRv);
+  InternalCompile(aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
 }
 
 void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
-                                 const nsAString& aScript, ErrorResult& aRv,
+                                 const nsAString& aScript,
+                                 JS::MutableHandle<JSScript*> aScriptOut,
+                                 ErrorResult& aRv,
                                  bool aEncodeBytecode /*= false */) {
   MOZ_ASSERT(!mSkip);
 
@@ -179,11 +179,12 @@ void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
     return;
   }
 
-  Compile(aCompileOptions, srcBuf, aRv, aEncodeBytecode);
+  Compile(aCompileOptions, srcBuf, aScriptOut, aRv, aEncodeBytecode);
 }
 
 void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
                                 const JS::TranscodeRange& aBytecodeBuf,
+                                JS::MutableHandle<JSScript*> aScript,
                                 ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
@@ -214,11 +215,12 @@ void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
   }
 
   bool unused;
-  InstantiateStencil(aCompileOptions, std::move(stencil), unused, aRv);
+  InstantiateStencil(aCompileOptions, std::move(stencil), aScript, unused, aRv);
 }
 
 void JSExecutionContext::InstantiateStencil(
     JS::CompileOptions& aCompileOptions, RefPtr<JS::Stencil>&& aStencil,
+    JS::MutableHandle<JSScript*> aScript,
     bool& incrementalEncodingAlreadyStarted, ErrorResult& aRv,
     bool aEncodeBytecode /* = false */, JS::InstantiationStorage* aStorage) {
   JS::InstantiateOptions instantiateOptions(aCompileOptions);
@@ -240,11 +242,11 @@ void JSExecutionContext::InstantiateStencil(
     }
   }
 
-  MOZ_ASSERT(!mScript);
-  mScript.set(script);
+  MOZ_ASSERT(!aScript);
+  aScript.set(script);
 
   if (instantiateOptions.deferDebugMetadata) {
-    if (!JS::UpdateDebugMetadata(mCx, mScript, instantiateOptions,
+    if (!JS::UpdateDebugMetadata(mCx, aScript, instantiateOptions,
                                  mDebuggerPrivateValue, nullptr,
                                  mDebuggerIntroductionScript, nullptr)) {
       aRv = NS_ERROR_OUT_OF_MEMORY;
@@ -252,24 +254,13 @@ void JSExecutionContext::InstantiateStencil(
   }
 }
 
-JSScript* JSExecutionContext::GetScript() {
-#ifdef DEBUG
-  MOZ_ASSERT(!mSkip);
-  MOZ_ASSERT(mScript);
-  mScriptUsed = true;
-#endif
-
-  return MaybeGetScript();
-}
-
-JSScript* JSExecutionContext::MaybeGetScript() { return mScript; }
-
-void JSExecutionContext::ExecScript(ErrorResult& aRv) {
+void JSExecutionContext::ExecScript(JS::Handle<JSScript*> aScript,
+                                    ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
-  MOZ_ASSERT(mScript);
+  MOZ_ASSERT(aScript);
 
-  if (!JS_ExecuteScript(mCx, mScript)) {
+  if (!JS_ExecuteScript(mCx, aScript)) {
     mSkip = true;
     aRv.NoteJSContextException(mCx);
   }
@@ -289,14 +280,15 @@ static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   return JS::IsPromiseObject(obj);
 }
 
-void JSExecutionContext::ExecScript(JS::MutableHandle<JS::Value> aRetValue,
+void JSExecutionContext::ExecScript(JS::Handle<JSScript*> aScript,
+                                    JS::MutableHandle<JS::Value> aRetValue,
                                     ErrorResult& aRv,
                                     bool aCoerceToString /* = false */) {
   MOZ_ASSERT(!mSkip);
 
-  MOZ_ASSERT(mScript);
+  MOZ_ASSERT(aScript);
 
-  if (!JS_ExecuteScript(mCx, mScript, aRetValue)) {
+  if (!JS_ExecuteScript(mCx, aScript, aRetValue)) {
     mSkip = true;
     aRv.NoteJSContextException(mCx);
     return;

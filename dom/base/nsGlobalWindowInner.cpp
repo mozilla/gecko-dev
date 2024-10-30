@@ -6099,16 +6099,16 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
           "JSExecutionContext",
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
       JSAutoRealm autoRealm(aes.cx(), global);
-      exec.Compile(options, mExpr, erv);
+      JS::Rooted<JSScript*> script(aes.cx());
+      exec.Compile(options, mExpr, &script, erv);
 
-      JS::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());
       if (script) {
         MOZ_ASSERT(!erv.Failed());
         if (mInitiatingScript) {
           mInitiatingScript->AssociateWithScript(script);
         }
 
-        exec.ExecScript(erv);
+        exec.ExecScript(script, erv);
       }
     }
 

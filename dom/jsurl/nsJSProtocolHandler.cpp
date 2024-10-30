@@ -333,10 +333,12 @@ nsresult nsJSThunk::EvaluateScript(
           "JSExecutionContext",
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
       JSAutoRealm autoRealm(cx, globalJSObject);
-      exec.Compile(options, NS_ConvertUTF8toUTF16(script), erv);
+      JS::Rooted<JSScript*> compiledScript(cx);
+      exec.Compile(options, NS_ConvertUTF8toUTF16(script), &compiledScript,
+                   erv);
       if (!erv.Failed()) {
         MOZ_ASSERT(!options.noScriptRval);
-        exec.ExecScript(&v, erv, /* aCoerceToString */ true);
+        exec.ExecScript(compiledScript, &v, erv, /* aCoerceToString */ true);
       }
     }
     rv = mozilla::dom::EvaluationExceptionToNSResult(erv);

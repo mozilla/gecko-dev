@@ -642,6 +642,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
                                        JSExecutionContext& aExec,
                                        JS::CompileOptions& aCompileOptions,
                                        ScriptLoadRequest* aRequest,
+                                       JS::MutableHandle<JSScript*> aScript,
                                        ErrorResult& aRv);
 
   // Instantiate classic script from one of the following data:
@@ -650,14 +651,15 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   void InstantiateClassicScriptFromMaybeEncodedSource(
       JSContext* aCx, JSExecutionContext& aExec,
       JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-      ErrorResult& aRv);
+      JS::MutableHandle<JSScript*> aScript, ErrorResult& aRv);
 
   // Instantiate classic script from the following data:
   //   * cached stencil
   void InstantiateClassicScriptFromCachedStencil(
       JSContext* aCx, JSExecutionContext& aExec,
       JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-      JS::Stencil* aStencil, ErrorResult& aRv);
+      JS::Stencil* aStencil, JS::MutableHandle<JSScript*> aScript,
+      ErrorResult& aRv);
 
   static nsCString& BytecodeMimeTypeFor(ScriptLoadRequest* aRequest);
 
