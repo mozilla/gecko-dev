@@ -18,12 +18,13 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::unicode;
 
 // static
 bool nsTextFrameUtils::IsSpaceCombiningSequenceTail(const char16_t* aChars,
                                                     int32_t aLength) {
   return aLength > 0 &&
-         (mozilla::unicode::IsClusterExtenderExcludingJoiners(aChars[0]) ||
+         (IsClusterExtenderExcludingJoiners(aChars[0]) ||
           (IsBidiControl(aChars[0]) &&
            IsSpaceCombiningSequenceTail(aChars + 1, aLength - 1)));
 }
@@ -98,20 +99,33 @@ static CharT* TransformWhiteSpaces(
        (aEnd < aLength && IS_ZERO_WIDTH_SPACE(aText[aEnd])));
   if (sizeof(CharT) > 1 && !isSegmentBreakSkippable && aBegin > 0 &&
       aEnd < aLength) {
-    uint32_t ucs4before;
-    uint32_t ucs4after;
-    if (aBegin > 1 &&
-        NS_IS_SURROGATE_PAIR(aText[aBegin - 2], aText[aBegin - 1])) {
-      ucs4before = SURROGATE_TO_UCS4(aText[aBegin - 2], aText[aBegin - 1]);
-    } else {
-      ucs4before = aText[aBegin - 1];
-    }
-    if (aEnd + 1 < aLength &&
-        NS_IS_SURROGATE_PAIR(aText[aEnd], aText[aEnd + 1])) {
-      ucs4after = SURROGATE_TO_UCS4(aText[aEnd], aText[aEnd + 1]);
-    } else {
-      ucs4after = aText[aEnd];
-    }
+    // Get the characters before and after the segment break, skipping past
+    // any default-ignorable characters (e.g. variation selectors, various
+    // invisible control chars, etc)
+    uint32_t ucs4before, ucs4after;
+    uint32_t pos = aBegin;
+    do {
+      if (pos > 1 && NS_IS_SURROGATE_PAIR(aText[pos - 2], aText[pos - 1])) {
+        ucs4before = SURROGATE_TO_UCS4(aText[pos - 2], aText[pos - 1]);
+        pos -= 2;
+      } else {
+        ucs4before = aText[pos - 1];
+        pos -= 1;
+      }
+    } while (IsDefaultIgnorable(ucs4before) && pos > 0);
+
+    pos = aEnd;
+    do {
+      if (pos + 1 < aLength &&
+          NS_IS_SURROGATE_PAIR(aText[pos], aText[pos + 1])) {
+        ucs4after = SURROGATE_TO_UCS4(aText[pos], aText[pos + 1]);
+        pos += 2;
+      } else {
+        ucs4after = aText[pos];
+        pos += 1;
+      }
+    } while (IsDefaultIgnorable(ucs4after) && pos < aLength);
+
     // Discard newlines between characters that have F, W, or H
     // EastAsianWidth property and neither side is Hangul.
     isSegmentBreakSkippable =
