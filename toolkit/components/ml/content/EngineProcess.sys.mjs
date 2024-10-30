@@ -463,7 +463,7 @@ export class PipelineOptions {
       }
 
       if (key === "timeoutMS") {
-        this.#validateIntegerRange(key, options[key], 0, 36000000);
+        this.#validateIntegerRange(key, options[key], -1, 36000000);
       }
 
       this[key] = options[key];

@@ -443,15 +443,17 @@ class EngineDispatcher {
   }
 
   /**
-   * The worker needs to be shutdown after some amount of time of not being used.
+   * The worker will be shutdown automatically after some amount of time of not being used, unless:
+   *
+   * - timeoutMS is set to -1
+   * - we are running a test
    */
   keepAlive() {
     if (this.#keepAliveTimeout) {
       // Clear any previous timeout.
       lazy.clearTimeout(this.#keepAliveTimeout);
     }
-    // In automated tests, the engine is manually destroyed.
-    if (!Cu.isInAutomation) {
+    if (!Cu.isInAutomation && this.timeoutMS >= 0) {
       this.#keepAliveTimeout = lazy.setTimeout(
         this.terminate.bind(
           this,
@@ -460,6 +462,8 @@ class EngineDispatcher {
         ),
         this.timeoutMS
       );
+    } else {
+      this.#keepAliveTimeout = null;
     }
   }
 

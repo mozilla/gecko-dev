@@ -56,7 +56,7 @@ Below are the options available:
 - **taskName**: The name of the task the pipeline is configured for.
 - **featureId**: The identifier for the feature to be used by the pipeline.
 - **engineId**:  The identifier for the engine to be used by the pipeline.
-- **timeoutMS**: The maximum amount of time in milliseconds the pipeline should wait for a response.
+- **timeoutMS**: The maximum amount of time in milliseconds the worker will run (-1 to never expire).
 - **modelHubRootUrl**: The root URL of the model hub where models are hosted.
 - **modelHubUrlTemplate**: A template URL for building the full URL for the model.
 - **modelId**: The identifier for the specific model to be used by the pipeline.
@@ -78,20 +78,23 @@ documentation: `Tasks <https://huggingface.co/tasks>`_
 and store corresponding options in Remote Settings -- :ref:`See the ml-inference-options collection <inference-remote-settings>`.
 
 **engineId** is used to manage the lifecycle of the engine. When not provided, it defaults to
-`default-engine`. Everytime a new engine is created using `createEngine` the API will ensure that
+`default-engine`. Everytime a new engine is created using `createEngine`, the API will ensure that
 there's a single engine with the given id. If the options of the existing engine are not different,
 the instance is reused. If they differ, the engine is reinitialized with the new options.
 This ensures we don't have too many engines running at once since it takes a lot of resources.
 To make sure your engine is not destroyed or reused elsewhere, set that value with a unique id
 that matches your component.
 
+When an engine is created, an inference process is created if it's not already there, and
+a new worker is launched for that engine. The inference process is unique and shared by all engines.
+
 Some values are also set from the preferences (set in `about:config`):
 
 - **browser.ml.logLevel**: Set to "All" to see all logs, which are useful for debugging.
 - **browser.ml.modelHubRootUrl**: Model hub root URL used to download models
 - **browser.ml.modelHubUrlTemplate**: Model URL template
-- **browser.ml.modelCacheTimeout**: Model cache timeout in ms
-- **browser.ml.modelCacheMaxSizeBytes**: Maximum disk size for ML model cache (in bytes)
+- **browser.ml.modelCacheTimeout**: Worker timeout in ms. Default value used for **timeoutMS**
+- **browser.ml.modelCacheMaxSize**: Maximum disk size for ML model cache (in GiB)
 
 
 Using the Hugging Face model hub
