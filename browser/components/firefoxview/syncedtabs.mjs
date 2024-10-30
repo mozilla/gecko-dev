@@ -134,7 +134,6 @@ class SyncedTabsInView extends ViewPage {
     buttonLabel,
     descriptionArray,
     descriptionLink,
-    error,
     header,
     headerIconUrl,
     mainImageUrl,
@@ -148,7 +147,6 @@ class SyncedTabsInView extends ViewPage {
         ?isSelectedTab=${this.selectedTab}
         ?isInnerCard=${this.recentBrowsing}
         mainImageUrl="${ifDefined(mainImageUrl)}"
-        ?errorGrayscale=${error}
         headerIconUrl="${ifDefined(headerIconUrl)}"
         id="empty-container"
       >

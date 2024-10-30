@@ -324,7 +324,7 @@ class RecentlyClosedTabsInView extends ViewPage {
         class="empty-state recentlyclosed"
         ?isInnerCard=${this.recentBrowsing}
         ?isSelectedTab=${this.selectedTab}
-        mainImageUrl="chrome://browser/content/firefoxview/recentlyclosed-empty.svg"
+        mainImageUrl="chrome://browser/content/firefoxview/history-empty.svg"
       >
       </fxview-empty-state>
     `;

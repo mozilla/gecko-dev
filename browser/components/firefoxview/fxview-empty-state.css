@@ -72,12 +72,6 @@
   }
 }
 
-
-.info {
-  -moz-context-properties: fill;
-  fill: var(--in-content-primary-button-background);
-}
-
 .description {
   color: var(--text-color-deemphasized);
   margin-block: 4px 15px;
