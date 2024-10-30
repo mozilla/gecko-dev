@@ -74,17 +74,6 @@ DnsAndConnectSocket::DnsAndConnectSocket(nsHttpConnectionInfo* ci,
        trans, mConnInfo->Origin(), mConnInfo->HashKey().get()));
 
   mIsHttp3 = mConnInfo->IsHttp3();
-  if (speculative) {
-    Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_TOTAL_SPECULATIVE_CONN>
-        totalSpeculativeConn;
-    ++totalSpeculativeConn;
-
-    if (isFromPredictor) {
-      Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_CREATED>
-          totalPreconnectsCreated;
-      ++totalPreconnectsCreated;
-    }
-  }
 
   MOZ_ASSERT(mConnInfo);
   NotifyActivity(mConnInfo,
@@ -110,18 +99,6 @@ DnsAndConnectSocket::~DnsAndConnectSocket() {
   // the nsHttpConnectionMgr active connection number.
   mPrimaryTransport.MaybeSetConnectingDone();
   mBackupTransport.MaybeSetConnectingDone();
-
-  if (mSpeculative) {
-    Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_UNUSED_SPECULATIVE_CONN>
-        unusedSpeculativeConn;
-    ++unusedSpeculativeConn;
-
-    if (mIsFromPredictor) {
-      Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_UNUSED>
-          totalPreconnectsUnused;
-      ++totalPreconnectsUnused;
-    }
-  }
 }
 
 nsresult DnsAndConnectSocket::Init(ConnectionEntry* ent) {
@@ -842,16 +819,6 @@ bool DnsAndConnectSocket::Claim() {
     };
     resetFlag(mPrimaryTransport);
     resetFlag(mBackupTransport);
-
-    Telemetry::AutoCounter<Telemetry::HTTPCONNMGR_USED_SPECULATIVE_CONN>
-        usedSpeculativeConn;
-    ++usedSpeculativeConn;
-
-    if (mIsFromPredictor) {
-      Telemetry::AutoCounter<Telemetry::PREDICTOR_TOTAL_PRECONNECTS_USED>
-          totalPreconnectsUsed;
-      ++totalPreconnectsUsed;
-    }
 
     // Http3 has its own syn-retransmission, therefore it does not need a
     // backup connection.

@@ -4910,39 +4910,6 @@
     "n_buckets": 50,
     "description": "How many actual preconnects happen"
   },
-  "PREDICTOR_TOTAL_PRECONNECTS_CREATED": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [881804],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 1000000,
-    "n_buckets": 50,
-    "description": "How many preconnects actually created a speculative socket"
-  },
-  "PREDICTOR_TOTAL_PRECONNECTS_USED": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [881804],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 1000000,
-    "n_buckets": 50,
-    "description": "How many preconnects actually created a used speculative socket"
-  },
-  "PREDICTOR_TOTAL_PRECONNECTS_UNUSED": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["necko@mozilla.com"],
-    "bug_numbers": [881804],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 1000000,
-    "n_buckets": 50,
-    "description": "How many preconnects needlessly created a speculative socket"
-  },
   "PREDICTOR_TOTAL_PRERESOLVES": {
     "record_in_processes": ["main"],
     "products": ["firefox", "fennec"],
@@ -5050,33 +5017,6 @@
     "alert_emails": ["necko@mozilla.com"],
     "bug_numbers": [1409542, 1430322, 1312057],
     "description": "Why the predictor determined a particular resource that was marked eligible for prefetch should not be prefetched. See PrefetchIgnoreReason in Predictor.cpp for value meanings"
-  },
-  "HTTPCONNMGR_TOTAL_SPECULATIVE_CONN": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 1000000,
-    "n_buckets": 50,
-    "description": "How many speculative http connections are created"
-  },
-  "HTTPCONNMGR_USED_SPECULATIVE_CONN": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 1000000,
-    "n_buckets": 50,
-    "description": "How many speculative http connections are actually used"
-  },
-  "HTTPCONNMGR_UNUSED_SPECULATIVE_CONN": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox", "fennec"],
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": 1000000,
-    "n_buckets": 50,
-    "description": "How many speculative connections are made needlessly"
   },
   "TAB_COUNT": {
     "record_in_processes": ["main"],
