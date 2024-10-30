@@ -487,9 +487,8 @@ void MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindow* aWidget,
     }
   }
 
-  // Handle most cases first.  If the window under mouse cursor is our window
-  // except plugin window (MozillaWindowClass), we should handle the message
-  // on the window.
+  // If the window under the mouse cursor is in our process, we should (try to)
+  // handle this message on that window.
   if (WinUtils::IsOurProcessWindow(underCursorWnd)) {
     nsWindow* destWindow = WinUtils::GetNSWindowPtr(underCursorWnd);
     if (!destWindow) {
@@ -533,26 +532,11 @@ void MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindow* aWidget,
     return;
   }
 
-  // If the window under cursor is not in our process, it means:
-  // 1. The window may be a plugin window (GeckoPluginWindow or its descendant).
-  // 2. The window may be another application's window.
-  HWND pluginWnd = WinUtils::FindOurProcessWindow(underCursorWnd);
-  if (!pluginWnd) {
-    // If there is no plugin window in ancestors of the window under cursor,
-    // the window is for another applications (case 2).
-    // We don't need to handle this message.
-    MOZ_LOG(gMouseScrollLog, LogLevel::Info,
-            ("MouseScroll::ProcessNativeMouseWheelMessage: "
-             "Our window is not found under the cursor"));
-    return;
-  }
-
-  // If the window is a part of plugin, we should post the message to it.
-  MOZ_LOG(
-      gMouseScrollLog, LogLevel::Info,
-      ("MouseScroll::ProcessNativeMouseWheelMessage: Succeeded, "
-       "Redirecting the message to a window which is a plugin child window"));
-  ::PostMessage(underCursorWnd, aMessage, aWParam, aLParam);
+  // If the window under the cursor is not in our process, we assume it's
+  // another application's window. We discard this message.
+  MOZ_LOG(gMouseScrollLog, LogLevel::Info,
+          ("MouseScroll::ProcessNativeMouseWheelMessage: "
+           "Our window is not found under the cursor"));
 }
 
 bool MouseScrollHandler::ProcessNativeScrollMessage(nsWindow* aWidget,
