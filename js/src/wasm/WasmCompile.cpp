@@ -919,14 +919,15 @@ bool wasm::CompileCompleteTier2(const Bytes& bytecode, const Module& module,
 }
 
 bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex,
-                               UniqueChars* error) {
+                               UniqueChars* error, UniqueCharsVector* warnings,
+                               mozilla::Atomic<bool>* cancelled) {
   CompilerEnvironment compilerEnv(CompileMode::LazyTiering, Tier::Optimized,
                                   DebugEnabled::False);
   compilerEnv.computeParameters();
 
   const CodeMetadata& codeMeta = code.codeMeta();
-  ModuleGenerator mg(codeMeta, compilerEnv, CompileState::LazyTier2, nullptr,
-                     error, nullptr);
+  ModuleGenerator mg(codeMeta, compilerEnv, CompileState::LazyTier2, cancelled,
+                     error, warnings);
   if (!mg.initializePartialTier(code, funcIndex)) {
     // The module is already validated, so this can only be an OOM.
     MOZ_ASSERT(!*error);

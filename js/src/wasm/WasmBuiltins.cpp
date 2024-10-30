@@ -738,7 +738,9 @@ static void WasmHandleRequestTierUp(Instance* instance) {
   if (JS::Prefs::wasm_lazy_tiering_synchronous()) {
     UniqueChars error;
     UniqueCharsVector warnings;
-    bool ok = CompilePartialTier2(*codeBlock->code, funcIndex, &error);
+    mozilla::Atomic<bool> cancelled(false);
+    bool ok = CompilePartialTier2(*codeBlock->code, funcIndex, &error,
+                                  &warnings, &cancelled);
     ReportTier2ResultsOffThread(ok, mozilla::Some(funcIndex),
                                 codeBlock->code->codeMeta().scriptedCaller(),
                                 error, warnings);

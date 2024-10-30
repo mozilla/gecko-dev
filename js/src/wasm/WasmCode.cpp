@@ -831,16 +831,14 @@ class Module::PartialTier2CompileTaskImpl : public PartialTier2CompileTask {
     if (!cancelled_) {
       AutoUnlockHelperThreadState unlock(locked);
 
-      // TODO: maybe have CompilePartialTier2 check `cancelled_` from time to
-      // time and return early if it is set?  See bug 1911060.
-      UniqueChars error;
-      bool success = CompilePartialTier2(*code_, funcIndex_, &error);
-
-      // FIXME: In the case `!success && !cancelled_`, compilation has failed
+      // In the case `!success && !cancelled_`, compilation has failed
       // and this function will be stuck in state TierUpState::Requested
-      // forever.  See bug 1911060.
-
+      // forever.
+      UniqueChars error;
       UniqueCharsVector warnings;
+      bool success = CompilePartialTier2(*code_, funcIndex_, &error, &warnings,
+                                         &cancelled_);
+
       ReportTier2ResultsOffThread(success, mozilla::Some(funcIndex_),
                                   code_->codeMeta().scriptedCaller(), error,
                                   warnings);
