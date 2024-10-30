@@ -898,6 +898,7 @@ TestRunner.testFinished = function (tests) {
       await cleanUpCrashDumpFiles();
       await SpecialPowers.flushPermissions();
       await SpecialPowers.flushPrefEnv();
+      SpecialPowers.cleanupAllClipboard(window);
       runNextTest();
     });
   });

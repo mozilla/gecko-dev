@@ -1534,6 +1534,7 @@ SimpleTest.finish = function () {
       }
 
       if (!parentRunner || parentRunner.showTestReport) {
+        SpecialPowers.cleanupAllClipboard(window);
         SpecialPowers.flushPermissions(function () {
           SpecialPowers.flushPrefEnv(function () {
             SimpleTest.showReport();

@@ -1737,6 +1737,24 @@ export class SpecialPowersChild extends JSWindowActorChild {
       .copyString(str);
   }
 
+  cleanupAllClipboard() {
+    // copied from widget/tests/clipboard_helper.js
+    // there is a write there I didn't want to copy
+    const clipboard = Services.clipboard;
+    const clipboardTypes = [
+      clipboard.kGlobalClipboard,
+      clipboard.kSelectionClipboard,
+      clipboard.kFindClipboard,
+      clipboard.kSelectionCache,
+    ];
+
+    clipboardTypes.forEach(function (type) {
+      if (clipboard.isClipboardTypeSupported(type)) {
+        clipboard.emptyClipboard(type);
+      }
+    });
+  }
+
   supportsSelectionClipboard() {
     return Services.clipboard.isClipboardTypeSupported(
       Services.clipboard.kSelectionClipboard

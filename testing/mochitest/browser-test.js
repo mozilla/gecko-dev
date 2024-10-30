@@ -807,6 +807,8 @@ Tester.prototype = {
       // eslint-disable-next-line no-undef
       await new Promise(resolve => SpecialPowers.flushPrefEnv(resolve));
 
+      window.SpecialPowers.cleanupAllClipboard();
+
       if (gConfig.cleanupCrashes) {
         let gdir = Services.dirsvc.get("UAppData", Ci.nsIFile);
         gdir.append("Crash Reports");
