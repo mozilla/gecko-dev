@@ -450,7 +450,7 @@ pub mod test_nested {
 
         pub type AnObjectObject = Vec<AnObjectObjectItem>;
 
-        #[derive(Debug, Hash, Eq, PartialEq, ::glean::traits::__serde::Serialize, ::glean::traits::__serde::Deserialize)]
+        #[derive(Debug, Hash, Eq, PartialEq, Clone, ::glean::traits::__serde::Serialize, ::glean::traits::__serde::Deserialize)]
     #[allow(non_snake_case)]
     #[serde(deny_unknown_fields)]
     pub struct AnObjectObjectItem {

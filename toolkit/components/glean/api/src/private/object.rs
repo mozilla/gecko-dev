@@ -62,7 +62,7 @@ pub enum ObjectMetric<K> {
     Child,
 }
 
-impl<K: ObjectSerialize> ObjectMetric<K> {
+impl<K: ObjectSerialize + Clone> ObjectMetric<K> {
     /// Create a new object metric.
     pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
@@ -77,38 +77,33 @@ impl<K: ObjectSerialize> ObjectMetric<K> {
         match self {
             #[allow(unused)]
             ObjectMetric::Parent { id, inner } => {
-                // We can't add a useful marker here, as K doesn't implement
-                // copy or clone, so we can't get a copy of the data to put in
-                // the marker.
                 #[cfg(feature = "with_gecko")]
-                gecko_profiler::add_marker(
-                    "Object::set",
-                    gecko_profiler_category!(Telemetry),
-                    Default::default(),
-                    ObjectMetricMarker {
-                        id: *id,
-                        // It might be better to store the "raw"
-                        // Result<Value, ObjectError> in the marker, as we are
-                        // writing a lot of strings here, once we are able to,
-                        // clone K - some of which will be duplicated error
-                        // strings. That would, however, require us to
-                        // parameterise the marker type with `K`, the type
-                        // parameter to ObjectMetric. This would be treated by
-                        // rust/`typeid` as another concrete type, meaning that
-                        // it would have a unique tag for (de)serialisation,
-                        // and may quickly exhaust our (current) marker
-                        // (de)serialisation tag limit.
-
-                        // See note above on why we record an "empty" string.
-                        // We would prefer to perform something like this:
-                        // value.clone()
-                        //     .into_serialized_object()
-                        //     .map_or_else(
-                        //          |e| glean::traits::ObjectError::to_string(&e),
-                        //          |v| serde_json::Value::to_string(&v)),
-                        value: "[]".to_string(),
-                    },
-                );
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "Object::set",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        ObjectMetricMarker {
+                            id: *id,
+                            // It might be better to store the "raw"
+                            // Result<Value, ObjectError> in the marker, as we
+                            // are writing a lot of strings here. That would,
+                            // however, require us to parameterise the marker
+                            // type with `K`, the type parameter to
+                            // ObjectMetric. This would be treated by
+                            // rust's `typeid` as another concrete type,
+                            // meaning that it would have a unique tag for
+                            // (de)serialisation, and may quickly exhaust our
+                            // (current) marker (de)serialisation tag limit.
+                            value: truncate_string_for_marker(
+                                value.clone().into_serialized_object().map_or_else(
+                                    |e| glean::traits::ObjectError::to_string(&e),
+                                    |v| serde_json::Value::to_string(&v),
+                                ),
+                            ),
+                        },
+                    );
+                }
                 inner.set(value);
             }
             ObjectMetric::Child => {
@@ -123,15 +118,17 @@ impl<K: ObjectSerialize> ObjectMetric<K> {
             #[allow(unused)]
             ObjectMetric::Parent { id, inner } => {
                 #[cfg(feature = "with_gecko")]
-                gecko_profiler::add_marker(
-                    "Object::set",
-                    gecko_profiler_category!(Telemetry),
-                    Default::default(),
-                    ObjectMetricMarker {
-                        id: *id,
-                        value: truncate_string_for_marker(value.clone()),
-                    },
-                );
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "Object::set",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        ObjectMetricMarker {
+                            id: *id,
+                            value: truncate_string_for_marker(value.clone()),
+                        },
+                    );
+                }
                 inner.set_string(value);
             }
             ObjectMetric::Child => {
