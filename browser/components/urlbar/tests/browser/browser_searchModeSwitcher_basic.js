@@ -615,48 +615,74 @@ add_task(async function open_engine_page_directly() {
   }
 });
 
-add_task(async function test_urlbar_text_after_previewed_search_mode() {
-  info("Open urlbar with a query that shows DuckDuckGo search engine");
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "@duck",
+add_task(async function test_enter_searchmode_by_key() {
+  await PlacesTestUtils.addBookmarkWithDetails({
+    uri: "https://example.com/",
+    title: "BOOKMARK",
   });
 
-  // Sanity check.
-  const target = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-  Assert.equal(target.result.payload.engine, "DuckDuckGo");
-  Assert.ok(target.result.payload.providesSearchMode);
+  const TEST_DATA = [
+    {
+      key: "KEY_Enter",
+      expectedEntry: "keywordoffer",
+    },
+    {
+      key: "KEY_Tab",
+      expectedEntry: "keywordoffer",
+    },
+    {
+      key: "VK_RIGHT",
+      expectedEntry: "typed",
+    },
+    {
+      key: "VK_DOWN",
+      expectedEntry: "keywordoffer",
+    },
+  ];
+  for (let { key, expectedEntry } of TEST_DATA) {
+    info(`Test for entering search mode by ${key}`);
 
-  info("Choose the search mode suggestion");
-  EventUtils.synthesizeKey("KEY_Tab", {});
-  await UrlbarTestUtils.assertSearchMode(window, {
-    engineName: "DuckDuckGo",
-    entry: "keywordoffer",
-    source: 3,
-    isPreview: true,
-  });
+    info("Open urlbar with a query that shows bookmarks");
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "@book",
+    });
 
-  info("Click on the content area");
-  // We intentionally turn off this a11y check, because the following click is
-  // purposefully sent on an arbitrary web content that is not expected to be
-  // tested by itself with the browser mochitests, therefore this rule check
-  // shall be ignored by a11y_checks suite.
-  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
-  EventUtils.synthesizeMouseAtCenter(gBrowser.selectedBrowser, {});
-  AccessibilityUtils.resetEnv();
-  await UrlbarTestUtils.assertSearchMode(window, null);
+    // Sanity check.
+    const autofill = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+    Assert.equal(autofill.result.providerName, "RestrictKeywordsAutofill");
+    Assert.equal(autofill.result.payload.autofillKeyword, "@bookmarks");
 
-  info("Choose any search engine from the switcher");
-  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
-  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=Bing]").click();
-  await popupHidden;
+    info("Choose the search mode suggestion");
+    EventUtils.synthesizeKey(key, {});
+    await UrlbarTestUtils.promiseSearchComplete(window);
+    await UrlbarTestUtils.assertSearchMode(window, {
+      source: UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
+      entry: expectedEntry,
+      restrictType: "keyword",
+    });
 
-  Assert.equal(gURLBar.value, "", "The value of urlbar should be empty");
+    info("Check the suggestions");
+    Assert.equal(UrlbarTestUtils.getResultCount(window), 1);
+    const bookmark = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+    Assert.equal(bookmark.result.source, UrlbarUtils.RESULT_SOURCE.BOOKMARKS);
+    Assert.equal(bookmark.result.type, UrlbarUtils.RESULT_TYPE.URL);
+    Assert.equal(bookmark.result.payload.url, "https://example.com/");
+    Assert.equal(bookmark.result.payload.title, "BOOKMARK");
 
-  // Clean up.
-  window.document.querySelector("#searchmode-switcher-close").click();
-  await UrlbarTestUtils.assertSearchMode(window, null);
+    info("Choose any search engine from the switcher");
+    let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+    let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+    popup.querySelector("toolbarbutton[label=Bing]").click();
+    await popupHidden;
+    Assert.equal(gURLBar.value, "", "The value of urlbar should be empty");
+
+    // Clean up.
+    window.document.querySelector("#searchmode-switcher-close").click();
+    await UrlbarTestUtils.assertSearchMode(window, null);
+  }
+
+  await PlacesUtils.bookmarks.eraseEverything();
 });
 
 add_task(async function test_open_state() {

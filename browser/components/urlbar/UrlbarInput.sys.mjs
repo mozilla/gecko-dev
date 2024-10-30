@@ -1507,11 +1507,12 @@ export class UrlbarInput {
       let enteredSearchMode;
       // Only preview search mode if the result is selected.
       if (this.view.resultIsSelected(result)) {
-        // Not starting a query means we will only preview search mode.
+        // If ScotchBonnet is disabled, not starting a query means we will only
+        // preview search mode.
         enteredSearchMode = this.maybeConfirmSearchModeFromResult({
           result,
           checkValue: false,
-          startQuery: false,
+          startQuery: lazy.UrlbarPrefs.get("scotchBonnet.enableOverride"),
         });
       }
       if (!enteredSearchMode) {
