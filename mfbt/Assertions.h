@@ -95,7 +95,10 @@ MOZ_BEGIN_EXTERN_C
 #if defined(ANDROID) && defined(MOZ_DUMP_ASSERTION_STACK)
 MOZ_MAYBE_UNUSED static void MOZ_ReportAssertionFailurePrintFrame(
     const char* aBuf) {
-  __android_log_print(ANDROID_LOG_FATAL, "MOZ_Assert", "%s\n", aBuf);
+  __android_log_print(ANDROID_LOG_FATAL, "MOZ_Assert", "%s", aBuf);
+}
+MOZ_MAYBE_UNUSED static void MOZ_CrashPrintFrame(const char* aBuf) {
+  __android_log_print(ANDROID_LOG_FATAL, "MOZ_Crash", "%s", aBuf);
 }
 #endif
 
@@ -144,6 +147,10 @@ MOZ_MAYBE_UNUSED static MOZ_COLD MOZ_NEVER_INLINE void MOZ_ReportCrash(
   __android_log_print(ANDROID_LOG_FATAL, "MOZ_CRASH",
                       "[%d] Hit MOZ_CRASH(%s) at %s:%d\n", MOZ_GET_PID(), aStr,
                       aFilename, aLine);
+#  if defined(MOZ_DUMP_ASSERTION_STACK)
+  MozWalkTheStackWithWriter(MOZ_CrashPrintFrame, CallerPC(),
+                            /* aMaxFrames */ 0);
+#  endif
 #else
 #  if defined(MOZ_BUFFER_STDERR)
   char msg[1024] = "";
