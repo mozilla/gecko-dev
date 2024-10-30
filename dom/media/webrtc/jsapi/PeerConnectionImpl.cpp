@@ -3426,6 +3426,10 @@ bool PeerConnectionImpl::UpdateIceConnectionState() {
                static_cast<int>(mIceConnectionState),
                static_cast<int>(newState), this);
     mIceConnectionState = newState;
+    // Start call telemtry logging on connected.
+    if (mIceConnectionState == RTCIceConnectionState::Connected) {
+      StartCallTelem();
+    }
     if (mIceConnectionState != RTCIceConnectionState::Closed) {
       return true;
     }
