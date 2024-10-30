@@ -86,33 +86,28 @@ JSExecutionContext::JSExecutionContext(
 void JSExecutionContext::JoinOffThread(JSContext* aCx,
                                        JS::CompileOptions& aCompileOptions,
                                        ScriptLoadContext* aContext,
-                                       JS::MutableHandle<JSScript*> aScript,
-                                       ErrorResult& aRv,
-                                       bool aEncodeBytecode /* = false */) {
+                                       RefPtr<JS::Stencil>& aStencil,
+                                       JS::InstantiationStorage& aStorage,
+                                       ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(aCompileOptions.noScriptRval);
 
-  JS::InstantiationStorage storage;
-  RefPtr<JS::Stencil> stencil = aContext->StealOffThreadResult(aCx, &storage);
-  if (!stencil) {
+  aStencil = aContext->StealOffThreadResult(aCx, &aStorage);
+  if (!aStencil) {
     mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
   }
 
   if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(aCx, stencil.get());
+    mStencil = JS::DuplicateStencil(aCx, aStencil.get());
     if (!mStencil) {
       mSkip = true;
       aRv.NoteJSContextException(aCx);
       return;
     }
   }
-
-  bool unused;
-  InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript, unused,
-                     aRv, aEncodeBytecode, &storage);
 }
 
 template <typename Unit>

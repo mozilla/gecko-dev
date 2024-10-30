@@ -2732,8 +2732,16 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     if (aRequest->GetScriptLoadContext()->mCompileOrDecodeTask) {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode & instantiate and Execute",
            aRequest));
+      RefPtr<JS::Stencil> stencil;
+      JS::InstantiationStorage storage;
       aExec.JoinOffThread(aCx, aCompileOptions,
-                          aRequest->GetScriptLoadContext(), aScript, aRv);
+                          aRequest->GetScriptLoadContext(), stencil, storage,
+                          aRv);
+      if (stencil) {
+        bool unused;
+        aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
+                                 aScript, unused, aRv, false, &storage);
+      }
     } else {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode and Execute", aRequest));
       AUTO_PROFILER_MARKER_TEXT("BytecodeDecodeMainThread", JS,
@@ -2766,8 +2774,15 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
          "Execute",
          aRequest));
     MOZ_ASSERT(aRequest->IsTextSource());
+    RefPtr<JS::Stencil> stencil;
+    JS::InstantiationStorage storage;
     aExec.JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
-                        aScript, aRv, encodeBytecode);
+                        stencil, storage, aRv);
+    if (stencil) {
+      bool unused;
+      aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
+                               aScript, unused, aRv, encodeBytecode, &storage);
+    }
   } else {
     // Main thread parsing (inline and small scripts)
     LOG(("ScriptLoadRequest (%p): Compile And Exec", aRequest));
