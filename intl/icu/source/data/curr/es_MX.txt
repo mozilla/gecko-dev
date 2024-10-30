@@ -4,25 +4,9 @@
 es_MX{
     %%Parent{"es_419"}
     Currencies{
-        BDT{
-            "BDT",
-            "taka bangladesí",
-        }
         BTN{
             "BTN",
             "ngultrum butanés",
-        }
-        KGS{
-            "KGS",
-            "som kirguís",
-        }
-        KHR{
-            "KHR",
-            "riel camboyano",
-        }
-        LAK{
-            "LAK",
-            "kip laosiano",
         }
         MRO{
             "MRU",
@@ -30,7 +14,7 @@ es_MX{
         }
         MRU{
             "UM",
-            "uguiya",
+            "uguiya mauritano",
         }
         MVR{
             "MVR",
@@ -40,17 +24,9 @@ es_MX{
             "$",
             "peso mexicano",
         }
-        STN{
-            "STN",
-            "dobra santotomense",
-        }
         THB{
             "THB",
             "baht tailandés",
-        }
-        VND{
-            "VND",
-            "dong vietnamita",
         }
         ZMW{
             "ZMW",
@@ -66,29 +42,9 @@ es_MX{
         VEF{"Bs"}
     }
     CurrencyPlurals{
-        AMD{
-            one{"dram armenio"}
-            other{"drams armenios"}
-        }
-        BDT{
-            one{"taka bangladesí"}
-            other{"takas bangladesíes"}
-        }
         BTN{
             one{"ngultrum butanés"}
             other{"ngultrums butaneses"}
-        }
-        KGS{
-            one{"som kirguís"}
-            other{"soms kirguises"}
-        }
-        KHR{
-            one{"riel camboyano"}
-            other{"rieles camboyanos"}
-        }
-        LAK{
-            one{"kip laosiano"}
-            other{"kips laosianos"}
         }
         LVL{
             one{"lats letón"}
@@ -102,10 +58,6 @@ es_MX{
             one{"leu rumano"}
             other{"lei rumanos"}
         }
-        STN{
-            one{"dobra santotomense"}
-            other{"dobras santotomenses"}
-        }
         THB{
             one{"baht tailandés"}
             other{"bahts tailandeses"}
@@ -113,10 +65,6 @@ es_MX{
         VES{
             one{"bolívar venezolano"}
             other{"bolivares venezolanos"}
-        }
-        VND{
-            one{"dong vietnamita"}
-            other{"dongs vietnamitas"}
         }
         XXX{
             one{"(moneda desconocida)"}

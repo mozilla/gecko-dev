@@ -5,7 +5,7 @@ ti_ER{
     Currencies{
         ERN{
             "Nfk",
-            "ናቕፋ",
+            "ኤርትራዊ ናቕፋ",
         }
     }
 }

@@ -1,0 +1,73 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kxv_Orya{
+    %%Parent{"root"}
+    Currencies{
+        BRL{
+            "R$",
+            "ବ୍ରାଜିଲ୍ ତି ରିଏଲ୍",
+        }
+        CNY{
+            "CN¥",
+            "ଚିନି ତି ୟୁଆନ",
+        }
+        EUR{
+            "€",
+            "ୟୁର",
+        }
+        GBP{
+            "£",
+            "ବ୍ରିଟିସ୍ ପାଉଣ୍ଡ୍",
+        }
+        INR{
+            "₹",
+            "ବାରତ ତି ଟାକାଁ",
+        }
+        JPY{
+            "JP¥",
+            "ଜାପାନ ତି ୟେନ",
+        }
+        RUB{
+            "RUB",
+            "ରୁସିଆ ତି ରୁବଲ୍",
+        }
+        USD{
+            "US$",
+            "ୟୁ ଏସ ଡଲାର",
+        }
+        XXX{
+            "¤",
+            "ପୁଣ୍‍ଆତି ଲେବୁଁ",
+        }
+    }
+    CurrencyPlurals{
+        BRL{
+            other{"ବ୍ରାଜିଲ୍ ତି ରିଏଲ୍"}
+        }
+        CNY{
+            other{"ଚିନି ତି ୟୁଆନ"}
+        }
+        EUR{
+            other{"ୟୁରସ୍"}
+        }
+        GBP{
+            other{"ବ୍ରିଟିସ୍ ପାଉଣ୍ଡ୍"}
+        }
+        INR{
+            other{"ବାରତ ତି ଟାକାଁ"}
+        }
+        JPY{
+            other{"ଜାପାନ ତି ୟେନ"}
+        }
+        RUB{
+            other{"ରୁସିଆ ତି ରୁବଲ୍ସ"}
+        }
+        USD{
+            other{"ୟୁ ଏସ ଡଲାର୍‍ସ୍"}
+        }
+        XXX{
+            other{"ପୁଣ୍ଆତି ଲେବୁଁ"}
+        }
+    }
+}

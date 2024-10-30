@@ -86,7 +86,7 @@ sr_Latn{
         }
         BAM{
             "KM",
-            "bosansko-hercegovačka konvertibilna marka",
+            "bosanskohercegovačka konvertibilna marka",
         }
         BBD{
             "BBD",
@@ -338,7 +338,7 @@ sr_Latn{
         }
         EUR{
             "€",
-            "Evro",
+            "evro",
         }
         FIM{
             "FIM",
@@ -836,9 +836,13 @@ sr_Latn{
             "SKK",
             "Slovačka kruna",
         }
+        SLE{
+            "SLE",
+            "sijeraleonski leone",
+        }
         SLL{
             "SLL",
-            "sijeraleonski leone",
+            "sijeraleonski leone (1964—2022)",
         }
         SOS{
             "SOS",
@@ -922,7 +926,7 @@ sr_Latn{
         }
         TTD{
             "TTD",
-            "Trinidad-tobagoški dolar",
+            "trinidadskotobaški dolar",
         }
         TWD{
             "NT$",
@@ -1078,7 +1082,7 @@ sr_Latn{
         }
         XXX{
             "¤",
-            "Nepoznata valuta",
+            "nepoznata valuta",
         }
         YDD{
             "YDD",
@@ -1138,103 +1142,9 @@ sr_Latn{
         }
     }
     Currencies%narrow{
-        AOA{"Kz"}
-        ARS{"$"}
-        AUD{"$"}
-        BAM{"KM"}
-        BBD{"$"}
-        BDT{"৳"}
-        BMD{"$"}
-        BND{"$"}
-        BOB{"Bs"}
-        BRL{"R$"}
-        BSD{"$"}
-        BWP{"P"}
         BYN{"r."}
-        BZD{"$"}
-        CAD{"$"}
-        CLP{"$"}
-        CNY{"¥"}
-        COP{"$"}
-        CRC{"₡"}
-        CUC{"$"}
-        CUP{"$"}
-        CZK{"Kč"}
-        DKK{"kr"}
-        DOP{"$"}
-        EGP{"E£"}
-        EUR{"€"}
-        FJD{"$"}
-        FKP{"£"}
-        GBP{"£"}
         GEL{"ლ"}
-        GIP{"£"}
-        GNF{"FG"}
-        GTQ{"Q"}
-        GYD{"$"}
-        HKD{"$"}
-        HNL{"L"}
-        HRK{"kn"}
-        HUF{"Ft"}
-        IDR{"Rp"}
-        ILS{"₪"}
-        INR{"₹"}
-        ISK{"kr"}
-        JMD{"$"}
-        JPY{"¥"}
-        KHR{"៛"}
-        KMF{"CF"}
-        KPW{"₩"}
-        KRW{"₩"}
-        KYD{"$"}
-        KZT{"₸"}
-        LAK{"₭"}
-        LBP{"L£"}
-        LKR{"Rs"}
-        LRD{"$"}
-        MGA{"Ar"}
-        MMK{"K"}
-        MNT{"₮"}
-        MUR{"Rs"}
-        MXN{"$"}
-        MYR{"RM"}
-        NAD{"$"}
-        NGN{"₦"}
-        NIO{"C$"}
-        NOK{"kr"}
-        NPR{"Rs"}
-        NZD{"$"}
-        PHP{"₱"}
-        PKR{"Rs"}
-        PLN{"zł"}
-        PYG{"₲"}
-        RON{"lei"}
-        RUB{"₽"}
-        RWF{"RF"}
-        SBD{"$"}
-        SEK{"kr"}
-        SGD{"$"}
-        SHP{"£"}
-        SRD{"$"}
-        SSP{"£"}
-        STN{"Db"}
-        SYP{"£"}
-        THB{"฿"}
-        TOP{"T$"}
-        TRY{"₺"}
-        TTD{"$"}
         TWD{"NT$"}
-        UAH{"₴"}
-        USD{"$"}
-        UYU{"$"}
-        VEF{"Bs"}
-        VND{"₫"}
-        XCD{"$"}
-        ZAR{"R"}
-        ZMW{"ZK"}
-    }
-    Currencies%variant{
-        TRY{"TL"}
     }
     CurrencyPlurals{
         ADP{
@@ -1338,9 +1248,9 @@ sr_Latn{
             other{"bosansko-hercegovačkih dinara"}
         }
         BAM{
-            few{"bosansko-hercegovačke konvertibilne marke"}
-            one{"bosansko-hercegovačka konvertibilna marka"}
-            other{"bosansko-hercegovačkih konvertibilnih maraka"}
+            few{"bosanskohercegovačke konvertibilne marke"}
+            one{"bosanskohercegovačka konvertibilna marka"}
+            other{"bosanskohercegovačkih konvertibilnih maraka"}
         }
         BBD{
             few{"barbadoška dolara"}
@@ -2277,10 +2187,15 @@ sr_Latn{
             one{"slovačka kruna"}
             other{"slovačkih kruna"}
         }
-        SLL{
+        SLE{
             few{"sijeraleonska leona"}
             one{"sijeraleonski leone"}
             other{"sijeraleonskih leona"}
+        }
+        SLL{
+            few{"sijeraleonska leona (1964—2022)"}
+            one{"sijeraleonski leone (1964—2022)"}
+            other{"sijeraleonskih leona (1964—2022)"}
         }
         SOS{
             few{"somalijska šilinga"}
@@ -2383,9 +2298,9 @@ sr_Latn{
             other{"turskih lira"}
         }
         TTD{
-            few{"trinidad-tobagoška dolara"}
-            one{"trinidad-tobagoški dolar"}
-            other{"trinidad-tobagoških dolara"}
+            few{"trinidadskotobaška dolara"}
+            one{"trinidadskotobaški dolar"}
+            other{"trinidadskotobaških dolara"}
         }
         TWD{
             few{"nova tajvanska dolara"}
@@ -2652,10 +2567,5 @@ sr_Latn{
             one{"zimbabvejski dolar (2008)"}
             other{"zimbabvejskih dolara (2008)"}
         }
-    }
-    CurrencyUnitPatterns{
-        few{"{0} {1}"}
-        one{"{0} {1}"}
-        other{"{0} {1}"}
     }
 }

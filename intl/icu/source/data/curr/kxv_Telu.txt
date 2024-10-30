@@ -1,0 +1,73 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kxv_Telu{
+    %%Parent{"root"}
+    Currencies{
+        BRL{
+            "R$",
+            "బ్రెజిలియన్ రియల్",
+        }
+        CNY{
+            "CN¥",
+            "చైనా దేశ యువాన్",
+        }
+        EUR{
+            "€",
+            "యురొ",
+        }
+        GBP{
+            "£",
+            "బ్రిటిష్ పౌండ్",
+        }
+        INR{
+            "₹",
+            "భారతదేశ రూపాయి",
+        }
+        JPY{
+            "JP¥",
+            "జపాను దేశ యెన్",
+        }
+        RUB{
+            "RUB",
+            "రష్యన్ రూబల్",
+        }
+        USD{
+            "US$",
+            "అమెరికా డాలర్",
+        }
+        XXX{
+            "¤",
+            "తెలియని కరెన్సీ",
+        }
+    }
+    CurrencyPlurals{
+        BRL{
+            other{"బ్రెజిలియన్ రియల్‌లు"}
+        }
+        CNY{
+            other{"చైనా దేశ యువాన్"}
+        }
+        EUR{
+            other{"యురోలు"}
+        }
+        GBP{
+            other{"బ్రిటిష్ పౌండ్‌లు"}
+        }
+        INR{
+            other{"భారతదేశ రూపాయలు"}
+        }
+        JPY{
+            other{"జపాను దేశ యెన్"}
+        }
+        RUB{
+            other{"రష్యన్ రూబల్‌లు"}
+        }
+        USD{
+            other{"అమెరికా డాలర్‌లు"}
+        }
+        XXX{
+            other{"తెలియని కరెన్సీ"}
+        }
+    }
+}

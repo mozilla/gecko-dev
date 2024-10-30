@@ -255,6 +255,10 @@ et{
             "CSD",
             "Serbia dinaar (2002–2006)",
         }
+        CSK{
+            "CSK",
+            "Tšehhoslovakkia kõva kroon",
+        }
         CUC{
             "CUC",
             "Kuuba konverteeritav peeso",
@@ -824,9 +828,13 @@ et{
             "SKK",
             "Slovaki kroon",
         }
+        SLE{
+            "SLE",
+            "Sierra Leone leoone",
+        }
         SLL{
             "SLL",
-            "Sierra Leone leoone",
+            "Sierra Leone leoone (1964–2022)",
         }
         SOS{
             "SOS",
@@ -1068,6 +1076,10 @@ et{
             "YER",
             "Jeemeni riaal",
         }
+        YUD{
+            "YUD",
+            "Jugoslaavia kõva dinaar (1966–1990)",
+        }
         YUM{
             "YUM",
             "Jugoslaavia uus dinaar (1994–2002)",
@@ -1075,6 +1087,10 @@ et{
         YUN{
             "YUN",
             "Jugoslaavia konverteeritav dinaar (1990–1992)",
+        }
+        YUR{
+            "YUR",
+            "Jugoslaavia reformitud dinaar (1992–1993)",
         }
         ZAR{
             "ZAR",
@@ -1106,63 +1122,7 @@ et{
         }
     }
     Currencies%narrow{
-        AFN{"؋"}
-        AMD{"֏"}
-        ARS{"$"}
-        AUD{"$"}
-        AZN{"₼"}
-        BBD{"$"}
-        BDT{"৳"}
-        BMD{"$"}
-        BND{"$"}
-        BRL{"R$"}
-        BSD{"$"}
-        BZD{"$"}
-        CAD{"$"}
-        CLP{"$"}
-        CNY{"¥"}
-        COP{"$"}
-        CRC{"₡"}
-        CUP{"$"}
-        DKK{"kr"}
-        DOP{"$"}
-        EUR{"€"}
-        FJD{"$"}
-        GBP{"£"}
-        GHS{"GH₵"}
-        GIP{"£"}
-        GYD{"$"}
-        HKD{"$"}
-        ILS{"₪"}
-        INR{"₹"}
-        ISK{"kr"}
-        JMD{"$"}
-        JPY{"¥"}
-        KHR{"៛"}
-        KRW{"₩"}
-        KYD{"$"}
-        KZT{"₸"}
-        LAK{"₭"}
-        LRD{"$"}
-        MNT{"₮"}
-        MXN{"$"}
-        NAD{"$"}
-        NGN{"₦"}
-        NZD{"$"}
-        PHP{"₱"}
-        PYG{"₲"}
-        SBD{"$"}
-        SGD{"$"}
-        SRD{"$"}
-        SSP{"£"}
-        THB{"฿"}
-        TRY{"₺"}
-        TTD{"$"}
         TWD{"NT$"}
-        UAH{"₴"}
-        USD{"$"}
-        UYU{"$"}
-        VND{"₫"}
     }
     CurrencyPlurals{
         ADP{
@@ -1269,6 +1229,10 @@ et{
             one{"Belgia frank"}
             other{"Belgia franki"}
         }
+        BGL{
+            one{"Bulgaaria kõva leev"}
+            other{"Bulgaaria kõva leevi"}
+        }
         BGN{
             one{"Bulgaaria leev"}
             other{"Bulgaaria leevi"}
@@ -1345,14 +1309,6 @@ et{
             one{"Valgevene uus rubla (1994–1999)"}
             other{"Valgevene uut rubla (1994–1999)"}
         }
-        BYN{
-            one{"Valgevene rubla"}
-            other{"Valgevene rubla"}
-        }
-        BYR{
-            one{"Valgevene rubla (2000–2016)"}
-            other{"Valgevene rubla (2000–2016)"}
-        }
         BZD{
             one{"Belize’i dollar"}
             other{"Belize’i dollarit"}
@@ -1396,6 +1352,10 @@ et{
         CSD{
             one{"Serbia dinaar (2002–2006)"}
             other{"Serbia dinaari (2002–2006)"}
+        }
+        CSK{
+            one{"Tšehhoslovakkia kõva kroon"}
+            other{"Tšehhoslovakkia kõva krooni"}
         }
         CUC{
             one{"Kuuba konverteeritav peeso"}
@@ -1489,10 +1449,6 @@ et{
             one{"Suurbritannia naelsterling"}
             other{"Suurbritannia naelsterlingit"}
         }
-        GEL{
-            one{"Gruusia lari"}
-            other{"Gruusia lari"}
-        }
         GHC{
             one{"Ghana sedi (1979–2007)"}
             other{"Ghana sedit (1979–2007)"}
@@ -1544,10 +1500,6 @@ et{
         HRD{
             one{"Horvaatia dinaar"}
             other{"Horvaatia dinaari"}
-        }
-        HRK{
-            one{"Horvaatia kuna"}
-            other{"Horvaatia kuna"}
         }
         HTG{
             one{"Haiti gurd"}
@@ -1688,10 +1640,6 @@ et{
         LVL{
             one{"Läti latt"}
             other{"Läti latti"}
-        }
-        LVR{
-            one{"Läti rubla"}
-            other{"Läti rubla"}
         }
         LYD{
             one{"Liibüa dinaar"}
@@ -1897,10 +1845,6 @@ et{
             one{"Serbia dinaar"}
             other{"Serbia dinaari"}
         }
-        RUB{
-            one{"Venemaa rubla"}
-            other{"Venemaa rubla"}
-        }
         RWF{
             one{"Rwanda frank"}
             other{"Rwanda franki"}
@@ -1949,9 +1893,13 @@ et{
             one{"Slovaki kroon"}
             other{"Slovaki krooni"}
         }
-        SLL{
+        SLE{
             one{"Sierra Leone leoone"}
             other{"Sierra Leone leoonet"}
+        }
+        SLL{
+            one{"Sierra Leone leoone (1964–2022)"}
+            other{"Sierra Leone leoonet (1964–2022)"}
         }
         SOS{
             one{"Somaalia šilling"}
@@ -1992,10 +1940,6 @@ et{
         THB{
             one{"Tai baat"}
             other{"Tai baati"}
-        }
-        TJR{
-            one{"Tadžikistani rubla"}
-            other{"Tadžikistani rubla"}
         }
         TJS{
             one{"Tadžikistani somoni"}
@@ -2044,6 +1988,10 @@ et{
         UAH{
             one{"Ukraina grivna"}
             other{"Ukraina grivnat"}
+        }
+        UAK{
+            one{"Ukraina karbovanetsi"}
+            other{"Ukraina karbovanetsi"}
         }
         UGS{
             one{"Uganda šilling (1966–1987)"}
@@ -2149,6 +2097,10 @@ et{
             one{"Jeemeni riaal"}
             other{"Jeemeni riaali"}
         }
+        YUD{
+            one{"Jugoslaavia kõva dinaar (1966–1990)"}
+            other{"Jugoslaavia kõva dinaar (1966–1990)"}
+        }
         YUM{
             one{"Jugoslaavia uus dinaar (1994–2002)"}
             other{"Jugoslaavia uut dinaari (1994–2002)"}
@@ -2156,6 +2108,10 @@ et{
         YUN{
             one{"Jugoslaavia konverteeritav dinaar (1990–1992)"}
             other{"Jugoslaavia konverteeritavat dinaari (1990–1992)"}
+        }
+        YUR{
+            one{"Jugoslaavia reformitud dinaar (1992–1993)"}
+            other{"Jugoslaavia reformitud dinaari (1992–1993)"}
         }
         ZAR{
             one{"Lõuna-Aafrika rand"}
@@ -2181,9 +2137,5 @@ et{
             one{"Zimbabwe dollar (2008)"}
             other{"Zimbabwe dollarit (2008)"}
         }
-    }
-    CurrencyUnitPatterns{
-        one{"{0} {1}"}
-        other{"{0} {1}"}
     }
 }

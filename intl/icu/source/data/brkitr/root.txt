@@ -2,7 +2,7 @@
 // License & terms of use: http://www.unicode.org/copyright.html
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 root{
-    Version{"43"}
+    Version{"46"}
     boundaries{
         grapheme:process(dependency){"char.brk"}
         line:process(dependency){"line.brk"}
@@ -25,5 +25,5 @@ root{
     lstm{
         Thai{"Thai_graphclust_model4_heavy.res"}
         Mymr{"Burmese_graphclust_model5_heavy.res"}
-    }
+    }    
 }

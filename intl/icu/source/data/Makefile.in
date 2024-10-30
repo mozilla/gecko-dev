@@ -46,24 +46,10 @@ CURDIR:=$(CURR_FULL_DIR)
 ifeq ($(CURDIR),)
 CURDIR=.
 endif
-ifeq ($(OS390BATCH),1)
+ifeq ($(BUILD_HOST_ICU),OS390)
 PKGDATA = $(TOOLBINDIR)/pkgdata $(PKGDATA_OPTS) -z -q -c -s $(CURDIR)/out/build/$(ICUDATA_PLATFORM_NAME) -d $(ICUPKGDATA_OUTDIR)
 else
 PKGDATA = $(TOOLBINDIR)/pkgdata $(PKGDATA_OPTS) -q -c -s $(CURDIR)/out/build/$(ICUDATA_PLATFORM_NAME) -d $(ICUPKGDATA_OUTDIR)
-endif
-OS390_PDS_NAME = -z -L $(BATCH_STUB_TARGET)
-
-ifeq ($(OS390_STUBDATA),1)
-OS390PKG=package390
-OS390INSTALL=install390
-
-# Additional data for 390
-OS390LIST=$(OUTTMPDIR)/icudata390.lst
-OUTTMPDIR_390STUB=$(top_builddir)/data/out/tmp_390stub
-endif
-
-ifeq ($(OS390BATCH),1)
-CPPFLAGS += -Wc,'ros,roc'
 endif
 
 # OBJDATADIR must be a short path (with ..'s) to the data.
@@ -118,7 +104,7 @@ check-exhaustive: check
 distclean-local: clean
 	$(RMV) Makefile
 
-all-local: icupkg.inc build-local packagedata $(POST_DATA_BUILD) $(OS390PKG)
+all-local: icupkg.inc build-local packagedata $(POST_DATA_BUILD)
 
 dist-local:
 
@@ -180,7 +166,7 @@ endif
 	echo timestamp > $@
 
 ## Install ICU data.
-install-local: $(PKGDATA_LIST) ./icupkg.inc packagedata $(OS390INSTALL)
+install-local: $(PKGDATA_LIST) ./icupkg.inc packagedata
 	$(MKINSTALLDIRS) $(TMPDATADIR) $(DESTDIR)$(ICUPKGDATA_DIR)
 ifeq ($(PKGDATA_MODE),files)
 	$(MKINSTALLDIRS) $(ICUPKGDATA_DIR)/$(ICUDATA_NAME)
@@ -216,23 +202,6 @@ else
 endif
 
 
-####
-####
-#### 390 support
-install390: package390
-	$(MKINSTALLDIRS) $(TMPDATADIR) $(DESTDIR)$(libdir)
-	$(INVOKE) $(PKGDATA) -s $(BUILDDIR)$(STUB_SUFFIX) -T $(OUTTMPDIR_390STUB) -p $(ICUDATA_NAME)$(STUB_SUFFIX) $(PKGDATA_LIBNAME)$(STUB_SUFFIX) -e $(ICUDATA_ENTRY_POINT) $(OS390LIST) -m dll $(PKGDATA_VERSIONING) -I $(DESTDIR)$(ICUPKGDATA_DIR)
-ifeq ($(PKGDATA_MODE),dll)
-	$(INSTALL-L) $(ICUPKGDATA_OUTDIR)/$(FINAL_IMPORT_LIB) $(DESTDIR)$(ICUPKGDATA_DIR)/$(FINAL_IMPORT_LIB)
-endif
-
-#### $(LIB_ICUDATA_NAME)$(STUB_SUFFIX) is the subset data for batch mode
-package390: $(OUTTMPDIR)/icudata390.lst $(PKGDATA_LIST) ./icupkg.inc packagedata
-	ln -s $(ICUDATA_NAME) $(OUTDIR)/build/$(ICUDATA_NAME)$(STUB_SUFFIX)
-	$(INVOKE) $(PKGDATA) -s $(BUILDDIR)$(STUB_SUFFIX) -T $(OUTTMPDIR_390STUB) -p $(ICUDATA_NAME)$(STUB_SUFFIX) $(PKGDATA_LIBNAME)$(STUB_SUFFIX) -e $(ICUDATA_ENTRY_POINT) $(OS390LIST) -m dll $(PKGDATA_VERSIONING)
-	cp $(ICUPKGDATA_OUTDIR)/$(LIB_ICUDATA_NAME)$(STUB_SUFFIX).$(SO) $(top_builddir)/stubdata/$(LIB_ICUDATA_NAME)$(STUB_SUFFIX).$(SO)
-
-
 ## Include the main build rules for data files
 include $(top_builddir)/$(subdir)/rules.mk
 
@@ -259,10 +228,10 @@ PKGDATA_LIST = $(TMP_DIR)/icudata.lst
 CLEANFILES = *~ icupkg.inc *.x
 
 ifeq ($(ICUDATA_SOURCE_ARCHIVE),)
-build-local: $(SO_VERSION_DATA) $(ICUDATA_ALL_OUTPUT_FILES) $(PKGDATA_LIST) $(OS390LIST)
+build-local: $(SO_VERSION_DATA) $(ICUDATA_ALL_OUTPUT_FILES) $(PKGDATA_LIST)
 	echo timestamp > $@
 else
-build-local: $(SO_VERSION_DATA) $(PKGDATA_LIST) $(OS390LIST)
+build-local: $(SO_VERSION_DATA) $(PKGDATA_LIST)
 	echo timestamp > $@
 $(PKGDATA_LIST): $(SRCLISTDEPS) $(ICUDATA_SOURCE_ARCHIVE)
 ifneq ($(ICUDATA_SOURCE_IS_NATIVE_TARGET),YES)
@@ -313,7 +282,7 @@ JAR=jar
 
 ICU4J_TZDATA=$(OUTDIR)/icu4j/icutzdata.jar
 ICU4J_TZDATA_FILES=zoneinfo64 metaZones timezoneTypes windowsZones
-ICU4J_DATA_DIRNAME=com/ibm/icu/impl/data/$(ICUDATA_BASENAME_VERSION)b
+ICU4J_DATA_DIRNAME=com/ibm/icu/impl/data/icudata
 ICU4J_TZDATA_PATHS=$(ICU4J_TZDATA_FILES:%="$(ICU4J_DATA_DIRNAME)/%.res")
 
 # generate icu4j-related data to $(OUTDIR)/icu4j/com/ibm/icu/impl/data/...

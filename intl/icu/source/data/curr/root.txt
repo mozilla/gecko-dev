@@ -79,6 +79,10 @@ root{
             "EC$",
             "XCD",
         }
+        XCG{
+            "Cg.",
+            "XCG",
+        }
         XOF{
             "F CFA",
             "XOF",
@@ -141,6 +145,7 @@ root{
         ISK{"kr"}
         JMD{"$"}
         JPY{"¥"}
+        KGS{"⃀"}
         KHR{"៛"}
         KMF{"CF"}
         KPW{"₩"}
@@ -200,7 +205,7 @@ root{
     CurrencyUnitPatterns{
         other{"{0} {1}"}
     }
-    Version{"43"}
+    Version{"46"}
     currencySpacing{
         afterCurrency{
             currencyMatch{"[[:^S:]&[:^Z:]]"}

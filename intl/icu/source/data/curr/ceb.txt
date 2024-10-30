@@ -499,9 +499,13 @@ ceb{
             "SHP",
             "St. Helena Pound",
         }
+        SLE{
+            "SLE",
+            "Sierra Leonean Leone",
+        }
         SLL{
             "SLL",
-            "Sierra Leonean Leone",
+            "Sierra Leonean Leone (1964—2022)",
         }
         SOS{
             "SOS",
@@ -632,9 +636,6 @@ ceb{
             "Zambian Kwacha",
         }
     }
-    Currencies%narrow{
-        BYN{"BYN"}
-    }
     CurrencyPlurals{
         AED{
             one{"UAE dirham"}
@@ -654,7 +655,7 @@ ceb{
         }
         ANG{
             one{"Netherlands Antillean guilder"}
-            other{"Mga Netherlands Antillean guilder"}
+            other{"Netherlands Antillean guilders"}
         }
         AOA{
             one{"Angolan kwanza"}
@@ -682,7 +683,7 @@ ceb{
         }
         BBD{
             one{"Barbadian dollar"}
-            other{"Mga Barbadian dollar"}
+            other{"Barbadian dollars"}
         }
         BDT{
             one{"Bangladeshi taka"}
@@ -702,7 +703,7 @@ ceb{
         }
         BMD{
             one{"Bermudan dollar"}
-            other{"Mga Bermudan dollar"}
+            other{"Bermudan dollars"}
         }
         BND{
             one{"Brunei dollar"}
@@ -718,7 +719,7 @@ ceb{
         }
         BSD{
             one{"Bahamian dollar"}
-            other{"Mga Bahamian dollar"}
+            other{"Bahamian dollars"}
         }
         BTN{
             one{"Bhutanese ngultrum"}
@@ -734,11 +735,11 @@ ceb{
         }
         BZD{
             one{"Belize dollar"}
-            other{"Mga Belize dollar"}
+            other{"Belize dollars"}
         }
         CAD{
             one{"Canadian dollar"}
-            other{"Mga Canadian dollar"}
+            other{"Canadian dollars"}
         }
         CDF{
             one{"Congolese franc"}
@@ -766,15 +767,15 @@ ceb{
         }
         CRC{
             one{"Costa Rican colon"}
-            other{"Mga Costa Rican colon"}
+            other{"Costa Rican colóns"}
         }
         CUC{
             one{"Cuban convertible peso"}
-            other{"Mga Cuban convertible peso"}
+            other{"Cuban convertible pesos"}
         }
         CUP{
             one{"Cuban peso"}
-            other{"Mga Cuban peso"}
+            other{"Cuban pesos"}
         }
         CVE{
             one{"Cape Verdean escudo"}
@@ -794,7 +795,7 @@ ceb{
         }
         DOP{
             one{"Dominican peso"}
-            other{"Mga Dominican peso"}
+            other{"Dominican pesos"}
         }
         DZD{
             one{"Algerian dinar"}
@@ -850,7 +851,7 @@ ceb{
         }
         GTQ{
             one{"Guatemalan quetzal"}
-            other{"Mga Guatemalan quetzal"}
+            other{"Guatemalan quetzals"}
         }
         GYD{
             one{"Guyanaese dollar"}
@@ -862,7 +863,7 @@ ceb{
         }
         HNL{
             one{"Honduran lempira"}
-            other{"Mga Honduran lempira"}
+            other{"Honduran lempiras"}
         }
         HRK{
             one{"Croatian kuna"}
@@ -870,7 +871,7 @@ ceb{
         }
         HTG{
             one{"Haitian gourde"}
-            other{"Mga Haitian gourde"}
+            other{"Haitian gourdes"}
         }
         HUF{
             one{"Hungarian forint"}
@@ -902,7 +903,7 @@ ceb{
         }
         JMD{
             one{"Jamaican dollar"}
-            other{"Mga Jamaican dollar"}
+            other{"Jamaican dollars"}
         }
         JOD{
             one{"Jordanian dinar"}
@@ -942,7 +943,7 @@ ceb{
         }
         KYD{
             one{"Cayman Islands dollar"}
-            other{"Mga Cayman Islands dollar"}
+            other{"Cayman Islands dollars"}
         }
         KZT{
             one{"Kazakhstani tenge"}
@@ -1018,7 +1019,7 @@ ceb{
         }
         MXN{
             one{"Mexican peso"}
-            other{"Mga Mexican peso"}
+            other{"Mexican pesos"}
         }
         MYR{
             one{"Malaysian ringgit"}
@@ -1038,7 +1039,7 @@ ceb{
         }
         NIO{
             one{"Nicaraguan cordoba"}
-            other{"Mga Nicaraguan cordoba"}
+            other{"Nicaraguan córdobas"}
         }
         NOK{
             one{"Norwegian krone"}
@@ -1058,7 +1059,7 @@ ceb{
         }
         PAB{
             one{"Panamanian balboa"}
-            other{"Mga Panamanian balboa"}
+            other{"Panamanian balboas"}
         }
         PEN{
             one{"Peruvian sol"}
@@ -1132,9 +1133,13 @@ ceb{
             one{"St. Helena pound"}
             other{"St. Helena pounds"}
         }
-        SLL{
+        SLE{
             one{"Sierra Leonean leone"}
             other{"Sierra Leonean leones"}
+        }
+        SLL{
+            one{"Sierra Leonean leone (1964—2022)"}
+            other{"Sierra Leonean leones (1964—2022)"}
         }
         SOS{
             one{"Somali shilling"}
@@ -1186,7 +1191,7 @@ ceb{
         }
         TTD{
             one{"Trinidad & Tobago dollar"}
-            other{"Mga Trinidad & Tobago dollar"}
+            other{"Trinidad & Tobago dollars"}
         }
         TWD{
             one{"New Taiwan dollar"}
@@ -1206,7 +1211,7 @@ ceb{
         }
         USD{
             one{"US dollar"}
-            other{"Mga US dollar"}
+            other{"US dollars"}
         }
         UYU{
             one{"Uruguayan peso"}
@@ -1238,7 +1243,7 @@ ceb{
         }
         XCD{
             one{"East Caribbean dollar"}
-            other{"Mga East Caribbean dollar"}
+            other{"East Caribbean dollars"}
         }
         XOF{
             one{"West African CFA franc"}
@@ -1266,7 +1271,7 @@ ceb{
         }
     }
     CurrencyUnitPatterns{
-        one{"{1} {0}"}
+        one{"{0} {1}"}
         other{"{1} {0}"}
     }
 }
