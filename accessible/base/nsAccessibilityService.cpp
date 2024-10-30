@@ -597,11 +597,14 @@ void nsAccessibilityService::NotifyOfPossibleBoundsChange(
   if (IPCAccessibilityActive()) {
     DocAccessible* document = aPresShell->GetDocAccessible();
     if (document) {
-      // DocAccessible::GetAccessible() won't return the document if a root
-      // element like body is passed.
-      LocalAccessible* accessible = aContent == document->GetContent()
-                                        ? document
-                                        : document->GetAccessible(aContent);
+      LocalAccessible* accessible = document->GetAccessible(aContent);
+      if (!accessible && aContent == document->GetContent()) {
+        // DocAccessible::GetAccessible() won't return the document if a root
+        // element like body is passed. In that case we need the doc accessible
+        // itself.
+        accessible = document;
+      }
+
       if (accessible) {
         document->QueueCacheUpdate(accessible, CacheDomain::Bounds);
       }
@@ -616,11 +619,14 @@ void nsAccessibilityService::NotifyOfComputedStyleChange(
     return;
   }
 
-  // DocAccessible::GetAccessible() won't return the document if a root
-  // element like body is passed.
-  LocalAccessible* accessible = aContent == document->GetContent()
-                                    ? document
-                                    : document->GetAccessible(aContent);
+  LocalAccessible* accessible = document->GetAccessible(aContent);
+  if (!accessible && aContent == document->GetContent()) {
+    // DocAccessible::GetAccessible() won't return the document if a root
+    // element like body is passed. In that case we need the doc accessible
+    // itself.
+    accessible = document;
+  }
+
   if (!accessible && aContent && aContent->HasChildren() &&
       !aContent->IsInNativeAnonymousSubtree()) {
     // If the content has children and its frame has a transform, create an

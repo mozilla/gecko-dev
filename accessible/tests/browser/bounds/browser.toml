@@ -9,6 +9,8 @@ support-files = [
 
 ["browser_accessible_moved.js"]
 
+["browser_bounds_change.js"]
+
 ["browser_caret_rect.js"]
 
 ["browser_position.js"]
