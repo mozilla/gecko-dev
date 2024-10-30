@@ -405,6 +405,8 @@ var FullScreen = {
     }
   },
 
+  _currentToolbarShift: 0,
+
   /**
    * Shifts the browser toolbar down when it is moused over on macOS in
    * fullscreen.
@@ -421,18 +423,35 @@ var FullScreen = {
     // don't need that kind of precision in our CSS.
     shiftSize = shiftSize.toFixed(2);
     gNavToolbox.classList.toggle("fullscreen-with-menubar", shiftSize > 0);
-    if (shiftSize > 0) {
-      gNavToolbox.style.setProperty("transform", `translateY(${shiftSize}px)`);
 
+    let transform = shiftSize > 0 ? `translateY(${shiftSize}px)` : "";
+    gNavToolbox.style.transform = transform;
+
+    // NOTE(emilio): We need to do this (layout change rather than transform
+    // change), because the urlbar position computation is transform-aware (and
+    // thus accounts for gNavToolbox's transform). This can be changed to just:
+    //
+    //   gURLBar.textbox.style.transform = transform;
+    //
+    // when switching the urlbar to use anchor positioning (since anchor
+    // positioning conveniently ignores transforms anyways).
+    //
+    // This is as cheap as it gets of a layout change anyways, fortunately.
+    //
+    // Note we also can't just asynchronously update the position, because
+    // otherwise the macOS exit fullscreen animation will get the mispositioned
+    // urlbar.
+    gURLBar.shiftTextboxBy(shiftSize - this._currentToolbarShift);
+    if (shiftSize > 0) {
       // If the mouse tracking missed our fullScreenToggler, then the toolbox
       // might not have been shown before the menubar is animated down. Make
       // sure it is shown now.
       if (!this.fullScreenToggler.hidden) {
         this.showNavToolbox();
       }
-    } else {
-      gNavToolbox.style.removeProperty("transform");
     }
+
+    this._currentToolbarShift = shiftSize;
   },
 
   handleEvent(event) {
