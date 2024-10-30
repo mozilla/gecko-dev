@@ -13,23 +13,29 @@ const TEST_PATH_SITE = getRootDirectory(gTestPath).replace(
   "https://test1.example.com"
 );
 
-// Verify if the page with a COOP header can be used for printing preview.
-add_task(async function test_print_coop_basic() {
-  await PrintHelper.withTestPage(async helper => {
-    await helper.startPrint();
-    ok(true, "We did not crash.");
-    await helper.closeDialog();
-  }, "file_coop_header.html");
-});
+const COOP_HELPER_FILE =
+  getRootDirectory(gTestPath).replace("chrome://mochitests/content/", "") +
+  "file_print_coop_helper.html";
 
-add_task(async function test_window_print_coop() {
-  for (const base of [TEST_PATH, TEST_PATH_SITE]) {
-    for (const query of [
+async function test_print_flags_with_headers(headers, expectIsolated) {
+  let params = new URLSearchParams({
+    file: COOP_HELPER_FILE,
+  });
+  for (let header of headers) {
+    params.append("headers", header);
+  }
+  for (const origin of ["https://example.com", "https://test1.example.com"]) {
+    for (const hash of [
       "print",
       "print-same-origin-frame",
+      "print-same-origin-frame-srcdoc",
       "print-cross-origin-frame",
     ]) {
-      const url = `${base}file_coop_header.html?${query}`;
+      if (expectIsolated && hash == "print-cross-origin-frame") {
+        // The iframe wouldn't load.
+        continue;
+      }
+      let url = `${origin}/document-builder.sjs?${params}#${hash}`;
       info(`Testing ${url}`);
       is(
         document.querySelector(".printPreviewBrowser"),
@@ -47,7 +53,28 @@ add_task(async function test_window_print_coop() {
 
         ok(true, "Shouldn't crash");
         gBrowser.getTabDialogBox(browser).abortAllDialogs();
+        let isolated = await SpecialPowers.spawn(browser, [], () => {
+          return content.crossOriginIsolated;
+        });
+        is(isolated, expectIsolated, "Expected isolation");
       });
     }
   }
+}
+
+add_task(async function test_window_print_coop() {
+  return test_print_flags_with_headers(
+    ["Cross-Origin-Opener-Policy: same-origin"],
+    /* expectIsolated = */ false
+  );
+});
+
+add_task(async function test_window_print_coep() {
+  return test_print_flags_with_headers(
+    [
+      "Cross-Origin-Opener-Policy: same-origin",
+      "Cross-Origin-Embedder-Policy: require-corp",
+    ],
+    /* expectIsolated = */ true
+  );
 });

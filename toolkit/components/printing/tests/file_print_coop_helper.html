@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<p>Hello world</p>
+<iframe id="iframe"></iframe>
+<script>
+onload = function() {
+  let iframe = document.getElementById("iframe");
+  switch (location.hash) {
+    case "#print":
+      window.print();
+      break;
+    case "#print-same-origin-frame": {
+      let params = new URLSearchParams(location.search);
+      params.delete("file");
+      params.set("html", "Hello<script>print()<\/script>");
+      iframe.src = `/document-builder.sjs?${params}`;
+      break;
+    }
+    case "#print-same-origin-frame-srcdoc":
+      iframe.srcdoc = `Hello<script>print()<\/script>`;
+      break;
+    case "#print-cross-origin-frame":
+      iframe.src = `https://example.org/document-builder.sjs?html=Hello<script>print()<\/script>`;
+      break;
+  }
+}
+</script>
