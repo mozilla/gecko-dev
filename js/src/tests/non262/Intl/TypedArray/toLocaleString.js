@@ -69,7 +69,7 @@ if (typeof Intl === "object") {
     }
     Number.prototype.toLocaleString = originalNumberToLocaleString;
 
-    assertEq(new Float32Array([NaN]).toLocaleString("ar"), "ليس رقم");
+    assertEq(new Float32Array([NaN]).toLocaleString("ar"), "ليس رقمًا");
     assertEq(new Float64Array([NaN]).toLocaleString(["zh-hant", "ar"]), "非數值");
     assertEq(new Float32Array([Infinity]).toLocaleString(["dz"]), "གྲངས་མེད");
     assertEq(new Float64Array([-Infinity]).toLocaleString(["fr", "en"]), "-∞");

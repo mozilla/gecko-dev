@@ -15,7 +15,7 @@ const tests = [
             "de": [Day("1"), Literal("."), Month("4"), Literal("."), Year("37")],
             "ja": [YearName("庚子"), Literal("-"), Month("4"), Literal("-"), Day("1")],
             "zh": [RelatedYear("2020"), Literal("年"), Month("四月"), Day("1")],
-            "ar": [RelatedYear("٢٠٢٠"), Literal("-"), Month("٠٤"), Literal("-"), Day("٠١")],
+            "ar-EG": [RelatedYear("٢٠٢٠"), Literal("-"), Month("٠٤"), Literal("-"), Day("٠١")],
         }
     },
 
@@ -29,7 +29,7 @@ const tests = [
             "de": [Day("1"), Literal("."), Month("4bis"), Literal("."), Year("37")],
             "ja": [YearName("庚子"), Literal("-"), Month("閏4"), Literal("-"), Day("1")],
             "zh": [RelatedYear("2020"), Literal("年"), Month("闰四月"), Day("1")],
-            "ar": [RelatedYear("٢٠٢٠"), Literal("-"), Month("٠٤bis"), Literal("-"), Day("٠١")],
+            "ar-EG": [RelatedYear("٢٠٢٠"), Literal("-"), Month("٠٤bis"), Literal("-"), Day("٠١")],
         }
     },
 
@@ -43,7 +43,7 @@ const tests = [
             "de": [YearName("geng-zi")],
             "ja": [YearName("庚子"), Literal("年")],
             "zh": [RelatedYear("2020"), YearName("庚子"), Literal("年")],
-            "ar": [Year("٣٧")],
+            "ar-EG": [RelatedYear("٢٠٢٠"), Literal("("), YearName("geng-zi"), Literal(")")],
         }
     },
 
@@ -57,7 +57,7 @@ const tests = [
             "de": [Month("M04")],
             "ja": [Month("四月")],
             "zh": [Month("四月")],
-            "ar": [Month("M04")],
+            "ar-EG": [Month("M04")],
         }
     },
 
@@ -71,7 +71,7 @@ const tests = [
             "de": [Month("M04bis")],
             "ja": [Month("閏四月")],
             "zh": [Month("闰四月")],
-            "ar": [Month("M04bis")],
+            "ar-EG": [Month("M04bis")],
         }
     },
 
@@ -85,7 +85,7 @@ const tests = [
             "de": [Month("M04"), Literal(" "), YearName("geng-zi")],
             "ja": [YearName("庚子"), Literal("年"), Month("四月")],
             "zh": [RelatedYear("2020"), YearName("庚子"), Literal("年"), Month("四月")],
-            "ar": [RelatedYear("٢٠٢٠"), Literal("("), YearName("geng-zi"), Literal(") "), Month("M04")],
+            "ar-EG": [RelatedYear("٢٠٢٠"), Literal("("), YearName("geng-zi"), Literal(") "), Month("M04")],
         }
     },
 
@@ -99,7 +99,7 @@ const tests = [
             "de": [Month("M04bis"), Literal(" "), YearName("geng-zi")],
             "ja": [YearName("庚子"), Literal("年"), Month("閏四月")],
             "zh": [RelatedYear("2020"), YearName("庚子"), Literal("年"), Month("闰四月")],
-            "ar": [RelatedYear("٢٠٢٠"), Literal("("), YearName("geng-zi"), Literal(") "), Month("M04bis")],
+            "ar-EG": [RelatedYear("٢٠٢٠"), Literal("("), YearName("geng-zi"), Literal(") "), Month("M04bis")],
         }
     },
 
@@ -142,7 +142,7 @@ const tests = [
         calendar: "islamic",
         locales: {
             "en": [Month("4"), Literal("/"), Day("25"), Literal("/"), Year("1440"), Literal(" "), Era("AH")],
-            "ar": [Day("٢٥"), Literal("\u200F/"), Month("٤"), Literal("\u200F/"), Year("١٤٤٠"), Literal(" "), Era("هـ")],
+            "ar-EG": [Day("٢٥"), Literal("\u200F/"), Month("٤"), Literal("\u200F/"), Year("١٤٤٠"), Literal(" "), Era("هـ")],
         }
     },
     {

@@ -17,7 +17,7 @@ function sightingDate(options, date) {
 
 function ummAlQuraDate(options, date) {
     var opts = Object.assign({timeZone: "Asia/Riyadh"}, options);
-    return new Intl.DateTimeFormat("ar-SA-u-ca-umalqura-nu-latn", opts).format(date);
+    return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura-nu-latn", opts).format(date);
 }
 
 // Test islamic-tbla (Tabular / Thursday epoch).
