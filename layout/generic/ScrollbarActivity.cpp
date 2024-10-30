@@ -32,7 +32,6 @@ static bool DisplayOnMouseMove() {
 }
 
 void ScrollbarActivity::Destroy() {
-  StopListeningForScrollbarEvents();
   StopListeningForScrollAreaEvents();
   CancelFadeTimer();
 }
@@ -50,10 +49,8 @@ static void SetScrollbarActive(Element* aScrollbar, bool aIsActive) {
     if (nsScrollbarFrame* sf = do_QueryFrame(aScrollbar->GetPrimaryFrame())) {
       sf->WillBecomeActive();
     }
-    aScrollbar->SetAttr(kNameSpaceID_None, nsGkAtoms::active, u""_ns, true);
-  } else {
-    aScrollbar->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, true);
   }
+  aScrollbar->SetBoolAttr(nsGkAtoms::active, aIsActive);
 }
 
 void ScrollbarActivity::ActivityStarted() {
@@ -66,7 +63,6 @@ void ScrollbarActivity::ActivityStarted() {
   if (mScrollbarEffectivelyVisible) {
     return;
   }
-  StartListeningForScrollbarEvents();
   StartListeningForScrollAreaEvents();
   SetScrollbarActive(GetHorizontalScrollbar(), true);
   SetScrollbarActive(GetVerticalScrollbar(), true);
@@ -120,62 +116,7 @@ ScrollbarActivity::HandleEvent(dom::Event* aEvent) {
     return NS_OK;
   }
 
-  HandleEventForScrollbar(type, targetContent, GetHorizontalScrollbar(),
-                          &mHScrollbarHovered);
-  HandleEventForScrollbar(type, targetContent, GetVerticalScrollbar(),
-                          &mVScrollbarHovered);
-
   return NS_OK;
-}
-
-void ScrollbarActivity::HandleEventForScrollbar(const nsAString& aType,
-                                                nsIContent* aTarget,
-                                                Element* aScrollbar,
-                                                bool* aStoredHoverState) {
-  if (!aTarget || !aScrollbar ||
-      !aTarget->IsInclusiveDescendantOf(aScrollbar)) {
-    return;
-  }
-
-  if (aType.EqualsLiteral("mousedown")) {
-    ActivityStarted();
-  } else if (aType.EqualsLiteral("mouseup")) {
-    ActivityStopped();
-  } else if (aType.EqualsLiteral("mouseover") ||
-             aType.EqualsLiteral("mouseout")) {
-    bool newHoveredState = aType.EqualsLiteral("mouseover");
-    if (newHoveredState && !*aStoredHoverState) {
-      ActivityStarted();
-    } else if (*aStoredHoverState && !newHoveredState) {
-      ActivityStopped();
-    }
-    *aStoredHoverState = newHoveredState;
-  }
-}
-
-void ScrollbarActivity::StartListeningForScrollbarEvents() {
-  if (mListeningForScrollbarEvents) {
-    return;
-  }
-
-  mHorizontalScrollbar = GetHorizontalScrollbar();
-  mVerticalScrollbar = GetVerticalScrollbar();
-
-  AddScrollbarEventListeners(mHorizontalScrollbar);
-  AddScrollbarEventListeners(mVerticalScrollbar);
-
-  mListeningForScrollbarEvents = true;
-}
-
-void ScrollbarActivity::StopListeningForScrollbarEvents() {
-  if (!mListeningForScrollbarEvents) return;
-
-  RemoveScrollbarEventListeners(mHorizontalScrollbar);
-  RemoveScrollbarEventListeners(mVerticalScrollbar);
-
-  mHorizontalScrollbar = nullptr;
-  mVerticalScrollbar = nullptr;
-  mListeningForScrollbarEvents = false;
 }
 
 void ScrollbarActivity::StartListeningForScrollAreaEvents() {
@@ -194,26 +135,6 @@ void ScrollbarActivity::StopListeningForScrollAreaEvents() {
   nsIFrame* scrollArea = do_QueryFrame(mScrollableFrame);
   scrollArea->GetContent()->RemoveEventListener(u"mousemove"_ns, this, true);
   mListeningForScrollAreaEvents = false;
-}
-
-void ScrollbarActivity::AddScrollbarEventListeners(
-    dom::EventTarget* aScrollbar) {
-  if (aScrollbar) {
-    aScrollbar->AddEventListener(u"mousedown"_ns, this, true);
-    aScrollbar->AddEventListener(u"mouseup"_ns, this, true);
-    aScrollbar->AddEventListener(u"mouseover"_ns, this, true);
-    aScrollbar->AddEventListener(u"mouseout"_ns, this, true);
-  }
-}
-
-void ScrollbarActivity::RemoveScrollbarEventListeners(
-    dom::EventTarget* aScrollbar) {
-  if (aScrollbar) {
-    aScrollbar->RemoveEventListener(u"mousedown"_ns, this, true);
-    aScrollbar->RemoveEventListener(u"mouseup"_ns, this, true);
-    aScrollbar->RemoveEventListener(u"mouseover"_ns, this, true);
-    aScrollbar->RemoveEventListener(u"mouseout"_ns, this, true);
-  }
 }
 
 void ScrollbarActivity::CancelFadeTimer() {

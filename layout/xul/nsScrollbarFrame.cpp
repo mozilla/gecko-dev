@@ -72,14 +72,11 @@ nsScrollbarFrame* nsScrollbarFrame::GetOppositeScrollbar() const {
   return vScrollbar;
 }
 
-void nsScrollbarFrame::ElementStateChanged(dom::ElementState aStates) {
-  if (!aStates.HasState(dom::ElementState::HOVER)) {
-    return;
-  }
+void nsScrollbarFrame::InvalidateForHoverChange(bool aIsNowHovered) {
   // Hover state on the scrollbar changes both the scrollbar and potentially
   // descendants too, so invalidate when it changes.
   InvalidateFrameSubtree();
-  if (!mContent->AsElement()->State().HasState(dom::ElementState::HOVER)) {
+  if (!aIsNowHovered) {
     return;
   }
   mHasBeenHovered = true;
@@ -89,6 +86,25 @@ void nsScrollbarFrame::ElementStateChanged(dom::ElementState aStates) {
       opposite && opposite->mHasBeenHovered) {
     opposite->mHasBeenHovered = false;
     opposite->InvalidateFrameSubtree();
+  }
+}
+
+void nsScrollbarFrame::ActivityChanged(bool aIsNowActive) {
+  if (ScrollContainerFrame* sc = do_QueryFrame(GetParent())) {
+    if (aIsNowActive) {
+      sc->ScrollbarActivityStarted();
+    } else {
+      sc->ScrollbarActivityStopped();
+    }
+  }
+}
+
+void nsScrollbarFrame::ElementStateChanged(dom::ElementState aStates) {
+  if (aStates.HasState(dom::ElementState::HOVER)) {
+    const bool hovered =
+        mContent->AsElement()->State().HasState(dom::ElementState::HOVER);
+    InvalidateForHoverChange(hovered);
+    ActivityChanged(hovered);
   }
 }
 

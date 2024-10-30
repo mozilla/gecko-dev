@@ -83,35 +83,21 @@ class ScrollbarActivity final : public nsIDOMEventListener {
   void StartFadeTimer();
   void CancelFadeTimer();
   void BeginFade();
-  void HandleEventForScrollbar(const nsAString& aType, nsIContent* aTarget,
-                               dom::Element* aScrollbar,
-                               bool* aStoredHoverState);
 
-  void StartListeningForScrollbarEvents();
   void StartListeningForScrollAreaEvents();
-  void StopListeningForScrollbarEvents();
   void StopListeningForScrollAreaEvents();
-  void AddScrollbarEventListeners(dom::EventTarget* aScrollbar);
-  void RemoveScrollbarEventListeners(dom::EventTarget* aScrollbar);
-
-  void HoveredScrollbar(dom::Element* aScrollbar);
 
   dom::Element* GetScrollbarContent(bool aVertical);
   dom::Element* GetHorizontalScrollbar() { return GetScrollbarContent(false); }
   dom::Element* GetVerticalScrollbar() { return GetScrollbarContent(true); }
 
   nsIScrollbarMediator* const mScrollableFrame;
-  nsCOMPtr<dom::EventTarget> mHorizontalScrollbar;  // null while inactive
-  nsCOMPtr<dom::EventTarget> mVerticalScrollbar;    // null while inactive
   nsCOMPtr<nsITimer> mFadeTimer;
   uint32_t mNestedActivityCounter = 0;
   // This boolean is true from the point activity starts to the point BeginFade
   // runs, and effectively reflects the "active" attribute of the scrollbar.
   bool mScrollbarEffectivelyVisible = false;
-  bool mListeningForScrollbarEvents = false;
   bool mListeningForScrollAreaEvents = false;
-  bool mHScrollbarHovered = false;
-  bool mVScrollbarHovered = false;
 };
 
 }  // namespace layout

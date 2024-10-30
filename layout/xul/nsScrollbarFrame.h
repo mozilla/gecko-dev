@@ -118,8 +118,11 @@ class nsScrollbarFrame final : public nsContainerFrame,
 
   // If we're an horizontal scrollbar, get the vertical one, or viceversa.
   nsScrollbarFrame* GetOppositeScrollbar() const;
+  void ActivityChanged(bool aIsNowActive);
 
  protected:
+  void InvalidateForHoverChange(bool aIsNowHovered);
+
   // Direction and multiple to scroll
   int32_t mDirection = 0;
   // Amount to scroll, in CSSPixels
