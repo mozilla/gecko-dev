@@ -10,6 +10,7 @@ import unittest
 import pytest
 from mozunit import main
 from taskgraph.graph import Graph
+from taskgraph.target_tasks import get_method
 from taskgraph.task import Task
 from taskgraph.taskgraph import TaskGraph
 
@@ -57,7 +58,7 @@ class TestTargetTasks(unittest.TestCase):
         )
 
     def default_matches(self, attributes, parameters):
-        method = target_tasks.get_method("default")
+        method = get_method("default")
         graph = TaskGraph(
             tasks={
                 "a": Task(kind="build", label="a", attributes=attributes, task={}),
@@ -169,7 +170,7 @@ class TestTargetTasks(unittest.TestCase):
     def test_empty_try(self):
         "try_mode = None runs nothing"
         tg = self.make_task_graph()
-        method = target_tasks.get_method("try_tasks")
+        method = get_method("try_tasks")
         params = {
             "try_mode": None,
             "project": "try",
@@ -181,7 +182,7 @@ class TestTargetTasks(unittest.TestCase):
     def test_try_option_syntax(self):
         "try_mode = try_option_syntax uses TryOptionSyntax"
         tg = self.make_task_graph()
-        method = target_tasks.get_method("try_tasks")
+        method = get_method("try_tasks")
         with self.fake_TryOptionSyntax():
             params = {
                 "try_mode": "try_option_syntax",
@@ -192,7 +193,7 @@ class TestTargetTasks(unittest.TestCase):
     def test_try_task_config(self):
         "try_mode = try_task_config uses the try config"
         tg = self.make_task_graph()
-        method = target_tasks.get_method("try_tasks")
+        method = get_method("try_tasks")
         params = {
             "try_mode": "try_task_config",
             "try_task_config": {"tasks": ["a"]},
@@ -202,7 +203,7 @@ class TestTargetTasks(unittest.TestCase):
     def test_try_task_config_regex(self):
         "try_mode = try_task_config uses the try config with regex instead of chunk numbers"
         tg = self.make_task_graph()
-        method = target_tasks.get_method("try_tasks")
+        method = get_method("try_tasks")
         params = {
             "try_mode": "try_task_config",
             "try_task_config": {"new-test-config": True, "tasks": ["ddd-*"]},
@@ -213,7 +214,7 @@ class TestTargetTasks(unittest.TestCase):
     def test_try_task_config_regex_with_paths(self):
         "try_mode = try_task_config uses the try config with regex instead of chunk numbers"
         tg = self.make_task_graph()
-        method = target_tasks.get_method("try_tasks")
+        method = get_method("try_tasks")
         params = {
             "try_mode": "try_task_config",
             "try_task_config": {
@@ -228,7 +229,7 @@ class TestTargetTasks(unittest.TestCase):
     def test_try_task_config_absolute(self):
         "try_mode = try_task_config uses the try config with full task labels"
         tg = self.make_task_graph()
-        method = target_tasks.get_method("try_tasks")
+        method = get_method("try_tasks")
         params = {
             "try_mode": "try_task_config",
             "try_task_config": {
@@ -242,7 +243,7 @@ class TestTargetTasks(unittest.TestCase):
     def test_try_task_config_regex_var(self):
         "try_mode = try_task_config uses the try config with regex instead of chunk numbers and a test variant"
         tg = self.make_task_graph()
-        method = target_tasks.get_method("try_tasks")
+        method = get_method("try_tasks")
         params = {
             "try_mode": "try_task_config",
             "try_task_config": {"new-test-config": True, "tasks": ["ddd-var-*"]},

@@ -14,9 +14,11 @@ Test auto selector
   Calculated try_task_config.json:
   {
       "parameters": {
+          "filters": [
+              "try_auto"
+          ],
           "optimize_strategies": "gecko_taskgraph.optimize:tryselect.bugbug_reduced_manifests_config_selection_medium",
           "optimize_target_tasks": true,
-          "target_tasks_method": "try_auto",
           "test_manifest_loader": "bugbug",
           "try_mode": "try_auto",
           "try_task_config": {}
@@ -35,9 +37,11 @@ Test auto selector
   Calculated try_task_config.json:
   {
       "parameters": {
+          "filters": [
+              "try_auto"
+          ],
           "optimize_strategies": "gecko_taskgraph.optimize:tryselect.bugbug_reduced_manifests_config_selection_medium",
           "optimize_target_tasks": true,
-          "target_tasks_method": "try_auto",
           "test_manifest_loader": "bugbug",
           "try_mode": "try_auto",
           "try_task_config": {}
@@ -55,9 +59,11 @@ Test auto selector
   Calculated try_task_config.json:
   {
       "parameters": {
+          "filters": [
+              "try_auto"
+          ],
           "optimize_strategies": "gecko_taskgraph.optimize:tryselect.bugbug_reduced_manifests_config_selection_medium",
           "optimize_target_tasks": true,
-          "target_tasks_method": "try_auto",
           "test_manifest_loader": "bugbug",
           "try_mode": "try_auto",
           "try_task_config": {}

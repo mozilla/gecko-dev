@@ -65,7 +65,8 @@ def cache_key(attr, params, disable_target_task_filter):
 
 def generate_tasks(params=None, full=False, disable_target_task_filter=False):
     attr = "full_task_set" if full else "target_task_set"
-    target_tasks_method = (
+
+    filter_fn = (
         "try_select_tasks"
         if not disable_target_task_filter
         else "try_select_tasks_uncommon"
@@ -75,7 +76,7 @@ def generate_tasks(params=None, full=False, disable_target_task_filter=False):
         strict=False,
         overrides={
             "try_mode": "try_select",
-            "target_tasks_method": target_tasks_method,
+            "filters": [filter_fn],
         },
     )
     root = os.path.join(build.topsrcdir, "taskcluster")

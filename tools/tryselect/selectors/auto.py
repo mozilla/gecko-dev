@@ -10,9 +10,9 @@ from ..push import push_to_try
 from ..util.dicttools import merge
 
 TRY_AUTO_PARAMETERS = {
+    "filters": ["try_auto"],
     "optimize_strategies": "gecko_taskgraph.optimize:tryselect.bugbug_reduced_manifests_config_selection_medium",  # noqa
     "optimize_target_tasks": True,
-    "target_tasks_method": "try_auto",
     "test_manifest_loader": "bugbug",
     "try_mode": "try_auto",
     "try_task_config": {},

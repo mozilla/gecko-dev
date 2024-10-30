@@ -11,8 +11,7 @@ from datetime import datetime, timedelta
 
 import requests
 from redo import retry
-from taskgraph.parameters import Parameters
-from taskgraph.target_tasks import get_method, register_target_task
+from taskgraph.target_tasks import register_target_task
 from taskgraph.util.taskcluster import find_task_id, parse_time
 
 from gecko_taskgraph import GECKO, try_option_syntax
@@ -475,69 +474,6 @@ def target_tasks_try(full_task_graph, parameters, graph_config):
     # With no try mode, we schedule nothing, allowing the user to add tasks
     # later via treeherder.
     return []
-
-
-@register_target_task("try_select_tasks")
-def target_tasks_try_select(full_task_graph, parameters, graph_config):
-    tasks = target_tasks_try_select_uncommon(full_task_graph, parameters, graph_config)
-    return [l for l in tasks if filter_by_uncommon_try_tasks(l)]
-
-
-@register_target_task("try_select_tasks_uncommon")
-def target_tasks_try_select_uncommon(full_task_graph, parameters, graph_config):
-    from gecko_taskgraph.decision import PER_PROJECT_PARAMETERS
-
-    projects = ("autoland", "mozilla-central")
-    if parameters["project"] not in projects:
-        projects = (parameters["project"],)
-
-    tasks = set()
-    for project in projects:
-        params = dict(parameters)
-        params["project"] = project
-        parameters = Parameters(**params)
-
-        try:
-            target_tasks_method = PER_PROJECT_PARAMETERS[project]["target_tasks_method"]
-        except KeyError:
-            target_tasks_method = "default"
-
-        tasks.update(
-            get_method(target_tasks_method)(full_task_graph, parameters, graph_config)
-        )
-
-    return sorted(tasks)
-
-
-@register_target_task("try_auto")
-def target_tasks_try_auto(full_task_graph, parameters, graph_config):
-    """Target the tasks which have indicated they should be run on autoland
-    (rather than try) via the `run_on_projects` attributes.
-
-    Should do the same thing as the `default` target tasks method.
-    """
-    params = dict(parameters)
-    params["project"] = "autoland"
-    parameters = Parameters(**params)
-
-    regex_filters = parameters["try_task_config"].get("tasks-regex")
-    include_regexes = exclude_regexes = []
-    if regex_filters:
-        include_regexes = [re.compile(r) for r in regex_filters.get("include", [])]
-        exclude_regexes = [re.compile(r) for r in regex_filters.get("exclude", [])]
-
-    return [
-        l
-        for l, t in full_task_graph.tasks.items()
-        if standard_filter(t, parameters)
-        and filter_out_shipping_phase(t, parameters)
-        and filter_out_devedition(t, parameters)
-        and filter_by_uncommon_try_tasks(t.label)
-        and filter_by_regex(t.label, include_regexes, mode="include")
-        and filter_by_regex(t.label, exclude_regexes, mode="exclude")
-        and filter_unsupported_artifact_builds(t, parameters)
-        and filter_out_shippable(t)
-    ]
 
 
 @register_target_task("default")
