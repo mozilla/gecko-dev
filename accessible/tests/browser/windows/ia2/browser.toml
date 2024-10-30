@@ -10,4 +10,6 @@ support-files = ["head.js"]
 
 ["browser_role.js"]
 
+["browser_scrolling.js"]
+
 ["browser_text.js"]
