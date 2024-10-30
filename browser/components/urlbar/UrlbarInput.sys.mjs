@@ -4432,7 +4432,9 @@ export class UrlbarInput {
       this.#allTextSelectedOnKeyDown = this.#allTextSelected;
 
       this._isKeyDownWithMetaAndLeft =
-        event.keyCode == KeyEvent.DOM_VK_LEFT && event.metaKey;
+        event.keyCode == KeyEvent.DOM_VK_LEFT &&
+        event.metaKey &&
+        !event.shiftKey;
 
       if (event.keyCode === KeyEvent.DOM_VK_RETURN) {
         if (this._keyDownEnterDeferred) {
@@ -4725,10 +4727,16 @@ export class UrlbarInput {
       // On MacOS this can be generated with Fn + Left.
       event.keyCode == KeyEvent.DOM_VK_HOME ||
       // Windows and Linux also support Ctrl + Left.
-      (!isMac && event.keyCode == KeyboardEvent.DOM_VK_LEFT && event.ctrlKey) ||
+      (!isMac &&
+        event.keyCode == KeyboardEvent.DOM_VK_LEFT &&
+        event.ctrlKey &&
+        !event.shiftKey) ||
       // MacOS supports other combos to move cursor at the start of the line.
       // For example Ctrl + A.
-      (isMac && event.keyCode == KeyboardEvent.DOM_VK_A && event.ctrlKey) ||
+      (isMac &&
+        event.keyCode == KeyboardEvent.DOM_VK_A &&
+        event.ctrlKey &&
+        !event.shiftKey) ||
       // And also Cmd (Meta) + Left.
       // Unfortunately on MacOS it's not possible to detect combos with the meta
       // key during the keyup event, due to how the OS handles events. Thus we
