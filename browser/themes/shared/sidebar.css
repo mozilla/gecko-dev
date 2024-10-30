@@ -20,6 +20,7 @@
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
     min-width: 200px;
+    width: 340px;
     padding-block-end: var(--space-small);
     padding-inline-end: var(--space-small);
     position: relative;
@@ -33,10 +34,6 @@
 
   &[sidebarcommand="viewGenaiChatSidebar"] {
     min-width: 400px;
-  }
-
-  &[sidebarcommand="viewReviewCheckerSidebar"] {
-    width: 340px;
   }
 }
 

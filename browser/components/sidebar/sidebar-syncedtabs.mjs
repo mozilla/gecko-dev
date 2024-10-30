@@ -125,7 +125,6 @@ class SyncedTabsInSidebar extends SidebarPage {
    * @param {string} options.buttonLabel
    * @param {string[]} options.descriptionArray
    * @param {string} options.descriptionLink
-   * @param {boolean} options.error
    * @param {string} options.header
    * @param {string} options.headerIconUrl
    * @param {string} options.mainImageUrl
@@ -136,7 +135,6 @@ class SyncedTabsInSidebar extends SidebarPage {
     buttonLabel,
     descriptionArray,
     descriptionLink,
-    error,
     header,
     headerIconUrl,
     mainImageUrl,
@@ -149,18 +147,17 @@ class SyncedTabsInSidebar extends SidebarPage {
         class="empty-state synced-tabs error"
         isSelectedTab
         mainImageUrl="${ifDefined(mainImageUrl)}"
-        ?errorGrayscale=${error}
         headerIconUrl="${ifDefined(headerIconUrl)}"
         id="empty-container"
       >
-        <button
-          class="primary"
+        <moz-button
+          type="primary"
           slot="primary-action"
           ?hidden=${!buttonLabel}
           data-l10n-id="${ifDefined(buttonLabel)}"
           data-action="${action}"
           @click=${e => this.controller.handleEvent(e)}
-        ></button>
+        ></moz-button>
       </fxview-empty-state>
     `;
   }

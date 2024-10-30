@@ -225,7 +225,7 @@ export class SyncedTabsController {
       buttonLabel = this.actionMappings[action].buttonLabel;
       descriptionLink = this.actionMappings[action].descriptionLink;
       mainImageUrl =
-        "chrome://browser/content/firefoxview/synced-tabs-error.svg";
+        "chrome://browser/content/firefoxview/synced-tabs-empty.svg";
       descriptionArray = [description];
     }
     return {

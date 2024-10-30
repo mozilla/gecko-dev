@@ -7,7 +7,6 @@
 
 :root {
   --sidebar-box-border: 0.5px solid var(--border-color-deemphasized);
-
   background-color: transparent;
   color: var(--sidebar-text-color);
   height: 100%;
@@ -89,5 +88,16 @@ fxview-empty-state {
   &::part(image) {
     fill: var(--toolbar-bgcolor);
     stroke: var(--toolbar-color);
+  }
+  &::part(image-container) {
+    min-width: auto;
+    width: 100%;
+    max-width: 250px;
+  }
+  /* these illustrations need a larger width otherwise they look too small */
+  &.synced-tabs::part(image-container) {
+    min-width: auto;
+    width: 100%;
+    max-width: 350px;
   }
 }

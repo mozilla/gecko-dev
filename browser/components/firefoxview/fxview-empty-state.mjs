@@ -4,7 +4,6 @@
 
 import {
   html,
-  ifDefined,
   classMap,
   repeat,
 } from "chrome://global/content/vendor/lit.all.mjs";
@@ -64,68 +63,78 @@ class FxviewEmptyState extends MozLitElement {
 
   render() {
     return html`
-       <link
-         rel="stylesheet"
-         href="chrome://browser/content/firefoxview/fxview-empty-state.css"
-       />
-       <card-container hideHeader="true" exportparts="image" ?isInnerCard="${
-         this.isInnerCard
-       }" id="card-container" isEmptyState="true" role="group" aria-labelledby="header" aria-describedby="description">
-         <div slot="main" part="container" class=${classMap({
-           selectedTab: this.isSelectedTab,
-           imageHidden: !this.mainImageUrl,
-         })}>
-           <div class="image-container">
-             <img class=${classMap({
-               image: true,
-               greyscale: this.errorGrayscale,
-             })}
+      <link
+        rel="stylesheet"
+        href="chrome://browser/content/firefoxview/fxview-empty-state.css"
+      />
+      <card-container
+        hideHeader="true"
+        exportparts="image"
+        ?isInnerCard="${this.isInnerCard}"
+        id="card-container"
+        isEmptyState="true"
+        role="group"
+        aria-labelledby="header"
+        aria-describedby="description"
+      >
+        <div
+          slot="main"
+          part="container"
+          class=${classMap({
+            selectedTab: this.isSelectedTab,
+            imageHidden: !this.mainImageUrl,
+          })}
+        >
+          <div class="image-container" part="image-container">
+            <img
+              class=${classMap({
+                image: true,
+                greyscale: this.errorGrayscale,
+              })}
               part="image"
               role="presentation"
               alt=""
               ?hidden=${!this.mainImageUrl}
-                       src=${this.mainImageUrl}/>
-           </div>
-           <div class="main">
-             <h2
-               part="header"
-               id="header"
-               class="header heading-large"
-               ?hidden=${!this.headerLabel}
-             >
-                 <img class="icon info"
-                   data-l10n-id="firefoxview-empty-state-icon"
-                   ?hidden=${!this.headerIconUrl}
-                   src=${ifDefined(this.headerIconUrl)}></img>
-                 <span
-                   data-l10n-id="${this.headerLabel}"
-                   data-l10n-args="${JSON.stringify(this.headerArgs)}">
-                 </span>
-             </h2>
-             <span id="description">
-               ${repeat(
-                 this.descriptionLabels,
-                 descLabel => descLabel,
-                 (descLabel, index) => html`<p
-                   class=${classMap({
-                     description: true,
-                     secondary: index !== 0,
-                   })}
-                   data-l10n-id="${descLabel}"
-                   @click=${this.openLinkInParentWindow &&
-                   this.linkActionHandler}
-                   @keydown=${this.openLinkInParentWindow &&
-                   this.linkActionHandler}
-                 >
-                   ${this.linkTemplate(this.descriptionLink)}
-                 </p>`
-               )}
-             </span>
-             <slot name="primary-action"></slot>
-           </div>
-         </div>
-       </card-container>
-     `;
+              src=${this.mainImageUrl}
+            />
+          </div>
+          <div class="main" part="main">
+            <h2
+              part="header"
+              id="header"
+              class="header heading-large"
+              ?hidden=${!this.headerLabel}
+            >
+              <span
+                data-l10n-id="${this.headerLabel}"
+                data-l10n-args="${JSON.stringify(this.headerArgs)}"
+              >
+              </span>
+            </h2>
+            <span id="description">
+              ${repeat(
+                this.descriptionLabels,
+                descLabel => descLabel,
+                (descLabel, index) => html`<p
+                  class=${classMap({
+                    description: true,
+                    secondary: index !== 0,
+                  })}
+                  data-l10n-id="${descLabel}"
+                  @click=${this.openLinkInParentWindow &&
+                  this.linkActionHandler}
+                  @keydown=${this.openLinkInParentWindow &&
+                  this.linkActionHandler}
+                >
+                  ${this.linkTemplate(this.descriptionLink)}
+                </p>`
+              )}
+            </span>
+            <slot name="primary-action"></slot>
+          </div>
+        </div>
+      </card-container>
+    `;
   }
 
   linkActionHandler(e) {
