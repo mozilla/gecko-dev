@@ -68,9 +68,7 @@ JSExecutionContext::JSExecutionContext(
     JS::CompileOptions& aCompileOptions, ErrorResult& aRv,
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript)
-    : mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
-      mDebuggerIntroductionScript(aCx, aDebuggerIntroductionScript),
-      mSkip(false) {
+    : mSkip(false) {
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(CycleCollectedJSContext::Get() &&
@@ -124,8 +122,27 @@ void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
 
 void JSExecutionContext::InstantiateStencil(
     JSContext* aCx, JS::CompileOptions& aCompileOptions,
+    RefPtr<JS::Stencil>& aStencil, JS::MutableHandle<JSScript*> aScript,
+    ErrorResult& aRv) {
+  MOZ_ASSERT(!JS::InstantiateOptions(aCompileOptions).deferDebugMetadata);
+  MOZ_ASSERT(!mSkip);
+  MOZ_ASSERT(!aScript);
+
+  JS::InstantiateOptions instantiateOptions(aCompileOptions);
+  aScript.set(
+      JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil, nullptr));
+  if (!aScript) {
+    mSkip = true;
+    aRv.NoteJSContextException(aCx);
+  }
+}
+
+void JSExecutionContext::InstantiateStencil(
+    JSContext* aCx, JS::CompileOptions& aCompileOptions,
     RefPtr<JS::Stencil>&& aStencil, JS::MutableHandle<JSScript*> aScript,
-    bool& incrementalEncodingAlreadyStarted, ErrorResult& aRv,
+    bool& incrementalEncodingAlreadyStarted,
+    JS::Handle<JS::Value> aDebuggerPrivateValue,
+    JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv,
     bool aEncodeBytecode /* = false */, JS::InstantiationStorage* aStorage) {
   MOZ_ASSERT(!mSkip);
   JS::InstantiateOptions instantiateOptions(aCompileOptions);
@@ -152,8 +169,8 @@ void JSExecutionContext::InstantiateStencil(
 
   if (instantiateOptions.deferDebugMetadata) {
     if (!JS::UpdateDebugMetadata(aCx, aScript, instantiateOptions,
-                                 mDebuggerPrivateValue, nullptr,
-                                 mDebuggerIntroductionScript, nullptr)) {
+                                 aDebuggerPrivateValue, nullptr,
+                                 aDebuggerIntroductionScript, nullptr)) {
       aRv = NS_ERROR_OUT_OF_MEMORY;
     }
   }

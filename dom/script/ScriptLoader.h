@@ -638,12 +638,12 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   //   * text source
   //   * encoded bytecode
   //   * cached stencil
-  void InstantiateClassicScriptFromAny(JSContext* aCx,
-                                       JSExecutionContext& aExec,
-                                       JS::CompileOptions& aCompileOptions,
-                                       ScriptLoadRequest* aRequest,
-                                       JS::MutableHandle<JSScript*> aScript,
-                                       ErrorResult& aRv);
+  void InstantiateClassicScriptFromAny(
+      JSContext* aCx, JSExecutionContext& aExec,
+      JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
+      JS::MutableHandle<JSScript*> aScript,
+      JS::Handle<JS::Value> aDebuggerPrivateValue,
+      JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv);
 
   // Instantiate classic script from one of the following data:
   //   * text source
@@ -655,7 +655,9 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       JSContext* aCx, JSExecutionContext& aExec,
       JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
       JS::MutableHandle<JSScript*> aScript, bool keepStencil,
-      RefPtr<JS::Stencil>& aStencilDup, ErrorResult& aRv);
+      RefPtr<JS::Stencil>& aStencilDup,
+      JS::Handle<JS::Value> aDebuggerPrivateValue,
+      JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv);
 
   // Instantiate classic script from the following data:
   //   * cached stencil
@@ -663,7 +665,8 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       JSContext* aCx, JSExecutionContext& aExec,
       JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
       JS::Stencil* aStencil, JS::MutableHandle<JSScript*> aScript,
-      ErrorResult& aRv);
+      JS::Handle<JS::Value> aDebuggerPrivateValue,
+      JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv);
 
   static nsCString& BytecodeMimeTypeFor(ScriptLoadRequest* aRequest);
 

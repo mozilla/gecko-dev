@@ -2746,7 +2746,9 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     JSContext* aCx, JSExecutionContext& aExec,
     JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
     JS::MutableHandle<JSScript*> aScript, bool aKeepStencil,
-    RefPtr<JS::Stencil>& aStencilDup, ErrorResult& aRv) {
+    RefPtr<JS::Stencil>& aStencilDup,
+    JS::Handle<JS::Value> aDebuggerPrivateValue,
+    JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv) {
   nsAutoCString profilerLabelString;
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
 
@@ -2769,7 +2771,9 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       if (stencil) {
         bool unused;
         aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                                 aScript, unused, aRv, false, &storage);
+                                 aScript, unused, aDebuggerPrivateValue,
+                                 aDebuggerIntroductionScript, aRv, false,
+                                 &storage);
       }
     } else {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode and Execute", aRequest));
@@ -2790,7 +2794,8 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       if (stencil) {
         bool unused;
         aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                                 aScript, unused, aRv);
+                                 aScript, unused, aDebuggerPrivateValue,
+                                 aDebuggerIntroductionScript, aRv);
       }
     }
 
@@ -2825,7 +2830,9 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     if (stencil) {
       bool unused;
       aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                               aScript, unused, aRv, encodeBytecode, &storage);
+                               aScript, unused, aDebuggerPrivateValue,
+                               aDebuggerIntroductionScript, aRv, encodeBytecode,
+                               &storage);
     }
   } else {
     // Main thread parsing (inline and small scripts)
@@ -2861,7 +2868,8 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       if (stencil) {
         bool unused;
         aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                                 aScript, unused, erv);
+                                 aScript, unused, aDebuggerPrivateValue,
+                                 aDebuggerIntroductionScript, erv);
       }
 
       mMainThreadParseTime += TimeStamp::Now() - startTime;
@@ -2874,7 +2882,8 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
     JSContext* aCx, JSExecutionContext& aExec,
     JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
     JS::Stencil* aStencil, JS::MutableHandle<JSScript*> aScript,
-    ErrorResult& aRv) {
+    JS::Handle<JS::Value> aDebuggerPrivateValue,
+    JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv) {
   RefPtr<JS::Stencil> stencil = JS::DuplicateStencil(aCx, aStencil);
   if (!stencil) {
     aRv = NS_ERROR_FAILURE;
@@ -2883,7 +2892,9 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
 
   bool incrementalEncodingAlreadyStarted = false;
   aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
-                           incrementalEncodingAlreadyStarted, aRv,
+                           incrementalEncodingAlreadyStarted,
+                           aDebuggerPrivateValue, aDebuggerIntroductionScript,
+                           aRv,
                            /* aEncodeBytecode */ true);
   if (incrementalEncodingAlreadyStarted) {
     aRequest->MarkSkippedBytecodeEncoding();
@@ -2893,11 +2904,14 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
 void ScriptLoader::InstantiateClassicScriptFromAny(
     JSContext* aCx, JSExecutionContext& aExec,
     JS::CompileOptions& aCompileOptions, ScriptLoadRequest* aRequest,
-    JS::MutableHandle<JSScript*> aScript, ErrorResult& aRv) {
+    JS::MutableHandle<JSScript*> aScript,
+    JS::Handle<JS::Value> aDebuggerPrivateValue,
+    JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv) {
   if (aRequest->IsStencil()) {
     RefPtr<JS::Stencil> stencil = aRequest->GetStencil();
-    InstantiateClassicScriptFromCachedStencil(aCx, aExec, aCompileOptions,
-                                              aRequest, stencil, aScript, aRv);
+    InstantiateClassicScriptFromCachedStencil(
+        aCx, aExec, aCompileOptions, aRequest, stencil, aScript,
+        aDebuggerPrivateValue, aDebuggerIntroductionScript, aRv);
     return;
   }
 
@@ -2915,9 +2929,9 @@ void ScriptLoader::InstantiateClassicScriptFromAny(
   }
 
   RefPtr<JS::Stencil> stencilDup;
-  InstantiateClassicScriptFromMaybeEncodedSource(aCx, aExec, aCompileOptions,
-                                                 aRequest, aScript, createCache,
-                                                 stencilDup, aRv);
+  InstantiateClassicScriptFromMaybeEncodedSource(
+      aCx, aExec, aCompileOptions, aRequest, aScript, createCache, stencilDup,
+      aDebuggerPrivateValue, aDebuggerIntroductionScript, aRv);
   if (!aRv.Failed()) {
     if (createCache) {
       MOZ_ASSERT(mCache);
@@ -3098,7 +3112,8 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                                JS::ProfilingCategoryPair::JS);
   JSAutoRealm autoRealm(cx, global);
   JS::Rooted<JSScript*> script(cx);
-  InstantiateClassicScriptFromAny(cx, exec, options, aRequest, &script, erv);
+  InstantiateClassicScriptFromAny(cx, exec, options, aRequest, &script,
+                                  classicScriptValue, introductionScript, erv);
 
   if (!erv.Failed()) {
     MaybePrepareForBytecodeEncodingBeforeExecute(aRequest, script);
