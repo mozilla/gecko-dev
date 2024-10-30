@@ -638,21 +638,25 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   //   * text source
   //   * encoded bytecode
   //   * cached stencil
-  nsresult InstantiateClassicScriptFromAny(JSContext* aCx,
-                                           JSExecutionContext& aExec,
-                                           ScriptLoadRequest* aRequest);
+  void InstantiateClassicScriptFromAny(JSContext* aCx,
+                                       JSExecutionContext& aExec,
+                                       ScriptLoadRequest* aRequest,
+                                       ErrorResult& aRv);
 
   // Instantiate classic script from one of the following data:
   //   * text source
   //   * encoded bytecode
-  nsresult InstantiateClassicScriptFromMaybeEncodedSource(
-      JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest);
+  void InstantiateClassicScriptFromMaybeEncodedSource(
+      JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest,
+      ErrorResult& aRv);
 
   // Instantiate classic script from the following data:
   //   * cached stencil
-  nsresult InstantiateClassicScriptFromCachedStencil(
-      JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest,
-      JS::Stencil* aStencil);
+  void InstantiateClassicScriptFromCachedStencil(JSContext* aCx,
+                                                 JSExecutionContext& aExec,
+                                                 ScriptLoadRequest* aRequest,
+                                                 JS::Stencil* aStencil,
+                                                 ErrorResult& aRv);
 
   static nsCString& BytecodeMimeTypeFor(ScriptLoadRequest* aRequest);
 

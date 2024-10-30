@@ -2637,22 +2637,21 @@ class MOZ_RAII AutoSetProcessingScriptTag {
   ~AutoSetProcessingScriptTag() { mContext->SetProcessingScriptTag(mOldTag); }
 };
 
-static nsresult ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
-                                      ClassicScript* aLoaderScript) {
+static void ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
+                                  ClassicScript* aLoaderScript,
+                                  ErrorResult& aRv) {
   JS::Rooted<JSScript*> script(aCx, aExec.GetScript());
   if (!script) {
     // Compilation succeeds without producing a script if scripting is
     // disabled for the global.
-    return NS_OK;
+    return;
   }
 
   if (JS::GetScriptPrivate(script).isUndefined()) {
     aLoaderScript->AssociateWithScript(script);
   }
 
-  ErrorResult erv;
-  aExec.ExecScript(erv);
-  return EvaluationExceptionToNSResult(erv);
+  aExec.ExecScript(aRv);
 }
 
 nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
@@ -2722,30 +2721,30 @@ nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
   return EvaluateScript(globalObject, aRequest);
 }
 
-nsresult ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
-    JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest) {
+void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
+    JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest,
+    ErrorResult& aRv) {
   nsAutoCString profilerLabelString;
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
 
-  ErrorResult erv;
   if (aRequest->IsBytecode()) {
     if (aRequest->GetScriptLoadContext()->mCompileOrDecodeTask) {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode & instantiate and Execute",
            aRequest));
-      aExec.JoinOffThread(aRequest->GetScriptLoadContext(), erv);
+      aExec.JoinOffThread(aRequest->GetScriptLoadContext(), aRv);
     } else {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode and Execute", aRequest));
       AUTO_PROFILER_MARKER_TEXT("BytecodeDecodeMainThread", JS,
                                 MarkerInnerWindowIdFromJSContext(aCx),
                                 profilerLabelString);
 
-      aExec.Decode(aRequest->Bytecode(), erv);
+      aExec.Decode(aRequest->Bytecode(), aRv);
     }
 
     // We do not expect to be saving anything when we already have some
     // bytecode.
     MOZ_ASSERT(!aRequest->mCacheInfo);
-    return EvaluationExceptionToNSResult(erv);
+    return;
   }
 
   MOZ_ASSERT(aRequest->IsSource());
@@ -2759,20 +2758,20 @@ nsresult ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
          "Execute",
          aRequest));
     MOZ_ASSERT(aRequest->IsTextSource());
-    aExec.JoinOffThread(aRequest->GetScriptLoadContext(), erv);
+    aExec.JoinOffThread(aRequest->GetScriptLoadContext(), aRv);
   } else {
     // Main thread parsing (inline and small scripts)
     LOG(("ScriptLoadRequest (%p): Compile And Exec", aRequest));
     MOZ_ASSERT(aRequest->IsTextSource());
     MaybeSourceText maybeSource;
-    erv = aRequest->GetScriptSource(aCx, &maybeSource,
+    aRv = aRequest->GetScriptSource(aCx, &maybeSource,
                                     aRequest->mLoadContext.get());
-    if (!erv.Failed()) {
+    if (!aRv.Failed()) {
       AUTO_PROFILER_MARKER_TEXT("ScriptCompileMainThread", JS,
                                 MarkerInnerWindowIdFromJSContext(aCx),
                                 profilerLabelString);
 
-      auto compile = [&](auto& source) { aExec.Compile(source, erv); };
+      auto compile = [&](auto& source) { aExec.Compile(source, aRv); };
 
       MOZ_ASSERT(!maybeSource.empty());
       TimeStamp startTime = TimeStamp::Now();
@@ -2780,35 +2779,36 @@ nsresult ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       mMainThreadParseTime += TimeStamp::Now() - startTime;
     }
   }
-  return EvaluationExceptionToNSResult(erv);
 }
 
-nsresult ScriptLoader::InstantiateClassicScriptFromCachedStencil(
+void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
     JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest,
-    JS::Stencil* aStencil) {
+    JS::Stencil* aStencil, ErrorResult& aRv) {
   RefPtr<JS::Stencil> stencil = JS::DuplicateStencil(aCx, aStencil);
   if (!stencil) {
-    return NS_ERROR_FAILURE;
+    aRv = NS_ERROR_FAILURE;
+    return;
   }
 
   aExec.SetEncodeBytecode(true);
 
-  ErrorResult erv;
   bool incrementalEncodingAlreadyStarted = false;
   aExec.InstantiateStencil(std::move(stencil),
-                           incrementalEncodingAlreadyStarted, erv);
+                           incrementalEncodingAlreadyStarted, aRv);
   if (incrementalEncodingAlreadyStarted) {
     aRequest->MarkSkippedBytecodeEncoding();
   }
-  return EvaluationExceptionToNSResult(erv);
 }
 
-nsresult ScriptLoader::InstantiateClassicScriptFromAny(
-    JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest) {
+void ScriptLoader::InstantiateClassicScriptFromAny(JSContext* aCx,
+                                                   JSExecutionContext& aExec,
+                                                   ScriptLoadRequest* aRequest,
+                                                   ErrorResult& aRv) {
   if (aRequest->IsStencil()) {
     RefPtr<JS::Stencil> stencil = aRequest->GetStencil();
-    return InstantiateClassicScriptFromCachedStencil(aCx, aExec, aRequest,
-                                                     stencil);
+    InstantiateClassicScriptFromCachedStencil(aCx, aExec, aRequest, stencil,
+                                              aRv);
+    return;
   }
 
   bool createCache = false;
@@ -2828,10 +2828,8 @@ nsresult ScriptLoader::InstantiateClassicScriptFromAny(
     }
   }
 
-  nsresult rv =
-      InstantiateClassicScriptFromMaybeEncodedSource(aCx, aExec, aRequest);
-  // NOTE: rv can be NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW.
-  if (rv == NS_OK) {
+  InstantiateClassicScriptFromMaybeEncodedSource(aCx, aExec, aRequest, aRv);
+  if (!aRv.Failed()) {
     if (createCache) {
       MOZ_ASSERT(mCache);
       aRequest->SetStencil(aExec.StealStencil());
@@ -2839,8 +2837,6 @@ nsresult ScriptLoader::InstantiateClassicScriptFromAny(
       mCache->Insert(*loadData);
     }
   }
-
-  return rv;
 }
 
 /* static */
@@ -3007,16 +3003,9 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   if (erv.Failed()) {
     return EvaluationExceptionToNSResult(erv);
   }
-  rv = InstantiateClassicScriptFromAny(cx, exec, aRequest);
+  InstantiateClassicScriptFromAny(cx, exec, aRequest, erv);
 
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  // TODO (yulia): rewrite this section. rv can be a failing pattern other than
-  // NS_OK which will pass the NS_FAILED check above. If we call exec.GetScript
-  // in that case, it will crash.
-  if (rv == NS_OK) {
+  if (!erv.Failed()) {
     JS::Rooted<JSScript*> script(cx, exec.GetScript());
     MaybePrepareForBytecodeEncodingBeforeExecute(aRequest, script);
 
@@ -3026,8 +3015,13 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                 MarkerInnerWindowIdFromJSContext(cx),
                                 profilerLabelString);
 
-      rv = ExecuteCompiledScript(cx, exec, classicScript);
+      ExecuteCompiledScript(cx, exec, classicScript, erv);
     }
+  }
+  rv = EvaluationExceptionToNSResult(erv);
+
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   // This must be called also for compilation failure case, in order to

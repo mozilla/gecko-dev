@@ -6092,7 +6092,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   options.setIntroductionType("domTimer");
   JS::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
-    ErrorResult erv;
+    IgnoredErrorResult erv;
     JSExecutionContext exec(aes.cx(), global, options, erv);
     if (!erv.Failed()) {
       exec.Compile(mExpr, erv);
@@ -6108,8 +6108,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
       }
     }
 
-    if (EvaluationExceptionToNSResult(erv) ==
-        NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW_UNCATCHABLE) {
+    if (erv.IsUncatchableException()) {
       return false;
     }
   }
