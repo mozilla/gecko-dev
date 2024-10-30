@@ -1936,6 +1936,9 @@ class nsINode : public mozilla::dom::EventTarget {
     ElementHasPart,
     // Set if the element might have a contenteditable attribute set.
     ElementMayHaveContentEditableAttr,
+    // Set if the element has a contenteditable attribute whose value makes the
+    // element editable.
+    ElementHasContentEditableAttrTrueOrPlainTextOnly,
     // Set if the node is the closest common inclusive ancestor of the start/end
     // nodes of a Range that is in a Selection.
     NodeIsClosestCommonInclusiveAncestorForRangeInSelection,
@@ -2032,6 +2035,14 @@ class nsINode : public mozilla::dom::EventTarget {
   bool HasPartAttribute() const { return GetBoolFlag(ElementHasPart); }
   bool MayHaveContentEditableAttr() const {
     return GetBoolFlag(ElementMayHaveContentEditableAttr);
+  }
+  /**
+   * HasContentEditableAttrTrueOrPlainTextOnly() should not be called between
+   * nsGenericHTMLElement::BeforeSetAttr and nsGenericHTMLElement::AfterSetAttr
+   * because this is set and cleared by nsGenericHTMLElement::AfterSetAttr.
+   */
+  bool HasContentEditableAttrTrueOrPlainTextOnly() const {
+    return GetBoolFlag(ElementHasContentEditableAttrTrueOrPlainTextOnly);
   }
   /**
    * https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor
@@ -2162,6 +2173,15 @@ class nsINode : public mozilla::dom::EventTarget {
   void SetHasPartAttribute(bool aPart) { SetBoolFlag(ElementHasPart, aPart); }
   void SetMayHaveContentEditableAttr() {
     SetBoolFlag(ElementMayHaveContentEditableAttr);
+  }
+  void ClearMayHaveContentEditableAttr() {
+    ClearBoolFlag(ElementMayHaveContentEditableAttr);
+  }
+  void SetHasContentEditableAttrTrueOrPlainTextOnly() {
+    SetBoolFlag(ElementHasContentEditableAttrTrueOrPlainTextOnly);
+  }
+  void ClearHasContentEditableAttrTrueOrPlainTextOnly() {
+    ClearBoolFlag(ElementHasContentEditableAttrTrueOrPlainTextOnly);
   }
   void SetHasLockedStyleStates() { SetBoolFlag(ElementHasLockedStyleStates); }
   void ClearHasLockedStyleStates() {

@@ -162,27 +162,29 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    * the element has a contentEditable attribute and its value is
    * "plaintext-only". Otherwise returns ContentEditableState::Inherit.
    */
-  [[nodiscard]] ContentEditableState GetContentEditableState() const {
+  [[nodiscard]] inline ContentEditableState GetContentEditableState() const {
     if (!MayHaveContentEditableAttr()) {
       return ContentEditableState::Inherit;
     }
-
-    if (const nsAttrValue* value =
-            mAttrs.GetAttr(nsGkAtoms::contenteditable, kNameSpaceID_None)) {
-      if (value->Equals(nsGkAtoms::_false, eIgnoreCase)) {
-        return ContentEditableState::False;
-      }
-      if (value->Equals(nsGkAtoms::_true, eIgnoreCase) ||
-          value->Equals(nsGkAtoms::_empty, eCaseMatters)) {
+    static constexpr AttrValuesArray kValidValuesExceptInherit[] = {
+        nsGkAtoms::_empty, nsGkAtoms::_true, nsGkAtoms::plaintextOnly,
+        nsGkAtoms::_false, nullptr};
+    switch (mAttrs.FindAttrValueIn(kNameSpaceID_None,
+                                   nsGkAtoms::contenteditable,
+                                   kValidValuesExceptInherit, eIgnoreCase)) {
+      case 0:
+      case 1:
         return ContentEditableState::True;
-      }
-      if (mozilla::StaticPrefs::
-              dom_element_contenteditable_plaintext_only_enabled() &&
-          value->Equals(nsGkAtoms::plaintextOnly, eIgnoreCase)) {
-        return ContentEditableState::PlainTextOnly;
-      }
+      case 2:
+        return mozilla::StaticPrefs::
+                       dom_element_contenteditable_plaintext_only_enabled()
+                   ? ContentEditableState::PlainTextOnly
+                   : ContentEditableState::Inherit;
+      case 3:
+        return ContentEditableState::False;
+      default:
+        return ContentEditableState::Inherit;
     }
-    return ContentEditableState::Inherit;
   }
 
   mozilla::dom::PopoverAttributeState GetPopoverAttributeState() const;
@@ -958,10 +960,11 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
 
   [[nodiscard]] inline static bool IsEditableState(
       ContentEditableState aState) {
+    MOZ_ASSERT_IF(aState == ContentEditableState::PlainTextOnly,
+                  mozilla::StaticPrefs::
+                      dom_element_contenteditable_plaintext_only_enabled());
     return aState == ContentEditableState::True ||
-           (mozilla::StaticPrefs::
-                dom_element_contenteditable_plaintext_only_enabled() &&
-            aState == ContentEditableState::PlainTextOnly);
+           aState == ContentEditableState::PlainTextOnly;
   }
 
   // Used by A, AREA, LINK, and STYLE.
