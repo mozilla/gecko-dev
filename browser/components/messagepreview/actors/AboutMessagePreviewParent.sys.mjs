@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { ASRouter } from "resource:///modules/asrouter/ASRouter.sys.mjs";
 import { JsonSchema } from "resource://gre/modules/JsonSchema.sys.mjs";
 
 const lazy = {};
@@ -69,6 +70,10 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
     );
   }
 
+  showPrivateBrowsingMessage(message, browser) {
+    ASRouter.forcePBWindow(browser, message);
+  }
+
   async showFeatureCallout(message, browser) {
     // Clear the Feature Tour prefs used by some callouts, to ensure
     // the behaviour of the message is correct
@@ -77,7 +82,7 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
       Services.prefs.clearUserPref(tourPref);
     }
     // For messagePreview, force the trigger && targeting to be something we can show.
-    message.trigger.id = "nthTabClosed";
+    message.trigger = { id: "nthTabClosed" };
     message.targeting = "true";
     // Check whether or not the callout is showing already, then
     // modify the anchor property of the feature callout to
@@ -146,6 +151,9 @@ export class AboutMessagePreviewParent extends JSWindowActorParent {
         return;
       case "bookmarks_bar_button":
         this.showBookmarksBarButton(message, browser);
+        return;
+      case "pb_newtab":
+        this.showPrivateBrowsingMessage(message, browser);
         return;
       default:
         console.error(`Unsupported message template ${message.template}`);
