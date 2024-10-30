@@ -47,6 +47,22 @@
     --theme-arrowpanel-active-background: SelectedItem;
     --theme-arrowpanel-active-color: SelectedItemText;
     --theme-arrowpanel-active-outline-color: ButtonText;
+
+    /* This is used in a repeated gradient to create a grid pattern.
+       Using GrayText directly makes it hard to distinguish the
+       other elements in the chart, so lower the color opacity a bit.
+       It should be fine as it's not an important element. Also, this can
+       work even if we don't have a resulting system color, as the
+       consumers of this variable already need to opt out of forced colors
+       so it can be used in the background gradient */
+    --timing-function-grid-color: light-dark(
+      /* In light mode, the grid appears much more contrasted, so lower the opacity even more */
+      rgb(from GrayText r g b / 0.4),
+      rgb(from GrayText r g b / 0.7)
+    );
+    --timing-function-line-color: var(--theme-highlight-blue);
+    --timing-function-preview-dot-border: CanvasText;
+    --timing-function-control-point-background: ButtonText;
   }
 }
 

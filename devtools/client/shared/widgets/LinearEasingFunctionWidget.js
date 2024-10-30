@@ -554,21 +554,33 @@ class TimingFunctionPreviewWidget {
     // And start the new one.
     // The animation consists of a few keyframes that move the dot to the right of the
     // container, and then move it back to the left.
-    // It also contains some pause where the dot is semi transparent, before it moves to
+    // It also contains some pause where the dot is greyed-out, before it moves to
     // the right, and once again, before it comes back to the left.
     // The timing function passed to this function is applied to the keyframes that
     // actually move the dot. This way it can be previewed in both direction, instead of
     // being spread over the whole animation.
+    const grayscaleFilter = "grayscale(100%)";
+
     this.#dotEl.animate(
       [
-        { translate: "0%", opacity: 0.5, offset: 0 },
-        { translate: "0%", opacity: 0.5, offset: 0.19 },
-        { translate: "0%", opacity: 1, offset: 0.2, easing: timingFunction },
-        { translate: "100%", opacity: 1, offset: 0.5 },
-        { translate: "100%", opacity: 0.5, offset: 0.51 },
-        { translate: "100%", opacity: 0.5, offset: 0.7 },
-        { translate: "100%", opacity: 1, offset: 0.71, easing: timingFunction },
-        { translate: "0%", opacity: 1, offset: 1 },
+        { translate: "0%", filter: grayscaleFilter, offset: 0 },
+        { translate: "0%", filter: grayscaleFilter, offset: 0.19 },
+        {
+          translate: "0%",
+          filter: "none",
+          offset: 0.2,
+          easing: timingFunction,
+        },
+        { translate: "100%", filter: "none", offset: 0.5 },
+        { translate: "100%", filter: grayscaleFilter, offset: 0.51 },
+        { translate: "100%", filter: grayscaleFilter, offset: 0.7 },
+        {
+          translate: "100%",
+          filter: "none",
+          offset: 0.71,
+          easing: timingFunction,
+        },
+        { translate: "0%", filter: "none", offset: 1 },
       ],
       {
         duration: this.#PREVIEW_DURATION * 2,

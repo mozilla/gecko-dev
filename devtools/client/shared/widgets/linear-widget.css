@@ -4,6 +4,7 @@
 
 .linear-easing-function-container {
   height: 100%;
+  direction: ltr;
 }
 
 .linear-easing-function-container .display-wrap {
@@ -49,6 +50,8 @@
     var(--timing-function-preview-scale) 55%,
     transparent 55%
   );
+  /* opt-out of forced colors so we can see the "line" gradient */
+  forced-color-adjust: none;
 }
 
 .linear-easing-function-container .timing-function-preview .dot::before {
