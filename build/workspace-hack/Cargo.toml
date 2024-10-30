@@ -242,6 +242,7 @@ http3server = ["dep:arrayvec", "dep:bindgen", "dep:bitflags", "dep:bytes", "dep:
 ipcclientcerts-static = ["dep:bindgen", "dep:bitflags", "dep:itertools", "dep:memchr", "dep:nom", "dep:regex"]
 jsrust = ["dep:arrayvec", "dep:cc", "dep:env_logger", "dep:getrandom", "dep:hashbrown", "dep:icu_locid", "dep:icu_properties", "dep:indexmap", "dep:log", "dep:memchr", "dep:num-traits", "dep:once_cell", "dep:semver", "dep:smallvec", "dep:stable_deref_trait", "dep:tinystr", "dep:unicode-bidi", "dep:url", "dep:yoke", "dep:zerofrom", "dep:zerovec"]
 minidump-analyzer = ["dep:clap", "dep:env_logger", "dep:futures-executor", "dep:futures-util", "dep:log", "dep:serde_json", "dep:windows-sys"]
+minidump-analyzer-export = ["minidump-analyzer"]
 mozwer_s = ["dep:getrandom", "dep:hashbrown", "dep:indexmap", "dep:log", "dep:once_cell", "dep:scroll", "dep:serde_json", "dep:uuid", "dep:windows-sys"]
 nmhproxy = ["dep:bitflags", "dep:hashbrown", "dep:icu_locid", "dep:icu_properties", "dep:indexmap", "dep:once_cell", "dep:serde_json", "dep:smallvec", "dep:stable_deref_trait", "dep:tinystr", "dep:unicode-bidi", "dep:url", "dep:windows-sys", "dep:yoke", "dep:zerofrom", "dep:zerovec"]
 osclientcerts-static = ["dep:bindgen", "dep:bitflags", "dep:core-foundation-sys", "dep:env_logger", "dep:itertools", "dep:log", "dep:memchr", "dep:nom", "dep:regex"]

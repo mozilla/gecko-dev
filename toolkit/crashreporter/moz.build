@@ -66,6 +66,9 @@ if CONFIG["MOZ_CRASHREPORTER"]:
     if CONFIG["OS_TARGET"] != "Android":
         DIRS += ["client/app"]
 
+    if CONFIG["OS_TARGET"] == "Android":
+        DIRS += ["minidump-analyzer/android"]
+
     DIRS += [
         "mozannotation_client",
         "mozannotation_server",

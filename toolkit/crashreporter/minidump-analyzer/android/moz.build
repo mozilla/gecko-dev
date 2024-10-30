@@ -1,0 +1,7 @@
+DIRS += ["export"]
+USE_LIBS += ["minidump-analyzer-export"]
+# libm log/logf are required by the rust static library
+OS_LIBS += ["m"]
+
+SOURCES += ["lib.cpp"]
+SharedLibrary("minidump_analyzer")

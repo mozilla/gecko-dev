@@ -1,0 +1,13 @@
+[package]
+name = "minidump-analyzer-export"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "minidump_analyzer_export"
+crate-type = ["staticlib"]
+path = "lib.rs"
+
+[dependencies]
+minidump-analyzer = { path = "../../" }
+mozilla-central-workspace-hack = { version = "0.1", features = ["minidump-analyzer-export"], optional = true }
