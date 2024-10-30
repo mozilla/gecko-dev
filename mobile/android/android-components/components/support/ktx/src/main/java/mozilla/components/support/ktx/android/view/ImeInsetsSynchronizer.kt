@@ -133,7 +133,8 @@ class ImeInsetsSynchronizer private constructor(
     }
 
     override fun onEnd(animation: WindowInsetsAnimationCompat) {
-        if (areKeyboardInsetsDeferred && (animation.typeMask and ime()) != 0) {
+        val currentInsets = getCurrentInsets()
+        if (currentInsets != null && areKeyboardInsetsDeferred && (animation.typeMask and ime()) != 0) {
             // If we deferred the IME insets and an IME animation has finished, we need to reset the flag
             areKeyboardInsetsDeferred = false
 
@@ -141,7 +142,7 @@ class ImeInsetsSynchronizer private constructor(
             // Ideally we would just call view.requestApplyInsets() and let the normal dispatch
             // cycle happen, but this happens too late resulting in a visual flicker.
             // Instead we manually dispatch the most recent WindowInsets to the view.
-            ViewCompat.dispatchApplyWindowInsets(targetView, lastWindowInsets)
+            ViewCompat.dispatchApplyWindowInsets(targetView, currentInsets)
         }
     }
 
@@ -157,8 +158,13 @@ class ImeInsetsSynchronizer private constructor(
             false -> 0
         }
 
-    private fun getNavbarHeight() = ViewCompat.getRootWindowInsets(targetView)
+    private fun getNavbarHeight() = getCurrentInsets()
         ?.getInsets(systemBars())?.bottom ?: lastWindowInsets.navigationBarInsetHeight
+
+    private fun getCurrentInsets() = when (::lastWindowInsets.isInitialized) {
+        true -> lastWindowInsets
+        false -> ViewCompat.getRootWindowInsets(targetView)
+    }
 
     private fun calculateBottomMargin(
         keyboardHeight: Int,
