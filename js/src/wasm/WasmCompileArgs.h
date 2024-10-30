@@ -100,13 +100,19 @@ struct BuiltinModuleIds {
 
 struct FeatureOptions {
   FeatureOptions()
-      : isBuiltinModule(false),
+      : disableOptimizingCompiler(false),
+        isBuiltinModule(false),
         jsStringBuiltins(false),
         jsStringConstants(false),
         requireExnref(false) {}
 
+  // Whether we should try to disable our optimizing compiler. Only available
+  // with `IsSimdPrivilegedContext`.
+  bool disableOptimizingCompiler;
+
   // Enables builtin module opcodes, only set in WasmBuiltinModule.cpp.
   bool isBuiltinModule;
+
   // Enable JS String builtins for this module, only available if the feature
   // is also enabled.
   bool jsStringBuiltins;

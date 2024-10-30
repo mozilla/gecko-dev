@@ -148,7 +148,7 @@
     /* lower case name    */ mozIntGemm,                                \
     /* compile predicate  */ WASM_MOZ_INTGEMM_ENABLED,                  \
     /* compiler predicate */ AnyCompilerAvailable(cx),                  \
-    /* flag predicate     */ IsSimdPrivilegedContext(cx),               \
+    /* flag predicate     */ IsPrivilegedContext(cx),                   \
     /* flag force enable  */ false,                                     \
     /* flag fuzz enable   */ false,                                     \
     /* preference name    */ moz_intgemm)                               \
