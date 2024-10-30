@@ -11,6 +11,7 @@ import re
 import sys
 import traceback
 from collections import namedtuple
+from enum import Enum
 
 if sys.platform.startswith("linux") or sys.platform.startswith("darwin"):
     from .tasks_unix import run_all_tests
@@ -29,6 +30,16 @@ TEST_DIR = os.path.join(JS_DIR, "jit-test", "tests")
 LIB_DIR = os.path.join(JS_DIR, "jit-test", "lib") + os.path.sep
 MODULE_DIR = os.path.join(JS_DIR, "jit-test", "modules") + os.path.sep
 SHELL_XDR = "shell.xdr"
+
+
+class OutputStatus(Enum):
+    OK = 1
+    SKIPPED = 2
+    FAILED = 3
+
+    def __bool__(self):
+        return self != OutputStatus.FAILED
+
 
 # Backported from Python 3.1 posixpath.py
 
@@ -471,55 +482,55 @@ def check_output(out, err, rc, timed_out, test, options):
     # Allow skipping to compose with other expected results
     if test.skip_if_cond:
         if rc == test.SKIPPED_EXIT_STATUS:
-            return True
+            return OutputStatus.SKIPPED
 
     if timed_out:
         relpath = os.path.normpath(test.relpath_tests).replace(os.sep, "/")
         if relpath in options.ignore_timeouts:
-            return True
-        return False
+            return OutputStatus.OK
+        return OutputStatus.FAILED
 
     if test.expect_error:
         # The shell exits with code 3 on uncaught exceptions.
         if rc != 3:
-            return False
+            return OutputStatus.FAILED
 
         return test.expect_error in err
 
     for line in out.split("\n"):
         if line.startswith("Trace stats check failed"):
-            return False
+            return OutputStatus.FAILED
 
     for line in err.split("\n"):
         if "Assertion failed:" in line:
-            return False
+            return OutputStatus.FAILED
 
     if test.expect_crash:
         # Python 3 on Windows interprets process exit codes as unsigned
         # integers, where Python 2 used to allow signed integers. Account for
         # each possibility here.
         if sys.platform == "win32" and rc in (3 - 2**31, 3 + 2**31):
-            return True
+            return OutputStatus.OK
 
         if sys.platform != "win32" and rc == -11:
-            return True
+            return OutputStatus.OK
 
         # When building with ASan enabled, ASan will convert the -11 returned
         # value to 1. As a work-around we look for the error output which
         # includes the crash reason.
         if rc == 1 and ("Hit MOZ_CRASH" in err or "Assertion failure:" in err):
-            return True
+            return OutputStatus.OK
 
         # When running jittests on Android, SEGV results in a return code of
         # 128 + 11 = 139. Due to a bug in tinybox, we have to check for 138 as
         # well.
         if rc == 139 or rc == 138:
-            return True
+            return OutputStatus.OK
 
         # Crashing test should always crash as expected, otherwise this is an
         # error. The JS shell crash() function can be used to force the test
         # case to crash in unexpected configurations.
-        return False
+        return OutputStatus.FAILED
 
     if rc != test.expect_status:
         # Allow a non-zero exit code if we want to allow OOM, but only if we
@@ -530,12 +541,12 @@ def check_output(out, err, rc, timed_out, test, options):
             and "Assertion failure" not in err
             and "MOZ_CRASH" not in err
         ):
-            return True
+            return OutputStatus.OK
 
         # Allow a non-zero exit code if we want to allow unhandlable OOM, but
         # only if we actually got unhandlable OOM.
         if test.allow_unhandlable_oom and "MOZ_CRASH([unhandlable oom]" in err:
-            return True
+            return OutputStatus.OK
 
         # Allow a non-zero exit code if we want to all too-much-recursion and
         # the test actually over-recursed.
@@ -544,16 +555,16 @@ def check_output(out, err, rc, timed_out, test, options):
             and "too much recursion" in err
             and "Assertion failure" not in err
         ):
-            return True
+            return OutputStatus.OK
 
         # Allow a zero exit code if we are running under a sanitizer that
         # forces the exit status.
         if test.expect_status != 0 and options.unusable_error_status:
-            return True
+            return OutputStatus.OK
 
-        return False
+        return OutputStatus.FAILED
 
-    return True
+    return OutputStatus.OK
 
 
 def print_automation_format(ok, res, slog):
@@ -705,6 +716,7 @@ def create_progressbar(num_tests, options):
 def process_test_results(results, num_tests, pb, options, slog):
     failures = []
     timeouts = 0
+    skipped = 0
     complete = False
     output_dict = {}
     doing = "before starting"
@@ -719,11 +731,11 @@ def process_test_results(results, num_tests, pb, options, slog):
 
     try:
         for i, res in enumerate(results):
-            ok = check_output(
+            status = check_output(
                 res.out, res.err, res.rc, res.timed_out, res.test, options
             )
 
-            if ok:
+            if status:
                 show_output = options.show_output and not options.failed_only
             else:
                 show_output = options.show_output or not options.no_show_failed
@@ -748,16 +760,19 @@ def process_test_results(results, num_tests, pb, options, slog):
                     output_dict[res.test.path] = res.out
 
             doing = "after {}".format(res.test.relpath_tests)
-            if not ok:
-                failures.append(res)
-                if res.timed_out:
-                    pb.message("TIMEOUT - {}".format(res.test.relpath_tests))
-                    timeouts += 1
-                else:
-                    pb.message("FAIL - {}".format(res.test.relpath_tests))
+            match status:
+                case OutputStatus.SKIPPED:
+                    skipped += 1
+                case OutputStatus.FAILED:
+                    failures.append(res)
+                    if res.timed_out:
+                        pb.message("TIMEOUT - {}".format(res.test.relpath_tests))
+                        timeouts += 1
+                    else:
+                        pb.message("FAIL - {}".format(res.test.relpath_tests))
 
             if options.format == "automation":
-                print_automation_format(ok, res, slog)
+                print_automation_format(status, res, slog)
 
             n = i + 1
             pb.update(
@@ -766,7 +781,7 @@ def process_test_results(results, num_tests, pb, options, slog):
                     "PASS": n - len(failures),
                     "FAIL": len(failures),
                     "TIMEOUT": timeouts,
-                    "SKIP": 0,
+                    "SKIP": skipped,
                 },
             )
 
