@@ -334,11 +334,12 @@ nsresult nsJSThunk::EvaluateScript(
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
       JSAutoRealm autoRealm(cx, globalJSObject);
       JS::Rooted<JSScript*> compiledScript(cx);
-      exec.Compile(options, NS_ConvertUTF8toUTF16(script), &compiledScript,
+      exec.Compile(cx, options, NS_ConvertUTF8toUTF16(script), &compiledScript,
                    erv);
       if (!erv.Failed()) {
         MOZ_ASSERT(!options.noScriptRval);
-        exec.ExecScript(compiledScript, &v, erv, /* aCoerceToString */ true);
+        exec.ExecScript(cx, compiledScript, &v, erv,
+                        /* aCoerceToString */ true);
       }
     }
     rv = mozilla::dom::EvaluationExceptionToNSResult(erv);

@@ -6100,7 +6100,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
           /* dynamicStr */ nullptr, JS::ProfilingCategoryPair::JS);
       JSAutoRealm autoRealm(aes.cx(), global);
       JS::Rooted<JSScript*> script(aes.cx());
-      exec.Compile(options, mExpr, &script, erv);
+      exec.Compile(aes.cx(), options, mExpr, &script, erv);
 
       if (script) {
         MOZ_ASSERT(!erv.Failed());
@@ -6108,7 +6108,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
           mInitiatingScript->AssociateWithScript(script);
         }
 
-        exec.ExecScript(script, erv);
+        exec.ExecScript(aes.cx(), script, erv);
       }
     }
 

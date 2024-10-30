@@ -68,8 +68,7 @@ JSExecutionContext::JSExecutionContext(
     JS::CompileOptions& aCompileOptions, ErrorResult& aRv,
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript)
-    : mCx(aCx),
-      mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
+    : mDebuggerPrivateValue(aCx, aDebuggerPrivateValue),
       mDebuggerIntroductionScript(aCx, aDebuggerIntroductionScript),
       mSkip(false) {
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
@@ -84,7 +83,8 @@ JSExecutionContext::JSExecutionContext(
   }
 }
 
-void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
+void JSExecutionContext::JoinOffThread(JSContext* aCx,
+                                       JS::CompileOptions& aCompileOptions,
                                        ScriptLoadContext* aContext,
                                        JS::MutableHandle<JSScript*> aScript,
                                        ErrorResult& aRv,
@@ -94,29 +94,30 @@ void JSExecutionContext::JoinOffThread(JS::CompileOptions& aCompileOptions,
   MOZ_ASSERT(aCompileOptions.noScriptRval);
 
   JS::InstantiationStorage storage;
-  RefPtr<JS::Stencil> stencil = aContext->StealOffThreadResult(mCx, &storage);
+  RefPtr<JS::Stencil> stencil = aContext->StealOffThreadResult(aCx, &storage);
   if (!stencil) {
     mSkip = true;
-    aRv.NoteJSContextException(mCx);
+    aRv.NoteJSContextException(aCx);
     return;
   }
 
   if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(mCx, stencil.get());
+    mStencil = JS::DuplicateStencil(aCx, stencil.get());
     if (!mStencil) {
       mSkip = true;
-      aRv.NoteJSContextException(mCx);
+      aRv.NoteJSContextException(aCx);
       return;
     }
   }
 
   bool unused;
-  InstantiateStencil(aCompileOptions, std::move(stencil), aScript, unused, aRv,
-                     aEncodeBytecode, &storage);
+  InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript, unused,
+                     aRv, aEncodeBytecode, &storage);
 }
 
 template <typename Unit>
-void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
+void JSExecutionContext::InternalCompile(JSContext* aCx,
+                                         JS::CompileOptions& aCompileOptions,
                                          JS::SourceText<Unit>& aSrcBuf,
                                          JS::MutableHandle<JSScript*> aScript,
                                          bool aEncodeBytecode,
@@ -126,44 +127,47 @@ void JSExecutionContext::InternalCompile(JS::CompileOptions& aCompileOptions,
   MOZ_ASSERT(aSrcBuf.get());
 
   RefPtr<JS::Stencil> stencil =
-      CompileGlobalScriptToStencil(mCx, aCompileOptions, aSrcBuf);
+      CompileGlobalScriptToStencil(aCx, aCompileOptions, aSrcBuf);
   if (!stencil) {
     mSkip = true;
-    aRv.NoteJSContextException(mCx);
+    aRv.NoteJSContextException(aCx);
     return;
   }
 
   if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(mCx, stencil.get());
+    mStencil = JS::DuplicateStencil(aCx, stencil.get());
     if (!mStencil) {
       mSkip = true;
-      aRv.NoteJSContextException(mCx);
+      aRv.NoteJSContextException(aCx);
       return;
     }
   }
 
   bool unused;
-  InstantiateStencil(aCompileOptions, std::move(stencil), aScript, unused, aRv,
-                     aEncodeBytecode);
+  InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript, unused,
+                     aRv, aEncodeBytecode);
 }
 
-void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
+void JSExecutionContext::Compile(JSContext* aCx,
+                                 JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<char16_t>& aSrcBuf,
                                  JS::MutableHandle<JSScript*> aScript,
                                  ErrorResult& aRv,
                                  bool aEncodeBytecode /*= false */) {
-  InternalCompile(aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
+  InternalCompile(aCx, aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
 }
 
-void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
+void JSExecutionContext::Compile(JSContext* aCx,
+                                 JS::CompileOptions& aCompileOptions,
                                  JS::SourceText<Utf8Unit>& aSrcBuf,
                                  JS::MutableHandle<JSScript*> aScript,
                                  ErrorResult& aRv,
                                  bool aEncodeBytecode /*= false */) {
-  InternalCompile(aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
+  InternalCompile(aCx, aCompileOptions, aSrcBuf, aScript, aEncodeBytecode, aRv);
 }
 
-void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
+void JSExecutionContext::Compile(JSContext* aCx,
+                                 JS::CompileOptions& aCompileOptions,
                                  const nsAString& aScript,
                                  JS::MutableHandle<JSScript*> aScriptOut,
                                  ErrorResult& aRv,
@@ -172,17 +176,18 @@ void JSExecutionContext::Compile(JS::CompileOptions& aCompileOptions,
 
   const nsPromiseFlatString& flatScript = PromiseFlatString(aScript);
   JS::SourceText<char16_t> srcBuf;
-  if (!srcBuf.init(mCx, flatScript.get(), flatScript.Length(),
+  if (!srcBuf.init(aCx, flatScript.get(), flatScript.Length(),
                    JS::SourceOwnership::Borrowed)) {
     mSkip = true;
-    aRv.NoteJSContextException(mCx);
+    aRv.NoteJSContextException(aCx);
     return;
   }
 
-  Compile(aCompileOptions, srcBuf, aScriptOut, aRv, aEncodeBytecode);
+  Compile(aCx, aCompileOptions, srcBuf, aScriptOut, aRv, aEncodeBytecode);
 }
 
-void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
+void JSExecutionContext::Decode(JSContext* aCx,
+                                JS::CompileOptions& aCompileOptions,
                                 const JS::TranscodeRange& aBytecodeBuf,
                                 JS::MutableHandle<JSScript*> aScript,
                                 ErrorResult& aRv) {
@@ -193,7 +198,7 @@ void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
 
   MOZ_ASSERT(aCompileOptions.noScriptRval);
   RefPtr<JS::Stencil> stencil;
-  JS::TranscodeResult tr = JS::DecodeStencil(mCx, decodeOptions, aBytecodeBuf,
+  JS::TranscodeResult tr = JS::DecodeStencil(aCx, decodeOptions, aBytecodeBuf,
                                              getter_AddRefs(stencil));
   // These errors are external parameters which should be handled before the
   // decoding phase, and which are the only reasons why you might want to
@@ -206,38 +211,39 @@ void JSExecutionContext::Decode(JS::CompileOptions& aCompileOptions,
   }
 
   if (mKeepStencil) {
-    mStencil = JS::DuplicateStencil(mCx, stencil.get());
+    mStencil = JS::DuplicateStencil(aCx, stencil.get());
     if (!mStencil) {
       mSkip = true;
-      aRv.NoteJSContextException(mCx);
+      aRv.NoteJSContextException(aCx);
       return;
     }
   }
 
   bool unused;
-  InstantiateStencil(aCompileOptions, std::move(stencil), aScript, unused, aRv);
+  InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript, unused,
+                     aRv);
 }
 
 void JSExecutionContext::InstantiateStencil(
-    JS::CompileOptions& aCompileOptions, RefPtr<JS::Stencil>&& aStencil,
-    JS::MutableHandle<JSScript*> aScript,
+    JSContext* aCx, JS::CompileOptions& aCompileOptions,
+    RefPtr<JS::Stencil>&& aStencil, JS::MutableHandle<JSScript*> aScript,
     bool& incrementalEncodingAlreadyStarted, ErrorResult& aRv,
     bool aEncodeBytecode /* = false */, JS::InstantiationStorage* aStorage) {
   JS::InstantiateOptions instantiateOptions(aCompileOptions);
   JS::Rooted<JSScript*> script(
-      mCx, JS::InstantiateGlobalStencil(mCx, instantiateOptions, aStencil,
+      aCx, JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil,
                                         aStorage));
   if (!script) {
     mSkip = true;
-    aRv.NoteJSContextException(mCx);
+    aRv.NoteJSContextException(aCx);
     return;
   }
 
   if (aEncodeBytecode) {
-    if (!JS::StartIncrementalEncoding(mCx, std::move(aStencil),
+    if (!JS::StartIncrementalEncoding(aCx, std::move(aStencil),
                                       incrementalEncodingAlreadyStarted)) {
       mSkip = true;
-      aRv.NoteJSContextException(mCx);
+      aRv.NoteJSContextException(aCx);
       return;
     }
   }
@@ -246,7 +252,7 @@ void JSExecutionContext::InstantiateStencil(
   aScript.set(script);
 
   if (instantiateOptions.deferDebugMetadata) {
-    if (!JS::UpdateDebugMetadata(mCx, aScript, instantiateOptions,
+    if (!JS::UpdateDebugMetadata(aCx, aScript, instantiateOptions,
                                  mDebuggerPrivateValue, nullptr,
                                  mDebuggerIntroductionScript, nullptr)) {
       aRv = NS_ERROR_OUT_OF_MEMORY;
@@ -254,15 +260,16 @@ void JSExecutionContext::InstantiateStencil(
   }
 }
 
-void JSExecutionContext::ExecScript(JS::Handle<JSScript*> aScript,
+void JSExecutionContext::ExecScript(JSContext* aCx,
+                                    JS::Handle<JSScript*> aScript,
                                     ErrorResult& aRv) {
   MOZ_ASSERT(!mSkip);
 
   MOZ_ASSERT(aScript);
 
-  if (!JS_ExecuteScript(mCx, aScript)) {
+  if (!JS_ExecuteScript(aCx, aScript)) {
     mSkip = true;
-    aRv.NoteJSContextException(mCx);
+    aRv.NoteJSContextException(aCx);
   }
 }
 
@@ -280,7 +287,8 @@ static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   return JS::IsPromiseObject(obj);
 }
 
-void JSExecutionContext::ExecScript(JS::Handle<JSScript*> aScript,
+void JSExecutionContext::ExecScript(JSContext* aCx,
+                                    JS::Handle<JSScript*> aScript,
                                     JS::MutableHandle<JS::Value> aRetValue,
                                     ErrorResult& aRv,
                                     bool aCoerceToString /* = false */) {
@@ -288,13 +296,13 @@ void JSExecutionContext::ExecScript(JS::Handle<JSScript*> aScript,
 
   MOZ_ASSERT(aScript);
 
-  if (!JS_ExecuteScript(mCx, aScript, aRetValue)) {
+  if (!JS_ExecuteScript(aCx, aScript, aRetValue)) {
     mSkip = true;
-    aRv.NoteJSContextException(mCx);
+    aRv.NoteJSContextException(aCx);
     return;
   }
 
-  if (aCoerceToString && IsPromiseValue(mCx, aRetValue)) {
+  if (aCoerceToString && IsPromiseValue(aCx, aRetValue)) {
     // We're a javascript: url and we should treat Promise return values as
     // undefined.
     //
@@ -304,12 +312,12 @@ void JSExecutionContext::ExecScript(JS::Handle<JSScript*> aScript,
   }
 
   if (aCoerceToString && !aRetValue.isUndefined()) {
-    JSString* str = JS::ToString(mCx, aRetValue);
+    JSString* str = JS::ToString(aCx, aRetValue);
     if (!str) {
       // ToString can be a function call, so an exception can be raised while
       // executing the function.
       mSkip = true;
-      aRv.NoteJSContextException(mCx);
+      aRv.NoteJSContextException(aCx);
       return;
     }
     aRetValue.set(JS::StringValue(str));

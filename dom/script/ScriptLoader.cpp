@@ -2651,7 +2651,7 @@ static void ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
     aLoaderScript->AssociateWithScript(aScript);
   }
 
-  aExec.ExecScript(aScript, aRv);
+  aExec.ExecScript(aCx, aScript, aRv);
 }
 
 nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
@@ -2732,15 +2732,15 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     if (aRequest->GetScriptLoadContext()->mCompileOrDecodeTask) {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode & instantiate and Execute",
            aRequest));
-      aExec.JoinOffThread(aCompileOptions, aRequest->GetScriptLoadContext(),
-                          aScript, aRv);
+      aExec.JoinOffThread(aCx, aCompileOptions,
+                          aRequest->GetScriptLoadContext(), aScript, aRv);
     } else {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode and Execute", aRequest));
       AUTO_PROFILER_MARKER_TEXT("BytecodeDecodeMainThread", JS,
                                 MarkerInnerWindowIdFromJSContext(aCx),
                                 profilerLabelString);
 
-      aExec.Decode(aCompileOptions, aRequest->Bytecode(), aScript, aRv);
+      aExec.Decode(aCx, aCompileOptions, aRequest->Bytecode(), aScript, aRv);
     }
 
     // We do not expect to be saving anything when we already have some
@@ -2760,7 +2760,7 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
          "Execute",
          aRequest));
     MOZ_ASSERT(aRequest->IsTextSource());
-    aExec.JoinOffThread(aCompileOptions, aRequest->GetScriptLoadContext(),
+    aExec.JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
                         aScript, aRv, encodeBytecode);
   } else {
     // Main thread parsing (inline and small scripts)
@@ -2775,7 +2775,8 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
                                 profilerLabelString);
 
       auto compile = [&](auto& source) {
-        aExec.Compile(aCompileOptions, source, aScript, aRv, encodeBytecode);
+        aExec.Compile(aCx, aCompileOptions, source, aScript, aRv,
+                      encodeBytecode);
       };
 
       MOZ_ASSERT(!maybeSource.empty());
@@ -2798,7 +2799,7 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
   }
 
   bool incrementalEncodingAlreadyStarted = false;
-  aExec.InstantiateStencil(aCompileOptions, std::move(stencil), aScript,
+  aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
                            incrementalEncodingAlreadyStarted, aRv,
                            /* aEncodeBytecode */ true);
   if (incrementalEncodingAlreadyStarted) {
