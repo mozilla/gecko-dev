@@ -351,7 +351,6 @@ public final class AttributeName
         this.prefix = prefix;
         // [NOCPP[
         this.local = new String[4];
-        this.qName = COMPUTE_QNAME(local, prefix);
         this.flags = flags;
         // ]NOCPP]
         this.local[HTML] = html;
@@ -359,6 +358,7 @@ public final class AttributeName
         this.local[SVG] = svg;
         // [NOCPP[
         this.local[HTML_LANG] = htmlLang;
+        this.qName = COMPUTE_QNAME(local, prefix);
         // ]NOCPP]
         // CPPONLY: this.custom = false;
     }
