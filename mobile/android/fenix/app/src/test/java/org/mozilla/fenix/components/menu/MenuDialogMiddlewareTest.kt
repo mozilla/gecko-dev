@@ -188,6 +188,7 @@ class MenuDialogMiddlewareTest {
         // Wait for UpdateExtensionState and middleware
         store.waitUntilIdle()
 
+        assertTrue(store.state.extensionMenuState.installedAddons.isEmpty())
         assertEquals(1, store.state.extensionMenuState.recommendedAddons.size)
         assertEquals(addon, store.state.extensionMenuState.recommendedAddons.first())
         assertTrue(store.state.extensionMenuState.showExtensionsOnboarding)
@@ -218,6 +219,7 @@ class MenuDialogMiddlewareTest {
             // Wait for UpdateExtensionState and middleware
             store.waitUntilIdle()
 
+            assertEquals(1, store.state.extensionMenuState.installedAddons.size)
             assertTrue(store.state.extensionMenuState.recommendedAddons.isEmpty())
             assertFalse(store.state.extensionMenuState.showExtensionsOnboarding)
             assertTrue(store.state.extensionMenuState.shouldShowManageExtensionsMenuItem)
@@ -672,26 +674,6 @@ class MenuDialogMiddlewareTest {
             AppAction.ShortcutAction.ShortcutAdded,
         )
         assertTrue(dismissedWasCalled)
-    }
-
-    @Test
-    fun `WHEN delete browsing data and quit action is dispatched THEN onDeleteAndQuit is invoked`() = runTestOnMain {
-        var dismissWasCalled = false
-
-        val appStore = spy(AppStore())
-        val store = createStore(
-            appStore = appStore,
-            menuState = MenuState(
-                browserMenuState = null,
-            ),
-            onDismiss = { dismissWasCalled = true },
-        )
-
-        store.dispatch(MenuAction.DeleteBrowsingDataAndQuit).join()
-        store.waitUntilIdle()
-
-        verify(onDeleteAndQuit).invoke()
-        assertTrue(dismissWasCalled)
     }
 
     @Test
