@@ -36,8 +36,6 @@ class MouseScrollHandler {
   static bool ProcessMessage(nsWindow* aWidget, UINT msg, WPARAM wParam,
                              LPARAM lParam, MSGResult& aResult);
 
-  static bool SkipScrollWheelHack();
-
   /**
    * See nsIWidget::SynthesizeNativeMouseScrollEvent() for the detail about
    * this method.
@@ -131,9 +129,8 @@ class MouseScrollHandler {
    * @param aMessage    MOZ_WM_MOUSEWHEEL or MOZ_WM_MOUSEHWHEEL.
    * @param aWParam     The wParam value of the original message.
    * @param aLParam     The lParam value of the original message.
-   * @return            TRUE if the message is processed.  Otherwise, FALSE.
    */
-  bool HandleMouseWheelMessage(nsWindow* aWidget, UINT aMessage, WPARAM aWParam,
+  void HandleMouseWheelMessage(nsWindow* aWidget, UINT aMessage, WPARAM aWParam,
                                LPARAM aLParam);
 
   /**
@@ -146,36 +143,22 @@ class MouseScrollHandler {
    * @param aMessage    MOZ_WM_VSCROLL or MOZ_WM_HSCROLL.
    * @param aWParam     The wParam value of the original message.
    * @param aLParam     The lParam value of the original message.
-   * @return            TRUE if the message is processed.  Otherwise, FALSE.
    */
-  bool HandleScrollMessageAsMouseWheelMessage(nsWindow* aWidget, UINT aMessage,
+  void HandleScrollMessageAsMouseWheelMessage(nsWindow* aWidget, UINT aMessage,
                                               WPARAM aWParam, LPARAM aLParam);
 
   /**
    * ComputeMessagePos() computes the cursor position when the message was
    * added to the queue.
    *
-   * @param aMessage    Current message.
-   * @param aWParam     Current message's wParam.
-   * @param aLParam     Current message's lParam.
+   * @param aMessage    Handling message.
+   * @param aWParam     Handling message's wParam.
+   * @param aLParam     Handling message's lParam.
    * @return            Mouse cursor position when the message is added to
    *                    the queue or current cursor position if the result of
    *                    ::GetMessagePos() is broken.
    */
   POINT ComputeMessagePos(UINT aMessage, WPARAM aWParam, LPARAM aLParam);
-
-  /**
-   * FindTargetWindow() finds the nsWindow which needs to process the current
-   * scroll event. (This is the window underneath the cursor -- which is not
-   * necessarily the window whose event queue it came in on!)
-   *
-   * @param aMessage    Current message.
-   * @param aWParam     Current message's wParam.
-   * @param aLParam     Current message's lParam.
-   * @return            The relevant nsWindow, or nullptr if no appropriate
-   *                    window could be identified.
-   */
-  nsWindow* FindTargetWindow(UINT aMessage, WPARAM aWParam, LPARAM aLParam);
 
   class EventInfo {
    public:
@@ -374,10 +357,67 @@ class MouseScrollHandler {
 
   UserPrefs mUserPrefs;
 
-  // only used in tests
-  class SynthesizingEvent;
-  UniquePtr<SynthesizingEvent> mSynthesizingEvent;
-  static SynthesizingEvent* GetActiveSynthEvent();
+  class SynthesizingEvent {
+   public:
+    SynthesizingEvent()
+        : mWnd(nullptr),
+          mMessage(0),
+          mWParam(0),
+          mLParam(0),
+          mStatus(NOT_SYNTHESIZING) {}
+
+    ~SynthesizingEvent() {}
+
+    static bool IsSynthesizing();
+
+    nsresult Synthesize(const POINTS& aCursorPoint, HWND aWnd, UINT aMessage,
+                        WPARAM aWParam, LPARAM aLParam,
+                        const BYTE (&aKeyStates)[256]);
+
+    void NativeMessageReceived(nsWindow* aWidget, UINT aMessage, WPARAM aWParam,
+                               LPARAM aLParam);
+
+    void NotifyNativeMessageHandlingFinished();
+    void NotifyInternalMessageHandlingFinished();
+
+    const POINTS& GetCursorPoint() const { return mCursorPoint; }
+
+   private:
+    POINTS mCursorPoint;
+    HWND mWnd;
+    UINT mMessage;
+    WPARAM mWParam;
+    LPARAM mLParam;
+    BYTE mKeyState[256];
+    BYTE mOriginalKeyState[256];
+
+    enum Status {
+      NOT_SYNTHESIZING,
+      SENDING_MESSAGE,
+      NATIVE_MESSAGE_RECEIVED,
+      INTERNAL_MESSAGE_POSTED,
+    };
+    Status mStatus;
+
+    const char* GetStatusName() {
+      switch (mStatus) {
+        case NOT_SYNTHESIZING:
+          return "NOT_SYNTHESIZING";
+        case SENDING_MESSAGE:
+          return "SENDING_MESSAGE";
+        case NATIVE_MESSAGE_RECEIVED:
+          return "NATIVE_MESSAGE_RECEIVED";
+        case INTERNAL_MESSAGE_POSTED:
+          return "INTERNAL_MESSAGE_POSTED";
+        default:
+          return "Unknown";
+      }
+    }
+
+    void Finish();
+  };  // SynthesizingEvent
+
+  SynthesizingEvent* mSynthesizingEvent;
 
  public:
   class Device {

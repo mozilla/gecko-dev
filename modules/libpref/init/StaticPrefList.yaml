@@ -17668,14 +17668,6 @@
   value: 2
   mirror: always
 
-# Whether to apply a very old hack (reposting and reprocessing scroll-wheel
-# messages under custom message IDs) originally intended to work around
-# plugin-process deadlocks. (See bug 658194.)
-- name: widget.windows.old-scrollwheel-message-hack
-  type: bool
-  value: false
-  mirror: always
-
 # Whether we use the mica backdrop. Off by default for now.
 - name: widget.windows.mica
   type: bool
