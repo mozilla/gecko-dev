@@ -130,6 +130,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">Destûrê bide</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">Red bike</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">Zêdetir bizane</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Betal bike</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
@@ -148,6 +150,10 @@
     <string name="mozac_feature_extensions_manager_notification_title_text">Pêvek demkî hatine neçalakkirin</string>
     <!-- The content of the "crash" notification in the extensions manager -->
     <string name="mozac_feature_extensions_manager_notification_content_text">Pêvekek yan jî zêdetir pêvek êdî naxebitin û dibe ku ev pergala te bêîstîqrar bike.</string>
+    <!-- Button to re-enable the extensions in the "crash" notification -->
+    <string name="mozac_feature_extensions_manager_notification_restart_button">Pêvekan ji nû ve bide destpêkirin</string>
+    <!-- Button in the extensions manager that opens AMO in a tab -->
+    <string name="mozac_feature_addons_find_more_extensions_button_text">Zêdetir pêvekan bibîne</string>
     <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on-->
     <string name="mozac_feature_addons_updater_notification_allow_button">Destûrê bide</string>
     <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated-->
@@ -158,6 +164,8 @@
     <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d destûrên nû hewce ne</string>
     <!-- The content of the notification displayed when an add-on needs a new permission-->
     <string name="mozac_feature_addons_updater_notification_content_singular">Destûreke nû hewce ye</string>
+    <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
+    <string name="mozac_feature_addons_updater_notification_channel_2">Venûkirinên pêvekan</string>
     <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
     <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">Kontrolkera pêvekan a tê piştgirîkirin</string>
     <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available.-->
@@ -172,16 +180,30 @@
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Pêvekan tevlî %1$s’ê bike</string>
     <!-- This is the caption for not yet supported screen caption -->
     <string name="mozac_feature_addons_not_yet_supported_caption2">Em niha ji bo Pêvekên Pêşniyarkirî destekê ava dikin.</string>
+    <!-- This is the caption for the extension installation progress overlay -->
+    <string name="mozac_extension_install_progress_caption">Pêvek tê jêbarkirin û kontrolkirin…</string>
+    <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+    <string name="mozac_feature_addons_failed_to_query_extensions">Lêpirsîna pêvekê bi ser neket!</string>
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
     <string name="mozac_feature_addons_failed_to_translate">Werger ne ji bo %1$s ne jî ji bo zimanê %2$s hat dîtin</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s bi serkeftî hate sazkirin</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">%1$s nehate sazkirin</string>
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+    <string name="mozac_feature_addons_extension_failed_to_install">Sazkirina vê pêvekê bi ser neket.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Ev pêvek nayê sazkirin</string>
+    <!-- Text shown when attempting to install an extension and a network error happened. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_network_error">Ev pêvek ji ber çewtiyeke girêdanê nehat jêbarkirin.</string>
+    <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">Ev pêvek nehat sazkirin, wisa xuya ye xirabe ye.</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Ev pêvek nehat sazkirin, ji ber ku nehatiye pesendkirin.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s nehat sazkirin ji ber ku bi %2$s %3$s re ne lihevhatî ye.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">%1$s nehate sazkirin ji ber ku rîska wê ya mezin heye ku bibe sedema pirsgirêkên aramî an ewlehiyê.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s nehate sazkirin ji ber ku rîska wê ya mezin heye ku bibe sedema pirsgirêkên aramî an ewlehiyê.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s bi serkeftî hate çalakkirin</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -223,7 +245,7 @@
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Zêdetir bizane</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s ji ber pirsgirêkên ewlekarî an îstiqrarê hate neçalakkirin.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s ji ber pirsgirêkên ewlekarî an îstiqrarê hate neçalakkirin.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s wekî ewledar nehat piştrastkirin û hate neçalakkirin.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
