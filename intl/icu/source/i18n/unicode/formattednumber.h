@@ -25,7 +25,6 @@
 U_NAMESPACE_BEGIN
 
 class FieldPositionIteratorHandler;
-class SimpleDateFormat;
 
 namespace number {  // icu::number
 
@@ -141,14 +140,18 @@ class U_I18N_API FormattedNumber : public UMemory, public FormattedValue {
      */
     MeasureUnit getOutputUnit(UErrorCode& status) const;
 
+#ifndef U_HIDE_DRAFT_API
+
     /**
      * Gets the noun class of the formatted output. Returns `UNDEFINED` when the noun class
      * is not supported yet.
      *
      * @return UDisplayOptionsNounClass
-     * @stable ICU 72
+     * @draft ICU 72
      */
     UDisplayOptionsNounClass getNounClass(UErrorCode &status) const;
+
+#endif // U_HIDE_DRAFT_API
 
 #ifndef U_HIDE_INTERNAL_API
 
@@ -191,9 +194,6 @@ class U_I18N_API FormattedNumber : public UMemory, public FormattedValue {
 
     // To give C API access to internals
     friend struct impl::UFormattedNumberImpl;
-
-    // To give access to the data pointer for non-heap allocation
-    friend class icu::SimpleDateFormat;
 };
 
 template<typename StringClass>

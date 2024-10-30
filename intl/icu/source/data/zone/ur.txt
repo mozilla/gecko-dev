@@ -465,6 +465,9 @@ ur{
         "America:New_York"{
             ec{"نیو یارک"}
         }
+        "America:Nipigon"{
+            ec{"نپیگون"}
+        }
         "America:Nome"{
             ec{"نوم"}
         }
@@ -485,6 +488,9 @@ ur{
         }
         "America:Panama"{
             ec{"پنامہ"}
+        }
+        "America:Pangnirtung"{
+            ec{"پینگنِرٹنگ"}
         }
         "America:Paramaribo"{
             ec{"پراماریبو"}
@@ -507,6 +513,9 @@ ur{
         "America:Punta_Arenas"{
             ec{"پنٹا اریناس"}
         }
+        "America:Rainy_River"{
+            ec{"رینی ریور"}
+        }
         "America:Rankin_Inlet"{
             ec{"رینکن انلیٹ"}
         }
@@ -521,6 +530,9 @@ ur{
         }
         "America:Rio_Branco"{
             ec{"ریئو برینکو"}
+        }
+        "America:Santa_Isabel"{
+            ec{"سانتا ایزابیل"}
         }
         "America:Santarem"{
             ec{"سنٹارین"}
@@ -567,6 +579,9 @@ ur{
         "America:Thule"{
             ec{"تھولو"}
         }
+        "America:Thunder_Bay"{
+            ec{"تھنڈر بے"}
+        }
         "America:Tijuana"{
             ec{"تیجوآنا"}
         }
@@ -587,6 +602,9 @@ ur{
         }
         "America:Yakutat"{
             ec{"یکوٹیٹ"}
+        }
+        "America:Yellowknife"{
+            ec{"ایلو نائف"}
         }
         "Antarctica:Casey"{
             ec{"کیسی"}
@@ -677,6 +695,9 @@ ur{
         }
         "Asia:Chita"{
             ec{"چیتا"}
+        }
+        "Asia:Choibalsan"{
+            ec{"چوئبالسان"}
         }
         "Asia:Colombo"{
             ec{"کولمبو"}
@@ -909,6 +930,9 @@ ur{
         "Australia:Broken_Hill"{
             ec{"بروکن ہِل"}
         }
+        "Australia:Currie"{
+            ec{"کیوری"}
+        }
         "Australia:Darwin"{
             ec{"ڈارون"}
         }
@@ -1091,6 +1115,9 @@ ur{
         "Europe:Ulyanovsk"{
             ec{"الیانوسک"}
         }
+        "Europe:Uzhgorod"{
+            ec{"ازہوراڈ"}
+        }
         "Europe:Vaduz"{
             ec{"ویڈوز"}
         }
@@ -1111,6 +1138,9 @@ ur{
         }
         "Europe:Zagreb"{
             ec{"زیگریب"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"زیپوروزائی"}
         }
         "Europe:Zurich"{
             ec{"زیورخ"}
@@ -1192,6 +1222,9 @@ ur{
         }
         "Pacific:Honolulu"{
             ec{"ہونولولو"}
+        }
+        "Pacific:Johnston"{
+            ec{"جانسٹن"}
         }
         "Pacific:Kanton"{
             ec{"کانٹن"}
@@ -1419,6 +1452,11 @@ ur{
             lg{"چین کا وقت"}
             ls{"چین سٹینڈرڈ ٹائم"}
         }
+        "meta:Choibalsan"{
+            ld{"کوائبلسان سمر ٹائم"}
+            lg{"کوئبلسان ٹائم"}
+            ls{"کوئبلسان سٹینڈرڈ ٹائم"}
+        }
         "meta:Christmas"{
             ls{"کرسمس آئلینڈ ٹائم"}
         }
@@ -1582,9 +1620,6 @@ ur{
             lg{"پیٹروپاؤلووسک-کیمچسکی ٹائم"}
             ls{"پیٹروپاؤلووسک-کیمچسکی اسٹینڈرڈ ٹائم"}
         }
-        "meta:Kazakhstan"{
-            ls{"قازقستان کا وقت"}
-        }
         "meta:Kazakhstan_Eastern"{
             ls{"مشرقی قزاخستان کا وقت"}
         }
@@ -1615,6 +1650,9 @@ ur{
             lg{"لارڈ ہووے ٹائم"}
             ls{"لارڈ ہووے اسٹینڈرڈ ٹائم"}
         }
+        "meta:Macquarie"{
+            ls{"مکوآری آئلینڈ کا وقت"}
+        }
         "meta:Magadan"{
             ld{"میگیدن سمر ٹائم"}
             lg{"میگیدن ٹائم"}
@@ -1639,6 +1677,11 @@ ur{
         }
         "meta:Mawson"{
             ls{"ماؤسن ٹائم"}
+        }
+        "meta:Mexico_Northwest"{
+            ld{"شمال مغربی میکسیکو ڈے لائٹ ٹائم"}
+            lg{"شمال مغربی میکسیکو ٹائم"}
+            ls{"شمال مغربی میکسیکو اسٹینڈرڈ ٹائم"}
         }
         "meta:Mexico_Pacific"{
             ld{"میکسیکن پیسفک ڈے لائٹ ٹائم"}
@@ -1864,7 +1907,10 @@ ur{
         "meta:Yukon"{
             ls{"یوکون ٹائم"}
         }
+        fallbackFormat{"{1} ({0})"}
         gmtFormat{"GMT {0}"}
+        gmtZeroFormat{"GMT"}
+        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} وقت"}
         regionFormatDaylight{"{0} ڈے لائٹ ٹائم"}
         regionFormatStandard{"{0} معیاری وقت"}

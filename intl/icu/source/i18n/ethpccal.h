@@ -89,7 +89,7 @@ public:
         /** 
          * Constant for &#x1290;&#x1210;&#x1234;, the 12th month of the Ethiopic year. 
          */
-        NEHASSE,
+        NEHASSA,
 
         /** 
          * Constant for &#x1333;&#x1309;&#x121c;&#x1295;, the 13th month of the Ethiopic year. 
@@ -169,7 +169,7 @@ protected:
      *             1       AMETE_MIHRET     1
      * @internal
      */
-    virtual int32_t handleGetExtendedYear(UErrorCode& status) override;
+    virtual int32_t handleGetExtendedYear() override;
 
     /**
      * Compute fields from the JD
@@ -177,7 +177,18 @@ protected:
      */
     virtual void handleComputeFields(int32_t julianDay, UErrorCode &status) override;
 
-    DECLARE_OVERRIDE_SYSTEM_DEFAULT_CENTURY
+    /**
+     * Returns the date of the start of the default century
+     * @return start of century - in milliseconds since epoch, 1970
+     * @internal
+     */
+    virtual UDate defaultCenturyStart() const override;
+
+    /**
+     * Returns the year in which the default century begins
+     * @internal
+     */
+    virtual int32_t defaultCenturyStartYear() const override;
 
     /**
      * Return the date offset from Julian
@@ -330,7 +341,7 @@ protected:
      *             1       AMETE_ALEM  5501
      * @internal
      */
-    virtual int32_t handleGetExtendedYear(UErrorCode& status) override;
+    virtual int32_t handleGetExtendedYear() override;
 
     /**
      * Compute fields from the JD

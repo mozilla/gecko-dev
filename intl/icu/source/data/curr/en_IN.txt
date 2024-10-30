@@ -4,10 +4,6 @@
 en_IN{
     %%Parent{"en_001"}
     Currencies{
-        KGS{
-            "KGS",
-            "Kyrgyzstani Som",
-        }
         USD{
             "$",
             "US Dollar",
@@ -18,41 +14,17 @@ en_IN{
         }
         VES{
             "VES",
-            "VEF",
+            "VES",
         }
     }
     CurrencyPlurals{
-        KGS{
-            one{"Kyrgyzstani som"}
-            other{"Kyrgyzstani soms"}
-        }
-        KZT{
-            one{"Kazakhstani Tenge"}
-            other{"Kazakhstani Tenges"}
-        }
-        SLE{
-            one{"Sierra Leonean Leone"}
-            other{"Sierra Leonean Leones"}
-        }
-        TJS{
-            one{"Tajikistani Somoni"}
-            other{"Tajikistani Somonis"}
-        }
-        TMT{
-            one{"Turkmenistani Manat"}
-            other{"Turkmenistani Manat"}
-        }
-        UZS{
-            one{"Uzbekistani Som"}
-            other{"Uzbekistani Som"}
-        }
         VEF{
             one{"Venezuelan bolívar"}
             other{"Venezuelan bolívars"}
         }
         VES{
-            one{"VEF"}
-            other{"VEF"}
+            one{"VES"}
+            other{"VES"}
         }
     }
 }

@@ -254,7 +254,7 @@ is{
         SV{"El Salvador"}
         SX{"Sint Maarten"}
         SY{"Sýrland"}
-        SZ{"Esvatíní"}
+        SZ{"Svasíland"}
         TA{"Tristan da Cunha"}
         TC{"Turks- og Caicoseyjar"}
         TD{"Tsjad"}
@@ -297,9 +297,6 @@ is{
         ZM{"Sambía"}
         ZW{"Simbabve"}
         ZZ{"Óþekkt svæði"}
-    }
-    Countries%chagos{
-        IO{"Chagos-eyjaklasinn"}
     }
     Countries%short{
         HK{"Hong Kong"}

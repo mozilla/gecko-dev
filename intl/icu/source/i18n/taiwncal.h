@@ -139,7 +139,7 @@ private:
      * @return the extended year
      * @internal
      */
-    virtual int32_t handleGetExtendedYear(UErrorCode& status) override;
+    virtual int32_t handleGetExtendedYear() override;
     /**
      * Subclasses may override this method to compute several fields
      * specific to each calendar system.  
@@ -155,7 +155,24 @@ private:
      */
     virtual int32_t handleGetLimit(UCalendarDateFields field, ELimitType limitType) const override;
 
-    DECLARE_OVERRIDE_SYSTEM_DEFAULT_CENTURY
+    /**
+     * Returns true because the Taiwan Calendar does have a default century
+     * @internal
+     */
+    virtual UBool haveDefaultCentury() const override;
+
+    /**
+     * Returns the date of the start of the default century
+     * @return start of century - in milliseconds since epoch, 1970
+     * @internal
+     */
+    virtual UDate defaultCenturyStart() const override;
+
+    /**
+     * Returns the year in which the default century begins
+     * @internal
+     */
+    virtual int32_t defaultCenturyStartYear() const override;
 };
 
 U_NAMESPACE_END

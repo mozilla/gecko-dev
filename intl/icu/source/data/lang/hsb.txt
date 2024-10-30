@@ -49,12 +49,10 @@ hsb{
         bem{"bemba"}
         bez{"bena"}
         bg{"bołharšćina"}
-        bgc{"haryanvi"}
         bho{"bhojpurišćina"}
         bi{"bislamšćina"}
         bin{"binišćina"}
         bla{"siksikášćina"}
-        blo{"aniišćina"}
         bm{"bambara"}
         bn{"bengalšćina"}
         bo{"tibetšćina"}
@@ -175,7 +173,6 @@ hsb{
         iba{"ibanšćina"}
         ibb{"ibibiošćina"}
         id{"indonešćina"}
-        ie{"interlinguešćina"}
         ig{"igbo"}
         ii{"sichuan yi"}
         ik{"inupiak"}
@@ -230,7 +227,6 @@ hsb{
         kv{"komišćina"}
         kw{"kornišćina"}
         kwk{"kwakʼwalašćina"}
-        kxv{"kuvišćina"}
         ky{"kirgišćina"}
         la{"łaćonšćina"}
         lad{"ladinšćina"}
@@ -239,10 +235,8 @@ hsb{
         lez{"lezgianšćina"}
         lg{"gandšćina"}
         li{"limburšćina"}
-        lij{"ligurianšćina"}
         lil{"lillooetšćina"}
         lkt{"lakota"}
-        lmo{"lombardšćina"}
         ln{"lingala"}
         lo{"laošćina"}
         lou{"Louisiana kreolšćina"}
@@ -253,6 +247,7 @@ hsb{
         lu{"luba-katanga"}
         lua{"luba-luluašćina"}
         lun{"lundašćina"}
+        luo{"luo"}
         lus{"mizošćina"}
         luy{"luhya"}
         lv{"letišćina"}
@@ -339,7 +334,6 @@ hsb{
         pt_PT{"europska portugalšćina"}
         qu{"kečua"}
         quc{"kʼicheʼ"}
-        raj{"rajasthani"}
         rap{"rapanuišćina"}
         rar{"rarotonganšćina"}
         rhg{"rohingyašćina"}
@@ -396,7 +390,6 @@ hsb{
         sw_CD{"kongoska suahelšćina"}
         swb{"comorianšćina"}
         syr{"syriacšćina"}
-        szl{"šlezišćina"}
         ta{"tamilšćina"}
         tce{"južna tutchonšćina"}
         te{"telugu"}
@@ -436,10 +429,9 @@ hsb{
         und{"njeznata rěč"}
         ur{"urdušćina"}
         uz{"uzbekšćina"}
+        vai{"vai"}
         ve{"vendašćina"}
-        vec{"venetišćina"}
         vi{"vietnamšćina"}
-        vmw{"makhuwašćina"}
         vo{"volapük"}
         vun{"vunjo"}
         wa{"walonšćina"}
@@ -450,7 +442,6 @@ hsb{
         wuu{"wu chinšćina"}
         xal{"kalmykšćina"}
         xh{"xhosa"}
-        xnr{"kangrišćina"}
         xog{"soga"}
         yav{"yangben"}
         ybb{"yembašćina"}
@@ -631,11 +622,10 @@ hsb{
     }
     characterLabelPattern{
         all{"{0} — wšitke"}
+        category-list{"{0}: {1}"}
         compatibility{"{0} — kompatibelnosć"}
         enclosed{"{0} — zakašćikowane"}
         extended{"{0} — rozšěrjene"}
-        facing-left{"{0} dolěwa"}
-        facing-right{"{0} doprawa"}
         historic{"{0} — historisce"}
         miscellaneous{"{0} — rozdźělne"}
         other{"{0} — druhe"}
@@ -653,5 +643,10 @@ hsb{
         language{"rěč: {0}"}
         script{"pismo: {0}"}
         territory{"region: {0}"}
+    }
+    localeDisplayPattern{
+        keyTypePattern{"{0}: {1}"}
+        pattern{"{0} ({1})"}
+        separator{"{0}, {1}"}
     }
 }

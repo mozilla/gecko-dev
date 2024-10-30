@@ -33,8 +33,8 @@ U_NAMESPACE_BEGIN
 
 namespace {
 
-const CollationCacheEntry *rootSingleton = nullptr;
-UInitOnce initOnce{};
+static const CollationCacheEntry *rootSingleton = nullptr;
+static UInitOnce initOnce {};
 
 }  // namespace
 

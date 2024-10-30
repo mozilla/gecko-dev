@@ -258,9 +258,6 @@ chr{
         "America:Chihuahua"{
             ec{"ᏥᏩᏩ"}
         }
-        "America:Ciudad_Juarez"{
-            ec{"ᏏᏳᏓ ᏆᎡᏏ"}
-        }
         "America:Coral_Harbour"{
             ec{"ᎠᏘᎪᎦᏂ"}
         }
@@ -465,6 +462,9 @@ chr{
         "America:New_York"{
             ec{"ᏄᏯᎩ"}
         }
+        "America:Nipigon"{
+            ec{"ᏂᏈᎪᏂ"}
+        }
         "America:Nome"{
             ec{"ᏃᎺ"}
         }
@@ -486,6 +486,9 @@ chr{
         "America:Panama"{
             ec{"ᏆᎾᎹ"}
         }
+        "America:Pangnirtung"{
+            ec{"ᏆᏂᏂᏚᏂᎦ"}
+        }
         "America:Paramaribo"{
             ec{"ᏆᎳᎹᎴᏉ"}
         }
@@ -506,6 +509,9 @@ chr{
         }
         "America:Punta_Arenas"{
             ec{"ᏊᏔ ᎡᏫᎾᏍ"}
+        }
+        "America:Rainy_River"{
+            ec{"ᎠᎦᏍᎦ ᎤᏪᏴ"}
         }
         "America:Rankin_Inlet"{
             ec{"ᎴᏂᎩᏂ ᎢᏂᎴᏘ"}
@@ -567,6 +573,9 @@ chr{
         "America:Thule"{
             ec{"ᏡᎵ"}
         }
+        "America:Thunder_Bay"{
+            ec{"ᎠᏴᏓᏆᎶᏍᎦ ᎡᏉᏄᎸᏗ"}
+        }
         "America:Tijuana"{
             ec{"ᏘᏳᏩᎾ"}
         }
@@ -587,6 +596,9 @@ chr{
         }
         "America:Yakutat"{
             ec{"ᏯᎫᏔᏘ"}
+        }
+        "America:Yellowknife"{
+            ec{"ᏓᎶᏂᎨ ᎭᏰᏍᏗ"}
         }
         "Antarctica:Casey"{
             ec{"ᎨᏏ"}
@@ -677,6 +689,9 @@ chr{
         }
         "Asia:Chita"{
             ec{"ᏥᏔ"}
+        }
+        "Asia:Choibalsan"{
+            ec{"ᏦᏱᏆᎵᏌᏂ"}
         }
         "Asia:Colombo"{
             ec{"ᎪᎶᎻᏉ"}
@@ -909,6 +924,9 @@ chr{
         "Australia:Broken_Hill"{
             ec{"ᎤᏲᏨᎯ ᎦᏚᏏ"}
         }
+        "Australia:Currie"{
+            ec{"ᎫᎵ"}
+        }
         "Australia:Darwin"{
             ec{"ᏓᏩᏂ"}
         }
@@ -1091,6 +1109,9 @@ chr{
         "Europe:Ulyanovsk"{
             ec{"ᎤᎵᏯᏃᏬᏍᎧ"}
         }
+        "Europe:Uzhgorod"{
+            ec{"ᎤᏍᎪᎶᏗ"}
+        }
         "Europe:Vaduz"{
             ec{"ᏩᏚᏏ"}
         }
@@ -1111,6 +1132,9 @@ chr{
         }
         "Europe:Zagreb"{
             ec{"ᏌᏇᏈ"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"ᏌᏉᎶᏌᏱ"}
         }
         "Europe:Zurich"{
             ec{"ᏑᎵᏥ"}
@@ -1195,6 +1219,9 @@ chr{
             sd{"HDT"}
             sg{"HST"}
             ss{"HST"}
+        }
+        "Pacific:Johnston"{
+            ec{"ᏣᏂᏏᏂ"}
         }
         "Pacific:Kanton"{
             ec{"ᎧᏛᏂ"}
@@ -1435,6 +1462,11 @@ chr{
             lg{"ᏓᎶᏂᎨᏍᏛ ᎠᏟᎢᎵᏒ"}
             ls{"ᏓᎶᏂᎨᏍᏛ ᎠᏟᎶᏍᏗ ᎠᏟᎢᎵᏒ"}
         }
+        "meta:Choibalsan"{
+            ld{"ᏦᏱᏆᎵᏌᏂ ᎪᎩ ᎠᏟᎢᎵᏒ"}
+            lg{"ᏦᏱᏆᎵᏌᏂ ᎠᏟᎢᎵᏒ"}
+            ls{"ᏦᏱᏆᎵᏌᏂ ᎠᏟᎶᏍᏗ ᎠᏟᎢᎵᏒ"}
+        }
         "meta:Christmas"{
             ls{"ᏓᏂᏍᏓᏲᎯᎲ ᎤᎦᏚᏛᎢ ᎠᏟᎢᎵᏒ"}
         }
@@ -1596,9 +1628,6 @@ chr{
             lg{"ᏣᏩᏂᏏ ᎠᏟᎢᎵᏒ"}
             ls{"ᏣᏩᏂᏏ ᎠᏟᎶᏍᏗ ᎠᏟᎢᎵᏒ"}
         }
-        "meta:Kazakhstan"{
-            ls{"ᎧᏎᎧᏍᏕᏂ ᎠᏟᎢᎵᏒ"}
-        }
         "meta:Kazakhstan_Eastern"{
             ls{"ᏗᎧᎸᎬ ᎧᏎᎧᏍᏕᏂ ᎠᏟᎢᎵᏒ"}
         }
@@ -1629,6 +1658,9 @@ chr{
             lg{"ᎤᎬᏫᏳᎯ ᎭᏫ ᎠᏟᎢᎵᏒ"}
             ls{"ᎤᎬᏫᏳᎯ ᎭᏫ ᎠᏟᎶᏍᏗ ᎠᏟᎢᎵᏒ"}
         }
+        "meta:Macquarie"{
+            ls{"ᎹᏇᎵ ᎤᎦᏚᏛᎢ ᎠᏟᎢᎵᏒ"}
+        }
         "meta:Magadan"{
             ld{"ᎹᎦᏓᏂ ᎪᎩ ᎠᏟᎢᎵᏒ"}
             lg{"ᎹᎦᏓᏂ ᎠᏟᎢᎵᏒ"}
@@ -1653,6 +1685,11 @@ chr{
         }
         "meta:Mawson"{
             ls{"ᎹᏌᏂ ᎠᏟᎢᎵᏒ"}
+        }
+        "meta:Mexico_Northwest"{
+            ld{"ᏧᏴᏢ ᏭᏕᎵᎬ ᎠᏂᏍᏆᏂ ᎪᎯ ᎢᎦ ᎠᏟᎢᎵᏒ"}
+            lg{"ᏧᏴᏢ ᏭᏕᎵᎬ ᎠᏂᏍᏆᏂ ᎠᏟᎢᎵᏒ"}
+            ls{"ᏧᏴᏢ ᏭᏕᎵᎬ ᎠᏂᏍᏆᏂ ᎠᏟᎶᏍᏗ ᎠᏟᎢᎵᏒ"}
         }
         "meta:Mexico_Pacific"{
             ld{"ᎠᏂᏍᏆᏂ ᏭᏕᎵᎬ ᎪᎯ ᎢᎦ ᎠᏟᎢᎵᏒ"}
@@ -1873,6 +1910,10 @@ chr{
         "meta:Yukon"{
             ls{"ᏳᎧᏂ ᎠᏟᎢᎵᏒ"}
         }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        gmtZeroFormat{"GMT"}
+        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} ᎠᏟᎢᎵᏒ"}
         regionFormatDaylight{"{0} ᎪᎯ ᎢᎦ ᎠᏟᎢᎵᏒ"}
         regionFormatStandard{"{0} ᎠᏟᎶᏍᏗ ᎠᏟᎢᎵᏒ"}

@@ -44,10 +44,10 @@ ifeq ($(ENABLE_SO_VERSION_DATA),1)
 SO_VERSION_DATA = common.res
 endif
 
-ifeq ($(BUILD_HOST_ICU),OS390)
+ifeq ($(OS390BATCH),1)
 BATCH_TARGET = $(BATCH_COMMON_TARGET)
 BATCH_LIBS = $(BATCH_LIBICUDT) -lm
-endif
+endif   # OS390BATCH
 
 endif   # ENABLE_SHARED
 
@@ -58,6 +58,10 @@ DYNAMICCFLAGS = $(SHAREDLIBCFLAGS)
 DYNAMICCXXFLAGS = $(SHAREDLIBCXXFLAGS)
 CFLAGS += $(LIBCFLAGS)
 CXXFLAGS += $(LIBCXXFLAGS)
+ifeq ($(OS390BATCH),1)
+CFLAGS += -WI
+CXXFLAGS += -WI
+endif
 
 CPPFLAGS += -I$(srcdir) $(LIBCPPFLAGS) $(CPPFLAGSICUUC)
 # we want DEFS here
@@ -187,10 +191,10 @@ ifneq ($(wildcard $(libdir)/$(MIDDLE_SO_TARGET)),)
 endif
 endif
 
-ifeq ($(BUILD_HOST_ICU),OS390)
+ifeq ($(OS390BATCH),1)
 $(BATCH_TARGET):$(OBJECTS)
-	$(SHLIB.cc) $(LD_SONAME) -Wl,-x$@.x $(OUTOPT)$@ $^ $(BATCH_LIBS)
-endif
+	$(SHLIB.cc) $(LD_SONAME) $(OUTOPT)$@ $^ $(BATCH_LIBS)
+endif   # OS390BATCH
 endif   # ENABLE_SHARED
 
 ifeq (,$(MAKECMDGOALS))

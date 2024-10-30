@@ -4,6 +4,10 @@
 es_US{
     %%Parent{"es_419"}
     Currencies{
+        BDT{
+            "BDT",
+            "taka bangladesí",
+        }
         BTN{
             "BTN",
             "ngultrum butanés",
@@ -14,7 +18,11 @@ es_US{
         }
         JPY{
             "¥",
-            "yen japonés",
+            "yen",
+        }
+        LAK{
+            "LAK",
+            "kip laosiano",
         }
         THB{
             "THB",
@@ -27,6 +35,10 @@ es_US{
         UZS{
             "UZS",
             "sum",
+        }
+        VND{
+            "VND",
+            "dong vietnamita",
         }
         XAF{
             "XAF",
@@ -45,6 +57,10 @@ es_US{
         VEF{"Bs"}
     }
     CurrencyPlurals{
+        BDT{
+            one{"taka bangladesí"}
+            other{"takas bangladesíes"}
+        }
         BTN{
             one{"ngultrum butanés"}
             other{"gultrums bultaneses"}
@@ -53,6 +69,10 @@ es_US{
             one{"birr"}
             other{"birres"}
         }
+        LAK{
+            one{"kip laosiano"}
+            other{"kips laosianos"}
+        }
         THB{
             one{"bat"}
             other{"bats"}
@@ -60,6 +80,10 @@ es_US{
         UZS{
             one{"sum"}
             other{"sums"}
+        }
+        VND{
+            one{"dong vietnamita"}
+            other{"dongs vietnamitas"}
         }
         XAF{
             one{"franco CFA de África central"}

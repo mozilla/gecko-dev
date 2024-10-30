@@ -20,7 +20,7 @@ LIBCPPFLAGS =
 THREADSCPPFLAGS =
 
 #
-CPPFLAGS += -DU_CHARSET_IS_UTF8=1
+CPPFLAGS += -D__STDC_ISO_10646__ -DU_CHARSET_IS_UTF8=1
 
 ## Compiler switch to embed a runtime search path
 LD_RPATH=

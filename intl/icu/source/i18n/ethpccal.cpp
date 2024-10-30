@@ -11,7 +11,6 @@
 
 #if !UCONFIG_NO_FORMATTING
 
-#include "gregoimp.h"
 #include "umutex.h"
 #include "ethpccal.h"
 #include "cecal.h"
@@ -57,11 +56,8 @@ EthiopicCalendar::getType() const
 //-------------------------------------------------------------------------
 
 int32_t
-EthiopicCalendar::handleGetExtendedYear(UErrorCode& status)
+EthiopicCalendar::handleGetExtendedYear()
 {
-    if (U_FAILURE(status)) {
-        return 0;
-    }
     // Ethiopic calendar uses EXTENDED_YEAR aligned to
     // Amelete Hihret year always.
     if (newerField(UCAL_EXTENDED_YEAR, UCAL_YEAR) == UCAL_EXTENDED_YEAR) {
@@ -71,20 +67,14 @@ EthiopicCalendar::handleGetExtendedYear(UErrorCode& status)
     if (internalGet(UCAL_ERA, AMETE_MIHRET) == AMETE_MIHRET) {
         return internalGet(UCAL_YEAR, 1); // Default to year 1
     }
-    int32_t year = internalGet(UCAL_YEAR, 1);
-    if (uprv_add32_overflow(year, -AMETE_MIHRET_DELTA, &year)) {
-        status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    return year;
+    return internalGet(UCAL_YEAR, 1) - AMETE_MIHRET_DELTA;
 }
 
 void
-EthiopicCalendar::handleComputeFields(int32_t julianDay, UErrorCode& status)
+EthiopicCalendar::handleComputeFields(int32_t julianDay, UErrorCode &/*status*/)
 {
     int32_t eyear, month, day;
-    jdToCE(julianDay, getJDEpochOffset(), eyear, month, day, status);
-    if (U_FAILURE(status)) return;
+    jdToCE(julianDay, getJDEpochOffset(), eyear, month, day);
 
     internalSet(UCAL_EXTENDED_YEAR, eyear);
     internalSet(UCAL_ERA, (eyear > 0) ? AMETE_MIHRET : AMETE_ALEM);
@@ -112,7 +102,46 @@ void EthiopicCalendar::setRelatedYear(int32_t year)
     set(UCAL_EXTENDED_YEAR, year - kEthiopicRelatedYearDiff);
 }
 
-IMPL_SYSTEM_DEFAULT_CENTURY(EthiopicCalendar, "@calendar=ethiopic")
+/**
+ * The system maintains a static default century start date and Year.  They are
+ * initialized the first time they are used.  Once the system default century date 
+ * and year are set, they do not change.
+ */
+static UDate           gSystemDefaultCenturyStart       = DBL_MIN;
+static int32_t         gSystemDefaultCenturyStartYear   = -1;
+static icu::UInitOnce  gSystemDefaultCenturyInit        {};
+
+static void U_CALLCONV initializeSystemDefaultCentury()
+{
+    UErrorCode status = U_ZERO_ERROR;
+    EthiopicCalendar calendar(Locale("@calendar=ethiopic"), status);
+    if (U_SUCCESS(status)) {
+        calendar.setTime(Calendar::getNow(), status);
+        calendar.add(UCAL_YEAR, -80, status);
+
+        gSystemDefaultCenturyStart = calendar.getTime(status);
+        gSystemDefaultCenturyStartYear = calendar.get(UCAL_YEAR, status);
+    }
+    // We have no recourse upon failure unless we want to propagate the failure
+    // out.
+}
+
+UDate
+EthiopicCalendar::defaultCenturyStart() const
+{
+    // lazy-evaluate systemDefaultCenturyStart
+    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
+    return gSystemDefaultCenturyStart;
+}
+
+int32_t
+EthiopicCalendar::defaultCenturyStartYear() const
+{
+    // lazy-evaluate systemDefaultCenturyStartYear
+    umtx_initOnce(gSystemDefaultCenturyInit, &initializeSystemDefaultCentury);
+    return gSystemDefaultCenturyStartYear;
+}
+
 
 int32_t
 EthiopicCalendar::getJDEpochOffset() const
@@ -120,6 +149,21 @@ EthiopicCalendar::getJDEpochOffset() const
     return JD_EPOCH_OFFSET_AMETE_MIHRET;
 }
 
+
+#if 0
+// We do not want to introduce this API in ICU4C.
+// It was accidentally introduced in ICU4J as a public API.
+
+//-------------------------------------------------------------------------
+// Calendar system Conversion methods...
+//-------------------------------------------------------------------------
+
+int32_t
+EthiopicCalendar::ethiopicToJD(int32_t year, int32_t month, int32_t date)
+{
+    return ceToJD(year, month, date, JD_EPOCH_OFFSET_AMETE_MIHRET);
+}
+#endif
 
 //-------------------------------------------------------------------------
 // Constructors...
@@ -152,31 +196,22 @@ EthiopicAmeteAlemCalendar::getType() const
 }
 
 int32_t
-EthiopicAmeteAlemCalendar::handleGetExtendedYear(UErrorCode& status)
+EthiopicAmeteAlemCalendar::handleGetExtendedYear()
 {
-    if (U_FAILURE(status)) {
-        return 0;
-    }
     // Ethiopic calendar uses EXTENDED_YEAR aligned to
     // Amelete Hihret year always.
     if (newerField(UCAL_EXTENDED_YEAR, UCAL_YEAR) == UCAL_EXTENDED_YEAR) {
         return internalGet(UCAL_EXTENDED_YEAR, 1); // Default to year 1
     }
-    // Default to year 1 of Amelete Mihret
-    int32_t year = internalGet(UCAL_YEAR, 1 + AMETE_MIHRET_DELTA);
-    if (uprv_add32_overflow(year, -AMETE_MIHRET_DELTA, &year)) {
-        status = U_ILLEGAL_ARGUMENT_ERROR;
-        return 0;
-    }
-    return year;
+    return internalGet(UCAL_YEAR, 1 + AMETE_MIHRET_DELTA)
+            - AMETE_MIHRET_DELTA; // Default to year 1 of Amelete Mihret
 }
 
 void
-EthiopicAmeteAlemCalendar::handleComputeFields(int32_t julianDay, UErrorCode& status)
+EthiopicAmeteAlemCalendar::handleComputeFields(int32_t julianDay, UErrorCode &/*status*/)
 {
     int32_t eyear, month, day;
-    jdToCE(julianDay, getJDEpochOffset(), eyear, month, day, status);
-    if (U_FAILURE(status)) return;
+    jdToCE(julianDay, getJDEpochOffset(), eyear, month, day);
 
     internalSet(UCAL_EXTENDED_YEAR, eyear);
     internalSet(UCAL_ERA, AMETE_ALEM);

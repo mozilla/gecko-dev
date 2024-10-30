@@ -32,7 +32,6 @@
 #if U_SHOW_CPLUSPLUS_API
 
 #include <cstddef>
-#include <string_view>
 #include <type_traits>
 
 #include "unicode/uobject.h"
@@ -131,13 +130,13 @@ class U_COMMON_API StringPiece : public UMemory {
    * @stable ICU 65
    */
   template <typename T,
-            typename = std::enable_if_t<
-                (std::is_same_v<decltype(T().data()), const char*>
+            typename = typename std::enable_if<
+                (std::is_same<decltype(T().data()), const char*>::value
 #if defined(__cpp_char8_t)
-                    || std::is_same_v<decltype(T().data()), const char8_t*>
+                    || std::is_same<decltype(T().data()), const char8_t*>::value
 #endif
                 ) &&
-                std::is_same_v<decltype(T().size()), size_t>>>
+                std::is_same<decltype(T().size()), size_t>::value>::type>
   StringPiece(T str)
       : ptr_(reinterpret_cast<const char*>(str.data())),
         length_(static_cast<int32_t>(str.size())) {}
@@ -176,16 +175,6 @@ class U_COMMON_API StringPiece : public UMemory {
    * @stable ICU 4.2
    */
   StringPiece(const StringPiece& x, int32_t pos, int32_t len);
-
-#ifndef U_HIDE_INTERNAL_API
-  /**
-   * Converts to a std::string_view().
-   * @internal
-   */
-  inline operator std::string_view() const {
-    return {data(), static_cast<std::string_view::size_type>(size())};
-  }
-#endif  // U_HIDE_INTERNAL_API
 
   /**
    * Returns the string pointer. May be nullptr if it is empty.

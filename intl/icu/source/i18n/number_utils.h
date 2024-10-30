@@ -21,7 +21,8 @@
 
 U_NAMESPACE_BEGIN
 
-namespace number::impl {
+namespace number {
+namespace impl {
 
 enum CldrPatternStyle {
     CLDR_PATTERN_STYLE_DECIMAL,
@@ -101,7 +102,8 @@ inline StandardPlural::Form getPluralSafe(
 
 } // namespace utils
 
-} // namespace number::impl
+} // namespace impl
+} // namespace number
 
 U_NAMESPACE_END
 

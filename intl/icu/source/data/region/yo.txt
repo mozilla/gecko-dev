@@ -47,9 +47,9 @@ yo{
         AR{"Agentínà"}
         AS{"Sámóánì ti Orílẹ́ède Àméríkà"}
         AT{"Asítíríà"}
-        AU{"Austrálíà"}
+        AU{"Ástràlìá"}
         AW{"Árúbà"}
-        AX{"Àwọn Erékùsù ti Aland"}
+        AX{"Àwọn Erékùsù ti Åland"}
         AZ{"Asẹ́bájánì"}
         BA{"Bọ̀síníà àti Ẹtisẹgófínà"}
         BB{"Bábádósì"}
@@ -64,7 +64,7 @@ yo{
         BM{"Bémúdà"}
         BN{"Búrúnẹ́lì"}
         BO{"Bọ̀lífíyà"}
-        BQ{"Kàríbíánì ti Nẹ́dálándì"}
+        BQ{"Káríbíánì ti Nẹ́dálándì"}
         BR{"Bàràsílì"}
         BS{"Bàhámásì"}
         BT{"Bútánì"}
@@ -88,7 +88,7 @@ yo{
         CR{"Kuusita Ríkà"}
         CU{"Kúbà"}
         CV{"Etíokun Kápé féndè"}
-        CW{"Curaçao"}
+        CW{"Kúrásáò"}
         CX{"Erékùsù Christmas"}
         CY{"Kúrúsì"}
         CZ{"Ṣẹ́ẹ́kì"}
@@ -105,12 +105,12 @@ yo{
         EG{"Égípítì"}
         EH{"Ìwọ̀òòrùn Sàhárà"}
         ER{"Eritira"}
-        ES{"Sípéìnì"}
+        ES{"Sipani"}
         ET{"Etopia"}
         EU{"Àpapọ̀ Yúróòpù"}
         EZ{"Agbègbè Yúrò"}
         FI{"Filandi"}
-        FJ{"Fíjì"}
+        FJ{"Fiji"}
         FK{"Etikun Fakalandi"}
         FM{"Makoronesia"}
         FO{"Àwọn Erékùsù ti Faroe"}
@@ -128,9 +128,9 @@ yo{
         GN{"Gene"}
         GP{"Gadelope"}
         GQ{"Ekutoria Gini"}
-        GR{"Gíríìsì"}
+        GR{"Geriisi"}
         GS{"Gúúsù Georgia àti Gúúsù Àwọn Erékùsù Sandwich"}
-        GT{"Guatemálà"}
+        GT{"Guatemala"}
         GU{"Guamu"}
         GW{"Gene-Busau"}
         GY{"Guyana"}
@@ -141,17 +141,17 @@ yo{
         HT{"Haati"}
         HU{"Hungari"}
         IC{"Ẹrékùsù Kánárì"}
-        ID{"Indonéṣíà"}
+        ID{"Indonesia"}
         IE{"Ailandi"}
         IL{"Iserẹli"}
-        IM{"Erékùṣù ilẹ̀ Man"}
-        IN{"Íńdíà"}
+        IM{"Isle of Man"}
+        IN{"India"}
         IO{"Etíkun Índíánì ti Ìlú Bírítísì"}
         IQ{"Iraki"}
         IR{"Irani"}
         IS{"Aṣilandi"}
         IT{"Itáli"}
-        JE{"Jẹsì"}
+        JE{"Jersey"}
         JM{"Jamaika"}
         JO{"Jọdani"}
         JP{"Japani"}
@@ -180,8 +180,8 @@ yo{
         MA{"Moroko"}
         MC{"Monako"}
         MD{"Modofia"}
-        ME{"Montenégrò"}
-        MF{"Ìlú Màtìnì"}
+        ME{"Montenegro"}
+        MF{"Ìlú Mátíìnì"}
         MG{"Madasika"}
         MH{"Etikun Máṣali"}
         MK{"Àríwá Macedonia"}
@@ -203,7 +203,7 @@ yo{
         NA{"Namibia"}
         NC{"Kaledonia Titun"}
         NE{"Nàìjá"}
-        NF{"Erékùsù Nọ́úfókì"}
+        NF{"Etikun Nọ́úfókì"}
         NG{"Nàìjíríà"}
         NI{"Nikaragua"}
         NL{"Nedalandi"}
@@ -213,8 +213,8 @@ yo{
         NU{"Niue"}
         NZ{"Ṣilandi Titun"}
         OM{"Ọọma"}
-        PA{"Paramá"}
-        PE{"Pèérù"}
+        PA{"Panama"}
+        PE{"Peru"}
         PF{"Firenṣi Polinesia"}
         PG{"Paapu ti Giini"}
         PH{"Filipini"}
@@ -263,8 +263,8 @@ yo{
         TH{"Tailandi"}
         TJ{"Takisitani"}
         TK{"Tokelau"}
-        TL{"Tímọ̀ Lẹsiti"}
-        TM{"Tọ́kìmẹ́nísítànì"}
+        TL{"ÌlàOòrùn Tímọ̀"}
+        TM{"Tọọkimenisita"}
         TN{"Tuniṣia"}
         TO{"Tonga"}
         TR{"Tọọki"}
@@ -277,7 +277,7 @@ yo{
         UM{"Àwọn Erékùsù Kékèké Agbègbè US"}
         UN{"Ìṣọ̀kan àgbáyé"}
         US{"Amẹrikà"}
-        UY{"Úrúgúwè"}
+        UY{"Nruguayi"}
         UZ{"Nṣibẹkisitani"}
         VA{"Ìlú Vatican"}
         VC{"Fisẹnnti ati Genadina"}
@@ -289,7 +289,7 @@ yo{
         WF{"Wali ati futuna"}
         WS{"Samọ"}
         XA{"ìsọ̀rọ̀sí irọ́"}
-        XB{"Agbègbè irọ́"}
+        XB{"ibi irọ́"}
         XK{"Kòsófò"}
         YE{"Yemeni"}
         YT{"Mayote"}
@@ -297,12 +297,6 @@ yo{
         ZM{"Ṣamibia"}
         ZW{"Ṣimibabe"}
         ZZ{"Àgbègbè àìmọ̀"}
-    }
-    Countries%biot{
-        IO{"Àlà-ilẹ̀ Bírítéènì ní Etíkun Índíà"}
-    }
-    Countries%chagos{
-        IO{"Àkójọpọ̀ Àwọn Erékùṣù Ṣágòsì"}
     }
     Countries%short{
         HK{"Hong Kong"}
@@ -312,10 +306,8 @@ yo{
     Countries%variant{
         CD{"Kóńgò (Tiwantiwa)"}
         CG{"Kóńgò (Olómìnira)"}
-        CZ{"Ṣẹ́ẹ́kì Olómìnira"}
         NZ{"Sílándì Titun ti Atìríà"}
         SZ{"Síwásìlandì"}
         TL{"Ìlà Òòrùn Tímọ̀"}
-        TR{"Tọ́kì"}
     }
 }

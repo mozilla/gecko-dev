@@ -43,24 +43,24 @@ static const int32_t gOffsets[] = {
     17,
     27,
     31,
-    333,
-    344,
-    362,
-    366,
-    375,
-    378,
-    382,
-    390,
-    412,
-    416,
-    431,
-    432,
-    438,
-    449,
+    332,
+    343,
+    360,
+    364,
+    373,
+    376,
+    380,
+    388,
+    410,
+    414,
+    429,
+    430,
+    436,
+    446,
+    451,
     455,
-    459,
-    461,
-    495
+    457,
+    491
 };
 
 static const int32_t kCurrencyOffset = 5;
@@ -423,7 +423,6 @@ static const char * const gSubTypes[] = {
     "ZRZ",
     "ZWC",
     "ZWD",
-    "ZWG",
     "ZWL",
     "ZWN",
     "ZWR",
@@ -449,7 +448,6 @@ static const char * const gSubTypes[] = {
     "month",
     "month-person",
     "nanosecond",
-    "night",
     "quarter",
     "second",
     "week",
@@ -534,7 +532,6 @@ static const char * const gSubTypes[] = {
     "watt",
     "atmosphere",
     "bar",
-    "gasoline-energy-density",
     "hectopascal",
     "inch-ofhg",
     "kilopascal",
@@ -546,7 +543,6 @@ static const char * const gSubTypes[] = {
     "beaufort",
     "kilometer-per-hour",
     "knot",
-    "light-speed",
     "meter-per-second",
     "mile-per-hour",
     "celsius",
@@ -1019,60 +1015,52 @@ MeasureUnit MeasureUnit::getNanosecond() {
     return MeasureUnit(7, 10);
 }
 
-MeasureUnit *MeasureUnit::createNight(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createQuarter(UErrorCode &status) {
     return MeasureUnit::create(7, 11, status);
 }
 
-MeasureUnit MeasureUnit::getNight() {
+MeasureUnit MeasureUnit::getQuarter() {
     return MeasureUnit(7, 11);
 }
 
-MeasureUnit *MeasureUnit::createQuarter(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createSecond(UErrorCode &status) {
     return MeasureUnit::create(7, 12, status);
 }
 
-MeasureUnit MeasureUnit::getQuarter() {
+MeasureUnit MeasureUnit::getSecond() {
     return MeasureUnit(7, 12);
 }
 
-MeasureUnit *MeasureUnit::createSecond(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createWeek(UErrorCode &status) {
     return MeasureUnit::create(7, 13, status);
 }
 
-MeasureUnit MeasureUnit::getSecond() {
+MeasureUnit MeasureUnit::getWeek() {
     return MeasureUnit(7, 13);
 }
 
-MeasureUnit *MeasureUnit::createWeek(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createWeekPerson(UErrorCode &status) {
     return MeasureUnit::create(7, 14, status);
 }
 
-MeasureUnit MeasureUnit::getWeek() {
+MeasureUnit MeasureUnit::getWeekPerson() {
     return MeasureUnit(7, 14);
 }
 
-MeasureUnit *MeasureUnit::createWeekPerson(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createYear(UErrorCode &status) {
     return MeasureUnit::create(7, 15, status);
 }
 
-MeasureUnit MeasureUnit::getWeekPerson() {
+MeasureUnit MeasureUnit::getYear() {
     return MeasureUnit(7, 15);
 }
 
-MeasureUnit *MeasureUnit::createYear(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createYearPerson(UErrorCode &status) {
     return MeasureUnit::create(7, 16, status);
 }
 
-MeasureUnit MeasureUnit::getYear() {
-    return MeasureUnit(7, 16);
-}
-
-MeasureUnit *MeasureUnit::createYearPerson(UErrorCode &status) {
-    return MeasureUnit::create(7, 17, status);
-}
-
 MeasureUnit MeasureUnit::getYearPerson() {
-    return MeasureUnit(7, 17);
+    return MeasureUnit(7, 16);
 }
 
 MeasureUnit *MeasureUnit::createAmpere(UErrorCode &status) {
@@ -1555,6 +1543,14 @@ MeasureUnit MeasureUnit::getKilogram() {
     return MeasureUnit(15, 5);
 }
 
+MeasureUnit *MeasureUnit::createMetricTon(UErrorCode &status) {
+    return MeasureUnit::create(15, 14, status);
+}
+
+MeasureUnit MeasureUnit::getMetricTon() {
+    return MeasureUnit(15, 14);
+}
+
 MeasureUnit *MeasureUnit::createMicrogram(UErrorCode &status) {
     return MeasureUnit::create(15, 6, status);
 }
@@ -1627,14 +1623,6 @@ MeasureUnit MeasureUnit::getTonne() {
     return MeasureUnit(15, 14);
 }
 
-MeasureUnit *MeasureUnit::createMetricTon(UErrorCode &status) {
-    return MeasureUnit::create(15, 14, status);
-}
-
-MeasureUnit MeasureUnit::getMetricTon() {
-    return MeasureUnit(15, 14);
-}
-
 MeasureUnit *MeasureUnit::createGigawatt(UErrorCode &status) {
     return MeasureUnit::create(17, 0, status);
 }
@@ -1699,76 +1687,68 @@ MeasureUnit MeasureUnit::getBar() {
     return MeasureUnit(18, 1);
 }
 
-MeasureUnit *MeasureUnit::createGasolineEnergyDensity(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createHectopascal(UErrorCode &status) {
     return MeasureUnit::create(18, 2, status);
 }
 
-MeasureUnit MeasureUnit::getGasolineEnergyDensity() {
+MeasureUnit MeasureUnit::getHectopascal() {
     return MeasureUnit(18, 2);
 }
 
-MeasureUnit *MeasureUnit::createHectopascal(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createInchHg(UErrorCode &status) {
     return MeasureUnit::create(18, 3, status);
 }
 
-MeasureUnit MeasureUnit::getHectopascal() {
+MeasureUnit MeasureUnit::getInchHg() {
     return MeasureUnit(18, 3);
 }
 
-MeasureUnit *MeasureUnit::createInchHg(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createKilopascal(UErrorCode &status) {
     return MeasureUnit::create(18, 4, status);
 }
 
-MeasureUnit MeasureUnit::getInchHg() {
+MeasureUnit MeasureUnit::getKilopascal() {
     return MeasureUnit(18, 4);
 }
 
-MeasureUnit *MeasureUnit::createKilopascal(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createMegapascal(UErrorCode &status) {
     return MeasureUnit::create(18, 5, status);
 }
 
-MeasureUnit MeasureUnit::getKilopascal() {
+MeasureUnit MeasureUnit::getMegapascal() {
     return MeasureUnit(18, 5);
 }
 
-MeasureUnit *MeasureUnit::createMegapascal(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createMillibar(UErrorCode &status) {
     return MeasureUnit::create(18, 6, status);
 }
 
-MeasureUnit MeasureUnit::getMegapascal() {
+MeasureUnit MeasureUnit::getMillibar() {
     return MeasureUnit(18, 6);
 }
 
-MeasureUnit *MeasureUnit::createMillibar(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createMillimeterOfMercury(UErrorCode &status) {
     return MeasureUnit::create(18, 7, status);
 }
 
-MeasureUnit MeasureUnit::getMillibar() {
+MeasureUnit MeasureUnit::getMillimeterOfMercury() {
     return MeasureUnit(18, 7);
 }
 
-MeasureUnit *MeasureUnit::createMillimeterOfMercury(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createPascal(UErrorCode &status) {
     return MeasureUnit::create(18, 8, status);
 }
 
-MeasureUnit MeasureUnit::getMillimeterOfMercury() {
+MeasureUnit MeasureUnit::getPascal() {
     return MeasureUnit(18, 8);
 }
 
-MeasureUnit *MeasureUnit::createPascal(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createPoundPerSquareInch(UErrorCode &status) {
     return MeasureUnit::create(18, 9, status);
 }
 
-MeasureUnit MeasureUnit::getPascal() {
-    return MeasureUnit(18, 9);
-}
-
-MeasureUnit *MeasureUnit::createPoundPerSquareInch(UErrorCode &status) {
-    return MeasureUnit::create(18, 10, status);
-}
-
 MeasureUnit MeasureUnit::getPoundPerSquareInch() {
-    return MeasureUnit(18, 10);
+    return MeasureUnit(18, 9);
 }
 
 MeasureUnit *MeasureUnit::createBeaufort(UErrorCode &status) {
@@ -1795,28 +1775,20 @@ MeasureUnit MeasureUnit::getKnot() {
     return MeasureUnit(19, 2);
 }
 
-MeasureUnit *MeasureUnit::createLightSpeed(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createMeterPerSecond(UErrorCode &status) {
     return MeasureUnit::create(19, 3, status);
 }
 
-MeasureUnit MeasureUnit::getLightSpeed() {
+MeasureUnit MeasureUnit::getMeterPerSecond() {
     return MeasureUnit(19, 3);
 }
 
-MeasureUnit *MeasureUnit::createMeterPerSecond(UErrorCode &status) {
+MeasureUnit *MeasureUnit::createMilePerHour(UErrorCode &status) {
     return MeasureUnit::create(19, 4, status);
 }
 
-MeasureUnit MeasureUnit::getMeterPerSecond() {
-    return MeasureUnit(19, 4);
-}
-
-MeasureUnit *MeasureUnit::createMilePerHour(UErrorCode &status) {
-    return MeasureUnit::create(19, 5, status);
-}
-
 MeasureUnit MeasureUnit::getMilePerHour() {
-    return MeasureUnit(19, 5);
+    return MeasureUnit(19, 4);
 }
 
 MeasureUnit *MeasureUnit::createCelsius(UErrorCode &status) {
@@ -2188,7 +2160,9 @@ MeasureUnit &MeasureUnit::operator=(const MeasureUnit &other) {
     if (this == &other) {
         return *this;
     }
-    delete fImpl;
+    if (fImpl != nullptr) {
+        delete fImpl;
+    }
     if (other.fImpl) {
         ErrorCode localStatus;
         fImpl = new MeasureUnitImpl(other.fImpl->copy(localStatus));
@@ -2209,7 +2183,9 @@ MeasureUnit &MeasureUnit::operator=(MeasureUnit &&other) noexcept {
     if (this == &other) {
         return *this;
     }
-    delete fImpl;
+    if (fImpl != nullptr) {
+        delete fImpl;
+    }
     fImpl = other.fImpl;
     other.fImpl = nullptr;
     fTypeId = other.fTypeId;

@@ -38,9 +38,9 @@ ubrk_open(UBreakIteratorType type,
       UErrorCode *status)
 {
 
-  if (U_FAILURE(*status)) return nullptr;
+  if(U_FAILURE(*status)) return 0;
 
-  BreakIterator *result = nullptr;
+  BreakIterator *result = 0;
 
   switch(type) {
 
@@ -70,11 +70,11 @@ ubrk_open(UBreakIteratorType type,
 
   // check for allocation error
   if (U_FAILURE(*status)) {
-    return nullptr;
+     return 0;
   }
-  if (result == nullptr) {
+  if(result == 0) {
     *status = U_MEMORY_ALLOCATION_ERROR;
-    return nullptr;
+    return 0;
   }
 
 
@@ -102,14 +102,14 @@ ubrk_openRules(  const char16_t     *rules,
                        UErrorCode   *status)  {
 
     if (status == nullptr || U_FAILURE(*status)){
-        return nullptr;
+        return 0;
     }
 
-    BreakIterator *result = nullptr;
+    BreakIterator *result = 0;
     UnicodeString ruleString(rules, rulesLength);
     result = RBBIRuleBuilder::createRuleBasedBreakIterator(ruleString, parseErr, *status);
     if(U_FAILURE(*status)) {
-        return nullptr;
+        return 0;
     }
 
     UBreakIterator *uBI = (UBreakIterator *)result;

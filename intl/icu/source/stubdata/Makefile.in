@@ -147,10 +147,10 @@ ifneq ($(wildcard $(libdir)/$(MIDDLE_SO_TARGET)),)
 endif
 endif
 
-ifeq ($(BUILD_HOST_ICU),OS390)
+ifeq ($(OS390BATCH),1)
 $(BATCH_STUB_TARGET): $(OBJECTS)
 	$(SHLIB.c) $(LD_SONAME) $(OUTOPT)$@ $^ $(LIBS)
-endif
+endif   # OS390BATCH
 endif   # ENABLE_SHARED
 
 ifeq (,$(MAKECMDGOALS))

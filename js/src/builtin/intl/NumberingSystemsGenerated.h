@@ -22,11 +22,9 @@
   "deva", \
   "diak", \
   "fullwide", \
-  "gara", \
   "gong", \
   "gonm", \
   "gujr", \
-  "gukh", \
   "guru", \
   "hanidec", \
   "hmng", \
@@ -36,7 +34,6 @@
   "kawi", \
   "khmr", \
   "knda", \
-  "krai", \
   "lana", \
   "lanatham", \
   "laoo", \
@@ -54,18 +51,14 @@
   "mroo", \
   "mtei", \
   "mymr", \
-  "mymrepka", \
-  "mymrpao", \
   "mymrshan", \
   "mymrtlng", \
   "nagm", \
   "newa", \
   "nkoo", \
   "olck", \
-  "onao", \
   "orya", \
   "osma", \
-  "outlined", \
   "rohg", \
   "saur", \
   "segment", \
@@ -74,7 +67,6 @@
   "sinh", \
   "sora", \
   "sund", \
-  "sunu", \
   "takr", \
   "talu", \
   "tamldec", \

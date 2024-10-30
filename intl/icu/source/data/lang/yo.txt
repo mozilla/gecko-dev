@@ -4,9 +4,9 @@
 yo{
     Keys{
         calendar{"Kàlẹ́ńdà"}
-        cf{"Ònà Ìgbekalẹ̀ owó"}
+        cf{"Ìgúnrégé Kọ́rẹ́ńsì"}
         collation{"Ètò Ẹlẹ́sẹẹsẹ"}
-        currency{"Owó"}
+        currency{"Kọ́rẹ́ńsì"}
         hc{"Òbíríkiti Wákàtí (12 vs 24)"}
         lb{"Àra Ìda Ìlà"}
         ms{"Èto Ìdiwọ̀n"}
@@ -27,19 +27,18 @@ yo{
         an{"Èdè Aragoni"}
         ann{"Èdè Obolo"}
         anp{"Èdè Angika"}
-        ar{"Èdè Lárúbáwá"}
-        ar_001{"Èdè Lárúbáwá (Agbáyé)"}
+        ar{"Èdè Árábìkì"}
         arn{"Èdè Mapushe"}
         arp{"Èdè Arapaho"}
         ars{"Èdè Arabiki ti Najidi"}
-        as{"Èdè Assam"}
+        as{"Èdè Ti Assam"}
         asa{"Èdè Asu"}
         ast{"Èdè Asturian"}
         atj{"Èdè Atikameki"}
         av{"Èdè Afariki"}
         awa{"Èdè Awadi"}
         ay{"Èdè Amara"}
-        az{"Èdè Asabaijani"}
+        az{"Èdè Azerbaijani"}
         ba{"Èdè Bashiri"}
         ban{"Èdè Balini"}
         bas{"Èdè Basaa"}
@@ -47,12 +46,10 @@ yo{
         bem{"Èdè Béḿbà"}
         bez{"Èdè Bẹ́nà"}
         bg{"Èdè Bugaria"}
-        bgc{"Èdè Haryanvi"}
         bho{"Èdè Bojuri"}
         bi{"Èdè Bisilama"}
         bin{"Èdè Bini"}
         bla{"Èdè Sikiska"}
-        blo{"Anii"}
         bm{"Èdè Báḿbàrà"}
         bn{"Èdè Bengali"}
         bo{"Tibetán"}
@@ -61,18 +58,18 @@ yo{
         bs{"Èdè Bosnia"}
         bug{"Èdè Bugini"}
         byn{"Èdè Bilini"}
-        ca{"Èdè Katala"}
+        ca{"Èdè Catala"}
         cay{"Èdè Kayuga"}
         ccp{"Èdè Chakma"}
         ce{"Èdè Chechen"}
-        ceb{"Èdè Sebuano"}
+        ceb{"Èdè Cebuano"}
         cgg{"Èdè Chiga"}
         ch{"Èdè S̩amoro"}
         chk{"Èdè Shuki"}
         chm{"Èdè Mari"}
         cho{"Èdè Shokita"}
         chp{"Èdè Shipewa"}
-        chr{"Èdè Ṣẹ́rókiì"}
+        chr{"Èdè Shẹ́rókiì"}
         chy{"Èdè Sheyeni"}
         ckb{"Ààrin Gbùngbùn Kurdish"}
         clc{"Èdè Shikoti"}
@@ -86,9 +83,9 @@ yo{
         cs{"Èdè Seeki"}
         csw{"Èdè Swampi Kri"}
         cu{"Èdè Síláfííkì Ilé Ìjọ́sìn"}
-        cv{"Èdè Ṣufasi"}
+        cv{"Èdè Shufasi"}
         cy{"Èdè Welshi"}
-        da{"Èdè Denmaki"}
+        da{"Èdè Ilẹ̀ Denmark"}
         dak{"Èdè Dakota"}
         dar{"Èdè Dagiwa"}
         dav{"Táítà"}
@@ -163,13 +160,13 @@ yo{
         hu{"Èdè Hungaria"}
         hup{"Èdè Hupa"}
         hur{"Èdè Hakomelemi"}
-        hy{"Èdè Armenia"}
+        hy{"Èdè Ile Armenia"}
         hz{"Èdè Herero"}
         ia{"Èdè pipo"}
         iba{"Èdè Iba"}
         ibb{"Èdè Ibibio"}
         id{"Èdè Indonéṣíà"}
-        ie{"Èdè àtọwọ́dá"}
+        ie{"Iru Èdè"}
         ig{"Èdè Yíbò"}
         ii{"Ṣíkuán Yì"}
         ikt{"Èdè Iwoorun Inutitu ti Kanada"}
@@ -222,7 +219,6 @@ yo{
         kv{"Èdè Komi"}
         kw{"Èdè Kọ́nììṣì"}
         kwk{"Èdè Kwawala"}
-        kxv{"Kufi"}
         ky{"Kírígíìsì"}
         la{"Èdè Latini"}
         lad{"Èdè Ladino"}
@@ -231,10 +227,8 @@ yo{
         lez{"Èdè Lesgina"}
         lg{"Ganda"}
         li{"Èdè Limbogishi"}
-        lij{"Liguriani"}
         lil{"Èdè Liloeti"}
         lkt{"Lákota"}
-        lmo{"Lombardi"}
         ln{"Lìǹgálà"}
         lo{"Láò"}
         lou{"Èdè Kreoli ti Louisiana"}
@@ -247,7 +241,7 @@ yo{
         lun{"Èdè Lunda"}
         lus{"Èdè Miso"}
         luy{"Luyíà"}
-        lv{"Èdè látífíànì"}
+        lv{"Èdè Latvianu"}
         mad{"Èdè Maduri"}
         mag{"Èdè Magahi"}
         mai{"Èdè Matihi"}
@@ -264,7 +258,7 @@ yo{
         mi{"Màórì"}
         mic{"Èdè Mikmaki"}
         min{"Èdè Minakabau"}
-        mk{"Èdè Masidonia"}
+        mk{"Èdè Macedonia"}
         ml{"Málàyálámù"}
         mn{"Mòngólíà"}
         mni{"Èdè Manipuri"}
@@ -293,7 +287,6 @@ yo{
         nia{"Èdè Nia"}
         niu{"Èdè Niu"}
         nl{"Èdè Dọ́ọ̀ṣì"}
-        nl_BE{"Èdè Flemiṣi"}
         nmg{"Kíwáṣíò"}
         nn{"Nọ́ọ́wè Nínọ̀sìkì"}
         nnh{"Ngiembùnù"}
@@ -306,14 +299,14 @@ yo{
         nv{"Èdè Nafajo"}
         ny{"Ńyájà"}
         nyn{"Ńyákọ́lè"}
-        oc{"Èdè Ọ̀kísítáànì"}
+        oc{"Èdè Occitani"}
         ojb{"Èdè Ariwa-iwoorun Ojibwa"}
         ojc{"Èdè Ojibwa Aarin"}
         ojs{"Èdè Oji Kri"}
         ojw{"Èdè Iwoorun Ojibwa"}
         oka{"Èdè Okanaga"}
         om{"Òròmọ́"}
-        or{"Èdè Òdíà"}
+        or{"Òdíà"}
         os{"Ọṣẹ́tíìkì"}
         pa{"Èdè Punjabi"}
         pag{"Èdè Pangasina"}
@@ -330,7 +323,6 @@ yo{
         pt_BR{"Èdè Pọtogí (Orilẹ̀-èdè Bràsíl)"}
         pt_PT{"Èdè Pọtogí (orílẹ̀-èdè Yúróòpù)"}
         qu{"Kúẹ́ńjùà"}
-        raj{"Rajastánì"}
         rap{"Èdè Rapanu"}
         rar{"Èdè Rarotonga"}
         rhg{"Èdè Rohinga"}
@@ -382,14 +374,13 @@ yo{
         sw{"Èdè Swahili"}
         swb{"Èdè Komora"}
         syr{"Èdè Siriaki"}
-        szl{"Silìṣíànì"}
         ta{"Èdè Tamili"}
         tce{"Èdè Gusu Tushoni"}
         te{"Èdè Telugu"}
         tem{"Èdè Timne"}
         teo{"Tẹ́sò"}
         tet{"Èdè Tetum"}
-        tg{"Èdè Tàjíìkì"}
+        tg{"Tàjíìkì"}
         tgx{"Èdè Tagisi"}
         th{"Èdè Tai"}
         tht{"Èdè Tajiti"}
@@ -405,7 +396,7 @@ yo{
         tr{"Èdè Tọọkisi"}
         trv{"Èdè Taroko"}
         ts{"Èdè Songa"}
-        tt{"Tátárì"}
+        tt{"Tatarí"}
         ttm{"Èdè Ariwa Tusoni"}
         tum{"Èdè Tumbuka"}
         tvl{"Èdè Tifalu"}
@@ -421,9 +412,7 @@ yo{
         ur{"Èdè Udu"}
         uz{"Èdè Uzbek"}
         ve{"Èdè Fenda"}
-        vec{"Fènéṣìànì"}
         vi{"Èdè Jetinamu"}
-        vmw{"Màkúwà"}
         vo{"Fọ́lápùùkù"}
         vun{"Funjo"}
         wa{"Èdè Waluni"}
@@ -434,15 +423,13 @@ yo{
         wuu{"Èdè Wu ti Saina"}
         xal{"Èdè Kalimi"}
         xh{"Èdè Xhosa"}
-        xnr{"Kangiri"}
         xog{"Ṣógà"}
         yav{"Yangbẹn"}
         ybb{"Èdè Yemba"}
         yi{"Èdè Yiddishi"}
         yo{"Èdè Yorùbá"}
         yrl{"Èdè Ningatu"}
-        yue{"Èdè Kantonese"}
-        za{"Ṣúwáànù"}
+        yue{"Èdè Cantonese"}
         zgh{"Àfẹnùkò Támásáìtì ti Mòrókò"}
         zh{"Edè Ṣáínà"}
         zh_Hans{"Ẹdè Ṣáínà Onírọ̀rùn"}
@@ -460,7 +447,6 @@ yo{
         zh{"Edè Ṣáínà, Mandárínì"}
     }
     Languages%short{
-        az{"Èdè Aseri"}
         en_GB{"Èdè Gẹ̀ẹ́sì (GB)"}
         en_US{"Èdè Gẹ̀ẹ́sì (US)"}
     }
@@ -472,8 +458,6 @@ yo{
         Arab{"èdè Lárúbáwá"}
         Aran{"Èdè Aran"}
         Armn{"Àmẹ́níà"}
-        Bamu{"Bamumu"}
-        Batk{"Bataki"}
         Beng{"Báńgílà"}
         Bopo{"Bopomófò"}
         Brai{"Bíráìlè"}
@@ -484,45 +468,32 @@ yo{
         Deva{"Dẹfanagárì"}
         Ethi{"Ẹtiópíìkì"}
         Geor{"Jọ́jíànù"}
-        Gong{"Gunjala Gondi"}
-        Grek{"Gíríkì"}
+        Grek{"Jọ́jíà"}
         Gujr{"Gujaráti"}
         Guru{"Gurumúkhì"}
         Hanb{"Han pẹ̀lú Bopomófò"}
         Hang{"Háńgùlù"}
         Hani{"Háànù"}
         Hans{"tí wọ́n mú rọrùn."}
-        Hant{"Àbáláyé"}
+        Hant{"Hans àtọwọ́dọ́wọ́"}
         Hebr{"Hébérù"}
         Hira{"Hiragánà"}
-        Hmnp{"Nyiakengi Puase Himongi"}
         Hrkt{"ìlànà àfọwọ́kọ ará Jàpánù"}
-        Java{"Èdè Jafaniisi"}
         Jpan{"èdè jàpáànù"}
-        Kali{"Èdè Kaya Li"}
         Kana{"Katakánà"}
         Khmr{"Kẹmẹ̀"}
         Knda{"Kanada"}
         Kore{"Kóríà"}
-        Lana{"Èdè Lana"}
         Laoo{"Láò"}
         Latn{"Èdè Látìn"}
-        Lepc{"Èdè Lepika"}
-        Limb{"Èdè Limbu"}
-        Lisu{"Furasa"}
-        Mand{"Èdè Mandaiani"}
         Mlym{"Málàyálámù"}
-        Mong{"Èdè Mòngólíà"}
+        Mong{"Mòngólíà"}
         Mtei{"Èdè Meitei Mayeki"}
         Mymr{"Myánmarà"}
-        Newa{"Èdè Newa"}
         Nkoo{"Èdè Nkoo"}
         Olck{"Èdè Ol Siki"}
         Orya{"Òdíà"}
-        Osge{"Èdè Osage"}
-        Plrd{"Fonẹtiiki Polaadi"}
         Rohg{"Èdè Hanifi"}
-        Saur{"Èdè Saurasitira"}
         Sinh{"Sìnhálà"}
         Sund{"Èdè Sundani"}
         Syrc{"Èdè Siriaki"}
@@ -533,7 +504,6 @@ yo{
         Tibt{"Tíbétán"}
         Vaii{"Èdè Fai"}
         Yiii{"Èdè Yi"}
-        Zinh{"Tí a jogún"}
         Zmth{"Àmì Ìṣèsìrò"}
         Zsye{"Émójì"}
         Zsym{"Àwọn àmì"}
@@ -543,7 +513,6 @@ yo{
     }
     Scripts%stand-alone{
         Hans{"Hans tí wọ́n mú rọrùn."}
-        Hant{"Hans àbáláyé"}
     }
     Types{
         calendar{
@@ -565,7 +534,7 @@ yo{
         }
         cf{
             account{"Ìgúnrégé Ìṣirò Owó Kọ́rẹ́ńsì"}
-            standard{"Ònà ìgbekalẹ̀ owó tó jẹ́ àjùmọ̀lò"}
+            standard{"Ìgúnrégé Gbèdéke Kọ́rẹ́ńsì"}
         }
         collation{
             ducet{"Ètò Ẹlẹ́sẹẹsẹ Àkùàyàn Unicode"}
@@ -633,11 +602,10 @@ yo{
     }
     characterLabelPattern{
         all{"{0} - gbogbo"}
+        category-list{"{0}: {1}"}
         compatibility{"{0}-ibaramu"}
         enclosed{"{0} ipade"}
         extended{"{0}-ifasiwaju"}
-        facing-left{"{0} ìdojúkọ òsì"}
-        facing-right{"{0} ìdojúkọ ọ̀tún"}
         historic{"{0}-àtijó̩"}
         miscellaneous{"{0} - míràn"}
         other{"{0} miran"}
@@ -652,5 +620,9 @@ yo{
         language{"Èdè: {0}"}
         script{"Ìṣọwọ́kọ̀wé: {0}"}
         territory{"Àgbègbè: {0}"}
+    }
+    localeDisplayPattern{
+        keyTypePattern{"{0}: {1}"}
+        separator{"{0}, {1}"}
     }
 }

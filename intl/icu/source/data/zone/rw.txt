@@ -3,8 +3,7 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 rw{
     zoneStrings{
-        "meta:GMT"{
-            ls{"Greenwich Mean Time"}
-        }
+        gmtFormat{"GMT{0}"}
+        hourFormat{"+HH:mm;-HH:mm"}
     }
 }

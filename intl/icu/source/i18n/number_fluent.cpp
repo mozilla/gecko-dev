@@ -430,14 +430,6 @@ UnlocalizedNumberFormatter::UnlocalizedNumberFormatter(const NFS<UNF>& other)
     // No additional fields to assign
 }
 
-UnlocalizedNumberFormatter::UnlocalizedNumberFormatter(const impl::MacroProps &macros) {
-    fMacros = macros;
-}
-
-UnlocalizedNumberFormatter::UnlocalizedNumberFormatter(impl::MacroProps &&macros) {
-    fMacros = macros;
-}
-
 // Make default copy constructor call the NumberFormatterSettings copy constructor.
 UnlocalizedNumberFormatter::UnlocalizedNumberFormatter(UNF&& src) noexcept
         : UNF(static_cast<NFS<UNF>&&>(src)) {}
@@ -573,7 +565,7 @@ LocalizedNumberFormatter UnlocalizedNumberFormatter::locale(const Locale& locale
 
 FormattedNumber LocalizedNumberFormatter::formatInt(int64_t value, UErrorCode& status) const {
     if (U_FAILURE(status)) { return FormattedNumber(U_ILLEGAL_ARGUMENT_ERROR); }
-    auto* results = new UFormattedNumberData();
+    auto results = new UFormattedNumberData();
     if (results == nullptr) {
         status = U_MEMORY_ALLOCATION_ERROR;
         return FormattedNumber(status);
@@ -592,7 +584,7 @@ FormattedNumber LocalizedNumberFormatter::formatInt(int64_t value, UErrorCode& s
 
 FormattedNumber LocalizedNumberFormatter::formatDouble(double value, UErrorCode& status) const {
     if (U_FAILURE(status)) { return FormattedNumber(U_ILLEGAL_ARGUMENT_ERROR); }
-    auto* results = new UFormattedNumberData();
+    auto results = new UFormattedNumberData();
     if (results == nullptr) {
         status = U_MEMORY_ALLOCATION_ERROR;
         return FormattedNumber(status);
@@ -611,7 +603,7 @@ FormattedNumber LocalizedNumberFormatter::formatDouble(double value, UErrorCode&
 
 FormattedNumber LocalizedNumberFormatter::formatDecimal(StringPiece value, UErrorCode& status) const {
     if (U_FAILURE(status)) { return FormattedNumber(U_ILLEGAL_ARGUMENT_ERROR); }
-    auto* results = new UFormattedNumberData();
+    auto results = new UFormattedNumberData();
     if (results == nullptr) {
         status = U_MEMORY_ALLOCATION_ERROR;
         return FormattedNumber(status);
@@ -631,7 +623,7 @@ FormattedNumber LocalizedNumberFormatter::formatDecimal(StringPiece value, UErro
 FormattedNumber
 LocalizedNumberFormatter::formatDecimalQuantity(const DecimalQuantity& dq, UErrorCode& status) const {
     if (U_FAILURE(status)) { return FormattedNumber(U_ILLEGAL_ARGUMENT_ERROR); }
-    auto* results = new UFormattedNumberData();
+    auto results = new UFormattedNumberData();
     if (results == nullptr) {
         status = U_MEMORY_ALLOCATION_ERROR;
         return FormattedNumber(status);
@@ -733,18 +725,6 @@ int32_t LocalizedNumberFormatter::getCallCount() const {
 }
 
 // Note: toFormat defined in number_asformat.cpp
-
-UnlocalizedNumberFormatter LocalizedNumberFormatter::withoutLocale() const & {
-    MacroProps macros(fMacros);
-    macros.locale = Locale();
-    return UnlocalizedNumberFormatter(macros);
-}
-
-UnlocalizedNumberFormatter LocalizedNumberFormatter::withoutLocale() && {
-    MacroProps macros(std::move(fMacros));
-    macros.locale = Locale();
-    return UnlocalizedNumberFormatter(std::move(macros));
-}
 
 const DecimalFormatSymbols* LocalizedNumberFormatter::getDecimalFormatSymbols() const {
     return fMacros.symbols.getDecimalFormatSymbols();

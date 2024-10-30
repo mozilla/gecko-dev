@@ -163,7 +163,7 @@ public:
      * @see getUnknown
      * @stable ICU 2.0
      */
-    static const TimeZone* U_EXPORT2 getGMT();
+    static const TimeZone* U_EXPORT2 getGMT(void);
 
     /**
      * Creates a <code>TimeZone</code> for the given ID.
@@ -364,7 +364,7 @@ public:
      * @see getUnknown
      * @stable ICU 2.0
      */
-    static TimeZone* U_EXPORT2 createDefault();
+    static TimeZone* U_EXPORT2 createDefault(void);
 
 #ifndef U_HIDE_INTERNAL_API
     /**
@@ -443,35 +443,6 @@ public:
      */
     static UnicodeString& U_EXPORT2 getCanonicalID(const UnicodeString& id,
         UnicodeString& canonicalID, UBool& isSystemID, UErrorCode& status);
-
-
-    /**
-     * Returns the preferred time zone ID in the IANA time zone database for the given time zone ID.
-     * There are two types of preferred IDs. The first type is the one defined in zone.tab file,
-     * such as "America/Los_Angeles". The second types is the one defined for zones not associated
-     * with a specific region, but not defined with "Link" syntax such as "Etc/GMT+10".
-     *
-     * <p>Note: For most of valid time zone IDs, this method returns an ID same as getCanonicalID().
-     * getCanonicalID() is based on canonical time zone IDs defined in Unicode CLDR.
-     * These canonical time zone IDs in CLDR were based on very old version of the time zone database.
-     * In the IANA time zone database, some IDs were updated since then. This API returns a newer
-     * time zone ID. For example, CLDR defines "Asia/Calcutta" as the canonical time zone ID. This
-     * method returns "Asia/Kolkata" instead.
-     * <p> "Etc/Unknown" is a special time zone ID defined by CLDR. There are no corresponding zones
-     * in the IANA time zone database. Therefore, this API returns U_ILLEGAL_ARGUMENT_ERROR when the
-     * input ID is "Etc/Unknown".
-     *
-     * @param id        The input time zone ID.
-     * @param ianaID    Receives the preferred time zone ID in the IANA time zone database. When
-     *                  the given time zone ID is not a known time zone ID, this method sets an
-     *                  invalid (bogus) string.
-     * @param status    Receives the status.  When the given time zone ID is not a known time zone
-     *                  ID, U_ILLEGAL_ARGUMENT_ERROR is set.
-     * @return  A reference to the result.
-     * @stable ICU 74
-     */
-    static UnicodeString& U_EXPORT2 getIanaID(const UnicodeString&id, UnicodeString& ianaID,
-        UErrorCode& status);
 
     /**
     * Converts a system time zone ID to an equivalent Windows time zone ID. For example,
@@ -642,7 +613,7 @@ public:
      * @return   The TimeZone's raw GMT offset.
      * @stable ICU 2.0
      */
-    virtual int32_t getRawOffset() const = 0;
+    virtual int32_t getRawOffset(void) const = 0;
 
     /**
      * Fills in "ID" with the TimeZone's ID.
@@ -811,7 +782,7 @@ public:
      * 
      * @stable ICU 2.0
      */
-    virtual UBool useDaylightTime() const = 0;
+    virtual UBool useDaylightTime(void) const = 0;
 
 #ifndef U_FORCE_HIDE_DEPRECATED_API
     /**
@@ -855,7 +826,7 @@ public:
      * @return The class ID for all objects of this class.
      * @stable ICU 2.0
      */
-    static UClassID U_EXPORT2 getStaticClassID();
+    static UClassID U_EXPORT2 getStaticClassID(void);
 
     /**
      * Returns a unique class ID POLYMORPHICALLY. This method is to
@@ -868,8 +839,8 @@ public:
      *           same class ID. Objects of other classes have different class IDs.
      * @stable ICU 2.0
      */
-    virtual UClassID getDynamicClassID() const override = 0;
-
+    virtual UClassID getDynamicClassID(void) const override = 0;
+    
     /**
      * Returns the amount of time to be added to local standard time
      * to get local wall clock time.

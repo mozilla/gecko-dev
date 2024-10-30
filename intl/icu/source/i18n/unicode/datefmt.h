@@ -532,7 +532,7 @@ public:
      * @return A date/time formatter which the caller owns.
      * @stable ICU 2.0
      */
-    static DateFormat* U_EXPORT2 createInstance();
+    static DateFormat* U_EXPORT2 createInstance(void);
 
     /**
      * Creates a time formatter with the given formatting style for the given
@@ -673,7 +673,7 @@ public:
      * numeric processing is lenient.
      * @stable ICU 2.0
      */
-    virtual UBool isLenient() const;
+    virtual UBool isLenient(void) const;
 
     /**
      * Specifies whether date/time parsing is to be lenient.  With
@@ -702,7 +702,8 @@ public:
      * Returns whether date/time parsing in the encapsulated Calendar object processing is lenient.
      * @stable ICU 53
      */
-    virtual UBool isCalendarLenient() const;
+    virtual UBool isCalendarLenient(void) const;
+
 
     /**
      * Specifies whether encapsulated Calendar date/time parsing is to be lenient.  With
@@ -724,7 +725,7 @@ public:
      * @return the calendar associated with this date/time formatter.
      * @stable ICU 2.0
      */
-    virtual const Calendar* getCalendar() const;
+    virtual const Calendar* getCalendar(void) const;
 
     /**
      * Set the calendar to be used by this date format. Initially, the default
@@ -753,7 +754,7 @@ public:
      * @return the number formatter which this date/time formatter uses.
      * @stable ICU 2.0
      */
-    virtual const NumberFormat* getNumberFormat() const;
+    virtual const NumberFormat* getNumberFormat(void) const;
 
     /**
      * Allows you to set the number formatter.  The caller should
@@ -775,7 +776,7 @@ public:
      * @return the time zone associated with the calendar of DateFormat.
      * @stable ICU 2.0
      */
-    virtual const TimeZone& getTimeZone() const;
+    virtual const TimeZone& getTimeZone(void) const;
 
     /**
      * Sets the time zone for the calendar of this DateFormat object. The caller

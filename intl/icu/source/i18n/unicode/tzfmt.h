@@ -431,7 +431,7 @@ public:
      * @see ParseOption
      * @stable ICU 50
      */
-    uint32_t getDefaultParseOptions() const;
+    uint32_t getDefaultParseOptions(void) const;
 
     /**
      * Sets the default parse options.
@@ -656,7 +656,7 @@ public:
      * ICU "poor man's RTTI", returns a UClassID for this class.
      * @stable ICU 50
      */
-    static UClassID U_EXPORT2 getStaticClassID();
+    static UClassID U_EXPORT2 getStaticClassID(void);
 
     /**
      * ICU "poor man's RTTI", returns a UClassID for the actual class.

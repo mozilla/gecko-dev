@@ -20,7 +20,8 @@
 #include "formatted_string_builder.h"
 
 U_NAMESPACE_BEGIN
-namespace number::impl {
+namespace number {
+namespace impl {
 
 // For convenience and historical reasons, import the Field typedef to the namespace.
 typedef FormattedStringBuilder::Field Field;
@@ -224,15 +225,10 @@ class U_I18N_API Modifier {
     virtual void getParameters(Parameters& output) const = 0;
 
     /**
-     * Returns whether this Modifier equals another Modifier.
-     */
-    virtual bool strictEquals(const Modifier& other) const = 0;
-
-    /**
      * Returns whether this Modifier is *semantically equivalent* to the other Modifier;
      * in many cases, this is the same as equal, but parameters should be ignored.
      */
-    bool semanticallyEquivalent(const Modifier& other) const;
+    virtual bool semanticallyEquivalent(const Modifier& other) const = 0;
 };
 
 
@@ -368,7 +364,9 @@ class U_I18N_API NullableValue {
     T fValue;
 };
 
-} // namespace number::impl
+
+} // namespace impl
+} // namespace number
 U_NAMESPACE_END
 
 #endif //__NUMBER_TYPES_H__

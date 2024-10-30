@@ -413,7 +413,7 @@ public:
      * @return   The current UTC time in milliseconds.
      * @stable ICU 2.0
      */
-    static UDate U_EXPORT2 getNow();
+    static UDate U_EXPORT2 getNow(void);
 
     /**
      * Gets this Calendar's time as milliseconds. May involve recalculation of time due
@@ -850,7 +850,7 @@ public:
      * @return   The time zone object associated with this calendar.
      * @stable ICU 2.0
      */
-    const TimeZone& getTimeZone() const;
+    const TimeZone& getTimeZone(void) const;
 
     /**
      * Returns the time zone owned by this calendar. The caller owns the returned object
@@ -860,7 +860,7 @@ public:
      * @return   The time zone object which was associated with this calendar.
      * @stable ICU 2.0
      */
-    TimeZone* orphanTimeZone();
+    TimeZone* orphanTimeZone(void);
 
     /**
      * Queries if the current date for this Calendar is in Daylight Savings Time.
@@ -892,7 +892,7 @@ public:
      * @return   True tells that date/time interpretation is to be lenient.
      * @stable ICU 2.0
      */
-    UBool isLenient() const;
+    UBool isLenient(void) const;
 
     /**
      * Sets the behavior for handling wall time repeating multiple times
@@ -925,7 +925,7 @@ public:
      * @see #setRepeatedWallTimeOption
      * @stable ICU 49
      */
-    UCalendarWallTimeOption getRepeatedWallTimeOption() const;
+    UCalendarWallTimeOption getRepeatedWallTimeOption(void) const;
 
     /**
      * Sets the behavior for handling skipped wall time at positive time zone offset
@@ -960,7 +960,7 @@ public:
      * @see #setSkippedWallTimeOption
      * @stable ICU 49
      */
-    UCalendarWallTimeOption getSkippedWallTimeOption() const;
+    UCalendarWallTimeOption getSkippedWallTimeOption(void) const;
 
     /**
      * Sets what the first day of the week is; e.g., Sunday in US, Monday in France.
@@ -977,7 +977,7 @@ public:
      * @return   The first day of the week.
      * @deprecated ICU 2.6 use the overload with error code
      */
-    EDaysOfWeek getFirstDayOfWeek() const;
+    EDaysOfWeek getFirstDayOfWeek(void) const;
 #endif  /* U_HIDE_DEPRECATED_API */
 
     /**
@@ -1009,7 +1009,7 @@ public:
      * @return   The minimal days required in the first week of the year.
      * @stable ICU 2.0
      */
-    uint8_t getMinimalDaysInFirstWeek() const;
+    uint8_t getMinimalDaysInFirstWeek(void) const;
 
 #ifndef U_FORCE_HIDE_DEPRECATED_API
     /**
@@ -1232,13 +1232,12 @@ public:
      * resolving of time into time fields.
      * @stable ICU 2.0
      */
-    void clear();
+    void clear(void);
 
     /**
      * Clears the value in the given time field, both making it unset and assigning it a
      * value of zero. This field value will be determined during the next resolving of
-     * time into time fields. Clearing UCAL_ORDINAL_MONTH or UCAL_MONTH will
-     * clear both fields.
+     * time into time fields.
      *
      * @param field  The time field to be cleared.
      * @stable ICU 2.6.
@@ -1260,7 +1259,7 @@ public:
      *           same class ID. Objects of other classes have different class IDs.
      * @stable ICU 2.0
      */
-    virtual UClassID getDynamicClassID() const override = 0;
+    virtual UClassID getDynamicClassID(void) const override = 0;
 
     /**
      * Returns the calendar type name string for this Calendar object.
@@ -1348,8 +1347,9 @@ public:
      * this calendar system, false otherwise.
      * @stable ICU 4.4
      */
-    virtual UBool isWeekend() const;
+    virtual UBool isWeekend(void) const;
 
+#ifndef U_FORCE_HIDE_DRAFT_API
     /**
      * Returns true if the date is in a leap year. Recalculate the current time
      * field values if the time value has been changed by a call to * setTime().
@@ -1362,7 +1362,7 @@ public:
      * @param status        ICU Error Code
      * @return       True if the date in the fields is in a Temporal proposal
      *               defined leap year. False otherwise.
-     * @stable ICU 73
+     * @draft ICU 73
      */
     virtual bool inTemporalLeapYear(UErrorCode& status) const;
 
@@ -1382,7 +1382,7 @@ public:
      *
      * @param status        ICU Error Code
      * @return       One of 25 possible strings in {"M01".."M13", "M01L".."M12L"}.
-     * @stable ICU 73
+     * @draft ICU 73
      */
     virtual const char* getTemporalMonthCode(UErrorCode& status) const;
 
@@ -1403,9 +1403,11 @@ public:
      * @param temporalMonth  The value to be set for temporal monthCode.
      * @param status        ICU Error Code
      *
-     * @stable ICU 73
+     * @draft ICU 73
      */
     virtual void setTemporalMonthCode(const char* temporalMonth, UErrorCode& status);
+
+#endif  // U_FORCE_HIDE_DRAFT_API
 
 protected:
 
@@ -1547,13 +1549,6 @@ protected:
      * @internal
      */
     inline int32_t internalGet(UCalendarDateFields field) const {return fFields[field];}
-
-    /**
-     * The year in this calendar is counting from 1 backward if the era is 0.
-     * @return The year in era 0 of this calendar is counting backward from 1.
-     * @internal
-     */
-    virtual bool isEra0CountingBackward() const { return false; }
 #endif  /* U_HIDE_INTERNAL_API */
 
     /**
@@ -1565,7 +1560,7 @@ protected:
      * @return       The value for the UCAL_MONTH.
      * @internal
      */
-    virtual int32_t internalGetMonth(UErrorCode& status) const;
+    virtual int32_t internalGetMonth() const;
 
     /**
      * Use this function instead of internalGet(UCAL_MONTH, defaultValue). The implementation
@@ -1575,12 +1570,10 @@ protected:
      *
      * @param defaultValue a default value used if the UCAL_MONTH and
      *   UCAL_ORDINAL are both unset.
-     * @param status Output param set to failure code on function return
-     *          when this function fails.
      * @return       The value for the UCAL_MONTH.
      * @internal
      */
-    virtual int32_t internalGetMonth(int32_t defaultValue, UErrorCode& status) const;
+    virtual int32_t internalGetMonth(int32_t defaultValue) const;
 
 #ifndef U_HIDE_DEPRECATED_API
     /**
@@ -1669,14 +1662,12 @@ protected:
      * @param useMonth if false, compute the day before the first day of
      * the given year, otherwise, compute the day before the first day of
      * the given month
-     * @param status Output param set to failure code on function return
-     *          when this function fails.
      * @return the Julian day number of the day before the first
      * day of the given month and year
      * @internal
      */
-    virtual int64_t handleComputeMonthStart(int32_t eyear, int32_t month,
-                                            UBool useMonth, UErrorCode& status) const  = 0;
+    virtual int32_t handleComputeMonthStart(int32_t eyear, int32_t month,
+                                                   UBool useMonth) const  = 0;
 
     /**
      * Return the number of days in the given month of the given extended
@@ -1685,7 +1676,7 @@ protected:
      * implementation than the default implementation in Calendar.
      * @internal
      */
-    virtual int32_t handleGetMonthLength(int32_t extendedYear, int32_t month, UErrorCode& status) const ;
+    virtual int32_t handleGetMonthLength(int32_t extendedYear, int32_t month) const ;
 
     /**
      * Return the number of days in the given extended year of this
@@ -1702,22 +1693,20 @@ protected:
      * use the UCAL_EXTENDED_YEAR field or the UCAL_YEAR and supra-year fields (such
      * as UCAL_ERA) specific to the calendar system, depending on which set of
      * fields is newer.
-     * @param status        ICU Error Code
      * @return the extended year
      * @internal
      */
-    virtual int32_t handleGetExtendedYear(UErrorCode& status) = 0;
+    virtual int32_t handleGetExtendedYear() = 0;
 
     /**
      * Subclasses may override this.  This method calls
      * handleGetMonthLength() to obtain the calendar-specific month
      * length.
      * @param bestField which field to use to calculate the date
-     * @param status        ICU Error Code
      * @return julian day specified by calendar fields.
      * @internal
      */
-    virtual int32_t handleComputeJulianDay(UCalendarDateFields bestField, UErrorCode &status);
+    virtual int32_t handleComputeJulianDay(UCalendarDateFields bestField);
 
     /**
      * Subclasses must override this to convert from week fields
@@ -1727,7 +1716,7 @@ protected:
      * @return the extended year, UCAL_EXTENDED_YEAR
      * @internal
      */
-    virtual int32_t handleGetExtendedYearFromWeekFields(int32_t yearWoy, int32_t woy, UErrorCode& status);
+    virtual int32_t handleGetExtendedYearFromWeekFields(int32_t yearWoy, int32_t woy);
 
     /**
      * Validate a single field of this calendar.  Subclasses should
@@ -1741,11 +1730,10 @@ protected:
     /**
      * Compute the Julian day from fields.  Will determine whether to use
      * the JULIAN_DAY field directly, or other fields.
-     * @param status        ICU Error Code
      * @return the julian day
      * @internal
      */
-    int32_t computeJulianDay(UErrorCode &status);
+    int32_t computeJulianDay();
 
     /**
      * Compute the milliseconds in the day from the fields.  This is a
@@ -1923,7 +1911,7 @@ protected:
      * @return     the current time without recomputing.
      * @stable ICU 2.0
      */
-    UDate internalGetTime() const { return fTime; }
+    UDate        internalGetTime(void) const     { return fTime; }
 
     /**
      * Set the current time without affecting flags or fields.
@@ -2033,11 +2021,9 @@ protected:
      * Called by computeJulianDay.  Returns the default month (0-based) for the year,
      * taking year and era into account.  Defaults to 0 for Gregorian, which doesn't care.
      * @param eyear The extended year
-     * @param status Output param set to failure code on function return
-     *          when this function fails.
      * @internal
      */
-    virtual int32_t getDefaultMonthInYear(int32_t eyear, UErrorCode& status);
+    virtual int32_t getDefaultMonthInYear(int32_t eyear) ;
 
 
     /**
@@ -2045,11 +2031,9 @@ protected:
      * taking currently-set year and era into account.  Defaults to 1 for Gregorian.
      * @param eyear the extended year
      * @param month the month in the year
-     * @param status Output param set to failure code on function return
-     *          when this function fails.
      * @internal
      */
-    virtual int32_t getDefaultDayInMonth(int32_t eyear, int32_t month, UErrorCode& status);
+    virtual int32_t getDefaultDayInMonth(int32_t eyear, int32_t month);
 
     //-------------------------------------------------------------------------
     // Protected utility methods for use by subclasses.  These are very handy
@@ -2170,7 +2154,7 @@ protected:
      * returns the local DOW, valid range 0..6
      * @internal
      */
-    int32_t getLocalDOW(UErrorCode& status);
+    int32_t getLocalDOW();
 #endif  /* U_HIDE_INTERNAL_API */
 
 private:
@@ -2355,7 +2339,7 @@ private:
      * @return   Day number from 1..7 (SUN..SAT).
      * @internal
      */
-    static uint8_t julianDayToDayOfWeek(int32_t julian);
+    static uint8_t julianDayToDayOfWeek(double julian);
 #endif  /* U_HIDE_INTERNAL_API */
 
  private:
@@ -2375,7 +2359,7 @@ private:
      * @return a StringEnumeration over the locales available at the time of the call
      * @internal
      */
-    static StringEnumeration* getAvailableLocales();
+    static StringEnumeration* getAvailableLocales(void);
 
     /**
      * Register a new Calendar factory.  The factory will be adopted.
@@ -2539,14 +2523,14 @@ Calendar::createInstance(TimeZone* zone, UErrorCode& errorCode)
 inline void
 Calendar::roll(UCalendarDateFields field, UBool up, UErrorCode& status)
 {
-    roll(field, static_cast<int32_t>(up ? +1 : -1), status);
+    roll(field, (int32_t)(up ? +1 : -1), status);
 }
 
 #ifndef U_HIDE_DEPRECATED_API
 inline void
 Calendar::roll(EDateFields field, UBool up, UErrorCode& status)
 {
-    roll(static_cast<UCalendarDateFields>(field), up, status);
+    roll((UCalendarDateFields) field, up, status);
 }
 #endif  /* U_HIDE_DEPRECATED_API */
 
@@ -2566,16 +2550,6 @@ Calendar::internalSet(UCalendarDateFields field, int32_t value)
     fIsSet[field]     = true; // Remove later
 }
 
-/**
- * Macro for the class to declare it override
- * haveDefaultCentury, defaultCenturyStart, and
- * defaultCenturyStartYear functions in this class.
- * @internal
- */
-#define DECLARE_OVERRIDE_SYSTEM_DEFAULT_CENTURY \
-    virtual UBool haveDefaultCentury() const override; \
-    virtual UDate defaultCenturyStart() const override; \
-    virtual int32_t defaultCenturyStartYear() const override;
 
 #ifndef U_HIDE_INTERNAL_API
 inline int32_t  Calendar::weekNumber(int32_t dayOfPeriod, int32_t dayOfWeek)

@@ -16,7 +16,7 @@ ig{
         018{"Mpaghara Mgbada Ugwu Afrịka"}
         019{"Amerịka"}
         021{"Mpaghara Ugwu America"}
-        029{"Caribbean"}
+        029{"Onye Carrabean"}
         030{"Mpaghara Ọwụwa Anyanwụ Asia"}
         034{"Mpaghara Mgbada Ugwu Asia"}
         035{"Mpaghara Mgbada Ugwu Asia dị na Ọwụwa Anyanwụ"}
@@ -49,7 +49,7 @@ ig{
         AT{"Austria"}
         AU{"Australia"}
         AW{"Aruba"}
-        AX{"Åland Islands"}
+        AX{"Agwaetiti Aland"}
         AZ{"Azerbaijan"}
         BA{"Bosnia & Herzegovina"}
         BB{"Barbados"}
@@ -59,8 +59,8 @@ ig{
         BG{"Bulgaria"}
         BH{"Bahrain"}
         BI{"Burundi"}
-        BJ{"Benin"}
-        BL{"St. Barthélemy"}
+        BJ{"Binin"}
+        BL{"Barthélemy Dị nsọ"}
         BM{"Bemuda"}
         BN{"Brunei"}
         BO{"Bolivia"}
@@ -68,11 +68,11 @@ ig{
         BR{"Brazil"}
         BS{"Bahamas"}
         BT{"Bhutan"}
-        BV{"Bouvet Island"}
+        BV{"Agwaetiti Bouvet"}
         BW{"Botswana"}
         BY{"Belarus"}
         BZ{"Belize"}
-        CA{"Canada"}
+        CA{"Kanada"}
         CC{"Agwaetiti Cocos (Keeling)"}
         CD{"Congo - Kinshasa"}
         CF{"Central African Republik"}
@@ -85,7 +85,6 @@ ig{
         CN{"China"}
         CO{"Colombia"}
         CP{"Agwaetiti Clipperton"}
-        CQ{"Sark"}
         CR{"Kosta Rika"}
         CU{"Cuba"}
         CV{"Cape Verde"}
@@ -93,11 +92,11 @@ ig{
         CX{"Agwaetiti Christmas"}
         CY{"Cyprus"}
         CZ{"Czechia"}
-        DE{"Germany"}
+        DE{"Jamanị"}
         DG{"Diego Garcia"}
         DJ{"Djibouti"}
         DK{"Denmark"}
-        DM{"Dominica"}
+        DM{"Dominika"}
         DO{"Dominican Republik"}
         DZ{"Algeria"}
         EA{"Ceuta & Melilla"}
@@ -112,15 +111,15 @@ ig{
         EZ{"Gburugburu Euro"}
         FI{"Finland"}
         FJ{"Fiji"}
-        FK{"Falkland Islands"}
+        FK{"Agwaetiti Falkland"}
         FM{"Micronesia"}
-        FO{"Faroe Islands"}
+        FO{"Agwaetiti Faroe"}
         FR{"France"}
         GA{"Gabon"}
         GB{"United Kingdom"}
         GD{"Grenada"}
         GE{"Georgia"}
-        GF{"French Guiana"}
+        GF{"Frenchi Guiana"}
         GG{"Guernsey"}
         GH{"Ghana"}
         GI{"Gibraltar"}
@@ -130,7 +129,7 @@ ig{
         GP{"Guadeloupe"}
         GQ{"Equatorial Guinea"}
         GR{"Greece"}
-        GS{"South Georgia & South Sandwich Islands"}
+        GS{"South Georgia na Agwaetiti South Sandwich"}
         GT{"Guatemala"}
         GU{"Guam"}
         GW{"Guinea-Bissau"}
@@ -139,9 +138,9 @@ ig{
         HM{"Agwaetiti Heard na Agwaetiti McDonald"}
         HN{"Honduras"}
         HR{"Croatia"}
-        HT{"Haiti"}
+        HT{"Hati"}
         HU{"Hungary"}
-        IC{"Canary Islands"}
+        IC{"Agwaetiti Kanarị"}
         ID{"Indonesia"}
         IE{"Ireland"}
         IL{"Israel"}
@@ -160,16 +159,16 @@ ig{
         KG{"Kyrgyzstan"}
         KH{"Cambodia"}
         KI{"Kiribati"}
-        KM{"Comoros"}
-        KN{"St. Kitts & Nevis"}
-        KP{"North Korea"}
+        KM{"Comorosu"}
+        KN{"Kitts na Nevis Dị nsọ"}
+        KP{"Ugwu Korea"}
         KR{"South Korea"}
         KW{"Kuwait"}
-        KY{"Cayman Islands"}
+        KY{"Agwaetiti Cayman"}
         KZ{"Kazakhstan"}
         LA{"Laos"}
         LB{"Lebanon"}
-        LC{"St. Lucia"}
+        LC{"Lucia Dị nsọ"}
         LI{"Liechtenstein"}
         LK{"Sri Lanka"}
         LR{"Liberia"}
@@ -182,8 +181,8 @@ ig{
         MC{"Monaco"}
         MD{"Moldova"}
         ME{"Montenegro"}
-        MF{"St. Martin"}
-        MG{"Madagascar"}
+        MF{"Martin Dị nsọ"}
+        MG{"Madagaskar"}
         MH{"Agwaetiti Marshall"}
         MK{"North Macedonia"}
         ML{"Mali"}
@@ -200,7 +199,7 @@ ig{
         MW{"Malawi"}
         MX{"Mexico"}
         MY{"Malaysia"}
-        MZ{"Mozambique"}
+        MZ{"Mozambik"}
         NA{"Namibia"}
         NC{"New Caledonia"}
         NE{"Niger"}
@@ -216,15 +215,15 @@ ig{
         OM{"Oman"}
         PA{"Panama"}
         PE{"Peru"}
-        PF{"French Polynesia"}
+        PF{"Frenchi Polynesia"}
         PG{"Papua New Guinea"}
         PH{"Philippines"}
         PK{"Pakistan"}
         PL{"Poland"}
-        PM{"St. Pierre & Miquelon"}
+        PM{"Pierre na Miquelon Dị nsọ"}
         PN{"Agwaetiti Pitcairn"}
         PR{"Puerto Rico"}
-        PS{"Mpaghara ndị Palestine"}
+        PS{"Palestinian Territories"}
         PT{"Portugal"}
         PW{"Palau"}
         PY{"Paraguay"}
@@ -233,7 +232,7 @@ ig{
         RE{"Réunion"}
         RO{"Romania"}
         RS{"Serbia"}
-        RU{"Russia"}
+        RU{"Rụssịa"}
         RW{"Rwanda"}
         SA{"Saudi Arabia"}
         SB{"Agwaetiti Solomon"}
@@ -257,7 +256,7 @@ ig{
         SY{"Syria"}
         SZ{"Eswatini"}
         TA{"Tristan da Cunha"}
-        TC{"Turks & Caicos Islands"}
+        TC{"Agwaetiti Turks na Caicos"}
         TD{"Chad"}
         TF{"Ụmụ ngalaba Frenchi Southern"}
         TG{"Togo"}
@@ -268,7 +267,7 @@ ig{
         TM{"Turkmenistan"}
         TN{"Tunisia"}
         TO{"Tonga"}
-        TR{"Türkiye"}
+        TR{"Turkey"}
         TT{"Trinidad na Tobago"}
         TV{"Tuvalu"}
         TW{"Taiwan"}
@@ -281,10 +280,10 @@ ig{
         UY{"Uruguay"}
         UZ{"Uzbekistan"}
         VA{"Vatican City"}
-        VC{"St. Vincent & Grenadines"}
+        VC{"Vincent na Grenadines Dị nsọ"}
         VE{"Venezuela"}
-        VG{"British Virgin Islands"}
-        VI{"U.S. Virgin Islands"}
+        VG{"Agwaetiti British Virgin"}
+        VI{"Agwaetiti Virgin nke US"}
         VN{"Vietnam"}
         VU{"Vanuatu"}
         WF{"Wallis & Futuna"}
@@ -297,24 +296,17 @@ ig{
         ZA{"South Africa"}
         ZM{"Zambia"}
         ZW{"Zimbabwe"}
-        ZZ{"Mpaghara A na-amaghị"}
-    }
-    Countries%chagos{
-        IO{"Chagos Archipelago"}
+        ZZ{"Mpaghara Amaghị"}
     }
     Countries%short{
         GB{"UK"}
-        HK{"Hong Kong"}
         MO{"Macao"}
-        PS{"Palestine"}
     }
     Countries%variant{
         CD{"Congo (DRC)"}
         CG{"Congo (Republik)"}
         CI{"Ivory Coast"}
         CZ{"Czech Republik"}
-        FK{"Falkland Islands (Islas Malvinas)"}
-        NZ{"Aotearoa New Zealand"}
         SZ{"Swaziland"}
         TL{"East Timor"}
     }

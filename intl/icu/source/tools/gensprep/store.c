@@ -199,7 +199,7 @@ static UNewTrie *sprepTrie;
 
 
 extern void
-init(void) {
+init() {
 
     sprepTrie = (UNewTrie *)uprv_calloc(1, sizeof(UNewTrie));
 
@@ -233,7 +233,7 @@ static int32_t U_CALLCONV hashEntry(const UHashTok parm) {
 
 /* Callback for comparing two entries */
 static UBool U_CALLCONV compareEntries(const UHashTok p1, const UHashTok p2) {
-    return p1.integer != p2.integer;
+    return (UBool)(p1.integer != p2.integer);
 }
 
 

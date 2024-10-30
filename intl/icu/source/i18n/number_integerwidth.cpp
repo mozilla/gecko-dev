@@ -46,14 +46,14 @@ void IntegerWidth::apply(impl::DecimalQuantity& quantity, UErrorCode& status) co
     if (fHasError) {
         status = U_ILLEGAL_ARGUMENT_ERROR;
     } else if (fUnion.minMaxInt.fMaxInt == -1) {
-        quantity.increaseMinIntegerTo(fUnion.minMaxInt.fMinInt);
+        quantity.setMinInteger(fUnion.minMaxInt.fMinInt);
     } else {
         // Enforce the backwards-compatibility feature "FormatFailIfMoreThanMaxDigits"
         if (fUnion.minMaxInt.fFormatFailIfMoreThanMaxDigits &&
             fUnion.minMaxInt.fMaxInt < quantity.getMagnitude()) {
             status = U_ILLEGAL_ARGUMENT_ERROR;
         }
-        quantity.increaseMinIntegerTo(fUnion.minMaxInt.fMinInt);
+        quantity.setMinInteger(fUnion.minMaxInt.fMinInt);
         quantity.applyMaxInteger(fUnion.minMaxInt.fMaxInt);
     }
 }

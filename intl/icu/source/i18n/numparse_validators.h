@@ -10,8 +10,9 @@
 #include "numparse_types.h"
 #include "static_unicode_sets.h"
 
-U_NAMESPACE_BEGIN
-namespace numparse::impl {
+U_NAMESPACE_BEGIN namespace numparse {
+namespace impl {
+
 
 class ValidationMatcher : public NumberParseMatcher {
   public:
@@ -85,7 +86,9 @@ class MultiplierParseHandler : public ValidationMatcher, public UMemory {
     ::icu::number::Scale fMultiplier;
 };
 
-} // namespace numparse::impl
+
+} // namespace impl
+} // namespace numparse
 U_NAMESPACE_END
 
 #endif //__SOURCE_NUMPARSE_VALIDATORS_H__

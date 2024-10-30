@@ -258,7 +258,7 @@ void NumberingSystem::setDesc(const UnicodeString &d) {
 }
 void NumberingSystem::setName(const char *n) {
     if ( n == nullptr ) {
-        name[0] = static_cast<char>(0);
+        name[0] = (char) 0;
     } else {
         uprv_strncpy(name,n,kInternalNumSysNameCapacity);
         name[kInternalNumSysNameCapacity] = '\0'; // Make sure it is null terminated.
@@ -320,6 +320,7 @@ U_CFUNC void initNumsysNames(UErrorCode &status) {
     if (U_SUCCESS(status)) {
         gNumsysNames = numsysNames.orphan();
     }
+    return;
 }
 
 }   // end anonymous namespace
@@ -337,7 +338,7 @@ NumsysNameEnumeration::NumsysNameEnumeration(UErrorCode& status) : pos(0) {
 const UnicodeString*
 NumsysNameEnumeration::snext(UErrorCode& status) {
     if (U_SUCCESS(status) && (gNumsysNames != nullptr) && (pos < gNumsysNames->size())) {
-        return static_cast<const UnicodeString*>(gNumsysNames->elementAt(pos++));
+        return (const UnicodeString*)gNumsysNames->elementAt(pos++);
     }
     return nullptr;
 }

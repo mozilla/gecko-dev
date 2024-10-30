@@ -10,8 +10,10 @@
 #include "numparse_types.h"
 #include "unicode/uniset.h"
 
-U_NAMESPACE_BEGIN
-namespace numparse::impl::utils {
+U_NAMESPACE_BEGIN namespace numparse {
+namespace impl {
+namespace utils {
+
 
 inline static void putLeadCodePoints(const UnicodeSet* input, UnicodeSet* output) {
     for (int32_t i = 0; i < input->getRangeCount(); i++) {
@@ -31,7 +33,10 @@ inline static void copyCurrencyCode(char16_t* dest, const char16_t* src) {
     dest[3] = 0;
 }
 
-} // namespace numparse::impl::utils
+
+} // namespace utils
+} // namespace impl
+} // namespace numparse
 U_NAMESPACE_END
 
 #endif //__NUMPARSE_UTILS_H__

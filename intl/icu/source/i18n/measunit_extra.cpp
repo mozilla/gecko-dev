@@ -102,8 +102,6 @@ const struct UnitPrefixStrings {
     UMeasurePrefix value;
 } gUnitPrefixStrings[] = {
     // SI prefixes
-    { "quetta", UMEASURE_PREFIX_QUETTA },
-    { "ronna", UMEASURE_PREFIX_RONNA },
     { "yotta", UMEASURE_PREFIX_YOTTA },
     { "zetta", UMEASURE_PREFIX_ZETTA },
     { "exa", UMEASURE_PREFIX_EXA },
@@ -124,8 +122,6 @@ const struct UnitPrefixStrings {
     { "atto", UMEASURE_PREFIX_ATTO },
     { "zepto", UMEASURE_PREFIX_ZEPTO },
     { "yocto", UMEASURE_PREFIX_YOCTO },
-    { "ronto", UMEASURE_PREFIX_RONTO },
-    { "quecto", UMEASURE_PREFIX_QUECTO },
     // Binary prefixes
     { "yobi", UMEASURE_PREFIX_YOBI },
     { "zebi", UMEASURE_PREFIX_ZEBI },
@@ -546,13 +542,13 @@ public:
      */
     static Parser from(StringPiece source, UErrorCode& status) {
         if (U_FAILURE(status)) {
-            return {};
+            return Parser();
         }
         umtx_initOnce(gUnitExtrasInitOnce, &initUnitExtras, status);
         if (U_FAILURE(status)) {
-            return {};
+            return Parser();
         }
-        return {source};
+        return Parser(source);
     }
 
     MeasureUnitImpl parse(UErrorCode& status) {
@@ -663,7 +659,7 @@ private:
         } else {
             fIndex = previ;
         }
-        return {match};
+        return Token(match);
     }
 
     /**
@@ -801,8 +797,8 @@ private:
 // Sorting function wrapping SingleUnitImpl::compareTo for use with uprv_sortArray.
 int32_t U_CALLCONV
 compareSingleUnits(const void* /*context*/, const void* left, const void* right) {
-    const auto* realLeft = static_cast<const SingleUnitImpl* const*>(left);
-    const auto* realRight = static_cast<const SingleUnitImpl* const*>(right);
+    auto realLeft = static_cast<const SingleUnitImpl* const*>(left);
+    auto realRight = static_cast<const SingleUnitImpl* const*>(right);
     return (*realLeft)->compareTo(**realRight);
 }
 

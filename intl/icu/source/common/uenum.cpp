@@ -34,14 +34,14 @@ static const int32_t PAD = 8;
 static void* _getBuffer(UEnumeration* en, int32_t capacity) {
 
     if (en->baseContext != nullptr) {
-        if (static_cast<_UEnumBuffer*>(en->baseContext)->len < capacity) {
+        if (((_UEnumBuffer*) en->baseContext)->len < capacity) {
             capacity += PAD;
             en->baseContext = uprv_realloc(en->baseContext,
                                            sizeof(int32_t) + capacity);
             if (en->baseContext == nullptr) {
                 return nullptr;
             }
-            static_cast<_UEnumBuffer*>(en->baseContext)->len = capacity;
+            ((_UEnumBuffer*) en->baseContext)->len = capacity;
         }
     } else {
         capacity += PAD;
@@ -49,10 +49,10 @@ static void* _getBuffer(UEnumeration* en, int32_t capacity) {
         if (en->baseContext == nullptr) {
             return nullptr;
         }
-        static_cast<_UEnumBuffer*>(en->baseContext)->len = capacity;
+        ((_UEnumBuffer*) en->baseContext)->len = capacity;
     }
     
-    return static_cast<void*>(&static_cast<_UEnumBuffer*>(en->baseContext)->data);
+    return (void*) & ((_UEnumBuffer*) en->baseContext)->data;
 }
 
 U_CAPI void U_EXPORT2

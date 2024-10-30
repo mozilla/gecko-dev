@@ -34,6 +34,7 @@
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
       <CompileAs>Default</CompileAs>
+      <DisableLanguageExtensions>true</DisableLanguageExtensions>
       <AdditionalIncludeDirectories>..\..\common;..\toolutil;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderOutputFile>$(OutDir)\icupkg.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>$(OutDir)/</AssemblerListingLocation>

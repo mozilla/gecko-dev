@@ -264,7 +264,7 @@ public:
     * If a collator is created in the constructor, it will be destroyed here.
     * @stable ICU 2.0
     */
-    virtual ~StringSearch();
+    virtual ~StringSearch(void);
 
     /**
      * Clone this object.
@@ -324,7 +324,7 @@ public:
      * @return current index in the text being searched.
      * @stable ICU 2.0
      */
-    virtual int32_t getOffset() const override;
+    virtual int32_t getOffset(void) const override;
 
     /**
      * Set the target text to be searched.

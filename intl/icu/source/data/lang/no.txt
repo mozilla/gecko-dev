@@ -75,7 +75,7 @@ no{
         bax{"bamun"}
         bbc{"batak toba"}
         bbj{"ghomala"}
-        be{"belarusisk"}
+        be{"hviterussisk"}
         bej{"beja"}
         bem{"bemba"}
         bew{"betawi"}
@@ -83,7 +83,6 @@ no{
         bfd{"bafut"}
         bfq{"badaga"}
         bg{"bulgarsk"}
-        bgc{"haryanvi"}
         bgn{"vestbalutsji"}
         bho{"bhojpuri"}
         bi{"bislama"}
@@ -92,7 +91,6 @@ no{
         bjn{"banjar"}
         bkm{"kom"}
         bla{"siksika"}
-        blo{"anii"}
         bm{"bambara"}
         bn{"bengali"}
         bo{"tibetansk"}
@@ -220,6 +218,7 @@ no{
         gmh{"mellomhøytysk"}
         gn{"guarani"}
         goh{"gammelhøytysk"}
+        gom{"goansk konkani"}
         gon{"gondi"}
         gor{"gorontalo"}
         got{"gotisk"}
@@ -329,7 +328,6 @@ no{
         kv{"komi"}
         kw{"kornisk"}
         kwk{"kwak̓wala"}
-        kxv{"kuvi"}
         ky{"kirgisisk"}
         la{"latin"}
         lad{"ladinsk"}
@@ -359,6 +357,7 @@ no{
         lua{"luba-lulua"}
         lui{"luiseno"}
         lun{"lunda"}
+        luo{"luo"}
         lus{"mizo"}
         luy{"luhya"}
         lv{"latvisk"}
@@ -616,13 +615,13 @@ no{
         und{"ukjent språk"}
         ur{"urdu"}
         uz{"usbekisk"}
+        vai{"vai"}
         ve{"venda"}
         vec{"venetiansk"}
         vep{"vepsisk"}
         vi{"vietnamesisk"}
         vls{"vestflamsk"}
         vmf{"Main-frankisk"}
-        vmw{"makhuwa"}
         vo{"volapyk"}
         vot{"votisk"}
         vro{"sørestisk"}
@@ -638,7 +637,6 @@ no{
         xal{"kalmukkisk"}
         xh{"xhosa"}
         xmf{"mingrelsk"}
-        xnr{"kangri"}
         xog{"soga"}
         yao{"yao"}
         yap{"yapesisk"}
@@ -676,7 +674,6 @@ no{
         az{"azeri"}
     }
     Languages%variant{
-        ckb{"kurdisk (sorani)"}
         hi_Latn{"hinglish"}
         ps{"pushto"}
     }
@@ -874,11 +871,11 @@ no{
             gregorian{"gregoriansk kalender"}
             hebrew{"hebraisk kalender"}
             indian{"indisk nasjonalkalender"}
-            islamic{"hijrikalender"}
-            islamic-civil{"hijrikalender (tabell, sivil)"}
+            islamic{"islamsk kalender"}
+            islamic-civil{"islamsk kalender (tabell, sivil)"}
             islamic-rgsa{"islamsk kalender (Saudi-Arabia, observasjon)"}
             islamic-tbla{"islamsk kalender (tabell, astronomisk)"}
-            islamic-umalqura{"hijrikalender (Umm al-Qura)"}
+            islamic-umalqura{"islamsk kalender (Umm al-Qura)"}
             iso8601{"ISO 8601-kalender"}
             japanese{"japansk kalender"}
             persian{"persisk kalender"}
@@ -931,6 +928,7 @@ no{
             phonebook{"telefonkatalogsortering"}
             phonetic{"fonetisk sortering"}
             pinyin{"pinyinsortering"}
+            reformed{"reformert sortering"}
             search{"generelt søk"}
             searchjl{"Søk etter første konsonant i hangul"}
             standard{"standard sorteringsrekkefølge"}
@@ -974,7 +972,6 @@ no{
             brah{"brahmiske tall"}
             cakm{"chakma-sifre"}
             cham{"cham-tall"}
-            cyrl{"kyrilliske tall"}
             deva{"devanagari-sifre"}
             ethi{"etiopiske tall"}
             finance{"Finansielle tall"}
@@ -994,7 +991,6 @@ no{
             jpan{"japanske tall"}
             jpanfin{"japanske finanstall"}
             kali{"kayah li-tall"}
-            kawi{"kawi-sifre"}
             khmr{"khmer-sifre"}
             knda{"kannada-sifre"}
             lana{"thai tham hora-tall"}
@@ -1026,8 +1022,6 @@ no{
             telu{"telugu-sifre"}
             thai{"thailandske sifre"}
             tibt{"tibetanske sifre"}
-            tirh{"tirhuta-sifre"}
-            tnsa{"tangsa-sifre"}
             traditional{"Tradisjonelle tall"}
             vaii{"vai-sifre"}
         }
@@ -1059,7 +1053,6 @@ no{
         FONXSAMP{"fonxsamp"}
         HEPBURN{"Hepburn-romanisering"}
         HOGNORSK{"høgnorsk"}
-        HSISTEMO{"h-systemet"}
         IJEKAVSK{"serbisk med ijekavisk uttale"}
         ITIHASA{"itihasa"}
         JAUER{"jauer"}
@@ -1100,15 +1093,13 @@ no{
         VALENCIA{"valensiansk"}
         VALLADER{"vallader"}
         WADEGILE{"Wade-Giles-romanisering"}
-        XSISTEMO{"x-systemet"}
     }
     characterLabelPattern{
         all{"{0} – alt"}
+        category-list{"{0}: {1}"}
         compatibility{"{0} – kompatibilitet"}
         enclosed{"{0} – omsluttet"}
         extended{"{0} – utvidet"}
-        facing-left{"{0} vendt mot venstre"}
-        facing-right{"{0} vendt mot høyre"}
         historic{"{0} – historisk"}
         miscellaneous{"{0} – diverse"}
         other{"{0} – annet"}
@@ -1124,5 +1115,10 @@ no{
         language{"Språk: {0}"}
         script{"Skrift: {0}"}
         territory{"Område: {0}"}
+    }
+    localeDisplayPattern{
+        keyTypePattern{"{0}: {1}"}
+        pattern{"{0} ({1})"}
+        separator{"{0}, {1}"}
     }
 }

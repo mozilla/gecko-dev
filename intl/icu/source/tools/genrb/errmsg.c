@@ -42,19 +42,19 @@ U_CFUNC void setShowWarning(UBool val)
     gShowWarning = val;
 }
 
-U_CFUNC UBool getShowWarning(void){
+U_CFUNC UBool getShowWarning(){
     return gShowWarning;
 }
 
 static UBool gStrict =false;
-U_CFUNC UBool isStrict(void){
+U_CFUNC UBool isStrict(){
     return gStrict;
 }
 U_CFUNC void setStrict(UBool val){
     gStrict = val;
 }
 static UBool gVerbose =false;
-U_CFUNC UBool isVerbose(void){
+U_CFUNC UBool isVerbose(){
     return gVerbose;
 }
 U_CFUNC void setVerbose(UBool val){

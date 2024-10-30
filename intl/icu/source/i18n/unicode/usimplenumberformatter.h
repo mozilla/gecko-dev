@@ -50,28 +50,31 @@
  * </pre>
  */
 
+#ifndef U_HIDE_DRAFT_API
+
+
 /**
  * An explicit sign option for a SimpleNumber.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 typedef enum USimpleNumberSign {
     /**
      * Render a plus sign.
      *
-     * @stable ICU 73
+     * @draft ICU 73
      */
     UNUM_SIMPLE_NUMBER_PLUS_SIGN,
     /**
      * Render no sign.
      *
-     * @stable ICU 73
+     * @draft ICU 73
      */
     UNUM_SIMPLE_NUMBER_NO_SIGN,
     /**
      * Render a minus sign.
      *
-     * @stable ICU 73
+     * @draft ICU 73
      */
     UNUM_SIMPLE_NUMBER_MINUS_SIGN,
 } USimpleNumberSign;
@@ -81,7 +84,7 @@ struct USimpleNumber;
 /**
  * C-compatible version of icu::number::SimpleNumber.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 typedef struct USimpleNumber USimpleNumber;
 
@@ -90,7 +93,7 @@ struct USimpleNumberFormatter;
 /**
  * C-compatible version of icu::number::SimpleNumberFormatter.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 typedef struct USimpleNumberFormatter USimpleNumberFormatter;
 
@@ -98,7 +101,7 @@ typedef struct USimpleNumberFormatter USimpleNumberFormatter;
 /**
  * Creates a new USimpleNumber to be formatted with a USimpleNumberFormatter.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI USimpleNumber* U_EXPORT2
 usnum_openForInt64(int64_t value, UErrorCode* ec);
@@ -109,7 +112,7 @@ usnum_openForInt64(int64_t value, UErrorCode* ec);
  *
  * This can be used to reset the number value after formatting.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnum_setToInt64(USimpleNumber* unumber, int64_t value, UErrorCode* ec);
@@ -120,19 +123,18 @@ usnum_setToInt64(USimpleNumber* unumber, int64_t value, UErrorCode* ec);
  *
  * This function immediately mutates the inner value.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnum_multiplyByPowerOfTen(USimpleNumber* unumber, int32_t power, UErrorCode* ec);
 
 
 /**
- * Rounds the value currently stored in the USimpleNumber to the given power of 10,
- * which can be before or after the decimal separator.
+ * Rounds the value currently stored in the USimpleNumber to the given power of 10.
  *
- * This function does not change minimum integer digits.
+ * This function immediately mutates the inner value.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnum_roundTo(USimpleNumber* unumber, int32_t power, UNumberFormatRoundingMode roundingMode, UErrorCode* ec);
@@ -141,7 +143,9 @@ usnum_roundTo(USimpleNumber* unumber, int32_t power, UNumberFormatRoundingMode r
 /**
  * Pads the beginning of the number with zeros up to the given minimum number of integer digits.
  *
- * @stable ICU 73
+ * This setting is applied upon formatting the number.
+ *
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnum_setMinimumIntegerDigits(USimpleNumber* unumber, int32_t minimumIntegerDigits, UErrorCode* ec);
@@ -150,21 +154,23 @@ usnum_setMinimumIntegerDigits(USimpleNumber* unumber, int32_t minimumIntegerDigi
 /**
  * Pads the end of the number with zeros up to the given minimum number of fraction digits.
  *
- * @stable ICU 73
+ * This setting is applied upon formatting the number.
+ *
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnum_setMinimumFractionDigits(USimpleNumber* unumber, int32_t minimumFractionDigits, UErrorCode* ec);
 
 
-#ifndef U_HIDE_DRAFT_API
 /**
- * Sets the number of integer digits to the given amount, truncating if necessary.
+ * Truncates digits from the beginning of the number to the given maximum number of integer digits.
  *
- * @draft ICU 75
+ * This function immediately mutates the inner value.
+ *
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
-usnum_setMaximumIntegerDigits(USimpleNumber* unumber, int32_t maximumIntegerDigits, UErrorCode* ec);
-#endif // U_HIDE_DRAFT_API
+usnum_truncateStart(USimpleNumber* unumber, int32_t maximumIntegerDigits, UErrorCode* ec);
 
 
 /**
@@ -174,7 +180,7 @@ usnum_setMaximumIntegerDigits(USimpleNumber* unumber, int32_t maximumIntegerDigi
  *
  * NOTE: This does not support accounting sign notation.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnum_setSign(USimpleNumber* unumber, USimpleNumberSign sign, UErrorCode* ec);
@@ -183,7 +189,7 @@ usnum_setSign(USimpleNumber* unumber, USimpleNumberSign sign, UErrorCode* ec);
 /**
  * Creates a new USimpleNumberFormatter with all locale defaults.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI USimpleNumberFormatter* U_EXPORT2
 usnumf_openForLocale(const char* locale, UErrorCode* ec);
@@ -192,7 +198,7 @@ usnumf_openForLocale(const char* locale, UErrorCode* ec);
 /**
  * Creates a new USimpleNumberFormatter, overriding the grouping strategy.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI USimpleNumberFormatter* U_EXPORT2
 usnumf_openForLocaleAndGroupingStrategy(
@@ -205,7 +211,7 @@ usnumf_openForLocaleAndGroupingStrategy(
  * The USimpleNumber is cleared after calling this function. It can be re-used via
  * usnum_setToInt64.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnumf_format(
@@ -220,7 +226,7 @@ usnumf_format(
  *
  * For more control over the formatting, use USimpleNumber.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnumf_formatInt64(
@@ -235,7 +241,7 @@ usnumf_formatInt64(
  *
  * NOTE: Normally, a USimpleNumber should be adopted by usnumf_formatAndAdoptNumber.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnum_close(USimpleNumber* unumber);
@@ -244,7 +250,7 @@ usnum_close(USimpleNumber* unumber);
 /**
  * Frees the memory held by a USimpleNumberFormatter.
  *
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_CAPI void U_EXPORT2
 usnumf_close(USimpleNumberFormatter* uformatter);
@@ -269,7 +275,7 @@ U_NAMESPACE_BEGIN
  *
  * @see LocalPointerBase
  * @see LocalPointer
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_DEFINE_LOCAL_OPEN_POINTER(LocalUSimpleNumberPointer, USimpleNumber, usnum_close);
 
@@ -286,12 +292,14 @@ U_DEFINE_LOCAL_OPEN_POINTER(LocalUSimpleNumberPointer, USimpleNumber, usnum_clos
  *
  * @see LocalPointerBase
  * @see LocalPointer
- * @stable ICU 73
+ * @draft ICU 73
  */
 U_DEFINE_LOCAL_OPEN_POINTER(LocalUSimpleNumberFormatterPointer, USimpleNumberFormatter, usnumf_close);
 
 U_NAMESPACE_END
 #endif // U_SHOW_CPLUSPLUS_API
+
+#endif // U_HIDE_DRAFT_API
 
 #endif /* #if !UCONFIG_NO_FORMATTING */
 #endif //__USIMPLENUMBERFORMATTER_H__

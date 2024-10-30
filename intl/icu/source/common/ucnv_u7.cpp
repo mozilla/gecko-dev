@@ -455,6 +455,7 @@ unicodeMode:
     pArgs->source=(const char *)source;
     pArgs->target=target;
     pArgs->offsets=offsets;
+    return;
 }
 
 static void U_CALLCONV
@@ -730,6 +731,7 @@ unicodeMode:
     pArgs->source=source;
     pArgs->target=(char *)target;
     pArgs->offsets=offsets;
+    return;
 }
 
 static const char * U_CALLCONV
@@ -1154,6 +1156,7 @@ endloop:
     pArgs->source=(const char *)source;
     pArgs->target=target;
     pArgs->offsets=offsets;
+    return;
 }
 
 static void U_CALLCONV
@@ -1440,6 +1443,7 @@ unicodeMode:
     pArgs->source=source;
     pArgs->target=(char *)target;
     pArgs->offsets=offsets;
+    return;
 }
 U_CDECL_END
 

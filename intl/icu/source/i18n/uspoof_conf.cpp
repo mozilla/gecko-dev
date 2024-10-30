@@ -79,7 +79,7 @@ SPUStringPool::SPUStringPool(UErrorCode &status) : fVec(nullptr), fHash(nullptr)
         return;
     }
     vec->setDeleter(
-        [](void *obj) {delete static_cast<SPUString*>(obj);});
+        [](void *obj) {delete (SPUString *)obj;});
     fVec = vec.orphan();
     fHash = uhash_open(uhash_hashUnicodeString,           // key hash function
                        uhash_compareUnicodeString,        // Key Comparator
@@ -99,7 +99,7 @@ int32_t SPUStringPool::size() {
 }
 
 SPUString *SPUStringPool::getByIndex(int32_t index) {
-    SPUString* retString = static_cast<SPUString*>(fVec->elementAt(index));
+    SPUString *retString = (SPUString *)fVec->elementAt(index);
     return retString;
 }
 
@@ -393,6 +393,7 @@ void ConfusabledataBuilder::build(const char * confusables, int32_t confusablesL
 
     // All of the intermediate allocated data belongs to the ConfusabledataBuilder
     //  object  (this), and is deleted in the destructor.
+    return;
 }
 
 //
@@ -430,7 +431,7 @@ void ConfusabledataBuilder::outputData(UErrorCode &status) {
         previousCodePoint = codePoint;
     }
     SpoofDataHeader *rawData = fSpoofImpl->fSpoofData->fRawData;
-    rawData->fCFUKeys = static_cast<int32_t>(reinterpret_cast<char*>(keys) - reinterpret_cast<char*>(rawData));
+    rawData->fCFUKeys = (int32_t)((char *)keys - (char *)rawData);
     rawData->fCFUKeysSize = numKeys;
     fSpoofImpl->fSpoofData->fCFUKeys = keys;
 
@@ -449,7 +450,7 @@ void ConfusabledataBuilder::outputData(UErrorCode &status) {
         values[i] = static_cast<uint16_t>(value);
     }
     rawData = fSpoofImpl->fSpoofData->fRawData;
-    rawData->fCFUStringIndex = static_cast<int32_t>(reinterpret_cast<char*>(values) - reinterpret_cast<char*>(rawData));
+    rawData->fCFUStringIndex = (int32_t)((char *)values - (char *)rawData);
     rawData->fCFUStringIndexSize = numValues;
     fSpoofImpl->fSpoofData->fCFUValues = values;
 
@@ -466,7 +467,7 @@ void ConfusabledataBuilder::outputData(UErrorCode &status) {
     fStringTable->extract(strings, stringsLength+1, status);
     rawData = fSpoofImpl->fSpoofData->fRawData;
     U_ASSERT(rawData->fCFUStringTable == 0);
-    rawData->fCFUStringTable = static_cast<int32_t>(reinterpret_cast<char*>(strings) - reinterpret_cast<char*>(rawData));
+    rawData->fCFUStringTable = (int32_t)((char *)strings - (char *)rawData);
     rawData->fCFUStringTableLen = stringsLength;
     fSpoofImpl->fSpoofData->fCFUStrings = strings;
 }

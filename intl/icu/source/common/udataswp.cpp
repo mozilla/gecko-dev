@@ -47,12 +47,12 @@ uprv_swapArray16(const UDataSwapper *ds,
     }
 
     /* setup and swapping */
-    p = static_cast<const uint16_t*>(inData);
-    q = static_cast<uint16_t*>(outData);
+    p=(const uint16_t *)inData;
+    q=(uint16_t *)outData;
     count=length/2;
     while(count>0) {
         x=*p++;
-        *q++ = static_cast<uint16_t>((x << 8) | (x >> 8));
+        *q++=(uint16_t)((x<<8)|(x>>8));
         --count;
     }
 
@@ -95,12 +95,12 @@ uprv_swapArray32(const UDataSwapper *ds,
     }
 
     /* setup and swapping */
-    p = static_cast<const uint32_t*>(inData);
-    q = static_cast<uint32_t*>(outData);
+    p=(const uint32_t *)inData;
+    q=(uint32_t *)outData;
     count=length/4;
     while(count>0) {
         x=*p++;
-        *q++ = (x << 24) | ((x << 8) & 0xff0000) | ((x >> 8) & 0xff00) | (x >> 24);
+        *q++=(uint32_t)((x<<24)|((x<<8)&0xff0000)|((x>>8)&0xff00)|(x>>24));
         --count;
     }
 
@@ -142,8 +142,8 @@ uprv_swapArray64(const UDataSwapper *ds,
     }
 
     /* setup and swapping */
-    p = static_cast<const uint64_t*>(inData);
-    q = static_cast<uint64_t*>(outData);
+    p=(const uint64_t *)inData;
+    q=(uint64_t *)outData;
     count=length/8;
     while(count>0) {
         uint64_t x=*p++;
@@ -176,7 +176,7 @@ uprv_copyArray64(const UDataSwapper *ds,
 
 static uint16_t U_CALLCONV
 uprv_readSwapUInt16(uint16_t x) {
-    return static_cast<uint16_t>((x << 8) | (x >> 8));
+    return (uint16_t)((x<<8)|(x>>8));
 }
 
 static uint16_t U_CALLCONV
@@ -186,7 +186,7 @@ uprv_readDirectUInt16(uint16_t x) {
 
 static uint32_t U_CALLCONV
 uprv_readSwapUInt32(uint32_t x) {
-    return (x << 24) | ((x << 8) & 0xff0000) | ((x >> 8) & 0xff00) | (x >> 24);
+    return (uint32_t)((x<<24)|((x<<8)&0xff0000)|((x>>8)&0xff00)|(x>>24));
 }
 
 static uint32_t U_CALLCONV
@@ -196,7 +196,7 @@ uprv_readDirectUInt32(uint32_t x) {
 
 static void U_CALLCONV
 uprv_writeSwapUInt16(uint16_t *p, uint16_t x) {
-    *p = static_cast<uint16_t>((x << 8) | (x >> 8));
+    *p=(uint16_t)((x<<8)|(x>>8));
 }
 
 static void U_CALLCONV
@@ -206,7 +206,7 @@ uprv_writeDirectUInt16(uint16_t *p, uint16_t x) {
 
 static void U_CALLCONV
 uprv_writeSwapUInt32(uint32_t *p, uint32_t x) {
-    *p = (x << 24) | ((x << 8) & 0xff0000) | ((x >> 8) & 0xff00) | (x >> 24);
+    *p=(uint32_t)((x<<24)|((x<<8)&0xff0000)|((x>>8)&0xff00)|(x>>24));
 }
 
 static void U_CALLCONV
@@ -441,7 +441,7 @@ udata_openSwapperForInputData(const void *data, int32_t length,
         pHeader->info.sizeofUChar!=2
     ) {
         *pErrorCode=U_UNSUPPORTED_ERROR;
-        return nullptr;
+        return 0;
     }
 
     inIsBigEndian=(UBool)pHeader->info.isBigEndian;
@@ -461,7 +461,7 @@ udata_openSwapperForInputData(const void *data, int32_t length,
         (length>=0 && length<headerSize)
     ) {
         *pErrorCode=U_UNSUPPORTED_ERROR;
-        return nullptr;
+        return 0;
     }
 
     return udata_openSwapper(inIsBigEndian, inCharset, outIsBigEndian, outCharset, pErrorCode);

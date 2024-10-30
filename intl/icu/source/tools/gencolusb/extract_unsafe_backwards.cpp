@@ -14,10 +14,6 @@
 #include "collationroot.h"
 #include "collationtailoring.h"
 
-using icu::CollationCacheEntry;
-using icu::CollationRoot;
-using icu::UnicodeSet;
-
 /**
  * Define the type of generator to use. Choose one.
  */

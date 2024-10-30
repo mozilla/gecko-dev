@@ -148,12 +148,12 @@ inline void Hashtable::initSize(UHashFunction *keyHash, UKeyComparator *keyComp,
 }
 
 inline Hashtable::Hashtable(UKeyComparator *keyComp, UValueComparator *valueComp,
-                 UErrorCode& status) : hash(nullptr) {
+                 UErrorCode& status) : hash(0) {
     init( uhash_hashUnicodeString, keyComp, valueComp, status);
 }
 
 inline Hashtable::Hashtable(UBool ignoreKeyCase, UErrorCode& status)
- : hash(nullptr)
+ : hash(0)
 {
     init(ignoreKeyCase ? uhash_hashCaselessUnicodeString
                         : uhash_hashUnicodeString,
@@ -164,7 +164,7 @@ inline Hashtable::Hashtable(UBool ignoreKeyCase, UErrorCode& status)
 }
 
 inline Hashtable::Hashtable(UBool ignoreKeyCase, int32_t size, UErrorCode& status)
- : hash(nullptr)
+ : hash(0)
 {
     initSize(ignoreKeyCase ? uhash_hashCaselessUnicodeString
                         : uhash_hashUnicodeString,
@@ -175,13 +175,13 @@ inline Hashtable::Hashtable(UBool ignoreKeyCase, int32_t size, UErrorCode& statu
 }
 
 inline Hashtable::Hashtable(UErrorCode& status)
- : hash(nullptr)
+ : hash(0)
 {
     init(uhash_hashUnicodeString, uhash_compareUnicodeString, nullptr, status);
 }
 
 inline Hashtable::Hashtable()
- : hash(nullptr)
+ : hash(0)
 {
     UErrorCode status = U_ZERO_ERROR;
     init(uhash_hashUnicodeString, uhash_compareUnicodeString, nullptr, status);

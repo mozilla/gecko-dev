@@ -9,8 +9,8 @@
 #include "mozilla/ArrayUtils.h" // for ArrayLength
 #include <stdlib.h>       // for bsearch
 
-/* SpecialCasing-16.0.0.txt */
-/* Date: 2024-05-10, 22:49:00 GMT */
+/* SpecialCasing-15.0.0.txt */
+/* Date: 2022-02-02, 23:35:52 GMT */
 
 using mozilla::unicode::MultiCharMapping;
 

@@ -24,7 +24,6 @@
 #include "unicode/putil.h"
 #include "unicode/uloc.h"
 #include "unicode/ures.h"
-#include "charstr.h"
 #include "cstring.h"
 #include "ulocimp.h"
 #include "uresimp.h"
@@ -49,10 +48,10 @@ uloc_getTableStringWithFallback(const char *path, const char *locale,
                               int32_t *pLength,
                               UErrorCode *pErrorCode)
 {
-    if (U_FAILURE(*pErrorCode)) { return nullptr; }
 /*    char localeBuffer[ULOC_FULLNAME_CAPACITY*4];*/
     const char16_t *item=nullptr;
     UErrorCode errorCode;
+    char explicitFallbackName[ULOC_FULLNAME_CAPACITY] = {0};
 
     /*
      * open the bundle for the current locale
@@ -127,16 +126,15 @@ uloc_getTableStringWithFallback(const char *path, const char *locale,
                *pErrorCode = errorCode;
                 break;
             }
-
-            icu::CharString explicitFallbackName;
-            explicitFallbackName.appendInvariantChars(fallbackLocale, len, errorCode);
-
+            
+            u_UCharsToChars(fallbackLocale, explicitFallbackName, len);
+            
             /* guard against recursive fallback */
-            if (explicitFallbackName == locale) {
+            if(uprv_strcmp(explicitFallbackName, locale)==0){
                 *pErrorCode = U_INTERNAL_PROGRAM_ERROR;
                 break;
             }
-            rb.adoptInstead(ures_open(path, explicitFallbackName.data(), &errorCode));
+            rb.adoptInstead(ures_open(path, explicitFallbackName, &errorCode));
             if(U_FAILURE(errorCode)){
                 *pErrorCode = errorCode;
                 break;
@@ -150,65 +148,61 @@ uloc_getTableStringWithFallback(const char *path, const char *locale,
     return item;
 }
 
-namespace {
-
-ULayoutType
+static ULayoutType
 _uloc_getOrientationHelper(const char* localeId,
                            const char* key,
-                           UErrorCode& status)
+                           UErrorCode *status)
 {
     ULayoutType result = ULOC_LAYOUT_UNKNOWN;
 
-    if (U_FAILURE(status)) { return result; }
+    if (!U_FAILURE(*status)) {
+        int32_t length = 0;
+        char localeBuffer[ULOC_FULLNAME_CAPACITY];
 
-    icu::CharString localeBuffer = ulocimp_canonicalize(localeId, status);
+        uloc_canonicalize(localeId, localeBuffer, sizeof(localeBuffer), status);
 
-    if (U_FAILURE(status)) { return result; }
+        if (!U_FAILURE(*status)) {
+            const char16_t* const value =
+                uloc_getTableStringWithFallback(
+                    nullptr,
+                    localeBuffer,
+                    "layout",
+                    nullptr,
+                    key,
+                    &length,
+                    status);
 
-    int32_t length = 0;
-    const char16_t* const value =
-        uloc_getTableStringWithFallback(
-            nullptr,
-            localeBuffer.data(),
-            "layout",
-            nullptr,
-            key,
-            &length,
-            &status);
-
-    if (U_FAILURE(status)) { return result; }
-
-    if (length != 0) {
-        switch(value[0])
-        {
-        case 0x0062: /* 'b' */
-            result = ULOC_LAYOUT_BTT;
-            break;
-        case 0x006C: /* 'l' */
-            result = ULOC_LAYOUT_LTR;
-            break;
-        case 0x0072: /* 'r' */
-            result = ULOC_LAYOUT_RTL;
-            break;
-        case 0x0074: /* 't' */
-            result = ULOC_LAYOUT_TTB;
-            break;
-        default:
-            status = U_INTERNAL_PROGRAM_ERROR;
-            break;
+            if (!U_FAILURE(*status) && length != 0) {
+                switch(value[0])
+                {
+                case 0x0062: /* 'b' */
+                    result = ULOC_LAYOUT_BTT;
+                    break;
+                case 0x006C: /* 'l' */
+                    result = ULOC_LAYOUT_LTR;
+                    break;
+                case 0x0072: /* 'r' */
+                    result = ULOC_LAYOUT_RTL;
+                    break;
+                case 0x0074: /* 't' */
+                    result = ULOC_LAYOUT_TTB;
+                    break;
+                default:
+                    *status = U_INTERNAL_PROGRAM_ERROR;
+                    break;
+                }
+            }
         }
     }
 
     return result;
 }
 
-}  // namespace
-
 U_CAPI ULayoutType U_EXPORT2
 uloc_getCharacterOrientation(const char* localeId,
                              UErrorCode *status)
 {
-    return _uloc_getOrientationHelper(localeId, "characters", *status);
+    return _uloc_getOrientationHelper(localeId, "characters", status);
 }
 
 /**
@@ -222,5 +216,5 @@ U_CAPI ULayoutType U_EXPORT2
 uloc_getLineOrientation(const char* localeId,
                         UErrorCode *status)
 {
-    return _uloc_getOrientationHelper(localeId, "lines", *status);
+    return _uloc_getOrientationHelper(localeId, "lines", status);
 }

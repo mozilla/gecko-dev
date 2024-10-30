@@ -145,7 +145,9 @@ LocaleUtility::canonicalLocaleString(const UnicodeString* id, UnicodeString& res
 Locale&
 LocaleUtility::initLocaleFromName(const UnicodeString& id, Locale& result)
 {
-    if (id.isBogus()) {
+    enum { BUFLEN = 128 }; // larger than ever needed
+
+    if (id.isBogus() || id.length() >= BUFLEN) {
         result.setToBogus();
     } else {
         /*
@@ -166,29 +168,24 @@ LocaleUtility::initLocaleFromName(const UnicodeString& id, Locale& result)
          *
          * There should be only at most one '@' in a locale ID.
          */
-        CharString buffer;
+        char buffer[BUFLEN];
         int32_t prev, i;
         prev = 0;
-        UErrorCode status = U_ZERO_ERROR;
-        do {
-            i = id.indexOf(static_cast<char16_t>(0x40), prev);
+        for(;;) {
+            i = id.indexOf((char16_t)0x40, prev);
             if(i < 0) {
                 // no @ between prev and the rest of the string
-                buffer.appendInvariantChars(id.tempSubString(prev), status);
+                id.extract(prev, INT32_MAX, buffer + prev, BUFLEN - prev, US_INV);
                 break; // done
             } else {
                 // normal invariant-character conversion for text between @s
-                buffer.appendInvariantChars(id.tempSubString(prev, i - prev), status);
+                id.extract(prev, i - prev, buffer + prev, BUFLEN - prev, US_INV);
                 // manually "convert" U+0040 at id[i] into '@' at buffer[i]
-                buffer.append('@', status);
+                buffer[i] = '@';
                 prev = i + 1;
             }
-        } while (U_SUCCESS(status));
-        if (U_FAILURE(status)) {
-            result.setToBogus();
-        } else {
-            result = Locale::createFromName(buffer.data());
         }
+        result = Locale::createFromName(buffer);
     }
     return result;
 }
@@ -224,7 +221,7 @@ LocaleUtility::getAvailableLocaleNames(const UnicodeString& bundleID)
 
     Hashtable* htp;
     umtx_lock(nullptr);
-    htp = static_cast<Hashtable*>(cache->get(bundleID));
+    htp = (Hashtable*) cache->get(bundleID);
     umtx_unlock(nullptr);
 
     if (htp == nullptr) {
@@ -262,7 +259,7 @@ LocaleUtility::getAvailableLocaleNames(const UnicodeString& bundleID)
     return htp;
 }
 
-bool
+UBool
 LocaleUtility::isFallbackOf(const UnicodeString& root, const UnicodeString& child)
 {
     return child.indexOf(root) == 0 &&
@@ -274,3 +271,5 @@ U_NAMESPACE_END
 
 /* !UCONFIG_NO_SERVICE */
 #endif
+
+

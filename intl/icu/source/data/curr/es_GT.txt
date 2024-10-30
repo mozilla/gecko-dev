@@ -15,4 +15,8 @@ es_GT{
             other{"quetzales"}
         }
     }
+    CurrencyUnitPatterns{
+        one{"{1} {0}"}
+        other{"{1} {0}"}
+    }
 }

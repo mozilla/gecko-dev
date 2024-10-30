@@ -160,7 +160,7 @@ public:
      * @return The date rule type.
      * @stable ICU 3.8
      */
-    DateRuleType getDateRuleType() const;
+    DateRuleType getDateRuleType(void) const;
 
     /**
      * Gets the time rule type
@@ -168,14 +168,14 @@ public:
      *         or <code>UTC_TIME</code>.
      * @stable ICU 3.8
      */
-    TimeRuleType getTimeRuleType() const;
+    TimeRuleType getTimeRuleType(void) const;
 
     /**
      * Gets the rule month.
      * @return The rule month.
      * @stable ICU 3.8
      */
-    int32_t getRuleMonth() const;
+    int32_t getRuleMonth(void) const;
 
     /**
      * Gets the rule day of month.  When the date rule type
@@ -183,7 +183,7 @@ public:
      * @return The rule day of month
      * @stable ICU 3.8
      */
-    int32_t getRuleDayOfMonth() const;
+    int32_t getRuleDayOfMonth(void) const;
 
     /**
      * Gets the rule day of week.  When the date rule type
@@ -191,7 +191,7 @@ public:
      * @return The rule day of week.
      * @stable ICU 3.8
      */
-    int32_t getRuleDayOfWeek() const;
+    int32_t getRuleDayOfWeek(void) const;
 
     /**
      * Gets the ordinal number of the occurrence of the day of week
@@ -200,16 +200,16 @@ public:
      * @return The rule day of week ordinal number in the month.
      * @stable ICU 3.8
      */
-    int32_t getRuleWeekInMonth() const;
+    int32_t getRuleWeekInMonth(void) const;
 
     /**
      * Gets the rule time in the rule day.
      * @return The time in the rule day in milliseconds.
      * @stable ICU 3.8
      */
-    int32_t getRuleMillisInDay() const;
+    int32_t getRuleMillisInDay(void) const;
 
-  private:
+private:
     int32_t fMonth;
     int32_t fDayOfMonth;
     int32_t fDayOfWeek;
@@ -230,7 +230,7 @@ public:
      * @return          The class ID for all objects of this class.
      * @stable ICU 3.8
      */
-    static UClassID U_EXPORT2 getStaticClassID();
+    static UClassID U_EXPORT2 getStaticClassID(void);
 
     /**
      * Returns a unique class ID POLYMORPHICALLY. Pure virtual override. This
@@ -243,7 +243,7 @@ public:
      *                  other classes have different class IDs.
      * @stable ICU 3.8
      */
-    virtual UClassID getDynamicClassID() const override;
+    virtual UClassID getDynamicClassID(void) const override;
 };
 
 U_NAMESPACE_END

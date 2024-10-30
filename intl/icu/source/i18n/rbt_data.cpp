@@ -25,13 +25,13 @@ U_NAMESPACE_BEGIN
 
 TransliterationRuleData::TransliterationRuleData(UErrorCode& status)
  : UMemory(), ruleSet(status), variableNames(status),
-    variables(nullptr), variablesAreOwned(true)
+    variables(0), variablesAreOwned(true)
 {
     if (U_FAILURE(status)) {
         return;
     }
     variableNames.setValueDeleter(uprv_deleteUObject);
-    variables = nullptr;
+    variables = 0;
     variablesLength = 0;
 }
 
@@ -46,21 +46,21 @@ TransliterationRuleData::TransliterationRuleData(const TransliterationRuleData& 
     variableNames.setValueDeleter(uprv_deleteUObject);
     int32_t pos = UHASH_FIRST;
     const UHashElement *e;
-    while ((e = other.variableNames.nextElement(pos)) != nullptr) {
+    while ((e = other.variableNames.nextElement(pos)) != 0) {
         UnicodeString* value =
-            new UnicodeString(*static_cast<const UnicodeString*>(e->value.pointer));
+            new UnicodeString(*(const UnicodeString*)e->value.pointer);
         // Exit out if value could not be created.
         if (value == nullptr) {
         	return;
         }
-        variableNames.put(*static_cast<UnicodeString*>(e->key.pointer), value, status);
+        variableNames.put(*(UnicodeString*)e->key.pointer, value, status);
     }
 
-    variables = nullptr;
-    if (other.variables != nullptr) {
-        variables = static_cast<UnicodeFunctor**>(uprv_malloc(variablesLength * sizeof(UnicodeFunctor*)));
+    variables = 0;
+    if (other.variables != 0) {
+        variables = (UnicodeFunctor **)uprv_malloc(variablesLength * sizeof(UnicodeFunctor *));
         /* test for nullptr */
-        if (variables == nullptr) {
+        if (variables == 0) {
             status = U_MEMORY_ALLOCATION_ERROR;
             return;
         }
@@ -87,7 +87,7 @@ TransliterationRuleData::TransliterationRuleData(const TransliterationRuleData& 
 }
 
 TransliterationRuleData::~TransliterationRuleData() {
-    if (variablesAreOwned && variables != nullptr) {
+    if (variablesAreOwned && variables != 0) {
         for (int32_t i=0; i<variablesLength; ++i) {
             delete variables[i];
         }
@@ -98,19 +98,19 @@ TransliterationRuleData::~TransliterationRuleData() {
 UnicodeFunctor*
 TransliterationRuleData::lookup(UChar32 standIn) const {
     int32_t i = standIn - variablesBase;
-    return (i >= 0 && i < variablesLength) ? variables[i] : nullptr;
+    return (i >= 0 && i < variablesLength) ? variables[i] : 0;
 }
 
 UnicodeMatcher*
 TransliterationRuleData::lookupMatcher(UChar32 standIn) const {
     UnicodeFunctor *f = lookup(standIn);
-    return f != nullptr ? f->toMatcher() : nullptr;
+    return (f != 0) ? f->toMatcher() : 0;
 }
 
 UnicodeReplacer*
 TransliterationRuleData::lookupReplacer(UChar32 standIn) const {
     UnicodeFunctor *f = lookup(standIn);
-    return f != nullptr ? f->toReplacer() : nullptr;
+    return (f != 0) ? f->toReplacer() : 0;
 }
 
 

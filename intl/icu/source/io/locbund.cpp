@@ -72,8 +72,8 @@ u_locbund_init(ULocaleBundle *result, const char *loc)
 {
     int32_t len;
 
-    if (result == nullptr)
-        return nullptr;
+    if(result == 0)
+        return 0;
 
     if (loc == nullptr) {
         loc = uloc_getDefault();
@@ -83,8 +83,8 @@ u_locbund_init(ULocaleBundle *result, const char *loc)
 
     len = (int32_t)strlen(loc);
     result->fLocale = (char*) uprv_malloc(len + 1);
-    if (result->fLocale == nullptr) {
-        return nullptr;
+    if(result->fLocale == 0) {
+        return 0;
     }
 
     uprv_strcpy(result->fLocale, loc);

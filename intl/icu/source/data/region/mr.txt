@@ -3,7 +3,7 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 mr{
     Countries{
-        001{"जग"}
+        001{"विश्व"}
         002{"आफ्रिका"}
         003{"उत्तर अमेरिका"}
         005{"दक्षिण अमेरिका"}
@@ -297,9 +297,6 @@ mr{
         ZM{"झाम्बिया"}
         ZW{"झिम्बाब्वे"}
         ZZ{"अज्ञात प्रदेश"}
-    }
-    Countries%chagos{
-        IO{"चागोस आर्चिपेलागो"}
     }
     Countries%short{
         GB{"यू.के."}

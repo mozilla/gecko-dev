@@ -66,7 +66,7 @@ noopSetState(UCharIterator * /*iter*/, uint32_t /*state*/, UErrorCode *pErrorCod
 }
 
 static const UCharIterator noopIterator={
-    nullptr, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     noopGetIndex,
     noopMove,
     noopHasNext,
@@ -197,7 +197,7 @@ stringIteratorSetState(UCharIterator *iter, uint32_t state, UErrorCode *pErrorCo
 }
 
 static const UCharIterator stringIterator={
-    nullptr, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     stringIteratorGetIndex,
     stringIteratorMove,
     stringIteratorHasNext,
@@ -212,8 +212,8 @@ static const UCharIterator stringIterator={
 
 U_CAPI void U_EXPORT2
 uiter_setString(UCharIterator *iter, const char16_t *s, int32_t length) {
-    if (iter != nullptr) {
-        if (s != nullptr && length >= -1) {
+    if(iter!=0) {
+        if(s!=0 && length>=-1) {
             *iter=stringIterator;
             iter->context=s;
             if(length>=0) {
@@ -283,7 +283,7 @@ utf16BEIteratorPrevious(UCharIterator *iter) {
 }
 
 static const UCharIterator utf16BEIterator={
-    nullptr, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     stringIteratorGetIndex,
     stringIteratorMove,
     stringIteratorHasNext,
@@ -457,7 +457,7 @@ characterIteratorSetState(UCharIterator *iter, uint32_t state, UErrorCode *pErro
 }
 
 static const UCharIterator characterIteratorWrapper={
-    nullptr, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     characterIteratorGetIndex,
     characterIteratorMove,
     characterIteratorHasNext,
@@ -472,8 +472,8 @@ static const UCharIterator characterIteratorWrapper={
 
 U_CAPI void U_EXPORT2
 uiter_setCharacterIterator(UCharIterator *iter, CharacterIterator *charIter) {
-    if (iter != nullptr) {
-        if (charIter != nullptr) {
+    if(iter!=0) {
+        if(charIter!=0) {
             *iter=characterIteratorWrapper;
             iter->context=charIter;
         } else {
@@ -521,7 +521,7 @@ replaceableIteratorPrevious(UCharIterator *iter) {
 }
 
 static const UCharIterator replaceableIterator={
-    nullptr, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     stringIteratorGetIndex,
     stringIteratorMove,
     stringIteratorHasNext,
@@ -536,8 +536,8 @@ static const UCharIterator replaceableIterator={
 
 U_CAPI void U_EXPORT2
 uiter_setReplaceable(UCharIterator *iter, const Replaceable *rep) {
-    if (iter != nullptr) {
-        if (rep != nullptr) {
+    if(iter!=0) {
+        if(rep!=0) {
             *iter=replaceableIterator;
             iter->context=rep;
             iter->limit=iter->length=rep->length();
@@ -987,7 +987,7 @@ utf8IteratorSetState(UCharIterator *iter,
 }
 
 static const UCharIterator utf8Iterator={
-    nullptr, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
     utf8IteratorGetIndex,
     utf8IteratorMove,
     utf8IteratorHasNext,
@@ -1002,8 +1002,8 @@ static const UCharIterator utf8Iterator={
 
 U_CAPI void U_EXPORT2
 uiter_setUTF8(UCharIterator *iter, const char *s, int32_t length) {
-    if (iter != nullptr) {
-        if (s != nullptr && length >= -1) {
+    if(iter!=0) {
+        if(s!=0 && length>=-1) {
             *iter=utf8Iterator;
             iter->context=s;
             if(length>=0) {

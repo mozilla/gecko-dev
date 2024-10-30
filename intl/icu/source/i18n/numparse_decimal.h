@@ -10,8 +10,8 @@
 #include "unicode/uniset.h"
 #include "numparse_types.h"
 
-U_NAMESPACE_BEGIN
-namespace numparse::impl {
+U_NAMESPACE_BEGIN namespace numparse {
+namespace impl {
 
 using ::icu::number::impl::Grouper;
 
@@ -67,7 +67,9 @@ class DecimalMatcher : public NumberParseMatcher, public UMemory {
     bool validateGroup(int32_t sepType, int32_t count, bool isPrimary) const;
 };
 
-} // namespace numparse::impl
+
+} // namespace impl
+} // namespace numparse
 U_NAMESPACE_END
 
 #endif //__NUMPARSE_DECIMAL_H__

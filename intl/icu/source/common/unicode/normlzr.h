@@ -466,7 +466,7 @@ public:
    * @return the current normalized code point
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  UChar32 current();
+  UChar32              current(void);
 
   /**
    * Return the first character in the normalized text.
@@ -476,7 +476,7 @@ public:
    * @return the first normalized code point
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  UChar32 first();
+  UChar32              first(void);
 
   /**
    * Return the last character in the normalized text.
@@ -486,7 +486,7 @@ public:
    * @return the last normalized code point
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  UChar32 last();
+  UChar32              last(void);
 
   /**
    * Return the next character in the normalized text.
@@ -502,7 +502,7 @@ public:
    * @return the next normalized code point
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  UChar32 next();
+  UChar32              next(void);
 
   /**
    * Return the previous character in the normalized text and decrement.
@@ -518,7 +518,7 @@ public:
    * @return the previous normalized code point
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  UChar32 previous();
+  UChar32              previous(void);
 
   /**
    * Set the iteration position in the input text that is being normalized,
@@ -536,7 +536,7 @@ public:
    * This is equivalent to setIndexOnly(startIndex)).
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  void reset();
+  void                reset(void);
 
   /**
    * Retrieve the current iteration position in the input text that is
@@ -552,7 +552,7 @@ public:
    * @return the current index in the input text
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  int32_t getIndex() const;
+  int32_t            getIndex(void) const;
 
   /**
    * Retrieve the index of the start of the input text. This is the begin index
@@ -562,7 +562,7 @@ public:
    * @return the smallest index in the input text where the Normalizer operates
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  int32_t startIndex() const;
+  int32_t            startIndex(void) const;
 
   /**
    * Retrieve the index of the end of the input text. This is the end index
@@ -574,7 +574,7 @@ public:
    * @return the first index in the input text where the Normalizer does not operate
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  int32_t endIndex() const;
+  int32_t            endIndex(void) const;
 
   /**
    * Returns true when both iterators refer to the same character in the same
@@ -610,7 +610,7 @@ public:
    * @return the hash code
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  int32_t hashCode() const;
+  int32_t                hashCode(void) const;
 
   //-------------------------------------------------------------------------
   // Property access methods
@@ -643,7 +643,7 @@ public:
    * @see #setMode
    * @deprecated ICU 56 Use Normalizer2 instead.
    */
-  UNormalizationMode getUMode() const;
+  UNormalizationMode getUMode(void) const;
 
   /**
    * Set options that affect this <code>Normalizer</code>'s operation.
@@ -749,7 +749,7 @@ private:
   UBool previousNormalize();
 
   void    init();
-  void clearBuffer();
+  void    clearBuffer(void);
 
   //-------------------------------------------------------------------------
   // Private data

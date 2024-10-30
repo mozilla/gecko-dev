@@ -47,12 +47,10 @@ so{
         bem{"Bemba"}
         bez{"Bena"}
         bg{"Bulgeeriyaan"}
-        bgc{"Haryanvi"}
-        bho{"Bhojpuri"}
+        bho{"U dhashay Bhohp"}
         bi{"U dhashay Bislam"}
         bin{"U dhashay Bin"}
         bla{"Siksiká"}
-        blo{"Anii"}
         bm{"Bambaara"}
         bn{"Bangladesh"}
         bo{"Tibeetaan"}
@@ -117,7 +115,7 @@ so{
         eo{"Isberaanto"}
         es{"Isbaanish"}
         es_419{"Isbaanishka Laatiin Ameerika"}
-        es_ES{"Isbaanish Yurub"}
+        es_ES{"Isbaanish (Isbayn)"}
         es_MX{"Isbaanishka Mexico"}
         et{"Istooniyaan"}
         eu{"Basquu"}
@@ -171,7 +169,6 @@ so{
         iba{"Iban"}
         ibb{"Ibibio"}
         id{"Indunusiyaan"}
-        ie{"Interlingue"}
         ig{"Igbo"}
         ii{"Sijuwan Yi"}
         ikt{"Western Canadian Inuktitut"}
@@ -224,7 +221,6 @@ so{
         kv{"Komi"}
         kw{"Kornish"}
         kwk{"Kwakʼwala"}
-        kxv{"Kufi"}
         ky{"Kirgiis"}
         la{"Laatiin"}
         lad{"Ladino"}
@@ -233,10 +229,8 @@ so{
         lez{"Lezghian"}
         lg{"Gandha"}
         li{"Limburgish"}
-        lij{"Liguuriyaan"}
         lil{"Lillooet"}
         lkt{"Laakoota"}
-        lmo{"Lombard"}
         ln{"Lingala"}
         lo{"Lao"}
         lou{"Louisiana Creole"}
@@ -253,7 +247,7 @@ so{
         lv{"Laatfiyaan"}
         mad{"Madurese"}
         mag{"Magahi"}
-        mai{"Maithili"}
+        mai{"Dadka Maithili"}
         mak{"Makasar"}
         mas{"Masaay"}
         mdf{"Moksha"}
@@ -261,7 +255,7 @@ so{
         mer{"Meeru"}
         mfe{"Moorisayn"}
         mg{"Malagaasi"}
-        mgh{"Luuqadda Makhuwa-Meetto"}
+        mgh{"Makhuwa"}
         mgo{"Meetaa"}
         mh{"Marshallese"}
         mi{"Maaoori"}
@@ -278,7 +272,7 @@ so{
         ms{"Malaay"}
         mt{"Maltiis"}
         mua{"Miyundhaang"}
-        mul{"Luuqaddo badan"}
+        mul{"Luuqado kala duwan"}
         mus{"Muscogee"}
         mwl{"Mirandese"}
         my{"Burmese"}
@@ -327,13 +321,12 @@ so{
         pis{"Pijin"}
         pl{"Boolish"}
         pqm{"Maliseet-Passamaquoddy"}
-        prg{"Brashiyaan"}
+        prg{"Brashiyaanki Hore"}
         ps{"Bashtuu"}
         pt{"Boortaqiis"}
         pt_BR{"Boortaqiiska Baraasiil"}
-        pt_PT{"Boortaqiiska Yurub"}
-        qu{"Quechua"}
-        raj{"Rajasthani"}
+        pt_PT{"Boortaqiis (Boortuqaal)"}
+        qu{"Quwejuwa"}
         rap{"Rapanui"}
         rar{"Rarotongan"}
         rhg{"Rohingya"}
@@ -347,7 +340,7 @@ so{
         rwk{"Raawa"}
         sa{"Sanskrit"}
         sad{"Sandawe"}
-        sah{"Yakut"}
+        sah{"Saaqa"}
         saq{"Sambuuru"}
         sat{"Santali"}
         sba{"Ngambay"}
@@ -362,7 +355,7 @@ so{
         sg{"Sango"}
         shi{"Shilha"}
         shn{"Shan"}
-        si{"Sinhala"}
+        si{"Sinhaleys"}
         sk{"Isloofaak"}
         sl{"Islofeeniyaan"}
         slh{"Southern Lushootseed"}
@@ -383,8 +376,7 @@ so{
         sv{"Iswiidhish"}
         sw{"Sawaaxili"}
         swb{"Comorian"}
-        syr{"Af-Siriyak"}
-        szl{"Sileshiyaan"}
+        syr{"Syria"}
         ta{"Tamiil"}
         tce{"Southern Tutchone"}
         te{"Teluugu"}
@@ -424,9 +416,7 @@ so{
         uz{"Usbakis"}
         vai{"Faayi"}
         ve{"Venda"}
-        vec{"Dadka Fenaays"}
         vi{"Fiitnaamays"}
-        vmw{"Af-Makhuwa"}
         vo{"Folabuuk"}
         vun{"Fuunjo"}
         wa{"Walloon"}
@@ -436,8 +426,7 @@ so{
         wo{"Woolof"}
         wuu{"Wu Chinese"}
         xal{"Kalmyk"}
-        xh{"Xhosa"}
-        xnr{"Kangri"}
+        xh{"Hoosta"}
         xog{"Sooga"}
         yav{"Yaangbeen"}
         ybb{"Yemba"}
@@ -445,25 +434,20 @@ so{
         yo{"Yoruuba"}
         yrl{"Nheengatu"}
         yue{"Kantoneese"}
-        za{"Zhuang"}
         zgh{"Morokaanka Tamasayt Rasmiga"}
-        zh{"Shinees"}
+        zh{"Shiinaha Mandarin"}
         zh_Hans{"Shiinaha Rasmiga ah"}
-        zh_Hant{"Af-Shiineeska Qadiimiga ah"}
+        zh_Hant{"Shiinahii Hore"}
         zu{"Zuulu"}
         zun{"Zuni"}
         zxx{"Luuqad Looma Hayo"}
         zza{"Zaza"}
     }
-    Languages%long{
-        zh_Hans{"Shiineeska Mandarin ee Rasmiga ah"}
-        zh_Hant{"Af-Shiineeska Mandarin ee Qadiimiga ah"}
-    }
     Languages%menu{
         yue{"Shiinays, Cantonese"}
-        zh{"Af-Shiineeska Mandarin"}
     }
     Languages%short{
+        az{"Aseeri"}
         en_GB{"Ingiriiska Boqortooyada Midooday"}
         en_US{"Ingiriiska Maraykanka"}
     }
@@ -594,7 +578,7 @@ so{
         Prti{"Qoraalka Parthian"}
         Qaag{"Qoraalka Sawgiga"}
         Rjng{"Dadka Rejan"}
-        Rohg{"Hanifi"}
+        Rohg{"Hanifi Rohingya"}
         Runr{"Dadka Rejang"}
         Samr{"Dadka Samaritan"}
         Sarb{"Crabiyaankii Hore ee Wuqooyi"}
@@ -659,8 +643,9 @@ so{
             hebrew{"Habeentiriska yuhuudda"}
             indian{"Habeentiris Qarameedka Hindiya"}
             islamic{"Habeentiriska islaamka"}
-            islamic-civil{"Taariikhda Islaamiga (shax ahaan, waayo madaniyeed)"}
-            islamic-tbla{"Taariikhda Islaamiga (shax ahaan, waayo xiddigeed)"}
+            islamic-civil{"Taariikhda Islaamiga (tabular, civil epoch)"}
+            islamic-rgsa{"Habeentiriska Islaamka (Sacuudiga, aragtida)"}
+            islamic-tbla{"Taariikhda Islaamiga (tabular, astronomical epoch)"}
             islamic-umalqura{"Taariikhda Islaamiga(Umm al-Qura)"}
             iso8601{"Habeentiriska ISO-8601"}
             japanese{"Habeentiriska jabbaanka"}
@@ -681,6 +666,7 @@ so{
             gb2312han{"Isku hagaajinta Farta shiineeska"}
             phonebook{"Isku hagaajinta foonbuuga"}
             pinyin{"Isku hagaajinta Pinyin"}
+            reformed{"Isku hagaajinta Reformed"}
             search{"Raadinta Guud"}
             searchjl{"Raadinta Shibanaha Hangul"}
             standard{"Amarka Kala Soocidda Caadiga ah"}
@@ -841,8 +827,6 @@ so{
         compatibility{"{0} — waafaqsanaanta"}
         enclosed{"{0}— xiran"}
         extended{"{0}— dheereyey"}
-        facing-left{"{0} bidix u jeeda"}
-        facing-right{"{0} midig u jeeda"}
         historic{"{0}—taariikhi ah"}
         miscellaneous{"{0}— qaar kale"}
         other{"{0}—kale"}

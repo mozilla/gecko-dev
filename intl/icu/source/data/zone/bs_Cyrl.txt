@@ -463,6 +463,9 @@ bs_Cyrl{
         "America:New_York"{
             ec{"Њујорк"}
         }
+        "America:Nipigon"{
+            ec{"Нипигон"}
+        }
         "America:Nome"{
             ec{"Ном"}
         }
@@ -484,6 +487,9 @@ bs_Cyrl{
         "America:Panama"{
             ec{"Панама"}
         }
+        "America:Pangnirtung"{
+            ec{"Пангниртунг"}
+        }
         "America:Paramaribo"{
             ec{"Парамарибо"}
         }
@@ -504,6 +510,9 @@ bs_Cyrl{
         }
         "America:Punta_Arenas"{
             ec{"Пунта Аренас"}
+        }
+        "America:Rainy_River"{
+            ec{"Рејни Ривер"}
         }
         "America:Rankin_Inlet"{
             ec{"Ранкин Инлет"}
@@ -565,6 +574,9 @@ bs_Cyrl{
         "America:Thule"{
             ec{"Туле"}
         }
+        "America:Thunder_Bay"{
+            ec{"Тандер Беј"}
+        }
         "America:Tijuana"{
             ec{"Тихуана"}
         }
@@ -585,6 +597,9 @@ bs_Cyrl{
         }
         "America:Yakutat"{
             ec{"Јакутат"}
+        }
+        "America:Yellowknife"{
+            ec{"Јелоунајф"}
         }
         "Antarctica:Casey"{
             ec{"Касеј"}
@@ -675,6 +690,9 @@ bs_Cyrl{
         }
         "Asia:Chita"{
             ec{"Чита"}
+        }
+        "Asia:Choibalsan"{
+            ec{"Чојбалсан"}
         }
         "Asia:Colombo"{
             ec{"Коломбо"}
@@ -907,6 +925,9 @@ bs_Cyrl{
         "Australia:Broken_Hill"{
             ec{"Брокен Хил"}
         }
+        "Australia:Currie"{
+            ec{"Курие"}
+        }
         "Australia:Darwin"{
             ec{"Дарвин"}
         }
@@ -1089,6 +1110,9 @@ bs_Cyrl{
         "Europe:Ulyanovsk"{
             ec{"Уљановск"}
         }
+        "Europe:Uzhgorod"{
+            ec{"Ужгород"}
+        }
         "Europe:Vaduz"{
             ec{"Вадуз"}
         }
@@ -1109,6 +1133,9 @@ bs_Cyrl{
         }
         "Europe:Zagreb"{
             ec{"Загреб"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Запорожје"}
         }
         "Europe:Zurich"{
             ec{"Цирих"}
@@ -1190,6 +1217,9 @@ bs_Cyrl{
         }
         "Pacific:Honolulu"{
             ec{"Хонолулу"}
+        }
+        "Pacific:Johnston"{
+            ec{"Џонстон"}
         }
         "Pacific:Kiritimati"{
             ec{"Киритимати"}
@@ -1434,6 +1464,11 @@ bs_Cyrl{
             lg{"Кина вријеме"}
             ls{"Кина стандардно вријеме"}
         }
+        "meta:Choibalsan"{
+            ld{"Чојбалсан љетње рачунање времена"}
+            lg{"Чојбалсан вријеме"}
+            ls{"Чојбалсан стандардно вријеме"}
+        }
         "meta:Christmas"{
             ls{"Божићна острва вријеме"}
         }
@@ -1600,9 +1635,6 @@ bs_Cyrl{
             lg{"Петропавловско-камчатско време"}
             ls{"Петропавловско-камчатско стандардно време"}
         }
-        "meta:Kazakhstan"{
-            ls{"Kazakhstan Time"}
-        }
         "meta:Kazakhstan_Eastern"{
             ls{"Источно-казахстанско вријеме"}
         }
@@ -1641,6 +1673,9 @@ bs_Cyrl{
             lg{"Макао време"}
             ls{"Макао стандардно време"}
         }
+        "meta:Macquarie"{
+            ls{"Макверијско вријеме"}
+        }
         "meta:Magadan"{
             ld{"Магадан љетње рачунање вемена"}
             lg{"Магадан вријеме"}
@@ -1665,6 +1700,11 @@ bs_Cyrl{
         }
         "meta:Mawson"{
             ls{"Мосон вријеме"}
+        }
+        "meta:Mexico_Northwest"{
+            ld{"Сјеверномексичко љетње рачунање времена"}
+            lg{"Сјеверномексичко вријеме"}
+            ls{"Сјеверномексичко стандардно вријеме"}
         }
         "meta:Mexico_Pacific"{
             ld{"Мексичко пацифичко љетње рачунање времена"}
@@ -1895,9 +1935,8 @@ bs_Cyrl{
             lg{"Јекатеринбург вријеме"}
             ls{"Јекатеринбург стандардно вријеме"}
         }
-        "meta:Yukon"{
-            ls{"Yukon Time"}
-        }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
         regionFormat{"Време: {0}"}
     }
 }

@@ -41,7 +41,7 @@ U_CDECL_END
 U_NAMESPACE_BEGIN
 
 RBBISymbolTable::RBBISymbolTable(RBBIRuleScanner *rs, const UnicodeString &rules, UErrorCode &status)
-    : fRules(rules), fRuleScanner(rs), ffffString(static_cast<char16_t>(0xffff))
+    :fRules(rules), fRuleScanner(rs), ffffString(char16_t(0xffff))
 {
     fHashTable       = nullptr;
     fCachedSetLookup = nullptr;
@@ -76,9 +76,9 @@ const UnicodeString  *RBBISymbolTable::lookup(const UnicodeString& s) const
     RBBINode              *exprNode;
     RBBINode              *usetNode;
     const UnicodeString   *retString;
-    RBBISymbolTable       *This = const_cast<RBBISymbolTable*>(this); // cast off const
+    RBBISymbolTable       *This = (RBBISymbolTable *)this;   // cast off const
 
-    el = static_cast<RBBISymbolTableEntry*>(uhash_get(fHashTable, &s));
+    el = (RBBISymbolTableEntry *)uhash_get(fHashTable, &s);
     if (el == nullptr) {
         return nullptr;
     }
@@ -119,10 +119,10 @@ const UnicodeString  *RBBISymbolTable::lookup(const UnicodeString& s) const
 const UnicodeFunctor *RBBISymbolTable::lookupMatcher(UChar32 ch) const
 {
     UnicodeSet *retVal = nullptr;
-    RBBISymbolTable *This = const_cast<RBBISymbolTable*>(this); // cast off const
+    RBBISymbolTable *This = (RBBISymbolTable *)this;   // cast off const
     if (ch == 0xffff) {
         retVal = fCachedSetLookup;
-        This->fCachedSetLookup = nullptr;
+        This->fCachedSetLookup = 0;
     }
     return retVal;
 }
@@ -170,7 +170,7 @@ RBBINode       *RBBISymbolTable::lookupNode(const UnicodeString &key) const{
     RBBINode             *retNode = nullptr;
     RBBISymbolTableEntry *el;
 
-    el = static_cast<RBBISymbolTableEntry*>(uhash_get(fHashTable, &key));
+    el = (RBBISymbolTableEntry *)uhash_get(fHashTable, &key);
     if (el != nullptr) {
         retNode = el->val;
     }
@@ -190,7 +190,7 @@ void            RBBISymbolTable::addEntry  (const UnicodeString &key, RBBINode *
     if (U_FAILURE(err)) {
         return;
     }
-    e = static_cast<RBBISymbolTableEntry*>(uhash_get(fHashTable, &key));
+    e = (RBBISymbolTableEntry *)uhash_get(fHashTable, &key);
     if (e != nullptr) {
         err = U_BRK_VARIABLE_REDFINITION;
         return;

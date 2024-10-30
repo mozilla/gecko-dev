@@ -16,8 +16,8 @@
 #include "number_currencysymbols.h"
 
 U_NAMESPACE_BEGIN
-
-namespace numparse::impl {
+namespace numparse {
+namespace impl {
 
 // Forward-declaration of implementation classes for friending
 class AffixPatternMatcherBuilder;
@@ -44,7 +44,8 @@ class U_I18N_API CodePointMatcher : public NumberParseMatcher, public UMemory {
     UChar32 fCp;
 };
 
-} // namespace numparse::impl
+} // namespace impl
+} // namespace numparse
 
 // Export a explicit template instantiations of MaybeStackArray, MemoryPool and CompactUnicodeString.
 // When building DLLs for Windows this is required even though no direct access leaks out of the i18n library.
@@ -57,7 +58,8 @@ template class U_I18N_API MemoryPool<numparse::impl::CodePointMatcher, 8>;
 template class U_I18N_API numparse::impl::CompactUnicodeString<4>;
 #endif
 
-namespace numparse::impl {
+namespace numparse {
+namespace impl {
 
 struct AffixTokenMatcherSetupData {
     const CurrencySymbols& currencySymbols;
@@ -219,8 +221,9 @@ class AffixMatcherWarehouse {
                               parse_flags_t parseFlags, UErrorCode& status);
 };
 
-} // namespace numparse::impl
 
+} // namespace impl
+} // namespace numparse
 U_NAMESPACE_END
 
 #endif //__NUMPARSE_AFFIXES_H__

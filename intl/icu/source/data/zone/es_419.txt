@@ -39,6 +39,9 @@ es_419{
         "Europe:Guernsey"{
             ec{"Guernsey"}
         }
+        "Pacific:Kanton"{
+            ec{"Kanton"}
+        }
         "Pacific:Wake"{
             ec{"Isla Wake"}
         }
@@ -100,6 +103,9 @@ es_419{
         }
         "meta:India"{
             ls{"hora de India"}
+        }
+        "meta:Macquarie"{
+            ls{"hora de la Isla Macquarie"}
         }
         "meta:Marshall_Islands"{
             ls{"hora de Islas Marshall"}

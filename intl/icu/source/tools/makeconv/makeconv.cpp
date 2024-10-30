@@ -160,12 +160,12 @@ writeConverterData(ConvData *data, const char *cnvName, const char *cnvDir, UErr
     sz2 = udata_finish(mem, status);
     if(size != sz2)
     {
-        fprintf(stderr, "error: wrote %u bytes to the .cnv file but counted %u bytes\n", static_cast<int>(sz2), static_cast<int>(size));
+        fprintf(stderr, "error: wrote %u bytes to the .cnv file but counted %u bytes\n", (int)sz2, (int)size);
         *status=U_INTERNAL_PROGRAM_ERROR;
     }
     if(VERBOSE)
     {
-      printf("- Wrote %u bytes to the udata.\n", static_cast<int>(sz2));
+      printf("- Wrote %u bytes to the udata.\n", (int)sz2);
     }
 }
 
@@ -284,7 +284,7 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    UBool printFilename = static_cast<UBool>(argc > 2 || VERBOSE);
+    UBool printFilename = (UBool) (argc > 2 || VERBOSE);
     icu::CharString pathBuf;
     for (++argv; --argc; ++argv)
     {
@@ -377,10 +377,6 @@ int main(int argc, char* argv[])
                     data.staticData.name);
             }
 
-            if (strlen(cnvName) + 1 > UPRV_LENGTHOF(data.staticData.name)) {
-                fprintf(stderr, "converter name %s too long\n", cnvName);
-                return U_BUFFER_OVERFLOW_ERROR;
-            }
             uprv_strcpy((char*)data.staticData.name, cnvName);
 
             if(!uprv_isInvariantString((char*)data.staticData.name, -1)) {
@@ -430,7 +426,7 @@ getPlatformAndCCSIDFromName(const char *name, int8_t *pPlatform, int32_t *pCCSID
             ++name;
         }
         *pPlatform=UCNV_IBM;
-        *pCCSID = static_cast<int32_t>(uprv_strtoul(name, nullptr, 10));
+        *pCCSID=(int32_t)uprv_strtoul(name, nullptr, 10);
     } else {
         *pPlatform=UCNV_UNKNOWN;
         *pCCSID=0;
@@ -500,8 +496,8 @@ readHeader(ConvData *data,
     }
 
     /* copy values from the UCMFile to the static data */
-    staticData->maxBytesPerChar = static_cast<int8_t>(data->ucm->states.maxCharLength);
-    staticData->minBytesPerChar = static_cast<int8_t>(data->ucm->states.minCharLength);
+    staticData->maxBytesPerChar=(int8_t)data->ucm->states.maxCharLength;
+    staticData->minBytesPerChar=(int8_t)data->ucm->states.minCharLength;
     staticData->conversionType=data->ucm->states.conversionType;
 
     if(staticData->conversionType==UCNV_UNSUPPORTED_CONVERTER) {
@@ -551,7 +547,7 @@ readHeader(ConvData *data,
     }
 
     if(data->ucm->states.outputType<0) {
-        data->ucm->states.outputType = static_cast<int8_t>(data->ucm->states.maxCharLength) - 1;
+        data->ucm->states.outputType=(int8_t)data->ucm->states.maxCharLength-1;
     }
 
     if( staticData->subChar1!=0 &&
@@ -733,7 +729,7 @@ createConverter(ConvData *data, const char *converterName, UErrorCode *pErrorCod
 
         /* assemble a path/filename for data->ucm->baseName */
         uprv_strcpy(baseFilename, converterName);
-        basename = const_cast<char*>(findBasename(baseFilename));
+        basename=(char *)findBasename(baseFilename);
         uprv_strcpy(basename, data->ucm->baseName);
         uprv_strcat(basename, ".ucm");
 
@@ -756,12 +752,12 @@ createConverter(ConvData *data, const char *converterName, UErrorCode *pErrorCod
 
                 baseStates=&baseData.ucm->states;
                 if(states->conversionType==UCNV_DBCS) {
-                    staticData->minBytesPerChar = static_cast<int8_t>(states->minCharLength = 2);
+                    staticData->minBytesPerChar=(int8_t)(states->minCharLength=2);
                 } else if(states->minCharLength==0) {
-                    staticData->minBytesPerChar = static_cast<int8_t>(states->minCharLength = baseStates->minCharLength);
+                    staticData->minBytesPerChar=(int8_t)(states->minCharLength=baseStates->minCharLength);
                 }
                 if(states->maxCharLength<states->minCharLength) {
-                    staticData->maxBytesPerChar = static_cast<int8_t>(states->maxCharLength = baseStates->maxCharLength);
+                    staticData->maxBytesPerChar=(int8_t)(states->maxCharLength=baseStates->maxCharLength);
                 }
 
                 if(staticData->subCharLen==0) {

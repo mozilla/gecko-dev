@@ -20,14 +20,14 @@ UOBJECT_DEFINE_RTTI_IMPLEMENTATION(UCharCharacterIterator)
 
 UCharCharacterIterator::UCharCharacterIterator()
   : CharacterIterator(),
-  text(nullptr)
+  text(0)
 {
     // never default construct!
 }
 
 UCharCharacterIterator::UCharCharacterIterator(ConstChar16Ptr textPtr,
                                                int32_t length)
-  : CharacterIterator(textPtr != nullptr ? (length >= 0 ? length : u_strlen(textPtr)) : 0),
+  : CharacterIterator(textPtr != 0 ? (length>=0 ? length : u_strlen(textPtr)) : 0),
   text(textPtr)
 {
 }
@@ -35,7 +35,7 @@ UCharCharacterIterator::UCharCharacterIterator(ConstChar16Ptr textPtr,
 UCharCharacterIterator::UCharCharacterIterator(ConstChar16Ptr textPtr,
                                                int32_t length,
                                                int32_t position)
-  : CharacterIterator(textPtr != nullptr ? (length >= 0 ? length : u_strlen(textPtr)) : 0, position),
+  : CharacterIterator(textPtr != 0 ? (length>=0 ? length : u_strlen(textPtr)) : 0, position),
   text(textPtr)
 {
 }
@@ -45,8 +45,7 @@ UCharCharacterIterator::UCharCharacterIterator(ConstChar16Ptr textPtr,
                                                int32_t textBegin,
                                                int32_t textEnd,
                                                int32_t position)
-  : CharacterIterator(textPtr != nullptr ? (length >= 0 ? length : u_strlen(textPtr)) : 0,
-                      textBegin, textEnd, position),
+  : CharacterIterator(textPtr != 0 ? (length>=0 ? length : u_strlen(textPtr)) : 0, textBegin, textEnd, position),
   text(textPtr)
 {
 }
@@ -172,7 +171,7 @@ UCharCharacterIterator::nextPostInc() {
 
 UBool
 UCharCharacterIterator::hasNext() {
-    return pos < end;
+    return (UBool)(pos < end ? true : false);
 }
 
 char16_t
@@ -186,7 +185,7 @@ UCharCharacterIterator::previous() {
 
 UBool
 UCharCharacterIterator::hasPrevious() {
-    return pos > begin;
+    return (UBool)(pos > begin ? true : false);
 }
 
 UChar32
@@ -353,7 +352,7 @@ UCharCharacterIterator::move32(int32_t delta, CharacterIterator::EOrigin origin)
 void UCharCharacterIterator::setText(ConstChar16Ptr newText,
                                      int32_t      newTextLength) {
     text = newText;
-    if (newText == nullptr || newTextLength < 0) {
+    if(newText == 0 || newTextLength < 0) {
         newTextLength = 0;
     }
     end = textLength = newTextLength;

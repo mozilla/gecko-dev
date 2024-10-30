@@ -261,7 +261,7 @@ static UBool isAvailableLocaleListInitialized(UErrorCode &status) {
 
 namespace {
 
-const struct {
+static const struct {
     const char *name;
     UColAttribute attr;
 } collAttributes[] = {
@@ -274,7 +274,7 @@ const struct {
     { "colNumeric", UCOL_NUMERIC_COLLATION }
 };
 
-const struct {
+static const struct {
     const char *name;
     UColAttributeValue value;
 } collAttributeValues[] = {
@@ -292,7 +292,7 @@ const struct {
     { "upper", UCOL_UPPER_FIRST }
 };
 
-const char* collReorderCodes[UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST] = {
+static const char *collReorderCodes[UCOL_REORDER_CODE_LIMIT - UCOL_REORDER_CODE_FIRST] = {
     "space", "punct", "symbol", "currency", "digit"
 };
 
@@ -413,7 +413,7 @@ void setAttributesFromKeywords(const Locale &loc, Collator &coll, UErrorCode &er
             errorCode = U_ILLEGAL_ARGUMENT_ERROR;
             return;
         }
-        coll.setMaxVariable(static_cast<UColReorderCode>(code), errorCode);
+        coll.setMaxVariable((UColReorderCode)code, errorCode);
     }
     if (U_FAILURE(errorCode)) {
         errorCode = U_ILLEGAL_ARGUMENT_ERROR;
@@ -431,7 +431,7 @@ Collator* U_EXPORT2 Collator::createInstance(const Locale& desiredLocale,
                                    UErrorCode& status)
 {
     if (U_FAILURE(status)) 
-        return nullptr;
+        return 0;
     if (desiredLocale.isBogus()) {
         // Locale constructed from malformed locale ID or language tag.
         status = U_ILLEGAL_ARGUMENT_ERROR;
@@ -493,7 +493,7 @@ Collator::EComparisonResult Collator::compare(const UnicodeString& source,
                                     const UnicodeString& target) const
 {
     UErrorCode ec = U_ZERO_ERROR;
-    return static_cast<EComparisonResult>(compare(source, target, ec));
+    return (EComparisonResult)compare(source, target, ec);
 }
 
 // implement deprecated, previously abstract method
@@ -502,7 +502,7 @@ Collator::EComparisonResult Collator::compare(const UnicodeString& source,
                                     int32_t length) const
 {
     UErrorCode ec = U_ZERO_ERROR;
-    return static_cast<EComparisonResult>(compare(source, target, length, ec));
+    return (EComparisonResult)compare(source, target, length, ec);
 }
 
 // implement deprecated, previously abstract method
@@ -511,7 +511,7 @@ Collator::EComparisonResult Collator::compare(const char16_t* source, int32_t so
                                     const
 {
     UErrorCode ec = U_ZERO_ERROR;
-    return static_cast<EComparisonResult>(compare(source, sourceLength, target, targetLength, ec));
+    return (EComparisonResult)compare(source, sourceLength, target, targetLength, ec);
 }
 
 UCollationResult Collator::compare(UCharIterator &/*sIter*/,
@@ -834,7 +834,7 @@ public:
         if(index < availableLocaleListCount) {
             result = availableLocaleList[index++].getName();
             if(resultLength != nullptr) {
-                *resultLength = static_cast<int32_t>(uprv_strlen(result));
+                *resultLength = (int32_t)uprv_strlen(result);
             }
         } else {
             if(resultLength != nullptr) {
@@ -915,13 +915,13 @@ Collator::getFunctionalEquivalent(const char* keyword, const Locale& locale,
 Collator::ECollationStrength
 Collator::getStrength() const {
     UErrorCode intStatus = U_ZERO_ERROR;
-    return static_cast<ECollationStrength>(getAttribute(UCOL_STRENGTH, intStatus));
+    return (ECollationStrength)getAttribute(UCOL_STRENGTH, intStatus);
 }
 
 void
 Collator::setStrength(ECollationStrength newStrength) {
     UErrorCode intStatus = U_ZERO_ERROR;
-    setAttribute(UCOL_STRENGTH, static_cast<UColAttributeValue>(newStrength), intStatus);
+    setAttribute(UCOL_STRENGTH, (UColAttributeValue)newStrength, intStatus);
 }
 
 Collator &

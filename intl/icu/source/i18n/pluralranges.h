@@ -17,8 +17,10 @@
 U_NAMESPACE_BEGIN
 
 // Forward declarations
-namespace number::impl {
+namespace number {
+namespace impl {
 class UFormattedNumberRangeData;
+}
 }
 
 class StandardPluralRanges : public UMemory {

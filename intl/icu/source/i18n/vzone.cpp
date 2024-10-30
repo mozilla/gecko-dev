@@ -87,6 +87,8 @@ vzone_write(VZone* zone, char16_t* & result, int32_t & resultLength, UErrorCode&
     resultLength = s.length();
     result = (char16_t*)uprv_malloc(resultLength);
     memcpy(result,s.getBuffer(),resultLength);
+
+    return;
 }
 
 U_CAPI void U_EXPORT2
@@ -97,6 +99,8 @@ vzone_writeFromStart(VZone* zone, UDate start, char16_t* & result, int32_t & res
     resultLength = s.length();
     result = (char16_t*)uprv_malloc(resultLength);
     memcpy(result,s.getBuffer(),resultLength);
+
+    return;
 }
 
 U_CAPI void U_EXPORT2
@@ -107,6 +111,8 @@ vzone_writeSimple(VZone* zone, UDate time, char16_t* & result, int32_t & resultL
     resultLength = s.length();
     result = (char16_t*)uprv_malloc(resultLength);
     memcpy(result,s.getBuffer(),resultLength);
+
+    return;
 }
 
 U_CAPI int32_t U_EXPORT2

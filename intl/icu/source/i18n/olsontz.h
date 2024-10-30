@@ -410,7 +410,7 @@ OlsonTimeZone::transitionCount() const {
 
 inline double
 OlsonTimeZone::transitionTime(int16_t transIdx) const {
-    return static_cast<double>(transitionTimeInSeconds(transIdx)) * U_MILLIS_PER_SECOND;
+    return (double)transitionTimeInSeconds(transIdx) * U_MILLIS_PER_SECOND;
 }
 
 inline int32_t

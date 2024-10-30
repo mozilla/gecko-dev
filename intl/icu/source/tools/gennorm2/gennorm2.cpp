@@ -78,11 +78,8 @@ static UOption options[]={
     UOPTION_DEF("fast", '\1', UOPT_NO_ARG)
 };
 
-U_NAMESPACE_END
-
-int
+extern "C" int
 main(int argc, char* argv[]) {
-    U_NAMESPACE_USE
     U_MAIN_INIT_ARGS(argc, argv);
 
     /* preset then read command line options */
@@ -231,8 +228,6 @@ main(int argc, char* argv[]) {
 #endif
 }
 
-U_NAMESPACE_BEGIN
-
 #if !UCONFIG_NO_NORMALIZATION
 
 void parseFile(std::ifstream &f, Normalizer2DataBuilder &builder) {
@@ -244,7 +239,7 @@ void parseFile(std::ifstream &f, Normalizer2DataBuilder &builder) {
             continue;  // skip empty lines.
         }
         char *line = &lineString.front();
-        char* comment = strchr(line, '#');
+        char *comment=(char *)strchr(line, '#');
         if(comment!=nullptr) {
             *comment=0;
         }
@@ -281,8 +276,8 @@ void parseFile(std::ifstream &f, Normalizer2DataBuilder &builder) {
                 fprintf(stderr, "gennorm2 error: parsing ccc from %s\n", line);
                 exit(U_PARSE_ERROR);
             }
-            for (UChar32 c = static_cast<UChar32>(startCP); c <= static_cast<UChar32>(endCP); ++c) {
-                builder.setCC(c, static_cast<uint8_t>(value));
+            for(UChar32 c=(UChar32)startCP; c<=(UChar32)endCP; ++c) {
+                builder.setCC(c, (uint8_t)value);
             }
             continue;
         }
@@ -291,7 +286,7 @@ void parseFile(std::ifstream &f, Normalizer2DataBuilder &builder) {
                 fprintf(stderr, "gennorm2 error: parsing remove-mapping %s\n", line);
                 exit(U_PARSE_ERROR);
             }
-            for (UChar32 c = static_cast<UChar32>(startCP); c <= static_cast<UChar32>(endCP); ++c) {
+            for(UChar32 c=(UChar32)startCP; c<=(UChar32)endCP; ++c) {
                 builder.removeMapping(c);
             }
             continue;
@@ -311,9 +306,9 @@ void parseFile(std::ifstream &f, Normalizer2DataBuilder &builder) {
                             line);
                     exit(U_PARSE_ERROR);
                 }
-                builder.setRoundTripMapping(static_cast<UChar32>(startCP), mapping);
+                builder.setRoundTripMapping((UChar32)startCP, mapping);
             } else {
-                for (UChar32 c = static_cast<UChar32>(startCP); c <= static_cast<UChar32>(endCP); ++c) {
+                for(UChar32 c=(UChar32)startCP; c<=(UChar32)endCP; ++c) {
                     builder.setOneWayMapping(c, mapping);
                 }
             }

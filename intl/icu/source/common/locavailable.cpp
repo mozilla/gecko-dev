@@ -39,10 +39,14 @@ static icu::Locale*  availableLocaleList = nullptr;
 static int32_t  availableLocaleListCount;
 static icu::UInitOnce gInitOnceLocale {};
 
-namespace {
+U_NAMESPACE_END
 
-UBool U_CALLCONV locale_available_cleanup()
+U_CDECL_BEGIN
+
+static UBool U_CALLCONV locale_available_cleanup()
 {
+    U_NAMESPACE_USE
+
     if (availableLocaleList) {
         delete []availableLocaleList;
         availableLocaleList = nullptr;
@@ -53,7 +57,9 @@ UBool U_CALLCONV locale_available_cleanup()
     return true;
 }
 
-}  // namespace
+U_CDECL_END
+
+U_NAMESPACE_BEGIN
 
 void U_CALLCONV locale_available_init() {
     // This function is a friend of class Locale.
@@ -101,9 +107,10 @@ icu::UInitOnce ginstalledLocalesInitOnce {};
 class AvailableLocalesSink : public ResourceSink {
   public:
     void put(const char *key, ResourceValue &value, UBool /*noFallback*/, UErrorCode &status) override {
-        if (U_FAILURE(status)) { return; }
         ResourceTable resIndexTable = value.getTable(status);
-        if (U_FAILURE(status)) { return; }
+        if (U_FAILURE(status)) {
+            return;
+        }
         for (int32_t i = 0; resIndexTable.getKeyAndValue(i, key, value); ++i) {
             ULocAvailableType type;
             if (uprv_strcmp(key, "InstalledLocales") == 0) {
@@ -137,8 +144,7 @@ class AvailableLocalesStringEnumeration : public StringEnumeration {
     AvailableLocalesStringEnumeration(ULocAvailableType type) : fType(type) {
     }
 
-    const char* next(int32_t *resultLength, UErrorCode &status) override {
-        if (U_FAILURE(status)) { return nullptr; }
+    const char* next(int32_t *resultLength, UErrorCode&) override {
         ULocAvailableType actualType = fType;
         int32_t actualIndex = fIndex++;
 
@@ -170,13 +176,11 @@ class AvailableLocalesStringEnumeration : public StringEnumeration {
         return result;
     }
 
-    void reset(UErrorCode &status) override {
-        if (U_FAILURE(status)) { return; }
+    void reset(UErrorCode&) override {
         fIndex = 0;
     }
 
-    int32_t count(UErrorCode &status) const override {
-        if (U_FAILURE(status)) { return 0; }
+    int32_t count(UErrorCode&) const override {
         if (fType == ULOC_AVAILABLE_WITH_LEGACY_ALIASES) {
             return gAvailableLocaleCounts[ULOC_AVAILABLE_DEFAULT]
                 + gAvailableLocaleCounts[ULOC_AVAILABLE_ONLY_LEGACY_ALIASES];
@@ -192,7 +196,7 @@ class AvailableLocalesStringEnumeration : public StringEnumeration {
 
 /* ### Get available **************************************************/
 
-UBool U_CALLCONV uloc_cleanup() {
+static UBool U_CALLCONV uloc_cleanup() {
     for (int32_t i = 0; i < UPRV_LENGTHOF(gAvailableLocaleNames); i++) {
         uprv_free(gAvailableLocaleNames[i]);
         gAvailableLocaleNames[i] = nullptr;
@@ -205,7 +209,7 @@ UBool U_CALLCONV uloc_cleanup() {
 // Load Installed Locales. This function will be called exactly once
 //   via the initOnce mechanism.
 
-void U_CALLCONV loadInstalledLocales(UErrorCode& status) {
+static void U_CALLCONV loadInstalledLocales(UErrorCode& status) {
     ucln_common_registerCleanup(UCLN_COMMON_ULOC, uloc_cleanup);
 
     icu::LocalUResourceBundlePointer rb(ures_openDirect(nullptr, "res_index", &status));
@@ -263,3 +267,4 @@ uloc_openAvailableByType(ULocAvailableType type, UErrorCode* status) {
     }
     return uenum_openFromStringEnumeration(result.orphan(), status);
 }
+

@@ -14,8 +14,8 @@
 #include "resource.h"
 #include "number_patternmodifier.h"
 
-U_NAMESPACE_BEGIN
-namespace number::impl {
+U_NAMESPACE_BEGIN namespace number {
+namespace impl {
 
 static const int32_t COMPACT_MAX_DIGITS = 20;
 
@@ -90,7 +90,9 @@ class CompactHandler : public MicroPropsGenerator, public UMemory {
     void precomputeAllModifiers(MutablePatternModifier &buildReference, UErrorCode &status);
 };
 
-} // namespace number::impl
+
+} // namespace impl
+} // namespace number
 U_NAMESPACE_END
 
 #endif //__NUMBER_COMPACT_H__

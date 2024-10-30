@@ -90,8 +90,6 @@ class ISO8601Calendar : public GregorianCalendar {
    */
   virtual const char * getType() const override;
 
- protected:
-  virtual bool isEra0CountingBackward() const override { return false; }
 
  private:
  

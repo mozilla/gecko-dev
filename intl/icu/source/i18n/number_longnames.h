@@ -13,8 +13,8 @@
 #include "number_utils.h"
 #include "number_modifiers.h"
 
-U_NAMESPACE_BEGIN
-namespace number::impl {
+U_NAMESPACE_BEGIN namespace number {
+namespace impl {
 
 // LongNameHandler takes care of formatting currency and measurement unit names,
 // as well as populating the gender of measure units.
@@ -263,7 +263,8 @@ class LongNameMultiplexer : public MicroPropsGenerator, public UMemory {
     }
 };
 
-} // namespace number::impl
+}  // namespace impl
+}  // namespace number
 U_NAMESPACE_END
 
 #endif //__NUMBER_LONGNAMES_H__

@@ -20,8 +20,8 @@
 #include "charstr.h"
 #include "util.h"
 
-U_NAMESPACE_BEGIN
-namespace number::impl {
+U_NAMESPACE_BEGIN namespace number {
+namespace impl {
 
 /**
  * A copyable container for the integer values of mixed unit measurements.
@@ -188,7 +188,8 @@ struct MicroProps : public MicroPropsGenerator {
     bool exhausted = false;
 };
 
-} // namespace number::impl
+} // namespace impl
+} // namespace number
 U_NAMESPACE_END
 
 #endif // __NUMBER_MICROPROPS_H__

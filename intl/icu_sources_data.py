@@ -46,6 +46,7 @@ UNUSED_SOURCES = set(
         "intl/icu/source/common/unorm.cpp",
         "intl/icu/source/common/usc_impl.cpp",
         "intl/icu/source/common/ustr_wcs.cpp",
+        "intl/icu/source/common/util_props.cpp",
         "intl/icu/source/i18n/anytrans.cpp",
         "intl/icu/source/i18n/brktrans.cpp",
         "intl/icu/source/i18n/casetrn.cpp",
@@ -242,7 +243,6 @@ def update_data_file(topsrcdir):
                 + "-DUCONFIG_NO_REGULAR_EXPRESSIONS "
                 + "-DUCONFIG_NO_BREAK_ITERATION "
                 + "-DUCONFIG_NO_BREAK_IDNA "
-                + "-DUCONFIG_NO_MF2 "
                 + "-DU_CHARSET_IS_UTF8 "
             )
         }

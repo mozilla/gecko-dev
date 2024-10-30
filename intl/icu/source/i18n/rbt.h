@@ -115,7 +115,7 @@ private:
      */
     RuleBasedTransliterator(const UnicodeString& id,
                             const TransliterationRuleData* theData,
-                            UnicodeFilter* adoptedFilter = nullptr);
+                            UnicodeFilter* adoptedFilter = 0);
 
 
     friend class Transliterator; // to access following ct

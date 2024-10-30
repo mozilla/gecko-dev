@@ -32,8 +32,6 @@ public:
 
     void rangeHandler(UChar32 start, UChar32 end, Norm &norm) override;
 
-    UnicodeString maybeNoMappingsOnly;
-    UnicodeString maybeNoMappingsAndCompositions;
     UnicodeString maybeYesCompositions;
     UnicodeString yesYesCompositions;
     UnicodeString yesNoMappingsAndCompositions;
@@ -46,17 +44,15 @@ public:
 private:
     /**
      * Requires norm.hasMapping().
-     * Returns the offset of the "first unit" from the beginning of the extraData for c,
-     * not from the beginning of the dataString.
+     * Returns the offset of the "first unit" from the beginning of the extraData for c.
      * That is the same as the length of the optional data
      * for the raw mapping and the ccc/lccc word.
      */
     int32_t writeMapping(UChar32 c, const Norm &norm, UnicodeString &dataString);
-    /** Returns the full offset into the dataString of the "first unit" for c. */
     int32_t writeNoNoMapping(UChar32 c, const Norm &norm,
                              UnicodeString &dataString, Hashtable &previousMappings);
     UBool setNoNoDelta(UChar32 c, Norm &norm) const;
-    /** Requires norm.combinesFwd(). */
+    /** Requires norm.compositions!=nullptr. */
     void writeCompositions(UChar32 c, const Norm &norm, UnicodeString &dataString);
     void writeExtraData(UChar32 c, Norm &norm);
 

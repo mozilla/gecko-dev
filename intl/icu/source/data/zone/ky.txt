@@ -465,6 +465,9 @@ ky{
         "America:New_York"{
             ec{"Нью-Йорк"}
         }
+        "America:Nipigon"{
+            ec{"Нипигон"}
+        }
         "America:Nome"{
             ec{"Ном"}
         }
@@ -485,6 +488,9 @@ ky{
         }
         "America:Panama"{
             ec{"Панама"}
+        }
+        "America:Pangnirtung"{
+            ec{"Пангиртуң"}
         }
         "America:Paramaribo"{
             ec{"Парамарибо"}
@@ -507,6 +513,9 @@ ky{
         "America:Punta_Arenas"{
             ec{"Пунта-Аренас"}
         }
+        "America:Rainy_River"{
+            ec{"Рейни Ривер"}
+        }
         "America:Rankin_Inlet"{
             ec{"Рэнкин Инлет"}
         }
@@ -521,6 +530,9 @@ ky{
         }
         "America:Rio_Branco"{
             ec{"Рио Бранко"}
+        }
+        "America:Santa_Isabel"{
+            ec{"Санта Изабел"}
         }
         "America:Santarem"{
             ec{"Сантарем"}
@@ -567,6 +579,9 @@ ky{
         "America:Thule"{
             ec{"Туле"}
         }
+        "America:Thunder_Bay"{
+            ec{"Сандер Бей"}
+        }
         "America:Tijuana"{
             ec{"Тихуана"}
         }
@@ -587,6 +602,9 @@ ky{
         }
         "America:Yakutat"{
             ec{"Якутат"}
+        }
+        "America:Yellowknife"{
+            ec{"Йеллоунайф"}
         }
         "Antarctica:Casey"{
             ec{"Кейси"}
@@ -677,6 +695,9 @@ ky{
         }
         "Asia:Chita"{
             ec{"Чита"}
+        }
+        "Asia:Choibalsan"{
+            ec{"Чойбалсан"}
         }
         "Asia:Colombo"{
             ec{"Коломбо"}
@@ -909,6 +930,9 @@ ky{
         "Australia:Broken_Hill"{
             ec{"Броукен Хил"}
         }
+        "Australia:Currie"{
+            ec{"Керри"}
+        }
         "Australia:Darwin"{
             ec{"Дарвин"}
         }
@@ -1091,6 +1115,9 @@ ky{
         "Europe:Ulyanovsk"{
             ec{"Ульяновск"}
         }
+        "Europe:Uzhgorod"{
+            ec{"Ужгород"}
+        }
         "Europe:Vaduz"{
             ec{"Фадуц"}
         }
@@ -1111,6 +1138,9 @@ ky{
         }
         "Europe:Zagreb"{
             ec{"Загреб"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Запорожье"}
         }
         "Europe:Zurich"{
             ec{"Цюрих"}
@@ -1192,6 +1222,9 @@ ky{
         }
         "Pacific:Honolulu"{
             ec{"Гонолулу"}
+        }
+        "Pacific:Johnston"{
+            ec{"Жонстон"}
         }
         "Pacific:Kanton"{
             ec{"Кантон"}
@@ -1414,6 +1447,11 @@ ky{
             lg{"Кытай убактысы"}
             ls{"Кытай кышкы убакыты"}
         }
+        "meta:Choibalsan"{
+            ld{"Чойбалсан жайкы убактысы"}
+            lg{"Чойбалсан убактысы"}
+            ls{"Чойбалсан кышкы убакыты"}
+        }
         "meta:Christmas"{
             ls{"Крисмас аралынын убактысы"}
         }
@@ -1572,9 +1610,6 @@ ky{
             lg{"Жапон убактысы"}
             ls{"Жапон кышкы убакыты"}
         }
-        "meta:Kazakhstan"{
-            ls{"Казакстан убактысы"}
-        }
         "meta:Kazakhstan_Eastern"{
             ls{"Чыгыш Казакстан убактысы"}
         }
@@ -1605,6 +1640,9 @@ ky{
             lg{"Лорд Хау убактысы"}
             ls{"Лорд Хау кышкы убакыты"}
         }
+        "meta:Macquarie"{
+            ls{"Макуари убактысы"}
+        }
         "meta:Magadan"{
             ld{"Магадан жайкы убактысы"}
             lg{"Магадан убактысы"}
@@ -1629,6 +1667,11 @@ ky{
         }
         "meta:Mawson"{
             ls{"Моусон убактысы"}
+        }
+        "meta:Mexico_Northwest"{
+            ld{"Түндүк-чыгыш Мексика жайкы убактысы"}
+            lg{"Түндүк-чыгыш Мексика убактысы"}
+            ls{"Түндүк-чыгыш Мексика кышкы убактысы"}
         }
         "meta:Mexico_Pacific"{
             ld{"Мексика, Тынч океан жайкы убактысы"}
@@ -1849,6 +1892,12 @@ ky{
         "meta:Yukon"{
             ls{"Юкон убактысы"}
         }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        gmtZeroFormat{"GMT"}
+        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} убактысы"}
+        regionFormatDaylight{"{0} (+1)"}
+        regionFormatStandard{"{0} (+0)"}
     }
 }

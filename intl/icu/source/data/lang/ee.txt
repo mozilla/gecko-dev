@@ -39,10 +39,10 @@ ee{
         dv{"divehgbe"}
         dz{"dzongkhagbe"}
         ebu{"embugbe"}
-        ee{"eʋegbe"}
+        ee{"Eʋegbe"}
         efi{"efigbe"}
         el{"grisigbe"}
-        en{"iŋlisigbe"}
+        en{"Yevugbe"}
         en_AU{"Yevugbe (Australia)"}
         en_CA{"Yevugbe (Canada)"}
         en_GB{"Yevugbe (Britain)"}
@@ -212,7 +212,7 @@ ee{
         Knda{"kannadagbeŋɔŋlɔ"}
         Kore{"Koreagbeŋɔŋlɔ"}
         Laoo{"laogbeŋɔŋlɔ"}
-        Latn{"latingbeŋɔŋlɔ"}
+        Latn{"Latingbeŋɔŋlɔ"}
         Mlym{"malayagbeŋɔŋlɔ"}
         Mong{"mongoliagbeŋɔŋlɔ"}
         Mymr{"myanmargbeŋɔŋlɔ"}
@@ -242,6 +242,8 @@ ee{
             gregorian{"Gregorian kalenda"}
             hebrew{"hebritɔwo ƒe kalenda"}
             indian{"india dukɔ ƒe kalenda"}
+            islamic{"islam subɔlawo ƒe kalenda"}
+            islamic-civil{"islam subɔlawo ƒe sivil kalenda"}
             japanese{"japantɔwo ƒe kalenda"}
             persian{"persiatɔwo ƒe kalenda"}
             roc{"china repɔbliktɔwo ƒe kalenda tso 1912"}
@@ -253,7 +255,9 @@ ee{
             gb2312han{"chinagbe yeye ƒe ɖoɖomɔ nu"}
             phonebook{"fonegbalẽ me ɖoɖomɔ nu"}
             pinyin{"pinyin ɖoɖomɔ nu"}
+            reformed{"nugbugbɔtoɖo ƒe ɖoɖomɔ nu"}
             search{"nudidi hena zazã gbadza"}
+            standard{"standard"}
             stroke{"stroke ɖoɖomɔ nu"}
             traditional{"blema ɖoɖomɔ nu"}
             unihan{"ɖoɖomɔnutɔxɛ manɔŋu stroke ƒe ɖoɖo nu"}
@@ -299,6 +303,6 @@ ee{
     codePatterns{
         language{"gbegbɔgblɔ {0}"}
         script{"gbeŋɔŋlɔ {0}"}
-        territory{"nutome {0}"}
+        territory{"memama {0}"}
     }
 }

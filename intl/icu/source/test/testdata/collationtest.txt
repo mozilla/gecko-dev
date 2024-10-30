@@ -1479,21 +1479,13 @@
 # Latvian sort order.
 @ locale lv
 * compare
-< az
-< ā
-< b
 < cz
 < č
 < d
-< ez
-< ē
-< f
 < gz
 < ģ
 < h
 < iz
-< y
-< ī
 < j
 < kz
 < ķ
@@ -1504,18 +1496,12 @@
 < nz
 < ņ
 < o
-< oz
-< ō
-< p
 < rz
 < ŗ
 < s
 < sz
 < š
 < t
-< uz
-< ū
-< v
 < zz
 < ž
 

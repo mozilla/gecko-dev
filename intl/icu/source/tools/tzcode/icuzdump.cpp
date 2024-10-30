@@ -47,7 +47,7 @@ public:
     DumpFormatter() {
         UErrorCode status = U_ZERO_ERROR;
         stz = new SimpleTimeZone(0, "");
-        sdf = new SimpleDateFormat(UnicodeString("yyyy-MM-dd EEE HH:mm:ss"), Locale::getEnglish(), status);
+        sdf = new SimpleDateFormat((UnicodeString)"yyyy-MM-dd EEE HH:mm:ss", Locale::getEnglish(), status);
         DecimalFormatSymbols *symbols = new DecimalFormatSymbols(Locale::getEnglish(), status);
         decf = new DecimalFormat("00", symbols, status);
     }
@@ -152,7 +152,7 @@ public:
                 UDate lot = t;
                 UDate hit = newt;
                 while (true) {
-                    int32_t diff = static_cast<int32_t>(hit - lot);
+                    int32_t diff = (int32_t)(hit - lot);
                     if (diff <= tick) {
                         break;
                     }
@@ -233,7 +233,9 @@ public:
     }
 
     ~ZoneIterator() {
-        delete zenum;
+        if (zenum != nullptr) {
+            delete zenum;
+        }
     }
 
     TimeZone* next() {
@@ -335,7 +337,7 @@ main(int argc, char *argv[]) {
     }
 
     if (options[kOptCutover].doesOccur) {
-        char* comma = const_cast<char*>(strchr(options[kOptCutover].value, ','));
+        char* comma = (char*)strchr(options[kOptCutover].value, ',');
         if (comma == nullptr) {
             high = atoi(options[kOptCutover].value);
         } else {
@@ -350,7 +352,7 @@ main(int argc, char *argv[]) {
     dumper.setHighYear(high);
     if (dir != nullptr && linesep != nullptr) {
         // use the specified line separator only for file output
-        dumper.setLineSeparator(linesep);
+        dumper.setLineSeparator((const char*)linesep);
     }
 
     ZoneIterator* zit;

@@ -171,7 +171,7 @@ public:
      * @return          The class ID for all objects of this class.
      * @deprecated ICU 53
      */
-    static UClassID U_EXPORT2 getStaticClassID();
+    static UClassID U_EXPORT2 getStaticClassID(void);
 
     /**
      * Returns a unique class ID POLYMORPHICALLY. Pure virtual override. This
@@ -184,7 +184,7 @@ public:
      *                  other classes have different class IDs.
      * @deprecated ICU 53
      */
-    virtual UClassID getDynamicClassID() const override;
+    virtual UClassID getDynamicClassID(void) const override;
 
 private:
     Hashtable*    fTimeUnitToCountToPatterns[TimeUnit::UTIMEUNIT_FIELD_COUNT];

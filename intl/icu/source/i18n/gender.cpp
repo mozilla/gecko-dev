@@ -19,19 +19,15 @@
 
 #if !UCONFIG_NO_FORMATTING
 
-#include <utility>
-
 #include "unicode/gender.h"
 #include "unicode/ugender.h"
 #include "unicode/ures.h"
 
-#include "charstr.h"
 #include "cmemory.h"
 #include "cstring.h"
 #include "mutex.h"
 #include "uassert.h"
 #include "ucln_in.h"
-#include "ulocimp.h"
 #include "umutex.h"
 #include "uhash.h"
 
@@ -107,7 +103,7 @@ const GenderInfo* GenderInfo::getInstance(const Locale& locale, UErrorCode& stat
   const char* key = locale.getName();
   {
     Mutex lock(&gGenderMetaLock);
-    result = static_cast<const GenderInfo*>(uhash_get(gGenderInfoCache, key));
+    result = (const GenderInfo*) uhash_get(gGenderInfoCache, key);
   }
   if (result) {
     return result;
@@ -123,7 +119,7 @@ const GenderInfo* GenderInfo::getInstance(const Locale& locale, UErrorCode& stat
   // favor the GenderInfo object that is already in the cache.
   {
     Mutex lock(&gGenderMetaLock);
-    GenderInfo* temp = static_cast<GenderInfo*>(uhash_get(gGenderInfoCache, key));
+    GenderInfo* temp = (GenderInfo*) uhash_get(gGenderInfoCache, key);
     if (temp) {
       result = temp;
     } else {
@@ -152,16 +148,12 @@ const GenderInfo* GenderInfo::loadInstance(const Locale& locale, UErrorCode& sta
   const char16_t* s = ures_getStringByKey(locRes.getAlias(), curLocaleName, &resLen, &key_status);
   if (s == nullptr) {
     key_status = U_ZERO_ERROR;
-    CharString parentLocaleName(curLocaleName, key_status);
-    while (s == nullptr) {
-      {
-          CharString tmp = ulocimp_getParent(parentLocaleName.data(), status);
-          if (tmp.isEmpty()) break;
-          parentLocaleName = std::move(tmp);
-      }
+    char parentLocaleName[ULOC_FULLNAME_CAPACITY];
+    uprv_strcpy(parentLocaleName, curLocaleName);
+    while (s == nullptr && uloc_getParent(parentLocaleName, parentLocaleName, ULOC_FULLNAME_CAPACITY, &key_status) > 0) {
       key_status = U_ZERO_ERROR;
       resLen = 0;
-      s = ures_getStringByKey(locRes.getAlias(), parentLocaleName.data(), &resLen, &key_status);
+      s = ures_getStringByKey(locRes.getAlias(), parentLocaleName, &resLen, &key_status);
       key_status = U_ZERO_ERROR;
     }
   }

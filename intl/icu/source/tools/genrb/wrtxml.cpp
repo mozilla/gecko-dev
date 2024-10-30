@@ -78,7 +78,7 @@ static int32_t write_utf8_file(FileStream* fileStream, UnicodeString outString)
                 &status);
 
     // allocate the buffer
-    char* dest = static_cast<char*>(uprv_malloc(len));
+    char* dest = (char*)uprv_malloc(len);
     status = U_ZERO_ERROR;
 
     // convert the data
@@ -106,11 +106,11 @@ static void write_tabs(FileStream* os){
 /*get ID for each element. ID is globally unique.*/
 static char* getID(const char* id, const char* curKey, char* result) {
     if(curKey == nullptr) {
-        result = static_cast<char*>(uprv_malloc(sizeof(char) * uprv_strlen(id) + 1));
+        result = (char *)uprv_malloc(sizeof(char)*uprv_strlen(id) + 1);
         uprv_memset(result, 0, sizeof(char)*uprv_strlen(id) + 1);
         uprv_strcpy(result, id);
     } else {
-        result = static_cast<char*>(uprv_malloc(sizeof(char) * (uprv_strlen(id) + 1 + uprv_strlen(curKey)) + 1));
+        result = (char *)uprv_malloc(sizeof(char)*(uprv_strlen(id) + 1 + uprv_strlen(curKey)) + 1);
         uprv_memset(result, 0, sizeof(char)*(uprv_strlen(id) + 1 + uprv_strlen(curKey)) + 1);
         if(id[0]!='\0'){
             uprv_strcpy(result, id);
@@ -165,7 +165,7 @@ uint32_t computeCRC(const char *ptr, uint32_t len, uint32_t lastcrc){
 
     crc = lastcrc;
     while(len--!=0) {
-        temp1 = static_cast<uint32_t>(crc) >> 8;
+        temp1 = (uint32_t)crc>>8;
         temp2 = crc_ta[(crc^*ptr) & 0xFF];
         crc = temp1^temp2;
         ptr++;
@@ -186,8 +186,8 @@ static void strnrepchr(char* src, int32_t srcLen, char s, char r){
  * use "en" as the default value for language
  */
 static char* parseFilename(const char* id, char* /*lang*/) {
-    int idLen = static_cast<int>(uprv_strlen(id));
-    char* localeID = static_cast<char*>(uprv_malloc(idLen+1));
+    int idLen = (int) uprv_strlen(id);
+    char* localeID = (char*) uprv_malloc(idLen);
     int pos = 0;
     int canonCapacity = 0;
     char* canon = nullptr;
@@ -197,7 +197,7 @@ static char* parseFilename(const char* id, char* /*lang*/) {
     const char *ext = uprv_strchr(id, '.');
 
     if(ext != nullptr){
-        pos = static_cast<int>(ext - id);
+        pos = (int) (ext - id);
     } else {
         pos = idLen;
     }
@@ -205,7 +205,7 @@ static char* parseFilename(const char* id, char* /*lang*/) {
     localeID[pos]=0; /* NUL terminate the string */
 
     canonCapacity =pos*3;
-    canon = static_cast<char*>(uprv_malloc(canonCapacity));
+    canon = (char*) uprv_malloc(canonCapacity);
     canonLen = uloc_canonicalize(localeID, canon, canonCapacity, &status);
 
     if(U_FAILURE(status)){
@@ -246,7 +246,7 @@ static char* convertAndEscape(char** pDest, int32_t destCap, int32_t* destLength
     dest =*pDest;
     if(dest==nullptr || destCap <=0){
         destCap = srcLen * 8;
-        dest = static_cast<char*>(uprv_malloc(sizeof(char) * destCap));
+        dest = (char*) uprv_malloc(sizeof(char) * destCap);
         if(dest==nullptr){
             *status=U_MEMORY_ALLOCATION_ERROR;
             return nullptr;
@@ -272,23 +272,23 @@ static char* convertAndEscape(char** pDest, int32_t destCap, int32_t* destLength
                 switch(c) {
                 case '\x26':
                     uprv_strcpy(dest+( destLen),"\x26\x61\x6d\x70\x3b"); /* &amp;*/
-                    destLen += static_cast<int32_t>(uprv_strlen("\x26\x61\x6d\x70\x3b"));
+                    destLen+=(int32_t)uprv_strlen("\x26\x61\x6d\x70\x3b");
                     break;
                 case '\x3c':
                     uprv_strcpy(dest+(destLen),"\x26\x6c\x74\x3b"); /* &lt;*/
-                    destLen += static_cast<int32_t>(uprv_strlen("\x26\x6c\x74\x3b"));
+                    destLen+=(int32_t)uprv_strlen("\x26\x6c\x74\x3b");
                     break;
                 case '\x3e':
                     uprv_strcpy(dest+(destLen),"\x26\x67\x74\x3b"); /* &gt;*/
-                    destLen += static_cast<int32_t>(uprv_strlen("\x26\x67\x74\x3b"));
+                    destLen+=(int32_t)uprv_strlen("\x26\x67\x74\x3b");
                     break;
                 case '\x22':
                     uprv_strcpy(dest+(destLen),"\x26\x71\x75\x6f\x74\x3b"); /* &quot;*/
-                    destLen += static_cast<int32_t>(uprv_strlen("\x26\x71\x75\x6f\x74\x3b"));
+                    destLen+=(int32_t)uprv_strlen("\x26\x71\x75\x6f\x74\x3b");
                     break;
                 case '\x27':
                     uprv_strcpy(dest+(destLen),"\x26\x61\x70\x6f\x73\x3b"); /* &apos; */
-                    destLen += static_cast<int32_t>(uprv_strlen("\x26\x61\x70\x6f\x73\x3b"));
+                    destLen+=(int32_t)uprv_strlen("\x26\x61\x70\x6f\x73\x3b");
                     break;
 
                  /* Disallow C0 controls except TAB, CR, LF*/
@@ -325,18 +325,18 @@ static char* convertAndEscape(char** pDest, int32_t destCap, int32_t* destLength
                 case 0x1E:
                 case 0x1F:
                     *status = U_ILLEGAL_CHAR_FOUND;
-                    fprintf(stderr, "Illegal Character \\u%04X!\n", static_cast<int>(c));
+                    fprintf(stderr, "Illegal Character \\u%04X!\n",(int)c);
                     uprv_free(dest);
                     return nullptr;
                 default:
-                    dest[destLen++] = static_cast<char>(c);
+                    dest[destLen++]=(char)c;
                 }
             }else{
                 UBool isError = false;
                 U8_APPEND((unsigned char*)dest,destLen,destCap,c,isError);
                 if(isError){
                     *status = U_ILLEGAL_CHAR_FOUND;
-                    fprintf(stderr, "Illegal Character \\U%08X!\n", static_cast<int>(c));
+                    fprintf(stderr, "Illegal Character \\U%08X!\n",(int)c);
                     uprv_free(dest);
                     return nullptr;
                 }
@@ -344,7 +344,7 @@ static char* convertAndEscape(char** pDest, int32_t destCap, int32_t* destLength
         }else{
             destCap += destLen;
 
-            temp = static_cast<char*>(uprv_malloc(sizeof(char) * destCap));
+            temp = (char*) uprv_malloc(sizeof(char)*destCap);
             if(temp==nullptr){
                 *status=U_MEMORY_ALLOCATION_ERROR;
                 uprv_free(dest);
@@ -406,8 +406,8 @@ print(char16_t* src, int32_t srcLen,const char *tagStart,const char *tagEnd,  UE
         return;
     }
 
-    buf = static_cast<char*>(uprv_malloc(bufCapacity));
-    if (buf == nullptr) {
+    buf = (char*) (uprv_malloc(bufCapacity));
+    if(buf==0){
         fprintf(stderr, "Could not allocate memory!!");
         exit(U_MEMORY_ALLOCATION_ERROR);
     }
@@ -438,7 +438,7 @@ printNoteElements(const UString *src, UErrorCode *status){
     }
 
     capacity = src->fLength;
-    note = static_cast<char16_t*>(uprv_malloc(U_SIZEOF_UCHAR * capacity));
+    note  = (char16_t*) uprv_malloc(U_SIZEOF_UCHAR * capacity);
 
     count = getCount(src->fChars,src->fLength, UPC_NOTE, status);
     if(U_FAILURE(*status)){
@@ -497,8 +497,8 @@ printComments(struct UString *src, const char *resName, UBool printTranslate, UE
     int32_t capacity = src->fLength + 1;
     char* buf = nullptr;
     int32_t bufLen = 0;
-    char16_t* desc = static_cast<char16_t*>(uprv_malloc(U_SIZEOF_UCHAR * capacity));
-    char16_t* trans = static_cast<char16_t*>(uprv_malloc(U_SIZEOF_UCHAR * capacity));
+    char16_t* desc  = (char16_t*) uprv_malloc(U_SIZEOF_UCHAR * capacity);
+    char16_t* trans = (char16_t*) uprv_malloc(U_SIZEOF_UCHAR * capacity);
 
     int32_t descLen = 0, transLen=0;
     if(desc==nullptr || trans==nullptr){
@@ -567,18 +567,18 @@ static char *printContainer(SResource *res, const char *container, const char *r
 
     write_utf8_file(out, UnicodeString("<"));
     write_utf8_file(out, UnicodeString(container));
-    printAttribute("id", sid, static_cast<int32_t>(uprv_strlen(sid)));
+    printAttribute("id", sid, (int32_t) uprv_strlen(sid));
 
     if (resname != nullptr) {
-        printAttribute("resname", resname, static_cast<int32_t>(uprv_strlen(resname)));
+        printAttribute("resname", resname, (int32_t) uprv_strlen(resname));
     }
 
     if (mimetype != nullptr) {
-        printAttribute("mime-type", mimetype, static_cast<int32_t>(uprv_strlen(mimetype)));
+        printAttribute("mime-type", mimetype, (int32_t) uprv_strlen(mimetype));
     }
 
     if (restype != nullptr) {
-        printAttribute("restype", restype, static_cast<int32_t>(uprv_strlen(restype)));
+        printAttribute("restype", restype, (int32_t) uprv_strlen(restype));
     }
 
     tabCount += 1;
@@ -639,8 +639,6 @@ string_write_xml(StringResource *res, const char* id, const char* /*language*/, 
     buf = convertAndEscape(&buf, 0, &bufLen, res->getBuffer(), res->length(), status);
 
     if (U_FAILURE(*status)) {
-        uprv_free(buf);
-        uprv_free(sid);
         return;
     }
 
@@ -673,8 +671,6 @@ alias_write_xml(AliasResource *res, const char* id, const char* /*language*/, UE
     buf = convertAndEscape(&buf, 0, &bufLen, res->getBuffer(), res->length(), status);
 
     if(U_FAILURE(*status)){
-        uprv_free(buf);
-        uprv_free(sid);
         return;
     }
     write_utf8_file(out, UnicodeString(buf, bufLen, "UTF-8"));
@@ -715,7 +711,6 @@ array_write_xml(ArrayResource *res, const char* id, const char* language, UError
         subId = nullptr;
 
         if(U_FAILURE(*status)){
-            uprv_free(sid);
             return;
         }
 
@@ -750,8 +745,8 @@ intvector_write_xml(IntVectorResource *res, const char* id, const char* /*langua
         write_utf8_file(out, UnicodeString("<"));
         write_utf8_file(out, UnicodeString(trans_unit));
 
-        printAttribute("id", ivd, static_cast<int32_t>(uprv_strlen(ivd)));
-        printAttribute("restype", integer_restype, static_cast<int32_t>(strlen(integer_restype)));
+        printAttribute("id", ivd, (int32_t)uprv_strlen(ivd));
+        printAttribute("restype", integer_restype, (int32_t) strlen(integer_restype));
 
         write_utf8_file(out, UnicodeString(">\n"));
 
@@ -813,10 +808,10 @@ bin_write_xml(BinaryResource *res, const char* id, const char* /*language*/, UEr
     uint32_t crc = 0xFFFFFFFF;
 
     char fileName[1024] ={0};
-    int32_t tLen = outDir == nullptr ? 0 : static_cast<int32_t>(uprv_strlen(outDir));
-    char* fn = static_cast<char*>(uprv_malloc(sizeof(char) * (tLen + 1024 +
+    int32_t tLen = ( outDir == nullptr) ? 0 :(int32_t)uprv_strlen(outDir);
+    char* fn =  (char*) uprv_malloc(sizeof(char) * (tLen+1024 +
                                                     (res->fFileName !=nullptr ?
-                                                    uprv_strlen(res->fFileName) :0))));
+                                                    uprv_strlen(res->fFileName) :0)));
     const char* ext = nullptr;
 
     char* f = nullptr;
@@ -860,7 +855,7 @@ bin_write_xml(BinaryResource *res, const char* id, const char* /*language*/, UEr
         write_tabs(out);
 
         write_utf8_file(out, UnicodeString(external_file));
-        printAttribute("href", f, static_cast<int32_t>(uprv_strlen(f)));
+        printAttribute("href", f, (int32_t)uprv_strlen(f));
         write_utf8_file(out, UnicodeString("/>\n"));
         tabCount -= 1;
         write_tabs(out);
@@ -885,7 +880,7 @@ bin_write_xml(BinaryResource *res, const char* id, const char* /*language*/, UEr
         write_tabs(out);
 
         write_utf8_file(out, UnicodeString(internal_file));
-        printAttribute("form", application_mimetype, static_cast<int32_t>(uprv_strlen(application_mimetype)));
+        printAttribute("form", application_mimetype, (int32_t) uprv_strlen(application_mimetype));
 
         while(i <res->fLength){
             len = itostr(temp, res->fData[i], 16, 2);
@@ -948,7 +943,6 @@ table_write_xml(TableResource *res, const char* id, const char* language, UBool 
         res_write_xml(current, sid, language, false, status);
 
         if(U_FAILURE(*status)){
-            uprv_free(sid);
             return;
         }
 
@@ -1044,12 +1038,12 @@ bundle_write_xml(struct SRBRoot *bundle, const char *outputDir,const char* outpu
 
     pos = uprv_strrchr(filename, '\\');
     if(pos != nullptr) {
-        first = static_cast<int32_t>(pos - filename + 1);
+        first = (int32_t)(pos - filename + 1);
     } else {
         first = 0;
     }
-    index = static_cast<int32_t>(uprv_strlen(filename) - uprv_strlen(textExt) - first);
-    originalFileName = static_cast<char*>(uprv_malloc(sizeof(char) * index + 1));
+    index = (int32_t)(uprv_strlen(filename) - uprv_strlen(textExt) - first);
+    originalFileName = (char *)uprv_malloc(sizeof(char)*index+1);
     uprv_memset(originalFileName, 0, sizeof(char)*index+1);
     uprv_strncpy(originalFileName, filename + first, index);
 
@@ -1058,7 +1052,7 @@ bundle_write_xml(struct SRBRoot *bundle, const char *outputDir,const char* outpu
     }
 
     temp = originalFileName;
-    originalFileName = static_cast<char*>(uprv_malloc(sizeof(char) * (uprv_strlen(temp) + uprv_strlen(textExt)) + 1));
+    originalFileName = (char *)uprv_malloc(sizeof(char)* (uprv_strlen(temp)+uprv_strlen(textExt)) + 1);
     uprv_memset(originalFileName, 0, sizeof(char)* (uprv_strlen(temp)+uprv_strlen(textExt)) + 1);
     uprv_strcat(originalFileName, temp);
     uprv_strcat(originalFileName, textExt);
@@ -1094,26 +1088,26 @@ bundle_write_xml(struct SRBRoot *bundle, const char *outputDir,const char* outpu
              }
        /* }*/
     } else {
-        lang = static_cast<char*>(uprv_malloc(sizeof(char) * uprv_strlen(language) + 1));
+        lang = (char *)uprv_malloc(sizeof(char)*uprv_strlen(language) +1);
         uprv_memset(lang, 0, sizeof(char)*uprv_strlen(language) +1);
         uprv_strcpy(lang, language);
     }
 
     if(outFileName) {
-        outputFileName = static_cast<char*>(uprv_malloc(sizeof(char) * uprv_strlen(outFileName) + 1));
+        outputFileName = (char *)uprv_malloc(sizeof(char)*uprv_strlen(outFileName) + 1);
         uprv_memset(outputFileName, 0, sizeof(char)*uprv_strlen(outFileName) + 1);
         uprv_strcpy(outputFileName,outFileName);
     } else {
-        outputFileName = static_cast<char*>(uprv_malloc(sizeof(char) * uprv_strlen(srBundle->fLocale) + 1));
+        outputFileName = (char *)uprv_malloc(sizeof(char)*uprv_strlen(srBundle->fLocale) + 1);
         uprv_memset(outputFileName, 0, sizeof(char)*uprv_strlen(srBundle->fLocale) + 1);
         uprv_strcpy(outputFileName,srBundle->fLocale);
     }
 
     if(outputDir) {
-        xmlfileName = static_cast<char*>(uprv_malloc(sizeof(char) * (uprv_strlen(outputDir) + uprv_strlen(outputFileName) + uprv_strlen(xliffExt) + 1) + 1));
+        xmlfileName = (char *)uprv_malloc(sizeof(char)*(uprv_strlen(outputDir) + uprv_strlen(outputFileName) + uprv_strlen(xliffExt) + 1) +1);
         uprv_memset(xmlfileName, 0, sizeof(char)*(uprv_strlen(outputDir)+ uprv_strlen(outputFileName) + uprv_strlen(xliffExt) + 1) +1);
     } else {
-        xmlfileName = static_cast<char*>(uprv_malloc(sizeof(char) * (uprv_strlen(outputFileName) + uprv_strlen(xliffExt)) + 1));
+        xmlfileName = (char *)uprv_malloc(sizeof(char)*(uprv_strlen(outputFileName) + uprv_strlen(xliffExt)) +1);
         uprv_memset(xmlfileName, 0, sizeof(char)*(uprv_strlen(outputFileName) + uprv_strlen(xliffExt)) +1);
     }
 
@@ -1176,8 +1170,8 @@ bundle_write_xml(struct SRBRoot *bundle, const char *outputDir,const char* outpu
     write_tabs(out);
 
     write_utf8_file(out, UnicodeString(tool_start));
-    printAttribute("tool-id", tool_id, static_cast<int32_t>(uprv_strlen(tool_id)));
-    printAttribute("tool-name", tool_name, static_cast<int32_t>(uprv_strlen(tool_name)));
+    printAttribute("tool-id", tool_id, (int32_t) uprv_strlen(tool_id));
+    printAttribute("tool-name", tool_name, (int32_t) uprv_strlen(tool_name));
     write_utf8_file(out, UnicodeString("/>\n"));
 
     tabCount -= 1;

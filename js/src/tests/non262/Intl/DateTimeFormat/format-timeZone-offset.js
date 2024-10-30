@@ -61,7 +61,7 @@ const tests = {
       },
     },
   ],
-  "ar-EG": [
+  "ar": [
     {
       date: 0,
       timeZone: "+13:37",

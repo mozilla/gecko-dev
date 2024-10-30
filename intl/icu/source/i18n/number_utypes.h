@@ -13,8 +13,9 @@
 #include "formatted_string_builder.h"
 #include "formattedval_impl.h"
 
-U_NAMESPACE_BEGIN
-namespace number::impl {
+U_NAMESPACE_BEGIN namespace number {
+namespace impl {
+
 
 /** Helper function used in upluralrules.cpp */
 const DecimalQuantity* validateUFormattedNumberToDecimalQuantity(
@@ -49,7 +50,9 @@ public:
     const char *gender = "";
 };
 
-} // namespace number::impl
+
+} // namespace impl
+} // namespace number
 U_NAMESPACE_END
 
 #endif //__SOURCE_NUMBER_UTYPES_H__

@@ -45,6 +45,7 @@ zrule_getName(ZRule* rule, char16_t* name, int32_t nameLength) {
     s = ((TimeZoneRule*)rule)->TimeZoneRule::getName(s);
     nameLength = s.length();
     memcpy(name, s.getBuffer(), nameLength);
+    return;
 }
 
 U_CAPI int32_t U_EXPORT2
@@ -95,6 +96,7 @@ izrule_getName(IZRule* rule, char16_t* & name, int32_t & nameLength) {
     nameLength = s.length();
     name = (char16_t*)uprv_malloc(nameLength);
     memcpy(name, s.getBuffer(), nameLength);
+    return;
 }
 
 U_CAPI int32_t U_EXPORT2

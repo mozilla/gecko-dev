@@ -59,7 +59,7 @@ const tests = {
     ],
   },
   // Non-ASCII digits.
-  "ar-EG": {
+  "ar": {
     options: {},
     ranges: [
       {

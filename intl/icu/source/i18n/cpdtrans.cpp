@@ -53,7 +53,7 @@ CompoundTransliterator::CompoundTransliterator(
                            int32_t transliteratorCount,
                            UnicodeFilter* adoptedFilter) :
     Transliterator(joinIDs(transliterators, transliteratorCount), adoptedFilter),
-    trans(nullptr), count(0), numAnonymousRBTs(0) {
+    trans(0), count(0), numAnonymousRBTs(0)  {
     setTransliterators(transliterators, transliteratorCount);
 }
 
@@ -70,7 +70,7 @@ CompoundTransliterator::CompoundTransliterator(const UnicodeString& id,
                               UParseError& /*parseError*/,
                               UErrorCode& status) :
     Transliterator(id, adoptedFilter),
-    trans(nullptr), numAnonymousRBTs(0) {
+    trans(0), numAnonymousRBTs(0) {
     // TODO add code for parseError...currently unused, but
     // later may be used by parsing code...
     init(id, direction, true, status);
@@ -79,8 +79,8 @@ CompoundTransliterator::CompoundTransliterator(const UnicodeString& id,
 CompoundTransliterator::CompoundTransliterator(const UnicodeString& id,
                               UParseError& /*parseError*/,
                               UErrorCode& status) :
-    Transliterator(id, nullptr), // set filter to 0 here!
-    trans(nullptr), numAnonymousRBTs(0) {
+    Transliterator(id, 0), // set filter to 0 here!
+    trans(0), numAnonymousRBTs(0) {
     // TODO add code for parseError...currently unused, but
     // later may be used by parsing code...
     init(id, UTRANS_FORWARD, true, status);
@@ -97,7 +97,7 @@ CompoundTransliterator::CompoundTransliterator(const UnicodeString& newID,
                                               UParseError& /*parseError*/,
                                               UErrorCode& status) :
     Transliterator(newID, adoptedFilter),
-    trans(nullptr), numAnonymousRBTs(anonymousRBTs)
+    trans(0), numAnonymousRBTs(anonymousRBTs)
 {
     init(list, UTRANS_FORWARD, false, status);
 }
@@ -111,7 +111,7 @@ CompoundTransliterator::CompoundTransliterator(UVector& list,
                                                UParseError& /*parseError*/,
                                                UErrorCode& status) :
     Transliterator(UnicodeString(), nullptr),
-    trans(nullptr), numAnonymousRBTs(0)
+    trans(0), numAnonymousRBTs(0)
 {
     // TODO add code for parseError...currently unused, but
     // later may be used by parsing code...
@@ -124,7 +124,7 @@ CompoundTransliterator::CompoundTransliterator(UVector& list,
                                                UParseError& /*parseError*/,
                                                UErrorCode& status) :
     Transliterator(UnicodeString(), nullptr),
-    trans(nullptr), numAnonymousRBTs(anonymousRBTs)
+    trans(0), numAnonymousRBTs(anonymousRBTs)
 {
     init(list, UTRANS_FORWARD, false, status);
 }
@@ -196,15 +196,15 @@ void CompoundTransliterator::init(UVector& list,
     // Allocate array
     if (U_SUCCESS(status)) {
         count = list.size();
-        trans = static_cast<Transliterator**>(uprv_malloc(count * sizeof(Transliterator*)));
+        trans = (Transliterator **)uprv_malloc(count * sizeof(Transliterator *));
         /* test for nullptr */
-        if (trans == nullptr) {
+        if (trans == 0) {
             status = U_MEMORY_ALLOCATION_ERROR;
             return;
         }
     }
 
-    if (U_FAILURE(status) || trans == nullptr) {
+    if (U_FAILURE(status) || trans == 0) {
          // assert(trans == 0);
         return;
     }
@@ -214,7 +214,7 @@ void CompoundTransliterator::init(UVector& list,
     int32_t i;
     for (i=0; i<count; ++i) {
         int32_t j = (direction == UTRANS_FORWARD) ? i : count - 1 - i;
-        trans[i] = static_cast<Transliterator*>(list.elementAt(j));
+        trans[i] = (Transliterator*) list.elementAt(j);
     }
 
     // If the direction is UTRANS_REVERSE then we may need to fix the
@@ -254,7 +254,7 @@ UnicodeString CompoundTransliterator::joinIDs(Transliterator* const transliterat
  * Copy constructor.
  */
 CompoundTransliterator::CompoundTransliterator(const CompoundTransliterator& t) :
-    Transliterator(t), trans(nullptr), count(0), numAnonymousRBTs(-1) {
+    Transliterator(t), trans(0), count(0), numAnonymousRBTs(-1) {
     *this = t;
 }
 
@@ -266,13 +266,13 @@ CompoundTransliterator::~CompoundTransliterator() {
 }
 
 void CompoundTransliterator::freeTransliterators() {
-    if (trans != nullptr) {
+    if (trans != 0) {
         for (int32_t i=0; i<count; ++i) {
             delete trans[i];
         }
         uprv_free(trans);
     }
-    trans = nullptr;
+    trans = 0;
     count = 0;
 }
 
@@ -289,14 +289,14 @@ CompoundTransliterator& CompoundTransliterator::operator=(
     if (trans != nullptr) {
         for (i=0; i<count; ++i) {
             delete trans[i];
-            trans[i] = nullptr;
+            trans[i] = 0;
         }
     }
     if (t.count > count) {
         if (trans != nullptr) {
             uprv_free(trans);
         }
-        trans = static_cast<Transliterator**>(uprv_malloc(t.count * sizeof(Transliterator*)));
+        trans = (Transliterator **)uprv_malloc(t.count * sizeof(Transliterator *));
     }
     count = t.count;
     if (trans != nullptr) {
@@ -347,7 +347,7 @@ const Transliterator& CompoundTransliterator::getTransliterator(int32_t index) c
 
 void CompoundTransliterator::setTransliterators(Transliterator* const transliterators[],
                                                 int32_t transCount) {
-    Transliterator** a = static_cast<Transliterator**>(uprv_malloc(transCount * sizeof(Transliterator*)));
+    Transliterator** a = (Transliterator **)uprv_malloc(transCount * sizeof(Transliterator *));
     if (a == nullptr) {
         return;
     }

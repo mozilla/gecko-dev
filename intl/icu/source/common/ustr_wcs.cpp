@@ -57,7 +57,7 @@ u_growAnyBufferFromStatic(void *context,
     }
 
     *pBuffer=newBuffer;
-    return newBuffer!=nullptr;
+    return (UBool)(newBuffer!=nullptr);
 }
 
 /* helper function */

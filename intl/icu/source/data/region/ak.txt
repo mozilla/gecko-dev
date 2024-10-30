@@ -3,38 +3,6 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ak{
     Countries{
-        001{"wiase"}
-        002{"Abibirem"}
-        003{"Amɛrika Atifi"}
-        005{"Amɛrika Anaafoɔ"}
-        009{"Osiana"}
-        011{"Abibirem Atɔeɛ Fam"}
-        013{"Amɛrika Mfimfini"}
-        014{"Abibirem Apueiɛ Fam"}
-        015{"Abibirem Atifi Fam"}
-        017{"Abibirem Mfimfini"}
-        018{"Abibirem Anaafoɔ Fam"}
-        019{"Amɛrikafoɔ"}
-        021{"Amɛrika Atifi Fam"}
-        029{"Karibia"}
-        030{"Asia Apueiɛ"}
-        034{"Asia Anaafoɔ"}
-        035{"Asia Anaafoɔ Apuieɛ"}
-        039{"Yuropu Anaafoɔ"}
-        053{"Ɔstrelia ne Asia"}
-        054{"Melanesia"}
-        057{"Micronesia Mantam"}
-        061{"Pɔlenesia"}
-        142{"Asia"}
-        143{"Asia Mfimfini"}
-        145{"Asia Atɔeɛ"}
-        150{"Yuropu"}
-        151{"Yuropu Apuieɛ"}
-        154{"Yuropu Atifi"}
-        155{"Yuropu Atɔeɛ"}
-        202{"Abibirem Mpaprɛ Anaafoɔ"}
-        419{"Laaten Amɛrika"}
-        AC{"Asɛnhyin"}
         AD{"Andora"}
         AE{"United Arab Emirates"}
         AF{"Afganistan"}
@@ -43,14 +11,12 @@ ak{
         AL{"Albenia"}
         AM{"Aamenia"}
         AO{"Angola"}
-        AQ{"Antaatika"}
         AR{"Agyɛntina"}
         AS{"Amɛrika Samoa"}
         AT{"Ɔstria"}
         AU{"Ɔstrelia"}
         AW{"Aruba"}
-        AX{"Aland Aeland"}
-        AZ{"Asabegyan"}
+        AZ{"Azebaegyan"}
         BA{"Bosnia ne Hɛzegovina"}
         BB{"Baabados"}
         BD{"Bangladɛhye"}
@@ -60,67 +26,53 @@ ak{
         BH{"Baren"}
         BI{"Burundi"}
         BJ{"Bɛnin"}
-        BL{"St. Baatilemi"}
         BM{"Bɛmuda"}
         BN{"Brunae"}
         BO{"Bolivia"}
-        BQ{"Caribbean Netherlands"}
         BR{"Brazil"}
         BS{"Bahama"}
         BT{"Butan"}
-        BV{"Bouvet Island"}
         BW{"Bɔtswana"}
         BY{"Bɛlarus"}
         BZ{"Beliz"}
         CA{"Kanada"}
-        CC{"Kokoso Supɔ"}
-        CD{"Kongo Kinhyaahya"}
+        CD{"Kongo (Zair)"}
         CF{"Afrika Finimfin Man"}
         CG{"Kongo"}
         CH{"Swetzaland"}
-        CI{"Kodivuwa"}
-        CK{"Kuk Nsupɔ"}
+        CI{"La Côte d’Ivoire"}
+        CK{"Kook Nsupɔw"}
         CL{"Kyili"}
         CM{"Kamɛrun"}
         CN{"Kyaena"}
         CO{"Kolombia"}
-        CP{"Klepatin Aeland"}
         CR{"Kɔsta Rika"}
         CU{"Kuba"}
         CV{"Kepvɛdfo Islands"}
-        CW{"Kurakaw"}
-        CX{"Buronya Supɔ"}
-        CY{"Saeprɔso"}
-        CZ{"Kyɛk"}
+        CY{"Saeprɔs"}
+        CZ{"Kyɛk Kurokɛse"}
         DE{"Gyaaman"}
-        DG{"Diɛgo Gaasia"}
         DJ{"Gyibuti"}
         DK{"Dɛnmak"}
         DM{"Dɔmeneka"}
-        DO{"Dɔmeneka Man"}
+        DO{"Dɔmeneka Kurokɛse"}
         DZ{"Ɔlgyeria"}
-        EA{"Ceuta ne Melilla"}
-        EC{"Yikuwedɔ"}
+        EC{"Ikuwadɔ"}
         EE{"Ɛstonia"}
-        EG{"Misrim"}
-        EH{"Sahara Atɔeɛ"}
+        EG{"Nisrim"}
         ER{"Ɛritrea"}
         ES{"Spain"}
         ET{"Ithiopia"}
-        EU{"Yuropu Nkabomkuo"}
-        EZ{"Yuropu Fam"}
         FI{"Finland"}
         FJ{"Figyi"}
-        FK{"Fɔkman Aeland"}
+        FK{"Fɔlkman Aeland"}
         FM{"Maekronehyia"}
-        FO{"Faro Aeland"}
-        FR{"Franse"}
+        FR{"Frɛnkyeman"}
         GA{"Gabɔn"}
-        GB{"UK"}
+        GB{"Ahendiman Nkabom"}
         GD{"Grenada"}
         GE{"Gyɔgyea"}
         GF{"Frɛnkye Gayana"}
-        GG{"Guɛnse"}
         GH{"Gaana"}
         GI{"Gyebralta"}
         GL{"Greenman"}
@@ -129,41 +81,35 @@ ak{
         GP{"Guwadelup"}
         GQ{"Gini Ikuweta"}
         GR{"Greekman"}
-        GS{"Gyɔɔgyia Anaafoɔ ne Sandwich Aeland Anaafoɔ"}
         GT{"Guwatemala"}
         GU{"Guam"}
         GW{"Gini Bisaw"}
         GY{"Gayana"}
-        HK{"Hɔnkɔn Kyaena"}
-        HM{"Heard ne McDonald Supɔ"}
         HN{"Hɔnduras"}
         HR{"Krowehyia"}
         HT{"Heiti"}
         HU{"Hangari"}
-        IC{"Canary Islands"}
         ID{"Indɔnehyia"}
         IE{"Aereland"}
-        IL{"Israe"}
-        IM{"Isle of Man"}
+        IL{"Israel"}
         IN{"India"}
-        IO{"Britenfo Man Wɔ India Po No Mu"}
+        IO{"Britenfo Hɔn Man Wɔ India Po No Mu"}
         IQ{"Irak"}
         IR{"Iran"}
         IS{"Aesland"}
         IT{"Itali"}
-        JE{"Gyɛsi"}
         JM{"Gyameka"}
         JO{"Gyɔdan"}
         JP{"Gyapan"}
-        KE{"Kenya"}
+        KE{"Kɛnya"}
         KG{"Kɛɛgestan"}
         KH{"Kambodia"}
         KI{"Kiribati"}
         KM{"Kɔmɔrɔs"}
         KN{"Saint Kitts ne Nɛves"}
-        KP{"Korea Atifi"}
-        KR{"Korea Anaafoɔ"}
-        KW{"Kuweti"}
+        KP{"Etifi Koria"}
+        KR{"Anaafo Koria"}
+        KW{"Kuwete"}
         KY{"Kemanfo Islands"}
         KZ{"Kazakstan"}
         LA{"Laos"}
@@ -172,24 +118,20 @@ ak{
         LI{"Lektenstaen"}
         LK{"Sri Lanka"}
         LR{"Laeberia"}
-        LS{"Lesoto"}
+        LS{"Lɛsutu"}
         LT{"Lituwenia"}
-        LU{"Lusimbɛg"}
+        LU{"Laksembɛg"}
         LV{"Latvia"}
         LY{"Libya"}
         MA{"Moroko"}
-        MC{"Monako"}
+        MC{"Mɔnako"}
         MD{"Mɔldova"}
-        ME{"Mɔntenegro"}
-        MF{"St. Maatin"}
         MG{"Madagaska"}
-        MH{"Mahyaa Aeland"}
-        MK{"Mesidonia Atifi"}
+        MH{"Marshall Islands"}
         ML{"Mali"}
-        MM{"Mayaama (Bɛɛma)"}
+        MM{"Miyanma"}
         MN{"Mɔngolia"}
-        MO{"Makaw Kyaena"}
-        MP{"Mariana Atifi Fam Aeland"}
+        MP{"Northern Mariana Islands"}
         MQ{"Matinik"}
         MR{"Mɔretenia"}
         MS{"Mantserat"}
@@ -202,13 +144,13 @@ ak{
         MZ{"Mozambik"}
         NA{"Namibia"}
         NC{"Kaledonia Foforo"}
-        NE{"Nigyɛɛ"}
-        NF{"Norfold Supɔ"}
+        NE{"Nigyɛ"}
+        NF{"Nɔfolk Aeland"}
         NG{"Naegyeria"}
         NI{"Nekaraguwa"}
         NL{"Nɛdɛland"}
         NO{"Nɔɔwe"}
-        NP{"Nɛpal"}
+        NP{"Nɛpɔl"}
         NR{"Naworu"}
         NU{"Niyu"}
         NZ{"Ziland Foforo"}
@@ -216,52 +158,45 @@ ak{
         PA{"Panama"}
         PE{"Peru"}
         PF{"Frɛnkye Pɔlenehyia"}
-        PG{"Papua Gini Foforɔ"}
-        PH{"Filipin"}
+        PG{"Papua Guinea Foforo"}
+        PH{"Philippines"}
         PK{"Pakistan"}
-        PL{"Pɔland"}
+        PL{"Poland"}
         PM{"Saint Pierre ne Miquelon"}
-        PN{"Pitkaan Nsupɔ"}
+        PN{"Pitcairn"}
         PR{"Puɛto Riko"}
         PS{"Palestaen West Bank ne Gaza"}
         PT{"Pɔtugal"}
         PW{"Palau"}
-        PY{"Paraguae"}
+        PY{"Paraguay"}
         QA{"Kata"}
-        QO{"Osiana Ano Ano"}
         RE{"Reyuniɔn"}
         RO{"Romenia"}
-        RS{"Sɛbia"}
         RU{"Rɔhyea"}
-        RW{"Rewanda"}
+        RW{"Rwanda"}
         SA{"Saudi Arabia"}
-        SB{"Solomɔn Aeland"}
+        SB{"Solomon Islands"}
         SC{"Seyhyɛl"}
         SD{"Sudan"}
         SE{"Sweden"}
         SG{"Singapɔ"}
         SH{"Saint Helena"}
         SI{"Slovinia"}
-        SJ{"Svalbard ne Jan Mayen"}
         SK{"Slovakia"}
-        SL{"Sɛra Liɔn"}
+        SL{"Sierra Leone"}
         SM{"San Marino"}
         SN{"Senegal"}
         SO{"Somalia"}
         SR{"Suriname"}
-        SS{"Sudan Anaafoɔ"}
-        ST{"São Tomé ne Príncipe"}
+        ST{"São Tomé and Príncipe"}
         SV{"Ɛl Salvadɔ"}
-        SX{"Sint Maaten"}
         SY{"Siria"}
         SZ{"Swaziland"}
-        TA{"Tristan da Kuna"}
         TC{"Turks ne Caicos Islands"}
         TD{"Kyad"}
-        TF{"Franse Anaafoɔ Nsaase"}
         TG{"Togo"}
         TH{"Taeland"}
-        TJ{"Tagyikistan"}
+        TJ{"Tajikistan"}
         TK{"Tokelau"}
         TL{"Timɔ Boka"}
         TM{"Tɛkmɛnistan"}
@@ -271,46 +206,25 @@ ak{
         TT{"Trinidad ne Tobago"}
         TV{"Tuvalu"}
         TW{"Taiwan"}
-        TZ{"Tansania"}
+        TZ{"Tanzania"}
         UA{"Ukren"}
-        UG{"Yuganda"}
-        UM{"U.S. Nkyɛnnkyɛn Supɔ Ahodoɔ"}
-        UN{"Amansan Nkabomkuo"}
+        UG{"Uganda"}
         US{"Amɛrika"}
         UY{"Yurugwae"}
-        UZ{"Usbɛkistan"}
+        UZ{"Uzbɛkistan"}
         VA{"Vatican Man"}
         VC{"Saint Vincent ne Grenadines"}
         VE{"Venezuela"}
-        VG{"Ngresifoɔ Virgin Island"}
+        VG{"Britainfo Virgin Islands"}
         VI{"Amɛrika Virgin Islands"}
         VN{"Viɛtnam"}
         VU{"Vanuatu"}
         WF{"Wallis ne Futuna"}
         WS{"Samoa"}
-        XA{"Anto Kasa"}
-        XB{"Anto Bidi"}
-        XK{"Kosovo"}
-        YE{"Yɛmɛn"}
+        YE{"Yɛmen"}
         YT{"Mayɔte"}
-        ZA{"Abibirem Anaafoɔ"}
+        ZA{"Afrika Anaafo"}
         ZM{"Zambia"}
-        ZW{"Zimbabue"}
-        ZZ{"Mantam a Yɛnnim"}
-    }
-    Countries%chagos{
-        IO{"Kyagɔso Akyipalego"}
-    }
-    Countries%short{
-        HK{"Hɔnkɔn"}
-        MO{"Makaw"}
-    }
-    Countries%variant{
-        CD{"DR Kongo"}
-        CG{"Kongo Man"}
-        CZ{"Kyɛk Man"}
-        FK{"Fɔkman Aeland (Islas Maivinas)"}
-        NZ{"Ziland Foforɔ a ɛwɔ Awotiarua"}
-        TL{"Timɔ Apueiɛ"}
+        ZW{"Zembabwe"}
     }
 }

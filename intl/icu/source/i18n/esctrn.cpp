@@ -111,7 +111,7 @@ EscapeTransliterator::EscapeTransliterator(const EscapeTransliterator& o) :
     radix(o.radix),
     minDigits(o.minDigits),
     grokSupplementals(o.grokSupplementals) {
-    supplementalHandler = o.supplementalHandler != nullptr ?
+    supplementalHandler = (o.supplementalHandler != 0) ?
         new EscapeTransliterator(*o.supplementalHandler) : nullptr;
 }
 

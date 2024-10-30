@@ -244,6 +244,7 @@ ubidi_setLine(const UBiDi *pParaBiDi,
         }
     }
     pLineBiDi->pParaBiDi=pParaBiDi;     /* mark successful setLine */
+    return;
 }
 
 U_CAPI UBiDiLevel U_EXPORT2

@@ -9,8 +9,8 @@
 
 #include "number_types.h"
 
-U_NAMESPACE_BEGIN
-namespace number::impl {
+U_NAMESPACE_BEGIN namespace number {
+namespace impl {
 
 // Forward-declare
 class ScientificHandler;
@@ -34,7 +34,7 @@ class U_I18N_API ScientificModifier : public UMemory, public Modifier {
 
     void getParameters(Parameters& output) const override;
 
-    bool strictEquals(const Modifier& other) const override;
+    bool semanticallyEquivalent(const Modifier& other) const override;
 
   private:
     int32_t fExponent;
@@ -59,7 +59,8 @@ class ScientificHandler : public UMemory, public MicroPropsGenerator, public Mul
     friend class ScientificModifier;
 };
 
-} // namespace number::impl
+} // namespace impl
+} // namespace number
 U_NAMESPACE_END
 
 #endif //__NUMBER_SCIENTIFIC_H__

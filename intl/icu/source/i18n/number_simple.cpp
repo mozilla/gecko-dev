@@ -20,12 +20,12 @@ using namespace icu::number::impl;
 SimpleNumber
 SimpleNumber::forInt64(int64_t value, UErrorCode& status) {
     if (U_FAILURE(status)) {
-        return {};
+        return SimpleNumber();
     }
-    auto* results = new UFormattedNumberData();
+    auto results = new UFormattedNumberData();
     if (results == nullptr) {
         status = U_MEMORY_ALLOCATION_ERROR;
-        return {};
+        return SimpleNumber();
     }
     results->quantity.setToLong(value);
     return SimpleNumber(results, status);
@@ -81,8 +81,7 @@ void SimpleNumber::setMinimumIntegerDigits(uint32_t position, UErrorCode& status
         status = U_INVALID_STATE_ERROR;
         return;
     }
-    fData->quantity.decreaseMinIntegerTo(position);
-    fData->quantity.increaseMinIntegerTo(position);
+    fData->quantity.setMinInteger(position);
 }
 
 void SimpleNumber::setMinimumFractionDigits(uint32_t position, UErrorCode& status) {
@@ -96,7 +95,7 @@ void SimpleNumber::setMinimumFractionDigits(uint32_t position, UErrorCode& statu
     fData->quantity.setMinFraction(position);
 }
 
-void SimpleNumber::setMaximumIntegerDigits(uint32_t position, UErrorCode& status) {
+void SimpleNumber::truncateStart(uint32_t position, UErrorCode& status) {
     if (U_FAILURE(status)) {
         return;
     }
@@ -104,7 +103,6 @@ void SimpleNumber::setMaximumIntegerDigits(uint32_t position, UErrorCode& status
         status = U_INVALID_STATE_ERROR;
         return;
     }
-    fData->quantity.decreaseMinIntegerTo(position);
     fData->quantity.applyMaxInteger(position);
 }
 
@@ -178,7 +176,7 @@ void SimpleNumberFormatter::initialize(
     }
     fMicros->symbols = &symbols;
 
-    const auto* pattern = utils::getPatternForStyle(
+    auto pattern = utils::getPatternForStyle(
         locale,
         symbols.getNumberingSystemName(),
         CLDR_PATTERN_STYLE_DECIMAL,
@@ -205,6 +203,7 @@ void SimpleNumberFormatter::initialize(
     fPatternModifier = new AdoptingSignumModifierStore(patternModifier.createImmutableForPlural(StandardPlural::COUNT, status));
 
     fGroupingStrategy = groupingStrategy;
+    return;
 }
 
 FormattedNumber SimpleNumberFormatter::format(SimpleNumber value, UErrorCode &status) const {
@@ -212,7 +211,7 @@ FormattedNumber SimpleNumberFormatter::format(SimpleNumber value, UErrorCode &st
 
     // Do not save the results object if we encountered a failure.
     if (U_SUCCESS(status)) {
-        auto* temp = value.fData;
+        auto temp = value.fData;
         value.fData = nullptr;
         return FormattedNumber(temp);
     } else {

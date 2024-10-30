@@ -465,6 +465,9 @@ kk{
         "America:New_York"{
             ec{"Нью-Йорк"}
         }
+        "America:Nipigon"{
+            ec{"Нипигон"}
+        }
         "America:Nome"{
             ec{"Ном"}
         }
@@ -485,6 +488,9 @@ kk{
         }
         "America:Panama"{
             ec{"Панама"}
+        }
+        "America:Pangnirtung"{
+            ec{"Пангниртанг"}
         }
         "America:Paramaribo"{
             ec{"Парамарибо"}
@@ -507,6 +513,9 @@ kk{
         "America:Punta_Arenas"{
             ec{"Пунта-Аренас"}
         }
+        "America:Rainy_River"{
+            ec{"Рейни-Ривер"}
+        }
         "America:Rankin_Inlet"{
             ec{"Ранкин-Инлет"}
         }
@@ -521,6 +530,9 @@ kk{
         }
         "America:Rio_Branco"{
             ec{"Риу-Бранку"}
+        }
+        "America:Santa_Isabel"{
+            ec{"Санта-Исабель"}
         }
         "America:Santarem"{
             ec{"Сантарен"}
@@ -567,6 +579,9 @@ kk{
         "America:Thule"{
             ec{"Туле"}
         }
+        "America:Thunder_Bay"{
+            ec{"Тандер-Бей"}
+        }
         "America:Tijuana"{
             ec{"Тихуана"}
         }
@@ -587,6 +602,9 @@ kk{
         }
         "America:Yakutat"{
             ec{"Якутат"}
+        }
+        "America:Yellowknife"{
+            ec{"Йеллоунайф"}
         }
         "Antarctica:Casey"{
             ec{"Кейси"}
@@ -677,6 +695,9 @@ kk{
         }
         "Asia:Chita"{
             ec{"Чита"}
+        }
+        "Asia:Choibalsan"{
+            ec{"Чойбалсан"}
         }
         "Asia:Colombo"{
             ec{"Коломбо"}
@@ -909,6 +930,9 @@ kk{
         "Australia:Broken_Hill"{
             ec{"Брокен-Хилл"}
         }
+        "Australia:Currie"{
+            ec{"Керри"}
+        }
         "Australia:Darwin"{
             ec{"Дарвин"}
         }
@@ -1091,6 +1115,9 @@ kk{
         "Europe:Ulyanovsk"{
             ec{"Ульяновск"}
         }
+        "Europe:Uzhgorod"{
+            ec{"Ужгород"}
+        }
         "Europe:Vaduz"{
             ec{"Вадуц"}
         }
@@ -1111,6 +1138,9 @@ kk{
         }
         "Europe:Zagreb"{
             ec{"Загреб"}
+        }
+        "Europe:Zaporozhye"{
+            ec{"Запорожье"}
         }
         "Europe:Zurich"{
             ec{"Цюрих"}
@@ -1192,6 +1222,9 @@ kk{
         }
         "Pacific:Honolulu"{
             ec{"Гонолулу"}
+        }
+        "Pacific:Johnston"{
+            ec{"Джонстон"}
         }
         "Pacific:Kanton"{
             ec{"Кантон"}
@@ -1414,6 +1447,11 @@ kk{
             lg{"Қытай уақыты"}
             ls{"Қытай стандартты уақыты"}
         }
+        "meta:Choibalsan"{
+            ld{"Чойбалсан жазғы уақыты"}
+            lg{"Чойбалсан уақыты"}
+            ls{"Чойбалсан стандартты уақыты"}
+        }
         "meta:Christmas"{
             ls{"Рождество аралының уақыты"}
         }
@@ -1575,9 +1613,6 @@ kk{
             lg{"Жапония уақыты"}
             ls{"Жапония стандартты уақыты"}
         }
-        "meta:Kazakhstan"{
-            ls{"Қазақстан уақыты"}
-        }
         "meta:Kazakhstan_Eastern"{
             ls{"Шығыс Қазақстан уақыты"}
         }
@@ -1608,6 +1643,9 @@ kk{
             lg{"Лорд-Хау уақыты"}
             ls{"Лорд-Хау стандартты уақыты"}
         }
+        "meta:Macquarie"{
+            ls{"Маккуори аралы уақыты"}
+        }
         "meta:Magadan"{
             ld{"Магадан жазғы уақыты"}
             lg{"Магадан уақыты"}
@@ -1632,6 +1670,11 @@ kk{
         }
         "meta:Mawson"{
             ls{"Моусон уақыты"}
+        }
+        "meta:Mexico_Northwest"{
+            ld{"Солтүстік-батыс Мексика жазғы уақыты"}
+            lg{"Солтүстік-батыс Мексика уақыты"}
+            ls{"Солтүстік-батыс Мексика стандартты уақыты"}
         }
         "meta:Mexico_Pacific"{
             ld{"Мексика жазғы Тынық мұхит уақыты"}
@@ -1852,6 +1895,10 @@ kk{
         "meta:Yukon"{
             ls{"Юкон уақыты"}
         }
+        fallbackFormat{"{1} ({0})"}
+        gmtFormat{"GMT{0}"}
+        gmtZeroFormat{"GMT"}
+        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} уақыты"}
         regionFormatDaylight{"{0} жазғы уақыты"}
         regionFormatStandard{"{0} стандартты уақыты"}

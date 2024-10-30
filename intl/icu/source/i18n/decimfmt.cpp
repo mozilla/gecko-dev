@@ -210,7 +210,7 @@ DecimalFormat::setAttribute(UNumberFormatAttribute attr, int32_t newValue, UErro
             break;
 
         case UNUM_ROUNDING_MODE:
-            setRoundingMode(static_cast<DecimalFormat::ERoundingMode>(newValue));
+            setRoundingMode((DecimalFormat::ERoundingMode) newValue);
             break;
 
         case UNUM_FORMAT_WIDTH:
@@ -219,7 +219,7 @@ DecimalFormat::setAttribute(UNumberFormatAttribute attr, int32_t newValue, UErro
 
         case UNUM_PADDING_POSITION:
             /** The position at which padding will take place. */
-            setPadPosition(static_cast<DecimalFormat::EPadPosition>(newValue));
+            setPadPosition((DecimalFormat::EPadPosition) newValue);
             break;
 
         case UNUM_SECONDARY_GROUPING_SIZE:
@@ -228,20 +228,20 @@ DecimalFormat::setAttribute(UNumberFormatAttribute attr, int32_t newValue, UErro
 
 #if UCONFIG_HAVE_PARSEALLINPUT
         case UNUM_PARSE_ALL_INPUT:
-            setParseAllInput(static_cast<UNumberFormatAttributeValue>(newValue));
+            setParseAllInput((UNumberFormatAttributeValue) newValue);
             break;
 #endif
 
         case UNUM_PARSE_NO_EXPONENT:
-            setParseNoExponent(static_cast<UBool>(newValue));
+            setParseNoExponent((UBool) newValue);
             break;
 
         case UNUM_PARSE_DECIMAL_MARK_REQUIRED:
-            setDecimalPatternMatchRequired(static_cast<UBool>(newValue));
+            setDecimalPatternMatchRequired((UBool) newValue);
             break;
 
         case UNUM_CURRENCY_USAGE:
-            setCurrencyUsage(static_cast<UCurrencyUsage>(newValue), &status);
+            setCurrencyUsage((UCurrencyUsage) newValue, &status);
             break;
 
         case UNUM_MINIMUM_GROUPING_DIGITS:
@@ -503,7 +503,7 @@ DecimalFormat* DecimalFormat::clone() const {
 }
 
 bool DecimalFormat::operator==(const Format& other) const {
-    const auto* otherDF = dynamic_cast<const DecimalFormat*>(&other);
+    auto* otherDF = dynamic_cast<const DecimalFormat*>(&other);
     if (otherDF == nullptr) {
         return false;
     }

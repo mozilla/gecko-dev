@@ -489,6 +489,7 @@ void MeasureFormat::parseObject(
         const UnicodeString & /*source*/,
         Formattable & /*result*/,
         ParsePosition& /*pos*/) const {
+    return;
 }
 
 UnicodeString &MeasureFormat::formatMeasurePerUnit(
@@ -500,14 +501,14 @@ UnicodeString &MeasureFormat::formatMeasurePerUnit(
     if (U_FAILURE(status)) {
         return appendTo;
     }
-    const auto* df = dynamic_cast<const DecimalFormat*>(&getNumberFormatInternal());
+    auto* df = dynamic_cast<const DecimalFormat*>(&getNumberFormatInternal());
     if (df == nullptr) {
         // Don't know how to handle other types of NumberFormat
         status = U_UNSUPPORTED_ERROR;
         return appendTo;
     }
     UFormattedNumberData result;
-    if (const auto* lnf = df->toNumberFormatter(status)) {
+    if (auto* lnf = df->toNumberFormatter(status)) {
         result.quantity.setToDouble(measure.getNumber().getDouble(status));
         lnf->unit(measure.getUnit())
             .perUnit(perUnit)
@@ -690,7 +691,7 @@ UnicodeString &MeasureFormat::formatMeasure(
                 pos,
                 status);
     }
-    const auto* df = dynamic_cast<const DecimalFormat*>(&nf);
+    auto* df = dynamic_cast<const DecimalFormat*>(&nf);
     if (df == nullptr) {
         // Handle other types of NumberFormat using the ICU 63 code, modified to
         // get the unitPattern from LongNameHandler and handle fallback to OTHER.
@@ -707,7 +708,7 @@ UnicodeString &MeasureFormat::formatMeasure(
         return QuantityFormatter::format(formatter, formattedNumber, appendTo, pos, status);
     }
     UFormattedNumberData result;
-    if (const auto* lnf = df->toNumberFormatter(status)) {
+    if (auto* lnf = df->toNumberFormatter(status)) {
         result.quantity.setToDouble(amtNumber.getDouble(status));
         lnf->unit(amtUnit)
             .unitWidth(getUnitWidth(fWidth))
@@ -760,7 +761,7 @@ UnicodeString &MeasureFormat::formatNumeric(
         return appendTo;
     }
     number::LocalizedNumberFormatter numberFormatter2;
-    if (const auto* lnf = numberFormatter->toNumberFormatter(status)) {
+    if (auto* lnf = numberFormatter->toNumberFormatter(status)) {
         numberFormatter2 = lnf->integerWidth(number::IntegerWidth::zeroFillTo(2));
     } else {
         return appendTo;
