@@ -43,6 +43,13 @@
     "unloadTimeoutMs",
     "dom.beforeunload_timeout_ms"
   );
+  XPCOMUtils.defineLazyPreferenceGetter(
+    lazyPrefs,
+    "_contentAnalysisDragDropEnabled",
+    "browser.contentanalysis.interception_point.drag_and_drop.enabled",
+    true
+  );
+
   Object.defineProperty(lazy, "ProcessHangMonitor", {
     configurable: true,
     get() {
@@ -166,7 +173,10 @@
       this.addEventListener(
         "drop",
         event => {
-          if (lazy.contentAnalysis.isActive) {
+          if (
+            lazy.contentAnalysis.isActive &&
+            lazyPrefs._contentAnalysisDragDropEnabled
+          ) {
             let dragService = Cc[
               "@mozilla.org/widget/dragservice;1"
             ].getService(Ci.nsIDragService);

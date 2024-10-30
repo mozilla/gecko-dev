@@ -789,7 +789,9 @@ nsFilePicker::CheckContentAnalysisService() {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv, __func__);
   }
-  if (!contentAnalysisIsActive) {
+  if (!contentAnalysisIsActive ||
+      !mozilla::StaticPrefs::
+          browser_contentanalysis_interception_point_file_upload_enabled()) {
     return nsFilePicker::ContentAnalysisResponse::CreateAndResolve(true,
                                                                    __func__);
   }
