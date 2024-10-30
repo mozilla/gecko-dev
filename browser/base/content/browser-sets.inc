@@ -35,6 +35,8 @@
     <command id="cmd_close" />
     <command id="cmd_closeWindow" />
     <command id="cmd_minimizeWindow" />
+    <command id="cmd_maximizeWindow" />
+    <command id="cmd_restoreWindow" />
     <command id="cmd_toggleMute" />
     <command id="cmd_CustomizeToolbars" oncommand="gCustomizeMode.enter();" />
     <command id="cmd_toggleOfflineStatus" />

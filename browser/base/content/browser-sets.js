@@ -68,6 +68,12 @@ document.addEventListener(
           case "cmd_minimizeWindow":
             window.minimize();
             break;
+          case "cmd_maximizeWindow":
+            window.maximize();
+            break;
+          case "cmd_restoreWindow":
+            window.fullScreen ? BrowserCommands.fullScreen() : window.restore();
+            break;
           case "cmd_toggleMute":
             gBrowser.toggleMuteAudioOnMultiSelectedTabs(gBrowser.selectedTab);
             break;
