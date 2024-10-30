@@ -1783,9 +1783,22 @@ def target_tasks_android_l10n_sync(full_task_graph, parameters, graph_config):
 
 @register_target_task("os-integration")
 def target_tasks_os_integration(full_task_graph, parameters, graph_config):
-    return [
-        l
-        for l, t in full_task_graph.tasks.items()
-        if t.attributes.get("unittest_variant") == "os-integration"
-        and standard_filter(t, parameters)
-    ]
+    labels = []
+
+    for label, task in full_task_graph.tasks.items():
+        if task.attributes.get("unittest_variant") != "os-integration":
+            continue
+
+        index = label.index("-osint")
+        base_label = label[:index]
+        if base_label not in full_task_graph.tasks:
+            base_label += "-1"
+        base_task = full_task_graph.tasks[base_label]
+
+        if (
+            filter_for_project(base_task, parameters)
+            and filter_for_hg_branch(base_task, parameters)
+            and filter_tests_without_manifests(base_task, parameters)
+        ):
+            labels.append(label)
+    return labels
