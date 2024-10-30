@@ -7,6 +7,7 @@
 
 import ctypes
 import os
+import threading
 from ctypes import POINTER, byref
 from ctypes.wintypes import BOOL, HWND, LPARAM, POINT  # noqa: F401
 from dataclasses import dataclass
@@ -61,6 +62,18 @@ uiaClient = comtypes.CoCreateInstance(
     interface=uiaMod.IUIAutomation,
     clsctx=comtypes.CLSCTX_INPROC_SERVER,
 )
+
+_threadLocal = threading.local()
+
+
+def setup():
+    if getattr(_threadLocal, "isSetup", False):
+        return
+    # We can do most setup at module level. However, because modules are cached
+    # and pywebsocket3 can serve requests on any thread, we need to do setup for
+    # each new thread here.
+    comtypes.CoInitialize()
+    _threadLocal.isSetup = True
 
 
 def AccessibleObjectFromWindow(hwnd, objectID=OBJID_CLIENT):

@@ -28,6 +28,11 @@ sys.path.pop()
 del pyatspiFile
 
 
+def setup():
+    # We do all the setup we need at module level.
+    pass
+
+
 def getDoc():
     """Get the Accessible for the document being tested."""
     # We can compare the parent process ids to find the Firefox started by the
