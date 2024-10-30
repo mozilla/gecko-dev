@@ -299,7 +299,6 @@ class MenuStoreTest {
 
             assertEquals(null, store.state.extensionMenuState.addonInstallationInProgress)
             assertEquals(1, store.state.extensionMenuState.recommendedAddons.size)
-            assertEquals(1, store.state.extensionMenuState.installedAddons.size)
         }
 
     @Test

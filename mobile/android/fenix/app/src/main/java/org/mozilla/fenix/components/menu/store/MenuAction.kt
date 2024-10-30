@@ -122,16 +122,6 @@ sealed class MenuAction : Action {
     ) : MenuAction()
 
     /**
-     * [MenuAction] dispatched when installed addons list is updated.
-     *
-     * @property installedAddons The list of installed [Addon]s
-     * to be shown in the menu.
-     */
-    data class UpdateInstalledAddons(
-        val installedAddons: List<Addon>,
-    ) : MenuAction()
-
-    /**
      * [MenuAction] dispatched when an addon is to be installed.
      *
      * @property addon The [Addon] to install.
