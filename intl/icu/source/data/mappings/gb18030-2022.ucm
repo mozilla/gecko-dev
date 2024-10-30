@@ -3,9 +3,15 @@
 # Copyright (C) 2000-2012, International Business Machines Corporation and others.
 # All Rights Reserved.
 
-# ICU codepage data for GB 18030
+# ICU codepage data for GB 18030-2022
 
-<code_set_name>               "gb18030"
+# This data file was originally generated from the mapping tables
+# published with the original (year 2000) GB18030 standard.
+# It has been updated for the 2005 version of GB18030 (ICU-8274 & ICU-8427)
+# and for the 2022 version (ICU-22357).
+# ICU-22420 then made minor mapping changes for GBK and web data/WHATWG compatibility.
+
+<code_set_name>               "gb18030-2022"
 <char_name_mask>              "AXXXX"
 <mb_cur_max>                  4
 <mb_cur_min>                  1
@@ -23,7 +29,8 @@
 # The second <icu:state> line is commented out (and does not count)
 # because the state table is hand-optimized and does not use what would be
 # the natural path for the encoding scheme.
-<icu:state> 0-7f, 81:6, 82:7, 83:8, 84:9, 85-fe:3
+# ICU-22420 makes 0x80 valid for the GBK encoding of the Euro sign.
+<icu:state> 0-80, 81:6, 82:7, 83:8, 84:9, 85-fe:3
 # <icu:state> 30-39:2, 40-7e, 80-fe
 <icu:state> 81-fe:2
 <icu:state> 30-39
@@ -51,10 +58,22 @@
 
 # GB 18030 BMP mappings that are not handled algorithmically are
 # generated using gbmake4 and gbtoucm tools. Please see charset/source/gb18030/gb18030.html
-# or http://source.icu-project.org/repos/icu/data/trunk/charset/source/gb18030/gb18030.html
+# or https://htmlpreview.github.io/?https://github.com/unicode-org/icu-data/blob/main/charset/source/gb18030/gb18030.html
 # for more information.
 
 CHARMAP
+
+# ICU-22420 reverse fallbacks for compatibility with GBK and other web data as in WHATWG.
+# U+20AC = EURO SIGN (normally \xA2\xE3)
+# U+3000 = IDEOGRAPHIC SPACE (normally \xA1\xA1)
+#
+# PUA U+E5E5 used to round-trip to \xA3\xA0, as specified in GB18030.
+# Now that \xA3\xA0 maps to U+3000 ("reverse fallback" mapping),
+# we use a "good one-way" mapping from U+E5E5 to \xA3\xA0
+# for maximum compatibility with previous behavior.
+<U20AC> \x80 |3
+<U3000> \xA3\xA0 |3
+<UE5E5> \xA3\xA0 |4
 
 <U0000> \x00 |0
 <U0001> \x01 |0
@@ -28077,6 +28096,22 @@ CHARMAP
 <U9FA3> \xFD\x99 |0
 <U9FA4> \xFD\x9A |0
 <U9FA5> \xFD\x9B |0
+<U9FB4> \xFE\x59 |0
+<U9FB4> \x82\x35\x90\x37 |3
+<U9FB5> \xFE\x61 |0
+<U9FB5> \x82\x35\x90\x38 |3
+<U9FB6> \xFE\x66 |0
+<U9FB6> \x82\x35\x90\x39 |3
+<U9FB7> \xFE\x67 |0
+<U9FB7> \x82\x35\x91\x30 |3
+<U9FB8> \xFE\x6D |0
+<U9FB8> \x82\x35\x91\x31 |3
+<U9FB9> \xFE\x7E |0
+<U9FB9> \x82\x35\x91\x32 |3
+<U9FBA> \xFE\x90 |0
+<U9FBA> \x82\x35\x91\x33 |3
+<U9FBB> \xFE\xA0 |0
+<U9FBB> \x82\x35\x91\x34 |3
 <UE000> \xAA\xA1 |0
 <UE001> \xAA\xA2 |0
 <UE002> \xAA\xA3 |0
@@ -29586,7 +29621,7 @@ CHARMAP
 <UE5E2> \xA3\x9D |0
 <UE5E3> \xA3\x9E |0
 <UE5E4> \xA3\x9F |0
-<UE5E5> \xA3\xA0 |0
+# <UE5E5> \xA3\xA0 |0
 <UE5E6> \xA4\x40 |0
 <UE5E7> \xA4\x41 |0
 <UE5E8> \xA4\x42 |0
@@ -30010,16 +30045,16 @@ CHARMAP
 <UE78A> \xA6\xBE |0
 <UE78B> \xA6\xBF |0
 <UE78C> \xA6\xC0 |0
-<UE78D> \xA6\xD9 |0
-<UE78E> \xA6\xDA |0
-<UE78F> \xA6\xDB |0
-<UE790> \xA6\xDC |0
-<UE791> \xA6\xDD |0
-<UE792> \xA6\xDE |0
-<UE793> \xA6\xDF |0
-<UE794> \xA6\xEC |0
-<UE795> \xA6\xED |0
-<UE796> \xA6\xF3 |0
+<UE78D> \xA6\xD9 |1
+<UE78E> \xA6\xDA |1
+<UE78F> \xA6\xDB |1
+<UE790> \xA6\xDC |1
+<UE791> \xA6\xDD |1
+<UE792> \xA6\xDE |1
+<UE793> \xA6\xDF |1
+<UE794> \xA6\xEC |1
+<UE795> \xA6\xED |1
+<UE796> \xA6\xF3 |1
 <UE797> \xA6\xF6 |0
 <UE798> \xA6\xF7 |0
 <UE799> \xA6\xF8 |0
@@ -30155,7 +30190,7 @@ CHARMAP
 <UE81B> \x83\x36\xC9\x37 |0
 <UE81C> \x83\x36\xC9\x38 |0
 <UE81D> \x83\x36\xC9\x39 |0
-<UE81E> \xFE\x59 |0
+<UE81E> \xFE\x59 |1
 <UE81F> \x83\x36\xCA\x30 |0
 <UE820> \x83\x36\xCA\x31 |0
 <UE821> \x83\x36\xCA\x32 |0
@@ -30163,19 +30198,19 @@ CHARMAP
 <UE823> \x83\x36\xCA\x34 |0
 <UE824> \x83\x36\xCA\x35 |0
 <UE825> \x83\x36\xCA\x36 |0
-<UE826> \xFE\x61 |0
+<UE826> \xFE\x61 |1
 <UE827> \x83\x36\xCA\x37 |0
 <UE828> \x83\x36\xCA\x38 |0
 <UE829> \x83\x36\xCA\x39 |0
 <UE82A> \x83\x36\xCB\x30 |0
-<UE82B> \xFE\x66 |0
-<UE82C> \xFE\x67 |0
+<UE82B> \xFE\x66 |1
+<UE82C> \xFE\x67 |1
 <UE82D> \x83\x36\xCB\x31 |0
 <UE82E> \x83\x36\xCB\x32 |0
 <UE82F> \x83\x36\xCB\x33 |0
 <UE830> \x83\x36\xCB\x34 |0
 <UE831> \xFE\x6C |0
-<UE832> \xFE\x6D |0
+<UE832> \xFE\x6D |1
 <UE833> \x83\x36\xCB\x35 |0
 <UE834> \x83\x36\xCB\x36 |0
 <UE835> \x83\x36\xCB\x37 |0
@@ -30192,7 +30227,7 @@ CHARMAP
 <UE840> \x83\x36\xCC\x37 |0
 <UE841> \x83\x36\xCC\x38 |0
 <UE842> \x83\x36\xCC\x39 |0
-<UE843> \xFE\x7E |0
+<UE843> \xFE\x7E |1
 <UE844> \x83\x36\xCD\x30 |0
 <UE845> \x83\x36\xCD\x31 |0
 <UE846> \x83\x36\xCD\x32 |0
@@ -30209,7 +30244,7 @@ CHARMAP
 <UE851> \x83\x36\xCE\x33 |0
 <UE852> \x83\x36\xCE\x34 |0
 <UE853> \x83\x36\xCE\x35 |0
-<UE854> \xFE\x90 |0
+<UE854> \xFE\x90 |1
 <UE855> \xFE\x91 |0
 <UE856> \x83\x36\xCE\x36 |0
 <UE857> \x83\x36\xCE\x37 |0
@@ -30225,7 +30260,7 @@ CHARMAP
 <UE861> \x83\x36\xCF\x37 |0
 <UE862> \x83\x36\xCF\x38 |0
 <UE863> \x83\x36\xCF\x39 |0
-<UE864> \xFE\xA0 |0
+<UE864> \xFE\xA0 |1
 <UF92C> \xFD\x9C |0
 <UF92D> \x84\x30\x85\x35 |0
 <UF92E> \x84\x30\x85\x36 |0
@@ -30480,6 +30515,26 @@ CHARMAP
 <UFA27> \xFE\x4D |0
 <UFA28> \xFE\x4E |0
 <UFA29> \xFE\x4F |0
+<UFE10> \xA6\xD9 |0
+<UFE10> \x84\x31\x82\x36 |3
+<UFE11> \xA6\xDB |0
+<UFE11> \x84\x31\x82\x37 |3
+<UFE12> \xA6\xDA |0
+<UFE12> \x84\x31\x82\x38 |3
+<UFE13> \xA6\xDC |0
+<UFE13> \x84\x31\x82\x39 |3
+<UFE14> \xA6\xDD |0
+<UFE14> \x84\x31\x83\x30 |3
+<UFE15> \xA6\xDE |0
+<UFE15> \x84\x31\x83\x31 |3
+<UFE16> \xA6\xDF |0
+<UFE16> \x84\x31\x83\x32 |3
+<UFE17> \xA6\xEC |0
+<UFE17> \x84\x31\x83\x33 |3
+<UFE18> \xA6\xED |0
+<UFE18> \x84\x31\x83\x34 |3
+<UFE19> \xA6\xF3 |0
+<UFE19> \x84\x31\x83\x35 |3
 <UFE30> \xA9\x55 |0
 <UFE31> \xA6\xF2 |0
 <UFE32> \x84\x31\x85\x38 |0

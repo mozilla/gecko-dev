@@ -72,7 +72,7 @@ pluralRanges:table(nofallback){
         ro{"set11"}
         ru{"set18"}
         sc{"set03"}
-        scn{"set03"}
+        scn{"set14"}
         sd{"set07"}
         si{"set06"}
         sk{"set17"}

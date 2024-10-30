@@ -1,0 +1,17 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+csw{
+    Countries{
+        001{"ᐊᐢᑭᕀ"}
+        003{"ᒥᐦᑭᓇᕽ ᒥᓂᐢᑎᐠ"}
+        005{"ᓵᐘᓄᕽ ᒥᐦᑭᓇᕽ ᒥᓂᐢᑎᐠ"}
+        013{"ᐋᐱᐦᑕᐤ ᒥᐦᑭᓇᕽ ᒥᓂᐢᑎᐠ"}
+        021{"ᑮᐍᑎᓄᕽ ᒥᐦᑭᓇᕽ ᒥᓂᐢᑎᐠ"}
+        CA{"ᑳᓇᑕ"}
+        EU{"ᐊᑳᒪᐢᑮᔭ"}
+        EZ{"ᐊᑳᒪᐢᑮᕽ"}
+        UN{"ᒫᒫᐏ ᐊᐢᑮᔭ"}
+        US{"ᑭᐦᒋ ᒨᑯᒫᓂᕽ"}
+    }
+}

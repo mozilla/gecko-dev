@@ -10,11 +10,6 @@ es_419{
                 other{"{0} unidades de fuerza gravitacional"}
             }
         }
-        concentr{
-            milligram-ofglucose-per-deciliter{
-                dnam{"mg/dL"}
-            }
-        }
         electric{
             ampere{
                 dnam{"amperes"}
@@ -73,6 +68,11 @@ es_419{
                 other{"{0} caballos de fuerza"}
             }
         }
+        speed{
+            beaufort{
+                gender{"masculine"}
+            }
+        }
         temperature{
             generic{
                 one{"{0}°"}
@@ -98,11 +98,6 @@ es_419{
         }
     }
     unitsNarrow{
-        acceleration{
-            g-force{
-                dnam{"G"}
-            }
-        }
         area{
             square-meter{
                 dnam{"metros²"}
@@ -121,11 +116,6 @@ es_419{
                 dnam{"d."}
                 one{"{0}d."}
                 other{"{0}dd."}
-                per{"{0}/d."}
-            }
-            minute{
-                one{"{0}m"}
-                other{"{0}m"}
             }
             month{
                 dnam{"m."}
@@ -133,9 +123,9 @@ es_419{
                 other{"{0}mm."}
                 per{"{0}/m."}
             }
-            quarter{
-                one{"{0}/trim"}
-                other{"{0}/trim"}
+            night{
+                one{"{0} noche"}
+                other{"{0} noches"}
             }
             week{
                 dnam{"sem."}
@@ -161,21 +151,27 @@ es_419{
                 other{"{0} kWh/100km"}
             }
         }
+        graphics{
+            dot{
+                one{"{0}p"}
+                other{"{0}p"}
+            }
+        }
         length{
             astronomical-unit{
-                dnam{"ua"}
+                one{"{0}ua"}
+                other{"{0}ua"}
             }
             light-year{
                 dnam{"aa. l."}
                 one{"{0}a. l."}
-                other{"{0}a.a. l."}
+                other{"{0}aa. l."}
             }
             mile-scandinavian{
                 one{"{0}mi esc."}
                 other{"{0}mi esc."}
             }
             nautical-mile{
-                dnam{"nmi"}
                 one{"{0}nmi"}
                 other{"{0}nmi"}
             }
@@ -185,24 +181,35 @@ es_419{
         }
         mass{
             ounce-troy{
-                dnam{"ozt"}
                 one{"{0}ozt"}
                 other{"{0}ozt"}
             }
             ton{
-                dnam{"ton"}
                 one{"{0}ton"}
                 other{"{0}ton"}
             }
         }
         power{
             horsepower{
-                dnam{"hp"}
                 one{"{0}hp"}
                 other{"{0}hp"}
             }
         }
+        speed{
+            beaufort{
+                one{"B {0}"}
+                other{"B {0}"}
+            }
+            light-speed{
+                one{"{0} luz"}
+                other{"{0} luz"}
+            }
+        }
         volume{
+            acre-foot{
+                one{"{0} ac ft"}
+                other{"{0}ac ft"}
+            }
             barrel{
                 one{"{0}bbl"}
                 other{"{0}bbl"}
@@ -215,12 +222,6 @@ es_419{
                 dnam{"pt"}
                 one{"{0}pt"}
                 other{"{0}pt"}
-            }
-            tablespoon{
-                dnam{"cdas."}
-            }
-            teaspoon{
-                dnam{"cdtas."}
             }
         }
     }
@@ -241,6 +242,12 @@ es_419{
             mile-per-gallon-imperial{
                 one{"{0} mpg imp."}
                 other{"{0} mpg imp."}
+            }
+        }
+        digital{
+            byte{
+                one{"{0} byte"}
+                other{"{0} byte"}
             }
         }
         duration{
@@ -313,11 +320,6 @@ es_419{
                 dnam{"ton"}
                 one{"{0} ton"}
                 other{"{0} ton"}
-            }
-            tonne{
-                dnam{"t"}
-                one{"{0} t"}
-                other{"{0} t"}
             }
         }
         power{

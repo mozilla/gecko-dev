@@ -405,9 +405,6 @@ el{
         "America:Louisville"{
             ec{"Λούιβιλ"}
         }
-        "America:Lower_Princes"{
-            ec{"Lower Prince’s Quarter"}
-        }
         "America:Maceio"{
             ec{"Μασεϊό"}
         }
@@ -465,9 +462,6 @@ el{
         "America:New_York"{
             ec{"Νέα Υόρκη"}
         }
-        "America:Nipigon"{
-            ec{"Νιπιγκόν"}
-        }
         "America:Nome"{
             ec{"Νόμε"}
         }
@@ -488,9 +482,6 @@ el{
         }
         "America:Panama"{
             ec{"Παναμάς"}
-        }
-        "America:Pangnirtung"{
-            ec{"Πανγκνίρτουνγκ"}
         }
         "America:Paramaribo"{
             ec{"Παραμαρίμπο"}
@@ -513,9 +504,6 @@ el{
         "America:Punta_Arenas"{
             ec{"Πούντα Αρένας"}
         }
-        "America:Rainy_River"{
-            ec{"Ρέινι Ρίβερ"}
-        }
         "America:Rankin_Inlet"{
             ec{"Ράνκιν Ίνλετ"}
         }
@@ -530,9 +518,6 @@ el{
         }
         "America:Rio_Branco"{
             ec{"Ρίο Μπράνκο"}
-        }
-        "America:Santa_Isabel"{
-            ec{"Σάντα Ιζαμπέλ"}
         }
         "America:Santarem"{
             ec{"Σανταρέμ"}
@@ -579,9 +564,6 @@ el{
         "America:Thule"{
             ec{"Θούλη"}
         }
-        "America:Thunder_Bay"{
-            ec{"Θάντερ Μπέι"}
-        }
         "America:Tijuana"{
             ec{"Τιχουάνα"}
         }
@@ -602,9 +584,6 @@ el{
         }
         "America:Yakutat"{
             ec{"Γιάκουτατ"}
-        }
-        "America:Yellowknife"{
-            ec{"Γέλοουναϊφ"}
         }
         "Antarctica:Casey"{
             ec{"Κάσεϊ"}
@@ -695,9 +674,6 @@ el{
         }
         "Asia:Chita"{
             ec{"Τσιτά"}
-        }
-        "Asia:Choibalsan"{
-            ec{"Τσοϊμπαλσάν"}
         }
         "Asia:Colombo"{
             ec{"Κολόμπο"}
@@ -930,9 +906,6 @@ el{
         "Australia:Broken_Hill"{
             ec{"Μπρόκεν Χιλ"}
         }
-        "Australia:Currie"{
-            ec{"Κάρι"}
-        }
         "Australia:Darwin"{
             ec{"Ντάργουιν"}
         }
@@ -1115,9 +1088,6 @@ el{
         "Europe:Ulyanovsk"{
             ec{"Ουλιάνοφσκ"}
         }
-        "Europe:Uzhgorod"{
-            ec{"Ούζχοροντ"}
-        }
         "Europe:Vaduz"{
             ec{"Βαντούζ"}
         }
@@ -1138,9 +1108,6 @@ el{
         }
         "Europe:Zagreb"{
             ec{"Ζάγκρεμπ"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"Ζαπορόζιε"}
         }
         "Europe:Zurich"{
             ec{"Ζυρίχη"}
@@ -1222,9 +1189,6 @@ el{
         }
         "Pacific:Honolulu"{
             ec{"Χονολουλού"}
-        }
-        "Pacific:Johnston"{
-            ec{"Τζόνστον"}
         }
         "Pacific:Kanton"{
             ec{"Καντών"}
@@ -1452,11 +1416,6 @@ el{
             lg{"Ώρα Κίνας"}
             ls{"Χειμερινή ώρα Κίνας"}
         }
-        "meta:Choibalsan"{
-            ld{"Θερινή ώρα Τσοϊμπαλσάν"}
-            lg{"Ώρα Τσοϊμπαλσάν"}
-            ls{"Χειμερινή ώρα Τσοϊμπαλσάν"}
-        }
         "meta:Christmas"{
             ls{"Ώρα Νήσου Χριστουγέννων"}
         }
@@ -1632,6 +1591,9 @@ el{
             lg{"Ώρα Καμτσάτκα"}
             ls{"Χειμερινή ώρα Πετροπαβλόβσκ-Καμτσάτσκι"}
         }
+        "meta:Kazakhstan"{
+            ls{"Ώρα Καζακστάν"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Ώρα Ανατολικού Καζακστάν"}
         }
@@ -1667,9 +1629,6 @@ el{
             lg{"Ώρα Μακάο"}
             ls{"Χειμερινή ώρα Μακάο"}
         }
-        "meta:Macquarie"{
-            ls{"Ώρα Νησιού Μακουάρι"}
-        }
         "meta:Magadan"{
             ld{"Θερινή ώρα Μαγκαντάν"}
             lg{"Ώρα Μαγκαντάν"}
@@ -1694,11 +1653,6 @@ el{
         }
         "meta:Mawson"{
             ls{"Ώρα Μόσον"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Θερινή ώρα Βορειοδυτικού Μεξικού"}
-            lg{"Ώρα Βορειοδυτικού Μεξικού"}
-            ls{"Χειμερινή ώρα Βορειοδυτικού Μεξικού"}
         }
         "meta:Mexico_Pacific"{
             ld{"Θερινή ώρα Ειρηνικού Μεξικού"}
@@ -1928,9 +1882,6 @@ el{
             ls{"Ώρα Γιούκον"}
         }
         fallbackFormat{"[{1} ({0})]"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"Ώρα ({0})"}
         regionFormatDaylight{"Θερινή ώρα ({0})"}
         regionFormatStandard{"Χειμερινή ώρα ({0})"}

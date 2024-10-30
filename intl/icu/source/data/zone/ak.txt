@@ -2,4 +2,1225 @@
 // License & terms of use: http://www.unicode.org/copyright.html
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ak{
+    zoneStrings{
+        "Africa:Abidjan"{
+            ec{"Abigyan"}
+        }
+        "Africa:Accra"{
+            ec{"Akraa"}
+        }
+        "Africa:Algiers"{
+            ec{"Ɔlgyese"}
+        }
+        "Africa:Banjul"{
+            ec{"Bandwuu"}
+        }
+        "Africa:Bissau"{
+            ec{"Bisaw"}
+        }
+        "Africa:Blantyre"{
+            ec{"Blantai"}
+        }
+        "Africa:Bujumbura"{
+            ec{"Budwumbura"}
+        }
+        "Africa:Cairo"{
+            ec{"Kairo"}
+        }
+        "Africa:Casablanca"{
+            ec{"Kasablanka"}
+        }
+        "Africa:Ceuta"{
+            ec{"Kyuta"}
+        }
+        "Africa:Conakry"{
+            ec{"Kɔnakri"}
+        }
+        "Africa:Dakar"{
+            ec{"Dakaa"}
+        }
+        "Africa:Djibouti"{
+            ec{"Gyibuuti"}
+        }
+        "Africa:Juba"{
+            ec{"Dwuba"}
+        }
+        "Africa:Kinshasa"{
+            ec{"Kinhyaahya"}
+        }
+        "Africa:Lagos"{
+            ec{"Legɔs"}
+        }
+        "Africa:Ndjamena"{
+            ec{"Ngyamena"}
+        }
+        "Africa:Ouagadougou"{
+            ec{"Wagadugu"}
+        }
+        "America:Anchorage"{
+            ec{"Ankɔragyi"}
+        }
+        "America:Anguilla"{
+            ec{"Anguila"}
+        }
+        "America:Argentina:La_Rioja"{
+            ec{"La Riogya"}
+        }
+        "America:Argentina:Rio_Gallegos"{
+            ec{"Rio Gallegɔs"}
+        }
+        "America:Argentina:San_Juan"{
+            ec{"San Dwuan"}
+        }
+        "America:Argentina:Tucuman"{
+            ec{"Tukuman"}
+        }
+        "America:Barbados"{
+            ec{"Baabados"}
+        }
+        "America:Belem"{
+            ec{"Bɛlɛm"}
+        }
+        "America:Belize"{
+            ec{"Bɛlisi"}
+        }
+        "America:Blanc-Sablon"{
+            ec{"Blanc-Sablɔn"}
+        }
+        "America:Boise"{
+            ec{"Bɔisi"}
+        }
+        "America:Cambridge_Bay"{
+            ec{"Kambrigyi Bay"}
+        }
+        "America:Campo_Grande"{
+            ec{"Kampo Grande"}
+        }
+        "America:Caracas"{
+            ec{"Karakas"}
+        }
+        "America:Catamarca"{
+            ec{"Katamaaka"}
+        }
+        "America:Cayenne"{
+            ec{"Kayiini"}
+        }
+        "America:Cayman"{
+            ec{"Kemanfo"}
+        }
+        "America:Chicago"{
+            ec{"Kyikago"}
+        }
+        "America:Chihuahua"{
+            ec{"Kyihuahua"}
+        }
+        "America:Cordoba"{
+            ec{"Kɔɔdɔba"}
+        }
+        "America:Costa_Rica"{
+            ec{"Kɔsta Rika"}
+        }
+        "America:Creston"{
+            ec{"Krɛston"}
+        }
+        "America:Cuiaba"{
+            ec{"Kuiaba"}
+        }
+        "America:Curacao"{
+            ec{"Kurukaw"}
+        }
+        "America:Dawson"{
+            ec{"Dɔɔson"}
+        }
+        "America:Dawson_Creek"{
+            ec{"Dɔɔson Kreek"}
+        }
+        "America:Denver"{
+            ec{"Dɛnva"}
+        }
+        "America:Detroit"{
+            ec{"Detrɔit"}
+        }
+        "America:Dominica"{
+            ec{"Dɔmeneka"}
+        }
+        "America:Edmonton"{
+            ec{"Edmɔnton"}
+        }
+        "America:El_Salvador"{
+            ec{"El Salvadɔɔ"}
+        }
+        "America:Fort_Nelson"{
+            ec{"Fɔt Nɛlson"}
+        }
+        "America:Fortaleza"{
+            ec{"Fɔɔtalɛsa"}
+        }
+        "America:Goose_Bay"{
+            ec{"Guus Bay"}
+        }
+        "America:Grand_Turk"{
+            ec{"Grand Tuk"}
+        }
+        "America:Guadeloupe"{
+            ec{"Guwadelup"}
+        }
+        "America:Guatemala"{
+            ec{"Guwatemala"}
+        }
+        "America:Guayaquil"{
+            ec{"Gayakwuil"}
+        }
+        "America:Guyana"{
+            ec{"Gayana"}
+        }
+        "America:Hermosillo"{
+            ec{"Hɛmɔsilo"}
+        }
+        "America:Indiana:Petersburg"{
+            ec{"Pitɛsbɛgye, Indiana"}
+        }
+        "America:Indiana:Tell_City"{
+            ec{"Tell Siti, Indiana"}
+        }
+        "America:Indiana:Winamac"{
+            ec{"Winamak, Indiana"}
+        }
+        "America:Indianapolis"{
+            ec{"Indianapɔlis"}
+        }
+        "America:Iqaluit"{
+            ec{"Ikaluit"}
+        }
+        "America:Jamaica"{
+            ec{"Gyameka"}
+        }
+        "America:Jujuy"{
+            ec{"Dwudwui"}
+        }
+        "America:Kentucky:Monticello"{
+            ec{"Mɔntisɛlo, Kɛntɛki"}
+        }
+        "America:Kralendijk"{
+            ec{"Kralɛngyik"}
+        }
+        "America:Los_Angeles"{
+            ec{"Lɔs Angyɛlis"}
+        }
+        "America:Lower_Princes"{
+            ec{"Lowa Prinse Kɔta"}
+        }
+        "America:Maceio"{
+            ec{"Makeio"}
+        }
+        "America:Marigot"{
+            ec{"Marigɔt"}
+        }
+        "America:Martinique"{
+            ec{"Martinike"}
+        }
+        "America:Matamoros"{
+            ec{"Matamɔrɔso"}
+        }
+        "America:Mazatlan"{
+            ec{"Masatlan"}
+        }
+        "America:Mendoza"{
+            ec{"Mɛndɔsa"}
+        }
+        "America:Menominee"{
+            ec{"Mɛnɔminee"}
+        }
+        "America:Metlakatla"{
+            ec{"Mɛtlakatla"}
+        }
+        "America:Mexico_City"{
+            ec{"Mɛksiko Siti"}
+        }
+        "America:Moncton"{
+            ec{"Mɔnktin"}
+        }
+        "America:Monterrey"{
+            ec{"Mɔntirii"}
+        }
+        "America:Montserrat"{
+            ec{"Mantserat"}
+        }
+        "America:New_York"{
+            ec{"New Yɔk"}
+        }
+        "America:North_Dakota:Beulah"{
+            ec{"Beula, Nɔf Dakota"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"Sɛnta, Nɔf Dakota"}
+        }
+        "America:North_Dakota:New_Salem"{
+            ec{"New Salɛm, Nɔf Dakota"}
+        }
+        "America:Ojinaga"{
+            ec{"Ogyinaga"}
+        }
+        "America:Paramaribo"{
+            ec{"Paramaribɔ"}
+        }
+        "America:Phoenix"{
+            ec{"Finisk"}
+        }
+        "America:Port_of_Spain"{
+            ec{"Spain Pɔɔto"}
+        }
+        "America:Porto_Velho"{
+            ec{"Pɔɔto Velho"}
+        }
+        "America:Puerto_Rico"{
+            ec{"Puɛto Riko"}
+        }
+        "America:Recife"{
+            ec{"Rɛsifɛ"}
+        }
+        "America:Regina"{
+            ec{"Rɛgyina"}
+        }
+        "America:Resolute"{
+            ec{"Rɛsɔlut"}
+        }
+        "America:Rio_Branco"{
+            ec{"Rio Branko"}
+        }
+        "America:Scoresbysund"{
+            ec{"Yitokɔtuɔmete"}
+        }
+        "America:St_Barthelemy"{
+            ec{"St. Baatilemi"}
+        }
+        "America:Swift_Current"{
+            ec{"Swift Kɛrɛnt"}
+        }
+        "America:Tegucigalpa"{
+            ec{"Tegusigalpa"}
+        }
+        "America:Tijuana"{
+            ec{"Tidwuana"}
+        }
+        "America:Tortola"{
+            ec{"Tɔɔtola"}
+        }
+        "America:Winnipeg"{
+            ec{"Winipɛg"}
+        }
+        "Antarctica:Casey"{
+            ec{"Kasi"}
+        }
+        "Antarctica:Macquarie"{
+            ec{"Makaari"}
+        }
+        "Antarctica:Mawson"{
+            ec{"Mɔɔson"}
+        }
+        "Antarctica:Palmer"{
+            ec{"Paama"}
+        }
+        "Antarctica:Rothera"{
+            ec{"Rotera"}
+        }
+        "Antarctica:Troll"{
+            ec{"Trɔɔ"}
+        }
+        "Antarctica:Vostok"{
+            ec{"Vɔstɔk"}
+        }
+        "Asia:Almaty"{
+            ec{"Aamati"}
+        }
+        "Asia:Amman"{
+            ec{"Aman"}
+        }
+        "Asia:Aqtau"{
+            ec{"Aktau"}
+        }
+        "Asia:Aqtobe"{
+            ec{"Aktopɛ"}
+        }
+        "Asia:Bangkok"{
+            ec{"Bankɔk"}
+        }
+        "Asia:Beirut"{
+            ec{"Bɛɛrut"}
+        }
+        "Asia:Calcutta"{
+            ec{"Kɔɔkata"}
+        }
+        "Asia:Chita"{
+            ec{"Kyita"}
+        }
+        "Asia:Colombo"{
+            ec{"Kolombo"}
+        }
+        "Asia:Damascus"{
+            ec{"Damaskɔso"}
+        }
+        "Asia:Dhaka"{
+            ec{"Daka"}
+        }
+        "Asia:Hebron"{
+            ec{"Hɛbrɔn"}
+        }
+        "Asia:Jakarta"{
+            ec{"Gyakaata"}
+        }
+        "Asia:Jayapura"{
+            ec{"Gyayapura"}
+        }
+        "Asia:Jerusalem"{
+            ec{"Yerusalem"}
+        }
+        "Asia:Kamchatka"{
+            ec{"Kamkyatka"}
+        }
+        "Asia:Karachi"{
+            ec{"Karakyi"}
+        }
+        "Asia:Katmandu"{
+            ec{"Katmandu"}
+        }
+        "Asia:Kuching"{
+            ec{"Kukyin"}
+        }
+        "Asia:Makassar"{
+            ec{"Makasa"}
+        }
+        "Asia:Muscat"{
+            ec{"Muskat"}
+        }
+        "Asia:Nicosia"{
+            ec{"Nikosia"}
+        }
+        "Asia:Qatar"{
+            ec{"Kata"}
+        }
+        "Asia:Qostanay"{
+            ec{"Kostanay"}
+        }
+        "Asia:Saigon"{
+            ec{"Ho Kyi Min"}
+        }
+        "Asia:Singapore"{
+            ec{"Singapɔ"}
+        }
+        "Asia:Tehran"{
+            ec{"Tɛɛran"}
+        }
+        "Asia:Thimphu"{
+            ec{"Timphu"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"Yulanbata"}
+        }
+        "Asia:Urumqi"{
+            ec{"Yurymki"}
+        }
+        "Asia:Vientiane"{
+            ec{"Vienhyiane"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"Yɛkatɛrinbɛg"}
+        }
+        "Atlantic:Bermuda"{
+            ec{"Bɛmuda"}
+        }
+        "Atlantic:Canary"{
+            ec{"Kanari"}
+        }
+        "Atlantic:Cape_Verde"{
+            ec{"Kepvɛde"}
+        }
+        "Atlantic:Reykjavik"{
+            ec{"Rɛɛkgyavik"}
+        }
+        "Atlantic:South_Georgia"{
+            ec{"Gyɔɔgyia Anaafoɔ"}
+        }
+        "Atlantic:Stanley"{
+            ec{"Stanli"}
+        }
+        "Australia:Broken_Hill"{
+            ec{"Brɔken Hill"}
+        }
+        "Australia:Darwin"{
+            ec{"Daawin"}
+        }
+        "Australia:Eucla"{
+            ec{"Eukla"}
+        }
+        "Australia:Hobart"{
+            ec{"Hɔbat"}
+        }
+        "Australia:Lord_Howe"{
+            ec{"Lɔd Howe"}
+        }
+        "Australia:Melbourne"{
+            ec{"Mɛɛbɔn"}
+        }
+        "Australia:Perth"{
+            ec{"Pɛɛt"}
+        }
+        "Australia:Sydney"{
+            ec{"Sidni"}
+        }
+        "Etc:UTC"{
+            ls{"Amansan Kɔdinatɛde Berɛ"}
+        }
+        "Etc:Unknown"{
+            ec{"Baabi a yɛnnim"}
+        }
+        "Europe:Amsterdam"{
+            ec{"Amstadam"}
+        }
+        "Europe:Andorra"{
+            ec{"Andɔra"}
+        }
+        "Europe:Athens"{
+            ec{"Atene"}
+        }
+        "Europe:Belgrade"{
+            ec{"Bɛlgrade"}
+        }
+        "Europe:Berlin"{
+            ec{"Bɛɛlin"}
+        }
+        "Europe:Brussels"{
+            ec{"Brɛsɛlse"}
+        }
+        "Europe:Bucharest"{
+            ec{"Bukyarɛst"}
+        }
+        "Europe:Budapest"{
+            ec{"Budapɛsh"}
+        }
+        "Europe:Busingen"{
+            ec{"Busingye"}
+        }
+        "Europe:Chisinau"{
+            ec{"Kyisinau"}
+        }
+        "Europe:Copenhagen"{
+            ec{"Kɔpɛhangɛne"}
+        }
+        "Europe:Dublin"{
+            ec{"Dɔblin"}
+            ld{"Irelandfoɔ Susudua Berɛ"}
+        }
+        "Europe:Gibraltar"{
+            ec{"Gyebrota"}
+        }
+        "Europe:Helsinki"{
+            ec{"Hɛlsinki"}
+        }
+        "Europe:Jersey"{
+            ec{"Jɛɛsi"}
+        }
+        "Europe:Lisbon"{
+            ec{"Lisbɔn"}
+        }
+        "Europe:Ljubljana"{
+            ec{"Ldwubdwana"}
+        }
+        "Europe:London"{
+            ec{"Lɔndɔn"}
+            ld{"Ingresi Awia Berɛ"}
+        }
+        "Europe:Luxembourg"{
+            ec{"Lɛsembɛg"}
+        }
+        "Europe:Malta"{
+            ec{"Mɔɔta"}
+        }
+        "Europe:Monaco"{
+            ec{"Monako"}
+        }
+        "Europe:Moscow"{
+            ec{"Mɔsko"}
+        }
+        "Europe:Podgorica"{
+            ec{"Podgorika"}
+        }
+        "Europe:Rome"{
+            ec{"Roma"}
+        }
+        "Europe:Sarajevo"{
+            ec{"Saragyevo"}
+        }
+        "Europe:Skopje"{
+            ec{"Skɔpgye"}
+        }
+        "Europe:Sofia"{
+            ec{"Sɔfia"}
+        }
+        "Europe:Stockholm"{
+            ec{"Stɔkhɔm"}
+        }
+        "Europe:Vatican"{
+            ec{"Vatikan"}
+        }
+        "Europe:Vienna"{
+            ec{"Veɛna"}
+        }
+        "Europe:Warsaw"{
+            ec{"Wɔɔsɔɔ"}
+        }
+        "Europe:Zurich"{
+            ec{"Zurekye"}
+        }
+        "Indian:Chagos"{
+            ec{"Kyagɔs"}
+        }
+        "Indian:Christmas"{
+            ec{"Buronya"}
+        }
+        "Indian:Cocos"{
+            ec{"Kokoso"}
+        }
+        "Indian:Comoro"{
+            ec{"Kɔmɔrɔ"}
+        }
+        "Indian:Kerguelen"{
+            ec{"Kɛguelɛn"}
+        }
+        "Indian:Mauritius"{
+            ec{"Mɔrihyiɔso"}
+        }
+        "Indian:Mayotte"{
+            ec{"Mayote"}
+        }
+        "Pacific:Auckland"{
+            ec{"Aukland"}
+        }
+        "Pacific:Chatham"{
+            ec{"Kyatam"}
+        }
+        "Pacific:Easter"{
+            ec{"Easta"}
+        }
+        "Pacific:Fiji"{
+            ec{"Figyi"}
+        }
+        "Pacific:Galapagos"{
+            ec{"Galapagɔs"}
+        }
+        "Pacific:Guadalcanal"{
+            ec{"Guadaakanaa"}
+        }
+        "Pacific:Kwajalein"{
+            ec{"Kwagyaleene"}
+        }
+        "Pacific:Majuro"{
+            ec{"Magyuro"}
+        }
+        "Pacific:Marquesas"{
+            ec{"Maakesase"}
+        }
+        "Pacific:Norfolk"{
+            ec{"Nɔɔfɔk"}
+        }
+        "Pacific:Pitcairn"{
+            ec{"Pitkairne"}
+        }
+        "Pacific:Ponape"{
+            ec{"Pɔnpei"}
+        }
+        "Pacific:Port_Moresby"{
+            ec{"Pɔt Morɛsbi"}
+        }
+        "Pacific:Truk"{
+            ec{"Kyuuk"}
+        }
+        "meta:Afghanistan"{
+            ls{"Afganistan Berɛ"}
+        }
+        "meta:Africa_Central"{
+            ls{"Afrika Finimfin Berɛ"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Afrika Apueeɛ Berɛ"}
+        }
+        "meta:Africa_Southern"{
+            ls{"Afrika Anaafoɔ Susudua Berɛ"}
+        }
+        "meta:Africa_Western"{
+            ld{"Afrika Atɔeɛ Awia Berɛ"}
+            lg{"Afrika Atɔeɛ Berɛ"}
+            ls{"Afrika Atɔeɛ Susudua Berɛ"}
+        }
+        "meta:Alaska"{
+            ld{"Alaska Awia Berɛ"}
+            lg{"Alaska Berɛ"}
+            ls{"Alaska Susudua Berɛ"}
+        }
+        "meta:Amazon"{
+            ld{"Amazon Awia Berɛ"}
+            lg{"Amazon Berɛ"}
+            ls{"Amazon Susudua Berɛ"}
+        }
+        "meta:America_Central"{
+            ld{"Mfinimfini Awia Berɛ"}
+            lg{"Mfinimfini Berɛ"}
+            ls{"Mfinimfini Susudua Berɛ"}
+        }
+        "meta:America_Eastern"{
+            ld{"Apueeɛ Awia Berɛ"}
+            lg{"Apueeɛ Berɛ"}
+            ls{"Apueeɛ Susudua Berɛ"}
+        }
+        "meta:America_Mountain"{
+            ld{"Bepɔ Awia Berɛ"}
+            lg{"Bepɔ Berɛ"}
+            ls{"Bepɔ Susudua Berɛ"}
+        }
+        "meta:America_Pacific"{
+            ld{"Pasifik Awia Berɛ"}
+            lg{"Pasifik Berɛ"}
+            ls{"Pasifik Susudua Berɛ"}
+        }
+        "meta:Apia"{
+            ld{"Apia Awia Berɛ"}
+            lg{"Apia Berɛ"}
+            ls{"Apia Susudua Berɛ"}
+        }
+        "meta:Arabian"{
+            ld{"Arabia Awia Berɛ"}
+            lg{"Arabia Berɛ"}
+            ls{"Arabia Susudua Berɛ"}
+        }
+        "meta:Argentina"{
+            ld{"Agyɛntina Awia Berɛ"}
+            lg{"Agyɛntina Berɛ"}
+            ls{"Agyɛntina Susudua Berɛ"}
+        }
+        "meta:Argentina_Western"{
+            ld{"Agyɛntina Atɔeeɛ Awia Berɛ"}
+            lg{"Agyɛntina Atɔeeɛ Berɛ"}
+            ls{"Agyɛntina Atɔeeɛ Susudua Berɛ"}
+        }
+        "meta:Armenia"{
+            ld{"Aamenia Awia Berɛ"}
+            lg{"Aamenia Berɛ"}
+            ls{"Aamenia Susudua Berɛ"}
+        }
+        "meta:Atlantic"{
+            ld{"Atlantik Awia Berɛ"}
+            lg{"Atlantik Berɛ"}
+            ls{"Atlantik Susudua Berɛ"}
+        }
+        "meta:Australia_Central"{
+            ld{"Ɔstrelia Mfinimfini Awia Berɛ"}
+            lg{"Ɔstrelia Mfinimfini Berɛ"}
+            ls{"Ɔstrelia Mfinimfini Susudua Berɛ"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Ɔstrelia Mfinimfini Atɔeeɛ Awia Berɛ"}
+            lg{"Ɔstrelia Mfinimfini Atɔeeɛ Berɛ"}
+            ls{"Ɔstrelia Mfinimfini Atɔeeɛ Susudua Berɛ"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Ɔstrelia Apueeɛ Awia Berɛ"}
+            lg{"Ɔstrelia Apueeɛ Berɛ"}
+            ls{"Ɔstrelia Apueeɛ Susudua Berɛ"}
+        }
+        "meta:Australia_Western"{
+            ld{"Ɔstrelia Atɔeeɛ Awia Berɛ"}
+            lg{"Ɔstrelia Atɔeeɛ Berɛ"}
+            ls{"Ɔstrelia Atɔeeɛ Susudua Berɛ"}
+        }
+        "meta:Azerbaijan"{
+            ld{"Asabegyan Awia Berɛ"}
+            lg{"Asabegyan Berɛ"}
+            ls{"Asabegyan Susudua Berɛ"}
+        }
+        "meta:Azores"{
+            ld{"Azores Awia Berɛ"}
+            lg{"Azores Berɛ"}
+            ls{"Azores Susudua Berɛ"}
+        }
+        "meta:Bangladesh"{
+            ld{"Bangladɛhye Awia Berɛ"}
+            lg{"Bangladɛhye Berɛ"}
+            ls{"Bangladɛhye Susudua Berɛ"}
+        }
+        "meta:Bhutan"{
+            ls{"Butan Berɛ"}
+        }
+        "meta:Bolivia"{
+            ls{"Bolivia Berɛ"}
+        }
+        "meta:Brasilia"{
+            ld{"Brasilia Awia Berɛ"}
+            lg{"Brasilia Berɛ"}
+            ls{"Brasilia Susudua Berɛ"}
+        }
+        "meta:Brunei"{
+            ls{"Brunei Darusalam Berɛ"}
+        }
+        "meta:Cape_Verde"{
+            ld{"Kepvɛde Awia Berɛ"}
+            lg{"Kepvɛde Berɛ"}
+            ls{"Kepvɛde Susudua Berɛ"}
+        }
+        "meta:Chamorro"{
+            ls{"Kyamoro Susudua Berɛ"}
+        }
+        "meta:Chatham"{
+            ld{"Kyatam Awia Berɛ"}
+            lg{"Kyatam Berɛ"}
+            ls{"Kyatam Susudua Berɛ"}
+        }
+        "meta:Chile"{
+            ld{"Kyili Awia Berɛ"}
+            lg{"Kyili Berɛ"}
+            ls{"Kyili Susudua Berɛ"}
+        }
+        "meta:China"{
+            ld{"Kyaena Awia Berɛ"}
+            lg{"Kyaena Berɛ"}
+            ls{"Kyaena Susudua Berɛ"}
+        }
+        "meta:Christmas"{
+            ls{"Buronya Aeland Berɛ"}
+        }
+        "meta:Cocos"{
+            ls{"Kokoso Aeland Berɛ"}
+        }
+        "meta:Colombia"{
+            ld{"Kolombia Awia Berɛ"}
+            lg{"Kolombia Berɛ"}
+            ls{"Kolombia Susudua Berɛ"}
+        }
+        "meta:Cook"{
+            ld{"Kuk Aeland Awia Fa Berɛ"}
+            lg{"Kuk Aeland Berɛ"}
+            ls{"Kuk Aeland Susudua Berɛ"}
+        }
+        "meta:Cuba"{
+            ld{"Kuba Awia Berɛ"}
+            lg{"Kuba Berɛ"}
+            ls{"Kuba Susudua Berɛ"}
+        }
+        "meta:Davis"{
+            ls{"Davis Berɛ"}
+        }
+        "meta:DumontDUrville"{
+            ls{"Dumont-d’Urville Berɛ"}
+        }
+        "meta:East_Timor"{
+            ls{"Timɔɔ Apueeɛ Berɛ"}
+        }
+        "meta:Easter"{
+            ld{"Easta Aeland Awia Berɛ"}
+            lg{"Easta Aeland Berɛ"}
+            ls{"Easta Aeland Susudua Berɛ"}
+        }
+        "meta:Ecuador"{
+            ls{"Yikuwedɔ Berɛ"}
+        }
+        "meta:Europe_Central"{
+            ld{"Yuropu Mfinimfini Awia Berɛ"}
+            lg{"Yuropu Mfinimfini Berɛ"}
+            ls{"Yuropu Mfinimfini Susudua Berɛ"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Yuropu Apueeɛ Awia Berɛ"}
+            lg{"Yuropu Apueeɛ Berɛ"}
+            ls{"Yuropu Apueeɛ Susudua Berɛ"}
+        }
+        "meta:Europe_Further_Eastern"{
+            ls{"Yuropu Apueeɛ Nohoa Berɛ"}
+        }
+        "meta:Europe_Western"{
+            ld{"Yuropu Atɔeeɛ Awia Berɛ"}
+            lg{"Yuropu Atɔeeɛ Berɛ"}
+            ls{"Yuropu Atɔeeɛ Susudua Berɛ"}
+        }
+        "meta:Falkland"{
+            ld{"Fɔkman Aeland Awia Berɛ"}
+            lg{"Fɔkman Aeland Berɛ"}
+            ls{"Fɔkman Aeland Susudua Berɛ"}
+        }
+        "meta:Fiji"{
+            ld{"Figyi Awia Berɛ"}
+            lg{"Figyi Berɛ"}
+            ls{"Figyi Susudua Berɛ"}
+        }
+        "meta:French_Guiana"{
+            ls{"Frɛnkye Gayana Berɛ"}
+        }
+        "meta:French_Southern"{
+            ls{"Frɛnkye Anaafoɔ ne Antaatik Berɛ"}
+        }
+        "meta:GMT"{
+            ls{"Greenwich Mean Berɛ"}
+        }
+        "meta:Galapagos"{
+            ls{"Galapagɔs Berɛ"}
+        }
+        "meta:Gambier"{
+            ls{"Gambier Berɛ"}
+        }
+        "meta:Georgia"{
+            ld{"Gyɔgyea Awia Berɛ"}
+            lg{"Gyɔgyea Berɛ"}
+            ls{"Gyɔgyea Susudua Berɛ"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"Geebɛt Aeland Berɛ"}
+        }
+        "meta:Greenland_Eastern"{
+            ld{"Greenland Apueeɛ Awia Berɛ"}
+            lg{"Greenland Apueeɛ Berɛ"}
+            ls{"Greenland Apueeɛ Susudua Berɛ"}
+        }
+        "meta:Greenland_Western"{
+            ld{"Greenland Atɔeɛ Awia Berɛ"}
+            lg{"Greenland Atɔeɛ Berɛ"}
+            ls{"Greenland Atɔeɛ Susudua Berɛ"}
+        }
+        "meta:Gulf"{
+            ls{"Gɔɔfo Susudua Berɛ"}
+        }
+        "meta:Guyana"{
+            ls{"Gayana Berɛ"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ld{"Hawaii-Aleutian Awia Berɛ"}
+            lg{"Hawaii-Aleutian Berɛ"}
+            ls{"Hawaii-Aleutian Susudua Berɛ"}
+        }
+        "meta:Hong_Kong"{
+            ld{"Hɔnkɔn Awia Berɛ"}
+            lg{"Hɔnkɔn Berɛ"}
+            ls{"Hɔnkɔn Susudua Berɛ"}
+        }
+        "meta:Hovd"{
+            ld{"Hovd Awia Berɛ"}
+            lg{"Hovd Berɛ"}
+            ls{"Hovd Susudua Berɛ"}
+        }
+        "meta:India"{
+            ls{"India Susudua Berɛ"}
+        }
+        "meta:Indian_Ocean"{
+            ls{"India Po Berɛ"}
+        }
+        "meta:Indochina"{
+            ls{"Indɔkyina Berɛ"}
+        }
+        "meta:Indonesia_Central"{
+            ls{"Indɔnehyia Mfinimfini Berɛ"}
+        }
+        "meta:Indonesia_Eastern"{
+            ls{"Indɔnehyia Apueeɛ Berɛ"}
+        }
+        "meta:Indonesia_Western"{
+            ls{"Indɔnehyia Atɔeeɛ Berɛ"}
+        }
+        "meta:Iran"{
+            ld{"Iran Awia Berɛ"}
+            lg{"Iran Berɛ"}
+            ls{"Iran Susudua Berɛ"}
+        }
+        "meta:Irkutsk"{
+            ld{"Irkutsk Awia Berɛ"}
+            lg{"Irkutsk Berɛ"}
+            ls{"Irkutsk Susudua Berɛ"}
+        }
+        "meta:Israel"{
+            ld{"Israel Awia Berɛ"}
+            lg{"Israel Berɛ"}
+            ls{"Israel Susudua Berɛ"}
+        }
+        "meta:Japan"{
+            ld{"Gyapan Awia Berɛ"}
+            lg{"Gyapan Berɛ"}
+            ls{"Gyapan Susudua Berɛ"}
+        }
+        "meta:Kazakhstan"{
+            ls{"Kazakstan Berɛ"}
+        }
+        "meta:Kazakhstan_Eastern"{
+            ls{"Kazakstan Apueeɛ Berɛ"}
+        }
+        "meta:Kazakhstan_Western"{
+            ls{"Kazakstan Atɔeɛ Berɛ"}
+        }
+        "meta:Korea"{
+            ld{"Korean Awia Berɛ"}
+            lg{"Korean Berɛ"}
+            ls{"Korean Susudua Berɛ"}
+        }
+        "meta:Kosrae"{
+            ls{"Kosrae Berɛ"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"Krasnoyarsk Awia Berɛ"}
+            lg{"Krasnoyarsk Berɛ"}
+            ls{"Krasnoyarsk Susudua Berɛ"}
+        }
+        "meta:Kyrgystan"{
+            ls{"Kɛɛgestan Berɛ"}
+        }
+        "meta:Line_Islands"{
+            ls{"Lai Aeland Berɛ"}
+        }
+        "meta:Lord_Howe"{
+            ld{"Lɔd Howe Awia Berɛ"}
+            lg{"Lɔd Howe Berɛ"}
+            ls{"Lɔd Howe Susudua Berɛ"}
+        }
+        "meta:Magadan"{
+            ld{"Magadan Awia Berɛ"}
+            lg{"Magadan Berɛ"}
+            ls{"Magadan Susudua Berɛ"}
+        }
+        "meta:Malaysia"{
+            ls{"Malehyia Berɛ"}
+        }
+        "meta:Maldives"{
+            ls{"Maldives Berɛ"}
+        }
+        "meta:Marquesas"{
+            ls{"Makesase Berɛ"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"Mahyaa Aeland Berɛ"}
+        }
+        "meta:Mauritius"{
+            ld{"Mɔrihyiɔso Awia Berɛ"}
+            lg{"Mɔrihyiɔso Berɛ"}
+            ls{"Mɔrihyiɔso Susudua Berɛ"}
+        }
+        "meta:Mawson"{
+            ls{"Mɔɔson Berɛ"}
+        }
+        "meta:Mexico_Pacific"{
+            ld{"Mɛksiko Pasifik Awia Berɛ"}
+            lg{"Mɛksiko Pasifik Berɛ"}
+            ls{"Mɛksiko Pasifik Susudua Berɛ"}
+        }
+        "meta:Mongolia"{
+            ld{"Yulanbata Awia Berɛ"}
+            lg{"Yulanbata Berɛ"}
+            ls{"Yulanbata Susudua Berɛ"}
+        }
+        "meta:Moscow"{
+            ld{"Mɔsko Awia Berɛ"}
+            lg{"Mɔsko Berɛ"}
+            ls{"Mɔsko Susudua Berɛ"}
+        }
+        "meta:Myanmar"{
+            ls{"Mayaama Berɛ"}
+        }
+        "meta:Nauru"{
+            ls{"Nauru Berɛ"}
+        }
+        "meta:Nepal"{
+            ls{"Nɛpal Berɛ"}
+        }
+        "meta:New_Caledonia"{
+            ld{"Kaledonia Foforɔ Awia Berɛ"}
+            lg{"Kaledonia Foforɔ Berɛ"}
+            ls{"Kaledonia Foforɔ Susudua Berɛ"}
+        }
+        "meta:New_Zealand"{
+            ld{"Ziland Foforɔ Awia Berɛ"}
+            lg{"Ziland Foforɔ Berɛ"}
+            ls{"Ziland Foforɔ Susudua Berɛ"}
+        }
+        "meta:Newfoundland"{
+            ld{"Newfoundland Awia Berɛ"}
+            lg{"Newfoundland Berɛ"}
+            ls{"Newfoundland Susudua Berɛ"}
+        }
+        "meta:Niue"{
+            ls{"Niue Berɛ"}
+        }
+        "meta:Norfolk"{
+            ld{"Nɔɔfɔk Aeland Awia Berɛ"}
+            lg{"Nɔɔfɔk Aeland Berɛ"}
+            ls{"Nɔɔfɔk Aeland Susudua Berɛ"}
+        }
+        "meta:Noronha"{
+            ld{"Fernando de Noronha Awia Berɛ"}
+            lg{"Fernando de Noronha Berɛ"}
+            ls{"Fernando de Noronha Susudua Berɛ"}
+        }
+        "meta:Novosibirsk"{
+            ld{"Novosibirsk Awia Berɛ"}
+            lg{"Novosibirsk Berɛ"}
+            ls{"Novosibirsk Susudua Berɛ"}
+        }
+        "meta:Omsk"{
+            ld{"Omsk Awia Berɛ"}
+            lg{"Omsk Berɛ"}
+            ls{"Omsk Susudua Berɛ"}
+        }
+        "meta:Pakistan"{
+            ld{"Pakistan Awia Berɛ"}
+            lg{"Pakistan Berɛ"}
+            ls{"Pakistan Susudua Berɛ"}
+        }
+        "meta:Palau"{
+            ls{"Palau Berɛ"}
+        }
+        "meta:Papua_New_Guinea"{
+            ls{"Papua Gini Foforɔ Berɛ"}
+        }
+        "meta:Paraguay"{
+            ld{"Paraguae Awia Berɛ"}
+            lg{"Paraguae Berɛ"}
+            ls{"Paraguae Susudua Berɛ"}
+        }
+        "meta:Peru"{
+            ld{"Peru Awia Berɛ"}
+            lg{"Peru Berɛ"}
+            ls{"Peru Susudua Berɛ"}
+        }
+        "meta:Philippines"{
+            ld{"Filipin Awia Berɛ"}
+            lg{"Filipin Berɛ"}
+            ls{"Filipin Susudua Berɛ"}
+        }
+        "meta:Phoenix_Islands"{
+            ls{"Finise Aeland Berɛ"}
+        }
+        "meta:Pierre_Miquelon"{
+            ld{"St. Pierre & Miquelon Awia Berɛ"}
+            lg{"St. Pierre & Miquelon Berɛ"}
+            ls{"St. Pierre & Miquelon Susudua Berɛ"}
+        }
+        "meta:Pitcairn"{
+            ls{"Pitkairn Berɛ"}
+        }
+        "meta:Ponape"{
+            ls{"Ponape Berɛ"}
+        }
+        "meta:Pyongyang"{
+            ls{"Pyongyang Berɛ"}
+        }
+        "meta:Reunion"{
+            ls{"Réunion Berɛ"}
+        }
+        "meta:Rothera"{
+            ls{"Rotera Berɛ"}
+        }
+        "meta:Sakhalin"{
+            ld{"Sakhalin Awia Berɛ"}
+            lg{"Sakhalin Berɛ"}
+            ls{"Sakhalin Susudua Berɛ"}
+        }
+        "meta:Samoa"{
+            ld{"Samoa Awia Berɛ"}
+            lg{"Samoa Berɛ"}
+            ls{"Samoa Susudua Berɛ"}
+        }
+        "meta:Seychelles"{
+            ls{"Seyhyɛl Berɛ"}
+        }
+        "meta:Singapore"{
+            ls{"Singapɔ Susudua Berɛ"}
+        }
+        "meta:Solomon"{
+            ls{"Solomon Aeland Berɛ"}
+        }
+        "meta:South_Georgia"{
+            ls{"Gyɔɔgyia Anaafoɔ Berɛ"}
+        }
+        "meta:Suriname"{
+            ls{"Suriname Berɛ"}
+        }
+        "meta:Syowa"{
+            ls{"Syowa Berɛ"}
+        }
+        "meta:Tahiti"{
+            ls{"Tahiti Berɛ"}
+        }
+        "meta:Taipei"{
+            ld{"Taipei Awia Berɛ"}
+            lg{"Taipei Berɛ"}
+            ls{"Taipei Susudua Berɛ"}
+        }
+        "meta:Tajikistan"{
+            ls{"Tagyikistan Berɛ"}
+        }
+        "meta:Tokelau"{
+            ls{"Tokelau Berɛ"}
+        }
+        "meta:Tonga"{
+            ld{"Tonga Awia Berɛ"}
+            lg{"Tonga Berɛ"}
+            ls{"Tonga Susudua Berɛ"}
+        }
+        "meta:Truk"{
+            ls{"Kyuuk Berɛ"}
+        }
+        "meta:Turkmenistan"{
+            ld{"Tɛkmɛnistan Awia Berɛ"}
+            lg{"Tɛkmɛnistan Berɛ"}
+            ls{"Tɛkmɛnistan Susudua Berɛ"}
+        }
+        "meta:Tuvalu"{
+            ls{"Tuvalu Berɛ"}
+        }
+        "meta:Uruguay"{
+            ld{"Yurugwae Awia Berɛ"}
+            lg{"Yurugwae Berɛ"}
+            ls{"Yurugwae Susudua Berɛ"}
+        }
+        "meta:Uzbekistan"{
+            ld{"Usbɛkistan Awia Berɛ"}
+            lg{"Usbɛkistan Berɛ"}
+            ls{"Usbɛkistan Susudua Berɛ"}
+        }
+        "meta:Vanuatu"{
+            ld{"Vanuatu Awia Berɛ"}
+            lg{"Vanuatu Berɛ"}
+            ls{"Vanuatu Susudua Berɛ"}
+        }
+        "meta:Venezuela"{
+            ls{"Venezuela Berɛ"}
+        }
+        "meta:Vladivostok"{
+            ld{"Vladivostok Awia Berɛ"}
+            lg{"Vladivostok Berɛ"}
+            ls{"Vladivostok Susudua Berɛ"}
+        }
+        "meta:Volgograd"{
+            ld{"Volgograd Awia Berɛ"}
+            lg{"Volgograd Berɛ"}
+            ls{"Volgograd Susudua Berɛ"}
+        }
+        "meta:Vostok"{
+            ls{"Vostok Berɛ"}
+        }
+        "meta:Wake"{
+            ls{"Wake Aeland Berɛ"}
+        }
+        "meta:Wallis"{
+            ls{"Wallis ne Futuna Berɛ"}
+        }
+        "meta:Yakutsk"{
+            ld{"Yakutsk Awia Berɛ"}
+            lg{"Yakutsk Berɛ"}
+            ls{"Yakutsk Susudua Berɛ"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"Yɛkatɛrinbɛg Awia Berɛ"}
+            lg{"Yɛkatɛrinbɛg Berɛ"}
+            ls{"Yɛkatɛrinbɛg Susudua Berɛ"}
+        }
+        "meta:Yukon"{
+            ls{"Yukɔn Berɛ"}
+        }
+        regionFormat{"Berɛ {0}"}
+        regionFormatDaylight{"Awia ber {0}"}
+        regionFormatStandard{"Berɛ susudua {0}"}
+    }
 }

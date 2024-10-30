@@ -2,9 +2,34 @@
 // License & terms of use: http://www.unicode.org/copyright.html
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 tg{
-    durationUnits{
-        hm{"h:mm"}
-        hms{"h:mm:ss"}
-        ms{"m:ss"}
+    units{
+        compound{
+            per{"{0} барои {1}"}
+        }
+        coordinate{
+            dnam{"самти кардиналӣ"}
+            east{"{0} Шм"}
+            north{"{0} Шр"}
+            south{"{0} ҷануб"}
+            west{"{0} ғарб"}
+        }
+    }
+    unitsNarrow{
+        coordinate{
+            dnam{"самт"}
+            east{"{0} Шм"}
+            north{"{0} Шр"}
+            south{"{0}Ҷ"}
+            west{"{0}Ғ"}
+        }
+    }
+    unitsShort{
+        coordinate{
+            dnam{"самт"}
+            east{"{0} Шм"}
+            north{"{0} Шр"}
+            south{"{0} Ҷ"}
+            west{"{0} Ғ"}
+        }
     }
 }

@@ -1,0 +1,1845 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kxv_Orya{
+    %%Parent{"root"}
+    zoneStrings{
+        "Africa:Abidjan"{
+            ec{"ଆବିଦଜାନ"}
+        }
+        "Africa:Accra"{
+            ec{"ଏକ୍ରା"}
+        }
+        "Africa:Addis_Ababa"{
+            ec{"ଆଦିସ୍‌ ଆବାବା"}
+        }
+        "Africa:Algiers"{
+            ec{"ଅଲଜିୟର୍ସ"}
+        }
+        "Africa:Asmera"{
+            ec{"ଅସମରା"}
+        }
+        "Africa:Bamako"{
+            ec{"ବାମାକ"}
+        }
+        "Africa:Bangui"{
+            ec{"ବାଙ୍ଗୁଇ"}
+        }
+        "Africa:Banjul"{
+            ec{"ବାଞ୍ଜୁଲ"}
+        }
+        "Africa:Bissau"{
+            ec{"ବିସାଉ"}
+        }
+        "Africa:Blantyre"{
+            ec{"ବ୍ଲାଣ୍ଟାୟାର୍‌"}
+        }
+        "Africa:Brazzaville"{
+            ec{"ବ୍ରାଜାୱିଲ୍ଲେ"}
+        }
+        "Africa:Bujumbura"{
+            ec{"ବୁଜୂମ୍ବୁରା"}
+        }
+        "Africa:Cairo"{
+            ec{"କାଇର"}
+        }
+        "Africa:Casablanca"{
+            ec{"କାସାବ୍ଲାଙ୍କା"}
+        }
+        "Africa:Ceuta"{
+            ec{"ସେଉଟା"}
+        }
+        "Africa:Conakry"{
+            ec{"କନାକ୍ରି"}
+        }
+        "Africa:Dakar"{
+            ec{"ଡକାର"}
+        }
+        "Africa:Dar_es_Salaam"{
+            ec{"ଡର୍‌ ଇସ୍‌ ସାଲାମ"}
+        }
+        "Africa:Djibouti"{
+            ec{"ଜିବଟି"}
+        }
+        "Africa:Douala"{
+            ec{"ଡଉଲା"}
+        }
+        "Africa:El_Aaiun"{
+            ec{"ଏଲ୍‌ ଏୟନ୍"}
+        }
+        "Africa:Freetown"{
+            ec{"ପ୍ରିଟାଉନ୍‌"}
+        }
+        "Africa:Gaborone"{
+            ec{"ଗାବର୍ଣ୍ଣ"}
+        }
+        "Africa:Harare"{
+            ec{"ହରାରେ"}
+        }
+        "Africa:Johannesburg"{
+            ec{"ଜହାନ୍ସବର୍ଗ"}
+        }
+        "Africa:Juba"{
+            ec{"ଜୁବା"}
+        }
+        "Africa:Kampala"{
+            ec{"କାମ୍ପାଲା"}
+        }
+        "Africa:Khartoum"{
+            ec{"କରଟଉମ୍‌"}
+        }
+        "Africa:Kigali"{
+            ec{"କିଗାଲି"}
+        }
+        "Africa:Kinshasa"{
+            ec{"କିନସାସ୍‌"}
+        }
+        "Africa:Lagos"{
+            ec{"ଲାଗସ୍‌"}
+        }
+        "Africa:Libreville"{
+            ec{"ଲିବ୍ରେୱିଲ୍ଲେ"}
+        }
+        "Africa:Lome"{
+            ec{"ଲମ୍‌"}
+        }
+        "Africa:Luanda"{
+            ec{"ଲୁଆଣ୍ଡା"}
+        }
+        "Africa:Lubumbashi"{
+            ec{"ଲୁବୁମ୍ବାଶି"}
+        }
+        "Africa:Lusaka"{
+            ec{"ଲୁସାକା"}
+        }
+        "Africa:Malabo"{
+            ec{"ମାଲାବ"}
+        }
+        "Africa:Maputo"{
+            ec{"ମାପୁତୋ"}
+        }
+        "Africa:Maseru"{
+            ec{"ମେସେରୁ"}
+        }
+        "Africa:Mbabane"{
+            ec{"ମ୍-ବାବାନେ"}
+        }
+        "Africa:Mogadishu"{
+            ec{"ମୋଗାଡିସୁ"}
+        }
+        "Africa:Monrovia"{
+            ec{"ମନରୋବିଆ"}
+        }
+        "Africa:Nairobi"{
+            ec{"ନାଇରବି"}
+        }
+        "Africa:Ndjamena"{
+            ec{"ଜାମେନା"}
+        }
+        "Africa:Niamey"{
+            ec{"ନିଆମି"}
+        }
+        "Africa:Nouakchott"{
+            ec{"ନୁଆକଚଟ"}
+        }
+        "Africa:Ouagadougou"{
+            ec{"ଅଗାଡଗୁ"}
+        }
+        "Africa:Porto-Novo"{
+            ec{"ପର୍ଟ-ନୱ"}
+        }
+        "Africa:Sao_Tome"{
+            ec{"ସାଅ ଟମେ"}
+        }
+        "Africa:Tripoli"{
+            ec{"ତ୍ରିପଲି"}
+        }
+        "Africa:Tunis"{
+            ec{"ଟୁନିସ୍‌"}
+        }
+        "Africa:Windhoek"{
+            ec{"ୱିଣ୍ଡହକ୍"}
+        }
+        "America:Adak"{
+            ec{"ଆଡାକ୍"}
+        }
+        "America:Anchorage"{
+            ec{"ଆଙ୍କରେଜ୍"}
+        }
+        "America:Anguilla"{
+            ec{"ଆଙ୍ଗୁଇଲା"}
+        }
+        "America:Antigua"{
+            ec{"ଆଣ୍ଟିଗୁଆ"}
+        }
+        "America:Araguaina"{
+            ec{"ଆରାଗୁଆନା"}
+        }
+        "America:Argentina:La_Rioja"{
+            ec{"ଲା ରି୍ଅଜା"}
+        }
+        "America:Argentina:Rio_Gallegos"{
+            ec{"ରିୟୋ ଗାଲେଗୋସ"}
+        }
+        "America:Argentina:Salta"{
+            ec{"ସାଲ୍ଟା"}
+        }
+        "America:Argentina:San_Juan"{
+            ec{"ସାୟାନ୍ ୱାନ୍"}
+        }
+        "America:Argentina:San_Luis"{
+            ec{"ସୟାନ ଲୁଇସ"}
+        }
+        "America:Argentina:Tucuman"{
+            ec{"ଟୋକୁମନ"}
+        }
+        "America:Argentina:Ushuaia"{
+            ec{"ଉସୁଆଇୟା"}
+        }
+        "America:Aruba"{
+            ec{"ଅରୁବା"}
+        }
+        "America:Asuncion"{
+            ec{"ଆସନସିଅନ୍‌"}
+        }
+        "America:Bahia"{
+            ec{"ବାହିଆ"}
+        }
+        "America:Bahia_Banderas"{
+            ec{"ବାହିଆ ବ୍ୟାଣ୍ଡେରାସ୍"}
+        }
+        "America:Barbados"{
+            ec{"ବାରବାଡସ"}
+        }
+        "America:Belem"{
+            ec{"ବେଲେମ"}
+        }
+        "America:Belize"{
+            ec{"ବେଲିଜେ"}
+        }
+        "America:Blanc-Sablon"{
+            ec{"ବ୍ଲାଙ୍କ-ସାବଲନ୍"}
+        }
+        "America:Boa_Vista"{
+            ec{"ବୋଆ ୱିସ୍ଟା"}
+        }
+        "America:Bogota"{
+            ec{"ବଗଟା"}
+        }
+        "America:Boise"{
+            ec{"ବଇସେ"}
+        }
+        "America:Buenos_Aires"{
+            ec{"ବୁଏନସ୍ ଆଇରେସ୍"}
+        }
+        "America:Cambridge_Bay"{
+            ec{"କେମ୍ଵ୍ରିଜ୍ ବେ"}
+        }
+        "America:Campo_Grande"{
+            ec{"କାମ୍ପ ଗ୍ରାଣ୍ଡେ"}
+        }
+        "America:Cancun"{
+            ec{"କାନକୁନ୍"}
+        }
+        "America:Caracas"{
+            ec{"କାରକାସ୍‌"}
+        }
+        "America:Catamarca"{
+            ec{"କା଼ଟାମାକାଁ"}
+        }
+        "America:Cayenne"{
+            ec{"କେୟେନ୍ନି"}
+        }
+        "America:Cayman"{
+            ec{"କାୟମ୍ୟାନ୍"}
+        }
+        "America:Chicago"{
+            ec{"ସିକାଗ"}
+        }
+        "America:Chihuahua"{
+            ec{"ଚିହୁଆହୁଆ"}
+        }
+        "America:Coral_Harbour"{
+            ec{"ଆଟିକୋକାନ୍"}
+        }
+        "America:Cordoba"{
+            ec{"କୋଡୋବା"}
+        }
+        "America:Costa_Rica"{
+            ec{"କଷ୍ଟା ରିକା"}
+        }
+        "America:Creston"{
+            ec{"କ୍ରେସ୍‍ଟନ"}
+        }
+        "America:Cuiaba"{
+            ec{"କୁଇବା"}
+        }
+        "America:Curacao"{
+            ec{"କୁରାକ"}
+        }
+        "America:Danmarkshavn"{
+            ec{"ଡାନମାର୍କସାଭନ୍"}
+        }
+        "America:Dawson"{
+            ec{"ଡସନ୍‌"}
+        }
+        "America:Dawson_Creek"{
+            ec{"ଡୱସନ୍ କ୍ରିକ୍"}
+        }
+        "America:Denver"{
+            ec{"ଡେନୱିର୍"}
+        }
+        "America:Detroit"{
+            ec{"ଡେଟ୍ରଇଟ୍"}
+        }
+        "America:Dominica"{
+            ec{"ଡମିନିକା"}
+        }
+        "America:Edmonton"{
+            ec{"ଏଡ୍‍ମନଟନ୍"}
+        }
+        "America:Eirunepe"{
+            ec{"ଇରୁନେପେ"}
+        }
+        "America:El_Salvador"{
+            ec{"ଏଲ୍ ସାଲୱାଡୋର୍"}
+        }
+        "America:Fort_Nelson"{
+            ec{"ପର୍ଟ ନେଲସନ୍"}
+        }
+        "America:Fortaleza"{
+            ec{"ପର୍ଟଲେଜା"}
+        }
+        "America:Glace_Bay"{
+            ec{"ଗ୍ଲାସେ ବେ"}
+        }
+        "America:Godthab"{
+            ec{"ନୁଉକ୍"}
+        }
+        "America:Goose_Bay"{
+            ec{"ଗୁସ୍ ବେ"}
+        }
+        "America:Grand_Turk"{
+            ec{"ଗ୍ରାଣ୍ଡ୍ ଟର୍କ୍"}
+        }
+        "America:Grenada"{
+            ec{"ଗ୍ରେନାଡା"}
+        }
+        "America:Guadeloupe"{
+            ec{"ଗୁଆଡେଲଉପେ"}
+        }
+        "America:Guatemala"{
+            ec{"ଗୁଆତେମାଲା"}
+        }
+        "America:Guayaquil"{
+            ec{"ଗୁୟାକ୍ୱିଲ"}
+        }
+        "America:Guyana"{
+            ec{"ଗୁଏନା"}
+        }
+        "America:Halifax"{
+            ec{"ହାଲିଫ୍ୟାକ୍ସ୍"}
+        }
+        "America:Havana"{
+            ec{"ହାୱନା"}
+        }
+        "America:Hermosillo"{
+            ec{"ହେରମସିଲୋ"}
+        }
+        "America:Indiana:Knox"{
+            ec{"କ୍ନୋକ୍ସ, ଇଣ୍ଡିଆନା"}
+        }
+        "America:Indiana:Marengo"{
+            ec{"ମାରେନଗ, ଇଣ୍ଡିଆନା"}
+        }
+        "America:Indiana:Petersburg"{
+            ec{"ପେଟେର୍ସବର୍ଗ୍, ଇଣ୍ଡିଆନା"}
+        }
+        "America:Indiana:Tell_City"{
+            ec{"ଟେଲ୍ ସିଟି, ଇଣ୍ଡିଆନା"}
+        }
+        "America:Indiana:Vevay"{
+            ec{"ୱେୱାୟ, ଇଣ୍ଡିଆନା"}
+        }
+        "America:Indiana:Vincennes"{
+            ec{"ଭିନସେନ୍ନେସ୍, ଇଣ୍ଡିଆନା"}
+        }
+        "America:Indiana:Winamac"{
+            ec{"ୱିନାମାକ୍, ଇଣ୍ଡିଆନା"}
+        }
+        "America:Indianapolis"{
+            ec{"ଇଣ୍ଡିଆନାପଲିସ୍"}
+        }
+        "America:Inuvik"{
+            ec{"ଇନୁୱିକ୍"}
+        }
+        "America:Iqaluit"{
+            ec{"ଇକ୍ଵାଲୁଇଟ୍"}
+        }
+        "America:Jamaica"{
+            ec{"ଜାମାଇକା"}
+        }
+        "America:Jujuy"{
+            ec{"ଜୁଜୋଏ"}
+        }
+        "America:Juneau"{
+            ec{"ଜୁନେଆଉ"}
+        }
+        "America:Kentucky:Monticello"{
+            ec{"ମଣ୍ଟିସେଲ, କେଣ୍ଟଉକିକେ"}
+        }
+        "America:Kralendijk"{
+            ec{"କ୍ରାଲେଣ୍ଡିଜିକ"}
+        }
+        "America:La_Paz"{
+            ec{"ଲା ପାଜ"}
+        }
+        "America:Lima"{
+            ec{"ଲିମା"}
+        }
+        "America:Los_Angeles"{
+            ec{"ଲସ୍ ଏଞ୍ଜେଲେସ୍"}
+        }
+        "America:Louisville"{
+            ec{"ଲଉଇସୱିଲ୍ଲେ"}
+        }
+        "America:Lower_Princes"{
+            ec{"ନିମ୍ନ ପ୍ରିନ୍ସ’ର କ୍ଵାଟର୍"}
+        }
+        "America:Maceio"{
+            ec{"ମାସିଅ"}
+        }
+        "America:Managua"{
+            ec{"ମାନାଗୁଆ"}
+        }
+        "America:Manaus"{
+            ec{"ମାନାଉସ୍‌"}
+        }
+        "America:Marigot"{
+            ec{"ମାରିଗଟ୍"}
+        }
+        "America:Martinique"{
+            ec{"ମାର୍ଟିନିକ୍ୟୁ"}
+        }
+        "America:Matamoros"{
+            ec{"ମାଟାମରସ୍"}
+        }
+        "America:Mazatlan"{
+            ec{"ମାଜାଟଲାନ୍"}
+        }
+        "America:Mendoza"{
+            ec{"ମେଣ୍ଡଜା"}
+        }
+        "America:Menominee"{
+            ec{"ମେନୋମିନି"}
+        }
+        "America:Merida"{
+            ec{"ମେରିଡା"}
+        }
+        "America:Metlakatla"{
+            ec{"ମାଟଲାକାଟଲା"}
+        }
+        "America:Mexico_City"{
+            ec{"ମେକ୍ସିକୋ ସିଟି"}
+        }
+        "America:Miquelon"{
+            ec{"ମିକ୍ଵେଲନ୍"}
+        }
+        "America:Moncton"{
+            ec{"ମାନକଟନ୍"}
+        }
+        "America:Monterrey"{
+            ec{"ମନଟେରିଏ"}
+        }
+        "America:Montevideo"{
+            ec{"ମଣ୍ଟେଭିଡିଅ"}
+        }
+        "America:Montserrat"{
+            ec{"ମନଟସେରରାଟ୍"}
+        }
+        "America:Nassau"{
+            ec{"ନାସାଉ"}
+        }
+        "America:New_York"{
+            ec{"ନ୍ୟୁ ୟର୍କ୍"}
+        }
+        "America:Nome"{
+            ec{"ନୋମେ"}
+        }
+        "America:Noronha"{
+            ec{"ନରହ୍ନ"}
+        }
+        "America:North_Dakota:Beulah"{
+            ec{"ବେଉଲାହ, ଉତ୍ତର ଡାକଟା"}
+        }
+        "America:North_Dakota:Center"{
+            ec{"କେନ୍ଦ୍ର, ଉତ୍ତର ଡାକଟା"}
+        }
+        "America:North_Dakota:New_Salem"{
+            ec{"ନ୍ୟୁ ସାଲେମ୍, ଉତ୍ତର ଡାକଟା"}
+        }
+        "America:Ojinaga"{
+            ec{"ଅଜିନାଗା"}
+        }
+        "America:Panama"{
+            ec{"ପାନାମା"}
+        }
+        "America:Paramaribo"{
+            ec{"ପାରାମାରିବ"}
+        }
+        "America:Phoenix"{
+            ec{"ପଇନିକ୍ସ"}
+        }
+        "America:Port-au-Prince"{
+            ec{"ପର୍ଟ-ଏୟୁ-ପ୍ରିନ୍‍ସ"}
+        }
+        "America:Port_of_Spain"{
+            ec{"ପର୍ଟ୍ ଅଫ୍ ସ୍ପେନ୍"}
+        }
+        "America:Porto_Velho"{
+            ec{"ପୋର୍ଟୋ ଭେଲୋ"}
+        }
+        "America:Puerto_Rico"{
+            ec{"ପୁଏର୍ତ ରିକ"}
+        }
+        "America:Punta_Arenas"{
+            ec{"ପୁଣ୍ଟା ଏରିନାସ୍‌"}
+        }
+        "America:Rankin_Inlet"{
+            ec{"ରାନକିନ୍ ଇନଲେଟ୍"}
+        }
+        "America:Recife"{
+            ec{"ରେସିପି"}
+        }
+        "America:Regina"{
+            ec{"ରେଗିନା"}
+        }
+        "America:Resolute"{
+            ec{"ରିସୋଲୁଟେ"}
+        }
+        "America:Rio_Branco"{
+            ec{"ରିୟ ବ୍ରାଙ୍କ"}
+        }
+        "America:Santarem"{
+            ec{"ସାନ୍ତରେମ୍"}
+        }
+        "America:Santiago"{
+            ec{"ସାଣ୍ଟିଆଗ"}
+        }
+        "America:Santo_Domingo"{
+            ec{"ସାଣ୍ଟ ଡମିଙ୍ଗ"}
+        }
+        "America:Sao_Paulo"{
+            ec{"ସାଓ ପାଓଲୋ"}
+        }
+        "America:Scoresbysund"{
+            ec{"ଇଟ୍ଟକ୍ଵରଟରମିଟ୍"}
+        }
+        "America:Sitka"{
+            ec{"ସିଟକା"}
+        }
+        "America:St_Barthelemy"{
+            ec{"ସେଣ୍ଟ ବାର୍ତେଲେମି"}
+        }
+        "America:St_Johns"{
+            ec{"ସେଣ୍ଟ୍. ଜନସ୍"}
+        }
+        "America:St_Kitts"{
+            ec{"ସେଣ୍ଟ୍ କିଟ୍‍ସ"}
+        }
+        "America:St_Lucia"{
+            ec{"ସେଣ୍ଟ୍. ଲୁସିଆ"}
+        }
+        "America:St_Thomas"{
+            ec{"ସେଣ୍ଟ୍. ଥମାସ୍"}
+        }
+        "America:St_Vincent"{
+            ec{"ସେଣ୍ଟ୍. ୱିନସେଣ୍ଟ୍"}
+        }
+        "America:Swift_Current"{
+            ec{"ସୁଇଫ୍ଟ୍ କରେଣ୍ଟ୍"}
+        }
+        "America:Tegucigalpa"{
+            ec{"ଟେଗୁସିଗାଲପା"}
+        }
+        "America:Thule"{
+            ec{"ତୁଲେ"}
+        }
+        "America:Tijuana"{
+            ec{"ତିଜୁଆନା"}
+        }
+        "America:Toronto"{
+            ec{"ଟରଣ୍ଟ"}
+        }
+        "America:Tortola"{
+            ec{"ଟରଟଲା"}
+        }
+        "America:Vancouver"{
+            ec{"ୱାଙ୍କୁୱର୍"}
+        }
+        "America:Whitehorse"{
+            ec{"ହ୍ଵାଇଟହର୍ସ୍"}
+        }
+        "America:Winnipeg"{
+            ec{"ୱିନିପେଗ୍"}
+        }
+        "America:Yakutat"{
+            ec{"ୟାକୁଟାଟ୍"}
+        }
+        "Antarctica:Casey"{
+            ec{"କେସି"}
+        }
+        "Antarctica:Davis"{
+            ec{"ଡେୱିସ୍"}
+        }
+        "Antarctica:DumontDUrville"{
+            ec{"ଡ୍ୟୁମାଣ୍ଟ ଡି ଉରୱିଲେ"}
+        }
+        "Antarctica:Macquarie"{
+            ec{"ମକ୍ୱାରି"}
+        }
+        "Antarctica:Mawson"{
+            ec{"ମାଁସନ"}
+        }
+        "Antarctica:McMurdo"{
+            ec{"ମ୍ୟାକମୁର୍ଡ"}
+        }
+        "Antarctica:Palmer"{
+            ec{"ପାଁମର"}
+        }
+        "Antarctica:Rothera"{
+            ec{"ରୋତେରା"}
+        }
+        "Antarctica:Syowa"{
+            ec{"ସୋୱା"}
+        }
+        "Antarctica:Troll"{
+            ec{"ଟୋଲ୍"}
+        }
+        "Antarctica:Vostok"{
+            ec{"ୱୋସ୍ତକୋ"}
+        }
+        "Arctic:Longyearbyen"{
+            ec{"ଳଙ୍ଖୟାରବେନ"}
+        }
+        "Asia:Aden"{
+            ec{"ଏଡେନ୍‌"}
+        }
+        "Asia:Almaty"{
+            ec{"ଅଲମାଟି"}
+        }
+        "Asia:Amman"{
+            ec{"ଅମ୍ମାନ"}
+        }
+        "Asia:Anadyr"{
+            ec{"ଆନାଡୟାର୍"}
+        }
+        "Asia:Aqtau"{
+            ec{"ଆକଟାଉ"}
+        }
+        "Asia:Aqtobe"{
+            ec{"ଆକ୍ଟବେ"}
+        }
+        "Asia:Ashgabat"{
+            ec{"ଆସ୍‍ଗାବଟ୍"}
+        }
+        "Asia:Atyrau"{
+            ec{"ଅତିରାଉ"}
+        }
+        "Asia:Baghdad"{
+            ec{"ବାଗଦାଦ୍‌"}
+        }
+        "Asia:Bahrain"{
+            ec{"ବହାରେନ"}
+        }
+        "Asia:Baku"{
+            ec{"ବାକୁ"}
+        }
+        "Asia:Bangkok"{
+            ec{"ବ୍ୟାଙ୍ଗକକ୍‌"}
+        }
+        "Asia:Barnaul"{
+            ec{"ବାରନାଉଲ୍"}
+        }
+        "Asia:Beirut"{
+            ec{"ବୀରୁଟ୍‌"}
+        }
+        "Asia:Bishkek"{
+            ec{"ବିସକେକ୍‌"}
+        }
+        "Asia:Brunei"{
+            ec{"ବ୍ରୁନେଇ"}
+        }
+        "Asia:Calcutta"{
+            ec{"କୋଲକାତା"}
+        }
+        "Asia:Chita"{
+            ec{"ଚିଟା"}
+        }
+        "Asia:Colombo"{
+            ec{"କଲମ୍ବୋ"}
+        }
+        "Asia:Damascus"{
+            ec{"ଡାମାସକସ୍‌"}
+        }
+        "Asia:Dhaka"{
+            ec{"ଡାକା"}
+        }
+        "Asia:Dili"{
+            ec{"ଦିଲ୍ଲୀ"}
+        }
+        "Asia:Dubai"{
+            ec{"ଦୁବାଇ"}
+        }
+        "Asia:Dushanbe"{
+            ec{"ଦୁସାନବେ"}
+        }
+        "Asia:Famagusta"{
+            ec{"ପାମାଗୁସ୍ଟା"}
+        }
+        "Asia:Gaza"{
+            ec{"ଗାଜା"}
+        }
+        "Asia:Hebron"{
+            ec{"ହେବ୍ରନ୍‌"}
+        }
+        "Asia:Hong_Kong"{
+            ec{"ହଂ କଂ"}
+        }
+        "Asia:Hovd"{
+            ec{"ହୋୱଡ୍‌"}
+        }
+        "Asia:Irkutsk"{
+            ec{"ଇରକୁଟସ୍କ"}
+        }
+        "Asia:Jakarta"{
+            ec{"ଜାକର୍ତା"}
+        }
+        "Asia:Jayapura"{
+            ec{"ଜୟପୁରା"}
+        }
+        "Asia:Jerusalem"{
+            ec{"ଜେରୁଜେଲମ"}
+        }
+        "Asia:Kabul"{
+            ec{"କବୁଲ୍"}
+        }
+        "Asia:Kamchatka"{
+            ec{"କାମଚାଟକା"}
+        }
+        "Asia:Karachi"{
+            ec{"କରାଚି"}
+        }
+        "Asia:Katmandu"{
+            ec{"କାଟମାଣ୍ଡୁ"}
+        }
+        "Asia:Khandyga"{
+            ec{"କାନଡ୍ୟାଗା"}
+        }
+        "Asia:Krasnoyarsk"{
+            ec{"କ୍ରାସନୟାରସ୍କ"}
+        }
+        "Asia:Kuala_Lumpur"{
+            ec{"କ୍ୱାଲାଲମ୍ପୁର"}
+        }
+        "Asia:Kuching"{
+            ec{"କୁଚିଂ"}
+        }
+        "Asia:Kuwait"{
+            ec{"କୁଏତ"}
+        }
+        "Asia:Macau"{
+            ec{"ମାକାଉ"}
+        }
+        "Asia:Magadan"{
+            ec{"ମାଗାଡାନ୍"}
+        }
+        "Asia:Makassar"{
+            ec{"ମାକାସାର୍‌"}
+        }
+        "Asia:Manila"{
+            ec{"ମାନିଲା"}
+        }
+        "Asia:Muscat"{
+            ec{"ମସ୍କାଟ୍‌"}
+        }
+        "Asia:Nicosia"{
+            ec{"ନିକସିଆ"}
+        }
+        "Asia:Novokuznetsk"{
+            ec{"ନୱକୁଜନେଟସ୍କ"}
+        }
+        "Asia:Novosibirsk"{
+            ec{"ନୱସିବିରସ୍କ"}
+        }
+        "Asia:Omsk"{
+            ec{"ଓମସ୍କ"}
+        }
+        "Asia:Oral"{
+            ec{"ଅରାଲ୍‌"}
+        }
+        "Asia:Phnom_Penh"{
+            ec{"ପନମ୍‌ ପେନହ"}
+        }
+        "Asia:Pontianak"{
+            ec{"ପଣ୍ଟିଆନାକ୍‌"}
+        }
+        "Asia:Pyongyang"{
+            ec{"ପୋୟଙ୍ଗୟାଙ୍ଗ"}
+        }
+        "Asia:Qatar"{
+            ec{"କତାର୍"}
+        }
+        "Asia:Qostanay"{
+            ec{"କଷ୍ଟନେ"}
+        }
+        "Asia:Qyzylorda"{
+            ec{"କୀଜିଲର୍ଡା"}
+        }
+        "Asia:Rangoon"{
+            ec{"ୟାଙ୍ଗୁନ୍‌"}
+        }
+        "Asia:Riyadh"{
+            ec{"ରିଆଦ"}
+        }
+        "Asia:Saigon"{
+            ec{"ହ ଚି ମିନ୍‌ ସିଟି"}
+        }
+        "Asia:Sakhalin"{
+            ec{"ସକାଲିନ୍"}
+        }
+        "Asia:Samarkand"{
+            ec{"ସମରକନ୍ଦ"}
+        }
+        "Asia:Seoul"{
+            ec{"ସିଅଲ"}
+        }
+        "Asia:Shanghai"{
+            ec{"ସଂଗାଇ"}
+        }
+        "Asia:Singapore"{
+            ec{"ସିଙ୍ଗାପୁର୍‌"}
+        }
+        "Asia:Srednekolymsk"{
+            ec{"ସ୍ରେଡନେକଲୟମସ୍କ"}
+        }
+        "Asia:Taipei"{
+            ec{"ତାଇପେଇ"}
+        }
+        "Asia:Tashkent"{
+            ec{"ତାସକେଣ୍ଟ"}
+        }
+        "Asia:Tbilisi"{
+            ec{"ଟିବିଲିସି"}
+        }
+        "Asia:Tehran"{
+            ec{"ତେହେରାନ୍"}
+        }
+        "Asia:Thimphu"{
+            ec{"ତିମ୍ପୁ"}
+        }
+        "Asia:Tokyo"{
+            ec{"ଟକିଅ"}
+        }
+        "Asia:Tomsk"{
+            ec{"ଟମସ୍କ"}
+        }
+        "Asia:Ulaanbaatar"{
+            ec{"ଉଲାନ୍‌ବାଟର୍‌"}
+        }
+        "Asia:Urumqi"{
+            ec{"ଉରୁମକି"}
+        }
+        "Asia:Ust-Nera"{
+            ec{"ୟୁସ୍‍ଟ-ନେରା"}
+        }
+        "Asia:Vientiane"{
+            ec{"ୱିଏଣ୍ଟିଏନ୍‌"}
+        }
+        "Asia:Vladivostok"{
+            ec{"ୱ୍ଲାଡିୱଷ୍ଟୋକ୍"}
+        }
+        "Asia:Yakutsk"{
+            ec{"ୟାକୁଟସ୍କ"}
+        }
+        "Asia:Yekaterinburg"{
+            ec{"ୟେକାଟେରିନବର୍ଗ୍"}
+        }
+        "Asia:Yerevan"{
+            ec{"ୟେରେବାନ୍"}
+        }
+        "Atlantic:Azores"{
+            ec{"ଆଜରେସ୍"}
+        }
+        "Atlantic:Bermuda"{
+            ec{"ବରମୁଡା"}
+        }
+        "Atlantic:Canary"{
+            ec{"କାନାରେ"}
+        }
+        "Atlantic:Cape_Verde"{
+            ec{"କେପ୍‌ ୱର୍ଦେ"}
+        }
+        "Atlantic:Faeroe"{
+            ec{"ପରଏ"}
+        }
+        "Atlantic:Madeira"{
+            ec{"ମାଡେଇରା"}
+        }
+        "Atlantic:Reykjavik"{
+            ec{"ରେକ୍ୟାବିକ"}
+        }
+        "Atlantic:South_Georgia"{
+            ec{"ଦକ୍ଷିଣ ଜର୍ଜିଆ"}
+        }
+        "Atlantic:St_Helena"{
+            ec{"ସେଣ୍ଟ୍‌ ହେଲିନା"}
+        }
+        "Atlantic:Stanley"{
+            ec{"ସ୍‍ଟାଲିନ"}
+        }
+        "Australia:Adelaide"{
+            ec{"ଏଡିଲେଡ୍"}
+        }
+        "Australia:Brisbane"{
+            ec{"ବ୍ରିସବନ୍"}
+        }
+        "Australia:Broken_Hill"{
+            ec{"ବ୍ରୋକନ ହିଲ"}
+        }
+        "Australia:Darwin"{
+            ec{"ଡାର୍ୱିନ୍"}
+        }
+        "Australia:Eucla"{
+            ec{"ୟୁକଲା"}
+        }
+        "Australia:Hobart"{
+            ec{"ହୋବାର୍ଟ"}
+        }
+        "Australia:Lindeman"{
+            ec{"ଲିଣ୍ଡେମାନ"}
+        }
+        "Australia:Lord_Howe"{
+            ec{"ଲର୍‍ଡ ହାୱେ"}
+        }
+        "Australia:Melbourne"{
+            ec{"ମେଲବୋନଁ"}
+        }
+        "Australia:Perth"{
+            ec{"ପର୍ତ"}
+        }
+        "Australia:Sydney"{
+            ec{"ସିଡନୀ"}
+        }
+        "Etc:UTC"{
+            ls{"ସମାନି ଜାଗା ପ୍ରୁତି ବେଲା"}
+        }
+        "Etc:Unknown"{
+            ec{"ପୁଣ୍ଆଁ ତି ଗାଡ଼ା"}
+        }
+        "Europe:Amsterdam"{
+            ec{"ଆମଷ୍ଟ୍ରେଡାମ୍"}
+        }
+        "Europe:Andorra"{
+            ec{"ଆଣ୍ଡରା"}
+        }
+        "Europe:Astrakhan"{
+            ec{"ଆସ୍‍ଟରାକାନ"}
+        }
+        "Europe:Athens"{
+            ec{"ଏତେନ୍ସ"}
+        }
+        "Europe:Belgrade"{
+            ec{"ବେଲଗ୍ରେଡେ"}
+        }
+        "Europe:Berlin"{
+            ec{"ବର୍ଲିନ୍"}
+        }
+        "Europe:Bratislava"{
+            ec{"ବ୍ରାଟିସଲାୱା"}
+        }
+        "Europe:Brussels"{
+            ec{"ବ୍ରୁସିଲ୍‍ସ"}
+        }
+        "Europe:Bucharest"{
+            ec{"ବୁଚାରେସ୍ଟ"}
+        }
+        "Europe:Budapest"{
+            ec{"ବୁଡାପେସ୍ଟ"}
+        }
+        "Europe:Busingen"{
+            ec{"ବୁସିନଗେନ୍"}
+        }
+        "Europe:Chisinau"{
+            ec{"ଚିସିନାଉ"}
+        }
+        "Europe:Copenhagen"{
+            ec{"କପେନହାଗେନ୍"}
+        }
+        "Europe:Dublin"{
+            ec{"ଡବଲିନ୍"}
+            ld{"ଆଇରିସ୍ ମାନାଙ୍କ ବେଲା"}
+        }
+        "Europe:Gibraltar"{
+            ec{"ଜିବ୍ରାଲଟର୍‌"}
+        }
+        "Europe:Guernsey"{
+            ec{"ଗୁଏରନସେ"}
+        }
+        "Europe:Helsinki"{
+            ec{"ହେଲସିନକି"}
+        }
+        "Europe:Isle_of_Man"{
+            ec{"ଆଇଲ୍ ଅପ୍ ମ୍ୟାନ୍"}
+        }
+        "Europe:Istanbul"{
+            ec{"ଇସ୍ତାନବୁଲ"}
+        }
+        "Europe:Jersey"{
+            ec{"ଜର୍ସି"}
+        }
+        "Europe:Kaliningrad"{
+            ec{"କାଲିନିନଗ୍ରାଡ୍"}
+        }
+        "Europe:Kiev"{
+            ec{"କିଏଭ୍"}
+        }
+        "Europe:Kirov"{
+            ec{"କିରୱ"}
+        }
+        "Europe:Lisbon"{
+            ec{"ଲିସବୋନ୍"}
+        }
+        "Europe:Ljubljana"{
+            ec{"ଲଜୁବ୍ଲଜାନ୍"}
+        }
+        "Europe:London"{
+            ec{"ଲଣ୍ଡନ୍"}
+            ld{"ବ୍ରିଟିଶ୍‌ କାରାଁ ବେଲା"}
+        }
+        "Europe:Luxembourg"{
+            ec{"ଲକ୍ସମବର୍ଗ"}
+        }
+        "Europe:Madrid"{
+            ec{"ମାଡ୍ରିଡ୍"}
+        }
+        "Europe:Malta"{
+            ec{"ମାଲଟା"}
+        }
+        "Europe:Mariehamn"{
+            ec{"ମାରିୟାହେମ"}
+        }
+        "Europe:Minsk"{
+            ec{"ମିନସ୍କ"}
+        }
+        "Europe:Monaco"{
+            ec{"ମନାକ"}
+        }
+        "Europe:Moscow"{
+            ec{"ମସ୍କ"}
+        }
+        "Europe:Oslo"{
+            ec{"ଅସଲୋ"}
+        }
+        "Europe:Paris"{
+            ec{"ପେରିସ୍"}
+        }
+        "Europe:Podgorica"{
+            ec{"ପଡଗରିକା"}
+        }
+        "Europe:Prague"{
+            ec{"ପ୍ରାଗ୍"}
+        }
+        "Europe:Riga"{
+            ec{"ରିଗା"}
+        }
+        "Europe:Rome"{
+            ec{"ରମ୍"}
+        }
+        "Europe:Samara"{
+            ec{"ସାମାରା"}
+        }
+        "Europe:San_Marino"{
+            ec{"ସାନ୍ ମାରିନୋ"}
+        }
+        "Europe:Sarajevo"{
+            ec{"ସାରାଜେବ"}
+        }
+        "Europe:Saratov"{
+            ec{"ସାରାଟୱ୍"}
+        }
+        "Europe:Simferopol"{
+            ec{"ସିମଫେରପଲ୍"}
+        }
+        "Europe:Skopje"{
+            ec{"ସ୍କପୟେ"}
+        }
+        "Europe:Sofia"{
+            ec{"ସପିୟା"}
+        }
+        "Europe:Stockholm"{
+            ec{"ସ୍ଟକ୍ ହମ୍‌"}
+        }
+        "Europe:Tallinn"{
+            ec{"ଟାଲିନ୍ନ"}
+        }
+        "Europe:Tirane"{
+            ec{"ଟାଇରେନ୍"}
+        }
+        "Europe:Ulyanovsk"{
+            ec{"ୟୁଲୟାନୱସ୍କ"}
+        }
+        "Europe:Vaduz"{
+            ec{"ବାଡୁଜ"}
+        }
+        "Europe:Vatican"{
+            ec{"ୱାଟିକାନ୍"}
+        }
+        "Europe:Vienna"{
+            ec{"ୱିଏନା"}
+        }
+        "Europe:Vilnius"{
+            ec{"ୱିଲନିଉସ୍"}
+        }
+        "Europe:Volgograd"{
+            ec{"ୱଲଗଗ୍ରାଡ୍"}
+        }
+        "Europe:Warsaw"{
+            ec{"ୱାରସୱା"}
+        }
+        "Europe:Zagreb"{
+            ec{"ଜାଗ୍ରେବ୍"}
+        }
+        "Europe:Zurich"{
+            ec{"ଜୁରିକ୍"}
+        }
+        "Indian:Antananarivo"{
+            ec{"ଆଣ୍ଟାନାନାରିଭ"}
+        }
+        "Indian:Chagos"{
+            ec{"ଚାଗୋସ୍‌"}
+        }
+        "Indian:Christmas"{
+            ec{"ଖ୍ରୀସ୍‍ଟ ମାସ"}
+        }
+        "Indian:Cocos"{
+            ec{"କକସ୍‌"}
+        }
+        "Indian:Comoro"{
+            ec{"କମର"}
+        }
+        "Indian:Kerguelen"{
+            ec{"କେରଗୁଲେନ"}
+        }
+        "Indian:Mahe"{
+            ec{"ମାହେ"}
+        }
+        "Indian:Maldives"{
+            ec{"ମାଳଦ୍ୱୀପ"}
+        }
+        "Indian:Mauritius"{
+            ec{"ମରିସସ୍"}
+        }
+        "Indian:Mayotte"{
+            ec{"ମାୟଟେ"}
+        }
+        "Indian:Reunion"{
+            ec{"ରିୟୁନିଅନ୍‌"}
+        }
+        "Pacific:Apia"{
+            ec{"ଆପିଆ"}
+        }
+        "Pacific:Auckland"{
+            ec{"ଅକଲାଣ୍ଡ"}
+        }
+        "Pacific:Bougainville"{
+            ec{"ବଗେନ୍‌ୱିଲ୍ଲେ"}
+        }
+        "Pacific:Chatham"{
+            ec{"ଚାତାମ୍‌"}
+        }
+        "Pacific:Easter"{
+            ec{"ଇଷ୍ଟର୍‌"}
+        }
+        "Pacific:Efate"{
+            ec{"ଇଫେଟ୍‌"}
+        }
+        "Pacific:Fakaofo"{
+            ec{"ପକାଅପ"}
+        }
+        "Pacific:Fiji"{
+            ec{"ପିଜି"}
+        }
+        "Pacific:Funafuti"{
+            ec{"ଫୁନାଫୁଟି"}
+        }
+        "Pacific:Galapagos"{
+            ec{"ଗାଲାପାଗସ"}
+        }
+        "Pacific:Gambier"{
+            ec{"ଗାମ୍ବିୟର୍‌"}
+        }
+        "Pacific:Guadalcanal"{
+            ec{"ଗୁଆଡାଲକାନାଲ"}
+        }
+        "Pacific:Guam"{
+            ec{"ଗୁଆମ"}
+        }
+        "Pacific:Kanton"{
+            ec{"କେଣ୍ଟନ"}
+        }
+        "Pacific:Kiritimati"{
+            ec{"କିରିତିମାଟି"}
+        }
+        "Pacific:Kosrae"{
+            ec{"କୋସରେଇ"}
+        }
+        "Pacific:Kwajalein"{
+            ec{"କ୍ୱାଜାଲେଇନ୍"}
+        }
+        "Pacific:Majuro"{
+            ec{"ମାଜୁର"}
+        }
+        "Pacific:Marquesas"{
+            ec{"ମାର୍କ୍ୱେସାସ୍‌"}
+        }
+        "Pacific:Midway"{
+            ec{"ମିଡ୍‌ୱେ"}
+        }
+        "Pacific:Nauru"{
+            ec{"ନାଉରୁ"}
+        }
+        "Pacific:Niue"{
+            ec{"ନିୟୂ"}
+        }
+        "Pacific:Norfolk"{
+            ec{"ନରପକ୍‌"}
+        }
+        "Pacific:Noumea"{
+            ec{"ନଉମିୟ"}
+        }
+        "Pacific:Pago_Pago"{
+            ec{"ପାଗୋ ପାଗୋ"}
+        }
+        "Pacific:Palau"{
+            ec{"ପାଲାଉ"}
+        }
+        "Pacific:Pitcairn"{
+            ec{"ପିଟକାରିନ୍‌"}
+        }
+        "Pacific:Ponape"{
+            ec{"ପହନପେଇ"}
+        }
+        "Pacific:Port_Moresby"{
+            ec{"ପର୍ଟ୍‌ ମରେସବି"}
+        }
+        "Pacific:Rarotonga"{
+            ec{"ରାରଟଙ୍ଗା"}
+        }
+        "Pacific:Saipan"{
+            ec{"ସାଇପାନ୍"}
+        }
+        "Pacific:Tahiti"{
+            ec{"ତାହିତି"}
+        }
+        "Pacific:Tarawa"{
+            ec{"ତାରୱା"}
+        }
+        "Pacific:Tongatapu"{
+            ec{"ଟଙ୍ଗାଟାପୁ"}
+        }
+        "Pacific:Truk"{
+            ec{"ଚୂକ୍‌"}
+        }
+        "Pacific:Wake"{
+            ec{"ୱେକ୍"}
+        }
+        "Pacific:Wallis"{
+            ec{"ୱାଲିସ୍‌"}
+        }
+        "meta:Afghanistan"{
+            ls{"ଆପଗାନିସ୍ତାନ ବେଲା"}
+        }
+        "meta:Africa_Central"{
+            ls{"ମାଦିନି ଆପ୍ରିକା ବେଲା"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"ୱେଡ଼ା ହପୁ ଆପ୍ରିକା ବେଲା"}
+        }
+        "meta:Africa_Southern"{
+            ls{"ଦକିଣ ଆପ୍ରିକା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Africa_Western"{
+            ld{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଆପ୍ରିକା କାରାଁ ବେଲା"}
+            lg{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଆପ୍ରିକା ବେଲା"}
+            ls{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଆପ୍ରିକା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Alaska"{
+            ld{"ଆଲାସ୍କା ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ଆଲାସ୍କା ବେଲା"}
+            ls{"ଆଲାସ୍କା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Amazon"{
+            ld{"ଆମେଜନ କାରାଁ ବେଲା"}
+            lg{"ଆମେଜନ ବେଲା"}
+            ls{"ଆମେଜନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:America_Central"{
+            ld{"ମାଦିନି ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ମାଦିନି ବେଲା"}
+            ls{"ମାଦିନି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:America_Eastern"{
+            ld{"ୱେଡ଼ାହପୁ ଜାଗାତି ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ୱେଡ଼ାହପୁତି ଜାଗା ବେଲା"}
+            ls{"ୱେଡ଼ାହପୁ ଜାଗାତି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:America_Mountain"{
+            ld{"ହର୍କା ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ହର୍କା ବେଲା"}
+            ls{"ହର୍କା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:America_Pacific"{
+            ld{"ପେସିପିକ୍ ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ପେସିପିକ୍ ବେଲା"}
+            ls{"ପେସିପିକ୍ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Apia"{
+            ld{"ଏପିଆ ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ଏପିଆ ବେଲା"}
+            ls{"ଏପିଆ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Arabian"{
+            ld{"ଆରବିଆତି ମେଦାଣା ବେଲା"}
+            lg{"ଆରବିଆତି ବେଲା"}
+            ls{"ଆରବିଆତି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Argentina"{
+            ld{"ଆର୍ଜେଣ୍ଟିନା କାରା ବେଲା"}
+            lg{"ଆରଜେଣ୍ଟିନା ବେଲା"}
+            ls{"ଆରଜେଣ୍ଟିନା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Argentina_Western"{
+            ld{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଆର୍ଜେଣ୍ଟିନା କାରାଁ ବେଲା"}
+            lg{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଆର୍ଜେଣ୍ଟିନା ବେଲା"}
+            ls{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଆର୍ଜେଣ୍ଟିନା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Armenia"{
+            ld{"ଆରମେନିୟା କାରାଁ ବେଲା"}
+            lg{"ଆରମେନିୟା ବେଲା"}
+            ls{"ଆରମେନିୟା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Atlantic"{
+            ld{"ଆଟ୍ଲାଣ୍ଟିକ ଡେଲାଇଟ ବେଲା"}
+            lg{"ଆଟ୍ଲାଣ୍ଟିକ ବେଲା"}
+            ls{"ଆଟ୍ଲାଣ୍ଟିକ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Australia_Central"{
+            ld{"ଅସ୍ଟ୍ରେଲିଆତି ମାଦିନି ଡେଲାଇଟ ବେଲା"}
+            lg{"ମାଦିନି ଅସ୍ଟ୍ରେଲିଆ ବେଲା"}
+            ls{"ଅସ୍ଟ୍ରେଲିଆତି ମାଦିନି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"ଅସ୍ଟ୍ରେଲିଆତି ମାଦିନି ୱେଡ଼ାକୁଣ୍‍ପୁ ଡେଲାଇଟ ବେଲା"}
+            lg{"ଅସ୍ଟ୍ରେଲିଆତି ମାଦିନି ୱେଡ଼ାକୁଣ୍‍ପୁ ବେଲା"}
+            ls{"ଅସ୍ଟ୍ରେଲିଆତି ମାଦିନି ୱେଡ଼ାକୁଣ୍‍ପୁ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"ଅସ୍ଟ୍ରେଲିଆତି ୱେଡ଼ାହପୁ ଡେଲାଇଟ ବେଲା"}
+            lg{"ୱେଡ଼ାହପୁ ଅସ୍ଟ୍ରେଲିଆ ବେଲା"}
+            ls{"ଅସ୍ଟ୍ରେଲିଆତି ୱେଡ଼ାହପୁ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Australia_Western"{
+            ld{"ଅସ୍ଟ୍ରେଲିଆତି ୱେଡ଼ାକୁଣ୍‍ପୁ ଡେଲାଇଟ ବେଲା"}
+            lg{"ୱେଡ଼ାକୁଣ୍‍ପୁ ଅସ୍ଟ୍ରେଲିଆ ବେଲା"}
+            ls{"ଅସ୍ଟ୍ରେଲିଆତି ୱେଡ଼ାକୁଣ୍‍ପୁ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Azerbaijan"{
+            ld{"ଅଜେରବାଇଜାନ କାରାଁ ବେଲା"}
+            lg{"ଅଜେରବାଇଜାନ ବେଲା"}
+            ls{"ଅଜେରବାଇଜାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Azores"{
+            ld{"ଅଜରେସ କାରାଁ ବେଲା"}
+            lg{"ଅଜରେସ ବେଲା"}
+            ls{"ଅଜରେସ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Bangladesh"{
+            ld{"ବାଙ୍ଗଲାଦେସ୍ କାରାଁ ବେଲା"}
+            lg{"ବାଙ୍ଗଲାଦେସ୍ ବେଲା"}
+            ls{"ବାଙ୍ଗଲାଦେସ୍ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Bhutan"{
+            ls{"ବୁଟାନ ବେଲା"}
+        }
+        "meta:Bolivia"{
+            ls{"ବଲୱିଆ ବେଲା"}
+        }
+        "meta:Brasilia"{
+            ld{"ବ୍ରାଜିଲିୟା କାରାଁ ବେଲା"}
+            lg{"ବ୍ରାଜିଲିୟା ବେଲା"}
+            ls{"ବ୍ରାଜିଲିୟା ମାନକ ବେଲା"}
+        }
+        "meta:Brunei"{
+            ls{"ବ୍ରୁନେଇ ଦାରୁସାଲାମ ବେଲା"}
+        }
+        "meta:Cape_Verde"{
+            ld{"କେପ ବର୍ଡ କାରାଁ ବେଲା"}
+            lg{"କେପ ବର୍ଡ ବେଲା"}
+            ls{"କେପ ବର୍ଡ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Chamorro"{
+            ls{"ଚମର ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Chatham"{
+            ld{"ଚାତାମ ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ଚାତାମ ବେଲା"}
+            ls{"ଚାତାମ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Chile"{
+            ld{"ଚିଲି କାରାଁ ବେଲା"}
+            lg{"ଚିଲି ବେଲା"}
+            ls{"ଚିଲି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:China"{
+            ld{"ଚିନ ଡେଲାଇଟ ବେଲା"}
+            lg{"ଚିନ ବେଲା"}
+            ls{"ଚିନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Christmas"{
+            ls{"କ୍ରିସମାସ ଦିପ ବେଲା"}
+        }
+        "meta:Cocos"{
+            ls{"କକସ ଦିପ ବେଲା"}
+        }
+        "meta:Colombia"{
+            ld{"କଲମ୍ବିୟା କାରାଁ ବେଲା"}
+            lg{"କଲମ୍ବିୟା ବେଲା"}
+            ls{"କଲମ୍ବିୟା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Cook"{
+            ld{"କୁକ ଦିପ ଆଦ୍ଦା କାରାଁ ବେଲା"}
+            lg{"କୁକ ଦିପ ବେଲା"}
+            ls{"କୁକ ଦିପ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Cuba"{
+            ld{"କ୍ୱୁବା ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"କ୍ୱୁବା ବେଲା"}
+            ls{"କ୍ୱୁବା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Davis"{
+            ls{"ଡେବିସ୍ ବେଲା"}
+        }
+        "meta:DumontDUrville"{
+            ls{"ଡ୍ୟୁମାଣ୍ଟ ଡି ଅରୱିଲେ ବେଲା"}
+        }
+        "meta:East_Timor"{
+            ls{"ୱେଡ଼ାହପୁ ତିମର ବେଲା"}
+        }
+        "meta:Easter"{
+            ld{"ଇସ୍ଟର ଦିପ କାରାଁ ବେଲା"}
+            lg{"ଇସ୍ଟର ଦିପ ବେଲା"}
+            ls{"ଇସ୍ଟର ଦିପ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Ecuador"{
+            ls{"ଇକ୍ୱାଡର ବେଲା"}
+        }
+        "meta:Europe_Central"{
+            ld{"ମାଦିନା ୟୁରପିଆ ତି କାରାଁ ବେଲା"}
+            lg{"ମାଦିନି ୟୁରପିଆ ତି ବେଲା"}
+            ls{"ମାଦିନି ୟୁରପିଆ ତି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"ୱେଡ଼ାହପୁ ୟୁରପିଆତି କାରାଁ ବେଲା"}
+            lg{"ୱେଡ଼ା ହପୁ ୟୁରପତି ବେଲା"}
+            ls{"ୱେଡ଼ାହପୁ ୟୁରପିଆତି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Europe_Further_Eastern"{
+            ls{"ଅର ୱେଡ଼ାହପୁ ୟୁରପତି ବେଲା"}
+        }
+        "meta:Europe_Western"{
+            ld{"ୱେଡ଼ାକୁଣ୍‍ପୁ ୟୁରପତି କାରାଁ ବେଲା"}
+            lg{"ୱେଡ଼ାକୁଣ୍‍ପୁ ୟୁରପତି ବେଲା"}
+            ls{"ୱେଡ଼ାକୁଣ୍‍ପୁ ୟୁରପିଆତି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Falkland"{
+            ld{"ପାକଲାଣ୍ଡ ଦିପତି କାରାଁ ବେଲା"}
+            lg{"ପାକଲାଣ୍ଡ ଦିପ ବେଲା"}
+            ls{"ପାକଲାଣ୍ଡ ଦିପତି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Fiji"{
+            ld{"ପିଜି କାରାଁ ବେଲା"}
+            lg{"ପିଜି ବେଲା"}
+            ls{"ପିଜି ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:French_Guiana"{
+            ls{"ପ୍ରେଞ୍ଚ୍ ଗୁୟାନା ବେଲା"}
+        }
+        "meta:French_Southern"{
+            ls{"ପ୍ରେଞ୍ଚ ଦକିଣ ଅଡ଼େ ଆଣ୍ଟାରଟିକ ବେଲା"}
+        }
+        "meta:GMT"{
+            ls{"ଗ୍ରିନୱିଚ ମିନ ବେଲା"}
+        }
+        "meta:Galapagos"{
+            ls{"ଗଲାପଗସ ତି ବେଲା"}
+        }
+        "meta:Gambier"{
+            ls{"ଗମ୍ବିୟର ବେଲା"}
+        }
+        "meta:Georgia"{
+            ld{"ଜର୍ଜିୟା କାରା ବେଲା"}
+            lg{"ଜର୍ଜିୟା ବେଲା"}
+            ls{"ଜର୍ଜିୟା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"ଗିଲ୍‍ବେର୍ଟ ଦିପତି ବେଲା"}
+        }
+        "meta:Greenland_Eastern"{
+            ld{"ୱେଡ଼ା ହପୁ ଗ୍ରିନଲାଣ୍ଡ କାରାଁ ବେଲା"}
+            lg{"ୱେଡ଼ା ହପୁ ଗ୍ରିନଲାଣ୍ଡ ବେଲା"}
+            ls{"ୱେଡ଼ା ହପୁ ଗ୍ରିନଲାଣ୍ଡ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Greenland_Western"{
+            ld{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଗ୍ରିନଲାଣ୍ଡ କାରାଁ ବେଲା"}
+            lg{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଗ୍ରିନଲାଣ୍ଡ ବେଲା"}
+            ls{"ୱେଡ଼ା କୁଣ୍‍ପୁ ଗ୍ରିନଲାଣ୍ଡ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Gulf"{
+            ls{"ଗଲ୍ପ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Guyana"{
+            ls{"ଗୁୟାନା ବେଲା"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ld{"ହାୱାଇ-ଆଲ୍ୟୁସାନ ଡେ ଲାଇଟ ବେଲା"}
+            lg{"ହାୱାଇ-ଆଲ୍ୟୁସାନ ବେଲା"}
+            ls{"ହାୱାଇ-ଆଲ୍ୟୁସାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Hong_Kong"{
+            ld{"ହଙ୍ଗ କଙ୍କ କାରାଁ ବେଲା"}
+            lg{"ହଙ୍ଗ କଙ୍ଗ ବେଲା"}
+            ls{"ହଙ୍ଗ କଙ୍ଗ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Hovd"{
+            ld{"ହୱଡ କାରାଁ ବେଲା"}
+            lg{"ହୱଡ ବେଲା"}
+            ls{"ହୱଡ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:India"{
+            ls{"ବାରତ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Indian_Ocean"{
+            ls{"ବାରତ କାଜା ସାମୁଦ୍ରି ବେଲା"}
+        }
+        "meta:Indochina"{
+            ls{"ଇଣ୍ଡଚିନା ବେଲା"}
+        }
+        "meta:Indonesia_Central"{
+            ls{"ମାଦିନି ଇଣ୍ଡନେସିଆ ବେଲା"}
+        }
+        "meta:Indonesia_Eastern"{
+            ls{"ୱେଡ଼ାହପୁ ଇଣ୍ଡନେସିଆ ବେଲା"}
+        }
+        "meta:Indonesia_Western"{
+            ls{"ୱେଡ଼ାକୁଣ୍ପୁ ଇଣ୍ଡନେସିଆ ବେଲା"}
+        }
+        "meta:Iran"{
+            ld{"ଇରାନ ଡେ ଲାଇଟ୍ ବେଲା"}
+            lg{"ଇରାନ ବେଲା"}
+            ls{"ଇରାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Irkutsk"{
+            ld{"ଇରକୁସ୍ତକ କାରାଁ ବେଲା"}
+            lg{"ଇରକୁସ୍ତକ ବେଲା"}
+            ls{"ଇରକୁସ୍ତକ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Israel"{
+            ld{"ଇଜରାଇଲ ଡେଲାଇଟ ବେଲା"}
+            lg{"ଇଜରାଇଲ ବେଲା"}
+            ls{"ଇଜରାଇଲ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Japan"{
+            ld{"ଜାପାନ ଡେଲାଇଟ ବେଲା"}
+            lg{"ଜାପାନ ବେଲା"}
+            ls{"ଜାପାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Kazakhstan"{
+            ls{"କଜାକାସ୍ତାନ ବେଲା"}
+        }
+        "meta:Kazakhstan_Eastern"{
+            ls{"ୱେଡ଼ାହପୁ କଜାକାସ୍ତାନ ବେଲା"}
+        }
+        "meta:Kazakhstan_Western"{
+            ls{"ୱେଡ଼ାକୁଣ୍ପୁ କଜାକାସ୍ତାନ ବେଲା"}
+        }
+        "meta:Korea"{
+            ld{"କରିୟା ଡେଲାଇଟ ବେଲା"}
+            lg{"କରିୟା ବେଲା"}
+            ls{"କରିୟା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Kosrae"{
+            ls{"କସରାଏ ବେଲା"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"କ୍ରାସ୍ନାର୍ସ୍କ କାରାଁ ବେଲା"}
+            lg{"କ୍ରାସ୍ନୟାର୍ସ୍କ ବେଲା"}
+            ls{"କ୍ରାସ୍ନୟାର୍ସ୍କ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Kyrgystan"{
+            ls{"କିର୍ଗିସ୍ତାନ ବେଲା"}
+        }
+        "meta:Line_Islands"{
+            ls{"ଲାଇନ ଦିପତି ବେଲା"}
+        }
+        "meta:Lord_Howe"{
+            ld{"ଲର୍ଡ ହୱେ ଡେଲାଇଟ୍ ବେଲା"}
+            lg{"ଲର୍ଡ ହୱେ ବେଲା"}
+            ls{"ଲର୍ଡ ହୱେ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Magadan"{
+            ld{"ମାଗାଦାନ କାରାଁ ବେଲା"}
+            lg{"ମାଗାଦାନ ଦିପ ବେଲା"}
+            ls{"ମାଗାଦାନ ମାନଙ୍କ ବେଲା"}
+        }
+        "meta:Malaysia"{
+            ls{"ମାଲେସିୟା ବେଲା"}
+        }
+        "meta:Maldives"{
+            ls{"ମାଲଡ୍ୱିସ୍ ବେଲା"}
+        }
+        "meta:Marquesas"{
+            ls{"ମାର୍କସସ ବେଲା"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"ମାର୍ସାଲ ଦିପ ବେଲା"}
+        }
+        "meta:Mauritius"{
+            ld{"ମରିସସ୍ କାରାଁ ବେଲା"}
+            lg{"ମରିସସ୍ ବେଲା"}
+            ls{"ମରିସସ୍ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Mawson"{
+            ls{"ମାୱସନ ବେଲା"}
+        }
+        "meta:Mexico_Pacific"{
+            ld{"ମେକ୍ସିକତି ପେସିପିକ ଡେଲାଇଟ ବେଲା"}
+            lg{"ମେକ୍ସିକତି ପେସିପିକ ବେଲା"}
+            ls{"ମେକ୍ସିକତି ପେସିପିକ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Mongolia"{
+            ld{"ଉଲାନ ବଟର କାରାଁ ବେଲା"}
+            lg{"ଉଲାନ ବଟର ବେଲା"}
+            ls{"ଉଲାନ ବଟର ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Moscow"{
+            ld{"ମସ୍କ କାରାଁ ବେଲା"}
+            lg{"ମସ୍କ ବେଲା"}
+            ls{"ମସ୍କ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Myanmar"{
+            ls{"ମ୍ୟାଁମାର ବେଲା"}
+        }
+        "meta:Nauru"{
+            ls{"ନଉରୁ ବେଲା"}
+        }
+        "meta:Nepal"{
+            ls{"ନେପାଲ ବେଲା"}
+        }
+        "meta:New_Caledonia"{
+            ld{"ନ୍ୟୁ କେଲେଡନିୟା କାରାଁ ବେଲା"}
+            lg{"ନ୍ୟୁ କେଲେଡନିୟା ବେଲା"}
+            ls{"ନ୍ୟୁ କେଲେଡନିୟା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:New_Zealand"{
+            ld{"ନ୍ୟୁଜିଲାଣ୍ଡ ଡେଲାଇଟ ବେଲା"}
+            lg{"ନ୍ୟୁଜିଲାଣ୍ଡ ବେଲା"}
+            ls{"ନ୍ୟୁଜିଲାଣ୍ଡ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Newfoundland"{
+            ld{"ନ୍ୟୁପାଉଣ୍ଡଲାଣ୍ଡ ଡେଲାଇଟ ବେଲା"}
+            lg{"ନ୍ୟୁପାଉଣ୍ଡଲାଣ୍ଡ ବେଲା"}
+            ls{"ନ୍ୟୁପାଉଣ୍ଡଲାଣ୍ଡ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Niue"{
+            ls{"ନିୟୁ ବେଲା"}
+        }
+        "meta:Norfolk"{
+            ld{"ନରପାଁକ ଦିପ ଡେଲାଇଟ ବେଲା"}
+            lg{"ନରପାଁକ ଦିପ ବେଲା"}
+            ls{"ନରପାଁକ ଦିପ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Noronha"{
+            ld{"ପର୍ନାଡ ଡେ ନରହ୍ନ କାରାଁ ବେଲା"}
+            lg{"ପେର୍ନାଡ ଡେ ନରହ୍ନ ବେଲା"}
+            ls{"ପର୍ନାଡ ଡେ ନରହ୍ନ ମାନାଙ୍କା ବେଲା"}
+        }
+        "meta:Novosibirsk"{
+            ld{"ନୱସିବର୍ସ୍କ କାରାଁ ବଲା"}
+            lg{"ନୱସିବିର୍ସ୍କ ବେଲା"}
+            ls{"ନୱସିବିର୍ସ୍କ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Omsk"{
+            ld{"ଅମସ୍କ କାରାଁ ବେଲା"}
+            lg{"ଅମସ୍କ ବେଲା"}
+            ls{"ଅମସ୍କ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Pakistan"{
+            ld{"ପାକିସ୍ତାନ କାରାଁ ବେଲା"}
+            lg{"ପାକିସ୍ତାନ ବେଲା"}
+            ls{"ପାକିସ୍ତାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Palau"{
+            ls{"ପଲାଉ ବେଲା"}
+        }
+        "meta:Papua_New_Guinea"{
+            ls{"ପାପୁୟା ପୁନି ଗିନି ବେଲା"}
+        }
+        "meta:Paraguay"{
+            ld{"ପେରାଗ୍ୱେ କାରାଁ ବେଲା"}
+            lg{"ପେରାଗ୍ୱେ ବେଲା"}
+            ls{"ପେରାଗ୍ୱେ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Peru"{
+            ld{"ପେରୁ କାରାଁ ବେଲା"}
+            lg{"ପେରୁ ବେଲା"}
+            ls{"ପେରୁ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Philippines"{
+            ld{"ପିଲିପିନ କାରାଁ ବେଲା"}
+            lg{"ପିଲିପିନ ବେଲା"}
+            ls{"ପିଲିପିନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Phoenix_Islands"{
+            ls{"ପିନିକ୍ସ ଦିପତି ବେଲା"}
+        }
+        "meta:Pierre_Miquelon"{
+            ld{"ସେଣ୍ଟ ପିଏରେ ଅଡ଼େ ମିକ୍ୱେଲାନ ଡେଲାଇଟ ବେଲା"}
+            lg{"ସେଣ୍ଟ ପିଏରେ ଅଡ଼େ ମିକ୍ୱେଲାନ ବେଲା"}
+            ls{"ସେଣ୍ଟ ପିଏରେ ଅଡ଼େ ମିକ୍ୱେଲାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Pitcairn"{
+            ls{"ପିଟକଇରନ ବେଲା"}
+        }
+        "meta:Ponape"{
+            ls{"ପନାପେ ବେଲା"}
+        }
+        "meta:Pyongyang"{
+            ls{"ପ୍ୟଙ୍ଗୟାଙ୍କ ବେଲା"}
+        }
+        "meta:Reunion"{
+            ls{"ରିୟୁନିୟନ ବେଲା"}
+        }
+        "meta:Rothera"{
+            ls{"ରତେରା ବେଲା"}
+        }
+        "meta:Sakhalin"{
+            ld{"ସକାଲିନ କାରାଁ ବେଲା"}
+            lg{"ସକାଲିନ ବେଲା"}
+            ls{"ସକାଲିନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Samoa"{
+            ld{"ସାମଆ ଡେଲାଇଟ ବେଲା"}
+            lg{"ସାମଆ ବେଲା"}
+            ls{"ସାମଆ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Seychelles"{
+            ls{"ସେସେଲ୍ସ ବେଲା"}
+        }
+        "meta:Singapore"{
+            ls{"ସାଙ୍ଗାପୁର ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Solomon"{
+            ls{"ସଲମନ ଦିପତି ବେଲା"}
+        }
+        "meta:South_Georgia"{
+            ls{"ଦକିଣ ଜର୍ଜିୟା ବେଲା"}
+        }
+        "meta:Suriname"{
+            ls{"ସୁରିନାମ ବେଲା"}
+        }
+        "meta:Syowa"{
+            ls{"ସୱା ବେଲା"}
+        }
+        "meta:Tahiti"{
+            ls{"ତାହିତି ବେଲା"}
+        }
+        "meta:Taipei"{
+            ld{"ତାଇପେ ଡେଲାଇଟ ବେଲା"}
+            lg{"ତାଇପେ ବେଲା"}
+            ls{"ତାଇପେ ମାନଙ୍କ ବେଲା"}
+        }
+        "meta:Tajikistan"{
+            ls{"ତାଜିକିସ୍ତାନ ବେଲା"}
+        }
+        "meta:Tokelau"{
+            ls{"ଟକେଲାଉ ବେଲା"}
+        }
+        "meta:Tonga"{
+            ld{"ଟଙ୍ଗା କାରାଁ ବେଲା"}
+            lg{"ଟଙ୍ଗା ବେଲା"}
+            ls{"ଟଙ୍ଗା ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Truk"{
+            ls{"ଚୁକ ବେଲା"}
+        }
+        "meta:Turkmenistan"{
+            ld{"ତୁର୍କମେନିସ୍ତାନ କାରାଁ ବେଲା"}
+            lg{"ତୁର୍କମେନିସ୍ତାନ ବେଲା"}
+            ls{"ତୁର୍କମେନିସ୍ତାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Tuvalu"{
+            ls{"ତୁୱାଲୁ ବେଲା"}
+        }
+        "meta:Uruguay"{
+            ld{"ଉରୁଗ୍ୱେ କାରାଁ ବେଲା"}
+            lg{"ଉରୁଗ୍ୱେ ବେଲା"}
+            ls{"ଉରୁଗ୍ୱେ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Uzbekistan"{
+            ld{"ଉଜ୍ୱେକିସ୍ତାନ କାରାଁ ବେଲା"}
+            lg{"ଉଜ୍ୱେକିସ୍ତାନ ବେଲା"}
+            ls{"ଉଜ୍ୱେକିସ୍ତାନ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Vanuatu"{
+            ld{"ୱନୁଆତୁ କାରାଁ ବେଲା"}
+            lg{"ୱନୁଆତୁ ବେଲା"}
+            ls{"ୱନୁଆତୁ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Venezuela"{
+            ls{"ୱେନେଜୁଏଲା ବେଲା"}
+        }
+        "meta:Vladivostok"{
+            ld{"ୱ୍ଲାଦିୱସ୍ତକ କାରାଁ ବେଲା"}
+            lg{"ୱ୍ଲାଦିୱସ୍ତକ ବେଲା"}
+            ls{"ୱ୍ଲାଦିୱସ୍ତକ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Volgograd"{
+            ld{"ୱାଲଗଗ୍ରାଡ କାରାଁ ବେଲା"}
+            lg{"ୱାଲଗଗ୍ରାଡ ବେଲା"}
+            ls{"ୱାଲଗଗ୍ରାଡ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Vostok"{
+            ls{"ୱସ୍ତକ ବେଲା"}
+        }
+        "meta:Wake"{
+            ls{"ୱେକ ଦିପ ବେଲା"}
+        }
+        "meta:Wallis"{
+            ls{"ୱାଲିସ ଅଡ଼େ ପୁଟୁନା ବେଲା"}
+        }
+        "meta:Yakutsk"{
+            ld{"ୟାକୁତ୍ସକ କାରାଁ ବେଲା"}
+            lg{"ୟାକୁତ୍ସକ ବେଲା"}
+            ls{"ୟାକୁତ୍ସକ ମାନାଙ୍କ ବେଲା"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"ୟେକାତେରିନବର୍ଗ କାରାଁ ବେଲା"}
+            lg{"ୟେକାତେରିନବର୍ଗ ବେଲା"}
+            ls{"ୟେକାତେରିନବର୍ଗ ମାନାଙ୍କ ବେଲା"}
+        }
+        regionFormat{"{0} ବେଲା"}
+        regionFormatDaylight{"{0} ଡେଲାଇଟ ବେଲା"}
+        regionFormatStandard{"{0} ମାନାଙ୍କ ବେଲା"}
+    }
+}

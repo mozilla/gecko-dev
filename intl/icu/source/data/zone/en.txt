@@ -3,21 +3,6 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 en{
     zoneStrings{
-        "Africa:Sao_Tome"{
-            ec{"São Tomé"}
-        }
-        "America:Asuncion"{
-            ec{"Asunción"}
-        }
-        "America:Curacao"{
-            ec{"Curaçao"}
-        }
-        "America:St_Barthelemy"{
-            ec{"St. Barthélemy"}
-        }
-        "Antarctica:DumontDUrville"{
-            ec{"Dumont d’Urville"}
-        }
         "Asia:Qostanay"{
             ec{"Kostanay"}
         }
@@ -33,17 +18,8 @@ en{
         "Europe:Dublin"{
             ld{"Irish Standard Time"}
         }
-        "Europe:Kiev"{
-            ec{"Kyiv"}
-        }
         "Europe:London"{
             ld{"British Summer Time"}
-        }
-        "Europe:Uzhgorod"{
-            ec{"Uzhhorod"}
-        }
-        "Indian:Reunion"{
-            ec{"Réunion"}
         }
         "Pacific:Honolulu"{
             sd{"HDT"}
@@ -245,11 +221,6 @@ en{
             lg{"China Time"}
             ls{"China Standard Time"}
         }
-        "meta:Choibalsan"{
-            ld{"Choibalsan Summer Time"}
-            lg{"Choibalsan Time"}
-            ls{"Choibalsan Standard Time"}
-        }
         "meta:Christmas"{
             ls{"Christmas Island Time"}
         }
@@ -340,6 +311,11 @@ en{
         "meta:Gilbert_Islands"{
             ls{"Gilbert Islands Time"}
         }
+        "meta:Greenland"{
+            ld{"Greenland Summer Time"}
+            lg{"Greenland Time"}
+            ls{"Greenland Standard Time"}
+        }
         "meta:Greenland_Eastern"{
             ld{"East Greenland Summer Time"}
             lg{"East Greenland Time"}
@@ -420,6 +396,9 @@ en{
             lg{"Petropavlovsk-Kamchatski Time"}
             ls{"Petropavlovsk-Kamchatski Standard Time"}
         }
+        "meta:Kazakhstan"{
+            ls{"Kazakhstan Time"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"East Kazakhstan Time"}
         }
@@ -458,9 +437,6 @@ en{
             lg{"Macao Time"}
             ls{"Macao Standard Time"}
         }
-        "meta:Macquarie"{
-            ls{"Macquarie Island Time"}
-        }
         "meta:Magadan"{
             ld{"Magadan Summer Time"}
             lg{"Magadan Time"}
@@ -485,11 +461,6 @@ en{
         }
         "meta:Mawson"{
             ls{"Mawson Time"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Northwest Mexico Daylight Time"}
-            lg{"Northwest Mexico Time"}
-            ls{"Northwest Mexico Standard Time"}
         }
         "meta:Mexico_Pacific"{
             ld{"Mexican Pacific Daylight Time"}

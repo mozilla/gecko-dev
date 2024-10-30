@@ -465,9 +465,6 @@ sr{
         "America:New_York"{
             ec{"Њујорк"}
         }
-        "America:Nipigon"{
-            ec{"Нипигон"}
-        }
         "America:Nome"{
             ec{"Ном"}
         }
@@ -488,9 +485,6 @@ sr{
         }
         "America:Panama"{
             ec{"Панама"}
-        }
-        "America:Pangnirtung"{
-            ec{"Пангниртунг"}
         }
         "America:Paramaribo"{
             ec{"Парамарибо"}
@@ -513,9 +507,6 @@ sr{
         "America:Punta_Arenas"{
             ec{"Пунта Аренас"}
         }
-        "America:Rainy_River"{
-            ec{"Рејни Ривер"}
-        }
         "America:Rankin_Inlet"{
             ec{"Ранкин Инлет"}
         }
@@ -530,9 +521,6 @@ sr{
         }
         "America:Rio_Branco"{
             ec{"Рио Бранко"}
-        }
-        "America:Santa_Isabel"{
-            ec{"Санта Изабел"}
         }
         "America:Santarem"{
             ec{"Сантарем"}
@@ -579,9 +567,6 @@ sr{
         "America:Thule"{
             ec{"Тул"}
         }
-        "America:Thunder_Bay"{
-            ec{"Тандер Беј"}
-        }
         "America:Tijuana"{
             ec{"Тихуана"}
         }
@@ -602,9 +587,6 @@ sr{
         }
         "America:Yakutat"{
             ec{"Јакутат"}
-        }
-        "America:Yellowknife"{
-            ec{"Јелоунајф"}
         }
         "Antarctica:Casey"{
             ec{"Кејси"}
@@ -695,9 +677,6 @@ sr{
         }
         "Asia:Chita"{
             ec{"Чита"}
-        }
-        "Asia:Choibalsan"{
-            ec{"Чојбалсан"}
         }
         "Asia:Colombo"{
             ec{"Коломбо"}
@@ -930,9 +909,6 @@ sr{
         "Australia:Broken_Hill"{
             ec{"Брокен Хил"}
         }
-        "Australia:Currie"{
-            ec{"Кари"}
-        }
         "Australia:Darwin"{
             ec{"Дарвин"}
         }
@@ -1115,9 +1091,6 @@ sr{
         "Europe:Ulyanovsk"{
             ec{"Уљановск"}
         }
-        "Europe:Uzhgorod"{
-            ec{"Ужгород"}
-        }
         "Europe:Vaduz"{
             ec{"Вадуз"}
         }
@@ -1138,9 +1111,6 @@ sr{
         }
         "Europe:Zagreb"{
             ec{"Загреб"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"Запорожје"}
         }
         "Europe:Zurich"{
             ec{"Цирих"}
@@ -1222,9 +1192,6 @@ sr{
         }
         "Pacific:Honolulu"{
             ec{"Хонолулу"}
-        }
-        "Pacific:Johnston"{
-            ec{"Џонстон"}
         }
         "Pacific:Kanton"{
             ec{"Кантон"}
@@ -1472,11 +1439,6 @@ sr{
             lg{"Кина време"}
             ls{"Кинеско стандардно време"}
         }
-        "meta:Choibalsan"{
-            ld{"Чојбалсан, летње време"}
-            lg{"Чојбалсан време"}
-            ls{"Чојбалсан, стандардно време"}
-        }
         "meta:Christmas"{
             ls{"Божићно острво време"}
         }
@@ -1653,6 +1615,9 @@ sr{
             lg{"Петропавловско-камчатско време"}
             ls{"Петропавловско-камчатско стандардно време"}
         }
+        "meta:Kazakhstan"{
+            ls{"Казахстанско време"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Источно-казахстанско време"}
         }
@@ -1691,9 +1656,6 @@ sr{
             lg{"Макао време"}
             ls{"Макао стандардно време"}
         }
-        "meta:Macquarie"{
-            ls{"Острво Маквери време"}
-        }
         "meta:Magadan"{
             ld{"Магадан, летње време"}
             lg{"Магадан време"}
@@ -1718,11 +1680,6 @@ sr{
         }
         "meta:Mawson"{
             ls{"Мосон време"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Северозападни Мексико, летње време"}
-            lg{"Северозападни Мексико"}
-            ls{"Северозападни Мексико, стандардно време"}
         }
         "meta:Mexico_Pacific"{
             ld{"Мексички Пацифик, летње време"}
@@ -1956,11 +1913,6 @@ sr{
         "meta:Yukon"{
             ls{"Јукон"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
-        regionFormat{"{0}"}
         regionFormatDaylight{"{0}, летње време"}
         regionFormatStandard{"{0}, стандардно време"}
     }

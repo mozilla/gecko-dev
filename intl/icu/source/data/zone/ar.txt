@@ -465,9 +465,6 @@ ar{
         "America:New_York"{
             ec{"نيويورك"}
         }
-        "America:Nipigon"{
-            ec{"نيبيجون"}
-        }
         "America:Nome"{
             ec{"نوم"}
         }
@@ -488,9 +485,6 @@ ar{
         }
         "America:Panama"{
             ec{"بنما"}
-        }
-        "America:Pangnirtung"{
-            ec{"بانجينتينج"}
         }
         "America:Paramaribo"{
             ec{"باراماريبو"}
@@ -513,9 +507,6 @@ ar{
         "America:Punta_Arenas"{
             ec{"بونتا أريناز"}
         }
-        "America:Rainy_River"{
-            ec{"راني ريفر"}
-        }
         "America:Rankin_Inlet"{
             ec{"رانكن انلت"}
         }
@@ -530,9 +521,6 @@ ar{
         }
         "America:Rio_Branco"{
             ec{"ريوبرانكو"}
-        }
-        "America:Santa_Isabel"{
-            ec{"سانتا إيزابيل"}
         }
         "America:Santarem"{
             ec{"سانتاريم"}
@@ -579,9 +567,6 @@ ar{
         "America:Thule"{
             ec{"ثيل"}
         }
-        "America:Thunder_Bay"{
-            ec{"ثندر باي"}
-        }
         "America:Tijuana"{
             ec{"تيخوانا"}
         }
@@ -602,9 +587,6 @@ ar{
         }
         "America:Yakutat"{
             ec{"ياكوتات"}
-        }
-        "America:Yellowknife"{
-            ec{"يلونيف"}
         }
         "Antarctica:Casey"{
             ec{"كاساي"}
@@ -695,9 +677,6 @@ ar{
         }
         "Asia:Chita"{
             ec{"تشيتا"}
-        }
-        "Asia:Choibalsan"{
-            ec{"تشوبالسان"}
         }
         "Asia:Colombo"{
             ec{"كولومبو"}
@@ -930,9 +909,6 @@ ar{
         "Australia:Broken_Hill"{
             ec{"بروكن هيل"}
         }
-        "Australia:Currie"{
-            ec{"كوري"}
-        }
         "Australia:Darwin"{
             ec{"دارون"}
         }
@@ -1115,9 +1091,6 @@ ar{
         "Europe:Ulyanovsk"{
             ec{"أوليانوفسك"}
         }
-        "Europe:Uzhgorod"{
-            ec{"أوزجرود"}
-        }
         "Europe:Vaduz"{
             ec{"فادوز"}
         }
@@ -1138,9 +1111,6 @@ ar{
         }
         "Europe:Zagreb"{
             ec{"زغرب"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"زابوروزي"}
         }
         "Europe:Zurich"{
             ec{"زيورخ"}
@@ -1222,9 +1192,6 @@ ar{
         }
         "Pacific:Honolulu"{
             ec{"هونولولو"}
-        }
-        "Pacific:Johnston"{
-            ec{"جونستون"}
         }
         "Pacific:Kanton"{
             ec{"كانتون"}
@@ -1452,11 +1419,6 @@ ar{
             lg{"توقيت الصين"}
             ls{"توقيت الصين الرسمي"}
         }
-        "meta:Choibalsan"{
-            ld{"التوقيت الصيفي لشويبالسان"}
-            lg{"توقيت شويبالسان"}
-            ls{"توقيت شويبالسان الرسمي"}
-        }
         "meta:Christmas"{
             ls{"توقيت جزر الكريسماس"}
         }
@@ -1624,6 +1586,9 @@ ar{
             lg{"توقيت كامشاتكا"}
             ls{"توقيت بيتروبافلوفسك-كامتشاتسكي"}
         }
+        "meta:Kazakhstan"{
+            ls{"توقيت كازاخستان"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"توقيت شرق كازاخستان"}
         }
@@ -1654,9 +1619,6 @@ ar{
             lg{"توقيت لورد هاو"}
             ls{"توقيت لورد هاو الرسمي"}
         }
-        "meta:Macquarie"{
-            ls{"توقيت ماكواري"}
-        }
         "meta:Magadan"{
             ld{"توقيت ماغادان الصيفي"}
             lg{"توقيت ماغادان"}
@@ -1681,11 +1643,6 @@ ar{
         }
         "meta:Mawson"{
             ls{"توقيت ماوسون"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"التوقيت الصيفي لشمال غرب المكسيك"}
-            lg{"توقيت شمال غرب المكسيك"}
-            ls{"التوقيت الرسمي لشمال غرب المكسيك"}
         }
         "meta:Mexico_Pacific"{
             ld{"توقيت المحيط الهادي الصيفي للمكسيك"}
@@ -1914,10 +1871,8 @@ ar{
         "meta:Yukon"{
             ls{"توقيت يوكون"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"غرينتش{0}"}
         gmtZeroFormat{"غرينتش"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"توقيت {0}"}
         regionFormatDaylight{"توقيت {0} الصيفي"}
         regionFormatStandard{"توقيت {0} الرسمي"}

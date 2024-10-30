@@ -465,9 +465,6 @@ ko{
         "America:New_York"{
             ec{"뉴욕"}
         }
-        "America:Nipigon"{
-            ec{"니피곤"}
-        }
         "America:Nome"{
             ec{"놈"}
         }
@@ -488,9 +485,6 @@ ko{
         }
         "America:Panama"{
             ec{"파나마"}
-        }
-        "America:Pangnirtung"{
-            ec{"팡니르퉁"}
         }
         "America:Paramaribo"{
             ec{"파라마리보"}
@@ -513,9 +507,6 @@ ko{
         "America:Punta_Arenas"{
             ec{"푼타아레나스"}
         }
-        "America:Rainy_River"{
-            ec{"레이니강"}
-        }
         "America:Rankin_Inlet"{
             ec{"랭킹 인렛"}
         }
@@ -530,9 +521,6 @@ ko{
         }
         "America:Rio_Branco"{
             ec{"히우 브랑쿠"}
-        }
-        "America:Santa_Isabel"{
-            ec{"산타 이사벨"}
         }
         "America:Santarem"{
             ec{"산타렘"}
@@ -579,9 +567,6 @@ ko{
         "America:Thule"{
             ec{"툴레"}
         }
-        "America:Thunder_Bay"{
-            ec{"선더베이"}
-        }
         "America:Tijuana"{
             ec{"티후아나"}
         }
@@ -602,9 +587,6 @@ ko{
         }
         "America:Yakutat"{
             ec{"야쿠타트"}
-        }
-        "America:Yellowknife"{
-            ec{"옐로나이프"}
         }
         "Antarctica:Casey"{
             ec{"케이시"}
@@ -695,9 +677,6 @@ ko{
         }
         "Asia:Chita"{
             ec{"치타"}
-        }
-        "Asia:Choibalsan"{
-            ec{"초이발산"}
         }
         "Asia:Colombo"{
             ec{"콜롬보"}
@@ -930,9 +909,6 @@ ko{
         "Australia:Broken_Hill"{
             ec{"브로컨힐"}
         }
-        "Australia:Currie"{
-            ec{"퀴리"}
-        }
         "Australia:Darwin"{
             ec{"다윈"}
         }
@@ -1115,9 +1091,6 @@ ko{
         "Europe:Ulyanovsk"{
             ec{"울리야노프스크"}
         }
-        "Europe:Uzhgorod"{
-            ec{"우주고로트"}
-        }
         "Europe:Vaduz"{
             ec{"파두츠"}
         }
@@ -1138,9 +1111,6 @@ ko{
         }
         "Europe:Zagreb"{
             ec{"자그레브"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"자포로지예"}
         }
         "Europe:Zurich"{
             ec{"취리히"}
@@ -1222,9 +1192,6 @@ ko{
         }
         "Pacific:Honolulu"{
             ec{"호놀룰루"}
-        }
-        "Pacific:Johnston"{
-            ec{"존스톤"}
         }
         "Pacific:Kanton"{
             ec{"칸톤"}
@@ -1475,11 +1442,6 @@ ko{
             lg{"중국 시간"}
             ls{"중국 표준시"}
         }
-        "meta:Choibalsan"{
-            ld{"초이발산 하계 표준시"}
-            lg{"초이발산 시간"}
-            ls{"초이발산 표준시"}
-        }
         "meta:Christmas"{
             ls{"크리스마스섬 시간"}
         }
@@ -1643,6 +1605,9 @@ ko{
             lg{"페트로파블롭스크-캄차츠키 시간"}
             ls{"페트로파블롭스크-캄차츠키 표준시"}
         }
+        "meta:Kazakhstan"{
+            ls{"카자흐스탄 시간"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"동부 카자흐스탄 시간"}
         }
@@ -1678,9 +1643,6 @@ ko{
             lg{"마카오 시간"}
             ls{"마카오 표준 시간"}
         }
-        "meta:Macquarie"{
-            ls{"매쿼리섬 시간"}
-        }
         "meta:Magadan"{
             ld{"마가단 하계 표준시"}
             lg{"마가단 시간"}
@@ -1705,11 +1667,6 @@ ko{
         }
         "meta:Mawson"{
             ls{"모슨 시간"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"멕시코 북서부 하계 표준시"}
-            lg{"멕시코 북서부 시간"}
-            ls{"멕시코 북서부 표준시"}
         }
         "meta:Mexico_Pacific"{
             ld{"멕시코 태평양 하계 표준시"}
@@ -1941,9 +1898,6 @@ ko{
             ls{"유콘 시간"}
         }
         fallbackFormat{"{1}({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} 시간"}
         regionFormatDaylight{"{0} 하계 표준시"}
         regionFormatStandard{"{0} 표준시"}

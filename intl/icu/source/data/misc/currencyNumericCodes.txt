@@ -1,4 +1,4 @@
-//---------------------------------------------------------
+﻿//---------------------------------------------------------
 // Copyright (C) 2016 and later: Unicode, Inc. and others.
 // License & terms of use: http://www.unicode.org/copyright.html
 //---------------------------------------------------------
@@ -6,7 +6,7 @@
 // Corporation and others.  All Rights Reserved.
 //---------------------------------------------------------
 // Build tool: com.ibm.icu.dev.tool.currency.NumericCodeData
-// Build date: 2022-08-25T16:40:27Z
+// Build date: 2024-09-06T21:46:10Z
 //---------------------------------------------------------
 // >> !!! >>   THIS IS A MACHINE-GENERATED FILE   << !!! <<
 // >> !!! >>>            DO NOT EDIT             <<< !!! <<
@@ -312,6 +312,7 @@ currencyNumericCodes:table(nofallback){
         ZRZ:int{180}
         ZWC:int{716}
         ZWD:int{716}
+        ZWG:int{924}
         ZWL:int{932}
         ZWN:int{942}
         ZWR:int{935}

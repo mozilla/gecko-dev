@@ -12,9 +12,6 @@ dsb{
         "Africa:Algiers"{
             ec{"Algier"}
         }
-        "Africa:Asmera"{
-            ec{"Asmara"}
-        }
         "Africa:Cairo"{
             ec{"Kairo"}
         }
@@ -42,14 +39,8 @@ dsb{
         "Africa:Porto-Novo"{
             ec{"Porto Novo"}
         }
-        "Africa:Sao_Tome"{
-            ec{"São Tomé"}
-        }
         "Africa:Tripoli"{
             ec{"Tripolis"}
-        }
-        "America:Asuncion"{
-            ec{"Asunción"}
         }
         "America:Bogota"{
             ec{"Bogotá"}
@@ -57,62 +48,14 @@ dsb{
         "America:Cayman"{
             ec{"Kaimaniske kupy"}
         }
-        "America:Coral_Harbour"{
-            ec{"Atikokan"}
-        }
-        "America:Curacao"{
-            ec{"Curaçao"}
-        }
-        "America:El_Salvador"{
-            ec{"El Salvador"}
-        }
-        "America:Godthab"{
-            ec{"Nuuk"}
-        }
         "America:Havana"{
             ec{"Havanna"}
-        }
-        "America:Indiana:Knox"{
-            ec{"Knox, Indiana"}
-        }
-        "America:Indiana:Marengo"{
-            ec{"Marengo, Indiana"}
-        }
-        "America:Indiana:Petersburg"{
-            ec{"Petersburg, Indiana"}
-        }
-        "America:Indiana:Tell_City"{
-            ec{"Tell City, Indiana"}
-        }
-        "America:Indiana:Vevay"{
-            ec{"Vevay, Indiana"}
-        }
-        "America:Indiana:Vincennes"{
-            ec{"Vincennes, Indiana"}
-        }
-        "America:Indiana:Winamac"{
-            ec{"Winamac, Indiana"}
         }
         "America:Jamaica"{
             ec{"Jamaika"}
         }
-        "America:Kentucky:Monticello"{
-            ec{"Monticello, Kentucky"}
-        }
-        "America:Lower_Princes"{
-            ec{"Lower Prince’s Quarter"}
-        }
         "America:Mexico_City"{
             ec{"Mexiko-město"}
-        }
-        "America:North_Dakota:Beulah"{
-            ec{"Beulah, North Dakota"}
-        }
-        "America:North_Dakota:Center"{
-            ec{"Center, North Dakota"}
-        }
-        "America:North_Dakota:New_Salem"{
-            ec{"New Salem, North Dakota"}
         }
         "America:Port_of_Spain"{
             ec{"Port-of-Spain"}
@@ -120,26 +63,8 @@ dsb{
         "America:Sao_Paulo"{
             ec{"São Paulo"}
         }
-        "America:Scoresbysund"{
-            ec{"Ittoqqortoormiit"}
-        }
         "America:St_Barthelemy"{
             ec{"St.Barthélemy"}
-        }
-        "America:St_Johns"{
-            ec{"St. John’s"}
-        }
-        "America:St_Kitts"{
-            ec{"St. Kitts"}
-        }
-        "America:St_Lucia"{
-            ec{"St. Lucia"}
-        }
-        "America:St_Thomas"{
-            ec{"St. Thomas"}
-        }
-        "America:St_Vincent"{
-            ec{"St. Vincent"}
         }
         "Antarctica:DumontDUrville"{
             ec{"Dumont D’Urville"}
@@ -177,14 +102,8 @@ dsb{
         "Asia:Karachi"{
             ec{"Karači"}
         }
-        "Asia:Katmandu"{
-            ec{"Kathmandu"}
-        }
         "Asia:Krasnoyarsk"{
             ec{"Krasnojarsk"}
-        }
-        "Asia:Macau"{
-            ec{"Macao"}
         }
         "Asia:Muscat"{
             ec{"Muskat"}
@@ -225,9 +144,6 @@ dsb{
         "Asia:Tashkent"{
             ec{"Taškent"}
         }
-        "Asia:Tbilisi"{
-            ec{"Tbilisi"}
-        }
         "Asia:Tehran"{
             ec{"Teheran"}
         }
@@ -266,9 +182,6 @@ dsb{
         }
         "Atlantic:South_Georgia"{
             ec{"Pódpołdnjowa Georgiska"}
-        }
-        "Atlantic:St_Helena"{
-            ec{"St. Helena"}
         }
         "Etc:UTC"{
             ls{"koordiněrowany swětowy cas"}
@@ -324,9 +237,6 @@ dsb{
         "Europe:Tirane"{
             ec{"Tirana"}
         }
-        "Europe:Uzhgorod"{
-            ec{"Užgorod"}
-        }
         "Europe:Vatican"{
             ec{"Vatikan"}
         }
@@ -342,9 +252,6 @@ dsb{
         "Europe:Warsaw"{
             ec{"Waršawa"}
         }
-        "Europe:Zaporozhye"{
-            ec{"Saporižja"}
-        }
         "Europe:Zurich"{
             ec{"Zürich"}
         }
@@ -357,20 +264,14 @@ dsb{
         "Indian:Maldives"{
             ec{"Malediwy"}
         }
-        "Indian:Reunion"{
-            ec{"Réunion"}
-        }
         "Pacific:Easter"{
             ec{"Jatšowne kupy"}
         }
+        "Pacific:Enderbury"{
+            ec{"Enderbury"}
+        }
         "Pacific:Fiji"{
             ec{"Fidži"}
-        }
-        "Pacific:Ponape"{
-            ec{"Pohnpei"}
-        }
-        "Pacific:Truk"{
-            ec{"Chuuk"}
         }
         "meta:Afghanistan"{
             ls{"Afghaniski cas"}
@@ -520,11 +421,6 @@ dsb{
             ld{"Chinski lěśojski cas"}
             lg{"Chinski cas"}
             ls{"Chinski standardny cas"}
-        }
-        "meta:Choibalsan"{
-            ld{"Choibalsański lěśojski cas"}
-            lg{"Choibalsański cas"}
-            ls{"Choibalsański standardny cas"}
         }
         "meta:Christmas"{
             ls{"cas Gódownych kupow"}
@@ -693,6 +589,9 @@ dsb{
             lg{"Japański cas"}
             ls{"Japański standardny cas"}
         }
+        "meta:Kazakhstan"{
+            ls{"kazachiski cas"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Pódzajtšnokazachski cas"}
         }
@@ -723,9 +622,6 @@ dsb{
             lg{"cas kupy Lord-Howe"}
             ls{"Standardny cas kupy Lord-Howe"}
         }
-        "meta:Macquarie"{
-            ls{"cas kupy Macquarie"}
-        }
         "meta:Magadan"{
             ld{"Magadański lěśojski cas"}
             lg{"Magadański cas"}
@@ -750,11 +646,6 @@ dsb{
         }
         "meta:Mawson"{
             ls{"Mawson cas"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Mexiski dłujkowjacorny lěśojski cas"}
-            lg{"Mexiski dłujkowjacorny cas"}
-            ls{"Mexiski dłujkowjacorny standardny cas"}
         }
         "meta:Mexico_Pacific"{
             ld{"Mexiski pacifiski lěśojski cas"}
@@ -975,10 +866,6 @@ dsb{
         "meta:Yukon"{
             ls{"Yukonowy cas"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"Casowe pasmo {0}"}
         regionFormatDaylight{"{0} lěśojski cas"}
         regionFormatStandard{"{0} zymski cas"}

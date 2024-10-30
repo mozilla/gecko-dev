@@ -465,9 +465,6 @@ mr{
         "America:New_York"{
             ec{"न्यूयॉर्क"}
         }
-        "America:Nipigon"{
-            ec{"निपिगोन"}
-        }
         "America:Nome"{
             ec{"नोम"}
         }
@@ -488,9 +485,6 @@ mr{
         }
         "America:Panama"{
             ec{"पनामा"}
-        }
-        "America:Pangnirtung"{
-            ec{"पँगनिरतुंग"}
         }
         "America:Paramaribo"{
             ec{"पारमरीबो"}
@@ -513,9 +507,6 @@ mr{
         "America:Punta_Arenas"{
             ec{"पुंता अरीनास"}
         }
-        "America:Rainy_River"{
-            ec{"रेनी नदी"}
-        }
         "America:Rankin_Inlet"{
             ec{"रॅनकिन इनलेट"}
         }
@@ -530,9 +521,6 @@ mr{
         }
         "America:Rio_Branco"{
             ec{"रियो ब्रांको"}
-        }
-        "America:Santa_Isabel"{
-            ec{"सांता इसाबेल"}
         }
         "America:Santarem"{
             ec{"सँटारेम"}
@@ -579,9 +567,6 @@ mr{
         "America:Thule"{
             ec{"थुले"}
         }
-        "America:Thunder_Bay"{
-            ec{"थंडर उपसागर"}
-        }
         "America:Tijuana"{
             ec{"तिजुआना"}
         }
@@ -602,9 +587,6 @@ mr{
         }
         "America:Yakutat"{
             ec{"यकुतात"}
-        }
-        "America:Yellowknife"{
-            ec{"यलोनाइफ"}
         }
         "Antarctica:Casey"{
             ec{"कॅसे"}
@@ -670,7 +652,7 @@ mr{
             ec{"बगदाद"}
         }
         "Asia:Bahrain"{
-            ec{"बेहरीन"}
+            ec{"बहारिन"}
         }
         "Asia:Baku"{
             ec{"बाकु"}
@@ -695,9 +677,6 @@ mr{
         }
         "Asia:Chita"{
             ec{"चिता"}
-        }
-        "Asia:Choibalsan"{
-            ec{"चोईबाल्सन"}
         }
         "Asia:Colombo"{
             ec{"कोलंबो"}
@@ -930,9 +909,6 @@ mr{
         "Australia:Broken_Hill"{
             ec{"ब्रोकन हिल"}
         }
-        "Australia:Currie"{
-            ec{"कुह्री"}
-        }
         "Australia:Darwin"{
             ec{"डार्विन"}
         }
@@ -1115,9 +1091,6 @@ mr{
         "Europe:Ulyanovsk"{
             ec{"उल्यानोव्स्क"}
         }
-        "Europe:Uzhgorod"{
-            ec{"उझहोरोड"}
-        }
         "Europe:Vaduz"{
             ec{"वडूझ"}
         }
@@ -1138,9 +1111,6 @@ mr{
         }
         "Europe:Zagreb"{
             ec{"झॅग्रेब"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"झापोरोझे"}
         }
         "Europe:Zurich"{
             ec{"झुरिक"}
@@ -1222,9 +1192,6 @@ mr{
         }
         "Pacific:Honolulu"{
             ec{"होनोलुलू"}
-        }
-        "Pacific:Johnston"{
-            ec{"जोहान्स्टन"}
         }
         "Pacific:Kanton"{
             ec{"कँटन"}
@@ -1472,11 +1439,6 @@ mr{
             lg{"चीनी वेळ"}
             ls{"चीनी प्रमाण वेळ"}
         }
-        "meta:Choibalsan"{
-            ld{"चोईबाल्सन उन्हाळी वेळ"}
-            lg{"चोईबाल्सन वेळ"}
-            ls{"चोईबाल्सन प्रमाण वेळ"}
-        }
         "meta:Christmas"{
             ls{"ख्रिसमस बेट वेळ"}
         }
@@ -1605,7 +1567,7 @@ mr{
             ss{"IST"}
         }
         "meta:Indian_Ocean"{
-            ls{"हिंदमहासागर वेळ"}
+            ls{"हिंद महासागर वेळ"}
         }
         "meta:Indochina"{
             ls{"इंडोचायना वेळ"}
@@ -1643,6 +1605,9 @@ mr{
             ld{"पेट्रोपाव्हलोस्क- कामचाट्स्की ग्रीष्मकालीन वेळ"}
             lg{"पेट्रोपाव्हलोस्क- कामचाट्स्की वेळ"}
             ls{"पेट्रोपाव्हलोस्क- कामचाट्स्की प्रमाणवेळ"}
+        }
+        "meta:Kazakhstan"{
+            ls{"कझाकस्तान वेळ"}
         }
         "meta:Kazakhstan_Eastern"{
             ls{"पूर्व कझाकस्तान वेळ"}
@@ -1682,9 +1647,6 @@ mr{
             lg{"मकाऊ वेळ"}
             ls{"मकाऊ प्रमाणवेळ"}
         }
-        "meta:Macquarie"{
-            ls{"मॅक्वेरी बेट वेळ"}
-        }
         "meta:Magadan"{
             ld{"मॅगाडन उन्हाळी वेळ"}
             lg{"मॅगाडन वेळ"}
@@ -1709,11 +1671,6 @@ mr{
         }
         "meta:Mawson"{
             ls{"मॉसन वेळ"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"वायव्य मेक्सिको सूर्यप्रकाश वेळ"}
-            lg{"वायव्य मेक्सिको वेळ"}
-            ls{"वायव्य मेक्सिको प्रमाण वेळ"}
         }
         "meta:Mexico_Pacific"{
             ld{"मेक्सिको पॅसिफिक सूर्यप्रकाश वेळ"}
@@ -1947,10 +1904,8 @@ mr{
         "meta:Yukon"{
             ls{"युकोन वेळ"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"[GMT]{0}"}
         gmtZeroFormat{"[GMT]"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} वेळ"}
         regionFormatDaylight{"{0} सूर्यप्रकाश वेळ"}
         regionFormatStandard{"{0} प्रमाण वेळ"}

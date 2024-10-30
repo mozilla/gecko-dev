@@ -3,7 +3,7 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ia{
     Countries{
-        001{"Mundo"}
+        001{"mundo"}
         002{"Africa"}
         003{"America del Nord"}
         005{"America del Sud"}
@@ -85,6 +85,7 @@ ia{
         CN{"China"}
         CO{"Colombia"}
         CP{"Insula Clipperton"}
+        CQ{"Sark"}
         CR{"Costa Rica"}
         CU{"Cuba"}
         CV{"Capo Verde"}
@@ -297,6 +298,9 @@ ia{
         ZM{"Zambia"}
         ZW{"Zimbabwe"}
         ZZ{"Region incognite"}
+    }
+    Countries%chagos{
+        IO{"Archipelago de Chagos"}
     }
     Countries%short{
         GB{"RU"}

@@ -465,9 +465,6 @@ gu{
         "America:New_York"{
             ec{"ન્યૂયોર્ક"}
         }
-        "America:Nipigon"{
-            ec{"નિપિગોન"}
-        }
         "America:Nome"{
             ec{"નોમ"}
         }
@@ -488,9 +485,6 @@ gu{
         }
         "America:Panama"{
             ec{"પનામા"}
-        }
-        "America:Pangnirtung"{
-            ec{"પેંગનિરતુંગ"}
         }
         "America:Paramaribo"{
             ec{"પેરામેરિબો"}
@@ -513,9 +507,6 @@ gu{
         "America:Punta_Arenas"{
             ec{"પુન્ટા એરીનાઝ"}
         }
-        "America:Rainy_River"{
-            ec{"રેઇની નદી"}
-        }
         "America:Rankin_Inlet"{
             ec{"રેંકિન ઇન્લેટ"}
         }
@@ -530,9 +521,6 @@ gu{
         }
         "America:Rio_Branco"{
             ec{"રિયો બ્રાંકો"}
-        }
-        "America:Santa_Isabel"{
-            ec{"સાંતા ઇસાબેલ"}
         }
         "America:Santarem"{
             ec{"સેન્તારેમ"}
@@ -579,9 +567,6 @@ gu{
         "America:Thule"{
             ec{"થુલે"}
         }
-        "America:Thunder_Bay"{
-            ec{"થંડર બે"}
-        }
         "America:Tijuana"{
             ec{"તિજુઆના"}
         }
@@ -602,9 +587,6 @@ gu{
         }
         "America:Yakutat"{
             ec{"યકુતત"}
-        }
-        "America:Yellowknife"{
-            ec{"યેલોનાઇફ"}
         }
         "Antarctica:Casey"{
             ec{"કૅસી"}
@@ -695,9 +677,6 @@ gu{
         }
         "Asia:Chita"{
             ec{"ચિતા"}
-        }
-        "Asia:Choibalsan"{
-            ec{"ચોઇબાલ્સન"}
         }
         "Asia:Colombo"{
             ec{"કોલંબો"}
@@ -930,9 +909,6 @@ gu{
         "Australia:Broken_Hill"{
             ec{"બ્રોકન હિલ"}
         }
-        "Australia:Currie"{
-            ec{"ક્યુરી"}
-        }
         "Australia:Darwin"{
             ec{"ડાર્વિન"}
         }
@@ -1115,9 +1091,6 @@ gu{
         "Europe:Ulyanovsk"{
             ec{"ઉલેનોવ્સ્ક"}
         }
-        "Europe:Uzhgorod"{
-            ec{"ઉઝ્ગોરોદ"}
-        }
         "Europe:Vaduz"{
             ec{"વૅદુઝ"}
         }
@@ -1138,9 +1111,6 @@ gu{
         }
         "Europe:Zagreb"{
             ec{"ઝેગરેબ"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"જેપોરોઝિયે"}
         }
         "Europe:Zurich"{
             ec{"ઝુરીક"}
@@ -1222,9 +1192,6 @@ gu{
         }
         "Pacific:Honolulu"{
             ec{"હોનોલુલુ"}
-        }
-        "Pacific:Johnston"{
-            ec{"જોહ્નસ્ટોન"}
         }
         "Pacific:Kanton"{
             ec{"કેન્ટન"}
@@ -1472,11 +1439,6 @@ gu{
             lg{"ચીન સમય"}
             ls{"ચીન માનક સમય"}
         }
-        "meta:Choibalsan"{
-            ld{"ચોઇબાલ્સન ગ્રીષ્મ સમય"}
-            lg{"ચોઇબાલ્સન સમય"}
-            ls{"ચોઇબાલ્સન માનક સમય"}
-        }
         "meta:Christmas"{
             ls{"ક્રિસમસ આઇલેન્ડ સમય"}
         }
@@ -1644,6 +1606,9 @@ gu{
             lg{"પેટ્રોપેવલોવ્સ્ક-કામચતસ્કી સમય"}
             ls{"પેટ્રોપેવલોવ્સ્ક-કામચતસ્કી પ્રમાણભૂત સમય"}
         }
+        "meta:Kazakhstan"{
+            ls{"કઝાકિસ્તાન સમય"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"પૂર્વ કઝાકિસ્તાન સમય"}
         }
@@ -1682,9 +1647,6 @@ gu{
             lg{"મકાઉ સમય"}
             ls{"મકાઉ પ્રમાણભૂત સમય"}
         }
-        "meta:Macquarie"{
-            ls{"મેક્વાયર આઇલેન્ડ સમય"}
-        }
         "meta:Magadan"{
             ld{"મગાડન ગ્રીષ્મ સમય"}
             lg{"મગાડન સમય"}
@@ -1709,11 +1671,6 @@ gu{
         }
         "meta:Mawson"{
             ls{"મોસન સમય"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"ઉત્તરપશ્ચિમ મેક્સિકો દિવસ સમય"}
-            lg{"ઉત્તરપશ્ચિમ મેક્સિકો સમય"}
-            ls{"ઉત્તરપશ્ચિમ મેક્સિકો માનક સમય"}
         }
         "meta:Mexico_Pacific"{
             ld{"મેક્સિકન પેસિફિક દિવસ સમય"}
@@ -1947,10 +1904,6 @@ gu{
         "meta:Yukon"{
             ls{"યુકોન સમય"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} સમય"}
         regionFormatDaylight{"{0} દિવસ સમય"}
         regionFormatStandard{"{0} માનક સમય"}

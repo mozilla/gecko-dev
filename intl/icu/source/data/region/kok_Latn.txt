@@ -1,0 +1,20 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kok_Latn{
+    %%Parent{"root"}
+    Countries{
+        CN{"Chin"}
+        CY{"Siprus"}
+        DE{"Jermon"}
+        EG{"Ejipt"}
+        ES{"Ispania"}
+        FR{"Frans"}
+        GR{"Gres"}
+        IN{"Bharot"}
+        IT{"Italia"}
+        LY{"Libia"}
+        MK{"Ut’tor Masedonia"}
+        RU{"Roxya"}
+    }
+}

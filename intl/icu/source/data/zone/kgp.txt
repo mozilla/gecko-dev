@@ -462,9 +462,6 @@ kgp{
         "America:New_York"{
             ec{"Yjórki Tãg"}
         }
-        "America:Nipigon"{
-            ec{"Nĩpigãn"}
-        }
         "America:Nome"{
             ec{"Jyjy"}
         }
@@ -485,9 +482,6 @@ kgp{
         }
         "America:Panama"{
             ec{"Panỹmỹ"}
-        }
-        "America:Pangnirtung"{
-            ec{"Pỹgnĩrtũg"}
         }
         "America:Paramaribo"{
             ec{"Paramỹrimu"}
@@ -510,9 +504,6 @@ kgp{
         "America:Punta_Arenas"{
             ec{"Pũta Arenỹ"}
         }
-        "America:Rainy_River"{
-            ec{"Tamumã Goj"}
-        }
         "America:Rankin_Inlet"{
             ec{"Rỹgkĩg Ĩrén"}
         }
@@ -527,9 +518,6 @@ kgp{
         }
         "America:Rio_Branco"{
             ec{"Goj Kupri"}
-        }
-        "America:Santa_Isabel"{
-            ec{"Sỹta Isamé"}
         }
         "America:Santarem"{
             ec{"Sỹtarẽj"}
@@ -576,9 +564,6 @@ kgp{
         "America:Thule"{
             ec{"Ture"}
         }
-        "America:Thunder_Bay"{
-            ec{"Tũnner Mej"}
-        }
         "America:Tijuana"{
             ec{"Tivỹnỹ"}
         }
@@ -599,9 +584,6 @@ kgp{
         }
         "America:Yakutat"{
             ec{"Yjakutati"}
-        }
-        "America:Yellowknife"{
-            ec{"Rógro Mỹrér"}
         }
         "Antarctica:Casey"{
             ec{"Kasej"}
@@ -690,9 +672,6 @@ kgp{
         "Asia:Chita"{
             ec{"Sita"}
         }
-        "Asia:Choibalsan"{
-            ec{"Sojmarsỹ"}
-        }
         "Asia:Colombo"{
             ec{"Korãmmu"}
         }
@@ -728,9 +707,6 @@ kgp{
         }
         "Asia:Irkutsk"{
             ec{"Irkutinhki"}
-        }
-        "Asia:Jakarta"{
-            ec{"Jakarta"}
         }
         "Asia:Jayapura"{
             ec{"Jaiapura"}
@@ -912,9 +888,6 @@ kgp{
         "Australia:Broken_Hill"{
             ec{"Mruken Hir"}
         }
-        "Australia:Currie"{
-            ec{"Kurije"}
-        }
         "Australia:Darwin"{
             ec{"Narvĩn"}
         }
@@ -1058,9 +1031,6 @@ kgp{
         "Europe:Prague"{
             ec{"Praga"}
         }
-        "Europe:Riga"{
-            ec{"Riga"}
-        }
         "Europe:Rome"{
             ec{"Romỹ"}
         }
@@ -1097,9 +1067,6 @@ kgp{
         "Europe:Ulyanovsk"{
             ec{"Urijanãvinhki"}
         }
-        "Europe:Uzhgorod"{
-            ec{"Ungoron"}
-        }
         "Europe:Vaduz"{
             ec{"Vanuj"}
         }
@@ -1120,9 +1087,6 @@ kgp{
         }
         "Europe:Zagreb"{
             ec{"Jagréme"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"Japorisija"}
         }
         "Europe:Zurich"{
             ec{"Jurike"}
@@ -1184,9 +1148,6 @@ kgp{
         "Pacific:Fakaofo"{
             ec{"Fakaofu"}
         }
-        "Pacific:Fiji"{
-            ec{"Fiji"}
-        }
         "Pacific:Funafuti"{
             ec{"Funỹfuti"}
         }
@@ -1204,9 +1165,6 @@ kgp{
         }
         "Pacific:Honolulu"{
             ec{"Honãruru"}
-        }
-        "Pacific:Johnston"{
-            ec{"Nhionhtãn"}
         }
         "Pacific:Kiritimati"{
             ec{"Kiritimỹti"}
@@ -1237,9 +1195,6 @@ kgp{
         }
         "Pacific:Noumea"{
             ec{"Nãumẽa"}
-        }
-        "Pacific:Pago_Pago"{
-            ec{"Pago Pago"}
         }
         "Pacific:Palau"{
             ec{"Parav"}
@@ -1454,11 +1409,6 @@ kgp{
             lg{"Óra Sĩnỹ tá"}
             ls{"Óra Pã Sĩnỹ tá"}
         }
-        "meta:Choibalsan"{
-            ld{"Rỹ Kã óra Sojmarsỹ tá"}
-            lg{"Óra Sojmarsỹ tá"}
-            ls{"Óra Pã Sojmarsỹ tá"}
-        }
         "meta:Christmas"{
             ls{"Óra Krĩtimỹnh Goj-vẽso tá"}
         }
@@ -1663,9 +1613,6 @@ kgp{
             lg{"Óra Mỹkav tá"}
             ls{"Óra Pã Mỹkav tá"}
         }
-        "meta:Macquarie"{
-            ls{"Óra Mỹkikuari Goj-vẽso tá"}
-        }
         "meta:Magadan"{
             ld{"Rỹ Kã óra Mỹganan tá"}
             lg{"Óra Mỹganan tá"}
@@ -1690,11 +1637,6 @@ kgp{
         }
         "meta:Mawson"{
             ls{"Óra Mỹusãn tá"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Rỹ Kã óra Mẽsiku Nãrti-Rãpur tá"}
-            lg{"Óra Mẽsiku Nãrti-Rãpur tá"}
-            ls{"Óra Pã Mẽsiku Nãrti-Rãpur tá"}
         }
         "meta:Mexico_Pacific"{
             ld{"Rỹ Kã óra Mẽsiku Pasifiku tá"}
@@ -1925,10 +1867,6 @@ kgp{
             lg{"Óra Ekaterĩnmurgu tá"}
             ls{"Óra Pã Ekaterĩnmurgu tá"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"Óra kar {0}"}
         regionFormatDaylight{"Prỹg kã óra kar {0}"}
         regionFormatStandard{"Óra pẽ {0}"}

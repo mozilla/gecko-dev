@@ -45,7 +45,7 @@ it{
         AO{"Angola"}
         AQ{"Antartide"}
         AR{"Argentina"}
-        AS{"Samoa americane"}
+        AS{"Samoa Americane"}
         AT{"Austria"}
         AU{"Australia"}
         AW{"Aruba"}
@@ -64,7 +64,7 @@ it{
         BM{"Bermuda"}
         BN{"Brunei"}
         BO{"Bolivia"}
-        BQ{"Caraibi olandesi"}
+        BQ{"Caraibi Olandesi"}
         BR{"Brasile"}
         BS{"Bahamas"}
         BT{"Bhutan"}
@@ -103,7 +103,7 @@ it{
         EC{"Ecuador"}
         EE{"Estonia"}
         EG{"Egitto"}
-        EH{"Sahara occidentale"}
+        EH{"Sahara Occidentale"}
         ER{"Eritrea"}
         ES{"Spagna"}
         ET{"Etiopia"}
@@ -146,7 +146,7 @@ it{
         IL{"Israele"}
         IM{"Isola di Man"}
         IN{"India"}
-        IO{"Territorio britannico dell’Oceano Indiano"}
+        IO{"Territorio Britannico dell’Oceano Indiano"}
         IQ{"Iraq"}
         IR{"Iran"}
         IS{"Islanda"}
@@ -189,7 +189,7 @@ it{
         MM{"Myanmar (Birmania)"}
         MN{"Mongolia"}
         MO{"RAS di Macao"}
-        MP{"Isole Marianne settentrionali"}
+        MP{"Isole Marianne Settentrionali"}
         MQ{"Martinica"}
         MR{"Mauritania"}
         MS{"Montserrat"}
@@ -215,7 +215,7 @@ it{
         OM{"Oman"}
         PA{"Panama"}
         PE{"Perù"}
-        PF{"Polinesia francese"}
+        PF{"Polinesia Francese"}
         PG{"Papua Nuova Guinea"}
         PH{"Filippine"}
         PK{"Pakistan"}
@@ -223,7 +223,7 @@ it{
         PM{"Saint-Pierre e Miquelon"}
         PN{"Isole Pitcairn"}
         PR{"Portorico"}
-        PS{"Territori palestinesi"}
+        PS{"Territori Palestinesi"}
         PT{"Portogallo"}
         PW{"Palau"}
         PY{"Paraguay"}
@@ -254,11 +254,11 @@ it{
         SV{"El Salvador"}
         SX{"Sint Maarten"}
         SY{"Siria"}
-        SZ{"eSwatini"}
+        SZ{"Eswatini"}
         TA{"Tristan da Cunha"}
         TC{"Isole Turks e Caicos"}
         TD{"Ciad"}
-        TF{"Terre australi francesi"}
+        TF{"Terre Australi Francesi"}
         TG{"Togo"}
         TH{"Thailandia"}
         TJ{"Tagikistan"}
@@ -298,6 +298,9 @@ it{
         ZW{"Zimbabwe"}
         ZZ{"Regione sconosciuta"}
     }
+    Countries%chagos{
+        IO{"Arcipelago Chagos"}
+    }
     Countries%short{
         GB{"UK"}
         HK{"Hong Kong"}
@@ -313,7 +316,7 @@ it{
         CZ{"Repubblica Ceca"}
         FK{"Isole Falkland (Isole Malvine)"}
         NZ{"Nuova Zelanda (Aotearoa)"}
-        SZ{"Regno di eSwatini"}
+        SZ{"Regno di Eswatini"}
         TL{"Timor Leste"}
         TR{"Türkiye"}
     }

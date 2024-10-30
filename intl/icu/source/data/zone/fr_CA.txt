@@ -22,7 +22,7 @@ fr_CA{
             ec{"Center [Dakota du Nord]"}
         }
         "America:North_Dakota:New_Salem"{
-            ec{"New Salem, Dakota du Nord"}
+            ec{"New Salem [Dakota du Nord]"}
         }
         "America:St_Johns"{
             ec{"St. John’s"}
@@ -33,9 +33,6 @@ fr_CA{
         "America:St_Thomas"{
             ec{"Saint Thomas"}
         }
-        "America:Tegucigalpa"{
-            ec{"Tégucigalpa"}
-        }
         "Antarctica:DumontDUrville"{
             ec{"Dumont d’Urville"}
         }
@@ -44,6 +41,9 @@ fr_CA{
         }
         "Asia:Thimphu"{
             ec{"Thimphou"}
+        }
+        "Atlantic:Canary"{
+            ec{"îles Canaries"}
         }
         "Atlantic:Faeroe"{
             ec{"îles Féroé"}
@@ -235,11 +235,6 @@ fr_CA{
             lg{"heure de Chine"}
             ls{"heure normale de Chine"}
         }
-        "meta:Choibalsan"{
-            ld{"heure avancée de Choibalsan"}
-            lg{"heure de Choibalsan"}
-            ls{"heure normale de Choibalsan"}
-        }
         "meta:Colombia"{
             ld{"heure avancée de Colombie"}
             lg{"heure de Colombie"}
@@ -318,6 +313,9 @@ fr_CA{
             lg{"heure de Hovd"}
             ls{"heure normale de Hovd"}
         }
+        "meta:Indian_Ocean"{
+            ls{"heure de l’océan Indien"}
+        }
         "meta:Iran"{
             ld{"heure avancée d’Iran"}
             lg{"heure de l’Iran"}
@@ -367,11 +365,6 @@ fr_CA{
             ld{"heure avancée de Maurice"}
             lg{"heure de Maurice"}
             ls{"heure normale de Maurice"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"heure avancée du Nord-Ouest du Mexique"}
-            lg{"heure du Nord-Ouest du Mexique"}
-            ls{"heure normale du Nord-Ouest du Mexique"}
         }
         "meta:Mexico_Pacific"{
             ld{"heure avancée du Pacifique mexicain"}

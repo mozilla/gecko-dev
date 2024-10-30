@@ -462,9 +462,6 @@ ccp{
         "America:New_York"{
             ec{"𑄚𑄨𑄅𑄪𑄃𑄨𑄠𑄧𑄢𑄴𑄇𑄴"}
         }
-        "America:Nipigon"{
-            ec{"𑄚𑄨𑄛𑄨𑄉𑄮𑄚𑄴"}
-        }
         "America:Nome"{
             ec{"𑄚𑄮𑄟𑄴"}
         }
@@ -486,9 +483,6 @@ ccp{
         "America:Panama"{
             ec{"𑄛𑄚𑄟"}
         }
-        "America:Pangnirtung"{
-            ec{"𑄛𑄳𑄠𑄋𑄴𑄉𑄧𑄚𑄨𑄢𑄴𑄑𑄪𑄁"}
-        }
         "America:Paramaribo"{
             ec{"𑄛𑄳𑄠𑄢𑄟𑄬𑄢𑄨𑄝𑄮"}
         }
@@ -507,9 +501,6 @@ ccp{
         "America:Puerto_Rico"{
             ec{"𑄛𑄪𑄠𑄬𑄢𑄴𑄖𑄮 𑄢𑄨𑄇𑄮"}
         }
-        "America:Rainy_River"{
-            ec{"𑄣𑄬𑄭𑄚𑄨 𑄢𑄨𑄞𑄢𑄴"}
-        }
         "America:Rankin_Inlet"{
             ec{"𑄢𑄳𑄠𑄋𑄴𑄇𑄨𑄚𑄴 𑄃𑄨𑄚𑄴𑄣𑄬𑄑𑄴"}
         }
@@ -524,9 +515,6 @@ ccp{
         }
         "America:Rio_Branco"{
             ec{"𑄢𑄨𑄃𑄮 𑄝𑄳𑄢𑄋𑄴𑄇𑄮"}
-        }
-        "America:Santa_Isabel"{
-            ec{"𑄥𑄚𑄴𑄖 𑄃𑄨𑄥𑄝𑄬𑄣𑄴"}
         }
         "America:Santarem"{
             ec{"𑄥𑄬𑄚𑄴𑄑𑄪𑄢𑄬𑄟𑄴"}
@@ -573,9 +561,6 @@ ccp{
         "America:Thule"{
             ec{"𑄗𑄪𑄣𑄨"}
         }
-        "America:Thunder_Bay"{
-            ec{"𑄐𑄚𑄴𑄓𑄢𑄴 𑄝𑄬"}
-        }
         "America:Tijuana"{
             ec{"𑄖𑄨𑄎𑄪𑄠𑄚"}
         }
@@ -596,9 +581,6 @@ ccp{
         }
         "America:Yakutat"{
             ec{"𑄃𑄨𑄠𑄇𑄪𑄑𑄑𑄴"}
-        }
-        "America:Yellowknife"{
-            ec{"𑄃𑄨𑄠𑄬𑄣𑄮𑄚𑄭𑄜𑄴"}
         }
         "Antarctica:Casey"{
             ec{"𑄇𑄳𑄆𑄬𑄥𑄨"}
@@ -686,9 +668,6 @@ ccp{
         }
         "Asia:Chita"{
             ec{"𑄌𑄨𑄖"}
-        }
-        "Asia:Choibalsan"{
-            ec{"𑄌𑄰𑄱𑄝𑄣𑄴𑄥𑄳𑄠𑄚𑄴"}
         }
         "Asia:Colombo"{
             ec{"𑄇𑄧𑄣𑄧𑄟𑄳𑄝𑄧𑄧𑄱𑄱"}
@@ -915,9 +894,6 @@ ccp{
         "Australia:Broken_Hill"{
             ec{"𑄝𑄳𑄢𑄮𑄇𑄬𑄚𑄴 𑄦𑄨𑄣𑄴"}
         }
-        "Australia:Currie"{
-            ec{"𑄇𑄨𑄃𑄪𑄢𑄨"}
-        }
         "Australia:Darwin"{
             ec{"𑄓𑄢𑄴𑄃𑄪𑄃𑄨𑄚𑄴"}
         }
@@ -1097,9 +1073,6 @@ ccp{
         "Europe:Ulyanovsk"{
             ec{"𑄅𑄪𑄣𑄨𑄠𑄚𑄮𑄞𑄴𑄥𑄴𑄇𑄴"}
         }
-        "Europe:Uzhgorod"{
-            ec{"𑄅𑄪𑄏𑄴𑄉𑄮𑄢𑄮𑄓𑄴"}
-        }
         "Europe:Vaduz"{
             ec{"𑄞𑄘𑄪𑄎𑄴"}
         }
@@ -1120,9 +1093,6 @@ ccp{
         }
         "Europe:Zagreb"{
             ec{"𑄎𑄉𑄳𑄢𑄬𑄛𑄴"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"𑄎𑄬𑄛𑄮𑄢𑄮𑄎𑄭𑄠𑄭"}
         }
         "Europe:Zurich"{
             ec{"𑄎𑄪𑄢𑄨𑄈𑄴"}
@@ -1204,9 +1174,6 @@ ccp{
         }
         "Pacific:Honolulu"{
             ec{"𑄦𑄧𑄚𑄮𑄣𑄪𑄣𑄪"}
-        }
-        "Pacific:Johnston"{
-            ec{"𑄎𑄧𑄚𑄴𑄥𑄳𑄑𑄧𑄚𑄴"}
         }
         "Pacific:Kiritimati"{
             ec{"𑄇𑄨𑄢𑄨𑄖𑄨𑄟𑄖𑄨"}
@@ -1447,11 +1414,6 @@ ccp{
             lg{"𑄌𑄨𑄚𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
             ls{"𑄌𑄨𑄚𑄴 𑄟𑄚𑄧𑄇𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
         }
-        "meta:Choibalsan"{
-            ld{"𑄌𑄧𑄠𑄴𑄝𑄣𑄴𑄥𑄧𑄚𑄴 𑄉𑄧𑄢𑄧𑄟𑄴𑄇𑄣𑄧𑄢𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
-            lg{"𑄌𑄧𑄠𑄴𑄝𑄣𑄴𑄥𑄧𑄚𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
-            ls{"𑄌𑄧𑄠𑄴𑄝𑄣𑄴𑄥𑄧𑄚𑄴 𑄟𑄚𑄧𑄇𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
-        }
         "meta:Christmas"{
             ls{"𑄇𑄳𑄢𑄨𑄌𑄴𑄟𑄥𑄴 𑄉𑄭 𑄉𑄭 𑄞𑄨𑄘𑄬 𑄃𑄧𑄇𑄴𑄖𑄧"}
         }
@@ -1685,9 +1647,6 @@ ccp{
             lg{"𑄣𑄧𑄢𑄴𑄓𑄴 𑄦𑄤𑄬 𑄃𑄧𑄇𑄴𑄖𑄧"}
             ls{"𑄣𑄧𑄢𑄴𑄓𑄴 𑄦𑄤𑄬 𑄟𑄚𑄧𑄇𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
         }
-        "meta:Macquarie"{
-            ls{"𑄟𑄳𑄠𑄇𑄴𑄇𑄪𑄢𑄨 𑄉𑄭 𑄉𑄭 𑄞𑄬𑄘 𑄃𑄧𑄇𑄴𑄖𑄧"}
-        }
         "meta:Magadan"{
             ld{"𑄟𑄳𑄠𑄉𑄓𑄚𑄴 𑄉𑄧𑄢𑄧𑄟𑄴𑄇𑄣𑄧𑄢𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
             lg{"𑄟𑄳𑄠𑄉𑄓𑄚𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
@@ -1712,17 +1671,6 @@ ccp{
         }
         "meta:Mawson"{
             ls{"𑄟𑄧𑄥𑄳𑄦𑄧𑄚𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{
-                "𑄃𑄪𑄖𑄴𑄖𑄮𑄢𑄴 𑄛𑄧𑄏𑄨𑄟𑄴 𑄟𑄬𑄇𑄴𑄥𑄨𑄇𑄮𑄢𑄴 𑄘𑄨𑄚𑄮𑄢𑄴 "
-                "𑄃𑄧𑄇𑄴𑄖𑄧"
-            }
-            lg{"𑄃𑄪𑄖𑄴𑄖𑄮𑄢𑄴 𑄛𑄧𑄏𑄨𑄟𑄴 𑄟𑄬𑄇𑄴𑄥𑄨𑄇𑄮𑄢𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
-            ls{
-                "𑄃𑄪𑄖𑄴𑄖𑄮𑄢𑄴 𑄛𑄧𑄏𑄨𑄟𑄴 𑄟𑄬𑄇𑄴𑄥𑄨𑄇𑄮𑄢𑄴 𑄟𑄚𑄧𑄇𑄴 "
-                "𑄃𑄧𑄇𑄴𑄖𑄧"
-            }
         }
         "meta:Mexico_Pacific"{
             ld{
@@ -1972,10 +1920,7 @@ ccp{
             lg{"𑄃𑄨𑄠𑄬𑄇𑄖𑄬𑄢𑄨𑄚𑄴𑄝𑄪𑄢𑄴𑄉𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
             ls{"𑄃𑄨𑄠𑄬𑄇𑄖𑄬𑄢𑄨𑄚𑄴𑄝𑄪𑄢𑄴𑄉𑄴 𑄟𑄚𑄧𑄇𑄴 𑄃𑄧𑄇𑄴𑄖𑄧"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"GMT {0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} 𑄃𑄧𑄇𑄴𑄖𑄧"}
         regionFormatDaylight{"{0} 𑄘𑄨𑄝𑄪𑄌𑄴𑄎𑄳𑄠 𑄃𑄧𑄇𑄴𑄖𑄧𑄖𑄴"}
         regionFormatStandard{"{0} 𑄟𑄚𑄧𑄇𑄴 𑄃𑄧𑄇𑄴𑄖𑄧𑄖𑄴"}

@@ -15,6 +15,6 @@ $Vowel = [i e o u a];
 # it would be _much_ better to look at stress markers, but for now
 # we do this trivial heuristics to find unstressed [e] in the first
 # syllable.
-$Boundary [^Vowel] {e} [^$Vowel]* $Vowel → ə;
+$Boundary [^$Vowel] {e} [^$Vowel]* $Vowel → ə;
 ::und_FONIPA-fa;
 

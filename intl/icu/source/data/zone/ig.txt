@@ -3,9 +3,6 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ig{
     zoneStrings{
-        "America:Araguaina"{
-            ec{"Araguaina"}
-        }
         "Etc:UTC"{
             ls{"Nhazi Oge Ụwa Niile"}
         }
@@ -17,6 +14,9 @@ ig{
         }
         "Europe:London"{
             ld{"Oge Okpomọkụ Britain"}
+        }
+        "Pacific:Enderbury"{
+            ec{"Enderbury"}
         }
         "meta:Afghanistan"{
             ls{"Oge Afghanistan"}
@@ -166,11 +166,6 @@ ig{
             ld{"Oge Ihe China"}
             lg{"Oge China"}
             ls{"Oge Izugbe China"}
-        }
-        "meta:Choibalsan"{
-            ld{"Oge Okpomọkụ Choibals"}
-            lg{"Oge Choibals"}
-            ls{"Oge Izugbe Choibals"}
         }
         "meta:Christmas"{
             ls{"Oge Ekeresimesi Island"}
@@ -330,6 +325,9 @@ ig{
             lg{"Oge Japan"}
             ls{"Oge Izugbe Japan"}
         }
+        "meta:Kazakhstan"{
+            ls{"Oge Kazakhstan"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Oge Mpaghara Ọwụwa Anyanwụ Kazakhstan"}
         }
@@ -360,9 +358,6 @@ ig{
             lg{"Oge Lord Howe"}
             ls{"Oge Izugbe Lord Howe"}
         }
-        "meta:Macquarie"{
-            ls{"Oge Macquarie Island"}
-        }
         "meta:Magadan"{
             ld{"Oge Okpomọkụ Magadan"}
             lg{"Oge Magadan"}
@@ -387,11 +382,6 @@ ig{
         }
         "meta:Mawson"{
             ls{"Oge Mawson"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Oge Ihe Northwest Mexico"}
-            lg{"Oge Northwest Mexico"}
-            ls{"Oge Izugbe Northwest Mexico"}
         }
         "meta:Mexico_Pacific"{
             ld{"Oge Ihe Mexican Pacific"}
@@ -612,10 +602,6 @@ ig{
         "meta:Yukon"{
             ls{"Oge Yukon"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"Oge {0}"}
         regionFormatDaylight{"Oge Ihe {0}"}
         regionFormatStandard{"Oge Izugbe {0}"}

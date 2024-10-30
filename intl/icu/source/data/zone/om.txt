@@ -3,7 +3,634 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 om{
     zoneStrings{
-        gmtFormat{"GMT{0}"}
-        hourFormat{"+HH:mm;-HH:mm"}
+        "Etc:UTC"{
+            ls{"Sa’aatii Idil-Addunyaa Qindaa’e"}
+        }
+        "Europe:Dublin"{
+            ld{"Sa’aatii Istaandaardii Aayiriish"}
+        }
+        "Europe:London"{
+            ld{"Sa’aatii Bonaa Biritish"}
+        }
+        "meta:Afghanistan"{
+            ls{"Sa’aatii Afgaanistaan"}
+        }
+        "meta:Africa_Central"{
+            ls{"Sa’aatii Afrikaa Gidduugaleessaa"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Sa’aatii Baha Afrikaa"}
+        }
+        "meta:Africa_Southern"{
+            ls{"Sa’aatii Istaandaardii Afrikaa Kibbaa"}
+        }
+        "meta:Africa_Western"{
+            ld{"Sa’aatii Bonaa Afrikaa Dhihaa"}
+            lg{"Sa’aatii Afrikaa Dhihaa"}
+            ls{"Sa’aatii Istaandaardii Afrikaa Dhihaa"}
+        }
+        "meta:Alaska"{
+            ld{"Sa’aatii Guyyaa Alaaskaa"}
+            lg{"Sa’aatii Alaaskaa"}
+            ls{"Sa’aatii Istaandaardii Alaaskaa"}
+            sd{"AKDT"}
+            sg{"AKT"}
+            ss{"AKST"}
+        }
+        "meta:Amazon"{
+            ld{"Sa’aatii Bonaa Amazoon"}
+            lg{"Sa’aatii Amazoon"}
+            ls{"Sa’aatii Istaandaardii Amazoon"}
+        }
+        "meta:America_Central"{
+            ld{"Sa’aatii Guyyaa Gidduugaleessaa"}
+            lg{"Sa’aatii Gidduugaleessaa"}
+            ls{"Sa’aatii Istaandaardii Gidduugaleessaa"}
+            sd{"CDT"}
+            sg{"CT"}
+            ss{"CST"}
+        }
+        "meta:America_Eastern"{
+            ld{"Sa’aatii Guyyaa Bahaa"}
+            lg{"Sa’aatii Bahaa"}
+            ls{"Sa’aatii Istaandaardii Bahaa"}
+            sd{"EDT"}
+            sg{"ET"}
+            ss{"EST"}
+        }
+        "meta:America_Mountain"{
+            ld{"Sa’aatii Guyyaa Maawonteen"}
+            lg{"Sa’aatii Maawonteen"}
+            ls{"Sa’aatii Istaandaardii Maawonteen"}
+            sd{"MDT"}
+            sg{"MT"}
+            ss{"MST"}
+        }
+        "meta:America_Pacific"{
+            ld{"Sa’aatii Guyyaa Paasfiik"}
+            lg{"Sa’aatii Paasfiik"}
+            ls{"Sa’aatii Istaandaardii Paasfiik"}
+            sd{"PDT"}
+            sg{"PT"}
+            ss{"PST"}
+        }
+        "meta:Apia"{
+            ld{"Sa’aatii Guyyaa Apia"}
+            lg{"Sa’aatii Apia"}
+            ls{"Sa’aatii Istaandaardii Apia"}
+        }
+        "meta:Arabian"{
+            ld{"Sa’aatii Guyyaa Arabaa"}
+            lg{"Sa’aatii Arabaa"}
+            ls{"Sa’aatii Istaandaardii Arabaa"}
+        }
+        "meta:Argentina"{
+            ld{"Sa’aatii Bonaa Arjentiinaa"}
+            lg{"Sa’aatii Arjentiinaa"}
+            ls{"Sa’aatii Istaandaardii Arjentiinaa"}
+        }
+        "meta:Argentina_Western"{
+            ld{"Sa’aatii Bonaa Arjentiinaa Dhihaa"}
+            lg{"Sa’aatii Arjentiinaa Dhihaa"}
+            ls{"Sa’aatii Istaandaardii Arjentiinaa Dhihaa"}
+        }
+        "meta:Armenia"{
+            ld{"Sa’aatii Bonaa Armaaniyaa"}
+            lg{"Sa’aatii Armaaniyaa"}
+            ls{"Sa’aatii Istaandaardii Armaaniyaa"}
+        }
+        "meta:Atlantic"{
+            ld{"Sa’aatii Guyyaa Atilaantiik"}
+            lg{"Sa’aatii Atilaantiik"}
+            ls{"Sa’aatii Istaandaardii Atilaantiik"}
+            sd{"ADT"}
+            sg{"AT"}
+            ss{"AST"}
+        }
+        "meta:Australia_Central"{
+            ld{"Sa’aatii Guyyaa Awustiraaliyaa Gidduugaleessaa"}
+            lg{"Sa’aatii Awustiraaliyaa Gidduugaleessaa"}
+            ls{"Sa’aatii Istaandaardii Awustiraaliyaa Gidduugaleessaa"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Sa’aatii Guyyaa Dhiha Awustiraaliyaa Gidduugaleessaa"}
+            lg{"Sa’aatii Dhiha Awustiraaliyaa Gidduugaleessaa"}
+            ls{"Sa’aatii Istaandaardii Dhiha Awustiraaliyaa Gidduugaleessaa"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Sa’aatii Guyyaa Awustiraaliyaa Bahaa"}
+            lg{"Sa’aatii Awustiraaliyaa Bahaa"}
+            ls{"Sa’aatii Istaandaardii Awustiraaliyaa Bahaa"}
+        }
+        "meta:Australia_Western"{
+            ld{"Sa’aatii Guuyyaa Awustiraaliyaa Dhihaa"}
+            lg{"Sa’aatii Awustiraaliyaa Dhihaa"}
+            ls{
+                "Sa’aatii Sa’aatii Istaandaardii Awustiraaliyaa DhihaaDhiha Awustiraa"
+                "liyaa"
+            }
+        }
+        "meta:Azerbaijan"{
+            ld{"Sa’aatii Bonaa Azerbaajiyaan"}
+            lg{"Sa’aatii Azerbaajiyaan"}
+            ls{"Sa’aatii Istaandaardii Azerbaajiyaan"}
+        }
+        "meta:Azores"{
+            ld{"Sa’aatii Bonaa Azeeroos"}
+            lg{"Sa’aatii Azeeroos"}
+            ls{"Sa’aatii Istaandaardii Azeeroos"}
+        }
+        "meta:Bangladesh"{
+            ld{"Sa’aatii Bonaa Baangilaadish"}
+            lg{"Sa’aatii Baangilaadish"}
+            ls{"Sa’aatii Istaandaardii Baangilaadish"}
+        }
+        "meta:Bhutan"{
+            ls{"Sa’aatii Bihutaan"}
+        }
+        "meta:Bolivia"{
+            ls{"Sa’aatii Boliiviyaa"}
+        }
+        "meta:Brasilia"{
+            ld{"Sa’aatii Bonaa Biraaziliyaa"}
+            lg{"Sa’aatii Biraaziliyaa"}
+            ls{"Sa’aatii Istaandaardii Biraaziliyaa"}
+        }
+        "meta:Brunei"{
+            ls{"Sa’aatii Bruunee Darusalaam"}
+        }
+        "meta:Cape_Verde"{
+            ld{"Sa’aatii Bonaa Keep Veerdee"}
+            lg{"Sa’aatii Keep Veerdee"}
+            ls{"Sa’aatii Istaandaardii Keep Veerdee"}
+        }
+        "meta:Chamorro"{
+            ls{"Sa’aatii Istaandaardii Kamoroo"}
+        }
+        "meta:Chatham"{
+            ld{"Sa’aatii Guyyaa Chatham"}
+            lg{"Sa’aatii Chatham"}
+            ls{"Sa’aatii Istaandaardii Chatham"}
+        }
+        "meta:Chile"{
+            ld{"Sa’aatii Bonaa Chiilii"}
+            lg{"Sa’aatii Chiilii"}
+            ls{"Sa’aatii Istaandaardii Chiilii"}
+        }
+        "meta:China"{
+            ld{"Sa’aatii Guyyaa Chaayinaa"}
+            lg{"Sa’aatii Chaayinaa"}
+            ls{"Sa’aatii Istaandaardii Chaayinaa"}
+        }
+        "meta:Christmas"{
+            ls{"Sa’aatii Odola Kirismaas"}
+        }
+        "meta:Cocos"{
+            ls{"Sa’aatii Odoloota Kokos"}
+        }
+        "meta:Colombia"{
+            ld{"Sa’aatii Bonaa Kolombiyaa"}
+            lg{"Sa’aatii Kolombiyaa"}
+            ls{"Sa’aatii Istaandaardii Kolombiyaa"}
+        }
+        "meta:Cook"{
+            ld{"Sa’aatii Bona Walakkaa Odoloota Kuuk"}
+            lg{"Sa’aatii Odoloota Kuuk"}
+            ls{"Sa’aatii Istaandaardii Odoloota Kuuk"}
+        }
+        "meta:Cuba"{
+            ld{"Sa’aatii Guyyaa Kuubaa"}
+            lg{"Sa’aatii Kuubaa"}
+            ls{"Sa’aatii Istaandaardii Kuubaa"}
+        }
+        "meta:Davis"{
+            ls{"Sa’aatii Daaviis"}
+        }
+        "meta:DumontDUrville"{
+            ls{"Sa’aatii Dumont-d’Urville"}
+        }
+        "meta:East_Timor"{
+            ls{"Sa’aatii Tiimoor Bahaa"}
+        }
+        "meta:Easter"{
+            ld{"Sa’aatii Bonaa Odola Bahaa"}
+            lg{"Sa’aatii Odola Bahaa"}
+            ls{"Sa’aatii Istaandaardii Odola Bahaa"}
+        }
+        "meta:Ecuador"{
+            ls{"Sa’aatii Ikkuwaadoor"}
+        }
+        "meta:Europe_Central"{
+            ld{"Sa’aatii Bonaa Awurooppaa Gidduugaleessaa"}
+            lg{"Sa’aatii Awurooppaa Gidduugaleessaa"}
+            ls{"Sa’aatii Istaandaardii Awurooppaa Gidduugaleessaa"}
+        }
+        "meta:Europe_Eastern"{
+            ld{"Sa’aatii Bonaa Awurooppaa Bahaa"}
+            lg{"Saaatii Awurooppaa Bahaa"}
+            ls{"Sa’aatii Istaandaardii Awurooppaa Bahaa"}
+        }
+        "meta:Europe_Further_Eastern"{
+            ls{"Sa’aatii Awurooppaa Bahaa Dabalataa"}
+        }
+        "meta:Europe_Western"{
+            ld{"Sa’aatii Bonaa Awurooppaa Dhihaa"}
+            lg{"Sa’aatii Awurooppaa Dhihaa"}
+            ls{"Sa’aatii Istaandaardii Awurooppaa Dhihaa"}
+        }
+        "meta:Falkland"{
+            ld{"Sa’aatii Bonaa Odoloota Faalklaand"}
+            lg{"Sa’aatii Odoloota Faalklaand"}
+            ls{"Sa’aatii Istaandaardii Odoloota Faalklaand"}
+        }
+        "meta:Fiji"{
+            ld{"Sa’aatii Bonaa Fiijii"}
+            lg{"Sa’aatii Fiijii"}
+            ls{"Sa’aatii Istaandaardii Fiijii"}
+        }
+        "meta:French_Guiana"{
+            ls{"Sa’aatii Fireench Guyinaa"}
+        }
+        "meta:French_Southern"{
+            ls{"Sa’aatii Firaans Kibbaa fi Antaarktikaa"}
+        }
+        "meta:GMT"{
+            ls{"Sa’aatii Giriinwiich Gidduugaleessaa"}
+        }
+        "meta:Galapagos"{
+            ls{"Sa’aatii Galaapagoos"}
+        }
+        "meta:Gambier"{
+            ls{"Sa’aatii Gaambiyeer"}
+        }
+        "meta:Georgia"{
+            ld{"Sa’aatii Bonaa Joorjiyaa"}
+            lg{"Sa’aatii Joorjiyaa"}
+            ls{"Sa’aatii Istaandaardii Joorjiyaa"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"Sa’aatii Odoloota Giilbert"}
+        }
+        "meta:Greenland_Eastern"{
+            ld{"Sa’aatii Bonaa Giriinlaand Bahaa"}
+            lg{"Sa’aatii Giriinlaand Bahaa"}
+            ls{"Sa’aatii Istaandaardii Giriinlaand Bahaa"}
+        }
+        "meta:Greenland_Western"{
+            ld{"Sa’aatii Bonaa Giriinlaand Dhihaa"}
+            lg{"Sa’aatii Giriinlaand Dhihaa"}
+            ls{"Sa’aatii Istaandaardii Giriinlaand Dhihaa"}
+        }
+        "meta:Guam"{
+            ls{"Sa’aatii Istaandaardii Guwaam"}
+        }
+        "meta:Gulf"{
+            ls{"Sa’aatii Istaandaardii Gaalfii"}
+        }
+        "meta:Guyana"{
+            ls{"Sa’aatii Guyaanaa"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ld{"Sa’aatii Guyyaa Haawayi-Alewutiyan"}
+            lg{"Sa’aatii Haawayi-Alewutiyan"}
+            ls{"Sa’aatii Istaandaardii Haawayi-Alewutiyan"}
+            sd{"HADT"}
+            sg{"HAT"}
+            ss{"HAS"}
+        }
+        "meta:Hong_Kong"{
+            ld{"Sa’aatii Bonaa Hoong Koong"}
+            lg{"Sa’aatii Hoong Koong"}
+            ls{"Sa’aatii Istaandaardii Hoong Koong"}
+        }
+        "meta:Hovd"{
+            ld{"Sa’aatii Bonaa Hoovd"}
+            lg{"Sa’aatii Hoovd"}
+            ls{"Sa’aatii Istaandaardii Hoovd"}
+        }
+        "meta:India"{
+            ls{"Sa’aatii Istaandaardii Hindii"}
+        }
+        "meta:Indian_Ocean"{
+            ls{"Sa’aatii Galaana Hindii"}
+        }
+        "meta:Indochina"{
+            ls{"Sa’aatii IndooChaayinaa"}
+        }
+        "meta:Indonesia_Central"{
+            ls{"Sa’aatii Indooneeshiyaa Gidduugaleessaa"}
+        }
+        "meta:Indonesia_Eastern"{
+            ls{"Sa’aatii Indooneshiyaa Bahaa"}
+        }
+        "meta:Indonesia_Western"{
+            ls{"Sa’aatii Indooneeshiyaa Dhihaa"}
+        }
+        "meta:Iran"{
+            ld{"Sa’aatii Guyyaa Iraan"}
+            lg{"Sa’aatii Iraan"}
+            ls{"Sa’aatii Istaandaardii Iraan"}
+        }
+        "meta:Irkutsk"{
+            ld{"Sa’aatii Bonaa Irkutsk"}
+            lg{"Sa’aatii Irkutsk"}
+            ls{"Sa’aatii Istaandaardii Irkutsk"}
+        }
+        "meta:Israel"{
+            ld{"Sa’aatii Guyyaa Israa’eel"}
+            lg{"Sa’aatii Israa’eel"}
+            ls{"Sa’aatii Istaandaardii Israa’eel"}
+        }
+        "meta:Japan"{
+            ld{"Sa’aatii Guyyaa Jaappaan"}
+            lg{"Sa’aatii Jaappaan"}
+            ls{"Sa’aatii Istaandaardii Jaappaan"}
+        }
+        "meta:Kazakhstan"{
+            ls{"Sa’aatii Kaazaakistaan"}
+        }
+        "meta:Kazakhstan_Eastern"{
+            ls{"Sa’aatii Kaazaakistaan Bahaa"}
+        }
+        "meta:Kazakhstan_Western"{
+            ls{"Sa’aatii Kaazaakistaan Dhihaa"}
+        }
+        "meta:Korea"{
+            ld{"Sa’aatii Guyyaa Kooriyaa"}
+            lg{"Sa’aatii Kooriyaa"}
+            ls{"Sa’aatii Istaandaardii Kooriyaa"}
+        }
+        "meta:Kosrae"{
+            ls{"Sa’aatii Koosreyaa"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"Sa’aatii Bonaa Krasnoyarsk"}
+            lg{"Sa’aatii Krasnoyarsk"}
+            ls{"Sa’aatii Istaandaardii Krasnoyarsk"}
+        }
+        "meta:Kyrgystan"{
+            ls{"Sa’aatii Kiyirigiyistan"}
+        }
+        "meta:Lanka"{
+            ls{"Sa’aatii Laankaa"}
+        }
+        "meta:Line_Islands"{
+            ls{"Sa’aatii Odoloota Line"}
+        }
+        "meta:Lord_Howe"{
+            ld{"Sa’aatii Guyyaa Lord Howe"}
+            lg{"Sa’aatii Lord Howe"}
+            ls{"Sa’aatii Istaandaardii Lord Howe"}
+        }
+        "meta:Magadan"{
+            ld{"Sa’aatii Bonaa Magadan"}
+            lg{"Sa’aatii Magadan"}
+            ls{"Sa’aatii Istaandaardii Magadan"}
+        }
+        "meta:Malaysia"{
+            ls{"Sa’aatii Maaleeshiyaa"}
+        }
+        "meta:Maldives"{
+            ls{"Sa’aatii Maaldiivs"}
+        }
+        "meta:Marquesas"{
+            ls{"Sa’aatii Marquesas"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"Sa’aatii Odoloota Maarshaal"}
+        }
+        "meta:Mauritius"{
+            ld{"Sa’aatii Bonaa Moorishiyees"}
+            lg{"Sa’aatii Mooriishiyees"}
+            ls{"Sa’aatii Istaandaardii Moorishiyees"}
+        }
+        "meta:Mawson"{
+            ls{"Sa’aatii Mawson"}
+        }
+        "meta:Mexico_Pacific"{
+            ld{"Sa’aatii Guyyaa Paasfiik Meksiikaan"}
+            lg{"Sa’aatii Paasfiik Meksiikaan"}
+            ls{"Sa’aatii Istaandaardii Paasfiik Meksiikaan"}
+        }
+        "meta:Mongolia"{
+            ld{"Sa’aatii Bonaa Ulaanbaatar"}
+            lg{"Sa’aatii Ulaanbaatar"}
+            ls{"Sa’aatii Istaandaardii Ulaanbaatar"}
+        }
+        "meta:Moscow"{
+            ld{"Sa’aatii Bonaa Mooskoo"}
+            lg{"Sa’aatii Mooskoo"}
+            ls{"Sa’aatii Istaandaardii Mooskoo"}
+        }
+        "meta:Myanmar"{
+            ls{"Sa’aatii Maayinaamaar"}
+        }
+        "meta:Nauru"{
+            ls{"Sa’aatii Naawuruu"}
+        }
+        "meta:Nepal"{
+            ls{"Sa’aatii Neeppaal"}
+        }
+        "meta:New_Caledonia"{
+            ld{"Sa’aatii Bonaa Kaaledooniyaa Haaraa"}
+            lg{"Sa’aatii Kaaledooniyaa Haaraa"}
+            ls{"Sa’aatii Istaandaardii Kaaledooniyaa Haaraa"}
+        }
+        "meta:New_Zealand"{
+            ld{"Sa’aatii Guyyaa New Zealand"}
+            lg{"Sa’aatii New Zealand"}
+            ls{"Sa’aatii Istaandaardii New Zealand"}
+        }
+        "meta:Newfoundland"{
+            ld{"Sa’aatii Guyyaa Newufaawondlaand"}
+            lg{"Sa’aatii Newufaawondlaand"}
+            ls{"Sa’aatii Istaandaardii Newufaawondlaand"}
+        }
+        "meta:Niue"{
+            ls{"Sa’aatii Niue"}
+        }
+        "meta:Norfolk"{
+            ld{"Sa’aatii Guyyaa Norfolk Island"}
+            lg{"Sa’aatii Norfolk Island"}
+            ls{"Sa’aatii Istaandaardii Norfolk Island"}
+        }
+        "meta:Noronha"{
+            ld{"Sa’aatii Bonaa Fernando de Noronha"}
+            lg{"Sa’aatii Fernando de Noronha"}
+            ls{"Sa’aatii Istaandaardii Fernando de Noronha"}
+        }
+        "meta:North_Mariana"{
+            ls{"Sa’aatii Odoloota Maariyaanaa Kaabaa"}
+        }
+        "meta:Novosibirsk"{
+            ld{"Sa’aatii Bonaa Novosibirisk"}
+            lg{"Sa’aatii Novosibirisk"}
+            ls{"Sa’aatii Istaandaardii Novosibirisk"}
+        }
+        "meta:Omsk"{
+            ld{"Sa’aatii Bonaa Omsk"}
+            lg{"Sa’aatii Omsk"}
+            ls{"Sa’aatii Istaandaardii Omsk"}
+        }
+        "meta:Pakistan"{
+            ld{"Sa’aatii Bonaa Paakistaan"}
+            lg{"Sa’aatii Paakistaan"}
+            ls{"Sa’aatii Istaandaardii Paakistaan"}
+        }
+        "meta:Palau"{
+            ls{"Sa’aatii Palawu"}
+        }
+        "meta:Papua_New_Guinea"{
+            ls{"Sa’aatii Paapuwaa Giinii Haaraa"}
+        }
+        "meta:Paraguay"{
+            ld{"Sa’aatii Bonaa Paaraaguwaayi"}
+            lg{"Sa’aatii Paaraaguwaayi"}
+            ls{"Sa’aatii Istaandaardii Paaraaguwaayi"}
+        }
+        "meta:Peru"{
+            ld{"Sa’aatii Bonaa Peeruu"}
+            lg{"Sa’aatii Peeruu"}
+            ls{"Sa’aatii Istaandaardii Peeruu"}
+        }
+        "meta:Philippines"{
+            ld{"Sa’aatii Bonaa Filippiins"}
+            lg{"Sa’aatii Filippiins"}
+            ls{"Sa’aatii Istaandaardii Filippiins"}
+        }
+        "meta:Phoenix_Islands"{
+            ls{"Sa’aatii Odoloota Fooneeks"}
+        }
+        "meta:Pierre_Miquelon"{
+            ld{"Sa’aatii Guyyaa Ql. Piyeeree fi Mikuyelo"}
+            lg{"Sa’aatii Ql. Piyeeree fi Mikuyelo"}
+            ls{"Sa’aatii Istaandaardii Ql. Piyeeree fi Mikuyelo"}
+        }
+        "meta:Pitcairn"{
+            ls{"Sa’aatii Pitcairn"}
+        }
+        "meta:Ponape"{
+            ls{"Sa’aatii Ponape"}
+        }
+        "meta:Pyongyang"{
+            ls{"Sa’aatii Piyoongyaang"}
+        }
+        "meta:Reunion"{
+            ls{"Sa’aatii Riiyuuniyeen"}
+        }
+        "meta:Rothera"{
+            ls{"Sa’aatii Rothera"}
+        }
+        "meta:Sakhalin"{
+            ld{"Sa’aatii Bonaa Sakhalin"}
+            lg{"Sa’aatii Sakhalin"}
+            ls{"Sa’aatii Istaandaardii Sakhalin"}
+        }
+        "meta:Samoa"{
+            ld{"Sa’aatii Guyyaa Saamowaa"}
+            lg{"Sa’aatii Saamowaa"}
+            ls{"Sa’aatii Istaandaardii Saamowaa"}
+        }
+        "meta:Seychelles"{
+            ls{"Sa’aatii Siisheels"}
+        }
+        "meta:Singapore"{
+            ls{"Sa’aatii Istaandaardii Singaapoor"}
+        }
+        "meta:Solomon"{
+            ls{"Sa’aatii Odoloota Solomoon"}
+        }
+        "meta:South_Georgia"{
+            ls{"Sa’aatii Joorjiyaa Kibbaa"}
+        }
+        "meta:Suriname"{
+            ls{"Sa’aatii Surinaame"}
+        }
+        "meta:Syowa"{
+            ls{"Sa’aatii Syowa"}
+        }
+        "meta:Tahiti"{
+            ls{"Sa’aatii Tahiti"}
+        }
+        "meta:Taipei"{
+            ld{"Sa’aatii Guyyaa Tayipeyi"}
+            lg{"Sa’aatii Tayipeyi"}
+            ls{"Sa’aatii Istaandaardii Tayipeyi"}
+        }
+        "meta:Tajikistan"{
+            ls{"Sa’aatii Tajikistaan"}
+        }
+        "meta:Tokelau"{
+            ls{"Sa’aatii Takelawu"}
+        }
+        "meta:Tonga"{
+            ld{"Sa’aatii Bonaa Tonga"}
+            lg{"Sa’aatii Tonga"}
+            ls{"Sa’aatii Istaandaardii Tonga"}
+        }
+        "meta:Truk"{
+            ls{"Sa’aatii Chuuk"}
+        }
+        "meta:Turkmenistan"{
+            ld{"Sa’aatii Bonaa Turkemenistaan"}
+            lg{"Sa’aatii Turkemenistaan"}
+            ls{"Sa’aatii Istaandaardii Turkemenistaan"}
+        }
+        "meta:Tuvalu"{
+            ls{"Sa’aatii Tuvalu"}
+        }
+        "meta:Uruguay"{
+            ld{"Sa’aatii Bonaa Yuraagaayi"}
+            lg{"Sa’aatii Yuraagaayi"}
+            ls{"Sa’aatii Istaandaardii Yuraagaayi"}
+        }
+        "meta:Uzbekistan"{
+            ld{"Sa’aatii Bonaa Uzbeekistaan"}
+            lg{"Sa’aatii Uzbeekistaan"}
+            ls{"Sa’aatii Istaandaardii Uzbeekistaan"}
+        }
+        "meta:Vanuatu"{
+            ld{"Sa’aatii Bonaa Vanuwatu"}
+            lg{"Sa’aatii Vanuwatu"}
+            ls{"Sa’aatii Istaandaardii Vanuwatu"}
+        }
+        "meta:Venezuela"{
+            ls{"Sa’aatii Veenzuweelaa"}
+        }
+        "meta:Vladivostok"{
+            ld{"Sa’aatii Bonaa Vladivostok"}
+            lg{"Sa’aatii Vladivostok"}
+            ls{"Sa’aatii Istaandaardii Vladivostok"}
+        }
+        "meta:Volgograd"{
+            ld{"Sa’aatii Bonaa Volgograd"}
+            lg{"Sa’aatii Volgograd"}
+            ls{"Sa’aatii Istaandaardii Volgograd"}
+        }
+        "meta:Vostok"{
+            ls{"Sa’aatii Vostok"}
+        }
+        "meta:Wake"{
+            ls{"Sa’aatii Odola Wake"}
+        }
+        "meta:Wallis"{
+            ls{"Sa’aatii Wallis fi Futuna"}
+        }
+        "meta:Yakutsk"{
+            ld{"Sa’aatii Bonaa Yakutsk"}
+            lg{"Sa’aatii Yakutsk"}
+            ls{"Sa’aatii Istaandardii Yakutsk"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"Sa’aatii Bonaa Yekaterinburg"}
+            lg{"Sa’aatii Yekaterinburg"}
+            ls{"Sa’aatii Istaandaardii Yekaterinburg"}
+        }
+        "meta:Yukon"{
+            ls{"Sa’aatii Yuukoon"}
+        }
+        regionFormat{"Sa’aatii {0}"}
+        regionFormatDaylight{"Sa’aatii Guyyaa {0}"}
+        regionFormatStandard{"Sa’aatii Istaandardii {0}"}
     }
 }

@@ -18,7 +18,7 @@
 # Does *not* do assimilation of "al", nor hyphenation.
 # While it could be done, we need to determine whether a prefix "al" could
 # occur other than as the definite article (since no space is used).
-:: [[:Arabic:][:block=ARABIC:][‎ⁿ،؛؟ـ\u064B-\u0655٠-٬۰-۹﷼ښ]] ;
+:: [[:Arabic:][:block=ARABIC:][‎ⁿ،؛؟ـ\u064B-\u0655٠-٬۰-۹﷼ښ][\u0611\u0670]] ;
 :: NFKD (NFC);
 $disambig =  \u0331 ;
 $disambig2 =  \u0330 ;
@@ -173,6 +173,8 @@ $notAbove = [[:^ccc=0:] & [:^ccc=230:]];
 #https://www.eki.ee/wgrs/rom1_ug.pdf
 ‎ہ‎ → ḥ ;
 ‎ە‎ → ĥ ;
+# Delete marks without correspondants
+[\u0611\u0670] → ;
 # fallbacks
 | s ← c } [eiy];
 | k ← c ;

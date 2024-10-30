@@ -466,9 +466,6 @@ sr_Latn{
         "America:New_York"{
             ec{"Njujork"}
         }
-        "America:Nipigon"{
-            ec{"Nipigon"}
-        }
         "America:Nome"{
             ec{"Nom"}
         }
@@ -489,9 +486,6 @@ sr_Latn{
         }
         "America:Panama"{
             ec{"Panama"}
-        }
-        "America:Pangnirtung"{
-            ec{"Pangnirtung"}
         }
         "America:Paramaribo"{
             ec{"Paramaribo"}
@@ -514,9 +508,6 @@ sr_Latn{
         "America:Punta_Arenas"{
             ec{"Punta Arenas"}
         }
-        "America:Rainy_River"{
-            ec{"Rejni River"}
-        }
         "America:Rankin_Inlet"{
             ec{"Rankin Inlet"}
         }
@@ -531,9 +522,6 @@ sr_Latn{
         }
         "America:Rio_Branco"{
             ec{"Rio Branko"}
-        }
-        "America:Santa_Isabel"{
-            ec{"Santa Izabel"}
         }
         "America:Santarem"{
             ec{"Santarem"}
@@ -580,9 +568,6 @@ sr_Latn{
         "America:Thule"{
             ec{"Tul"}
         }
-        "America:Thunder_Bay"{
-            ec{"Tander Bej"}
-        }
         "America:Tijuana"{
             ec{"Tihuana"}
         }
@@ -603,9 +588,6 @@ sr_Latn{
         }
         "America:Yakutat"{
             ec{"Jakutat"}
-        }
-        "America:Yellowknife"{
-            ec{"Jelounajf"}
         }
         "Antarctica:Casey"{
             ec{"Kejsi"}
@@ -696,9 +678,6 @@ sr_Latn{
         }
         "Asia:Chita"{
             ec{"Čita"}
-        }
-        "Asia:Choibalsan"{
-            ec{"Čojbalsan"}
         }
         "Asia:Colombo"{
             ec{"Kolombo"}
@@ -931,9 +910,6 @@ sr_Latn{
         "Australia:Broken_Hill"{
             ec{"Broken Hil"}
         }
-        "Australia:Currie"{
-            ec{"Kari"}
-        }
         "Australia:Darwin"{
             ec{"Darvin"}
         }
@@ -1116,9 +1092,6 @@ sr_Latn{
         "Europe:Ulyanovsk"{
             ec{"Uljanovsk"}
         }
-        "Europe:Uzhgorod"{
-            ec{"Užgorod"}
-        }
         "Europe:Vaduz"{
             ec{"Vaduz"}
         }
@@ -1139,9 +1112,6 @@ sr_Latn{
         }
         "Europe:Zagreb"{
             ec{"Zagreb"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"Zaporožje"}
         }
         "Europe:Zurich"{
             ec{"Cirih"}
@@ -1223,9 +1193,6 @@ sr_Latn{
         }
         "Pacific:Honolulu"{
             ec{"Honolulu"}
-        }
-        "Pacific:Johnston"{
-            ec{"Džonston"}
         }
         "Pacific:Kanton"{
             ec{"Kanton"}
@@ -1473,11 +1440,6 @@ sr_Latn{
             lg{"Kina vreme"}
             ls{"Kinesko standardno vreme"}
         }
-        "meta:Choibalsan"{
-            ld{"Čojbalsan, letnje vreme"}
-            lg{"Čojbalsan vreme"}
-            ls{"Čojbalsan, standardno vreme"}
-        }
         "meta:Christmas"{
             ls{"Božićno ostrvo vreme"}
         }
@@ -1654,6 +1616,9 @@ sr_Latn{
             lg{"Petropavlovsko-kamčatsko vreme"}
             ls{"Petropavlovsko-kamčatsko standardno vreme"}
         }
+        "meta:Kazakhstan"{
+            ls{"Kazahstansko vreme"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Istočno-kazahstansko vreme"}
         }
@@ -1692,9 +1657,6 @@ sr_Latn{
             lg{"Makao vreme"}
             ls{"Makao standardno vreme"}
         }
-        "meta:Macquarie"{
-            ls{"Ostrvo Makveri vreme"}
-        }
         "meta:Magadan"{
             ld{"Magadan, letnje vreme"}
             lg{"Magadan vreme"}
@@ -1719,11 +1681,6 @@ sr_Latn{
         }
         "meta:Mawson"{
             ls{"Moson vreme"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Severozapadni Meksiko, letnje vreme"}
-            lg{"Severozapadni Meksiko"}
-            ls{"Severozapadni Meksiko, standardno vreme"}
         }
         "meta:Mexico_Pacific"{
             ld{"Meksički Pacifik, letnje vreme"}
@@ -1957,11 +1914,6 @@ sr_Latn{
         "meta:Yukon"{
             ls{"Jukon"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
-        regionFormat{"{0}"}
         regionFormatDaylight{"{0}, letnje vreme"}
         regionFormatStandard{"{0}, standardno vreme"}
     }

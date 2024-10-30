@@ -5,22 +5,20 @@ ku{
     units{
         angle{
             arc-minute{
-                dnam{"xuleka kevanî"}
-                one{"{0} xuleka kevanî"}
-                other{"{0} xulekên kevanî"}
+                dnam{"deqîqeya kevanî"}
+                one{"{0} deqîqeya kevanî"}
+                other{"{0} deqîqeyên kevanî"}
             }
             arc-second{
-                dnam{"çirkeya kevanî"}
-                one{"{0} çirkeya kevanî"}
-                other{"{0} çirkeyên kevanî"}
+                dnam{"sanîyeya kevanî"}
+                one{"{0} sanîyeya kevanî"}
+                other{"{0} sanîyeyên kevanî"}
             }
             degree{
-                dnam{"derece"}
                 one{"{0} derece"}
                 other{"{0} derece"}
             }
             radian{
-                dnam{"radyan"}
                 one{"{0} radyan"}
                 other{"{0} radyan"}
             }
@@ -30,13 +28,63 @@ ku{
                 other{"{0} dewr"}
             }
         }
-        compound{
-            per{"{0}/{1}"}
-            times{"{0}⋅{1}"}
+        area{
+            acre{
+                dnam{"akre"}
+                one{"{0} akre"}
+                other{"{0} akre"}
+            }
+            dunam{
+                dnam{"donim"}
+                one{"{0} donim"}
+                other{"{0} donim"}
+            }
+            hectare{
+                dnam{"hektar"}
+            }
+            square-centimeter{
+                dnam{"santîmetre kare"}
+                one{"{0} santîmetre kare"}
+                other{"{0} santîmetre kare"}
+                per{"{0} serê santîmetre kareyê"}
+            }
+            square-foot{
+                dnam{"fît kare"}
+                one{"{0} fît kare"}
+                other{"{0} fît kare"}
+            }
+            square-inch{
+                dnam{"înç kare"}
+                one{"{0} înç kare"}
+                other{"{0} înç kare"}
+                per{"{0} serê înç kareyê"}
+            }
+            square-kilometer{
+                dnam{"kîlometre kare"}
+                one{"{0} kîlometre kare"}
+                other{"{0} kîlometre kare"}
+                per{"{0} serê kîlometre kareyê"}
+            }
+            square-meter{
+                dnam{"metre kare"}
+                one{"{0} metre kare"}
+                other{"{0} metre kare"}
+                per{"{0} serê metre kareyê"}
+            }
+            square-mile{
+                dnam{"mîl kare"}
+                one{"{0} mîl kare"}
+                other{"{0} mîl kare"}
+                per{"{0} serê mîl kareyê"}
+            }
+            square-yard{
+                dnam{"yarda kare"}
+                one{"{0} yarda kare"}
+                other{"{0} yarda kare"}
+            }
         }
         concentr{
             karat{
-                dnam{"qerat"}
                 one{"{0} qerat"}
                 other{"{0} qerat"}
             }
@@ -47,41 +95,57 @@ ku{
             }
         }
         coordinate{
+            dnam{"hêlên sereke"}
             east{"{0} rojhilat"}
             north{"{0} bakur"}
             south{"{0} başûr"}
             west{"{0} rojava"}
         }
         duration{
+            century{
+                dnam{"ss"}
+                one{"{0} ss"}
+                other{"{0} ss"}
+            }
             day{
-                dnam{"roj"}
-                one{"{0} roj"}
-                other{"{0} roj"}
                 per{"{0}/roj"}
             }
+            decade{
+                dnam{"dehsal"}
+                one{"{0} dehsal"}
+                other{"{0} dehsal"}
+            }
             hour{
-                dnam{"saet"}
                 one{"{0} saet"}
                 other{"{0} saet"}
-                per{"{0}/st"}
             }
             minute{
                 dnam{"deqîqe"}
                 one{"{0} deqîqe"}
                 other{"{0} deqîqe"}
-                per{"{0}/d"}
             }
             month{
-                dnam{"meh"}
                 one{"{0} meh"}
                 other{"{0} meh"}
                 per{"{0}/meh"}
             }
+            night{
+                dnam{"şev"}
+                one{"{0} şev"}
+                other{"{0} şev"}
+                per{"{0}/şev"}
+            }
+            quarter{
+                dnam{"çaryek"}
+                one{"{0} çaryek"}
+                other{"{0} çaryek"}
+                per{"{0}/çaryek"}
+            }
             second{
-                dnam{"sanî"}
-                one{"{0} saniye"}
+                dnam{"sanîye"}
+                one{"{0} sanîye"}
                 other{"{0} saniye"}
-                per{"{0}/s"}
+                per{"{0}/sn"}
             }
             week{
                 dnam{"hefte"}
@@ -89,23 +153,171 @@ ku{
                 other{"{0} hefte"}
                 per{"{0}/hefte"}
             }
-            year{
-                dnam{"sal"}
-                one{"{0} sal"}
-                other{"{0} sal"}
+        }
+        length{
+            astronomical-unit{
+                dnam{"yekeya astronomîk"}
+                one{"{0} yekeya astronomîk"}
+                other{"{0} yekeya astronomîk"}
+            }
+            centimeter{
+                dnam{"santîmetre"}
+                per{"{0} serê santîmetreyê"}
+            }
+            decimeter{
+                dnam{"decîmetre"}
+                one{"{0} decîmetre"}
+                other{"{0} decîmetre"}
+            }
+            earth-radius{
+                dnam{"nîvçapa dinyayê"}
+                one{"{0} nîvçapa dinyayê"}
+                other{"{0} nîvçapa dinyayê"}
+            }
+            fathom{
+                dnam{"fathom"}
+                one{"{0} fathom"}
+                other{"{0} fathom"}
+            }
+            foot{
+                dnam{"fît"}
+                one{"{0} fît"}
+                other{"{0} fît"}
+                per{"{0} serê fîtê"}
+            }
+            furlong{
+                dnam{"furlong"}
+                one{"{0} furlong"}
+                other{"{0} furlong"}
+            }
+            inch{
+                dnam{"înç"}
+                one{"{0} înç"}
+                other{"{0} înç"}
+                per{"{0} serê înçê"}
+            }
+            kilometer{
+                dnam{"kîlometre"}
+                one{"{0} kîlometre"}
+                other{"{0} kîlometre"}
+                per{"{0} serê kîlometreyê"}
+            }
+            light-year{
+                dnam{"sala ronahîyê"}
+                one{"{0} sala ronahîyê"}
+                other{"{0} sala ronahîyê"}
+            }
+            meter{
+                dnam{"metre"}
+                one{"{0} metre"}
+                other{"{0} metre"}
+                per{"{0} serê metreyê"}
+            }
+            micrometer{
+                dnam{"mîkrometre"}
+                one{"{0} mîkrometre"}
+                other{"{0} mîkrometre"}
+            }
+            mile{
+                dnam{"mîl"}
+                one{"{0} mîl"}
+                other{"{0} mîl"}
+            }
+            millimeter{
+                dnam{"mîlîmetre"}
+                one{"{0} mîlîmetre"}
+                other{"{0} mîlîmetre"}
+            }
+            nanometer{
+                dnam{"nanometre"}
+                one{"{0} nanometre"}
+                other{"{0} nanometre"}
+            }
+            nautical-mile{
+                dnam{"mîla behrê"}
+                one{"{0} mîla behrê"}
+                other{"{0} mîla behrê"}
+            }
+            parsec{
+                dnam{"parsek"}
+                one{"{0} parsek"}
+                other{"{0} parsek"}
+            }
+            picometer{
+                dnam{"pîkometre"}
+                one{"{0} pîkometre"}
+                other{"{0} pîkometre"}
+            }
+            point{
+                dnam{"punto"}
+                one{"{0} punto"}
+                other{"{0} punto"}
+            }
+            solar-radius{
+                dnam{"nîvçapa rojê"}
+                one{"{0} nîvçapa rojê"}
+                other{"{0} nîvçapa rojê"}
+            }
+            yard{
+                dnam{"yarda"}
+            }
+        }
+        mass{
+            kilogram{
+                dnam{"kîlogram"}
+            }
+        }
+        speed{
+            kilometer-per-hour{
+                dnam{"kîlometreya serê saetê"}
+                one{"{0} km/st"}
+                other{"{0} km/st"}
+            }
+        }
+        volume{
+            liter{
+                dnam{"lître"}
             }
         }
     }
     unitsNarrow{
-        compound{
-            per{"{0}/{1}"}
-            times{"{0}⋅{1}"}
+        angle{
+            arc-minute{
+                dnam{"dq. kevanî"}
+            }
+            arc-second{
+                dnam{"sn. kevanî"}
+            }
+            radian{
+                dnam{"rad"}
+            }
         }
-        concentr{
-            percent{
-                dnam{"%"}
-                one{"%{0}"}
-                other{"%{0}"}
+        area{
+            acre{
+                dnam{"akre"}
+            }
+            dunam{
+                dnam{"donim"}
+                one{"{0} donim"}
+                other{"{0} donim"}
+            }
+            hectare{
+                dnam{"hektar"}
+            }
+            square-foot{
+                dnam{"fît kare"}
+            }
+            square-inch{
+                dnam{"înç kare"}
+            }
+            square-meter{
+                dnam{"metre kare"}
+            }
+            square-mile{
+                dnam{"mîl kare"}
+            }
+            square-yard{
+                dnam{"yarda kare"}
             }
         }
         consumption{
@@ -122,30 +334,49 @@ ku{
             west{"{0}Ra"}
         }
         duration{
+            century{
+                dnam{"ss"}
+                one{"{0} ss"}
+                other{"{0} ss"}
+            }
             day{
-                dnam{"roj"}
                 one{"{0}r"}
                 other{"{0}r"}
             }
+            decade{
+                dnam{"dehsal"}
+                one{"{0} dehsal"}
+                other{"{0} dehsal"}
+            }
             hour{
-                dnam{"saet"}
                 one{"{0}st"}
                 other{"{0}st"}
             }
             minute{
-                dnam{"d"}
                 one{"{0}d"}
                 other{"{0}d"}
             }
             month{
-                dnam{"meh"}
                 one{"{0}m"}
                 other{"{0}m"}
             }
+            night{
+                dnam{"şev"}
+                one{"{0} şev"}
+                other{"{0} şev"}
+                per{"{0}/şev"}
+            }
+            quarter{
+                dnam{"çaryek"}
+                one{"{0} çaryek"}
+                other{"{0} çaryek"}
+                per{"{0}/çaryek"}
+            }
             second{
-                dnam{"s"}
-                one{"{0}s"}
-                other{"{0}s"}
+                dnam{"sn"}
+                one{"{0}sn"}
+                other{"{0}sn"}
+                per{"{0}/sn"}
             }
             week{
                 one{"{0}hf"}
@@ -157,33 +388,134 @@ ku{
                 other{"{0}sl"}
             }
         }
+        length{
+            centimeter{
+                one{"{0}cm"}
+                other{"{0}cm"}
+            }
+            decimeter{
+                one{"{0}dm"}
+                other{"{0}dm"}
+            }
+            earth-radius{
+                dnam{"nîvçapa dinyayê"}
+            }
+            fathom{
+                dnam{"fathom"}
+            }
+            foot{
+                dnam{"fît"}
+                one{"{0}′"}
+                other{"{0}′"}
+            }
+            furlong{
+                dnam{"furlong"}
+            }
+            inch{
+                dnam{"înç"}
+                one{"{0}″"}
+                other{"{0}″"}
+            }
+            light-year{
+                dnam{"sala rnh"}
+                one{"{0} sala rnh"}
+                other{"{0} sala rnh"}
+            }
+            meter{
+                dnam{"m"}
+                one{"{0}m"}
+                other{"{0}m"}
+            }
+            micrometer{
+                one{"{0}μm"}
+                other{"{0}μm"}
+            }
+            mile{
+                dnam{"mîl"}
+                one{"{0}mi"}
+                other{"{0}mi"}
+            }
+            millimeter{
+                one{"{0}mm"}
+                other{"{0}mm"}
+            }
+            nanometer{
+                one{"{0}nm"}
+                other{"{0}nm"}
+            }
+            parsec{
+                dnam{"parsek"}
+            }
+            picometer{
+                one{"{0}pm"}
+                other{"{0}pm"}
+            }
+            solar-radius{
+                dnam{"nîvçapa rojê"}
+            }
+            yard{
+                dnam{"yarda"}
+            }
+        }
+        speed{
+            kilometer-per-hour{
+                dnam{"km/st"}
+                one{"{0} km/st"}
+                other{"{0} km/st"}
+            }
+        }
+        volume{
+            liter{
+                dnam{"lître"}
+            }
+        }
     }
     unitsShort{
         angle{
             arc-minute{
-                dnam{"xlk. kevanî"}
-                one{"{0}′"}
-                other{"{0}′"}
+                dnam{"dq. kevanî"}
             }
             arc-second{
-                dnam{"çrk. kevanî"}
-                one{"{0}″"}
-                other{"{0}″"}
+                dnam{"sn. kevanî"}
             }
             degree{
                 dnam{"derece"}
-                one{"{0}°"}
-                other{"{0}°"}
             }
             radian{
                 dnam{"radyan"}
-                one{"{0} rad"}
-                other{"{0} rad"}
             }
             revolution{
                 dnam{"dwr"}
                 one{"{0} dwr"}
                 other{"{0} dwr"}
+            }
+        }
+        area{
+            acre{
+                dnam{"akre"}
+            }
+            dunam{
+                dnam{"donim"}
+                one{"{0} donim"}
+                other{"{0} donim"}
+            }
+            hectare{
+                dnam{"hektar"}
+            }
+            square-foot{
+                dnam{"fît kare"}
+            }
+            square-inch{
+                dnam{"înç kare"}
+            }
+            square-meter{
+                dnam{"metre kare"}
+            }
+            square-mile{
+                dnam{"mîl kare"}
+            }
+            square-yard{
+                dnam{"yarda kare"}
             }
         }
         concentr{
@@ -208,17 +540,28 @@ ku{
             }
         }
         coordinate{
+            dnam{"hêl"}
             east{"{0} Rh"}
             north{"{0} Bk"}
             south{"{0} Bş"}
             west{"{0} Ra"}
         }
         duration{
+            century{
+                dnam{"ss"}
+                one{"{0} ss"}
+                other{"{0} ss"}
+            }
             day{
                 dnam{"roj"}
                 one{"{0} roj"}
                 other{"{0} roj"}
                 per{"{0}/r"}
+            }
+            decade{
+                dnam{"dehsal"}
+                one{"{0} dehsal"}
+                other{"{0} dehsal"}
             }
             hour{
                 dnam{"saet"}
@@ -234,15 +577,24 @@ ku{
             }
             month{
                 dnam{"meh"}
-                one{"{0} m"}
-                other{"{0} m"}
-                per{"{0}/m"}
+            }
+            night{
+                dnam{"şev"}
+                one{"{0} şev"}
+                other{"{0} şev"}
+                per{"{0}/şev"}
+            }
+            quarter{
+                dnam{"çaryek"}
+                one{"{0} çaryek"}
+                other{"{0} çaryek"}
+                per{"{0}/çaryek"}
             }
             second{
-                dnam{"s"}
-                one{"{0} s"}
-                other{"{0} s"}
-                per{"{0}/s"}
+                dnam{"sn"}
+                one{"{0} sn"}
+                other{"{0} sn"}
+                per{"{0}/sn"}
             }
             week{
                 dnam{"hf"}
@@ -257,16 +609,56 @@ ku{
                 per{"{0}/sal"}
             }
         }
-        force{
-            newton{
-                one{"{0} N"}
-                other{"{0} N"}
+        length{
+            earth-radius{
+                dnam{"nîvçapa dinyayê"}
+            }
+            fathom{
+                dnam{"fathom"}
+            }
+            foot{
+                dnam{"fît"}
+            }
+            furlong{
+                dnam{"furlong"}
+            }
+            inch{
+                dnam{"înç"}
+            }
+            light-year{
+                dnam{"sala rnh"}
+                one{"{0} sala rnh"}
+                other{"{0} sala rnh"}
+            }
+            meter{
+                dnam{"m"}
+            }
+            mile{
+                dnam{"mîl"}
+            }
+            parsec{
+                dnam{"parsek"}
+            }
+            point{
+                dnam{"punto"}
+            }
+            solar-radius{
+                dnam{"nîvçapa rojê"}
+            }
+            yard{
+                dnam{"yarda"}
             }
         }
-        torque{
-            newton-meter{
-                one{"{0} N⋅m"}
-                other{"{0} N⋅m"}
+        speed{
+            kilometer-per-hour{
+                dnam{"km/st"}
+                one{"{0} km/st"}
+                other{"{0} km/st"}
+            }
+        }
+        volume{
+            liter{
+                dnam{"lître"}
             }
         }
     }

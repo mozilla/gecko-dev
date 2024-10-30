@@ -5,10 +5,6 @@ en_PW{
     %%Parent{"en_001"}
     unitsNarrow{
         temperature{
-            celsius{
-                one{"{0}°C"}
-                other{"{0}°C"}
-            }
             fahrenheit{
                 one{"{0}°"}
                 other{"{0}°"}

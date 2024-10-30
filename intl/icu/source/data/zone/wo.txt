@@ -3,14 +3,44 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 wo{
     zoneStrings{
-        "Africa:Dakar"{
-            ec{"Dakar"}
-        }
         "Etc:UTC"{
             ls{"CUT (waxtu iniwelsel yuñ boole)"}
         }
         "Etc:Unknown"{
             ec{"Dëkk buñ xamul"}
+        }
+        "Europe:Dublin"{
+            ld{"waxtu Irlande"}
+        }
+        "Europe:London"{
+            ld{"Waxtu ete bu Grande Bretagne"}
+        }
+        "meta:Afghanistan"{
+            ls{"waxtu Afganistan"}
+        }
+        "meta:Africa_Central"{
+            ls{"Waxtu Afrique Centrale"}
+        }
+        "meta:Africa_Eastern"{
+            ls{"Waxtu Afrique sowwu jant"}
+        }
+        "meta:Africa_Southern"{
+            ls{"Afrique du Sud"}
+        }
+        "meta:Africa_Western"{
+            ld{"Afrique du sowwu jant"}
+            lg{"Waxtu sowwu Afrique"}
+            ls{"Waxtu buñ miin ci sowwu Afrique"}
+        }
+        "meta:Alaska"{
+            ld{"Waxtu bëccëg ci Alaska"}
+            lg{"Waxtu Alaska"}
+            ls{"Waxtu buñ miin ci Alaska"}
+        }
+        "meta:Amazon"{
+            ld{"Waxtu ete bu Amazon"}
+            lg{"Waxtu Amazon"}
+            ls{"Waxtu buñ jagleel Amazon"}
         }
         "meta:America_Central"{
             ld{"CDT (waxtu bëccëgu sàntaraal"}
@@ -32,10 +62,145 @@ wo{
             lg{"PT (waxtu pasifik)"}
             ls{"PST (waxtu estàndaaru pasifik)"}
         }
+        "meta:Apia"{
+            ld{"Apia waxtu bëccëg"}
+            lg{"Waxtu Apia"}
+            ls{"Waxtu buñ miin ci Apia"}
+        }
+        "meta:Arabian"{
+            ld{"Waxtu bëccëg ci Araab"}
+            lg{"Waxtu araab yi"}
+            ls{"Waxtu buñ miin ci Araab"}
+        }
+        "meta:Argentina"{
+            ld{"Waxtu ete bu Argentine"}
+            lg{"Waxtu Arsantiin"}
+            ls{"Waxtu buñ miin ci Arsantiin"}
+        }
+        "meta:Argentina_Western"{
+            ld{"waxtu ete bu sowwu Argentine"}
+            lg{"waxtu sowwu Argentine"}
+            ls{"Waxtu buñ miin ci sowwu Argentine"}
+        }
+        "meta:Armenia"{
+            ld{"Waxtu ete bu Armeni"}
+            lg{"Waxtu Armeni"}
+            ls{"Waxtu buñ miin ci Armeni"}
+        }
         "meta:Atlantic"{
             ld{"ADT (waxtu bëccëgu atlàntik)"}
             lg{"AT (waxtu atlàntik)"}
             ls{"AST (waxtu estàndaaru penku)"}
+        }
+        "meta:Australia_Central"{
+            ld{"Waxtu bëccëg ci diggu Australie"}
+            lg{"Waxtu Australie bu diggi bi"}
+            ls{"Waxtu buñ miin ci Australie"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"Waxtu bëccëg ci diggu sowwu Australie"}
+            lg{"Waxtu sowwu Australie"}
+            ls{"Waxtu buñ miin ci diggu sowwu Australie"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"Waxtu buñ miin ci penku Australie"}
+            lg{"waxtu penku Australie"}
+            ls{"Waxtu penku bu Australie"}
+        }
+        "meta:Australia_Western"{
+            ld{"Waxtu bëccëg bu sowwu Australie"}
+            lg{"waxtu Australie bu bëtu Soow"}
+            ls{"Waxtu buñ miin ci sowwu Australie"}
+        }
+        "meta:Azerbaijan"{
+            ld{"Waxtu ete bu Azerbaïdjan"}
+            lg{"Azerbaïdjan Waxtu"}
+            ls{"Waxtu Azerbaïdjan"}
+        }
+        "meta:Azores"{
+            ld{"Azores waxtu ete"}
+            lg{"Waxtu Azores"}
+            ls{"Waxtu buñ miin ci Azores"}
+        }
+        "meta:Bangladesh"{
+            ld{"Waxtu ete bu Bangladesh"}
+            lg{"Waxtu Bangladesh"}
+            ls{"Waxtu buñ miin ci Bangladesh"}
+        }
+        "meta:Bhutan"{
+            ls{"waxtu Bhoutan"}
+        }
+        "meta:Bolivia"{
+            ls{"Waxtu Bolivie"}
+        }
+        "meta:Brasilia"{
+            ld{"Brasilia summer time"}
+            lg{"Waxtu Bresil"}
+            ls{"Brasilia time"}
+        }
+        "meta:Brunei"{
+            ls{"Brunei Darussalam"}
+        }
+        "meta:Cape_Verde"{
+            ld{"Cape Verde ci jamonoy ete"}
+            lg{"Cape Verde"}
+            ls{"Cape Verde waxtu"}
+        }
+        "meta:Chamorro"{
+            ls{"Chamorro Standard Time"}
+        }
+        "meta:Chatham"{
+            ld{"Chatham Daylight Time"}
+            lg{"waxtu Chatham"}
+            ls{"Chatham Standard Time"}
+        }
+        "meta:Chile"{
+            ld{"Waxtu ete bu Sili"}
+            lg{"Waxtu Sili"}
+            ls{"Waxtu buñ miin ci Sili"}
+        }
+        "meta:China"{
+            ld{"Chine waxtu bëccëg"}
+            lg{"Waxtu Chine"}
+            ls{"Waxtu buñ miin ci Chine"}
+        }
+        "meta:Christmas"{
+            ls{"waxtu ile bu noel"}
+        }
+        "meta:Cocos"{
+            ls{"Waxtu ile Cocos"}
+        }
+        "meta:Colombia"{
+            ld{"Jamonoy ete ci Kolombi"}
+            lg{"Waxtu Kolombi"}
+            ls{"Waxtu buñ miin ci Kolombi"}
+        }
+        "meta:Cook"{
+            ld{"Ile Cook xaaju ete"}
+            lg{"Waxtu Ile Cook"}
+            ls{"Waxtu buñ miin ci Ile Cook"}
+        }
+        "meta:Cuba"{
+            ld{"Cuba waxtu bëccëg"}
+            lg{"Waxtu Cuba"}
+            ls{"waxtu buñ miin ci Cuba"}
+        }
+        "meta:Davis"{
+            ls{"Waxtu Davis"}
+        }
+        "meta:DumontDUrville"{
+            ls{"Dumont-d’Urville"}
+        }
+        "meta:East_Timor"{
+            ls{"Timor oriental"}
+        }
+        "meta:Easter"{
+            ld{"Jamonoy ete ci Ile de Pâques"}
+            lg{"Waxtu ile bu Pâques"}
+            ls{"Waxtu buñ miin ci Ile de Pâques"}
+        }
+        "meta:Ecuador"{
+            ls{"waxtu Ecuador"}
         }
         "meta:Europe_Central"{
             ld{"CEST (waxtu ete wu ëroop sàntaraal)"}
@@ -47,20 +212,392 @@ wo{
             lg{"EET (waxtu ëroop u penku)"}
             ls{"EEST (waxtu estàndaaru ëroop u penku)"}
         }
+        "meta:Europe_Further_Eastern"{
+            ls{"waxtu penku Europe"}
+        }
         "meta:Europe_Western"{
             ld{"WEST (waxtu ete wu ëroop u sowwu-jant)"}
             lg{"WET (waxtu ëroop u sowwu-jant"}
             ls{"WEST (waxtu estàndaaru ëroop u sowwu-jant)"}
         }
+        "meta:Falkland"{
+            ld{"Jamonoy ete ci ile Falkland"}
+            lg{"Falkland time"}
+            ls{"Falkland waxtu buñ miin"}
+        }
+        "meta:Fiji"{
+            ld{"Jamonoy ete ci Fiji"}
+            lg{"waxtu Fidji"}
+            ls{"Fidji"}
+        }
+        "meta:French_Guiana"{
+            ls{"Guyane française"}
+        }
+        "meta:French_Southern"{
+            ls{"Waxtu Sud ak Antarctique bu Français"}
+        }
         "meta:GMT"{
             ls{"GMT (waxtu Greenwich)"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
-        regionFormat{"{0}"}
-        regionFormatDaylight{"{0} (+1)"}
-        regionFormatStandard{"{0} (+0)"}
+        "meta:Galapagos"{
+            ls{"waxtu galapagos"}
+        }
+        "meta:Gambier"{
+            ls{"Waxtu Gambier"}
+        }
+        "meta:Georgia"{
+            ld{"Georgie waxtu ete"}
+            lg{"Waxtu Georgie"}
+            ls{"Georgie waxtu"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"waxtu ile Gilbert"}
+        }
+        "meta:Greenland_Eastern"{
+            ld{"Waxtu ete bu penku Greenland"}
+            lg{"waxtu penku Greenland"}
+            ls{"Waxtu buñ miin ci penku Greenland"}
+        }
+        "meta:Greenland_Western"{
+            ld{"waxtu ete bu sowwu Groenland"}
+            lg{"waxtu sowwu Greenland"}
+            ls{"waxtu buñ miin ci sowwu Groenland"}
+        }
+        "meta:Gulf"{
+            ls{"Waxtu Golf"}
+        }
+        "meta:Guyana"{
+            ls{"Waxtu Guyana"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ld{"Waxtu bëccëg bu Hawaii-Aleutian"}
+            lg{"Waxtu Hawaii-Aleutian"}
+            ls{"Waxtu buñ jagleel Hawaii-Aleutian"}
+        }
+        "meta:Hong_Kong"{
+            ld{"Jamonoy ete ci Hong Kong"}
+            lg{"waxtu Hong Kong"}
+            ls{"waxtu buñ miin ci Hong Kong"}
+        }
+        "meta:Hovd"{
+            ld{"Hovd waxtu ete"}
+            lg{"Hovd waxtu"}
+            ls{"Hovd waxtu standard"}
+        }
+        "meta:India"{
+            ls{"Waxtu Inde"}
+        }
+        "meta:Indian_Ocean"{
+            ls{"Waxtu géeju Inde"}
+        }
+        "meta:Indochina"{
+            ls{"waxtu Indochine"}
+        }
+        "meta:Indonesia_Central"{
+            ls{"Waxtu Enndonesi bu diggi bi"}
+        }
+        "meta:Indonesia_Eastern"{
+            ls{"waxtu penku Enndonesi"}
+        }
+        "meta:Indonesia_Western"{
+            ls{"waxtu sowwu Enndonesi"}
+        }
+        "meta:Iran"{
+            ld{"Waxtu bëccëg ci Iran"}
+            lg{"Waxtu Iran"}
+            ls{"Iran waxtu buñ miin"}
+        }
+        "meta:Irkutsk"{
+            ld{"Waxtu ete bu Irkutsk"}
+            lg{"Waxtu rkutsk"}
+            ls{"waxtu Irkutsk time"}
+        }
+        "meta:Israel"{
+            ld{"Israel waxtu bëccëg"}
+            lg{"Waxtu Israel"}
+            ls{"Waxtu buñ miin ci Israel"}
+        }
+        "meta:Japan"{
+            ld{"Japon waxtu bëccëg"}
+            lg{"Japon"}
+            ls{"Waxtu japon"}
+        }
+        "meta:Kazakhstan"{
+            ls{"Waxtu Kazakhstaan"}
+        }
+        "meta:Kazakhstan_Eastern"{
+            ls{"Kazakhstan penku"}
+        }
+        "meta:Kazakhstan_Western"{
+            ls{"Kazakhstan bu sowwu jant"}
+        }
+        "meta:Korea"{
+            ld{"waxtu bëccëg ci Kore"}
+            lg{"waxtu Kore"}
+            ls{"waxtu buñ miin ci Kore"}
+        }
+        "meta:Kosrae"{
+            ls{"Waxtu Kosrae"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"Krasnoyarsk ci jamonoy ete"}
+            lg{"Waxtu Krasnoyarsk"}
+            ls{"Krasnoyarsk waxtu"}
+        }
+        "meta:Kyrgystan"{
+            ls{"Waxtu Kirgistan"}
+        }
+        "meta:Line_Islands"{
+            ls{"Waxtu Ile Line"}
+        }
+        "meta:Lord_Howe"{
+            ld{"ord Howe Daylight Time"}
+            lg{"Lord Howe Time"}
+            ls{"Lord Howe waxtu buñ miin"}
+        }
+        "meta:Magadan"{
+            ld{"Waxtu ete bu Magadan"}
+            lg{"Waxtu Magadaan"}
+            ls{"Magadan, waxtu"}
+        }
+        "meta:Malaysia"{
+            ls{"Malaysie"}
+        }
+        "meta:Maldives"{
+            ls{"Waxtu Maldives"}
+        }
+        "meta:Marquesas"{
+            ls{"Waxtu Marquesas"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"Waxtu Ile Marshall"}
+        }
+        "meta:Mauritius"{
+            ld{"Waxtu ete bu Maurice"}
+            lg{"waxtu Maurice"}
+            ls{"Waxtu buñ miin ci Maurice"}
+        }
+        "meta:Mawson"{
+            ls{"waxtu Mawson"}
+        }
+        "meta:Mexico_Pacific"{
+            ld{"Waxtu bëccëg ci Pacific Mexique"}
+            lg{"waxtu pasifik bu Mexik"}
+            ls{"Waxtu buñ miin ci pasifik bu Mexico"}
+        }
+        "meta:Mongolia"{
+            ld{"Ulaan Baatar time"}
+            lg{"Ulaan Baatar"}
+            ls{"Ulaanbatar"}
+        }
+        "meta:Moscow"{
+            ld{"Waxtu ete bu Moscou"}
+            lg{"Waxtu Moscow"}
+            ls{"Moscow Waxtu"}
+        }
+        "meta:Myanmar"{
+            ls{"waxtu Myanmar"}
+        }
+        "meta:Nauru"{
+            ls{"waxtu Nauru"}
+        }
+        "meta:Nepal"{
+            ls{"waxtu Nepal"}
+        }
+        "meta:New_Caledonia"{
+            ld{"Waxtu ete bu Nouvelle Caledonie"}
+            lg{"Waxtu New Caledonie"}
+            ls{"Waxtu buñ miin ci Caledonie bu bees"}
+        }
+        "meta:New_Zealand"{
+            ld{"Nouvelle-Zélande"}
+            lg{"Waxtu Nouvelle-Zélande"}
+            ls{"Waxtu buñ miin ci Nouvelle-Zélande"}
+        }
+        "meta:Newfoundland"{
+            ld{"Terre-Neuve"}
+            lg{"waxtu Terre-Neuve"}
+            ls{"Terre Neuve"}
+        }
+        "meta:Niue"{
+            ls{"Waxtu Niue"}
+        }
+        "meta:Norfolk"{
+            ld{"waxtu bëccëg ci ile Norfolk"}
+            lg{"waxtu ile Norfolk"}
+            ls{"Waxtu buñ miin ci Ile Norfolk"}
+        }
+        "meta:Noronha"{
+            ld{"Fernando de noronha temps d’été"}
+            lg{"Fernando de noronha"}
+            ls{"Vernando de Noronha"}
+        }
+        "meta:Novosibirsk"{
+            ld{"Novosibirsk ci jamonoy ete"}
+            lg{"Waxtu Nowosibirsk"}
+            ls{"Novosibirsk waxtu"}
+        }
+        "meta:Omsk"{
+            ld{"Omsk waxtu ete"}
+            lg{"Waxtu Omsk"}
+            ls{"Waxtu buñ miin ci Omsk"}
+        }
+        "meta:Pakistan"{
+            ld{"Waxtu ete bu Pakistan"}
+            lg{"Waxtu Pakistan"}
+            ls{"Waxtu buñ miin ci Pakistan"}
+        }
+        "meta:Palau"{
+            ls{"waxtu Palau"}
+        }
+        "meta:Papua_New_Guinea"{
+            ls{"Papouasie-Nouvelle-Guiné"}
+        }
+        "meta:Paraguay"{
+            ld{"Paraguay waxtu ete"}
+            lg{"Waxtu Paraguay"}
+            ls{"paraguay waxtu"}
+        }
+        "meta:Peru"{
+            ld{"Peru waxtu ete"}
+            lg{"Peru waxtu"}
+            ls{"Peru waxtu buñ miin"}
+        }
+        "meta:Philippines"{
+            ld{"Jamonoy ete ci Philippines"}
+            lg{"filippines waxtu"}
+            ls{"waxtu buñ miin ci filipiin"}
+        }
+        "meta:Phoenix_Islands"{
+            ls{"waxtu ile Phoenix"}
+        }
+        "meta:Pierre_Miquelon"{
+            ld{"Saint Pierre and Miquelon"}
+            lg{"Saint Pierre ak Miquelon"}
+            ls{"Saint Pierre & Miquelon"}
+        }
+        "meta:Pitcairn"{
+            ls{"Waxtu Pitcairn"}
+        }
+        "meta:Ponape"{
+            ls{"Waxtu Ponape"}
+        }
+        "meta:Pyongyang"{
+            ls{"waxtu Pyongyang"}
+        }
+        "meta:Reunion"{
+            ls{"waxtu ndaje"}
+        }
+        "meta:Rothera"{
+            ls{"Waxtu Rotera"}
+        }
+        "meta:Sakhalin"{
+            ld{"Sakhalin Sakhalin"}
+            lg{"waxtu Saxalin"}
+            ls{"Saxalin"}
+        }
+        "meta:Samoa"{
+            ld{"Samoa waxtu bëccëg"}
+            lg{"waxtu Samoa"}
+            ls{"Samoa Standard Time"}
+        }
+        "meta:Seychelles"{
+            ls{"Waxtu Seychelles"}
+        }
+        "meta:Singapore"{
+            ls{"waxtu buñ miin ci Singapuur"}
+        }
+        "meta:Solomon"{
+            ls{"Waxtu Ile Solomon"}
+        }
+        "meta:South_Georgia"{
+            ls{"Georgie du Sud"}
+        }
+        "meta:Suriname"{
+            ls{"Waxtu Surinam"}
+        }
+        "meta:Syowa"{
+            ls{"waxtu syowa"}
+        }
+        "meta:Tahiti"{
+            ls{"waxtu Tahiti"}
+        }
+        "meta:Taipei"{
+            ld{"Taipei waxtu leeralu bis"}
+            lg{"Waxtu Taipei"}
+            ls{"Waxtu buñ miin ci Taipei"}
+        }
+        "meta:Tajikistan"{
+            ls{"Waxtu Tajikistaan"}
+        }
+        "meta:Tokelau"{
+            ls{"Tokelau time"}
+        }
+        "meta:Tonga"{
+            ld{"Jamonoy ete ci Tonga"}
+            lg{"Waxtu Tonga"}
+            ls{"Tonga waxtu buñ miin"}
+        }
+        "meta:Truk"{
+            ls{"Waxtu Chuuk"}
+        }
+        "meta:Turkmenistan"{
+            ld{"Waxtu ete bu Turkmenistan"}
+            lg{"Waxtu Turkmenistan"}
+            ls{"Waxtu buñ miin"}
+        }
+        "meta:Tuvalu"{
+            ls{"Waxtu Tuvalu"}
+        }
+        "meta:Uruguay"{
+            ld{"Uruguay waxtu ete"}
+            lg{"Waxtu Urugway"}
+            ls{"Uruguay waxtu buñ miin"}
+        }
+        "meta:Uzbekistan"{
+            ld{"Waxtu ete bu Ouzbékistan"}
+            lg{"Waxtu Ouzbékistan"}
+            ls{"Waxtu buñ miin ci Ouzbékistan"}
+        }
+        "meta:Vanuatu"{
+            ld{"Waxtu ete bu Vanuatu"}
+            lg{"Waxtu Vanuatu"}
+            ls{"Waxtu miin"}
+        }
+        "meta:Venezuela"{
+            ls{"Waxtu Venezuela"}
+        }
+        "meta:Vladivostok"{
+            ld{"Vladivostok ci jamonoy ete"}
+            lg{"Waxtu Vladivostok"}
+            ls{"Vladivostok ci waxtu"}
+        }
+        "meta:Volgograd"{
+            ld{"Jamonoy ete bu Volgograd"}
+            lg{"Waxtu Volgograd"}
+            ls{"Volgograd waxtu buñ miin"}
+        }
+        "meta:Vostok"{
+            ls{"Waxtu Vostok"}
+        }
+        "meta:Wake"{
+            ls{"Waxtu Ile Wake"}
+        }
+        "meta:Wallis"{
+            ls{"Wallis & Futuna Time"}
+        }
+        "meta:Yakutsk"{
+            ld{"Waxtu ete bu Yakutsk"}
+            lg{"Yakutsk Waxtu"}
+            ls{"Waxtu Yakutsk"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"Jamonoy ete"}
+            lg{"Waxtu Yekaterinburg"}
+            ls{"Yekatérinbourg"}
+        }
+        "meta:Yukon"{
+            ls{"Waxtu Yukon"}
+        }
     }
 }

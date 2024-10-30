@@ -71,9 +71,6 @@ ps_PK{
         "meta:Lord_Howe"{
             ld{"رب هاو د ورځے د رڼا وخت"}
         }
-        "meta:Mexico_Northwest"{
-            ld{"د شمال لویدیځ مکسیکو رڼا ورځے وخت"}
-        }
         "meta:Mexico_Pacific"{
             ld{"مکسیکن پیسفک رڼا ورځے وخت"}
         }

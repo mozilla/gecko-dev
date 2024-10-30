@@ -465,9 +465,6 @@ sd{
         "America:New_York"{
             ec{"نيويارڪ"}
         }
-        "America:Nipigon"{
-            ec{"نپيگان"}
-        }
         "America:Nome"{
             ec{"نوم"}
         }
@@ -489,9 +486,6 @@ sd{
         "America:Panama"{
             ec{"پناما"}
         }
-        "America:Pangnirtung"{
-            ec{"پینگنرٽنگ"}
-        }
         "America:Paramaribo"{
             ec{"پيراميريبو"}
         }
@@ -512,9 +506,6 @@ sd{
         }
         "America:Punta_Arenas"{
             ec{"پنٽا اريناس"}
-        }
-        "America:Rainy_River"{
-            ec{"ريني رور"}
         }
         "America:Rankin_Inlet"{
             ec{"رينڪن انليٽ"}
@@ -576,9 +567,6 @@ sd{
         "America:Thule"{
             ec{"ٿولي"}
         }
-        "America:Thunder_Bay"{
-            ec{"ٿنڊر بي"}
-        }
         "America:Tijuana"{
             ec{"تيجوانا"}
         }
@@ -599,9 +587,6 @@ sd{
         }
         "America:Yakutat"{
             ec{"ياڪوتات"}
-        }
-        "America:Yellowknife"{
-            ec{"ييلو نائيف"}
         }
         "Antarctica:Casey"{
             ec{"ڪيسي"}
@@ -692,9 +677,6 @@ sd{
         }
         "Asia:Chita"{
             ec{"چيتا"}
-        }
-        "Asia:Choibalsan"{
-            ec{"چوئي بيلسن"}
         }
         "Asia:Colombo"{
             ec{"ڪولمبو"}
@@ -927,9 +909,6 @@ sd{
         "Australia:Broken_Hill"{
             ec{"بروڪن هل"}
         }
-        "Australia:Currie"{
-            ec{"ڪري"}
-        }
         "Australia:Darwin"{
             ec{"ڊارون"}
         }
@@ -1113,9 +1092,6 @@ sd{
         "Europe:Ulyanovsk"{
             ec{"اليانوسڪ"}
         }
-        "Europe:Uzhgorod"{
-            ec{"ازهارڊ"}
-        }
         "Europe:Vaduz"{
             ec{"وڊوز"}
         }
@@ -1136,9 +1112,6 @@ sd{
         }
         "Europe:Zagreb"{
             ec{"زغرب"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"زيپروزهايا"}
         }
         "Europe:Zurich"{
             ec{"زيورخ"}
@@ -1220,9 +1193,6 @@ sd{
         }
         "Pacific:Honolulu"{
             ec{"هونو لولو"}
-        }
-        "Pacific:Johnston"{
-            ec{"جانسٹن"}
         }
         "Pacific:Kanton"{
             ec{"ڪانٽن"}
@@ -1445,11 +1415,6 @@ sd{
             lg{"چين جو وقت"}
             ls{"چائنا جو معياري وقت"}
         }
-        "meta:Choibalsan"{
-            ld{"چوئي بيلسن جي اونهاري جو وقت"}
-            lg{"چوئي بيلسن جو وقت"}
-            ls{"چوئي بيلسن جو معياري وقت"}
-        }
         "meta:Christmas"{
             ls{"ڪرسمس آئي لينڊ جو وقت"}
         }
@@ -1608,6 +1573,9 @@ sd{
             lg{"جاپان جو وقت"}
             ls{"جاپان جو معياري وقت"}
         }
+        "meta:Kazakhstan"{
+            ls{"قزاقستان وقت"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"اوڀر قزاقستان جو وقت"}
         }
@@ -1638,9 +1606,6 @@ sd{
             lg{"لورڊ هووي جو وقت"}
             ls{"لورڊ هووي جو معياري وقت"}
         }
-        "meta:Macquarie"{
-            ls{"مڪوائري آئي لينڊ جو وقت"}
-        }
         "meta:Magadan"{
             ld{"مگادان جي ڏينهن جي وقت"}
             lg{"مگادان جو وقت"}
@@ -1665,11 +1630,6 @@ sd{
         }
         "meta:Mawson"{
             ls{"مائوسن جو وقت"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"شمالي مغربي ميڪسيڪو جي ڏينهن جو وقت"}
-            lg{"شمالي مغربي ميڪسيڪو جو وقت"}
-            ls{"شمالي مغربي ميڪسيڪو جو معياري وقت"}
         }
         "meta:Mexico_Pacific"{
             ld{"ميڪسيڪن پيسيفڪ جي ڏينهن جو وقت"}
@@ -1890,10 +1850,6 @@ sd{
         "meta:Yukon"{
             ls{"يڪون جو وقت"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} وقت"}
         regionFormatDaylight{"{0} ڏينهن جو وقت"}
         regionFormatStandard{"{0} معياري وقت"}

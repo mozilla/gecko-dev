@@ -2,9 +2,25 @@
 // License & terms of use: http://www.unicode.org/copyright.html
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 tt{
-    durationUnits{
-        hm{"h:mm"}
-        hms{"h:mm:ss"}
-        ms{"m:ss"}
+    units{
+        compound{
+            per{"{0} һәр {1}"}
+        }
+        coordinate{
+            dnam{"кардиналь юнәлеш"}
+            east{"{0} көнчыгыш"}
+            north{"{0} төньяк"}
+            south{"{0} көньяк"}
+            west{"{0} көнбатыш"}
+        }
+    }
+    unitsShort{
+        coordinate{
+            dnam{"юнәлеш"}
+            east{"{0} көнчыгыш"}
+            north{"{0} төньяк"}
+            south{"{0} көньяк"}
+            west{"{0} көнбатыш"}
+        }
     }
 }

@@ -24,9 +24,6 @@ pcm{
         "Africa:Bangui"{
             ec{"Bangúi"}
         }
-        "Africa:Banjul"{
-            ec{"Banjul"}
-        }
         "Africa:Bissau"{
             ec{"Bisau"}
         }
@@ -184,10 +181,10 @@ pcm{
             ec{"Sálta"}
         }
         "America:Argentina:San_Juan"{
-            ec{"San Hwan"}
+            ec{"Sán Hwán"}
         }
         "America:Argentina:San_Luis"{
-            ec{"San Luis"}
+            ec{"Sán Luis"}
         }
         "America:Argentina:Tucuman"{
             ec{"Túkúman"}
@@ -221,9 +218,6 @@ pcm{
         }
         "America:Boa_Vista"{
             ec{"Bóa Vísta"}
-        }
-        "America:Bogota"{
-            ec{"Bogota"}
         }
         "America:Boise"{
             ec{"Bọísi"}
@@ -312,9 +306,6 @@ pcm{
         "America:Glace_Bay"{
             ec{"Glás Bè"}
         }
-        "America:Godthab"{
-            ec{"Nuuk"}
-        }
         "America:Goose_Bay"{
             ec{"Gúz Bè"}
         }
@@ -390,9 +381,6 @@ pcm{
         "America:Kralendijk"{
             ec{"Králẹ́ndijk"}
         }
-        "America:La_Paz"{
-            ec{"La Paz"}
-        }
         "America:Lima"{
             ec{"Líma"}
         }
@@ -462,9 +450,6 @@ pcm{
         "America:New_York"{
             ec{"Niú Yọk"}
         }
-        "America:Nipigon"{
-            ec{"Nípígọn"}
-        }
         "America:Nome"{
             ec{"Noom"}
         }
@@ -486,9 +471,6 @@ pcm{
         "America:Panama"{
             ec{"Pánáma"}
         }
-        "America:Pangnirtung"{
-            ec{"Pangnírtung"}
-        }
         "America:Paramaribo"{
             ec{"Párámaribo"}
         }
@@ -509,9 +491,6 @@ pcm{
         }
         "America:Punta_Arenas"{
             ec{"Púntá Arẹ́nas"}
-        }
-        "America:Rainy_River"{
-            ec{"Réní Ríva"}
         }
         "America:Rankin_Inlet"{
             ec{"Ránkín Ínlẹt"}
@@ -543,9 +522,6 @@ pcm{
         "America:Scoresbysund"{
             ec{"Itókotúrmit"}
         }
-        "America:Sitka"{
-            ec{"Sitka"}
-        }
         "America:St_Barthelemy"{
             ec{"Sent Batẹlẹ́mi"}
         }
@@ -573,9 +549,6 @@ pcm{
         "America:Thule"{
             ec{"Túli"}
         }
-        "America:Thunder_Bay"{
-            ec{"Tọ́nda Bè"}
-        }
         "America:Tijuana"{
             ec{"Tikhuána"}
         }
@@ -596,9 +569,6 @@ pcm{
         }
         "America:Yakutat"{
             ec{"Yakútat"}
-        }
-        "America:Yellowknife"{
-            ec{"Yẹ́lónaif"}
         }
         "Antarctica:Casey"{
             ec{"Kési"}
@@ -667,7 +637,7 @@ pcm{
             ec{"Bahrén"}
         }
         "Asia:Baku"{
-            ec{"Baku"}
+            ec{"Báku"}
         }
         "Asia:Bangkok"{
             ec{"Bánkọk"}
@@ -690,9 +660,6 @@ pcm{
         "Asia:Chita"{
             ec{"Chítá"}
         }
-        "Asia:Choibalsan"{
-            ec{"Choibálsan"}
-        }
         "Asia:Colombo"{
             ec{"Kolómbo"}
         }
@@ -704,9 +671,6 @@ pcm{
         }
         "Asia:Dili"{
             ec{"Díli"}
-        }
-        "Asia:Dubai"{
-            ec{"Dubai"}
         }
         "Asia:Dushanbe"{
             ec{"Dushánbẹ"}
@@ -723,9 +687,6 @@ pcm{
         "Asia:Hong_Kong"{
             ec{"Họng Kọng"}
         }
-        "Asia:Hovd"{
-            ec{"Hovd"}
-        }
         "Asia:Irkutsk"{
             ec{"Irkútsk"}
         }
@@ -737,9 +698,6 @@ pcm{
         }
         "Asia:Jerusalem"{
             ec{"Jẹrúsálẹm"}
-        }
-        "Asia:Kabul"{
-            ec{"Kabul"}
         }
         "Asia:Kamchatka"{
             ec{"Kamchátké"}
@@ -758,9 +716,6 @@ pcm{
         }
         "Asia:Kuala_Lumpur"{
             ec{"Kuála Lúmpọ"}
-        }
-        "Asia:Kuching"{
-            ec{"Kuching"}
         }
         "Asia:Kuwait"{
             ec{"Kuwet"}
@@ -858,9 +813,6 @@ pcm{
         "Asia:Tokyo"{
             ec{"Tókyo"}
         }
-        "Asia:Tomsk"{
-            ec{"Tomsk"}
-        }
         "Asia:Ulaanbaatar"{
             ec{"Ulanbáta"}
         }
@@ -923,9 +875,6 @@ pcm{
         }
         "Australia:Broken_Hill"{
             ec{"Brókún Hil"}
-        }
-        "Australia:Currie"{
-            ec{"Kọ́ri"}
         }
         "Australia:Darwin"{
             ec{"Dárwin"}
@@ -1040,17 +989,11 @@ pcm{
         "Europe:Luxembourg"{
             ec{"Lọ́ksẹ́mbọg"}
         }
-        "Europe:Madrid"{
-            ec{"Madrid"}
-        }
         "Europe:Malta"{
             ec{"Mọ́lta"}
         }
         "Europe:Mariehamn"{
             ec{"Maríahámn"}
-        }
-        "Europe:Minsk"{
-            ec{"Minsk"}
         }
         "Europe:Monaco"{
             ec{"Mọ́náko"}
@@ -1109,12 +1052,6 @@ pcm{
         "Europe:Ulyanovsk"{
             ec{"Uliánọvsk"}
         }
-        "Europe:Uzhgorod"{
-            ec{"Ọ́zhọrọd"}
-        }
-        "Europe:Vaduz"{
-            ec{"Vaduz"}
-        }
         "Europe:Vatican"{
             ec{"Vátíkan"}
         }
@@ -1132,9 +1069,6 @@ pcm{
         }
         "Europe:Zagreb"{
             ec{"Zágrẹb"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"Zaporózhia"}
         }
         "Europe:Zurich"{
             ec{"Zúrik"}
@@ -1211,15 +1145,6 @@ pcm{
         "Pacific:Guadalcanal"{
             ec{"Guádálkanal"}
         }
-        "Pacific:Guam"{
-            ec{"Guam"}
-        }
-        "Pacific:Johnston"{
-            ec{"Jọ́nstun"}
-        }
-        "Pacific:Kanton"{
-            ec{"Kanton"}
-        }
         "Pacific:Kiritimati"{
             ec{"Kritímáti"}
         }
@@ -1267,9 +1192,6 @@ pcm{
         }
         "Pacific:Rarotonga"{
             ec{"Raratónga"}
-        }
-        "Pacific:Saipan"{
-            ec{"Saipan"}
         }
         "Pacific:Tahiti"{
             ec{"Tahíti"}
@@ -1438,11 +1360,6 @@ pcm{
             lg{"Chaína Taim"}
             ls{"Chaína Fíksd Taim"}
         }
-        "meta:Choibalsan"{
-            ld{"Choibálsan Họ́t Sízin Taim"}
-            lg{"Choibálsan Taim"}
-            ls{"Choibálsan Fíksd Taim"}
-        }
         "meta:Christmas"{
             ls{"Krísmás Aíland Taim"}
         }
@@ -1601,6 +1518,9 @@ pcm{
             lg{"Japan Taim"}
             ls{"Japan Fíksd Taim"}
         }
+        "meta:Kazakhstan"{
+            ls{"Kazékstan Taim"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Íst Kazékstan Taim"}
         }
@@ -1631,9 +1551,6 @@ pcm{
             lg{"Lọd Haú Taim"}
             ls{"Lọd Haú Fíksd Taim"}
         }
-        "meta:Macquarie"{
-            ls{"Makwuéí Aíland Taim"}
-        }
         "meta:Magadan"{
             ld{"Mágádan Họ́t Sízin Taim"}
             lg{"Mágádan Taim"}
@@ -1658,11 +1575,6 @@ pcm{
         }
         "meta:Mawson"{
             ls{"Mọ́sọn Taim"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Nọ́twẹ́st Mẹ́ksíko Délaít Taim"}
-            lg{"Nọ́twẹ́st Mẹ́ksíko Taim"}
-            ls{"Nọ́twẹ́st Mẹ́ksíko Fíksd Taim"}
         }
         "meta:Mexico_Pacific"{
             ld{"Mẹ́ksíkó Pasífík Délaít Taim"}
@@ -1883,10 +1795,6 @@ pcm{
         "meta:Yukon"{
             ls{"Yukón Taim"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} Taim"}
         regionFormatDaylight{"{0} Délaít Taim"}
         regionFormatStandard{"{0} Fíksd Taim"}

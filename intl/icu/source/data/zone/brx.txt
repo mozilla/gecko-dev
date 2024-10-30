@@ -462,9 +462,6 @@ brx{
         "America:New_York"{
             ec{"निउ यर्क"}
         }
-        "America:Nipigon"{
-            ec{"निपिग’न"}
-        }
         "America:Nome"{
             ec{"न’म"}
         }
@@ -486,9 +483,6 @@ brx{
         "America:Panama"{
             ec{"पानामा"}
         }
-        "America:Pangnirtung"{
-            ec{"पांग्नीरटुं"}
-        }
         "America:Paramaribo"{
             ec{"पारामारिब’"}
         }
@@ -509,9 +503,6 @@ brx{
         }
         "America:Punta_Arenas"{
             ec{"पुन्टा आरेनास"}
-        }
-        "America:Rainy_River"{
-            ec{"रैनी रिभार"}
         }
         "America:Rankin_Inlet"{
             ec{"रेनकिन इनलेट"}
@@ -573,9 +564,6 @@ brx{
         "America:Thule"{
             ec{"थ्यूल"}
         }
-        "America:Thunder_Bay"{
-            ec{"थान्डार गाथोन"}
-        }
         "America:Tijuana"{
             ec{"टिहुआना"}
         }
@@ -596,9 +584,6 @@ brx{
         }
         "America:Yakutat"{
             ec{"याकुतात"}
-        }
-        "America:Yellowknife"{
-            ec{"येल्ल’नाईफ"}
         }
         "Antarctica:Casey"{
             ec{"केसी"}
@@ -689,9 +674,6 @@ brx{
         }
         "Asia:Chita"{
             ec{"चीता"}
-        }
-        "Asia:Choibalsan"{
-            ec{"च’इबालसान"}
         }
         "Asia:Colombo"{
             ec{"कलम्ब’"}
@@ -924,9 +906,6 @@ brx{
         "Australia:Broken_Hill"{
             ec{"ब्र’केन हिल"}
         }
-        "Australia:Currie"{
-            ec{"करी"}
-        }
         "Australia:Darwin"{
             ec{"डार्वीन"}
         }
@@ -1109,9 +1088,6 @@ brx{
         "Europe:Ulyanovsk"{
             ec{"ऊल्यान’भ्स्क"}
         }
-        "Europe:Uzhgorod"{
-            ec{"ऊज्ह’र’ड"}
-        }
         "Europe:Vaduz"{
             ec{"भाडुज"}
         }
@@ -1132,9 +1108,6 @@ brx{
         }
         "Europe:Zagreb"{
             ec{"जाग्रेब"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"झाप’र’झ्ये"}
         }
         "Europe:Zurich"{
             ec{"जुरिख"}
@@ -1216,9 +1189,6 @@ brx{
         }
         "Pacific:Honolulu"{
             ec{"हनलुलु"}
-        }
-        "Pacific:Johnston"{
-            ec{"ज’नस्ट’न"}
         }
         "Pacific:Kanton"{
             ec{"केन्ट’न"}
@@ -1466,11 +1436,6 @@ brx{
             lg{"चाईना सम"}
             ls{"चाईना थाखोआरि सम"}
         }
-        "meta:Choibalsan"{
-            ld{"च’इबालसान दैज्लां सम"}
-            lg{"च’इबालसान सम"}
-            ls{"च’इबालसान थाखोआरि सम"}
-        }
         "meta:Christmas"{
             ls{"ख्रीस्टमास द्वीप सम"}
         }
@@ -1676,9 +1641,6 @@ brx{
             lg{"माकाऊ सम"}
             ls{"माकाऊ स्टैंडर्ड टाईम"}
         }
-        "meta:Macquarie"{
-            ls{"माक्वारी द्वीप सम"}
-        }
         "meta:Magadan"{
             ld{"मागादान दैज्लां सम"}
             lg{"मागादान सम"}
@@ -1703,11 +1665,6 @@ brx{
         }
         "meta:Mawson"{
             ls{"मौसन सम"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"साहा-सोनाब मेक्सिक’ सानारि सम"}
-            lg{"साहा-सोनाब मेक्सिक’ सम"}
-            ls{"साहा-सोनाब मेक्सिक’ थाखोआरि सम"}
         }
         "meta:Mexico_Pacific"{
             ld{"मेक्सिक’नि पेसिफिक सानारि सम"}
@@ -1941,10 +1898,8 @@ brx{
         "meta:Yukon"{
             ls{"यूकन सम"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"जि.एम.ति {0}"}
         gmtZeroFormat{"जि.एम.ति"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} सम"}
         regionFormatDaylight{"{0} साननि सोरां सम"}
         regionFormatStandard{"{0} थाखोआरि सम"}

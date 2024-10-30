@@ -141,9 +141,6 @@ ur_IN{
         "meta:Kyrgystan"{
             ls{"کرغستان ٹائم"}
         }
-        "meta:Macquarie"{
-            ls{"مکوآری آئلینڈ ٹائم"}
-        }
         "meta:Maldives"{
             ls{"مالدیپ ٹائم"}
         }

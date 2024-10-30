@@ -1,0 +1,13 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+gaa{
+    zoneStrings{
+        "meta:GMT"{
+            ls{"Betsɔɔmɔ ni ka ŋɛlɛ kome nɔ"}
+        }
+        regionFormat{"{0} Be"}
+        regionFormatDaylight{"{0} Be Yɛ Latsa Beiaŋ"}
+        regionFormatStandard{"{0} Be Yɛ Fɛi Beiaŋ"}
+    }
+}
