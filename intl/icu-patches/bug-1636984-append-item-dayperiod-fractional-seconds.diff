@@ -6,7 +6,7 @@
 diff --git a/intl/icu/source/data/locales/root.txt b/intl/icu/source/data/locales/root.txt
 --- a/intl/icu/source/data/locales/root.txt
 +++ b/intl/icu/source/data/locales/root.txt
-@@ -213,17 +213,19 @@ root{
+@@ -1283,17 +1283,19 @@ root{
              }
              NoonMarker:alias{"/LOCALE/calendar/gregorian/NoonMarker"}
              NoonMarkerNarrow:alias{"/LOCALE/calendar/gregorian/NoonMarkerNarrow"}
@@ -26,7 +26,7 @@ diff --git a/intl/icu/source/data/locales/root.txt b/intl/icu/source/data/locale
                  Year{"{1} {0}"}
              }
              availableFormats{
-@@ -749,17 +751,19 @@ root{
+@@ -1833,17 +1835,19 @@ root{
              }
              NoonMarker:alias{"/LOCALE/calendar/gregorian/NoonMarker"}
              NoonMarkerNarrow:alias{"/LOCALE/calendar/gregorian/NoonMarkerNarrow"}
@@ -46,10 +46,30 @@ diff --git a/intl/icu/source/data/locales/root.txt b/intl/icu/source/data/locale
                  Year{"{1} {0}"}
              }
              availableFormats{
-@@ -1018,17 +1022,19 @@ root{
-                 "{1} {0}",
-                 "{1} {0}",
+@@ -2113,17 +2117,19 @@ root{
+                 "yMMMd",
+                 "yMMdd",
              }
+             appendItems{
+                 Day{"{0} ({2}: {1})"}
++                DayPeriod{"{0} ({2}: {1})"}
+                 Day-Of-Week{"{0} {1}"}
+                 Era{"{1} {0}"}
+                 Hour{"{0} ({2}: {1})"}
+                 Minute{"{0} ({2}: {1})"}
+                 Month{"{0} ({2}: {1})"}
+                 Quarter{"{0} ({2}: {1})"}
+                 Second{"{0} ({2}: {1})"}
++                FractionalSecond{"{0} ({2}: {1})"}
+                 Timezone{"{0} {1}"}
+                 Week{"{0} ({2}: {1})"}
+                 Year{"{1} {0}"}
+             }
+             availableFormats{
+@@ -2694,17 +2700,19 @@ root{
+             }
+             NoonMarker:alias{"/LOCALE/calendar/gregorian/NoonMarker"}
+             NoonMarkerNarrow:alias{"/LOCALE/calendar/gregorian/NoonMarkerNarrow"}
              appendItems{
                  Day{"{0} ({2}: {1})"}
 +                DayPeriod{"{0} ({2}: {1})"}
@@ -69,7 +89,7 @@ diff --git a/intl/icu/source/data/locales/root.txt b/intl/icu/source/data/locale
 diff --git a/intl/icu/source/i18n/dtptngen.cpp b/intl/icu/source/i18n/dtptngen.cpp
 --- a/intl/icu/source/i18n/dtptngen.cpp
 +++ b/intl/icu/source/i18n/dtptngen.cpp
-@@ -257,12 +257,12 @@ static const dtTypeElem dtTypes[] = {
+@@ -259,12 +259,12 @@ static const dtTypeElem dtTypes[] = {
      {0, UDATPG_FIELD_COUNT, 0, 0, 0} , // last row of dtTypes[]
   };
  

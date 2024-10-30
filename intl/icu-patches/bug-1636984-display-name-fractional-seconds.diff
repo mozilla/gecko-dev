@@ -5,7 +5,7 @@
 diff --git a/intl/icu/source/data/locales/root.txt b/intl/icu/source/data/locales/root.txt
 --- a/intl/icu/source/data/locales/root.txt
 +++ b/intl/icu/source/data/locales/root.txt
-@@ -2527,10 +2527,15 @@ root{
+@@ -3866,10 +3866,15 @@ root{
          zone{
              dn{"Zone"}
          }
@@ -24,7 +24,7 @@ diff --git a/intl/icu/source/data/locales/root.txt b/intl/icu/source/data/locale
 diff --git a/intl/icu/source/i18n/dtptngen.cpp b/intl/icu/source/i18n/dtptngen.cpp
 --- a/intl/icu/source/i18n/dtptngen.cpp
 +++ b/intl/icu/source/i18n/dtptngen.cpp
-@@ -264,11 +264,11 @@ static const char* const CLDR_FIELD_APPE
+@@ -266,11 +266,11 @@ static const char* const CLDR_FIELD_APPEND[] = {
  };
  
  static const char* const CLDR_FIELD_NAME[UDATPG_FIELD_COUNT] = {

@@ -6,16 +6,22 @@ diff --git a/intl/icu/source/common/putilimp.h b/intl/icu/source/common/putilimp
 index 5b95a68..7097232 100644
 --- a/intl/icu/source/common/putilimp.h
 +++ b/intl/icu/source/common/putilimp.h
-@@ -103,6 +103,8 @@ typedef size_t uintptr_t;
+@@ -105,10 +105,12 @@ typedef size_t uintptr_t;
  #endif
  #elif U_PLATFORM == U_PF_OS400
+    /* not defined */
+ #elif U_PLATFORM == U_PF_HAIKU
     /* not defined */
 +#elif defined(__wasi__)
 +   /* not defined */
  #else
  #   define U_TZSET tzset
  #endif
-@@ -128,6 +130,8 @@ typedef size_t uintptr_t;
+ 
+ #if defined(U_TIMEZONE) || defined(U_HAVE_TIMEZONE)
+@@ -130,10 +132,12 @@ typedef size_t uintptr_t;
+    /* not defined */
+ #elif U_PLATFORM == U_PF_OS400
     /* not defined */
  #elif U_PLATFORM == U_PF_IPHONE
     /* not defined */
@@ -24,20 +30,28 @@ index 5b95a68..7097232 100644
  #else
  #   define U_TIMEZONE timezone
  #endif
-@@ -141,6 +145,8 @@ typedef size_t uintptr_t;
+ 
+ #if defined(U_TZNAME) || defined(U_HAVE_TZNAME)
+@@ -145,10 +149,12 @@ typedef size_t uintptr_t;
  #endif
  #elif U_PLATFORM == U_PF_OS400
     /* not defined */
+ #elif U_PLATFORM == U_PF_HAIKU
+     /* not defined, (well it is but a loop back to icu) */
 +#elif defined(__wasi__)
 +   /* not defined */
  #else
  #   define U_TZNAME tzname
  #endif
+ 
+ #ifdef U_HAVE_MMAP
 diff --git a/intl/icu/source/common/umapfile.h b/intl/icu/source/common/umapfile.h
 index 92bd567..4ed1112 100644
 --- a/intl/icu/source/common/umapfile.h
 +++ b/intl/icu/source/common/umapfile.h
-@@ -41,6 +41,8 @@ U_CFUNC void  uprv_unmapFile(UDataMemory *pData);
+@@ -38,10 +38,12 @@ U_CFUNC void  uprv_unmapFile(UDataMemory *pData);
+ #define MAP_POSIX       2
+ #define MAP_STDIO       3
  
  #if UCONFIG_NO_FILE_IO
  #   define MAP_IMPLEMENTATION MAP_NONE
@@ -46,6 +60,8 @@ index 92bd567..4ed1112 100644
  #elif U_PLATFORM_USES_ONLY_WIN32_API
  #   define MAP_IMPLEMENTATION MAP_WIN32
  #elif U_HAVE_MMAP || U_PLATFORM == U_PF_OS390
+ #   define MAP_IMPLEMENTATION MAP_POSIX
+ #else /* unknown platform, no memory map implementation: use stdio.h and uprv_malloc() instead */
 diff --git a/intl/icu/source/common/umutex.cpp b/intl/icu/source/common/umutex.cpp
 index ccbee99..6c3452c 100644
 --- a/intl/icu/source/common/umutex.cpp
@@ -206,23 +222,28 @@ index 8d76b3f..c1a58db 100644
  
  U_NAMESPACE_BEGIN
  
-@@ -70,6 +76,8 @@ U_NAMESPACE_BEGIN
+@@ -68,10 +68,12 @@ U_NAMESPACE_BEGIN
+  *
+  *   Low Level Atomic Operations, ICU wrappers for.
   *
   ****************************************************************************/
  
 +#ifndef __wasi__
 +
  typedef std::atomic<int32_t> u_atomic_int32_t;
- #define ATOMIC_INT32_T_INITIALIZER(val) ATOMIC_VAR_INIT(val)
  
-@@ -89,6 +97,28 @@ inline int32_t umtx_atomic_dec(u_atomic_int32_t *var) {
+ inline int32_t umtx_loadAcquire(u_atomic_int32_t &var) {
+     return var.load(std::memory_order_acquire);
+ }
+@@ -86,10 +88,31 @@ inline int32_t umtx_atomic_inc(u_atomic_int32_t *var) {
+ 
+ inline int32_t umtx_atomic_dec(u_atomic_int32_t *var) {
      return var->fetch_sub(1) - 1;
  }
  
 +#else
 +
 +typedef int32_t u_atomic_int32_t;
-+#define ATOMIC_INT32_T_INITIALIZER(val) val
 +
 +inline int32_t umtx_loadAcquire(u_atomic_int32_t &var) {
 +    return var;
@@ -244,7 +265,11 @@ index 8d76b3f..c1a58db 100644
  
  /*************************************************************************************************
   *
-@@ -231,17 +261,25 @@ class U_COMMON_API UMutex {
+  *  UInitOnce Definitions.
+  *
+@@ -225,21 +248,29 @@ class U_COMMON_API UMutex {
+     UMutex &operator =(const UMutex &other) = delete;
+     void *operator new(size_t) = delete;
  
      // requirements for C++ BasicLockable, allows UMutex to work with std::lock_guard
      void lock() {
@@ -271,7 +296,11 @@ index 8d76b3f..c1a58db 100644
  
      /** All initialized UMutexes are kept in a linked list, so that they can be found,
       * and the underlying std::mutex destructed, by u_cleanup().
-@@ -253,7 +291,9 @@ class U_COMMON_API UMutex {
+      */
+     UMutex *fListLink { nullptr };
+@@ -247,11 +278,13 @@ class U_COMMON_API UMutex {
+ 
+     /** Out-of-line function to lazily initialize a UMutex on first use.
       * Initial fast check is inline, in lock().  The returned value may never
       * be nullptr.
       */
@@ -281,6 +310,9 @@ index 8d76b3f..c1a58db 100644
  };
  
  
+ /* Lock a mutex.
+  * @param mutex The given mutex to be locked.  Pass NULL to specify
+
 diff --git a/intl/icu/source/common/unifiedcache.cpp b/intl/icu/source/common/unifiedcache.cpp
 --- a/intl/icu/source/common/unifiedcache.cpp
 +++ b/intl/icu/source/common/unifiedcache.cpp
@@ -628,7 +660,7 @@ index 9ecd776..d094289 100644
 diff --git a/intl/icu/source/i18n/numrange_fluent.cpp b/intl/icu/source/i18n/numrange_fluent.cpp
 --- a/intl/icu/source/i18n/numrange_fluent.cpp
 +++ b/intl/icu/source/i18n/numrange_fluent.cpp
-@@ -238,33 +238,53 @@ LocalizedNumberRangeFormatter::LocalizedNumberRangeFormatter(LocalizedNumberRang
+@@ -246,33 +246,53 @@ LocalizedNumberRangeFormatter::LocalizedNumberRangeFormatter(LocalizedNumberRang
  
  LocalizedNumberRangeFormatter::LocalizedNumberRangeFormatter(NFS<LNF>&& src) noexcept
          : NFS<LNF>(std::move(src)) {
@@ -682,7 +714,7 @@ diff --git a/intl/icu/source/i18n/numrange_fluent.cpp b/intl/icu/source/i18n/num
  LocalizedNumberRangeFormatter::LocalizedNumberRangeFormatter(const RangeMacroProps& macros, const Locale& locale) {
      fMacros = macros;
      fMacros.locale = locale;
-@@ -344,11 +364,15 @@ LocalizedNumberRangeFormatter::getFormatter(UErrorCode& status) const {
+@@ -363,11 +383,15 @@ LocalizedNumberRangeFormatter::getFormatter(UErrorCode& status) const {
      if (U_FAILURE(status)) {
          return nullptr;
      }
@@ -698,24 +730,23 @@ diff --git a/intl/icu/source/i18n/numrange_fluent.cpp b/intl/icu/source/i18n/num
      }
  
      // Try computing the formatter on our own
-@@ -364,18 +388,23 @@ LocalizedNumberRangeFormatter::getFormatter(UErrorCode& status) const {
+@@ -378,17 +378,22 @@ LocalizedNumberRangeFormatter::getFormatter(UErrorCode& status) const {
  
      // Note: ptr starts as nullptr; during compare_exchange,
      // it is set to what is actually stored in the atomic
      // if another thread beat us to computing the formatter object.
      auto* nonConstThis = const_cast<LocalizedNumberRangeFormatter*>(this);
 +#ifndef __wasi__
-     if (!nonConstThis->fAtomicFormatter.compare_exchange_strong(ptr, temp)) {
+     if (!nonConstThis->fAtomicFormatter.compare_exchange_strong(ptr, temp.getAlias())) {
          // Another thread beat us to computing the formatter
-         delete temp;
          return ptr;
      } else {
          // Our copy of the formatter got stored in the atomic
-         return temp;
+         return temp.orphan();
      }
 +#else
-+    nonConstThis->fAtomicFormatter = temp;
-+    return temp;
++    nonConstThis->fAtomicFormatter = temp.getAlias();
++    return temp.orphan();
 +#endif
  
  }
