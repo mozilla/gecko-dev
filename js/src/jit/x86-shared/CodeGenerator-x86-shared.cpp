@@ -2072,15 +2072,16 @@ void CodeGeneratorX86Shared::canonicalizeIfDeterministic(
 template <typename T>
 Operand CodeGeneratorX86Shared::toMemoryAccessOperand(T* lir, int32_t disp) {
   const LAllocation* ptr = lir->ptr();
-#ifdef JS_CODEGEN_X86
   const LAllocation* memoryBase = lir->memoryBase();
+#ifdef JS_CODEGEN_X86
   Operand destAddr = ptr->isBogus() ? Operand(ToRegister(memoryBase), disp)
                                     : Operand(ToRegister(memoryBase),
                                               ToRegister(ptr), TimesOne, disp);
 #else
+  auto baseReg = memoryBase->isBogus() ? HeapReg : ToRegister(memoryBase);
   Operand destAddr = ptr->isBogus()
-                         ? Operand(HeapReg, disp)
-                         : Operand(HeapReg, ToRegister(ptr), TimesOne, disp);
+                         ? Operand(baseReg, disp)
+                         : Operand(baseReg, ToRegister(ptr), TimesOne, disp);
 #endif
   return destAddr;
 }
