@@ -3489,6 +3489,9 @@ class FunctionCompiler {
     if (!iter().getResults(paramCount, &loopParams)) {
       return false;
     }
+
+    // Eagerly create a phi for all loop params. setLoopBackedge will remove
+    // any that were not necessary.
     for (size_t i = 0; i < paramCount; i++) {
       MPhi* phi = MPhi::New(alloc(), loopParams[i]->type());
       if (!phi) {
@@ -3528,7 +3531,16 @@ class FunctionCompiler {
       return false;
     }
 
-    // Flag all redundant phis as unused.
+    // Entering a loop will eagerly create a phi node for all locals and loop
+    // params. Now that we've closed the loop we can check which phi nodes
+    // were actually needed by checking if the SSA definition flowing into the
+    // loop header (operand 0) is different than the SSA definition coming from
+    // the loop backedge (operand 1). If they are the same definition, the phi
+    // is redundant and can be removed.
+    //
+    // To do this we mark all redundant phis as 'unused', then remove the phi's
+    // from places in ourself the phis may have flowed into, then replace all
+    // uses of the phi's in the MIR graph with the original SSA definition.
     for (MPhiIterator phi = loopEntry->phisBegin(); phi != loopEntry->phisEnd();
          phi++) {
       MOZ_ASSERT(phi->numOperands() == 2);
@@ -3576,6 +3588,19 @@ class FunctionCompiler {
       MBasicBlock* block = patch->block();
       if (block->loopDepth() >= loopEntry->loopDepth()) {
         fixupRedundantPhis(block);
+      }
+    }
+
+    // If we're inlined into another function we are accumulating return values
+    // in a vector, search through the results to see if any refer to a
+    // redundant phi.
+    for (PendingInlineReturn& pendingReturn : pendingInlineReturns_) {
+      for (uint32_t resultIndex = 0;
+           resultIndex < pendingReturn.results.length(); resultIndex++) {
+        MDefinition** pendingResult = &pendingReturn.results[resultIndex];
+        if ((*pendingResult)->isUnused()) {
+          *pendingResult = (*pendingResult)->toPhi()->getOperand(0);
+        }
       }
     }
 
