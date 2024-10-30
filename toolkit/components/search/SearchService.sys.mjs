@@ -407,6 +407,19 @@ export class SearchService {
     return this.#getEnginesByExtensionID(extensionID);
   }
 
+  async findContextualSearchEngineByHost(host) {
+    await this.init();
+    let settings = await this._settings.get();
+    let config = await this.#engineSelector.findContextualSearchEngineByHost(
+      host
+    );
+    if (config) {
+      let engine = new lazy.AppProvidedSearchEngine({ config, settings });
+      return engine;
+    }
+    return null;
+  }
+
   /**
    * This function calls #init to start initialization when it has not been
    * started yet. Otherwise, it returns the pending promise.
@@ -590,6 +603,11 @@ export class SearchService {
     });
     lazy.logConsole.debug(`Adding ${newEngine.name}`);
     this.#addEngineToStore(newEngine);
+  }
+
+  async addContextualSearchEngine(engine) {
+    await this.init();
+    this.#addEngineToStore(engine);
   }
 
   /**
