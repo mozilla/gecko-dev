@@ -267,9 +267,6 @@
 
 #urlbar[breakout] {
   display: block;
-  /* This is technically not needed, because popover takes care of it, but
-   * helps for clarity. */
-  position: absolute;
   height: var(--urlbar-height);
   width: var(--urlbar-width);
 
