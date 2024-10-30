@@ -6104,7 +6104,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
       JS::Rooted<JSScript*> script(aes.cx());
       Compile(aes.cx(), options, mExpr, stencil, erv);
       if (stencil) {
-        exec.InstantiateStencil(aes.cx(), options, stencil, &script, erv);
+        InstantiateStencil(aes.cx(), options, stencil, &script, erv);
       }
 
       if (script) {

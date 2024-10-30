@@ -81,25 +81,19 @@ JSExecutionContext::JSExecutionContext(
   }
 }
 
-void JSExecutionContext::JoinOffThread(JSContext* aCx,
-                                       JS::CompileOptions& aCompileOptions,
-                                       ScriptLoadContext* aContext,
-                                       RefPtr<JS::Stencil>& aStencil,
-                                       JS::InstantiationStorage& aStorage,
-                                       ErrorResult& aRv) {
-  MOZ_ASSERT(!mSkip);
+namespace mozilla::dom {
 
+void JoinOffThread(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+                   ScriptLoadContext* aContext, RefPtr<JS::Stencil>& aStencil,
+                   JS::InstantiationStorage& aStorage, ErrorResult& aRv) {
   MOZ_ASSERT(aCompileOptions.noScriptRval);
 
   aStencil = aContext->StealOffThreadResult(aCx, &aStorage);
   if (!aStencil) {
-    mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
   }
 }
-
-namespace mozilla::dom {
 
 void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
              const nsAString& aScript, RefPtr<JS::Stencil>& aStencil,
@@ -118,39 +112,34 @@ void Compile(JSContext* aCx, JS::CompileOptions& aCompileOptions,
   }
 }
 
-}  // namespace mozilla::dom
-
-void JSExecutionContext::InstantiateStencil(
-    JSContext* aCx, JS::CompileOptions& aCompileOptions,
-    RefPtr<JS::Stencil>& aStencil, JS::MutableHandle<JSScript*> aScript,
-    ErrorResult& aRv) {
+void InstantiateStencil(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+                        RefPtr<JS::Stencil>& aStencil,
+                        JS::MutableHandle<JSScript*> aScript,
+                        ErrorResult& aRv) {
   MOZ_ASSERT(!JS::InstantiateOptions(aCompileOptions).deferDebugMetadata);
-  MOZ_ASSERT(!mSkip);
   MOZ_ASSERT(!aScript);
 
   JS::InstantiateOptions instantiateOptions(aCompileOptions);
   aScript.set(
       JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil, nullptr));
   if (!aScript) {
-    mSkip = true;
     aRv.NoteJSContextException(aCx);
   }
 }
 
-void JSExecutionContext::InstantiateStencil(
-    JSContext* aCx, JS::CompileOptions& aCompileOptions,
-    RefPtr<JS::Stencil>&& aStencil, JS::MutableHandle<JSScript*> aScript,
-    bool& incrementalEncodingAlreadyStarted,
-    JS::Handle<JS::Value> aDebuggerPrivateValue,
-    JS::Handle<JSScript*> aDebuggerIntroductionScript, ErrorResult& aRv,
-    bool aEncodeBytecode /* = false */, JS::InstantiationStorage* aStorage) {
-  MOZ_ASSERT(!mSkip);
+void InstantiateStencil(JSContext* aCx, JS::CompileOptions& aCompileOptions,
+                        RefPtr<JS::Stencil>&& aStencil,
+                        JS::MutableHandle<JSScript*> aScript,
+                        bool& incrementalEncodingAlreadyStarted,
+                        JS::Handle<JS::Value> aDebuggerPrivateValue,
+                        JS::Handle<JSScript*> aDebuggerIntroductionScript,
+                        ErrorResult& aRv, bool aEncodeBytecode /* = false */,
+                        JS::InstantiationStorage* aStorage) {
   JS::InstantiateOptions instantiateOptions(aCompileOptions);
   JS::Rooted<JSScript*> script(
       aCx, JS::InstantiateGlobalStencil(aCx, instantiateOptions, aStencil,
                                         aStorage));
   if (!script) {
-    mSkip = true;
     aRv.NoteJSContextException(aCx);
     return;
   }
@@ -158,7 +147,6 @@ void JSExecutionContext::InstantiateStencil(
   if (aEncodeBytecode) {
     if (!JS::StartIncrementalEncoding(aCx, std::move(aStencil),
                                       incrementalEncodingAlreadyStarted)) {
-      mSkip = true;
       aRv.NoteJSContextException(aCx);
       return;
     }
@@ -175,3 +163,5 @@ void JSExecutionContext::InstantiateStencil(
     }
   }
 }
+
+}  // namespace mozilla::dom

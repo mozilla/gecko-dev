@@ -397,8 +397,8 @@ nsresult nsJSThunk::EvaluateScript(
       mozilla::dom::Compile(cx, options, NS_ConvertUTF8toUTF16(script), stencil,
                             erv);
       if (stencil) {
-        exec.InstantiateStencil(aes.cx(), options, stencil, &compiledScript,
-                                erv);
+        mozilla::dom::InstantiateStencil(aes.cx(), options, stencil,
+                                         &compiledScript, erv);
       }
 
       if (!erv.Failed()) {

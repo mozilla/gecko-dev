@@ -2758,9 +2758,8 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
            aRequest));
       RefPtr<JS::Stencil> stencil;
       JS::InstantiationStorage storage;
-      aExec.JoinOffThread(aCx, aCompileOptions,
-                          aRequest->GetScriptLoadContext(), stencil, storage,
-                          aRv);
+      JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
+                    stencil, storage, aRv);
       if (!aRv.Failed() && aKeepStencil) {
         aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
         if (!aStencilDup) {
@@ -2770,10 +2769,9 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
       }
       if (stencil) {
         bool unused;
-        aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                                 aScript, unused, aDebuggerPrivateValue,
-                                 aDebuggerIntroductionScript, aRv, false,
-                                 &storage);
+        InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
+                           unused, aDebuggerPrivateValue,
+                           aDebuggerIntroductionScript, aRv, false, &storage);
       }
     } else {
       LOG(("ScriptLoadRequest (%p): Decode Bytecode and Execute", aRequest));
@@ -2793,9 +2791,9 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
 
       if (stencil) {
         bool unused;
-        aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                                 aScript, unused, aDebuggerPrivateValue,
-                                 aDebuggerIntroductionScript, aRv);
+        InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
+                           unused, aDebuggerPrivateValue,
+                           aDebuggerIntroductionScript, aRv);
       }
     }
 
@@ -2818,8 +2816,8 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     MOZ_ASSERT(aRequest->IsTextSource());
     RefPtr<JS::Stencil> stencil;
     JS::InstantiationStorage storage;
-    aExec.JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
-                        stencil, storage, aRv);
+    JoinOffThread(aCx, aCompileOptions, aRequest->GetScriptLoadContext(),
+                  stencil, storage, aRv);
     if (!aRv.Failed() && aKeepStencil) {
       aStencilDup = JS::DuplicateStencil(aCx, stencil.get());
       if (!aStencilDup) {
@@ -2829,10 +2827,10 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
     }
     if (stencil) {
       bool unused;
-      aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                               aScript, unused, aDebuggerPrivateValue,
-                               aDebuggerIntroductionScript, aRv, encodeBytecode,
-                               &storage);
+      InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
+                         unused, aDebuggerPrivateValue,
+                         aDebuggerIntroductionScript, aRv, encodeBytecode,
+                         &storage);
     }
   } else {
     // Main thread parsing (inline and small scripts)
@@ -2867,9 +2865,9 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
 
       if (stencil) {
         bool unused;
-        aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil),
-                                 aScript, unused, aDebuggerPrivateValue,
-                                 aDebuggerIntroductionScript, erv);
+        InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
+                           unused, aDebuggerPrivateValue,
+                           aDebuggerIntroductionScript, erv);
       }
 
       mMainThreadParseTime += TimeStamp::Now() - startTime;
@@ -2891,11 +2889,10 @@ void ScriptLoader::InstantiateClassicScriptFromCachedStencil(
   }
 
   bool incrementalEncodingAlreadyStarted = false;
-  aExec.InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
-                           incrementalEncodingAlreadyStarted,
-                           aDebuggerPrivateValue, aDebuggerIntroductionScript,
-                           aRv,
-                           /* aEncodeBytecode */ true);
+  InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
+                     incrementalEncodingAlreadyStarted, aDebuggerPrivateValue,
+                     aDebuggerIntroductionScript, aRv,
+                     /* aEncodeBytecode */ true);
   if (incrementalEncodingAlreadyStarted) {
     aRequest->MarkSkippedBytecodeEncoding();
   }
