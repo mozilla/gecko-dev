@@ -39,6 +39,7 @@ import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.CustomTabNavBar
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
@@ -226,9 +227,11 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
 
     private fun initializeNavBar() {
         // Update the contents of the bottomToolbarContainer with the CustomTabNavBar configuration
-        // only if the container was initialized in the parent - we know a navbar should be used.
+        // only if a navbar should be used and it was initialized in the parent.
         // Follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888300
-        _bottomToolbarContainerView ?: return
+        if (context?.shouldAddNavigationBar() != true || _bottomToolbarContainerView == null) {
+            return
+        }
 
         val customTabSessionId = customTabSessionId ?: return
 
