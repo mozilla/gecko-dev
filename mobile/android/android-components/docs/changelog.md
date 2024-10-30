@@ -5,6 +5,12 @@ permalink: /changelog/
 ---
 
 # 134.0 (In Development)
+* **browser-state**
+  * 🌟 Added `DownloadState.isPdf` property to indicate whether the file associated with the download is a PDF. See [Bug 1920092](https://bugzilla.mozilla.org/show_bug.cgi?id=1920092).
+
+* **feature-downloads**
+  * `AbstractFetchDownloadService.createOpenFileIntent` will create an intent to open PDF files from the caller application if it can open PDFs. See [Bug 1920092](https://bugzilla.mozilla.org/show_bug.cgi?id=1920092).
+  * `AbstractFetchDownloadService.openFile` will open PDF files from the caller application if it can open PDFs. See [Bug 1920092](https://bugzilla.mozilla.org/show_bug.cgi?id=1920092).
 
 # 133.0
 * **browser-store**

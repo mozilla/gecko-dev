@@ -8,7 +8,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.support.utils.DownloadUtils
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -44,5 +46,49 @@ class DownloadStateKtTest {
 
         assertEquals("test", result)
         assertNotEquals(guessedName, result)
+    }
+
+    @Test
+    fun `WHEN the content type is pdf THEN the isPdf property returns true`() {
+        val download = DownloadState(
+            url = "http://example.com/file.pdf",
+            fileName = null,
+            contentType = "application/pdf",
+        )
+
+        assertTrue(download.isPdf)
+    }
+
+    @Test
+    fun `WHEN the content type is null and the fileName extension is pdf THEN the isPdf property returns true`() {
+        val download = DownloadState(
+            url = "http://example.com/file.pdf",
+            fileName = "file.pdf",
+            contentType = null,
+        )
+
+        assertTrue(download.isPdf)
+    }
+
+    @Test
+    fun `WHEN the content type is not pdf THEN the isPdf property returns false`() {
+        val download = DownloadState(
+            url = "http://example.com/file.jpg",
+            fileName = null,
+            contentType = "image/jpeg",
+        )
+
+        assertFalse(download.isPdf)
+    }
+
+    @Test
+    fun `WHEN the content type is null and the fileName extension is not pdf THEN the isPdf property returns false`() {
+        val download = DownloadState(
+            url = "http://example.com/file.jpg",
+            fileName = "file.jpg",
+            contentType = null,
+        )
+
+        assertFalse(download.isPdf)
     }
 }
