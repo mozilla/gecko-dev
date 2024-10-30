@@ -3028,19 +3028,22 @@ void BrowserChild::UpdateVisibility() {
     if (mBrowsingContext && mBrowsingContext->IsUnderHiddenEmbedderElement()) {
       return false;
     }
-    // For OOP iframes, include viewport visibility. For top-level <browser>
-    // elements we don't use this, because the front-end relies on using
-    // `mRenderLayers` when invisible for tab warming purposes.
-    //
-    // An alternative, maybe more consistent approach would be to add an opt-in
-    // into this behavior for top-level tabs managed by the tab-switcher
-    // instead...
-    if (!mIsTopLevel && !mEffectsInfo.IsVisible()) {
-      return false;
-    }
     // If we're explicitly told not to render layers, we're also invisible.
     if (!mRenderLayers) {
       return false;
+    }
+    if (!mIsTopLevel) {
+      // For OOP iframes, include viewport visibility.
+      if (!mEffectsInfo.IsVisible()) {
+        return false;
+      }
+      // Also include activeness, unless we're artificially preserving layers.
+      // An alternative to this would be to propagate mRenderLayers from the
+      // parent, perhaps, so that it applies to the whole tree...
+      if (!mIsPreservingLayers && mBrowsingContext &&
+          !mBrowsingContext->IsActive()) {
+        return false;
+      }
     }
     return true;
   }();
@@ -3091,6 +3094,7 @@ void BrowserChild::MakeHidden() {
 IPCResult BrowserChild::RecvPreserveLayers(bool aPreserve) {
   mIsPreservingLayers = aPreserve;
 
+  UpdateVisibility();
   PresShellActivenessMaybeChanged();
 
   return IPC_OK();

@@ -2750,6 +2750,9 @@ void BrowsingContext::DidSet(FieldIndex<IDX_ExplicitActive>,
 
   PreOrderWalk([&](BrowsingContext* aContext) {
     if (nsCOMPtr<nsIDocShell> ds = aContext->GetDocShell()) {
+      if (auto* bc = BrowserChild::GetFrom(ds)) {
+        bc->UpdateVisibility();
+      }
       nsDocShell::Cast(ds)->ActivenessMaybeChanged();
     }
   });

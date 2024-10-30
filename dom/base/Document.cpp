@@ -16857,7 +16857,6 @@ void Document::UpdateIntersections(TimeStamp aNowTime) {
 
 static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
                                            const IntersectionInput& aInput,
-                                           bool aIsHidden,
                                            bool aIncludeInactive) {
   Element* el = aBc->GetEmbedderElement();
   if (!el) {
@@ -16870,8 +16869,14 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
   const bool isInactiveTop = aBc->IsTop() && !aBc->IsActive();
   nsSubDocumentFrame* subDocFrame = do_QueryFrame(el->GetPrimaryFrame());
   rb->UpdateEffects([&] {
-    if (aIsHidden || isInactiveTop) {
-      // Fully hidden if in the background.
+    if (isInactiveTop) {
+      // We don't use the visible rect of top browsers, so if they're inactive
+      // don't waste time computing it. Note that for OOP iframes, it might seem
+      // a bit wasteful to bother computing this in background tabs, but:
+      //  * We need it so that child frames know if they're visible or not, in
+      //    case they're preserving layers for example.
+      //  * If we're hidden, our refresh driver is throttled and we don't run
+      //    this code very often anyways.
       return EffectsInfo::FullyHidden();
     }
     const IntersectionOutput output = DOMIntersectionObserver::Intersect(
@@ -16921,17 +16926,16 @@ void Document::UpdateRemoteFrameEffects(bool aIncludeInactive) {
   auto margin = DOMIntersectionObserver::LazyLoadingRootMargin();
   const IntersectionInput input = DOMIntersectionObserver::ComputeInput(
       *this, /* aRoot = */ nullptr, &margin);
-  const bool hidden = Hidden();
   if (auto* wc = GetWindowContext()) {
     for (const RefPtr<BrowsingContext>& child : wc->Children()) {
-      UpdateEffectsOnBrowsingContext(child, input, hidden, aIncludeInactive);
+      UpdateEffectsOnBrowsingContext(child, input, aIncludeInactive);
     }
   }
   if (XRE_IsParentProcess()) {
     if (auto* bc = GetBrowsingContext(); bc && bc->IsTop()) {
       bc->Canonical()->CallOnAllTopDescendants(
           [&](CanonicalBrowsingContext* aDescendant) {
-            UpdateEffectsOnBrowsingContext(aDescendant, input, hidden,
+            UpdateEffectsOnBrowsingContext(aDescendant, input,
                                            aIncludeInactive);
             return CallState::Continue;
           },
