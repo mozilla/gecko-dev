@@ -7,6 +7,8 @@ import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/profiles/profile-card.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/elements/moz-checkbox.mjs";
 
 const { SelectableProfileService } = ChromeUtils.importESModule(
   "resource:///modules/profiles/SelectableProfileService.sys.mjs"
@@ -109,7 +111,7 @@ export class ProfileSelector extends MozLitElement {
       <moz-checkbox
         @click=${this.handleCheckboxToggle}
         data-l10n-id="profile-window-checkbox-label"
-        ?checked=${SelectableProfileService.groupToolkitProfile
+        ?checked=${this.selectableProfileService.groupToolkitProfile
           .showProfileSelector}
       ></moz-checkbox>`;
   }
