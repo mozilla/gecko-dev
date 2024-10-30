@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.intent.rule.IntentsRule
 import androidx.test.filters.SdkSuppress
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -335,6 +336,7 @@ class DownloadTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2048448
     // Save edited PDF file from the share overlay
     @SmokeTest
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1928136")
     @Test
     fun saveAsPdfFunctionalityTest() {
         val genericURL =

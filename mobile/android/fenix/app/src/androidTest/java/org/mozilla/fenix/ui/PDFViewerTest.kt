@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -47,6 +48,7 @@ class PDFViewerTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2145448
     // Download PDF file using the download toolbar button
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1928136")
     @Test
     fun verifyPDFViewerDownloadButtonTest() {
         val genericURL = getGenericAsset(mockWebServer, 3)
