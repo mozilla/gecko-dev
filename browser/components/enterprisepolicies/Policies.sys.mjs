@@ -577,6 +577,28 @@ export var Policies = {
           );
         }
       }
+      let interceptionPointPrefs = [
+        ["Clipboard", "clipboard"],
+        ["DragAndDrop", "drag_and_drop"],
+        ["FileUpload", "file_upload"],
+        ["Print", "print"],
+      ];
+      if ("InterceptionPoints" in param) {
+        for (let pref of interceptionPointPrefs) {
+          // Need to set and lock this value even if the enterprise
+          // policy isn't set so users can't change it
+          let value = true;
+          if (pref[0] in param.InterceptionPoints) {
+            if ("Enabled" in param.InterceptionPoints[pref[0]]) {
+              value = !!param.InterceptionPoints[pref[0]].Enabled;
+            }
+          }
+          setAndLockPref(
+            `browser.contentanalysis.interception_point.${pref[1]}.enabled`,
+            value
+          );
+        }
+      }
       if ("Enabled" in param) {
         let enabled = !!param.Enabled;
         setAndLockPref("browser.contentanalysis.enabled", enabled);

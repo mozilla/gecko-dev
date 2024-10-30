@@ -27,6 +27,12 @@ const kPerUserPref = "is_per_user";
 const kShowBlockedPref = "show_blocked_result";
 const kDefaultResultPref = "default_result";
 const kBypassForSameTabOperationsPref = "bypass_for_same_tab_operations";
+const kInterceptionPoints = [
+  "clipboard",
+  "drag_and_drop",
+  "file_upload",
+  "print",
+];
 
 const ca = Cc["@mozilla.org/contentanalysis;1"].getService(
   Ci.nsIContentAnalysis
@@ -67,6 +73,17 @@ add_task(async function test_ca_active() {
     },
   });
   ok(ca.isActive, "CA is active when enabled by enterprise policy pref");
+  for (let interceptionPoint of kInterceptionPoints) {
+    is(
+      Services.prefs.getBoolPref(
+        `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`
+      ),
+      true,
+      `${interceptionPoint} enabled by default`
+    );
+  }
+
+  Services.prefs.setBoolPref("browser.contentanalysis." + kEnabledPref, false);
   PoliciesPrefTracker.stop();
 });
 
@@ -90,6 +107,20 @@ add_task(async function test_ca_enterprise_config() {
         ShowBlockedResult: false,
         DefaultResult: 1,
         BypassForSameTabOperations: true,
+        InterceptionPoints: {
+          Clipboard: {
+            Enabled: false,
+          },
+          DragAndDrop: {
+            Enabled: false,
+          },
+          FileUpload: {
+            Enabled: false,
+          },
+          Print: {
+            Enabled: false,
+          },
+        },
       },
     },
   });
@@ -148,6 +179,16 @@ add_task(async function test_ca_enterprise_config() {
     true,
     "bypass for same tab operations match"
   );
+  for (let interceptionPoint of kInterceptionPoints) {
+    is(
+      Services.prefs.getBoolPref(
+        `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`
+      ),
+      false,
+      `${interceptionPoint} interception point match`
+    );
+  }
+
   PoliciesPrefTracker.stop();
 });
 
@@ -161,4 +202,10 @@ add_task(async function test_cleanup() {
   // element - reset them manually here.
   ca.isSetByEnterprisePolicy = false;
   Services.prefs.setBoolPref("browser.contentanalysis." + kEnabledPref, false);
+  for (let interceptionPoint of kInterceptionPoints) {
+    Services.prefs.setBoolPref(
+      `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`,
+      true
+    );
+  }
 });

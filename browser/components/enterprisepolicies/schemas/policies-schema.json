@@ -270,6 +270,43 @@
         },
         "BypassForSameTabOperations": {
           "type": "boolean"
+        },
+        "InterceptionPoints": {
+          "type": "object",
+          "properties": {
+            "Clipboard": {
+              "type": "object",
+              "properties": {
+                "Enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "DragAndDrop": {
+              "type": "object",
+              "properties": {
+                "Enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "FileUpload": {
+              "type": "object",
+              "properties": {
+                "Enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "Print": {
+              "type": "object",
+              "properties": {
+                "Enabled": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
         }
       }
     },
