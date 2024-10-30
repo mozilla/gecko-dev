@@ -21,8 +21,8 @@ const emptyTheme = {
 };
 
 let defaultTheme = emptyTheme;
-// Map[windowId -> Theme instance]
-let windowOverrides = new Map();
+// Map[BrowserWindow -> Theme instance]
+let windowOverrides = new WeakMap();
 
 /**
  * Class representing either a global theme affecting all windows or an override on a specific window.
@@ -142,12 +142,11 @@ class Theme {
     }
 
     if (this.windowId) {
-      this.lwtData.window = windowTracker.getWindow(
-        this.windowId
-      ).docShell.outerWindowID;
-      windowOverrides.set(this.windowId, this);
+      let browserWindow = windowTracker.getWindow(this.windowId);
+      this.lwtData.window = browserWindow.docShell.outerWindowID;
+      windowOverrides.set(browserWindow, this);
     } else {
-      windowOverrides.clear();
+      windowOverrides = new WeakMap();
       defaultTheme = this;
       LightweightThemeManager.fallbackThemeData = this.lwtData;
     }
@@ -409,20 +408,27 @@ class Theme {
     styles.version = extension.version;
   }
 
-  static unload(windowId) {
+  static unload(browserWindow) {
     let lwtData = {
       theme: null,
     };
 
-    if (windowId) {
-      lwtData.window = windowTracker.getWindow(windowId).docShell.outerWindowID;
-      windowOverrides.delete(windowId);
+    if (browserWindow) {
+      lwtData.window = browserWindow.docShell?.outerWindowID;
+      windowOverrides.delete(browserWindow);
+
+      onUpdatedEmitter.emit(
+        "theme-updated",
+        {},
+        windowTracker.getId(browserWindow)
+      );
     } else {
-      windowOverrides.clear();
+      windowOverrides = new WeakMap();
       defaultTheme = emptyTheme;
       LightweightThemeManager.fallbackThemeData = null;
+
+      onUpdatedEmitter.emit("theme-updated", {});
     }
-    onUpdatedEmitter.emit("theme-updated", {}, windowId);
 
     Services.obs.notifyObservers(lwtData, "lightweight-theme-styling-update");
   }
@@ -485,9 +491,12 @@ this.theme = class extends ExtensionAPIPersistent {
     }
 
     let { extension } = this;
-    for (let [windowId, theme] of windowOverrides) {
+    for (let browserWindow of ChromeUtils.nondeterministicGetWeakMapKeys(
+      windowOverrides
+    )) {
+      let theme = windowOverrides.get(browserWindow);
       if (theme.extension === extension) {
-        Theme.unload(windowId);
+        Theme.unload(browserWindow);
       }
     }
 
@@ -506,14 +515,12 @@ this.theme = class extends ExtensionAPIPersistent {
           if (!windowId) {
             windowId = windowTracker.getId(windowTracker.topWindow);
           }
-          // Force access validation for incognito mode by getting the window.
-          if (!windowTracker.getWindow(windowId, context)) {
-            return Promise.reject(`Invalid window ID: ${windowId}`);
+
+          const browserWindow = windowTracker.getWindow(windowId, context);
+          if (windowOverrides.has(browserWindow)) {
+            return Promise.resolve(windowOverrides.get(browserWindow).details);
           }
 
-          if (windowOverrides.has(windowId)) {
-            return Promise.resolve(windowOverrides.get(windowId).details);
-          }
           return Promise.resolve(defaultTheme.details);
         },
         update: (windowId, details) => {
@@ -534,19 +541,16 @@ this.theme = class extends ExtensionAPIPersistent {
         reset: windowId => {
           if (windowId) {
             const browserWindow = windowTracker.getWindow(windowId, context);
-            if (!browserWindow) {
-              return Promise.reject(`Invalid window ID: ${windowId}`);
+            const theme = windowOverrides.get(browserWindow) || defaultTheme;
+            if (theme.extension === extension) {
+              Theme.unload(browserWindow);
             }
-
-            let theme = windowOverrides.get(windowId) || defaultTheme;
-            if (theme.extension !== extension) {
-              return;
-            }
-          } else if (defaultTheme.extension !== extension) {
             return;
           }
 
-          Theme.unload(windowId);
+          if (defaultTheme.extension === extension) {
+            Theme.unload();
+          }
         },
         onUpdated: new EventManager({
           context,

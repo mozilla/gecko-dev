@@ -2,6 +2,19 @@
 
 // This test checks whether the new tab page color properties work per-window.
 
+add_setup(async function () {
+  SpecialPowers.registerConsoleListener(function onConsoleMessage(msg) {
+    if (msg.isWarning || !msg.errorMessage) {
+      // Ignore warnings and non-errors.
+      return;
+    }
+    ok(false, msg.message || msg.errorMessage);
+  });
+  registerCleanupFunction(() => {
+    SpecialPowers.postConsoleSentinel();
+  });
+});
+
 function waitForAboutNewTabReady(browser, url) {
   // Stop-gap fix for https://bugzilla.mozilla.org/show_bug.cgi?id=1697196#c24
   return SpecialPowers.spawn(browser, [url], async url => {
