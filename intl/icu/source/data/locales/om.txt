@@ -4,39 +4,188 @@
 om{
     ExemplarCharacters{"[a b c d e f g h i j k l m n o p q r s t u v w x y z]"}
     ExemplarCharactersIndex{"[A B C D E F G H I J K L M N O P Q R S T U V W X Y Z]"}
-    ExemplarCharactersNumbers{"[\\- ‑ , . % ‰ + 0 1 2 3 4 5 6 7 8 9]"}
+    ExemplarCharactersPunctuation{"[\\- ‐‑ – — , ; \\: ! ? . … '‘’ \u0022“” ( ) \\[ \\] @ * / # ′ ″]"}
     NumberElements{
-        default{"latn"}
         latn{
-            miscPatterns{
-                atLeast{"≥{0}"}
-                range{"{0}–{1}"}
-            }
             patterns{
-                accountingFormat{"¤#,##0.00"}
                 currencyFormat{"¤#,##0.00"}
-                decimalFormat{"#,##0.###"}
-                percentFormat{"#,##0%"}
-                scientificFormat{"#E0"}
             }
-            symbols{
-                decimal{"."}
-                exponential{"E"}
-                group{","}
-                infinity{"∞"}
-                minusSign{"-"}
-                nan{"NaN"}
-                perMille{"‰"}
-                percentSign{"%"}
-                plusSign{"+"}
-                superscriptingExponent{"×"}
+            patternsLong{
+                decimalFormat{
+                    1000{
+                        one{"Kuma 0"}
+                        other{"kuma 0"}
+                    }
+                    10000{
+                        one{"kuma 00"}
+                        other{"kuma 00"}
+                    }
+                    100000{
+                        one{"kuma 000"}
+                        other{"kuma 000"}
+                    }
+                    1000000{
+                        one{"miiliyoona 0"}
+                        other{"miiliyoona 0"}
+                    }
+                    10000000{
+                        one{"miiliyoona 00"}
+                        other{"miiliyoona 00"}
+                    }
+                    100000000{
+                        one{"miiliyoona 000"}
+                        other{"miiliyoona 000"}
+                    }
+                    1000000000{
+                        one{"biiliyoona 0"}
+                        other{"biiliyoona 0"}
+                    }
+                    10000000000{
+                        one{"biiliyoona 00"}
+                        other{"biiliyoona 00"}
+                    }
+                    100000000000{
+                        one{"biiliyoona 000"}
+                        other{"biiliyoona 000"}
+                    }
+                    1000000000000{
+                        one{"tiriiliyoona 0"}
+                        other{"tiriiliyoona 0"}
+                    }
+                    10000000000000{
+                        one{"tiriiliyoona 00"}
+                        other{"tiriiliyoona 00"}
+                    }
+                    100000000000000{
+                        one{"tiriiliyoona 000"}
+                        other{"tiriiliyoona 000"}
+                    }
+                }
+            }
+            patternsShort{
+                currencyFormat{
+                    1000{
+                        one{"¤0K"}
+                        other{"¤0K"}
+                    }
+                    10000{
+                        one{"¤00K"}
+                        other{"¤00K"}
+                    }
+                    100000{
+                        one{"¤000K"}
+                        other{"¤000K"}
+                    }
+                    1000000{
+                        one{"¤0M"}
+                        other{"¤0M"}
+                    }
+                    10000000{
+                        one{"¤00M"}
+                        other{"¤00M"}
+                    }
+                    100000000{
+                        one{"¤000M"}
+                        other{"¤000M"}
+                    }
+                    1000000000{
+                        one{"¤0G"}
+                        other{"¤0G"}
+                    }
+                    10000000000{
+                        one{"¤00G"}
+                        other{"¤00G"}
+                    }
+                    100000000000{
+                        one{"¤000G"}
+                        other{"¤000G"}
+                    }
+                    1000000000000{
+                        one{"¤0T"}
+                        other{"¤0T"}
+                    }
+                    10000000000000{
+                        one{"¤00T"}
+                        other{"¤00T"}
+                    }
+                    100000000000000{
+                        one{"¤000T"}
+                        other{"¤000T"}
+                    }
+                }
             }
         }
-        minimumGroupingDigits{"1"}
-        native{"latn"}
         traditional{"ethi"}
     }
     calendar{
+        ethiopic{
+            monthNames{
+                format{
+                    abbreviated{
+                        "Ful",
+                        "Onk",
+                        "Sad",
+                        "Mud",
+                        "Ama",
+                        "Gur",
+                        "Bit",
+                        "Ebi",
+                        "Cam",
+                        "Wax",
+                        "Ado",
+                        "Hag",
+                        "Qam",
+                    }
+                    wide{
+                        "Fulbaana",
+                        "Guraandhala",
+                        "Sadaasa",
+                        "Mudde",
+                        "Amajji",
+                        "Waxabajjii",
+                        "Bitootessa",
+                        "Eebila",
+                        "Caamsaa",
+                        "Onkoloolessa",
+                        "Adoolessa",
+                        "Hagayya",
+                        "Qaam’ee",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "F",
+                        "O",
+                        "S",
+                        "M",
+                        "Am",
+                        "G",
+                        "B",
+                        "E",
+                        "C",
+                        "W",
+                        "Ad",
+                        "H",
+                        "Q",
+                    }
+                    wide{
+                        "Fulbaana",
+                        "Guraandhala",
+                        "Sadaasa",
+                        "Mudde",
+                        "Amajji",
+                        "Waxabajjii",
+                        "Bitootessa",
+                        "Eebila",
+                        "Caamsaa",
+                        "Onkoloolessa",
+                        "Adoolessa",
+                        "Hagayya",
+                        "Qaam’ee",
+                    }
+                }
+            }
+        }
         generic{
             DateTimePatterns{
                 "h:mm:ss a zzzz",
@@ -44,14 +193,20 @@ om{
                 "h:mm:ss a",
                 "h:mm a",
                 "EEEE, MMMM d, y G",
-                "dd MMMM y G",
-                "dd-MMM-y G",
-                "dd/MM/yy GGGGG",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
+                "MMMM d, y G",
+                "MMM d, y G",
+                "M/d/y GGGGG",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            DateTimePatterns%atTime{
+                "{1} {0} 'tti'",
+                "{1} {0} 'tti'",
+                "{1}, {0}",
+                "{1}, {0}",
             }
             DateTimeSkeletons{
                 "ahmmsszzzz",
@@ -64,18 +219,126 @@ om{
                 "GGGGGyyMMdd",
             }
             availableFormats{
+                Gy{"y G"}
+                GyMMM{"MMM y G"}
+                GyMMMEd{"E, MMM d, y G"}
+                GyMMMd{"MMM d, y G"}
+                GyMd{"M/d/y GGGGG"}
+                MEd{"E, M/d"}
+                MMMEd{"E, MMM d"}
                 MMMMdd{"dd MMMM"}
                 MMdd{"dd/MM"}
+                Md{"M/d"}
+                y{"y G"}
                 yMM{"MM/y"}
                 yMMMM{"MMMM y"}
                 yQQQ{"QQQ y"}
+                yyyy{"y G"}
+                yyyyM{"M/y GGGGG"}
+                yyyyMEd{"E, M/d/y GGGGG"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"E, MMM d, y G"}
+                yyyyMMMM{"MMMM y G"}
+                yyyyMMMd{"MMM d, y G"}
+                yyyyMd{"M/d/y GGGGG"}
+                yyyyQQQ{"QQQ y G"}
+                yyyyQQQQ{"QQQQ y G"}
+            }
+            intervalFormats{
+                Gy{
+                    G{"y G – y G"}
+                    y{"y – y G"}
+                }
+                GyM{
+                    G{"M/y GGGGG – M/y GGGGG"}
+                    M{"M/y – M/y GGGGG"}
+                    y{"M/y – M/y GGGGG"}
+                }
+                GyMEd{
+                    G{"E, M/d/y GGGGG – E, M/d/y GGGGG"}
+                    M{"E, M/d/y – E, M/d/y GGGGG"}
+                    d{"E, M/d/y – E, M/d/y GGGGG"}
+                    y{"E, M/d/y – E, M/d/y GGGGG"}
+                }
+                GyMMM{
+                    G{"MMM y G – MMM y G"}
+                    M{"MMM – MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                GyMMMEd{
+                    G{"E, MMM d, y G – E, MMM d, y G"}
+                    M{"E, MMM d – E, MMM d, y G"}
+                    d{"E, MMM d – E, MMM d, y G"}
+                    y{"E, MMM d, y – E, MMM d, y G"}
+                }
+                GyMMMd{
+                    G{"MMM d, y G – MMM d, y G"}
+                    M{"MMM d – MMM d, y G"}
+                    d{"MMM d – d, y G"}
+                    y{"MMM d, y – MMM d, y G"}
+                }
+                GyMd{
+                    G{"M/d/y GGGGG – M/d/y GGGGG"}
+                    M{"M/d/y – M/d/y GGGGG"}
+                    d{"M/d/y – M/d/y GGGGG"}
+                    y{"M/d/y – M/d/y GGGGG"}
+                }
+                M{
+                    M{"M – M"}
+                }
+                MEd{
+                    M{"E, M/d – E, M/d"}
+                    d{"E, M/d – E, M/d"}
+                }
+                MMM{
+                    M{"MMM – MMM"}
+                }
+                MMMEd{
+                    M{"E, MMM d – E, MMM d"}
+                    d{"E, MMM d – E, MMM d"}
+                }
+                Md{
+                    M{"M/d – M/d"}
+                    d{"M/d – M/d"}
+                }
+                y{
+                    y{"y – y G"}
+                }
+                yM{
+                    M{"M/y – M/y GGGGG"}
+                    y{"M/y – M/y GGGGG"}
+                }
+                yMEd{
+                    M{"E, M/d/y – E, M/d/y GGGGG"}
+                    d{"E, M/d/y – E, M/d/y GGGGG"}
+                    y{"E, M/d/y – E, M/d/y GGGGG"}
+                }
+                yMMM{
+                    M{"MMM – MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                yMMMEd{
+                    M{"E, MMM d – E, MMM d, y G"}
+                    d{"E, MMM d – E, MMM d, y G"}
+                    y{"E, MMM d, y – E, MMM d, y G"}
+                }
+                yMMMM{
+                    M{"MMMM – MMMM y G"}
+                    y{"MMMM y – MMMM y G"}
+                }
+                yMMMd{
+                    M{"MMM d – MMM d, y G"}
+                    d{"MMM d – d, y G"}
+                    y{"MMM d, y – MMM d, y G"}
+                }
+                yMd{
+                    M{"M/d/y – M/d/y GGGGG"}
+                    d{"M/d/y – M/d/y GGGGG"}
+                    y{"M/d/y – M/d/y GGGGG"}
+                }
             }
         }
         gregorian{
-            AmPmMarkers{
-                "WD",
-                "WB",
-            }
             AmPmMarkersAbbr{
                 "WD",
                 "WB",
@@ -86,14 +349,20 @@ om{
                 "h:mm:ss a",
                 "h:mm a",
                 "EEEE, MMMM d, y",
-                "dd MMMM y",
-                "dd-MMM-y",
-                "dd/MM/yy",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
+                "MMMM d, y",
+                "MMM d, y",
+                "M/d/yy",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            DateTimePatterns%atTime{
+                "{1} {0} 'tti'",
+                "{1} {0} 'tti'",
+                "{1}, {0}",
+                "{1}, {0}",
             }
             DateTimeSkeletons{
                 "ahmmsszzzz",
@@ -105,59 +374,37 @@ om{
                 "yMMMdd",
                 "yyMMdd",
             }
-            appendItems{
-                Timezone{"{0} {1}"}
-            }
             availableFormats{
-                E{"ccc"}
-                EHm{"E HH:mm"}
-                EHms{"E HH:mm:ss"}
-                Ed{"d, E"}
                 Ehm{"E h:mm a"}
                 Ehms{"E h:mm:ss a"}
-                Gy{"G y"}
-                GyMMM{"G y MMM"}
-                GyMMMEd{"G y MMM d, E"}
-                GyMMMd{"G y MMM d"}
-                H{"HH"}
-                Hm{"HH:mm"}
-                Hms{"HH:mm:ss"}
-                Hmsv{"HH:mm:ss v"}
-                Hmv{"HH:mm v"}
-                M{"L"}
-                MEd{"MM-dd, E"}
-                MMM{"LLL"}
-                MMMEd{"MMM d, E"}
+                GyMMM{"MMM y G"}
+                GyMMMEd{"E, MMM d, y G"}
+                GyMMMd{"MMM d, y G"}
+                MEd{"E, M/d"}
+                MMMEd{"E, MMM d"}
                 MMMMW{
-                    one{"'week' W 'of' MMMM"}
-                    other{"'week' W 'of' MMMM"}
+                    one{"'torbee' W 'kan' MMMM"}
+                    other{"'torbee' W 'kan' MMMM"}
                 }
-                MMMMd{"MMMM d"}
-                MMMMdd{"dd MMMM"}
-                MMMd{"MMM d"}
+                MMMMdd{"MMMM dd"}
                 MMdd{"dd/MM"}
-                Md{"MM-dd"}
-                d{"d"}
                 h{"h a"}
                 hm{"h:mm a"}
                 hms{"h:mm:ss a"}
                 hmsv{"h:mm:ss a v"}
-                hmv{"h:mm a v"}
-                ms{"mm:ss"}
-                y{"y"}
-                yM{"y-MM"}
-                yMEd{"y-MM-dd, E"}
+                yM{"M/y"}
+                yMEd{"E, M/d/y"}
                 yMM{"MM/y"}
-                yMMM{"y MMM"}
-                yMMMEd{"y MMM d, E"}
+                yMMM{"MMM y"}
+                yMMMEd{"E, MMM d, y"}
                 yMMMM{"MMMM y"}
-                yMMMd{"y MMM d"}
-                yMd{"y-MM-dd"}
+                yMMMd{"MMM d, y"}
+                yMd{"M/d/y"}
                 yQQQ{"QQQ y"}
-                yQQQQ{"y QQQQ"}
+                yQQQQ{"QQQQ y"}
                 yw{
-                    one{"'week' w 'of' Y"}
-                    other{"'week' w 'of' Y"}
+                    one{"'torbee' w 'kan' Y"}
+                    other{"'torbee' w 'kan' Y"}
                 }
             }
             dayNames{
@@ -165,54 +412,25 @@ om{
                     abbreviated{
                         "Dil",
                         "Wix",
-                        "Qib",
-                        "Rob",
-                        "Kam",
-                        "Jim",
-                        "San",
-                    }
-                    short{
-                        "Dil",
-                        "Wix",
-                        "Qib",
-                        "Rob",
-                        "Kam",
-                        "Jim",
-                        "San",
-                    }
-                    wide{
-                        "Dilbata",
-                        "Wiixata",
-                        "Qibxata",
-                        "Roobii",
-                        "Kamiisa",
-                        "Jimaata",
-                        "Sanbata",
-                    }
-                }
-                stand-alone{
-                    abbreviated{
-                        "Dil",
-                        "Wix",
-                        "Qib",
+                        "Kib",
                         "Rob",
                         "Kam",
                         "Jim",
                         "San",
                     }
                     narrow{
-                        "S",
-                        "M",
-                        "T",
+                        "D",
                         "W",
-                        "T",
-                        "F",
+                        "K",
+                        "R",
+                        "K",
+                        "J",
                         "S",
                     }
                     short{
                         "Dil",
                         "Wix",
-                        "Qib",
+                        "Kib",
                         "Rob",
                         "Kam",
                         "Jim",
@@ -221,87 +439,137 @@ om{
                     wide{
                         "Dilbata",
                         "Wiixata",
-                        "Qibxata",
+                        "Kibxata",
                         "Roobii",
-                        "Kamiisa",
+                        "Kamisa",
                         "Jimaata",
                         "Sanbata",
                     }
                 }
-            }
-            dayPeriod{
                 stand-alone{
                     abbreviated{
-                        am{"WD"}
-                        pm{"WB"}
+                        "Dil",
+                        "Wix",
+                        "Kib",
+                        "Rob",
+                        "Kam",
+                        "Jim",
+                        "San",
                     }
                     narrow{
-                        am{"WD"}
-                        pm{"WB"}
+                        "D",
+                        "W",
+                        "K",
+                        "R",
+                        "K",
+                        "J",
+                        "S",
+                    }
+                    short{
+                        "Dil",
+                        "Wix",
+                        "Kib",
+                        "Rob",
+                        "Kam",
+                        "Jim",
+                        "San",
                     }
                     wide{
-                        am{"WD"}
-                        pm{"WB"}
+                        "Dilbata",
+                        "Wiixata",
+                        "Kibxata",
+                        "Roobii",
+                        "Kamisa",
+                        "Jimaata",
+                        "Sanbata",
                     }
                 }
             }
             eras{
                 abbreviated{
-                    "BCE",
-                    "CE",
+                    "DhKD",
+                    "BA",
+                }
+                abbreviated%variant{
+                    "BWD",
+                    "BW",
+                }
+                narrow{
+                    "Dh",
+                    "B",
+                }
+                narrow%variant{
+                    "BWD",
+                    "BW",
                 }
                 wide{
-                    "Dheengadda Jeesu",
-                    "CE",
+                    "Dhaloota Kiristoos Dura",
+                    "Bara Araaraa",
                 }
                 wide%variant{
-                    "BCE",
-                    "CE",
+                    "Bara Waloo Dura",
+                    "Bara Waloo",
                 }
             }
             intervalFormats{
-                H{
-                    H{"HH–HH"}
+                Gy{
+                    G{"y G – y G"}
+                    y{"y – y G"}
                 }
-                Hm{
-                    H{"HH:mm–HH:mm"}
-                    m{"HH:mm–HH:mm"}
+                GyM{
+                    G{"M/y G – M/y G"}
+                    M{"M/y – M/y G"}
+                    y{"M/y – M/y G"}
                 }
-                Hmv{
-                    H{"HH:mm–HH:mm v"}
-                    m{"HH:mm–HH:mm v"}
+                GyMEd{
+                    G{"E, M/d/y G – E, M/d/y G"}
+                    M{"E, M/d/y – E, M/d/y G"}
+                    d{"E, M/d/y – E, M/d/y G"}
+                    y{"E, M/d/y – E, M/d/y G"}
                 }
-                Hv{
-                    H{"HH–HH v"}
+                GyMMM{
+                    G{"MMM y G – MMM y G"}
+                    M{"MMM – MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                GyMMMEd{
+                    G{"E, MMM d, y G – E, MMM d, y G"}
+                    M{"E, MMM d – E, MMM d, y G"}
+                    d{"E, MMM d – E, MMM d, y G"}
+                    y{"E, MMM d, y – E, MMM d, y G"}
+                }
+                GyMMMd{
+                    G{"MMM d, y G – MMM d, y G"}
+                    M{"MMM d – MMM d, y G"}
+                    d{"MMM d – d, y G"}
+                    y{"MMM d, y – MMM d, y G"}
+                }
+                GyMd{
+                    G{"M/d/y G – M/d/y G"}
+                    M{"M/d/y – M/d/y G"}
+                    d{"M/d/y – M/d/y G"}
+                    y{"M/d/y – M/d/y G"}
                 }
                 M{
-                    M{"MM–MM"}
+                    M{"M – M"}
                 }
                 MEd{
-                    M{"MM-dd, E – MM-dd, E"}
-                    d{"MM-dd, E – MM-dd, E"}
-                }
-                MMM{
-                    M{"LLL–LLL"}
+                    M{"E, M/d – E, M/d"}
+                    d{"E, M/d – E, M/d"}
                 }
                 MMMEd{
-                    M{"MMM d, E – MMM d, E"}
+                    M{"E, MMM d – E, MMM d"}
                     d{"MMM d, E – MMM d, E"}
                 }
                 MMMd{
                     M{"MMM d – MMM d"}
-                    d{"MMM d–d"}
                 }
                 Md{
-                    M{"MM-dd – MM-dd"}
-                    d{"MM-dd – MM-dd"}
+                    M{"M/d – M/d"}
+                    d{"M/d – M/d"}
                 }
-                d{
-                    d{"d–d"}
-                }
-                fallback{"{0} – {1}"}
                 h{
-                    a{"h a – h a"}
+                    a{"h a – h a "}
                     h{"h–h a"}
                 }
                 hm{
@@ -318,40 +586,37 @@ om{
                     a{"h a – h a v"}
                     h{"h–h a v"}
                 }
-                y{
-                    y{"y–y"}
-                }
                 yM{
-                    M{"y-MM – y-MM"}
-                    y{"y-MM – y-MM"}
+                    M{"M/y – M/y"}
+                    y{"M/y – M/y"}
                 }
                 yMEd{
-                    M{"y-MM-dd, E – y-MM-dd, E"}
-                    d{"y-MM-dd, E – y-MM-dd, E"}
-                    y{"y-MM-dd, E – y-MM-dd, E"}
+                    M{"E, M/d/y – E, M/d/y"}
+                    d{"E, M/d/y – E, M/d/y"}
+                    y{"E, M/d/y – E, M/d/y"}
                 }
                 yMMM{
-                    M{"y MMM–MMM"}
-                    y{"y MMM – y MMM"}
+                    M{"MMM – MMM y"}
+                    y{"MMM y – MMM y"}
                 }
                 yMMMEd{
-                    M{"y MMM d, E – MMM d, E"}
-                    d{"y MMM d, E – MMM d, E"}
-                    y{"y MMM d, E – y MMM d, E"}
+                    M{"E, MMM d – E, MMM d, y"}
+                    d{"E, MMM d – E, MMM d, y"}
+                    y{"E, MMM d, y – E, MMM d, y"}
                 }
                 yMMMM{
-                    M{"y MMMM–MMMM"}
-                    y{"y MMMM – y MMMM"}
+                    M{"MMMM–MMMM y"}
+                    y{"MMMM y – MMMM y"}
                 }
                 yMMMd{
-                    M{"y MMM d – MMM d"}
-                    d{"y MMM d–d"}
-                    y{"y MMM d – y MMM d"}
+                    M{"MMM d – MMM d, y"}
+                    d{"MMM d – d, y"}
+                    y{"MMM d, y – MMM d, y"}
                 }
                 yMd{
-                    M{"y-MM-dd – y-MM-dd"}
-                    d{"y-MM-dd – y-MM-dd"}
-                    y{"y-MM-dd – y-MM-dd"}
+                    M{"M/d/y – M/d/y"}
+                    d{"M/d/y – M/d/y"}
+                    y{"M/d/y – M/d/y"}
                 }
             }
             monthNames{
@@ -359,7 +624,7 @@ om{
                     abbreviated{
                         "Ama",
                         "Gur",
-                        "Bit",
+                        "Bitootessa",
                         "Elb",
                         "Cam",
                         "Wax",
@@ -367,43 +632,43 @@ om{
                         "Hag",
                         "Ful",
                         "Onk",
-                        "Sad",
+                        "Sadaasa",
                         "Mud",
                     }
                     narrow{
-                        "J",
+                        "A",
+                        "G",
+                        "B",
+                        "E",
+                        "C",
+                        "W",
+                        "A",
+                        "H",
                         "F",
-                        "M",
-                        "A",
-                        "M",
-                        "J",
-                        "J",
-                        "A",
-                        "S",
                         "O",
-                        "N",
-                        "D",
+                        "S",
+                        "M",
                     }
                     wide{
                         "Amajjii",
                         "Guraandhala",
-                        "Bitooteessa",
-                        "Elba",
-                        "Caamsa",
+                        "Bitootessa",
+                        "Eebila",
+                        "Caamsaa",
                         "Waxabajjii",
-                        "Adooleessa",
+                        "Adoolessa",
                         "Hagayya",
-                        "Fuulbana",
-                        "Onkololeessa",
+                        "Fulbaana",
+                        "Onkoloolessa",
                         "Sadaasa",
-                        "Muddee",
+                        "Mudde",
                     }
                 }
                 stand-alone{
                     abbreviated{
                         "Ama",
                         "Gur",
-                        "Bit",
+                        "Bitootessa",
                         "Elb",
                         "Cam",
                         "Wax",
@@ -411,81 +676,910 @@ om{
                         "Hag",
                         "Ful",
                         "Onk",
-                        "Sad",
+                        "Sadaasa",
                         "Mud",
                     }
                     narrow{
-                        "J",
+                        "A",
+                        "G",
+                        "B",
+                        "E",
+                        "C",
+                        "W",
+                        "A",
+                        "H",
                         "F",
-                        "M",
-                        "A",
-                        "M",
-                        "J",
-                        "J",
-                        "A",
-                        "S",
                         "O",
-                        "N",
-                        "D",
+                        "S",
+                        "M",
                     }
                     wide{
                         "Amajjii",
                         "Guraandhala",
-                        "Bitooteessa",
-                        "Elba",
-                        "Caamsa",
+                        "Bitootessa",
+                        "Eebila",
+                        "Caamsaa",
                         "Waxabajjii",
-                        "Adooleessa",
+                        "Adoolessa",
                         "Hagayya",
-                        "Fuulbana",
-                        "Onkololeessa",
+                        "Fulbaana",
+                        "Onkoloolessa",
                         "Sadaasa",
-                        "Muddee",
+                        "Mudde",
                     }
                 }
             }
             quarters{
                 format{
                     abbreviated{
-                        "Q1",
-                        "Q2",
-                        "Q3",
-                        "Q4",
-                    }
-                    narrow{
-                        "1",
-                        "2",
-                        "3",
-                        "4",
+                        "K1",
+                        "K2",
+                        "K3",
+                        "K4",
                     }
                     wide{
-                        "Kurmaana 1",
-                        "Kurmaana 2",
-                        "Kurmaana 3",
-                        "Kurmaana 4",
+                        "Kurmaana 1ffaa",
+                        "Kurmaana 2ffaa",
+                        "Kurmaana 3ffaa",
+                        "Kurmaana 4ffaa",
                     }
                 }
                 stand-alone{
                     abbreviated{
-                        "Q1",
-                        "Q2",
-                        "Q3",
-                        "Q4",
-                    }
-                    narrow{
-                        "1",
-                        "2",
-                        "3",
-                        "4",
+                        "K1",
+                        "K2",
+                        "K3",
+                        "K4",
                     }
                     wide{
-                        "Kurmaana 1",
-                        "Kurmaana 2",
-                        "Kurmaana 3",
-                        "Kurmaana 4",
+                        "Kurmaana 1ffaa",
+                        "Kurmaana 2ffaa",
+                        "Kurmaana 3ffaa",
+                        "Kurmaana 4ffaa",
                     }
                 }
             }
         }
+    }
+    fields{
+        day{
+            dn{"guyyaa"}
+            relative{
+                "-1"{"kaleessa"}
+                "0"{"har’a"}
+                "1"{"boru"}
+            }
+            relativeTime{
+                future{
+                    one{"guyyaa {0} keessatti"}
+                    other{"guyyoota {0} keessatti"}
+                }
+                past{
+                    one{"guyyaa {0} darbe"}
+                    other{"guyyoota {0} darban"}
+                }
+            }
+        }
+        day-narrow{
+            dn{"guyyaa"}
+            relative{
+                "-1"{"kaleessa"}
+                "0"{"har’a"}
+                "1"{"boru"}
+            }
+            relativeTime{
+                future{
+                    one{"g {0} keessatti"}
+                    other{"g {0} keessatti"}
+                }
+                past{
+                    one{"g {0} darbe"}
+                    other{"g {0} darbe"}
+                }
+            }
+        }
+        day-short{
+            dn{"guyyaa"}
+            relative{
+                "-1"{"kaleessa"}
+                "0"{"har’a"}
+                "1"{"boru"}
+            }
+            relativeTime{
+                future{
+                    one{"guyyaa {0} keessatti"}
+                    other{"guyyoota {0} keessatti"}
+                }
+                past{
+                    one{"guyyaa {0} darbe"}
+                    other{"guyyoota {0} darban"}
+                }
+            }
+        }
+        dayOfYear{
+            dn{"guyyaa waggaa"}
+        }
+        dayOfYear-narrow{
+            dn{"guyyaa kan wg."}
+        }
+        dayOfYear-short{
+            dn{"guyyaa kan wg."}
+        }
+        dayperiod{
+            dn{"WD/WB"}
+        }
+        dayperiod-narrow{
+            dn{"WD/WB"}
+        }
+        dayperiod-short{
+            dn{"WD/WB"}
+        }
+        era{
+            dn{"bara"}
+        }
+        era-narrow{
+            dn{"bara"}
+        }
+        era-short{
+            dn{"bara"}
+        }
+        fri{
+            relative{
+                "-1"{"Jimaata darbe"}
+                "0"{"Jimaata kana"}
+                "1"{"Jimaata dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Jimaata {0} keessatti"}
+                    other{"Jimaatota {0} keessatti"}
+                }
+                past{
+                    one{"Jimaata {0} dura"}
+                    other{"Jimaatota {0} dura"}
+                }
+            }
+        }
+        fri-narrow{
+            relative{
+                "-1"{"J darbe"}
+                "0"{"J kana"}
+                "1"{"J dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"J {0} keessatti"}
+                    other{"J {0} keessatti"}
+                }
+                past{
+                    one{"J {0} dura"}
+                    other{"J {0} dura"}
+                }
+            }
+        }
+        fri-short{
+            relative{
+                "-1"{"Jim. darbe"}
+                "0"{"Jim. kana"}
+                "1"{"Jim. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Jim. {0} keessatti"}
+                    other{"Jim. {0} keessatti"}
+                }
+                past{
+                    one{"Jim. {0} dura"}
+                    other{"Jim. {0} dura"}
+                }
+            }
+        }
+        hour{
+            dn{"sa’aatii"}
+            relative{
+                "0"{"sa’aatii kana"}
+            }
+            relativeTime{
+                future{
+                    one{"sa’aatii {0} keessatti"}
+                    other{"sa’aatiiwwan {0} keessatti"}
+                }
+                past{
+                    one{"sa’aatii {0} darbe"}
+                    other{"sa’aatiiwwan {0} darban"}
+                }
+            }
+        }
+        hour-narrow{
+            dn{"sa"}
+            relative{
+                "0"{"sa’aatii kana"}
+            }
+            relativeTime{
+                future{
+                    one{"h {0} keessatti"}
+                    other{"h {0} keessatti"}
+                }
+                past{
+                    one{"h {0} darbe"}
+                    other{"h {0} darbe"}
+                }
+            }
+        }
+        hour-short{
+            dn{"sa."}
+            relative{
+                "0"{"sa’aatii kana"}
+            }
+            relativeTime{
+                future{
+                    one{"sa. {0} keessatti"}
+                    other{"sa. {0} keessatti"}
+                }
+                past{
+                    one{"sa. {0} darbe"}
+                    other{"sa. {0} darbe"}
+                }
+            }
+        }
+        minute{
+            dn{"daqiiqaa"}
+            relativeTime{
+                future{
+                    one{"daqiiqaa {0} keessatti"}
+                    other{"daqiiqaawwan {0} keessatti"}
+                }
+                past{
+                    one{"daqiiqaa {0} darbe"}
+                    other{"daqiiqaawwan {0} darban"}
+                }
+            }
+        }
+        minute-narrow{
+            dn{"dq"}
+            relative{
+                "0"{"daqiiqaa kana"}
+            }
+            relativeTime{
+                future{
+                    one{"d {0} keessatti"}
+                    other{"d {0} keessatti"}
+                }
+                past{
+                    one{"d {0} darbe"}
+                    other{"d {0} darbe"}
+                }
+            }
+        }
+        minute-short{
+            dn{"dq."}
+            relative{
+                "0"{"daqiiqaa kana"}
+            }
+            relativeTime{
+                future{
+                    one{"daq. {0} keessatti"}
+                    other{"daq. {0} keessatti"}
+                }
+                past{
+                    one{"daq. {0} darbe"}
+                    other{"daq. {0} darbe"}
+                }
+            }
+        }
+        mon{
+            relative{
+                "-1"{"Wiixata darbe"}
+                "0"{"Wiixata kana"}
+                "1"{"Wiixata dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Wiixata {0} keessatti"}
+                    other{"Wiixatoota {0} keessatti"}
+                }
+                past{
+                    one{"Wiixata {0} darbe"}
+                    other{"Wiixatoota {0} darban"}
+                }
+            }
+        }
+        mon-narrow{
+            relative{
+                "-1"{"W darbe"}
+                "0"{"W kana"}
+                "1"{"W dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"W {0} keessatti"}
+                    other{"W {0} keessatti"}
+                }
+                past{
+                    one{"W {0} darbe"}
+                    other{"W {0} darbe"}
+                }
+            }
+        }
+        mon-short{
+            relative{
+                "-1"{"Wix. darbe"}
+                "0"{"Wix. kana"}
+                "1"{"Wix. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Wix. {0} keessatti"}
+                    other{"Wix. {0} keessatti"}
+                }
+                past{
+                    one{"Wix. {0} darbe"}
+                    other{"Wix. {0} darbe"}
+                }
+            }
+        }
+        month{
+            dn{"ji’a"}
+            relative{
+                "-1"{"ji’a darbe"}
+                "0"{"ji’a kana"}
+                "1"{"ji’a dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"ji’a {0} keessatti"}
+                    other{"ji’oota {0} keessatti"}
+                }
+                past{
+                    one{"ji’a {0} darbe"}
+                    other{"ji’oota {0} darban"}
+                }
+            }
+        }
+        month-narrow{
+            dn{"ji"}
+            relative{
+                "-1"{"ji. darbe"}
+                "0"{"ji. kana"}
+                "1"{"ji. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"ji {0} keessatti"}
+                    other{"ji {0} keessatti"}
+                }
+                past{
+                    one{"ji {0} darbe"}
+                    other{"ji {0} darbe"}
+                }
+            }
+        }
+        month-short{
+            dn{"ji."}
+            relative{
+                "-1"{"ji. darbe"}
+                "0"{"ji. kana"}
+                "1"{"ji. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"ji. {0} keessatti"}
+                    other{"ji. {0} keessatti"}
+                }
+                past{
+                    one{"ji. {0} darbe"}
+                    other{"ji. {0} darbe"}
+                }
+            }
+        }
+        quarter{
+            dn{"kurmaana"}
+            relative{
+                "-1"{"kurmaana darbe"}
+                "0"{"kurmaana kana"}
+                "1"{"kurmaana dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"kurmaana {0} keessatti"}
+                    other{"kurmaanota {0} keessatti"}
+                }
+                past{
+                    one{"kurmaana {0} darbe"}
+                    other{"kurmaanota {0} darban"}
+                }
+            }
+        }
+        quarter-narrow{
+            dn{"kr"}
+            relative{
+                "-1"{"q darbe"}
+                "0"{"q kana"}
+                "1"{"q dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"q {0} keessatti"}
+                    other{"q {0} keessatti"}
+                }
+                past{
+                    one{"q {0} darbe"}
+                    other{"q {0} darbe"}
+                }
+            }
+        }
+        quarter-short{
+            dn{"kr."}
+            relative{
+                "-1"{"kr. darbe"}
+                "0"{"kr. kana"}
+                "1"{"kr. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"kr. {0} keessatti"}
+                    other{"kr. {0} keessatti"}
+                }
+                past{
+                    one{"kr. {0} darbe"}
+                    other{"kr. {0} darbe"}
+                }
+            }
+        }
+        sat{
+            relative{
+                "-1"{"Sanbata darbe"}
+                "0"{"Sanbata kana"}
+                "1"{"Sanbata dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Sanbata {0} keessatti"}
+                    other{"Sanbatoota {0} keessatti"}
+                }
+                past{
+                    one{"Sanbata {0} dura"}
+                    other{"Sanbatoota {0} dura"}
+                }
+            }
+        }
+        sat-narrow{
+            relative{
+                "-1"{"sa darbe"}
+                "0"{"sa kana"}
+                "1"{"sa dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"sa {0} keessatti"}
+                    other{"sa {0} keessatti"}
+                }
+                past{
+                    one{"sa {0} dura"}
+                    other{"sa {0} dura"}
+                }
+            }
+        }
+        sat-short{
+            relative{
+                "-1"{"San. darbe"}
+                "0"{"San. kana"}
+                "1"{"San. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"San. {0} keessatti"}
+                    other{"San. {0} kkeessatti"}
+                }
+                past{
+                    one{"San. {0} dura"}
+                    other{"San. {0} dura"}
+                }
+            }
+        }
+        second{
+            dn{"sekoondii"}
+            relative{
+                "0"{"amma"}
+            }
+            relativeTime{
+                future{
+                    one{"sekoondii {0} keessatti"}
+                    other{"sekoondiiwwan {0} keessatti"}
+                }
+                past{
+                    one{"sekoondii {0} darbe"}
+                    other{"sekoondiiwwan {0} darban"}
+                }
+            }
+        }
+        second-narrow{
+            dn{"sek"}
+            relative{
+                "0"{"amma"}
+            }
+            relativeTime{
+                future{
+                    one{"s {0} keessatti"}
+                    other{"s {0} keessatti"}
+                }
+                past{
+                    one{"s {0} darbe"}
+                    other{"s {0} darbe"}
+                }
+            }
+        }
+        second-short{
+            dn{"sek."}
+            relative{
+                "0"{"amma"}
+            }
+            relativeTime{
+                future{
+                    one{"sek. {0} keessatti"}
+                    other{"sek. {0} keessatti"}
+                }
+                past{
+                    one{"sek. {0} darbe"}
+                    other{"sek. {0} darbe"}
+                }
+            }
+        }
+        sun{
+            relative{
+                "-1"{"Dilbata darbe"}
+                "0"{"Dilbata kana"}
+                "1"{"Dilbata dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Dilbata {0} keessatti"}
+                    other{"Dilbatoota {0} keessatti"}
+                }
+                past{
+                    one{"Dilbata {0} darbe"}
+                    other{"Dilbatoota {0} darban"}
+                }
+            }
+        }
+        sun-narrow{
+            relative{
+                "-1"{"Di darbe"}
+                "0"{"Di kana"}
+                "1"{"Di dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Dil {0} keessatti"}
+                    other{"Dil {0} keessatti"}
+                }
+                past{
+                    one{"Dil {0} darbe"}
+                    other{"Dil {0} darbe"}
+                }
+            }
+        }
+        sun-short{
+            relative{
+                "-1"{"Dil. darbe"}
+                "0"{"Dil. kana"}
+                "1"{"Dil. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Dil. {0} keessatti"}
+                    other{"Dil. {0} keessatti"}
+                }
+                past{
+                    one{"Dil. {0} darbe"}
+                    other{"Dil. {0} darbe"}
+                }
+            }
+        }
+        thu{
+            relative{
+                "-1"{"Kamisa darbe"}
+                "0"{"Kamisa kana"}
+                "1"{"Kamisa dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Kamisa {0} keessatti"}
+                    other{"Kamisoota {0} keessatti"}
+                }
+                past{
+                    one{"Kamisa {0} darbe"}
+                    other{"Kamisoota {0} darban"}
+                }
+            }
+        }
+        thu-narrow{
+            relative{
+                "-1"{"Ka darbe"}
+                "0"{"Ka kana"}
+                "1"{"Ka dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Ka {0} keessatti"}
+                    other{"Ka {0} keessatti"}
+                }
+                past{
+                    one{"Ka {0} darbe"}
+                    other{"Ka {0} darbe"}
+                }
+            }
+        }
+        thu-short{
+            relative{
+                "-1"{"Kam. darbe"}
+                "0"{"Kam. kana"}
+                "1"{"Kam. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Kam. {0} keessatti"}
+                    other{"Kam. {0} keessatti"}
+                }
+                past{
+                    one{"Kam. {0} darbe"}
+                    other{"Kam. {0} darbe"}
+                }
+            }
+        }
+        tue{
+            relative{
+                "-1"{"Kibxata darbe"}
+                "0"{"Kibxata kana"}
+                "1"{"Kibxata dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Kibxata {0} keessatti"}
+                    other{"Kibxatoota {0} keessatti"}
+                }
+                past{
+                    one{"Kibxata {0} darbe"}
+                    other{"Kibxatoota {0} darban"}
+                }
+            }
+        }
+        tue-narrow{
+            relative{
+                "-1"{"Ki darbe"}
+                "0"{"Ki kana"}
+                "1"{"Ki dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Ki {0} keessatti"}
+                    other{"Ki {0} keessatti"}
+                }
+                past{
+                    one{"Ki {0} darbe"}
+                    other{"Ki {0} darbe"}
+                }
+            }
+        }
+        tue-short{
+            relative{
+                "-1"{"Kib. darbe"}
+                "0"{"Kib. kana"}
+                "1"{"Kib. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Kin. {0} keessatti"}
+                    other{"Kin. {0} keessatti"}
+                }
+                past{
+                    one{"Kin. {0} darbe"}
+                    other{"Kin. {0} darbe"}
+                }
+            }
+        }
+        wed{
+            relative{
+                "-1"{"Roobii darbe"}
+                "0"{"Roobii kana"}
+                "1"{"Roobii dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Roobii {0} keessatti"}
+                    other{"Roobiiwwan {0} keessatti"}
+                }
+                past{
+                    one{"Roobii {0} dura"}
+                    other{"Roobiiwwan {0} dura"}
+                }
+            }
+        }
+        wed-narrow{
+            relative{
+                "-1"{"R darbe"}
+                "0"{"R kana"}
+                "1"{"R dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"R {0} keessatti"}
+                    other{"R {0} keessatti"}
+                }
+                past{
+                    one{"R {0} darbe"}
+                    other{"R {0} darbe"}
+                }
+            }
+        }
+        wed-short{
+            relative{
+                "-1"{"Rob. darbe"}
+                "0"{"Rob. kana"}
+                "1"{"Rob. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"Rob. {0} keessatti"}
+                    other{"Rob. {0} keessatti"}
+                }
+                past{
+                    one{"Rob. {0} darbe"}
+                    other{"Rob. {0} darbe"}
+                }
+            }
+        }
+        week{
+            dn{"torbee"}
+            relative{
+                "-1"{"torbee darbe"}
+                "0"{"torbee kana"}
+                "1"{"torbee dhufu"}
+            }
+            relativePeriod{"torban {0}"}
+            relativeTime{
+                future{
+                    one{"torbee {0} keessatti"}
+                    other{"torbanoota {0} keessatti"}
+                }
+                past{
+                    one{"torbee {0} darbe"}
+                    other{"torbanoota {0} darban"}
+                }
+            }
+        }
+        week-narrow{
+            dn{"tr"}
+            relative{
+                "-1"{"tr. darbe"}
+                "0"{"tr. kana"}
+                "1"{"tr. dhufu"}
+            }
+            relativePeriod{"torban {0}"}
+            relativeTime{
+                future{
+                    one{"w {0} keessatti"}
+                    other{"w {0} keessatti"}
+                }
+                past{
+                    one{"w {0} darbe"}
+                    other{"w {0} darbe"}
+                }
+            }
+        }
+        week-short{
+            dn{"tr."}
+            relative{
+                "-1"{"tr. darbe"}
+                "0"{"tr. kana"}
+                "1"{"tr. dhufu"}
+            }
+            relativePeriod{"torban {0}"}
+            relativeTime{
+                future{
+                    one{"tr. {0} keessatti"}
+                    other{"tr. {0} keessatti"}
+                }
+                past{
+                    one{"tr. {0} darbe"}
+                    other{"tr. {0} darbe"}
+                }
+            }
+        }
+        weekOfMonth{
+            dn{"torbrr ji’aa"}
+        }
+        weekOfMonth-narrow{
+            dn{"tr kan ji"}
+        }
+        weekOfMonth-short{
+            dn{"tr. kan ji."}
+        }
+        weekday{
+            dn{"guyyaa kan torbee"}
+        }
+        weekday-narrow{
+            dn{"guyyaa kan tr."}
+        }
+        weekday-short{
+            dn{"guyyaa kan tr."}
+        }
+        weekdayOfMonth{
+            dn{"guyyaatorbee kan ji’aa"}
+        }
+        weekdayOfMonth-narrow{
+            dn{"gytr. kan ji."}
+        }
+        weekdayOfMonth-short{
+            dn{"gytr. kan ji."}
+        }
+        year{
+            dn{"waggaa"}
+            relative{
+                "-1"{"waggaa darbe"}
+                "0"{"waggaa kana"}
+                "1"{"waggaa dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"waggaa {0} keessatti"}
+                    other{"waggoota {0} keessatti"}
+                }
+                past{
+                    one{"waggaa {0} dura"}
+                    other{"waggoota {0} dura"}
+                }
+            }
+        }
+        year-narrow{
+            dn{"wg"}
+            relative{
+                "-1"{"wg. darbe"}
+                "0"{"wg. kana"}
+                "1"{"wg. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"w {0} keessatti"}
+                    other{"w {0} keessatti"}
+                }
+                past{
+                    one{"w {0} dura"}
+                    other{"w {0} dura"}
+                }
+            }
+        }
+        year-short{
+            dn{"wg."}
+            relative{
+                "-1"{"wg. darbe"}
+                "0"{"wg. kana"}
+                "1"{"wg. dhufu"}
+            }
+            relativeTime{
+                future{
+                    one{"wg. {0} keessatti"}
+                    other{"wg. {0} keessatti"}
+                }
+                past{
+                    one{"wg. {0} dura"}
+                    other{"wg. {0} dura"}
+                }
+            }
+        }
+        zone{
+            dn{"zoonii yeroo"}
+        }
+        zone-narrow{
+            dn{"zoonii"}
+        }
+        zone-short{
+            dn{"zoonii"}
+        }
+    }
+    measurementSystemNames{
+        UK{"Inglizi"}
+        US{"Ameerikaa"}
+        metric{"Meetirikii"}
     }
 }

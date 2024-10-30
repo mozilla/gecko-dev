@@ -1,0 +1,500 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kxv_Orya{
+    %%Parent{"root"}
+    ExemplarCharacters{
+        "[଼ ଁଂଃ ଅ {ଅ\\:} ଆ {ଆ\\:} ଇ ଈ ଉ ଊ ଏ {ଏ\\:} କ ଗ ଙ ଚ ଜ ଞ ଟ ଡ ଣ ତ ଦ ନ ପ ବ ମ ୟ ର "
+        "ଲ ଳ ୱ ସ ହ ା ି ୀ ୁ ୂ େ ୍]"
+    }
+    ExemplarCharactersNumbers{"[\\- ‑ , . % ‰ + 0 ୧ ୨ ୩ ୪ ୫ ୬ ୭ ୮ ୯]"}
+    ExemplarCharactersPunctuation{"[\\- ‐‑ – — , ; \\: ! ? . … '‘’ \u0022“” ( ) \\[ \\] § @ * / \\& # † ‡ ′ ″]"}
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤#,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+            }
+        }
+        native{"orya"}
+    }
+    calendar{
+        generic{
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, MMMM d, y G",
+                "G d MMMM y",
+                "G d MMM y",
+                "G d/M/y",
+                "{1}, {0}",
+                "{1} ଆଁ {0}",
+                "{1} ଆଁ {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            availableFormats{
+                Bh{"B h"}
+                Bhm{"B h:mm"}
+                Bhms{"B h:mm:ss"}
+                EBhm{"E B h:mm"}
+                EBhms{"E B h:mm:ss"}
+                Ed{"d E"}
+                GyMMMEd{"G E, d MMM y"}
+                GyMMMd{"G d MMM y"}
+                M{"M"}
+                MEd{"E, d/M"}
+                MMM{"MMM"}
+                MMMEd{"E, d MMM"}
+                MMMd{"d MMM"}
+                Md{"d/M"}
+                yyyyM{"GGGGG M/y"}
+                yyyyMEd{"G E, d/M/y"}
+                yyyyMMM{"G MMM y"}
+                yyyyMMMEd{"G E, d MMM y"}
+                yyyyMMMd{"G d MMM y"}
+                yyyyMd{"G d/M/y"}
+                yyyyQQQ{"QQQ G y"}
+                yyyyQQQQ{"QQQQ G y"}
+            }
+            intervalFormats{
+                Bh{
+                    B{"B h – B h"}
+                    h{"B h–h"}
+                }
+                Bhm{
+                    B{"B h:mm – B h:mm"}
+                    h{"B h:mm–h:mm"}
+                    m{"B h:mm–h:mm"}
+                }
+                M{
+                    M{"M–M"}
+                }
+                MEd{
+                    M{"E, d/M – E, d/M"}
+                    d{"E, d/M – E, d/M"}
+                }
+                MMM{
+                    M{"MMM–MMM"}
+                }
+                MMMEd{
+                    M{"E, d MMM – E, d MMM"}
+                    d{"E, d MMM – E, d MMM"}
+                }
+                MMMd{
+                    M{"d MMM – d MMM"}
+                    d{"d–d MMM"}
+                }
+                Md{
+                    M{"d/M – d/M"}
+                    d{"d/M – d/M"}
+                }
+                y{
+                    y{"y–y G"}
+                }
+                yM{
+                    M{"M/y – M/y G"}
+                    y{"M/y – M/y G"}
+                }
+                yMEd{
+                    M{"E, d/M/y – E, d/M/y G"}
+                    d{"E, d/M/y – E, d/M/y G"}
+                    y{"E, d/M/y – E, d/M/y G"}
+                }
+                yMMM{
+                    M{"MMM–MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                yMMMEd{
+                    M{"E, d MMM – E, d MMM y G"}
+                    d{"E, d MMM – E, d MMM y G"}
+                    y{"E, d MMM y – E, d MMM y G"}
+                }
+                yMMMM{
+                    M{"MMMM–MMMM y G"}
+                    y{"MMMM y – MMMM y G"}
+                }
+                yMMMd{
+                    M{"d MMM – d MMM y G"}
+                    d{"d – d MMM y G"}
+                    y{"d MMM y – d MMM y G"}
+                }
+                yMd{
+                    M{"d/M/y – d/M/y G"}
+                    d{"d/M/y – d/M/y G"}
+                    y{"d/M/y – d/M/y G"}
+                }
+            }
+        }
+        gregorian{
+            AmPmMarkers{
+                "ଏ ଏମ",
+                "ପି ଏମ",
+            }
+            AmPmMarkersAbbr{
+                "ଏ ଏମ",
+                "ପି ଏମ",
+            }
+            AmPmMarkersNarrow{
+                "ଏ",
+                "ପି",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "EEEE, d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "d/M/yy",
+                "{1}, {0}",
+                "{1} ଆଁ {0}",
+                "{1} ଆଁ {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            DateTimeSkeletons{
+                "ahmmsszzzz",
+                "ahmmssz",
+                "ahmmss",
+                "ahmm",
+                "yMMMMEEEEd",
+                "yMMMMd",
+                "yMMMd",
+                "yMMdd",
+            }
+            availableFormats{
+                Bh{"B h"}
+                Bhm{"B h:mm"}
+                Bhms{"B h:mm:ss"}
+                EBhm{"E B h:mm"}
+                EBhms{"E B h:mm:ss"}
+                Ed{"E d"}
+                Gy{"y G"}
+                GyMMM{"MMM G y"}
+                GyMMMEd{"E, d MMM y G"}
+                GyMMMd{"d MMM y G"}
+                MEd{"E, d/M"}
+                MMMEd{"E, d MMM"}
+                MMMMW{
+                    other{"MMMM ତାଁ ୱାରା W"}
+                }
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                Md{"d/M"}
+                yM{"M/y"}
+                yMEd{"E, d/M/y"}
+                yMMM{"MMM y"}
+                yMMMEd{"E, d MMM y"}
+                yMMMM{"MMMM y"}
+                yMMMd{"d MMM y"}
+                yMd{"d/M/y"}
+                yQQQ{"QQQ y"}
+                yQQQQ{"QQQQ y"}
+                yw{
+                    other{"Y ତାଁ ୱାରା w"}
+                }
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "ଆଦି",
+                        "ସମ୍ବା",
+                        "ମାଙ୍ଗା",
+                        "ପୁଦା",
+                        "ଲାକି",
+                        "ସୁକ୍ରୁ",
+                        "ସାନି",
+                    }
+                    short{
+                        "ଆ",
+                        "ସ",
+                        "ମା",
+                        "ପୁ",
+                        "ଲା",
+                        "ସୁ",
+                        "ସାନି",
+                    }
+                    wide{
+                        "ଆଦି ୱାରା",
+                        "ସମ୍ବାରା",
+                        "ମାଙ୍ଗାଡ଼ା",
+                        "ପୁଦାରା",
+                        "ଲାକି ୱାରା",
+                        "ସୁକ୍ରୁ ୱାରା",
+                        "ସାନି ୱାରା",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ଆ",
+                        "ସ",
+                        "ମା",
+                        "ପୁ",
+                        "ଲା",
+                        "ସୁ",
+                        "ସା",
+                    }
+                }
+            }
+            dayPeriod{
+                stand-alone{
+                    abbreviated{
+                        am{"ଏ ଏମ"}
+                        pm{"ପି ଏମ"}
+                    }
+                    narrow{
+                        am{"ଏ ଏମ"}
+                        pm{"ପି ଏମ"}
+                    }
+                    wide{
+                        am{"ଏ ଏମ"}
+                        pm{"ପି ଏମ"}
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "ବିସି",
+                    "ଏଡି",
+                }
+                abbreviated%variant{
+                    "ବିସିଇ",
+                    "ସିଇ",
+                }
+                wide{
+                    "ବିଫୋର କ୍ରାଇଷ୍ଟ",
+                    "ଆନ୍ନା ଡୋମିନି",
+                }
+                wide%variant{
+                    "ବିଫୋର କମନ ଏରା",
+                    "କମନ ଏରା",
+                }
+            }
+            intervalFormats{
+                Bh{
+                    B{"B h – B h"}
+                    h{"B h–h"}
+                }
+                Bhm{
+                    B{"B h:mm – B h:mm"}
+                    h{"B h:mm–h:mm"}
+                    m{"B h:mm–h:mm"}
+                }
+                M{
+                    M{"M–M"}
+                }
+                MEd{
+                    M{"E, d/M – E, d/M"}
+                    d{"E, d/M – E, d/M"}
+                }
+                MMM{
+                    M{"MMM–MMM"}
+                }
+                MMMEd{
+                    M{"E, d MMM – E, d MMM"}
+                    d{"E, d MMM – E, d MMM"}
+                }
+                MMMd{
+                    M{"d MMM – d MMM"}
+                    d{"d–d MMM"}
+                }
+                Md{
+                    M{"d/M – d/M"}
+                    d{"d/M – d/M"}
+                }
+                yM{
+                    M{"M/y – M/y"}
+                    y{"M/y – M/y"}
+                }
+                yMEd{
+                    M{"E, d/M/y – E, d/M/y"}
+                    d{"E, d/M/y – E, d/M/y"}
+                    y{"E, d/M/y – E, d/M/y"}
+                }
+                yMMM{
+                    M{"MMM–MMM y"}
+                    y{"MMM y – MMM y"}
+                }
+                yMMMEd{
+                    M{"E, d MMM – E, d MMM y"}
+                    d{"E, d MMM – E, d MMM y"}
+                    y{"E, d MMM y – E, d MMM y"}
+                }
+                yMMMM{
+                    M{"MMMM – MMMM y"}
+                    y{"MMMM y – MMMM y"}
+                }
+                yMMMd{
+                    M{"d MMM – d MMM y"}
+                    d{"d–d MMM y"}
+                    y{"d MMM y – d MMM y"}
+                }
+                yMd{
+                    M{"d/M/y – d/M/y"}
+                    d{"d/M/y – d/M/y"}
+                    y{"d/M/y – d/M/y"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "ପୁସୁ",
+                        "ମାହା",
+                        "ପାଗୁ",
+                        "ହିରେ",
+                        "ବେସେ",
+                        "ଜାଟା",
+                        "ଆସାଡ଼ି",
+                        "ସ୍ରାବାଁ",
+                        "ବଦ",
+                        "ଦାସାରା",
+                        "ଦିୱି",
+                        "ପାଣ୍ଡେ",
+                    }
+                    wide{
+                        "ପୁସୁ ଲେଞ୍ଜୁ",
+                        "ମାହାକା ଲେଞ୍ଜୁ",
+                        "ପାଗୁଣି ଲେଞ୍ଜୁ",
+                        "ହିରେ ଲେଞ୍ଜୁ",
+                        "ବେସେ ଲେଞ୍ଜୁ",
+                        "ଜାଟା ଲେଞ୍ଜୁ",
+                        "ଆସାଡ଼ି ଲେଞ୍ଜୁ",
+                        "ସ୍ରାବାଁ ଲେଞ୍ଜୁ",
+                        "ବଦ ଲେଞ୍ଜୁ",
+                        "ଦାସାରା ଲେଞ୍ଜୁ",
+                        "ଦିୱିଡ଼ି ଲେଞ୍ଜୁ",
+                        "ପାଣ୍ଡେ ଲେଞ୍ଜୁ",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "ପୁ",
+                        "ମା",
+                        "ପା",
+                        "ହି",
+                        "ବେ",
+                        "ଜା",
+                        "ଆ",
+                        "ସ୍ରା",
+                        "ବ",
+                        "ଦା",
+                        "ଦି",
+                        "ପା",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "କ ୧",
+                        "କ ୨",
+                        "କ ୩",
+                        "କ ୪",
+                    }
+                    wide{
+                        "୧ମ କ୍ୱାଟର",
+                        "୨ୟ କ୍ୱାଟର",
+                        "୩ୟ କ୍ୱାଟର",
+                        "୪ର୍ଥ କ୍ୱାଟର",
+                    }
+                }
+            }
+        }
+    }
+    fields{
+        day{
+            dn{"ଦିନା"}
+            relative{
+                "-1"{"ରାଆଲା"}
+                "0"{"ଇଞ୍ଜୁ"}
+                "1"{"ୱି ଏ"}
+            }
+        }
+        day-short{
+            dn{"ଦିନା"}
+        }
+        dayperiod{
+            dn{"AM/PM"}
+        }
+        era{
+            dn{"ଜୁଗ"}
+        }
+        hour{
+            dn{"ବେଲା"}
+        }
+        hour-short{
+            dn{"ବେ"}
+        }
+        minute{
+            dn{"ମିନିଟ"}
+        }
+        minute-short{
+            dn{"ମି"}
+        }
+        month{
+            dn{"ଲେଞ୍ଜୁ"}
+        }
+        month-short{
+            dn{"ଲେ"}
+        }
+        quarter{
+            dn{"କ୍ୱାଟର"}
+        }
+        quarter-short{
+            dn{"କ୍ୱାଟର"}
+        }
+        second{
+            dn{"ସେକେଣ୍ଡ"}
+        }
+        second-short{
+            dn{"ସେ"}
+        }
+        week{
+            dn{"ୱାରା"}
+        }
+        week-short{
+            dn{"ୱା"}
+        }
+        weekday{
+            dn{"ୱାରା ତି ଦିନା"}
+        }
+        year{
+            dn{"ବାର୍ସା"}
+        }
+        year-short{
+            dn{"ବା."}
+        }
+        zone{
+            dn{"ବେଲା ମୁଟ୍ହା"}
+        }
+    }
+    listPattern{
+        or{
+            2{"{0} ଆଆତେଁ {1}"}
+            end{"{0}, ଆଆତେଁ {1}"}
+        }
+        standard{
+            2{"{0} ଅଡ଼େ {1}"}
+            end{"{0}, ଅଡ଼େ {1}"}
+        }
+        standard-short{
+            2{"{0} ଅଡ଼େ {1}"}
+            end{"{0}, ଅଡ଼େ {1}"}
+        }
+        unit-narrow{
+            2{"{0} {1}"}
+            end{"{0} {1}"}
+            middle{"{0} {1}"}
+            start{"{0} {1}"}
+        }
+    }
+    measurementSystemNames{
+        UK{"ୟୁକେ"}
+        US{"ୟୁଏସ"}
+        metric{"ମେଟ୍ରିକ"}
+    }
+}

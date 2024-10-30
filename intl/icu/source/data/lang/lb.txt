@@ -200,7 +200,6 @@ lb{
         gmh{"Mëttelhéichdäitsch"}
         gn{"Guarani"}
         goh{"Alhéichdäitsch"}
-        gom{"Goan-Konkani"}
         gon{"Gondi-Sprooch"}
         gor{"Mongondou"}
         got{"Gotesch"}
@@ -757,8 +756,6 @@ lb{
             gregorian{"Gregorianesche Kalenner"}
             hebrew{"Hebräesche Kalenner"}
             indian{"Indeschen Nationalkalenner"}
-            islamic{"Islamesche Kalenner"}
-            islamic-civil{"Biergerlechen islamesche Kalenner"}
             iso8601{"ISO-8601-Kalenner"}
             japanese{"Japanesche Kalenner"}
             persian{"Persesche Kalenner"}
@@ -772,7 +769,6 @@ lb{
             gb2312han{"Vereinfacht Chinesesch - GB2312"}
             phonebook{"Telefonsbuch-Zortéierung"}
             pinyin{"Pinyin-Zortéierregelen"}
-            reformed{"Reforméiert Zortéierreiefolleg"}
             search{"Allgemeng Sich"}
             searchjl{"Sich no Ufanksbuschtawen aus dem koreaneschen Alphabet"}
             standard{"Standard Zortéierreiefolleg"}
@@ -877,10 +873,5 @@ lb{
         language{"Sprooch: {0}"}
         script{"Schrëft: {0}"}
         territory{"Regioun: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

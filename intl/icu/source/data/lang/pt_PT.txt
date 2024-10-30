@@ -113,8 +113,10 @@ pt_PT{
         ttm{"tutchone do norte"}
         tzm{"tamazigue do Atlas Central"}
         uz{"usbeque"}
+        vec{"véneto"}
         wo{"uólofe"}
         xh{"xosa"}
+        xnr{"kangri"}
         xog{"soga"}
         yo{"ioruba"}
         zgh{"tamazight marroquino padrão"}
@@ -132,10 +134,10 @@ pt_PT{
     Languages%short{
         az{"azeri"}
         en_GB{"inglês (RU)"}
+        en_US{"inglês (EUA)"}
     }
     Languages%variant{
         ckb{"sorani (curdo)"}
-        hi_Latn{"hinglish"}
     }
     Scripts{
         Aran{"nasta’liq"}
@@ -166,9 +168,9 @@ pt_PT{
             gregorian{"Calendário gregoriano"}
             hebrew{"Calendário hebraico"}
             indian{"Calendário nacional indiano"}
-            islamic{"Calendário islâmico"}
-            islamic-civil{"Calendário islâmico (civil)"}
-            islamic-umalqura{"Calendário islâmico (Umm al-Qura)"}
+            islamic{"Calendário hegírico"}
+            islamic-civil{"Calendário hegírico (civil)"}
+            islamic-umalqura{"Calendário hegírico (Umm al-Qura)"}
             japanese{"Calendário japonês"}
             persian{"Calendário persa"}
         }

@@ -21,7 +21,7 @@ cy{
         ady{"Circaseg Gorllewinol"}
         ae{"Afestaneg"}
         aeb{"Arabeg Tunisia"}
-        af{"Affricâneg"}
+        af{"Affricaneg"}
         afh{"Affrihili"}
         agq{"Aghemeg"}
         ain{"Ainŵeg"}
@@ -69,12 +69,14 @@ cy{
         bfd{"Baffwteg"}
         bfq{"Badaga"}
         bg{"Bwlgareg"}
+        bgc{"Haryanvi"}
         bgn{"Balochi Gorllewinol"}
         bho{"Bhojpuri"}
         bi{"Bislama"}
         bin{"Bini"}
         bkm{"Comeg"}
         bla{"Siksika"}
+        blo{"Anii"}
         bm{"Bambareg"}
         bn{"Bengaleg"}
         bo{"Tibeteg"}
@@ -209,7 +211,6 @@ cy{
         hax{"Haida Deheuol"}
         he{"Hebraeg"}
         hi{"Hindi"}
-        hi_Latn{"Hindi (Lladin)"}
         hil{"Hiligaynon"}
         hit{"Hetheg"}
         hmn{"Hmongeg"}
@@ -285,6 +286,7 @@ cy{
         kv{"Comi"}
         kw{"Cernyweg"}
         kwk{"Kwakʼwala"}
+        kxv{"Kuvi"}
         ky{"Cirgiseg"}
         la{"Lladin"}
         lad{"Iddew-Sbaeneg"}
@@ -295,6 +297,7 @@ cy{
         lez{"Lezgheg"}
         lg{"Ganda"}
         li{"Limbwrgeg"}
+        lij{"Ligwreg"}
         lil{"Lillooet"}
         lkt{"Lakota"}
         lmo{"Lombardeg"}
@@ -556,6 +559,7 @@ cy{
         vep{"Feps"}
         vi{"Fietnameg"}
         vls{"Fflemeg Gorllewinol"}
+        vmw{"Macua"}
         vo{"Folapük"}
         vot{"Foteg"}
         vun{"Funjo"}
@@ -569,6 +573,7 @@ cy{
         wuu{"Wu Tsieineaidd"}
         xal{"Calmyceg"}
         xh{"Xhosa"}
+        xnr{"Kangri"}
         xog{"Soga"}
         yav{"Iangben"}
         ybb{"Iembaeg"}
@@ -576,6 +581,7 @@ cy{
         yo{"Iorwba"}
         yrl{"Nheengatu"}
         yue{"Cantoneeg"}
+        za{"Zhuang"}
         zap{"Zapoteceg"}
         zbl{"Blisssymbols"}
         zea{"Zêlandeg"}
@@ -597,7 +603,6 @@ cy{
         zh{"Tsieinëeg, Mandarin"}
     }
     Languages%short{
-        az{"Aseri"}
         en_GB{"Saesneg (DU)"}
         en_US{"Saesneg (UDA)"}
     }
@@ -630,7 +635,6 @@ cy{
         Hebr{"Hebreig"}
         Hira{"Hiragana"}
         Hrkt{"Syllwyddor Japaneaidd"}
-        Jamo{"Jamo"}
         Jpan{"Japaneaidd"}
         Kana{"Catacana"}
         Khmr{"Chmeraidd"}
@@ -679,9 +683,9 @@ cy{
             gregorian{"Calendr Gregori"}
             hebrew{"Calendr Hebreaidd"}
             indian{"Calendr Cenedlaethol India"}
-            islamic{"Calendr Islam"}
-            islamic-civil{"Calendr Islamaidd (tabl, cyfnod sifil)"}
-            islamic-umalqura{"Calendr Islam (Umm al-Qura)"}
+            islamic{"Calendr Hijri"}
+            islamic-civil{"Calendr Hijri (tabl, cyfnod sifil)"}
+            islamic-umalqura{"Calendr Hijri (Umm al-Qura)"}
             iso8601{"Calendr ISO-8601"}
             japanese{"Calendr Japan"}
             persian{"Calendr Persia"}
@@ -699,7 +703,6 @@ cy{
             gb2312han{"Trefn Symledig Tsieina - GB2312"}
             phonebook{"Trefn Llyfr Ffôn"}
             pinyin{"Trefn Pinyin"}
-            reformed{"Trefn Diwygiedig"}
             search{"Chwilio at Ddibenion Cyffredinol"}
             standard{"Trefn Safonol"}
             traditional{"Trefn Traddodiadol"}
@@ -792,10 +795,11 @@ cy{
     }
     characterLabelPattern{
         all{"{0} — y cwbl"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — cydweddoldeb"}
         enclosed{"{0} — amgaeedig"}
         extended{"{0} — estynedig"}
+        facing-left{"{0} wynebu i’r chwith"}
+        facing-right{"{0} wynebu i’r dde"}
         historic{"{0} — hanesyddol"}
         miscellaneous{"{0} — amrywiol"}
         other{"{0} — arall"}
@@ -815,10 +819,5 @@ cy{
         language{"Iaith: {0}"}
         script{"Sgript: {0}"}
         territory{"Rhanbarth: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

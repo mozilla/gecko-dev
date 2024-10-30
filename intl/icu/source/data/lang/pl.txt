@@ -83,6 +83,7 @@ pl{
         bfd{"bafut"}
         bfq{"badaga"}
         bg{"bułgarski"}
+        bgc{"haryanvi"}
         bgn{"beludżi północny"}
         bho{"bhodżpuri"}
         bi{"bislama"}
@@ -91,6 +92,7 @@ pl{
         bjn{"banjar"}
         bkm{"kom"}
         bla{"siksika"}
+        blo{"anii"}
         bm{"bambara"}
         bn{"bengalski"}
         bo{"tybetański"}
@@ -229,7 +231,6 @@ pl{
         gmh{"średnio-wysoko-niemiecki"}
         gn{"guarani"}
         goh{"staro-wysoko-niemiecki"}
-        gom{"konkani (Goa)"}
         gon{"gondi"}
         gor{"gorontalo"}
         got{"gocki"}
@@ -340,6 +341,7 @@ pl{
         kv{"komi"}
         kw{"kornijski"}
         kwk{"kwakiutl"}
+        kxv{"kuvi"}
         ky{"kirgiski"}
         la{"łaciński"}
         lad{"ladyński"}
@@ -369,7 +371,6 @@ pl{
         lua{"luba-lulua"}
         lui{"luiseno"}
         lun{"lunda"}
-        luo{"luo"}
         lus{"mizo"}
         luy{"luhya"}
         lv{"łotewski"}
@@ -390,7 +391,7 @@ pl{
         mfe{"kreolski Mauritiusa"}
         mg{"malgaski"}
         mga{"średnioirlandzki"}
-        mgh{"makua"}
+        mgh{"makua-meetto"}
         mgo{"meta"}
         mh{"marszalski"}
         mi{"maoryjski"}
@@ -636,6 +637,7 @@ pl{
         vi{"wietnamski"}
         vls{"zachodnioflamandzki"}
         vmf{"meński frankoński"}
+        vmw{"makua"}
         vo{"wolapik"}
         vot{"wotiacki"}
         vro{"võro"}
@@ -651,6 +653,7 @@ pl{
         xal{"kałmucki"}
         xh{"khosa"}
         xmf{"megrelski"}
+        xnr{"kangri"}
         xog{"soga"}
         yao{"yao"}
         yap{"japski"}
@@ -851,10 +854,10 @@ pl{
             hebrew{"kalendarz hebrajski"}
             indian{"narodowy kalendarz hinduski"}
             islamic{"kalendarz muzułmański"}
-            islamic-civil{"kalendarz islamski (metoda obliczeniowa)"}
+            islamic-civil{"kalendarz muzułmański (metoda obliczeniowa)"}
             islamic-rgsa{"kalendarz islamski (Arabia Saudyjska, metoda wzrokowa)"}
             islamic-tbla{"kalendarz islamski (metoda obliczeniowa, epoka astronomiczna)"}
-            islamic-umalqura{"kalendarz islamski (Umm al-Kura)"}
+            islamic-umalqura{"kalendarz muzułmański (Umm al-Kura)"}
             iso8601{"kalendarz ISO-8601"}
             japanese{"kalendarz japoński"}
             persian{"kalendarz perski"}
@@ -906,7 +909,6 @@ pl{
             phonebook{"porządek sortowania książki telefonicznej"}
             phonetic{"sortowanie fonetyczne"}
             pinyin{"porządek sortowania pinyin"}
-            reformed{"sortowanie zreformowane"}
             search{"wyszukiwanie ogólnego zastosowania"}
             searchjl{"Wyszukiwanie według początkowej spółgłoski hangul"}
             standard{"standardowa kolejność sortowania"}
@@ -1022,10 +1024,11 @@ pl{
     }
     characterLabelPattern{
         all{"{0} — wszystko"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — zgodność"}
         enclosed{"{0} — obwiedzione"}
         extended{"{0} — rozszerzone"}
+        facing-left{"{0} zwrócony w lewo"}
+        facing-right{"{0} zwrócony w prawo"}
         historic{"{0} — historyczne"}
         miscellaneous{"{0} — różne"}
         other{"{0} — inne"}

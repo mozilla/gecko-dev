@@ -1,0 +1,17 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+nso{
+    Languages{
+        en{"Seisimane"}
+        nso{"Sesotho sa Leboa"}
+    }
+    Scripts{
+        Latn{"SeLatina"}
+    }
+    codePatterns{
+        language{"Polelo: {0}"}
+        script{"Mongwalo: {0}"}
+        territory{"Tikologo: {0}"}
+    }
+}

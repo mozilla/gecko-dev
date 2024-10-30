@@ -5,7 +5,8 @@ wo{
     Languages{
         af{"Afrikaans"}
         am{"Amharik"}
-        ar{"Araab"}
+        ar{"Arabic"}
+        ar_001{"Araab"}
         as{"Asame"}
         az{"Aserbayjane"}
         ba{"Baskir"}
@@ -62,6 +63,7 @@ wo{
         haw{"Hawaye"}
         he{"Ebrë"}
         hi{"Endo"}
+        hi_Latn{"Hindī"}
         hil{"Hiligaynon"}
         hr{"Krowat"}
         hsb{"Sorab-Kaw"}
@@ -107,6 +109,7 @@ wo{
         ne{"Nepale"}
         niu{"Niweyan"}
         nl{"Neyerlànde"}
+        nl_BE{"Belsig"}
         no{"Nerwesiye"}
         ny{"Sewa"}
         oc{"Ositan"}
@@ -170,11 +173,16 @@ wo{
         en_GB{"Àngale (RI)"}
         en_US{"Àngale (ES)"}
     }
+    Languages%variant{
+        hi_Latn{"Hindī bu Àngale"}
+    }
     Scripts{
         Arab{"Araab"}
         Cyrl{"Sirilik"}
         Hans{"Buñ woyofal"}
         Hant{"Cosaan"}
+        Jpan{"Nihon no"}
+        Kore{"hangug-ui"}
         Latn{"Latin"}
         Zxxx{"Luñ bindul"}
         Zzzz{"Mbind muñ xamul"}
@@ -186,6 +194,7 @@ wo{
     Types{
         calendar{
             gregorian{"Arminaatu Gregoriyee"}
+            iso8601{"ISO-8601 Calendar"}
         }
         collation{
             standard{"SSO (Toftalin wiñ gën a xam)"}
@@ -193,15 +202,5 @@ wo{
         numbers{
             latn{"Siifari Tugal"}
         }
-    }
-    codePatterns{
-        language{"{0}"}
-        script{"{0}"}
-        territory{"{0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

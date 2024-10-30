@@ -2,38 +2,60 @@
 // License & terms of use: http://www.unicode.org/copyright.html
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ii{
+    Keys{
+        calendar{"ꈎꌗ"}
+    }
     Languages{
+        ar{"ꀊꇁꀨꉙ"}
+        ar_001{"ꀊꇁꀨꉙ（ꋧꃅ）"}
         de{"ꄓꇩꉙ"}
         en{"ꑱꇩꉙ"}
         es{"ꑭꀠꑸꉙ"}
         fr{"ꃔꇩꉙ"}
+        hi{"ꑴꄃꉙ"}
         ii{"ꆈꌠꉙ"}
         it{"ꑴꄊꆺꉙ"}
         ja{"ꏝꀪꉙ"}
+        nds{"ꃅꄷꀁꂥꄓꉙ"}
+        nl{"ꉿꇂꉙ"}
         pt{"ꁍꄨꑸꉙ"}
+        ro{"ꇆꂷꆀꑸꉙ"}
         ru{"ꊉꇩꉙ"}
+        sw{"ꌖꑟꆺꉙ"}
         und{"ꅉꀋꌠꅇꂷ"}
         zh{"ꍏꇩꉙ"}
+    }
+    Languages%variant{
+        hi_Latn{"ꑴꐛꑱꉙ"}
     }
     Scripts{
         Arab{"ꀊꇁꀨꁱꂷ"}
         Cyrl{"ꀊꆨꌦꇁꃚꁱꂷ"}
-        Hans{"ꈝꐯꉌꈲꁱꂷ"}
-        Hant{"ꀎꋏꉌꈲꁱꂷ"}
-        Latn{"ꇁꄀꁱꂷ"}
+        Hans{"ꈝꐮꁱꂷ"}
+        Hant{"ꀎꋏꁱꂷ"}
+        Latn{"ꇁꄂꁱꂷ"}
         Yiii{"ꆈꌠꁱꂷ"}
         Zxxx{"ꁱꀋꉆꌠ"}
         Zzzz{"ꅉꀋꐚꌠꁱꂷ"}
     }
+    Scripts%stand-alone{
+        Hans{"ꈝꐮꉌꈲꁱꂷ"}
+    }
     Types{
         calendar{
             gregorian{"ꄉꉻꃅꑍ"}
-            islamic{"ꑳꌦꇂꑍꉖ"}
+        }
+        numbers{
+            latn{"ꀊꆿꀙꃷꁨꁱꂷ"}
         }
     }
     codePatterns{
         language{"ꅇꉙ: {0}"}
-        script{"ꇇꁱ: {0}"}
+        script{"ꁱꂷꑵ：{0}"}
         territory{"ꃅꄷ: {0}"}
+    }
+    localeDisplayPattern{
+        pattern{"{0}（{1}）"}
+        separator{"{0}，{1}"}
     }
 }

@@ -7,7 +7,7 @@ ha{
         cf{"Yanayin Kudi"}
         collation{"Tsarin Rabewa"}
         currency{"Kudin Kasa"}
-        hc{"Zagayen Awowi"}
+        hc{"Zagayen Awowi (12 da 24)"}
         lb{"Salo na Raba Layi"}
         ms{"Tsarin Awo"}
         numbers{"Lambobi"}
@@ -47,10 +47,12 @@ ha{
         bem{"Bemba"}
         bez{"Bena"}
         bg{"Bulgariyanci"}
+        bgc{"Haryanvi"}
         bho{"Bhojpuri"}
         bi{"Bislama"}
         bin{"Bini"}
         bla{"Siksiká"}
+        blo{"Anii"}
         bm{"Bambara"}
         bn{"Bengali"}
         bo{"Tibetan"}
@@ -109,9 +111,6 @@ ha{
         el{"Girkanci"}
         en{"Turanci"}
         en_AU{"Turanci Ostareliya"}
-        en_CA{"Turanci Kanada"}
-        en_GB{"Turanci Biritaniya"}
-        en_US{"Turanci Amirka"}
         eo{"Esperanto"}
         es{"Sifaniyanci"}
         es_419{"Sifaniyancin Latin Amirka"}
@@ -120,9 +119,9 @@ ha{
         et{"Istoniyanci"}
         eu{"Basque"}
         ewo{"Ewondo"}
-        fa{"Farisa"}
+        fa{"Farisanci"}
         fa_AF{"Farisanci na Afaganistan"}
-        ff{"Fulah"}
+        ff{"Fula"}
         fi{"Yaren mutanen Finland"}
         fil{"Dan Filifin"}
         fj{"Fijiyanci"}
@@ -154,7 +153,6 @@ ha{
         hax{"Haida na Kudanci"}
         he{"Ibrananci"}
         hi{"Harshen Hindi"}
-        hi_Latn{"Hindi (Latinanci)"}
         hil{"Hiligaynon"}
         hmn{"Hmong"}
         hr{"Kuroshiyan"}
@@ -183,7 +181,7 @@ ha{
         jbo{"Lojban"}
         jgo{"Ngomba"}
         jmc{"Machame"}
-        jv{"Jafananci"}
+        jv{"Javananci"}
         ka{"Jojiyanci"}
         kab{"Kabyle"}
         kac{"Kachin"}
@@ -206,7 +204,7 @@ ha{
         km{"Harshen Kimar"}
         kmb{"Kimbundu"}
         kn{"Kannada"}
-        ko{"Harshen Koreya"}
+        ko{"Harshen Koriya"}
         kok{"Konkananci"}
         kpe{"Kpelle"}
         kr{"Kanuri"}
@@ -222,6 +220,7 @@ ha{
         kv{"Komi"}
         kw{"Cornish"}
         kwk{"Kwakʼwala"}
+        kxv{"Kavi"}
         ky{"Kirgizanci"}
         la{"Dan Kabilar Latin"}
         lad{"Ladino"}
@@ -230,8 +229,10 @@ ha{
         lez{"Lezghiniyanci"}
         lg{"Ganda"}
         li{"Limburgish"}
+        lij{"Liguriyanci"}
         lil{"Lillooet"}
         lkt{"Lakota"}
+        lmo{"Lombard"}
         ln{"Lingala"}
         lo{"Lao"}
         lou{"Creole na Louisiana"}
@@ -270,7 +271,7 @@ ha{
         moh{"Mohawk"}
         mos{"Mossi"}
         mr{"Maratinci"}
-        ms{"Harshen Malai"}
+        ms{"Harshen Malay"}
         mt{"Harshen Maltis"}
         mua{"Mundang"}
         mul{"Harsuna masu yawa"}
@@ -327,6 +328,7 @@ ha{
         pt_BR{"Harshen Potugis na Birazil"}
         pt_PT{"Potugis Ƙasashen Turai"}
         qu{"Quechua"}
+        raj{"Rajasthani"}
         rap{"Rapanui"}
         rar{"Rarotongan"}
         rhg{"Harshen Rohingya"}
@@ -340,7 +342,7 @@ ha{
         rwk{"Rwa"}
         sa{"Sanskrit"}
         sad{"Sandawe"}
-        sah{"Sakha"}
+        sah{"Yakut"}
         saq{"Samburu"}
         sat{"Santali"}
         sba{"Ngambay"}
@@ -378,6 +380,7 @@ ha{
         sw{"Harshen Suwahili"}
         swb{"Komoriyanci"}
         syr{"Syriac"}
+        szl{"Silessiyanci"}
         ta{"Tamil"}
         tce{"Tutchone na Kudanci"}
         te{"Telugu"}
@@ -418,7 +421,9 @@ ha{
         uz{"Uzbek"}
         vai{"Vai"}
         ve{"Venda"}
+        vec{"Veneshiyanci"}
         vi{"Harshen Biyetinam"}
+        vmw{"Makhuwa"}
         vo{"Volapük"}
         vun{"Vunjo"}
         wa{"Walloon"}
@@ -428,7 +433,8 @@ ha{
         wo{"Wolof"}
         wuu{"Sinancin Wu"}
         xal{"Kalmyk"}
-        xh{"Bazosa"}
+        xh{"Xhosa"}
+        xnr{"Kangri"}
         xog{"Soga"}
         yav{"Yangben"}
         ybb{"Yemba"}
@@ -436,6 +442,7 @@ ha{
         yo{"Yarbanci"}
         yrl{"Nheengatu"}
         yue{"Harshen Cantonese"}
+        za{"Zhuang"}
         zgh{"Daidaitaccen Moroccan Tamazight"}
         zh{"Harshen Sinanci"}
         zh_Hans{"Sauƙaƙaƙƙen Sinanci"}
@@ -451,34 +458,34 @@ ha{
     }
     Languages%short{
         az{"Azeri"}
-        en_GB{"Turancin Ingila"}
-        en_US{"Turancin Amurka"}
+        en_GB{"Turanci (Biritaniya)"}
+        en_US{"Turanci (Amurka)"}
     }
     Languages%variant{
-        hi_Latn{"Hinglish"}
+        hi_Latn{"Harshen Hindi (Latin)"}
     }
     Scripts{
         Adlm{"Adlam"}
         Arab{"Larabci"}
         Aran{"Rubutun Nastaliq"}
-        Armn{"Armeniyawa"}
+        Armn{"Armeniyanci"}
         Beng{"Bangla"}
         Bopo{"Bopomofo"}
         Brai{"Rubutun Makafi"}
         Cakm{"Chakma"}
-        Cans{"Haɗaɗɗun Gaɓoɓin ʼYan Asali na Kanada"}
+        Cans{"Haɗaɗɗun Gaɓoɓin harshe na Asali na Kanada"}
         Cher{"Cherokee"}
         Cyrl{"Cyrillic"}
         Deva{"Devanagari"}
         Ethi{"Ethiopic"}
         Geor{"Georgian"}
-        Grek{"Girka"}
+        Grek{"Girkanci"}
         Gujr{"Gujarati"}
         Guru{"Gurmukhi"}
         Hanb{"Han tare da Bopomofo"}
         Hang{"Yaren Hangul"}
         Hani{"Mutanen Han na ƙasar Sin"}
-        Hans{"Sauƙaƙaƙƙen"}
+        Hans{"Sauƙaƙaƙƙe"}
         Hant{"Na gargajiya"}
         Hebr{"Ibrananci"}
         Hira{"Tsarin Rubutun Hiragana"}
@@ -505,7 +512,6 @@ ha{
         Telu{"Yaren Telugu"}
         Tfng{"Tifinagh"}
         Thaa{"Yaren Thaana"}
-        Thai{"Thai"}
         Tibt{"Yaren Tibet"}
         Vaii{"Vai"}
         Yiii{"Yi"}
@@ -549,7 +555,7 @@ ha{
             standard{"Daidaitaccen Kasawa"}
         }
         hc{
-            h11{"Tsarin Awowi 12(0–11)"}
+            h11{"Tsarin Awowi 12 (0–11)"}
             h12{"Tsarin Awowi 12(1–12)"}
             h23{"Tsarin Awowi 24(0–23)"}
             h24{"Tsarin Awowi 24(1–24)"}
@@ -609,10 +615,10 @@ ha{
     }
     characterLabelPattern{
         all{"{0} — duk"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — jituwa"}
         enclosed{"{0} — a kewaye"}
         extended{"{0} — faɗaɗaɗɗe"}
+        facing-left{"{0} kallon gefe"}
         historic{"{0} — na tarihi"}
         miscellaneous{"{0} — daban-daban"}
         other{"{0} — wani dabam"}

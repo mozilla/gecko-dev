@@ -3,16 +3,17 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ig{
     Keys{
-        calendar{"Kalịnda"}
+        calendar{"Kalenda"}
         cf{"Ụsọrọ egọ"}
         collation{"Ụsọrọ Nhazị"}
         currency{"Egọ"}
-        hc{"Ọge ọkịrịkịrị"}
+        hc{"Okịrịkịrị Awa (12 vs 24)"}
         lb{"Akara akanka nkwụsị"}
         ms{"Ụsọrọ Mmeshọ"}
         numbers{"Nọmba"}
     }
     Languages{
+        aa{"Afar"}
         ab{"Abkaziani"}
         ace{"Achinisi"}
         ada{"Adangme"}
@@ -21,12 +22,13 @@ ig{
         agq{"Aghem"}
         ain{"Ainu"}
         ak{"Akan"}
-        ale{"Alụt"}
-        alt{"Sọutarn Altai"}
+        ale{"Aleut"}
+        alt{"Southern Altai"}
         am{"Amariikị"}
         an{"Aragonisị"}
-        ann{"Obolọ"}
+        ann{"Obolo"}
         anp{"Angika"}
+        apc{"apcc"}
         ar{"Arabiikị"}
         ar_001{"Ụdị Arabiikị nke oge a"}
         arn{"Mapuche"}
@@ -35,414 +37,458 @@ ig{
         as{"Asamisị"}
         asa{"Asụ"}
         ast{"Asturianị"}
-        atj{"Atikamekwe"}
+        atj{"Atikamekw"}
         av{"Avarịk"}
-        awa{"Awadị"}
-        ay{"Ayịmarà"}
-        az{"Azerbajanị"}
-        ba{"Bashki"}
-        ban{"Balinisị"}
+        awa{"Awadhi"}
+        ay{"Aymara"}
+        az{"Azerbaijani"}
+        ba{"Bashkir"}
+        bal{"Baluchi"}
+        ban{"Balinese"}
         bas{"Basaà"}
-        be{"Belarusianụ"}
+        be{"Belarusian"}
         bem{"Bembà"}
+        bew{"Betawi"}
         bez{"Bena"}
-        bg{"Bọlụgarịa"}
+        bg{"Bulgarian"}
+        bgc{"Haryanvi"}
+        bgn{"Western Balochi"}
         bho{"Bojpuri"}
         bi{"Bislama"}
         bin{"Bini"}
         bla{"Siksikà"}
+        blo{"Anii"}
+        blt{"Tai Dam"}
         bm{"Bambara"}
-        bn{"Bengali"}
+        bn{"Bangla"}
         bo{"Tibetan"}
         br{"Breton"}
-        brx{"Bọdọ"}
-        bs{"Bosnia"}
-        bug{"Buginisị"}
+        brx{"Bodo"}
+        bs{"Bosnian"}
+        bss{"Akoose"}
+        bug{"Buginese"}
         byn{"Blin"}
         ca{"Catalan"}
+        cad{"Caddo"}
         cay{"Cayuga"}
+        cch{"Atsam"}
         ccp{"Chakma"}
         ce{"Chechen"}
-        ceb{"Cebụanọ"}
+        ceb{"Cebuano"}
         cgg{"Chiga"}
-        ch{"Chamoro"}
-        chk{"Chukisị"}
+        ch{"Chamorro"}
+        chk{"Chuukese"}
         chm{"Mari"}
-        cho{"Choctawu"}
-        chp{"Chipewan"}
-        chr{"Cheroke"}
+        cho{"Choctaw"}
+        chp{"Chipewyan"}
+        chr{"Cherokee"}
         chy{"Cheyene"}
-        ckb{"Kurdish ọsote"}
-        clc{"Chilcotinị"}
-        co{"Kọsịan"}
-        crg{"Mịchif"}
-        crj{"Sọutarn East kree"}
-        crk{"Plains kree"}
-        crl{"Nọrtan Eastị Kree"}
-        crm{"Moọse kree"}
-        crr{"Carolina Algonịkwan"}
-        cs{"Cheekị"}
-        csw{"Swampi kree"}
+        cic{"Chickasaw"}
+        ckb{"Central Kurdish"}
+        clc{"Chilcotin"}
+        co{"Corsican"}
+        crg{"Michif"}
+        crj{"Southern East Cree"}
+        crk{"Plains Cree"}
+        crl{"Northern East Cree"}
+        crm{"Moose Cree"}
+        crr{"Carolina Algonquian"}
+        cs{"Czech"}
+        csw{"Asụsụ Swampy Kree"}
         cu{"Church slavic"}
         cv{"Chuvash"}
-        cy{"Wesh"}
-        da{"Danịsh"}
+        cy{"Welsh"}
+        da{"Danish"}
         dak{"Dakota"}
-        dar{"Dagwa"}
-        dav{"Taịta"}
-        de{"Jamanị"}
-        de_AT{"Jaman ndị Austria"}
-        de_CH{"Jaman Izugbe ndị Switzerland"}
-        dgr{"Dogribụ"}
+        dar{"Dargwa"}
+        dav{"Taita"}
+        de{"German"}
+        de_AT{"Austrian German"}
+        de_CH{"Swiss High German"}
+        dgr{"Dogrib"}
         dje{"Zarma"}
         doi{"Dogri"}
-        dsb{"Lowa Sorbịan"}
-        dua{"Dụala"}
+        dsb{"Lower Sorbian"}
+        dua{"Duala"}
         dv{"Divehi"}
-        dyo{"Jọla-Fọnyị"}
+        dyo{"Jola-Fonyi"}
         dz{"Dọzngọka"}
         dzg{"Dazaga"}
-        ebu{"Ebụm"}
+        ebu{"Embu"}
         ee{"Ewe"}
         efi{"Efik"}
-        eka{"Ekajukụ"}
-        el{"Giriikị"}
+        eka{"Ekajuk"}
+        el{"Grik"}
         en{"Bekee"}
         en_AU{"Bekee ndị Australia"}
         en_CA{"Bekee ndị Canada"}
         en_GB{"Bekee ndị United Kingdom"}
         en_US{"Bekee ndị America"}
-        eo{"Ndị Esperantọ"}
-        es{"Spanishi"}
-        es_419{"Spanishi ndị Latin America"}
-        es_ES{"Spanishi ndị Europe"}
-        es_MX{"Spanishi ndị Mexico"}
-        et{"Ndị Estọnịa"}
-        eu{"Baskwe"}
-        ewo{"Ewọndọ"}
-        fa{"Peshianụ"}
-        fa_AF{"Peshianụ (Afghanistan)"}
+        eo{"Esperanto"}
+        es{"Spanish"}
+        es_419{"Spanish ndị Latin America"}
+        es_ES{"Spanish ndị Europe"}
+        es_MX{"Spanish ndị Mexico"}
+        et{"Estonian"}
+        eu{"Basque"}
+        ewo{"Ewondo"}
+        fa{"Asụsụ Persia"}
+        fa_AF{"Dari"}
         ff{"Fula"}
-        fi{"Fịnịsh"}
-        fil{"Fịlịpịnọ"}
+        fi{"Finnish"}
+        fil{"Filipino"}
         fj{"Fijanị"}
-        fo{"Farọse"}
+        fo{"Faroese"}
         fon{"Fon"}
-        fr{"Fụrenchị"}
-        fr_CA{"Fụrench ndị Canada"}
-        fr_CH{"Fụrench ndị Switzerland"}
-        frc{"Kajun Furenchị"}
-        frr{"Nọrtan Frisian"}
-        fur{"Frụlịan"}
-        fy{"Westan Frịsịan"}
-        ga{"Ịrịsh"}
+        fr{"French"}
+        fr_CA{"Canadian French"}
+        fr_CH{"Swiss French"}
+        frc{"Cajun French"}
+        frr{"Northern Frisian"}
+        fur{"Friulian"}
+        fy{"Ọdịda anyanwụ Frisian"}
+        ga{"Irish"}
         gaa{"Ga"}
-        gd{"Sụkọtịs Gelị"}
-        gez{"Gịzị"}
-        gil{"Gilbertisị"}
-        gl{"Galịcịan"}
-        gn{"Gwarani"}
+        gd{"Asụsụ Scottish Gaelic"}
+        gez{"Geez"}
+        gil{"Gilbertese"}
+        gl{"Galician"}
+        gn{"Guarani"}
         gor{"Gorontalo"}
         gsw{"German Swiss"}
-        gu{"Gụaratị"}
-        guz{"Gụshị"}
+        gu{"Gujarati"}
+        guz{"Gusii"}
         gv{"Mansị"}
-        gwi{"Gwichin"}
+        gwi{"Gwichʼin"}
         ha{"Hausa"}
         hai{"Haida"}
         haw{"Hawaịlịan"}
-        hax{"Sọutarn Haida"}
+        hax{"Southern Haida"}
         he{"Hebrew"}
-        hi{"Hindị"}
+        hi{"Hindi"}
         hil{"Hiligayanon"}
         hmn{"Hmong"}
-        hr{"Kọrọtịan"}
-        hsb{"Ụpa Sọrbịa"}
+        hnj{"Hmong Njua"}
+        hr{"Croatian"}
+        hsb{"Upper Sorbian"}
         ht{"Haịtịan ndị Cerọle"}
-        hu{"Hụngarian"}
+        hu{"Hungarian"}
         hup{"Hupa"}
         hur{"Halkomelem"}
         hy{"Armenianị"}
         hz{"Herero"}
-        ia{"Intalịgụa"}
-        iba{"Ibanị"}
+        ia{"Interlingua"}
+        iba{"Iban"}
         ibb{"Ibibio"}
-        id{"Indonisia"}
+        id{"Indonesian"}
+        ie{"Interlingue"}
         ig{"Igbo"}
-        ii{"Sịchụayị"}
+        ii{"Sichuan Yi"}
         ikt{"Westarn Canadian Inuktitut"}
         ilo{"Iloko"}
         inh{"Ingush"}
         io{"Ido"}
-        is{"Icịlandịk"}
-        it{"Italịanu"}
-        iu{"Inuktitutị"}
-        ja{"Japaniisi"}
+        is{"Icelandic"}
+        it{"Italian"}
+        iu{"Inuktitut"}
+        ja{"Japanese"}
         jbo{"Lojban"}
-        jgo{"Ngọmba"}
+        jgo{"Ngomba"}
         jmc{"Machame"}
-        jv{"Java"}
-        ka{"Geọjịan"}
+        jv{"Javanese"}
+        ka{"Georgian"}
+        kaa{"Kara-Kalpak"}
         kab{"Kabyle"}
         kac{"Kachin"}
-        kaj{"Ju"}
+        kaj{"Jju"}
         kam{"Kamba"}
         kbd{"Kabadian"}
-        kcg{"Tịyap"}
-        kde{"Makọnde"}
+        kcg{"Tyap"}
+        kde{"Makonde"}
         kea{"Kabụverdịanụ"}
+        ken{"Kenyang"}
         kfo{"Koro"}
-        kgp{"Kainganga"}
+        kgp{"Kaingang"}
         kha{"Khasi"}
-        khq{"Kọyra Chịnị"}
-        ki{"Kịkụyụ"}
-        kj{"Kwanyama"}
-        kk{"Kazak"}
-        kkj{"Kakọ"}
-        kl{"Kalaalịsụt"}
-        kln{"Kalenjịn"}
-        km{"Keme"}
-        kmb{"Kimbundụ"}
-        kn{"Kanhada"}
-        ko{"Korịa"}
-        kok{"Kọnkanị"}
-        kpe{"Kpele"}
+        khq{"Koyra Chiini"}
+        ki{"Kikuyu"}
+        kj{"Kuanyama"}
+        kk{"Kazakh"}
+        kkj{"Kako"}
+        kl{"Kalaallisut"}
+        kln{"Kalenjin"}
+        km{"Khmer"}
+        kmb{"Kimbundu"}
+        kn{"Kannada"}
+        ko{"Korean"}
+        kok{"Konkani"}
+        kpe{"Kpelle"}
         kr{"Kanuri"}
-        krc{"Karaché-Balka"}
+        krc{"Karachay-Balkar"}
         krl{"Karelian"}
-        kru{"Kuruk"}
-        ks{"Kashmịrị"}
-        ksb{"Shabala"}
+        kru{"Kurukh"}
+        ks{"Kashmiri"}
+        ksb{"Shambala"}
         ksf{"Bafịa"}
-        ksh{"Colognịan"}
-        ku{"Ndị Kụrdịsh"}
+        ksh{"Colognian"}
+        ku{"Kurdish"}
         kum{"Kumik"}
         kv{"Komi"}
-        kw{"Kọnịsh"}
-        kwk{"Kwakwala"}
-        ky{"Kyrayz"}
-        la{"Latịn"}
+        kw{"Cornish"}
+        kwk{"Kwakʼwala"}
+        kxv{"Kuvi"}
+        ky{"Kyrgyz"}
+        la{"Latin"}
         lad{"Ladino"}
         lag{"Langị"}
-        lb{"Lụxenbọụgịsh"}
-        lez{"Lezgian"}
+        lb{"Luxembourgish"}
+        lez{"Lezghian"}
         lg{"Ganda"}
         li{"Limburgish"}
+        lij{"Ligurian"}
         lil{"Liloetị"}
         lkt{"Lakota"}
-        ln{"Lịngala"}
-        lo{"Laọ"}
-        lou{"Louisiana Kreole"}
+        lld{"ID"}
+        lmo{"Lombard"}
+        ln{"Lingala"}
+        lo{"Lao"}
+        lou{"Louisiana Creole"}
         loz{"Lozi"}
-        lrc{"Nọrtụ Lụrị"}
-        lsm{"Samia"}
-        lt{"Lituanian"}
-        lu{"Lịba-Katanga"}
+        lrc{"Northern Luri"}
+        lsm{"Saamia"}
+        lt{"Lithuanian"}
+        ltg{"Latgalian"}
+        lu{"Luba-Katanga"}
         lua{"Luba-Lulua"}
         lun{"Lunda"}
         lus{"Mizo"}
-        luy{"Lụyịa"}
-        lv{"Latviani"}
+        luy{"Luyia"}
+        lv{"Latvian"}
         mad{"Madurese"}
         mag{"Magahi"}
-        mai{"Maịtịlị"}
-        mak{"Makasa"}
-        mas{"Masaị"}
+        mai{"Maithili"}
+        mak{"Makasar"}
+        mas{"Masai"}
         mdf{"Moksha"}
         men{"Mende"}
-        mer{"Merụ"}
-        mfe{"Mọrịsye"}
-        mg{"Malagasị"}
-        mgh{"Makụwa Metọ"}
+        mer{"Meru"}
+        mfe{"Morisyen"}
+        mg{"Malagasy"}
+        mgh{"Makhuwa-Meetto"}
         mgo{"Meta"}
-        mh{"Marshalese"}
-        mi{"Maọrị"}
-        mic{"Mịkmak"}
-        min{"Mịnangkabau"}
-        mk{"Masedọnịa"}
+        mh{"Marshallese"}
+        mhn{"mhnn"}
+        mi{"Māori"}
+        mic{"Mi'kmaw"}
+        min{"Minangkabau"}
+        mk{"Macedonian"}
         ml{"Malayalam"}
         mn{"Mọngolịan"}
-        mni{"Manịpụrị"}
-        moe{"Inu-imun"}
-        moh{"Mohọk"}
+        mni{"Asụsụ Manipuri"}
+        moe{"Innu-aimun"}
+        moh{"Mohawk"}
         mos{"Mossi"}
-        mr{"Maratị"}
-        ms{"Maleyi"}
-        mt{"Matịse"}
-        mua{"Mụdang"}
+        mr{"Asụsụ Marathi"}
+        ms{"Malay"}
+        mt{"Asụsụ Malta"}
+        mua{"Mundang"}
         mul{"Ọtụtụ asụsụ"}
         mus{"Muscogee"}
-        mwl{"Mịrandisị"}
-        my{"Bụrmese"}
-        myv{"Erzaya"}
-        mzn{"Mazandaranị"}
+        mwl{"Mirandese"}
+        my{"Burmese"}
+        myv{"Erzya"}
+        mzn{"Mazanderani"}
         na{"Nauru"}
-        nap{"Nịapolitan"}
+        nap{"Neapolitan"}
         naq{"Nama"}
-        nb{"Nọrweyịan Bọkmal"}
-        nd{"Nọrtụ Ndabede"}
-        nds{"Lowa German"}
+        nb{"Norwegian Bokmål"}
+        nd{"North Ndebele"}
+        nds{"Low German"}
+        nds_NL{"Low Saxon"}
         ne{"Nepali"}
-        new{"Nịwari"}
+        new{"Newari"}
         ng{"Ndonga"}
         nia{"Nias"}
-        niu{"Niwan"}
-        nl{"Dọchị"}
-        nl_BE{"Dọchị (Belgium)"}
-        nmg{"Kwasịọ"}
-        nn{"Nọrweyịan Nynersk"}
-        nnh{"Nglembọn"}
-        no{"Nọrweyịan"}
+        niu{"Niuean"}
+        nl{"Dutch"}
+        nl_BE{"Flemish"}
+        nmg{"Kwasio"}
+        nn{"Norwegian Nynorsk"}
+        nnh{"Ngiemboon"}
+        no{"Norwegian"}
         nog{"Nogai"}
-        nqo{"Nkọ"}
-        nr{"Sọut Ndebele"}
-        nso{"Nọrtan Sotọ"}
-        nus{"Nụer"}
+        nqo{"N’Ko"}
+        nr{"South Ndebele"}
+        nso{"Northern Sotho"}
+        nus{"Nuer"}
         nv{"Navajo"}
         ny{"Nyanja"}
-        nyn{"Nyakọle"}
-        oc{"Osịtan"}
-        ojb{"Nọrtwestan Ojibwa"}
-        ojc{"Ojibwa ọsote"}
-        ojs{"Oji-kree"}
+        nyn{"Nyankole"}
+        oc{"Asụsụ Osịtan"}
+        ojb{"Northwestern Ojibwa"}
+        ojc{"Central Ojibwa"}
+        ojs{"Oji-Cree"}
         ojw{"Westarn Ojibwa"}
         oka{"Okanagan"}
-        om{"Ọromo"}
+        om{"Oromo"}
         or{"Ọdịa"}
-        os{"Osetik"}
+        os{"Ossetic"}
+        osa{"Osage"}
         pa{"Punjabi"}
         pag{"Pangasinan"}
         pam{"Pampanga"}
-        pap{"Papịamento"}
-        pau{"Palawan"}
-        pcm{"Pidgịn"}
-        pis{"Pijịn"}
-        pl{"Poliishi"}
-        pqm{"Maliset-Pasamakwodị"}
+        pap{"Papiamento"}
+        pau{"Palauan"}
+        pcm{"Pidgin ndị Naijirịa"}
+        pis{"Pijin"}
+        pl{"Asụsụ Polish"}
+        pqm{"Maliseet-Passamaquoddy"}
         prg{"Prụssịan"}
         ps{"Pashọ"}
         pt{"Pọrtụgụese"}
-        pt_BR{"Pọrtụgụese ndị Brazil"}
+        pt_BR{"Asụsụ Portugese ndị Brazil"}
         pt_PT{"Asụsụ Portuguese ndị Europe"}
-        qu{"Qụechụa"}
-        rap{"Rapunwị"}
-        rar{"Rarotonganị"}
-        rhg{"Rohinga"}
-        rm{"Rọmansị"}
-        rn{"Rụndị"}
-        ro{"Romania"}
-        rof{"Rọmbọ"}
-        ru{"Rọshian"}
+        qu{"Asụsụ Quechua"}
+        quc{"Kʼicheʼ"}
+        raj{"Rajastani"}
+        rap{"Rapanui"}
+        rar{"Rarotongan"}
+        rhg{"Rohingya"}
+        rif{"Riffian"}
+        rm{"Asụsụ Romansh"}
+        rn{"Rundi"}
+        ro{"Asụsụ Romanian"}
+        ro_MD{"Moldavian"}
+        rof{"Rombo"}
+        ru{"Asụsụ Russia"}
         rup{"Aromanian"}
         rw{"Kinyarwanda"}
         rwk{"Rwa"}
-        sa{"Sansịkịt"}
+        sa{"Asụsụ Sanskrit"}
         sad{"Sandawe"}
-        sah{"Saka"}
-        saq{"Sambụrụ"}
-        sat{"Santalị"}
-        sba{"Nkambé"}
-        sbp{"Sangụ"}
-        sc{"Sardinian"}
-        scn{"Sisịlian"}
+        sah{"Yakut"}
+        saq{"Samburu"}
+        sat{"Asụsụ Santali"}
+        sba{"Ngambay"}
+        sbp{"Sangu"}
+        sc{"Asụsụ Sardini"}
+        scn{"Sicilian"}
         sco{"Scots"}
-        sd{"Sịndh"}
-        se{"Nọrtan Samị"}
+        sd{"Asụsụ Sindhi"}
+        sdh{"Southern Kurdish"}
+        se{"Northern Sami"}
         seh{"Sena"}
-        ses{"Kọyraboro Senị"}
-        sg{"Sangọ"}
+        ses{"Koyraboro Senni"}
+        sg{"Sango"}
         shi{"Tachịkịt"}
         shn{"Shan"}
         si{"Sinhala"}
-        sk{"Slova"}
-        sl{"Slovịan"}
-        slh{"Sọutarn Lushoọtseed"}
-        sm{"Samọa"}
-        smn{"Inarị Samị"}
+        sid{"Sidamo"}
+        sk{"Asụsụ Slovak"}
+        skr{"skrr"}
+        sl{"Asụsụ Slovenia"}
+        slh{"Southern Lushootseed"}
+        sm{"Samoan"}
+        sma{"Southern Sami"}
+        smj{"Lule Sami"}
+        smn{"Inari Sami"}
         sms{"Skolt sami"}
-        sn{"Shọna"}
-        snk{"Soninké"}
+        sn{"Shona"}
+        snk{"Soninke"}
         so{"Somali"}
-        sq{"Albanianị"}
-        sr{"Sebịan"}
+        sq{"Asụsụ Albania"}
+        sr{"Asụsụ Serbia"}
         srn{"Sranan Tongo"}
         ss{"Swati"}
-        st{"Sọụth Soto"}
+        ssy{"Saho"}
+        st{"Southern Sotho"}
         str{"Straits Salish"}
-        su{"Sudanese"}
+        su{"Asụsụ Sundan"}
         suk{"Sukuma"}
         sv{"Sụwidiishi"}
-        sw{"Swahili"}
-        swb{"Komorịan"}
+        sw{"Asụsụ Swahili"}
+        swb{"Comorian"}
         syr{"Sirịak"}
+        szl{"Asụsụ Sileshia"}
         ta{"Tamil"}
-        tce{"Sọutarn Tuchone"}
-        te{"Telụgụ"}
+        tce{"Southern Tutchone"}
+        te{"Telugu"}
         tem{"Timne"}
-        teo{"Tesọ"}
+        teo{"Teso"}
         tet{"Tetum"}
-        tg{"Tajịk"}
+        tg{"Tajik"}
         tgx{"Tagish"}
-        th{"Taị"}
+        th{"Thai"}
         tht{"Tahitan"}
-        ti{"Tịgrịnya"}
-        tig{"Tịgre"}
-        tk{"Turkịs"}
+        ti{"Tigrinya"}
+        tig{"Tigre"}
+        tk{"Turkmen"}
         tlh{"Klingon"}
-        tli{"Tlịngịt"}
-        tn{"Swana"}
-        to{"Tọngan"}
-        tok{"Tokị pọna"}
+        tli{"Tlingit"}
+        tn{"Tswana"}
+        to{"Tongan"}
+        tok{"Toki Pona"}
         tpi{"Tok pisin"}
-        tr{"Tọkiishi"}
-        trv{"Tarokọ"}
-        ts{"Songa"}
-        tt{"Tata"}
-        ttm{"Nọrtan Tuchone"}
+        tr{"Turkish"}
+        trv{"Taroko"}
+        trw{"Torwali"}
+        ts{"Tsonga"}
+        tt{"Asụsụ Tatar"}
+        ttm{"Northern Tutchone"}
         tum{"Tumbuka"}
         tvl{"Tuvalu"}
-        twq{"Tasawa"}
+        twq{"Tasawaq"}
         ty{"Tahitian"}
         tyv{"Tuvinian"}
-        tzm{"Central Atlas"}
-        udm{"Udumụrt"}
-        ug{"Ụyghụr"}
-        uk{"Ukureenị"}
-        umb{"Umbụndụ"}
-        und{"Asụsụ amaghị"}
-        ur{"Urdụ"}
-        uz{"Ụzbek"}
-        vai{"Val"}
+        tzm{"Central Atlas Tamazight"}
+        udm{"Udmurt"}
+        ug{"Uyghur"}
+        uk{"Asụsụ Ukrain"}
+        umb{"Umbundu"}
+        und{"Asụsụ a na-amaghị"}
+        ur{"Urdu"}
+        uz{"Uzbek"}
         ve{"Venda"}
-        vi{"Vietnamisi"}
-        vo{"Volapụ"}
-        vun{"Vụnjọ"}
-        wa{"Waloọn"}
-        wae{"Wasa"}
-        wal{"Woleịta"}
-        war{"Waraị"}
-        wo{"Wolọf"}
-        wuu{"Wụ Chainisị"}
-        xal{"Kalmik"}
-        xh{"Xhọsa"}
-        xog{"Sọga"}
+        vec{"Asụsụ Veneshia"}
+        vi{"Vietnamese"}
+        vmw{"Makhuwa"}
+        vo{"Volapük"}
+        vun{"Vunjo"}
+        wa{"Walloon"}
+        wae{"Walser"}
+        wal{"Wolaytta"}
+        war{"Waray"}
+        wbp{"Warlpiri"}
+        wo{"Wolof"}
+        wuu{"Wu Chinese"}
+        xal{"Kalmyk"}
+        xh{"Xhosa"}
+        xnr{"Kangri"}
+        xog{"Soga"}
         yav{"Yangben"}
         ybb{"Yemba"}
-        yi{"Yịdịsh"}
+        yi{"Yiddish"}
         yo{"Yoruba"}
-        yrl{"Nheengatụ"}
-        yue{"Katọnịse"}
-        zgh{"Standard Moroccan Tamazait"}
-        zh{"Chainisi"}
-        zh_Hans{"Asụsụ Chinese dị mfe"}
-        zh_Hant{"Asụsụ Chinese Izugbe"}
+        yrl{"Asụsụ Nheengatu"}
+        yue{"Cantonese"}
+        za{"Zhuang"}
+        zgh{"Standard Moroccan Tamazight"}
+        zh{"Chaịniiz"}
+        zh_Hans{"Asụsụ Chaịniiz dị mfe"}
+        zh_Hant{"Asụsụ ọdịnala Chaịniiz"}
         zu{"Zulu"}
         zun{"Zuni"}
-        zxx{"Ndị ọzọ abụghị asụsụ"}
+        zxx{"Enweghị asụsụ dịnaya"}
         zza{"Zaza"}
     }
+    Languages%long{
+        zh_Hans{"Asụsụ Mandarin Chaịniiz dị mfe"}
+        zh_Hant{"Asụsụ ọdịnala Mandarin Chaịniiz"}
+    }
     Languages%menu{
-        yue{"Chinese,Cantonese"}
+        ckb{"Kurdish, Central"}
+        yue{"Chaịniiz,Cantonese"}
+        zh{"Chaịniiz, Mandarin"}
     }
     Languages%short{
         az{"Azeri"}
@@ -450,88 +496,218 @@ ig{
         en_US{"Bekee ndị US"}
     }
     Languages%variant{
-        ckb{"Kurdish ọzọ"}
+        ckb{"Kurdish, Sorani"}
+        hi_Latn{"Hinglish"}
     }
     Scripts{
         Adlm{"Adlam"}
+        Aghb{"Caucasian Albanian"}
         Arab{"Mkpụrụ Okwu Arabic"}
-        Aran{"Nastalik"}
+        Aran{"Nastaliq"}
+        Armi{"Imperial Aramaic"}
         Armn{"Mkpụrụ ọkwụ Armenịan"}
+        Avst{"Avestan"}
+        Bali{"Balinese"}
+        Bamu{"Bamum"}
+        Bass{"Bassa Vah"}
+        Batk{"Batak"}
         Beng{"Mkpụrụ ọkwụ Bangla"}
+        Bhks{"Bhaiksuki"}
         Bopo{"Mkpụrụ ọkwụ Bopomofo"}
-        Brai{"Braịlle"}
+        Brah{"Brahmi"}
+        Brai{"Braille"}
+        Bugi{"Buginese"}
+        Buhd{"Buhid"}
         Cakm{"Chakma"}
         Cans{"Unified Canadian Aboriginal Syllabics"}
-        Cher{"Cherọkee"}
-        Cyrl{"Mkpụrụ Okwu Cyrillic"}
+        Cari{"Carian"}
+        Cher{"Cherokee"}
+        Chrs{"Chorasmian"}
+        Copt{"Coptic"}
+        Cpmn{"Cypro-Minoan"}
+        Cprt{"Cypriot"}
+        Cyrl{"Cyrillic"}
+        Cyrs{"Old Church Slavonic Cyrillic"}
         Deva{"Mkpụrụ ọkwụ Devangarị"}
+        Diak{"Dives Akuru"}
+        Dogr{"Dogra"}
+        Dsrt{"Deseret"}
+        Dupl{"Duployan shorthand"}
+        Egyp{"Egyptian hieroglyphs"}
+        Elba{"Elbasan"}
+        Elym{"Elymaic"}
         Ethi{"Mkpụrụ ọkwụ Etọpịa"}
+        Gara{"Garay"}
         Geor{"Mkpụrụ ọkwụ Geọjịan"}
+        Glag{"Glagolitic"}
+        Gong{"Gunjala Gondi"}
+        Gonm{"Masaram Gondi"}
+        Goth{"Gothic"}
+        Gran{"Grantha"}
         Grek{"Mkpụrụ ọkwụ grịk"}
         Gujr{"Mkpụrụ ọkwụ Gụjaratị"}
+        Gukh{"Gurung Khema"}
         Guru{"Mkpụrụ ọkwụ Gụrmụkị"}
         Hanb{"Han na Bopomofo"}
         Hang{"Mkpụrụ ọkwụ Hangụl"}
         Hani{"Mkpụrụ ọkwụ Han"}
+        Hano{"Hanunoo"}
         Hans{"Nke dị mfe"}
-        Hant{"Izugbe"}
+        Hant{"Omenala"}
+        Hatr{"Hatran"}
         Hebr{"Mkpụrụ ọkwụ Hebrew"}
         Hira{"Mkpụrụ okwụ Hịragana"}
+        Hluw{"Anatolian Hieroglyphs"}
+        Hmng{"Pahawh Hmong"}
+        Hmnp{"Nyiakeng Puachue Hmong"}
         Hrkt{"mkpụrụ ọkwụ Japanịsị"}
-        Jamo{"Jamọ"}
+        Hung{"Old Hungarian"}
+        Ital{"Old Italic"}
+        Java{"Javanese"}
         Jpan{"Japanese"}
+        Kali{"Kayah Li"}
         Kana{"Katakana"}
+        Kawi{"KAWI"}
+        Khar{"Kharoshthi"}
         Khmr{"Khmer"}
-        Knda{"Kannaada"}
-        Kore{"Korea"}
-        Laoo{"Laọ"}
+        Khoj{"Khojki"}
+        Kits{"Khitan small script"}
+        Knda{"Kannada"}
+        Kore{"Korean"}
+        Krai{"Kirat Rai"}
+        Kthi{"Kaithi"}
+        Lana{"Lanna"}
+        Laoo{"Lao"}
+        Latf{"Fraktur Latin"}
+        Latg{"Gaelic Latin"}
         Latn{"Latin"}
-        Mlym{"Malayala"}
-        Mong{"Mọngọlịan"}
+        Lepc{"Lepcha"}
+        Limb{"Limbu"}
+        Lina{"Linear A"}
+        Linb{"Linear B"}
+        Lisu{"Fraser"}
+        Lyci{"Lycian"}
+        Lydi{"Lydian"}
+        Mahj{"Mahajani"}
+        Maka{"Makasar"}
+        Mand{"Mandaean"}
+        Mani{"Manichaean"}
+        Marc{"Marchen"}
+        Medf{"Medefaidrin"}
+        Mend{"Mende"}
+        Merc{"Meroitic Cursive"}
+        Mero{"Meroitic"}
+        Mlym{"Malayalam"}
+        Mong{"Mongolian"}
+        Mroo{"Mro"}
         Mtei{"Meitei Mayek"}
+        Mult{"Multani"}
         Mymr{"Myanmar"}
-        Nkoo{"Nkoọ"}
-        Olck{"Ochiki"}
-        Orya{"Ọdịa"}
+        Nagm{"Nag Mundari"}
+        Nand{"Nandinagari"}
+        Narb{"Old North Arabian"}
+        Nbat{"Nabataean"}
+        Nkoo{"N’Ko"}
+        Nshu{"Nüshu"}
+        Ogam{"Ogham"}
+        Olck{"Ol Chiki"}
+        Onao{"Ol Onal"}
+        Orkh{"Orkhon"}
+        Orya{"Odia"}
+        Osge{"Osage"}
+        Osma{"Osmanya"}
+        Ougr{"Old Uyghur"}
+        Palm{"Palmyrene"}
+        Pauc{"Pau Cin Hau"}
+        Perm{"Old Permic"}
+        Phag{"Phags-pa"}
+        Phli{"Inscriptional Pahlavi"}
+        Phlp{"Psalter Pahlavi"}
+        Phnx{"Phoenician"}
+        Plrd{"Pollard Phonetic"}
+        Prti{"Inscriptional Parthian"}
+        Qaag{"Zawgyi"}
+        Rjng{"Rejang"}
         Rohg{"Hanifi"}
+        Runr{"Runic"}
+        Samr{"Samaritan"}
+        Sarb{"Old South Arabian"}
+        Saur{"Saurashtra"}
+        Sgnw{"SignWriting"}
+        Shaw{"Shavian"}
+        Shrd{"Sharada"}
+        Sidd{"Siddham"}
+        Sind{"Khudawadi"}
         Sinh{"Sinhala"}
-        Sund{"Sundanisị"}
-        Syrc{"Syriak"}
-        Taml{"Tamịl"}
-        Telu{"Telụgụ"}
-        Tfng{"Tifinag"}
-        Thaa{"Taa"}
-        Tibt{"Tịbeta"}
+        Sogd{"Sogdian"}
+        Sogo{"Old Sogdian"}
+        Sora{"Sora Sompeng"}
+        Soyo{"Soyombo"}
+        Sund{"Sundanese"}
+        Sunu{"Sunuwar"}
+        Sylo{"Syloti Nagri"}
+        Syrc{"Siriak"}
+        Syre{"Estrangelo Syriac"}
+        Syrj{"Western Syriac"}
+        Syrn{"Eastern Syriac"}
+        Tagb{"Tagbanwa"}
+        Takr{"Takri"}
+        Tale{"Tai Le"}
+        Talu{"New Tai Lue"}
+        Taml{"Tamil"}
+        Tang{"Tangut"}
+        Tavt{"Tai Viet"}
+        Telu{"Telugu"}
+        Tfng{"Tifinagh"}
+        Tglg{"Tagalog"}
+        Thaa{"Thaana"}
+        Tibt{"Tibetan"}
+        Tirh{"Tirhuta"}
+        Tnsa{"Tangsa"}
+        Todr{"Todhri"}
+        Tutg{"Tulu-Tigalari"}
+        Ugar{"Ugaritic"}
         Vaii{"Vai"}
-        Yiii{"Yị"}
+        Vith{"Vithkuqi"}
+        Wara{"Varang Kshiti"}
+        Wcho{"Wancho"}
+        Xpeo{"Old Persian"}
+        Xsux{"Sumero-Akkadian Cuneiform"}
+        Yezi{"Yezidi"}
+        Yiii{"Yi"}
+        Zanb{"Zanabazar Square"}
+        Zinh{"Inherited"}
         Zmth{"Mkpụrụ ọkwụ Mgbakọ"}
-        Zsye{"Emojị"}
+        Zsye{"Emoji"}
         Zsym{"Akara"}
-        Zxxx{"Edeghị ede"}
-        Zyyy{"kọmọn"}
-        Zzzz{"Mkpụrụ okwu amaghị"}
+        Zxxx{"A na-edeghị ede"}
+        Zyyy{"Common"}
+        Zzzz{"Edemede a na-amaghi"}
     }
     Scripts%stand-alone{
         Hans{"Han di mfe"}
-        Hant{"Han Izugbe"}
+        Hant{"Han site na omenala"}
     }
     Types{
         calendar{
-            buddhist{"Kalịnda Bụddịst"}
-            chinese{"Kalịnda Chinese"}
+            buddhist{"Kalenda Bụddịst"}
+            chinese{"Kalenda Chinese"}
             coptic{"Kalenda Koptic"}
-            dangi{"Kalịnda Dang"}
-            ethiopic{"Kalịnda Etopịa"}
+            dangi{"Kalenda Dang"}
+            ethiopic{"Kalenda Etopịa"}
             ethiopic-amete-alem{"Etiopic Amete Alem Kalenda"}
             gregorian{"Kalenda Gregory"}
-            hebrew{"Kalịnda Hebrew"}
-            islamic{"Kalịnda Islam"}
-            islamic-civil{"Islamik Kalenda"}
-            islamic-umalqura{"Islamik Kalenda"}
+            hebrew{"Kalenda Hebrew"}
+            indian{"Kalenda India"}
+            islamic{"Kalenda Hijri"}
+            islamic-civil{"Kalenda Hijri"}
+            islamic-rgsa{"Kalenda Hijri (Saudi Arabia, sighting)"}
+            islamic-tbla{"Kalenda Hijri (tabular, astronomical epoch)"}
+            islamic-umalqura{"Kalenda Hijri (Umm al-Qura)"}
             iso8601{"Kalenda ISO-8601"}
-            japanese{"Kalịnda Japanese"}
-            persian{"Kalịnda Persian"}
-            roc{"Kalịnda repụblic nke China"}
+            japanese{"Kalenda Japanese"}
+            persian{"Kalenda Persian"}
+            roc{"Kalenda repụblic nke China"}
         }
         cf{
             account{"Ụsọrọ akantụ egọ"}
@@ -539,14 +715,16 @@ ig{
         }
         collation{
             ducet{"Default Unicode ụsọrọ nhazị"}
+            phonebook{"Nhazị akwụkwọ ebe a na-ede nọmba fon"}
+            pinyin{"Pinyin ụsọrọ nhazị"}
             search{"Ọchụchụ nịle"}
             standard{"Usoro Nhazi"}
         }
         hc{
-            h11{"Ụsọrọ Ọge ọkịrịkịri 12"}
-            h12{"Ụsọrọ Oge okịrịkịri 12"}
-            h23{"Ụsọrọ Oge okịrịkịrị 24"}
-            h24{"Ụsọrọ Ọge okịrịkịrị 24"}
+            h11{"Ụsọrọ Okịrịkịrị awa iri na abụọ (0–11)"}
+            h12{"Ụsọrọ Okịrịkịrị awa iri na abụọ (0–12)"}
+            h23{"Ụsọrọ Okịrịkịrị (0–23)"}
+            h24{"Ụsọrọ Okịrịkịrị (1–24)"}
         }
         lb{
             loose{"Akara akanka nkwụsị esịghị ịke"}
@@ -554,24 +732,34 @@ ig{
             strict{"Akara akanka nkwụsị sịrị ịke"}
         }
         ms{
-            metric{"Ụsọrọ Metịrịk"}
+            metric{"Ụsọrọ Metric"}
             uksystem{"Ụsọrọ Mmeshọ ịmperịa"}
             ussystem{"Ụsọrọ Mmeshọ US"}
         }
         numbers{
+            ahom{"Ọnụ ọgụgụ Ahom"}
             arab{"Ọnụ ọgụgụ Arab na Indị"}
             arabext{"Ọnụ ọgụgụ Arab na Indị agbatịrị"}
-            armn{"Ọnụ ọgụgụ Armenịan"}
-            armnlow{"ọbere ọnụ ọgụgụ Armenịan"}
-            beng{"Ọnụ ọgụgụ Bang"}
+            armn{"Ọnụ ọgụgụ Armenịa"}
+            armnlow{"ọbere ọnụ ọgụgụ Armenịa"}
+            bali{"Balinese Digits"}
+            beng{"Ọnụ ọgụgụ Bangla"}
+            brah{"Brahmi Digits"}
             cakm{"Ọnụ ọgụgụ Chakma"}
+            cham{"Cham Digits"}
+            cyrl{"Ọnụ ọgụgụ Cyrillic"}
             deva{"Ọnụ ọgụgụ Devanagarị"}
+            diak{"Ọnụ ọgụgụ Dives Akuru"}
             ethi{"Ọnụ ọgụgụ Etọpịa"}
             fullwide{"Ọnụ ọgụgụ ọbọsara"}
-            geor{"Ọnụ ọgụgụ Geọjịan"}
-            grek{"Ọnụ ọgụgụ Greek"}
-            greklow{"Ọbere ọnụ ọgụgụ Greek"}
+            gara{"Ọnụ ọgụgụ Garay"}
+            geor{"Ọnụ ọgụgụ Georgian"}
+            gong{"Ọnụ ọgụgụ Gunjala Gondi"}
+            gonm{"Ọnụ ọgụgụ Masaram Gondi"}
+            grek{"Ọnụ ọgụgụ Grik"}
+            greklow{"Ọbere ọnụ ọgụgụ Grik"}
             gujr{"Ọnụ ọgụgụ Gụjaratị"}
+            gukh{"Ọnụ ọgụgụ Gurung Khema"}
             guru{"Onụ ọgụgụ Gụmụkh"}
             hanidec{"Ọnụ ọgụgụ ntụpọ Chịnese"}
             hans{"Ọnụ ọgụgụ mfe Chịnese"}
@@ -579,27 +767,71 @@ ig{
             hant{"Ọnụ ọgụgụ ọdinala chinese"}
             hantfin{"Ọnụ ọgụgụ akantụ ọdịnala Chinese"}
             hebr{"Ọnụ ọgụgụ Hebrew"}
+            hmng{"Ọnụ ọgụgụ Pahawh Hmong"}
+            hmnp{"Ọnụ ọgụgụ Nyiakeng Puachue Hmong"}
             java{"Ọnụ ọgụgụ Javanịsị"}
             jpan{"Ọnụ ọgụgụ Japanese"}
             jpanfin{"Ọnụ ọgụgụ akantụ Japanese"}
+            kali{"Ọnụ ọgụgụ Kayah Li"}
+            kawi{"Ọnụ ọgụgụ Kawi"}
             khmr{"Ọnụ ọgụgụ Khmer"}
-            knda{"Ọnụ ọgụgụ Kanada"}
-            laoo{"Ọnụ ọgụgụ Laọ"}
+            knda{"Ọnụ ọgụgụ Kannada"}
+            krai{"Ọnụ ọgụgụ Kirat Rai"}
+            lana{"Ọnụ ọgụgụ Tai Tham Hora"}
+            lanatham{"Ọnụ ọgụgụ Tai Tham Tham"}
+            laoo{"Ọnụ ọgụgụ Lao"}
             latn{"Ọnụ Ọgụgụ Mpaghara Ọdịda Anyanwụ"}
+            lepc{"Ọnụ ọgụgụ Lepcha"}
+            limb{"Ọnụ ọgụgụ Limbu"}
+            mathbold{"Ọnụ ọgụgụ Mathematical Bold"}
+            mathdbl{"Ọnụ ọgụgụ Mathematical Double-Struck"}
+            mathmono{"Ọnụ ọgụgụ Mathematical Monospace"}
+            mathsanb{"Ọnụ ọgụgụ Mathematical Sans-Serif Bold"}
+            mathsans{"Ọnụ ọgụgụ Mathematical Sans-Serif"}
             mlym{"Ọnụ ọgụgụ Malayala"}
+            modi{"Ọnụ ọgụgụ Modi"}
+            mong{"Ọnụ ọgụgụ Mongolian"}
+            mroo{"Ọnụ ọgụgụ Mro"}
             mtei{"Ọnụ ọgụgụ Meetei Mayek"}
             mymr{"Ọnụ ọgụgụ Myamar"}
+            mymrepka{"Ọnụ ọgụgụ Myanmar Eastern Pwo Karen"}
+            mymrpao{"Ọnụ ọgụgụ Myanmar Pao"}
+            mymrshan{"Ọnụ ọgụgụ Myanmar Shan"}
+            mymrtlng{"Ọnụ ọgụgụ Myanmar Tai Laing"}
+            nagm{"Ọnụ ọgụgụ Nag Mundari"}
+            nkoo{"Ọnụ ọgụgụ N’Ko"}
             olck{"Ọnụ ọgụgụ Ochiki"}
+            onao{"Ọnụ ọgụgụ Ol Onal"}
             orya{"Ọnụ ọgụgụ Ọdịa"}
+            osma{"Ọnụ ọgụgụ Osmanya"}
+            outlined{"Ọnụ ọgụgụ Outlined"}
+            rohg{"Ọnụ ọgụgụ Hanifi Rohingya"}
             roman{"Ọnụ ọgụgụ Roman"}
             romanlow{"Ọbere Ọnụ ọgụgụ Roman"}
+            saur{"Ọnụ ọgụgụ Saurashtra"}
+            shrd{"Ọnụ ọgụgụ Sharada"}
+            sind{"Ọnụ ọgụgụ Khudawadi"}
+            sinh{"Ọnụ ọgụgụ Sinhala Lith"}
+            sora{"Ọnụ ọgụgụ Sora Sompeng"}
+            sund{"Ọnụ ọgụgụ Sundanese"}
+            sunu{"Ọnụ ọgụgụ Sunuwar"}
+            takr{"Ọnụ ọgụgụ Takri"}
+            talu{"Ọnụ ọgụgụ New Tai Lue"}
             taml{"Ọnụ ọgụgụ ọdịnala Tamịl"}
             tamldec{"Ọnụ ọgụgụ Tamị"}
             telu{"Ọnụ ọgụgụ Telụgụ"}
             thai{"Ọnụ ọgụgụ Taị"}
             tibt{"Ọnụ ọgụgụ Tịbeta"}
+            tirh{"Ọnụ ọgụgụ Tirhuta"}
+            tnsa{"Ọnụ ọgụgụ Tangsa"}
             vaii{"Ọnụ ọgụgụ Vai"}
+            wara{"Ọnụ ọgụgụ Warang Citi"}
+            wcho{"Ọnụ ọgụgụ Wancho"}
         }
+    }
+    characterLabelPattern{
+        facing-left{"{0} na-eche ihu aka ekpe"}
+        facing-right{"{0} na-eche ihu aka nri"}
     }
     codePatterns{
         language{"Asụsụ: {0}"}

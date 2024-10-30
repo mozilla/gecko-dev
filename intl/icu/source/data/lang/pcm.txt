@@ -46,10 +46,12 @@ pcm{
         bem{"Bẹ́mba Lángwej"}
         bez{"Bẹ́na Lángwej"}
         bg{"Bọlgériá Lángwej"}
+        bgc{"Haryanvi Lángwej"}
         bho{"Bhojpúri"}
         bi{"Bisláma"}
         bin{"Biní"}
         bla{"Siksíká Lángwej"}
+        blo{"Anii Lángwej"}
         bm{"Bambára Lángwej"}
         bn{"Bángla Lángwej"}
         bo{"Tibẹ́tan"}
@@ -94,7 +96,7 @@ pcm{
         de_CH{"Swítzaland Haí Jámán"}
         dgr{"Dọgríb Lángwej"}
         dje{"Zármá"}
-        doi{"Dogri"}
+        doi{"Dọgri"}
         dsb{"Lówá Sorbiá"}
         dua{"Duála Lángwej"}
         dv{"Divẹhí"}
@@ -168,6 +170,7 @@ pcm{
         iba{"Iban Lángwej"}
         ibb{"Ibibio Lángwej"}
         id{"Indoníshia Lángwej"}
+        ie{"Intalíngwe Lángwej"}
         ig{"Igbo Lángwej"}
         ii{"Síchuan Yi"}
         ikt{"Wẹ́stán Kánádá Inuktítut"}
@@ -220,6 +223,7 @@ pcm{
         kv{"Komi Lángwej"}
         kw{"Kọ́nish Lángwej"}
         kwk{"Kwakwála Lángwej"}
+        kxv{"Kuvi Lángwej"}
         ky{"Kiẹ́gíz Lángwej"}
         la{"Látín Lángwej"}
         lad{"Ladíno Lángwej"}
@@ -228,8 +232,10 @@ pcm{
         lez{"Lẹzghián Lángwej"}
         lg{"Gánda Lángwej"}
         li{"Limbógísh Lángwej"}
+        lij{"Ligurián Lángwej"}
         lil{"Lillooẹ́t Lángwej"}
         lkt{"Lakótá Lángwej"}
+        lmo{"Lombárd Lángwej"}
         ln{"Lingálá Lángwej"}
         lo{"Láo Lángwej"}
         lou{"Kriol fọ Luisiána"}
@@ -326,6 +332,7 @@ pcm{
         pt_BR{"Brazíl Pọtiugíz"}
         pt_PT{"Yúróp Pọtiugíz"}
         qu{"Kẹchuá"}
+        raj{"Rajástháni Lángwej"}
         rap{"Rapánui Lángwej"}
         rar{"Rarotóngan"}
         rhg{"Rohínjia"}
@@ -376,6 +383,7 @@ pcm{
         sw{"Swahíli"}
         swb{"Komória Lángwej"}
         syr{"Síriák Lángwej"}
+        szl{"Silesián Lángwej"}
         ta{"tàmil"}
         tce{"Saútán Tutchónẹ Lángwej"}
         te{"Tẹlugu"}
@@ -415,7 +423,9 @@ pcm{
         uz{"Úzbẹk"}
         vai{"Vaí"}
         ve{"Vẹ́nda Lángwej"}
+        vec{"Venetián Lángwej"}
         vi{"Viẹ́tnám Lángwej"}
+        vmw{"Mákhuwá Lángwej"}
         vo{"Vólapiuk"}
         vun{"Vúnjo"}
         wa{"Wálun Lángwej"}
@@ -426,6 +436,7 @@ pcm{
         wuu{"Wu Chainiz"}
         xal{"Kalmik"}
         xh{"Kọ́sa"}
+        xnr{"Kangri Lángwej"}
         xog{"sóga"}
         yav{"Yangbẹn"}
         ybb{"Yẹmba Lángwej"}
@@ -433,6 +444,7 @@ pcm{
         yo{"Yorubá"}
         yrl{"Nhiingátu Lángwej"}
         yue{"Kántọn Lángwej"}
+        za{"Zhuáng Lángwej"}
         zgh{"Gẹ́nárál Morókó Támazígt Lángwej"}
         zh{"Mandarín Chainíz Lángwej"}
         zu{"Zúlu"}
@@ -489,14 +501,14 @@ pcm{
         Khmr{"Kemẹẹ"}
         Knda{"Kánnad Raítín Sístẹm"}
         Kore{"Koria"}
-        Laoo{"Lao"}
+        Laoo{"Láo"}
         Latn{"Látin"}
         Mlym{"Maléyálam"}
         Mong{"Mọngólia"}
         Mtei{"Mẹitẹí Mayẹk Lángwej"}
         Mymr{"Miánmar"}
         Nkoo{"N’Ko Lángwej"}
-        Olck{"Ol Chiki"}
+        Olck{"Ol Chíkí"}
         Orya{"Ódia"}
         Rohg{"Hanífi Lángwej"}
         Sinh{"Sinhála"}
@@ -533,7 +545,7 @@ pcm{
             hebrew{"Híbrú Kalẹ́nda"}
             islamic{"Íslám Kalẹ́nda"}
             islamic-civil{"Íslám Kalẹ́nda (Tébúlá Taip an Sívúl Taip)"}
-            islamic-umalqura{"Íslám Kalẹ́nda (Úmm al-Kúra)"}
+            islamic-umalqura{"Íslám Kalẹ́nda (Úmm al-Kúrá)"}
             iso8601{"ISO-8601 Kalẹ́nda"}
             japanese{"Japán Kalẹ́nda"}
             persian{"Pẹ́shia Kalẹ́nda"}
@@ -609,7 +621,6 @@ pcm{
     }
     characterLabelPattern{
         all{"{0} — ọl"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — Fít ích ọ́da"}
         enclosed{"{0} — Sọráund"}
         extended{"{0} — Strẹch"}
@@ -628,10 +639,5 @@ pcm{
         language{"Lángwej: {0}"}
         script{"Haú to raít tins: {0}"}
         territory{"Éria: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

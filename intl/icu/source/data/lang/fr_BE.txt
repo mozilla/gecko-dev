@@ -6,6 +6,5 @@ fr_BE{
         frp{"franco-provençal"}
         goh{"ancien haut-allemand"}
         gu{"gujarati"}
-        njo{"ao"}
     }
 }

@@ -3,7 +3,8 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 xh{
     Languages{
-        af{"isiBhulu"}
+        af{"IsiBhulu"}
+        am{"IsiAmharic"}
         ar{"Isi-Arabhu"}
         ar_001{"Isi-Arabhu (Sale mihla)"}
         bn{"IsiBangla"}
@@ -35,6 +36,7 @@ xh{
         pt_BR{"IsiPhuthukezi SaseBrazil"}
         pt_PT{"IsiPhuthukezi SasePortugal"}
         ru{"Isi-Russian"}
+        sq{"IsiAlbania"}
         th{"Isi-Thai"}
         tr{"Isi-Turkish"}
         und{"Unknown language"}
@@ -61,8 +63,8 @@ xh{
     Scripts{
         Arab{"Isi-Arabhu"}
         Cyrl{"IsiCyrillic"}
-        Hans{"IsiHans"}
-        Hant{"IsiHant"}
+        Hans{"IsiHans Esenziwe Lula"}
+        Hant{"IsiHant Esiqhelekileyo"}
         Jpan{"IsiJapanese"}
         Kore{"IsiKorean"}
         Latn{"IsiLatin"}
@@ -70,8 +72,8 @@ xh{
         Zzzz{"Ulwimi Olungaziwayo"}
     }
     Scripts%stand-alone{
-        Hans{"IsiHan"}
-        Hant{"IsiHan"}
+        Hans{"IsiHan Esenziwe Lula"}
+        Hant{"IsiHan Esiqhelekileyo"}
     }
     Types{
         calendar{
@@ -89,9 +91,5 @@ xh{
         language{"Language: {0}"}
         script{"Script: {0}"}
         territory{"Region: {0}"}
-    }
-    localeDisplayPattern{
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

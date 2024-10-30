@@ -70,6 +70,7 @@ es{
         bez{"bena"}
         bfd{"bafut"}
         bg{"búlgaro"}
+        bgc{"haryanvi"}
         bgn{"baluchi occidental"}
         bho{"bhoyapurí"}
         bi{"bislama"}
@@ -77,6 +78,7 @@ es{
         bin{"bini"}
         bkm{"kom"}
         bla{"siksika"}
+        blo{"anii"}
         bm{"bambara"}
         bn{"bengalí"}
         bo{"tibetano"}
@@ -257,7 +259,7 @@ es{
         jv{"javanés"}
         ka{"georgiano"}
         kaa{"karakalpako"}
-        kab{"cabila"}
+        kab{"cabileño"}
         kac{"kachin"}
         kaj{"jju"}
         kam{"kamba"}
@@ -301,6 +303,7 @@ es{
         kv{"komi"}
         kw{"córnico"}
         kwk{"kwakʼwala"}
+        kxv{"kuvi"}
         ky{"kirguís"}
         la{"latín"}
         lad{"ladino"}
@@ -311,6 +314,7 @@ es{
         lez{"lezgiano"}
         lg{"ganda"}
         li{"limburgués"}
+        lij{"ligur"}
         lil{"lillooet"}
         lkt{"lakota"}
         lmo{"lombardo"}
@@ -326,7 +330,6 @@ es{
         lua{"luba-lulua"}
         lui{"luiseño"}
         lun{"lunda"}
-        luo{"luo"}
         lus{"mizo"}
         luy{"luyia"}
         lv{"letón"}
@@ -508,6 +511,7 @@ es{
         swb{"comorense"}
         syc{"siríaco clásico"}
         syr{"siriaco"}
+        szl{"silesio"}
         ta{"tamil"}
         tce{"tutchone meridional"}
         te{"telugu"}
@@ -554,9 +558,10 @@ es{
         und{"lengua desconocida"}
         ur{"urdu"}
         uz{"uzbeko"}
-        vai{"vai"}
         ve{"venda"}
+        vec{"veneciano"}
         vi{"vietnamita"}
+        vmw{"makua"}
         vo{"volapük"}
         vot{"vótico"}
         vun{"vunjo"}
@@ -570,6 +575,7 @@ es{
         wuu{"chino wu"}
         xal{"kalmyk"}
         xh{"xhosa"}
+        xnr{"kangri"}
         xog{"soga"}
         yao{"yao"}
         yap{"yapés"}
@@ -759,9 +765,9 @@ es{
             gregorian{"calendario gregoriano"}
             hebrew{"calendario hebreo"}
             indian{"calendario nacional hindú"}
-            islamic{"calendario islámico"}
-            islamic-civil{"calendario islámico tabular"}
-            islamic-umalqura{"calendario islámico Umm al-Qura"}
+            islamic{"calendario hijri"}
+            islamic-civil{"calendario hijri tabular"}
+            islamic-umalqura{"calendario hijri Umm al-Qura"}
             iso8601{"calendario ISO-8601"}
             japanese{"calendario japonés"}
             persian{"calendario persa"}
@@ -813,7 +819,6 @@ es{
             phonebook{"orden de listín telefónico"}
             phonetic{"orden fonético"}
             pinyin{"orden pinyin"}
-            reformed{"orden reformado"}
             search{"búsqueda de uso general"}
             searchjl{"Buscar por consonante inicial de hangul"}
             standard{"orden estándar"}
@@ -910,10 +915,11 @@ es{
     }
     characterLabelPattern{
         all{"{0} — Todo"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — Compatibilidad"}
         enclosed{"{0} — Rodeados"}
         extended{"{0} — Ampliados"}
+        facing-left{"{0} hacia la izquierda"}
+        facing-right{"{0} hacia la derecha"}
         historic{"{0} — Históricos"}
         miscellaneous{"{0} — Varios"}
         other{"{0} — Otros"}
@@ -929,10 +935,5 @@ es{
         language{"Idioma: {0}"}
         script{"Sistema de escritura: {0}"}
         territory{"Región: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

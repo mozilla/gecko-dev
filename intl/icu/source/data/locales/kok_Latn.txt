@@ -1,0 +1,1435 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kok_Latn{
+    %%Parent{"root"}
+    AuxExemplarCharacters{"[áàăâåäā æ éèĕëē íìĭîïī óòŏöøō œ úùŭûüū ÿ]"}
+    ExemplarCharacters{"[aã b cç d eêẽ f g h iĩ j k l m nñ oôõ p q r s t u v w x y z]"}
+    ExemplarCharactersPunctuation{"[\\- ‐‑ – — , ; \\: ! ? . … '‘’ \u0022“” ( ) \\[ \\] § @ * / \\& # † ‡ ′ ″]"}
+    NumberElements{
+        deva{
+            patterns{
+                currencyFormat{"¤#,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+            }
+        }
+        latn{
+            patterns{
+                currencyFormat{"¤#,##,##0.00"}
+                decimalFormat{"#,##,##0.###"}
+            }
+            patternsLong{
+                decimalFormat{
+                    1000{
+                        other{"0 hozar"}
+                    }
+                    10000{
+                        other{"00 hozar"}
+                    }
+                    100000{
+                        other{"0 lakh"}
+                    }
+                    1000000{
+                        other{"00 lakh"}
+                    }
+                    10000000{
+                        other{"0 kotti"}
+                    }
+                    100000000{
+                        other{"00 kotti"}
+                    }
+                    1000000000{
+                        other{"0 obz"}
+                    }
+                    10000000000{
+                        other{"00 obz"}
+                    }
+                    100000000000{
+                        other{"0 nikhorv"}
+                    }
+                    1000000000000{
+                        other{"00 nikhorv"}
+                    }
+                    10000000000000{
+                        other{"000 nikhorv"}
+                    }
+                    100000000000000{
+                        other{"0 hozar nikhorv"}
+                    }
+                }
+            }
+            patternsShort{
+                currencyFormat{
+                    1000{
+                        other{"¤0hoz"}
+                    }
+                    10000{
+                        other{"¤00hoz"}
+                    }
+                    100000{
+                        other{"¤0lak"}
+                    }
+                    1000000{
+                        other{"¤00lak"}
+                    }
+                    10000000{
+                        other{"¤0ko"}
+                    }
+                    100000000{
+                        other{"¤00ko"}
+                    }
+                    1000000000{
+                        other{"¤0obz"}
+                    }
+                    10000000000{
+                        other{"¤00obz"}
+                    }
+                    100000000000{
+                        other{"¤0nikh"}
+                    }
+                    1000000000000{
+                        other{"¤00nikh"}
+                    }
+                    10000000000000{
+                        other{"¤000nikh"}
+                    }
+                    100000000000000{
+                        other{"¤0hoz'.'nikh'.'"}
+                    }
+                }
+                decimalFormat{
+                    1000{
+                        other{"0hoz"}
+                    }
+                    10000{
+                        other{"00hoz"}
+                    }
+                    100000{
+                        other{"0lak"}
+                    }
+                    1000000{
+                        other{"00lak"}
+                    }
+                    10000000{
+                        other{"0ko"}
+                    }
+                    100000000{
+                        other{"00ko"}
+                    }
+                    1000000000{
+                        other{"0obz"}
+                    }
+                    10000000000{
+                        other{"00obz"}
+                    }
+                    100000000000{
+                        other{"0nikh"}
+                    }
+                    1000000000000{
+                        other{"00nikh"}
+                    }
+                    10000000000000{
+                        other{"000nikh"}
+                    }
+                    100000000000000{
+                        other{"0hoz'.'nikh'.'"}
+                    }
+                }
+            }
+        }
+    }
+    calendar{
+        generic{
+            DateTimePatterns{
+                "a h:mm:ss zzzz",
+                "a h:mm:ss z",
+                "a h:mm:ss",
+                "a h:mm",
+                "EEEE, d MMMM, y G",
+                "d MMMM, y G",
+                "d MMM, y G",
+                "d-M-y GGGGG",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            DateTimePatterns%atTime{
+                "{1}, {0} 'vaztam'",
+                "{1}, {0} 'vaztam'",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            availableFormats{
+                Ehms{"E a h:mm:ss"}
+                Gy{"y G"}
+                GyMMM{"MMM y G"}
+                GyMMMEd{"E, d MMM, y G"}
+                GyMMMd{"d MMM, y G"}
+                GyMd{"d-M-y GGGGG"}
+                MEd{"E, d-M"}
+                MMMEd{"E, d MMM"}
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                Md{"d-M"}
+                h{"a h"}
+                hm{"a h:mm"}
+                hms{"a h:mm:ss"}
+                y{"y G"}
+                yyyy{"y G"}
+                yyyyM{"M-y GGGGG"}
+                yyyyMEd{"E, d-M-y GGGGG"}
+                yyyyMMM{"MMM y G"}
+                yyyyMMMEd{"E, d MMM, y G"}
+                yyyyMMMM{"MMMM y G"}
+                yyyyMMMd{"d MMM, y G"}
+                yyyyMd{"d-M-y GGGGG"}
+                yyyyQQQ{"QQQ y G"}
+                yyyyQQQQ{"QQQQ y G"}
+            }
+            intervalFormats{
+                Bh{
+                    h{"h – h B"}
+                }
+                Bhm{
+                    B{"h:mm B – h:mm B"}
+                    h{"h:mm – h:mm B"}
+                    m{"h:mm – h:mm B"}
+                }
+                Gy{
+                    G{"y G – y G"}
+                    y{"y – y G"}
+                }
+                GyM{
+                    G{"M/y GGGGG – M/y GGGGG"}
+                    M{"M/y – M/y GGGGG"}
+                    y{"M/y – M/y GGGGG"}
+                }
+                GyMEd{
+                    G{"E, d/M/y GGGGG – E, d/M/y GGGGG"}
+                    M{"E, d/M/y – E, d/M/y GGGGG"}
+                    d{"E, d/M/y – E, d/M/y GGGGG"}
+                    y{"E, d/M/y – E, d/M/y GGGGG"}
+                }
+                GyMMM{
+                    G{"MMM y G – MMM y G"}
+                    M{"MMM – MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                GyMMMEd{
+                    G{"E, d MMM, y G – E, d MMM, y G"}
+                    M{"E, d MMM – E, d MMM, y G"}
+                    d{"E, d MMM – E, d MMM, y G"}
+                    y{"E, d MMM, y – E, d MMM, y G"}
+                }
+                GyMMMd{
+                    G{"d MMM, y G – d MMM, y G"}
+                    M{"d MMM – d MMM, y G"}
+                    d{"d – d MMM, y G"}
+                    y{"d MMM, y – d MMM, y G"}
+                }
+                GyMd{
+                    G{"d/M/y GGGGG – d/M/y GGGGG"}
+                    M{"d/M/y – d/M/y GGGGG"}
+                    d{"d/M/y – d/M/y GGGGG"}
+                    y{"d/M/y – d/M/y GGGGG"}
+                }
+                H{
+                    H{"HH – HH"}
+                }
+                Hm{
+                    H{"HH:mm – HH:mm"}
+                    m{"HH:mm – HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm – HH:mm v"}
+                    m{"HH:mm – HH:mm v"}
+                }
+                Hv{
+                    H{"HH – HH v"}
+                }
+                M{
+                    M{"M – M"}
+                }
+                MEd{
+                    M{"E, d/M – E, d/M"}
+                    d{"E, d/M – E, d/M"}
+                }
+                MMM{
+                    M{"MMM – MMM"}
+                }
+                MMMEd{
+                    M{"E, d MMM – E, d MMM"}
+                    d{"E, d MMM – E, d MMM"}
+                }
+                MMMd{
+                    M{"d MMM – d MMM"}
+                    d{"d – d MMM"}
+                }
+                Md{
+                    M{"d/M – d/M"}
+                    d{"d/M – d/M"}
+                }
+                d{
+                    d{"d – d"}
+                }
+                h{
+                    a{"a h – a h"}
+                    h{"a h – h"}
+                }
+                hm{
+                    a{"a h:mm – a h:mm"}
+                    h{"a h:mm – h:mm"}
+                    m{"a h:mm – h:mm"}
+                }
+                hmv{
+                    a{"a h:mm – a h:mm v"}
+                    h{"a h:mm – h:mm v"}
+                    m{"a h:mm – h:mm v"}
+                }
+                hv{
+                    a{"a h – a h v"}
+                    h{"a h – h v"}
+                }
+                y{
+                    y{"y – y G"}
+                }
+                yM{
+                    M{"M/y – M/y GGGGG"}
+                    y{"M/y – M/y GGGGG"}
+                }
+                yMEd{
+                    M{"E, d/M/y – E, d/M/y GGGGG"}
+                    d{"E, d/M/y – E, d/M/y GGGGG"}
+                    y{"E, d/M/y – E, d/M/y GGGGG"}
+                }
+                yMMM{
+                    M{"MMM – MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                yMMMEd{
+                    M{"E, d MMM – E, d MMM, y G"}
+                    d{"E, d MMM – E, d MMM, y G"}
+                    y{"E, d MMM, y – E, d MMM, y G"}
+                }
+                yMMMM{
+                    M{"MMMM – MMMM y G"}
+                    y{"MMMM y – MMMM y G"}
+                }
+                yMMMd{
+                    M{"d MMM – d MMM, y G"}
+                    d{"d – d MMM, y G"}
+                    y{"d MMM, y – d MMM, y G"}
+                }
+                yMd{
+                    M{"d/M/y – d/M/y GGGGG"}
+                    d{"d/M/y – d/M/y GGGGG"}
+                    y{"d/M/y – d/M/y GGGGG"}
+                }
+            }
+        }
+        gregorian{
+            AmPmMarkers{
+                "sokallim",
+                "sanje",
+            }
+            DateTimePatterns{
+                "a h:mm:ss zzzz",
+                "a h:mm:ss z",
+                "a h:mm:ss",
+                "a h:mm",
+                "EEEE, d MMMM, y",
+                "d MMMM, y",
+                "d MMM, y",
+                "d-M-yy",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            DateTimePatterns%atTime{
+                "{1}, {0} 'vaztam'",
+                "{1}, {0} 'vaztam'",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            availableFormats{
+                Bh{"B h"}
+                Bhm{"B h:mm"}
+                Bhms{"B h:mm:ss"}
+                EBhm{"E B h:mm"}
+                EBhms{"E B h:mm:ss"}
+                Ehm{"E a h:mm"}
+                Ehms{"E a h:mm:ss"}
+                Gy{"y G"}
+                GyMMM{"MMM y G"}
+                GyMMMEd{"E, d MMM, y G"}
+                GyMMMd{"d MMM, y G"}
+                GyMd{"d-M-y G"}
+                MEd{"dd-MM, E"}
+                MMMEd{"E, d MMM"}
+                MMMMW{
+                    other{"MMMM -'acho' 'suman' W"}
+                }
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                Md{"d/M"}
+                h{"a h"}
+                hm{"a h:mm"}
+                hms{"a h:mm:ss"}
+                hmsv{"a h:mm:ss v"}
+                hmv{"a h:mm v"}
+                yM{"M-y"}
+                yMEd{"E, d-M-y"}
+                yMMM{"MMM y"}
+                yMMMEd{"E, d MMM, y"}
+                yMMMM{"MMMM y"}
+                yMMMd{"d MMM, y"}
+                yMd{"d-M-y"}
+                yQQQ{"QQQ y"}
+                yQQQQ{"QQQQ y"}
+                yw{
+                    other{"Y -'acho' 'suman' w"}
+                }
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "Ait",
+                        "Som",
+                        "Mon",
+                        "Bud",
+                        "Bre",
+                        "Suk",
+                        "Son",
+                    }
+                    narrow{
+                        "A",
+                        "S",
+                        "M",
+                        "B",
+                        "B",
+                        "S",
+                        "S",
+                    }
+                    short{
+                        "Ai",
+                        "Sm",
+                        "Mg",
+                        "Bu",
+                        "Br",
+                        "Su",
+                        "Sn",
+                    }
+                    wide{
+                        "Aitar",
+                        "Somar",
+                        "Mongllar",
+                        "Budhvar",
+                        "Birestar",
+                        "Sukrar",
+                        "Sonvar",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "A",
+                        "S",
+                        "M",
+                        "B",
+                        "B",
+                        "S",
+                        "S",
+                    }
+                }
+            }
+            dayPeriod{
+                stand-alone{
+                    wide{
+                        am{"sokallim"}
+                        pm{"sanje"}
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "KA",
+                    "AD",
+                }
+                narrow{
+                    "K",
+                    "A",
+                }
+                wide{
+                    "Krista Adim",
+                    "Anno Domini",
+                }
+                wide%variant{
+                    "KA",
+                    "AD",
+                }
+            }
+            intervalFormats{
+                Bh{
+                    B{"B h – B h"}
+                    h{"B h – h"}
+                }
+                Bhm{
+                    B{"B h:mm – B h:mm"}
+                    h{"B h:mm – h:mm"}
+                    m{"B h:mm–h:mm"}
+                }
+                Gy{
+                    G{"y G – y G"}
+                    y{"y – y G"}
+                }
+                GyM{
+                    G{"M/y G – M/y G"}
+                    M{"M/y – M/y G"}
+                    y{"M/y – M/y G"}
+                }
+                GyMEd{
+                    G{"E, d/M/y G – E, d/M/y G"}
+                    M{"E, d/M/y – E, d/M/y G"}
+                    d{"E, d/M/y – E, d/M/y G"}
+                    y{"E, d/M/y – E, d/M/y G"}
+                }
+                GyMMM{
+                    G{"MMM y G – MMM y G"}
+                    M{"MMM – MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                GyMMMEd{
+                    G{"E, d MMM, y G – E, d MMM, y G"}
+                    M{"E, d MMM – E, d MMM, y G"}
+                    d{"E, d MMM – E, d MMM, y G"}
+                    y{"E, d MMM, y – E, d MMM, y G"}
+                }
+                GyMMMd{
+                    G{"d MMM, y G – d MMM, y G"}
+                    M{"d MMM – d MMM, y G"}
+                    d{"d – d MMM, y G"}
+                    y{"d MMM, y – d MMM, y G"}
+                }
+                GyMd{
+                    G{"d/M/y G – d/M/y G"}
+                    M{"d/M/y – d/M/y G"}
+                    d{"d/M/y – d/M/y G"}
+                    y{"d/M/y – d/M/y G"}
+                }
+                H{
+                    H{"HH – HH"}
+                }
+                Hm{
+                    H{"HH:mm – HH:mm"}
+                    m{"HH:mm – HH:mm"}
+                }
+                Hmv{
+                    H{"HH:mm – HH:mm v"}
+                    m{"HH:mm – HH:mm v"}
+                }
+                Hv{
+                    H{"HH – HH v"}
+                }
+                M{
+                    M{"M – M"}
+                }
+                MEd{
+                    M{"E, d/M – E, d/M"}
+                    d{"E, d/M – E, d/M"}
+                }
+                MMM{
+                    M{"MMM – MMM"}
+                }
+                MMMEd{
+                    M{"E, d MMM – E, d MMM"}
+                    d{"E, d MMM – E, d MMM"}
+                }
+                MMMd{
+                    M{"d MMM – d MMM"}
+                    d{"d – d MMM"}
+                }
+                Md{
+                    M{"d/M – d/M"}
+                    d{"d/M – d/M"}
+                }
+                d{
+                    d{"d – d"}
+                }
+                h{
+                    a{"a h – a h"}
+                    h{"a h–h"}
+                }
+                hm{
+                    a{"a h:mm – a h:mm"}
+                    h{"a h:mm–h:mm"}
+                    m{"a h:mm–h:mm"}
+                }
+                hmv{
+                    a{"a h:mm – a h:mm v"}
+                    h{"a h:mm–h:mm v"}
+                    m{"a h:mm–h:mm v"}
+                }
+                hv{
+                    a{"a h – a h v"}
+                    h{"a h–h v"}
+                }
+                y{
+                    y{"y – y"}
+                }
+                yM{
+                    M{"M/y – M/y"}
+                    y{"M/y – M/y"}
+                }
+                yMEd{
+                    M{"E, d/M/y – E, d/M/y"}
+                    d{"E, d/M/y – E, d/M/y"}
+                    y{"E, d/M/y – E, d/M/y"}
+                }
+                yMMM{
+                    M{"MMM – MMM y"}
+                    y{"MMM y – MMM y"}
+                }
+                yMMMEd{
+                    M{"E, d MMM – E, d MMM, y"}
+                    d{"E, d MMM – E, d MMM, y"}
+                    y{"E, d MMM, y – E, d MMM, y"}
+                }
+                yMMMM{
+                    M{"MMMM – MMMM y"}
+                    y{"MMMM y – MMMM y"}
+                }
+                yMMMd{
+                    M{"d MMM – d MMM, y"}
+                    d{"d – d MMM, y"}
+                    y{"d MMM, y – d MMM, y"}
+                }
+                yMd{
+                    M{"d/M/y – d/M/y"}
+                    d{"d/M/y – d/M/y"}
+                    y{"d/M/y – d/M/y"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "Jan",
+                        "Feb",
+                        "Mar",
+                        "Abr",
+                        "Mai",
+                        "Jun",
+                        "Jul",
+                        "Ago",
+                        "Set",
+                        "Otu",
+                        "Nov",
+                        "Dez",
+                    }
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                    wide{
+                        "Janer",
+                        "Febrer",
+                        "Mars",
+                        "Abril",
+                        "Mai",
+                        "Jun",
+                        "Julai",
+                        "Agost",
+                        "Setembr",
+                        "Otubr",
+                        "Novembr",
+                        "Dezembr",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "Timh1",
+                        "Timh2",
+                        "Timh3",
+                        "Timh4",
+                    }
+                    wide{
+                        "1lem timhoinallem",
+                        "2rem timhoinallem",
+                        "3rem timhoinallem",
+                        "4tem timhoinallem",
+                    }
+                }
+            }
+        }
+    }
+    fields{
+        day{
+            dn{"dis"}
+            relative{
+                "-1"{"kal"}
+                "0"{"aiz"}
+                "1"{"faleam"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} disanim"}
+                }
+                past{
+                    other{"{0} dis adim"}
+                }
+            }
+        }
+        day-narrow{
+            dn{"d"}
+            relative{
+                "-1"{"kal"}
+                "0"{"aiz"}
+                "1"{"fal"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}disanim"}
+                }
+                past{
+                    other{"{0}d adim"}
+                }
+            }
+        }
+        day-short{
+            dn{"dis"}
+            relative{
+                "-1"{"kal"}
+                "0"{"aiz"}
+                "1"{"faleam"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} disanim"}
+                }
+                past{
+                    other{"{0} dis adim"}
+                }
+            }
+        }
+        dayOfYear{
+            dn{"vorsacho dis"}
+        }
+        dayOfYear-narrow{
+            dn{"vorsacho d."}
+        }
+        dayOfYear-short{
+            dn{"vorsacho dis"}
+        }
+        dayperiod{
+            dn{"AM/PM"}
+        }
+        dayperiod-narrow{
+            dn{"AM/PM"}
+        }
+        dayperiod-short{
+            dn{"AM/PM"}
+        }
+        era{
+            dn{"yug"}
+        }
+        era-narrow{
+            dn{"yug"}
+        }
+        era-short{
+            dn{"yug"}
+        }
+        fri{
+            relative{
+                "-1"{"fattlo Sukrar"}
+                "0"{"ho Sukrar"}
+                "1"{"fuddlo Sukrar"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Sukraranim"}
+                }
+                past{
+                    other{"{0} Sukraram adim"}
+                }
+            }
+        }
+        fri-narrow{
+            relative{
+                "-1"{"fattlo Su"}
+                "0"{"ho Su"}
+                "1"{"fuddlo Su"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Sukraranim"}
+                }
+                past{
+                    other{"{0} Su adim"}
+                }
+            }
+        }
+        fri-short{
+            relative{
+                "-1"{"fattlo Suk."}
+                "0"{"ho Suk."}
+                "1"{"fuddlo Suk."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Sukraranim"}
+                }
+                past{
+                    other{"{0} Suk. adim"}
+                }
+            }
+        }
+        hour{
+            dn{"vor"}
+            relative{
+                "0"{"hem vor"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} voranim"}
+                }
+                past{
+                    other{"{0} voram adim"}
+                }
+            }
+        }
+        hour-narrow{
+            dn{"vor"}
+            relative{
+                "0"{"hem vor"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}voranim"}
+                }
+                past{
+                    other{"{0}voram adim"}
+                }
+            }
+        }
+        hour-short{
+            dn{"vor"}
+            relative{
+                "0"{"hem vor"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} voranim"}
+                }
+                past{
+                    other{"{0} voram adim"}
+                }
+            }
+        }
+        minute{
+            dn{"minut"}
+            relative{
+                "0"{"ho minut"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} mintanim"}
+                }
+                past{
+                    other{"{0} mintam adim"}
+                }
+            }
+        }
+        minute-narrow{
+            dn{"min"}
+            relative{
+                "0"{"ho min"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}min"}
+                }
+                past{
+                    other{"{0}min adim"}
+                }
+            }
+        }
+        minute-short{
+            dn{"min."}
+            relative{
+                "0"{"ho min."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} min."}
+                }
+                past{
+                    other{"{0} min. adim"}
+                }
+            }
+        }
+        mon{
+            relative{
+                "-1"{"fattlo Somar"}
+                "0"{"ho Somar"}
+                "1"{"fuddlo Somar"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Somaranim"}
+                }
+                past{
+                    other{"{0} Somaram adim"}
+                }
+            }
+        }
+        mon-narrow{
+            relative{
+                "-1"{"fattlo Sm"}
+                "0"{"ho Sm"}
+                "1"{"fuddlo Sm"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Somaranim"}
+                }
+                past{
+                    other{"{0} Sm adim"}
+                }
+            }
+        }
+        mon-short{
+            relative{
+                "-1"{"fattlo Som."}
+                "0"{"ho Som."}
+                "1"{"fuddlo Som."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Somaranim"}
+                }
+                past{
+                    other{"{0} Som. adim"}
+                }
+            }
+        }
+        month{
+            dn{"mhoino"}
+            relative{
+                "-1"{"fattlo mhoino"}
+                "0"{"ho mhoino"}
+                "1"{"fuddlo mhoino"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} mhoineanim"}
+                }
+                past{
+                    other{"{0} mhoine adim"}
+                }
+            }
+        }
+        month-narrow{
+            dn{"mh"}
+            relative{
+                "-1"{"fattlo mh"}
+                "0"{"ho mh"}
+                "1"{"fuddlo mh"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}mhoineanim"}
+                }
+                past{
+                    other{"{0}mh adim"}
+                }
+            }
+        }
+        month-short{
+            dn{"mho."}
+            relative{
+                "-1"{"fattlo mho."}
+                "0"{"ho mho."}
+                "1"{"fuddlo mho."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} mhoineanim"}
+                }
+                past{
+                    other{"{0} mho. adim"}
+                }
+            }
+        }
+        quarter{
+            dn{"timhoinallem"}
+            relative{
+                "-1"{"fattlem timhoinallem"}
+                "0"{"hem timhoinallem"}
+                "1"{"fuddlem timhoinallem"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} timhoinalleanim"}
+                }
+                past{
+                    other{"{0} timhoinalle adim"}
+                }
+            }
+        }
+        quarter-narrow{
+            dn{"timh"}
+            relative{
+                "-1"{"fattlem timh"}
+                "0"{"hem timh"}
+                "1"{"fuddlem timh"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}timhoinalleanim"}
+                }
+                past{
+                    other{"{0}timh adim"}
+                }
+            }
+        }
+        quarter-short{
+            dn{"timho."}
+            relative{
+                "-1"{"fattlem timho."}
+                "0"{"hem timho."}
+                "1"{"fuddlem timho."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} timhoinalleanim"}
+                }
+                past{
+                    other{"{0} timho. adim"}
+                }
+            }
+        }
+        sat{
+            relative{
+                "-1"{"fattlo Sonvar"}
+                "0"{"ho Sonvar"}
+                "1"{"fuddlo Sonvar"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Sonvaranim"}
+                }
+                past{
+                    other{"{0} Sonvaram adim"}
+                }
+            }
+        }
+        sat-narrow{
+            relative{
+                "-1"{"fattlo Sn"}
+                "0"{"ho Sn"}
+                "1"{"fuddlo Sn"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Sonvaranim"}
+                }
+                past{
+                    other{"{0} Sn adim"}
+                }
+            }
+        }
+        sat-short{
+            relative{
+                "-1"{"fattlo Son."}
+                "0"{"ho Son."}
+                "1"{"fuddlo Son."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Sonvaranim"}
+                }
+                past{
+                    other{"{0} Son. adim"}
+                }
+            }
+        }
+        second{
+            dn{"sekond"}
+            relative{
+                "0"{"atam"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} sekondanim"}
+                }
+                past{
+                    other{"{0} sekond adim"}
+                }
+            }
+        }
+        second-narrow{
+            dn{"sek"}
+            relative{
+                "0"{"atam"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}sekondanim"}
+                }
+                past{
+                    other{"{0}sek adim"}
+                }
+            }
+        }
+        second-short{
+            dn{"sek."}
+            relative{
+                "0"{"atam"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} sekondanim"}
+                }
+                past{
+                    other{"{0} sek. adim"}
+                }
+            }
+        }
+        sun{
+            relative{
+                "-1"{"fattlo Aitar"}
+                "0"{"ho Aitar"}
+                "1"{"fuddlo Aitar"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Aitaranim"}
+                }
+                past{
+                    other{"{0} Aitaram adim"}
+                }
+            }
+        }
+        sun-narrow{
+            relative{
+                "-1"{"fattlo Ai"}
+                "0"{"ho Ai"}
+                "1"{"fuddlo Ai"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Aitaranim"}
+                }
+                past{
+                    other{"{0} Ai adim"}
+                }
+            }
+        }
+        sun-short{
+            relative{
+                "-1"{"fattlo Ait."}
+                "0"{"ho Ait."}
+                "1"{"fuddlo Ait."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Aitaranim"}
+                }
+                past{
+                    other{"{0} Ait. adim"}
+                }
+            }
+        }
+        thu{
+            relative{
+                "-1"{"fattlo Birestar"}
+                "0"{"ho Birestar"}
+                "1"{"fuddlo Birestar"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Birestaranim"}
+                }
+                past{
+                    other{"{0} Birestaram adim"}
+                }
+            }
+        }
+        thu-narrow{
+            relative{
+                "-1"{"fattlo Br"}
+                "0"{"ho Br"}
+                "1"{"fuddlo Br"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Birestaranim"}
+                }
+                past{
+                    other{"{0} Br adim"}
+                }
+            }
+        }
+        thu-short{
+            relative{
+                "-1"{"fattlo Bre."}
+                "0"{"ho Bre."}
+                "1"{"fuddlo Bre."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Birestaranim"}
+                }
+                past{
+                    other{"{0} Bre. adim"}
+                }
+            }
+        }
+        tue{
+            relative{
+                "-1"{"fattlo Mongllar"}
+                "0"{"ho Mongllar"}
+                "1"{"fuddlo Mongllar"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Mongllaranim"}
+                }
+                past{
+                    other{"{0} Mongllaram adim"}
+                }
+            }
+        }
+        tue-narrow{
+            relative{
+                "-1"{"fattlo Mg"}
+                "0"{"ho Mg"}
+                "1"{"fuddlo Mg"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Mongllaranim"}
+                }
+                past{
+                    other{"{0} Mg adim"}
+                }
+            }
+        }
+        tue-short{
+            relative{
+                "-1"{"fattlo Mon."}
+                "0"{"ho Mon."}
+                "1"{"fuddlo Mon."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Mongllaranim"}
+                }
+                past{
+                    other{"{0} Mon. adim"}
+                }
+            }
+        }
+        wed{
+            relative{
+                "-1"{"fattlo Budhvar"}
+                "0"{"ho Budhvar"}
+                "1"{"fuddlo Budhvar"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Budhvaranim"}
+                }
+                past{
+                    other{"{0} Budhvaram adim"}
+                }
+            }
+        }
+        wed-narrow{
+            relative{
+                "-1"{"fattlo Bu"}
+                "0"{"ho Bu"}
+                "1"{"fuddlo Bu"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Budhvaranim"}
+                }
+                past{
+                    other{"{0} Bu adim"}
+                }
+            }
+        }
+        wed-short{
+            relative{
+                "-1"{"fattlo Bud."}
+                "0"{"ho Bud."}
+                "1"{"fuddlo Bud."}
+            }
+            relativeTime{
+                future{
+                    other{"{0} Budhvaranim"}
+                }
+                past{
+                    other{"{0} Bud. adim"}
+                }
+            }
+        }
+        week{
+            dn{"suman"}
+            relative{
+                "-1"{"fattlo suman"}
+                "0"{"ho suman"}
+                "1"{"fuddlo suman"}
+            }
+            relativePeriod{"{0} cho suman"}
+            relativeTime{
+                future{
+                    other{"{0} sumananim"}
+                }
+                past{
+                    other{"{0} suman adim"}
+                }
+            }
+        }
+        week-narrow{
+            dn{"sum"}
+            relative{
+                "-1"{"fattlo sum"}
+                "0"{"ho sum"}
+                "1"{"fuddlo sum"}
+            }
+            relativePeriod{"{0} cho sum"}
+            relativeTime{
+                future{
+                    other{"{0}sumananim"}
+                }
+                past{
+                    other{"{0}sum adim"}
+                }
+            }
+        }
+        week-short{
+            dn{"suman"}
+            relative{
+                "-1"{"fattlo suman"}
+                "0"{"ho suman"}
+                "1"{"fuddlo suman"}
+            }
+            relativePeriod{"{0} cho suman"}
+            relativeTime{
+                future{
+                    other{"{0} sumananim"}
+                }
+                past{
+                    other{"{0} suman adim"}
+                }
+            }
+        }
+        weekOfMonth{
+            dn{"mhoineacho suman"}
+        }
+        weekOfMonth-narrow{
+            dn{"mhoineacho sum."}
+        }
+        weekOfMonth-short{
+            dn{"mhoineacho suman"}
+        }
+        weekday{
+            dn{"sumanacho dis"}
+        }
+        weekday-narrow{
+            dn{"sumanacho d."}
+        }
+        weekday-short{
+            dn{"sumanacho dis"}
+        }
+        year{
+            dn{"voros"}
+            relative{
+                "-1"{"fattlem voros"}
+                "0"{"hem voros"}
+                "1"{"fuddlem voros"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} vorsanim"}
+                }
+                past{
+                    other{"{0} vorsam adim"}
+                }
+            }
+        }
+        year-narrow{
+            dn{"voros"}
+            relative{
+                "-1"{"fattlem voros"}
+                "0"{"hem voros"}
+                "1"{"fuddlem voros"}
+            }
+            relativeTime{
+                future{
+                    other{"{0}vorsanim"}
+                }
+                past{
+                    other{"{0}vorsam adim"}
+                }
+            }
+        }
+        year-short{
+            dn{"voros"}
+            relative{
+                "-1"{"fattlem voros"}
+                "0"{"hem voros"}
+                "1"{"fuddlem voros"}
+            }
+            relativeTime{
+                future{
+                    other{"{0} vorsanim"}
+                }
+                past{
+                    other{"{0} vorsam adim"}
+                }
+            }
+        }
+        zone{
+            dn{"vell kxetr"}
+        }
+        zone-narrow{
+            dn{"kxetr"}
+        }
+        zone-short{
+            dn{"kxetr"}
+        }
+    }
+}

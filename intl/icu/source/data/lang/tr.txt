@@ -84,6 +84,7 @@ tr{
         bfd{"Bafut"}
         bfq{"Badaga"}
         bg{"Bulgarca"}
+        bgc{"Haryanvi dili"}
         bgn{"Batı Balochi"}
         bho{"Arayanice"}
         bi{"Bislama"}
@@ -92,6 +93,7 @@ tr{
         bjn{"Banjar Dili"}
         bkm{"Kom"}
         bla{"Karaayak dili"}
+        blo{"Aniice"}
         bm{"Bambara"}
         bn{"Bengalce"}
         bo{"Tibetçe"}
@@ -230,7 +232,6 @@ tr{
         gmh{"Ortaçağ Yüksek Almancası"}
         gn{"Guarani dili"}
         goh{"Eski Yüksek Almanca"}
-        gom{"Goa Konkanicesi"}
         gon{"Gondi dili"}
         gor{"Gorontalo dili"}
         got{"Gotça"}
@@ -340,6 +341,7 @@ tr{
         kv{"Komi"}
         kw{"Kernevekçe"}
         kwk{"Kwakʼwala dili"}
+        kxv{"Kuvi"}
         ky{"Kırgızca"}
         la{"Latince"}
         lad{"Ladino"}
@@ -636,6 +638,7 @@ tr{
         vi{"Vietnamca"}
         vls{"Batı Flamanca"}
         vmf{"Main Frankonya Dili"}
+        vmw{"Makuaca"}
         vo{"Volapük"}
         vot{"Votça"}
         vro{"Võro"}
@@ -651,6 +654,7 @@ tr{
         xal{"Kalmıkça"}
         xh{"Zosa dili"}
         xmf{"Megrelce"}
+        xnr{"Kangrice"}
         xog{"Soga"}
         yao{"Yao"}
         yap{"Yapça"}
@@ -715,7 +719,6 @@ tr{
         Cakm{"Chakma"}
         Cans{"UCAS"}
         Cari{"Karya"}
-        Cham{"Cham"}
         Cher{"Çeroki"}
         Cirt{"Cirth"}
         Copt{"Kıpti"}
@@ -752,7 +755,6 @@ tr{
         Hung{"Eski Macar"}
         Inds{"Indus"}
         Ital{"Eski İtalyan"}
-        Jamo{"Jamo"}
         Java{"Cava Dili"}
         Jpan{"Japon"}
         Jurc{"Jurchen"}
@@ -780,12 +782,12 @@ tr{
         Lydi{"Lidya"}
         Mahj{"Mahajani"}
         Mand{"Manden"}
+        Mani{"Maniheist"}
         Maya{"Maya Hiyeroglifleri"}
         Mend{"Mende"}
         Merc{"Meroitik El Yazısı"}
         Mero{"Meroitik"}
         Mlym{"Malayalam"}
-        Modi{"Modi"}
         Mong{"Moğol"}
         Moon{"Moon"}
         Mroo{"Mro"}
@@ -883,9 +885,9 @@ tr{
             hebrew{"İbrani Takvimi"}
             indian{"Ulusal Hint Takvimi"}
             islamic{"Hicri Takvim"}
-            islamic-civil{"Arap Takvimi"}
+            islamic-civil{"Hicri Takvim (16 Temmuz 622)"}
             islamic-rgsa{"Hicri Takvim (Suudi)"}
-            islamic-tbla{"Hicri Takvim (Astronomik Evreler)"}
+            islamic-tbla{"Hicri Takvim (15 Temmuz 622)"}
             islamic-umalqura{"Hicri Takvim (Ümmü-l Kurra Takvimi)"}
             iso8601{"ISO-8601 Takvimi"}
             japanese{"Japon Takvimi"}
@@ -939,7 +941,6 @@ tr{
             phonebook{"Telefon Defteri Sıralama Düzeni"}
             phonetic{"Fonetik Sıralama Düzeni"}
             pinyin{"Pinyin Sıralama Düzeni"}
-            reformed{"Yeni Sıralama Düzeni"}
             search{"Genel Amaçlı Arama"}
             searchjl{"Hangul İlk Sessiz Harfe Göre Arama"}
             standard{"Standart Sıralama Düzeni"}
@@ -1090,10 +1091,11 @@ tr{
     }
     characterLabelPattern{
         all{"{0} — tümü"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — uyumluluk"}
         enclosed{"{0} — etrafı çevrilmiş"}
         extended{"{0} — genişletilmiş"}
+        facing-left{"sola dönük {0}"}
+        facing-right{"sağa dönük {0}"}
         historic{"{0} — tarihi"}
         miscellaneous{"{0} — çeşitli"}
         other{"{0} — diğer"}
@@ -1109,10 +1111,5 @@ tr{
         language{"Dil: {0}"}
         script{"Alfabe: {0}"}
         territory{"Bölge: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

@@ -19,7 +19,7 @@ es_419{
         kbd{"cabardiano"}
         krc{"karachái-bálkaro"}
         ks{"cachemiro"}
-        lo{"laosiano"}
+        lij{"genovés"}
         ml{"malabar"}
         mni{"manipuri"}
         nr{"ndebele del sur"}
@@ -36,6 +36,7 @@ es_419{
         syr{"siríaco"}
         tet{"tetun"}
         tyv{"tuvano"}
+        vec{"véneto"}
         wal{"walamo"}
         wuu{"wu"}
         xal{"calmuco"}

@@ -47,10 +47,12 @@ jv{
         bem{"Bemba"}
         bez{"Bena"}
         bg{"Bulgaria"}
+        bgc{"Haryanvi"}
         bho{"Bhojpuri"}
         bi{"Bislama"}
         bin{"Bini"}
         bla{"Siksiká"}
+        blo{"Anii"}
         bm{"Bambara"}
         bn{"Bengali"}
         bo{"Tibet"}
@@ -121,7 +123,7 @@ jv{
         eu{"Basque"}
         ewo{"Ewondo"}
         fa{"Persia"}
-        ff{"Fulah"}
+        ff{"Fula"}
         fi{"Suomi"}
         fil{"Tagalog"}
         fj{"Fijian"}
@@ -167,6 +169,7 @@ jv{
         iba{"Iban"}
         ibb{"Ibibio"}
         id{"Indonesia"}
+        ie{"Interlingue"}
         ig{"Iqbo"}
         ii{"Sichuan Yi"}
         ikt{"Kanada Inuktitut Sisih Kulon"}
@@ -219,6 +222,7 @@ jv{
         kv{"Komi"}
         kw{"Kernowek"}
         kwk{"Kwakʼwala"}
+        kxv{"Kuvi"}
         ky{"Kirgis"}
         la{"Latin"}
         lad{"Ladino"}
@@ -227,6 +231,7 @@ jv{
         lez{"Lesghian"}
         lg{"Ganda"}
         li{"Limburgish"}
+        lij{"Liguria"}
         lil{"Lillooet"}
         lkt{"Lakota"}
         lmo{"Lombard"}
@@ -326,6 +331,7 @@ jv{
         pt_BR{"Portugis Brasil"}
         pt_PT{"Portugis Portugal"}
         qu{"Quechua"}
+        raj{"Rajasthani"}
         rap{"Rapanui"}
         rar{"Rarotongan"}
         rhg{"Rohingya"}
@@ -339,12 +345,12 @@ jv{
         rwk{"Rwa"}
         sa{"Sanskerta"}
         sad{"Sandawe"}
-        sah{"Sakha"}
+        sah{"Yakut"}
         saq{"Samburu"}
         sat{"Santali"}
         sba{"Ngambai"}
         sbp{"Sangu"}
-        sc{"Sardinian"}
+        sc{"Sardinia"}
         scn{"Sisilia"}
         sco{"Skots"}
         sd{"Sindhi"}
@@ -376,6 +382,7 @@ jv{
         sw{"Swahili"}
         swb{"Komorian"}
         syr{"Siriak"}
+        szl{"Silesia"}
         ta{"Tamil"}
         tce{"Tutkhone Sisih Kidul"}
         te{"Telugu"}
@@ -415,7 +422,9 @@ jv{
         uz{"Uzbek"}
         vai{"Vai"}
         ve{"Venda"}
+        vec{"Venesia"}
         vi{"Vietnam"}
+        vmw{"Makhuwa"}
         vo{"Volapuk"}
         vun{"Vunjo"}
         wa{"Walloon"}
@@ -426,6 +435,7 @@ jv{
         wuu{"Tyonghwa Wu"}
         xal{"Kalmik"}
         xh{"Xhosa"}
+        xnr{"Kangri"}
         xog{"Soga"}
         yav{"Yangben"}
         ybb{"Yemba"}
@@ -433,6 +443,7 @@ jv{
         yo{"Yoruba"}
         yrl{"Nheengatu"}
         yue{"Kanton"}
+        za{"Zhuang"}
         zgh{"Tamazight Moroko Standar"}
         zh{"Tyonghwa"}
         zh_Hans{"Tyonghwa (Ringkes)"}
@@ -503,7 +514,7 @@ jv{
         Tfng{"Tifinak"}
         Thaa{"Thaana"}
         Thai{"Thailand"}
-        Tibt{"Tibetan"}
+        Tibt{"Tibet"}
         Vaii{"Vai"}
         Yiii{"Yi"}
         Zmth{"Notasi Matematika"}
@@ -527,10 +538,10 @@ jv{
             ethiopic-amete-alem{"Tanggalan Etiopia Amete Alem"}
             gregorian{"Tanggalan Gregorian"}
             hebrew{"Tanggalan Ibrani"}
-            islamic{"Tanggalan Islam"}
-            islamic-civil{"Tanggalan Islam (tabel, jaman sipil)"}
-            islamic-tbla{"Tanggalan Islam (tabel, jaman astronomi)"}
-            islamic-umalqura{"Tanggalan Islam (Mekah)"}
+            islamic{"Tanggalan Hijriah"}
+            islamic-civil{"Tanggalan Hijriah (tabel, jaman sipil)"}
+            islamic-tbla{"Tanggalan Hijriah (tabel, jaman astronomis)"}
+            islamic-umalqura{"Tanggalan Hijriah (Umm al-Qura)"}
             iso8601{"Tanggalan ISO-8601"}
             japanese{"Tanggalan Jepang"}
             persian{"Tanggalan Persia"}
@@ -609,6 +620,8 @@ jv{
         compatibility{"{0} — kompatibilitas"}
         enclosed{"{0} — ketutup"}
         extended{"{0} — didawakake"}
+        facing-left{"{0} madhep kiwa"}
+        facing-right{"{0} madhep tengen"}
         historic{"{0} — historis"}
         miscellaneous{"{0} — maneka warna"}
         other{"{0} — liyane"}
@@ -623,10 +636,5 @@ jv{
         language{"Basa: {0}"}
         script{"Skrip: {0}"}
         territory{"Daerah: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

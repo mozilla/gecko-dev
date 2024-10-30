@@ -53,10 +53,12 @@ ga{
         bem{"Beimbis"}
         bez{"Beinis"}
         bg{"Bulgáiris"}
+        bgc{"Haryanvi"}
         bho{"Vóispiris"}
         bi{"Bioslaimis"}
         bin{"Binis"}
         bla{"Sicsicis"}
+        blo{"Anii"}
         bm{"Bambairis"}
         bn{"Beangáilis"}
         bo{"Tibéidis"}
@@ -251,6 +253,7 @@ ga{
         kv{"Coimis"}
         kw{"Coirnis"}
         kwk{"Kwakʼwala"}
+        kxv{"Kuvi"}
         ky{"Cirgisis"}
         la{"Laidin"}
         lad{"Laidínis"}
@@ -371,6 +374,7 @@ ga{
         pt_PT{"Portaingéilis Ibéarach"}
         qu{"Ceatsuais"}
         quc{"Cuitséis"}
+        raj{"Rajasthani"}
         rap{"Rapanúis"}
         rar{"Raratongais"}
         rhg{"Róihinis"}
@@ -476,6 +480,7 @@ ga{
         vec{"Veinéisis"}
         vi{"Vítneaimis"}
         vls{"Pléimeannais Iartharach"}
+        vmw{"Macuais"}
         vo{"Volapük"}
         vun{"Vunjo"}
         wa{"Vallúnais"}
@@ -486,6 +491,7 @@ ga{
         wuu{"Sínis Wu"}
         xal{"Cailmícis"}
         xh{"Cóisis"}
+        xnr{"Kangri"}
         xog{"Soga"}
         yav{"Yangben"}
         ybb{"Yemba"}
@@ -523,34 +529,42 @@ ga{
     Scripts{
         Adlm{"Adlam"}
         Aghb{"Albánach Cugasach"}
-        Ahom{"Ahom"}
         Arab{"Arabach"}
         Aran{"Nastaliq"}
         Armi{"Aramach Impiriúil"}
         Armn{"Airméanach"}
         Avst{"Aivéisteach"}
         Bali{"Bailíoch"}
+        Bamu{"Bamum"}
+        Bass{"Bassa Vah"}
         Batk{"Batacach"}
         Beng{"Beangálach"}
+        Bhks{"Bhaiksuki"}
         Bopo{"Bopomofo"}
+        Brah{"Brámais"}
         Brai{"Braille"}
         Bugi{"Buigineach"}
         Buhd{"Buthaideach"}
         Cakm{"Seácmais"}
         Cans{"Siollach Bundúchasach Ceanadach Aontaithe"}
+        Cari{"Cló Cairiach"}
         Cher{"Seiricíoch"}
         Copt{"Coptach"}
         Cprt{"Cipireach"}
         Cyrl{"Coireallach"}
         Deva{"Déiveanágrach"}
+        Dsrt{"Deseret"}
         Dupl{"Gearrscríobh Duployan"}
         Egyd{"Éigipteach coiteann"}
         Egyh{"Éigipteach cliarúil"}
         Egyp{"Iairiglifí Éigipteacha"}
+        Elba{"Elbasan"}
         Ethi{"Aetóipic"}
         Geor{"Seoirseach"}
         Glag{"Glagalach"}
+        Gonm{"Masaram Gondi"}
         Goth{"Gotach"}
+        Gran{"Grantha"}
         Grek{"Gréagach"}
         Gujr{"Gúisearátach"}
         Guru{"Gurmúcach"}
@@ -560,22 +574,30 @@ ga{
         Hano{"Hananúis"}
         Hans{"Simplithe"}
         Hant{"Traidisiúnta"}
+        Hatr{"Hatran"}
         Hebr{"Eabhrach"}
         Hira{"Hireagánach"}
         Hluw{"Iairiglifí Anatólacha"}
+        Hmng{"Pahawh Hmong"}
         Hrkt{"Siollabraí Seapánacha"}
         Hung{"Sean-Ungárach"}
         Ital{"Sean-Iodáilic"}
         Jamo{"Seamó"}
         Java{"Iávach"}
         Jpan{"Seapánach"}
+        Kali{"Kayah Li"}
         Kana{"Catacánach"}
+        Khar{"Kharoshthi"}
         Khmr{"Ciméarach"}
+        Khoj{"Khojki"}
         Knda{"Cannadach"}
         Kore{"Cóiréach"}
+        Kthi{"Kaithi"}
+        Lana{"Lanna"}
         Laoo{"Laosach"}
         Latg{"Cló Gaelach"}
         Latn{"Laidineach"}
+        Lepc{"Lepcha"}
         Limb{"Liombúch"}
         Lina{"Líneach A"}
         Linb{"Líneach B"}
@@ -583,48 +605,76 @@ ga{
         Lyci{"Liciach"}
         Lydi{"Lidiach"}
         Mahj{"Mahasánach"}
+        Mand{"Mandaean"}
         Mani{"Mainicéasach"}
+        Marc{"Marchen"}
         Maya{"Iairiglifí Máigheacha"}
         Mend{"Meindeach"}
+        Merc{"Meroitic Cursive"}
+        Mero{"Meroitic"}
         Mlym{"Mailéalamach"}
         Mong{"Mongólach"}
+        Mroo{"Mro"}
         Mtei{"Meitei Mayek"}
         Mult{"Multani"}
         Mymr{"Maenmarach"}
         Narb{"Sean-Arabach Thuaidh"}
-        Newa{"Newa"}
+        Nbat{"Nabataean"}
         Nkoo{"N-cóis"}
+        Nshu{"Nüshu"}
         Ogam{"Ogham"}
         Olck{"Ol Chiki"}
+        Orkh{"Orkhon"}
         Orya{"Oiríseach"}
         Osge{"Ósáis"}
+        Osma{"Osmanya"}
+        Palm{"Palmyrene"}
+        Pauc{"Pau Cin Hau"}
         Perm{"Sean-Pheirmeach"}
+        Phag{"Phags-pa"}
+        Phli{"Pachlavais Inscríbhinne"}
+        Phlp{"Pachlavais Saltrach"}
         Phnx{"Féiníceach"}
         Plrd{"Pollard Foghrach"}
         Prti{"Pairtiach Inscríbhinniúil"}
+        Rjng{"Rejang"}
         Rohg{"Hanifi"}
         Runr{"Rúnach"}
         Samr{"Samárach"}
         Sarb{"Sean-Arabach Theas"}
+        Saur{"Saurashtra"}
         Sgnw{"Litritheoireacht Comharthaí"}
         Shaw{"Shawach"}
+        Shrd{"Sharada"}
+        Sidd{"Siddham"}
+        Sind{"Khudawadi"}
         Sinh{"Siolónach"}
+        Sora{"Sora Sompeng"}
+        Soyo{"Soyombo"}
         Sund{"Sundainéis"}
+        Sylo{"Syloti Nagri"}
         Syrc{"Siriceach"}
+        Tagb{"Tagbanwa"}
+        Takr{"Takri"}
         Tale{"Deiheoingis"}
         Talu{"Tai Lue Nua"}
         Taml{"Tamalach"}
+        Tang{"Tangut"}
+        Tavt{"Tai Viet"}
         Telu{"Teileagúch"}
         Tfng{"Tifinagh"}
         Tglg{"Tagálagach"}
         Thaa{"Tánach"}
         Thai{"Téalannach"}
         Tibt{"Tibéadach"}
+        Tirh{"Tirhuta"}
         Ugar{"Úgairíteach"}
         Vaii{"Vadhais"}
+        Wara{"Varang Kshiti"}
         Xpeo{"Sean-Pheirseach"}
         Xsux{"Dingchruthach Suiméar-Acádach"}
         Yiii{"Ís"}
+        Zanb{"Zanabazar Square"}
         Zinh{"Oidhreacht"}
         Zmth{"Nodaireacht Mhatamaiticiúil"}
         Zsye{"Emoji"}
@@ -648,11 +698,9 @@ ga{
             gregorian{"Féilire Ghréagóra"}
             hebrew{"Féilire na nEabhrach"}
             indian{"Féilire Náisiúnta na hIndia"}
-            islamic{"Féilire Ioslamach"}
-            islamic-civil{"Féilire Ioslamach (táblach, seanré shibhialta)"}
-            islamic-rgsa{"Féilire Ioslamach (an Araib Shádach, dearcadh)"}
-            islamic-tbla{"Féilire Ioslamach (táblach, seanré réalteolaíoch)"}
-            islamic-umalqura{"Féilire Ioslamach (Umm al-Qura)"}
+            islamic{"Féilire Hijri"}
+            islamic-civil{"Féilire Hijiri (táblach, seanré shibhialta)"}
+            islamic-umalqura{"Féilire Hijiri (Umm al-Qura)"}
             iso8601{"Féilire ISO-8601"}
             japanese{"Féilire Seapánach"}
             persian{"Féilire Peirseach"}
@@ -672,7 +720,6 @@ ga{
             gb2312han{"Ord sórtála Síneach simplithe - GB 2312"}
             phonebook{"Ord sórtála an eolaire teileafóin"}
             pinyin{"Ord sórtála pinyin"}
-            reformed{"Ord Sórtála Athfhoirmithe"}
             search{"Cuardach Ilfhóinteach"}
             searchjl{"Cuardach de réir Consan Tosaigh Hangul"}
             standard{"Ord Sórtála Caighdeánach"}
@@ -863,10 +910,11 @@ ga{
     }
     characterLabelPattern{
         all{"{0} — uile"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — comhoiriúnacht"}
         enclosed{"{0} — iniata"}
         extended{"{0} — breisithe"}
+        facing-left{"{0} aghaidh ar chlé"}
+        facing-right{"{0} aghaidh ar dheis"}
         historic{"{0} — stairiúil"}
         miscellaneous{"{0} — ilghnéitheach"}
         other{"{0} — eile"}
@@ -885,10 +933,5 @@ ga{
         language{"Teanga: {0}"}
         script{"Script: {0}"}
         territory{"Réigiún: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

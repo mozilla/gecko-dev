@@ -22,12 +22,13 @@ qu{
         ain{"Ainu"}
         ak{"Akan Simi"}
         ale{"Aleut"}
-        alt{"ltai Meridional"}
+        alt{"Altai Meridional"}
         am{"Amarico Simi"}
         an{"Aragonesa"}
         ann{"Obolo Simi"}
         anp{"Angika"}
         ar{"Arabe Simi"}
+        ar_001{"Musuq Estandar Arabe Simi"}
         arn{"Mapuche Simi"}
         arp{"Arapaho"}
         ars{"Árabe Najdi Simi"}
@@ -46,6 +47,7 @@ qu{
         bem{"Bemba Simi"}
         bez{"Bena Simi"}
         bg{"Bulgaro Simi"}
+        bgc{"Haryanvi"}
         bho{"Bhojpuri"}
         bi{"Bislama"}
         bin{"Bini"}
@@ -314,6 +316,7 @@ qu{
         pt{"Portugues Simi"}
         qu{"Runasimi"}
         quc{"Kʼicheʼ Simi"}
+        raj{"Rajasthani"}
         rap{"Rapanui Simi"}
         rar{"Rarotongan Simi"}
         rhg{"Rohingya Simi"}
@@ -477,7 +480,6 @@ qu{
         Hebr{"Hebreo Simi"}
         Hira{"Hiragana"}
         Hrkt{"Japones silabico sananpakuna"}
-        Jamo{"Jamo"}
         Jpan{"Japones Simi"}
         Kana{"Katakana"}
         Khmr{"Khmer"}
@@ -525,9 +527,9 @@ qu{
             ethiopic-amete-alem{"Etíope Amete Alem Intiwatana"}
             gregorian{"Gregoriano Intiwatana"}
             hebrew{"Hebreo Intiwatana"}
-            islamic{"Islamico Intiwatana"}
-            islamic-civil{"Islamico Intiwatana (tabular, época civil)"}
-            islamic-umalqura{"Islamico Intiwatana (Umm al-Qura)"}
+            islamic{"Hijri Intiwatana"}
+            islamic-civil{"Hijri Intiwatana (tabular, epoca civil)"}
+            islamic-umalqura{"Hijri Intiwatana (Umm al-Qura)"}
             iso8601{"ISO-8601 Intiwatana"}
             japanese{"Japones Intiwatana"}
             persian{"Persa Intiwatana"}

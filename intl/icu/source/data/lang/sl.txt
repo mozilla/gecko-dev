@@ -67,12 +67,14 @@ sl{
         bem{"bemba"}
         bez{"benajščina"}
         bg{"bolgarščina"}
+        bgc{"harjanščina"}
         bgn{"zahodnobalučijščina"}
         bho{"bodžpuri"}
         bi{"bislamščina"}
         bik{"bikolski jezik"}
         bin{"edo"}
         bla{"siksika"}
+        blo{"anii"}
         bm{"bambarščina"}
         bn{"bengalščina"}
         bo{"tibetanščina"}
@@ -101,7 +103,7 @@ sl{
         chp{"čipevščina"}
         chr{"čerokeščina"}
         chy{"čejenščina"}
-        ckb{"soranska kurdščina"}
+        ckb{"osrednja kurdščina"}
         clc{"čilkotinščina"}
         co{"korziščina"}
         cop{"koptščina"}
@@ -289,6 +291,7 @@ sl{
         kv{"komijščina"}
         kw{"kornijščina"}
         kwk{"kvakvala"}
+        kxv{"kuvi"}
         ky{"kirgiščina"}
         la{"latinščina"}
         lad{"ladinščina"}
@@ -299,8 +302,10 @@ sl{
         lez{"lezginščina"}
         lg{"ganda"}
         li{"limburščina"}
+        lij{"ligurščina"}
         lil{"lilovetščina"}
         lkt{"lakotščina"}
+        lmo{"lombardščina"}
         ln{"lingala"}
         lo{"laoščina"}
         lol{"mongo"}
@@ -313,7 +318,6 @@ sl{
         lua{"luba-lulua"}
         lui{"luisenščina"}
         lun{"lunda"}
-        luo{"luo"}
         lus{"mizojščina"}
         luy{"luhijščina"}
         lv{"latvijščina"}
@@ -488,6 +492,7 @@ sl{
         swb{"šikomor"}
         syc{"klasična sirščina"}
         syr{"sirščina"}
+        szl{"šlezijščina"}
         ta{"tamilščina"}
         tce{"južna tučonščina"}
         te{"telugijščina"}
@@ -535,7 +540,9 @@ sl{
         uz{"uzbeščina"}
         vai{"vajščina"}
         ve{"venda"}
+        vec{"beneščina"}
         vi{"vietnamščina"}
+        vmw{"makuva"}
         vo{"volapik"}
         vot{"votjaščina"}
         vun{"vunjo"}
@@ -549,6 +556,7 @@ sl{
         wuu{"wu-kitajščina"}
         xal{"kalmiščina"}
         xh{"koščina"}
+        xnr{"kangri"}
         xog{"sogščina"}
         yao{"jaojščina"}
         yap{"japščina"}
@@ -558,6 +566,7 @@ sl{
         yo{"jorubščina"}
         yrl{"nheengatu"}
         yue{"kantonščina"}
+        za{"džuangščina"}
         zap{"zapoteščina"}
         zbl{"znakovni jezik Bliss"}
         zen{"zenaščina"}
@@ -570,6 +579,10 @@ sl{
         zxx{"brez jezikoslovne vsebine"}
         zza{"zazajščina"}
     }
+    Languages%long{
+        zh_Hans{"poenostavljena mandarinska kitajščina"}
+        zh_Hant{"tradicionalna mandarinska kitajščina"}
+    }
     Languages%menu{
         yue{"kitajščina (kantonščina)"}
         zh{"kitajščina (mandarinščina)"}
@@ -580,6 +593,7 @@ sl{
         en_US{"angleščina (ZDA)"}
     }
     Languages%variant{
+        ckb{"soranska kurdščina"}
         hi_Latn{"hingleščina"}
     }
     Scripts{
@@ -787,7 +801,6 @@ sl{
             phonebook{"razvrščanje po sistemu telefonskega imenika"}
             phonetic{"fonetično razvrščanje"}
             pinyin{"razvrščanje po sistemu pinjin"}
-            reformed{"reformirano razvrščanje"}
             search{"Splošno iskanje"}
             searchjl{"Iskanje po začetnem soglasniku hangul"}
             standard{"Standardno razvrščanje"}
@@ -933,10 +946,11 @@ sl{
     }
     characterLabelPattern{
         all{"{0} – vse"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} – združljivost"}
         enclosed{"{0} – vključeno"}
         extended{"{0} – razširjeno"}
+        facing-left{"{0}, obrnjen v levo"}
+        facing-right{"{0}, obrnjen v desno"}
         historic{"{0} – zgodovinsko"}
         miscellaneous{"{0} – razno"}
         other{"{0} – drugo"}
@@ -954,10 +968,5 @@ sl{
         language{"Jezik: {0}"}
         script{"Pisava: {0}"}
         territory{"Regija: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

@@ -10,14 +10,14 @@ om_KE{
                 "HH:mm:ss",
                 "HH:mm",
                 "EEEE, MMMM d, y",
-                "dd MMMM y",
-                "dd-MMM-y",
-                "dd/MM/yy",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
+                "MMMM d, y",
+                "MMM d, y",
+                "M/d/yy",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
             }
             DateTimeSkeletons{
                 "HHmmsszzzz",
@@ -45,39 +45,11 @@ om_KE{
             eras{
                 abbreviated{
                     "KD",
-                    "CE",
+                    "BA",
                 }
                 abbreviated%variant{
                     "BCE",
                     "KB",
-                }
-            }
-            monthNames{
-                stand-alone{
-                    narrow{
-                        "A",
-                        "G",
-                        "B",
-                        "E",
-                        "C",
-                        "W",
-                        "A",
-                        "H",
-                        "F",
-                        "O",
-                        "S",
-                        "M",
-                    }
-                }
-            }
-            quarters{
-                format{
-                    abbreviated{
-                        "K1",
-                        "K2",
-                        "K3",
-                        "K4",
-                    }
                 }
             }
         }
