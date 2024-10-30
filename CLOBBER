@@ -22,4 +22,4 @@
 # changes to stick? As of bug 928195, this shouldn't be necessary! Please
 # don't change CLOBBER for WebIDL changes any more.
 
-Modified build files in third_party/libwebrtc - Bug 1925119 - add dcsctp to libwebrtc build. r?bwc!
+Bug 1927706 - Update to ICU 76 requires clobber
