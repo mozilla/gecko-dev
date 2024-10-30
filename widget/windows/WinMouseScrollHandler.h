@@ -36,6 +36,8 @@ class MouseScrollHandler {
   static bool ProcessMessage(nsWindow* aWidget, UINT msg, WPARAM wParam,
                              LPARAM lParam, MSGResult& aResult);
 
+  static bool SkipScrollWheelHack();
+
   /**
    * See nsIWidget::SynthesizeNativeMouseScrollEvent() for the detail about
    * this method.
@@ -129,8 +131,9 @@ class MouseScrollHandler {
    * @param aMessage    MOZ_WM_MOUSEWHEEL or MOZ_WM_MOUSEHWHEEL.
    * @param aWParam     The wParam value of the original message.
    * @param aLParam     The lParam value of the original message.
+   * @return            TRUE if the message is processed.  Otherwise, FALSE.
    */
-  void HandleMouseWheelMessage(nsWindow* aWidget, UINT aMessage, WPARAM aWParam,
+  bool HandleMouseWheelMessage(nsWindow* aWidget, UINT aMessage, WPARAM aWParam,
                                LPARAM aLParam);
 
   /**
@@ -143,8 +146,9 @@ class MouseScrollHandler {
    * @param aMessage    MOZ_WM_VSCROLL or MOZ_WM_HSCROLL.
    * @param aWParam     The wParam value of the original message.
    * @param aLParam     The lParam value of the original message.
+   * @return            TRUE if the message is processed.  Otherwise, FALSE.
    */
-  void HandleScrollMessageAsMouseWheelMessage(nsWindow* aWidget, UINT aMessage,
+  bool HandleScrollMessageAsMouseWheelMessage(nsWindow* aWidget, UINT aMessage,
                                               WPARAM aWParam, LPARAM aLParam);
 
   /**
