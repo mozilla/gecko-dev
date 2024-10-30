@@ -600,11 +600,9 @@ class UrlInputFragment :
         if (tab != null) {
             binding.searchViewContainer.isVisible = true
         }
-        binding.browserToolbarStartSpace.isVisible = false
     }
 
     internal fun onCancelEditing() {
-        binding.browserToolbarStartSpace.isVisible = true
         handleDismiss()
     }
 
