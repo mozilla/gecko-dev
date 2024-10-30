@@ -442,21 +442,14 @@ MouseScrollHandler::ComputeMessagePos(UINT aMessage, WPARAM aWParam,
   return point;
 }
 
-void MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindow* aWidget,
-                                                        UINT aMessage,
-                                                        WPARAM aWParam,
-                                                        LPARAM aLParam) {
-  if (auto* synth = GetActiveSynthEvent()) {
-    synth->NativeMessageReceived(aWidget, aMessage, aWParam, aLParam);
-  }
-
+nsWindow* MouseScrollHandler::FindTargetWindow(UINT aMessage, WPARAM aWParam,
+                                               LPARAM aLParam) {
   POINT point = ComputeMessagePos(aMessage, aWParam, aLParam);
 
   MOZ_LOG(gMouseScrollLog, LogLevel::Info,
-          ("MouseScroll::ProcessNativeMouseWheelMessage: aWidget=%p, "
+          ("MouseScroll::FindTargetWindow: "
            "aMessage=%s, wParam=0x%08zX, lParam=0x%08" PRIXLPTR
            ", point: { x=%ld, y=%ld }",
-           aWidget,
            aMessage == WM_MOUSEWHEEL    ? "WM_MOUSEWHEEL"
            : aMessage == WM_MOUSEHWHEEL ? "WM_MOUSEHWHEEL"
            : aMessage == WM_VSCROLL     ? "WM_VSCROLL"
@@ -466,10 +459,14 @@ void MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindow* aWidget,
 
   HWND underCursorWnd = ::WindowFromPoint(point);
   if (!underCursorWnd) {
+    // This is unsurprising: Windows ordinarily sends wheel messages to the
+    // focused window, regardless of cursor position. (Nowadays, this is
+    // configurable in Windows' settings, but we've always deliberately
+    // overridden this behavior in Gecko; see bug 168354.)
     MOZ_LOG(gMouseScrollLog, LogLevel::Info,
-            ("MouseScroll::ProcessNativeMouseWheelMessage: "
-             "No window is not found under the cursor"));
-    return;
+            ("MouseScroll::FindTargetWindow: "
+             "No window was found under the cursor"));
+    return nullptr;
   }
 
   if (Device::Elantech::IsPinchHackNeeded() &&
@@ -481,62 +478,69 @@ void MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindow* aWidget,
     underCursorWnd = WinUtils::FindOurWindowAtPoint(point);
     if (!underCursorWnd) {
       MOZ_LOG(gMouseScrollLog, LogLevel::Info,
-              ("MouseScroll::ProcessNativeMouseWheelMessage: "
+              ("MouseScroll::FindTargetWindow: "
                "Our window is not found under the Elantech helper window"));
-      return;
+      return nullptr;
     }
   }
 
-  // If the window under the mouse cursor is in our process, we should (try to)
-  // handle this message on that window.
-  if (WinUtils::IsOurProcessWindow(underCursorWnd)) {
-    nsWindow* destWindow = WinUtils::GetNSWindowPtr(underCursorWnd);
-    if (!destWindow) {
-      MOZ_LOG(gMouseScrollLog, LogLevel::Info,
-              ("MouseScroll::ProcessNativeMouseWheelMessage: "
-               "Found window under the cursor isn't managed by nsWindow..."));
-      HWND wnd = ::GetParent(underCursorWnd);
-      for (; wnd; wnd = ::GetParent(wnd)) {
-        destWindow = WinUtils::GetNSWindowPtr(wnd);
-        if (destWindow) {
-          break;
-        }
-      }
-      if (!wnd) {
-        MOZ_LOG(
-            gMouseScrollLog, LogLevel::Info,
-            ("MouseScroll::ProcessNativeMouseWheelMessage: Our window which is "
-             "managed by nsWindow is not found under the cursor"));
-        return;
-      }
+  // If the window under the mouse cursor is not in our process, we assume it's
+  // another application's window, and discard the message.
+  if (!WinUtils::IsOurProcessWindow(underCursorWnd)) {
+    return nullptr;
+  }
+
+  // Otherwise, (try to) handle this message on the nsWindow it's associated
+  // with.
+  if (nsWindow* destWindow = WinUtils::GetNSWindowPtr(underCursorWnd)) {
+    return destWindow;
+  }
+
+  MOZ_LOG(gMouseScrollLog, LogLevel::Info,
+          ("MouseScroll::FindTargetWindow: "
+           "Window found under the cursor isn't an nsWindow..."));
+  HWND wnd = ::GetParent(underCursorWnd);
+  for (; wnd; wnd = ::GetParent(wnd)) {
+    if (nsWindow* destWindow = WinUtils::GetNSWindowPtr(wnd)) {
+      return destWindow;
     }
+  }
 
-    MOZ_ASSERT(destWindow, "destWindow must not be NULL");
+  MOZ_LOG(gMouseScrollLog, LogLevel::Info,
+          ("MouseScroll::FindTargetWindow: "
+           "    ...and doesn't have any nsWindow ancestors"));
+  return nullptr;
+}
 
-    // Some odd touchpad utils sets focus to window under the mouse cursor.
-    // this emulates the odd behavior for debug.
-    if (mUserPrefs.ShouldEmulateToMakeWindowUnderCursorForeground() &&
-        (aMessage == WM_MOUSEWHEEL || aMessage == WM_MOUSEHWHEEL) &&
-        ::GetForegroundWindow() != destWindow->GetWindowHandle()) {
-      ::SetForegroundWindow(destWindow->GetWindowHandle());
-    }
+void MouseScrollHandler::ProcessNativeMouseWheelMessage(nsWindow* aWidget,
+                                                        UINT aMessage,
+                                                        WPARAM aWParam,
+                                                        LPARAM aLParam) {
+  if (auto* synth = GetActiveSynthEvent()) {
+    synth->NativeMessageReceived(aWidget, aMessage, aWParam, aLParam);
+  }
 
-    MOZ_LOG(gMouseScrollLog, LogLevel::Info,
-            ("MouseScroll::ProcessNativeMouseWheelMessage: Succeeded, "
-             "Posting internal message to an nsWindow (%p)...",
-             destWindow));
-    mIsWaitingInternalMessage = true;
-    UINT internalMessage = WinUtils::GetInternalMessage(aMessage);
-    ::PostMessage(destWindow->GetWindowHandle(), internalMessage, aWParam,
-                  aLParam);
+  nsWindow* const destWindow = FindTargetWindow(aMessage, aWParam, aLParam);
+  if (!destWindow) {
     return;
   }
 
-  // If the window under the cursor is not in our process, we assume it's
-  // another application's window. We discard this message.
+  // Some odd touchpad utils sets focus to window under the mouse cursor.
+  // This emulates the odd behavior for debug.
+  if (mUserPrefs.ShouldEmulateToMakeWindowUnderCursorForeground() &&
+      (aMessage == WM_MOUSEWHEEL || aMessage == WM_MOUSEHWHEEL) &&
+      ::GetForegroundWindow() != destWindow->GetWindowHandle()) {
+    ::SetForegroundWindow(destWindow->GetWindowHandle());
+  }
+
   MOZ_LOG(gMouseScrollLog, LogLevel::Info,
-          ("MouseScroll::ProcessNativeMouseWheelMessage: "
-           "Our window is not found under the cursor"));
+          ("MouseScroll::ProcessNativeMouseWheelMessage: Succeeded, "
+           "Posting internal message to an nsWindow (%p)...",
+           destWindow));
+  mIsWaitingInternalMessage = true;
+  UINT internalMessage = WinUtils::GetInternalMessage(aMessage);
+  ::PostMessage(destWindow->GetWindowHandle(), internalMessage, aWParam,
+                aLParam);
 }
 
 bool MouseScrollHandler::ProcessNativeScrollMessage(nsWindow* aWidget,
