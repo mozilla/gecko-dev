@@ -1098,7 +1098,7 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
         // We should only unlink the stub once.
         ICEntry* entry = icScript_->icEntryForStub(fallbackStub);
         MOZ_ASSERT_IF(entry->firstStub() != stub,
-                      !isTrialInlined && entry->firstStub() == stub->next());
+                      entry->firstStub() == stub->next());
         if (entry->firstStub() == stub) {
           fallbackStub->unlinkStub(cx_->zone(), entry, /*prev=*/nullptr, stub);
         }
