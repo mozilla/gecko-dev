@@ -851,7 +851,7 @@ static bool DecodeFunctionBody(DecoderT& d, ModuleGeneratorT& mg,
 template <class DecoderT, class ModuleGeneratorT>
 static bool DecodeCodeSection(const CodeMetadata& codeMeta, DecoderT& d,
                               ModuleGeneratorT& mg) {
-  if (!codeMeta.codeSectionRange) {
+  if (!codeMeta.codeSection) {
     if (codeMeta.numFuncDefs() != 0) {
       return d.fail("expected code section");
     }
@@ -875,7 +875,7 @@ static bool DecodeCodeSection(const CodeMetadata& codeMeta, DecoderT& d,
     }
   }
 
-  if (!d.finishSection(*codeMeta.codeSectionRange, "code")) {
+  if (!d.finishSection(*codeMeta.codeSection, "code")) {
     return false;
   }
 
@@ -934,8 +934,8 @@ bool wasm::CompileCompleteTier2(const Bytes& bytecode, const Module& module,
     return false;
   }
 
-  if (codeMeta.codeSectionRange) {
-    const SectionRange& codeSection = *codeMeta.codeSectionRange;
+  if (codeMeta.codeSection) {
+    const SectionRange& codeSection = *codeMeta.codeSection;
     const uint8_t* codeSectionStart = bytecode.begin() + codeSection.start;
     const uint8_t* codeSectionEnd = codeSectionStart + codeSection.size;
     Decoder d(codeSectionStart, codeSectionEnd, codeSection.start, error);
@@ -968,16 +968,11 @@ bool wasm::CompilePartialTier2(const Code& code, uint32_t funcIndex,
     return false;
   }
 
-  const FuncDefRange& funcRange = codeMeta.funcDefRange(funcIndex);
-  // Bytecode offset of the code section relative to the beginning of the module
-  uint32_t codeSectionOffset = codeMeta.codeSectionRange->start;
-  // Bytecode offset of the function body relative to the code section
-  uint32_t bodyOffsetInCodeSection =
-      funcRange.bytecodeOffset - codeSectionOffset;
-  // Pointer to the function body bytecode
-  const uint8_t* bodyBegin =
-      codeMeta.codeSectionBytecode->begin() + bodyOffsetInCodeSection;
+  const Bytes& bytecode = code.bytecode();
+  const FuncDefRange& funcRange = code.codeMeta().funcDefRange(funcIndex);
+  const uint8_t* bodyBegin = bytecode.begin() + funcRange.bytecodeOffset;
   const uint8_t* bodyEnd = bodyBegin + funcRange.bodyLength;
+  Decoder d(bytecode.begin(), bytecode.end(), 0, error);
   // The following sequence will compile/finish this function, on this thread.
   // `error` (as stashed in `mg`) may get set to, for example, "stack frame too
   // large", or to "", denoting OOM.
@@ -996,7 +991,7 @@ class StreamingDecoder {
                    const ExclusiveBytesPtr& codeBytesEnd,
                    const Atomic<bool>& cancelled, UniqueChars* error,
                    UniqueCharsVector* warnings)
-      : d_(begin, codeMeta.codeSectionRange->start, error, warnings),
+      : d_(begin, codeMeta.codeSection->start, error, warnings),
         codeBytesEnd_(codeBytesEnd),
         cancelled_(cancelled) {}
 
@@ -1082,12 +1077,12 @@ SharedModule wasm::CompileStreaming(
     }
     compilerEnv.computeParameters(*moduleMeta);
 
-    if (!codeMeta.codeSectionRange) {
+    if (!codeMeta.codeSection) {
       d.fail("unknown section before code section");
       return nullptr;
     }
 
-    MOZ_RELEASE_ASSERT(codeMeta.codeSectionRange->size == codeBytes.length());
+    MOZ_RELEASE_ASSERT(codeMeta.codeSection->size == codeBytes.length());
     MOZ_RELEASE_ASSERT(d.done());
   }
 
@@ -1126,7 +1121,7 @@ SharedModule wasm::CompileStreaming(
   const Bytes& tailBytes = *streamEnd.tailBytes;
 
   {
-    Decoder d(tailBytes, codeMeta.codeSectionRange->end(), error, warnings);
+    Decoder d(tailBytes, codeMeta.codeSection->end(), error, warnings);
 
     if (!DecodeModuleTail(d, &codeMeta, moduleMeta)) {
       return nullptr;

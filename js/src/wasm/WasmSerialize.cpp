@@ -1201,12 +1201,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
 
   MOZ_TRY(CodePodVector(coder, &item->customSectionRanges));
 
-  MOZ_TRY((
-      CodeMaybe<mode, SectionRange, &CodePod>(coder, &item->codeSectionRange)));
-  MOZ_TRY((CodeNullablePtr<
-           mode, SharedBytes,
-           &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(
-      coder, &item->codeSectionBytecode)));
+  MOZ_TRY((CodeMaybe<mode, SectionRange, &CodePod>(coder, &item->codeSection)));
 
   MOZ_TRY((CodeMaybe<mode, uint32_t, &CodePod>(coder,
                                                &item->nameCustomSectionIndex)));
@@ -1220,6 +1215,10 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   MOZ_TRY(CodePodVector(coder, &item->funcDefRanges));
   MOZ_TRY(CodePodVector(coder, &item->funcDefFeatureUsages));
   MOZ_TRY(CodePodVector(coder, &item->funcDefCallRefs));
+  MOZ_TRY((CodeNullablePtr<
+           mode, SharedBytes,
+           &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(
+      coder, &item->bytecode)));
 
   // Serialize stats, taking care not to be holding the lock when the actual
   // serialization/deserialization happens.

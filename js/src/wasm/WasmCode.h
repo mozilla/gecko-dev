@@ -1109,6 +1109,11 @@ class Code : public ShareableBase<Code> {
     updateCallRefMetricsStubOffset_ = offs;
   }
 
+  const Bytes& bytecode() const {
+    MOZ_ASSERT(codeMeta().debugEnabled || mode_ == CompileMode::LazyTiering);
+    return codeMeta_->bytecode->bytes;
+  }
+
   const FuncImport& funcImport(uint32_t funcIndex) const {
     return funcImports_[funcIndex];
   }
