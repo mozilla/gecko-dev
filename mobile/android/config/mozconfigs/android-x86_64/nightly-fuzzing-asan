@@ -3,9 +3,7 @@
 # Remove unwanted environment variables from the 'nightly' mozconfig.
 unset MOZ_ANDROID_POCKET
 
-# We still need to build with debug symbols
-ac_add_options --disable-debug
-ac_add_options --enable-optimize="-O2 -gline-tables-only"
+ac_add_options --enable-debug-symbols=-gline-tables-only
 
 . $topsrcdir/build/unix/mozconfig.asan
 ac_add_options --disable-elf-hack

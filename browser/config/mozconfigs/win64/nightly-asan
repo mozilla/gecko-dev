@@ -2,8 +2,7 @@
 . "$topsrcdir/browser/config/mozconfigs/common"
 . "$topsrcdir/browser/config/mozconfigs/win64/common-win64"
 
-ac_add_options --disable-debug
-ac_add_options --enable-optimize="-O2 -gline-tables-only"
+ac_add_options --enable-debug-symbols=-gline-tables-only
 
 . "$topsrcdir/build/win64/mozconfig.asan"
 

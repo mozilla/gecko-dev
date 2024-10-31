@@ -1,4 +1,4 @@
-ac_add_options --enable-debug
+ac_add_options --enable-debug=-gline-tables-only
 
 . $topsrcdir/build/unix/mozconfig.linux32
 
@@ -21,7 +21,6 @@ ac_add_options --disable-jemalloc
 # well as for libFuzzer targets. See also bug 1649062.
 ac_add_options --disable-crashreporter
 ac_add_options --disable-install-strip
-ac_add_options --enable-optimize="-O2 -gline-tables-only"
 
 # Need this to prevent name conflicts with the normal nightly build packages
 export MOZ_PKG_SPECIAL=fuzzing
