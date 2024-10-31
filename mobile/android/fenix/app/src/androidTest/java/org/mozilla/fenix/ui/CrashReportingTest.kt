@@ -77,7 +77,7 @@ class CrashReportingTest : TestSetup() {
             verifyTabCrashReporterView()
         }.openTabDrawer(activityTestRule) {
             verifyExistingOpenTabs(firstWebPage.title)
-            verifyExistingOpenTabs("about:crashcontent")
+            verifyExistingOpenTabs(secondWebPage.title)
         }.closeTabDrawer {
         }.goToHomescreen {
             verifyExistingTopSitesList()

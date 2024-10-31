@@ -215,9 +215,6 @@ permalink: /changelog/
 * **feature-customtabs**
   * Fallback behaviour when failing to open a new window in custom tab will now be loading the URL directly in the same custom tab. [Bug 1832357](https://bugzilla.mozilla.org/show_bug.cgi?id=1832357)
 
-* **feature-session**
-  * Update URL in the store immediately when using the optimized load URL code path.
-
 * **tooling-lint**
   * Added a lint rule to detect when `Response#close` may not have been called. Note: Currently, this rule only runs on Android Components.
 
