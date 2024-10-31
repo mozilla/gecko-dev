@@ -4,20 +4,25 @@
 
 package org.mozilla.fenix.tabstray
 
+import android.app.Activity
 import android.content.Context
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.Robolectric
 
+@RunWith(FenixRobolectricTestRunner::class)
 class TabsTrayDialogTest {
     @Test
     fun `WHEN onBackPressed THEN invoke interactor`() {
-        val context = mockk<Context>(relaxed = true)
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val context: Context = activity
         val interactor = mockk<TabsTrayInteractor>(relaxed = true)
         val dialog = TabsTrayDialog(context, 0) { interactor }
 
-        @Suppress("DEPRECATION")
-        dialog.onBackPressed()
+        dialog.onBackPressedCallback.handleOnBackPressed()
 
         verify { interactor.onBackPressed() }
     }

@@ -26,6 +26,8 @@ import android.view.ViewStub
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.ComponentDialog
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
@@ -186,15 +188,19 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return object : Dialog(requireContext(), this.theme) {
-            @Deprecated("Deprecated in Java")
-            override fun onBackPressed() {
-                this@SearchDialogFragment.onBackPressed()
-            }
-        }.apply {
+        return ComponentDialog(requireContext(), this.theme).apply {
             if ((requireActivity() as HomeActivity).browsingModeManager.mode.isPrivate) {
                 this.secure(requireActivity())
             }
+
+            onBackPressedDispatcher.addCallback(
+                owner = this,
+                onBackPressedCallback = object : OnBackPressedCallback(true) {
+                    override fun handleOnBackPressed() {
+                        this@SearchDialogFragment.onBackPressed()
+                    }
+                },
+            )
             window?.setupPersistentInsets()
         }
     }

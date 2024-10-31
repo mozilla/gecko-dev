@@ -4,8 +4,10 @@
 
 package org.mozilla.fenix.tabstray
 
-import android.app.Dialog
 import android.content.Context
+import androidx.activity.ComponentDialog
+import androidx.activity.OnBackPressedCallback
+import androidx.annotation.VisibleForTesting
 
 /**
  * Default tabs tray dialog implementation for overriding the default on back pressed.
@@ -14,13 +16,23 @@ class TabsTrayDialog(
     context: Context,
     theme: Int,
     private val interactor: () -> TabsTrayInteractor,
-) : Dialog(context, theme) {
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (interactor().onBackPressed()) {
-            return
-        }
+) : ComponentDialog(context, theme) {
 
-        dismiss()
+    @VisibleForTesting
+    internal val onBackPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            if (interactor().onBackPressed()) {
+                return
+            }
+
+            dismiss()
+        }
+    }
+
+    init {
+        onBackPressedDispatcher.addCallback(
+            owner = this,
+            onBackPressedCallback = onBackPressedCallback,
+        )
     }
 }
