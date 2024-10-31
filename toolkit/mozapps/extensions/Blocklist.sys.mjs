@@ -158,34 +158,10 @@ const BlocklistTelemetry = {
 
     let lastModified = await remoteSettingsClient.getLastModified();
     if (blocklistType === "addons_mlbf") {
-      BlocklistTelemetry.recordTimeScalar(
-        "lastModified_rs_" + blocklistType,
-        lastModified
-      );
       BlocklistTelemetry.recordGleanDateTime(
         Glean.blocklist.lastModifiedRsAddonsMblf,
         lastModified
       );
-    }
-  },
-
-  /**
-   * Record a timestamp in telemetry as a UTC string or "Missing Date" if the
-   * input is not a valid timestamp.
-   *
-   * @param {string} telemetryKey
-   *        The part of after "blocklist.", as defined in Scalars.yaml.
-   * @param {number} time
-   *        A timestamp to record. If invalid, "Missing Date" will be recorded.
-   */
-  recordTimeScalar(telemetryKey, time) {
-    if (time > 0) {
-      // convert from timestamp in ms into UTC datetime string, so it is going
-      // to be record in the same format previously used by blocklist.lastModified_xml.
-      let dateString = new Date(time).toUTCString();
-      Services.telemetry.scalarSet("blocklist." + telemetryKey, dateString);
-    } else {
-      Services.telemetry.scalarSet("blocklist." + telemetryKey, "Missing Date");
     }
   },
 
@@ -1101,14 +1077,6 @@ const ExtensionBlocklistMLBF = {
     Glean.blocklist.mlbfSoftblocksSource.set(
       this._mlbfDataSoftBlocks?.rsAttachmentSource || "unknown"
     );
-    BlocklistTelemetry.recordTimeScalar(
-      "mlbf_generation_time",
-      this._mlbfData?.generationTime
-    );
-    BlocklistTelemetry.recordTimeScalar(
-      "mlbf_softblocks_generation_time",
-      this._mlbfDataSoftBlocks?.generationTime
-    );
     BlocklistTelemetry.recordGleanDateTime(
       Glean.blocklist.mlbfGenerationTime,
       this._mlbfData?.generationTime
@@ -1119,14 +1087,6 @@ const ExtensionBlocklistMLBF = {
     );
     // stashes has conveniently already been sorted by stash_time, newest first.
     let stashes = this._stashes || [];
-    BlocklistTelemetry.recordTimeScalar(
-      "mlbf_stash_time_oldest",
-      stashes[stashes.length - 1]?.stash_time
-    );
-    BlocklistTelemetry.recordTimeScalar(
-      "mlbf_stash_time_newest",
-      stashes[0]?.stash_time
-    );
     BlocklistTelemetry.recordGleanDateTime(
       Glean.blocklist.mlbfStashTimeOldest,
       stashes[stashes.length - 1]?.stash_time
