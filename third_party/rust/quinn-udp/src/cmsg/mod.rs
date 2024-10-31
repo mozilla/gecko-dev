@@ -42,7 +42,7 @@ impl<'a, M: MsgHdr> Encoder<'a, M> {
     /// # Panics
     /// - If insufficient buffer space remains.
     /// - If `T` has stricter alignment requirements than `M::ControlMessage`
-    pub(crate) fn push<T: Copy + ?Sized>(&mut self, level: c_int, ty: c_int, value: T) {
+    pub(crate) fn push<T: Copy>(&mut self, level: c_int, ty: c_int, value: T) {
         assert!(mem::align_of::<T>() <= mem::align_of::<M::ControlMessage>());
         let space = M::ControlMessage::cmsg_space(mem::size_of_val(&value));
         assert!(
@@ -72,7 +72,7 @@ impl<'a, M: MsgHdr> Encoder<'a, M> {
 
 // Statically guarantees that the encoding operation is "finished" before the control buffer is read
 // by `sendmsg` like API.
-impl<'a, M: MsgHdr> Drop for Encoder<'a, M> {
+impl<M: MsgHdr> Drop for Encoder<'_, M> {
     fn drop(&mut self) {
         self.hdr.set_control_len(self.len as _);
     }

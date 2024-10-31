@@ -11,10 +11,16 @@
 
 [package]
 edition = "2021"
-rust-version = "1.66"
+rust-version = "1.70.0"
 name = "quinn-udp"
-version = "0.5.4"
+version = "0.5.6"
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "UDP sockets with ECN information for the QUIC transport protocol"
+readme = false
 keywords = ["quic"]
 categories = [
     "network-programming",
@@ -26,8 +32,22 @@ repository = "https://github.com/quinn-rs/quinn"
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+name = "quinn_udp"
+path = "src/lib.rs"
+bench = false
+
+[[test]]
+name = "tests"
+path = "tests/tests.rs"
+
+[[bench]]
+name = "throughput"
+path = "benches/throughput.rs"
+harness = false
+
 [dependencies.libc]
-version = "0.2.113"
+version = "0.2.158"
 
 [dependencies.log]
 version = "0.4"
@@ -44,6 +64,20 @@ default-features = false
 
 [dev-dependencies.criterion]
 version = "0.5"
+features = ["async_tokio"]
+default-features = false
+
+[dev-dependencies.tokio]
+version = "1.28.1"
+features = [
+    "sync",
+    "rt",
+    "rt-multi-thread",
+    "net",
+]
+
+[build-dependencies.cfg_aliases]
+version = "0.2"
 
 [features]
 default = [
@@ -51,15 +85,14 @@ default = [
     "log",
 ]
 direct-log = ["dep:log"]
+fast-apple-datapath = []
 log = ["tracing/log"]
-
-[target."cfg(any(target_os = \"linux\", target_os = \"windows\"))"]
 
 [target."cfg(windows)".dependencies.once_cell]
 version = "1.19"
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.52"
+version = ">=0.52, <=0.59"
 features = [
     "Win32_Foundation",
     "Win32_System_IO",
