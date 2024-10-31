@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<!--
+  Tests that setting a fixed bottom margin in the compositor does
+  not affect an element which is fixed to both the top and the bottom;
+  in other words, the bottom attachment should be ignored.
+  But for elements which are only attached to the bottom, those should
+  be affected by the fixed bottom margin normally.
+
+  The fixed margin is specified as a test-pref in reftest.list.
+-->
+<html>
+<meta name="viewport" content="width=device-width">
+<style>
+html {
+    scrollbar-width: none;
+}
+#scrolled {
+    height: 2000px;
+    width: 100%;
+}
+#fixed-to-top {
+    width: 100%;
+    height: 200px;
+    position: fixed;
+    top: 0;
+    bottom: 0; /* ignored because this element has both top and height set */
+    background: green;
+}
+#fixed-to-bottom {
+    width: 100%;
+    height: 200px;
+    position: fixed;
+    bottom: 0;
+    background: blue;
+}
+</style>
+<body>
+  <div id="scrolled"></div>
+  <div id="fixed-to-top"></div>
+  <div id="fixed-to-bottom"></div>
+</body>
+</html>

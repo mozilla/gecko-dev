@@ -1,0 +1,33 @@
+<!DOCTYPE HTML>
+<html>
+<meta name="viewport" content="width=device-width">
+<style>
+html {
+    scrollbar-width: none;
+}
+#scrolled {
+    height: 2000px;
+    width: 100%;
+}
+#fixed-to-top {
+    width: 100%;
+    height: 200px;
+    position: fixed;
+    top: 0;
+    background: green;
+}
+#fixed-to-bottom {
+    width: 100%;
+    height: 200px;
+    position: fixed;
+    bottom: 0;
+    margin-bottom: 50px; /* simulates bottom fixed margin */
+    background: blue;
+}
+</style>
+<body>
+  <div id="scrolled"></div>
+  <div id="fixed-to-top"></div>
+  <div id="fixed-to-bottom"></div>
+</body>
+</html>

@@ -49,20 +49,16 @@ ScreenPoint ComputeFixedMarginsOffset(
 
   ScreenMargin effectiveMargin =
       aCompositorFixedLayerMargins - aGeckoFixedLayerMargins;
-  if ((aFixedSides & SideBits::eLeftRight) == SideBits::eLeftRight) {
-    translation.x += (effectiveMargin.left - effectiveMargin.right) / 2;
+  if (aFixedSides & SideBits::eLeft) {
+    translation.x += effectiveMargin.left;
   } else if (aFixedSides & SideBits::eRight) {
     translation.x -= effectiveMargin.right;
-  } else if (aFixedSides & SideBits::eLeft) {
-    translation.x += effectiveMargin.left;
   }
 
-  if ((aFixedSides & SideBits::eTopBottom) == SideBits::eTopBottom) {
-    translation.y += (effectiveMargin.top - effectiveMargin.bottom) / 2;
+  if (aFixedSides & SideBits::eTop) {
+    translation.y += effectiveMargin.top;
   } else if (aFixedSides & SideBits::eBottom) {
     translation.y -= effectiveMargin.bottom;
-  } else if (aFixedSides & SideBits::eTop) {
-    translation.y += effectiveMargin.top;
   }
 
   return translation;
