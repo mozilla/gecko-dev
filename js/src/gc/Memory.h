@@ -32,9 +32,17 @@ size_t VirtualMemoryLimit();
 // range. On these platforms we allocate at random addresses.
 bool UsingScattershotAllocator();
 
+// Whether to stall and retry memory allocation on failure. Only supported on
+// Windows when built with jemalloc.
+enum class StallAndRetry : bool {
+  No = false,
+  Yes = true,
+};
+
 // Allocate or deallocate pages from the system with the given alignment.
 // Pages will be read/write-able.
-void* MapAlignedPages(size_t length, size_t alignment);
+void* MapAlignedPages(size_t length, size_t alignment,
+                      StallAndRetry stallAndRetry = StallAndRetry::No);
 void UnmapPages(void* region, size_t length);
 
 // We can only decommit unused pages if the page size is less than or equal to

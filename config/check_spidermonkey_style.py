@@ -89,6 +89,7 @@ included_inclnames_to_ignore = set(
         "ICU4XWeekRelativeUnit.h",  # ICU4X
         "ICU4XWordSegmenter.h",  # ICU4X
         "mozmemory.h",  # included without a path
+        "mozmemory_utils.h",  # included without a path
         "pratom.h",  # NSPR
         "prcvar.h",  # NSPR
         "prerror.h",  # NSPR
