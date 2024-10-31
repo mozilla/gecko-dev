@@ -264,8 +264,60 @@ add_task(async function test_MLSuggest() {
     0.5,
     "nerThreshold pref should have the expected default value"
   );
+
   await MLSuggest.shutdown();
   await EngineProcess.destroyMLEngine();
 
   await cleanup();
+  sinon.restore();
+});
+
+/**
+ *
+ */
+class MLEngineThatFails {
+  static cnt = 0;
+  // prefix with _query avoids lint error
+  async run(_query) {
+    MLEngineThatFails.cnt += 1;
+    if (MLEngineThatFails.cnt === 1) {
+      throw Error("Fake error");
+    }
+    return [
+      {
+        label: "yelp_intent",
+      },
+    ];
+  }
+}
+
+add_task(async function test_MLSuggest_restart_after_failure() {
+  // Restore any previous stubs
+  sinon.restore();
+
+  sinon.stub(MLSuggest, "createEngine").callsFake(() => {
+    return new MLEngineThatFails();
+  });
+  const { cleanup } = await setup();
+
+  await MLSuggest.initialize();
+
+  let suggestion = await MLSuggest.makeSuggestions(
+    "restaurants in seattle, wa"
+  );
+  Assert.ok(!suggestion, "Suggestion should be null due to error");
+  // second request
+  let suggestion2;
+  await TestUtils.waitForCondition(async () => {
+    suggestion2 = await MLSuggest.makeSuggestions("restaurants in seattle, wa");
+    return !!suggestion2;
+  }, "Wait for suggestion after reinitialization");
+  Assert.ok(suggestion2, "Suggestion should be good");
+  const expected = { intent: "yelp_intent" };
+  Assert.deepEqual(suggestion2.intent, expected.intent);
+
+  await MLSuggest.shutdown();
+  await EngineProcess.destroyMLEngine();
+  await cleanup();
+  sinon.restore();
 });
