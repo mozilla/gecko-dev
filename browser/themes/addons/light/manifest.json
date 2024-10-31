@@ -34,7 +34,7 @@
       "toolbar": "#f9f9fb",
       "toolbar_top_separator": "transparent",
       "toolbar_bottom_separator": "rgb(240, 240, 244)",
-      "toolbar_field": "rgb(240, 240, 244)",
+      "toolbar_field": "rgba(0, 0, 0, .05)",
       "toolbar_field_text": "rgb(21, 20, 26)",
       "toolbar_field_border": "transparent",
       "toolbar_field_focus": "white",

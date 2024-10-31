@@ -30,7 +30,7 @@
       "toolbar": "rgb(43,42,51)",
       "toolbar_top_separator": "transparent",
       "toolbar_bottom_separator": "rgb(82, 82, 94)",
-      "toolbar_field": "rgb(28,27,34)",
+      "toolbar_field": "rgba(0, 0, 0, .3)",
       "toolbar_field_border": "transparent",
       "toolbar_field_text": "rgb(251,251,254)",
       "toolbar_field_focus": "rgb(66,65,77)",
