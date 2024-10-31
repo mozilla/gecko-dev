@@ -45,6 +45,9 @@
         %(PreprocessorDefinitions);
         U_PLATFORM_HAS_WINUWP_API=1;
       </PreprocessorDefinitions>
+      <!-- Set the C/C++ versions supported. -->
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc11</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>

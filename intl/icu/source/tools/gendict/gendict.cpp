@@ -34,6 +34,7 @@
 #include "ucbuf.h"
 #include "toolutil.h"
 #include "cstring.h"
+#include "writesrc.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +44,7 @@
 UDate startTime;
 
 static int elapsedTime() {
-  return (int)uprv_floor((uprv_getRawUTCtime()-startTime)/1000.0);
+  return static_cast<int>(uprv_floor((uprv_getRawUTCtime() - startTime) / 1000.0));
 }
 
 U_NAMESPACE_USE
@@ -58,7 +59,8 @@ static UOption options[]={
     { "uchars", nullptr, nullptr, nullptr, '\1', UOPT_NO_ARG, 0}, /* 6 */
     { "bytes", nullptr, nullptr, nullptr, '\1', UOPT_NO_ARG, 0}, /* 7 */
     { "transform", nullptr, nullptr, nullptr, '\1', UOPT_REQUIRES_ARG, 0}, /* 8 */
-    UOPTION_QUIET,              /* 9 */
+    { "toml", nullptr, nullptr, nullptr, '\1', UOPT_NO_ARG, 0}, /* 9 */
+    UOPTION_QUIET,              /* 10 */
 };
 
 enum arguments {
@@ -70,6 +72,7 @@ enum arguments {
     ARG_UCHARS,
     ARG_BYTES,
     ARG_TRANSFORM,
+    ARG_TOML,
     ARG_QUIET
 };
 
@@ -90,7 +93,8 @@ static void usageAndDie(UErrorCode retCode) {
            "\t--uchars            output a UCharsTrie (mutually exclusive with -b!)\n"
            "\t--bytes             output a BytesTrie (mutually exclusive with -u!)\n"
            "\t--transform         the kind of transform to use (eg --transform offset-40A3,\n"
-           "\t                    which specifies an offset transform with constant 0x40A3)\n",
+           "\t                    which specifies an offset transform with constant 0x40A3)\n"
+           "\t--toml              output the trie in toml format (default is binary),\n",
             u_getDataDirectory());
     exit(retCode);
 }
@@ -144,18 +148,18 @@ public:
 private:
     char transform(UChar32 c, UErrorCode &status) {
         if (transformType == DictionaryData::TRANSFORM_TYPE_OFFSET) {
-            if (c == 0x200D) { return (char)0xFF; }
-            else if (c == 0x200C) { return (char)0xFE; }
+            if (c == 0x200D) { return static_cast<char>(0xFF); }
+            else if (c == 0x200C) { return static_cast<char>(0xFE); }
             int32_t delta = c - transformConstant;
             if (delta < 0 || 0xFD < delta) {
                 fprintf(stderr, "Codepoint U+%04lx out of range for --transform offset-%04lx!\n",
-                        (long)c, (long)transformConstant);
+                        static_cast<long>(c), static_cast<long>(transformConstant));
                 exit(U_ILLEGAL_ARGUMENT_ERROR); // TODO: should return and print the line number
             }
-            return (char)delta;
+            return static_cast<char>(delta);
         } else { // no such transform type 
             status = U_INTERNAL_PROGRAM_ERROR;
-            return (char)c; // it should be noted this transform type will not generally work
+            return static_cast<char>(c); // it should be noted this transform type will not generally work
         }
     }
 
@@ -183,7 +187,7 @@ public:
                 usageAndDie(U_ILLEGAL_ARGUMENT_ERROR);
             }
             transformType = DictionaryData::TRANSFORM_TYPE_OFFSET;
-            transformConstant = (UChar32)base;
+            transformConstant = static_cast<UChar32>(base);
         }
         else {
             fprintf(stderr, "Invalid transform specified: %s\n", t);
@@ -212,7 +216,7 @@ public:
     }
 
     int32_t getTransform() {
-        return (int32_t)(transformType | transformConstant); 
+        return (transformType | transformConstant);
     }
 };
 #endif
@@ -227,7 +231,7 @@ static UBool readLine(UCHARBUF *f, UnicodeString &fileLine, IcuToolErrorCode &er
     // Strip trailing CR/LF, comments, and spaces.
     const char16_t *comment = u_memchr(line, 0x23, lineLength);  // '#'
     if(comment != nullptr) {
-        lineLength = (int32_t)(comment - line);
+        lineLength = static_cast<int32_t>(comment - line);
     } else {
         while(lineLength > 0 && (line[lineLength - 1] == CARRIAGE_RETURN_CHARACTER || line[lineLength - 1] == LINEFEED_CHARACTER)) { --lineLength; }
     }
@@ -292,6 +296,8 @@ int  main(int argc, char **argv) {
     }
 
     IcuToolErrorCode status("gendict/main()");
+
+    UBool isToml = options[ARG_TOML].doesOccur;
 
 #if UCONFIG_NO_BREAK_ITERATION || UCONFIG_NO_FILE_IO
     const char* outDir=nullptr;
@@ -366,12 +372,12 @@ int  main(int argc, char **argv) {
             fileLine.extract(valueStart, valueLength, s, 16, US_INV);
             char *end;
             unsigned long value = uprv_strtoul(s, &end, 0);
-            if (end == s || *end != 0 || (int32_t)uprv_strlen(s) != valueLength || value > 0xffffffff) {
+            if (end == s || *end != 0 || static_cast<int32_t>(uprv_strlen(s)) != valueLength || value > 0xffffffff) {
                 fprintf(stderr, "Error: value syntax error or value too large on line %i!\n", lineCount);
                 isOk = false;
                 continue;
             }
-            dict.addWord(fileLine.tempSubString(0, keyLen), (int32_t)value, status);
+            dict.addWord(fileLine.tempSubString(0, keyLen), static_cast<int32_t>(value), status);
             hasValues = true;
             wordCount++;
             if (keyLen < minlen) minlen = keyLen;
@@ -417,38 +423,61 @@ int  main(int argc, char **argv) {
         exit(status.reset());
     }
     if (verbose) { puts("Opening output file..."); }
-    UNewDataMemory *pData = udata_create(nullptr, nullptr, outFileName, &dataInfo, copyright, status);
-    if (status.isFailure()) {
-        fprintf(stderr, "gendict: could not open output file \"%s\", \"%s\"\n", outFileName, status.errorName());
-        exit(status.reset());
-    }
 
-    if (verbose) { puts("Writing to output file..."); }
-    int32_t indexes[DictionaryData::IX_COUNT] = {
-        DictionaryData::IX_COUNT * sizeof(int32_t), 0, 0, 0, 0, 0, 0, 0
-    };
-    int32_t size = outDataSize + indexes[DictionaryData::IX_STRING_TRIE_OFFSET];
-    indexes[DictionaryData::IX_RESERVED1_OFFSET] = size;
-    indexes[DictionaryData::IX_RESERVED2_OFFSET] = size;
-    indexes[DictionaryData::IX_TOTAL_SIZE] = size;
+    if (isToml) {
+        FILE* f = fopen(outFileName, "w");
+        if (f == nullptr) {
+            fprintf(stderr, "gendict: could not open output file \"%s\"\n", outFileName);
+            exit(status.reset());
+        }
+        fprintf(f, "trie_type = \"%s\"\n", isBytesTrie ? "bytes" : "uchars");
+        fprintf(f, "has_values = %s\n", hasValues ? "true" : "false");
+        int32_t transform = dict.getTransform();
+        bool isOffset = (transform & DictionaryData::TRANSFORM_TYPE_MASK) == DictionaryData::TRANSFORM_TYPE_OFFSET;
+        int32_t offset = transform & DictionaryData::TRANSFORM_OFFSET_MASK;
+        fprintf(f, "transform_type = \"%s\"\n", isOffset ? "offset" : "none");
+        fprintf(f, "transform_offset = %d\n", offset);
 
-    indexes[DictionaryData::IX_TRIE_TYPE] = isBytesTrie ? DictionaryData::TRIE_TYPE_BYTES : DictionaryData::TRIE_TYPE_UCHARS;
-    if (hasValues) {
-        indexes[DictionaryData::IX_TRIE_TYPE] |= DictionaryData::TRIE_HAS_VALUES;
-    }
+        int32_t outDataWidth = isBytesTrie ? 8 : 16;
+        int32_t outDataLength = isBytesTrie ? outDataSize : outDataSize / U_SIZEOF_UCHAR;
+        usrc_writeArray(f, "trie_data = [\n  ",  outData, outDataWidth, outDataLength, "  ", "\n]\n");
 
-    indexes[DictionaryData::IX_TRANSFORM] = dict.getTransform();
-    udata_writeBlock(pData, indexes, sizeof(indexes));
-    udata_writeBlock(pData, outData, outDataSize);
-    size_t bytesWritten = udata_finish(pData, status);
-    if (status.isFailure()) {
-        fprintf(stderr, "gendict: error \"%s\" writing the output file\n", status.errorName());
-        exit(status.reset());
-    }
 
-    if (bytesWritten != (size_t)size) {
-        fprintf(stderr, "Error writing to output file \"%s\"\n", outFileName);
-        exit(U_INTERNAL_PROGRAM_ERROR);
+        fclose(f);
+    } else {
+        UNewDataMemory *pData = udata_create(nullptr, nullptr, outFileName, &dataInfo, copyright, status);
+        if (status.isFailure()) {
+            fprintf(stderr, "gendict: could not open output file \"%s\", \"%s\"\n", outFileName, status.errorName());
+            exit(status.reset());
+        }
+
+        if (verbose) { puts("Writing to output file..."); }
+        int32_t indexes[DictionaryData::IX_COUNT] = {
+            DictionaryData::IX_COUNT * sizeof(int32_t), 0, 0, 0, 0, 0, 0, 0
+        };
+        int32_t size = outDataSize + indexes[DictionaryData::IX_STRING_TRIE_OFFSET];
+        indexes[DictionaryData::IX_RESERVED1_OFFSET] = size;
+        indexes[DictionaryData::IX_RESERVED2_OFFSET] = size;
+        indexes[DictionaryData::IX_TOTAL_SIZE] = size;
+
+        indexes[DictionaryData::IX_TRIE_TYPE] = isBytesTrie ? DictionaryData::TRIE_TYPE_BYTES : DictionaryData::TRIE_TYPE_UCHARS;
+        if (hasValues) {
+            indexes[DictionaryData::IX_TRIE_TYPE] |= DictionaryData::TRIE_HAS_VALUES;
+        }
+
+        indexes[DictionaryData::IX_TRANSFORM] = dict.getTransform();
+        udata_writeBlock(pData, indexes, sizeof(indexes));
+        udata_writeBlock(pData, outData, outDataSize);
+        size_t bytesWritten = udata_finish(pData, status);
+        if (status.isFailure()) {
+            fprintf(stderr, "gendict: error \"%s\" writing the output file\n", status.errorName());
+            exit(status.reset());
+        }
+
+        if (bytesWritten != static_cast<size_t>(size)) {
+            fprintf(stderr, "Error writing to output file \"%s\"\n", outFileName);
+            exit(U_INTERNAL_PROGRAM_ERROR);
+        }
     }
 
     if (!quiet) { printf("%s: done writing\t%s (%ds).\n", progName, outFileName, elapsedTime()); }

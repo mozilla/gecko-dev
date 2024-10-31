@@ -25,15 +25,9 @@ fCurrentCase(0)
 }
 
 TestData::~TestData() {
-  if(fInfo != nullptr) {
-    delete fInfo;
-  }
-  if(fCurrSettings != nullptr) {
-    delete fCurrSettings;
-  }
-  if(fCurrCase != nullptr) {
-    delete fCurrCase;
-  }
+  delete fInfo;
+  delete fCurrSettings;
+  delete fCurrCase;
 }
 
 const char * TestData::getName() const

@@ -33,7 +33,37 @@ CPPFLAGS += -I$(srcdir) -I$(top_srcdir)/common -I$(top_srcdir)/i18n -I$(top_srcd
 DEFS += -D'U_TOPSRCDIR="$(top_srcdir)/"' -D'U_TOPBUILDDIR="$(BUILDDIR)"'
 LIBS = $(LIBCTESTFW) $(LIBICUTOOLUTIL) $(LIBICUIO) $(LIBICUI18N) $(LIBICUUC) $(DEFAULT_LIBS) $(LIB_M)
 
-FUZZER_TARGETS = break_iterator_fuzzer collator_compare_fuzzer collator_rulebased_fuzzer converter_fuzzer locale_fuzzer number_format_fuzzer ucasemap_fuzzer uloc_canonicalize_fuzzer uloc_for_language_tag_fuzzer uloc_get_name_fuzzer uloc_is_right_to_left_fuzzer uloc_open_keywords_fuzzer unicode_string_codepage_create_fuzzer uregex_open_fuzzer
+FUZZER_TARGETS = \
+		 ubidi_fuzzer \
+		 break_iterator_fuzzer \
+		 calendar_fuzzer collator_compare_fuzzer \
+		 collator_rulebased_fuzzer \
+		 converter_fuzzer date_format_fuzzer \
+		 date_time_pattern_generator_fuzzer \
+		 dtfmtsym_fuzzer \
+		 list_format_fuzzer locale_fuzzer \
+		 locale_morph_fuzzer \
+                 message_formatter_fuzzer \
+		 normalizer2_fuzzer \
+		 number_format_fuzzer \
+		 number_formatter_fuzzer \
+		 plurrule_fuzzer \
+		 relative_date_time_formatter_fuzzer \
+		 rule_based_break_iterator_fuzzer \
+		 timezone_create_fuzzer \
+		 time_zone_names_fuzzer \
+		 ucasemap_fuzzer \
+		 uloc_canonicalize_fuzzer \
+		 uloc_for_language_tag_fuzzer \
+		 uloc_get_name_fuzzer \
+		 uloc_is_right_to_left_fuzzer \
+		 uloc_open_keywords_fuzzer \
+		 unicodeset_fuzzer \
+		 unicode_string_codepage_create_fuzzer \
+		 uprop_fuzzer \
+		 uregex_open_fuzzer \
+		 uregex_match_fuzzer \
+
 
 OBJECTS = $(FUZZER_TARGETS:%=%.o)
 OBJECTS += fuzzer_driver.o locale_util.o

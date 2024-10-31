@@ -1,0 +1,131 @@
+[
+  {
+    "comment": "Testing simple plural",
+    "shared": {
+      "srcs": [
+        ".match {$count :number}\n",
+        "one {{{$count} file}}\n",
+        " *  {{{$count} files}}"
+      ]
+    },
+    "variations" : [
+      { "params": { "count": 0 }, "exp": "0 files" },
+      { "params": { "count": 1 }, "exp": "1 file" },
+      { "params": { "count": 3 }, "exp": "3 files" },
+      { "params": { "count": 0 }, "locale": "fr", "exp": "0 file" },
+      { "params": { "count": 1 }, "locale": "fr", "exp": "1 file" },
+      { "params": { "count": 3 }, "locale": "fr", "exp": "3 files" }
+    ]
+  },
+  {
+    "comment": "Testing simple plural, but swap variant order",
+    "shared": {
+      "srcs": [
+        ".match {$count :number}\n",
+        " *  {{You deleted {$count} files}}\n",
+        "one {{You deleted {$count} file}}"
+      ]
+    },
+    "variations" : [
+      {
+        "params": { "count": 1 },
+        "exp": "You deleted 1 file"
+      },
+      {
+        "params": { "count": 3 },
+        "exp": "You deleted 3 files"
+      }
+    ]
+  },
+  {
+    "comment": "Ordinal, with mixed order and exact matches",
+    "shared": {
+      "srcs": [
+        ".match {$place :number select=ordinal}\n",
+        "*   {{You finished in the {$place}th place}}\n",
+        "two {{You finished in the {$place}nd place}}\n",
+        "one {{You finished in the {$place}st place}}\n",
+        "1   {{You got the gold medal}}\n",
+        "2   {{You got the silver medal}}\n",
+        "3   {{You got the bronze medal}}\n",
+        "few {{You finished in the {$place}rd place}}"
+      ]
+    },
+    "variations" : [
+      { "params": { "place": 1 }, "exp": "You got the gold medal" },
+      { "params": { "place": 2 }, "exp": "You got the silver medal" },
+      { "params": { "place": 3 }, "exp": "You got the bronze medal" },
+      { "params": { "place": 7 }, "exp": "You finished in the 7th place" },
+      { "params": { "place": 21 }, "exp": "You finished in the 21st place" },
+      { "params": { "place": 22 }, "exp": "You finished in the 22nd place" },
+      { "params": { "place": 23 }, "exp": "You finished in the 23rd place" },
+      { "params": { "place": 28 }, "exp": "You finished in the 28th place" }
+    ]
+  },
+  {
+    "comment": "Plural combinations, mixed order",
+    "shared": {
+      "srcs": [
+        ".match {$fileCount :number} {$folderCount :number}\n",
+        "  *   *   {{You found {$fileCount} files in {$folderCount} folders}}\n",
+        "  one one {{You found {$fileCount} file in {$folderCount} folder}}\n",
+        "  one *   {{You found {$fileCount} file in {$folderCount} folders}}\n",
+        "  *   one {{You found {$fileCount} files in {$folderCount} folder}}"
+      ]
+    },
+    "variations" : [
+      { "params": { "fileCount": 1, "folderCount": 1 }, "exp": "You found 1 file in 1 folder" },
+      { "params": { "fileCount": 1, "folderCount": 5 }, "exp": "You found 1 file in 5 folders" },
+      { "params": { "fileCount": 7, "folderCount": 1 }, "exp": "You found 7 files in 1 folder" },
+      { "params": { "fileCount": 7, "folderCount": 3 }, "exp": "You found 7 files in 3 folders" }
+    ]
+  },
+  {
+    "comment": "Test that the selection honors the formatting option (`1.00 dollars`)",
+    "shared": {
+      "srcs": [
+        ".local $c = {$price :number minimumFractionDigits=$minF}\n",
+        ".match {$c}\n",
+        "  one {{{$c} dollar}}\n",
+        "   *  {{{$c} dollars}}"
+      ]
+    },
+    "variations" : [
+      { "params": { "price": 1, "minF": 0 }, "exp": "1 dollar" },
+      { "params": { "price": 1, "minF": 2 }, "exp": "1.00 dollars" }
+    ]
+  },
+  {
+    "comment": "Test that the selection honors the formatting option (`1.00 dollars`)",
+    "shared": {
+      "srcs": [
+        ".local $c = {$price :number maximumFractionDigits=$maxF}\n",
+        ".match {$c}\n",
+        "  one {{{$c} dollar}}\n",
+        "   *  {{{$c} dollars}}"
+      ]
+    },
+    "variations" : [
+      { "params": { "price": 1.25, "maxF": 0 }, "exp": "1 dollar" },
+      { "params": { "price": 1.25, "maxF": 2 }, "exp": "1.25 dollars" }
+    ]
+  },
+  {
+    "comment": "Test that the selection honors the `:integer` over options",
+    "shared": {
+      "srcs": [
+        ".local $c = {$price :integer maximumFractionDigits=$maxF}\n",
+        ".match {$c}\n",
+        "  one {{{$c} dollar}}\n",
+        "   *  {{{$c} dollars}}"
+      ]
+    },
+    "variations" : [
+      { "params": { "price": 1, "maxF": 0 }, "exp": "1 dollar" },
+      { "params": { "price": 1, "maxF": 2 }, "exp": "1 dollar" },
+      { "params": { "price": 1.25, "maxF": 0 }, "exp": "1 dollar" },
+      { "params": { "price": 1.25, "maxF": 2 }, "exp": "1 dollar" },
+      { "params": { "price": 4.12345, "maxF": 4 }, "exp": "4 dollars" }
+    ]
+  }
+]

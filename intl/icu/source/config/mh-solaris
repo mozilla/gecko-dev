@@ -5,8 +5,8 @@
 ## Copyright (c) 1999-2010, International Business Machines Corporation and
 ## others. All Rights Reserved.
 
-## Flags for ICU 59+
-CXXFLAGS += -std=c++11
+## Flags for ICU 75+
+CXXFLAGS += -std=c++17
 CFLAGS   += -std=c11
 
 ## Flags for position independent code

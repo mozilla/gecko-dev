@@ -39,10 +39,10 @@ ifeq ($(ENABLE_SO_VERSION_DATA),1)
 SO_VERSION_DATA = layoutex.res
 endif
 
-ifeq ($(OS390BATCH),1)
+ifeq ($(BUILD_HOST_ICU),OS390)
 BATCH_TARGET = $(BATCH_LAYOUTEX_TARGET)
 BATCH_LIBS = $(BATCH_LIBICUUC) $(BATCH_LIBICULE) -lm
-endif   # OS390BATCH
+endif
 
 endif   # ENABLE_SHARED
 
@@ -172,10 +172,10 @@ ifneq ($(wildcard $(libdir)/$(MIDDLE_SO_TARGET)),)
 endif
 endif
 
-ifeq ($(OS390BATCH),1)
+ifeq ($(BUILD_HOST_ICU),OS390)
 $(BATCH_TARGET):$(OBJECTS)
-	$(SHLIB.cc) $(LD_SONAME) $(OUTOPT)$@ $^ $(BATCH_LIBS)
-endif   # OS390BATCH
+	$(SHLIB.cc) $(LD_SONAME) -Wl,-x$@.x $(OUTOPT)$@ $^ $(BATCH_LIBS)
+endif
 endif   # ENABLE_SHARED
 
 ifeq (,$(MAKECMDGOALS))

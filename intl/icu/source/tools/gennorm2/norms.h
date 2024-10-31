@@ -37,7 +37,7 @@ public:
     UBool isEmpty() const { return fLength==0; }
     int32_t lastStarterIndex() const { return fLastStarterIndex; }
     UChar32 charAt(int32_t i) const { return fArray[i]>>8; }
-    uint8_t ccAt(int32_t i) const { return (uint8_t)fArray[i]; }
+    uint8_t ccAt(int32_t i) const { return static_cast<uint8_t>(fArray[i]); }
     UBool didReorder() const { return fDidReorder; }
 
     void append(UChar32 c, uint8_t cc);
@@ -70,6 +70,7 @@ struct Norm {
         }
     }
 
+    bool combinesFwd() const { return compositions!=nullptr; }
     const CompositionPair *getCompositionPairs(int32_t &length) const {
         if(compositions==nullptr) {
             length=0;
@@ -97,7 +98,7 @@ struct Norm {
      * Set after most processing is done.
      *
      * Corresponds to the rows in the chart on
-     * https://icu.unicode.org/design/normalization/custom
+     * https://unicode-org.github.io/icu/design/normalization/custom.html
      * in numerical (but reverse visual) order.
      *
      * YES_NO means composition quick check=yes, decomposition QC=no -- etc.
@@ -123,10 +124,14 @@ struct Norm {
         NO_NO_EMPTY,
         /** Has an algorithmic one-way mapping to a single code point. */
         NO_NO_DELTA,
+        /** Has a two-way mapping which starts with a character that combines backward. */
+        MAYBE_NO_MAPPING_ONLY,
         /**
-         * Combines both backward and forward, has compositions.
-         * Allowed, but not normally used.
+         * Has a two-way mapping which starts with a character that combines backward.
+         * Also combines forward.
          */
+        MAYBE_NO_COMBINES_FWD,
+        /** Combines both backward and forward, has compositions. */
         MAYBE_YES_COMBINES_FWD,
         /** Combines only backward. */
         MAYBE_YES_SIMPLE,

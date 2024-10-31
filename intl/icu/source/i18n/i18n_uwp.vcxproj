@@ -78,7 +78,6 @@
       <ExceptionHandling>
       </ExceptionHandling>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <WarningLevel>Level3</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -407,6 +406,17 @@
     <ClCompile Include="measunit.cpp" />
     <ClCompile Include="measunit_extra.cpp" />
     <ClCompile Include="measure.cpp" />
+    <ClCompile Include="messageformat2.cpp" />
+    <ClCompile Include="messageformat2_arguments.cpp" />
+    <ClCompile Include="messageformat2_checker.cpp" />
+    <ClCompile Include="messageformat2_data_model.cpp" />
+    <ClCompile Include="messageformat2_errors.cpp" />
+    <ClCompile Include="messageformat2_evaluation.cpp" />
+    <ClCompile Include="messageformat2_formattable.cpp" />
+    <ClCompile Include="messageformat2_formatter.cpp" />
+    <ClCompile Include="messageformat2_function_registry.cpp" />
+    <ClCompile Include="messageformat2_parser.cpp" />
+    <ClCompile Include="messageformat2_serializer.cpp" />
     <ClCompile Include="msgfmt.cpp" />
     <ClCompile Include="nfrs.cpp" />
     <ClCompile Include="nfrule.cpp" />

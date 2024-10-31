@@ -34,7 +34,6 @@
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\..\include;..\..\common;..\toolutil;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>T_CTEST_IMPLEMENTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <DisableLanguageExtensions>true</DisableLanguageExtensions>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
       <PrecompiledHeaderOutputFile>$(OutDir)/icutest.pch</PrecompiledHeaderOutputFile>
@@ -75,18 +74,10 @@
   <ItemGroup>
     <ClCompile Include="ctest.c" />
     <ClCompile Include="datamap.cpp" />
-    <ClCompile Include="testdata.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="tstdtmod.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="ucln_ct.c">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
-    <ClCompile Include="uperf.cpp">
-      <DisableLanguageExtensions>false</DisableLanguageExtensions>
-    </ClCompile>
+    <ClCompile Include="testdata.cpp" />
+    <ClCompile Include="tstdtmod.cpp" />
+    <ClCompile Include="ucln_ct.c" />
+    <ClCompile Include="uperf.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="unicode\ctest.h" />

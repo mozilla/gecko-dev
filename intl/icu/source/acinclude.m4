@@ -463,17 +463,6 @@ AC_DEFUN([AC_CHECK_STRICT_COMPILE],
     then
         if test "$GCC" = yes
         then
-            case "${host}" in
-            *-*-solaris*)
-                # Don't use -std=c11 on Solaris because of timezone check fails
-                ;;
-            *)
-                # Do not use -ansi. It limits us to C90, and it breaks some platforms.
-                # We use -std=c11 to disable the gnu99 defaults and its associated warnings
-                CFLAGS="$CFLAGS -std=c11"
-                ;;
-            esac
-            
             CFLAGS="$CFLAGS -Wall -pedantic -Wshadow -Wpointer-arith -Wmissing-prototypes -Wwrite-strings"
 
             # Suppress clang C warnings:

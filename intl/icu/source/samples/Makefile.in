@@ -22,8 +22,8 @@ include @platform_make_fragment@
 ## Files to remove for 'make clean'
 CLEANFILES = *~
 
-SUBDIRS = date cal
-ALLSUBDIRS = cal citer coll csdet date datecal ufortune uresb datefmt msgfmt numfmt props strsrch translit uciter8 ucnv udata ustring dtitvfmtsample dtptngsample plurfmtsample
+SUBDIRS =
+ALLSUBDIRS = coll strsrch translit
 
 ## List of phony targets
 .PHONY : all all-local all-recursive install install-local		\
