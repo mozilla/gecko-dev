@@ -83,7 +83,7 @@ object Versions {
         const val tracing = "1.2.0"
         const val transition = "1.5.1"
         const val viewpager2 = "1.1.0"
-        const val work = "2.9.1"
+        const val work = "2.10.0"
     }
 
     // Gradle can't deal with this being nested below.
