@@ -5,7 +5,9 @@ function handleRequest(aRequest, aResponse) {
 
   aResponse.setHeader(
     "Set-Cookie",
-    `${parts[0]}=foo; path=/; sameSite=none; secure; expires=${new Date(
+    `${
+      parts[0]
+    }=foo; path=/; sameSite=none; secure; partitioned; expires=${new Date(
       parseInt(parts[2], 10)
     ).toGMTString()}`,
     false
