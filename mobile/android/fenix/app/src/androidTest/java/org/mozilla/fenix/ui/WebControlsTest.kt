@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.ui
 
-import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertNativeAppOpens
@@ -137,7 +136,6 @@ class WebControlsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/834205
-    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun verifyTelephoneLinkTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)

@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.ui
 
-import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.HomeActivityTestRule
@@ -84,7 +83,6 @@ class SettingsPrivacyTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1024594
-    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun allowAppToSendNotifications() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
