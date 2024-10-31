@@ -42,6 +42,8 @@ class FuzzingFunctions final {
       const GlobalObject& aGlobalObject, const nsAString& aKeyValue,
       const KeyboardEventInit& aKeyboardEvent, ErrorResult& aRv);
 
+  static void SpinEventLoopFor(const GlobalObject&, uint32_t aMilliseconds);
+
  private:
   /**
    * ActivateModifiers() activates aModifiers in the TextInputProcessor.

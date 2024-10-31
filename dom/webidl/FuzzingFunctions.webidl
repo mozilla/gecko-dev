@@ -132,4 +132,9 @@ namespace FuzzingFunctions {
   [Throws]
   undefined synthesizeKeyboardEvents(DOMString aKeyValue,
                                      optional KeyboardEventInit aDictionary = {});
+
+  /**
+   * Spin the event loop for aMilliseconds.
+   */
+  undefined spinEventLoopFor(unsigned long aMilliseconds);
 };
