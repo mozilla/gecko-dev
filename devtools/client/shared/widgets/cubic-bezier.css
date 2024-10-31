@@ -37,7 +37,7 @@
   height: 10px;
   width: 10px;
   border: 0;
-  background: #666;
+  background: var(--timing-function-control-point-background);
   display: block;
   margin: -5px 0 0 -5px;
   outline: none;
@@ -50,14 +50,14 @@
   background:
   repeating-linear-gradient(0deg,
     transparent,
-    var(--bezier-grid-color) 0,
-    var(--bezier-grid-color) 1px,
+    var(--timing-function-grid-color) 0,
+    var(--timing-function-grid-color) 1px,
     transparent 1px,
     transparent 15px) no-repeat,
   repeating-linear-gradient(90deg,
     transparent,
-    var(--bezier-grid-color) 0,
-    var(--bezier-grid-color) 1px,
+    var(--timing-function-grid-color) 0,
+    var(--timing-function-grid-color) 1px,
     transparent 1px,
     transparent 15px) no-repeat;
   background-size: 100% 100%, 100% 100%;
@@ -94,7 +94,7 @@
   width: 150px;
   height: 1px;
 
-  background: #ccc;
+  background-color: var(--timing-function-preview-scale);
 }
 
 .cubic-bezier-container .timing-function-preview .dot {
@@ -107,8 +107,8 @@
   height: 10px;
 
   border-radius: 50%;
-  border: 2px solid white;
-  background: #4C9ED9;
+  border: 2px solid var(--timing-function-preview-dot-border);
+  background: var(--timing-function-line-color);
 }
 
 /* Preset Widget */

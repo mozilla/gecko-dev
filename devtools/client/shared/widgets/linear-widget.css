@@ -22,23 +22,19 @@
 }
 
 .linear-easing-function-container .chart-grid {
-  stroke: var(--bezier-grid-color);
+  stroke: var(--timing-function-grid-color);
   pointer-events: none;
 }
 
 .linear-easing-function-container .chart-linear {
   -moz-context-properties: stroke;
-  stroke: #4C9ED9;
+  stroke: var(--timing-function-line-color);
 }
 
 .linear-easing-function-container .control-point {
   -moz-context-properties: fill, stroke;
-  fill: var(--grey-55);
+  fill: var(--timing-function-control-point-background);
   cursor: pointer;
-}
-
-:root.theme-dark .linear-easing-function-container .control-point {
-  fill: var(--grey-20);
 }
 
 /* Timing Function Preview Widget */
@@ -46,7 +42,13 @@
 .linear-easing-function-container .timing-function-preview {
   width: var(--chart-size);
   /* Draw a background line */
-  background: linear-gradient(0deg, transparent 45%,var(--bezier-grid-color) 45%, var(--bezier-grid-color) 55%,transparent 55%);
+  background: linear-gradient(
+    0deg,
+    transparent 45%,
+    var(--timing-function-preview-scale) 45%,
+    var(--timing-function-preview-scale) 55%,
+    transparent 55%
+  );
 }
 
 .linear-easing-function-container .timing-function-preview .dot::before {
@@ -56,6 +58,6 @@
   height: 10px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  border: 2px solid white;
-  background: #4C9ED9;
+  border: 2px solid var(--timing-function-preview-dot-border);
+  background: var(--timing-function-line-color);
 }
