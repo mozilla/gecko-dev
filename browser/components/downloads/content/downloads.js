@@ -232,6 +232,9 @@ var DownloadsPanel = {
 
   handleEvent(aEvent) {
     switch (aEvent.type) {
+      case "click":
+        DownloadsPanel.showDownloadsHistory();
+        break;
       case "command":
         if (aEvent.currentTarget == DownloadsView.downloadsHistory) {
           DownloadsPanel.showDownloadsHistory();
@@ -276,6 +279,11 @@ var DownloadsPanel = {
         DownloadsView._onDownloadDragStart(aEvent);
         break;
       case "keydown":
+        if (aEvent.currentTarget == DownloadsSummary._summaryNode) {
+          DownloadsSummary._onKeyDown(aEvent);
+          return;
+        }
+
         this._onKeyDown(aEvent);
         break;
       case "keypress":
@@ -397,6 +405,8 @@ var DownloadsPanel = {
       "command",
       this
     );
+    DownloadsSummary._summaryNode.addEventListener("click", this);
+    DownloadsSummary._summaryNode.addEventListener("keydown", this);
   },
 
   /**
@@ -420,6 +430,8 @@ var DownloadsPanel = {
       "command",
       this
     );
+    DownloadsSummary._summaryNode.removeEventListener("click", this);
+    DownloadsSummary._summaryNode.removeEventListener("keydown", this);
   },
 
   _onKeyPress(aEvent) {
@@ -1511,23 +1523,13 @@ var DownloadsSummary = {
    * @param aEvent
    *        The keydown event being handled.
    */
-  onKeyDown(aEvent) {
+  _onKeyDown(aEvent) {
     if (
       aEvent.charCode == " ".charCodeAt(0) ||
       aEvent.keyCode == KeyEvent.DOM_VK_RETURN
     ) {
       DownloadsPanel.showDownloadsHistory();
     }
-  },
-
-  /**
-   * Respond to click events on the Downloads Summary node.
-   *
-   * @param aEvent
-   *        The click event being handled.
-   */
-  onClick() {
-    DownloadsPanel.showDownloadsHistory();
   },
 
   /**
