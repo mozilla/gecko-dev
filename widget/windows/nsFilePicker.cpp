@@ -321,76 +321,6 @@ class AsyncAllIterator final {
   RefPtr<mozilla::MozPromise<bool, nsresult, true>::Private> mPromise;
 };
 
-namespace telemetry {
-static uint32_t Delta(uint64_t tb, uint64_t ta) {
-  // FILETIMEs are 100ns intervals; we reduce that to 1ms.
-  // (`u32::max()` milliseconds is roughly 47.91 days.)
-  return uint32_t((tb - ta) / 10'000);
-};
-static nsCString HexString(uint32_t val) {
-  return nsPrintfCString("%08" PRIX32, val);
-};
-
-static bool InShutdown() {
-  return AppShutdown::GetCurrentShutdownPhase() != ShutdownPhase::NotInShutdown;
-}
-
-static void RecordSuccess(uint64_t (&&time)[2]) {
-  auto [t0, t1] = time;
-
-  namespace glean_fd = mozilla::glean::file_dialog;
-  glean_fd::FallbackV21Extra extra{
-      .inShutdown = Some(InShutdown()),
-      .succeeded = Some(true),
-      .timeLocal = Nothing(),
-      .timeRemote = Some(Delta(t1, t0)),
-      .whereLocal = Nothing(),
-      .whereRemote = Nothing(),
-      .whyLocal = Nothing(),
-      .whyRemote = Nothing(),
-  };
-  glean_fd::fallback_v2_1.Record(Some(extra));
-}
-
-// for use when a local fallback is not attempted
-static void RecordFailure(uint64_t (&&time)[2], Error const& remote) {
-  auto [t0, t1] = time;
-
-  namespace glean_fd = mozilla::glean::file_dialog;
-  glean_fd::FallbackV21Extra extra{
-      .inShutdown = Some(InShutdown()),
-      .succeeded = Some(false),
-      .timeLocal = Nothing(),
-      .timeRemote = Some(Delta(t1, t0)),
-      .whereLocal = Nothing(),
-      .whereRemote = Some(remote.where.c_str()),
-      .whyLocal = Nothing(),
-      .whyRemote = Some(HexString(remote.why)),
-  };
-  glean_fd::fallback_v2_1.Record(Some(extra));
-}
-
-// for use when a local fallback is attempted
-static void RecordFailure(uint64_t (&&time)[3], Error const& remote,
-                          Maybe<Error> const& local) {
-  auto [t0, t1, t2] = time;
-
-  namespace glean_fd = mozilla::glean::file_dialog;
-  glean_fd::FallbackV21Extra extra{
-      .inShutdown = Some(InShutdown()),
-      .succeeded = Some(false),
-      .timeLocal = Some(Delta(t2, t1)),
-      .timeRemote = Some(Delta(t1, t0)),
-      .whereLocal = local.map([](auto const& e) { return e.where.c_str(); }),
-      .whereRemote = Some(remote.where.c_str()),
-      .whyLocal = local.map([](auto const& e) { return HexString(e.why); }),
-      .whyRemote = Some(HexString(remote.why)),
-  };
-  glean_fd::fallback_v2_1.Record(Some(extra));
-}
-
-}  // namespace telemetry
-
 /* N.B.: L and R stand for Local and Remote, not just Left and Right */
 template <typename FnL, typename FnR, typename... Args>
 struct AsyncExecuteInfo {
@@ -446,14 +376,6 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
 
   constexpr static char kFunctionName[] = "LocalAndOrRemote::AsyncExecute";
 
-  // capture time for telemetry
-  constexpr static const auto GetTime = []() -> uint64_t {
-    FILETIME t;
-    ::GetSystemTimeAsFileTime(&t);
-    return (uint64_t(t.dwHighDateTime) << 32) | t.dwLowDateTime;
-  };
-  uint64_t const t0 = GetTime();
-
   bool (*useLocalFallback)(Error const& err) = [](Error const& err) {
     MOZ_ASSERT_UNREACHABLE("useLocalFallback not set?!");
     return true;
@@ -491,11 +413,8 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
 
   return remote(args...)->Then(
       NS_GetCurrentThread(), kFunctionName,
-      [t0](typename RPromiseT::ResolveValueType result) -> RefPtr<PromiseT> {
+      [](typename RPromiseT::ResolveValueType result) -> RefPtr<PromiseT> {
         // success; stop here
-        auto const t1 = GetTime();
-        // record success
-        telemetry::RecordSuccess({t0, t1});
         return PromiseT::CreateAndResolve(std::move(result), kFunctionName);
       },
       // initialized lambda pack captures are C++20 (clang 9, gcc 9);
@@ -503,12 +422,10 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
       [=, tuple = std::make_tuple(Copy(args)...)](
           typename RPromiseT::RejectValueType err) mutable -> RefPtr<PromiseT> {
         // failure; record time
-        auto const t1 = GetTime();
 
         // should we fall back to a local implementation?
         if (!useLocalFallback(err)) {
           // if not, log this failure immediately...
-          telemetry::RecordFailure({t0, t1}, err);
           MOZ_LOG(filedialog::sLogFileDialog, LogLevel::Info,
                   ("remote file-dialog failed: kind=%s, where=%s, "
                    "why=%08" PRIX32,
@@ -517,19 +434,12 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
           return PromiseT::CreateAndReject(err, kFunctionName);
         }
 
-        // otherwise, retry locally...
+        // otherwise, retry locally
         auto p0 = std::apply(local, std::move(tuple));
-        // ...then record the telemetry event
         return p0->Then(
             NS_GetCurrentThread(), kFunctionName,
-            [t0, t1, errRemote = std::move(err)](
-                typename LPromiseT::ResolveOrRejectValue&& val)
+            [](typename LPromiseT::ResolveOrRejectValue&& val)
                 -> RefPtr<PromiseT> {
-              auto const t2 = GetTime();
-              Maybe<Error> const errLocal =
-                  val.IsReject() ? Some(val.RejectValue()) : Nothing();
-              telemetry::RecordFailure({t0, t1, t2}, errRemote, errLocal);
-
               using V = typename PromiseT::ResolveOrRejectValue;
               return PromiseT::CreateAndResolveOrReject(
                   val.IsResolve()
