@@ -4,9 +4,9 @@
 
 package mozilla.components.service.pocket.update
 
+import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ListenableWorker.Result
-import androidx.work.await
 import androidx.work.testing.TestListenableWorkerBuilder
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import mozilla.components.service.pocket.GlobalDependencyProvider

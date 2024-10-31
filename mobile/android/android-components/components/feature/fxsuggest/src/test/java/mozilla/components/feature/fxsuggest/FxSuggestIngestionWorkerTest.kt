@@ -4,9 +4,9 @@
 
 package mozilla.components.feature.fxsuggest
 
+import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ListenableWorker
-import androidx.work.await
 import androidx.work.testing.TestListenableWorkerBuilder
 import kotlinx.coroutines.test.runTest
 import mozilla.components.support.test.any

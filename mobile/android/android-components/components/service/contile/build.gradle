@@ -31,6 +31,7 @@ dependencies {
     implementation project(':support-base')
     implementation project(':feature-top-sites')
 
+    testImplementation ComponentsDependencies.androidx_concurrent
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_junit
     testImplementation ComponentsDependencies.androidx_work_testing

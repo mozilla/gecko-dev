@@ -4,9 +4,9 @@
 
 package mozilla.components.feature.syncedtabs.commands
 
+import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ListenableWorker
-import androidx.work.await
 import androidx.work.testing.TestListenableWorkerBuilder
 import mozilla.components.concept.sync.DeviceCommandQueue
 import mozilla.components.support.test.mock

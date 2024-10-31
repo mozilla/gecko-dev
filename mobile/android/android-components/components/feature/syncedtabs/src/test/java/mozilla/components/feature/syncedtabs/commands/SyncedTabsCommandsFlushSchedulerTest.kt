@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.syncedtabs.commands
 
+import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.BackoffPolicy
 import androidx.work.Configuration
@@ -11,7 +12,6 @@ import androidx.work.NetworkType
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkRequest
-import androidx.work.await
 import androidx.work.testing.WorkManagerTestInitHelper
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext

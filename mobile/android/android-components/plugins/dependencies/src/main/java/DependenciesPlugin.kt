@@ -60,6 +60,7 @@ object Versions {
         const val cardview = "1.0.0"
         const val collection = "1.4.5"
         const val compose_bom = "2024.10.01"
+        const val concurrent = "1.2.0"
         const val constraintlayout = "2.1.4"
         const val constraintlayout_compose = "1.0.1"
         const val coordinatorlayout = "1.2.0"
@@ -172,6 +173,7 @@ object ComponentsDependencies {
     const val androidx_compose_ui_tooling = "androidx.compose.ui:ui-tooling"
     const val androidx_compose_ui_tooling_preview = "androidx.compose.ui:ui-tooling-preview"
 
+    const val androidx_concurrent = "androidx.concurrent:concurrent-futures-ktx:${Versions.AndroidX.concurrent}"
     const val androidx_constraintlayout = "androidx.constraintlayout:constraintlayout:${Versions.AndroidX.constraintlayout}"
     const val androidx_constraintlayout_compose = "androidx.constraintlayout:constraintlayout-compose:${Versions.AndroidX.constraintlayout_compose}"
     const val androidx_coordinatorlayout = "androidx.coordinatorlayout:coordinatorlayout:${Versions.AndroidX.coordinatorlayout}"

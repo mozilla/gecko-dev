@@ -4,9 +4,9 @@
 
 package mozilla.components.feature.addons.migration
 
+import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.ListenableWorker
-import androidx.work.await
 import androidx.work.testing.TestListenableWorkerBuilder
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager

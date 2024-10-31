@@ -7,11 +7,11 @@ package mozilla.components.feature.addons.migration
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.concurrent.futures.await
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.work.Configuration
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import androidx.work.await
 import androidx.work.testing.WorkManagerTestInitHelper
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse

@@ -53,6 +53,7 @@ dependencies {
     testImplementation ComponentsDependencies.kotlin_reflect
 
     testImplementation ComponentsDependencies.androidx_arch_core_testing
+    testImplementation ComponentsDependencies.androidx_concurrent
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_junit
     testImplementation ComponentsDependencies.testing_coroutines
