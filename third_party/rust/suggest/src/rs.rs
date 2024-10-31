@@ -648,6 +648,15 @@ pub(crate) struct DownloadedGlobalConfigInner {
     pub show_less_frequently_cap: i32,
 }
 
+pub(crate) fn deserialize_f64_or_default<'de, D>(
+    deserializer: D,
+) -> std::result::Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    String::deserialize(deserializer).map(|s| s.parse().ok().unwrap_or_default())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

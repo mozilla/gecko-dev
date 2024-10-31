@@ -551,7 +551,7 @@ add_task(async function cityWithoutRegion() {
 
   await doCityTest({
     desc: "Query matches a US and CA city; should get geolocation; US returned; so match the US city",
-    query: "us/ca city",
+    query: "us ca city",
     geolocation: {
       region_code: "HI",
       country_code: "US",
@@ -559,17 +559,17 @@ add_task(async function cityWithoutRegion() {
     expected: {
       geolocationCalled: true,
       weatherParams: {
-        city: "US/CA City",
+        city: "US CA City",
         region: "IA",
         country: "US",
       },
-      suggestionCity: "US/CA City",
+      suggestionCity: "US CA City",
     },
   });
 
   await doCityTest({
     desc: "Query matches a US and CA city; should get geolocation; CA returned; so match the CA city",
-    query: "us/ca city",
+    query: "us ca city",
     geolocation: {
       region_code: "01",
       country_code: "CA",
@@ -577,11 +577,11 @@ add_task(async function cityWithoutRegion() {
     expected: {
       geolocationCalled: true,
       weatherParams: {
-        city: "US/CA City",
+        city: "US CA City",
         region: "08",
         country: "CA",
       },
-      suggestionCity: "US/CA City",
+      suggestionCity: "US CA City",
     },
   });
 });

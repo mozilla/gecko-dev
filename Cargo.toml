@@ -215,13 +215,13 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d8517
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
+relevancy = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
+sql-support = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
+suggest = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
+sync15 = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
+tabs = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
+viaduct = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
+webext-storage = { git = "https://github.com/mozilla/application-services", branch = "release-v133-desktop"}
 
 allocator-api2 = { path = "third_party/rust/allocator-api2" }

@@ -1810,12 +1810,16 @@ Suggestion.Weather = class extends Suggestion{
         city,
         region,
         country,
+        latitude,
+        longitude,
         score
         ) {
             super();
             this.city = city;
             this.region = region;
             this.country = country;
+            this.latitude = latitude;
+            this.longitude = longitude;
             this.score = score;
         }
 }
@@ -1923,6 +1927,8 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     FfiConverterOptionalstring.read(dataStream),
                     FfiConverterOptionalstring.read(dataStream),
                     FfiConverterOptionalstring.read(dataStream),
+                    FfiConverterOptionalf64.read(dataStream),
+                    FfiConverterOptionalf64.read(dataStream),
                     FfiConverterF64.read(dataStream)
                     );
             case 8:
@@ -2019,6 +2025,8 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             FfiConverterOptionalstring.write(dataStream, value.city);
             FfiConverterOptionalstring.write(dataStream, value.region);
             FfiConverterOptionalstring.write(dataStream, value.country);
+            FfiConverterOptionalf64.write(dataStream, value.latitude);
+            FfiConverterOptionalf64.write(dataStream, value.longitude);
             FfiConverterF64.write(dataStream, value.score);
             return;
         }
@@ -2111,6 +2119,8 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             totalSize += FfiConverterOptionalstring.computeSize(value.city);
             totalSize += FfiConverterOptionalstring.computeSize(value.region);
             totalSize += FfiConverterOptionalstring.computeSize(value.country);
+            totalSize += FfiConverterOptionalf64.computeSize(value.latitude);
+            totalSize += FfiConverterOptionalf64.computeSize(value.longitude);
             totalSize += FfiConverterF64.computeSize(value.score);
             return totalSize;
         }
@@ -2276,6 +2286,43 @@ export class FfiConverterOptionali32 extends FfiConverterArrayBuffer {
             return 1;
         }
         return 1 + FfiConverterI32.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalf64 extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterF64.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterF64.read(dataStream)
+            default:
+                throw UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterF64.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterF64.computeSize(value)
     }
 }
 

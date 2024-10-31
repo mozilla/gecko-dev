@@ -694,6 +694,8 @@ class _QuickSuggestTestUtils {
       {
         id: 1,
         name: "Waterloo",
+        latitude: "34.91814",
+        longitude: "-88.0642",
         feature_class: "P",
         feature_code: "PPL",
         country_code: "US",
@@ -705,6 +707,8 @@ class _QuickSuggestTestUtils {
       {
         id: 2,
         name: "Alabama",
+        latitude: "32.75041",
+        longitude: "-86.75026",
         feature_class: "A",
         feature_code: "ADM1",
         country_code: "US",
@@ -716,6 +720,8 @@ class _QuickSuggestTestUtils {
       {
         id: 3,
         name: "Waterloo",
+        latitude: "42.49276",
+        longitude: "-92.34296",
         feature_class: "P",
         feature_code: "PPLA2",
         country_code: "US",
@@ -727,6 +733,8 @@ class _QuickSuggestTestUtils {
       {
         id: 4,
         name: "Iowa",
+        latitude: "42.00027",
+        longitude: "-93.50049",
         feature_class: "A",
         feature_code: "ADM1",
         country_code: "US",
@@ -738,23 +746,27 @@ class _QuickSuggestTestUtils {
       // larger population.
       {
         id: 100,
-        name: "US/CA City",
+        name: "US CA City",
+        latitude: "38.06084",
+        longitude: "-97.92977",
         feature_class: "P",
         feature_code: "PPL",
         country_code: "US",
         admin1_code: "IA",
         population: 1,
-        alternate_names: ["us/ca city"],
+        alternate_names: ["us ca city"],
       },
       {
         id: 101,
-        name: "US/CA City",
+        name: "US CA City",
+        latitude: "45.50884",
+        longitude: "-73.58781",
         feature_class: "P",
         feature_code: "PPL",
         country_code: "CA",
         admin1_code: "08",
         population: 2,
-        alternate_names: ["us/ca city"],
+        alternate_names: ["us ca city"],
       },
     ];
     let [maxLen, maxWordCount] = geonames.reduce(
