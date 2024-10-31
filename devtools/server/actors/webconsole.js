@@ -909,7 +909,8 @@ class WebConsoleActor extends Actor {
             evalInfo,
             input,
             request.eager,
-            mapped
+            mapped,
+            request.evalInTracer
           );
           resolve(result);
         } catch (err) {
@@ -920,7 +921,7 @@ class WebConsoleActor extends Actor {
   }
 
   // eslint-disable-next-line complexity
-  prepareEvaluationResult(evalInfo, input, eager, mapped) {
+  prepareEvaluationResult(evalInfo, input, eager, mapped, evalInTracer) {
     const evalResult = evalInfo.result;
     const helperResult = evalInfo.helperResult;
 
@@ -1040,7 +1041,6 @@ class WebConsoleActor extends Actor {
         }
       }
     }
-
     // If a value is encountered that the devtools server doesn't support yet,
     // the console should remain functional.
     let resultGrip;
@@ -1048,7 +1048,10 @@ class WebConsoleActor extends Actor {
       try {
         const objectActor =
           this.targetActor.threadActor.getThreadLifetimeObject(result);
-        if (objectActor) {
+        if (evalInTracer) {
+          const tracerActor = this.targetActor.getTargetScopedActor("tracer");
+          resultGrip = tracerActor.createValueGrip(result);
+        } else if (objectActor) {
           resultGrip = this.targetActor.threadActor.createValueGrip(result);
         } else {
           resultGrip = this.createValueGrip(result);
