@@ -6,27 +6,47 @@
    See https://github.com/LeaVerou/cubic-bezier */
 
 .cubic-bezier-container {
-  display: flex;
+  /* These should be kept in pixels as they're used in CubicBezierWidget.js to set the canvas size */
+  --bezier-curve-width: 150px;
+  --bezier-curve-height: 330px;
+  --bezier-preview-height: 40px;
+  --bezier-tooltip-container-height:  calc(var(--bezier-curve-height) + var(--bezier-preview-height));
+  display: grid;
+  grid-template-areas:
+    "presets curve"
+    "presets preview";
+  grid-template-columns: 50% 50%;
+  grid-template-rows: var(--bezier-curve-height) var(--bezier-preview-height);
   width: 510px;
-  height: 370px;
-  flex-direction: row-reverse;
+  height: var(--bezier-tooltip-container-height);
   overflow: hidden;
   padding: 5px;
   box-sizing: border-box;
-}
 
-.cubic-bezier-container .display-wrap {
-  width: 50%;
-  height: 100%;
-  text-align: center;
-  overflow: hidden;
+  .preset-pane {
+    grid-area: presets;
+    border-inline-end: 1px solid var(--theme-splitter-color);
+    padding-inline-end: 4px; /* Visual balance for the panel-arrowcontent border on inline start */
+  }
+
+  .display-wrap {
+    grid-area: curve;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .timing-function-preview {
+    grid-area: preview;
+    align-self: center;
+    justify-self: center;
+  }
 }
 
 /* Coordinate Plane */
 
 .cubic-bezier-container .coordinate-plane {
-  width: 150px;
-  height: 370px;
+  width: var(--bezier-curve-width);
+  height: var(--bezier-tooltip-container-height);
   margin: 0 auto;
   position: relative;
 }
@@ -61,64 +81,39 @@
     transparent 1px,
     transparent 15px) no-repeat;
   background-size: 100% 100%, 100% 100%;
-  background-position: -2px 5px, -2px 5px;
   user-select: none;
-}
-
-.cubic-bezier-container canvas.curve {
-  background:
-    linear-gradient(-45deg,
-      transparent 49.7%,
-      var(--bezier-diagonal-color) 49.7%,
-      var(--bezier-diagonal-color) 50.3%,
-      transparent 50.3%) center no-repeat;
-  background-size: 100% 100%;
-  background-position: 0 0;
 }
 
 /* Timing Function Preview Widget */
 
 .cubic-bezier-container .timing-function-preview {
-  position: absolute;
-  bottom: 20px;
-  right: 45px;
-  width: 150px;
+  width: var(--bezier-curve-width);
+
+  /* Stack the line and the dot on top of each other */
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  :is(.scale, .dot) {
+    grid-column: 1 / 1;
+    grid-row: 1 / 1;
+  }
 }
 
 .cubic-bezier-container .timing-function-preview .scale {
-  position: absolute;
-  top: 6px;
-  left: 0;
-  z-index: 1;
-
-  width: 150px;
+  width: 100%;
   height: 1px;
-
   background-color: var(--timing-function-preview-scale);
 }
 
 .cubic-bezier-container .timing-function-preview .dot {
-  position: absolute;
-  top: 0;
-  left: -7px;
-  z-index: 2;
-
   width: 10px;
   height: 10px;
-
   border-radius: 50%;
   border: 2px solid var(--timing-function-preview-dot-border);
   background: var(--timing-function-line-color);
 }
 
 /* Preset Widget */
-
-.cubic-bezier-container .preset-pane {
-  width: 50%;
-  height: 100%;
-  border-right: 1px solid var(--theme-splitter-color);
-  padding-right: 4px; /* Visual balance for the panel-arrowcontent border on the left */
-}
 
 #preset-categories {
   display: flex;
@@ -129,20 +124,20 @@
   margin: 3px auto 0 auto;
 }
 
-#preset-categories .category:last-child {
-  border-right: none;
-}
-
 .cubic-bezier-container .category {
   padding: 5px 0px;
   width: 33.33%;
   text-align: center;
   text-transform: capitalize;
-  border-right: 1px solid var(--theme-splitter-color);
+  border-inline-end: 1px solid var(--theme-splitter-color);
   cursor: default;
   color: var(--theme-body-color);
   text-overflow: ellipsis;
   overflow: hidden;
+
+  &:last-child {
+    border-inline-end: none;
+  }
 }
 
 .cubic-bezier-container .category:hover {

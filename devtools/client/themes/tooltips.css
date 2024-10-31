@@ -17,6 +17,23 @@
  */
 @import url(chrome://devtools/skin/compatibility.css) layer(shared);
 
+/* The following properties values are consumed by the client for drawing in canvas
+ * (e.g. for the CubicBezierWidget).
+ * Since they're defined in :root with light-dark(), we need to register them so we'll get
+ * the actual final (rgb) color, and not the declaration with substituted variables
+ */
+ @property --bezier-diagonal-color {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+@property --timing-function-control-point-background {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
 :root {
   --theme-arrowpanel-border-radius: 3.5px;
 
