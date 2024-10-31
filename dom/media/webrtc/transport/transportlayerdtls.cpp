@@ -17,6 +17,8 @@
 #include "keyhi.h"
 #include "logging.h"
 #include "mozilla/glean/GleanMetrics.h"
+#include "mozilla/StaticPrefs_media.h"
+#include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
@@ -447,11 +449,6 @@ void TransportLayerDtls::SetMinMaxVersion(Version min_version,
   maxVersion_ = max_version;
 }
 
-// These are the named groups that we will allow.
-static const SSLNamedGroup NamedGroupPreferences[] = {
-    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
-    ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072};
-
 // TODO: make sure this is called from STS. Otherwise
 // we have thread safety issues
 bool TransportLayerDtls::Setup() {
@@ -597,10 +594,36 @@ bool TransportLayerDtls::Setup() {
     return false;
   }
 
-  rv = SSL_NamedGroupConfig(ssl_fd.get(), NamedGroupPreferences,
-                            std::size(NamedGroupPreferences));
+  unsigned int additional_shares =
+      StaticPrefs::security_tls_client_hello_send_p256_keyshare();
+
+  const SSLNamedGroup namedGroups[] = {
+      ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
+      ssl_grp_ffdhe_2048, ssl_grp_ffdhe_3072,
+      // Advertise MLKEM support but do not pro-actively send a keyshare
+
+      // Mlkem must stay the last in the list because if we don't support it
+      // the amount of supported_groups will be sent without it.
+      ssl_grp_kem_mlkem768x25519};
+
+  size_t numGroups = std::size(namedGroups);
+  if (!(StaticPrefs::security_tls_enable_kyber() &&
+        StaticPrefs::media_webrtc_enable_pq_dtls() &&
+        maxVersion_ >= Version::DTLS_1_3)) {
+    // Excluding the last group of the namedGroups.
+    numGroups -= 1;
+  }
+
+  rv = SSL_NamedGroupConfig(ssl_fd.get(), namedGroups, numGroups);
+
   if (rv != SECSuccess) {
     MOZ_MTLOG(ML_ERROR, "Couldn't set named groups");
+    return false;
+  }
+
+  if (SECSuccess !=
+      SSL_SendAdditionalKeyShares(ssl_fd.get(), additional_shares)) {
+    MOZ_MTLOG(ML_ERROR, "Couldn't set up additional key shares");
     return false;
   }
 

@@ -3797,6 +3797,14 @@ pqcrypto:
         pref: security.tls.client_hello.send_p256_keyshare
       description: >-
         Whether to send a P256 share in the client hello in QUIC and TLS.
+    dtlsWebRTCEnableMlkem:
+      type: boolean
+      setPref:
+        branch: default
+        pref: media.webrtc.enable_pq_dtls
+      description: >-
+        Whether to enable mlkem768x25519 for DTLS in WebRTC.
+
 
 dtlsWebRTC:
   description: Pref that controls the use of DTLS.
