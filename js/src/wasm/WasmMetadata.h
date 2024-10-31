@@ -114,7 +114,11 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   CustomSectionRangeVector customSectionRanges;
 
   // Bytecode range for the code section.
-  MaybeSectionRange codeSection;
+  MaybeSectionRange codeSectionRange;
+  // The bytes for the code section. Only available if we're using lazy
+  // tiering, and after we've decoded the whole module. This means
+  // it is not available while doing a 'tier-1' or 'once' compilation.
+  SharedBytes codeSectionBytecode;
 
   // The ranges of every function defined in this module. This is only
   // accessible after we've decoded the code section. This means it is not
@@ -132,11 +136,10 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // compilation.
   CallRefMetricsRangeVector funcDefCallRefs;
 
-  // The bytecode for this module. Only available for debuggable modules, or if
-  // doing lazy tiering. This is only accessible after we've decoded the whole
-  // module. This means it is not available while doing a 'tier-1' or 'once'
-  // compilation.
-  SharedBytes bytecode;
+  // The full bytecode for this module. Only available for debuggable modules.
+  // This is only accessible after we've decoded the whole module. This means
+  // it is not available while doing a 'tier-1' or 'once' compilation.
+  SharedBytes debugBytecode;
 
   // An array of hints to use when compiling a call_ref. This is only
   // accessible after we've decoded the code section. This means it is not
@@ -350,8 +353,8 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   }
 
   size_t codeSectionSize() const {
-    if (codeSection) {
-      return codeSection->size;
+    if (codeSectionRange) {
+      return codeSectionRange->size;
     }
     return 0;
   }
