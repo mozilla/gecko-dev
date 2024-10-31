@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.appcompat.app.AppCompatActivity
@@ -53,6 +54,17 @@ class CrashReporterActivity : AppCompatActivity() {
         setTheme(crashReporter.promptConfiguration.theme)
 
         super.onCreate(savedInstanceState)
+
+        onBackPressedDispatcher.addCallback(
+            owner = this,
+            onBackPressedCallback = object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    sendCrashReportIfNeeded {
+                        finish()
+                    }
+                }
+            },
+        )
 
         binding = MozacLibCrashCrashreporterBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -129,13 +141,6 @@ class CrashReporterActivity : AppCompatActivity() {
 
         crashReporter.submitReport(crash) {
             then()
-        }
-    }
-
-    @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
-    override fun onBackPressed() {
-        sendCrashReportIfNeeded {
-            finish()
         }
     }
 
