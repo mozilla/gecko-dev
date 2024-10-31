@@ -196,9 +196,12 @@ class WhyPaused extends PureComponent {
           {
             className: "pause reason",
           },
-          React.createElement(Localized, {
-            id: reason,
-          }),
+          div(
+            {},
+            React.createElement(Localized, {
+              id: reason,
+            })
+          ),
           this.renderLocation(),
           this.renderMessage(why)
         )

@@ -19,9 +19,11 @@ exports[`WhyPaused should pause reason with message 1`] = `
       <div
         className="pause reason"
       >
-        <Localized
-          id="whypaused-breakpoint"
-        />
+        <div>
+          <Localized
+            id="whypaused-breakpoint"
+          />
+        </div>
         <div
           className="message"
         >
@@ -63,9 +65,11 @@ exports[`WhyPaused should show pause reason with exception details 1`] = `
       <div
         className="pause reason"
       >
-        <Localized
-          id="whypaused-exception"
-        />
+        <div>
+          <Localized
+            id="whypaused-exception"
+          />
+        </div>
         <div
           className="message error"
         >
@@ -96,9 +100,11 @@ exports[`WhyPaused should show pause reason with exception string 1`] = `
       <div
         className="pause reason"
       >
-        <Localized
-          id="whypaused-exception"
-        />
+        <div>
+          <Localized
+            id="whypaused-exception"
+          />
+        </div>
         <div
           className="message error"
         >
