@@ -8,7 +8,6 @@ import android.Manifest
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.Espresso.pressBack
-import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import org.junit.Rule
 import org.junit.Test
@@ -234,7 +233,6 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/416052
-    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun deleteCachedFilesOnQuitTest() {
         val pocketTopArticles = getStringResource(R.string.pocket_pinned_top_articles)
