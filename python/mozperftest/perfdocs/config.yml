@@ -53,3 +53,8 @@ suites:
         description: "Performance tests running through Mochitest for WebCodecs"
         tests:
             "WebCodecs Video Encoding": ""
+
+    toolkit/components/ml/tests/browser:
+        description: "Performance tests running through Mochitest for ML Models"
+        tests:
+            "ML Test Model": ""
