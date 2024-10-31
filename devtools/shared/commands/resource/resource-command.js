@@ -942,7 +942,7 @@ class ResourceCommand {
     // Server watchers should pass an explicit "-1" value in order to prevent
     // silently ignoring an undefined browsingContextID attribute.
     if (browsingContextID == -1) {
-      return null;
+      return this.targetCommand.targetFront;
     }
 
     if (innerWindowId && this.targetCommand.isServerTargetSwitchingEnabled()) {

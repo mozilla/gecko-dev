@@ -75,9 +75,11 @@ class ParentProcessStorage {
         watcherActor.browserElement;
       await this._spawnActor(browsingContext.id, innerWindowId);
     } else if (watcherActor.sessionContext.type == "webextension") {
-      const { addonBrowsingContextID, addonInnerWindowId } =
-        watcherActor.sessionContext;
-      await this._spawnActor(addonBrowsingContextID, addonInnerWindowId);
+      // As the top level actor may change over time for the web extension,
+      // we don't have a good browsingContextID/innerWindowId to reference.
+      // Passing a `browsingContext` set to -1 will be interpreted by the frontend as a resource
+      // bound to the current top level target and will be automatically assigned to it.
+      await this._spawnActor(-1, null);
     } else if (watcherActor.sessionContext.type == "all") {
       // Note that there should be only one such target in the browser toolbox.
       // The Parent Process Target Actor.
