@@ -1059,18 +1059,12 @@ AboutReader.prototype = {
     if (newFontType === "sans-serif") {
       this._doc.documentElement.style.setProperty(
         "--font-family",
-        "Helvetica, Arial, sans-serif"
+        "sans-serif"
       );
     } else if (newFontType === "serif") {
-      this._doc.documentElement.style.setProperty(
-        "--font-family",
-        'Georgia, "Times New Roman", serif'
-      );
+      this._doc.documentElement.style.setProperty("--font-family", "serif");
     } else if (newFontType === "monospace") {
-      this._doc.documentElement.style.setProperty(
-        "--font-family",
-        '"Courier New", Courier, monospace'
-      );
+      this._doc.documentElement.style.setProperty("--font-family", "monospace");
     } else {
       this._doc.documentElement.style.setProperty(
         "--font-family",
