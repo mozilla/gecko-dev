@@ -17,6 +17,7 @@ def add_index_route(config, tasks):
     index_base = f"index.gecko.v2.{project}.latest.test.os-integration"
     for task in tasks:
         routing_key = f"{index_base}.{task['test-platform']}.{task['test-name']}"
+        routing_key = routing_key.replace("/", "-")
         if task["chunks"] > 1:
             routing_key = f"{routing_key}-{task['this-chunk']}"
 
