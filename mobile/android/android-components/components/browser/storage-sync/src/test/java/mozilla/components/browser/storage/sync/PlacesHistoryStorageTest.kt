@@ -640,7 +640,7 @@ class PlacesHistoryStorageTest {
         workManager.enqueue(request).result.get()
         testDriver?.setPeriodDelayMet(request.id)
 
-        val workInfo = workManager.getWorkInfoById(request.id).get()
+        val workInfo = workManager.getWorkInfoById(request.id).get()!!
         assertThat(workInfo.state, `is`(WorkInfo.State.ENQUEUED))
     }
 
