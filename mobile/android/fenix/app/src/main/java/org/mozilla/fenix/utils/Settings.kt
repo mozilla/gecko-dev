@@ -1951,6 +1951,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if boosting AMP/wiki suggestions is enabled.
+     */
+    val boostAmpWikiSuggestions: Boolean
+        get() = FxNimbus.features.fxSuggest.value().boostAmpWiki
+
+    /**
      * Indicates first time engaging with signup
      */
     var isFirstTimeEngagingWithSignup: Boolean by booleanPreference(

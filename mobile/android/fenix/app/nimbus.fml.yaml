@@ -358,10 +358,16 @@ features:
           additional Search settings.
         type: Boolean
         default: false
+      boost-amp-wiki:
+        description: >
+          The feature boost wiki and AMP suggestions to the top of its group.
+        type: Boolean
+        default: false
     defaults:
       - channel: developer
         value:
           enabled: true
+          boost-amp-wiki: true
       - channel: nightly
         value:
           enabled: true
