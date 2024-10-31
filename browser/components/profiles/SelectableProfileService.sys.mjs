@@ -65,7 +65,7 @@ async function updateTaskbar(iconUrl, profileName, strokeColor, fillColor) {
     } else if ("nsIWinTaskbar" in Ci) {
       lazy.EveryWindow.registerCallback(
         "profiles",
-        (win) => {
+        win => {
           let iconController = Cc["@mozilla.org/windows-taskbar;1"]
             .getService(Ci.nsIWinTaskbar)
             .getOverlayIconController(win.docShell);
@@ -336,7 +336,7 @@ class SelectableProfileServiceClass {
   initWindowTracker() {
     lazy.EveryWindow.registerCallback(
       this.#everyWindowCallbackId,
-      (window) => {
+      window => {
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -344,7 +344,7 @@ class SelectableProfileServiceClass {
 
         window.addEventListener("activate", this);
       },
-      (window) => {
+      window => {
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -713,7 +713,7 @@ class SelectableProfileServiceClass {
     ];
 
     const prefsJsContent = sharedPrefs.map(
-      (pref) =>
+      pref =>
         `user_pref("${pref.name}", ${
           pref.type === "string" ? `"${pref.value}"` : `${pref.value}`
         });`
@@ -757,7 +757,7 @@ class SelectableProfileServiceClass {
    */
   async #createProfile(existingProfilePath) {
     let nextProfileNumber =
-      1 + Math.max(0, ...(await this.getAllProfiles()).map((p) => p.id));
+      1 + Math.max(0, ...(await this.getAllProfiles()).map(p => p.id));
     let [defaultName] = lazy.profilesLocalization.formatMessagesSync([
       { id: "default-profile-name", args: { number: nextProfileNumber } },
     ]);
@@ -833,7 +833,7 @@ class SelectableProfileServiceClass {
     // Verify all fields are present.
     let keys = ["avatar", "name", "path", "themeBg", "themeFg", "themeL10nId"];
     let missing = [];
-    keys.forEach((key) => {
+    keys.forEach(key => {
       if (!(key in profileData)) {
         missing.push(key);
       }
@@ -911,7 +911,7 @@ class SelectableProfileServiceClass {
 
     await this.#connection.executeBeforeShutdown(
       "SelectableProfileService: deleteCurrentProfile",
-      (db) =>
+      db =>
         db.execute("DELETE FROM Profiles WHERE id = :id;", {
           id: this.currentProfile.id,
         })
@@ -947,7 +947,7 @@ class SelectableProfileServiceClass {
 
     return (
       await this.#connection.executeCached("SELECT * FROM Profiles;")
-    ).map((row) => {
+    ).map(row => {
       return new SelectableProfile(row, this);
     });
   }
@@ -1040,7 +1040,7 @@ class SelectableProfileServiceClass {
   async getAllPrefs() {
     return (
       await this.#connection.executeCached("SELECT * FROM SharedPrefs;")
-    ).map((row) => {
+    ).map(row => {
       let value = this.getPrefValueFromRow(row);
       return {
         name: row.getResultByName("name"),
