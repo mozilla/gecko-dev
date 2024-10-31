@@ -676,7 +676,12 @@ export class DiscoveryStreamFeed {
     const pocketConfig = this.store.getState().Prefs.values?.pocketConfig || {};
     const onboardingExperience =
       this.isBff && pocketConfig.onboardingExperience;
-    const { spocTopsitesPlacementEnabled } = pocketConfig;
+
+    // The Unified Ads API does not support the spoc topsite placement.
+    const unifiedAdsEnabled =
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
+    const spocTopsitesPlacementEnabled =
+      pocketConfig.spocTopsitesPlacementEnabled && !unifiedAdsEnabled;
 
     const layoutExperiment =
       this.store.getState().Prefs.values[PREF_LAYOUT_EXPERIMENT_A] ||
@@ -1109,7 +1114,7 @@ export class DiscoveryStreamFeed {
       }
 
       // We can filter out the topsite placement from the fetch.
-      if (!useTopsitesPlacement && !unifiedAdsEnabled) {
+      if (!useTopsitesPlacement || unifiedAdsEnabled) {
         placements = placements.filter(
           placement => placement.name !== "sponsored-topsites"
         );
