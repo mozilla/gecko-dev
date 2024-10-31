@@ -10,6 +10,7 @@
 #include "mozilla/DebugOnly.h"
 
 #include "gc/AllocKind.h"
+#include "gc/Memory.h"
 #include "gc/Pretenuring.h"
 #include "js/HeapAPI.h"
 #include "js/TypeDecls.h"
@@ -535,7 +536,7 @@ class ArenaChunk : public ArenaChunkBase {
   // system call for each arena but is only used during OOM.
   void decommitFreeArenasWithoutUnlocking(const AutoLockGC& lock);
 
-  static void* allocate(GCRuntime* gc);
+  static void* allocate(GCRuntime* gc, StallAndRetry stallAndRetry);
   static ArenaChunk* emplace(void* ptr, GCRuntime* gc, bool allMemoryCommitted);
 
   /* Unlink and return the freeArenasHead. */

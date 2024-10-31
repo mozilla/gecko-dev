@@ -13,6 +13,7 @@
 
 #include "ds/SinglyLinkedList.h"
 #include "gc/AllocKind.h"
+#include "gc/Memory.h"
 #include "js/GCAPI.h"
 #include "js/HeapAPI.h"
 #include "js/TypeDecls.h"
@@ -387,7 +388,8 @@ class ArenaLists {
   void initBackgroundSweep(AllocKind thingKind);
 
   void* refillFreeListAndAllocate(AllocKind thingKind,
-                                  ShouldCheckThresholds checkThresholds);
+                                  ShouldCheckThresholds checkThresholds,
+                                  StallAndRetry stallAndRetry);
 
   friend class BackgroundUnmarkTask;
   friend class GCRuntime;

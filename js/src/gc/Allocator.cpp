@@ -347,22 +347,25 @@ void* GCRuntime::refillFreeList(JS::Zone* zone, AllocKind thingKind) {
   MOZ_ASSERT(!JS::RuntimeHeapIsBusy(), "allocating while under GC");
 
   return zone->arenas.refillFreeListAndAllocate(
-      thingKind, ShouldCheckThresholds::CheckThresholds);
+      thingKind, ShouldCheckThresholds::CheckThresholds, StallAndRetry::No);
 }
 
 /* static */
 void* GCRuntime::refillFreeListInGC(Zone* zone, AllocKind thingKind) {
-  // Called by compacting GC to refill a free list while we are in a GC.
+  // Called when tenuring nursery cells and during compacting GC.
   MOZ_ASSERT(JS::RuntimeHeapIsCollecting());
   MOZ_ASSERT_IF(!JS::RuntimeHeapIsMinorCollecting(),
                 !zone->runtimeFromMainThread()->gc.isBackgroundSweeping());
 
+  // Since this needs to succeed we pass StallAndRetry::Yes.
   return zone->arenas.refillFreeListAndAllocate(
-      thingKind, ShouldCheckThresholds::DontCheckThresholds);
+      thingKind, ShouldCheckThresholds::DontCheckThresholds,
+      StallAndRetry::Yes);
 }
 
 void* ArenaLists::refillFreeListAndAllocate(
-    AllocKind thingKind, ShouldCheckThresholds checkThresholds) {
+    AllocKind thingKind, ShouldCheckThresholds checkThresholds,
+    StallAndRetry stallAndRetry) {
   MOZ_ASSERT(freeLists().isEmpty(thingKind));
 
   JSRuntime* rt = runtimeFromAnyThread();
@@ -388,7 +391,7 @@ void* ArenaLists::refillFreeListAndAllocate(
     maybeLock.emplace(rt);
   }
 
-  ArenaChunk* chunk = rt->gc.pickChunk(maybeLock.ref());
+  ArenaChunk* chunk = rt->gc.pickChunk(stallAndRetry, maybeLock.ref());
   if (!chunk) {
     return nullptr;
   }
@@ -549,8 +552,9 @@ Arena* ArenaChunk::fetchNextFreeArena(GCRuntime* gc) {
 
 // ///////////  System -> ArenaChunk Allocator  ////////////////////////////////
 
-ArenaChunk* GCRuntime::takeOrAllocChunk(AutoLockGCBgAlloc& lock) {
-  ArenaChunk* chunk = getOrAllocChunk(lock);
+ArenaChunk* GCRuntime::takeOrAllocChunk(StallAndRetry stallAndRetry,
+                                        AutoLockGCBgAlloc& lock) {
+  ArenaChunk* chunk = getOrAllocChunk(stallAndRetry, lock);
   if (!chunk) {
     return nullptr;
   }
@@ -559,7 +563,8 @@ ArenaChunk* GCRuntime::takeOrAllocChunk(AutoLockGCBgAlloc& lock) {
   return chunk;
 }
 
-ArenaChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
+ArenaChunk* GCRuntime::getOrAllocChunk(StallAndRetry stallAndRetry,
+                                       AutoLockGCBgAlloc& lock) {
   ArenaChunk* chunk;
   if (!emptyChunks(lock).empty()) {
     chunk = emptyChunks(lock).head();
@@ -569,7 +574,7 @@ ArenaChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
     chunk->initBaseForArenaChunk(rt);
     MOZ_ASSERT(chunk->unused());
   } else {
-    void* ptr = ArenaChunk::allocate(this);
+    void* ptr = ArenaChunk::allocate(this, stallAndRetry);
     if (!ptr) {
       return nullptr;
     }
@@ -599,12 +604,13 @@ void GCRuntime::recycleChunk(ArenaChunk* chunk, const AutoLockGC& lock) {
   emptyChunks(lock).push(chunk);
 }
 
-ArenaChunk* GCRuntime::pickChunk(AutoLockGCBgAlloc& lock) {
+ArenaChunk* GCRuntime::pickChunk(StallAndRetry stallAndRetry,
+                                 AutoLockGCBgAlloc& lock) {
   if (availableChunks(lock).count()) {
     return availableChunks(lock).head();
   }
 
-  ArenaChunk* chunk = getOrAllocChunk(lock);
+  ArenaChunk* chunk = getOrAllocChunk(stallAndRetry, lock);
   if (!chunk) {
     return nullptr;
   }
@@ -633,7 +639,7 @@ void BackgroundAllocTask::run(AutoLockHelperThreadState& lock) {
     ArenaChunk* chunk;
     {
       AutoUnlockGC unlock(gcLock);
-      void* ptr = ArenaChunk::allocate(gc);
+      void* ptr = ArenaChunk::allocate(gc, StallAndRetry::No);
       if (!ptr) {
         break;
       }
@@ -644,8 +650,8 @@ void BackgroundAllocTask::run(AutoLockHelperThreadState& lock) {
 }
 
 /* static */
-void* ArenaChunk::allocate(GCRuntime* gc) {
-  void* chunk = MapAlignedPages(ChunkSize, ChunkSize);
+void* ArenaChunk::allocate(GCRuntime* gc, StallAndRetry stallAndRetry) {
+  void* chunk = MapAlignedPages(ChunkSize, ChunkSize, stallAndRetry);
   if (!chunk) {
     return nullptr;
   }
