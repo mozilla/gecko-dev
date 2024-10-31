@@ -1049,6 +1049,15 @@ tab-group {
   }
 }
 
+/* For #vertical-tabs-newtab-button, shown when tabs are overflowing, the gap
+ * with the other items comes from the grid-gap on tabbrowser-tabs which is a
+ * flex container. #tabs-newtab-button is a child of the arrowscrollbox where
+ * we don't want a gap (between tabs), so we have to add some margin.
+ */
+#tabbrowser-arrowscrollbox[orient="vertical"] > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button {
+  margin-block: var(--tab-block-margin);
+}
+
 #tabbrowser-tabs[expanded] {
   > #vertical-tabs-newtab-button {
     width: auto;
