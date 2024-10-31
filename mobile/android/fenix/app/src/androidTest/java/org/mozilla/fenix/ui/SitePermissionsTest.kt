@@ -8,7 +8,6 @@ import android.Manifest
 import android.content.Context
 import android.hardware.camera2.CameraManager
 import android.media.AudioManager
-import android.os.Build
 import androidx.core.net.toUri
 import androidx.test.rule.GrantPermissionRule
 import mozilla.components.support.ktx.util.PromptAbuserDetector
@@ -16,18 +15,13 @@ import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
-import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
-import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MockLocationUpdatesRule
 import org.mozilla.fenix.helpers.RetryTestRule
-import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.appContext
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
-import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
 /**
@@ -316,24 +310,6 @@ class SitePermissionsTest : TestSetup() {
             verifyLocationPermissionPrompt(testPageSubstring)
         }.clickPagePermissionButton(false) {
             verifyPageContent("User denied geolocation prompt")
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2121537
-    @SmokeTest
-    @Test
-    fun fileUploadPermissionTest() {
-        val testPage = TestAssetHelper.getHTMLControlsFormAsset(mockWebServer)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(testPage.url) {
-            clickPageObject(itemWithResId("upload_file"))
-            grantSystemPermission()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                assertExternalAppOpens("com.google.android.documentsui")
-            } else {
-                assertExternalAppOpens("com.android.documentsui")
-            }
         }
     }
 }

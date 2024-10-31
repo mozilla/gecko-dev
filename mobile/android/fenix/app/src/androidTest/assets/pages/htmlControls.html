@@ -36,6 +36,7 @@
 <div id="displayOption"></div>
 
 </br>
+<div>
 <form method="post" enctype="multipart/form-data">
     <div>
         <label>Choose file to upload</label>
@@ -43,6 +44,25 @@
         <input type="file" id="upload_file"/>
     </div>
 </form>
+</div>
+</br>
+<div>
+<form method="post" enctype="multipart/form-data">
+    <div>
+        <label for="photosUpload">Choose image or video file to upload:</label>
+        <input type="file" id="photosUpload" accept="image/*,video/*"/>
+    </div>
+</form>
+</div>
+</br>
+<div>
+    <form method="post" enctype="multipart/form-data">
+        <div>
+            <label for="audioFileUpload">Choose audio file to upload:</label>
+            <input type="file" id="audioFileUpload" accept="audio/*"/>
+        </div>
+    </form>
+</div>
 
 <script>
     function printOption() {
