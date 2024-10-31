@@ -13,7 +13,7 @@ TEST(IntlNumberingSystem, GetName)
   auto numbers_en = NumberingSystem::TryCreate("en").unwrap();
   ASSERT_EQ(numbers_en->GetName().unwrap(), MakeStringSpan("latn"));
 
-  auto numbers_ar = NumberingSystem::TryCreate("ar").unwrap();
+  auto numbers_ar = NumberingSystem::TryCreate("ar-EG").unwrap();
   ASSERT_EQ(numbers_ar->GetName().unwrap(), MakeStringSpan("arab"));
 
   auto numbers_ff_Adlm = NumberingSystem::TryCreate("ff-Adlm").unwrap();

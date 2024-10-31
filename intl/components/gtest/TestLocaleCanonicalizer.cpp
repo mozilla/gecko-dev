@@ -42,12 +42,17 @@ TEST(IntlLocaleCanonicalizer, CanonicalizeICULevel1)
   // Removes the .utf8 ends
   CheckLocaleResult(ascii, "ar-MA.utf8", "ar_MA");
 
-  // Allows valid ascii inputs
-  CheckLocaleResult(
-      ascii,
-      "abcdefghijlkmnopqrstuvwxyzABCDEFGHIJLKMNOPQRSTUVWXYZ-_.0123456789",
-      "abcdefghijlkmnopqrstuvwxyzabcdefghijlkmnopqrstuvwxyz__");
-  CheckLocaleResult(ascii, "exotic ascii:", "exotic ascii:");
+  // Rejects non parseable ASCII inputs.
+  ASSERT_EQ(
+      LocaleCanonicalizer::CanonicalizeICULevel1(
+          "abcdefghijlkmnopqrstuvwxyzABCDEFGHIJLKMNOPQRSTUVWXYZ-_.0123456789",
+          ascii)
+          .unwrapErr(),
+      ICUError::InternalError);
+  ASSERT_EQ(
+      LocaleCanonicalizer::CanonicalizeICULevel1("exotic ascii:", ascii)
+          .unwrapErr(),
+      ICUError::InternalError);
 
   // Does not accept non-ascii inputs.
   ASSERT_EQ(LocaleCanonicalizer::CanonicalizeICULevel1("👍", ascii).unwrapErr(),

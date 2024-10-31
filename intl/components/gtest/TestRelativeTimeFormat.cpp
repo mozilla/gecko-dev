@@ -38,7 +38,7 @@ TEST(IntlRelativeTimeFormat, Basic)
       rtf->format(1.2, RelativeTimeFormat::FormatUnit::Day, buf16).isOk());
   ASSERT_EQ(buf16.get_string_view(), u"dentro de 1,2 días");
 
-  res = RelativeTimeFormat::TryCreate("ar", options);
+  res = RelativeTimeFormat::TryCreate("ar-EG", options);
   ASSERT_TRUE(res.isOk());
   rtf = res.unwrap();
   buf8.clear();

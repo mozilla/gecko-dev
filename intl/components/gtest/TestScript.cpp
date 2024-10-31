@@ -18,8 +18,8 @@ TEST(IntlScript, GetExtensions)
     ASSERT_EQ(Script(extensions[0]), Script::COMMON);
   }
 
-  // 0x0300..0x0341 are Inherited.
-  for (char32_t ch = 0x300; ch < 0x0341; ch++) {
+  // 0x0332..0x0341 are Inherited.
+  for (char32_t ch = 0x332; ch < 0x0342; ch++) {
     ASSERT_TRUE(UnicodeProperties::GetExtensions(ch, extensions).isOk());
     ASSERT_EQ(extensions.length(), 1u);
     ASSERT_EQ(Script(extensions[0]), Script::INHERITED);
