@@ -272,7 +272,7 @@ Result<PrincipalMetadata, nsresult> GetInfoFromWindow(
   nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(aWindow);
   QM_TRY(OkIf(sop), Err(NS_ERROR_FAILURE));
 
-  nsCOMPtr<nsIPrincipal> principal = sop->GetPrincipal();
+  nsCOMPtr<nsIPrincipal> principal = sop->GetEffectiveStoragePrincipal();
   QM_TRY(OkIf(principal), Err(NS_ERROR_FAILURE));
 
   return GetInfoFromPrincipal(principal);
@@ -311,7 +311,7 @@ Result<nsAutoCString, nsresult> GetOriginFromWindow(
   nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(aWindow);
   QM_TRY(OkIf(sop), Err(NS_ERROR_FAILURE));
 
-  nsCOMPtr<nsIPrincipal> principal = sop->GetPrincipal();
+  nsCOMPtr<nsIPrincipal> principal = sop->GetEffectiveStoragePrincipal();
   QM_TRY(OkIf(principal), Err(NS_ERROR_FAILURE));
 
   QM_TRY_RETURN(GetOriginFromPrincipal(principal));
