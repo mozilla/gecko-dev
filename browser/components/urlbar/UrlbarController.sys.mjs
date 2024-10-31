@@ -322,21 +322,18 @@ export class UrlbarController {
         if (executeAction) {
           if (this.view.isOpen) {
             this.view.close();
-          } else if (lazy.UrlbarPrefs.get("focusContentDocumentOnEsc")) {
-            if (
-              this.browserWindow.gBrowser.userTypedValue ||
-              (this.input.getAttribute("pageproxystate") == "invalid" &&
-                this.input.value != "") ||
-              this.input.searchMode
-            ) {
-              this.input.handleRevert({ escapeSearchMode: true });
-            } else {
-              this.browserWindow.gBrowser.selectedBrowser.focus();
-            }
+          } else if (
+            lazy.UrlbarPrefs.get("focusContentDocumentOnEsc") &&
+            !this.input.searchMode &&
+            (this.input.getAttribute("pageproxystate") == "valid" ||
+              (this.input.value == "" &&
+                this.browserWindow.isBlankPageURL(
+                  this.browserWindow.gBrowser.currentURI.spec
+                )))
+          ) {
+            this.browserWindow.gBrowser.selectedBrowser.focus();
           } else {
-            this.input.handleRevert({
-              escapeSearchMode: true,
-            });
+            this.input.handleRevert({ escapeSearchMode: true });
           }
         }
         event.preventDefault();
