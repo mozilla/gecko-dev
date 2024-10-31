@@ -39,6 +39,16 @@ add_task(async function () {
   type(dbg, "66");
   pressKey(dbg, "Enter");
   await assertLine(dbg, 66);
+
+  info("Add breakpoint on line 66 using keyboard shortcut");
+  pressKey(dbg, "toggleBreakpoint");
+  await waitForDispatch(dbg.store, "SET_BREAKPOINT");
+  await assertBreakpoint(dbg, 66);
+
+  info("Remove breakpoint on line 66 using keyboard shortcut");
+  pressKey(dbg, "toggleBreakpoint");
+  await waitForBreakpointCount(dbg, 0);
+  await assertNoBreakpoint(dbg, 66);
 });
 
 function assertEnabled(dbg) {

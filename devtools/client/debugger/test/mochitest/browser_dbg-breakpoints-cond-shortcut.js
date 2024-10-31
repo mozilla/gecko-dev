@@ -18,7 +18,7 @@ add_task(async function () {
   info(
     "toggle conditional panel with shortcut: no breakpoints, default cursorPosition"
   );
-  await pressKey(dbg, "toggleCondPanel");
+  pressKey(dbg, "toggleCondPanel");
   await waitForConditionalPanelFocus(dbg);
 
   ok(
@@ -36,8 +36,7 @@ add_task(async function () {
   info(
     "toggle conditional panel with shortcut: cursor on line 32, no breakpoints"
   );
-  // codemirror editor offset: cursorPosition will be line + 1, column + 1
-  setEditorCursorAt(dbg, 31, 1);
+  await selectSource(dbg, "long.js", 32, 2);
   pressKey(dbg, "toggleCondPanel");
 
   await waitForConditionalPanelFocus(dbg);
@@ -54,8 +53,8 @@ add_task(async function () {
   pressKey(dbg, "Escape");
 
   info("add active column breakpoint on line 32 and set cursorPosition");
-  await enableFirstBreakpoint(dbg);
-  setEditorCursorAt(dbg, 31, 1);
+  await selectSource(dbg, "long.js", 32, 2);
+  await enableFirstColumnBreakpoint(dbg);
   info(
     "toggle conditional panel with shortcut and add condition to first breakpoint"
   );
@@ -69,9 +68,8 @@ add_task(async function () {
   );
 
   info("set cursor at second breakpoint position and activate breakpoint");
-  setEditorCursorAt(dbg, 31, 25);
-
-  await enableSecondBreakpoint(dbg);
+  await selectSource(dbg, "long.js", 32, 26);
+  await enableSecondColumnBreakpoint(dbg);
   info(
     "toggle conditional panel with shortcut and add condition to second breakpoint"
   );
@@ -87,7 +85,7 @@ add_task(async function () {
   info(
     "set cursor position near first breakpoint, toggle conditional panel and edit breakpoint"
   );
-  setEditorCursorAt(dbg, 31, 7);
+  await selectSource(dbg, "long.js", 32, 8);
   info("toggle conditional panel and edit condition using shortcut");
   await setConditionalBreakpointWithKeyboardShortcut(dbg, "2");
   ok(
@@ -101,7 +99,7 @@ add_task(async function () {
   info(
     "set cursor position near second breakpoint, toggle conditional panel and edit breakpoint"
   );
-  setEditorCursorAt(dbg, 31, 21);
+  await selectSource(dbg, "long.js", 32, 22);
   info("toggle conditional panel and edit condition using shortcut");
   await setConditionalBreakpointWithKeyboardShortcut(dbg, "3");
   ok(
@@ -114,7 +112,7 @@ add_task(async function () {
 
   info("toggle log panel with shortcut: cursor on line 33");
 
-  setEditorCursorAt(dbg, 33, 1);
+  await selectSource(dbg, "long.js", 34, 2);
   await setLogBreakpointWithKeyboardShortcut(dbg, "3");
   ok(
     !!waitForLog(dbg, "3"),
@@ -126,8 +124,7 @@ add_task(async function () {
 });
 
 // from browser_dbg-breakpoints-columns.js
-async function enableFirstBreakpoint(dbg) {
-  setEditorCursorAt(dbg, 32, 0);
+async function enableFirstColumnBreakpoint(dbg) {
   await addBreakpoint(dbg, "long.js", 32);
   const bpMarkers = await waitForAllElements(dbg, "columnBreakpoints");
 
@@ -136,7 +133,7 @@ async function enableFirstBreakpoint(dbg) {
   assertClass(bpMarkers[1], "active", false);
 }
 
-async function enableSecondBreakpoint(dbg) {
+async function enableSecondColumnBreakpoint(dbg) {
   let bpMarkers = await waitForAllElements(dbg, "columnBreakpoints");
 
   bpMarkers[1].click();

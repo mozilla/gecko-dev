@@ -44,6 +44,7 @@ function generateModal(propOverrides, renderType = "shallow") {
     openedTabUrls: [],
     selectedLocation: { source: { id: "foo" } },
     selectSpecificLocation: jest.fn(),
+    updateCursorPosition: jest.fn(),
     setQuickOpenQuery: jest.fn(),
     highlightLineRange: jest.fn(),
     clearHighlightLineRange: jest.fn(),
@@ -450,7 +451,7 @@ describe("QuickOpenModal", () => {
       };
       wrapper.find("Connect(SearchInput)").simulate("keydown", event);
       expect(props.selectSpecificLocation).toHaveBeenCalledWith({
-        column: undefined,
+        column: 0,
         line: 0,
         source: { id },
         sourceActorId: undefined,
@@ -479,7 +480,7 @@ describe("QuickOpenModal", () => {
       };
       wrapper.find("Connect(SearchInput)").simulate("keydown", event);
       expect(props.selectSpecificLocation).toHaveBeenCalledWith({
-        column: undefined,
+        column: 0,
         line: 0,
         source: { id },
         sourceActorId: undefined,

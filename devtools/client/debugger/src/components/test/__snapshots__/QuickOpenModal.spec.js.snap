@@ -56,6 +56,7 @@ exports[`QuickOpenModal Basic render with mount & searchType = functions 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -200,6 +201,7 @@ exports[`QuickOpenModal Basic render with mount & searchType = variables 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -355,6 +357,7 @@ exports[`QuickOpenModal Basic render with mount 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -569,6 +572,7 @@ exports[`QuickOpenModal Simple goto search query = :abc & searchType = goto 1`] 
   shortcutsModalEnabled={false}
   thread="FakeThread"
   toggleShortcutsModal={[MockFunction]}
+  updateCursorPosition={[MockFunction]}
 >
   <Modal
     handleClose={[Function]}
@@ -712,6 +716,7 @@ exports[`QuickOpenModal showErrorEmoji false when count + query 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -868,6 +873,7 @@ exports[`QuickOpenModal showErrorEmoji false when goto numeric ':2222' 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -1012,6 +1018,7 @@ exports[`QuickOpenModal showErrorEmoji false when no query 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -1167,6 +1174,7 @@ exports[`QuickOpenModal showErrorEmoji true when goto not numeric ':22k22' 1`] =
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -1311,6 +1319,7 @@ exports[`QuickOpenModal showErrorEmoji true when no count + query 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -1500,6 +1509,7 @@ exports[`QuickOpenModal updateResults on enable 1`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}
@@ -1657,6 +1667,7 @@ exports[`QuickOpenModal updateResults on enable 2`] = `
     shortcutsModalEnabled={false}
     thread="FakeThread"
     toggleShortcutsModal={[MockFunction]}
+    updateCursorPosition={[MockFunction]}
   >
     <Modal
       handleClose={[Function]}

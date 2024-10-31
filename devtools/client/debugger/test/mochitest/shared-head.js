@@ -1406,6 +1406,7 @@ const keyMappings = {
   // test conditional panel shortcut
   toggleCondPanel: { code: "b", modifiers: cmdShift },
   toggleLogPanel: { code: "y", modifiers: cmdShift },
+  toggleBreakpoint: { code: "b", modifiers: cmdOrCtrl },
   inspector: { code: "c", modifiers: shiftOrAlt },
   quickOpen: { code: "p", modifiers: cmdOrCtrl },
   quickOpenFunc: { code: "o", modifiers: cmdShift },

@@ -96,7 +96,7 @@ add_task(async function () {
 
   info("Testing goto line:column");
   assertLine(dbg, 0);
-  assertColumn(dbg, null);
+  assertColumn(dbg, 1);
   await quickOpen(dbg, ":7:12");
   await waitForResults(dbg, [undefined, undefined]);
   pressKey(dbg, "Enter");

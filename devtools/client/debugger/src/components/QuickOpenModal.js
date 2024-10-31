@@ -84,6 +84,7 @@ export class QuickOpenModal extends Component {
       toggleShortcutsModal: PropTypes.func.isRequired,
       projectDirectoryRoot: PropTypes.string,
       getFunctionSymbols: PropTypes.func.isRequired,
+      updateCursorPosition: PropTypes.func.isRequired,
     };
   }
 
@@ -301,16 +302,17 @@ export class QuickOpenModal extends Component {
   };
 
   gotoLocation = location => {
-    const { selectSpecificLocation, selectedLocation } = this.props;
+    const { selectSpecificLocation, selectedLocation, updateCursorPosition } =
+      this.props;
 
     if (location != null) {
-      selectSpecificLocation(
-        createLocation({
-          source: location.source || selectedLocation?.source,
-          line: location.line,
-          column: location.column,
-        })
-      );
+      const sourceLocation = createLocation({
+        source: location.source || selectedLocation?.source,
+        line: location.line,
+        column: location.column || 0,
+      });
+      selectSpecificLocation(sourceLocation);
+      updateCursorPosition(sourceLocation);
       this.closeModal();
     }
   };
@@ -505,4 +507,5 @@ export default connect(mapStateToProps, {
   clearHighlightLineRange: actions.clearHighlightLineRange,
   closeQuickOpen: actions.closeQuickOpen,
   getFunctionSymbols: actions.getFunctionSymbols,
+  updateCursorPosition: actions.updateCursorPosition,
 })(QuickOpenModal);
