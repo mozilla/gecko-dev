@@ -1,0 +1,304 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+ie{
+    AuxExemplarCharacters{"[àăâåäãā æ ç èĕêëē ìĭîïī {lʼ} ñ {nʼ} òŏôöøō œ ùŭûüū ýÿ]"}
+    ExemplarCharacters{"[aá b c d eé f g h ií j k l m n oó p q r s t uú v w x y z]"}
+    ExemplarCharactersNumbers{"[\\- ‑ , ' % ‰ + 0 1 2 3 4 5 6 7 8 9]"}
+    ExemplarCharactersPunctuation{"[\\- ‐‑ – — , ; \\: ! ? . … '‘’ \u0022“”„ « » ( ) \\[ \\] § @ * / \\& † ‡]"}
+    NumberElements{
+        latn{
+            patterns{
+                currencyFormat{"¤ #,##0.00;¤ -#,##0.00"}
+            }
+            symbols{
+                decimal{","}
+                group{" "}
+            }
+        }
+        minimalPairs{
+            ordinal{
+                other{"Li {0}-im edition"}
+            }
+            plural{
+                other{"{0} dies"}
+            }
+        }
+        minimumGroupingDigits{"2"}
+    }
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "ante midí",
+                "pos midí",
+            }
+            AmPmMarkersAbbr{
+                "a.m.",
+                "p.m.",
+            }
+            DateTimePatterns{
+                "HH:mm:ss zzzz",
+                "HH:mm:ss z",
+                "HH:mm:ss",
+                "HH:mm",
+                "EEEE d MMMM y",
+                "d MMMM y",
+                "d MMM y",
+                "d.M.yy",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            DateTimePatterns%atTime{
+                "{1} 'ye' {0}",
+                "{1} 'ye' {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            availableFormats{
+                Ed{"E d"}
+                Gy{"y G"}
+                GyMMM{"LLL y G"}
+                GyMMMEd{"E d MMM y G"}
+                GyMMMd{"d MMM y G"}
+                GyMd{"d.M.y G"}
+                MEd{"E d.M"}
+                MMMEd{"E d MMM"}
+                MMMMW{
+                    other{"W-'im' 'semane' 'de' MMMM"}
+                }
+                MMMMd{"d MMMM"}
+                MMMd{"d MMM"}
+                Md{"d.M"}
+                d{"d."}
+                yM{"M.y"}
+                yMEd{"E d.M.y"}
+                yMMM{"MMM y"}
+                yMMMEd{"EEEE d MMM y"}
+                yMMMM{"LLLL y"}
+                yMMMd{"d MMM y"}
+                yMd{"d.M.y"}
+                yQQQ{"QQQ y"}
+                yQQQQ{"QQQQ y"}
+                yw{
+                    other{"w-'im' 'semane' 'de' Y"}
+                }
+            }
+            dayNames{
+                format{
+                    abbreviated{
+                        "sol.",
+                        "lun.",
+                        "mar.",
+                        "mer.",
+                        "jov.",
+                        "ven.",
+                        "sat.",
+                    }
+                    short{
+                        "So",
+                        "Lu",
+                        "Ma",
+                        "Me",
+                        "Jo",
+                        "Ve",
+                        "Sa",
+                    }
+                    wide{
+                        "soledí",
+                        "lunedí",
+                        "mardí",
+                        "mercurdí",
+                        "jovedí",
+                        "venerdí",
+                        "saturdí",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "S",
+                        "L",
+                        "M",
+                        "M",
+                        "J",
+                        "V",
+                        "S",
+                    }
+                }
+            }
+            dayPeriod{
+                stand-alone{
+                    wide{
+                        am{"ante midí"}
+                        pm{"pos midí"}
+                    }
+                }
+            }
+            eras{
+                abbreviated{
+                    "a.C.",
+                    "e.C.",
+                }
+                abbreviated%variant{
+                    "a.e.c.",
+                    "e.c.",
+                }
+                wide{
+                    "ante Crist",
+                    "era Cristan",
+                }
+                wide%variant{
+                    "ante era comun",
+                    "era comun",
+                }
+            }
+            intervalFormats{
+                H{
+                    H{"H – H 'h'."}
+                }
+                M{
+                    M{"M – M"}
+                }
+                d{
+                    d{"d. – d."}
+                }
+                fallback{"{0} til {1}"}
+                y{
+                    y{"y – y"}
+                }
+            }
+            monthNames{
+                format{
+                    abbreviated{
+                        "jan.",
+                        "febr.",
+                        "mar.",
+                        "apr.",
+                        "may",
+                        "jun.",
+                        "julí",
+                        "aug.",
+                        "sept.",
+                        "oct.",
+                        "nov.",
+                        "dec.",
+                    }
+                    wide{
+                        "januar",
+                        "februar",
+                        "marte",
+                        "april",
+                        "may",
+                        "junio",
+                        "julí",
+                        "august",
+                        "septembre",
+                        "octobre",
+                        "novembre",
+                        "decembre",
+                    }
+                }
+                stand-alone{
+                    narrow{
+                        "J",
+                        "F",
+                        "M",
+                        "A",
+                        "M",
+                        "J",
+                        "J",
+                        "A",
+                        "S",
+                        "O",
+                        "N",
+                        "D",
+                    }
+                }
+            }
+        }
+    }
+    delimiters{
+        alternateQuotationEnd{"”"}
+        alternateQuotationStart{"“"}
+        quotationEnd{"»"}
+        quotationStart{"«"}
+    }
+    fields{
+        day{
+            dn{"die"}
+            relative{
+                "-1"{"yer"}
+                "0"{"hodie"}
+                "1"{"deman"}
+            }
+        }
+        day-narrow{
+            dn{"d"}
+        }
+        dayperiod{
+            dn{"midídie"}
+        }
+        era{
+            dn{"era"}
+        }
+        hour{
+            dn{"hor"}
+        }
+        hour-narrow{
+            dn{"h"}
+        }
+        minute{
+            dn{"minute"}
+        }
+        minute-narrow{
+            dn{"m"}
+        }
+        minute-short{
+            dn{"min"}
+        }
+        month{
+            dn{"mensu"}
+        }
+        quarter{
+            dn{"trimestre"}
+        }
+        second{
+            dn{"seconde"}
+        }
+        second-narrow{
+            dn{"s"}
+        }
+        second-short{
+            dn{"sec"}
+        }
+        week{
+            dn{"semane"}
+        }
+        year{
+            dn{"annu"}
+            relative{
+                "-1"{"ultim annu"}
+                "0"{"ho-annu"}
+                "1"{"sequent annu"}
+            }
+        }
+        year-narrow{
+            dn{"a"}
+        }
+        zone{
+            dn{"zone horari"}
+        }
+    }
+    listPattern{
+        standard{
+            2{"{0} e {1}"}
+        }
+    }
+    measurementSystemNames{
+        UK{"anglesi"}
+        US{"american"}
+        metric{"metric"}
+    }
+}

@@ -5,13 +5,13 @@ id{
     Keys{
         calendar{"Kalender"}
         cf{"Format Mata Uang"}
-        colAlternate{"Penyortiran Abaikan Simbol"}
-        colBackwards{"Penyortiran Aksen Terbalik"}
+        colAlternate{"Pengurutan Abaikan Simbol"}
+        colBackwards{"Pengurutan Aksen Terbalik"}
         colCaseFirst{"Pengurutan Huruf Besar/Huruf Kecil"}
-        colCaseLevel{"Penyortiran Peka Huruf Besar"}
-        colNormalization{"Penyortiran Dinormalisasi"}
-        colNumeric{"Penyortiran Numerik"}
-        colStrength{"Kekuatan Penyortiran"}
+        colCaseLevel{"Pengurutan Peka Huruf Besar"}
+        colNormalization{"Pengurutan Dinormalisasi"}
+        colNumeric{"Pengurutan Numerik"}
+        colStrength{"Kekuatan Pengurutan"}
         collation{"Aturan Pengurutan"}
         currency{"Mata Uang"}
         hc{"Siklus Jam (12 vs 24)"}
@@ -79,6 +79,7 @@ id{
         bez{"Bena"}
         bfd{"Bafut"}
         bg{"Bulgaria"}
+        bgc{"Haryanvi"}
         bgn{"Balochi Barat"}
         bho{"Bhojpuri"}
         bi{"Bislama"}
@@ -87,6 +88,7 @@ id{
         bjn{"Banjar"}
         bkm{"Kom"}
         bla{"Siksika"}
+        blo{"Anii"}
         bm{"Bambara"}
         bn{"Bengali"}
         bo{"Tibet"}
@@ -132,7 +134,7 @@ id{
         crm{"Moose Cree"}
         crr{"Carolina Algonquian"}
         crs{"Seselwa Kreol Prancis"}
-        cs{"Cheska"}
+        cs{"Ceko"}
         csb{"Kashubia"}
         csw{"Cree Rawa"}
         cu{"Bahasa Gereja Slavonia"}
@@ -171,7 +173,7 @@ id{
         eo{"Esperanto"}
         es{"Spanyol"}
         es_ES{"Spanyol (Eropa)"}
-        et{"Esti"}
+        et{"Estonia"}
         eu{"Basque"}
         ewo{"Ewondo"}
         fa{"Persia"}
@@ -305,6 +307,7 @@ id{
         kv{"Komi"}
         kw{"Kornish"}
         kwk{"Kwakʼwala"}
+        kxv{"Kuvi"}
         ky{"Kirgiz"}
         la{"Latin"}
         lad{"Ladino"}
@@ -326,7 +329,7 @@ id{
         loz{"Lozi"}
         lrc{"Luri Utara"}
         lsm{"Saamia"}
-        lt{"Lituavi"}
+        lt{"Lituania"}
         lu{"Luba-Katanga"}
         lua{"Luba-Lulua"}
         lui{"Luiseno"}
@@ -334,7 +337,7 @@ id{
         luo{"Luo"}
         lus{"Mizo"}
         luy{"Luyia"}
-        lv{"Latvi"}
+        lv{"Latvia"}
         lzz{"Laz"}
         mad{"Madura"}
         maf{"Mafa"}
@@ -485,7 +488,7 @@ id{
         si{"Sinhala"}
         sid{"Sidamo"}
         sk{"Slovak"}
-        sl{"Sloven"}
+        sl{"Slovenia"}
         slh{"Lushootseed Selatan"}
         sli{"Silesia Rendah"}
         sly{"Selayar"}
@@ -570,6 +573,7 @@ id{
         ve{"Venda"}
         vec{"Venesia"}
         vi{"Vietnam"}
+        vmw{"Makhuwa"}
         vo{"Volapuk"}
         vot{"Votia"}
         vun{"Vunjo"}
@@ -583,6 +587,7 @@ id{
         wuu{"Wu Tionghoa"}
         xal{"Kalmuk"}
         xh{"Xhosa"}
+        xnr{"Kangri"}
         xog{"Soga"}
         yao{"Yao"}
         yap{"Yapois"}
@@ -614,9 +619,9 @@ id{
     Languages%short{
         az{"Azeri"}
         en_GB{"Inggris (UK)"}
-        en_US{"Inggris (AS)"}
     }
     Languages%variant{
+        ckb{"Kurdi, Sorani"}
         hi_Latn{"Hinglish"}
         ps{"Pushto"}
         ug{"Uighur"}
@@ -625,7 +630,6 @@ id{
         Adlm{"Adlam"}
         Afak{"Afaka"}
         Aghb{"Albania Kaukasia"}
-        Arab{"Arab"}
         Aran{"Nastaliq"}
         Armi{"Aram Imperial"}
         Armn{"Armenia"}
@@ -689,7 +693,6 @@ id{
         Hung{"Hungaria Kuno"}
         Inds{"Indus"}
         Ital{"Italia Lama"}
-        Jamo{"Jamo"}
         Java{"Jawa"}
         Jpan{"Jepang"}
         Jurc{"Jurchen"}
@@ -793,7 +796,6 @@ id{
         Tfng{"Tifinagh"}
         Tglg{"Tagalog"}
         Thaa{"Thaana"}
-        Thai{"Thai"}
         Tibt{"Tibet"}
         Tirh{"Tirhuta"}
         Tnsa{"Tangsa"}
@@ -883,23 +885,22 @@ id{
             tertiary{"Sortir Aksen/Ukuran Huruf/Lebar"}
         }
         collation{
-            big5han{"Urutan Sortir Tionghoa Tradisional - Big5"}
+            big5han{"Aturan Pengurutan Tionghoa Tradisional - Big5"}
             compat{"Aturan Pengurutan Sebelumnya, untuk kompatibilitas"}
-            dictionary{"Urutan Sortir Kamus"}
+            dictionary{"Aturan Pengurutan Kamus"}
             ducet{"Aturan Pengurutan Unicode Default"}
             emoji{"Urutan Sortir Emoji"}
             eor{"Aturan Pengurutan Eropa"}
-            gb2312han{"Urutan Sortir Tionghoa (Sederhana) - GB2312"}
-            phonebook{"Urutan Sortir Buku Telepon"}
-            phonetic{"Urutan Sortir Fonetik"}
-            pinyin{"Urutan Sortir Pinyin"}
-            reformed{"Urutan Sortir yang Diubah Bentuknya"}
+            gb2312han{"Aturan Pengurutan Tionghoa (Sederhana) - GB2312"}
+            phonebook{"Aturan Pengurutan Buku Telepon"}
+            phonetic{"Aturan Pengurutan Fonetik"}
+            pinyin{"Aturan Pengurutan Pinyin"}
             search{"Pencarian Tujuan Umum"}
             searchjl{"Pencarian Menurut Konsonan Awal Hangul"}
             standard{"Aturan Pengurutan Standar"}
-            stroke{"Urutan Sortir Guratan"}
-            traditional{"Urutan Sortir Tradisional"}
-            unihan{"Urutan Sortir Guratan Radikal"}
+            stroke{"Aturan Pengurutan Guratan"}
+            traditional{"Aturan Pengurutan Tradisional"}
+            unihan{"Aturan Pengurutan Guratan Radikal"}
             zhuyin{"Aturan Pengurutan Zhuyin"}
         }
         d0{
@@ -1074,10 +1075,11 @@ id{
     }
     characterLabelPattern{
         all{"{0} — semua"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — kompatibilitas"}
         enclosed{"{0} — terlampir"}
         extended{"{0} — diperluas"}
+        facing-left{"{0} menghadap kiri"}
+        facing-right{"{0} menghadap kanan"}
         historic{"{0} — historis"}
         miscellaneous{"{0} — lain-lain"}
         other{"{0} — lainnya"}
@@ -1092,10 +1094,5 @@ id{
         language{"Bahasa: {0}"}
         script{"Skrip: {0}"}
         territory{"Wilayah: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

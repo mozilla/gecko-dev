@@ -70,6 +70,7 @@ bs{
         bez{"bena"}
         bfd{"bafut"}
         bg{"bugarski"}
+        bgc{"harianvi"}
         bgn{"zapadni belučki"}
         bho{"bojpuri"}
         bi{"bislama"}
@@ -77,6 +78,7 @@ bs{
         bin{"bini"}
         bkm{"kom"}
         bla{"siksika"}
+        blo{"anii"}
         bm{"bambara"}
         bn{"bengalski"}
         bo{"tibetanski"}
@@ -289,6 +291,7 @@ bs{
         kv{"komi"}
         kw{"kornski"}
         kwk{"kvakvala"}
+        kxv{"kuvi"}
         ky{"kirgiški"}
         la{"latinski"}
         lad{"ladino"}
@@ -306,7 +309,7 @@ bs{
         ln{"lingala"}
         lo{"laoski"}
         lol{"mongo"}
-        lou{"luizijana kreolski"}
+        lou{"luizijanski kreolski"}
         loz{"lozi"}
         lrc{"sjeverni luri"}
         lsm{"samia"}
@@ -315,7 +318,6 @@ bs{
         lua{"luba-lulua"}
         lui{"luiseno"}
         lun{"lunda"}
-        luo{"luo"}
         lus{"mizo"}
         luy{"luhija"}
         lv{"latvijski"}
@@ -372,7 +374,7 @@ bs{
         ng{"ndonga"}
         nia{"nias"}
         niu{"niue"}
-        nl{"holandski"}
+        nl{"nizozemski"}
         nl_BE{"flamanski"}
         nmg{"kvasio"}
         nn{"norveški (Nynorsk)"}
@@ -493,6 +495,7 @@ bs{
         swb{"komorski"}
         syc{"klasični sirijski"}
         syr{"sirijski"}
+        szl{"šleski"}
         ta{"tamilski"}
         tce{"južni tučoni"}
         te{"telugu"}
@@ -539,10 +542,10 @@ bs{
         und{"nepoznati jezik"}
         ur{"urdu"}
         uz{"uzbečki"}
-        vai{"vai"}
         ve{"venda"}
         vec{"venecijanski"}
         vi{"vijetnamski"}
+        vmw{"makua"}
         vo{"volapuk"}
         vot{"votski"}
         vun{"vunjo"}
@@ -556,6 +559,7 @@ bs{
         wuu{"Wu kineski"}
         xal{"kalmik"}
         xh{"hosa"}
+        xnr{"kangri"}
         xog{"soga"}
         yao{"jao"}
         yap{"japeški"}
@@ -583,15 +587,14 @@ bs{
         zh_Hant{"kineski (tradicionalni standardni)"}
     }
     Languages%menu{
-        yue{"jue"}
+        yue{"kineski, kantonski"}
         zh{"kineski (standardni)"}
     }
     Languages%short{
         az{"azerski"}
-        en_GB{"engleski (UK)"}
-        en_US{"engleski (SAD)"}
     }
     Languages%variant{
+        hi_Latn{"hingleski"}
         ps{"pušto"}
     }
     Scripts{
@@ -809,7 +812,7 @@ bs{
         calendar{
             buddhist{"budistički kalendar"}
             chinese{"kineski kalendar"}
-            coptic{"Koptski kalendar"}
+            coptic{"koptski kalendar"}
             dangi{"dangi kalendar"}
             ethiopic{"etiopski kalendar"}
             ethiopic-amete-alem{"etiopski kalendar \u0022Amete Alem\u0022"}
@@ -817,7 +820,7 @@ bs{
             hebrew{"hebrejski kalendar"}
             indian{"indijski nacionalni kalendar"}
             islamic{"islamski kalendar"}
-            islamic-civil{"islamski civilni kalendar, tabelarni"}
+            islamic-civil{"islamski građanski kalendar, tabelarni"}
             islamic-rgsa{"islamski kalendar za Saudijsku Arabiju"}
             islamic-tbla{"islamski kalendar, tabelarni, astronomska epoha"}
             islamic-umalqura{"islamski kalendar, Umm al-Qura"}
@@ -873,7 +876,6 @@ bs{
             phonebook{"Sortiranje kao telefonski imenik"}
             phonetic{"Fonetsko sortiranje"}
             pinyin{"Pinjin sortiranje"}
-            reformed{"Reformirano sortiranje"}
             search{"općenito pretraživanje"}
             searchjl{"Pretraživanje po početnom suglasniku hangula"}
             standard{"standardno sortiranje"}
@@ -966,7 +968,7 @@ bs{
             mymrshan{"mijanmarske šan cifre"}
             mymrtlng{"mijanmarske tai laing cifre"}
             nagm{"nag mundari cifre"}
-            native{"Izvorne cifre"}
+            native{"izvorni brojevi"}
             nkoo{"n’ko cifre"}
             olck{"ol čiki cifre"}
             orya{"orijski brojevi"}
@@ -1108,10 +1110,11 @@ bs{
     }
     characterLabelPattern{
         all{"{0} – sve"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} – kompatibilno"}
         enclosed{"{0} – priloženo"}
         extended{"{0} – produženo"}
+        facing-left{"{0} naprijed"}
+        facing-right{"{0} nadesno"}
         historic{"{0} – staro"}
         miscellaneous{"{0} – razno"}
         other{"{0} – ostalo"}
@@ -1128,10 +1131,5 @@ bs{
         language{"Jezik: {0}"}
         script{"Pismo: {0}"}
         territory{"Regija: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

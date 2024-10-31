@@ -78,7 +78,7 @@ rw{
         pt_PT{"Inyeporutigali (Igiporutigali)"}
         ro{"Ikinyarumaniya"}
         ru{"Ikirusiya"}
-        rw{"Kinyarwanda"}
+        rw{"Ikinyarwanda"}
         sa{"Igisansikiri"}
         sd{"Igisindi"}
         sh{"Inyeseribiya na Korowasiya"}
@@ -108,5 +108,8 @@ rw{
         xh{"Inyehawusa"}
         yi{"Inyeyidishi"}
         zu{"Inyezulu"}
+    }
+    Scripts{
+        Latn{"Latin"}
     }
 }

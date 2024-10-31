@@ -3,98 +3,176 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ku{
     Keys{
-        calendar{"salname"}
+        calendar{"Salname"}
+        collation{"Rêzkirin"}
         currency{"diwîz"}
     }
     Languages{
         aa{"afarî"}
         ab{"abxazî"}
         ace{"açehî"}
+        ada{"adangmeyî"}
         ady{"adîgeyî"}
         af{"afrîkansî"}
+        agq{"aghemî"}
         ain{"aynuyî"}
+        ak{"akanî"}
         ale{"alêwîtî"}
+        alt{"altayîya başûrî"}
         am{"amharî"}
         an{"aragonî"}
+        ann{"obolo"}
+        anp{"angîkayî"}
+        apc{"erebîya bakurê şamê"}
         ar{"erebî"}
-        ar_001{"erebiya standard"}
+        ar_001{"erebîya modern a standard"}
+        arn{"mapuçî"}
+        arp{"arapahoyî"}
+        ars{"erebîya necdî"}
         as{"asamî"}
+        asa{"asûyî"}
         ast{"astûrî"}
+        atj{"atîkamekî"}
         av{"avarî"}
+        awa{"awadhî"}
         ay{"aymarayî"}
         az{"azerî"}
         ba{"başkîrî"}
+        bal{"belûcî"}
         ban{"balînî"}
-        be{"belarusî"}
+        bas{"basayî"}
+        be{"belarûsî"}
         bem{"bembayî"}
+        bew{"betawî"}
+        bez{"benayî"}
         bg{"bulgarî"}
+        bgc{"haryanvîyî"}
+        bgn{"belucîya rojavayî"}
         bho{"bojpûrî"}
         bi{"bîslamayî"}
+        bin{"bînîyî"}
         bla{"blakfotî"}
+        blo{"bloyî"}
+        blt{"tay dam"}
         bm{"bambarayî"}
         bn{"bengalî"}
         bo{"tîbetî"}
         br{"bretonî"}
+        brx{"bodoyî"}
         bs{"bosnî"}
+        bss{"akooseyî"}
         bug{"bugî"}
+        byn{"blînî"}
         ca{"katalanî"}
+        cad{"kadoyî"}
+        cay{"kayugayî"}
+        cch{"atsamî"}
+        ccp{"çakmayî"}
         ce{"çeçenî"}
         ceb{"sebwanoyî"}
+        cgg{"kîgayî"}
         ch{"çamoroyî"}
         chk{"çûkî"}
         chm{"marî"}
+        cho{"çoktavî"}
+        chp{"çîpevyayî"}
         chr{"çerokî"}
         chy{"çeyenî"}
-        ckb{"soranî"}
+        cic{"çîkasawî"}
+        ckb{"kurdî (soranî)"}
+        clc{"çilkotînî"}
         co{"korsîkayî"}
+        crg{"mîçîfî"}
+        crj{"krîya rojhilat ya başûrî"}
+        crk{"kriya bejayî"}
+        crl{"krîya rojhilat ya bakurî"}
+        crm{"krîya mûsî"}
+        crr{"zimanê karolina algonquianî"}
         cs{"çekî"}
+        csw{"krîya swampî"}
+        cu{"slavîya kenîseyî"}
         cv{"çuvaşî"}
         cy{"weylsî"}
         da{"danmarkî"}
-        de{"elmanî"}
-        dsb{"sorbiya jêrîn"}
+        dak{"dakotayî"}
+        dar{"dargînî"}
+        dav{"tayîtayî"}
+        de{"almanî"}
+        dgr{"dogrîbî"}
+        dje{"zarma"}
+        doi{"dogrîyî"}
+        dsb{"sorbîya jêrîn"}
         dua{"diwalayî"}
         dv{"divehî"}
+        dyo{"jola-fonyi"}
         dz{"conxayî"}
+        dzg{"dazagayî"}
+        ebu{"embuyî"}
         ee{"eweyî"}
-        el{"yewnanî"}
+        efi{"efîkî"}
+        eka{"ekajukî"}
+        el{"yûnanî"}
         en{"îngilîzî"}
+        en_GB{"îngilîzî (Qiralîyeta Yekbûyî)"}
         eo{"esperantoyî"}
         es{"spanî"}
+        es_ES{"spanî (Ewropa)"}
         et{"estonî"}
         eu{"baskî"}
+        ewo{"ewondoyî"}
         fa{"farisî"}
+        fa_AF{"derî"}
         ff{"fulahî"}
         fi{"fînî"}
         fil{"fîlîpînoyî"}
         fj{"fîjî"}
         fo{"ferî"}
-        fr{"frensî"}
-        fur{"friyolî"}
+        fon{"fonî"}
+        fr{"fransizî"}
+        fr_CA{"fransizî (Kanada)"}
+        fr_CH{"fransizî (Swîsre)"}
+        frc{"fransizîya kajûnê"}
+        frr{"frîsîya bakur"}
+        fur{"frîyolî"}
         fy{"frîsî"}
-        ga{"îrî"}
+        ga{"îrlendî"}
+        gaa{"gayî"}
         gd{"gaelîka skotî"}
+        gez{"geez"}
         gil{"kîrîbatî"}
         gl{"galîsî"}
         gn{"guwaranî"}
         gor{"gorontaloyî"}
         gsw{"elmanîşî"}
         gu{"gujaratî"}
+        guz{"gusîî"}
         gv{"manksî"}
+        gwi{"gwichʼin"}
         ha{"hawsayî"}
+        hai{"haydayî"}
         haw{"hawayî"}
+        hax{"haîdaya başûrî"}
         he{"îbranî"}
         hi{"hindî"}
         hil{"hîlîgaynonî"}
+        hmn{"hmongî"}
+        hnj{"hmongîya njuayî"}
         hr{"xirwatî"}
-        hsb{"sorbiya jorîn"}
+        hsb{"sorbîya jorîn"}
         ht{"haîtî"}
         hu{"mecarî"}
+        hup{"hupayî"}
+        hur{"halkomelemî"}
         hy{"ermenî"}
         hz{"hereroyî"}
-        ia{"interlingua"}
-        id{"indonezî"}
+        ia{"înterlîngua"}
+        iba{"iban"}
+        ibb{"îbîbîoyî"}
+        id{"endonezyayî"}
+        ie{"înterlîngue"}
         ig{"îgboyî"}
+        ii{"yîyîya siçuwayî"}
+        ikt{"inuvialuktun"}
         ilo{"îlokanoyî"}
         inh{"îngûşî"}
         io{"îdoyî"}
@@ -103,180 +181,413 @@ ku{
         iu{"înuîtî"}
         ja{"japonî"}
         jbo{"lojbanî"}
+        jgo{"ngomba"}
+        jmc{"machame"}
         jv{"javayî"}
         ka{"gurcî"}
+        kaa{"kara-kalpakî"}
         kab{"kabîlî"}
+        kac{"cingphoyî"}
+        kaj{"jju"}
+        kam{"kambayî"}
+        kbd{"kabardî"}
+        kcg{"tyap"}
+        kde{"makondeyî"}
         kea{"kapverdî"}
+        ken{"kenyangî"}
+        kfo{"koro"}
+        kgp{"kayingangî"}
+        kha{"khasi"}
+        khq{"koyra chiini"}
+        ki{"kîkûyûyî"}
+        kj{"kwanyamayî"}
         kk{"qazaxî"}
+        kkj{"kako"}
         kl{"kalalîsûtî"}
+        kln{"kalencînî"}
         km{"ximêrî"}
+        kmb{"kîmbunduyî"}
         kn{"kannadayî"}
         ko{"koreyî"}
         kok{"konkanî"}
+        kpe{"kpelleyî"}
+        kr{"kanurîyî"}
+        krc{"karaçay-balkarî"}
+        krl{"karelî"}
+        kru{"kurukh"}
         ks{"keşmîrî"}
+        ksb{"shambala"}
+        ksf{"bafyayî"}
         ksh{"rîpwarî"}
-        ku{"kurdî"}
+        ku{"kurdî (kurmancî)"}
+        kum{"kumikî"}
         kv{"komî"}
         kw{"kornî"}
+        kwk{"kwak’walayî"}
+        kxv{"kuvî"}
         ky{"kirgizî"}
+        la{"latînî"}
         lad{"ladînoyî"}
+        lag{"langî"}
         lb{"luksembûrgî"}
         lez{"lezgînî"}
         lg{"lugandayî"}
         li{"lîmbûrgî"}
+        lij{"lîgûrî"}
+        lil{"lillooet"}
         lkt{"lakotayî"}
+        lmo{"lombardî"}
         ln{"lingalayî"}
         lo{"lawsî"}
-        lrc{"luriya bakur"}
+        lou{"kreyolîya louisianayê"}
+        loz{"lozî"}
+        lrc{"lurîya bakur"}
+        lsm{"saamia"}
         lt{"lîtwanî"}
-        lv{"latviyayî"}
+        ltg{"latgalî"}
+        lu{"luba-katangayî"}
+        lua{"luba-kasayî"}
+        lun{"lunda"}
+        luo{"luoyî"}
+        lus{"mizoyî"}
+        luy{"luhyayî"}
+        lv{"latvîyayî"}
         mad{"madurayî"}
+        mag{"magahî"}
+        mai{"maithili"}
+        mak{"makasarî"}
         mas{"masayî"}
         mdf{"mokşayî"}
+        men{"mende"}
+        mer{"meruyî"}
+        mfe{"morisyenî"}
         mg{"malagasî"}
+        mgh{"makhuwa-meetto"}
+        mgo{"meta’"}
         mh{"marşalî"}
         mi{"maorî"}
         mic{"mîkmakî"}
         min{"mînangkabawî"}
         mk{"makedonî"}
         ml{"malayalamî"}
-        mn{"mongolî"}
+        mn{"moxolî"}
+        mni{"manipuri"}
+        moe{"înûyîya rojhilatî"}
         moh{"mohawkî"}
+        mos{"moreyî"}
         mr{"maratî"}
         ms{"malezî"}
         mt{"maltayî"}
+        mua{"mundangî"}
+        mul{"pirzimanî"}
+        mus{"krîkî"}
+        mwl{"mîrandî"}
         my{"burmayî"}
         myv{"erzayî"}
         mzn{"mazenderanî"}
         na{"nawrûyî"}
         nap{"napolîtanî"}
+        naq{"namayî"}
         nb{"norwecî (bokmål)"}
+        nd{"ndebelîya bakurî"}
+        nds{"nedersaksî"}
         ne{"nepalî"}
+        new{"newarî"}
+        ng{"ndongayî"}
+        nia{"nîasî"}
         niu{"nîwî"}
         nl{"holendî"}
         nl_BE{"flamî"}
+        nmg{"kwasio"}
         nn{"norwecî (nynorsk)"}
-        nso{"sotoyiya bakur"}
+        nnh{"ngiemboon"}
+        no{"norwecî"}
+        nog{"nogayî"}
+        nqo{"n’Ko"}
+        nr{"ndebelîya başûrî"}
+        nso{"sotoyîya bakur"}
+        nus{"nuer"}
         nv{"navajoyî"}
+        ny{"çîçewayî"}
+        nyn{"nyankole"}
         oc{"oksîtanî"}
+        ojb{"ojibweyîya bakurî"}
+        ojc{"ojibwayîya navîn"}
+        ojs{"oji-cree"}
+        ojw{"ojîbweyîya rojavayî"}
+        oka{"okanagan"}
         om{"oromoyî"}
         or{"oriyayî"}
         os{"osetî"}
+        osa{"osageyî"}
         pa{"puncabî"}
+        pag{"pangasînanî"}
         pam{"kapampanganî"}
         pap{"papyamentoyî"}
         pau{"palawî"}
+        pcm{"pîdgînîya nîjeryayî"}
+        pis{"pijînî"}
         pl{"polonî"}
+        pqm{"malecite-passamaquoddy"}
         prg{"prûsyayî"}
         ps{"peştûyî"}
         pt{"portugalî"}
+        pt_PT{"portugalî (Ewropa)"}
         qu{"keçwayî"}
+        quc{"k’iche’"}
+        raj{"rajasthanî"}
         rap{"rapanuyî"}
         rar{"rarotongî"}
+        rhg{"rohingyayî"}
+        rif{"tarifit"}
         rm{"romancî"}
+        rn{"rundî"}
         ro{"romanî"}
-        ru{"rusî"}
+        rof{"rombo"}
+        ru{"rûsî"}
         rup{"aromanî"}
         rw{"kînyariwandayî"}
+        rwk{"rwa"}
         sa{"sanskrîtî"}
+        sad{"sandawe"}
+        sah{"yakutî"}
+        saq{"samburuyî"}
+        sat{"santalî"}
+        sba{"ngambay"}
+        sbp{"sanguyî"}
         sc{"sardînî"}
         scn{"sicîlî"}
         sco{"skotî"}
         sd{"sindhî"}
-        se{"samiya bakur"}
+        sdh{"kurdîya başûrî"}
+        se{"samîya bakur"}
+        seh{"sena"}
+        ses{"sonxayî"}
+        sg{"sangoyî"}
+        shi{"taşelhîtî"}
+        shn{"şanî"}
         si{"kîngalî"}
+        sid{"sîdamo"}
         sk{"slovakî"}
+        skr{"seraîkî"}
         sl{"slovenî"}
+        slh{"lushootseeda başûrî"}
         sm{"samoayî"}
-        smn{"samiya înarî"}
+        sma{"samîya başûr"}
+        smj{"samiya lule"}
+        smn{"samîya înarî"}
+        sms{"samîya skoltî"}
         sn{"şonayî"}
+        snk{"soninke"}
         so{"somalî"}
-        sq{"elbanî"}
+        sq{"arnawidî"}
         sr{"sirbî"}
         srn{"sirananî"}
         ss{"swazî"}
-        st{"sotoyiya başûr"}
+        ssy{"sahoyî"}
+        st{"sotoyîya başûr"}
+        str{"saanîçî"}
         su{"sundanî"}
+        suk{"sukuma"}
         sv{"swêdî"}
         sw{"swahîlî"}
+        sw_CD{"swahîlîya kongoyî"}
         swb{"komorî"}
         syr{"siryanî"}
+        szl{"silesî"}
         ta{"tamîlî"}
+        tce{"totuçena başûrî"}
         te{"telûgûyî"}
+        tem{"temne"}
+        teo{"teso"}
         tet{"tetûmî"}
         tg{"tacikî"}
+        tgx{"tagîşî"}
         th{"tayî"}
+        tht{"tahltan"}
         ti{"tigrînî"}
+        tig{"tigre"}
         tk{"tirkmenî"}
         tlh{"klîngonî"}
+        tli{"tlingit"}
         tn{"tswanayî"}
         to{"tongî"}
+        tok{"toki pona"}
         tpi{"tokpisinî"}
         tr{"tirkî"}
         trv{"tarokoyî"}
+        trw{"torwalî"}
         ts{"tsongayî"}
         tt{"teterî"}
+        ttm{"tutoçenîya bakur"}
         tum{"tumbukayî"}
         tvl{"tuvalûyî"}
+        twq{"tasawaq"}
         ty{"tahîtî"}
+        tyv{"tuvanî"}
         tzm{"temazîxtî"}
         udm{"udmurtî"}
         ug{"oygurî"}
         uk{"ukraynî"}
+        umb{"umbunduyî"}
+        und{"zimanê nenas"}
         ur{"urdûyî"}
         uz{"ozbekî"}
-        vi{"viyetnamî"}
+        vec{"venîsî"}
+        vi{"vîetnamî"}
+        vmw{"makhuwayî"}
         vo{"volapûkî"}
+        vun{"vunjo"}
         wa{"walonî"}
+        wae{"walserî"}
+        wal{"wolaytta"}
         war{"warayî"}
+        wbp{"warlpiri"}
         wo{"wolofî"}
+        wuu{"çînîya wuyî"}
+        xal{"kalmîkî"}
         xh{"xosayî"}
+        xnr{"kangrî"}
+        xog{"sogayî"}
+        yav{"yangben"}
+        ybb{"yemba"}
         yi{"yidîşî"}
         yo{"yorubayî"}
+        yrl{"nhêngatûyî"}
         yue{"kantonî"}
+        za{"zhuangî"}
+        zgh{"amazîxîya fasî"}
+        zh{"çînî"}
+        zh_Hans{"çînîya sadekirî"}
+        zh_Hant{"çînîya kevneşopî"}
         zu{"zuluyî"}
-        zza{"zazakî"}
+        zun{"zunîyî"}
+        zxx{"bê naveroka zimanî"}
+        zza{"zazakî (kirdkî, kirmanckî)"}
+    }
+    Languages%long{
+        zh_Hans{"çînîya mandarînî ya sadekirî"}
+        zh_Hant{"çînîya mandarînî ya kevneşopî"}
+    }
+    Languages%menu{
+        ckb{"kurdî (navîn)"}
+        yue{"çînî, kantonî"}
+        zh{"çînî, mandarînî"}
+    }
+    Languages%short{
+        en_GB{"îngilîzî (QY)"}
+    }
+    Languages%variant{
+        hi_Latn{"hîngilîzî"}
     }
     Scripts{
         Arab{"erebî"}
+        Aran{"nestalîq"}
         Armn{"ermenî"}
         Beng{"bengalî"}
+        Bopo{"bopomofo"}
+        Brai{"braille"}
+        Copt{"qiptî"}
+        Cprt{"qibrisî"}
         Cyrl{"kirîlî"}
         Deva{"devanagarî"}
+        Egyp{"hîyeroglîfên misirî"}
+        Ethi{"etîyopîk"}
         Geor{"gurcî"}
-        Grek{"yewnanî"}
+        Goth{"gotîk"}
+        Grek{"yûnanî"}
+        Gujr{"gujeratî"}
+        Hanb{"hanîya bi bopomofoyê"}
+        Hang{"hangulî"}
+        Hani{"hanî"}
+        Hans{"sadekirî"}
+        Hant{"kevneşopî"}
+        Hebr{"îbranî"}
+        Hira{"hîraganayî"}
+        Hrkt{"nivîsên heceyî yên japonî"}
+        Jamo{"jamoyî"}
+        Jpan{"japonî"}
+        Kana{"katakanayî"}
         Khmr{"ximêrî"}
+        Knda{"kannadayî"}
+        Kore{"koreyî"}
+        Laoo{"laoyî"}
         Latn{"latînî"}
-        Mong{"mongolî"}
+        Mlym{"malayamî"}
+        Mong{"moxolî"}
+        Mymr{"myanmarî"}
+        Qaag{"zawgyi"}
+        Sinh{"sînhalayî"}
+        Taml{"tamîlî"}
+        Telu{"teluguyî"}
+        Thai{"tayî"}
         Tibt{"tîbetî"}
+        Yezi{"êzidî"}
+        Zmth{"nîşandana matematîkî"}
+        Zsye{"emojî"}
         Zsym{"sembol"}
-        Zxxx{"ne nivîsandî"}
+        Zxxx{"nenivîskî"}
         Zyyy{"hevpar"}
-        Zzzz{"nivîsa nenas"}
+        Zzzz{"alfabeya nenas"}
+    }
+    Scripts%stand-alone{
+        Hans{"hanîya sadekirî"}
+        Hant{"hanîya kevneşopî"}
     }
     Types{
         calendar{
-            chinese{"salnameya çînî"}
-            gregorian{"salnameya gregorî"}
+            buddhist{"Salnameya Budîst"}
+            chinese{"Salnameya Çînî"}
+            coptic{"Salnameya Qiptî"}
+            dangi{"Salnameya Dangî"}
+            ethiopic{"Salnameya Etîyopîk"}
+            ethiopic-amete-alem{"Salnameya Amete Alem ya Etîyopîk"}
+            gregorian{"Salnameya Mîladî"}
             hebrew{"salnameya îbranî"}
-            islamic{"salnameya koçî"}
-            iso8601{"salnameya ISO-8601"}
-            japanese{"salnameya japonî"}
-            persian{"salnameya îranî"}
-            roc{"salnameya Komara Çînê"}
+            indian{"Salnameya Milî ya Hindî"}
+            islamic{"Salnameya Hicrî"}
+            islamic-civil{"Salnameya Hicrî (16ê tîrmeha 622yan)"}
+            islamic-rgsa{"Salnameya Hicrî (Siudî)"}
+            islamic-tbla{"Salnameya Hicrî (15ê tîrmeha 622yan)"}
+            islamic-umalqura{"Salnameya Hicrî (Um el-Qura)"}
+            iso8601{"Salnameya ISO-8601ê"}
+            japanese{"Salnameya Japonî"}
+            persian{"Salnameya Îranî"}
+            roc{"Salnameya Komara Çînê"}
+        }
+        collation{
+            standard{"Awayê Rêzkirina Standard"}
         }
         numbers{
-            roman{"hejmarên romî"}
+            arab{"Reqemên hindo-erebî"}
+            latn{"Reqemên Rojavayî"}
+            roman{"Reqemên Romayî"}
         }
+    }
+    Variants{
+        1959ACAD{"Akademîk"}
+    }
+    characterLabelPattern{
+        all{"{0} — hemû"}
+        compatibility{"{0} — hevahengî"}
+        enclosed{"{0} — dorlêpêçayî"}
+        extended{"{0} — berfirehkirî"}
+        facing-left{"{0} ber bi çepê ve"}
+        facing-right{"{0} ber bi rastê ve"}
+        historic{"{0} — tarîxî"}
+        miscellaneous{"{0} — curbicur"}
+        other{"{0} — yên din"}
+        scripts{"alfabe — {0}"}
+        strokes{
+            one{"{0} xêz"}
+            other{"{0} xêz"}
+        }
+        subscript{"îndeks {0}"}
+        superscript{"jorîndeks {0}"}
     }
     codePatterns{
         language{"ziman: {0}"}
         script{"nivîs: {0}"}
         territory{"herêm: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

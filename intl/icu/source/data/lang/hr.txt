@@ -71,6 +71,7 @@ hr{
         bez{"bena"}
         bfd{"bafut"}
         bg{"bugarski"}
+        bgc{"haryanvi"}
         bgn{"zapadnobaludžijski"}
         bho{"bhojpuri"}
         bi{"bislama"}
@@ -78,6 +79,7 @@ hr{
         bin{"bini"}
         bkm{"kom"}
         bla{"siksika"}
+        blo{"anii"}
         bm{"bambara"}
         bn{"bangla"}
         bo{"tibetski"}
@@ -302,6 +304,7 @@ hr{
         kv{"komi"}
         kw{"kornski"}
         kwk{"kwakʼwala"}
+        kxv{"kuvi"}
         ky{"kirgiski"}
         la{"latinski"}
         lad{"ladino"}
@@ -312,8 +315,10 @@ hr{
         lez{"lezgiški"}
         lg{"ganda"}
         li{"limburški"}
+        lij{"ligurski"}
         lil{"lillooet"}
         lkt{"lakota"}
+        lmo{"lombardski"}
         ln{"lingala"}
         lo{"laoski"}
         lol{"mongo"}
@@ -326,7 +331,6 @@ hr{
         lua{"luba-lulua"}
         lui{"luiseno"}
         lun{"lunda"}
-        luo{"luo"}
         lus{"lushai"}
         luy{"luyia"}
         lv{"latvijski"}
@@ -508,6 +512,7 @@ hr{
         swb{"komorski"}
         syc{"klasični sirski"}
         syr{"sirijski"}
+        szl{"šleski"}
         ta{"tamilski"}
         tce{"južni tutchone"}
         te{"teluški"}
@@ -554,9 +559,10 @@ hr{
         und{"nepoznati jezik"}
         ur{"urdski"}
         uz{"uzbečki"}
-        vai{"vai"}
         ve{"venda"}
+        vec{"venecijanski"}
         vi{"vijetnamski"}
+        vmw{"makhuwa"}
         vo{"volapük"}
         vot{"votski"}
         vun{"vunjo"}
@@ -570,6 +576,7 @@ hr{
         wuu{"wu kineski"}
         xal{"kalmyk"}
         xh{"xhosa"}
+        xnr{"kangri"}
         xog{"soga"}
         yao{"yao"}
         yap{"japski"}
@@ -796,9 +803,9 @@ hr{
             gregorian{"gregorijanski kalendar"}
             hebrew{"hebrejski kalendar"}
             indian{"indijski nacionalni kalendar"}
-            islamic{"islamski kalendar"}
-            islamic-civil{"islamski civilni kalendar"}
-            islamic-umalqura{"islamski kalendar (Umm al-Qura)"}
+            islamic{"hijri kalendar"}
+            islamic-civil{"hijri kalendar (tabularni, civilna epoha)"}
+            islamic-umalqura{"hijri kalendar (Umm al-Qura)"}
             iso8601{"ISO-8601 kalendar"}
             japanese{"japanski kalendar"}
             persian{"perzijski kalendar"}
@@ -850,7 +857,6 @@ hr{
             phonebook{"razvrstavanje po abecedi"}
             phonetic{"fonetsko razvrstavanje"}
             pinyin{"pinyin razvrstavanje"}
-            reformed{"reformirano razvrstavanje"}
             search{"općenito pretraživanje"}
             searchjl{"Pretraživanje po početnom suglasniku hangula"}
             standard{"standardno razvrstavanje"}
@@ -974,10 +980,11 @@ hr{
     }
     characterLabelPattern{
         all{"{0} – sve"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} – kompatibilnost"}
         enclosed{"{0} – priloženo"}
         extended{"{0} – prošireno"}
+        facing-left{"{0} ulijevo"}
+        facing-right{"{0} udesno"}
         historic{"{0} – povijesno"}
         miscellaneous{"{0} – razno"}
         other{"{0} – ostalo"}
@@ -994,10 +1001,5 @@ hr{
         language{"Jezik: {0}"}
         script{"Pismo: {0}"}
         territory{"Regija: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

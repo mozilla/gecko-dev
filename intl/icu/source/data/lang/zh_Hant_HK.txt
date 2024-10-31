@@ -8,13 +8,13 @@ zh_Hant_HK{
     }
     Languages{
         aa{"阿法爾文"}
+        am{"岩哈拉語"}
         az{"阿塞拜疆文"}
         az_Arab{"南阿塞拜疆文"}
         ba{"巴什基爾文"}
         br{"布里多尼文"}
         bs{"波斯尼亞文"}
         ca{"加泰隆尼亞文"}
-        crh{"克里米亞韃靼文"}
         crs{"塞舌爾克里奧爾法文"}
         de_AT{"奧地利德文"}
         de_CH{"瑞士德語"}
@@ -33,7 +33,6 @@ zh_Hant_HK{
         gil{"吉爾伯特文"}
         gl{"加里西亞文"}
         gsw{"瑞士德文"}
-        hmn{"苗語"}
         hr{"克羅地亞文"}
         ig{"伊博文"}
         it{"意大利文"}
@@ -70,11 +69,7 @@ zh_Hant_HK{
         yue{"廣東話"}
         zgh{"摩洛哥標準塔馬齊格特文"}
     }
-    Languages%menu{
-        yue{"粵語"}
-    }
     Languages%short{
-        az{"阿塞拜疆文"}
         en_GB{"英式英文"}
         en_US{"美式英文"}
     }
@@ -83,7 +78,6 @@ zh_Hant_HK{
         ug{"維吾爾語"}
     }
     Scripts{
-        Cyrl{"西里爾文"}
         Ethi{"埃塞俄比亞文"}
         Geor{"格魯吉亞文"}
         Guru{"古木基文"}
@@ -91,7 +85,6 @@ zh_Hant_HK{
         Hant{"繁體字"}
         Knda{"坎納達文"}
         Laoo{"老撾文"}
-        Latn{"拉丁字母"}
         Mlym{"馬拉雅拉姆文"}
         Newa{"尼瓦爾文"}
         Orya{"奧里雅文"}
@@ -108,7 +101,6 @@ zh_Hant_HK{
             big5han{"繁體中文排序 (Big5)"}
             dictionary{"詞典排序"}
             gb2312han{"簡體中文排序 (GB2312)"}
-            reformed{"改革版排序"}
         }
         ms{
             uksystem{"英制"}

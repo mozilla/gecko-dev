@@ -17,7 +17,7 @@ de{
         hc{"Stundenformat (12h/24h)"}
         lb{"Zeilenumbruchstil"}
         ms{"Maßsystem"}
-        numbers{"Zahlen"}
+        numbers{"Ziffern"}
         timezone{"Zeitzone"}
         va{"Lokale Variante"}
         x{"Privatnutzung"}
@@ -83,6 +83,7 @@ de{
         bfd{"Bafut"}
         bfq{"Badaga"}
         bg{"Bulgarisch"}
+        bgc{"Haryanvi"}
         bgn{"Westliches Belutschi"}
         bho{"Bhodschpuri"}
         bi{"Bislama"}
@@ -91,6 +92,7 @@ de{
         bjn{"Banjaresisch"}
         bkm{"Kom"}
         bla{"Blackfoot"}
+        blo{"Anii"}
         bm{"Bambara"}
         bn{"Bengalisch"}
         bo{"Tibetisch"}
@@ -220,7 +222,6 @@ de{
         gmh{"Mittelhochdeutsch"}
         gn{"Guaraní"}
         goh{"Althochdeutsch"}
-        gom{"Goa-Konkani"}
         gon{"Gondi"}
         gor{"Mongondou"}
         got{"Gotisch"}
@@ -240,6 +241,7 @@ de{
         hax{"Süd-Haida"}
         he{"Hebräisch"}
         hi{"Hindi"}
+        hi_Latn{"Hindi (lateinisch)"}
         hif{"Fidschi-Hindi"}
         hil{"Hiligaynon"}
         hit{"Hethitisch"}
@@ -330,6 +332,7 @@ de{
         kv{"Komi"}
         kw{"Kornisch"}
         kwk{"Kwakʼwala"}
+        kxv{"Kuvi"}
         ky{"Kirgisisch"}
         la{"Latein"}
         lad{"Ladino"}
@@ -624,6 +627,7 @@ de{
         vi{"Vietnamesisch"}
         vls{"Westflämisch"}
         vmf{"Mainfränkisch"}
+        vmw{"Makua"}
         vo{"Volapük"}
         vot{"Wotisch"}
         vro{"Võro"}
@@ -639,6 +643,7 @@ de{
         xal{"Kalmückisch"}
         xh{"Xhosa"}
         xmf{"Mingrelisch"}
+        xnr{"Kangri"}
         xog{"Soga"}
         yao{"Yao"}
         yap{"Yapesisch"}
@@ -673,7 +678,6 @@ de{
     }
     Languages%short{
         en_GB{"Englisch (GB)"}
-        en_US{"Englisch (USA)"}
     }
     Languages%variant{
         hi_Latn{"Hinglish"}
@@ -698,7 +702,7 @@ de{
         Bugi{"Buginesisch"}
         Buhd{"Buhid"}
         Cakm{"Chakma"}
-        Cans{"UCAS"}
+        Cans{"Kanadische Aborigine-Silbenschrift"}
         Cari{"Karisch"}
         Cher{"Cherokee"}
         Cirt{"Cirth"}
@@ -736,7 +740,6 @@ de{
         Hung{"Altungarisch"}
         Inds{"Indus-Schrift"}
         Ital{"Altitalisch"}
-        Jamo{"Jamo"}
         Java{"Javanesisch"}
         Jpan{"Japanisch"}
         Jurc{"Jurchen"}
@@ -829,7 +832,6 @@ de{
         Tfng{"Tifinagh"}
         Tglg{"Tagalog"}
         Thaa{"Thaana"}
-        Thai{"Thai"}
         Tibt{"Tibetisch"}
         Tirh{"Tirhuta"}
         Ugar{"Ugaritisch"}
@@ -845,7 +847,7 @@ de{
         Zsye{"Emoji"}
         Zsym{"Symbole"}
         Zxxx{"Schriftlos"}
-        Zyyy{"Verbreitet"}
+        Zyyy{"Unbestimmt"}
         Zzzz{"Unbekannte Schrift"}
     }
     Scripts%stand-alone{
@@ -866,15 +868,13 @@ de{
             gregorian{"Gregorianischer Kalender"}
             hebrew{"Hebräischer Kalender"}
             indian{"Indischer Nationalkalender"}
-            islamic{"Islamischer Kalender"}
-            islamic-civil{"Bürgerlicher islamischer Kalender (tabellarisch)"}
-            islamic-rgsa{"Islamischer Kalender (Saudi-Arabien, Beobachtung)"}
-            islamic-tbla{"Islamischer Kalender (tabellarisch, astronomische Epoche)"}
-            islamic-umalqura{"Islamischer Umm-al-Qura-Kalender"}
+            islamic{"Hidschri-Kalender"}
+            islamic-civil{"Bürgerlicher Hidschri-Kalender (tabellarisch)"}
+            islamic-umalqura{"Hidschri-Kalender (Umm al-Qura)"}
             iso8601{"ISO-8601-Kalender"}
             japanese{"Japanischer Kalender"}
             persian{"Persischer Kalender"}
-            roc{"Kalender der Republik China"}
+            roc{"Minguo-Kalender"}
         }
         cf{
             account{"Währungsformat (Buchhaltung)"}
@@ -922,7 +922,6 @@ de{
             phonebook{"Telefonbuch-Sortierung"}
             phonetic{"Phonetische Sortierung"}
             pinyin{"Pinyin-Sortierung"}
-            reformed{"Reformierte Sortierreihenfolge"}
             search{"Allgemeine Suche"}
             searchjl{"Suche nach Anfangsbuchstaben des koreanischen Alphabets"}
             standard{"Standard-Sortierung"}
@@ -932,12 +931,12 @@ de{
             zhuyin{"Zhuyin-Sortierung"}
         }
         d0{
-            fwidth{"Breit"}
-            hwidth{"Halbe Breite"}
+            fwidth{"Vollbreit"}
+            hwidth{"Halbbreit"}
             npinyin{"Numerisch"}
         }
         hc{
-            h11{"12-Stunden-Format (0-11)"}
+            h11{"12-Stunden-Format (0–11)"}
             h12{"12-Stunden-Format (1-12)"}
             h23{"24-Stunden-Format (0-23)"}
             h24{"24-Stunden-Format (1-24)"}
@@ -1056,10 +1055,11 @@ de{
     }
     characterLabelPattern{
         all{"{0} — alle"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — Kompatibilität"}
         enclosed{"{0} — verschachtelt"}
         extended{"{0} — erweitert"}
+        facing-left{"{0} nach links"}
+        facing-right{"{0} nach rechts"}
         historic{"{0} — historisch"}
         miscellaneous{"{0} — verschiedene"}
         other{"{0} — sonstige"}
@@ -1075,10 +1075,5 @@ de{
         language{"Sprache: {0}"}
         script{"Schrift: {0}"}
         territory{"Region: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

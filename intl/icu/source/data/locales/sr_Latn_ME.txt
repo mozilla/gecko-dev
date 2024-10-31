@@ -22,29 +22,18 @@ sr_Latn_ME{
             }
             availableFormats{
                 MMMMW{
-                    few{"W. 'sjedmica' 'u' MMMM"}
-                    one{"W. 'sjedmica' 'u' MMMM"}
+                    few{"MMMM: W. 'nedelja'"}
+                    one{"MMMM: W. 'nedelja'"}
                     other{"W. 'sjedmica' 'u' MMMM"}
                 }
                 yw{
-                    few{"w. 'sjedmica' 'u' Y."}
-                    one{"w. 'sjedmica' 'u' Y."}
+                    few{"w. 'nedelja' 'u' Y."}
+                    one{"w. 'nedelja' 'u' Y."}
                     other{"w. 'sjedmica' 'u' Y."}
                 }
             }
             dayNames{
                 format{
-                    wide{
-                        "nedjelja",
-                        "ponedeljak",
-                        "utorak",
-                        "srijeda",
-                        "četvrtak",
-                        "petak",
-                        "subota",
-                    }
-                }
-                stand-alone{
                     wide{
                         "nedjelja",
                         "ponedeljak",
@@ -76,10 +65,6 @@ sr_Latn_ME{
                     }
                 }
                 stand-alone{
-                    abbreviated{
-                        am{"prije podne"}
-                        pm{"po podne"}
-                    }
                     narrow{
                         am{"a"}
                         pm{"p"}
@@ -98,22 +83,6 @@ sr_Latn_ME{
             }
             monthNames{
                 format{
-                    abbreviated{
-                        "jan",
-                        "feb",
-                        "mart",
-                        "apr",
-                        "maj",
-                        "jun",
-                        "jul",
-                        "avg",
-                        "sept",
-                        "okt",
-                        "nov",
-                        "dec",
-                    }
-                }
-                stand-alone{
                     abbreviated{
                         "jan",
                         "feb",

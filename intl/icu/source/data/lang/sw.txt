@@ -67,12 +67,14 @@ sw{
         bez{"Kibena"}
         bfd{"Kibafut"}
         bg{"Kibulgaria"}
+        bgc{"Kiharyanvi"}
         bgn{"Kibalochi cha Magharibi"}
         bho{"Kibhojpuri"}
         bi{"Kibislama"}
         bin{"Kibini"}
         bkm{"Kikom"}
         bla{"Kisiksika"}
+        blo{"Kianii"}
         bm{"Kibambara"}
         bn{"Kibengali"}
         bo{"Kitibeti"}
@@ -252,6 +254,7 @@ sw{
         kv{"Kikomi"}
         kw{"Kikorni"}
         kwk{"Kikwakʼwala"}
+        kxv{"Kikuvi"}
         ky{"Kikyrgyz"}
         la{"Kilatini"}
         lad{"Kiladino"}
@@ -261,8 +264,10 @@ sw{
         lez{"Kilezighian"}
         lg{"Kiganda"}
         li{"Limburgish"}
+        lij{"Kiliguria"}
         lil{"Kilillooet"}
         lkt{"Kilakota"}
+        lmo{"Kilongobardi"}
         ln{"Kilingala"}
         lo{"Kilaosi"}
         lol{"Kimongo"}
@@ -368,6 +373,7 @@ sw{
         pt_PT{"Kireno (Ulaya)"}
         qu{"Kikechua"}
         quc{"Kʼicheʼ"}
+        raj{"Kirajasthani"}
         rap{"Kirapanui"}
         rar{"Kirarotonga"}
         rhg{"Kirohingya"}
@@ -427,6 +433,7 @@ sw{
         sw{"Kiswahili"}
         swb{"Shikomor"}
         syr{"Lugha ya Syriac"}
+        szl{"Kisilesia"}
         ta{"Kitamili"}
         tce{"Kitutchone cha Kusini"}
         te{"Kitelugu"}
@@ -467,7 +474,9 @@ sw{
         uz{"Kiuzbeki"}
         vai{"Kivai"}
         ve{"Kivenda"}
+        vec{"Kivenisi"}
         vi{"Kivietinamu"}
+        vmw{"Kimakhuwa"}
         vo{"Kivolapuk"}
         vun{"Kivunjo"}
         wa{"Kiwaloon"}
@@ -479,6 +488,7 @@ sw{
         wuu{"Kichina cha Wu"}
         xal{"Kikalmyk"}
         xh{"Kixhosa"}
+        xnr{"Kikangri"}
         xog{"Kisoga"}
         yao{"Kiyao"}
         yav{"Kiyangben"}
@@ -487,6 +497,7 @@ sw{
         yo{"Kiyoruba"}
         yrl{"Kinheengatu"}
         yue{"Kikantoni"}
+        za{"Kizhuang"}
         zgh{"Kiberber Sanifu cha Moroko"}
         zh{"Kichina"}
         zh_Hans{"Kichina (Kilichorahisishwa)"}
@@ -506,7 +517,6 @@ sw{
     Languages%short{
         az{"Kiazeri"}
         en_GB{"Kiingereza (UK)"}
-        en_US{"Kiingereza (US)"}
     }
     Languages%variant{
         hi_Latn{"Kihindi chenye Kiingereza"}
@@ -590,9 +600,9 @@ sw{
             gregorian{"Kalenda ya Kigregori"}
             hebrew{"Kalenda ya Kiebrania"}
             indian{"Kalenda ya Taifa ya India"}
-            islamic{"Kalenda ya Kiislamu"}
-            islamic-civil{"Kalenda ya Kiislamu/Rasmi"}
-            islamic-umalqura{"Kalenda ya kiislamu (Umm al-Qura)"}
+            islamic{"Kalenda ya Hijra"}
+            islamic-civil{"Kalenda ya Hijra (inayoanza usiku wa manane)"}
+            islamic-umalqura{"Kalenda ya Hijra (Umm ul-Qura)"}
             iso8601{"Kalenda ya ISO-8601"}
             japanese{"Kalenda ya Kijapani"}
             persian{"Kalenda ya Kiajemi"}
@@ -642,7 +652,6 @@ sw{
             phonebook{"Mpangilio wa Orodha za Nambari za Simu"}
             phonetic{"Utaratibu wa Kupanga Fonetiki"}
             pinyin{"Mpangilio wa Kipinyin"}
-            reformed{"Mpangilio Uliorekebishwa"}
             search{"Utafutaji wa Kijumla"}
             searchjl{"Tafuta kwa Konsonanti Halisi ya Hangul"}
             standard{"Mpangilio wa Kawaida"}
@@ -724,10 +733,11 @@ sw{
     }
     characterLabelPattern{
         all{"{0} — zote"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — uwiano"}
         enclosed{"{0} — finyu"}
         extended{"{0} — pana"}
+        facing-left{"{0} inayoangalia kushoto"}
+        facing-right{"{0} inayoangalia kulia"}
         historic{"{0} — ya kihistoria"}
         miscellaneous{"{0} — ziada"}
         other{"{0} — nyingine"}
@@ -743,10 +753,5 @@ sw{
         language{"Lugha: {0}"}
         script{"Hati: {0}"}
         territory{"Eneo: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

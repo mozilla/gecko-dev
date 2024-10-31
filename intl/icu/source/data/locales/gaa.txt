@@ -1,0 +1,103 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+gaa{
+    AuxExemplarCharacters{"[áã é íĩ ó ũ]"}
+    ExemplarCharacters{"[a b d e ɛ f g h i j k l m n ŋ o ɔ p r s t u v w y z]"}
+    ExemplarCharactersPunctuation{"[\\- ‐‑ – — , ; \\: ! ? . … '‘’ \u0022“” ( ) \\[ \\] § @ * / \\& # † ‡ ′ ″]"}
+    NumberElements{
+        minimalPairs{
+            ordinal{
+                other{"ni ji {0}"}
+            }
+            plural{
+                other{"gbii {0}"}
+            }
+        }
+    }
+    calendar{
+        gregorian{
+            AmPmMarkers{
+                "LEEBI",
+                "SHWANE",
+            }
+            DateTimePatterns{
+                "h:mm:ss a zzzz",
+                "h:mm:ss a z",
+                "h:mm:ss a",
+                "h:mm a",
+                "y MMMM d, EEEE",
+                "y MMMM d",
+                "y MMM d",
+                "y-MM-dd",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+                "{1} {0}",
+            }
+            DateTimeSkeletons{
+                "ahmmsszzzz",
+                "ahmmssz",
+                "ahmmss",
+                "ahmm",
+                "yMMMMEEEEd",
+                "yMMMMd",
+                "yMMMd",
+                "yMMdd",
+            }
+            availableFormats{
+                yMMMd{"MMM d, y"}
+                yMd{"M/d/y"}
+            }
+            dayNames{
+                format{
+                    wide{
+                        "Hɔgbaa",
+                        "Ju",
+                        "Jufɔ",
+                        "Shɔ",
+                        "Soo",
+                        "Sohaa",
+                        "Hɔɔ",
+                    }
+                }
+            }
+            monthNames{
+                format{
+                    wide{
+                        "Aharabata",
+                        "Oflɔ",
+                        "Otsokrikri",
+                        "Abɛibe",
+                        "Agbiɛnaa",
+                        "Otukwajaŋ",
+                        "Maawɛ",
+                        "Manyawale",
+                        "Gbo",
+                        "Antɔŋ",
+                        "Alemle",
+                        "Afuabe",
+                    }
+                }
+            }
+        }
+    }
+    listPattern{
+        standard-short{
+            2{"{0} kɛ {1}"}
+            end{"{0}, kɛ {1}"}
+        }
+    }
+    measurementSystemNames{
+        metric{"Susumɔnii"}
+    }
+    personNames{
+        nameOrderLocales{
+            givenFirst{
+                "und",
+                "gaa",
+            }
+        }
+    }
+}

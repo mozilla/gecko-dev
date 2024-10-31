@@ -40,7 +40,7 @@ zu{
         ann{"isi-Obolo"}
         anp{"isi-Angika"}
         ar{"isi-Arabic"}
-        ar_001{"isi-Arabic esivamile sesimanje"}
+        ar_001{"Isi-Arabic Esivamile Sesimanje"}
         arn{"isi-Mapuche"}
         arp{"isi-Arapaho"}
         ars{"isi-Najdi Arabic"}
@@ -59,11 +59,13 @@ zu{
         bem{"isi-Bemba"}
         bez{"isi-Bena"}
         bg{"isi-Bulgari"}
+        bgc{"isi-Haryanvi"}
         bgn{"isi-Western Balochi"}
         bho{"isi-Bhojpuri"}
         bi{"isi-Bislama"}
         bin{"isi-Bini"}
         bla{"isi-Siksika"}
+        blo{"isi-Anii"}
         bm{"isi-Bambara"}
         bn{"isi-Bengali"}
         bo{"isi-Tibetan"}
@@ -241,6 +243,7 @@ zu{
         kv{"isi-Komi"}
         kw{"isi-Cornish"}
         kwk{"Kwakʼwala"}
+        kxv{"Kuvi"}
         ky{"isi-Kyrgyz"}
         la{"isi-Latin"}
         lad{"isi-Ladino"}
@@ -249,8 +252,10 @@ zu{
         lez{"isi-Lezghian"}
         lg{"isi-Ganda"}
         li{"isi-Limburgish"}
+        lij{"IsiLigurian"}
         lil{"isi-Lillooet"}
         lkt{"isi-Lakota"}
+        lmo{"IsiLombard"}
         ln{"isi-Lingala"}
         lo{"isi-Lao"}
         lou{"isi-Louisiana Creole"}
@@ -350,6 +355,7 @@ zu{
         pt_PT{"isi-European Portuguese"}
         qu{"isi-Quechua"}
         quc{"isi-Kʼicheʼ"}
+        raj{"isi-Rajasthani"}
         rap{"isi-Rapanui"}
         rar{"isi-Rarotongan"}
         rhg{"Rohingya"}
@@ -407,6 +413,7 @@ zu{
         sw_CD{"isi-Congo Swahili"}
         swb{"isi-Comorian"}
         syr{"isi-Syriac"}
+        szl{"iSilesian"}
         ta{"isi-Tamil"}
         tce{"Southern Tutchone"}
         te{"isi-Telugu"}
@@ -447,7 +454,9 @@ zu{
         uz{"isi-Uzbek"}
         vai{"isi-Vai"}
         ve{"isi-Venda"}
+        vec{"IsiVenetian"}
         vi{"isi-Vietnamese"}
+        vmw{"Makhuwa"}
         vo{"isi-Volapük"}
         vun{"isiVunjo"}
         wa{"isi-Walloon"}
@@ -459,6 +468,7 @@ zu{
         wuu{"isi-Wu Chinese"}
         xal{"isi-Kalmyk"}
         xh{"isiXhosa"}
+        xnr{"Kangri"}
         xog{"isi-Soga"}
         yav{"isi-Yangben"}
         ybb{"isi-Yemba"}
@@ -466,16 +476,18 @@ zu{
         yo{"isi-Yoruba"}
         yrl{"isi-Nheengatu"}
         yue{"isi-Cantonese"}
+        za{"IsiZhuang"}
         zgh{"isi-Moroccan Tamazight esivamile"}
         zh{"isi-Chinese"}
         zh_Hans{"isi-Chinese (esenziwe-lula)"}
-        zh_Hant{"isi-Chinese (Sasendulo)"}
+        zh_Hant{"Isi-Chinese Sasendulo"}
         zu{"isiZulu"}
         zun{"isi-Zuni"}
         zxx{"akukho okuqukethwe kolimi"}
         zza{"isi-Zaza"}
     }
     Languages%long{
+        zh_Hans{"Isi-Chinese Esenziwe Lula"}
         zh_Hant{"isi-Chinese (sasendulo)"}
     }
     Languages%menu{
@@ -679,11 +691,9 @@ zu{
             gregorian{"ikhalenda lesi-Gregorian"}
             hebrew{"Ikhalenda lesi-Hebrew"}
             indian{"i-Indian National Calender"}
-            islamic{"Ikhalenda lesi-Islamic"}
-            islamic-civil{"i-Islamic-Civil Calendar"}
-            islamic-rgsa{"Ikhalenda yesi-Islamic (Saudi Arabia, sighting)"}
-            islamic-tbla{"Ikhalenda yesi-Islamic (tabular, astronomical epoch)"}
-            islamic-umalqura{"Ikhalenda yesi-Islamic (Umm al-Qura)"}
+            islamic{"Ikhalenda lesi-Hijri"}
+            islamic-civil{"Ikhalenda lesiHijri (tabular, civil epoch)"}
+            islamic-umalqura{"Ikhalenda lesiHijri (Umm al-Qura))"}
             iso8601{"Ikhalenda le-ISO-8601"}
             japanese{"Ikhalenda lesi-Japanese"}
             persian{"Ikhalenda lesi-Persian"}
@@ -736,7 +746,6 @@ zu{
             phonebook{"Ukuhlunga kwebhuku lefoni"}
             phonetic{"Hlela Ngokwefonetiki"}
             pinyin{"Ukuhlunga nge-Pinyin"}
-            reformed{"Ukuhlunga okwenziwe kabusha"}
             search{"Usesho olujwayelekile"}
             searchjl{"Sesha nge-Hangul Ongwaqa Basekuqaleni"}
             standard{"I-oda yokuhlunga ejwayelekile"}
@@ -963,7 +972,6 @@ zu{
     }
     characterLabelPattern{
         all{"{0} — All"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — Kungasebenziswa"}
         enclosed{"{0} — kakiwe"}
         extended{"{0} — nwetshiwe"}
@@ -980,10 +988,5 @@ zu{
         language{"Ulimi: {0}"}
         script{"Umbhalo: {0}"}
         territory{"Isiyingi: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

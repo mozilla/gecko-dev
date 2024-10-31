@@ -1,0 +1,26 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kok_Latn{
+    %%Parent{"root"}
+    Languages{
+        ar{"Arbi"}
+        el{"Grik"}
+        en{"Inglix"}
+        es{"Ispanhol"}
+        fr{"Fransez"}
+        kn{"Kon’nodd"}
+        kok{"Konknni"}
+        mr{"Moratthi"}
+        zh{"Chini"}
+    }
+    Scripts{
+        Deva{"Devanagari"}
+        Latn{"Romi"}
+    }
+    codePatterns{
+        language{"Bhas: {0}"}
+        script{"Lipi: {0}"}
+        territory{"Prant: {0}"}
+    }
+}

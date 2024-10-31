@@ -84,6 +84,7 @@ zh_Hant{
         bfd{"富特文"}
         bfq{"巴達加文"}
         bg{"保加利亞文"}
+        bgc{"哈里亞納文"}
         bgn{"西俾路支文"}
         bho{"博傑普爾文"}
         bi{"比斯拉馬文"}
@@ -92,6 +93,7 @@ zh_Hant{
         bjn{"班亞爾文"}
         bkm{"康姆文"}
         bla{"錫克錫卡文"}
+        blo{"阿尼文"}
         bm{"班巴拉文"}
         bn{"孟加拉文"}
         bo{"藏文"}
@@ -127,6 +129,7 @@ zh_Hant{
         chp{"奇佩瓦揚文"}
         chr{"柴羅基文"}
         chy{"沙伊安文"}
+        cic{"契卡索文"}
         ckb{"中庫德文"}
         clc{"齊爾柯廷語"}
         co{"科西嘉文"}
@@ -134,7 +137,7 @@ zh_Hant{
         cps{"卡皮茲文"}
         cr{"克里文"}
         crg{"米奇夫語"}
-        crh{"土耳其文（克里米亞半島）"}
+        crh{"克里米亞韃靼文"}
         crj{"東南克里語"}
         crk{"平原克里語"}
         crl{"北部東克里語"}
@@ -143,7 +146,7 @@ zh_Hant{
         crs{"塞席爾克里奧爾法文"}
         cs{"捷克文"}
         csb{"卡舒布文"}
-        csw{"沼澤克里語"}
+        csw{"沼澤克里文"}
         cu{"宗教斯拉夫文"}
         cv{"楚瓦什文"}
         cy{"威爾斯文"}
@@ -219,7 +222,6 @@ zh_Hant{
         gmh{"中古高地德文"}
         gn{"瓜拉尼文"}
         goh{"古高地德文"}
-        gom{"孔卡尼文"}
         gon{"岡德文"}
         gor{"科隆達羅文"}
         got{"哥德文"}
@@ -232,7 +234,7 @@ zh_Hant{
         guz{"古西文"}
         gv{"曼島文"}
         gwi{"圭契文"}
-        ha{"豪撒文"}
+        ha{"豪薩文"}
         hai{"海達文"}
         hak{"客家話"}
         haw{"夏威夷文"}
@@ -243,7 +245,7 @@ zh_Hant{
         hif{"斐濟印地文"}
         hil{"希利蓋農文"}
         hit{"赫梯文"}
-        hmn{"孟文"}
+        hmn{"苗語"}
         ho{"西里莫圖土文"}
         hr{"克羅埃西亞文"}
         hsb{"上索布文"}
@@ -330,6 +332,7 @@ zh_Hant{
         kv{"科米文"}
         kw{"康瓦耳文"}
         kwk{"誇誇嘉誇語"}
+        kxv{"庫維文"}
         ky{"吉爾吉斯文"}
         la{"拉丁文"}
         lad{"拉迪諾文"}
@@ -367,7 +370,7 @@ zh_Hant{
         lzz{"拉茲文"}
         mad{"馬都拉文"}
         maf{"馬法文"}
-        mag{"馬加伊文"}
+        mag{"摩揭陀文"}
         mai{"邁蒂利文"}
         mak{"望加錫文"}
         man{"曼丁哥文"}
@@ -412,7 +415,7 @@ zh_Hant{
         nan{"閩南語"}
         nap{"拿波里文"}
         naq{"納馬文"}
-        nb{"巴克摩挪威文"}
+        nb{"書面挪威文"}
         nd{"北地畢列文"}
         nds{"低地德文"}
         nds_NL{"低地薩克遜文"}
@@ -423,9 +426,9 @@ zh_Hant{
         niu{"紐埃文"}
         njo{"阿沃那加文"}
         nl{"荷蘭文"}
-        nl_BE{"佛蘭芒文"}
+        nl_BE{"法蘭德斯文"}
         nmg{"夸西奧文"}
-        nn{"耐諾斯克挪威文"}
+        nn{"新挪威文"}
         nnh{"恩甘澎文"}
         no{"挪威文"}
         nog{"諾蓋文"}
@@ -544,7 +547,7 @@ zh_Hant{
         sn{"紹納文"}
         snk{"索尼基文"}
         so{"索馬利文"}
-        sog{"索格底亞納文"}
+        sog{"粟特文"}
         sq{"阿爾巴尼亞文"}
         sr{"塞爾維亞文"}
         srn{"蘇拉南東墎文"}
@@ -624,6 +627,7 @@ zh_Hant{
         vi{"越南文"}
         vls{"西佛蘭德文"}
         vmf{"美茵-法蘭克尼亞文"}
+        vmw{"馬庫瓦文"}
         vo{"沃拉普克文"}
         vot{"沃提克文"}
         vro{"佛羅文"}
@@ -639,6 +643,7 @@ zh_Hant{
         xal{"卡爾梅克文"}
         xh{"科薩文"}
         xmf{"明格列爾文"}
+        xnr{"康格里"}
         xog{"索加文"}
         yao{"瑤文"}
         yap{"雅浦文"}
@@ -667,7 +672,7 @@ zh_Hant{
     }
     Languages%variant{
         ckb{"庫德文（索拉尼）"}
-        hi_Latn{"印地語"}
+        hi_Latn{"印地英語"}
     }
     Scripts{
         Adlm{"富拉文"}
@@ -706,7 +711,7 @@ zh_Hant{
         Dupl{"杜普洛伊速記"}
         Egyd{"古埃及世俗體"}
         Egyh{"古埃及僧侶體"}
-        Egyp{"古埃及象形文字"}
+        Egyp{"古埃及聖書體"}
         Elba{"愛爾巴桑文"}
         Ethi{"衣索比亞文"}
         Geok{"喬治亞語系（阿索他路里和努斯克胡里文）"}
@@ -719,7 +724,7 @@ zh_Hant{
         Gujr{"古吉拉特文"}
         Guru{"古魯穆奇文"}
         Hanb{"標上注音符號的漢字"}
-        Hang{"韓文字"}
+        Hang{"諺文"}
         Hani{"漢字"}
         Hano{"哈努諾文"}
         Hans{"簡體"}
@@ -747,10 +752,10 @@ zh_Hant{
         Kpel{"克培列文"}
         Kthi{"凱提文"}
         Lana{"藍拿文"}
-        Laoo{"寮國文"}
+        Laoo{"寮文"}
         Latf{"拉丁文（尖角體活字變體）"}
         Latg{"拉丁文（蓋爾語變體）"}
-        Latn{"拉丁文"}
+        Latn{"拉丁字母"}
         Lepc{"雷布查文"}
         Limb{"林佈文"}
         Lina{"線性文字（A）"}
@@ -762,7 +767,7 @@ zh_Hant{
         Mahj{"印地文"}
         Mand{"曼底安文"}
         Mani{"摩尼教文"}
-        Marc{"藏文"}
+        Marc{"瑪欽文"}
         Maya{"瑪雅象形文字"}
         Mend{"門德文"}
         Merc{"麥羅埃文（曲線字體）"}
@@ -780,7 +785,7 @@ zh_Hant{
         Newa{"Vote 尼瓦爾文"}
         Nkgb{"納西格巴文"}
         Nkoo{"西非書面語言 (N’Ko)"}
-        Nshu{"女書文字"}
+        Nshu{"女書"}
         Ogam{"歐甘文"}
         Olck{"桑塔利文"}
         Orkh{"鄂爾渾文"}
@@ -812,6 +817,8 @@ zh_Hant{
         Sidd{"悉曇文字"}
         Sind{"信德文"}
         Sinh{"錫蘭文"}
+        Sogd{"粟特文"}
+        Sogo{"古粟特文"}
         Sora{"索朗桑朋文字"}
         Soyo{"索永布文字"}
         Sund{"巽他文"}
@@ -833,7 +840,7 @@ zh_Hant{
         Tglg{"塔加拉文"}
         Thaa{"塔安那文"}
         Thai{"泰文"}
-        Tibt{"西藏文"}
+        Tibt{"藏文"}
         Tirh{"邁蒂利文"}
         Ugar{"烏加列文"}
         Vaii{"瓦依文"}
@@ -874,7 +881,7 @@ zh_Hant{
             islamic-civil{"伊斯蘭民用曆"}
             islamic-rgsa{"伊斯蘭新月曆"}
             islamic-tbla{"伊斯蘭天文曆"}
-            islamic-umalqura{"烏姆庫拉曆"}
+            islamic-umalqura{"伊斯蘭曆（烏姆庫拉）"}
             iso8601{"ISO 8601 國際曆法"}
             japanese{"日本曆"}
             persian{"波斯曆"}
@@ -927,9 +934,8 @@ zh_Hant{
             phonebook{"電話簿排序"}
             phonetic{"發音排序"}
             pinyin{"拼音排序"}
-            reformed{"改良排序"}
             search{"一般用途搜尋"}
-            searchjl{"韓文子音排序"}
+            searchjl{"依諺文聲母搜尋"}
             standard{"標準排序"}
             stroke{"筆畫排序"}
             traditional{"傳統排序"}
@@ -1034,7 +1040,7 @@ zh_Hant{
             tamldec{"坦米爾數字"}
             telu{"泰盧固數字"}
             thai{"泰文數字"}
-            tibt{"西藏數字"}
+            tibt{"藏文數字"}
             tirh{"提爾胡塔數字"}
             traditional{"傳統數字"}
             vaii{"瓦伊文數字"}
@@ -1117,10 +1123,12 @@ zh_Hant{
     }
     characterLabelPattern{
         all{"{0} — 全部"}
-        category-list{"{0}: {1}"}
+        category-list{"{0}：{1}"}
         compatibility{"{0} — 相容"}
         enclosed{"{0} — 加框"}
         extended{"{0} — 延伸"}
+        facing-left{"{0} 面左"}
+        facing-right{"{0} 面右"}
         historic{"{0} — 古老"}
         miscellaneous{"{0} — 混合"}
         other{"{0} — 其他"}

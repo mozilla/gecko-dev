@@ -30,7 +30,6 @@ sr_Latn_BA{
             dictionary{"redoslijed sortiranja u rječniku"}
             ducet{"podrazumijevani Unicode redoslijed sortiranja"}
             phonetic{"fonetski redoslijed sortiranja"}
-            reformed{"reformisani redoslijed sortiranja"}
             search{"pretraga opšte namjene"}
             standard{"standardni redoslijed sortiranja"}
             unihan{"redoslijed sortiranja radikalnih poteza"}
@@ -38,5 +37,8 @@ sr_Latn_BA{
         numbers{
             mymr{"mjanmarske cifre"}
         }
+    }
+    characterLabelPattern{
+        facing-left{"{0} gleda ulijevo"}
     }
 }

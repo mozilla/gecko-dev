@@ -68,12 +68,14 @@ is{
         bem{"bemba"}
         bez{"bena"}
         bg{"búlgarska"}
+        bgc{"haryanví"}
         bgn{"vesturbalotsí"}
         bho{"bojpúrí"}
         bi{"bíslama"}
         bik{"bíkol"}
         bin{"bíní"}
         bla{"siksika"}
+        blo{"anii"}
         bm{"bambara"}
         bn{"bengalska"}
         bo{"tíbeska"}
@@ -293,6 +295,7 @@ is{
         kv{"komíska"}
         kw{"kornbreska"}
         kwk{"kwakʼwala"}
+        kxv{"kúví"}
         ky{"kirgiska"}
         la{"latína"}
         lad{"ladínska"}
@@ -303,8 +306,10 @@ is{
         lez{"lesgíska"}
         lg{"ganda"}
         li{"limbúrgíska"}
+        lij{"lígúríska"}
         lil{"lillooet"}
         lkt{"lakóta"}
+        lmo{"lombardíska"}
         ln{"lingala"}
         lo{"laó"}
         lol{"mongó"}
@@ -493,6 +498,7 @@ is{
         swb{"shimaoríska"}
         syc{"klassísk sýrlenska"}
         syr{"sýrlenska"}
+        szl{"slesíska"}
         ta{"tamílska"}
         tce{"suður-tutchone"}
         te{"telúgú"}
@@ -541,7 +547,9 @@ is{
         uz{"úsbekska"}
         vai{"vaí"}
         ve{"venda"}
+        vec{"feneyska"}
         vi{"víetnamska"}
+        vmw{"makúva"}
         vo{"volapyk"}
         vot{"votíska"}
         vun{"vunjó"}
@@ -555,6 +563,7 @@ is{
         wuu{"wu-kínverska"}
         xal{"kalmúkska"}
         xh{"sósa"}
+        xnr{"kangrí"}
         xog{"sóga"}
         yao{"jaó"}
         yap{"japíska"}
@@ -641,8 +650,8 @@ is{
         Orya{"oriya"}
         Rohg{"hanifi"}
         Sinh{"sinhala"}
-        Sund{"sundanesíska"}
-        Syrc{"syriakíska"}
+        Sund{"sundanesískt"}
+        Syrc{"syriakískt"}
         Taml{"tamílskt"}
         Telu{"telúgú"}
         Tfng{"tifinagh"}
@@ -730,7 +739,6 @@ is{
             phonebook{"Símaskráarröðun"}
             phonetic{"Hljóðfræðileg röð"}
             pinyin{"Pinyin-röðun"}
-            reformed{"Endurbætt röð"}
             search{"Almenn leit"}
             searchjl{"Leita eftir upphafssamhljóða í Hangul"}
             standard{"Stöðluð röðun"}
@@ -813,10 +821,11 @@ is{
     }
     characterLabelPattern{
         all{"{0} — allt"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — samhæfi"}
         enclosed{"{0} — lokað"}
         extended{"{0} — aukið"}
+        facing-left{"{0} snýr til vinstri"}
+        facing-right{"{0} snýr til hægri"}
         historic{"{0} — sögulegt"}
         miscellaneous{"{0} — ýmislegt"}
         other{"{0} — annað"}
@@ -832,10 +841,5 @@ is{
         language{"tungumál: {0}"}
         script{"leturgerð: {0}"}
         territory{"svæði: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

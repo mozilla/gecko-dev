@@ -830,7 +830,6 @@ brx{
         territory{"ओनसोल: {0}"}
     }
     localeDisplayPattern{
-        pattern{"{0} ({1})"}
         separator{"{0},{1}"}
     }
 }

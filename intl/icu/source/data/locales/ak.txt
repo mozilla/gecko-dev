@@ -2,23 +2,171 @@
 // License & terms of use: http://www.unicode.org/copyright.html
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 ak{
-    AuxExemplarCharacters{"[c j q v z]"}
+    AuxExemplarCharacters{"[áäã c éë í j óö q ü v z]"}
     ExemplarCharacters{"[a b d e ɛ f g h i k l m n o ɔ p r s t u w y]"}
     ExemplarCharactersIndex{"[A B C D E Ɛ F G H I J K L M N O Ɔ P Q R S T U V W X Y Z]"}
-    ExemplarCharactersNumbers{"[\\- ‑ , . % ‰ + 0 1 2 3 4 5 6 7 8 9]"}
     NumberElements{
         latn{
             patterns{
+                accountingFormat{"¤#,##0.00;(¤#,##0.00)"}
+                accountingFormat%alphaNextToNumber{"¤ #,##0.00;(¤ #,##0.00)"}
+                accountingFormat%noCurrency{"#,##0.00;(#,##0.00)"}
                 currencyFormat{"¤#,##0.00"}
             }
-            symbols{
-                decimal{"."}
-                group{","}
+            patternsLong{
+                decimalFormat{
+                    1000{
+                        one{"apem 0"}
+                        other{"apem 0"}
+                    }
+                    10000{
+                        one{"mpem 00"}
+                        other{"mpem 00"}
+                    }
+                    100000{
+                        one{"mpem 000"}
+                        other{"mpem 000"}
+                    }
+                    1000000{
+                        one{"ɔpepem 0"}
+                        other{"ɔpepem 0"}
+                    }
+                    10000000{
+                        one{"ɔpepem 00"}
+                        other{"ɔpepem 00"}
+                    }
+                    100000000{
+                        one{"ɔpepem 000"}
+                        other{"ɔpepem 000"}
+                    }
+                    1000000000{
+                        one{"ɔpepepem 0"}
+                        other{"ɔpepepem 0"}
+                    }
+                    10000000000{
+                        one{"ɔpepepem 00"}
+                        other{"ɔpepepem 00"}
+                    }
+                    100000000000{
+                        one{"ɔpepepem 000"}
+                        other{"ɔpepepem 000"}
+                    }
+                    1000000000000{
+                        one{"ɔpepepepem 0"}
+                        other{"ɔpepepepem 0"}
+                    }
+                    10000000000000{
+                        one{"ɔpepepepem 00"}
+                        other{"ɔpepepepem 00"}
+                    }
+                    100000000000000{
+                        one{"ɔpepepepem 000"}
+                        other{"ɔpepepepem 000"}
+                    }
+                }
+            }
+            patternsShort{
+                currencyFormat{
+                    1000{
+                        one{"¤0K"}
+                        other{"¤0K"}
+                    }
+                    10000{
+                        one{"¤00K"}
+                        other{"¤00K"}
+                    }
+                    100000{
+                        one{"¤000K"}
+                        other{"¤000K"}
+                    }
+                    1000000{
+                        one{"¤0M"}
+                        other{"¤0M"}
+                    }
+                    10000000{
+                        one{"¤00M"}
+                        other{"¤00M"}
+                    }
+                    100000000{
+                        one{"¤000M"}
+                        other{"¤000M"}
+                    }
+                    10000000000{
+                        one{"¤00B"}
+                        other{"¤00B"}
+                    }
+                    100000000000{
+                        one{"¤000G"}
+                        other{"¤000G"}
+                    }
+                    1000000000000{
+                        one{"¤0T"}
+                        other{"¤0T"}
+                    }
+                    10000000000000{
+                        one{"¤00T"}
+                        other{"¤00T"}
+                    }
+                    100000000000000{
+                        one{"¤000T"}
+                        other{"¤000T"}
+                    }
+                }
+                currencyFormat%alphaNextToNumber{
+                    1000{
+                        one{"¤ 0K"}
+                        other{"¤ 0K"}
+                    }
+                    10000{
+                        one{"¤ 00K"}
+                        other{"¤ 00K"}
+                    }
+                    100000{
+                        one{"¤ 000K"}
+                        other{"¤ 000K"}
+                    }
+                    1000000{
+                        one{"¤ 0M"}
+                        other{"¤ 0M"}
+                    }
+                    10000000{
+                        one{"¤ 00M"}
+                        other{"¤ 00M"}
+                    }
+                    100000000{
+                        one{"¤ 000M"}
+                        other{"¤ 000M"}
+                    }
+                    1000000000{
+                        one{"¤ 0G"}
+                        other{"¤ 0G"}
+                    }
+                    10000000000{
+                        one{"¤ 00B"}
+                        other{"¤ 00G"}
+                    }
+                    100000000000{
+                        one{"¤ 000G"}
+                        other{"¤ 000G"}
+                    }
+                    1000000000000{
+                        one{"¤ 0T"}
+                        other{"¤ 0T"}
+                    }
+                    10000000000000{
+                        one{"¤ 00T"}
+                        other{"¤ 00T"}
+                    }
+                    100000000000000{
+                        one{"¤ 000T"}
+                        other{"¤ 000T"}
+                    }
+                }
             }
         }
         minimalPairs{
             ordinal{
-                other{"Fa nyimfa {0}."}
+                other{"Fa nifa {0}"}
             }
             plural{
                 one{"da {0}"}
@@ -54,19 +202,11 @@ ak{
                 "GGGGGyyMMdd",
             }
             availableFormats{
-                Hm{"HH:mm"}
-                Hms{"HH:mm:ss"}
-                M{"L"}
                 MEd{"E, M/d"}
-                MMM{"LLL"}
                 MMMEd{"E, MMM d"}
                 MMMMEd{"E, MMMM d"}
-                MMMMd{"MMMM d"}
-                MMMd{"MMM d"}
                 Md{"M/d"}
-                d{"d"}
                 hm{"h:mm a"}
-                ms{"mm:ss"}
                 y{"y"}
                 yM{"M/y"}
                 yMEd{"E, M/d/y"}
@@ -77,12 +217,17 @@ ak{
                 yQQQ{"QQQ y"}
                 yQQQQ{"QQQQ y"}
             }
+            intervalFormats{
+                yMMM{
+                    M{"MMM – MMM Y G"}
+                    y{"MMM y– MMM Y G"}
+                }
+                yMMMd{
+                    d{"MMM d – d, y G"}
+                }
+            }
         }
         gregorian{
-            AmPmMarkers{
-                "AN",
-                "EW",
-            }
             AmPmMarkersAbbr{
                 "AN",
                 "EW",
@@ -92,15 +237,21 @@ ak{
                 "h:mm:ss a z",
                 "h:mm:ss a",
                 "h:mm a",
-                "EEEE, y MMMM dd",
-                "y MMMM d",
-                "y MMM d",
-                "yy/MM/dd",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
-                "{1} {0}",
+                "EEE, MMMM d, y",
+                "MMMM d, y",
+                "MMM d, y",
+                "M/d/yy",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+                "{1}, {0}",
+            }
+            DateTimePatterns%atTime{
+                "{1} 'wɔ' {0}",
+                "{1} 'wɔ' {0}",
+                "{1}, {0}",
+                "{1}, {0}",
             }
             DateTimeSkeletons{
                 "ahmmsszzzz",
@@ -113,25 +264,17 @@ ak{
                 "yyMMdd",
             }
             availableFormats{
-                Hm{"HH:mm"}
-                Hms{"HH:mm:ss"}
-                M{"L"}
                 MEd{"E, M/d"}
-                MMM{"LLL"}
                 MMMEd{"E, MMM d"}
                 MMMMEd{"E, MMMM d"}
-                MMMMd{"MMMM d"}
-                MMMd{"MMM d"}
                 Md{"M/d"}
-                d{"d"}
                 hm{"h:mm a"}
-                ms{"mm:ss"}
-                y{"y"}
                 yM{"M/y"}
                 yMEd{"E, M/d/y"}
                 yMMM{"MMM y"}
                 yMMMEd{"E, MMM d, y"}
                 yMMMM{"MMMM y"}
+                yMMMd{"MMM d, y"}
                 yMd{"y/M/d"}
                 yQQQ{"QQQ y"}
                 yQQQQ{"QQQQ y"}
@@ -148,12 +291,12 @@ ak{
                         "Mem",
                     }
                     wide{
-                        "Kwesida",
-                        "Dwowda",
+                        "Kwasiada",
+                        "Dwoada",
                         "Benada",
-                        "Wukuda",
-                        "Yawda",
-                        "Fida",
+                        "Wukuada",
+                        "Yawoada",
+                        "Fiada",
                         "Memeneda",
                     }
                 }
@@ -167,6 +310,23 @@ ak{
                         "F",
                         "M",
                     }
+                    wide{
+                        "Kwasiada",
+                        "Dwoada",
+                        "Benada",
+                        "Wukuada",
+                        "Yawoada",
+                        "Fiada",
+                        "Memeneda",
+                    }
+                }
+            }
+            dayPeriod{
+                stand-alone{
+                    wide{
+                        am{"AN"}
+                        pm{"ANW"}
+                    }
                 }
             }
             eras{
@@ -174,89 +334,1158 @@ ak{
                     "AK",
                     "KE",
                 }
+                abbreviated%variant{
+                    "AK",
+                    "KA",
+                }
                 wide{
                     "Ansa Kristo",
-                    "Kristo Ekyiri",
+                    "Kristo Akyi",
+                }
+                wide%variant{
+                    "Ansa Daa Berɛ",
+                    "Daa Berɛm",
+                }
+            }
+            intervalFormats{
+                GyM{
+                    G{"M/y G – M/y G"}
+                    M{"M/y – M/y G"}
+                    y{"M/y – M/y G"}
+                }
+                GyMEd{
+                    G{"E, M/d/y G – E, M/d/y G"}
+                    M{"E, M/d/y – E, M/d/y G"}
+                    d{"E, M/d/y – E, M/d/y G"}
+                    y{"E, M/d/y – E, M/d/y G"}
+                }
+                GyMMM{
+                    G{"MMM y G – MMM y G"}
+                    M{"MMM – MMM y G"}
+                    y{"MMM y – MMM y G"}
+                }
+                GyMMMEd{
+                    G{"E, MMM d, y G – E, MMM d, y G"}
+                    M{"E, MMM d – E, MMM d, y G"}
+                    d{"E, MMM d – E, MMM d, y G"}
+                    y{"E, MMM d, y – E, MMM d, y G"}
+                }
+                GyMMMd{
+                    G{"MMM d, y G – MMM d, y G"}
+                    M{"MMM d – MMM d, y G"}
+                    d{"MMM d – d, y G"}
+                    y{"MMM d, y – MMM d, y G"}
+                }
+                GyMd{
+                    G{"M/d/y G – M/d/y G"}
+                    M{"M/d/y – M/d/y G"}
+                    d{"M/d/y – M/d/y G"}
+                    y{"M/d/y – M/d/y G"}
+                }
+                M{
+                    M{"M – M"}
+                }
+                MEd{
+                    M{"E, M/d – E, M/d"}
+                    d{"E, M/d – E, M/d"}
+                }
+                MMM{
+                    M{"MMM – MMM"}
+                }
+                MMMEd{
+                    M{"E, MMM d – E, MMM d"}
+                    d{"E, MMM d – E, MMM d"}
+                }
+                MMMd{
+                    M{"MMM d – MMM d"}
+                }
+                Md{
+                    M{"M/d – M/d"}
+                    d{"M/d – M/d"}
+                }
+                yM{
+                    M{"M/y – M/y"}
+                    y{"M/y – M/y"}
+                }
+                yMEd{
+                    M{"E, M/d/y – E, M/d/y"}
+                    d{"E, M/d/y – E, M/d/y"}
+                    y{"E, M/d/y – E, M/d/y"}
+                }
+                yMMM{
+                    M{"MMM – MMM y"}
+                    y{"MMM y – MMM y"}
+                }
+                yMMMEd{
+                    M{"E, MMM d – E, MMM d, y"}
+                    d{"E, MMM d – E, MMM d, y"}
+                }
+                yMMMd{
+                    M{"MMM d – MMM d, y"}
+                    d{"MMM d – d, y"}
+                    y{"MMM d, y – MMM d, y"}
+                }
+                yMd{
+                    M{"M/d/y – M/d/y"}
+                    d{"M/d/y – M/d/y"}
+                    y{"M/d/y – M/d/y"}
                 }
             }
             monthNames{
                 format{
                     abbreviated{
-                        "S-Ɔ",
-                        "K-Ɔ",
-                        "E-Ɔ",
-                        "E-O",
-                        "E-K",
-                        "O-A",
-                        "A-K",
-                        "D-Ɔ",
-                        "F-Ɛ",
-                        "Ɔ-A",
-                        "Ɔ-O",
-                        "M-Ɔ",
+                        "Ɔpɛpɔn",
+                        "Ɔgyefoɔ",
+                        "Ɔbɛnem",
+                        "Oforisuo",
+                        "Kɔtɔnimma",
+                        "Ayɛwohomumu",
+                        "Kutawonsa",
+                        "Ɔsanaa",
+                        "Ɛbɔ",
+                        "Ahinime",
+                        "Obubuo",
+                        "Ɔpɛnimma",
+                    }
+                    narrow{
+                        "Ɔ",
+                        "Ɔ",
+                        "Ɔ",
+                        "O",
+                        "K",
+                        "A",
+                        "K",
+                        "Ɔ",
+                        "Ɛ",
+                        "A",
+                        "O",
+                        "Ɔ",
                     }
                     wide{
-                        "Sanda-Ɔpɛpɔn",
-                        "Kwakwar-Ɔgyefuo",
-                        "Ebɔw-Ɔbenem",
-                        "Ebɔbira-Oforisuo",
-                        "Esusow Aketseaba-Kɔtɔnimba",
-                        "Obirade-Ayɛwohomumu",
-                        "Ayɛwoho-Kitawonsa",
-                        "Difuu-Ɔsandaa",
-                        "Fankwa-Ɛbɔ",
-                        "Ɔbɛsɛ-Ahinime",
-                        "Ɔberɛfɛw-Obubuo",
-                        "Mumu-Ɔpɛnimba",
+                        "Ɔpɛpɔn",
+                        "Ɔgyefoɔ",
+                        "Ɔbɛnem",
+                        "Oforisuo",
+                        "Kɔtɔnimma",
+                        "Ayɛwohomumu",
+                        "Kutawonsa",
+                        "Ɔsanaa",
+                        "Ɛbɔ",
+                        "Ahinime",
+                        "Obubuo",
+                        "Ɔpɛnimma",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "Ɔpɛpɔn",
+                        "Ɔgyefoɔ",
+                        "Ɔbɛnem",
+                        "Oforisuo",
+                        "Kɔtɔnimma",
+                        "Ayɛwohomumu",
+                        "Kutawonsa",
+                        "Ɔsanaa",
+                        "Ɛbɔ",
+                        "Ahinime",
+                        "Obubuo",
+                        "Ɔpɛnimma",
+                    }
+                    narrow{
+                        "Ɔ",
+                        "Ɔ",
+                        "Ɔ",
+                        "O",
+                        "K",
+                        "A",
+                        "K",
+                        "Ɔ",
+                        "Ɛ",
+                        "A",
+                        "O",
+                        "Ɔ",
+                    }
+                    wide{
+                        "Ɔpɛpɔn",
+                        "Ɔgyefoɔ",
+                        "Ɔbɛnem",
+                        "Oforisuo",
+                        "Kɔtɔnimma",
+                        "Ayɛwohomumu",
+                        "Kutawonsa",
+                        "Ɔsanaa",
+                        "Ɛbɔ",
+                        "Ahinime",
+                        "Obubuo",
+                        "Ɔpɛnimma",
+                    }
+                }
+            }
+            quarters{
+                format{
+                    abbreviated{
+                        "Kɔta1",
+                        "Kɔta2",
+                        "Kɔta3",
+                        "Kɔta4",
+                    }
+                    wide{
+                        "Kɔta a ɛdi kan",
+                        "kɔta a ɛtɔ so mmienu",
+                        "Kɔta a ɛtɔ so mmiɛnsa",
+                        "Kɔta a ɛtɔ so nnan",
+                    }
+                }
+                stand-alone{
+                    abbreviated{
+                        "Kɔta1",
+                        "Kɔta2",
+                        "Kɔta3",
+                        "Kɔta4",
+                    }
+                    wide{
+                        "Kɔta a ɛdi kan",
+                        "kɔta a ɛtɔ so mmienu",
+                        "Kɔta a ɛtɔ so mmiɛnsa",
+                        "Kɔta a ɛtɔ so nnan",
                     }
                 }
             }
         }
     }
-    delimiters{
-        alternateQuotationEnd{"’"}
-        alternateQuotationStart{"‘"}
-        quotationEnd{"”"}
-        quotationStart{"“"}
+    characterLabel{
+        activities{"aktifiti"}
+        african_scripts{"Afrika sikripite"}
+        american_scripts{"Amɛrika sikripite"}
+        animal{"aboa"}
+        animals_nature{"aboa anaa neekya"}
+        arrows{"aaro"}
+        body{"bɔdi"}
+        box_drawing{"box drɔɔwen"}
+        building{"booden"}
+        bullets_stars{"bulɛt anaa setaa"}
+        consonantal_jamo{"kɔnsonantaa gyamo"}
+        currency_symbols{"kɛɛrɛnsi simboo"}
+        dash_connector{"dash anaa kɔnɛkta"}
+        digits{"digyite"}
+        divination_symbols{"akɔmfosɛm ahyɛnsodeɛ"}
+        downwards_arrows{"fam aaro"}
+        downwards_upwards_arrows{"fam soro aaro"}
+        east_asian_scripts{"Asia Apueɛ sikripite"}
+        emoji{"ɛmogyi"}
+        european_scripts{"Yuropu sikripite"}
+        female{"ɔbaa"}
+        food_drink{"aduane ne nsa"}
+        format{"fɔɔmate"}
+        format_whitespace{"fɔɔmate ne whitespace"}
+        geometric_shapes{"gyeomɛtrike hyepe"}
+        han_characters{"Han karata"}
+        han_radicals{"Han radikaa"}
+        hanja{"hangya"}
+        hanzi_simplified{"Hansi (deɛ ɛmmerɛ)"}
+        hanzi_traditional{"Hansi (tete)"}
+        heart{"akoma"}
+        historic_scripts{"histɔrike sikripite"}
+        ideographic_desc_characters{"ideografike desc. karata"}
+        japanese_kana{"Gyapanfoɔ kana"}
+        kanji{"kangya"}
+        keycap{"kiikape"}
+        leftwards_arrows{"bɛnkum aaro"}
+        leftwards_rightwards_arrows{"bɛnkum nifa aaro"}
+        letterlike_symbols{"lɛtɛnseso simboo"}
+        limited_use{"dwuma a anohyetoɔ da ho"}
+        male{"barima"}
+        math_symbols{"nkontaa simboo"}
+        middle_eastern_scripts{"Apueɛ Mfinimfini sikripite"}
+        miscellaneous{"misilaniyɔso"}
+        modern_scripts{"mɔɔden sikripite"}
+        modifier{"mɔdifaya"}
+        musical_symbols{"nnwom simboo"}
+        nature{"nakya"}
+        nonspacing{"nɔnspesine"}
+        numbers{"nɔma"}
+        objects{"adeɛ"}
+        other{"foforɔ"}
+        paired{"pɛɛde"}
+        person{"onipa"}
+        phonetic_alphabet{"fɔnɛtise atwerɛdeɛ"}
+        pictographs{"piktografo"}
+        place{"beaeɛ"}
+        plant{"afifideɛ"}
+        punctuation{"pɔntuehyen"}
+        rightwards_arrows{"nifa aaro"}
+        sign_standard_symbols{"saane anaa simboo"}
+        small_form_variant{"variants nketewa"}
+        smiley{"simaili"}
+        smileys_people{"simaili anaa onipa"}
+        south_asian_scripts{"Asia Anaafoɔ sikripite"}
+        southeast_asian_scripts{"Asia Anaafoɔapueɛ sikripite"}
+        spacing{"spesine"}
+        sport{"spɔto"}
+        symbols{"simboo"}
+        technical_symbols{"tɛknekaa simboo"}
+        tone_marks{"toonu maake"}
+        travel{"akwantuo"}
+        travel_places{"akwantuo anaa beaeɛ"}
+        upwards_arrows{"soro aaro"}
+        vocalic_jamo{"vokalike gyamo"}
+        weather{"wɛda"}
+        western_asian_scripts{"Asia Atɔeɛ sikripite"}
     }
     fields{
         day{
             dn{"Da"}
             relative{
-                "-1"{"Ndeda"}
-                "0"{"Ndɛ"}
+                "-1"{"nnora"}
+                "0"{"ɛnnɛ"}
                 "1"{"Ɔkyena"}
             }
+            relativeTime{
+                future{
+                    one{"da {0} mu"}
+                    other{"nna {0} mu"}
+                }
+                past{
+                    one{"da{0} a atwam"}
+                    other{"nna{0} a atwam"}
+                }
+            }
+        }
+        day-narrow{
+            relative{
+                "-1"{"ɛnnora"}
+                "0"{"ɛnnɛ"}
+                "1"{"Ɔkyena"}
+            }
+            relativeTime{
+                future{
+                    one{"da {0} mu"}
+                    other{"nna {0} mu"}
+                }
+                past{
+                    one{"da{0} a atwam"}
+                    other{"nna{0} a atwam"}
+                }
+            }
+        }
+        day-short{
+            relative{
+                "-1"{"Ndeda ɛnnora"}
+                "0"{"Ndɛ ɛnnɛ"}
+                "1"{"Ɔkyena"}
+            }
+            relativeTime{
+                future{
+                    one{"da {0} mu"}
+                    other{"nna {0} mu"}
+                }
+                past{
+                    one{"da{0} a atwam"}
+                    other{"nna{0} a atwam"}
+                }
+            }
+        }
+        dayOfYear{
+            dn{"afe mu da"}
+        }
+        dayOfYear-narrow{
+            dn{"afe mu da"}
+        }
+        dayOfYear-short{
+            dn{"afe mu da"}
         }
         dayperiod{
-            dn{"Da bere"}
+            dn{"anɔpa/anwummerɛ"}
+        }
+        dayperiod-narrow{
+            dn{"anɔpa/anwummerɛ"}
+        }
+        dayperiod-short{
+            dn{"anɔpa/anwummerɛ"}
         }
         era{
-            dn{"Bere"}
+            dn{"berɛ"}
+        }
+        era-narrow{
+            dn{"berɛ"}
+        }
+        era-short{
+            dn{"berɛ"}
+        }
+        fri{
+            relative{
+                "-1"{"Fiada a atwam"}
+                "0"{"Fiada yi"}
+                "1"{"Fiada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Fiada {0} mu"}
+                    other{"Fiada {0} mu"}
+                }
+                past{
+                    one{"Fiada {0} a atwam"}
+                    other{"Fiada {0} a atwam"}
+                }
+            }
+        }
+        fri-narrow{
+            relative{
+                "-1"{"Fiada a atwam"}
+                "0"{"Fiada yi"}
+                "1"{"Fiada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Fiada {0} mu"}
+                    other{"Fiada {0} mu"}
+                }
+                past{
+                    one{"Fiada {0} a atwam"}
+                    other{"Fiada {0} a atwam"}
+                }
+            }
+        }
+        fri-short{
+            relative{
+                "-1"{"Fiada a atwam"}
+                "0"{"Fiada yi"}
+                "1"{"Fiada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Fiada {0} mu"}
+                    other{"Fiada {0} mu"}
+                }
+                past{
+                    one{"Fiada {0} a atwam"}
+                    other{"Fiada {0} a atwam"}
+                }
+            }
         }
         hour{
-            dn{"Dɔnhwer"}
+            dn{"dɔnhwere"}
+            relative{
+                "0"{"dɔnhwere yi"}
+            }
+            relativeTime{
+                future{
+                    one{"dɔnhwere {0} mu"}
+                    other{"nnɔnhwere {0} mu"}
+                }
+                past{
+                    one{"dɔnhwere {0} a atwam"}
+                    other{"nnɔnhwere {0} a atwam"}
+                }
+            }
+        }
+        hour-narrow{
+            dn{"dɔnhwere"}
+            relativeTime{
+                future{
+                    one{"dɔnhwere {0} mu"}
+                    other{"nnɔnhwere {0} mu"}
+                }
+                past{
+                    one{"dɔnhwere {0} a atwam"}
+                    other{"nnɔnhwere {0} a atwam"}
+                }
+            }
+        }
+        hour-short{
+            dn{"dɔnhwere"}
+            relativeTime{
+                future{
+                    one{"dɔnhwere {0} mu"}
+                    other{"nnɔnhwere {0} mu"}
+                }
+                past{
+                    one{"dɔnhwere {0} a atwam"}
+                    other{"nnɔnhwere {0} a atwam"}
+                }
+            }
         }
         minute{
-            dn{"Sema"}
+            dn{"sima"}
+            relative{
+                "0"{"sima yi"}
+            }
+            relativeTime{
+                future{
+                    one{"sima {0} mu"}
+                    other{"sima {0} mu"}
+                }
+                past{
+                    one{"sima {0} a atwam"}
+                    other{"sima {0} a atwam"}
+                }
+            }
+        }
+        minute-narrow{
+            dn{"sima"}
+            relativeTime{
+                future{
+                    one{"sima {0} mu"}
+                    other{"sima {0} mu"}
+                }
+                past{
+                    one{"sima {0} a atwam"}
+                    other{"sima {0} a atwam"}
+                }
+            }
+        }
+        minute-short{
+            dn{"sima"}
+            relativeTime{
+                future{
+                    one{"sima {0} mu"}
+                    other{"sima {0} mu"}
+                }
+                past{
+                    one{"sima {0} a atwam"}
+                    other{"sima {0} a atwam"}
+                }
+            }
+        }
+        mon{
+            relative{
+                "-1"{"Dwoada a atwam"}
+                "0"{"Dwoada yi"}
+                "1"{"Dwoada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Dwoada {0} mu"}
+                    other{"Dwoada {0} mu"}
+                }
+                past{
+                    one{"Dwoada {0} a atwam"}
+                    other{"Dwoada {0} a atwam"}
+                }
+            }
+        }
+        mon-narrow{
+            relative{
+                "-1"{"Dwoada a atwam"}
+                "0"{"Dwoada yi"}
+                "1"{"Dwoada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Dwoada {0} mu"}
+                    other{"Dwoada {0} mu"}
+                }
+                past{
+                    one{"Dwoada {0} a atwam"}
+                    other{"Dwoada {0} a atwam"}
+                }
+            }
+        }
+        mon-short{
+            relative{
+                "-1"{"Dwoada a atwam"}
+                "0"{"Dwoada yi"}
+                "1"{"Dwoada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Dwoada {0} mu"}
+                    other{"Dwoada {0} mu"}
+                }
+                past{
+                    one{"Dwoada {0} a atwam"}
+                    other{"Dwoada {0} a atwam"}
+                }
+            }
         }
         month{
             dn{"Bosome"}
+            relative{
+                "-1"{"bosome a atwam"}
+                "0"{"bosome yi"}
+                "1"{"bosome a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"bosome{0} mu"}
+                    other{"abosome{0} mu"}
+                }
+                past{
+                    one{"-{0} bosome a atwam"}
+                    other{"abosome{0} a atwam"}
+                }
+            }
+        }
+        month-narrow{
+            relative{
+                "-1"{"bosome a atwam"}
+                "0"{"bosome yi"}
+                "1"{"bosome a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"bosome {0} mu"}
+                    other{"abosome{0} mu"}
+                }
+                past{
+                    one{"bosome {0} a atwam"}
+                    other{"abosome{0} a atwam"}
+                }
+            }
+        }
+        month-short{
+            relative{
+                "-1"{"bosome a atwam"}
+                "0"{"bosome yi"}
+                "1"{"bosome a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"bosome {0} mu"}
+                    other{"abosome{0} mu"}
+                }
+                past{
+                    one{"bosome {0} a atwam"}
+                    other{"abosome{0} a atwam"}
+                }
+            }
+        }
+        quarter{
+            dn{"kɔta"}
+            relative{
+                "-1"{"kɔta a atwam"}
+                "0"{"kɔta yi"}
+                "1"{"kɔta a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"kɔta {0} mu"}
+                    other{"kɔta ahodoɔ {0} mu"}
+                }
+                past{
+                    one{"kɔta {0} a atwam"}
+                    other{"kɔta ahodoɔ {0} a atwam"}
+                }
+            }
+        }
+        quarter-narrow{
+            dn{"kɔta"}
+            relativeTime{
+                future{
+                    one{"kɔta {0} mu"}
+                    other{"kɔta {0} mu"}
+                }
+                past{
+                    one{"kɔta {0} a atwam"}
+                    other{"kɔta {0} a atwam"}
+                }
+            }
+        }
+        quarter-short{
+            dn{"kɔta"}
+            relativeTime{
+                future{
+                    one{"kɔta {0} mu"}
+                    other{"kɔta ahodoɔ {0} mu"}
+                }
+                past{
+                    one{"kɔta {0} a atwam"}
+                    other{"kɔta ahodoɔ {0} a atwam"}
+                }
+            }
+        }
+        sat{
+            relative{
+                "-1"{"Memeneda a atwam"}
+                "0"{"Memeneda yi"}
+                "1"{"Memeneda a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Memeneda {0} mu"}
+                    other{"Memeneda {0} mu"}
+                }
+                past{
+                    one{"Memeneda {0} a atwam"}
+                    other{"Memeneda {0} a atwam"}
+                }
+            }
+        }
+        sat-narrow{
+            relative{
+                "-1"{"Memeneda a atwam"}
+                "0"{"Memeneda yi"}
+                "1"{"Memeneda a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Memeneda {0} mu"}
+                    other{"Memeneda {0} mu"}
+                }
+                past{
+                    one{"Memeneda {0} a atwam"}
+                    other{"Memeneda {0} a atwam"}
+                }
+            }
+        }
+        sat-short{
+            relative{
+                "-1"{"Memeneda a atwam"}
+                "0"{"Memeneda yi"}
+                "1"{"Memeneda a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Memeneda {0} mu"}
+                    other{"Memeneda {0} mu"}
+                }
+                past{
+                    one{"Memeneda {0} a atwam"}
+                    other{"Memeneda {0} a atwam"}
+                }
+            }
         }
         second{
-            dn{"Sɛkɛnd"}
+            dn{"Simasin"}
+            relative{
+                "0"{"seesei"}
+            }
+            relativeTime{
+                future{
+                    one{"anibuo {0} mu"}
+                    other{"nnibuo {0} mu"}
+                }
+                past{
+                    one{"anibuo {0} a atwam"}
+                    other{"nnibuo {0} a atwam"}
+                }
+            }
+        }
+        second-narrow{
+            dn{"Simasin"}
+            relativeTime{
+                future{
+                    one{"anibuo {0} mu"}
+                    other{"nnibuo {0} mu"}
+                }
+                past{
+                    one{"anibuo {0} a atwam"}
+                    other{"nnibuo {0} a atwam"}
+                }
+            }
+        }
+        second-short{
+            dn{"Simasin"}
+            relativeTime{
+                future{
+                    one{"anibuo {0} mu"}
+                    other{"nnibuo {0} mu"}
+                }
+                past{
+                    one{"anibuo {0} a atwam"}
+                    other{"nnibuo {0} a atwam"}
+                }
+            }
+        }
+        sun{
+            relative{
+                "-1"{"Kwasiada a atwam"}
+                "0"{"Kwasiada yi"}
+                "1"{"Kwasiada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Kwasiada {0} mu"}
+                    other{"Kwasiada {0} mu"}
+                }
+                past{
+                    one{"Kwasiada {0} a atwam"}
+                    other{"Kwasiada {0} a atwam"}
+                }
+            }
+        }
+        sun-narrow{
+            relative{
+                "-1"{"Kwasiada a atwam"}
+                "0"{"Kwasiada yi"}
+                "1"{"Kwasiada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Kwasiada {0} mu"}
+                    other{"Kwasiada {0} mu"}
+                }
+                past{
+                    one{"Kwasiada {0} a atwam"}
+                    other{"Kwasiada {0} a atwam"}
+                }
+            }
+        }
+        sun-short{
+            relative{
+                "-1"{"Kwasiada a atwam"}
+                "0"{"Kwasiada yi"}
+                "1"{"Kwasiada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Kwasiada {0} mu"}
+                    other{"Kwasiada {0} mu"}
+                }
+                past{
+                    one{"Kwasiada {0} a atwam"}
+                    other{"Kwasiada {0} a atwam"}
+                }
+            }
+        }
+        thu{
+            relative{
+                "-1"{"Yawoada a atwam"}
+                "0"{"Yawoada yi"}
+                "1"{"Yawoada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Yawoada {0} mu"}
+                    other{"Yawoada {0} mu"}
+                }
+                past{
+                    one{"Yawoada {0} a atwam"}
+                    other{"Yawoada {0} a atwam"}
+                }
+            }
+        }
+        thu-narrow{
+            relative{
+                "-1"{"Yawoada a atwam"}
+                "0"{"Yawoada yi"}
+                "1"{"Yawoada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Yawoada {0} mu"}
+                    other{"Yawoada {0} mu"}
+                }
+                past{
+                    one{"Yawoada {0} a atwam"}
+                    other{"Yawoada {0} a atwam"}
+                }
+            }
+        }
+        thu-short{
+            relative{
+                "-1"{"Yawoada a atwam"}
+                "0"{"Yawoada yi"}
+                "1"{"Yawoada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Yawoada {0} mu"}
+                    other{"Yawoada {0} mu"}
+                }
+                past{
+                    one{"Yawoada {0} a atwam"}
+                    other{"Yawoada {0} a atwam"}
+                }
+            }
+        }
+        tue{
+            relative{
+                "-1"{"Benada a atwam"}
+                "0"{"Benada yi"}
+                "1"{"Benada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Benada {0} mu"}
+                    other{"Benada {0} mu"}
+                }
+                past{
+                    one{"Benada {0} a atwam"}
+                    other{"Benada {0} a atwam"}
+                }
+            }
+        }
+        tue-narrow{
+            relative{
+                "-1"{"Benada a atwam"}
+                "0"{"Benada yi"}
+                "1"{"Benada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Benada {0} mu"}
+                    other{"Benada {0} mu"}
+                }
+                past{
+                    one{"Benada {0} a atwam"}
+                    other{"Benada {0} a atwam"}
+                }
+            }
+        }
+        tue-short{
+            relative{
+                "-1"{"Benada a atwam"}
+                "0"{"Benada yi"}
+                "1"{"Benada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Benada {0} mu"}
+                    other{"Benada {0} mu"}
+                }
+                past{
+                    one{"Benada {0} a atwam"}
+                    other{"Benada {0} a atwam"}
+                }
+            }
+        }
+        wed{
+            relative{
+                "-1"{"Wukuada a atwam"}
+                "0"{"Wukuada yi"}
+                "1"{"Wukuada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Wukuada {0} mu"}
+                    other{"Wukuada {0} mu"}
+                }
+                past{
+                    one{"Wukuada {0} a atwam"}
+                    other{"Wukuada {0} a atwam"}
+                }
+            }
+        }
+        wed-narrow{
+            relative{
+                "-1"{"Wukuada a atwam"}
+                "0"{"Wukuada yi"}
+                "1"{"Wukuada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Wukuada {0} mu"}
+                    other{"Wukuada {0} mu"}
+                }
+                past{
+                    one{"Wukuada {0} a atwam"}
+                    other{"Wukuada {0} a atwam"}
+                }
+            }
+        }
+        wed-short{
+            relative{
+                "-1"{"Wukuada a atwam"}
+                "0"{"Wukuada yi"}
+                "1"{"Wukuada a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"Wukuada {0} mu"}
+                    other{"Wukuada {0} mu"}
+                }
+                past{
+                    one{"Wukuada {0} a atwam"}
+                    other{"Wukuada {0} a atwam"}
+                }
+            }
         }
         week{
-            dn{"Dapɛn"}
+            dn{"Nnawɔtwe"}
+            relative{
+                "-1"{"nnawɔtwe a atwam"}
+                "0"{"nnawɔtwe yi"}
+                "1"{"nnawɔtwe a ɛdi hɔ"}
+            }
+            relativePeriod{"nnawɔtwe a ɛtɔ so {0}mu"}
+            relativeTime{
+                future{
+                    one{"nnawɔtwe {0} mu"}
+                    other{"nnawɔtwe {0} mu"}
+                }
+                past{
+                    one{"nnawɔtwe{0} a atwam"}
+                    other{"nnawɔtwe{0} a atwam"}
+                }
+            }
+        }
+        week-narrow{
+            dn{"Nnawɔtwe"}
+            relative{
+                "-1"{"nnawɔtwe a atwam"}
+                "0"{"nnawɔtwe yi"}
+                "1"{"nnawɔtwe a ɛdi hɔ"}
+            }
+            relativePeriod{"nnawɔtwe a ɛtɔ so {0}mu"}
+            relativeTime{
+                future{
+                    one{"nnawɔtwe {0} mu."}
+                    other{"nnawɔtwe {0} mu"}
+                }
+                past{
+                    one{"nnawɔtwe{0} a atwam"}
+                    other{"nnawɔtwe {0} a atwam"}
+                }
+            }
+        }
+        week-short{
+            dn{"Nnawɔtwe"}
+            relative{
+                "-1"{"nnawɔtwe a atwam"}
+                "0"{"nnawɔtwe yi"}
+                "1"{"nnawɔtwe a ɛdi hɔ"}
+            }
+            relativePeriod{"nnawɔtwe a ɛtɔ so {0}mu"}
+            relativeTime{
+                future{
+                    one{"nnawɔtwe {0} mu"}
+                    other{"nnawɔtwe {0} mu"}
+                }
+                past{
+                    one{"nnawɔtwe{0} a atwam"}
+                    other{"nnawɔtwe{0} a atwam"}
+                }
+            }
+        }
+        weekOfMonth{
+            dn{"bosome mu nnawɔtwe"}
+        }
+        weekOfMonth-narrow{
+            dn{"bosome mu nnawɔtwe"}
+        }
+        weekOfMonth-short{
+            dn{"bosome mu nnawɔtwe"}
         }
         weekday{
-            dn{"Dapɛn mu da"}
+            dn{"nnawɔtwe mu da"}
+        }
+        weekday-narrow{
+            dn{"nnawɔtwe mu da"}
+        }
+        weekday-short{
+            dn{"nnawɔtwe mu da"}
+        }
+        weekdayOfMonth{
+            dn{"nnawɔtwe mu da wɔ bosome mu"}
+        }
+        weekdayOfMonth-narrow{
+            dn{"nnawɔtwe mu da wɔ bosome mu"}
+        }
+        weekdayOfMonth-short{
+            dn{"nnawɔtwe mu da wɔ bosome mu"}
         }
         year{
             dn{"Afe"}
+            relative{
+                "-1"{"afe a atwam"}
+                "0"{"afe yi"}
+                "1"{"afe a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"afe {0} mu"}
+                    other{"mfeɛ {0} mu"}
+                }
+                past{
+                    one{"afe {0} a atwam"}
+                    other{"mfeɛ {0} a atwam"}
+                }
+            }
+        }
+        year-narrow{
+            relative{
+                "-1"{"afe a atwam"}
+                "0"{"afe yi"}
+                "1"{"afe a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"afe {0} mu"}
+                    other{"mfeɛ {0} mu"}
+                }
+                past{
+                    one{"afe {0} a atwam"}
+                    other{"mfeɛ {0} a atwam"}
+                }
+            }
+        }
+        year-short{
+            relative{
+                "-1"{"afe a atwam"}
+                "0"{"afe yi"}
+                "1"{"afe a ɛdi hɔ"}
+            }
+            relativeTime{
+                future{
+                    one{"afe {0} mu"}
+                    other{"mfeɛ {0} mu"}
+                }
+                past{
+                    one{"afe {0} a atwam"}
+                    other{"mfeɛ {0} a atwam"}
+                }
+            }
         }
         zone{
-            dn{"Bere apaamu"}
+            dn{"berɛ mu wiase nkyekyɛmu"}
+        }
+        zone-narrow{
+            dn{"nkyekyɛmu"}
+        }
+        zone-short{
+            dn{"nkyekyɛmu"}
+        }
+    }
+    listPattern{
+        or{
+            2{"{0} anaa {1}"}
+            end{"{0}, anaa {1}"}
+        }
+        or-narrow{
+            2{"{0} anaa {1}"}
+            end{"{0}, anaa {1}"}
+        }
+        or-short{
+            2{"{0} anaa {1}"}
+            end{"{0}, anaa {1}"}
+        }
+        standard{
+            2{"{0} ne {1}"}
+            end{"{0}, ne {1}"}
+        }
+        standard-narrow{
+            end{"{0}, ne {1}"}
+        }
+        standard-short{
+            2{"{0} ne {1}"}
+            end{"{0}, ne {1}"}
+        }
+        unit{
+            2{"{0} ne {1}"}
+            end{"{0}, ne {1}"}
+        }
+        unit-narrow{
+            2{"{0} {1}"}
+            end{"{0} {1}"}
+            middle{"{0} {1}"}
+            start{"{0} {1}"}
+        }
+        unit-short{
+            2{"{0} ne {1}"}
+            end{"{0}, ne {1}"}
+        }
+    }
+    personNames{
+        nameOrderLocales{
+            givenFirst{
+                "und",
+                "ak",
+                "en",
+            }
+        }
+        parameterDefault{
+            formality{"informal"}
         }
     }
 }

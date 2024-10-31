@@ -83,6 +83,7 @@ lt{
         bfd{"bafutų"}
         bfq{"badaga"}
         bg{"bulgarų"}
+        bgc{"harijanvi"}
         bgn{"vakarų beludžių"}
         bho{"baučpuri"}
         bi{"bislama"}
@@ -91,6 +92,7 @@ lt{
         bjn{"bandžarų"}
         bkm{"komų"}
         bla{"siksikų"}
+        blo{"guanų"}
         bm{"bambarų"}
         bn{"bengalų"}
         bo{"tibetiečių"}
@@ -184,9 +186,6 @@ lt{
         enm{"Vidurio Anglijos"}
         eo{"esperanto"}
         es{"ispanų"}
-        es_419{"Lotynų Amerikos ispanų"}
-        es_ES{"Europos ispanų"}
-        es_MX{"Meksikos ispanų"}
         esu{"centrinės Aliaskos jupikų"}
         et{"estų"}
         eu{"baskų"}
@@ -228,7 +227,6 @@ lt{
         gmh{"Vidurio Aukštosios Vokietijos"}
         gn{"gvaranių"}
         goh{"senoji Aukštosios Vokietijos"}
-        gom{"Goa konkanių"}
         gon{"gondi"}
         gor{"gorontalo"}
         got{"gotų"}
@@ -338,6 +336,7 @@ lt{
         kv{"komi"}
         kw{"kornų"}
         kwk{"kvakvalų"}
+        kxv{"kuvi"}
         ky{"kirgizų"}
         la{"lotynų"}
         lad{"ladino"}
@@ -367,7 +366,6 @@ lt{
         lua{"luba lulua"}
         lui{"luiseno"}
         lun{"Lundos"}
-        luo{"luo"}
         lus{"mizo"}
         luy{"luja"}
         lv{"latvių"}
@@ -486,8 +484,6 @@ lt{
         pro{"senovės provansalų"}
         ps{"puštūnų"}
         pt{"portugalų"}
-        pt_BR{"Brazilijos portugalų"}
-        pt_PT{"Europos portugalų"}
         qu{"kečujų"}
         quc{"kičių"}
         qug{"Čimboraso aukštumų kečujų"}
@@ -627,13 +623,13 @@ lt{
         und{"nežinoma kalba"}
         ur{"urdų"}
         uz{"uzbekų"}
-        vai{"vai"}
         ve{"vendų"}
         vec{"venetų"}
         vep{"vepsų"}
         vi{"vietnamiečių"}
         vls{"vakarų flamandų"}
         vmf{"pagrindinė frankonų"}
+        vmw{"makua"}
         vo{"volapiuko"}
         vot{"Votik"}
         vro{"veru"}
@@ -649,6 +645,7 @@ lt{
         xal{"kalmukų"}
         xh{"kosų"}
         xmf{"megrelų"}
+        xnr{"kangri"}
         xog{"sogų"}
         yao{"jao"}
         yap{"japezų"}
@@ -778,7 +775,6 @@ lt{
         Merc{"Merojitų rankraštinis"}
         Mero{"meroitik"}
         Mlym{"malajalių"}
-        Modi{"Modi"}
         Mong{"mongolų"}
         Moon{"mūn"}
         Mroo{"Mro"}
@@ -936,7 +932,6 @@ lt{
             phonebook{"telefonų knygos rūšiavimo tvarka"}
             phonetic{"Fonetinė rikiavimo tvarka"}
             pinyin{"supaprastinta kiniškų hieroglifų rūšiavimo tvarka"}
-            reformed{"reformuota rūšiavimo tvarka"}
             search{"bendroji paieška"}
             standard{"standartinis rikiavimas"}
             stroke{"Įprasta kiniško požymio rūšiavimo tvarka"}
@@ -1070,10 +1065,11 @@ lt{
     }
     characterLabelPattern{
         all{"{0} – visi"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} – suderinamumas"}
         enclosed{"{0} – pridedamas"}
         extended{"{0} – išplėstas"}
+        facing-left{"{0} atsisukęs į kairę"}
+        facing-right{"{0} atsisukęs į dešinę"}
         historic{"{0} – istorinis"}
         miscellaneous{"{0} – įvairus"}
         other{"{0} – kitas"}
@@ -1091,10 +1087,5 @@ lt{
         language{"Kalba: {0}"}
         script{"Rašmenys: {0}"}
         territory{"Sritis: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

@@ -83,6 +83,7 @@ fr{
         bfd{"bafut"}
         bfq{"badaga"}
         bg{"bulgare"}
+        bgc{"haryanvi"}
         bgn{"baloutchi occidental"}
         bho{"bhodjpouri"}
         bi{"bichelamar"}
@@ -91,6 +92,7 @@ fr{
         bjn{"banjar"}
         bkm{"kom"}
         bla{"siksika"}
+        blo{"anii"}
         bm{"bambara"}
         bn{"bengali"}
         bo{"tibétain"}
@@ -229,7 +231,6 @@ fr{
         gmh{"moyen haut-allemand"}
         gn{"guarani"}
         goh{"ancien haut allemand"}
-        gom{"konkani de Goa"}
         gon{"gondi"}
         gor{"gorontalo"}
         got{"gotique"}
@@ -339,6 +340,7 @@ fr{
         kv{"komi"}
         kw{"cornique"}
         kwk{"kwak’wala"}
+        kxv{"kuvi"}
         ky{"kirghize"}
         la{"latin"}
         lad{"ladino"}
@@ -368,7 +370,6 @@ fr{
         lua{"luba-kasaï (ciluba)"}
         lui{"luiseño"}
         lun{"lunda"}
-        luo{"luo"}
         lus{"lushaï"}
         luy{"luyia"}
         lv{"letton"}
@@ -430,7 +431,7 @@ fr{
         ng{"ndonga"}
         nia{"niha"}
         niu{"niuéen"}
-        njo{"Ao"}
+        njo{"ao"}
         nl{"néerlandais"}
         nl_BE{"flamand"}
         nmg{"ngoumba"}
@@ -635,6 +636,7 @@ fr{
         vi{"vietnamien"}
         vls{"flamand occidental"}
         vmf{"franconien du Main"}
+        vmw{"macua"}
         vo{"volapük"}
         vot{"vote"}
         vro{"võro"}
@@ -650,6 +652,7 @@ fr{
         xal{"kalmouk"}
         xh{"xhosa"}
         xmf{"mingrélien"}
+        xnr{"kangri"}
         xog{"soga"}
         yao{"yao"}
         yap{"yapois"}
@@ -851,10 +854,10 @@ fr{
             gregorian{"calendrier grégorien"}
             hebrew{"calendrier hébraïque"}
             indian{"calendrier indien"}
-            islamic{"calendrier musulman"}
-            islamic-civil{"calendrier musulman (tabulaire, époque civile)"}
-            islamic-tbla{"calendrier musulman (tabulaire, époque astronomique)"}
-            islamic-umalqura{"calendrier musulman (Umm al Qura)"}
+            islamic{"calendrier hégirien"}
+            islamic-civil{"calendrier hégirien (tabulaire, époque civile)"}
+            islamic-tbla{"calendrier hégirien (tabulaire, époque astronomique)"}
+            islamic-umalqura{"calendrier hégirien (Umm al-Qura)"}
             iso8601{"calendrier ISO 8601"}
             japanese{"calendrier japonais"}
             persian{"calendrier persan"}
@@ -912,7 +915,6 @@ fr{
             phonebook{"ordre de l’annuaire"}
             phonetic{"ordre de tri phonétique"}
             pinyin{"ordre pinyin"}
-            reformed{"ordre réformé"}
             search{"recherche générique"}
             searchjl{"rechercher par consonne initiale en hangeul"}
             standard{"ordre de tri standard"}
@@ -1032,6 +1034,8 @@ fr{
         compatibility{"{0} — compatibilité"}
         enclosed{"{0} — entouré"}
         extended{"{0} — étendu"}
+        facing-left{"{0} vers la gauche"}
+        facing-right{"{0} vers la droite"}
         historic{"{0} — historique"}
         miscellaneous{"{0} — divers"}
         other{"{0} — autre"}
@@ -1050,7 +1054,5 @@ fr{
     }
     localeDisplayPattern{
         keyTypePattern{"{0} : {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

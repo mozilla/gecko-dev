@@ -48,11 +48,13 @@ sq{
         bem{"bembaisht"}
         bez{"benaisht"}
         bg{"bullgarisht"}
+        bgc{"harjanvisht"}
         bgn{"balokishte perëndimore"}
         bho{"boxhpurisht"}
         bi{"bislamisht"}
         bin{"binisht"}
         bla{"siksikaisht"}
+        blo{"anisht"}
         bm{"bambarisht"}
         bn{"bengalisht"}
         bo{"tibetisht"}
@@ -158,11 +160,12 @@ sq{
         hax{"haidaishte jugore"}
         he{"hebraisht"}
         hi{"indisht"}
+        hi_Latn{"hindisht (latine)"}
         hil{"hiligajnonisht"}
         hmn{"hmongisht"}
         hr{"kroatisht"}
         hsb{"sorbishte e sipërme"}
-        ht{"haitisht"}
+        ht{"kreolishte e Haitit"}
         hu{"hungarisht"}
         hup{"hupaisht"}
         hur{"halkemejlemisht"}
@@ -226,6 +229,7 @@ sq{
         kv{"komisht"}
         kw{"kornisht"}
         kwk{"kuakualaisht"}
+        kxv{"kuvisht"}
         ky{"kirgizisht"}
         la{"latinisht"}
         lad{"ladinoisht"}
@@ -240,7 +244,7 @@ sq{
         lmo{"lombardisht"}
         ln{"lingalisht"}
         lo{"laosisht"}
-        lou{"kreole e Luizianës"}
+        lou{"kreolishte e Luizianës"}
         loz{"lozisht"}
         lrc{"lurishte veriore"}
         lsm{"samisht"}
@@ -336,6 +340,7 @@ sq{
         pt_PT{"portugalishte evropiane"}
         qu{"keçuaisht"}
         quc{"kiçeisht"}
+        raj{"raxhastanisht"}
         rap{"rapanuisht"}
         rar{"rarontonganisht"}
         rhg{"rohingiaisht"}
@@ -393,6 +398,7 @@ sq{
         sw_CD{"suahilishte kongoleze"}
         swb{"kamorianisht"}
         syr{"siriakisht"}
+        szl{"silesisht"}
         ta{"tamilisht"}
         tce{"tatshonishte jugore"}
         te{"teluguisht"}
@@ -435,6 +441,7 @@ sq{
         ve{"vendaisht"}
         vec{"venetisht"}
         vi{"vietnamisht"}
+        vmw{"makuvaisht"}
         vo{"volapykisht"}
         vun{"vunxhoisht"}
         wa{"ualunisht"}
@@ -446,6 +453,7 @@ sq{
         wuu{"kinezishte vu"}
         xal{"kalmikisht"}
         xh{"xhosaisht"}
+        xnr{"kangrisht"}
         xog{"sogisht"}
         yav{"jangbenisht"}
         ybb{"jembaisht"}
@@ -453,6 +461,7 @@ sq{
         yo{"jorubaisht"}
         yrl{"nejengatuisht"}
         yue{"kantonezisht"}
+        za{"zhuangisht"}
         zgh{"tamaziatishte standarde marokene"}
         zh{"kinezisht"}
         zh_Hans{"kinezishte e thjeshtuar"}
@@ -474,6 +483,9 @@ sq{
         az{"azerisht"}
         en_GB{"anglishte e Mbretërisë së Bashkuar"}
         en_US{"anglishte e SHBA-së"}
+    }
+    Languages%variant{
+        hi_Latn{"hinglisht"}
     }
     Scripts{
         Adlm{"adlam"}
@@ -664,16 +676,16 @@ sq{
             chinese{"kalendar kinez"}
             coptic{"kalendar koptik"}
             dangi{"kalendar dangi"}
-            ethiopic{"kalendar etiopian"}
-            ethiopic-amete-alem{"Kalendari Etiopas Amete Alem"}
+            ethiopic{"kalendari etiopik"}
+            ethiopic-amete-alem{"kalendar etiopik amete-alem"}
             gregorian{"kalendar gregorian"}
             hebrew{"kalendar hebraik"}
             indian{"Kalendari Kombëtar Indian"}
-            islamic{"kalendar islamik"}
-            islamic-civil{"kalendar islamik (tabelor, epoka civile)"}
+            islamic{"kalendar islam"}
+            islamic-civil{"kalendar islam (tabelor, epoka civile)"}
             islamic-rgsa{"kalendar islamik (Arabi Saudite, shikim)"}
-            islamic-tbla{"kalendar islamik (tabelor, epoka astronomike)"}
-            islamic-umalqura{"kalendar islamik (um al-qura)"}
+            islamic-tbla{"kalendar islam (tabelor, epoka astronomike)"}
+            islamic-umalqura{"kalendar islam (um al-qura)"}
             iso8601{"kalendar ISO-8601"}
             japanese{"kalendar japonez"}
             persian{"kalendar persian"}
@@ -693,7 +705,6 @@ sq{
             gb2312han{"Radhitje e kinezishtes së thjeshtësuar - GB2312"}
             phonebook{"Radhitje libri telefonik"}
             pinyin{"Radhitje pinini"}
-            reformed{"Radhitje e reformuar"}
             search{"kërkim i përgjithshëm"}
             searchjl{"kërkim sipas bashkëtingëllores fillestare hangul"}
             standard{"radhitje standarde"}
@@ -805,10 +816,11 @@ sq{
     }
     characterLabelPattern{
         all{"{0} — Të gjitha"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — Të përputhshme"}
         enclosed{"{0} — Të mbyllura"}
         extended{"{0} — Të shtuara"}
+        facing-left{"{0} me drejtim majtas"}
+        facing-right{"{0} me drejtim djathtas"}
         historic{"{0} — Historike"}
         miscellaneous{"{0} — Të ndryshme"}
         other{"{0} — Tjetër"}
@@ -824,10 +836,5 @@ sq{
         language{"Gjuha: {0}"}
         script{"Skripti: {0}"}
         territory{"Rajoni: {0}"}
-    }
-    localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
-        separator{"{0}, {1}"}
     }
 }

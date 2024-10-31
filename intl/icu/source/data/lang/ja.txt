@@ -83,6 +83,7 @@ ja{
         bfd{"バフット語"}
         bfq{"バダガ語"}
         bg{"ブルガリア語"}
+        bgc{"ハリヤーンウィー語"}
         bgn{"西バローチー語"}
         bho{"ボージュプリー語"}
         bi{"ビスラマ語"}
@@ -91,6 +92,7 @@ ja{
         bjn{"バンジャル語"}
         bkm{"コム語"}
         bla{"シクシカ語"}
+        blo{"アニ語 (blo)"}
         bm{"バンバラ語"}
         bn{"ベンガル語"}
         bo{"チベット語"}
@@ -224,7 +226,6 @@ ja{
         gmh{"中高ドイツ語"}
         gn{"グアラニー語"}
         goh{"古高ドイツ語"}
-        gom{"ゴア・コンカニ語"}
         gon{"ゴーンディー語"}
         gor{"ゴロンタロ語"}
         got{"ゴート語"}
@@ -244,7 +245,6 @@ ja{
         hax{"南部ハイダ語"}
         he{"ヘブライ語"}
         hi{"ヒンディー語"}
-        hi_Latn{"ヒンディー語 (ラテン文字)"}
         hif{"フィジー・ヒンディー語"}
         hil{"ヒリガイノン語"}
         hit{"ヒッタイト語"}
@@ -335,6 +335,7 @@ ja{
         kv{"コミ語"}
         kw{"コーンウォール語"}
         kwk{"クヮキゥワラ語"}
+        kxv{"クーヴィンガ語"}
         ky{"キルギス語"}
         la{"ラテン語"}
         lad{"ラディノ語"}
@@ -629,6 +630,7 @@ ja{
         vi{"ベトナム語"}
         vls{"西フラマン語"}
         vmf{"マインフランク語"}
+        vmw{"マクア語"}
         vo{"ヴォラピュク語"}
         vot{"ヴォート語"}
         vro{"ヴォロ語"}
@@ -644,6 +646,7 @@ ja{
         xal{"カルムイク語"}
         xh{"コサ語"}
         xmf{"メグレル語"}
+        xnr{"カーングリー語"}
         xog{"ソガ語"}
         yao{"ヤオ語"}
         yap{"ヤップ語"}
@@ -880,8 +883,6 @@ ja{
             indian{"インド国定暦"}
             islamic{"イスラム暦"}
             islamic-civil{"イスラム暦(定周期、公民紀元)"}
-            islamic-rgsa{"イスラム暦(サウジアラビア、月観測)"}
-            islamic-tbla{"イスラム歴(定周期、天文紀元)"}
             islamic-umalqura{"イスラム暦(ウンム・アルクラー)"}
             iso8601{"ISO-8601"}
             japanese{"和暦"}
@@ -934,7 +935,6 @@ ja{
             phonebook{"電話帳順"}
             phonetic{"音声順による並べ替え"}
             pinyin{"ピンイン順"}
-            reformed{"リフォーム"}
             search{"汎用検索"}
             searchjl{"ハングル語頭子音による並べ替え"}
             standard{"標準並べ替え順序"}
@@ -1096,10 +1096,11 @@ ja{
     }
     characterLabelPattern{
         all{"{0} — すべて"}
-        category-list{"{0}: {1}"}
         compatibility{"{0} — 互換文字"}
         enclosed{"{0} — 囲み"}
         extended{"{0} — 拡張"}
+        facing-left{"{0} 左向き"}
+        facing-right{"{0} 右向き"}
         historic{"{0} — 古代文字"}
         miscellaneous{"{0} — 雑多"}
         other{"{0} — その他"}
@@ -1116,8 +1117,6 @@ ja{
         territory{"地域: {0}"}
     }
     localeDisplayPattern{
-        keyTypePattern{"{0}: {1}"}
-        pattern{"{0} ({1})"}
         separator{"{0}、{1}"}
     }
 }
