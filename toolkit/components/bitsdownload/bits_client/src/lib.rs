@@ -109,6 +109,7 @@ impl BitsClient {
         proxy_usage: BitsProxyUsage,
         no_progress_timeout_secs: u32,
         monitor_interval_millis: u32,
+        custom_headers: ffi::OsString,
     ) -> Result<Result<(StartJobSuccess, BitsMonitorClient), StartJobFailure>, Error> {
         match self {
             InProcess(client) => Ok(client
@@ -118,6 +119,7 @@ impl BitsClient {
                     proxy_usage,
                     no_progress_timeout_secs,
                     monitor_interval_millis,
+                    custom_headers,
                 )
                 .map(|(success, monitor)| (success, BitsMonitorClient::InProcess(monitor)))),
         }

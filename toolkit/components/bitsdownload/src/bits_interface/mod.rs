@@ -199,6 +199,7 @@ impl BitsService {
             proxy: nsProxyUsage,
             no_progress_timeout_secs: u32,
             update_interval_ms: u32,
+            custom_headers: *const nsACString,
             observer: *const nsIRequestObserver,
             [optional] context: *const nsISupports,
         )
@@ -210,6 +211,7 @@ impl BitsService {
         proxy: nsProxyUsage,
         no_progress_timeout_secs: u32,
         update_interval_ms: u32,
+        custom_headers: &nsACString,
         observer: &nsIRequestObserver,
         context: Option<&nsISupports>,
         callback: &nsIBitsNewRequestCallback,
@@ -244,6 +246,7 @@ impl BitsService {
             proxy,
             no_progress_timeout_secs,
             update_interval_ms,
+            nsCString::from(custom_headers),
             RefPtr::new(self),
             RefPtr::new(observer),
             context.map(RefPtr::new),

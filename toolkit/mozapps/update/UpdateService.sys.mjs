@@ -4328,12 +4328,22 @@ export class UpdateService {
    *             to the `BitsRequest` that is returned.
    *           url
    *             The URL to download.
+   *           extraHeaders
+   *             String of extra headers to include, in the format accepted by
+   *             `IBackgroundCopyJobHttpOptions::SetCustomHeaders`: separated by
+   *             `\r\n`, terminated by an additional `\r\n`.
    * @return Promise<BitsRequest>
    *         Returns a request object
    * @throws BitsError
    *         On failure to connect to the BITS job.
    */
-  async makeBitsRequest({ activeListeners = false, bitsId, observer, url }) {
+  async makeBitsRequest({
+    activeListeners = false,
+    bitsId,
+    observer,
+    url,
+    extraHeaders,
+  }) {
     let noProgressTimeout = BITS_IDLE_NO_PROGRESS_TIMEOUT_SECS;
     let monitorInterval = BITS_IDLE_POLL_RATE_MS;
     // The monitor's timeout should be much greater than the longest monitor
@@ -4390,6 +4400,7 @@ export class UpdateService {
       Ci.nsIBits.PROXY_PRECONFIG,
       noProgressTimeout,
       monitorInterval,
+      extraHeaders,
       observer,
       null
     );
@@ -6338,7 +6349,8 @@ class Downloader {
         activeListeners: this.hasDownloadListeners,
         bitsId: this._patch.getProperty("bitsId"),
         observer: this,
-        url: this._patch.URL,
+        url,
+        extraHeaders,
       });
 
       let request;

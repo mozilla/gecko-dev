@@ -73,6 +73,7 @@ impl InProcessClient {
         proxy_usage: BitsProxyUsage,
         no_progress_timeout_secs: u32,
         monitor_interval_millis: u32,
+        custom_headers: ffi::OsString,
     ) -> Result<(StartJobSuccess, InProcessMonitor), StartJobFailure> {
         use StartJobFailure::*;
 
@@ -122,7 +123,7 @@ impl InProcessClient {
             job.set_minimum_retry_delay(60)?;
             job.set_no_progress_timeout(no_progress_timeout_secs)?;
             job.set_redirect_report()?;
-
+            job.set_custom_headers(&custom_headers)?;
             job.set_priority(BitsJobPriority::Foreground)?;
 
             Ok(())

@@ -180,6 +180,11 @@ interface nsIBits : nsISupports
    *        following a transient error, producing instead a permanent error.
    * @param monitorIntervalMs
    *        The number of milliseconds between download status notifications.
+   * @param customHeaders
+   *        Custom headers to append to the HTTP request. Each header must be
+   *        terminated by a carriage return and line feed (CR/LF) character. The
+   *        string is limited to 16,384 characters, including any null
+   *        terminator.
    * @param observer
    *        An observer to be notified of various events. OnStartRequest is
    *        called once the BITS job has been created. OnStopRequest is called
@@ -202,6 +207,7 @@ interface nsIBits : nsISupports
                      in nsProxyUsage proxy,
                      in unsigned long noProgressTimeoutSecs,
                      in unsigned long monitorIntervalMs,
+                     in AUTF8String customHeaders,
                      in nsIRequestObserver observer,
                      in nsISupports context,
                      in nsIBitsNewRequestCallback callback);

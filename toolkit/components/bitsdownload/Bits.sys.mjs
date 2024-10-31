@@ -69,7 +69,9 @@ export class BitsError extends Error {
         message += `, codeType: nsresult, code: ${code}}`;
         break;
       case lazy.gBits.ERROR_CODE_TYPE_HRESULT:
-        message += `, codeType: hresult, code: ${code}}`;
+        message += `, codeType: hresult, code: 0x${BigInt(code >>> 0).toString(
+          16
+        )}`;
         break;
       case lazy.gBits.ERROR_CODE_TYPE_STRING:
         message += `, codeType: string, code: ${JSON.stringify(code)}}`;
@@ -782,6 +784,7 @@ export var Bits = {
     proxy,
     noProgressTimeoutSecs,
     monitorIntervalMs,
+    customHeaders,
     observer,
     context
   ) {
@@ -793,6 +796,7 @@ export var Bits = {
         proxy,
         noProgressTimeoutSecs,
         monitorIntervalMs,
+        customHeaders,
         wrappedObserver,
         context,
         callback

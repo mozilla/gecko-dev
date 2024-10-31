@@ -285,6 +285,7 @@ test! {
                 BitsProxyUsage::Preconfig,
                 no_progress_timeout_secs,
                 interval,
+                "\r\n".into(),
                 ).unwrap();
 
         // cancel in ~250ms
@@ -334,6 +335,7 @@ test! {
                 BitsProxyUsage::Preconfig,
                 no_progress_timeout_secs,
                 interval,
+                "\r\n".into(),
                 ).unwrap();
 
         let start = Instant::now();
@@ -414,6 +416,7 @@ test! {
                 BitsProxyUsage::Preconfig,
                 no_progress_timeout_secs,
                 interval,
+                "\r\n".into(),
                 ).unwrap();
 
         // Start the timer now, the initial job creation may be delayed by BITS service startup.
@@ -471,6 +474,7 @@ test! {
                 BitsProxyUsage::Preconfig,
                 no_progress_timeout_secs,
                 interval,
+                "\r\n".into(),
                 ).unwrap();
 
         let start = Instant::now();
@@ -517,6 +521,7 @@ test! {
                 BitsProxyUsage::Preconfig,
                 no_progress_timeout_secs,
                 interval,
+                "\r\n".into(),
                 ).unwrap();
 
         // Start the timer now, the initial job creation may be delayed by BITS service startup.
@@ -557,6 +562,7 @@ test! {
                 BitsProxyUsage::Preconfig,
                 no_progress_timeout_secs,
                 interval,
+                "\r\n".into(),
                 ).unwrap();
 
         // Start the timer now, the initial job creation may be delayed by BITS service startup.
@@ -606,6 +612,7 @@ test! {
                 BitsProxyUsage::Preconfig,
                 no_progress_timeout_secs,
                 interval,
+                "\r\n".into(),
                 ).unwrap();
 
         // Start the timer now, the initial job creation may be delayed by BITS service startup.

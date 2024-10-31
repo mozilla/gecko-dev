@@ -364,6 +364,19 @@ impl BitsJob {
         Ok(())
     }
 
+    pub fn set_custom_headers(&mut self, request_headers: &OsStr) -> Result<()> {
+        unsafe {
+            com_call!(
+                self.0.cast()?,
+                IBackgroundCopyJobHttpOptions::SetCustomHeaders(
+                    request_headers.to_wide_null().as_ptr()
+                )
+            )
+        }?;
+
+        Ok(())
+    }
+
     /// Resume the job. This must be done at least once to initially enqueue the job.
     pub fn resume(&mut self) -> Result<()> {
         unsafe { com_call!(self.0, IBackgroundCopyJob::Resume()) }?;

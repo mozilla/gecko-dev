@@ -166,6 +166,7 @@ struct StartDownloadData {
     proxy: BitsProxyUsage,
     no_progress_timeout_secs: u32,
     update_interval_ms: u32,
+    custom_headers: nsCString,
 }
 
 struct StartDownloadSuccess {
@@ -193,6 +194,7 @@ impl StartDownloadTask {
         proxy: BitsProxyUsage,
         no_progress_timeout_secs: u32,
         update_interval_ms: u32,
+        custom_headers: nsCString,
         bits_service: RefPtr<BitsService>,
         observer: RefPtr<nsIRequestObserver>,
         context: Option<RefPtr<nsISupports>>,
@@ -207,6 +209,7 @@ impl StartDownloadTask {
                 proxy,
                 no_progress_timeout_secs,
                 update_interval_ms,
+                custom_headers,
             },
             StartDownloadTask::run_fn,
             StartDownloadTask::done_fn,
@@ -223,6 +226,8 @@ impl StartDownloadTask {
     ) -> Result<StartDownloadSuccess, BitsTaskError> {
         let url = nsCString_to_OsString(&data.download_url, StartDownload, CommandThread)?;
         let path = nsCString_to_OsString(&data.save_rel_path, StartDownload, CommandThread)?;
+        let custom_headers =
+            nsCString_to_OsString(&data.custom_headers, StartDownload, CommandThread)?;
         let (success, monitor_client) = client
             .start_job(
                 url,
@@ -230,6 +235,7 @@ impl StartDownloadTask {
                 data.proxy,
                 data.no_progress_timeout_secs,
                 data.update_interval_ms,
+                custom_headers,
             )
             .map_err(|pipe_error| BitsTaskError::from_pipe(StartDownload, pipe_error))??;
         Ok(StartDownloadSuccess {
