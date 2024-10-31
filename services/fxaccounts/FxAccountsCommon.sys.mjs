@@ -289,6 +289,7 @@ export let FXA_PWDMGR_PLAINTEXT_FIELDS = new Set([
   "profileCache",
   "encryptedSendTabKeys",
   "encryptedCloseTabKeys",
+  "requestedServices", // info about services which should be configured, used during oauth flows.
 ]);
 
 // Fields we store in secure storage if it exists.

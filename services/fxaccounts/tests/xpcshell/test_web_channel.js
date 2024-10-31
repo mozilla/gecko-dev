@@ -919,6 +919,68 @@ add_task(async function test_helpers_login_nothing_offered() {
   Assert.ok(configured);
 });
 
+add_task(async function test_helpers_persist_requested_services() {
+  ensureOauthConfigured();
+  let accountData = null;
+  const helpers = new FxAccountsWebChannelHelpers({
+    fxAccounts: {
+      _internal: {
+        async setSignedInUser(newAccountData) {
+          accountData = newAccountData;
+          return accountData;
+        },
+      },
+      async getSignedInUser() {
+        return accountData;
+      },
+      telemetry: {
+        recordConnection() {},
+      },
+    },
+    weaveXPCOM: {
+      whenLoaded() {},
+      Weave: {
+        Service: {},
+      },
+    },
+  });
+
+  await helpers.login({
+    uid: "auid",
+    email: "testuser@testuser.com",
+    verifiedCanLinkAccount: true,
+    services: {
+      first_only: { x: 10 }, // this data is not in the update below.
+      sync: { important: true },
+    },
+  });
+
+  Assert.deepEqual(JSON.parse(accountData.requestedServices), {
+    first_only: { x: 10 },
+    sync: { important: true },
+  });
+  // A second "login" message without the services.
+  await helpers.login({
+    uid: "auid",
+    email: "testuser@testuser.com",
+    verifiedCanLinkAccount: true,
+    services: {
+      // the service is mentioned, but data is empty, so it's the old version of the data we want.
+      sync: {},
+      // a new service we never saw before, but we still want it.
+      new: { name: "opted in" }, // not in original, but we want in the final.
+    },
+  });
+  // the version with the data should remain.
+  Assert.deepEqual(JSON.parse(accountData.requestedServices), {
+    first_only: { x: 10 },
+    sync: { important: true },
+    new: { name: "opted in" },
+  });
+
+  resetOauthConfig();
+});
+
 add_test(function test_helpers_open_sync_preferences() {
   let helpers = new FxAccountsWebChannelHelpers({
     fxAccounts: {},
@@ -997,7 +1059,7 @@ add_task(async function test_helpers_getFxAStatus_engines_oauth() {
   ok(!!fxaStatus);
   ok(!!fxaStatus.signedInUser);
   // in the oauth flows we expect all engines.
-  deepEqual(fxaStatus.capabilities.engines, [
+  deepEqual(fxaStatus.capabilities.engines.toSorted(), [
     "addons",
     "bookmarks",
     "creditcards",
@@ -1010,15 +1072,15 @@ add_task(async function test_helpers_getFxAStatus_engines_oauth() {
   // try again with addresses enabled.
   Services.prefs.setBoolPref("services.sync.engine.addresses.available", true);
   fxaStatus = await helpers.getFxaStatus("sync", mockSendingContext);
-  deepEqual(fxaStatus.capabilities.engines, [
+  deepEqual(fxaStatus.capabilities.engines.toSorted(), [
     "addons",
+    "addresses",
     "bookmarks",
     "creditcards",
     "history",
     "passwords",
     "prefs",
     "tabs",
-    "addresses",
   ]);
 
   resetOauthConfig();

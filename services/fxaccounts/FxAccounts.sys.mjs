@@ -545,7 +545,7 @@ export class FxAccounts {
    *        or null if no user is signed in. This function never fails except
    *        in pathological cases (eg, file-system errors, etc)
    */
-  getSignedInUser() {
+  getSignedInUser(addnFields = []) {
     // Note we don't return the session token, but use it to see if we
     // should fetch the profile. Ditto scopedKeys re verified.
     const ACCT_DATA_FIELDS = [
@@ -557,7 +557,9 @@ export class FxAccounts {
     ];
     const PROFILE_FIELDS = ["displayName", "avatar", "avatarDefault"];
     return this._withCurrentAccountState(async currentState => {
-      const data = await currentState.getUserAccountData(ACCT_DATA_FIELDS);
+      const data = await currentState.getUserAccountData(
+        ACCT_DATA_FIELDS.concat(addnFields)
+      );
       if (!data) {
         return null;
       }
