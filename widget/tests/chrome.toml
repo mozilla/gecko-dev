@@ -156,6 +156,9 @@ skip-if = [
 run-if = ["os == 'mac'"] # Cocoa widget test
 support-files = ["native_menus_window.xhtml"]
 
+["test_native_context_menus.xhtml"]
+run-if = ["os == 'mac'"] # Cocoa widget test
+
 ["test_panel_mouse_coords.xhtml"]
 skip-if = ["os == 'win'"] # bug 1009955
 
