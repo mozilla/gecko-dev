@@ -5040,6 +5040,198 @@ static bool CheckRegExpSyntax(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static bool IsPrefAvailable(const char* pref) {
+  if (!fuzzingSafe) {
+    // All prefs in fuzzing unsafe mode are enabled.
+    return true;
+  }
+#define WASM_FEATURE(NAME, LOWER_NAME, COMPILE_PRED, COMPILER_PRED, FLAG_PRED, \
+                     FLAG_FORCE_ON, FLAG_FUZZ_ON, PREF)                        \
+  if constexpr (!FLAG_FUZZ_ON) {                                               \
+    if (strcmp("wasm_" #PREF, pref) == 0) {                                    \
+      return false;                                                            \
+    }                                                                          \
+  }
+  JS_FOR_WASM_FEATURES(WASM_FEATURE)
+#undef WASM_FEATURE
+  return true;
+}
+
+template <typename T>
+static bool ParsePrefValue(const char* name, const char* val, T* result) {
+  if constexpr (std::is_same_v<T, bool>) {
+    if (strcmp(val, "true") == 0) {
+      *result = true;
+      return true;
+    }
+    if (strcmp(val, "false") == 0) {
+      *result = false;
+      return true;
+    }
+    fprintf(stderr, "Invalid value for boolean pref %s: %s\n", name, val);
+    return false;
+  } else {
+    static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t>);
+    char* end;
+    long v = strtol(val, &end, 10);
+    if (end != val + strlen(val) || static_cast<long>(static_cast<T>(v)) != v) {
+      fprintf(stderr, "Invalid value for integer pref %s: %s\n", name, val);
+      return false;
+    }
+    *result = static_cast<T>(v);
+    return true;
+  }
+}
+
+static bool SetPrefToTrueForBool(const char* name) {
+  // Search for a matching pref and try to set it to a default value for the
+  // type.
+#define CHECK_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF)      \
+  if (strcmp(name, NAME) == 0) {                                       \
+    if constexpr (std::is_same_v<TYPE, bool>) {                        \
+      JS::Prefs::SETTER(true);                                         \
+      return true;                                                     \
+    } else {                                                           \
+      fprintf(stderr, "Pref %s must have a value specified.\n", name); \
+      return false;                                                    \
+    }                                                                  \
+  }
+  FOR_EACH_JS_PREF(CHECK_PREF)
+#undef CHECK_PREF
+
+  // Nothing matched. If --fuzzing-safe is used, return true after printing a
+  // message, to continue execution without breaking fuzzing when a pref is
+  // removed.
+  if (fuzzingSafe) {
+    fprintf(stderr, "Warning: Ignoring unknown pref name: %s\n", name);
+    return true;
+  }
+  fprintf(stderr, "Invalid pref name: %s\n", name);
+  return false;
+}
+
+template <typename T>
+static bool ConvertPrefValue(JSContext* cx, HandleValue val, T* result) {
+  if constexpr (std::is_same_v<T, bool>) {
+    *result = ToBoolean(val);
+    return true;
+  } else if constexpr (std::is_same_v<T, int32_t>) {
+    return ToInt32(cx, val, result);
+  } else {
+    static_assert(std::is_same_v<T, uint32_t>);
+    return ToUint32(cx, val, result);
+  }
+}
+
+static bool SetPrefValue(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (!args.requireAtLeast(cx, "setPrefValue", 2)) {
+    return false;
+  }
+
+  if (!args[0].isString()) {
+    JS_ReportErrorASCII(cx, "expected string argument");
+    return false;
+  }
+
+  Rooted<JSLinearString*> name(cx, args[0].toString()->ensureLinear(cx));
+  if (!name) {
+    return false;
+  }
+
+  // Search for a matching pref and try to set it to the provided value.
+#define CHECK_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF)             \
+  if (IsPrefAvailable(NAME) && StringEqualsAscii(name, NAME)) {               \
+    if (IS_STARTUP_PREF) {                                                    \
+      JS_ReportErrorASCII(cx, "%s is a startup pref and can't be set", NAME); \
+      return false;                                                           \
+    }                                                                         \
+    TYPE v;                                                                   \
+    if (!ConvertPrefValue<TYPE>(cx, args[1], &v)) {                           \
+      return false;                                                           \
+    }                                                                         \
+    JS::Prefs::SETTER(v);                                                     \
+    args.rval().setUndefined();                                               \
+    return true;                                                              \
+  }
+  FOR_EACH_JS_PREF(CHECK_PREF)
+#undef CHECK_PREF
+
+  // Fuzzing ignores missing prefs so it doesn't break if we remove a pref
+  if (fuzzingSafe) {
+    args.rval().setUndefined();
+    return true;
+  }
+  JS_ReportErrorASCII(cx, "invalid pref name");
+  return false;
+}
+
+static bool SetPrefToValue(const char* name, size_t nameLen,
+                           const char* value) {
+  // Search for a matching pref and try to set it to the provided value.
+#define CHECK_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF)         \
+  if (nameLen == strlen(NAME) && memcmp(name, NAME, strlen(NAME)) == 0) { \
+    TYPE v;                                                               \
+    if (!ParsePrefValue<TYPE>(NAME, value, &v)) {                         \
+      return false;                                                       \
+    }                                                                     \
+    JS::Prefs::SETTER(v);                                                 \
+    return true;                                                          \
+  }
+  FOR_EACH_JS_PREF(CHECK_PREF)
+#undef CHECK_PREF
+
+  // Nothing matched. If --fuzzing-safe is used, return true after printing a
+  // message, to continue execution without breaking fuzzing when a pref is
+  // removed.
+  if (fuzzingSafe) {
+    fprintf(stderr, "Warning: Ignoring unknown pref name: %s\n", name);
+    return true;
+  }
+  fprintf(stderr, "Invalid pref name: %s\n", name);
+  return false;
+}
+
+static bool SetPref(const char* pref) {
+  const char* assign = strchr(pref, '=');
+  if (!assign) {
+    if (IsPrefAvailable(pref) && !SetPrefToTrueForBool(pref)) {
+      return false;
+    }
+    return true;
+  }
+
+  size_t nameLen = assign - pref;
+  const char* valStart = assign + 1;  // Skip '='.
+
+  if (IsPrefAvailable(pref) && !SetPrefToValue(pref, nameLen, valStart)) {
+    return false;
+  }
+  return true;
+}
+
+static void ListPrefs() {
+  auto printPref = [](const char* name, auto defaultVal) {
+    if (!IsPrefAvailable(name)) {
+      return;
+    }
+    using T = decltype(defaultVal);
+    if constexpr (std::is_same_v<T, bool>) {
+      fprintf(stderr, "%s=%s\n", name, defaultVal ? "true" : "false");
+    } else if constexpr (std::is_same_v<T, int32_t>) {
+      fprintf(stderr, "%s=%d\n", name, defaultVal);
+    } else {
+      static_assert(std::is_same_v<T, uint32_t>);
+      fprintf(stderr, "%s=%u\n", name, defaultVal);
+    }
+  };
+
+#define PRINT_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF) \
+  printPref(NAME, JS::Prefs::CPP_NAME());
+  FOR_EACH_JS_PREF(PRINT_PREF)
+#undef PRINT_PREF
+}
+
 static bool SetJitCompilerOption(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   RootedObject callee(cx, &args.callee());
@@ -9841,9 +10033,14 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "  Calling this function will replace any callback set by |timeout|.\n"
 "  If the callback returns a falsy value, the script is aborted.\n"),
 
+    JS_FN_HELP("setPrefValue", SetPrefValue, 2, 0,
+"setPrefValue(name, value)",
+"  Set the value of the JS pref with the given name."),
+
     JS_FN_HELP("setJitCompilerOption", SetJitCompilerOption, 2, 0,
 "setJitCompilerOption(<option>, <number>)",
 "  Set a compiler option indexed in JSCompileOption enum to a number.\n"),
+
 #ifdef DEBUG
     JS_FN_HELP("interruptRegexp", InterruptRegexp, 2, 0,
 "interruptRegexp(<regexp>, <string>)",
@@ -11986,142 +12183,6 @@ static bool WriteSelfHostedXDRFile(JSContext* cx, JS::SelfHostedCache buffer) {
   return true;
 }
 
-template <typename T>
-static bool ParsePrefValue(const char* name, const char* val, T* result) {
-  if constexpr (std::is_same_v<T, bool>) {
-    if (strcmp(val, "true") == 0) {
-      *result = true;
-      return true;
-    }
-    if (strcmp(val, "false") == 0) {
-      *result = false;
-      return true;
-    }
-    fprintf(stderr, "Invalid value for boolean pref %s: %s\n", name, val);
-    return false;
-  } else {
-    static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t>);
-    char* end;
-    long v = strtol(val, &end, 10);
-    if (end != val + strlen(val) || static_cast<long>(static_cast<T>(v)) != v) {
-      fprintf(stderr, "Invalid value for integer pref %s: %s\n", name, val);
-      return false;
-    }
-    *result = static_cast<T>(v);
-    return true;
-  }
-}
-
-static bool SetJSPrefToTrueForBool(const char* name) {
-  // Search for a matching pref and try to set it to a default value for the
-  // type.
-#define CHECK_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF)      \
-  if (strcmp(name, NAME) == 0) {                                       \
-    if constexpr (std::is_same_v<TYPE, bool>) {                        \
-      JS::Prefs::SETTER(true);                                         \
-      return true;                                                     \
-    } else {                                                           \
-      fprintf(stderr, "Pref %s must have a value specified.\n", name); \
-      return false;                                                    \
-    }                                                                  \
-  }
-  FOR_EACH_JS_PREF(CHECK_PREF)
-#undef CHECK_PREF
-
-  // Nothing matched. If --fuzzing-safe is used, return true after printing a
-  // message, to continue execution without breaking fuzzing when a pref is
-  // removed.
-  if (fuzzingSafe) {
-    fprintf(stderr, "Warning: Ignoring unknown pref name: %s\n", name);
-    return true;
-  }
-  fprintf(stderr, "Invalid pref name: %s\n", name);
-  return false;
-}
-
-static bool SetJSPrefToValue(const char* name, size_t nameLen,
-                             const char* value) {
-  // Search for a matching pref and try to set it to the provided value.
-#define CHECK_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF)         \
-  if (nameLen == strlen(NAME) && memcmp(name, NAME, strlen(NAME)) == 0) { \
-    TYPE v;                                                               \
-    if (!ParsePrefValue<TYPE>(NAME, value, &v)) {                         \
-      return false;                                                       \
-    }                                                                     \
-    JS::Prefs::SETTER(v);                                                 \
-    return true;                                                          \
-  }
-  FOR_EACH_JS_PREF(CHECK_PREF)
-#undef CHECK_PREF
-
-  // Nothing matched. If --fuzzing-safe is used, return true after printing a
-  // message, to continue execution without breaking fuzzing when a pref is
-  // removed.
-  if (fuzzingSafe) {
-    fprintf(stderr, "Warning: Ignoring unknown pref name: %s\n", name);
-    return true;
-  }
-  fprintf(stderr, "Invalid pref name: %s\n", name);
-  return false;
-}
-
-static bool IsJSPrefAvailable(const char* pref) {
-  if (!fuzzingSafe) {
-    // All prefs in fuzzing unsafe mode are enabled.
-    return true;
-  }
-#define WASM_FEATURE(NAME, LOWER_NAME, COMPILE_PRED, COMPILER_PRED, FLAG_PRED, \
-                     FLAG_FORCE_ON, FLAG_FUZZ_ON, PREF)                        \
-  if constexpr (!FLAG_FUZZ_ON) {                                               \
-    if (strcmp("wasm_" #PREF, pref) == 0) {                                    \
-      return false;                                                            \
-    }                                                                          \
-  }
-  JS_FOR_WASM_FEATURES(WASM_FEATURE)
-#undef WASM_FEATURE
-  return true;
-}
-
-static bool SetJSPref(const char* pref) {
-  const char* assign = strchr(pref, '=');
-  if (!assign) {
-    if (IsJSPrefAvailable(pref) && !SetJSPrefToTrueForBool(pref)) {
-      return false;
-    }
-    return true;
-  }
-
-  size_t nameLen = assign - pref;
-  const char* valStart = assign + 1;  // Skip '='.
-
-  if (IsJSPrefAvailable(pref) && !SetJSPrefToValue(pref, nameLen, valStart)) {
-    return false;
-  }
-  return true;
-}
-
-static void ListJSPrefs() {
-  auto printPref = [](const char* name, auto defaultVal) {
-    if (!IsJSPrefAvailable(name)) {
-      return;
-    }
-    using T = decltype(defaultVal);
-    if constexpr (std::is_same_v<T, bool>) {
-      fprintf(stderr, "%s=%s\n", name, defaultVal ? "true" : "false");
-    } else if constexpr (std::is_same_v<T, int32_t>) {
-      fprintf(stderr, "%s=%d\n", name, defaultVal);
-    } else {
-      static_assert(std::is_same_v<T, uint32_t>);
-      fprintf(stderr, "%s=%u\n", name, defaultVal);
-    }
-  };
-
-#define PRINT_PREF(NAME, CPP_NAME, TYPE, SETTER, IS_STARTUP_PREF) \
-  printPref(NAME, JS::Prefs::CPP_NAME());
-  FOR_EACH_JS_PREF(PRINT_PREF)
-#undef PRINT_PREF
-}
-
 static bool SetGCParameterFromArg(JSContext* cx, char* arg) {
   char* c = strchr(arg, '=');
   if (!c) {
@@ -12872,7 +12933,7 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
 
   for (MultiStringRange args = op.getMultiStringOption("setpref");
        !args.empty(); args.popFront()) {
-    if (!SetJSPref(args.front())) {
+    if (!SetPref(args.front())) {
       return false;
     }
   }
@@ -12975,7 +13036,7 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
 
   if (op.getBoolOption("list-prefs")) {
-    ListJSPrefs();
+    ListPrefs();
     return false;
   }
 

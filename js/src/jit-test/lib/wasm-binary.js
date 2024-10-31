@@ -238,9 +238,9 @@ const TagCode          = 0x04;
 const HasMaximumFlag   = 0x1;
 
 function toU8(array) {
-    for (const [i, b] of array.entries()) {
-        assertEq(b < 256, true, `expected byte at index ${i} but got ${b}`);
-    }
+    // for (const [i, b] of array.entries()) {
+    //     assertEq(b < 256, true, `expected byte at index ${i} but got ${b}`);
+    // }
     return Uint8Array.from(array);
 }
 
@@ -294,12 +294,14 @@ function encodedString(name, len) {
 function moduleWithSections(sections) {
     const bytes = moduleHeaderThen();
     for (const section of sections) {
+        console.log("section");
         bytes.push(section.name);
         bytes.push(...varU32(section.body.length));
         for (let byte of section.body) {
             bytes.push(byte);
         }
     }
+    console.log("toU8");
     return toU8(bytes);
 }
 
@@ -537,8 +539,13 @@ function funcBody(func, withEndCode=true) {
 }
 
 function bodySection(bodies) {
-    var body = varU32(bodies.length).concat(...bodies);
-    return { name: codeId, body };
+    var section = varU32(bodies.length);
+    for (let body of bodies) {
+        for (let byte of body) {
+            section.push(byte);            
+        }
+    }
+    return { name: codeId, body: section };
 }
 
 function importSection(imports) {

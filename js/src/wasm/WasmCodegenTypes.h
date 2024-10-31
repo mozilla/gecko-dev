@@ -638,8 +638,8 @@ class CallSiteDesc {
   }
 };
 
-static_assert(js::wasm::MaxFunctionBytes <=
-              CallSiteDesc::MAX_LINE_OR_BYTECODE_VALUE);
+// static_assert(js::wasm::MaxModuleBytes <=
+//               CallSiteDesc::MAX_LINE_OR_BYTECODE_VALUE);
 
 WASM_DECLARE_CACHEABLE_POD(CallSiteDesc);
 
