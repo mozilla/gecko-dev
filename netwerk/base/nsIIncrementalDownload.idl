@@ -49,9 +49,10 @@ interface nsIIncrementalDownload : nsIRequest
    *        The amount of time to wait between fetching chunks.  Pass a
    *        negative to use the default interval, or 0 to fetch the remaining
    *        part of the file in one chunk.
+   * @param extraHeaders Additional headers to supply with the HTTP request.
    */
   void init(in nsIURI uri, in nsIFile destination, in long chunkSize,
-            in long intervalInSeconds);
+            in long intervalInSeconds, in ACString extraHeaders);
 
   /**
    * The URI being fetched.

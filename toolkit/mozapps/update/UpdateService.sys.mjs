@@ -6143,6 +6143,63 @@ class Downloader {
   }
 
   /**
+   * Given a patch URL, return a URL possibly modified with extra query
+   * parameters and extra headers.  The extras help identify whether this update
+   * is driven by a regular browsing Firefox or by a background update task.
+   *
+   * @param {string} [patchURL] Unmodified patch URL.
+   * @return { url, extraHeaders }
+   */
+  _maybeWithExtras(patchURL) {
+    let shouldAddExtras = true;
+    if (AppConstants.MOZ_APP_NAME !== "firefox") {
+      shouldAddExtras = false;
+    }
+    if (Services.policies) {
+      let policies = Services.policies.getActivePolicies();
+      if (policies) {
+        if ("AppUpdateURL" in policies) {
+          shouldAddExtras = false;
+        }
+      }
+    }
+
+    if (!shouldAddExtras) {
+      LOG("Downloader:_maybeWithExtras - Not adding extras");
+      return { url: patchURL, extraHeaders: "\r\n" };
+    }
+
+    LOG("Downloader:_maybeWithExtras - Adding extras");
+
+    let modeStr = lazy.gIsBackgroundTaskMode ? "1" : "0";
+    let extraHeaders = `X-BackgroundTaskMode: ${modeStr}\r\n`;
+    let extraParameters = [["backgroundTaskMode", modeStr]];
+
+    if (lazy.gIsBackgroundTaskMode) {
+      const bts = Cc["@mozilla.org/backgroundtasks;1"].getService(
+        Ci.nsIBackgroundTasks
+      );
+      extraHeaders += `X-BackgroundTaskName: ${bts.backgroundTaskName()}\r\n`;
+      extraParameters.push(["backgroundTaskName", bts.backgroundTaskName()]);
+    }
+
+    extraHeaders += "\r\n";
+
+    let url = patchURL;
+    let parsedUrl = URL.parse(url);
+    if (parsedUrl) {
+      for (let [p, v] of extraParameters) {
+        parsedUrl.searchParams.set(p, v);
+      }
+      url = parsedUrl.href;
+    } else {
+      LOG("Downloader:_maybeWithExtras - Failed to parse patch URL!");
+    }
+
+    return { url, extraHeaders };
+  }
+
+  /**
    * Download and stage the given update.
    * @param   update
    *          A nsIUpdate object to download a patch for. Cannot be null.
@@ -6196,6 +6253,12 @@ class Downloader {
       canUseBits = this._canUseBits(this._patch);
     }
 
+    // When using Firefox and Mozilla's update server, add extra headers and
+    // extra query parameters identifying whether this request is on behalf of a
+    // regular browsing profile (0) or a background task (1).  This helps
+    // understand bandwidth usage of background updates in production.
+    let { url, extraHeaders } = this._maybeWithExtras(this._patch.URL);
+
     if (!canUseBits) {
       this._pendingRequest = null;
 
@@ -6247,18 +6310,25 @@ class Downloader {
       LOG(
         "Downloader:downloadUpdate - Starting nsIIncrementalDownload with " +
           "url: " +
-          this._patch.URL +
+          url +
           ", path: " +
           patchFile.path +
           ", interval: " +
           interval
       );
-      let uri = Services.io.newURI(this._patch.URL);
+      let uri = Services.io.newURI(url);
 
       this._request = Cc[
         "@mozilla.org/network/incremental-download;1"
       ].createInstance(Ci.nsIIncrementalDownload);
-      this._request.init(uri, patchFile, DOWNLOAD_CHUNK_SIZE, interval);
+
+      this._request.init(
+        uri,
+        patchFile,
+        DOWNLOAD_CHUNK_SIZE,
+        interval,
+        extraHeaders
+      );
       this._request.start(this, null);
     } else {
       this._bitsActiveNotifications = this.hasDownloadListeners;
