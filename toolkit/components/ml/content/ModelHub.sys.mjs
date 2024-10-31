@@ -50,8 +50,10 @@ const DEFAULT_PRINCIPAL_ORIGIN = null;
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "DEFAULT_MAX_CACHE_SIZE",
-  "browser.ml.modelCacheMaxSizeBytes"
+  "browser.ml.modelCacheMaxSize"
 );
+
+const ONE_GIB = 1024 * 1024 * 1024;
 
 /**
  * Checks if a given URL string corresponds to an allowed hub.
@@ -164,7 +166,7 @@ export class IndexedDBCache {
     },
   };
   /**
-   * Maximum size of the cache in bytes. Defaults to "browser.ml.modelCacheMaxSizeBytes".
+   * Maximum size of the cache in GiB. Defaults to "browser.ml.modelCacheMaxSize".
    *
    * @type {number}
    */
@@ -177,7 +179,7 @@ export class IndexedDBCache {
    * @param {object} config
    * @param {string} config.dbName - The name of the database file.
    * @param {number} config.version - The version number of the database.
-   * @param {number} config.maxSize Maximum size of the cache in bytes. Defaults to "browser.ml.modelCacheMaxSizeBytes".
+   * @param {number} config.maxSize Maximum size of the cache in GiB. Defaults to "browser.ml.modelCacheMaxSize".
    */
   constructor({
     dbName = "modelFiles",
@@ -198,7 +200,7 @@ export class IndexedDBCache {
    * @param {object} config
    * @param {string} [config.dbName="modelFiles"] - The name of the database.
    * @param {number} [config.version] - The version number of the database.
-   * @param {number} config.maxSize Maximum size of the cache in bytes. Defaults to "browser.ml.modelCacheMaxSizeBytes".
+   * @param {number} config.maxSize Maximum size of the cache in bytes. Defaults to "browser.ml.modelCacheMaxSize".
    * @returns {Promise<IndexedDBCache>} An initialized instance of IndexedDBCache.
    */
   static async init({
@@ -669,8 +671,8 @@ export class IndexedDBCache {
       DEFAULT_PRINCIPAL_ORIGIN
     );
 
-    if (totalSize + fileSize > this.#maxSize) {
-      throw new Error(`Exceeding cache size limit of ${this.#maxSize} bytes"`);
+    if (totalSize + fileSize > this.#maxSize * ONE_GIB) {
+      throw new Error(`Exceeding cache size limit of ${this.#maxSize}GiB"`);
     }
 
     const fileEntry = { id: cacheKey, data };
