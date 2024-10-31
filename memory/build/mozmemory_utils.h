@@ -11,6 +11,7 @@
 #include <type_traits>
 
 #if defined(MOZ_MEMORY) && defined(XP_WIN)
+#  include <wtypes.h>
 #  include "mozmemory_wrap.h"
 #endif
 
@@ -68,6 +69,10 @@ struct StallSpecs {
 
 #if defined(MOZ_MEMORY) && defined(XP_WIN)
 MOZ_JEMALLOC_API StallSpecs GetAllocatorStallSpecs();
+MOZ_JEMALLOC_API_NODISCARD void* MozVirtualAlloc(LPVOID lpAddress,
+                                                 SIZE_T dwSize,
+                                                 DWORD flAllocationType,
+                                                 DWORD flProtect);
 #endif
 
 }  // namespace mozilla

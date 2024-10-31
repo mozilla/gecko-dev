@@ -1665,14 +1665,24 @@ static inline StallSpecs GetStallSpecs() {
 #  endif
 }
 
+}  // namespace MozAllocRetries
+
+namespace mozilla {
+
+StallSpecs GetAllocatorStallSpecs() {
+  return ::MozAllocRetries::GetStallSpecs();
+}
+
 // Drop-in wrapper around VirtualAlloc. When out of memory, may attempt to stall
 // and retry rather than returning immediately, in hopes that the page file is
 // about to be expanded by Windows.
 //
 // Ref:
 // https://docs.microsoft.com/en-us/troubleshoot/windows-client/performance/slow-page-file-growth-memory-allocation-errors
-[[nodiscard]] void* MozVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize,
-                                    DWORD flAllocationType, DWORD flProtect) {
+void* MozVirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType,
+                      DWORD flProtect) {
+  using namespace MozAllocRetries;
+
   DWORD const lastError = ::GetLastError();
 
   constexpr auto IsOOMError = [] {
@@ -1727,14 +1737,7 @@ static inline StallSpecs GetStallSpecs() {
 
   return ret.value_or(nullptr);
 }
-}  // namespace MozAllocRetries
 
-using MozAllocRetries::MozVirtualAlloc;
-
-namespace mozilla {
-MOZ_JEMALLOC_API StallSpecs GetAllocatorStallSpecs() {
-  return ::MozAllocRetries::GetStallSpecs();
-}
 }  // namespace mozilla
 
 #endif  // XP_WIN
