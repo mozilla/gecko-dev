@@ -174,3 +174,64 @@ add_task(async function test_noRootIconFallback() {
     "No root icon, should use icon from most frecent subpage"
   );
 });
+
+add_task(async function test_noRootIconFallbackURIsWithPort() {
+  await PlacesTestUtils.clearFavicons();
+  const TEST_URI = "http://localhost:3000";
+  const TEST_URI_2 = "http://localhost:5000";
+  const TEST_URI_SUBPAGE = "http://localhost:3000/subpage";
+  const TEST_URI_2_SUBPAGE = "http://localhost:5000/subpage";
+
+  await PlacesTestUtils.addVisits(TEST_URI_SUBPAGE);
+  await PlacesTestUtils.addVisits(Array(10).fill(TEST_URI_2_SUBPAGE));
+
+  let dataURL32 = await readFileDataAsDataURL(
+    do_get_file("favicon-normal32.png"),
+    "image/png"
+  );
+
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI_SUBPAGE,
+    TEST_URI_SUBPAGE + "/favicon.ico",
+    dataURL32
+  );
+
+  await PlacesTestUtils.addVisits(TEST_URI);
+  await PlacesTestUtils.addVisits(TEST_URI_2);
+
+  Assert.equal(
+    await getFaviconUrlForPage(TEST_URI),
+    TEST_URI_SUBPAGE + "/favicon.ico",
+    "No root icon, should use icon from most frecent subpage"
+  );
+
+  try {
+    await getFaviconUrlForPage(TEST_URI_2);
+    Assert.ok(false, "No root icon for root or root subpages");
+  } catch (error) {
+    Assert.ok(
+      true,
+      "Should return error since no icons exist for root or its subpages"
+    );
+  }
+
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI_2_SUBPAGE,
+    TEST_URI_2_SUBPAGE + "/favicon.ico",
+    dataURL32
+  );
+
+  await PlacesTestUtils.addVisits("http://localhost:5000/other_subpage");
+
+  await PlacesTestUtils.setFaviconForPage(
+    "http://localhost:5000/other_subpage",
+    "http://localhost:5000/other_subpage/favicon.ico",
+    dataURL32
+  );
+
+  Assert.equal(
+    await getFaviconUrlForPage(TEST_URI_2),
+    TEST_URI_2_SUBPAGE + "/favicon.ico",
+    "No root icon, should use icon from most frecent subpage"
+  );
+});
