@@ -199,6 +199,27 @@ interface AwesomeBar {
          * Fired when the user has cancelled their interaction with the awesome bar.
          */
         fun onInputCancelled() = Unit
+
+        /**
+         * A [Scorer] is responsible for scoring a list of [Suggestion]s. The score determines the order in which
+         * suggestions are displayed.
+         *
+         * The interface is designed to allow the user of a [SuggestionProvider] to override the scoring logic. If the
+         * provider is implemented with a [Scorer] as part of constructor, it enables users to supply their own custom
+         * scoring implementations, providing control over how suggestions are displayed.
+         */
+        interface Scorer {
+            /**
+             * Scores the provided list of [Suggestion]s.
+             *
+             * The score assigned to each [Suggestion] can be used to determine its ranking and display order within the
+             * [AwesomeBar].
+             *
+             * @param suggestions A list of [Suggestion]s to be scored.
+             * @return A list of [Suggestion]s with updated scores.
+             */
+            fun score(suggestions: List<Suggestion>): List<Suggestion>
+        }
     }
 
     /**
