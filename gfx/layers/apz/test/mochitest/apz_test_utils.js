@@ -591,12 +591,11 @@ async function waitUntilApzStable() {
           // send message back to content process
           sendAsyncMessage("apz-flush-done", null);
         };
-        var flushRepaint = function () {
-          if (topUtils.isMozAfterPaintPending) {
-            topWin.addEventListener("MozAfterPaint", flushRepaint, {
-              once: true,
-            });
-            return;
+        var flushRepaint = async function () {
+          // Ensure all repaints have completed. We use the requestAnimationFrame
+          // method because it seems to be more consistent with a GPU process.
+          while (topUtils.isMozAfterPaintPending) {
+            await new Promise(resolve => topWin.requestAnimationFrame(resolve));
           }
 
           Services.obs.addObserver(repaintDone, "apz-repaints-flushed");
