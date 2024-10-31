@@ -463,9 +463,6 @@ ff_Adlm{
         "America:New_York"{
             ec{"𞤐𞤫𞤱-𞤒𞤮𞤪𞤳"}
         }
-        "America:Nipigon"{
-            ec{"𞤐𞤭𞤨𞤭𞤺𞤮𞤲"}
-        }
         "America:Nome"{
             ec{"𞤐𞤮𞤱𞤥𞤵"}
         }
@@ -487,9 +484,6 @@ ff_Adlm{
         "America:Panama"{
             ec{"𞤆𞤢𞤲𞤢𞤲𞤥𞤢𞥄"}
         }
-        "America:Pangnirtung"{
-            ec{"𞤆𞤢𞤲𞤺"}
-        }
         "America:Paramaribo"{
             ec{"𞤆𞤢𞤪𞤢𞤥𞤢𞤪𞤭𞤦𞤮"}
         }
@@ -510,9 +504,6 @@ ff_Adlm{
         }
         "America:Punta_Arenas"{
             ec{"𞤆𞤵𞤲𞤼𞤢-𞤀𞤪𞤫𞤲𞤢𞥁"}
-        }
-        "America:Rainy_River"{
-            ec{"𞤈𞤫𞤲𞤭𞥅-𞤈𞤭𞤾𞤮𞥅"}
         }
         "America:Rankin_Inlet"{
             ec{"𞤈𞤢𞤲𞤳𞤭𞤲 𞤋𞤲𞤤𞤫𞤼"}
@@ -542,7 +533,7 @@ ff_Adlm{
             ec{"𞤅𞤢𞥄𞤱-𞤆𞤮𞤤𞤮𞥅"}
         }
         "America:Scoresbysund"{
-            ec{"‮𞤋𞤼𞥆𞤮𞤳𞤮𞤪𞤼𞤮𞥅𞤪𞤥𞤭𞥅𞤼"}
+            ec{"𞤋𞤼𞥆𞤮𞤳𞤮𞤪𞤼𞤮𞥅𞤪𞤥𞤭𞥅𞤼"}
         }
         "America:Sitka"{
             ec{"𞤅𞤭𞤼𞤳𞤢"}
@@ -574,9 +565,6 @@ ff_Adlm{
         "America:Thule"{
             ec{"𞤚𞤵𞤤𞤫"}
         }
-        "America:Thunder_Bay"{
-            ec{"𞤚𞤵𞤲𞤣𞤮𞥅 𞤄𞤫𞥅"}
-        }
         "America:Tijuana"{
             ec{"𞤚𞤭𞤶𞤵𞤱𞤢𞥄𞤲𞤢"}
         }
@@ -597,9 +585,6 @@ ff_Adlm{
         }
         "America:Yakutat"{
             ec{"𞤒𞤢𞤳𞤵𞤼𞤢𞤼"}
-        }
-        "America:Yellowknife"{
-            ec{"𞤒𞤫𞤤𞤮𞥅𞤲𞤢𞤴𞤬"}
         }
         "Antarctica:Casey"{
             ec{"𞤑𞤢𞤴𞤧𞤫"}
@@ -690,9 +675,6 @@ ff_Adlm{
         }
         "Asia:Chita"{
             ec{"𞤕𞤭𞥅𞤼𞤢"}
-        }
-        "Asia:Choibalsan"{
-            ec{"𞤕𞤮𞤴𞤦𞤢𞤤𞤧𞤢𞤲"}
         }
         "Asia:Colombo"{
             ec{"𞤑𞤮𞤤𞤮𞤥𞤦𞤢"}
@@ -925,9 +907,6 @@ ff_Adlm{
         "Australia:Broken_Hill"{
             ec{"𞤄𞤪𞤮𞤳𞤭𞤲-𞤖𞤭𞥅𞤤"}
         }
-        "Australia:Currie"{
-            ec{"𞤑𞤵𞥅𞤪𞤭𞥅"}
-        }
         "Australia:Darwin"{
             ec{"𞤁𞤢𞥄𞤪𞤱𞤭𞤲"}
         }
@@ -1111,9 +1090,6 @@ ff_Adlm{
         "Europe:Ulyanovsk"{
             ec{"𞤓𞤤𞤴𞤢𞤲𞤮𞤾𞤮𞤧𞤳𞤵"}
         }
-        "Europe:Uzhgorod"{
-            ec{"𞤓𞥅𞤶𞤢𞤪𞤵𞥅𞤣𞤵"}
-        }
         "Europe:Vaduz"{
             ec{"𞤜𞤢𞤣𞤵𞥅𞤶𞤵"}
         }
@@ -1134,9 +1110,6 @@ ff_Adlm{
         }
         "Europe:Zagreb"{
             ec{"𞤟𞤢𞤺𞤪𞤫𞤦𞤵"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"𞤟𞤢𞤨𞤮𞤪𞤵𞥅𞥁"}
         }
         "Europe:Zurich"{
             ec{"𞤟𞤵𞤪𞤵𞤳"}
@@ -1220,9 +1193,6 @@ ff_Adlm{
             sd{"𞤑𞤕𞤖"}
             sg{"𞤑𞤖𞤖"}
             ss{"𞤑𞤖𞤖"}
-        }
-        "Pacific:Johnston"{
-            ec{"𞤔𞤮𞤲𞤧𞤼𞤮𞤲"}
         }
         "Pacific:Kanton"{
             ec{"𞤑𞤢𞤲𞤼𞤮𞤲"}
@@ -1533,11 +1503,6 @@ ff_Adlm{
             lg{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤕𞤢𞤴𞤲𞤢"}
             ls{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤖𞤢𞤱𞤪𞤵𞤲𞥋𞤣𞤫 𞤕𞤢𞤴𞤲𞤢"}
         }
-        "meta:Choibalsan"{
-            ld{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤕𞤫𞥅𞤯𞤵 𞤅𞤮𞤴𞤦𞤢𞤤𞤧𞤢𞤲"}
-            lg{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤅𞤮𞤴𞤦𞤢𞤤𞤧𞤢𞤲"}
-            ls{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤖𞤢𞤱𞤪𞤭𞤼𞤵𞤲𞥋𞤣𞤫 𞤅𞤮𞤴𞤦𞤢𞤤𞤧𞤢𞤲"}
-        }
         "meta:Christmas"{
             ls{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤅𞤵𞤪𞤭𞥅𞤪𞤫 𞤑𞤭𞤪𞤧𞤭𞤥𞤢𞥄𞤧"}
         }
@@ -1740,9 +1705,6 @@ ff_Adlm{
             lg{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤃𞤢𞤳𞤢𞤱𞤮𞥅"}
             ls{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤖𞤢𞤱𞤪𞤵𞤲𞥋𞤣𞤫 𞤃𞤢𞤳𞤢𞤱𞤮𞥅"}
         }
-        "meta:Macquarie"{
-            ls{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤅𞤵𞤪𞤭𞥅𞤪𞤫 𞤃𞤢𞤳𞤢𞥄𞤪𞤭"}
-        }
         "meta:Magadan"{
             ld{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤕𞤫𞥅𞤯𞤵 𞤃𞤢𞤺𞤢𞤣𞤢𞤲"}
             lg{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤃𞤢𞤺𞤢𞤣𞤢𞤲"}
@@ -1767,17 +1729,6 @@ ff_Adlm{
         }
         "meta:Mawson"{
             ls{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤃𞤢𞤱𞤧𞤮𞤲"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{
-                "𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤕𞤫𞥅𞤯𞤵 𞤐𞤢𞤲𞤮-𞤸𞤭𞥅𞤪𞤲𞤢𞥄𞤲𞤺𞤫 "
-                "𞤃𞤫𞤳𞤧𞤭𞤳𞤮𞥅"
-            }
-            lg{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤐𞤢𞤲𞤮-𞤸𞤭𞥅𞤪𞤲𞤢𞥄𞤲𞤺𞤫 𞤃𞤫𞤳𞤧𞤭𞤳𞤮𞥅"}
-            ls{
-                "𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤖𞤢𞤱𞤪𞤵𞤲𞥋𞤣𞤫 𞤐𞤢𞤲𞤮-𞤸𞤭𞥅𞤪𞤲𞤢𞥄𞤲𞤺𞤫 "
-                "𞤃𞤫𞤳𞤧𞤭𞤳𞤮𞥅"
-            }
         }
         "meta:Mexico_Pacific"{
             ld{"𞤑𞤭𞤶𞤮𞥅𞤪𞤫 𞤕𞤫𞥅𞤯𞤵 𞤁𞤫𞤰𞥆𞤮 𞤃𞤫𞤳𞤧𞤭𞤳𞤮𞥅"}

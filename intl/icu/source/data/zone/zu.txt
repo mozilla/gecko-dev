@@ -462,9 +462,6 @@ zu{
         "America:New_York"{
             ec{"i-New York"}
         }
-        "America:Nipigon"{
-            ec{"i-Nipigon"}
-        }
         "America:Nome"{
             ec{"i-Nome"}
         }
@@ -485,9 +482,6 @@ zu{
         }
         "America:Panama"{
             ec{"i-Panama"}
-        }
-        "America:Pangnirtung"{
-            ec{"i-Pangnirtung"}
         }
         "America:Paramaribo"{
             ec{"i-Paramaribo"}
@@ -510,9 +504,6 @@ zu{
         "America:Punta_Arenas"{
             ec{"i-Punta Arenas"}
         }
-        "America:Rainy_River"{
-            ec{"i-Rainy River"}
-        }
         "America:Rankin_Inlet"{
             ec{"i-Rankin Inlet"}
         }
@@ -527,9 +518,6 @@ zu{
         }
         "America:Rio_Branco"{
             ec{"i-Rio Branco"}
-        }
-        "America:Santa_Isabel"{
-            ec{"i-Santa Isabel"}
         }
         "America:Santarem"{
             ec{"i-Santarem"}
@@ -576,9 +564,6 @@ zu{
         "America:Thule"{
             ec{"i-Thule"}
         }
-        "America:Thunder_Bay"{
-            ec{"i-Thunder Bay"}
-        }
         "America:Tijuana"{
             ec{"i-Tijuana"}
         }
@@ -599,9 +584,6 @@ zu{
         }
         "America:Yakutat"{
             ec{"i-Yakutat"}
-        }
-        "America:Yellowknife"{
-            ec{"i-Yellowknife"}
         }
         "Antarctica:Casey"{
             ec{"i-Casey"}
@@ -690,9 +672,6 @@ zu{
         "Asia:Chita"{
             ec{"i-Chita"}
         }
-        "Asia:Choibalsan"{
-            ec{"i-Choibalsan"}
-        }
         "Asia:Colombo"{
             ec{"i-Colombo"}
         }
@@ -710,9 +689,6 @@ zu{
         }
         "Asia:Dushanbe"{
             ec{"i-Dushanbe"}
-        }
-        "Asia:Famagusta"{
-            ec{"Famagusta"}
         }
         "Asia:Gaza"{
             ec{"iGaza"}
@@ -924,9 +900,6 @@ zu{
         "Australia:Broken_Hill"{
             ec{"i-Broken Hill"}
         }
-        "Australia:Currie"{
-            ec{"i-Currie"}
-        }
         "Australia:Darwin"{
             ec{"i-Darwin"}
         }
@@ -1109,9 +1082,6 @@ zu{
         "Europe:Ulyanovsk"{
             ec{"i-Ulyanovsk"}
         }
-        "Europe:Uzhgorod"{
-            ec{"i-Uzhhorod"}
-        }
         "Europe:Vaduz"{
             ec{"i-Vaduz"}
         }
@@ -1132,9 +1102,6 @@ zu{
         }
         "Europe:Zagreb"{
             ec{"i-Zagreb"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"i-Zaporozhye"}
         }
         "Europe:Zurich"{
             ec{"i-Zurich"}
@@ -1216,9 +1183,6 @@ zu{
         }
         "Pacific:Honolulu"{
             ec{"i-Honolulu"}
-        }
-        "Pacific:Johnston"{
-            ec{"i-Johnston"}
         }
         "Pacific:Kiritimati"{
             ec{"i-Kiritimati"}
@@ -1443,11 +1407,6 @@ zu{
             lg{"Isikhathi sase-China"}
             ls{"Isikhathi esivamile sase-China"}
         }
-        "meta:Choibalsan"{
-            ld{"Isikhathi sehlobo e-Choibalsan"}
-            lg{"Isikhathi sase-Choibalsan"}
-            ls{"Isikhathi Esivamile sase-Choibalsan"}
-        }
         "meta:Christmas"{
             ls{"Isikhathi sase-Christmas Island"}
         }
@@ -1611,6 +1570,9 @@ zu{
             lg{"esase-Petropavlovsk-Kamchatski Time"}
             ls{"esase-Petropavlovsk-Kamchatski Standard Time"}
         }
+        "meta:Kazakhstan"{
+            ls{"Isikhathi saseKazakhstan"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Isikhathi sase-Mpumalanga ne-Kazakhstan"}
         }
@@ -1641,9 +1603,6 @@ zu{
             lg{"Isikhathi sase-Lord Howe"}
             ls{"Isikhathi sase-Lord Howe esivamile"}
         }
-        "meta:Macquarie"{
-            ls{"Isikhathi sase-Macquarie Island"}
-        }
         "meta:Magadan"{
             ld{"Isikhathi sasehlobo e-Magadan"}
             lg{"Isikhathi sase-Magadan"}
@@ -1668,11 +1627,6 @@ zu{
         }
         "meta:Mawson"{
             ls{"Isikhathi sase-Mawson"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Isikhathi sase-Northwest Mexico sasemini"}
-            lg{"Isikhathi sase-Northwest Mexico"}
-            ls{"Isikhathi sase-Northwest Mexico esijwayelekile"}
         }
         "meta:Mexico_Pacific"{
             ld{"Isikhathi sase-Mexican Pacific sasemini"}
@@ -1898,10 +1852,6 @@ zu{
         "meta:Yukon"{
             ls{"Yukon Time"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"Isikhathi sase-{0}"}
         regionFormatDaylight{"{0} Isikhathi sasemini"}
         regionFormatStandard{"{0} isikhathi esivamile"}

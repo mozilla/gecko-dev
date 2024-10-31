@@ -51,13 +51,12 @@ sd_Deva{
             ls{"उलहंदो यूरोपी मअयारी वक्तु"}
         }
         "meta:GMT"{
-            ls{"ग्रीनविच मीन वक्तु"}
+            ls{"ग्रीनविच मीन वक़्तु"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"जीएमटी{0}"}
         gmtZeroFormat{"जीएमटी"}
-        regionFormat{"{0} वक्त"}
+        regionFormat{"{0} वक़्तु"}
         regionFormatDaylight{"{0} दीं॒ह जो वक्त"}
-        regionFormatStandard{"{0} मअयारी वक्त"}
+        regionFormatStandard{"{0} मइयारी वक़्तु"}
     }
 }

@@ -366,7 +366,7 @@ US-ASCII { MIME* IANA JAVA WINDOWS }
     ibm-367 { IBM* } IBM367 { IANA WINDOWS } # This is not truely ibm-367 because it's missing the fallbacks.
 
 # GB 18030 is partly algorithmic, using the MBCS converter
-gb18030 { IANA* }       ibm-1392 { IBM* } windows-54936 { WINDOWS* } GB18030 { MIME* }
+gb18030-2022            ibm-1392 { IBM* } windows-54936 { WINDOWS* } GB18030 { MIME* IANA* }
 
 # Table-based interchange codepages
 
@@ -1081,7 +1081,7 @@ ibm-1164_P100-1999 { UTR22* }   ibm-1164 { IBM* }                   # EBCDIC Vie
 ibm-1364_P110-2007 { UTR22* }   ibm-1364 { IBM* } x-IBM1364 { JAVA* } # Korean Host Mixed
 ibm-1370_P100-1999 { UTR22* }   ibm-1370 { IBM* } x-IBM1370 { JAVA* }
 ibm-1371_P100-1999 { UTR22* }   ibm-1371 { IBM* } x-IBM1371 { JAVA* } # Taiwan EBCDIC MIXED (Euro update of ibm-937)
-ibm-1388_P103-2001 { UTR22* }   ibm-1388 { IBM* } ibm-9580 { IBM } x-IBM1388 { JAVA* } # S-Ch DBCS-Host Data GBK EBCDIC_STATEFUL. Yes ibm-9580 is an alias.
+ibm-1388_P100-2024 { UTR22* }   ibm-1388 { IBM* } ibm-9580 { IBM } x-IBM1388 { JAVA* } # S-Ch DBCS-Host Data GBK EBCDIC_STATEFUL. Yes ibm-9580 is an alias.
 ibm-1390_P110-2003 { UTR22* }   ibm-1390 { IBM* } x-IBM1390 { JAVA* } # Japan EBCDIC MIXED (JIS X 0213)
 ibm-1399_P110-2003 { UTR22* }   ibm-1399 { IBM* } x-IBM1399 { JAVA* } # Host MBCS (Latin-Kanji) (JIS X 0213)
 ibm-5123_P100-1999 { UTR22* }   ibm-5123 { IBM* }                   # Host Roman Jis. Euro update of ibm-1027. SBCS portion of ibm-1390.

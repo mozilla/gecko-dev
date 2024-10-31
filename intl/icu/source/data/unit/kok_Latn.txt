@@ -1,0 +1,205 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kok_Latn{
+    %%Parent{"root"}
+    units{
+        duration{
+            century{
+                dnam{"xekdde"}
+                other{"{0} xekdde"}
+            }
+            day{
+                dnam{"dis"}
+                other{"{0} dis"}
+                per{"dor disa {0}"}
+            }
+            decade{
+                dnam{"doskam"}
+                other{"{0} doskam"}
+            }
+            hour{
+                dnam{"voram"}
+                other{"{0} voram"}
+                per{"dor vora {0}"}
+            }
+            microsecond{
+                dnam{"maikrosekond"}
+                other{"{0} maikrosekond"}
+            }
+            millisecond{
+                dnam{"milisekond"}
+                other{"{0} milisekond"}
+            }
+            minute{
+                dnam{"mintam"}
+                other{"{0} mintam"}
+                per{"dor minut {0}"}
+            }
+            month{
+                dnam{"mhoine"}
+                other{"{0} mhoine"}
+                per{"dor mhoino {0}"}
+            }
+            nanosecond{
+                dnam{"nanosekond"}
+                other{"{0} nanosekond"}
+            }
+            night{
+                dnam{"rati"}
+                other{"{0} rati"}
+                per{"dor rat {0}"}
+            }
+            quarter{
+                dnam{"timhoinalle"}
+                other{"{0} timhoinalle"}
+                per{"{0}/timhoinallem"}
+            }
+            second{
+                dnam{"sekond"}
+                other{"{0} sekond"}
+                per{"dor sekond {0}"}
+            }
+            week{
+                dnam{"suman"}
+                other{"{0} suman"}
+                per{"dor sumanak {0}"}
+            }
+            year{
+                dnam{"vorsam"}
+                other{"{0} vorsam"}
+                per{"dor voros {0}"}
+            }
+        }
+    }
+    unitsNarrow{
+        duration{
+            century{
+                dnam{"x"}
+                other{"{0}x"}
+            }
+            day{
+                dnam{"d"}
+                other{"{0}d"}
+            }
+            decade{
+                dnam{"dos"}
+                other{"{0}dos"}
+            }
+            hour{
+                dnam{"vor"}
+                other{"{0}vor"}
+                per{"{0}/vor"}
+            }
+            microsecond{
+                dnam{"μsek"}
+                other{"{0}μsek"}
+            }
+            millisecond{
+                dnam{"msek"}
+                other{"{0}msek"}
+            }
+            minute{
+                other{"{0}min"}
+            }
+            month{
+                dnam{"mho"}
+                other{"{0}mho"}
+                per{"{0}/mho"}
+            }
+            nanosecond{
+                dnam{"nsek"}
+                other{"{0}nsek"}
+            }
+            night{
+                dnam{"rati"}
+                other{"{0}rati"}
+                per{"{0}/rat"}
+            }
+            quarter{
+                dnam{"timho"}
+                other{"{0}timho"}
+                per{"{0}/timho"}
+            }
+            second{
+                dnam{"sek"}
+                other{"{0}sek"}
+                per{"{0}/sek"}
+            }
+            week{
+                dnam{"sum"}
+                other{"{0}sum"}
+                per{"{0}/sum"}
+            }
+            year{
+                dnam{"vorsam"}
+                other{"{0}vorsam"}
+                per{"{0}/voros"}
+            }
+        }
+    }
+    unitsShort{
+        duration{
+            century{
+                dnam{"x"}
+                other{"{0} x"}
+            }
+            day{
+                dnam{"dis"}
+                other{"{0} dis"}
+                per{"{0}/dis"}
+            }
+            decade{
+                dnam{"dos"}
+                other{"{0} dos"}
+            }
+            hour{
+                dnam{"voram"}
+                other{"{0} vor"}
+                per{"{0}/vor"}
+            }
+            microsecond{
+                dnam{"μsek"}
+                other{"{0} μsek"}
+            }
+            millisecond{
+                dnam{"msek"}
+                other{"{0} msek"}
+            }
+            month{
+                dnam{"mho"}
+                other{"{0} mho"}
+                per{"{0}/mho"}
+            }
+            nanosecond{
+                dnam{"nanosek"}
+                other{"{0} nsek"}
+            }
+            night{
+                dnam{"rati"}
+                other{"{0} rati"}
+                per{"{0}/rat"}
+            }
+            quarter{
+                dnam{"timho"}
+                other{"{0} timho"}
+                per{"{0}/timho"}
+            }
+            second{
+                dnam{"sek"}
+                other{"{0} sek"}
+                per{"{0}/sek"}
+            }
+            week{
+                dnam{"suman"}
+                other{"{0} suman"}
+                per{"{0}/suman"}
+            }
+            year{
+                dnam{"vorsam"}
+                other{"{0} vorsam"}
+                per{"{0}/voros"}
+            }
+        }
+    }
+}

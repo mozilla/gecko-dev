@@ -249,7 +249,6 @@ en_CA{
                 other{"{0} decilitres"}
             }
             dessert-spoon{
-                dnam{"US dessertspoon"}
                 one{"{0} US dessertspoon"}
                 other{"{0} US dessertspoons"}
             }
@@ -376,9 +375,6 @@ en_CA{
             ampere{
                 dnam{"A"}
             }
-            ohm{
-                dnam{"Ω"}
-            }
             volt{
                 dnam{"V"}
             }
@@ -408,12 +404,6 @@ en_CA{
                 dnam{"W"}
             }
         }
-        pressure{
-            bar{
-                one{"{0}bar"}
-                other{"{0}bars"}
-            }
-        }
         speed{
             kilometer-per-hour{
                 dnam{"km/h"}
@@ -438,11 +428,6 @@ en_CA{
         volume{
             cup{
                 dnam{"cups"}
-            }
-            dessert-spoon{
-                dnam{"US dsp"}
-                one{"{0}USdsp"}
-                other{"{0}USdsp"}
             }
             dessert-spoon-imperial{
                 dnam{"dsp"}
@@ -531,9 +516,6 @@ en_CA{
             }
         }
         concentr{
-            item{
-                dnam{"items"}
-            }
             milligram-ofglucose-per-deciliter{
                 dnam{"milligrams/decilitre"}
             }
@@ -570,12 +552,10 @@ en_CA{
         }
         digital{
             bit{
-                dnam{"bits"}
                 one{"{0} bit"}
                 other{"{0} bits"}
             }
             byte{
-                dnam{"bytes"}
                 one{"{0} byte"}
                 other{"{0} bytes"}
             }
@@ -619,31 +599,11 @@ en_CA{
                 per{"{0}/yr"}
             }
         }
-        energy{
-            electronvolt{
-                dnam{"electronvolts"}
-            }
-            kilojoule{
-                dnam{"kilojoules"}
-            }
-            kilowatt-hour{
-                dnam{"kW-hours"}
-            }
-            therm-us{
-                dnam{"US therms"}
-            }
-        }
         force{
             kilowatt-hour-per-100-kilometer{
                 dnam{"kWh/100 km"}
                 one{"{0} kWh/100 km"}
                 other{"{0} kWh/100 km"}
-            }
-        }
-        graphics{
-            dot{
-                one{"{0} dot"}
-                other{"{0} dots"}
             }
         }
         length{
@@ -660,7 +620,6 @@ en_CA{
                 other{"{0} ct"}
             }
             grain{
-                dnam{"grains"}
                 one{"{0} grain"}
                 other{"{0} grains"}
             }
@@ -671,13 +630,6 @@ en_CA{
         pressure{
             bar{
                 dnam{"bars"}
-                one{"{0} bar"}
-                other{"{0} bars"}
-            }
-            inch-ofhg{
-                dnam{"in Hg"}
-                one{"{0} in Hg"}
-                other{"{0} in Hg"}
             }
             millimeter-ofhg{
                 dnam{"mm Hg"}
@@ -743,11 +695,6 @@ en_CA{
                 one{"{0} cu yd"}
                 other{"{0} cu yd"}
             }
-            dessert-spoon{
-                dnam{"US dssp"}
-                one{"{0} US dssp"}
-                other{"{0} US dssp"}
-            }
             dessert-spoon-imperial{
                 dnam{"dssp"}
                 one{"{0} dssp"}
@@ -759,7 +706,6 @@ en_CA{
                 other{"{0} fl drams"}
             }
             drop{
-                dnam{"drops"}
                 one{"{0} drops"}
                 other{"{0} drops"}
             }
@@ -786,7 +732,6 @@ en_CA{
                 per{"{0}/gal"}
             }
             jigger{
-                dnam{"jiggers"}
                 one{"{0} jiggers"}
                 other{"{0} jiggers"}
             }
@@ -794,7 +739,6 @@ en_CA{
                 dnam{"litres"}
             }
             pinch{
-                dnam{"pinches"}
                 one{"{0} pinches"}
                 other{"{0} pinches"}
             }

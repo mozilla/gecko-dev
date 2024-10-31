@@ -465,9 +465,6 @@ bn{
         "America:New_York"{
             ec{"নিউইয়র্ক"}
         }
-        "America:Nipigon"{
-            ec{"নিপিগোন"}
-        }
         "America:Nome"{
             ec{"নোম"}
         }
@@ -488,9 +485,6 @@ bn{
         }
         "America:Panama"{
             ec{"পানামা"}
-        }
-        "America:Pangnirtung"{
-            ec{"প্যাঙ্গনির্টুং"}
         }
         "America:Paramaribo"{
             ec{"প্যারামেরিবো"}
@@ -513,9 +507,6 @@ bn{
         "America:Punta_Arenas"{
             ec{"পুন্টা আরেনাস"}
         }
-        "America:Rainy_River"{
-            ec{"রেইনি রিভার"}
-        }
         "America:Rankin_Inlet"{
             ec{"র‍্যাঙ্কিন ইনলেট"}
         }
@@ -530,9 +521,6 @@ bn{
         }
         "America:Rio_Branco"{
             ec{"রিও ব্রাঙ্কো"}
-        }
-        "America:Santa_Isabel"{
-            ec{"সান্তা ইসাবেল"}
         }
         "America:Santarem"{
             ec{"সেনটুরেম"}
@@ -579,9 +567,6 @@ bn{
         "America:Thule"{
             ec{"থুলি"}
         }
-        "America:Thunder_Bay"{
-            ec{"থান্ডার বে"}
-        }
         "America:Tijuana"{
             ec{"তিজুয়ানা"}
         }
@@ -602,9 +587,6 @@ bn{
         }
         "America:Yakutat"{
             ec{"ইয়াকুটাট"}
-        }
-        "America:Yellowknife"{
-            ec{"ইয়েলোনাইফ"}
         }
         "Antarctica:Casey"{
             ec{"কেইসি"}
@@ -695,9 +677,6 @@ bn{
         }
         "Asia:Chita"{
             ec{"চিতা"}
-        }
-        "Asia:Choibalsan"{
-            ec{"চোইবাল্‌স্যান"}
         }
         "Asia:Colombo"{
             ec{"কলম্বো"}
@@ -930,9 +909,6 @@ bn{
         "Australia:Broken_Hill"{
             ec{"ব্রোকেন হিল"}
         }
-        "Australia:Currie"{
-            ec{"কিউরি"}
-        }
         "Australia:Darwin"{
             ec{"ডারউইন"}
         }
@@ -1115,9 +1091,6 @@ bn{
         "Europe:Ulyanovsk"{
             ec{"উলিয়ানোভস্ক"}
         }
-        "Europe:Uzhgorod"{
-            ec{"উঝগোরোড"}
-        }
         "Europe:Vaduz"{
             ec{"ভাদুজ"}
         }
@@ -1138,9 +1111,6 @@ bn{
         }
         "Europe:Zagreb"{
             ec{"জাগ্রেব"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"জেপোরোজাইয়াই"}
         }
         "Europe:Zurich"{
             ec{"জুরিখ"}
@@ -1222,9 +1192,6 @@ bn{
         }
         "Pacific:Honolulu"{
             ec{"হনোলুলু"}
-        }
-        "Pacific:Johnston"{
-            ec{"জনস্টন"}
         }
         "Pacific:Kanton"{
             ec{"ক্যান্টন"}
@@ -1338,12 +1305,12 @@ bn{
         "meta:America_Eastern"{
             ld{"পূর্বাঞ্চলের দিবালোক সময়"}
             lg{"পূর্বাঞ্চলীয় সময়"}
-            ls{"পূর্বাঞ্চলের প্রমাণ সময়"}
+            ls{"পূর্বাঞ্চলের মানক সময়"}
         }
         "meta:America_Mountain"{
             ld{"পার্বত্য অঞ্চলের দিনের সময়"}
             lg{"পার্বত্য অঞ্চলের সময়"}
-            ls{"পার্বত্য অঞ্চলের প্রমাণ সময়"}
+            ls{"পার্বত্য অঞ্চলের মানক সময়"}
         }
         "meta:America_Pacific"{
             ld{"প্রশান্ত মহাসাগরীয় অঞ্চলের দিনের সময়"}
@@ -1456,11 +1423,6 @@ bn{
             ld{"চীন দিবালোক সময়"}
             lg{"চীন সময়"}
             ls{"চীন মানক সময়"}
-        }
-        "meta:Choibalsan"{
-            ld{"চয়বালসন গ্রীষ্মকালীন সময়"}
-            lg{"চয়বালসন সময়"}
-            ls{"চয়বালসন মানক সময়"}
         }
         "meta:Christmas"{
             ls{"ক্রিসমাস দ্বীপ সময়"}
@@ -1626,6 +1588,9 @@ bn{
             lg{"পিত্রেপ্যাভলস্ক- ক্যামচ্যাটস্কি সময়"}
             ls{"পিত্রেপ্যাভলস্ক- ক্যামচ্যাটস্কি মান সময়"}
         }
+        "meta:Kazakhstan"{
+            ls{"কাজাখাস্তান সময়"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"পূর্ব কাজাখাস্তান সময়"}
         }
@@ -1656,9 +1621,6 @@ bn{
             lg{"লর্ড হাওয়ে সময়"}
             ls{"লর্ড হাওয়ে মানক মসয়"}
         }
-        "meta:Macquarie"{
-            ls{"ম্যাককুরি দ্বীপ সময়"}
-        }
         "meta:Magadan"{
             ld{"ম্যাগাডান গ্রীষ্মকালীন সময়"}
             lg{"ম্যাগাডান সময়"}
@@ -1683,11 +1645,6 @@ bn{
         }
         "meta:Mawson"{
             ls{"মসন সময়"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"উত্তরপশ্চিম মেক্সিকোর দিনের সময়"}
-            lg{"উত্তরপশ্চিম মেক্সিকোর সময়"}
-            ls{"উত্তরপশ্চিম মেক্সিকোর মানক সময়"}
         }
         "meta:Mexico_Pacific"{
             ld{"মেক্সিকান প্রশান্ত মহাসাগরীয় দিবালোক সময়"}
@@ -1913,10 +1870,7 @@ bn{
         "meta:Yukon"{
             ls{"ইউকোন সময়"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"GMT {0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} সময়"}
         regionFormatDaylight{"{0} দিবালোক সময়"}
         regionFormatStandard{"{0} মানক সময়"}

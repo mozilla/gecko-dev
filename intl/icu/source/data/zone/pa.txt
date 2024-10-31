@@ -58,7 +58,7 @@ pa{
             ec{"ਦਾਰ ਏਸ ਸਲਾਮ"}
         }
         "Africa:Djibouti"{
-            ec{"ਜ਼ੀਬੂਤੀ"}
+            ec{"ਜਿਬੂਤੀ"}
         }
         "Africa:Douala"{
             ec{"ਡੌਆਲਾ"}
@@ -465,9 +465,6 @@ pa{
         "America:New_York"{
             ec{"ਨਿਊ ਯਾਰਕ"}
         }
-        "America:Nipigon"{
-            ec{"ਨਿਪਿਗੌਨ"}
-        }
         "America:Nome"{
             ec{"ਨੋਮ"}
         }
@@ -488,9 +485,6 @@ pa{
         }
         "America:Panama"{
             ec{"ਪਨਾਮਾ"}
-        }
-        "America:Pangnirtung"{
-            ec{"ਪੈਂਗਨਿਰਟੰਗ"}
         }
         "America:Paramaribo"{
             ec{"ਪੈਰਾਮਰੀਬੋ"}
@@ -513,9 +507,6 @@ pa{
         "America:Punta_Arenas"{
             ec{"ਪੰਟਾ ਅਰੇਨਸ"}
         }
-        "America:Rainy_River"{
-            ec{"ਰੇਨੀ ਰਿਵਰ"}
-        }
         "America:Rankin_Inlet"{
             ec{"ਰੈਂਕਿਨ ਇਨਲੈਟ"}
         }
@@ -530,9 +521,6 @@ pa{
         }
         "America:Rio_Branco"{
             ec{"ਰੀਓ ਬ੍ਰਾਂਕੋ"}
-        }
-        "America:Santa_Isabel"{
-            ec{"ਸੈਂਟਾ ਇਸਾਬੇਲ"}
         }
         "America:Santarem"{
             ec{"ਸੇਂਟਾਰਮ"}
@@ -579,9 +567,6 @@ pa{
         "America:Thule"{
             ec{"ਥੁਲੇ"}
         }
-        "America:Thunder_Bay"{
-            ec{"ਥੰਡਰ ਬੇ"}
-        }
         "America:Tijuana"{
             ec{"ਟਿਜੂਆਨਾ"}
         }
@@ -602,9 +587,6 @@ pa{
         }
         "America:Yakutat"{
             ec{"ਯਕੁਤਤ"}
-        }
-        "America:Yellowknife"{
-            ec{"ਯੈਲੋਨਾਈਫ"}
         }
         "Antarctica:Casey"{
             ec{"ਕਾਸੇ"}
@@ -695,9 +677,6 @@ pa{
         }
         "Asia:Chita"{
             ec{"ਚਿਤਾ"}
-        }
-        "Asia:Choibalsan"{
-            ec{"ਚੋਇਲਬਾਲਸਨ"}
         }
         "Asia:Colombo"{
             ec{"ਕੋਲੰਬੋ"}
@@ -930,9 +909,6 @@ pa{
         "Australia:Broken_Hill"{
             ec{"ਬ੍ਰੋਕਨ ਹਿਲ"}
         }
-        "Australia:Currie"{
-            ec{"ਕਰੀ"}
-        }
         "Australia:Darwin"{
             ec{"ਡਾਰਵਿਨ"}
         }
@@ -1115,9 +1091,6 @@ pa{
         "Europe:Ulyanovsk"{
             ec{"ਯੁਲਿਆਨੋਸਕ"}
         }
-        "Europe:Uzhgorod"{
-            ec{"ਉਜ਼ਗੋਰੋਡ"}
-        }
         "Europe:Vaduz"{
             ec{"ਵਾਡੁਜ਼"}
         }
@@ -1138,9 +1111,6 @@ pa{
         }
         "Europe:Zagreb"{
             ec{"ਜ਼ਗਰੇਬ"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"ਜਪੋਰੋਜ਼ਾਏ"}
         }
         "Europe:Zurich"{
             ec{"ਜਿਊਰਿਖ"}
@@ -1222,9 +1192,6 @@ pa{
         }
         "Pacific:Honolulu"{
             ec{"ਹੋਨੋਲੁਲੂ"}
-        }
-        "Pacific:Johnston"{
-            ec{"ਜੋਨਸਟਨ"}
         }
         "Pacific:Kanton"{
             ec{"ਕੈਂਟੋਨ"}
@@ -1465,11 +1432,6 @@ pa{
             lg{"ਚੀਨ ਵੇਲਾ"}
             ls{"ਚੀਨ ਮਿਆਰੀ ਵੇਲਾ"}
         }
-        "meta:Choibalsan"{
-            ld{"ਚੌਇਬਾਲਸਨ ਗਰਮੀਆਂ ਦਾ ਵੇਲਾ"}
-            lg{"ਚੌਇਬਾਲਸਨ ਵੇਲਾ"}
-            ls{"ਚੌਇਬਾਲਸਨ ਮਿਆਰੀ ਵੇਲਾ"}
-        }
         "meta:Christmas"{
             ls{"ਕ੍ਰਿਸਮਸ ਆਈਲੈਂਡ ਵੇਲਾ"}
         }
@@ -1632,6 +1594,9 @@ pa{
             lg{"ਜਪਾਨ ਵੇਲਾ"}
             ls{"ਜਪਾਨ ਮਿਆਰੀ ਵੇਲਾ"}
         }
+        "meta:Kazakhstan"{
+            ls{"ਕਜ਼ਾਖ਼ਸਤਾਨ ਵੇਲਾ"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"ਪੂਰਬੀ ਕਜ਼ਾਖ਼ਸਤਾਨ ਵੇਲਾ"}
         }
@@ -1670,9 +1635,6 @@ pa{
             lg{"ਮਕਾਉ ਸਮਾਂ"}
             ls{"ਮਕਾਉ ਮਿਆਰੀ ਸਮਾਂ"}
         }
-        "meta:Macquarie"{
-            ls{"ਮੈਕਕਵੇਰੀ ਆਈਲੈਂਡ ਵੇਲਾ"}
-        }
         "meta:Magadan"{
             ld{"ਮੈਗੇਡਨ ਗਰਮੀਆਂ ਦਾ ਵੇਲਾ"}
             lg{"ਮੈਗੇਡਨ ਵੇਲਾ"}
@@ -1697,11 +1659,6 @@ pa{
         }
         "meta:Mawson"{
             ls{"ਮੌਸਨ ਵੇਲਾ"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"ਉੱਤਰ ਪੱਛਮੀ ਮੈਕਸੀਕੋ ਪ੍ਰਕਾਸ਼ ਵੇਲਾ"}
-            lg{"ਉੱਤਰ ਪੱਛਮੀ ਮੈਕਸੀਕੋ ਵੇਲਾ"}
-            ls{"ਉੱਤਰ ਪੱਛਮੀ ਮੈਕਸੀਕੋ ਮਿਆਰੀ ਵੇਲਾ"}
         }
         "meta:Mexico_Pacific"{
             ld{"ਮੈਕਸੀਕਨ ਪੈਸਿਫਿਕ ਪ੍ਰਕਾਸ਼ ਵੇਲਾ"}
@@ -1930,10 +1887,6 @@ pa{
         "meta:Yukon"{
             ls{"ਯੂਕੋਨ ਸਮਾਂ"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} ਵੇਲਾ"}
         regionFormatDaylight{"{0} ਪ੍ਰਕਾਸ਼ ਵੇਲਾ"}
         regionFormatStandard{"{0} ਮਿਆਰੀ ਵੇਲਾ"}

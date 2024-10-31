@@ -465,9 +465,6 @@ hi{
         "America:New_York"{
             ec{"न्यूयॉर्क"}
         }
-        "America:Nipigon"{
-            ec{"निपिगन"}
-        }
         "America:Nome"{
             ec{"नोम"}
         }
@@ -488,9 +485,6 @@ hi{
         }
         "America:Panama"{
             ec{"पनामा"}
-        }
-        "America:Pangnirtung"{
-            ec{"पांगनिर्टंग"}
         }
         "America:Paramaribo"{
             ec{"पारामारिबो"}
@@ -513,9 +507,6 @@ hi{
         "America:Punta_Arenas"{
             ec{"पुंटा एरिनास"}
         }
-        "America:Rainy_River"{
-            ec{"रेनी नदी"}
-        }
         "America:Rankin_Inlet"{
             ec{"रेंकिन इनलेट"}
         }
@@ -530,9 +521,6 @@ hi{
         }
         "America:Rio_Branco"{
             ec{"रियो ब्रांको"}
-        }
-        "America:Santa_Isabel"{
-            ec{"सांता इसाबेल"}
         }
         "America:Santarem"{
             ec{"सैंटारेम"}
@@ -579,9 +567,6 @@ hi{
         "America:Thule"{
             ec{"थ्यूले"}
         }
-        "America:Thunder_Bay"{
-            ec{"थंडर खाड़ी"}
-        }
         "America:Tijuana"{
             ec{"तिजुआना"}
         }
@@ -602,9 +587,6 @@ hi{
         }
         "America:Yakutat"{
             ec{"याकूटाट"}
-        }
-        "America:Yellowknife"{
-            ec{"येलोनाइफ़"}
         }
         "Antarctica:Casey"{
             ec{"केसी"}
@@ -695,9 +677,6 @@ hi{
         }
         "Asia:Chita"{
             ec{"त्शिता"}
-        }
-        "Asia:Choibalsan"{
-            ec{"चोइबालसन"}
         }
         "Asia:Colombo"{
             ec{"कोलंबो"}
@@ -930,9 +909,6 @@ hi{
         "Australia:Broken_Hill"{
             ec{"ब्रोकन हिल"}
         }
-        "Australia:Currie"{
-            ec{"क्यूरी"}
-        }
         "Australia:Darwin"{
             ec{"डार्विन"}
         }
@@ -1115,9 +1091,6 @@ hi{
         "Europe:Ulyanovsk"{
             ec{"उल्यानोव्स्क"}
         }
-        "Europe:Uzhgorod"{
-            ec{"अज़्गोरोद"}
-        }
         "Europe:Vaduz"{
             ec{"वादुज़"}
         }
@@ -1138,9 +1111,6 @@ hi{
         }
         "Europe:Zagreb"{
             ec{"ज़ाग्रेब"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"ज़ैपोरोज़ाई"}
         }
         "Europe:Zurich"{
             ec{"ज़्यूरिख़"}
@@ -1225,9 +1195,6 @@ hi{
             sd{"HST"}
             sg{"एचएसटी"}
             ss{"एचएसटी"}
-        }
-        "Pacific:Johnston"{
-            ec{"जॉनस्टन"}
         }
         "Pacific:Kanton"{
             ec{"कैंटन"}
@@ -1455,11 +1422,6 @@ hi{
             lg{"चीन समय"}
             ls{"चीन मानक समय"}
         }
-        "meta:Choibalsan"{
-            ld{"कॉइबाल्सन ग्रीष्मकालीन समय"}
-            lg{"कॉइबाल्सन समय"}
-            ls{"कॉइबाल्सन मानक समय"}
-        }
         "meta:Christmas"{
             ls{"क्रिसमस द्वीप समय"}
         }
@@ -1624,6 +1586,9 @@ hi{
             lg{"पेट्रोपेवलास्क-कैमचात्सकी समय"}
             ls{"पेट्रोपेवलास्क-कैमचात्सकी मानक समय"}
         }
+        "meta:Kazakhstan"{
+            ls{"कज़ाखस्तान समय"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"पूर्व कज़ाखस्तान समय"}
         }
@@ -1654,9 +1619,6 @@ hi{
             lg{"लॉर्ड होवे समय"}
             ls{"लॉर्ड होवे मानक समय"}
         }
-        "meta:Macquarie"{
-            ls{"मक्वारी द्वीप समय"}
-        }
         "meta:Magadan"{
             ld{"मागादान ग्रीष्मकालीन समय"}
             lg{"मागादान समय"}
@@ -1681,11 +1643,6 @@ hi{
         }
         "meta:Mawson"{
             ls{"माव्सन समय"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"उत्तर पश्चिमी मेक्सिको डेलाइट समय"}
-            lg{"उत्तर पश्चिमी मेक्सिको समय"}
-            ls{"उत्तर पश्चिमी मेक्सिको मानक समय"}
         }
         "meta:Mexico_Pacific"{
             ld{"मेक्सिकन प्रशांत डेलाइट समय"}
@@ -1911,10 +1868,6 @@ hi{
         "meta:Yukon"{
             ls{"युकॉन समय"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} समय"}
         regionFormatDaylight{"{0} डेलाइट समय"}
         regionFormatStandard{"{0} मानक समय"}

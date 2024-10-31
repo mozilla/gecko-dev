@@ -87,9 +87,6 @@ pt_PT{
         "America:St_Thomas"{
             ec{"St. Thomas"}
         }
-        "Antarctica:DumontDUrville"{
-            ec{"Dumont d’Urville"}
-        }
         "Asia:Aden"{
             ec{"Adem"}
         }
@@ -213,14 +210,8 @@ pt_PT{
         "Pacific:Pitcairn"{
             ec{"Ilhas Pitcairn"}
         }
-        "Pacific:Ponape"{
-            ec{"Pohnpei"}
-        }
         "Pacific:Tarawa"{
             ec{"Tarawa"}
-        }
-        "Pacific:Truk"{
-            ec{"Chuuk"}
         }
         "meta:Acre"{
             ld{"Hora de verão do Acre"}
@@ -408,11 +399,6 @@ pt_PT{
             lg{"Hora da China"}
             ls{"Hora padrão da China"}
         }
-        "meta:Choibalsan"{
-            ld{"Hora de verão de Choibalsan"}
-            lg{"Hora de Choibalsan"}
-            ls{"Hora padrão de Choibalsan"}
-        }
         "meta:Christmas"{
             ls{"Hora da Ilha do Natal"}
         }
@@ -588,6 +574,9 @@ pt_PT{
             lg{"Hora de Petropavlovsk-Kamchatski"}
             ls{"Hora padrão de Petropavlovsk-Kamchatski"}
         }
+        "meta:Kazakhstan"{
+            ls{"Hora do Cazaquistão"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Hora do Cazaquistão Oriental"}
         }
@@ -626,9 +615,6 @@ pt_PT{
             lg{"Hora de Macau"}
             ls{"Hora padrão de Macau"}
         }
-        "meta:Macquarie"{
-            ls{"Hora da Ilha Macquarie"}
-        }
         "meta:Magadan"{
             ld{"Hora de verão de Magadan"}
             lg{"Hora de Magadan"}
@@ -653,11 +639,6 @@ pt_PT{
         }
         "meta:Mawson"{
             ls{"Hora de Mawson"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Hora de verão do Noroeste do México"}
-            lg{"Hora do Noroeste do México"}
-            ls{"Hora padrão do Noroeste do México"}
         }
         "meta:Mexico_Pacific"{
             ld{"Hora de verão do Pacífico Mexicano"}

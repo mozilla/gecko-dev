@@ -4,11 +4,19 @@
 en_IN{
     %%Parent{"en_001"}
     zoneStrings{
-        "Asia:Rangoon"{
-            ec{"Rangoon"}
+        "Asia:Hovd"{
+            ec{"Khovd"}
+        }
+        "Asia:Qyzylorda"{
+            ec{"Kyzylorda"}
         }
         "meta:Gulf"{
             ss{"GST"}
+        }
+        "meta:Hovd"{
+            ld{"Khovd Summer Time"}
+            lg{"Khovd Time"}
+            ls{"Khovd Standard Time"}
         }
         "meta:India"{
             ss{"IST"}

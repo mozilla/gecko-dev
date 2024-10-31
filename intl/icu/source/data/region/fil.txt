@@ -298,6 +298,9 @@ fil{
         ZW{"Zimbabwe"}
         ZZ{"Hindi Kilalang Rehiyon"}
     }
+    Countries%chagos{
+        IO{"Chagos Archipelago"}
+    }
     Countries%short{
         GB{"U.K."}
         HK{"Hong Kong"}

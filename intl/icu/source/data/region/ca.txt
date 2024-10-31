@@ -45,7 +45,7 @@ ca{
         AO{"Angola"}
         AQ{"Antàrtida"}
         AR{"Argentina"}
-        AS{"Samoa Nord-americana"}
+        AS{"Samoa Americana"}
         AT{"Àustria"}
         AU{"Austràlia"}
         AW{"Aruba"}
@@ -68,12 +68,12 @@ ca{
         BR{"Brasil"}
         BS{"Bahames"}
         BT{"Bhutan"}
-        BV{"Bouvet"}
+        BV{"Illa Bouvet"}
         BW{"Botswana"}
         BY{"Belarús"}
         BZ{"Belize"}
         CA{"Canadà"}
-        CC{"Illes Cocos"}
+        CC{"Illes Cocos (Keeling)"}
         CD{"Congo - Kinshasa"}
         CF{"República Centreafricana"}
         CG{"Congo - Brazzaville"}
@@ -111,7 +111,7 @@ ca{
         EZ{"zona euro"}
         FI{"Finlàndia"}
         FJ{"Fiji"}
-        FK{"Illes Malvines"}
+        FK{"Illes Falkland"}
         FM{"Micronèsia"}
         FO{"Illes Fèroe"}
         FR{"França"}
@@ -135,7 +135,7 @@ ca{
         GW{"Guinea Bissau"}
         GY{"Guyana"}
         HK{"Hong Kong (RAE Xina)"}
-        HM{"Illa Heard i Illes McDonald"}
+        HM{"Illes Heard i McDonald"}
         HN{"Hondures"}
         HR{"Croàcia"}
         HT{"Haití"}
@@ -166,7 +166,7 @@ ca{
         KW{"Kuwait"}
         KY{"Illes Caiman"}
         KZ{"Kazakhstan"}
-        LA{"Laos"}
+        LA{"Lao"}
         LB{"Líban"}
         LC{"Saint Lucia"}
         LI{"Liechtenstein"}
@@ -189,7 +189,7 @@ ca{
         MM{"Myanmar (Birmània)"}
         MN{"Mongòlia"}
         MO{"Macau (RAE Xina)"}
-        MP{"Illes Mariannes Septentrionals"}
+        MP{"Illes Marianes del Nord"}
         MQ{"Martinica"}
         MR{"Mauritània"}
         MS{"Montserrat"}
@@ -203,7 +203,7 @@ ca{
         NA{"Namíbia"}
         NC{"Nova Caledònia"}
         NE{"Níger"}
-        NF{"Norfolk"}
+        NF{"Illa Norfolk"}
         NG{"Nigèria"}
         NI{"Nicaragua"}
         NL{"Països Baixos"}
@@ -234,7 +234,7 @@ ca{
         RS{"Sèrbia"}
         RU{"Rússia"}
         RW{"Ruanda"}
-        SA{"Aràbia Saudita"}
+        SA{"Aràbia Saudí"}
         SB{"Illes Salomó"}
         SC{"Seychelles"}
         SD{"Sudan"}
@@ -258,7 +258,7 @@ ca{
         TA{"Tristan da Cunha"}
         TC{"Illes Turks i Caicos"}
         TD{"Txad"}
-        TF{"Territoris Australs Francesos"}
+        TF{"Terres Australs Antàrtiques Franceses"}
         TG{"Togo"}
         TH{"Tailàndia"}
         TJ{"Tadjikistan"}
@@ -268,13 +268,13 @@ ca{
         TN{"Tunísia"}
         TO{"Tonga"}
         TR{"Turquia"}
-        TT{"Trinitat i Tobago"}
+        TT{"Trinidad i Tobago"}
         TV{"Tuvalu"}
         TW{"Taiwan"}
         TZ{"Tanzània"}
         UA{"Ucraïna"}
         UG{"Uganda"}
-        UM{"Illes Perifèriques Menors dels EUA"}
+        UM{"Illes Menors Allunyades dels Estats Units"}
         UN{"Nacions Unides"}
         US{"Estats Units"}
         UY{"Uruguai"}
@@ -282,8 +282,8 @@ ca{
         VA{"Ciutat del Vaticà"}
         VC{"Saint Vincent i les Grenadines"}
         VE{"Veneçuela"}
-        VG{"Illes Verges britàniques"}
-        VI{"Illes Verges nord-americanes"}
+        VG{"Illes Verges Britàniques"}
+        VI{"Illes Verges dels Estats Units"}
         VN{"Vietnam"}
         VU{"Vanuatu"}
         WF{"Wallis i Futuna"}
@@ -293,10 +293,13 @@ ca{
         XK{"Kosovo"}
         YE{"Iemen"}
         YT{"Mayotte"}
-        ZA{"República de Sud-àfrica"}
+        ZA{"Sud-àfrica"}
         ZM{"Zàmbia"}
         ZW{"Zimbàbue"}
         ZZ{"regió desconeguda"}
+    }
+    Countries%chagos{
+        IO{"Illes Chagos"}
     }
     Countries%short{
         GB{"RU"}
@@ -311,7 +314,7 @@ ca{
         CG{"República del Congo"}
         CI{"Costa d’Ivori"}
         CZ{"República Txeca"}
-        FK{"Illes Malvines (Illes Falkland)"}
+        FK{"Illes Falkland (Illes Malvines)"}
         NZ{"Aotearoa (Nova Zelanda)"}
         SZ{"Swazilàndia"}
         TL{"Timor Oriental"}

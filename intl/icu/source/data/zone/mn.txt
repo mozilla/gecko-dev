@@ -214,7 +214,7 @@ mn{
             ec{"Белем"}
         }
         "America:Belize"{
-            ec{"Белизе"}
+            ec{"Белиз"}
         }
         "America:Blanc-Sablon"{
             ec{"Блан-Саблон"}
@@ -295,7 +295,7 @@ mn{
             ec{"Детройт"}
         }
         "America:Dominica"{
-            ec{"Доминика"}
+            ec{"Доминик"}
         }
         "America:Edmonton"{
             ec{"Эдмонтон"}
@@ -465,9 +465,6 @@ mn{
         "America:New_York"{
             ec{"Нью-Йорк"}
         }
-        "America:Nipigon"{
-            ec{"Нипигон"}
-        }
         "America:Nome"{
             ec{"Ном"}
         }
@@ -488,9 +485,6 @@ mn{
         }
         "America:Panama"{
             ec{"Панама"}
-        }
-        "America:Pangnirtung"{
-            ec{"Пангниртунг"}
         }
         "America:Paramaribo"{
             ec{"Парамарибо"}
@@ -513,9 +507,6 @@ mn{
         "America:Punta_Arenas"{
             ec{"Пунта Арена"}
         }
-        "America:Rainy_River"{
-            ec{"Рейни Ривер"}
-        }
         "America:Rankin_Inlet"{
             ec{"Рэнкин Инлет"}
         }
@@ -530,9 +521,6 @@ mn{
         }
         "America:Rio_Branco"{
             ec{"Рио-Бранко"}
-        }
-        "America:Santa_Isabel"{
-            ec{"Санта Изабель"}
         }
         "America:Santarem"{
             ec{"Сантарем"}
@@ -579,9 +567,6 @@ mn{
         "America:Thule"{
             ec{"Туле"}
         }
-        "America:Thunder_Bay"{
-            ec{"Сандер Бэй"}
-        }
         "America:Tijuana"{
             ec{"Тихуана"}
         }
@@ -602,9 +587,6 @@ mn{
         }
         "America:Yakutat"{
             ec{"Якутат"}
-        }
-        "America:Yellowknife"{
-            ec{"Йелоунайф"}
         }
         "Antarctica:Casey"{
             ec{"Кэсей"}
@@ -696,9 +678,6 @@ mn{
         "Asia:Chita"{
             ec{"Чита"}
         }
-        "Asia:Choibalsan"{
-            ec{"Чойбалсан"}
-        }
         "Asia:Colombo"{
             ec{"Коломбо"}
         }
@@ -742,7 +721,7 @@ mn{
             ec{"Жайпур"}
         }
         "Asia:Jerusalem"{
-            ec{"Ерусалем"}
+            ec{"Йерусалим"}
         }
         "Asia:Kabul"{
             ec{"Кабул"}
@@ -930,9 +909,6 @@ mn{
         "Australia:Broken_Hill"{
             ec{"Брокен Хилл"}
         }
-        "Australia:Currie"{
-            ec{"Кюрри"}
-        }
         "Australia:Darwin"{
             ec{"Дарвин"}
         }
@@ -1000,7 +976,7 @@ mn{
             ec{"Кишинёв"}
         }
         "Europe:Copenhagen"{
-            ec{"Копенгаген"}
+            ec{"Копенхаген"}
         }
         "Europe:Dublin"{
             ec{"Дублин"}
@@ -1034,7 +1010,7 @@ mn{
             ec{"Киров"}
         }
         "Europe:Lisbon"{
-            ec{"Лиссабон"}
+            ec{"Лисбон"}
         }
         "Europe:Ljubljana"{
             ec{"Любляна"}
@@ -1101,10 +1077,10 @@ mn{
             ec{"Скопье"}
         }
         "Europe:Sofia"{
-            ec{"София"}
+            ec{"Софи"}
         }
         "Europe:Stockholm"{
-            ec{"Стокольм"}
+            ec{"Стокхолм"}
         }
         "Europe:Tallinn"{
             ec{"Таллин"}
@@ -1114,9 +1090,6 @@ mn{
         }
         "Europe:Ulyanovsk"{
             ec{"Ульяновск"}
-        }
-        "Europe:Uzhgorod"{
-            ec{"Ужгород"}
         }
         "Europe:Vaduz"{
             ec{"Вадуз"}
@@ -1138,9 +1111,6 @@ mn{
         }
         "Europe:Zagreb"{
             ec{"Загреб"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"Запорожье"}
         }
         "Europe:Zurich"{
             ec{"Цюрих"}
@@ -1170,7 +1140,7 @@ mn{
             ec{"Мальдив"}
         }
         "Indian:Mauritius"{
-            ec{"Маврикий"}
+            ec{"Маврики"}
         }
         "Indian:Mayotte"{
             ec{"Майотта"}
@@ -1222,9 +1192,6 @@ mn{
         }
         "Pacific:Honolulu"{
             ec{"Хонолулу"}
-        }
-        "Pacific:Johnston"{
-            ec{"Жонстон"}
         }
         "Pacific:Kanton"{
             ec{"Кантон"}
@@ -1447,11 +1414,6 @@ mn{
             lg{"Хятадын цаг"}
             ls{"Хятадын стандарт цаг"}
         }
-        "meta:Choibalsan"{
-            ld{"Чойбалсангийн зуны цаг"}
-            lg{"Чойбалсангийн цаг"}
-            ls{"Чойбалсангийн стандарт цаг"}
-        }
         "meta:Christmas"{
             ls{"Крисмас арлын цаг"}
         }
@@ -1610,6 +1572,9 @@ mn{
             lg{"Японы цаг"}
             ls{"Японы стандарт цаг"}
         }
+        "meta:Kazakhstan"{
+            ls{"Казахстаны цаг"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"Зүүн Казахстаны цаг"}
         }
@@ -1640,9 +1605,6 @@ mn{
             lg{"Лорд Хоугийн цаг"}
             ls{"Лорд Хоугийн стандарт цаг"}
         }
-        "meta:Macquarie"{
-            ls{"Маккуори Арлын цаг"}
-        }
         "meta:Magadan"{
             ld{"Магаданы зуны цаг"}
             lg{"Магаданы цаг"}
@@ -1667,11 +1629,6 @@ mn{
         }
         "meta:Mawson"{
             ls{"Моусоны цаг"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Баруун хойд Мексикийн зуны цаг"}
-            lg{"Баруун хойд Мексикийн цаг"}
-            ls{"Баруун хойд Мексикийн стандарт цаг"}
         }
         "meta:Mexico_Pacific"{
             ld{"Мексик-Номхон далайн зуны цаг"}
@@ -1892,10 +1849,6 @@ mn{
         "meta:Yukon"{
             ls{"Юкон цагийн бүс"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0}-н цаг"}
         regionFormatDaylight{"{0}-н зуны цаг"}
         regionFormatStandard{"{0}-н стандарт цаг"}

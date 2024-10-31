@@ -465,9 +465,6 @@ am{
         "America:New_York"{
             ec{"ኒውዮርክ"}
         }
-        "America:Nipigon"{
-            ec{"ኒፒጎን"}
-        }
         "America:Nome"{
             ec{"ኖሜ"}
         }
@@ -488,9 +485,6 @@ am{
         }
         "America:Panama"{
             ec{"ፓናማ"}
-        }
-        "America:Pangnirtung"{
-            ec{"ፓንግኒርተንግ"}
         }
         "America:Paramaribo"{
             ec{"ፓራማሪቦ"}
@@ -513,9 +507,6 @@ am{
         "America:Punta_Arenas"{
             ec{"ፑንታ አሬናስ"}
         }
-        "America:Rainy_River"{
-            ec{"ሬኒ ሪቨር"}
-        }
         "America:Rankin_Inlet"{
             ec{"ራንኪን ኢንሌት"}
         }
@@ -530,9 +521,6 @@ am{
         }
         "America:Rio_Branco"{
             ec{"ሪዮ ብራንኮ"}
-        }
-        "America:Santa_Isabel"{
-            ec{"ሳንታ ኢዛቤል"}
         }
         "America:Santarem"{
             ec{"ሳንታሬም"}
@@ -579,9 +567,6 @@ am{
         "America:Thule"{
             ec{"ቱሌ"}
         }
-        "America:Thunder_Bay"{
-            ec{"ተንደር ቤይ"}
-        }
         "America:Tijuana"{
             ec{"ቲጁአና"}
         }
@@ -602,9 +587,6 @@ am{
         }
         "America:Yakutat"{
             ec{"ያኩታት"}
-        }
-        "America:Yellowknife"{
-            ec{"የሎውናይፍ"}
         }
         "Antarctica:Casey"{
             ec{"ካዚይ"}
@@ -695,9 +677,6 @@ am{
         }
         "Asia:Chita"{
             ec{"ቺታ"}
-        }
-        "Asia:Choibalsan"{
-            ec{"ቾይባልሳን"}
         }
         "Asia:Colombo"{
             ec{"ኮሎምቦ"}
@@ -930,9 +909,6 @@ am{
         "Australia:Broken_Hill"{
             ec{"ብሮክን ሂል"}
         }
-        "Australia:Currie"{
-            ec{"ከሪ"}
-        }
         "Australia:Darwin"{
             ec{"ዳርዊን"}
         }
@@ -1115,9 +1091,6 @@ am{
         "Europe:Ulyanovsk"{
             ec{"ኡልያኖቭስክ"}
         }
-        "Europe:Uzhgorod"{
-            ec{"ኡዝጎሮድ"}
-        }
         "Europe:Vaduz"{
             ec{"ቫዱዝ"}
         }
@@ -1138,9 +1111,6 @@ am{
         }
         "Europe:Zagreb"{
             ec{"ዛግሬብ"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"ዛፖሮዚይ"}
         }
         "Europe:Zurich"{
             ec{"ዙሪክ"}
@@ -1222,9 +1192,6 @@ am{
         }
         "Pacific:Honolulu"{
             ec{"ሆኖሉሉ"}
-        }
-        "Pacific:Johnston"{
-            ec{"ጆንስተን"}
         }
         "Pacific:Kanton"{
             ec{"ካንቶን"}
@@ -1366,7 +1333,7 @@ am{
             ls{"የአርጀንቲና መደበኛ ሰዓት አቆጣጠር"}
         }
         "meta:Argentina_Western"{
-            ld{"የአርጀንቲና ምስራቃዊ በጋ ሰዓት አቆጣጠር"}
+            ld{"የምዕራባዊ አርጀንቲና የበጋ ሰዓት አቆጣጠር"}
             lg{"የአርጀንቲና ምስራቃዊ ሰዓት አቆጣጠር"}
             ls{"የምዕራባዊ አርጀንቲና መደበኛ ሰዓት አቆጣጠር"}
         }
@@ -1451,11 +1418,6 @@ am{
             ld{"የቻይና የቀን ብርሃን ሰዓት"}
             lg{"የቻይና ሰዓት"}
             ls{"የቻይና መደበኛ ሰዓት"}
-        }
-        "meta:Choibalsan"{
-            ld{"የቾይባልሳን የበጋ የሰዓት አቆጣጠር"}
-            lg{"የቾይባልሳ ሰዓት አቆጣጠር"}
-            ls{"የቾይባልሳን መደበኛ የሰዓት አቆጣጠር"}
         }
         "meta:Christmas"{
             ls{"የገና ደሴት ሰዓት"}
@@ -1620,6 +1582,9 @@ am{
             lg{"የካምቻትካ ሰዓት አቆጣጠር"}
             ls{"የፔትሮፓቭሎስኪ - ካምቻትስኪ ሰዓት አቆጣጠር"}
         }
+        "meta:Kazakhstan"{
+            ls{"ካዛኪስታን ሰዓት"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"የምስራቅ ካዛኪስታን ሰዓት"}
         }
@@ -1650,9 +1615,6 @@ am{
             lg{"የሎርድ ሆዌ የሰዓት አቆጣጠር"}
             ls{"የሎርድ ሆዌ መደበኛ የሰዓት አቆጣጠር"}
         }
-        "meta:Macquarie"{
-            ls{"የማከሪ ደሴት ሰዓት"}
-        }
         "meta:Magadan"{
             ld{"የማጋዳን በጋ ሰዓት አቆጣጠር"}
             lg{"የማጋዳን የሰዓት አቆጣጠር"}
@@ -1677,11 +1639,6 @@ am{
         }
         "meta:Mawson"{
             ls{"የማውሰን ሰዓት"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"ሰሜናዊ ምእራብ የሜክሲኮ የቀን ሰዓት አቆጣጠር"}
-            lg{"ሰሜናዊ ምእራብ የሜክሲኮ ሰዓት አቆጣጠር"}
-            ls{"ሰሜናዊ ምእራብ የሜክሲኮ መደበኛ ሰዓት አቆጣጠር"}
         }
         "meta:Mexico_Pacific"{
             ld{"የሜክሲኮ ፓሲፊክ የቀን ሰዓት አቆጣጠር"}
@@ -1907,11 +1864,10 @@ am{
         "meta:Yukon"{
             ls{"የዩኮን ጊዜ"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"ጂ ኤም ቲ{0}"}
         gmtZeroFormat{"ጂ ኤም ቲ"}
         hourFormat{"+HHmm;-HHmm"}
-        regionFormat{"{0} ጊዜ"}
+        regionFormat{"{0} ሰዓት"}
         regionFormatDaylight{"{0} የቀን ብርሃን ሰዓት"}
         regionFormatStandard{"{0} መደበኛ ሰዓት"}
     }

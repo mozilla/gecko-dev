@@ -462,9 +462,6 @@ mai{
         "America:New_York"{
             ec{"न्यूयार्क"}
         }
-        "America:Nipigon"{
-            ec{"निपिगान"}
-        }
         "America:Nome"{
             ec{"नोम"}
         }
@@ -486,9 +483,6 @@ mai{
         "America:Panama"{
             ec{"पनामा"}
         }
-        "America:Pangnirtung"{
-            ec{"पैंगनिरटंग"}
-        }
         "America:Paramaribo"{
             ec{"पारामारिबो"}
         }
@@ -509,9 +503,6 @@ mai{
         }
         "America:Punta_Arenas"{
             ec{"पुंटा अरेनाज"}
-        }
-        "America:Rainy_River"{
-            ec{"रेनी रिवर"}
         }
         "America:Rankin_Inlet"{
             ec{"रेंकिन इनलेट"}
@@ -573,9 +564,6 @@ mai{
         "America:Thule"{
             ec{"तुले"}
         }
-        "America:Thunder_Bay"{
-            ec{"थंडर बे"}
-        }
         "America:Tijuana"{
             ec{"तिजुआना"}
         }
@@ -596,9 +584,6 @@ mai{
         }
         "America:Yakutat"{
             ec{"यकुटाट"}
-        }
-        "America:Yellowknife"{
-            ec{"येलोनाइफ"}
         }
         "Antarctica:Casey"{
             ec{"केसी"}
@@ -662,9 +647,6 @@ mai{
         }
         "Asia:Chita"{
             ec{"चिता"}
-        }
-        "Asia:Choibalsan"{
-            ec{"चोइबलसेन"}
         }
         "Asia:Colombo"{
             ec{"कोलम्बो"}
@@ -1077,9 +1059,6 @@ mai{
         "Europe:Ulyanovsk"{
             ec{"उल्येनोबोस्क"}
         }
-        "Europe:Uzhgorod"{
-            ec{"उझोरोद"}
-        }
         "Europe:Vaduz"{
             ec{"बेदुज"}
         }
@@ -1100,9 +1079,6 @@ mai{
         }
         "Europe:Zagreb"{
             ec{"जगरैब"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"जपोरोजाए"}
         }
         "Europe:Zurich"{
             ec{"ज्यूरिख"}
@@ -1296,11 +1272,6 @@ mai{
             lg{"चीनी टाइम"}
             ls{"चीनी मानत टाइम"}
         }
-        "meta:Choibalsan"{
-            ld{"चोइबलसेन समर टाइम"}
-            lg{"चोइबलसेन टाइम"}
-            ls{"चोइबलसेन मानक टाइम"}
-        }
         "meta:Christmas"{
             ls{"क्रिसमस द्वीप टाइम"}
         }
@@ -1461,9 +1432,6 @@ mai{
             lg{"लार्ड होबे टाइम"}
             ls{"लार्ड होबे मानक टाइम"}
         }
-        "meta:Macquarie"{
-            ls{"मेक्वैरी द्वीप टाइम"}
-        }
         "meta:Magadan"{
             ld{"मगादान समर टाइम"}
             lg{"मगादान टाइम"}
@@ -1479,11 +1447,6 @@ mai{
             ld{"मारीशस समर टाइम"}
             lg{"मारीशस टाइम"}
             ls{"मारीशस मानक टाइम"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"उत्तर-पश्चिमी मैक्सिको डेलाइट टाइम"}
-            lg{"उत्तर-पश्चिमी मैक्सिको टाइम"}
-            ls{"उत्तर-पश्चिमी मैक्सिको मानक टाइम"}
         }
         "meta:Mexico_Pacific"{
             ld{"मैक्सिकन पेसिफिक डेलाइट टाइम"}

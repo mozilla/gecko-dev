@@ -10,6 +10,11 @@ en_IN{
                 other{"{0} earth radius"}
             }
         }
+        mass{
+            tonne{
+                dnam{"metric tonnes"}
+            }
+        }
         temperature{
             generic{
                 dnam{"°"}
@@ -31,18 +36,6 @@ en_IN{
             kilometer-per-hour{
                 one{"{0} kph"}
                 other{"{0} kph"}
-            }
-        }
-        temperature{
-            generic{
-                dnam{"°"}
-                one{"{0}°"}
-                other{"{0}°"}
-            }
-        }
-        volume{
-            cubic-centimeter{
-                per{"{0}/cm³"}
             }
         }
     }

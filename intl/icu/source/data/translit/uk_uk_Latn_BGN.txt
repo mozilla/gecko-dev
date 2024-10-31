@@ -8,14 +8,14 @@
 
 #
 ########################################################################
-# BGN/PCGN 1979 System
+# BGN/PCGN 1965 System
 #
 # The BGN/PCGN system for Ukrainian was designed for use in romanizing
 # names written in the Ukrainian alphabet. The Ukrainian alphabet
 # contains five letters not present in the Russian alphabet:
 # Ґґ, Єє, Іі, Її, and ’.
 #
-# The Ukrainian Alphabet as defined by the BGN (Page 105):
+# The Ukrainian Alphabet as defined by the BGN:
 #
 #   АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЮЯЬ
 #   абвгґдеєжзиіїйклмнопрстуфхцчшщюяь’
@@ -103,7 +103,7 @@ $wordBoundary =  [^[:L:][:M:][:N:]] ;
 #
 ########################################################################
 #
-# BGN Page 105 Rule 1
+# BGN Rule 1
 #
 # The character sequences зг, кг, сг, тс, and цг may be romanized
 # z·h, k·h, s·h, t·s, and ts·h in order to differentiate those
@@ -139,7 +139,7 @@ $wordBoundary =  [^[:L:][:M:][:N:]] ;
 #
 ########################################################################
 #
-# BGN Page 105 Rule 1
+# BGN Rule 1
 #
 # кг becomes k·h
 #
@@ -174,7 +174,7 @@ $wordBoundary =  [^[:L:][:M:][:N:]] ;
 #
 ########################################################################
 #
-# BGN Page 105 Rule 1
+# BGN Rule 1
 #
 # сг becomes s·h
 #
@@ -195,7 +195,7 @@ $wordBoundary =  [^[:L:][:M:][:N:]] ;
 #
 ########################################################################
 #
-# BGN Page 105 Rule 1
+# BGN Rule 1
 #
 # тс becomes t·s
 #
@@ -225,7 +225,7 @@ $wordBoundary =  [^[:L:][:M:][:N:]] ;
 #
 ########################################################################
 #
-# BGN Page 105 Rule 1
+# BGN Rule 1
 #
 # цг becomes ts·h
 #
@@ -252,7 +252,7 @@ $wordBoundary =  [^[:L:][:M:][:N:]] ;
 #
 ########################################################################
 #
-# BGN Page 94 Rule 3.6
+# Implied rule from BGN 1947 System Russian-Latin transliteration (Page 94 Note 3.6).
 #
 # шч becomes sh·ch
 #

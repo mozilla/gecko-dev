@@ -79,9 +79,6 @@ es_MX{
         "meta:Gilbert_Islands"{
             ls{"hora de las Islas Gilbert"}
         }
-        "meta:Macquarie"{
-            ls{"hora de la isla Macquarie"}
-        }
         "meta:Marshall_Islands"{
             ls{"hora de las Islas Marshall"}
         }

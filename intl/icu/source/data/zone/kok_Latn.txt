@@ -1,0 +1,14 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kok_Latn{
+    %%Parent{"root"}
+    zoneStrings{
+        "meta:GMT"{
+            ls{"Greenwich Mean Time"}
+        }
+        regionFormat{"{0} Vell"}
+        regionFormatDaylight{"{0} Dis-uzvadd vachovp Vell"}
+        regionFormatStandard{"{0} Promann Vell"}
+    }
+}

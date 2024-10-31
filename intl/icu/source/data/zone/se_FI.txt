@@ -290,11 +290,6 @@ se_FI{
             lg{"Kiinná áigi"}
             ls{"Kiinná dálveáigi"}
         }
-        "meta:Choibalsan"{
-            ld{"Choibolsana geasseáigi"}
-            lg{"Choibolsana áigi"}
-            ls{"Choibolsana dálveáigi"}
-        }
         "meta:Christmas"{
             ls{"Juovlasullo áigi"}
         }
@@ -483,9 +478,6 @@ se_FI{
             lg{"Lord Howe áigi"}
             ls{"Lord Howe dálveáigi"}
         }
-        "meta:Macquarie"{
-            ls{"MacQuarie sullo áigi"}
-        }
         "meta:Magadan"{
             ld{"Magadana geasseáigi"}
             lg{"Magadana áigi"}
@@ -510,11 +502,6 @@ se_FI{
         }
         "meta:Mawson"{
             ls{"Mawsona áigi"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Oarjedavvi-Meksiko geasseáigi"}
-            lg{"Oarjedavvi-Meksiko áigi"}
-            ls{"Oarjedavvi-Meksiko dálveáigi"}
         }
         "meta:Mexico_Pacific"{
             ld{"Meksiko Jáskesábi geasseáigi"}

@@ -120,9 +120,6 @@ es_US{
         "meta:Indian_Ocean"{
             ls{"hora del Océano Índico"}
         }
-        "meta:Macquarie"{
-            ls{"hora de la isla Macquarie"}
-        }
         "meta:Marquesas"{
             ls{"hora de las islas Marquesas"}
         }

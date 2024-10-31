@@ -210,9 +210,6 @@ zh_Hant_HK{
         "America:Nassau"{
             ec{"拿騷"}
         }
-        "America:Nipigon"{
-            ec{"尼皮貢"}
-        }
         "America:Noronha"{
             ec{"諾羅尼亞"}
         }
@@ -258,9 +255,6 @@ zh_Hant_HK{
         "America:Thule"{
             ec{"圖勒"}
         }
-        "America:Thunder_Bay"{
-            ec{"雷灣"}
-        }
         "America:Tijuana"{
             ec{"蒂華納"}
         }
@@ -269,9 +263,6 @@ zh_Hant_HK{
         }
         "America:Yakutat"{
             ec{"亞庫塔特"}
-        }
-        "America:Yellowknife"{
-            ec{"黃刀鎮"}
         }
         "Antarctica:Casey"{
             ec{"凱西站"}
@@ -381,9 +372,6 @@ zh_Hant_HK{
         "Australia:Brisbane"{
             ec{"布里斯本"}
         }
-        "Australia:Currie"{
-            ec{"卡里"}
-        }
         "Australia:Hobart"{
             ec{"荷伯特"}
         }
@@ -422,9 +410,6 @@ zh_Hant_HK{
         }
         "Europe:Skopje"{
             ec{"斯科普里"}
-        }
-        "Europe:Uzhgorod"{
-            ec{"烏日哥羅德"}
         }
         "Europe:Vaduz"{
             ec{"華杜茲"}
@@ -476,9 +461,6 @@ zh_Hant_HK{
         }
         "Pacific:Guadalcanal"{
             ec{"瓜達爾卡納爾島"}
-        }
-        "Pacific:Johnston"{
-            ec{"約翰斯頓環礁"}
         }
         "Pacific:Kosrae"{
             ec{"科斯雷"}
@@ -576,9 +558,6 @@ zh_Hant_HK{
         }
         "meta:Kosrae"{
             ls{"科斯雷時間"}
-        }
-        "meta:Macquarie"{
-            ls{"麥夸里群島時間"}
         }
         "meta:Maldives"{
             ls{"馬爾代夫時間"}

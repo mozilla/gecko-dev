@@ -131,7 +131,7 @@ pcm{
         GR{"Gris"}
         GS{"Saút Jọ́jia an Saút Sándwích Aílands"}
         GT{"Guátẹmála"}
-        GU{"Guam"}
+        GU{"Guám"}
         GW{"Gíní-Bisáu"}
         GY{"Gayána"}
         HK{"Họng Kọng SAR"}
@@ -148,13 +148,13 @@ pcm{
         IN{"Índia"}
         IO{"Brítísh Índián Óshen Tẹ́rẹ́tri"}
         IQ{"Irak"}
-        IR{"Iran"}
+        IR{"Irán"}
         IS{"Aísland"}
         IT{"Ítáli"}
         JE{"Jẹ́si"}
         JM{"Jamaíka"}
         JO{"Jọ́dan"}
-        JP{"Japan"}
+        JP{"Japán"}
         KE{"Kẹ́nya"}
         KG{"Kẹjístan"}
         KH{"Kambódia"}
@@ -166,7 +166,7 @@ pcm{
         KW{"Kuwét"}
         KY{"Kéman Aílands"}
         KZ{"Kazakstan"}
-        LA{"Laos"}
+        LA{"Láos"}
         LB{"Lẹ́bánọn"}
         LC{"Sent Lúshia"}
         LI{"Líktẹ́nstain"}
@@ -212,7 +212,7 @@ pcm{
         NR{"Náuru"}
         NU{"Niúẹ"}
         NZ{"Niú Zíland"}
-        OM{"Oman"}
+        OM{"Omán"}
         PA{"Pánáma"}
         PE{"Pẹ́ru"}
         PF{"Frẹ́nch Poliníshia"}
@@ -225,7 +225,7 @@ pcm{
         PR{"Puẹ́rto Ríkọ"}
         PS{"Pálẹ́staín Éria-dẹm"}
         PT{"Pọ́túgal"}
-        PW{"Palau"}
+        PW{"Paláu"}
         PY{"Párágwue"}
         QA{"Kata"}
         QO{"Rimót Pát ọf Oshẹ́nia"}
@@ -237,7 +237,7 @@ pcm{
         SA{"Saúdí Arébia"}
         SB{"Sólómọ́n Aílands"}
         SC{"Sẹ́chẹls"}
-        SD{"Sudan"}
+        SD{"Sudán"}
         SE{"Swídẹn"}
         SG{"Singapọ"}
         SH{"Sent Hẹlẹ́na"}
@@ -257,7 +257,7 @@ pcm{
         SZ{"Ẹswatíni"}
         TA{"Trístán da Kúna"}
         TC{"Tọks an Kaíkọ́s Aílands"}
-        TD{"Chad"}
+        TD{"Chád"}
         TF{"Frẹ́nch Saútán Tẹ́rẹ́tris"}
         TG{"Tógo"}
         TH{"Taíland"}
@@ -270,7 +270,7 @@ pcm{
         TR{"Tọ́ki"}
         TT{"Trínídad & Tobágo"}
         TV{"Tuválu"}
-        TW{"Taiwan"}
+        TW{"Taíwán"}
         TZ{"Tanzánia"}
         UA{"Yukrein"}
         UG{"Yugánda"}
@@ -297,6 +297,9 @@ pcm{
         ZM{"Zámbia"}
         ZW{"Zimbábwẹ"}
         ZZ{"Ríjọn Wé Nóbọ́di Sabí"}
+    }
+    Countries%chagos{
+        IO{"Chágos Archipelágo"}
     }
     Countries%short{
         GB{"UK"}

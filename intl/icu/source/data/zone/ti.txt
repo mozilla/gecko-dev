@@ -258,6 +258,9 @@ ti{
         "America:Chihuahua"{
             ec{"ቺዋዋ"}
         }
+        "America:Ciudad_Juarez"{
+            ec{"ሲዩዳድ ጁዋረዝ"}
+        }
         "America:Coral_Harbour"{
             ec{"ኣቲኮካን"}
         }
@@ -462,9 +465,6 @@ ti{
         "America:New_York"{
             ec{"ኒው ዮርክ"}
         }
-        "America:Nipigon"{
-            ec{"ኒፒጎን"}
-        }
         "America:Nome"{
             ec{"ነውም"}
         }
@@ -486,9 +486,6 @@ ti{
         "America:Panama"{
             ec{"ፓናማ"}
         }
-        "America:Pangnirtung"{
-            ec{"ፓንግኒርተንግ"}
-        }
         "America:Paramaribo"{
             ec{"ፓራማሪቦ"}
         }
@@ -509,9 +506,6 @@ ti{
         }
         "America:Punta_Arenas"{
             ec{"ፑንታ ኣረናስ"}
-        }
-        "America:Rainy_River"{
-            ec{"ረይኒ ሪቨር"}
         }
         "America:Rankin_Inlet"{
             ec{"ራንኪን ኢንለት"}
@@ -559,7 +553,7 @@ ti{
             ec{"ቅድስቲ ሉስያ"}
         }
         "America:St_Thomas"{
-            ec{"ሰይንት ቶማስ"}
+            ec{"ቅዱስ ቶማስ"}
         }
         "America:St_Vincent"{
             ec{"ቅዱስ ቪንሰንት"}
@@ -572,9 +566,6 @@ ti{
         }
         "America:Thule"{
             ec{"ዙል"}
-        }
-        "America:Thunder_Bay"{
-            ec{"ዛንደር በይ"}
         }
         "America:Tijuana"{
             ec{"ቲጅዋና"}
@@ -596,9 +587,6 @@ ti{
         }
         "America:Yakutat"{
             ec{"ያኩታት"}
-        }
-        "America:Yellowknife"{
-            ec{"የለውናይፍ"}
         }
         "Antarctica:Casey"{
             ec{"ከይዚ"}
@@ -689,9 +677,6 @@ ti{
         }
         "Asia:Chita"{
             ec{"ቺታ"}
-        }
-        "Asia:Choibalsan"{
-            ec{"ቾይባልሳን"}
         }
         "Asia:Colombo"{
             ec{"ኮሎምቦ"}
@@ -924,9 +909,6 @@ ti{
         "Australia:Broken_Hill"{
             ec{"ብሮክን ሂል"}
         }
-        "Australia:Currie"{
-            ec{"ኩሪ"}
-        }
         "Australia:Darwin"{
             ec{"ዳርዊን"}
         }
@@ -998,7 +980,7 @@ ti{
         }
         "Europe:Dublin"{
             ec{"ደብሊን"}
-            ld{"Irish Standard Time"}
+            ld{"ናይ መደበኛ አይሪሽ ግዘ"}
         }
         "Europe:Gibraltar"{
             ec{"ጂብራልታር"}
@@ -1109,9 +1091,6 @@ ti{
         "Europe:Ulyanovsk"{
             ec{"ኡልያኖቭስክ"}
         }
-        "Europe:Uzhgorod"{
-            ec{"ኡዝጎሮድ"}
-        }
         "Europe:Vaduz"{
             ec{"ቫዱዝ"}
         }
@@ -1132,9 +1111,6 @@ ti{
         }
         "Europe:Zagreb"{
             ec{"ዛግረብ"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"ዛፖሪዥያ"}
         }
         "Europe:Zurich"{
             ec{"ዙሪክ"}
@@ -1217,9 +1193,6 @@ ti{
         "Pacific:Honolulu"{
             ec{"ሆኖሉሉ"}
         }
-        "Pacific:Johnston"{
-            ec{"ጆንስተን"}
-        }
         "Pacific:Kanton"{
             ec{"ካንቶን"}
         }
@@ -1294,8 +1267,11 @@ ti{
         }
         "meta:Acre"{
             ld{"ግዜ ክረምቲ ኣክሪ"}
-            lg{"ግዜ ኣክሪ"}
-            ls{"ምዱብ ግዜ ኣክሪ"}
+            lg{"ግዘ አክሪ"}
+            ls{"ናይ መደበኛ ግዘ ኣክሪ"}
+        }
+        "meta:Afghanistan"{
+            ls{"ናይ አፍጋኒስታን ግዘ"}
         }
         "meta:Africa_Central"{
             ls{"ግዜ ማእከላይ ኣፍሪቃ"}
@@ -1309,27 +1285,105 @@ ti{
         "meta:Africa_Western"{
             ld{"ግዜ ክረምቲ ምዕራብ ኣፍሪቃ"}
             lg{"ግዜ ምዕራብ ኣፍሪቃ"}
-            ls{"ምዱብ ግዜ ምዕራብ ኣፍሪቃ"}
+            ls{"ናይ መደበኛ ግዘ ምዕራብ ኣፍሪቃ"}
         }
         "meta:Alaska"{
-            ld{"ግዜ ክረምቲ ኣላስካ"}
-            lg{"ግዜ ኣላስካ"}
-            ls{"ምዱብ ግዜ ኣላስካ"}
+            ld{"ናይ መዓልቲ ግዘ አላስካ"}
+            lg{"ግዘ አላስካ"}
+            ls{"ናይ መደበኛ ግዘ አላስካ"}
         }
         "meta:Amazon"{
             ld{"ግዜ ክረምቲ ኣማዞን"}
             lg{"ግዜ ኣማዞን"}
-            ls{"ምዱብ ግዜ ኣማዞን"}
+            ls{"ናይ መደበኛ ግዘ ኣማዞን"}
+        }
+        "meta:America_Central"{
+            ld{"ናይ መዓልቲ ግዘ ማእከላይ አመሪካ"}
+            lg{"ማእከላይ አመሪካ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ማእከላይ አመሪካ"}
+        }
+        "meta:America_Eastern"{
+            ld{"ናይ መዓልቲ ግዘ ምብራቓዊ አመሪካ"}
+            lg{"ናይ ምብራቓዊ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ምብራቓዊ ኣመሪካ"}
+        }
+        "meta:America_Mountain"{
+            ld{"ናይ መዓልቲ ግዘ ጎቦ አመሪካ"}
+            lg{"ናይ ጎቦ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ጎቦ ኣመሪካ"}
+        }
+        "meta:America_Pacific"{
+            ld{"ናይ መዓልቲ ግዘ ፓስፊክ"}
+            lg{"ናይ ፓስፊክ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ፓስፊክ"}
+        }
+        "meta:Apia"{
+            ld{"ናይ መዓልቲ አፒያ ግዘ"}
+            lg{"ናይ አፒያ ግዘ"}
+            ls{"ናይ መደበኛ አፒያ ግዘ"}
+        }
+        "meta:Arabian"{
+            ld{"ናይ መዓልቲ አረብ ግዘ"}
+            lg{"ናይ አረብ ግዘ"}
+            ls{"ናይ መደበኛ አረብ ግዘ"}
         }
         "meta:Argentina"{
             ld{"ግዜ ክረምቲ ኣርጀንቲና"}
             lg{"ግዜ ኣርጀንቲና"}
-            ls{"ምዱብ ግዜ ኣርጀንቲና"}
+            ls{"ናይ መደበኛ ግዘ ኣርጀንቲና"}
+        }
+        "meta:Argentina_Western"{
+            ld{"ግዜ ክረምቲ ምዕራባዊ ኣርጀንቲና"}
+            lg{"ግዜ ምዕራባዊ ኣርጀንቲና"}
+            ls{"ናይ መደበኛ ግዘ ምዕራባዊ ኣርጀንቲና"}
+        }
+        "meta:Armenia"{
+            ld{"ናይ ክረምቲ አርሜኒያ ግዘ"}
+            lg{"ናይ አርሜኒያ ግዘ"}
+            ls{"ናይ መደበኛ አርሜኒያ ግዘ"}
+        }
+        "meta:Atlantic"{
+            ld{"ናይ መዓልቲ ግዘ አትላንቲክ"}
+            lg{"ናይ አትላንቲክ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ አትላንቲክ"}
+        }
+        "meta:Australia_Central"{
+            ld{"ናይ ማዕከላይ መዓልቲ አውስራሊያ ግዘ"}
+            lg{"ናይ አውስራሊያ ግዘ"}
+            ls{"ናይ ማዕከላይ መደበኛ አውስራሊያ ግዘ"}
+        }
+        "meta:Australia_CentralWestern"{
+            ld{"ናይ ምዕራባዊ መዓልቲ አውስራሊያ ግዘ"}
+            lg{"ናይ ምዕራባዊ አውስራሊያ ግዘ"}
+            ls{"ናይ ምዕራባዊ መደበኛ አውስራሊያ ግዘ"}
+        }
+        "meta:Australia_Eastern"{
+            ld{"ናይ ምብራቓዊ መዓልቲ ኣውስትራልያ ግዘ"}
+            lg{"ናይ ምብራቓዊ ኣውስትራልያ ግዘ"}
+            ls{"ናይ ምብራቓዊ መደበኛ ኣውስትራልያ ግዘ"}
+        }
+        "meta:Australia_Western"{
+            ld{"ናይ ምዕራባዊ መዓልቲ አውስትራሊያ ግዘ"}
+            lg{"ናይ ምዕራባዊ አውስትራሊያ ግዘ"}
+            ls{"ናይ ምዕራባዊ መደበኛ አውስትራሊያ ግዘ"}
+        }
+        "meta:Azerbaijan"{
+            ld{"ናይ ክረምቲ አዘርባዣን ግዘ"}
+            lg{"ናይ አዘርባዣን ግዘ"}
+            ls{"ናይ መደበኛ አዘርባዣን ግዘ"}
         }
         "meta:Azores"{
-            ld{"ግዜ ክረምቲ ኣዞረስ"}
-            lg{"ግዜ ኣዞረስ"}
-            ls{"ምዱብ ግዜ ኣዞረስ"}
+            ld{"ናይ ክረምቲ አዞረስ ግዘ"}
+            lg{"ናይ አዞረስ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ኣዞረስ"}
+        }
+        "meta:Bangladesh"{
+            ld{"ናይ ክረምቲ ባንግላዲሽ ግዘ"}
+            lg{"ናይ ባንግላዲሽ ግዘ"}
+            ls{"ናይ መደበኛ ባንግላዲሽ ግዘ"}
+        }
+        "meta:Bhutan"{
+            ls{"ናይ ቡህታን ግዘ"}
         }
         "meta:Bolivia"{
             ls{"ግዜ ቦሊቭያ"}
@@ -1337,51 +1391,105 @@ ti{
         "meta:Brasilia"{
             ld{"ግዜ ክረምቲ ብራዚልያ"}
             lg{"ግዜ ብራዚልያ"}
-            ls{"ምዱብ ግዜ ብራዚልያ"}
+            ls{"ናይ መደበኛ ግዘ ብራዚልያ"}
+        }
+        "meta:Brunei"{
+            ls{"ናይ ብሩኔ ዳሩሳሌም ግዘ"}
         }
         "meta:Cape_Verde"{
             ld{"ግዜ ክረምቲ ኬፕ ቨርደ"}
             lg{"ግዜ ኬፕ ቨርደ"}
-            ls{"ምዱብ ግዜ ኬፕ ቨርደ"}
+            ls{"ናይ መደበኛ ግዘ ኬፕ ቨርደ"}
+        }
+        "meta:Chamorro"{
+            ls{"ናይ መደበኛ ቻሞሮ ግዘ"}
+        }
+        "meta:Chatham"{
+            ld{"ናይ መዓልቲ ቻትሃም ግዘ"}
+            lg{"ናይ ቻትሃም ግዘ"}
+            ls{"ናይ መደበኛ ቻትሃም ግዘ"}
         }
         "meta:Chile"{
             ld{"ግዜ ክረምቲ ቺሌ"}
             lg{"ግዜ ቺሌ"}
-            ls{"ምዱብ ግዜ ቺሌ"}
+            ls{"ናይ መደበኛ ግዘ ቺሌ"}
+        }
+        "meta:China"{
+            ld{"ናይ መዓልቲ ቻይና ግዘ"}
+            lg{"ናይ ቻይና ግዘ"}
+            ls{"ናይ መደበኛ ቻይና ግዘ"}
+        }
+        "meta:Christmas"{
+            ls{"ናይ ልደት ደሴት ግዘ"}
+        }
+        "meta:Cocos"{
+            ls{"ናይ ኮኮስ ደሴት ግዘ"}
         }
         "meta:Colombia"{
             ld{"ግዜ ክረምቲ ኮሎምብያ"}
             lg{"ግዜ ኮሎምብያ"}
-            ls{"ምዱብ ግዜ ኮሎምብያ"}
+            ls{"ናይ መደበኛ ግዘ ኮሎምብያ"}
+        }
+        "meta:Cook"{
+            ld{"ናይ ፍርቂ ክረምቲ ኩክ ደሴት ግዘ"}
+            lg{"ናይ ኩክ ደሴት ግዘ"}
+            ls{"ናይ መደበኛ ኩክ ደሴት ግዘ"}
+        }
+        "meta:Cuba"{
+            ld{"ናይ መዓልቲ ግዘ ኩባ"}
+            lg{"ናይ ኩባ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ኩባ"}
+        }
+        "meta:Davis"{
+            ls{"ናይ ዴቪስ ግዘ"}
+        }
+        "meta:DumontDUrville"{
+            ls{"ናይ ዱሞ-ዱርቪል ግዘ"}
+        }
+        "meta:East_Timor"{
+            ls{"ናይ ምብራቅ ቲሞር ግዘ"}
         }
         "meta:Easter"{
             ld{"ግዜ ክረምቲ ደሴት ፋሲካ"}
             lg{"ግዜ ደሴት ፋሲካ"}
-            ls{"ምዱብ ግዜ ደሴት ፋሲካ"}
+            ls{"ናይ መደበኛ ግዘ ደሴት ፋሲካ"}
         }
         "meta:Ecuador"{
             ls{"ግዜ ኤኳዶር"}
         }
         "meta:Europe_Central"{
             ld{"ግዜ ክረምቲ ኤውሮጳ"}
-            lg{"ግዜ ማእከላይ ኤውሮጳ"}
-            ls{"ምዱብ ግዜ ማእከላይ ኤውሮጳ"}
+            lg{"ናይ ማእከላይ ኤውሮጳ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ማእከላይ ኤውሮጳ"}
         }
         "meta:Europe_Eastern"{
             ld{"ግዜ ክረምቲ ምብራቕ ኤውሮጳ"}
-            lg{"ግዜ ምብራቕ ኤውሮጳ"}
-            ls{"ምዱብ ግዜ ምብራቕ ኤውሮጳ"}
+            lg{"ናይ ምብራቕ ኤውሮጳ ግዘ"}
+            ls{"ናይ መደበኛ ግዘ ምብራቕ ኤውሮጳ"}
+        }
+        "meta:Europe_Further_Eastern"{
+            ls{"ናይ ርሑቕ-ምብራቕ ኤውሮጳዊ ግዘ"}
+        }
+        "meta:Europe_Western"{
+            ld{"ናይ ክረምቲ ምዕራባዊ ኤውሮጳዊ ግዘ"}
+            lg{"ናይ ምዕራባዊ ኤውሮጳዊ ግዘ"}
+            ls{"ናይ መደበኛ ምዕራባዊ ኤውሮጳዊ ግዘ"}
         }
         "meta:Falkland"{
             ld{"ግዜ ከረምቲ ደሴታት ፎክላንድ"}
             lg{"ግዜ ደሴታት ፎክላንድ"}
-            ls{"ምዱብ ግዜ ደሴታት ፎክላንድ"}
+            ls{"ናይ መደበኛ ግዘ ደሴታት ፎክላንድ"}
+        }
+        "meta:Fiji"{
+            ld{"ናይ ክረምቲ ፊጂ ግዘ"}
+            lg{"ናይ ፊጂ ግዘ"}
+            ls{"ናይ መደበኛ ፊጂ ግዘ"}
         }
         "meta:French_Guiana"{
             ls{"ግዜ ፈረንሳዊት ጊያና"}
         }
         "meta:French_Southern"{
-            ls{"ግዜ ፈረንሳዊ ደቡባዊ ግዝኣታትን ኣንታርቲክን"}
+            ls{"ናይ ደቡባዊን ኣንታርቲክ ግዘ"}
         }
         "meta:GMT"{
             ls{"GMT"}
@@ -1389,52 +1497,273 @@ ti{
         "meta:Galapagos"{
             ls{"ግዜ ጋላፓጎስ"}
         }
+        "meta:Gambier"{
+            ls{"ናይ ጋምቢየር ግዘ"}
+        }
+        "meta:Georgia"{
+            ld{"ናይ ክረምቲ ጆርጂያ ግዘ"}
+            lg{"ናይ ጆርጂያ ግዘ"}
+            ls{"ናይ መደበኛ ጆርጂያ ግዘ"}
+        }
+        "meta:Gilbert_Islands"{
+            ls{"ናይ ጊልበርት ደሴታት ግዘ"}
+        }
+        "meta:Greenland_Eastern"{
+            ld{"ናይ መዓልቲ ምብራቓዊ ግዘ ግሪንላንድ"}
+            lg{"ናይ ምብራቓዊ ግዘ ግሪንላንድ"}
+            ls{"ናይ መደበኛ ምብራቓዊ ግዘ ግሪንላንድ"}
+        }
+        "meta:Greenland_Western"{
+            ld{"ናይ መዓልቲ ምዕራብ ግሪንላንድ ግዘ"}
+            lg{"ናይ ምዕራብ ግሪንላንድ ግዘ"}
+            ls{"ናይ መደበኛ ምዕራብ ግሪንላንድ ግዘ"}
+        }
+        "meta:Gulf"{
+            ls{"ናይ መደበኛ ገልፍ ግዘ"}
+        }
         "meta:Guyana"{
             ls{"ግዜ ጉያና"}
+        }
+        "meta:Hawaii_Aleutian"{
+            ld{"ናይ መዓልቲ ሃዋይ-ኣሌውቲያን ግዘ"}
+            lg{"ናይ ሃዋይ-ኣሌውቲያን ግዘ"}
+            ls{"ናይ መደበኛ ሃዋይ-ኣሌውቲያን ግዘ"}
+        }
+        "meta:Hong_Kong"{
+            ld{"ናይ ክረምቲ ሆንግ ኮንግ ግዘ"}
+            lg{"ናይ ሆንግ ኮንግ ግዘ"}
+            ls{"ናይ መደበኛ ሆንግ ኮንግ ግዘ"}
+        }
+        "meta:Hovd"{
+            ld{"ናይ ክረምቲ ሆቭድ ግዘ"}
+            lg{"ናይ ሆቭድ ግዘ"}
+            ls{"ናይ መደበኛ ሆቭድ ግዘ"}
+        }
+        "meta:India"{
+            ls{"ናይ መደበኛ ህንድ ግዘ"}
         }
         "meta:Indian_Ocean"{
             ls{"ግዜ ህንዳዊ ውቅያኖስ"}
         }
+        "meta:Indochina"{
+            ls{"ናይ ኢንዶቻይና ግዘ"}
+        }
         "meta:Indonesia_Central"{
-            ls{"ግዜ ማእከላይ ኢንዶነዥያ"}
+            ls{"ናይ ማእከላይ ኢንዶነዥያ ግዘ"}
         }
         "meta:Indonesia_Eastern"{
-            ls{"ግዜ ምብራቓዊ ኢንዶነዥያ"}
+            ls{"ናይ ምብራቓዊ ኢንዶነዥያ ግዘ"}
         }
         "meta:Indonesia_Western"{
-            ls{"ግዜ ምዕራባዊ ኢንዶነዥያ"}
+            ls{"ናይ ምዕራባዊ ኢንዶነዥያ ግዘ"}
+        }
+        "meta:Iran"{
+            ld{"ናይ መዓልቲ ኢራን ግዘ"}
+            lg{"ናይ ኢራን ግዘ"}
+            ls{"ናይ መደበኛ ኢራን ግዘ"}
+        }
+        "meta:Irkutsk"{
+            ld{"ናይ ክረምቲ ኢርኩትስክ ግዘ"}
+            lg{"ናይ ኢርኩትስክ ግዘ"}
+            ls{"ናይ መደበኛ ኢርኩትስክ ግዘ"}
+        }
+        "meta:Israel"{
+            ld{"ናይ መዓልቲ እስራኤል ግዘ"}
+            lg{"ናይ እስራኤል ግዘ"}
+            ls{"ናይ መደበኛ እስራኤል ግዘ"}
+        }
+        "meta:Japan"{
+            ld{"ናይ መዓልቲ ጃፓን ግዘ"}
+            lg{"ናይ ጃፓን ግዘ"}
+            ls{"ናይ መደበኛ ጃፓን ግዘ"}
+        }
+        "meta:Kazakhstan"{
+            ls{"ናይ ካዛኪስታን ግዘ"}
+        }
+        "meta:Kazakhstan_Eastern"{
+            ls{"ናይ ምብራቅ ካዛኪስታን ግዘ"}
+        }
+        "meta:Kazakhstan_Western"{
+            ls{"ናይ ምዕራብ ካዛኪስታን ግዘ"}
+        }
+        "meta:Korea"{
+            ld{"ናይ መዓልቲ ኮሪያን ግዘ"}
+            lg{"ናይ ኮሪያን ግዘ"}
+            ls{"ናይ መደበኛ ኮሪያን ግዘ"}
+        }
+        "meta:Kosrae"{
+            ls{"ናይ ኮርሳይ ግዘ"}
+        }
+        "meta:Krasnoyarsk"{
+            ld{"ናይ ክረምቲ ክራንስኖያርክ ግዘ"}
+            lg{"ናይ ክራንስኖያርክ ግዘ"}
+            ls{"ናይ መደበኛ ክራንስኖያርክ ግዘ"}
+        }
+        "meta:Kyrgystan"{
+            ls{"ናይ ክርጅስታን ግዘ"}
+        }
+        "meta:Line_Islands"{
+            ls{"ናይ ላይን ደሴታት ግዘ"}
+        }
+        "meta:Lord_Howe"{
+            ld{"ናይ መዓልቲ ሎርድ ሆው ግዘ"}
+            lg{"ናይ ሎርድ ሆው ግዘ"}
+            ls{"ናይ መድበኛ ሎርድ ሆው ግዘ"}
+        }
+        "meta:Magadan"{
+            ld{"ናይ ክረምቲ ሜጋዳን ግዘ"}
+            lg{"ናይ ሜጋዳን ግዘ"}
+            ls{"ናይ መደበኛ ሜጋዳን ግዘ"}
         }
         "meta:Malaysia"{
-            ls{"ግዜ ማለዥያ"}
+            ls{"ናይ ማሌዢያ ግዘ"}
+        }
+        "meta:Maldives"{
+            ls{"ናይ ሞልዲቭስ ግዘ"}
+        }
+        "meta:Marquesas"{
+            ls{"ናይ ማርኩዌሳስ ግዘ"}
+        }
+        "meta:Marshall_Islands"{
+            ls{"ናይ ማርሻል ደሴታት ግዘ"}
         }
         "meta:Mauritius"{
             ld{"ግዜ ክረምቲ ማውሪሸስ"}
             lg{"ግዜ ማውሪሸስ"}
-            ls{"ምዱብ ግዜ ማውሪሸስ"}
+            ls{"ናይ መደበኛ ግዘ ማውሪሸስ"}
+        }
+        "meta:Mawson"{
+            ls{"ናይ ማውሶን ግዘ"}
+        }
+        "meta:Mexico_Pacific"{
+            ld{"ናይ መዓልቲ ሜክሲኮ ፓስፊክ ግዘ"}
+            lg{"ናይ ሜክሲኮ ፓስፊክ ግዘ"}
+            ls{"ናይ መደበኛ ሜክሲኮ ፓስፊክ ግዘ"}
+        }
+        "meta:Mongolia"{
+            ld{"ናይ ክረምቲ ኡላንባታር ግዘ"}
+            lg{"ናይ ኡላንባታር ግዘ"}
+            ls{"ናይ መደበኛ ኡላንባታር ግዘ"}
+        }
+        "meta:Moscow"{
+            ld{"ናይ ክረምቲ ሞስኮው ግዘ"}
+            lg{"ናይ ሞስኮው ግዘ"}
+            ls{"ናይ መደበኛ ሞስኮው ግዘ"}
+        }
+        "meta:Myanmar"{
+            ls{"ናይ ምያንማር ግዘ"}
+        }
+        "meta:Nauru"{
+            ls{"ናይ ናውሩ ግዘ"}
+        }
+        "meta:Nepal"{
+            ls{"ናይ ኔፓል ግዘ"}
+        }
+        "meta:New_Caledonia"{
+            ld{"ናይ ክረምቲ ኒው ካሌዶኒያ ግዘ"}
+            lg{"ናይ ኒው ካሌዶኒያ ግዘ"}
+            ls{"ናይ መደበኛ ኒው ካሌዶኒያ ግዘ"}
+        }
+        "meta:New_Zealand"{
+            ld{"ናይ መዓልቲ ኒው ዚላንድ ግዘ"}
+            lg{"ናይ ኒው ዚላንድ ግዘ"}
+            ls{"ናይ መደበኛ ኒው ዚላንድ ግዘ"}
+        }
+        "meta:Newfoundland"{
+            ld{"ናይ መዓልቲ ኒውፋውንድላንድ ግዘ"}
+            lg{"ናይ ኒውፋውንድላንድ ግዘ"}
+            ls{"ናይ መደበኛ ኒውፋውንድላንድ ግዘ"}
+        }
+        "meta:Niue"{
+            ls{"ናይ ኒዌ ግዘ"}
+        }
+        "meta:Norfolk"{
+            ld{"ናይ መዓልቲ ኖርፎልክ ደሴት ግዘ"}
+            lg{"ናይ ኖርፎልክ ደሴት ግዘ"}
+            ls{"ናይ መደበኛ ኖርፎልክ ደሴት ግዘ"}
         }
         "meta:Noronha"{
             ld{"ግዜ ክረምቲ ፈርናንዶ ደ ኖሮንያ"}
             lg{"ግዜ ፈርናንዶ ደ ኖሮንያ"}
-            ls{"ምዱብ ግዜ ፈርናንዶ ደ ኖሮንያ"}
+            ls{"ናይ መደበኛ ግዘ ፈርናንዶ ደ ኖሮንያ"}
+        }
+        "meta:Novosibirsk"{
+            ld{"ናይ ክረምቲ ኖቮሲሪስክ ግዘ"}
+            lg{"ናይ ኖቮሲሪስክ ግዘ"}
+            ls{"ናይ መደበኛ ኖቮሲሪስክ ግዘ"}
+        }
+        "meta:Omsk"{
+            ld{"ናይ ክረምቲ ኦምስክ ግዘ"}
+            lg{"ናይ ኦምስክ ግዘ"}
+            ls{"ናይ መደበኛ ኦምስክ ግዘ"}
+        }
+        "meta:Pakistan"{
+            ld{"ናይ ክረምቲ ፓኪስታን ግዘ"}
+            lg{"ናይ ፓኪስታን ግዘ"}
+            ls{"ናይ መደበኛ ፓኪስታን ግዘ"}
+        }
+        "meta:Palau"{
+            ls{"ናይ ፓላው ግዘ"}
+        }
+        "meta:Papua_New_Guinea"{
+            ls{"ናይ ፓፗ ኒው ጊኒ ግዘ"}
         }
         "meta:Paraguay"{
             ld{"ግዜ ክረምቲ ፓራጓይ"}
             lg{"ግዜ ፓራጓይ"}
-            ls{"ምዱብ ግዜ ፓራጓይ"}
+            ls{"ናይ መደበኛ ግዘ ፓራጓይ"}
         }
         "meta:Peru"{
             ld{"ግዜ ክረምቲ ፔሩ"}
             lg{"ግዜ ፔሩ"}
-            ls{"ምዱብ ግዜ ፔሩ"}
+            ls{"ናይ መደበኛ ግዘ ፔሩ"}
+        }
+        "meta:Philippines"{
+            ld{"ናይ ክረምቲ ፊሊፒን ግዘ"}
+            lg{"ናይ ፊሊፒን ግዘ"}
+            ls{"ናይ መደበኛ ፊሊፒን ግዘ"}
+        }
+        "meta:Phoenix_Islands"{
+            ls{"ናይ ፊኒክስ ደሴታት ግዘ"}
+        }
+        "meta:Pierre_Miquelon"{
+            ld{"ናይ መዓልቲ ቅዱስ ፒየርን ሚከሎን ግዘ"}
+            lg{"ናይ ቅዱስ ፒየርን ሚከሎን ግዘ"}
+            ls{"ናይ መደበኛ ቅዱስ ፒየርን ሚከሎን ግዘ"}
+        }
+        "meta:Pitcairn"{
+            ls{"ናይ ፒትቻይርን ግዘ"}
+        }
+        "meta:Ponape"{
+            ls{"ናይ ፖናፔ ግዘ"}
+        }
+        "meta:Pyongyang"{
+            ls{"ናይ ፕዮንግያንግ ግዘ"}
         }
         "meta:Reunion"{
             ls{"ግዜ ርዩንየን"}
+        }
+        "meta:Rothera"{
+            ls{"ናይ ሮቴራ ግዘ"}
+        }
+        "meta:Sakhalin"{
+            ld{"ናይ ክረምቲ ሳክሃሊን ግዘ"}
+            lg{"ናይ ሳክሃሊን ግዘ"}
+            ls{"ናይ መደበኛ ሳክሃሊን ግዘ"}
+        }
+        "meta:Samoa"{
+            ld{"ናይ መዓልቲ ሳሞዋ ግዘ"}
+            lg{"ናይ ሳሞዋ ግዘ"}
+            ls{"ናይ መደበኛ ሳሞዋ ግዘ"}
         }
         "meta:Seychelles"{
             ls{"ግዜ ሲሸልስ"}
         }
         "meta:Singapore"{
-            ls{"ግዜ ሲንጋፖር"}
+            ls{"ናይ መደበኛ ሲጋፖር ግዘ"}
+        }
+        "meta:Solomon"{
+            ls{"ናይ ሶሎሞን ደሴታት ግዘ"}
         }
         "meta:South_Georgia"{
             ls{"ግዜ ደቡብ ጆርጅያ"}
@@ -1442,20 +1771,91 @@ ti{
         "meta:Suriname"{
             ls{"ግዜ ሱሪናም"}
         }
+        "meta:Syowa"{
+            ls{"ናይ ስዮዋ ግዘ"}
+        }
+        "meta:Tahiti"{
+            ls{"ናይ ቲሂቲ ግዘ"}
+        }
+        "meta:Taipei"{
+            ld{"ናይ መዓልቲ ቴፒ ግዘ"}
+            lg{"ናይ ቴፒ ግዘ"}
+            ls{"ናይ መደበኛ ቴፒ ግዘ"}
+        }
+        "meta:Tajikistan"{
+            ls{"ናይ ታጃክስታን ግዘ"}
+        }
+        "meta:Tokelau"{
+            ls{"ናይ ቶኬላው ግዘ"}
+        }
+        "meta:Tonga"{
+            ld{"ናይ ክረምቲ ቶንጋ ግዘ"}
+            lg{"ናይ ቶንጋ ግዘ"}
+            ls{"ናይ መደበኛ ቶንጋ ግዘ"}
+        }
+        "meta:Truk"{
+            ls{"ናይ ቹክ ግዘ"}
+        }
+        "meta:Turkmenistan"{
+            ld{"ናይ ክረምቲ ቱርክሜኒስታን ግዘ"}
+            lg{"ናይ ቱርክሜኒስታን ግዘ"}
+            ls{"ናይ መደበኛ ቱርክሜኒስታን ግዘ"}
+        }
+        "meta:Tuvalu"{
+            ls{"ናይ ቱቫሉ ግዘ"}
+        }
         "meta:Uruguay"{
             ld{"ግዜ ክረምቲ ኡራጓይ"}
             lg{"ግዜ ኡራጓይ"}
-            ls{"ምዱብ ግዜ ኡራጓይ"}
+            ls{"ናይ መደበኛ ግዘ ኡራጓይ"}
+        }
+        "meta:Uzbekistan"{
+            ld{"ናይ ክረምቲ ኡዝቤኪስታን ግዘ"}
+            lg{"ናይ ኡዝቤኪስታን ግዘ"}
+            ls{"ናይ መደበኛ ኡዝቤኪስታን ግዘ"}
+        }
+        "meta:Vanuatu"{
+            ld{"ናይ ክረምቲ ቫኗታው ግዘ"}
+            lg{"ናይ ቫኗታው ግዘ"}
+            ls{"ናይ መደበኛ ቫኗታው ግዘ"}
         }
         "meta:Venezuela"{
             ls{"ግዜ ቬኔዝዌላ"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
-        regionFormat{"ግዜ {0}"}
-        regionFormatDaylight{"ግዜ ክረምቲ {0}"}
-        regionFormatStandard{"ምዱብ ግዜ {0}"}
+        "meta:Vladivostok"{
+            ld{"ናይ ክረምቲ ቭላዲቮስቶክ ግዘ"}
+            lg{"ናይ ቭላዲቮስቶክ ግዘ"}
+            ls{"ናይ መደበኛ ቭላዲቮስቶክ ግዘ"}
+        }
+        "meta:Volgograd"{
+            ld{"ናይ ክረምቲ ቮልጎግራድ ግዘ"}
+            lg{"ናይ ቮልጎግራድ ግዘ"}
+            ls{"ናይ መደበኛ ቮልጎግራድ ግዘ"}
+        }
+        "meta:Vostok"{
+            ls{"ናይ ቮስቶክ ግዘ"}
+        }
+        "meta:Wake"{
+            ls{"ናይ ዌክ ደሴት ግዘ"}
+        }
+        "meta:Wallis"{
+            ls{"ናይ ዌልስን ፉቷ ግዘ"}
+        }
+        "meta:Yakutsk"{
+            ld{"ናይ ክረምቲ ያኩትስክ ግዘ"}
+            lg{"ናይ ያኩትስክ ግዘ"}
+            ls{"ናይ መደበኛ ያኩትስክ ግዘ"}
+        }
+        "meta:Yekaterinburg"{
+            ld{"ናይ ክረምቲ ያክተርኒበርግ ግዘ"}
+            lg{"ናይ ያክተርኒበርግ ግዘ"}
+            ls{"ናይ መደበኛ ያክተርኒበርግ ግዘ"}
+        }
+        "meta:Yukon"{
+            ls{"ናይ ዩኮን ግዘ"}
+        }
+        regionFormat{"ግዘ {0}"}
+        regionFormatDaylight{"ናይ {0} መዓልቲ ግዘ"}
+        regionFormatStandard{"ናይ መደበኛ ጊዜ {0} ግዘ"}
     }
 }

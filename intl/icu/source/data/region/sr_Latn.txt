@@ -62,7 +62,7 @@ sr_Latn{
         BI{"Burundi"}
         BJ{"Benin"}
         BL{"Sveti Bartolomej"}
-        BM{"Bermuda"}
+        BM{"Bermudi"}
         BN{"Brunej"}
         BO{"Bolivija"}
         BQ{"Karipska Holandija"}
@@ -229,7 +229,7 @@ sr_Latn{
         PW{"Palau"}
         PY{"Paragvaj"}
         QA{"Katar"}
-        QO{"Okeanija (udaljena ostrva)"}
+        QO{"udaljena ostrva Okeanije"}
         RE{"Reinion"}
         RO{"Rumunija"}
         RS{"Srbija"}
@@ -289,7 +289,7 @@ sr_Latn{
         VU{"Vanuatu"}
         WF{"Valis i Futuna"}
         WS{"Samoa"}
-        XA{"Pseudoakcenti"}
+        XA{"simulirane dijakritike"}
         XB{"Pseudobidi"}
         XK{"Kosovo"}
         YE{"Jemen"}
@@ -297,7 +297,10 @@ sr_Latn{
         ZA{"Južnoafrička Republika"}
         ZM{"Zambija"}
         ZW{"Zimbabve"}
-        ZZ{"Nepoznat region"}
+        ZZ{"nepoznat region"}
+    }
+    Countries%chagos{
+        IO{"arhipelag Čagos"}
     }
     Countries%short{
         GB{"UK"}

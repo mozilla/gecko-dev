@@ -465,9 +465,6 @@ lo{
         "America:New_York"{
             ec{"ນິວຢອກ"}
         }
-        "America:Nipigon"{
-            ec{"ນີປີກອນ"}
-        }
         "America:Nome"{
             ec{"ນອມ"}
         }
@@ -488,9 +485,6 @@ lo{
         }
         "America:Panama"{
             ec{"ພານາມາ"}
-        }
-        "America:Pangnirtung"{
-            ec{"ແພງເນີດທັງ"}
         }
         "America:Paramaribo"{
             ec{"ພາຣາມາຣິໂບ"}
@@ -513,9 +507,6 @@ lo{
         "America:Punta_Arenas"{
             ec{"ພຸນທາ ອະຣີນາສ໌"}
         }
-        "America:Rainy_River"{
-            ec{"ເຣນນີ ຣິເວີ"}
-        }
         "America:Rankin_Inlet"{
             ec{"ແຣນກິນ ອິນເລັດ"}
         }
@@ -530,9 +521,6 @@ lo{
         }
         "America:Rio_Branco"{
             ec{"ຣິໂອ ບຣັນໂກ"}
-        }
-        "America:Santa_Isabel"{
-            ec{"ຊານຕາ ອິດຊາເບວ"}
         }
         "America:Santarem"{
             ec{"ຊັນຕາເຣມ"}
@@ -579,9 +567,6 @@ lo{
         "America:Thule"{
             ec{"ທູເລ"}
         }
-        "America:Thunder_Bay"{
-            ec{"ທັນເດີເບ"}
-        }
         "America:Tijuana"{
             ec{"ທີຈົວນາ"}
         }
@@ -602,9 +587,6 @@ lo{
         }
         "America:Yakutat"{
             ec{"ຢາຄູຕັດ"}
-        }
-        "America:Yellowknife"{
-            ec{"ເຢໂລໄນຟ໌"}
         }
         "Antarctica:Casey"{
             ec{"ເຄຊີ"}
@@ -695,9 +677,6 @@ lo{
         }
         "Asia:Chita"{
             ec{"ຊີຕ່າ"}
-        }
-        "Asia:Choibalsan"{
-            ec{"ຊອຍບອລຊານ"}
         }
         "Asia:Colombo"{
             ec{"ໂຄລຳໂບ"}
@@ -892,7 +871,7 @@ lo{
             ec{"ເຍເຣວານ"}
         }
         "Atlantic:Azores"{
-            ec{"ອາຊໍເຣສ"}
+            ec{"ອາ​ໂຊ​ເຣ​ສ"}
         }
         "Atlantic:Bermuda"{
             ec{"ເບີມິວດາ"}
@@ -929,9 +908,6 @@ lo{
         }
         "Australia:Broken_Hill"{
             ec{"ໂບຣກເຄນ ຮິວ"}
-        }
-        "Australia:Currie"{
-            ec{"ກູຣີ"}
         }
         "Australia:Darwin"{
             ec{"ດາວິນ"}
@@ -1115,9 +1091,6 @@ lo{
         "Europe:Ulyanovsk"{
             ec{"ອູລີອານອບສຄ໌"}
         }
-        "Europe:Uzhgorod"{
-            ec{"ອັສຊ໌ກໍໂຣດ"}
-        }
         "Europe:Vaduz"{
             ec{"ວາດາຊ"}
         }
@@ -1138,9 +1111,6 @@ lo{
         }
         "Europe:Zagreb"{
             ec{"ຊາເກຣບ"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"ຊາໂປໂຣຊີ"}
         }
         "Europe:Zurich"{
             ec{"ຊູຣິກ"}
@@ -1222,9 +1192,6 @@ lo{
         }
         "Pacific:Honolulu"{
             ec{"ໂຮໂນລູລູ"}
-        }
-        "Pacific:Johnston"{
-            ec{"ຈອນສະໂຕນ"}
         }
         "Pacific:Kanton"{
             ec{"ແຄນຕອນ"}
@@ -1470,11 +1437,6 @@ lo{
             lg{"ເວ​ລາ​ຈີນ"}
             ls{"ເວລາມາດຕະຖານຈີນ"}
         }
-        "meta:Choibalsan"{
-            ld{"ເວລາລະ​ດູ​ຮ້ອນໂຊຍບາຊັນ"}
-            lg{"ເວ​ລາ​ໂຊຍ​ບາ​ຊັນ"}
-            ls{"ເວລາມາດຕະຖານໂຊຍບາຊັນ"}
-        }
         "meta:Christmas"{
             ls{"ເວ​ລາ​ເກາະ​ຄ​ຣິສ​ມາສ"}
         }
@@ -1602,7 +1564,7 @@ lo{
             ls{"ເວລາ ອິນເດຍ"}
         }
         "meta:Indian_Ocean"{
-            ls{"ເວລາຫມະຫາສະຫມຸດອິນເດຍ"}
+            ls{"ເວລາມະຫາສະຫມຸດອິນເດຍ"}
         }
         "meta:Indochina"{
             ls{"ເວລາອິນດູຈີນ"}
@@ -1635,6 +1597,9 @@ lo{
             ld{"ເວ​ລາ​ຕອນ​ທ່ຽງ​ຍີ່​ປຸ່ນ"}
             lg{"ເວ​ລາ​ຍີ່​ປຸ່ນ"}
             ls{"ເວ​ລາ​ມາດ​ຕະ​ຖານ​ຍີ່​ປຸ່ນ"}
+        }
+        "meta:Kazakhstan"{
+            ls{"ເວລາຄາຊັກສຖານ"}
         }
         "meta:Kazakhstan_Eastern"{
             ls{"ເວ​ລາ​ຄາ​ຊັກ​ສ​ຖານ​ຕາ​ເວັນ​ອອກ"}
@@ -1674,9 +1639,6 @@ lo{
             lg{"ເວລາມາເກົາ"}
             ls{"ເວລາມາດຕະຖານມາເກົາ"}
         }
-        "meta:Macquarie"{
-            ls{"ເວ​ລາ​ເກາະ​ແມັກ​ຄົວ​ຣີ"}
-        }
         "meta:Magadan"{
             ld{"ເວລາລະດູຮ້ອນເມັກກາເດນ"}
             lg{"ເວລາເມັກກາເດນ"}
@@ -1701,11 +1663,6 @@ lo{
         }
         "meta:Mawson"{
             ls{"ເວລາມໍສັນ"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"ເວລາກາງເວັນເມັກຊິກັນນອດເວສ"}
-            lg{"​ເວ​ລາ​ນອດ​ເວ​ສ​ເມັກ​ຊິ​ໂກ"}
-            ls{"​ເວ​ລາ​ມາດ​ຕະ​ຖານນອດ​ເວ​ສ​ເມັກ​ຊິ​ໂກ"}
         }
         "meta:Mexico_Pacific"{
             ld{"ເວລາກາງເວັນແປຊິຟິກເມັກຊິກັນ"}
@@ -1934,10 +1891,6 @@ lo{
         "meta:Yukon"{
             ls{"ເວລາຢູຄອນ"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"ເວລາ {0}"}
         regionFormatDaylight{"ເວລາກາງເວັນ {0}"}
         regionFormatStandard{"ເວລາມາດຕະຖານ {0}"}

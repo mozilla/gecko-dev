@@ -85,6 +85,7 @@ gd{
         CN{"An t-Sìn"}
         CO{"Coloimbia"}
         CP{"Eilean Clipperton"}
+        CQ{"Sarc"}
         CR{"Costa Rìcea"}
         CU{"Cùba"}
         CV{"An Ceap Uaine"}
@@ -102,7 +103,7 @@ gd{
         EA{"Ceuta agus Melilla"}
         EC{"Eacuador"}
         EE{"An Eastoin"}
-        EG{"An Èiphit"}
+        EG{"An Èipheit"}
         EH{"Sathara an Iar"}
         ER{"Eartra"}
         ES{"An Spàinnt"}
@@ -135,7 +136,7 @@ gd{
         GW{"Gini-Bioso"}
         GY{"Guidheàna"}
         HK{"Hong Kong SAR na Sìne"}
-        HM{"Eilean Heard is MhicDhòmhnaill"}
+        HM{"Eilean Heard is Eileanan MhicDhòmhnaill"}
         HN{"Hondùras"}
         HR{"A’ Chròthais"}
         HT{"Haidhti"}
@@ -297,6 +298,9 @@ gd{
         ZM{"Sàimbia"}
         ZW{"An t-Sìombab"}
         ZZ{"Roinn-dùthcha neo-aithnichte"}
+    }
+    Countries%chagos{
+        IO{"Innis-mhuir Chagos"}
     }
     Countries%short{
         GB{"RA"}

@@ -1,0 +1,34 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+csw{
+    zoneStrings{
+        "America:Coral_Harbour"{
+            ec{"ᐊᑎᐦᑯᑲᐣ"}
+        }
+        "America:Edmonton"{
+            ec{"ᐁᐟᒪᐣᑐᐣ"}
+        }
+        "America:Inuvik"{
+            ec{"ᐃᓄᐱᐠ"}
+        }
+        "America:Iqaluit"{
+            ec{"ᐃᑳᓫᐅᐃᐟ"}
+        }
+        "America:Swift_Current"{
+            ec{"ᓴᐢᑳᐟᒉᐘᐣ"}
+        }
+        "America:Winnipeg"{
+            ec{"ᐑᓂᐯᐠ"}
+        }
+        "Etc:Unknown"{
+            ec{"ᓇᒨᓇ ᑭᐢᑫᓂᑖᑿᐣ ᐃᐦᑖᐏᐣ"}
+        }
+        "meta:GMT"{
+            ls{"ᐠᕑᐁᓂᐨ ᐯᔭᑯᐦᑖᐏᐣ ᐁᐃᐢᐸᓂᐠ"}
+        }
+        regionFormat{"{0} ᐁᐃᐢᐸᓂᐠ"}
+        regionFormatDaylight{"{0} ᑮᓯᑳᐤ ᐁᐃᐢᐸᓂᐠ"}
+        regionFormatStandard{"{0} ᐯᔭᑯᐦᑖᐏᐣ ᐁᐃᐢᐸᓂᐠ"}
+    }
+}

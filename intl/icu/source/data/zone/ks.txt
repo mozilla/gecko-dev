@@ -462,9 +462,6 @@ ks{
         "America:New_York"{
             ec{"نِو یارک"}
         }
-        "America:Nipigon"{
-            ec{"نِپِگَن"}
-        }
         "America:Nome"{
             ec{"نوم"}
         }
@@ -486,9 +483,6 @@ ks{
         "America:Panama"{
             ec{"پَناما"}
         }
-        "America:Pangnirtung"{
-            ec{"پَنگنِرٹَنگ"}
-        }
         "America:Paramaribo"{
             ec{"پَرامارِبو"}
         }
@@ -509,9 +503,6 @@ ks{
         }
         "America:Punta_Arenas"{
             ec{"پونٹا اریناس"}
-        }
-        "America:Rainy_River"{
-            ec{"رینی رِوَر"}
         }
         "America:Rankin_Inlet"{
             ec{"رینکِن اِنلؠٹ"}
@@ -573,9 +564,6 @@ ks{
         "America:Thule"{
             ec{"تھیوٗلے"}
         }
-        "America:Thunder_Bay"{
-            ec{"تھَنڈر خلیٖج"}
-        }
         "America:Tijuana"{
             ec{"تِجُوانا"}
         }
@@ -596,9 +584,6 @@ ks{
         }
         "America:Yakutat"{
             ec{"یکوٗتات"}
-        }
-        "America:Yellowknife"{
-            ec{"یؠلو نایِف"}
         }
         "Antarctica:Casey"{
             ec{"کیسی"}
@@ -680,9 +665,6 @@ ks{
         }
         "Asia:Chita"{
             ec{"چیٹا"}
-        }
-        "Asia:Choibalsan"{
-            ec{"چویبالسَن"}
         }
         "Asia:Colombo"{
             ec{"کولَمبو"}
@@ -915,9 +897,6 @@ ks{
         "Australia:Broken_Hill"{
             ec{"بروکٕن ہِل"}
         }
-        "Australia:Currie"{
-            ec{"کیوٗری"}
-        }
         "Australia:Darwin"{
             ec{"ڈاروِن"}
         }
@@ -1100,9 +1079,6 @@ ks{
         "Europe:Ulyanovsk"{
             ec{"اولیانووسک"}
         }
-        "Europe:Uzhgorod"{
-            ec{"اُزگورود"}
-        }
         "Europe:Vaduz"{
             ec{"وادُز"}
         }
@@ -1123,9 +1099,6 @@ ks{
         }
         "Europe:Zagreb"{
             ec{"زگریب"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"زَپوروزَے"}
         }
         "Europe:Zurich"{
             ec{"زیوٗرِک"}
@@ -1204,9 +1177,6 @@ ks{
         }
         "Pacific:Honolulu"{
             ec{"ہونولو لو"}
-        }
-        "Pacific:Johnston"{
-            ec{"جانسٹَن"}
         }
         "Pacific:Kiritimati"{
             ec{"کِرِتِماتی"}
@@ -1446,11 +1416,6 @@ ks{
             lg{"چَینا ٹایِم"}
             ls{"چَینا سٹینڈرڈ ٹایِم"}
         }
-        "meta:Choibalsan"{
-            ld{"کوےبؠلسَن سَمَر ٹایِم"}
-            lg{"کوےبؠلسَن ٹایِم"}
-            ls{"کوےبؠلسَن سٹینڈرڈ ٹایِم"}
-        }
         "meta:Christmas"{
             ls{"کرسمَس ٹایِم"}
         }
@@ -1578,7 +1543,7 @@ ks{
             ls{"ہِندوستان"}
         }
         "meta:Indian_Ocean"{
-            ls{"ہِندوستٲنۍ اوشَن ٹائم"}
+            ls{"ہِندوستٲنؠ اوشَن ٹائم"}
         }
         "meta:Indochina"{
             ls{"اِنڑوچَینا ٹایِم"}
@@ -1594,8 +1559,8 @@ ks{
         }
         "meta:Iran"{
             ld{"اِیٖرٲنی سَمَر ٹایِم"}
-            lg{"اِیٖرٲنۍ ٹایِم"}
-            ls{"اِیٖرٲنۍ سٹینڑاڑ ٹایِم"}
+            lg{"اِیٖرٲنؠ ٹایِم"}
+            ls{"اِیٖرٲنؠ سٹینڑاڑ ٹایِم"}
         }
         "meta:Irkutsk"{
             ld{"اِرکُٹسک سَمَر ٹایِم"}
@@ -1608,9 +1573,9 @@ ks{
             ls{"اِسرٲیِلی سٹینڈرڈ ٹایِم"}
         }
         "meta:Japan"{
-            ld{"جاپٲنۍ ڑےلایِٔٹ ٹایِم"}
-            lg{"جاپٲنۍ ٹایِم"}
-            ls{"جاپٲنۍ سٹینڈرڈ ٹایِم"}
+            ld{"جاپٲنؠ ڑےلایِٔٹ ٹایِم"}
+            lg{"جاپٲنؠ ٹایِم"}
+            ls{"جاپٲنؠ سٹینڈرڈ ٹایِم"}
         }
         "meta:Kamchatka"{
             ld{"کَمچَٹکا سَمَر ٹایِم"}
@@ -1680,11 +1645,6 @@ ks{
         "meta:Mawson"{
             ls{"ماسَن ٹایِم"}
         }
-        "meta:Mexico_Northwest"{
-            ld{"شُمال مغربی میکسیکو ڈے لائٹ ٹائم"}
-            lg{"شُمال مغربی میکسیکو ٹائم"}
-            ls{"شُمال مغربی میکسیکو سٹینڈرڈ ٹائم"}
-        }
         "meta:Mexico_Pacific"{
             ld{"میکسیکن پیسیفک ڈے لائٹ ٹائم"}
             lg{"میکسیکن پیسیفک ٹائم"}
@@ -1707,7 +1667,7 @@ ks{
             ls{"نَعوٗروٗ ٹایِم"}
         }
         "meta:Nepal"{
-            ls{"نؠپٲلۍ ٹایِم"}
+            ls{"نؠپٲلؠ ٹایِم"}
         }
         "meta:New_Caledonia"{
             ld{"نِو کیلؠڑونِیس سَمَر ٹایِم"}
@@ -1917,9 +1877,7 @@ ks{
         "meta:Yukon"{
             ls{"یوکون ٹائم"}
         }
-        gmtFormat{"GMT{0}"}
         gmtZeroFormat{"جی ایم ٹی"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"{0} وَکھ"}
         regionFormatDaylight{"{0} ڈے لائٹ وَکھ"}
         regionFormatStandard{"{0} معیٲری وَکھ"}

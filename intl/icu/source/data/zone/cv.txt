@@ -462,9 +462,6 @@ cv{
         "America:New_York"{
             ec{"Нью-Йорк"}
         }
-        "America:Nipigon"{
-            ec{"Нипигон"}
-        }
         "America:Nome"{
             ec{"Ном"}
         }
@@ -486,9 +483,6 @@ cv{
         "America:Panama"{
             ec{"Панама"}
         }
-        "America:Pangnirtung"{
-            ec{"Пангниртанг"}
-        }
         "America:Paramaribo"{
             ec{"Парамарибо"}
         }
@@ -509,9 +503,6 @@ cv{
         }
         "America:Punta_Arenas"{
             ec{"Пунта-Аренас"}
-        }
-        "America:Rainy_River"{
-            ec{"Рейни-Ривер"}
         }
         "America:Rankin_Inlet"{
             ec{"Ранкин-Инлет"}
@@ -573,9 +564,6 @@ cv{
         "America:Thule"{
             ec{"Туле"}
         }
-        "America:Thunder_Bay"{
-            ec{"Тандер-Бей"}
-        }
         "America:Tijuana"{
             ec{"Тихуана"}
         }
@@ -596,9 +584,6 @@ cv{
         }
         "America:Yakutat"{
             ec{"Якутат"}
-        }
-        "America:Yellowknife"{
-            ec{"Йеллоунайф"}
         }
         "Antarctica:Casey"{
             ec{"Кейси"}
@@ -689,9 +674,6 @@ cv{
         }
         "Asia:Chita"{
             ec{"Чита"}
-        }
-        "Asia:Choibalsan"{
-            ec{"Чойбалсан"}
         }
         "Asia:Colombo"{
             ec{"Коломбо"}
@@ -1106,9 +1088,6 @@ cv{
         "Europe:Ulyanovsk"{
             ec{"Ульяновск"}
         }
-        "Europe:Uzhgorod"{
-            ec{"Ужгород"}
-        }
         "Europe:Vaduz"{
             ec{"Вадуц"}
         }
@@ -1129,9 +1108,6 @@ cv{
         }
         "Europe:Zagreb"{
             ec{"Загреб"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"Запорожье"}
         }
         "Europe:Zurich"{
             ec{"Цюрих"}
@@ -1207,9 +1183,6 @@ cv{
         }
         "Pacific:Guam"{
             ec{"Гуам"}
-        }
-        "Pacific:Johnston"{
-            ec{"Джонстон"}
         }
         "Pacific:Kanton"{
             ec{"Кантон"}
@@ -1432,11 +1405,6 @@ cv{
             lg{"Китай вӑхӑчӗ"}
             ls{"Китай стандартлӑ вӑхӑчӗ"}
         }
-        "meta:Choibalsan"{
-            ld{"Чойбалсан ҫуллахи вӑхӑчӗ"}
-            lg{"Чойбалсан вӑхӑчӗ"}
-            ls{"Чойбалсан стандартлӑ вӑхӑчӗ"}
-        }
         "meta:Christmas"{
             ls{"Раштав утравӗн вӑхӑчӗ"}
         }
@@ -1625,9 +1593,6 @@ cv{
             lg{"Лорд-Хау вӑхӑчӗ"}
             ls{"Лорд-Хау стандартлӑ вӑхӑчӗ"}
         }
-        "meta:Macquarie"{
-            ls{"Маккуори вӑхӑчӗ"}
-        }
         "meta:Magadan"{
             ld{"Магадан ҫуллахи вӑхӑчӗ"}
             lg{"Магадан вӑхӑчӗ"}
@@ -1652,11 +1617,6 @@ cv{
         }
         "meta:Mawson"{
             ls{"Моусон вӑхӑчӗ"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"Ҫурҫӗр-анӑҫ Мексика ҫуллахи вӑхӑчӗ"}
-            lg{"Ҫурҫӗр-анӑҫ Мексика вӑхӑчӗ"}
-            ls{"Ҫурҫӗр-анӑҫ Мексика стандартлӑ вӑхӑчӗ"}
         }
         "meta:Mexico_Pacific"{
             ld{"Мексика Лӑпкӑ океан ҫуллахи вӑхӑчӗ"}

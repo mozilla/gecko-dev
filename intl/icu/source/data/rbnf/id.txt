@@ -17,7 +17,8 @@ id{
             "%spellout-cardinal:",
             "-x: negatif >>;",
             "x.x: << titik >>;",
-            "0: kosong;",
+            "x,x: << koma >>;",
+            "0: nol;",
             "1: satu;",
             "2: dua;",
             "3: tiga;",
@@ -44,6 +45,8 @@ id{
             "-x: negatif >>;",
             "x.x: =#,##0.#=;",
             "0: ke=%spellout-cardinal=;",
+            "1: pertama",
+            "2: ke=%spellout-cardinal=;",
         }
     }
 }

@@ -36,6 +36,10 @@ metadata:table(nofallback){
                 reason{"deprecated"}
                 replacement{"ami"}
             }
+            ajp{
+                reason{"deprecated"}
+                replacement{"apc"}
+            }
             ajt{
                 reason{"deprecated"}
                 replacement{"aeb"}
@@ -548,6 +552,10 @@ metadata:table(nofallback){
                 reason{"macrolanguage"}
                 replacement{"gon"}
             }
+            gom{
+                reason{"macrolanguage"}
+                replacement{"kok"}
+            }
             gre{
                 reason{"bibliographic"}
                 replacement{"el"}
@@ -824,6 +832,10 @@ metadata:table(nofallback){
                 reason{"deprecated"}
                 replacement{"kml"}
             }
+            kgm{
+                reason{"deprecated"}
+                replacement{"plu"}
+            }
             khk{
                 reason{"macrolanguage"}
                 replacement{"mn"}
@@ -855,10 +867,6 @@ metadata:table(nofallback){
             kng{
                 reason{"macrolanguage"}
                 replacement{"kg"}
-            }
-            knn{
-                reason{"macrolanguage"}
-                replacement{"kok"}
             }
             koj{
                 reason{"deprecated"}
@@ -1184,6 +1192,10 @@ metadata:table(nofallback){
                 reason{"overlong"}
                 replacement{"nb"}
             }
+            nom{
+                reason{"deprecated"}
+                replacement{"cbr"}
+            }
             noo{
                 reason{"deprecated"}
                 replacement{"dtd"}
@@ -1276,6 +1288,10 @@ metadata:table(nofallback){
                 reason{"deprecated"}
                 replacement{"huw"}
             }
+            pmk{
+                reason{"deprecated"}
+                replacement{"crr"}
+            }
             pmu{
                 reason{"deprecated"}
                 replacement{"phr"}
@@ -1299,6 +1315,10 @@ metadata:table(nofallback){
             ppr{
                 reason{"deprecated"}
                 replacement{"lcq"}
+            }
+            prp{
+                reason{"deprecated"}
+                replacement{"gu"}
             }
             prs{
                 reason{"overlong"}
@@ -1580,6 +1600,10 @@ metadata:table(nofallback){
                 reason{"macrolanguage"}
                 replacement{"sw"}
             }
+            szd{
+                reason{"deprecated"}
+                replacement{"umi"}
+            }
             tah{
                 reason{"overlong"}
                 replacement{"ty"}
@@ -1656,6 +1680,10 @@ metadata:table(nofallback){
                 reason{"deprecated"}
                 replacement{"weo"}
             }
+            tmk{
+                reason{"deprecated"}
+                replacement{"tdg"}
+            }
             tmp{
                 reason{"deprecated"}
                 replacement{"tyj"}
@@ -1671,6 +1699,10 @@ metadata:table(nofallback){
             ton{
                 reason{"overlong"}
                 replacement{"to"}
+            }
+            tpw{
+                reason{"deprecated"}
+                replacement{"tpn"}
             }
             tsf{
                 reason{"deprecated"}
@@ -1844,6 +1876,10 @@ metadata:table(nofallback){
                 reason{"macrolanguage"}
                 replacement{"den"}
             }
+            xss{
+                reason{"deprecated"}
+                replacement{"zko"}
+            }
             ybd{
                 reason{"deprecated"}
                 replacement{"rki"}
@@ -1943,6 +1979,10 @@ metadata:table(nofallback){
             zir{
                 reason{"deprecated"}
                 replacement{"scv"}
+            }
+            zkb{
+                reason{"deprecated"}
+                replacement{"kjh"}
             }
             zsm{
                 reason{"macrolanguage"}
@@ -2272,6 +2312,10 @@ metadata:table(nofallback){
                 reason{"overlong"}
                 replacement{"GP"}
             }
+            frgua{
+                reason{"deprecated"}
+                replacement{"GP"}
+            }
             frh{
                 reason{"deprecated"}
                 replacement{"frcor"}
@@ -2292,9 +2336,17 @@ metadata:table(nofallback){
                 reason{"deprecated"}
                 replacement{"frnaq"}
             }
+            frlre{
+                reason{"deprecated"}
+                replacement{"RE"}
+            }
             frm{
                 reason{"deprecated"}
                 replacement{"frges"}
+            }
+            frmay{
+                reason{"deprecated"}
+                replacement{"YT"}
             }
             frmf{
                 reason{"overlong"}
@@ -5188,11 +5240,13 @@ metadata:table(nofallback){
         "bas_CM",
         "be_BY",
         "bem_ZM",
+        "bew_ID",
         "bez_TZ",
         "bg_BG",
         "bgc_IN",
         "bgn_PK",
         "bho_IN",
+        "blo_BJ",
         "blt_VN",
         "bm_ML",
         "bm_Nkoo_ML",
@@ -5218,6 +5272,7 @@ metadata:table(nofallback){
         "ckb_IQ",
         "co_FR",
         "cs_CZ",
+        "csw_CA",
         "cu_RU",
         "cv_RU",
         "cy_GB",
@@ -5277,6 +5332,7 @@ metadata:table(nofallback){
         "hy_AM",
         "ia_001",
         "id_ID",
+        "ie_EE",
         "ife_TG",
         "ig_NG",
         "ii_CN",
@@ -5291,6 +5347,9 @@ metadata:table(nofallback){
         "jmc_TZ",
         "jv_ID",
         "ka_GE",
+        "kaa_Cyrl",
+        "kaa_Cyrl_UZ",
+        "kaa_Latn_UZ",
         "kab_DZ",
         "kaj_NG",
         "kam_KE",
@@ -5301,14 +5360,18 @@ metadata:table(nofallback){
         "kgp_BR",
         "khq_ML",
         "ki_KE",
-        "kk_KZ",
+        "kk_Arab_CN",
+        "kk_Cyrl",
+        "kk_Cyrl_KZ",
         "kkj_CM",
         "kl_GL",
         "kln_KE",
         "km_KH",
         "kn_IN",
         "ko_KR",
-        "kok_IN",
+        "kok_Deva",
+        "kok_Deva_IN",
+        "kok_Latn_IN",
         "kpe_LR",
         "ks_Arab",
         "ks_Arab_IN",
@@ -5318,6 +5381,11 @@ metadata:table(nofallback){
         "ksh_DE",
         "ku_TR",
         "kw_GB",
+        "kxv_Deva_IN",
+        "kxv_Latn",
+        "kxv_Latn_IN",
+        "kxv_Orya_IN",
+        "kxv_Telu_IN",
         "ky_KG",
         "la_VA",
         "lag_TZ",
@@ -5325,11 +5393,13 @@ metadata:table(nofallback){
         "lg_UG",
         "lij_IT",
         "lkt_US",
+        "lld_IT",
         "lmo_IT",
         "ln_CD",
         "lo_LA",
         "lrc_IR",
         "lt_LT",
+        "ltg_LV",
         "lu_CD",
         "luo_KE",
         "luy_KE",
@@ -5342,7 +5412,9 @@ metadata:table(nofallback){
         "mg_MG",
         "mgh_MZ",
         "mgo_CM",
+        "mhn_IT",
         "mi_NZ",
+        "mic_CA",
         "mk_MK",
         "ml_IN",
         "mn_MN",
@@ -5389,7 +5461,7 @@ metadata:table(nofallback){
         "pcm_NG",
         "pis_SB",
         "pl_PL",
-        "prg_001",
+        "prg_PL",
         "ps_AF",
         "pt_BR",
         "qu_PE",
@@ -5429,6 +5501,7 @@ metadata:table(nofallback){
         "si_LK",
         "sid_ET",
         "sk_SK",
+        "skr_PK",
         "sl_SI",
         "sma_SE",
         "smj_SE",
@@ -5467,6 +5540,7 @@ metadata:table(nofallback){
         "ts_ZA",
         "tt_RU",
         "twq_NE",
+        "tyv_RU",
         "tzm_MA",
         "ug_CN",
         "uk_UA",
@@ -5481,6 +5555,7 @@ metadata:table(nofallback){
         "ve_ZA",
         "vec_IT",
         "vi_VN",
+        "vmw_MZ",
         "vo_001",
         "vun_TZ",
         "wa_BE",
@@ -5489,18 +5564,21 @@ metadata:table(nofallback){
         "wbp_AU",
         "wo_SN",
         "xh_ZA",
+        "xnr_IN",
         "xog_UG",
         "yav_CM",
-        "yi_001",
+        "yi_UA",
         "yo_NG",
         "yrl_BR",
         "yue_Hans_CN",
         "yue_Hant",
         "yue_Hant_HK",
+        "za_CN",
         "zgh_MA",
         "zh_Hans",
         "zh_Hans_CN",
         "zh_Hant_TW",
+        "zh_Latn_CN",
         "zu_ZA",
     }
 }

@@ -88,6 +88,11 @@ numberingSystems:table(nofallback){
             desc{"０１２３４５６７８９"}
             radix:int{10}
         }
+        gara{
+            algorithmic:int{0}
+            desc{"𐵀𐵁𐵂𐵃𐵄𐵅𐵆𐵇𐵈𐵉"}
+            radix:int{10}
+        }
         geor{
             algorithmic:int{1}
             desc{"%georgian"}
@@ -116,6 +121,11 @@ numberingSystems:table(nofallback){
         gujr{
             algorithmic:int{0}
             desc{"૦૧૨૩૪૫૬૭૮૯"}
+            radix:int{10}
+        }
+        gukh{
+            algorithmic:int{0}
+            desc{"𖄰𖄱𖄲𖄳𖄴𖄵𖄶𖄷𖄸𖄹"}
             radix:int{10}
         }
         guru{
@@ -208,6 +218,11 @@ numberingSystems:table(nofallback){
             desc{"೦೧೨೩೪೫೬೭೮೯"}
             radix:int{10}
         }
+        krai{
+            algorithmic:int{0}
+            desc{"𖵰𖵱𖵲𖵳𖵴𖵵𖵶𖵷𖵸𖵹"}
+            radix:int{10}
+        }
         lana{
             algorithmic:int{0}
             desc{"᪀᪁᪂᪃᪄᪅᪆᪇᪈᪉"}
@@ -293,6 +308,16 @@ numberingSystems:table(nofallback){
             desc{"၀၁၂၃၄၅၆၇၈၉"}
             radix:int{10}
         }
+        mymrepka{
+            algorithmic:int{0}
+            desc{"𑛚𑛛𑛜𑛝𑛞𑛟𑛠𑛡𑛢𑛣"}
+            radix:int{10}
+        }
+        mymrpao{
+            algorithmic:int{0}
+            desc{"𑛐𑛑𑛒𑛓𑛔𑛕𑛖𑛗𑛘𑛙"}
+            radix:int{10}
+        }
         mymrshan{
             algorithmic:int{0}
             desc{"႐႑႒႓႔႕႖႗႘႙"}
@@ -323,6 +348,11 @@ numberingSystems:table(nofallback){
             desc{"᱐᱑᱒᱓᱔᱕᱖᱗᱘᱙"}
             radix:int{10}
         }
+        onao{
+            algorithmic:int{0}
+            desc{"𞗱𞗲𞗳𞗴𞗵𞗶𞗷𞗸𞗹𞗺"}
+            radix:int{10}
+        }
         orya{
             algorithmic:int{0}
             desc{"୦୧୨୩୪୫୬୭୮୯"}
@@ -331,6 +361,11 @@ numberingSystems:table(nofallback){
         osma{
             algorithmic:int{0}
             desc{"𐒠𐒡𐒢𐒣𐒤𐒥𐒦𐒧𐒨𐒩"}
+            radix:int{10}
+        }
+        outlined{
+            algorithmic:int{0}
+            desc{"𜳰𜳱𜳲𜳳𜳴𜳵𜳶𜳷𜳸𜳹"}
             radix:int{10}
         }
         rohg{
@@ -381,6 +416,11 @@ numberingSystems:table(nofallback){
         sund{
             algorithmic:int{0}
             desc{"᮰᮱᮲᮳᮴᮵᮶᮷᮸᮹"}
+            radix:int{10}
+        }
+        sunu{
+            algorithmic:int{0}
+            desc{"𑯰𑯱𑯲𑯳𑯴𑯵𑯶𑯷𑯸𑯹"}
             radix:int{10}
         }
         takr{

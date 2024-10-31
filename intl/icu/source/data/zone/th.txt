@@ -465,9 +465,6 @@ th{
         "America:New_York"{
             ec{"นิวยอร์ก"}
         }
-        "America:Nipigon"{
-            ec{"นิปิกอน"}
-        }
         "America:Nome"{
             ec{"นอม"}
         }
@@ -488,9 +485,6 @@ th{
         }
         "America:Panama"{
             ec{"ปานามา"}
-        }
-        "America:Pangnirtung"{
-            ec{"พางนีทัง"}
         }
         "America:Paramaribo"{
             ec{"ปารามาริโบ"}
@@ -513,9 +507,6 @@ th{
         "America:Punta_Arenas"{
             ec{"ปุนตาอาเรนัส"}
         }
-        "America:Rainy_River"{
-            ec{"เรนนี่ริเวอร์"}
-        }
         "America:Rankin_Inlet"{
             ec{"แรงกินอินเล็ต"}
         }
@@ -530,9 +521,6 @@ th{
         }
         "America:Rio_Branco"{
             ec{"รีโอบรังโก"}
-        }
-        "America:Santa_Isabel"{
-            ec{"ซานตาอิซาเบล"}
         }
         "America:Santarem"{
             ec{"ซันตาเรม"}
@@ -579,9 +567,6 @@ th{
         "America:Thule"{
             ec{"ทูเล"}
         }
-        "America:Thunder_Bay"{
-            ec{"ทันเดอร์เบย์"}
-        }
         "America:Tijuana"{
             ec{"ทิฮัวนา"}
         }
@@ -602,9 +587,6 @@ th{
         }
         "America:Yakutat"{
             ec{"ยากูทัต"}
-        }
-        "America:Yellowknife"{
-            ec{"เยลโลว์ไนฟ์"}
         }
         "Antarctica:Casey"{
             ec{"เคซีย์"}
@@ -695,9 +677,6 @@ th{
         }
         "Asia:Chita"{
             ec{"ชิตา"}
-        }
-        "Asia:Choibalsan"{
-            ec{"ชอยบาลซาน"}
         }
         "Asia:Colombo"{
             ec{"โคลัมโบ"}
@@ -930,9 +909,6 @@ th{
         "Australia:Broken_Hill"{
             ec{"โบรกเคนฮิลล์"}
         }
-        "Australia:Currie"{
-            ec{"คูร์รี"}
-        }
         "Australia:Darwin"{
             ec{"ดาร์วิน"}
         }
@@ -1115,9 +1091,6 @@ th{
         "Europe:Ulyanovsk"{
             ec{"อะลิยานอฟ"}
         }
-        "Europe:Uzhgorod"{
-            ec{"อัซโกร็อด"}
-        }
         "Europe:Vaduz"{
             ec{"วาดุซ"}
         }
@@ -1138,9 +1111,6 @@ th{
         }
         "Europe:Zagreb"{
             ec{"ซาเกร็บ"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"ซาโปโรซี"}
         }
         "Europe:Zurich"{
             ec{"ซูริค"}
@@ -1222,9 +1192,6 @@ th{
         }
         "Pacific:Honolulu"{
             ec{"โฮโนลูลู"}
-        }
-        "Pacific:Johnston"{
-            ec{"จอห์นสตัน"}
         }
         "Pacific:Kanton"{
             ec{"แคนทอน"}
@@ -1475,11 +1442,6 @@ th{
             lg{"เวลาจีน"}
             ls{"เวลามาตรฐานจีน"}
         }
-        "meta:Choibalsan"{
-            ld{"เวลาฤดูร้อนชอยปาลชาน"}
-            lg{"เวลาชอยปาลชาน"}
-            ls{"เวลามาตรฐานชอยปาลชาน"}
-        }
         "meta:Christmas"{
             ls{"เวลาเกาะคริสต์มาส"}
         }
@@ -1646,6 +1608,9 @@ th{
             lg{"เวลาคัมชัตคา"}
             ls{"เวลาเปโตรปัฟลอฟสค์-คัมชัตสกี"}
         }
+        "meta:Kazakhstan"{
+            ls{"เวลาคาซัคสถาน"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"เวลาคาซัคสถานตะวันออก"}
         }
@@ -1684,9 +1649,6 @@ th{
             lg{"เวลามาเก๊า"}
             ls{"เวลามาตรฐานมาเก๊า"}
         }
-        "meta:Macquarie"{
-            ls{"เวลาเกาะแมกควอรี"}
-        }
         "meta:Magadan"{
             ld{"เวลาฤดูร้อนมากาดาน"}
             lg{"เวลามากาดาน"}
@@ -1711,11 +1673,6 @@ th{
         }
         "meta:Mawson"{
             ls{"เวลามอว์สัน"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"เวลาออมแสงเม็กซิโกตะวันตกเฉียงเหนือ"}
-            lg{"เวลาเม็กซิโกตะวันตกเฉียงเหนือ"}
-            ls{"เวลามาตรฐานเม็กซิโกตะวันตกเฉียงเหนือ"}
         }
         "meta:Mexico_Pacific"{
             ld{"เวลาออมแสงแปซิฟิกเม็กซิโก"}
@@ -1949,10 +1906,6 @@ th{
         "meta:Yukon"{
             ls{"เวลายูคอน"}
         }
-        fallbackFormat{"{1} ({0})"}
-        gmtFormat{"GMT{0}"}
-        gmtZeroFormat{"GMT"}
-        hourFormat{"+HH:mm;-HH:mm"}
         regionFormat{"เวลา{0}"}
         regionFormatDaylight{"เวลาออมแสง{0}"}
         regionFormatStandard{"เวลามาตรฐาน{0}"}

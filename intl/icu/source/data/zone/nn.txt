@@ -19,9 +19,6 @@ nn{
         "Asia:Ashgabat"{
             ec{"Asjgabat"}
         }
-        "Asia:Choibalsan"{
-            ec{"Tsjojbalsan"}
-        }
         "Asia:Hovd"{
             ec{"Khovd"}
         }
@@ -42,9 +39,6 @@ nn{
         }
         "Europe:Dublin"{
             ld{"irsk sommartid"}
-        }
-        "Europe:Kiev"{
-            ec{"Kyiv"}
         }
         "Europe:London"{
             ld{"britisk sommartid"}
@@ -85,7 +79,7 @@ nn{
             ls{"normaltid for sentrale Nord-Amerika"}
         }
         "meta:America_Eastern"{
-            ld{"sommartid for den nordamerikansk austkysten"}
+            ld{"sommartid for den nordamerikanske austkysten"}
             lg{"tidssone for den nordamerikanske austkysten"}
             ls{"normaltid for den nordamerikanske austkysten"}
         }
@@ -188,11 +182,6 @@ nn{
             ld{"kinesisk sommartid"}
             lg{"kinesisk tid"}
             ls{"kinesisk normaltid"}
-        }
-        "meta:Choibalsan"{
-            ld{"sommartid for Tsjojbalsan"}
-            lg{"tidssone for Tsjojbalsan"}
-            ls{"normaltid for Tsjojbalsan"}
         }
         "meta:Cocos"{
             ls{"tidssone for Kokosøyane"}
@@ -347,11 +336,6 @@ nn{
             lg{"mauritisk tid"}
             ls{"mauritisk normaltid"}
         }
-        "meta:Mexico_Northwest"{
-            ld{"sommartid for nordvestlege Mexico"}
-            lg{"tidssone for nordvestlege Mexico"}
-            ls{"normaltid for nordvestlege Mexico"}
-        }
         "meta:Mexico_Pacific"{
             ld{"sommartid for den meksikanske stillehavskysten"}
             lg{"tidssone for den meksikanske stillehavskysten"}
@@ -373,7 +357,7 @@ nn{
             ls{"kaledonsk normaltid"}
         }
         "meta:New_Zealand"{
-            ld{"nyzealandsk sumartid"}
+            ld{"nyzealandsk sommartid"}
             lg{"nyzealandsk tid"}
             ls{"nyzealandsk normaltid"}
         }

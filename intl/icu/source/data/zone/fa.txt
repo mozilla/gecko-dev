@@ -465,9 +465,6 @@ fa{
         "America:New_York"{
             ec{"نیویورک"}
         }
-        "America:Nipigon"{
-            ec{"نیپیگان"}
-        }
         "America:Nome"{
             ec{"نوم"}
         }
@@ -484,13 +481,10 @@ fa{
             ec{"نیوسالم، داکوتای شمالی"}
         }
         "America:Ojinaga"{
-            ec{"اخیناگا"}
+            ec{"اوجیناگا"}
         }
         "America:Panama"{
             ec{"پاناما"}
-        }
-        "America:Pangnirtung"{
-            ec{"پانگنیرتونگ"}
         }
         "America:Paramaribo"{
             ec{"پاراماریبو"}
@@ -513,9 +507,6 @@ fa{
         "America:Punta_Arenas"{
             ec{"پونتا آرناس"}
         }
-        "America:Rainy_River"{
-            ec{"رینی‌ریور"}
-        }
         "America:Rankin_Inlet"{
             ec{"خلیجک رنکین"}
         }
@@ -530,9 +521,6 @@ fa{
         }
         "America:Rio_Branco"{
             ec{"ریوبرانکو"}
-        }
-        "America:Santa_Isabel"{
-            ec{"سانتا ایزابل"}
         }
         "America:Santarem"{
             ec{"سنتارم"}
@@ -579,9 +567,6 @@ fa{
         "America:Thule"{
             ec{"تول"}
         }
-        "America:Thunder_Bay"{
-            ec{"تاندربی"}
-        }
         "America:Tijuana"{
             ec{"تیخوانا"}
         }
@@ -602,9 +587,6 @@ fa{
         }
         "America:Yakutat"{
             ec{"یاکوتات"}
-        }
-        "America:Yellowknife"{
-            ec{"یلونایف"}
         }
         "Antarctica:Casey"{
             ec{"کیسی"}
@@ -695,9 +677,6 @@ fa{
         }
         "Asia:Chita"{
             ec{"چیتا"}
-        }
-        "Asia:Choibalsan"{
-            ec{"چویبالسان"}
         }
         "Asia:Colombo"{
             ec{"کلمبو"}
@@ -930,9 +909,6 @@ fa{
         "Australia:Broken_Hill"{
             ec{"بروکن‌هیل"}
         }
-        "Australia:Currie"{
-            ec{"کوری"}
-        }
         "Australia:Darwin"{
             ec{"داروین"}
         }
@@ -1115,9 +1091,6 @@ fa{
         "Europe:Ulyanovsk"{
             ec{"اولیانوفسک"}
         }
-        "Europe:Uzhgorod"{
-            ec{"اوژگورود"}
-        }
         "Europe:Vaduz"{
             ec{"فادوتس"}
         }
@@ -1138,9 +1111,6 @@ fa{
         }
         "Europe:Zagreb"{
             ec{"زاگرب"}
-        }
-        "Europe:Zaporozhye"{
-            ec{"زاپوروژیا"}
         }
         "Europe:Zurich"{
             ec{"زوریخ"}
@@ -1188,7 +1158,7 @@ fa{
             ec{"بوگنویل"}
         }
         "Pacific:Chatham"{
-            ec{"چتم"}
+            ec{"چت‌هام"}
         }
         "Pacific:Easter"{
             ec{"ایستر"}
@@ -1222,9 +1192,6 @@ fa{
         }
         "Pacific:Honolulu"{
             ec{"هونولولو"}
-        }
-        "Pacific:Johnston"{
-            ec{"جانستون"}
         }
         "Pacific:Kanton"{
             ec{"کانتون"}
@@ -1302,7 +1269,7 @@ fa{
             ls{"وقت افغانستان"}
         }
         "meta:Africa_Central"{
-            ls{"وقت مرکز افریقا"}
+            ls{"وقت مرکز آفریقا"}
         }
         "meta:Africa_Eastern"{
             ls{"وقت شرق افریقا"}
@@ -1391,19 +1358,19 @@ fa{
             ls{"وقت عادی مرکز استرالیا"}
         }
         "meta:Australia_CentralWestern"{
-            ld{"وقت تابستانی مرکز-غرب استرالیا"}
-            lg{"وقت مرکز-غرب استرالیا"}
-            ls{"وقت عادی مرکز-غرب استرالیا"}
+            ld{"وقت تابستانی مرکز استرالیای غربی"}
+            lg{"وقت مرکز استرالیای غربی"}
+            ls{"وقت عادی مرکز استرالیای غربی"}
         }
         "meta:Australia_Eastern"{
-            ld{"وقت تابستانی شرق استرالیا"}
-            lg{"وقت شرق استرالیا"}
-            ls{"وقت عادی شرق استرالیا"}
+            ld{"وقت تابستانی استرالیای شرقی"}
+            lg{"وقت استرالیای شرقی"}
+            ls{"وقت عادی استرالیای شرقی"}
         }
         "meta:Australia_Western"{
-            ld{"وقت تابستانی غرب استرالیا"}
-            lg{"وقت غرب استرالیا"}
-            ls{"وقت عادی غرب استرالیا"}
+            ld{"وقت تابستانی استرالیای غربی"}
+            lg{"وقت استرالیای غربی"}
+            ls{"وقت عادی استرالیای غربی"}
         }
         "meta:Azerbaijan"{
             ld{"وقت تابستانی جمهوری آذربایجان"}
@@ -1456,11 +1423,6 @@ fa{
             ld{"وقت تابستانی چین"}
             lg{"وقت چین"}
             ls{"وقت عادی چین"}
-        }
-        "meta:Choibalsan"{
-            ld{"وقت تابستانی چویبالسان"}
-            lg{"وقت چویبالسان"}
-            ls{"وقت عادی چویبالسان"}
         }
         "meta:Christmas"{
             ls{"وقت جزیرهٔ کریسمس"}
@@ -1628,6 +1590,9 @@ fa{
             lg{"وقت پتروپاولوسک‐کامچاتسکی"}
             ls{"وقت عادی پتروپاولوسک‐کامچاتسکی"}
         }
+        "meta:Kazakhstan"{
+            ls{"وقت قزاقستان"}
+        }
         "meta:Kazakhstan_Eastern"{
             ls{"وقت شرق قزاقستان"}
         }
@@ -1666,9 +1631,6 @@ fa{
             lg{"وقت ماکائو"}
             ls{"وقت عادی ماکائو"}
         }
-        "meta:Macquarie"{
-            ls{"وقت جزیرهٔ مکواری"}
-        }
         "meta:Magadan"{
             ld{"وقت تابستانی ماگادان"}
             lg{"وقت ماگادان"}
@@ -1693,11 +1655,6 @@ fa{
         }
         "meta:Mawson"{
             ls{"وقت ماوسون"}
-        }
-        "meta:Mexico_Northwest"{
-            ld{"وقت تابستانی شمال غرب مکزیک"}
-            lg{"وقت شمال غرب مکزیک"}
-            ls{"وقت عادی شمال غرب مکزیک"}
         }
         "meta:Mexico_Pacific"{
             ld{"وقت تابستانی شرق مکزیک"}
@@ -1931,7 +1888,6 @@ fa{
         "meta:Yukon"{
             ls{"وقت یوکان"}
         }
-        fallbackFormat{"{1} ({0})"}
         gmtFormat{"{0} گرینویچ"}
         gmtZeroFormat{"گرینویچ"}
         hourFormat{"‎+HH:mm;‎−HH:mm"}
