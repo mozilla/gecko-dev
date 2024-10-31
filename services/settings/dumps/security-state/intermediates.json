@@ -14347,24 +14347,6 @@
       "last_modified": 1666727870394
     },
     {
-      "schema": 1666727378252,
-      "derHash": "mxby9oDXxL1qZ/YJNA2mQWq/nkPxMmsBuYgZInHQtfI=",
-      "subject": "CN=TWCA Secure SSL Certification Authority,OU=Secure SSL Sub-CA,O=TAIWAN-CA,C=TW",
-      "subjectDN": "MG8xCzAJBgNVBAYTAlRXMRIwEAYDVQQKEwlUQUlXQU4tQ0ExGjAYBgNVBAsTEVNlY3VyZSBTU0wgU3ViLUNBMTAwLgYDVQQDEydUV0NBIFNlY3VyZSBTU0wgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHk=",
-      "whitelist": false,
-      "attachment": {
-        "hash": "acd717a163c1e31ec674bb2953f2f16be424838b5d36e703984df5d77c80d023",
-        "size": 2032,
-        "filename": "8hqbhsMMFPaPA8t81pxqFer9-neHBcQvO7-TAKjWkb0=.pem",
-        "location": "security-state-staging/intermediates/b5f4faa4-0521-4c2b-939b-4bef5f921421.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "8hqbhsMMFPaPA8t81pxqFer9+neHBcQvO7+TAKjWkb0=",
-      "crlite_enrolled": false,
-      "id": "163c4d13-0624-40c4-83d7-7b9bbea0f129",
-      "last_modified": 1666727870379
-    },
-    {
       "schema": 1666727414774,
       "derHash": "PhR5gEdlpiu3vU8N3rtVqUaiBjzSiC8FRhsXVPG2Z7E=",
       "subject": "CN=HARICA Administration SSL ECC SubCA R2,O=Hellenic Academic and Research Institutions Cert. Authority,L=Athens,C=GR",
@@ -26047,24 +26029,6 @@
       "last_modified": 1648695444528
     },
     {
-      "schema": 1648025321155,
-      "derHash": "B0hA46Z9zSYAtrAE4Rh6yAvf6JbK9JPflMw9mjymiBQ=",
-      "subject": "CN=TWCA InfoSec User CA,OU=User CA,O=TAIWAN-CA Inc.,C=TW",
-      "subjectDN": "MFcxCzAJBgNVBAYTAlRXMRcwFQYDVQQKEw5UQUlXQU4tQ0EgSW5jLjEQMA4GA1UECxMHVXNlciBDQTEdMBsGA1UEAxMUVFdDQSBJbmZvU2VjIFVzZXIgQ0E=",
-      "whitelist": false,
-      "attachment": {
-        "hash": "45844bd66bf712d05a01885a5ed8fe191938dc90ceb1c6bb05a732c72ec77002",
-        "size": 1703,
-        "filename": "ffKwXiiyZfl8ltFLZ9k5urWtoCKNBNklL8cqiHHZUUQ=.pem",
-        "location": "security-state-staging/intermediates/54742694-a874-4df8-9c81-e88d2f2221f4.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "ffKwXiiyZfl8ltFLZ9k5urWtoCKNBNklL8cqiHHZUUQ=",
-      "crlite_enrolled": false,
-      "id": "73d165e8-c4b1-4300-a6eb-607ee522dabe",
-      "last_modified": 1648025848795
-    },
-    {
       "schema": 1647654826542,
       "derHash": "NCY+lCTYGblLz6h+ad2e9DIF1OLehKU0lzFAY9gilps=",
       "subject": "CN=Verokey High Assurance Verified Business ECC,O=Verokey,C=AU",
@@ -30637,5 +30601,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1729954622687
+  "timestamp": 1730127422795
 }
