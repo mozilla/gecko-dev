@@ -23,7 +23,6 @@ To set up Mozilla Central, you can follow the general instructions provided in t
 
 Additionally, to set up specifically for mozilla-central, you can refer to the following guide:
 
-- :ref:`Mozilla Central Quick Start <Mozilla Central Quick Start>`
 - :ref:`Quick Start Guide for Git Users <contribute_with_git>`
 
 Bootstrap

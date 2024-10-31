@@ -15,7 +15,7 @@ Submitting a patch to Firefox using Git.
 
 This guide will take you through submitting and updating a patch to
 ``mozilla-central`` as a git user. You need to already be `set up to use
-git to contribute to mozilla-central <mc-quick-start.html>`_.
+git to contribute to mozilla-central </setup/index.html>`_.
 
 Performing a bug fix
 --------------------
