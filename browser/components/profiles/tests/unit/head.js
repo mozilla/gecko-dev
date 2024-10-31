@@ -8,6 +8,20 @@ const { SelectableProfile } = ChromeUtils.importESModule(
   "resource:///modules/profiles/SelectableProfile.sys.mjs"
 );
 
+const lazy = {};
+
+ChromeUtils.defineLazyGetter(lazy, "SelectableProfileService", () => {
+  const { SelectableProfileService } = ChromeUtils.importESModule(
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs"
+  );
+
+  SelectableProfileService.overrideDirectoryService({
+    ProfD: getProfileService().currentProfile.rootDir,
+  });
+
+  return SelectableProfileService;
+});
+
 let gProfileServiceInitialised = false;
 
 /**
@@ -23,10 +37,7 @@ function startProfileService() {
 }
 
 function getSelectableProfileService() {
-  const { SelectableProfileService } = ChromeUtils.importESModule(
-    "resource:///modules/profiles/SelectableProfileService.sys.mjs"
-  );
-  return SelectableProfileService;
+  return lazy.SelectableProfileService;
 }
 
 /**

@@ -65,7 +65,7 @@ async function updateTaskbar(iconUrl, profileName, strokeColor, fillColor) {
     } else if ("nsIWinTaskbar" in Ci) {
       lazy.EveryWindow.registerCallback(
         "profiles",
-        win => {
+        (win) => {
           let iconController = Cc["@mozilla.org/windows-taskbar;1"]
             .getService(Ci.nsIWinTaskbar)
             .getOverlayIconController(win.docShell);
@@ -110,26 +110,6 @@ class SelectableProfileServiceClass {
     this.#profileService = Cc[
       "@mozilla.org/toolkit/profile-service;1"
     ].getService(Ci.nsIToolkitProfileService);
-
-    this.#groupToolkitProfile =
-      this.#profileService.currentProfile ?? this.#profileService.groupProfile;
-
-    this.#storeID = this.#groupToolkitProfile?.storeID;
-
-    if (!this.#storeID) {
-      this.#storeID = Services.prefs.getCharPref(
-        "toolkit.profiles.storeID",
-        ""
-      );
-      if (this.#storeID) {
-        // This can happen if profiles.ini has been reset by a version of Firefox prior to 67 and
-        // the current profile is not the current default for the group. We can recover by
-        // attempting to find the group profile from the database.
-        this.#initPromise = this.restoreStoreID()
-          .catch(console.error)
-          .finally(() => (this.#initPromise = null));
-      }
-    }
   }
 
   /**
@@ -149,9 +129,6 @@ class SelectableProfileServiceClass {
       Cc["@mozilla.org/toolkit/profile-service;1"].getService(
         Ci.nsIToolkitProfileService
       );
-    this.#groupToolkitProfile =
-      this.#profileService.currentProfile ?? this.#profileService.groupProfile;
-    this.#storeID = this.#groupToolkitProfile?.storeID;
     await this.init();
   }
 
@@ -216,6 +193,10 @@ class SelectableProfileServiceClass {
       return;
     }
 
+    if (!this.#groupToolkitProfile) {
+      throw new Error("Cannot create a store without a group profile.");
+    }
+
     await IOUtils.makeDirectory(
       SelectableProfileServiceClass.PROFILE_GROUPS_DIR
     );
@@ -256,8 +237,19 @@ class SelectableProfileServiceClass {
   }
 
   async #init() {
-    if (this.#initialized || !this.groupToolkitProfile) {
+    if (this.#initialized) {
       return;
+    }
+
+    this.#groupToolkitProfile =
+      this.#profileService.currentProfile ?? this.#profileService.groupProfile;
+    this.#storeID = this.#groupToolkitProfile?.storeID;
+
+    if (!this.storeID) {
+      this.#storeID = Services.prefs.getCharPref(
+        "toolkit.profiles.storeID",
+        ""
+      );
     }
 
     // If the storeID doesn't exist, we don't want to create the db until we
@@ -266,7 +258,35 @@ class SelectableProfileServiceClass {
       return;
     }
 
-    await this.initConnection();
+    try {
+      await this.initConnection();
+    } catch (e) {
+      console.error(e);
+
+      // If this was an attempt to recover the storeID then reset it.
+      if (!this.#groupToolkitProfile?.storeID) {
+        Services.prefs.clearUserPref("toolkit.profiles.storeID");
+      }
+
+      await this.uninit();
+      return;
+    }
+
+    // This can happen if profiles.ini has been reset by a version of Firefox
+    // prior to 67 and the current profile is not the current default for the
+    // group. We can recover by attempting to find the group profile from the
+    // database.
+    if (this.#groupToolkitProfile?.storeID != this.storeID) {
+      await this.#restoreStoreID();
+
+      if (!this.#groupToolkitProfile) {
+        // If we were unable to find a matching toolkit profile then assume the
+        // store ID is bogus so clear it and uninit.
+        Services.prefs.clearUserPref("toolkit.profiles.storeID");
+        await this.uninit();
+        return;
+      }
+    }
 
     // When we launch into the startup window, the `ProfD` is not defined so
     // getting the directory will throw. Leaving the `currentProfile` as null
@@ -307,6 +327,8 @@ class SelectableProfileServiceClass {
     await this.closeConnection();
 
     this.#currentProfile = null;
+    this.#groupToolkitProfile = null;
+    this.#storeID = null;
 
     this.#initialized = false;
   }
@@ -314,7 +336,7 @@ class SelectableProfileServiceClass {
   initWindowTracker() {
     lazy.EveryWindow.registerCallback(
       this.#everyWindowCallbackId,
-      window => {
+      (window) => {
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -322,7 +344,7 @@ class SelectableProfileServiceClass {
 
         window.addEventListener("activate", this);
       },
-      window => {
+      (window) => {
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -386,31 +408,25 @@ class SelectableProfileServiceClass {
     }
   }
 
-  async restoreStoreID() {
+  async #restoreStoreID() {
     try {
-      await this.#init();
-
+      // Finds the first nsIToolkitProfile that matches the path of a
+      // SelectableProfile in the database.
       for (let profile of await this.getAllProfiles()) {
         let groupProfile = this.#profileService.getProfileByDir(
           await profile.rootDir
         );
 
-        if (groupProfile) {
-          this.#groupToolkitProfile = groupProfile;
-          this.#groupToolkitProfile.storeID = this.storeID;
+        if (groupProfile && !groupProfile.storeID) {
+          groupProfile.storeID = this.storeID;
           await this.#profileService.asyncFlush();
+          this.#groupToolkitProfile = groupProfile;
           return;
         }
       }
     } catch (e) {
       console.error(e);
     }
-
-    // If we were unable to find a matching toolkit profile then assume the
-    // store ID is bogus so clear it and uninit.
-    this.#storeID = null;
-    await this.uninit();
-    Services.prefs.clearUserPref("toolkit.profiles.storeID");
   }
 
   async handleEvent(event) {
@@ -697,7 +713,7 @@ class SelectableProfileServiceClass {
     ];
 
     const prefsJsContent = sharedPrefs.map(
-      pref =>
+      (pref) =>
         `user_pref("${pref.name}", ${
           pref.type === "string" ? `"${pref.value}"` : `${pref.value}`
         });`
@@ -741,7 +757,7 @@ class SelectableProfileServiceClass {
    */
   async #createProfile(existingProfilePath) {
     let nextProfileNumber =
-      1 + Math.max(0, ...(await this.getAllProfiles()).map(p => p.id));
+      1 + Math.max(0, ...(await this.getAllProfiles()).map((p) => p.id));
     let [defaultName] = lazy.profilesLocalization.formatMessagesSync([
       { id: "default-profile-name", args: { number: nextProfileNumber } },
     ]);
@@ -817,7 +833,7 @@ class SelectableProfileServiceClass {
     // Verify all fields are present.
     let keys = ["avatar", "name", "path", "themeBg", "themeFg", "themeL10nId"];
     let missing = [];
-    keys.forEach(key => {
+    keys.forEach((key) => {
       if (!(key in profileData)) {
         missing.push(key);
       }
@@ -895,7 +911,7 @@ class SelectableProfileServiceClass {
 
     await this.#connection.executeBeforeShutdown(
       "SelectableProfileService: deleteCurrentProfile",
-      db =>
+      (db) =>
         db.execute("DELETE FROM Profiles WHERE id = :id;", {
           id: this.currentProfile.id,
         })
@@ -931,7 +947,7 @@ class SelectableProfileServiceClass {
 
     return (
       await this.#connection.executeCached("SELECT * FROM Profiles;")
-    ).map(row => {
+    ).map((row) => {
       return new SelectableProfile(row, this);
     });
   }
@@ -1024,7 +1040,7 @@ class SelectableProfileServiceClass {
   async getAllPrefs() {
     return (
       await this.#connection.executeCached("SELECT * FROM SharedPrefs;")
-    ).map(row => {
+    ).map((row) => {
       let value = this.getPrefValueFromRow(row);
       return {
         name: row.getResultByName("name"),
