@@ -2385,6 +2385,64 @@
     <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
     <string name="review_quality_check_explanation_title">Mar a dhearbhas sinn càileachd nan lèirmheasan</string>
 
+    <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_explanation_body_reliability">Cleachdaidh sinn teicneolas AI o %s le Mozilla airson earbsachd nan lèirmheasan a sgrùdadh. Cha dèan sin measadh air càileachd a’ bhathair, dìreach càileachd nan lèirmheasan.</string>
+    <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
+    <string name="review_quality_check_info_review_grade_header"><![CDATA[Bheir sinn <b>litir measaidh</b> dha na lèirmheasach aig gach bathar, eadar A is F.]]></string>
+    <!-- Description explaining grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_AB">Lèirmheasan earbsach. Tha sinn a’ creidsinn gur e lèirmheasan onarach neo-chlaon a th’ annta a chaidh a sgrìobhadh le fìor-chustamairean.</string>
+    <!-- Description explaining grade C for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_C">Tha sinn a’ creidsinn gur e measgachadh de lèirmheasan earbsach is neo-earbsach a th’ annta.</string>
+    <!-- Description explaining grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_DF">Lèirmheasan neo-earbsach. Tha sinn a’ creidsinn gur e lèirmheasan fuadain a th’ annta no feadhainn le lèirmheasaichean claona.</string>
+
+    <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
+    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[Tha an <b>rangachadh gleusta</b> stèidhichte dìreach air lèirmheasan a tha earbsach ’nar beachd.]]></string>
+    <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
+    <string name="review_quality_check_explanation_body_highlights"><![CDATA[Tha na <b>bàrr-phuingean</b> o lèirmheasan %s on 80 latha seo chaidh is a tha earbsach ’nar beachd.]]></string>
+    <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+    <string name="review_quality_check_info_learn_more">Barrachd fiosrachaidh mu dhèidhinn %s.</string>
+    <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_info_learn_more_link_2">mar a dhearbhas %s càileachd nan lèirmheasan</string>
+    <!-- Text for title of settings section. -->
+    <string name="review_quality_check_settings_title">Roghainnean</string>
+    <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
+    <string name="review_quality_check_settings_recommended_products">Seall sanasachd ann an dearbhair nan lèirmheasan</string>
+    <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
+    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">Chì thu sansachd mu dhèidhinn bathair cho-cheangailte o àm gu àm. Cha dèan sanasachd ach airson bathar aig a bheil lèirmheasan earbsach. %s</string>
+    <!-- Clickable text that links to review quality check recommended products support article. -->
+    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">Barrachd fiosrachaidh</string>
+    <!-- Text for turning sidebar off button from review quality check settings section. -->
+    <string name="review_quality_check_settings_turn_off">Cuir dheth dearbhair nan lèirmheasan</string>
+    <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
+    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">Barrachd ri chnuasachadh</string>
+    <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">An t-sanasachd le %s</string>
+    <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
+    <string name="review_quality_check_powered_by_2">Tha cumhachd %s ann an dearbhair nan lèirmheasan</string>
+    <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s le Mozilla</string>
+    <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
+    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">Fiosrachadh ùr ri sgrùdadh</string>
+    <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
+    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">Sgrùd an-dràsta</string>
+    <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_title">Chan eil lèirmheasan gu leòr ann fhathast</string>
+    <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_body">Turas a bhios barrachd lèirmheasan aig a’ bhathar seo, ’s urrainn dhuinn sgrùdadh dè cho math ’s a tha iad.</string>
+    <!-- Title for warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_title">Chan eil am bathar ri fhaighinn</string>
+    <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_body">Ma chì thu gu bheil am bathar seo air ais sna bùthan, innis dhuinn is bheir sinn sùil air na lèirmheasan.</string>
+    <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
+    <string name="review_quality_check_product_availability_warning_action_2">Cuir fios gu bheil stoca ann a-rithist</string>
+    <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
+    <string name="review_quality_check_analysis_in_progress_warning_title_2">A’ sgrùdadh càileachd nan lèirmheasan (%s)</string>
+    <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
+    <string name="review_quality_check_analysis_in_progress_warning_body">Feumaidh seo suas ri 60 diog.</string>
+    <!-- Title for info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_title">Mòran taing airson innse dhuinn!</string>
+
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
     <string name="a11y_action_label_collapse">co-theannaich</string>

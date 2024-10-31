@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">Priwatny modus zmóžnić</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Priwatny modus znjemóžnić</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Priwatny modus</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Pytać abo adresu zapodać</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -227,6 +229,8 @@
     <string name="browser_menu_discover_more_extensions">Dalše rozšěrjenja namakać</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Na chwilu znjemóžnjene</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Žane rozšěrjenja zmóžnjene</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Kontowe informacije</string>
     <!-- Browser menu button that sends a user to help articles -->

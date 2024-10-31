@@ -260,6 +260,8 @@
     <string name="mozac_feature_addons_status_see_details">Wali talqayt</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s yensa ssebba n wuguren n tɣellist neɣ n uqeɛɛed.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">Asiɣzef-a yettusewḥel acku yetεedda ɣef tsertit n Mozilla ɣef waya yensa.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Asiɣzef-a ur iquder ara tasertit n Mozilla, yettwakkes. Tzemreḍ ad t-tremdeḍ, d acu yezmer ad tesεḍ uguren.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
