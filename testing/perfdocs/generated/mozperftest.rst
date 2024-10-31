@@ -318,27 +318,4 @@ perftest_WPT_firefox_init_file.js
 This mozperftest gets webpagetest to run pageload tests on Firefox against the 50 most popular websites and provide data. The full list of data returned from webpagetest: firstContentfulPaint, timeToContentfulPaint, visualComplete90, firstPaint, visualComplete99, visualComplete, SpeedIndex, bytesIn, bytesOut, TTFB, fullyLoadedCPUms, fullyLoadedCPUpct, domElements, domContentLoadedEventStart, domContentLoadedEventEnd, loadEventStart, loadEventEnd
 
 
-toolkit/components/ml/tests/browser
------------------------------------
-Performance tests running through Mochitest for ML Models
-
-browser_ml_engine_perf.js
-=========================
-
-:owner: GenAI Team
-:name: ML Test Model
-:Default options:
-
-::
-
- --perfherder
- --perfherder-metrics name:pipeline-ready-latency,unit:ms,shouldAlert:True, name:initialization-latency,unit:ms,shouldAlert:True, name:model-run-latency,unit:ms,shouldAlert:True, name:pipeline-ready-memory,unit:MB,shouldAlert:True, name:initialization-memory,unit:MB,shouldAlert:True, name:model-run-memory,unit:MB,shouldAlert:True
- --verbose
- --manifest perftest.toml
- --manifest-flavor browser-chrome
- --try-platform linux, mac, win
-
-**Template test for latency for ml models**
-
-
 If you have any questions, please see this `wiki page <https://wiki.mozilla.org/TestEngineering/Performance#Where_to_find_us>`_.
