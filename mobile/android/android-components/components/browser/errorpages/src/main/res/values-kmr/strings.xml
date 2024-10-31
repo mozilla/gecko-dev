@@ -212,9 +212,16 @@
     ]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_no_internet_title">Girêdana înternetê tune</string>
+    <string name="mozac_browser_errorpages_no_internet_title" moz:removedIn="133" tools:ignore="UnusedResources">Girêdana înternetê tune</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title_2">Wisa xuya dike ku problemeke bi girêdana te ya înternetê re heye</string>
     <!-- The main body text of this error page. It will be shown beneath the title -->
-    <string name="mozac_browser_errorpages_no_internet_message">Girêdana înterneta xwe kontrol bike an jî bîstek din rûpelê ji nû ve bar bike.</string>
+    <string name="mozac_browser_errorpages_no_internet_message" moz:removedIn="133" tools:ignore="UnusedResources">Girêdana înterneta xwe kontrol bike an jî bîstek din rûpelê ji nû ve bar bike.</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message_2">Hewlê bide bi cîhazeke din girêdanê çêkî. Modem yan routera xwe kontrol bike. Girêdana Wi-Fiyê qut bike û girêdanê dîsa çêke.</string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_error_code">Koda Çewtiyê: NS_ERROR_OFFLINE</string>
+
     <!-- Text that will show up on the button at the bottom of the error page -->
     <string name="mozac_browser_errorpages_no_internet_refresh_button">Ji nû ve bar bike</string>
 
