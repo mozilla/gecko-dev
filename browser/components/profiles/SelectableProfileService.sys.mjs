@@ -740,7 +740,7 @@ class SelectableProfileServiceClass {
     );
 
     if (AppConstants.platform === "win") {
-      relativePath = relativePath.replace("/", "\\");
+      relativePath = relativePath.replaceAll("/", "\\");
     }
 
     return relativePath;
