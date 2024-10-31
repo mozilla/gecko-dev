@@ -195,6 +195,10 @@ fr_CA{
         TRY{"TL"}
     }
     CurrencyPlurals{
+        AFN{
+            one{"afghani afghan"}
+            other{"afghanis afghans"}
+        }
         AZN{
             one{"manat azerbaïdjanais"}
             other{"manats azerbaïdjanais"}

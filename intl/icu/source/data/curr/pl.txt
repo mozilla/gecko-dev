@@ -529,7 +529,7 @@ pl{
         }
         LSL{
             "LSL",
-            "loti lesotyjskie",
+            "loti sotyjskie",
         }
         LTL{
             "LTL",
@@ -803,9 +803,13 @@ pl{
             "SKK",
             "korona słowacka",
         }
+        SLE{
+            "SLE",
+            "leone sierraleoński",
+        }
         SLL{
             "SLL",
-            "leone sierraleoński",
+            "leone sierraleoński (1964—2022)",
         }
         SOS{
             "SOS",
@@ -1089,12 +1093,6 @@ pl{
             one{"dirham ZEA"}
             other{"dirhama ZEA"}
         }
-        AFA{
-            few{"afgani (1927–2002)"}
-            many{"afgani (1927–2002)"}
-            one{"afgani (1927–2002)"}
-            other{"afgani (1927–2002)"}
-        }
         AFN{
             few{"afgani afgańskie"}
             many{"afgani afgańskich"}
@@ -1160,12 +1158,6 @@ pl{
             many{"florinów arubańskich"}
             one{"florin arubański"}
             other{"florina arubańskiego"}
-        }
-        AZM{
-            few{"manat azerbejdżański"}
-            many{"manat azerbejdżański"}
-            one{"manat azerbejdżański"}
-            other{"manat azerbejdżański"}
         }
         AZN{
             few{"manaty azerskie"}
@@ -1431,12 +1423,6 @@ pl{
             one{"birr etiopski"}
             other{"birra etiopskiego"}
         }
-        EUR{
-            few{"euro"}
-            many{"euro"}
-            one{"euro"}
-            other{"euro"}
-        }
         FJD{
             few{"dolary fidżyjskie"}
             many{"dolarów fidżyjskich"}
@@ -1666,10 +1652,10 @@ pl{
             other{"dolara liberyjskiego"}
         }
         LSL{
-            few{"loti lesotyjskie"}
-            many{"loti lesotyjskich"}
-            one{"loti lesotyjskie"}
-            other{"loti lesotyjskiego"}
+            few{"loti sotyjskie"}
+            many{"loti sotyjskich"}
+            one{"loti sotyjskie"}
+            other{"loti sotyjskiego"}
         }
         LTL{
             few{"lity litewskie"}
@@ -1730,12 +1716,6 @@ pl{
             many{"tugrików mongolskich"}
             one{"tugrik mongolski"}
             other{"tugrika mongolskiego"}
-        }
-        MOP{
-            few{"pataca Makau"}
-            many{"pataca Makau"}
-            one{"pataca Makau"}
-            other{"pataca Makau"}
         }
         MRO{
             few{"ouguiya mauretańskie (1973–2017)"}
@@ -1989,11 +1969,17 @@ pl{
             one{"korona słowacka"}
             other{"korona słowacka"}
         }
-        SLL{
+        SLE{
             few{"leone sierraleońskie"}
             many{"leone sierraleońskich"}
             one{"leone sierraleoński"}
             other{"leone sierraleońskiego"}
+        }
+        SLL{
+            few{"leone sierraleońskie (1964—2022)"}
+            many{"leone sierraleońskich (1964—2022)"}
+            one{"leone sierraleoński (1964—2022)"}
+            other{"leone sierraleońskiego (1964—2022)"}
         }
         SOS{
             few{"szylingi somalijskie"}
@@ -2235,11 +2221,5 @@ pl{
             one{"kwacha zambijska"}
             other{"kwachy zambijskiej"}
         }
-    }
-    CurrencyUnitPatterns{
-        few{"{0} {1}"}
-        many{"{0} {1}"}
-        one{"{0} {1}"}
-        other{"{0} {1}"}
     }
 }

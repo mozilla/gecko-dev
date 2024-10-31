@@ -44,17 +44,6 @@ su{
             "Mata Uang Teu Dikenal",
         }
     }
-    Currencies%narrow{
-        BRL{"R$"}
-        CNY{"¥"}
-        EUR{"€"}
-        GBP{"£"}
-        IDR{"Rp"}
-        INR{"₹"}
-        JPY{"¥"}
-        RUB{"₽"}
-        USD{"$"}
-    }
     CurrencyPlurals{
         BRL{
             other{"real Brasil"}
@@ -86,8 +75,5 @@ su{
         XXX{
             other{"(mata uang teu dikenal)"}
         }
-    }
-    CurrencyUnitPatterns{
-        other{"{0} {1}"}
     }
 }

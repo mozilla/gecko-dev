@@ -195,10 +195,6 @@ hr{
             "BRR",
             "brazilski cruzeiro",
         }
-        BRZ{
-            "BRZ",
-            "BRZ",
-        }
         BSD{
             "BSD",
             "bahamski dolar",
@@ -639,10 +635,6 @@ hr{
             "MAF",
             "marokanski franak",
         }
-        MCF{
-            "MCF",
-            "MCF",
-        }
         MDC{
             "MDC",
             "moldavski kupon",
@@ -689,7 +681,7 @@ hr{
         }
         MRU{
             "MRU",
-            "mauritanijska ouguja",
+            "mauretanska ouguja",
         }
         MTL{
             "MTL",
@@ -899,9 +891,13 @@ hr{
             "SKK",
             "slovačka kruna",
         }
+        SLE{
+            "SLE",
+            "sijeraleonski leone",
+        }
         SLL{
             "SLL",
-            "sijeraleonski leone",
+            "sijeraleonski leone (1964—2022)",
         }
         SOS{
             "SOS",
@@ -1213,109 +1209,9 @@ hr{
         }
     }
     Currencies%narrow{
-        AFN{"؋"}
-        AMD{"֏"}
-        AOA{"Kz"}
-        ARS{"$"}
-        AUD{"$"}
-        AZN{"₼"}
-        BAM{"KM"}
-        BBD{"$"}
-        BDT{"৳"}
-        BMD{"$"}
-        BND{"$"}
-        BOB{"Bs"}
-        BRL{"R$"}
-        BSD{"$"}
-        BWP{"P"}
         BYN{"р."}
-        BZD{"$"}
-        CAD{"$"}
-        CLP{"$"}
-        CNY{"¥"}
-        COP{"$"}
-        CRC{"₡"}
-        CUC{"$"}
-        CUP{"$"}
-        CZK{"Kč"}
-        DKK{"kr"}
-        DOP{"$"}
-        EGP{"E£"}
-        ESP{"₧"}
-        EUR{"€"}
-        FJD{"$"}
-        FKP{"£"}
-        GBP{"£"}
-        GEL{"₾"}
-        GHS{"GH₵"}
-        GIP{"£"}
-        GNF{"FG"}
-        GTQ{"Q"}
-        GYD{"$"}
-        HKD{"$"}
-        HNL{"L"}
-        HRK{"kn"}
-        HUF{"Ft"}
-        IDR{"Rp"}
-        ILS{"₪"}
-        INR{"₹"}
-        ISK{"kr"}
-        JMD{"$"}
-        JPY{"¥"}
-        KHR{"៛"}
-        KMF{"CF"}
-        KPW{"₩"}
-        KRW{"₩"}
-        KYD{"$"}
-        KZT{"₸"}
-        LAK{"₭"}
-        LBP{"L£"}
-        LKR{"Rs"}
-        LRD{"$"}
-        MGA{"Ar"}
-        MMK{"K"}
-        MNT{"₮"}
-        MUR{"Rs"}
-        MXN{"$"}
-        MYR{"RM"}
-        NAD{"$"}
-        NGN{"₦"}
-        NIO{"C$"}
-        NOK{"kr"}
-        NPR{"Rs"}
-        NZD{"$"}
-        PHP{"₱"}
-        PKR{"Rs"}
-        PLN{"zł"}
-        PYG{"₲"}
-        RON{"lei"}
-        RUB{"₽"}
         RUR{"р."}
-        RWF{"RF"}
-        SBD{"$"}
-        SEK{"kr"}
-        SGD{"$"}
-        SHP{"£"}
-        SRD{"$"}
-        SSP{"£"}
-        STN{"Db"}
-        SYP{"£"}
-        THB{"฿"}
-        TOP{"T$"}
-        TRY{"₺"}
-        TTD{"$"}
         TWD{"NT$"}
-        UAH{"₴"}
-        USD{"$"}
-        UYU{"$"}
-        VEF{"Bs"}
-        VND{"₫"}
-        XCD{"$"}
-        ZAR{"R"}
-        ZMW{"ZK"}
-    }
-    Currencies%variant{
-        TRY{"TL"}
     }
     CurrencyPlurals{
         ADP{
@@ -2164,9 +2060,9 @@ hr{
             other{"mauritanijskih ouguja (1973. – 2017.)"}
         }
         MRU{
-            few{"mauritanijske ouguje"}
-            one{"mauritanijska ouguja"}
-            other{"mauritanijskih ouguja"}
+            few{"mauretanske ouguje"}
+            one{"mauretanska ouguja"}
+            other{"mauretanskih ouguja"}
         }
         MTL{
             few{"malteške lire"}
@@ -2239,8 +2135,8 @@ hr{
             other{"namibijskih dolara"}
         }
         NGN{
-            few{"nigerijska naira"}
-            one{"nigerijski nair"}
+            few{"nigerijske naire"}
+            one{"nigerijska naira"}
             other{"nigerijskih naira"}
         }
         NIC{
@@ -2428,10 +2324,15 @@ hr{
             one{"slovačka kruna"}
             other{"slovačkih kruna"}
         }
-        SLL{
-            few{"sijeraleonske leone"}
+        SLE{
+            few{"sijarelonska leona"}
             one{"sijeraleonski leon"}
             other{"sijeraleonskih leona"}
+        }
+        SLL{
+            few{"sijeraleonskih leona (1964—2022)"}
+            one{"sijeraleonski leone (1964—2022)"}
+            other{"sijeraleonskih leona (1964—2022)"}
         }
         SOS{
             few{"somalijska šilinga"}
@@ -2818,10 +2719,5 @@ hr{
             one{"zimbabveanski dolar (2008)"}
             other{"zimbabveanskih dolara (2008)"}
         }
-    }
-    CurrencyUnitPatterns{
-        few{"{0} {1}"}
-        one{"{0} {1}"}
-        other{"{0} {1}"}
     }
 }

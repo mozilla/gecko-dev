@@ -1111,6 +1111,10 @@ en{
             "EC$",
             "East Caribbean Dollar",
         }
+        XCG{
+            "Cg.",
+            "Caribbean guilder",
+        }
         XDR{
             "XDR",
             "Special Drawing Rights",
@@ -1215,9 +1219,13 @@ en{
             "ZWD",
             "Zimbabwean Dollar (1980–2008)",
         }
+        ZWG{
+            "ZWG",
+            "Zimbabwean Gold",
+        }
         ZWL{
             "ZWL",
-            "Zimbabwean Dollar (2009)",
+            "Zimbabwean Dollar (2009–2024)",
         }
         ZWR{
             "ZWR",
@@ -2333,6 +2341,10 @@ en{
             one{"East Caribbean dollar"}
             other{"East Caribbean dollars"}
         }
+        XCG{
+            one{"Caribbean guilder"}
+            other{"Caribbean guilders"}
+        }
         XDR{
             one{"special drawing rights"}
             other{"special drawing rights"}
@@ -2437,9 +2449,13 @@ en{
             one{"Zimbabwean dollar (1980–2008)"}
             other{"Zimbabwean dollars (1980–2008)"}
         }
+        ZWG{
+            one{"Zimbabwean gold"}
+            other{"Zimbabwean gold"}
+        }
         ZWL{
-            one{"Zimbabwean dollar (2009)"}
-            other{"Zimbabwean dollars (2009)"}
+            one{"Zimbabwean dollar (2009–2024)"}
+            other{"Zimbabwean dollars (2009–2024)"}
         }
         ZWR{
             one{"Zimbabwean dollar (2008)"}

@@ -21,11 +21,6 @@ sr_Latn_BA{
         }
     }
     CurrencyPlurals{
-        BAM{
-            few{"bosanskohercegovačke konvertibilne marke"}
-            one{"bosanskohercegovačka konvertibilna marka"}
-            other{"bosanskohercegovačkih konvertibilnih maraka"}
-        }
         BYN{
             few{"bjeloruske rublje"}
             one{"bjeloruska rublja"}

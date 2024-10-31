@@ -117,7 +117,7 @@ sl{
         }
         BHD{
             "BHD",
-            "bahranski dinar",
+            "bahrajnski dinar",
         }
         BIF{
             "BIF",
@@ -433,7 +433,7 @@ sl{
         }
         HTG{
             "HTG",
-            "haitski gurd",
+            "haitijski gurd",
         }
         HUF{
             "HUF",
@@ -585,11 +585,11 @@ sl{
         }
         MDL{
             "MDL",
-            "moldavijski leu",
+            "moldavski lev",
         }
         MGA{
             "MGA",
-            "malgaški ariarij",
+            "madagaskarski ariari",
         }
         MGF{
             "MGF",
@@ -613,7 +613,7 @@ sl{
         }
         MOP{
             "MOP",
-            "makavska pataka",
+            "macajska pataka",
         }
         MRO{
             "MRO",
@@ -685,7 +685,7 @@ sl{
         }
         NIO{
             "NIO",
-            "nikaraška zlata kordova",
+            "nikaragovska kordova",
         }
         NLG{
             "NLG",
@@ -737,7 +737,7 @@ sl{
         }
         PLN{
             "PLN",
-            "poljski novi zlot",
+            "poljski zlot",
         }
         PLZ{
             "PLZ",
@@ -765,7 +765,7 @@ sl{
         }
         RON{
             "RON",
-            "romunski leu",
+            "romunski lev",
         }
         RSD{
             "RSD",
@@ -827,9 +827,13 @@ sl{
             "SKK",
             "slovaška krona",
         }
+        SLE{
+            "SLE",
+            "sierraleonski leone",
+        }
         SLL{
             "SLL",
-            "sieraleonski leone",
+            "sierraleonski leone (1964—2022)",
         }
         SOS{
             "SOS",
@@ -853,7 +857,7 @@ sl{
         }
         STN{
             "STN",
-            "saotomejska dobra",
+            "dobra Svetega Tomaža in Princa",
         }
         SUR{
             "SUR",
@@ -869,7 +873,7 @@ sl{
         }
         SZL{
             "SZL",
-            "svazijski lilangeni",
+            "esvatinski lilangeni",
         }
         THB{
             "THB",
@@ -889,7 +893,7 @@ sl{
         }
         TMT{
             "TMT",
-            "turkmenistanski novi manat",
+            "turkmenistanski manat",
         }
         TND{
             "TND",
@@ -909,7 +913,7 @@ sl{
         }
         TRY{
             "TRY",
-            "nova turška lira",
+            "turška lira",
         }
         TTD{
             "TTD",
@@ -989,7 +993,7 @@ sl{
         }
         XAF{
             "FCFA",
-            "CFA frank BEAC",
+            "srednjeafriški frank CFA",
         }
         XAG{
             "XAG",
@@ -1045,7 +1049,7 @@ sl{
         }
         XPF{
             "CFPF",
-            "CFP frank",
+            "frank CFP",
         }
         XPT{
             "XPT",
@@ -1113,103 +1117,8 @@ sl{
         }
     }
     Currencies%narrow{
-        AOA{"Kz"}
-        ARS{"$"}
-        AUD{"$"}
-        BAM{"KM"}
-        BBD{"$"}
-        BDT{"৳"}
-        BMD{"$"}
-        BND{"$"}
-        BOB{"Bs"}
-        BRL{"R$"}
-        BSD{"$"}
-        BWP{"P"}
         BYN{"р."}
-        BZD{"$"}
-        CAD{"$"}
-        CLP{"$"}
-        CNY{"¥"}
-        COP{"$"}
-        CRC{"₡"}
-        CUC{"$"}
-        CUP{"$"}
-        CZK{"Kč"}
-        DKK{"kr"}
-        DOP{"$"}
-        EGP{"E£"}
-        EUR{"€"}
-        FJD{"$"}
-        FKP{"£"}
-        GBP{"£"}
-        GEL{"₾"}
-        GIP{"£"}
-        GNF{"FG"}
-        GTQ{"Q"}
-        GYD{"$"}
-        HKD{"$"}
-        HNL{"L"}
-        HRK{"kn"}
-        HUF{"Ft"}
-        IDR{"Rp"}
-        ILS{"₪"}
-        INR{"₹"}
-        ISK{"kr"}
-        JMD{"$"}
-        JPY{"¥"}
-        KHR{"៛"}
-        KMF{"CF"}
-        KPW{"₩"}
-        KRW{"₩"}
-        KYD{"$"}
-        KZT{"₸"}
-        LAK{"₭"}
-        LBP{"L£"}
-        LKR{"Rs"}
-        LRD{"$"}
-        MGA{"Ar"}
-        MMK{"K"}
-        MNT{"₮"}
-        MUR{"Rs"}
-        MXN{"$"}
-        MYR{"RM"}
-        NAD{"$"}
-        NGN{"₦"}
-        NIO{"C$"}
-        NOK{"kr"}
-        NPR{"Rs"}
-        NZD{"$"}
-        PHP{"₱"}
-        PKR{"Rs"}
-        PLN{"zł"}
-        PYG{"₲"}
-        RON{"lei"}
-        RUB{"₽"}
-        RWF{"RF"}
-        SBD{"$"}
-        SEK{"kr"}
-        SGD{"$"}
-        SHP{"£"}
-        SRD{"$"}
-        SSP{"£"}
-        STN{"Db"}
-        SYP{"£"}
-        THB{"฿"}
-        TOP{"T$"}
-        TRY{"₺"}
-        TTD{"$"}
         TWD{"NT$"}
-        UAH{"₴"}
-        USD{"$"}
-        UYU{"$"}
-        VEF{"Bs"}
-        VND{"₫"}
-        XCD{"$"}
-        ZAR{"R"}
-        ZMW{"ZK"}
-    }
-    Currencies%variant{
-        TRY{"TL"}
     }
     CurrencyPlurals{
         AED{
@@ -1297,10 +1206,10 @@ sl{
             two{"bolgarska leva"}
         }
         BHD{
-            few{"bahranski dinarji"}
-            one{"bahranski dinar"}
-            other{"bahranskih dinarjev"}
-            two{"bahranska dinarja"}
+            few{"bahrajnski dinarji"}
+            one{"bahrajnski dinar"}
+            other{"bahrajnskih dinarjev"}
+            two{"bahrajnska dinarja"}
         }
         BIF{
             few{"burundski franki"}
@@ -1507,7 +1416,7 @@ sl{
             two{"britanska funta"}
         }
         GEL{
-            few{"gruzijski lari"}
+            few{"gruzijski lariji"}
             one{"gruzijski lari"}
             other{"gruzijskih larijev"}
             two{"gruzijska larija"}
@@ -1567,10 +1476,10 @@ sl{
             two{"hrvaški kuni"}
         }
         HTG{
-            few{"haitski gurdi"}
-            one{"haitski gurd"}
-            other{"haitskih gurdov"}
-            two{"haitska gurda"}
+            few{"haitijski gurdi"}
+            one{"haitijski gurd"}
+            other{"haitijskih gurdov"}
+            two{"haitijska gurda"}
         }
         HUF{
             few{"madžarski forinti"}
@@ -1712,21 +1621,9 @@ sl{
         }
         LSL{
             few{"lesotski loti"}
-            one{"lesotski lot"}
+            one{"lesotski loti"}
             other{"lesotskih lotov"}
             two{"lesotska lota"}
-        }
-        LTL{
-            few{"litovski litas"}
-            one{"litovski litas"}
-            other{"litovski litas"}
-            two{"litovski litas"}
-        }
-        LVL{
-            few{"latvijski lats"}
-            one{"latvijski lats"}
-            other{"latvijski lats"}
-            two{"latvijski lats"}
         }
         LYD{
             few{"libijski dinarji"}
@@ -1741,16 +1638,16 @@ sl{
             two{"maroška dirhama"}
         }
         MDL{
-            few{"moldavijski leu"}
-            one{"moldavijski leu"}
-            other{"moldavijskih leuov"}
-            two{"moldavijska leua"}
+            few{"moldavski levi"}
+            one{"moldavski lev"}
+            other{"moldavskih levov"}
+            two{"moldavska leva"}
         }
         MGA{
-            few{"malgaški ariariji"}
-            one{"malgaški ariarij"}
-            other{"malgaških ariarijev"}
-            two{"malgaška ariarija"}
+            few{"madagaskarski ariariji"}
+            one{"madagaskarski ariari"}
+            other{"madagaskarskih ariarijev"}
+            two{"madagaskarska ariarija"}
         }
         MKD{
             few{"makedonski denarji"}
@@ -1771,10 +1668,10 @@ sl{
             two{"mongolska tugrika"}
         }
         MOP{
-            few{"makavske patake"}
-            one{"makavska pataka"}
-            other{"makavskih patak"}
-            two{"makavski pataki"}
+            few{"macajske patake"}
+            one{"macajska pataka"}
+            other{"macajskih patak"}
+            two{"macajski pataki"}
         }
         MRO{
             few{"mavretanske uguije (1973–2017)"}
@@ -1837,10 +1734,10 @@ sl{
             two{"nigerijski nairi"}
         }
         NIO{
-            few{"nikaraške zlate kordove"}
-            one{"nikaraška zlata kordova"}
-            other{"nikaraških zlatih kordov"}
-            two{"nikaraški zlati kordovi"}
+            few{"nikaragovske kordove"}
+            one{"nikaragovska kordova"}
+            other{"nikaragovskih kordov"}
+            two{"nikaragovski kordovi"}
         }
         NOK{
             few{"norveške krone"}
@@ -1903,10 +1800,10 @@ sl{
             two{"pakistanski rupiji"}
         }
         PLN{
-            few{"poljski novi zloti"}
-            one{"poljski novi zlot"}
-            other{"poljskih novih zlotov"}
-            two{"poljska nova zlota"}
+            few{"poljski zloti"}
+            one{"poljski zlot"}
+            other{"poljskih zlotov"}
+            two{"poljska zlota"}
         }
         PYG{
             few{"paragvajski gvarani"}
@@ -1921,10 +1818,10 @@ sl{
             two{"katarska riala"}
         }
         RON{
-            few{"romunski leu"}
-            one{"romunski leu"}
-            other{"romunskih leuov"}
-            two{"romunska leua"}
+            few{"romunski levi"}
+            one{"romunski lev"}
+            other{"romunskih levov"}
+            two{"romunska leva"}
         }
         RSD{
             few{"srbski dinarji"}
@@ -1986,11 +1883,17 @@ sl{
             other{"funtov Sv. Helene"}
             two{"funta Sv. Helene"}
         }
+        SLE{
+            few{"sierraleonski leoni"}
+            one{"sierraleonski leone"}
+            other{"sierraleonskih leonov"}
+            two{"sierraleonska leona"}
+        }
         SLL{
-            few{"sieraleonski leoni"}
-            one{"sieraleonski leone"}
-            other{"sieraleonskih leonov"}
-            two{"sieraleonska leona"}
+            few{"sierraleonski leoni (1964—2022)"}
+            one{"sierraleonski leone (1964—2022)"}
+            other{"sierraleonskih leonov (1964—2022)"}
+            two{"sierraleonska leona (1964—2022)"}
         }
         SOS{
             few{"somalski šilingi"}
@@ -2017,10 +1920,10 @@ sl{
             two{"saotomejski dobri (1977–2017)"}
         }
         STN{
-            few{"saotomejske dobre"}
-            one{"saotomejska dobra"}
-            other{"saotomejskih dober"}
-            two{"saotomejski dobri"}
+            few{"dobre Svetega Tomaža in Princa"}
+            one{"dobra Svetega Tomaža in Princa"}
+            other{"dober Svetega Tomaža in Princa"}
+            two{"dobri Svetega Tomaža in Princa"}
         }
         SYP{
             few{"sirijski funti"}
@@ -2029,10 +1932,10 @@ sl{
             two{"sirijska funta"}
         }
         SZL{
-            few{"svazijski lilangeni"}
-            one{"svazijski lilangeni"}
-            other{"svazijskih lilangenijev"}
-            two{"svazijska lilangenija"}
+            few{"esvatinski lilangeni"}
+            one{"esvatinski lilangeni"}
+            other{"esvatinskih lilangenijev"}
+            two{"esvatinska lilangenija"}
         }
         THB{
             few{"tajski bahti"}
@@ -2047,10 +1950,10 @@ sl{
             two{"tadžikistanska somona"}
         }
         TMT{
-            few{"turkmenistanski novi manati"}
-            one{"turkmenistanski novi manat"}
-            other{"turkmenistanskih novih manatov"}
-            two{"turkmenistanska nova manata"}
+            few{"turkmenistanski manati"}
+            one{"turkmenistanski manat"}
+            other{"turkmenistanskih manatov"}
+            two{"turkmenistanska manata"}
         }
         TND{
             few{"tunizijski dinarji"}
@@ -2065,10 +1968,10 @@ sl{
             two{"tongovski paangi"}
         }
         TRY{
-            few{"nove turške lire"}
-            one{"nova turška lira"}
-            other{"novih turških lir"}
-            two{"novi turški liri"}
+            few{"turške lire"}
+            one{"turška lira"}
+            other{"turških lir"}
+            two{"turški liri"}
         }
         TTD{
             few{"dolarji Trinidada in Tobaga"}
@@ -2168,7 +2071,7 @@ sl{
         }
         XPF{
             few{"franki CFP"}
-            one{"CFP frank"}
+            one{"frank CFP"}
             other{"frankov CFP"}
             two{"franka CFP"}
         }
@@ -2196,11 +2099,5 @@ sl{
             other{"zambijskih kvač"}
             two{"zambijski kvači"}
         }
-    }
-    CurrencyUnitPatterns{
-        few{"{0} {1}"}
-        one{"{0} {1}"}
-        other{"{0} {1}"}
-        two{"{0} {1}"}
     }
 }

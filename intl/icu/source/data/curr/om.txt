@@ -3,13 +3,29 @@
 // Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
 om{
     Currencies{
+        BMD{
+            "BMD",
+            "Doolaara Beermudaa",
+        }
         BRL{
             "R$",
             "Brazilian Real",
         }
+        BZD{
+            "BZD",
+            "Doolaara Beliizee",
+        }
+        CAD{
+            "CA$",
+            "Doolaara Kanaadaa",
+        }
         CNY{
             "CN¥",
             "Chinese Yuan Renminbi",
+        }
+        CRC{
+            "CRC",
+            "Koloonii Kostaa Rikaa",
         }
         ETB{
             "Br",
@@ -37,11 +53,29 @@ om{
         }
         USD{
             "US$",
-            "US Dollar",
+            "Doolaara Ameerikaa",
         }
     }
-    CurrencyUnitPatterns{
-        one{"{0} {1}"}
-        other{"{0} {1}"}
+    CurrencyPlurals{
+        BMD{
+            one{"Doolaara Beermudaa"}
+            other{"Doolaarota Beermudaa"}
+        }
+        BZD{
+            one{"Doolaara Beliizee"}
+            other{"Doolaarota Beliizee"}
+        }
+        CAD{
+            one{"Doolaara Kanaadaa"}
+            other{"Doolaarota Kanaadaa"}
+        }
+        CRC{
+            one{"Koloonii Kostaa Rikaa"}
+            other{"Koloonota Kostaa Rikaa"}
+        }
+        USD{
+            one{"Doolaara Ameerikaa"}
+            other{"Doolarota Ameerikaa"}
+        }
     }
 }

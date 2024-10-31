@@ -25,7 +25,7 @@ xh{
         }
         AOA{
             "AOA",
-            "I-Kwanza yase-Angola",
+            "IKwanza yaseAngola",
         }
         ARS{
             "ARS",
@@ -109,11 +109,11 @@ xh{
         }
         CDF{
             "CDF",
-            "I-Franc yaseCongo",
+            "IFranc yaseCongo",
         }
         CHF{
             "CHF",
-            "I-Franc yaseSwitzerland",
+            "IFranc yaseSwirtzeland",
         }
         CLP{
             "CLP",
@@ -189,7 +189,7 @@ xh{
         }
         FKP{
             "FKP",
-            "Iponti yaseFalkland Islands",
+            "IPonti yaseFalkland Islands",
         }
         GBP{
             "£",
@@ -201,7 +201,7 @@ xh{
         }
         GHS{
             "GHS",
-            "I-Cedi yaseGhana",
+            "ICedi yaseGhana",
         }
         GIP{
             "GIP",
@@ -209,11 +209,11 @@ xh{
         }
         GMD{
             "GMD",
-            "I-Dalasi yaseGambia",
+            "IDalasi yaseGambia",
         }
         GNF{
             "GNF",
-            "I-Franc yaseGuinea",
+            "IFranc yaseGuinea",
         }
         GTQ{
             "GTQ",
@@ -265,7 +265,7 @@ xh{
         }
         ISK{
             "ISK",
-            "I-Króna yase-Iceland",
+            "IKróna yaseIceland",
         }
         JMD{
             "JMD",
@@ -401,7 +401,7 @@ xh{
         }
         NGN{
             "NGN",
-            "I-Naira yaseNigeria",
+            "INaira yaseNigeria",
         }
         NIO{
             "NIO",
@@ -409,7 +409,7 @@ xh{
         }
         NOK{
             "NOK",
-            "I-Krone yaseNorway",
+            "IKrone yaseNorway",
         }
         NPR{
             "NPR",
@@ -489,7 +489,7 @@ xh{
         }
         SEK{
             "SEK",
-            "I-Krona yaseSweden",
+            "IKrona yaseSweden",
         }
         SGD{
             "SGD",
@@ -499,9 +499,13 @@ xh{
             "SHP",
             "IPonti yaseSt. Helena",
         }
+        SLE{
+            "SLE",
+            "I-Loeone yaseSierra Leone",
+        }
         SLL{
             "SLL",
-            "I-Loeone yaseSierra Leone",
+            "I-Loeone yaseSierra Leone (1964—2022)",
         }
         SOS{
             "SOS",
@@ -517,7 +521,7 @@ xh{
         }
         STN{
             "STN",
-            "I-Dobra yaseSão Tomé & Príncipe",
+            "IDobra yaseSão Tomé & Príncipe",
         }
         SYP{
             "SYP",
@@ -601,7 +605,7 @@ xh{
         }
         XAF{
             "FCFA",
-            "Central African CFA Franc",
+            "ICFA Franc yaseCentral Africa",
         }
         XCD{
             "EC$",
@@ -609,7 +613,7 @@ xh{
         }
         XOF{
             "F CFA",
-            "West African CFA Franc",
+            "ICFA Franc yaseWest Africa",
         }
         XPF{
             "CFPF",
@@ -631,107 +635,6 @@ xh{
             "ZMW",
             "I-Kwacha yaseZambi",
         }
-    }
-    Currencies%narrow{
-        AFN{"؋"}
-        AMD{"֏"}
-        AOA{"Kz"}
-        ARS{"$"}
-        AUD{"$"}
-        AZN{"₼"}
-        BAM{"KM"}
-        BBD{"$"}
-        BDT{"৳"}
-        BMD{"$"}
-        BND{"$"}
-        BOB{"Bs"}
-        BRL{"R$"}
-        BSD{"$"}
-        BWP{"P"}
-        BZD{"$"}
-        CAD{"$"}
-        CLP{"$"}
-        CNY{"¥"}
-        COP{"$"}
-        CRC{"₡"}
-        CUC{"$"}
-        CUP{"$"}
-        CZK{"Kč"}
-        DKK{"kr"}
-        DOP{"$"}
-        EGP{"E£"}
-        EUR{"€"}
-        FJD{"$"}
-        FKP{"£"}
-        GBP{"£"}
-        GEL{"₾"}
-        GHS{"GH₵"}
-        GIP{"£"}
-        GNF{"FG"}
-        GTQ{"Q"}
-        GYD{"$"}
-        HKD{"$"}
-        HNL{"L"}
-        HRK{"kn"}
-        HUF{"Ft"}
-        IDR{"Rp"}
-        ILS{"₪"}
-        INR{"₹"}
-        ISK{"kr"}
-        JMD{"$"}
-        JPY{"¥"}
-        KHR{"៛"}
-        KMF{"CF"}
-        KPW{"₩"}
-        KRW{"₩"}
-        KYD{"$"}
-        KZT{"₸"}
-        LAK{"₭"}
-        LBP{"L£"}
-        LKR{"Rs"}
-        LRD{"$"}
-        MGA{"Ar"}
-        MMK{"K"}
-        MNT{"₮"}
-        MUR{"Rs"}
-        MXN{"$"}
-        MYR{"RM"}
-        NAD{"$"}
-        NGN{"₦"}
-        NIO{"C$"}
-        NOK{"kr"}
-        NPR{"Rs"}
-        NZD{"$"}
-        PHP{"₱"}
-        PKR{"Rs"}
-        PLN{"zł"}
-        PYG{"₲"}
-        RON{"lei"}
-        RUB{"₽"}
-        RWF{"RF"}
-        SBD{"$"}
-        SEK{"kr"}
-        SGD{"$"}
-        SHP{"£"}
-        SRD{"$"}
-        SSP{"£"}
-        STN{"Db"}
-        SYP{"£"}
-        THB{"฿"}
-        TOP{"T$"}
-        TRY{"₺"}
-        TTD{"$"}
-        TWD{"$"}
-        UAH{"₴"}
-        USD{"$"}
-        UYU{"$"}
-        VND{"₫"}
-        XCD{"$"}
-        ZAR{"R"}
-        ZMW{"ZK"}
-    }
-    Currencies%variant{
-        TRY{"TL"}
     }
     CurrencyPlurals{
         AED{
@@ -755,8 +658,8 @@ xh{
             other{"Netherlands Antillean guilders"}
         }
         AOA{
-            one{"I-kwanza yase-Angola"}
-            other{"Ii-kwanza zase-Angola"}
+            one{"Ikwanza yaseAngola"}
+            other{"Iikwanza zaseAngola"}
         }
         ARS{
             one{"Ipeso yase-Argentina"}
@@ -839,12 +742,12 @@ xh{
             other{"Canadian dollars"}
         }
         CDF{
-            one{"I-franc yaseCongo"}
-            other{"Ii-franc zaseCongo"}
+            one{"Ifranc yaseCongo"}
+            other{"Iifranc zaseCongo"}
         }
         CHF{
-            one{"I-franc yaseSwitzerland"}
-            other{"Ii-francs zaseSitzerland"}
+            one{"Ifranc yaseSwitzerland"}
+            other{"Iifranc zaseSwitzerland"}
         }
         CLP{
             one{"I-peso yaseChile"}
@@ -931,20 +834,20 @@ xh{
             other{"Ii-lari zaseGeorgia"}
         }
         GHS{
-            one{"I-cedi yaseGhana"}
-            other{"Ii-cedi zaseGhana"}
+            one{"Icedi yaseGhana"}
+            other{"Iicedi zaseGhana"}
         }
         GIP{
             one{"Iponti yaseGibraltar"}
             other{"Iiponti zaseGibraltar"}
         }
         GMD{
-            one{"I-dalasi yaseGambia"}
-            other{"Ii-dalasi zaseGambia"}
+            one{"Idalasi yaseGambia"}
+            other{"Iidalasi zaseGambia"}
         }
         GNF{
-            one{"I-franc yaseGuinea"}
-            other{"Ii-franc zaseGuinea"}
+            one{"ifranc yaseGuinea"}
+            other{"Iifranc zaseGuinea"}
         }
         GTQ{
             one{"Guatemalan quetzal"}
@@ -995,8 +898,8 @@ xh{
             other{"Ii-rial zase-Iran"}
         }
         ISK{
-            one{"I-króna yase-Iceland"}
-            other{"Ii-krónur zase-Iceland"}
+            one{"Ikróna yaseIceland"}
+            other{"Iikrónur zaseIceland"}
         }
         JMD{
             one{"Jamaican dollar"}
@@ -1131,16 +1034,16 @@ xh{
             other{"Iidola zaseNamibia"}
         }
         NGN{
-            one{"I-naira yaseNigeria"}
-            other{"Ii-naira zaseNigeria"}
+            one{"Inaira yaseNigeria"}
+            other{"Iinaira zaseNigeria"}
         }
         NIO{
             one{"Nicaraguan córdoba"}
             other{"Nicaraguan córdobas"}
         }
         NOK{
-            one{"I-krone yaseNorway"}
-            other{"Ii-kroner zaseNorway"}
+            one{"Ikrone yaseNorway"}
+            other{"Iikroner zaseNorway"}
         }
         NPR{
             one{"I-rupee yaseNepal"}
@@ -1219,8 +1122,8 @@ xh{
             other{"Iiponti zaseSudan"}
         }
         SEK{
-            one{"I-krona yaseSweden"}
-            other{"Ii-kronor zaseSweden"}
+            one{"Ikrona yaseSweden"}
+            other{"Iikronor zaseSweden"}
         }
         SGD{
             one{"Idola yaseSingapore"}
@@ -1230,9 +1133,13 @@ xh{
             one{"Iponti yaseSt. Helena"}
             other{"Iiponti zaseSt. Helena"}
         }
-        SLL{
+        SLE{
             one{"I-leone yaseSierra Leone"}
             other{"Ii-leones zaseSierra Leone"}
+        }
+        SLL{
+            one{"I-leone yaseSierra Leone (1964—2022)"}
+            other{"Ii-leones zaseSierra Leone (1964—2022)"}
         }
         SOS{
             one{"I-shilling yaseSomalia"}
@@ -1247,8 +1154,8 @@ xh{
             other{"Iiponti zaseSouth Sudan"}
         }
         STN{
-            one{"I-dobra yaseSão Tomé & Príncipe"}
-            other{"Ii-dobra zaseSão Tomé & Príncipe"}
+            one{"Idobra yaseSão Tomé & Príncipe"}
+            other{"Iidobra zaseSão Tomé & Príncipe"}
         }
         SYP{
             one{"Iponti yaseSiriya"}
@@ -1331,24 +1238,24 @@ xh{
             other{"I-tala yaseSamoa"}
         }
         XAF{
-            one{"I-CFA franc yaseCentral Africa"}
-            other{"Ii-CFA francs zaseCentral Africa"}
+            one{"ICFA franc yaseCentral Africa"}
+            other{"IiCFA franc zaseCentral Africa"}
         }
         XCD{
             one{"East Caribbean dollar"}
             other{"East Caribbean dollars"}
         }
         XOF{
-            one{"I-CFA franc yaseWest Africa"}
-            other{"Ii-CFA franc zaseWest Africa"}
+            one{"ICFA franc yaseWest Africa"}
+            other{"IiCFA franc zaseWest Africa"}
         }
         XPF{
             one{"I-franc yaseCFP"}
             other{"Ii-franc zaseCFP"}
         }
         XXX{
-            one{"Ikharensi Engaziwayo"}
-            other{"Ikharensi Engaziwayo"}
+            one{"ikharensi engaziwayo"}
+            other{"(ikharensi engaziwayo)"}
         }
         YER{
             one{"I-rial yaseYemen"}
@@ -1362,9 +1269,5 @@ xh{
             one{"I-kwacha yaseZambia"}
             other{"I-kwacha yaseZambia"}
         }
-    }
-    CurrencyUnitPatterns{
-        one{"{0} {1}"}
-        other{"{0} {1}"}
     }
 }

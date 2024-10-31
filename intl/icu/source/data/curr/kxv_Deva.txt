@@ -1,0 +1,66 @@
+﻿// © 2016 and later: Unicode, Inc. and others.
+// License & terms of use: http://www.unicode.org/copyright.html
+// Generated using tools/cldr/cldr-to-icu/build-icu-data.xml
+kxv_Deva{
+    %%Parent{"root"}
+    Currencies{
+        CNY{
+            "CN¥",
+            "चीन ति युआन",
+        }
+        EUR{
+            "€",
+            "यूरो",
+        }
+        GBP{
+            "£",
+            "ब्रिटिस पाउंड स्टर्लिंग",
+        }
+        INR{
+            "₹",
+            "बारत ति टाकाँ",
+        }
+        JPY{
+            "JP¥",
+            "जापान ति येन",
+        }
+        RUB{
+            "RUB",
+            "रूस ति रूबल",
+        }
+        USD{
+            "US$",
+            "यूएस डॉलर",
+        }
+        XXX{
+            "¤",
+            "पुण्-आँऽति लेबुँ",
+        }
+    }
+    CurrencyPlurals{
+        CNY{
+            other{"चीन ति युआन"}
+        }
+        EUR{
+            other{"यूरो"}
+        }
+        GBP{
+            other{"ब्रिटिस पाउंड स्टर्लिंग"}
+        }
+        INR{
+            other{"बारत ति टाकाँ"}
+        }
+        JPY{
+            other{"जापान ति येन"}
+        }
+        RUB{
+            other{"रूस ति रूबल"}
+        }
+        USD{
+            other{"यूएस डॉलर"}
+        }
+        XXX{
+            other{"पुण्-आँऽति लेबुँ"}
+        }
+    }
+}
