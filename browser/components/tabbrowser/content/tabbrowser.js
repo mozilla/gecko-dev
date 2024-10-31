@@ -2907,7 +2907,10 @@
      *   cause the group to be inserted just before this tab in the tab strip. By
      *   default, the group will be created at the end of the tab strip.
      */
-    addTabGroup(tabs, { color = null, label = "", insertBefore = null } = {}) {
+    addTabGroup(
+      tabs,
+      { id = null, color = null, label = "", insertBefore = null } = {}
+    ) {
       if (!tabs?.length) {
         throw new Error("Cannot create tab group with zero tabs");
       }
@@ -2916,7 +2919,9 @@
         color = this.tabGroupMenu.nextUnusedColor;
       }
 
-      let id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
+      if (!id) {
+        id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
+      }
       let group = this._createTabGroup(id, color, false, label);
       this.tabContainer.insertBefore(
         group,
@@ -5422,6 +5427,48 @@
         { once: true }
       );
       return win;
+    },
+
+    /**
+     * Moves group to a new window.
+     *
+     * @param {MozTabbrowserTabGroup} group
+     *   The tab group to move.
+     */
+    replaceGroupWithWindow(group) {
+      // The first tab added to the new window will be selected.
+      // If a tab in the group is selected, adopt it first.
+      let selectedIndex = group.tabs.indexOf(gBrowser.selectedTab);
+      if (selectedIndex < 0) {
+        // Otherwise, we'll first adopt the first tab in the group
+        selectedIndex = 0;
+      }
+      let firstTab = group.tabs[selectedIndex];
+      let newWindow = this.replaceTabWithWindow(firstTab);
+
+      newWindow.addEventListener(
+        "before-initial-tab-adopted",
+        () => {
+          let tabsToGroup = group.tabs.map((tab, i) => {
+            // addtabGroup will handle adopting the other tabs, but we already
+            // started adopting the tab at selectedIndex so we need to swap
+            // the old tab out for the new one.
+            if (i == selectedIndex) {
+              return newWindow.gBrowser.visibleTabs[0];
+            }
+            return tab;
+          });
+          // The initial tab isn't fully adopted yet, but the tab object has been
+          // instantiated, so we can make a group now.
+          newWindow.gBrowser.addTabGroup(tabsToGroup, {
+            color: group.color,
+            label: group.label,
+            id: group.id,
+          });
+        },
+        { once: true }
+      );
+      return newWindow;
     },
 
     _updateTabsAfterInsert() {

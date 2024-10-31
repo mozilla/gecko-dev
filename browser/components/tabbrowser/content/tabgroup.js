@@ -150,7 +150,11 @@
         let tabToMove =
           this.ownerGlobal === tab.ownerGlobal
             ? tab
-            : gBrowser.adoptTab(tab, this.tabs.at(-1)._tPos + 1);
+            : gBrowser.adoptTab(
+                tab,
+                gBrowser.tabs.at(-1)._tPos + 1,
+                tab.selected
+              );
         gBrowser.moveTabToGroup(tabToMove, this);
       }
     }

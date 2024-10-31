@@ -43,10 +43,10 @@
       </html:moz-button-group>
       <toolbarseparator class="tab-group-edit-mode-only" />
       <html:div class="panel-body tab-group-edit-actions tab-group-edit-mode-only">
-        <toolbarbutton id="tabGroupEditor_addNewTabInGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-add-new"></toolbarbutton>
-        <toolbarbutton disabled="true" id="tabGroupEditor_moveGroupToNewWindow" class="subviewbutton" data-l10n-id="tab-group-editor-action-new-window"></toolbarbutton>
+        <toolbarbutton tabindex="1" id="tabGroupEditor_addNewTabInGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-add-new"></toolbarbutton>
+        <toolbarbutton tabindex="1" id="tabGroupEditor_moveGroupToNewWindow" class="subviewbutton" data-l10n-id="tab-group-editor-action-new-window"></toolbarbutton>
         <toolbarbutton disabled="true" id="tabGroupEditor_saveAndCloseGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-save"></toolbarbutton>
-        <toolbarbutton id="tabGroupEditor_ungroupTabs" class="subviewbutton" data-l10n-id="tab-group-editor-action-ungroup"></toolbarbutton>
+        <toolbarbutton tabindex="1" id="tabGroupEditor_ungroupTabs" class="subviewbutton" data-l10n-id="tab-group-editor-action-ungroup"></toolbarbutton>
       </html:div>
       <toolbarseparator class="tab-group-edit-mode-only" />
       <html:div class="tab-group-edit-mode-only panel-body tab-group-delete">
@@ -110,6 +110,12 @@
         .getElementById("tabGroupEditor_addNewTabInGroup")
         .addEventListener("command", () => {
           this.#handleNewTabInGroup();
+        });
+
+      document
+        .getElementById("tabGroupEditor_moveGroupToNewWindow")
+        .addEventListener("command", () => {
+          gBrowser.replaceGroupWithWindow(this.activeGroup);
         });
 
       document
@@ -215,6 +221,8 @@
       this.#panel.openPopup(group.firstChild, {
         position: "bottomleft topleft",
       });
+      document.getElementById("tabGroupEditor_moveGroupToNewWindow").disabled =
+        gBrowser.openTabCount == this.activeGroup?.tabs.length;
     }
 
     on_popupshown() {

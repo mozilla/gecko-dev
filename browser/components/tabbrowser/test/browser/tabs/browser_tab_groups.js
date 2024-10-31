@@ -1243,15 +1243,17 @@ add_task(async function test_tabGroupCreatePanel() {
   gBrowser.removeTabGroup(group, { animate: false });
 });
 
-async function createTabGroupAndOpenEditPanel() {
+async function createTabGroupAndOpenEditPanel(tabs = []) {
   let tabgroupEditor = document.getElementById("tab-group-editor");
   let tabgroupPanel = tabgroupEditor.panel;
-  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
-    animate: false,
-  });
-
+  if (!tabs.length) {
+    let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      animate: false,
+    });
+    tabs = [tab];
+  }
   let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  let group = gBrowser.addTabGroup([tab], { color: "cyan", label: "Food" });
+  let group = gBrowser.addTabGroup(tabs, { color: "cyan", label: "Food" });
   await panelShown;
 
   // Panel dismissed after clicking Create and group remains
@@ -1267,13 +1269,14 @@ async function createTabGroupAndOpenEditPanel() {
   );
   return new Promise(resolve => {
     panelShown.then(() => {
-      resolve({ tabgroupEditor, tabgroupPanel, tab, group });
+      resolve({ tabgroupEditor, group });
     });
   });
 }
 
 add_task(async function test_tabGroupPanelAddTab() {
-  let { tabgroupPanel, group } = await createTabGroupAndOpenEditPanel();
+  let { tabgroupEditor, group } = await createTabGroupAndOpenEditPanel();
+  let tabgroupPanel = tabgroupEditor.panel;
 
   let addNewTabButton = tabgroupPanel.querySelector(
     "#tabGroupEditor_addNewTabInGroup"
@@ -1292,7 +1295,9 @@ add_task(async function test_tabGroupPanelAddTab() {
 });
 
 add_task(async function test_tabGroupPanelUngroupTabs() {
-  let { tabgroupPanel, tab, group } = await createTabGroupAndOpenEditPanel();
+  let { tabgroupEditor, group } = await createTabGroupAndOpenEditPanel();
+  let tabgroupPanel = tabgroupEditor.panel;
+  let tab = group.tabs[0];
   let ungroupTabsButton = tabgroupPanel.querySelector(
     "#tabGroupEditor_ungroupTabs"
   );
@@ -1304,4 +1309,92 @@ add_task(async function test_tabGroupPanelUngroupTabs() {
   Assert.ok(!tab.group, "Tab is no longer grouped");
 
   BrowserTestUtils.removeTab(tab);
+});
+
+/**
+ * Tests that the "move group to new window" correctly moves a group
+ * to a new window, preserving tab selection and order.
+ */
+add_task(async function test_moveGroupToNewWindow() {
+  let tabs = [
+    BrowserTestUtils.addTab(gBrowser, "about:cache", {
+      skipAnimation: true,
+    }),
+    BrowserTestUtils.addTab(gBrowser, "about:robots", {
+      skipAnimation: true,
+    }),
+    BrowserTestUtils.addTab(gBrowser, "about:mozilla", {
+      skipAnimation: true,
+    }),
+  ];
+  gBrowser.selectedTab = tabs[1];
+  let assertTabsInCorrectOrder = tabsToCheck => {
+    Assert.equal(
+      tabsToCheck[0].linkedBrowser.currentURI.spec,
+      "about:cache",
+      "about:cache is first"
+    );
+    Assert.equal(
+      tabsToCheck[1].linkedBrowser.currentURI.spec,
+      "about:robots",
+      "about:robots is second"
+    );
+    Assert.equal(
+      tabsToCheck[2].linkedBrowser.currentURI.spec,
+      "about:mozilla",
+      "about:mozilla is third"
+    );
+  };
+  let { group } = await createTabGroupAndOpenEditPanel(tabs);
+
+  let newWindowOpened = BrowserTestUtils.waitForNewWindow();
+  document.getElementById("tabGroupEditor_moveGroupToNewWindow").click();
+  let newWin = await newWindowOpened;
+  Assert.ok(newWin != window, "Group is moved to new window");
+
+  let movedTabs = newWin.gBrowser.tabs;
+  let movedGroup = movedTabs[0].group;
+  Assert.equal(movedGroup.id, group.id, "Tab is in original group");
+
+  Assert.equal(
+    newWin.gBrowser.selectedTab,
+    newWin.gBrowser.tabs[1],
+    "Second tab remains selected"
+  );
+  assertTabsInCorrectOrder(newWin.gBrowser.tabs);
+  let tabgroupEditor = newWin.document.getElementById("tab-group-editor");
+  let panelOpen = BrowserTestUtils.waitForPopupEvent(
+    tabgroupEditor.panel,
+    "shown"
+  );
+  tabgroupEditor.openEditModal(movedGroup);
+  await panelOpen;
+
+  let moveGroupButton = newWin.document.getElementById(
+    "tabGroupEditor_moveGroupToNewWindow"
+  );
+  Assert.ok(
+    moveGroupButton.disabled,
+    "Button is disabled when group is only thing in window"
+  );
+
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(
+    tabgroupEditor.panel,
+    "hidden"
+  );
+  tabgroupEditor.panel.hidePopup();
+  await panelHidden;
+
+  BrowserTestUtils.addTab(newWin.gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  panelOpen = BrowserTestUtils.waitForPopupEvent(tabgroupEditor.panel, "shown");
+  tabgroupEditor.openEditModal(movedGroup);
+  await panelOpen;
+  Assert.ok(
+    !moveGroupButton.disabled,
+    "Button is enabled again when additional tab present"
+  );
+
+  await BrowserTestUtils.closeWindow(newWin, { animate: false });
 });
