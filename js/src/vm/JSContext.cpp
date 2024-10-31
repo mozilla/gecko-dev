@@ -972,7 +972,6 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       isolate(this, nullptr),
       activation_(this, nullptr),
       profilingActivation_(nullptr),
-      entryMonitor(this, nullptr),
       noExecuteDebuggerTop(this, nullptr),
 #ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
       inUnsafeCallWithABI(this, false),

@@ -434,52 +434,6 @@ JS_PUBLIC_API bool IsDebugger(JSObject& obj);
 JS_PUBLIC_API bool GetDebuggeeGlobals(JSContext* cx, JSObject& dbgObj,
                                       MutableHandleObjectVector vector);
 
-// Hooks for reporting where JavaScript execution began.
-//
-// Our performance tools would like to be able to label blocks of JavaScript
-// execution with the function name and source location where execution began:
-// the event handler, the callback, etc.
-//
-// Construct an instance of this class on the stack, providing a JSContext
-// belonging to the runtime in which execution will occur. Each time we enter
-// JavaScript --- specifically, each time we push a JavaScript stack frame that
-// has no older JS frames younger than this AutoEntryMonitor --- we will
-// call the appropriate |Entry| member function to indicate where we've begun
-// execution.
-
-class MOZ_STACK_CLASS JS_PUBLIC_API AutoEntryMonitor {
-  JSContext* cx_;
-  AutoEntryMonitor* savedMonitor_;
-
- public:
-  explicit AutoEntryMonitor(JSContext* cx);
-  ~AutoEntryMonitor();
-
-  // SpiderMonkey reports the JavaScript entry points occuring within this
-  // AutoEntryMonitor's scope to the following member functions, which the
-  // embedding is expected to override.
-  //
-  // It is important to note that |asyncCause| is owned by the caller and its
-  // lifetime must outlive the lifetime of the AutoEntryMonitor object. It is
-  // strongly encouraged that |asyncCause| be a string constant or similar
-  // statically allocated string.
-
-  // We have begun executing |function|. Note that |function| may not be the
-  // actual closure we are running, but only the canonical function object to
-  // which the script refers.
-  virtual void Entry(JSContext* cx, JSFunction* function,
-                     HandleValue asyncStack, const char* asyncCause) = 0;
-
-  // Execution has begun at the entry point of |script|, which is not a
-  // function body. (This is probably being executed by 'eval' or some
-  // JSAPI equivalent.)
-  virtual void Entry(JSContext* cx, JSScript* script, HandleValue asyncStack,
-                     const char* asyncCause) = 0;
-
-  // Execution of the function or script has ended.
-  virtual void Exit(JSContext* cx) {}
-};
-
 // Returns true if there's any debugger attached to the given context where
 // the debugger's "shouldAvoidSideEffects" property is true.
 //

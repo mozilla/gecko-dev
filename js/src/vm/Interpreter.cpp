@@ -1969,7 +1969,6 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     return false;
   }
 
-  ActivationEntryMonitor entryMonitor(cx, entryFrame);
   InterpreterActivation activation(state, cx, entryFrame);
 
   /* The script is used frequently, so keep a local copy. */
