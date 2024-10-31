@@ -64,6 +64,11 @@
   border-radius: 5px;
   padding: 0;
   cursor: pointer;
+  /* opt-out of forced colors as --timing-function-control-point-background
+     is a registered property, so the engine will compute it to an rgb color,
+     which means it won't be seen as a system color in High Contrast Mode
+     and a default color would be used. */
+     forced-color-adjust: none;
 }
 
 .cubic-bezier-container .display-wrap {
@@ -82,6 +87,17 @@
     transparent 15px) no-repeat;
   background-size: 100% 100%, 100% 100%;
   user-select: none;
+
+  :root[forced-colors-active] & {
+    /* opt-out of forced colors so we can see still the lines in High Contrast Mode.
+     --timing-function-grid-color does have a specific value in HCM so it should be fine */
+    forced-color-adjust: none;
+
+    /* And set the forced colors on children so High Contrast Mode behaves as expected */
+    & > * {
+      forced-color-adjust: auto;
+    }
+  }
 }
 
 /* Timing Function Preview Widget */
@@ -103,6 +119,8 @@
   width: 100%;
   height: 1px;
   background-color: var(--timing-function-preview-scale);
+  /* opt-out of forced colors so we can see the line in High Contrast Mode */
+    forced-color-adjust: none;
 }
 
 .cubic-bezier-container .timing-function-preview .dot {
@@ -111,6 +129,9 @@
   border-radius: 50%;
   border: 2px solid var(--timing-function-preview-dot-border);
   background: var(--timing-function-line-color);
+  /* opt-out of forced colors as --timing-function-line-color is using
+     a non system but high contrast color */
+  forced-color-adjust: none;
 }
 
 /* Preset Widget */
