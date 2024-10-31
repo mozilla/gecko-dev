@@ -67,6 +67,7 @@ import mozilla.components.feature.search.BrowserStoreSearchAdapter
 import mozilla.components.service.fxa.sync.SyncReason
 import mozilla.components.support.base.feature.ActivityResultHandler
 import mozilla.components.support.base.feature.UserInteractionHandler
+import mozilla.components.support.base.feature.UserInteractionOnBackPressedCallback
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.arch.lifecycle.addObservers
 import mozilla.components.support.ktx.android.content.call
@@ -259,6 +260,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
 
     private val startupPathProvider = StartupPathProvider()
     private lateinit var startupTypeTelemetry: StartupTypeTelemetry
+
+    private val onBackPressedCallback = UserInteractionOnBackPressedCallback(
+        fragmentManager = supportFragmentManager,
+        dispatcher = onBackPressedDispatcher,
+    )
 
     @Suppress("ComplexMethod")
     final override fun onCreate(savedInstanceState: Bundle?) {
@@ -492,6 +498,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             ),
         )
 
+        onBackPressedDispatcher.addCallback(
+            owner = this,
+            onBackPressedCallback = onBackPressedCallback,
+        )
+
         StartupTimeline.onActivityCreateEndHome(this) // DO NOT MOVE ANYTHING BELOW HERE.
     }
 
@@ -577,6 +588,8 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             ReEngagementNotificationWorker.setReEngagementNotificationIfNeeded(applicationContext)
             MessageNotificationWorker.setMessageNotificationWorker(applicationContext)
         }
+
+        onBackPressedCallback.isEnabled = true
 
         // This was done in order to refresh search engines when app is running in background
         // and the user changes the system language
@@ -830,16 +843,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         }.toTypedArray()
     }
 
-    @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
-    final override fun onBackPressed() {
-        supportFragmentManager.primaryNavigationFragment?.childFragmentManager?.fragments?.forEach {
-            if (it is UserInteractionHandler && it.onBackPressed()) {
-                return
-            }
-        }
-        onBackPressedDispatcher.onBackPressed()
-    }
-
     @Deprecated("Deprecated in Java")
     // https://github.com/mozilla-mobile/fenix/issues/19919
     final override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -1051,7 +1054,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         )
 
         navigationToolbar.setNavigationOnClickListener {
-            onBackPressed()
+            onBackPressedDispatcher.onBackPressed()
         }
     }
 

@@ -113,7 +113,7 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
                     HistoryNavigationMiddleware(
                         navController = findNavController(),
                         openToBrowser = ::openItem,
-                        onBackPressed = requireActivity().onBackPressedDispatcher::onBackPressed,
+                        onBackPressed = { findNavController().popBackStack() },
                     ),
                     HistoryTelemetryMiddleware(
                         isInPrivateMode = requireComponents.appStore.state.mode == BrowsingMode.Private,
