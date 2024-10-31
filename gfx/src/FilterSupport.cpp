@@ -1391,9 +1391,10 @@ static nsIntRegion ResultChangeRegionForPrimitive(
 
     nsIntRegion operator()(const MorphologyAttributes& aMorphology) {
       Size radii = aMorphology.mRadii;
-      int32_t rx = clamped(int32_t(ceil(radii.width)), 0, kMorphologyMaxRadius);
+      int32_t rx =
+          std::clamp(int32_t(ceil(radii.width)), 0, kMorphologyMaxRadius);
       int32_t ry =
-          clamped(int32_t(ceil(radii.height)), 0, kMorphologyMaxRadius);
+          std::clamp(int32_t(ceil(radii.height)), 0, kMorphologyMaxRadius);
       return mInputChangeRegions[0].Inflated(nsIntMargin(ry, rx, ry, rx));
     }
 
@@ -1601,9 +1602,10 @@ nsIntRegion FilterSupport::PostFilterExtentsForPrimitive(
         return mInputExtents[0];
       }
       Size radii = aMorphology.mRadii;
-      int32_t rx = clamped(int32_t(ceil(radii.width)), 0, kMorphologyMaxRadius);
+      int32_t rx =
+          std::clamp(int32_t(ceil(radii.width)), 0, kMorphologyMaxRadius);
       int32_t ry =
-          clamped(int32_t(ceil(radii.height)), 0, kMorphologyMaxRadius);
+          std::clamp(int32_t(ceil(radii.height)), 0, kMorphologyMaxRadius);
       return mInputExtents[0].Inflated(nsIntMargin(ry, rx, ry, rx));
     }
 
@@ -1771,9 +1773,10 @@ static nsIntRegion SourceNeededRegionForPrimitive(
 
     nsIntRegion operator()(const MorphologyAttributes& aMorphology) {
       Size radii = aMorphology.mRadii;
-      int32_t rx = clamped(int32_t(ceil(radii.width)), 0, kMorphologyMaxRadius);
+      int32_t rx =
+          std::clamp(int32_t(ceil(radii.width)), 0, kMorphologyMaxRadius);
       int32_t ry =
-          clamped(int32_t(ceil(radii.height)), 0, kMorphologyMaxRadius);
+          std::clamp(int32_t(ceil(radii.height)), 0, kMorphologyMaxRadius);
       return mResultNeededRegion.Inflated(nsIntMargin(ry, rx, ry, rx));
     }
 

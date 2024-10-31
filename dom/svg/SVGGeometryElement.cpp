@@ -238,7 +238,7 @@ already_AddRefed<DOMSVGPoint> SVGGeometryElement::GetPointAtLength(
   }
 
   return do_AddRef(new DOMSVGPoint(path->ComputePointAtLength(
-      clamped(distance, 0.f, path->ComputeLength()))));
+      std::clamp(distance, 0.f, path->ComputeLength()))));
 }
 
 gfx::Matrix SVGGeometryElement::LocalTransform() const {

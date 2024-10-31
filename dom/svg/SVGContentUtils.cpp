@@ -806,9 +806,9 @@ bool SVGContentUtils::ParseInteger(nsAString::const_iterator& aIter,
   } while (iter != aEnd && mozilla::IsAsciiDigit(*iter));
 
   aIter = iter;
-  aValue = int32_t(clamped(sign * value,
-                           int64_t(std::numeric_limits<int32_t>::min()),
-                           int64_t(std::numeric_limits<int32_t>::max())));
+  aValue = int32_t(std::clamp(sign * value,
+                              int64_t(std::numeric_limits<int32_t>::min()),
+                              int64_t(std::numeric_limits<int32_t>::max())));
   return true;
 }
 

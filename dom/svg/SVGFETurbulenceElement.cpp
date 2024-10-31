@@ -99,7 +99,7 @@ FilterPrimitiveDescription SVGFETurbulenceElement::GetPrimitiveDescription(
       SVGAnimatedNumberPair::eSecond);
   float seed = mNumberAttributes[OCTAVES].GetAnimValue();
   uint32_t octaves =
-      clamped(mIntegerAttributes[OCTAVES].GetAnimValue(), 0, MAX_OCTAVES);
+      std::clamp(mIntegerAttributes[OCTAVES].GetAnimValue(), 0, MAX_OCTAVES);
   uint32_t type = mEnumAttributes[TYPE].GetAnimValue();
   uint16_t stitch = mEnumAttributes[STITCHTILES].GetAnimValue();
 

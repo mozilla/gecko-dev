@@ -130,7 +130,8 @@ float SVGSVGElement::CurrentScale() const { return mCurrentScale; }
 
 void SVGSVGElement::SetCurrentScale(float aCurrentScale) {
   // Prevent bizarre behaviour and maxing out of CPU and memory by clamping
-  aCurrentScale = clamped(aCurrentScale, CURRENT_SCALE_MIN, CURRENT_SCALE_MAX);
+  aCurrentScale =
+      std::clamp(aCurrentScale, CURRENT_SCALE_MIN, CURRENT_SCALE_MAX);
 
   if (aCurrentScale == mCurrentScale) {
     return;

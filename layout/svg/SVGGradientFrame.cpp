@@ -206,7 +206,7 @@ static ColorStop GetStopInformation(const nsIFrame* aStopFrame,
   static_cast<SVGStopElement*>(stopContent)
       ->GetAnimatedNumberValues(&position, nullptr);
 
-  position = clamped(position, 0.0f, 1.0f);
+  position = std::clamp(position, 0.0f, 1.0f);
 
   if (position < aLastPosition) {
     position = aLastPosition;
