@@ -209,6 +209,7 @@ tur.ar
 // Confirmed by registry <iana-questions@icann.org> 2008-06-18
 arpa
 e164.arpa
+home.arpa
 in-addr.arpa
 ip6.arpa
 iris.arpa
@@ -12388,10 +12389,12 @@ cloudns.ch
 cloudns.cl
 cloudns.club
 dnsabr.com
+ip-ddns.com
 cloudns.cx
 cloudns.eu
 cloudns.in
 cloudns.info
+ddns-ip.net
 dns-cloud.net
 dns-dynamic.net
 cloudns.nz
@@ -13654,6 +13657,10 @@ london.cloudapps.digital
 // Government of the Netherlands: https://www.government.nl
 // Submitted by <domeinnaam@minaz.nl>
 gov.nl
+
+// Grafana Labs: https://grafana.com/
+// Submitted by Platform Engineering <info@grafana.com>
+grafana-dev.net
 
 // GrayJay Web Solutions Inc. : https://grayjaysports.ca
 // Submitted by Matt Yamkowy <info@grayjaysports.ca>
@@ -15371,6 +15378,10 @@ gdansk.pl
 gdynia.pl
 med.pl
 sopot.pl
+
+// Tave Creative Corp : https://tave.com/
+// Submitted by Adrian Ziemkowski <devops@tave.com>
+taveusercontent.com
 
 // tawk.to, Inc : https://www.tawk.to
 // Submitted by tawk.to developer team <dev-accounts@tawk.to>
