@@ -133,7 +133,6 @@ internal class BookmarksMiddleware(
                     // state is null then we are on the list screen
                     preReductionState.bookmarksAddFolderState != null &&
                         context.state.bookmarksAddFolderState == null -> {
-                        getNavController().popBackStack()
                         scope.launch(ioDispatcher) {
                             val newFolderTitle =
                                 preReductionState.bookmarksAddFolderState.folderBeingAddedTitle
@@ -148,6 +147,21 @@ internal class BookmarksMiddleware(
                                 )
 
                                 context.store.dispatch(AddFolderAction.FolderCreated(folder))
+
+                                withContext(Dispatchers.Main) {
+                                    if (preReductionState.bookmarksSelectFolderState != null) {
+                                        getNavController().popBackStack(
+                                            BookmarksDestinations.EDIT_BOOKMARK,
+                                            inclusive = false,
+                                        )
+                                    } else {
+                                        getNavController().popBackStack()
+                                    }
+                                }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    getNavController().popBackStack()
+                                }
                             }
                             context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
                         }
@@ -237,11 +251,6 @@ internal class BookmarksMiddleware(
                     }
                 }
             }
-            is AddFolderAction.FolderCreated -> {
-                if (preReductionState.bookmarksSelectFolderState != null) {
-                    getNavController().popBackStack()
-                }
-            }
             EditFolderAction.ParentFolderClicked,
             AddFolderAction.ParentFolderClicked,
             -> {
@@ -307,6 +316,7 @@ internal class BookmarksMiddleware(
             is EditBookmarkAction.URLChanged,
             is BookmarksLoaded,
             is EditFolderAction.TitleChanged,
+            is AddFolderAction.FolderCreated,
             is AddFolderAction.TitleChanged,
             is SelectFolderAction.FoldersLoaded,
             is SelectFolderAction.ItemClicked,
