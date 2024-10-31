@@ -2747,7 +2747,7 @@ BrowserGlue.prototype = {
           );
 
           if (
-            !(await shellService.hasMatchingShortcut(
+            !(await shellService.hasPinnableShortcut(
               winTaskbar.defaultPrivateGroupId,
               true
             ))
@@ -2778,7 +2778,7 @@ BrowserGlue.prototype = {
           // We always set this as long as no exception has been thrown. This
           // ensure that it is `true` both if we created one because it didn't
           // exist, or if it already existed (most likely because it was created
-          // by the installer). This avoids the need to call `hasMatchingShortcut`
+          // by the installer). This avoids the need to call `hasPinnableShortcut`
           // again, which necessarily does pointless I/O.
           Services.prefs.setBoolPref(
             PREF_PRIVATE_BROWSING_SHORTCUT_CREATED,

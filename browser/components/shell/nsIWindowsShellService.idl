@@ -376,8 +376,19 @@ interface nsIWindowsShellService : nsIShellService
    */
   AString classifyShortcut(in AString aPath);
 
+  /*
+   * Determine whether a pinnable shortcut with matching AUMID is present.
+   *
+   * @param  aAUMID
+   *         AUMID of the shortcut to find.
+   * @param  aPrivateBrowsing
+   *         `true` to have the private browsing suffix added to `aAUMID`.
+   *
+   * @returns {Promise<void>} Always resolves with boolean, true if a pinnable
+   *                          shortcut exists.
+   */
   [implicit_jscontext]
-  Promise hasMatchingShortcut(in AString aAUMID, in boolean aPrivateBrowsing);
+  Promise hasPinnableShortcut(in AString aAUMID, in boolean aPrivateBrowsing);
 
   /*
    * Check if setDefaultBrowserUserChoice() is expected to succeed.

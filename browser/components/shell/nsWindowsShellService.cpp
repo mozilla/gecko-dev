@@ -1186,7 +1186,7 @@ static nsresult GetMatchingShortcut(int aCSIDL, const nsAString& aAUMID,
   return result;
 }
 
-static nsresult FindMatchingShortcut(const nsAString& aAppUserModelId,
+static nsresult FindPinnableShortcut(const nsAString& aAppUserModelId,
                                      const nsAString& aShortcutSubstring,
                                      const bool aPrivateBrowsing,
                                      nsAutoString& aShortcutPath) {
@@ -1221,12 +1221,12 @@ static nsresult FindMatchingShortcut(const nsAString& aAppUserModelId,
   return NS_ERROR_FILE_NOT_FOUND;
 }
 
-static bool HasMatchingShortcutImpl(const nsAString& aAppUserModelId,
+static bool HasPinnableShortcutImpl(const nsAString& aAppUserModelId,
                                     const bool aPrivateBrowsing,
                                     const nsAutoString& aShortcutSubstring) {
   // unused by us, but required
   nsAutoString shortcutPath;
-  nsresult rv = FindMatchingShortcut(aAppUserModelId, aShortcutSubstring,
+  nsresult rv = FindPinnableShortcut(aAppUserModelId, aShortcutSubstring,
                                      aPrivateBrowsing, shortcutPath);
   if (SUCCEEDED(rv)) {
     return true;
@@ -1235,7 +1235,7 @@ static bool HasMatchingShortcutImpl(const nsAString& aAppUserModelId,
   return false;
 }
 
-NS_IMETHODIMP nsWindowsShellService::HasMatchingShortcut(
+NS_IMETHODIMP nsWindowsShellService::HasPinnableShortcut(
     const nsAString& aAppUserModelId, const bool aPrivateBrowsing,
     JSContext* aCx, dom::Promise** aPromise) {
   if (!NS_IsMainThread()) {
@@ -1251,11 +1251,11 @@ NS_IMETHODIMP nsWindowsShellService::HasMatchingShortcut(
   }
 
   auto promiseHolder = MakeRefPtr<nsMainThreadPtrHolder<dom::Promise>>(
-      "HasMatchingShortcut promise", promise);
+      "HasPinnableShortcut promise", promise);
 
   NS_DispatchBackgroundTask(
       NS_NewRunnableFunction(
-          "HasMatchingShortcut",
+          "HasPinnableShortcut",
           [aAppUserModelId = nsString{aAppUserModelId}, aPrivateBrowsing,
            promiseHolder = std::move(promiseHolder)] {
             bool rv = false;
@@ -1264,13 +1264,13 @@ NS_IMETHODIMP nsWindowsShellService::HasMatchingShortcut(
             if (SUCCEEDED(hr)) {
               nsAutoString shortcutSubstring;
               shortcutSubstring.AssignLiteral(MOZ_APP_DISPLAYNAME);
-              rv = HasMatchingShortcutImpl(aAppUserModelId, aPrivateBrowsing,
+              rv = HasPinnableShortcutImpl(aAppUserModelId, aPrivateBrowsing,
                                            shortcutSubstring);
               CoUninitialize();
             }
 
             NS_DispatchToMainThread(NS_NewRunnableFunction(
-                "HasMatchingShortcut callback",
+                "HasPinnableShortcut callback",
                 [rv, promiseHolder = std::move(promiseHolder)] {
                   dom::Promise* promise = promiseHolder.get()->get();
 
@@ -1706,7 +1706,7 @@ static nsresult PinCurrentAppToTaskbarImpl(
       "PinCurrentAppToTaskbarImpl should be called off main thread only");
 
   nsAutoString shortcutPath;
-  nsresult rv = FindMatchingShortcut(aAppUserModelId, aShortcutSubstring,
+  nsresult rv = FindPinnableShortcut(aAppUserModelId, aShortcutSubstring,
                                      aPrivateBrowsing, shortcutPath);
   if (NS_FAILED(rv)) {
     shortcutPath.Truncate();
