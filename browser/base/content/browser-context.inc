@@ -88,8 +88,7 @@
             class="context-menu-open-link"
             data-l10n-id="main-context-menu-open-link-container-tab"
             hidden="true">
-        <menupopup oncommand="gContextMenu.openLinkInTab(event);"
-                   onpopupshowing="return gContextMenu.createContainerMenu(event);" />
+        <menupopup id="context-openlinkinusercontext-popup"/>
       </menu>
 
       <menuitem id="context-openlink"
@@ -127,8 +126,7 @@
             class="sync-ui-item"
             data-l10n-id="main-context-menu-link-send-to-device"
             hidden="true">
-            <menupopup id="context-sendlinktodevice-popup"
-                  onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, gContextMenu.linkURI, gContextMenu.linkTextStr);"/>
+            <menupopup id="context-sendlinktodevice-popup"/>
       </menu>
       <menuseparator id="context-sep-sendlinktodevice" class="sync-ui-item"
                 hidden="true"/>
@@ -271,8 +269,7 @@
             class="sync-ui-item"
             data-l10n-id="main-context-menu-send-to-device"
             hidden="true">
-        <menupopup id="context-sendpagetodevice-popup"
-                   onpopupshowing="(() => { gSync.populateSendTabToDevicesMenu(event.target, gBrowser.currentURI, gBrowser.contentTitle); })()"/>
+        <menupopup id="context-sendpagetodevice-popup"/>
       </menu>
       <menu id="fill-login" hidden="true">
         <menupopup id="fill-login-popup" />
