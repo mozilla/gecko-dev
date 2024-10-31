@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-29T15:14:25.266546+00:00'
+updated_at: '2024-10-31T09:00:11.146905+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -334,7 +334,8 @@ people:
     bmo_id: 5842
     name: Masatoshi Kimura
     nick: emk
-  - bmo_id: 6102
+  - &enndeakin
+    bmo_id: 6102
     name: Neil Deakin
     nick: enndeakin
   - &epavlov
@@ -455,6 +456,10 @@ people:
     bmo_id: 623993
     name: Iain Ireland
     nick: iain
+  - &issammani
+    bmo_id: 708367
+    name: Issam Mani
+    nick: issammani
   - &itielyn8
     bmo_id: 353822
     name: Itiel
@@ -547,6 +552,10 @@ people:
     bmo_id: 541747
     name: Jamie Nicol
     nick: jnicol
+  - &johannes
+    bmo_id: 723184
+    name: Johannes Schmidt
+    nick: johannes
   - &jonalmeida
     bmo_id: 541581
     name: Jonathan Almeida
@@ -3628,10 +3637,13 @@ modules:
         meta:
           owners_emeritus:
             - Matthew Noorenberghe
+            - *serg
           peers_emeritus:
             - Bianca Danforth
             - Severin Rudie
             - Jared Wein
+            - *tgiles
+            - *sfoster
           url: https://wiki.mozilla.org/Toolkit:Password_Manager
           components:
             - Toolkit::Password Manager
@@ -3639,11 +3651,12 @@ modules:
             - Compatibility
             - Firefox::about:logins
         owners:
-          - *serg
-        peers:
-          - *tgiles
           - *dlee
-          - *sfoster
+        peers:
+          - *enndeakin
+          - *issammani
+          - *johannes
+          - *micah
         machine_name: password_manager
 
       - machine_name: firefox_pip
@@ -4470,5 +4483,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: c9b41bc02e006b1f46ebab491e09382f7d41d99d
-  export: a7e7a2699aa14c56dc99524a267ee7b5db9438c7
+  config: 0b795b86d62a546442fb92d06fdc4ba419ce57bc
+  export: e245536a757e250ca84676f60a36549977689328
