@@ -167,6 +167,11 @@
           "title": "Trending Suggestions URL",
           "description": "The URL to use for tending suggestions",
           "$ref": "#/definitions/url"
+        },
+        "searchForm": {
+          "title": "SearchForm URL",
+          "description": "The URL of the search engine homepage",
+          "$ref": "#/definitions/url"
         }
       }
     },

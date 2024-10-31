@@ -265,6 +265,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
     ["search", lazy.SearchUtils.URL_TYPE.SEARCH],
     ["suggestions", lazy.SearchUtils.URL_TYPE.SUGGEST_JSON],
     ["trending", lazy.SearchUtils.URL_TYPE.TRENDING_JSON],
+    ["searchForm", lazy.SearchUtils.URL_TYPE.SEARCH_FORM],
   ]);
   static iconHandler = new IconHandler();
 
@@ -532,19 +533,17 @@ export class AppProvidedSearchEngine extends SearchEngine {
       }
     }
 
-    if (
-      !("searchTermParamName" in urlData) &&
-      !urlData.base.includes("{searchTerms}") &&
-      !urlType.includes("trending")
-    ) {
-      throw new Error("Search terms missing from engine URL.");
-    }
-
     if ("searchTermParamName" in urlData) {
       // The search term parameter is always added last, which will add it to the
       // end of the URL. This is because in the past we have seen users trying to
       // modify their searches by altering the end of the URL.
       engineURL.setSearchTermParamName(urlData.searchTermParamName);
+    } else if (
+      !urlData.base.includes("{searchTerms}") &&
+      (urlType == lazy.SearchUtils.URL_TYPE.SEARCH ||
+        urlType == lazy.SearchUtils.URL_TYPE.SUGGEST_JSON)
+    ) {
+      throw new Error("Search terms missing from engine URL.");
     }
 
     this._urls.push(engineURL);
