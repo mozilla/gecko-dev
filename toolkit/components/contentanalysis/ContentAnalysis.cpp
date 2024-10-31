@@ -2159,10 +2159,7 @@ class AggregatedClipboardCACallback final : public nsIContentAnalysisCallback {
       return;
     }
 
-    // Note that on Windows, kNativeHTMLMime will return the text in the native
-    // Windows clipboard CF_HTML format - see
-    // https://learn.microsoft.com/en-us/windows/win32/dataxchg/html-clipboard-format
-    auto textFormats = {kTextMime, kHTMLMime, kNativeHTMLMime};
+    auto textFormats = {kTextMime, kHTMLMime};
     for (const auto& textFormat : textFormats) {
       auto textResult = CheckClipboardCAAsText(aInnerWindowId, contentAnalysis,
                                                aTransferable, textFormat);
