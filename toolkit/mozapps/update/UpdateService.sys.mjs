@@ -325,26 +325,34 @@ ChromeUtils.defineLazyGetter(
   }
 );
 
-/**
- * gIsBackgroundTaskMode will be true if Firefox is currently running as a
- * background task. Otherwise it will be false.
- */
-ChromeUtils.defineLazyGetter(
-  lazy,
-  "gIsBackgroundTaskMode",
-  function aus_gCurrentlyRunningAsBackgroundTask() {
-    if (!("@mozilla.org/backgroundtasks;1" in Cc)) {
-      return false;
+function resetIsBackgroundTaskMode() {
+  /**
+   * gIsBackgroundTaskMode will be true if Firefox is currently running as a
+   * background task. Otherwise it will be false.
+   */
+  ChromeUtils.defineLazyGetter(
+    lazy,
+    "gIsBackgroundTaskMode",
+    function aus_gCurrentlyRunningAsBackgroundTask() {
+      if (!("@mozilla.org/backgroundtasks;1" in Cc)) {
+        return false;
+      }
+      const bts = Cc["@mozilla.org/backgroundtasks;1"].getService(
+        Ci.nsIBackgroundTasks
+      );
+      if (!bts) {
+        return false;
+      }
+      return bts.isBackgroundTaskMode;
     }
-    const bts = Cc["@mozilla.org/backgroundtasks;1"].getService(
-      Ci.nsIBackgroundTasks
-    );
-    if (!bts) {
-      return false;
-    }
-    return bts.isBackgroundTaskMode;
-  }
-);
+  );
+}
+resetIsBackgroundTaskMode();
+
+// Exported for testing only.
+export function testResetIsBackgroundTaskMode() {
+  resetIsBackgroundTaskMode();
+}
 
 /**
  * Changes `nsIApplicationUpdateService.currentState` and causes

@@ -5094,3 +5094,150 @@ function setUpdateSettingsUseWrongChannel() {
     );
   }
 }
+
+class DownloadHeadersTest {
+  #httpServer = null;
+  // Collect requests to inspect header and query parameters.
+  #requests = [];
+
+  get updateUrl() {
+    // Port must match URL_HOST.
+    return `http://127.0.0.1:${8888}/app_update.sjs?appVersion=999000.0`;
+  }
+
+  async #downloadUpdate() {
+    let downloadFinishedPromise = waitForEvent("update-downloaded");
+
+    let updateCheckStarted = await gAUS.checkForBackgroundUpdates();
+    Assert.ok(updateCheckStarted, "Update check should have started");
+
+    await downloadFinishedPromise;
+    // Wait an extra tick after the download has finished. If we try to check for
+    // another update exactly when "update-downloaded" fires,
+    // Downloader:onStopRequest won't have finished yet, which it normally would
+    // have.
+    await TestUtils.waitForTick();
+  }
+
+  startUpdateServer() {
+    let { HttpServer } = ChromeUtils.importESModule(
+      "resource://testing-common/httpd.sys.mjs"
+    );
+    this.#httpServer = new HttpServer();
+
+    this.#httpServer.registerContentType("sjs", "sjs");
+    this.#httpServer.registerDirectory("/", do_get_cwd());
+
+    // Keep requests around for future inspection.
+    let origHandler = this.#httpServer._handler;
+    this.#httpServer._handler = {
+      // N.b.: fat arrow function captures `this` for `this.#requests` below.
+      handleResponse: connection => {
+        if (connection.request.method.toUpperCase() !== "HEAD") {
+          // Windows BITS sends HEAD requests.  Ignore them.
+          this.#requests.push(connection.request);
+        }
+        return origHandler.handleResponse(connection);
+      },
+    };
+
+    // Port must match URL_HOST.
+    this.#httpServer.start(8888);
+
+    registerCleanupFunction(resolve => this.#httpServer.stop(resolve));
+  }
+
+  /**
+   * Run a single test verifying request headers.
+   *
+   * @param   useBits
+   *          Whether to use BITS.
+   * @param   backgroundTaskName
+   *          Optional background task name string to set.
+   * @param   userAgentPattern
+   *          Regular expression that matches each request's "User-Agent"
+   *          header.
+   * @param   expectedExtras
+   *          List of `{ mode, name }` objects that specify each request's extra
+   *          headers and query parameters.  Generally, two requests are
+   *          expected: the first is the Balrog query and the second is the MAR
+   *          download.
+   */
+  async test({
+    useBits,
+    backgroundTaskName,
+    userAgentPattern,
+    expectedExtras,
+  } = {}) {
+    // Start fresh.
+    this.#requests = [];
+    reloadUpdateManagerData(true);
+    removeUpdateFiles(true);
+
+    // Configure test details.
+    await UpdateUtils.setAppUpdateAutoEnabled(true);
+
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_BITS_ENABLED, !!useBits);
+    // Allow the update service to download in a background task when not using BITS.
+    Services.prefs.setBoolPref(
+      PREF_APP_UPDATE_BACKGROUND_ALLOWDOWNLOADSWITHOUTBITS,
+      !useBits && backgroundTaskName
+    );
+
+    const bts = Cc["@mozilla.org/backgroundtasks;1"]?.getService(
+      Ci.nsIBackgroundTasks
+    );
+    // Pretend that this is a background task (or not, when null).
+    bts.overrideBackgroundTaskNameForTesting(backgroundTaskName);
+
+    // Make UpdateService use the changed setting.
+    const { testResetIsBackgroundTaskMode } = ChromeUtils.importESModule(
+      "resource://gre/modules/UpdateService.sys.mjs"
+    );
+    testResetIsBackgroundTaskMode();
+
+    setUpdateURL(this.updateUrl);
+
+    // For simplicity during testing: no staging.  N.b.: after setting
+    // update URL, to avoid triggering an update too early.
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_DISABLEDFORTESTING, false);
+    Services.prefs.setBoolPref(PREF_APP_UPDATE_STAGING_ENABLED, false);
+
+    await this.#downloadUpdate();
+
+    // Verify background task headers are set as expected.
+    Assert.deepEqual(
+      this.#requests.map(r => ({
+        mode: r.hasHeader("x-backgroundtaskmode")
+          ? r.getHeader("x-backgroundtaskmode")
+          : null,
+        name: r.hasHeader("x-backgroundtaskname")
+          ? r.getHeader("x-backgroundtaskname")
+          : null,
+      })),
+      expectedExtras,
+      "Headers should be as expected"
+    );
+
+    // Verify background task query parameters are set as expected.
+    Assert.deepEqual(
+      this.#requests.map(r => {
+        let params = new URLSearchParams(r.queryString);
+        return {
+          mode: params.get("backgroundTaskMode"),
+          name: params.get("backgroundTaskName"),
+        };
+      }),
+      expectedExtras,
+      "Query parameters should be as expected"
+    );
+
+    // Verify that requests that identify background task mode come from the
+    // expected User Agent.
+    for (let r of this.#requests) {
+      if (r.hasHeader("x-backgroundtaskmode")) {
+        Assert.stringMatches(r.getHeader("user-agent"), userAgentPattern);
+      }
+    }
+  }
+}

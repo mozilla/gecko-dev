@@ -35,6 +35,19 @@ skip-if = ["socketprocess_networking"] # Bug 1759035
 ["disableBackgroundUpdatesNonBackgroundTask.js"]
 skip-if = ["socketprocess_networking"] # Bug 1759035
 
+["downloadExtrasFirefox.js"]
+firefox-appdir = "browser"
+skip-if = [
+  "socketprocess_networking", # Bug 1759035
+  "appname != 'firefox'"
+]
+
+["downloadExtrasNotFirefox.js"]
+skip-if = [
+  "socketprocess_networking", # Bug 1759035
+  "appname == 'firefox'"
+]
+
 ["downloadInterruptedNoRecovery.js"]
 skip-if = ["socketprocess_networking"] # Bug 1759035
 

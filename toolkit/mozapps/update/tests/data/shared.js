@@ -23,6 +23,8 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 const PREF_APP_UPDATE_AUTO = "app.update.auto";
+const PREF_APP_UPDATE_BACKGROUND_ALLOWDOWNLOADSWITHOUTBITS =
+  "app.update.background.allowDownloadsWithoutBITS";
 const PREF_APP_UPDATE_BACKGROUNDERRORS = "app.update.backgroundErrors";
 const PREF_APP_UPDATE_BACKGROUNDMAXERRORS = "app.update.backgroundMaxErrors";
 const PREF_APP_UPDATE_BADGEWAITTIME = "app.update.badgeWaitTime";
