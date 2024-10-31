@@ -187,13 +187,13 @@ static inline size_t OffsetFromAligned(void* region, size_t alignment) {
   return uintptr_t(region) % alignment;
 }
 
-template <Commit commit, PageAccess prot>
+template <Commit commit>
 static inline void* MapInternal(void* desired, size_t length) {
   void* region = nullptr;
 #ifdef XP_WIN
   DWORD flags =
       (commit == Commit::Yes ? MEM_RESERVE | MEM_COMMIT : MEM_RESERVE);
-  region = VirtualAlloc(desired, length, flags, DWORD(prot));
+  region = VirtualAlloc(desired, length, flags, DWORD(PageAccess::ReadWrite));
 #elif defined(__wasi__)
   if (int err = posix_memalign(&region, gc::SystemPageSize(), length)) {
     MOZ_RELEASE_ASSERT(err == ENOMEM);
@@ -204,8 +204,8 @@ static inline void* MapInternal(void* desired, size_t length) {
   }
 #else
   int flags = MAP_PRIVATE | MAP_ANON;
-  region = MozTaggedAnonymousMmap(desired, length, int(prot), flags, -1, 0,
-                                  "js-gc-heap");
+  region = MozTaggedAnonymousMmap(desired, length, int(PageAccess::ReadWrite),
+                                  flags, -1, 0, "js-gc-heap");
   if (region == MAP_FAILED) {
     return nullptr;
   }
@@ -228,37 +228,37 @@ static inline void UnmapInternal(void* region, size_t length) {
 #endif
 }
 
-template <Commit commit = Commit::Yes, PageAccess prot = PageAccess::ReadWrite>
+template <Commit commit = Commit::Yes>
 static inline void* MapMemory(size_t length) {
   MOZ_ASSERT(length > 0);
 
-  return MapInternal<commit, prot>(nullptr, length);
+  return MapInternal<commit>(nullptr, length);
 }
 
 /*
  * Attempts to map memory at the given address, but allows the system
  * to return a different address that may still be suitable.
  */
-template <Commit commit = Commit::Yes, PageAccess prot = PageAccess::ReadWrite>
+template <Commit commit = Commit::Yes>
 static inline void* MapMemoryAtFuzzy(void* desired, size_t length) {
   MOZ_ASSERT(desired && OffsetFromAligned(desired, allocGranularity) == 0);
   MOZ_ASSERT(length > 0);
 
   // Note that some platforms treat the requested address as a hint, so the
   // returned address might not match the requested address.
-  return MapInternal<commit, prot>(desired, length);
+  return MapInternal<commit>(desired, length);
 }
 
 /*
  * Attempts to map memory at the given address, returning nullptr if
  * the system returns any address other than the requested one.
  */
-template <Commit commit = Commit::Yes, PageAccess prot = PageAccess::ReadWrite>
+template <Commit commit = Commit::Yes>
 static inline void* MapMemoryAt(void* desired, size_t length) {
   MOZ_ASSERT(desired && OffsetFromAligned(desired, allocGranularity) == 0);
   MOZ_ASSERT(length > 0);
 
-  void* region = MapInternal<commit, prot>(desired, length);
+  void* region = MapInternal<commit>(desired, length);
   if (!region) {
     return nullptr;
   }
