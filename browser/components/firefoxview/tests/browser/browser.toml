@@ -43,7 +43,9 @@ skip-if = ["verify"] # Bug 1886017
 ["browser_opentabs_recency.js"]
 skip-if = [
   "os == 'mac'",
-] # macos times out, see bug 1857293, Bug 1875877 - frequent fails on linux.
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'"
+  "os == 'win' && opt"
+] # macos times out, see bug 1857293, Bug 1875877 - frequent fails on linux and windows opt
 
 ["browser_opentabs_search.js"]
 fail-if = ["a11y_checks"] # Bug 1850591 clicked moz-page-nav-button button is not focusable
