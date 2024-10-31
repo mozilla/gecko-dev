@@ -35,9 +35,9 @@ enum {
 // See js::FunctionExtended::NUM_EXTENDED_SLOTS.
 #define INTERFACE_OBJECT_MAX_SLOTS 3
 
-// Legacy factory functions store a JSNativeHolder in the
-// LEGACY_FACTORY_FUNCTION_NATIVE_HOLDER_RESERVED_SLOT slot.
-enum { LEGACY_FACTORY_FUNCTION_NATIVE_HOLDER_RESERVED_SLOT = 0 };
+// Legacy factory functions store a LegacyFactoryFunction in the
+// LEGACY_FACTORY_FUNCTION_RESERVED_SLOT slot.
+enum { LEGACY_FACTORY_FUNCTION_RESERVED_SLOT = 0 };
 
 // Interface prototype objects store a number of reserved slots equal to
 // DOM_INTERFACE_PROTO_SLOTS_BASE or DOM_INTERFACE_PROTO_SLOTS_BASE + 1 if a

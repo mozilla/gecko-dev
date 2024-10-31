@@ -996,8 +996,8 @@ static JSObject* CreateInterfaceObject(
     JS::Rooted<JSObject*> legacyFactoryFunction(
         cx, CreateBuiltinFunctionForConstructor(
                 cx, LegacyFactoryFunctionJSNative,
-                LEGACY_FACTORY_FUNCTION_NATIVE_HOLDER_RESERVED_SLOT,
-                const_cast<JSNativeHolder*>(&lff.mHolder), lff.mNargs, nameId,
+                LEGACY_FACTORY_FUNCTION_RESERVED_SLOT,
+                const_cast<LegacyFactoryFunction*>(&lff), lff.mNargs, nameId,
                 nullptr));
     if (!legacyFactoryFunction ||
         !JS_DefineProperty(cx, legacyFactoryFunction, "prototype", proto,
@@ -1906,6 +1906,30 @@ static bool ResolvePrototypeOrConstructor(
                                        JS::PropertyAttribute::Writable})));
         return true;
       }
+    }
+
+    if (id.get() == GetJSIDByIndex(cx, XPCJSContext::IDX_NAME)) {
+      const char* name = IsInterfaceObject(obj)
+                             ? InterfaceInfoFromObject(obj)->mConstructorName
+                             : LegacyFactoryFunctionFromObject(obj)->mName;
+      JSString* nameStr = JS_NewStringCopyZ(cx, name);
+      if (!nameStr) {
+        return false;
+      }
+      desc.set(Some(JS::PropertyDescriptor::Data(
+          JS::StringValue(nameStr), {JS::PropertyAttribute::Configurable,
+                                     JS::PropertyAttribute::Enumerable})));
+      return true;
+    }
+
+    if (id.get() == GetJSIDByIndex(cx, XPCJSContext::IDX_LENGTH)) {
+      uint8_t length = IsInterfaceObject(obj)
+                           ? InterfaceInfoFromObject(obj)->mConstructorArgs
+                           : LegacyFactoryFunctionFromObject(obj)->mNargs;
+      desc.set(Some(JS::PropertyDescriptor::Data(
+          JS::Int32Value(length), {JS::PropertyAttribute::Configurable,
+                                   JS::PropertyAttribute::Enumerable})));
+      return true;
     }
   } else if (type == eNamespace) {
     if (id.isWellKnownSymbol(JS::SymbolCode::toStringTag)) {

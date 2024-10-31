@@ -967,8 +967,11 @@ class CGInterfaceObjectInfo(CGThing):
     def define(self):
         if self.descriptor.interface.ctor():
             ctorname = CONSTRUCT_HOOK_NAME
+            constructorArgs = methodLength(self.descriptor.interface.ctor())
         else:
             ctorname = "ThrowingConstructor"
+            constructorArgs = 0
+        constructorName = self.descriptor.interface.getClassName()
         wantsIsInstance = self.descriptor.interface.hasInterfacePrototypeObject()
 
         prototypeID, depth = PrototypeIDAndDepth(self.descriptor)
@@ -979,17 +982,21 @@ class CGInterfaceObjectInfo(CGThing):
             static const DOMInterfaceInfo sInterfaceObjectInfo = {
               { ${ctorname}, ${hooks} },
               ${protoHandleGetter},
-              ${prototypeID},
               ${depth},
+              ${prototypeID},
               ${wantsIsInstance},
+              ${constructorArgs},
+              "${constructorName}",
             };
             """,
             ctorname=ctorname,
             hooks=NativePropertyHooks(self.descriptor),
             protoHandleGetter=protoHandleGetter,
-            prototypeID=prototypeID,
             depth=depth,
+            prototypeID=prototypeID,
             wantsIsInstance=toStringBool(wantsIsInstance),
+            constructorArgs=constructorArgs,
+            constructorName=constructorName,
         )
 
 
