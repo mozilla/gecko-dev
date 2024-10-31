@@ -387,6 +387,7 @@ nsresult FetchIconInfo(const RefPtr<Database>& aDB, uint16_t aPreferredWidth,
 
 nsresult FetchMostFrecentSubPageIcon(const RefPtr<Database>& aDB,
                                      const nsACString& aPageRoot,
+                                     const nsACString& aPageHost,
                                      IconData& aIconData) {
   nsCOMPtr<mozIStorageStatement> stmt = aDB->GetStatement(
       "SELECT i.icon_url "
@@ -394,14 +395,16 @@ nsresult FetchMostFrecentSubPageIcon(const RefPtr<Database>& aDB,
       "JOIN moz_icons_to_pages itp ON pwi.id = itp.page_id "
       "JOIN moz_icons i ON itp.icon_id = i.id "
       "JOIN moz_places p ON p.url_hash = pwi.page_url_hash "
-      "WHERE p.url BETWEEN :pageRoot AND :pageRoot || "
-      "X'FFFF' "
+      "WHERE p.rev_host = get_unreversed_host(:pageHost || '.') || '.' "
+      "AND p.url BETWEEN :pageRoot AND :pageRoot || X'FFFF' "
       "ORDER BY p.frecency DESC, i.width DESC "
       "LIMIT 1");
   NS_ENSURE_STATE(stmt);
   mozStorageStatementScoper scoperFallback(stmt);
 
   nsresult rv = stmt->BindUTF8StringByName("pageRoot"_ns, aPageRoot);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = stmt->BindUTF8StringByName("pageHost"_ns, aPageHost);
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool hasResult;
@@ -574,8 +577,16 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
     rv = aPageURI->GetFilePath(pageFilePath);
     NS_ENSURE_SUCCESS(rv, rv);
     if (pageFilePath == "/"_ns) {
-      rv = FetchMostFrecentSubPageIcon(aDB, pageSpec, aIconData);
-      NS_ENSURE_SUCCESS(rv, rv);
+      nsAutoCString pageHost;
+      (void)aPageURI->GetHost(pageHost);
+
+      nsAutoCString pagePrePath;
+      (void)aPageURI->GetPrePath(pagePrePath);
+
+      if (!pageHost.IsEmpty() && !pagePrePath.IsEmpty()) {
+        rv = FetchMostFrecentSubPageIcon(aDB, pagePrePath, pageHost, aIconData);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
     }
   }
 
