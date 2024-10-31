@@ -1871,6 +1871,29 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
     }
   }
   TextLeafPoint lastPoint = *this;
+  // If we're at the start of the container and searching for a previous start,
+  // start the search from the previous leaf. Otherwise, we'll miss the previous
+  // start.
+  const bool shouldTraversePrevLeaf = [&]() {
+    const bool shouldTraverse =
+        !aIncludeOrigin && aDirection == eDirPrevious && mOffset == 0;
+    Accessible* prevSibling = mAcc->PrevSibling();
+    if (prevSibling) {
+      return shouldTraverse && !prevSibling->IsText();
+    }
+    return shouldTraverse;
+  }();
+  if (shouldTraversePrevLeaf) {
+    // Go to the previous leaf and start the search from there, if it exists.
+    Accessible* prevLeaf = PrevLeaf(mAcc);
+    if (!prevLeaf) {
+      return *this;
+    }
+    lastPoint = TextLeafPoint(
+        prevLeaf, static_cast<int32_t>(nsAccUtils::TextLength(prevLeaf)));
+  }
+  // This loop searches within a container (that is, it only looks at siblings).
+  // We might cross containers before or after this loop, but not within it.
   for (;;) {
     if (TextLeafPoint offsetAttr = lastPoint.FindTextOffsetAttributeSameAcc(
             aDirection, aIncludeOrigin && lastPoint.mAcc == mAcc)) {
@@ -1888,21 +1911,28 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
         isRemote ? point.mAcc->AsRemote()->GetCachedTextAttributes()
                  : point.GetTextAttributesLocalAcc();
     if (attrs && lastAttrs && !attrs->Equal(lastAttrs)) {
-      // The attributes change here. If we're moving forward, we want to
-      // return this point. If we're moving backward, we've now moved before
-      // the start of the attrs run containing the origin, so return that start
-      // point; i.e. the start of the last Accessible we hit.
-      if (aDirection == eDirPrevious) {
-        point = lastPoint;
-        point.mOffset = 0;
+      // The attributes change here. If we're moving forward, we want to return
+      // this point.
+      if (aDirection == eDirNext) {
+        return point;
       }
-      if (!aIncludeOrigin && point == *this) {
-        MOZ_ASSERT(aDirection == eDirPrevious);
-        // The origin is the start of an attrs run, but the caller doesn't want
-        // the origin included.
-        continue;
+
+      // Otherwise, we're moving backward and we've now moved before the start
+      // point of the current text attributes run.
+      const auto attrsStart = TextLeafPoint(lastPoint.mAcc, 0);
+
+      // Return the current text attributes run start point if:
+      //   1. The caller wants this function to include the origin in the
+      //   search (aIncludeOrigin implies that we must return the first text
+      //   attributes run start point that we find, even if that point is the
+      //   origin)
+      //   2. Our search did not begin on the text attributes run start point
+      if (aIncludeOrigin || attrsStart != *this) {
+        return attrsStart;
       }
-      return point;
+
+      // Otherwise, the origin was the attributes run start point and the caller
+      // wants this function to ignore it in its search. Keep searching.
     }
     lastPoint = point;
     if (aDirection == eDirPrevious) {
@@ -1913,12 +1943,22 @@ TextLeafPoint TextLeafPoint::FindTextAttrsStart(nsDirection aDirection,
     }
     lastAttrs = attrs;
   }
-  // We couldn't move any further. Use the start/end.
+
+  // We couldn't move any further in this container.
+  if (aDirection == eDirPrevious) {
+    // Treat the start of a container as a format boundary.
+    return TextLeafPoint(lastPoint.mAcc, 0);
+  }
+  // If we're at the end of the container then we have to use the start of the
+  // next leaf.
+  Accessible* nextLeaf = NextLeaf(lastPoint.mAcc);
+  if (nextLeaf) {
+    return TextLeafPoint(nextLeaf, 0);
+  }
+  // If there's no next leaf, then fall back to the end of the last point.
   return TextLeafPoint(
       lastPoint.mAcc,
-      aDirection == eDirPrevious
-          ? 0
-          : static_cast<int32_t>(nsAccUtils::TextLength(lastPoint.mAcc)));
+      static_cast<int32_t>(nsAccUtils::TextLength(lastPoint.mAcc)));
 }
 
 LayoutDeviceIntRect TextLeafPoint::CharBounds() {

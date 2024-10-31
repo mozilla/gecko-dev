@@ -368,6 +368,160 @@ addUiaTask(
 );
 
 /**
+ * Test the Format TextUnit. Exercises ExpandToEnclosingUnit, Move, and
+ * MoveEndpointByUnit. Tested here separately since the setup and implementation
+ * is somewhat different from other TextUnits.
+ */
+addUiaTask(
+  `
+<div id="bold-container">a <b>bcd</b> ef</div>
+<div id="container-container">a <span tabindex="0">bcd</span> ef</div>
+<textarea id="textarea" spellcheck="true">test tset test</textarea>
+`,
+  async function testTextRangeMove(browser, docAcc) {
+    info("Constructing range on bold text run");
+    await runPython(`
+      global doc, docText, range
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      boldContainerAcc = findUiaByDomId(doc, "bold-container")
+      range = docText.RangeFromChild(boldContainerAcc)
+    `);
+    is(await runPython(`range.GetText(-1)`), "a bcd ef", "range text correct");
+    info("Moving to bold text run");
+    is(
+      await runPython(`range.Move(TextUnit_Format, 1)`),
+      1,
+      "Move return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+
+    // Testing ExpandToEnclosingUnit (on formatting boundaries)
+    info("Expanding to character (shrinking the range)");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Character)`);
+    is(await runPython(`range.GetText(-1)`), "b", "range text correct");
+    info("Expanding to Format");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Format)`);
+    is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+
+    info("Making range larger than the Format unit");
+    is(
+      await runPython(
+        `range.MoveEndpointByUnit(TextPatternRangeEndpoint_End, TextUnit_Character, 1)`
+      ),
+      1,
+      "MoveEndpointByUnit return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "bcd ", "range text correct");
+
+    info("Expanding to Format (shrinking the range)");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Format)`);
+    is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+
+    // Testing Move (on formatting boundaries)
+    info("Moving 1 Format unit");
+    is(
+      await runPython(`range.Move(TextUnit_Format, 1)`),
+      1,
+      "Move return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), " ef", "range text correct");
+    info("Moving -3 Format units (but only -2 are left)");
+    is(
+      await runPython(`range.Move(TextUnit_Format, -3)`),
+      -2,
+      "Move return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "a ", "range text correct");
+
+    // Testing MoveEndpointByUnit (on formatting boundaries)
+    info("Moving end 1 Format unit");
+    is(
+      await runPython(
+        `range.MoveEndpointByUnit(TextPatternRangeEndpoint_End, TextUnit_Format, 1)`
+      ),
+      1,
+      "MoveEndpointByUnit return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "a bcd", "range text correct");
+    info("Moving start 1 Format unit");
+    is(
+      await runPython(
+        `range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Format, 1)`
+      ),
+      1,
+      "MoveEndpointByUnit return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+
+    // Testing above three methods on text runs defined by container boundaries
+    info("Constructing range on text run defined by container boundaries");
+    await runPython(`
+      global doc, docText, range
+      containerContainer = findUiaByDomId(doc, "container-container")
+      range = docText.RangeFromChild(containerContainer)
+    `);
+    is(await runPython(`range.GetText(-1)`), "a bcd ef", "range text correct");
+    info("Expanding to Format");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Format)`);
+    is(await runPython(`range.GetText(-1)`), "a ", "range text correct");
+    info("Moving 1 Format unit");
+    is(
+      await runPython(`range.Move(TextUnit_Format, 1)`),
+      1,
+      "Move return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+    info("Moving start -1 Format unit");
+    is(
+      await runPython(
+        `range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Format, -1)`
+      ),
+      -1,
+      "MoveEndpointByUnit return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "a bcd", "range text correct");
+
+    // Trigger spelling errors so we can test text offset attributes
+    const textarea = findAccessibleChildByID(docAcc, "textarea");
+    textarea.takeFocus();
+    await waitForEvent(EVENT_TEXT_ATTRIBUTE_CHANGED);
+
+    // Testing above three methods on text offset attributes
+    info("Constructing range on italic text run");
+    await runPython(`
+      global doc, docText, range
+      textarea = findUiaByDomId(doc, "textarea")
+      range = docText.RangeFromChild(textarea)
+    `);
+    is(
+      await runPython(`range.GetText(-1)`),
+      "test tset test",
+      "range text correct"
+    );
+    info("Expanding to Format");
+    await runPython(`range.ExpandToEnclosingUnit(TextUnit_Format)`);
+    is(await runPython(`range.GetText(-1)`), "test ", "range text correct");
+    info("Moving 1 Format unit");
+    is(
+      await runPython(`range.Move(TextUnit_Format, 1)`),
+      1,
+      "Move return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "tset", "range text correct");
+    info("Moving start -1 Format unit");
+    is(
+      await runPython(
+        `range.MoveEndpointByUnit(TextPatternRangeEndpoint_Start, TextUnit_Format, -1)`
+      ),
+      -1,
+      "MoveEndpointByUnit return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "test tset", "range text correct");
+  }
+);
+
+/**
  * Test the TextRange pattern's Move method.
  */
 addUiaTask(

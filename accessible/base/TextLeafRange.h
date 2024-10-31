@@ -85,7 +85,7 @@ class TextLeafPoint final {
     eDefaultBoundaryFlags = 0,
     // Return point unchanged if it is at the given boundary type.
     eIncludeOrigin = 1 << 0,
-    // If current point is in editable, return point within samme editable.
+    // If current point is in editable, return point within same editable.
     eStopInEditable = 1 << 1,
     // Skip over list items in searches and don't consider them line or
     // paragraph starts.
@@ -154,9 +154,9 @@ class TextLeafPoint final {
   /**
    * Find the start of a run of text attributes in a specific direction.
    * A text attributes run is a span of text where the attributes are the same.
-   * If no boundary is found, the start/end of the container is returned
-   * (depending on the direction).
-   * If aIncludeorigin is true and this is at a boundary, this will be
+   * If no boundary is found, the function will walk out of the container and
+   * into the next/previous leaf (if it exists) until it finds a start point.
+   * If aIncludeOrigin is true and this is at a boundary, this will be
    * returned unchanged.
    */
   TextLeafPoint FindTextAttrsStart(nsDirection aDirection,

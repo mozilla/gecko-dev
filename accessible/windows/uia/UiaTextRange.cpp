@@ -172,6 +172,16 @@ TextLeafPoint UiaTextRange::FindBoundary(const TextLeafPoint& aOrigin,
     }
     return TextLeafPoint(doc, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT);
   }
+  if (aUnit == TextUnit_Format) {
+    // The UIA documentation says that TextUnit_Format aims to define ranges
+    // that "include all text that shares all the same attributes."
+    // FindTextAttrsStart considers container boundaries to be format boundaries
+    // even if UIA may not. UIA's documentation may consider the next container
+    // to be part of the same format run, since it may have the same attributes.
+    // UIA considers embedded objects to be format boundaries, which is a more
+    // restrictive understanding of boundaries than what Gecko implements here.
+    return aOrigin.FindTextAttrsStart(aDirection, aIncludeOrigin);
+  }
   AccessibleTextBoundary boundary;
   switch (aUnit) {
     case TextUnit_Character:
