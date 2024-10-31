@@ -21,14 +21,14 @@ const INTENT_OPTIONS = {
   taskName: "text-classification",
   featureId: "suggest-intent-classification",
   engineId: "ml-suggest-intent",
-  timeoutMS: 36000000,
+  timeoutMS: -1,
 };
 
 const NER_OPTIONS = {
   taskName: "token-classification",
   featureId: "suggest-NER",
   engineId: "ml-suggest-ner",
-  timeoutMS: 36000000,
+  timeoutMS: -1,
 };
 
 // List of prepositions used in subject cleaning.
@@ -41,6 +41,11 @@ const PREPOSITIONS = ["in", "at", "on", "for", "to", "near"];
  */
 class _MLSuggest {
   #modelEngines = {};
+
+  // Helper to wrap createEngine for testing purpose
+  createEngine(args) {
+    return lazy.createEngine(args);
+  }
 
   /**
    * Initializes the intent and NER models.
@@ -123,7 +128,7 @@ class _MLSuggest {
       return this.#modelEngines[engineId];
     }
 
-    const engine = await lazy.createEngine({ ...options, engineId });
+    const engine = await this.createEngine({ ...options, engineId });
     // Cache the engine
     this.#modelEngines[engineId] = engine;
     return engine;
@@ -146,10 +151,19 @@ class _MLSuggest {
       return null;
     }
 
-    const res = await engineIntentClassifier.run({
-      args: [query],
-      options,
-    });
+    let res;
+    try {
+      res = await engineIntentClassifier.run({
+        args: [query],
+        options,
+      });
+    } catch (error) {
+      // engine could timeout or fail, so remove that from cache
+      // and reinitialize
+      this.#modelEngines[INTENT_OPTIONS.engineId] = null;
+      this.#initializeModelEngine(INTENT_OPTIONS);
+      return null;
+    }
     // Return the first label from the result
     return res[0].label;
   }
@@ -167,7 +181,15 @@ class _MLSuggest {
    */
   async _findNER(query, options = {}) {
     const engineNER = this.#modelEngines[NER_OPTIONS.engineId];
-    return engineNER?.run({ args: [query], options });
+    try {
+      return engineNER?.run({ args: [query], options });
+    } catch (error) {
+      // engine could timeout or fail, so remove that from cache
+      // and reinitialize
+      this.#modelEngines[NER_OPTIONS.engineId] = null;
+      this.#initializeModelEngine(NER_OPTIONS);
+      return null;
+    }
   }
 
   /**
