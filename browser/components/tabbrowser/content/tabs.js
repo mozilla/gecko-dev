@@ -62,6 +62,18 @@
         return (!tab.pinned || !arePositioningPinnedTabs()) && tab.visible;
       };
 
+      // Override for performance reasons. This is the size of a single element
+      // that can be scrolled when using mouse wheel scrolling. If we don't do
+      // this then arrowscrollbox computes this value by calling
+      // _getScrollableElements and dividing the box size by that number.
+      // However in the tabstrip case we already know the answer to this as,
+      // when we're overflowing, it is always the same as the tab min width or
+      // height.
+      Object.defineProperty(this.arrowScrollbox, "lineScrollAmount", {
+        get: () =>
+          this.verticalMode ? this._tabMinHeight : this._tabMinWidthPref,
+      });
+
       this.baseConnect();
 
       this._blockDblClick = false;
@@ -133,6 +145,7 @@
         }
       );
       this.#updateTabMinWidth(this._tabMinWidthPref);
+      this.#updateTabMinHeight();
 
       CustomizableUI.addListener(this);
       this._updateNewTabVisibility();
@@ -172,6 +185,7 @@
       this._positionPinnedTabs();
 
       this.#updateTabMinWidth();
+      this.#updateTabMinHeight();
 
       let indicatorTabs = gBrowser.visibleTabs.filter(tab => {
         return (
@@ -1394,6 +1408,16 @@
       }
     }
 
+    #updateTabMinHeight() {
+      const minHeightVariable = "--tab-min-height";
+      const marginVariable = "--tab-block-margin";
+      let cstyle = window.getComputedStyle(document.documentElement);
+      let height = cstyle.getPropertyValue(minHeightVariable);
+      let margin = cstyle.getPropertyValue(marginVariable);
+      // Total height is the min-height plus twice the margin (top and bottom)
+      this._tabMinHeight = parseInt(height, 10) + 2 * parseInt(margin, 10);
+    }
+
     get _isCustomizing() {
       return document.documentElement.hasAttribute("customizing");
     }
@@ -1641,6 +1665,7 @@
     uiDensityChanged() {
       this._positionPinnedTabs();
       this._updateCloseButtons();
+      this.#updateTabMinHeight();
       this._handleTabSelect(true);
     }
 
