@@ -12,7 +12,10 @@ with Files("**"):
 
 DIRS += ["actors"]
 
-BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
+BROWSER_CHROME_MANIFESTS += [
+    "tests/browser/browser.toml",
+    "tests/browser/perftest.toml",
+]
 
 XPIDL_SOURCES += ["nsIMLUtils.idl"]
 

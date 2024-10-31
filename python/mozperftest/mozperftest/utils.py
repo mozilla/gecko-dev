@@ -298,6 +298,7 @@ def install_requirements_file(
 _TRY_MAPPING = {
     Path("netwerk"): Path("xpcshell", "tests", "netwerk"),
     Path("dom"): Path("mochitest", "tests", "dom"),
+    Path("toolkit"): Path("mochitest", "browser", "toolkit"),
 }
 
 
