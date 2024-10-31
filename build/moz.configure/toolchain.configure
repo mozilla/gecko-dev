@@ -2181,6 +2181,45 @@ set_config("GCC_USE_GNU_LD", gcc_use_gnu_ld)
 include("compile-checks.configure")
 include("arm.configure", when=depends(target.cpu)(lambda cpu: cpu == "arm"))
 
+# Libstdc++ feature detection
+# ==============================================================
+
+with only_when("--enable-debug"):
+    using_libstdcxx = try_compile(
+        language="C++",
+        includes=["new"],
+        body="#ifndef __GLIBCXX__\n#error 1\n#endif",
+        when=depends(c_compiler)(lambda c: c.type != "clang-cl"),
+    )
+
+    libstdcxx_assertions = depends(when=using_libstdcxx)("_GLIBCXX_ASSERTIONS")
+
+    using_libcxx = try_compile(
+        language="C++",
+        includes=["new"],
+        body="#ifndef _LIBCPP_VERSION\n#error 1\n#endif",
+        when=~using_libstdcxx,
+    )
+
+    @depends(
+        try_compile(language="C++", body="#if _LIBCPP_STD_VER >= 18\n#error 1\n#endif"),
+        when=using_libcxx,
+    )
+    def libcxx_assertions(modern_libcxx):
+        if modern_libcxx:
+            return "_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG"
+        else:
+            return "_LIBCPP_HARDENING_MODE_DEBUG"
+
+    @depends(
+        libstdcxx_assertions,
+        libcxx_assertions,
+        when=libstdcxx_assertions | libcxx_assertions,
+    )
+    @checking("which standard c++ library assertions to use")
+    def stdlibcxx_assertions(libstdcxx, libcxx):
+        return libstdcxx or libcxx
+
 
 @depends(
     have_64_bit,
@@ -2846,9 +2885,10 @@ option(
     "--enable-optimize",
     c_compiler,
     target,
+    stdlibcxx_assertions,
 )
 def security_hardening_cflags(
-    hardening_flag, asan, debug, optimize, c_compiler, target
+    hardening_flag, asan, debug, optimize, c_compiler, target, cxx_assert
 ):
     compiler_is_gccish = c_compiler.type in ("gcc", "clang")
     mingw_clang = c_compiler.type == "clang" and target.os == "WINNT"
@@ -2870,6 +2910,10 @@ def security_hardening_cflags(
         if compiler_is_gccish and optimize and not asan:
             flags.append("-U_FORTIFY_SOURCE")
             flags.append("-D_FORTIFY_SOURCE=2")
+
+        # Lib c++ debug mode
+        if cxx_assert:
+            flags.append(f"-D{cxx_assert}")
 
         # fstack-protector ------------------------------------
         # Enable only if hardening is not disabled and ASAN is
