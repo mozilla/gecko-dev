@@ -56,6 +56,12 @@ async function assertNotDecrypts(test, headers) {
   await Assert.rejects(promise, test.expected, test.desc);
 }
 
+add_setup(async function () {
+  // Per https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/instrumentation_tests.html#xpcshell-tests
+  do_get_profile();
+  Services.fog.initializeFOG();
+});
+
 add_task(async function test_crypto_getCryptoParamsFromHeaders() {
   // These headers should parse correctly.
   let shouldParse = [
@@ -196,6 +202,7 @@ add_task(async function test_crypto_getCryptoParamsFromHeaders() {
 });
 
 add_task(async function test_aes128gcm_ok() {
+  Services.fog.testResetFOG();
   let expectedSuccesses = [
     {
       desc: "Example from draft-ietf-webpush-encryption-latest",
@@ -286,6 +293,11 @@ add_task(async function test_aes128gcm_ok() {
     let decoder = new TextDecoder("utf-8");
     equal(decoder.decode(new Uint8Array(result)), test.result, test.desc);
   }
+  Assert.equal(
+    Glean.webPush.contentEncoding.aes128gcm.testGetValue(),
+    4,
+    "Glean counter should be increased for each decrypt"
+  );
 });
 
 add_task(async function test_aes128gcm_err() {
@@ -367,6 +379,7 @@ add_task(async function test_aes128gcm_err() {
 });
 
 add_task(async function test_aesgcm_ok() {
+  Services.fog.testResetFOG();
   let expectedSuccesses = [
     {
       desc: "padSize = 2, rs = 24, pad = 0",
@@ -436,6 +449,11 @@ add_task(async function test_aesgcm_ok() {
   for (let test of expectedSuccesses) {
     await assertDecrypts(test, test.headers);
   }
+  Assert.equal(
+    Glean.webPush.contentEncoding.aesgcm.testGetValue(),
+    4,
+    "Glean counter should be increased for each decrypt"
+  );
 });
 
 add_task(async function test_aesgcm_err() {

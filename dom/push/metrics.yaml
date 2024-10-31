@@ -40,3 +40,17 @@ web_push:
     notification_emails:
       - krosylight@mozilla.com
     expires: never
+  content_encoding:
+    type: labeled_counter
+    description: >
+      Which content encoding is being used for push.
+    labels:
+      - aes128gcm
+      - aesgcm
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928131
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928131
+    notification_emails:
+      - krosylight@mozilla.com
+    expires: never

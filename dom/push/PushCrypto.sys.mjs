@@ -662,6 +662,7 @@ export var PushCrypto = {
       // aes128gcm includes the salt, record size, and sender public key in a
       // binary header preceding the ciphertext.
       let cryptoParams = getCryptoParamsFromPayload(new Uint8Array(payload));
+      Glean.webPush.contentEncoding.aes128gcm.add();
       decoder = new aes128gcmDecoder(
         privateKey,
         publicKey,
@@ -674,6 +675,7 @@ export var PushCrypto = {
       // key in the `Crypto-Key` and `Encryption` HTTP headers.
       let cryptoParams = getCryptoParamsFromHeaders(headers);
       if (headers.encoding == AESGCM_ENCODING) {
+        Glean.webPush.contentEncoding.aesgcm.add();
         decoder = new aesgcmDecoder(
           privateKey,
           publicKey,
