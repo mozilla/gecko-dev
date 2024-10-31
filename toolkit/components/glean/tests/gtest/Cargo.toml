@@ -1,4 +1,5 @@
 [package]
+edition = "2021"
 name = "fog-gtest"
 version = "0.1.0"
 authors = ["glean-team@mozilla.com"]
