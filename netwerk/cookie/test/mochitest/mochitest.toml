@@ -8,7 +8,6 @@ support-files = [
 ["test_document_cookie.html"]
 
 ["test_document_cookie_notification.html"]
-scheme = "https"
 
 ["test_fetch.html"]
 

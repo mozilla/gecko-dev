@@ -33,12 +33,6 @@ function setupTest(uri, cookies, loads) {
   gExpectedCookies = cookies;
   gExpectedLoads = loads;
 
-  // If this is an xorigin test, the "oh=hai" cookie set by this frame
-  // in runTest() does not work because we are third-party
-  if (isXOrigin) {
-    gExpectedCookies -= 1;
-  }
-
   // Listen for MessageEvents.
   window.addEventListener("message", messageReceiver);
 
