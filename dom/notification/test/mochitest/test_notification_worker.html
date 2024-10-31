@@ -20,7 +20,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
 
   async function runTest() {
-    var w = new Worker("notification_worker.js");
+    let workerPath = "notification_worker.js";
+    if (isXOrigin) {
+      workerPath += "?xorigin";
+    }
+    var w = new Worker(workerPath);
     w.onmessage = function(e) {
       if (e.data.type === 'finish') {
         SimpleTest.finish();
