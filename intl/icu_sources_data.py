@@ -46,7 +46,6 @@ UNUSED_SOURCES = set(
         "intl/icu/source/common/unorm.cpp",
         "intl/icu/source/common/usc_impl.cpp",
         "intl/icu/source/common/ustr_wcs.cpp",
-        "intl/icu/source/common/util_props.cpp",
         "intl/icu/source/i18n/anytrans.cpp",
         "intl/icu/source/i18n/brktrans.cpp",
         "intl/icu/source/i18n/casetrn.cpp",
