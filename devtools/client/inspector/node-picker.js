@@ -53,46 +53,6 @@ class NodePicker extends EventEmitter {
   };
 
   /**
-   * This DOCUMENT_EVENT resource callback is only used for webextension targets
-   * to workaround the fact that some navigations will not create/destroy any
-   * target (eg when jumping from a background document to a popup document).
-   **/
-  #onWebExtensionDocumentEventAvailable = async resources => {
-    const { DOCUMENT_EVENT } = this.commands.resourceCommand.TYPES;
-
-    for (const resource of resources) {
-      if (
-        resource.resourceType == DOCUMENT_EVENT &&
-        resource.name === "dom-complete" &&
-        resource.targetFront.isTopLevel &&
-        // When switching frames for a webextension target, a first dom-complete
-        // resource is emitted when we start watching the new docshell, in the
-        // WindowGlobalTargetActor progress listener.
-        //
-        // However here, we are expecting the "fake" dom-complete resource
-        // emitted specifically from the webextension target actor, when the
-        // new docshell is finally recognized to be linked to the target's
-        // webextension. This resource is emitted from `_changeTopLevelDocument`
-        // and is the only one which will have `isFrameSwitching` set to true.
-        //
-        // It also emitted after the one for the new docshell, so to avoid
-        // stopping and starting the node-picker twice, we filter out the first
-        // resource, which does not have `isFrameSwitching` set.
-        resource.isFrameSwitching
-      ) {
-        const inspectorFront = await resource.targetFront.getFront("inspector");
-        // When a webextension target navigates, it will typically be between
-        // documents which are not under the same root (fallback-document,
-        // devtools-panel, popup). Even though we are not switching targets, we
-        // need to restart the node picker.
-        await inspectorFront.walker.cancelPick();
-        await inspectorFront.walker.pick(this.doFocus);
-        this.emitForTests("node-picker-webextension-target-restarted");
-      }
-    }
-  };
-
-  /**
    * Tell the walker front corresponding to the given inspector front to enter node
    * picking mode (listen for mouse movements over its nodes) and set event listeners
    * associated with node picking: hover node, pick node, preview, cancel. See WalkerSpec.
@@ -188,15 +148,6 @@ class NodePicker extends EventEmitter {
       onAvailable: this.#onTargetAvailable,
     });
 
-    if (this.targetCommand.descriptorFront.isWebExtension) {
-      await this.commands.resourceCommand.watchResources(
-        [this.commands.resourceCommand.TYPES.DOCUMENT_EVENT],
-        {
-          onAvailable: this.#onWebExtensionDocumentEventAvailable,
-        }
-      );
-    }
-
     this.emit("picker-started");
   };
 
@@ -222,15 +173,6 @@ class NodePicker extends EventEmitter {
       types: this.targetCommand.ALL_TYPES,
       onAvailable: this.#onTargetAvailable,
     });
-
-    if (this.targetCommand.descriptorFront.isWebExtension) {
-      this.commands.resourceCommand.unwatchResources(
-        [this.commands.resourceCommand.TYPES.DOCUMENT_EVENT],
-        {
-          onAvailable: this.#onWebExtensionDocumentEventAvailable,
-        }
-      );
-    }
 
     const promises = [];
     for (const inspectorFront of this.#currentInspectorFronts) {
@@ -265,7 +207,22 @@ class NodePicker extends EventEmitter {
    * @param {Object} data
    *        Information about the node being hovered
    */
-  #onHovered = data => {
+  #onHovered = async data => {
+    // When debugging WebExtensions, Background page and popups are independent documents.
+    // None is the parent of each others.
+    // This means that if the toolbox is having the background page selected and you mouse over a popup,
+    // the popup DOM Element won't be in the markup view as that's not in a children document of the background page.
+    // Because of that, we have to select the hovered node's document and target in order to have it visible in the markup view.
+    //
+    // These top documents (background pages and popups) can actually have nested iframes,
+    // for these, we will also select these nested iframes, even if they could theoritically be shown from the top document.
+    if (
+      this.targetCommand.descriptorFront.isWebExtensionDescriptor &&
+      data.node.targetFront != this.targetCommand.selectedTargetFront
+    ) {
+      await this.targetCommand.selectTarget(data.node.targetFront);
+    }
+
     this.emit("picker-node-hovered", data.node);
 
     // We're going to cleanup references for all the other walkers, so that if we hover

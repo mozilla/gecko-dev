@@ -12,6 +12,10 @@ const { PromiseTestUtils } = ChromeUtils.importESModule(
 );
 PromiseTestUtils.allowMatchingRejectionsGlobally(/File closed/);
 
+const { AppTestDelegate } = ChromeUtils.importESModule(
+  "resource://specialpowers/AppTestDelegate.sys.mjs"
+);
+
 const ADDON_ID = "test-devtools-webextension@mozilla.org";
 const ADDON_NAME = "test-devtools-webextension";
 
@@ -28,7 +32,7 @@ add_task(async function testNodePickerInExtensionPopup() {
   // reproduce the issue. Otherwise opening the popup does not trigger an auto
   // navigation from DevTools and you have to use the "Disable Popup Auto Hide"
   // feature which works around the bug tested here.
-  await installTemporaryExtensionFromXPI(
+  const { extension } = await installTemporaryExtensionFromXPI(
     {
       extraProperties: {
         browser_action: {
@@ -68,29 +72,61 @@ add_task(async function testNodePickerInExtensionPopup() {
   await toolbox.nodePicker.start();
 
   info("Open the webextension popup");
-  // Clicking on the addon popup will trigger a navigation between the DevTools
-  // fallback document and the popup document.
-  // Wait until the inspector was fully reloaded and for the node-picker to be
-  // restarted.
-  const nodePickerRestarted = toolbox.nodePicker.once(
-    "node-picker-webextension-target-restarted"
-  );
-  const reloaded = inspector.once("reloaded");
+  const { promise: onNewTarget, resolve: resolveNewTarget } =
+    Promise.withResolvers();
+  const onAvailable = async ({ targetFront }) => {
+    if (targetFront.url.endsWith("/popup.html")) {
+      resolveNewTarget(targetFront);
+    }
+  };
+  const { promise: onTargetSelected, resolve: resolveTargetSelected } =
+    Promise.withResolvers();
+  const { targetCommand } = toolbox.commands;
+  const onSelected = async ({ targetFront }) => {
+    resolveTargetSelected(targetFront);
+  };
+  await targetCommand.watchTargets({
+    types: [targetCommand.TYPES.FRAME],
+    onAvailable,
+    onSelected,
+  });
+  const onPanelOpened = AppTestDelegate.awaitExtensionPanel(window, extension);
   clickOnAddonWidget(ADDON_ID);
-  await reloaded;
-  await nodePickerRestarted;
+  await onPanelOpened;
+  info("Wait for the target front related to the popup");
+  await onNewTarget;
 
-  const popup = await waitFor(() =>
-    gBrowser.ownerDocument.querySelector(".webextension-popup-browser")
+  const popup = gBrowser.ownerDocument.querySelector(
+    ".webextension-popup-browser"
   );
 
   info("Pick an element inside the webextension popup");
+  // First mouse over the element to simulate real world events
+  const onReloaded = inspector.once("reloaded");
+  BrowserTestUtils.synthesizeMouseAtCenter(
+    "#pick-me",
+    { type: "mousemove" },
+    popup.browsingContext
+  );
+  info("Wait fot the popup's target to be selected");
+  await onTargetSelected;
+  targetCommand.unwatchTargets({
+    types: [targetCommand.TYPES.FRAME],
+    onAvailable,
+  });
+  info("Wait for the inspector to be reloaded against the popup's document");
+  await onReloaded;
+
+  // Only then, click on the element to pick it
   const onNewNodeFront = inspector.selection.once("new-node-front");
   BrowserTestUtils.synthesizeMouseAtCenter(
     "#pick-me",
     {},
     popup.browsingContext
   );
+  // Picking the element in the popup will change the currently selected target and make the inspector load the popup document
+  info("Wait for the popup's target to become the selected one");
+
   const nodeFront = await onNewNodeFront;
   is(nodeFront.id, "pick-me", "The expected node front was selected");
 

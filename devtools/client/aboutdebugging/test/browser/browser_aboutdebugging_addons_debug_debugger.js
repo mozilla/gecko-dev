@@ -69,13 +69,25 @@ add_task(async function testOpenDebuggerReload() {
     "Extension name displays correctly"
   );
 
-  const waitForLoadedPanelsReload = await watchForLoadedPanelsReload(toolbox);
+  const { onResource: onDomCompleteResource } =
+    await toolbox.commands.resourceCommand.waitForNextResource(
+      toolbox.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+      {
+        ignoreExistingResources: true,
+        predicate: resource => {
+          return (
+            resource.name === "dom-complete" &&
+            resource.targetFront.url.endsWith("background_page.html")
+          );
+        },
+      }
+    );
 
   info("Reload the addon using a toolbox reload shortcut");
   toolbox.win.focus();
   synthesizeKeyShortcut(L10N.getStr("toolbox.reload.key"), toolbox.win);
 
-  await waitForLoadedPanelsReload();
+  await onDomCompleteResource;
 
   info("Wait until a new background log message is logged");
   await waitFor(() => {
