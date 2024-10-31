@@ -59,3 +59,15 @@ export function getSelectedTraceSource(state) {
   }
   return getSourceByActorId(state, frame.sourceId);
 }
+export function getTraceMatchingSearchTraces(state) {
+  return state.tracerFrames?.mutableMatchingTraces || [];
+}
+export function getTraceMatchingSearchException(state) {
+  return state.tracerFrames?.searchExceptionMessage || null;
+}
+export function getTraceMatchingSearchValueOrGrip(state) {
+  return state.tracerFrames?.searchValueOrGrip;
+}
+export function getIsTracingValues(state) {
+  return state.tracerFrames?.traceValues || false;
+}

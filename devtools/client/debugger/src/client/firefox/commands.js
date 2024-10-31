@@ -283,13 +283,18 @@ async function evaluateExpressions(expressions, options) {
  *                 Optional frame actor ID into which the expression should be evaluated.
  * @param {String} options.threadId
  *                 Optional thread actor ID into which the expression should be evaluated.
+ * @param {String} options.selectedNodeActor
+ *                 Optional node actor ID which related to "$0" in the evaluated expression.
  * @param {Boolean} options.evalInTracer
  *                 To be set to true, if the object actors created during the evaluation
  *                 should be registered in the tracer actor Pool.
  * @return {Object}
  *                 See ScriptCommand.execute JS Doc.
  */
-async function evaluate(expression, { frameId, threadId, evalInTracer } = {}) {
+async function evaluate(
+  expression,
+  { frameId, threadId, selectedNodeActor, evalInTracer } = {}
+) {
   if (!currentTarget() || !expression) {
     return { result: null };
   }
@@ -300,6 +305,7 @@ async function evaluate(expression, { frameId, threadId, evalInTracer } = {}) {
     frameActor: frameId,
     selectedTargetFront,
     disableBreaks: true,
+    selectedNodeActor,
     evalInTracer,
   });
 }

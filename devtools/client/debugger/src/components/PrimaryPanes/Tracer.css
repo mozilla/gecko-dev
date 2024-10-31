@@ -111,7 +111,35 @@
 }
 
 
+.tracer-tab .call-tree-container {
+  display: flex;
+  flex-direction: column;
+
+  .search-outline {
+    /* :focus-visible is cutoff on the right */
+    outline-offset: -2px;
+
+    input:not(:placeholder-shown) {
+      font-family: var(--monospace-font-family);
+    }
+  }
+  .search-exception {
+    color: var(--theme-text-color-error);
+    background-color: var(--theme-toolbar-error-background);
+    border-bottom: 1px solid var(--theme-splitter-color);
+  }
+  .search-exception, .search-value {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--theme-splitter-color);
+  }
+  .objectBox {
+    margin-inline-start: 5px;
+  }
+}
+
+
 .tracer-tab .tree {
+  flex: 1;
   overflow-x: auto;
   overflow-y: auto;
   padding-inline-start: 4px !important;
