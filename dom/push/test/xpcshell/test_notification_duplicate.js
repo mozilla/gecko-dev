@@ -12,10 +12,12 @@ function run_test() {
     userAgentID,
   });
   run_next_test();
+  Services.fog.initializeFOG();
 }
 
 // Should acknowledge duplicate notifications, but not notify apps.
 add_task(async function test_notification_duplicate() {
+  Services.fog.testResetFOG();
   let db = PushServiceWebSocket.newPushDB();
   registerCleanupFunction(() => {
     return db.drop().then(_ => db.close());
@@ -172,4 +174,9 @@ add_task(async function test_notification_duplicate() {
       `Wrong recent message IDs for ${channelID}`
     );
   }
+  Assert.equal(
+    Glean.webPush.detectedDuplicatedMessageIds.testGetValue(),
+    1,
+    "Should observe one duplicate"
+  );
 });
