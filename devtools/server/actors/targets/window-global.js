@@ -592,7 +592,8 @@ class WindowGlobalTargetActor extends BaseTargetActor {
   get title() {
     if (this.sessionContext.type == "webextension") {
       const policy = WebExtensionPolicy.getByID(this.sessionContext.addonId);
-      return policy.name;
+      // Note that the policy may be null if we query the title while the add-on is reloading
+      return policy?.name;
     }
     return this.contentDocument.title;
   }

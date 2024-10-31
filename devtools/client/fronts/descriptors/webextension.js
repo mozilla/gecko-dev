@@ -39,6 +39,10 @@ class WebExtensionDescriptorFront extends DescriptorMixin(
     this.traits = json.traits || {};
   }
 
+  setTarget(targetFront) {
+    this._targetFront = targetFront;
+  }
+
   get backgroundScriptStatus() {
     return this._form.backgroundScriptStatus;
   }
@@ -100,15 +104,11 @@ class WebExtensionDescriptorFront extends DescriptorMixin(
   }
 
   isServerTargetSwitchingEnabled() {
-    // For now, we don't expose any target out of the WatcherActor.
-    // And the top level target is still manually instantiated by the descriptor.
-    // We most likely need to wait for full enabling of EFT before being able to spawn
-    // the extension target from the server side as doing this would most likely break
-    // the iframe dropdown. It would break it as spawning the targets from the server
-    // would probably mean getting rid of the usage of WindowGlobalTargetActor._setWindow
-    // and instead spawn one target per extension document.
-    // That, instead of having a unique target for all the documents.
-    return false;
+    // @backward-compat { version 133 } Firefox 133 started supporting server targets by default.
+    // Once this is the only supported version, we can remove the traits and consider this true,
+    // but keep this method as some other descriptor still return false.
+    // At least the browser toolbox doesn't support server target switching.
+    return this.traits.isServerTargetSwitchingEnabled;
   }
 
   getWatcher() {

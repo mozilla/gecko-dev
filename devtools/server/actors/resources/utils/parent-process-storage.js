@@ -204,6 +204,13 @@ class ParentProcessStorage {
    * @param {Boolean} isBfCacheNavigation
    */
   async _onNewWindowGlobal(windowGlobal, isBfCacheNavigation) {
+    // We instantiate only one instance of parent process storage actors per toolbox
+    // when debugging addons as they don't really have any top level target
+    // which cause to switch to a brand new context and require to hook on that new context.
+    if (this.watcherActor.sessionContext.type == "webextension") {
+      return;
+    }
+
     // Only process WindowGlobals which are related to the debugged scope.
     if (
       !isWindowGlobalPartOfContext(

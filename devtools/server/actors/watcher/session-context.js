@@ -93,30 +93,15 @@ function createBrowserElementSessionContext(browserElement, config) {
  *        First object argument to describe the add-on.
  * @param {String} addon.addonId
  *        The web extension ID, to uniquely identify the debugged add-on.
- * @param {String} addon.browsingContextID
- *        The ID of the BrowsingContext into which this add-on is loaded.
- *        For now the top level target is associated with this one precise BrowsingContext.
- *        Knowing about it later helps associate resources to the same BrowsingContext ID and so the same target.
- * @param {String} addon.innerWindowId
- *        The ID of the WindowGlobal into which this add-on is loaded.
- *        This is used for the same reason as browsingContextID. It helps match the resource with the right target.
- *        We now also use the WindowGlobal ID/innerWindowId to identify the targets.
  * @param {Object} config
  *        An object with optional configuration. Only supports "isServerTargetSwitchingEnabled" attribute.
  *        See jsdoc in this file header for more info.
  */
-function createWebExtensionSessionContext(
-  { addonId, browsingContextID, innerWindowId },
-  config
-) {
+function createWebExtensionSessionContext({ addonId }, config) {
   const type = SESSION_TYPES.WEBEXTENSION;
   return {
     type,
     addonId,
-    addonBrowsingContextID: browsingContextID,
-    addonInnerWindowId: innerWindowId,
-    // For now, there is only one target (WebExtensionTargetActor), it is never replaced,
-    // and is only created via WebExtensionDescriptor.getTarget (and never by the watcher actor).
     isServerTargetSwitchingEnabled: config.isServerTargetSwitchingEnabled,
     supportedTargets: getWatcherSupportedTargets(type),
     supportedResources: getWatcherSupportedResources(type),

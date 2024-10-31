@@ -86,8 +86,12 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   btn.click();
 
   const menuList = toolbox.doc.getElementById("toolbox-frame-menu");
+  await waitFor(
+    () => menuList.querySelectorAll(".command").length == 3,
+    "Wait for fallback, background and popup documents to be listed"
+  );
   const frames = Array.from(menuList.querySelectorAll(".command"));
-  is(frames.length, 2, "Has the expected number of frames");
+  is(frames.length, 3, "Has the expected number of frames");
 
   const popupFrameBtn = frames
     .filter(frame => {
@@ -100,8 +104,14 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
   info(
     "Click on the extension popup frame and wait for a `dom-complete` resource"
   );
-  const { onDomCompleteResource } =
-    await waitForNextTopLevelDomCompleteResource(toolbox.commands);
+  const { onResource: onDomCompleteResource } =
+    await toolbox.commands.resourceCommand.waitForNextResource(
+      toolbox.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+      {
+        ignoreExistingResources: true,
+        predicate: resource => resource.name === "dom-complete",
+      }
+    );
   popupFrameBtn.click();
   await onDomCompleteResource;
 

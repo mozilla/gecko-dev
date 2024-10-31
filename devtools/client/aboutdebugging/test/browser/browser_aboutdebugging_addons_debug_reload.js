@@ -35,6 +35,27 @@ add_task(async function testWebExtensionToolboxReload() {
       },
       id: ADDON_ID,
       name: ADDON_NAME,
+      extraProperties: {
+        sidebar_action: {
+          default_title: "Sidebar",
+          default_icon: {
+            64: "icon.png",
+          },
+          default_panel: "sidebar.html",
+        },
+      },
+      files: {
+        "sidebar.html": `<!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+            </head>
+            <body>
+              Sidebar 
+            </body>
+          </html>
+        `,
+      },
     },
     document
   );
@@ -85,7 +106,20 @@ add_task(async function testWebExtensionToolboxReload() {
   );
   ok(initialMessage, "Found the expected message from the background script");
 
-  const waitForLoadedPanelsReload = await watchForLoadedPanelsReload(toolbox);
+  let loadedTargets = 0;
+  await toolbox.commands.resourceCommand.watchResources(
+    [toolbox.commands.resourceCommand.TYPES.DOCUMENT_EVENT],
+    {
+      ignoreExistingResources: true,
+      onAvailable(resources) {
+        for (const resource of resources) {
+          if (resource.name == "dom-complete") {
+            loadedTargets++;
+          }
+        }
+      },
+    }
+  );
 
   info("Reload the addon using a toolbox reload shortcut");
   toolbox.win.focus();
@@ -104,9 +138,18 @@ add_task(async function testWebExtensionToolboxReload() {
     return false;
   });
 
-  await waitForLoadedPanelsReload();
+  await waitFor(
+    () => loadedTargets == 2,
+    "Wait for background and popup targets to be reloaded"
+  );
+  const menuList = toolbox.doc.getElementById("toolbox-frame-menu");
+  await waitFor(
+    () => menuList.querySelectorAll(".command").length == 3,
+    "Wait for fallback, background and sidebar documents to visible in the iframe dropdown"
+  );
 
   info("Reload via the debug target info bar button");
+  loadedTargets = 0;
   clickReload(devtoolsDocument);
 
   info("Wait until yet another background log message is logged");
@@ -123,7 +166,14 @@ add_task(async function testWebExtensionToolboxReload() {
     );
   });
 
-  await waitForLoadedPanelsReload();
+  await waitFor(
+    () => loadedTargets == 2,
+    "Wait for background and popup targets to be reloaded"
+  );
+  await waitFor(
+    () => menuList.querySelectorAll(".command").length == 3,
+    "Wait for fallback, background and sidebar documents to visible in the iframe dropdown"
+  );
 
   await closeWebExtAboutDevtoolsToolbox(devtoolsWindow, window);
   await removeTemporaryExtension(ADDON_NAME, document);

@@ -94,22 +94,6 @@ add_task(async function test_panel_live_reload() {
   // "Reload" is most similar to an upgrade, as e.g. storage data is preserved
   info("Update to version 2.0");
 
-  // Wait for the storage front to receive an event for the storage panel refresh
-  // when the extension has been reloaded.
-  const promiseStoragePanelUpdated = new Promise(resolve => {
-    extensionStorage.on(
-      "single-store-update",
-      function updateListener(updates) {
-        info(`Got stores-update event: ${JSON.stringify(updates)}`);
-        const extStorageAdded = updates.added?.extensionStorage;
-        if (host in extStorageAdded && extStorageAdded[host].length) {
-          extensionStorage.off("single-store-update", updateListener);
-          resolve();
-        }
-      }
-    );
-  });
-
   await extension.upgrade(
     getExtensionConfig({
       manifest,
@@ -117,10 +101,7 @@ add_task(async function test_panel_live_reload() {
     })
   );
 
-  await Promise.all([
-    extension.awaitMessage("extension-origin"),
-    promiseStoragePanelUpdated,
-  ]);
+  await extension.awaitMessage("extension-origin");
 
   const { data } = await extensionStorage.getStoreObjects(host, null, {
     sessionString,

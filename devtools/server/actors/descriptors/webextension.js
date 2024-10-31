@@ -44,6 +44,11 @@ loader.lazyRequireGetter(
   true
 );
 
+const { WEBEXTENSION_FALLBACK_DOC_URL } = ChromeUtils.importESModule(
+  "resource://devtools/server/actors/watcher/browsing-context-helpers.sys.mjs",
+  { global: "contextual" }
+);
+
 const BGSCRIPT_STATUSES = {
   RUNNING: "RUNNING",
   STOPPED: "STOPPED",
@@ -115,6 +120,9 @@ class WebExtensionDescriptorActor extends Actor {
         supportsReloadDescriptor: true,
         // Supports the Watcher actor. Can be removed as part of Bug 1680280.
         watcher: true,
+        // @backward-compat { version 133 } Firefox 133 started supporting server targets by default.
+        // Once this is the only supported version, we can remove the traits and consider it always true in the frontend.
+        isServerTargetSwitchingEnabled: true,
       },
       url: this.addon.sourceURI ? this.addon.sourceURI.spec : undefined,
       warnings: lazy.ExtensionParent.DebugUtils.getExtensionManifestWarnings(
@@ -130,15 +138,15 @@ class WebExtensionDescriptorActor extends Actor {
    */
   async getWatcher(config = {}) {
     if (!this.watcher) {
-      // Ensure connecting to the webextension frame in order to populate this._form
-      await this._extensionFrameConnect();
+      // Spawn an empty document so that we always have an active WindowGlobal,
+      // so that we can always instantiate a top level WindowGlobal target to the frontend.
+      await this.#createFallbackDocument();
+
       this.watcher = new WatcherActor(
         this.conn,
         createWebExtensionSessionContext(
           {
             addonId: this.addonId,
-            browsingContextID: this._form.browsingContextID,
-            innerWindowId: this._form.innerWindowId,
           },
           config
         )
@@ -146,6 +154,33 @@ class WebExtensionDescriptorActor extends Actor {
       this.manage(this.watcher);
     }
     return this.watcher;
+  }
+
+  /**
+   * Create an empty document to circumvant the lack of any WindowGlobal/document
+   * running for this addon.
+   *
+   * For now DevTools always expect at least one Target to be functional,
+   * and we need a document to spawn a target actor.
+   */
+  async #createFallbackDocument() {
+    if (this._browser) {
+      return;
+    }
+
+    // The extension process browser will only be released on descriptor destruction and can
+    // be reused for subsequent watchers if we close and reopen a toolbox from about:debugging.
+    this._browser =
+      await lazy.ExtensionParent.DebugUtils.getExtensionProcessBrowser(this);
+
+    // Add the addonId in the URL to retrieve this information in other devtools
+    // helpers. The addonId is usually populated in the principal, but this will
+    // not be the case for the fallback window because it is loaded from chrome://
+    // instead of moz-extension://${addonId}
+    this._browser.setAttribute(
+      "src",
+      `${WEBEXTENSION_FALLBACK_DOC_URL}#${this.addonId}`
+    );
   }
 
   async getTarget() {
@@ -335,6 +370,10 @@ class WebExtensionDescriptorActor extends Actor {
       });
 
       lazy.ExtensionParent.DebugUtils.releaseExtensionProcessBrowser(this);
+    }
+
+    if (this.watcher) {
+      this.watcher = null;
     }
 
     this._browser = null;

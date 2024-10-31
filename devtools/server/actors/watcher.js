@@ -151,7 +151,8 @@ exports.WatcherActor = class WatcherActor extends Actor {
     if (this.sessionContext.type == "browser-element") {
       return !this.browserElement.browsingContext;
     } else if (this.sessionContext.type == "webextension") {
-      return !BrowsingContext.get(this.sessionContext.addonBrowsingContextID);
+      // This is no obvious browsing context to target for extensions, so always consider it running
+      return false;
     } else if (this.sessionContext.type == "all") {
       return false;
     }
@@ -475,26 +476,7 @@ exports.WatcherActor = class WatcherActor extends Actor {
       return;
     }
 
-    if (this.sessionContext.type == "webextension") {
-      this._overrideResourceBrowsingContextForWebExtension(resources);
-    }
-
     this.emit(`resources-${updateType}-array`, [[resourceType, resources]]);
-  }
-
-  /**
-   * For WebExtension, we have to hack all resource's browsingContextID
-   * in order to ensure emitting them with the fixed, original browsingContextID
-   * related to the fallback document created by devtools which always exists.
-   * The target's form will always be relating to that BrowsingContext IDs (browsing context ID and inner window id).
-   * Even if the target switches internally to another document via WindowGlobalTargetActor._setWindow.
-   *
-   * @param {Array<Objects>} List of resources
-   */
-  _overrideResourceBrowsingContextForWebExtension(resources) {
-    resources.forEach(resource => {
-      resource.browsingContextID = this.sessionContext.addonBrowsingContextID;
-    });
   }
 
   /**

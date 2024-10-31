@@ -541,6 +541,11 @@ class TargetCommand extends EventEmitter {
       this.hasTargetWatcherSupport(TargetCommand.TYPES.FRAME)
     ) {
       types = [TargetCommand.TYPES.FRAME];
+    } else if (
+      this.descriptorFront.isWebExtensionDescriptor &&
+      this.descriptorFront.isServerTargetSwitchingEnabled()
+    ) {
+      types = [TargetCommand.TYPES.FRAME];
     } else if (this.descriptorFront.isBrowserProcessDescriptor) {
       const browserToolboxScope = Services.prefs.getCharPref(
         BROWSERTOOLBOX_SCOPE_PREF

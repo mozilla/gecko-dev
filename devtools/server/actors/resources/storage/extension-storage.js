@@ -162,15 +162,6 @@ class ExtensionStorageActor extends BaseStorageActor {
     for (const [key, value] of Object.entries(data)) {
       storeMap.set(key, value);
     }
-
-    if (this.storageActor.parentActor.fallbackWindow) {
-      // Show the storage actor in the add-on storage inspector even when there
-      // is no extension page currently open
-      // This strategy may need to change depending on the outcome of Bug 1597900
-      const storageData = {};
-      storageData[host] = this.getNamesForHost(host);
-      this.storageActor.update("added", this.typeName, storageData);
-    }
   }
   /**
    * This fires when the extension changes storage data while the storage

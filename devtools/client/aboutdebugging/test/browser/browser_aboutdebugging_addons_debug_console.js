@@ -230,8 +230,18 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
 
   // Verify that console evaluations still work after reloading the page
   info("Reload the webextension document");
-  const { onDomCompleteResource } =
-    await waitForNextTopLevelDomCompleteResource(toolbox.commands);
+  const { onResource: onDomCompleteResource } =
+    await toolbox.commands.resourceCommand.waitForNextResource(
+      toolbox.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+      {
+        ignoreExistingResources: true,
+        predicate: resource => {
+          return (
+            resource.name === "dom-complete" && resource.targetFront.isTopLevel
+          );
+        },
+      }
+    );
   hud.ui.wrapper.dispatchEvaluateExpression("location.reload()");
   await onDomCompleteResource;
 
@@ -398,9 +408,16 @@ add_task(async function testWebExtensionTwoReloads() {
 
   // Verify that console evaluations still work after reloading the addon
   info("Reload the webextension itself");
-  let { onDomCompleteResource } = await waitForNextTopLevelDomCompleteResource(
-    toolbox.commands
-  );
+  let { onResource: onDomCompleteResource } =
+    await toolbox.commands.resourceCommand.waitForNextResource(
+      toolbox.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+      {
+        ignoreExistingResources: true,
+        predicate: resource =>
+          resource.name === "dom-complete" &&
+          resource.targetFront.url.endsWith("background_page.html"),
+      }
+    );
   const reloadButton = addonTarget.querySelector(
     ".qa-temporary-extension-reload-button"
   );
@@ -419,9 +436,16 @@ add_task(async function testWebExtensionTwoReloads() {
   await waitUntil(() => findMessageByType(hud, "41", ".result"));
 
   info("Reload the extension a second time");
-  ({ onDomCompleteResource } = await waitForNextTopLevelDomCompleteResource(
-    toolbox.commands
-  ));
+  ({ onResource: onDomCompleteResource } =
+    await toolbox.commands.resourceCommand.waitForNextResource(
+      toolbox.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+      {
+        ignoreExistingResources: true,
+        predicate: resource =>
+          resource.name === "dom-complete" &&
+          resource.targetFront.url.endsWith("background_page.html"),
+      }
+    ));
   reloadButton.click();
   await onDomCompleteResource;
 

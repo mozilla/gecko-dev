@@ -7,7 +7,7 @@ const isEveryFrameTargetEnabled = Services.prefs.getBoolPref(
   false
 );
 
-const WEBEXTENSION_FALLBACK_DOC_URL =
+export const WEBEXTENSION_FALLBACK_DOC_URL =
   "chrome://devtools/content/shared/webextension-fallback.html";
 
 /**

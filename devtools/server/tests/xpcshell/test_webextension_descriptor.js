@@ -97,6 +97,7 @@ add_task(async function test_listAddons_and_WebExtensionDescriptor() {
         traits: {
           supportsReloadDescriptor: true,
           watcher: true,
+          isServerTargetSwitchingEnabled: true,
         },
       },
       "WebExtensionDescriptorActor content matches the add-on"
