@@ -40,6 +40,9 @@ import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.utils.ext.resizeMaintainingAspectRatio
 import mozilla.components.ui.icons.R as iconsR
 
+// The menu button must have the largest weight out of all toolbar items to ensure that it is right-aligned.
+private const val MENU_WEIGHT = Int.MAX_VALUE
+
 /**
  * Initializes and resets the [BrowserToolbar] for a Custom Tab based on the [CustomTabConfig].
  *
@@ -344,8 +347,9 @@ class CustomTabsToolbarFeature(
         drawableIcon?.setTint(readableColor)
 
         val button = Toolbar.ActionButton(
-            drawableIcon,
-            context.getString(R.string.mozac_feature_customtabs_menu_button),
+            imageDrawable = drawableIcon,
+            contentDescription = context.getString(R.string.mozac_feature_customtabs_menu_button),
+            weight = { MENU_WEIGHT },
         ) {
             customTabsToolbarListeners.menuListener?.invoke()
         }

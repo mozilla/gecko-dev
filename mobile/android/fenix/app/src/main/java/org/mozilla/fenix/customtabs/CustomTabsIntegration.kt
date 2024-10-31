@@ -132,7 +132,7 @@ class CustomTabsIntegration(
         appNightMode = activity.settings().getAppNightMode(),
         forceActionButtonTinting = isPrivate,
         customTabsToolbarButtonConfig = CustomTabsToolbarButtonConfig(
-            showMenu = !isNavBarEnabled,
+            showMenu = !isNavBarVisible,
             showRefreshButton = isNavBarEnabled,
             allowCustomizingCloseButton = !isNavBarEnabled,
         ),
