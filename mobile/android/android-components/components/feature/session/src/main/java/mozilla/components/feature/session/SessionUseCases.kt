@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.session
 
-import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.CrashAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.LastAccessAction
@@ -93,13 +92,6 @@ class SessionUseCases(
                     url = url,
                     flags = flags,
                     additionalHeaders = additionalHeaders,
-                )
-                // Update the url in content immediately until the engine updates with any new changes to the state.
-                store.dispatch(
-                    ContentAction.UpdateUrlAction(
-                        loadSessionId,
-                        url,
-                    ),
                 )
                 store.dispatch(
                     EngineAction.OptimizedLoadUrlTriggeredAction(
