@@ -7,7 +7,6 @@ perfdocs:
         'testing/awsy',
         'testing/raptor',
         'testing/talos',
-        'testing/performance/fxrecord',
         'testing/performance/mach-try-perf',
         'dom/indexedDB/test',
     ]

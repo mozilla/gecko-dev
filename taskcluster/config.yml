@@ -274,7 +274,6 @@ treeherder:
         'perftest-http3': 'Performance tests with HTTP/3'
         'perftest-fenix': 'Performance tests using Fenix'
         'l10n': 'Localization checks'
-        'fxrec': 'Desktop startup recorder (fxrecord)'
         'wc': 'webcompat'
         'Boot': 'Bootstrap'
         'Attr-L10n': 'Build Attribution'
