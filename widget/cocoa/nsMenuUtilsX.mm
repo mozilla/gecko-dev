@@ -252,6 +252,21 @@ static void CheckNativeMenuItemConsistencyImpl(
   bool inserted = aSeenObjects.insert(aMenuItem).second;
   MOZ_RELEASE_ASSERT(inserted,
                      "Duplicate NSMenuItem object in native menu structure");
+
+  MOZMenuItemRepresentedObject* representedObject = aMenuItem.representedObject;
+  nsMenuGroupOwnerX* owner = representedObject.menuGroupOwner;
+  nsMenuItemX* menuItemX = owner->GetMenuItemForCommandID(aMenuItem.tag);
+  inserted = aSeenObjects.insert(menuItemX).second;
+  MOZ_RELEASE_ASSERT(
+      inserted,
+      "Duplicate represented nsMenuItemX object in native menu structure");
+
+  nsIContent* menuItemContent = menuItemX->Content();
+  inserted = aSeenObjects.insert(menuItemContent).second;
+  MOZ_RELEASE_ASSERT(
+      inserted,
+      "Duplicate represented <menuitem> nsIContent in native menu structure");
+
   if (aMenuItem.hasSubmenu) {
     CheckNativeMenuConsistencyImpl(aMenuItem.submenu, aSeenObjects);
   }
