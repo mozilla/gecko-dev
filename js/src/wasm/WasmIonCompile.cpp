@@ -331,7 +331,12 @@ class FunctionCompiler {
               inlinedCallRefFunctions) == 0;
     }
   };
-  InliningStats stats;
+  InliningStats stats_;
+
+  // The remaining inlining budget for the top-level function, in terms of
+  // bytecode bytes.  Must be signed.  Is only valid for the top-level
+  // function; for inline callees meaningless and must be zero.
+  int64_t inliningBudget_ = 0;
 
   const CompilerEnvironment& compilerEnv_;
   const CodeMetadata& codeMeta_;
@@ -394,7 +399,7 @@ class FunctionCompiler {
       : toplevelCompiler_(nullptr),
         callerCompiler_(nullptr),
         inliningDepth_(0),
-        stats(),
+        stats_(),
         compilerEnv_(compilerEnv),
         codeMeta_(codeMeta),
         iter_(codeMeta, decoder),
@@ -416,7 +421,7 @@ class FunctionCompiler {
         stackResultPointer_(nullptr),
         tryNotes_(tryNotes),
         compileInfos_(compileInfos) {
-    stats.topLevelBytecodeSize = func.end - func.begin;
+    stats_.topLevelBytecodeSize = func.end - func.begin;
   }
 
   // Construct a FunctionCompiler for an inlined callee of a compilation
@@ -451,26 +456,6 @@ class FunctionCompiler {
     MOZ_ASSERT(toplevelCompiler && callerCompiler);
   }
 
-  ~FunctionCompiler() {
-    MOZ_ASSERT((toplevelCompiler_ == nullptr) == (callerCompiler_ == nullptr));
-    if (toplevelCompiler_) {
-      // This FunctionCompiler was for an inlined callee.
-      MOZ_ASSERT(stats.allZero());
-    } else {
-      // This FunctionCompiler was for the top level function.  Transfer the
-      // accumulated stats into the CodeMeta object (bypassing the
-      // WasmGenerator).
-      MOZ_ASSERT(stats.topLevelBytecodeSize > 0);
-      auto guard = codeMeta().stats.writeLock();
-      guard->partialNumFuncs += 1;
-      guard->partialBCSize += stats.topLevelBytecodeSize;
-      guard->partialNumFuncsInlinedDirect += stats.inlinedDirectFunctions;
-      guard->partialBCInlinedSizeDirect += stats.inlinedDirectBytecodeSize;
-      guard->partialNumFuncsInlinedCallRef += stats.inlinedCallRefFunctions;
-      guard->partialBCInlinedSizeCallRef += stats.inlinedCallRefBytecodeSize;
-    }
-  }
-
   const CodeMetadata& codeMeta() const { return codeMeta_; }
 
   IonOpIter& iter() { return iter_; }
@@ -491,14 +476,26 @@ class FunctionCompiler {
   void updateInliningStats(size_t inlineeBytecodeSize,
                            InliningHeuristics::CallKind callKind) {
     MOZ_ASSERT(!toplevelCompiler_ && !callerCompiler_);
-    MOZ_ASSERT(stats.topLevelBytecodeSize > 0);
+    MOZ_ASSERT(stats_.topLevelBytecodeSize > 0);
     if (callKind == InliningHeuristics::CallKind::Direct) {
-      stats.inlinedDirectBytecodeSize += inlineeBytecodeSize;
-      stats.inlinedDirectFunctions += 1;
+      stats_.inlinedDirectBytecodeSize += inlineeBytecodeSize;
+      stats_.inlinedDirectFunctions += 1;
     } else {
       MOZ_ASSERT(callKind == InliningHeuristics::CallKind::CallRef);
-      stats.inlinedCallRefBytecodeSize += inlineeBytecodeSize;
-      stats.inlinedCallRefFunctions += 1;
+      stats_.inlinedCallRefBytecodeSize += inlineeBytecodeSize;
+      stats_.inlinedCallRefFunctions += 1;
+    }
+    // Update the inlining budget accordingly.  If it is already negative, no
+    // more inlining for this (top-level) function can happen, so there's no
+    // point in updating it further.
+    if (inliningBudget_ >= 0) {
+      inliningBudget_ -= int64_t(inlineeBytecodeSize);
+      if (inliningBudget_ <= 0) {
+        JS_LOG(wasmPerf, mozilla::LogLevel::Info,
+               "CM=..%06lx  FC::updateILStats     "
+               "Inlining budget for fI=%u exceeded",
+               0xFFFFFF & (unsigned long)uintptr_t(&codeMeta_), funcIndex());
+      }
     }
   }
   FunctionCompiler* toplevelCompiler() { return toplevelCompiler_; }
@@ -529,6 +526,9 @@ class FunctionCompiler {
   }
 
   [[nodiscard]] bool initTopLevel() {
+    // "This is a top-level FunctionCompiler"
+    MOZ_ASSERT(!toplevelCompiler_);
+
     // Prepare the entry block for MIR generation:
 
     const ArgTypeVector args(funcType());
@@ -578,10 +578,28 @@ class FunctionCompiler {
       }
     }
 
+    // Figure out what the inlining budget for this function is.  If we've
+    // already exceeded the module-level limit, the budget is zero.  See
+    // "[SMDOC] Per-function and per-module inlining limits" (WasmHeuristics.h)
+    MOZ_ASSERT(inliningBudget_ == 0);
+    auto guard = codeMeta_.stats.readLock();
+    if (guard->inliningBudget > 0) {
+      inliningBudget_ =
+          int64_t(stats_.topLevelBytecodeSize) * PerFunctionMaxInliningRatio;
+      inliningBudget_ =
+          std::min<int64_t>(inliningBudget_, guard->inliningBudget);
+    } else {
+      inliningBudget_ = 0;
+    }
+    MOZ_ASSERT(inliningBudget_ >= 0);
+
     return true;
   }
 
   [[nodiscard]] bool initInline(const DefVector& argValues) {
+    // "This is an inlined-callee FunctionCompiler"
+    MOZ_ASSERT(toplevelCompiler_);
+
     // Prepare the entry block for MIR generation:
     if (!mirGen_.ensureBallast()) {
       return false;
@@ -654,6 +672,44 @@ class FunctionCompiler {
     MOZ_ASSERT_IF(!isInlined(),
                   pendingInlineReturns_.empty() && !pendingInlineCatchBlock_);
     MOZ_ASSERT(bodyRethrowPadPatches_.empty());
+
+    // Updates to do with inlining budget and compilation statistics.
+    MOZ_ASSERT((toplevelCompiler_ == nullptr) == (callerCompiler_ == nullptr));
+    if (toplevelCompiler_) {
+      // This FunctionCompiler was for an inlined callee.
+      MOZ_ASSERT(stats_.allZero());
+      MOZ_ASSERT(inliningBudget_ == 0);
+    } else {
+      // This FunctionCompiler was for the top level function.  Transfer the
+      // accumulated stats into the CodeMeta object (bypassing the
+      // WasmGenerator).
+      MOZ_ASSERT(stats_.topLevelBytecodeSize > 0);
+      auto guard = codeMeta().stats.writeLock();
+      guard->partialNumFuncs += 1;
+      guard->partialBCSize += stats_.topLevelBytecodeSize;
+      guard->partialNumFuncsInlinedDirect += stats_.inlinedDirectFunctions;
+      guard->partialBCInlinedSizeDirect += stats_.inlinedDirectBytecodeSize;
+      guard->partialNumFuncsInlinedCallRef += stats_.inlinedCallRefFunctions;
+      guard->partialBCInlinedSizeCallRef += stats_.inlinedCallRefBytecodeSize;
+      // Update the module's inlining budget accordingly.  If it is already
+      // negative, no more inlining for the module can happen, so there's no
+      // point in updating it further.
+      if (guard->inliningBudget >= 0) {
+        guard->inliningBudget -= int64_t(stats_.inlinedDirectBytecodeSize);
+        guard->inliningBudget -= int64_t(stats_.inlinedCallRefBytecodeSize);
+        if (guard->inliningBudget <= 0) {
+          JS_LOG(wasmPerf, mozilla::LogLevel::Info,
+                 "CM=..%06lx  FC::finish            "
+                 "Inlining budget for entire module exceeded",
+                 0xFFFFFF & (unsigned long)uintptr_t(&codeMeta_));
+        }
+      }
+      // If this particular top-level function overran the function-level
+      // limit, note that in the module too.
+      if (inliningBudget_ <= 0) {
+        guard->partialInlineBudgetOverruns++;
+      }
+    }
   }
 
   /************************* Read-only interface (after local scope setup) */
@@ -2560,6 +2616,22 @@ class FunctionCompiler {
     // We do not support inlining a callee which uses tail calls
     FeatureUsage funcFeatureUsage = codeMeta().funcDefFeatureUsage(funcIndex);
     if (funcFeatureUsage & FeatureUsage::ReturnCall) {
+      return false;
+    }
+
+    // We can't inline if we've exceeded our per-top-level-function inlining
+    // budget.
+    //
+    // This logic will cause `availableBudget` to be driven slightly negative
+    // (or zero) if a budget overshoot happens, so we will have performed
+    // slightly more inlining than allowed by the initial setting of
+    // `availableBudget`.  The size of this overshoot is however very limited
+    // -- it can't exceed the size of one function body that is inlined.  And
+    // that is limited by InliningHeuristics::isSmallEnoughToInline.
+    const int64_t availableBudget = toplevelCompiler_
+                                        ? toplevelCompiler_->inliningBudget_
+                                        : inliningBudget_;
+    if (availableBudget <= 0) {
       return false;
     }
 

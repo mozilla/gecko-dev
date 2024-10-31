@@ -1355,6 +1355,16 @@ SharedModule ModuleGenerator::finishModule(
     for (const FuncDefRange& fr : codeMeta->funcDefRanges) {
       guard->completeBCSize += fr.bodyLength;
     }
+    // Now that we know the complete bytecode size for the module, we can set
+    // the inlining budget for tiered-up compilation, if appropriate.  See
+    // "[SMDOC] Per-function and per-module inlining limits" (WasmHeuristics.h)
+    guard->inliningBudget =
+        mode() == CompileMode::LazyTiering
+            ? int64_t(guard->completeBCSize) * PerModuleMaxInliningRatio
+            : 0;
+    // But don't be overly stingy for tiny modules.  Function-level inlining
+    // limits will still protect us from excessive inlining.
+    guard->inliningBudget = std::max<int64_t>(guard->inliningBudget, 1000);
   }
 
   MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_);

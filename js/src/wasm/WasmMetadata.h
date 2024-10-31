@@ -176,14 +176,18 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     size_t partialCodeBytesMapped = 0;
     // total used space for p-tier code (will be less than the above)
     size_t partialCodeBytesUsed = 0;
-
+    // The remaining inlining budget (in bytecode bytes) for the module as a
+    // whole.  Must be signed.  It will be negative if we have overrun the
+    // budget.
+    int64_t inliningBudget = 0;
     WASM_CHECK_CACHEABLE_POD(completeNumFuncs, completeBCSize, partialNumFuncs,
                              partialBCSize, partialNumFuncsInlinedDirect,
                              partialNumFuncsInlinedCallRef,
                              partialBCInlinedSizeDirect,
                              partialBCInlinedSizeCallRef,
                              partialInlineBudgetOverruns,
-                             partialCodeBytesMapped, partialCodeBytesUsed);
+                             partialCodeBytesMapped, partialCodeBytesUsed,
+                             inliningBudget);
   };
   using ReadGuard = RWExclusiveData<ProtectedOptimizationStats>::ReadGuard;
   using WriteGuard = RWExclusiveData<ProtectedOptimizationStats>::WriteGuard;

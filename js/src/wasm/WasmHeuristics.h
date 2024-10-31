@@ -176,6 +176,100 @@ class InliningHeuristics {
   }
 };
 
+// [SMDOC] Per-function and per-module inlining limits
+
+// `class InliningHeuristics` makes inlining decisions on a per-call-site
+// basis.  Even with that in place, it is still possible to create a small
+// input function for which inlining produces a huge (1000 x) expansion.  Hence
+// we also need a backstop mechanism to limit growth of functions and of
+// modules as a whole.
+//
+// The following scheme is therefore implemented:
+//
+// * no function can have an inlining-based expansion of more than a constant
+//   factor (eg, 9 x).
+//
+// * for a module as a whole there is also a max expansion factor, and this is
+//   much lower, perhaps 1 x.
+//
+// This means that
+//
+// * no individual function can cause too much trouble (due to the 9 x limit),
+//   yet any function that needs a lot of inlining can still get it. In
+//   practice most functions have an inlining expansion, at default settings,
+//   of much less than 5 x.
+//
+// * the module as a whole cannot chew up excessive resources.
+//
+// Once a limit is exhausted, Ion compilation is still possible, but no
+// inlining will be done.
+//
+// The per-module limit needs to be interpreted in the light of lazy tiering.
+// Many modules only tier up a small subset of their functions.  Hence the
+// relatively low per-module limit still allows a high level of expansion of
+// the functions that do get tiered up.
+//
+// In effect, the tiering mechanism gives hot functions (early tierer-uppers)
+// preferential access to the module-level inlining budget.  Colder functions
+// that tier up later may find the budget to be exhausted, in which case they
+// get no inlining.  It would be feasible to gradually reduce inlining
+// aggressiveness as the budget is used up, rather than have cliff-edge
+// behaviour, but it hardly seems worth the hassle.
+//
+// To implement this, we have
+//
+// * `int64_t WasmCodeMetadata::ProtectedOptimizationStats::inliningBudget`:
+//   this is initially set as the maximum copied-in bytecode length allowable
+//   for the module.  Inlining of individual call sites decreases the value and
+//   may drive it negative.  Once the value is negative, no more inlining is
+//   allowed.
+//
+// * `int64_t FunctionCompiler::inliningBudget_` does the same at a
+//   per-function level.  Its initial value takes into account the current
+//   value of the module-level budget; hence if the latter is exhausted, the
+//   function-level budget will be zero and so no inlining occurs.
+//
+// If either limit is exceeded, a message is printed on the
+// `MOZ_LOG=wasmCodeMetaStats:3` channel.
+
+// Allowing budgets to be driven negative means we slightly overshoot them.  An
+// alternative to be to ensure they can never be driven negative, in which case
+// we will slightly undershoot them instead, given that the sum of inlined
+// function sizes is unlikely to exactly match the budget.  We use the
+// overshoot scheme only because it makes it simple to decide when to log a
+// budget-overshoot message and not emit any duplicates.
+
+// There is a (logical, not-TSan-detectable) race condition in that the
+// inlining budget for a function is set in part from the module-level budget
+// at the time that compilation of the function begins, and the module-level
+// budget is updated when compilation of a function ends -- see
+// FunctionCompiler::initToplevel and ::finish.  If there are multiple
+// compilation threads, it can happen that multiple threads individually
+// overrun the module-level budget, and so collectively overshoot the budget
+// multiple times.
+//
+// The worst-case total overshoot is equal to the worst-case per-function
+// overshoot multiplied by the max number of functions that can be concurrently
+// compiled:
+//
+//   <max per-function overshoot, which
+//      == the largest body length that can be accepted
+//             by InliningHeuristics::isSmallEnoughToInline>
+//   * MaxPartialTier2CompileTasks
+//
+// which with current settings is 400 * 1 == 400.
+//
+// We never expect to hit either limit in normal operation -- they exist only
+// to protect against the worst case.  So the imprecision doesn't matter.
+
+// Setting the multiplier here to 1 means that inlining can copy in at maximum
+// the same amount of bytecode as is in the module; 2 means twice as much, etc,
+// and setting it to 0 would completely disable inlining.
+static constexpr int64_t PerModuleMaxInliningRatio = 1;
+
+// Same meaning as above, except at a per-function level.
+static constexpr int64_t PerFunctionMaxInliningRatio = 9;
+
 }  // namespace wasm
 }  // namespace js
 
