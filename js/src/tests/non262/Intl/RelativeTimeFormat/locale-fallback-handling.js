@@ -8,7 +8,10 @@
 // formatter.  This test verifies such fallback works as long as "ak" satisfies
 // these properties; "ak" may safely be changed to a different locale if that
 // ever changes.  See bug 1504656.
-assertEq(new Intl.RelativeTimeFormat("ak").format(1, "second"),
+//
+// "ak" has relative-date/time formatter data as of ICU 76 / CLDR 46. Switch to
+// "haw", which doesn't have that data.
+assertEq(new Intl.RelativeTimeFormat("haw").format(1, "second"),
          "+1 s");
 
 if (typeof reportCompare === "function")

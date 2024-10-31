@@ -1,7 +1,7 @@
 if (typeof Intl === "object") {
     const localeSep = [,,].toLocaleString();
 
-    assertEq([NaN].toLocaleString("ar"), "ليس رقم");
+    assertEq([NaN].toLocaleString("ar"), "ليس رقمًا");
     assertEq([NaN].toLocaleString(["zh-hant", "ar"]), "非數值");
     assertEq([Infinity].toLocaleString("dz"), "གྲངས་མེད");
     assertEq([-Infinity].toLocaleString(["fr", "en"]), "-∞");

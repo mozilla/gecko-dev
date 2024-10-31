@@ -205,7 +205,7 @@ const tests = {
       ],
     },
   ],
-  "ar": [
+  "ar-EG": [
     {
       options: {
         day: "numeric",
