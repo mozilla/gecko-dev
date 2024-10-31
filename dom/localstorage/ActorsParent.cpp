@@ -4443,7 +4443,7 @@ Datastore::~Datastore() {
 
 void Datastore::Close() {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(!mClosed);
+  MOZ_DIAGNOSTIC_ASSERT(!mClosed);
   MOZ_ASSERT(!mPrepareDatastoreOps.Count());
   MOZ_ASSERT(!mPreparedDatastores.Count());
   MOZ_ASSERT(!mDatabases.Count());
