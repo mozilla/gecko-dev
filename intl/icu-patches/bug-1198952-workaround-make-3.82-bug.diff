@@ -1,7 +1,7 @@
 diff --git a/intl/icu/source/Makefile.in b/intl/icu/source/Makefile.in
 --- a/intl/icu/source/Makefile.in
 +++ b/intl/icu/source/Makefile.in
-@@ -134,32 +134,36 @@ endif
+@@ -140,32 +140,36 @@ endif
  
  LOCAL_SUBDIRS = $(SUBDIRS)
  CLEAN_FIRST_SUBDIRS = $(TOOLS)
