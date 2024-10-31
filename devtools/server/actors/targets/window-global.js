@@ -31,17 +31,38 @@ var {
 } = require("resource://devtools/server/actors/utils/sources-manager.js");
 var makeDebugger = require("resource://devtools/server/actors/utils/make-debugger.js");
 const Targets = require("resource://devtools/server/actors/targets/index.js");
-const { TargetActorRegistry } = ChromeUtils.importESModule(
-  "resource://devtools/server/actors/targets/target-actor-registry.sys.mjs",
-  { global: "shared" }
-);
-const { PrivateBrowsingUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  { global: "contextual" }
-);
 
 const EXTENSION_CONTENT_SYS_MJS =
   "resource://gre/modules/ExtensionContent.sys.mjs";
+
+const lazy = {};
+// Modules loaded in the same module loader as this module.
+// (may spawn distinct module instances with other devtools and firefox frontend)
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+    WEBEXTENSION_FALLBACK_DOC_URL:
+      "resource://devtools/server/actors/watcher/browsing-context-helpers.sys.mjs",
+  },
+  { global: "contextual" }
+);
+
+// Modules loaded from the shared module loader.
+// Won't be as debuggable from the Browser Toolbox and may trigger breakpoints.
+ChromeUtils.defineESModuleGetters(
+  lazy,
+  {
+    TargetActorRegistry:
+      "resource://devtools/server/actors/targets/target-actor-registry.sys.mjs",
+    // ExtensionContent.sys.mjs is a singleton and must be loaded through the
+    // main loader. Note that the user of lazy.ExtensionContent elsewhere in
+    // this file (at webextensionsContentScriptGlobals) looks up the module
+    // via Cu.isESModuleLoaded, which also uses the main loader as desired.
+    ExtensionContent: EXTENSION_CONTENT_SYS_MJS,
+  },
+  { global: "shared" }
+);
 
 const { Pool } = require("resource://devtools/shared/protocol.js");
 const {
@@ -74,16 +95,6 @@ loader.lazyRequireGetter(
   "resource://devtools/server/actors/utils/stylesheets-manager.js",
   true
 );
-const lazy = {};
-loader.lazyGetter(lazy, "ExtensionContent", () => {
-  return ChromeUtils.importESModule(EXTENSION_CONTENT_SYS_MJS, {
-    // ExtensionContent.sys.mjs is a singleton and must be loaded through the
-    // main loader. Note that the user of lazy.ExtensionContent elsewhere in
-    // this file (at webextensionsContentScriptGlobals) looks up the module
-    // via Cu.isESModuleLoaded, which also uses the main loader as desired.
-    global: "shared",
-  }).ExtensionContent;
-});
 
 loader.lazyRequireGetter(
   this,
@@ -338,12 +349,18 @@ class WindowGlobalTargetActor extends BaseTargetActor {
     // (This is probably meant to disappear once EFT is the only supported codepath)
     this._progressListener = new DebuggerProgressListener(this);
 
-    TargetActorRegistry.registerTargetActor(this);
+    lazy.TargetActorRegistry.registerTargetActor(this);
 
     if (docShell) {
       this.setDocShell(docShell);
     }
   }
+
+  // Attribute only set when debugging web extensions, in order to distinguish:
+  // - "fallback-document" created by DevTools for the top level target
+  // - "background" for the background page
+  // - "popup" for any popup document
+  #isFallbackExtensionDocument = false;
 
   /**
    * Define the initial docshell.
@@ -366,7 +383,9 @@ class WindowGlobalTargetActor extends BaseTargetActor {
     this._originalWindow = this.window;
 
     // Update isPrivate as window is based on docShell
-    this.isPrivate = PrivateBrowsingUtils.isContentWindowPrivate(this.window);
+    this.isPrivate = lazy.PrivateBrowsingUtils.isContentWindowPrivate(
+      this.window
+    );
 
     // Instantiate the Thread Actor immediately.
     // This is the only one actor instantiated right away by the target actor.
@@ -389,6 +408,14 @@ class WindowGlobalTargetActor extends BaseTargetActor {
     // This flag can only be set on top level BrowsingContexts.
     if (!this.browsingContext.parent) {
       this.browsingContext.watchedByDevTools = true;
+    }
+
+    if (this.sessionContext.type == "webextension") {
+      if (
+        this.window.location.href.startsWith(lazy.WEBEXTENSION_FALLBACK_DOC_URL)
+      ) {
+        this.#isFallbackExtensionDocument = true;
+      }
     }
   }
 
@@ -687,6 +714,10 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       ignoreSubFrames: this.ignoreSubFrames,
       isPopup,
       isPrivate: this.isPrivate,
+
+      // Specific to Web Extension documents
+      isFallbackExtensionDocument: this.#isFallbackExtensionDocument,
+
       traits: {
         // @backward-compat { version 64 } Exposes a new trait to help identify
         // BrowsingContextActor's inherited actors from the client side.
@@ -840,7 +871,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       "console-api-profiler"
     );
 
-    TargetActorRegistry.unregisterTargetActor(this);
+    lazy.TargetActorRegistry.unregisterTargetActor(this);
     Resources.unwatchAllResources(this);
   }
 

@@ -155,7 +155,25 @@ function createTargetsForWatcher(watcherDataObject, isProcessActorStartup) {
       }
     }
   }
+
+  const topWindows = [];
   for (const window of Services.ww.getWindowEnumerator()) {
+    topWindows.push(window);
+  }
+
+  // When debugging an extension, we have to ensure create the top level target first.
+  // The top level target is the one for the fallback document.
+  if (sessionContext.type == "webextension") {
+    const fallbackWindowIndex = topWindows.findIndex(window =>
+      window.location.href.startsWith(lazy.WEBEXTENSION_FALLBACK_DOC_URL)
+    );
+    if (fallbackWindowIndex != -1) {
+      const [fallbackWindow] = topWindows.splice(fallbackWindowIndex, 1);
+      topWindows.unshift(fallbackWindow);
+    }
+  }
+
+  for (const window of topWindows) {
     lookupForTargets(window);
 
     // `lookupForTargets` uses `getAllBrowsingContextsInSubTree`, but this will ignore browser elements

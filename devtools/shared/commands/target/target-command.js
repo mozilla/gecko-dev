@@ -206,7 +206,12 @@ class TargetCommand extends EventEmitter {
       // Update the reference to the memoized top level target
       this.targetFront = targetFront;
       this.descriptorFront.setTarget(targetFront);
-      this.#selectedTargetFront = null;
+
+      // When reloading a Web Extension, the fallback document, which is the top level may be notified *after* the background page.
+      // So avoid resetting it being selected on late arrival of the fallback document.
+      if (!this.descriptorFront.isWebExtensionDescriptor) {
+        this.#selectedTargetFront = null;
+      }
 
       if (isFirstTarget && this.isServerTargetSwitchingEnabled()) {
         this._gotFirstTopLevelTarget = true;
@@ -255,9 +260,18 @@ class TargetCommand extends EventEmitter {
 
     if (isTargetSwitching) {
       this.emit("switched-target", targetFront);
+    }
 
+    const autoSelectTarget =
       // When we navigate to a new top level document, automatically select that new document's target,
       // so that tools can start selecting and displaying this new document.
+      isTargetSwitching ||
+      // When debugging Web Extension, workaround the fallback document by automatically selected any incoming target
+      // as soon as we are currently selecting that fallback document.
+      (this.descriptorFront.isWebExtensionDescriptor &&
+      this.#selectedTargetFront?.isFallbackExtensionDocument);
+
+    if (autoSelectTarget) {
       await this.selectTarget(targetFront);
     }
   }
@@ -357,7 +371,18 @@ class TargetCommand extends EventEmitter {
         this.#selectedTargetFront = null;
       } else {
         // Otherwise we want to select the top level target
-        this.selectTarget(this.targetFront);
+        let fallbackTarget = this.targetFront;
+
+        // When debugging Web Extension we don't want to immediately fallback to the top level target, which is the fallback document.
+        // Instead, try to lookup for the background page.
+        if (this.descriptorFront.isWebExtensionDescriptor) {
+          const backgroundPageTargetFront = [...this._targets].find(target => !target.isFallbackExtensionDocument);
+          if (backgroundPageTargetFront) {
+            fallbackTarget = backgroundPageTargetFront;
+          }
+        }
+
+        this.selectTarget(fallbackTarget);
       }
     }
 

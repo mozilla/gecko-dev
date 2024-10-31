@@ -237,7 +237,8 @@ add_task(async function testWebExtensionsToolboxWebConsole() {
         ignoreExistingResources: true,
         predicate: resource => {
           return (
-            resource.name === "dom-complete" && resource.targetFront.isTopLevel
+            resource.name === "dom-complete" &&
+            resource.targetFront.url.endsWith("background_page.html")
           );
         },
       }

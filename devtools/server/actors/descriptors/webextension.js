@@ -170,8 +170,35 @@ class WebExtensionDescriptorActor extends Actor {
 
     // The extension process browser will only be released on descriptor destruction and can
     // be reused for subsequent watchers if we close and reopen a toolbox from about:debugging.
+    //
+    // Note that this `getExtensionProcessBrowser` will register the DevTools to the extension codebase.
+    // If we stop creating a fallback document, we should register DevTools by some other means.
     this._browser =
       await lazy.ExtensionParent.DebugUtils.getExtensionProcessBrowser(this);
+
+    // As "load" event isn't fired on the <browser> element, use a Web Progress Listener
+    // in order to wait for the full loading of that fallback document.
+    // It prevents having to deal with the initial about:blank document in the content processes.
+    // We have various checks to identify the fallback document based on its URL.
+    // It also ensure that the fallback document is created before the watcher starts
+    // and helps spawning the target for that document first.
+    const onLocationChanged = new Promise(resolve => {
+      const listener = {
+        onLocationChange: () => {
+          this._browser.webProgress.removeProgressListener(listener);
+          resolve();
+        },
+        QueryInterface: ChromeUtils.generateQI([
+          "nsIWebProgressListener",
+          "nsISupportsWeakReference",
+        ]),
+      };
+
+      this._browser.webProgress.addProgressListener(
+        listener,
+        Ci.nsIWebProgress.NOTIFY_LOCATION
+      );
+    });
 
     // Add the addonId in the URL to retrieve this information in other devtools
     // helpers. The addonId is usually populated in the principal, but this will
@@ -181,6 +208,7 @@ class WebExtensionDescriptorActor extends Actor {
       "src",
       `${WEBEXTENSION_FALLBACK_DOC_URL}#${this.addonId}`
     );
+    await onLocationChanged;
   }
 
   async getTarget() {

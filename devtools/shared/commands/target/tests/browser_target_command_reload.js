@@ -78,30 +78,33 @@ add_task(async function () {
   // We have to start listening in order to ensure having a targetFront available
   await targetCommand.startListening();
 
-  const { onResource: onReloaded } =
-    await commands.resourceCommand.waitForNextResource(
-      commands.resourceCommand.TYPES.DOCUMENT_EVENT,
-      {
-        ignoreExistingResources: true,
-        predicate(resource) {
-          return resource.name == "dom-loading";
-        },
-      }
-    );
+  // Observe the new document being reported while reloading
+  let reloadedTargets = [];
+  await commands.resourceCommand.watchResources(
+    [commands.resourceCommand.TYPES.DOCUMENT_EVENT],
+    {
+      onAvailable(resources) {
+        for (const resource of resources) {
+          if (resource.name == "dom-complete") {
+            reloadedTargets.push(resource.targetFront.isFallbackExtensionDocument);
+          }
+        }
+      },
+      ignoreExistingResources: true
+    }
+  );
 
-  const backgroundPageURL = targetCommand.targetFront.url;
-  ok(backgroundPageURL, "Got the background page URL");
   await targetCommand.reloadTopLevelTarget();
 
   info("Wait for next dom-loading DOCUMENT_EVENT");
-  const event = await onReloaded;
+  await waitFor(()=>reloadedTargets.length == 1);
 
-  // If we get about:blank here, it most likely means we receive notification
-  // for the previous background page being unload and navigating to about:blank
-  is(
-    event.url,
-    backgroundPageURL,
-    "We received the DOCUMENT_EVENT's for the expected document: the new background page."
+  // We only get a new background document
+  // (the fallback stays alive)
+  Assert.deepEqual(
+    reloadedTargets,
+    [false],
+    "All the targets got reloaded"
   );
 
   await commands.destroy();

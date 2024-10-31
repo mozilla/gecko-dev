@@ -142,7 +142,7 @@ add_task(async function testWebExtensionToolboxReload() {
     () => loadedTargets == 2,
     "Wait for background and popup targets to be reloaded"
   );
-  const menuList = toolbox.doc.getElementById("toolbox-frame-menu");
+  let menuList = toolbox.doc.getElementById("toolbox-frame-menu");
   await waitFor(
     () => menuList.querySelectorAll(".command").length == 3,
     "Wait for fallback, background and sidebar documents to visible in the iframe dropdown"
@@ -170,6 +170,7 @@ add_task(async function testWebExtensionToolboxReload() {
     () => loadedTargets == 2,
     "Wait for background and popup targets to be reloaded"
   );
+  menuList = toolbox.doc.getElementById("toolbox-frame-menu");
   await waitFor(
     () => menuList.querySelectorAll(".command").length == 3,
     "Wait for fallback, background and sidebar documents to visible in the iframe dropdown"
