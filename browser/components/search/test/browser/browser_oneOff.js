@@ -87,7 +87,7 @@ add_task(async function emptySearchShift() {
   let promise = BrowserTestUtils.browserLoaded(
     win.gBrowser.selectedBrowser,
     false,
-    `http://mochi.test:8888/browser/browser/components/search/test/browser/`
+    `http://mochi.test:8888/`
   );
   EventUtils.synthesizeMouseAtCenter(oneOffButton, { shiftKey: true }, win);
   await promise;

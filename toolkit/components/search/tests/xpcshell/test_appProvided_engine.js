@@ -60,9 +60,6 @@ let CONFIG = [
           base: "https://example.com/1",
           searchTermParamName: "search",
         },
-        trending: {
-          base: "https://example.com/3",
-        },
       },
     },
   },
@@ -161,18 +158,14 @@ add_task(async function test_engine_with_all_params_set() {
   );
 
   let trendingSubmission = engine.getSubmission(
-    "",
+    "test",
     SearchUtils.URL_TYPE.TRENDING_JSON
   );
   Assert.equal(
     trendingSubmission.uri.spec,
-    "https://example.com/3?trending=",
-    "Should have the correct trending URL with search term parameter."
+    "https://example.com/3?trending=test"
   );
-  Assert.ok(
-    !trendingSubmission.postData,
-    "Should not have postData for a GET url"
-  );
+  Assert.ok(!submission.postData, "Should not have postData for a GET url");
 });
 
 add_task(async function test_engine_with_some_params_set() {
@@ -204,14 +197,10 @@ add_task(async function test_engine_with_some_params_set() {
     null,
     "Should not have a suggestions URL"
   );
-  let trendingSubmission = engine.getSubmission(
-    "",
-    SearchUtils.URL_TYPE.TRENDING_JSON
-  );
   Assert.equal(
-    trendingSubmission.uri.spec,
-    "https://example.com/3",
-    "Should have the correct trending URL without search term parameter."
+    engine.getSubmission("test", SearchUtils.URL_TYPE.TRENDING_JSON),
+    null,
+    "Should not have a trending URL"
   );
 });
 

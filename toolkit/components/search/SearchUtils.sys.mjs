@@ -158,7 +158,6 @@ export var SearchUtils = {
     SEARCH: "text/html",
     OPENSEARCH: "application/opensearchdescription+xml",
     TRENDING_JSON: "application/x-trending+json",
-    SEARCH_FORM: "searchform",
   },
 
   ENGINES_URLS: {

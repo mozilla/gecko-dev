@@ -197,43 +197,8 @@ export class OpenSearchEngine extends SearchEngine {
     this._name = name;
     this._description = data.description ?? "";
     this._queryCharset = data.queryCharset ?? "UTF-8";
-    if (data.searchForm) {
-      try {
-        let searchFormUrl = new EngineURL(
-          lazy.SearchUtils.URL_TYPE.SEARCH_FORM,
-          "GET",
-          data.searchForm
-        );
-        this._urls.push(searchFormUrl);
-      } catch (ex) {
-        throw Components.Exception(
-          `Failed to add ${data.searchForm} as a searchForm URL`,
-          Cr.NS_ERROR_FAILURE
-        );
-      }
-    }
 
     for (let url of data.urls) {
-      // Some Mozilla provided opensearch engines used to specify their searchForm
-      // through a Url with rel="searchform". We add these as URLs with type searchform.
-      if (url.rels.includes("searchform")) {
-        let searchFormURL;
-        try {
-          searchFormURL = new EngineURL(
-            lazy.SearchUtils.URL_TYPE.SEARCH_FORM,
-            "GET",
-            url.template
-          );
-        } catch (ex) {
-          throw Components.Exception(
-            `Failed to add ${url.template} as an Engine URL`,
-            Cr.NS_ERROR_FAILURE
-          );
-        }
-        this.#addParamsToUrl(searchFormURL, url.params);
-        this._urls.push(searchFormURL);
-      }
-
       let engineURL;
       try {
         engineURL = new EngineURL(url.type, url.method, url.template);
@@ -244,35 +209,24 @@ export class OpenSearchEngine extends SearchEngine {
         );
       }
 
-      let nonSearchformRels = url.rels.filter(rel => rel != "searchform");
-      if (nonSearchformRels.length) {
-        engineURL.rels = nonSearchformRels;
+      if (url.rels.length) {
+        engineURL.rels = url.rels;
       }
 
-      this.#addParamsToUrl(engineURL, url.params);
+      for (let param of url.params) {
+        try {
+          engineURL.addParam(param.name, param.value);
+        } catch (ex) {
+          // Ignore failure
+          lazy.logConsole.error("OpenSearch url has an invalid param", param);
+        }
+      }
+
       this._urls.push(engineURL);
     }
 
     for (let image of data.images) {
       this._setIcon(image.url, image.isPrefered, image.width, image.height);
-    }
-  }
-
-  /**
-   * Helper method to add all params to the given EngineURL,
-   * ignoring those params with missing name or value.
-   *
-   * @param {EngineURL} engineURL the EngineURL to add the params to.
-   * @param {Array} params param objects with name and value properties.
-   */
-  #addParamsToUrl(engineURL, params) {
-    for (let param of params) {
-      try {
-        engineURL.addParam(param.name, param.value);
-      } catch (ex) {
-        // Ignore failure
-        lazy.logConsole.error("OpenSearch url has an invalid param", param);
-      }
     }
   }
 
