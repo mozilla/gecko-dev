@@ -107,7 +107,7 @@
 
 <%helpers:shorthand
     name="white-space"
-    engines="gecko"
+    engines="gecko servo"
     sub_properties="text-wrap-mode white-space-collapse"
     derive_value_info="False"
     spec="https://www.w3.org/TR/css-text-4/#white-space-property"

@@ -631,9 +631,10 @@ ${helpers.predefined_type(
     "zoom",
     "Zoom",
     "computed::box_::Zoom::ONE",
-    engines="gecko",
+    engines="gecko servo",
     spec="Non-standard (https://github.com/atanassov/css-zoom/ is the closest)",
     gecko_pref="layout.css.zoom.enabled",
+    servo_pref="layout.unimplemented",
     affects="layout",
     enabled_in="chrome",
 )}

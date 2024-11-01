@@ -723,7 +723,6 @@
 <%helpers:shorthand
     name="place-content"
     engines="gecko servo"
-    servo_pref="layout.flexbox.enabled",
     sub_properties="align-content justify-content"
     spec="https://drafts.csswg.org/css-align/#propdef-place-content"
 >
@@ -820,7 +819,6 @@
 <%helpers:shorthand
     name="place-items"
     engines="gecko servo"
-    servo_pref="layout.flexbox.enabled",
     sub_properties="align-items justify-items"
     spec="https://drafts.csswg.org/css-align/#place-items-property"
 >
