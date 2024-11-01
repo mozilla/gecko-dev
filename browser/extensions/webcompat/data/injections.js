@@ -256,6 +256,9 @@ const AVAILABLE_INJECTIONS = [
     platform: "desktop",
     domain: "Sites using draft.js",
     bug: "1739489",
+    checkIfNeeded() {
+      return !window.TextEvent;
+    },
     contentScripts: {
       matches: [
         "*://draftjs.org/*", // Bug 1739489
@@ -264,7 +267,6 @@ const AVAILABLE_INJECTIONS = [
         "*://mobile.twitter.com/*", // Bug 1776229
         "*://x.com/*", // Bug 1776229
         "*://mobile.x.com/*", // Bug 1776229
-        "*://*.reddit.com/*", // Bug 1829755
       ],
       js: [
         {

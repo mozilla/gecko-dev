@@ -107,7 +107,15 @@ class Injections {
     for (const injection of this._availableInjections) {
       if (platformMatches.includes(injection.platform)) {
         injection.availableOnPlatform = true;
-        await this.enableInjection(injection, registeredScriptIds);
+        try {
+          if (injection.checkIfNeeded && !injection.checkIfNeeded()) {
+            console.warn("Skipping un-needed injection for", injection.domain);
+          } else {
+            await this.enableInjection(injection, registeredScriptIds);
+          }
+        } catch (e) {
+          console.error("Error enabling injection for", injection.domain, e);
+        }
       }
     }
 
