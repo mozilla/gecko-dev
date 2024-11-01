@@ -1,11 +1,9 @@
 [DEFAULT]
+dupe-manifest = ""
 firefox-appdir = "browser"
 head = "head_search.js"
-dupe-manifest = ""
-tags = "searchmain"
-skip-if = ["os == 'android'"]
 prefs = ["browser.search.removeEngineInfobar.enabled=true"]
-
+skip-if = ["os == 'android'"]
 support-files = [
   "icons/bigIcon.ico",
   "icons/remoteIcon.ico",
@@ -18,6 +16,7 @@ support-files = [
   "sjs/iconsRedirect.sjs",
   "sjs/searchSuggestions.sjs",
 ]
+tags = "searchmain"
 
 ["test_SearchStaticData.js"]
 
@@ -38,14 +37,14 @@ tags = "remote-settings"
 
 ["test_async.js"]
 
-["test_config_engine_params.js"]
-
-["test_config_loading_uses_env.js"]
-
 ["test_configExpansion.js"]
 support-files = [
   "../../schema/search-config-v2-schema.json",
 ]
+
+["test_config_engine_params.js"]
+
+["test_config_loading_uses_env.js"]
 
 ["test_defaultEngine.js"]
 
@@ -217,8 +216,8 @@ support-files = ["settings/v6-ids-upgrade.json"]
 support-files = ["settings/v7-loadPath-migration.json"]
 
 ["test_settings_migration_renames.js"]
-support-files = ["settings/v6-migration-renames.json"]
 prefs = ["browser.search.newSearchConfig.enabled=true"]
+support-files = ["settings/v6-migration-renames.json"]
 
 ["test_settings_none.js"]
 

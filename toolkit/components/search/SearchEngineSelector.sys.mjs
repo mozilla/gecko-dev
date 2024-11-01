@@ -278,16 +278,16 @@ export class SearchEngineSelector {
         continue;
       }
 
-      let variant = config.variants?.findLast(variant =>
-        this.#matchesUserEnvironment(variant, userEnv)
+      let variant = config.variants?.findLast(v =>
+        this.#matchesUserEnvironment(v, userEnv)
       );
 
       if (!variant) {
         continue;
       }
 
-      let subVariant = variant.subVariants?.findLast(subVariant =>
-        this.#matchesUserEnvironment(subVariant, userEnv)
+      let subVariant = variant.subVariants?.findLast(sv =>
+        this.#matchesUserEnvironment(sv, userEnv)
       );
 
       let engine = structuredClone(config.base);

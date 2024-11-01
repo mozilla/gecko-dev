@@ -474,7 +474,7 @@ export class SearchSettings {
    */
   setEngineMetaDataAttribute(engineName, property, value) {
     let engines = [...this.#searchService._engines.values()];
-    let engine = engines.find(engine => engine._name == engineName);
+    let engine = engines.find(e => e._name == engineName);
     if (engine) {
       engine._metaData[property] = value;
       this._delayedWrite();
@@ -492,9 +492,7 @@ export class SearchSettings {
    *   The value of the attribute, or undefined if not known.
    */
   getEngineMetaDataAttribute(engineName, property) {
-    let engine = this.#settings.engines.find(
-      engine => engine._name == engineName
-    );
+    let engine = this.#settings.engines.find(e => e._name == engineName);
     return engine._metaData[property] ?? undefined;
   }
 

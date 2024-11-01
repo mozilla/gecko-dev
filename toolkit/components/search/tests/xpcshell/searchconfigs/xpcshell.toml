@@ -34,6 +34,7 @@ requesttimeoutfactor = 2
 # will pick up newSearchConfig.enabled=true from Nimbus Settings but not
 # immediately, we need to turn the PREF on for this test to prevent failures
 # in the merge from central to Beta 127.
+
 ["test_ebay.js"]
 prefs = ["browser.search.newSearchConfig.enabled=true"]
 
