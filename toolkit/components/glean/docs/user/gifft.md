@@ -241,4 +241,47 @@ so that's why I'm not being precise.)
 What this means is that, for data recorded later in shutdown,
 Glean will report more complete information than Telemetry will.
 
+### Once-per-session Scalars
+
+Legacy Telemetry Scalars are guaranteed to be submitted in Telemetry "main" pings at least once every session.
+The default metrics transport in Glean,
+the "metrics" ping, is submitted at least once a _day_.
+
+This means if your instrumentation code runs once per session,
+in your Glean metrics later sessions' values will overwrite earlier ones until a Glean "metrics" ping is submitted.
+
+```{admonition} Glean timespan metrics are slightly different
+If your Glean metric is a `timespan`, later sessions' values will not overwrite earlier ones.
+Instead, the earliest one will persist and
+[an `invalid_state` error will be recorded][timespan-errors].
+If you'd prefer it to instead silently overwrite, use a `quantity` instead of a `timespan`.
+```
+
+To preserve all sessions' values, you can use different `metric` types:
+* For `quantity` metrics:
+    * If timing-related, use `timing_distribution`.
+    * If memory-related, use `memory_distribution`.
+    * Otherwise, use `custom_distribution`.
+* For `string`, `uuid`, `url`, or `datetime` metrics, you can use `string_list`.
+    * Note: `string_list` has a [fixed limit on the number of values][stringlist-limit].
+* For `boolean` metrics, use a `labeled_counter` with labels "true" and "false".
+
+To only preserve the session's values for as long as the session is active,
+use `lifetime: application` and apply `no_lint: [GIFFT_NON_PING_LIFETIME]`
+to have Glean [send the value in every "metrics" ping that session,
+clearing it after the session completes][glean-lifetimes].
+
+```{admonition} Legacy Telemetry has no concept of metric lifetimes
+Be careful when using `lifetime: application` in combination with GIFFT.
+Legacy Telemetry has no concept of metric lifetimes.
+You would do well to think through exactly what instrumentation operations are happening,
+and when.
+```
+
+Please do [reach out for assistance][glean-matrix] if you have any questions.
+
 [app-shutdown]: https://searchfox.org/mozilla-central/source/xpcom/base/AppShutdown.cpp#57
+[glean-lifetimes]: https://mozilla.github.io/glean/book/user/metrics/adding-new-metrics.html#when-should-the-glean-sdk-automatically-clear-the-measurement
+[glean-matrix]: https://chat.mozilla.org/#/room/#glean:mozilla.org
+[stringlist-limit]: https://mozilla.github.io/glean/book/reference/metrics/string_list.html#limits-1
+[timespan-errors]: https://mozilla.github.io/glean/book/reference/metrics/timespan.html#recorded-errors
