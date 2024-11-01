@@ -312,25 +312,27 @@ object AppAndSystemHelper {
         }
     }
 
-    fun assertExternalAppOpens(appPackageName: String) {
+    fun assertAppWithPackageNameOpens(appPackageName: String) {
         if (isPackageInstalled(appPackageName)) {
             try {
-                Log.i(TAG, "assertExternalAppOpens: Trying to check the intent sent.")
+                Log.i(TAG, "assertAppWithPackageNameOpens: Trying to check the intent sent.")
                 intended(toPackage(appPackageName))
-                Log.i(TAG, "assertExternalAppOpens: Matched open intent to $appPackageName.")
+                Log.i(TAG, "assertAppWithPackageNameOpens: Matched open intent to $appPackageName.")
             } catch (e: AssertionFailedError) {
-                Log.i(TAG, "assertExternalAppOpens: Intent match failure. ${e.message}")
+                Log.i(TAG, "assertAppWithPackageNameOpens: Intent match failure. ${e.message}")
             } finally {
-                // Stop the app from running in the background
-                forceCloseApp(appPackageName)
+                if (appPackageName != packageName) {
+                    // Stop the app from running in the background
+                    forceCloseApp(appPackageName)
+                }
             }
         } else {
-            Log.i(TAG, "assertExternalAppOpens: Trying to verify the \"Could not open file\" message.")
+            Log.i(TAG, "assertAppWithPackageNameOpens: Trying to verify the \"Could not open file\" message.")
             mDevice.waitNotNull(
                 Until.findObject(By.text("Could not open file")),
                 waitingTime,
             )
-            Log.i(TAG, "assertExternalAppOpens: Verified \"Could not open file\" message")
+            Log.i(TAG, "assertAppWithPackageNameOpens: Verified \"Could not open file\" message")
         }
     }
 

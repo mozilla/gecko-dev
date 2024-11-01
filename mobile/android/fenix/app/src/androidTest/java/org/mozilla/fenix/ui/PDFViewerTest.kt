@@ -5,18 +5,17 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
-import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
-import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
+import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.navigationToolbar
@@ -48,7 +47,6 @@ class PDFViewerTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2145448
     // Download PDF file using the download toolbar button
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1928136")
     @Test
     fun verifyPDFViewerDownloadButtonTest() {
         val genericURL = getGenericAsset(mockWebServer, 3)
@@ -60,7 +58,9 @@ class PDFViewerTest : TestSetup() {
         }.clickDownloadPDFButton {
             verifyDownloadedFileName(downloadFile)
         }.clickOpen("application/pdf") {
-            assertExternalAppOpens(GOOGLE_DOCS)
+            assertAppWithPackageNameOpens(packageName)
+            verifyUrl("content://media/external_primary/downloads/")
+            verifyTabCounter("2")
         }
     }
 

@@ -8,15 +8,13 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
 import org.junit.Assume
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.customannotations.SmokeTest
-import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.assertAppWithPackageNameOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.enableOrDisableBackGestureNavigationOnDevice
 import org.mozilla.fenix.helpers.AppAndSystemHelper.grantSystemPermission
-import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
@@ -25,6 +23,7 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.customTabScreen
@@ -182,7 +181,6 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2048448
     // Save edited PDF file from the share overlay
     @SmokeTest
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1928136")
     @Test
     fun saveAsPdfFunctionalityTest() {
         val genericURL =
@@ -198,7 +196,9 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
             verifyDownloadPrompt("pdfForm.pdf")
         }.clickDownload {
         }.clickOpen("application/pdf") {
-            assertExternalAppOpens(GOOGLE_DOCS)
+            assertAppWithPackageNameOpens(packageName)
+            verifyUrl("content://media/external_primary/downloads/")
+            verifyTabCounter("2")
         }
     }
 
