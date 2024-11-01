@@ -753,7 +753,7 @@ const AVAILABLE_UA_OVERRIDES = [
     config: {
       matches: ["*://*.avizia.com/*"],
       uaTransformer: () => {
-        return UAHelpers.getDeviceAppropriateChromeUA();
+        return UAHelpers.getDeviceAppropriateChromeUA({ noFxQuantum: true });
       },
     },
   },

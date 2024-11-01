@@ -19,16 +19,20 @@ var UAHelpers = {
         "58.0",
       ])[1];
 
+      const fxQuantum = config.noFxQuantum
+        ? ""
+        : `FxQuantum/${RunningFirefoxVersion} `;
+
       if (userAgent.includes("Android")) {
         const RunningAndroidVersion =
           userAgent.match(/Android [0-9.]+/) || "Android 6.0";
         if (androidDevice) {
           UAHelpers._deviceAppropriateChromeUAs[
             key
-          ] = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; ${androidDevice}) FxQuantum/${RunningFirefoxVersion} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
+          ] = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; ${androidDevice}) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
         } else {
-          const ChromePhoneUA = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; Nexus 5 Build/MRA58N) FxQuantum/${RunningFirefoxVersion} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
-          const ChromeTabletUA = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; Nexus 7 Build/JSS15Q) FxQuantum/${RunningFirefoxVersion} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
+          const ChromePhoneUA = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; Nexus 5 Build/MRA58N) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Mobile Safari/537.36`;
+          const ChromeTabletUA = `Mozilla/5.0 (Linux; ${RunningAndroidVersion}; Nexus 7 Build/JSS15Q) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
           const IsPhone = userAgent.includes("Mobile");
           UAHelpers._deviceAppropriateChromeUAs[key] = IsPhone
             ? ChromePhoneUA
@@ -48,7 +52,7 @@ var UAHelpers = {
 
         UAHelpers._deviceAppropriateChromeUAs[
           key
-        ] = `Mozilla/5.0 (${osSegment}) FxQuantum/${RunningFirefoxVersion} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
+        ] = `Mozilla/5.0 (${osSegment}) ${fxQuantum}AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${version} Safari/537.36`;
       }
     }
     return UAHelpers._deviceAppropriateChromeUAs[key];
