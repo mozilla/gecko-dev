@@ -69,6 +69,11 @@ export const MenuMessage = {
       return;
     }
 
+    win.PanelUI.mainView.setAttribute(
+      MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR,
+      message.id
+    );
+
     let msgElement = await this.constructFxAMessage(
       win,
       message,
@@ -82,11 +87,6 @@ export const MenuMessage = {
     });
 
     msgContainer.appendChild(msgElement);
-
-    win.PanelUI.mainView.setAttribute(
-      MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR,
-      message.id
-    );
 
     if (force) {
       win.PanelUI.show();
@@ -125,23 +125,23 @@ export const MenuMessage = {
       return;
     }
 
+    let fxaPanelView = lazy.PanelMultiView.getViewNode(document, "PanelUI-fxa");
+    fxaPanelView.setAttribute(
+      MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR,
+      message.id
+    );
+
     let msgElement = await this.constructFxAMessage(
       win,
       message,
       MenuMessage.SOURCES.PXI_MENU
     );
-    let fxaPanelView = lazy.PanelMultiView.getViewNode(document, "PanelUI-fxa");
 
     msgElement.addEventListener("FxAMenuMessage:Close", () => {
       fxaPanelView.removeAttribute(MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR);
     });
 
     msgContainer.appendChild(msgElement);
-
-    fxaPanelView.setAttribute(
-      MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR,
-      message.id
-    );
 
     if (force) {
       await win.gSync.toggleAccountPanel(
