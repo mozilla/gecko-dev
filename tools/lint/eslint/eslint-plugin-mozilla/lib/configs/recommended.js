@@ -52,9 +52,6 @@ const coreRules = {
     // Functions must always return something or nothing
     "consistent-return": "error",
 
-    // Require braces around blocks that start a new line
-    curly: ["error", "all"],
-
     // Encourage the use of dot notation whenever possible.
     "dot-notation": "error",
 

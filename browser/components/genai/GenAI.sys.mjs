@@ -267,7 +267,9 @@ export const GenAI = {
    */
   init() {
     // Allow other callers to init even though we now automatically init
-    if (this._initialized) return;
+    if (this._initialized) {
+      return;
+    }
     this._initialized = true;
 
     // Access getters for side effects of observing pref changes

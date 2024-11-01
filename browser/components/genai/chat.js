@@ -509,7 +509,9 @@ function showOnboarding(length) {
         // Handle single select provider choice
         case ACTIONS.CHATBOT_SELECT: {
           const { config } = action;
-          if (!config) break;
+          if (!config) {
+            break;
+          }
 
           request(config.url);
           document.querySelector(".primary").disabled = false;

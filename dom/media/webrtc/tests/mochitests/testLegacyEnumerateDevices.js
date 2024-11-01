@@ -51,7 +51,9 @@ async function testLegacyEnumerateDevices() {
   is(jsoned[0].deviceId, devices[0].deviceId, "deviceId survived serializer");
   for (const device of devices) {
     validateDevice(device);
-    if (device.kind == "audiooutput") continue;
+    if (device.kind == "audiooutput") {
+      continue;
+    }
     is(device.label, "", "Device label is empty");
     // Test deviceId constraint
     let deviceId = device.deviceId;
@@ -107,7 +109,9 @@ async function testLegacyEnumerateDevices() {
     window.addEventListener("message", ({ origin, data }) => {
       ok(origins.includes(origin), "Got message from expected origin");
       map.set(origin, JSON.parse(data));
-      if (map.size < origins.length) return;
+      if (map.size < origins.length) {
+        return;
+      }
       resolve(map);
     });
   });

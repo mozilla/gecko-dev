@@ -227,7 +227,9 @@ function isMultiThreadSupported() {
  *
  */
 async function checkGPUSupport() {
-  if (!navigator?.gpu) return false;
+  if (!navigator?.gpu) {
+    return false;
+  }
 
   const adapter = await navigator.gpu.requestAdapter({
     powerPreference: "high-performance",

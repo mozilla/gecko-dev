@@ -87,6 +87,14 @@ module.exports = {
         "mozilla/privileged": true,
         "mozilla/specific": true,
       },
+      rules: {
+        // Require braces around blocks that start a new line. This must be
+        // configured after eslint-config-prettier is included (via `extends`
+        // above), as otherwise that configuration disables it. Hence, we do
+        // not include it in
+        // `tools/lint/eslint/eslint-plugin-mozilla/lib/configs/recommended.js`.
+        curly: ["error", "all"],
+      },
     },
     {
       files: [
