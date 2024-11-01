@@ -1039,6 +1039,13 @@ newTabSectionsExperiment:
         pref:  browser.newtabpage.activity-stream.discoverystream.sections.enabled
       description: >-
         Enable the Section UI for recommended stories on newtab
+    cardRefreshEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref:  browser.newtabpage.activity-stream.discoverystream.sections.cards.enabled
+      description: >-
+        Enable the revised pocket story card UI in recommended stories on newtab
     localeSectionstConfig:
       type: string
       setPref:

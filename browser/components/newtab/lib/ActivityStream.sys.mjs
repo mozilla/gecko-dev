@@ -444,6 +444,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.cards.enabled",
+    {
+      title:
+        "Boolean flag to enable revised pocket story card UI in recommended stories",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.spoc-positions",
     {
       title: "CSV string of spoc position indexes on newtab Pocket grid",
