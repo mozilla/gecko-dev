@@ -291,53 +291,59 @@ fun PocketStories(
                             }
                         },
                     ) {
-                        if (story == placeholderStory) {
-                            ListItemTabLargePlaceholder(
-                                text = stringResource(R.string.pocket_stories_placeholder_text),
-                                backgroundColor = backgroundColor,
-                            ) {
-                                onDiscoverMoreClicked("https://getpocket.com/explore?$POCKET_FEATURE_UTM_KEY_VALUE")
-                            }
-                        } else if (story is PocketRecommendedStory) {
-                            PocketStory(
-                                story = story,
-                                backgroundColor = backgroundColor,
-                            ) {
-                                val uri = Uri.parse(story.url)
-                                    .buildUpon()
-                                    .appendQueryParameter(URI_PARAM_UTM_KEY, POCKET_STORIES_UTM_VALUE)
-                                    .build().toString()
-                                onStoryClicked(it.copy(url = uri), rowIndex to columnIndex)
-                            }
-                        } else if (story is PocketSponsoredStory) {
-                            val screenBounds = Rect()
-                                .apply { LocalView.current.getWindowVisibleDisplayFrame(this) }
-                                .apply {
-                                    // Check if this is in a preview because `.settings()` breaks previews
-                                    if (!inComposePreview) {
-                                        val verticalOffset = LocalContext.current.resources.getDimensionPixelSize(
-                                            R.dimen.browser_toolbar_height,
-                                        )
-
-                                        if (LocalContext.current.settings().shouldUseBottomToolbar) {
-                                            bottom -= verticalOffset
-                                        } else {
-                                            top += verticalOffset
-                                        }
-                                    }
+                        when (story) {
+                            placeholderStory -> {
+                                ListItemTabLargePlaceholder(
+                                    text = stringResource(R.string.pocket_stories_placeholder_text),
+                                    backgroundColor = backgroundColor,
+                                ) {
+                                    onDiscoverMoreClicked("https://getpocket.com/explore?$POCKET_FEATURE_UTM_KEY_VALUE")
                                 }
-                            Box(
-                                modifier = Modifier.onShown(
-                                    threshold = 0.5f,
-                                    onVisible = { onStoryShown(story, rowIndex to columnIndex) },
-                                    screenBounds = screenBounds,
-                                ),
-                            ) {
-                                PocketSponsoredStory(
+                            }
+
+                            is PocketRecommendedStory -> {
+                                PocketStory(
                                     story = story,
                                     backgroundColor = backgroundColor,
                                 ) {
-                                    onStoryClicked(story, rowIndex to columnIndex)
+                                    val uri = Uri.parse(story.url)
+                                        .buildUpon()
+                                        .appendQueryParameter(URI_PARAM_UTM_KEY, POCKET_STORIES_UTM_VALUE)
+                                        .build().toString()
+                                    onStoryClicked(it.copy(url = uri), rowIndex to columnIndex)
+                                }
+                            }
+
+                            is PocketSponsoredStory -> {
+                                val screenBounds = Rect()
+                                    .apply { LocalView.current.getWindowVisibleDisplayFrame(this) }
+                                    .apply {
+                                        // Check if this is in a preview because `.settings()` breaks previews
+                                        if (!inComposePreview) {
+                                            val verticalOffset = LocalContext.current.resources.getDimensionPixelSize(
+                                                R.dimen.browser_toolbar_height,
+                                            )
+
+                                            if (LocalContext.current.settings().shouldUseBottomToolbar) {
+                                                bottom -= verticalOffset
+                                            } else {
+                                                top += verticalOffset
+                                            }
+                                        }
+                                    }
+                                Box(
+                                    modifier = Modifier.onShown(
+                                        threshold = 0.5f,
+                                        onVisible = { onStoryShown(story, rowIndex to columnIndex) },
+                                        screenBounds = screenBounds,
+                                    ),
+                                ) {
+                                    PocketSponsoredStory(
+                                        story = story,
+                                        backgroundColor = backgroundColor,
+                                    ) {
+                                        onStoryClicked(story, rowIndex to columnIndex)
+                                    }
                                 }
                             }
                         }
