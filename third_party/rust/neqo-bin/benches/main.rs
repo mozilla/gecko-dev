@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{env, path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr};
 
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion, Throughput};
 use neqo_bin::{client, server};
@@ -20,18 +20,18 @@ fn transfer(c: &mut Criterion) {
     neqo_crypto::init_db(PathBuf::from_str("../test-fixture/db").unwrap()).unwrap();
 
     let done_sender = spawn_server();
-    let mtu = env::var("MTU").map_or_else(|_| String::new(), |mtu| format!("/mtu-{mtu}"));
+
     for Benchmark { name, requests } in [
         Benchmark {
-            name: format!("1-conn/1-100mb-resp{mtu} (aka. Download)"),
+            name: "1-conn/1-100mb-resp (aka. Download)".to_string(),
             requests: vec![100 * 1024 * 1024],
         },
         Benchmark {
-            name: format!("1-conn/10_000-parallel-1b-resp{mtu} (aka. RPS)"),
+            name: "1-conn/10_000-parallel-1b-resp (aka. RPS)".to_string(),
             requests: vec![1; 10_000],
         },
         Benchmark {
-            name: format!("1-conn/1-1b-resp{mtu} (aka. HPS)"),
+            name: "1-conn/1-1b-resp (aka. HPS)".to_string(),
             requests: vec![1; 1],
         },
     ] {

@@ -13,7 +13,7 @@ use test_fixture::{
     sim::{
         connection::{ConnectionNode, ReachState, ReceiveData, SendData},
         network::{Delay, TailDrop},
-        ReadySimulator, Simulator,
+        Simulator,
     },
 };
 
@@ -21,8 +21,7 @@ const ZERO: Duration = Duration::from_millis(0);
 const JITTER: Duration = Duration::from_millis(10);
 const TRANSFER_AMOUNT: usize = 1 << 22; // 4Mbyte
 
-#[allow(clippy::needless_pass_by_value)] // Passing String where &str would do is fine here.
-fn benchmark_transfer(c: &mut Criterion, label: &str, seed: Option<impl AsRef<str>>) {
+fn benchmark_transfer(c: &mut Criterion, label: &str, seed: &Option<impl AsRef<str>>) {
     for pacing in [false, true] {
         let mut group = c.benchmark_group(format!("transfer/pacing-{pacing}"));
         // Don't let criterion calculate throughput, as that's based on wall-clock time, not
@@ -53,7 +52,9 @@ fn benchmark_transfer(c: &mut Criterion, label: &str, seed: Option<impl AsRef<st
                     }
                     sim.setup()
                 },
-                ReadySimulator::run,
+                |sim| {
+                    sim.run();
+                },
                 SmallInput,
             );
         });
@@ -62,14 +63,14 @@ fn benchmark_transfer(c: &mut Criterion, label: &str, seed: Option<impl AsRef<st
 }
 
 fn benchmark_transfer_variable(c: &mut Criterion) {
-    benchmark_transfer(c, "varying-seeds", std::env::var("SIMULATION_SEED").ok());
+    benchmark_transfer(c, "varying-seeds", &std::env::var("SIMULATION_SEED").ok());
 }
 
 fn benchmark_transfer_fixed(c: &mut Criterion) {
     benchmark_transfer(
         c,
         "same-seed",
-        Some("62df6933ba1f543cece01db8f27fb2025529b27f93df39e19f006e1db3b8c843"),
+        &Some("62df6933ba1f543cece01db8f27fb2025529b27f93df39e19f006e1db3b8c843"),
     );
 }
 

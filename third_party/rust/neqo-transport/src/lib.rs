@@ -107,6 +107,7 @@ pub enum Error {
     DecodingFrame,
     DecryptError,
     DisabledVersion,
+    HandshakeFailed,
     IdleTimeout,
     IntegerOverflow,
     InvalidInput,
