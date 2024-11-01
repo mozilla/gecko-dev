@@ -144,7 +144,7 @@ class RedesignedNavigationToolbarSmokeTest : TestSetup() {
             verifyTabCrashReporterView()
         }.openTabDrawerFromRedesignedToolbar(composeTestRule) {
             verifyExistingOpenTabs(firstWebPage.title)
-            verifyExistingOpenTabs("about:crashcontent")
+            verifyExistingOpenTabs(secondWebPage.title)
         }.closeTabDrawer {
         }.goToHomescreenWithRedesignedToolbar {
             verifyExistingTopSitesList()
