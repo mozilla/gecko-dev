@@ -16,4 +16,5 @@ def check_target(target):
         die("Cannot build mobile/ios with a target other than an iOS one")
 
 
+include("../shared/moz.configure")
 include("../../toolkit/moz.configure")

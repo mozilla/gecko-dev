@@ -143,6 +143,8 @@ export var AppConstants = Object.freeze({
   "win",
 #elif XP_MACOSX
   "macosx",
+#elif XP_IOS
+  "ios",
 #elif MOZ_WIDGET_ANDROID
   "android",
 #elif XP_LINUX
@@ -459,6 +461,13 @@ export var AppConstants = Object.freeze({
   "@DLL_PREFIX@nss3@DLL_SUFFIX@",
 #else
   "@DLL_PREFIX@mozsqlite3@DLL_SUFFIX@",
+#endif
+
+  MOZ_GECKOVIEW:
+#ifdef MOZ_GECKOVIEW
+    true,
+#else
+    false,
 #endif
 
   // Returns true for CN region build when distibution id set as 'MozillaOnline'
