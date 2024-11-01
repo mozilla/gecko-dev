@@ -768,6 +768,31 @@ class _QuickSuggestTestUtils {
         population: 2,
         alternate_names: ["us ca city"],
       },
+      // Made-up cities that are only ~1.5 km apart.
+      {
+        id: 102,
+        name: "Twin City A",
+        latitude: "33.748889",
+        longitude: "-84.39",
+        feature_class: "P",
+        feature_code: "PPL",
+        country_code: "US",
+        admin1_code: "GA",
+        population: 1,
+        alternate_names: ["twin city a"],
+      },
+      {
+        id: 103,
+        name: "Twin City B",
+        latitude: "33.76",
+        longitude: "-84.4",
+        feature_class: "P",
+        feature_code: "PPL",
+        country_code: "US",
+        admin1_code: "GA",
+        population: 2,
+        alternate_names: ["twin city b"],
+      },
     ];
     let [maxLen, maxWordCount] = geonames.reduce(
       ([len, wordCount], geoname) => [
