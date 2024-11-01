@@ -219,14 +219,6 @@ bool IsStuckAtTop(gfxFloat aTranslation, const LayerRectAbsolute& aInnerRange,
                   const LayerRectAbsolute& aOuterRange);
 
 /**
- * Compute the translation that should be applied to a layer that's fixed
- * at |eFixedSides|, to respect the fixed layer margins |aFixedMargins|.
- */
-ScreenPoint ComputeFixedMarginsOffset(
-    const ScreenMargin& aCompositorFixedLayerMargins, SideBits aFixedSides,
-    const ScreenMargin& aGeckoFixedLayerMargins);
-
-/**
  * Takes the visible rect from the compositor metrics, adds a pref-based
  * margin around it, and checks to see if it is contained inside the painted
  * rect from the painted metrics. Returns true if it is contained, or false

@@ -3814,8 +3814,24 @@ ScreenPoint APZCTreeManager::ComputeFixedMarginsOffset(
     return ScreenPoint(0, 0);
   }
 
-  return apz::ComputeFixedMarginsOffset(aCompositorFixedLayerMargins,
-                                        aFixedSides, aGeckoFixedLayerMargins);
+  // Work out the necessary translation, in screen space.
+  ScreenPoint translation;
+
+  ScreenMargin effectiveMargin =
+      aCompositorFixedLayerMargins - aGeckoFixedLayerMargins;
+  if (aFixedSides & SideBits::eLeft) {
+    translation.x += effectiveMargin.left;
+  } else if (aFixedSides & SideBits::eRight) {
+    translation.x -= effectiveMargin.right;
+  }
+
+  if (aFixedSides & SideBits::eTop) {
+    translation.y += effectiveMargin.top;
+  } else if (aFixedSides & SideBits::eBottom) {
+    translation.y -= effectiveMargin.bottom;
+  }
+
+  return translation;
 }
 
 /*static*/

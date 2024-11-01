@@ -41,29 +41,6 @@ bool IsStuckAtTop(gfxFloat aTranslation, const LayerRectAbsolute& aInnerRange,
          -aTranslation <= aOuterRange.YMost();
 }
 
-ScreenPoint ComputeFixedMarginsOffset(
-    const ScreenMargin& aCompositorFixedLayerMargins, SideBits aFixedSides,
-    const ScreenMargin& aGeckoFixedLayerMargins) {
-  // Work out the necessary translation, in screen space.
-  ScreenPoint translation;
-
-  ScreenMargin effectiveMargin =
-      aCompositorFixedLayerMargins - aGeckoFixedLayerMargins;
-  if (aFixedSides & SideBits::eLeft) {
-    translation.x += effectiveMargin.left;
-  } else if (aFixedSides & SideBits::eRight) {
-    translation.x -= effectiveMargin.right;
-  }
-
-  if (aFixedSides & SideBits::eTop) {
-    translation.y += effectiveMargin.top;
-  } else if (aFixedSides & SideBits::eBottom) {
-    translation.y -= effectiveMargin.bottom;
-  }
-
-  return translation;
-}
-
 bool AboutToCheckerboard(const FrameMetrics& aPaintedMetrics,
                          const FrameMetrics& aCompositorMetrics) {
   // The main-thread code to compute the painted area can introduce some
