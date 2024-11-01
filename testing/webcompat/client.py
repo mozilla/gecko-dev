@@ -605,6 +605,9 @@ class Client:
         )
         return Client.PreloadScript(self, script, target)
 
+    async def disable_window_alert(self):
+        return await self.make_preload_script("window.alert = () => {}")
+
     async def await_alert(self, text):
         if not hasattr(self, "alert_preload_script"):
             self.alert_preload_script = await self.make_preload_script(
