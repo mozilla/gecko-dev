@@ -685,9 +685,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                    CodeLocationLabel target)
       DEFINED_ON(x86, x64, arm, arm64, loong64, riscv64, wasm32, mips_shared);
 
+  // Creates a move of a patchable 32-bit value into `dest`.  On 64-bit
+  // targets, the value (`n`) is extended to 64 bits using the target
+  // architecture's standard 32-to-64 extension rule.  Hence consistent cross
+  // target behaviour is only provided for `n` in the range 0 .. 2^31-1
+  // inclusive.
   CodeOffset move32WithPatch(Register dest)
       DEFINED_ON(x86_shared, arm, arm64, loong64, mips_shared);
-  void patchMove32(CodeOffset offset, int32_t n)
+  void patchMove32(CodeOffset offset, Imm32 n)
       DEFINED_ON(x86_shared, arm, arm64, loong64, mips_shared);
 
  public:

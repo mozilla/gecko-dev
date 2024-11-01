@@ -4446,7 +4446,7 @@ CodeOffset MacroAssembler::move32WithPatch(Register dest) {
   return movWithPatch(ImmWord(uintptr_t(-1)), dest);
 }
 
-void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
+void MacroAssembler::patchMove32(CodeOffset offset, Imm32 n) {
   Register dest;
   Assembler::RelocStyle rs;
 
@@ -4459,7 +4459,7 @@ void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
   // Patch over actual instructions.
   {
     BufferInstructionIterator iter(BufferOffset(offset.offset()), &m_buffer);
-    MacroAssembler::ma_mov_patch(Imm32(n), dest, Always, rs, iter);
+    MacroAssembler::ma_mov_patch(n, dest, Always, rs, iter);
   }
 }
 

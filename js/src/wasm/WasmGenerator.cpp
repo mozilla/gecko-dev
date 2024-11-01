@@ -518,7 +518,7 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
       return false;
     }
 
-    masm_->patchMove32(offset, int32_t(callRefMetricOffset));
+    masm_->patchMove32(offset, Imm32(int32_t(callRefMetricOffset)));
   }
 
   for (const CodeLabel& codeLabel : code.codeLabels) {

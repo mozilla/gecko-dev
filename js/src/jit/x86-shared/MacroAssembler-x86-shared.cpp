@@ -752,8 +752,8 @@ CodeOffset MacroAssembler::move32WithPatch(Register dest) {
   return CodeOffset(currentOffset());
 }
 
-void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
-  X86Encoding::SetInt32(masm.data() + offset.offset(), n);
+void MacroAssembler::patchMove32(CodeOffset offset, Imm32 n) {
+  X86Encoding::SetInt32(masm.data() + offset.offset(), n.value);
 }
 
 // ===============================================================

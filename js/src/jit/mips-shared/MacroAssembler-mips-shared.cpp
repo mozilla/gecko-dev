@@ -1797,8 +1797,8 @@ CodeOffset MacroAssembler::move32WithPatch(Register dest) {
   return offs;
 }
 
-void MacroAssembler::patchMove32(CodeOffset offset, int32_t n) {
-  patchSub32FromStackPtr(offset, Imm32(n));
+void MacroAssembler::patchMove32(CodeOffset offset, Imm32 n) {
+  patchSub32FromStackPtr(offset, n);
 }
 
 void MacroAssembler::pushReturnAddress() { push(ra); }
