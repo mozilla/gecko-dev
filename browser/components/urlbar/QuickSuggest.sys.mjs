@@ -39,6 +39,13 @@ const FEATURES = {
   YelpSuggestions: "resource:///modules/urlbar/private/YelpSuggestions.sys.mjs",
 };
 
+// How long we'll cache Merino's geolocation response. This is intentionally a
+// small period of time, and keep in mind that this manual caching layer here is
+// on top of any HTTP caching done by Firefox according to the response's cache
+// headers. The point here is to make sure that, regardless of HTTP caching, we
+// don't ping Merino geolocation on each keystroke since that would be wasteful.
+const GEOLOCATION_CACHE_PERIOD_MS = 120000; // 2 minutes
+
 const TIMESTAMP_TEMPLATE = "%YYYYMMDDHH%";
 const TIMESTAMP_LENGTH = 10;
 const TIMESTAMP_REGEXP = /^\d{10}$/;
@@ -270,7 +277,9 @@ class _QuickSuggest {
 
   /**
    * Fetches the client's geolocation from Merino. Merino gets the geolocation
-   * by looking up the client's IP address in its MaxMind database.
+   * by looking up the client's IP address in its MaxMind database. We cache
+   * responses for a brief period of time so that fetches during a urlbar
+   * session don't ping Merino over and over.
    *
    * @returns {object}
    *   An object with the following properties (see Merino source for latest):
@@ -295,20 +304,30 @@ class _QuickSuggest {
    *       Accuracy radius in km.
    */
   async geolocation() {
-    if (!this.#merino) {
-      this.#merino = new lazy.MerinoClient("QuickSuggest");
+    if (
+      !this.#cachedGeolocation?.geolocation ||
+      this.#cachedGeolocation.dateMs + GEOLOCATION_CACHE_PERIOD_MS < Date.now()
+    ) {
+      if (!this.#merino) {
+        this.#merino = new lazy.MerinoClient("QuickSuggest");
+      }
+
+      this.logger.debug("Fetching geolocation from Merino");
+      let results = await this.#merino.fetch({
+        providers: ["geolocation"],
+        query: "",
+      });
+
+      this.logger.debug(
+        "Got geolocation from Merino: " + JSON.stringify(results)
+      );
+      this.#cachedGeolocation = {
+        geolocation: results?.[0]?.custom_details?.geolocation || null,
+        dateMs: Date.now(),
+      };
     }
 
-    this.logger.debug("Fetching geolocation from Merino");
-    let results = await this.#merino.fetch({
-      providers: ["geolocation"],
-      query: "",
-    });
-
-    this.logger.debug(
-      "Got geolocation from Merino: " + JSON.stringify(results)
-    );
-    return results.length ? results[0].custom_details.geolocation : null;
+    return this.#cachedGeolocation.geolocation;
   }
 
   /**
@@ -550,6 +569,10 @@ class _QuickSuggest {
     }
   }
 
+  _test_clearCachedGeolocation() {
+    this.#cachedGeolocation = { geolocation: null, dateMs: 0 };
+  }
+
   // Maps from Suggest feature class names to feature instances.
   #features = {};
 
@@ -570,6 +593,13 @@ class _QuickSuggest {
 
   // `MerinoClient`
   #merino;
+
+  #cachedGeolocation = {
+    // The cached geolocation object from Merino.
+    geolocation: null,
+    // The date the geolocation was cached as reported by `Date.now()`.
+    dateMs: 0,
+  };
 }
 
 export const QuickSuggest = new _QuickSuggest();
