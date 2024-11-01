@@ -106,6 +106,9 @@ skip-if = ["os == 'android'"]
 head = ""
 skip-if = ["os == 'android'"]
 
+["test_default_theme.js"]
+skip-if = ["os == 'android'"] # resource://default-theme not packaged on Android.
+
 ["test_delay_update_webextension.js"]
 tags = "webextensions"
 skip-if = ["os == 'android'"]

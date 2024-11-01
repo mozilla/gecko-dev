@@ -2533,9 +2533,10 @@ export var XPIProvider = {
           AddonManagerPrivate.notifyAddonChanged(null, "theme")
         );
       }
+      // Keep version in sync with toolkit/mozapps/extensions/default-theme/manifest.json
       this.maybeInstallBuiltinAddon(
         "default-theme@mozilla.org",
-        "1.3",
+        "1.4.1",
         "resource://default-theme/"
       );
 
