@@ -13,11 +13,6 @@
     --input-margin-inline-start-adjust: calc(-1 * var(--input-space-offset));
   }
 
-  label {
-    display: block;
-    padding-inline-start: var(--input-space-offset);
-  }
-
   #input {
     -moz-theme: non-native;
     min-width: var(--input-width);
@@ -31,10 +26,6 @@
     vertical-align: top;
     margin-block: var(--input-margin-block-adjust);
     margin-inline-start: var(--input-margin-inline-start-adjust);
-  }
-
-  .label-content {
-    position: relative;
   }
 
   .icon {
@@ -51,7 +42,17 @@
     }
   }
 
+  .label-content {
+    position: relative;
+  }
+
   .description {
     margin-inline-start: var(--input-space-offset);
   }
+
+  .label-wrapper {
+    display: block;
+    padding-inline-start: var(--input-space-offset);
+  }
+
 }

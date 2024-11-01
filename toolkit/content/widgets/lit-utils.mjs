@@ -284,14 +284,17 @@ export class MozBaseInputElement extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-input-common.css"
       />
-      <label
-        is="moz-label"
-        part="label"
-        for="input"
-        shownaccesskey=${ifDefined(this.accessKey)}
-      >
-        ${this.inputTemplate()}${this.labelTemplate()}
-      </label>
+      <span class="label-wrapper">
+        <label
+          is="moz-label"
+          part="label"
+          for="input"
+          shownaccesskey=${ifDefined(this.accessKey)}
+        >
+          ${this.inputTemplate()}${this.labelTemplate()}
+        </label>
+        ${this.supportLinkTemplate()}
+      </span>
       ${this.descriptionTemplate()}
     `;
   }
@@ -300,7 +303,6 @@ export class MozBaseInputElement extends MozLitElement {
     return html`<span class="label-content">
       ${this.iconTemplate()}
       <span class="text">${this.label}</span>
-      ${this.supportLinkTemplate()}
     </span>`;
   }
 
