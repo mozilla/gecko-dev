@@ -118,13 +118,6 @@ class SelectableProfileServiceClass {
     this.#asyncShutdownBlocker = () => this.uninit();
   }
 
-  get isEnabled() {
-    return (
-      Services.prefs.getBoolPref("browser.profiles.enabled", false) &&
-      !!(this.#storeID || this.#groupToolkitProfile)
-    );
-  }
-
   /**
    * For use in testing only, override the profile service with a mock version
    * and reset state accordingly.
@@ -263,10 +256,6 @@ class SelectableProfileServiceClass {
         "toolkit.profiles.storeID",
         ""
       );
-    }
-
-    if (!this.isEnabled) {
-      return;
     }
 
     // If the storeID doesn't exist, we don't want to create the db until we

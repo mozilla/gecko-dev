@@ -221,16 +221,6 @@ add_task(async function check_canCreateSelectableProfiles() {
 
   is(
     await ASRouterTargeting.Environment.canCreateSelectableProfiles,
-    false,
-    "The new profiles feature doesn't support standalone profiles which are used in automation."
-  );
-
-  // We have to fake there being a real profile available and enable the profiles feature
-  await pushPrefs(["browser.profiles.enabled", "someValue"]);
-  await SelectableProfileService.resetProfileService({ currentProfile: {} });
-
-  is(
-    await ASRouterTargeting.Environment.canCreateSelectableProfiles,
     true,
     "should return true if the current profile is valid for use with SelectableProfileService"
   );
@@ -241,8 +231,6 @@ add_task(async function check_canCreateSelectableProfiles() {
     message,
     "should select correct item by canCreateSelectableProfiles"
   );
-
-  await SelectableProfileService.resetProfileService(null);
 });
 
 add_task(async function check_hasSelectableProfiles() {
