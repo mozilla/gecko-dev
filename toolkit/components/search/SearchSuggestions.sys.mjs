@@ -440,23 +440,20 @@ class SuggestAutoComplete {
     if (results?.remote?.length) {
       // We shouldn't show tail suggestions in their full-text form.
       // Suggestions are shown after form history results.
-      autoCompleteResult.remoteEntries = results.remote.reduce(
-        (results, item) => {
-          if (!item.matchPrefix && !item.tail) {
-            results.push({
-              value: item.value,
-              label: item.value,
-              // We supply the comments field so that autocomplete does not kick
-              // in the unescaping of the results for display which it uses for
-              // urls.
-              comment: item.value,
-            });
-          }
+      autoCompleteResult.remoteEntries = results.remote.reduce((acc, item) => {
+        if (!item.matchPrefix && !item.tail) {
+          acc.push({
+            value: item.value,
+            label: item.value,
+            // We supply the comments field so that autocomplete does not kick
+            // in the unescaping of the results for display which it uses for
+            // urls.
+            comment: item.value,
+          });
+        }
 
-          return results;
-        },
-        []
-      );
+        return acc;
+      }, []);
     }
 
     // Notify the FE of our new results
