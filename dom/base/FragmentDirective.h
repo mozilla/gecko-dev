@@ -134,10 +134,6 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
  private:
   RefPtr<nsRange> FindRangeForTextDirective(
       const TextDirective& aTextDirective);
-  RefPtr<nsRange> FindStringInRange(nsRange* aSearchRange,
-                                    const nsAString& aQuery,
-                                    bool aWordStartBounded,
-                                    bool aWordEndBounded);
 
   RefPtr<Document> mDocument;
   nsTArray<TextDirective> mUninvokedTextDirectives;
