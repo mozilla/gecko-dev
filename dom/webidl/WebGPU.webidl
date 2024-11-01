@@ -345,6 +345,7 @@ enum GPUTextureFormat {
     "bgra8unorm-srgb",
     // Packed 32-bit formats
     "rgb9e5ufloat",
+    "rgb10a2uint",
     "rgb10a2unorm",
     "rg11b10ufloat",
 

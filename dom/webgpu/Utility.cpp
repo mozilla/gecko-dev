@@ -398,6 +398,9 @@ ffi::WGPUTextureFormat ConvertTextureFormat(
     case dom::GPUTextureFormat::Eac_rg11snorm:
       result.tag = ffi::WGPUTextureFormat_EacRg11Snorm;
       break;
+    case dom::GPUTextureFormat::Rgb10a2uint:
+      result.tag = ffi::WGPUTextureFormat_Rgb10a2Uint;
+      break;
   }
 
   // Clang will check for us that the switch above is exhaustive,
