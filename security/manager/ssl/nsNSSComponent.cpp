@@ -93,11 +93,20 @@ int nsNSSComponent::mInstanceCount = 0;
 // Forward declaration.
 nsresult CommonInit();
 
-template <const glean::impl::TimespanMetric* metric>
+template <const glean::impl::QuantityMetric* metric>
 class MOZ_RAII AutoGleanTimer {
  public:
-  explicit AutoGleanTimer() { metric->Start(); }
-  ~AutoGleanTimer() { metric->Stop(); }
+  explicit AutoGleanTimer(TimeStamp aStart = TimeStamp::Now())
+      : mStart(aStart) {}
+
+  ~AutoGleanTimer() {
+    TimeStamp end = TimeStamp::Now();
+    uint32_t delta = static_cast<uint32_t>((end - mStart).ToMilliseconds());
+    metric->Set(delta);
+  }
+
+ private:
+  const TimeStamp mStart;
 };
 
 // Take an nsIFile and get a UTF-8-encoded c-string representation of the
