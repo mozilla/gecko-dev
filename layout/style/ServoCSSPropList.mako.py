@@ -55,9 +55,6 @@ def method(prop):
 
 # TODO(emilio): Get this to zero.
 LONGHANDS_NOT_SERIALIZED_WITH_SERVO = [
-    # Servo serializes one value when both are the same, a few tests expect two.
-    "border-spacing",
-
     # These resolve auto to zero in a few cases, but not all.
     "max-height",
     "max-width",

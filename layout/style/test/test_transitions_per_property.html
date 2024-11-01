@@ -2395,11 +2395,11 @@ function test_length_pair_transition_clamped(prop) {
   div.style.setProperty("transition-timing-function", FUNC_NEGATIVE, "");
   div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "0px 0px", "");
-  is(cs.getPropertyValue(prop), "0px 0px",
+  is(cs.getPropertyValue(prop), "0px",
      "length-valued property " + prop + ": flush before clamping test");
   div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "30px 50px", "");
-  is(cs.getPropertyValue(prop), "0px 0px",
+  is(cs.getPropertyValue(prop), "0px",
      "length-valued property " + prop + ": clamping of negatives");
   div.style.setProperty("transition-timing-function", "linear", "");
 }
