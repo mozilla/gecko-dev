@@ -35,7 +35,8 @@ typedef void* EGLSyncKHR;
 namespace mozilla {
 namespace gfx {
 class DataSourceSurface;
-}
+class FileHandleWrapper;
+}  // namespace gfx
 namespace layers {
 class MemoryOrShmem;
 class SurfaceDescriptor;
@@ -214,7 +215,7 @@ class DMABufSurface {
   void* mMappedRegionData[DMABUF_BUFFER_PLANES];
   uint32_t mMappedRegionStride[DMABUF_BUFFER_PLANES];
 
-  int mSyncFd;
+  RefPtr<mozilla::gfx::FileHandleWrapper> mSyncFd;
   EGLSyncKHR mSync;
   RefPtr<mozilla::gl::GLContext> mGL;
 

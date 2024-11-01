@@ -82,7 +82,7 @@ namespace layers {
   uint32_t[] offsets;
   YUVColorSpace yUVColorSpace;
   ColorRange colorRange;
-  FileDescriptor[] fence;
+  FileHandleWrapper[] fence;
   uint32_t uid;
   FileDescriptor[] refCount;
 };
