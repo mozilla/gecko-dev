@@ -13,7 +13,6 @@ not to check the code change in.
 """
 
 import argparse
-import multiprocessing
 import os
 import shutil
 import subprocess
@@ -24,26 +23,10 @@ import yaml
 DIR_PATH = os.path.realpath(os.path.dirname(__file__))
 THIRD_PARTY_PATH = os.path.join(DIR_PATH, "thirdparty")
 MOZ_YAML_PATH = os.path.join(DIR_PATH, "moz.yaml")
-PATCHES_PATH = os.path.join(DIR_PATH, "patches")
-BERGAMOT_PATH = os.path.join(THIRD_PARTY_PATH, "bergamot-translator")
-MARIAN_PATH = os.path.join(BERGAMOT_PATH, "3rd_party/marian-dev")
-GEMM_SCRIPT = os.path.join(BERGAMOT_PATH, "wasm/patch-artifacts-import-gemm-module.sh")
 BUILD_PATH = os.path.join(THIRD_PARTY_PATH, "build-wasm")
-EMSDK_PATH = os.path.join(THIRD_PARTY_PATH, "emsdk")
-EMSDK_ENV_PATH = os.path.join(EMSDK_PATH, "emsdk_env.sh")
-WASM_PATH = os.path.join(BUILD_PATH, "bergamot-translator-worker.wasm")
 JS_PATH = os.path.join(BUILD_PATH, "bergamot-translator-worker.js")
 FINAL_JS_PATH = os.path.join(DIR_PATH, "bergamot-translator.js")
 ROOT_PATH = os.path.join(DIR_PATH, "../../../..")
-
-# 3.1.47 had an error compiling sentencepiece.
-EMSDK_VERSION = "3.1.8"
-EMSDK_REVISION = "2346baa7bb44a4a0571cc75f1986ab9aaa35aa03"
-
-patches = [
-    (BERGAMOT_PATH, os.path.join(PATCHES_PATH, "allocation-bergamot.patch")),
-    (MARIAN_PATH, os.path.join(PATCHES_PATH, "allocation-marian.patch")),
-]
 
 parser = argparse.ArgumentParser(
     description=__doc__,
@@ -89,25 +72,6 @@ def git_clone_update(name: str, repo_path: str, repo_url: str, revision: str):
         run(["git", "submodule", "update", "--init", "--recursive"])
 
 
-def install_and_activate_emscripten(args: ArgNamespace):
-    git_clone_update(
-        name="emsdk",
-        repo_path=EMSDK_PATH,
-        repo_url="https://github.com/emscripten-core/emsdk.git",
-        revision=EMSDK_REVISION,
-    )
-
-    # Run these commands in the shell so that the configuration is saved.
-    def run_shell(command):
-        return subprocess.run(command, cwd=EMSDK_PATH, shell=True, check=True)
-
-    print(f"\n🛠️ Installing EMSDK version {EMSDK_VERSION}\n")
-    run_shell("./emsdk install " + EMSDK_VERSION)
-
-    print("\n🛠️ Activating emsdk\n")
-    run_shell("./emsdk activate " + EMSDK_VERSION)
-
-
 def install_bergamot():
     with open(MOZ_YAML_PATH, "r", encoding="utf8") as file:
         text = file.read()
@@ -120,22 +84,6 @@ def install_bergamot():
         repo_url=moz_yaml["origin"]["url"],
         revision=moz_yaml["origin"]["revision"],
     )
-
-
-def to_human_readable(size):
-    """Convert sizes to human-readable format"""
-    size_in_mb = size / 1048576
-    return f"{size_in_mb:.2f}M ({size} bytes)"
-
-
-def apply_git_patch(repo_path, patch_path):
-    print(f"Applying patch {patch_path} to {os.path.basename(repo_path)}")
-    subprocess.check_call(["git", "apply", "--reject", patch_path], cwd=repo_path)
-
-
-def revert_git_patch(repo_path, patch_path):
-    print(f"Reverting patch {patch_path} from {os.path.basename(repo_path)}")
-    subprocess.check_call(["git", "apply", "-R", "--reject", patch_path], cwd=repo_path)
 
 
 def build_bergamot(args: ArgNamespace):
