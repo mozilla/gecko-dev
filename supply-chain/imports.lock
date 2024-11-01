@@ -620,15 +620,15 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.thiserror]]
-version = "1.0.64"
-when = "2024-09-22"
+version = "1.0.66"
+when = "2024-10-31"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.thiserror-impl]]
-version = "1.0.64"
-when = "2024-09-22"
+version = "1.0.66"
+when = "2024-10-31"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
