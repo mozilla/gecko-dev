@@ -31,7 +31,7 @@ use neqo_crypto::{
 use neqo_http3::Output;
 use neqo_transport::{AppError, CloseReason, ConnectionId, Version};
 use tokio::time::Sleep;
-use url::{Origin, Url};
+use url::{Host, Origin, Url};
 
 use crate::SharedArgs;
 
@@ -231,8 +231,11 @@ impl Args {
 
         // Only use v1 for most QNS tests.
         self.shared.quic_parameters.quic_version = vec![Version::Version1];
+        // This is the default for all tests except http3.
+        self.shared.use_old_http = true;
         match testcase.as_str() {
             "http3" => {
+                self.shared.use_old_http = false;
                 if let Some(testcase) = &self.test {
                     if testcase.as_str() != "upload" {
                         qerror!("Unsupported test case: {testcase}");
@@ -242,15 +245,18 @@ impl Args {
                     self.method = String::from("POST");
                 }
             }
-            "handshake" | "transfer" | "retry" | "ecn" => {
-                self.shared.use_old_http = true;
-            }
+            "handshake"
+            | "transfer"
+            | "retry"
+            | "ecn"
+            | "rebind-port"
+            | "rebind-addr"
+            | "connectionmigration" => {}
             "resumption" => {
                 if self.urls.len() < 2 {
                     qerror!("Warning: resumption test won't work without >1 URL");
                     exit(127);
                 }
-                self.shared.use_old_http = true;
                 self.resume = true;
             }
             "zerortt" => {
@@ -258,7 +264,6 @@ impl Args {
                     qerror!("Warning: zerortt test won't work without >1 URL");
                     exit(127);
                 }
-                self.shared.use_old_http = true;
                 self.resume = true;
                 // PMTUD probes inflate what we sent in 1-RTT, causing QNS to fail the test.
                 self.shared.quic_parameters.no_pmtud = true;
@@ -267,22 +272,18 @@ impl Args {
                 self.shared.quic_parameters.no_pacing = true;
             }
             "multiconnect" => {
-                self.shared.use_old_http = true;
                 self.download_in_series = true;
             }
             "chacha20" => {
-                self.shared.use_old_http = true;
                 self.shared.ciphers.clear();
                 self.shared
                     .ciphers
                     .extend_from_slice(&[String::from("TLS_CHACHA20_POLY1305_SHA256")]);
             }
             "keyupdate" => {
-                self.shared.use_old_http = true;
                 self.key_update = true;
             }
             "v2" => {
-                self.shared.use_old_http = true;
                 // Use default version set for this test (which allows compatible vneg.)
                 self.shared.quic_parameters.quic_version.clear();
             }
@@ -373,9 +374,11 @@ enum CloseState {
 /// Network client, e.g. [`neqo_transport::Connection`] or [`neqo_http3::Http3Client`].
 trait Client {
     fn process_output(&mut self, now: Instant) -> Output;
-    fn process_multiple_input<'a, I>(&mut self, dgrams: I, now: Instant)
-    where
-        I: IntoIterator<Item = &'a Datagram>;
+    fn process_multiple_input<'a>(
+        &mut self,
+        dgrams: impl IntoIterator<Item = Datagram<&'a [u8]>>,
+        now: Instant,
+    );
     fn has_events(&self) -> bool;
     fn close<S>(&mut self, now: Instant, app_error: AppError, msg: S)
     where
@@ -391,9 +394,28 @@ struct Runner<'a, H: Handler> {
     handler: H,
     timeout: Option<Pin<Box<Sleep>>>,
     args: &'a Args,
+    recv_buf: Vec<u8>,
 }
 
 impl<'a, H: Handler> Runner<'a, H> {
+    fn new(
+        local_addr: SocketAddr,
+        socket: &'a mut crate::udp::Socket,
+        client: H::Client,
+        handler: H,
+        args: &'a Args,
+    ) -> Self {
+        Self {
+            local_addr,
+            socket,
+            client,
+            handler,
+            args,
+            timeout: None,
+            recv_buf: vec![0; neqo_udp::RECV_BUF_SIZE],
+        }
+    }
+
     async fn run(mut self) -> Res<Option<ResumptionToken>> {
         loop {
             let handler_done = self.handler.handle(&mut self.client)?;
@@ -456,12 +478,13 @@ impl<'a, H: Handler> Runner<'a, H> {
 
     async fn process_multiple_input(&mut self) -> Res<()> {
         loop {
-            let dgrams = self.socket.recv(&self.local_addr)?;
-            if dgrams.is_empty() {
+            let Some(dgrams) = self.socket.recv(self.local_addr, &mut self.recv_buf)? else {
+                break;
+            };
+            if dgrams.len() == 0 {
                 break;
             }
-            self.client
-                .process_multiple_input(dgrams.iter(), Instant::now());
+            self.client.process_multiple_input(dgrams, Instant::now());
             self.process_output().await?;
         }
 
@@ -492,6 +515,29 @@ fn qlog_new(args: &Args, hostname: &str, cid: &ConnectionId) -> Res<NeqoQlog> {
     .map_err(Error::QlogError)
 }
 
+const fn local_addr_for(remote_addr: &SocketAddr, local_port: u16) -> SocketAddr {
+    match remote_addr {
+        SocketAddr::V4(..) => SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), local_port),
+        SocketAddr::V6(..) => SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), local_port),
+    }
+}
+
+fn urls_by_origin(urls: &[Url]) -> impl Iterator<Item = ((Host, u16), VecDeque<Url>)> {
+    urls.iter()
+        .fold(HashMap::<Origin, VecDeque<Url>>::new(), |mut urls, url| {
+            urls.entry(url.origin()).or_default().push_back(url.clone());
+            urls
+        })
+        .into_iter()
+        .filter_map(|(origin, urls)| match origin {
+            Origin::Tuple(_scheme, h, p) => Some(((h, p), urls)),
+            Origin::Opaque(x) => {
+                qwarn!("Opaque origin {x:?}");
+                None
+            }
+        })
+}
+
 pub async fn client(mut args: Args) -> Res<()> {
     neqo_common::log::init(
         args.shared
@@ -505,46 +551,24 @@ pub async fn client(mut args: Args) -> Res<()> {
 
     init()?;
 
-    let urls_by_origin = args
-        .urls
-        .clone()
-        .into_iter()
-        .fold(HashMap::<Origin, VecDeque<Url>>::new(), |mut urls, url| {
-            urls.entry(url.origin()).or_default().push_back(url);
-            urls
-        })
-        .into_iter()
-        .filter_map(|(origin, urls)| match origin {
-            Origin::Tuple(_scheme, h, p) => Some(((h, p), urls)),
-            Origin::Opaque(x) => {
-                qwarn!("Opaque origin {x:?}");
-                None
-            }
-        });
-
-    for ((host, port), mut urls) in urls_by_origin {
+    for ((host, port), mut urls) in urls_by_origin(&args.urls) {
         if args.resume && urls.len() < 2 {
             qerror!("Resumption to {host} cannot work without at least 2 URLs.");
             exit(127);
         }
 
-        let remote_addr = format!("{host}:{port}").to_socket_addrs()?.find(|addr| {
+        let mut remote_addrs = format!("{host}:{port}").to_socket_addrs()?.filter(|addr| {
             !matches!(
                 (addr, args.ipv4_only, args.ipv6_only),
                 (SocketAddr::V4(..), false, true) | (SocketAddr::V6(..), true, false)
             )
         });
+        let remote_addr = remote_addrs.next();
         let Some(remote_addr) = remote_addr else {
             qerror!("No compatible address found for: {host}");
             exit(1);
         };
-
-        let local_addr = match remote_addr {
-            SocketAddr::V4(..) => SocketAddr::new(IpAddr::V4(Ipv4Addr::from([0; 4])), 0),
-            SocketAddr::V6(..) => SocketAddr::new(IpAddr::V6(Ipv6Addr::from([0; 16])), 0),
-        };
-
-        let mut socket = crate::udp::Socket::bind(local_addr)?;
+        let mut socket = crate::udp::Socket::bind(local_addr_for(&remote_addr, 0))?;
         let real_local = socket.local_addr().unwrap();
         qinfo!(
             "{} Client connecting: {:?} -> {:?}",
@@ -552,6 +576,18 @@ pub async fn client(mut args: Args) -> Res<()> {
             real_local,
             remote_addr,
         );
+
+        let migration = if args.shared.qns_test.as_deref() == Some("connectionmigration") {
+            #[allow(clippy::option_if_let_else)]
+            if let Some(addr) = remote_addrs.next() {
+                Some((real_local.port(), addr))
+            } else {
+                qerror!("Cannot migrate from {host} when there is no address that follows");
+                exit(127);
+            }
+        } else {
+            None
+        };
 
         let hostname = format!("{host}");
         let mut token: Option<ResumptionToken> = None;
@@ -570,34 +606,20 @@ pub async fn client(mut args: Args) -> Res<()> {
                     http09::create_client(&args, real_local, remote_addr, &hostname, token)
                         .expect("failed to create client");
 
-                let handler = http09::Handler::new(to_request, &args);
+                let handler = http09::Handler::new(to_request, &args, migration.as_ref());
 
-                Runner {
-                    args: &args,
-                    client,
-                    handler,
-                    local_addr: real_local,
-                    socket: &mut socket,
-                    timeout: None,
-                }
-                .run()
-                .await?
+                Runner::new(real_local, &mut socket, client, handler, &args)
+                    .run()
+                    .await?
             } else {
                 let client = http3::create_client(&args, real_local, remote_addr, &hostname, token)
                     .expect("failed to create client");
 
                 let handler = http3::Handler::new(to_request, &args);
 
-                Runner {
-                    args: &args,
-                    client,
-                    handler,
-                    local_addr: real_local,
-                    socket: &mut socket,
-                    timeout: None,
-                }
-                .run()
-                .await?
+                Runner::new(real_local, &mut socket, client, handler, &args)
+                    .run()
+                    .await?
             };
         }
     }

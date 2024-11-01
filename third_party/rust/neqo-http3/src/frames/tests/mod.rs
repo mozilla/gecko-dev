@@ -22,13 +22,13 @@ pub fn enc_dec<T: FrameDecoder<T>>(d: &Encoder, st: &str, remaining: usize) -> T
 
     let mut conn_c = default_client();
     let mut conn_s = default_server();
-    let out = conn_c.process(None, now());
-    let out = conn_s.process(out.as_dgram_ref(), now());
-    let out = conn_c.process(out.as_dgram_ref(), now());
-    mem::drop(conn_s.process(out.as_dgram_ref(), now()));
+    let out = conn_c.process_output(now());
+    let out = conn_s.process(out.dgram(), now());
+    let out = conn_c.process(out.dgram(), now());
+    mem::drop(conn_s.process(out.dgram(), now()));
     conn_c.authenticated(AuthenticationStatus::Ok, now());
-    let out = conn_c.process(None, now());
-    mem::drop(conn_s.process(out.as_dgram_ref(), now()));
+    let out = conn_c.process_output(now());
+    mem::drop(conn_s.process(out.dgram(), now()));
 
     // create a stream
     let stream_id = conn_s.stream_create(StreamType::BiDi).unwrap();
@@ -38,8 +38,8 @@ pub fn enc_dec<T: FrameDecoder<T>>(d: &Encoder, st: &str, remaining: usize) -> T
     // conver string into u8 vector
     let buf = Encoder::from_hex(st);
     conn_s.stream_send(stream_id, buf.as_ref()).unwrap();
-    let out = conn_s.process(None, now());
-    mem::drop(conn_c.process(out.as_dgram_ref(), now()));
+    let out = conn_s.process_output(now());
+    mem::drop(conn_c.process(out.dgram(), now()));
 
     let (frame, fin) = fr
         .receive::<T>(&mut StreamReaderConnectionWrapper::new(

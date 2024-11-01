@@ -1022,15 +1022,16 @@ impl Connection {
     }
 
     /// Process new input datagrams on the connection.
-    pub fn process_input(&mut self, d: &Datagram, now: Instant) {
+    pub fn process_input(&mut self, d: Datagram<impl AsRef<[u8]>>, now: Instant) {
         self.process_multiple_input(iter::once(d), now);
     }
 
     /// Process new input datagrams on the connection.
-    pub fn process_multiple_input<'a, I>(&mut self, dgrams: I, now: Instant)
-    where
-        I: IntoIterator<Item = &'a Datagram>,
-    {
+    pub fn process_multiple_input(
+        &mut self,
+        dgrams: impl IntoIterator<Item = Datagram<impl AsRef<[u8]>>>,
+        now: Instant,
+    ) {
         let mut dgrams = dgrams.into_iter().peekable();
         if dgrams.peek().is_none() {
             return;
@@ -1161,7 +1162,7 @@ impl Connection {
 
     /// Process input and generate output.
     #[must_use = "Output of the process function must be handled"]
-    pub fn process(&mut self, dgram: Option<&Datagram>, now: Instant) -> Output {
+    pub fn process(&mut self, dgram: Option<Datagram<impl AsRef<[u8]>>>, now: Instant) -> Output {
         if let Some(d) = dgram {
             self.input(d, now, now);
             self.process_saved(now);
@@ -1241,20 +1242,20 @@ impl Connection {
         }
     }
 
-    fn is_stateless_reset(&self, path: &PathRef, d: &Datagram) -> bool {
+    fn is_stateless_reset(&self, path: &PathRef, d: &Datagram<impl AsRef<[u8]>>) -> bool {
         // If the datagram is too small, don't try.
         // If the connection is connected, then the reset token will be invalid.
         if d.len() < 16 || !self.state.connected() {
             return false;
         }
-        <&[u8; 16]>::try_from(&d[d.len() - 16..])
+        <&[u8; 16]>::try_from(&d.as_ref()[d.len() - 16..])
             .map_or(false, |token| path.borrow().is_stateless_reset(token))
     }
 
     fn check_stateless_reset(
         &mut self,
         path: &PathRef,
-        d: &Datagram,
+        d: &Datagram<impl AsRef<[u8]>>,
         first: bool,
         now: Instant,
     ) -> Res<()> {
@@ -1280,24 +1281,27 @@ impl Connection {
             debug_assert!(self.crypto.states.rx_hp(self.version, cspace).is_some());
             for saved in self.saved_datagrams.take_saved() {
                 qtrace!([self], "input saved @{:?}: {:?}", saved.t, saved.d);
-                self.input(&saved.d, saved.t, now);
+                self.input(saved.d, saved.t, now);
             }
         }
     }
 
     /// In case a datagram arrives that we can only partially process, save any
     /// part that we don't have keys for.
-    fn save_datagram(&mut self, cspace: CryptoSpace, d: &Datagram, remaining: usize, now: Instant) {
-        let d = if remaining < d.len() {
-            Datagram::new(
-                d.source(),
-                d.destination(),
-                d.tos(),
-                &d[d.len() - remaining..],
-            )
-        } else {
-            d.clone()
-        };
+    #[allow(clippy::needless_pass_by_value)] // To consume an owned datagram below.
+    fn save_datagram(
+        &mut self,
+        cspace: CryptoSpace,
+        d: Datagram<impl AsRef<[u8]>>,
+        remaining: usize,
+        now: Instant,
+    ) {
+        let d = Datagram::new(
+            d.source(),
+            d.destination(),
+            d.tos(),
+            d[d.len() - remaining..].to_vec(),
+        );
         self.saved_datagrams.save(cspace, d, now);
         self.stats.borrow_mut().saved_datagrams += 1;
     }
@@ -1498,7 +1502,7 @@ impl Connection {
     fn postprocess_packet(
         &mut self,
         path: &PathRef,
-        d: &Datagram,
+        d: &Datagram<impl AsRef<[u8]>>,
         packet: &PublicPacket,
         migrate: bool,
         now: Instant,
@@ -1530,7 +1534,7 @@ impl Connection {
 
     /// Take a datagram as input.  This reports an error if the packet was bad.
     /// This takes two times: when the datagram was received, and the current time.
-    fn input(&mut self, d: &Datagram, received: Instant, now: Instant) {
+    fn input(&mut self, d: Datagram<impl AsRef<[u8]>>, received: Instant, now: Instant) {
         // First determine the path.
         let path = self.paths.find_path_with_rebinding(
             d.destination(),
@@ -1544,11 +1548,16 @@ impl Connection {
         self.capture_error(Some(path), now, 0, res).ok();
     }
 
-    fn input_path(&mut self, path: &PathRef, d: &Datagram, now: Instant) -> Res<()> {
-        let mut slc = &d[..];
+    fn input_path(
+        &mut self,
+        path: &PathRef,
+        d: Datagram<impl AsRef<[u8]>>,
+        now: Instant,
+    ) -> Res<()> {
+        let mut slc = d.as_ref();
         let mut dcid = None;
 
-        qtrace!([self], "{} input {}", path.borrow(), hex(&**d));
+        qtrace!([self], "{} input {}", path.borrow(), hex(&d));
         let pto = path.borrow().rtt().pto(self.confirmed());
 
         // Handle each packet in the datagram.
@@ -1606,7 +1615,7 @@ impl Connection {
                         } else {
                             match self.process_packet(path, &payload, now) {
                                 Ok(migrate) => {
-                                    self.postprocess_packet(path, d, &packet, migrate, now);
+                                    self.postprocess_packet(path, &d, &packet, migrate, now);
                                 }
                                 Err(e) => {
                                     self.ensure_error_path(path, &packet, now);
@@ -1648,7 +1657,7 @@ impl Connection {
                     // Decryption failure, or not having keys is not fatal.
                     // If the state isn't available, or we can't decrypt the packet, drop
                     // the rest of the datagram on the floor, but don't generate an error.
-                    self.check_stateless_reset(path, d, dcid.is_none(), now)?;
+                    self.check_stateless_reset(path, &d, dcid.is_none(), now)?;
                     self.stats.borrow_mut().pkt_dropped("Decryption failure");
                     qlog::packet_dropped(&self.qlog, &packet);
                 }
@@ -1656,7 +1665,7 @@ impl Connection {
             slc = remainder;
             dcid = Some(ConnectionId::from(packet.dcid()));
         }
-        self.check_stateless_reset(path, d, dcid.is_none(), now)?;
+        self.check_stateless_reset(path, &d, dcid.is_none(), now)?;
         Ok(())
     }
 
@@ -1958,7 +1967,13 @@ impl Connection {
         Ok(())
     }
 
-    fn handle_migration(&mut self, path: &PathRef, d: &Datagram, migrate: bool, now: Instant) {
+    fn handle_migration(
+        &mut self,
+        path: &PathRef,
+        d: &Datagram<impl AsRef<[u8]>>,
+        migrate: bool,
+        now: Instant,
+    ) {
         if !migrate {
             return;
         }

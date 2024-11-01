@@ -425,18 +425,18 @@ fn wt_close_session_cannot_be_sent_at_once() {
         Err(Error::InvalidStreamId)
     );
 
-    let out = wt.server.process(None, now());
-    let out = wt.client.process(out.as_dgram_ref(), now());
+    let out = wt.server.process_output(now());
+    let out = wt.client.process(out.dgram(), now());
 
     // Client has not received the full CloseSession frame and it can create more streams.
     let unidi_client = wt.create_wt_stream_client(wt_session.stream_id(), StreamType::UniDi);
 
-    let out = wt.server.process(out.as_dgram_ref(), now());
-    let out = wt.client.process(out.as_dgram_ref(), now());
-    let out = wt.server.process(out.as_dgram_ref(), now());
-    let out = wt.client.process(out.as_dgram_ref(), now());
-    let out = wt.server.process(out.as_dgram_ref(), now());
-    let _out = wt.client.process(out.as_dgram_ref(), now());
+    let out = wt.server.process(out.dgram(), now());
+    let out = wt.client.process(out.dgram(), now());
+    let out = wt.server.process(out.dgram(), now());
+    let out = wt.client.process(out.dgram(), now());
+    let out = wt.server.process(out.dgram(), now());
+    let _out = wt.client.process(out.dgram(), now());
 
     wt.check_events_after_closing_session_client(
         &[],

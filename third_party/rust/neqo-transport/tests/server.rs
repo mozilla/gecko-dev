@@ -47,8 +47,8 @@ pub fn complete_connection(
     };
     while !is_done(client) {
         _ = test_fixture::maybe_authenticate(client);
-        let out = client.process(datagram.as_ref(), now());
-        let out = server.process(out.as_dgram_ref(), now());
+        let out = client.process(datagram, now());
+        let out = server.process(out.dgram(), now());
         datagram = out.dgram();
     }
 
@@ -111,9 +111,9 @@ fn connect_single_version_server() {
             // Run the version negotiation exchange if necessary.
             let out = client.process_output(now());
             assert!(out.as_dgram_ref().is_some());
-            let dgram = server.process(out.as_dgram_ref(), now()).dgram();
+            let dgram = server.process(out.dgram(), now()).dgram();
             assertions::assert_vn(dgram.as_ref().unwrap());
-            client.process_input(&dgram.unwrap(), now());
+            client.process_input(dgram.unwrap(), now());
         }
 
         let server_conn = connect(&mut client, &mut server);
@@ -133,14 +133,16 @@ fn duplicate_initial() {
     let mut client = default_client();
 
     assert_eq!(*client.state(), State::Init);
-    let initial = client.process(None, now());
+    let initial = client.process_output(now());
     assert!(initial.as_dgram_ref().is_some());
 
     // The server should ignore a packets with the same remote address and
     // destination connection ID as an existing connection attempt.
-    let server_initial = server.process(initial.as_dgram_ref(), now()).dgram();
+    let server_initial = server
+        .process(initial.as_dgram_ref().cloned(), now())
+        .dgram();
     assert!(server_initial.is_some());
-    let dgram = server.process(initial.as_dgram_ref(), now()).dgram();
+    let dgram = server.process(initial.dgram(), now()).dgram();
     assert!(dgram.is_none());
 
     assert_eq!(server.active_connections().len(), 1);
@@ -153,7 +155,7 @@ fn duplicate_initial_new_path() {
     let mut client = default_client();
 
     assert_eq!(*client.state(), State::Init);
-    let initial = client.process(None, now()).dgram().unwrap();
+    let initial = client.process_output(now()).dgram().unwrap();
     let other = Datagram::new(
         SocketAddr::new(initial.source().ip(), initial.source().port() ^ 23),
         initial.destination(),
@@ -161,11 +163,11 @@ fn duplicate_initial_new_path() {
         &initial[..],
     );
 
-    let server_initial = server.process(Some(&initial), now()).dgram();
+    let server_initial = server.process(Some(initial), now()).dgram();
     assert!(server_initial.is_some());
 
     // The server should ignore a packet with the same destination connection ID.
-    let dgram = server.process(Some(&other), now()).dgram();
+    let dgram = server.process(Some(other), now()).dgram();
     assert!(dgram.is_none());
 
     assert_eq!(server.active_connections().len(), 1);
@@ -178,20 +180,16 @@ fn different_initials_same_path() {
     let mut client1 = default_client();
     let mut client2 = default_client();
 
-    let client_initial1 = client1.process(None, now());
+    let client_initial1 = client1.process_output(now());
     assert!(client_initial1.as_dgram_ref().is_some());
-    let client_initial2 = client2.process(None, now());
+    let client_initial2 = client2.process_output(now());
     assert!(client_initial2.as_dgram_ref().is_some());
 
     // The server should respond to both as these came from different addresses.
-    let server_initial1 = server
-        .process(client_initial1.as_dgram_ref(), now())
-        .dgram();
+    let server_initial1 = server.process(client_initial1.dgram(), now()).dgram();
     assert!(server_initial1.is_some());
 
-    let server_initial2 = server
-        .process(client_initial2.as_dgram_ref(), now())
-        .dgram();
+    let server_initial2 = server.process(client_initial2.dgram(), now()).dgram();
     assert!(server_initial2.is_some());
 
     assert_eq!(server.active_connections().len(), 2);
@@ -204,17 +202,19 @@ fn same_initial_after_connected() {
     let mut server = default_server();
     let mut client = default_client();
 
-    let client_initial = client.process(None, now());
+    let client_initial = client.process_output(now());
     assert!(client_initial.as_dgram_ref().is_some());
 
-    let server_initial = server.process(client_initial.as_dgram_ref(), now()).dgram();
+    let server_initial = server
+        .process(client_initial.as_dgram_ref().cloned(), now())
+        .dgram();
     assert!(server_initial.is_some());
     complete_connection(&mut client, &mut server, server_initial);
     assert_eq!(server.active_connections().len(), 1);
 
     // Now make a new connection using the exact same initial as before.
     // The server should respond to an attempt to connect with the same Initial.
-    let dgram = server.process(client_initial.as_dgram_ref(), now()).dgram();
+    let dgram = server.process(client_initial.dgram(), now()).dgram();
     assert!(dgram.is_some());
     // The server should make a new connection object.
     assert_eq!(server.active_connections().len(), 2);
@@ -236,7 +236,7 @@ fn drop_non_initial() {
     bogus_data.resize(MIN_INITIAL_PACKET_SIZE, 66);
 
     let bogus = datagram(bogus_data);
-    assert!(server.process(Some(&bogus), now()).dgram().is_none());
+    assert!(server.process(Some(bogus), now()).dgram().is_none());
 }
 
 #[test]
@@ -255,7 +255,7 @@ fn drop_short_initial() {
     bogus_data.resize(1199, 66);
 
     let bogus = datagram(bogus_data);
-    assert!(server.process(Some(&bogus), now()).dgram().is_none());
+    assert!(server.process(Some(bogus), now()).dgram().is_none());
 }
 
 #[test]
@@ -272,7 +272,7 @@ fn drop_short_header_packet_for_unknown_connection() {
     bogus_data.resize(MIN_INITIAL_PACKET_SIZE, 66);
 
     let bogus = datagram(bogus_data);
-    assert!(server.process(Some(&bogus), now()).dgram().is_none());
+    assert!(server.process(Some(bogus), now()).dgram().is_none());
 }
 
 /// Verify that the server can read 0-RTT properly.  A more robust server would buffer
@@ -286,9 +286,9 @@ fn zero_rtt() {
 
     // Discharge the old connection so that we don't have to worry about it.
     let mut now = now();
-    let t = server.process(None, now).callback();
+    let t = server.process_output(now).callback();
     now += t;
-    assert_eq!(server.process(None, now), Output::None);
+    assert_eq!(server.process_output(now), Output::None);
     assert_eq!(server.active_connections().len(), 0);
 
     let start_time = now;
@@ -298,12 +298,12 @@ fn zero_rtt() {
     let mut client_send = || {
         let client_stream = client.stream_create(StreamType::UniDi).unwrap();
         client.stream_send(client_stream, &[1, 2, 3]).unwrap();
-        match client.process(None, now) {
+        match client.process_output(now) {
             Output::Datagram(d) => d,
             Output::Callback(t) => {
                 // Pacing...
                 now += t;
-                client.process(None, now).dgram().unwrap()
+                client.process_output(now).dgram().unwrap()
             }
             Output::None => panic!(),
         }
@@ -317,12 +317,12 @@ fn zero_rtt() {
     let c4 = client_send();
 
     // 0-RTT packets that arrive before the handshake get dropped.
-    mem::drop(server.process(Some(&c2), now));
+    mem::drop(server.process(Some(c2), now));
     assert!(server.active_connections().is_empty());
 
     // Now handshake and let another 0-RTT packet in.
-    let shs = server.process(Some(&c1), now);
-    mem::drop(server.process(Some(&c3), now));
+    let shs = server.process(Some(c1), now);
+    mem::drop(server.process(Some(c3), now));
     // The server will have received two STREAM frames now if it processed both packets.
     // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
     #[allow(clippy::mutable_key_type)]
@@ -343,11 +343,11 @@ fn zero_rtt() {
     // Complete the handshake.  As the client was pacing 0-RTT packets, extend the time
     // a little so that the pacer doesn't prevent the Finished from being sent.
     now += now - start_time;
-    let cfin = client.process(shs.as_dgram_ref(), now);
-    mem::drop(server.process(cfin.as_dgram_ref(), now));
+    let cfin = client.process(shs.dgram(), now);
+    mem::drop(server.process(cfin.dgram(), now));
 
     // The server will drop this last 0-RTT packet.
-    mem::drop(server.process(Some(&c4), now));
+    mem::drop(server.process(Some(c4), now));
     // `ActiveConnectionRef` `Hash` implementation doesn’t access any of the interior mutable types.
     #[allow(clippy::mutable_key_type)]
     let active = server.active_connections();
@@ -377,20 +377,20 @@ fn new_token_0rtt() {
     let client_stream = client.stream_create(StreamType::UniDi).unwrap();
     client.stream_send(client_stream, &[1, 2, 3]).unwrap();
 
-    let out = client.process(None, now()); // Initial w/0-RTT
+    let out = client.process_output(now()); // Initial w/0-RTT
     assert!(out.as_dgram_ref().is_some());
     assertions::assert_initial(out.as_dgram_ref().unwrap(), true);
     assertions::assert_coalesced_0rtt(out.as_dgram_ref().unwrap());
-    let out = server.process(out.as_dgram_ref(), now()); // Initial
+    let out = server.process(out.dgram(), now()); // Initial
     assert!(out.as_dgram_ref().is_some());
     assertions::assert_initial(out.as_dgram_ref().unwrap(), false);
 
-    let dgram = client.process(out.as_dgram_ref(), now());
+    let dgram = client.process(out.as_dgram_ref().cloned(), now());
     // Note: the client doesn't need to authenticate the server here
     // as there is no certificate; authentication is based on the ticket.
     assert!(out.as_dgram_ref().is_some());
     assert_eq!(*client.state(), State::Connected);
-    let dgram = server.process(dgram.as_dgram_ref(), now()); // (done)
+    let dgram = server.process(dgram.dgram(), now()); // (done)
     assert!(dgram.as_dgram_ref().is_some());
     connected_server(&server);
     assert!(client.tls_info().unwrap().resumed());
@@ -405,7 +405,7 @@ fn new_token_different_port() {
     let mut client = default_client();
     client.enable_resumption(now(), &token).unwrap();
 
-    let dgram = client.process(None, now()).dgram(); // Initial
+    let dgram = client.process_output(now()).dgram(); // Initial
     assert!(dgram.is_some());
     assertions::assert_initial(dgram.as_ref().unwrap(), true);
 
@@ -413,7 +413,7 @@ fn new_token_different_port() {
     let d = dgram.unwrap();
     let src = SocketAddr::new(d.source().ip(), d.source().port() + 1);
     let dgram = Some(Datagram::new(src, d.destination(), d.tos(), &d[..]));
-    let dgram = server.process(dgram.as_ref(), now()).dgram(); // Retry
+    let dgram = server.process(dgram, now()).dgram(); // Retry
     assert!(dgram.is_some());
     assertions::assert_initial(dgram.as_ref().unwrap(), false);
 }
@@ -423,7 +423,7 @@ fn bad_client_initial() {
     let mut client = default_client();
     let mut server = default_server();
 
-    let dgram = client.process(None, now()).dgram().expect("a datagram");
+    let dgram = client.process_output(now()).dgram().expect("a datagram");
     let (header, d_cid, s_cid, payload) = decode_initial_header(&dgram, Role::Client).unwrap();
     let (aead, hp) = initial_aead_and_hp(d_cid, Role::Client);
     let (fixed_header, pn) = remove_header_protection(&hp, header, payload);
@@ -470,7 +470,7 @@ fn bad_client_initial() {
     let bad_dgram = Datagram::new(dgram.source(), dgram.destination(), dgram.tos(), ciphertext);
 
     // The server should reject this.
-    let response = server.process(Some(&bad_dgram), now());
+    let response = server.process(Some(bad_dgram), now());
     let close_dgram = response.dgram().unwrap();
     // The resulting datagram might contain multiple packets, but each is small.
     let (initial_close, rest) = split_datagram(&close_dgram);
@@ -484,10 +484,10 @@ fn bad_client_initial() {
 
     // The client should accept this new and stop trying to connect.
     // It will generate a CONNECTION_CLOSE first though.
-    let response = client.process(Some(&close_dgram), now()).dgram();
+    let response = client.process(Some(close_dgram), now()).dgram();
     assert!(response.is_some());
     // The client will now wait out its closing period.
-    let delay = client.process(None, now()).callback();
+    let delay = client.process_output(now()).callback();
     assert_ne!(delay, Duration::from_secs(0));
     assert!(matches!(
         *client.state(),
@@ -502,7 +502,7 @@ fn bad_client_initial() {
     }
 
     // After sending the CONNECTION_CLOSE, the server goes idle.
-    let res = server.process(None, now());
+    let res = server.process_output(now());
     assert_eq!(res, Output::None);
 }
 
@@ -511,7 +511,7 @@ fn bad_client_initial_connection_close() {
     let mut client = default_client();
     let mut server = default_server();
 
-    let dgram = client.process(None, now()).dgram().expect("a datagram");
+    let dgram = client.process_output(now()).dgram().expect("a datagram");
     let (header, d_cid, s_cid, payload) = decode_initial_header(&dgram, Role::Client).unwrap();
     let (aead, hp) = initial_aead_and_hp(d_cid, Role::Client);
     let (_, pn) = remove_header_protection(&hp, header, payload);
@@ -553,9 +553,9 @@ fn bad_client_initial_connection_close() {
 
     // The server should ignore this and go to Draining.
     let mut now = now();
-    let response = server.process(Some(&bad_dgram), now);
+    let response = server.process(Some(bad_dgram), now);
     now += response.callback();
-    let response = server.process(None, now);
+    let response = server.process_output(now);
     assert_eq!(response, Output::None);
 }
 
@@ -565,7 +565,7 @@ fn version_negotiation_ignored() {
     let mut client = default_client();
 
     // Any packet will do, but let's make something that looks real.
-    let dgram = client.process(None, now()).dgram().expect("a datagram");
+    let dgram = client.process_output(now()).dgram().expect("a datagram");
     let mut input = dgram.to_vec();
     input[1] ^= 0x12;
     let damaged = Datagram::new(
@@ -574,7 +574,7 @@ fn version_negotiation_ignored() {
         dgram.tos(),
         input.clone(),
     );
-    let vn = server.process(Some(&damaged), now()).dgram();
+    let vn = server.process(Some(damaged), now()).dgram();
 
     let mut dec = Decoder::from(&input[5..]); // Skip past version.
     let d_cid = dec.decode_vec(1).expect("client DCID").to_vec();
@@ -595,7 +595,7 @@ fn version_negotiation_ignored() {
     assert!(found, "valid version not found");
 
     // Client ignores VN packet that contain negotiated version.
-    let res = client.process(Some(&vn), now());
+    let res = client.process(Some(vn), now());
     assert!(res.callback() > Duration::new(0, 120));
     assert_eq!(client.state(), &State::WaitInitial);
 }
@@ -615,9 +615,9 @@ fn version_negotiation() {
     // `connect()` runs a fixed exchange, so manually run the Version Negotiation.
     let dgram = client.process_output(now()).dgram();
     assert!(dgram.is_some());
-    let dgram = server.process(dgram.as_ref(), now()).dgram();
+    let dgram = server.process(dgram, now()).dgram();
     assertions::assert_vn(dgram.as_ref().unwrap());
-    client.process_input(&dgram.unwrap(), now());
+    client.process_input(dgram.unwrap(), now());
 
     let sconn = connect(&mut client, &mut server);
     assert_eq!(client.version(), VN_VERSION);
@@ -651,22 +651,22 @@ fn version_negotiation_and_compatible() {
     let dgram = client.process_output(now()).dgram();
     assert!(dgram.is_some());
     assertions::assert_version(dgram.as_ref().unwrap(), ORIG_VERSION.wire_version());
-    let dgram = server.process(dgram.as_ref(), now()).dgram();
+    let dgram = server.process(dgram, now()).dgram();
     assertions::assert_vn(dgram.as_ref().unwrap());
-    client.process_input(&dgram.unwrap(), now());
+    client.process_input(dgram.unwrap(), now());
 
-    let dgram = client.process(None, now()).dgram(); // ClientHello
+    let dgram = client.process_output(now()).dgram(); // ClientHello
     assertions::assert_version(dgram.as_ref().unwrap(), VN_VERSION.wire_version());
-    let dgram = server.process(dgram.as_ref(), now()).dgram(); // ServerHello...
+    let dgram = server.process(dgram, now()).dgram(); // ServerHello...
     assertions::assert_version(dgram.as_ref().unwrap(), COMPAT_VERSION.wire_version());
-    client.process_input(&dgram.unwrap(), now());
+    client.process_input(dgram.unwrap(), now());
 
     client.authenticated(AuthenticationStatus::Ok, now());
     let dgram = client.process_output(now()).dgram();
     assertions::assert_version(dgram.as_ref().unwrap(), COMPAT_VERSION.wire_version());
     assert_eq!(*client.state(), State::Connected);
-    let dgram = server.process(dgram.as_ref(), now()).dgram(); // ACK + HANDSHAKE_DONE + NST
-    client.process_input(&dgram.unwrap(), now());
+    let dgram = server.process(dgram, now()).dgram(); // ACK + HANDSHAKE_DONE + NST
+    client.process_input(dgram.unwrap(), now());
     assert_eq!(*client.state(), State::Confirmed);
 
     let sconn = connected_server(&server);
@@ -698,8 +698,8 @@ fn compatible_upgrade_resumption_and_vn() {
     assert_eq!(server_conn.borrow().version(), COMPAT_VERSION);
 
     server_conn.borrow_mut().send_ticket(now(), &[]).unwrap();
-    let dgram = server.process(None, now()).dgram();
-    client.process_input(&dgram.unwrap(), now()); // Consume ticket, ignore output.
+    let dgram = server.process_output(now()).dgram();
+    client.process_input(dgram.unwrap(), now()); // Consume ticket, ignore output.
     let ticket = find_ticket(&mut client);
 
     // This new server will reject the ticket, but it will also generate a VN packet.
@@ -713,9 +713,9 @@ fn compatible_upgrade_resumption_and_vn() {
     let dgram = client.process_output(now()).dgram();
     assert!(dgram.is_some());
     assertions::assert_version(dgram.as_ref().unwrap(), COMPAT_VERSION.wire_version());
-    let dgram = server.process(dgram.as_ref(), now()).dgram();
+    let dgram = server.process(dgram, now()).dgram();
     assertions::assert_vn(dgram.as_ref().unwrap());
-    client.process_input(&dgram.unwrap(), now());
+    client.process_input(dgram.unwrap(), now());
 
     let server_conn = connect(&mut client, &mut server);
     assert_eq!(client.version(), RESUMPTION_VERSION);
@@ -730,14 +730,14 @@ fn closed() {
     connect(&mut client, &mut server);
 
     // The server will have sent a few things, so it will be on PTO.
-    let res = server.process(None, now());
+    let res = server.process_output(now());
     assert!(res.callback() > Duration::new(0, 0));
     // The client will be on the delayed ACK timer.
-    let res = client.process(None, now());
+    let res = client.process_output(now());
     assert!(res.callback() > Duration::new(0, 0));
 
     qtrace!("60s later");
-    let res = server.process(None, now() + Duration::from_secs(60));
+    let res = server.process_output(now() + Duration::from_secs(60));
     assert_eq!(res, Output::None);
 }
 
@@ -825,8 +825,8 @@ fn max_streams_after_0rtt_rejection() {
     client.enable_resumption(now(), &token).unwrap();
     _ = client.stream_create(StreamType::BiDi).unwrap();
     let dgram = client.process_output(now()).dgram();
-    let dgram = server.process(dgram.as_ref(), now()).dgram();
-    let dgram = client.process(dgram.as_ref(), now()).dgram();
+    let dgram = server.process(dgram, now()).dgram();
+    let dgram = client.process(dgram, now()).dgram();
     assert!(dgram.is_some()); // We're far enough along to complete the test now.
 
     // Make sure that we can create MAX_STREAMS uni- and bidirectional streams.
@@ -863,8 +863,8 @@ fn has_active_connections() {
 
     assert!(!server.has_active_connections());
 
-    let initial = client.process(None, now());
-    _ = server.process(initial.as_dgram_ref(), now()).dgram();
+    let initial = client.process_output(now());
+    _ = server.process(initial.dgram(), now()).dgram();
 
     assert!(server.has_active_connections());
 }

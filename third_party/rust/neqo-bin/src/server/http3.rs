@@ -79,7 +79,7 @@ impl Display for HttpServer {
 }
 
 impl super::HttpServer for HttpServer {
-    fn process(&mut self, dgram: Option<&Datagram>, now: Instant) -> neqo_http3::Output {
+    fn process(&mut self, dgram: Option<Datagram>, now: Instant) -> neqo_http3::Output {
         self.server.process(dgram, now)
     }
 

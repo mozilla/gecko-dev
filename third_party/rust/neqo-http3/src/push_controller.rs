@@ -364,7 +364,7 @@ impl PushController {
             }
             Some(PushState::Active { stream_id, .. }) => {
                 self.conn_events.remove_events_for_push_id(push_id);
-                // Cancel the stream. the transport steam may already be done, so ignore an error.
+                // Cancel the stream. The transport stream may already be done, so ignore an error.
                 mem::drop(base_handler.stream_stop_sending(
                     conn,
                     *stream_id,

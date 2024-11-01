@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-bin"
-version = "0.9.2"
+version = "0.10.0"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = false
 autobins = false
