@@ -36,6 +36,9 @@ def pytest_generate_tests(metafunc):
         argvalues.append([dict({"interventions": False}, **otherargs)])
         ids.append("without_interventions")
 
+    if "no_overlay_scrollbars" in marks:
+        otherargs["no_overlay_scrollbars"] = True
+
     metafunc.parametrize(["session"], argvalues, ids=ids, indirect=True)
 
 

@@ -96,6 +96,9 @@ class FirefoxWebDriver(WebDriver):
         if "use_strict_etp" in test_config:
             prefs[STRICT_ETP_PREF] = test_config["use_strict_etp"]
 
+        if "no_overlay_scrollbars" in test_config:
+            prefs["widget.gtk.overlay-scrollbars.enabled"] = False
+
         # keep system addon updates off to prevent bug 1882562
         prefs[SYSTEM_ADDON_UPDATES_PREF] = False
 

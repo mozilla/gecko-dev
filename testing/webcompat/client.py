@@ -592,7 +592,7 @@ class Client:
                 return val["value"]
             return val
 
-    async def make_preload_script(self, text, sandbox, args=None, context=None):
+    async def make_preload_script(self, text, sandbox=None, args=None, context=None):
         if not context:
             context = (await self.top_context())["context"]
         target = ContextTarget(context, sandbox)
@@ -871,6 +871,9 @@ class Client:
             elem1,
             elem2,
         )
+
+    def is_content_wider_than_screen(self):
+        return self.execute_script("return window.innerWidth > window.outerWidth")
 
     @contextlib.contextmanager
     def assert_getUserMedia_called(self):

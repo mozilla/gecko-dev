@@ -5,36 +5,29 @@ TEXT_TO_TEST = ".trending__link"
 
 
 async def is_text_visible(client):
-    # note that the page does not always properly load, so we
-    # start loading and wait for the element we want to appear.
-    await client.navigate(URL, wait="none")
-    link = client.await_css(TEXT_TO_TEST, timeout=10)
+    await client.navigate(URL)
+    link = client.await_css(TEXT_TO_TEST)
     assert client.is_displayed(link)
-    return client.execute_async_script(
+    return client.execute_script(
         """
         const link = arguments[0];
-        const cb = arguments[1];
-        const fullHeight = link.scrollHeight;
-        const parentVisibleHeight = link.parentElement.clientHeight;
-        link.style.paddingBottom = "0";
-        window.requestAnimationFrame(() => {
-            const bottomPaddingHeight = fullHeight - link.scrollHeight;
-            cb(fullHeight - parentVisibleHeight <= bottomPaddingHeight);
-        });
-    """,
+        return link.parentElement.clientHeight > link.scrollHeight;
+""",
         link,
     )
 
 
-@pytest.mark.only_platforms("windows")
+@pytest.mark.skip_platforms("android", "mac")
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
+@pytest.mark.no_overlay_scrollbars
 async def test_enabled(client):
     assert await is_text_visible(client)
 
 
-@pytest.mark.only_platforms("windows")
+@pytest.mark.skip_platforms("android", "mac")
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
+@pytest.mark.no_overlay_scrollbars
 async def test_disabled(client):
     assert not await is_text_visible(client)
