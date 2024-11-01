@@ -767,6 +767,13 @@ bool SVGContentUtils::ParseNumber(nsAString::const_iterator& aIter,
   return ::StringToValue(Substring(start, aIter), aValue);
 }
 
+template bool SVGContentUtils::ParseNumber<float>(
+    nsAString::const_iterator& aIter, const nsAString::const_iterator& aEnd,
+    float& aValue);
+template bool SVGContentUtils::ParseNumber<double>(
+    nsAString::const_iterator& aIter, const nsAString::const_iterator& aEnd,
+    double& aValue);
+
 template <class floatType>
 bool SVGContentUtils::ParseNumber(const nsAString& aString, floatType& aValue) {
   nsAString::const_iterator iter, end;
