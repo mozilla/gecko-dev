@@ -110,6 +110,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1864564-esri-transfrom-names-shim.js",
     "injections/js/bug1881922-disable-legacy-mutation-events.js",
     "injections/js/bug1889326-office365-email-handling-prompt-autohide.js",
+    "injections/js/bug1889505-bankmandiri.co.id-window.chrome.js",
     "injections/js/bug1897120-turnjs-zoom-fix.js",
     "injections/js/bug1898952-digits.t-mobile.com.js",
     "injections/js/bug1899937-plus.nhk.jp-request-picture-in-picture.js",

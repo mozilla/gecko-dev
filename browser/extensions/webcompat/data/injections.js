@@ -1133,6 +1133,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1889505",
+    platform: "android",
+    domain: "bankmandiri.co.id",
+    bug: "1889505",
+    contentScripts: {
+      matches: ["*://*.bankmandiri.co.id/*"],
+      js: [
+        {
+          file: "injections/js/bug1889505-bankmandiri.co.id-window.chrome.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
