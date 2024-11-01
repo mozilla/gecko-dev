@@ -24,7 +24,6 @@
 #include "nsCOMPtr.h"
 #include "PLDHashTable.h"
 #include "nsCycleCollectionParticipant.h"
-#include "mozilla/intl/Localization.h"
 
 #include "mozilla/LinkedList.h"
 #include "mozilla/UniquePtr.h"
@@ -363,11 +362,6 @@ class nsDocLoader : public nsIDocumentLoader,
   bool IsBlockingLoadEvent() const {
     return mIsLoadingDocument || mDocumentOpenedButNotLoaded;
   }
-
-  RefPtr<mozilla::intl::Localization> mL10n;
-  static mozilla::Maybe<nsLiteralCString> StatusCodeToL10nId(nsresult aStatus);
-  nsresult FormatStatusMessage(nsresult aStatus, const nsAString& aHost,
-                               nsAString& aRetVal);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocLoader, NS_THIS_DOCLOADER_IMPL_CID)
