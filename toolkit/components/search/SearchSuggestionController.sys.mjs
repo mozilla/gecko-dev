@@ -32,10 +32,8 @@ const SEARCH_TELEMETRY_LATENCY = "SEARCH_SUGGESTIONS_LATENCY_MS";
  *   An UUID string, without leading or trailing braces.
  */
 function uuid() {
-  return Services.uuid
-    .generateUUID()
-    .toString()
-    .slice(1, uuid.length - 1);
+  let uuid = Services.uuid.generateUUID().toString();
+  return uuid.slice(1, uuid.length - 1);
 }
 
 /**
