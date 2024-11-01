@@ -268,45 +268,21 @@ async function removeBreakpoint(location) {
   });
 }
 
-async function evaluateExpressions(expressions, options) {
-  return Promise.all(
-    expressions.map(expression => evaluate(expression, options))
-  );
+async function evaluateExpressions(scripts, options) {
+  return Promise.all(scripts.map(script => evaluate(script, options)));
 }
 
-/**
- * Evaluate some JS expression in a given thread.
- *
- * @param {String} expression
- * @param {Object} options
- * @param {String} options.frameId
- *                 Optional frame actor ID into which the expression should be evaluated.
- * @param {String} options.threadId
- *                 Optional thread actor ID into which the expression should be evaluated.
- * @param {String} options.selectedNodeActor
- *                 Optional node actor ID which related to "$0" in the evaluated expression.
- * @param {Boolean} options.evalInTracer
- *                 To be set to true, if the object actors created during the evaluation
- *                 should be registered in the tracer actor Pool.
- * @return {Object}
- *                 See ScriptCommand.execute JS Doc.
- */
-async function evaluate(
-  expression,
-  { frameId, threadId, selectedNodeActor, evalInTracer } = {}
-) {
-  if (!currentTarget() || !expression) {
+async function evaluate(script, { frameId, threadId } = {}) {
+  if (!currentTarget() || !script) {
     return { result: null };
   }
 
   const selectedTargetFront = threadId ? lookupTarget(threadId) : null;
 
-  return commands.scriptCommand.execute(expression, {
+  return commands.scriptCommand.execute(script, {
     frameActor: frameId,
     selectedTargetFront,
     disableBreaks: true,
-    selectedNodeActor,
-    evalInTracer,
   });
 }
 

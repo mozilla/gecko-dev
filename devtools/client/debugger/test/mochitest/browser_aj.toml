@@ -301,12 +301,6 @@ skip-if = [
   "a11y_checks", # The tracer tree isn't yet accessible
 ]
 
-["browser_dbg-javascript-tracer-sidebar-values-search.js"]
-skip-if = [
-  "tsan", # Bug 1832135
-  "a11y_checks", # The tracer tree isn't yet accessible
-]
-
 ["browser_dbg-javascript-tracer-values.js"]
 skip-if = [
   "tsan", # Bug 1832135

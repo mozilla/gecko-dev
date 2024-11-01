@@ -85,7 +85,6 @@ class TracingStateWatcher {
             : undefined,
         timeStamp: ChromeUtils.dateNow(),
         reason,
-        traceValues: tracerActor.traceValues,
       },
     ]);
   }
