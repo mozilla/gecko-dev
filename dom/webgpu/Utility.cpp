@@ -402,8 +402,8 @@ ffi::WGPUTextureFormat ConvertTextureFormat(
 
   // Clang will check for us that the switch above is exhaustive,
   // but not if we add a 'default' case. So, check this here.
-  MOZ_ASSERT(result.tag != ffi::WGPUTextureFormat_Sentinel,
-             "unexpected texture format enum");
+  MOZ_RELEASE_ASSERT(result.tag != ffi::WGPUTextureFormat_Sentinel,
+                     "unexpected texture format enum");
 
   return result;
 }
@@ -505,8 +505,8 @@ ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
 
   // Clang will check for us that the switch above is exhaustive,
   // but not if we add a 'default' case. So, check this here.
-  MOZ_ASSERT(result != ffi::WGPUVertexFormat_Sentinel,
-             "unexpected texture format enum");
+  MOZ_RELEASE_ASSERT(result != ffi::WGPUVertexFormat_Sentinel,
+                     "unexpected texture format enum");
 
   return result;
 }
