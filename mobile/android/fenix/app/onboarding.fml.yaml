@@ -115,19 +115,11 @@ objects:
           A list of strings corresponding to targeting expressions.
           The card will not be shown if any expression is `true`.
         default: [ NEVER ]
-      extra-data:
-        type: Option<ExtraCardData>
-        description: Optional extra data for cards that require additional data.
-        default: null
-
-  ExtraCardData:
-    description: Holds data for cards that require additional data, e.g. add-ons, toolbar placement cards.
-    fields:
       add-ons-data:
         type: List<AddOnData>
         description: >
           An optional list of add-ons which will be shown in add-on onboarding card.
-        default: []
+        default: [ ]
 
   AddOnData:
       description: An object to describe an add-on to be installed from the onboarding card.
