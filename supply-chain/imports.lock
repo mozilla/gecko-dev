@@ -557,8 +557,8 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.serde]]
-version = "1.0.210"
-when = "2024-09-06"
+version = "1.0.214"
+when = "2024-10-28"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -571,8 +571,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_derive]]
-version = "1.0.210"
-when = "2024-09-06"
+version = "1.0.214"
+when = "2024-10-28"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
