@@ -89,7 +89,7 @@ export class SelectableProfile {
   /**
    * Get the profile directory as an  nsIFile.
    *
-   * @returns {Promise<nsIFile>} A promsie that resolves to an nsIFIle for
+   * @returns {Promise<nsIFile>} A promise that resolves to an nsIFIle for
    * the profile directory
    */
   get rootDir() {

@@ -11,6 +11,9 @@ prefs = [
 
 ["browser_edit_profile_test.js"]
 
+["browser_notify_changes.js"]
+run-if = ["os != 'linux'"] # Linux clients cannot remote themselves.
+
 ["browser_test_db_lazily_created.js"]
 
 ["browser_test_profile_selector.js"]

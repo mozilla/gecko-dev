@@ -4,6 +4,7 @@
 
 import { SelectableProfile } from "./SelectableProfile.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+import { DeferredTask } from "resource://gre/modules/DeferredTask.sys.mjs";
 
 const lazy = {};
 
@@ -12,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
@@ -19,6 +21,7 @@ ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
 });
 
 const PROFILES_CRYPTO_SALT_LENGTH_BYTES = 16;
+const NOTIFY_TIMEOUT = 200;
 
 function loadImage(url) {
   return new Promise((resolve, reject) => {
@@ -103,6 +106,7 @@ class SelectableProfileServiceClass {
     "star",
   ];
   #initPromise = null;
+  #notifyTask = null;
   static #dirSvc = null;
 
   constructor() {
@@ -110,6 +114,8 @@ class SelectableProfileServiceClass {
     this.#profileService = Cc[
       "@mozilla.org/toolkit/profile-service;1"
     ].getService(Ci.nsIToolkitProfileService);
+
+    this.#asyncShutdownBlocker = () => this.uninit();
   }
 
   /**
@@ -258,6 +264,25 @@ class SelectableProfileServiceClass {
       return;
     }
 
+    // This could fail if we're adding it during shutdown. In this case,
+    // don't throw but don't continue initialization.
+    try {
+      lazy.AsyncShutdown.profileChangeTeardown.addBlocker(
+        "SelectableProfileService uninit",
+        this.#asyncShutdownBlocker
+      );
+    } catch (ex) {
+      console.error(ex);
+      return;
+    }
+
+    this.#notifyTask = new DeferredTask(async () => {
+      // Notify ourselves.
+      await this.databaseChanged("local");
+      // Notify other instances.
+      await this.#notifyRunningInstances();
+    }, NOTIFY_TIMEOUT);
+
     try {
       await this.initConnection();
     } catch (e) {
@@ -317,12 +342,24 @@ class SelectableProfileServiceClass {
       return;
     }
 
+    lazy.AsyncShutdown.profileChangeTeardown.removeBlocker(
+      this.#asyncShutdownBlocker
+    );
+
     lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
 
     Services.obs.removeObserver(
       this.themeObserver,
       "lightweight-theme-styling-update"
     );
+
+    // During shutdown we don't need to notify ourselves, just other instances
+    // so rather than finalizing the task just disarm it and do the notification
+    // manually.
+    if (this.#notifyTask.isArmed) {
+      this.#notifyTask.disarm();
+      await this.#notifyRunningInstances();
+    }
 
     await this.closeConnection();
 
@@ -372,40 +409,20 @@ class SelectableProfileServiceClass {
     await this.#connection.execute("PRAGMA journal_mode = WAL");
     await this.#connection.execute("PRAGMA wal_autocheckpoint = 16");
 
-    this.#asyncShutdownBlocker = async () => {
-      await this.#connection.close();
-      this.#connection = null;
-    };
-
-    // This could fail if we're adding it during shutdown. In this case,
-    // don't throw but close the connection.
-    try {
-      lazy.Sqlite.shutdown.addBlocker(
-        "Profiles:ProfilesSqlite closing",
-        this.#asyncShutdownBlocker
-      );
-    } catch (ex) {
-      await this.closeConnection();
-      return;
-    }
-
     await this.createProfilesDBTables();
   }
 
   async closeConnection() {
-    if (this.#asyncShutdownBlocker) {
-      lazy.Sqlite.shutdown.removeBlocker(this.#asyncShutdownBlocker);
-      this.#asyncShutdownBlocker = null;
+    if (!this.#connection) {
+      return;
     }
 
-    if (this.#connection) {
-      // An error could occur while closing the connection. We suppress the
-      // error since it is not a critical part of the browser.
-      try {
-        await this.#connection.close();
-      } catch (ex) {}
-      this.#connection = null;
-    }
+    // An error could occur while closing the connection. We suppress the
+    // error since it is not a critical part of the browser.
+    try {
+      await this.#connection.close();
+    } catch (ex) {}
+    this.#connection = null;
   }
 
   async #restoreStoreID() {
@@ -552,13 +569,45 @@ class SelectableProfileServiceClass {
    * ask the remoting service to notify other running instances that they should
    * check for updates and refresh their UI accordingly.
    */
-  notify() {}
+  async #notifyRunningInstances() {
+    let remoteService = Cc["@mozilla.org/remote;1"].getService(
+      Ci.nsIRemoteService
+    );
+
+    let profiles = await this.getAllProfiles();
+    for (let profile of profiles) {
+      // The current profile was notified above.
+      if (profile.id === this.#currentProfile?.id) {
+        continue;
+      }
+
+      try {
+        remoteService.sendCommandLine(
+          profile.path,
+          ["--profiles-updated"],
+          false
+        );
+      } catch (e) {
+        // This is expected to fail if no instance is running with the profile.
+      }
+    }
+  }
 
   /**
-   * Invoked when the remoting service has notified this instance that another
-   * instance has updated the database. Triggers refreshProfiles() and refreshPrefs().
+   * Invoked when changes have been made to the database. Sends the observer
+   * notification "sps-profiles-updated" indicating that something has changed.
+   *
+   * @param {"local"|"remote"} source The source of the notification. Either
+   *   "local" meaning that the change was made in this process or "remote"
+   *   meaning the change was made by a different Firefox instance.
    */
-  observe() {}
+  async databaseChanged(source) {
+    if (source == "remote") {
+      await this.refreshPrefs();
+    }
+
+    Services.obs.notifyObservers(null, "sps-profiles-updated", source);
+  }
 
   /**
    * The observer function that watches for theme changes and updates the
@@ -583,14 +632,23 @@ class SelectableProfileServiceClass {
   }
 
   /**
-   * Init or update the current SelectableProfiles from the DB.
-   */
-  refreshProfiles() {}
-
-  /**
    * Fetch all prefs from the DB and write to the current instance.
    */
-  refreshPrefs() {}
+  async refreshPrefs() {
+    for (let { name, value, type } of await this.getAllPrefs()) {
+      switch (type) {
+        case "boolean":
+          Services.prefs.setBoolPref(name, value);
+          break;
+        case "string":
+          Services.prefs.setCharPref(name, value);
+          break;
+        case "number":
+          Services.prefs.setIntPref(name, value);
+          break;
+      }
+    }
+  }
 
   /**
    * Update the default profile by setting the current selectable profile path
@@ -848,6 +906,9 @@ class SelectableProfileServiceClass {
       `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeL10nId, :themeFg, :themeBg);`,
       profileData
     );
+
+    this.#notifyTask.arm();
+
     return this.getProfileByName(profileData.name);
   }
 
@@ -896,6 +957,8 @@ class SelectableProfileServiceClass {
     if (removeFiles) {
       await this.removeProfileDirs(aSelectableProfile);
     }
+
+    this.#notifyTask.arm();
   }
 
   /**
@@ -932,6 +995,8 @@ class SelectableProfileServiceClass {
        WHERE id = :id;`,
       profileObj
     );
+
+    this.#notifyTask.arm();
   }
 
   /**
@@ -976,11 +1041,11 @@ class SelectableProfileServiceClass {
   /**
    * Get a specific profile by its name.
    *
-   * @param {string} aProfileNanme The name of the profile
+   * @param {string} aProfileName The name of the profile
    * @returns {SelectableProfile}
    *   The specific profile.
    */
-  async getProfileByName(aProfileNanme) {
+  async getProfileByName(aProfileName) {
     if (!this.#connection) {
       return null;
     }
@@ -989,7 +1054,7 @@ class SelectableProfileServiceClass {
       await this.#connection.execute(
         "SELECT * FROM Profiles WHERE name = :name;",
         {
-          name: aProfileNanme,
+          name: aProfileName,
         }
       )
     )[0];
@@ -1133,6 +1198,8 @@ class SelectableProfileServiceClass {
         isBoolean: typeof aPrefValue === "boolean",
       }
     );
+
+    this.#notifyTask.arm();
   }
 
   /**
@@ -1186,6 +1253,8 @@ class SelectableProfileServiceClass {
         name: aPrefName,
       }
     );
+
+    this.#notifyTask.arm();
   }
 
   // DB lifecycle
@@ -1207,3 +1276,25 @@ class SelectableProfileServiceClass {
 
 const SelectableProfileService = new SelectableProfileServiceClass();
 export { SelectableProfileService };
+
+/**
+ * A command line handler for receiving notifications from other instances that
+ * the profiles database has been updated.
+ */
+export class CommandLineHandler {
+  static classID = Components.ID("{38971986-c834-4f52-bf17-5123fbc9dde5}");
+  static contractID = "@mozilla.org/browser/selectable-profiles-service-clh;1";
+
+  QueryInterface = ChromeUtils.generateQI([Ci.nsICommandLineHandler]);
+
+  handle(cmdLine) {
+    if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+      return;
+    }
+
+    if (cmdLine.handleFlag("profiles-updated", true)) {
+      SelectableProfileService.databaseChanged("remote").catch(console.error);
+      cmdLine.preventDefault = true;
+    }
+  }
+}

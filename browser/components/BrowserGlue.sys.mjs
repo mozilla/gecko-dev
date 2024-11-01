@@ -94,6 +94,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
   SearchSERPCategorization: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SelectableProfileService:
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.sys.mjs",
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   ShellService: "resource:///modules/ShellService.sys.mjs",
@@ -1954,6 +1956,13 @@ BrowserGlue.prototype = {
     lazy.PageActions.init();
 
     lazy.DoHController.init();
+
+    if (
+      AppConstants.MOZ_SELECTABLE_PROFILES &&
+      Services.prefs.getBoolPref("browser.profiles.enabled", false)
+    ) {
+      lazy.SelectableProfileService.init().catch(console.error);
+    }
 
     this._firstWindowTelemetry(aWindow);
     this._firstWindowLoaded();

@@ -3,6 +3,10 @@
 
 "use strict";
 
+const { Sqlite } = ChromeUtils.importESModule(
+  "resource://gre/modules/Sqlite.sys.mjs"
+);
+
 /**
  * A mock toolkit profile.
  */
@@ -78,6 +82,15 @@ SelectableProfileService.overrideDirectoryService({
   DefProfLRt: defProflLRt,
   ProfileGroups: testRoot.path,
 });
+
+async function openDatabase() {
+  let dbFile = testRoot.clone();
+  dbFile.append(`${gProfileService.currentProfile.storeID}.sqlite`);
+  return Sqlite.openConnection({
+    path: dbFile.path,
+    openNotExclusive: true,
+  });
+}
 
 add_setup(async () => {
   await SelectableProfileService.resetProfileService(gProfileService);

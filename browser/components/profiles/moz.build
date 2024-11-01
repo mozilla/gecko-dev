@@ -19,5 +19,9 @@ EXTRA_JS_MODULES.profiles += [
     "SelectableProfileService.sys.mjs",
 ]
 
+XPCOM_MANIFESTS += [
+    "components.conf",
+]
+
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Startup and Profile System")
