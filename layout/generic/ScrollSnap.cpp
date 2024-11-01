@@ -527,8 +527,7 @@ Maybe<SnapDestination> ScrollSnapUtils::GetSnapPointForDestination(
           aSnapInfo.mSnapportSize.height * proximityRatio) {
     finalPos.mPosition.y = aDestination.y;
   } else if (aSnapInfo.mScrollSnapStrictnessY !=
-                 StyleScrollSnapStrictness::None &&
-             aDestination.y != finalPos.mPosition.y) {
+             StyleScrollSnapStrictness::None) {
     snapped = true;
   }
   if (aSnapInfo.mScrollSnapStrictnessX ==
@@ -537,8 +536,7 @@ Maybe<SnapDestination> ScrollSnapUtils::GetSnapPointForDestination(
           aSnapInfo.mSnapportSize.width * proximityRatio) {
     finalPos.mPosition.x = aDestination.x;
   } else if (aSnapInfo.mScrollSnapStrictnessX !=
-                 StyleScrollSnapStrictness::None &&
-             aDestination.x != finalPos.mPosition.x) {
+             StyleScrollSnapStrictness::None) {
     snapped = true;
   }
   return snapped ? Some(finalPos) : Nothing();
