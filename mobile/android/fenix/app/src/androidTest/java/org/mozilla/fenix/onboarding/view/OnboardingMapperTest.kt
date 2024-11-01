@@ -15,6 +15,8 @@ import org.mozilla.experiments.nimbus.NimbusMessagingHelperInterface
 import org.mozilla.experiments.nimbus.StringHolder
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
+import org.mozilla.fenix.nimbus.AddOnData
+import org.mozilla.fenix.nimbus.ExtraCardData
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.JunoOnboarding
 import org.mozilla.fenix.nimbus.OnboardingCardData
@@ -172,6 +174,99 @@ class OnboardingMapperTest {
                 jexlConditions = jexlConditions,
                 func = evalFunction,
             ),
+        )
+    }
+
+    @Test
+    fun addOnsCardHasExtraData_toPageUiData_returnsConvertedPage() {
+        val imageRes = R.drawable.ic_extensions_onboarding
+        val title = "add-ons card title"
+        val description = "add-ons card body"
+        val primaryButtonLabel = "add-ons card primary button text"
+
+        // Add-ons
+        val addOnIconRes = R.drawable.ic_extensions_onboarding
+        val addOnName = "test add-on"
+        val addOnDescription = "test add-on description"
+        val addOnAverageRating = "5"
+        val addOnReviewCount = "1234"
+
+        val expected = OnboardingPageUiData(
+            type = OnboardingPageUiData.Type.ADD_ONS,
+            imageRes = imageRes,
+            title = title,
+            description = description,
+            primaryButtonLabel = primaryButtonLabel,
+            addOns = listOf(
+                OnboardingAddOn(
+                    iconRes = addOnIconRes,
+                    name = addOnName,
+                    description = addOnDescription,
+                    averageRating = addOnAverageRating,
+                    reviewCount = addOnReviewCount,
+                ),
+            ),
+        )
+
+        val addOnsCardData = OnboardingCardData(
+            cardType = OnboardingCardType.ADD_ONS,
+            imageRes = imageRes,
+            title = StringHolder(null, title),
+            body = StringHolder(null, description),
+            primaryButtonLabel = StringHolder(null, primaryButtonLabel),
+            ordering = 30,
+            extraData = ExtraCardData(
+                addOnsData = listOf(
+                    AddOnData(
+                        iconRes = addOnIconRes,
+                        name = StringHolder(null, addOnName),
+                        description = StringHolder(null, addOnDescription),
+                        averageRating = addOnAverageRating,
+                        reviewCount = addOnReviewCount,
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(
+            expected,
+            listOf(defaultBrowserCardData, addOnsCardData).toPageUiData(
+                privacyCaption = privacyCaption,
+                showDefaultBrowserPage = true,
+                showNotificationPage = false,
+                showAddWidgetPage = false,
+                jexlConditions = jexlConditions,
+                func = evalFunction,
+            ).last(),
+        )
+    }
+
+    @Test
+    fun addOnsCardNoExtraData_toPageUiData_convertedPageDoesNotIncludeAddOnsCard() {
+        val imageRes = R.drawable.ic_extensions_onboarding
+        val title = "add-ons card title"
+        val description = "add-ons card body"
+        val primaryButtonLabel = "add-ons card primary button text"
+
+        val addOnsCardData = OnboardingCardData(
+            cardType = OnboardingCardType.ADD_ONS,
+            imageRes = imageRes,
+            title = StringHolder(null, title),
+            body = StringHolder(null, description),
+            primaryButtonLabel = StringHolder(null, primaryButtonLabel),
+            ordering = 30,
+        )
+
+        assertEquals(
+            defaultBrowserPageUiDataWithPrivacyCaption,
+            listOf(defaultBrowserCardData, addOnsCardData).toPageUiData(
+                privacyCaption = privacyCaption,
+                showDefaultBrowserPage = true,
+                showNotificationPage = false,
+                showAddWidgetPage = false,
+                jexlConditions = jexlConditions,
+                func = evalFunction,
+            ).last(),
         )
     }
 
