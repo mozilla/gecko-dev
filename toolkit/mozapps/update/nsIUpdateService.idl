@@ -824,6 +824,55 @@ interface nsIUpdateSyncManager : nsISupports
 };
 
 /**
+  * An object interface suitable for acquiring the update mutex for the current
+  * installation path.
+  *
+  * The update mutex gives protection against 2 instances running from the same
+  * installation path updating at the same time:
+  * 1) By running multiple profiles from the same installation path.
+  * 2) By running in 2 different user sessions from the same installation path.
+  *
+  * nsIUpdateMutex objects do not hold the update mutex when they are created:
+  * acquiring the update mutex requires an explicit call to tryLock().
+  *
+  * The update mutex is automatically released if the application instance
+  * holding it dies. This is guaranteed by the primitives that are used under
+  * the hood by nsIUpdateMutex objects.
+  *
+  * nsIUpdateMutex objects are independent of one another. If acquisition is
+  * successful through one object, any attempt to acquire the update mutex
+  * through another object will fail, until the update mutex is released
+  * through the first object or the instance where the object lives dies. This
+  * applies even if both objects live in the same instance.
+  */
+[scriptable, uuid(dbfa19d2-f3d3-4354-a992-e99f75c22c4a)]
+interface nsIUpdateMutex : nsISupports
+{
+  /**
+   * Checks the current acquisition status for the current object.
+   *
+   * @returns true if the update mutex for the current installation is being
+   *               held by the current instance through the current object.
+   */
+  boolean isLocked();
+
+  /**
+   * Attempts to acquire the update mutex for the current installation path.
+   *
+   * @returns true if the update mutex was successfully acquired or was already
+   *          held by the current instance through the current object.
+   */
+  boolean tryLock();
+
+  /**
+   * Manually releases the update mutex for the current installation path. Does
+   * nothing if the update mutex is not being held by the current instance
+   * through the current object.
+   */
+  void unlock();
+};
+
+/**
  * An interface into the internals of the update manager. These should only be
  * accessed from within update code and tests.
  */

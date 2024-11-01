@@ -15,46 +15,60 @@ async function run_test() {
   testFile.remove(false);
   Assert.ok(!testFile.exists(), MSG_SHOULD_NOT_EXIST);
 
+  // Acquire the update mutex to prevent the current instance from being
+  // able to check for or apply updates -- and check that it can't.
   if (AppConstants.platform == "win") {
-    // Create a mutex to prevent being able to check for or apply updates.
-    debugDump("attempting to create mutex");
-    let handle = createMutex(getPerInstallationMutexName());
-    Assert.ok(!!handle, "the update mutex should have been created");
-
-    // Check if available updates cannot be checked for when there is a mutex
-    // for this installation.
-    Assert.ok(
-      !gAUS.canCheckForUpdates,
-      "should not be able to check for " +
-        "updates when there is an update mutex"
+    let updateMutex = Cc["@mozilla.org/updates/update-mutex;1"].createInstance(
+      Ci.nsIUpdateMutex
     );
 
-    // Check if updates cannot be applied when there is a mutex for this
-    // installation.
+    debugDump("attempting to acquire the update mutex");
     Assert.ok(
-      !gAUS.canApplyUpdates,
-      "should not be able to apply updates when there is an update mutex"
+      updateMutex.tryLock(),
+      "should be able to acquire the update mutex"
     );
 
-    debugDump("destroying mutex");
-    closeHandle(handle);
+    try {
+      // Check that available updates cannot be checked for when the update
+      // mutex for this installation path is acquired.
+      Assert.ok(
+        !gAUS.canCheckForUpdates,
+        "should not be able to check for updates when the update mutex is acquired by another instance"
+      );
+
+      // Check if updates cannot be applied when the update mutex for this
+      // installation path is acquired.
+      Assert.ok(
+        !gAUS.canApplyUpdates,
+        "should not be able to apply updates when the update mutex is acquired by another instance"
+      );
+    } finally {
+      debugDump("releasing the update mutex");
+      updateMutex.unlock();
+    }
   }
 
-  // Check if available updates can be checked for
+  // Check that available updates can be checked for
   Assert.ok(gAUS.canCheckForUpdates, "should be able to check for updates");
-  // Check if updates can be applied
+  // Check that updates can be applied
   Assert.ok(gAUS.canApplyUpdates, "should be able to apply updates");
 
+  // Attempt to acquire the update mutex(es) now that the current instance has
+  // acquired it.
   if (AppConstants.platform == "win") {
-    // Attempt to create a mutex when application update has already created one
-    // with the same name.
-    debugDump("attempting to create mutex");
-    let handle = createMutex(getPerInstallationMutexName());
+    let updateMutex = Cc["@mozilla.org/updates/update-mutex;1"].createInstance(
+      Ci.nsIUpdateMutex
+    );
+
+    debugDump("attempting to acquire the update mutex");
+    let isAcquired = updateMutex.tryLock();
+    if (isAcquired) {
+      updateMutex.unlock();
+    }
 
     Assert.ok(
-      !handle,
-      "should not be able to create the update mutex when " +
-        "the application has created the update mutex"
+      !isAcquired,
+      "should not be able to acquire the update mutex when the current instance has already acquired it"
     );
   }
 

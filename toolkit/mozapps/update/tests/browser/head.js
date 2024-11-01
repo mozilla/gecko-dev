@@ -197,20 +197,30 @@ function lockWriteTestFile() {
 }
 
 /**
- * Closes the update mutex handle in nsUpdateService.js if it exists and then
- * creates a new update mutex handle so the update code thinks there is another
- * instance of the application handling updates.
+ * Releases the update mutex if acquired by UpdateService.sys.mjs, and then
+ * acquires it through a fresh nsIUpdateMutex object, so the update code thinks
+ * there is another instance handling updates.
  *
- * @throws If the function is called on a platform other than Windows.
+ * @throws If the function is called on a platform other than Windows, or if we
+ *         fail to acquire the update mutex.
  */
 function setOtherInstanceHandlingUpdates() {
   if (AppConstants.platform != "win") {
     throw new Error("Windows only test function called");
   }
-  gAUS.observe(null, "test-close-handle-update-mutex", "");
-  let handle = createMutex(getPerInstallationMutexName());
+
+  gAUS.observe(null, "test-unlock-update-mutex", "");
+
+  let updateMutex = Cc["@mozilla.org/updates/update-mutex;1"].createInstance(
+    Ci.nsIUpdateMutex
+  );
+  if (!updateMutex.tryLock()) {
+    throw new Error(
+      "Failed to simulate another instance acquiring the update mutex"
+    );
+  }
   registerCleanupFunction(() => {
-    closeHandle(handle);
+    updateMutex.unlock();
   });
 }
 
