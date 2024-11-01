@@ -722,7 +722,7 @@ export var ExtensionTestCommon = class ExtensionTestCommon {
    * @returns {Partial<Extension>}
    */
   static generate(data) {
-    if (data.useAddonManager === "android-only") {
+    if (data.useAddonManager === "geckoview-only") {
       // Some extension APIs are partially implemented in Java, and the
       // interface between the JS and Java side (GeckoViewWebExtension)
       // expects extensions to be registered with the AddonManager.
@@ -736,7 +736,7 @@ export var ExtensionTestCommon = class ExtensionTestCommon {
       // cannot unconditionally be enabled.
       // In mochitests, tests are run in an actual browser, so the AddonManager
       // is always enabled and hence useAddonManager is always set by default.
-      if (AppConstants.platform === "android") {
+      if (AppConstants.MOZ_GECKOVIEW) {
         // Many MV3 tests set temporarilyInstalled for granted_host_permissions.
         // The granted_host_permissions flag is only effective for temporarily
         // installed extensions, so make sure to use "temporary" in this case.
@@ -749,7 +749,7 @@ export var ExtensionTestCommon = class ExtensionTestCommon {
         // The AddonManager requires an ID in the manifest for unsigned XPIs.
         this.setExtensionID(data);
       } else {
-        // On non-Android, default to not using the AddonManager.
+        // On non-GeckoView, default to not using the AddonManager.
         data.useAddonManager = null;
       }
     }

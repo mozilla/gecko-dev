@@ -231,7 +231,7 @@ class ExtensionWrapper {
       await this.extension.shutdown();
     }
 
-    if (AppConstants.platform === "android") {
+    if (AppConstants.MOZ_GECKOVIEW) {
       // We need a way to notify the embedding layer that an extension has been
       // uninstalled, so that the java layer can be updated too.
       Services.obs.notifyObservers(
@@ -428,7 +428,7 @@ class AOMExtensionWrapper extends ExtensionWrapper {
         let [extension] = args;
         if (extension.id === this.id) {
           this.state = "running";
-          if (AppConstants.platform === "android") {
+          if (AppConstants.MOZ_GECKOVIEW) {
             // We need a way to notify the embedding layer that a new extension
             // has been installed, so that the java layer can be updated too.
             Services.obs.notifyObservers(
