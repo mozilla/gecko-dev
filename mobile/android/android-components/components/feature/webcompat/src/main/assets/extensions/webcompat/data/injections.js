@@ -525,7 +525,7 @@ const AVAILABLE_INJECTIONS = [
   },
   {
     id: "bug1827678-webc119017",
-    platform: "desktop",
+    platform: "all",
     domain: "nppes.cms.hhs.gov",
     bug: "1827678",
     contentScripts: {
