@@ -717,17 +717,115 @@ async function doCityTest({ desc, query, geolocation, expected }) {
     expected.weatherParams.q ??= "";
   }
 
-  let callCountsByProvider = {};
+  QuickSuggest._test_clearCachedGeolocation();
+  let callsByProvider = await doSearch({
+    query,
+    geolocation,
+    suggestionCity: expected?.suggestionCity,
+  });
 
+  // Check the Merino calls.
+  Assert.equal(
+    callsByProvider.geolocation?.length || 0,
+    expected?.geolocationCalled ? 1 : 0,
+    "geolocation provider should have been called the correct number of times"
+  );
+  Assert.equal(
+    callsByProvider.accuweather?.length || 0,
+    expected ? 1 : 0,
+    "accuweather provider should have been called the correct number of times"
+  );
+  if (expected) {
+    for (let [key, value] of Object.entries(expected.weatherParams)) {
+      Assert.strictEqual(
+        callsByProvider.accuweather[0].get(key),
+        value,
+        "Weather param should be correct: " + key
+      );
+    }
+  }
+}
+
+// We should cache the geolocation returned by Merino.
+add_task(async function cachedGeolocation() {
+  let query = "waterloo";
+  let geolocation = {
+    location: {
+      latitude: 41.0,
+      longitude: -93.0,
+    },
+  };
+
+  QuickSuggest._test_clearCachedGeolocation();
+
+  // Do a search. We should call Merino and cache the response.
+  info("Doing first search");
+  let callsByProvider = await doSearch({
+    query,
+    geolocation,
+    suggestionCity: "Waterloo",
+  });
+  info("First search callsByProvider: " + JSON.stringify(callsByProvider));
+  Assert.equal(
+    callsByProvider.geolocation.length,
+    1,
+    "geolocation provider should have been called on first search"
+  );
+
+  // Do a second search. We should use the cached geolocaton, so we shouldn't
+  // call Merino.
+  info("Doing second search");
+  callsByProvider = await doSearch({
+    query,
+    geolocation,
+    suggestionCity: "Waterloo",
+  });
+  info("Second search callsByProvider: " + JSON.stringify(callsByProvider));
+  Assert.ok(
+    !callsByProvider.geolocation,
+    "geolocation provider should not have been called on second search"
+  );
+
+  // Set the date forward 3 minutes, which is longer than the cache period.
+  let futureMs = Date.now() + 3 * 60 * 1000;
+  let sandbox = sinon.createSandbox();
+  let dateNowStub = sandbox.stub(
+    Cu.getGlobalForObject(QuickSuggest).Date,
+    "now"
+  );
+  dateNowStub.returns(futureMs);
+
+  // Do a third search. The previous response is cached but it's stale, so we
+  // should call Merino again.
+  info("Doing third search");
+  callsByProvider = await doSearch({
+    query,
+    geolocation,
+    suggestionCity: "Waterloo",
+  });
+  info("Third search callsByProvider: " + JSON.stringify(callsByProvider));
+  Assert.equal(
+    callsByProvider.geolocation.length,
+    1,
+    "geolocation provider should have been called on third search"
+  );
+
+  sandbox.restore();
+  QuickSuggest._test_clearCachedGeolocation();
+});
+
+async function doSearch({ query, geolocation, suggestionCity }) {
+  let callsByProvider = {};
+
+  // Set up the Merino request handler.
   MerinoTestUtils.server.requestHandler = req => {
     let params = new URLSearchParams(req.queryString);
     let provider = params.get("providers");
+    callsByProvider[provider] ||= [];
+    callsByProvider[provider].push(params);
 
-    callCountsByProvider[provider] ||= 0;
-    callCountsByProvider[provider]++;
-
+    // Handle geolocation requests.
     if (provider == "geolocation") {
-      // Return the geolocation response.
       return {
         body: {
           request_id: "request_id",
@@ -742,41 +840,20 @@ async function doCityTest({ desc, query, geolocation, expected }) {
       };
     }
 
-    // Return the accuweather response.
-
+    // Handle accuweather requests.
     Assert.equal(
       provider,
       "accuweather",
-      "Firefox should have called the 'accuweather' Merino provider"
+      "Sanity check: If the request isn't geolocation, it should be accuweather"
     );
-
-    // If this fails, the Rust component returned multiple suggestions, which is
-    // fine and expected when a query matches multiple cities, but then we went
-    // on to make urlbar results for more than one of them, which is not fine.
-    // We should only ever make a result for one suggestion.
-    Assert.equal(
-      callCountsByProvider.accuweather,
-      1,
-      "accuweather provider should be called at most once"
-    );
-
-    for (let [key, value] of Object.entries(expected.weatherParams)) {
-      Assert.strictEqual(
-        params.get(key),
-        value,
-        "Weather param should be correct: " + key
-      );
-    }
-
     let suggestion = { ...WEATHER_SUGGESTION };
-    if (expected.suggestionCity) {
+    if (suggestionCity) {
       suggestion = {
         ...suggestion,
-        title: "Weather for " + expected.suggestionCity,
-        city_name: expected.suggestionCity,
+        title: "Weather for " + suggestionCity,
+        city_name: suggestionCity,
       };
     }
-
     return {
       body: {
         request_id: "request_id",
@@ -786,34 +863,22 @@ async function doCityTest({ desc, query, geolocation, expected }) {
   };
 
   // Do a search.
-  let context = createContext(query, {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
   await check_results({
-    context,
-    matches: !expected
+    context: createContext(query, {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: !suggestionCity
       ? []
       : [
           QuickSuggestTestUtils.weatherResult({
-            city: expected.suggestionCity,
+            city: suggestionCity,
           }),
         ],
   });
 
-  // Check Merino call counts.
-  Assert.equal(
-    callCountsByProvider.geolocation || 0,
-    expected?.geolocationCalled ? 1 : 0,
-    "geolocation provider should have beeen called the correct number of times"
-  );
-  Assert.equal(
-    callCountsByProvider.accuweather || 0,
-    expected ? 1 : 0,
-    "accuweather provider should have beeen called the correct number of times"
-  );
-
   MerinoTestUtils.server.requestHandler = null;
+  return callsByProvider;
 }
 
 function assertDisabled({ message }) {
