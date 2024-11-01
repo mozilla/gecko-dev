@@ -76,6 +76,8 @@ function logEvent({ threadActor, frame, level, expression, bindings }) {
     value = value.unsafeDereference();
   }
 
+  ChromeUtils.addProfilerMarker("Debugger log point", undefined, value);
+
   const targetActor = threadActor.targetActor;
   const message = {
     filename: sourceActor.url,
