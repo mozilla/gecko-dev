@@ -200,6 +200,7 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
 
   // A background task queue for the async flushing operations.
   nsCOMPtr<nsISerialEventTarget> mAsyncQueue;
+  nsISerialEventTarget* AsyncQueue();
 
   static nsToolkitProfileService* gService;
 

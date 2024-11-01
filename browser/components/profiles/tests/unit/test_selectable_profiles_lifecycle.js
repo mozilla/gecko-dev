@@ -78,30 +78,35 @@ add_task(
       "We got the correct profile name: updatedTestProfile"
     );
 
-    await SelectableProfileService.deleteProfile(selectableProfile, true);
+    let newProfile = await createTestProfile({ name: "New profile" });
+    let rootDir = await newProfile.rootDir;
+    let localDir = PathUtils.join(
+      Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
+      rootDir.leafName
+    );
 
-    profileDirExists = await IOUtils.exists(
-      PathUtils.join(
-        Services.dirsvc.get("DefProfRt", Ci.nsIFile).path,
-        leafName
-      )
+    profileDirExists = await IOUtils.exists(rootDir.path);
+    profileLocalDirExists = await IOUtils.exists(localDir);
+    Assert.ok(profileDirExists, "Profile dir was successfully created");
+    Assert.ok(
+      profileLocalDirExists,
+      "Profile local dir was successfully created"
     );
-    profileLocalDirExists = await IOUtils.exists(
-      PathUtils.join(
-        Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
-        leafName
-      )
-    );
+
+    profiles = await SelectableProfileService.getAllProfiles();
+    Assert.equal(profiles.length, 2, "Should now be two profiles.");
+
+    await SelectableProfileService.deleteProfile(newProfile);
+
+    profiles = await SelectableProfileService.getAllProfiles();
+    Assert.equal(profiles.length, 1, "Should now be one profiles.");
+
+    profileDirExists = await IOUtils.exists(rootDir.path);
+    profileLocalDirExists = await IOUtils.exists(localDir);
     Assert.ok(!profileDirExists, "Profile dir was successfully removed");
     Assert.ok(
       !profileLocalDirExists,
       "Profile local dir was successfully removed"
     );
-
-    profiles = await SelectableProfileService.getAllProfiles();
-
-    Assert.ok(!profiles.length, "No selectable profiles exist yet");
-
-    await SelectableProfileService.deleteProfileGroup();
   }
 );

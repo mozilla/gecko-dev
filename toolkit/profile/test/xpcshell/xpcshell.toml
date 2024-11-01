@@ -16,6 +16,8 @@ skip-if = ["os == 'android'"]
 
 ["test_create_default.js"]
 
+["test_delete_dirs.js"]
+
 ["test_fix_directory_case.js"]
 
 ["test_ignore_legacy_directory.js"]

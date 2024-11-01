@@ -179,6 +179,15 @@ interface nsIToolkitProfileService : nsISupports
      */
     [implicit_jscontext]
     Promise asyncFlushCurrentProfile();
+
+    /**
+     * Removes profile directories from disk. Will wait for up to aTimeout
+     * seconds to acquire the profile lock. aLocalDir can be null in which case
+     * it is calculated from the root directory.
+     */
+    [implicit_jscontext]
+    Promise removeProfileFilesByPath(in nsIFile aRootDir, in nsIFile aLocalDir,
+                                     in unsigned long aTimeout);
 };
 
 %{C++

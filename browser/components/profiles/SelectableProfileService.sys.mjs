@@ -651,17 +651,18 @@ class SelectableProfileServiceClass {
   }
 
   /**
-   * Update the default profile by setting the current selectable profile path
-   * as the path of the nsToolkitProfile for the group.
+   * Update the default profile by setting the selectable profile's path
+   * as the path of the nsToolkitProfile for the group. Defaults to the current
+   * selectable profile.
+   *
+   * @param {SelectableProfile} aProfile The SelectableProfile to be
+   * set as the default.
    */
-  async setDefaultProfileForGroup() {
-    if (
-      !this.currentProfile ||
-      this.#groupToolkitProfile.rootDir.path === this.currentProfile.path
-    ) {
+  async setDefaultProfileForGroup(aProfile = this.currentProfile) {
+    if (!aProfile || this.#groupToolkitProfile.rootDir.path === aProfile.path) {
       return;
     }
-    this.#groupToolkitProfile.rootDir = await this.currentProfile.rootDir;
+    this.#groupToolkitProfile.rootDir = await aProfile.rootDir;
     await this.#attemptFlushProfileService();
   }
 
@@ -912,51 +913,26 @@ class SelectableProfileServiceClass {
     return this.getProfileByName(profileData.name);
   }
 
-  /**
-   * Remove the profile directories.
-   *
-   * @param {SelectableProfile} aSelectableProfile The SelectableProfile of the
-   * directories to be removed.
-   */
-  async removeProfileDirs(aSelectableProfile) {
-    let profileDir = (await aSelectableProfile.rootDir).leafName;
-    // Handle errors in bug 1909919
-    await Promise.all([
-      IOUtils.remove(
-        PathUtils.join(
-          SelectableProfileServiceClass.getDirectory("DefProfRt").path,
-          profileDir
-        ),
-        {
-          recursive: true,
-        }
-      ),
-      IOUtils.remove(
-        PathUtils.join(
-          SelectableProfileServiceClass.getDirectory("DefProfLRt").path,
-          profileDir
-        ),
-        {
-          recursive: true,
-        }
-      ),
-    ]);
-  }
-
-  /**
-   * Delete a SelectableProfile from the group DB.
-   * If it was the last profile in the group, also call deleteProfileGroup().
-   *
-   * @param {SelectableProfile} aSelectableProfile The SelectableProfile to be deleted
-   * @param {boolean} removeFiles True if the profile directory should be removed
-   */
-  async deleteProfile(aSelectableProfile, removeFiles) {
-    await this.#connection.execute("DELETE FROM Profiles WHERE id = :id;", {
-      id: aSelectableProfile.id,
-    });
-    if (removeFiles) {
-      await this.removeProfileDirs(aSelectableProfile);
+  async deleteProfile(aProfile) {
+    if (aProfile.id == this.currentProfile.id) {
+      throw new Error(
+        "Use `deleteCurrentProfile` to delete the current profile."
+      );
     }
+
+    // First attempt to remove the profile's directories. This will attempt to
+    // local the directories and so will throw an exception if the profile is
+    // currently in use.
+    await this.#profileService.removeProfileFilesByPath(
+      await aProfile.rootDir,
+      null,
+      0
+    );
+
+    // Then we can remove from the database.
+    await this.#connection.execute("DELETE FROM Profiles WHERE id = :id;", {
+      id: aProfile.id,
+    });
 
     this.#notifyTask.arm();
   }
@@ -967,10 +943,19 @@ class SelectableProfileServiceClass {
   closeActiveProfileInstances() {}
 
   /**
-   * Schedule deletion of the current SelectableProfile as a background task, then exit.
+   * Schedule deletion of the current SelectableProfile as a background task.
    */
   async deleteCurrentProfile() {
-    this.closeActiveProfileInstances();
+    let profiles = await this.getAllProfiles();
+
+    // Refuse to delete the last profile.
+    if (profiles.length <= 1) {
+      return;
+    }
+
+    // TODO: (Bug 1923980) How should we choose the new default profile?
+    let newDefault = profiles.find(p => p.id !== this.currentProfile.id);
+    await this.setDefaultProfileForGroup(newDefault);
 
     await this.#connection.executeBeforeShutdown(
       "SelectableProfileService: deleteCurrentProfile",
@@ -979,6 +964,20 @@ class SelectableProfileServiceClass {
           id: this.currentProfile.id,
         })
     );
+
+    if (AppConstants.MOZ_BACKGROUNDTASKS) {
+      // Schedule deletion of the profile directories.
+      const runner = Cc["@mozilla.org/backgroundtasksrunner;1"].getService(
+        Ci.nsIBackgroundTasksRunner
+      );
+      let rootDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
+      let localDir = Services.dirsvc.get("ProfLD", Ci.nsIFile);
+      runner.runInDetachedProcess("removeProfileFiles", [
+        rootDir.path,
+        localDir.path,
+        180,
+      ]);
+    }
   }
 
   /**

@@ -143,8 +143,27 @@ export class ProfilesParent extends JSWindowActorParent {
   async receiveMessage(message) {
     switch (message.name) {
       case "Profiles:DeleteProfile": {
-        // TODO (bug 1918523): update default and handle deletion in a
-        //                     background task.
+        let profiles = await SelectableProfileService.getAllProfiles();
+
+        if (profiles.length <= 1) {
+          return null;
+        }
+
+        // Notify windows that a quit has been requested.
+        let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(
+          Ci.nsISupportsPRBool
+        );
+        Services.obs.notifyObservers(cancelQuit, "quit-application-requested");
+
+        if (cancelQuit.data) {
+          // Something blocked our attempt to quit.
+          return null;
+        }
+
+        await SelectableProfileService.deleteCurrentProfile();
+
+        // Finally, exit.
+        Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
         break;
       }
       case "Profiles:CancelDelete": {
