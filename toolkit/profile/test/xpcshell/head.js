@@ -33,10 +33,12 @@ xreDirProvider.setUserDataDirectory(gDataHome, false);
 xreDirProvider.setUserDataDirectory(gDataHomeLocal, true);
 Services.dirsvc.set("UAppData", gDataHome);
 let gProfilesRoot = gDataHome.clone();
-gProfilesRoot.append("profiles");
-Services.dirsvc.set("DefProfRt", gProfilesRoot);
 let gProfilesTemp = gDataHomeLocal.clone();
-gProfilesTemp.append("profiles");
+if (!AppConstants.XP_UNIX || AppConstants.platform == "macosx") {
+  gProfilesRoot.append("Profiles");
+  gProfilesTemp.append("Profiles");
+}
+Services.dirsvc.set("DefProfRt", gProfilesRoot);
 Services.dirsvc.set("DefProfLRt", gProfilesTemp);
 
 let gIsDefaultApp = false;
