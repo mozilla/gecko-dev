@@ -9,6 +9,7 @@ This is the nascent documentation of the Firefox front-end code.
 
    urlbar/index
    BrowserUsageTelemetry
+   FrontendCodeReviewBestPractices
    CommandLineParameters
    components/enterprisepolicies/docs/index
    extensions/formautofill/docs/index
