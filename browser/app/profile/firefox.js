@@ -1912,6 +1912,12 @@ pref("browser.newtabpage.activity-stream.discoverystream.contextualContent.local
 // List of regions that get contextual content by default- TODO: update once development is closer to being finished
 pref("browser.newtabpage.activity-stream.discoverystream.contextualContent.region-content-config", "");
 
+// List of locales that get section layout by default
+pref("browser.newtabpage.activity-stream.discoverystream.sections.locale-content-config", "en-US,en-CA");
+// List of regions that get section layout by default
+pref("browser.newtabpage.activity-stream.discoverystream.sections.region-content-config", "");
+
+
 pref("browser.newtabpage.activity-stream.discoverystream.merino-provider.endpoint", "merino.services.mozilla.com");
 // List of regions that get spocs by default.
 pref("browser.newtabpage.activity-stream.discoverystream.region-spocs-config", "US,CA,DE,GB,FR,IT,ES");

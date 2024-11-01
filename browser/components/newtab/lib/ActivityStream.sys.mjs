@@ -74,6 +74,11 @@ const REGION_CONTEXTUAL_CONTENT_CONFIG =
 const LOCALE_CONTEXTUAL_CONTENT_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.contextualContent.locale-content-config";
 
+const REGION_SECTIONS_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.sections.region-content-config";
+const LOCALE_SECTIONS_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.sections.locale-content-config";
+
 export function csvPrefHasValue(stringPrefName, value) {
   if (typeof stringPrefName !== "string") {
     throw new Error(`The stringPrefName argument is not a string`);
@@ -128,6 +133,13 @@ function showContextualContent({ geo, locale }) {
   return (
     csvPrefHasValue(REGION_CONTEXTUAL_CONTENT_CONFIG, geo) &&
     csvPrefHasValue(LOCALE_CONTEXTUAL_CONTENT_CONFIG, locale)
+  );
+}
+
+function showSectionLayout({ geo, locale }) {
+  return (
+    csvPrefHasValue(REGION_SECTIONS_CONFIG, geo) &&
+    csvPrefHasValue(LOCALE_SECTIONS_CONFIG, locale)
   );
 }
 
@@ -422,6 +434,13 @@ export const PREFS_CONFIG = new Map([
     {
       title: "Boolean flag to turn layout variant B on and off",
       value: false,
+    },
+  ],
+  [
+    "discoverystream.sections.enabled",
+    {
+      title: "Boolean flag to enable section layout UI in recommended stories",
+      getValue: showSectionLayout,
     },
   ],
   [
