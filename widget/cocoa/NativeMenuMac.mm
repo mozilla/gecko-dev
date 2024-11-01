@@ -343,9 +343,6 @@ void NativeMenuMac::ActivateItem(dom::Element* aItemElement,
     aRv.ThrowInvalidStateError("Menu containing menu item is not open");
     return;
   }
-
-  nsMenuUtilsX::CheckNativeMenuConsistency(menu->NativeNSMenu());
-
   Maybe<nsMenuX::MenuChild> child = menu->GetItemForElement(aItemElement);
   if (!child || !child->is<RefPtr<nsMenuItemX>>()) {
     aRv.ThrowInvalidStateError("Could not find the supplied menu item");
