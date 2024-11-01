@@ -727,7 +727,7 @@ bool IMEHandler::IsOnScreenKeyboardSupported() {
   if (!IsWin11OrLater()) {
     // On Windows 10 we require tablet mode, unless the user has set the
     // relevant setting to enable the on-screen keyboard in desktop mode.
-    if (!IsInWin10TabletMode() && !AutoInvokeOnScreenKeyboardInDesktopMode()) {
+    if (!IsInTabletMode() && !AutoInvokeOnScreenKeyboardInDesktopMode()) {
       return false;
     }
   }
@@ -918,8 +918,8 @@ bool IMEHandler::IsKeyboardPresentOnSlate() {
 }
 
 // static
-bool IMEHandler::IsInWin10TabletMode() {
-  bool isInTabletMode = WindowsUIUtils::GetInWin10TabletMode();
+bool IMEHandler::IsInTabletMode() {
+  bool isInTabletMode = WindowsUIUtils::GetInTabletMode();
   if (isInTabletMode) {
     Preferences::SetString(kOskDebugReason, L"IITM: GetInTabletMode=true.");
   } else {

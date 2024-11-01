@@ -4656,7 +4656,7 @@ function updateToggleControlLabel(control) {
 var TabletModeUpdater = {
   init() {
     if (AppConstants.platform == "win") {
-      this.update(WindowsUIUtils.inWin10TabletMode);
+      this.update(WindowsUIUtils.inTabletMode);
       Services.obs.addObserver(this, "tablet-mode-change");
     }
   },
@@ -4668,15 +4668,18 @@ var TabletModeUpdater = {
   },
 
   observe(subject, topic, data) {
-    this.update(data == "win10-tablet-mode");
+    this.update(data == "tablet-mode");
   },
 
   update(isInTabletMode) {
-    // [tabletmode] is currently only set in Win10
+    let wasInTabletMode = document.documentElement.hasAttribute("tabletmode");
     if (isInTabletMode) {
       document.documentElement.setAttribute("tabletmode", "true");
     } else {
       document.documentElement.removeAttribute("tabletmode");
+    }
+    if (wasInTabletMode != isInTabletMode) {
+      gUIDensity.update();
     }
   },
 };
@@ -4692,30 +4695,23 @@ var gUIDensity = {
   MODE_TOUCH: 2,
   uiDensityPref: "browser.uidensity",
   autoTouchModePref: "browser.touchmode.auto",
-  knownPrefs: new Set(["browser.uidensity", "browser.touchmode.auto"]),
 
   init() {
     this.update();
-    Services.obs.addObserver(this, "tablet-mode-change");
     Services.prefs.addObserver(this.uiDensityPref, this);
     Services.prefs.addObserver(this.autoTouchModePref, this);
   },
 
   uninit() {
-    Services.obs.removeObserver(this, "tablet-mode-change");
     Services.prefs.removeObserver(this.uiDensityPref, this);
     Services.prefs.removeObserver(this.autoTouchModePref, this);
   },
 
   observe(aSubject, aTopic, aPrefName) {
-    const ok = (() => {
-      if (aTopic == "tablet-mode-change") return true;
-      if (aTopic == "nsPref:changed" && this.knownPrefs.has(aPrefName)) {
-        return true;
-      }
-      return false;
-    })();
-    if (!ok) {
+    if (
+      aTopic != "nsPref:changed" ||
+      (aPrefName != this.uiDensityPref && aPrefName != this.autoTouchModePref)
+    ) {
       return;
     }
 
@@ -4723,13 +4719,10 @@ var gUIDensity = {
   },
 
   getCurrentDensity() {
-    // Automatically override the uidensity to touch in Windows tablet mode
-    // (either Win10 or Win11).
-    const inTablet =
-      WindowsUIUtils.inWin10TabletMode || WindowsUIUtils.inWin11TabletMode;
+    // Automatically override the uidensity to touch in Windows tablet mode.
     if (
       AppConstants.platform == "win" &&
-      inTablet &&
+      WindowsUIUtils.inTabletMode &&
       Services.prefs.getBoolPref(this.autoTouchModePref)
     ) {
       return { mode: this.MODE_TOUCH, overridden: true };
