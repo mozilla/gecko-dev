@@ -1,4 +1,4 @@
-#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::needless_lifetimes, clippy::uninlined_format_args)]
 
 #[macro_use]
 mod macros;
@@ -9,7 +9,7 @@ use syn::{parse_quote, Attribute, Field, Lit, Pat, Stmt, Token};
 #[test]
 fn test_attribute() {
     let attr: Attribute = parse_quote!(#[test]);
-    snapshot!(attr, @r###"
+    snapshot!(attr, @r#"
     Attribute {
         style: AttrStyle::Outer,
         meta: Meta::Path {
@@ -20,10 +20,10 @@ fn test_attribute() {
             ],
         },
     }
-    "###);
+    "#);
 
     let attr: Attribute = parse_quote!(#![no_std]);
-    snapshot!(attr, @r###"
+    snapshot!(attr, @r#"
     Attribute {
         style: AttrStyle::Inner,
         meta: Meta::Path {
@@ -34,13 +34,13 @@ fn test_attribute() {
             ],
         },
     }
-    "###);
+    "#);
 }
 
 #[test]
 fn test_field() {
     let field: Field = parse_quote!(pub enabled: bool);
-    snapshot!(field, @r###"
+    snapshot!(field, @r#"
     Field {
         vis: Visibility::Public,
         ident: Some("enabled"),
@@ -55,10 +55,10 @@ fn test_field() {
             },
         },
     }
-    "###);
+    "#);
 
     let field: Field = parse_quote!(primitive::bool);
-    snapshot!(field, @r###"
+    snapshot!(field, @r#"
     Field {
         vis: Visibility::Inherited,
         ty: Type::Path {
@@ -75,13 +75,13 @@ fn test_field() {
             },
         },
     }
-    "###);
+    "#);
 }
 
 #[test]
 fn test_pat() {
     let pat: Pat = parse_quote!(Some(false) | None);
-    snapshot!(&pat, @r###"
+    snapshot!(&pat, @r#"
     Pat::Or {
         cases: [
             Pat::TupleStruct {
@@ -106,7 +106,7 @@ fn test_pat() {
             },
         ],
     }
-    "###);
+    "#);
 
     let boxed_pat: Box<Pat> = parse_quote!(Some(false) | None);
     assert_eq!(*boxed_pat, pat);
@@ -115,7 +115,7 @@ fn test_pat() {
 #[test]
 fn test_punctuated() {
     let punctuated: Punctuated<Lit, Token![|]> = parse_quote!(true | true);
-    snapshot!(punctuated, @r###"
+    snapshot!(punctuated, @r#"
     [
         Lit::Bool {
             value: true,
@@ -125,10 +125,10 @@ fn test_punctuated() {
             value: true,
         },
     ]
-    "###);
+    "#);
 
     let punctuated: Punctuated<Lit, Token![|]> = parse_quote!(true | true |);
-    snapshot!(punctuated, @r###"
+    snapshot!(punctuated, @r#"
     [
         Lit::Bool {
             value: true,
@@ -139,7 +139,7 @@ fn test_punctuated() {
         },
         Token![|],
     ]
-    "###);
+    "#);
 }
 
 #[test]
@@ -148,7 +148,7 @@ fn test_vec_stmt() {
         let _;
         true
     };
-    snapshot!(stmts, @r###"
+    snapshot!(stmts, @r#"
     [
         Stmt::Local {
             pat: Pat::Wild,
@@ -162,5 +162,5 @@ fn test_vec_stmt() {
             None,
         ),
     ]
-    "###);
+    "#);
 }

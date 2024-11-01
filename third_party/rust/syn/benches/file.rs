@@ -8,6 +8,7 @@
     clippy::match_like_matches_macro,
     clippy::missing_panics_doc,
     clippy::must_use_candidate,
+    clippy::needless_lifetimes,
     clippy::uninlined_format_args
 )]
 

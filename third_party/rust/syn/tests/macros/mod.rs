@@ -79,7 +79,7 @@ pub trait TryIntoTokens {
     fn try_into_tokens(self) -> Result<proc_macro2::TokenStream>;
 }
 
-impl<'a> TryIntoTokens for &'a str {
+impl TryIntoTokens for &str {
     fn try_into_tokens(self) -> Result<proc_macro2::TokenStream> {
         let tokens = proc_macro2::TokenStream::from_str(self)?;
         Ok(tokens)

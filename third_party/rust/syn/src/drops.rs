@@ -32,10 +32,10 @@ impl<T: ?Sized> DerefMut for NoDrop<T> {
 pub(crate) trait TrivialDrop {}
 
 impl<T> TrivialDrop for iter::Empty<T> {}
-impl<'a, T> TrivialDrop for slice::Iter<'a, T> {}
-impl<'a, T> TrivialDrop for slice::IterMut<'a, T> {}
-impl<'a, T> TrivialDrop for option::IntoIter<&'a T> {}
-impl<'a, T> TrivialDrop for option::IntoIter<&'a mut T> {}
+impl<T> TrivialDrop for slice::Iter<'_, T> {}
+impl<T> TrivialDrop for slice::IterMut<'_, T> {}
+impl<T> TrivialDrop for option::IntoIter<&T> {}
+impl<T> TrivialDrop for option::IntoIter<&mut T> {}
 
 #[test]
 fn test_needs_drop() {

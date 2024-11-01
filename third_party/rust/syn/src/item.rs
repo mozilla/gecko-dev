@@ -952,7 +952,8 @@ pub(crate) mod parsing {
         let vis: Visibility = ahead.parse()?;
 
         let lookahead = ahead.lookahead1();
-        let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead) {
+        let allow_safe = false;
+        let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead, allow_safe) {
             let vis: Visibility = input.parse()?;
             let sig: Signature = input.parse()?;
             if input.peek(Token![;]) {
@@ -1205,7 +1206,15 @@ pub(crate) mod parsing {
                     if input.peek(Token![where]) || input.peek(Token![=]) || input.peek(Token![;]) {
                         break;
                     }
-                    bounds.push_value(input.parse::<TypeParamBound>()?);
+                    bounds.push_value({
+                        let allow_precise_capture = false;
+                        let allow_tilde_const = true;
+                        TypeParamBound::parse_single(
+                            input,
+                            allow_precise_capture,
+                            allow_tilde_const,
+                        )?
+                    });
                     if input.peek(Token![where]) || input.peek(Token![=]) || input.peek(Token![;]) {
                         break;
                     }
@@ -1411,14 +1420,16 @@ pub(crate) mod parsing {
                     &content,
                     allow_crate_root_in_path && !this_tree_starts_with_crate_root,
                 )? {
-                    Some(tree) => items.push_value(tree),
-                    None => has_any_crate_root_in_path = true,
+                    Some(tree) if !has_any_crate_root_in_path => items.push_value(tree),
+                    _ => has_any_crate_root_in_path = true,
                 }
                 if content.is_empty() {
                     break;
                 }
                 let comma: Token![,] = content.parse()?;
-                items.push_punct(comma);
+                if !has_any_crate_root_in_path {
+                    items.push_punct(comma);
+                }
             }
             if has_any_crate_root_in_path {
                 Ok(None)
@@ -1483,11 +1494,14 @@ pub(crate) mod parsing {
         }
     }
 
-    fn peek_signature(input: ParseStream) -> bool {
+    fn peek_signature(input: ParseStream, allow_safe: bool) -> bool {
         let fork = input.fork();
         fork.parse::<Option<Token![const]>>().is_ok()
             && fork.parse::<Option<Token![async]>>().is_ok()
-            && fork.parse::<Option<Token![unsafe]>>().is_ok()
+            && ((allow_safe
+                && token::parsing::peek_keyword(fork.cursor(), "safe")
+                && token::parsing::keyword(&fork, "safe").is_ok())
+                || fork.parse::<Option<Token![unsafe]>>().is_ok())
             && fork.parse::<Option<Abi>>().is_ok()
             && fork.peek(Token![fn])
     }
@@ -1495,22 +1509,37 @@ pub(crate) mod parsing {
     #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Signature {
         fn parse(input: ParseStream) -> Result<Self> {
-            let constness: Option<Token![const]> = input.parse()?;
-            let asyncness: Option<Token![async]> = input.parse()?;
-            let unsafety: Option<Token![unsafe]> = input.parse()?;
-            let abi: Option<Abi> = input.parse()?;
-            let fn_token: Token![fn] = input.parse()?;
-            let ident: Ident = input.parse()?;
-            let mut generics: Generics = input.parse()?;
+            let allow_safe = false;
+            parse_signature(input, allow_safe).map(Option::unwrap)
+        }
+    }
 
-            let content;
-            let paren_token = parenthesized!(content in input);
-            let (inputs, variadic) = parse_fn_args(&content)?;
+    fn parse_signature(input: ParseStream, allow_safe: bool) -> Result<Option<Signature>> {
+        let constness: Option<Token![const]> = input.parse()?;
+        let asyncness: Option<Token![async]> = input.parse()?;
+        let unsafety: Option<Token![unsafe]> = input.parse()?;
+        let safe = allow_safe
+            && unsafety.is_none()
+            && token::parsing::peek_keyword(input.cursor(), "safe");
+        if safe {
+            token::parsing::keyword(input, "safe")?;
+        }
+        let abi: Option<Abi> = input.parse()?;
+        let fn_token: Token![fn] = input.parse()?;
+        let ident: Ident = input.parse()?;
+        let mut generics: Generics = input.parse()?;
 
-            let output: ReturnType = input.parse()?;
-            generics.where_clause = input.parse()?;
+        let content;
+        let paren_token = parenthesized!(content in input);
+        let (inputs, variadic) = parse_fn_args(&content)?;
 
-            Ok(Signature {
+        let output: ReturnType = input.parse()?;
+        generics.where_clause = input.parse()?;
+
+        Ok(if safe {
+            None
+        } else {
+            Some(Signature {
                 constness,
                 asyncness,
                 unsafety,
@@ -1523,7 +1552,7 @@ pub(crate) mod parsing {
                 variadic,
                 output,
             })
-        }
+        })
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
@@ -1819,35 +1848,55 @@ pub(crate) mod parsing {
             let vis: Visibility = ahead.parse()?;
 
             let lookahead = ahead.lookahead1();
-            let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead) {
+            let allow_safe = true;
+            let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead, allow_safe) {
                 let vis: Visibility = input.parse()?;
-                let sig: Signature = input.parse()?;
-                if input.peek(token::Brace) {
+                let sig = parse_signature(input, allow_safe)?;
+                let has_safe = sig.is_none();
+                let has_body = input.peek(token::Brace);
+                let semi_token: Option<Token![;]> = if has_body {
                     let content;
                     braced!(content in input);
                     content.call(Attribute::parse_inner)?;
                     content.call(Block::parse_within)?;
-
+                    None
+                } else {
+                    Some(input.parse()?)
+                };
+                if has_safe || has_body {
                     Ok(ForeignItem::Verbatim(verbatim::between(&begin, input)))
                 } else {
                     Ok(ForeignItem::Fn(ForeignItemFn {
                         attrs: Vec::new(),
                         vis,
-                        sig,
-                        semi_token: input.parse()?,
+                        sig: sig.unwrap(),
+                        semi_token: semi_token.unwrap(),
                     }))
                 }
-            } else if lookahead.peek(Token![static]) {
+            } else if lookahead.peek(Token![static])
+                || ((ahead.peek(Token![unsafe])
+                    || token::parsing::peek_keyword(ahead.cursor(), "safe"))
+                    && ahead.peek2(Token![static]))
+            {
                 let vis = input.parse()?;
+                let unsafety: Option<Token![unsafe]> = input.parse()?;
+                let safe =
+                    unsafety.is_none() && token::parsing::peek_keyword(input.cursor(), "safe");
+                if safe {
+                    token::parsing::keyword(input, "safe")?;
+                }
                 let static_token = input.parse()?;
                 let mutability = input.parse()?;
                 let ident = input.parse()?;
                 let colon_token = input.parse()?;
                 let ty = input.parse()?;
-                if input.peek(Token![=]) {
+                let has_value = input.peek(Token![=]);
+                if has_value {
                     input.parse::<Token![=]>()?;
                     input.parse::<Expr>()?;
-                    input.parse::<Token![;]>()?;
+                }
+                let semi_token: Token![;] = input.parse()?;
+                if unsafety.is_some() || safe || has_value {
                     Ok(ForeignItem::Verbatim(verbatim::between(&begin, input)))
                 } else {
                     Ok(ForeignItem::Static(ForeignItemStatic {
@@ -1858,7 +1907,7 @@ pub(crate) mod parsing {
                         ident,
                         colon_token,
                         ty,
-                        semi_token: input.parse()?,
+                        semi_token,
                     }))
                 }
             } else if lookahead.peek(Token![type]) {
@@ -2182,7 +2231,11 @@ pub(crate) mod parsing {
                 if input.peek(Token![where]) || input.peek(token::Brace) {
                     break;
                 }
-                supertraits.push_value(input.parse()?);
+                supertraits.push_value({
+                    let allow_precise_capture = false;
+                    let allow_tilde_const = true;
+                    TypeParamBound::parse_single(input, allow_precise_capture, allow_tilde_const)?
+                });
                 if input.peek(Token![where]) || input.peek(token::Brace) {
                     break;
                 }
@@ -2250,7 +2303,11 @@ pub(crate) mod parsing {
             if input.peek(Token![where]) || input.peek(Token![;]) {
                 break;
             }
-            bounds.push_value(input.parse()?);
+            bounds.push_value({
+                let allow_precise_capture = false;
+                let allow_tilde_const = false;
+                TypeParamBound::parse_single(input, allow_precise_capture, allow_tilde_const)?
+            });
             if input.peek(Token![where]) || input.peek(Token![;]) {
                 break;
             }
@@ -2282,7 +2339,8 @@ pub(crate) mod parsing {
             let ahead = input.fork();
 
             let lookahead = ahead.lookahead1();
-            let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead) {
+            let allow_safe = false;
+            let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead, allow_safe) {
                 input.parse().map(TraitItem::Fn)
             } else if lookahead.peek(Token![const]) {
                 let const_token: Token![const] = ahead.parse()?;
@@ -2627,7 +2685,8 @@ pub(crate) mod parsing {
                 None
             };
 
-            let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead) {
+            let allow_safe = false;
+            let mut item = if lookahead.peek(Token![fn]) || peek_signature(&ahead, allow_safe) {
                 let allow_omitted_body = true;
                 if let Some(item) = parse_impl_item_fn(input, allow_omitted_body)? {
                     Ok(ImplItem::Fn(item))
@@ -2894,6 +2953,8 @@ mod printing {
         UsePath, UseRename, Variadic,
     };
     use crate::mac::MacroDelimiter;
+    use crate::path;
+    use crate::path::printing::PathStyle;
     use crate::print::TokensOrDefault;
     use crate::ty::Type;
     use proc_macro2::TokenStream;
@@ -3135,7 +3196,7 @@ mod printing {
     impl ToTokens for ItemMacro {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             tokens.append_all(self.attrs.outer());
-            self.mac.path.to_tokens(tokens);
+            path::printing::print_path(tokens, &self.mac.path, PathStyle::Mod);
             self.mac.bang_token.to_tokens(tokens);
             self.ident.to_tokens(tokens);
             match &self.mac.delimiter {

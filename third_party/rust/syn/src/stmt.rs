@@ -367,6 +367,7 @@ pub(crate) mod parsing {
                 | Expr::Paren(_)
                 | Expr::Path(_)
                 | Expr::Range(_)
+                | Expr::RawAddr(_)
                 | Expr::Reference(_)
                 | Expr::Repeat(_)
                 | Expr::Return(_)

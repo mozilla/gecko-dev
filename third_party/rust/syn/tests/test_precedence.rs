@@ -25,6 +25,7 @@
     clippy::manual_let_else,
     clippy::match_like_matches_macro,
     clippy::match_wildcard_for_single_variants,
+    clippy::needless_lifetimes,
     clippy::too_many_lines,
     clippy::uninlined_format_args
 )]
@@ -57,9 +58,9 @@ mod repo;
 
 #[test]
 fn test_rustc_precedence() {
-    common::rayon_init();
+    repo::rayon_init();
     repo::clone_rust();
-    let abort_after = common::abort_after();
+    let abort_after = repo::abort_after();
     if abort_after == 0 {
         panic!("skipping all precedence tests");
     }
@@ -97,8 +98,8 @@ fn test_rustc_precedence() {
         }
     });
 
-    let passed = passed.load(Ordering::Relaxed);
-    let failed = failed.load(Ordering::Relaxed);
+    let passed = passed.into_inner();
+    let failed = failed.into_inner();
 
     errorf!("\n===== Precedence Test Results =====\n");
     errorf!("{} passed | {} failed\n", passed, failed);
@@ -185,11 +186,12 @@ fn librustc_parse_and_rewrite(input: &str) -> Option<P<ast::Expr>> {
 
 fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
     use rustc_ast::ast::{
-        AssocItem, AssocItemKind, Attribute, BinOpKind, Block, BorrowKind, BoundConstness, Expr,
-        ExprField, ExprKind, GenericArg, GenericBound, Local, LocalKind, Pat, Stmt, StmtKind,
+        AssocItem, AssocItemKind, Attribute, BinOpKind, Block, BoundConstness, Expr, ExprField,
+        ExprKind, GenericArg, GenericBound, Local, LocalKind, Pat, PolyTraitRef, Stmt, StmtKind,
         StructExpr, StructRest, TraitBoundModifiers, Ty,
     };
-    use rustc_ast::mut_visit::{noop_flat_map_item, MutVisitor};
+    use rustc_ast::mut_visit::{walk_flat_map_item, MutVisitor};
+    use rustc_ast::visit::{AssocCtxt, BoundKind};
     use rustc_data_structures::flat_map_in_place::FlatMapInPlace;
     use rustc_span::DUMMY_SP;
     use smallvec::SmallVec;
@@ -238,7 +240,7 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
 
     fn noop_visit_expr<T: MutVisitor>(e: &mut Expr, vis: &mut T) {
         match &mut e.kind {
-            ExprKind::AddrOf(BorrowKind::Raw, ..) => {}
+            ExprKind::Become(..) => {}
             ExprKind::Struct(expr) => {
                 let StructExpr {
                     qself,
@@ -253,7 +255,7 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
                     vis.visit_expr(rest);
                 }
             }
-            _ => rustc_ast::mut_visit::noop_visit_expr(e, vis),
+            _ => rustc_ast::mut_visit::walk_expr(vis, e),
         }
     }
 
@@ -292,18 +294,19 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
             }
         }
 
-        fn visit_param_bound(&mut self, bound: &mut GenericBound) {
+        fn visit_param_bound(&mut self, bound: &mut GenericBound, _ctxt: BoundKind) {
             match bound {
-                GenericBound::Trait(
-                    _,
-                    TraitBoundModifiers {
-                        constness: BoundConstness::Maybe(_),
-                        ..
-                    },
-                )
+                GenericBound::Trait(PolyTraitRef {
+                    modifiers:
+                        TraitBoundModifiers {
+                            constness: BoundConstness::Maybe(_),
+                            ..
+                        },
+                    ..
+                })
                 | GenericBound::Outlives(..)
                 | GenericBound::Use(..) => {}
-                GenericBound::Trait(ty, _modifier) => self.visit_poly_trait_ref(ty),
+                GenericBound::Trait(ty) => self.visit_poly_trait_ref(ty),
             }
         }
 
@@ -328,7 +331,11 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
             }
         }
 
-        fn flat_map_trait_item(&mut self, item: P<AssocItem>) -> SmallVec<[P<AssocItem>; 1]> {
+        fn flat_map_assoc_item(
+            &mut self,
+            item: P<AssocItem>,
+            _ctxt: AssocCtxt,
+        ) -> SmallVec<[P<AssocItem>; 1]> {
             match &item.kind {
                 AssocItemKind::Const(const_item)
                     if !const_item.generics.params.is_empty()
@@ -336,19 +343,7 @@ fn librustc_parenthesize(mut librustc_expr: P<ast::Expr>) -> P<ast::Expr> {
                 {
                     SmallVec::from([item])
                 }
-                _ => noop_flat_map_item(item, self),
-            }
-        }
-
-        fn flat_map_impl_item(&mut self, item: P<AssocItem>) -> SmallVec<[P<AssocItem>; 1]> {
-            match &item.kind {
-                AssocItemKind::Const(const_item)
-                    if !const_item.generics.params.is_empty()
-                        || !const_item.generics.where_clause.predicates.is_empty() =>
-                {
-                    SmallVec::from([item])
-                }
-                _ => noop_flat_map_item(item, self),
+                _ => walk_flat_map_item(self, item),
             }
         }
 
@@ -478,7 +473,8 @@ fn make_parens_invisible(expr: syn::Expr) -> syn::Expr {
         }
 
         fn fold_stmt(&mut self, stmt: Stmt) -> Stmt {
-            if let Stmt::Expr(expr @ (Expr::Binary(_) | Expr::Cast(_)), None) = stmt {
+            if let Stmt::Expr(expr @ (Expr::Binary(_) | Expr::Call(_) | Expr::Cast(_)), None) = stmt
+            {
                 Stmt::Expr(
                     Expr::Paren(ExprParen {
                         attrs: Vec::new(),

@@ -1,4 +1,8 @@
-#![allow(clippy::single_element_loop, clippy::uninlined_format_args)]
+#![allow(
+    clippy::needless_lifetimes,
+    clippy::single_element_loop,
+    clippy::uninlined_format_args
+)]
 
 #[macro_use]
 mod macros;
@@ -13,24 +17,24 @@ use syn::{parse_quote, token, Expr, ExprRange, ExprTuple, Stmt, Token};
 #[test]
 fn test_expr_parse() {
     let tokens = quote!(..100u32);
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Range {
         limits: RangeLimits::HalfOpen,
         end: Some(Expr::Lit {
             lit: 100u32,
         }),
     }
-    "###);
+    "#);
 
     let tokens = quote!(..100u32);
-    snapshot!(tokens as ExprRange, @r###"
+    snapshot!(tokens as ExprRange, @r#"
     ExprRange {
         limits: RangeLimits::HalfOpen,
         end: Some(Expr::Lit {
             lit: 100u32,
         }),
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -38,7 +42,7 @@ fn test_await() {
     // Must not parse as Expr::Field.
     let tokens = quote!(fut.await);
 
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Await {
         base: Expr::Path {
             path: Path {
@@ -50,13 +54,13 @@ fn test_await() {
             },
         },
     }
-    "###);
+    "#);
 }
 
 #[rustfmt::skip]
 #[test]
 fn test_tuple_multi_index() {
-    let expected = snapshot!("tuple.0.0" as Expr, @r###"
+    let expected = snapshot!("tuple.0.0" as Expr, @r#"
     Expr::Field {
         base: Expr::Field {
             base: Expr::Path {
@@ -76,7 +80,7 @@ fn test_tuple_multi_index() {
             index: 0,
         }),
     }
-    "###);
+    "#);
 
     for &input in &[
         "tuple .0.0",
@@ -106,7 +110,7 @@ fn test_macro_variable_func() {
     let path = Group::new(Delimiter::None, quote!(f));
     let tokens = quote!(#path());
 
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Call {
         func: Expr::Group {
             expr: Expr::Path {
@@ -120,12 +124,12 @@ fn test_macro_variable_func() {
             },
         },
     }
-    "###);
+    "#);
 
     let path = Group::new(Delimiter::None, quote! { #[inside] f });
     let tokens = quote!(#[outside] #path());
 
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Call {
         attrs: [
             Attribute {
@@ -163,7 +167,7 @@ fn test_macro_variable_func() {
             },
         },
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -172,7 +176,7 @@ fn test_macro_variable_macro() {
     let mac = Group::new(Delimiter::None, quote!(m));
     let tokens = quote!(#mac!());
 
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Macro {
         mac: Macro {
             path: Path {
@@ -186,7 +190,7 @@ fn test_macro_variable_macro() {
             tokens: TokenStream(``),
         },
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -195,7 +199,7 @@ fn test_macro_variable_struct() {
     let s = Group::new(Delimiter::None, quote! { S });
     let tokens = quote!(#s {});
 
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Struct {
         path: Path {
             segments: [
@@ -205,7 +209,7 @@ fn test_macro_variable_struct() {
             ],
         },
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -213,7 +217,7 @@ fn test_macro_variable_unary() {
     // mimics the token stream corresponding to `$expr.method()` where expr is `&self`
     let inner = Group::new(Delimiter::None, quote!(&self));
     let tokens = quote!(#inner.method());
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::MethodCall {
         receiver: Expr::Group {
             expr: Expr::Reference {
@@ -230,7 +234,7 @@ fn test_macro_variable_unary() {
         },
         method: "method",
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -238,7 +242,7 @@ fn test_macro_variable_match_arm() {
     // mimics the token stream corresponding to `match v { _ => $expr }`
     let expr = Group::new(Delimiter::None, quote! { #[a] () });
     let tokens = quote!(match v { _ => #expr });
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Match {
         expr: Expr::Path {
             path: Path {
@@ -271,11 +275,11 @@ fn test_macro_variable_match_arm() {
             },
         ],
     }
-    "###);
+    "#);
 
     let expr = Group::new(Delimiter::None, quote!(loop {} + 1));
     let tokens = quote!(match v { _ => #expr });
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Match {
         expr: Expr::Path {
             path: Path {
@@ -305,7 +309,7 @@ fn test_macro_variable_match_arm() {
             },
         ],
     }
-    "###);
+    "#);
 }
 
 // https://github.com/dtolnay/syn/issues/1019
@@ -313,7 +317,7 @@ fn test_macro_variable_match_arm() {
 fn test_closure_vs_rangefull() {
     #[rustfmt::skip] // rustfmt bug: https://github.com/rust-lang/rustfmt/issues/4808
     let tokens = quote!(|| .. .method());
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::MethodCall {
         receiver: Expr::Closure {
             output: ReturnType::Default,
@@ -323,7 +327,7 @@ fn test_closure_vs_rangefull() {
         },
         method: "method",
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -352,16 +356,16 @@ fn test_range_kinds() {
 
 #[test]
 fn test_range_precedence() {
-    snapshot!(".. .." as Expr, @r###"
+    snapshot!(".. .." as Expr, @r#"
     Expr::Range {
         limits: RangeLimits::HalfOpen,
         end: Some(Expr::Range {
             limits: RangeLimits::HalfOpen,
         }),
     }
-    "###);
+    "#);
 
-    snapshot!(".. .. ()" as Expr, @r###"
+    snapshot!(".. .. ()" as Expr, @r#"
     Expr::Range {
         limits: RangeLimits::HalfOpen,
         end: Some(Expr::Range {
@@ -369,9 +373,9 @@ fn test_range_precedence() {
             end: Some(Expr::Tuple),
         }),
     }
-    "###);
+    "#);
 
-    snapshot!("() .. .." as Expr, @r###"
+    snapshot!("() .. .." as Expr, @r#"
     Expr::Range {
         start: Some(Expr::Tuple),
         limits: RangeLimits::HalfOpen,
@@ -379,7 +383,7 @@ fn test_range_precedence() {
             limits: RangeLimits::HalfOpen,
         }),
     }
-    "###);
+    "#);
 
     // A range with a lower bound cannot be the upper bound of another range,
     // and a range with an upper bound cannot be the lower bound of another
@@ -422,7 +426,7 @@ fn test_extended_interpolated_path() {
     let path = Group::new(Delimiter::None, quote!(a::b));
 
     let tokens = quote!(if #path {});
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::If {
         cond: Expr::Group {
             expr: Expr::Path {
@@ -443,10 +447,10 @@ fn test_extended_interpolated_path() {
             stmts: [],
         },
     }
-    "###);
+    "#);
 
     let tokens = quote!(#path {});
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Struct {
         path: Path {
             segments: [
@@ -460,10 +464,10 @@ fn test_extended_interpolated_path() {
             ],
         },
     }
-    "###);
+    "#);
 
     let tokens = quote!(#path :: c);
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::Path {
         path: Path {
             segments: [
@@ -481,11 +485,11 @@ fn test_extended_interpolated_path() {
             ],
         },
     }
-    "###);
+    "#);
 
     let nested = Group::new(Delimiter::None, quote!(a::b || true));
     let tokens = quote!(if #nested && false {});
-    snapshot!(tokens as Expr, @r###"
+    snapshot!(tokens as Expr, @r#"
     Expr::If {
         cond: Expr::Binary {
             left: Expr::Group {
@@ -522,7 +526,7 @@ fn test_extended_interpolated_path() {
             stmts: [],
         },
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -536,27 +540,27 @@ fn test_tuple_comma() {
 
     expr.elems.push_value(parse_quote!(continue));
     // Must not parse to Expr::Paren
-    snapshot!(expr.to_token_stream() as Expr, @r###"
+    snapshot!(expr.to_token_stream() as Expr, @r#"
     Expr::Tuple {
         elems: [
             Expr::Continue,
             Token![,],
         ],
     }
-    "###);
+    "#);
 
     expr.elems.push_punct(<Token![,]>::default());
-    snapshot!(expr.to_token_stream() as Expr, @r###"
+    snapshot!(expr.to_token_stream() as Expr, @r#"
     Expr::Tuple {
         elems: [
             Expr::Continue,
             Token![,],
         ],
     }
-    "###);
+    "#);
 
     expr.elems.push_value(parse_quote!(continue));
-    snapshot!(expr.to_token_stream() as Expr, @r###"
+    snapshot!(expr.to_token_stream() as Expr, @r#"
     Expr::Tuple {
         elems: [
             Expr::Continue,
@@ -564,10 +568,10 @@ fn test_tuple_comma() {
             Expr::Continue,
         ],
     }
-    "###);
+    "#);
 
     expr.elems.push_punct(<Token![,]>::default());
-    snapshot!(expr.to_token_stream() as Expr, @r###"
+    snapshot!(expr.to_token_stream() as Expr, @r#"
     Expr::Tuple {
         elems: [
             Expr::Continue,
@@ -576,13 +580,13 @@ fn test_tuple_comma() {
             Token![,],
         ],
     }
-    "###);
+    "#);
 }
 
 #[test]
 fn test_binop_associativity() {
     // Left to right.
-    snapshot!("() + () + ()" as Expr, @r###"
+    snapshot!("() + () + ()" as Expr, @r#"
     Expr::Binary {
         left: Expr::Binary {
             left: Expr::Tuple,
@@ -592,10 +596,10 @@ fn test_binop_associativity() {
         op: BinOp::Add,
         right: Expr::Tuple,
     }
-    "###);
+    "#);
 
     // Right to left.
-    snapshot!("() += () += ()" as Expr, @r###"
+    snapshot!("() += () += ()" as Expr, @r#"
     Expr::Binary {
         left: Expr::Tuple,
         op: BinOp::AddAssign,
@@ -605,7 +609,7 @@ fn test_binop_associativity() {
             right: Expr::Tuple,
         },
     }
-    "###);
+    "#);
 
     // Parenthesization is required.
     syn::parse_str::<Expr>("() == () == ()").unwrap_err();
@@ -615,7 +619,7 @@ fn test_binop_associativity() {
 fn test_assign_range_precedence() {
     // Range has higher precedence as the right-hand of an assignment, but
     // ambiguous precedence as the left-hand of an assignment.
-    snapshot!("() = () .. ()" as Expr, @r###"
+    snapshot!("() = () .. ()" as Expr, @r#"
     Expr::Assign {
         left: Expr::Tuple,
         right: Expr::Range {
@@ -624,9 +628,9 @@ fn test_assign_range_precedence() {
             end: Some(Expr::Tuple),
         },
     }
-    "###);
+    "#);
 
-    snapshot!("() += () .. ()" as Expr, @r###"
+    snapshot!("() += () .. ()" as Expr, @r#"
     Expr::Binary {
         left: Expr::Tuple,
         op: BinOp::AddAssign,
@@ -636,10 +640,27 @@ fn test_assign_range_precedence() {
             end: Some(Expr::Tuple),
         },
     }
-    "###);
+    "#);
 
     syn::parse_str::<Expr>("() .. () = ()").unwrap_err();
     syn::parse_str::<Expr>("() .. () += ()").unwrap_err();
+}
+
+#[test]
+fn test_chained_comparison() {
+    // https://github.com/dtolnay/syn/issues/1738
+    let _ = syn::parse_str::<Expr>("a = a < a <");
+    let _ = syn::parse_str::<Expr>("a = a .. a ..");
+    let _ = syn::parse_str::<Expr>("a = a .. a +=");
+
+    let err = syn::parse_str::<Expr>("a < a < a").unwrap_err();
+    assert_eq!("comparison operators cannot be chained", err.to_string());
+
+    let err = syn::parse_str::<Expr>("a .. a .. a").unwrap_err();
+    assert_eq!("unexpected token", err.to_string());
+
+    let err = syn::parse_str::<Expr>("a .. a += a").unwrap_err();
+    assert_eq!("unexpected token", err.to_string());
 }
 
 #[test]
@@ -660,7 +681,7 @@ fn test_fixup() {
         quote! { 0 + (0 + 0) },
         quote! { (a = b) = c },
         quote! { (x as i32) < 0 },
-        quote! { (1 + x as i32) < 0 },
+        quote! { 1 + (x as i32) < 0 },
         quote! { (1 + 1).abs() },
         quote! { (lo..hi)[..] },
         quote! { (a..b)..(c..d) },
@@ -672,6 +693,15 @@ fn test_fixup() {
         quote! { match m { _ => ({}) - 1 } },
         quote! { if let _ = (a && b) && c {} },
         quote! { if let _ = (S {}) {} },
+        quote! { break ('a: loop { break 'a 1 } + 1) },
+        quote! { a + (|| b) + c },
+        quote! { if let _ = ((break) - 1 || true) {} },
+        quote! { if let _ = (break + 1 || true) {} },
+        quote! { (break)() },
+        quote! { (..) = () },
+        quote! { (..) += () },
+        quote! { (1 < 2) == (3 < 4) },
+        quote! { { (let _ = ()) } },
     ] {
         let original: Expr = syn::parse2(tokens).unwrap();
 

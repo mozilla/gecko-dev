@@ -606,8 +606,8 @@ user-login = "mbrubeck"
 user-name = "Matt Brubeck"
 
 [[publisher.syn]]
-version = "2.0.68"
-when = "2024-06-23"
+version = "2.0.86"
+when = "2024-10-31"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"

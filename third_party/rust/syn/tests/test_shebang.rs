@@ -1,4 +1,4 @@
-#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::needless_lifetimes, clippy::uninlined_format_args)]
 
 #[macro_use]
 mod macros;
@@ -7,7 +7,7 @@ mod macros;
 fn test_basic() {
     let content = "#!/usr/bin/env rustx\nfn main() {}";
     let file = syn::parse_file(content).unwrap();
-    snapshot!(file, @r###"
+    snapshot!(file, @r##"
     File {
         shebang: Some("#!/usr/bin/env rustx"),
         items: [
@@ -24,14 +24,14 @@ fn test_basic() {
             },
         ],
     }
-    "###);
+    "##);
 }
 
 #[test]
 fn test_comment() {
     let content = "#!//am/i/a/comment\n[allow(dead_code)] fn main() {}";
     let file = syn::parse_file(content).unwrap();
-    snapshot!(file, @r###"
+    snapshot!(file, @r#"
     File {
         attrs: [
             Attribute {
@@ -63,5 +63,5 @@ fn test_comment() {
             },
         ],
     }
-    "###);
+    "#);
 }

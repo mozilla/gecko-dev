@@ -290,6 +290,25 @@ impl Debug for crate::BoundLifetimes {
         formatter.finish()
     }
 }
+#[cfg(feature = "full")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Debug for crate::CapturedParam {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("CapturedParam::")?;
+        match self {
+            crate::CapturedParam::Lifetime(v0) => {
+                let mut formatter = formatter.debug_tuple("Lifetime");
+                formatter.field(v0);
+                formatter.finish()
+            }
+            crate::CapturedParam::Ident(v0) => {
+                let mut formatter = formatter.debug_tuple("Ident");
+                formatter.field(v0);
+                formatter.finish()
+            }
+        }
+    }
+}
 #[cfg(any(feature = "derive", feature = "full"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl Debug for crate::ConstParam {
@@ -441,6 +460,8 @@ impl Debug for crate::Expr {
             crate::Expr::Path(v0) => v0.debug(formatter, "Path"),
             #[cfg(feature = "full")]
             crate::Expr::Range(v0) => v0.debug(formatter, "Range"),
+            #[cfg(feature = "full")]
+            crate::Expr::RawAddr(v0) => v0.debug(formatter, "RawAddr"),
             crate::Expr::Reference(v0) => v0.debug(formatter, "Reference"),
             #[cfg(feature = "full")]
             crate::Expr::Repeat(v0) => v0.debug(formatter, "Repeat"),
@@ -451,7 +472,6 @@ impl Debug for crate::Expr {
             crate::Expr::Try(v0) => v0.debug(formatter, "Try"),
             #[cfg(feature = "full")]
             crate::Expr::TryBlock(v0) => v0.debug(formatter, "TryBlock"),
-            #[cfg(feature = "full")]
             crate::Expr::Tuple(v0) => v0.debug(formatter, "Tuple"),
             crate::Expr::Unary(v0) => v0.debug(formatter, "Unary"),
             #[cfg(feature = "full")]
@@ -959,6 +979,25 @@ impl crate::ExprRange {
         formatter.finish()
     }
 }
+#[cfg(feature = "full")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Debug for crate::ExprRawAddr {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.debug(formatter, "ExprRawAddr")
+    }
+}
+#[cfg(feature = "full")]
+impl crate::ExprRawAddr {
+    fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
+        let mut formatter = formatter.debug_struct(name);
+        formatter.field("attrs", &self.attrs);
+        formatter.field("and_token", &self.and_token);
+        formatter.field("raw", &self.raw);
+        formatter.field("mutability", &self.mutability);
+        formatter.field("expr", &self.expr);
+        formatter.finish()
+    }
+}
 #[cfg(any(feature = "derive", feature = "full"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl Debug for crate::ExprReference {
@@ -1068,14 +1107,14 @@ impl crate::ExprTryBlock {
         formatter.finish()
     }
 }
-#[cfg(feature = "full")]
+#[cfg(any(feature = "derive", feature = "full"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl Debug for crate::ExprTuple {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         self.debug(formatter, "ExprTuple")
     }
 }
-#[cfg(feature = "full")]
+#[cfg(any(feature = "derive", feature = "full"))]
 impl crate::ExprTuple {
     fn debug(&self, formatter: &mut fmt::Formatter, name: &str) -> fmt::Result {
         let mut formatter = formatter.debug_struct(name);
@@ -2386,6 +2425,37 @@ impl Debug for crate::PathSegment {
         formatter.finish()
     }
 }
+#[cfg(feature = "full")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Debug for crate::PointerMutability {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("PointerMutability::")?;
+        match self {
+            crate::PointerMutability::Const(v0) => {
+                let mut formatter = formatter.debug_tuple("Const");
+                formatter.field(v0);
+                formatter.finish()
+            }
+            crate::PointerMutability::Mut(v0) => {
+                let mut formatter = formatter.debug_tuple("Mut");
+                formatter.field(v0);
+                formatter.finish()
+            }
+        }
+    }
+}
+#[cfg(feature = "full")]
+#[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
+impl Debug for crate::PreciseCapture {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let mut formatter = formatter.debug_struct("PreciseCapture");
+        formatter.field("use_token", &self.use_token);
+        formatter.field("lt_token", &self.lt_token);
+        formatter.field("params", &self.params);
+        formatter.field("gt_token", &self.gt_token);
+        formatter.finish()
+    }
+}
 #[cfg(any(feature = "derive", feature = "full"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "extra-traits")))]
 impl Debug for crate::PredicateLifetime {
@@ -2839,11 +2909,19 @@ impl Debug for crate::TypeParamBound {
                 formatter.finish()
             }
             crate::TypeParamBound::Lifetime(v0) => v0.debug(formatter, "Lifetime"),
+            #[cfg(feature = "full")]
+            crate::TypeParamBound::PreciseCapture(v0) => {
+                let mut formatter = formatter.debug_tuple("PreciseCapture");
+                formatter.field(v0);
+                formatter.finish()
+            }
             crate::TypeParamBound::Verbatim(v0) => {
                 let mut formatter = formatter.debug_tuple("Verbatim");
                 formatter.field(v0);
                 formatter.finish()
             }
+            #[cfg(not(feature = "full"))]
+            _ => unreachable!(),
         }
     }
 }

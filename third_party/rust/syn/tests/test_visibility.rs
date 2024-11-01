@@ -1,4 +1,4 @@
-#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::needless_lifetimes, clippy::uninlined_format_args)]
 
 #[macro_use]
 mod macros;
@@ -117,7 +117,7 @@ fn test_inherited_vis_named_field() {
         )),
     ]);
 
-    snapshot!(tokens as DeriveInput, @r###"
+    snapshot!(tokens as DeriveInput, @r#"
     DeriveInput {
         vis: Visibility::Inherited,
         ident: "S",
@@ -135,7 +135,7 @@ fn test_inherited_vis_named_field() {
             },
         },
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -154,7 +154,7 @@ fn test_inherited_vis_unnamed_field() {
         TokenTree::Punct(Punct::new(';', Spacing::Alone)),
     ]);
 
-    snapshot!(tokens as DeriveInput, @r###"
+    snapshot!(tokens as DeriveInput, @r#"
     DeriveInput {
         vis: Visibility::Inherited,
         ident: "S",
@@ -181,5 +181,5 @@ fn test_inherited_vis_unnamed_field() {
             semi_token: Some,
         },
     }
-    "###);
+    "#);
 }

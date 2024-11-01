@@ -11,6 +11,7 @@
     clippy::let_underscore_untyped,
     clippy::manual_let_else,
     clippy::match_like_matches_macro,
+    clippy::needless_lifetimes,
     clippy::uninlined_format_args,
     clippy::unnecessary_wraps
 )]
@@ -70,13 +71,13 @@ mod librustc_parse {
 
         impl Emitter for SilentEmitter {
             fn emit_diagnostic(&mut self, _diag: DiagInner) {}
-            fn source_map(&self) -> Option<&Lrc<SourceMap>> {
+            fn source_map(&self) -> Option<&SourceMap> {
                 None
             }
         }
 
         impl Translate for SilentEmitter {
-            fn fluent_bundle(&self) -> Option<&Lrc<FluentBundle>> {
+            fn fluent_bundle(&self) -> Option<&FluentBundle> {
                 None
             }
             fn fallback_fluent_bundle(&self) -> &FluentBundle {

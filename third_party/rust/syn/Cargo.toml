@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.61"
 name = "syn"
-version = "2.0.68"
+version = "2.0.86"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 build = false
 include = [
@@ -25,6 +25,7 @@ include = [
     "/src/**",
     "/tests/**",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -45,7 +46,10 @@ repository = "https://github.com/dtolnay/syn"
 
 [package.metadata.docs.rs]
 all-features = true
-rustdoc-args = ["--generate-link-to-definition"]
+rustdoc-args = [
+    "--generate-link-to-definition",
+    "--extend-css=src/gen/token.css",
+]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [package.metadata.playground]
@@ -161,6 +165,10 @@ path = "tests/test_token_trees.rs"
 [[test]]
 name = "test_ty"
 path = "tests/test_ty.rs"
+
+[[test]]
+name = "test_unparenthesize"
+path = "tests/test_unparenthesize.rs"
 
 [[test]]
 name = "test_visibility"

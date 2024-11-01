@@ -448,7 +448,7 @@ ast_enum! {
     }
 }
 
-ast_enum_of_structs! {
+ast_enum! {
     /// Content of a compile-time structured attribute.
     ///
     /// ## Path
@@ -625,6 +625,24 @@ impl<'a> FilterAttrs<'a> for &'a [Attribute] {
     }
 }
 
+impl From<Path> for Meta {
+    fn from(meta: Path) -> Meta {
+        Meta::Path(meta)
+    }
+}
+
+impl From<MetaList> for Meta {
+    fn from(meta: MetaList) -> Meta {
+        Meta::List(meta)
+    }
+}
+
+impl From<MetaNameValue> for Meta {
+    fn from(meta: MetaNameValue) -> Meta {
+        Meta::NameValue(meta)
+    }
+}
+
 #[cfg(feature = "parsing")]
 pub(crate) mod parsing {
     use crate::attr::{AttrStyle, Attribute, Meta, MetaList, MetaNameValue};
@@ -635,6 +653,7 @@ pub(crate) mod parsing {
     use crate::parse::{Parse, ParseStream};
     use crate::path::Path;
     use crate::{mac, token};
+    use proc_macro2::Ident;
     use std::fmt::{self, Display};
 
     pub(crate) fn parse_inner(input: ParseStream, attrs: &mut Vec<Attribute>) -> Result<()> {
@@ -667,7 +686,7 @@ pub(crate) mod parsing {
     #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for Meta {
         fn parse(input: ParseStream) -> Result<Self> {
-            let path = input.call(Path::parse_mod_style)?;
+            let path = parse_outermost_meta_path(input)?;
             parse_meta_after_path(path, input)
         }
     }
@@ -675,7 +694,7 @@ pub(crate) mod parsing {
     #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for MetaList {
         fn parse(input: ParseStream) -> Result<Self> {
-            let path = input.call(Path::parse_mod_style)?;
+            let path = parse_outermost_meta_path(input)?;
             parse_meta_list_after_path(path, input)
         }
     }
@@ -683,8 +702,19 @@ pub(crate) mod parsing {
     #[cfg_attr(docsrs, doc(cfg(feature = "parsing")))]
     impl Parse for MetaNameValue {
         fn parse(input: ParseStream) -> Result<Self> {
-            let path = input.call(Path::parse_mod_style)?;
+            let path = parse_outermost_meta_path(input)?;
             parse_meta_name_value_after_path(path, input)
+        }
+    }
+
+    // Unlike meta::parse_meta_path which accepts arbitrary keywords in the path,
+    // only the `unsafe` keyword is accepted as an attribute's outermost path.
+    fn parse_outermost_meta_path(input: ParseStream) -> Result<Path> {
+        if input.peek(Token![unsafe]) {
+            let unsafe_token: Token![unsafe] = input.parse()?;
+            Ok(Path::from(Ident::new("unsafe", unsafe_token.span)))
+        } else {
+            Path::parse_mod_style(input)
         }
     }
 
@@ -757,7 +787,9 @@ pub(crate) mod parsing {
 
 #[cfg(feature = "printing")]
 mod printing {
-    use crate::attr::{AttrStyle, Attribute, MetaList, MetaNameValue};
+    use crate::attr::{AttrStyle, Attribute, Meta, MetaList, MetaNameValue};
+    use crate::path;
+    use crate::path::printing::PathStyle;
     use proc_macro2::TokenStream;
     use quote::ToTokens;
 
@@ -775,9 +807,20 @@ mod printing {
     }
 
     #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
+    impl ToTokens for Meta {
+        fn to_tokens(&self, tokens: &mut TokenStream) {
+            match self {
+                Meta::Path(path) => path::printing::print_path(tokens, path, PathStyle::Mod),
+                Meta::List(meta_list) => meta_list.to_tokens(tokens),
+                Meta::NameValue(meta_name_value) => meta_name_value.to_tokens(tokens),
+            }
+        }
+    }
+
+    #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for MetaList {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            self.path.to_tokens(tokens);
+            path::printing::print_path(tokens, &self.path, PathStyle::Mod);
             self.delimiter.surround(tokens, self.tokens.clone());
         }
     }
@@ -785,7 +828,7 @@ mod printing {
     #[cfg_attr(docsrs, doc(cfg(feature = "printing")))]
     impl ToTokens for MetaNameValue {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            self.path.to_tokens(tokens);
+            path::printing::print_path(tokens, &self.path, PathStyle::Mod);
             self.eq_token.to_tokens(tokens);
             self.value.to_tokens(tokens);
         }

@@ -202,7 +202,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 
 pub use crate::error::{Error, Result};
-pub use crate::lookahead::{Lookahead1, Peek};
+pub use crate::lookahead::{End, Lookahead1, Peek};
 
 /// Parsing interface implemented by all types that can be parsed in a default
 /// way from a token stream.
@@ -263,10 +263,11 @@ pub struct ParseBuffer<'a> {
 
 impl<'a> Drop for ParseBuffer<'a> {
     fn drop(&mut self) {
-        if let Some(unexpected_span) = span_of_unexpected_ignoring_nones(self.cursor()) {
+        if let Some((unexpected_span, delimiter)) = span_of_unexpected_ignoring_nones(self.cursor())
+        {
             let (inner, old_span) = inner_unexpected(self);
             if old_span.is_none() {
-                inner.set(Unexpected::Some(unexpected_span));
+                inner.set(Unexpected::Some(unexpected_span, delimiter));
             }
         }
     }
@@ -397,7 +398,7 @@ pub(crate) fn new_parse_buffer(
 
 pub(crate) enum Unexpected {
     None,
-    Some(Span),
+    Some(Span, Delimiter),
     Chain(Rc<Cell<Unexpected>>),
 }
 
@@ -411,7 +412,7 @@ impl Clone for Unexpected {
     fn clone(&self) -> Self {
         match self {
             Unexpected::None => Unexpected::None,
-            Unexpected::Some(span) => Unexpected::Some(*span),
+            Unexpected::Some(span, delimiter) => Unexpected::Some(*span, *delimiter),
             Unexpected::Chain(next) => Unexpected::Chain(next.clone()),
         }
     }
@@ -426,12 +427,12 @@ fn cell_clone<T: Default + Clone>(cell: &Cell<T>) -> T {
     ret
 }
 
-fn inner_unexpected(buffer: &ParseBuffer) -> (Rc<Cell<Unexpected>>, Option<Span>) {
+fn inner_unexpected(buffer: &ParseBuffer) -> (Rc<Cell<Unexpected>>, Option<(Span, Delimiter)>) {
     let mut unexpected = get_unexpected(buffer);
     loop {
         match cell_clone(&unexpected) {
             Unexpected::None => return (unexpected, None),
-            Unexpected::Some(span) => return (unexpected, Some(span)),
+            Unexpected::Some(span, delimiter) => return (unexpected, Some((span, delimiter))),
             Unexpected::Chain(next) => unexpected = next,
         }
     }
@@ -441,7 +442,7 @@ pub(crate) fn get_unexpected(buffer: &ParseBuffer) -> Rc<Cell<Unexpected>> {
     cell_clone(&buffer.unexpected).unwrap()
 }
 
-fn span_of_unexpected_ignoring_nones(mut cursor: Cursor) -> Option<Span> {
+fn span_of_unexpected_ignoring_nones(mut cursor: Cursor) -> Option<(Span, Delimiter)> {
     if cursor.eof() {
         return None;
     }
@@ -454,7 +455,7 @@ fn span_of_unexpected_ignoring_nones(mut cursor: Cursor) -> Option<Span> {
     if cursor.eof() {
         None
     } else {
-        Some(cursor.span())
+        Some((cursor.span(), cursor.scope_delimiter()))
     }
 }
 
@@ -749,6 +750,11 @@ impl<'a> ParseBuffer<'a> {
     /// This method returns true upon reaching the end of the content within a
     /// set of delimiters, as well as at the end of the tokens provided to the
     /// outermost parsing entry point.
+    ///
+    /// This is equivalent to
+    /// <code>.<a href="#method.peek">peek</a>(<a href="struct.End.html">syn::parse::End</a>)</code>.
+    /// Use `.peek2(End)` or `.peek3(End)` to look for the end of a parse stream
+    /// further ahead than the current position.
     ///
     /// # Example
     ///
@@ -1150,7 +1156,7 @@ impl<'a> ParseBuffer<'a> {
 
     fn check_unexpected(&self) -> Result<()> {
         match inner_unexpected(self).1 {
-            Some(span) => Err(Error::new(span, "unexpected token")),
+            Some((span, delimiter)) => Err(err_unexpected_token(span, delimiter)),
             None => Ok(()),
         }
     }
@@ -1235,14 +1241,14 @@ pub trait Parser: Sized {
 
     /// Parse a proc-macro2 token stream into the chosen syntax tree node.
     ///
-    /// This function will check that the input is fully parsed. If there are
-    /// any unparsed tokens at the end of the stream, an error is returned.
+    /// This function enforces that the input is fully parsed. If there are any
+    /// unparsed tokens at the end of the stream, an error is returned.
     fn parse2(self, tokens: TokenStream) -> Result<Self::Output>;
 
     /// Parse tokens of source code into the chosen syntax tree node.
     ///
-    /// This function will check that the input is fully parsed. If there are
-    /// any unparsed tokens at the end of the stream, an error is returned.
+    /// This function enforces that the input is fully parsed. If there are any
+    /// unparsed tokens at the end of the stream, an error is returned.
     #[cfg(feature = "proc-macro")]
     #[cfg_attr(docsrs, doc(cfg(feature = "proc-macro")))]
     fn parse(self, tokens: proc_macro::TokenStream) -> Result<Self::Output> {
@@ -1251,8 +1257,8 @@ pub trait Parser: Sized {
 
     /// Parse a string of Rust code into the chosen syntax tree node.
     ///
-    /// This function will check that the input is fully parsed. If there are
-    /// any unparsed tokens at the end of the string, an error is returned.
+    /// This function enforces that the input is fully parsed. If there are any
+    /// unparsed tokens at the end of the string, an error is returned.
     ///
     /// # Hygiene
     ///
@@ -1288,8 +1294,10 @@ where
         let state = tokens_to_parse_buffer(&buf);
         let node = self(&state)?;
         state.check_unexpected()?;
-        if let Some(unexpected_span) = span_of_unexpected_ignoring_nones(state.cursor()) {
-            Err(Error::new(unexpected_span, "unexpected token"))
+        if let Some((unexpected_span, delimiter)) =
+            span_of_unexpected_ignoring_nones(state.cursor())
+        {
+            Err(err_unexpected_token(unexpected_span, delimiter))
         } else {
             Ok(node)
         }
@@ -1302,8 +1310,10 @@ where
         let state = new_parse_buffer(scope, cursor, unexpected);
         let node = self(&state)?;
         state.check_unexpected()?;
-        if let Some(unexpected_span) = span_of_unexpected_ignoring_nones(state.cursor()) {
-            Err(Error::new(unexpected_span, "unexpected token"))
+        if let Some((unexpected_span, delimiter)) =
+            span_of_unexpected_ignoring_nones(state.cursor())
+        {
+            Err(err_unexpected_token(unexpected_span, delimiter))
         } else {
             Ok(node)
         }
@@ -1312,6 +1322,16 @@ where
 
 pub(crate) fn parse_scoped<F: Parser>(f: F, scope: Span, tokens: TokenStream) -> Result<F::Output> {
     f.__parse_scoped(scope, tokens)
+}
+
+fn err_unexpected_token(span: Span, delimiter: Delimiter) -> Error {
+    let msg = match delimiter {
+        Delimiter::Parenthesis => "unexpected token, expected `)`",
+        Delimiter::Brace => "unexpected token, expected `}`",
+        Delimiter::Bracket => "unexpected token, expected `]`",
+        Delimiter::None => "unexpected token",
+    };
+    Error::new(span, msg)
 }
 
 /// An empty syntax tree node that consumes no tokens when parsed.

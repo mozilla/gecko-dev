@@ -314,6 +314,27 @@ impl Debug for Lite<syn::BoundLifetimes> {
         formatter.finish()
     }
 }
+impl Debug for Lite<syn::CapturedParam> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match &self.value {
+            syn::CapturedParam::Lifetime(_val) => {
+                formatter.write_str("CapturedParam::Lifetime")?;
+                formatter.write_str("(")?;
+                Debug::fmt(Lite(_val), formatter)?;
+                formatter.write_str(")")?;
+                Ok(())
+            }
+            syn::CapturedParam::Ident(_val) => {
+                formatter.write_str("CapturedParam::Ident")?;
+                formatter.write_str("(")?;
+                Debug::fmt(Lite(_val), formatter)?;
+                formatter.write_str(")")?;
+                Ok(())
+            }
+            _ => unreachable!(),
+        }
+    }
+}
 impl Debug for Lite<syn::ConstParam> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let mut formatter = formatter.debug_struct("ConstParam");
@@ -854,6 +875,15 @@ impl Debug for Lite<syn::Expr> {
                     }
                     formatter.field("end", Print::ref_cast(val));
                 }
+                formatter.finish()
+            }
+            syn::Expr::RawAddr(_val) => {
+                let mut formatter = formatter.debug_struct("Expr::RawAddr");
+                if !_val.attrs.is_empty() {
+                    formatter.field("attrs", Lite(&_val.attrs));
+                }
+                formatter.field("mutability", Lite(&_val.mutability));
+                formatter.field("expr", Lite(&_val.expr));
                 formatter.finish()
             }
             syn::Expr::Reference(_val) => {
@@ -1510,6 +1540,17 @@ impl Debug for Lite<syn::ExprRange> {
             }
             formatter.field("end", Print::ref_cast(val));
         }
+        formatter.finish()
+    }
+}
+impl Debug for Lite<syn::ExprRawAddr> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let mut formatter = formatter.debug_struct("ExprRawAddr");
+        if !self.value.attrs.is_empty() {
+            formatter.field("attrs", Lite(&self.value.attrs));
+        }
+        formatter.field("mutability", Lite(&self.value.mutability));
+        formatter.field("expr", Lite(&self.value.expr));
         formatter.finish()
     }
 }
@@ -3532,6 +3573,29 @@ impl Debug for Lite<syn::PathSegment> {
         formatter.finish()
     }
 }
+impl Debug for Lite<syn::PointerMutability> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match &self.value {
+            syn::PointerMutability::Const(_val) => {
+                formatter.write_str("PointerMutability::Const")?;
+                Ok(())
+            }
+            syn::PointerMutability::Mut(_val) => {
+                formatter.write_str("PointerMutability::Mut")?;
+                Ok(())
+            }
+        }
+    }
+}
+impl Debug for Lite<syn::PreciseCapture> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let mut formatter = formatter.debug_struct("PreciseCapture");
+        if !self.value.params.is_empty() {
+            formatter.field("params", Lite(&self.value.params));
+        }
+        formatter.finish()
+    }
+}
 impl Debug for Lite<syn::PredicateLifetime> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let mut formatter = formatter.debug_struct("PredicateLifetime");
@@ -4354,6 +4418,13 @@ impl Debug for Lite<syn::TypeParamBound> {
                 formatter.field("ident", Lite(&_val.ident));
                 formatter.finish()
             }
+            syn::TypeParamBound::PreciseCapture(_val) => {
+                formatter.write_str("TypeParamBound::PreciseCapture")?;
+                formatter.write_str("(")?;
+                Debug::fmt(Lite(_val), formatter)?;
+                formatter.write_str(")")?;
+                Ok(())
+            }
             syn::TypeParamBound::Verbatim(_val) => {
                 formatter.write_str("TypeParamBound::Verbatim")?;
                 formatter.write_str("(`")?;
@@ -5009,6 +5080,11 @@ impl Debug for Lite<syn::token::Question> {
 impl Debug for Lite<syn::token::RArrow> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("Token![->]")
+    }
+}
+impl Debug for Lite<syn::token::Raw> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("Token![raw]")
     }
 }
 impl Debug for Lite<syn::token::Ref> {
