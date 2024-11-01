@@ -501,6 +501,9 @@ ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
     case dom::GPUVertexFormat::Sint32x4:
       result = ffi::WGPUVertexFormat_Sint32x4;
       break;
+    case dom::GPUVertexFormat::Unorm10_10_10_2:
+      result = ffi::WGPUVertexFormat_Unorm10_10_10_2;
+      break;
   }
 
   // Clang will check for us that the switch above is exhaustive,
