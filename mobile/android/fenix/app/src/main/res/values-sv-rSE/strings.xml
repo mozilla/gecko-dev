@@ -13,6 +13,8 @@
     <string name="content_description_private_browsing_button">Aktivera privat surfning</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Inaktivera privat surfning</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Privat surfning</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Sök eller ange adress</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -229,6 +231,8 @@
     <string name="browser_menu_discover_more_extensions">Upptäck fler tillägg</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Tillfälligt inaktiverad</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Inga tillägg aktiverade</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Kontoinformation</string>
     <!-- Browser menu button that sends a user to help articles -->
