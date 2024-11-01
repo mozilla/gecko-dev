@@ -628,244 +628,505 @@ already_AddRefed<gfxASurface> gfxWindowsPlatform::CreateOffscreenSurface(
   return surf.forget();
 }
 
-static const char kFontAparajita[] = "Aparajita";
-static const char kFontArabicTypesetting[] = "Arabic Typesetting";
-static const char kFontArial[] = "Arial";
-static const char kFontArialUnicodeMS[] = "Arial Unicode MS";
-static const char kFontCambria[] = "Cambria";
-static const char kFontCambriaMath[] = "Cambria Math";
-static const char kFontEbrima[] = "Ebrima";
-static const char kFontEstrangeloEdessa[] = "Estrangelo Edessa";
-static const char kFontEuphemia[] = "Euphemia";
-static const char kFontGabriola[] = "Gabriola";
-static const char kFontJavaneseText[] = "Javanese Text";
-static const char kFontKhmerUI[] = "Khmer UI";
-static const char kFontLaoUI[] = "Lao UI";
-static const char kFontLeelawadeeUI[] = "Leelawadee UI";
-static const char kFontLucidaSansUnicode[] = "Lucida Sans Unicode";
-static const char kFontMVBoli[] = "MV Boli";
-static const char kFontMalgunGothic[] = "Malgun Gothic";
-static const char kFontMicrosoftJhengHei[] = "Microsoft JhengHei";
-static const char kFontMicrosoftNewTaiLue[] = "Microsoft New Tai Lue";
-static const char kFontMicrosoftPhagsPa[] = "Microsoft PhagsPa";
-static const char kFontMicrosoftTaiLe[] = "Microsoft Tai Le";
-static const char kFontMicrosoftUighur[] = "Microsoft Uighur";
-static const char kFontMicrosoftYaHei[] = "Microsoft YaHei";
-static const char kFontMicrosoftYiBaiti[] = "Microsoft Yi Baiti";
-static const char kFontMeiryo[] = "Meiryo";
-static const char kFontMongolianBaiti[] = "Mongolian Baiti";
-static const char kFontMyanmarText[] = "Myanmar Text";
-static const char kFontNirmalaUI[] = "Nirmala UI";
-static const char kFontNyala[] = "Nyala";
-static const char kFontPlantagenetCherokee[] = "Plantagenet Cherokee";
-static const char kFontSegoeUI[] = "Segoe UI";
-static const char kFontSegoeUIEmoji[] = "Segoe UI Emoji";
-static const char kFontSegoeUISymbol[] = "Segoe UI Symbol";
-static const char kFontSylfaen[] = "Sylfaen";
-static const char kFontTraditionalArabic[] = "Traditional Arabic";
-static const char kFontTwemojiMozilla[] = "Twemoji Mozilla";
-static const char kFontUtsaah[] = "Utsaah";
-static const char kFontYuGothic[] = "Yu Gothic";
-
 void gfxWindowsPlatform::GetCommonFallbackFonts(
     uint32_t aCh, Script aRunScript, eFontPresentation aPresentation,
     nsTArray<const char*>& aFontList) {
   if (PrefersColor(aPresentation)) {
-    aFontList.AppendElement(kFontSegoeUIEmoji);
-    aFontList.AppendElement(kFontTwemojiMozilla);
+    aFontList.AppendElement("Segoe UI Emoji");
+    aFontList.AppendElement("Twemoji Mozilla");
   }
 
-  // Arial is used as the default fallback for system fallback
-  aFontList.AppendElement(kFontArial);
+  switch (aRunScript) {
+    case Script::INVALID:
+    case Script::NUM_SCRIPT_CODES:
+      // Ensure the switch covers all the Script enum values.
+      MOZ_ASSERT_UNREACHABLE("bad script code");
+      break;
 
-  if (!IS_IN_BMP(aCh)) {
-    uint32_t p = aCh >> 16;
-    if (p == 1) {  // SMP plane
-      aFontList.AppendElement(kFontSegoeUISymbol);
-      aFontList.AppendElement(kFontEbrima);
-      aFontList.AppendElement(kFontNirmalaUI);
-      aFontList.AppendElement(kFontCambriaMath);
-    }
-  } else {
-    uint32_t b = (aCh >> 8) & 0xff;
+    case Script::COMMON:
+    case Script::INHERITED:
+      // In most cases, COMMON and INHERITED characters will be merged into
+      // their context, but if they occur without context, we'll just treat
+      // them like Latin, etc.
+    case Script::LATIN:
+    case Script::CYRILLIC:
+    case Script::GREEK:
+    case Script::ARMENIAN:
+    case Script::HEBREW:
+      // We always append Arial below, so no need to add it here.
+      // aFontList.AppendElement("Arial");
+      break;
 
-    switch (b) {
-      case 0x05:
-        aFontList.AppendElement(kFontEstrangeloEdessa);
-        aFontList.AppendElement(kFontCambria);
-        break;
-      case 0x06:
-        aFontList.AppendElement(kFontMicrosoftUighur);
-        break;
-      case 0x07:
-        aFontList.AppendElement(kFontEstrangeloEdessa);
-        aFontList.AppendElement(kFontMVBoli);
-        aFontList.AppendElement(kFontEbrima);
-        break;
-      case 0x09:
-        aFontList.AppendElement(kFontNirmalaUI);
-        aFontList.AppendElement(kFontUtsaah);
-        aFontList.AppendElement(kFontAparajita);
-        break;
-      case 0x0a:
-      case 0x0b:
-      case 0x0c:
-      case 0x0d:
-        aFontList.AppendElement(kFontNirmalaUI);
-        break;
-      case 0x0e:
-        aFontList.AppendElement(kFontLaoUI);
-        aFontList.AppendElement(kFontLeelawadeeUI);
-        break;
-      case 0x10:
-        aFontList.AppendElement(kFontMyanmarText);
-        break;
-      case 0x11:
-        aFontList.AppendElement(kFontMalgunGothic);
-        break;
-      case 0x12:
-      case 0x13:
-        aFontList.AppendElement(kFontNyala);
-        aFontList.AppendElement(kFontPlantagenetCherokee);
-        break;
-      case 0x14:
-      case 0x15:
-      case 0x16:
-        aFontList.AppendElement(kFontEuphemia);
-        aFontList.AppendElement(kFontSegoeUISymbol);
-        break;
-      case 0x17:
-        aFontList.AppendElement(kFontKhmerUI);
-        aFontList.AppendElement(kFontLeelawadeeUI);
-        break;
-      case 0x18:  // Mongolian
-        aFontList.AppendElement(kFontMongolianBaiti);
-        aFontList.AppendElement(kFontEuphemia);
-        break;
-      case 0x19:
-        aFontList.AppendElement(kFontMicrosoftTaiLe);
-        aFontList.AppendElement(kFontMicrosoftNewTaiLue);
-        aFontList.AppendElement(kFontKhmerUI);
-        aFontList.AppendElement(kFontLeelawadeeUI);
-        break;
-      case 0x1a:
-        aFontList.AppendElement(kFontLeelawadeeUI);
-        break;
-      case 0x1c:
-        aFontList.AppendElement(kFontNirmalaUI);
-        break;
-      case 0x20:  // Symbol ranges
-      case 0x21:
-      case 0x22:
-      case 0x23:
-      case 0x24:
-      case 0x25:
-      case 0x26:
-      case 0x27:
-      case 0x29:
-      case 0x2a:
-      case 0x2b:
-      case 0x2c:
-        aFontList.AppendElement(kFontSegoeUI);
-        aFontList.AppendElement(kFontSegoeUISymbol);
-        aFontList.AppendElement(kFontCambria);
-        aFontList.AppendElement(kFontMeiryo);
-        aFontList.AppendElement(kFontArial);
-        aFontList.AppendElement(kFontLucidaSansUnicode);
-        aFontList.AppendElement(kFontEbrima);
-        break;
-      case 0x2d:
-      case 0x2e:
-      case 0x2f:
-        aFontList.AppendElement(kFontEbrima);
-        aFontList.AppendElement(kFontNyala);
-        aFontList.AppendElement(kFontSegoeUI);
-        aFontList.AppendElement(kFontSegoeUISymbol);
-        aFontList.AppendElement(kFontMeiryo);
-        break;
-      case 0x28:  // Braille
-        aFontList.AppendElement(kFontSegoeUISymbol);
-        break;
-      case 0x30:
-      case 0x31:
-        aFontList.AppendElement(kFontMicrosoftYaHei);
-        break;
-      case 0x32:
-        aFontList.AppendElement(kFontMalgunGothic);
-        break;
-      case 0x4d:
-        aFontList.AppendElement(kFontSegoeUISymbol);
-        break;
-      case 0x9f:
-        aFontList.AppendElement(kFontMicrosoftYaHei);
-        aFontList.AppendElement(kFontYuGothic);
-        break;
-      case 0xa0:  // Yi
-      case 0xa1:
-      case 0xa2:
-      case 0xa3:
-      case 0xa4:
-        aFontList.AppendElement(kFontMicrosoftYiBaiti);
-        aFontList.AppendElement(kFontSegoeUI);
-        break;
-      case 0xa5:
-      case 0xa6:
-      case 0xa7:
-        aFontList.AppendElement(kFontEbrima);
-        aFontList.AppendElement(kFontSegoeUI);
-        aFontList.AppendElement(kFontCambriaMath);
-        break;
-      case 0xa8:
-        aFontList.AppendElement(kFontMicrosoftPhagsPa);
-        aFontList.AppendElement(kFontNirmalaUI);
-        break;
-      case 0xa9:
-        aFontList.AppendElement(kFontMalgunGothic);
-        aFontList.AppendElement(kFontJavaneseText);
-        aFontList.AppendElement(kFontLeelawadeeUI);
-        break;
-      case 0xaa:
-        aFontList.AppendElement(kFontMyanmarText);
-        break;
-      case 0xab:
-        aFontList.AppendElement(kFontEbrima);
-        aFontList.AppendElement(kFontNyala);
-        break;
-      case 0xd7:
-        aFontList.AppendElement(kFontMalgunGothic);
-        break;
-      case 0xfb:
-        aFontList.AppendElement(kFontMicrosoftUighur);
-        aFontList.AppendElement(kFontGabriola);
-        aFontList.AppendElement(kFontSylfaen);
-        break;
-      case 0xfc:
-      case 0xfd:
-        aFontList.AppendElement(kFontTraditionalArabic);
-        aFontList.AppendElement(kFontArabicTypesetting);
-        break;
-      case 0xfe:
-        aFontList.AppendElement(kFontTraditionalArabic);
-        aFontList.AppendElement(kFontMicrosoftJhengHei);
-        break;
-      case 0xff:
-        aFontList.AppendElement(kFontMicrosoftJhengHei);
-        break;
-      default:
-        break;
-    }
+    case Script::MATHEMATICAL_NOTATION:
+    case Script::SYMBOLS:
+    case Script::SYMBOLS_EMOJI:
+      // Not currently returned by script run resolution (but some symbols may
+      // be handled below).
+      break;
+
+      // CJK-related script codes are a bit troublesome because of unification;
+      // we'll probably just get HAN much of the time, so the choice of which
+      // language font to try for fallback is rather arbitrary. Usually, though,
+      // we hope that font prefs will have handled this earlier.
+    case Script::BOPOMOFO:
+    case Script::HAN_WITH_BOPOMOFO:
+    case Script::SIMPLIFIED_HAN:
+    case Script::HAN:
+      aFontList.AppendElement("SimSun");
+      if (aCh > 0xFFFF) {
+        aFontList.AppendElement("SimSun-ExtB");
+      }
+      break;
+      // Currently, we don't resolve script runs to this value, but we may do so
+      // in future if we get better at handling things like `lang=zh-Hant`, not
+      // just resolving based on the Unicode text.
+    case Script::TRADITIONAL_HAN:
+      aFontList.AppendElement("MingLiU");
+      if (aCh > 0xFFFF) {
+        aFontList.AppendElement("MingLiU-ExtB");
+      }
+      break;
+    case Script::HIRAGANA:
+    case Script::KATAKANA:
+    case Script::KATAKANA_OR_HIRAGANA:
+    case Script::JAPANESE:
+      aFontList.AppendElement("Yu Gothic");
+      aFontList.AppendElement("MS PGothic");
+      break;
+    case Script::HANGUL:
+    case Script::JAMO:
+    case Script::KOREAN:
+      aFontList.AppendElement("Malgun Gothic");
+      break;
+
+    case Script::YI:
+      aFontList.AppendElement("Microsoft Yi Baiti");
+      break;
+    case Script::MONGOLIAN:
+      aFontList.AppendElement("Mongolian Baiti");
+      break;
+    case Script::TIBETAN:
+      aFontList.AppendElement("Microsoft Himalaya");
+      break;
+    case Script::PHAGS_PA:
+      aFontList.AppendElement("Microsoft PhagsPa");
+      break;
+
+    case Script::ARABIC:
+      aFontList.AppendElement("Traditional Arabic");
+      aFontList.AppendElement("Arabic Typesetting");
+      break;
+    case Script::ARABIC_NASTALIQ:
+      aFontList.AppendElement("Urdu Typesetting");
+      break;
+    case Script::SYRIAC:
+    case Script::ESTRANGELO_SYRIAC:
+      aFontList.AppendElement("Estrangelo Edessa");
+      break;
+    case Script::THAANA:
+      aFontList.AppendElement("MV Boli");
+      break;
+
+    case Script::BENGALI:
+      aFontList.AppendElement("Vrinda");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::DEVANAGARI:
+      aFontList.AppendElement("Kokila");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::GUJARATI:
+      aFontList.AppendElement("Shruti");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::GURMUKHI:
+      aFontList.AppendElement("Raavi");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::KANNADA:
+      aFontList.AppendElement("Tunga");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::MALAYALAM:
+      aFontList.AppendElement("Kartika");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::ORIYA:
+      aFontList.AppendElement("Kalinga");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::TAMIL:
+      aFontList.AppendElement("Latha");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::TELUGU:
+      aFontList.AppendElement("Gautami");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+    case Script::SINHALA:
+      aFontList.AppendElement("Iskoola Pota");
+      aFontList.AppendElement("Nirmala UI");
+      break;
+
+    case Script::CHAKMA:
+    case Script::MEETEI_MAYEK:
+    case Script::OL_CHIKI:
+    case Script::SORA_SOMPENG:
+      aFontList.AppendElement("Nirmala UI");
+      break;
+
+    case Script::MYANMAR:
+      aFontList.AppendElement("Myanmar Text");
+      break;
+    case Script::KHMER:
+      aFontList.AppendElement("Khmer UI");
+      break;
+    case Script::LAO:
+      aFontList.AppendElement("Lao UI");
+      break;
+    case Script::THAI:
+      aFontList.AppendElement("Tahoma");
+      aFontList.AppendElement("Leelawadee UI");
+      break;
+    case Script::TAI_LE:
+      aFontList.AppendElement("Microsoft Tai Le");
+      break;
+    case Script::BUGINESE:
+      aFontList.AppendElement("Leelawadee UI");
+      break;
+    case Script::NEW_TAI_LUE:
+      aFontList.AppendElement("Microsoft New Tai Lue");
+      break;
+    case Script::JAVANESE:
+      aFontList.AppendElement("Javanese Text");
+      break;
+
+    case Script::GEORGIAN:
+    case Script::KHUTSURI:
+    case Script::LISU:
+      aFontList.AppendElement("Segoe UI");
+      break;
+
+    case Script::ETHIOPIC:
+      aFontList.AppendElement("Nyala");
+      aFontList.AppendElement("Ebrima");
+      break;
+
+    case Script::ADLAM:
+    case Script::NKO:
+    case Script::OSMANYA:
+    case Script::TIFINAGH:
+    case Script::VAI:
+      aFontList.AppendElement("Ebrima");
+      break;
+
+    case Script::CANADIAN_ABORIGINAL:
+      aFontList.AppendElement("Euphemia");
+      break;
+
+    case Script::CHEROKEE:
+    case Script::OSAGE:
+      aFontList.AppendElement("Gadugi");
+      break;
+
+    case Script::BRAILLE:
+    case Script::DESERET:
+      aFontList.AppendElement("Segoe UI Symbol");
+      break;
+
+    case Script::BRAHMI:
+    case Script::CARIAN:
+    case Script::CUNEIFORM:
+    case Script::CYPRIOT:
+    case Script::EGYPTIAN_HIEROGLYPHS:
+    case Script::GLAGOLITIC:
+    case Script::GOTHIC:
+    case Script::IMPERIAL_ARAMAIC:
+    case Script::INSCRIPTIONAL_PAHLAVI:
+    case Script::INSCRIPTIONAL_PARTHIAN:
+    case Script::KHAROSHTHI:
+    case Script::LYCIAN:
+    case Script::LYDIAN:
+    case Script::MEROITIC_CURSIVE:
+    case Script::OGHAM:
+    case Script::OLD_ITALIC:
+    case Script::OLD_PERSIAN:
+    case Script::OLD_SOUTH_ARABIAN:
+    case Script::OLD_TURKIC:
+    case Script::PHOENICIAN:
+    case Script::RUNIC:
+    case Script::SHAVIAN:
+    case Script::UGARITIC:
+      aFontList.AppendElement("Segoe UI Historic");
+      break;
+
+      // For some scripts where Windows doesn't supply a font by default,
+      // there are Noto fonts that users might have installed:
+    case Script::AHOM:
+      aFontList.AppendElement("Noto Serif Ahom");
+      break;
+    case Script::AVESTAN:
+      aFontList.AppendElement("Noto Sans Avestan");
+      break;
+    case Script::BALINESE:
+      aFontList.AppendElement("Noto Sans Balinese");
+      break;
+    case Script::BAMUM:
+      aFontList.AppendElement("Noto Sans Bamum");
+      break;
+    case Script::BASSA_VAH:
+      aFontList.AppendElement("Noto Sans Bassa Vah");
+      break;
+    case Script::BATAK:
+      aFontList.AppendElement("Noto Sans Batak");
+      break;
+    case Script::BHAIKSUKI:
+      aFontList.AppendElement("Noto Sans Bhaiksuki");
+      break;
+    case Script::BUHID:
+      aFontList.AppendElement("Noto Sans Buhid");
+      break;
+    case Script::CAUCASIAN_ALBANIAN:
+      aFontList.AppendElement("Noto Sans Caucasian Albanian");
+      break;
+    case Script::CHAM:
+      aFontList.AppendElement("Noto Sans Cham");
+      break;
+    case Script::COPTIC:
+      aFontList.AppendElement("Noto Sans Coptic");
+      break;
+    case Script::DUPLOYAN:
+      aFontList.AppendElement("Noto Sans Duployan");
+      break;
+    case Script::ELBASAN:
+      aFontList.AppendElement("Noto Sans Elbasan");
+      break;
+    case Script::GRANTHA:
+      aFontList.AppendElement("Noto Sans Grantha");
+      break;
+    case Script::HANIFI_ROHINGYA:
+      aFontList.AppendElement("Noto Sans Hanifi Rohingya");
+      break;
+    case Script::HANUNOO:
+      aFontList.AppendElement("Noto Sans Hanunoo");
+      break;
+    case Script::HATRAN:
+      aFontList.AppendElement("Noto Sans Hatran");
+      break;
+    case Script::KAITHI:
+      aFontList.AppendElement("Noto Sans Kaithi");
+      break;
+    case Script::KAYAH_LI:
+      aFontList.AppendElement("Noto Sans Kayah Li");
+      break;
+    case Script::KHOJKI:
+      aFontList.AppendElement("Noto Sans Khojki");
+      break;
+    case Script::KHUDAWADI:
+      aFontList.AppendElement("Noto Sans Khudawadi");
+      break;
+    case Script::LEPCHA:
+      aFontList.AppendElement("Noto Sans Lepcha");
+      break;
+    case Script::LIMBU:
+      aFontList.AppendElement("Noto Sans Limbu");
+      break;
+    case Script::LINEAR_A:
+      aFontList.AppendElement("Noto Sans Linear A");
+      break;
+    case Script::LINEAR_B:
+      aFontList.AppendElement("Noto Sans Linear B");
+      break;
+    case Script::MAHAJANI:
+      aFontList.AppendElement("Noto Sans Mahajani");
+      break;
+    case Script::MANDAIC:
+      aFontList.AppendElement("Noto Sans Mandaic");
+      break;
+    case Script::MANICHAEAN:
+      aFontList.AppendElement("Noto Sans Manichaean");
+      break;
+    case Script::MARCHEN:
+      aFontList.AppendElement("Noto Sans Marchen");
+      break;
+    case Script::MENDE_KIKAKUI:
+      aFontList.AppendElement("Noto Sans Mende Kikakui");
+      break;
+    case Script::MEROITIC_HIEROGLYPHS:
+      aFontList.AppendElement("Noto Sans Meroitic");
+      break;
+    case Script::MIAO:
+      aFontList.AppendElement("Noto Sans Miao");
+      break;
+    case Script::MODI:
+      aFontList.AppendElement("Noto Sans Modi");
+      break;
+    case Script::MRO:
+      aFontList.AppendElement("Noto Sans Mro");
+      break;
+    case Script::MULTANI:
+      aFontList.AppendElement("Noto Sans Multani");
+      break;
+    case Script::NABATAEAN:
+      aFontList.AppendElement("Noto Sans Nabataean");
+      break;
+    case Script::NEWA:
+      aFontList.AppendElement("Noto Sans Newa");
+      break;
+    case Script::OLD_HUNGARIAN:
+      aFontList.AppendElement("Noto Sans Old Hungarian");
+      break;
+    case Script::OLD_NORTH_ARABIAN:
+      aFontList.AppendElement("Noto Sans Old North Arabian");
+      break;
+    case Script::OLD_PERMIC:
+      aFontList.AppendElement("Noto Sans Old Permic");
+      break;
+    case Script::PAHAWH_HMONG:
+      aFontList.AppendElement("Noto Sans Pahawh Hmong");
+      break;
+    case Script::PALMYRENE:
+      aFontList.AppendElement("Noto Sans Palmyrene");
+      break;
+    case Script::PAU_CIN_HAU:
+      aFontList.AppendElement("Noto Sans Pau Cin Hau");
+      break;
+    case Script::PSALTER_PAHLAVI:
+      aFontList.AppendElement("Noto Sans Psalter Pahlavi");
+      break;
+    case Script::REJANG:
+      aFontList.AppendElement("Noto Sans Rejang");
+      break;
+    case Script::SAMARITAN:
+      aFontList.AppendElement("Noto Sans Samaritan");
+      break;
+    case Script::SAURASHTRA:
+      aFontList.AppendElement("Noto Sans Saurashtra");
+      break;
+    case Script::SHARADA:
+      aFontList.AppendElement("Noto Sans Sharada");
+      break;
+    case Script::SIDDHAM:
+      aFontList.AppendElement("Noto Sans Siddham");
+      break;
+    case Script::SUNDANESE:
+      aFontList.AppendElement("Noto Sans Sundanese");
+      break;
+    case Script::SYLOTI_NAGRI:
+      aFontList.AppendElement("Noto Sans Syloti Nagri");
+      break;
+    case Script::TAGALOG:
+      aFontList.AppendElement("Noto Sans Tagalog");
+      break;
+    case Script::TAGBANWA:
+      aFontList.AppendElement("Noto Sans Tagbanwa");
+      break;
+    case Script::TAI_THAM:
+      aFontList.AppendElement("Noto Sans Tai Tham");
+      break;
+    case Script::TAI_VIET:
+      aFontList.AppendElement("Noto Sans Tai Viet");
+      break;
+    case Script::TAKRI:
+      aFontList.AppendElement("Noto Sans Takri");
+      break;
+    case Script::TIRHUTA:
+      aFontList.AppendElement("Noto Sans Tirhuta");
+      break;
+    case Script::WANCHO:
+      aFontList.AppendElement("Noto Sans Wancho");
+      break;
+    case Script::WARANG_CITI:
+      aFontList.AppendElement("Noto Sans Warang Citi");
+      break;
+
+    case Script::AFAKA:
+    case Script::ANATOLIAN_HIEROGLYPHS:
+    case Script::BLISSYMBOLS:
+    case Script::BOOK_PAHLAVI:
+    case Script::CHORASMIAN:
+    case Script::CIRTH:
+    case Script::CYPRO_MINOAN:
+    case Script::DEMOTIC_EGYPTIAN:
+    case Script::DIVES_AKURU:
+    case Script::DOGRA:
+    case Script::EASTERN_SYRIAC:
+    case Script::ELYMAIC:
+    case Script::GARAY:
+    case Script::GUNJALA_GONDI:
+    case Script::GURUNG_KHEMA:
+    case Script::HARAPPAN_INDUS:
+    case Script::HIERATIC_EGYPTIAN:
+    case Script::JURCHEN:
+    case Script::KAWI:
+    case Script::KHITAN_SMALL_SCRIPT:
+    case Script::KIRAT_RAI:
+    case Script::KPELLE:
+    case Script::LATIN_FRAKTUR:
+    case Script::LATIN_GAELIC:
+    case Script::LOMA:
+    case Script::MAKASAR:
+    case Script::MASARAM_GONDI:
+    case Script::MAYAN_HIEROGLYPHS:
+    case Script::MEDEFAIDRIN:
+    case Script::MOON:
+    case Script::NAG_MUNDARI:
+    case Script::NAKHI_GEBA:
+    case Script::NANDINAGARI:
+    case Script::NUSHU:
+    case Script::NYIAKENG_PUACHUE_HMONG:
+    case Script::OL_ONAL:
+    case Script::OLD_CHURCH_SLAVONIC_CYRILLIC:
+    case Script::OLD_SOGDIAN:
+    case Script::OLD_UYGHUR:
+    case Script::RONGORONGO:
+    case Script::SARATI:
+    case Script::SIGNWRITING:
+    case Script::SOGDIAN:
+    case Script::SOYOMBO:
+    case Script::SUNUWAR:
+    case Script::TANGSA:
+    case Script::TANGUT:
+    case Script::TENGWAR:
+    case Script::TODHRI:
+    case Script::TOTO:
+    case Script::TULU_TIGALARI:
+    case Script::UNKNOWN:
+    case Script::UNWRITTEN_LANGUAGES:
+    case Script::VISIBLE_SPEECH:
+    case Script::VITHKUQI:
+    case Script::WESTERN_SYRIAC:
+    case Script::WOLEAI:
+    case Script::YEZIDI:
+    case Script::ZANABAZAR_SQUARE:
+      break;
   }
 
-  // Arial Unicode MS has lots of glyphs for obscure characters,
-  // use it as a last resort
-  aFontList.AppendElement(kFontArialUnicodeMS);
+  // Arial is used as default fallback for system fallback, so always try that.
+  aFontList.AppendElement("Arial");
+
+  // Symbols/dingbats are generally Script=COMMON but may be resolved to any
+  // surrounding script run. So we'll always append a couple of likely fonts
+  // for such characters.
+  const uint32_t b = aCh >> 8;
+  if (aRunScript == Script::COMMON ||  // Stray COMMON chars not resolved
+      (b >= 0x20 && b <= 0x2b) || b == 0x2e ||  // BMP symbols/punctuation/etc
+      GetGenCategory(aCh) == nsUGenCategory::kSymbol ||
+      GetGenCategory(aCh) == nsUGenCategory::kPunctuation) {
+    aFontList.AppendElement("Segoe UI Symbol");
+    aFontList.AppendElement("Cambria Math");
+  }
+
+  // Arial Unicode MS has lots of glyphs for obscure characters; try it as a
+  // last resort.
+  aFontList.AppendElement("Arial Unicode MS");
 
   // If we didn't begin with the color-emoji fonts, include them here
   // so that they'll be preferred over user-installed (and possibly
   // broken) fonts in the global fallback path.
   if (!PrefersColor(aPresentation)) {
-    aFontList.AppendElement(kFontSegoeUIEmoji);
-    aFontList.AppendElement(kFontTwemojiMozilla);
+    aFontList.AppendElement("Segoe UI Emoji");
+    aFontList.AppendElement("Twemoji Mozilla");
   }
 }
 
