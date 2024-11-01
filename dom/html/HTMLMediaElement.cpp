@@ -141,6 +141,11 @@
 #endif
 #include "xpcpublic.h"
 
+// TODO : remove this workaround after enabling HEVC by default in bug 1928536.
+#ifdef MOZ_WMF
+#  include "mozilla/EMEUtils.h"
+#endif
+
 mozilla::LazyLogModule gMediaElementLog("HTMLMediaElement");
 mozilla::LazyLogModule gMediaElementEventsLog("HTMLMediaElementEvents");
 
@@ -5020,7 +5025,24 @@ CanPlayStatus HTMLMediaElement::GetCanPlay(
 
 void HTMLMediaElement::CanPlayType(const nsAString& aType, nsAString& aResult) {
   DecoderDoctorDiagnostics diagnostics;
-  CanPlayStatus canPlay = GetCanPlay(aType, &diagnostics);
+  CanPlayStatus canPlay;
+#ifdef MOZ_WMF
+  // TODO : remove this workaround after enabling HEVC by default in bug
+  // 1928536.
+  bool isHEVC = false;
+  Maybe<MediaContainerType> containerType = MakeMediaContainerType(aType);
+  if (containerType) {
+    const auto& codecString = containerType->ExtendedType().Codecs().AsString();
+    isHEVC = StringBeginsWith(codecString, u"hev1"_ns) ||
+             StringBeginsWith(codecString, u"hvc1"_ns);
+  }
+  if (isHEVC && !IsHEVCAllowedByOrigin(GetOrigin(OwnerDoc()))) {
+    canPlay = CANPLAY_NO;
+  } else
+#endif
+  {
+    canPlay = GetCanPlay(aType, &diagnostics);
+  }
   diagnostics.StoreFormatDiagnostics(OwnerDoc(), aType, canPlay != CANPLAY_NO,
                                      __func__);
   switch (canPlay) {
