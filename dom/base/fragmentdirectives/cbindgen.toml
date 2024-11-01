@@ -13,6 +13,3 @@ includes = ["nsStringFwd.h", "nsTArrayForwardDeclare.h"]
 
 [export.rename]
 "ThinVec" = "nsTArray"
-
-[struct]
-derive_ostream = true

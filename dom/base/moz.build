@@ -477,8 +477,6 @@ UNIFIED_SOURCES += [
     "SubtleCrypto.cpp",
     "TestUtils.cpp",
     "Text.cpp",
-    "TextDirectiveFinder.cpp",
-    "TextDirectiveUtil.cpp",
     "TextInputProcessor.cpp",
     "ThirdPartyUtil.cpp",
     "Timeout.cpp",
