@@ -408,6 +408,109 @@ ffi::WGPUTextureFormat ConvertTextureFormat(
   return result;
 }
 
+ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat) {
+  ffi::WGPUVertexFormat result = ffi::WGPUVertexFormat_Sentinel;
+  switch (aFormat) {
+    case dom::GPUVertexFormat::Uint8x2:
+      result = ffi::WGPUVertexFormat_Uint8x2;
+      break;
+    case dom::GPUVertexFormat::Uint8x4:
+      result = ffi::WGPUVertexFormat_Uint8x4;
+      break;
+    case dom::GPUVertexFormat::Sint8x2:
+      result = ffi::WGPUVertexFormat_Sint8x2;
+      break;
+    case dom::GPUVertexFormat::Sint8x4:
+      result = ffi::WGPUVertexFormat_Sint8x4;
+      break;
+    case dom::GPUVertexFormat::Unorm8x2:
+      result = ffi::WGPUVertexFormat_Unorm8x2;
+      break;
+    case dom::GPUVertexFormat::Unorm8x4:
+      result = ffi::WGPUVertexFormat_Unorm8x4;
+      break;
+    case dom::GPUVertexFormat::Snorm8x2:
+      result = ffi::WGPUVertexFormat_Snorm8x2;
+      break;
+    case dom::GPUVertexFormat::Snorm8x4:
+      result = ffi::WGPUVertexFormat_Snorm8x4;
+      break;
+    case dom::GPUVertexFormat::Uint16x2:
+      result = ffi::WGPUVertexFormat_Uint16x2;
+      break;
+    case dom::GPUVertexFormat::Uint16x4:
+      result = ffi::WGPUVertexFormat_Uint16x4;
+      break;
+    case dom::GPUVertexFormat::Sint16x2:
+      result = ffi::WGPUVertexFormat_Sint16x2;
+      break;
+    case dom::GPUVertexFormat::Sint16x4:
+      result = ffi::WGPUVertexFormat_Sint16x4;
+      break;
+    case dom::GPUVertexFormat::Unorm16x2:
+      result = ffi::WGPUVertexFormat_Unorm16x2;
+      break;
+    case dom::GPUVertexFormat::Unorm16x4:
+      result = ffi::WGPUVertexFormat_Unorm16x4;
+      break;
+    case dom::GPUVertexFormat::Snorm16x2:
+      result = ffi::WGPUVertexFormat_Snorm16x2;
+      break;
+    case dom::GPUVertexFormat::Snorm16x4:
+      result = ffi::WGPUVertexFormat_Snorm16x4;
+      break;
+    case dom::GPUVertexFormat::Float16x2:
+      result = ffi::WGPUVertexFormat_Float16x2;
+      break;
+    case dom::GPUVertexFormat::Float16x4:
+      result = ffi::WGPUVertexFormat_Float16x4;
+      break;
+    case dom::GPUVertexFormat::Float32:
+      result = ffi::WGPUVertexFormat_Float32;
+      break;
+    case dom::GPUVertexFormat::Float32x2:
+      result = ffi::WGPUVertexFormat_Float32x2;
+      break;
+    case dom::GPUVertexFormat::Float32x3:
+      result = ffi::WGPUVertexFormat_Float32x3;
+      break;
+    case dom::GPUVertexFormat::Float32x4:
+      result = ffi::WGPUVertexFormat_Float32x4;
+      break;
+    case dom::GPUVertexFormat::Uint32:
+      result = ffi::WGPUVertexFormat_Uint32;
+      break;
+    case dom::GPUVertexFormat::Uint32x2:
+      result = ffi::WGPUVertexFormat_Uint32x2;
+      break;
+    case dom::GPUVertexFormat::Uint32x3:
+      result = ffi::WGPUVertexFormat_Uint32x3;
+      break;
+    case dom::GPUVertexFormat::Uint32x4:
+      result = ffi::WGPUVertexFormat_Uint32x4;
+      break;
+    case dom::GPUVertexFormat::Sint32:
+      result = ffi::WGPUVertexFormat_Sint32;
+      break;
+    case dom::GPUVertexFormat::Sint32x2:
+      result = ffi::WGPUVertexFormat_Sint32x2;
+      break;
+    case dom::GPUVertexFormat::Sint32x3:
+      result = ffi::WGPUVertexFormat_Sint32x3;
+      break;
+    case dom::GPUVertexFormat::Sint32x4:
+      result = ffi::WGPUVertexFormat_Sint32x4;
+      break;
+  }
+
+  // Clang will check for us that the switch above is exhaustive,
+  // but not if we add a 'default' case. So, check this here.
+  MOZ_ASSERT(result != ffi::WGPUVertexFormat_Sentinel,
+             "unexpected texture format enum");
+
+  return result;
+}
+
 ffi::WGPUMultisampleState ConvertMultisampleState(
     const dom::GPUMultisampleState& aDesc) {
   ffi::WGPUMultisampleState desc = {};

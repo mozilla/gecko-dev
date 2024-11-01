@@ -40,6 +40,8 @@ ffi::WGPUCompareFunction ConvertCompareFunction(
 ffi::WGPUTextureFormat ConvertTextureFormat(
     const dom::GPUTextureFormat& aFormat);
 
+ffi::WGPUVertexFormat ConvertVertexFormat(const dom::GPUVertexFormat& aFormat);
+
 ffi::WGPUMultisampleState ConvertMultisampleState(
     const dom::GPUMultisampleState& aDesc);
 

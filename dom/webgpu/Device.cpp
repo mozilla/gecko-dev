@@ -771,7 +771,7 @@ RawId CreateRenderPipelineImpl(PipelineCreationContext* const aContext,
         for (const auto& vat : vd.mAttributes) {
           ffi::WGPUVertexAttribute ad = {};
           ad.offset = vat.mOffset;
-          ad.format = ffi::WGPUVertexFormat(vat.mFormat);
+          ad.format = ConvertVertexFormat(vat.mFormat);
           ad.shader_location = vat.mShaderLocation;
           vertexAttributes.AppendElement(ad);
         }
