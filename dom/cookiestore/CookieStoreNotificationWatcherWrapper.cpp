@@ -129,6 +129,11 @@ void CookieStoreNotificationWatcherWrapper::ResolvePromiseWhenNotified(
         workerPrivate, "CookieStoreNotificationWatcher::PromiseResolver",
         [resolver = RefPtr(resolver)]() { resolver->Run(); });
 
+    if (!strongWorkerRef) {
+      // The worker is already shutting down. Let's ignore this promise.
+      return;
+    }
+
     workerRef = new ThreadSafeWorkerRef(strongWorkerRef);
   }
 
