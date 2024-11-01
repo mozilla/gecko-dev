@@ -458,6 +458,10 @@ bool js::RunScript(JSContext* cx, RunState& state) {
   // Since any script can conceivably GC, make sure it's safe to do so.
   cx->verifyIsSafeToGC();
 
+  // Don't run script while suppressing GC to not confuse JIT code that assumes
+  // some new objects will be allocated in the nursery.
+  MOZ_ASSERT(!cx->suppressGC);
+
   MOZ_ASSERT(cx->realm() == state.script()->realm());
 
   MOZ_DIAGNOSTIC_ASSERT(cx->realm()->isSystem() ||

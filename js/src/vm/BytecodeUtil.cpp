@@ -131,10 +131,11 @@ static bool DecompileArgumentFromStack(JSContext* cx, int formalIndex,
 
 [[nodiscard]] static bool DumpPCCounts(JSContext* cx, HandleScript script,
                                        StringPrinter* sp) {
-  MOZ_ASSERT(script->hasScriptCounts());
-
-  // Ensure the Disassemble1 call below does not discard the script counts.
-  gc::AutoSuppressGC suppress(cx);
+  // In some edge cases Disassemble1 can end up invoking JS code, so ensure
+  // script counts haven't been discarded.
+  if (!script->hasScriptCounts()) {
+    return true;
+  }
 
 #ifdef DEBUG
   jsbytecode* pc = script->code();
@@ -146,16 +147,21 @@ static bool DecompileArgumentFromStack(JSContext* cx, int formalIndex,
     }
 
     sp->put("                  {");
-
-    PCCounts* counts = script->maybeGetPCCounts(pc);
-    if (double val = counts ? counts->numExec() : 0.0) {
-      sp->printf("\"%s\": %.0f", PCCounts::numExecName, val);
+    if (script->hasScriptCounts()) {
+      PCCounts* counts = script->maybeGetPCCounts(pc);
+      if (double val = counts ? counts->numExec() : 0.0) {
+        sp->printf("\"%s\": %.0f", PCCounts::numExecName, val);
+      }
     }
     sp->put("}\n");
 
     pc = next;
   }
 #endif
+
+  if (!script->hasScriptCounts()) {
+    return true;
+  }
 
   jit::IonScriptCounts* ionCounts = script->getIonCounts();
   while (ionCounts) {
