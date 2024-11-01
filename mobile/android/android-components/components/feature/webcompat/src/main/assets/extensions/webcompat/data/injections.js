@@ -1119,6 +1119,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1901000",
+    platform: "desktop",
+    domain: "eyebuydirect.ca",
+    bug: "1901000",
+    contentScripts: {
+      matches: ["*://*.eyebuydirect.ca/*"],
+      css: [
+        {
+          file: "injections/css/bug1901000-eyebuydirect.ca-fix-paypal-button.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;

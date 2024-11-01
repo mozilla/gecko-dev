@@ -12,6 +12,7 @@ from urllib.parse import quote
 import pytest
 import webdriver
 from PIL import Image
+from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException
 from webdriver.bidi.modules.script import ContextTarget
 
 
@@ -20,6 +21,7 @@ class Client:
         self.request = request
         self.session = session
         self.event_loop = event_loop
+        self.subscriptions = {}
         self.content_blocker_loaded = False
 
     @property
@@ -51,6 +53,54 @@ class Client:
         finally:
             if needs_change:
                 self.context = orig_context
+
+    async def apz_click(self, element, no_up=False):
+        pt = self.execute_script(
+            """
+          const e = arguments[0];
+          const b = e.getClientRects()[0];
+          const leftChrome = window.mozInnerScreenX;
+          const topChrome = window.mozInnerScreenY;
+          const x = window.scrollX + leftChrome + b.x;
+          const y = window.scrollY + topChrome + b.y;
+          return [x, y];
+        """,
+            element,
+        )
+        with self.using_context("chrome"):
+            return self.execute_async_script(
+                """
+              const [pt, no_up, done] = arguments;
+              const utils = window.windowUtils;
+              const scale = window.devicePixelRatio;
+              const res = utils.getResolution();
+              const ele = window.document.documentElement;
+              window.windowUtils.sendNativeMouseEvent(
+                pt[0] * scale * res,
+                pt[1] * scale * res,
+                utils.NATIVE_MOUSE_MESSAGE_BUTTON_DOWN,
+                0,
+                0,
+                ele,
+                () => {
+                  if (no_up) {
+                    return done();
+                  }
+                  utils.sendNativeMouseEvent(
+                    pt[0] * scale * res,
+                    pt[1] * scale * res,
+                    utils.NATIVE_MOUSE_MESSAGE_BUTTON_UP,
+                    0,
+                    0,
+                    ele,
+                    done
+                  );
+                }
+              );
+            """,
+                pt,
+                no_up,
+            )
 
     def wait_for_content_blocker(self):
         if not self.content_blocker_loaded:
@@ -107,6 +157,121 @@ class Client:
     async def top_context(self):
         contexts = await self.session.bidi_session.browsing_context.get_tree()
         return contexts[0]
+
+    async def subscribe(self, events):
+        if type(events) is not list:
+            events = [events]
+
+        must_sub = []
+        for event in events:
+            if not event in self.subscriptions:
+                must_sub.append(event)
+                self.subscriptions[event] = 1
+            else:
+                self.subscriptions[event] += 1
+
+        if len(must_sub):
+            await self.session.bidi_session.session.subscribe(events=must_sub)
+
+    async def unsubscribe(self, events):
+        if type(events) is not list:
+            events = [events]
+
+        must_unsub = []
+        for event in events:
+            self.subscriptions[event] -= 1
+            if not self.subscriptions[event]:
+                must_unsub.append(event)
+
+        if len(must_unsub):
+            try:
+                await self.session.bidi_session.session.unsubscribe(events=must_unsub)
+            except (InvalidArgumentException, NoSuchFrameException):
+                pass
+
+    async def wait_for_events(self, events, checkFn=None, timeout=None):
+        if type(events) is not list:
+            events = [events]
+
+        if timeout is None:
+            timeout = 10
+
+        future = self.event_loop.create_future()
+        remove_listeners = []
+
+        async def on_event(event, data):
+            val = data
+            if checkFn:
+                val = await checkFn(event, data)
+                if val is None:
+                    return
+            for remover in remove_listeners:
+                remover()
+            await self.unsubscribe(events)
+            future.set_result(val)
+
+        for event in events:
+            remove_listeners.append(
+                self.session.bidi_session.add_event_listener(event, on_event)
+            )
+        await self.subscribe(events)
+        return await asyncio.wait_for(future, timeout=timeout)
+
+    async def get_iframe_by_url(self, url):
+        def check_children(children):
+            for child in children:
+                if "url" in child and url in child["url"]:
+                    return child
+            for child in children:
+                if "children" in child:
+                    frame = check_children(child["children"])
+                    if frame:
+                        return frame
+            return None
+
+        tree = await self.session.bidi_session.browsing_context.get_tree()
+        for top in tree:
+            frame = check_children(top["children"])
+            if frame is not None:
+                return frame
+
+        return None
+
+    async def is_iframe(self, context):
+        def check_children(children):
+            for child in children:
+                if "context" in child and child["context"] == context:
+                    return True
+                if "children" in child:
+                    return check_children(child["children"])
+            return False
+
+        for top in await self.session.bidi_session.browsing_context.get_tree():
+            if check_children(top["children"]):
+                return True
+        return False
+
+    async def wait_for_iframe_loaded(self, url, timeout=None):
+        async def wait_for_url(_, data):
+            if url in data["url"] and await self.is_iframe(data["context"]):
+                return data["context"]
+            return None
+
+        return self.wait_for_events("browsingContext.load", wait_for_url)
+
+    async def run_script_in_context(self, context, script):
+        return await self.session.bidi_session.script.evaluate(
+            expression=script,
+            target=ContextTarget(context),
+            await_promise=False,
+        )
+
+    async def await_script_in_context(self, context, script):
+        return await self.session.bidi_session.script.evaluate(
+            expression=script,
+            target=ContextTarget(context),
+            await_promise=True,
+        )
 
     async def navigate(self, url, timeout=90, no_skip=False, **kwargs):
         try:
@@ -527,7 +692,12 @@ class Client:
     def back(self):
         self.session.back()
 
-    def switch_to_frame(self, frame):
+    def switch_to_frame(self, frame=None):
+        if not frame:
+            return self.session.transport.send(
+                "POST", "session/{session_id}/frame/parent".format(**vars(self.session))
+            )
+
         return self.session.transport.send(
             "POST",
             "session/{session_id}/frame".format(**vars(self.session)),
@@ -760,16 +930,27 @@ class Client:
                 left_to_try.append(finder)
         return closed_one
 
-    def click(self, element, popups=None, popups_timeout=None):
+    def click(self, element, force=False, popups=None, popups_timeout=None):
+        tries = 0
         while True:
+            self.scroll_into_view(element)
             try:
                 element.click()
                 return
-            except webdriver.error.ElementClickInterceptedException as e:
-                if not popups or not self.try_closing_popups(
+            except webdriver.error.ElementClickInterceptedException as c:
+                if force:
+                    self.clear_covering_elements(element)
+                elif not popups or not self.try_closing_popups(
                     popups, timeout=popups_timeout
                 ):
+                    raise c
+            except webdriver.error.WebDriverException as e:
+                if not "could not be scrolled into view" in str(e):
                     raise e
+                tries += 1
+                if tries == 5:
+                    raise e
+                time.sleep(0.5)
 
     def soft_click(self, element, popups=None, popups_timeout=None):
         while True:

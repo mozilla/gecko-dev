@@ -1,0 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * eyebuydirect.ca - PayPal button is unclickable
+ * Bug #1901000 - https://bugzilla.mozilla.org/show_bug.cgi?id=1901000
+ * WebCompat issue #137777 - https://github.com/webcompat/web-bugs/issues/137777
+ *
+ * The site uses Zoid components for the PayPal button, which gives opacity:0 to
+ * its containing element, which makes it unclickable in Firefox. We should be able
+ * to simply remove that opacity:0 for now.
+ */
+
+[id^="zoid-paypal-buttons-"] {
+  opacity: unset !important;
+}
