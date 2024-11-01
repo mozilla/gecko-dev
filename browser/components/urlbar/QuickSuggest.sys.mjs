@@ -273,7 +273,7 @@ class _QuickSuggest {
    * by looking up the client's IP address in its MaxMind database.
    *
    * @returns {object}
-   *   An object with the following properties (see Merino docs for latest):
+   *   An object with the following properties (see Merino source for latest):
    *
    *   {string} country
    *     The full country name.
@@ -287,12 +287,12 @@ class _QuickSuggest {
    *     The city name.
    *   {object} location
    *     This object has the following properties:
-   *     {number} longitude
-   *       WGS 84 longitude.
    *     {number} latitude
-   *       WGS 84 latitude.
+   *       Latitude in decimal degrees.
+   *     {number} longitude
+   *       Longitude in decimal degrees.
    *     {number} radius
-   *       Accuracy radius in meters.
+   *       Accuracy radius in km.
    */
   async geolocation() {
     if (!this.#merino) {
