@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin" type="text/css"?>
+<?xml-stylesheet href="chrome://mochikit/content/tests/SimpleTest/test.css"
+                 type="text/css"?>
+<window title="Native context menu tests" onload="runTests()"
+  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js" />
+
+<body  xmlns="http://www.w3.org/1999/xhtml">
+<p id="display"></p>
+<div id="content" style="display: none">
+  
+</div>
+<pre id="test">
+</pre>
+</body>
+
+<command id="cmd_FooItem0" oncommand="gExecutedCommandID = 'cmd_FooItem0';"/>
+<command id="cmd_FooItem1" oncommand="gExecutedCommandID = 'cmd_FooItem1';"/>
+<command id="cmd_BarItem0" oncommand="gExecutedCommandID = 'cmd_BarItem0';"/>
+<command id="cmd_BarItem1" oncommand="gExecutedCommandID = 'cmd_BarItem1';"/>
+<command id="cmd_NewItem0" oncommand="gExecutedCommandID = 'cmd_NewItem0';"/>
+<command id="cmd_NewItem1" oncommand="gExecutedCommandID = 'cmd_NewItem1';"/>
+<command id="cmd_NewItem2" oncommand="gExecutedCommandID = 'cmd_NewItem2';"/>
+<command id="cmd_NewItem3" oncommand="gExecutedCommandID = 'cmd_NewItem3';"/>
+<command id="cmd_NewItem4" oncommand="gExecutedCommandID = 'cmd_NewItem4';"/>
+<command id="cmd_NewItem5" oncommand="gExecutedCommandID = 'cmd_NewItem5';"/>
+
+<popupset>
+  <menupopup id="rootMenupopup">
+    <menu id="fooMenu" label="Foo">
+      <menupopup id="fooMenupopup">
+        <menuitem label="FooItem0" command="cmd_FooItem0"/>
+        <menuitem label="FooItem1" command="cmd_FooItem1"/>
+        <menuseparator/>
+        <menu id="barMenu" label="Bar">
+          <menupopup id="barMenupopup">
+            <menuitem label="BarItem0" command="cmd_BarItem0"/>
+            <menuitem label="BarItem1" command="cmd_BarItem1"/>
+          </menupopup>
+        </menu>
+      </menupopup>
+    </menu>
+  </menupopup>
+</popupset>
+
+<script class="testbody" type="application/javascript">
+<![CDATA[
+
+SimpleTest.waitForExplicitFinish();
+
+var XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
+function createXULMenuPopup() {
+  return document.createElementNS(XUL_NS, "menupopup");
+}
+
+function createXULMenu(aLabel) {
+  var item = document.createElementNS(XUL_NS, "menu");
+  item.setAttribute("label", aLabel);
+  return item;
+}
+
+function createXULMenuItem(aLabel, aCommandId) {
+  var item = document.createElementNS(XUL_NS, "menuitem");
+  item.setAttribute("label", aLabel);
+  item.setAttribute("command", aCommandId);
+  return item;
+}
+
+let gExecutedCommandID = null;
+
+function promiseShown(element) {
+  return new Promise((resolve) => {
+    element.addEventListener("popupshown", (e) => resolve(e.target), { once: true });
+  });
+}
+
+function promiseHidden(element) {
+  return new Promise((resolve) => {
+    element.addEventListener("popuphidden", (e) => resolve(e.target), { once: true });
+  });
+}
+
+async function openSubmenu(menu) {
+  const submenuShown = promiseShown(menu);
+  menu.openMenu(true);
+  return submenuShown;
+}
+
+const gTests = [
+  // Test for bug 1926630: Adding an item to a nested menupopup while the
+  // menu was open was causing duplicate elements to be created for the
+  // added <menuitem> element.
+  async function testConsistencyWhenAddingItemWhileSubmenuOpen() {
+    // Open the context menu.
+    const rootMenupopup = document.querySelector("#rootMenupopup");
+    const rootShown = promiseShown(rootMenupopup);
+    rootMenupopup.openPopupAtScreen(100, 100, true);
+    await rootShown;
+
+    // Open the "Foo" submenu.
+    const fooMenu = rootMenupopup.querySelector("#fooMenu");
+    const fooPopup = await openSubmenu(fooMenu);
+
+    // Open the "Bar" submenu.
+    const barMenu = fooPopup.querySelector("#barMenu");
+    const barMenupopup = await openSubmenu(barMenu);
+
+    // Append an item to barMenupopup while it's open.
+    const newItem = createXULMenuItem("Dynamically added", "cmd_NewItem0");
+    barMenupopup.appendChild(newItem);
+
+    // Activate the newly-added item. This will run consistency asserts in the native code.
+    const allHidden = promiseHidden(rootMenupopup);
+    barMenupopup.activateItem(newItem);
+    await allHidden;
+
+    // Make sure the added item's command was run.
+    // This is a nice side check, but the real check was that we didn't crash in the
+    // MOZ_RELEASE_ASSERTs that run during activateItem.
+    is(gExecutedCommandID, "cmd_NewItem0", "Should activate the item in the nested menu");
+  }
+];
+
+async function runTests() {
+  try {
+    for (const testFunction of gTests) {
+      await testFunction();
+    }
+  } catch (e) {
+    ok(false, "Caught an exception: " + e);
+  } finally {
+    SimpleTest.finish();
+  }
+}
+
+]]>
+</script>
+
+</window>
