@@ -174,8 +174,6 @@ support-files = ["file_lnk.lnk",]
 
 ["browser_http_index_format.js"]
 
-["browser_necko_l10n.js"]
-
 ["browser_nsIFormPOSTActionChannel.js"]
 skip-if = ["true"] # protocol handler and channel does not work in content process
 
