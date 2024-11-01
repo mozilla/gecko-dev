@@ -125,7 +125,7 @@ class JitSource(gdb.Command):
         f = gdb.newest_frame()
         for _ in range(hops):
             f = f.older()
-        if not re.match(name, f.name()):
+        if not re.match(name, f.name() or "<unnamed>"):
             return None
         f.select()
         src_val = gdb.parse_and_eval(src)
@@ -143,9 +143,11 @@ class JitSource(gdb.Command):
         b = gdb.Breakpoint(
             "*" + address, type=gdb.BP_WATCHPOINT, wp_class=gdb.WP_WRITE, internal=True
         )
-        while b.hit_count == 0:
-            gdb.execute("rc", to_string=True)
-        b.delete()
+        try:
+            while b.hit_count == 0:
+                gdb.execute("rc", to_string=True)
+        finally:
+            b.delete()
 
     def invoke(self, arg, from_tty):
         args = gdb.string_to_argv(arg)
