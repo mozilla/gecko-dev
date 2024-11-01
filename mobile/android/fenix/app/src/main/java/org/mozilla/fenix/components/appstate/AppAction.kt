@@ -44,6 +44,14 @@ sealed class AppAction : Action {
     data class UpdateInactiveExpanded(val expanded: Boolean) : AppAction()
 
     /**
+     * Updates whether the native default browser prompt was shown to the user during this session.
+     *
+     * @property wasShown The updated boolean to [AppState.wasNativeDefaultBrowserPromptShown]
+     * This will be true if the prompt was shown, otherwise false.
+     */
+    data class UpdateWasNativeDefaultBrowserPromptShown(val wasShown: Boolean) : AppAction()
+
+    /**
      * Updates whether the first frame of the homescreen has been [drawn].
      */
     data class UpdateFirstFrameDrawn(val drawn: Boolean) : AppAction()

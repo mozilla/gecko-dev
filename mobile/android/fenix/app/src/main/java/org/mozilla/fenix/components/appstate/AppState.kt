@@ -69,6 +69,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property crashState State related to the crash reporter.
  * @property wasLastTabClosedPrivate Whether the last remaining tab that was closed in private mode. This is used to
  * display an undo snackbar message relevant to the browsing mode. If null, no snackbar is shown.
+ * @property wasNativeDefaultBrowserPromptShown Whether the native default browser prompt was shown to the user.
  */
 data class AppState(
     val isForeground: Boolean = true,
@@ -102,4 +103,5 @@ data class AppState(
     val showFindInPage: Boolean = false,
     val crashState: CrashState = CrashState.Idle,
     val wasLastTabClosedPrivate: Boolean? = null,
+    val wasNativeDefaultBrowserPromptShown: Boolean = false,
 ) : State

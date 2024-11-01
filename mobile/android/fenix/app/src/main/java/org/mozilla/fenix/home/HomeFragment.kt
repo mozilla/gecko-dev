@@ -98,6 +98,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
+import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingShortcutCfr
 import org.mozilla.fenix.HomeActivity
@@ -1648,10 +1649,11 @@ class HomeFragment : Fragment() {
 
     @VisibleForTesting
     internal fun showSetAsDefaultBrowserPrompt() {
-        val settings = requireContext().settings()
-        settings.setAsDefaultPromptCalled()
-
-        activity?.openSetDefaultBrowserOption()
+        requireComponents.appStore.dispatch(AppAction.UpdateWasNativeDefaultBrowserPromptShown(true))
+        activity?.openSetDefaultBrowserOption().also {
+            Metrics.setAsDefaultBrowserNativePromptShown.record()
+            requireContext().settings().setAsDefaultPromptCalled()
+        }
     }
 
     companion object {

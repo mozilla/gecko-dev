@@ -294,6 +294,9 @@ internal object AppStoreReducer {
         )
 
         is AppAction.SnackbarAction -> SnackbarStateReducer.reduce(state, action)
+        is AppAction.UpdateWasNativeDefaultBrowserPromptShown -> {
+            state.copy(wasNativeDefaultBrowserPromptShown = action.wasShown)
+        }
     }
 }
 
