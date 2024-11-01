@@ -19,7 +19,7 @@ const { WEATHER_SUGGESTION } = MerinoTestUtils;
 add_setup(async () => {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     prefs: [
-      ["suggest.quicksuggest.nonsponsored", true],
+      ["suggest.quicksuggest.sponsored", true],
       ["weather.featureGate", true],
     ],
     remoteSettingsRecords: [
@@ -31,18 +31,20 @@ add_setup(async () => {
   await MerinoTestUtils.initWeather();
 });
 
-// The feature should be properly uninitialized when it's disabled and then
-// re-initialized when it's re-enabled. This task disables the feature using the
-// feature gate pref.
+// The feature should be properly enabled according to `weather.featureGate`.
 add_task(async function disableAndEnable_featureGate() {
   await doBasicDisableAndEnableTest("weather.featureGate");
 });
 
-// The feature should be properly uninitialized when it's disabled and then
-// re-initialized when it's re-enabled. This task disables the feature using the
-// suggest pref.
+// The feature should be properly enabled according to `suggest.weather`.
 add_task(async function disableAndEnable_suggestPref() {
   await doBasicDisableAndEnableTest("suggest.weather");
+});
+
+// The feature should be properly enabled according to
+// `suggest.quicksuggest.sponsored`.
+add_task(async function disableAndEnable_sponsoredPref() {
+  await doBasicDisableAndEnableTest("suggest.quicksuggest.sponsored");
 });
 
 async function doBasicDisableAndEnableTest(pref) {

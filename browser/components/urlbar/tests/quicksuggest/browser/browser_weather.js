@@ -13,7 +13,10 @@ requestLongerTimeout(5);
 add_setup(async function () {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: [QuickSuggestTestUtils.weatherRecord()],
-    prefs: [["weather.featureGate", true]],
+    prefs: [
+      ["suggest.quicksuggest.sponsored", true],
+      ["weather.featureGate", true],
+    ],
   });
   await MerinoTestUtils.initWeather();
 });

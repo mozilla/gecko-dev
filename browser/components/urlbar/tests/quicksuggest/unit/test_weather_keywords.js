@@ -10,7 +10,7 @@ add_setup(async () => {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: [QuickSuggestTestUtils.weatherRecord()],
     prefs: [
-      ["suggest.quicksuggest.nonsponsored", true],
+      ["suggest.quicksuggest.sponsored", true],
       ["weather.featureGate", true],
     ],
   });

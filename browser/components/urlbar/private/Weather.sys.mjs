@@ -145,17 +145,22 @@ export class Weather extends BaseFeature {
 
   get shouldEnable() {
     return (
+      lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored") &&
       lazy.UrlbarPrefs.get("weatherFeatureGate") &&
       lazy.UrlbarPrefs.get("suggest.weather")
     );
   }
 
   get enablingPreferences() {
-    return ["suggest.weather"];
+    return ["suggest.quicksuggest.sponsored", "suggest.weather"];
   }
 
   get rustSuggestionTypes() {
     return ["Weather"];
+  }
+
+  isSuggestionSponsored(_suggestion) {
+    return true;
   }
 
   getSuggestionTelemetryType() {
