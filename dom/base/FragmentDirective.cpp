@@ -379,4 +379,43 @@ void FragmentDirective::HighlightTextDirectives(
   }
 }
 
+void FragmentDirective::GetTextDirectiveRanges(
+    nsTArray<RefPtr<nsRange>>& aRanges) const {
+  if (!StaticPrefs::dom_text_fragments_enabled()) {
+    return;
+  }
+  auto* presShell = mDocument ? mDocument->GetPresShell() : nullptr;
+  if (!presShell) {
+    return;
+  }
+  RefPtr<Selection> targetTextSelection =
+      presShell->GetCurrentSelection(SelectionType::eTargetText);
+  if (!targetTextSelection) {
+    return;
+  }
+
+  aRanges.Clear();
+  for (uint32_t rangeIndex = 0; rangeIndex < targetTextSelection->RangeCount();
+       ++rangeIndex) {
+    nsRange* range = targetTextSelection->GetRangeAt(rangeIndex);
+    MOZ_ASSERT(range);
+    aRanges.AppendElement(range);
+  }
+}
+void FragmentDirective::RemoveAllTextDirectives(ErrorResult& aRv) {
+  if (!StaticPrefs::dom_text_fragments_enabled()) {
+    return;
+  }
+  auto* presShell = mDocument ? mDocument->GetPresShell() : nullptr;
+  if (!presShell) {
+    return;
+  }
+  RefPtr<Selection> targetTextSelection =
+      presShell->GetCurrentSelection(SelectionType::eTargetText);
+  if (!targetTextSelection) {
+    return;
+  }
+  targetTextSelection->RemoveAllRanges(aRv);
+}
+
 }  // namespace mozilla::dom

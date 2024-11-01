@@ -124,6 +124,19 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
    */
   bool IsTextDirectiveAllowedToBeScrolledTo();
 
+  /** Return an array of all current text directive ranges.
+   *
+   * This is exposed as a Chrome-Only API.
+   */
+  void GetTextDirectiveRanges(nsTArray<RefPtr<nsRange>>& aRanges) const;
+
+  /** Removes all text directive ranges.
+   *
+   * Under the hood this method only calls `Selection::RemoveAllRanges()`.
+   * This is exposed as a Chrome-Only API.
+   */
+  MOZ_CAN_RUN_SCRIPT void RemoveAllTextDirectives(ErrorResult& aRv);
+
  private:
   RefPtr<Document> mDocument;
   UniquePtr<TextDirectiveFinder> mFinder;

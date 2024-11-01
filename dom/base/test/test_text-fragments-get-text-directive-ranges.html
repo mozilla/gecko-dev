@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Text Fragment Chrome-only API Test</title>
+  <meta charset="UTF-8">
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+  <p>
+    sample text.
+  </p>
+
+  <script>
+    SimpleTest.waitForExplicitFinish();
+
+    async function changeHash(newHash) {
+      let hashChange = new Promise(r => window.addEventListener('hashchange', r, { once: true }));
+      location.hash = newHash;
+      await hashChange;
+    }
+
+    async function testGetTextDirectiveRangesAndRemoveRanges() {
+      await changeHash('#:~:text=sample%20text');
+
+      let ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
+      is(ranges.length, 1, 'Should have one text directive range');
+
+      const rangeText = ranges[0].toString();
+      is(rangeText, "sample text", 'The range text should match the expected text');
+
+      SpecialPowers.wrap(document).fragmentDirective.removeAllTextDirectives();
+
+      ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
+
+      is(ranges.length, 0, "Should have removed all text directive ranges");
+
+      await changeHash("#:~:text=sample&text=text");
+
+      ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
+      is(ranges.length, 2, 'Should have two text directive ranges');
+      is(ranges[0].toString(), "sample", "The first text directive should be the first range");
+      is(ranges[1].toString(), "text", "The second text directive should be the second range");
+
+      SpecialPowers.wrap(document).fragmentDirective.removeAllTextDirectives();
+
+      await changeHash("#:~:text=text&text=sample");
+
+      ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
+      is(ranges.length, 2, 'Should have two text directive ranges');
+      
+      // This mirrors the behavior of `Selection`, where the ranges are sorted by
+      // their position in the document. I'm not sure I want this.
+      is(ranges[0].toString(), "sample", "The first text directive should be the first range");
+      is(ranges[1].toString(), "text", "The second text directive should be the second range");
+
+      SpecialPowers.wrap(document).fragmentDirective.removeAllTextDirectives();
+    }
+
+    async function runTests() {
+      try {
+        await SpecialPowers.pushPrefEnv({"set": [
+        ["dom.text_fragments.enabled", true],
+      ]});
+        await testGetTextDirectiveRangesAndRemoveRanges();
+      }
+      finally {
+        SimpleTest.finish();
+      }
+    }
+
+    document.body.onload = runTests;
+  </script>
+</body>
+</html>

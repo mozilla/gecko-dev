@@ -8,4 +8,9 @@
  */
 [Exposed=Window, Pref="dom.text_fragments.enabled"]
 interface FragmentDirective {
+    [Pref="dom.text_fragments.enabled", ChromeOnly]
+    sequence<Range> getTextDirectiveRanges();
+
+    [Pref="dom.text_fragments.enabled", ChromeOnly, Throws]
+    undefined removeAllTextDirectives();
 };
