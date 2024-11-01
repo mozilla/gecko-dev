@@ -1583,9 +1583,8 @@ static bool IsTabletDevice() {
   // Guarantees that:
   // - The device has a touch screen.
   // - It is used as a tablet which means that it has no keyboard connected.
-  // On Windows 10 it means that it is verifying with ConvertibleSlateMode.
 
-  if (WindowsUIUtils::GetInTabletMode()) {
+  if (WindowsUIUtils::GetInWin10TabletMode()) {
     return true;
   }
 

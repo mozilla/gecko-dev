@@ -17609,6 +17609,17 @@
   value: true
   mirror: always
 
+# Whether this device is capable of entering tablet mode. (Win11+ only.)
+#
+# Valid values:
+#  * -1: assume this device is tablet-mode-incapable
+#  *  0: rely on heuristics
+#  *  1: assume this device is tablet-mode-capable
+- name: widget.windows.tablet_detection_override
+  type: RelaxedAtomicInt32
+  value: 0
+  mirror: always
+
 # Whether to give explorer.exe a delated nudge to recalculate the fullscreenness
 # of a window after maximizing it.
 - name: widget.windows.fullscreen_remind_taskbar

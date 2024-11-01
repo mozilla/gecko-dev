@@ -29,8 +29,21 @@ class WindowsUIUtils final : public nsIWindowsUIUtils {
   static RefPtr<SharePromise> Share(nsAutoString aTitle, nsAutoString aText,
                                     nsAutoString aUrl);
 
-  static void UpdateInTabletMode();
-  static bool GetInTabletMode();
+  static void UpdateInWin10TabletMode();
+  static void UpdateInWin11TabletMode();
+
+  // Check whether we're in Win10 tablet mode.
+  //
+  // (Win10 tablet mode is considered sufficiently different from Win11 tablet
+  // mode that there is no single getter to retrieve whether we're in a generic
+  // "tablet mode".)
+  static bool GetInWin10TabletMode();
+  // Check whether we're in Win11 tablet mode.
+  //
+  // (Win11 tablet mode is considered sufficiently different from Win10 tablet
+  // mode that there is no single getter to retrieve whether we're in a generic
+  // "tablet mode".)
+  static bool GetInWin11TabletMode();
 
   // Gets the system accent color, or one of the darker / lighter variants
   // (darker = -1/2/3, lighter=+1/2/3, values outside of that range are

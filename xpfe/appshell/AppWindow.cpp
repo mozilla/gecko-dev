@@ -73,6 +73,7 @@
 
 #ifdef XP_WIN
 #  include "mozilla/PreXULSkeletonUI.h"
+#  include "mozilla/WindowsVersion.h"
 #  include "nsIWindowsUIUtils.h"
 #endif
 
@@ -1818,7 +1819,11 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
     nsCOMPtr<nsIWindowsUIUtils> uiUtils(
         do_GetService("@mozilla.org/windows-ui-utils;1"));
     if (!NS_WARN_IF(!uiUtils)) {
-      uiUtils->GetInTabletMode(&isInTabletMode);
+      if (IsWin11OrLater()) {
+        uiUtils->GetInWin11TabletMode(&isInTabletMode);
+      } else {
+        uiUtils->GetInWin10TabletMode(&isInTabletMode);
+      }
     }
   }
 

@@ -4656,7 +4656,7 @@ function updateToggleControlLabel(control) {
 var TabletModeUpdater = {
   init() {
     if (AppConstants.platform == "win") {
-      this.update(WindowsUIUtils.inTabletMode);
+      this.update(WindowsUIUtils.inWin10TabletMode);
       Services.obs.addObserver(this, "tablet-mode-change");
     }
   },
@@ -4722,7 +4722,7 @@ var gUIDensity = {
     // Automatically override the uidensity to touch in Windows tablet mode.
     if (
       AppConstants.platform == "win" &&
-      WindowsUIUtils.inTabletMode &&
+      WindowsUIUtils.inWin10TabletMode &&
       Services.prefs.getBoolPref(this.autoTouchModePref)
     ) {
       return { mode: this.MODE_TOUCH, overridden: true };
