@@ -138,10 +138,6 @@ support-files = ["image.html"]
 support-files = ["test_mixed_content_image.html"]
 
 ["browser_pointerlock_popup.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1907085
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1907085
-]
 
 ["browser_pointerlock_warning.js"]
 

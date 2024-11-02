@@ -82,6 +82,21 @@ function getPopup(aDocument, aPopupType) {
   return popup;
 }
 
+async function waitForPopupOpen(aDocument, aPopupType) {
+  let popup = getPopup(aDocument, aPopupType);
+  let promise = BrowserTestUtils.waitForPopupEvent(popup, "shown");
+  popup.openPopup();
+  await promise;
+
+  return popup;
+}
+
+async function waitForPopupHide(aPopup) {
+  let promise = BrowserTestUtils.waitForPopupEvent(aPopup, "hidden");
+  aPopup.hidePopup(true);
+  await promise;
+}
+
 function testPointerLockPopup(aPopupType, aShouldBlockPointerLock) {
   add_task(async function test_open_menu_popup_when_pointer_is_locked() {
     info(`Test ${aPopupType}`);
@@ -98,8 +113,7 @@ function testPointerLockPopup(aPopupType, aShouldBlockPointerLock) {
       }
 
       info(`Open popup`);
-      let popup = getPopup(document, aPopupType);
-      popup.openPopup();
+      let popup = await waitForPopupOpen(document, aPopupType);
 
       if (!aShouldBlockPointerLock) {
         promise = executeSoonRemote(browser);
@@ -115,7 +129,7 @@ function testPointerLockPopup(aPopupType, aShouldBlockPointerLock) {
       await exitPointerLockRemote(browser);
 
       info(`Hide popup`);
-      popup.hidePopup(true);
+      await waitForPopupHide(popup);
     });
   });
 
@@ -123,8 +137,7 @@ function testPointerLockPopup(aPopupType, aShouldBlockPointerLock) {
     info(`Test ${aPopupType}`);
     await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
       info(`Open popup`);
-      let popup = getPopup(document, aPopupType);
-      popup.openPopup();
+      let popup = await waitForPopupOpen(document, aPopupType);
 
       let promise = aShouldBlockPointerLock
         ? waitForEventRemote(browser, "pointerlockerror")
@@ -142,7 +155,7 @@ function testPointerLockPopup(aPopupType, aShouldBlockPointerLock) {
       await exitPointerLockRemote(browser);
 
       info(`Hide popup`);
-      popup.hidePopup(true);
+      await waitForPopupHide(popup);
     });
   });
 }
