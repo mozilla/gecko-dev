@@ -5024,13 +5024,6 @@ void ScrollContainerFrame::ScrollSnap(const nsPoint& aDestination,
   // site using `GetScrollPosition()` as |aStartPos|.
   if (auto snapDestination = GetSnapPointForDestination(
           ScrollUnit::DEVICE_PIXELS, snapFlags, pos, destination)) {
-    // Bail out if there's no scroll position change to do a workaround for bug
-    // 1665932 (even if the __layout__ scroll position is unchanged, the
-    // corresponding scroll offset update will change the __visual__ scroll
-    // offset in APZ).
-    if (snapDestination->mPosition == destination) {
-      return;
-    }
     destination = snapDestination->mPosition;
     ScrollToWithOrigin(
         destination, nullptr /* range */,
