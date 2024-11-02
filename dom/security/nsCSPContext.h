@@ -219,6 +219,7 @@ class nsCSPContext : public nsIContentSecurityPolicy {
   mozilla::TimeStamp mSendReportLimitSpanStart;
   uint32_t mSendReportLimitCount = 1;
   bool mWarnedAboutTooManyReports = false;
+  bool mHasPolicyWithRequireTrustedTypesForDirective = false;
 };
 
 // Class that listens to violation report transmission and logs errors.

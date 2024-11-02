@@ -130,6 +130,11 @@ interface nsIContentSecurityPolicy : nsISerializable
                     in boolean reportOnly,
                     in boolean deliveredViaMetaTag);
 
+  /**
+   * Whether a policy with a RequireTrustedTypes was appended
+   */
+  [infallible] readonly attribute boolean hasPolicyWithRequireTrustedTypesForDirective;
+
   /*
    * Whether this policy allows inline script or style.
    * @param aContentPolicyType Either SCRIPT_SRC_(ELEM|ATTR)_DIRECTIVE or

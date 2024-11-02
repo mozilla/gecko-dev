@@ -1412,6 +1412,7 @@ Document::Document(const char* aContentType)
       mSuspendDOMNotifications(false),
       mForceLoadAtTop(false),
       mFireMutationEvents(true),
+      mHasPolicyWithRequireTrustedTypesForDirective(false),
       mXMLDeclarationBits(0),
       mOnloadBlockCount(0),
       mWriteLevel(0),
@@ -3715,7 +3716,11 @@ void Document::SetLoadedAsData(bool aLoadedAsData,
 
 nsIContentSecurityPolicy* Document::GetCsp() const { return mCSP; }
 
-void Document::SetCsp(nsIContentSecurityPolicy* aCSP) { mCSP = aCSP; }
+void Document::SetCsp(nsIContentSecurityPolicy* aCSP) {
+  mCSP = aCSP;
+  mHasPolicyWithRequireTrustedTypesForDirective =
+      aCSP && aCSP->GetHasPolicyWithRequireTrustedTypesForDirective();
+}
 
 nsIContentSecurityPolicy* Document::GetPreloadCsp() const {
   return mPreloadCSP;
@@ -3842,6 +3847,10 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
   // already been created.
   if (!mCSP) {
     mCSP = new nsCSPContext();
+    mHasPolicyWithRequireTrustedTypesForDirective = false;
+  } else {
+    mHasPolicyWithRequireTrustedTypesForDirective =
+        mCSP->GetHasPolicyWithRequireTrustedTypesForDirective();
   }
 
   // Always overwrite the requesting context of the CSP so that any new

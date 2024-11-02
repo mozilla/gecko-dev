@@ -468,10 +468,25 @@ nsCSPContext::AppendPolicy(const nsAString& aPolicyString, bool aReportOnly,
            "self-uri=%s referrer=%s",
            selfURIspec.get(), mReferrer.get()));
     }
+    if (policy->hasDirective(
+            nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE)) {
+      mHasPolicyWithRequireTrustedTypesForDirective = true;
+      if (nsCOMPtr<Document> doc = do_QueryReferent(mLoadingContext)) {
+        doc->SetHasPolicyWithRequireTrustedTypesForDirective(true);
+      }
+    }
 
     mPolicies.AppendElement(policy);
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsCSPContext::GetHasPolicyWithRequireTrustedTypesForDirective(
+    bool* aHasPolicyWithRequireTrustedTypesForDirective) {
+  *aHasPolicyWithRequireTrustedTypesForDirective =
+      mHasPolicyWithRequireTrustedTypesForDirective;
   return NS_OK;
 }
 

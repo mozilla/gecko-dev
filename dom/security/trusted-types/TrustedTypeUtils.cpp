@@ -34,10 +34,11 @@ namespace mozilla::dom::TrustedTypeUtils {
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-does-sink-type-require-trusted-types
 static bool DoesSinkTypeRequireTrustedTypes(nsIContentSecurityPolicy* aCSP,
                                             const nsAString& aSinkGroup) {
-  uint32_t numPolicies = 0;
-  if (aCSP) {
-    aCSP->GetPolicyCount(&numPolicies);
+  if (!aCSP || !aCSP->GetHasPolicyWithRequireTrustedTypesForDirective()) {
+    return false;
   }
+  uint32_t numPolicies = 0;
+  aCSP->GetPolicyCount(&numPolicies);
   for (uint32_t i = 0; i < numPolicies; ++i) {
     const nsCSPPolicy* policy = aCSP->GetPolicy(i);
 
@@ -60,12 +61,11 @@ static constexpr nsLiteralString kSampleSeparator = u"|"_ns;
 static SinkTypeMismatch::Value ShouldSinkTypeMismatchViolationBeBlockedByCSP(
     nsIContentSecurityPolicy* aCSP, const nsAString& aSink,
     const nsAString& aSinkGroup, const nsAString& aSource) {
+  MOZ_ASSERT(aCSP && aCSP->GetHasPolicyWithRequireTrustedTypesForDirective());
   SinkTypeMismatch::Value result = SinkTypeMismatch::Value::Allowed;
 
   uint32_t numPolicies = 0;
-  if (aCSP) {
-    aCSP->GetPolicyCount(&numPolicies);
-  }
+  aCSP->GetPolicyCount(&numPolicies);
 
   for (uint32_t i = 0; i < numPolicies; ++i) {
     const auto* policy = aCSP->GetPolicy(i);
@@ -194,18 +194,6 @@ void ProcessValueWithADefaultPolicy(const Document& aDocument,
   RefPtr<TrustedHTML>{new TrustedHTML(policyValue)}.forget(aResult);
 }
 
-// The global object's CSP may differ from the owner-document's one.
-// E.g. when aDocument was created by
-// `document.implementation.createHTMLDocument` and it's not connected to a
-// browsing context.
-static nsIContentSecurityPolicy* GetCspFromScopeObjectsInnerWindow(
-    const Document& aDocument, ErrorResult& aError) {
-  nsPIDOMWindowInner* piDOMWindowInner =
-      GetScopeObjectAsInnerWindow(aDocument, aError);
-
-  return aError.Failed() ? nullptr : piDOMWindowInner->GetCsp();
-}
-
 #define IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING_FOR_TRUSTED_HTML(              \
     _class, _stringCheck, _stringGetter)                                       \
   const nsAString* GetTrustedTypesCompliantString(                             \
@@ -223,19 +211,36 @@ static nsIContentSecurityPolicy* GetCspFromScopeObjectsInnerWindow(
       return &aInput.GetAsTrustedHTML().mData;                                 \
     }                                                                          \
                                                                                \
-    RefPtr<const Document> pinnedDoc{aNode.OwnerDoc()};                        \
-    RefPtr<nsIContentSecurityPolicy> csp =                                     \
-        GetCspFromScopeObjectsInnerWindow(*pinnedDoc, aError);                 \
-                                                                               \
+    /* Below, we use fast paths when there are no require-trusted-types-for */ \
+    /* directives. Note that the global object's CSP may differ from the    */ \
+    /* owner-document's one.                                                */ \
+    /* E.g. when aDocument was created by                                   */ \
+    /* `document.implementation.createHTMLDocument` and it's not connected  */ \
+    /* to a browsing context.                                               */ \
+    Document* ownerDoc = aNode.OwnerDoc();                                     \
+    const bool ownerDocLoadedAsData = ownerDoc->IsLoadedAsData();              \
+    if (!ownerDoc->HasPolicyWithRequireTrustedTypesForDirective() &&           \
+        !ownerDocLoadedAsData) {                                               \
+      return &aInput._stringGetter();                                          \
+    }                                                                          \
+    nsPIDOMWindowInner* piDOMWindowInner =                                     \
+        GetScopeObjectAsInnerWindow(*ownerDoc, aError);                        \
     if (aError.Failed()) {                                                     \
       return nullptr;                                                          \
     }                                                                          \
+    if (ownerDocLoadedAsData && piDOMWindowInner->GetExtantDoc() &&            \
+        !piDOMWindowInner->GetExtantDoc()                                      \
+             ->HasPolicyWithRequireTrustedTypesForDirective()) {               \
+      return &aInput._stringGetter();                                          \
+    }                                                                          \
+    RefPtr<nsIContentSecurityPolicy> csp = piDOMWindowInner->GetCsp();         \
                                                                                \
     if (!DoesSinkTypeRequireTrustedTypes(csp, aSinkGroup)) {                   \
       return &aInput._stringGetter();                                          \
     }                                                                          \
                                                                                \
     RefPtr<TrustedHTML> convertedInput;                                        \
+    RefPtr<const Document> pinnedDoc{ownerDoc};                                \
     ProcessValueWithADefaultPolicy(*pinnedDoc, aInput._stringGetter(), aSink,  \
                                    getter_AddRefs(convertedInput), aError);    \
                                                                                \

@@ -691,6 +691,10 @@ class nsCSPPolicy {
   void toDomCSPStruct(mozilla::dom::CSP& outCSP) const;
 
   inline void addDirective(nsCSPDirective* aDir) {
+    if (aDir->equals(
+            nsIContentSecurityPolicy::REQUIRE_TRUSTED_TYPES_FOR_DIRECTIVE)) {
+      mHasRequireTrustedTypesForDirective = true;
+    }
     mDirectives.AppendElement(aDir);
   }
 
@@ -761,6 +765,7 @@ class nsCSPPolicy {
 
   nsUpgradeInsecureDirective* mUpgradeInsecDir;
   nsTArray<nsCSPDirective*> mDirectives;
+  bool mHasRequireTrustedTypesForDirective = false;
   bool mReportOnly;
   bool mDeliveredViaMetaTag;
 };

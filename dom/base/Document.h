@@ -3670,6 +3670,16 @@ class Document : public nsINode,
   bool FireMutationEvents() const { return mFireMutationEvents; }
   void SetFireMutationEvents(bool aFire) { mFireMutationEvents = aFire; }
 
+  // https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-csp-directive
+  bool HasPolicyWithRequireTrustedTypesForDirective() const {
+    return mHasPolicyWithRequireTrustedTypesForDirective;
+  }
+  void SetHasPolicyWithRequireTrustedTypesForDirective(
+      bool aHasPolicyWithRequireTrustedTypesForDirective) {
+    mHasPolicyWithRequireTrustedTypesForDirective =
+        aHasPolicyWithRequireTrustedTypesForDirective;
+  }
+
   // Even if mutation events are disabled by default,
   // dom.mutation_events.forceEnable can be used to enable them per site.
   bool MutationEventsEnabled();
@@ -4948,6 +4958,9 @@ class Document : public nsINode,
   bool mForceLoadAtTop : 1;
 
   bool mFireMutationEvents : 1;
+
+  // Whether the document's CSP contains a require-trusted-types-for directive.
+  bool mHasPolicyWithRequireTrustedTypesForDirective : 1;
 
   Maybe<bool> mMutationEventsEnabled;
 
