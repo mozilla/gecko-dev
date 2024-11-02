@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">Фаъол кардани тамошокунии хусусӣ</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Ғайрифаъол кардани тамошокунии хусусӣ</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Тамошокунии махфӣ</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Нишониеро ҷустуҷӯ кунед ё ворид намоед</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -228,6 +230,8 @@
     <string name="browser_menu_discover_more_extensions">Кашф кардани васеъшавиҳои бештар</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Муваққатан ғайрифаъол аст</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Ягон васеъшавии фаъол нест</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Маълумот дар бораи ҳисоби корбар</string>
     <!-- Browser menu button that sends a user to help articles -->

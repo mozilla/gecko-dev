@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">Жекелік шолу режимін іске қосу</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Жекелік шолу режимін сөндіру</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Жекелік шолу</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Іздеу немесе адресті енгізу</string>
 
@@ -225,6 +227,8 @@
     <string name="browser_menu_discover_more_extensions">Көбірек кеңейтулерді табу</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Уақытша сөндірілген</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Іске қосылған кеңейтулер жоқ</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Тіркелгі ақпараты</string>
     <!-- Browser menu button that sends a user to help articles -->

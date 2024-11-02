@@ -15,6 +15,8 @@
     <string name="content_description_private_browsing_button">開啟隱私瀏覽模式</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">關閉隱私瀏覽模式</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">隱私瀏覽模式</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">搜尋或輸入網址</string>
 
@@ -229,6 +231,8 @@
     <string name="browser_menu_discover_more_extensions">探索更多擴充套件</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">已暫時停用</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">未啟用擴充套件</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">帳號資訊</string>
     <!-- Browser menu button that sends a user to help articles -->
