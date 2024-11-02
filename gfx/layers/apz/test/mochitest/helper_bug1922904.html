@@ -1,0 +1,132 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="apz_test_utils.js"></script>
+  <script src="apz_test_native_event_utils.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <style>
+  body {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+
+  .container {
+    display: flex;
+    gap: 40px;
+    height: 100%;
+
+    overflow-y: hidden;
+    overflow-x: auto;
+
+    scroll-snap-type: x mandatory;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    min-width: 92vw;
+
+    padding: 1rem;
+    gap: 30px;
+
+    background-color: grey;
+    height: 100%;
+
+    scroll-snap-align: none center;
+    scroll-snap-stop: always;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  section div {
+    width: 100%;
+  }
+
+  article:nth-child(n) {
+    background-color: turquoise;
+  }
+
+  article:nth-child(2n) {
+    background-color: tomato;
+  }
+
+  article:nth-child(3n) {
+    background-color: purple;
+  }
+
+  article {
+    width: 100%;
+    height: 75vh;
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section>
+      <div>
+        <article>
+          Some stuff 1
+        </article>
+        <article>
+          Some stuff 2
+        </article>
+        <article>
+          Some stuff 3
+        </article>
+      </div>
+    </section>
+    <section>
+      <div>
+        <article>
+          Some stuff 3
+        </article>
+        <article>
+          Some stuff 4
+        </article>
+        <article>
+          Some stuff 5
+        </article>
+      </div>
+    </section>
+  </div>
+</body>
+<script type="application/javascript">
+async function test() {
+  const container = document.querySelector(".container");
+
+  let scrollendPromise = promiseOneEvent(container, "scrollend");
+
+  // Send two horizontal wheel events quickly.
+  synthesizeNativeWheel(container, 50, 50, NativePanHandler.delta, 0);
+  synthesizeNativeWheel(container, 50, 50, NativePanHandler.delta, 0);
+
+  // Wait for the end of the smooth scrolling triggered by above wheel events.
+  await scrollendPromise;
+
+  // Store the destination of the smooth scrolling temporarily.
+  const endOfScrollPosition = container.scrollLeft;
+
+  // Try to do an instant scroll to the left edge of the scroll container,
+  // there's a scroll snap point.
+  container.scrollTo(container.clientWidth, 0);
+
+  is(endOfScrollPosition, container.scrollLeft);
+}
+
+if (getPlatform() == "android") {
+  ok(true, "Skipping test because native wheel events are not supported on Android");
+  subtestDone();
+} else if (getPlatform() == "linux") {
+  ok(true, "Skipping test on Linux because of bug 1889039. ");
+  subtestDone();
+} else {
+  waitUntilApzStable()
+  .then(test)
+  .then(subtestDone, subtestFailed);
+}
+</script>
+</html>
