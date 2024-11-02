@@ -3118,22 +3118,41 @@ void gfxPlatform::InitWebGLConfig() {
     }
   }
 
+#ifdef MOZ_WIDGET_GTK
   if (kIsLinux) {
-    nsCString discardFailureId;
-    int32_t status;
     FeatureState& feature =
         gfxConfig::GetFeature(Feature::DMABUF_SURFACE_EXPORT);
+    feature.EnableByDefault();
+    nsCString discardFailureId;
+    int32_t status;
     if (NS_FAILED(
             gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DMABUF_SURFACE_EXPORT,
                                       discardFailureId, &status)) ||
         status != nsIGfxInfo::FEATURE_STATUS_OK) {
-      feature.DisableByDefault(FeatureStatus::Blocked, "Blocklisted by gfxInfo",
-                               discardFailureId);
-      gfxVars::SetUseDMABufSurfaceExport(false);
-    } else {
-      feature.EnableByDefault();
+      feature.Disable(FeatureStatus::Blocked, "Blocklisted by gfxInfo",
+                      discardFailureId);
     }
+    gfxVars::SetUseDMABufSurfaceExport(feature.IsEnabled());
   }
+
+  if (kIsLinux) {
+    FeatureState& feature = gfxConfig::GetFeature(Feature::DMABUF_WEBGL);
+    feature.EnableByDefault();
+    if (!StaticPrefs::widget_dmabuf_webgl_enabled_AtStartup()) {
+      feature.UserDisable("Disabled by pref",
+                          "FEATURE_FAILURE_DISABLED_BY_PREF"_ns);
+    }
+    nsCString discardFailureId;
+    int32_t status;
+    if (NS_FAILED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_DMABUF_WEBGL,
+                                            discardFailureId, &status)) ||
+        status != nsIGfxInfo::FEATURE_STATUS_OK) {
+      feature.Disable(FeatureStatus::Blocked, "Blocklisted by gfxInfo",
+                      discardFailureId);
+    }
+    gfxVars::SetUseDMABufWebGL(feature.IsEnabled());
+  }
+#endif
 }
 
 void gfxPlatform::InitWebGPUConfig() {
