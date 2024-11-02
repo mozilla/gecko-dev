@@ -7266,19 +7266,16 @@ void nsWindow::SetWindowDecoration(BorderStyle aStyle) {
   gint wmd = ConvertBorderStyles(aStyle);
   if (wmd != -1) gdk_window_set_decorations(window, (GdkWMDecoration)wmd);
 
-  if (wasVisible) {
-    gdk_window_show(window);
-  }
+  if (wasVisible) gdk_window_show(window);
 
-  // For some window managers, adding or removing window decorations
-  // requires unmapping and remapping our toplevel window.  Go ahead
-  // and flush the queue here so that we don't end up with a BadWindow
-  // error later when this happens (when the persistence timer fires
-  // and GetWindowPos is called)
+    // For some window managers, adding or removing window decorations
+    // requires unmapping and remapping our toplevel window.  Go ahead
+    // and flush the queue here so that we don't end up with a BadWindow
+    // error later when this happens (when the persistence timer fires
+    // and GetWindowPos is called)
 #ifdef MOZ_X11
-  GdkDisplay* display = gdk_window_get_display(window);
-  if (GdkIsX11Display(display)) {
-    XSync(GDK_DISPLAY_XDISPLAY(display), X11False);
+  if (GdkIsX11Display()) {
+    XSync(GDK_DISPLAY_XDISPLAY(gdk_display_get_default()), X11False);
   } else
 #endif /* MOZ_X11 */
   {
