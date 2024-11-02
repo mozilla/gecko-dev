@@ -35,7 +35,7 @@ private const val TABS_DB_NAME = "tabs.sqlite"
  */
 open class RemoteTabsStorage(
     private val context: Context,
-    private val crashReporter: CrashReporting? = null,
+    private val crashReporter: CrashReporting,
 ) : Storage, SyncableStore {
     internal val api by lazy { RemoteTabsProvider(File(context.filesDir, TABS_DB_NAME).canonicalPath) }
     private val scope by lazy { CoroutineScope(Dispatchers.IO) }
@@ -59,8 +59,10 @@ open class RemoteTabsStorage(
                         RemoteTab(activeTab.title, urlHistory, activeTab.iconUrl, it.lastUsed, it.inactive)
                     },
                 )
+                logger.info("Told the tabs store we have ${tabs.size}")
             } catch (e: RemoteTabProviderException) {
-                crashReporter?.submitCaughtException(e)
+                logger.error("Failed to tell the tabs store about our tabs", e)
+                crashReporter.submitCaughtException(e)
             }
         }
     }
@@ -85,7 +87,7 @@ open class RemoteTabsStorage(
                     SyncClient(device.clientId) to tabs
                 }.toMap()
             } catch (e: RemoteTabProviderException) {
-                crashReporter?.submitCaughtException(e)
+                crashReporter.submitCaughtException(e)
                 return@withContext emptyMap()
             }
         }

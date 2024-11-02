@@ -472,7 +472,7 @@ class Core(
     /**
      * The storage component to sync and persist tabs in a Firefox Sync account.
      */
-    val lazyRemoteTabsStorage = lazyMonitored { RemoteTabsStorage(context) }
+    val lazyRemoteTabsStorage = lazyMonitored { RemoteTabsStorage(context, crashReporter) }
 
     val recentlyClosedTabsStorage =
         lazyMonitored { RecentlyClosedTabsStorage(context, engine, crashReporter) }
