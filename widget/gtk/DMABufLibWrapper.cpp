@@ -235,11 +235,11 @@ bool DMABufDevice::IsDMABufWebGLEnabled() {
   LOGDMABUF(
       ("DMABufDevice::IsDMABufWebGLEnabled: UseDMABuf %d "
        "sUseWebGLDmabufBackend %d "
-       "UseDMABufWebGL %d\n",
+       "widget_dmabuf_webgl_enabled %d\n",
        gfx::gfxVars::UseDMABuf(), sUseWebGLDmabufBackend,
-       gfx::gfxVars::UseDMABufWebGL()));
+       StaticPrefs::widget_dmabuf_webgl_enabled()));
   return gfx::gfxVars::UseDMABuf() && sUseWebGLDmabufBackend &&
-         gfx::gfxVars::UseDMABufWebGL();
+         StaticPrefs::widget_dmabuf_webgl_enabled();
 }
 
 #ifdef MOZ_WAYLAND

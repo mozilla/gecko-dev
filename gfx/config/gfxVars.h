@@ -82,7 +82,6 @@ class gfxVarReceiver;
   _(UseEGL, bool, false)                                           \
   _(DrmRenderDevice, nsCString, nsCString())                       \
   _(UseDMABuf, bool, false)                                        \
-  _(UseDMABufWebGL, bool, true)                                    \
   _(DMABufModifiersXRGB, ArrayOfuint64_t, nsTArray<uint64_t>())    \
   _(DMABufModifiersARGB, ArrayOfuint64_t, nsTArray<uint64_t>())    \
   _(CodecSupportInfo, nsCString, nsCString())                      \

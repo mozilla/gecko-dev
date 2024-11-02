@@ -1053,17 +1053,6 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         V(0, 0, 0, 0), "FEATURE_FAILURE_BROKEN_DRIVER", "");
 
     ////////////////////////////////////
-    // FEATURE_DMABUF_WEBGL
-    // Disabled due to DMABuf rendering/correctness with WebGL on Nvidia driver,
-    // tracked in bug 1924578.
-    APPEND_TO_DRIVER_BLOCKLIST_EXT(
-        OperatingSystem::Linux, ScreenSizeStatus::All, BatteryStatus::All,
-        WindowProtocol::All, DriverVendor::NonMesaAll, DeviceFamily::NvidiaAll,
-        nsIGfxInfo::FEATURE_DMABUF_WEBGL, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0), "FEATURE_FAILURE_BUG_1924578",
-        "");
-
-    ////////////////////////////////////
     // FEATURE_HARDWARE_VIDEO_DECODING
     APPEND_TO_DRIVER_BLOCKLIST_EXT(
         OperatingSystem::Linux, ScreenSizeStatus::All, BatteryStatus::All,
