@@ -1191,6 +1191,7 @@ with modules["DOM_MEDIA"]:
     errors["NS_ERROR_DOM_MEDIA_DENIED_IN_NON_UTILITY"] = FAILURE(104)
     errors["NS_ERROR_DOM_MEDIA_RANGE_ERR"] = FAILURE(105)
     errors["NS_ERROR_DOM_MEDIA_TYPE_ERR"] = FAILURE(106)
+    errors["NS_ERROR_DOM_MEDIA_MEDIA_ENGINE_INITIALIZATION_ERR"] = FAILURE(107)
 
 # =======================================================================
 # 42: NS_ERROR_MODULE_URL_CLASSIFIER
