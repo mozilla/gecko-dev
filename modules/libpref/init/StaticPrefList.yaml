@@ -17474,9 +17474,9 @@
 
 # Use DMABuf backend for WebGL.
 - name: widget.dmabuf-webgl.enabled
-  type: RelaxedAtomicBool
+  type: bool
   value: true
-  mirror: always
+  mirror: once
 
 # Use gdk_window_move_to_rect to move Wayland popups when available.
 - name: widget.wayland.use-move-to-rect
