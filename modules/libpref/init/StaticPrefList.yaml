@@ -8734,7 +8734,7 @@
 #if defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID)
   value: true
 #elif defined(MOZ_X11)
-  value: @IS_NIGHTLY_BUILD@
+  value: false  # we'd like this to be @IS_NIGHTLY_BUILD@, see Bug 1927058
 #else
   value: false
 #endif
