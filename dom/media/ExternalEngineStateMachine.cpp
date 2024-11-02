@@ -259,9 +259,12 @@ void ExternalEngineStateMachine::OnEngineInitFailure() {
   auto* state = mState.AsInitEngine();
   state->mEngineInitRequest.Complete();
   state->mInitPromise = nullptr;
-  // TODO : Should fallback to the normal playback with media engine.
-  ReportTelemetry(NS_ERROR_DOM_MEDIA_FATAL_ERR);
-  DecodeError(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, __func__));
+  // Even if we failed to initialize the media engine, we still want to try
+  // again with the normal state machine, so don't return a fatal error, return
+  // NS_ERROR_DOM_MEDIA_EXTERNAL_ENGINE_NOT_SUPPORTED_ERR instead.
+  ReportTelemetry(NS_ERROR_DOM_MEDIA_MEDIA_ENGINE_INITIALIZATION_ERR);
+  DecodeError(MediaResult(NS_ERROR_DOM_MEDIA_EXTERNAL_ENGINE_NOT_SUPPORTED_ERR,
+                          __func__));
 }
 
 void ExternalEngineStateMachine::ReadMetadata() {
