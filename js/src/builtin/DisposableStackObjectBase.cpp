@@ -274,20 +274,19 @@ bool js::GetDisposeMethod(JSContext* cx, JS::Handle<JS::Value> objVal,
   return true;
 }
 
-/* static */ ArrayObject*
-DisposableStackObjectBase::GetOrCreateDisposeCapability(
-    JSContext* cx, JS::Handle<DisposableStackObjectBase*> obj) {
+ArrayObject* DisposableStackObjectBase::getOrCreateDisposeCapability(
+    JSContext* cx) {
   ArrayObject* disposablesList = nullptr;
 
-  if (obj->isDisposableResourceStackEmpty()) {
+  if (isDisposableResourceStackEmpty()) {
     disposablesList = NewDenseEmptyArray(cx);
     if (!disposablesList) {
       return nullptr;
     }
-    obj->setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT,
-                         ObjectValue(*disposablesList));
+    setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT,
+                    ObjectValue(*disposablesList));
   } else {
-    disposablesList = obj->nonEmptyDisposableResourceStack();
+    disposablesList = nonEmptyDisposableResourceStack();
   }
 
   return disposablesList;

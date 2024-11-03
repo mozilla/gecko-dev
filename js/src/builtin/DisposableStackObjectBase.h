@@ -54,9 +54,7 @@ class DisposableStackObjectBase : public NativeObject {
   static constexpr uint32_t RESERVED_SLOTS = 2;
 
  protected:
-  static ArrayObject* GetOrCreateDisposeCapability(
-      JSContext* cx, JS::Handle<DisposableStackObjectBase*> obj);
-
+  ArrayObject* getOrCreateDisposeCapability(JSContext* cx);
   bool isDisposableResourceStackEmpty() const;
   void clearDisposableResourceStack();
   ArrayObject* nonEmptyDisposableResourceStack() const;

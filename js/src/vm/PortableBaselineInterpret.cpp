@@ -8945,60 +8945,6 @@ PBIResult PortableBaselineInterpret(
         frame->popOffEnvironmentChain<WithEnvironmentObject>();
         END_OP(LeaveWith);
       }
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-      CASE(AddDisposable) {
-        {
-          ReservedRooted<JSObject*> env(&state.obj0, frame->environmentChain());
-
-          ReservedRooted<JS::Value> needsClosure(&state.value0,
-                                                 VIRTPOP().asValue());
-          ReservedRooted<JS::Value> method(&state.value1, VIRTPOP().asValue());
-          ReservedRooted<JS::Value> val(&state.value2, VIRTPOP().asValue());
-          UsingHint hint = UsingHint(GET_UINT8(pc));
-          PUSH_EXIT_FRAME();
-          if (!AddDisposableResourceToCapability(
-                  cx, env, val, method, needsClosure.toBoolean(), hint)) {
-            GOTO_ERROR();
-          }
-        }
-        END_OP(AddDisposable);
-      }
-
-      CASE(TakeDisposeCapability) {
-        {
-          ReservedRooted<JSObject*> env(&state.obj0, frame->environmentChain());
-          JS::Value maybeDisposables =
-              env->as<DisposableEnvironmentObject>().getDisposables();
-
-          MOZ_ASSERT(maybeDisposables.isObject() ||
-                     maybeDisposables.isUndefined());
-
-          if (maybeDisposables.isUndefined()) {
-            VIRTPUSH(StackVal(UndefinedValue()));
-          } else {
-            VIRTPUSH(StackVal(maybeDisposables));
-            env->as<DisposableEnvironmentObject>().clearDisposables();
-          }
-        }
-        END_OP(TakeDisposeCapability);
-      }
-
-      CASE(CreateSuppressedError) {
-        ErrorObject* errorObj;
-        {
-          ReservedRooted<JS::Value> error(&state.value0, VIRTPOP().asValue());
-          ReservedRooted<JS::Value> suppressed(&state.value1,
-                                               VIRTPOP().asValue());
-          PUSH_EXIT_FRAME();
-          errorObj = CreateSuppressedError(cx, error, suppressed);
-          if (!errorObj) {
-            GOTO_ERROR();
-          }
-        }
-        VIRTPUSH(StackVal(ObjectValue(*errorObj)));
-        END_OP(CreateSuppressedError);
-      }
-#endif
       CASE(BindVar) {
         JSObject* varObj;
         {

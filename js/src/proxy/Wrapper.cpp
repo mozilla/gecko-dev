@@ -422,11 +422,7 @@ void js::ReportAccessDenied(JSContext* cx) {
 const char Wrapper::family = 0;
 const Wrapper Wrapper::singleton((unsigned)0);
 const Wrapper Wrapper::singletonWithPrototype((unsigned)0, true);
-
-// TODO: this is temporarily annotated as MOZ_GLOBINIT rather than
-// MOZ_RUNINIT to avoid clang plugin errors when building with
-// explicit resource management enabled (bug 1928633)
-MOZ_GLOBINIT JSObject* const Wrapper::defaultProto = TaggedProto::LazyProto;
+MOZ_RUNINIT JSObject* const Wrapper::defaultProto = TaggedProto::LazyProto;
 
 /* Compartments. */
 

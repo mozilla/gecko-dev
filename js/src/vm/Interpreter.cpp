@@ -2174,9 +2174,6 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     CASE(AddDisposable) {
-      MOZ_ASSERT(JS::Prefs::experimental_explicit_resource_management(),
-                 "AddDisposable opcode should not be present without the "
-                 "explicit resource management feature flag");
       ReservedRooted<JSObject*> env(&rootObject0,
                                     REGS.fp()->environmentChain());
 
@@ -2199,9 +2196,6 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(AddDisposable)
 
     CASE(TakeDisposeCapability) {
-      MOZ_ASSERT(JS::Prefs::experimental_explicit_resource_management(),
-                 "TakeDisposeCapability opcode should not be present without "
-                 "the explicit resource management feature flag");
       ReservedRooted<JSObject*> env(&rootObject0,
                                     REGS.fp()->environmentChain());
       JS::Value maybeDisposables =
@@ -2219,9 +2213,6 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(TakeDisposeCapability)
 
     CASE(CreateSuppressedError) {
-      MOZ_ASSERT(JS::Prefs::experimental_explicit_resource_management(),
-                 "CreateSuppressedError opcode should not be present without "
-                 "the explicit resource management feature flag");
       ReservedRooted<JS::Value> error(&rootValue0);
       ReservedRooted<JS::Value> suppressed(&rootValue1);
       POP_COPY_TO(suppressed);

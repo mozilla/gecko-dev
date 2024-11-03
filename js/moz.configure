@@ -177,8 +177,8 @@ set_define("ENABLE_DECORATORS", enable_decorators)
 # ===================================================
 option(
     "--enable-explicit-resource-management",
-    default=milestone.is_nightly,
-    help="{Enable|Disable} explicit resource management",
+    default=False,
+    help="Enable explicit resource management",
 )
 
 

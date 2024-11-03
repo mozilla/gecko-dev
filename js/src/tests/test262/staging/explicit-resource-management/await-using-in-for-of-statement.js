@@ -1,4 +1,4 @@
-// |reftest| shell-option(--enable-explicit-resource-management) skip-if(!(this.hasOwnProperty('getBuildConfiguration')&&getBuildConfiguration('explicit-resource-management'))||!xulRuntime.shell) async -- explicit-resource-management is not enabled unconditionally, requires shell-options
+// |reftest| skip-if(!(this.hasOwnProperty('getBuildConfiguration')&&getBuildConfiguration('explicit-resource-management'))) async -- explicit-resource-management is not enabled unconditionally
 
 // Copyright (C) 2024 the V8 project authors. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.

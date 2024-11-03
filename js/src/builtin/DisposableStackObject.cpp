@@ -24,9 +24,6 @@ using namespace js;
     JSContext* cx, JS::Handle<JSObject*> proto,
     JS::Handle<JS::Value>
         initialDisposeCapability /* = JS::UndefinedHandleValue */) {
-  MOZ_ASSERT(JS::Prefs::experimental_explicit_resource_management(),
-             "DisposableStackObject::create should not be accessible without "
-             "the experimental explicit resource management feature flag");
   DisposableStackObject* obj =
       NewObjectWithClassProto<DisposableStackObject>(cx, proto);
   if (!obj) {
@@ -112,7 +109,7 @@ using namespace js;
   // AddDisposableResource(disposableStack.[[DisposeCapability]], value,
   // sync-dispose).
   JS::Rooted<ArrayObject*> disposeCapability(
-      cx, GetOrCreateDisposeCapability(cx, disposableStack));
+      cx, disposableStack->getOrCreateDisposeCapability(cx));
   if (!disposeCapability) {
     return false;
   }
@@ -164,7 +161,7 @@ using namespace js;
   // AddDisposableResource(disposableStack.[[DisposeCapability]], undefined,
   // sync-dispose, onDispose).
   JS::Rooted<ArrayObject*> disposeCapability(
-      cx, GetOrCreateDisposeCapability(cx, disposableStack));
+      cx, disposableStack->getOrCreateDisposeCapability(cx));
   if (!disposeCapability) {
     return false;
   }
@@ -286,7 +283,7 @@ using namespace js;
   // AddDisposableResource(disposableStack.[[DisposeCapability]], undefined,
   // sync-dispose, F).
   JS::Rooted<ArrayObject*> disposeCapability(
-      cx, GetOrCreateDisposeCapability(cx, disposableStack));
+      cx, disposableStack->getOrCreateDisposeCapability(cx));
   if (!disposeCapability) {
     return false;
   }
