@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !('interruptRegexp' in this) || getBuildConfiguration('pbl') || getBuildConfiguration("explicit-resource-management")
+// |jit-test| skip-if: !('interruptRegexp' in this) || getBuildConfiguration('pbl')
 // skip testing under PBL because interruption of regex engine here seems to
 // depend on GC behavior and is hard to reproduce reliably.
 var s0 = "A".repeat(10*1024);
