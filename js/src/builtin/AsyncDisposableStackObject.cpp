@@ -17,6 +17,9 @@ using namespace js;
     JSContext* cx, JS::Handle<JSObject*> proto,
     JS::Handle<JS::Value>
         initialDisposeCapability /* = JS::UndefinedHandleValue */) {
+  MOZ_ASSERT(JS::Prefs::experimental_explicit_resource_management(),
+             "AsyncDisposableStack::create should not be accessible without "
+             "the experimental explicit resource management feature flag");
   AsyncDisposableStackObject* obj =
       NewObjectWithClassProto<AsyncDisposableStackObject>(cx, proto);
   if (!obj) {
