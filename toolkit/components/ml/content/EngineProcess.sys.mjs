@@ -334,14 +334,14 @@ export class PipelineOptions {
   #validateId(field, value) {
     // Define a regular expression to match the optional organization and required name
     // `organization/` part is optional, and both parts should follow the taskName pattern.
-    const validPattern = /^(?:[a-zA-Z0-9_\-]+\/)?[a-zA-Z0-9_\-]+$/;
+    const validPattern = /^(?:[a-zA-Z0-9_\-\.]+\/)?[a-zA-Z0-9_\-\.]+$/;
 
     // Check if the value matches the pattern
     if (!validPattern.test(value)) {
       throw new PipelineOptionsValidationError(
         field,
         value,
-        "Should follow the format 'organization/name' or 'name', where both parts contain only alphanumeric characters, underscores, or dashes."
+        "Should follow the format 'organization/name' or 'name', where both parts contain only alphanumeric characters, underscores, dots or dashes."
       );
     }
   }

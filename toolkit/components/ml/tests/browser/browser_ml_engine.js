@@ -904,6 +904,11 @@ const pipelineOptionsCases = [
     options: { logLevel: LogLevel.ALL },
     expected: { logLevel: LogLevel.ALL },
   },
+  {
+    description: "Valid modelId",
+    options: { modelId: "Qwen2.5-0.5B-Instruct" },
+    expected: { modelId: "Qwen2.5-0.5B-Instruct" },
+  },
 
   // Invalid revision cases
   {
