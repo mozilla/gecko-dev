@@ -128,6 +128,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">ඉඩ දෙන්න</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">ප්‍රතික්‍ෂේප</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">තව දැනගන්න</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">අවලංගු</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
@@ -182,10 +184,12 @@
     <string name="mozac_feature_addons_failed_to_translate">%1$s සඳහා හෝ පෙරනිමි භාෂාව %2$s සඳහා පරිවර්තනය හමු නොවිණි</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s සාර්ථකව ස්ථාපිතයි</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">%1$s ස්ථාපනයට අසමත් විය</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">මෙම දිගුව ස්ථාපනයට අසමත් විය.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">දිගුව ස්ථාපනයට නොහැකිය</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">සම්බන්ධතාවයට බාධා වීමක් නිසා දිගුව බාගැනීමට නොහැකි විය.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -195,7 +199,7 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%2$s %3$s සමඟ නොගැළපෙන නිසා %1$s ස්ථාපනයට නොහැකිය.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">ඉහළ අවදානමක් සහිත ආරක්‍ෂණ හෝ ස්ථායි ගැටළු තිබෙන නිසා %1$s ස්ථාපනයට නොහැකිය.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">ඉහළ අවදානමක් සහිත ආරක්‍ෂණ හෝ ස්ථායි ගැටළු තිබෙන නිසා %1$s ස්ථාපනයට නොහැකිය.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s සාර්ථකව සබල විය</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -238,8 +242,10 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">හරි</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">තව දැනගන්න</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">විස්තර බලන්න</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">ආරක්‍ෂණ හෝ ස්ථායිතා දෝෂ නිසා %1$s අබල කර ඇත.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">ආරක්‍ෂණ හෝ ස්ථායිතා දෝෂ නිසා %1$s අබල කර ඇත.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s ආරක්‍ෂිත බව සත්‍යාපනයට නොහැකි වූ බැවින් අබල කර ඇත.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

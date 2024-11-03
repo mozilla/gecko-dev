@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">Ativar navegação privativa</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Desativar navegação privativa</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Navegação privativa</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Pesquise ou digite um endereço</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -228,6 +230,8 @@
     <string name="browser_menu_discover_more_extensions">Descobrir mais extensões</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Desativado temporariamente</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Nenhuma extensão ativada</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Informações da conta</string>
     <!-- Browser menu button that sends a user to help articles -->

@@ -13,6 +13,8 @@
     <string name="content_description_private_browsing_button">Privát böngészés engedélyezése</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Privát böngészés letiltása</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Privát böngészés</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Keressen, vagy adjon meg címet</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -224,6 +226,8 @@
     <string name="browser_menu_discover_more_extensions">További kiegészítők felfedezése</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Ideiglenesen letiltva</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Nincs kiegészítő engedélyezve</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Fiókinformáció</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -423,7 +427,11 @@
     <string name="search_header_menu_item_2">Ezúttal keresés ebben:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description">%s keresőszolgáltatás</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s keresőszolgáltatás</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">Keresőszolgáltatás: %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -511,9 +519,9 @@
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Kezdje el a böngészést.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">Fedezzen fel több kiegészítőt</string>
+    <string name="onboarding_add_on_explore_more_extensions_2">Fedezzen fel több kiegészítőt</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">Böngészés megkezdése</string>
+    <string name="onboarding_add_on_start_browsing_button_2">Böngészés megkezdése</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
     <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -531,6 +539,15 @@
 
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Egyéni sötét mód a mobilwebhez.</string>
+
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">Értékelések: %1$s</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">Kiegészítő ikonja</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">Kiegészítőikon hozzáadása</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">%1$s csillagra értékelve az 5-ből</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1247,6 +1264,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Biztos, hogy törölni szeretné ezt a mappát?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Biztos, hogy törli a kiválasztott elemeket?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">A(z) %s törölni fogja a kiválasztott elemeket.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1254,7 +1273,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Mappa hozzáadása</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Könyvjelző mentve.</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Könyvjelző mentve.</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Mentve itt: „%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1322,7 +1341,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">A(z) „%s” törölve</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Elemek törölve: %s</string>
+    <string name="bookmark_delete_multiple_items">Elemek törölve: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Adja meg a keresési kifejezéseket</string>
 
@@ -1330,6 +1349,10 @@
     <string name="bookmark_navigate_back_button_content_description">Navigálás visszafelé</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Új mappa hozzáadása</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Könyvjelző törlése</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Mappa törlése</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Könyvjelzők keresése</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1348,7 +1371,7 @@
     <string name="bookmark_empty_list_folder_description">Adjon hozzá könyvjelzőket böngészés közben, hogy később is megtalálja a kedvenc oldalait.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Új mappa</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Új mappa</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1600,9 +1623,9 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Bezárt lapok: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Könyvjelzők mentve!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Könyvjelzők mentve!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">A könyvjelzők ide lettek mentve: „%s”.</string>
+    <string name="snackbar_message_bookmarks_saved_in">A könyvjelzők ide lettek mentve: „%s”.</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Hozzáadva az indítóikonokhoz.</string>
     <!-- Text shown in snackbar when user closes a private tab -->
