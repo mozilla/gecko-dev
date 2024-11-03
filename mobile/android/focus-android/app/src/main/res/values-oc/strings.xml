@@ -84,7 +84,6 @@
     <string name="share_dialog_title">Partejar via</string>
 
     <string name="notification_erase_title_android_14">Escafar l’istoric de navegacion ?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Tocatz aquesta notificacion o suprimissètz-la per escafar l’istoric de navegacion d’una manièra segura.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -123,23 +122,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Recercar dins Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Recercar dins Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Recercar dins Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Recercar dins Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Recercar dins Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Recercar dins Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Recercar dins Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Recercar dins Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s vos dòna lo contraròtla.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s vos dòna lo contraròtla.</p>
 <p>Utiliza-lo coma un navegador privat :
   <ul>
     <li>Recercatz e navegatz dins l’aplicacion</li>
@@ -515,7 +514,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Tampar</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Tampar</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -605,9 +604,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Netejar l’istoric de navegacion</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Tampar los autres onglets</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Telecargar Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Telecargar Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -619,23 +621,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s es distribuit jols tèrmes de la <a href="%2$s">Licéncia publica de Mozilla</a> e d’autras licéncias open source.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s es distribuit jols tèrmes de la <a href="%2$s">Licéncia publica de Mozilla</a> e d’autras licéncias open source.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Cap de drech o licéncia vos es pas cedit sus las marcas depausadas de la Fondacion Mozilla o de tèrces, inclús sul nom e lo lògo de Mozilla, Firefox o de %1$s. Podètz consultar d’informacions complementàrias <a href="%2$s">aquí</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Cap de drech o licéncia vos es pas cedit sus las marcas depausadas de la Fondacion Mozilla o de tèrces, inclús sul nom e lo lògo de Mozilla, Firefox o de %1$s. Podètz consultar d’informacions complementàrias <a href="%2$s">aquí</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Còdis font complementaris per %1$s son disponibles jos diferentas <a href="%2$s">licéncias</a> liuras e open source.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Còdis font complementaris per %1$s son disponibles jos diferentas <a href="%2$s">licéncias</a> liuras e open source.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s utiliza tanben las listas de blocatges provesidas per Disconnect, Inc coma de trabalh separat e independent jos licéncia <a href="%2$s">GNU General Public License v3</a>, e disponiblas <a href="%3$s">aquí</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s utiliza tanben las listas de blocatges provesidas per Disconnect, Inc coma de trabalh separat e independent jos licéncia <a href="%2$s">GNU General Public License v3</a>, e disponiblas <a href="%3$s">aquí</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Nom d\'utilizaire</string>
@@ -827,7 +829,7 @@
     <string name="preference_studies">Estudis</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox pòt installar e lançar d’estudis de temps en temps.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox pòt installar e lançar d’estudis de temps en temps.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Ne saber mai</string>
@@ -921,9 +923,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Mostrar</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Mòde plen ecran actiu</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Mostrar sulcòp los ligams dobèrts</string>
@@ -1031,7 +1030,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s ensaja d’utilizar una connexion HTTPS quand es possible per mai de seguretat.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ensaja d’utilizar una connexion HTTPS quand es possible per mai de seguretat.
      <a href="%2$s">Ne saber mai</a> <br/><br/>
      Cambiatz aqueste paramètre dins Paramètres > Vida privada e seguretat > Seguretat.]]></string>
 
@@ -1114,7 +1113,8 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Per sortir del mòde ecran complèt, lisatz d’ennaut e utilizatz lo gèst de retorn</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Per sortir del mòde ecran complèt, lisatz d’ennaut e utilizatz lo gèst de retorn</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Per sortir del mòde ecran complèt, lisatz d’ennaut e utilizatz quichatz retorn</string>
-</resources>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Per sortir del mòde ecran complèt, lisatz d’ennaut e utilizatz quichatz retorn</string>
+
+    </resources>
