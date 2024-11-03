@@ -147,9 +147,9 @@ class TestFissionAutostart(MarionetteTestCase):
 
     def tearDown(self):
         if self.fissionRequired is not None:
-            self.marionette.instance.required_prefs[
-                Prefs.FISSION_AUTOSTART
-            ] = self.fissionRequired
+            self.marionette.instance.required_prefs[Prefs.FISSION_AUTOSTART] = (
+                self.fissionRequired
+            )
         self.marionette.restart(in_app=False, clean=True)
 
         super(TestFissionAutostart, self).tearDown()

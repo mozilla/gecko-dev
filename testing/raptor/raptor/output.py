@@ -1742,9 +1742,9 @@ class BrowsertimeOutput(PerftestOutput):
                     try:
                         for alternative_method in self.extra_summary_methods:
                             new_subtest = copy.deepcopy(subtest)
-                            new_subtest[
-                                "name"
-                            ] = f"{new_subtest['name']} ({alternative_method})"
+                            new_subtest["name"] = (
+                                f"{new_subtest['name']} ({alternative_method})"
+                            )
                             _process(new_subtest, alternative_method)
                             new_subtests.append(new_subtest)
                     except Exception as e:
@@ -1981,9 +1981,11 @@ class BrowsertimeOutput(PerftestOutput):
 
         # convert suites to list
         suites = [
-            s
-            if ("benchmark" in s["type"] or test.get("support_class"))
-            else _process_suite(s)
+            (
+                s
+                if ("benchmark" in s["type"] or test.get("support_class"))
+                else _process_suite(s)
+            )
             for s in suites.values()
         ]
 

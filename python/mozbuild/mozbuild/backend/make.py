@@ -115,9 +115,11 @@ class MakeBackend(CommonBackend):
                     output=first_output,
                     dep_file=dep_file,
                     inputs=" " + " ".join(inputs) if inputs else "",
-                    flags=" " + " ".join(shell_quote(f) for f in obj.flags)
-                    if obj.flags
-                    else "",
+                    flags=(
+                        " " + " ".join(shell_quote(f) for f in obj.flags)
+                        if obj.flags
+                        else ""
+                    ),
                     backend=" " + extra_dependencies if extra_dependencies else "",
                     # Locale repacks repack multiple locales from a single configured objdir,
                     # so standard mtime dependencies won't work properly when the build is re-run

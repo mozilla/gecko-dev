@@ -432,9 +432,9 @@ def fix_partner_config(orig_config):
                     if not subpartner_config:
                         continue
                     # Make sure our locale list is a subset of all_locales
-                    pc.setdefault(kind, {}).setdefault(partner, {})[
-                        subpartner
-                    ] = _fix_subpartner_locales(subpartner_config, all_locales)
+                    pc.setdefault(kind, {}).setdefault(partner, {})[subpartner] = (
+                        _fix_subpartner_locales(subpartner_config, all_locales)
+                    )
     return pc
 
 

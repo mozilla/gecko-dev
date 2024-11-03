@@ -240,11 +240,15 @@ config = {
                     "external_tools",
                     "machine-configuration.json",
                 ),
-                "--platform=win10-vm"
-                if REQUIRE_GPU and (platform.uname().version == "10.0.19045")
-                else "--platform=win11-hw"
-                if REQUIRE_GPU and (platform.uname().version == "10.0.22621")
-                else "--platform=win7",
+                (
+                    "--platform=win10-vm"
+                    if REQUIRE_GPU and (platform.uname().version == "10.0.19045")
+                    else (
+                        "--platform=win11-hw"
+                        if REQUIRE_GPU and (platform.uname().version == "10.0.22621")
+                        else "--platform=win7"
+                    )
+                ),
             ],
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": True,

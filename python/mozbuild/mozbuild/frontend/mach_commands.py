@@ -135,9 +135,11 @@ def file_info_bugzilla(command_context, paths, rev=None, fmt=None):
     elif fmt == "plain":
         comp_to_file = sorted(
             (
-                "UNKNOWN"
-                if component is None
-                else "%s :: %s" % (component.product, component.component),
+                (
+                    "UNKNOWN"
+                    if component is None
+                    else "%s :: %s" % (component.product, component.component)
+                ),
                 sorted(files),
             )
             for component, files in components.items()

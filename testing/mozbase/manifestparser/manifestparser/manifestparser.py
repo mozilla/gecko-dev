@@ -247,9 +247,9 @@ class ManifestParser(object):
             #   is True.
             # - Any variables from the "[include:...]" section.
             # - The defaults of the included manifest.
-            self.manifest_defaults[
-                (parentmanifest, manifest_defaults_filename)
-            ] = defaults
+            self.manifest_defaults[(parentmanifest, manifest_defaults_filename)] = (
+                defaults
+            )
             if manifest_defaults_filename != filename:
                 self.manifest_defaults[(parentmanifest, filename)] = defaults
         else:

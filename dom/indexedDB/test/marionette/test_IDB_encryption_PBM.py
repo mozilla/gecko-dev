@@ -16,7 +16,6 @@ QM_TESTING_PREF = "dom.quotaManager.testing"
 
 
 class IDBEncryptionPBM(QuotaTestCase):
-
     """
     Bug1784966: Ensure IDB data gets encrypted in Private Browsing Mode.
     We need to ensure data inside both sqlite fields and blob files under

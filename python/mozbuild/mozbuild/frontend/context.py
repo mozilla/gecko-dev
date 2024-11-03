@@ -2934,9 +2934,11 @@ SPECIAL_VARIABLES = {
         """,
     ),
     "TEST_DIRS": (
-        lambda context: context["DIRS"]
-        if context.config.substs.get("ENABLE_TESTS")
-        else TestDirsPlaceHolder,
+        lambda context: (
+            context["DIRS"]
+            if context.config.substs.get("ENABLE_TESTS")
+            else TestDirsPlaceHolder
+        ),
         list,
         """Like DIRS but only for directories that contain test-only code.
 

@@ -92,9 +92,9 @@ def test_perfdocs_generator_generate_perfdocs_metrics_pass(
             verifier = Verifier(top_dir)
             verifier.validate_tree()
 
-            verifier._gatherer.framework_gatherers[
-                "raptor"
-            ]._descriptions = sample_test_list_result
+            verifier._gatherer.framework_gatherers["raptor"]._descriptions = (
+                sample_test_list_result
+            )
 
         generator = Generator(verifier, generate=True, workspace=top_dir)
         with temp_file(

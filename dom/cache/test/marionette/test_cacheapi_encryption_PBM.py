@@ -16,7 +16,6 @@ QM_TESTING_PREF = "dom.quotaManager.testing"
 
 
 class CacheAPIEncryptionPBM(QuotaTestCase):
-
     """
     Bug1856953: Ensure CacheAPI data gets encrypted in Private Browsing Mode.
     We need to ensure data inside both sqlite fields and request/response files

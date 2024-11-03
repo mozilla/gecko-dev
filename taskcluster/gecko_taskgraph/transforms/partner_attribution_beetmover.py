@@ -81,9 +81,9 @@ def populate_scopes_and_upstream_artifacts(config, jobs):
         job["scopes"] = [bucket_scope, action_scope]
 
         partner_path = job["partner-path"].format(**repl_dict)
-        job.setdefault("worker", {})[
-            "upstream-artifacts"
-        ] = generate_upstream_artifacts(attribution_task_ref, artifacts, partner_path)
+        job.setdefault("worker", {})["upstream-artifacts"] = (
+            generate_upstream_artifacts(attribution_task_ref, artifacts, partner_path)
+        )
 
         yield job
 

@@ -259,9 +259,9 @@ class PageloadSupport(BasePythonSupport):
                     try:
                         for alternative_method in self.extra_summary_methods:
                             new_subtest = copy.deepcopy(subtest)
-                            new_subtest[
-                                "name"
-                            ] = f"{new_subtest['name']} ({alternative_method})"
+                            new_subtest["name"] = (
+                                f"{new_subtest['name']} ({alternative_method})"
+                            )
                             _process(new_subtest, alternative_method)
                             new_subtests.append(new_subtest)
                     except Exception as e:

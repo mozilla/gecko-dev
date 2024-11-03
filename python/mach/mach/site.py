@@ -368,9 +368,11 @@ class MachSiteManager:
 
         self.ensure()
         with self._metadata.update_current_site(
-            self._virtualenv().python_path
-            if self._site_packages_source == SitePackagesSource.VENV
-            else sys.executable,
+            (
+                self._virtualenv().python_path
+                if self._site_packages_source == SitePackagesSource.VENV
+                else sys.executable
+            ),
         ):
             # Reset the sys.path to insulate ourselves from the environment.
             # This should be safe to do, since activation of the Mach site happens so
@@ -1254,9 +1256,11 @@ def _deprioritize_venv_packages(virtualenv, populate_virtualenv):
             (
                 "import sys; sys.path = [p for p in sys.path if "
                 f"p.lower() != {repr(site_packages_dir)}.lower()]",
-                f"import sys; sys.path.append({repr(site_packages_dir)})"
-                if populate_virtualenv
-                else None,
+                (
+                    f"import sys; sys.path.append({repr(site_packages_dir)})"
+                    if populate_virtualenv
+                    else None
+                ),
             ),
         )
     ]

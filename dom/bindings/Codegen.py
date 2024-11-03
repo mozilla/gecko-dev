@@ -713,9 +713,11 @@ class CGDOMJSClass(CGThing):
             """,
             name=self.descriptor.interface.getClassName(),
             flags=classFlags,
-            addProperty=ADDPROPERTY_HOOK_NAME
-            if wantsAddProperty(self.descriptor)
-            else "nullptr",
+            addProperty=(
+                ADDPROPERTY_HOOK_NAME
+                if wantsAddProperty(self.descriptor)
+                else "nullptr"
+            ),
             newEnumerate=newEnumerateHook,
             resolve=resolveHook,
             mayResolve=mayResolveHook,
@@ -2899,9 +2901,9 @@ class MethodDefiner(PropertyDefiner):
             "name": m.identifier.name,
             "methodInfo": not m.isStatic(),
             "length": methodLength(m),
-            "flags": EnumerabilityFlags(m)
-            if (overrideFlags is None)
-            else overrideFlags,
+            "flags": (
+                EnumerabilityFlags(m) if (overrideFlags is None) else overrideFlags
+            ),
             "condition": PropertyDefiner.getControllingCondition(m, descriptor),
             "allowCrossOriginThis": m.getExtendedAttribute("CrossOriginCallable"),
             "returnsPromise": m.returnsPromise(),
@@ -3689,9 +3691,9 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             defineOnGlobal=defineOnGlobal,
             unscopableNames="unscopableNames" if self.haveUnscopables else "nullptr",
             isGlobal=toStringBool(isGlobal),
-            legacyWindowAliases="legacyWindowAliases"
-            if self.haveLegacyWindowAliases
-            else "nullptr",
+            legacyWindowAliases=(
+                "legacyWindowAliases" if self.haveLegacyWindowAliases else "nullptr"
+            ),
         )
 
         # If we fail after here, we must clear interface and prototype caches
@@ -7553,9 +7555,11 @@ def instantiateJSToNativeConversion(info, replacements, checkForValue=False):
                         "%s.emplace(%s);\n"
                         % (
                             originalHolderName,
-                            getArgsCGThing(info.holderArgs).define()
-                            if info.holderArgs
-                            else "",
+                            (
+                                getArgsCGThing(info.holderArgs).define()
+                                if info.holderArgs
+                                else ""
+                            ),
                         )
                     )
                 )

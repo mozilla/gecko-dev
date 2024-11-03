@@ -742,9 +742,11 @@ class TestChecksConfigure(unittest.TestCase):
             """
                     % {
                         "topsrcdir": topsrcdir,
-                        "sysroot": "namespace(bootstrapped=True)"
-                        if bootstrapped_sysroot
-                        else "None",
+                        "sysroot": (
+                            "namespace(bootstrapped=True)"
+                            if bootstrapped_sysroot
+                            else "None"
+                        ),
                     }
                 )
                 + cmd,

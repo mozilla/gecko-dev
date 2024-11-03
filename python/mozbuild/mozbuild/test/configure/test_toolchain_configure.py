@@ -1989,10 +1989,11 @@ class RustTest(BaseConfigureTest):
         )
         # Same for the arm_target checks.
         dep = sandbox._depends[sandbox["arm_target"]]
-        getattr(sandbox, "__value_for_depends")[
-            (dep,)
-        ] = arm_target or ReadOnlyNamespace(
-            arm_arch=7, thumb2=False, fpu="vfpv2", float_abi="softfp"
+        getattr(sandbox, "__value_for_depends")[(dep,)] = (
+            arm_target
+            or ReadOnlyNamespace(
+                arm_arch=7, thumb2=False, fpu="vfpv2", float_abi="softfp"
+            )
         )
         return sandbox._value_for(sandbox["rust_target_triple"])
 
@@ -2044,9 +2045,11 @@ class RustTest(BaseConfigureTest):
             ("sparcv9-sun-solaris2", "sparcv9-sun-solaris"),
             (
                 "x86_64-sun-solaris2",
-                "x86_64-sun-solaris"
-                if Version(self.VERSION) < "1.76.0"
-                else "x86_64-pc-solaris",
+                (
+                    "x86_64-sun-solaris"
+                    if Version(self.VERSION) < "1.76.0"
+                    else "x86_64-pc-solaris"
+                ),
             ),
             ("x86_64-apple-darwin23.3.0", "x86_64-apple-darwin"),
         ):

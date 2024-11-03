@@ -389,9 +389,11 @@ def append_env(command_context, append_path=True):
 
     path.insert(
         0,
-        path_to_ffmpeg
-        if host_platform().startswith("linux")
-        else mozpath.join(path_to_ffmpeg, "bin"),
+        (
+            path_to_ffmpeg
+            if host_platform().startswith("linux")
+            else mozpath.join(path_to_ffmpeg, "bin")
+        ),
     )  # noqa
 
     # Ensure that bare `node` and `npm` in scripts, including post-install

@@ -103,9 +103,9 @@ class ConfigureTestSandbox(ConfigureSandbox):
             environ["CONFIG_SHELL"] = mozpath.abspath("/bin/sh")
             self._subprocess_paths[environ["CONFIG_SHELL"]] = self.shell
             paths.append(environ["CONFIG_SHELL"])
-        self._subprocess_paths[
-            mozpath.join(topsrcdir, "build/win32/vswhere.exe")
-        ] = self.vswhere
+        self._subprocess_paths[mozpath.join(topsrcdir, "build/win32/vswhere.exe")] = (
+            self.vswhere
+        )
 
         vfs = ConfigureTestVFS(paths)
 

@@ -184,9 +184,9 @@ testing/web-platform/mozilla/tests for Gecko-only tests"""
 
     def _get_template_contents(self, reference=False):
         args = {
-            "documentElement": "<html class=reftest-wait>\n"
-            if self.kwargs["wait"]
-            else ""
+            "documentElement": (
+                "<html class=reftest-wait>\n" if self.kwargs["wait"] else ""
+            )
         }
 
         if self.test.rsplit(".", 1)[1] == "js":

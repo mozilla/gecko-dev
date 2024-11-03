@@ -23,7 +23,6 @@ CACHE_ID = "data"
 
 
 class CachesDeleteCleanupAtShutdownTestCase(MarionetteTestCase):
-
     """
     Bug1784700: This test ensures that cache body files get cleaned up
     properly after cache has been deleted. Note that body files gets

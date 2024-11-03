@@ -332,9 +332,9 @@ def use_fetches(config, jobs):
                         verify_hash = artifact.get("verify-hash", False)
 
                     fetch = {
-                        "artifact": f"{prefix}/{path}"
-                        if not path.startswith("/")
-                        else path[1:],
+                        "artifact": (
+                            f"{prefix}/{path}" if not path.startswith("/") else path[1:]
+                        ),
                         "task": f"<{kind}>",
                         "extract": extract,
                     }

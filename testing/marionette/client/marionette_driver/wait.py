@@ -13,7 +13,6 @@ DEFAULT_INTERVAL = 0.1
 
 
 class Wait(object):
-
     """An explicit conditional utility class for waiting until a condition
     evaluates to true or not null.
 

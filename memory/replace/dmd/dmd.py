@@ -336,9 +336,9 @@ def getDigestFromFile(args, inputFile):
     unrecordedTraceID = "ut"
     unrecordedFrameID = "uf"
     traceTable[unrecordedTraceID] = [unrecordedFrameID]
-    frameTable[
-        unrecordedFrameID
-    ] = "#00: (no stack trace recorded due to --stacks=partial)"
+    frameTable[unrecordedFrameID] = (
+        "#00: (no stack trace recorded due to --stacks=partial)"
+    )
 
     # For the purposes of this script, 'scan' behaves like 'live'.
     if mode == "scan":

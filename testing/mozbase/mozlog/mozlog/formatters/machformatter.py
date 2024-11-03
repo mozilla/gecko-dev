@@ -615,9 +615,11 @@ class MachFormatter(base.BaseFormatter):
             path=data["path"],
             normal=self.color_formatter.normal,
             c1=self.color_formatter.grey,
-            c2=self.color_formatter.error
-            if data["level"] == "error"
-            else (self.color_formatter.log_test_status_fail),
+            c2=(
+                self.color_formatter.error
+                if data["level"] == "error"
+                else (self.color_formatter.log_test_status_fail)
+            ),
             lineno=str(data["lineno"]),
             column=(":" + str(data["column"])) if data.get("column") else "",
             level=data["level"],

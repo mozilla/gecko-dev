@@ -740,9 +740,11 @@ class TreeMetadataEmitter(LoggingMixin):
                     (
                         context,
                         self._binaries[program],
-                        "HOST_USE_LIBS"
-                        if kind == "HOST_SIMPLE_PROGRAMS"
-                        else "USE_LIBS",
+                        (
+                            "HOST_USE_LIBS"
+                            if kind == "HOST_SIMPLE_PROGRAMS"
+                            else "USE_LIBS"
+                        ),
                     )
                 )
                 add_program(self._binaries[program], kind)

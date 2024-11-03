@@ -28,12 +28,12 @@ def make_task_description(config, jobs):
             **{"release-level": release_level(config.params["project"])}
         )
 
-        job["worker"][
-            "release-name"
-        ] = "{product}-{version}-build{build_number}".format(
-            product=job["shipping-product"].capitalize(),
-            version=release_config["version"],
-            build_number=release_config["build_number"],
+        job["worker"]["release-name"] = (
+            "{product}-{version}-build{build_number}".format(
+                product=job["shipping-product"].capitalize(),
+                version=release_config["version"],
+                build_number=release_config["build_number"],
+            )
         )
 
         yield job

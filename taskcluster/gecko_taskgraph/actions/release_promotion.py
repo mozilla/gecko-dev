@@ -392,9 +392,9 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
     if release_enable_emefree and not partner_url_config["release-eme-free-repack"]:
         raise Exception("Can't enable EMEfree repacks when no config url found")
     parameters["release_enable_partner_repack"] = release_enable_partner_repack
-    parameters[
-        "release_enable_partner_attribution"
-    ] = release_enable_partner_attribution
+    parameters["release_enable_partner_attribution"] = (
+        release_enable_partner_attribution
+    )
     parameters["release_enable_emefree"] = release_enable_emefree
 
     partner_config = input.get("release_partner_config")

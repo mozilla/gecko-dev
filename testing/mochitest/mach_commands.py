@@ -58,7 +58,6 @@ parser = None
 
 
 class MochitestRunner(MozbuildObject):
-
     """Easily run mochitests.
 
     This currently contains just the basics for running mochitests. We may want

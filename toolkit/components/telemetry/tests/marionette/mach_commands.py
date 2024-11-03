@@ -89,7 +89,7 @@ def telemetry_test(command_context, tests, **kwargs):
             )
             return 1
     if not kwargs.get("server_root"):
-        kwargs[
-            "server_root"
-        ] = "toolkit/components/telemetry/tests/marionette/harness/www"
+        kwargs["server_root"] = (
+            "toolkit/components/telemetry/tests/marionette/harness/www"
+        )
     return run_telemetry(tests, topsrcdir=command_context.topsrcdir, **kwargs)

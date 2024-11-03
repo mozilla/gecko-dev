@@ -201,12 +201,12 @@ def make_task_description(config, jobs):
             task["scopes"] = [
                 add_scope_prefix(config, "signing:cert:release-apple-notarization")
             ]
-            task[
-                "description"
-            ] = "Notarization of '{}' locales for build '{}/{}'".format(
-                get_locales_description(attributes, "en-US"),
-                build_platform,
-                attributes.get("build_type"),
+            task["description"] = (
+                "Notarization of '{}' locales for build '{}/{}'".format(
+                    get_locales_description(attributes, "en-US"),
+                    build_platform,
+                    attributes.get("build_type"),
+                )
             )
         elif "macosx" in build_platform:
             # iscript overrides

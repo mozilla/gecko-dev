@@ -58,9 +58,9 @@ def populate_repack_manifests_url(config, tasks):
 
         for k in partner_url_config:
             if config.kind.startswith(k):
-                task["worker"].setdefault("env", {})[
-                    "REPACK_MANIFESTS_URL"
-                ] = partner_url_config[k]
+                task["worker"].setdefault("env", {})["REPACK_MANIFESTS_URL"] = (
+                    partner_url_config[k]
+                )
                 break
         else:
             raise Exception("Can't find partner REPACK_MANIFESTS_URL")

@@ -294,9 +294,11 @@ class MozbuildObject(ProcessExecutionMixin):
         class ReducedConfigureSandbox(ConfigureSandbox):
             def depends_impl(self, *args, **kwargs):
                 args = tuple(
-                    a
-                    if not isinstance(a, six.string_types) or a != "--help"
-                    else self._always.sandboxed
+                    (
+                        a
+                        if not isinstance(a, six.string_types) or a != "--help"
+                        else self._always.sandboxed
+                    )
                     for a in args
                 )
                 return super(ReducedConfigureSandbox, self).depends_impl(

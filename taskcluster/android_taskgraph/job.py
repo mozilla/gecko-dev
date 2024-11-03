@@ -111,9 +111,9 @@ def configure_gradlew(config, job, taskdesc):
             "POST_GRADLEW": _convert_commands_to_string(run.pop("post-gradlew", [])),
         }
     )
-    run[
-        "command"
-    ] = "/builds/worker/checkouts/gecko/taskcluster/scripts/builder/build-android.sh"
+    run["command"] = (
+        "/builds/worker/checkouts/gecko/taskcluster/scripts/builder/build-android.sh"
+    )
     _inject_secrets_scopes(run, taskdesc)
     _set_run_task_attributes(job)
     configure_taskdesc_for_run(config, job, taskdesc, job["worker"]["implementation"])

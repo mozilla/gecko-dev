@@ -408,9 +408,11 @@ class RaptorGatherer(FrameworkGatherer):
                     for task in self._task_list[title][platform]:
                         values = [task["test_name"]]
                         values += [
-                            "\u2705"
-                            if match_run_on_projects(x, task["run_on_projects"])
-                            else "\u274C"
+                            (
+                                "\u2705"
+                                if match_run_on_projects(x, task["run_on_projects"])
+                                else "\u274C"
+                            )
                             for x in BRANCHES
                         ]
                         table.add_row(values)
@@ -619,9 +621,11 @@ class TalosGatherer(FrameworkGatherer):
                 for task in self._task_list[title][platform]:
                     values = [task["test_name"]]
                     values += [
-                        "\u2705"
-                        if match_run_on_projects(x, task["run_on_projects"])
-                        else "\u274C"
+                        (
+                            "\u2705"
+                            if match_run_on_projects(x, task["run_on_projects"])
+                            else "\u274C"
+                        )
                         for x in BRANCHES
                     ]
                     table.add_row(values)

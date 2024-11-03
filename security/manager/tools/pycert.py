@@ -757,9 +757,9 @@ class Certificate(object):
         tbsCertificate["issuer"] = self.getIssuer()
         tbsCertificate["validity"] = self.getValidity()
         tbsCertificate["subject"] = self.getSubject()
-        tbsCertificate[
-            "subjectPublicKeyInfo"
-        ] = self.subjectKey.asSubjectPublicKeyInfo()
+        tbsCertificate["subjectPublicKeyInfo"] = (
+            self.subjectKey.asSubjectPublicKeyInfo()
+        )
         if self.extensions:
             extensions = rfc2459.Extensions().subtype(
                 explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 3)

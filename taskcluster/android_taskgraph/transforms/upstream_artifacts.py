@@ -28,9 +28,9 @@ def build_upstream_artifacts(config, tasks):
             # Beetmover-apk tasks use declarative artifacts.
             locale = task["attributes"].get("locale")
             build_type = task["attributes"]["build-type"]
-            worker_definition[
-                "upstream-artifacts"
-            ] = generate_beetmover_upstream_artifacts(config, task, build_type, locale)
+            worker_definition["upstream-artifacts"] = (
+                generate_beetmover_upstream_artifacts(config, task, build_type, locale)
+            )
         else:
             for dep in get_dependencies(config, task):
                 paths = list(dep.attributes.get("artifacts", {}).values())

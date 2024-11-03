@@ -100,8 +100,7 @@ def _positive_int(value):
     return value
 
 
-class RetryError(Exception):
-    ...
+class RetryError(Exception): ...
 
 
 VCT_PATH = Path(".").resolve() / "vct"

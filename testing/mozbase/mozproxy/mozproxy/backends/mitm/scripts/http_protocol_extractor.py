@@ -57,9 +57,9 @@ class HttpProtocolExtractor:
             self.ctx.log.info(
                 "Response using protocol: %s" % flow.response.data.http_version
             )
-            self.request_protocol[
-                urllib.parse.urlparse(flow.request.url).netloc
-            ] = flow.response.data.http_version.decode("utf-8")
+            self.request_protocol[urllib.parse.urlparse(flow.request.url).netloc] = (
+                flow.response.data.http_version.decode("utf-8")
+            )
 
     def done(self):
         output_json = {}

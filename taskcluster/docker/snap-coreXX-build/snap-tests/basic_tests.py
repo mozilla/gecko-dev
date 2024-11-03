@@ -224,9 +224,11 @@ class SnapTestsBase:
         png_bytes = (
             element_or_driver.screenshot_as_png
             if isinstance(element_or_driver, WebElement)
-            else element_or_driver.get_screenshot_as_png()
-            if isinstance(element_or_driver, WebDriver)
-            else base64.b64decode(element_or_driver)
+            else (
+                element_or_driver.get_screenshot_as_png()
+                if isinstance(element_or_driver, WebDriver)
+                else base64.b64decode(element_or_driver)
+            )
         )
         svg_png = Image.open(io.BytesIO(png_bytes)).convert("RGB")
         svg_png_cropped = svg_png.crop((0, 35, svg_png.width - 20, svg_png.height - 10))

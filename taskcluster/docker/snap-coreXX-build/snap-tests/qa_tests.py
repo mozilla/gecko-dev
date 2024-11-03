@@ -580,9 +580,11 @@ class QATests(SnapTestsBase):
             EC.visibility_of_element_located(
                 (
                     By.ID,
-                    "context-copyimage-contents"
-                    if mime_type.startswith("image/")
-                    else "context-copy",
+                    (
+                        "context-copyimage-contents"
+                        if mime_type.startswith("image/")
+                        else "context-copy"
+                    ),
                 )
             )
         )

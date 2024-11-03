@@ -373,9 +373,9 @@ def make_job_description(config, jobs):
                 "symbol": job["treeherder"]["symbol"],
                 "platform": job["treeherder"]["platform"],
             },
-            "run-on-projects": job.get("run-on-projects")
-            if job.get("run-on-projects")
-            else [],
+            "run-on-projects": (
+                job.get("run-on-projects") if job.get("run-on-projects") else []
+            ),
         }
         if job.get("extra"):
             job_description["extra"] = job["extra"]

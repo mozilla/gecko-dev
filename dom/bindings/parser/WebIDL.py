@@ -8400,11 +8400,15 @@ class Parser(Tokenizer):
                 location,
                 "__%s%s%s%s%s%s"
                 % (
-                    "named"
-                    if specialType == IDLMethod.NamedOrIndexed.Named
-                    else "indexed"
-                    if specialType == IDLMethod.NamedOrIndexed.Indexed
-                    else "",
+                    (
+                        "named"
+                        if specialType == IDLMethod.NamedOrIndexed.Named
+                        else (
+                            "indexed"
+                            if specialType == IDLMethod.NamedOrIndexed.Indexed
+                            else ""
+                        )
+                    ),
                     "getter" if getter else "",
                     "setter" if setter else "",
                     "deleter" if deleter else "",

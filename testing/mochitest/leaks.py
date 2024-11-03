@@ -13,7 +13,6 @@ RE_DOMWINDOW = re.compile(r"I\/DocShellAndDOMWindowLeak ([+\-]{2})DOMWINDOW")
 
 
 class ShutdownLeaks(object):
-
     """
     Parses the mochitest run log when running a debug build, assigns all leaked
     DOM windows (that are still around after test suite shutdown, despite running
@@ -281,7 +280,6 @@ class ShutdownLeaks(object):
 
 
 class LSANLeaks(object):
-
     """
     Parses the log when running an LSAN build, looking for interesting stack frames
     in allocation stacks, and prints out reports.

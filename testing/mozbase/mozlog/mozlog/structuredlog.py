@@ -232,9 +232,9 @@ class StructuredLogger(object):
         are removed, running tests are discarded and components are reset.
         """
         self._state.reset()
-        self._component_state = self._state.component_states[
-            self.component
-        ] = ComponentState()
+        self._component_state = self._state.component_states[self.component] = (
+            ComponentState()
+        )
 
     def send_message(self, topic, command, *args):
         """Send a message to each handler configured for this logger. This

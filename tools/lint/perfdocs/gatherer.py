@@ -148,10 +148,10 @@ class Gatherer(object):
             framework_gatherer_cls = frameworks[framework["name"]]
 
         # Get and then store the frameworks tests
-        framework_gatherer = self.framework_gatherers[
-            framework["name"]
-        ] = framework_gatherer_cls(
-            framework["yml_path"], self.workspace_dir, self.taskgraph
+        framework_gatherer = self.framework_gatherers[framework["name"]] = (
+            framework_gatherer_cls(
+                framework["yml_path"], self.workspace_dir, self.taskgraph
+            )
         )
 
         if not yaml_content["static-only"]:

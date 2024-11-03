@@ -104,9 +104,11 @@ class StylishFormatter(object):
                 args = {
                     "normal": self.term.normal,
                     "c1": self.color("grey"),
-                    "c2": self.color("red")
-                    if err.level == "error"
-                    else self.color("yellow"),
+                    "c2": (
+                        self.color("red")
+                        if err.level == "error"
+                        else self.color("yellow")
+                    ),
                     "lineno": str(err.lineno).rjust(self.max_lineno),
                     "column": col,
                     "level": err.level.ljust(self.max_level),
@@ -131,17 +133,19 @@ class StylishFormatter(object):
         message.append(
             self.fmt_summary.format(
                 t=self.term,
-                c=self.color("brightred")
-                if num_errors or failed
-                else self.color("brightyellow"),
+                c=(
+                    self.color("brightred")
+                    if num_errors or failed
+                    else self.color("brightyellow")
+                ),
                 problem=pluralize("problem", num_errors + num_warnings + len(failed)),
                 error=pluralize("error", num_errors),
                 warning=pluralize(
                     "warning", num_warnings or result.total_suppressed_warnings
                 ),
-                failure=", {}".format(pluralize("failure", len(failed)))
-                if failed
-                else "",
+                failure=(
+                    ", {}".format(pluralize("failure", len(failed))) if failed else ""
+                ),
                 fixed="{} fixed".format(num_fixed),
             )
         )

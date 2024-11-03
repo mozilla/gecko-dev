@@ -923,9 +923,11 @@ class GatherDecls(TcheckVisitor):
                     )
             elif isinstance(aspec, (list, tuple)):
                 if not any(
-                    isinstance(attr.value, s)
-                    if isinstance(s, type)
-                    else attr.value == s
+                    (
+                        isinstance(attr.value, s)
+                        if isinstance(s, type)
+                        else attr.value == s
+                    )
                     for s in aspec
                 ):
                     self.error(

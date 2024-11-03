@@ -43,9 +43,11 @@ def busted_default(command_context):
             print(
                 "[%s] Bug %s - %s"
                 % (
-                    "UNRESOLVED"
-                    if not bug["resolution"]
-                    else "RESOLVED - %s" % bug["resolution"],
+                    (
+                        "UNRESOLVED"
+                        if not bug["resolution"]
+                        else "RESOLVED - %s" % bug["resolution"]
+                    ),
                     bug["id"],
                     bug["summary"],
                 )

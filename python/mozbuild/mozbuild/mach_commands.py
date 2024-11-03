@@ -330,10 +330,10 @@ def cargo(
         if cargo_build_flags:
             append_env["CARGO_NO_AUTO_ARG"] = "1"
         else:
-            append_env[
-                "ADD_RUST_LTOABLE"
-            ] = "force-cargo-library-{s:s} force-cargo-program-{s:s}".format(
-                s=cargo_command
+            append_env["ADD_RUST_LTOABLE"] = (
+                "force-cargo-library-{s:s} force-cargo-program-{s:s}".format(
+                    s=cargo_command
+                )
             )
 
         ret = command_context._run_make(

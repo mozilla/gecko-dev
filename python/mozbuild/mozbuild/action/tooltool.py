@@ -577,7 +577,6 @@ class FileRecordJSONEncoder(json.JSONEncoder):
 
 
 class FileRecordJSONDecoder(json.JSONDecoder):
-
     """I help the json module materialize a FileRecord from
     a JSON file.  I understand FileRecords and lists of
     FileRecords.  I ignore things that I don't expect for now"""

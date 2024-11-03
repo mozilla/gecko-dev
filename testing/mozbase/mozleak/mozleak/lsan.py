@@ -6,7 +6,6 @@ import re
 
 
 class LSANLeaks(object):
-
     """
     Parses the log when running an LSAN build, looking for interesting stack frames
     in allocation stacks
