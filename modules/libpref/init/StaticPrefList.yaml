@@ -8248,8 +8248,16 @@
     mirror: always
     set_spidermonkey_pref: startup
 
-
 #endif  // NIGHTLY_BUILD
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  # Experimental support for Explicit Resource Management in JavaScript.
+-   name: javascript.options.experimental.explicit_resource_management
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: startup
+#endif  // ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 
 -   name: javascript.options.experimental.json_parse_with_source
     type: bool
