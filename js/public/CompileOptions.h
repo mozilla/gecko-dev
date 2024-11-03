@@ -62,7 +62,10 @@
 
 #include "js/CharacterEncoding.h"  // JS::ConstUTF8CharsZ
 #include "js/ColumnNumber.h"       // JS::ColumnNumberOneOrigin
-#include "js/TypeDecls.h"          // JS::MutableHandle (fwd)
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "js/Prefs.h"  // JS::Prefs::*
+#endif
+#include "js/TypeDecls.h"  // JS::MutableHandle (fwd)
 
 namespace js {
 class FrontendContext;
@@ -125,13 +128,28 @@ class JS_PUBLIC_API PrefableCompileOptions {
   PrefableCompileOptions()
       : importAttributes_(false),
         sourcePragmas_(true),
-        throwOnAsmJSValidationFailure_(false) {}
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+        explicitResourceManagement_(
+            JS::Prefs::experimental_explicit_resource_management()),
+#endif
+        throwOnAsmJSValidationFailure_(false) {
+  }
 
   bool importAttributes() const { return importAttributes_; }
   PrefableCompileOptions& setImportAttributes(bool enabled) {
     importAttributes_ = enabled;
     return *this;
   }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  bool explicitResourceManagement() const {
+    return explicitResourceManagement_;
+  }
+  PrefableCompileOptions& setExplicitResourceManagement(bool enabled) {
+    explicitResourceManagement_ = enabled;
+    return *this;
+  }
+#endif
 
   // Enable/disable support for parsing '//(#@) source(Mapping)?URL=' pragmas.
   bool sourcePragmas() const { return sourcePragmas_; }
@@ -170,6 +188,9 @@ class JS_PUBLIC_API PrefableCompileOptions {
     PrintFields_(importAttributes_);
     PrintFields_(sourcePragmas_);
     PrintFields_(throwOnAsmJSValidationFailure_);
+#  ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    PrintFields_(explicitResourceManagement_);
+#  endif
 #  undef PrintFields_
 
     switch (asmJSOption_) {
@@ -198,6 +219,12 @@ class JS_PUBLIC_API PrefableCompileOptions {
 
   // The context has specified that source pragmas should be parsed.
   bool sourcePragmas_ : 1;
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  // The context has specified that explicit resource management syntax
+  // should be parsed.
+  bool explicitResourceManagement_ : 1;
+#endif
 
   // ==== asm.js options. ====
   bool throwOnAsmJSValidationFailure_ : 1;
@@ -381,6 +408,11 @@ class JS_PUBLIC_API TransitiveCompileOptions {
 
   bool importAttributes() const { return prefableOptions_.importAttributes(); }
   bool sourcePragmas() const { return prefableOptions_.sourcePragmas(); }
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  bool explicitResourceManagement() const {
+    return prefableOptions_.explicitResourceManagement();
+  }
+#endif
   bool throwOnAsmJSValidationFailure() const {
     return prefableOptions_.throwOnAsmJSValidationFailure();
   }
