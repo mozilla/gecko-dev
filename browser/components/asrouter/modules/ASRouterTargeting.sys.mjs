@@ -588,9 +588,9 @@ const TargetingGetters = {
   },
   get canCreateSelectableProfiles() {
     if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
-      return false;
+      return null;
     }
-    return lazy.SelectableProfileService?.isEnabled ?? false;
+    return !!lazy.SelectableProfileService?.groupToolkitProfile;
   },
   get hasSelectableProfiles() {
     return !!lazy.profileStoreID;
