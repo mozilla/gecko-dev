@@ -5,30 +5,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gfxTextRun.h"
-#include "gfxGlyphExtents.h"
-#include "gfxHarfBuzzShaper.h"
-#include "gfxPlatformFontList.h"
-#include "gfxUserFontSet.h"
-#include "mozilla/gfx/2D.h"
-#include "mozilla/gfx/PathHelpers.h"
-#include "mozilla/ServoStyleSet.h"
-#include "mozilla/Sprintf.h"
-#include "mozilla/StaticPresData.h"
 
+#include "gfx2DGlue.h"
 #include "gfxContext.h"
 #include "gfxFontConstants.h"
 #include "gfxFontMissingGlyphs.h"
+#include "gfxGlyphExtents.h"
+#include "gfxHarfBuzzShaper.h"
+#include "gfxPlatformFontList.h"
 #include "gfxScriptItemizer.h"
-#include "nsUnicodeProperties.h"
-#include "nsStyleConsts.h"
-#include "nsStyleUtil.h"
-#include "mozilla/Likely.h"
-#include "gfx2DGlue.h"
+#include "gfxUserFontSet.h"
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Logging.h"  // for gfxCriticalError
+#include "mozilla/gfx/PathHelpers.h"
+#include "mozilla/intl/Locale.h"
 #include "mozilla/intl/String.h"
 #include "mozilla/intl/UnicodeProperties.h"
+#include "mozilla/Likely.h"
+#include "mozilla/ServoStyleSet.h"
+#include "mozilla/Sprintf.h"
+#include "mozilla/StaticPresData.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
+#include "nsStyleConsts.h"
+#include "nsStyleUtil.h"
+#include "nsUnicodeProperties.h"
 #include "SharedFontList-impl.h"
 #include "TextDrawTarget.h"
 
@@ -2650,6 +2652,65 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
                            reinterpret_cast<const char*>(aString) + run.mOffset,
                            run.mLength))
                        .get()));
+      }
+
+      // Get a hashtable that maps tags to Script codes, creating it on first
+      // use.
+      auto scriptTagToCodeTable = []() {
+        static Atomic<nsTHashMap<nsUint32HashKey, Script>*> sScriptTagToCode;
+
+        nsTHashMap<nsUint32HashKey, Script>* tagToCode = sScriptTagToCode;
+        if (!tagToCode) {
+          // If the table didn't exist, create one and initialize it with all
+          // the valid codes.
+          tagToCode = new nsTHashMap<nsUint32HashKey, Script>(
+              size_t(Script::NUM_SCRIPT_CODES));
+          Script scriptCount = Script(
+              std::min<int>(UnicodeProperties::GetMaxNumberOfScripts() + 1,
+                            int(Script::NUM_SCRIPT_CODES)));
+          for (Script s = Script::ARABIC; s < scriptCount;
+               s = Script(static_cast<int>(s) + 1)) {
+            uint32_t tag = GetScriptTagForCode(s);
+            if (tag != HB_SCRIPT_UNKNOWN) {
+              tagToCode->InsertOrUpdate(tag, s);
+            }
+          }
+          if (sScriptTagToCode.compareExchange(nullptr, tagToCode)) {
+            ClearOnShutdown(&sScriptTagToCode);
+          } else {
+            // We lost a race! Discard our new table and use the winner.
+            delete tagToCode;
+            tagToCode = sScriptTagToCode;
+          }
+        }
+        return tagToCode;
+      };
+
+      // If COMMON or INHERITED was not resolved, try to use the language code
+      // to guess a likely script.
+      if (run.mScript <= Script::INHERITED) {
+        // This assumes Script codes begin with COMMON and INHERITED, preceding
+        // codes for any "real" scripts.
+        MOZ_ASSERT(
+            run.mScript == Script::COMMON || run.mScript == Script::INHERITED,
+            "unexpected Script code!");
+        nsAutoCString lang;
+        mLanguage->ToUTF8String(lang);
+        Locale locale;
+        if (LocaleParser::TryParse(lang, locale).isOk()) {
+          if (locale.Script().Missing()) {
+            Unused << locale.AddLikelySubtags();
+          }
+          if (locale.Script().Present()) {
+            Span span = locale.Script().Span();
+            MOZ_ASSERT(span.Length() == 4);
+            uint32_t tag = TRUETYPE_TAG(span[0], span[1], span[2], span[3]);
+            Script script;
+            if (scriptTagToCodeTable()->Get(tag, &script)) {
+              run.mScript = script;
+            }
+          }
+        }
       }
 
       if (textPtr) {
