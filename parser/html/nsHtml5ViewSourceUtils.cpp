@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsHtml5ViewSourceUtils.h"
+#include "mozilla/Preferences.h"
 #include "nsHtml5AttributeName.h"
 #include "nsHtml5String.h"
 #include "mozilla/StaticPrefs_view_source.h"
