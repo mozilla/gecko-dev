@@ -9,12 +9,12 @@
 #include <CoreFoundation/CFArray.h>
 #include <CoreFoundation/CFByteOrder.h>
 #include <CoreFoundation/CFDictionary.h>
-#include <MacTypes.h>
 
-#include "AnnexB.h"
-#include "AppleUtils.h"
-#include "H264.h"
 #include "ImageContainer.h"
+#include "AnnexB.h"
+#include "H264.h"
+
+#include "AppleUtils.h"
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ImageUtils.h"
@@ -23,9 +23,6 @@ namespace mozilla {
 extern LazyLogModule sPEMLog;
 #define LOGE(fmt, ...)                       \
   MOZ_LOG(sPEMLog, mozilla::LogLevel::Error, \
-          ("[AppleVTEncoder] %s: " fmt, __func__, ##__VA_ARGS__))
-#define LOGW(fmt, ...)                         \
-  MOZ_LOG(sPEMLog, mozilla::LogLevel::Warning, \
           ("[AppleVTEncoder] %s: " fmt, __func__, ##__VA_ARGS__))
 #define LOGD(fmt, ...)                       \
   MOZ_LOG(sPEMLog, mozilla::LogLevel::Debug, \
@@ -66,8 +63,17 @@ static CFDictionaryRef BuildEncoderSpec(const bool aHardwareNotAllowed,
 static void FrameCallback(void* aEncoder, void* aFrameRefCon, OSStatus aStatus,
                           VTEncodeInfoFlags aInfoFlags,
                           CMSampleBufferRef aSampleBuffer) {
-  (static_cast<AppleVTEncoder*>(aEncoder))
-      ->OutputFrame(aStatus, aInfoFlags, aSampleBuffer);
+  if (aInfoFlags & kVTEncodeInfo_FrameDropped) {
+    LOGE("frame tagged as dropped");
+    return;
+  }
+  if (aStatus != noErr || !aSampleBuffer) {
+    LOGE("VideoToolbox encoder returned no data status=%d sample=%p", aStatus,
+         aSampleBuffer);
+    aSampleBuffer = nullptr;
+    return;
+  }
+  (static_cast<AppleVTEncoder*>(aEncoder))->OutputFrame(aSampleBuffer);
 }
 
 static bool SetAverageBitrate(VTCompressionSessionRef& aSession,
@@ -114,39 +120,11 @@ static bool SetFrameRate(VTCompressionSessionRef& aSession, int64_t aFPS) {
 }
 
 static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
+  LOGD("Set real time: %s", aEnabled ? "yes" : "no");
   // B-frames has been disabled in Init(), so no need to set it here.
-
-  CFBooleanRef enabled = aEnabled ? kCFBooleanTrue : kCFBooleanFalse;
-  OSStatus status = VTSessionSetProperty(
-      aSession, kVTCompressionPropertyKey_RealTime, enabled);
-  LOGD("%s real time, status: %d", aEnabled ? "Enable" : "Disable", status);
-  if (status != noErr) {
-    return false;
-  }
-
-  if (__builtin_available(macos 11.0, *)) {
-    status = VTSessionSetProperty(
-        aSession, kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
-        enabled);
-    LOGD("%s PrioritizeEncodingSpeedOverQuality, status: %d",
-         aEnabled ? "Enable" : "Disable", status);
-    if (status != noErr && status != kVTPropertyNotSupportedErr) {
-      return false;
-    }
-  }
-
-  int32_t maxFrameDelayCount = aEnabled ? 0 : kVTUnlimitedFrameDelayCount;
-  AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
-      kCFAllocatorDefault, kCFNumberSInt32Type, &maxFrameDelayCount));
-  status = VTSessionSetProperty(
-      aSession, kVTCompressionPropertyKey_MaxFrameDelayCount, cf);
-  LOGD("Set max frame delay count to %d, status: %d", maxFrameDelayCount,
-       status);
-  if (status != noErr && status != kVTPropertyNotSupportedErr) {
-    return false;
-  }
-
-  return true;
+  return VTSessionSetProperty(aSession, kVTCompressionPropertyKey_RealTime,
+                              aEnabled ? kCFBooleanTrue : kCFBooleanFalse) ==
+         noErr;
 }
 
 static bool SetProfileLevel(VTCompressionSessionRef& aSession,
@@ -326,12 +304,15 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
     }
   }
 
-  AutoCFRelease<CFBooleanRef> isUsingHW = nullptr;
+  CFBooleanRef isUsingHW = nullptr;
   status = VTSessionCopyProperty(
       mSession, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
-      kCFAllocatorDefault, isUsingHW.receive());
+      kCFAllocatorDefault, &isUsingHW);
   mIsHardwareAccelerated = status == noErr && isUsingHW == kCFBooleanTrue;
   LOGD("Using hw acceleration: %s", mIsHardwareAccelerated ? "yes" : "no");
+  if (isUsingHW) {
+    CFRelease(isUsingHW);
+  }
 
   mError = NS_OK;
   return InitPromise::CreateAndResolve(true, __func__);
@@ -561,25 +542,8 @@ static bool WriteNALUs(MediaRawData* aDst, CMSampleBufferRef aSrc,
   return true;
 }
 
-void AppleVTEncoder::OutputFrame(OSStatus aStatus, VTEncodeInfoFlags aFlags,
-                                 CMSampleBufferRef aBuffer) {
-  LOGV("status: %d, flags: %d, buffer %p", aStatus, aFlags, aBuffer);
-
-  if (aStatus != noErr) {
-    ProcessOutput(nullptr, EncodeResult::EncodeError);
-    return;
-  }
-
-  if (aFlags & kVTEncodeInfo_FrameDropped) {
-    ProcessOutput(nullptr, EncodeResult::FrameDropped);
-    return;
-  }
-
-  if (!aBuffer) {
-    ProcessOutput(nullptr, EncodeResult::EmptyBuffer);
-    return;
-  }
-
+void AppleVTEncoder::OutputFrame(CMSampleBufferRef aBuffer) {
+  LOGV("::OutputFrame");
   RefPtr<MediaRawData> output(new MediaRawData());
 
   if (__builtin_available(macos 11.3, *)) {
@@ -609,75 +573,38 @@ void AppleVTEncoder::OutputFrame(OSStatus aStatus, VTEncodeInfoFlags aFlags,
   LOGV("Make a %s output[time: %s, duration: %s]: %s",
        asAnnexB ? "AnnexB" : "AVCC", output->mTime.ToString().get(),
        output->mDuration.ToString().get(), succeeded ? "succeed" : "failed");
-  ProcessOutput(succeeded ? std::move(output) : nullptr, EncodeResult::Success);
+  ProcessOutput(succeeded ? std::move(output) : nullptr);
 }
 
-void AppleVTEncoder::ProcessOutput(RefPtr<MediaRawData>&& aOutput,
-                                   EncodeResult aResult) {
+void AppleVTEncoder::ProcessOutput(RefPtr<MediaRawData>&& aOutput) {
   if (!mTaskQueue->IsCurrentThreadIn()) {
     LOGV("Dispatch ProcessOutput to task queue");
-    nsresult rv = mTaskQueue->Dispatch(
-        NewRunnableMethod<RefPtr<MediaRawData>, EncodeResult>(
-            "AppleVTEncoder::ProcessOutput", this,
-            &AppleVTEncoder::ProcessOutput, std::move(aOutput), aResult));
+    nsresult rv = mTaskQueue->Dispatch(NewRunnableMethod<RefPtr<MediaRawData>>(
+        "AppleVTEncoder::ProcessOutput", this, &AppleVTEncoder::ProcessOutput,
+        std::move(aOutput)));
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
     Unused << rv;
     return;
   }
+  LOGV("::ProcessOutput (%zu bytes)", !aOutput.get() ? 0 : aOutput->Size());
+  AssertOnTaskQueue();
 
-  if (aResult != EncodeResult::Success) {
-    switch (aResult) {
-      case EncodeResult::EncodeError:
-        mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Failed to encode");
-        break;
-      case EncodeResult::EmptyBuffer:
-        mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Buffer is empty");
-        break;
-      case EncodeResult::FrameDropped:
-        if (mConfig.mUsage == Usage::Realtime) {
-          // Dropping a frame in real-time usage is okay.
-          LOGW("Frame is dropped");
-        } else {
-          // Some usages like transcoding should not drop a frame.
-          LOGE("Frame is dropped");
-          mError =
-              MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Frame is dropped");
-        }
-        break;
-      default:
-        MOZ_ASSERT_UNREACHABLE("Unknown EncodeResult");
-        break;
-    }
-    MaybeResolveOrRejectEncodePromise();
-    return;
+  if (aOutput) {
+    mEncodedData.AppendElement(std::move(aOutput));
+  } else {
+    LOGE("::ProcessOutput: fatal error");
+    mError = NS_ERROR_DOM_MEDIA_FATAL_ERR;
   }
-
-  LOGV("Got %zu bytes of output", !aOutput.get() ? 0 : aOutput->Size());
-
-  if (!aOutput) {
-    mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "No converted output");
-    MaybeResolveOrRejectEncodePromise();
-    return;
-  }
-
-  mEncodedData.AppendElement(std::move(aOutput));
-  MaybeResolveOrRejectEncodePromise();
 }
 
 RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::Encode(
     const MediaData* aSample) {
   MOZ_ASSERT(aSample != nullptr);
-
   RefPtr<const VideoData> sample(aSample->As<const VideoData>());
 
-  RefPtr<AppleVTEncoder> self = this;
-  return InvokeAsync(mTaskQueue, __func__, [self, this, sample] {
-    MOZ_ASSERT(mEncodePromise.IsEmpty(),
-               "Encode should not be called again before getting results");
-    RefPtr<EncodePromise> p = mEncodePromise.Ensure(__func__);
-    ProcessEncode(sample);
-    return p;
-  });
+  return InvokeAsync<RefPtr<const VideoData>>(mTaskQueue, this, __func__,
+                                              &AppleVTEncoder::ProcessEncode,
+                                              std::move(sample));
 }
 
 RefPtr<MediaDataEncoder::ReconfigurationPromise> AppleVTEncoder::Reconfigure(
@@ -687,23 +614,22 @@ RefPtr<MediaDataEncoder::ReconfigurationPromise> AppleVTEncoder::Reconfigure(
                      aConfigurationChanges);
 }
 
-void AppleVTEncoder::ProcessEncode(const RefPtr<const VideoData>& aSample) {
+RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessEncode(
+    const RefPtr<const VideoData>& aSample) {
   LOGV("::ProcessEncode");
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
 
   if (NS_FAILED(mError)) {
-    LOGE("Pending error: %s", mError.Description().get());
-    MaybeResolveOrRejectEncodePromise();
+    LOGE("Error: %s", mError.Description().get());
+    return EncodePromise::CreateAndReject(mError, __func__);
   }
 
   AutoCVBufferRelease<CVImageBufferRef> buffer(
       CreateCVPixelBuffer(aSample->mImage));
   if (!buffer) {
     LOGE("Failed to allocate buffer");
-    mError = MediaResult(NS_ERROR_OUT_OF_MEMORY, "failed to allocate buffer");
-    MaybeResolveOrRejectEncodePromise();
-    return;
+    return EncodePromise::CreateAndReject(NS_ERROR_OUT_OF_MEMORY, __func__);
   }
 
   CFDictionaryRef frameProps = nullptr;
@@ -723,26 +649,13 @@ void AppleVTEncoder::ProcessEncode(const RefPtr<const VideoData>& aSample) {
       CMTimeMake(aSample->mDuration.ToMicroseconds(), USECS_PER_S), frameProps,
       nullptr /* sourceFrameRefcon */, &info);
   if (status != noErr) {
-    LOGE("VTCompressionSessionEncodeFrame error: %d", status);
-    mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                         "VTCompressionSessionEncodeFrame error");
-    MaybeResolveOrRejectEncodePromise();
-    return;
+    LOGE("VTCompressionSessionEncodeFrame error");
+    return EncodePromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                                          __func__);
   }
 
-  if (mConfig.mUsage != Usage::Realtime) {
-    MaybeResolveOrRejectEncodePromise();
-    return;
-  }
-
-  // The latency between encoding a sample and receiving the encoded output is
-  // critical in real-time usage. To minimize the latency, the output result
-  // should be returned immediately once they are ready, instead of being
-  // returned in the next or later Encode() iterations.
-  LOGV("Encoding in progress");
-
-  // Workaround for real-time encoding in OS versions < 11.
-  ForceOutputIfNeeded();
+  LOGV("Resolve with %zu encoded outputs", mEncodedData.Length());
+  return EncodePromise::CreateAndResolve(std::move(mEncodedData), __func__);
 }
 
 RefPtr<MediaDataEncoder::ReconfigurationPromise>
@@ -957,18 +870,13 @@ RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessDrain() {
     return EncodePromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                                           __func__);
   }
-
-  // Resolve the pending encode promise if any.
-  MaybeResolveOrRejectEncodePromise();
-
   // VTCompressionSessionCompleteFrames() could have queued multiple tasks with
   // the new drained frames. Dispatch a task after them to resolve the promise
   // with those frames.
   RefPtr<AppleVTEncoder> self = this;
   return InvokeAsync(mTaskQueue, __func__, [self]() {
+    LOGV("Resolve drain promise");
     EncodedData pendingFrames(std::move(self->mEncodedData));
-    LOGV("Resolve drain promise with %zu encoded outputs",
-         pendingFrames.Length());
     self->mEncodedData = EncodedData();
     return EncodePromise::CreateAndResolve(std::move(pendingFrames), __func__);
   });
@@ -988,11 +896,6 @@ RefPtr<ShutdownPromise> AppleVTEncoder::ProcessShutdown() {
     mSession = nullptr;
     mInited = false;
   }
-
-  mError = MediaResult(NS_ERROR_DOM_MEDIA_CANCELED, "Canceled in shutdown");
-  MaybeResolveOrRejectEncodePromise();
-  mError = NS_OK;
-
   return ShutdownPromise::CreateAndResolve(true, __func__);
 }
 
@@ -1008,65 +911,7 @@ RefPtr<GenericPromise> AppleVTEncoder::SetBitrate(uint32_t aBitsPerSec) {
   });
 }
 
-void AppleVTEncoder::MaybeResolveOrRejectEncodePromise() {
-  AssertOnTaskQueue();
-
-  if (mEncodePromise.IsEmpty()) {
-    LOGV(
-        "No pending promise to resolve(pending outputs: %zu) or reject(err: "
-        "%s)",
-        mEncodedData.Length(), mError.Description().get());
-    return;
-  }
-
-  if (mTimer) {
-    mTimer->Cancel();
-    mTimer = nullptr;
-  }
-
-  if (NS_FAILED(mError.Code())) {
-    LOGE("Rejecting encode promise with error: %s", mError.Description().get());
-    mEncodePromise.Reject(mError, __func__);
-    return;
-  }
-
-  LOGV("Resolving with %zu encoded outputs", mEncodedData.Length());
-  mEncodePromise.Resolve(std::move(mEncodedData), __func__);
-}
-
-void AppleVTEncoder::ForceOutputIfNeeded() {
-  if (__builtin_available(macos 11.0, *)) {
-    return;
-  }
-  // Ideally, OutputFrame (called via FrameCallback) should resolve the encode
-  // promise. However, sometimes output is produced only after multiple
-  // inputs. To ensure continuous encoding, we force the encoder to produce a
-  // potentially empty output if no result is received in 50 ms.
-  RefPtr<AppleVTEncoder> self = this;
-  auto r = NS_NewTimerWithCallback(
-      [self](nsITimer* aTimer) {
-        if (!self->mSession) {
-          LOGV("Do nothing since the encoder has been shut down");
-          return;
-        }
-
-        LOGV("Resolving the pending promise");
-        self->MaybeResolveOrRejectEncodePromise();
-      },
-      TimeDuration::FromMilliseconds(50), nsITimer::TYPE_ONE_SHOT,
-      "EncodingProgressChecker", mTaskQueue);
-  if (r.isErr()) {
-    LOGE(
-        "Failed to set an encoding progress checker. Resolve the pending "
-        "promise now");
-    MaybeResolveOrRejectEncodePromise();
-    return;
-  }
-  mTimer = r.unwrap();
-}
-
 #undef LOGE
-#undef LOGW
 #undef LOGD
 #undef LOGV
 
