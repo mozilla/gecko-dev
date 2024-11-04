@@ -95,6 +95,9 @@ document.addEventListener(
         case "context_closeOtherTabs":
           gBrowser.removeAllTabsBut(TabContextMenu.contextTab);
           break;
+        case "context_unloadTab":
+          TabContextMenu.explicitUnloadTabs();
+          break;
         case "context_fullscreenAutohide":
           FullScreen.setAutohide();
           break;
