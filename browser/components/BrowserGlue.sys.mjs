@@ -1957,7 +1957,10 @@ BrowserGlue.prototype = {
 
     lazy.DoHController.init();
 
-    if (AppConstants.MOZ_SELECTABLE_PROFILES) {
+    if (
+      AppConstants.MOZ_SELECTABLE_PROFILES &&
+      Services.prefs.getBoolPref("browser.profiles.enabled", false)
+    ) {
       lazy.SelectableProfileService.init().catch(console.error);
     }
 

@@ -7,27 +7,33 @@ const { Sqlite } = ChromeUtils.importESModule(
   "resource://gre/modules/Sqlite.sys.mjs"
 );
 
-add_task(async function test_recover_storeID() {
-  startProfileService();
-  Services.prefs.setCharPref("toolkit.profiles.storeID", "foobar");
+add_task(
+  {
+    skip_if: () => !AppConstants.MOZ_SELECTABLE_PROFILES,
+  },
+  async function test_recover_storeID() {
+    startProfileService();
+    Services.prefs.setCharPref("toolkit.profiles.storeID", "foobar");
 
-  // The database needs to exist already
-  let groupsPath = PathUtils.join(
-    Services.dirsvc.get("UAppData", Ci.nsIFile).path,
-    "Profile Groups"
-  );
+    // The database needs to exist already
+    let groupsPath = PathUtils.join(
+      Services.dirsvc.get("UAppData", Ci.nsIFile).path,
+      "Profile Groups"
+    );
 
-  await IOUtils.makeDirectory(groupsPath);
-  let dbFile = PathUtils.join(groupsPath, "foobar.sqlite");
-  let db = await Sqlite.openConnection({
-    path: dbFile,
-    openNotExclusive: true,
-  });
+    await IOUtils.makeDirectory(groupsPath);
+    let dbFile = PathUtils.join(groupsPath, "foobar.sqlite");
+    let db = await Sqlite.openConnection({
+      path: dbFile,
+      openNotExclusive: true,
+    });
 
-  let path = getRelativeProfilePath(getProfileService().currentProfile.rootDir);
+    let path = getRelativeProfilePath(
+      getProfileService().currentProfile.rootDir
+    );
 
-  // Slightly annoying we have to replicate this...
-  await db.execute(`CREATE TABLE IF NOT EXISTS "Profiles" (
+    // Slightly annoying we have to replicate this...
+    await db.execute(`CREATE TABLE IF NOT EXISTS "Profiles" (
       id  INTEGER NOT NULL,
       path	TEXT NOT NULL UNIQUE,
       name	TEXT NOT NULL,
@@ -37,30 +43,34 @@ add_task(async function test_recover_storeID() {
       themeBg	TEXT NOT NULL,
       PRIMARY KEY(id)
     );`);
-  await db.execute(
-    `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeL10nId, :themeFg, :themeBg);`,
-    {
-      path,
-      name: "Fake Profile",
-      avatar: "book",
-      themeL10nId: "default",
-      themeFg: "",
-      themeBg: "",
-    }
-  );
+    await db.execute(
+      `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeL10nId, :themeFg, :themeBg);`,
+      {
+        path,
+        name: "Fake Profile",
+        avatar: "book",
+        themeL10nId: "default",
+        themeFg: "",
+        themeBg: "",
+      }
+    );
 
-  await db.close();
+    await db.close();
 
-  const SelectableProfileService = getSelectableProfileService();
-  await SelectableProfileService.init();
-  Assert.ok(SelectableProfileService.initialized, "Did initialize the service");
+    const SelectableProfileService = getSelectableProfileService();
+    await SelectableProfileService.init();
+    Assert.ok(
+      SelectableProfileService.initialized,
+      "Did initialize the service"
+    );
 
-  let profile = SelectableProfileService.currentProfile;
-  Assert.ok(profile, "Should have a current profile");
-  Assert.equal(profile.name, "Fake Profile");
-  Assert.equal(
-    getProfileService().currentProfile.storeID,
-    "foobar",
-    "Should have updated the store ID on the profile"
-  );
-});
+    let profile = SelectableProfileService.currentProfile;
+    Assert.ok(profile, "Should have a current profile");
+    Assert.equal(profile.name, "Fake Profile");
+    Assert.equal(
+      getProfileService().currentProfile.storeID,
+      "foobar",
+      "Should have updated the store ID on the profile"
+    );
+  }
+);
