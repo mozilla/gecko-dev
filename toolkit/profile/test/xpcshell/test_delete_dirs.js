@@ -27,7 +27,10 @@ function wait(ms) {
 
 function runDeletionTask(rootDir, localDir, timeout) {
   let binary = Services.dirsvc.get("XREExeF", Ci.nsIFile);
-  binary.leafName = binary.leafName.replace("xpcshell", "firefox");
+  binary.leafName = binary.leafName.replace(
+    "xpcshell",
+    AppConstants.MOZ_BUILD_APP == "browser" ? "firefox" : "thunderbird"
+  );
 
   let process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
 
