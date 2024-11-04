@@ -24,6 +24,9 @@ extern LazyLogModule sPEMLog;
 #define LOGE(fmt, ...)                       \
   MOZ_LOG(sPEMLog, mozilla::LogLevel::Error, \
           ("[AppleVTEncoder] %s: " fmt, __func__, ##__VA_ARGS__))
+#define LOGW(fmt, ...)                         \
+  MOZ_LOG(sPEMLog, mozilla::LogLevel::Warning, \
+          ("[AppleVTEncoder] %s: " fmt, __func__, ##__VA_ARGS__))
 #define LOGD(fmt, ...)                       \
   MOZ_LOG(sPEMLog, mozilla::LogLevel::Debug, \
           ("[AppleVTEncoder] %s: " fmt, __func__, ##__VA_ARGS__))
@@ -63,17 +66,8 @@ static CFDictionaryRef BuildEncoderSpec(const bool aHardwareNotAllowed,
 static void FrameCallback(void* aEncoder, void* aFrameRefCon, OSStatus aStatus,
                           VTEncodeInfoFlags aInfoFlags,
                           CMSampleBufferRef aSampleBuffer) {
-  if (aInfoFlags & kVTEncodeInfo_FrameDropped) {
-    LOGE("frame tagged as dropped");
-    return;
-  }
-  if (aStatus != noErr || !aSampleBuffer) {
-    LOGE("VideoToolbox encoder returned no data status=%d sample=%p", aStatus,
-         aSampleBuffer);
-    aSampleBuffer = nullptr;
-    return;
-  }
-  (static_cast<AppleVTEncoder*>(aEncoder))->OutputFrame(aSampleBuffer);
+  (static_cast<AppleVTEncoder*>(aEncoder))
+      ->OutputFrame(aStatus, aInfoFlags, aSampleBuffer);
 }
 
 static bool SetAverageBitrate(VTCompressionSessionRef& aSession,
@@ -567,8 +561,25 @@ static bool WriteNALUs(MediaRawData* aDst, CMSampleBufferRef aSrc,
   return true;
 }
 
-void AppleVTEncoder::OutputFrame(CMSampleBufferRef aBuffer) {
-  LOGV("::OutputFrame");
+void AppleVTEncoder::OutputFrame(OSStatus aStatus, VTEncodeInfoFlags aFlags,
+                                 CMSampleBufferRef aBuffer) {
+  LOGV("status: %d, flags: %d, buffer %p", aStatus, aFlags, aBuffer);
+
+  if (aStatus != noErr) {
+    ProcessOutput(nullptr, EncodeResult::EncodeError);
+    return;
+  }
+
+  if (aFlags & kVTEncodeInfo_FrameDropped) {
+    ProcessOutput(nullptr, EncodeResult::FrameDropped);
+    return;
+  }
+
+  if (!aBuffer) {
+    ProcessOutput(nullptr, EncodeResult::EmptyBuffer);
+    return;
+  }
+
   RefPtr<MediaRawData> output(new MediaRawData());
 
   if (__builtin_available(macos 11.3, *)) {
@@ -598,22 +609,50 @@ void AppleVTEncoder::OutputFrame(CMSampleBufferRef aBuffer) {
   LOGV("Make a %s output[time: %s, duration: %s]: %s",
        asAnnexB ? "AnnexB" : "AVCC", output->mTime.ToString().get(),
        output->mDuration.ToString().get(), succeeded ? "succeed" : "failed");
-  ProcessOutput(succeeded ? std::move(output) : nullptr);
+  ProcessOutput(succeeded ? std::move(output) : nullptr, EncodeResult::Success);
 }
 
-void AppleVTEncoder::ProcessOutput(RefPtr<MediaRawData>&& aOutput) {
+void AppleVTEncoder::ProcessOutput(RefPtr<MediaRawData>&& aOutput,
+                                   EncodeResult aResult) {
   if (!mTaskQueue->IsCurrentThreadIn()) {
     LOGV("Dispatch ProcessOutput to task queue");
-    nsresult rv = mTaskQueue->Dispatch(NewRunnableMethod<RefPtr<MediaRawData>>(
-        "AppleVTEncoder::ProcessOutput", this, &AppleVTEncoder::ProcessOutput,
-        std::move(aOutput)));
+    nsresult rv = mTaskQueue->Dispatch(
+        NewRunnableMethod<RefPtr<MediaRawData>, EncodeResult>(
+            "AppleVTEncoder::ProcessOutput", this,
+            &AppleVTEncoder::ProcessOutput, std::move(aOutput), aResult));
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
     Unused << rv;
     return;
   }
 
-  LOGV("::ProcessOutput (%zu bytes)", !aOutput.get() ? 0 : aOutput->Size());
-  AssertOnTaskQueue();
+  if (aResult != EncodeResult::Success) {
+    switch (aResult) {
+      case EncodeResult::EncodeError:
+        mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Failed to encode");
+        break;
+      case EncodeResult::EmptyBuffer:
+        mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Buffer is empty");
+        break;
+      case EncodeResult::FrameDropped:
+        if (mConfig.mUsage == Usage::Realtime) {
+          // Dropping a frame in real-time usage is okay.
+          LOGW("Frame is dropped");
+        } else {
+          // Some usages like transcoding should not drop a frame.
+          LOGE("Frame is dropped");
+          mError =
+              MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "Frame is dropped");
+        }
+        break;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unknown EncodeResult");
+        break;
+    }
+    MaybeResolveOrRejectEncodePromise();
+    return;
+  }
+
+  LOGV("Got %zu bytes of output", !aOutput.get() ? 0 : aOutput->Size());
 
   if (!aOutput) {
     mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "No converted output");
@@ -1027,6 +1066,7 @@ void AppleVTEncoder::ForceOutputIfNeeded() {
 }
 
 #undef LOGE
+#undef LOGW
 #undef LOGD
 #undef LOGV
 
