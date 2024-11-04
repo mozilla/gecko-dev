@@ -393,7 +393,10 @@ iframe {
 /* Button states */
 .devtools-button:disabled {
   pointer-events: none;
-  opacity: 0.5 !important;
+
+  &::before {
+    fill: var(--theme-icon-disabled-color);
+  }
 }
 
 .devtools-button:empty:not([aria-expanded="true"]):hover {
