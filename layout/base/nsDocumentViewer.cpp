@@ -2335,9 +2335,12 @@ nsresult nsDocumentViewer::CreateDeviceContext(nsView* aContainerView) {
   if (!widget) {
     widget = mParentWidget;
   }
+
+#ifndef XP_MACOSX
   if (widget) {
     widget = widget->GetTopLevelWidget();
   }
+#endif
 
   mDeviceContext = new nsDeviceContext();
   mDeviceContext->Init(widget);
