@@ -23,6 +23,7 @@ class HistoryListItemViewHolder(
     view: View,
     private val selectionHolder: SelectionHolder<History>,
     private val store: HistoryFragmentStore,
+    private val onRecentlyClosedClicked: () -> Unit,
 ) : RecyclerView.ViewHolder(view) {
 
     private var item: History? = null
@@ -30,7 +31,7 @@ class HistoryListItemViewHolder(
 
     init {
         binding.recentlyClosedNavEmpty.recentlyClosedNav.setOnClickListener {
-            store.dispatch(HistoryFragmentAction.EnterRecentlyClosed)
+            onRecentlyClosedClicked()
         }
 
         binding.historyLayout.overflowView.apply {

@@ -150,11 +150,6 @@ sealed class HistoryFragmentAction : Action {
     data class DeleteItems(val items: Set<History>) : HistoryFragmentAction()
 
     /**
-     * The user has clicked to enter the Recently Closed fragment.
-     */
-    object EnterRecentlyClosed : HistoryFragmentAction()
-
-    /**
      * A back press event has been dispatched.
      */
     object BackPressed : HistoryFragmentAction()
@@ -285,7 +280,6 @@ private fun historyStateReducer(
         // Updates from storage are dispatched directly to the view.
         is HistoryFragmentAction.DeleteItems,
         is HistoryFragmentAction.DeleteTimeRange,
-        is HistoryFragmentAction.EnterRecentlyClosed,
         -> state
     }
 }

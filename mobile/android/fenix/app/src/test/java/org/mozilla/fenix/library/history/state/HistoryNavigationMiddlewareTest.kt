@@ -5,7 +5,6 @@
 package org.mozilla.fenix.library.history.state
 
 import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import mozilla.components.support.test.any
@@ -18,10 +17,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mockito.verify
-import org.mozilla.fenix.R
 import org.mozilla.fenix.library.history.History
 import org.mozilla.fenix.library.history.HistoryFragmentAction
-import org.mozilla.fenix.library.history.HistoryFragmentDirections
 import org.mozilla.fenix.library.history.HistoryFragmentState
 import org.mozilla.fenix.library.history.HistoryFragmentStore
 import org.mozilla.fenix.library.history.HistoryItemTimeGroup
@@ -102,27 +99,6 @@ class HistoryNavigationMiddlewareTest {
         verify(navController).navigate(
             directions = any(),
             navOptions = any(),
-        )
-    }
-
-    @Test
-    fun `WHEN recently closed is requested to be entered THEN nav controller navigates to it`() = runTest {
-        val navController = mock<NavController>()
-        val middleware = HistoryNavigationMiddleware(
-            navController = navController,
-            openToBrowser = { },
-            onBackPressed = { },
-            scope = this,
-        )
-        val store =
-            HistoryFragmentStore(HistoryFragmentState.initial, middleware = listOf(middleware))
-
-        store.dispatch(HistoryFragmentAction.EnterRecentlyClosed).joinBlocking()
-        advanceUntilIdle()
-
-        verify(navController).navigate(
-            HistoryFragmentDirections.actionGlobalRecentlyClosed(),
-            NavOptions.Builder().setPopUpTo(R.id.recentlyClosedFragment, true).build(),
         )
     }
 
