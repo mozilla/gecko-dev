@@ -9,6 +9,7 @@
 #include <CoreFoundation/CFArray.h>
 #include <CoreFoundation/CFByteOrder.h>
 #include <CoreFoundation/CFDictionary.h>
+#include <MacTypes.h>
 
 #include "AnnexB.h"
 #include "AppleUtils.h"
@@ -119,11 +120,28 @@ static bool SetFrameRate(VTCompressionSessionRef& aSession, int64_t aFPS) {
 }
 
 static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
-  LOGD("Set real time: %s", aEnabled ? "yes" : "no");
   // B-frames has been disabled in Init(), so no need to set it here.
-  return VTSessionSetProperty(aSession, kVTCompressionPropertyKey_RealTime,
-                              aEnabled ? kCFBooleanTrue : kCFBooleanFalse) ==
-         noErr;
+
+  OSStatus status =
+      VTSessionSetProperty(aSession, kVTCompressionPropertyKey_RealTime,
+                           aEnabled ? kCFBooleanTrue : kCFBooleanFalse);
+  LOGD("%s real time, status: %d", aEnabled ? "Enable" : "Disable", status);
+  if (status != noErr) {
+    return false;
+  }
+
+  int32_t maxFrameDelayCount = aEnabled ? 0 : kVTUnlimitedFrameDelayCount;
+  AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
+      kCFAllocatorDefault, kCFNumberSInt32Type, &maxFrameDelayCount));
+  status = VTSessionSetProperty(
+      aSession, kVTCompressionPropertyKey_MaxFrameDelayCount, cf);
+  LOGD("Set max frame delay count to %d, status: %d", maxFrameDelayCount,
+       status);
+  if (status != noErr && status != kVTPropertyNotSupportedErr) {
+    return false;
+  }
+
+  return true;
 }
 
 static bool SetProfileLevel(VTCompressionSessionRef& aSession,
