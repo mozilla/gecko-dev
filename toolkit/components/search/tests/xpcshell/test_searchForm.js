@@ -5,7 +5,18 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 const CONFIG = [
   {
-    identifier: "engine_1",
+    identifier: "engine_searchform",
+    base: {
+      urls: {
+        searchForm: {
+          base: "https://example.com/searchform",
+          params: [{ name: "foo", value: "bar" }],
+        },
+      },
+    },
+  },
+  {
+    identifier: "engine_no_searchform",
     base: {
       urls: {
         search: {
@@ -30,8 +41,17 @@ add_setup(async function () {
   });
 });
 
-add_task(async function test_appProvidedEngine() {
-  let engine = Services.search.getEngineById(`engine_1`);
+add_task(async function test_appProvidedEngineSearchform() {
+  let engine = Services.search.getEngineById(`engine_searchform`);
+  Assert.equal(
+    engine.searchForm,
+    "https://example.com/searchform?foo=bar",
+    "Used specified searchForm with parameters."
+  );
+});
+
+add_task(async function test_appProvidedEngineNoSearchform() {
+  let engine = Services.search.getEngineById(`engine_no_searchform`);
   Assert.equal(
     engine.searchForm,
     "https://example.com",
