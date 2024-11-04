@@ -692,7 +692,12 @@ static const double spaceCutoffPct = 0.9;
 #endif
 
 // Figure out whether we should use tiered compilation or not.
-static bool TieringBeneficial(uint32_t codeSize) {
+static bool TieringBeneficial(bool lazyTiering, uint32_t codeSize) {
+  // Lazy tiering is assumed to always be beneficial when it is enabled.
+  if (lazyTiering) {
+    return true;
+  }
+
   uint32_t cpuCount = GetHelperThreadCPUCount();
   MOZ_ASSERT(cpuCount > 0);
 
@@ -760,8 +765,14 @@ static bool TieringBeneficial(uint32_t codeSize) {
 }
 
 // Ensure that we have the non-compiler requirements to tier safely.
-static bool PlatformCanTier() {
-  return CanUseExtraThreads() && jit::CanFlushExecutionContextForAllThreads();
+static bool PlatformCanTier(bool lazyTiering) {
+  // Tiering needs background threads if we're using eager tiering or we're
+  // using lazy tiering without the synchronous flag.
+  bool synchronousTiering =
+      lazyTiering && JS::Prefs::wasm_lazy_tiering_synchronous();
+
+  return (synchronousTiering || CanUseExtraThreads()) &&
+         jit::CanFlushExecutionContextForAllThreads();
 }
 
 CompilerEnvironment::CompilerEnvironment(const CompileArgs& args)
@@ -809,8 +820,8 @@ void CompilerEnvironment::computeParameters(const ModuleMetadata& moduleMeta) {
                      (JS::Prefs::wasm_lazy_tiering_for_gc() && isGcModule);
 
   if (baselineEnabled && hasSecondTier &&
-      (TieringBeneficial(codeSectionSize) || forceTiering || lazyTiering) &&
-      PlatformCanTier()) {
+      (TieringBeneficial(lazyTiering, codeSectionSize) || forceTiering) &&
+      PlatformCanTier(lazyTiering)) {
     mode_ = lazyTiering ? CompileMode::LazyTiering : CompileMode::EagerTiering;
     tier_ = Tier::Baseline;
   } else {
