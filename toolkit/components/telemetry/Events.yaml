@@ -2475,11 +2475,11 @@ intl.ui.browserLanguage:
       installId: The id for an install.
     products:
       - firefox
-    expiry_version: "135"
+    expiry_version: "148"
     notification_emails:
+      - earo@mozilla.com
       - flod@mozilla.com
       - mstriemer@mozilla.com
-      - earo@mozilla.com
     release_channel_collection: opt-out
     record_in_processes: ["main"]
     bug_numbers:
@@ -2491,6 +2491,7 @@ intl.ui.browserLanguage:
       - 1796396
       - 1861299
       - 1911321
+      - 1928262
 
 network.dns:
   trrConfirmation:

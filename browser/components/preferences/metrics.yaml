@@ -144,6 +144,7 @@ intl.ui.browser_language:
       - https://bugzil.la/1796396
       - https://bugzil.la/1861299
       - https://bugzil.la/1911321
+      - https://bugzil.la/1928262
     data_reviews: &intl_ui_browserLanguage_manage_data_reviews
       - https://bugzil.la/1486507
       - https://bugzil.la/1553311
@@ -153,11 +154,12 @@ intl.ui.browser_language:
       - https://bugzil.la/1796396
       - https://bugzil.la/1861299
       - https://bugzil.la/1911321
+      - https://bugzil.la/1928262
     notification_emails: &intl_ui_browserLanguage_manage_emails
+      - earo@mozilla.com
       - flod@mozilla.com
       - mstriemer@mozilla.com
-      - earo@mozilla.com
-    expires: 135
+    expires: 148
     extra_keys: &intl_ui_browserLanguage_manage_extra
       value:
         description: >
