@@ -7,5 +7,5 @@
   <Url type="text/html" method="GET" template="http://mochi.test:8888/browser/browser/components/search/test/browser/test.html">
     <Param name="test" value="{searchTerms}"/>
   </Url>
-  <moz:SearchForm>http://mochi.test:8888/browser/browser/components/search/test/browser/test.html</moz:SearchForm>
+  <moz:SearchForm>http://mochi.test:8888/browser/browser/components/search/test/browser/discovery.html</moz:SearchForm>
 </OpenSearchDescription>

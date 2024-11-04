@@ -1833,7 +1833,7 @@ export class UrlbarInput {
         "search-mode-switcher"
       ).uri.spec;
     } else {
-      url = searchEngine.wrappedJSObject.searchForm;
+      url = searchEngine.searchForm;
     }
 
     this._lastSearchString = "";

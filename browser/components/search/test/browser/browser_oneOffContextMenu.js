@@ -72,7 +72,7 @@ add_task(async function testNewtabNonempty() {
 
   Assert.equal(
     tab.linkedBrowser.currentURI.spec,
-    "http://mochi.test:8888/",
+    "http://mochi.test:8888/browser/browser/components/search/test/browser/",
     "Search form should have loaded in new tab"
   );
 

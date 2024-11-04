@@ -11,5 +11,7 @@
      template="https://example.com/suggest">
   <Param name="suggestion" value="{searchTerms}"/>
 </Url>
-<Url type="text/html" method="GET" template="http://engine-rel-searchform.xml/?search" rel="searchform"/>
+<Url type="text/html" method="GET" template="http://engine-rel-searchform.xml/?search" rel="searchform">
+  <Param name="some" value="param"/>
+</Url>
 </OpenSearchDescription>

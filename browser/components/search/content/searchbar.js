@@ -485,7 +485,7 @@
      */
     openSearchFormWhere(aEvent, aEngine, where, params = {}) {
       let engine = aEngine || this.currentEngine;
-      let searchForm = engine.wrappedJSObject.searchForm;
+      let searchForm = engine.searchForm;
 
       if (where === "tab" && !!params.inBackground) {
         // Keep the focus in the search bar.

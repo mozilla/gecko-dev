@@ -4,7 +4,8 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource://testing-common/FormHistoryTestUtils.sys.mjs",
 });
 
-const SEARCH_FORM = "http://mochi.test:8888/";
+const SEARCH_FORM =
+  "http://mochi.test:8888/browser/browser/components/search/test/browser/discovery.html";
 
 function expectedURL(aSearchTerms) {
   const ENGINE_HTML_BASE =

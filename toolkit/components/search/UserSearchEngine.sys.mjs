@@ -21,7 +21,7 @@ export class UserSearchEngine extends SearchEngine {
    *   The search engine name.
    * @param {string} [options.details.url]
    *   The search url for the engine.
-   * @param {string} [options.details.keyword]
+   * @param {string} [options.details.alias]
    *   The keyword for the engine.
    * @param {object} [options.json]
    *   An object that represents the saved JSON settings for the engine.

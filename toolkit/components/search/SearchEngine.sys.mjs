@@ -1378,9 +1378,6 @@ export class SearchEngine {
    *
    * @param {string} searchTerms
    *   The search term(s) for the submission.
-   *   Note: If an empty data string is supplied, the search form of the search
-   *   engine will be returned. This is intentional, as in some cases on the current
-   *   UI an empty search is intended to open the search engine's home/search page.
    * @param {lazy.SearchUtils.URL_TYPE} [responseType]
    *   The MIME type that we'd like to receive in response
    *   to this submission.  If null, will default to "text/html".
@@ -1406,7 +1403,8 @@ export class SearchEngine {
 
     if (
       !searchTerms &&
-      responseType != lazy.SearchUtils.URL_TYPE.TRENDING_JSON
+      (responseType == lazy.SearchUtils.URL_TYPE.SEARCH ||
+        responseType == lazy.SearchUtils.URL_TYPE.SUGGEST_JSON)
     ) {
       lazy.logConsole.warn("getSubmission: searchTerms is empty!");
     }
@@ -1433,9 +1431,6 @@ export class SearchEngine {
    * Returns a search URL with no search terms. This is typically used for
    * purposes where we want to check something on the URL, but not use it for
    * an actual submission to the search engine.
-   *
-   * Note: getSubmission cannot be used for this case, as that returns the
-   * search form when passed an empty string.
    *
    * @returns {nsIURI}
    */
@@ -1575,9 +1570,14 @@ export class SearchEngine {
   /**
    * @returns {string}
    *   URL to the main page of the search engine.
-   *   By default this is the pre path of the search URL.
+   *   Uses the first URL of type SEARCH_FORM or the pre path
+   *   of the search URL as a fallback if no such URL exists.
    */
   get searchForm() {
+    let url = this._getURLOfType(lazy.SearchUtils.URL_TYPE.SEARCH_FORM);
+    if (url) {
+      return url.getSubmission("").uri.spec;
+    }
     return this.searchURLWithNoTerms.prePath;
   }
 
