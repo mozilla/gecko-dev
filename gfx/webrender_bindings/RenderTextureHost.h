@@ -89,9 +89,7 @@ class RenderTextureHost {
   virtual void UnlockSWGL() {}
 
   virtual RefPtr<layers::TextureSource> CreateTextureSource(
-      layers::TextureSourceProvider* aProvider) {
-    return nullptr;
-  }
+      layers::TextureSourceProvider* aProvider);
 
   virtual void ClearCachedResources() {}
 

@@ -8,6 +8,7 @@
 
 #include "GLContext.h"
 #include "mozilla/layers/CompositorThread.h"
+#include "mozilla/layers/TextureHost.h"
 #include "RenderThread.h"
 
 namespace mozilla {
@@ -42,6 +43,11 @@ wr::WrExternalImage RenderTextureHost::LockSWGL(uint8_t aChannelIndex,
                                                 void* aContext,
                                                 RenderCompositor* aCompositor) {
   return InvalidToWrExternalImage();
+}
+
+RefPtr<layers::TextureSource> RenderTextureHost::CreateTextureSource(
+    layers::TextureSourceProvider* aProvider) {
+  return nullptr;
 }
 
 void RenderTextureHost::Destroy() {
