@@ -3,6 +3,10 @@
 
 "use strict";
 
+let bounceTrackingProtection = Cc[
+  "@mozilla.org/bounce-tracking-protection;1"
+].getService(Ci.nsIBounceTrackingProtection);
+
 function assertCounterNull() {
   is(
     Glean.bounceTrackingProtection.purgeCount.success.testGetValue(),

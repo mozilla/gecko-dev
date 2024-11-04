@@ -17,6 +17,10 @@ let ORIGIN_TRACKER_CONTAINER =
     OA_CONTAINER
   ).origin;
 
+let bounceTrackingProtection = Cc[
+  "@mozilla.org/bounce-tracking-protection;1"
+].getService(Ci.nsIBounceTrackingProtection);
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [

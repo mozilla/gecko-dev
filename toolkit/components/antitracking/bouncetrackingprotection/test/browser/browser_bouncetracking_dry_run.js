@@ -6,6 +6,10 @@
 const TEST_ORIGIN = "https://itisatracker.org";
 const TEST_BASE_DOMAIN = "itisatracker.org";
 
+let bounceTrackingProtection = Cc[
+  "@mozilla.org/bounce-tracking-protection;1"
+].getService(Ci.nsIBounceTrackingProtection);
+
 async function runPurgeTest(expectPurge) {
   ok(!SiteDataTestUtils.hasCookies(TEST_ORIGIN), "No cookies initially.");
 
