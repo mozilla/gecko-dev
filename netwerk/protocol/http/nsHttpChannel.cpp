@@ -4267,7 +4267,7 @@ nsresult nsHttpChannel::OpenCacheEntryInternal(bool isHttps) {
       CacheStorageService::CacheQueueSize(mCacheOpenWithPriority);
 
   if ((mNetworkTriggerDelay || StaticPrefs::network_http_rcwn_enabled()) &&
-      maybeRCWN) {
+      maybeRCWN && mAllowRCWN) {
     bool hasAltData = false;
     uint32_t sizeInKb = 0;
     rv = cacheStorage->GetCacheIndexEntryAttrs(
@@ -10365,6 +10365,18 @@ void nsHttpChannel::ReportSystemChannelTelemetry(nsresult status) {
 
   // Not one of the probes we recorded earlier.
   mozilla::glean::network::system_channel_other_status.Get(label).Add(1);
+}
+
+NS_IMETHODIMP
+nsHttpChannel::GetAllowRacing(bool* aAllowRacing) {
+  *aAllowRacing = mAllowRCWN;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHttpChannel::SetAllowRacing(bool aAllowRacing) {
+  mAllowRCWN = aAllowRacing;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

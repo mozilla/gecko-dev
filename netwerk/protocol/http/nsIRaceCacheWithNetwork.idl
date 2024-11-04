@@ -14,6 +14,10 @@
 [scriptable, builtinclass, uuid(4d963475-8b16-4c58-b804-8a23d49436c5)]
 interface nsIRaceCacheWithNetwork : nsISupports
 {
+  /**
+   * When set to false the channel will not attempt to race cache with network.
+   */
+  attribute boolean allowRacing;
 
   /****************************************************************************
    * TEST ONLY: The following methods are for testing purposes only. Do not use

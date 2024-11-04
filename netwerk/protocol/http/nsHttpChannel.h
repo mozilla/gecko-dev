@@ -820,6 +820,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   // SetupTransaction removed conditional headers and decisions made in
   // OnCacheEntryCheck are no longer valid.
   bool mIgnoreCacheEntry{false};
+  bool mAllowRCWN{true};
   // Lock preventing SetupTransaction/MaybeCreateCacheEntryWhenRCWN and
   // OnCacheEntryCheck being called at the same time.
   mozilla::Mutex mRCWNLock MOZ_UNANNOTATED{"nsHttpChannel.mRCWNLock"};
