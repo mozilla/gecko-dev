@@ -2903,6 +2903,10 @@
      * @param {object[]} tabs
      *   The set of tabs to include in the group.
      * @param {object} [options]
+     * @param {string} [options.id]
+     *   Optionally assign an ID to the tab group. Useful when rebuilding an
+     *   existing group e.g. when restoring. A pseudorandom string will be
+     *   generated if not set.
      * @param {string} [options.color]
      *   Color for the group label. See tabgroup-menu.js for possible values.
      *   If no color specified, will attempt to assign an unused group color.
@@ -2912,10 +2916,18 @@
      *   An optional argument that accepts a single tab, which, if passed, will
      *   cause the group to be inserted just before this tab in the tab strip. By
      *   default, the group will be created at the end of the tab strip.
+     * @param {boolean} [options.showCreateUI]
+     *   Set this to true to show the post-creation group edtior.
      */
     addTabGroup(
       tabs,
-      { id = null, color = null, label = "", insertBefore = null } = {}
+      {
+        id = null,
+        color = null,
+        label = "",
+        insertBefore = null,
+        showCreateUI = false,
+      } = {}
     ) {
       if (!tabs?.length) {
         throw new Error("Cannot create tab group with zero tabs");
@@ -2934,8 +2946,13 @@
         insertBefore?.group ?? insertBefore
       );
       group.addTabs(tabs);
+      group.dispatchEvent(
+        new CustomEvent("TabGroupCreate", {
+          bubbles: true,
+          detail: { showCreateUI },
+        })
+      );
 
-      group.dispatchEvent(new CustomEvent("TabGroupCreate", { bubbles: true }));
       return group;
     },
 
@@ -6361,7 +6378,9 @@
           }
           break;
         case "TabGroupCreate":
-          this.tabGroupMenu.openCreateModal(aEvent.target);
+          if (aEvent.detail.showCreateUI) {
+            this.tabGroupMenu.openCreateModal(aEvent.target);
+          }
           break;
         case "activate":
         // Intentional fallthrough
@@ -8483,7 +8502,7 @@ var TabContextMenu = {
   moveTabsToNewGroup() {
     gBrowser.addTabGroup(
       this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab],
-      { insertBefore: this.contextTab }
+      { insertBefore: this.contextTab, showCreateUI: true }
     );
   },
 

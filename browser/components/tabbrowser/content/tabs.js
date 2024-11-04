@@ -962,6 +962,7 @@
           if (groupTab) {
             gBrowser.addTabGroup([groupTab, ...movingTabs], {
               insertBefore: draggedTab,
+              showCreateUI: true,
             });
           }
         }
