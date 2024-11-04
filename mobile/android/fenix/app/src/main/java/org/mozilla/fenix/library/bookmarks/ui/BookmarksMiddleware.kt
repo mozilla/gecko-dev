@@ -398,7 +398,7 @@ internal class BookmarksMiddleware(
     }
 
     private fun BookmarkNode.childItems(): List<BookmarkItem> = this.children
-        ?.sortedByDescending { it.dateAdded }
+        ?.sortedByDescending { it.lastModified }
         ?.mapNotNull { node ->
             Result.runCatching {
                 when (node.type) {
