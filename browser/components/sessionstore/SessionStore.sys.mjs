@@ -5652,10 +5652,32 @@ var SessionStoreInternal = {
    *        Object containing command (sidebarcommand/category) and styles
    */
   restoreSidebar(aWindow, aSidebar, isPopup) {
-    if (!aSidebar || isPopup) {
+    if (!aSidebar) {
       return;
     }
-    aWindow.SidebarController.setUIState(aSidebar);
+    if (!isPopup) {
+      let sidebarBox = aWindow.document.getElementById("sidebar-box");
+      // Always restore sidebar width
+      if (aSidebar.width) {
+        sidebarBox.style.width = aSidebar.width;
+      }
+      if (
+        aSidebar.command &&
+        (sidebarBox.getAttribute("sidebarcommand") != aSidebar.command ||
+          !sidebarBox.getAttribute("checked"))
+      ) {
+        aWindow.SidebarController.showInitially(aSidebar.command);
+      }
+      aWindow.SidebarController.uiStateInitialized = true;
+    }
+    if (aWindow.SidebarController.sidebarRevampEnabled) {
+      const { SidebarController } = aWindow;
+      SidebarController.promiseInitialized.then(() => {
+        SidebarController.toggleExpanded(aSidebar.expanded);
+        SidebarController.sidebarContainer.hidden = aSidebar.hidden;
+        SidebarController.updateToolbarButton();
+      });
+    }
   },
 
   /**
