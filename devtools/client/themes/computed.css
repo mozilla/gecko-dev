@@ -213,6 +213,11 @@
   border-style: dotted;
   border-color: var(--theme-splitter-color);
   border-width: 1px 1px 0 1px;
+
+  /* Make the border more visible in High Contrast Mode */
+  :root[forced-colors-active]  &{
+    border-style: solid;
+  }
 }
 
 .matchedselectors > p:last-of-type {
