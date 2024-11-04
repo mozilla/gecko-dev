@@ -319,11 +319,7 @@ amManager.prototype = {
   },
 
   classID: Components.ID("{4399533d-08d1-458c-a87a-235f74451cfa}"),
-  QueryInterface: ChromeUtils.generateQI([
-    "amIAddonManager",
-    "nsITimerCallback",
-    "nsIObserver",
-  ]),
+  QueryInterface: ChromeUtils.generateQI(["nsITimerCallback", "nsIObserver"]),
 };
 
 const BLOCKLIST_SYS_MJS = "resource://gre/modules/Blocklist.sys.mjs";
