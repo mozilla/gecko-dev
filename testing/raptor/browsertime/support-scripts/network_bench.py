@@ -400,6 +400,8 @@ class NetworkBench(BasePythonSupport):
                 cmd += [
                     "--firefox.preference",
                     f"network.http.http3.alt-svc-mapping-for-testing:localhost;h3=:{self.caddy_port}",
+                    "--firefox.preference",
+                    "network.http.http3.force-use-alt-svc-mapping-for-testing:true",
                 ]
             else:
                 spki = "VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8="

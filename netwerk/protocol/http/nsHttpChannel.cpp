@@ -6996,6 +6996,11 @@ nsresult nsHttpChannel::BeginConnect() {
     mapping->GetConnectionInfo(getter_AddRefs(mConnectionInfo), proxyInfo,
                                originAttributes);
     Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, true);
+    if (mConnectionInfo->IsHttp3() &&
+        StaticPrefs::
+            network_http_http3_force_use_alt_svc_mapping_for_testing()) {
+      mCaps |= NS_HTTP_DISALLOW_SPDY;
+    }
   } else if (mConnectionInfo) {
     LOG(("nsHttpChannel %p Using channel supplied connection info", this));
     Telemetry::Accumulate(Telemetry::HTTP_TRANSACTION_USE_ALTSVC, false);

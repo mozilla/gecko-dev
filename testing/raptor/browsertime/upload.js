@@ -11,6 +11,21 @@ const path = require("path");
 async function waitForUpload(timeout, commands, context) {
   let starttime = await commands.js.run(`return performance.now();`);
   let status = "";
+  let protocolInfo = await commands.js.run(
+    `
+    // Get all performance entries
+    const entries = performance.getEntries();
+
+    // Create an array to store the results
+    const protocolInfo = entries.map(entry => ({
+        name: entry.name,
+        protocol: entry.nextHopProtocol,
+    }));
+
+    return protocolInfo;
+    `
+  );
+  context.log.info("protocolInfo: " + JSON.stringify(protocolInfo));
 
   while (
     (await commands.js.run(`return performance.now();`)) - starttime <
