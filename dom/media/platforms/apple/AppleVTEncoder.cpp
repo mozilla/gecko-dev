@@ -611,25 +611,34 @@ void AppleVTEncoder::ProcessOutput(RefPtr<MediaRawData>&& aOutput) {
     Unused << rv;
     return;
   }
+
   LOGV("::ProcessOutput (%zu bytes)", !aOutput.get() ? 0 : aOutput->Size());
   AssertOnTaskQueue();
 
-  if (aOutput) {
-    mEncodedData.AppendElement(std::move(aOutput));
-  } else {
-    LOGE("::ProcessOutput: fatal error");
-    mError = NS_ERROR_DOM_MEDIA_FATAL_ERR;
+  if (!aOutput) {
+    mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, "No converted output");
+    MaybeResolveOrRejectEncodePromise();
+    return;
   }
+
+  mEncodedData.AppendElement(std::move(aOutput));
+  MaybeResolveOrRejectEncodePromise();
 }
 
 RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::Encode(
     const MediaData* aSample) {
   MOZ_ASSERT(aSample != nullptr);
+
   RefPtr<const VideoData> sample(aSample->As<const VideoData>());
 
-  return InvokeAsync<RefPtr<const VideoData>>(mTaskQueue, this, __func__,
-                                              &AppleVTEncoder::ProcessEncode,
-                                              std::move(sample));
+  RefPtr<AppleVTEncoder> self = this;
+  return InvokeAsync(mTaskQueue, __func__, [self, this, sample] {
+    MOZ_ASSERT(mEncodePromise.IsEmpty(),
+               "Encode should not be called again before getting results");
+    RefPtr<EncodePromise> p = mEncodePromise.Ensure(__func__);
+    ProcessEncode(sample);
+    return p;
+  });
 }
 
 RefPtr<MediaDataEncoder::ReconfigurationPromise> AppleVTEncoder::Reconfigure(
@@ -639,22 +648,23 @@ RefPtr<MediaDataEncoder::ReconfigurationPromise> AppleVTEncoder::Reconfigure(
                      aConfigurationChanges);
 }
 
-RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessEncode(
-    const RefPtr<const VideoData>& aSample) {
+void AppleVTEncoder::ProcessEncode(const RefPtr<const VideoData>& aSample) {
   LOGV("::ProcessEncode");
   AssertOnTaskQueue();
   MOZ_ASSERT(mSession);
 
   if (NS_FAILED(mError)) {
-    LOGE("Error: %s", mError.Description().get());
-    return EncodePromise::CreateAndReject(mError, __func__);
+    LOGE("Pending error: %s", mError.Description().get());
+    MaybeResolveOrRejectEncodePromise();
   }
 
   AutoCVBufferRelease<CVImageBufferRef> buffer(
       CreateCVPixelBuffer(aSample->mImage));
   if (!buffer) {
     LOGE("Failed to allocate buffer");
-    return EncodePromise::CreateAndReject(NS_ERROR_OUT_OF_MEMORY, __func__);
+    mError = MediaResult(NS_ERROR_OUT_OF_MEMORY, "failed to allocate buffer");
+    MaybeResolveOrRejectEncodePromise();
+    return;
   }
 
   CFDictionaryRef frameProps = nullptr;
@@ -674,13 +684,26 @@ RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessEncode(
       CMTimeMake(aSample->mDuration.ToMicroseconds(), USECS_PER_S), frameProps,
       nullptr /* sourceFrameRefcon */, &info);
   if (status != noErr) {
-    LOGE("VTCompressionSessionEncodeFrame error");
-    return EncodePromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                                          __func__);
+    LOGE("VTCompressionSessionEncodeFrame error: %d", status);
+    mError = MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                         "VTCompressionSessionEncodeFrame error");
+    MaybeResolveOrRejectEncodePromise();
+    return;
   }
 
-  LOGV("Resolve with %zu encoded outputs", mEncodedData.Length());
-  return EncodePromise::CreateAndResolve(std::move(mEncodedData), __func__);
+  if (mConfig.mUsage != Usage::Realtime) {
+    MaybeResolveOrRejectEncodePromise();
+    return;
+  }
+
+  // The latency between encoding a sample and receiving the encoded output is
+  // critical in real-time usage. To minimize the latency, the output result
+  // should be returned immediately once they are ready, instead of being
+  // returned in the next or later Encode() iterations.
+  LOGV("Encoding in progress");
+
+  // Workaround for real-time encoding in OS versions < 11.
+  ForceOutputIfNeeded();
 }
 
 RefPtr<MediaDataEncoder::ReconfigurationPromise>
@@ -895,6 +918,10 @@ RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessDrain() {
     return EncodePromise::CreateAndReject(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                                           __func__);
   }
+
+  // Resolve the pending encode promise if any.
+  MaybeResolveOrRejectEncodePromise();
+
   // VTCompressionSessionCompleteFrames() could have queued multiple tasks with
   // the new drained frames. Dispatch a task after them to resolve the promise
   // with those frames.
@@ -922,6 +949,11 @@ RefPtr<ShutdownPromise> AppleVTEncoder::ProcessShutdown() {
     mSession = nullptr;
     mInited = false;
   }
+
+  mError = MediaResult(NS_ERROR_DOM_MEDIA_CANCELED, "Canceled in shutdown");
+  MaybeResolveOrRejectEncodePromise();
+  mError = NS_OK;
+
   return ShutdownPromise::CreateAndResolve(true, __func__);
 }
 
@@ -935,6 +967,63 @@ RefPtr<GenericPromise> AppleVTEncoder::SetBitrate(uint32_t aBitsPerSec) {
               : GenericPromise::CreateAndReject(
                     NS_ERROR_DOM_MEDIA_NOT_SUPPORTED_ERR, __func__);
   });
+}
+
+void AppleVTEncoder::MaybeResolveOrRejectEncodePromise() {
+  AssertOnTaskQueue();
+
+  if (mEncodePromise.IsEmpty()) {
+    LOGV(
+        "No pending promise to resolve(pending outputs: %zu) or reject(err: "
+        "%s)",
+        mEncodedData.Length(), mError.Description().get());
+    return;
+  }
+
+  if (mTimer) {
+    mTimer->Cancel();
+    mTimer = nullptr;
+  }
+
+  if (NS_FAILED(mError.Code())) {
+    LOGE("Rejecting encode promise with error: %s", mError.Description().get());
+    mEncodePromise.Reject(mError, __func__);
+    return;
+  }
+
+  LOGV("Resolving with %zu encoded outputs", mEncodedData.Length());
+  mEncodePromise.Resolve(std::move(mEncodedData), __func__);
+}
+
+void AppleVTEncoder::ForceOutputIfNeeded() {
+  if (__builtin_available(macos 11.0, *)) {
+    return;
+  }
+  // Ideally, OutputFrame (called via FrameCallback) should resolve the encode
+  // promise. However, sometimes output is produced only after multiple
+  // inputs. To ensure continuous encoding, we force the encoder to produce a
+  // potentially empty output if no result is received in 50 ms.
+  RefPtr<AppleVTEncoder> self = this;
+  auto r = NS_NewTimerWithCallback(
+      [self](nsITimer* aTimer) {
+        if (!self->mSession) {
+          LOGV("Do nothing since the encoder has been shut down");
+          return;
+        }
+
+        LOGV("Resolving the pending promise");
+        self->MaybeResolveOrRejectEncodePromise();
+      },
+      TimeDuration::FromMilliseconds(50), nsITimer::TYPE_ONE_SHOT,
+      "EncodingProgressChecker", mTaskQueue);
+  if (r.isErr()) {
+    LOGE(
+        "Failed to set an encoding progress checker. Resolve the pending "
+        "promise now");
+    MaybeResolveOrRejectEncodePromise();
+    return;
+  }
+  mTimer = r.unwrap();
 }
 
 #undef LOGE
