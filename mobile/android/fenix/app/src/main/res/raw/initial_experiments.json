@@ -68,7 +68,7 @@
       "channel": "release",
       "userFacingName": "Android Mobile Sync Screen Skip Copy Optimization V2",
       "userFacingDescription": "Experiment changing the copy of the skip button on the sync onboarding tour card",
-      "isEnrollmentPaused": false,
+      "isEnrollmentPaused": true,
       "isRollout": false,
       "bucketConfig": {
         "randomizationUnit": "nimbus_id",
@@ -129,7 +129,7 @@
       ],
       "targeting": "((is_already_enrolled) || ((isFirstRun == 'true') && (app_version|versionCompare('131.!') >= 0) && (language in ['en']) && (region in ['CA', 'GB', 'US']) && (enrollments_map['long-term-holdback-2024-h2-velocity-android'] == 'delivery')))",
       "startDate": "2024-10-14",
-      "enrollmentEndDate": null,
+      "enrollmentEndDate": "2024-11-01",
       "endDate": null,
       "proposedDuration": 28,
       "proposedEnrollment": 14,
