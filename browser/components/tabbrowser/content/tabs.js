@@ -1949,7 +1949,7 @@
 
       let pinned = draggedTab.pinned;
       let numPinned = gBrowser.pinnedTabCount;
-      let tabs = this.allTabs.slice(
+      let tabs = this.visibleTabs.slice(
         pinned ? 0 : numPinned,
         pinned ? numPinned : undefined
       );
