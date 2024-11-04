@@ -11,7 +11,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BinarySearch: "resource://gre/modules/BinarySearch.sys.mjs",
 });
 
-function initialState(previousState = {}) {
+export const NO_SEARCH_VALUE = Symbol("no-search-value");
+
+function initialState(previousState = { searchValueOrGrip: NO_SEARCH_VALUE }) {
   return {
     // These fields are mutable as they are large arrays and UI will rerender based on their size
 
@@ -35,6 +37,18 @@ function initialState(previousState = {}) {
 
     // List of all trace resources indexes within mutableTraces which are about dom mutations
     mutableMutationTraces: [],
+
+    // List of all traces matching the current search string
+    // (this isn't only top traces)
+    mutableMatchingTraces: [],
+
+    // If the user started searching for some value, it may be an invalid expression
+    // and the error related to this will be stored as a string in this attribute.
+    searchExceptionMessage: null,
+
+    // If a valid search has been requested, the actual value for this search is stored in this attribute.
+    // It can be either a primitive data type, or an object actor form (aka grip)
+    searchValueOrGrip: previousState.searchValueOrGrip,
 
     // List of all event names which triggered some JavaScript code in the current tracer record.
     mutableEventNames: new Set(),
@@ -72,15 +86,59 @@ function initialState(previousState = {}) {
     // Runtime versions to help show warning when there is a mismatch between frontend and backend versions
     localPlatformVersion: null,
     remotePlatformVersion: null,
+
+    // Is it currently recording trace *and* is collecting values
+    traceValues: false,
   };
 }
 
 // eslint-disable-next-line complexity
 function update(state = initialState(), action) {
   switch (action.type) {
+    case "SET_TRACE_SEARCH_EXCEPTION": {
+      return {
+        ...state,
+        searchExceptionMessage: action.errorMessage,
+        searchValueOrGrip: NO_SEARCH_VALUE,
+        mutableMatchingTraces: [],
+      };
+    }
+    case "SET_TRACE_SEARCH_STRING": {
+      const { searchValueOrGrip } = action;
+      if (searchValueOrGrip === NO_SEARCH_VALUE) {
+        return {
+          ...state,
+          searchValueOrGrip,
+          searchExceptionMessage: null,
+          mutableMatchingTraces: [],
+        };
+      }
+      const mutableMatchingTraces = [];
+      for (const trace of state.mutableTraces) {
+        const type = trace[TRACER_FIELDS_INDEXES.TYPE];
+        if (type != "enter") {
+          continue;
+        }
+        if (isTraceMatchingSearch(trace, searchValueOrGrip)) {
+          mutableMatchingTraces.push(trace);
+        }
+      }
+      return {
+        ...state,
+        searchValueOrGrip,
+        mutableMatchingTraces,
+        searchExceptionMessage: null,
+      };
+    }
     case "TRACING_TOGGLED": {
       if (action.enabled) {
-        return initialState(state);
+        state = initialState(state);
+        if (action.traceValues) {
+          state.traceValues = true;
+        } else {
+          state.searchValueOrGrip = NO_SEARCH_VALUE;
+        }
+        return state;
       }
       return state;
     }
@@ -299,6 +357,8 @@ function addTraces(state, traces) {
     mutableFilteredTopTraces,
     mutableChildren,
     mutableParents,
+    mutableMatchingTraces,
+    searchValueOrGrip,
   } = state;
 
   function matchParent(traceIndex, depth) {
@@ -352,6 +412,13 @@ function addTraces(state, traces) {
         mutableChildren.push([]);
         const depth = traceResource[TRACER_FIELDS_INDEXES.DEPTH];
         matchParent(traceIndex, depth);
+
+        if (
+          searchValueOrGrip != NO_SEARCH_VALUE &&
+          isTraceMatchingSearch(traceResource, searchValueOrGrip)
+        ) {
+          mutableMatchingTraces.push(traceResource);
+        }
         break;
       }
 
@@ -465,6 +532,35 @@ function locationMatchTrace(location, trace) {
     trace.lineNumber == location.line &&
     trace.columnNumber == location.column
   );
+}
+
+/**
+ * Reports if a given trace matches the current searched argument value.
+ *
+ * @param {Object} trace
+ *        The trace object communicated by the backend.
+ * @param {any primitive|ObjectActor's form} searchValueOrGrip
+ *        Either a primitive value (string, number, boolean, …) to match directly,
+ *        or, an object actor form where we could match the actor ID.
+ */
+function isTraceMatchingSearch(trace, searchValueOrGrip) {
+  const argumentValues = trace[TRACER_FIELDS_INDEXES.ENTER_ARGS];
+  if (!argumentValues) {
+    return false;
+  }
+  if (searchValueOrGrip) {
+    const { actor } = searchValueOrGrip;
+    if (actor) {
+      return argumentValues.some(v => v.actor === searchValueOrGrip.actor);
+    }
+  }
+  // `null` and `undefined` aren't serialized as-is and have a special grip object
+  if (searchValueOrGrip === null) {
+    return argumentValues.some(v => v?.type == "null");
+  } else if (searchValueOrGrip === undefined) {
+    return argumentValues.some(v => v?.type == "undefined");
+  }
+  return argumentValues.some(v => v === searchValueOrGrip);
 }
 
 /**
