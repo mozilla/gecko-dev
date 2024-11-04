@@ -30,7 +30,9 @@ add_task(async function test_integrated_sidebar() {
     );
 
     reviewCheckerButton.click();
-
+    await TestUtils.waitForCondition(() => {
+      return SidebarController.isOpen;
+    }, "Wait for sidebar to be opened.");
     ok(SidebarController.isOpen, "Sidebar is open");
 
     Assert.equal(

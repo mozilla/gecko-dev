@@ -248,6 +248,44 @@
           "properties": {
             "id": {
               "type": "string",
+              "enum": ["sidebarToolOpened"]
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when the user clicks on tools/extensions in the sidebar"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "enum": ["sidebarGenaiOpened"]
+            }
+          },
+          "additionalProperties": false,
+          "required": ["id"],
+          "description": "Happens when the user clicks 2 times on the Insights tool in the sidebar",
+          "context": {
+            "type": "object",
+            "properties": {
+              "view": {
+                "type": "string",
+                "description": "The tool/extension you've opened in the sidebar"
+              },
+              "clickCounts": {
+                "type": "object",
+                "description": "An object to store click counts for the tools/extensions opened in the sidebar"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
               "enum": ["activityAfterIdle"]
             }
           },
