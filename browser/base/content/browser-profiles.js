@@ -21,7 +21,8 @@ var gProfiles = {
       "PROFILES_ENABLED",
       "browser.profiles.enabled",
       false,
-      this.toggleProfileButtonVisibility.bind(this)
+      this.toggleProfileButtonVisibility.bind(this),
+      () => SelectableProfileService?.isEnabled
     );
 
     if (!this.PROFILES_ENABLED) {
