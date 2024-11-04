@@ -73,7 +73,16 @@ already_AddRefed<BounceTrackingState> BounceTrackingState::GetOrCreate(
     return nullptr;
   }
 
+  // Check if we should even apply BTP for this environment. This depends on the
+  // feature prefs and the web progress itself.
   if (!ShouldCreateBounceTrackingStateForWebProgress(aWebProgress)) {
+    // The call below ensures we record the disabled state in telemetry. In
+    // MODE_DISABLED we may never hit BounceTrackingProtection::GetSingleton and
+    // thus would skip on recording telemetry.
+    if (StaticPrefs::privacy_bounceTrackingProtection_mode() ==
+        nsIBounceTrackingProtection::MODE_DISABLED) {
+      BounceTrackingProtection::RecordModePrefTelemetry();
+    }
     return nullptr;
   }
 
