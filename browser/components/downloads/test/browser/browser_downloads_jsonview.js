@@ -64,7 +64,8 @@ add_task(async function test_save_jsonview() {
     await IOUtils.readUTF8(download.target.path),
     '{"cookieHeaderValue":"cookieKey=cookieValue"}'
   );
-  Assert.equal(download.target.size, 45);
+
+  Assert.equal(await expectNonZeroDownloadTargetSize(download.target), 45);
 
   MockFilePicker.cleanup();
 });

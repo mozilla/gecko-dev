@@ -477,3 +477,16 @@ async function simulateDropAndCheck(win, dropTarget, urls) {
     ok(added.has(url), url + " is added to download");
   }
 }
+
+/**
+ * This is a temporary workaround for frequent intermittents.
+ * For some reason the download target size is not updated, even if the code
+ * is "apparently" already executing and awaiting for refresh().
+ * TODO(Bug 1814364): Figure out a proper fix for this.
+ */
+async function expectNonZeroDownloadTargetSize(downloadTarget) {
+  if (!downloadTarget.size) {
+    await downloadTarget.refresh();
+  }
+  return downloadTarget.size;
+}
