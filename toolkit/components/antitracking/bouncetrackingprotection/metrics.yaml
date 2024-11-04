@@ -107,32 +107,17 @@ bounce.tracking.protection:
       success:
         description: Whether the purge data call was successful. false indicates an error in ClearDataService.
         type: boolean
-  enabled_at_startup:
-    type: boolean
+  mode:
+    type: quantity
+    lifetime: application
+    unit: intPref
     description: >
-      Keeps track of whether the feature is enabled at startup.
+      Records the pref value of privacy.bounceTrackingProtection.mode. Values
+      are any of nsIBounceTrackingProtection#Modes.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928062
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964#c4
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - pbz@mozilla.com
-      - bvandersloot@mozilla.com
-      - manuel@mozilla.com
-    expires: 140
-  enabled_dry_run_mode_at_startup:
-    type: boolean
-    description: >
-      Keeps track of whether the feature is enabled and running in dry-run mode
-      at startup.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964#c4
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928062
     data_sensitivity:
       - technical
     notification_emails:
