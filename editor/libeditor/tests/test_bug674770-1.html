@@ -22,7 +22,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=674770
 <script type="application/javascript">
 
 SimpleTest.waitForExplicitFinish();
-SimpleTest.waitForFocus(function() {
+SimpleTest.waitForFocus(async function() {
+  await SimpleTest.enableLegacyUnpartitionedStorage();
   SpecialPowers.pushPrefEnv({"set": [["middlemouse.paste", true]]}, startTests);
 });
 

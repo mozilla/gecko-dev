@@ -369,6 +369,10 @@ add_task(async function testCookiesSubViewAllowedHeuristic() {
     TPC_PREF,
     Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER
   );
+  Services.prefs.setBoolPref(
+    "privacy.restrict3rdpartystorage.heuristic.window_open",
+    true
+  );
   let principal =
     Services.scriptSecurityManager.createContentPrincipalFromOrigin(
       // eslint-disable-next-line @microsoft/sdl/no-insecure-url

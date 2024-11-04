@@ -52,7 +52,6 @@ AntiTracking._createTask({
     "https://tracking.example.org",
     "https://tracking.example.org",
     "https://tracking.example.org",
-    "https://tracking.example.org",
     "https://another-tracking.example.net",
     "https://itisatracker.org",
   ],
