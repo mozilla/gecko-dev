@@ -7,7 +7,9 @@ function is(a, b, message) {
 }
 
 if (self.Notification) {
-  var child = new Worker("notification_worker_child-child.js");
+  var child = new Worker(
+    "notification_worker_child-child.js" + self.location.search
+  );
   child.onerror = function (e) {
     ok(false, "Error loading child worker " + e);
     postMessage({ type: "finish" });
