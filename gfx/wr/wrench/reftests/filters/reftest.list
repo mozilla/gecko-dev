@@ -11,7 +11,7 @@ fuzzy(12,10000) == svgfe-subregion-offset-stacking-context.yaml svgfe-subregion-
 == filter-grayscale.yaml filter-grayscale-ref.yaml
 platform(linux,mac) == draw_calls(7) color_targets(7) alpha_targets(0) filter-blur.yaml filter-blur.png
 platform(linux,mac) == filter-blur-downscale-fractional.yaml filter-blur-downscale-fractional.png
-max_surface_size(1024) fuzzy(9,45046) == filter-blur-downscaled-task.yaml filter-blur-downscaled-task-ref.yaml
+max_surface_size(1024) fuzzy(9,41354) == filter-blur-downscaled-task.yaml filter-blur-downscaled-task-ref.yaml
 == isolated.yaml isolated-ref.yaml
 == invisible.yaml invisible-ref.yaml
 fuzzy-if(platform(swgl),1,10000) == opacity.yaml opacity-ref.yaml
