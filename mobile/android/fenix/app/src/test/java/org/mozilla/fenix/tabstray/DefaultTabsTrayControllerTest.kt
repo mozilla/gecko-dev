@@ -1385,6 +1385,7 @@ class DefaultTabsTrayControllerTest {
         title = "title",
         url = "url",
         dateAdded = 0L,
+        lastModified = 0L,
         children = null,
     )
 
@@ -1396,6 +1397,7 @@ class DefaultTabsTrayControllerTest {
         title = "title",
         url = "url",
         dateAdded = 0L,
+        lastModified = 0L,
         children = null,
     )
 }

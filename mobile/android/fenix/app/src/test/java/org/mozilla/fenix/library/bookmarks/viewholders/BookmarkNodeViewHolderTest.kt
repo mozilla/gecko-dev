@@ -45,6 +45,7 @@ class BookmarkNodeViewHolderTest {
         title = "Mozilla",
         url = "https://www.mozilla.org",
         dateAdded = 0,
+        lastModified = 0,
         children = listOf(),
     )
     private val folder = BookmarkNode(
@@ -55,6 +56,7 @@ class BookmarkNodeViewHolderTest {
         title = "Folder",
         url = null,
         dateAdded = 0,
+        lastModified = 0,
         children = listOf(),
     )
 

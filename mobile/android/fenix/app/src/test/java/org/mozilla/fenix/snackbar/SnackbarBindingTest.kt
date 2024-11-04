@@ -489,7 +489,8 @@ class SnackbarBindingTest {
         position = 0U,
         title = title,
         url = null,
-        dateAdded = 0L,
+        dateAdded = 0,
+        lastModified = 0,
         children = listOf(),
     )
 }

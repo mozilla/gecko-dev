@@ -35,6 +35,7 @@ class DesktopFoldersTest {
         position = 0u,
         url = null,
         dateAdded = 0,
+        lastModified = 0,
         children = null,
     )
 

@@ -174,6 +174,7 @@ class AppStoreReducerTest {
             title = "Mozilla",
             url = null,
             dateAdded = 0,
+            lastModified = 0,
             children = listOf(),
         )
 

@@ -45,6 +45,7 @@ class BookmarksStorageSuggestionProviderTest {
         "Mozilla",
         "http://www.mozilla.org",
         0,
+        0,
         null,
     )
 
@@ -285,7 +286,7 @@ class BookmarksStorageSuggestionProviderTest {
         ): String {
             val id = UUID.randomUUID().toString()
             bookmarkMap[id] =
-                BookmarkNode(BookmarkNodeType.ITEM, id, parentGuid, position, title, url, 0, null)
+                BookmarkNode(BookmarkNodeType.ITEM, id, parentGuid, position, title, url, 0, 0, null)
             return id
         }
 

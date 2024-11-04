@@ -100,6 +100,7 @@ class BookmarksUseCaseTest {
             "Firefox",
             "https://www.firefox.com",
             0,
+            0,
             null,
         )
 

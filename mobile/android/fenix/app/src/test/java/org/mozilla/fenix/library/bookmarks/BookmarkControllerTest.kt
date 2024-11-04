@@ -65,9 +65,9 @@ class BookmarkControllerTest {
     private val navDestination: NavDestination = mockk(relaxed = true)
 
     private val item =
-        BookmarkNode(BookmarkNodeType.ITEM, "456", "123", 0u, "Mozilla", "http://mozilla.org", 0, null)
+        BookmarkNode(BookmarkNodeType.ITEM, "456", "123", 0u, "Mozilla", "http://mozilla.org", 0, 0, null)
     private val subfolder =
-        BookmarkNode(BookmarkNodeType.FOLDER, "987", "123", 0u, "Subfolder", null, 0, listOf())
+        BookmarkNode(BookmarkNodeType.FOLDER, "987", "123", 0u, "Subfolder", null, 0, 0, listOf())
     private val childItem = BookmarkNode(
         BookmarkNodeType.ITEM,
         "987",
@@ -75,6 +75,7 @@ class BookmarkControllerTest {
         2u,
         "Firefox",
         "https://www.mozilla.org/en-US/firefox/",
+        0,
         0,
         null,
     )
@@ -86,6 +87,7 @@ class BookmarkControllerTest {
         "Mobile",
         null,
         0,
+        0,
         listOf(item, item, childItem, subfolder),
     )
     private val largeTree = BookmarkNode(
@@ -96,6 +98,7 @@ class BookmarkControllerTest {
         "Mobile",
         null,
         0,
+        0,
         List(WARN_OPEN_ALL_SIZE) { item },
     )
     private val root = BookmarkNode(
@@ -105,6 +108,7 @@ class BookmarkControllerTest {
         0u,
         BookmarkRoot.Root.name,
         null,
+        0,
         0,
         null,
     )

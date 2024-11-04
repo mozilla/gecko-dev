@@ -1346,7 +1346,8 @@ class BookmarksMiddlewareTest {
         position = 0U,
         title = "root",
         url = null,
-        dateAdded = 0L,
+        dateAdded = 0,
+        lastModified = 0,
         children = listOf(
             generateBookmarkFolder(BookmarkRoot.Menu.id, "Menu", BookmarkRoot.Root.id),
             generateBookmarkFolder(BookmarkRoot.Toolbar.id, "Toolbar", BookmarkRoot.Root.id),
@@ -1362,7 +1363,8 @@ class BookmarksMiddlewareTest {
         position = 0U,
         title = "mobile",
         url = null,
-        dateAdded = 0L,
+        dateAdded = 0,
+        lastModified = 0,
         children = generateBookmarkFolders(BookmarkRoot.Mobile.id) + bookmarkItems,
     )
 
@@ -1373,7 +1375,8 @@ class BookmarksMiddlewareTest {
         position = 0U,
         title = title,
         url = null,
-        dateAdded = 0L,
+        dateAdded = 0,
+        lastModified = 0,
         children = bookmarkItems,
     )
 
@@ -1384,7 +1387,8 @@ class BookmarksMiddlewareTest {
         position = 0U,
         title = title,
         url = url,
-        dateAdded = 0L,
+        dateAdded = 0,
+        lastModified = 0,
         children = listOf(),
     )
 

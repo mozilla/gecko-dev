@@ -92,6 +92,7 @@ class BookmarkNodeTest {
     ) = BookmarkNode(
         type = BookmarkNodeType.ITEM,
         dateAdded = 0,
+        lastModified = 0,
         children = null,
         guid = guid,
         parentGuid = parentGuid,
@@ -110,6 +111,7 @@ class BookmarkNodeTest {
         type = BookmarkNodeType.FOLDER,
         url = null,
         dateAdded = 0,
+        lastModified = 0,
         guid = guid,
         parentGuid = parentGuid,
         position = position,

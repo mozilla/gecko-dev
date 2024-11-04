@@ -62,6 +62,7 @@ class FakeBookmarksStorage() : BookmarksStorage {
                 title = title,
                 url = url,
                 dateAdded = 0,
+                lastModified = 0,
                 children = null,
             )
         return id
@@ -78,6 +79,7 @@ class FakeBookmarksStorage() : BookmarksStorage {
                 title = title,
                 url = null,
                 dateAdded = 0,
+                lastModified = 0,
                 children = null,
             )
         return id

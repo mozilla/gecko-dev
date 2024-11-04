@@ -102,6 +102,7 @@ internal fun BookmarkItem.asBookmarkNode(): BookmarkNode {
                 this.b.title,
                 this.b.url,
                 this.b.dateAdded,
+                this.b.lastModified,
                 null,
             )
         }
@@ -114,6 +115,7 @@ internal fun BookmarkItem.asBookmarkNode(): BookmarkNode {
                 this.f.title,
                 null,
                 this.f.dateAdded,
+                this.f.lastModified,
                 this.f.childNodes?.map(BookmarkItem::asBookmarkNode),
             )
         }
@@ -126,6 +128,7 @@ internal fun BookmarkItem.asBookmarkNode(): BookmarkNode {
                 null,
                 null,
                 this.s.dateAdded,
+                this.s.lastModified,
                 null,
             )
         }

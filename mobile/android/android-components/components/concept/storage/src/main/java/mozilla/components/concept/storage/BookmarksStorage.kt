@@ -147,6 +147,7 @@ data class BookmarkNode(
     val title: String?,
     val url: String?,
     val dateAdded: Long,
+    val lastModified: Long,
     val children: List<BookmarkNode>?,
 ) {
     /**
