@@ -224,6 +224,10 @@ add_task(async function test_webext_contentscript_iframe_subframe_privileges() {
 });
 
 add_task(async function test_webext_background_remote_subframe_privileges() {
+  // we have to enable unpartitioned cookie access for xorigin tests to set the cookie
+  // where the popup can read it.
+  await SimpleTest.enableLegacyUnpartitionedStorage();
+
   // file_remote_frame.html is opened at the same origin as this test page.
   document.cookie = "cookie=monster";
 
