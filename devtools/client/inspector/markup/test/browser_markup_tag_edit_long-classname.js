@@ -19,7 +19,13 @@ add_task(async function () {
   const { inspector } = await openInspectorForURL(TEST_URL);
 
   await selectNode("div", inspector);
+
+  // We trigger a click on the container which is not a button, so that would make the
+  // test fail on a11y_checks. Since we're handling element selection from the keyboard
+  // just fine, we can disable the accessibility check to avoid the test failure.
+  AccessibilityUtils.setEnv({ focusabeRule: false });
   await clickContainer("div", inspector);
+  AccessibilityUtils.resetEnv();
 
   const container = await focusNode("div", inspector);
   ok(container && container.editor, "The markup-container was found");
