@@ -327,30 +327,6 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN current screen is the add folder screen AND the select folder screen is on the backstack WHEN a folder is created THEN pop the backstack again`() {
-        val middleware = buildMiddleware()
-        val store = middleware.makeStore(
-            initialState = BookmarksState.default.copy(
-                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
-            ),
-        )
-
-        store.dispatch(AddFolderAction.FolderCreated(BookmarkItem.Folder("title", "guid")))
-
-        verify(navController).popBackStack()
-    }
-
-    @Test
-    fun `GIVEN current screen is the add folder screen AND the select folder screen is NOT on the backstack WHEN a folder is created THEN do nothing`() {
-        val middleware = buildMiddleware()
-        val store = middleware.makeStore()
-
-        store.dispatch(AddFolderAction.FolderCreated(BookmarkItem.Folder("title", "guid")))
-
-        verify(navController, never()).popBackStack()
-    }
-
-    @Test
     fun `GIVEN current screen is add folder and new folder title is empty WHEN back is clicked THEN navigate back to the previous tree and don't save anything`() = runTestOnMain {
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
@@ -390,7 +366,25 @@ class BookmarksMiddlewareTest {
 
         assertNull(store.state.bookmarksSelectFolderState)
         verify(bookmarksStorage, times(1)).getTree(BookmarkRoot.Mobile.id, recursive = true)
-        verify(navController, times(2)).popBackStack()
+        verify(navController, times(1)).popBackStack(BookmarksDestinations.EDIT_BOOKMARK, inclusive = false)
+    }
+
+    @Test
+    fun `GIVEN current screen is add folder and previous screen is not select folder WHEN back is clicked THEN navigate back`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = false)).thenReturn(generateBookmarkTree())
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = false)).thenReturn(generateBookmarkTree())
+        `when`(bookmarksStorage.addFolder(BookmarkRoot.Mobile.id, "i'm a new folder")).thenReturn("new-guid")
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(AddFolderClicked)
+        store.dispatch(AddFolderAction.TitleChanged("i'm a new folder"))
+        store.dispatch(BackClicked)
+        store.waitUntilIdle()
+
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id, recursive = false)
+        verify(navController, times(1)).popBackStack()
     }
 
     @Test
@@ -983,11 +977,6 @@ class BookmarksMiddlewareTest {
         store.dispatch(BookmarksListMenuAction.MultiSelect.EditClicked)
 
         verify(navController).navigate(BookmarksDestinations.EDIT_BOOKMARK)
-    }
-
-    @Test
-    fun `WHEN toolbar move clicked THEN navigate to the folder selection screen`() = runTestOnMain {
-        // TODO
     }
 
     @Test
