@@ -9,8 +9,7 @@
 
 #include "Units.h"                  // for LayoutDeviceIntPoint
 #include "mozilla/EventForwards.h"  // for WidgetInputEvent, nsEventStatus
-#include "mozilla/layers/APZPublicUtils.h"       // for APZWheelAction
-#include "mozilla/layers/APZUtils.h"             // for DispatchToContent
+#include "mozilla/layers/APZPublicUtils.h"  // for APZWheelAction, DispatchToContent
 #include "mozilla/layers/LayersTypes.h"          // for ScrollDirections
 #include "mozilla/layers/ScrollableLayerGuid.h"  // for ScrollableLayerGuid
 

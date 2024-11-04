@@ -32,6 +32,8 @@ MOZ_DEFINE_ENUM_CLASS_WITH_BASE(APZWheelAction, uint8_t, (
 ))
 // clang-format on
 
+enum class DispatchToContent : bool { No, Yes };
+
 namespace apz {
 
 /**
