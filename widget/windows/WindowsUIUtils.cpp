@@ -4,7 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <windows.h>
+#include <winreg.h>
 #include <wrl.h>
+#include <powerbase.h>
+#include <cfgmgr32.h>
 
 #include "nsServiceManagerUtils.h"
 
@@ -29,6 +32,11 @@
 #include "nsPIDOMWindow.h"
 #include "nsWindowGfx.h"
 #include "Units.h"
+#include "nsWindowsHelpers.h"
+#include "WinRegistry.h"
+#include "WinUtils.h"
+
+mozilla::LazyLogModule gTabletModeLog("TabletMode");
 
 /* mingw currently doesn't support windows.ui.viewmanagement.h, so we disable it
  * until it's fixed. */
@@ -188,8 +196,10 @@ IUISettings5 : public IInspectable {
 
 using namespace mozilla;
 
+// Since Win10 and Win11 tablet modes can't both be simultaneously active, we
+// only need one backing variable for the both of them.
 enum class TabletModeState : uint8_t { Unknown, Off, On };
-static TabletModeState sInTabletModeState;
+static TabletModeState sInTabletModeState = TabletModeState::Unknown;
 
 WindowsUIUtils::WindowsUIUtils() = default;
 WindowsUIUtils::~WindowsUIUtils() = default;
@@ -282,17 +292,37 @@ WindowsUIUtils::SetWindowIconNoData(mozIDOMWindowProxy* aWindow) {
   return NS_OK;
 }
 
-bool WindowsUIUtils::GetInTabletMode() {
+bool WindowsUIUtils::GetInWin10TabletMode() {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+  if (IsWin11OrLater()) {
+    return false;
+  }
   if (sInTabletModeState == TabletModeState::Unknown) {
-    UpdateInTabletMode();
+    UpdateInWin10TabletMode();
+  }
+  return sInTabletModeState == TabletModeState::On;
+}
+
+bool WindowsUIUtils::GetInWin11TabletMode() {
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+  if (!IsWin11OrLater()) {
+    return false;
+  }
+  if (sInTabletModeState == TabletModeState::Unknown) {
+    UpdateInWin11TabletMode();
   }
   return sInTabletModeState == TabletModeState::On;
 }
 
 NS_IMETHODIMP
-WindowsUIUtils::GetInTabletMode(bool* aResult) {
-  *aResult = GetInTabletMode();
+WindowsUIUtils::GetInWin10TabletMode(bool* aResult) {
+  *aResult = GetInWin10TabletMode();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WindowsUIUtils::GetInWin11TabletMode(bool* aResult) {
+  *aResult = GetInWin11TabletMode();
   return NS_OK;
 }
 
@@ -543,7 +573,18 @@ bool WindowsUIUtils::ComputeTransparencyEffects() {
 #endif
 }
 
-void WindowsUIUtils::UpdateInTabletMode() {
+void WindowsUIUtils::UpdateInWin10TabletMode() {
+  if (IsWin11OrLater()) {
+    // (In theory we should never get here under Win11; but it's conceivable
+    // that there are third-party applications that try to "assist" legacy Win10
+    // apps by synthesizing Win10-style tablet-mode notifications.)
+    return;
+  }
+
+  // The getter below relies on querying a HWND which is affine to the main
+  // thread; its operation is not known to be thread-safe, let alone lock-free.
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+
 #ifndef __MINGW32__
   nsresult rv;
   nsCOMPtr<nsIWindowMediator> winMediator(
@@ -592,6 +633,7 @@ void WindowsUIUtils::UpdateInTabletMode() {
   TabletModeState oldTabletModeState = sInTabletModeState;
   sInTabletModeState = mode == UserInteractionMode_Touch ? TabletModeState::On
                                                          : TabletModeState::Off;
+
   if (sInTabletModeState != oldTabletModeState) {
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
@@ -601,6 +643,199 @@ void WindowsUIUtils::UpdateInTabletMode() {
                                          : u"normal-mode");
   }
 #endif
+}
+
+// Cache: whether this device is believed to be capable of entering tablet mode.
+//
+// Meaningful only if `IsWin11OrLater()`.
+static Maybe<bool> sIsTabletCapable = Nothing();
+
+// The UUID of a GPIO pin which indicates whether or not a convertible device is
+// currently in tablet mode. (We copy `DEFINE_GUID`'s implementation here since
+// we can't control `INITGUID`, which the canonical one is conditional on.)
+//
+// https://learn.microsoft.com/en-us/windows-hardware/drivers/gpiobtn/laptop-slate-mode-toggling-between-states
+#define MOZ_DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+  EXTERN_C const GUID DECLSPEC_SELECTANY name = {                        \
+      l, w1, w2, {b1, b2, b3, b4, b5, b6, b7, b8}}
+/* 317fc439-3f77-41c8-b09e-08ad63272aa3 */ MOZ_DEFINE_GUID(
+    MOZ_GUID_GPIOBUTTONS_LAPTOPSLATE_INTERFACE, 0x317fc439, 0x3f77, 0x41c8,
+    0xb0, 0x9e, 0x08, 0xad, 0x63, 0x27, 0x2a, 0xa3);
+
+void WindowsUIUtils::UpdateInWin11TabletMode() {
+  // The OS-level getter itself is threadsafe, but we retain the main-thread
+  // restriction to parallel the Win10 getter's (presumed) restriction.
+  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
+
+  if (!IsWin11OrLater()) {
+    // We should ordinarily never reach this point in Win10 -- but there may
+    // well be some third-party application out there that synthesizes Win11-
+    // style tablet-mode notifications.
+    return;
+  }
+
+  // ***  ***  ***  WARNING: RELIANCE ON UNDOCUMENTED BEHAVIOR  ***  ***  ***
+  //
+  // Windows 10's `UserInteractionMode` API is no longer useful under Windows
+  // 11: it always returns `UserInteractionMode_Mouse`.
+  //
+  // The documented API to query whether we're in tablet mode (alt.: "slate
+  // mode") under Windows 11 is `::GetSystemMetrics(SM_CONVERTIBLESLATEMODE)`.
+  // This returns 0 if we are in slate mode and 1 otherwise... except on devices
+  // where tablet mode is unavailable (such as desktops), in which case it
+  // returns 0 unconditionally.
+  //
+  // Unfortunately, there is no documented API to determine whether
+  // `SM_CONVERTIBLESLATEMODE` is `0` because the device is currently in slate
+  // mode or because the device can never be in slate mode.
+  //
+  // As such, we follow Chromium's lead here, and attempt to determine
+  // heuristically whether that API is going to return anything sensible.
+  // (Indeed, the heuristic below is in large part taken from Chromium.)
+
+  if (sIsTabletCapable.isNothing()) {
+    bool const heuristic = ([]() -> bool {
+      // If the user has set the relevant pref to override our tablet-detection
+      // heuristics, go with that.
+      switch (StaticPrefs::widget_windows_tablet_detection_override()) {
+        case -1:
+          MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                  ("TCH: override detected (-1)"));
+          return false;
+        case 1:
+          MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                  ("TCH: override detected (+1)"));
+          return true;
+        default:
+          break;
+      }
+
+      // If ::GSM(SM_CONVERTIBLESLATEMODE) is _currently_ nonzero, we must be on
+      // a system that does somnething with SM_CONVERTIBLESLATEMODE, so we can
+      // trust it.
+      if (::GetSystemMetrics(SM_CONVERTIBLESLATEMODE) != 0) {
+        MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                ("TCH: SM_CONVERTIBLESLATEMODE != 0"));
+        return true;
+      }
+
+      // If the device does not support touch it can't possibly be a tablet.
+      if (GetSystemMetrics(SM_MAXIMUMTOUCHES) == 0) {
+        MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                ("TCH: SM_MAXIMUMTOUCHES != 0"));
+        return false;
+      }
+
+      // Check to see if a particular registry key [1] exists. If so, this is
+      // probably a tablet-capable device.
+      //
+      // Comments in Chromium [2] claim that not all devices actually set this
+      // registry key, but do not actually state that there are _convertible_
+      // devices which do not. No exceptions are presently known.
+      //
+      // [1] https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-gpiobuttons-convertibleslatemode
+      // [2] https://source.chromium.org/chromium/chromium/src/+/main:base/win/win_util.cc;l=240;drc=5a02fc6cdee77d0a39e9c43a4c2a29bbccc88852
+      namespace Reg = mozilla::widget::WinRegistry;
+      Reg::Key key(HKEY_LOCAL_MACHINE,
+                   uR"(System\CurrentControlSet\Control\PriorityControl)"_ns,
+                   Reg::KeyMode::QueryValue);
+      if (key && key.GetValueType(u"ConvertibleSlateMode"_ns) !=
+                     Reg::ValueType::None) {
+        MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                ("TCH: 'ConvertibleSlateMode' found"));
+        return true;
+      }
+
+      // If the device has this GUID mapped to a GPIO pin, it's almost certainly
+      // tablet-capable. (It's not certain whether the converse is true.)
+      //
+      // https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/continuum#designing-your-device-for-tablet-mode
+      bool const hasTabletGpioPin = [&]() {
+        ULONG size = 0;
+        GUID guid{MOZ_GUID_GPIOBUTTONS_LAPTOPSLATE_INTERFACE};
+
+        CONFIGRET const err = ::CM_Get_Device_Interface_List_SizeW(
+            &size, &guid, nullptr, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
+
+        // (The next step at this point would usually be to call the function
+        // "::CM_Get_Device_Interface_ListW()" -- but we don't care where the
+        // associated device interface is actually mapped to; we only care
+        // whether it's mapped at all.
+        //
+        // For our purposes, a zero-length null-terminated string doesn't count
+        // as "present".)
+        return err == CR_SUCCESS && size > 1;
+      }();
+      if (hasTabletGpioPin) {
+        MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                ("TCH: relevant GPIO interface found"));
+        return true;
+      }
+
+      // If the device has no rotation sensor, it's _probably_ not a convertible
+      // device. (There are exceptions! See bug 1918292.)
+      AR_STATE rotation_state;
+      if (HRESULT hr = ::GetAutoRotationState(&rotation_state); !FAILED(hr)) {
+        if ((rotation_state & (AR_NOT_SUPPORTED | AR_LAPTOP | AR_NOSENSOR)) !=
+            0) {
+          MOZ_LOG(gTabletModeLog, LogLevel::Info, ("TCH: no rotation sensor"));
+          return false;
+        }
+      }
+
+      // If the device returns `PlatformRoleSlate` for its POWER_PLATFORM_ROLE,
+      // it's probably tablet capable.
+      //
+      // The converse is known to be false; a Dell Inspiron 14 7445 2-in-1
+      // returns `PlatformRoleMobile`.
+      //
+      // (Chromium checks for PlatformRoleMobile as well, but (e.g.) a Dell XPS
+      // 15 9500 returns `PlatformRoleMobile` despite not being tablet-capable.)
+      POWER_PLATFORM_ROLE const role =
+          mozilla::widget::WinUtils::GetPowerPlatformRole();
+      if (role == PlatformRoleSlate) {
+        MOZ_LOG(gTabletModeLog, LogLevel::Info,
+                ("TCH: role == PlatformRoleSlate"));
+        return true;
+      }
+
+      // Without some specific indicator of tablet-capability, assume that we're
+      // tablet-incapable.
+      MOZ_LOG(gTabletModeLog, LogLevel::Info,
+              ("TCH: no indication; falling through"));
+      return false;
+    })();
+
+    MOZ_LOG(gTabletModeLog, LogLevel::Info,
+            ("tablet-capability heuristic: %s", heuristic ? "true" : "false"));
+
+    sIsTabletCapable = Some(heuristic);
+    // If we appear not to be tablet-capable, don't bother doing the check.
+    // (We also don't need to send a signal.)
+    if (!heuristic) {
+      sInTabletModeState = TabletModeState::Off;
+      return;
+    }
+  } else if (sIsTabletCapable == Some(false)) {
+    // We've been in here before, and the heuristic came back false... but
+    // somehow, we've just gotten an update for the convertible-slate-mode
+    // state.
+    //
+    // Clearly the heuristic was wrong!
+    //
+    // TODO(rkraesig): should we add telemetry to see how often this gets hit?
+    MOZ_LOG(gTabletModeLog, LogLevel::Warning,
+            ("recv'd update signal after false heuristic run; reversing"));
+    sIsTabletCapable = Some(true);
+  }
+
+  // at this point, we must be tablet-capable
+  MOZ_ASSERT(sIsTabletCapable == Some(true));
+
+  TabletModeState const oldState = sInTabletModeState;
+  bool const isTableting =
+      ::GetSystemMetrics(SM_CONVERTIBLESLATEMODE) == 0 /* [sic!] */;
+  sInTabletModeState = isTableting ? TabletModeState::On : TabletModeState::Off;
 }
 
 #ifndef __MINGW32__

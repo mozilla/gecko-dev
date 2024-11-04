@@ -22,10 +22,24 @@ interface nsIWindowsUIUtils : nsISupports
   void setWindowIconNoData(in mozIDOMWindowProxy aWindow);
 
   /**
-   * Whether the OS is currently in tablet mode. Always false on
-   * non-Windows and on versions of Windows before win10
+   * Whether the OS is currently in Win10's Tablet Mode. Always false on
+   * versions of Windows other than Win10.
+   *
+   * (Win10 tablet mode is sufficiently different from Win11 tablet mode that
+   * there is no single getter to retrieve whether we're in a generic "tablet
+   * mode".)
    */
-  readonly attribute boolean inTabletMode;
+  readonly attribute boolean inWin10TabletMode;
+
+  /**
+   * Whether the OS is currently in Windows 11's tablet mode. Always false on
+   * versions of Windows prior to Win11.
+   *
+   * (Win11 tablet mode is sufficiently different from Win10 tablet mode that
+   * there is no single getter to retrieve whether we're in a generic "tablet
+   * mode".)
+   */
+  readonly attribute boolean inWin11TabletMode;
 
   /**
    * Share URL

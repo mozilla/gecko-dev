@@ -223,7 +223,7 @@ class IMEHandler final {
                                                const std::wstring& aNeedle);
   static bool NeedOnScreenKeyboard();
   static bool IsKeyboardPresentOnSlate();
-  static bool IsInTabletMode();
+  static bool IsInWin10TabletMode();
   static bool AutoInvokeOnScreenKeyboardInDesktopMode();
   static bool NeedsToAssociateIMC();
   static bool NeedsSearchInputScope();
