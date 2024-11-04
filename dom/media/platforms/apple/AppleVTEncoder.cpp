@@ -10,11 +10,10 @@
 #include <CoreFoundation/CFByteOrder.h>
 #include <CoreFoundation/CFDictionary.h>
 
-#include "ImageContainer.h"
 #include "AnnexB.h"
-#include "H264.h"
-
 #include "AppleUtils.h"
+#include "H264.h"
+#include "ImageContainer.h"
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ImageUtils.h"
