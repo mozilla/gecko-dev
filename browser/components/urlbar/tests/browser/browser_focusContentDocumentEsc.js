@@ -7,7 +7,11 @@ add_task(async function oneEscapeFocusContentNonEmptyUrlbar() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "https://example.com" },
     async function () {
-      is(gURLBar.value, "example.com", "URL bar value should have an address");
+      Assert.equal(
+        gURLBar.untrimmedValue,
+        "https://example.com/",
+        "URL bar value should have an address"
+      );
 
       let focusBrowserPromise = BrowserTestUtils.waitForEvent(
         gBrowser.selectedBrowser,
