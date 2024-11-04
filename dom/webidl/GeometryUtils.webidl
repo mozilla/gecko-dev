@@ -22,6 +22,8 @@ dictionary GeometryUtilsOptions {
 dictionary BoxQuadOptions : GeometryUtilsOptions {
   CSSBoxType box = "border";
   GeometryNode relativeTo;
+  [ChromeOnly]
+  boolean ignoreTransforms = false;
 };
 
 dictionary ConvertCoordinateOptions : GeometryUtilsOptions {

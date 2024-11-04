@@ -175,19 +175,20 @@ static nsRect GetBoxRectForFrame(nsIFrame** aFrame, CSSBoxType aType) {
   return r;
 }
 
-class AccumulateQuadCallback : public nsLayoutUtils::BoxCallback {
+class MOZ_STACK_CLASS AccumulateQuadCallback final
+    : public nsLayoutUtils::BoxCallback {
  public:
   AccumulateQuadCallback(Document* aParentObject,
                          nsTArray<RefPtr<DOMQuad>>& aResult,
                          nsIFrame* aRelativeToFrame,
                          const nsPoint& aRelativeToBoxTopLeft,
-                         CSSBoxType aBoxType)
+                         const BoxQuadOptions& aOptions)
       : mParentObject(ToSupports(aParentObject)),
         mResult(aResult),
         mRelativeToFrame(aRelativeToFrame),
         mRelativeToBoxTopLeft(aRelativeToBoxTopLeft),
-        mBoxType(aBoxType) {
-    if (mBoxType == CSSBoxType::Margin) {
+        mOptions(aOptions) {
+    if (mOptions.mBox == CSSBoxType::Margin) {
       // Don't include the caption margin when computing margins for a
       // table
       mIncludeCaptionBoxForTable = false;
@@ -196,28 +197,31 @@ class AccumulateQuadCallback : public nsLayoutUtils::BoxCallback {
 
   void AddBox(nsIFrame* aFrame) override {
     nsIFrame* f = aFrame;
-    if (mBoxType == CSSBoxType::Margin && f->IsTableFrame()) {
+    if (mOptions.mBox == CSSBoxType::Margin && f->IsTableFrame()) {
       // Margin boxes for table frames should be taken from the table wrapper
       // frame, since that has the margin.
       f = f->GetParent();
     }
-    nsRect box = GetBoxRectForFrame(&f, mBoxType);
-    nsPoint appUnits[4] = {box.TopLeft(), box.TopRight(), box.BottomRight(),
-                           box.BottomLeft()};
-    CSSPoint points[4];
-    for (uint32_t i = 0; i < 4; ++i) {
-      points[i] =
-          CSSPoint(nsPresContext::AppUnitsToFloatCSSPixels(appUnits[i].x),
-                   nsPresContext::AppUnitsToFloatCSSPixels(appUnits[i].y));
-    }
-    nsLayoutUtils::TransformResult rv = nsLayoutUtils::TransformPoints(
-        RelativeTo{f}, RelativeTo{mRelativeToFrame}, 4, points);
-    if (rv == nsLayoutUtils::TRANSFORM_SUCCEEDED) {
-      CSSPoint delta(
-          nsPresContext::AppUnitsToFloatCSSPixels(mRelativeToBoxTopLeft.x),
-          nsPresContext::AppUnitsToFloatCSSPixels(mRelativeToBoxTopLeft.y));
-      for (uint32_t i = 0; i < 4; ++i) {
-        points[i] -= delta;
+    const nsRect box = GetBoxRectForFrame(&f, mOptions.mBox);
+    CSSPoint points[4] = {CSSPoint::FromAppUnits(box.TopLeft()),
+                          CSSPoint::FromAppUnits(box.TopRight()),
+                          CSSPoint::FromAppUnits(box.BottomRight()),
+                          CSSPoint::FromAppUnits(box.BottomLeft())};
+    const auto delta = [&]() -> Maybe<CSSPoint> {
+      if (mOptions.mIgnoreTransforms) {
+        return Some(CSSPoint::FromAppUnits(f->GetOffsetTo(mRelativeToFrame) -
+                                           mRelativeToBoxTopLeft));
+      }
+      nsLayoutUtils::TransformResult rv = nsLayoutUtils::TransformPoints(
+          RelativeTo{f}, RelativeTo{mRelativeToFrame}, 4, points);
+      if (rv != nsLayoutUtils::TRANSFORM_SUCCEEDED) {
+        return Nothing();
+      }
+      return Some(CSSPoint::FromAppUnits(-mRelativeToBoxTopLeft));
+    }();
+    if (delta) {
+      for (auto& point : points) {
+        point += *delta;
       }
     } else {
       PodArrayZero(points);
@@ -225,11 +229,11 @@ class AccumulateQuadCallback : public nsLayoutUtils::BoxCallback {
     mResult.AppendElement(new DOMQuad(mParentObject, points));
   }
 
-  nsISupports* mParentObject;
+  nsISupports* const mParentObject;
   nsTArray<RefPtr<DOMQuad>>& mResult;
-  nsIFrame* mRelativeToFrame;
-  nsPoint mRelativeToBoxTopLeft;
-  CSSBoxType mBoxType;
+  nsIFrame* const mRelativeToFrame;
+  const nsPoint mRelativeToBoxTopLeft;
+  const BoxQuadOptions& mOptions;
 };
 
 static nsPresContext* FindTopLevelPresContext(nsPresContext* aPC) {
@@ -298,7 +302,7 @@ void GetBoxQuads(nsINode* aNode, const dom::BoxQuadOptions& aOptions,
   nsPoint relativeToTopLeft =
       GetBoxRectForFrame(&relativeToFrame, CSSBoxType::Border).TopLeft();
   AccumulateQuadCallback callback(ownerDoc, aResult, relativeToFrame,
-                                  relativeToTopLeft, aOptions.mBox);
+                                  relativeToTopLeft, aOptions);
 
   // Bug 1624653: Refactor this to get boxes in layer pixels, which we will
   // then convert into CSS units.
