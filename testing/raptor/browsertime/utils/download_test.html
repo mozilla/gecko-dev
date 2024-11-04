@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Download test</title>
+    <style>
+      html {
+        font-family: neo-sans;
+        font-weight: 700;
+        font-size: calc(42rem / 16);
+      }
+      body {
+        background: white;
+      }
+      section {
+        border-radius: 1em;
+        padding: 1em;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-right: -50%;
+        transform: translate(-50%, -50%);
+      }
+    </style>
+  </head>
+  <body>
+    <section>Download test</section>
+    <button id="downloadBtn">Download Test</button>
+    <p id="download_status"></p>
+    <script>
+      let download_status = "";
+
+      function set_status(status) {
+        download_status = status;
+        console.log("download_status:" + status);
+        document.getElementById("download_status").textContent = status;
+      }
+
+      set_status("not_started");
+
+      const handleDownloadTest = () => {
+        set_status("started");
+        const startTime = performance.now();
+        fetch("/upload-test-32MB.dat")
+          .then((response) => response.blob())
+          .then((_) => {
+            const endTime = performance.now();
+            const downloadTime = endTime - startTime;
+            set_status("success time:" + downloadTime);
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      };
+      document
+        .querySelector("#downloadBtn")
+        .addEventListener("click", handleDownloadTest);
+    </script>
+  </body>
+</html>

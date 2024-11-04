@@ -118,23 +118,76 @@ class NetworkBench(BasePythonSupport):
         if self.caddy_port is None or not (1 <= self.caddy_port <= 65535):
             return None
 
-        cert_path = Path(__file__).parent / ".." / ".." / "browsertime" / "utils"
+        utils_path = Path(__file__).parent / ".." / ".." / "browsertime" / "utils"
 
-        if not cert_path.exists():
+        if not utils_path.exists():
             return None
 
-        key_path = cert_path / "http2-cert.key"
+        key_path = utils_path / "http2-cert.key"
         LOG.info("key_path: %s" % key_path)
         if not key_path.exists():
             return None
 
-        pem_path = cert_path / "http2-cert.pem"
+        pem_path = utils_path / "http2-cert.pem"
         LOG.info("pem_path: %s" % pem_path)
         if not pem_path.exists():
             return None
 
-        upstream = f"localhost:{self.backend_port}"
         port_str = f":{self.caddy_port}"
+        if self.transfer_type == "upload":
+            upstream = f"localhost:{self.backend_port}"
+            routes = [
+                {
+                    "handle": [
+                        {
+                            "handler": "reverse_proxy",
+                            "upstreams": [{"dial": upstream}],
+                        }
+                    ]
+                }
+            ]
+        elif self.transfer_type == "download":
+            fetches_dir = Path(os.environ.get("MOZ_FETCHES_DIR", "None"))
+            if not fetches_dir.exists():
+                return None
+            routes = [
+                {
+                    "match": [{"path": ["/download_test.html"]}],
+                    "handle": [
+                        {
+                            "handler": "file_server",
+                            "root": str(utils_path),
+                            "browse": {},
+                        }
+                    ],
+                },
+                {
+                    "match": [{"path": ["/upload-test-32MB.dat"]}],
+                    "handle": [
+                        {
+                            "handler": "headers",
+                            "response": {
+                                "set": {
+                                    "Cache-Control": [
+                                        "no-store",
+                                        "no-cache",
+                                        "must-revalidate",
+                                        "proxy-revalidate",
+                                        "max-age=0",
+                                    ],
+                                    "Pragma": ["no-cache"],
+                                    "Expires": ["0"],
+                                }
+                            },
+                        },
+                        {
+                            "handler": "file_server",
+                            "root": str(fetches_dir),
+                            "browse": {},
+                        },
+                    ],
+                },
+            ]
         caddyfile_content = {
             "admin": {"disabled": True},
             "apps": {
@@ -143,16 +196,7 @@ class NetworkBench(BasePythonSupport):
                         "server1": {
                             "listen": [port_str],
                             "protocols": ["h1", "h2", "h3"],
-                            "routes": [
-                                {
-                                    "handle": [
-                                        {
-                                            "handler": "reverse_proxy",
-                                            "upstreams": [{"dial": upstream}],
-                                        }
-                                    ]
-                                }
-                            ],
+                            "routes": routes,
                             "tls_connection_policies": [
                                 {"certificate_selection": {"any_tag": ["cert1"]}}
                             ],
@@ -366,10 +410,16 @@ class NetworkBench(BasePythonSupport):
         else:
             self.caddy_port = self.find_free_port(socket.SOCK_STREAM)
 
-        cmd += [
-            "--browsertime.server_url",
-            f"https://localhost:{self.caddy_port}",
-        ]
+        if self.transfer_type == "upload":
+            cmd += [
+                "--browsertime.server_url",
+                f"https://localhost:{self.caddy_port}",
+            ]
+        elif self.transfer_type == "download":
+            cmd += [
+                "--browsertime.server_url",
+                f"https://localhost:{self.caddy_port}/download_test.html",
+            ]
 
         self.get_network_conditions(cmd)
 
