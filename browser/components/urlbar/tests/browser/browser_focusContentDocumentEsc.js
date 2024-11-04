@@ -2,6 +2,11 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.focusContentDocumentOnEsc", true]],
+  });
+});
 
 add_task(async function () {
   // Test that pressing Esc will focus the document when no text was typed
@@ -81,7 +86,9 @@ add_task(async function () {
 add_task(async function () {
   // Test that pressing Esc will not focus the document when the preference
   // is unset
-  Preferences.set("browser.urlbar.focusContentDocumentOnEsc", false);
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.focusContentDocumentOnEsc", false]],
+  });
 
   let focusUrlPromise = BrowserTestUtils.waitForEvent(
     gURLBar.inputField,
@@ -104,7 +111,4 @@ add_task(async function () {
     gURLBar.inputField,
     "URL Bar should be focused"
   );
-
-  // cleanup
-  Preferences.set("browser.urlbar.focusContentDocumentOnEsc", true);
 });

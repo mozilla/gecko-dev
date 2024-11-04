@@ -415,7 +415,7 @@ pref("browser.urlbar.filter.javascript", true);
 
 // Focus the content document when pressing the Escape key, if there's no
 // remaining typed history.
-pref("browser.urlbar.focusContentDocumentOnEsc", true);
+pref("browser.urlbar.focusContentDocumentOnEsc", false);
 
 // Enable a certain level of urlbar logging to the Browser Console. See
 // ConsoleInstance.webidl.
