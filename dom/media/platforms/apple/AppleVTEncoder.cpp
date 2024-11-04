@@ -303,15 +303,12 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
     }
   }
 
-  CFBooleanRef isUsingHW = nullptr;
+  AutoCFRelease<CFBooleanRef> isUsingHW = nullptr;
   status = VTSessionCopyProperty(
       mSession, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
-      kCFAllocatorDefault, &isUsingHW);
+      kCFAllocatorDefault, isUsingHW.receive());
   mIsHardwareAccelerated = status == noErr && isUsingHW == kCFBooleanTrue;
   LOGD("Using hw acceleration: %s", mIsHardwareAccelerated ? "yes" : "no");
-  if (isUsingHW) {
-    CFRelease(isUsingHW);
-  }
 
   mError = NS_OK;
   return InitPromise::CreateAndResolve(true, __func__);
