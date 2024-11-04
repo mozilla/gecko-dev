@@ -4388,7 +4388,7 @@ already_AddRefed<Connection> ConnectionThread::CreateConnection(
     bool aDatabaseWasNotAvailable) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(!aOriginMetadata.mOrigin.IsEmpty());
-  MOZ_ASSERT(!mConnections.Contains(aOriginMetadata.mOrigin));
+  MOZ_DIAGNOSTIC_ASSERT(!mConnections.Contains(aOriginMetadata.mOrigin));
 
   RefPtr<Connection> connection =
       new Connection(this, aOriginMetadata, std::move(aArchivedOriginScope),
@@ -7509,7 +7509,7 @@ void PrepareDatastoreOp::GetResponse(LSRequestResponse& aResponse) {
       gDatastores = new DatastoreHashtable();
     }
 
-    MOZ_ASSERT(!gDatastores->Contains(Origin()));
+    MOZ_DIAGNOSTIC_ASSERT(!gDatastores->Contains(Origin()));
     gDatastores->InsertOrUpdate(Origin(),
                                 WrapMovingNotNullUnchecked(mDatastore));
   }
