@@ -907,6 +907,8 @@ static void resize_c(pixel *dst, const ptrdiff_t dst_stride,
 #include "src/arm/mc.h"
 #elif ARCH_LOONGARCH64
 #include "src/loongarch/mc.h"
+#elif ARCH_RISCV
+#include "src/riscv/mc.h"
 #elif ARCH_X86
 #include "src/x86/mc.h"
 #endif
@@ -950,6 +952,8 @@ COLD void bitfn(dav1d_mc_dsp_init)(Dav1dMCDSPContext *const c) {
     mc_dsp_init_arm(c);
 #elif ARCH_LOONGARCH64
     mc_dsp_init_loongarch(c);
+#elif ARCH_RISCV
+    mc_dsp_init_riscv(c);
 #elif ARCH_X86
     mc_dsp_init_x86(c);
 #endif

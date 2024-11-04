@@ -545,15 +545,21 @@ endconst
     vmulev_vmaddod_lsx vr5, vr18, vr20, vr20, vr16, \out3, \sz
     vneg.h        vr21,     vr20
     vmulev_vmaddod_lsx vr5, vr18, vr20, vr21, vr17, \out4, \sz
-    vssrarni.h.w  \out3,    vr16,     12    // out3
+    vsrari.w      vr16,     vr16,     12
+    vsrari.w      \out3,    \out3,    12
+    vneg.w        vr16,     vr16
+    vneg.w        \out3,    \out3
+    vssrarni.h.w  \out3,    vr16,     0     // out3
     vssrarni.h.w  \out4,    vr17,     12    // out4
-    vneg.h        \out3,    \out3
 
     vmulev_vmaddod_lsx vr19, vr23, vr20, vr20, vr16, \out2, \sz
     vmulev_vmaddod_lsx vr19, vr23, vr20, vr21, vr17, \out5, \sz
-    vssrarni.h.w  \out5,    vr17,     12    // out5
     vssrarni.h.w  \out2,    vr16,     12    // out2
-    vneg.h        \out5,    \out5
+    vsrari.w      vr17,     vr17,     12
+    vsrari.w      \out5,    \out5,    12
+    vneg.w        vr17,     vr17
+    vneg.w        \out5,    \out5
+    vssrarni.h.w  \out5,    vr17,     0     // out5
 .endm
 
 functionl inv_adst_8h_x8_lsx
@@ -1512,24 +1518,38 @@ endconst
     vmulev_vmaddod_lsx vr17, vr7, vr20, vr20, vr6, vr10, \sz
     vneg.h        vr21,     vr20
     vmulev_vmaddod_lsx vr17, vr7, vr20, vr21, vr16, vr1, \sz
-    vssrarni.h.w  vr10,     vr6,       12       // out[7]
     vssrarni.h.w  vr1,      vr16,      12       // out[8]
-    vneg.h        vr10,     vr10
+    vsrari.w      vr6,      vr6,       12
+    vsrari.w      vr10,     vr10,      12
+    vneg.w        vr6,      vr6
+    vneg.w        vr10,     vr10
+    vssrarni.h.w  vr10,     vr6,       0        // out[7]
     vmulev_vmaddod_lsx vr0, vr8, vr20, vr21, vr16, vr17, \sz
     vmulev_vmaddod_lsx vr0, vr8, vr20, vr20, vr6, vr7, \sz
-    vssrarni.h.w  vr17,     vr16,      12       // out[11]
     vssrarni.h.w  vr7,      vr6,       12       // out[4]
-    vneg.h        vr17,     vr17
+    vsrari.w      vr16,     vr16,      12
+    vsrari.w      vr17,     vr17,      12
+    vneg.w        vr16,     vr16
+    vneg.w        vr17,     vr17
+    vssrarni.h.w  vr17,     vr16,       0        // out[11]
+
     vmulev_vmaddod_lsx vr4, vr19, vr20, vr21, vr16, vr0, \sz
     vmulev_vmaddod_lsx vr4, vr19, vr20, vr20, vr6, vr8, \sz
-    vssrarni.h.w  vr0,      vr16,      12       // out[9]
     vssrarni.h.w  vr8,      vr6,       12       // out[6]
-    vneg.h        vr0,      vr0
+    vsrari.w      vr16,     vr16,      12
+    vsrari.w      vr0,      vr0,       12
+    vneg.w        vr16,     vr16
+    vneg.w        vr0,      vr0
+    vssrarni.h.w  vr0,      vr16,      0    // out[9]
+
     vmulev_vmaddod_lsx vr11, vr12, vr20, vr20, vr6, vr4, \sz
     vmulev_vmaddod_lsx vr11, vr12, vr20, vr21, vr16, vr19, \sz
-    vssrarni.h.w  vr4,      vr6,       12       // out[5]
     vssrarni.h.w  vr19,     vr16,      12       // out[10]
-    vneg.h        vr4,      vr4
+    vsrari.w      vr6,      vr6,       12
+    vsrari.w      vr4,      vr4,       12
+    vneg.w        vr6,      vr6
+    vneg.w        vr4,      vr4
+    vssrarni.h.w  vr4,      vr6,       0        // out[5]
 
 .ifc \txfm, adst
     vor.v         vr12,     vr3,       vr3
@@ -4664,9 +4684,12 @@ endfunc
     xvilvl.w       xr7,      xr1,       xr16
     xvilvh.w       xr10,     xr10,      xr6
     xvilvh.w       xr1,      xr1,       xr16
-    xvssrarni.h.w  xr10,     xr17,      12       // out[7]
     xvssrarni.h.w  xr1,      xr7,       12       // out[8]
-    xvneg.h        xr10,     xr10
+    xvsrari.w      xr17,     xr17,      12
+    xvsrari.w      xr10,     xr10,      12
+    xvneg.w        xr17,     xr17
+    xvneg.w        xr10,     xr10
+    xvssrarni.h.w  xr10,     xr17,      0        // out[7]
 
     xvmulev_xvmaddod_lasx xr0, xr8, xr20, xr21, xr16, xr17
     xvmulev_xvmaddod_lasx xr0, xr8, xr20, xr20, xr6, xr7
@@ -4674,9 +4697,12 @@ endfunc
     xvilvl.w       xr8,      xr7,       xr6
     xvilvh.w       xr17,     xr17,      xr16
     xvilvh.w       xr7,      xr7,       xr6
-    xvssrarni.h.w  xr17,     xr0,       12       // out[11]
     xvssrarni.h.w  xr7,      xr8,       12       // out[4]
-    xvneg.h        xr17,     xr17
+    xvsrari.w      xr0,      xr0,       12
+    xvsrari.w      xr17,     xr17,      12
+    xvneg.w        xr0,      xr0
+    xvneg.w        xr17,     xr17
+    xvssrarni.h.w xr17,      xr0,       0        // out[11]
 
     xvmulev_xvmaddod_lasx xr4, xr19, xr20, xr21, xr16, xr0
     xvmulev_xvmaddod_lasx xr4, xr19, xr20, xr20, xr6, xr8
@@ -4684,19 +4710,24 @@ endfunc
     xvilvl.w       xr19,     xr8,       xr6
     xvilvh.w       xr0,      xr0,       xr16
     xvilvh.w       xr8,      xr8,       xr6
-    xvssrarni.h.w  xr0,      xr4,       12       // out[9]
     xvssrarni.h.w  xr8,      xr19,      12       // out[6]
-    xvneg.h        xr0,      xr0
-
+    xvsrari.w      xr4,      xr4,       12
+    xvsrari.w      xr0,      xr0,       12
+    xvneg.w        xr4,      xr4
+    xvneg.w        xr0,      xr0
+    xvssrarni.h.w  xr0,      xr4,       0        // out[9]
     xvmulev_xvmaddod_lasx xr11, xr12, xr20, xr20, xr6, xr4
     xvmulev_xvmaddod_lasx xr11, xr12, xr20, xr21, xr16, xr19
     xvilvl.w       xr11,     xr4,       xr6
     xvilvl.w       xr12,     xr19,      xr16
     xvilvh.w       xr4,      xr4,       xr6
     xvilvh.w       xr19,     xr19,      xr16
-    xvssrarni.h.w  xr4,      xr11,      12       // out[5]
     xvssrarni.h.w  xr19,     xr12,      12       // out[10]
-    xvneg.h        xr4,      xr4
+    xvsrari.w      xr11,     xr11,      12
+    xvsrari.w      xr4,      xr4,       12
+    xvneg.w        xr11,     xr11
+    xvneg.w        xr4,      xr4
+    xvssrarni.h.w  xr4,      xr11,      0        // out[5]
 .endm
 
 function inv_txfm_add_adst_adst_16x16_8bpc_lasx

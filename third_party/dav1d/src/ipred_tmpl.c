@@ -732,6 +732,8 @@ static void pal_pred_c(pixel *dst, const ptrdiff_t stride,
 #if HAVE_ASM
 #if ARCH_AARCH64 || ARCH_ARM
 #include "src/arm/ipred.h"
+#elif ARCH_RISCV
+#include "src/riscv/ipred.h"
 #elif ARCH_X86
 #include "src/x86/ipred.h"
 #elif ARCH_LOONGARCH64
@@ -769,6 +771,8 @@ COLD void bitfn(dav1d_intra_pred_dsp_init)(Dav1dIntraPredDSPContext *const c) {
 #if HAVE_ASM
 #if ARCH_AARCH64 || ARCH_ARM
     intra_pred_dsp_init_arm(c);
+#elif ARCH_RISCV
+    intra_pred_dsp_init_riscv(c);
 #elif ARCH_X86
     intra_pred_dsp_init_x86(c);
 #elif ARCH_LOONGARCH64

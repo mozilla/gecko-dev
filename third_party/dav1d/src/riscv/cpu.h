@@ -34,4 +34,8 @@ enum CpuFlags {
 
 unsigned dav1d_get_cpu_flags_riscv(void);
 
+int dav1d_get_vlenb(void);
+
+#define dav1d_get_vlen() (dav1d_get_vlenb()*8)
+
 #endif /* DAV1D_SRC_RISCV_CPU_H */

@@ -145,17 +145,10 @@ endfunc
   vwmacc.vx v20, t2, \o3
   vwmacc.vx v22, t3, \o3
 
-  li t1, 2048
-
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
 
   vsadd.vv \o0, v16, v20
   vsadd.vv \o1, v18, v22
@@ -192,19 +185,12 @@ endfunc
   vadd.vv v18, v18, v22
   vsub.vv v22, v24, v22
 
-  li t1, 2048
-
-  vadd.vx v16, v16, t1
-  vadd.vx v18, v18, t1
-  vadd.vx v20, v20, t1
-  vadd.vx v22, v22, t1
-
   vsetvli zero, zero, e16, \lm, ta, ma
 
-  vnsra.wi \o0, v16, 12
-  vnsra.wi \o1, v18, 12
-  vnsra.wi \o2, v20, 12
-  vnsra.wi \o3, v22, 12
+  vnclip.wi \o0, v16, 12
+  vnclip.wi \o1, v18, 12
+  vnclip.wi \o2, v20, 12
+  vnclip.wi \o3, v22, 12
 .endm
 
 function inv_dct_e16_x4_rvv, export=1, ext=v
@@ -491,17 +477,10 @@ endfunc
   vwmacc.vx v20, t3, \o3
   vwmacc.vx v18, t4, \o3
 
-  li t1, 2048
-
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
 
   vssub.vv \o7, v22, v20
   vsadd.vv v22, v22, v20
@@ -516,11 +495,8 @@ endfunc
   neg t2, t2
   vwmacc.vx v18, t2, \o1
 
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
 
   vssub.vv \o7, \o0, v22
   vsadd.vv \o0, \o0, v22
@@ -559,7 +535,6 @@ endfunc
   vwmacc.vx v24, t6, v4
   vwmacc.vx v26, t5, v4
 
-  li t1, 2048
   li t2, 1189
   li t3, 3920
   li t4, 1567
@@ -572,23 +547,14 @@ endfunc
   vwmacc.vx v28, t3, v6
   vwmacc.vx v30, t2, v6
 
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v26, v26, t1
-  vwadd.wx v28, v28, t1
-  vwadd.wx v30, v30, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
-  vnsra.wi v24, v24, 12
-  vnsra.wi v26, v26, 12
-  vnsra.wi v28, v28, 12
-  vnsra.wi v30, v30, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
+  vnclip.wi v24, v24, 12
+  vnclip.wi v26, v26, 12
+  vnclip.wi v28, v28, 12
+  vnclip.wi v30, v30, 12
 
   vssub.vv  v4, v16, v24
   vsadd.vv v16, v16, v24
@@ -615,15 +581,10 @@ endfunc
   vwmacc.vx v20, t4, v6
   vwmacc.vx v18, t5, v5
 
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
 
   vsadd.vv \o1, v16, v20
   vsadd.vv \o6, v18, v22
@@ -640,15 +601,10 @@ endfunc
   vwmacc.vx v20, t6, v3
   vwmacc.vx v24, t6, v17
 
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-
-  vnsra.wi \o3, v18, 12
-  vnsra.wi \o4, v20, 12
-  vnsra.wi \o2, v22, 12
-  vnsra.wi \o5, v24, 12
+  vnclip.wi \o3, v18, 12
+  vnclip.wi \o4, v20, 12
+  vnclip.wi \o2, v22, 12
+  vnclip.wi \o5, v24, 12
 
   vmv.v.x v16, zero
   vssub.vv \o1, v16, \o1
@@ -972,28 +928,18 @@ function inv_dct_e16_x16_rvv, export=1, ext=v
   vwmacc.vx v24, t3, v3
   vwmacc.vx v22, t4, v3
 
-  li t1, 2048
   li t2, 2896
   li t3, 1567
   li t4, 3784
 
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v26, v26, t1
-  vwadd.wx v28, v28, t1
-  vwadd.wx v30, v30, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
-  vnsra.wi v24, v24, 12
-  vnsra.wi v26, v26, 12
-  vnsra.wi v28, v28, 12
-  vnsra.wi v30, v30, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
+  vnclip.wi v24, v24, 12
+  vnclip.wi v26, v26, 12
+  vnclip.wi v28, v28, 12
+  vnclip.wi v30, v30, 12
 
   vssub.vv  v3, v16, v18
   vsadd.vv v16, v16, v18
@@ -1015,15 +961,10 @@ function inv_dct_e16_x16_rvv, export=1, ext=v
   vwmacc.vx v20, t3, v5
   vwmacc.vx v26, t4, v5
 
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v26, v26, t1
-  vwadd.wx v28, v28, t1
-
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v26, v26, 12
-  vnsra.wi v28, v28, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v26, v26, 12
+  vnclip.wi v28, v28, 12
 
   vssub.vv  v5, v18, v20
   vsadd.vv v18, v18, v20
@@ -1045,15 +986,10 @@ function inv_dct_e16_x16_rvv, export=1, ext=v
   vwmacc.vx v20, t2, v5
   vwmacc.vx v22, t2, v7
 
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v26, v26, t1
-
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
-  vnsra.wi v24, v24, 12
-  vnsra.wi v26, v26, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
+  vnclip.wi v24, v24, 12
+  vnclip.wi v26, v26, 12
 
   vssub.vv v15,  v0, v30
   vsadd.vv  v0,  v0, v30
@@ -1112,25 +1048,14 @@ endfunc
   vwmacc.vx v28, t4, v6
   vwmacc.vx v30, t3, v6
 
-  li t1, 2048
-
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v26, v26, t1
-  vwadd.wx v28, v28, t1
-  vwadd.wx v30, v30, t1
-
-  vnsra.wi  v0, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi  v2, v20, 12
-  vnsra.wi v22, v22, 12
-  vnsra.wi  v4, v24, 12
-  vnsra.wi v26, v26, 12
-  vnsra.wi  v6, v28, 12
-  vnsra.wi v30, v30, 12
+  vnclip.wi  v0, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi  v2, v20, 12
+  vnclip.wi v22, v22, 12
+  vnclip.wi  v4, v24, 12
+  vnclip.wi v26, v26, 12
+  vnclip.wi  v6, v28, 12
+  vnclip.wi v30, v30, 12
 
   li t1, 2751
   li t2, 3035
@@ -1149,17 +1074,10 @@ endfunc
   vwmacc.vx v24, t4, v10
   vwmacc.vx v28, t3, v10
 
-  li t1, 2048
-
-  vwadd.wx v16, v16, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v28, v28, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi  v9, v20, 12
-  vnsra.wi v24, v24, 12
-  vnsra.wi v11, v28, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi  v9, v20, 12
+  vnclip.wi v24, v24, 12
+  vnclip.wi v11, v28, 12
 
   vssub.vv  v8,  v0, v16
   vsadd.vv  v0,  v0, v16
@@ -1183,17 +1101,10 @@ endfunc
   vwmacc.vx v24, t4, v14
   vwmacc.vx v28, t3, v14
 
-  li t1, 2048
-
-  vwadd.wx v16, v16, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v28, v28, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v13, v20, 12
-  vnsra.wi v24, v24, 12
-  vnsra.wi v15, v28, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v13, v20, 12
+  vnclip.wi v24, v24, 12
+  vnclip.wi v15, v28, 12
 
   vssub.vv v12,  v4, v16
   vsadd.vv v16,  v4, v16
@@ -1244,28 +1155,18 @@ endfunc
   vwmacc.vx v24, t1, v12
   vwmacc.vx v28, t3, v14
 
-  li t1, 2048
   li t2, 2896
   li t3, 1567
   li t4, 3784
 
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v26, v26, t1
-  vwadd.wx v28, v28, t1
-  vwadd.wx v30, v30, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
-  vnsra.wi v24, v24, 12
-  vnsra.wi v26, v26, 12
-  vnsra.wi v28, v28, 12
-  vnsra.wi v30, v30, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
+  vnclip.wi v24, v24, 12
+  vnclip.wi v26, v26, 12
+  vnclip.wi v28, v28, 12
+  vnclip.wi v30, v30, 12
 
   vsadd.vv  v8, v16, v24
   vsadd.vv  v9, v18, v26
@@ -1295,23 +1196,14 @@ endfunc
   vwmacc.vx v18, t4,  v5
   vwmacc.vx v26, t4, v13
 
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v26, v26, t1
-  vwadd.wx v28, v28, t1
-  vwadd.wx v30, v30, t1
-
-  vnsra.wi v16, v16, 12
-  vnsra.wi v18, v18, 12
-  vnsra.wi v20, v20, 12
-  vnsra.wi v22, v22, 12
-  vnsra.wi v24, v24, 12
-  vnsra.wi v26, v26, 12
-  vnsra.wi v28, v28, 12
-  vnsra.wi v30, v30, 12
+  vnclip.wi v16, v16, 12
+  vnclip.wi v18, v18, 12
+  vnclip.wi v20, v20, 12
+  vnclip.wi v22, v22, 12
+  vnclip.wi v24, v24, 12
+  vnclip.wi v26, v26, 12
+  vnclip.wi v28, v28, 12
+  vnclip.wi v30, v30, 12
 
 .ifc \o0, v0
   vsadd.vv \o14, v9, v11
@@ -1365,23 +1257,14 @@ endfunc
   vwmacc.vx v16, t2, v9
   vwmacc.vx v18, t3, v9
 
-  vwadd.wx v16, v16, t1
-  vwadd.wx v18, v18, t1
-  vwadd.wx v20, v20, t1
-  vwadd.wx v22, v22, t1
-  vwadd.wx v24, v24, t1
-  vwadd.wx v26, v26, t1
-  vwadd.wx v28, v28, t1
-  vwadd.wx v30, v30, t1
-
-  vnsra.wi  \o7, v16, 12
-  vnsra.wi  \o8, v18, 12
-  vnsra.wi  \o4, v20, 12
-  vnsra.wi \o11, v22, 12
-  vnsra.wi  \o6, v24, 12
-  vnsra.wi  \o9, v26, 12
-  vnsra.wi  \o5, v28, 12
-  vnsra.wi \o10, v30, 12
+  vnclip.wi  \o7, v16, 12
+  vnclip.wi  \o8, v18, 12
+  vnclip.wi  \o4, v20, 12
+  vnclip.wi \o11, v22, 12
+  vnclip.wi  \o6, v24, 12
+  vnclip.wi  \o9, v26, 12
+  vnclip.wi  \o5, v28, 12
+  vnclip.wi \o10, v30, 12
 
   vmv.v.x v16, zero
   vssub.vv  \o1, v16,  \o1
@@ -1552,6 +1435,9 @@ endfunc
 
 .macro def_fn_16x16 txfm1, txfm2, eob_half
 function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
+.ifc \txfm1\()_\txfm2, dct_dct
+ beqz a3, 1f
+.endif
 .ifc \txfm1, identity
   la a6, inv_txfm_horz_identity_16x8_rvv
 .else
@@ -1561,6 +1447,75 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_16x16_8bpc_rvv, export=1, ext=v
   la a5, inv_\txfm2\()_e16_x16_rvv
   li a7, \eob_half
   j inv_txfm_add_16x16_rvv
+.ifc \txfm1\()_\txfm2, dct_dct
+1:
+  csrw vxrm, zero
+  vsetivli zero, 16, e16, m2, ta, ma
+  lh t2, (a2)
+  li t3, 2896*8
+  li t4, 1<<14
+  li t5, 0xFFFF
+  li t6, -0x10000
+
+  sh x0, (a2)
+
+  mul t2, t2, t3
+  add t2, t2, t4
+  srai t2, t2, 15
+  ble t2, t5, 3f
+  mv t2, t5
+3:
+  ble t6, t2, 4f
+  mv t2, t6
+4:
+  addi t2, t2, 2
+  srai t2, t2, 2
+  mul t2, t2, t3
+  add t2, t2, t4
+  srai t2, t2, 15
+  ble t2, t5, 5f
+  mv t2, t5
+5:
+  ble t6, t2, 6f
+  mv t2, t6
+6:
+  addi t2, t2, 8
+  srai t2, t2, 4
+  vmv.v.x v24, t2
+
+  vsetvli zero, zero, e8, m1, ta, ma
+  add t2, a1, a1
+  li t3, 16
+2:
+  add t0, a0, a1
+  vle8.v v16, (a0)
+  vle8.v v17, (t0)
+
+  vwaddu.wv v0, v24, v16
+  vwaddu.wv v2, v24, v17
+
+  addi t3, t3, -2 # loop counter
+
+
+  vsetvli zero, zero, e16, m2, ta, ma
+.irp i, 0, 2
+  vmax.vx v\i, v\i, zero
+.endr
+
+  vsetvli zero, zero, e8, m1, ta, ma
+
+  vnclipu.wi  v16, v0, 0
+  vnclipu.wi  v17, v2, 0
+
+  add t0, a0, a1
+  vse8.v v16, (a0)
+  add a0, a0, t2
+  vse8.v v17, (t0)
+
+  bnez t3, 2b
+
+  ret
+.endif
 endfunc
 .endm
 

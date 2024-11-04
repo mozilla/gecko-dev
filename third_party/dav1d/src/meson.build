@@ -269,9 +269,26 @@ if is_asm_enabled
         )
         if host_machine.cpu_family() == 'riscv64'
             libdav1d_sources += files(
+                'riscv/64/cdef.S',
                 'riscv/64/cpu.S',
                 'riscv/64/itx.S',
+                'riscv/64/pal.S',
+                'riscv/64/mc.S',
             )
+
+            if dav1d_bitdepths.contains('8')
+                libdav1d_sources += files(
+                    'riscv/64/cdef.S',
+                    'riscv/64/ipred.S',
+                )
+            endif
+
+            if dav1d_bitdepths.contains('16')
+                libdav1d_sources += files(
+                    'riscv/64/cdef16.S',
+                    'riscv/64/ipred16.S',
+                )
+            endif
         endif
     endif
 endif

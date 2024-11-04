@@ -346,6 +346,36 @@ if host_machine.cpu_family().startswith('x86')
     cdata_asm.set('STACK_ALIGNMENT', stack_alignment)
 endif
 
+#
+# ASM specific stuff
+#
+
+use_gaspp = false
+if (is_asm_enabled and
+    (host_machine.cpu_family() == 'aarch64' or
+     host_machine.cpu_family().startswith('arm')) and
+    cc.get_argument_syntax() == 'msvc' and
+    (cc.get_id() != 'clang-cl' or meson.version().version_compare('<0.58.0')))
+    gaspp = find_program('gas-preprocessor.pl')
+    use_gaspp = true
+    gaspp_args = [
+            '-as-type', 'armasm',
+            '-arch', host_machine.cpu_family(),
+            '--',
+            host_machine.cpu_family() == 'aarch64' ? 'armasm64' : 'armasm',
+            '-nologo',
+            '-I@0@'.format(dav1d_src_root),
+            '-I@0@/'.format(meson.current_build_dir()),
+    ]
+    gaspp_gen = generator(gaspp,
+        output: '@BASENAME@.obj',
+        arguments: gaspp_args + [
+            '@INPUT@',
+            '-c',
+            '-o', '@OUTPUT@'
+        ])
+endif
+
 cdata.set10('ARCH_AARCH64', host_machine.cpu_family() == 'aarch64' or host_machine.cpu() == 'arm64')
 cdata.set10('ARCH_ARM',     host_machine.cpu_family().startswith('arm') and host_machine.cpu() != 'arm64')
 
@@ -417,26 +447,41 @@ if (is_asm_enabled and
             cdata.set('AS_ARCH_LEVEL', as_arch_level)
             as_arch_str = '".arch ' + as_arch_level + '\\n"'
         endif
+        if use_gaspp
+            python3 = import('python').find_installation()
+        endif
         foreach name, instr : aarch64_extensions
-            # Test for support for the various extensions. First test if
-            # the assembler supports the .arch_extension directive for
-            # enabling/disabling the extension, then separately check whether
-            # the instructions themselves are supported. Even if .arch_extension
-            # isn't supported, we may be able to assemble the instructions
-            # if the .arch level includes support for them.
-            code = '__asm__ (' + as_arch_str
-            code += '".arch_extension ' + name + '\\n"'
-            code += ');'
-            supports_archext = cc.compiles(code)
-            code = '__asm__ (' + as_arch_str
-            if supports_archext
-                supported_aarch64_archexts += name
+            if use_gaspp
+                f = configure_file(
+                    command: [python3, '-c', 'import sys; print(sys.argv[1])', '@0@'.format(instr)],
+                    output: 'test-@0@.S'.format(name),
+                    capture: true)
+                r = run_command(gaspp, gaspp_args, f, '-c', '-o', meson.current_build_dir() / 'test-' + name + '.obj', check: false)
+                message('Checking for gaspp/armasm64 ' + name.to_upper() + ': ' + (r.returncode() == 0 ? 'YES' : 'NO'))
+                if r.returncode() == 0
+                    supported_aarch64_instructions += name
+                endif
+            else
+                # Test for support for the various extensions. First test if
+                # the assembler supports the .arch_extension directive for
+                # enabling/disabling the extension, then separately check whether
+                # the instructions themselves are supported. Even if .arch_extension
+                # isn't supported, we may be able to assemble the instructions
+                # if the .arch level includes support for them.
+                code = '__asm__ (' + as_arch_str
                 code += '".arch_extension ' + name + '\\n"'
-            endif
-            code += '"' + instr + '\\n"'
-            code += ');'
-            if cc.compiles(code, name: name.to_upper())
-                supported_aarch64_instructions += name
+                code += ');'
+                supports_archext = cc.compiles(code)
+                code = '__asm__ (' + as_arch_str
+                if supports_archext
+                    supported_aarch64_archexts += name
+                    code += '".arch_extension ' + name + '\\n"'
+                endif
+                code += '"' + instr + '\\n"'
+                code += ');'
+                if cc.compiles(code, name: name.to_upper())
+                    supported_aarch64_instructions += name
+                endif
             endif
         endforeach
     endif
@@ -482,9 +527,6 @@ if (host_machine.system() in ['darwin', 'ios', 'tvos'] or
     cdata_asm.set10('PREFIX', true)
 endif
 
-#
-# ASM specific stuff
-#
 if is_asm_enabled and host_machine.cpu_family().startswith('x86')
 
     # NASM compiler support
@@ -531,30 +573,6 @@ if is_asm_enabled and host_machine.cpu_family().startswith('x86')
             '-MQ', '@OUTPUT@', '-MF', '@DEPFILE@',
             '@EXTRA_ARGS@',
             '@INPUT@',
-            '-o', '@OUTPUT@'
-        ])
-endif
-
-use_gaspp = false
-if (is_asm_enabled and
-    (host_machine.cpu_family() == 'aarch64' or
-     host_machine.cpu_family().startswith('arm')) and
-    cc.get_argument_syntax() == 'msvc' and
-    (cc.get_id() != 'clang-cl' or meson.version().version_compare('<0.58.0')))
-    gaspp = find_program('gas-preprocessor.pl')
-    use_gaspp = true
-    gaspp_gen = generator(gaspp,
-        output: '@BASENAME@.obj',
-        arguments: [
-            '-as-type', 'armasm',
-            '-arch', host_machine.cpu_family(),
-            '--',
-            host_machine.cpu_family() == 'aarch64' ? 'armasm64' : 'armasm',
-            '-nologo',
-            '-I@0@'.format(dav1d_src_root),
-            '-I@0@/'.format(meson.current_build_dir()),
-            '@INPUT@',
-            '-c',
             '-o', '@OUTPUT@'
         ])
 endif
