@@ -2328,22 +2328,6 @@ export class UrlbarInput {
     return "urlbar";
   }
 
-  /**
-   * Move the urlbar by a given amount of pixels vertically. Intended mostly as
-   * a stop-gap solution for the macOS full-screen animation until we can make
-   * it use anchor positioning.
-   *
-   * @param {number} delta
-   *   The amount of CSS pixels to shift by.
-   */
-  shiftTextboxBy(delta) {
-    if (!this.textbox.style.top) {
-      return;
-    }
-    let cur = parseFloat(this.textbox.style.top, 10);
-    this.textbox.style.top = px(cur + delta);
-  }
-
   // Private methods below.
 
   _addObservers() {
@@ -2408,14 +2392,15 @@ export class UrlbarInput {
   }
 
   #updateTextboxPosition() {
-    if (!this.hasAttribute("breakout")) {
+    if (!this.view.isOpen) {
       this.textbox.style.top = "";
       return;
     }
-    // We want to align to the urlbar border box if open, or content box if not.
-    let box = this.view.isOpen ? "border" : "content";
     this.textbox.style.top = px(
-      this.textbox.parentNode.getBoxQuads({ box, flush: false })[0].p1.y
+      this.textbox.parentNode.getBoxQuads({
+        ignoreTransforms: true,
+        flush: false,
+      })[0].p1.y
     );
   }
 
