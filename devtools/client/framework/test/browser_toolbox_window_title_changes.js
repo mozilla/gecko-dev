@@ -10,7 +10,8 @@ const NAME_2 = "Toolbox test for title update";
 const NAME_3 = NAME_2;
 const NAME_4 = "Toolbox test for another title update";
 
-const URL_1 = "data:text/plain;charset=UTF-8,abcde";
+const IFRAME_URL = "data:text/html,<title>iframe title</title>";
+const URL_1 = `data:text/html;charset=UTF-8,abcde <iframe src="${IFRAME_URL}"></iframe>`;
 const URL_2 =
   URL_ROOT_ORG_SSL + "browser_toolbox_window_title_changes_page.html";
 const URL_3 =
@@ -35,6 +36,17 @@ add_task(async function test() {
   info("switch to different tool and check title again");
   await toolbox.selectTool("jsdebugger");
   await checkTitle(NAME_1, URL_1, "tool changed");
+
+  const { targetCommand } = toolbox.commands;
+  const iframeTarget = targetCommand
+    .getAllTargets([targetCommand.TYPES.FRAME])
+    .find(target => {
+      return target.url == IFRAME_URL;
+    });
+  ok(iframeTarget, "Found the iframe target");
+  info("Selecting the iframe target");
+  await toolbox.commands.targetCommand.selectTarget(iframeTarget);
+  await checkTitle("iframe title", IFRAME_URL, "selected iframe target");
 
   info("navigate to different local url and check title");
 

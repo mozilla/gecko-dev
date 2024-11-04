@@ -251,8 +251,19 @@ class DebugTargetInfo extends PureComponent {
   }
 
   renderTargetURI() {
-    const url = this.props.toolbox.target.url;
     const { descriptorType } = this.props.debugTargetData;
+    const { url } = this.props.toolbox.target;
+    const isWebExtension = descriptorType === DESCRIPTOR_TYPES.EXTENSION;
+
+    // Avoid displaying the target url for web extension as it is always
+    // the fallback document URL. Keeps rendering the url component
+    // as it use flex to align the "always on top" button on the right.
+    if (isWebExtension) {
+      return dom.span({
+        className: "debug-target-url",
+      });
+    }
+
     const isURLEditable = descriptorType === DESCRIPTOR_TYPES.TAB;
 
     return dom.span(

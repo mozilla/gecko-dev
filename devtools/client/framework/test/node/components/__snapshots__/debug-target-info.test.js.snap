@@ -364,13 +364,7 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
   </div>
   <span
     className="debug-target-url"
-  >
-    <span
-      className="debug-target-url-readonly devtools-ellipsis-text"
-    >
-      http://some.target/url
-    </span>
-  </span>
+  />
 </header>
 `;
 
@@ -407,13 +401,7 @@ exports[`DebugTargetInfo component Target icon renders the expected snapshot for
   </div>
   <span
     className="debug-target-url"
-  >
-    <span
-      className="debug-target-url-readonly devtools-ellipsis-text"
-    >
-      http://some.target/url
-    </span>
-  </span>
+  />
   <button
     className="toolbox-always-on-top"
   />
