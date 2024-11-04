@@ -52,7 +52,6 @@
 #include "mozilla/TimeStamp.h"
 #include "nsError.h"
 #include "nsPrintfCString.h"
-#include "nsAlgorithm.h"
 #include "nsQueryObject.h"
 #include "nsThreadUtils.h"
 #include "nsIConsoleService.h"
@@ -7310,7 +7309,7 @@ nsHttpChannel::SetNavigationStartTimeStamp(TimeStamp aTimeStamp) {
 
 NS_IMETHODIMP
 nsHttpChannel::SetPriority(int32_t value) {
-  int16_t newValue = clamped<int32_t>(value, INT16_MIN, INT16_MAX);
+  int16_t newValue = std::clamp<int32_t>(value, INT16_MIN, INT16_MAX);
   if (mPriority == newValue) return NS_OK;
 
   LOG(("nsHttpChannel::SetPriority %p p=%d", this, newValue));
@@ -10559,7 +10558,7 @@ void nsHttpChannel::MaybeRaceCacheWithNetwork() {
     mRaceDelay /= 1000;
   }
 
-  mRaceDelay = clamped<uint32_t>(
+  mRaceDelay = std::clamp<uint32_t>(
       mRaceDelay, StaticPrefs::network_http_rcwn_min_wait_before_racing_ms(),
       StaticPrefs::network_http_rcwn_max_wait_before_racing_ms());
 

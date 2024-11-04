@@ -1503,7 +1503,7 @@ nsresult nsSocketTransportService::UpdatePrefs() {
   nsresult rv =
       Preferences::GetInt(KEEPALIVE_IDLE_TIME_PREF, &keepaliveIdleTimeS);
   if (NS_SUCCEEDED(rv)) {
-    mKeepaliveIdleTimeS = clamped(keepaliveIdleTimeS, 1, kMaxTCPKeepIdle);
+    mKeepaliveIdleTimeS = std::clamp(keepaliveIdleTimeS, 1, kMaxTCPKeepIdle);
   }
 
   int32_t keepaliveRetryIntervalS;
@@ -1511,13 +1511,13 @@ nsresult nsSocketTransportService::UpdatePrefs() {
                            &keepaliveRetryIntervalS);
   if (NS_SUCCEEDED(rv)) {
     mKeepaliveRetryIntervalS =
-        clamped(keepaliveRetryIntervalS, 1, kMaxTCPKeepIntvl);
+        std::clamp(keepaliveRetryIntervalS, 1, kMaxTCPKeepIntvl);
   }
 
   int32_t keepaliveProbeCount;
   rv = Preferences::GetInt(KEEPALIVE_PROBE_COUNT_PREF, &keepaliveProbeCount);
   if (NS_SUCCEEDED(rv)) {
-    mKeepaliveProbeCount = clamped(keepaliveProbeCount, 1, kMaxTCPKeepCount);
+    mKeepaliveProbeCount = std::clamp(keepaliveProbeCount, 1, kMaxTCPKeepCount);
   }
   bool keepaliveEnabled = false;
   rv = Preferences::GetBool(KEEPALIVE_ENABLED_PREF, &keepaliveEnabled);

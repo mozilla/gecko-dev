@@ -2837,7 +2837,7 @@ HttpChannelChild::ResumeAt(uint64_t startPos, const nsACString& entityID) {
 NS_IMETHODIMP
 HttpChannelChild::SetPriority(int32_t aPriority) {
   LOG(("HttpChannelChild::SetPriority %p p=%d", this, aPriority));
-  int16_t newValue = clamped<int32_t>(aPriority, INT16_MIN, INT16_MAX);
+  int16_t newValue = std::clamp<int32_t>(aPriority, INT16_MIN, INT16_MAX);
   if (mPriority == newValue) return NS_OK;
   mPriority = newValue;
   if (RemoteChannelExists()) SendSetPriority(mPriority);

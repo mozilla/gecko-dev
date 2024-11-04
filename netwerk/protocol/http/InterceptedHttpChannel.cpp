@@ -640,7 +640,7 @@ InterceptedHttpChannel::GetIsAuthChannel(bool* aIsAuthChannel) {
 
 NS_IMETHODIMP
 InterceptedHttpChannel::SetPriority(int32_t aPriority) {
-  mPriority = clamped<int32_t>(aPriority, INT16_MIN, INT16_MAX);
+  mPriority = std::clamp<int32_t>(aPriority, INT16_MIN, INT16_MAX);
   return NS_OK;
 }
 
