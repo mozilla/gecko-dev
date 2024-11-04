@@ -336,7 +336,7 @@ win64-custom-car:
         toolchain-artifact: public/build/car_win64.tar.zst
     fetches:
         toolchain:
-            - win64-vs2022-car
+            - win64-vs2022
 
 browsertime:
     description: "npm install browsertime node_modules"
