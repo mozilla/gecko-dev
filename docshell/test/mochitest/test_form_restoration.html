@@ -21,6 +21,7 @@
     }
 
     async function startTest(aTestFun) {
+      await SimpleTest.enableLegacyUnpartitionedStorage();
       let bc = new BroadcastChannel("form_restoration");
 
       let promise = waitForMessage(bc);
