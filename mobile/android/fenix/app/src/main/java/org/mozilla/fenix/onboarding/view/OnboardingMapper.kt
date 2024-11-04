@@ -35,26 +35,13 @@ private fun OnboardingCardData.isCardEnabled(
     showDefaultBrowserPage: Boolean,
     showNotificationPage: Boolean,
     showAddWidgetPage: Boolean,
-): Boolean =
-    when (cardType) {
-        OnboardingCardType.DEFAULT_BROWSER -> {
-            enabled && showDefaultBrowserPage
-        }
-
-        OnboardingCardType.NOTIFICATION_PERMISSION -> {
-            enabled && showNotificationPage
-        }
-
-        OnboardingCardType.ADD_SEARCH_WIDGET -> {
-            enabled && showAddWidgetPage
-        }
-
-        OnboardingCardType.ADD_ONS -> addOnsData.isNotEmpty()
-
-        else -> {
-            enabled
-        }
-    }
+): Boolean = when (cardType) {
+    OnboardingCardType.DEFAULT_BROWSER -> enabled && showDefaultBrowserPage
+    OnboardingCardType.NOTIFICATION_PERMISSION -> enabled && showNotificationPage
+    OnboardingCardType.ADD_SEARCH_WIDGET -> enabled && showAddWidgetPage
+    OnboardingCardType.ADD_ONS -> extraData.let { it != null && it.addOnsData.isNotEmpty() }
+    else -> enabled
+}
 
 /**
  *  Determines whether the given [OnboardingCardData] should be displayed.
@@ -109,12 +96,14 @@ private fun OnboardingCardData.toPageUiData(privacyCaption: Caption?) = Onboardi
     title = title,
     description = body,
     primaryButtonLabel = primaryButtonLabel,
-    secondaryButtonLabel = secondaryButtonLabel,
+    secondaryButtonLabel = secondaryButtonLabel.ifEmpty { null },
     privacyCaption = privacyCaption,
-    addOns = if (addOnsData.isEmpty()) {
-        null
-    } else {
-        addOnsData.toOnboardingAddOns()
+    addOns = extraData?.let {
+        if (it.addOnsData.isEmpty()) {
+            null
+        } else {
+            it.addOnsData.toOnboardingAddOns()
+        }
     },
 )
 
