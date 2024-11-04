@@ -24,8 +24,6 @@ same domain as the opener.
     }
 
     add_task(async function() {
-      await SimpleTest.enableLegacyUnpartitionedStorage();
-
       const TEST_VALUE = "test-value";
       // This magic value of 2 means that by default, when content tries
       // to open a new window, it'll actually open in a new window instead

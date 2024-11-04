@@ -50,27 +50,14 @@ if (self.Notification) {
       // store notification in test context
       this.notification = notification;
 
-      if (self.location.search == "?xorigin") {
-        notification.onerror = function () {
-          ok(true, "onshow handler should be called");
-          done();
-        };
-      } else {
-        notification.onshow = function () {
-          ok(true, "onshow handler should be called");
-          done();
-        };
-      }
+      notification.onshow = function () {
+        ok(true, "onshow handler should be called");
+        done();
+      };
     },
 
     function (done) {
       var notification = this.notification;
-
-      if (self.location.search == "?xorigin") {
-        ok(true, "onclose handler can not be called in partitioned workers");
-        done();
-        return;
-      }
 
       notification.onclose = function () {
         ok(true, "onclose handler should be called");
