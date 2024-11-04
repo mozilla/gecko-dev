@@ -54,7 +54,7 @@ async function onViewSourceWindowOpen(aWindow) {
 
   expectedData.push(["a[href]", true, false, "http://example.com/"]);
   expectedData.push(["a[href^=mailto]", false, true, "abc@def.ghi"]);
-  expectedData.push(["span", false, false, null]);
+  expectedData.push(["span:not([id])", false, false, null]);
 }
 
 async function checkMenuItems(
