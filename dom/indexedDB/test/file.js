@@ -253,7 +253,7 @@ function grabFileUsageAndContinueHandler(request) {
 
 function getCurrentUsage(usageHandler) {
   let qms = SpecialPowers.Services.qms;
-  let principal = SpecialPowers.wrap(document).nodePrincipal;
+  let principal = SpecialPowers.wrap(document).effectiveStoragePrincipal;
   let cb = SpecialPowers.wrapCallback(usageHandler);
   qms.getUsageForPrincipal(principal, cb);
 }
