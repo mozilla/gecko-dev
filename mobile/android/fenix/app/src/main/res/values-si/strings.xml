@@ -13,6 +13,8 @@
     <string name="content_description_private_browsing_button">පෞද්. පිරික්සීම සබල කරන්න</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">පෞද්. පිරික්සීම අබල කරන්න</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">පෞද්. පිරික්සුම</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">සොයන්න හෝ ලිපිනය ලියන්න</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -347,6 +349,10 @@
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">%s සෙවුම් යන්ත්‍රය</string>
 
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">සෙවුම් යන්ත්‍රය: %s</string>
+
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
     <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">ඔබගේ පුද්ගලීකකරණය කළ මුල් පිටුව බලන්න. මෑත පටිති, පොත්යොමු හා සෙවුම් ප්‍රතිඵල මෙහි දිස් වනු ඇත.</string>
@@ -406,6 +412,23 @@
     <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">ඔබගේ මුල් තිරයේ ෆයර්ෆොක්ස් ඇත්නම්, හරස්-අඩවි ලුහුබැඳීම් අවහිර කරන පෞද්ගලිකත්‍වයට මුල්තැන දෙන අතිරික්සුවට පහසුවෙන් ප්‍රවේශ වීමට හැකිය.</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">දැන් නොවේ</string>
+
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">පිරික්සුම අරඹන්න</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2">තව දිගු ගවේශනය</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2">පිරික්සුම අරඹන්න</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">රූපයකින් සොයන්න</string>
+    <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">ඩාර්ක් රීඩර්</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">ජංගම පිටු සඳහා අභිරුචි අඳුරු ප්‍රකාරය.</string>
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">සමාලෝචන: %1$s</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

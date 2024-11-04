@@ -130,6 +130,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">Autorizar</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">Refusar</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">Ne saber mai</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Anullar</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
@@ -252,6 +254,8 @@
     <string name="mozac_feature_addons_status_see_details">Afichar los detalhs</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s es estat desactivat en seguida de problèmas de seguretat o d’estabilitat.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">Aquesta extension es blocada, per enfranh las politicas de Mozilla e foguèt desactivada.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Se podiá pas verificar que %1$s foguèsse segur e foguèt desactivat.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

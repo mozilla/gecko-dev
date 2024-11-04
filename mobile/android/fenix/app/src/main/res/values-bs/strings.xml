@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">Omogući privatno surfanje</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Onemogući privatno surfanje</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Privatno pretraživanje</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Tražite ili unesite adresu</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -221,6 +223,8 @@
     <string name="browser_menu_discover_more_extensions">Otkrijte više ekstenzija</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Privremeno onemogućeno</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Nema omogućenih ekstenzija</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Podaci o računu</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -1233,6 +1237,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Da li ste sigurni da želite obrisati ovaj direktorij?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Jeste li sigurni da želite izbrisati odabrane stavke?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s će obrisati označene stavke.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1240,7 +1246,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Dodaj direktorij</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Zabilješka spašena!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Zabilješka spašena!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Sačuvano u “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1307,7 +1313,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">Izbrisano %s</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Izbrisane stavke: %s</string>
+    <string name="bookmark_delete_multiple_items">Izbrisane stavke: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Unesi pojmove za pretragu</string>
 
@@ -1336,7 +1342,7 @@
     <string name="bookmark_empty_list_folder_description">Dodajte oznake dok pretražujete kako biste kasnije mogli pronaći svoje omiljene stranice.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Novi folder</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Novi folder</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1584,9 +1590,9 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Zatvoreni tabovi: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Oznake sačuvane!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Oznake sačuvane!</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Oznake sačuvane u “%s”!</string>
+    <string name="snackbar_message_bookmarks_saved_in">Oznake sačuvane u “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Dodato u prečice!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
