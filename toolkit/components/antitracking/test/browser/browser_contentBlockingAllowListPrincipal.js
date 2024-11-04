@@ -3,6 +3,11 @@
 
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  ContentBlockingAllowList:
+    "resource://gre/modules/ContentBlockingAllowList.sys.mjs",
+});
+
 const TEST_SANDBOX_URL =
   "https://example.com/browser/toolkit/components/antitracking/test/browser/sandboxed.html";
 
@@ -234,4 +239,77 @@ add_task(async () => {
       BrowserTestUtils.removeTab(tab);
     }
   );
+});
+
+/**
+ * Tests that the usingStorageAccess flag is correctly set for window contexts
+ * when the content blocking allow list is set.
+ */
+add_task(async () => {
+  // Add content blocking allow list exception for example.com in both normal
+  // and private mode.
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.com"
+  );
+  ContentBlockingAllowList.add(tab.linkedBrowser);
+  BrowserTestUtils.removeTab(tab);
+
+  // Creating a private window to add the content blocking allow list exception
+  // for example.com. Note that we need to keep the private window opened to
+  // keep the allow list exception alive.
+  let privateWin = await BrowserTestUtils.openNewBrowserWindow({
+    private: true,
+  });
+  let privateTab = await BrowserTestUtils.openNewForegroundTab(
+    privateWin.gBrowser,
+    "https://example.com"
+  );
+  ContentBlockingAllowList.add(privateTab.linkedBrowser);
+  BrowserTestUtils.removeTab(privateTab);
+
+  await runTestInNormalAndPrivateMode(
+    "https://example.com",
+    async (browser, _) => {
+      // Check the usingStorageAccess flag of the top level window context. It
+      // should always be false.
+      ok(
+        !browser.browsingContext.currentWindowGlobal.usingStorageAccess,
+        "The usingStorageAccess flag should be false for the top-level context"
+      );
+
+      // Create a third-party iframe.
+      await createFrame(browser, "https://example.org", "iframe");
+      // Iframe BC is the only child of the test browser.
+      let [frameBrowsingContext] = browser.browsingContext.children;
+
+      // Check the usingStorageAccess flag of the iframe's window context. It
+      // should be true.
+      ok(
+        frameBrowsingContext.currentWindowGlobal.usingStorageAccess,
+        "The usingStorageAccess flag should be true for the iframe's context"
+      );
+
+      // Create a ABA iframe.
+      await createFrame(
+        frameBrowsingContext,
+        "https://example.com",
+        "ABAiframe"
+      );
+      // ABA iframe is the only child of the iframe BC.
+      let [abaFrameBrowsingContext] = frameBrowsingContext.children;
+
+      // Check the usingStorageAccess flag of the ABA iframe's window context.
+      // It should be true.
+      ok(
+        abaFrameBrowsingContext.currentWindowGlobal.usingStorageAccess,
+        "The usingStorageAccess flag should be true for the ABA iframe's context"
+      );
+
+      // Clean the content blocking allow list.
+      ContentBlockingAllowList.remove(browser);
+    }
+  );
+
+  await BrowserTestUtils.closeWindow(privateWin);
 });
