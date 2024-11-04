@@ -81,6 +81,8 @@ let px = number => number.toFixed(2) + "px";
  * Implements the text input part of the address bar UI.
  */
 export class UrlbarInput {
+  #allowBreakout = false;
+
   /**
    * @param {object} options
    *   The initial options for UrlbarInput.
@@ -199,7 +201,6 @@ export class UrlbarInput {
       "#urlbar-search-mode-indicator-close"
     );
     this._searchModeLabel = this.querySelector("#urlbar-label-search-mode");
-    this._toolbar = this.textbox.closest("toolbar");
 
     ChromeUtils.defineLazyGetter(this, "valueFormatter", () => {
       return new lazy.UrlbarValueFormatter(this);
@@ -279,7 +280,9 @@ export class UrlbarInput {
       menubar.addEventListener("DOMMenuBarActive", this);
     }
 
-    if (this._toolbar) {
+    // Expanding requires a parent toolbar, and us not being read-only.
+    this.#allowBreakout = !!this.textbox.closest("toolbar");
+    if (this.#allowBreakout) {
       // TODO(emilio): This could use CSS anchor positioning rather than this
       // ResizeObserver, eventually.
       let observer = new this.window.ResizeObserver(([entry]) => {
@@ -2108,8 +2111,7 @@ export class UrlbarInput {
   }
 
   async updateLayoutBreakout() {
-    if (!this._toolbar) {
-      // Expanding requires a parent toolbar.
+    if (!this.#allowBreakout) {
       return;
     }
     if (this.document.fullscreenElement) {
