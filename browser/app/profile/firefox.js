@@ -1822,8 +1822,12 @@ pref("media.gmp.trial-create.enabled", true);
 // unsupported.
 
 #ifdef MOZ_WIDEVINE_EME
+  pref("media.gmp-manager.chromium-update-url", "https://update.googleapis.com/service/update2/crx?response=redirect&x=id%3D%GUID%%26uc&acceptformat=crx3&updaterversion=999");
   pref("media.gmp-widevinecdm.visible", true);
   pref("media.gmp-widevinecdm.enabled", true);
+  pref("media.gmp-widevinecdm.chromium-guid", "oimompecagnajdejgnnjijobebaeigek");
+  pref("media.gmp-widevinecdm.force-chromium-update", false);
+  pref("media.gmp-widevinecdm.force-chromium-beta", false);
 #endif
 
 pref("media.gmp-gmpopenh264.visible", true);
