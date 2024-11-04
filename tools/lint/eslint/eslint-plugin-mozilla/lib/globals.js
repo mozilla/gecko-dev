@@ -146,16 +146,16 @@ function convertCallExpressionToGlobals(node, isGlobal) {
     });
   }
 
+  // The definition matches below must be in the global scope for us to define
+  // a global, so bail out early if we're not a global.
+  if (!isGlobal) {
+    return [];
+  }
+
   let source;
   try {
     source = helpers.getASTSource(node);
   } catch (e) {
-    return [];
-  }
-
-  // The definition matches below must be in the global scope for us to define
-  // a global, so bail out early if we're not a global.
-  if (!isGlobal) {
     return [];
   }
 
