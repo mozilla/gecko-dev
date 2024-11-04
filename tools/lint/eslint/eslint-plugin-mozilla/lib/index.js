@@ -38,7 +38,6 @@ const plugin = {
     "avoid-removeChild": require("./rules/avoid-removeChild"),
     "balanced-listeners": require("./rules/balanced-listeners"),
     "balanced-observers": require("./rules/balanced-observers"),
-    "consistent-if-bracing": require("./rules/consistent-if-bracing"),
     "import-browser-window-globals": require("./rules/import-browser-window-globals"),
     "import-content-task-globals": require("./rules/import-content-task-globals"),
     "import-globals": require("./rules/import-globals"),
