@@ -7,6 +7,7 @@
 #include "AntiTrackingUtils.h"
 
 #include "AntiTrackingLog.h"
+#include "ContentBlockingAllowList.h"
 #include "HttpBaseChannel.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Components.h"
@@ -536,7 +537,14 @@ AntiTrackingUtils::GetStoragePermissionStateInParent(nsIChannel* aChannel) {
       return nsILoadInfo::NoStoragePermission;
     }
 
+    // Check whether the third-party channel is on any allow lists. We check
+    // the partitioning exception list and the content blocking allow list.
     if (PartitioningExceptionList::Check(targetOrigin, trackingOrigin)) {
+      return nsILoadInfo::StoragePermissionAllowListed;
+    }
+
+    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
+    if (httpChannel && ContentBlockingAllowList::Check(httpChannel)) {
       return nsILoadInfo::StoragePermissionAllowListed;
     }
   }
