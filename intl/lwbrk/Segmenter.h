@@ -139,6 +139,7 @@ class WordBreakIteratorUtf16 final : public SegmentIteratorUtf16 {
   explicit WordBreakIteratorUtf16(Span<const char16_t> aText);
   ~WordBreakIteratorUtf16() override;
 
+  void Reset(Span<const char16_t> aText);
   Maybe<uint32_t> Next() override;
   Maybe<uint32_t> Seek(uint32_t aPos) override;
 

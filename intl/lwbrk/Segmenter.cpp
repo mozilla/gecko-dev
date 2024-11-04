@@ -143,6 +143,17 @@ WordBreakIteratorUtf16::~WordBreakIteratorUtf16() {
 #endif
 }
 
+void WordBreakIteratorUtf16::Reset(Span<const char16_t> aText) {
+#if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
+  mText = aText;
+  if (mIterator) {
+    capi::ICU4XWordBreakIteratorUtf16_destroy(mIterator);
+  }
+  mIterator = capi::ICU4XWordSegmenter_segment_utf16(
+      mSegmenter, mText.Elements(), mText.Length());
+#endif
+}
+
 Maybe<uint32_t> WordBreakIteratorUtf16::Next() {
 #if defined(MOZ_ICU4X) && defined(JS_HAS_INTL_API)
   if (mIterator) {

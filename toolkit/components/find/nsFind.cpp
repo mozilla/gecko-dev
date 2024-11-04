@@ -533,14 +533,14 @@ char32_t nsFind::DecodeChar(const char16_t* t2b, int32_t* index) const {
   return c;
 }
 
-bool nsFind::BreakInBetween(char32_t x, char32_t y) const {
+bool nsFind::BreakInBetween(char32_t x, char32_t y) {
   nsAutoStringN<4> text;
   AppendUCS4ToUTF16(x, text);
   const uint32_t x16Len = text.Length();
   AppendUCS4ToUTF16(y, text);
+  mWordBreakIter.Reset(text);
 
-  intl::WordBreakIteratorUtf16 iter(text);
-  return *iter.Seek(x16Len - 1) == x16Len;
+  return *mWordBreakIter.Seek(x16Len - 1) == x16Len;
 }
 
 char32_t nsFind::PeekNextChar(State& aState, bool aAlreadyMatching) const {
