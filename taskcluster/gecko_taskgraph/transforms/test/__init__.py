@@ -411,11 +411,6 @@ def run_remaining_transforms(config, tasks):
         # Although the os-integration transforms setup an index route that
         # depends on the chunk number.
         ("chunk", None),
-        (
-            "os_integration",
-            lambda t: t.get("attributes", {}).get("unittest_variant")
-            == "os-integration",
-        ),
     )
 
     for task in tasks:
