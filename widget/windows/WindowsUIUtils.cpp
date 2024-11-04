@@ -639,7 +639,7 @@ void WindowsUIUtils::UpdateInWin10TabletMode() {
         mozilla::services::GetObserverService();
     observerService->NotifyObservers(nullptr, "tablet-mode-change",
                                      sInTabletModeState == TabletModeState::On
-                                         ? u"tablet-mode"
+                                         ? u"win10-tablet-mode"
                                          : u"normal-mode");
   }
 #endif
@@ -836,6 +836,14 @@ void WindowsUIUtils::UpdateInWin11TabletMode() {
   bool const isTableting =
       ::GetSystemMetrics(SM_CONVERTIBLESLATEMODE) == 0 /* [sic!] */;
   sInTabletModeState = isTableting ? TabletModeState::On : TabletModeState::Off;
+  if (oldState != sInTabletModeState) {
+    nsCOMPtr<nsIObserverService> observerService =
+        mozilla::services::GetObserverService();
+    observerService->NotifyObservers(nullptr, "tablet-mode-change",
+                                     sInTabletModeState == TabletModeState::On
+                                         ? u"win11-tablet-mode"
+                                         : u"normal-mode");
+  }
 }
 
 #ifndef __MINGW32__

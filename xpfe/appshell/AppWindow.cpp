@@ -1813,7 +1813,7 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
   settings.rtlEnabled = intl::LocaleService::GetInstance()->IsAppLocaleRTL();
 
   bool isInTabletMode = false;
-  bool autoTouchModePref =
+  bool const autoTouchModePref =
       Preferences::GetBool("browser.touchmode.auto", false);
   if (autoTouchModePref) {
     nsCOMPtr<nsIWindowsUIUtils> uiUtils(
