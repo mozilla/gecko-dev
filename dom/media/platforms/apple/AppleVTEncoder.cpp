@@ -122,12 +122,23 @@ static bool SetFrameRate(VTCompressionSessionRef& aSession, int64_t aFPS) {
 static bool SetRealtime(VTCompressionSessionRef& aSession, bool aEnabled) {
   // B-frames has been disabled in Init(), so no need to set it here.
 
-  OSStatus status =
-      VTSessionSetProperty(aSession, kVTCompressionPropertyKey_RealTime,
-                           aEnabled ? kCFBooleanTrue : kCFBooleanFalse);
+  CFBooleanRef enabled = aEnabled ? kCFBooleanTrue : kCFBooleanFalse;
+  OSStatus status = VTSessionSetProperty(
+      aSession, kVTCompressionPropertyKey_RealTime, enabled);
   LOGD("%s real time, status: %d", aEnabled ? "Enable" : "Disable", status);
   if (status != noErr) {
     return false;
+  }
+
+  if (__builtin_available(macos 11.0, *)) {
+    status = VTSessionSetProperty(
+        aSession, kVTCompressionPropertyKey_PrioritizeEncodingSpeedOverQuality,
+        enabled);
+    LOGD("%s PrioritizeEncodingSpeedOverQuality, status: %d",
+         aEnabled ? "Enable" : "Disable", status);
+    if (status != noErr && status != kVTPropertyNotSupportedErr) {
+      return false;
+    }
   }
 
   int32_t maxFrameDelayCount = aEnabled ? 0 : kVTUnlimitedFrameDelayCount;
