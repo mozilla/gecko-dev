@@ -3551,11 +3551,6 @@ export class UrlbarInput {
   _initStripOnShare() {
     let contextMenu = this.querySelector("moz-input-box").menupopup;
     let insertLocation = this.#findMenuItemLocation("cmd_copy");
-    // FIXME(bug 1927220): This check is wrong, !getAttribute() is a
-    // boolean.
-    if (!insertLocation.getAttribute("cmd") == "cmd_copy") {
-      return;
-    }
     // set up the menu item
     let stripOnShare = this.document.createXULElement("menuitem");
     this.document.l10n.setAttributes(
