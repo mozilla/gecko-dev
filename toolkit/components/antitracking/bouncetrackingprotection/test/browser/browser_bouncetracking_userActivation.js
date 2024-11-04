@@ -7,6 +7,10 @@
  * Tests that user activation is correctly recorded for BTP.
  */
 
+let bounceTrackingProtection = Cc[
+  "@mozilla.org/bounce-tracking-protection;1"
+].getService(Ci.nsIBounceTrackingProtection);
+
 function assertNoUserActivationHosts() {
   is(
     bounceTrackingProtection.testGetUserActivationHosts({}).length,

@@ -3,6 +3,10 @@
 
 "use strict";
 
+let bounceTrackingProtection = Cc[
+  "@mozilla.org/bounce-tracking-protection;1"
+].getService(Ci.nsIBounceTrackingProtection);
+
 // Import helpers from webauthn tests.
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/dom/webauthn/tests/browser/head.js",

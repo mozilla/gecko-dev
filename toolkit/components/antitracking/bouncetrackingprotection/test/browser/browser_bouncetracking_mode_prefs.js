@@ -54,6 +54,10 @@ add_task(async function test_mode_pref() {
   await runTestModePref(MODE_ENABLED, true);
   await runTestModePref(MODE_ENABLED_STANDBY, false);
   await runTestModePref(MODE_ENABLED_DRY_RUN, true);
+  // Run MODE_DISABLED again now that the BTP service has been initialized from
+  // the previous enabled tests. This tests the case where the feature is
+  // disabled but XPCOM is keeping the BTP singleton alive.
+  await runTestModePref(MODE_DISABLED, false);
 });
 
 /**
@@ -61,6 +65,10 @@ add_task(async function test_mode_pref() {
  * cleared.
  */
 add_task(async function test_mode_switch_clears_bounce_candidates() {
+  let bounceTrackingProtection = Cc[
+    "@mozilla.org/bounce-tracking-protection;1"
+  ].getService(Ci.nsIBounceTrackingProtection);
+
   // Start with MODE_ENABLED
   let modeOriginal = Services.prefs.getIntPref(BTP_MODE_PREF);
   registerCleanupFunction(() => {

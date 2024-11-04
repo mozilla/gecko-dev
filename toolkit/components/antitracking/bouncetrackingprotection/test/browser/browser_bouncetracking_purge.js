@@ -5,6 +5,10 @@
 
 const BOUNCE_TRACKING_GRACE_PERIOD_SEC = 30;
 
+let bounceTrackingProtection = Cc[
+  "@mozilla.org/bounce-tracking-protection;1"
+].getService(Ci.nsIBounceTrackingProtection);
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
