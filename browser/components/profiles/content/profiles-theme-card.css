@@ -52,8 +52,9 @@ moz-card {
   padding-inline-start: var(--space-medium);
   padding-block: var(--space-small);
 
-  border-width: var(--theme-card-border-width);
-  border-top: var(--card-border);
+  border-inline-width: var(--theme-card-border-width);
+  border-block-end-width: var(--theme-card-border-width);
+  border-block-start: var(--card-border);
 }
 
 :host([selected]) .theme-card {

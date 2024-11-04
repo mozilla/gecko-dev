@@ -107,6 +107,10 @@ nsresult nsDBusRemoteClient::DoSendDBusCommandLine(const char* aProfile,
                                                    int aLength) {
   LOG("nsDBusRemoteClient::DoSendDBusCommandLine()");
 
+  if (!gAppData) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsAutoCString appName;
   gAppData->GetDBusAppName(appName);
 
