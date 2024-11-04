@@ -5,6 +5,7 @@
 profile-window-title = { -brand-short-name } - Choose User Profile
 profile-window-heading = Choose a { -brand-short-name } profile
 profile-window-body = Keep your work and personal browsing, including things like passwords and bookmarks, totally separate. Or create profiles for everyone who uses this device.
+# This checkbox appears in the Choose profile window that appears when the browser is opened. "Show this" refers to this window, which is displayed when the checkbox is enabled.
 profile-window-checkbox-label =
     .label = Show this when { -brand-short-name } opens
 profile-window-create-profile = Create a profile
@@ -36,6 +37,8 @@ new-profile-page-input-placeholder =
 new-profile-page-done-button =
     .label = Done editing
 
+## Delete profile dialogue that allows users to review what they will lose if they choose to delete their profile. Each item (open windows, etc.) is displayed in a table, followed by a column with the number of items.
+
 # Variables
 #   $profilename (String) - The name of the profile.
 delete-profile-page-title = Delete { $profilename } profile
@@ -44,13 +47,18 @@ delete-profile-page-title = Delete { $profilename } profile
 #   $profilename (String) - The name of the profile.
 delete-profile-header = Delete { $profilename } profile?
 delete-profile-description = { -brand-short-name } will permanently delete the following data from this device:
+# Open is an adjective, as in "browser windows currently open".
 delete-profile-windows = Open windows
+# Open is an adjective, as in "browser tabs currently open".
 delete-profile-tabs = Open tabs
 delete-profile-bookmarks = Bookmarks
 delete-profile-history = History (visited pages, cookies, site data)
 delete-profile-autofill = Autofill data (addresses, payment methods)
 delete-profile-logins = Passwords
 
-# Button labels
+##
+
+# Button label
 delete-profile-cancel = Cancel
+# Button label
 delete-profile-confirm = Delete
