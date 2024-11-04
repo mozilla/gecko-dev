@@ -18,9 +18,6 @@ const {
 } = require("resource://devtools/shared/specs/descriptors/webextension.js");
 
 const {
-  connectToFrame,
-} = require("resource://devtools/server/connectors/frame-connector.js");
-const {
   createWebExtensionSessionContext,
 } = require("resource://devtools/server/actors/watcher/session-context.js");
 
@@ -55,9 +52,9 @@ const BGSCRIPT_STATUSES = {
 };
 
 /**
- * Creates the actor that represents the addon in the parent process, which connects
- * itself to a WebExtensionTargetActor counterpart which is created in the extension
- * process (or in the main process if the WebExtensions OOP mode is disabled).
+ * Creates the actor that represents the addon in the parent process, which relies
+ * on its child Watcher Actor to expose all WindowGlobal target actors for all
+ * the active documents involved in the debugged addon.
  *
  * The WebExtensionDescriptorActor subscribes itself as an AddonListener on the AddonManager
  * and forwards this events to child actor (e.g. on addon reload or when the addon is
@@ -83,10 +80,8 @@ class WebExtensionDescriptorActor extends Actor {
     super(conn, webExtensionDescriptorSpec);
     this.addon = addon;
     this.addonId = addon.id;
-    this._childFormPromise = null;
 
     this.destroy = this.destroy.bind(this);
-    this._onChildExit = this._onChildExit.bind(this);
 
     lazy.AddonManager.addAddonListener(this);
   }
@@ -102,7 +97,7 @@ class WebExtensionDescriptorActor extends Actor {
       actor: this.actorID,
       backgroundScriptStatus,
       // Note that until the policy becomes active,
-      // getTarget/connectToFrame will fail attaching to the web extension:
+      // getWatcher will fail attaching to the web extension:
       // https://searchfox.org/mozilla-central/rev/526a5089c61db85d4d43eb0e46edaf1f632e853a/toolkit/components/extensions/WebExtensionPolicy.cpp#551-553
       debuggable: policy?.active && this.addon.isDebuggable,
       hidden: this.addon.hidden,
@@ -211,63 +206,6 @@ class WebExtensionDescriptorActor extends Actor {
     await onLocationChanged;
   }
 
-  async getTarget() {
-    const form = await this._extensionFrameConnect();
-    // Merge into the child actor form, some addon metadata
-    // (e.g. the addon name shown in the addon debugger window title).
-    return Object.assign(form, {
-      iconURL: this.addon.iconURL,
-      id: this.addon.id,
-      name: this.addon.name,
-    });
-  }
-
-  getChildren() {
-    return [];
-  }
-
-  async _extensionFrameConnect() {
-    if (this._form) {
-      return this._form;
-    }
-
-    if (!this._browser) {
-      // The extension process browser will only be released on destroy and can
-      // be reused for subsequent targets.
-      this._browser =
-        await lazy.ExtensionParent.DebugUtils.getExtensionProcessBrowser(this);
-    }
-
-    const policy = lazy.ExtensionParent.WebExtensionPolicy.getByID(
-      this.addonId
-    );
-
-    this._form = await connectToFrame(this.conn, this._browser, this.destroy, {
-      addonId: this.addonId,
-      addonBrowsingContextGroupId: policy.browsingContextGroupId,
-      // Bug 1754452: This flag is passed by the client to getWatcher(), but the server
-      // doesn't support this anyway. So always pass false here and keep things simple.
-      // Once we enable this flag, we will stop using connectToFrame and instantiate
-      // the WebExtensionTargetActor from watcher code instead, so that shouldn't
-      // introduce an issue for the future.
-      isServerTargetSwitchingEnabled: false,
-    });
-
-    // connectToFrame may resolve to a null form,
-    // in case the browser element is destroyed before it is fully connected to it.
-    if (!this._form) {
-      throw new Error(
-        "browser element destroyed while connecting to it: " + this.addon.name
-      );
-    }
-
-    this._mm.addMessageListener("debug:webext_child_exit", this._onChildExit);
-
-    this._childActorID = this._form.actor;
-
-    return this._form;
-  }
-
   /**
    * Note that reloadDescriptor is the common API name for descriptors
    * which support to be reloaded, while WebExtensionDescriptorActor::reload
@@ -344,27 +282,6 @@ class WebExtensionDescriptorActor extends Actor {
     return isRunning ? BGSCRIPT_STATUSES.RUNNING : BGSCRIPT_STATUSES.STOPPED;
   }
 
-  get _mm() {
-    return (
-      this._browser &&
-      (this._browser.messageManager || this._browser.frameLoader.messageManager)
-    );
-  }
-
-  /**
-   * Handle the child actor exit.
-   */
-  _onChildExit(msg) {
-    if (msg.json.actor !== this._childActorID) {
-      return;
-    }
-
-    // Cleanup internal variables so that a new target will be recreated upon
-    // calling getTarget/getWatcher again.
-    delete this._form;
-    delete this._childActorID;
-  }
-
   // AddonManagerListener callbacks.
   onInstalled(addon) {
     if (addon.id != this.addonId) {
@@ -387,25 +304,15 @@ class WebExtensionDescriptorActor extends Actor {
     lazy.AddonManager.removeAddonListener(this);
 
     this.addon = null;
-    if (this._mm) {
-      this._mm.removeMessageListener(
-        "debug:webext_child_exit",
-        this._onChildExit
-      );
-
-      this._mm.sendAsyncMessage("debug:webext_parent_exit", {
-        actor: this._childActorID,
-      });
-
-      lazy.ExtensionParent.DebugUtils.releaseExtensionProcessBrowser(this);
-    }
 
     if (this.watcher) {
       this.watcher = null;
     }
 
-    this._browser = null;
-    this._childActorID = null;
+    if (this._browser) {
+      lazy.ExtensionParent.DebugUtils.releaseExtensionProcessBrowser(this);
+      this._browser = null;
+    }
 
     this.emit("descriptor-destroyed");
 

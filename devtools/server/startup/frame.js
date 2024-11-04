@@ -57,8 +57,6 @@ try {
     const onConnect = DevToolsUtils.makeInfallible(function (msg) {
       const mm = msg.target;
       const prefix = msg.data.prefix;
-      const addonId = msg.data.addonId;
-      const addonBrowsingContextGroupId = msg.data.addonBrowsingContextGroupId;
 
       // If we try to create several frame targets simultaneously, the frame script will be loaded several times.
       // In this case a single "debug:connect" message might be received by all the already loaded frame scripts.
@@ -74,64 +72,34 @@ try {
       const conn = DevToolsServer.connectToParent(prefix, mm);
       connections.set(prefix, conn);
 
-      let actor;
+      const {
+        WindowGlobalTargetActor,
+      } = require("resource://devtools/server/actors/targets/window-global.js");
+      const {
+        createBrowserElementSessionContext,
+      } = require("resource://devtools/server/actors/watcher/session-context.js");
 
-      if (addonId) {
-        const {
-          WebExtensionTargetActor,
-        } = require("resource://devtools/server/actors/targets/webextension.js");
-        const {
-          createWebExtensionSessionContext,
-        } = require("resource://devtools/server/actors/watcher/session-context.js");
-        const { browsingContext } = docShell;
-        actor = new WebExtensionTargetActor(conn, {
-          addonId,
-          addonBrowsingContextGroupId,
-          chromeGlobal,
-          isTopLevelTarget: true,
-          prefix,
-          sessionContext: createWebExtensionSessionContext(
-            {
-              addonId,
-              browsingContextID: browsingContext.id,
-              innerWindowId: browsingContext.currentWindowContext.innerWindowId,
-            },
-            {
-              isServerTargetSwitchingEnabled:
-                msg.data.isServerTargetSwitchingEnabled,
-            }
-          ),
-        });
-      } else {
-        const {
-          WindowGlobalTargetActor,
-        } = require("resource://devtools/server/actors/targets/window-global.js");
-        const {
-          createBrowserElementSessionContext,
-        } = require("resource://devtools/server/actors/watcher/session-context.js");
-
-        const { docShell } = chromeGlobal;
-        // For a script loaded via loadFrameScript, the global is the content
-        // message manager.
-        // All WindowGlobalTarget actors created via the framescript are top-level
-        // targets. Non top-level WindowGlobalTarget actors are all created by the
-        // DevToolsFrameChild actor.
-        //
-        // createBrowserElementSessionContext only reads browserId attribute
-        const fakeBrowserElement = {
-          browserId: docShell.browsingContext.browserId,
-        };
-        actor = new WindowGlobalTargetActor(conn, {
-          docShell,
-          isTopLevelTarget: true,
-          // This is only used when server target switching is off and we create
-          // the target from TabDescriptor. So all config attributes are false.
-          sessionContext: createBrowserElementSessionContext(
-            fakeBrowserElement,
-            {}
-          ),
-        });
-      }
+      const { docShell } = chromeGlobal;
+      // For a script loaded via loadFrameScript, the global is the content
+      // message manager.
+      // All WindowGlobalTarget actors created via the framescript are top-level
+      // targets. Non top-level WindowGlobalTarget actors are all created by the
+      // DevToolsFrameChild actor.
+      //
+      // createBrowserElementSessionContext only reads browserId attribute
+      const fakeBrowserElement = {
+        browserId: docShell.browsingContext.browserId,
+      };
+      const actor = new WindowGlobalTargetActor(conn, {
+        docShell,
+        isTopLevelTarget: true,
+        // This is only used when server target switching is off and we create
+        // the target from TabDescriptor. So all config attributes are false.
+        sessionContext: createBrowserElementSessionContext(
+          fakeBrowserElement,
+          {}
+        ),
+      });
       actor.manage(actor);
 
       sendAsyncMessage("debug:actor", { actor: actor.form(), prefix });

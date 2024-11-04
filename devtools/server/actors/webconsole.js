@@ -501,7 +501,6 @@ class WebConsoleActor extends Actor {
               this.onConsoleAPICall,
               {
                 matchExactWindow: this.targetActor.ignoreSubFrames,
-                ...(this.targetActor.consoleAPIListenerOptions || {}),
               }
             );
             this.consoleAPIListener.init();

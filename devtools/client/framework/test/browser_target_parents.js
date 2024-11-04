@@ -69,27 +69,6 @@ add_task(async function () {
   await client.close();
 });
 
-// Test against Webextension targets
-add_task(async function () {
-  const client = await setupDebuggerClient();
-
-  const mainRoot = client.mainRoot;
-
-  const addons = await mainRoot.listAddons();
-  await Promise.all(
-    // some extensions, such as themes, are not debuggable. Filter those out
-    // before trying to connect.
-    addons
-      .filter(a => a.debuggable)
-      .map(async addonDescriptorFront => {
-        const addonFront = await addonDescriptorFront.getTarget();
-        ok(addonFront, "Got the addon target");
-      })
-  );
-
-  await client.close();
-});
-
 // Test against worker targets on parent process
 add_task(async function () {
   const client = await setupDebuggerClient();

@@ -23,17 +23,6 @@ const webExtensionDescriptorSpec = generateActorSpec({
       response: {},
     },
 
-    // @backward-compat { version 70 } The method is now called getTarget
-    connect: {
-      request: {},
-      response: { form: RetVal("json") },
-    },
-
-    getTarget: {
-      request: {},
-      response: { form: RetVal("json") },
-    },
-
     reloadDescriptor: {
       request: {
         bypassCache: Option(0, "boolean"),
