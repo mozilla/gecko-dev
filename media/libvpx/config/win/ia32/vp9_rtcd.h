@@ -115,18 +115,22 @@ void vp9_scale_and_extend_frame_ssse3(const struct yv12_buffer_config *src, stru
 RTCD_EXTERN void (*vp9_scale_and_extend_frame)(const struct yv12_buffer_config *src, struct yv12_buffer_config *dst, INTERP_FILTER filter_type, int phase_scaler);
 
 void vpx_convolve8_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve8_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 void vpx_convolve8_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 RTCD_EXTERN void (*vpx_convolve8_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 
 void vpx_convolve_copy_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve_copy_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 void vpx_convolve_copy_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 RTCD_EXTERN void (*vpx_convolve_copy_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 
 void vpx_convolve_horiz_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve_horiz_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 void vpx_convolve_horiz_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 RTCD_EXTERN void (*vpx_convolve_horiz_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 
 void vpx_convolve_vert_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
+void vpx_convolve_vert_12_ssse3(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 void vpx_convolve_vert_12_avx2(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 RTCD_EXTERN void (*vpx_convolve_vert_12)(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h);
 
@@ -176,12 +180,16 @@ static void setup_rtcd_internal(void)
     vp9_scale_and_extend_frame = vp9_scale_and_extend_frame_c;
     if (flags & HAS_SSSE3) vp9_scale_and_extend_frame = vp9_scale_and_extend_frame_ssse3;
     vpx_convolve8_12 = vpx_convolve8_12_c;
+    if (flags & HAS_SSSE3) vpx_convolve8_12 = vpx_convolve8_12_ssse3;
     if (flags & HAS_AVX2) vpx_convolve8_12 = vpx_convolve8_12_avx2;
     vpx_convolve_copy_12 = vpx_convolve_copy_12_c;
+    if (flags & HAS_SSSE3) vpx_convolve_copy_12 = vpx_convolve_copy_12_ssse3;
     if (flags & HAS_AVX2) vpx_convolve_copy_12 = vpx_convolve_copy_12_avx2;
     vpx_convolve_horiz_12 = vpx_convolve_horiz_12_c;
+    if (flags & HAS_SSSE3) vpx_convolve_horiz_12 = vpx_convolve_horiz_12_ssse3;
     if (flags & HAS_AVX2) vpx_convolve_horiz_12 = vpx_convolve_horiz_12_avx2;
     vpx_convolve_vert_12 = vpx_convolve_vert_12_c;
+    if (flags & HAS_SSSE3) vpx_convolve_vert_12 = vpx_convolve_vert_12_ssse3;
     if (flags & HAS_AVX2) vpx_convolve_vert_12 = vpx_convolve_vert_12_avx2;
 }
 #endif

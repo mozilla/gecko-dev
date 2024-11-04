@@ -608,8 +608,9 @@ static void tpl_store_before_propagation(VpxTplBlockStats *tpl_block_stats,
                                          TplDepStats *tpl_stats, int mi_row,
                                          int mi_col, BLOCK_SIZE bsize,
                                          int src_stride, int64_t recon_error,
-                                         int64_t rate_cost, int ref_frame_idx,
-                                         int mi_rows, int mi_cols) {
+                                         int64_t pred_error, int64_t rate_cost,
+                                         int ref_frame_idx, int mi_rows,
+                                         int mi_cols) {
   const int mi_height = num_8x8_blocks_high_lookup[bsize];
   const int mi_width = num_8x8_blocks_wide_lookup[bsize];
   const TplDepStats *src_stats = &tpl_stats[mi_row * src_stride + mi_col];
@@ -630,6 +631,7 @@ static void tpl_store_before_propagation(VpxTplBlockStats *tpl_block_stats,
       tpl_block_stats_ptr->intra_pred_err = src_stats->intra_cost;
       tpl_block_stats_ptr->srcrf_dist = recon_error << TPL_DEP_COST_SCALE_LOG2;
       tpl_block_stats_ptr->srcrf_rate = rate_cost << TPL_DEP_COST_SCALE_LOG2;
+      tpl_block_stats_ptr->pred_error = pred_error << TPL_DEP_COST_SCALE_LOG2;
       tpl_block_stats_ptr->mv_r = (src_stats->mv.as_mv.row >= 0 ? 1 : -1) *
                                   (abs(src_stats->mv.as_mv.row) + 4) / 8;
       tpl_block_stats_ptr->mv_c = (src_stats->mv.as_mv.col >= 0 ? 1 : -1) *
@@ -1473,7 +1475,7 @@ static void mc_flow_dispenser(VP9_COMP *cpi, GF_PICTURE *gf_picture,
       tpl_store_before_propagation(
           tpl_frame_stats_before_propagation->block_stats_list,
           tpl_frame->tpl_stats_ptr, mi_row, mi_col, bsize, tpl_frame->stride,
-          recon_error, rate_cost, ref_frame_idx, tpl_frame->mi_rows,
+          recon_error, sse, rate_cost, ref_frame_idx, tpl_frame->mi_rows,
           tpl_frame->mi_cols);
 
       tpl_model_update(cpi->tpl_stats, tpl_frame->tpl_stats_ptr, mi_row, mi_col,
@@ -1718,12 +1720,26 @@ static void accumulate_frame_tpl_stats(VP9_COMP *cpi) {
 #endif  // CONFIG_RATE_CTRL
 
 void vp9_estimate_tpl_qp_gop(VP9_COMP *cpi) {
+  VP9_COMMON *cm = &cpi->common;
   int gop_length = cpi->twopass.gf_group.gf_group_size;
   int bottom_index, top_index;
   int idx;
   const int gf_index = cpi->twopass.gf_group.index;
   const int is_src_frame_alt_ref = cpi->rc.is_src_frame_alt_ref;
   const int refresh_frame_context = cpi->common.refresh_frame_context;
+
+  const int sb_size = num_8x8_blocks_wide_lookup[BLOCK_64X64] * MI_SIZE;
+  const int frame_height_sb = (cm->height + sb_size - 1) / sb_size;
+  const int frame_width_sb = (cm->width + sb_size - 1) / sb_size;
+
+  vpx_codec_err_t codec_status;
+  const GF_GROUP *gf_group = &cpi->twopass.gf_group;
+  vpx_rc_encodeframe_decision_t encode_frame_decision;
+
+  CHECK_MEM_ERROR(
+      &cm->error, encode_frame_decision.sb_params_list,
+      (sb_params *)vpx_malloc(frame_height_sb * frame_width_sb *
+                              sizeof(*encode_frame_decision.sb_params_list)));
 
   for (idx = gf_index; idx <= gop_length; ++idx) {
     TplDepFrame *tpl_frame = &cpi->tpl_stats[idx];
@@ -1734,16 +1750,20 @@ void vp9_estimate_tpl_qp_gop(VP9_COMP *cpi) {
     if (cpi->ext_ratectrl.ready &&
         (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_QP) != 0 &&
         cpi->ext_ratectrl.funcs.get_encodeframe_decision != NULL) {
-      VP9_COMMON *cm = &cpi->common;
-      vpx_codec_err_t codec_status;
-      const GF_GROUP *gf_group = &cpi->twopass.gf_group;
-      vpx_rc_encodeframe_decision_t encode_frame_decision;
       if (idx == gop_length) break;
+      memset(encode_frame_decision.sb_params_list, 0,
+             sizeof(*encode_frame_decision.sb_params_list) * frame_height_sb *
+                 frame_width_sb);
       codec_status = vp9_extrc_get_encodeframe_decision(
           &cpi->ext_ratectrl, gf_group->index, &encode_frame_decision);
       if (codec_status != VPX_CODEC_OK) {
         vpx_internal_error(&cm->error, codec_status,
                            "vp9_extrc_get_encodeframe_decision() failed");
+      }
+      for (int i = 0; i < frame_height_sb * frame_width_sb; ++i) {
+        cpi->sb_mul_scale[i] =
+            (((int64_t)encode_frame_decision.sb_params_list[i].rdmult * 256) /
+             (encode_frame_decision.rdmult + 1));
       }
       tpl_frame->base_qindex = encode_frame_decision.q_index;
     } else {
@@ -1757,6 +1777,8 @@ void vp9_estimate_tpl_qp_gop(VP9_COMP *cpi) {
   cpi->rc.is_src_frame_alt_ref = is_src_frame_alt_ref;
   cpi->common.refresh_frame_context = refresh_frame_context;
   vp9_configure_buffer_updates(cpi, gf_index);
+
+  vpx_free(encode_frame_decision.sb_params_list);
 }
 
 void vp9_setup_tpl_stats(VP9_COMP *cpi) {
@@ -1787,7 +1809,7 @@ void vp9_setup_tpl_stats(VP9_COMP *cpi) {
   if (cpi->ext_ratectrl.ready &&
       cpi->ext_ratectrl.funcs.send_tpl_gop_stats != NULL) {
     // Intra search on key frame
-    if (gf_picture[0].update_type != OVERLAY_UPDATE) {
+    if (gf_group->update_type[0] != OVERLAY_UPDATE) {
       mc_flow_dispenser(cpi, gf_picture, 0, cpi->tpl_bsize);
     }
     // TPL stats has extra frames from next GOP. Trim those extra frames for

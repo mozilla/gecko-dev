@@ -81,8 +81,8 @@ class DatarateOnePassCbrSvc : public OnePassCbrSvc {
     num_resize_down_ = 0;
     num_resize_up_ = 0;
     for (int i = 0; i < VPX_MAX_LAYERS; i++) {
-      prev_frame_width[i] = 320;
-      prev_frame_height[i] = 240;
+      prev_frame_width_[i] = 320;
+      prev_frame_height_[i] = 240;
     }
     ksvc_flex_noupd_tlenh_ = false;
   }
@@ -559,15 +559,15 @@ class DatarateOnePassCbrSvc : public OnePassCbrSvc {
         if (scaled_height % 2 != 0) scaled_height += 1;
         ASSERT_EQ(pkt->data.frame.height[sl], scaled_height);
       } else if (superframe_count_ > 0) {
-        if (pkt->data.frame.width[sl] < prev_frame_width[sl] &&
-            pkt->data.frame.height[sl] < prev_frame_height[sl])
+        if (pkt->data.frame.width[sl] < prev_frame_width_[sl] &&
+            pkt->data.frame.height[sl] < prev_frame_height_[sl])
           num_resize_down_ += 1;
-        if (pkt->data.frame.width[sl] > prev_frame_width[sl] &&
-            pkt->data.frame.height[sl] > prev_frame_height[sl])
+        if (pkt->data.frame.width[sl] > prev_frame_width_[sl] &&
+            pkt->data.frame.height[sl] > prev_frame_height_[sl])
           num_resize_up_ += 1;
       }
-      prev_frame_width[sl] = pkt->data.frame.width[sl];
-      prev_frame_height[sl] = pkt->data.frame.height[sl];
+      prev_frame_width_[sl] = pkt->data.frame.width[sl];
+      prev_frame_height_[sl] = pkt->data.frame.height[sl];
     }
   }
 
@@ -634,8 +634,8 @@ class DatarateOnePassCbrSvc : public OnePassCbrSvc {
   bool denoiser_enable_layers_;
   int num_resize_up_;
   int num_resize_down_;
-  unsigned int prev_frame_width[VPX_MAX_LAYERS];
-  unsigned int prev_frame_height[VPX_MAX_LAYERS];
+  unsigned int prev_frame_width_[VPX_MAX_LAYERS];
+  unsigned int prev_frame_height_[VPX_MAX_LAYERS];
   bool ksvc_flex_noupd_tlenh_;
 
  private:

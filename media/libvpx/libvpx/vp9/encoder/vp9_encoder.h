@@ -803,6 +803,8 @@ typedef struct VP9_COMP {
   int mb_wiener_var_cols;
   double *mi_ssim_rdmult_scaling_factors;
 
+  int64_t *sb_mul_scale;
+
   YV12_BUFFER_CONFIG last_frame_uf;
 
   TOKENEXTRA *tile_tok[4][1 << 6];

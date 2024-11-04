@@ -1021,6 +1021,9 @@ static void dealloc_compressor_data(VP9_COMP *cpi) {
   vpx_free(cpi->mb_wiener_variance);
   cpi->mb_wiener_variance = NULL;
 
+  vpx_free(cpi->sb_mul_scale);
+  cpi->sb_mul_scale = NULL;
+
   vpx_free(cpi->mi_ssim_rdmult_scaling_factors);
   cpi->mi_ssim_rdmult_scaling_factors = NULL;
 
@@ -4643,12 +4646,25 @@ static void encode_with_recode_loop(VP9_COMP *cpi, size_t *size, uint8_t *dest,
         cpi->ext_ratectrl.funcs.get_encodeframe_decision != NULL) {
       vpx_codec_err_t codec_status;
       vpx_rc_encodeframe_decision_t encode_frame_decision;
+      int sb_size = num_8x8_blocks_wide_lookup[BLOCK_64X64] * MI_SIZE;
+      int frame_height_sb = (cm->height + sb_size - 1) / sb_size;
+      int frame_width_sb = (cm->width + sb_size - 1) / sb_size;
+      CHECK_MEM_ERROR(&cm->error, encode_frame_decision.sb_params_list,
+                      (sb_params *)vpx_calloc(
+                          frame_height_sb * frame_width_sb,
+                          sizeof(*encode_frame_decision.sb_params_list)));
       codec_status = vp9_extrc_get_encodeframe_decision(
           &cpi->ext_ratectrl, gf_group->index, &encode_frame_decision);
       if (codec_status != VPX_CODEC_OK) {
         vpx_internal_error(&cm->error, codec_status,
                            "vp9_extrc_get_encodeframe_decision() failed");
       }
+      for (int idx = 0; idx < frame_height_sb * frame_width_sb; ++idx) {
+        cpi->sb_mul_scale[idx] =
+            (((int64_t)encode_frame_decision.sb_params_list[idx].rdmult * 256) /
+             (encode_frame_decision.rdmult + 1));
+      }
+      vpx_free(encode_frame_decision.sb_params_list);
       // If the external model recommends a reserved value, we use
       // libvpx's default q.
       if (encode_frame_decision.q_index != VPX_DEFAULT_Q) {
@@ -5332,6 +5348,23 @@ static void init_mb_wiener_var_buffer(VP9_COMP *cpi) {
   cpi->mb_wiener_var_cols = cm->mb_cols;
 }
 
+static void init_sb_mul_scale_buffer(VP9_COMP *cpi) {
+  VP9_COMMON *cm = &cpi->common;
+
+  if (cpi->mb_wiener_var_rows >= cm->mb_rows &&
+      cpi->mb_wiener_var_cols >= cm->mb_cols)
+    return;
+
+  vpx_free(cpi->sb_mul_scale);
+  cpi->sb_mul_scale = NULL;
+
+  CHECK_MEM_ERROR(
+      &cm->error, cpi->sb_mul_scale,
+      vpx_calloc(cm->mb_rows * cm->mb_cols, sizeof(*cpi->sb_mul_scale)));
+  cpi->mb_wiener_var_rows = cm->mb_rows;
+  cpi->mb_wiener_var_cols = cm->mb_cols;
+}
+
 static void set_mb_wiener_variance(VP9_COMP *cpi) {
   VP9_COMMON *cm = &cpi->common;
   uint8_t *buffer = cpi->Source->y_buffer;
@@ -5587,6 +5620,8 @@ static void encode_frame_to_data_rate(
     init_mb_wiener_var_buffer(cpi);
     set_mb_wiener_variance(cpi);
   }
+
+  init_sb_mul_scale_buffer(cpi);
 
   vpx_clear_system_state();
 

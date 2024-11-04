@@ -24,7 +24,7 @@ __declspec(noreturn) extern void die(const char *fmt, ...);
 extern void die(const char *fmt, ...);
 #endif
 
-struct arg arg_init(char **argv) {
+static struct arg arg_init(char **argv) {
   struct arg a;
 
   a.argv = argv;

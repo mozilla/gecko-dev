@@ -3741,6 +3741,17 @@ static int get_rdmult_delta(VP9_COMP *cpi, BLOCK_SIZE bsize, int mi_row,
 
   if (cpi->twopass.gf_group.layer_depth[gf_group_index] > 1) return orig_rdmult;
 
+  if (cpi->ext_ratectrl.ready &&
+      (cpi->ext_ratectrl.funcs.rc_type & VPX_RC_QP) != 0 &&
+      cpi->ext_ratectrl.funcs.get_encodeframe_decision != NULL) {
+    int sb_size = num_8x8_blocks_wide_lookup[BLOCK_64X64] * MI_SIZE;
+    int sb_stride = (cpi->common.width + sb_size - 1) / sb_size;
+    int sby = mi_row / 8;
+    int sbx = mi_col / 8;
+    return (int)((cpi->sb_mul_scale[sby * sb_stride + sbx] * orig_rdmult) /
+                 256);
+  }
+
   for (row = mi_row; row < mi_row + mi_high; ++row) {
     for (col = mi_col; col < mi_col + mi_wide; ++col) {
       TplDepStats *this_stats = &tpl_stats[row * tpl_stride + col];

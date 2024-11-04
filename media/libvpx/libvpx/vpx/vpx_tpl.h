@@ -42,6 +42,7 @@ typedef struct VpxTplBlockStats {
   int16_t mv_c;           /**< Motion vector col in pixel */
   int64_t srcrf_rate;     /**< Rate from source ref frame */
   int64_t srcrf_dist;     /**< Distortion from source ref frame */
+  int64_t pred_error;     /**< Prediction error */
   int64_t inter_pred_err; /**< Inter prediction error */
   int64_t intra_pred_err; /**< Intra prediction error */
   int ref_frame_index;    /**< Ref frame index in the ref frame buffer */
