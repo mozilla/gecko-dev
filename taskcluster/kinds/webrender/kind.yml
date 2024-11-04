@@ -453,7 +453,7 @@ tasks:
                 PYTHONPATH: "fetches/mozdevice:fetches/six"
         dependencies:
             webrender-wrench-android-debug: webrender-wrench-android-debug
-            android-build: build-android-arm/debug
+            android-build: build-android-aarch64/debug
         fetches:
             webrender-wrench-android-debug:
                 - artifact: 'wrench-debug.apk'
@@ -474,7 +474,7 @@ tasks:
                 export MOZHARNESS_PATH=$MOZ_FETCHES_DIR/mozharness &&
                 python3 ${MOZHARNESS_PATH}/scripts/${MOZHARNESS_SCRIPT} --config-file ${MOZHARNESS_PATH}/configs/${MOZHARNESS_CONFIG}
         treeherder:
-            platform: android-hw-p5-13-0-arm7/debug
+            platform: android-hw-p5-13-0-aarch64/debug
             symbol: WR(wrench)
         when:
             files-changed:
@@ -501,7 +501,7 @@ tasks:
                 PYTHONPATH: "fetches/mozdevice:fetches/six"
         dependencies:
             webrender-wrench-android-release: webrender-wrench-android-release
-            android-build: build-android-arm/opt
+            android-build: build-android-aarch64/opt
         fetches:
             webrender-wrench-android-release:
                 - artifact: 'wrench-release.apk'
@@ -522,7 +522,7 @@ tasks:
                 export MOZHARNESS_PATH=$MOZ_FETCHES_DIR/mozharness &&
                 python3 ${MOZHARNESS_PATH}/scripts/${MOZHARNESS_SCRIPT} --config-file ${MOZHARNESS_PATH}/configs/${MOZHARNESS_CONFIG}
         treeherder:
-            platform: android-hw-p5-13-0-arm7/opt
+            platform: android-hw-p5-13-0-aarch64/opt
             symbol: WR(wrench)
         when:
             files-changed:
@@ -549,7 +549,7 @@ tasks:
                 PYTHONPATH: "fetches/mozdevice:fetches/six"
         dependencies:
             webrender-wrench-android-debug: webrender-wrench-android-debug
-            android-build: build-android-arm/debug
+            android-build: build-android-aarch64/debug
         fetches:
             webrender-wrench-android-debug:
                 - artifact: 'wrench-debug.apk'
@@ -570,7 +570,7 @@ tasks:
                 export MOZHARNESS_PATH=$MOZ_FETCHES_DIR/mozharness &&
                 python3 ${MOZHARNESS_PATH}/scripts/${MOZHARNESS_SCRIPT} --config-file ${MOZHARNESS_PATH}/configs/${MOZHARNESS_CONFIG}
         treeherder:
-            platform: android-hw-a51-11-0-arm7/debug
+            platform: android-hw-a51-11-0-aarch64/debug
             symbol: WR(wrench)
         when:
             files-changed:
@@ -597,7 +597,7 @@ tasks:
                 PYTHONPATH: "fetches/mozdevice:fetches/six"
         dependencies:
             webrender-wrench-android-release: webrender-wrench-android-release
-            android-build: build-android-arm/opt
+            android-build: build-android-aarch64/opt
         fetches:
             webrender-wrench-android-release:
                 - artifact: 'wrench-release.apk'
@@ -618,7 +618,7 @@ tasks:
                 export MOZHARNESS_PATH=$MOZ_FETCHES_DIR/mozharness &&
                 python3 ${MOZHARNESS_PATH}/scripts/${MOZHARNESS_SCRIPT} --config-file ${MOZHARNESS_PATH}/configs/${MOZHARNESS_CONFIG}
         treeherder:
-            platform: android-hw-a51-11-0-arm7/opt
+            platform: android-hw-a51-11-0-aarch64/opt
             symbol: WR(wrench)
         when:
             files-changed:
