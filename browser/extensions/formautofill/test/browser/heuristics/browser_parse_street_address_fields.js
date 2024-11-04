@@ -187,4 +187,60 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    description: "address1 and address2 not adjacent",
+    fixtureData: `<form>
+      <input id="firstname">
+      <input id="lastname">
+      <input id="address1">
+      <input id="postalcode">
+      <input id="city">
+      <input id="address2">
+    </form>`,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "given-name" },
+          { fieldName: "family-name" },
+          { fieldName: "address-line1" },
+          { fieldName: "postal-code" },
+          { fieldName: "address-level2" },
+          { fieldName: "address-line2" },
+        ],
+      },
+    ],
+  },
+  {
+    description: "address1 and address2 not adjacent with house number",
+    fixtureData: `<form>
+      <input id="firstname">
+      <input id="lastname">
+      <input id="strasse">
+      <input id="haus">
+      <input id="organization">
+      <input id="city">
+      <input id="address2">
+      <input id="postal-code">
+    </form>`,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "given-name" },
+          { fieldName: "family-name" },
+          { fieldName: "address-line1" },
+          { fieldName: "address-housenumber" },
+          { fieldName: "organization" },
+          { fieldName: "address-level2" },
+          { fieldName: "address-line2" },
+          { fieldName: "postal-code" },
+        ],
+      },
+    ],
+  },
 ]);

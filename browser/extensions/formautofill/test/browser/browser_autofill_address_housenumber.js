@@ -18,6 +18,15 @@ const TEST_PROFILE_DE = {
   "street-address": "Schlesische Str 999",
 };
 
+const TEST_PROFILE_DE2 = {
+  email: "address_de@mozilla.org",
+  organization: "Mozilla",
+  country: "DE",
+  "address-level2": "Berlin",
+  "street-address": "Schlesische Str 999\nApt 216",
+  "postal-code": "90002",
+};
+
 add_autofill_heuristic_tests([
   {
     description: "Test autofill with house number",
@@ -167,6 +176,43 @@ add_autofill_heuristic_tests([
             autofill: "Schlesische Str 999",
           },
           { fieldName: "address-line2", autofill: "" },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Test autofill with street and house number with address2 non-adjacent",
+    fixtureData: `<form>
+      <input id="strasse">
+      <input id="haus">
+      <input id="organization">
+      <input id="city">
+      <input id="address2">
+      <input id="postal-code">
+    </form>`,
+    profile: TEST_PROFILE_DE2,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "address-line1", autofill: "Schlesische Str" },
+          { fieldName: "address-housenumber", autofill: "999" },
+          {
+            fieldName: "organization",
+            autofill: TEST_PROFILE_DE2.organization,
+          },
+          {
+            fieldName: "address-level2",
+            autofill: TEST_PROFILE_DE2["address-level2"],
+          },
+          { fieldName: "address-line2", autofill: "Apt 216" },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_DE2["postal-code"],
+          },
         ],
       },
     ],
