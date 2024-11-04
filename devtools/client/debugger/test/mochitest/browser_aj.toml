@@ -38,7 +38,6 @@ skip-if = ["asan"] # Bug 1591064
 ["browser_dbg-blackbox-original.js"]
 
 ["browser_dbg-blackbox.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-breaking-from-console.js"]
 skip-if = ["debug"] # Window leaks: bug 1575332
