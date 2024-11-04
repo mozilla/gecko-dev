@@ -651,6 +651,7 @@ head = "head_channels.js head_cache.js head_cookies.js head_servers.js head_trr.
 ["test_http3.js"]
 skip-if = [
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807931
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !debug && !fission && socketprocess_networking ", # Bug 1925999
 ]
 run-sequentially = "http3server"
 
