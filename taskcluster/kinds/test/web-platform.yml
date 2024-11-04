@@ -540,7 +540,6 @@ web-platform-tests-wdspec:
             headless:
                 by-test-platform:
                     android.*: []
-                    .*wayland.*: []
                     default: built-projects
             no-fission:
                 by-test-platform:
@@ -550,14 +549,10 @@ web-platform-tests-wdspec:
                     default: []
             async-event-dispatching:
                 by-test-platform:
-                    .*wayland.*: []
                     .*-32.*/.*: []
                     .*/debug: built-projects
                     default: []
-            default:
-                by-test-platform:
-                    .*wayland.*: []
-                    default: built-projects
+            default: built-projects
     tier:
         by-variant:
             no-fission:
