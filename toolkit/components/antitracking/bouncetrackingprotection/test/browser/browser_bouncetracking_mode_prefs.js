@@ -34,6 +34,15 @@ async function runTestModePref(mode, shouldBeEnabled) {
     expectPurge: shouldBeEnabled,
   });
 
+  // Test the mode telemetry after the bounce. For an initial MODE_DISABLED this
+  // metric is only updated after a navigation.
+  info("Testing mode pref telemetry");
+  Assert.equal(
+    Glean.bounceTrackingProtection.mode.testGetValue(),
+    mode,
+    "Mode Glean metric should have been updated to match mode pref."
+  );
+
   await SpecialPowers.popPrefEnv();
 }
 
