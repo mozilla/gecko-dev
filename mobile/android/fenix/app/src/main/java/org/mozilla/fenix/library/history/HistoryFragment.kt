@@ -22,6 +22,7 @@ import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDirections
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.findNavController
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -147,6 +148,7 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
                     HistoryFragmentAction.ChangeEmptyState(it),
                 )
             },
+            onRecentlyClosedClicked = ::navigateToRecentlyClosed,
         )
 
         return view
@@ -414,6 +416,13 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
         findNavController().nav(
             R.id.historyFragment,
             directions,
+        )
+    }
+
+    private fun navigateToRecentlyClosed() {
+        findNavController().navigate(
+            HistoryFragmentDirections.actionGlobalRecentlyClosed(),
+            NavOptions.Builder().setPopUpTo(R.id.recentlyClosedFragment, true).build(),
         )
     }
 

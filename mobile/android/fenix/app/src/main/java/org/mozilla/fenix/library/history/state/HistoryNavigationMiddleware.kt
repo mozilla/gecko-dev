@@ -44,12 +44,6 @@ class HistoryNavigationMiddleware(
         next(action)
         scope.launch {
             when (action) {
-                is HistoryFragmentAction.EnterRecentlyClosed -> {
-                    navController.navigate(
-                        HistoryFragmentDirections.actionGlobalRecentlyClosed(),
-                        NavOptions.Builder().setPopUpTo(R.id.recentlyClosedFragment, true).build(),
-                    )
-                }
                 is HistoryFragmentAction.BackPressed -> {
                     // When editing, we override the back pressed event to update the mode.
                     if (currentState.mode !is HistoryFragmentState.Mode.Editing) {
