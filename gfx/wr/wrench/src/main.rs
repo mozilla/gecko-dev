@@ -643,17 +643,26 @@ pub fn main() {
         Some(winit::event_loop::EventLoop::new())
     };
 
+    let opengles_version = (3, 0);
+    let opengl_version = (3, 2);
     let gl_request = match args.value_of("renderer") {
         Some("es3") => {
-            glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (3, 0))
+            glutin::GlRequest::Specific(glutin::Api::OpenGlEs, opengles_version)
         }
         Some("gl3") => {
-            glutin::GlRequest::Specific(glutin::Api::OpenGl, (3, 2))
+            glutin::GlRequest::Specific(glutin::Api::OpenGl, opengl_version)
         }
         Some("default") | None => {
-            glutin::GlRequest::GlThenGles {
-                opengl_version: (3, 2),
-                opengles_version: (3, 0),
+            if cfg!(target_os = "android") {
+                // Some Android devices successfully allow binding the OpenGL API but then fail to
+                // return any available configs, meaning context creation always fails. So just
+                // request GLES by default on Android.
+                glutin::GlRequest::Specific(glutin::Api::OpenGlEs, opengles_version)
+            } else {
+                glutin::GlRequest::GlThenGles {
+                    opengl_version,
+                    opengles_version,
+                }
             }
         }
         Some(api) => {
