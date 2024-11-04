@@ -73,9 +73,7 @@ add_task(async function () {
       async function openSubViewsRecursively(currentView) {
         let navButtons = Array.from(
           // Ensure that only enabled buttons are tested
-          currentView.querySelectorAll(
-            ".subviewbutton-nav:not([disabled]):not([hidden])"
-          )
+          currentView.querySelectorAll(".subviewbutton-nav:not([disabled])")
         );
         if (!navButtons) {
           return;

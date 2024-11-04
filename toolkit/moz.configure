@@ -1092,10 +1092,16 @@ with only_when(target_is_osx):
 
 # Profile Management
 # ==============================================================
-# Selectable profiles are enabled by default.
+# Selectable profiles are temporarily gated behind a build flag
+# while we build and stabilize the backend (bug 1893315).
 
-set_define("MOZ_SELECTABLE_PROFILES", True)
-set_config("MOZ_SELECTABLE_PROFILES", True)
+option(
+    env="MOZ_SELECTABLE_PROFILES",
+    help="Enable experimental and unstable profile groups",
+)
+
+set_define("MOZ_SELECTABLE_PROFILES", True, when="MOZ_SELECTABLE_PROFILES")
+set_config("MOZ_SELECTABLE_PROFILES", True, when="MOZ_SELECTABLE_PROFILES")
 
 project_flag(
     "MOZ_DEDICATED_PROFILES",
