@@ -19,7 +19,6 @@ add_task(async function () {
         "privacy.restrict3rdpartystorage.userInteractionRequiredForHosts",
         "tracking.example.com,tracking.example.org",
       ],
-      ["privacy.restrict3rdpartystorage.heuristic.window_open", true],
     ],
   });
 

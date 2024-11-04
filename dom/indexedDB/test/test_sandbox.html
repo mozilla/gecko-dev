@@ -81,7 +81,7 @@ function runInSandbox(sandbox, testFunc) {
 }
 
 // Use the window principal for the sandbox; location.origin is not sufficient.
-var sb = new SpecialPowers.Cu.Sandbox(SpecialPowers.wrap(window.document).effectiveStoragePrincipal,
+var sb = new SpecialPowers.Cu.Sandbox(window,
                                       { wantGlobalProperties: ["indexedDB"] });
 
 sb.ok = SpecialPowers.Cu.exportFunction(ok, sb);

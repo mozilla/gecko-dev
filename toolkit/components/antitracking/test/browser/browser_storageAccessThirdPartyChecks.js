@@ -48,6 +48,7 @@ AntiTracking._createTask({
   errorMessageDomains: [
     "https://tracking.example.org",
     "https://tracking.example.org",
+    "https://tracking.example.org",
   ],
 });
 

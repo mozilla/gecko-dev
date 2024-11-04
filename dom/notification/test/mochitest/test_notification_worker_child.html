@@ -19,11 +19,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 <script type="text/javascript">
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show event.");
   async function runTest() {
-    let workerPath = "notification_worker_child-parent.js";
-    if (isXOrigin) {
-      workerPath += "?xorigin";
-    }
-    var w = new Worker(workerPath);
+    var w = new Worker("notification_worker_child-parent.js");
     w.onmessage = function(e) {
       if (e.data.type === 'finish') {
         SimpleTest.finish();

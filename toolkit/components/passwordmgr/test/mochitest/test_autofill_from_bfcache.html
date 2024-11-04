@@ -28,8 +28,6 @@ async function test_crossOriginBfcacheRestore() {
   // If Fission is disabled, the pref is no-op.
   await SpecialPowers.pushPrefEnv({set: [["fission.bfcacheInParent", true]]});
 
-  await SimpleTest.enableLegacyUnpartitionedStorage();
-
   var bc = new BroadcastChannel("form_basic_bfcache");
   window.open("form_basic_bfcache.html", "", "noopener");
   var pageshowCount = 0;
