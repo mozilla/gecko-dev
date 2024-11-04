@@ -11,6 +11,15 @@ const { ResetProfile } = ChromeUtils.importESModule(
 
 var defaultToReset = false;
 
+function restartApp() {
+  appStartup.quit(appStartup.eForceQuit | appStartup.eRestart);
+}
+
+function resetProfile() {
+  // Set the reset profile environment variable.
+  Services.env.set("MOZ_RESET_PROFILE_RESTART", "1");
+}
+
 function showResetDialog() {
   // Prompt the user to confirm the reset.
   let retVals = {
@@ -25,8 +34,8 @@ function showResetDialog() {
   if (!retVals.reset) {
     return;
   }
-
-  ResetProfile.doReset();
+  resetProfile();
+  restartApp();
 }
 
 function onDefaultButton(event) {
@@ -34,7 +43,8 @@ function onDefaultButton(event) {
     // Prevent starting into safe mode while restarting.
     event.preventDefault();
     // Restart to reset the profile.
-    ResetProfile.doReset();
+    resetProfile();
+    restartApp();
   }
   // Dialog will be closed by default Event handler.
   // Continue in safe mode. No restart needed.
