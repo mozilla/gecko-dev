@@ -293,3 +293,23 @@ fxa-menu-message-backup-sync-collapsed-text = Sync and back up data
 fxa-menu-message-mobile-primary-text = Send tabs to your phone
 fxa-menu-message-mobile-secondary-text = Pick up where you left off instantly when you sync your tabs with a mobile device.
 fxa-menu-message-mobile-collapsed-text = Sync with your phone
+
+## Multi-CTA Fox Doodle Spotlight
+
+multi-cta-fox-doodle-title = Welcome back
+
+multi-cta-fox-doodle-set-default-checkbox = Set { -brand-short-name } to default
+multi-cta-fox-doodle-pin-startmenu-checkbox = Pin { -brand-short-name } to Start menu
+multi-cta-fox-doodle-pin-checkbox  = { PLATFORM() ->
+    [macos] Keep { -brand-short-name } in Dock
+   *[other] Pin { -brand-short-name } to taskbar
+}
+multi-cta-fox-doodle-start-browsing-primary-button-label = Start browsing
+multi-cta-fox-doodle-main-browser-primary-button-label = Make { -brand-short-name } my main browser
+
+multi-cta-fox-doodle-quick-reminder-subtitle = Here’s a quick reminder that you can keep your favorite privacy-focused browser just one click away.
+multi-cta-fox-doodle-privacy-focused-subtitle  = { PLATFORM() ->
+    [macos] Keep your favorite privacy-focused browser just one click away. Set { -brand-short-name } as your default browser for opening links and keep it in your Dock.
+   *[other] Keep your favorite privacy-focused browser just one click away. Set { -brand-short-name } as your default browser for opening links and pin it to your taskbar.
+}
+multi-cta-fox-doodle-msix-privacy-focused-subtitle = Keep your favorite privacy-focused browser just one click away. Set { -brand-short-name } as your default browser for opening links and pin it to your taskbar and Start menu.
