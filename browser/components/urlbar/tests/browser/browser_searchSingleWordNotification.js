@@ -1,12 +1,23 @@
-/* eslint-disable mozilla/no-arbitrary-setTimeout */
+/* Any copyright is dedicated to the Public Domain.
+ * https://creativecommons.org/publicdomain/zero/1.0/ */
+
 "use strict";
 
+const CHECK_DNS_TOPIC = "uri-fixup-check-dns";
 let gDNSResolved = false;
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
   });
+
+  let observer = () => {
+    gDNSResolved = true;
+  };
+  Services.obs.addObserver(observer, CHECK_DNS_TOPIC);
+
   registerCleanupFunction(function () {
+    Services.obs.removeObserver(observer, CHECK_DNS_TOPIC);
     Services.prefs.clearUserPref("browser.fixup.domainwhitelist.localhost");
   });
 });
@@ -23,6 +34,7 @@ function promiseNotification(aBrowser, value, expected, input) {
         )
       );
     } else {
+      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
       setTimeout(() => {
         is(
           notificationBox.getNotificationWithValue(value),
@@ -30,7 +42,7 @@ function promiseNotification(aBrowser, value, expected, input) {
           `We are expecting to not get a notification for ${input}`
         );
         resolve();
-      }, 1000);
+      }, 500);
     }
   });
 }
@@ -63,14 +75,18 @@ async function runURLBarSearchTest({
   ];
 
   for (let i = 0; i < setValueFns.length; ++i) {
+    // Start from a loaded page, otherwise waitForDocLoadAndStopIt gets confused.
+    let browser = aWindow.gBrowser.selectedBrowser;
+    let promise = BrowserTestUtils.browserLoaded(
+      browser,
+      false,
+      "about:robots"
+    );
+    BrowserTestUtils.startLoadingURIString(browser, "about:robots");
+    await promise;
+
+    info("executing setValue function at index " + i);
     await setValueFns[i](valueToOpen);
-    let topic = "uri-fixup-check-dns";
-    let observer = (aSubject, aTopicInner) => {
-      if (aTopicInner == topic) {
-        gDNSResolved = true;
-      }
-    };
-    Services.obs.addObserver(observer, topic);
 
     if (enterSearchMode) {
       if (!expectSearch) {
@@ -92,11 +108,12 @@ async function runURLBarSearchTest({
     aWindow.gURLBar.focus();
     let docLoadPromise = BrowserTestUtils.waitForDocLoadAndStopIt(
       expectedURI,
-      aWindow.gBrowser.selectedBrowser
+      browser
     );
     EventUtils.synthesizeKey("VK_RETURN", {}, aWindow);
 
     if (!enterSearchMode) {
+      info("await keyword-uri-fixup");
       await promiseNotification(
         aWindow.gBrowser,
         "keyword-uri-fixup",
@@ -104,28 +121,27 @@ async function runURLBarSearchTest({
         valueToOpen
       );
     }
+    info("await document load");
     await docLoadPromise;
 
     if (expectNotification) {
-      let notificationBox = aWindow.gBrowser.getNotificationBox(
-        aWindow.gBrowser.selectedBrowser
-      );
+      let notificationBox = aWindow.gBrowser.getNotificationBox(browser);
       let notification =
         notificationBox.getNotificationWithValue("keyword-uri-fixup");
       // Confirm the notification only on the last loop.
       if (i == setValueFns.length - 1) {
         docLoadPromise = BrowserTestUtils.waitForDocLoadAndStopIt(
           "http://" + valueToOpen + "/",
-          aWindow.gBrowser.selectedBrowser
+          browser
         );
         notification.buttonContainer.querySelector("button").click();
+        info("await document load after confirming the notification");
         await docLoadPromise;
       } else {
         notificationBox.currentNotification.close();
       }
     }
 
-    Services.obs.removeObserver(observer, topic);
     Assert.equal(
       gDNSResolved,
       expectDNSResolve,
@@ -135,93 +151,87 @@ async function runURLBarSearchTest({
 }
 
 add_task(async function test_navigate_full_domain() {
-  let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(
-    gBrowser,
-    "about:blank"
-  ));
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  await runURLBarSearchTest({
-    valueToOpen: "www.singlewordtest.org",
-    expectSearch: false,
-    expectNotification: false,
-    expectDNSResolve: false,
-  });
-  gBrowser.removeTab(tab);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async function () {
+      await runURLBarSearchTest({
+        valueToOpen: "www.singlewordtest.org",
+        expectSearch: false,
+        expectNotification: false,
+        expectDNSResolve: false,
+      });
+    }
+  );
 });
 
 add_task(async function test_navigate_decimal_ip() {
-  let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(
-    gBrowser,
-    "about:blank"
-  ));
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  await runURLBarSearchTest({
-    valueToOpen: "1234",
-    expectSearch: true,
-    expectNotification: false,
-    expectDNSResolve: false, // Possible IP in numeric format.
-  });
-  gBrowser.removeTab(tab);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async function () {
+      await runURLBarSearchTest({
+        valueToOpen: "1234",
+        expectSearch: true,
+        expectNotification: false,
+        expectDNSResolve: false, // Possible IP in numeric format.
+      });
+    }
+  );
 });
 
 add_task(async function test_navigate_decimal_ip_with_path() {
-  let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(
-    gBrowser,
-    "about:blank"
-  ));
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  await runURLBarSearchTest({
-    valueToOpen: "1234/12",
-    expectSearch: true,
-    expectNotification: false,
-    expectDNSResolve: false,
-  });
-  gBrowser.removeTab(tab);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async function () {
+      await runURLBarSearchTest({
+        valueToOpen: "1234/12",
+        expectSearch: true,
+        expectNotification: false,
+        expectDNSResolve: false,
+      });
+    }
+  );
 });
 
 add_task(async function test_navigate_large_number() {
-  let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(
-    gBrowser,
-    "about:blank"
-  ));
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  await runURLBarSearchTest({
-    valueToOpen: "123456789012345",
-    expectSearch: true,
-    expectNotification: false,
-    expectDNSResolve: false, // Possible IP in numeric format.
-  });
-  gBrowser.removeTab(tab);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async function () {
+      await runURLBarSearchTest({
+        valueToOpen: "123456789012345",
+        expectSearch: true,
+        expectNotification: false,
+        expectDNSResolve: false, // Possible IP in numeric format.
+      });
+    }
+  );
 });
 
 add_task(async function test_navigate_small_hex_number() {
-  let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(
-    gBrowser,
-    "about:blank"
-  ));
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  await runURLBarSearchTest({
-    valueToOpen: "0x1f00ffff",
-    expectSearch: true,
-    expectNotification: false,
-    expectDNSResolve: false, // Possible IP in numeric format.
-  });
-  gBrowser.removeTab(tab);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async function () {
+      await runURLBarSearchTest({
+        valueToOpen: "0x1f00ffff",
+        expectSearch: true,
+        expectNotification: false,
+        expectDNSResolve: false, // Possible IP in numeric format.
+      });
+    }
+  );
 });
 
 add_task(async function test_navigate_large_hex_number() {
-  let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(
-    gBrowser,
-    "about:blank"
-  ));
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
-  await runURLBarSearchTest({
-    valueToOpen: "0x7f0000017f000001",
-    expectSearch: true,
-    expectNotification: false,
-    expectDNSResolve: false, // Possible IP in numeric format.
-  });
-  gBrowser.removeTab(tab);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:blank" },
+    async function () {
+      await runURLBarSearchTest({
+        valueToOpen: "0x7f0000017f000001",
+        expectSearch: true,
+        expectNotification: false,
+        expectDNSResolve: false, // Possible IP in numeric format.
+      });
+    }
+  );
 });
 
 function get_test_function_for_localhost_with_hostname(
