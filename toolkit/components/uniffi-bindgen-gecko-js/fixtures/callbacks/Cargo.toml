@@ -9,6 +9,3 @@ publish = false
 [dependencies]
 uniffi = { workspace = true }
 thiserror = "1.0"
-
-[build-dependencies]
-uniffi = { workspace = true, features = ["build"] }

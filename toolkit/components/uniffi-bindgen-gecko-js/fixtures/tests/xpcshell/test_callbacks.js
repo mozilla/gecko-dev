@@ -1,9 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { logEvenNumbers, logEvenNumbersMainThread } = ChromeUtils.importESModule(
-  "resource://gre/modules/RustFixtureCallbacks.sys.mjs"
-);
+const { callLogRepeat, logEvenNumbers, logEvenNumbersMainThread } =
+  ChromeUtils.importESModule(
+    "resource://gre/modules/RustFixtureCallbacks.sys.mjs"
+  );
 
 class Logger {
   constructor() {
@@ -16,6 +17,14 @@ class Logger {
 
   log(message) {
     this.messages.push(message);
+  }
+
+  logRepeat(message, count, exclude) {
+    for (var i = 0; i < count; i++) {
+      if (!exclude.includes(i)) {
+        this.messages.push(`${i}: ${message}`);
+      }
+    }
   }
 
   finished() {
@@ -44,4 +53,11 @@ add_task(async function testLogEvenNumbers() {
 
   await runTest(logEvenNumbers);
   await runTest(logEvenNumbersMainThread);
+});
+
+add_task(async function testLogRepeat() {
+  const logger = new Logger();
+  callLogRepeat(logger, "Hello", 5, [2, 3]);
+  await logger.waitForFinish();
+  Assert.deepEqual(logger.messages, ["0: Hello", "1: Hello", "4: Hello"]);
 });

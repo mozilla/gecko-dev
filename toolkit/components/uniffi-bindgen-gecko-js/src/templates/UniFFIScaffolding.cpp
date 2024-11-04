@@ -91,8 +91,9 @@ public:
 
   MOZ_CAN_RUN_SCRIPT
   void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler, ErrorResult& aError) override {
-    Sequence<dom::UniFFIScaffoldingValue> uniffiArgs;
+    nsTArray<dom::UniFFIScaffoldingValue> uniffiArgs;
 
+    {%- if !handler.arguments.is_empty() %}
     // Setup
     if (!uniffiArgs.AppendElements({{ handler.arguments.len() }}, mozilla::fallible)) {
       aError.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -110,6 +111,7 @@ public:
         return;
     }
     {%- endfor %}
+    {%- endif %}
 
     // Stores the return value.  For now, we currently don't do anything with it, since we only support
     // fire-and-forget callbacks.
