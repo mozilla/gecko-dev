@@ -39,9 +39,6 @@ add_task(async function test_keyboard_navigation() {
   info("Press Enter key.");
   EventUtils.synthesizeKey("KEY_Enter", {}, win);
   await sidebar.updateComplete;
-  await TestUtils.waitForCondition(() => {
-    return sidebar.open;
-  }, "Wait for sidebar to be opened.");
   ok(sidebar.open, "Sidebar is open.");
   is(
     sidebar.selectedView,

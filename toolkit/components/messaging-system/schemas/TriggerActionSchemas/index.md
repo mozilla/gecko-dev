@@ -284,18 +284,3 @@ The `isOneOff` boolean context variable is available in targeting, and will be t
   targeting: "isSuggestion && searchSource === 'urlbar-handoff' && isOneOff"
 }
 ```
-
-### `sidebarToolOpened`
-
-Happens when the user opens a tool or extension panel in the sidebar
-
-The `view` string context variable is available in targeting, and will correspond with which sidebar tool/extension has been opened (ex: "viewHistorySidebar", "viewBookmarksSidebar", etc).
-
-The `clickCounts` object context variable is also available in targeting, and information about how many time a specific tool or extensions has been opened. The `SIDEBAR_TOOL_SURVEY` callout will be targeted to show if any tool/extension (excluding GenAI chatbot) has been clicked 5 times per-window and per-session. The `SIDEBAR_GENAI_SURVEY` callout will be targeted to show if the GenAI chatbot panel has been opened 2 times per-window and per-session.
-
-```js
-{
-  trigger: { id: "sidebarToolOpened" },
-  targeting: `'sidebar.position_start'|preferenceValue && view != 'viewGenaiChatSidebar' && clickCounts.totalToolsMinusGenai == 5 && !'messaging-system-action.sidebar-tools-microsurvey-complete-or-dismissed'|preferenceValue`
-}
-```
