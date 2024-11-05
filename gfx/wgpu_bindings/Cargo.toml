@@ -57,6 +57,11 @@ features = ["oom_panic", "device_lost_panic", "internal_error_panic"]
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", default-features = false, features = ["Win32_Graphics_Direct3D12"]}
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+metal = "0.29"
+io-surface = "0.15"
+
 [dependencies]
 bincode = "1"
 log = "0.4"
