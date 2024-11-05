@@ -699,11 +699,16 @@
 /* Pinned tabs */
 
 .tabbrowser-tab:is([image], [pinned]) > .tab-stack > .tab-content[attention]:not([selected]),
-.tabbrowser-tab > .tab-stack > .tab-content[pinned][titlechanged]:not([selected]) {
+.tabbrowser-tab > .tab-stack > .tab-content[pinned][titlechanged]:not([selected]),
+#tabbrowser-tabs[orient="vertical"]:not([expanded]) .tabbrowser-tab > .tab-stack > .tab-content[titlechanged]:not([selected]) {
   background-image: radial-gradient(circle, var(--attention-dot-color), var(--attention-dot-color) 2px, transparent 2px);
   background-position: center bottom 6.5px;
   background-size: 4px 4px;
   background-repeat: no-repeat;
+
+  #tabbrowser-tabs[orient="vertical"] & {
+    background-position-y: bottom 4px;
+  }
 }
 
 .tabbrowser-tab[image] > .tab-stack > .tab-content[attention]:not([pinned], [selected]) {
@@ -711,6 +716,13 @@
 
   &:-moz-locale-dir(rtl) {
     background-position-x: right 14px;
+  }
+  #tabbrowser-tabs[orient="vertical"] & {
+    background-position-x: left 22.5px;
+
+    &:-moz-locale-dir(rtl) {
+      background-position-x: right 22.5px;
+    }
   }
 }
 
