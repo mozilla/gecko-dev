@@ -671,6 +671,9 @@ void Theme::PaintCircleShadow(DrawTarget& aDrawTarget,
   Point destinationPointOfSourceRect = inflatedRect.TopLeft() + offset;
 
   IntSize dtSize = RoundedToInt(aBoxRect.Size().ToUnknownSize());
+  if (dtSize.IsEmpty()) {
+    return;
+  }
   RefPtr<DrawTarget> ellipseDT = aDrawTarget.CreateSimilarDrawTargetForFilter(
       dtSize, SurfaceFormat::A8, blurFilter, blurFilter,
       sourceRectInFilterSpace, destinationPointOfSourceRect);
