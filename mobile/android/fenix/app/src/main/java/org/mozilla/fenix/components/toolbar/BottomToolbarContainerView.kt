@@ -40,6 +40,7 @@ class BottomToolbarContainerView(
             content()
         }
         toolbarContainerView.addView(this)
+        toolbarContainerView.isClickable = true
     }
 
     init {
