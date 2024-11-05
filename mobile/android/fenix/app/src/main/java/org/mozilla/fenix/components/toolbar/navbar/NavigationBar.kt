@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +47,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.components.toolbar.NewTabMenu
+import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.LongPressIconButton
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.utils.KeyboardState
@@ -59,6 +61,7 @@ import org.mozilla.fenix.theme.ThemeManager
  * Top-level UI for displaying the navigation bar.
  *
  * @param isPrivateMode If browsing in [BrowsingMode.Private].
+ * @param showDivider Whether or not the top divider should be shown.
  * @param browserStore The [BrowserStore] instance used to observe tabs state.
  * @param menuButton A [MenuButton] to be used as an [AndroidView]. The view implementation
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
@@ -83,6 +86,7 @@ import org.mozilla.fenix.theme.ThemeManager
 @Composable
 fun BrowserNavBar(
     isPrivateMode: Boolean,
+    showDivider: Boolean,
     browserStore: BrowserStore,
     menuButton: MenuButton,
     newTabMenu: TabCounterMenu,
@@ -112,6 +116,7 @@ fun BrowserNavBar(
     }
 
     NavBar(
+        showDivider = showDivider,
         onVisibilityUpdated = onVisibilityUpdated,
     ) {
         BackButton(
@@ -152,6 +157,7 @@ fun BrowserNavBar(
  * Top-level UI for displaying the navigation bar.
  *
  * @param isPrivateMode If browsing in [BrowsingMode.Private].
+ * @param showDivider Whether or not the top divider should be shown.
  * @param browserStore The [BrowserStore] instance used to observe tabs state.
  * @param menuButton A [MenuButton] to be used as an [AndroidView]. The view implementation
  * contains the builder for the menu, so for the time being we are not implementing it as a composable.
@@ -168,6 +174,7 @@ fun BrowserNavBar(
 @Composable
 fun HomeNavBar(
     isPrivateMode: Boolean,
+    showDivider: Boolean,
     browserStore: BrowserStore,
     menuButton: MenuButton,
     tabsCounterMenu: Lazy<TabCounterMenu>,
@@ -185,7 +192,9 @@ fun HomeNavBar(
         }
     }.value
 
-    NavBar {
+    NavBar(
+        showDivider = showDivider,
+    ) {
         BackButton(
             onBackButtonClick = {
                 // no-op
@@ -243,6 +252,7 @@ fun HomeNavBar(
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
  * @param backgroundColor Custom background color of the navigation bar.
  * When `null`, [FirefoxTheme.layer1] will be used.
+ * @param showDivider Whether or not the top divider should be shown.
  * @param buttonTint Custom button tint color of the navigation bar. When `null`, [Color.White] will be used.
  * @param buttonDisabledTint Custom disabled button tint color of the navigation bar.
  * When `null`, [FirefoxTheme.iconDisabled] will be used.
@@ -263,6 +273,7 @@ fun CustomTabNavBar(
     onOpenInBrowserButtonClick: () -> Unit,
     onMenuButtonClick: () -> Unit,
     backgroundColor: Color,
+    showDivider: Boolean,
     @ColorInt buttonTint: Int? = null,
     @ColorInt buttonDisabledTint: Int? = null,
     onVisibilityUpdated: (Boolean) -> Unit,
@@ -280,6 +291,7 @@ fun CustomTabNavBar(
 
     NavBar(
         background = backgroundColor,
+        showDivider = showDivider,
         onVisibilityUpdated = onVisibilityUpdated,
     ) {
         BackButton(
@@ -316,6 +328,7 @@ fun CustomTabNavBar(
  * Navigation bar parent handling the basic configuration and behavior.
  *
  * @param background The background color of the navigation bar.
+ * @param showDivider Whether or not the top divider should be shown.
  * @param onVisibilityUpdated Invoked when the visibility of the navigation bar changes informing if
  * the navigation bar is visible.
  * @param content The content of the navigation bar.
@@ -323,26 +336,35 @@ fun CustomTabNavBar(
 @Composable
 private fun NavBar(
     background: Color = FirefoxTheme.colors.layer1,
+    showDivider: Boolean = true,
     onVisibilityUpdated: (Boolean) -> Unit = {},
     content: @Composable RowScope.() -> Unit,
 ) {
     val keyboardState by keyboardAsState()
     if (keyboardState == KeyboardState.Closed) {
-        Row(
-            modifier = Modifier
-                .background(background)
-                .height(dimensionResource(id = R.dimen.browser_navbar_height))
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() },
-                ) {}
-                .testTag(NavBarTestTags.navbar),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
+        Box {
+            Row(
+                modifier = Modifier
+                    .background(background)
+                    .height(dimensionResource(id = R.dimen.browser_navbar_height))
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() },
+                    ) {}
+                    .testTag(NavBarTestTags.navbar),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                content = content,
+            )
+
+            if (showDivider) {
+                Divider(
+                    modifier = Modifier.align(Alignment.TopCenter),
+                )
+            }
+        }
     }
 
     onVisibilityUpdated(keyboardState == KeyboardState.Opened)
@@ -484,6 +506,7 @@ private fun HomeNavBarPreviewRoot(
 
     HomeNavBar(
         isPrivateMode = isPrivateMode,
+        showDivider = true,
         browserStore = BrowserStore(),
         menuButton = menuButton,
         tabsCounterMenu = tabsCounterMenu,
@@ -517,6 +540,7 @@ private fun OpenTabNavBarNavBarPreviewRoot(isPrivateMode: Boolean) {
 
     BrowserNavBar(
         isPrivateMode = false,
+        showDivider = true,
         browserStore = BrowserStore(),
         menuButton = menuButton,
         newTabMenu = newTabMenu,
@@ -565,6 +589,7 @@ private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
         backgroundColor = FirefoxTheme.colors.layer1,
+        showDivider = true,
         buttonTint = FirefoxTheme.colors.iconPrimary.toArgb(),
         onVisibilityUpdated = {},
     )

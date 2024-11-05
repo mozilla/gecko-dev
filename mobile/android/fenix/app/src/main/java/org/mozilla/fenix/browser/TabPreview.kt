@@ -32,7 +32,6 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.BrowserNavBar
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
-import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.databinding.TabPreviewBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isLargeWindow
@@ -97,12 +96,11 @@ class TabPreview @JvmOverloads constructor(
                                 // before adding fake navigation bar in the preview, remove fake toolbar
                                 removeView(mockToolbarView)
                                 AndroidView(factory = { _ -> mockToolbarView })
-                            } else {
-                                Divider()
                             }
 
                             BrowserNavBar(
                                 isPrivateMode = browserStore.state.selectedTab?.content?.private ?: false,
+                                showDivider = isToolbarAtTop,
                                 browserStore = browserStore,
                                 menuButton = MenuButton(context).apply {
                                     setColorFilter(
