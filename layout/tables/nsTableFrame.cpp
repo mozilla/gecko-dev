@@ -4654,7 +4654,7 @@ struct BCCorners {
 
   BCCornerInfo& operator[](int32_t i) const {
     NS_ASSERTION((i >= startIndex) && (i <= endIndex), "program error");
-    return corners[clamped(i, startIndex, endIndex) - startIndex];
+    return corners[std::clamp(i, startIndex, endIndex) - startIndex];
   }
 
   int32_t startIndex;
@@ -4674,7 +4674,7 @@ struct BCCellBorders {
 
   BCCellBorder& operator[](int32_t i) const {
     NS_ASSERTION((i >= startIndex) && (i <= endIndex), "program error");
-    return borders[clamped(i, startIndex, endIndex) - startIndex];
+    return borders[std::clamp(i, startIndex, endIndex) - startIndex];
   }
 
   int32_t startIndex;

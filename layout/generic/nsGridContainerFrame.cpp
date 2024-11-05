@@ -25,7 +25,6 @@
 #include "mozilla/ScrollContainerFrame.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "nsAbsoluteContainingBlock.h"
-#include "nsAlgorithm.h"  // for clamped()
 #include "nsCSSFrameConstructor.h"
 #include "nsDisplayList.h"
 #include "nsFieldSetFrame.h"
@@ -4586,7 +4585,7 @@ nsGridContainerFrame::LineRange nsGridContainerFrame::Grid::ResolveLineRange(
     // https://drafts.csswg.org/css-grid-2/#subgrid-implicit ("using the same
     // procedure as for clamping placement in an overly-large grid").
     //
-    // Note that these two clamped() assignments might collapse our range to
+    // Note that these two clamped assignments might collapse our range to
     // have both edges pointing at the same line (spanning 0 tracks); this
     // might happen here if e.g. r.first were mClampMaxLine, and r.second gets
     // clamped from some higher number down to mClampMaxLine. We'll handle this
@@ -4595,9 +4594,10 @@ nsGridContainerFrame::LineRange nsGridContainerFrame::Grid::ResolveLineRange(
     // the #overlarge-grids clamping spec text that says "its span must be
     // truncated to 1" when clamping an item that was completely outside the
     // limits.
-    r.first = clamped(r.first, aNameMap.mClampMinLine, aNameMap.mClampMaxLine);
+    r.first =
+        std::clamp(r.first, aNameMap.mClampMinLine, aNameMap.mClampMaxLine);
     r.second =
-        clamped(r.second, aNameMap.mClampMinLine, aNameMap.mClampMaxLine);
+        std::clamp(r.second, aNameMap.mClampMinLine, aNameMap.mClampMaxLine);
 
     // Handle grid placement errors.
     // https://drafts.csswg.org/css-grid-2/#grid-placement-errors

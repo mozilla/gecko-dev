@@ -70,7 +70,7 @@ class MOZ_STACK_CLASS ColorStopInterpolator {
       uint32_t extraStops =
           (uint32_t)(floor(endPosition * kFullRangeExtraStops) -
                      floor(startPosition * kFullRangeExtraStops));
-      extraStops = clamped(extraStops, 1U, kFullRangeExtraStops);
+      extraStops = std::clamp(extraStops, 1U, kFullRangeExtraStops);
       float step = 1.0f / (float)extraStops;
       for (uint32_t extraStop = 0; extraStop <= extraStops; extraStop++) {
         auto progress = (float)extraStop * step;

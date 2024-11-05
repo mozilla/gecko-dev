@@ -116,11 +116,11 @@ static nscolor ProcessSelectionBackground(nscolor aColor, ColorScheme aScheme) {
   if (sat > 0) {
     // The color is not a shade of grey, restore the saturation taken away by
     // the transparency.
-    sat = mozilla::clamped(sat * factor, 0, 255);
+    sat = std::clamp(sat * factor, 0, 255);
   } else {
     // The color is a shade of grey, find the value that looks equivalent
     // on a white background with the given opacity.
-    value = mozilla::clamped(255 - (255 - value) * factor, 0, 255);
+    value = std::clamp(255 - (255 - value) * factor, 0, 255);
   }
   NS_HSV2RGB(resultColor, hue, sat, value, alpha);
   return resultColor;

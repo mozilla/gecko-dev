@@ -364,7 +364,7 @@ Decimal nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent) {
     }
     nscoord posAtStart = rangeRect.x + thumbSize.width / 2;
     nscoord posAtEnd = posAtStart + traversableDistance;
-    nscoord posOfPoint = mozilla::clamped(point.x, posAtStart, posAtEnd);
+    nscoord posOfPoint = std::clamp(point.x, posAtStart, posAtEnd);
     fraction = Decimal(posOfPoint - posAtStart) / Decimal(traversableDistance);
     if (IsRightToLeft()) {
       fraction = Decimal(1) - fraction;
@@ -376,7 +376,7 @@ Decimal nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent) {
     }
     nscoord posAtStart = rangeRect.y + thumbSize.height / 2;
     nscoord posAtEnd = posAtStart + traversableDistance;
-    nscoord posOfPoint = mozilla::clamped(point.y, posAtStart, posAtEnd);
+    nscoord posOfPoint = std::clamp(point.y, posAtStart, posAtEnd);
     // For a vertical range, the top (posAtStart) is the highest value, so we
     // subtract the fraction from 1.0 to get that polarity correct.
     fraction = Decimal(posOfPoint - posAtStart) / Decimal(traversableDistance);

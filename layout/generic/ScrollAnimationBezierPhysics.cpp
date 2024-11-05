@@ -70,8 +70,8 @@ TimeDuration ScrollAnimationBezierPhysics::ComputeDuration(
   // duration, we average event intervals using the recent 4 timestamps (now +
   // three prev -> 3 intervals).
   int32_t durationMS =
-      clamped<int32_t>(eventsDeltaMs * mSettings.mIntervalRatio,
-                       mSettings.mMinMS, mSettings.mMaxMS);
+      std::clamp<int32_t>(eventsDeltaMs * mSettings.mIntervalRatio,
+                          mSettings.mMinMS, mSettings.mMaxMS);
 
   return TimeDuration::FromMilliseconds(durationMS);
 }

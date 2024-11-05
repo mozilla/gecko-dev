@@ -260,7 +260,7 @@ class Accumulate {
       return aOne.ToMatrix();
     }
 
-    double theta = acos(mozilla::clamped(aTwo.w, -1.0, 1.0));
+    double theta = acos(std::clamp(aTwo.w, -1.0, 1.0));
     double scale = (theta != 0.0) ? 1.0 / sin(theta) : 0.0;
     theta *= aCoeff;
     scale *= sin(theta);

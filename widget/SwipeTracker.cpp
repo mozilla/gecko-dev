@@ -14,7 +14,6 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/dom/SimpleGestureEventBinding.h"
-#include "nsAlgorithm.h"
 #include "nsIWidget.h"
 #include "nsRefreshDriver.h"
 #include "UnitTransforms.h"
@@ -76,7 +75,7 @@ double SwipeTracker::ClampToAllowedRange(double aGestureAmount) const {
   double max =
       mSwipeDirection == dom::SimpleGestureEvent_Binding::DIRECTION_LEFT ? 1.0
                                                                          : 0.0;
-  return clamped(aGestureAmount, min, max);
+  return std::clamp(aGestureAmount, min, max);
 }
 
 bool SwipeTracker::ComputeSwipeSuccess() const {

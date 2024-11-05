@@ -7,7 +7,6 @@
 #include "ScrollbarDrawingCocoa.h"
 
 #include "mozilla/RelativeLuminanceUtils.h"
-#include "nsAlgorithm.h"
 #include "nsIFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsNativeTheme.h"
@@ -166,7 +165,7 @@ static ThumbRect GetThumbRect(const LayoutDeviceRect& aRect,
     // For the default alpha of 128 we want to end up with 48 in the outline.
     constexpr float kAlphaScaling = 48.0f / 128.0f;
     const uint8_t strokeAlpha =
-        uint8_t(clamped(NS_GET_A(faceColor) * kAlphaScaling, 0.0f, 48.0f));
+        uint8_t(std::clamp(NS_GET_A(faceColor) * kAlphaScaling, 0.0f, 48.0f));
     if (strokeAlpha) {
       strokeOutset = (aParams.isDark ? 0.3f : 0.5f) * aScale;
       strokeWidth = (aParams.isDark ? 0.6f : 0.8f) * aScale;

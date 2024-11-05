@@ -22,7 +22,6 @@
 #include "mozilla/intl/Segmenter.h"
 
 #include "gfxUtils.h"
-#include "nsAlgorithm.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsFontMetrics.h"
@@ -3545,7 +3544,7 @@ nsresult nsTreeBodyFrame::ScrollInternal(const ScrollParts& aParts,
   // This can happen when items are removed for example. (bug 1085050)
 
   int32_t maxTopRowIndex = std::max(0, mRowCount - mPageLength);
-  aRow = mozilla::clamped(aRow, 0, maxTopRowIndex);
+  aRow = std::clamp(aRow, 0, maxTopRowIndex);
   if (aRow == mTopRowIndex) {
     return NS_OK;
   }

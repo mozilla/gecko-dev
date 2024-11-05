@@ -354,7 +354,7 @@ Maybe<ResolvedMotionPathData> MotionPathUtils::ResolveMotionPath(
     } else {
       // Per the spec, for unclosed interval, let used offset distance be equal
       // to offset distance clamped by 0 and the total length of the path.
-      usedDistance = clamped(usedDistance, 0.0f, pathLength);
+      usedDistance = std::clamp(usedDistance, 0.0f, pathLength);
     }
     gfx::Point tangent;
     point = path->ComputePointAtLength(usedDistance, &tangent);

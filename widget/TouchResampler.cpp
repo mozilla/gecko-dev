@@ -6,8 +6,6 @@
 
 #include "TouchResampler.h"
 
-#include "nsAlgorithm.h"
-
 /**
  * TouchResampler implementation
  */
@@ -94,7 +92,7 @@ void TouchResampler::NotifyFrame(const TimeStamp& aTimeStamp) {
                                              kTouchResampleMaxBacksampleMs);
   TimeStamp upperBound = lastTouchTime + TimeDuration::FromMilliseconds(
                                              kTouchResampleMaxPredictMs);
-  TimeStamp sampleTime = clamped(aTimeStamp, lowerBound, upperBound);
+  TimeStamp sampleTime = std::clamp(aTimeStamp, lowerBound, upperBound);
 
   if (mLastEmittedEventTime && sampleTime < mLastEmittedEventTime) {
     // Keep emitted timestamps in order.

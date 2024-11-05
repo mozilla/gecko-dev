@@ -16,7 +16,6 @@
 #include "nsIURL.h"
 
 #include "nsWhitespaceTokenizer.h"
-#include "nsAlgorithm.h"
 #include "nsContentUtils.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsScriptSecurityManager.h"
@@ -182,28 +181,28 @@ ReferrerPolicy ReferrerInfo::ReferrerPolicyFromHeaderString(
 
 /* static */
 uint32_t ReferrerInfo::GetUserReferrerSendingPolicy() {
-  return clamped<uint32_t>(
+  return std::clamp<uint32_t>(
       StaticPrefs::network_http_sendRefererHeader_DoNotUseDirectly(),
       MIN_REFERRER_SENDING_POLICY, MAX_REFERRER_SENDING_POLICY);
 }
 
 /* static */
 uint32_t ReferrerInfo::GetUserXOriginSendingPolicy() {
-  return clamped<uint32_t>(
+  return std::clamp<uint32_t>(
       StaticPrefs::network_http_referer_XOriginPolicy_DoNotUseDirectly(),
       MIN_CROSS_ORIGIN_SENDING_POLICY, MAX_CROSS_ORIGIN_SENDING_POLICY);
 }
 
 /* static */
 uint32_t ReferrerInfo::GetUserTrimmingPolicy() {
-  return clamped<uint32_t>(
+  return std::clamp<uint32_t>(
       StaticPrefs::network_http_referer_trimmingPolicy_DoNotUseDirectly(),
       MIN_TRIMMING_POLICY, MAX_TRIMMING_POLICY);
 }
 
 /* static */
 uint32_t ReferrerInfo::GetUserXOriginTrimmingPolicy() {
-  return clamped<uint32_t>(
+  return std::clamp<uint32_t>(
       StaticPrefs::
           network_http_referer_XOriginTrimmingPolicy_DoNotUseDirectly(),
       MIN_TRIMMING_POLICY, MAX_TRIMMING_POLICY);

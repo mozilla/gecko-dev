@@ -147,7 +147,7 @@ static double ClampVelocityToMaximum(double aVelocity, double aInitialPosition,
   // destination.
   double velocityLimit =
       sqrt(aSpringConstant) * abs(aDestination - aInitialPosition);
-  return clamped(aVelocity, -velocityLimit, velocityLimit);
+  return std::clamp(aVelocity, -velocityLimit, velocityLimit);
 }
 
 ScrollAnimationMSDPhysics::NonOscillatingAxisPhysicsMSDModel::

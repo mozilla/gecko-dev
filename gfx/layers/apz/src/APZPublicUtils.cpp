@@ -72,8 +72,8 @@ ScrollAnimationBezierPhysicsSettings ComputeBezierAnimationSettingsForOrigin(
 
   if (isOriginSmoothnessEnabled) {
     static const int32_t kSmoothScrollMaxAllowedAnimationDurationMS = 10000;
-    maxMS = clamped(maxMS, 0, kSmoothScrollMaxAllowedAnimationDurationMS);
-    minMS = clamped(minMS, 0, maxMS);
+    maxMS = std::clamp(maxMS, 0, kSmoothScrollMaxAllowedAnimationDurationMS);
+    minMS = std::clamp(minMS, 0, maxMS);
   }
 
   // Keep the animation duration longer than the average event intervals
