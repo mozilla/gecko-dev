@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">เปิดใช้งานการเรียกดูแบบส่วนตัว</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">ปิดใช้งานการเรียกดูแบบส่วนตัว</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">การเรียกดูแบบส่วนตัว</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">ค้นหาหรือป้อนที่อยู่</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -225,6 +227,8 @@
     <string name="browser_menu_discover_more_extensions">ค้นพบส่วนขยายเพิ่มเติม</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">ปิดการใช้งานชั่วคราว</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">ไม่มีส่วนขยายที่เปิดใช้งาน</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">ข้อมูลบัญชี</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -537,6 +541,11 @@
     <string name="onboarding_add_on_reviews_label">บทวิจารณ์: %1$s</string>
     <!-- Content description for the add-on icon. -->
     <string name="onboarding_add_on_icon_content_description">ไอคอนส่วนเสริม</string>
+
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">เพิ่มปุ่มส่วนเสริม</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">ได้รับคะแนน %1$s จาก 5</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1249,6 +1258,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">คุณแน่ใจหรือไม่ว่าต้องการลบโฟลเดอร์นี้?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">คุณแน่ใจหรือไม่ว่าต้องการลบรายการที่เลือก?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s จะลบรายการที่เลือก</string>
     <!-- Text for the cancel button on delete bookmark dialog -->

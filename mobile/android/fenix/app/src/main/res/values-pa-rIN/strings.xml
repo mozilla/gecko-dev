@@ -14,6 +14,8 @@
     <string name="content_description_private_browsing_button">ਨਿੱਜੀ ਬਰਾਊਜ਼ ਕਰਨਾ ਸਮਰੱਥ ਕਰੋ</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">ਨਿੱਜੀ ਬਰਾਊਜ਼ ਕਰਨਾ ਅਸਮਰੱਥ ਕਰੋ</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">ਖੋਜੋ ਜਾਂ ਸਿਰਨਾਵਾਂ ਦਿਓ</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -232,6 +234,8 @@
     <string name="browser_menu_discover_more_extensions">ਹੋਰ ਇਕਸਟੈਨਸ਼ਨਾਂ ਲੱਭੋ</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">ਆਰਜ਼ੀ ਤੌਰ ਉੱਤੇ ਅਸਮਰੱਥ ਕੀਤਾ</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">ਕੋਈ ਇਕਸਟੈਨਸ਼ਨ ਸਮਰੱਥ ਨਹੀਂ ਹੈ</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">ਖਾਤਾ ਜਾਣਕਾਰੀ</string>
     <!-- Browser menu button that sends a user to help articles -->

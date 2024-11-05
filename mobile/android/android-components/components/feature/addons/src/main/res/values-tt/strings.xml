@@ -84,6 +84,8 @@
     <string name="mozac_feature_addons_learn_more">Рөхсәтләр турында күбрәк белү</string>
     <!-- The rating of the add-on. -->
     <string name="mozac_feature_addons_rating">Рейтинг</string>
+    <!-- A link that points to the detail page of the extension. -->
+    <string name="mozac_feature_addons_more_info_link_2">Бу киңәйтү турында күбрәк</string>
     <!-- The settings of the add-on. -->
     <string name="mozac_feature_addons_settings">Көйләүләр</string>
     <!-- Indicates the add-on is enabled. -->
@@ -128,6 +130,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">Рөхсәт итү</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">Кире кагу</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">Күбрәк белү</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Баш тарту</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
@@ -142,6 +146,12 @@
     <string name="mozac_feature_addons_addons">Кушымчалар</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
     <string name="mozac_feature_addons_addons_manager">Кушымчалар менеджеры</string>
+    <!-- The title of the "crash" notification in the extensions manager -->
+    <string name="mozac_feature_extensions_manager_notification_title_text">Киңәйтүләр вакытлыча сүндерелгән</string>
+    <!-- Button to re-enable the extensions in the "crash" notification -->
+    <string name="mozac_feature_extensions_manager_notification_restart_button">Киңәйтүләрне яңадан кабызу</string>
+    <!-- Button in the extensions manager that opens AMO in a tab -->
+    <string name="mozac_feature_addons_find_more_extensions_button_text">Күбрәк киңәйтү табу</string>
     <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on-->
     <string name="mozac_feature_addons_updater_notification_allow_button">Рөхсәт итү</string>
     <!-- The label of the deny button on a notification, this will be shown to the user when an add-on needs new permissions. Indicates the user denies the new permissions and prevents the add-on from be updated-->
@@ -152,6 +162,8 @@
     <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d яңа рөхсәтләр таләп ителә</string>
     <!-- The content of the notification displayed when an add-on needs a new permission-->
     <string name="mozac_feature_addons_updater_notification_content_singular">Яңа рөхсәт кирәк</string>
+    <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
+    <string name="mozac_feature_addons_updater_notification_channel_2">Киңәйтү яңартулары</string>
     <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
     <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">Кулланырга мөмкин кушымчаларны тикшерү коралы</string>
     <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available.-->
@@ -172,12 +184,14 @@
     <string name="mozac_feature_addons_failed_to_translate">%1$s локале өчен дә, төп саналган %2$s теле өчен дә тәрҗемә табылмады</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s уңышлы урнаштырылды</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">%1$s кушымчасын урнаштырып булмады</string>
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+    <string name="mozac_feature_addons_extension_failed_to_install">Бу киңәйтүне урнаштырып булмады.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s кушымчасын урнаштырып булмый, чөнки ул %2$s %3$s версиясе белән ярашмый.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">%1$s кушымчасын урнаштырып булмады, чөнки аның тотрыклылык яки хәвефсезлек проблемаларын китереп чыгару рискы зур.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s кушымчасын урнаштырып булмады, чөнки аның тотрыклылык яки хәвефсезлек проблемаларын китереп чыгару рискы зур.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s уңышлы кабызылды</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -222,6 +236,8 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">ОК</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Күбрәк белү</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Нечкәлекләрен карау</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s хәвефсезлек яки тотрыклылык проблемалары аркасында сүндерелгән.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s хәвефсезлек яки тотрыклылык проблемалары аркасында сүндерелгән.</string>
     </resources>
