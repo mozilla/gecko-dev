@@ -133,7 +133,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
    */
   null,
   async function onUpdateLocationDirPath(_pref, _prevVal, newVal) {
-    let bs = BackupService.get();
+    let bs;
+    try {
+      bs = BackupService.get();
+    } catch (e) {
+      // This can throw if the BackupService hasn't initialized yet, which
+      // is a case we're okay to ignore.
+    }
     if (bs) {
       await bs.onUpdateLocationDirPath(newVal);
     }
@@ -678,6 +684,14 @@ export class BackupService extends EventTarget {
   #regenerationDebouncer = null;
 
   /**
+   * True if takeMeasurements has been called and various measurements related
+   * to the BackupService have been taken.
+   *
+   * @type {boolean}
+   */
+  #takenMeasurements = false;
+
+  /**
    * The path of the default parent directory for saving backups.
    * The current default is the Documents directory.
    *
@@ -903,10 +917,7 @@ export class BackupService extends EventTarget {
     }
     this.#instance = new BackupService(DefaultBackupResources);
 
-    this.#instance.checkForPostRecovery().then(() => {
-      this.#instance.takeMeasurements();
-    });
-
+    this.#instance.checkForPostRecovery();
     this.#instance.initBackupScheduler();
     return this.#instance;
   }
@@ -2869,7 +2880,19 @@ export class BackupService extends EventTarget {
   async takeMeasurements() {
     lazy.logConsole.debug("Taking Telemetry measurements");
 
-    // We'll start by measuring the available disk space on the storage
+    // We'll start by taking some basic BackupService state measurements.
+    Glean.browserBackup.enabled.set(true);
+    Glean.browserBackup.schedulerEnabled.set(lazy.scheduledBackupsPref);
+
+    await this.loadEncryptionState();
+    Glean.browserBackup.pswdEncrypted.set(this.#_state.encryptionEnabled);
+
+    const USING_DEFAULT_DIR_PATH =
+      lazy.backupDirPref ==
+      PathUtils.join(lazy.defaultParentDirPath, BackupService.BACKUP_DIR_NAME);
+    Glean.browserBackup.locationOnDevice.set(USING_DEFAULT_DIR_PATH ? 1 : 2);
+
+    // Next, we'll measure the available disk space on the storage
     // device that the profile directory is on.
     let profileDir = await IOUtils.getFile(PathUtils.profileDir);
 
@@ -3301,6 +3324,11 @@ export class BackupService extends EventTarget {
    */
   onIdle() {
     lazy.logConsole.debug("Saw idle callback");
+    if (!this.#takenMeasurements) {
+      this.takeMeasurements();
+      this.#takenMeasurements = true;
+    }
+
     if (lazy.scheduledBackupsPref) {
       lazy.logConsole.debug("Scheduled backups enabled.");
       let now = Math.floor(Date.now() / 1000);
