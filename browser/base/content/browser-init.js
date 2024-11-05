@@ -949,11 +949,9 @@ var gBrowserInit = {
       gGfxUtils.init();
     });
 
-    if (AppConstants.MOZ_SELECTABLE_PROFILES) {
-      scheduleIdleTask(async () => {
-        await gProfiles.init();
-      });
-    }
+    scheduleIdleTask(async () => {
+      await gProfiles.init();
+    });
 
     // This should always go last, since the idle tasks (except for the ones with
     // timeouts) should execute in order. Note that this observer notification is

@@ -1,9 +1,0 @@
-[DEFAULT]
-prefs = [
-  "browser.profiles.enabled=true",
-]
-support-files = [
-  "head.js"
-]
-
-["browser_menubar_profiles.js"]

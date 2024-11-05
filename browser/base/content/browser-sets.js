@@ -205,12 +205,6 @@ document.addEventListener(
           case "Browser:OpenAboutContainers":
             openPreferences("paneContainers");
             break;
-          // deliberate fallthrough
-          case "Profiles:CreateProfile":
-          case "Profiles:ManageProfiles":
-          case "Profiles:LaunchProfile":
-            gProfiles.handleCommand(event);
-            break;
           case "Tools:Search":
             BrowserSearch.webSearch();
             break;

@@ -76,9 +76,6 @@
     <command id="Browser:ReloadSkipCache" disabled="true">
       <observes element="Browser:Reload" attribute="disabled"/>
     </command>
-    <command id="Profiles:CreateProfile" />
-    <command id="Profiles:ManageProfiles" />
-    <command id="Profiles:LaunchProfile" />
     <command id="Browser:NextTab" />
     <command id="Browser:PrevTab" />
     <command id="Browser:ShowAllTabs" />

@@ -1188,13 +1188,12 @@ panelview .toolbarbutton-1,
   justify-content: space-between;
 }
 
-/* Set the --appmenu-profiles-theme-bg and --appmenu-profiles-theme-fg
- * variables inline on the toolbarbutton */
+/* Set the --themeBg and --themeFg variables inline on the toolbarbutton */
 #appMenu-profiles-button.subviewbutton-iconic > .toolbarbutton-icon,
 .subviewbutton-iconic.profile-item > .toolbarbutton-icon {
   -moz-context-properties: fill, stroke;
-  fill: var(--appmenu-profiles-theme-bg);
-  stroke: var(--appmenu-profiles-theme-fg);
+  fill: var(--themeBg);
+  stroke: var(--themeFg);
 }
 
 /* Adjust the Zoom toolbaritem padding to have its height the same as other toolbarbuttons,
@@ -2222,8 +2221,8 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   width: 75px;
   height: 75px;
   -moz-context-properties: fill, stroke;
-  fill: var(--appmenu-profiles-theme-bg);
-  stroke: var(--appmenu-profiles-theme-fg);
+  fill: var(--themeBg);
+  stroke: var(--themeFg);
   border: 4px solid var(--panel-background);
   border-radius: 40px;
 }
@@ -2235,7 +2234,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 }
 
 #half-height-profile {
-  background: var(--appmenu-profiles-theme-bg);
+  background: var(--themeBg);
   width: 100%;
   height: 50%;
   z-index: -1;
