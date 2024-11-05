@@ -1876,3 +1876,100 @@ urlbar.picked.searchmode:
       - fx-search-telemetry@mozilla.com
     expires: never
     telemetry_mirror: URLBAR_PICKED_SEARCHMODE_OTHER
+
+urlbar.impression:
+  autofill_about:
+    type: counter
+    description: >
+      Counts how many times about-page type was autofilled per engagement.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.impression.autofill_about.
+    bugs:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    data_reviews:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_IMPRESSION_AUTOFILL_ABOUT
+    no_lint:
+      - COMMON_PREFIX
+
+  autofill_adaptive:
+    type: counter
+    description: >
+      Counts how many times adaptive history type was autofilled per
+      engagement.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.impression.autofill_adaptive.
+    bugs:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    data_reviews:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_IMPRESSION_AUTOFILL_ADAPTIVE
+    no_lint:
+      - COMMON_PREFIX
+
+  autofill_origin:
+    type: counter
+    description: >
+      Counts how many times origin type was autofilled per engagement.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.impression.autofill_origin.
+    bugs:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    data_reviews:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_IMPRESSION_AUTOFILL_ORIGIN
+    no_lint:
+      - COMMON_PREFIX
+
+  autofill_other:
+    type: counter
+    description: >
+      Counts how many times other type was autofilled per engagement.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.impression.autofill_other.
+    bugs:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    data_reviews:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_IMPRESSION_AUTOFILL_OTHER
+    no_lint:
+      - COMMON_PREFIX
+
+  autofill_url:
+    type: counter
+    description: >
+      Counts how many times url type was autofilled per engagement.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.impression.autofill_url.
+    bugs:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    data_reviews:
+      - https://bugzil.la/1774305
+      - https://bugzil.la/1780188
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_IMPRESSION_AUTOFILL_URL
+    no_lint:
+      - COMMON_PREFIX

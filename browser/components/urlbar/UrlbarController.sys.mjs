@@ -969,9 +969,11 @@ class TelemetryEvent {
         firstVisibleResult?.type == lazy.UrlbarUtils.RESULT_TYPE.URL
       ) {
         // Record autofill impressions upon engagement.
-        const type =
-          lazy.UrlbarUtils.telemetryTypeFromResult(firstVisibleResult);
-        Services.telemetry.scalarAdd(`urlbar.impression.${type}`, 1);
+        const type = lazy.UrlbarUtils.telemetryTypeFromResult(
+          firstVisibleResult,
+          true
+        );
+        Glean.urlbarImpression[type]?.add(1);
       }
     }
 
