@@ -3398,7 +3398,12 @@ class _DSCard extends (external_React_default()).PureComponent {
     const fakespotClassName = isFakespot ? `fakespot` : ``;
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
-    const spocFormatClassName = format === "rectangle" ? `ds-spoc-rectangle` : ``;
+    const isMediumRectangle = format === "rectangle";
+    const spocFormatClassName = isMediumRectangle ? `ds-spoc-rectangle` : ``;
+    let sizes = [];
+    if (!isMediumRectangle) {
+      sizes = isListCard ? this.listCardImageSizes : this.dsImageSizes;
+    }
     let stpButton = () => {
       return /*#__PURE__*/external_React_default().createElement("button", {
         className: "card-stp-button",
@@ -3429,7 +3434,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       extraClassNames: "img",
       source: this.props.image_src,
       rawSource: this.props.raw_image_src,
-      sizes: isListCard ? this.listCardImageSizes : this.dsImageSizes,
+      sizes: sizes,
       url: this.props.url,
       title: this.props.title,
       isRecentSave: isRecentSave,
