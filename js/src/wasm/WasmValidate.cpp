@@ -3037,13 +3037,13 @@ bool wasm::DecodeModuleEnvironment(Decoder& d, CodeMetadata* codeMeta,
   }
 #endif
 
-  if (!d.startSection(SectionId::Code, codeMeta, &codeMeta->codeSection,
+  if (!d.startSection(SectionId::Code, codeMeta, &codeMeta->codeSectionRange,
                       "code")) {
     return false;
   }
 
-  if (codeMeta->codeSection &&
-      codeMeta->codeSection->size > MaxCodeSectionBytes) {
+  if (codeMeta->codeSectionRange &&
+      codeMeta->codeSectionRange->size > MaxCodeSectionBytes) {
     return d.fail("code section too big");
   }
 
@@ -3069,7 +3069,7 @@ static bool DecodeFunctionBody(Decoder& d, const CodeMetadata& codeMeta,
 }
 
 static bool DecodeCodeSection(Decoder& d, CodeMetadata* codeMeta) {
-  if (!codeMeta->codeSection) {
+  if (!codeMeta->codeSectionRange) {
     if (codeMeta->numFuncDefs() != 0) {
       return d.fail("expected code section");
     }
@@ -3093,7 +3093,7 @@ static bool DecodeCodeSection(Decoder& d, CodeMetadata* codeMeta) {
     }
   }
 
-  return d.finishSection(*codeMeta->codeSection, "code");
+  return d.finishSection(*codeMeta->codeSectionRange, "code");
 }
 
 static bool DecodeDataSection(Decoder& d, CodeMetadata* codeMeta,

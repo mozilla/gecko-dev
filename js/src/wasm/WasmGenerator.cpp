@@ -1119,7 +1119,7 @@ bool ModuleGenerator::startCompleteTier() {
   // shrinkStorageToFit calls at the end will trim off unneeded capacity.
 
   size_t codeSectionSize =
-      codeMeta_->codeSection ? codeMeta_->codeSection->size : 0;
+      codeMeta_->codeSectionRange ? codeMeta_->codeSectionRange->size : 0;
 
   size_t estimatedCodeSize =
       size_t(1.2 * EstimateCompiledCodeSize(tier(), codeSectionSize));
@@ -1322,10 +1322,25 @@ SharedModule ModuleGenerator::finishModule(
 
   // We keep the bytecode alive for debuggable modules, or if we're doing
   // partial tiering.
-  if (debugEnabled() || mode() == CompileMode::LazyTiering) {
-    codeMeta->bytecode = &bytecode;
-  } else {
-    codeMeta->bytecode = nullptr;
+  if (debugEnabled()) {
+    MOZ_ASSERT(mode() != CompileMode::LazyTiering);
+    codeMeta->debugBytecode = &bytecode;
+  } else if (mode() == CompileMode::LazyTiering) {
+    MutableBytes codeSectionBytecode = js_new<ShareableBytes>();
+    if (!codeSectionBytecode) {
+      return nullptr;
+    }
+
+    if (codeMeta->codeSectionRange) {
+      const uint8_t* codeSectionStart =
+          bytecode.begin() + codeMeta->codeSectionRange->start;
+      if (!codeSectionBytecode->append(codeSectionStart,
+                                       codeMeta->codeSectionRange->size)) {
+        return nullptr;
+      }
+    }
+
+    codeMeta->codeSectionBytecode = codeSectionBytecode;
   }
 
   // Store a reference to the name section on the code metadata

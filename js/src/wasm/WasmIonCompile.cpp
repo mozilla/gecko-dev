@@ -6078,10 +6078,15 @@ static bool EmitInlineCall(FunctionCompiler& callerCompiler,
                            InliningHeuristics::CallKind callKind,
                            const DefVector& args, DefVector* results) {
   UniqueChars error;
-  const Bytes& bytecode = callerCompiler.codeMeta().bytecode->bytes;
+  const Bytes& codeSectionBytecode =
+      callerCompiler.codeMeta().codeSectionBytecode->bytes;
   const FuncDefRange& funcRange =
       callerCompiler.codeMeta().funcDefRange(funcIndex);
-  const uint8_t* bodyBegin = bytecode.begin() + funcRange.bytecodeOffset;
+  uint32_t codeSectionStart = callerCompiler.codeMeta().codeSectionRange->start;
+  uint32_t bodyOffsetInCodeSection =
+      funcRange.bytecodeOffset - codeSectionStart;
+  const uint8_t* bodyBegin =
+      codeSectionBytecode.begin() + bodyOffsetInCodeSection;
   const uint8_t* bodyEnd = bodyBegin + funcRange.bodyLength;
   FuncCompileInput func(funcIndex, funcRange.bytecodeOffset, bodyBegin, bodyEnd,
                         Uint32Vector());
