@@ -104,6 +104,16 @@ export class SearchModeSwitcher {
         { once: true }
       );
     }
+
+    if (event.type == "keypress") {
+      // If open the panel by key, set urlbar input filed as focusedElement to
+      // move the focus to the input field it when popup will be closed.
+      // Please see _prevFocus element in toolkit/content/widgets/panel.js about
+      // the implementation.
+      this.#input.document.commandDispatcher.focusedElement =
+        this.#input.inputField;
+    }
+
     lazy.PanelMultiView.openPopup(this.#popup, anchor, {
       position: "bottomleft topleft",
       triggerEvent: event,
@@ -150,6 +160,19 @@ export class SearchModeSwitcher {
   }
 
   handleEvent(event) {
+    if (
+      event.keyCode == KeyEvent.DOM_VK_TAB &&
+      event.shiftKey &&
+      this.#input.view.isOpen
+    ) {
+      // In this case, switcher button got focus by shift+tab from urlbar.
+      // So, move the focus on the last element of urlbar view to make cyclable.
+      this.#input.focus();
+      this.#input.view.selectBy(1, { reverse: true, userPressedTab: true });
+      event.preventDefault();
+      return;
+    }
+
     let action = event.currentTarget.dataset.action ?? event.type;
 
     switch (action) {
