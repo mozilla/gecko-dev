@@ -29,7 +29,7 @@ void RemoteLazyInputStreamChild::StreamConsumed() {
 
   // When the count reaches zero, close the underlying actor.
   if (count == 0) {
-    RefPtr<RemoteLazyInputStreamThread> t = RemoteLazyInputStreamThread::Get();
+    auto* t = RemoteLazyInputStreamThread::Get();
     if (t) {
       t->Dispatch(
           NS_NewRunnableFunction("RemoteLazyInputStreamChild::StreamConsumed",

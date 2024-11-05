@@ -22,65 +22,114 @@ namespace mozilla {
 namespace {
 
 StaticMutex gRemoteLazyThreadMutex;
-StaticRefPtr<RemoteLazyInputStreamThread> gRemoteLazyThread
-    MOZ_GUARDED_BY(gRemoteLazyThreadMutex);
+StaticRefPtr<RemoteLazyInputStreamThread> gRemoteLazyThread;
+
+class ThreadInitializeRunnable final : public Runnable {
+ public:
+  ThreadInitializeRunnable() : Runnable("dom::ThreadInitializeRunnable") {}
+
+  NS_IMETHOD
+  Run() override {
+    StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+    MOZ_ASSERT(gRemoteLazyThread);
+    if (NS_WARN_IF(!gRemoteLazyThread->InitializeOnMainThread())) {
+      // RemoteLazyInputStreamThread::GetOrCreate might have handed out a
+      // pointer to our thread already at this point such that we cannot
+      // just do gRemoteLazyThread = nullptr; here.
+      MOZ_DIAGNOSTIC_ASSERT(
+          false, "Async gRemoteLazyThread->InitializeOnMainThread() failed.");
+      return NS_ERROR_FAILURE;
+    }
+    return NS_OK;
+  }
+};
 
 }  // namespace
 
-NS_IMPL_ISUPPORTS(RemoteLazyInputStreamThread, nsIEventTarget,
+NS_IMPL_ISUPPORTS(RemoteLazyInputStreamThread, nsIObserver, nsIEventTarget,
                   nsISerialEventTarget, nsIDirectTaskDispatcher)
 
-/* static */
-already_AddRefed<RemoteLazyInputStreamThread>
-RemoteLazyInputStreamThread::Get() {
-  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
-
-  return do_AddRef(gRemoteLazyThread);
+bool RLISThreadIsInOrBeyondShutdown() {
+  // ShutdownPhase::XPCOMShutdownThreads matches
+  // obs->AddObserver(this, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID, false);
+  return AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMShutdownThreads);
 }
 
 /* static */
-already_AddRefed<RemoteLazyInputStreamThread>
-RemoteLazyInputStreamThread::GetOrCreate() {
-  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
-
-  if (AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMShutdownThreads)) {
+RemoteLazyInputStreamThread* RemoteLazyInputStreamThread::Get() {
+  if (RLISThreadIsInOrBeyondShutdown()) {
     return nullptr;
   }
 
-  if (!gRemoteLazyThread) {
-    nsCOMPtr<nsIThread> thread;
-    nsresult rv = NS_NewNamedThread("RemoteLzyStream", getter_AddRefs(thread));
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return nullptr;
-    }
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
 
-    gRemoteLazyThread =
-        new RemoteLazyInputStreamThread(WrapMovingNotNull(thread));
+  return gRemoteLazyThread;
+}
 
-    // Dispatch to the main thread, which will set up a listener
-    // to shut down the thread during XPCOMShutdownThreads.
-    //
-    // We do this even if we're already on the main thread, as
-    // if we're too late in shutdown, this will trigger the thread
-    // to shut down synchronously.
-    NS_DispatchToMainThread(NS_NewRunnableFunction(
-        "RemoteLazyInputStreamThread::MainThreadInit", [] {
-          RunOnShutdown(
-              [] {
-                RefPtr<RemoteLazyInputStreamThread> rlis =
-                    RemoteLazyInputStreamThread::Get();
-                // This is the only place supposed to ever null our reference.
-                MOZ_ASSERT(rlis);
-                rlis->mThread->Shutdown();
-
-                StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
-                gRemoteLazyThread = nullptr;
-              },
-              ShutdownPhase::XPCOMShutdownThreads);
-        }));
+/* static */
+RemoteLazyInputStreamThread* RemoteLazyInputStreamThread::GetOrCreate() {
+  if (RLISThreadIsInOrBeyondShutdown()) {
+    return nullptr;
   }
 
-  return do_AddRef(gRemoteLazyThread);
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+
+  if (!gRemoteLazyThread) {
+    gRemoteLazyThread = new RemoteLazyInputStreamThread();
+    if (!gRemoteLazyThread->Initialize()) {
+      gRemoteLazyThread = nullptr;
+    }
+  }
+
+  return gRemoteLazyThread;
+}
+
+bool RemoteLazyInputStreamThread::Initialize() {
+  nsCOMPtr<nsIThread> thread;
+  nsresult rv = NS_NewNamedThread("RemoteLzyStream", getter_AddRefs(thread));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+
+  mThread = thread;
+
+  if (!NS_IsMainThread()) {
+    RefPtr<Runnable> runnable = new ThreadInitializeRunnable();
+    nsresult rv = SchedulerGroup::Dispatch(runnable.forget());
+    return !NS_WARN_IF(NS_FAILED(rv));
+  }
+
+  return InitializeOnMainThread();
+}
+
+bool RemoteLazyInputStreamThread::InitializeOnMainThread() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (NS_WARN_IF(!obs)) {
+    return false;
+  }
+
+  nsresult rv =
+      obs->AddObserver(this, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID, false);
+  return !NS_WARN_IF(NS_FAILED(rv));
+}
+
+NS_IMETHODIMP
+RemoteLazyInputStreamThread::Observe(nsISupports* aSubject, const char* aTopic,
+                                     const char16_t* aData) {
+  MOZ_ASSERT(!strcmp(aTopic, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID));
+
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+
+  if (mThread) {
+    mThread->Shutdown();
+    mThread = nullptr;
+  }
+
+  gRemoteLazyThread = nullptr;
+
+  return NS_OK;
 }
 
 // nsIEventTarget
@@ -98,13 +147,25 @@ RemoteLazyInputStreamThread::IsOnCurrentThread(bool* aRetval) {
 NS_IMETHODIMP
 RemoteLazyInputStreamThread::Dispatch(already_AddRefed<nsIRunnable> aRunnable,
                                       uint32_t aFlags) {
-  return mThread->Dispatch(std::move(aRunnable), aFlags);
+  nsCOMPtr<nsIRunnable> runnable(aRunnable);
+
+  if (RLISThreadIsInOrBeyondShutdown()) {
+    // nsIEventTarget::Dispatch must leak the runnable if the dispatch fails.
+    Unused << runnable.forget();
+
+    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
+  }
+
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+
+  return mThread->Dispatch(runnable.forget(), aFlags);
 }
 
 NS_IMETHODIMP
 RemoteLazyInputStreamThread::DispatchFromScript(nsIRunnable* aRunnable,
                                                 uint32_t aFlags) {
-  return mThread->Dispatch(do_AddRef(aRunnable), aFlags);
+  nsCOMPtr<nsIRunnable> runnable(aRunnable);
+  return Dispatch(runnable.forget(), aFlags);
 }
 
 NS_IMETHODIMP
@@ -128,6 +189,8 @@ RemoteLazyInputStreamThread::DispatchDirectTask(
     already_AddRefed<nsIRunnable> aRunnable) {
   nsCOMPtr<nsIRunnable> runnable(aRunnable);
 
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+
   nsCOMPtr<nsIDirectTaskDispatcher> dispatcher = do_QueryInterface(mThread);
 
   if (dispatcher) {
@@ -138,6 +201,8 @@ RemoteLazyInputStreamThread::DispatchDirectTask(
 }
 
 NS_IMETHODIMP RemoteLazyInputStreamThread::DrainDirectTasks() {
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+
   nsCOMPtr<nsIDirectTaskDispatcher> dispatcher = do_QueryInterface(mThread);
 
   if (dispatcher) {
@@ -148,6 +213,8 @@ NS_IMETHODIMP RemoteLazyInputStreamThread::DrainDirectTasks() {
 }
 
 NS_IMETHODIMP RemoteLazyInputStreamThread::HaveDirectTasks(bool* aValue) {
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+
   nsCOMPtr<nsIDirectTaskDispatcher> dispatcher = do_QueryInterface(mThread);
 
   if (dispatcher) {
@@ -158,8 +225,12 @@ NS_IMETHODIMP RemoteLazyInputStreamThread::HaveDirectTasks(bool* aValue) {
 }
 
 bool IsOnDOMFileThread() {
-  RefPtr<RemoteLazyInputStreamThread> rlis = RemoteLazyInputStreamThread::Get();
-  return rlis && rlis->IsOnCurrentThread();
+  MOZ_ASSERT(!RLISThreadIsInOrBeyondShutdown());
+
+  StaticMutexAutoLock lock(gRemoteLazyThreadMutex);
+  MOZ_ASSERT(gRemoteLazyThread);
+
+  return gRemoteLazyThread->IsOnCurrentThreadInfallible();
 }
 
 void AssertIsOnDOMFileThread() { MOZ_ASSERT(IsOnDOMFileThread()); }
