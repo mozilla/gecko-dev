@@ -133,6 +133,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         bottomSheetBehavior.maxWidth = calculateMenuSheetWidth()
+        bottomSheetBehavior.maxHeight =
+            resources.displayMetrics.heightPixels - EXPANDED_OFFSET.dpToPx(resources.displayMetrics)
     }
 
     @Suppress("LongMethod", "CyclomaticComplexMethod")
