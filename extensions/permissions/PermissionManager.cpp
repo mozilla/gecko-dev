@@ -403,8 +403,10 @@ nsresult UpgradeHostToOriginAndInsert(
   // subdomain of this host), and try to add it as a principal.
   bool foundHistory = false;
 
-  nsCOMPtr<nsINavHistoryService> histSrv =
-      do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
+  nsCOMPtr<nsINavHistoryService> histSrv = nullptr;
+  if (NS_IsMainThread()) {
+    histSrv = do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
+  }
 
   if (histSrv) {
     nsCOMPtr<nsINavHistoryQuery> histQuery;
@@ -3670,7 +3672,7 @@ void PermissionManager::ConsumeDefaultsInputStream(
   constexpr char kMatchTypeHost[] = "host";
   constexpr char kMatchTypeOrigin[] = "origin";
 
-  mDefaultEntries.Clear();
+  mDefaultEntriesForImport.Clear();
 
   if (!aInputStream) {
     return;
@@ -3714,24 +3716,37 @@ void PermissionManager::ConsumeDefaultsInputStream(
       continue;
     }
 
-    DefaultEntry::Op op;
+    const nsCString& hostOrOrigin = lineArray[3];
+    const nsCString& type = lineArray[1];
 
     if (lineArray[0].EqualsLiteral(kMatchTypeHost)) {
-      op = DefaultEntry::eImportMatchTypeHost;
+      UpgradeHostToOriginAndInsert(
+          hostOrOrigin, type, permission, nsIPermissionManager::EXPIRE_NEVER, 0,
+          0,
+          [&](const nsACString& aOrigin, const nsCString& aType,
+              uint32_t aPermission, uint32_t aExpireType, int64_t aExpireTime,
+              int64_t aModificationTime) {
+            AddDefaultEntryForImport(aOrigin, aType, aPermission, aProofOfLock);
+            return NS_OK;
+          });
     } else if (lineArray[0].EqualsLiteral(kMatchTypeOrigin)) {
-      op = DefaultEntry::eImportMatchTypeOrigin;
+      AddDefaultEntryForImport(hostOrOrigin, type, permission, aProofOfLock);
     } else {
       continue;
     }
 
-    DefaultEntry* entry = mDefaultEntries.AppendElement();
-    MOZ_ASSERT(entry);
-
-    entry->mOp = op;
-    entry->mPermission = permission;
-    entry->mHostOrOrigin = lineArray[3];
-    entry->mType = lineArray[1];
   } while (isMore);
+}
+
+void PermissionManager::AddDefaultEntryForImport(
+    const nsACString& aOrigin, const nsCString& aType, uint32_t aPermission,
+    const MonitorAutoLock& aProofOfLock) {
+  DefaultEntry* entry = mDefaultEntriesForImport.AppendElement();
+  MOZ_ASSERT(entry);
+
+  entry->mPermission = aPermission;
+  entry->mOrigin = aOrigin;
+  entry->mType = aType;
 }
 
 // ImportLatestDefaults will import the latest default cookies read during the
@@ -3744,60 +3759,9 @@ nsresult PermissionManager::ImportLatestDefaults() {
 
   MonitorAutoLock lock(mMonitor);
 
-  for (const DefaultEntry& entry : mDefaultEntries) {
-    if (entry.mOp == DefaultEntry::eImportMatchTypeHost) {
-      // the import file format doesn't handle modification times, so we use
-      // 0, which AddInternal will convert to now()
-      int64_t modificationTime = 0;
-
-      rv = UpgradeHostToOriginAndInsert(
-          entry.mHostOrOrigin, entry.mType, entry.mPermission,
-          nsIPermissionManager::EXPIRE_NEVER, 0, modificationTime,
-          [&](const nsACString& aOrigin, const nsCString& aType,
-              uint32_t aPermission, uint32_t aExpireType, int64_t aExpireTime,
-              int64_t aModificationTime) {
-            nsCOMPtr<nsIPrincipal> principal;
-            nsresult rv =
-                GetPrincipalFromOrigin(aOrigin, IsOAForceStripPermission(aType),
-                                       getter_AddRefs(principal));
-            NS_ENSURE_SUCCESS(rv, rv);
-            rv =
-                AddInternal(principal, aType, aPermission,
-                            cIDPermissionIsDefault, aExpireType, aExpireTime,
-                            aModificationTime, PermissionManager::eDontNotify,
-                            PermissionManager::eNoDBOperation, false, &aOrigin);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            if (StaticPrefs::permissions_isolateBy_privateBrowsing()) {
-              // Also import the permission for private browsing.
-              OriginAttributes attrs =
-                  OriginAttributes(principal->OriginAttributesRef());
-              attrs.mPrivateBrowsingId = 1;
-              nsCOMPtr<nsIPrincipal> pbPrincipal =
-                  BasePrincipal::Cast(principal)->CloneForcingOriginAttributes(
-                      attrs);
-
-              rv = AddInternal(
-                  pbPrincipal, aType, aPermission, cIDPermissionIsDefault,
-                  aExpireType, aExpireTime, aModificationTime,
-                  PermissionManager::eDontNotify,
-                  PermissionManager::eNoDBOperation, false, &aOrigin);
-              NS_ENSURE_SUCCESS(rv, rv);
-            }
-
-            return NS_OK;
-          });
-
-      if (NS_FAILED(rv)) {
-        NS_WARNING("There was a problem importing a host permission");
-      }
-      continue;
-    }
-
-    MOZ_ASSERT(entry.mOp == DefaultEntry::eImportMatchTypeOrigin);
-
+  for (const DefaultEntry& entry : mDefaultEntriesForImport) {
     nsCOMPtr<nsIPrincipal> principal;
-    rv = GetPrincipalFromOrigin(entry.mHostOrOrigin,
+    rv = GetPrincipalFromOrigin(entry.mOrigin,
                                 IsOAForceStripPermission(entry.mType),
                                 getter_AddRefs(principal));
     if (NS_FAILED(rv)) {
