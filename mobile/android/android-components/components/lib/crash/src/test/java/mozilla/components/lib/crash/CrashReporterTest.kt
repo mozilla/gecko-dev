@@ -7,9 +7,12 @@ package mozilla.components.lib.crash
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.withContext
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.db.CrashDao
 import mozilla.components.lib.crash.db.CrashDatabase
@@ -25,6 +28,7 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -53,9 +57,17 @@ class CrashReporterTest {
     val coroutinesTestRule = MainCoroutineRule()
     private val scope = coroutinesTestRule.scope
 
+    private lateinit var db: CrashDatabase
+
     @Before
     fun setUp() {
+        db = Room.inMemoryDatabaseBuilder(testContext, CrashDatabase::class.java).build()
         CrashReporter.reset()
+    }
+
+    @After
+    fun tearDown() {
+        db.close()
     }
 
     @Test
@@ -999,7 +1011,7 @@ class CrashReporterTest {
         val testType = Breadcrumb.Type.USER
         val maxNum = 10
 
-        var crashReporter = CrashReporter(
+        val crashReporter = CrashReporter(
             context = testContext,
             services = listOf(mock()),
             maxBreadCrumbs = maxNum,
@@ -1052,8 +1064,9 @@ class CrashReporterTest {
     fun `GIVEN the crash reporter has unsent crashes WHEN calling hasUnsentCrashReports THEN return true`() = runTestOnMain {
         val database: CrashDatabase = mock()
         val crashDao: CrashDao = mock()
+        val timestamp = 10_000L
 
-        var crashReporter = CrashReporter(
+        val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
             notificationsDelegate = mock(),
@@ -1061,17 +1074,18 @@ class CrashReporterTest {
         )
 
         `when`(database.crashDao()).thenReturn(crashDao)
-        `when`(crashDao.numberOfUnsentCrashes()).thenReturn(1)
+        `when`(crashDao.numberOfUnsentCrashesSince(timestamp)).thenReturn(1)
 
-        assertTrue(crashReporter.hasUnsentCrashReports())
+        assertTrue(crashReporter.hasUnsentCrashReportsSince(timestamp))
     }
 
     @Test
     fun `GIVEN the crash reporter has no crashes WHEN calling hasUnsentCrashReports THEN return false`() = runTestOnMain {
         val database: CrashDatabase = mock()
         val crashDao: CrashDao = mock()
+        val timestamp = 10_000L
 
-        var crashReporter = CrashReporter(
+        val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
             notificationsDelegate = mock(),
@@ -1079,17 +1093,18 @@ class CrashReporterTest {
         )
 
         `when`(database.crashDao()).thenReturn(crashDao)
-        `when`(crashDao.numberOfUnsentCrashes()).thenReturn(0)
+        `when`(crashDao.numberOfUnsentCrashesSince(timestamp)).thenReturn(0)
 
-        assertFalse(crashReporter.hasUnsentCrashReports())
+        assertFalse(crashReporter.hasUnsentCrashReportsSince(timestamp))
     }
 
     @Test
     fun `GIVEN the crash reporter has unsent crashes WHEN calling unsentCrashReports THEN return list of unsent crashes`() = runTestOnMain {
         val database: CrashDatabase = mock()
         val crashDao: CrashDao = mock()
+        val timestamp = 10_000L
 
-        var crashReporter = CrashReporter(
+        val crashReporter = CrashReporter(
             services = listOf(mock()),
             scope = scope,
             notificationsDelegate = mock(),
@@ -1111,9 +1126,147 @@ class CrashReporterTest {
             remoteType = null,
         )
         `when`(database.crashDao()).thenReturn(crashDao)
-        `when`(crashDao.getCrashesWithoutReports()).thenReturn(listOf(crashEntity))
+        `when`(crashDao.getCrashesWithoutReportsSince(timestamp)).thenReturn(listOf(crashEntity))
 
-        assertEquals(crashReporter.unsentCrashReports().first().uuid, "6b6aea3f-55f1-46b2-a875-6c15530ed36e")
+        assertEquals(crashReporter.unsentCrashReportsSince(timestamp).first().uuid, "6b6aea3f-55f1-46b2-a875-6c15530ed36e")
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has old unsent crashes WHEN querying for newer crashes THEN only return the crashes newer than the timestamp`() = runTestOnMain {
+        val olderTimestamp = 5_000L
+        val baseTimestamp = 10_000L
+        val newerTimestamp = 15_000L
+
+        val crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            notificationsDelegate = mock(),
+            databaseProvider = { db },
+        )
+
+        val oldCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "old uuid",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = olderTimestamp,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = null,
+            minidumpSuccess = null,
+            processType = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+        val newCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "new uuid",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = newerTimestamp,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = null,
+            minidumpSuccess = null,
+            processType = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+
+        val result = withContext(Dispatchers.IO) {
+            db.crashDao().insertCrash(oldCrashEntity)
+            db.crashDao().insertCrash(newCrashEntity)
+            crashReporter.unsentCrashReportsSince(baseTimestamp)
+        }
+
+        assertEquals(1, result.size)
+        assertEquals("new uuid", result.first().uuid)
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has old and new unsent crashes WHEN querying whether newer crashes exist THEN result is true`() = runTestOnMain {
+        val olderTimestamp = 5_000L
+        val baseTimestamp = 10_000L
+        val newerTimestamp = 15_000L
+
+        val crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            notificationsDelegate = mock(),
+            databaseProvider = { db },
+        )
+
+        val oldCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "old uuid",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = olderTimestamp,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = null,
+            minidumpSuccess = null,
+            processType = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+        val newCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "new uuid",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = newerTimestamp,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = null,
+            minidumpSuccess = null,
+            processType = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+
+        val result = withContext(Dispatchers.IO) {
+            db.crashDao().insertCrash(oldCrashEntity)
+            db.crashDao().insertCrash(newCrashEntity)
+            crashReporter.hasUnsentCrashReportsSince(baseTimestamp)
+        }
+
+        assertEquals(true, result)
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has only old unsent crashes WHEN querying whether newer crashes exist THEN result is false`() = runTestOnMain {
+        val olderTimestamp = 5_000L
+        val baseTimestamp = 10_000L
+
+        val crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            notificationsDelegate = mock(),
+            databaseProvider = { db },
+        )
+
+        val oldCrashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "old uuid",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = olderTimestamp,
+            stacktrace = "<native crash>",
+            throwableData = null,
+            minidumpPath = null,
+            minidumpSuccess = null,
+            processType = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+
+        val result = withContext(Dispatchers.IO) {
+            db.crashDao().insertCrash(oldCrashEntity)
+            crashReporter.hasUnsentCrashReportsSince(baseTimestamp)
+        }
+
+        assertEquals(false, result)
     }
 
     @Test
@@ -1124,7 +1277,7 @@ class CrashReporterTest {
         val testType = Breadcrumb.Type.USER
         val maxNum = 10
 
-        var crashReporter = CrashReporter(
+        val crashReporter = CrashReporter(
             context = testContext,
             services = listOf(mock()),
             maxBreadCrumbs = 5,

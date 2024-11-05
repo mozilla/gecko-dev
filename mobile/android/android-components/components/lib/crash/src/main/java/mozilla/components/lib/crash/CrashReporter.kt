@@ -59,6 +59,15 @@ private class BreadcrumbList(val maxBreadCrumbs: Int) {
 }
 
 /**
+ * When we turned on the new crash reporting dialog flow, the number of old unsent crashes being sent
+ * in on nightly was unexpectedly high. In order to avoid an unmanageable volume when we turned the
+ * feature on in the Release channel, we decided to only send crashes that were as new as the feature
+ * itself.
+ * This timestamp is equivalent to October 28th, 2024 00:00:00 GMT
+ */
+private const val START_OF_134_NIGHTLY_TIMESTAMP = 1730073600000L
+
+/**
  *
  * A generic crash reporter that can report crashes to multiple services.
  *
@@ -166,17 +175,24 @@ class CrashReporter internal constructor(
     }
 
     /**
-     * Checks to see if there are any unsent crash reports
+     * Checks to see if there are any unsent crash reports since the provided [timestampMillis].
+     *
+     * @param timestampMillis Timestamp in milliseconds to retrieve reports after. Defaults to the start
+     * of the Fenix 134 cycle when this feature went live.
      */
-    suspend fun hasUnsentCrashReports(): Boolean {
-        return database.crashDao().numberOfUnsentCrashes() > 0
+    suspend fun hasUnsentCrashReportsSince(timestampMillis: Long = START_OF_134_NIGHTLY_TIMESTAMP): Boolean {
+        return database.crashDao().numberOfUnsentCrashesSince(timestampMillis) > 0
     }
 
     /**
-     * Fetches unsent crash reports from the crash reporter.
+     * Fetches crash reports that were created after [timestampMillis] from the crash reporter that
+     * have not been sent.
+     *
+     * @param timestampMillis Timestamp in milliseconds to retrieve reports after. Defaults to the start
+     * of the Fenix 134 cycle when this feature went live.
      */
-    suspend fun unsentCrashReports(): List<Crash> {
-        return database.crashDao().getCrashesWithoutReports()
+    suspend fun unsentCrashReportsSince(timestampMillis: Long = START_OF_134_NIGHTLY_TIMESTAMP): List<Crash> {
+        return database.crashDao().getCrashesWithoutReportsSince(timestampMillis)
             .map { it.toCrash() }
     }
 

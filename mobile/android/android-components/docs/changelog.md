@@ -19,6 +19,9 @@ permalink: /changelog/
     * Added internal data class `DisplayMargins` in `DisplayToolbar` class that can be used to specify margins for `DisplayToolbar`'s views
     * Added `setUrlBackgroundMargins` method in `DisplayToolbar` class that client apps can use to specify custom `DisplayMargins` for the `background` view. [Bug 1927778](https://bugzilla.mozilla.org/show_bug.cgi?id=1927778)
 
+* **lib-crash**
+  * ⚠️ **Breaking change**: Crash database functions dealing with unsent crashes have been renamed and now require a timestamp parameter as the start of the range to search for unsent crashes.
+
 # 133.0
 * **browser-store**
     * Adds `desktopMode` property to the `BrowserStore` to know whether or not browsing is in desktop mode. The pre-existing Action to update a tab's desktop mode has been renamed to disambiguate its intended use case. [Bug 1910768](https://bugzilla.mozilla.org/show_bug.cgi?id=1910768)

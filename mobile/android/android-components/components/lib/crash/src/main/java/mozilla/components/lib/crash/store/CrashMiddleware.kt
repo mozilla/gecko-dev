@@ -93,7 +93,7 @@ class CrashMiddleware(
                 }
             }
             is CrashAction.CheckForCrashes -> scope.launch {
-                dispatch(CrashAction.FinishCheckingForCrashes(crashReporter.hasUnsentCrashReports()))
+                dispatch(CrashAction.FinishCheckingForCrashes(crashReporter.hasUnsentCrashReportsSince()))
             }
             is CrashAction.FinishCheckingForCrashes -> scope.launch {
                 if (!action.hasUnsentCrashes) { return@launch }
@@ -121,7 +121,7 @@ class CrashMiddleware(
     }
 
     private suspend fun sendUnsentCrashReports() {
-        crashReporter.unsentCrashReports().forEach {
+        crashReporter.unsentCrashReportsSince().forEach {
             crashReporter.submitReport(it)
         }
     }

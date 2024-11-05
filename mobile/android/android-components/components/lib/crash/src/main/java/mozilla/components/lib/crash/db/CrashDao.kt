@@ -45,10 +45,10 @@ internal interface CrashDao {
         """
         SELECT * FROM crashes
         LEFT JOIN reports ON crashes.uuid = reports.crash_uuid
-        WHERE reports.crash_uuid IS NULL
+        WHERE reports.crash_uuid IS NULL AND crashes.created_at > :timestampMillis
         """,
     )
-    suspend fun getCrashesWithoutReports(): List<CrashEntity>
+    suspend fun getCrashesWithoutReportsSince(timestampMillis: Long): List<CrashEntity>
 
     /**
      * Returns saved crashes that haven't been reported.
@@ -58,10 +58,10 @@ internal interface CrashDao {
         """
         SELECT COUNT(*) FROM crashes
         LEFT JOIN reports ON crashes.uuid = reports.crash_uuid
-        WHERE reports.crash_uuid IS NULL
+        WHERE reports.crash_uuid IS NULL AND crashes.created_at > :timestampMillis
         """,
     )
-    suspend fun numberOfUnsentCrashes(): Int
+    suspend fun numberOfUnsentCrashesSince(timestampMillis: Long): Int
 
     /**
      * Delete table.
