@@ -136,7 +136,7 @@ BEGIN_TEST(testSinglyLinkedList) {
   CHECK(list3.isEmpty());
 
   list.prepend(std::move(list2));
-                CHECK((CheckList<7, 8, 9, 1, 2, 3, 4, 5, 6>(list)));
+  CHECK((CheckList<7, 8, 9, 1, 2, 3, 4, 5, 6>(list)));
   CHECK(list2.isEmpty());
 
   // Test iterators.

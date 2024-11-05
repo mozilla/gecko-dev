@@ -160,9 +160,9 @@ std::pair<Arena*, Arena*> ArenaList::pickArenasToRelocate(
 
   // Count non-full and full arenas and total used cells, and find the last
   // non-full arena.
-  size_t fullArenaCount = 0;      // Number of full arenas (not relocated).
-  size_t nonFullArenaCount = 0;   // Number of non-full arenas to consider.
-  size_t totalUsedCells = 0;      // Total used cells in non-full arenas.
+  size_t fullArenaCount = 0;     // Number of full arenas (not relocated).
+  size_t nonFullArenaCount = 0;  // Number of non-full arenas to consider.
+  size_t totalUsedCells = 0;     // Total used cells in non-full arenas.
   Arena* lastNonFullArena = nullptr;
 
   Iterator arena = iter();
@@ -185,7 +185,7 @@ std::pair<Arena*, Arena*> ArenaList::pickArenasToRelocate(
   size_t followingUsedCells =
       totalUsedCells;  // Total used cells in non full arenas afterwards.
   size_t relocCount = nonFullArenaCount;  // Number of arenas to relocate.
-  Arena* prev = nullptr;  // The previous arena considered.
+  Arena* prev = nullptr;                  // The previous arena considered.
 
   const size_t cellsPerArena = Arena::thingsPerArena(kind);
 
