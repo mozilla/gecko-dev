@@ -819,3 +819,27 @@ addAccessibleTask(
   },
   { chrome: true, topLevel: true }
 );
+
+/**
+ * Test the protected state.
+ */
+addAccessibleTask(
+  `
+<input id="input">
+<input id="inputPassword" type="password">
+<textarea id="textareaPassword" type="password"></textarea>
+  `,
+  async function testProtected(browser, docAcc) {
+    const input = findAccessibleChildByID(docAcc, "input");
+    testStates(input, 0, 0, STATE_PROTECTED);
+    const inputPassword = findAccessibleChildByID(docAcc, "inputPassword");
+    testStates(inputPassword, STATE_PROTECTED);
+    // type="password" is not valid on textarea.
+    const textareaPassword = findAccessibleChildByID(
+      docAcc,
+      "textareaPassword"
+    );
+    testStates(textareaPassword, 0, 0, STATE_PROTECTED);
+  },
+  { chrome: true, topLevel: true }
+);
