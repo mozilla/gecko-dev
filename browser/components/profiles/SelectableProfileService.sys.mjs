@@ -625,7 +625,7 @@ class SelectableProfileServiceClass {
    * current profile of a theme change.
    *
    * @param {object} aSubject The theme data
-   * @param {*} aTopic Should be "lightweight-theme-styling-update"
+   * @param {string} aTopic Should be "lightweight-theme-styling-update"
    */
   themeObserver(aSubject, aTopic) {
     if (aTopic !== "lightweight-theme-styling-update") {
@@ -634,11 +634,36 @@ class SelectableProfileServiceClass {
 
     let data = aSubject.wrappedJSObject;
 
-    let theme = data.theme;
+    if (!data.theme) {
+      // During startup the theme might be null so just return
+      return;
+    }
+
+    let isDark = Services.appinfo.chromeColorSchemeIsDark;
+
+    let theme = isDark && !!data.darkTheme ? data.darkTheme : data.theme;
+
+    let themeFg = theme.textcolor;
+    let themeBg = theme.toolbarColor;
+
+    if (!themeFg || !themeBg) {
+      // TODO Bug 1927193: The colors defined below are from the light and
+      // dark theme manifest files and they are not accurate for the default
+      // theme. We should read the color values from the document to get the
+      // correct colors.
+      const defaultDarkText = "rgb(255,255,255)"; // dark theme "tab_text"
+      const defaultLightText = "rgb(21,20,26)"; // light theme "tab_text"
+      const defaultDarkToolbar = "rgb(43,42,51)"; // dark theme "toolbar"
+      const defaultLightToolbar = "#f9f9fb"; // light theme "toolbar"
+
+      themeFg = isDark ? defaultDarkText : defaultLightText;
+      themeBg = isDark ? defaultDarkToolbar : defaultLightToolbar;
+    }
+
     this.currentProfile.theme = {
       themeId: theme.id,
-      themeFg: theme.textcolor,
-      themeBg: theme.accentcolor,
+      themeFg,
+      themeBg,
     };
   }
 
