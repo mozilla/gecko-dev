@@ -7,6 +7,7 @@ support-files = [
   "corruptedDatabase_missingUsageFile_profile.zip",
   "groupMismatch_profile.zip",
   "migration_profile.zip",
+  "open_and_multiple_preloads_child.js",
   "schema3upgrade_profile.zip",
   "schema4upgrade_profile.zip",
   "slowDatabaseInitialization_child.js",
@@ -79,6 +80,9 @@ prefs = ["dom.storage.enable_migration_from_unsupported_legacy_implementation=tr
 support-files = ["migration_emptyValue_profile.zip",]
 
 ["test_old_lsng_pref.js"]
+
+["test_open_and_multiple_preloads.js"]
+skip-if = ["true"]
 
 ["test_orderingAfterRemoveAdd.js"]
 
