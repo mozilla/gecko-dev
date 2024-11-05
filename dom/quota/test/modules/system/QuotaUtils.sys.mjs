@@ -3,6 +3,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+import { PrefUtils } from "resource://testing-common/dom/quota/test/modules/PrefUtils.sys.mjs";
 import { RequestError } from "resource://testing-common/dom/quota/test/modules/RequestError.sys.mjs";
 
 export const QuotaUtils = {
@@ -37,5 +38,43 @@ export const QuotaUtils = {
     }
 
     return request.result;
+  },
+
+  /**
+   * Temporarily sets artificial failure preferences for testing, runs the
+   * callback, and then restores the original preferences.
+   *
+   * @param {number} categories - A bitwise combination of artificial failure
+   *   categories to set.
+   * @param {number} probability - The probability (0-100) of triggering an
+   *   artificial failure. A value of 0 means no failure, while 100 means
+   *   failure is guaranteed.
+   * @param {number} errorCode - The error code to return when an artificial
+   *   failure occurs.
+   * @param {Function} callback - The asynchronous function to execute with the
+   *   artificial settings.
+   * @returns {*} - The result of the callback function after it has been
+   *   awaited.
+   */
+  async withArtificialFailures(categories, probability, errorCode, callback) {
+    const prefs = [
+      ["dom.quotaManager.artificialFailure.categories", categories],
+      ["dom.quotaManager.artificialFailure.probability", probability],
+      ["dom.quotaManager.artificialFailure.errorCode", errorCode],
+    ];
+
+    const originalPrefs = PrefUtils.getPrefs(prefs);
+
+    let result = null;
+
+    try {
+      PrefUtils.setPrefs(prefs);
+
+      result = await callback();
+    } finally {
+      PrefUtils.setPrefs(originalPrefs);
+    }
+
+    return result;
   },
 };
