@@ -64,6 +64,7 @@ run_infos = {
         "domstreams": True,
         "isolated_process": False,
         "display": "x11",
+        "remoteAsyncEvents": False,
     },
     "linux-debug": {
         "os": "linux",
@@ -118,6 +119,7 @@ run_infos = {
         "domstreams": True,
         "isolated_process": False,
         "display": "x11",
+        "remoteAsyncEvents": False,
     },
     "win-opt": {
         "os": "win",
@@ -171,6 +173,7 @@ run_infos = {
         "domstreams": True,
         "isolated_process": False,
         "display": None,
+        "remoteAsyncEvents": False,
     },
 }
 
