@@ -46,6 +46,10 @@ class SMILAnimationFunction {
   void SetAnimationElement(
       mozilla::dom::SVGAnimationElement* aAnimationElement);
 
+  bool HasSameAnimationElement(const SMILAnimationFunction* aOther) const {
+    return aOther && aOther->mAnimationElement == mAnimationElement;
+  };
+
   /*
    * Sets animation-specific attributes (or marks them dirty, in the case
    * of from/to/by/values).

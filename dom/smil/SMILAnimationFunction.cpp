@@ -258,7 +258,10 @@ int8_t SMILAnimationFunction::CompareTo(
     const SMILAnimationFunction* aOther) const {
   NS_ENSURE_TRUE(aOther, 0);
 
-  NS_ASSERTION(aOther != this, "Trying to compare to self");
+  if (aOther == this) {
+    // std::sort will sometimes compare an element to itself. It's fine.
+    return 0;
+  }
 
   // Inactive animations sort first
   if (!IsActiveOrFrozen() && aOther->IsActiveOrFrozen()) return -1;
@@ -279,7 +282,7 @@ int8_t SMILAnimationFunction::CompareTo(
 
   // Animations that appear later in the document sort after those earlier in
   // the document
-  MOZ_ASSERT(mAnimationElement != aOther->mAnimationElement,
+  MOZ_ASSERT(!HasSameAnimationElement(aOther),
              "Two animations cannot have the same animation content element!");
 
   return (nsContentUtils::PositionIsBefore(mAnimationElement,

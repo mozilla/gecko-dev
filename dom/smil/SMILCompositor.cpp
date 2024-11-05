@@ -40,6 +40,17 @@ void SMILCompositor::Traverse(nsCycleCollectionTraversalCallback* aCallback) {
 // Other methods
 void SMILCompositor::AddAnimationFunction(SMILAnimationFunction* aFunc) {
   if (aFunc) {
+#ifdef DEBUG
+    // Check that we don't already have an animation function that references
+    // the animation element used by aFunc. This will be an assert when we
+    // later sort the list. Let's catch the assert now. We use the same
+    // assert message from the sort.
+    for (const SMILAnimationFunction* func : mAnimationFunctions) {
+      MOZ_ASSERT(
+          !aFunc->HasSameAnimationElement(func),
+          "Two animations cannot have the same animation content element!");
+    }
+#endif
     mAnimationFunctions.AppendElement(aFunc);
   }
 }
