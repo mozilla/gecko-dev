@@ -44,13 +44,19 @@ const basePrefs = [
 
 // Iterating over the scopes in https://searchfox.org/mozilla-central/rev/261005fcc4d6f8b64189946958211259fb45e9e1/toolkit/components/resistfingerprinting/nsRFPService.cpp#2247
 
+let realOffset = Number.MAX_SAFE_INTEGER;
+add_setup(async () => {
+  await SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("PST8PDT");
+  realOffset = new Date().getTimezoneOffset();
+});
+
 // Test { * } granular override.
 // If the key is *, the override will be applied to all contexts.
 add_task(async () => {
   const scope = "{ * }";
   await firstAndThirdPartyContextRunner(
-    async browser => runTest(browser, 420, scope, true),
-    async browser => runTest(browser, 420, scope, false),
+    async browser => runTest(browser, realOffset, scope, true),
+    async browser => runTest(browser, realOffset, scope, false),
     [
       ...basePrefs,
       [
@@ -71,8 +77,8 @@ add_task(async () => {
 add_task(async () => {
   const scope = "{ firstPartyDomain, * }";
   await firstAndThirdPartyContextRunner(
-    async browser => runTest(browser, 420, scope, true),
-    async browser => runTest(browser, 420, scope, false),
+    async browser => runTest(browser, realOffset, scope, true),
+    async browser => runTest(browser, realOffset, scope, false),
     [
       ...basePrefs,
       [
@@ -94,7 +100,7 @@ add_task(async () => {
 add_task(async () => {
   const scope = "{ firstPartyDomain }";
   await firstAndThirdPartyContextRunner(
-    async browser => runTest(browser, 420, scope, true),
+    async browser => runTest(browser, realOffset, scope, true),
     async browser => runTest(browser, 0, scope, false),
     [
       ...basePrefs,
@@ -117,7 +123,7 @@ add_task(async () => {
   const scope = "{ *, third-party domain }";
   await firstAndThirdPartyContextRunner(
     async browser => runTest(browser, 0, scope, true),
-    async browser => runTest(browser, 420, scope, false),
+    async browser => runTest(browser, realOffset, scope, false),
     [
       ...basePrefs,
       [
@@ -140,7 +146,7 @@ add_task(async () => {
   const scope = "{ firstPartyDomain, thirdPartyDomain }";
   await firstAndThirdPartyContextRunner(
     async browser => runTest(browser, 0, scope, true),
-    async browser => runTest(browser, 420, scope, false),
+    async browser => runTest(browser, realOffset, scope, false),
     [
       ...basePrefs,
       [
