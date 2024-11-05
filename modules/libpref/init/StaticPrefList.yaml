@@ -14114,11 +14114,7 @@
 # When true, HTTP/3 will be disabled when third party roots are found.
 - name: network.http.http3.disable_when_third_party_roots_found
   type: RelaxedAtomicBool
-#if defined(ANDROID)
   value: false
-#else
-  value: true
-#endif
   mirror: always
 
 # Only used for testing purposes. In automation, this value is used to override
