@@ -103,10 +103,16 @@ function getBrowser(panel) {
     },
     true
   );
-  browser.addEventListener("DOMWindowClose", () => {
+  browser.addEventListener("DOMWindowClose", event => {
     if (panel.viewType == "sidebar") {
       windowRoot.ownerGlobal.SidebarController.hide();
     }
+    // Prevent DOMWindowClose events originated from
+    // extensions sidebar and devtools panels to bubble up
+    // to the gBrowser DOMWindowClose listener and
+    // be mistaken as being originated from a tab being closed
+    // (See Bug 1926373)
+    event.stopPropagation();
   });
 
   const initBrowser = () => {
