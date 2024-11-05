@@ -87,7 +87,7 @@
       "zap_gradient": "linear-gradient(90deg, #9059FF 0%, #FF4AA2 52.08%, #FFBD4F 100%)"
     },
     "colors": {
-      "frame": "hsla(240, 20%, 98%, 1)",
+      "frame": "#291D4F",
       "toolbar": "hsla(254, 46%, 21%, .96)",
       "button_background_active": "hsla(255, 100%, 94%, .24)",
       "button_background_hover": "hsla(255, 100%, 94%, .12)",
