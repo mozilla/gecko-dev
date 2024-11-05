@@ -580,6 +580,7 @@ export class UrlbarController {
     //   probe name, it must be alphanumeric with optional underscores.
     // * Add a new keyed scalar probe into the urlbar.picked category for the
     //   newly added telemetryType.
+    // * Add a new matching Glean metric in browser/components/urlbar/metrics.yaml.
     // * Add a test named browser_UsageTelemetry_urlbar_newType.js to
     //   browser/modules/test/browser.
     //
@@ -590,18 +591,13 @@ export class UrlbarController {
     let telemetryType =
       result.providerName == "UrlbarProviderTopSites"
         ? "topsite"
-        : lazy.UrlbarUtils.telemetryTypeFromResult(result);
-    Services.telemetry.keyedScalarAdd(
-      `urlbar.picked.${telemetryType}`,
-      resultIndex,
-      1
-    );
+        : lazy.UrlbarUtils.telemetryTypeFromResult(result, true);
+    Glean.urlbarPicked[telemetryType]?.[resultIndex].add(1);
     if (this.input.searchMode && !this.input.searchMode.isPreview) {
-      Services.telemetry.keyedScalarAdd(
-        `urlbar.picked.searchmode.${this.input.searchMode.entry}`,
-        resultIndex,
-        1
+      let name = this.input.searchMode.entry.replace(/_([a-z])/g, (m, p) =>
+        p.toUpperCase()
       );
+      Glean.urlbarPickedSearchmode[name]?.[resultIndex].add(1);
     }
   }
 

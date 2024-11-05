@@ -1240,9 +1240,12 @@ export var UrlbarUtils = {
    *       is always necessary.
    *
    * @param {UrlbarResult} result The result to analyze.
+   * @param {boolean} camelCase Whether the returned telemetry type should be the
+                                camelCase version.
+                                Eventually this should be the default (bug 1928946).
    * @returns {string} A string type for telemetry.
    */
-  telemetryTypeFromResult(result) {
+  telemetryTypeFromResult(result, camelCase = false) {
     if (!result) {
       return "unknown";
     }
@@ -1251,7 +1254,7 @@ export var UrlbarUtils = {
         return "switchtab";
       case UrlbarUtils.RESULT_TYPE.SEARCH:
         if (result.providerName == "RecentSearches") {
-          return "recent_search";
+          return camelCase ? "recentSearch" : "recent_search";
         }
         if (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY) {
           return "formhistory";
@@ -1262,7 +1265,7 @@ export var UrlbarUtils = {
         if (result.payload.suggestion) {
           let type = result.payload.trending ? "trending" : "searchsuggestion";
           if (result.isRichSuggestion) {
-            type += "_rich";
+            type += camelCase ? "Rich" : "_rich";
           }
           return type;
         }
@@ -1277,6 +1280,9 @@ export var UrlbarUtils = {
                 "`result.autofill.type` not set, falling back to 'other'"
               )
             );
+          }
+          if (camelCase) {
+            return `autofill${type[0].toUpperCase()}${type.slice(1)}`;
           }
           return `autofill_${type}`;
         }
@@ -1293,21 +1299,23 @@ export var UrlbarUtils = {
             case "top_picks":
               return "navigational";
             case "wikipedia":
-              return "dynamic_wikipedia";
+              return camelCase ? "dynamicWikipedia" : "dynamic_wikipedia";
           }
           return "quicksuggest";
         }
         if (result.providerName == "UrlbarProviderClipboard") {
           return "clipboard";
         }
-        if (result.providerName == "InputHistory") {
-          return result.source == UrlbarUtils.RESULT_SOURCE.BOOKMARKS
-            ? "bookmark_adaptive"
-            : "history_adaptive";
+        {
+          let type =
+            result.source == UrlbarUtils.RESULT_SOURCE.BOOKMARKS
+              ? "bookmark"
+              : "history";
+          if (result.providerName == "InputHistory") {
+            return type + (camelCase ? "Adaptive" : "adaptive");
+          }
+          return type;
         }
-        return result.source == UrlbarUtils.RESULT_SOURCE.BOOKMARKS
-          ? "bookmark"
-          : "history";
       case UrlbarUtils.RESULT_TYPE.KEYWORD:
         return "keyword";
       case UrlbarUtils.RESULT_TYPE.OMNIBOX:
@@ -1324,16 +1332,22 @@ export var UrlbarUtils = {
         return "dynamic";
       case UrlbarUtils.RESULT_TYPE.RESTRICT:
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.BOOKMARK) {
-          return "restrict_keyword_bookmarks";
+          return camelCase
+            ? "restrictKeywordBookmarks"
+            : "restrict_keyword_bookmarks";
         }
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.OPENPAGE) {
-          return "restrict_keyword_tabs";
+          return camelCase ? "restrictKeywordTabs" : "restrict_keyword_tabs";
         }
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.HISTORY) {
-          return "restrict_keyword_history";
+          return camelCase
+            ? "restrictKeywordHistory"
+            : "restrict_keyword_history";
         }
         if (result.payload.keyword === lazy.UrlbarTokenizer.RESTRICT.ACTION) {
-          return "restrict_keyword_actions";
+          return camelCase
+            ? "restrictKeywordActions"
+            : "restrict_keyword_actions";
         }
     }
     return "unknown";
