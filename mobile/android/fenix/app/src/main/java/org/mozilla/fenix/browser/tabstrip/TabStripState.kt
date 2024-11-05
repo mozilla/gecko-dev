@@ -15,13 +15,24 @@ import mozilla.components.browser.state.state.TabSessionState
  *
  * @property tabs The list of [TabStripItem].
  * @property isPrivateMode Whether or not the browser is in private mode.
+ * @property tabCounterMenuItems The list of [TabCounterMenuItem]s to be displayed in the tab
+ * counter menu.
  */
 data class TabStripState(
     val tabs: List<TabStripItem>,
     val isPrivateMode: Boolean,
+    val tabCounterMenuItems: List<TabCounterMenuItem>,
 ) {
+
+    val menuItems
+        get() = tabCounterMenuItems.map { it.toMenuItem() }
+
     companion object {
-        val initial = TabStripState(tabs = emptyList(), isPrivateMode = false)
+        val initial = TabStripState(
+            tabs = emptyList(),
+            isPrivateMode = false,
+            tabCounterMenuItems = emptyList(),
+        )
     }
 }
 
@@ -51,10 +62,16 @@ data class TabStripItem(
  *
  * @param isSelectDisabled When true, the tabs will show as unselected.
  * @param isPossiblyPrivateMode Whether or not the browser is in private mode.
+ * @param addTab Invoked when conditions are met for adding a new normal browsing mode tab.
+ * @param toggleBrowsingMode Invoked when conditions are met for toggling the browsing mode.
+ * @param closeTab Invoked when close tab is clicked.
  */
 internal fun BrowserState.toTabStripState(
     isSelectDisabled: Boolean,
     isPossiblyPrivateMode: Boolean,
+    addTab: () -> Unit,
+    toggleBrowsingMode: (isCurrentlyPrivate: Boolean) -> Unit,
+    closeTab: (isPrivate: Boolean, numberOfTabs: Int) -> Unit,
 ): TabStripState {
     val isPrivateMode = if (isSelectDisabled) {
         isPossiblyPrivateMode
@@ -62,8 +79,10 @@ internal fun BrowserState.toTabStripState(
         selectedTab?.content?.private == true
     }
 
+    val tabs = getNormalOrPrivateTabs(private = isPrivateMode)
+
     return TabStripState(
-        tabs = getNormalOrPrivateTabs(private = isPrivateMode)
+        tabs = tabs
             .map {
                 it.toTabStripItem(
                     isSelectDisabled = isSelectDisabled,
@@ -71,7 +90,55 @@ internal fun BrowserState.toTabStripState(
                 )
             },
         isPrivateMode = isPrivateMode,
+        tabCounterMenuItems = mapToMenuItems(
+            isSelectEnabled = !isSelectDisabled,
+            isPrivateMode = isPrivateMode,
+            addTab = addTab,
+            toggleBrowsingMode = toggleBrowsingMode,
+            closeTab = closeTab,
+            numberOfTabs = tabs.size,
+        ),
     )
+}
+
+private fun mapToMenuItems(
+    isSelectEnabled: Boolean,
+    isPrivateMode: Boolean,
+    toggleBrowsingMode: (isCurrentlyPrivate: Boolean) -> Unit,
+    addTab: () -> Unit,
+    closeTab: (isPrivate: Boolean, numberOfTabs: Int) -> Unit,
+    numberOfTabs: Int,
+): List<TabCounterMenuItem> = buildList {
+    if (isSelectEnabled || isPrivateMode) {
+        val onClick = {
+            if (isPrivateMode) {
+                toggleBrowsingMode(true)
+            } else {
+                addTab()
+            }
+        }
+        add(TabCounterMenuItem.IconItem.NewTab(onClick = onClick))
+    }
+
+    if (isSelectEnabled || !isPrivateMode) {
+        val onClick = {
+            if (isPrivateMode) {
+                addTab()
+            } else {
+                toggleBrowsingMode(false)
+            }
+        }
+        add(TabCounterMenuItem.IconItem.NewPrivateTab(onClick = onClick))
+    }
+
+    if (isSelectEnabled) {
+        add(TabCounterMenuItem.Divider)
+        add(
+            TabCounterMenuItem.IconItem.CloseTab(
+                onClick = { closeTab(isPrivateMode, numberOfTabs) },
+            ),
+        )
+    }
 }
 
 private fun TabSessionState.toTabStripItem(

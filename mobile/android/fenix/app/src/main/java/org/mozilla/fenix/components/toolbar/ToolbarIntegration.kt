@@ -165,9 +165,8 @@ class DefaultToolbarIntegration(
             addShareBrowserAction()
         } else {
             addNewTabBrowserAction()
+            addTabCounterBrowserAction()
         }
-
-        addTabCounterBrowserAction()
     }
 
     private fun addNewTabBrowserAction() {

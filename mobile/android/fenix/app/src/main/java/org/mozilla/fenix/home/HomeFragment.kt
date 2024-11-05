@@ -1230,6 +1230,7 @@ class HomeFragment : Fragment() {
                         onPrivateModeToggleClick = { mode ->
                             browsingModeManager.mode = mode
                         },
+                        onTabCounterClick = { openTabsTray() },
                     )
                 }
             }
@@ -1558,7 +1559,12 @@ class HomeFragment : Fragment() {
     private fun openTabsTray() {
         findNavController().nav(
             R.id.homeFragment,
-            HomeFragmentDirections.actionGlobalTabsTrayFragment(),
+            HomeFragmentDirections.actionGlobalTabsTrayFragment(
+                page = when (browsingModeManager.mode) {
+                    BrowsingMode.Normal -> Page.NormalTabs
+                    BrowsingMode.Private -> Page.PrivateTabs
+                },
+            ),
         )
     }
 
