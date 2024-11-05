@@ -17,4 +17,5 @@ run-if = ["os == 'linux'"] # Results should be platform agnostic - only run on l
 skip-if = [
   "debug",
   "asan",
+  "tsan",
 ]
