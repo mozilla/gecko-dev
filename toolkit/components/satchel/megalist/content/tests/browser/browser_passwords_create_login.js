@@ -80,6 +80,19 @@ function waitForPopup(megalist, element) {
   return popupPromise;
 }
 
+function waitForScroll(megalist) {
+  const notificationMsgBar = megalist.querySelector(
+    "notification-message-bar"
+  ).shadowRoot;
+  const scrollingElement = megalist.ownerDocument.scrollingElement;
+  const scrollPromise = BrowserTestUtils.waitForCondition(
+    () => scrollingElement.scrollTopMax == scrollingElement.scrollTop,
+    "Did not scroll to new login."
+  );
+  notificationMsgBar.querySelector("moz-button").click();
+  return scrollPromise;
+}
+
 add_task(async function test_add_login_success() {
   const megalist = await openPasswordsSidebar();
   await waitForSnapshots();
@@ -135,6 +148,24 @@ add_task(async function test_add_login_empty_password() {
   await waitForPopup(megalist, "password-warning");
   const logins = await Services.logins.getAllLogins();
   is(logins.length, 0, "No login was added after submitting form.");
+
+  LoginTestUtils.clearData();
+});
+
+add_task(async function test_view_login_command() {
+  await addMockPasswords();
+
+  const megalist = await openPasswordsSidebar();
+  await waitForSnapshots();
+  await openLoginForm(megalist);
+  addLogin(megalist, {
+    ...TEST_LOGIN_1,
+    origin: "https://zzz.com",
+  });
+
+  await waitForNotification(megalist, "add-login-success");
+  await checkAllLoginsRendered(megalist);
+  await waitForScroll(megalist);
 
   LoginTestUtils.clearData();
 });
