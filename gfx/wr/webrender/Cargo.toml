@@ -60,5 +60,5 @@ peek-poke = { version = "0.3", path = "../peek-poke" }
 allocator-api2 = { version = "0.2.18", features = ["alloc", "serde"] }
 
 [dev-dependencies]
-mozangle = "0.3.3"
+mozangle = "0.5.2"
 rand = "0.4"

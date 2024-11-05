@@ -58,3 +58,7 @@ export MOZ_CARGO_WRAP_LD="${CC}"
 export MOZ_CARGO_WRAP_LD_CXX="${CXX}"
 export MOZ_CARGO_WRAP_LDFLAGS="${TARGET_CFLAGS}"
 export CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER="${GECKO_PATH}/build/cargo-linker"
+
+# Ensure that any dependencies which use bindgen pass the correct
+# sysroot. Specificlly, this is needed to compile mozangle.
+export BINDGEN_EXTRA_CLANG_ARGS="--sysroot ${MACOS_SYSROOT}"

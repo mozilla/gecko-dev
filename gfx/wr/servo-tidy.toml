@@ -18,7 +18,6 @@ packages = [
     # AND also requires bumping the core-graphics dependency of winit (not present in v0.28)
     "foreign-types",
     "foreign-types-shared",
-    "gl_generator",
     # Internal dependencies of glsl-lang (only used in wrench) require different versions.
     "hashbrown",
     # glsl requires 5.1, and xcursor (required by winit) requires 7.1.
@@ -36,6 +35,18 @@ packages = [
     "textwrap",
     # Can be fixed by removing time dependency - see bug 1765324
     "wasi",
+    # Pulled in by mozangle dev-dep on windows
+    "libloading",
+    "windows_i686_gnu",
+    "windows_x86_64_msvc",
+    "windows_x86_64_gnullvm",
+    "windows_x86_64_gnu",
+    "regex-syntax",
+    "windows-targets",
+    "windows-sys",
+    "windows_aarch64_msvc",
+    "windows_i686_msvc",
+    "windows_aarch64_gnullvm",
 ]
 
 # Files that are ignored for all tidy and lint checks.
