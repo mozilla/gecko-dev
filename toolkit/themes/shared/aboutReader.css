@@ -21,7 +21,7 @@
   --word-spacing: 0;
   --letter-spacing: 0;
   --font-weight: normal;
-  --font-family: Helvetica, Arial, sans-serif;
+  --font-family: sans-serif;
   --block-img-margin-left: unset;
   --block-img-margin-right: unset;
 }
@@ -240,11 +240,11 @@ body {
 }
 
 body.sans-serif {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: sans-serif;
 }
 
 body.serif {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: serif;
 }
 
 /* Override some controls and content styles based on color scheme */
@@ -308,7 +308,7 @@ blockquote {
   font-size: 0.9em;
   line-height: 1.48em;
   padding-bottom: 4px;
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: sans-serif;
   text-decoration: underline var(--main-foreground) !important;
   color: var(--link-foreground);
 }
@@ -672,7 +672,7 @@ button:disabled {
 }
 
 .sans-serif-button {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: sans-serif;
   background-image: url("chrome://global/skin/reader/RM-Sans-Serif.svg");
 }
 
@@ -682,7 +682,7 @@ button:disabled {
 }
 
 .serif-button {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: serif;
   background-image: url("chrome://global/skin/reader/RM-Serif.svg");
 }
 

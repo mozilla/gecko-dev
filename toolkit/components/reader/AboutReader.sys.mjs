@@ -1056,27 +1056,10 @@ AboutReader.prototype = {
   },
 
   _setFontTypeSelector(newFontType) {
-    if (newFontType === "sans-serif") {
-      this._doc.documentElement.style.setProperty(
-        "--font-family",
-        "Helvetica, Arial, sans-serif"
-      );
-    } else if (newFontType === "serif") {
-      this._doc.documentElement.style.setProperty(
-        "--font-family",
-        'Georgia, "Times New Roman", serif'
-      );
-    } else if (newFontType === "monospace") {
-      this._doc.documentElement.style.setProperty(
-        "--font-family",
-        '"Courier New", Courier, monospace'
-      );
-    } else {
-      this._doc.documentElement.style.setProperty(
-        "--font-family",
-        `"${newFontType}"`
-      );
-    }
+    this._doc.documentElement.style.setProperty(
+      "--font-family",
+      newFontType.includes(" ") ? `"${newFontType}"` : newFontType
+    );
 
     lazy.AsyncPrefs.set("reader.font_type", newFontType);
   },
