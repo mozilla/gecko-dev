@@ -17,9 +17,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const TELEMETRY_1ST_RESULT = "PLACES_AUTOCOMPLETE_1ST_RESULT_TIME_MS";
 const TELEMETRY_6_FIRST_RESULTS = "PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS";
 
-const TELEMETRY_SCALAR_ENGAGEMENT = "urlbar.engagement";
-const TELEMETRY_SCALAR_ABANDONMENT = "urlbar.abandonment";
-
 const NOTIFICATIONS = {
   QUERY_STARTED: "onQueryStarted",
   QUERY_RESULTS: "onQueryResults",
@@ -955,12 +952,11 @@ class TelemetryEvent {
     }
 
     if (!skipLegacyTelemetry) {
-      Services.telemetry.scalarAdd(
-        method == "engagement"
-          ? TELEMETRY_SCALAR_ENGAGEMENT
-          : TELEMETRY_SCALAR_ABANDONMENT,
-        1
-      );
+      if (method == "engagement") {
+        Glean.urlbar.engagementCount.add(1);
+      } else {
+        Glean.urlbar.abandonmentCount.add(1);
+      }
 
       let firstVisibleResult = this._controller.view?.visibleResults?.[0];
       if (

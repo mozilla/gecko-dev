@@ -614,7 +614,7 @@ class ProviderSearchSuggestions extends UrlbarProvider {
    * Send telemetry to indicating trending results have been hidden.
    */
   #recordTrendingBlockedTelemetry() {
-    Services.telemetry.scalarAdd("urlbar.trending.block", 1);
+    Glean.urlbarTrending.block.add(1);
   }
 
   /*

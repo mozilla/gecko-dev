@@ -217,7 +217,7 @@ class ProviderSearchTips extends UrlbarProvider {
         break;
     }
 
-    Services.telemetry.keyedScalarAdd("urlbar.tips", `${tip}-shown`, 1);
+    Glean.urlbar.tips[`${tip}-shown`].add(1);
 
     addCallback(this, result);
   }

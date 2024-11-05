@@ -713,11 +713,7 @@ class ProviderInterventions extends UrlbarProvider {
 
   onImpression(state, queryContext, controller, providerVisibleResults) {
     providerVisibleResults.forEach(({ result }) => {
-      Services.telemetry.keyedScalarAdd(
-        "urlbar.tips",
-        `${result.payload.type}-shown`,
-        1
-      );
+      Glean.urlbar.tips[`${result.payload.type}-shown`].add(1);
     });
   }
 

@@ -696,6 +696,83 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
 
+  # The _count suffix is to disambiguate with the event of the same name.
+  abandonment_count:
+    type: counter
+    description: >
+      A uint recording the number of abandoned engagements in the urlbar.
+      An abandonment occurs when the user begins using the urlbar but
+      stops before completing the engagement. This can happen when the
+      user clicks outside the urlbar to focus a different part of the
+      window. It can also happen when the user switches to another window
+      while the urlbar is focused.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.abandonment.
+    bugs:
+      - https://bugzil.la/1752953
+    data_reviews:
+      - https://bugzil.la/1752953
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - adw@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_ABANDONMENT
+
+  autofill_deletion:
+    type: counter
+    description: >
+      A uint recording the deletion count for autofilled string in the
+      urlbar. This occurs when the user deletes whole autofilled string by
+      BACKSPACE or DELETE key while the autofilled string is selected.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.autofill_deletion.
+    bugs:
+      - https://bugzil.la/1815342
+    data_reviews:
+      - https://bugzil.la/1815342
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_AUTOFILL_DELETION
+
+  # The _count suffix is to disambiguate with the event of the same name.
+  engagement_count:
+    type: counter
+    description: >
+      A uint recording the number of engagements the user completes in the
+      urlbar.  An engagement occurs when the user navigates to a page
+      using the urlbar, for example by picking a result in the urlbar
+      panel or typing a search term or URL in the urlbar and pressing the
+      enter key.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.engagement.
+    bugs:
+      - https://bugzil.la/1752953
+    data_reviews:
+      - https://bugzil.la/1752953
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - adw@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_ENGAGEMENT
+
+  tips:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times particular tips are shown in
+      the Urlbar and how often their confirm and help buttons are pressed.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.tips.
+    bugs:
+      - https://bugzil.la/1608461
+    data_reviews:
+      - https://bugzil.la/1608461
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - adw@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_TIPS
+
 # Replacement for PingCentre "quicksuggest-block|impression|click" pings.
 quick_suggest:
   ping_type:
@@ -1973,3 +2050,140 @@ urlbar.impression:
     telemetry_mirror: URLBAR_IMPRESSION_AUTOFILL_URL
     no_lint:
       - COMMON_PREFIX
+
+urlbar.trending:
+  block:
+    type: counter
+    description: >
+      User has blocked seeing trending results.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.trending.block.
+    bugs:
+      - https://bugzil.la/1848048
+    data_reviews:
+      - https://bugzil.la/1848048
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_TRENDING_BLOCK
+
+urlbar.tabtosearch:
+  impressions:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times non-onboarding tab-to-search
+      results are shown in the Urlbar for a particular search engine.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.tabtosearch.impressions.
+    bugs:
+      - https://bugzil.la/1686330
+    data_reviews:
+      - https://bugzil.la/1686330
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_TABTOSEARCH_IMPRESSIONS
+
+  impressions_onboarding:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times onboarding tab-to-search
+      results are shown in the Urlbar for a particular search engine.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.tabtosearch.impressions_onboarding.
+    bugs:
+      - https://bugzil.la/1686330
+    data_reviews:
+      - https://bugzil.la/1686330
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_TABTOSEARCH_IMPRESSIONS_ONBOARDING
+
+urlbar.persistedsearchterms:
+  revert_by_popup_count:
+    type: counter
+    description: >
+      The count of the number of times search terms were removed from the
+      urlbar due to a shown PopupNotification. This event can happen when
+      a user loads a SERP and a PopupNotification is shown, as well as
+      when a user switches away from a tab on a SERP showing a
+      PopupNotification and switches back to it.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.persistedsearchterms.revert_by_popup_count.
+    bugs:
+      - https://bugzil.la/1815971
+    data_reviews:
+      - https://bugzil.la/1815971
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_PERSISTEDSEARCHTERMS_REVERT_BY_POPUP_COUNT
+
+  view_count:
+    type: counter
+    description: >
+      The count of the number of times search terms persisted in the
+      Urlbar. This gets recorded after a user loads a SERP that persists
+      search terms, or switches back to an existing tab that should be
+      showing the persisted search terms in the Urlbar, regardless of
+      whether PopupNotification cleared the search terms from the Urlbar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.persistedsearchterms.view_count.
+    bugs:
+      - https://bugzil.la/1815971
+    data_reviews:
+      - https://bugzil.la/1815971
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_PERSISTEDSEARCHTERMS_VIEW_COUNT
+
+urlbar.zeroprefix:
+  abandonment:
+    type: counter
+    description: >
+      Counts how many times the zero-prefix urlbar results panel was
+      abandoned.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.zeroprefix.abandonment.
+    bugs:
+      - https://bugzil.la/1806765
+    data_reviews:
+      - https://bugzil.la/1806765
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_ZEROPREFIX_ABANDONMENT
+
+  engagement:
+    type: counter
+    description: >
+      Counts how many times a result was picked in the zero-prefix urlbar
+      results panel.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.zeroprefix.engagement.
+    bugs:
+      - https://bugzil.la/1806765
+    data_reviews:
+      - https://bugzil.la/1806765
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_ZEROPREFIX_ENGAGEMENT
+
+  exposure:
+    type: counter
+    description: >
+      Counts how many times the zero-prefix urlbar results panel was shown
+      to the user.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.zeroprefix.exposure.
+    bugs:
+      - https://bugzil.la/1806765
+    data_reviews:
+      - https://bugzil.la/1806765
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_ZEROPREFIX_EXPOSURE

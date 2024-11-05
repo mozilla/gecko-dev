@@ -475,10 +475,7 @@ export class UrlbarInput {
       state.persist.shouldPersist = shouldPersist;
       this.toggleAttribute("persistsearchterms", state.persist.shouldPersist);
       if (state.persist.shouldPersist && !isSameDocument) {
-        Services.telemetry.scalarAdd(
-          "urlbar.persistedsearchterms.view_count",
-          1
-        );
+        Glean.urlbarPersistedsearchterms.viewCount.add(1);
       }
     } else if (state.persist) {
       // Ensure the persist search state is unloaded for tabs that had state
@@ -959,10 +956,7 @@ export class UrlbarInput {
     let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
     if (anchorElement?.closest("#urlbar") && state.persist?.shouldPersist) {
       this.handleRevert();
-      Services.telemetry.scalarAdd(
-        "urlbar.persistedsearchterms.revert_by_popup_count",
-        1
-      );
+      Glean.urlbarPersistedsearchterms.revertByPopupCount.add(1);
     }
   }
 
@@ -1297,7 +1291,7 @@ export class UrlbarInput {
       }
       case lazy.UrlbarUtils.RESULT_TYPE.TIP: {
         let scalarName = `${result.payload.type}-picked`;
-        Services.telemetry.keyedScalarAdd("urlbar.tips", scalarName, 1);
+        Glean.urlbar.tips[scalarName].add(1);
         if (url) {
           break;
         }
@@ -3126,7 +3120,7 @@ export class UrlbarInput {
 
     if (result.type == lazy.UrlbarUtils.RESULT_TYPE.TIP) {
       let scalarName = `${result.payload.type}-help`;
-      Services.telemetry.keyedScalarAdd("urlbar.tips", scalarName, 1);
+      Glean.urlbar.tips[scalarName].add(1);
     }
 
     this._loadURL(
@@ -4096,7 +4090,7 @@ export class UrlbarInput {
         event.inputType === "deleteContentForward")
     ) {
       // Take a telemetry if user deleted whole autofilled value.
-      Services.telemetry.scalarAdd("urlbar.autofill_deletion", 1);
+      Glean.urlbar.autofillDeletion.add(1);
     }
 
     let value = this.value;

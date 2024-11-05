@@ -42,9 +42,6 @@ const KEYBOARD_SELECTABLE_ELEMENT_SELECTOR =
   "[role=button]:not([keyboard-inaccessible]), [selectable]";
 
 const ZERO_PREFIX_HISTOGRAM_DWELL_TIME = "FX_URLBAR_ZERO_PREFIX_DWELL_TIME_MS";
-const ZERO_PREFIX_SCALAR_ABANDONMENT = "urlbar.zeroprefix.abandonment";
-const ZERO_PREFIX_SCALAR_ENGAGEMENT = "urlbar.zeroprefix.engagement";
-const ZERO_PREFIX_SCALAR_EXPOSURE = "urlbar.zeroprefix.exposure";
 
 const RESULT_MENU_COMMANDS = {
   DISMISS: "dismiss",
@@ -591,9 +588,9 @@ export class UrlbarView {
 
     if (this.#isShowingZeroPrefix) {
       if (elementPicked) {
-        Services.telemetry.scalarAdd(ZERO_PREFIX_SCALAR_ENGAGEMENT, 1);
+        Glean.urlbarZeroprefix.engagement.add(1);
       } else {
-        Services.telemetry.scalarAdd(ZERO_PREFIX_SCALAR_ABANDONMENT, 1);
+        Glean.urlbarZeroprefix.abandonment.add(1);
       }
       this.#setIsShowingZeroPrefix(false);
     }
@@ -3235,7 +3232,7 @@ export class UrlbarView {
       this.#zeroPrefixStopwatchInstance
     );
 
-    Services.telemetry.scalarAdd(ZERO_PREFIX_SCALAR_EXPOSURE, 1);
+    Glean.urlbarZeroprefix.exposure.add(1);
   }
 
   /**
