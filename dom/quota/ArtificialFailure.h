@@ -46,6 +46,17 @@ namespace mozilla::dom::quota {
  * methods for entering and leaving artificial failure mode, something like
  * `ChaosMode`. The class would also implement an interface, for example
  * `nsIQuotaArtificialFailure` allowing access from scripts.
+ *
+ * Example usage:
+ * This example demonstrates the usage of `ArtificialFailure` in conjunction
+ * with the `QM_TRY` macro to handle potential artificial failures gracefully.
+ * The `QM_TRY` macro will return early if an artificial failure occurs, with
+ * the corresponding error code from `ArtificialFailure`.
+ *
+ * ```cpp
+ * QM_TRY(ArtificialFailure(
+ *     nsIQuotaArtificialFailure::CATEGORY_INITIALIZE_ORIGIN));
+ * ```
  */
 Result<Ok, nsresult> ArtificialFailure(
     nsIQuotaArtificialFailure::Category aCategory);

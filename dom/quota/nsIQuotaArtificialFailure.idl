@@ -11,5 +11,6 @@ interface nsIQuotaArtificialFailure : nsISupports
 {
   cenum Category : 32 {
     CATEGORY_NONE = 0,
+    CATEGORY_INITIALIZE_ORIGIN = 1 << 0,
   };
 };
