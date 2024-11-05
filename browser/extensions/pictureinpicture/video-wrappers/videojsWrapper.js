@@ -12,22 +12,17 @@ class PictureInPictureVideoWrapper {
     if (container) {
       updateCaptionsFunction("");
       const callback = function () {
-        let text = container.querySelector("div").innerText;
-        if (!text) {
-          updateCaptionsFunction("");
-          return;
-        }
+        let text = container.textContent;
 
         updateCaptionsFunction(text);
       };
 
       // immediately invoke the callback function to add subtitles to the PiP window
-      callback([1], null);
+      callback();
 
       this.captionsObserver = new MutationObserver(callback);
 
       this.captionsObserver.observe(container, {
-        attributes: false,
         childList: true,
         subtree: true,
       });
