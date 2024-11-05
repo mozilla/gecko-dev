@@ -378,8 +378,7 @@ inline void GCRuntime::prepareToFreeChunk(ArenaChunkInfo& info) {
 }
 
 void GCRuntime::releaseArenaList(ArenaList& arenaList, const AutoLockGC& lock) {
-  releaseArenas(arenaList.head(), lock);
-  arenaList.clear();
+  releaseArenas(arenaList.release(), lock);
 }
 
 void GCRuntime::releaseArenas(Arena* arena, const AutoLockGC& lock) {
@@ -2844,7 +2843,7 @@ void BackgroundUnmarkTask::run(AutoLockHelperThreadState& helperTheadLock) {
   for (Zone* zone : zones) {
     for (auto kind : AllAllocKinds()) {
       ArenaList& arenas = zone->arenas.collectingArenaList(kind);
-      for (ArenaListIter arena(arenas.head()); !arena.done(); arena.next()) {
+      for (auto arena = arenas.iter(); !arena.done(); arena.next()) {
         arena->unmarkAll();
         if (isCancelled()) {
           break;

@@ -16,6 +16,7 @@
  * sweep phase. This is also implemented in this file.
  */
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/TimeStamp.h"
@@ -54,6 +55,7 @@
 using namespace js;
 using namespace js::gc;
 
+using mozilla::DebugOnly;
 using mozilla::TimeStamp;
 
 using JS::SliceBudget;
@@ -198,7 +200,8 @@ static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
     gc->stats().addCount(gcstats::COUNT_CELLS_MARKED, markCount);
   });
 
-  while (Arena* arena = src.takeFirstArena()) {
+  while (!src.isEmpty()) {
+    Arena* arena = src.popFront();
     size_t nmarked = arena->finalize<T>(gcx, thingKind, thingSize);
     size_t nfree = thingsPerArena - nmarked;
 
@@ -307,22 +310,17 @@ void ArenaLists::mergeFinalizedArenas(AllocKind kind,
   if (IsBackgroundFinalized(kind)) {
     runtimeFromAnyThread()->gc.assertCurrentThreadHasLockedGC();
   }
+  MOZ_ASSERT(collectingArenaList(kind).isEmpty());
 #endif
 
-  ArenaList& arenas = arenaList(kind);
-
-  ArenaList allocatedDuringCollection = std::move(arenas);
-  arenas = finalizedArenas.convertToArenaList();
-  arenas.insertListWithCursorAtEnd(allocatedDuringCollection);
-
-  collectingArenaList(kind).clear();
+  arenaList(kind).prepend(finalizedArenas.convertToArenaList());
 }
 
 void ArenaLists::queueForegroundThingsForSweep() {
   gcCompactPropMapArenasToUpdate =
-      collectingArenaList(AllocKind::COMPACT_PROP_MAP).head();
+      collectingArenaList(AllocKind::COMPACT_PROP_MAP).first();
   gcNormalPropMapArenasToUpdate =
-      collectingArenaList(AllocKind::NORMAL_PROP_MAP).head();
+      collectingArenaList(AllocKind::NORMAL_PROP_MAP).first();
 }
 
 void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
@@ -1874,26 +1872,36 @@ static void SweepThing(JS::GCContext* gcx, T* thing) {
 }
 
 template <typename T>
-static bool SweepArenaList(JS::GCContext* gcx, Arena** arenasToSweep,
-                           SliceBudget& sliceBudget) {
-  while (Arena* arena = *arenasToSweep) {
-    MOZ_ASSERT(arena->zone()->isGCSweeping());
+static bool SweepArenaList(JS::GCContext* gcx, ArenaList& arenaList,
+                           Arena** arenasToSweep, SliceBudget& sliceBudget) {
+  if (!*arenasToSweep) {
+    return true;
+  }
 
-    for (ArenaCellIterUnderGC cell(arena); !cell.done(); cell.next()) {
+  DebugOnly<Zone*> zone = (*arenasToSweep)->zone();
+  MOZ_ASSERT(zone->isGCSweeping());
+
+  AllocKind kind = MapTypeToAllocKind<T>::kind;
+  size_t steps = Arena::thingsPerArena(kind);
+
+  for (auto arena = arenaList.iterFrom(*arenasToSweep); !arena.done();
+       arena.next()) {
+    MOZ_ASSERT(arena->zone() == zone);
+    MOZ_ASSERT(arena->getAllocKind() == kind);
+
+    if (sliceBudget.isOverBudget()) {
+      *arenasToSweep = arena.get();
+      return false;
+    }
+
+    for (ArenaCellIterUnderGC cell(arena.get()); !cell.done(); cell.next()) {
       SweepThing(gcx, cell.as<T>());
     }
 
-    Arena* next = arena->next;
-    MOZ_ASSERT_IF(next, next->zone() == arena->zone());
-    *arenasToSweep = next;
-
-    AllocKind kind = MapTypeToAllocKind<T>::kind;
-    sliceBudget.step(Arena::thingsPerArena(kind));
-    if (sliceBudget.isOverBudget()) {
-      return false;
-    }
+    sliceBudget.step(steps);
   }
 
+  *arenasToSweep = nullptr;
   return true;
 }
 
@@ -2071,11 +2079,13 @@ IncrementalProgress GCRuntime::sweepPropMapTree(JS::GCContext* gcx,
   ArenaLists& al = sweepZone->arenas;
 
   if (!SweepArenaList<CompactPropMap>(
-          gcx, &al.gcCompactPropMapArenasToUpdate.ref(), budget)) {
+          gcx, al.collectingArenaList(AllocKind::COMPACT_PROP_MAP),
+          &al.gcCompactPropMapArenasToUpdate.ref(), budget)) {
     return NotFinished;
   }
   if (!SweepArenaList<NormalPropMap>(
-          gcx, &al.gcNormalPropMapArenasToUpdate.ref(), budget)) {
+          gcx, al.collectingArenaList(AllocKind::NORMAL_PROP_MAP),
+          &al.gcNormalPropMapArenasToUpdate.ref(), budget)) {
     return NotFinished;
   }
 

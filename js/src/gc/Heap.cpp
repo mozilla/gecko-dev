@@ -173,33 +173,19 @@ void Arena::checkLookupTables() {
 
 #ifdef DEBUG
 void js::gc::ArenaList::dump() {
-  fprintf(stderr, "ArenaList %p:", this);
-  if (cursorp_ == &head_) {
-    fprintf(stderr, " *");
-  }
-  for (Arena* arena = head(); arena; arena = arena->next) {
-    fprintf(stderr, " %p", arena);
-    if (cursorp_ == &arena->next) {
-      fprintf(stderr, " *");
+  fprintf(stderr, "ArenaList %p:\n", this);
+  for (auto arena = iter(); !arena.done(); arena.next()) {
+    fprintf(stderr, "  %p %zu", arena.get(), arena->countFreeCells());
+    if (arena->isEmpty()) {
+      fprintf(stderr, " (empty)");
     }
+    if (arena->isFull()) {
+      fprintf(stderr, " (full)");
+    }
+    fprintf(stderr, "\n");
   }
-  fprintf(stderr, "\n");
 }
 #endif
-
-Arena* ArenaList::removeRemainingArenas(Arena** arenap) {
-  // This is only ever called to remove arenas that are after the cursor, so
-  // we don't need to update it.
-#ifdef DEBUG
-  for (Arena* arena = *arenap; arena; arena = arena->next) {
-    MOZ_ASSERT(cursorp_ != &arena->next);
-  }
-#endif
-  Arena* remainingArenas = *arenap;
-  *arenap = nullptr;
-  check();
-  return remainingArenas;
-}
 
 AutoGatherSweptArenas::AutoGatherSweptArenas(JS::Zone* zone, AllocKind kind) {
   GCRuntime& gc = zone->runtimeFromMainThread()->gc;
@@ -214,13 +200,13 @@ AutoGatherSweptArenas::AutoGatherSweptArenas(JS::Zone* zone, AllocKind kind) {
 }
 
 AutoGatherSweptArenas::~AutoGatherSweptArenas() {
-  if (sortedList) {
-    sortedList->restoreFromArenaList(linked, bucketLastPointers);
+  if (!sortedList) {
+    MOZ_ASSERT(linked.isEmpty());
+    return;
   }
-  linked.clear();
-}
 
-Arena* AutoGatherSweptArenas::sweptArenas() const { return linked.head(); }
+  sortedList->restoreFromArenaList(linked, bucketLastPointers);
+}
 
 FreeLists::FreeLists() {
   for (auto i : AllAllocKinds()) {
@@ -264,8 +250,7 @@ void ArenaLists::moveArenasToCollectingLists() {
 
 void ArenaLists::mergeArenasFromCollectingLists() {
   for (AllocKind kind : AllAllocKinds()) {
-    collectingArenaList(kind).insertListWithCursorAtEnd(arenaList(kind));
-    arenaList(kind) = std::move(collectingArenaList(kind));
+    arenaList(kind).prepend(std::move(collectingArenaList(kind)));
     MOZ_ASSERT(collectingArenaList(kind).isEmpty());
   }
 }

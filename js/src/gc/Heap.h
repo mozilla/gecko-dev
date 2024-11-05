@@ -303,7 +303,8 @@ class alignas(ArenaSize) Arena {
            firstFreeSpan.last == lastThingOffset(kind);
   }
 
-  bool hasFreeThings() const { return !firstFreeSpan.isEmpty(); }
+  bool isFull() const { return firstFreeSpan.isEmpty(); }
+  bool hasFreeThings() const { return !isFull(); }
 
   size_t numFreeThings(size_t thingSize) const {
     firstFreeSpan.checkSpan(this);

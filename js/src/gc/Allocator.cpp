@@ -377,7 +377,7 @@ void* ArenaLists::refillFreeListAndAllocate(
     maybeLock.emplace(rt);
   }
 
-  Arena* arena = arenaList(thingKind).takeNextArena();
+  Arena* arena = arenaList(thingKind).takeInitialNonFullArena();
   if (arena) {
     // Empty arenas should be immediately freed.
     MOZ_ASSERT(!arena->isEmpty());
@@ -405,8 +405,8 @@ void* ArenaLists::refillFreeListAndAllocate(
   }
 
   ArenaList& al = arenaList(thingKind);
-  MOZ_ASSERT(al.isCursorAtEnd());
-  al.insertBeforeCursor(arena);
+  MOZ_ASSERT(!al.hasNonFullArenas());
+  al.pushBack(arena);
 
   return freeLists().setArenaAndAllocate(arena, thingKind);
 }
