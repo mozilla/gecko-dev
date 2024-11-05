@@ -40,6 +40,15 @@ add_setup(async () => {
     0,
     "sidebar-button"
   );
+  if (window.SidebarController.sidebarMain?.expanded) {
+    info("In setup, the sidebar is currently expanded. Collapsing it");
+    window.SidebarController.toggleExpanded(false);
+    await window.SidebarController.sidebarMain.updateComplete;
+  }
+  ok(
+    BrowserTestUtils.isVisible(window.SidebarController.sidebarMain),
+    "Sidebar launcher is visible at setup"
+  );
 });
 
 add_task(async function test_toolbar_sidebar_button() {
@@ -66,14 +75,19 @@ add_task(async function test_toolbar_sidebar_button() {
 });
 
 add_task(async function test_expanded_state_for_always_show() {
+  info(
+    `Current window's sidebarMain.expanded: ${window.SidebarController.sidebarMain?.expanded}`
+  );
   await SpecialPowers.pushPrefEnv({
     set: [[SIDEBAR_VISIBILITY_PREF, "always-show"]],
   });
   const win = await BrowserTestUtils.openNewBrowserWindow();
-  const {
-    SidebarController: { sidebarMain, toolbarButton },
-    document,
-  } = win;
+
+  const { SidebarController, document } = win;
+  const { sidebarMain, toolbarButton } = SidebarController;
+
+  await SidebarController.promiseInitialized;
+  info(`New window's sidebarMain.expanded: ${sidebarMain?.expanded}`);
 
   const checkExpandedState = async (
     expanded,
@@ -111,6 +125,10 @@ add_task(async function test_expanded_state_for_always_show() {
   info("Check default expanded state.");
   await checkExpandedState(false);
   ok(
+    BrowserTestUtils.isVisible(sidebarMain),
+    "The sidebar launcher is visible"
+  );
+  ok(
     !toolbarButton.hasAttribute("checked"),
     "The toolbar button is not checked."
   );
@@ -122,7 +140,7 @@ add_task(async function test_expanded_state_for_always_show() {
   await checkExpandedState(false);
 
   info("Collapse the sidebar by loading a tool.");
-  sidebarMain.expanded = true;
+  SidebarController.toggleExpanded(true);
   await sidebarMain.updateComplete;
   const toolButton = sidebarMain.toolButtons[0];
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
@@ -133,7 +151,7 @@ add_task(async function test_expanded_state_for_always_show() {
   await checkExpandedState(true);
 
   info("Load and unload a tool with the sidebar collapsed to begin with.");
-  sidebarMain.expanded = false;
+  SidebarController.toggleExpanded(false);
   await sidebarMain.updateComplete;
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
   await checkExpandedState(false);
@@ -141,7 +159,7 @@ add_task(async function test_expanded_state_for_always_show() {
   await checkExpandedState(false);
 
   info("Check expanded state on a new window.");
-  sidebarMain.expanded = true;
+  SidebarController.toggleExpanded(true);
   await sidebarMain.updateComplete;
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   await checkExpandedState(
