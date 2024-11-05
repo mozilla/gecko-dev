@@ -43,6 +43,8 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 
 ["test_allowListFiles.js"]
 
+["test_artificialFailure.js"]
+
 ["test_bad_origin_directory.js"]
 
 ["test_basics.js"]
