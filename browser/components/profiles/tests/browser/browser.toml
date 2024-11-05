@@ -7,6 +7,9 @@ prefs = [
   "browser.profiles.enabled=true",
 ]
 
+["browser_appmenu_menuitem_updates.js"]
+head = "../unit/head.js head.js"
+
 ["browser_create_profile_page_test.js"]
 
 ["browser_edit_profile_test.js"]
