@@ -1151,8 +1151,13 @@ add_task(async function test_tabGroupCreatePanel() {
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
 
   let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  let group = gBrowser.addTabGroup([tab], { color: "cyan", label: "Food" });
+  let group = gBrowser.addTabGroup([tab], {
+    color: "cyan",
+    label: "Food",
+    showCreateUI: true,
+  });
   await panelShown;
+  Assert.equal(tabgroupPanel.state, "open", "Create panel is visible");
   Assert.ok(tabgroupEditor.createMode, "Group editor is in create mode");
   // Edit panel should be populated with correct group details
   Assert.equal(
@@ -1178,7 +1183,11 @@ add_task(async function test_tabGroupCreatePanel() {
   Assert.ok(!tab.group, "Tab is ungrouped after hitting Cancel");
 
   panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  group = gBrowser.addTabGroup([tab], { color: "cyan", label: "Food" });
+  group = gBrowser.addTabGroup([tab], {
+    color: "cyan",
+    label: "Food",
+    showCreateUI: true,
+  });
   await panelShown;
 
   // Panel inputs should work correctly
@@ -1252,16 +1261,9 @@ async function createTabGroupAndOpenEditPanel(tabs = []) {
     });
     tabs = [tab];
   }
-  let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
   let group = gBrowser.addTabGroup(tabs, { color: "cyan", label: "Food" });
-  await panelShown;
 
-  // Panel dismissed after clicking Create and group remains
-  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
-  tabgroupPanel.querySelector("#tab-group-editor-button-create").click();
-  await panelHidden;
-
-  panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+  let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
   EventUtils.synthesizeMouseAtCenter(
     group.querySelector(".tab-group-label"),
     { type: "contextmenu", button: 2 },
