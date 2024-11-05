@@ -423,12 +423,24 @@ static nsContainerFrame* GetPlaceholderContainer(nsIFrame* aPositionedFrame) {
   return placeholder ? placeholder->GetParent() : nullptr;
 }
 
+struct NonAutoAlignParams {
+  nscoord mCurrentStartInset;
+  nscoord mCurrentEndInset;
+
+  NonAutoAlignParams(nscoord aStartInset, nscoord aEndInset)
+      : mCurrentStartInset(aStartInset), mCurrentEndInset(aEndInset) {}
+};
+
 /**
  * This function returns the offset of an abs/fixed-pos child's static
  * position, with respect to the "start" corner of its alignment container,
  * according to CSS Box Alignment.  This function only operates in a single
  * axis at a time -- callers can choose which axis via the |aAbsPosCBAxis|
- * parameter.
+ * parameter. This is called under two scenarios:
+ * 1. The offsets are auto and will change depending on the alignment of the
+ * box.
+ * 2. The offsets are non-auto, but the element may not fill the inset-reduced
+ *    containing block, so its margin box needs to be aligned in that axis.
  *
  * @param aKidReflowInput The ReflowInput for the to-be-aligned abspos child.
  * @param aKidSizeInAbsPosCBWM The child frame's size (after it's been given
@@ -442,13 +454,14 @@ static nsContainerFrame* GetPlaceholderContainer(nsIFrame* aPositionedFrame) {
  * @param aAbsPosCBWM The child frame's containing block's WritingMode.
  * @param aAbsPosCBAxis The axis (of the containing block) that we should
  *                      be doing this computation for.
+ * @param aNonAutoAlignParams Parameters, if specified, indicating that we're
+ *                            handling the second scenario.
  */
-static nscoord OffsetToAlignedStaticPos(const ReflowInput& aKidReflowInput,
-                                        const LogicalSize& aKidSizeInAbsPosCBWM,
-                                        const LogicalSize& aAbsPosCBSize,
-                                        nsContainerFrame* aPlaceholderContainer,
-                                        WritingMode aAbsPosCBWM,
-                                        LogicalAxis aAbsPosCBAxis) {
+static nscoord OffsetToAlignedStaticPos(
+    const ReflowInput& aKidReflowInput, const LogicalSize& aKidSizeInAbsPosCBWM,
+    const LogicalSize& aAbsPosCBSize,
+    const nsContainerFrame* aPlaceholderContainer, WritingMode aAbsPosCBWM,
+    LogicalAxis aAbsPosCBAxis, Maybe<NonAutoAlignParams> aNonAutoAlignParams) {
   if (!aPlaceholderContainer) {
     // (The placeholder container should be the thing that kicks this whole
     // process off, by setting PLACEHOLDER_STATICPOS_NEEDS_CSSALIGN.  So it
@@ -519,32 +532,41 @@ static nscoord OffsetToAlignedStaticPos(const ReflowInput& aKidReflowInput,
       alignAreaSize -= pcBorderPadding.Size(pcWM);
     }
   } else {
-    NS_ERROR("Unsupported container for abpsos CSS Box Alignment");
-    return 0;  // (leave the child at the start of its alignment container)
+    // Doesn't matter what the placeholder container is - size of the alignment
+    // area is the size of the absolute containing block.
+    alignAreaSize = aAbsPosCBSize.ConvertTo(pcWM, aAbsPosCBWM);
   }
 
-  nscoord alignAreaSizeInAxis = (pcAxis == LogicalAxis::Inline)
-                                    ? alignAreaSize.ISize(pcWM)
-                                    : alignAreaSize.BSize(pcWM);
+  const nscoord existingOffset = aNonAutoAlignParams
+                                     ? aNonAutoAlignParams->mCurrentStartInset +
+                                           aNonAutoAlignParams->mCurrentEndInset
+                                     : 0;
+  const nscoord alignAreaSizeInAxis =
+      ((pcAxis == LogicalAxis::Inline) ? alignAreaSize.ISize(pcWM)
+                                       : alignAreaSize.BSize(pcWM)) -
+      existingOffset;
 
   AlignJustifyFlags flags = AlignJustifyFlags::IgnoreAutoMargins;
   StyleAlignFlags alignConst =
       aPlaceholderContainer->CSSAlignmentForAbsPosChild(aKidReflowInput,
                                                         pcAxis);
   // If the safe bit in alignConst is set, set the safe flag in |flags|.
-  // Note: If no <overflow-position> is specified, we behave as 'unsafe'.
-  // This doesn't quite match the css-align spec, which has an [at-risk]
-  // "smart default" behavior with some extra nuance about scroll containers.
-  if (alignConst & StyleAlignFlags::SAFE) {
+  const auto safetyBits =
+      alignConst & (StyleAlignFlags::SAFE | StyleAlignFlags::UNSAFE);
+  alignConst &= ~StyleAlignFlags::FLAG_BITS;
+  if (safetyBits & StyleAlignFlags::SAFE) {
     flags |= AlignJustifyFlags::OverflowSafe;
   }
-  alignConst &= ~StyleAlignFlags::FLAG_BITS;
 
   // Find out if placeholder-container & the OOF child have the same start-sides
   // in the placeholder-container's pcAxis.
   WritingMode kidWM = aKidReflowInput.GetWritingMode();
   if (pcWM.ParallelAxisStartsOnSameSide(pcAxis, kidWM)) {
     flags |= AlignJustifyFlags::SameSide;
+  }
+
+  if (aNonAutoAlignParams) {
+    flags |= AlignJustifyFlags::AligningMarginBox;
   }
 
   // (baselineAdjust is unused. CSSAlignmentForAbsPosChild() should've
@@ -562,6 +584,40 @@ static nscoord OffsetToAlignedStaticPos(const ReflowInput& aKidReflowInput,
   nscoord offset = CSSAlignUtils::AlignJustifySelf(
       alignConst, kidAxis, flags, baselineAdjust, alignAreaSizeInAxis,
       aKidReflowInput, kidSizeInOwnWM);
+
+  const auto rawAlignConst =
+      (pcAxis == LogicalAxis::Inline)
+          ? aKidReflowInput.mStylePosition->mJustifySelf._0
+          : aKidReflowInput.mStylePosition->mAlignSelf._0;
+  if (aNonAutoAlignParams && !safetyBits &&
+      rawAlignConst != StyleAlignFlags::AUTO) {
+    // No `safe` or `unsafe` specified - "in-between" behaviour for relevant
+    // alignment values: https://drafts.csswg.org/css-position-3/#abspos-layout
+    // Skip if the raw self alignment for this element is `auto` to preserve
+    // legacy behaviour.
+    // We've already aligned as if unsafe. Now get the union of inset-reduced
+    // containing block and the containing block.
+    const auto unionedStartOffset =
+        std::min(0, aNonAutoAlignParams->mCurrentStartInset);
+    const auto cbSize = aAbsPosCBSize.Size(aAbsPosCBAxis, aAbsPosCBWM);
+    const auto unionedEndOffset =
+        std::max(cbSize, cbSize - aNonAutoAlignParams->mCurrentEndInset);
+    const auto kidSizeInAxis =
+        aKidSizeInAbsPosCBWM.Size(aAbsPosCBAxis, aAbsPosCBWM);
+    if (unionedEndOffset - unionedStartOffset < kidSizeInAxis) {
+      // Kid is bigger than the union - start align it.
+      offset = -aNonAutoAlignParams->mCurrentStartInset + unionedStartOffset;
+    } else {
+      const auto start = aNonAutoAlignParams->mCurrentStartInset;
+      const auto end = start + kidSizeInAxis;
+      // Nudge into the union
+      if (start < unionedStartOffset) {
+        offset = unionedStartOffset - start;
+      } else if (end > unionedEndOffset) {
+        offset = unionedEndOffset - end;
+      }
+    }
+  }
 
   // "offset" is in terms of the CSS Box Alignment container (i.e. it's in
   // terms of pcWM). But our return value needs to in terms of the containing
@@ -620,7 +676,7 @@ void nsAbsoluteContainingBlock::ResolveSizeDependentOffsets(
       placeholderContainer = GetPlaceholderContainer(aKidReflowInput.mFrame);
       nscoord offset = OffsetToAlignedStaticPos(
           aKidReflowInput, aKidSize, logicalCBSizeOuterWM, placeholderContainer,
-          outerWM, LogicalAxis::Inline);
+          outerWM, LogicalAxis::Inline, Nothing{});
       // Shift IStart from its current position (at start corner of the
       // alignment container) by the returned offset.  And set IEnd to the
       // distance between the kid's end edge to containing block's end edge.
@@ -640,7 +696,7 @@ void nsAbsoluteContainingBlock::ResolveSizeDependentOffsets(
       }
       nscoord offset = OffsetToAlignedStaticPos(
           aKidReflowInput, aKidSize, logicalCBSizeOuterWM, placeholderContainer,
-          outerWM, LogicalAxis::Block);
+          outerWM, LogicalAxis::Block, Nothing{});
       // Shift BStart from its current position (at start corner of the
       // alignment container) by the returned offset.  And set BEnd to the
       // distance between the kid's end edge to containing block's end edge.
@@ -839,6 +895,58 @@ void nsAbsoluteContainingBlock::ReflowAbsoluteFrame(
     if (kidReflowInput.mFrame->HasIntrinsicKeywordForBSize()) {
       ResolveAutoMarginsAfterLayout(kidReflowInput, &logicalCBSize, kidSize,
                                     margin, offsets);
+    }
+
+    // If the inset is constrained as non-auto, we may have a child that does
+    // not fill out the inset-reduced containing block. In this case, we need to
+    // align the child by its margin box:
+    // https://drafts.csswg.org/css-position-3/#abspos-layout
+    const auto* stylePos = aKidFrame->StylePosition();
+    const bool iInsetAuto =
+        stylePos->GetInset(LogicalSide::IStart, outerWM).IsAuto() ||
+        stylePos->GetInset(LogicalSide::IEnd, outerWM).IsAuto();
+    const bool bInsetAuto =
+        stylePos->GetInset(LogicalSide::BStart, outerWM).IsAuto() ||
+        stylePos->GetInset(LogicalSide::BEnd, outerWM).IsAuto();
+    const LogicalSize logicalCBSizeOuterWM(outerWM, aContainingBlock.Size());
+    const LogicalSize kidMarginBox{
+        outerWM, margin.IStartEnd(outerWM) + kidSize.ISize(outerWM),
+        margin.BStartEnd(outerWM) + kidSize.BSize(outerWM)};
+    const auto* placeholderContainer =
+        GetPlaceholderContainer(kidReflowInput.mFrame);
+
+    if (!iInsetAuto) {
+      MOZ_ASSERT(!kidReflowInput.mFlags.mIOffsetsNeedCSSAlign,
+                 "Non-auto inline inset but requires CSS alignment for static "
+                 "position?");
+      auto alignOffset = OffsetToAlignedStaticPos(
+          kidReflowInput, kidMarginBox, logicalCBSizeOuterWM,
+          placeholderContainer, outerWM, LogicalAxis::Inline,
+          Some(NonAutoAlignParams{
+              offsets.IStart(outerWM),
+              offsets.IEnd(outerWM),
+          }));
+
+      offsets.IStart(outerWM) += alignOffset;
+      offsets.IEnd(outerWM) =
+          logicalCBSizeOuterWM.ISize(outerWM) -
+          (offsets.IStart(outerWM) + kidMarginBox.ISize(outerWM));
+    }
+    if (!bInsetAuto) {
+      MOZ_ASSERT(!kidReflowInput.mFlags.mBOffsetsNeedCSSAlign,
+                 "Non-auto block inset but requires CSS alignment for static "
+                 "position?");
+      auto alignOffset = OffsetToAlignedStaticPos(
+          kidReflowInput, kidMarginBox, logicalCBSizeOuterWM,
+          placeholderContainer, outerWM, LogicalAxis::Block,
+          Some(NonAutoAlignParams{
+              offsets.BStart(outerWM),
+              offsets.BEnd(outerWM),
+          }));
+      offsets.BStart(outerWM) += alignOffset;
+      offsets.BEnd(outerWM) =
+          logicalCBSizeOuterWM.BSize(outerWM) -
+          (offsets.BStart(outerWM) + kidMarginBox.BSize(outerWM));
     }
 
     LogicalRect rect(outerWM,

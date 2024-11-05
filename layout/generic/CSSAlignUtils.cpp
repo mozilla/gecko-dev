@@ -54,7 +54,11 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
 
   // Get the item's margin corresponding to the container's start/end side.
   WritingMode wm = aRI.GetWritingMode();
-  const LogicalMargin margin = aRI.ComputedLogicalMargin(wm);
+  // If we're handling the margin box, it's already included in the incoming
+  // size.
+  const LogicalMargin margin = aFlags & AlignJustifyFlags::AligningMarginBox
+                                   ? LogicalMargin{wm}
+                                   : aRI.ComputedLogicalMargin(wm);
   const auto startSide = MakeLogicalSide(
       aAxis, MOZ_LIKELY(isSameSide) ? LogicalEdge::Start : LogicalEdge::End);
   const nscoord marginStart = margin.Side(startSide, wm);
@@ -63,7 +67,8 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
 
   bool hasAutoMarginStart;
   bool hasAutoMarginEnd;
-  if (aFlags & AlignJustifyFlags::IgnoreAutoMargins) {
+  if (aFlags & (AlignJustifyFlags::IgnoreAutoMargins |
+                AlignJustifyFlags::AligningMarginBox)) {
     // (Note: ReflowInput will have treated "auto" margins as 0, so we
     // don't need to do anything special to avoid expanding them.)
     hasAutoMarginStart = hasAutoMarginEnd = false;

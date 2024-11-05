@@ -32,6 +32,9 @@ class CSSAlignUtils {
     // (By default, AlignJustifySelf() *will* expand such margins, to fill the
     // available space before any alignment is done.)
     IgnoreAutoMargins = 1 << 2,
+    // We're aligning a margin box - the margin is already included in the
+    // size. Implies `IgnoreAutoMargins`.
+    AligningMarginBox = 1 << 3,
   };
 
   /**
