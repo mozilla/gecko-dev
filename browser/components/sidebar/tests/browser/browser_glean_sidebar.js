@@ -356,12 +356,9 @@ add_task(async function test_customize_firefox_settings_clicked() {
   await SidebarController.show("viewCustomizeSidebar");
   const { contentDocument, contentWindow } = SidebarController.browser;
   const component = contentDocument.querySelector("sidebar-customize");
-
-  EventUtils.synthesizeMouseAtCenter(
-    component.shadowRoot.querySelector("#manage-settings > a"),
-    {},
-    contentWindow
-  );
+  let settingsLink = component.shadowRoot.querySelector("#manage-settings > a");
+  settingsLink.scrollIntoView();
+  EventUtils.synthesizeMouseAtCenter(settingsLink, {}, contentWindow);
   const events = Glean.sidebarCustomize.firefoxSettingsClicked.testGetValue();
   Assert.equal(events.length, 1, "One event was reported.");
 
