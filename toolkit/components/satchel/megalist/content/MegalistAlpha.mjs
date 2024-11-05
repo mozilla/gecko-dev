@@ -69,6 +69,14 @@ export class MegalistAlpha extends MozLitElement {
     this.#sendCommand(this.displayMode);
   }
 
+  async getUpdateComplete() {
+    await super.getUpdateComplete();
+    const passwordCards = Array.from(
+      this.shadowRoot.querySelectorAll("password-card")
+    );
+    await Promise.all(passwordCards.map(el => el.updateComplete));
+  }
+
   #onMessageFromViewModel({ detail }) {
     const functionName = `receive${detail.name}`;
     if (!(functionName in this)) {
@@ -422,6 +430,18 @@ export class MegalistAlpha extends MozLitElement {
     </div>`;
   }
 
+  async #scrollPasswordCardIntoView(guid) {
+    const matchingRecordIndex = this.records.findIndex(
+      record => record.origin.guid === guid
+    );
+    this.viewMode = VIEW_MODES.LIST;
+    await this.getUpdateComplete();
+    const passwordCard =
+      this.shadowRoot.querySelectorAll("password-card")[matchingRecordIndex];
+    passwordCard.scrollIntoView({ block: "center" });
+    passwordCard.originLine.focus();
+  }
+
   renderNotification() {
     if (!this.notification) {
       return "";
@@ -434,6 +454,7 @@ export class MegalistAlpha extends MozLitElement {
           this.notification = null;
         }}
         .messageHandler=${commandId => this.#sendCommand(commandId)}
+        @view-login=${e => this.#scrollPasswordCardIntoView(e.detail.guid)}
       >
       </notification-message-bar>
     `;

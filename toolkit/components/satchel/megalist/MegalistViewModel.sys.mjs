@@ -109,6 +109,10 @@ export class MegalistViewModel {
       snapshot.concealed = snapshotData.concealed;
     }
 
+    if ("record" in snapshotData) {
+      snapshot.guid = snapshotData.record.guid;
+    }
+
     return snapshot;
   }
 

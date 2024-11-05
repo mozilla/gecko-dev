@@ -41,7 +41,8 @@
   }
 }
 
-:host(login-line:focus-visible) {
+:host(login-line:hover),
+:host(login-line:focus) {
   > .line-container {
     background-color: var(--button-background-color-hover);
   }
@@ -92,11 +93,7 @@
 :host([linetype="username"]),
 :host([linetype="password"]) {
   > .line-container.copied {
-    &:hover,
-    &:focus-visible,
-    &:active {
-      background-color: var(--background-color-box);
-    }
+    background-color: var(--background-color-box);
 
     .input-label::after {
       position: static;
@@ -192,23 +189,6 @@
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-
-  &:hover,
-  &:focus-visible {
-    background: var(--button-background-color-hover);
-
-    .input-field {
-      color: var(--input-field-color-hover);
-    }
-  }
-
-  &:active {
-    background: var(---button-background-color-active);
-
-    .input-field {
-      color: var(--input-field-color-hover);
-    }
-  }
 }
 
 .input-container {

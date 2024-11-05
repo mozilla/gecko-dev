@@ -75,6 +75,16 @@ class NotificationMessageBar extends MozLitElement {
     messageHandler: { type: Function },
   };
 
+  #dispatchViewLoginEvent(guid) {
+    this.dispatchEvent(
+      new CustomEvent("view-login", {
+        detail: {
+          guid,
+        },
+      })
+    );
+  }
+
   #renderImportSuccess() {
     return html`${notificationShell({
       onDismiss: this.onDismiss,
@@ -134,7 +144,10 @@ class NotificationMessageBar extends MozLitElement {
           type: "primary",
           slot: "actions",
           dataL10nId: "passwords-add-password-success-button",
-          onClick: this.onDismiss,
+          onClick: () => {
+            this.#dispatchViewLoginEvent(this.notification.guid);
+            this.onDismiss();
+          },
         },
       })}
     `;
@@ -152,7 +165,10 @@ class NotificationMessageBar extends MozLitElement {
           type: "primary",
           slot: "actions",
           dataL10nId: "passwords-password-already-exists-error-button",
-          onClick: this.onDismiss,
+          onClick: () => {
+            this.#dispatchViewLoginEvent(this.notification.guid);
+            this.onDismiss();
+          },
         },
       })}
     `;
