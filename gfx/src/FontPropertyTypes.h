@@ -65,8 +65,12 @@ class FontPropertyRange {
 
   /**
    * Clamp the given value to this range.
+   *
+   * (We can't use mozilla::Clamp here because it only accepts integral types.)
    */
-  T Clamp(T aValue) const { return std::clamp(aValue, Min(), Max()); }
+  T Clamp(T aValue) const {
+    return aValue <= Min() ? Min() : (aValue >= Max() ? Max() : aValue);
+  }
 
   /**
    * Return whether the range consists of a single unique value.

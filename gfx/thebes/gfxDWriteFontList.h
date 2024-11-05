@@ -114,7 +114,7 @@ class gfxDWriteFontEntry final : public gfxFontEntry {
         StretchRange(FontStretchFromDWriteStretch(aFont->GetStretch()));
 
     int weight = NS_ROUNDUP(aFont->GetWeight() - 50, 100);
-    weight = std::clamp(weight, 100, 900);
+    weight = mozilla::Clamp(weight, 100, 900);
     mWeightRange = WeightRange(FontWeight::FromInt(weight));
 
     mIsCJK = UNINITIALIZED_VALUE;

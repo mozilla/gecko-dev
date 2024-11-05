@@ -1805,7 +1805,7 @@ sRGBColor ToSRGBColor(const StyleAbsoluteColor& aColor) {
   auto srgb = aColor.ToColorSpace(StyleColorSpace::Srgb);
 
   const auto ToComponent = [](float aF) -> float {
-    float component = std::clamp(aF, 0.0f, 1.0f);
+    float component = std::min(std::max(0.0f, aF), 1.0f);
     if (MOZ_UNLIKELY(!std::isfinite(component))) {
       return 0.0f;
     }
