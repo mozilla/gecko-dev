@@ -27,21 +27,43 @@
       },
       { "file": "helper_fission_touch.html", "prefs": prefs },
       { "file": "helper_fission_transforms.html", "prefs": prefs },
-      { "file": "helper_fission_animation_styling_in_oopif.html",
-        "prefs": animation_prefs },
-      { "file": "helper_fission_animation_styling_in_transformed_oopif.html",
-        "prefs": animation_prefs },
+      {
+        "file": "helper_fission_animation_styling_in_oopif.html",
+        "prefs": animation_prefs
+      },
+      {
+        "file": "helper_fission_animation_styling_in_transformed_oopif.html",
+        "prefs": animation_prefs
+      },
     ];
 
     if (getPlatform() != "android") {
       subtests.push(
+        { // Skip on Android because of missing native wheel event support
+          "file": "helper_fission_scroll_handoff.html",
+          "prefs": prefs
+        },
         { // Fails on try runs for Android
           // https://bugzilla.mozilla.org/show_bug.cgi?id=1914368
           "file": "helper_fission_tap.html",
           "prefs": [["apz.max_tap_time", 10000]],
         }
       );
+
+      if (getPlatform() != "linux") {
+        subtests.push(
+          { // Fails on try runs for Android and Linux
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1915378
+            "file": "helper_fission_inactivescroller_under_oopif.html",
+            "prefs": [
+              ["test.events.async.enabled", true],
+              ["apz.test.logging_enabled", true],
+            ]
+          }
+        );
+      }
     }
+
 
     if (isApzEnabled()) {
       // This has a lot of subtests, and Android emulators are slow.
