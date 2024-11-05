@@ -183,3 +183,30 @@ If you encounter this error, you need to run ``./mach clobber`` before running `
 Running ``./mach clobber`` will remove previous build artifacts to restart a build from scratch.
 If you are using an artifact build, this will mean that the next build will take slightly longer than usual.
 However, if you are using a non-artifact/full build, the next build will take significantly longer to complete.
+
+Python-related errors
+~~~~~~~~~~~~~~~~~~~~~
+
+Building, running, testing, etc. not always support the latest Python versions, therefore it is possible to encounter Python-related errors,
+especially after updating your Python distribution to a new version.
+
+The recommended way to work around this is to use a virtual environment with a compatible Python version.
+Please consider `mach's <https://searchfox.org/mozilla-central/source/mach>`_ ``MIN_PYTHON_VERSION`` and ``MAX_PYTHON_VERSION_TO_CONSIDER``
+for the range of compatible versions.
+
+Should you be using Python through Homebrew, you can install older releases like this:
+
+.. code-block:: shell
+
+   brew install python@3.<your-desired-version>
+
+You can set up the virtual environment manually or use a supporting tool such as `pyenv <https://github.com/pyenv/pyenv>`_ (recommended).
+Below is an example for manual setup.
+
+.. code-block:: shell
+
+   cd mozilla-unified
+   # Creates virtual environment for <your-desired-version> in folder .venv
+   python3.<your-desired-version> -m venv .venv
+   # Activates virtual environment
+   source .venv/bin/activate
