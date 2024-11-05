@@ -2157,7 +2157,10 @@ void nsCocoaWindow::SetMenuBar(RefPtr<nsMenuBarX>&& aMenuBar) {
   if (mMenuBar && ((!gSomeMenuBarPainted &&
                     nsMenuUtilsX::GetHiddenWindowMenuBar() == mMenuBar) ||
                    mWindow.isMainWindow)) {
-    mMenuBar->Paint();
+    // We dispatch this in order to prevent crashes when macOS is actively
+    // enumerating the menu items in `NSApp.mainMenu`.
+    NS_DispatchToCurrentThread(NS_NewRunnableFunction(
+        "PaintMenuBar", [menuBar = mMenuBar] { menuBar->Paint(); }));
   }
 }
 
