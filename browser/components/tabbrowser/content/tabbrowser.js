@@ -2581,6 +2581,7 @@
             this.selectedTab = this.addTrustedTab(BROWSER_NEW_TAB_URL, {
               index: tab._tPos + 1,
               userContextId: tab.userContextId,
+              tabGroup: tab.group,
             });
             resolve(this.selectedBrowser);
           }),
@@ -2592,15 +2593,25 @@
     /**
      * Must only be used sparingly for content that came from Chrome context
      * If in doubt use addWebTab
+     * @param {string} aURI
+     * @param {object} [options]
+     * @see this.addTab options
+     * @returns {MozTabbrowserTab|null}
      */
-    addTrustedTab(aURI, params = {}) {
-      params.triggeringPrincipal =
+    addTrustedTab(aURI, options = {}) {
+      options.triggeringPrincipal =
         Services.scriptSecurityManager.getSystemPrincipal();
-      return this.addTab(aURI, params);
+      return this.addTab(aURI, options);
     },
 
     /**
-     * @returns {object}
+     * @param {string} uriString
+     * @param {object} options
+     * @param {MozTabbrowserTabGroup} [options.tabGroup]
+     *   A related tab group where this tab should be added, when applicable.
+     *   When present, the tab is expected to reside in this tab group. When
+     *   absent, the tab is expected to be a standalone tab.
+     * @returns {MozTabbrowserTab|null}
      *    The new tab. The return value will be null if the tab couldn't be
      *    created; this shouldn't normally happen, and an error will be logged
      *    to the console if it does.
@@ -2637,6 +2648,7 @@
         initialBrowsingContextGroupId,
         skipAnimation,
         skipBackgroundNotify,
+        tabGroup,
         triggeringPrincipal,
         userContextId,
         csp,
@@ -2734,6 +2746,7 @@
             openerTab,
             pinned,
             bulkOrderedOpen,
+            tabGroup: tabGroup ?? openerTab?.group,
           });
         }
 
@@ -3045,6 +3058,10 @@
       return { uri: aURIObject, uriIsAboutBlank, lazyBrowserURI, uriString };
     },
 
+    /**
+     * @param {object} options
+     * @returns {MozTabbrowserTab}
+     */
     _createTab({
       uriString,
       userContextId,
@@ -3677,10 +3694,16 @@
 
     /**
      * This determines where the tab should be inserted within the tabContainer
+     *
+     * @param {MozTabbrowserTab} tab
+     * @param {object} [options]
+     * @param {number} [options.index]
+     * @param {MozTabbrowserTabGroup} [options.tabGroup]
+     *   A related tab group where this tab should be added, when applicable.
      */
     _insertTabAtIndex(
       tab,
-      { index, ownerTab, openerTab, pinned, bulkOrderedOpen } = {}
+      { index, ownerTab, openerTab, pinned, bulkOrderedOpen, tabGroup } = {}
     ) {
       // If this new tab is owned by another, assert that relationship
       if (ownerTab) {
@@ -3719,8 +3742,13 @@
           }
         }
       }
+
+      // Prevent a flash of unstyled content by setting up the tab content
+      // and inherited attributes before appending it (see Bug 1592054):
+      tab.initialize();
+
       // Ensure index is within bounds.
-      if (pinned) {
+      if (tab.pinned) {
         index = Math.max(index, 0);
         index = Math.min(index, this.pinnedTabCount);
       } else {
@@ -3728,17 +3756,30 @@
         index = Math.min(index, this.tabs.length);
       }
 
-      let tabAfter = this.tabs[index] || null;
+      /** @type {MozTabbrowserTab|undefined} */
+      let tabAfter = this.tabs.at(index);
       this.tabContainer._invalidateCachedTabs();
-      // Prevent a flash of unstyled content by setting up the tab content
-      // and inherited attributes before appending it (see Bug 1592054):
-      tab.initialize();
-      this.tabContainer.insertBefore(tab, tabAfter);
-      if (tabAfter) {
-        this._updateTabsAfterInsert();
+
+      if (tabGroup) {
+        if (tabAfter && tabAfter.group == tabGroup) {
+          // Place at the front of, or between tabs in, the same tab group
+          this.tabContainer.insertBefore(tab, tabAfter);
+        } else {
+          // Place tab at the end of the contextual tab group because one of:
+          // 1) no `tabAfter` so `tab` should be the last tab in the tab strip
+          // 2) `tabAfter` is in a different tab group
+          this.moveTabToGroup(tab, tabGroup);
+        }
       } else {
-        tab._tPos = index;
+        // Place ungrouped tab before `tabAfter` or its group
+        // 1) Ungrouped tab between standalone tabs
+        // 2) Ungrouped tab at the end of the tab strip
+        // 3) Ungrouped tab right before the next tab group, if the
+        //    next tab is in a group
+        this.tabContainer.insertBefore(tab, tabAfter?.group ?? tabAfter);
       }
+
+      this._updateTabsAfterInsert();
 
       if (pinned) {
         this._updateTabBarForPinnedTabs();

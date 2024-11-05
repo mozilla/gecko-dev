@@ -432,6 +432,10 @@ add_task(async function test_moveTabBetweenGroups() {
 // Context menu tests
 // ---
 
+/**
+ * @param {MozTabbrowserTab} tab
+ * @param {function(Element?, Element?, Element?):void} callback
+ */
 const withTabMenu = async function (tab, callback) {
   const tabContextMenu = document.getElementById("tabContextMenu");
   Assert.equal(
@@ -460,6 +464,21 @@ const withTabMenu = async function (tab, callback) {
 
   tabContextMenu.hidePopup();
 };
+
+/**
+ * @param {MozTabbrowserTab} tab
+ * @param {function(MozTabbrowserTab):void} callback
+ */
+async function withNewTabFromTabMenu(tab, callback) {
+  await withTabMenu(tab, async () => {
+    const newTabPromise = BrowserTestUtils.waitForEvent(document, "TabOpen");
+    const newTabToRight = document.getElementById("context_openANewTab");
+    newTabToRight.click();
+    const { target: newTab } = await newTabPromise;
+    await callback(newTab);
+    BrowserTestUtils.removeTab(newTab);
+  });
+}
 
 /*
  * Tests that the context menu options do not appear if the tab group pref is
@@ -1100,6 +1119,160 @@ add_task(async function test_removeFromGroupForMultipleTabs() {
   tabs.forEach(t => {
     BrowserTestUtils.removeTab(t);
   });
+});
+
+// Context menu tests: "new tab to right" option
+// ---
+
+/**
+ * Tests that the "new tab to right" context menu option will create the new
+ * tab inside of the same tab group as the context menu tab when the insertion
+ * point is between two tabs within the same tab group
+ */
+add_task(async function test_newTabToRightInsideGroup() {
+  let [tab1, tab2, tab3] = createManyTabs(3);
+  let group = gBrowser.addTabGroup([tab1, tab2, tab3]);
+
+  await withNewTabFromTabMenu(tab2, newTab => {
+    Assert.equal(newTab.group, group, "new tab should be in the tab group");
+  });
+
+  await removeTabGroup(group);
+});
+
+/**
+ * Tests that the "new tab to right" context menu option will create the new
+ * tab inside of the same tab group as the context menu tab when the context
+ * menu tab is the last tab in the tab group
+ */
+add_task(async function test_newTabToRightAtEndOfGroup() {
+  let [tab1, tab2, tab3] = createManyTabs(3);
+  let group = gBrowser.addTabGroup([tab1, tab2, tab3]);
+
+  await withNewTabFromTabMenu(tab3, newTab => {
+    Assert.equal(newTab.group, group, "new tab should be in the tab group");
+  });
+
+  await removeTabGroup(group);
+});
+
+/**
+ * Tests that the "new tab to right" context menu option will create the new
+ * tab outside of any tab group when then context menu tab is to the left of
+ * a tab that is inside of a tab group
+ */
+add_task(async function test_newTabToRightBeforeGroup() {
+  let [tab1, tab2, tab3] = createManyTabs(3);
+  let group = gBrowser.addTabGroup([tab2, tab3], { insertBefore: tab2 });
+
+  await withNewTabFromTabMenu(tab1, async newTab => {
+    Assert.ok(!newTab.group, "new tab should not be in a tab group");
+  });
+
+  await removeTabGroup(group);
+  await BrowserTestUtils.removeTab(tab1);
+});
+
+// Opening new tabs from links around/within tab groups
+// ---
+
+const PAGE_WITH_LINK_URI =
+  "https://example.com/browser/browser/components/tabbrowser/test/browser/tabs/file_new_tab_page.html";
+const LINK_ID_SELECTOR = "#link_to_example_com";
+
+/**
+ * @returns {Promise<MozTabbrowserTab>}
+ */
+async function getNewTabFromLink() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.tabs.opentabfor.middleclick", true],
+      ["browser.tabs.insertRelatedAfterCurrent", true],
+    ],
+  });
+
+  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    LINK_ID_SELECTOR,
+    { button: 1 },
+    gBrowser.selectedBrowser
+  );
+  let newTab = await newTabPromise;
+
+  return newTab;
+}
+
+/**
+ * Tests that for a tab inside of a tab group, opening a link on the
+ * page in a new tab will open the new tab inside the tab group
+ */
+add_task(async function test_openLinkInNewTabInsideGroup() {
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let tabWithLink = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    PAGE_WITH_LINK_URI
+  );
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let group = gBrowser.addTabGroup([tab1, tabWithLink, tab2]);
+
+  const newTab = await getNewTabFromLink();
+  Assert.equal(
+    newTab.group,
+    group,
+    "new tab should be in the same tab group as the opening page"
+  );
+
+  await removeTabGroup(group);
+});
+
+/**
+ * Tests that for the last tab inside of a tab group, opening a link on the
+ * page in a new tab will open the new tab inside the tab group
+ */
+add_task(async function test_openLinkInNewTabAtEndOfGroup() {
+  let [tab1, tab2] = createManyTabs(2);
+  let tabWithLink = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    PAGE_WITH_LINK_URI
+  );
+  let group = gBrowser.addTabGroup([tab1, tab2, tabWithLink]);
+
+  const newTab = await getNewTabFromLink();
+  Assert.equal(
+    newTab.group,
+    group,
+    "new tab should be in the same tab group as the opening page"
+  );
+
+  await removeTabGroup(group);
+});
+
+/**
+ * Tests that for a standalone tab to the left of a tab group, opening a link
+ * on the page in a new tab will NOT open the new tab inside the tab group
+ */
+add_task(async function test_openLinkInNewTabBeforeGroup() {
+  let tabWithLink = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    PAGE_WITH_LINK_URI
+  );
+  let [tab1, tab2] = createManyTabs(2);
+  let group = gBrowser.addTabGroup([tab1, tab2]);
+  gBrowser.selectedTab = tabWithLink;
+
+  const newTab = await getNewTabFromLink();
+  Assert.ok(
+    !newTab.group,
+    "new tab should not be in a group because the opening tab was not in a group"
+  );
+
+  await removeTabGroup(group);
+  BrowserTestUtils.removeTab(tabWithLink);
+  BrowserTestUtils.removeTab(newTab);
 });
 
 /*

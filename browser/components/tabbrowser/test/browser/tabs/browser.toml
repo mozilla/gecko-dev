@@ -364,6 +364,7 @@ support-files = ["browser_tab_dragdrop2_frame1.xhtml"]
 
 ["browser_tab_groups.js"]
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1920294
+support-files = ["file_new_tab_page.html"]
 
 ["browser_tab_groups_keyboard_focus.js"]
 
