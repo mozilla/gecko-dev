@@ -873,6 +873,8 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                 return False
             if "chrome-m" in try_name and "essential" in try_name:
                 return True
+            if "chrome-m" in try_name and "-nofis" not in try_name:
+                return False
             if "chrome-m" in try_name and (
                 ("ebay" in try_name and "live" not in try_name)
                 or (
@@ -889,16 +891,10 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
                 return True
             # Select fenix resource usage tests
             if "fenix" in try_name:
-                # Bug 1816421 disable fission perf tests
-                if "-fis" in try_name:
-                    return False
                 if "-power" in try_name:
                     return True
             # Select geckoview resource usage tests
             if "geckoview" in try_name:
-                # Bug 1816421 disable fission perf tests
-                if "-fis" in try_name:
-                    return False
                 # Run cpu+memory, and power tests
                 cpu_n_memory_task = "-cpu" in try_name and "-memory" in try_name
                 power_task = "-power" in try_name

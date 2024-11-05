@@ -899,8 +899,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-1-3-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-cstm-car-m-motionmark-1-3**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -909,7 +919,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-1-3**
         - ✅
         - ❌
         - ❌
@@ -930,7 +950,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-1-3**
         - ❌
         - ❌
         - ❌
@@ -1193,8 +1223,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-1-3-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-cstm-car-m-motionmark-1-3**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -1203,7 +1243,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-1-3**
         - ✅
         - ❌
         - ❌
@@ -1224,7 +1274,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-1-3-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-1-3**
         - ❌
         - ❌
         - ❌
@@ -1498,8 +1558,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-htmlsuite-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-htmlsuite-1-3-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-cstm-car-m-motionmark-htmlsuite-1-3**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -1508,7 +1578,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-htmlsuite-1-3**
         - ✅
         - ❌
         - ❌
@@ -1529,7 +1609,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-htmlsuite-1-3**
         - ❌
         - ❌
         - ❌
@@ -1792,8 +1882,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-htmlsuite-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-chrome-m-motionmark-htmlsuite-1-3-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-cstm-car-m-motionmark-htmlsuite-1-3**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -1802,7 +1902,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-htmlsuite-1-3**
         - ✅
         - ❌
         - ❌
@@ -1823,7 +1933,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-motionmark-1-3-fenix-motionmark-htmlsuite-1-3-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-motionmark-1-3-geckoview-motionmark-htmlsuite-1-3**
         - ❌
         - ❌
         - ❌
@@ -2089,8 +2209,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-chrome-m-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-cstm-car-m**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -2099,7 +2229,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ✅
         - ✅
         - ❌
@@ -2120,7 +2260,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -2141,7 +2291,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-chrome-m-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-cstm-car-m**
         - ❌
         - ❌
         - ❌
@@ -2151,7 +2311,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -2172,7 +2342,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-chrome-m-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-cstm-car-m**
         - ❌
         - ❌
         - ❌
@@ -2182,7 +2362,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -2438,8 +2628,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-chrome-m-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-cstm-car-m**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -2448,7 +2648,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ✅
         - ✅
         - ❌
@@ -2469,7 +2679,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -2490,7 +2710,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-chrome-m-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-cstm-car-m**
         - ❌
         - ❌
         - ❌
@@ -2500,7 +2730,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -2521,7 +2761,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-chrome-m-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-cstm-car-m**
         - ❌
         - ❌
         - ❌
@@ -2531,7 +2781,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -2802,8 +3062,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-chrome-m-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-cstm-car-m**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -2812,7 +3082,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ✅
         - ✅
         - ❌
@@ -2833,7 +3113,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -2854,7 +3144,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-chrome-m**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-chrome-m-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-cstm-car-m**
         - ✅
         - ❌
         - ❌
@@ -2864,7 +3164,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ✅
         - ❌
         - ❌
@@ -2885,7 +3195,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-chrome-m**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-chrome-m-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-cstm-car-m**
         - ✅
         - ❌
         - ❌
@@ -2895,7 +3215,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ✅
         - ❌
         - ❌
@@ -3226,8 +3556,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-chrome-m**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-chrome-m-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-cstm-car-m**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -3236,7 +3576,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ✅
         - ✅
         - ❌
@@ -3257,7 +3607,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ❌
         - ❌
         - ❌
@@ -3278,7 +3638,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-chrome-m**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-chrome-m-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-cstm-car-m**
         - ✅
         - ❌
         - ❌
@@ -3288,7 +3658,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ✅
         - ❌
         - ❌
@@ -3309,7 +3689,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-speedometer3-mobile-chrome-m**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-chrome-m-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-cstm-car-m**
         - ✅
         - ❌
         - ❌
@@ -3319,7 +3709,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-fenix**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-speedometer3-mobile-fenix-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-speedometer3-mobile-geckoview**
         - ✅
         - ❌
         - ❌
@@ -4249,7 +4649,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-unity-webgl-mobile-chrome-m**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-chrome-m-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-fenix**
         - ✅
         - ❌
         - ❌
@@ -4259,8 +4669,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-geckoview**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-geckoview-nofis**
         - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-refbrow**
+        - ❌
         - ❌
         - ❌
         - ❌
@@ -4275,12 +4695,27 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-unity-webgl-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-fenix-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-geckoview**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-geckoview-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-refbrow**
         - ❌
         - ❌
         - ❌
@@ -4485,7 +4920,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-unity-webgl-mobile-chrome-m**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-chrome-m-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-fenix**
         - ✅
         - ❌
         - ❌
@@ -4495,8 +4940,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-geckoview**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-geckoview-nofis**
         - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-refbrow**
+        - ❌
         - ❌
         - ❌
         - ❌
@@ -4511,12 +4966,27 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-benchmark-unity-webgl-mobile-fenix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-fenix-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-geckoview**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-benchmark-unity-webgl-mobile-geckoview-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-benchmark-unity-webgl-mobile-refbrow**
         - ❌
         - ❌
         - ❌
@@ -6092,6 +6562,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-fenix-youtube-playback-av1-sfr**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-fenix-youtube-playback-av1-sfr-nofis**
         - ✅
         - ❌
@@ -6108,6 +6583,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-fenix-youtube-playback-av1-sfr**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-fenix-youtube-playback-av1-sfr-nofis**
         - ❌
         - ❌
@@ -6875,8 +7355,18 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-geckoview-youtube-playback-h264-sfr**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-geckoview-youtube-playback-h264-sfr-nofis**
         - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-mobile-refbrow-youtube-playback-h264-sfr**
+        - ❌
         - ❌
         - ❌
         - ❌
@@ -6891,7 +7381,17 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-geckoview-youtube-playback-h264-sfr**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-geckoview-youtube-playback-h264-sfr-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-mobile-refbrow-youtube-playback-h264-sfr**
         - ❌
         - ❌
         - ❌
@@ -7099,13 +7599,28 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-fenix-youtube-playback-hfr**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-fenix-youtube-playback-hfr-nofis**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-mobile-geckoview-youtube-playback-hfr**
         - ✅
         - ❌
         - ❌
         - ❌
       * - **browsertime-mobile-geckoview-youtube-playback-hfr-nofis**
         - ✅
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-mobile-refbrow-youtube-playback-hfr**
+        - ❌
         - ❌
         - ❌
         - ❌
@@ -7120,12 +7635,27 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-fenix-youtube-playback-hfr**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-fenix-youtube-playback-hfr-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-mobile-geckoview-youtube-playback-hfr**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-geckoview-youtube-playback-hfr-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-mobile-refbrow-youtube-playback-hfr**
         - ❌
         - ❌
         - ❌
@@ -8036,6 +8566,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-fenix-youtube-playback-vp9-sfr**
+        - ✅
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-fenix-youtube-playback-vp9-sfr-nofis**
         - ✅
         - ❌
@@ -8052,6 +8587,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-mobile-fenix-youtube-playback-vp9-sfr**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-mobile-fenix-youtube-playback-vp9-sfr-nofis**
         - ❌
         - ❌
@@ -13993,12 +14533,27 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-av1-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-av1**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-fenix-vpl-av1-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-av1**
         - ✅
         - ✅
         - ❌
@@ -14019,7 +14574,17 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-av1**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-fenix-vpl-av1-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-av1**
         - ❌
         - ❌
         - ❌
@@ -14270,12 +14835,27 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-h264-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-h264**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-fenix-vpl-h264-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-h264**
         - ✅
         - ✅
         - ❌
@@ -14296,7 +14876,17 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-h264**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-fenix-vpl-h264-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-h264**
         - ❌
         - ❌
         - ❌
@@ -14552,12 +15142,27 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-chrome-m-vpl-vp9-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-vp9**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-fenix-vpl-vp9-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-vp9**
         - ✅
         - ✅
         - ❌
@@ -14578,7 +15183,17 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-video-playback-latency-mobile-fenix-vpl-vp9**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-video-playback-latency-mobile-fenix-vpl-vp9-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-video-playback-latency-mobile-geckoview-vpl-vp9**
         - ❌
         - ❌
         - ❌
@@ -15030,7 +15645,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-amazon**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -15049,12 +15664,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-amazon-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-amazon**
         - ❌
         - ❌
         - ❌
@@ -15081,7 +15711,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-amazon**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -15100,7 +15730,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-amazon**
         - ❌
         - ❌
         - ❌
@@ -16078,7 +16718,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-cnn**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -16097,12 +16737,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-cnn-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-cnn**
         - ❌
         - ❌
         - ❌
@@ -16129,7 +16784,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-cnn**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -16148,7 +16803,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-cnn**
         - ❌
         - ❌
         - ❌
@@ -16955,7 +17620,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-chrome-m-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-chrome-m-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-espn**
         - ❌
         - ❌
         - ❌
@@ -16965,7 +17640,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-fenix-espn**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-espn-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-espn**
         - ✅
         - ✅
         - ❌
@@ -16975,12 +17660,32 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-chrome-m-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-espn-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-espn**
         - ❌
         - ❌
         - ❌
@@ -17001,7 +17706,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-fenix-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-espn**
         - ❌
         - ❌
         - ❌
@@ -17011,7 +17726,22 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-espn**
         - ❌
         - ❌
         - ❌
@@ -17246,12 +17976,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-expedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-expedia-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-expedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-expedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-expedia**
         - ❌
         - ❌
         - ❌
@@ -17272,7 +18017,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-expedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-expedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-expedia**
         - ❌
         - ❌
         - ❌
@@ -17507,12 +18262,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-facebook-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-facebook-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-facebook**
         - ❌
         - ❌
         - ❌
@@ -17533,7 +18303,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-facebook-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-facebook**
         - ❌
         - ❌
         - ❌
@@ -19342,7 +20122,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-imdb**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -19361,12 +20141,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-imdb-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-imdb**
         - ❌
         - ❌
         - ❌
@@ -19393,7 +20188,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-imdb**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -19412,7 +20207,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-imdb**
         - ❌
         - ❌
         - ❌
@@ -20008,7 +20813,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-instagram**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -20027,12 +20832,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-instagram-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-instagram**
         - ❌
         - ❌
         - ❌
@@ -20059,7 +20879,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-instagram**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -20078,7 +20898,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-instagram**
         - ❌
         - ❌
         - ❌
@@ -21260,12 +22090,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-nytimes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-nytimes-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-nytimes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-nytimes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-nytimes**
         - ❌
         - ❌
         - ❌
@@ -21286,7 +22131,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-nytimes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-nytimes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-nytimes**
         - ❌
         - ❌
         - ❌
@@ -22774,7 +23629,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-reddit**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -22793,12 +23648,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-reddit-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-reddit**
         - ❌
         - ❌
         - ❌
@@ -22825,7 +23695,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-reddit**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -22844,7 +23714,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-reddit**
         - ❌
         - ❌
         - ❌
@@ -24831,7 +25711,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-wikipedia**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -24850,12 +25730,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-wikipedia-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-wikipedia**
         - ❌
         - ❌
         - ❌
@@ -24882,7 +25777,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-wikipedia**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -24901,7 +25796,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-wikipedia**
         - ❌
         - ❌
         - ❌
@@ -25605,7 +26510,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-youtube**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -25624,12 +26529,27 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-youtube-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-youtube**
         - ❌
         - ❌
         - ❌
@@ -25656,7 +26576,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-youtube**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -25675,7 +26595,17 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-youtube**
         - ❌
         - ❌
         - ❌
@@ -27019,12 +27949,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-booking-sf**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-booking-sf-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-booking-sf**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-booking-sf-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-booking-sf**
         - ❌
         - ❌
         - ❌
@@ -27045,7 +27990,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-booking-sf**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-booking-sf-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-booking-sf**
         - ❌
         - ❌
         - ❌
@@ -27094,12 +28049,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-discord**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-discord-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-discord**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-discord-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-discord**
         - ❌
         - ❌
         - ❌
@@ -27120,7 +28090,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-discord**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-discord-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-discord**
         - ❌
         - ❌
         - ❌
@@ -27169,12 +28149,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-fashionbeans**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-fashionbeans-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-fashionbeans**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-fashionbeans-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-fashionbeans**
         - ❌
         - ❌
         - ❌
@@ -27195,7 +28190,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-fashionbeans**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-fashionbeans-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-fashionbeans**
         - ❌
         - ❌
         - ❌
@@ -27244,12 +28249,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-google-accounts**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-google-accounts-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-google-accounts**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-accounts-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google-accounts**
         - ❌
         - ❌
         - ❌
@@ -27270,7 +28290,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-google-accounts**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-accounts-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google-accounts**
         - ❌
         - ❌
         - ❌
@@ -27319,12 +28349,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-imdb-firefox**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-imdb-firefox-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-imdb-firefox**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-imdb-firefox-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-imdb-firefox**
         - ❌
         - ❌
         - ❌
@@ -27345,7 +28390,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-imdb-firefox**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-imdb-firefox-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-imdb-firefox**
         - ❌
         - ❌
         - ❌
@@ -27394,12 +28449,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-medium-article**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-medium-article-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-medium-article**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-medium-article-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-medium-article**
         - ❌
         - ❌
         - ❌
@@ -27420,7 +28490,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-medium-article**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-medium-article-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-medium-article**
         - ❌
         - ❌
         - ❌
@@ -27469,12 +28549,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-people-article**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-people-article-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-people-article**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-people-article-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-people-article**
         - ❌
         - ❌
         - ❌
@@ -27495,7 +28590,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-people-article**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-people-article-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-people-article**
         - ❌
         - ❌
         - ❌
@@ -27544,12 +28649,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-reddit-thread**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-reddit-thread-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-reddit-thread**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-reddit-thread-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-reddit-thread**
         - ❌
         - ❌
         - ❌
@@ -27570,7 +28690,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-reddit-thread**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-reddit-thread-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-reddit-thread**
         - ❌
         - ❌
         - ❌
@@ -27619,12 +28749,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-rumble-fox**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-rumble-fox-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-rumble-fox**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-rumble-fox-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-rumble-fox**
         - ❌
         - ❌
         - ❌
@@ -27645,7 +28790,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-rumble-fox**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-rumble-fox-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-rumble-fox**
         - ❌
         - ❌
         - ❌
@@ -27694,12 +28849,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-stackoverflow-question**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-stackoverflow-question-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-stackoverflow-question**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-stackoverflow-question-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-stackoverflow-question**
         - ❌
         - ❌
         - ❌
@@ -27720,7 +28890,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-stackoverflow-question**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-stackoverflow-question-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-stackoverflow-question**
         - ❌
         - ❌
         - ❌
@@ -27769,12 +28949,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-urbandictionary-define**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-urbandictionary-define-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-urbandictionary-define**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-urbandictionary-define-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-urbandictionary-define**
         - ❌
         - ❌
         - ❌
@@ -27795,7 +28990,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-urbandictionary-define**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-urbandictionary-define-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-urbandictionary-define**
         - ❌
         - ❌
         - ❌
@@ -27844,12 +29049,27 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-wikia-marvel**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-wikia-marvel-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-wikia-marvel**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-wikia-marvel-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-wikia-marvel**
         - ❌
         - ❌
         - ❌
@@ -27870,7 +29090,17 @@ A set of test pages that are run as live sites instead of recorded versions. The
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-wikia-marvel**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-wikia-marvel-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-wikia-marvel**
         - ❌
         - ❌
         - ❌
@@ -27928,7 +29158,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-chrome-m-allrecipes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-chrome-m-allrecipes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-allrecipes**
         - ❌
         - ❌
         - ❌
@@ -27938,7 +29178,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-fenix-allrecipes**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-allrecipes-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-allrecipes**
         - ✅
         - ✅
         - ❌
@@ -27948,12 +29198,32 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-allrecipes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-chrome-m-allrecipes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-allrecipes-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-allrecipes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-allrecipes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-allrecipes**
         - ❌
         - ❌
         - ❌
@@ -27974,7 +29244,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-fenix-allrecipes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-allrecipes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-allrecipes**
         - ❌
         - ❌
         - ❌
@@ -27984,7 +29264,22 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-allrecipes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-allrecipes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-allrecipes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-allrecipes**
         - ❌
         - ❌
         - ❌
@@ -28058,7 +29353,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-amazon**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28077,12 +29372,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-amazon-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-amazon**
         - ❌
         - ❌
         - ❌
@@ -28109,7 +29419,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-amazon**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28128,7 +29438,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-amazon**
         - ❌
         - ❌
         - ❌
@@ -28541,7 +29861,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-chrome-m-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-chrome-m-amazon-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-amazon-search**
         - ❌
         - ❌
         - ❌
@@ -28551,7 +29881,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-fenix-amazon-search**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-amazon-search-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-amazon-search**
         - ✅
         - ✅
         - ❌
@@ -28561,7 +29901,22 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-chrome-m-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-amazon-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-amazon-search**
         - ❌
         - ❌
         - ❌
@@ -28571,8 +29926,18 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-geckoview-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-geckoview-amazon-search-nofis**
         - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-webextensions-fenix-amazon-search**
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28592,7 +29957,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-fenix-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-amazon-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-amazon-search**
         - ❌
         - ❌
         - ❌
@@ -28602,12 +29977,32 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-amazon-search-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-geckoview-amazon-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-geckoview-amazon-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-webextensions-fenix-amazon-search**
         - ❌
         - ❌
         - ❌
@@ -28681,7 +30076,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-bild-de**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28700,12 +30095,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-bild-de**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-bild-de-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-bild-de**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-bild-de-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-bild-de**
         - ❌
         - ❌
         - ❌
@@ -28732,7 +30142,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-bild-de**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28751,7 +30161,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-bild-de**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-bild-de-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-bild-de**
         - ❌
         - ❌
         - ❌
@@ -28830,7 +30250,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-bing**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28849,12 +30269,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-bing**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-bing-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-bing**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-bing-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-bing**
         - ❌
         - ❌
         - ❌
@@ -28881,7 +30316,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-bing**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28900,7 +30335,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-bing**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-bing-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-bing**
         - ❌
         - ❌
         - ❌
@@ -28979,7 +30424,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-bing-search-restaurants**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -28998,12 +30443,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-bing-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-bing-search-restaurants-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-bing-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-bing-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-bing-search-restaurants**
         - ❌
         - ❌
         - ❌
@@ -29030,7 +30490,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-bing-search-restaurants**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29049,7 +30509,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-bing-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-bing-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-bing-search-restaurants**
         - ❌
         - ❌
         - ❌
@@ -29128,7 +30598,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-booking**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29147,12 +30617,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-booking**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-booking-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-booking**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-booking-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-booking**
         - ❌
         - ❌
         - ❌
@@ -29179,7 +30664,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-booking**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29198,7 +30683,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-booking**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-booking-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-booking**
         - ❌
         - ❌
         - ❌
@@ -29277,7 +30772,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-cnn**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29296,12 +30791,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-cnn-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-cnn**
         - ❌
         - ❌
         - ❌
@@ -29328,7 +30838,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-cnn**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29347,7 +30857,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-cnn**
         - ❌
         - ❌
         - ❌
@@ -29706,7 +31226,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-cnn-ampstories**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29725,7 +31245,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-cnn-ampstories**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-cnn-ampstories-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-cnn-ampstories**
         - ❌
         - ❌
         - ❌
@@ -29733,6 +31263,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
       * - **browsertime-tp6m-live-fenix-cnn-ampstories-nofis**
         - ❌
         - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-cnn-ampstories**
+        - ❌
+        - ✅
         - ❌
         - ❌
       * - **browsertime-tp6m-live-geckoview-cnn-ampstories-nofis**
@@ -29757,7 +31292,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-cnn-ampstories**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29776,7 +31311,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-cnn-ampstories**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-cnn-ampstories-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-cnn-ampstories**
         - ❌
         - ❌
         - ❌
@@ -29855,7 +31400,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-dailymail**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29874,12 +31419,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-dailymail**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-dailymail-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-dailymail**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-dailymail-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-dailymail**
         - ❌
         - ❌
         - ❌
@@ -29906,7 +31466,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-dailymail**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -29925,7 +31485,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-dailymail**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-dailymail-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-dailymail**
         - ❌
         - ❌
         - ❌
@@ -30004,7 +31574,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -30023,12 +31593,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-ebay-kleinanzeigen**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-ebay-kleinanzeigen-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-ebay-kleinanzeigen**
         - ❌
         - ❌
         - ❌
@@ -30055,7 +31640,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -30074,7 +31659,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-ebay-kleinanzeigen**
         - ❌
         - ❌
         - ❌
@@ -30153,7 +31748,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen-search**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -30172,12 +31767,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-ebay-kleinanzeigen-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-ebay-kleinanzeigen-search-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-ebay-kleinanzeigen-search**
         - ❌
         - ❌
         - ❌
@@ -30204,7 +31814,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen-search**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -30223,7 +31833,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-ebay-kleinanzeigen-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-ebay-kleinanzeigen-search**
         - ❌
         - ❌
         - ❌
@@ -30281,7 +31901,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-chrome-m-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-chrome-m-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-espn**
         - ❌
         - ❌
         - ❌
@@ -30291,7 +31921,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-fenix-espn**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-espn-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-espn**
         - ✅
         - ✅
         - ❌
@@ -30301,12 +31941,32 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-chrome-m-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-espn-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-espn**
         - ❌
         - ❌
         - ❌
@@ -30327,7 +31987,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-fenix-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-espn**
         - ❌
         - ❌
         - ❌
@@ -30337,7 +32007,22 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-espn**
         - ❌
         - ❌
         - ❌
@@ -30571,12 +32256,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-chrome-m-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-facebook-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-facebook-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-facebook**
         - ❌
         - ❌
         - ❌
@@ -30597,7 +32297,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-live-fenix-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-facebook-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-facebook**
         - ❌
         - ❌
         - ❌
@@ -30911,7 +32621,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-facebook-cristiano**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -30930,12 +32640,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-facebook-cristiano**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-facebook-cristiano-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-facebook-cristiano**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-facebook-cristiano-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-facebook-cristiano**
         - ❌
         - ❌
         - ❌
@@ -30962,7 +32687,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-facebook-cristiano**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -30981,7 +32706,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-facebook-cristiano**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-facebook-cristiano-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-facebook-cristiano**
         - ❌
         - ❌
         - ❌
@@ -31040,7 +32775,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-chrome-m-google**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-chrome-m-google-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-google**
         - ❌
         - ❌
         - ❌
@@ -31050,7 +32795,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-fenix-google**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-google-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-google**
         - ✅
         - ✅
         - ❌
@@ -31060,12 +32815,32 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-google**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-chrome-m-google**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-google-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-google**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google**
         - ❌
         - ❌
         - ❌
@@ -31086,7 +32861,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-fenix-google**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-google-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-google**
         - ❌
         - ❌
         - ❌
@@ -31096,7 +32881,22 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-google**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-google**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google**
         - ❌
         - ❌
         - ❌
@@ -31170,7 +32970,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-google-maps**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31189,12 +32989,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-google-maps**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-google-maps-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-google-maps**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-maps-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google-maps**
         - ❌
         - ❌
         - ❌
@@ -31221,7 +33036,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-google-maps**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31240,7 +33055,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-google-maps**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-maps-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google-maps**
         - ❌
         - ❌
         - ❌
@@ -31320,7 +33145,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-google-search-restaurants**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31339,12 +33164,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-google-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-google-search-restaurants-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-google-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google-search-restaurants**
         - ❌
         - ❌
         - ❌
@@ -31371,7 +33211,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-google-search-restaurants**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31390,7 +33230,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-google-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-google-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-google-search-restaurants**
         - ❌
         - ❌
         - ❌
@@ -31469,7 +33319,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-imdb**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31488,12 +33338,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-imdb-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-imdb**
         - ❌
         - ❌
         - ❌
@@ -31520,7 +33385,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-imdb**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31539,7 +33404,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-imdb**
         - ❌
         - ❌
         - ❌
@@ -31864,7 +33739,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-instagram**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31883,12 +33758,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-instagram-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-instagram**
         - ❌
         - ❌
         - ❌
@@ -31915,7 +33805,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-instagram**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -31934,7 +33824,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-instagram**
         - ❌
         - ❌
         - ❌
@@ -32282,7 +34182,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-chrome-m-microsoft-support**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-chrome-m-microsoft-support-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-microsoft-support**
         - ❌
         - ❌
         - ❌
@@ -32292,7 +34202,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-fenix-microsoft-support**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-microsoft-support-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-microsoft-support**
         - ✅
         - ✅
         - ❌
@@ -32302,12 +34222,32 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-microsoft-support**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-chrome-m-microsoft-support**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-microsoft-support-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-microsoft-support**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-microsoft-support-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-microsoft-support**
         - ❌
         - ❌
         - ❌
@@ -32328,7 +34268,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-fenix-microsoft-support**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-microsoft-support-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-microsoft-support**
         - ❌
         - ❌
         - ❌
@@ -32338,7 +34288,22 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-microsoft-support**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-microsoft-support**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-microsoft-support-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-microsoft-support**
         - ❌
         - ❌
         - ❌
@@ -32412,7 +34377,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-reddit**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -32431,12 +34396,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-reddit-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-reddit**
         - ❌
         - ❌
         - ❌
@@ -32463,7 +34443,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-reddit**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -32482,7 +34462,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-reddit**
         - ❌
         - ❌
         - ❌
@@ -32806,7 +34796,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-sina**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -32842,7 +34832,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-sina**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -32930,7 +34920,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-stackoverflow**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -32949,12 +34939,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-stackoverflow**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-stackoverflow-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-stackoverflow**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-stackoverflow-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-stackoverflow**
         - ❌
         - ❌
         - ❌
@@ -32981,7 +34986,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-stackoverflow**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -33000,7 +35005,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-stackoverflow**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-stackoverflow-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-stackoverflow**
         - ❌
         - ❌
         - ❌
@@ -33079,7 +35094,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-wikipedia**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -33098,12 +35113,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-wikipedia-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-wikipedia**
         - ❌
         - ❌
         - ❌
@@ -33130,7 +35160,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-wikipedia**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -33149,7 +35179,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-wikipedia**
         - ❌
         - ❌
         - ❌
@@ -33523,7 +35563,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-fenix-youtube**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -33542,12 +35582,27 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-chrome-m-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-youtube-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-youtube**
         - ❌
         - ❌
         - ❌
@@ -33574,7 +35629,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-fenix-youtube**
-        - ❌
+        - ✅
         - ❌
         - ❌
         - ❌
@@ -33593,7 +35648,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-youtube**
         - ❌
         - ❌
         - ❌
@@ -33896,7 +35961,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-chrome-m-youtube-watch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-chrome-m-youtube-watch-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-youtube-watch**
         - ❌
         - ❌
         - ❌
@@ -33906,7 +35981,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-fenix-youtube-watch**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-youtube-watch-nofis**
+        - ✅
+        - ✅
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-youtube-watch**
         - ✅
         - ✅
         - ❌
@@ -33916,12 +36001,32 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ✅
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-youtube-watch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-chrome-m-youtube-watch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-chrome-m-youtube-watch-nofis**
         - ❌
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-live-fenix-youtube-watch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-youtube-watch-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-youtube-watch**
         - ❌
         - ❌
         - ❌
@@ -33942,7 +36047,17 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-tp6m-essential-fenix-youtube-watch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-youtube-watch-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-geckoview-youtube-watch**
         - ❌
         - ❌
         - ❌
@@ -33952,7 +36067,22 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-refbrow-youtube-watch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-fenix-youtube-watch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-live-fenix-youtube-watch-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-live-geckoview-youtube-watch**
         - ❌
         - ❌
         - ❌
