@@ -19,6 +19,12 @@
       ["layout.throttled_frame_rate", 60],
     ];
 
+    var hit_test_prefs = [
+      ...prefs,
+      ["test.events.async.enabled", true],
+      ["apz.test.logging_enabled", true],
+    ];
+
     var subtests = [
       { "file": "helper_fission_setResolution.html", "prefs": prefs },
       {
@@ -34,6 +40,9 @@
       {
         "file": "helper_fission_animation_styling_in_transformed_oopif.html",
         "prefs": animation_prefs
+      },
+      { file: "helper_fission_irregular_areas.html",
+        "prefs": hit_test_prefs
       },
     ];
 
@@ -55,10 +64,7 @@
           { // Fails on try runs for Android and Linux
             // https://bugzilla.mozilla.org/show_bug.cgi?id=1915378
             "file": "helper_fission_inactivescroller_under_oopif.html",
-            "prefs": [
-              ["test.events.async.enabled", true],
-              ["apz.test.logging_enabled", true],
-            ]
+            "prefs": hit_test_prefs
           }
         );
       }
