@@ -5,6 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  Logic: "resource://gre/modules/LoginManager.shared.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   PasswordGenerator: "resource://gre/modules/shared/PasswordGenerator.sys.mjs",
   PasswordRulesParser:
@@ -41,45 +42,6 @@ export class PasswordRulesManagerParent extends JSWindowActorParent {
       );
     }
   }
-  /**
-   * Transforms the parsed rules returned from PasswordRulesParser into a Map for easier access.
-   * The returned Map could have the following keys: "allowed", "required", "maxlength", "minlength", and "max-consecutive"
-   * @example
-   * // Returns a Map with a key-value pair of "allowed": "ascii-printable"
-   * _transformRulesToMap([{ _name: "allowed", value: [{ _name: "ascii-printable" }] }])
-   * @param {Object[]} rules rules from PasswordRulesParser.parsePasswordRules
-   * @return {Map} mapped rules
-   * @memberof PasswordRulesManagerParent
-   */
-  _transformRulesToMap(rules) {
-    let map = new Map();
-    for (let rule of rules) {
-      let { _name, value } = rule;
-      if (
-        _name === "minlength" ||
-        _name === "maxlength" ||
-        _name === "max-consecutive"
-      ) {
-        map.set(_name, value);
-      } else {
-        let _value = [];
-        if (map.get(_name)) {
-          _value = map.get(_name);
-        }
-        for (let _class of value) {
-          let { _name: _className } = _class;
-          if (_className) {
-            _value.push(_className);
-          } else {
-            let { _characters } = _class;
-            _value.push(_characters);
-          }
-        }
-        map.set(_name, _value);
-      }
-    }
-    return map;
-  }
 
   /**
    * Generates a password based on rules from the origin parameters.
@@ -109,7 +71,7 @@ export class PasswordRulesManagerParent extends JSWindowActorParent {
       let currentRules = lazy.PasswordRulesParser.parsePasswordRules(
         currentRecord["password-rules"]
       );
-      let mapOfRules = this._transformRulesToMap(currentRules);
+      let mapOfRules = lazy.Logic.transformRulesToMap(currentRules);
       Services.telemetry
         .getHistogramById(IMPROVED_PASSWORD_GENERATION_HISTOGRAM)
         .add(isCustomRule);
