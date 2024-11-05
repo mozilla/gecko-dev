@@ -1,8 +1,272 @@
 {
   "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "title": "DesktopFeatureManifest",
+  "description": "The Firefox Desktop-specific feature manifest. Firefox Desktop requires different fields for its features compared to the general Nimbus feature manifest.",
   "type": "object",
-  "additionalProperties": false,
-  "patternProperties": {
-    "^[A-Za-z0-9_-]*$": { "$ref": "ExperimentFeature.schema.json" }
+  "additionalProperties": {
+    "$ref": "#/$defs/DesktopFeature"
+  },
+  "$defs": {
+    "DesktopApplication": {
+      "enum": [
+        "firefox-desktop",
+        "firefox-desktop-background-task"
+      ],
+      "type": "string"
+    },
+    "DesktopFeature": {
+      "description": "A feature.",
+      "if": {
+        "properties": {
+          "hasExposure": {
+            "const": true
+          }
+        }
+      },
+      "properties": {
+        "description": {
+          "description": "The description of the feature.",
+          "type": "string"
+        },
+        "hasExposure": {
+          "description": "Whether or not this feature records exposure telemetry.",
+          "type": "boolean"
+        },
+        "exposureDescription": {
+          "description": "A description of the exposure telemetry collected by this feature. Only required if hasExposure is true.",
+          "type": "string"
+        },
+        "owner": {
+          "description": "The owner of the feature.",
+          "type": "string"
+        },
+        "isEarlyStartup": {
+          "description": "If true, the feature values will be cached in prefs so that they can be read before Nimbus is initialized during Firefox startup.",
+          "type": "boolean"
+        },
+        "applications": {
+          "description": "The applications that can enroll in experiments for this feature. Defaults to \"firefox-desktop\".",
+          "items": {
+            "$ref": "#/$defs/DesktopApplication"
+          },
+          "minLength": 1,
+          "type": "array"
+        },
+        "variables": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DesktopFeatureVariable"
+          },
+          "description": "The variables that this feature can set.",
+          "type": "object"
+        },
+        "schema": {
+          "$ref": "#/$defs/NimbusFeatureSchema",
+          "description": "An optional JSON schema that describes the feature variables."
+        }
+      },
+      "required": [
+        "description",
+        "hasExposure",
+        "owner",
+        "variables"
+      ],
+      "then": {
+        "required": [
+          "exposureDescription"
+        ]
+      },
+      "type": "object"
+    },
+    "DesktopFeatureVariable": {
+      "dependentSchemas": {
+        "enum": {
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "type": {
+                    "const": "string"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "enum": {
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "type": {
+                    "const": "int"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "enum": {
+                    "items": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "type": {
+                    "const": "boolean"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "enum": {
+                    "const": null
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "type": {
+                    "const": "json"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "enum": {
+                    "const": null
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "fallbackPref": {
+          "description": "setPref is mutually exclusive with fallbackPref",
+          "properties": {
+            "setPref": {
+              "const": null
+            }
+          }
+        },
+        "setPref": {
+          "description": "fallbackPref is mutually exclusive with setPref",
+          "properties": {
+            "fallbackPref": {
+              "const": null
+            }
+          }
+        }
+      },
+      "description": "A feature variable.",
+      "properties": {
+        "description": {
+          "description": "A description of the feature.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/FeatureVariableType",
+          "description": "The field type."
+        },
+        "enum": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "An optional list of possible string or integer values. Only allowed when type is string or int. The types in the enum must match the type of the field."
+        },
+        "fallbackPref": {
+          "description": "A pref that provides the default value for a feature when none is present.",
+          "type": "string"
+        },
+        "setPref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/SetPref"
+            }
+          ],
+          "description": "A pref that should be set to the value of this variable when enrolling in experiments. Using a string is deprecated and unsupported in Firefox 124+."
+        }
+      },
+      "required": [
+        "description",
+        "type"
+      ],
+      "type": "object"
+    },
+    "FeatureVariableType": {
+      "enum": [
+        "int",
+        "string",
+        "boolean",
+        "json"
+      ],
+      "type": "string"
+    },
+    "NimbusFeatureSchema": {
+      "description": "Information about a JSON schema.",
+      "properties": {
+        "uri": {
+          "description": "The resource:// or chrome:// URI that can be loaded at runtime within Firefox. Required by Firefox so that Nimbus can import the schema for validation.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The path to the schema file in the source checkout. Required by Experimenter so that it can find schema files in source checkouts.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "uri",
+        "path"
+      ],
+      "type": "object"
+    },
+    "PrefBranch": {
+      "enum": [
+        "default",
+        "user"
+      ],
+      "type": "string"
+    },
+    "SetPref": {
+      "properties": {
+        "branch": {
+          "$ref": "#/$defs/PrefBranch",
+          "description": "The branch the pref will be set on. Prefs set on the user branch persists through restarts."
+        },
+        "pref": {
+          "description": "The name of the pref to set.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "branch",
+        "pref"
+      ],
+      "type": "object"
+    }
   }
 }
