@@ -156,6 +156,20 @@ interface nsIPermissionManager : nsISupports
                                                    in uint32_t permission);
 
   /**
+   * Add temporary default permission information for a given principal.
+   * This permission will be cleared at the end of the session, will not be
+   * stored on disk, and will not be set if a conflicting (non-default)
+   * permission already exists.
+   *
+   * This function shouldn't be used by regular permission manager consumers and
+   * is only expected to be called by the RemotePermissionService.sys.mjs for
+   * the purpose of importing default permissions from remote settings.
+   */
+  void addDefaultFromPrincipal(in nsIPrincipal principal,
+                               in ACString type,
+                               in uint32_t permission);
+
+  /**
    * Remove permission information for a given principal.
    * This is internally calling remove() with the host from the principal's URI.
    * Passing system principal will be a no-op because we never add them to the
