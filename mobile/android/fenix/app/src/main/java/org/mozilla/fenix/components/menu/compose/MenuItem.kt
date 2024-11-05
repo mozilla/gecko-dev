@@ -90,7 +90,11 @@ internal fun MenuItem(
             ) { onClick?.invoke() }
             .clearAndSetSemantics {
                 role = Role.Button
-                this.contentDescription = label
+                if (description != null) {
+                    this.contentDescription = label + description
+                } else {
+                    this.contentDescription = label
+                }
             }
             .wrapContentSize(),
         labelTextColor = labelTextColor,
