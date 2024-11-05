@@ -111,7 +111,6 @@ class MenuDialogMiddleware(
             is MenuAction.CustomMenuItemAction -> customMenuItemAction(action.intent, action.url)
             is MenuAction.ToggleReaderView -> toggleReaderView(state = currentState)
             is MenuAction.CustomizeReaderView -> customizeReaderView()
-            is MenuAction.DismissCFR -> dismissMenuCFR()
 
             is MenuAction.RequestDesktopSite,
             is MenuAction.RequestMobileSite,
@@ -301,11 +300,6 @@ class MenuDialogMiddleware(
     private fun deleteBrowsingDataAndQuit() = scope.launch {
         onDeleteAndQuit()
         onDismiss()
-    }
-
-    private fun dismissMenuCFR() = scope.launch {
-        settings.shouldShowMenuCFR = false
-        settings.lastCfrShownTimeInMillis = System.currentTimeMillis()
     }
 
     private fun openInApp(

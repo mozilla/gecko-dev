@@ -39,8 +39,6 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.ToggleReaderView,
         is MenuAction.CustomizeReaderView,
         is MenuAction.Navigate,
-        is MenuAction.ShowCFR,
-        is MenuAction.DismissCFR,
         is MenuAction.SaveMenuClicked,
         is MenuAction.ToolsMenuClicked,
         -> state
