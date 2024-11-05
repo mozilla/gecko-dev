@@ -644,13 +644,7 @@ bool DMABufSurfaceRGBA::ImportSurfaceDescriptor(
   }
 
   if (desc.fence().Length() > 0) {
-    auto fd = desc.fence()[0]->ClonePlatformHandle();
-    if (!fd) {
-      LOGDMABUF(
-          ("    failed to get GL fence file descriptor: %s", strerror(errno)));
-      return false;
-    }
-    mSyncFd = new gfx::FileHandleWrapper(std::move(fd));
+    mSyncFd = desc.fence()[0];
   }
 
   if (desc.semaphoreFd()) {
@@ -1446,13 +1440,7 @@ bool DMABufSurfaceYUV::ImportSurfaceDescriptor(
   }
 
   if (aDesc.fence().Length() > 0) {
-    auto fd = aDesc.fence()[0]->ClonePlatformHandle();
-    if (!fd) {
-      LOGDMABUF(
-          ("    failed to get GL fence file descriptor: %s", strerror(errno)));
-      return false;
-    }
-    mSyncFd = new gfx::FileHandleWrapper(std::move(fd));
+    mSyncFd = aDesc.fence()[0];
   }
 
   if (aDesc.refCount().Length() > 0) {
