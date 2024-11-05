@@ -345,6 +345,50 @@ void DMABufSurface::FenceWait() {
   egl->fDestroySync(sync);
 }
 
+void DMABufSurface::MaybeSemaphoreWait(GLuint aGlTexture) {
+  MOZ_ASSERT(aGlTexture);
+
+  if (!mSemaphoreFd) {
+    return;
+  }
+
+  if (!mGL) {
+    MOZ_DIAGNOSTIC_ASSERT(mGL,
+                          "DMABufSurface::SemaphoreWait() missing GL context!");
+    return;
+  }
+
+  if (!mGL->IsExtensionSupported(gl::GLContext::EXT_semaphore) ||
+      !mGL->IsExtensionSupported(gl::GLContext::EXT_semaphore_fd)) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    gfxCriticalNoteOnce << "EXT_semaphore_fd is not suppored";
+    return;
+  }
+
+  auto fd = mSemaphoreFd->ClonePlatformHandle();
+  // No need to try mSemaphoreFd twice.
+  mSemaphoreFd = nullptr;
+
+  GLuint semaphoreHandle = 0;
+  mGL->fGenSemaphoresEXT(1, &semaphoreHandle);
+  mGL->fImportSemaphoreFdEXT(semaphoreHandle,
+                             LOCAL_GL_HANDLE_TYPE_OPAQUE_FD_EXT, fd.release());
+  auto error = mGL->fGetError();
+  if (error != LOCAL_GL_NO_ERROR) {
+    gfxCriticalNoteOnce << "glImportSemaphoreFdEXT failed: " << error;
+    return;
+  }
+
+  GLenum srcLayout = LOCAL_GL_LAYOUT_COLOR_ATTACHMENT_EXT;
+  mGL->fWaitSemaphoreEXT(semaphoreHandle, 0, nullptr, 1, &aGlTexture,
+                         &srcLayout);
+  error = mGL->fGetError();
+  if (error != LOCAL_GL_NO_ERROR) {
+    gfxCriticalNoteOnce << "glWaitSemaphoreEXT failed: " << error;
+    return;
+  }
+}
+
 bool DMABufSurface::OpenFileDescriptors(const MutexAutoLock& aProofOfLock) {
   for (int i = 0; i < mBufferPlaneCount; i++) {
     if (!OpenFileDescriptorForPlane(aProofOfLock, i)) {
@@ -609,6 +653,10 @@ bool DMABufSurfaceRGBA::ImportSurfaceDescriptor(
     mSyncFd = new gfx::FileHandleWrapper(std::move(fd));
   }
 
+  if (desc.semaphoreFd()) {
+    mSemaphoreFd = desc.semaphoreFd();
+  }
+
   if (desc.refCount().Length() > 0) {
     GlobalRefCountImport(desc.refCount()[0].ClonePlatformHandle().release());
   }
@@ -665,7 +713,7 @@ bool DMABufSurfaceRGBA::Serialize(
   aOutDescriptor = SurfaceDescriptorDMABuf(
       mSurfaceType, modifiers, mGbmBufferFlags, fds, width, height, width,
       height, format, strides, offsets, GetYUVColorSpace(), mColorRange,
-      fenceFDs, mUID, refCountFDs);
+      fenceFDs, mUID, refCountFDs, /* semaphoreFd */ nullptr);
   return true;
 }
 
@@ -1460,7 +1508,7 @@ bool DMABufSurfaceYUV::Serialize(
   aOutDescriptor = SurfaceDescriptorDMABuf(
       mSurfaceType, modifiers, 0, fds, width, height, widthBytes, heightBytes,
       format, strides, offsets, GetYUVColorSpace(), mColorRange, fenceFDs, mUID,
-      refCountFDs);
+      refCountFDs, /* semaphoreFd */ nullptr);
   return true;
 }
 

@@ -85,6 +85,7 @@ namespace layers {
   FileHandleWrapper[] fence;
   uint32_t uid;
   FileDescriptor[] refCount;
+  nullable FileHandleWrapper semaphoreFd;
 };
 
 [Comparable] struct SurfaceTextureDescriptor {

@@ -46,6 +46,10 @@ wr::WrExternalImage RenderDMABUFTextureHost::Lock(uint8_t aChannelIndex,
                                  mSurface->GetTexture(aChannelIndex));
   }
 
+  if (auto texture = mSurface->GetTexture(aChannelIndex)) {
+    mSurface->MaybeSemaphoreWait(texture);
+  }
+
   const gfx::IntSize size(mSurface->GetWidth(aChannelIndex),
                           mSurface->GetHeight(aChannelIndex));
   return NativeTextureToWrExternalImage(
