@@ -82,7 +82,6 @@ support-files = ["migration_emptyValue_profile.zip",]
 ["test_old_lsng_pref.js"]
 
 ["test_open_and_multiple_preloads.js"]
-skip-if = ["true"]
 
 ["test_orderingAfterRemoveAdd.js"]
 
