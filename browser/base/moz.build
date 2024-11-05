@@ -45,6 +45,7 @@ BROWSER_CHROME_MANIFESTS += [
     "content/test/popupNotifications/browser.toml",
     "content/test/popups/browser.toml",
     "content/test/privateBrowsing/browser.toml",
+    "content/test/profiles/browser.toml",
     "content/test/protectionsUI/browser.toml",
     "content/test/referrer/browser.toml",
     "content/test/sanitize/browser.toml",
