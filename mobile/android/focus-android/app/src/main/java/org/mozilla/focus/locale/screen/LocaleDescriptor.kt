@@ -53,6 +53,7 @@ class LocaleDescriptor(private val localeTag: String) : Comparable<LocaleDescrip
         languageCodeAndNameMap["tsz"] = "P'urhepecha"
         languageCodeAndNameMap["tt"] = "татарча"
         languageCodeAndNameMap["wo"] = "Wolof"
+        languageCodeAndNameMap["yua"] = "Maayat’aan"
         languageCodeAndNameMap["zam"] = "DíɁztè"
         languageCodeAndNameMap["zh-CN"] = "中文 (中国大陆)"
     }
