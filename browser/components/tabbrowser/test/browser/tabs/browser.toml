@@ -365,6 +365,10 @@ support-files = ["browser_tab_dragdrop2_frame1.xhtml"]
 ["browser_tab_groups.js"]
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1920294
 
+["browser_tab_groups_keyboard_focus.js"]
+
+["browser_tab_groups_a11y.js"]
+
 ["browser_tab_label_during_reload.js"]
 
 ["browser_tab_label_picture_in_picture.js"]

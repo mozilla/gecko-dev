@@ -9,7 +9,7 @@ function synthesizeKeyAndWaitForFocus(element, keyCode, options) {
 
 function synthesizeKeyAndWaitForTabToGetKeyboardFocus(tab, keyCode, options) {
   let focused = TestUtils.waitForCondition(() => {
-    return tab.classList.contains("keyboard-focused-tab");
+    return tab.classList.contains("tablist-keyboard-focus");
   }, "Waiting for tab to get keyboard focus");
   EventUtils.synthesizeKey(keyCode, options);
   return focused;

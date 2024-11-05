@@ -16,6 +16,9 @@
     ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
   });
 
+  const DIRECTION_BACKWARD = -1;
+  const DIRECTION_FORWARD = 1;
+
   class MozTabbox extends MozXULElement {
     constructor() {
       super();
@@ -329,9 +332,6 @@
       super();
 
       this.addEventListener("mousedown", this);
-      this.addEventListener("keydown", this);
-
-      this.arrowKeysShouldWrap = AppConstants.platform == "macosx";
     }
 
     static get inheritedAttributes() {
@@ -393,55 +393,6 @@
       }
     }
 
-    on_keydown(event) {
-      if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
-        return;
-      }
-      switch (event.keyCode) {
-        case KeyEvent.DOM_VK_LEFT: {
-          let direction = window.getComputedStyle(this.container).direction;
-          this.container.advanceSelectedTab(
-            direction == "ltr" ? -1 : 1,
-            this.arrowKeysShouldWrap
-          );
-          event.preventDefault();
-          break;
-        }
-
-        case KeyEvent.DOM_VK_RIGHT: {
-          let direction = window.getComputedStyle(this.container).direction;
-          this.container.advanceSelectedTab(
-            direction == "ltr" ? 1 : -1,
-            this.arrowKeysShouldWrap
-          );
-          event.preventDefault();
-          break;
-        }
-
-        case KeyEvent.DOM_VK_UP:
-          this.container.advanceSelectedTab(-1, this.arrowKeysShouldWrap);
-          event.preventDefault();
-          break;
-
-        case KeyEvent.DOM_VK_DOWN:
-          this.container.advanceSelectedTab(1, this.arrowKeysShouldWrap);
-          event.preventDefault();
-          break;
-
-        case KeyEvent.DOM_VK_HOME:
-          this.container._selectNewTab(this.container.allTabs[0]);
-          event.preventDefault();
-          break;
-
-        case KeyEvent.DOM_VK_END: {
-          let { allTabs } = this.container;
-          this.container._selectNewTab(allTabs[allTabs.length - 1], -1);
-          event.preventDefault();
-          break;
-        }
-      }
-    }
-
     set value(val) {
       this.setAttribute("value", val);
     }
@@ -473,6 +424,11 @@
       }
     }
 
+    /** @returns {boolean} */
+    get visible() {
+      return !this.hidden;
+    }
+
     set linkedPanel(val) {
       this.setAttribute("linkedpanel", val);
     }
@@ -487,27 +443,32 @@
   ]);
   customElements.define("tab", MozElements.MozTab);
 
+  const ARIA_FOCUSED_CLASS_NAME = "tablist-keyboard-focus";
+
   class TabsBase extends MozElements.BaseControl {
     constructor() {
       super();
+      this.arrowKeysShouldWrap = AppConstants.platform == "macosx";
 
       this.addEventListener("DOMMouseScroll", event => {
         if (Services.prefs.getBoolPref("toolkit.tabbox.switchByScrolling")) {
           if (event.detail > 0) {
-            this.advanceSelectedTab(1, false);
+            this.advanceSelectedTab(DIRECTION_FORWARD, false);
           } else {
-            this.advanceSelectedTab(-1, false);
+            this.advanceSelectedTab(DIRECTION_BACKWARD, false);
           }
           event.stopPropagation();
         }
       });
+      this.addEventListener("keydown", this);
     }
 
     // to be called from derived class connectedCallback
     baseConnect() {
       this._tabbox = null;
-      this.ACTIVE_DESCENDANT_ID =
-        "keyboard-focused-tab-" + Math.trunc(Math.random() * 1000000);
+      this.ACTIVE_DESCENDANT_ID = `${ARIA_FOCUSED_CLASS_NAME}-${Math.trunc(
+        Math.random() * 1000000
+      )}`;
 
       if (!this.hasAttribute("orient")) {
         this.setAttribute("orient", "horizontal");
@@ -568,6 +529,9 @@
       return this._tabbox;
     }
 
+    /**
+     * @param {number} val
+     */
     set selectedIndex(val) {
       var tab = this.getItemAtIndex(val);
       if (!tab) {
@@ -592,6 +556,9 @@
       }
     }
 
+    /**
+     * @returns {number}
+     */
     get selectedIndex() {
       const tabs = this.allTabs;
       for (var i = 0; i < tabs.length; i++) {
@@ -602,6 +569,9 @@
       return -1;
     }
 
+    /**
+     * @param {MozTab|null} [val]
+     */
     set selectedItem(val) {
       if (val && !val.selected) {
         // The selectedIndex setter ignores invalid values
@@ -610,6 +580,9 @@
       }
     }
 
+    /**
+     * @returns {MozTab|null}
+     */
     get selectedItem() {
       const tabs = this.allTabs;
       for (var i = 0; i < tabs.length; i++) {
@@ -620,22 +593,36 @@
       return null;
     }
 
+    /**
+     * @returns {MozTab[]}
+     */
+    get ariaFocusableItems() {
+      return this.allTabs;
+    }
+
+    /**
+     * @returns {number}
+     */
     get ariaFocusedIndex() {
-      const tabs = this.allTabs;
-      for (var i = 0; i < tabs.length; i++) {
-        if (tabs[i].id == this.ACTIVE_DESCENDANT_ID) {
+      const items = this.ariaFocusableItems;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id == this.ACTIVE_DESCENDANT_ID) {
           return i;
         }
       }
       return -1;
     }
 
+    /**
+     * @param {MozTab|null} [val]
+     */
     set ariaFocusedItem(val) {
-      let setNewItem = val && this.getIndexOfItem(val) != -1;
+      let setNewItem = val && this.ariaFocusableItems.includes(val);
       let clearExistingItem = this.ariaFocusedItem && (!val || setNewItem);
+
       if (clearExistingItem) {
         let ariaFocusedItem = this.ariaFocusedItem;
-        ariaFocusedItem.classList.remove("keyboard-focused-tab");
+        ariaFocusedItem.classList.remove(ARIA_FOCUSED_CLASS_NAME);
         ariaFocusedItem.id = "";
         this.selectedItem.removeAttribute("aria-activedescendant");
         let evt = new CustomEvent("AriaFocus");
@@ -643,9 +630,8 @@
       }
 
       if (setNewItem) {
-        this.ariaFocusedItem = null;
         val.id = this.ACTIVE_DESCENDANT_ID;
-        val.classList.add("keyboard-focused-tab");
+        val.classList.add(ARIA_FOCUSED_CLASS_NAME);
         this.selectedItem.setAttribute(
           "aria-activedescendant",
           this.ACTIVE_DESCENDANT_ID
@@ -655,6 +641,9 @@
       }
     }
 
+    /**
+     * @returns {MozTab|null}
+     */
     get ariaFocusedItem() {
       return document.getElementById(this.ACTIVE_DESCENDANT_ID);
     }
@@ -690,10 +679,88 @@
       return tabpanelsElm.children[tabElmIdx];
     }
 
+    /**
+     * @returns {"ltr"|"rtl"}
+     */
+    #getDirection() {
+      return window.getComputedStyle(this).direction;
+    }
+
+    /**
+     * @param {KeyEvent} event
+     */
+    on_keydown(event) {
+      if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+        return;
+      }
+
+      // Handles some keyboard interactions when the active tab is in focus
+      if (document.activeElement == this.selectedItem) {
+        switch (event.keyCode) {
+          case KeyEvent.DOM_VK_LEFT: {
+            this.advanceSelectedTab(
+              this.#getDirection() == "ltr"
+                ? DIRECTION_BACKWARD
+                : DIRECTION_FORWARD,
+              this.arrowKeysShouldWrap
+            );
+            event.preventDefault();
+            break;
+          }
+
+          case KeyEvent.DOM_VK_RIGHT: {
+            this.advanceSelectedTab(
+              this.#getDirection() == "ltr"
+                ? DIRECTION_FORWARD
+                : DIRECTION_BACKWARD,
+              this.arrowKeysShouldWrap
+            );
+            event.preventDefault();
+            break;
+          }
+
+          case KeyEvent.DOM_VK_UP:
+            this.advanceSelectedTab(
+              DIRECTION_BACKWARD,
+              this.arrowKeysShouldWrap
+            );
+            event.preventDefault();
+            break;
+
+          case KeyEvent.DOM_VK_DOWN:
+            this.advanceSelectedTab(
+              DIRECTION_FORWARD,
+              this.arrowKeysShouldWrap
+            );
+            event.preventDefault();
+            break;
+
+          case KeyEvent.DOM_VK_HOME:
+            this._selectNewTab(this.allTabs.at(0), DIRECTION_FORWARD);
+            event.preventDefault();
+            break;
+
+          case KeyEvent.DOM_VK_END: {
+            this._selectNewTab(this.allTabs.at(-1), DIRECTION_BACKWARD);
+            event.preventDefault();
+            break;
+          }
+        }
+      }
+    }
+
+    /**
+     * @param {MozTab} item
+     * @returns {number}
+     */
     getIndexOfItem(item) {
       return Array.prototype.indexOf.call(this.allTabs, item);
     }
 
+    /**
+     * @param {numb} index
+     * @returns {MozTab|null}
+     */
     getItemAtIndex(index) {
       return this.allTabs[index] || null;
     }
@@ -701,20 +768,22 @@
     /**
      * Find an adjacent tab.
      *
-     * @param {Node} startTab         A <tab> element to start searching from.
-     * @param {Number} opts.direction 1 to search forward, -1 to search backward.
-     * @param {Boolean} opts.wrap     If true, wrap around if the search reaches
-     *                                the end (or beginning) of the tab strip.
-     * @param {Boolean} opts.startWithAdjacent
-     *                                If true (which is the default), start
-     *                                searching from the  next tab after (or
-     *                                before) startTab.  If false, startTab may
-     *                                be returned if it passes the filter.
-     * @param {Boolean} opts.advance  If false, start searching with startTab.  If
-     *                                true, start searching with an adjacent tab.
-     * @param {Function} opts.filter  A function to select which tabs to return.
-     *
-     * @return {Node | null}     The next <tab> element or, if none exists, null.
+     * @param {MozTab} startTab
+     *   A `<tab>` element to start searching from.
+     * @param {object} opts
+     * @param {Number} [opts.direction=1]
+     *   1 to search forward, -1 to search backward.
+     * @param {Boolean} [opts.wrap=false]
+     *   If true, wrap around if the search reaches the end (or beginning)
+     *   of the tab strip.
+     * @param {Boolean} [opts.startWithAdjacent=true]
+     *   If true (which is the default), start searching from the next tab
+     *   after (or before) `startTab`. If false, `startTab` may be returned
+     *   if it passes the filter.
+     * @param {function(MozTab):boolean} [opts.filter]
+     *   A function to select which tabs to return.
+     * @return {MozTab|null}
+     *   The next `<tab>` element or, if none exists, null.
      */
     findNextTab(startTab, opts = {}) {
       let {
@@ -757,6 +826,12 @@
       }
     }
 
+    /**
+     * @param {MozTab} aNewTab
+     * @param {-1|1} [aFallbackDir]
+     * @param {boolean} [aWrap]
+     * @returns
+     */
     _selectNewTab(aNewTab, aFallbackDir, aWrap) {
       this.ariaFocusedItem = null;
 
@@ -800,22 +875,31 @@
       return true;
     }
 
+    /**
+     * @param {-1|1} [aDir]
+     * @param {boolean} [aWrap]
+     */
     advanceSelectedTab(aDir, aWrap) {
-      let startTab = this.ariaFocusedItem || this.selectedItem;
+      let { ariaFocusedItem } = this;
+      let startTab = ariaFocusedItem;
+      if (!ariaFocusedItem || !this.allTabs.includes(ariaFocusedItem)) {
+        startTab = this.selectedItem;
+      }
       let newTab = null;
 
       // Handle keyboard navigation for a hidden tab that can be selected, like the Firefox View tab,
       // which has a random placement in this.allTabs.
       if (startTab.hidden) {
         if (aDir == 1) {
-          newTab = this.allTabs.find(tab => !tab.hidden);
+          newTab = this.allTabs.find(tab => tab.visible);
         } else {
-          newTab = this.allTabs.findLast(tab => !tab.hidden);
+          newTab = this.allTabs.findLast(tab => tab.visible);
         }
       } else {
         newTab = this.findNextTab(startTab, {
           direction: aDir,
           wrap: aWrap,
+          filter: tab => tab.visible,
         });
       }
 

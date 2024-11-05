@@ -691,7 +691,7 @@
 /* Keyboard focus outline */
 
 #TabsToolbar #firefox-view-button:focus-visible > .toolbarbutton-icon,
-.tabbrowser-tab:is(.keyboard-focused-tab, :focus:not([aria-activedescendant])) > .tab-stack > .tab-background {
+#tabbrowser-tabs[tablist-has-focus] .tabbrowser-tab.tablist-keyboard-focus > .tab-stack > .tab-background {
   outline: var(--focus-outline);
   outline-offset: var(--focus-outline-inset);
 }
@@ -799,6 +799,11 @@ tab-group {
   color: light-dark(var(--tab-group-color-pale), ButtonText);
   background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
   margin: auto 0;
+
+  #tabbrowser-tabs[tablist-has-focus] &.tablist-keyboard-focus {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
+  }
 
   tab-group[collapsed] > .tab-group-label-container > & {
     background-color: light-dark(var(--tab-group-color-pale), var(--tab-group-color));

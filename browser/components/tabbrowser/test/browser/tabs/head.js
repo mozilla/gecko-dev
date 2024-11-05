@@ -584,3 +584,20 @@ function httpURL(filename, host = "https://example.com/") {
 function loadTestSubscript(filePath) {
   Services.scriptloader.loadSubScript(new URL(filePath, gTestPath).href, this);
 }
+
+/**
+ * Removes a tab group (along with its tabs). Resolves when the tab group
+ * is gone.
+ *
+ * @param {MozTabbrowserTabGroup} group
+ * @returns {Promise<void>}
+ */
+async function removeTabGroup(group) {
+  if (!group.parentNode) {
+    ok(false, "group was already removed");
+    return;
+  }
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+  group.ownerGlobal.gBrowser.removeTabGroup(group, { animate: false });
+  await removePromise;
+}

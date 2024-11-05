@@ -8,16 +8,6 @@ add_setup(async function () {
   });
 });
 
-async function removeTabGroup(group) {
-  if (!group.parentNode) {
-    ok(false, "group was already removed");
-    return;
-  }
-  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
-  group.ownerGlobal.gBrowser.removeTabGroup(group, { animate: false });
-  await removePromise;
-}
-
 function createManyTabs(number) {
   return Array.from({ length: number }, () => {
     return BrowserTestUtils.addTab(gBrowser, "about:blank", {
@@ -1249,7 +1239,7 @@ add_task(async function test_tabGroupCreatePanel() {
   Assert.equal(tabgroupPanel.state, "closed", "Tabgroup edit panel is closed");
   Assert.equal(group.label, "Shopping");
   Assert.equal(group.color, "red");
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 });
 
 async function createTabGroupAndOpenEditPanel(tabs = []) {

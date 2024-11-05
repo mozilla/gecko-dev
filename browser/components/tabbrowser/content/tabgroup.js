@@ -10,12 +10,14 @@
   class MozTabbrowserTabGroup extends MozXULElement {
     static markup = `
       <vbox class="tab-group-label-container" pack="center">
-        <label class="tab-group-label"/>
+        <label class="tab-group-label" role="button"/>
       </vbox>
       <html:slot/>
       `;
 
+    /** @type {MozTextLabel} */
     #labelElement;
+
     #colorCode;
 
     constructor() {
@@ -41,6 +43,9 @@
 
       this.#labelElement = this.querySelector(".tab-group-label");
       this.#labelElement.addEventListener("click", this);
+
+      this.#updateLabelAriaAttributes(this.label);
+      this.#updateCollapsedAriaAttributes(this.collapsed);
 
       this.createdDate = Date.now();
 
@@ -121,6 +126,7 @@
 
     set label(val) {
       this.setAttribute("label", val);
+      this.#updateLabelAriaAttributes(val);
     }
 
     get collapsed() {
@@ -132,12 +138,38 @@
         return;
       }
       this.toggleAttribute("collapsed", val);
+      this.#updateCollapsedAriaAttributes(val);
       const eventName = val ? "TabGroupCollapse" : "TabGroupExpand";
       this.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
     }
 
+    /**
+     * @param {string} label
+     */
+    #updateLabelAriaAttributes(label) {
+      const ariaLabel = label == "" ? "unnamed" : label;
+      const ariaDescription = `${ariaLabel} tab group`;
+      this.#labelElement?.setAttribute("aria-label", ariaLabel);
+      this.#labelElement?.setAttribute("aria-description", ariaDescription);
+    }
+
+    /**
+     * @param {boolean} collapsed
+     */
+    #updateCollapsedAriaAttributes(collapsed) {
+      const ariaExpanded = collapsed ? "false" : "true";
+      this.#labelElement?.setAttribute("aria-expanded", ariaExpanded);
+    }
+
     get tabs() {
       return Array.from(this.children).filter(node => node.matches("tab"));
+    }
+
+    /**
+     * @returns {MozTextLabel}
+     */
+    get labelElement() {
+      return this.#labelElement;
     }
 
     /**
@@ -169,6 +201,9 @@
       }
     }
 
+    /**
+     * @param {PointerEvent} event
+     */
     on_click(event) {
       if (event.target === this.#labelElement && event.button === 0) {
         event.preventDefault();
