@@ -1,3 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/onboarding_ctd_default_browser,@drawable-night/onboarding_ctd_default_browser,@drawable/onboarding_ctd_sync,@drawable/onboarding_ctd_notification,@drawable/ic_onboarding_key_features.xml,@drawable/ic_onboarding_key_features_icons_only.xml,@drawable/ic_home,@drawable/ic_search,@drawable/ic_synced_tabs,@drawable/ic_add_on_dark_reader,@drawable/ic_add_on_privacy_badger,@drawable/ic_add_on_search_by_image,@drawable/ic_add_on_ublock" />
+    tools:keep="@drawable/onboarding_ctd_default_browser,@drawable-night/onboarding_ctd_default_browser,@drawable/onboarding_ctd_sync,@drawable/onboarding_ctd_notification,@drawable/ic_onboarding_key_features.xml,@drawable/ic_onboarding_key_features_icons_only.xml,@drawable/ic_home,@drawable/ic_search,@drawable/ic_synced_tabs,@drawable/ic_onboarding_add_ons,@drawable/ic_add_on_dark_reader,@drawable/ic_add_on_privacy_badger,@drawable/ic_add_on_search_by_image,@drawable/ic_add_on_ublock" />
