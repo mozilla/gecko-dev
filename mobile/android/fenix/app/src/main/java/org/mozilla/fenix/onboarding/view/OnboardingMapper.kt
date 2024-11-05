@@ -7,6 +7,7 @@ package org.mozilla.fenix.onboarding.view
 import org.mozilla.fenix.nimbus.AddOnData
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
+import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 /**
  * Returns a list of all the required Nimbus 'cards' that have been converted to [OnboardingPageUiData].
@@ -119,12 +120,14 @@ private fun List<AddOnData>.toOnboardingAddOns() = map { it.toOnboardingAddOn() 
 
 private fun AddOnData.toOnboardingAddOn() = with(this) {
     OnboardingAddOn(
+        id = id,
         iconRes = iconRes.resourceId,
         name = name,
         description = description,
         averageRating = averageRating,
         reviewCount = reviewCount,
         installUrl = installUrl,
+        status = OnboardingAddonStatus.NOT_INSTALLED,
     )
 }
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,8 +29,10 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -45,26 +48,36 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
+import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.onboarding.store.OnboardingAddOnsState
+import org.mozilla.fenix.onboarding.store.OnboardingAddOnsStore
+import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.translations.DownloadIconIndicator
 
 private const val MINIMUM_SCREEN_HEIGHT_FOR_IMAGE = 640
 
-typealias AddOnID = String
+typealias AddOn = OnboardingAddOn
 
 /**
  * A Composable for displaying Add-on onboarding page content.
  *
+ * @param onboardingAddOnsStore The store which contains all the state related to the add-ons onboarding screen.
  * @param pageState The page content that's displayed.
  * @param onInstallAddOnClicked Invoked when the button for installing an add-ons was clicked.
  */
 @Composable
-fun AddOnsOnboardingPage(pageState: OnboardingPageState, onInstallAddOnClicked: (AddOnID) -> Unit) {
+fun AddOnsOnboardingPage(
+    onboardingAddOnsStore: OnboardingAddOnsStore,
+    pageState: OnboardingPageState,
+    onInstallAddOnClicked: (AddOn) -> Unit,
+) {
     // Base
     Column(
         modifier = Modifier
@@ -82,7 +95,15 @@ fun AddOnsOnboardingPage(pageState: OnboardingPageState, onInstallAddOnClicked: 
 
                 Spacer(Modifier.height(16.dp))
 
-                addOns?.let { AddOns(it, onInstallAddOnClicked) }
+                val state by onboardingAddOnsStore.observeAsState(
+                    initialValue = OnboardingAddOnsState(),
+                ) { onboardingAddOnsStore.state }
+
+                AddOns(
+                    addOnUiData = state.addOns,
+                    installing = state.installationInProcess,
+                    onInstallAddonClicked = onInstallAddOnClicked,
+                )
 
                 Spacer(Modifier.height(5.dp))
 
@@ -171,11 +192,22 @@ private fun HeaderImage(@DrawableRes imageRes: Int) {
 }
 
 @Composable
-private fun AddOns(addOnUiData: List<OnboardingAddOn>, onInstallAddonClicked: (AddOnID) -> Unit) =
-    addOnUiData.forEach { AddOnItem(it, onInstallAddonClicked) }
+private fun AddOns(
+    addOnUiData: List<OnboardingAddOn>,
+    installing: Boolean,
+    onInstallAddonClicked: (AddOn) -> Unit,
+) {
+    addOnUiData.forEach {
+        AddOnItem(it, installing, onInstallAddonClicked)
+    }
+}
 
 @Composable
-private fun AddOnItem(addOnUiData: OnboardingAddOn, onInstallAddOnClicked: (AddOnID) -> Unit) {
+private fun AddOnItem(
+    addOnUiData: OnboardingAddOn,
+    isInstalling: Boolean,
+    onInstallAddOnClicked: (AddOn) -> Unit,
+) {
     Row(
         modifier = Modifier
             .padding(vertical = 16.dp)
@@ -199,7 +231,7 @@ private fun AddOnItem(addOnUiData: OnboardingAddOn, onInstallAddOnClicked: (AddO
             modifier = Modifier
                 .fillMaxHeight()
                 .align(Alignment.CenterVertically),
-        ) { AddAddOnButton(addOnUiData.installUrl, onInstallAddOnClicked) }
+        ) { AddAddOnButton(addOnUiData, isInstalling, onInstallAddOnClicked) }
     }
 }
 
@@ -249,17 +281,49 @@ private fun AddOnIcon(iconRes: Int) {
 }
 
 @Composable
-private fun AddAddOnButton(installationUrl: String, onInstallAddOnClicked: (AddOnID) -> Unit) {
-    IconButton(
-        onClick = {
-            onInstallAddOnClicked(installationUrl)
-        },
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.mozac_ic_plus_24),
-            contentDescription = stringResource(R.string.onboarding_add_on_add_button_content_description),
-            tint = FirefoxTheme.colors.iconPrimary,
-        )
+private fun AddAddOnButton(
+    addOn: OnboardingAddOn,
+    isInstalling: Boolean,
+    onInstallAddOnClicked: ((AddOn) -> Unit),
+) {
+    when (addOn.status) {
+        OnboardingAddonStatus.INSTALLED -> {
+            Box(
+                modifier = Modifier.minimumInteractiveComponentSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_checkmark_24),
+                    contentDescription = stringResource(R.string.onboarding_installed_add_on_icon_content_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        }
+        OnboardingAddonStatus.INSTALLING -> {
+            Box(
+                modifier = Modifier.minimumInteractiveComponentSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                DownloadIconIndicator(
+                    icon = painterResource(id = R.drawable.mozac_ic_sync_24),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                    contentDescription =
+                    stringResource(id = R.string.onboarding_installing_add_on_icon_content_description),
+                )
+            }
+        }
+        OnboardingAddonStatus.NOT_INSTALLED -> {
+            IconButton(
+                enabled = !isInstalling,
+                onClick = { onInstallAddOnClicked(addOn) },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_plus_24),
+                    contentDescription = stringResource(R.string.onboarding_add_on_add_button_content_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        }
     }
 }
 
@@ -349,34 +413,41 @@ private fun OnboardingPagePreview() {
                 },
                 onRecordImpressionEvent = {},
             ),
+            onboardingAddOnsStore = OnboardingAddOnsStore(),
             onInstallAddOnClicked = {},
         )
     }
 }
 
 private fun addOnItemUblock(context: Context) = OnboardingAddOn(
-    R.drawable.ic_add_on_ublock,
-    context.getString(R.string.onboarding_add_on_ublock_name),
-    context.getString(R.string.onboarding_add_on_ublock_description),
-    "5",
-    "18,347",
+    id = "uBlock0@raymondhill.net",
+    iconRes = R.drawable.ic_add_on_ublock,
+    name = context.getString(R.string.onboarding_add_on_ublock_name),
+    description = context.getString(R.string.onboarding_add_on_ublock_description),
+    averageRating = "5",
+    reviewCount = "18,347",
     installUrl = "url",
+    status = OnboardingAddonStatus.NOT_INSTALLED,
 )
 
 private fun addOnItemPrivacyBadger(context: Context) = OnboardingAddOn(
-    R.drawable.ic_add_on_privacy_badger,
-    context.getString(R.string.onboarding_add_on_privacy_badger_name),
-    context.getString(R.string.onboarding_add_on_privacy_badger_description),
-    "5",
-    "2,500",
+    id = "jid1-MnnxcxisBPnSXQ@jetpack",
+    iconRes = R.drawable.ic_add_on_privacy_badger,
+    name = context.getString(R.string.onboarding_add_on_privacy_badger_name),
+    description = context.getString(R.string.onboarding_add_on_privacy_badger_description),
+    averageRating = "5",
+    reviewCount = "2,500",
     installUrl = "url",
+    status = OnboardingAddonStatus.INSTALLING,
 )
 
 private fun addOnItemSearchByImage(context: Context) = OnboardingAddOn(
-    R.drawable.ic_add_on_search_by_image,
-    context.getString(R.string.onboarding_add_on_ublock_name),
-    context.getString(R.string.onboarding_add_on_ublock_description),
-    "4.5",
-    "1,533",
+    id = "{2e5ff8c8-32fe-46d0-9fc8-6b8986621f3c}",
+    iconRes = R.drawable.ic_add_on_search_by_image,
+    name = context.getString(R.string.onboarding_add_on_ublock_name),
+    description = context.getString(R.string.onboarding_add_on_ublock_description),
+    averageRating = "4.5",
+    reviewCount = "1,533",
     installUrl = "url",
+    status = OnboardingAddonStatus.INSTALLED,
 )
