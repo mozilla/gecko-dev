@@ -484,10 +484,18 @@ var SidebarController = {
     if (!state) {
       return;
     }
+    const shouldOpenSidebar =
+      state.command &&
+      this.sidebars.has(state.command) &&
+      this.currentID !== state.command;
+    if (shouldOpenSidebar) {
+      // there's a sidebar to show, so ignore the contradictory hidden property
+      delete state.hidden;
+    }
     if (state.width) {
       this._box.style.width = state.width;
     }
-    if (state.command && this.currentID != state.command && !this.isOpen) {
+    if (shouldOpenSidebar && !this.isOpen) {
       await this.showInitially(state.command);
     }
     if (this.sidebarRevampEnabled) {
@@ -1480,6 +1488,7 @@ var SidebarController = {
   _show(commandID) {
     return new Promise(resolve => {
       if (this.sidebarRevampEnabled) {
+        this.sidebarContainer.hidden = false;
         this._box.dispatchEvent(
           new CustomEvent("sidebar-show", { detail: { viewId: commandID } })
         );
