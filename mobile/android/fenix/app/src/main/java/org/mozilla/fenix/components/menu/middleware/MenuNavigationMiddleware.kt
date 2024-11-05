@@ -128,7 +128,7 @@ class MenuNavigationMiddleware(
 
                 is MenuAction.Navigate.Passwords -> navController.nav(
                     R.id.menuDialogFragment,
-                    MenuDialogFragmentDirections.actionGlobalSavedLoginsAuthFragment(),
+                    MenuDialogFragmentDirections.actionMenuDialogFragmentToLoginsListFragment(),
                 )
 
                 is MenuAction.Navigate.CustomizeHomepage -> navController.nav(

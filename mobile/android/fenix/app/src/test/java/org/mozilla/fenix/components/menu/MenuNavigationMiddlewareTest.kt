@@ -192,12 +192,12 @@ class MenuNavigationMiddlewareTest {
     @Test
     fun `WHEN navigate to passwords action is dispatched THEN navigate to passwords`() = runTest {
         val store = createStore()
-        store.dispatch(MenuAction.Navigate.Settings).join()
+        store.dispatch(MenuAction.Navigate.Passwords).join()
 
         verify {
             navController.nav(
                 R.id.menuDialogFragment,
-                MenuDialogFragmentDirections.actionGlobalSavedLoginsAuthFragment(),
+                MenuDialogFragmentDirections.actionMenuDialogFragmentToLoginsListFragment(),
             )
         }
     }

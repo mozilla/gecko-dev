@@ -1589,6 +1589,9 @@
             <action
                 android:id="@+id/action_menuDialogFragmen_to_addonDetailsFragment"
                 app:destination="@id/addonDetailsFragment" />
+            <action
+                android:id="@+id/action_menuDialogFragment_to_loginsListFragment"
+                app:destination="@id/savedLogins" />
         </dialog>
     </navigation>
 </navigation>
