@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "naga"
-version = "22.0.0"
+version = "23.0.0"
 authors = ["gfx-rs developers"]
 build = "build.rs"
 exclude = [
@@ -84,7 +84,7 @@ optional = true
 version = "1.1.0"
 
 [dependencies.serde]
-version = "1.0.210"
+version = "1.0.213"
 features = ["derive"]
 optional = true
 
@@ -96,7 +96,7 @@ optional = true
 version = "1.4.1"
 
 [dependencies.thiserror]
-version = "1.0.64"
+version = "1.0.65"
 
 [dependencies.unicode-xid]
 version = "0.2.6"

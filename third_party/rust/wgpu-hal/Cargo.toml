@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-hal"
-version = "22.0.0"
+version = "23.0.0"
 authors = ["gfx-rs developers"]
 build = "build.rs"
 autobins = false
@@ -82,7 +82,7 @@ optional = true
 version = "0.4"
 
 [dependencies.naga]
-version = "22.0.0"
+version = "23.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
@@ -102,10 +102,10 @@ version = "0.6"
 version = "1.1.0"
 
 [dependencies.thiserror]
-version = "1.0.64"
+version = "1.0.65"
 
 [dependencies.wgt]
-version = "22.0.0"
+version = "23.0.0"
 path = "../wgpu-types"
 package = "wgpu-types"
 
@@ -119,7 +119,7 @@ version = "0.11"
 version = "0.28"
 
 [dev-dependencies.naga]
-version = "22.0.0"
+version = "23.0.0"
 path = "../naga"
 features = ["wgsl-in"]
 
