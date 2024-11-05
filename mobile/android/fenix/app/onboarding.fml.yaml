@@ -132,6 +132,11 @@ objects:
   AddOnData:
       description: An object to describe an add-on to be installed from the onboarding card.
       fields:
+        id:
+          type: Text
+          description: The identifier for this add-on.
+          # This should never be defaulted.
+          default: ""
         install-url:
           type: Text
           description: The url from where the add-on can be installed.

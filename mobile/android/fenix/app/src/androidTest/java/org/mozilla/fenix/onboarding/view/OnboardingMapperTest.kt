@@ -21,6 +21,7 @@ import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.JunoOnboarding
 import org.mozilla.fenix.nimbus.OnboardingCardData
 import org.mozilla.fenix.nimbus.OnboardingCardType
+import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 class OnboardingMapperTest {
 
@@ -186,11 +187,13 @@ class OnboardingMapperTest {
 
         // Add-ons
         val addOnIconRes = R.drawable.ic_extensions_onboarding
+        val id = "add-on-1"
         val addOnName = "test add-on"
         val addOnDescription = "test add-on description"
         val addOnAverageRating = "5"
         val addOnReviewCount = "1234"
         val addOnInstallUrl = "test.addon.org"
+        val status = OnboardingAddonStatus.NOT_INSTALLED
 
         val expected = OnboardingPageUiData(
             type = OnboardingPageUiData.Type.ADD_ONS,
@@ -200,12 +203,14 @@ class OnboardingMapperTest {
             primaryButtonLabel = primaryButtonLabel,
             addOns = listOf(
                 OnboardingAddOn(
+                    id = id,
                     iconRes = addOnIconRes,
                     name = addOnName,
                     description = addOnDescription,
                     averageRating = addOnAverageRating,
                     reviewCount = addOnReviewCount,
                     installUrl = addOnInstallUrl,
+                    status = status,
                 ),
             ),
         )
@@ -220,6 +225,7 @@ class OnboardingMapperTest {
             extraData = ExtraCardData(
                 addOnsData = listOf(
                     AddOnData(
+                        id = StringHolder(null, id),
                         iconRes = addOnIconRes,
                         name = StringHolder(null, addOnName),
                         description = StringHolder(null, addOnDescription),

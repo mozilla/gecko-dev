@@ -6,6 +6,7 @@ package org.mozilla.fenix.onboarding.view
 
 import androidx.annotation.DrawableRes
 import org.mozilla.fenix.compose.LinkTextState
+import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 /**
  * Model containing data for [OnboardingPage].
@@ -50,10 +51,12 @@ data class Caption(
  * Model containing data for an add-on that's installable during onboarding.
  */
 data class OnboardingAddOn(
+    val id: String,
     @DrawableRes val iconRes: Int,
     val name: String,
     val description: String,
     val averageRating: String,
     val reviewCount: String,
     val installUrl: String,
+    val status: OnboardingAddonStatus,
 )

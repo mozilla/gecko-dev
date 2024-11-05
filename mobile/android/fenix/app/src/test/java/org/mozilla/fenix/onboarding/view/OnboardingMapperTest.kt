@@ -7,6 +7,7 @@ package org.mozilla.fenix.onboarding.view
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mozilla.fenix.R
+import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 class OnboardingMapperTest {
 
@@ -154,28 +155,34 @@ class OnboardingMapperTest {
     fun `GIVEN an add-ons page WHEN mapToOnboardingPageState is called THEN creates the expected OnboardingPageState`() {
         val addOns = listOf(
             OnboardingAddOn(
-                R.drawable.ic_extensions_onboarding,
-                "test add-on 1",
-                "test 1 add-on description",
-                "5",
-                "12,345",
-                "url1",
+                id = "add-on-1",
+                iconRes = R.drawable.ic_extensions_onboarding,
+                name = "test add-on 1",
+                description = "test 1 add-on description",
+                averageRating = "5",
+                reviewCount = "12,345",
+                installUrl = "url1",
+                status = OnboardingAddonStatus.NOT_INSTALLED,
             ),
             OnboardingAddOn(
-                R.drawable.ic_extensions_onboarding,
-                "test add-on 2",
-                "test 2 add-on description",
-                "4.5",
-                "1,234",
-                "url2",
+                id = "add-on-2",
+                iconRes = R.drawable.ic_extensions_onboarding,
+                name = "test add-on 2",
+                description = "test 2 add-on description",
+                averageRating = "4.5",
+                reviewCount = "1,234",
+                installUrl = "url2",
+                status = OnboardingAddonStatus.NOT_INSTALLED,
             ),
             OnboardingAddOn(
-                R.drawable.ic_extensions_onboarding,
-                "test add-on 3",
-                "test 3 add-on description",
-                "4",
-                "123",
-                "url3",
+                id = "add-on-2",
+                iconRes = R.drawable.ic_extensions_onboarding,
+                name = "test add-on 3",
+                description = "test 3 add-on description",
+                averageRating = "4",
+                reviewCount = "123",
+                installUrl = "url3",
+                status = OnboardingAddonStatus.NOT_INSTALLED,
             ),
         )
         val expected = OnboardingPageState(
