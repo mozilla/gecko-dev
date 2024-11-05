@@ -10,6 +10,7 @@ with Files("**"):
 DIRS += ["test"]
 
 XPIDL_SOURCES += [
+    "nsIQuotaArtificialFailure.idl",
     "nsIQuotaCallbacks.idl",
     "nsIQuotaManagerService.idl",
     "nsIQuotaRequests.idl",
@@ -29,6 +30,7 @@ EXPORTS.mozilla.dom += [
 
 EXPORTS.mozilla.dom.quota += [
     "ActorsParent.h",
+    "ArtificialFailure.h",
     "Assertions.h",
     "AssertionsImpl.h",
     "BackgroundThreadObject.h",
@@ -106,6 +108,7 @@ XPCOM_MANIFESTS += [
 UNIFIED_SOURCES += [
     "ActorsChild.cpp",
     "ActorsParent.cpp",
+    "ArtificialFailure.cpp",
     "Assertions.cpp",
     "BackgroundThreadObject.cpp",
     "CachingDatabaseConnection.cpp",
