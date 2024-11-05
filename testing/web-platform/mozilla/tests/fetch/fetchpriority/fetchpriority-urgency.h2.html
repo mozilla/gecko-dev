@@ -104,11 +104,11 @@
             }
             // See kExpectedRequestsOfLinkPreloadFont from link-tests-data.js
             // and nsHttpHandler::UrgencyFromCoSFlags.
-            let normalUrgency = 3;
-            assert_equals(await loadFontAndExtractUrgency("low"), normalUrgency + 1);
+            let normalUrgency = 2;
+            assert_equals(await loadFontAndExtractUrgency("low"), normalUrgency + 2);
             assert_equals(await loadFontAndExtractUrgency("high"), normalUrgency - 1);
-            assert_equals(await loadFontAndExtractUrgency("auto"), normalUrgency - 1);
-            assert_equals(await loadFontAndExtractUrgency("default"), normalUrgency - 1);
+            assert_equals(await loadFontAndExtractUrgency("auto"), normalUrgency);
+            assert_equals(await loadFontAndExtractUrgency("default"), normalUrgency);
         }, "Adjustment of urgency parameter for fonts");
     }
   </script>

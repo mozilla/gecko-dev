@@ -86,7 +86,7 @@ const kExpectedRequestsOfLinkPreloadFont = [
         internalPriority: SpecialPowers.Ci.nsISupportsPriority.PRIORITY_LOW
     },
     {   fileNameAndSuffix: "dummy.font?2",
-        internalPriority: SpecialPowers.Ci.nsISupportsPriority.PRIORITY_HIGH
+        internalPriority: SpecialPowers.Ci.nsISupportsPriority.PRIORITY_HIGHEST
     },
     {   fileNameAndSuffix: "dummy.font?3",
         internalPriority: SpecialPowers.Ci.nsISupportsPriority.PRIORITY_HIGH

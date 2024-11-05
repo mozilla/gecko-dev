@@ -13009,7 +13009,7 @@
   mirror: always
 - name: network.fetchpriority.adjustments.link-preload-font.high
   type: int32_t
-  value: 0
+  value: -10
   mirror: always
 - name: network.fetchpriority.adjustments.link-preload-font.auto
   type: int32_t
