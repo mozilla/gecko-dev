@@ -156,6 +156,25 @@ bc.onmessage = async function handle_bc(evt) {
         scope,
       });
       bc.postMessage(`${myId}:registered:${installId}`);
+    } else if (cmd === "workerref-hang") {
+      const topic = pieces[2];
+      globalThis.WorkerTestUtils.holdStrongWorkerRefUntilMainThreadObserverNotified(
+        topic
+      );
+      bc.postMessage(`${myId}:workerref-hung:${topic}`);
+    } else if (cmd === "block") {
+      const topic = pieces[2];
+      globalThis.WorkerTestUtils.blockUntilMainThreadObserverNotified(
+        topic,
+        // This callback is invoked once the observer has been registered.
+        () => {
+          bc.postMessage(`${myId}:blocking:${topic}`);
+        }
+      );
+    } else if (cmd === "notify-observer") {
+      const topic = pieces[2];
+      globalThis.WorkerTestUtils.notifyObserverOnMainThread(topic);
+      bc.postMessage(`${myId}:notified-observer:${topic}`);
     }
   } catch (ex) {
     console.error(ex);
