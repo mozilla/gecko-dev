@@ -273,10 +273,11 @@ add_task(
     }
 
     // Test uninstalling an addon wakes up the watching extension.
+    const testExtId = testExt.id;
     let uninstalled = testExt.unload();
 
     details = await extension.awaitMessage("onUninstalled");
-    equal(testExt.id, details.id, "got onUninstalled event");
+    equal(testExtId, details.id, "got onUninstalled event");
 
     await extension.unload();
     await uninstalled;

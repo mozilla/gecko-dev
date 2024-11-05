@@ -144,6 +144,14 @@ add_task(async function test_late_XPIDB_load_rejected() {
   XPIExports.XPIProvider._closing = true;
   XPIExports.XPIDatabase._dbPromise = null;
 
+  // The following rejection is expected to be uncaught,
+  // due to XPIDatabase.getAddonByID being called after
+  // having set XPIProvider._closing to true to fake
+  // a late addon DB load.
+  PromiseTestUtils.expectUncaughtRejection(
+    /XPIDatabase\.asyncLoadDB attempt after XPIProvider shutdown/
+  );
+
   Assert.equal(
     await XPIExports.XPIDatabase.getAddonByID("test@addon"),
     null,

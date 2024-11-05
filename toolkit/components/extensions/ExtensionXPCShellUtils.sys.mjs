@@ -394,6 +394,14 @@ class AOMExtensionWrapper extends ExtensionWrapper {
             this.addonPromise = null;
           }
         );
+        // Ensure we are still listening to the AOM addon events (e.g. to
+        // still received calls to the onUninstalled method after the test may
+        // have restarted the AddonManager using the related AddonTestUtils methods).
+        //
+        // AddonManager will have already cleared the previously registered
+        // addon listeners when shutdown is simulated through the related
+        // AddonTestUtils methods.
+        lazy.AddonManager.addAddonListener(this);
       // FALLTHROUGH
       case "addon-manager-shutdown":
         if (this.state === "uninitialized") {

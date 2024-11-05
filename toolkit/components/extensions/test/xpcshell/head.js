@@ -397,6 +397,8 @@ function promiseExtensionEvent(wrapper, event) {
 }
 
 async function assertHasPersistedScriptsCachedFlag(ext) {
+  Assert.notEqual(ext.id, null, "Expect a non-null extension id");
+  Assert.notEqual(ext.version, null, "Expect a non-null extension version");
   const { StartupCache } = ExtensionParent;
   const allCachedGeneral = StartupCache._data.get("general");
   equal(
@@ -411,6 +413,8 @@ async function assertHasPersistedScriptsCachedFlag(ext) {
 }
 
 async function assertIsPersistentScriptsCachedFlag(ext, expectedValue) {
+  Assert.notEqual(ext.id, null, "Expect a non-null extension id");
+  Assert.notEqual(ext.version, null, "Expect a non-null extension version");
   const { StartupCache } = ExtensionParent;
   const allCachedGeneral = StartupCache._data.get("general");
   equal(

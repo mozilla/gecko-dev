@@ -23,17 +23,17 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
+add_setup(async () => {
+  await AddonTestUtils.promiseStartupManager();
+});
+
 add_task(async function test_hasPersistedScripts_startup_cache() {
   let extension1 = ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
     manifest: {
       manifest_version: 2,
       permissions: ["scripting"],
     },
-    // Set the startup reason to "APP_STARTUP", used to be able to simulate
-    // the behavior expected on calls to `ExtensionScriptingStore.init(extension)`
-    // when the addon has not been just installed, but it is being loaded as part
-    // of the browser application starting up.
-    startupReason: "APP_STARTUP",
     background() {
       browser.test.onMessage.addListener(async (msg, ...args) => {
         switch (msg) {
@@ -48,6 +48,7 @@ add_task(async function test_hasPersistedScripts_startup_cache() {
         }
         browser.test.sendMessage(`${msg}:done`);
       });
+      browser.test.sendMessage("bgpage:ready");
     },
     files: {
       "script-1.js": "",
@@ -55,6 +56,7 @@ add_task(async function test_hasPersistedScripts_startup_cache() {
   });
 
   await extension1.startup();
+  await extension1.awaitMessage("bgpage:ready");
 
   info(`Checking StartupCache for ${extension1.id} ${extension1.version}`);
   await assertHasPersistedScriptsCachedFlag(extension1);
@@ -97,6 +99,16 @@ add_task(async function test_hasPersistedScripts_startup_cache() {
   const cleanupSpies = () => {
     storeGetAllSpy.restore();
   };
+
+  // Restart the AddonManager to ensure the test extension startupReason will
+  // be set to "APP_STARTUP". This is used to assert that the expected call to
+  // `ExtensionScriptingStore.init(extension)` is hit as expected on browser
+  // startups after the extension has been fully installed.
+  await AddonTestUtils.promiseRestartManager();
+  await extension1.awaitStartup();
+
+  info("Wait for the extension to be fully restarted");
+  await extension1.awaitMessage("bgpage:ready");
 
   // NOTE: ExtensionScriptingStore.initExtension is usually only called once
   // during the extension startup.
