@@ -561,6 +561,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
 
 #ifdef MOZ_WMF_CDM
   bool IsUsingWMFCDM() const override;
+
+  CDMProxy* GetCDMProxy() const override;
 #endif
 
   bool Paused() const { return mPaused; }

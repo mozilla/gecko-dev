@@ -8064,6 +8064,10 @@ void HTMLMediaElement::NodeInfoChanged(Document* aOldDoc) {
 
 #ifdef MOZ_WMF_CDM
 bool HTMLMediaElement::IsUsingWMFCDM() const { return mIsUsingWMFCDM; };
+
+CDMProxy* HTMLMediaElement::GetCDMProxy() const {
+  return mMediaKeys ? mMediaKeys->GetCDMProxy() : nullptr;
+};
 #endif
 
 }  // namespace mozilla::dom

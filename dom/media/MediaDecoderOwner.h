@@ -15,6 +15,7 @@
 
 namespace mozilla {
 
+class CDMProxy;
 class GMPCrashHelper;
 class VideoFrameContainer;
 class MediaInfo;
@@ -182,6 +183,11 @@ class MediaDecoderOwner {
 
   // Returns true if the owner should resist fingerprinting.
   virtual bool ShouldResistFingerprinting(RFPTarget aTarget) const = 0;
+
+#ifdef MOZ_WMF_CDM
+  // Return CDMProxy if exists.
+  virtual CDMProxy* GetCDMProxy() const { return nullptr; }
+#endif
 
   /*
    * Servo only methods go here. Please provide default implementations so they
