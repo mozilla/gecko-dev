@@ -1542,8 +1542,14 @@ async function add_heuristic_tests(
       info(`Focus on each field in the test document`);
       const contexts =
         browser.browsingContext.getAllBrowsingContextsInSubtree();
+
+      // This is a workaround for when we set focus on elements across iframes (in the previous step).
+      // The popup is not refreshed, and consequently, it does not receive key events needed to trigger
+      // the autocomplete popup.
+      const sleepAfterFocus = contexts.length > 1;
+
       for (const context of contexts) {
-        await SpecialPowers.spawn(context, [], async function () {
+        await SpecialPowers.spawn(context, [], async () => {
           const elements = Array.from(
             content.document.querySelectorAll("input, select")
           );
@@ -1556,16 +1562,12 @@ async function add_heuristic_tests(
 
         try {
           await BrowserTestUtils.synthesizeKey("VK_ESCAPE", {}, context);
+          if (sleepAfterFocus) {
+            await sleep();
+          }
         } catch (e) {
           // Error occurs when sending a key event to an invisible iframe, ignore the error.
         }
-      }
-
-      // This is a workaround for when we set focus on elements across iframes (in the previous step).
-      // The popup is not refreshed, and consequently, it does not receive key events needed to trigger
-      // the autocomplete popup.
-      if (contexts.length > 1) {
-        await sleep();
       }
 
       info(`Waiting for expected section count`);
