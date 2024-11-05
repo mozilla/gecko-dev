@@ -1711,6 +1711,12 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   LogicalSize cbSize = aCBSize;
   LogicalMargin offsets(cbwm);
 
+  // Handle auto inset values, as per [1].
+  // Technically superceded by a new section [2], but none of the browsers seem
+  // to follow this behaviour.
+  //
+  // [1] https://drafts.csswg.org/css-position-3/#abspos-old
+  // [2] https://drafts.csswg.org/css-position-3/#resolving-insets
   if (iStartIsAuto) {
     offsets.IStart(cbwm) = 0;
   } else {
