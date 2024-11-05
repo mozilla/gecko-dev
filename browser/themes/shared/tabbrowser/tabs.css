@@ -27,8 +27,8 @@
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
-  --tab-icon-overlay-fill: light-dark(black, white);
-  --tab-icon-overlay-stroke: light-dark(white, black);
+  --tab-icon-overlay-fill: light-dark(white, black);
+  --tab-icon-overlay-stroke: light-dark(black, white);
   --tab-label-line-height: 1.7;
   --tab-loading-fill: #0A84FF;
   --tab-hover-background-color: color-mix(in srgb, currentColor 11%, transparent);
@@ -503,7 +503,6 @@
       background-color: var(--tab-icon-overlay-stroke);
       background-position: center;
       background-repeat: no-repeat;
-      border: 0.5px solid var(--tab-icon-overlay-fill);
       border-radius: 10px;
       -moz-context-properties: fill;
       fill: var(--tab-icon-overlay-fill);
