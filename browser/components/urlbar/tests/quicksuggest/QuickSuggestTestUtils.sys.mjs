@@ -702,6 +702,7 @@ class _QuickSuggestTestUtils {
         admin1_code: "AL",
         population: 200,
         alternate_names: ["waterloo"],
+        alternate_names_2: [{ name: "waterloo" }],
       },
       // AL
       {
@@ -715,6 +716,10 @@ class _QuickSuggestTestUtils {
         admin1_code: "AL",
         population: 4530315,
         alternate_names: ["al", "alabama"],
+        alternate_names_2: [
+          { name: "alabama" },
+          { name: "al", iso_language: "abbr" },
+        ],
       },
       // Waterloo, IA
       {
@@ -728,6 +733,7 @@ class _QuickSuggestTestUtils {
         admin1_code: "IA",
         population: 68460,
         alternate_names: ["waterloo"],
+        alternate_names_2: [{ name: "waterloo" }],
       },
       // IA
       {
@@ -741,6 +747,10 @@ class _QuickSuggestTestUtils {
         admin1_code: "IA",
         population: 2955010,
         alternate_names: ["ia", "iowa"],
+        alternate_names_2: [
+          { name: "iowa" },
+          { name: "ia", iso_language: "abbr" },
+        ],
       },
       // Made-up cities with the same name in the US and CA. The CA city has a
       // larger population.
@@ -755,6 +765,7 @@ class _QuickSuggestTestUtils {
         admin1_code: "IA",
         population: 1,
         alternate_names: ["us ca city"],
+        alternate_names_2: [{ name: "us ca city" }],
       },
       {
         id: 101,
@@ -767,6 +778,7 @@ class _QuickSuggestTestUtils {
         admin1_code: "08",
         population: 2,
         alternate_names: ["us ca city"],
+        alternate_names_2: [{ name: "us ca city" }],
       },
       // Made-up cities that are only ~1.5 km apart.
       {
@@ -780,6 +792,7 @@ class _QuickSuggestTestUtils {
         admin1_code: "GA",
         population: 1,
         alternate_names: ["twin city a"],
+        alternate_names_2: [{ name: "twin city a" }],
       },
       {
         id: 103,
@@ -792,6 +805,7 @@ class _QuickSuggestTestUtils {
         admin1_code: "GA",
         population: 2,
         alternate_names: ["twin city b"],
+        alternate_names_2: [{ name: "twin city b" }],
       },
     ];
     let [maxLen, maxWordCount] = geonames.reduce(

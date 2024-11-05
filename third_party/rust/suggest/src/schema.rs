@@ -19,7 +19,7 @@ use sql_support::{
 ///     [`SuggestConnectionInitializer::upgrade_from`].
 ///     a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
 ///        the migration.
-pub const VERSION: u32 = 28;
+pub const VERSION: u32 = 29;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -207,6 +207,10 @@ CREATE INDEX geonames_feature_code ON geonames(feature_code);
 CREATE TABLE geonames_alternates(
     name TEXT NOT NULL,
     geoname_id INTEGER NOT NULL,
+    -- The value of the `iso_language` field for the alternate. This will be
+    -- null for the alternate we artificially create for the `name` in the
+    -- corresponding geoname record.
+    iso_language TEXT,
     PRIMARY KEY (name, geoname_id),
     FOREIGN KEY(geoname_id) REFERENCES geonames(id) ON DELETE CASCADE
 ) WITHOUT ROWID;
@@ -546,6 +550,27 @@ CREATE TABLE geonames(
 );
 CREATE INDEX geonames_feature_class ON geonames(feature_class);
 CREATE INDEX geonames_feature_code ON geonames(feature_code);
+                    ",
+                )?;
+                Ok(())
+            }
+            28 => {
+                // Add `iso_language` column to `geonames_alternates`. Clear the
+                // database so geonames are reingested.
+                clear_database(tx)?;
+                tx.execute_batch(
+                    "
+DROP TABLE geonames_alternates;
+CREATE TABLE geonames_alternates(
+    name TEXT NOT NULL,
+    geoname_id INTEGER NOT NULL,
+    -- The value of the `iso_language` field for the alternate. This will be
+    -- null for the alternate we artificially create for the `name` in the
+    -- corresponding geoname record.
+    iso_language TEXT,
+    PRIMARY KEY (name, geoname_id),
+    FOREIGN KEY(geoname_id) REFERENCES geonames(id) ON DELETE CASCADE
+) WITHOUT ROWID;
                     ",
                 )?;
                 Ok(())

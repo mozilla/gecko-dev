@@ -47,7 +47,7 @@ pub fn full_keyword(query: &str, keywords: &[impl AsRef<str>]) -> String {
 /// "Chunks" are non-overlapping subslices of the parent slice as described in
 /// [`slice::chunks()`].
 ///
-/// IMPORTANT: This function potentially does an exponential amount of work! You
+/// WARNING: This function potentially does an exponential amount of work! You
 /// should always be careful to prune the traversal space by returning `None`
 /// from your mappper function, as described further below, when a chunk does
 /// not match what you are searching for.
@@ -55,15 +55,17 @@ pub fn full_keyword(query: &str, keywords: &[impl AsRef<str>]) -> String {
 /// `max_chunk_size` controls the maximum chunk size (in number of words), which
 /// influences the branching factor at each step in the traversal.
 ///
-/// At each traversal step, the filter-map function is passed the chunk at that
-/// step and the chunk's index in the parent `words` slice. The function can map
+/// At each traversal step, the filter-map function is called like:
+/// `f(chunk, chunk_index, chunk_size, path)`.
+///
+/// `chunk` is the chunk at that step, `chunk_index` is its index in the parent
+/// `words` slice, and `chunk_size` is its size in words. The function can map
 /// the chunk to one or more values. Each value expands the branching factor at
 /// the current step by `max_chunk_size`. In other words, the branching factor
 /// at a given traversal step is `max_chunk_size` multiplied by the number of
-/// values returned by the filter-map function at that step. The traversed path
-/// of mapped values at that step is also passed to the filter-map function.
-/// Each path is a sequence of chunks in the parent `words` slice except the
-/// chunks have been replaced by mapped values from the filter-map function.
+/// values returned by the filter-map function at that step. `path` is the path
+/// of mapped values that has been travsersed at that step: a sequence of mapped
+/// values corresponding to chunks in the parent `words` slice.
 ///
 /// The filter-map function can return `None` to halt traversal at the current
 /// step. Returning `None` sets the branching factor at that step to zero,
