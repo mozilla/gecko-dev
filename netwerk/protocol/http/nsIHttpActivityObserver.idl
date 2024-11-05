@@ -125,6 +125,7 @@ interface nsIHttpActivityObserver : nsISupports
     const unsigned long ACTIVITY_SUBTYPE_SPECULATIVE_DNSANDSOCKET_CREATED   = 0x5009;
     const unsigned long ACTIVITY_SUBTYPE_ECH_SET                            = 0x500A;
     const unsigned long ACTIVITY_SUBTYPE_CONNECTION_CREATED                 = 0x500B;
+    const unsigned long ACTIVITY_SUBTYPE_EARLYHINT_RESPONSE_HEADER          = 0x500C;
 
     /**
      *  When aActivityType is ACTIVITY_TYPE_SOCKET_TRANSPORT
@@ -179,6 +180,8 @@ interface nsIHttpActivityObserver : nsISupports
             nsIHttpActivityObserver::ACTIVITY_SUBTYPE_ECH_SET
 #define NS_HTTP_ACTIVITY_SUBTYPE_CONNECTION_CREATED \
             nsIHttpActivityObserver::ACTIVITY_SUBTYPE_CONNECTION_CREATED
+#define NS_HTTP_ACTIVITY_SUBTYPE_EARLYHINT_RESPONSE_HEADER \
+            nsIHttpActivityObserver::ACTIVITY_SUBTYPE_EARLYHINT_RESPONSE_HEADER
 %}
 
 /**
