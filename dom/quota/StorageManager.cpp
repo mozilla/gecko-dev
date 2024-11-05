@@ -324,7 +324,7 @@ already_AddRefed<Promise> ExecuteOpOnMainOrWorkerThread(
             new PersistentStoragePermissionRequest(principal, window, promise);
 
         // In private browsing mode, no permission prompt.
-        if (nsContentUtils::IsInPrivateBrowsing(doc)) {
+        if (doc->IsInPrivateBrowsing()) {
           aRv = request->Cancel();
         } else if (!request->CheckPermissionDelegate()) {
           aRv = request->Cancel();

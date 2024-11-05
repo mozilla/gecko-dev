@@ -2318,7 +2318,7 @@ nsresult imgLoader::LoadImage(
   bool isPrivate = false;
 
   if (aLoadingDocument) {
-    isPrivate = nsContentUtils::IsInPrivateBrowsing(aLoadingDocument);
+    isPrivate = aLoadingDocument->IsInPrivateBrowsing();
   } else if (aLoadGroup) {
     isPrivate = nsContentUtils::IsInPrivateBrowsing(aLoadGroup);
   }
