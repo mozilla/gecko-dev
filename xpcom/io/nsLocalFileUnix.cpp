@@ -742,7 +742,7 @@ nsLocalFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
             if (!version ||
                 !g_variant_is_of_type(version, G_VARIANT_TYPE_UINT32)) {
               g_printerr(
-                  "nsIFile: failed to get host path for %s\n: Invalid value.",
+                  "nsIFile: failed to get host path for %s: Invalid value.\n",
                   mPath.get());
               retPromise->MaybeReject(NS_ERROR_FAILURE);
               return;
@@ -750,8 +750,8 @@ nsLocalFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
 
             if (g_variant_get_uint32(version) < 5) {
               g_printerr(
-                  "nsIFile: failed to get host path for %s\n: Document "
-                  "portal in version 5 is required.",
+                  "nsIFile: failed to get host path for %s: Document "
+                  "portal in version 5 is required.\n",
                   mPath.get());
               retPromise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
               return;
@@ -768,8 +768,8 @@ nsLocalFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
 
             if (!args) {
               g_printerr(
-                  "nsIFile: failed to get host path for %s\n: "
-                  "Invalid value.",
+                  "nsIFile: failed to get host path for %s: "
+                  "Invalid value.\n",
                   mPath.get());
               retPromise->MaybeReject(NS_ERROR_FAILURE);
               return;
@@ -787,8 +787,8 @@ nsLocalFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
                       if (!g_variant_is_of_type(result,
                                                 G_VARIANT_TYPE("a{say}"))) {
                         g_printerr(
-                            "nsIFile: failed to get host path for %s\n: "
-                            "Invalid value.",
+                            "nsIFile: failed to get host path for %s: "
+                            "Invalid value.\n",
                             mPath.get());
                         retPromise->MaybeReject(NS_ERROR_FAILURE);
                         return;
@@ -809,21 +809,21 @@ nsLocalFile::HostPath(JSContext* aCx, dom::Promise** aPromise) {
 
                       g_variant_iter_free(iter);
                       g_printerr(
-                          "nsIFile: failed to get host path for %s\n: "
-                          "Invalid value.",
+                          "nsIFile: failed to get host path for %s: "
+                          "Invalid value.\n",
                           mPath.get());
                       retPromise->MaybeReject(NS_ERROR_FAILURE);
                     },
                     [this, self = RefPtr(this),
                      retPromise](GUniquePtr<GError>&& aError) {
                       g_printerr(
-                          "nsIFile: failed to get host path for %s\n: %s.",
+                          "nsIFile: failed to get host path for %s: %s.\n",
                           mPath.get(), aError->message);
                       retPromise->MaybeReject(NS_ERROR_FAILURE);
                     });
           },
           [this, self = RefPtr(this), retPromise](GUniquePtr<GError>&& aError) {
-            g_printerr("nsIFile: failed to get host path for %s\n: %s.",
+            g_printerr("nsIFile: failed to get host path for %s: %s.\n",
                        mPath.get(), aError->message);
             retPromise->MaybeReject(NS_ERROR_NOT_AVAILABLE);
           });
