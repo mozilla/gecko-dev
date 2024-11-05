@@ -140,11 +140,11 @@ RenderedFrameId RenderCompositorEGL::EndFrame(
     gfx::IntRegion bufferInvalid;
     const auto bufferSize = GetBufferSize();
     for (const DeviceIntRect& rect : aDirtyRects) {
-      const auto left = std::max(0, std::min(bufferSize.width, rect.min.x));
-      const auto top = std::max(0, std::min(bufferSize.height, rect.min.y));
+      const auto left = std::clamp(rect.min.x, 0, bufferSize.width);
+      const auto top = std::clamp(rect.min.y, 0, bufferSize.height);
 
-      const auto right = std::min(bufferSize.width, std::max(0, rect.max.x));
-      const auto bottom = std::min(bufferSize.height, std::max(0, rect.max.y));
+      const auto right = std::clamp(rect.max.x, 0, bufferSize.width);
+      const auto bottom = std::clamp(rect.max.y, 0, bufferSize.height);
 
       const auto width = right - left;
       const auto height = bottom - top;
@@ -305,15 +305,11 @@ void RenderCompositorEGL::SetBufferDamageRegion(const wr::DeviceIntRect* aRects,
     rects.reserve(4 * aNumRects);
     const auto bufferSize = GetBufferSize();
     for (size_t i = 0; i < aNumRects; i++) {
-      const auto left =
-          std::max(0, std::min(bufferSize.width, aRects[i].min.x));
-      const auto top =
-          std::max(0, std::min(bufferSize.height, aRects[i].min.y));
+      const auto left = std::clamp(aRects[i].min.x, 0, bufferSize.width);
+      const auto top = std::clamp(aRects[i].min.y, 0, bufferSize.height);
 
-      const auto right =
-          std::min(bufferSize.width, std::max(0, aRects[i].max.x));
-      const auto bottom =
-          std::min(bufferSize.height, std::max(0, aRects[i].max.y));
+      const auto right = std::clamp(aRects[i].max.x, 0, bufferSize.width);
+      const auto bottom = std::clamp(aRects[i].max.y, 0, bufferSize.height);
 
       const auto width = right - left;
       const auto height = bottom - top;

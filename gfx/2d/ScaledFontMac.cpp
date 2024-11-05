@@ -593,8 +593,7 @@ static CFDictionaryRef CreateVariationDictionaryOrNull(
     double value = defDouble;
     for (uint32_t j = 0; j < aVariationCount; ++j) {
       if (aVariations[j].mTag == tagLong) {
-        value = std::min(std::max<double>(aVariations[j].mValue, minDouble),
-                         maxDouble);
+        value = std::clamp(aVariations[j].mValue, minDouble, maxDouble);
         if (value != defDouble) {
           allDefaultValues = false;
         }
@@ -676,8 +675,7 @@ static CFDictionaryRef CreateVariationTagDictionaryOrNull(
     double value = defDouble;
     for (uint32_t j = 0; j < aVariationCount; ++j) {
       if (aVariations[j].mTag == tagLong) {
-        value = std::min(std::max<double>(aVariations[j].mValue, minDouble),
-                         maxDouble);
+        value = std::clamp(aVariations[j].mValue, minDouble, maxDouble);
         if (value != defDouble) {
           allDefaultValues = false;
         }

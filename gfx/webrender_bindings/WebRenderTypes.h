@@ -883,7 +883,7 @@ static inline wr::WrColorRange ToWrColorRange(gfx::ColorRange aColorRange) {
 static inline wr::SyntheticItalics DegreesToSyntheticItalics(float aDegrees) {
   wr::SyntheticItalics synthetic_italics;
   synthetic_italics.angle =
-      int16_t(std::min(std::max(aDegrees, -89.0f), 89.0f) * 256.0f);
+      int16_t(std::clamp(aDegrees, -89.0f, 89.0f) * 256.0f);
   return synthetic_italics;
 }
 

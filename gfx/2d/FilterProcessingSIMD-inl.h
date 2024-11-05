@@ -620,8 +620,8 @@ static already_AddRefed<DataSourceSurface> ApplyColorMatrix_SIMD(
   for (size_t rowIndex = 0; rowIndex < 4; rowIndex++) {
     for (size_t colIndex = 0; colIndex < 4; colIndex++) {
       const Float& floatMatrixElement = floats[rowIndex * 4 + colIndex];
-      Float clampedFloatMatrixElement = std::min(
-          std::max(floatMatrixElement, -floatElementMax), floatElementMax);
+      Float clampedFloatMatrixElement =
+          std::clamp(floatMatrixElement, -floatElementMax, floatElementMax);
       int16_t scaledIntMatrixElement =
           int16_t(clampedFloatMatrixElement * factor + 0.5);
       int8_t bg_or_ra = componentOffsets[rowIndex] / 2;
@@ -638,7 +638,7 @@ static already_AddRefed<DataSourceSurface> ApplyColorMatrix_SIMD(
     size_t rowIndex = 4;
     const Float& floatMatrixElement = floats[rowIndex * 4 + colIndex];
     Float clampedFloatMatrixElement =
-        std::min(std::max(floatMatrixElement, -biasMax), biasMax);
+        std::clamp(floatMatrixElement, -biasMax, biasMax);
     int32_t scaledIntMatrixElement =
         int32_t(clampedFloatMatrixElement * factor * 255 + 0.5);
     rowBias[componentOffsets[colIndex]] = scaledIntMatrixElement;
@@ -1231,13 +1231,13 @@ static void ApplyArithmeticCombine_SIMD(
   // would overflow int16.
 
   i16x8_t k1 = simd::FromI16<i16x8_t>(
-      int16_t(floorf(std::min(std::max(aK1, -255.0f), 255.0f) * 128 + 0.5f)));
+      int16_t(floorf(std::clamp(aK1, -255.0f, 255.0f) * 128 + 0.5f)));
   i16x8_t k2 = simd::FromI16<i16x8_t>(
-      int16_t(floorf(std::min(std::max(aK2, -255.0f), 255.0f) * 128 + 0.5f)));
+      int16_t(floorf(std::clamp(aK2, -255.0f, 255.0f) * 128 + 0.5f)));
   i16x8_t k3 = simd::FromI16<i16x8_t>(
-      int16_t(floorf(std::min(std::max(aK3, -255.0f), 255.0f) * 128 + 0.5f)));
+      int16_t(floorf(std::clamp(aK3, -255.0f, 255.0f) * 128 + 0.5f)));
   i16x8_t k4 = simd::FromI16<i16x8_t>(
-      int16_t(floorf(std::min(std::max(aK4, -128.0f), 128.0f) * 255 + 0.5f)));
+      int16_t(floorf(std::clamp(aK4, -128.0f, 128.0f) * 255 + 0.5f)));
 
   i16x8_t k1And4 = simd::InterleaveLo16(k1, k4);
   i16x8_t k2And3 = simd::InterleaveLo16(k2, k3);

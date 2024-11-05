@@ -485,7 +485,7 @@ int32_t gfxGDIFont::GetGlyphWidth(uint16_t aGID) {
         return -1;
       }
       // clamp value to range [0..0x7fff], and convert to 16.16 fixed-point
-      devWidth = std::min(std::max(0, devWidth), 0x7fff);
+      devWidth = std::clamp(devWidth, 0, 0x7fff);
       entry.Insert(devWidth << 16);
     }
     return *entry;
@@ -501,7 +501,7 @@ bool gfxGDIFont::GetGlyphBounds(uint16_t aGID, gfxRect* aBounds, bool aTight) {
     if (!GetCharWidthI(dc, aGID, 1, nullptr, &devWidth)) {
       return false;
     }
-    devWidth = std::min(std::max(0, devWidth), 0x7fff);
+    devWidth = std::clamp(devWidth, 0, 0x7fff);
 
     *aBounds = gfxRect(0, -mMetrics->maxAscent, devWidth,
                        mMetrics->maxAscent + mMetrics->maxDescent);

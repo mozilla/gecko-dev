@@ -1617,7 +1617,7 @@ template <size_t N>
 static void PushUnorm(uint32_t* const out, const float inVal) {
   const uint32_t mask = (1 << N) - 1;
   auto fval = inVal;
-  fval = std::max(0.0f, std::min(fval, 1.0f));
+  fval = std::clamp(fval, 0.0f, 1.0f);
   fval *= mask;
   fval = roundf(fval);
   auto ival = static_cast<uint32_t>(fval);
