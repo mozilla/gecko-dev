@@ -10,6 +10,7 @@
 #include "nsIPermissionManager.h"
 #include "nsIAsyncShutdown.h"
 #include "nsIObserver.h"
+#include "nsIRemotePermissionService.h"
 #include "nsWeakReference.h"
 #include "nsCOMPtr.h"
 #include "nsIURI.h"
@@ -644,6 +645,10 @@ class PermissionManager final : public nsIPermissionManager,
   void CompleteRead();
 
   void CompleteMigrations();
+
+  // Service used for importing default permissions from remote settings
+  nsCOMPtr<nsIRemotePermissionService> mRemotePermissionService;
+  void InitRemotePermissionService();
 
   bool mMemoryOnlyDB;
 

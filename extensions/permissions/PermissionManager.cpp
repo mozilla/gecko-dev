@@ -3256,6 +3256,23 @@ void PermissionManager::CompleteRead() {
   }
 }
 
+void PermissionManager::InitRemotePermissionService() {
+  if (!StaticPrefs::permissions_manager_remote_enabled()) {
+    return;
+  }
+
+  NS_DispatchToCurrentThreadQueue(
+      NS_NewRunnableFunction("RemotePermissionService::Init",
+                             [&] {
+                               MOZ_ASSERT(!mRemotePermissionService);
+                               mRemotePermissionService = do_GetService(
+                                   NS_REMOTEPERMISSIONSERVICE_CONTRACTID);
+                               NS_ENSURE_TRUE_VOID(mRemotePermissionService);
+                               mRemotePermissionService->Init();
+                             }),
+      EventQueuePriority::Idle);
+}
+
 void PermissionManager::MaybeAddReadEntryFromMigration(
     const nsACString& aOrigin, const nsCString& aType, uint32_t aPermission,
     uint32_t aExpireType, int64_t aExpireTime, int64_t aModificationTime,
@@ -3703,6 +3720,7 @@ void PermissionManager::EnsureReadCompleted() {
       CompleteMigrations();
       ImportLatestDefaults();
       CompleteRead();
+      InitRemotePermissionService();
 
       [[fallthrough]];
 
