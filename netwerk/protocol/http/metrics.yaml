@@ -203,6 +203,52 @@ network:
       - necko@mozilla.com
     expires: never
 
+  cache_miss_time:
+    type: timing_distribution
+    time_unit: millisecond
+    telemetry_mirror: NETWORK_CACHE_V2_MISS_TIME_MS
+    description: >
+      Time spent to find out a cache entry file is missing.
+      (Migrated from the geckoview metric of the same name).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1580077
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922661
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1580077#c10
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+
+  cache_hit_miss_stat_per_cache_size:
+    type: labeled_counter
+    description: >
+      Hit/Miss count split by cache size in file count Hit 0-5000, Miss 0-5000, Hit 5001-10000, ...
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1131600
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922661
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1131600
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+
+  cache_hit_rate_per_cache_size:
+    type: labeled_custom_distribution
+    description: >
+      Hit rate for a specific cache size in file count. The hit rate is split into 20 buckets. The key is the cacheSize (20 buckets) and the value is between 0 and 100.
+    bucket_count: 20
+    range_min: 0
+    range_max: 100
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1131600
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922661
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1131600
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+
   font_download_end:
     type: timing_distribution
     time_unit: millisecond

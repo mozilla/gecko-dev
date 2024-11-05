@@ -98,9 +98,7 @@ class DetailedCacheHitTelemetry {
     HitRate();
 
     void AddRecord(ERecType aType);
-    // Returns the bucket index that the current hit rate falls into according
-    // to the given aNumOfBuckets.
-    uint32_t GetHitRateBucket(uint32_t aNumOfBuckets) const;
+    uint32_t GetHitRateBucket() const;
     uint32_t Count();
     void Reset();
 
@@ -113,6 +111,8 @@ class DetailedCacheHitTelemetry {
   // 5001-10000, ... , 95001- )
   static const uint32_t kRangeSize = 5000;
   static const uint32_t kNumOfRanges = 20;
+  static const uint32_t kPercentageRange = 5;
+  static const uint32_t kMaxPercentage = 100;
 
   // Use the same ranges to report an average hit rate. Report the hit rates
   // (and reset the counters) every kTotalSamplesReportLimit samples.
