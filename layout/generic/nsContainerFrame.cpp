@@ -819,13 +819,6 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
     nscoord aAvailableISize, const LogicalSize& aMargin,
     const mozilla::LogicalSize& aBorderPadding,
     const StyleSizeOverrides& aSizeOverrides, ComputeSizeFlags aFlags) {
-  const bool isTableCaption = IsTableCaption();
-  // Skip table caption, which requires special sizing - see bug 1109571.
-  if (IsAbsolutelyPositionedWithDefiniteContainingBlock() && !isTableCaption) {
-    return ComputeAbsolutePosAutoSize(aRenderingContext, aWM, aCBSize,
-                                      aAvailableISize, aMargin, aBorderPadding,
-                                      aSizeOverrides, aFlags);
-  }
   LogicalSize result(aWM, 0xdeadbeef, NS_UNCONSTRAINEDSIZE);
   if (aFlags.contains(ComputeSizeFlag::ShrinkWrap)) {
     // Delegate to nsIFrame::ComputeAutoSize() for computing the shrink-wrapping
@@ -838,7 +831,7 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
         aAvailableISize - aMargin.ISize(aWM) - aBorderPadding.ISize(aWM);
   }
 
-  if (isTableCaption) {
+  if (IsTableCaption()) {
     // If we're a container for font size inflation, then shrink
     // wrapping inside of us should not apply font size inflation.
     AutoMaybeDisableFontInflation an(this);
@@ -2663,44 +2656,13 @@ StyleAlignFlags nsContainerFrame::CSSAlignmentForAbsPosChild(
     const ReflowInput& aChildRI, LogicalAxis aLogicalAxis) const {
   MOZ_ASSERT(aChildRI.mFrame->IsAbsolutelyPositioned(),
              "This method should only be called for abspos children");
-  StyleAlignFlags alignment =
-      (aLogicalAxis == LogicalAxis::Inline)
-          ? aChildRI.mStylePosition->UsedJustifySelf(Style())._0
-          : aChildRI.mStylePosition->UsedAlignSelf(Style())._0;
+  NS_ERROR(
+      "Child classes that use css box alignment for abspos children "
+      "should provide their own implementation of this method!");
 
-  // Extract and strip the flag bits
-  StyleAlignFlags alignmentFlags = alignment & StyleAlignFlags::FLAG_BITS;
-  alignment &= ~StyleAlignFlags::FLAG_BITS;
-
-  if (alignment == StyleAlignFlags::NORMAL) {
-    // "the 'normal' keyword behaves as 'start' on replaced
-    // absolutely-positioned boxes, and behaves as 'stretch' on all other
-    // absolutely-positioned boxes."
-    // https://drafts.csswg.org/css-align/#align-abspos
-    // https://drafts.csswg.org/css-align/#justify-abspos
-    alignment = aChildRI.mFrame->IsReplaced() ? StyleAlignFlags::START
-                                              : StyleAlignFlags::STRETCH;
-  } else if (alignment == StyleAlignFlags::FLEX_START) {
-    alignment = StyleAlignFlags::START;
-  } else if (alignment == StyleAlignFlags::FLEX_END) {
-    alignment = StyleAlignFlags::END;
-  } else if (alignment == StyleAlignFlags::LEFT ||
-             alignment == StyleAlignFlags::RIGHT) {
-    if (aLogicalAxis == LogicalAxis::Inline) {
-      const bool isLeft = (alignment == StyleAlignFlags::LEFT);
-      WritingMode wm = GetWritingMode();
-      alignment = (isLeft == wm.IsBidiLTR()) ? StyleAlignFlags::START
-                                             : StyleAlignFlags::END;
-    } else {
-      alignment = StyleAlignFlags::START;
-    }
-  } else if (alignment == StyleAlignFlags::BASELINE) {
-    alignment = StyleAlignFlags::START;
-  } else if (alignment == StyleAlignFlags::LAST_BASELINE) {
-    alignment = StyleAlignFlags::END;
-  }
-
-  return (alignment | alignmentFlags);
+  // In the unexpected/unlikely event that this implementation gets invoked,
+  // just use "start" alignment.
+  return StyleAlignFlags::START;
 }
 
 nsOverflowContinuationTracker::nsOverflowContinuationTracker(

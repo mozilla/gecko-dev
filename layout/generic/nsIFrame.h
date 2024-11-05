@@ -2959,28 +2959,6 @@ class nsIFrame : public nsQueryFrame {
       mozilla::ComputeSizeFlags aFlags);
 
   /**
-   * A helper used by |nsIFrame::ComputeAutoSize|, computing auto sizes of
-   * frames that are absolutely positioned. Any class that overrides
-   * `ComputeAutoSize` may use this function to maintain the standard absolute
-   * size computation specified in [1].
-   *
-   * [1]: https://drafts.csswg.org/css-position-3/#abspos-auto-size
-   */
-  mozilla::LogicalSize ComputeAbsolutePosAutoSize(
-      gfxContext* aRenderingContext, mozilla::WritingMode aWM,
-      const mozilla::LogicalSize& aCBSize, nscoord aAvailableISize,
-      const mozilla::LogicalSize& aMargin,
-      const mozilla::LogicalSize& aBorderPadding,
-      const mozilla::StyleSizeOverrides& aSizeOverrides,
-      const mozilla::ComputeSizeFlags& aFlags);
-
-  /**
-   * Precondition helper function to determine if
-   * |nsIFrame::ComputeAbsolutePosAutoSize| can be called on this frame.
-   */
-  bool IsAbsolutelyPositionedWithDefiniteContainingBlock() const;
-
-  /**
    * Utility function for ComputeAutoSize implementations.  Return
    * max(GetMinISize(), min(aISizeInCB, GetPrefISize()))
    */

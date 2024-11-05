@@ -993,9 +993,17 @@ void ReflowInput::ComputeAbsPosInlineAutoMargin(nscoord aAvailMarginSpace,
     if (aIsMarginIEndAuto) {
       // Just 'margin-right' is 'auto'
       aMargin.IEnd(aContainingBlockWM) = aAvailMarginSpace;
+    } else {
+      // We're over-constrained so use the direction of the containing
+      // block to dictate which value to ignore.  (And note that the
+      // spec says to ignore 'left' or 'right' rather than
+      // 'margin-left' or 'margin-right'.)
+      // Note that this case is different from the both-'auto' case
+      // above, where the spec says to ignore
+      // 'margin-left'/'margin-right'.
+      // Ignore the specified value for 'right'.
+      aOffsets.IEnd(aContainingBlockWM) += aAvailMarginSpace;
     }
-    // Else, both margins are non-auto. This margin box would align to the
-    // inset-reduced containing block, so it's not overconstrained.
   }
 }
 
@@ -1021,8 +1029,12 @@ void ReflowInput::ComputeAbsPosBlockAutoMargin(nscoord aAvailMarginSpace,
     if (aIsMarginBEndAuto) {
       // Just margin-block-end is 'auto'
       aMargin.BEnd(aContainingBlockWM) = aAvailMarginSpace;
+    } else {
+      // We're over-constrained so ignore the specified value for
+      // block-end.  (And note that the spec says to ignore 'bottom'
+      // rather than 'margin-bottom'.)
+      aOffsets.BEnd(aContainingBlockWM) += aAvailMarginSpace;
     }
-    // Else, both margins are non-auto. See comment in the inline version.
   }
 }
 
@@ -1711,12 +1723,6 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   LogicalSize cbSize = aCBSize;
   LogicalMargin offsets(cbwm);
 
-  // Handle auto inset values, as per [1].
-  // Technically superceded by a new section [2], but none of the browsers seem
-  // to follow this behaviour.
-  //
-  // [1] https://drafts.csswg.org/css-position-3/#abspos-old
-  // [2] https://drafts.csswg.org/css-position-3/#resolving-insets
   if (iStartIsAuto) {
     offsets.IStart(cbwm) = 0;
   } else {
@@ -1837,9 +1843,31 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   } else if (!mFrame->HasIntrinsicKeywordForBSize() ||
              !wm.IsOrthogonalTo(cbwm)) {
     // Neither 'inline-start' nor 'inline-end' is 'auto'.
-    // The inline-size might not fill all the available space (even though we
-    // didn't shrink-wrap) in case:
-    //  * insets are explicitly set and the child frame is not stretched
+    if (wm.IsOrthogonalTo(cbwm)) {
+      // For orthogonal blocks, we need to handle the case where the block had
+      // unconstrained block-size, which mapped to unconstrained inline-size
+      // in the containing block's writing mode.
+      nscoord autoISize = cbSize.ISize(cbwm) - margin.IStartEnd(cbwm) -
+                          borderPadding.IStartEnd(cbwm) -
+                          offsets.IStartEnd(cbwm);
+      autoISize = std::max(autoISize, 0);
+      // FIXME: Bug 1602669: if |autoISize| happens to be numerically equal to
+      // NS_UNCONSTRAINEDSIZE, we may get some unexpected behavior. We need a
+      // better way to distinguish between unconstrained size and resolved
+      // size.
+      NS_WARNING_ASSERTION(autoISize != NS_UNCONSTRAINEDSIZE,
+                           "Unexpected size from inline-start and inline-end");
+
+      nscoord autoBSizeInWM = autoISize;
+      LogicalSize computedSizeInWM =
+          CalculateAbsoluteSizeWithResolvedAutoBlockSize(
+              autoBSizeInWM, computedSize.ConvertTo(wm, cbwm));
+      computedSize = computedSizeInWM.ConvertTo(cbwm, wm);
+    }
+
+    // However, the inline-size might
+    // still not fill all the available space (even though we didn't
+    // shrink-wrap) in case:
     //  * inline-size was specified
     //  * we're dealing with a replaced element
     //  * width was constrained by min- or max-inline-size.
@@ -1887,8 +1915,19 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     NS_WARNING_ASSERTION(autoBSize != NS_UNCONSTRAINEDSIZE,
                          "Unexpected size from block-start and block-end");
 
-    // The block-size might not fill all the available space in case:
-    //  * insets are explicitly set and the child frame is not stretched
+    // For orthogonal case, the inline size in |wm| should have been handled by
+    // ComputeSize(). In other words, we only have to apply |autoBSize| to
+    // the computed size if this value can represent the block size in |wm|.
+    if (!wm.IsOrthogonalTo(cbwm)) {
+      // We handle the unconstrained block-size in current block's writing
+      // mode 'wm'.
+      LogicalSize computedSizeInWM =
+          CalculateAbsoluteSizeWithResolvedAutoBlockSize(
+              autoBSize, computedSize.ConvertTo(wm, cbwm));
+      computedSize = computedSizeInWM.ConvertTo(cbwm, wm);
+    }
+
+    // The block-size might still not fill all the available space in case:
     //  * bsize was specified
     //  * we're dealing with a replaced element
     //  * bsize was constrained by min- or max-bsize.
