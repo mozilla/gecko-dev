@@ -50,6 +50,12 @@ void FileSystemManagerParent::AssertIsOnIOTarget() const {
   mDataManager->AssertIsOnIOTarget();
 }
 
+bool FileSystemManagerParent::IsAlive() const {
+  mozilla::ipc::AssertIsOnBackgroundThread();
+
+  return !!mDataManager;
+}
+
 const RefPtr<fs::data::FileSystemDataManager>&
 FileSystemManagerParent::DataManagerStrongRef() const {
   MOZ_ASSERT(!mActorDestroyed);
@@ -508,7 +514,9 @@ void FileSystemManagerParent::ActorDestroy(ActorDestroyReason aWhy) {
 
   InvokeAsync(mDataManager->MutableBackgroundTargetPtr(), __func__,
               [self = RefPtr<FileSystemManagerParent>(this)]() {
-                self->mDataManager->UnregisterActor(WrapNotNull(self));
+                if (self->mRegistered) {
+                  self->mDataManager->UnregisterActor(WrapNotNull(self));
+                }
 
                 self->mDataManager = nullptr;
 

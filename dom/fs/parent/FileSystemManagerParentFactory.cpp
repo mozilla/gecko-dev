@@ -103,6 +103,11 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
                          RefPtr<FileSystemManagerParent> parent =
                              std::move(aValue.ResolveValue());
 
+                         if (!parent->IsAlive()) {
+                           return BoolPromise::CreateAndReject(NS_ERROR_ABORT,
+                                                               __func__);
+                         }
+
                          dataManager->RegisterActor(WrapNotNull(parent));
 
                          return BoolPromise::CreateAndResolve(true, __func__);

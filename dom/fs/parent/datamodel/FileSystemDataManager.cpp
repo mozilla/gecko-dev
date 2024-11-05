@@ -324,9 +324,7 @@ void FileSystemDataManager::RegisterActor(
 
   mBackgroundThreadAccessible.Access()->mActors.Insert(aActor);
 
-#ifdef DEBUG
   aActor->SetRegistered(true);
-#endif
 
   // It can happen that FileSystemDataManager::AbortOperationsForLocks is
   // called during async CreateFileSystemManagerParent operation when the actor
@@ -349,9 +347,7 @@ void FileSystemDataManager::UnregisterActor(
 
   mBackgroundThreadAccessible.Access()->mActors.Remove(aActor);
 
-#ifdef DEBUG
   aActor->SetRegistered(false);
-#endif
 
   if (IsInactive()) {
     BeginClose();
