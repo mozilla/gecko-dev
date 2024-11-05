@@ -497,7 +497,7 @@ class SelectableProfileServiceClass {
           path	TEXT NOT NULL UNIQUE,
           name	TEXT NOT NULL,
           avatar	TEXT NOT NULL,
-          themeL10nId	TEXT NOT NULL,
+          themeId	TEXT NOT NULL,
           themeFg	TEXT NOT NULL,
           themeBg	TEXT NOT NULL,
           PRIMARY KEY(id)
@@ -636,7 +636,7 @@ class SelectableProfileServiceClass {
 
     let theme = data.theme;
     this.currentProfile.theme = {
-      themeL10nId: theme.id,
+      themeId: theme.id,
       themeFg: theme.textcolor,
       themeBg: theme.accentcolor,
     };
@@ -831,13 +831,17 @@ class SelectableProfileServiceClass {
     let [defaultName] = lazy.profilesLocalization.formatMessagesSync([
       { id: "default-profile-name", args: { number: nextProfileNumber } },
     ]);
+
+    let window = Services.wm.getMostRecentBrowserWindow();
+    let isDark = window?.matchMedia("(-moz-system-dark-theme)").matches;
+
     let randomIndex = Math.floor(Math.random() * this.#defaultAvatars.length);
     let profileData = {
       name: defaultName.value,
       avatar: this.#defaultAvatars[randomIndex],
-      themeL10nId: "default",
-      themeFg: "var(--text-color)",
-      themeBg: "var(--background-color-box)",
+      themeId: "default-theme@mozilla.org",
+      themeFg: isDark ? "rgb(255,255,255)" : "rgb(21,20,26)",
+      themeBg: isDark ? "rgb(28, 27, 34)" : "rgb(240, 240, 244)",
     };
 
     let path =
@@ -885,7 +889,7 @@ class SelectableProfileServiceClass {
     await this.maybeSetupDataStore();
 
     let profile = await this.#createProfile();
-    this.launchInstance(profile);
+    this.launchInstance(profile, "about:newprofile");
   }
 
   /**
@@ -895,13 +899,13 @@ class SelectableProfileServiceClass {
    * been created.
    *
    * @param {object} profileData A plain object that contains a name, avatar,
-   *                 themeL10nId, themeFg, themeBg, and relative path as string.
+   *                 themeId, themeFg, themeBg, and relative path as string.
    *
    * @returns {SelectableProfile} The newly created profile object.
    */
   async insertProfile(profileData) {
     // Verify all fields are present.
-    let keys = ["avatar", "name", "path", "themeBg", "themeFg", "themeL10nId"];
+    let keys = ["avatar", "name", "path", "themeBg", "themeFg", "themeId"];
     let missing = [];
     keys.forEach(key => {
       if (!(key in profileData)) {
@@ -915,7 +919,7 @@ class SelectableProfileServiceClass {
       );
     }
     await this.#connection.execute(
-      `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeL10nId, :themeFg, :themeBg);`,
+      `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeId, :themeFg, :themeBg);`,
       profileData
     );
 
@@ -1001,7 +1005,7 @@ class SelectableProfileServiceClass {
 
     await this.#connection.execute(
       `UPDATE Profiles
-       SET path = :path, name = :name, avatar = :avatar, themeL10nId = :themeL10nId, themeFg = :themeFg, themeBg = :themeBg
+       SET path = :path, name = :name, avatar = :avatar, themeId = :themeId, themeFg = :themeFg, themeBg = :themeBg
        WHERE id = :id;`,
       profileObj
     );

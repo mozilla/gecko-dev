@@ -169,12 +169,12 @@ export class EditProfileCard extends MozLitElement {
   }
 
   async updateTheme(newThemeId) {
-    if (newThemeId === this.profile.themeL10nId) {
+    if (newThemeId === this.profile.themeId) {
       return;
     }
 
     let theme = await RPMSendQuery("Profiles:UpdateProfileTheme", newThemeId);
-    this.profile.themeL10nId = theme.themeL10nId;
+    this.profile.themeId = theme.themeId;
     this.profile.themeFg = theme.themeFg;
     this.profile.themeBg = theme.themeBg;
 
