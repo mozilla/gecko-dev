@@ -321,8 +321,6 @@ support-files = ["tab_that_opens_dialog.html"]
 ["browser_restore_isAppTab.js"]
 run-if = ["crashreporter"] # test requires crashreporter due to 1536221
 
-["browser_scroll_size_determination.js"]
-
 ["browser_selectTabAtIndex.js"]
 
 ["browser_switch_by_scrolling.js"]
