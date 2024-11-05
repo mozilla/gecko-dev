@@ -62,3 +62,28 @@ session_restore:
           Reason why shutdown didn't happen successfully, N/A if previous session didn't crashed
         type: string
     telemetry_mirror: Session_restore_ShutdownSuccess_SessionStartup
+
+browser.engagement:
+  sessionrestore_interstitial:
+    type: labeled_counter
+    description: >
+      Whether we show about:sessionrestore or not. Split by key, which
+      indicates why we showed the item or not. Specifically,
+      'deferred_restore' means we didn't autorestore and thus didn't show
+      the interstitial; 'autorestore' indicates we autorestored without
+      showing the interstitial. 'shown_old_session',
+      'shown_only_about_welcomeback', 'shown_many_crashes',
+      'shown_many_crashes_old_session' all indicate we did show the
+      interstitial because of a crash, and the text after 'shown'
+      indicates what secondary reason there was to show this page (as we
+      don't show it for 'just' one crash).
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.sessionrestore_interstitial.
+    bugs:
+      - https://bugzil.la/1671271
+    data_reviews:
+      - https://bugzil.la/1671271
+    notification_emails:
+      - gijs@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_SESSIONRESTORE_INTERSTITIAL

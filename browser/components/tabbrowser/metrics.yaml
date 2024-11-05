@@ -10,6 +10,40 @@ $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
 $tags:
   - 'Firefox :: Tabbed Browser'
 
+browser.engagement:
+  tab_unload_count:
+    type: counter
+    description: >
+      The count of tab unload events by TabUnloader due to a low-memory
+      situation.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.tab_unload_count.
+    bugs:
+      - https://bugzil.la/1715858
+    data_reviews:
+      - https://bugzil.la/1715858
+    notification_emails:
+      - dao@mozilla.com
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_TAB_UNLOAD_COUNT
+
+  tab_reload_count:
+    type: counter
+    description: >
+      The count of tab reload events by the user after unloaded.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.tab_reload_count.
+    bugs:
+      - https://bugzil.la/1715858
+    data_reviews:
+      - https://bugzil.la/1715858
+    notification_emails:
+      - dao@mozilla.com
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_TAB_RELOAD_COUNT
+
 browser.ui.interaction:
   all_tabs_panel_dragstart_tab_event_count:
     type: counter

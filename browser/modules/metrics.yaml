@@ -213,6 +213,131 @@ browser.engagement:
     unit: vertical pinned tabs
     telemetry_mirror: BROWSER_ENGAGEMENT_MAX_CONCURRENT_VERTICAL_TAB_PINNED_COUNT
 
+  tab_open_event_count:
+    type: counter
+    description: >
+      The count of tab open events per subsession, across all windows,
+      after the session has been restored. This includes tab open events
+      from private windows and from manual session restorations (i.e.
+      after crashes and from about:home), but excludes tabs opened vertically.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.tab_open_event_count.
+    bugs:
+      - https://bugzil.la/1271304
+    data_reviews:
+      - https://bugzil.la/1271304
+    notification_emails:
+      - vsabino@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_TAB_OPEN_EVENT_COUNT
+
+  vertical_tab_open_event_count:
+    type: counter
+    description: >
+      The count of tab open events with vertical tabs enabled.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.vertical_tab_open_event_count.
+    bugs:
+      - https://bugzil.la/1899352
+    data_reviews:
+      - https://bugzil.la/1899352
+    notification_emails:
+      - vsabino@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_VERTICAL_TAB_OPEN_EVENT_COUNT
+
+  window_open_event_count:
+    type: counter
+    description: >
+      The count of browser window open events per subsession, after the
+      session has been restored. The count includes private windows and
+      the ones from manual session restorations (i.e. after crashes and
+      from about:home).
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.window_open_event_count.
+    bugs:
+      - https://bugzil.la/1271304
+    data_reviews:
+      - https://bugzil.la/1271304
+    notification_emails:
+      - rweiss@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_WINDOW_OPEN_EVENT_COUNT
+
+  tab_pinned_event_count:
+    type: counter
+    description: >
+      The count of tab pinned events per subsession, across all windows,
+      after the session has been restored. This includes tab pinned events
+      from private windows.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.tab_pinned_event_count.
+    bugs:
+      - https://bugzil.la/1505535
+    data_reviews:
+      - https://bugzil.la/1505535
+    notification_emails:
+      - bmiroglio@mozilla.com
+      - aoprea@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_TAB_PINNED_EVENT_COUNT
+
+  vertical_tab_pinned_event_count:
+    type: counter
+    description: >
+      The count of tab pinned events with vertical tabs enabled.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.vertical_tab_pinned_event_count.
+    bugs:
+      - https://bugzil.la/1899352
+    data_reviews:
+      - https://bugzil.la/1899352
+    notification_emails:
+      - vsabino@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_VERTICAL_TAB_PINNED_EVENT_COUNT
+
+  unfiltered_uri_count:
+    type: counter
+    description: >
+      The count of the total non-unique URIs visited in a subsession, not
+      restricted to a specific protocol, including page reloads and
+      about:* pages (other than initial pages such as about:blank, ...),
+      after the session has been restored. This does not include
+      background page requests and URIs from embedded pages or private
+      browsing.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.unfiltered_uri_count.
+    bugs:
+      - https://bugzil.la/1304647
+    data_reviews:
+      - https://bugzil.la/1304647
+    notification_emails:
+      - bcolloran@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_UNFILTERED_URI_COUNT
+
+  unique_domains_count:
+    type: quantity
+    description: >
+      The count of the unique domains visited in a subsession, after the
+      session has been restored. Subdomains under eTLD are aggregated
+      after the first level (i.e. test.example.com and other.example.com
+      are only counted once). This does not include background page
+      requests and domains from embedded pages or private browsing. The
+      count is limited to 100 unique domains.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.unique_domains_count.
+    bugs:
+      - https://bugzil.la/1271310
+    data_reviews:
+      - https://bugzil.la/1271310
+    notification_emails:
+      - rweiss@mozilla.com
+    expires: never
+    unit: domains
+    telemetry_mirror: BROWSER_ENGAGEMENT_UNIQUE_DOMAINS_COUNT
+
 installation.first_seen:
   failure_reason:
     type: string

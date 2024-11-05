@@ -737,12 +737,10 @@ var Impl = {
       // been suspended since boot, we want the previous property to hold,
       // regardless of the delay during or between the two
       // `msSinceProcessStart*` calls.
-      Services.telemetry.scalarSet(
-        "browser.engagement.session_time_excluding_suspend",
+      Glean.browserEngagement.sessionTimeExcludingSuspend.set(
         Services.telemetry.msSinceProcessStartExcludingSuspend()
       );
-      Services.telemetry.scalarSet(
-        "browser.engagement.session_time_including_suspend",
+      Glean.browserEngagement.sessionTimeIncludingSuspend.set(
         Services.telemetry.msSinceProcessStartIncludingSuspend()
       );
 

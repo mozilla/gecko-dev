@@ -830,10 +830,7 @@ var BookmarksEventHandler = {
       PlacesUIUtils.openNodeWithEvent(target._placesNode, aEvent);
       // Only record interactions through the Bookmarks Toolbar
       if (target.closest("#PersonalToolbar")) {
-        Services.telemetry.scalarAdd(
-          "browser.engagement.bookmarks_toolbar_bookmark_opened",
-          1
-        );
+        Glean.browserEngagement.bookmarksToolbarBookmarkOpened.add(1);
       }
     }
   },
@@ -2055,10 +2052,7 @@ var BookmarkingUI = {
           }
 
           if (ev.parentGuid === PlacesUtils.bookmarks.toolbarGuid) {
-            Services.telemetry.scalarAdd(
-              "browser.engagement.bookmarks_toolbar_bookmark_added",
-              1
-            );
+            Glean.browserEngagement.bookmarksToolbarBookmarkAdded.add(1);
           }
           if (ev.parentGuid == PlacesUtils.bookmarks.tagsGuid) {
             StarUI.userHasTags = true;
@@ -2103,10 +2097,7 @@ var BookmarkingUI = {
           ) {
             affectsBookmarksToolbarFolder = true;
             if (ev.oldParentGuid != PlacesUtils.bookmarks.toolbarGuid) {
-              Services.telemetry.scalarAdd(
-                "browser.engagement.bookmarks_toolbar_bookmark_added",
-                1
-              );
+              Glean.browserEngagement.bookmarksToolbarBookmarkAdded.add(1);
             }
           }
           break;

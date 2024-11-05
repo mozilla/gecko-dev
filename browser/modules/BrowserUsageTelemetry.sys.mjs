@@ -320,10 +320,7 @@ export let URICountListener = {
       // If we have troubles parsing the spec, still count this as
       // an unfiltered URI.
       if (shouldCountURI) {
-        Services.telemetry.scalarAdd(
-          "browser.engagement.unfiltered_uri_count",
-          1
-        );
+        Glean.browserEngagement.unfilteredUriCount.add(1);
       }
       return;
     }
@@ -346,10 +343,7 @@ export let URICountListener = {
     // If this is an http(s) URI, this also gets counted by the "total_uri_count"
     // probe.
     if (shouldCountURI) {
-      Services.telemetry.scalarAdd(
-        "browser.engagement.unfiltered_uri_count",
-        1
-      );
+      Glean.browserEngagement.unfilteredUriCount.add(1);
     }
 
     if (!this.isHttpURI(uri)) {
@@ -399,10 +393,7 @@ export let URICountListener = {
     // We only want to count the unique domains up to MAX_UNIQUE_VISITED_DOMAINS.
     if (this._domainSet.size < MAX_UNIQUE_VISITED_DOMAINS) {
       this._domainSet.add(baseDomain);
-      Services.telemetry.scalarSet(
-        "browser.engagement.unique_domains_count",
-        this._domainSet.size
-      );
+      Glean.browserEngagement.uniqueDomainsCount.set(this._domainSet.size);
     }
 
     this._domain24hrSet.add(baseDomain);
@@ -1142,15 +1133,9 @@ export let BrowserUsageTelemetry = {
   _onTabOpen() {
     // Update the "tab opened" count and its maximum.
     if (lazy.sidebarVerticalTabs) {
-      Services.telemetry.scalarAdd(
-        "browser.engagement.vertical_tab_open_event_count",
-        1
-      );
+      Glean.browserEngagement.verticalTabOpenEventCount.add(1);
     } else {
-      Services.telemetry.scalarAdd(
-        "browser.engagement.tab_open_event_count",
-        1
-      );
+      Glean.browserEngagement.tabOpenEventCount.add(1);
     }
 
     // In the case of opening multiple tabs at once, avoid enumerating all open
@@ -1177,15 +1162,9 @@ export let BrowserUsageTelemetry = {
 
     // Update the "tab pinned" count and its maximum.
     if (lazy.sidebarVerticalTabs) {
-      Services.telemetry.scalarAdd(
-        "browser.engagement.vertical_tab_pinned_event_count",
-        1
-      );
+      Glean.browserEngagement.verticalTabPinnedEventCount.add(1);
     } else {
-      Services.telemetry.scalarAdd(
-        "browser.engagement.tab_pinned_event_count",
-        1
-      );
+      Glean.browserEngagement.tabPinnedEventCount.add(1);
     }
     this.updateMaxTabPinnedCount(pinnedTabs);
   },
@@ -1214,10 +1193,7 @@ export let BrowserUsageTelemetry = {
       this._registerWindow(win);
       // Track the window open event and check the maximum.
       const counts = getOpenTabsAndWinsCounts();
-      Services.telemetry.scalarAdd(
-        "browser.engagement.window_open_event_count",
-        1
-      );
+      Glean.browserEngagement.windowOpenEventCount.add(1);
 
       if (counts.winCount > this.maxWindowCount) {
         this.maxWindowCount = counts.winCount;

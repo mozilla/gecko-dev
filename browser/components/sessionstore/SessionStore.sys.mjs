@@ -1109,9 +1109,7 @@ var SessionStoreInternal = {
           if (remainingState.windows.length) {
             LastSession.setState(remainingState);
           }
-          Services.telemetry.keyedScalarAdd(
-            "browser.engagement.sessionrestore_interstitial",
-            "deferred_restore",
+          Glean.browserEngagement.sessionrestoreInterstitial.deferred_restore.add(
             1
           );
         } else {
@@ -1145,9 +1143,7 @@ var SessionStoreInternal = {
               this._hasSingleTabWithURL(state.windows, "about:welcomeback")
             ) {
               this._log.debug("initSession, will show about:welcomeback");
-              Services.telemetry.keyedScalarAdd(
-                "browser.engagement.sessionrestore_interstitial",
-                "shown_only_about_welcomeback",
+              Glean.browserEngagement.sessionrestoreInterstitial.shown_only_about_welcomeback.add(
                 1
               );
               // On a single about:welcomeback URL that crashed, replace about:welcomeback
@@ -1162,9 +1158,7 @@ var SessionStoreInternal = {
 
           // If we didn't use about:sessionrestore, record that:
           if (!restoreAsCrashed) {
-            Services.telemetry.keyedScalarAdd(
-              "browser.engagement.sessionrestore_interstitial",
-              "autorestore",
+            Glean.browserEngagement.sessionrestoreInterstitial.autorestore.add(
               1
             );
             this._log.debug("initSession, will autorestore");
@@ -6255,11 +6249,7 @@ var SessionStoreInternal = {
       } else {
         key = "shown_old_session";
       }
-      Services.telemetry.keyedScalarAdd(
-        "browser.engagement.sessionrestore_interstitial",
-        key,
-        1
-      );
+      Glean.browserEngagement.sessionrestoreInterstitial[key].add(1);
     }
     return decision;
   },

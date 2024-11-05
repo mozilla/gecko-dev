@@ -85,3 +85,38 @@ telemetry:
       - telemetry-client-dev@mozilla.com
     expires: never
     telemetry_mirror: TELEMETRY_DATA_UPLOAD_OPTIN
+
+browser.engagement:
+  session_time_including_suspend:
+    type: quantity
+    description: >
+      The duration of the session in milliseconds, including the time the
+      device was suspended.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.session_time_including_suspend.
+    bugs:
+      - https://bugzil.la/1205985
+    data_reviews:
+      - https://bugzil.la/1205985
+    notification_emails:
+      - padenot@mozilla.com
+    expires: never
+    unit: ms
+    telemetry_mirror: BROWSER_ENGAGEMENT_SESSION_TIME_INCLUDING_SUSPEND
+
+  session_time_excluding_suspend:
+    type: quantity
+    description: >
+      The duration of the session in milliseconds, excluding the time the
+      device was suspended.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.session_time_excluding_suspend.
+    bugs:
+      - https://bugzil.la/1205985
+    data_reviews:
+      - https://bugzil.la/1205985
+    notification_emails:
+      - padenot@mozilla.com
+    expires: never
+    unit: ms
+    telemetry_mirror: BROWSER_ENGAGEMENT_SESSION_TIME_EXCLUDING_SUSPEND
