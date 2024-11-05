@@ -11,14 +11,31 @@ class LoginPasswordField extends MozLitElement {
 
   static properties = {
     _value: { type: String, state: true },
+    name: { type: String },
     readonly: { type: Boolean, reflect: true },
     visible: { type: Boolean, reflect: true },
+    required: { type: Boolean, reflect: true },
   };
 
   static queries = {
     input: "input",
     button: "button",
   };
+
+  static formAssociated = true;
+
+  constructor() {
+    super();
+    this._value = "";
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.internals.setFormValue(this._value);
+    this.addEventListener("input", e => {
+      this.internals.setFormValue(e.composedTarget.value);
+    });
+  }
 
   set value(newValue) {
     this._value = newValue;
@@ -48,6 +65,7 @@ class LoginPasswordField extends MozLitElement {
         value: this.#password,
         labelId: "login-item-password-label",
         disabled: this.readonly,
+        required: this.required,
         onFocus: this.handleFocus,
         onBlur: this.handleBlur,
         labelL10nId: "login-item-password-label",

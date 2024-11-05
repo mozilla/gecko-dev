@@ -10,14 +10,16 @@ const stylesTemplate = () => html` <link
   href="chrome://browser/content/aboutlogins/components/login-message-popup.css"
 />`;
 
-export const MessagePopup = ({ l10nid, webTitle = "" }) => {
+export const MessagePopup = ({ l10nid, message, webTitle = "" }) => {
   return html` <div class="tooltip-container">
     <div class="arrow-box">
       <p
         class="tooltip-message"
         data-l10n-id=${ifDefined(l10nid)}
         data-l10n-args=${JSON.stringify({ webTitle })}
-      ></p>
+      >
+        ${ifDefined(message)}
+      </p>
     </div>
   </div>`;
 };
@@ -27,14 +29,24 @@ export class PasswordWarning extends MozLitElement {
     return {
       isNewLogin: { type: Boolean, reflect: true },
       webTitle: { type: String, reflect: true },
+      arrowDirection: { type: String },
+      message: { type: String },
     };
   }
 
   constructor() {
     super();
     this.isNewLogin = false;
+    this.arrowDirection = "left";
   }
   render() {
+    if (this.message) {
+      return html`${stylesTemplate()}
+      ${MessagePopup({
+        message: this.message,
+      })}`;
+    }
+
     return this.isNewLogin
       ? html`${stylesTemplate()}
         ${MessagePopup({
@@ -49,9 +61,22 @@ export class PasswordWarning extends MozLitElement {
 }
 
 export class OriginWarning extends MozLitElement {
+  static get properties() {
+    return {
+      l10nId: { type: String },
+      message: { type: String },
+      arrowDirection: { type: String },
+    };
+  }
+
+  constructor() {
+    super();
+    this.arrowDirection = "left";
+  }
+
   render() {
     return html`${stylesTemplate()}
-    ${MessagePopup({ l10nid: "about-logins-origin-tooltip2" })}`;
+    ${MessagePopup({ l10nid: this.l10nId, message: this.message })}`;
   }
 }
 

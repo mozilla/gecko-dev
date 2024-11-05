@@ -192,6 +192,18 @@ passwords-password-label = Password
 passwords-radiogroup-label =
   .aria-label = Filter passwords
 
+# Variables
+#   $url (string) - The url associated with the new login
+passwords-add-password-success-heading =
+  .heading = Password added for { $url }
+passwords-add-password-success-button = View
+
+# Variables
+#   $url (string) - The url associated with the existing login
+passwords-password-already-exists-error-heading =
+  .heading = A password and username for { $url } already exists
+passwords-password-already-exists-error-button = Go to Password
+
 # Radiobutton label to display total number of passwords
 #   $total (number) - Total number of passwords
 passwords-radiobutton-all = All ({ $total })

@@ -9,6 +9,18 @@
 }
 
 /* Add spacing between fieldset legend text and fields */
-login-origin-field {
+login-origin-field, login-password-field {
   margin-block-start: var(--space-medium);
+}
+
+origin-warning, password-warning {
+	display: none;
+}
+
+origin-warning.invalid-input, password-warning.invalid-input {
+	display: block;
+}
+
+.field-container {
+	position: relative;
 }

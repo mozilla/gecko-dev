@@ -17,6 +17,7 @@ export const editableFieldTemplate = ({
   type,
   value,
   disabled,
+  required,
   onFocus,
   onBlur,
   labelL10nId,
@@ -31,6 +32,7 @@ export const editableFieldTemplate = ({
       value=${value}
       aria-describedby="explainer"
       ?disabled=${disabled}
+      ?required=${required}
       @focus=${onFocus}
       @blur=${onBlur}
     />

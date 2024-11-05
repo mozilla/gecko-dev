@@ -45,3 +45,17 @@
   border-width: 11px;
   margin-top: -11px;
 }
+
+:host([arrowDirection="down"]) {
+  .tooltip-container {
+    inset-inline-start: 60%;
+  }
+
+  .arrow-box::after,
+  .arrow-box::before {
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) rotate(270deg);
+    margin-top: 0px;
+  }
+}

@@ -285,6 +285,10 @@ password-card,
   flex-direction: column;
 }
 
+login-form {
+  margin-block-start: var(--space-small);
+}
+
 .edit-button {
   justify-self: end;
 }

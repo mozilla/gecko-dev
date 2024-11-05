@@ -167,6 +167,7 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.executeExport = async () => this.#exportLogins();
       this.#header.executeSettings = () => this.#openLink(PREFERENCES_URL);
       this.#header.executeHelp = () => this.#openLink(SUPPORT_URL);
+      this.#header.executeAddLogin = formData => this.#addLogin(formData);
 
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
@@ -594,6 +595,39 @@ export class LoginDataSource extends DataSourceBase {
     );
 
     return buttonPressed == 0;
+  }
+
+  async #addLogin(formData) {
+    let newLogin = Object.fromEntries(formData.entries());
+    const origin = LoginHelper.getLoginOrigin(newLogin.origin);
+    newLogin.origin = origin;
+    Object.assign(newLogin, {
+      formActionOrigin: "",
+      usernameField: "",
+      passwordField: "",
+    });
+    newLogin = LoginHelper.vanillaObjectToLogin(newLogin);
+    try {
+      newLogin = await Services.logins.addLoginAsync(newLogin);
+      this.setNotification({
+        id: "add-login-success",
+        l10nArgs: { url: origin },
+        guid: newLogin.guid,
+      });
+    } catch (error) {
+      this.#handleLoginStorageErrors(origin, error);
+    }
+  }
+
+  #handleLoginStorageErrors(origin, error) {
+    if (error.message.includes("This login already exists")) {
+      const existingLoginGuid = error.data.toString();
+      this.setNotification({
+        id: "add-login-already-exists-warning",
+        l10nArgs: { url: origin },
+        guid: existingLoginGuid,
+      });
+    }
   }
 
   /**

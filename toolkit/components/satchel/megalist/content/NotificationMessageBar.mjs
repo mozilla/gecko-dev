@@ -2,8 +2,71 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import {
+  html,
+  ifDefined,
+  when,
+  nothing,
+} from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
+
+const actionButton = action => {
+  return html` <moz-button
+    slot=${ifDefined(action.slot)}
+    type=${ifDefined(action.type)}
+    data-l10n-id=${action.dataL10nId}
+    @click=${action.onClick}
+  ></moz-button>`;
+};
+
+const notificationShell = ({
+  onDismiss,
+  messageHandler,
+  dataL10nId,
+  dataL10nAttrs,
+  dataL10nArgs,
+  messageL10nId,
+  messageL10nArgs,
+  type,
+  link,
+  primaryAction,
+  secondaryAction,
+}) => {
+  return html`
+    <moz-message-bar
+      @message-bar:user-dismissed=${onDismiss}
+      dismissable
+      type=${type}
+      data-l10n-id=${dataL10nId}
+      data-l10n-attrs=${dataL10nAttrs}
+      data-l10n-args=${ifDefined(dataL10nArgs)}
+      messageL10nId=${ifDefined(messageL10nId)}
+      .messageL10nArgs=${ifDefined(messageL10nArgs)}
+    >
+      ${when(
+        link,
+        () => html`<a
+          slot="support-link"
+          data-l10n-id=${link.dataL10nId}
+          href=${link.url}
+          @click=${e => {
+            e.preventDefault();
+            messageHandler(link.onClick);
+          }}
+        ></a>`,
+        () => nothing
+      )}
+      ${when(
+        secondaryAction,
+        () =>
+          html` <moz-button-group slot="actions">
+            ${actionButton(primaryAction)} ${actionButton(secondaryAction)}
+          </moz-button-group>`,
+        () => html`${actionButton(primaryAction)}`
+      )}
+    </moz-message-bar>
+  `;
+};
 
 class NotificationMessageBar extends MozLitElement {
   static properties = {
@@ -13,65 +76,85 @@ class NotificationMessageBar extends MozLitElement {
   };
 
   #renderImportSuccess() {
-    const { onLinkClick } = this.notification.commands;
-    return html`
-      <moz-message-bar
-        @message-bar:user-dismissed=${() => this.onDismiss()}
-        dismissable
-        type="success"
-        data-l10n-id="passwords-import-success-heading"
-        data-l10n-attrs="heading"
-        messageL10nId="passwords-import-success-message"
-        .messageL10nArgs=${this.notification.l10nArgs}
-      >
-        <a
-          slot="support-link"
-          data-l10n-id="passwords-import-detailed-report"
-          href="about:loginsimportreport"
-          @click=${e => {
-            e.preventDefault();
-            this.messageHandler(onLinkClick);
-          }}
-        >
-        </a>
-        <moz-button
-          slot="actions"
-          data-l10n-id="passwords-import-success-button"
-          @click=${() => this.onDismiss()}
-        ></moz-button>
-      </moz-message-bar>
-    `;
+    return html`${notificationShell({
+      onDismiss: this.onDismiss,
+      messageHandler: this.messageHandler,
+      dataL10nId: "passwords-import-success-heading",
+      dataL10nAttrs: "heading",
+      messageL10nId: "passwords-import-success-message",
+      messageL10nArgs: this.notification.l10nArgs,
+      type: "success",
+      link: {
+        url: "about:loginsimportreport",
+        dataL10nId: "passwords-import-detailed-report",
+        onClick: this.notification.commands.onLinkClick,
+      },
+      primaryAction: {
+        type: "primary",
+        slot: "actions",
+        dataL10nId: "passwords-import-success-button",
+        onClick: this.onDismiss,
+      },
+    })}`;
   }
 
   #renderImportError() {
-    const { onLinkClick, onRetry } = this.notification.commands;
+    return html`${notificationShell({
+      onDismiss: this.onDismiss,
+      messageHandler: this.messageHandler,
+      dataL10nId: "passwords-import-error-heading-and-message",
+      dataL10nAttrs: "heading, message",
+      type: "error",
+      link: {
+        url: "https://support.mozilla.org/kb/import-login-data-file",
+        dataL10nId: "passwords-import-learn-more",
+        onClick: this.notification.commands.onLinkClick,
+      },
+      primaryAction: {
+        type: "primary",
+        dataL10nId: "passwords-import-error-button-try-again",
+        onClick: () => this.messageHandler(this.notification.commands.onRetry),
+      },
+      secondaryAction: {
+        dataL10nId: "passwords-import-error-button-cancel",
+        onClick: this.onDismiss,
+      },
+    })}`;
+  }
+
+  #renderAddLoginSuccess() {
     return html`
-      <moz-message-bar
-        @message-bar:user-dismissed=${() => this.onDismiss()}
-        dismissable
-        type="error"
-        data-l10n-id="passwords-import-error-heading-and-message"
-        data-l10n-attrs="heading, message"
-      >
-        <a
-          slot="support-link"
-          data-l10n-id="passwords-import-learn-more"
-          href="https://support.mozilla.org/kb/import-login-data-file"
-          @click=${() => this.messageHandler(onLinkClick)}
-        >
-        </a>
-        <moz-button-group slot="actions">
-          <moz-button
-            type="primary"
-            data-l10n-id="passwords-import-error-button-try-again"
-            @click=${() => this.messageHandler(onRetry)}
-          ></moz-button>
-          <moz-button
-            data-l10n-id="passwords-import-error-button-cancel"
-            @click=${() => this.onDismiss()}
-          ></moz-button>
-        </moz-button-group>
-      </moz-message-bar>
+      ${notificationShell({
+        onDismiss: this.onDismiss,
+        dataL10nId: "passwords-add-password-success-heading",
+        dataL10nAttrs: "heading",
+        dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
+        type: "success",
+        primaryAction: {
+          type: "primary",
+          slot: "actions",
+          dataL10nId: "passwords-add-password-success-button",
+          onClick: this.onDismiss,
+        },
+      })}
+    `;
+  }
+
+  #renderAddLoginAlreadyExistsWarning() {
+    return html`
+      ${notificationShell({
+        onDismiss: this.onDismiss,
+        dataL10nId: "passwords-password-already-exists-error-heading",
+        dataL10nAttrs: "heading",
+        dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
+        type: "warning",
+        primaryAction: {
+          type: "primary",
+          slot: "actions",
+          dataL10nId: "passwords-password-already-exists-error-button",
+          onClick: this.onDismiss,
+        },
+      })}
     `;
   }
 
@@ -81,6 +164,10 @@ class NotificationMessageBar extends MozLitElement {
         return this.#renderImportSuccess();
       case "import-error":
         return this.#renderImportError();
+      case "add-login-success":
+        return this.#renderAddLoginSuccess();
+      case "add-login-already-exists-warning":
+        return this.#renderAddLoginAlreadyExistsWarning();
       default:
         return "";
     }
