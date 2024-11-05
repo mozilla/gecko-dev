@@ -16,6 +16,12 @@ const emptyPage = getRootDirectory(gTestPath).replace(
  * instead of serviceWorker.js
  */
 
+let realOffset = Number.MAX_SAFE_INTEGER;
+add_setup(async () => {
+  await SpecialPowers.Cu.getJSTestingFunctions().setTimeZone("PST8PDT");
+  realOffset = new Date().getTimezoneOffset();
+});
+
 const runTest = async enabled => {
   const overrides = enabled ? "+JSDateTimeUTC" : "-JSDateTimeUTC";
   await SpecialPowers.pushPrefEnv({
@@ -43,7 +49,7 @@ const runTest = async enabled => {
   );
 
   info("Actual: " + new Date().getTimezoneOffset() + " Got: " + timeZoneOffset);
-  const expected = enabled ? 0 : 420;
+  const expected = enabled ? 0 : realOffset;
   is(
     timeZoneOffset,
     expected,

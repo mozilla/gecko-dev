@@ -36,18 +36,8 @@ support-files = ["file_pdf.pdf"]
 ["browser_serviceWorker_fingerprinting_webcompat.js"]
 
 ["browser_service_worker_granular_overrides.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1928872
-  "os == 'mac'", # Bug 1928872
-  "os == 'win'", # Bug 1928872
-]
 
 ["browser_service_worker_overrides.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1928872
-  "os == 'mac'", # Bug 1928872
-  "os == 'win'", # Bug 1928872
-]
 
 ["browser_service_worker_randomization_key_originattrs.js"]
 
@@ -56,15 +46,5 @@ skip-if = [
 ["browser_usercharacteristics_gamepads.js"]
 
 ["browser_worker_granular_overrides.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1928872
-  "os == 'mac'", # Bug 1928872
-  "os == 'win'", # Bug 1928872
-]
 
 ["browser_worker_overrides.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1928872
-  "os == 'mac'", # Bug 1928872
-  "os == 'win'", # Bug 1928872
-]
