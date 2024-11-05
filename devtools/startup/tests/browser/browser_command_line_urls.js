@@ -90,7 +90,7 @@ add_task(async function openingWithDevToolsButUnknownSource() {
 
     const selection = content.getSelection();
     Assert.equal(
-      selection.toString(),
+      selection.toString().trimEnd(),
       "  <title>Command line test page</title>",
       "The 5th line is selected in view-source"
     );

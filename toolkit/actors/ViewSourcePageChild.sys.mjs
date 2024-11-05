@@ -143,69 +143,15 @@ export class ViewSourcePageChild extends JSWindowActorChild {
    *        The line number to attempt to go to.
    */
   goToLine(lineNumber) {
-    let body = this.document.body;
-
-    // The source document is made up of a number of pre elements with
-    // id attributes in the format <pre id="line123">, meaning that
-    // the first line in the pre element is number 123.
-    // Do binary search to find the pre element containing the line.
-    // However, in the plain text case, we have only one pre without an
-    // attribute, so assume it begins on line 1.
-    let pre;
-    for (let lbound = 0, ubound = body.childNodes.length; ; ) {
-      let middle = (lbound + ubound) >> 1;
-      pre = body.childNodes[middle];
-
-      let firstLine = pre.id ? parseInt(pre.id.substring(4)) : 1;
-
-      if (lbound == ubound - 1) {
-        break;
-      }
-
-      if (lineNumber >= firstLine) {
-        lbound = middle;
-      } else {
-        ubound = middle;
-      }
-    }
-
-    let result = {};
-    let found = this.findLocation(pre, lineNumber, null, -1, false, result);
-
-    if (!found) {
+    let range = this.findLocation(lineNumber);
+    if (!range) {
       this.sendAsyncMessage("ViewSource:GoToLine:Failed");
       return;
     }
 
     let selection = this.document.defaultView.getSelection();
     selection.removeAllRanges();
-
-    // In our case, the range's startOffset is after "\n" on the previous line.
-    // Tune the selection at the beginning of the next line and do some tweaking
-    // to position the focusNode and the caret at the beginning of the line.
-    selection.interlinePosition = true;
-
-    selection.addRange(result.range);
-
-    if (!selection.isCollapsed) {
-      selection.collapseToEnd();
-
-      let offset = result.range.startOffset;
-      let node = result.range.startContainer;
-      if (offset < node.data.length) {
-        // The same text node spans across the "\n", just focus where we were.
-        selection.extend(node, offset);
-      } else {
-        // There is another tag just after the "\n", hook there. We need
-        // to focus a safe point because there are edgy cases such as
-        // <span>...\n</span><span>...</span> vs.
-        // <span>...\n<span>...</span></span><span>...</span>
-        node = node.nextSibling
-          ? node.nextSibling
-          : node.parentNode.nextSibling;
-        selection.extend(node, 0);
-      }
-    }
+    selection.addRange(range);
 
     let selCon = this.selectionController;
     selCon.setDisplaySelection(Ci.nsISelectionController.SELECTION_ON);
@@ -221,41 +167,27 @@ export class ViewSourcePageChild extends JSWindowActorChild {
     this.sendAsyncMessage("ViewSource:GoToLine:Success", { lineNumber });
   }
 
-  /**
-   * Some old code from the original view source implementation. Original
-   * documentation follows:
-   *
-   * "Loops through the text lines in the pre element. The arguments are either
-   *  (pre, line) or (node, offset, interlinePosition). result is an out
-   *  argument. If (pre, line) are specified (and node == null), result.range is
-   *  a range spanning the specified line. If the (node, offset,
-   *  interlinePosition) are specified, result.line and result.col are the line
-   *  and column number of the specified offset in the specified node relative to
-   *  the whole file."
-   */
-  findLocation(pre, lineNumber, node, offset, interlinePosition, result) {
-    if (node && !pre) {
-      // Look upwards to find the current pre element.
-      // eslint-disable-next-line no-empty
-      for (pre = node; pre.nodeName != "PRE"; pre = pre.parentNode) {}
+  findLocation(lineNumber) {
+    let line = this.document.getElementById(`line${lineNumber}`);
+    let range = null;
+    if (line) {
+      range = this.document.createRange();
+      range.setStart(line, 0);
+      range.setEndAfter(line, line.childNodes.length);
+      return range;
     }
 
-    // The source document is made up of a number of pre elements with
-    // id attributes in the format <pre id="line123">, meaning that
-    // the first line in the pre element is number 123.
-    // However, in the plain text case, there is only one <pre> without an id,
-    // so assume line 1.
-    let curLine = pre.id ? parseInt(pre.id.substring(4)) : 1;
-
+    let pre = this.document.querySelector("pre");
+    if (pre.id) {
+      return null;
+    }
     // Walk through each of the text nodes and count newlines.
+    let curLine = 1;
     let treewalker = this.document.createTreeWalker(
       pre,
       NodeFilter.SHOW_TEXT,
       null
     );
-
-    // The column number of the first character in the current text node.
-    let firstCol = 1;
 
     let found = false;
     for (
@@ -268,11 +200,7 @@ export class ViewSourcePageChild extends JSWindowActorChild {
       let lastLineInNode = curLine + lineArray.length - 1;
 
       // Check if we can skip the text node without further inspection.
-      if (node ? textNode != node : lastLineInNode < lineNumber) {
-        if (lineArray.length > 1) {
-          firstCol = 1;
-        }
-        firstCol += lineArray[lineArray.length - 1].length;
+      if (lastLineInNode < lineNumber) {
         curLine = lastLineInNode;
         continue;
       }
@@ -288,41 +216,22 @@ export class ViewSourcePageChild extends JSWindowActorChild {
           curLine++;
         }
 
-        if (node) {
-          if (offset >= curPos && offset <= curPos + lineArray[i].length) {
-            // If we are right after the \n of a line and interlinePosition is
-            // false, the caret looks as if it were at the end of the previous
-            // line, so we display that line and column instead.
-
-            if (i > 0 && offset == curPos && !interlinePosition) {
-              result.line = curLine - 1;
-              var prevPos = curPos - lineArray[i - 1].length;
-              result.col = (i == 1 ? firstCol : 1) + offset - prevPos;
-            } else {
-              result.line = curLine;
-              result.col = (i == 0 ? firstCol : 1) + offset - curPos;
-            }
-            found = true;
-
-            break;
-          }
-        } else if (curLine == lineNumber && !("range" in result)) {
-          result.range = this.document.createRange();
-          result.range.setStart(textNode, curPos);
+        if (curLine == lineNumber && !range) {
+          range = this.document.createRange();
+          range.setStart(textNode, curPos);
 
           // This will always be overridden later, except when we look for
           // the very last line in the file (this is the only line that does
           // not end with \n).
-          result.range.setEndAfter(pre.lastChild);
+          range.setEndAfter(pre.lastChild);
         } else if (curLine == lineNumber + 1) {
-          result.range.setEnd(textNode, curPos - 1);
-          found = true;
+          range.setEnd(textNode, curPos - 1);
           break;
         }
       }
     }
 
-    return found || "range" in result;
+    return range;
   }
 
   /**

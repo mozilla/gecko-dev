@@ -277,8 +277,8 @@ class nsHtml5Highlighter {
   void Push(nsAtom* aName, nsHtml5HtmlAttributes* aAttributes,
             mozilla::dom::HTMLContentCreatorFunction aCreator);
 
-  /** Pushes a <pre id="line<lineno>"> */
-  void PushCurrentLinePre();
+  /** Pushes a <span id="line<lineno>"> */
+  void PushCurrentLineContainer();
 
   /**
    * Pops all inlines from the stack, pushes a pre, and pushes all inlines back

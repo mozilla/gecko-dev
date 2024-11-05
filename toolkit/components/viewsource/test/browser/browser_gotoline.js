@@ -31,7 +31,11 @@ var checkViewSource = async function (aTab) {
     );
     await SpecialPowers.spawn(browser, [i], async function (i) {
       let selection = content.getSelection();
-      Assert.equal(selection.toString(), "line " + i, "Correct text selected");
+      Assert.equal(
+        selection.toString().trim(),
+        "line " + i,
+        "Correct text selected"
+      );
     });
   }
 };
