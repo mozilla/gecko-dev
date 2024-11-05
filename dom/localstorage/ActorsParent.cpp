@@ -2201,8 +2201,29 @@ class LSRequestBase : public DatastoreOperationBase,
   mozilla::ipc::IPCResult RecvFinish() final;
 };
 
+template <typename T>
+class SerializedOp {
+ protected:
+  void AddBlockingOp(T& aOp) { mBlocking.AppendElement(WrapNotNull(&aOp)); }
+
+  void AddBlockedOnOp(T& aOp) { mBlockedOn.AppendElement(WrapNotNull(&aOp)); }
+
+  void MaybeUnblock(T& aOp) {
+    mBlockedOn.RemoveElement(&aOp);
+    if (mBlockedOn.IsEmpty()) {
+      Unblock();
+    }
+  }
+
+  virtual void Unblock() = 0;
+
+  nsTArray<NotNull<RefPtr<T>>> mBlocking;
+  nsTArray<NotNull<RefPtr<T>>> mBlockedOn;
+};
+
 class PrepareDatastoreOp
     : public LSRequestBase,
+      public SerializedOp<PrepareDatastoreOp>,
       public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
   class LoadDataOp;
 
@@ -2256,7 +2277,6 @@ class PrepareDatastoreOp
   };
 
   mozilla::glean::TimerId mProcessingTimerId;
-  RefPtr<PrepareDatastoreOp> mDelayedOp;
   RefPtr<ClientDirectoryLock> mPendingDirectoryLock;
   RefPtr<ClientDirectoryLock> mDirectoryLock;
   RefPtr<ClientDirectoryLock> mExtraDirectoryLock;
@@ -2338,6 +2358,10 @@ class PrepareDatastoreOp
   nsresult Start() override;
 
   nsresult OpenDirectory();
+
+  void Unblock() override {
+    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(this));
+  }
 
   nsresult CheckExistingOperations();
 
@@ -6662,18 +6686,10 @@ void PrepareDatastoreOp::Log() {
 
   switch (mNestedState) {
     case NestedState::CheckClosingDatastore: {
-      for (uint32_t index = gPrepareDatastoreOps->Length(); index > 0;
-           index--) {
-        const auto& existingOp = (*gPrepareDatastoreOps)[index - 1];
+      for (const auto& blockedOn : mBlockedOn) {
+        LS_LOG(("  blockedOn: [%p]", blockedOn.get().get()));
 
-        if (existingOp->mDelayedOp == this) {
-          LS_LOG(("  mDelayedBy: [%p]",
-                  static_cast<PrepareDatastoreOp*>(existingOp.get())));
-
-          existingOp->Log();
-
-          break;
-        }
+        blockedOn->Log();
       }
 
       break;
@@ -6837,6 +6853,8 @@ nsresult PrepareDatastoreOp::CheckExistingOperations() {
 
   // See if this PrepareDatastoreOp needs to wait.
   bool foundThis = false;
+  bool blocked = false;
+
   for (uint32_t index = gPrepareDatastoreOps->Length(); index > 0; index--) {
     const auto& existingOp = (*gPrepareDatastoreOps)[index - 1];
 
@@ -6846,15 +6864,15 @@ nsresult PrepareDatastoreOp::CheckExistingOperations() {
     }
 
     if (foundThis && existingOp->Origin() == Origin()) {
-      // Only one op can be delayed.
-      MOZ_ASSERT(!existingOp->mDelayedOp);
-      existingOp->mDelayedOp = this;
-
-      return NS_OK;
+      existingOp->AddBlockingOp(*this);
+      AddBlockedOnOp(*existingOp);
+      blocked = true;
     }
   }
 
-  QM_TRY(MOZ_TO_RESULT(CheckClosingDatastoreInternal()));
+  if (!blocked) {
+    QM_TRY(MOZ_TO_RESULT(CheckClosingDatastoreInternal()));
+  }
 
   return NS_OK;
 }
@@ -7666,9 +7684,10 @@ void PrepareDatastoreOp::ConnectionClosedCallback() {
 void PrepareDatastoreOp::CleanupMetadata() {
   AssertIsOnOwningThread();
 
-  if (mDelayedOp) {
-    MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(mDelayedOp.forget()));
+  for (const NotNull<RefPtr<PrepareDatastoreOp>>& blockingOp : mBlocking) {
+    blockingOp->MaybeUnblock(*this);
   }
+  mBlocking.Clear();
 
   MOZ_ASSERT(gPrepareDatastoreOps);
   gPrepareDatastoreOps->RemoveElement(this);
