@@ -72,6 +72,7 @@ TEST_HARNESS_FILES.xpcshell.dom.quota.test.xpcshell.common += [
 TESTING_JS_MODULES.dom.quota.test.modules += [
     "modules/system/FileUtils.sys.mjs",
     "modules/system/ModuleLoader.sys.mjs",
+    "modules/system/PrefUtils.sys.mjs",
     "modules/system/PrincipalUtils.sys.mjs",
     "modules/system/ProcessUtils.sys.mjs",
     "modules/system/QuotaUtils.sys.mjs",
