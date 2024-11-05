@@ -20,11 +20,11 @@ origin:
 
   # Human-readable identifier for this version/release
   # Generally "version NNN", "tag SSS", "bookmark SSS"
-  release: 10.0.1 (2024-09-24T19:52:43+03:00).
+  release: 10.1.0 (2024-11-05T08:04:49+02:00).
 
   # Revision to pull in
   # Must be a long or short commit SHA (long preferred)
-  revision: 10.0.1
+  revision: 10.1.0
 
   # The package's license, where possible using the mnemonic from
   # https://spdx.org/licenses/
