@@ -887,11 +887,6 @@ class HomeFragment : Fragment() {
 
                         if (isToolbarAtTheBottom) {
                             AndroidView(factory = { _ -> binding.toolbarLayout })
-                        } else if (
-                            currentMicrosurvey == null ||
-                            (shouldShowMicrosurveyPrompt && !shouldShowNavBarCFR)
-                        ) {
-                            Divider()
                         }
                     }
                 }

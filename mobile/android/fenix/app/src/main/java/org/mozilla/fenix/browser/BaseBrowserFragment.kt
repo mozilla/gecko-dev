@@ -1789,8 +1789,6 @@ abstract class BaseBrowserFragment :
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> browserToolbar })
-                        } else if (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value) {
-                            Divider()
                         }
                     }
                 }
