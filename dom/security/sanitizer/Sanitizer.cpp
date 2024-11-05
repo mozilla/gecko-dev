@@ -153,7 +153,7 @@ void Sanitizer::LogLocalizedString(const char* aName,
   if (window && window->GetDoc()) {
     auto* doc = window->GetDoc();
     innerWindowID = doc->InnerWindowID();
-    isPrivateBrowsing = doc->IsInPrivateBrowsing();
+    isPrivateBrowsing = nsContentUtils::IsInPrivateBrowsing(doc);
   }
   nsAutoString logMsg;
   nsContentUtils::FormatLocalizedString(nsContentUtils::eSECURITY_PROPERTIES,

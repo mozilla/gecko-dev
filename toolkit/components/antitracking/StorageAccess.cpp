@@ -114,7 +114,7 @@ static StorageAccess InternalStorageAllowedCheck(
     }
 
     // Check if we are in private browsing, and record that fact
-    if (document && document->IsInPrivateBrowsing()) {
+    if (nsContentUtils::IsInPrivateBrowsing(document)) {
       access = StorageAccess::ePrivateBrowsing;
     }
 
@@ -889,6 +889,7 @@ bool ApproximateAllowAccessForWithoutChannel(
   AntiTrackingUtils::CreateStoragePermissionKey(principal, type);
 
   return AntiTrackingUtils::CheckStoragePermission(
-      parentPrincipal, type, parentDocument->IsInPrivateBrowsing(), nullptr, 0);
+      parentPrincipal, type,
+      nsContentUtils::IsInPrivateBrowsing(parentDocument), nullptr, 0);
 }
 }  // namespace mozilla

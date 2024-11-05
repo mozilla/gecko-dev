@@ -514,7 +514,7 @@ bool MediaStatusManager::IsInPrivateBrowsing() const {
   if (!element) {
     return false;
   }
-  return element->OwnerDoc()->IsInPrivateBrowsing();
+  return nsContentUtils::IsInPrivateBrowsing(element->OwnerDoc());
 }
 
 MediaSessionPlaybackState MediaStatusManager::PlaybackState() const {

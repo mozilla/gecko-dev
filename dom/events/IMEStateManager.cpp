@@ -1982,8 +1982,9 @@ void IMEStateManager::SetIMEState(const IMEState& aState,
   context.mHasHandledUserInput =
       aPresContext && aPresContext->PresShell()->HasHandledUserInput();
 
-  context.mInPrivateBrowsing = aPresContext && aPresContext->Document() &&
-                               aPresContext->Document()->IsInPrivateBrowsing();
+  context.mInPrivateBrowsing =
+      aPresContext &&
+      nsContentUtils::IsInPrivateBrowsing(aPresContext->Document());
 
   const RefPtr<Element> focusedElement =
       aElement ? Element::FromNodeOrNull(
