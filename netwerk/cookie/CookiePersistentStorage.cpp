@@ -1826,6 +1826,21 @@ void CookiePersistentStorage::InitDBConn() {
     // evicted.
     RefPtr<Cookie> cookie =
         Cookie::CreateValidated(*tuple.cookie, tuple.originAttributes);
+
+    // Clean up the invalid first-party partitioned cookies that don't have
+    // the 'partitioned' cookie attribution. This will also ensure that we don't
+    // read the cookie into memory.
+    if (CookieCommons::IsFirstPartyPartitionedCookieWithoutCHIPS(
+            cookie, tuple.key.mBaseDomain, tuple.key.mOriginAttributes)) {
+      // We cannot directly use the cookie after validation because the
+      // timestamps could be different from the cookies in DB. So, we need to
+      // create one from the cookie struct.
+      RefPtr<Cookie> invalidCookie =
+          Cookie::Create(*tuple.cookie, tuple.originAttributes);
+      cleanupCookies.AppendElement(invalidCookie);
+      continue;
+    }
+
     AddCookieToList(tuple.key.mBaseDomain, tuple.key.mOriginAttributes, cookie);
   }
 
