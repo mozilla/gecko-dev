@@ -15,7 +15,39 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
+  windowManager: "chrome://remote/content/shared/WindowManager.sys.mjs",
+  WindowState: "chrome://remote/content/shared/WindowManager.sys.mjs",
 });
+
+/**
+ * An object that holds information about the client window
+ *
+ * @typedef ClientWindowInfo
+ *
+ * @property {boolean} active
+ *    True if client window is keyboard-interactable. False, if
+ *    otherwise.
+ * @property {string} clientWindow
+ *    The id of the client window.
+ * @property {number} height
+ *    The height of the client window.
+ *  @property {WindowState} state
+ *    The client window state.
+ * @property {number} width
+ *    The width of the client window.
+ * @property {number} x
+ *    The x-coordinate of the client window.
+ * @property {number} y
+ *    The y-coordinate of the client window.
+ */
+
+/**
+ * Return value of the getClientWindows command.
+ *
+ * @typedef GetClientWindowsResult
+ *
+ * @property {Array<ClientWindowInfo>} clientWindows
+ */
 
 /**
  * An object that holds information about a user context.
@@ -70,6 +102,29 @@ class BrowserModule extends RootBiDiModule {
     for (const tab of lazy.TabManager.tabs) {
       lazy.TabManager.removeTab(tab, { skipPermitUnload: true });
     }
+  }
+
+  /**
+   * Returns a list of client windows info
+   *
+   * @returns {GetClientWindowsResult}
+   *     The list of client windows info
+   */
+  async getClientWindows() {
+    const clientWindowsIds = new Set();
+    const clientWindows = [];
+
+    for (const win of lazy.TabManager.windows) {
+      let clientWindowId = lazy.windowManager.getIdForWindow(win);
+      if (clientWindowsIds.has(clientWindowId)) {
+        continue;
+      }
+      clientWindowsIds.add(clientWindowId);
+      let clientWindowInfo = this.#getClientWindowInfo(win);
+      clientWindows.push(clientWindowInfo);
+    }
+
+    return { clientWindows };
   }
 
   /**
@@ -134,6 +189,18 @@ class BrowserModule extends RootBiDiModule {
     lazy.UserContextManager.removeUserContext(userContextId, {
       closeContextTabs: true,
     });
+  }
+
+  #getClientWindowInfo(window) {
+    return {
+      active: Services.focus.activeWindow === window,
+      clientWindow: lazy.windowManager.getIdForWindow(window),
+      height: window.outerHeight,
+      state: lazy.WindowState.from(window.windowState),
+      width: window.outerWidth,
+      x: window.screenX,
+      y: window.screenY,
+    };
   }
 }
 

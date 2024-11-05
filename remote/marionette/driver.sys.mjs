@@ -56,7 +56,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   WebDriverSession: "chrome://remote/content/shared/webdriver/Session.sys.mjs",
   WebElement: "chrome://remote/content/marionette/web-reference.sys.mjs",
   windowManager: "chrome://remote/content/shared/WindowManager.sys.mjs",
-  WindowState: "chrome://remote/content/marionette/browser.sys.mjs",
+  WindowState: "chrome://remote/content/shared/WindowManager.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () =>
