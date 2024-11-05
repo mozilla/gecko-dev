@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mozilla.components.service.fxa.manager.AccountState
@@ -64,7 +65,9 @@ internal fun MenuHeader(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.mozac_ic_help_circle_24),
-                contentDescription = null,
+                contentDescription = stringResource(
+                    id = R.string.browser_main_menu_content_description_help_button,
+                ),
                 tint = FirefoxTheme.colors.iconSecondary,
             )
         }
@@ -74,7 +77,9 @@ internal fun MenuHeader(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.mozac_ic_settings_24),
-                contentDescription = null,
+                contentDescription = stringResource(
+                    id = R.string.browser_main_menu_content_description_settings_button,
+                ),
                 tint = FirefoxTheme.colors.iconSecondary,
             )
         }
