@@ -308,6 +308,15 @@ CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
   CookieCommons::GetBaseDomainFromHost(mTLDService, aCookie->Host(),
                                        baseDomain);
 
+  if (CookieCommons::IsFirstPartyPartitionedCookieWithoutCHIPS(
+          aCookie, baseDomain, aAttrs)) {
+    COOKIE_LOGSTRING(LogLevel::Error,
+                     ("Invalid first-party partitioned cookie without "
+                      "partitioned cookie attribution from the document."));
+    MOZ_DIAGNOSTIC_ASSERT(false);
+    return CookieNotificationAction::NoActionNeeded;
+  }
+
   CookieKey key(baseDomain, aAttrs);
   CookiesList* cookiesList = nullptr;
   mCookiesMap.Get(key, &cookiesList);

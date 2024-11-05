@@ -104,6 +104,8 @@ interface nsICookieManager : nsISupports
    *        cookie data
    * @param aIsSecure
    *        true if the cookie should only be sent over a secure connection.
+   * @param aIsPartitioned
+   *        true if the cookie should be stored with the Partitioned attribute.
    * @param aIsHttpOnly
    *        true if the cookie should only be sent to, and can only be
    *        modified by, an http connection.
@@ -130,7 +132,8 @@ interface nsICookieManager : nsISupports
            in int64_t     aExpiry,
            in jsval aOriginAttributes,
            in int32_t aSameSite,
-           in nsICookie_schemeType aSchemeMap);
+           in nsICookie_schemeType aSchemeMap,
+           [optional] in boolean aIsPartitioned);
 
   [notxpcom]
   nsresult addNative(in AUTF8String aHost,
