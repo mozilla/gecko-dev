@@ -2,6 +2,10 @@
 head = "../../../../../toolkit/profile/test/xpcshell/head.js head.js"
 firefox-appdir = "browser"
 
+prefs = [
+  "browser.profiles.enabled=true",
+]
+
 ["test_fail_recover_storeID.js"]
 
 ["test_recover_storeID.js"]

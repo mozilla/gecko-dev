@@ -6,13 +6,6 @@
 const NEW_PROFILE_NAME = "This is a new profile name";
 
 add_task(async function test_create_profile_name() {
-  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
-    // `mochitest-browser` suite `add_task` does not yet support
-    // `properties.skip_if`.
-    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
-    return;
-  }
-
   await SpecialPowers.pushPrefEnv({
     set: [["browser.profiles.profile-name.updated", false]],
   });

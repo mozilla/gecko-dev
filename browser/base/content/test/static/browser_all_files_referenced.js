@@ -100,6 +100,9 @@ var gExceptionPaths = [
 
   // The ONNX runtime picks files to run programmaticaly
   "chrome://global/content/ml/",
+
+  // The profile avatars are directly referenced.
+  "chrome://browser/content/profiles/assets/",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running
