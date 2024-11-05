@@ -17,7 +17,7 @@ using mozilla::DebugOnly;
 #if defined(MOZ_ENABLE_FORKSERVER) && !defined(MOZ_TSAN)
 #  include "mozilla/pthread_atfork.h"
 
-static constexpr const int maxHandlers = 16;
+static constexpr const int maxHandlers = 32;
 static constexpr const int idxPreFork = 0;
 static constexpr const int idxPostForkParent = 1;
 static constexpr const int idxPostForkChild = 2;
