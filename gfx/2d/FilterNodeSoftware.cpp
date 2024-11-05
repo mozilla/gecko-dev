@@ -865,6 +865,9 @@ IntRect FilterNodeSoftware::GetInputRectInRect(uint32_t aInputEnumIndex,
   }
   RefPtr<FilterNodeSoftware> filter = mInputFilters[inputIndex];
   MOZ_ASSERT(filter, "missing input");
+  if (!filter) {
+    return IntRect();
+  }
   return filter->GetOutputRectInRect(aInRect);
 }
 
