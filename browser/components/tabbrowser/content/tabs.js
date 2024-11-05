@@ -15,6 +15,8 @@
     static observedAttributes = ["orient"];
 
     #maxTabsPerRow;
+    #mustUpdateTabMinHeight = false;
+    #tabMinHeight = 36;
 
     constructor() {
       super();
@@ -61,6 +63,18 @@
       this.arrowScrollbox._canScrollToElement = tab => {
         return (!tab.pinned || !arePositioningPinnedTabs()) && tab.visible;
       };
+
+      // Override for performance reasons. This is the size of a single element
+      // that can be scrolled when using mouse wheel scrolling. If we don't do
+      // this then arrowscrollbox computes this value by calling
+      // _getScrollableElements and dividing the box size by that number.
+      // However in the tabstrip case we already know the answer to this as,
+      // when we're overflowing, it is always the same as the tab min width or
+      // height.
+      Object.defineProperty(this.arrowScrollbox, "lineScrollAmount", {
+        get: () =>
+          this.verticalMode ? this.#tabMinHeight : this._tabMinWidthPref,
+      });
 
       this.baseConnect();
 
@@ -133,6 +147,7 @@
         }
       );
       this.#updateTabMinWidth(this._tabMinWidthPref);
+      this.#updateTabMinHeight();
 
       CustomizableUI.addListener(this);
       this._updateNewTabVisibility();
@@ -172,6 +187,7 @@
       this._positionPinnedTabs();
 
       this.#updateTabMinWidth();
+      this.#updateTabMinHeight();
 
       let indicatorTabs = gBrowser.visibleTabs.filter(tab => {
         return (
@@ -1379,7 +1395,11 @@
         node = this.arrowScrollbox.lastChild;
       }
 
-      return node.before(tab);
+      node.before(tab);
+
+      if (this.#mustUpdateTabMinHeight) {
+        this.#updateTabMinHeight();
+      }
     }
 
     #updateTabMinWidth(val) {
@@ -1391,6 +1411,43 @@
           minWidthVariable,
           (val ?? this._tabMinWidthPref) + "px"
         );
+      }
+    }
+
+    #updateTabMinHeight() {
+      if (!this.verticalMode) {
+        this.#mustUpdateTabMinHeight = false;
+        return;
+      }
+
+      // Find at least one tab we can scroll to.
+      let firstScrollableTab = this.visibleTabs.find(
+        this.arrowScrollbox._canScrollToElement
+      );
+      if (!firstScrollableTab) {
+        // If not, we're in a pickle. We should never get here except if we
+        // also don't use the outcome of this work (because there's nothing to
+        // scroll so we don't care about the scrollbox size).
+        // So just set a flag so we re-run once we do have a new tab.
+        this.#mustUpdateTabMinHeight = true;
+        // Non-terrible fallback:
+        this.#tabMinHeight = 36;
+        return;
+      }
+      let { height } =
+        window.windowUtils.getBoundsWithoutFlushing(firstScrollableTab);
+      if (height) {
+        this.#mustUpdateTabMinHeight = false;
+        this.#tabMinHeight = height;
+      } else {
+        window
+          .promiseDocumentFlushed(() => {})
+          .then(
+            () => this.#updateTabMinHeight(),
+            () => {
+              /* ignore errors */
+            }
+          );
       }
     }
 
@@ -1641,6 +1698,7 @@
     uiDensityChanged() {
       this._positionPinnedTabs();
       this._updateCloseButtons();
+      this.#updateTabMinHeight();
       this._handleTabSelect(true);
     }
 
