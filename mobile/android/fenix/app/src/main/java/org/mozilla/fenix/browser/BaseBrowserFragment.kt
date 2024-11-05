@@ -1829,12 +1829,14 @@ abstract class BaseBrowserFragment :
     }
 
     private fun restoreBrowserToolbarAfterMicrosurveyPrompt(browserToolbar: BrowserToolbar) {
-        val defaultBackground = ResourcesCompat.getDrawable(
-            resources,
-            R.drawable.toolbar_background,
-            context?.theme,
-        )
-        browserToolbar.background = defaultBackground
+        if (context?.isToolbarAtBottom() == true) {
+            val defaultBackground = ResourcesCompat.getDrawable(
+                resources,
+                R.drawable.toolbar_background,
+                context?.theme,
+            )
+            browserToolbar.background = defaultBackground
+        }
     }
 
     private var currentMicrosurvey: MicrosurveyUIData? = null
