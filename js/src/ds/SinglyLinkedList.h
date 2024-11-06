@@ -37,9 +37,12 @@ class SinglyLinkedList {
 
   // Create a list from an existing non-circular linked list from |first| to
   // |last|.
-  SinglyLinkedList(T* first, T* last) : last_(last) {
-    MOZ_ASSERT(!last_->next);
-    last_->next = first;
+  SinglyLinkedList(T* first, T* last) {
+    MOZ_ASSERT(first);
+    MOZ_ASSERT(last);
+    MOZ_ASSERT(!last->next);
+    last->next = first;
+    last_ = last;
     checkContains(first);
     checkContains(last);
   }
@@ -110,6 +113,7 @@ class SinglyLinkedList {
   void moveFrontToBack() {
     MOZ_ASSERT(!isEmpty());
     last_ = last_->next;
+    MOZ_ASSERT(!isEmpty());
   }
 
   void append(SinglyLinkedList&& other) {
@@ -132,6 +136,8 @@ class SinglyLinkedList {
   }
 
   void prepend(SinglyLinkedList&& other) {
+    MOZ_ASSERT(&other != this);
+
     if (other.isEmpty()) {
       return;
     }

@@ -91,6 +91,7 @@ void js::gc::SortedArenaList::insertAt(Arena* arena, size_t nfree) {
 
 void js::gc::SortedArenaList::extractEmptyTo(Arena** destListHeadPtr) {
   MOZ_ASSERT(!isConvertedToArenaList);
+  MOZ_ASSERT(destListHeadPtr);
   check();
 
   Bucket& bucket = buckets[emptyIndex()];
@@ -121,10 +122,11 @@ js::gc::ArenaList js::gc::SortedArenaList::convertToArenaList(
   // The returned ArenaList needs to contain all non-full arenas in order
   // of increasing free space, followed by all full arenas.
   ArenaList result;
-  for (size_t i = 1; i < bucketsUsed(); ++i) {
-    result.append(std::move(buckets[i]));
+  size_t used = bucketsUsed();
+  for (size_t i = 1; i <= used; ++i) {
+    size_t bucket = i % used;  // [1, used) then 0.
+    result.append(std::move(buckets[bucket]));
   }
-  result.append(std::move(buckets[0]));
   return result;
 }
 
@@ -140,17 +142,21 @@ void js::gc::SortedArenaList::restoreFromArenaList(
 
   Arena* remaining = list.release();
 
-  for (size_t i = 0; i < bucketsUsed(); i++) {
-    MOZ_ASSERT(buckets[i].isEmpty());
-    if (bucketLast[i]) {
+  size_t used = bucketsUsed();
+  for (size_t i = 1; i <= used; ++i) {
+    size_t bucket = i % used;  // [1, used) then 0.
+    MOZ_ASSERT(buckets[bucket].isEmpty());
+    if (bucketLast[bucket]) {
+      MOZ_ASSERT(remaining);
       Arena* first = remaining;
-      Arena* last = bucketLast[i];
+      Arena* last = bucketLast[bucket];
       remaining = last->next;
       last->next = nullptr;
-      new (&buckets[i]) Bucket(first, last);
+      new (&buckets[bucket]) Bucket(first, last);
     }
   }
 
+  MOZ_ASSERT(!remaining);
   check();
 }
 

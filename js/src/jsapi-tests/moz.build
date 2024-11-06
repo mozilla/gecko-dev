@@ -125,6 +125,7 @@ UNIFIED_SOURCES += [
     "testSinglyLinkedList.cpp",
     "testSliceBudget.cpp",
     "testSlowScript.cpp",
+    "testSortedArenaList.cpp",
     "testSourcePolicy.cpp",
     "testSparseBitmap.cpp",
     "testStencil.cpp",
