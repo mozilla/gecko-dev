@@ -132,8 +132,8 @@ struct BasePoint {
   }
 
   void Clamp(Coord aMaxAbsValue) {
-    x = std::max(std::min(x, aMaxAbsValue), -aMaxAbsValue);
-    y = std::max(std::min(y, aMaxAbsValue), -aMaxAbsValue);
+    x = std::clamp(x, -aMaxAbsValue, aMaxAbsValue);
+    y = std::clamp(y, -aMaxAbsValue, aMaxAbsValue);
   }
 
   friend std::ostream& operator<<(std::ostream& stream,

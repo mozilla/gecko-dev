@@ -469,10 +469,10 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
         for (size_t i = 0; i < aDirtyRects.Length(); ++i) {
           const DeviceIntRect& rect = aDirtyRects[i];
           // Clip rect to bufferSize
-          int left = std::max(0, std::min(rect.min.x, bufferSize.width));
-          int top = std::max(0, std::min(rect.min.y, bufferSize.height));
-          int right = std::max(0, std::min(rect.max.x, bufferSize.width));
-          int bottom = std::max(0, std::min(rect.max.y, bufferSize.height));
+          int left = std::clamp(rect.min.x, 0, bufferSize.width);
+          int top = std::clamp(rect.min.y, 0, bufferSize.height);
+          int right = std::clamp(rect.max.x, 0, bufferSize.width);
+          int bottom = std::clamp(rect.max.y, 0, bufferSize.height);
 
           // When rect is not empty, the rect could be passed to Present1().
           if (left < right && top < bottom) {
