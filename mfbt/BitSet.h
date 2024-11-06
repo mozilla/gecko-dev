@@ -26,6 +26,7 @@ template <size_t N, typename Word = size_t>
 class BitSet {
   static_assert(std::is_unsigned_v<Word>,
                 "The Word type must be an unsigned integral type");
+  static_assert(N != 0);
 
  private:
   static constexpr size_t kBitsPerWord = 8 * sizeof(Word);
@@ -165,6 +166,55 @@ class BitSet {
     }
 
     ResetPaddingBits();
+  }
+
+  // Return the position of the first bit set, or SIZE_MAX if none.
+  size_t FindFirst() const { return FindNext(0); }
+
+  // Return the position of the next bit set starting from |aFromPos| inclusive,
+  // or SIZE_MAX if none.
+  size_t FindNext(size_t aFromPos) const {
+    MOZ_ASSERT(aFromPos < N);
+    size_t wordIndex = aFromPos / kBitsPerWord;
+    size_t bitIndex = aFromPos % kBitsPerWord;
+
+    Word word = mStorage[wordIndex];
+    // Mask word containing |aFromPos|.
+    word &= (Word(-1) << bitIndex);
+    while (word == 0) {
+      wordIndex++;
+      if (wordIndex == kNumWords) {
+        return SIZE_MAX;
+      }
+      word = mStorage[wordIndex];
+    }
+
+    uint_fast8_t pos = CountTrailingZeroes(word);
+    return wordIndex * kBitsPerWord + pos;
+  }
+
+  size_t FindLast() const { return FindPrev(Size() - 1); }
+
+  // Return the position of the previous bit set starting from |aFromPos|
+  // inclusive, or SIZE_MAX if none.
+  size_t FindPrev(size_t aFromPos) const {
+    MOZ_ASSERT(aFromPos < N);
+    size_t wordIndex = aFromPos / kBitsPerWord;
+    size_t bitIndex = aFromPos % kBitsPerWord;
+
+    Word word = mStorage[wordIndex];
+    // Mask word containing |aFromPos|.
+    word &= Word(-1) >> (kBitsPerWord - 1 - bitIndex);
+    while (word == 0) {
+      if (wordIndex == 0) {
+        return SIZE_MAX;
+      }
+      wordIndex--;
+      word = mStorage[wordIndex];
+    }
+
+    uint_fast8_t pos = FindMostSignificantBit(word);
+    return wordIndex * kBitsPerWord + pos;
   }
 
   Span<Word> Storage() { return mStorage; }

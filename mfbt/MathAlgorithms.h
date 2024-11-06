@@ -318,28 +318,24 @@ inline uint_fast8_t CeilingLog2Size(size_t aValue) {
   return CeilingLog2(aValue);
 }
 
-namespace detail {
-
-template <typename T, size_t Size = sizeof(T)>
-class FloorLog2;
-
+/**
+ * Compute the bit position of the most significant bit set in
+ * |aValue|. Requires that |aValue| is non-zero.
+ */
 template <typename T>
-class FloorLog2<T, 4> {
- public:
-  static uint_fast8_t compute(const T aValue) {
-    return 31u - CountLeadingZeroes32(aValue | 1);
+inline uint_fast8_t FindMostSignificantBit(T aValue) {
+  static_assert(sizeof(T) <= 8);
+  static_assert(std::is_integral_v<T>);
+  MOZ_ASSERT(aValue != 0);
+  // This casts to 32-bits
+  if constexpr (sizeof(T) <= 4) {
+    return 31u - CountLeadingZeroes32(aValue);
   }
-};
-
-template <typename T>
-class FloorLog2<T, 8> {
- public:
-  static uint_fast8_t compute(const T aValue) {
-    return 63u - CountLeadingZeroes64(aValue | 1);
+  // This doesn't
+  if constexpr (sizeof(T) == 8) {
+    return 63u - CountLeadingZeroes64(aValue);
   }
-};
-
-}  // namespace detail
+}
 
 /**
  * Compute the log of the greatest power of 2 less than or equal to |aValue|.
@@ -351,7 +347,7 @@ class FloorLog2<T, 8> {
  */
 template <typename T>
 inline constexpr uint_fast8_t FloorLog2(const T aValue) {
-  return detail::FloorLog2<T>::compute(aValue);
+  return FindMostSignificantBit(aValue | 1);
 }
 
 /** A FloorLog2 variant that accepts only size_t. */
