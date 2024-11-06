@@ -1322,7 +1322,7 @@ nsresult nsPrintJob::ReflowPrintObject(const UniquePtr<nsPrintObject>& aPO) {
             do_QueryInterface(mDocViewerPrint)) {
       // If we're print-previewing and the top level document, use the bounds
       // from our doc viewer. Page bounds is not what we want.
-      nsIntRect bounds;
+      LayoutDeviceIntRect bounds;
       viewer->GetBounds(bounds);
       adjSize = nsSize(bounds.width * p2a, bounds.height * p2a);
     }

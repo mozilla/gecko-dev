@@ -1163,7 +1163,7 @@ class nsDocShell final : public nsDocLoader,
   nsWeakPtr mBrowserChild;
 
   // Dimensions of the docshell
-  nsIntRect mBounds;
+  mozilla::LayoutDeviceIntRect mBounds;
 
   /**
    * Content-Type Hint of the most-recently initiated load. Used for

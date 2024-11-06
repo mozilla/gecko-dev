@@ -33,7 +33,7 @@ class RemotePrintJobChild;
 %}
 
 [ptr] native nsIWidgetPtr(nsIWidget);
-[ref] native nsIntRectRef(nsIntRect);
+[ref] native LayoutDeviceIntRectRef(mozilla::LayoutDeviceIntRect);
 [ptr] native nsPresContextPtr(nsPresContext);
 [ptr] native nsViewPtr(nsView);
 [ptr] native nsDOMNavigationTimingPtr(nsDOMNavigationTiming);
@@ -46,7 +46,7 @@ class RemotePrintJobChild;
 interface nsIDocumentViewer : nsISupports
 {
   [noscript] void init(in nsIWidgetPtr aParentWidget,
-                       [const] in nsIntRectRef aBounds,
+                       [const] in LayoutDeviceIntRectRef aBounds,
                        in WindowGlobalChildPtr aWindowActor);
 
   attribute nsIDocShell container;
@@ -163,13 +163,13 @@ interface nsIDocumentViewer : nsISupports
    */
   [noscript,nostdcall] void setDocument(in Document aDocument);
 
-  [noscript] void getBounds(in nsIntRectRef aBounds);
-  [noscript] void setBounds([const] in nsIntRectRef aBounds);
+  [noscript] void getBounds(in LayoutDeviceIntRectRef aBounds);
+  [noscript] void setBounds([const] in LayoutDeviceIntRectRef aBounds);
   /**
    * The 'aFlags' argument to setBoundsWithFlags is a set of these bits.
    */
   const unsigned long eDelayResize = 1;
-  [noscript] void setBoundsWithFlags([const] in nsIntRectRef aBounds,
+  [noscript] void setBoundsWithFlags([const] in LayoutDeviceIntRectRef aBounds,
                                      in unsigned long aFlags);
 
   /**

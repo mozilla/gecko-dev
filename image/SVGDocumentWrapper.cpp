@@ -72,12 +72,14 @@ void SVGDocumentWrapper::UpdateViewportBounds(const nsIntSize& aViewportSize) {
   MOZ_ASSERT(!mIgnoreInvalidation, "shouldn't be reentrant");
   mIgnoreInvalidation = true;
 
-  nsIntRect currentBounds;
+  LayoutDeviceIntRect currentBounds;
   mViewer->GetBounds(currentBounds);
 
   // If the bounds have changed, we need to do a layout flush.
-  if (currentBounds.Size() != aViewportSize) {
-    mViewer->SetBounds(IntRect(IntPoint(0, 0), aViewportSize));
+  if (currentBounds.Size().ToUnknownSize() != aViewportSize) {
+    mViewer->SetBounds(LayoutDeviceIntRect(
+        LayoutDeviceIntPoint(),
+        LayoutDeviceIntSize::FromUnknownSize(aViewportSize)));
     FlushLayout();
   }
 
@@ -207,7 +209,7 @@ SVGDocumentWrapper::OnStartRequest(nsIRequest* aRequest) {
     mViewer->GetDocument()->SetIsBeingUsedAsImage();
     StopAnimation();  // otherwise animations start automatically in helper doc
 
-    rv = mViewer->Init(nullptr, nsIntRect(0, 0, 0, 0), nullptr);
+    rv = mViewer->Init(nullptr, LayoutDeviceIntRect(), nullptr);
     if (NS_SUCCEEDED(rv)) {
       rv = mViewer->Open(nullptr, nullptr);
     }

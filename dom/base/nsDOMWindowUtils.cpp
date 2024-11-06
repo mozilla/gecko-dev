@@ -3654,17 +3654,14 @@ static void PrepareForFullscreenChange(nsIDocShell* aDocShell,
     nsCOMPtr<nsIDocumentViewer> viewer;
     aDocShell->GetDocViewer(getter_AddRefs(viewer));
     if (viewer) {
-      nsIntRect viewerBounds;
+      LayoutDeviceIntRect viewerBounds;
       viewer->GetBounds(viewerBounds);
       nscoord auPerDev = presShell->GetPresContext()->AppUnitsPerDevPixel();
       if (aOldSize) {
-        *aOldSize = LayoutDeviceIntSize::ToAppUnits(
-            LayoutDeviceIntSize::FromUnknownSize(viewerBounds.Size()),
-            auPerDev);
+        *aOldSize =
+            LayoutDeviceIntSize::ToAppUnits(viewerBounds.Size(), auPerDev);
       }
-      LayoutDeviceIntSize newSize =
-          LayoutDeviceIntSize::FromAppUnitsRounded(aSize, auPerDev);
-
+      auto newSize = LayoutDeviceIntSize::FromAppUnitsRounded(aSize, auPerDev);
       viewerBounds.SizeTo(newSize.width, newSize.height);
       viewer->SetBounds(viewerBounds);
     }

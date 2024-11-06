@@ -6884,9 +6884,9 @@ nsresult nsDocShell::CaptureState() {
 
   // Capture the current content viewer bounds.
   if (mDocumentViewer) {
-    nsIntRect bounds;
+    LayoutDeviceIntRect bounds;
     mDocumentViewer->GetBounds(bounds);
-    mOSHE->SetViewerBounds(bounds);
+    mOSHE->SetViewerBounds(bounds.ToUnknownRect());
   }
 
   // Capture the docshell hierarchy.
@@ -7234,7 +7234,7 @@ nsresult nsDocShell::RestoreFromHistory() {
 
   nsView* rootViewSibling = nullptr;
   nsView* rootViewParent = nullptr;
-  nsIntRect newBounds(0, 0, 0, 0);
+  LayoutDeviceIntRect newBounds(0, 0, 0, 0);
 
   PresShell* oldPresShell = GetPresShell();
   if (oldPresShell) {
@@ -7541,7 +7541,8 @@ nsresult nsDocShell::RestoreFromHistory() {
   // cached viewer size (skipping the resize if they are equal).
 
   if (newRootView) {
-    if (!newBounds.IsEmpty() && !newBounds.IsEqualEdges(oldBounds)) {
+    if (!newBounds.IsEmpty() &&
+        !newBounds.ToUnknownRect().IsEqualEdges(oldBounds)) {
       MOZ_LOG(gPageCacheLog, LogLevel::Debug,
               ("resize widget(%d, %d, %d, %d)", newBounds.x, newBounds.y,
                newBounds.width, newBounds.height));
@@ -7938,7 +7939,7 @@ nsresult nsDocShell::SetupNewViewer(nsIDocumentViewer* aNewViewer,
   nsCOMPtr<nsIWidget> widget;
   NS_ENSURE_SUCCESS(GetMainWidget(getter_AddRefs(widget)), NS_ERROR_FAILURE);
 
-  nsIntRect bounds(x, y, cx, cy);
+  LayoutDeviceIntRect bounds(x, y, cx, cy);
 
   mDocumentViewer->SetNavigationTiming(mTiming);
 

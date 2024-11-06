@@ -364,7 +364,7 @@ class nsDocumentViewer final : public nsIDocumentViewer,
    */
   nsresult InitInternal(nsIWidget* aParentWidget, nsISupports* aState,
                         mozilla::dom::WindowGlobalChild* aActor,
-                        const nsIntRect& aBounds, bool aDoCreation,
+                        const LayoutDeviceIntRect& aBounds, bool aDoCreation,
                         bool aNeedMakeCX = true,
                         bool aForceSetNewDocument = true);
   /**
@@ -434,7 +434,7 @@ class nsDocumentViewer final : public nsIDocumentViewer,
   nsIWidget* mParentWidget;  // purposely won't be ref counted.  May be null
   bool mAttachedToParent;    // view is attached to the parent widget
 
-  nsIntRect mBounds;
+  LayoutDeviceIntRect mBounds;
 
   int16_t mNumURLStarts;
   int16_t mDestroyBlockedCount;
@@ -673,7 +673,8 @@ nsDocumentViewer::GetContainer(nsIDocShell** aResult) {
 }
 
 NS_IMETHODIMP
-nsDocumentViewer::Init(nsIWidget* aParentWidget, const nsIntRect& aBounds,
+nsDocumentViewer::Init(nsIWidget* aParentWidget,
+                       const LayoutDeviceIntRect& aBounds,
                        WindowGlobalChild* aActor) {
   return InitInternal(aParentWidget, nullptr, aActor, aBounds, true);
 }
@@ -729,11 +730,10 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
         p2a ==
         mPresContext->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom());
 
-    nscoord width = p2a * mBounds.width;
-    nscoord height = p2a * mBounds.height;
+    const nsSize size = LayoutDevicePixel::ToAppUnits(mBounds.Size(), p2a);
 
-    mViewManager->SetWindowDimensions(width, height);
-    mPresContext->SetInitialVisibleArea(nsRect(0, 0, width, height));
+    mViewManager->SetWindowDimensions(size.width, size.height);
+    mPresContext->SetInitialVisibleArea(nsRect(nsPoint(), size));
     // We rely on the default zoom not being initialized until here.
     mPresContext->RecomputeBrowsingContextDependentData();
   }
@@ -796,8 +796,8 @@ static already_AddRefed<nsPresContext> CreatePresContext(
 // all the new objects or just initialize the existing ones
 nsresult nsDocumentViewer::InitInternal(
     nsIWidget* aParentWidget, nsISupports* aState, WindowGlobalChild* aActor,
-    const nsIntRect& aBounds, bool aDoCreation, bool aNeedMakeCX /*= true*/,
-    bool aForceSetNewDocument /* = true*/) {
+    const LayoutDeviceIntRect& aBounds, bool aDoCreation,
+    bool aNeedMakeCX /*= true*/, bool aForceSetNewDocument /* = true*/) {
   // We don't want any scripts to run here. That can cause flushing,
   // which can cause reentry into initialization of this document viewer,
   // which would be disastrous.
@@ -1883,7 +1883,7 @@ nsPresContext* nsDocumentViewer::GetPresContext() { return mPresContext; }
 nsViewManager* nsDocumentViewer::GetViewManager() { return mViewManager; }
 
 NS_IMETHODIMP
-nsDocumentViewer::GetBounds(nsIntRect& aResult) {
+nsDocumentViewer::GetBounds(LayoutDeviceIntRect& aResult) {
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
   aResult = mBounds;
   return NS_OK;
@@ -1926,7 +1926,7 @@ void nsDocumentViewer::SetPreviousViewer(nsIDocumentViewer* aViewer) {
 }
 
 NS_IMETHODIMP
-nsDocumentViewer::SetBoundsWithFlags(const nsIntRect& aBounds,
+nsDocumentViewer::SetBoundsWithFlags(const LayoutDeviceIntRect& aBounds,
                                      uint32_t aFlags) {
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
 
@@ -1963,13 +1963,12 @@ nsDocumentViewer::SetBoundsWithFlags(const nsIntRect& aBounds,
       // need to invalidate because what we want to draw to the screen has
       // changed.
       if (viewDims.width == width && viewDims.height == height) {
-        nsIFrame* f = rootView->GetFrame();
-        if (f) {
+        if (nsIFrame* f = rootView->GetFrame()) {
           f->InvalidateFrame();
 
           // Forcibly refresh the viewport sizes even if the view size is not
           // changed since it is possible that the |mBounds| change means that
-          // the software keyboard appeared/disappered, in such cases we might
+          // the software keyboard appeared/disappeared. In such cases we might
           // need to fire visual viewport events.
           mPresShell->RefreshViewportSize();
         }
@@ -1996,7 +1995,7 @@ nsDocumentViewer::SetBoundsWithFlags(const nsIntRect& aBounds,
 }
 
 NS_IMETHODIMP
-nsDocumentViewer::SetBounds(const nsIntRect& aBounds) {
+nsDocumentViewer::SetBounds(const LayoutDeviceIntRect& aBounds) {
   return SetBoundsWithFlags(aBounds, 0);
 }
 
@@ -2639,8 +2638,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsDocumentViewer::GetContentSize(
   // Leave our viewport in a consistent state.
   {
     auto newBounds = LayoutDeviceIntRect::FromAppUnitsToOutside(
-                         shellArea, presContext->AppUnitsPerDevPixel())
-                         .ToUnknownRect();
+        shellArea, presContext->AppUnitsPerDevPixel());
     newBounds.MoveTo(mBounds.TopLeft());
     SetBounds(newBounds);
   }
