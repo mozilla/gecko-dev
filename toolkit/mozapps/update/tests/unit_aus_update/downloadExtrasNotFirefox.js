@@ -10,6 +10,9 @@
  * a background task.
  */
 
+// See Bug 1929581.
+const TOOLKIT_ISSUE_FIXED = false;
+
 const downloadHeaders = new DownloadHeadersTest();
 
 add_setup(async () => {
@@ -23,7 +26,11 @@ const expectedExtras = [
   { mode: null, name: null },
 ];
 
-add_task(async function test_noTask_noBITS() {
+const canRun = {
+  skip_if: () => !TOOLKIT_ISSUE_FIXED,
+};
+
+add_task(canRun, async function test_noTask_noBITS() {
   await downloadHeaders.test({
     useBits: false,
     backgroundTaskName: null,
