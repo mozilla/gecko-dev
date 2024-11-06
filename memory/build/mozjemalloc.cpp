@@ -1248,6 +1248,11 @@ struct arena_t {
   // chunk now becomes mSpare).
   [[nodiscard]] arena_chunk_t* DemoteChunkToSpare(arena_chunk_t* aChunk);
 
+  // Try to merge the run with its neighbours. Returns the new index of the run
+  // (since it may have merged with an earlier one).
+  size_t TryCoalesce(arena_chunk_t* aChunk, size_t run_ind, size_t run_pages,
+                     size_t size);
+
   arena_run_t* AllocRun(size_t aSize, bool aLarge, bool aZero);
 
   arena_chunk_t* DallocRun(arena_run_t* aRun, bool aDirty);
@@ -3284,6 +3289,63 @@ bool arena_t::Purge(bool aForce) {
   }
 }
 
+// run_pages and size make each-other redundant. But we use them both and the
+// caller computes both so this function requires both and will assert if they
+// are inconsistent.
+size_t arena_t::TryCoalesce(arena_chunk_t* aChunk, size_t run_ind,
+                            size_t run_pages, size_t size) {
+  // Copy in/out parameters to local variables so that we don't need '*'
+  // operators throughout this code but also so that type checking is stricter
+  // (references are too easily coerced).
+  MOZ_ASSERT(size == run_pages << gPageSize2Pow);
+
+  // Try to coalesce forward.
+  if (run_ind + run_pages < gChunkNumPages - 1 &&
+      (aChunk->map[run_ind + run_pages].bits &
+       (CHUNK_MAP_ALLOCATED | CHUNK_MAP_BUSY)) == 0) {
+    size_t nrun_size = aChunk->map[run_ind + run_pages].bits & ~gPageSizeMask;
+
+    // Remove successor from tree of available runs; the coalesced run is
+    // inserted later.
+    mRunsAvail.Remove(&aChunk->map[run_ind + run_pages]);
+
+    size += nrun_size;
+    run_pages = size >> gPageSize2Pow;
+
+    MOZ_DIAGNOSTIC_ASSERT((aChunk->map[run_ind + run_pages - 1].bits &
+                           ~gPageSizeMask) == nrun_size);
+    aChunk->map[run_ind].bits =
+        size | (aChunk->map[run_ind].bits & gPageSizeMask);
+    aChunk->map[run_ind + run_pages - 1].bits =
+        size | (aChunk->map[run_ind + run_pages - 1].bits & gPageSizeMask);
+  }
+
+  // Try to coalesce backward.
+  if (run_ind > gChunkHeaderNumPages &&
+      (aChunk->map[run_ind - 1].bits &
+       (CHUNK_MAP_ALLOCATED | CHUNK_MAP_BUSY)) == 0) {
+    size_t prun_size = aChunk->map[run_ind - 1].bits & ~gPageSizeMask;
+
+    run_ind -= prun_size >> gPageSize2Pow;
+
+    // Remove predecessor from tree of available runs; the coalesced run is
+    // inserted later.
+    mRunsAvail.Remove(&aChunk->map[run_ind]);
+
+    size += prun_size;
+    run_pages = size >> gPageSize2Pow;
+
+    MOZ_DIAGNOSTIC_ASSERT((aChunk->map[run_ind].bits & ~gPageSizeMask) ==
+                          prun_size);
+    aChunk->map[run_ind].bits =
+        size | (aChunk->map[run_ind].bits & gPageSizeMask);
+    aChunk->map[run_ind + run_pages - 1].bits =
+        size | (aChunk->map[run_ind + run_pages - 1].bits & gPageSizeMask);
+  }
+
+  return run_ind;
+}
+
 arena_chunk_t* arena_t::DallocRun(arena_run_t* aRun, bool aDirty) {
   arena_chunk_t* chunk;
   size_t size, run_ind, run_pages;
@@ -3326,49 +3388,7 @@ arena_chunk_t* arena_t::DallocRun(arena_run_t* aRun, bool aDirty) {
   chunk->map[run_ind + run_pages - 1].bits =
       size | (chunk->map[run_ind + run_pages - 1].bits & gPageSizeMask);
 
-  // Try to coalesce forward.
-  if (run_ind + run_pages < gChunkNumPages - 1 &&
-      (chunk->map[run_ind + run_pages].bits &
-       (CHUNK_MAP_ALLOCATED | CHUNK_MAP_BUSY)) == 0) {
-    size_t nrun_size = chunk->map[run_ind + run_pages].bits & ~gPageSizeMask;
-
-    // Remove successor from tree of available runs; the coalesced run is
-    // inserted later.
-    mRunsAvail.Remove(&chunk->map[run_ind + run_pages]);
-
-    size += nrun_size;
-    run_pages = size >> gPageSize2Pow;
-
-    MOZ_DIAGNOSTIC_ASSERT((chunk->map[run_ind + run_pages - 1].bits &
-                           ~gPageSizeMask) == nrun_size);
-    chunk->map[run_ind].bits =
-        size | (chunk->map[run_ind].bits & gPageSizeMask);
-    chunk->map[run_ind + run_pages - 1].bits =
-        size | (chunk->map[run_ind + run_pages - 1].bits & gPageSizeMask);
-  }
-
-  // Try to coalesce backward.
-  if (run_ind > gChunkHeaderNumPages &&
-      (chunk->map[run_ind - 1].bits & (CHUNK_MAP_ALLOCATED | CHUNK_MAP_BUSY)) ==
-          0) {
-    size_t prun_size = chunk->map[run_ind - 1].bits & ~gPageSizeMask;
-
-    run_ind -= prun_size >> gPageSize2Pow;
-
-    // Remove predecessor from tree of available runs; the coalesced run is
-    // inserted later.
-    mRunsAvail.Remove(&chunk->map[run_ind]);
-
-    size += prun_size;
-    run_pages = size >> gPageSize2Pow;
-
-    MOZ_DIAGNOSTIC_ASSERT((chunk->map[run_ind].bits & ~gPageSizeMask) ==
-                          prun_size);
-    chunk->map[run_ind].bits =
-        size | (chunk->map[run_ind].bits & gPageSizeMask);
-    chunk->map[run_ind + run_pages - 1].bits =
-        size | (chunk->map[run_ind + run_pages - 1].bits & gPageSizeMask);
-  }
+  run_ind = TryCoalesce(chunk, run_ind, run_pages, size);
 
   // Deallocate chunk if it is now completely unused.
   arena_chunk_t* chunk_dealloc = nullptr;
