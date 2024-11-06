@@ -24,10 +24,6 @@ if CONFIG["MOZ_STDCXX_COMPAT"]:
 if CONFIG["RUSTC"]:
     DIRS += ["rust/mozbuild"]
 
-CRAMTEST_MANIFESTS += [
-    "tests/cram/cram.toml",
-]
-
 DEFINES["ACCEPTED_MAR_CHANNEL_IDS"] = CONFIG["ACCEPTED_MAR_CHANNEL_IDS"]
 
 if CONFIG["MOZ_BUILD_APP"] == "browser":
