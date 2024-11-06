@@ -2636,6 +2636,15 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP nsDocumentViewer::GetContentSize(
                      shellArea.height != NS_UNCONSTRAINEDSIZE,
                  NS_ERROR_FAILURE);
 
+  // Leave our viewport in a consistent state.
+  {
+    auto newBounds = LayoutDeviceIntRect::FromAppUnitsToOutside(
+                         shellArea, presContext->AppUnitsPerDevPixel())
+                         .ToUnknownRect();
+    newBounds.MoveTo(mBounds.TopLeft());
+    SetBounds(newBounds);
+  }
+
   // Ceil instead of rounding here, so we can actually guarantee showing all the
   // content.
   *aWidth = std::ceil(CSSPixel::FromAppUnits(shellArea.width));
