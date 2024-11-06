@@ -1,0 +1,62 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+task-defaults:
+    attributes:
+        artifact_map: taskcluster/gecko_taskgraph/manifests/fennec_geckoview.yml
+        maven_packages:
+            - geckoview
+    index:
+        product: mobile
+    worker:
+        docker-image: {in-tree: android-build}
+        max-run-time: 7200
+        env:
+            GRADLE_USER_HOME: "/builds/worker/checkouts/gecko/mobile/android/gradle/dotgradle-offline"
+    run:
+        using: mozharness
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        mozconfig-variant: null
+        tooltool-downloads: internal
+        actions: [get-secrets, build]
+        config: ["builds/releng_base_android_64_builds.py"]
+    run-on-projects: ['integration']
+    fetches:
+        toolchain:
+            - android-ndk-linux
+            - android-sdk-linux
+            - linux64-jdk
+            - linux64-rust-android
+            - linux64-rust-size
+            - linux64-cbindgen
+            - linux64-dump_syms
+            - linux64-nasm
+            - linux64-node
+            - sysroot-x86_64-linux-gnu
+            - sysroot-wasm32-wasi
+
+android-aarch64-fenix/debug:
+    description: "Build Android Fenix Debug From Root"
+    index:
+        job-name: android-aarch64-fenix-debug
+    treeherder:
+        platform: fenix-android-all/opt
+        symbol: fenix-debug(Br)
+    worker-type: b-linux-gcp
+    worker:
+        env:
+            TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
+        artifacts:
+            - name: public/build/fenix.apk
+              path: /builds/worker/workspace/obj-build/gradle/build/mobile/android/fenix/outputs/apk/fenix/debug/fenix-fenix-x86-debug.apk
+              type: file
+    run:
+        custom-build-variant-cfg: aarch64-fenix-debug
+    use-sccache: true
+    fetches:
+        toolchain:
+            - linux64-clang
+            - linux64-sccache
+            - android-gradle-dependencies

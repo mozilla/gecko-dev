@@ -31,6 +31,7 @@ tasks-from:
     - macosx-native.yml
     - windows.yml
     - windows-mingw.yml
+    - fenix.yml
 
 task-defaults:
     worker:

@@ -325,6 +325,7 @@ class BuildOptionParser(object):
         "aarch64-beta-debug": path_base + "%s_aarch64_beta_debug.py",
         "aarch64-pgo": path_base + "%s_aarch64_pgo.py",
         "aarch64-debug": path_base + "%s_aarch64_debug.py",
+        "aarch64-fenix-debug": path_base + "%s_aarch64_fenix_debug.py",
         "aarch64-lite-debug": path_base + "%s_aarch64_debug_lite.py",
         "aarch64-debug-searchfox": path_base + "%s_aarch64_debug_searchfox.py",
         "aarch64-profile-generate": path_base + "%s_aarch64_profile_generate.py",
