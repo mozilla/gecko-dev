@@ -88,12 +88,10 @@ class InternalJobQueue : public JS::JobQueue {
   ~InternalJobQueue() = default;
 
   // JS::JobQueue methods.
-  bool getHostDefinedData(JSContext* cx,
-                          JS::MutableHandle<JSObject*> data) const override;
-
+  JSObject* getIncumbentGlobal(JSContext* cx) override;
   bool enqueuePromiseJob(JSContext* cx, JS::HandleObject promise,
                          JS::HandleObject job, JS::HandleObject allocationSite,
-                         JS::HandleObject hostDefinedData) override;
+                         JS::HandleObject incumbentGlobal) override;
   void runJobs(JSContext* cx) override;
   bool empty() const override;
   bool isDrainingStopped() const override { return interrupted_; }

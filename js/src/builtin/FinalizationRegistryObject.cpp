@@ -688,8 +688,8 @@ FinalizationQueueObject* FinalizationQueueObject::create(
   // you don't know how far to unwrap it to get the original object
   // back. Instead store a CCW to a plain object in the same compartment as the
   // global (this uses Object.prototype).
-  Rooted<JSObject*> hostDefinedData(cx);
-  if (!GetObjectFromHostDefinedData(cx, &hostDefinedData)) {
+  RootedObject incumbentObject(cx);
+  if (!GetObjectFromIncumbentGlobal(cx, &incumbentObject) || !incumbentObject) {
     return nullptr;
   }
 
@@ -700,8 +700,7 @@ FinalizationQueueObject* FinalizationQueueObject::create(
   }
 
   queue->initReservedSlot(CleanupCallbackSlot, ObjectValue(*cleanupCallback));
-  queue->initReservedSlot(HostDefinedDataSlot,
-                          JS::ObjectOrNullValue(hostDefinedData));
+  queue->initReservedSlot(IncumbentObjectSlot, ObjectValue(*incumbentObject));
   InitReservedSlot(queue, RecordsToBeCleanedUpSlot,
                    recordsToBeCleanedUp.release(),
                    MemoryUse::FinalizationRegistryRecordVector);
@@ -755,12 +754,12 @@ inline JSObject* FinalizationQueueObject::cleanupCallback() const {
   return &value.toObject();
 }
 
-JSObject* FinalizationQueueObject::getHostDefinedData() const {
-  Value value = getReservedSlot(HostDefinedDataSlot);
+JSObject* FinalizationQueueObject::incumbentObject() const {
+  Value value = getReservedSlot(IncumbentObjectSlot);
   if (value.isUndefined()) {
     return nullptr;
   }
-  return value.toObjectOrNull();
+  return &value.toObject();
 }
 
 FinalizationRecordVector* FinalizationQueueObject::recordsToBeCleanedUp()

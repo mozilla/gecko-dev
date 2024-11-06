@@ -228,75 +228,24 @@ class PromiseJobRunnable final : public MicroTaskRunnable {
   bool mPropagateUserInputEventHandling;
 };
 
-// Finalizer for instances of FinalizeHostDefinedData.
-//
-// HostDefinedData only contains incumbent global, no need to
-// clean that up.
-// TODO(sefeng): Bug 1929356 will add [[SchedulingState]] to HostDefinedData.
-void FinalizeHostDefinedData(JS::GCContext* gcx, JSObject* objSelf) {}
-
-static const JSClassOps sHostDefinedData = {
-    nullptr /* addProperty */, nullptr /* delProperty */,
-    nullptr /* enumerate */,   nullptr /* newEnumerate */,
-    nullptr /* resolve */,     nullptr /* mayResolve */,
-    FinalizeHostDefinedData /* finalize */
-};
-
-enum { INCUMBENT_SETTING_SLOT, HOSTDEFINED_DATA_SLOTS };
-
-// Implements `HostDefined` in https://html.spec.whatwg.org/#hostmakejobcallback
-static const JSClass sHostDefinedDataClass = {
-    "HostDefinedData",
-    JSCLASS_HAS_RESERVED_SLOTS(HOSTDEFINED_DATA_SLOTS) |
-        JSCLASS_BACKGROUND_FINALIZE,
-    &sHostDefinedData};
-
-bool CycleCollectedJSContext::getHostDefinedData(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aData) const {
+JSObject* CycleCollectedJSContext::getIncumbentGlobal(JSContext* aCx) {
   nsIGlobalObject* global = mozilla::dom::GetIncumbentGlobal();
-  if (!global) {
-    aData.set(nullptr);
-    return true;
+  if (global) {
+    return global->GetGlobalJSObject();
   }
-
-  JSObject* incumbentGlobal = global->GetGlobalJSObject();
-  if (!incumbentGlobal) {
-    aData.set(nullptr);
-    return true;
-  }
-
-  JSAutoRealm ar(aCx, incumbentGlobal);
-
-  JS::Rooted<JSObject*> objResult(aCx,
-                                  JS_NewObject(aCx, &sHostDefinedDataClass));
-  if (!objResult) {
-    aData.set(nullptr);
-    return false;
-  }
-
-  JS_SetReservedSlot(objResult, INCUMBENT_SETTING_SLOT,
-                     JS::ObjectValue(*incumbentGlobal));
-  aData.set(objResult);
-
-  return true;
+  return nullptr;
 }
 
 bool CycleCollectedJSContext::enqueuePromiseJob(
     JSContext* aCx, JS::HandleObject aPromise, JS::HandleObject aJob,
-    JS::HandleObject aAllocationSite, JS::HandleObject hostDefinedData) {
+    JS::HandleObject aAllocationSite, JS::HandleObject aIncumbentGlobal) {
   MOZ_ASSERT(aCx == Context());
   MOZ_ASSERT(Get() == this);
 
   nsIGlobalObject* global = nullptr;
-
-  if (hostDefinedData) {
-    JS::Value incumbentGlobal =
-        JS::GetReservedSlot(hostDefinedData.get(), INCUMBENT_SETTING_SLOT);
-    // hostDefinedData is only created when incumbent global exists.
-    MOZ_ASSERT(incumbentGlobal.isObject());
-    global = xpc::NativeGlobal(&incumbentGlobal.toObject());
+  if (aIncumbentGlobal) {
+    global = xpc::NativeGlobal(aIncumbentGlobal);
   }
-
   JS::RootedObject jobGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
   RefPtr<PromiseJobRunnable> runnable = new PromiseJobRunnable(
       aPromise, aJob, jobGlobal, aAllocationSite, global);
@@ -943,27 +892,18 @@ void FinalizationRegistryCleanup::Init() {
 
 /* static */
 void FinalizationRegistryCleanup::QueueCallback(JSFunction* aDoCleanup,
-                                                JSObject* aHostDefinedData,
+                                                JSObject* aIncumbentGlobal,
                                                 void* aData) {
   FinalizationRegistryCleanup* cleanup =
       static_cast<FinalizationRegistryCleanup*>(aData);
-  cleanup->QueueCallback(aDoCleanup, aHostDefinedData);
+  cleanup->QueueCallback(aDoCleanup, aIncumbentGlobal);
 }
 
 void FinalizationRegistryCleanup::QueueCallback(JSFunction* aDoCleanup,
-                                                JSObject* aHostDefinedData) {
+                                                JSObject* aIncumbentGlobal) {
   bool firstCallback = mCallbacks.empty();
 
-  JSObject* incumbentGlobal = nullptr;
-
-  // Extract incumbentGlobal from aHostDefinedData.
-  if (aHostDefinedData) {
-    JS::Value global =
-        JS::GetReservedSlot(aHostDefinedData, INCUMBENT_SETTING_SLOT);
-    incumbentGlobal = &global.toObject();
-  }
-
-  MOZ_ALWAYS_TRUE(mCallbacks.append(Callback{aDoCleanup, incumbentGlobal}));
+  MOZ_ALWAYS_TRUE(mCallbacks.append(Callback{aDoCleanup, aIncumbentGlobal}));
 
   if (firstCallback) {
     RefPtr<CleanupRunnable> cleanup = new CleanupRunnable(this);
