@@ -315,13 +315,14 @@ struct arena_chunk_map_t {
   // Run address (or size) and various flags are stored together.  The bit
   // layout looks like (assuming 32-bit system):
   //
-  //   ???????? ???????? ????---- fmckdzla
+  //   ???????? ???????? ????---b fmckdzla
   //
   // ? : Unallocated: Run address for first/last pages, unset for internal
   //                  pages.
   //     Small: Run address.
   //     Large: Run size for first page, unset for trailing pages.
   // - : Unused.
+  // b : Busy?
   // f : Fresh memory?
   // m : MADV_FREE/MADV_DONTNEED'ed?
   // c : decommitted?
@@ -384,6 +385,10 @@ struct arena_chunk_map_t {
 // program's resident set.  This is enabled when MALLOC_DOUBLE_PURGE is defined
 // (eg on MacOS).
 //
+// CHUNK_MAP_BUSY is set by a thread when the thread wants to manipulate the
+// pages without holding a lock. Other threads must not touch these pages
+// regardless of whether they hold a lock.
+//
 // CHUNK_MAP_ZEROED is set on pages that are known to contain zeros.
 //
 // CHUNK_MAP_DIRTY, _DECOMMITED _MADVISED and _FRESH are always mutually
@@ -391,6 +396,7 @@ struct arena_chunk_map_t {
 //
 // CHUNK_MAP_KEY is never used on real pages, only on lookup keys.
 //
+#define CHUNK_MAP_BUSY ((size_t)0x100U)
 #define CHUNK_MAP_FRESH ((size_t)0x80U)
 #define CHUNK_MAP_MADVISED ((size_t)0x40U)
 #define CHUNK_MAP_DECOMMITTED ((size_t)0x20U)
@@ -398,6 +404,9 @@ struct arena_chunk_map_t {
   (CHUNK_MAP_MADVISED | CHUNK_MAP_DECOMMITTED)
 #define CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED \
   (CHUNK_MAP_FRESH | CHUNK_MAP_MADVISED | CHUNK_MAP_DECOMMITTED)
+#define CHUNK_MAP_FRESH_MADVISED_DECOMMITTED_OR_BUSY              \
+  (CHUNK_MAP_FRESH | CHUNK_MAP_MADVISED | CHUNK_MAP_DECOMMITTED | \
+   CHUNK_MAP_BUSY)
 #define CHUNK_MAP_KEY ((size_t)0x10U)
 #define CHUNK_MAP_DIRTY ((size_t)0x08U)
 #define CHUNK_MAP_ZEROED ((size_t)0x04U)
@@ -3096,19 +3105,13 @@ bool arena_t::Purge(bool aForce) {
     MOZ_ASSERT(chunk->ndirty > 0);
     mChunksDirty.Remove(chunk);
 
-#ifdef MALLOC_DECOMMIT
-    const size_t free_operation = CHUNK_MAP_DECOMMITTED;
-#else
-    const size_t free_operation = CHUNK_MAP_MADVISED;
-#endif
-
     // Look for the first dirty page.
     for (size_t i = gChunkHeaderNumPages; i < gChunkNumPages - 1; i++) {
       if (chunk->map[i].bits & CHUNK_MAP_DIRTY) {
         MOZ_ASSERT((chunk->map[i].bits &
                     CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED) == 0);
         first_dirty = i;
-        chunk->map[i].bits ^= free_operation | CHUNK_MAP_DIRTY;
+        chunk->map[i].bits ^= CHUNK_MAP_BUSY | CHUNK_MAP_DIRTY;
         break;
       }
     }
@@ -3123,7 +3126,7 @@ bool arena_t::Purge(bool aForce) {
       }
       MOZ_ASSERT((chunk->map[first_dirty + i].bits &
                   CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED) == 0);
-      chunk->map[first_dirty + i].bits ^= free_operation | CHUNK_MAP_DIRTY;
+      chunk->map[first_dirty + i].bits ^= CHUNK_MAP_BUSY | CHUNK_MAP_DIRTY;
     }
     MOZ_ASSERT(npages > 0);
     MOZ_ASSERT(npages <= chunk->ndirty);
@@ -3137,9 +3140,11 @@ bool arena_t::Purge(bool aForce) {
   }
 
 #ifdef MALLOC_DECOMMIT
+  const size_t free_operation = CHUNK_MAP_DECOMMITTED;
   pages_decommit((void*)(uintptr_t(chunk) + (first_dirty << gPageSize2Pow)),
                  (npages << gPageSize2Pow));
 #else
+  const size_t free_operation = CHUNK_MAP_MADVISED;
 #  ifdef XP_SOLARIS
   posix_madvise((void*)(uintptr_t(chunk) + (first_dirty << gPageSize2Pow)),
                 (npages << gPageSize2Pow), MADV_FREE);
@@ -3154,6 +3159,15 @@ bool arena_t::Purge(bool aForce) {
   {
     MOZ_ASSERT(chunk->mIsPurging);
     chunk->mIsPurging = false;
+
+    for (size_t i = 0; i < npages; i++) {
+      // The page must have only the busy flag set.
+      MOZ_ASSERT((chunk->map[first_dirty + i].bits &
+                  (CHUNK_MAP_FRESH_MADVISED_DECOMMITTED_OR_BUSY |
+                   CHUNK_MAP_DIRTY)) == CHUNK_MAP_BUSY);
+
+      chunk->map[first_dirty + i].bits ^= free_operation | CHUNK_MAP_BUSY;
+    }
 
 #ifndef MALLOC_DECOMMIT
     mNumMAdvised += npages;
