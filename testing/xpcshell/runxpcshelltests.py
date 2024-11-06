@@ -1501,6 +1501,13 @@ class XPCShellTests(object):
                 http3ServerPath = os.path.join(
                     SCRIPT_DIR, "http3server", "http3server" + binSuffix
                 )
+
+        # Treat missing http3server as a non-fatal error, because tests that do not
+        # depend on http3server may work just fine.
+        if not os.path.exists(http3ServerPath):
+            self.log.error("Cannot find http3server at path %s" % (http3ServerPath))
+            return
+
         dbPath = os.path.join(SCRIPT_DIR, "http3server", "http3serverDB")
         if build:
             dbPath = os.path.join(build.topsrcdir, "netwerk", "test", "http3serverDB")
