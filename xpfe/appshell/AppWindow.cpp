@@ -1233,7 +1233,7 @@ static Maybe<int32_t> ReadSize(const Element& aElement, nsAtom* aAttr,
   int32_t max = ReadIntAttribute(aElement, aMaxAttr)
                     .valueOr(std::numeric_limits<int32_t>::max());
 
-  return Some(std::min(max, std::max(*attr, min)));
+  return Some(std::clamp(*attr, min, max));
 }
 
 bool AppWindow::LoadSizeFromXUL(int32_t& aSpecWidth, int32_t& aSpecHeight) {
