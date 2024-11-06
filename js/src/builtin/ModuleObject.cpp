@@ -918,6 +918,7 @@ bool ModuleObject::hasCyclicModuleFields() const {
 }
 
 CyclicModuleFields* ModuleObject::cyclicModuleFields() {
+  MOZ_ASSERT(hasCyclicModuleFields());
   void* ptr = getReservedSlot(CyclicModuleFieldsSlot).toPrivate();
   MOZ_ASSERT(ptr);
   return static_cast<CyclicModuleFields*>(ptr);

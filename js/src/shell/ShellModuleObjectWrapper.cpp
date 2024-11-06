@@ -267,6 +267,13 @@ template <class T, typename RawGetterT, typename FilterT>
 bool ShellModuleWrapperGetter(JSContext* cx, const JS::CallArgs& args,
                               RawGetterT rawGetter, FilterT filter) {
   JS::Rooted<T*> wrapper(cx, &args.thisv().toObject().as<T>());
+  if constexpr (std::is_same_v<T, ShellModuleObjectWrapper>) {
+    if (!wrapper->get()->hasCyclicModuleFields()) {
+      args.rval().set(UndefinedValue());
+      return true;
+    }
+  }
+
   JS::Rooted<JS::Value> raw(cx, rawGetter(wrapper->get()));
 
   JS::Rooted<JS::Value> filtered(cx);
@@ -324,6 +331,13 @@ template <class T, typename RawGetterT, typename FilterT>
 bool ShellModuleNativeWrapperGetter(JSContext* cx, const JS::CallArgs& args,
                                     RawGetterT rawGetter, FilterT filter) {
   JS::Rooted<T*> wrapper(cx, &args.thisv().toObject().as<T>());
+  if constexpr (std::is_same_v<T, ShellModuleObjectWrapper>) {
+    if (!wrapper->get()->hasCyclicModuleFields()) {
+      args.rval().set(UndefinedValue());
+      return true;
+    }
+  }
+
   JS::Rooted<typename T::Target*> owner(cx, wrapper->get());
 
   JS::Rooted<JS::Value> filtered(cx);
