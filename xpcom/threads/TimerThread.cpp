@@ -736,7 +736,7 @@ TimeDuration TimerThread::ComputeAcceptableFiringDelay(
   constexpr int64_t timerDurationDivider = 8;
   static_assert(IsPowerOfTwo(static_cast<uint64_t>(timerDurationDivider)));
   const TimeDuration tmp = timerDuration / timerDurationDivider;
-  return std::min(std::max(minDelay, tmp), maxDelay);
+  return std::clamp(tmp, minDelay, maxDelay);
 }
 
 NS_IMETHODIMP
