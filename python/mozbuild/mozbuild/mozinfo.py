@@ -101,6 +101,7 @@ def build_dict(config, env=os.environ):
         substs.get("MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS") == "1"
     )
     d["automation"] = substs.get("MOZ_AUTOMATION") == "1"
+    d["dbus_enabled"] = bool(substs.get("MOZ_ENABLE_DBUS"))
 
     d["opt"] = not d["debug"] and not d["asan"] and not d["tsan"] and not d["ccov"]
 

@@ -16,4 +16,8 @@ run-sequentially = "very high failure rate in parallel"
 ["test_ext_native_messaging_perf.js"]
 skip-if = ["tsan"] # Unreasonably slow, bug 1612707
 
+["test_ext_native_messaging_portal.js"]
+run-if = ["os == 'linux' && toolkit == 'gtk' && dbus_enabled"]
+tags = "portal"
+
 ["test_ext_native_messaging_unresponsive.js"]

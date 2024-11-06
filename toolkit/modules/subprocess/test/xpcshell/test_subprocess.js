@@ -855,6 +855,83 @@ add_task(async function test_bad_executable() {
   );
 });
 
+add_task(async function test_subprocess_connectRunning() {
+  if (AppConstants.platform != "win") {
+    let tempFile = Services.dirsvc.get("TmpD", Ci.nsIFile);
+    tempFile.append("test-subprocess-connectRunning.txt");
+    if (tempFile.exists()) {
+      tempFile.remove(true);
+    }
+    registerCleanupFunction(async function () {
+      tempFile.remove(true);
+    });
+
+    let running = await Subprocess.call({
+      command: await Subprocess.pathSearch("tee"),
+      arguments: [tempFile.path],
+      environment: {},
+      stderr: "pipe",
+    });
+    equal(
+      running.managed,
+      false,
+      "A process spawned by us is not externally managed"
+    );
+    let { getSubprocessImplForTest } = ChromeUtils.importESModule(
+      "resource://gre/modules/Subprocess.sys.mjs"
+    );
+    let worker = getSubprocessImplForTest().Process.getWorker();
+    let fds = await worker.call("getFds", [running.id]);
+    let proc = await Subprocess.connectRunning(fds);
+    greater(proc.id, 0, "Already running process id is valid");
+    equal(proc.pid, 0, "Already running process pid is 0");
+    equal(
+      proc.managed,
+      true,
+      "A process not spawned by us is externally managed"
+    );
+    Assert.throws(
+      () => proc.wait(),
+      /Cannot wait/,
+      "A process externally managed cannot be waited on"
+    );
+    Assert.throws(
+      () => proc.kill(),
+      /Cannot kill/,
+      "A process externally managed cannot be killed"
+    );
+    [proc.stdin, proc.stdout, proc.stderr].forEach((pipe, _i) =>
+      greater(
+        pipe.id,
+        0,
+        "File descriptor (stdin) for already running process is valid"
+      )
+    );
+    let contents = "lorem ipsum";
+    let writeOp = proc.stdin.write(contents);
+    equal(
+      (await writeOp).bytesWritten,
+      contents.length,
+      "Contents correctly written to stdin"
+    );
+    let readOp = running.stdout.readString(contents.length);
+    equal(await readOp, contents, "Pipes communication is functional");
+    await running.kill();
+
+    ok(tempFile.exists(), "temp file was written to");
+    equal(
+      await IOUtils.readUTF8(tempFile.path),
+      contents,
+      "Contents correctly written to temp file"
+    );
+  } else {
+    Assert.throws(
+      () => Subprocess.connectRunning([42, 58, 63]),
+      /Not implemented/
+    );
+  }
+});
+
 add_task(async function test_cleanup() {
   let { getSubprocessImplForTest } = ChromeUtils.importESModule(
     "resource://gre/modules/Subprocess.sys.mjs"
