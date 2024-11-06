@@ -1,0 +1,33 @@
+---
+root:
+  items:
+    - type: stacking-context
+      bounds: [0, 0, 100, 100]
+      items:
+      - type: rect
+        bounds: [ 0, 0, 90, 100 ]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [ 10, 100, 90, 100 ]
+        color: [150, 0, 0]
+
+      - type: rect
+        bounds: [ 0, 300, 90, 100 ]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [ 10, 400, 90, 100 ]
+        color: [150, 0, 0]
+
+      - type: rect
+        bounds: [310, 10, 80, 90 ]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [310, 100, 80, 90 ]
+        color: [150, 0, 0]
+
+      - type: rect
+        bounds: [300, 300, 90, 100 ]
+        color: [0, 150, 0]
+      - type: rect
+        bounds: [310, 400, 90, 100 ]
+        color: [150, 0, 0]
