@@ -15,6 +15,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/PointerEventHandler.h"
@@ -35,6 +36,7 @@ using mozilla::dom::BrowserChild;
 using mozilla::dom::BrowserParent;
 using mozilla::dom::BrowsingContext;
 using mozilla::dom::CallerType;
+using mozilla::dom::CanonicalBrowsingContext;
 using mozilla::dom::Document;
 using mozilla::dom::Element;
 using mozilla::dom::WindowContext;
@@ -212,6 +214,16 @@ void PointerLockManager::Unlock(const char* aReason, Document* aDoc) {
     MOZ_POINTERLOCK_LOG(
         "Unlock document 0x%p [sLockedRemoteTarget=0x%p, reason=%s]", aDoc,
         sLockedRemoteTarget, aReason);
+
+    if (aDoc) {
+      CanonicalBrowsingContext* lockedBc =
+          sLockedRemoteTarget->GetBrowsingContext();
+      if (lockedBc &&
+          lockedBc->TopCrossChromeBoundary()->GetExtantDocument() != aDoc) {
+        return;
+      }
+    }
+
     Unused << sLockedRemoteTarget->SendReleasePointerLock();
     sLockedRemoteTarget = nullptr;
     return;

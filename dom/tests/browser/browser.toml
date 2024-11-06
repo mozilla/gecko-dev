@@ -139,6 +139,8 @@ support-files = ["test_mixed_content_image.html"]
 
 ["browser_pointerlock_popup.js"]
 
+["browser_pointerlock_sidebar.js"]
+
 ["browser_pointerlock_warning.js"]
 
 ["browser_scriptCache_clear.js"]
