@@ -4292,7 +4292,8 @@ bool arena_t::RallocGrowLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
   // Try to extend the run.
   MOZ_ASSERT(aSize > aOldSize);
   if (pageind + npages < gChunkNumPages - 1 &&
-      (aChunk->map[pageind + npages].bits & CHUNK_MAP_ALLOCATED) == 0 &&
+      (aChunk->map[pageind + npages].bits &
+       (CHUNK_MAP_ALLOCATED | CHUNK_MAP_BUSY)) == 0 &&
       (aChunk->map[pageind + npages].bits & ~gPageSizeMask) >=
           aSize - aOldSize) {
     // The next run is available and sufficiently large.  Split the
@@ -4342,7 +4343,8 @@ void* arena_t::RallocSmallOrLarge(void* aPtr, size_t aSize, size_t aOldSize) {
   }
 
   // If we get here, then aSize and aOldSize are different enough that we
-  // need to move the object.  In that case, fall back to allocating new
+  // need to move the object or the run can't be expanded because the memory
+  // after it is allocated or busy.  In that case, fall back to allocating new
   // space and copying. Allow non-private arenas to switch arenas.
   ret = (mIsPrivate ? this : choose_arena(aSize))->Malloc(aSize, false);
   if (!ret) {
