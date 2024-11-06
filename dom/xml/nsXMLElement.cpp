@@ -23,11 +23,6 @@ nsresult NS_NewXMLElement(
   return NS_OK;
 }
 
-JSObject* nsXMLElement::WrapNode(JSContext* aCx,
-                                 JS::Handle<JSObject*> aGivenProto) {
-  return Element_Binding::Wrap(aCx, this, aGivenProto);
-}
-
 void nsXMLElement::UnbindFromTree(UnbindContext& aContext) {
   nsAtom* property;
   switch (GetPseudoElementType()) {

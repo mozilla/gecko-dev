@@ -7,9 +7,7 @@
 #ifndef nsXMLElement_h___
 #define nsXMLElement_h___
 
-#include "mozilla/Attributes.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/DOMRect.h"
 
 class nsXMLElement : public mozilla::dom::Element {
  public:
@@ -20,16 +18,12 @@ class nsXMLElement : public mozilla::dom::Element {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(nsXMLElement, mozilla::dom::Element)
 
   // nsINode interface methods
-  virtual nsresult Clone(mozilla::dom::NodeInfo*,
-                         nsINode** aResult) const override;
+  nsresult Clone(mozilla::dom::NodeInfo*, nsINode** aResult) const override;
 
-  virtual void UnbindFromTree(UnbindContext&) override;
+  void UnbindFromTree(UnbindContext&) override;
 
  protected:
   virtual ~nsXMLElement() = default;
-
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aGivenProto) override;
 };
 
 #endif  // nsXMLElement_h___

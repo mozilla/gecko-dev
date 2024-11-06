@@ -616,6 +616,10 @@ void Element::ClearStyleStateLocks() {
 /* virtual */
 nsINode* Element::GetScopeChainParent() const { return OwnerDoc(); }
 
+JSObject* Element::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+  return Element_Binding::Wrap(aCx, this, aGivenProto);
+}
+
 nsDOMTokenList* Element::ClassList() {
   nsDOMSlots* slots = DOMSlots();
   if (!slots->mClassList) {

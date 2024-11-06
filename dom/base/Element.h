@@ -1738,6 +1738,8 @@ class Element : public FragmentOrElement {
 
   nsINode* GetScopeChainParent() const override;
 
+  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+
   /**
    * Locate a TextEditor rooted at this content node, if there is one.
    */
