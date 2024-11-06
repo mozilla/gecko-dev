@@ -93,8 +93,8 @@ void FileSystemManager::UnregisterPromiseRequestHolder(
 }
 
 void FileSystemManager::BeginRequest(
-    std::function<void(RefPtr<FileSystemManagerChild>)>&& aSuccess,
-    std::function<void(nsresult)>&& aFailure) {
+    MoveOnlyFunction<void(RefPtr<FileSystemManagerChild>)>&& aSuccess,
+    MoveOnlyFunction<void(nsresult)>&& aFailure) {
   MOZ_ASSERT(!mShutdown);
 
   MOZ_ASSERT(mGlobal);
@@ -123,7 +123,7 @@ void FileSystemManager::BeginRequest(
           [self = RefPtr<FileSystemManager>(this), holder,
            success = std::move(aSuccess), failure = std::move(aFailure)](
               const FileSystemManagerChild::ActorPromise::ResolveOrRejectValue&
-                  aValue) {
+                  aValue) mutable {
             holder->Complete();
 
             if (aValue.IsResolve()) {

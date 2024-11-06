@@ -77,8 +77,8 @@ class FileSystemManager : public nsISupports {
       PromiseRequestHolder<FileSystemManagerChild::ActorPromise>* aHolder);
 
   void BeginRequest(
-      std::function<void(RefPtr<FileSystemManagerChild>)>&& aSuccess,
-      std::function<void(nsresult)>&& aFailure);
+      MoveOnlyFunction<void(RefPtr<FileSystemManagerChild>)>&& aSuccess,
+      MoveOnlyFunction<void(nsresult)>&& aFailure);
 
   already_AddRefed<Promise> GetDirectory(ErrorResult& aError);
 

@@ -13,6 +13,7 @@
 #include "mozilla/BaseProfilerMarkers.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Monitor.h"
+#include "mozilla/MoveOnlyFunction.h"
 #include "mozilla/Vector.h"
 #if defined(XP_WIN)
 #  include "mozilla/ipc/Neutering.h"
@@ -93,9 +94,9 @@ enum class ResponseRejectReason {
 };
 
 template <typename T>
-using ResolveCallback = std::function<void(T&&)>;
+using ResolveCallback = MoveOnlyFunction<void(T&&)>;
 
-using RejectCallback = std::function<void(ResponseRejectReason)>;
+using RejectCallback = MoveOnlyFunction<void(ResponseRejectReason)>;
 
 enum ChannelState {
   ChannelClosed,
