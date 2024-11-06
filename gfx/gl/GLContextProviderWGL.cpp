@@ -480,21 +480,6 @@ already_AddRefed<GLContext> GLContextProviderWGL::CreateHeadless(
                             LOCAL_WGL_SUPPORT_OPENGL_ARB,
                             true,
                             LOCAL_WGL_ACCELERATION_ARB,
-                            LOCAL_WGL_NO_ACCELERATION_ARB,
-                            0};
-    if (!wgl.mSymbols.fChoosePixelFormat(wgl.RootDc(), kAttribs, nullptr, 1,
-                                         &chosenFormat, &foundFormats)) {
-      foundFormats = 0;
-      return nullptr;
-    }
-  }
-
-  if (!foundFormats && !forbidHardware) {
-    const int kAttribs[] = {LOCAL_WGL_DRAW_TO_PBUFFER_ARB,
-                            true,
-                            LOCAL_WGL_SUPPORT_OPENGL_ARB,
-                            true,
-                            LOCAL_WGL_ACCELERATION_ARB,
                             LOCAL_WGL_FULL_ACCELERATION_ARB,
                             0};
     if (!wgl.mSymbols.fChoosePixelFormat(wgl.RootDc(), kAttribs, nullptr, 1,

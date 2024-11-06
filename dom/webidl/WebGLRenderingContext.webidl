@@ -53,7 +53,7 @@ dictionary WebGLContextAttributes {
     GLboolean failIfMajorPerformanceCaveat = false;
     WebGLPowerPreference powerPreference = "default";
 
-    [Func="nsRFPService::IsSystemPrincipalOrAboutFingerprintingProtection"]
+    [Func="nsRFPService::IsSoftwareRenderingOptionExposed"]
     GLboolean forceSoftwareRendering = false;
 };
 
@@ -1165,7 +1165,6 @@ interface MOZ_debug {
     const GLenum WSI_INFO   = 0x10000;
     const GLenum UNPACK_REQUIRE_FASTPATH = 0x10001;
     const GLenum DOES_INDEX_VALIDATION   = 0x10002;
-    const GLenum CONTEXT_TYPE   = 0x10003;
 
     [Throws]
     any getParameter(GLenum pname);

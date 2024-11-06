@@ -99,10 +99,6 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
 
   void GetContextAttributes(CanvasRenderingContext2DSettings& aSettings) const;
 
-  void GetDebugInfo(bool aEnsureTarget,
-                    CanvasRenderingContext2DDebugInfo& aDebugInfo,
-                    ErrorResult& aError);
-
   void OnMemoryPressure() override;
   void OnBeforePaintTransaction() override;
   void OnDidPaintTransaction() override;

@@ -938,14 +938,14 @@ std::shared_ptr<EglDisplay> GLLibraryEGL::CreateDisplayLocked(
       ret = GetAndInitSoftwareDisplay(*this, aProofOfLock);
     }
     // Initialize the display the normal way
-    if (!ret && !gdk_display_get_default() && !forceSoftware) {
+    if (!ret && !gdk_display_get_default()) {
       ret = GetAndInitDeviceDisplay(*this, aProofOfLock);
       if (!ret) {
         ret = GetAndInitSurfacelessDisplay(*this, aProofOfLock);
       }
     }
 #  ifdef MOZ_WAYLAND
-    else if (!ret && widget::GdkIsWaylandDisplay() && !forceSoftware) {
+    else if (!ret && widget::GdkIsWaylandDisplay()) {
       // Wayland does not support EGL_DEFAULT_DISPLAY
       nativeDisplay = widget::WaylandDisplayGetWLDisplay();
       if (!nativeDisplay) {
@@ -955,7 +955,7 @@ std::shared_ptr<EglDisplay> GLLibraryEGL::CreateDisplayLocked(
     }
 #  endif
 #endif
-    if (!ret && !forceSoftware) {
+    if (!ret) {
       ret = GetAndInitDisplay(*this, nativeDisplay, aProofOfLock);
     }
   }

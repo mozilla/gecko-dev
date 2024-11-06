@@ -35,19 +35,8 @@ dictionary CanvasRenderingContext2DSettings {
   // whether or not we're planning to do a lot of readback operations
   boolean willReadFrequently = false;
 
-  [Func="nsRFPService::IsSystemPrincipalOrAboutFingerprintingProtection"]
+  [Func="nsRFPService::IsSoftwareRenderingOptionExposed"]
   boolean forceSoftwareRendering = false;
-};
-
-[GenerateInit]
-dictionary CanvasRenderingContext2DDebugInfo {
-  required boolean isAccelerated;
-
-  required boolean isShared;
-
-  required byte backendType;
-
-  required byte drawTargetType;
 };
 
 dictionary HitRegionOptions {
@@ -74,9 +63,6 @@ interface CanvasRenderingContext2D {
   readonly attribute HTMLCanvasElement? canvas;
 
   CanvasRenderingContext2DSettings getContextAttributes();
-
-  [Throws, Func="nsRFPService::IsSystemPrincipalOrAboutFingerprintingProtection"]
-  CanvasRenderingContext2DDebugInfo getDebugInfo(optional boolean ensureTarget = false);
 
   // Show the caret if appropriate when drawing
   [Func="CanvasUtils::HasDrawWindowPrivilege"]
