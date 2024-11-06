@@ -1204,6 +1204,17 @@ void ExternalEngineStateMachine::NotifyErrorInternal(
   } else if (aError == NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR) {
     ReportTelemetry(NS_ERROR_DOM_MEDIA_REMOTE_DECODER_CRASHED_MF_CDM_ERR);
     RecoverFromCDMProcessCrashIfNeeded();
+  } else if (mState.IsInitEngine() && mKeySystem.IsEmpty()) {
+    // If any error occurs during media engine initialization, we should attempt
+    // to use another state machine for playback. Unless the key system is
+    // already set, it indicates that playback can only be initiated via the
+    // media engine. In this case, we will propagate the error and refrain
+    // from trying another state machine.
+    LOG("Error happened on the engine initialization, the media engine "
+        "playback might not be supported");
+    ReportTelemetry(NS_ERROR_DOM_MEDIA_MEDIA_ENGINE_INITIALIZATION_ERR);
+    DecodeError(
+        MediaResult(NS_ERROR_DOM_MEDIA_EXTERNAL_ENGINE_NOT_SUPPORTED_ERR));
   } else {
     ReportTelemetry(aError);
     DecodeError(aError);
