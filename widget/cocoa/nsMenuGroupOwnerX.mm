@@ -40,6 +40,24 @@ nsMenuGroupOwnerX::~nsMenuGroupOwnerX() {
   [mRepresentedObject release];
 }
 
+void nsMenuGroupOwnerX::InstallOrUninstallRootMutationObserver() {
+  if (!mContent) {
+    return;
+  }
+
+  // The mutation observer on mContent will be notified for all changes in
+  // mContent's subtree.
+  // We keep it registered as long as we have at least one content observer.
+  bool shouldObserveMutationsOnRoot = !mContentToObserverTable.IsEmpty();
+  if (!mObservingMutationsOnRoot && shouldObserveMutationsOnRoot) {
+    mContent->AddMutationObserver(this);
+    mObservingMutationsOnRoot = true;
+  } else if (mObservingMutationsOnRoot && !shouldObserveMutationsOnRoot) {
+    mContent->RemoveMutationObserver(this);
+    mObservingMutationsOnRoot = false;
+  }
+}
+
 //
 // nsIMutationObserver
 //
@@ -139,17 +157,36 @@ void nsMenuGroupOwnerX::ARIAAttributeDefaultChanged(
 // picture because the containment hierarchy already uses strong refs.
 void nsMenuGroupOwnerX::RegisterForContentChanges(
     nsIContent* aContent, nsChangeObserver* aMenuObject) {
-  if (!mContentToObserverTable.Contains(aContent)) {
+  if (mContentToObserverTable.Contains(aContent)) {
+    return;
+  }
+
+  mContentToObserverTable.InsertOrUpdate(aContent, aMenuObject);
+
+  if (!mContent || !aContent->IsInclusiveDescendantOf(mContent)) {
+    // If aContent is outside mContent's subtree, for example if it's a
+    // <command> element, we need to add a mutation observer.
+    // Anything in mContent's subtree is already covered by the mutation
+    // observer we add in the nsMenuGroupOwnerX constructor.
     aContent->AddMutationObserver(this);
   }
-  mContentToObserverTable.InsertOrUpdate(aContent, aMenuObject);
+
+  InstallOrUninstallRootMutationObserver();
 }
 
 void nsMenuGroupOwnerX::UnregisterForContentChanges(nsIContent* aContent) {
-  if (mContentToObserverTable.Contains(aContent)) {
+  if (!mContentToObserverTable.Contains(aContent)) {
+    return;
+  }
+
+  mContentToObserverTable.Remove(aContent);
+
+  if (!mContent || !aContent->IsInclusiveDescendantOf(mContent)) {
+    // Remove the mutation observer that was added in RegisterForContentChanges.
     aContent->RemoveMutationObserver(this);
   }
-  mContentToObserverTable.Remove(aContent);
+
+  InstallOrUninstallRootMutationObserver();
 }
 
 void nsMenuGroupOwnerX::RegisterForLocaleChanges() {
