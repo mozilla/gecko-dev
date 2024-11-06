@@ -49,16 +49,12 @@ use std::fs;
 use std::path::Path;
 use std::process;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use syn::parse::Parser as _;
 
 #[macro_use]
 mod macros;
 
 mod common;
 mod repo;
-
-#[path = "../src/scan_expr.rs"]
-mod scan_expr;
 
 #[test]
 fn test_rustc_precedence() {
@@ -119,8 +115,7 @@ fn test_expressions(path: &Path, edition: Edition, exprs: Vec<syn::Expr>) -> (us
 
     rustc_span::create_session_if_not_set_then(edition, |_| {
         for expr in exprs {
-            let expr_tokens = expr.to_token_stream();
-            let source_code = expr_tokens.to_string();
+            let source_code = expr.to_token_stream().to_string();
             let librustc_ast = if let Some(e) = librustc_parse_and_rewrite(&source_code) {
                 e
             } else {
@@ -172,16 +167,6 @@ fn test_expressions(path: &Path, edition: Edition, exprs: Vec<syn::Expr>) -> (us
                 failed += 1;
                 errorf!(
                     "\nFAIL {} - mismatch after parsing invisible delimiters\n{}\n",
-                    path.display(),
-                    source_code,
-                );
-                continue;
-            }
-
-            if scan_expr::scan_expr.parse2(expr_tokens).is_err() {
-                failed += 1;
-                errorf!(
-                    "\nFAIL {} - failed to scan expr\n{}\n",
                     path.display(),
                     source_code,
                 );
