@@ -406,6 +406,22 @@ class Process extends BaseProcess {
   }
 
   /**
+   * Connect to an already running process that was spawned externally.
+   *
+   * @param {object} options
+            An object with a 'fds' attribute that's an array
+            of file descriptors (stdin, stdout and stderr).
+   */
+  connectRunning(options) {
+    this.pid = 0;
+    this.pipes = [];
+    this.pipes.push(new OutputPipe(this, unix.Fd(options.fds[0])));
+    this.pipes.push(new InputPipe(this, unix.Fd(options.fds[1])));
+    this.pipes.push(new InputPipe(this, unix.Fd(options.fds[2])));
+    // Not creating a poll fd here, because this process is managed externally.
+  }
+
+  /**
    * Called when input is available on our sentinel file descriptor.
    *
    * @see pollEvents
@@ -457,7 +473,9 @@ class Process extends BaseProcess {
       this.exitCode = unix.WEXITSTATUS(status.value);
     }
 
-    this.fd.dispose();
+    if (this.fd !== undefined) {
+      this.fd.dispose();
+    }
     io.updatePollFds();
     this.resolveExit(this.exitCode);
     return this.exitCode;
@@ -521,7 +539,9 @@ io = {
     let handlers = [
       this.signal,
       ...this.pipes.values(),
-      ...this.processes.values(),
+      // Filter out processes without a poll fd, because those are managed
+      // externally, not spawned by us.
+      ...Array.from(this.processes.values()).filter(p => p.fd !== undefined),
     ];
 
     handlers = handlers.filter(handler => handler.pollEvents);

@@ -168,6 +168,12 @@ var SubprocessWin = {
     error.errorCode = SubprocessConstants.ERROR_BAD_EXECUTABLE;
     throw error;
   },
+
+  connectRunning(_options) {
+    // Not relevant (yet?) on Windows. This is currently used only on Unix
+    // for native messaging through the WebExtensions portal.
+    throw new Error("Not implemented");
+  },
 };
 
 export var SubprocessImpl = SubprocessWin;

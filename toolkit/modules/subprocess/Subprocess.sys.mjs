@@ -188,6 +188,19 @@ export var Subprocess = {
     let path = lazy.SubprocessImpl.pathSearch(command, environment);
     return Promise.resolve(path);
   },
+
+  /**
+   * Connect to an already-running subprocess
+   * given the file descriptors for its stdin, stdout and stderr.
+   *
+   * @param {int[]} [fds]
+   *        A list of three file descriptors [stdin, stdout, stderr].
+   *
+   * @returns {Process}
+   */
+  connectRunning(fds) {
+    return lazy.SubprocessImpl.connectRunning(fds);
+  },
 };
 
 Object.assign(Subprocess, SubprocessConstants);
