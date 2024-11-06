@@ -3944,3 +3944,16 @@ contentProcessSandbox:
       setPref:
         branch: user
         pref: security.sandbox.content.level
+
+certificateTransparency:
+  description: Certificate Transparency configuration
+  owner: dkeeler@mozilla.com
+  hasExposure: false
+  variables:
+    mode:
+      type: int
+      setPref:
+        branch: default
+        pref: security.pki.certificate_transparency.mode
+      description: >-
+        What mode Certificate Transparency is in (0=disable, 1=telemetry only, 2=enforce).
