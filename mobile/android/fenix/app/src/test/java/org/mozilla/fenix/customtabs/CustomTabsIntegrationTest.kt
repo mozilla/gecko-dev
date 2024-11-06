@@ -193,7 +193,7 @@ class CustomTabsIntegrationTest {
         assertNull(integration.forwardAction)
         assertNull(integration.backAction)
 
-        integration.updateAddressBarNavigationActions(testContext, isLandscape = true, isTablet = false)
+        integration.updateAddressBarNavigationActions(testContext, isWindowSizeSmall = false)
 
         assertNotNull(integration.forwardAction)
         assertNotNull(integration.backAction)
@@ -208,7 +208,7 @@ class CustomTabsIntegrationTest {
         assertNull(integration.forwardAction)
         assertNull(integration.backAction)
 
-        integration.updateAddressBarNavigationActions(testContext, isLandscape = true, isTablet = false)
+        integration.updateAddressBarNavigationActions(testContext, isWindowSizeSmall = false)
 
         assertNotNull(integration.forwardAction)
         assertNotNull(integration.backAction)
@@ -226,7 +226,7 @@ class CustomTabsIntegrationTest {
         assertNotNull(integration.forwardAction)
         assertNotNull(integration.backAction)
 
-        integration.updateAddressBarNavigationActions(testContext, isLandscape = false, isTablet = false)
+        integration.updateAddressBarNavigationActions(testContext, isWindowSizeSmall = true)
 
         assertNull(integration.forwardAction)
         assertNull(integration.backAction)
@@ -265,10 +265,10 @@ class CustomTabsIntegrationTest {
             context = testContext,
             isNavBarEnabled = true,
             isNavBarVisible = false,
-            orientation = OrientationMode.Undefined,
+            isWindowSizeSmall = false,
         )
 
-        verify { integration.updateAddressBarNavigationActions(any(), any(), any()) }
+        verify { integration.updateAddressBarNavigationActions(any(), any()) }
         verify { integration.updateOpenInAction(any(), any()) }
         verify { browserToolbarView.updateMenuVisibility(any()) }
     }
@@ -280,10 +280,10 @@ class CustomTabsIntegrationTest {
             context = testContext,
             isNavBarEnabled = false,
             isNavBarVisible = false,
-            orientation = OrientationMode.Undefined,
+            isWindowSizeSmall = false,
         )
 
-        verify(exactly = 0) { integration.updateAddressBarNavigationActions(any(), any(), any()) }
+        verify(exactly = 0) { integration.updateAddressBarNavigationActions(any(), any()) }
         verify(exactly = 0) { integration.updateOpenInAction(any(), any()) }
         verify(exactly = 0) { browserToolbarView.updateMenuVisibility(any()) }
     }

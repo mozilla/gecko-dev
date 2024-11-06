@@ -563,7 +563,12 @@ class HomeFragment : Fragment() {
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt() },
             )
-            toolbarView?.updateButtonVisibility(requireComponents.core.store.state)
+            context?.shouldAddNavigationBar()?.let {
+                toolbarView?.updateButtonVisibility(
+                    requireComponents.core.store.state,
+                    it,
+                )
+            }
         }
 
         // If the microsurvey feature is visible, we should update it's state.

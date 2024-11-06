@@ -35,15 +35,14 @@ import mozilla.components.support.utils.ColorUtils.calculateAlphaFromPercentage
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragment.Companion.OPEN_IN_ACTION_WEIGHT
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.OrientationMode
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.theme.AcornWindowSize
 import org.mozilla.fenix.utils.Settings
 
 @Suppress("LongParameterList")
@@ -175,7 +174,7 @@ class CustomTabsIntegration(
                             context = context,
                             isNavBarEnabled = isNavBarEnabled,
                             isNavBarVisible = isNavBarVisible,
-                            orientation = it,
+                            isWindowSizeSmall = AcornWindowSize.getWindowSize(context) == AcornWindowSize.Small,
                         )
                     }
             }
@@ -194,13 +193,12 @@ class CustomTabsIntegration(
         context: Context,
         isNavBarEnabled: Boolean,
         isNavBarVisible: Boolean,
-        orientation: OrientationMode,
+        isWindowSizeSmall: Boolean,
     ) {
         if (isNavBarEnabled) {
             updateAddressBarNavigationActions(
                 context = context,
-                isLandscape = orientation == OrientationMode.Landscape,
-                isTablet = context.isLargeWindow(),
+                isWindowSizeSmall = isWindowSizeSmall,
             )
 
             browserToolbarView.updateMenuVisibility(
@@ -217,10 +215,9 @@ class CustomTabsIntegration(
     @VisibleForTesting
     internal fun updateAddressBarNavigationActions(
         context: Context,
-        isLandscape: Boolean,
-        isTablet: Boolean,
+        isWindowSizeSmall: Boolean,
     ) {
-        if (isLandscape || isTablet) {
+        if (!isWindowSizeSmall) {
             addNavigationActions(context)
             toolbar.invalidateActions()
         } else {

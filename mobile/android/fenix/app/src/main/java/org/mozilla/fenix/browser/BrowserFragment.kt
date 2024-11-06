@@ -60,6 +60,7 @@ import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCoo
 import org.mozilla.fenix.shopping.DefaultShoppingExperienceFeature
 import org.mozilla.fenix.shopping.ReviewQualityCheckFeature
 import org.mozilla.fenix.shortcut.PwaOnboardingObserver
+import org.mozilla.fenix.theme.AcornWindowSize
 import org.mozilla.fenix.theme.ThemeManager
 
 /**
@@ -115,6 +116,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             isTablet = isLargeWindow(),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
+            isWindowSizeSmall = AcornWindowSize.getWindowSize(context) == AcornWindowSize.Small,
         )
 
         updateBrowserToolbarMenuVisibility()
@@ -439,12 +441,12 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         isTablet: Boolean,
         isPrivate: Boolean,
         feltPrivateBrowsingEnabled: Boolean,
+        isWindowSizeSmall: Boolean,
     ) {
         if (redesignEnabled) {
             updateAddressBarNavigationActions(
-                isLandscape = isLandscape,
-                isTablet = isTablet,
                 context = context,
+                isWindowSizeSmall = isWindowSizeSmall,
             )
             updateAddressBarLeadingAction(
                 redesignEnabled = true,
@@ -500,10 +502,9 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     @VisibleForTesting
     internal fun updateAddressBarNavigationActions(
         context: Context,
-        isLandscape: Boolean,
-        isTablet: Boolean,
+        isWindowSizeSmall: Boolean,
     ) {
-        if (isLandscape || isTablet) {
+        if (!isWindowSizeSmall) {
             addNavigationActions(context)
         } else {
             removeNavigationActions()
@@ -520,6 +521,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             isTablet = isLargeWindow(),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = requireContext().settings().feltPrivateBrowsingEnabled,
+            isWindowSizeSmall = AcornWindowSize.getWindowSize(requireContext()) == AcornWindowSize.Small,
         )
 
         updateBrowserToolbarMenuVisibility()

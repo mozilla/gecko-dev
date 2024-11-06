@@ -504,6 +504,7 @@ class BrowserFragmentTest {
             isTablet = false,
             isPrivate = false,
             feltPrivateBrowsingEnabled = false,
+            isWindowSizeSmall = true,
         )
 
         verify(exactly = 1) { browserFragment.addLeadingAction(any(), any(), any()) }
@@ -526,6 +527,7 @@ class BrowserFragmentTest {
             isTablet = false,
             isPrivate = false,
             feltPrivateBrowsingEnabled = false,
+            isWindowSizeSmall = false,
         )
 
         verify(exactly = 1) { browserFragment.addLeadingAction(any(), any(), any()) }
@@ -548,6 +550,7 @@ class BrowserFragmentTest {
             isTablet = false,
             isPrivate = false,
             feltPrivateBrowsingEnabled = false,
+            isWindowSizeSmall = true,
         )
 
         verify(exactly = 0) { browserFragment.addLeadingAction(any(), any(), any()) }
@@ -563,6 +566,7 @@ class BrowserFragmentTest {
 
         val redesignEnabled = true
         val isLandscape = true
+
         browserFragment.updateBrowserToolbarLeadingAndNavigationActions(
             context = context,
             redesignEnabled = redesignEnabled,
@@ -570,6 +574,7 @@ class BrowserFragmentTest {
             isTablet = false,
             isPrivate = false,
             feltPrivateBrowsingEnabled = false,
+            isWindowSizeSmall = false,
         )
 
         verify(exactly = 0) { browserFragment.addLeadingAction(any(), any(), any()) }
@@ -594,6 +599,7 @@ class BrowserFragmentTest {
             isTablet = isTablet,
             isPrivate = false,
             feltPrivateBrowsingEnabled = false,
+            isWindowSizeSmall = false,
         )
 
         verifyOrder {
@@ -619,6 +625,7 @@ class BrowserFragmentTest {
             isPrivate = false,
             isTablet = isTablet,
             feltPrivateBrowsingEnabled = false,
+            isWindowSizeSmall = true,
         )
 
         verify(exactly = 1) { browserFragment.removeLeadingAction() }
@@ -642,6 +649,7 @@ class BrowserFragmentTest {
             isPrivate = false,
             isTablet = isTablet,
             feltPrivateBrowsingEnabled = false,
+            isWindowSizeSmall = false,
         )
 
         verify(exactly = 0) { browserFragment.addLeadingAction(any(), any(), any()) }

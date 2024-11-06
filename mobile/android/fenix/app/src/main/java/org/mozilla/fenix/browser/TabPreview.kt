@@ -23,7 +23,6 @@ import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.thumbnails.loader.ThumbnailLoader
 import mozilla.components.concept.base.images.ImageLoadRequest
-import mozilla.components.support.utils.ext.isLandscape
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
@@ -36,6 +35,7 @@ import org.mozilla.fenix.databinding.TabPreviewBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.theme.AcornWindowSize
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.ThemeManager
 import kotlin.math.min
@@ -66,14 +66,13 @@ class TabPreview @JvmOverloads constructor(
     private fun initializeView() {
         val isNavBarVisible = context.shouldAddNavigationBar()
         val isNavBarEnabled = context.settings().navigationToolbarEnabled
-        val isLandscape = context.isLandscape()
-        val isTablet = context.isLargeWindow()
+        val isLargeWindow = (AcornWindowSize.getWindowSize(context).isNotSmall())
         val isToolbarAtTop = context.settings().toolbarPosition == ToolbarPosition.TOP
 
         binding.fakeToolbar.isVisible = !isNavBarEnabled
         binding.fakeToolbarTwo.isVisible = isNavBarEnabled
         mockToolbarView = if (isNavBarEnabled) binding.fakeToolbarTwo else binding.fakeToolbar
-        initNavBarLandscapeChanges(isNavBarEnabled && (isLandscape || isTablet))
+        initNavBarLandscapeChanges(isNavBarEnabled && isLargeWindow)
 
         if (isToolbarAtTop) {
             mockToolbarView.updateLayoutParams<LayoutParams> {
@@ -174,9 +173,9 @@ class TabPreview @JvmOverloads constructor(
         super.onConfigurationChanged(newConfig)
         if (context.settings().navigationToolbarEnabled) {
             val isTablet = context.isLargeWindow()
-            val isLandscape = context.isLandscape()
+            val isLargeWindow = (AcornWindowSize.getWindowSize(context).isNotSmall())
 
-            initNavBarLandscapeChanges(isTablet || isLandscape)
+            initNavBarLandscapeChanges(isLargeWindow)
 
             if (!isTablet) {
                 updateNavBarForConfigurationChange(
@@ -195,16 +194,16 @@ class TabPreview @JvmOverloads constructor(
      * Changes the visibility of the landscape changes to the Toolbar if Navigation Toolbar
      * is active based on layout.
      */
-    private fun initNavBarLandscapeChanges(isLandscapeOrTablet: Boolean) {
+    private fun initNavBarLandscapeChanges(isLargeWindow: Boolean) {
         val isFeltPrivacyEnabled = context.settings().feltPrivateBrowsingEnabled
         val isInPrivateMode = browserStore.state.selectedTab?.content?.private ?: false
-        binding.fakeClearDataButton.isVisible = isFeltPrivacyEnabled && isLandscapeOrTablet && isInPrivateMode
+        binding.fakeClearDataButton.isVisible = isFeltPrivacyEnabled && isLargeWindow && isInPrivateMode
 
-        binding.fakeBackButton.isVisible = isLandscapeOrTablet
-        binding.fakeForwardButton.isVisible = isLandscapeOrTablet
-        binding.fakeNewTabButton.isVisible = isLandscapeOrTablet
-        binding.fakeTabCounter.isVisible = isLandscapeOrTablet
-        binding.fakeMenuButton.isVisible = isLandscapeOrTablet
+        binding.fakeBackButton.isVisible = isLargeWindow
+        binding.fakeForwardButton.isVisible = isLargeWindow
+        binding.fakeNewTabButton.isVisible = isLargeWindow
+        binding.fakeTabCounter.isVisible = isLargeWindow
+        binding.fakeMenuButton.isVisible = isLargeWindow
     }
 
     /**
