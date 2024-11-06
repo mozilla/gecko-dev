@@ -76,8 +76,17 @@ class SettingsSubMenuAddonsManagerRobot {
             allOf(
                 withText("Add $addonName?"),
                 hasSibling(withText(containsString("It requires your permission to:"))),
-                hasSibling(withText("Add")),
+            ),
+        )
+            .inRoot(isDialog())
+            .check(matches(isDisplayed()))
+        mDevice.waitNotNull(Until.findObject(By.text("Add")), waitingTime)
+        onView(
+            allOf(
+                withText("Add"),
                 hasSibling(withText("Cancel")),
+                hasSibling(withText("Learn more")),
+                hasSibling(withText("Allow in private browsing")),
             ),
         )
             .inRoot(isDialog())
