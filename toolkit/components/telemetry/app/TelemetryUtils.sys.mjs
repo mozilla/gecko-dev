@@ -103,6 +103,10 @@ export var TelemetryUtils = {
     return "decafdec-afde-cafd-ecaf-decafdecafde";
   },
 
+  get knownUsageProfileID() {
+    return "beefbeef-beef-beef-beef-beeefbeefbee";
+  },
+
   /**
    * True if this is a content process.
    */

@@ -106,6 +106,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
   TabUnloader: "resource:///modules/TabUnloader.sys.mjs",
+  TelemetryUtils: "resource://gre/modules/TelemetryUtils.sys.mjs",
   UIState: "resource://services-sync/UIState.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarSearchTermsPersistence:
@@ -2948,7 +2949,26 @@ BrowserGlue.prototype = {
       // pre-init buffer.
       {
         name: "initializeFOG",
-        task: () => {
+        task: async () => {
+          // Handle Usage Profile ID.
+          // Similar logic to what's happening in `TelemetryControllerParent` for the client ID.
+          let profileID = await lazy.ClientID.getUsageProfileID();
+          const uploadEnabled = Services.prefs.getBoolPref(
+            lazy.TelemetryUtils.Preferences.FhrUploadEnabled,
+            false
+          );
+          if (
+            uploadEnabled &&
+            profileID == lazy.TelemetryUtils.knownUsageProfileID
+          ) {
+            await lazy.ClientID.resetUsageProfileIdentifier();
+          } else if (
+            !uploadEnabled &&
+            profileID != lazy.TelemetryUtils.knownUsageProfileID
+          ) {
+            await lazy.ClientID.setCanaryUsageProfileIdentifier();
+          }
+
           Services.fog.initializeFOG();
 
           // Register Glean to listen for experiment updates releated to the

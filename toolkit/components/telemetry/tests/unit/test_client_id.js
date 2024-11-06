@@ -9,6 +9,7 @@ const { ClientID } = ChromeUtils.importESModule(
 
 const PREF_CACHED_CLIENTID = "toolkit.telemetry.cachedClientID";
 const PREF_CACHED_PROFILEGROUPID = "toolkit.telemetry.cachedProfileGroupID";
+const PREF_CACHED_USAGE_PROFILEID = "datareporting.dau.cachedUsageProfileID";
 
 var drsPath;
 
@@ -407,6 +408,9 @@ add_task(async function test_setCanaryIdentifiers() {
 
   await ClientID._reset();
 
+  // `setCanaryIdentifiers` doesn't touch the Usage Profile ID.
+  let usageProfileID = await ClientID.getUsageProfileID();
+
   // We should be able to set a valid UUID
   await ClientID.setCanaryIdentifiers();
   let clientID = await ClientID.getClientID();
@@ -420,6 +424,28 @@ add_task(async function test_setCanaryIdentifiers() {
       Glean.legacyTelemetry.profileGroupId.testGetValue()
     );
   }
+
+  let usageProfileID2 = await ClientID.getUsageProfileID();
+  Assert.equal(usageProfileID, usageProfileID2);
+});
+
+add_task(async function test_setCanaryUsageProfileIdentifier() {
+  const KNOWN_USAGE_PROFILEID = "beefbeef-beef-beef-beef-beeefbeefbee";
+
+  await ClientID._reset();
+
+  let clientID = await ClientID.getClientID();
+  let profileGroupID = await ClientID.getProfileGroupID();
+
+  await ClientID.setCanaryUsageProfileIdentifier();
+
+  let usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(KNOWN_USAGE_PROFILEID, usageProfileID);
+
+  let clientID2 = await ClientID.getClientID();
+  let profileGroupID2 = await ClientID.getProfileGroupID();
+  Assert.equal(clientID, clientID2);
+  Assert.equal(profileGroupID, profileGroupID2);
 });
 
 add_task(async function test_removeParallelGet() {
@@ -457,5 +483,260 @@ add_task(async function test_removeParallelGet() {
   );
   if (AppConstants.platform != "android") {
     Assert.equal(newClientID, Glean.legacyTelemetry.clientId.testGetValue());
+  }
+});
+
+add_task(async function test_usage_profile_id() {
+  const invalidIDs = [
+    [-1, "setIntPref"],
+    [0.5, "setIntPref"],
+    ["INVALID-UUID", "setStringPref"],
+    [true, "setBoolPref"],
+    ["", "setStringPref"],
+    ["3d1e1560-682a-4043-8cf2-aaaaaaaaaaaZ", "setStringPref"],
+  ];
+
+  // If there is no DRS file, and no cached id, we should get a new Usage Profile ID.
+  await ClientID._reset();
+  Services.prefs.clearUserPref(PREF_CACHED_CLIENTID);
+  Services.prefs.clearUserPref(PREF_CACHED_PROFILEGROUPID);
+  Services.prefs.clearUserPref(PREF_CACHED_USAGE_PROFILEID);
+  await IOUtils.remove(drsPath, { ignoreAbsent: true });
+  let clientID = await ClientID.getClientID();
+  let profileGroupId = await ClientID.getProfileGroupID();
+  let usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(typeof usageProfileID, "string");
+  Assert.ok(uuidRegex.test(usageProfileID));
+  // A new client should have a Usage Profile ID distinct from client ID and profile group ID.
+  Assert.notEqual(usageProfileID, clientID);
+  Assert.notEqual(usageProfileID, profileGroupId);
+
+  // We should be guarded against invalid DRS json.
+  await ClientID._reset();
+  Services.prefs.clearUserPref(PREF_CACHED_CLIENTID);
+  Services.prefs.clearUserPref(PREF_CACHED_PROFILEGROUPID);
+  Services.prefs.clearUserPref(PREF_CACHED_USAGE_PROFILEID);
+  await IOUtils.writeUTF8(drsPath, "abcd", {
+    tmpPath: drsPath + ".tmp",
+  });
+  usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(typeof usageProfileID, "string");
+  Assert.ok(uuidRegex.test(usageProfileID));
+
+  // If the DRS data is broken, we should end up with the cached ID.
+  let oldUsageProfileID = usageProfileID;
+  for (let [invalidID] of invalidIDs) {
+    await ClientID._reset();
+    await IOUtils.writeJSON(drsPath, { clientID: invalidID });
+    usageProfileID = await ClientID.getUsageProfileID();
+    Assert.equal(usageProfileID, oldUsageProfileID);
+  }
+
+  const validProfileGroupID = "5afebd62-a33c-416c-b519-5c60fb988e8e";
+  const validClientID = "d06361a2-67d8-4d41-b804-6fab6ddf5461";
+  const validUsageProfileId = "4d38e1a4-5034-44b1-9683-c0d8f748ee24";
+
+  // Test that valid DRS actually works.
+  await ClientID._reset();
+  Services.prefs.clearUserPref(PREF_CACHED_CLIENTID);
+  Services.prefs.clearUserPref(PREF_CACHED_PROFILEGROUPID);
+  Services.prefs.clearUserPref(PREF_CACHED_USAGE_PROFILEID);
+  await IOUtils.writeJSON(drsPath, {
+    version: 2,
+    clientID: validClientID,
+    profileGroupID: validProfileGroupID,
+    usageProfileID: validUsageProfileId,
+  });
+  usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(usageProfileID, validUsageProfileId);
+  if (AppConstants.platform != "android") {
+    Assert.equal(usageProfileID, Glean.usage.profileId.testGetValue());
+  }
+
+  // Test that valid DRS actually works when the client ID is missing.
+  await ClientID._reset();
+  await IOUtils.writeJSON(drsPath, {
+    version: 2,
+    profileGroupID: validProfileGroupID,
+    usageProfileID: validUsageProfileId,
+  });
+  usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(usageProfileID, validUsageProfileId);
+  if (AppConstants.platform != "android") {
+    Assert.equal(usageProfileID, Glean.usage.profileId.testGetValue());
+  }
+
+  // Test that reloading a valid DRS works.
+  await ClientID._reset();
+  Services.prefs.clearUserPref(PREF_CACHED_CLIENTID);
+  Services.prefs.clearUserPref(PREF_CACHED_PROFILEGROUPID);
+  Services.prefs.clearUserPref(PREF_CACHED_USAGE_PROFILEID);
+  usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(usageProfileID, validUsageProfileId);
+  if (AppConstants.platform != "android") {
+    Assert.equal(usageProfileID, Glean.usage.profileId.testGetValue());
+  }
+
+  // Assure that cached IDs are being checked for validity.
+  for (let [invalidID, prefFunc] of invalidIDs) {
+    await ClientID._reset();
+    Services.prefs[prefFunc](PREF_CACHED_USAGE_PROFILEID, invalidID);
+    let cachedID = ClientID.getCachedUsageProfileID();
+    Assert.strictEqual(
+      cachedID,
+      null,
+      "ClientID should ignore invalid cached IDs"
+    );
+    Assert.ok(
+      !Services.prefs.prefHasUserValue(PREF_CACHED_USAGE_PROFILEID),
+      "ClientID should reset invalid cached IDs"
+    );
+    Assert.ok(
+      Services.prefs.getPrefType(PREF_CACHED_USAGE_PROFILEID) ==
+        Ci.nsIPrefBranch.PREF_INVALID,
+      "ClientID should reset invalid cached IDs"
+    );
+  }
+});
+
+add_task(async function test_usage_profile_id_is_added() {
+  // Test that valid DRS actually works and Usage Profile ID is generated once
+  await ClientID._reset();
+  Services.prefs.clearUserPref(PREF_CACHED_CLIENTID);
+  Services.prefs.clearUserPref(PREF_CACHED_PROFILEGROUPID);
+  Services.prefs.clearUserPref(PREF_CACHED_USAGE_PROFILEID);
+
+  const validClientID = "d06361a2-67d8-4d41-b804-6fab6ddf5461";
+  const validProfileGroupID = "5afebd62-a33c-416c-b519-5c60fb988e8e";
+
+  await IOUtils.writeJSON(drsPath, {
+    version: 2,
+    clientID: validClientID,
+    profileGroupID: validProfileGroupID,
+    // no Usage Profile ID set!
+  });
+
+  let clientID = await ClientID.getClientID();
+  let profileGroupID = await ClientID.getProfileGroupID();
+  Assert.equal(clientID, validClientID);
+  Assert.equal(profileGroupID, validProfileGroupID);
+
+  let usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(typeof usageProfileID, "string");
+  Assert.ok(uuidRegex.test(usageProfileID));
+
+  // A client should have distinct Usage Profile ID and client ID.
+  Assert.notEqual(usageProfileID, clientID);
+});
+
+add_task(async function test_set_usage_profile_id() {
+  // If there is no DRS file, and no cached id, we should get a new Usage Profile ID.
+  await ClientID._reset();
+  Services.prefs.clearUserPref(PREF_CACHED_USAGE_PROFILEID);
+  await IOUtils.remove(drsPath, { ignoreAbsent: true });
+  let clientID = await ClientID.getClientID();
+  let usageProfileID = await ClientID.getUsageProfileID();
+  Assert.equal(typeof usageProfileID, "string");
+  Assert.ok(uuidRegex.test(usageProfileID));
+
+  await Assert.rejects(
+    ClientID.setUsageProfileID("INVALID-UUID"),
+    /Invalid Usage Profile ID/,
+    "Invalid Usage Profile IDs aren't accepted"
+  );
+
+  Assert.equal(
+    ClientID.getCachedUsageProfileID(),
+    usageProfileID,
+    "Cached Usage Profile ID should not have changed."
+  );
+  Assert.equal(
+    await ClientID.getUsageProfileID(),
+    usageProfileID,
+    "Usage Profile ID should not have changed."
+  );
+  if (AppConstants.platform != "android") {
+    Assert.equal(usageProfileID, Glean.usage.profileId.testGetValue());
+  }
+
+  let validUsageProfileID = "5afebd62-a33c-416c-b519-5c60fb988e8e";
+  await ClientID.setUsageProfileID(validUsageProfileID);
+
+  Assert.equal(
+    ClientID.getCachedUsageProfileID(),
+    validUsageProfileID,
+    "Cached Usage Profile ID should have changed."
+  );
+  Assert.equal(
+    await ClientID.getUsageProfileID(),
+    validUsageProfileID,
+    "Group ID should have changed."
+  );
+  Assert.equal(
+    await ClientID.getClientID(),
+    clientID,
+    "Client ID should not have changed."
+  );
+  if (AppConstants.platform != "android") {
+    Assert.equal(validUsageProfileID, Glean.usage.profileId.testGetValue());
+  }
+
+  // New Usage Profile ID should be stored in the cache.
+  await ClientID._reset();
+  Assert.equal(
+    ClientID.getCachedUsageProfileID(),
+    validUsageProfileID,
+    "Cached Usage Profile ID be correct."
+  );
+
+  // New Usage Profile ID should have been saved in the DRS file.
+  await ClientID._reset();
+  Services.prefs.clearUserPref(PREF_CACHED_USAGE_PROFILEID);
+
+  Assert.equal(
+    ClientID.getCachedUsageProfileID(),
+    null,
+    "Cached Usage Profile ID should not be available."
+  );
+  Assert.equal(
+    await ClientID.getUsageProfileID(),
+    validUsageProfileID,
+    "Usage Profile ID should be correct."
+  );
+  Assert.equal(
+    ClientID.getCachedUsageProfileID(),
+    validUsageProfileID,
+    "Cached Usage Profile ID be correct."
+  );
+  Assert.equal(
+    await ClientID.getClientID(),
+    clientID,
+    "Client ID should not have changed."
+  );
+  if (AppConstants.platform != "android") {
+    Assert.equal(validUsageProfileID, Glean.usage.profileId.testGetValue());
+  }
+
+  // And recoverable from the cache
+  await ClientID._reset();
+  await IOUtils.remove(drsPath, { ignoreAbsent: true });
+
+  Assert.equal(
+    ClientID.getCachedUsageProfileID(),
+    validUsageProfileID,
+    "Cached Usage Profile ID be correct."
+  );
+  Assert.equal(
+    await ClientID.getUsageProfileID(),
+    validUsageProfileID,
+    "Usage Profile ID should be correct."
+  );
+  Assert.equal(
+    await ClientID.getClientID(),
+    clientID,
+    "Client ID should not have changed."
+  );
+  if (AppConstants.platform != "android") {
+    Assert.equal(validUsageProfileID, Glean.usage.profileId.testGetValue());
   }
 });

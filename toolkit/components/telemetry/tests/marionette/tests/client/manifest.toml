@@ -7,6 +7,8 @@ tags = "client"
 
 ["test_fog_custom_ping.py"]
 
+["test_fog_dau_reporting.py"]
+
 ["test_fog_deletion_request_ping.py"]
 
 ["test_fog_user_activity.py"]
