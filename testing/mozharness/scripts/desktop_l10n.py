@@ -202,16 +202,17 @@ class DesktopSingleLocale(LocalesMixin, AutomationMixin, VCSMixin, BaseScript):
         self._run_tooltool()
         self._copy_mozconfig()
         self._mach_configure()
-        self._run_make_in_config_dir()
+        self._make_export()
         self.make_wget_en_US()
         self.make_unpack_en_US()
 
-    def _run_make_in_config_dir(self):
+    def _make_export(self):
         """this step creates nsinstall, needed my make_wget_en_US()"""
         dirs = self.query_abs_dirs()
-        config_dir = os.path.join(dirs["abs_obj_dir"], "config")
         env = self.query_bootstrap_env()
-        return self._make(target=["export"], cwd=config_dir, env=env)
+        return self._make(
+            target=["pre-export", "export"], cwd=dirs["abs_obj_dir"], env=env
+        )
 
     def _copy_mozconfig(self):
         """copies the mozconfig file into abs_src_dir/.mozconfig

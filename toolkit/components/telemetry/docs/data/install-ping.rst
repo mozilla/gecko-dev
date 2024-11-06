@@ -48,7 +48,7 @@ update_channel (both)
   Value of MOZ_UPDATE_CHANNEL for the installer build; should generally be the same as build_channel
 
 version, build_id (both)
-  Version number and Build ID of the installed product, from ``application.ini``. This is **not** the version of the installer itself.
+  Version number and Build ID of the installed product, from ``application.ini``. This is **not** the version of the installer itself, see stub_build_id.
 
   stub: 0 if the installation failed
 
@@ -210,6 +210,9 @@ ping_version (stub)
 
 silent (full)
   True if the install was silent (see :ref:`Full Installer Configuration`)
+
+stub_build_id (stub)
+  Build ID of the stub installer.
 
 windows_ubr (both)
   The Windows Update Build Revision of the installation device.
