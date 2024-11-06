@@ -335,7 +335,7 @@ class Linter(visitor.Visitor):
         # Store the variable used for the SelectExpression, excluding functions
         # like PLATFORM()
         if (
-            type(node.selector) == ast.VariableReference
+            type(node.selector) is ast.VariableReference
             and node.selector.id.name not in self.state["variables"]
         ):
             self.state["variables"].append(node.selector.id.name)

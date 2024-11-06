@@ -799,7 +799,7 @@ class BuildReaderError(Exception):
         s.write("\n")
         s.write("This variable expects the following type(s):\n")
         s.write("\n")
-        if type(inner.args[4]) == type:
+        if type(inner.args[4]) is type:
             s.write("    %s\n" % inner.args[4].__name__)
         else:
             for t in inner.args[4]:

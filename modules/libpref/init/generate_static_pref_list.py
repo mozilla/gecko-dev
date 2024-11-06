@@ -156,7 +156,7 @@ def check_pref_list(pref_list):
         if "name" not in pref:
             error("missing `name` key")
         name = pref["name"]
-        if type(name) != str:
+        if type(name) is not str:
             error("non-string `name` value `{}`".format(name))
         if "." not in name:
             error("`name` value `{}` lacks a '.'".format(name))
@@ -185,7 +185,7 @@ def check_pref_list(pref_list):
             error("missing `value` key for pref `{}`".format(name))
         value = pref["value"]
         if typ == "String" or typ == "DataMutexString":
-            if type(value) != str:
+            if type(value) is not str:
                 error(
                     "non-string `value` value `{}` for `{}` pref `{}`; "
                     "add double quotes".format(value, typ, name)
@@ -206,7 +206,7 @@ def check_pref_list(pref_list):
         # Check 'do_not_use_directly' if present.
         if "do_not_use_directly" in pref:
             do_not_use_directly = pref["do_not_use_directly"]
-            if type(do_not_use_directly) != bool:
+            if type(do_not_use_directly) is not bool:
                 error(
                     "non-boolean `do_not_use_directly` value `{}` for pref "
                     "`{}`".format(do_not_use_directly, name)
@@ -220,7 +220,7 @@ def check_pref_list(pref_list):
         # Check 'include' if present.
         if "include" in pref:
             include = pref["include"]
-            if type(include) != str:
+            if type(include) is not str:
                 error(
                     "non-string `include` value `{}` for pref `{}`".format(
                         include, name
@@ -235,7 +235,7 @@ def check_pref_list(pref_list):
         # Check 'rust' if present.
         if "rust" in pref:
             rust = pref["rust"]
-            if type(rust) != bool:
+            if type(rust) is not bool:
                 error("non-boolean `rust` value `{}` for pref `{}`".format(rust, name))
             if rust and mirror == "never":
                 error(

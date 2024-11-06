@@ -311,7 +311,7 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
     # currently ignoring the error phase attribute.
     # testRec["negative"] == {type=<error name>, phase=parse|resolution|runtime}
     isNegative = "negative" in testRec
-    assert not isNegative or type(testRec["negative"]) == dict
+    assert not isNegative or type(testRec["negative"]) is dict
     errorType = testRec["negative"]["type"] if isNegative else None
 
     # Async tests are marked with the "async" attribute.

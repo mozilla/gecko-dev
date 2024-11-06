@@ -191,8 +191,8 @@ class FileAvoidWrite(BytesIO):
     def __init__(self, filename, capture_diff=False, dry_run=False, readmode="r"):
         BytesIO.__init__(self)
         self.name = filename
-        assert type(capture_diff) == bool
-        assert type(dry_run) == bool
+        assert type(capture_diff) is bool
+        assert type(dry_run) is bool
         assert "r" in readmode
         self._capture_diff = capture_diff
         self._write_to_file = not dry_run

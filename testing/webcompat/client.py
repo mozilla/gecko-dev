@@ -554,11 +554,11 @@ class Client:
                 out.append({"type": "undefined"})
                 continue
             t = type(arg)
-            if t == int or t == float:
+            if t is int or t is float:
                 out.append({"type": "number", "value": arg})
-            elif t == bool:
+            elif t is bool:
                 out.append({"type": "boolean", "value": arg})
-            elif t == str:
+            elif t is str:
                 out.append({"type": "string", "value": arg})
             else:
                 if "type" in arg:
@@ -571,7 +571,7 @@ class Client:
         def __init__(self, client, script, target):
             self.client = client
             self.script = script
-            if type(target) == list:
+            if type(target) is list:
                 self.target = target[0]
             else:
                 self.target = target

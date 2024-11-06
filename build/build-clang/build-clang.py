@@ -556,7 +556,7 @@ def main():
             elif value is None:
                 if key in config:
                     del config[key]
-            elif type(old_value) != type(value):
+            elif type(old_value) is not type(value):
                 raise Exception(
                     "{} is overriding `{}` with a value of the wrong type".format(
                         c.name, key

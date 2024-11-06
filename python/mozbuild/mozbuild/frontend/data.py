@@ -148,7 +148,7 @@ class VariablePassthru(ContextDerived):
     in our build backends since we will continue to be tied to our rules.mk.
     """
 
-    __slots__ = "variables"
+    __slots__ = ("variables",)
 
     def __init__(self, context):
         ContextDerived.__init__(self, context)
@@ -197,7 +197,7 @@ class BaseDefines(ContextDerived):
     which are OrderedDicts.
     """
 
-    __slots__ = "defines"
+    __slots__ = ("defines",)
 
     def __init__(self, context, defines):
         ContextDerived.__init__(self, context)
@@ -477,7 +477,7 @@ class BaseProgram(Linkable):
     Otherwise, the suffix is appended to the program name.
     """
 
-    __slots__ = "program"
+    __slots__ = ("program",)
 
     DICT_ATTRS = {"install_target", "KIND", "program", "relobjdir"}
 
@@ -1201,7 +1201,7 @@ class FinalTargetFiles(ContextDerived):
     HierarchicalStringList, which is created when parsing FINAL_TARGET_FILES.
     """
 
-    __slots__ = "files"
+    __slots__ = ("files",)
 
     def __init__(self, sandbox, files):
         ContextDerived.__init__(self, sandbox)
@@ -1218,7 +1218,7 @@ class FinalTargetPreprocessedFiles(ContextDerived):
     FINAL_TARGET_PP_FILES.
     """
 
-    __slots__ = "files"
+    __slots__ = ("files",)
 
     def __init__(self, sandbox, files):
         ContextDerived.__init__(self, sandbox)

@@ -154,7 +154,7 @@ class Preferences(object):
         if type(prefs) not in [list, dict]:
             raise PreferencesReadError("Malformed preferences: %s" % path)
         if isinstance(prefs, list):
-            if [i for i in prefs if type(i) != list or len(i) != 2]:
+            if [i for i in prefs if type(i) is not list or len(i) != 2]:
                 raise PreferencesReadError("Malformed preferences: %s" % path)
             values = [i[1] for i in prefs]
         elif isinstance(prefs, dict):

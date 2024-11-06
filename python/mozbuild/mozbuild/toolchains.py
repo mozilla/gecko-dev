@@ -8,7 +8,8 @@ import six
 
 
 def toolchain_task_definitions():
-    import gecko_taskgraph  # noqa: triggers override of the `graph_config_schema`
+    # triggers override of the `graph_config_schema` noqa
+    import gecko_taskgraph  # noqa
     from taskgraph.generator import load_tasks_for_kind
 
     # Don't import globally to allow this module being imported without

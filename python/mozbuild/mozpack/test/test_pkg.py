@@ -41,7 +41,7 @@ class TestPkg(TestWithTmpDir):
 
     def test_get_apple_template(self):
         tmpl = get_apple_template("Distribution.template")
-        assert type(tmpl) == Template
+        assert type(tmpl) is Template
 
     def test_get_apple_template_not_file(self):
         with self.assertRaises(Exception):

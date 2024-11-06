@@ -94,12 +94,12 @@ class OptionValue(tuple):
             )
 
         # Allow explicit tuples to be compared.
-        if type(other) == tuple:
+        if type(other) is tuple:
             return tuple.__eq__(self, other)
         elif isinstance(other, bool):
             return bool(self) == other
         # Else we're likely an OptionValue class.
-        elif type(other) != type(self):
+        elif type(other) is not type(self):
             return False
         else:
             return super(OptionValue, self).__eq__(other)

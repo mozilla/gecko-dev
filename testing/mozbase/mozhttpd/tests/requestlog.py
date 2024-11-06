@@ -50,7 +50,7 @@ def test_logging_enabled(request_log):
     log_entry = request_log[0]
     assert log_entry["method"] == "GET"
     assert log_entry["path"] == "/"
-    assert type(log_entry["time"]) == float
+    assert type(log_entry["time"]) is float
 
 
 @log_requests(False)

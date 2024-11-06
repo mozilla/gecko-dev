@@ -192,7 +192,7 @@ class UnresponsiveInstanceException(Exception):
 es_ = [
     e
     for e in locals().values()
-    if type(e) == type and issubclass(e, MarionetteException)
+    if type(e) is type and issubclass(e, MarionetteException)
 ]
 by_string = {e.status: e for e in es_}
 

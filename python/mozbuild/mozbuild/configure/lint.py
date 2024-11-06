@@ -210,7 +210,7 @@ class LintSandbox(ConfigureSandbox):
         name = args[0]
         default = kwargs.get("default")
 
-        if type(default) != bool:
+        if type(default) is not bool:
             return
 
         table = {

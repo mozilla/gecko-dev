@@ -250,7 +250,7 @@ class TestInfoReport(TestInfo):
             # returns multiple records for the same test; that can happen if the report
             # sometimes maps more than one ActiveData record to the same path.
             new_value = item.get(label, 0) + value
-            if type(new_value) == int:
+            if type(new_value) is int:
                 item[label] = new_value
             else:
                 item[label] = float(round(new_value, 2))  # pylint: disable=W1633

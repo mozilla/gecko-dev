@@ -33,7 +33,7 @@ U = TypeVar("U")
 def cross_combine(*args_tup: list[dict]) -> list[dict]:
     args = list(args_tup)
     for i, a in enumerate(args):
-        assert type(a) == list, f"Arg{i} is {type(a)}, expected {list}."
+        assert type(a) is list, f"Arg{i} is {type(a)}, expected {list}."
 
     def cross_combine2(listA, listB):
         listC = []

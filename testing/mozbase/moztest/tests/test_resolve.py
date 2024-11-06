@@ -11,18 +11,14 @@ except ImportError:
 import json
 import os
 import re
-import shutil
-import tempfile
 from collections import defaultdict
 
 import manifestupdate
 import mozpack.path as mozpath
 import mozunit
 import pytest
-from mozbuild.base import MozbuildObject
 from mozbuild.frontend.reader import BuildReader
 from mozbuild.test.common import MockConfig
-from mozfile import NamedTemporaryFile
 from moztest.resolve import (
     TEST_SUITES,
     BuildBackendLoader,

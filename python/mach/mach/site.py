@@ -168,7 +168,7 @@ class MozSiteMetadata:
 
     def __eq__(self, other):
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.hex_version == other.hex_version
             and self.site_name == other.site_name
             and self.mach_site_packages_source == other.mach_site_packages_source

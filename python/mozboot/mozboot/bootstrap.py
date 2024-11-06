@@ -818,7 +818,7 @@ def update_git_tools(git: Optional[Path], root_state_dir: Path):
                 os.chmod(path, stat.S_IRWXU)
                 func(path)
             else:
-                raise
+                raise exc
 
         shutil.rmtree(str(cinnabar_dir), onerror=onerror)
 

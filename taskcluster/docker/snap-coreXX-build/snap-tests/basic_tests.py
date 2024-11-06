@@ -400,7 +400,7 @@ class SnapTests(SnapTestsBase):
         video = self._wait.until(
             EC.visibility_of_element_located((By.CLASS_NAME, "html5-main-video"))
         )
-        self._wait.until(lambda d: type(video.get_property("duration")) == float)
+        self._wait.until(lambda d: type(video.get_property("duration")) is float)
         self._logger.info("video duration: {}".format(video.get_property("duration")))
         assert (
             video.get_property("duration") > exp["duration"]
@@ -470,7 +470,7 @@ class SnapTests(SnapTestsBase):
                 (By.CSS_SELECTOR, "video.html5-main-video")
             )
         )
-        self._wait.until(lambda d: type(video.get_property("duration")) == float)
+        self._wait.until(lambda d: type(video.get_property("duration")) is float)
         self._logger.info("video duration: {}".format(video.get_property("duration")))
         assert (
             video.get_property("duration") > exp["duration"]

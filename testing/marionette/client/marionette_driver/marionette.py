@@ -1729,13 +1729,13 @@ class Marionette(object):
             wrapped = {}
             for arg in args:
                 wrapped[arg] = self._to_json(args[arg])
-        elif type(args) == WebElement:
+        elif type(args) is WebElement:
             wrapped = {WEB_ELEMENT_KEY: args.id}
-        elif type(args) == ShadowRoot:
+        elif type(args) is ShadowRoot:
             wrapped = {WEB_SHADOW_ROOT_KEY: args.id}
-        elif type(args) == WebFrame:
+        elif type(args) is WebFrame:
             wrapped = {WEB_FRAME_KEY: args.id}
-        elif type(args) == WebWindow:
+        elif type(args) is WebWindow:
             wrapped = {WEB_WINDOW_KEY: args.id}
         elif isinstance(args, (bool, int, float, six.string_types)) or args is None:
             wrapped = args

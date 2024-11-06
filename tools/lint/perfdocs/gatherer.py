@@ -104,7 +104,7 @@ class Gatherer(object):
                     matched["static"].append(file)
 
             # Append to structdocs if all the searched files were found
-            if all(val for val in matched.values() if not type(val) == list):
+            if all(val for val in matched.values() if type(val) is not list):
                 self._perfdocs_tree.append(matched)
 
         logger.log(

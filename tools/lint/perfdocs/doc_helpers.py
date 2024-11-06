@@ -64,7 +64,11 @@ class TableBuilder(object):
         self.add_rows(self.headers)
 
     def add_rows(self, rows):
-        if type(rows) != list or type(rows[0]) != list or type(rows[0][0]) != str:
+        if (
+            type(rows) is not list
+            or type(rows[0]) is not list
+            or type(rows[0][0]) is not str
+        ):
             raise TypeError("add_rows() requires a two-dimensional list of strings.")
         for row in rows:
             self.add_row(row)

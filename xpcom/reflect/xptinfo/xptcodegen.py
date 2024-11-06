@@ -21,7 +21,7 @@ def indented(s):
 
 
 def cpp(v):
-    if type(v) == bool:
+    if type(v) is bool:
         return "true" if v else "false"
     return str(v)
 

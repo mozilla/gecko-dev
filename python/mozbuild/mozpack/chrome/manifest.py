@@ -345,7 +345,7 @@ MANIFESTS_TYPES = dict(
     [
         (c.type, c)
         for c in globals().values()
-        if type(c) == type
+        if type(c) is type
         and issubclass(c, ManifestEntry)
         and hasattr(c, "type")
         and c.type

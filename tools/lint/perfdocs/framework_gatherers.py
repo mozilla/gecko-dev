@@ -197,7 +197,7 @@ class RaptorGatherer(FrameworkGatherer):
 
     def _get_ci_tasks(self):
         for task in self._taskgraph.keys():
-            if type(self._taskgraph[task]) == dict:
+            if type(self._taskgraph[task]) is dict:
                 command = self._taskgraph[task]["task"]["payload"].get("command", [])
                 run_on_projects = self._taskgraph[task]["attributes"]["run_on_projects"]
             else:
@@ -521,7 +521,7 @@ class TalosGatherer(FrameworkGatherer):
         for task_name in self._taskgraph.keys():
             task = self._taskgraph[task_name]
 
-            if type(task) == dict:
+            if type(task) is dict:
                 is_talos = task["task"]["extra"].get("suite", [])
                 command = task["task"]["payload"].get("command", [])
                 run_on_projects = task["attributes"]["run_on_projects"]
@@ -646,7 +646,7 @@ class AwsyGatherer(FrameworkGatherer):
         for task_name in self._taskgraph.keys():
             task = self._taskgraph[task_name]
 
-            if type(task) == dict:
+            if type(task) is dict:
                 awsy_test = task["task"]["extra"].get("suite", [])
                 run_on_projects = task["attributes"]["run_on_projects"]
             else:

@@ -1244,7 +1244,7 @@ class MochitestDesktop(object):
          - create it if it does
         Removal of those directories is handled in cleanup()
         """
-        if type(extraTestsDirs) != list:
+        if type(extraTestsDirs) is not list:
             return
 
         for d in extraTestsDirs:

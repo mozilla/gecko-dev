@@ -35,7 +35,7 @@ def _get_raptor_val(mdict, mname, retval=False):
     # mdict: a dictionary to look through to find the mname
     #        value.
 
-    if type(mname) != list:
+    if type(mname) is not list:
         if mname in mdict:
             return mdict[mname]
         return retval

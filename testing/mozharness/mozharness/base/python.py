@@ -530,12 +530,12 @@ class VirtualenvMixin(object):
                     )
 
                     if debug_exe_dir.exists():
-                        for executable in {
+                        for executable in (
                             "python.exe",
                             "python_d.exe",
                             "pythonw.exe",
                             "pythonw_d.exe",
-                        }:
+                        ):
                             expected_python_debug_exe = debug_exe_dir / executable
                             if not expected_python_debug_exe.exists():
                                 shutil.copy(

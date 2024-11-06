@@ -13,7 +13,7 @@ def has_pkg_section(p, section):
     has_section = section in p.keys()
     if has_section:
         for pkg in p[section]:
-            if type(pkg) == str:
+            if type(pkg) is str:
                 yield pkg
             else:
                 yield from has_pkg_section(pkg, next(iter(pkg.keys())))

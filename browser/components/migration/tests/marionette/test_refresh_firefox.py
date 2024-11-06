@@ -306,7 +306,7 @@ class TestFirefoxRefresh(MarionetteTestCase):
         """,
             script_args=(self._historyURL,),
         )
-        if type(historyResult) == str:
+        if type(historyResult) is str:
             self.fail(historyResult)
             return
 
@@ -322,7 +322,7 @@ class TestFirefoxRefresh(MarionetteTestCase):
         """,
             script_args=(self._formHistoryFieldName,),
         )
-        if type(formFieldResults) == str:
+        if type(formFieldResults) is str:
             self.fail(formFieldResults)
             return
 
@@ -357,7 +357,7 @@ class TestFirefoxRefresh(MarionetteTestCase):
           }).then(resolve);
         """,
         )
-        if type(formAutofillResults) == str:
+        if type(formAutofillResults) is str:
             self.fail(formAutofillResults)
             return
 
@@ -465,7 +465,7 @@ class TestFirefoxRefresh(MarionetteTestCase):
           });
         """
         )
-        if type(result) != dict:
+        if type(result) is not dict:
             self.fail(result)
             return
         self.assertEqual(result["accountData"]["email"], "test@test.com")
