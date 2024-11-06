@@ -93,7 +93,6 @@ skip-if = ["os == 'linux'"] # Bug 1570812, Bug 1775698
 ["browser_exslt_time_precision.js"]
 
 ["browser_exslt_timezone_load.js"]
-skip-if = ["os == 'win'"] # Bug 1918104
 
 ["browser_hwconcurrency_etp_iframes.js"]
 
