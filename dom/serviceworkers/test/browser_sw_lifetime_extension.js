@@ -312,3 +312,86 @@ async function test_service_worker_creating_new_registrations() {
   );
 }
 add_task(test_service_worker_creating_new_registrations);
+
+/**
+ * In bug 1927247 a ServiceWorker respawned sufficiently soon after its
+ * termination resulted in a defensive content-process crash when the new SW's
+ * ClientSource was registered with the same Client Id while the old SW's
+ * ClientSource still existed.  We synthetically induce this situation through
+ * use of nsIServiceWorkerInfo::terminateWorker() immediately followed by use of
+ * nsIServiceWorkerInfo::attachDebugger().
+ */
+async function test_respawn_immediately_after_termination() {
+  // Make WorkerTestUtils work in the SW.
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.workers.testing.enabled", true]],
+  });
+
+  // We need to ensure all ServiceWorkers are spawned consistently in the same
+  // process because of the trick we do with workerrefs and using the observer
+  // service, so force us to only use a single process if fission is not on.
+  if (!Services.appinfo.fissionAutostart) {
+    // Force use of only a single process
+    await SpecialPowers.pushPrefEnv({
+      set: [["dom.ipc.processCount", 1]],
+    });
+  }
+
+  info("## Installing the ServiceWorker we will terminate and respawn");
+  const tSwDesc = {
+    origin: TEST_ORIGIN,
+    scope: "sw-t",
+    script: "sw_inter_sw_postmessage.js?t",
+  };
+
+  // Wipe the origin for cleanup; this will remove the registrations too.
+  registerCleanupFunction(async () => {
+    await clear_qm_origin_group_via_clearData(TEST_ORIGIN);
+  });
+
+  const tReg = await install_sw(tSwDesc);
+  const tSWInfo = tReg.activeWorker;
+
+  info("## Induce the SW to acquire a WorkerRef that prevents shutdown.");
+
+  const { closeHelperTab, broadcastAndWaitFor, postMessageScopeAndWaitFor } =
+    await createMessagingHelperTab(TEST_ORIGIN, "inter-sw-postmessage");
+  registerCleanupFunction(closeHelperTab);
+
+  // Tell the ServiceWorker to block on a monitor that will prevent the worker
+  // from transitioning to the Canceling state and notifying its WorkerRefs,
+  // thereby preventing the ClientManagerChild from beginning teardown of itself
+  // and thereby the ClientSourceChild.  The monitor will be released when we
+  // cause "serviceworker-t-release" to be notified on that process's main
+  // thread.
+  await broadcastAndWaitFor(
+    "t:block:serviceworker-t-release",
+    "t:blocking:serviceworker-t-release"
+  );
+
+  info("## Terminating and respawning the ServiceWorker via attachDebugger");
+  // We must not await the termination if we want to create the lifetime overlap
+  const terminationPromise = tSWInfo.terminateWorker();
+  // Message the ServiceWorker to cause it to spawn, waiting for the newly
+  // spawned ServiceWorker to indicate it is alive and running.
+  await postMessageScopeAndWaitFor(
+    "sw-t",
+    "Hello, the contents of this message don't matter!",
+    "t:received-post-message-from:wc-helper"
+  );
+
+  // Tell the successor to generate an observer notification that will release
+  // the ThreadSafeWorkerRef.  Note that this does assume the ServiceWorker is
+  // placed in the same process as its predecessor.  When isolation is enabled,
+  // like on desktop, this will always be the same process because there will
+  // only be the one possible process.  "browser" tests like this are only run
+  // on desktop, never on Android!  But if we weren't isolating,
+  await broadcastAndWaitFor(
+    "t:notify-observer:serviceworker-t-release",
+    "t:notified-observer:serviceworker-t-release"
+  );
+
+  info("## Awaiting the termination");
+  await terminationPromise;
+}
+add_task(test_respawn_immediately_after_termination);

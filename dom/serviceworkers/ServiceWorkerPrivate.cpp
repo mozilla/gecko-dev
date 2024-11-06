@@ -740,6 +740,16 @@ nsresult ServiceWorkerPrivate::Initialize() {
   return NS_OK;
 }
 
+void ServiceWorkerPrivate::RegenerateClientInfo() {
+  // inductively, this object can only still be alive after Initialize() if the
+  // mClientInfo was correctly initialized.
+  MOZ_DIAGNOSTIC_ASSERT(mClientInfo.isSome());
+
+  mClientInfo = ClientManager::CreateInfo(
+      ClientType::Serviceworker, mClientInfo->GetPrincipal().unwrap().get());
+  mRemoteWorkerData.clientInfo().ref() = mClientInfo.ref().ToIPC();
+}
+
 nsresult ServiceWorkerPrivate::CheckScriptEvaluation(
     const ServiceWorkerLifetimeExtension& aLifetimeExtension,
     RefPtr<LifeCycleEventCallback> aCallback) {
@@ -1859,9 +1869,16 @@ RefPtr<GenericNonExclusivePromise> ServiceWorkerPrivate::ShutdownInternal(
 
   /**
    * After dispatching a termination operation, no new operations should
-   * be routed through this actor anymore.
+   * be routed through this actor anymore so we can drop the controller
+   * reference.  This also means that the next time SpawnWorkerIfNeeded is
+   * invoked we will spawn a new worker, creating a new mControllerChild.
    */
   mControllerChild = nullptr;
+  // Create a new ClientInfo for the next time we potentially spawn this
+  // ServiceWorker.  We do this now rather than immediately before spawning the
+  // ServiceWorker so it's possible to know what the client id will be before
+  // triggering the next spawn.
+  RegenerateClientInfo();
 
   // Update here, since Evaluation failures directly call ShutdownInternal
   UpdateRunning(-1, mHandlesFetch == Enabled ? -1 : 0);

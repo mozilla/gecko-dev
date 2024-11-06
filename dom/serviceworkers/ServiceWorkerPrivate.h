@@ -212,6 +212,8 @@ class ServiceWorkerPrivate final : public RemoteWorkerObserver {
 
   nsresult Initialize();
 
+  void RegenerateClientInfo();
+
   /**
    * RemoteWorkerObserver
    */

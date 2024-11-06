@@ -7,11 +7,16 @@
 #ifndef mozilla_dom_WorkerTestUtils__
 #define mozilla_dom_WorkerTestUtils__
 
+#include "nsStringFwd.h"
+
 namespace mozilla {
 
 class ErrorResult;
+class GlobalObject;
 
 namespace dom {
+
+class WorkerTestCallback;
 
 /**
  * dom/webidl/WorkerTestUtils.webidl defines APIs to expose worker's internal
@@ -35,6 +40,17 @@ class WorkerTestUtils final {
                                            ErrorResult& aErr);
 
   static bool IsRunningInBackground(const GlobalObject&, ErrorResult& aErr);
+
+  static void HoldStrongWorkerRefUntilMainThreadObserverNotified(
+      const GlobalObject&, const nsACString& aTopic, ErrorResult& aErr);
+
+  MOZ_CAN_RUN_SCRIPT static void BlockUntilMainThreadObserverNotified(
+      const GlobalObject&, const nsACString& aTopic,
+      WorkerTestCallback& aWhenObserving, ErrorResult& aErr);
+
+  static void NotifyObserverOnMainThread(const GlobalObject&,
+                                         const nsACString& aTopic,
+                                         ErrorResult& aErr);
 };
 
 }  // namespace dom
