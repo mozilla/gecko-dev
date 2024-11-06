@@ -393,8 +393,8 @@ static void OleGetClipboardResultToString(const HRESULT aHres,
   }
 }
 
-static void MaybeLogClipboardCurrentOwner(const HRESULT aHres,
-                                          const mozilla::StaticString& aMethodName) {
+static void MaybeLogClipboardCurrentOwner(
+    const HRESULT aHres, const mozilla::StaticString& aMethodName) {
   if (!MOZ_CLIPBOARD_LOG_ENABLED()) {
     return;
   }
