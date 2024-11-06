@@ -30,17 +30,17 @@ var expected_values = [
     null,
     window.innerWidth > window.innerHeight ? "landscape" : "portrait",
   ],
-  ["resolution", null, "96dpi"],
+  ["resolution", null, "192dpi"],
   [
     "resolution",
     [
       0.999 * window.devicePixelRatio + "dppx",
       1.001 * window.devicePixelRatio + "dppx",
     ],
-    "1dppx",
+    "2dppx",
   ],
   ["width", window.innerWidth + "px", window.innerWidth + "px"],
-  ["-moz-device-pixel-ratio", window.devicePixelRatio, 1],
+  ["-moz-device-pixel-ratio", window.devicePixelRatio, 2],
   [
     "-moz-device-orientation",
     screen.width > screen.height ? "landscape" : "portrait",

@@ -395,6 +395,9 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // Returns the default orientation type for the given platform.
   static dom::OrientationType GetDefaultOrientationType();
 
+  // Returns the default pixel density for RFP.
+  static float GetDefaultPixelDensity();
+
  private:
   nsresult Init();
 

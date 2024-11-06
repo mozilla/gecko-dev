@@ -2390,3 +2390,6 @@ dom::OrientationType nsRFPService::GetDefaultOrientationType() {
   return dom::OrientationType::Landscape_primary;
 #endif
 }
+
+/* static */
+float nsRFPService::GetDefaultPixelDensity() { return 2.0f; }

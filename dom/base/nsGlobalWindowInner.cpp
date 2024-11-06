@@ -3522,7 +3522,7 @@ double nsGlobalWindowInner::GetDevicePixelRatio(CallerType aCallerType,
 
   if (nsIGlobalObject::ShouldResistFingerprinting(
           aCallerType, RFPTarget::WindowDevicePixelRatio)) {
-    return 2.0;
+    return nsRFPService::GetDefaultPixelDensity() * presContext->GetFullZoom();
   }
 
   if (aCallerType == CallerType::NonSystem) {
