@@ -151,14 +151,27 @@ class MouseScrollHandler {
    * ComputeMessagePos() computes the cursor position when the message was
    * added to the queue.
    *
-   * @param aMessage    Handling message.
-   * @param aWParam     Handling message's wParam.
-   * @param aLParam     Handling message's lParam.
+   * @param aMessage    Current message.
+   * @param aWParam     Current message's wParam.
+   * @param aLParam     Current message's lParam.
    * @return            Mouse cursor position when the message is added to
    *                    the queue or current cursor position if the result of
    *                    ::GetMessagePos() is broken.
    */
   POINT ComputeMessagePos(UINT aMessage, WPARAM aWParam, LPARAM aLParam);
+
+  /**
+   * FindTargetWindow() finds the nsWindow which needs to process the current
+   * scroll event. (This is the window underneath the cursor -- which is not
+   * necessarily the window whose event queue it came in on!)
+   *
+   * @param aMessage    Current message.
+   * @param aWParam     Current message's wParam.
+   * @param aLParam     Current message's lParam.
+   * @return            The relevant nsWindow, or nullptr if no appropriate
+   *                    window could be identified.
+   */
+  nsWindow* FindTargetWindow(UINT aMessage, WPARAM aWParam, LPARAM aLParam);
 
   class EventInfo {
    public:
