@@ -212,8 +212,6 @@ child:
   async UnblockUntrustedModulesThread();
 #endif  // defined(XP_WIN)
 
-  async HasThirdPartyRoots(bool aResult);
-
 both:
   async PDNSRequest(nsCString hostName, nsCString trrServer, int32_t port,
                     uint16_t type, OriginAttributes originAttributes,
