@@ -541,3 +541,7 @@ Used by source tests to support chunking and specify a current chunk.
 total_chunks
 =============
 Used by source tests to support chunking and specify a total amount of chunks.
+
+toolchain-extract
+=================
+Control whether toolchain should be automatically extracted after download.

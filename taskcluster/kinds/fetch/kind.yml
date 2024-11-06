@@ -15,6 +15,7 @@ tasks-from:
     - browsertime.yml
     - chromium-fetch.yml
     - cft-chromedriver-fetch.yml
+    - python-wheels.yml
     - toolchain-clang-tidy-external.yml
     - toolchains.yml
     - translations-fetch.yml

@@ -1,0 +1,4 @@
+setuptools==75.0.0
+setuptools_scm==8.1.0
+meson==1.6.0
+ninja==1.11.1.1

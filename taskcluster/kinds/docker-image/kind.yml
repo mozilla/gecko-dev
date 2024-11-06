@@ -73,6 +73,14 @@ tasks:
         parent: ubuntu2204-arm64-base
         definition: build-python
         arch: arm64
+    ubuntu1804-build-python-wheels:
+        symbol: I(ub18-build-python-wheels)
+        parent: ubuntu1804-base
+        definition: build-python-wheels
+    ubuntu2204-build-python-wheels:
+        symbol: I(ub22-build-python-wheels)
+        parent: ubuntu2204-base
+        definition: build-python-wheels
     # Neither the ubuntu1804-*raw nor the ubuntu1804-*packages images can have
     # packages dependencies.
     ubuntu2004-raw:
