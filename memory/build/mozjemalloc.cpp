@@ -3159,7 +3159,7 @@ bool arena_t::Purge(bool aForce) {
 
 #ifdef MOZ_DEBUG
     size_t ndirty = 0;
-    for (auto chunk : mChunksDirty.iter()) {
+    for (auto* chunk : mChunksDirty.iter()) {
       ndirty += chunk->ndirty;
     }
     // Not all dirty chunks are in mChunksDirty as others might be being Purged.
