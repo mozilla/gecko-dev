@@ -863,6 +863,13 @@ void DocAccessible::AttributeChanged(dom::Element* aElement,
     return;
   }
 
+  if (aAttribute == nsGkAtoms::slot &&
+      !aElement->GetFlattenedTreeParentNode() && aElement != mContent) {
+    // Element is inside a shadow host but is no longer slotted.
+    mDoc->ContentRemoved(aElement);
+    return;
+  }
+
   LocalAccessible* accessible = GetAccessible(aElement);
   if (!accessible) {
     if (mContent == aElement) {
