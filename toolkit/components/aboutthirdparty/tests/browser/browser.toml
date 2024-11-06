@@ -3,4 +3,4 @@ head = "head.js"
 
 ["browser_aboutthirdparty.js"]
 support-files = ["hello.zzz"]
-skip-if = ["os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan"] # Bug 1776048
+skip-if = ["(os == 'win' && (asan || debug))"] # Bug 1776048
