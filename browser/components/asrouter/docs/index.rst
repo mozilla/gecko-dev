@@ -84,6 +84,7 @@ Current templates include\:
   infobars
   spotlight
   private-browsing
+  multi-message
 
 Detailed Docs
 -------------
