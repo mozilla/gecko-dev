@@ -30,7 +30,7 @@ ls.preparelsdatabase:
       - hsingh@mozilla.com
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
-    expires: 135
+    expires: 138
 ls.preparedatastore:
   processing_time:
     type: timing_distribution
@@ -55,7 +55,7 @@ ls.preparedatastore:
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
       - storage-telemetry@mozilla.com
-    expires: 135
+    expires: 138
 ls.request:
   send_cancellation:
     type: counter
@@ -71,7 +71,7 @@ ls.request:
     notification_emails:
       - hsingh@mozilla.com
       - jvarga@mozilla.com
-    expires: 135
+    expires: 138
   recv_cancellation:
     type: counter
     description: >
@@ -87,7 +87,7 @@ ls.request:
       - hsingh@mozilla.com
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
-    expires: 135
+    expires: 138
 localstorage.database:
   request_allow_to_close_response_time:
     type: timing_distribution
