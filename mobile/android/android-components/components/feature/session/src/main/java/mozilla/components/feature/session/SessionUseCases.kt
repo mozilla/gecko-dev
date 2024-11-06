@@ -33,7 +33,7 @@ class SessionUseCases(
         /**
          * Loads the provided URL using the currently selected session.
          */
-        operator fun invoke(
+        fun invoke(
             url: String,
             flags: LoadUrlFlags = LoadUrlFlags.none(),
             additionalHeaders: Map<String, String>? = null,

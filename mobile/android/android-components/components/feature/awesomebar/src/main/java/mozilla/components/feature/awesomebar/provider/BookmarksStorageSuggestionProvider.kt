@@ -124,7 +124,7 @@ class BookmarksStorageSuggestionProvider(
                 editSuggestion = if (showEditSuggestion) result.url else null,
                 onSuggestionClicked = {
                     val flags = LoadUrlFlags.select(LoadUrlFlags.ALLOW_JAVASCRIPT_URL)
-                    loadUrlUseCase(result.url!!, flags = flags)
+                    loadUrlUseCase.invoke(result.url!!, flags = flags)
                     emitBookmarkSuggestionClickedFact()
                 },
             )

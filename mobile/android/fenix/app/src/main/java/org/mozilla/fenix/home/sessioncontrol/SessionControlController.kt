@@ -243,7 +243,7 @@ class DefaultSessionControlController(
             engine,
             collection,
             onFailure = { url ->
-                addTabUseCase(url)
+                addTabUseCase.invoke(url)
             },
         )
 

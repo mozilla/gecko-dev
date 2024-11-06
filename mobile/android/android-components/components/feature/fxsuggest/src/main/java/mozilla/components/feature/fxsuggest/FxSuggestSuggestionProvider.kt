@@ -133,7 +133,7 @@ class FxSuggestSuggestionProvider(
                     null
                 },
                 onSuggestionClicked = {
-                    loadUrlUseCase(details.url)
+                    loadUrlUseCase.invoke(details.url)
                 },
                 metadata = buildMap {
                     details.clickInfo?.let { put(MetadataKeys.CLICK_INFO, it) }

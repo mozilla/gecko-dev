@@ -119,7 +119,7 @@ internal suspend fun Iterable<HistoryMetadata>.into(
             description = result.key.url,
             editSuggestion = if (showEditSuggestion) result.key.url else null,
             onSuggestionClicked = {
-                loadUrlUseCase(result.key.url)
+                loadUrlUseCase.invoke(result.key.url)
                 emitHistorySuggestionClickedFact()
             },
         )
