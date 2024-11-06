@@ -46,26 +46,31 @@ System.setProperty('android.home', gradle.mozconfig.substs.ANDROID_SDK_ROOT)
 
 include ':annotations', ':messaging_example', ':port_messaging_example'
 include ':geckoview'
-include ':geckoview_example'
-include ':test_runner'
 include ':exoplayer2'
-include ':android-components'
-include ':samples-browser'
-include ':fenix'
 include ':mozilla-lint-rules'
-include ':focus-android'
-include ':service-telemetry'
+include ':android-components'
 
 project(':annotations').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/annotations")
 project(':geckoview').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/geckoview")
-project(':geckoview_example').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/geckoview_example")
-project(':test_runner').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/test_runner")
 project(':exoplayer2').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/exoplayer2")
 project(':android-components').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/android-components")
-project(':samples-browser').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/android-components/samples/browser")
-project(':fenix').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/fenix/app")
-project(':service-telemetry').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/focus-android/service-telemetry")
-project(':focus-android').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/focus-android/app")
+
+if (!gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT || gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT == "fenix") {
+    include ':fenix'
+    project(':fenix').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/fenix/app")
+}
+if (!gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT || gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT == "focus") {
+    include ':focus-android'
+    project(':focus-android').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/focus-android/app")
+}
+if (!gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT || gradle.mozconfig.substs.MOZ_ANDROID_SUBPROJECT == "geckoview_example") {
+    include ':samples-browser'
+    include ':geckoview_example'
+    include ':test_runner'
+    project(':test_runner').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/test_runner")
+    project(':geckoview_example').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/geckoview_example")
+    project(':samples-browser').projectDir = new File("${gradle.mozconfig.topsrcdir}/mobile/android/android-components/samples/browser")
+}
 
 if (hasProperty("androidFormatLintTest")) {
     include ':androidFormatLintTest'

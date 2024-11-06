@@ -57,6 +57,26 @@ option(
 
 set_config("MOZ_ANDROID_GECKOVIEW_LITE", True, when="--enable-geckoview-lite")
 
+option(
+    "--enable-android-subproject",
+    choices=(
+        "fenix",
+        "focus",
+        "geckoview_example",
+    ),
+    nargs="?",
+    help="Build a subproject of android. Possible options: fenix/focus/geckoview_example",
+)
+
+
+@depends("--enable-android-subproject")
+def android_subproject(value):
+    if value:
+        return value[0]
+
+
+set_config("MOZ_ANDROID_SUBPROJECT", android_subproject)
+
 imply_option("MOZ_NORMANDY", False)
 imply_option("MOZ_SERVICES_HEALTHREPORT", True)
 imply_option("MOZ_GECKOVIEW_HISTORY", True)

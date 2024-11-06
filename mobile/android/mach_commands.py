@@ -214,9 +214,15 @@ def create_maven_archive(topobjdir):
 )
 @CommandArgument("args", nargs=argparse.REMAINDER)
 def android_archive_geckoview(command_context, args):
+    tasks = command_context.substs["GRADLE_ANDROID_ARCHIVE_GECKOVIEW_TASKS"]
+    subproject = command_context.substs.get("MOZ_ANDROID_SUBPROJECT")
+    if subproject in (None, "geckoview_example"):
+        tasks += command_context.substs[
+            "GRADLE_ANDROID_ARCHIVE_GECKOVIEW_SUBPROJECT_TASKS"
+        ]
     ret = gradle(
         command_context,
-        command_context.substs["GRADLE_ANDROID_ARCHIVE_GECKOVIEW_TASKS"] + args,
+        tasks + args,
         verbose=True,
     )
 
