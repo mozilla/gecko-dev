@@ -34,6 +34,7 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CameraMetadata
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
@@ -127,6 +128,7 @@ class QrFragment : Fragment() {
     @StringRes
     internal var scanMessage: Int? = null
     internal var cameraId: String? = null
+    private var isLowLightBoostSupported: Boolean = false
     private var captureSession: CameraCaptureSession? = null
     internal var cameraDevice: CameraDevice? = null
     internal var previewSize: Size? = null
@@ -400,6 +402,7 @@ class QrFragment : Fragment() {
 
             adjustPreviewSize(optimalSize)
             this.cameraId = cameraId
+            this.isLowLightBoostSupported = manager.isLowLightBoostSupported(cameraId)
             return
         }
     }
@@ -556,6 +559,15 @@ class QrFragment : Fragment() {
                             CaptureRequest.CONTROL_AF_MODE,
                             CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE,
                         )
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
+                            isLowLightBoostSupported
+                        ) {
+                            previewRequestBuilder?.set(
+                                CaptureRequest.CONTROL_AE_MODE,
+                                CameraMetadata.CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY,
+                            )
+                        }
 
                         previewRequest = previewRequestBuilder?.build()
                         captureSession = cameraCaptureSession
