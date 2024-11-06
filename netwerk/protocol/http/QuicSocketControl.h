@@ -48,6 +48,7 @@ class QuicSocketControl final : public CommonSocketControl {
   NS_IMETHOD SetEchConfig(const nsACString& aEchConfig) override;
   NS_IMETHOD GetRetryEchConfig(nsACString& aEchConfig) override;
   void SetRetryEchConfig(const nsACString& aEchConfig);
+  bool IsBuiltCertChainRootBuiltInRoot() const;
 
  private:
   ~QuicSocketControl() = default;
