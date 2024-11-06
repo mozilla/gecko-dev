@@ -356,15 +356,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cram"
-version = "0.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/38/85/5a8a3397b2ccb2ffa3ba871f76a4d72c16531e43d0e58fc89a0f2983adbd/cram-0.7.tar.gz", hash = "sha256:7da7445af2ce15b90aad5ec4792f857cef5786d71f14377e9eb994d8b8337f2f", size = 33527 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/09/c119252f12b35c21b030c01d38d292936660c167e725ce07517fae2b01a0/cram-0.7-py2.py3-none-any.whl", hash = "sha256:008e4e8b4d325cf040964b5f62460535b004a7bc816d54f8527a4d299edfe4a3", size = 22141 },
-]
-
-[[package]]
 name = "diskcache"
 version = "5.6.3"
 source = { registry = "https://pypi.org/simple" }
@@ -751,7 +742,6 @@ dependencies = [
     { name = "colorama" },
     { name = "compare-locales" },
     { name = "cookies" },
-    { name = "cram" },
     { name = "distro" },
     { name = "ecdsa" },
     { name = "esprima" },
@@ -812,7 +802,6 @@ requires-dist = [
     { name = "colorama", specifier = "==0.4.6" },
     { name = "compare-locales", specifier = "==9.0.1" },
     { name = "cookies", specifier = "==2.2.1" },
-    { name = "cram", specifier = "==0.7" },
     { name = "distro", specifier = "==1.8.0" },
     { name = "ecdsa", specifier = "==0.15" },
     { name = "esprima", specifier = "==4.0.1" },

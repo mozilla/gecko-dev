@@ -20,7 +20,6 @@ vendored:third_party/python/charset_normalizer
 vendored:third_party/python/compare_locales
 vendored:third_party/python/cookiecutter
 vendored:third_party/python/cookies
-vendored:third_party/python/cram
 vendored:third_party/python/diskcache
 vendored:third_party/python/dlmanager
 vendored:third_party/python/ecdsa

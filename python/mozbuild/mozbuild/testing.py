@@ -41,7 +41,6 @@ TEST_MANIFESTS = dict(
     FIREFOX_UI_FUNCTIONAL=("firefox-ui-functional", "firefox-ui", ".", False),
     FIREFOX_UI_UPDATE=("firefox-ui-update", "firefox-ui", ".", False),
     PYTHON_UNITTEST=("python", "python", ".", False),
-    CRAMTEST=("cram", "cram", ".", False),
     TELEMETRY_TESTS_CLIENT=(
         "telemetry-tests-client",
         "toolkit/components/telemetry/tests/marionette/",

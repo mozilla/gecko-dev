@@ -7,7 +7,6 @@ project-repo-param-prefix: ''
 product-dir: 'browser'
 treeherder:
     group-names:
-        'cram': 'Cram tests'
         'js-bench-sm': 'JavaScript shell benchmarks with Spidermonkey'
         'js-bench-v8': 'JavaScript shell benchmarks with Google V8'
         'node': 'Node tests'

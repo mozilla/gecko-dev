@@ -2247,12 +2247,6 @@ VARIABLES = {
         """List of manifest files defining MozPerftest performance tests.
         """,
     ),
-    "CRAMTEST_MANIFESTS": (
-        ManifestparserManifestList,
-        list,
-        """List of manifest files defining cram unit tests.
-        """,
-    ),
     "TELEMETRY_TESTS_CLIENT_MANIFESTS": (
         ManifestparserManifestList,
         list,

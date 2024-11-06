@@ -19,7 +19,6 @@ test-manifest-toml:
         - '**/clippy.toml'
         - '**/config-lock.toml'
         - '**/config.toml'
-        - '**/cram.toml'
         - '**/empty.toml'
         - '**/generated-mochitest.toml'
         - '**/l10n.toml'
