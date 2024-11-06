@@ -316,55 +316,46 @@ class VirtualenvMixin(object):
         fl_retry_loops = (fl_max_retry_minutes * 60) / fl_retry_sleep_seconds
         for link in c.get("find_links", []):
             parsed = urlparse.urlparse(link)
-            if parsed.scheme in ["http", "https"]:
-                dns_result = None
-                get_result = None
-                retry_counter = 0
-                while retry_counter < fl_retry_loops and (
-                    dns_result is None or get_result is None
-                ):
-                    try:
-                        dns_result = socket.gethostbyname(parsed.hostname)
-                        get_result = urllib.request.urlopen(link, timeout=10).read()
-                        break
-                    except socket.gaierror:
-                        retry_counter += 1
-                        self.warning(
-                            "find_links: dns check failed for %s, sleeping %ss and retrying..."
-                            % (parsed.hostname, fl_retry_sleep_seconds)
-                        )
-                        time.sleep(fl_retry_sleep_seconds)
-                    except (
-                        urllib.error.HTTPError,
-                        urllib.error.URLError,
-                        socket.timeout,
-                        http.client.RemoteDisconnected,
-                    ) as e:
-                        retry_counter += 1
-                        self.warning(
-                            "find_links: connection check failed for %s, sleeping %ss and retrying..."
-                            % (link, fl_retry_sleep_seconds)
-                        )
-                        self.warning("find_links: exception: %s" % e)
-                        time.sleep(fl_retry_sleep_seconds)
-                # now that the connectivity check is good, add the link
-                if dns_result and get_result:
-                    self.info(
-                        "find_links: connection checks passed for %s, adding." % link
-                    )
-                    find_links_added += 1
-                    command.extend(["--find-links", link])
-                else:
+            dns_result = None
+            get_result = None
+            retry_counter = 0
+            while retry_counter < fl_retry_loops and (
+                dns_result is None or get_result is None
+            ):
+                try:
+                    dns_result = socket.gethostbyname(parsed.hostname)
+                    get_result = urllib.request.urlopen(link, timeout=10).read()
+                    break
+                except socket.gaierror:
+                    retry_counter += 1
                     self.warning(
-                        "find_links: connection checks failed for %s"
-                        ", but max retries reached. continuing..." % link
+                        "find_links: dns check failed for %s, sleeping %ss and retrying..."
+                        % (parsed.hostname, fl_retry_sleep_seconds)
                     )
-            elif len(parsed.path) > 0 and os.path.isdir(link):
-                self.info("find_links: dir exists %s, adding." % link)
+                    time.sleep(fl_retry_sleep_seconds)
+                except (
+                    urllib.error.HTTPError,
+                    urllib.error.URLError,
+                    socket.timeout,
+                    http.client.RemoteDisconnected,
+                ) as e:
+                    retry_counter += 1
+                    self.warning(
+                        "find_links: connection check failed for %s, sleeping %ss and retrying..."
+                        % (link, fl_retry_sleep_seconds)
+                    )
+                    self.warning("find_links: exception: %s" % e)
+                    time.sleep(fl_retry_sleep_seconds)
+            # now that the connectivity check is good, add the link
+            if dns_result and get_result:
+                self.info("find_links: connection checks passed for %s, adding." % link)
                 find_links_added += 1
                 command.extend(["--find-links", link])
             else:
-                self.warning("find_links: not a valid path nor URL %s" % link)
+                self.warning(
+                    "find_links: connection checks failed for %s"
+                    ", but max retries reached. continuing..." % link
+                )
 
         # TODO: make this fatal if we always see failures after this
         if find_links_added == 0:
