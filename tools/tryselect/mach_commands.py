@@ -208,7 +208,12 @@ def try_default(command_context, argv=None, **kwargs):
 
     sub = subcommand or command_context._mach_context.settings["try"]["default"]
     return command_context._mach_context.commands.dispatch(
-        "try", command_context._mach_context, subcommand=sub, argv=argv, **kwargs
+        "try",
+        command_context._mach_context,
+        command_site_manager=command_context.virtualenv_manager,
+        subcommand=sub,
+        argv=argv,
+        **kwargs,
     )
 
 
@@ -441,7 +446,9 @@ def try_syntax(command_context, **kwargs):
     """
     init(command_context)
     try:
-        if command_context.substs.get("MOZ_ARTIFACT_BUILDS"):
+        if "PYTEST_CURRENT_TEST" not in os.environ and command_context.substs.get(
+            "MOZ_ARTIFACT_BUILDS"
+        ):
             kwargs["local_artifact_build"] = True
     except BuildEnvironmentNotFoundException:
         # If we don't have a build locally, we can't tell whether

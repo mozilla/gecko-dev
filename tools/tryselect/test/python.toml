@@ -26,6 +26,8 @@ sequential = true
 
 ["test_scriptworker.py"]
 
+["test_selectors.py"]
+
 ["test_task_configs.py"]
 
 ["test_tasks.py"]

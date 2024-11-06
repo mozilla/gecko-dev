@@ -68,10 +68,6 @@ SPHINX_TREES["profiler"] = "profiler/docs"
 with Files("tryselect/docs/**"):
     SCHEDULES.exclusive = ["docs"]
 
-CRAMTEST_MANIFESTS += [
-    "tryselect/test/cram.toml",
-]
-
 PYTHON_UNITTEST_MANIFESTS += [
     "fuzzing/smoke/python.toml",
     "lint/test/python.toml",

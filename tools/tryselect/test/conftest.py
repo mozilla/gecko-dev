@@ -5,6 +5,7 @@
 import os
 from unittest.mock import MagicMock
 
+import mach_initialize
 import pytest
 import yaml
 from moztest.resolve import TestResolver
@@ -12,7 +13,7 @@ from responses import RequestsMock
 from taskgraph.graph import Graph
 from taskgraph.task import Task
 from taskgraph.taskgraph import TaskGraph
-from tryselect import push
+from tryselect import push, tasks
 
 
 @pytest.fixture
@@ -60,10 +61,7 @@ def patch_vcs(monkeypatch):
 
 @pytest.fixture(scope="session")
 def run_mach():
-    import mach_initialize
-    from tryselect.tasks import build
-
-    mach = mach_initialize.initialize(build.topsrcdir)
+    mach = mach_initialize.initialize(tasks.build.topsrcdir)
 
     def inner(args):
         return mach.run(args)

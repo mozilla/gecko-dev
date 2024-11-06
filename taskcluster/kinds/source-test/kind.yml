@@ -25,7 +25,6 @@ tasks-from:
     - android-lint.yml
     - buildconfig.yml
     - clang.yml
-    - cram.yml
     - doc.yml
     - file-metadata.yml
     - jsshell.yml
