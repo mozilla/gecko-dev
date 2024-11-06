@@ -19,7 +19,11 @@ use sql_support::{
 ///     [`SuggestConnectionInitializer::upgrade_from`].
 ///     a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
 ///        the migration.
-pub const VERSION: u32 = 29;
+///  3. If the migration adds any tables, delete their their rows in
+///     `clear_database()` by adding their names to `conditional_tables`, unless
+///     they are cleared via a deletion trigger or there's some other good
+///     reason not to do so.
+pub const VERSION: u32 = 30;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -575,6 +579,13 @@ CREATE TABLE geonames_alternates(
                 )?;
                 Ok(())
             }
+            29 => {
+                // This migration only clears the database because some tables
+                // that should have been cleared in previous migrations were
+                // not.
+                clear_database(tx)?;
+                Ok(())
+            }
             _ => Err(open_database::Error::IncompatibleVersion(version)),
         }
     }
@@ -596,10 +607,19 @@ pub fn clear_database(db: &Connection) -> rusqlite::Result<()> {
         DELETE FROM yelp_custom_details;
         ",
     )?;
-    let table_exists: bool =
-        db.query_one("SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE name = 'fakespot_fts')")?;
-    if table_exists {
-        db.execute("DELETE FROM fakespot_fts", ())?;
+    let conditional_tables = [
+        "fakespot_fts",
+        "geonames",
+        "geonames_metrics",
+        "ingested_records",
+        "keywords_metrics",
+        "rs_cache",
+    ];
+    for t in conditional_tables {
+        let table_exists = db.exists("SELECT 1 FROM sqlite_master WHERE name = ?", [t])?;
+        if table_exists {
+            db.execute(&format!("DELETE FROM {t}"), ())?;
+        }
     }
     Ok(())
 }
@@ -730,5 +750,52 @@ PRAGMA user_version=16;
             MigratedDatabaseFile::new(SuggestConnectionInitializer::default(), V16_SCHEMA);
         db_file.run_all_upgrades();
         db_file.assert_schema_matches_new_database();
+    }
+
+    /// Test that `clear_database()` works correctly during migrations.
+    ///
+    /// TODO: This only checks `ingested_records` and `rs_cache` for now since
+    /// they're very important, but ideally this would test all tables.
+    #[test]
+    fn test_clear_database() -> anyhow::Result<()> {
+        // Start with the v16 schema.
+        let db_file =
+            MigratedDatabaseFile::new(SuggestConnectionInitializer::default(), V16_SCHEMA);
+
+        // Upgrade to v25, the first version with with `ingested_records` and
+        // `rs_cache` tables.
+        db_file.upgrade_to(25);
+
+        // Insert some ingested records and cache data.
+        let conn = db_file.open();
+        conn.execute(
+            "INSERT INTO ingested_records(id, collection, type, last_modified) VALUES(?, ?, ?, ?)",
+            ("record-id", "quicksuggest", "record-type", 1),
+        )?;
+        conn.execute(
+            "INSERT INTO rs_cache(collection, data) VALUES(?, ?)",
+            ("quicksuggest", "some data"),
+        )?;
+        conn.close().expect("Connection should be closed");
+
+        // Finish upgrading to the current version.
+        db_file.upgrade_to(VERSION);
+        db_file.assert_schema_matches_new_database();
+
+        // `ingested_records` and `rs_cache` should be empty.
+        let conn = db_file.open();
+        assert_eq!(
+            conn.query_one::<i32>("SELECT count(*) FROM ingested_records")?,
+            0,
+            "ingested_records should be empty"
+        );
+        assert_eq!(
+            conn.query_one::<i32>("SELECT count(*) FROM rs_cache")?,
+            0,
+            "rs_cache should be empty"
+        );
+        conn.close().expect("Connection should be closed");
+
+        Ok(())
     }
 }

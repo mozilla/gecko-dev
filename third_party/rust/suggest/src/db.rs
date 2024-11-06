@@ -1156,6 +1156,9 @@ impl<'a> SuggestDao<'a> {
     /// Deletes all suggestions associated with a Remote Settings record from
     /// the database.
     pub fn drop_suggestions(&mut self, record_id: &SuggestRecordId) -> Result<()> {
+        // If you update this, you probably need to update
+        // `schema::clear_database()` too!
+        //
         // Call `err_if_interrupted` before each statement since these have historically taken a
         // long time and caused shutdown hangs.
 
