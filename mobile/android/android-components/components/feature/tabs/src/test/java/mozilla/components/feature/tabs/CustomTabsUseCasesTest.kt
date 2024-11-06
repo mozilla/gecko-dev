@@ -4,6 +4,8 @@
 
 package mozilla.components.feature.tabs
 
+import android.os.Looper
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.action.CustomTabListAction
 import mozilla.components.browser.state.engine.EngineMiddleware
 import mozilla.components.browser.state.state.createCustomTab
@@ -21,8 +23,11 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.anyBoolean
+import org.robolectric.Shadows
 
+@RunWith(AndroidJUnit4::class)
 class CustomTabsUseCasesTest {
 
     private lateinit var store: BrowserStore
@@ -35,6 +40,8 @@ class CustomTabsUseCasesTest {
 
     @Before
     fun setup() {
+        Shadows.shadowOf(Looper.getMainLooper()).idle()
+
         engineSession = mock()
         engine = mock()
 
