@@ -3102,7 +3102,6 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
 #endif
 
 bool arena_t::Purge(bool aForce) {
-  MaybeMutexAutoLock lock(mLock);
   // These variables are set by the first block (while holding the lock) and
   // then accessed by the 2nd block.
   arena_chunk_t* chunk;
@@ -3113,9 +3112,11 @@ bool arena_t::Purge(bool aForce) {
   // The last index of the free run.
   size_t free_run_last_ind = 0;
 
-  // XXX: This block will become the first critical section by the end of this
-  // series of patches.
+  // The first critical section will find a chunk and mark dirty pages in it as
+  // busy.
   {
+    MaybeMutexAutoLock lock(mLock);
+
 #ifdef MOZ_DEBUG
     size_t ndirty = 0;
     for (auto chunk : mChunksDirty.iter()) {
@@ -3213,7 +3214,7 @@ bool arena_t::Purge(bool aForce) {
     // Mark the chunk as busy so it won't be deleted.
     MOZ_ASSERT(!chunk->mIsPurging);
     chunk->mIsPurging = true;
-  }
+  }  // MaybeMutexAutoLock
 
 #ifdef MALLOC_DECOMMIT
   const size_t free_operation = CHUNK_MAP_DECOMMITTED;
@@ -3230,9 +3231,11 @@ bool arena_t::Purge(bool aForce) {
 #  endif
 #endif
 
-  // XXX: This block will become the second critical section by the end of this
-  // series of patches.
+  // Mark the pages with their final state (madvised or decommitted) and fix up
+  // any other bookkeeping.
   {
+    MaybeMutexAutoLock lock(mLock);
+
     MOZ_ASSERT(chunk->mIsPurging);
     chunk->mIsPurging = false;
 
@@ -3312,7 +3315,7 @@ bool arena_t::Purge(bool aForce) {
     }
 
     return mNumDirty > (aForce ? 0 : EffectiveMaxDirty() >> 1);
-  }
+  }  // MaybeMutexAutoLock
 }
 
 // run_pages and size make each-other redundant. But we use them both and the
