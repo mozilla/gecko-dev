@@ -36,6 +36,9 @@ const { Sanitizer } = ChromeUtils.importESModule(
 const { NewTabUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/NewTabUtils.sys.mjs"
 );
+const { CookieXPCShellUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/CookieXPCShellUtils.sys.mjs"
+);
 
 ExtensionTestUtils.init(this);
 AddonTestUtils.init(this);
@@ -249,6 +252,18 @@ async function expectNoRegeneration(taskFn, msg) {
   bs.uninitBackupScheduler();
   sandbox.restore();
 }
+
+add_setup(() => {
+  CookieXPCShellUtils.createServer({ hosts: ["example.com"] });
+  Services.prefs.setBoolPref("dom.security.https_first", false);
+
+  // Allow all cookies.
+  Services.prefs.setIntPref("network.cookie.cookieBehavior", 0);
+  Services.prefs.setBoolPref(
+    "network.cookieJarSettings.unblocked_for_testing",
+    true
+  );
+});
 
 /**
  * Tests that backup regeneration occurs on the page-removed PlacesObserver
@@ -583,6 +598,28 @@ add_task(async function test_cookies_removed() {
       Services.cookies.removeAll();
     }, "Saw regeneration on all cookie removal.");
   }
+});
+
+/**
+ * Tests that backup regeneration does not occur if a cookie is removed due
+ * to expiry.
+ */
+add_task(async function test_cookies_not_removed_expiry() {
+  await expectNoRegeneration(async () => {
+    const COOKIE = "test=test";
+    await CookieXPCShellUtils.setCookieToDocument(
+      "http://example.com/",
+      COOKIE
+    );
+
+    // Now expire that cookie by using the same value, but setting the expires
+    // directive to sometime wayyyyy in the past.
+    const EXPIRE = `${COOKIE}; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+    await CookieXPCShellUtils.setCookieToDocument(
+      "http://example.com/",
+      EXPIRE
+    );
+  }, "Saw no regeneration on cookie expiry.");
 });
 
 /**
