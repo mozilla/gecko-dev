@@ -395,7 +395,7 @@ ml-perf:
             - ort.wasm
             - ort.jsep.wasm
             - ort-training.wasm
-            - onnx-all-minilm-l6-v2
+            - xenova-all-minilm-l6-v2
     description: Run ML Models Perf Tests
     treeherder:
         symbol: perftest(linux-ml-perf)

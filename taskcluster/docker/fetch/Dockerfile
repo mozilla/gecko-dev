@@ -23,6 +23,7 @@ RUN /usr/local/sbin/setup_packages.sh $TASKCLUSTER_ROOT_URL $DOCKER_IMAGE_PACKAG
       python3-requests \
       python3-zstandard \
       unzip \
+      git-lfs \
     && /usr/local/sbin/clean_packages.sh $DOCKER_IMAGE_PACKAGES
 
 # %include taskcluster/scripts/run-task
