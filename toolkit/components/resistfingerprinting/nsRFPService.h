@@ -223,7 +223,8 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
       bool aIsPrivateMode, RFPTarget aTarget,
       const Maybe<RFPTarget>& aOverriddenFingerprintingSettings);
 
-  static bool IsSoftwareRenderingOptionExposed(JSContext*, JSObject*);
+  static bool IsSystemPrincipalOrAboutFingerprintingProtection(JSContext*,
+                                                               JSObject*);
 
   // --------------------------------------------------------------------------
   static double TimerResolution(RTPCallerType aRTPCallerType);
