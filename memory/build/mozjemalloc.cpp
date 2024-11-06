@@ -147,6 +147,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/DoublyLinkedList.h"
 #include "mozilla/HelperMacros.h"
 #include "mozilla/Likely.h"
@@ -424,6 +425,9 @@ struct arena_chunk_t {
 
   // Number of dirty pages.
   size_t ndirty;
+
+  bool mIsPurging;
+  bool mDying;
 
   // Map of pages within chunk that keeps track of free/large/small.
   arena_chunk_map_t map[];  // Dynamically sized.
@@ -1214,7 +1218,7 @@ struct arena_t {
   // Remove the chunk from the arena.  This removes it from all the page counts.
   // It assumes its run has already been removed and lets the caller clear
   // mSpare as necessary.
-  void RemoveChunk(arena_chunk_t* aChunk);
+  bool RemoveChunk(arena_chunk_t* aChunk);
 
   // This may return a chunk that should be destroyed with chunk_dealloc outside
   // of the arena lock.  It is not the same chunk as was passed in (since that
@@ -2788,6 +2792,9 @@ void arena_t::InitChunk(arena_chunk_t* aChunk, size_t aMinCommittedPages) {
   // Claim that no pages are in use, since the header is merely overhead.
   aChunk->ndirty = 0;
 
+  aChunk->mIsPurging = false;
+  aChunk->mDying = false;
+
   // Setup the chunk's pages in two phases.  First we mark which pages are
   // committed & decommitted and perform the decommit.  Then we update the map
   // to create the runs.
@@ -2852,7 +2859,15 @@ void arena_t::InitChunk(arena_chunk_t* aChunk, size_t aMinCommittedPages) {
 #endif
 }
 
-void arena_t::RemoveChunk(arena_chunk_t* aChunk) {
+bool arena_t::RemoveChunk(arena_chunk_t* aChunk) {
+  aChunk->mDying = true;
+
+  // If the chunk has busy pages that means that a Purge() is in progress.
+  // We can't remove the chunk now, instead Purge() will do it.
+  if (aChunk->mIsPurging) {
+    return false;
+  }
+
   if (aChunk->ndirty > 0) {
     aChunk->arena->mChunksDirty.Remove(aChunk);
     mNumDirty -= aChunk->ndirty;
@@ -2886,11 +2901,18 @@ void arena_t::RemoveChunk(arena_chunk_t* aChunk) {
 
   mStats.mapped -= kChunkSize;
   mStats.committed -= gChunkHeaderNumPages - 1;
+
+  return true;
 }
 
 arena_chunk_t* arena_t::DemoteChunkToSpare(arena_chunk_t* aChunk) {
   if (mSpare) {
-    RemoveChunk(mSpare);
+    if (!RemoveChunk(mSpare)) {
+      // If we can't remove the spare chunk now purge will finish removing it
+      // later.  Set it to null so that the return below will return null and
+      // our caller won't delete the chunk before Purge() is finished.
+      mSpare = nullptr;
+    }
   }
 
   arena_chunk_t* chunk_dealloc = mSpare;
@@ -3100,6 +3122,10 @@ bool arena_t::Purge(bool aForce) {
 
     chunk->ndirty -= npages;
     mNumDirty -= npages;
+
+    // Mark the chunk as busy so it won't be deleted.
+    MOZ_ASSERT(!chunk->mIsPurging);
+    chunk->mIsPurging = true;
   }
 
 #ifdef MALLOC_DECOMMIT
@@ -3118,6 +3144,9 @@ bool arena_t::Purge(bool aForce) {
   // XXX: This block will become the second critical section by the end of this
   // series of patches.
   {
+    MOZ_ASSERT(chunk->mIsPurging);
+    chunk->mIsPurging = false;
+
 #ifndef MALLOC_DECOMMIT
     mNumMAdvised += npages;
 #endif
@@ -3127,15 +3156,25 @@ bool arena_t::Purge(bool aForce) {
     if (chunk->ndirty == 0) {
       mChunksDirty.Remove(chunk);
     }
+    if (chunk->mDying) {
+      // Another thread tried to delete this chunk while we weren't holding the
+      // lock.  Now it's our responsibility to finish deleting it.
+      DebugOnly<bool> release_chunk = RemoveChunk(chunk);
+      // RemoveChunk() can't return false because mIsPurging was false during
+      // the call.
+      MOZ_ASSERT(release_chunk);
+      chunk_dealloc((void*)chunk, kChunkSize, ARENA_CHUNK);
 
 #ifdef MALLOC_DOUBLE_PURGE
-    // The chunk might already be in the list, but this
-    // makes sure it's at the front.
-    if (mChunksMAdvised.ElementProbablyInList(chunk)) {
-      mChunksMAdvised.remove(chunk);
-    }
-    mChunksMAdvised.pushFront(chunk);
+    } else {
+      // The chunk might already be in the list, but this
+      // makes sure it's at the front.
+      if (mChunksMAdvised.ElementProbablyInList(chunk)) {
+        mChunksMAdvised.remove(chunk);
+      }
+      mChunksMAdvised.pushFront(chunk);
 #endif
+    }
 
     return mNumDirty > (aForce ? 0 : EffectiveMaxDirty() >> 1);
   }
