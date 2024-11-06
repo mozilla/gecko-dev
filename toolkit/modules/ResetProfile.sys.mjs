@@ -45,12 +45,19 @@ export var ResetProfile = {
     }
 
     // We also need to be using a profile the profile manager knows about.
+    // We are disabling Firefox Refresh for profiles with a storeID.
+    // Bug 1928138 will add support for selectable profiles and profiles with
+    // storeID set
     let profileService = Cc[
       "@mozilla.org/toolkit/profile-service;1"
     ].getService(Ci.nsIToolkitProfileService);
     let currentProfileDir = Services.dirsvc.get("ProfD", Ci.nsIFile);
     for (let profile of profileService.profiles) {
-      if (profile.rootDir && profile.rootDir.equals(currentProfileDir)) {
+      if (
+        profile.rootDir &&
+        profile.rootDir.equals(currentProfileDir) &&
+        !profile.storeID
+      ) {
         return true;
       }
     }
@@ -99,6 +106,10 @@ export var ResetProfile = {
       return;
     }
 
+    this.doReset();
+  },
+
+  doReset() {
     // Set the reset profile environment variable.
     Services.env.set("MOZ_RESET_PROFILE_RESTART", "1");
 
