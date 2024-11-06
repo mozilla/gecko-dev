@@ -1020,11 +1020,11 @@ class SelectableProfileServiceClass {
       return [];
     }
 
-    return (
-      await this.#connection.executeCached("SELECT * FROM Profiles;")
-    ).map(row => {
-      return new SelectableProfile(row, this);
-    });
+    return (await this.#connection.executeCached("SELECT * FROM Profiles;"))
+      .map(row => {
+        return new SelectableProfile(row, this);
+      })
+      .sort((p1, p2) => p1.name.localeCompare(p2.name));
   }
 
   /**
