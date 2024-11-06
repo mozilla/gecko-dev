@@ -178,7 +178,7 @@ bool MouseScrollHandler::ProcessMessage(nsWindow* aWidget, UINT msg,
       // would be handled by our window again, it caused making infinite
       // message loop.
       aResult.mConsumed = true;
-      aResult.mResult = (msg != WM_MOUSEHWHEEL);
+      aResult.mResult = 0;
       return true;
 
     case WM_HSCROLL:
