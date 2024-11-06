@@ -1361,13 +1361,23 @@ struct arena_t {
     //  * Release the pages (without the lock)
     //  * UpdatePagesAndCounts() which marks the dirty pages as not-dirty and
     //    updates other counters (while holding the lock).
+    //
+    // FindDirtyPages() will return false purging should not continue purging in
+    // this chunk.  Either because it has no dirty pages or is dying.
+    bool FindDirtyPages(bool aPurgedOnce);
 
-    void FindDirtyPages(arena_chunk_t* aChunk);
+    // Returns a pair, the first field indicates if there are more dirty pages
+    // remaining in the current chunk. The second field if non-null points to a
+    // chunk that must be released by the caller.
+    std::pair<bool, arena_chunk_t*> UpdatePagesAndCounts();
 
-    // Returns the chunk to release
-    arena_chunk_t* UpdatePagesAndCounts();
+    // FinishPurgingInChunk() is used whenever we decide to stop purging in a
+    // chunk, This could be because there are no more dirty pages, or the chunk
+    // is dying, or we hit the arena-level threshold.
+    void FinishPurgingInChunk(bool aAddToMAdvised);
 
-    explicit PurgeInfo(arena_t& arena) : mArena(arena) {}
+    explicit PurgeInfo(arena_t& arena, arena_chunk_t* chunk)
+        : mArena(arena), mChunk(chunk) {}
   };
 
   void HardPurge();
@@ -3140,10 +3150,6 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
 #endif
 
 bool arena_t::Purge(bool aForce) {
-  // This structure is used to communicate between the two PurgePhase
-  // functions.
-  PurgeInfo purge_info(*this);
-
   arena_chunk_t* chunk;
 
   // The first critical section will find a chunk and mark dirty pages in it as
@@ -3174,45 +3180,99 @@ bool arena_t::Purge(bool aForce) {
       return false;
     }
     MOZ_ASSERT(chunk->ndirty > 0);
-    mChunksDirty.Remove(chunk);
 
-    purge_info.FindDirtyPages(chunk);
+    // Mark the chunk as busy so it won't be deleted and remove it from
+    // mChunksDirty so we're the only thread purging it.
+    MOZ_ASSERT(!chunk->mIsPurging);
+    mChunksDirty.Remove(chunk);
+    chunk->mIsPurging = true;
   }  // MaybeMutexAutoLock
 
+  // True if we should continue purging memory from this arena.
+  bool continue_purge_arena = true;
+
+  // True if we should continue purging memory in this chunk.
+  bool continue_purge_chunk = true;
+
+  // True if at least one Purge operation has occured and therefore we need to
+  // call FinishPurgingInChunk() before returning.
+  bool purged_once = false;
+
+  while (continue_purge_chunk && continue_purge_arena) {
+    // This structure is used to communicate between the two PurgePhase
+    // functions.
+    PurgeInfo purge_info(*this, chunk);
+
+    {
+      // Phase 1: Find pages that need purging.
+      MaybeMutexAutoLock lock(mLock);
+      MOZ_ASSERT(chunk->mIsPurging);
+
+      continue_purge_chunk = purge_info.FindDirtyPages(purged_once);
+      continue_purge_arena =
+          mNumDirty > (aForce ? 0 : EffectiveMaxDirty() >> 1);
+    }
+    if (!continue_purge_chunk) {
+      if (chunk->mDying) {
+        // Phase one already unlinked the chunk from structures, we just need to
+        // release the memory.
+        chunk_dealloc((void*)chunk, kChunkSize, ARENA_CHUNK);
+      }
+      // There's nothing else to do here, our caller may execute Purge() again
+      // if continue_purge_arena is true.
+      return continue_purge_arena;
+    }
+
 #ifdef MALLOC_DECOMMIT
-  pages_decommit(purge_info.DirtyPtr(), purge_info.DirtyLenBytes());
+    pages_decommit(purge_info.DirtyPtr(), purge_info.DirtyLenBytes());
 #else
 #  ifdef XP_SOLARIS
-  posix_madvise(purge_info.DirtyPtr(), purge_info.DirtyLenBytes(), MADV_FREE);
+    posix_madvise(purge_info.DirtyPtr(), purge_info.DirtyLenBytes(), MADV_FREE);
 #  else
-  madvise(purge_info.DirtyPtr(), purge_info.DirtyLenBytes(), MADV_FREE);
+    madvise(purge_info.DirtyPtr(), purge_info.DirtyLenBytes(), MADV_FREE);
 #  endif
 #endif
 
-  // Set to true if we should continue purging memory.
-  bool continue_purge;
+    arena_chunk_t* chunk_to_release = nullptr;
 
-  arena_chunk_t* chunk_to_release = nullptr;
+    {
+      // Phase 2: Mark the pages with their final state (madvised or
+      // decommitted) and fix up any other bookkeeping.
+      MaybeMutexAutoLock lock(mLock);
+      MOZ_ASSERT(chunk->mIsPurging);
 
-  // Mark the pages with their final state (madvised or decommitted) and fix up
-  // any other bookkeeping.
-  {
-    MaybeMutexAutoLock lock(mLock);
+      auto [cpc, ctr] = purge_info.UpdatePagesAndCounts();
+      continue_purge_chunk = cpc;
+      chunk_to_release = ctr;
+      continue_purge_arena =
+          mNumDirty > (aForce ? 0 : EffectiveMaxDirty() >> 1);
 
-    chunk_to_release = purge_info.UpdatePagesAndCounts();
+      if (!continue_purge_chunk || !continue_purge_arena) {
+        // We're going to stop purging here so update the chunk's bookkeeping.
+        purge_info.FinishPurgingInChunk(true);
+      }
+    }  // MaybeMutexAutoLock
 
-    continue_purge = mNumDirty > (aForce ? 0 : EffectiveMaxDirty() >> 1);
-  }  // MaybeMutexAutoLock
-
-  if (chunk_to_release) {
-    chunk_dealloc((void*)chunk_to_release, kChunkSize, ARENA_CHUNK);
+    // Phase 2 can release the spare chunk (not always == chunk) so an extra
+    // parameter is used to return that chunk.
+    if (chunk_to_release) {
+      chunk_dealloc((void*)chunk_to_release, kChunkSize, ARENA_CHUNK);
+    }
+    purged_once = true;
   }
 
-  return continue_purge;
+  return continue_purge_arena;
 }
 
-void arena_t::PurgeInfo::FindDirtyPages(arena_chunk_t* aChunk) {
-  mChunk = aChunk;
+bool arena_t::PurgeInfo::FindDirtyPages(bool aPurgedOnce) {
+  // It's possible that the previously dirty pages have now been
+  // allocated or the chunk is dying.
+  if (mChunk->ndirty == 0 || mChunk->mDying) {
+    // Add the chunk to the mChunksMAdvised list if it's had at least one
+    // madvise.
+    FinishPurgingInChunk(aPurgedOnce);
+    return false;
+  }
 
   // Look for the first dirty page, as we do record the beginning of the run
   // that contains the dirty page.
@@ -3281,16 +3341,10 @@ void arena_t::PurgeInfo::FindDirtyPages(arena_chunk_t* aChunk) {
   if (mArena.mSpare != mChunk) {
     mArena.mRunsAvail.Remove(&mChunk->map[mFreeRunInd]);
   }
-
-  // Mark the chunk as busy so it won't be deleted.
-  MOZ_ASSERT(!mChunk->mIsPurging);
-  mChunk->mIsPurging = true;
+  return true;
 }
 
-arena_chunk_t* arena_t::PurgeInfo::UpdatePagesAndCounts() {
-  MOZ_ASSERT(mChunk->mIsPurging);
-  mChunk->mIsPurging = false;
-
+std::pair<bool, arena_chunk_t*> arena_t::PurgeInfo::UpdatePagesAndCounts() {
   for (size_t i = 0; i < mDirtyNPages; i++) {
     // The page must not have any of the madvised, decommited or dirty bits
     // set.
@@ -3319,57 +3373,69 @@ arena_chunk_t* arena_t::PurgeInfo::UpdatePagesAndCounts() {
 
   mArena.mStats.committed -= mDirtyNPages;
 
-  arena_chunk_t* chunk_to_release = nullptr;
-
   if (mChunk->mDying) {
     // A dying chunk doesn't need to be coaleased, it will already have one
     // large run.
     MOZ_ASSERT(mFreeRunInd == gChunkHeaderNumPages &&
                mFreeRunLen == gChunkNumPages - gChunkHeaderNumPages - 1);
 
-    // Another thread tried to delete this chunk while we weren't holding the
-    // lock.  Now it's our responsibility to finish deleting it.  First clear
-    // its dirty pages so that RemoveChunk() doesn't try to remove it from
-    // mChunksDirty because it won't be there.
+    return std::make_pair(false, mChunk);
+  }
+
+  bool was_empty = mChunk->IsEmpty();
+  mFreeRunInd =
+      mArena.TryCoalesce(mChunk, mFreeRunInd, mFreeRunLen, FreeRunLenBytes());
+
+  arena_chunk_t* chunk_to_release = nullptr;
+  if (!was_empty && mChunk->IsEmpty()) {
+    // This now-empty chunk will become the spare chunk and the spare
+    // chunk will be returned for deletion.
+    chunk_to_release = mArena.DemoteChunkToSpare(mChunk);
+  }
+
+  if (mChunk != mArena.mSpare) {
+    mArena.mRunsAvail.Insert(&mChunk->map[mFreeRunInd]);
+  }
+
+  return std::make_pair(mChunk->ndirty != 0, chunk_to_release);
+}
+
+void arena_t::PurgeInfo::FinishPurgingInChunk(bool aAddToMAdvised) {
+  // If there's no more purge activity for this chunk then finish up while
+  // we still have the lock.
+  MOZ_ASSERT(mChunk->mIsPurging);
+  mChunk->mIsPurging = false;
+
+  if (mChunk->mDying) {
+    // Another thread tried to delete this chunk while we weren't holding
+    // the lock.  Now it's our responsibility to finish deleting it.  First
+    // clear its dirty pages so that RemoveChunk() doesn't try to remove it
+    // from mChunksDirty because it won't be there.
     mArena.mNumDirty -= mChunk->ndirty;
     mArena.mStats.committed -= mChunk->ndirty;
     mChunk->ndirty = 0;
 
     DebugOnly<bool> release_chunk = mArena.RemoveChunk(mChunk);
-    // RemoveChunk() can't return false because mIsPurging was false during
-    // the call.
+    // RemoveChunk() can't return false because mIsPurging was false
+    // during the call.
     MOZ_ASSERT(release_chunk);
-    chunk_to_release = mChunk;
-  } else {
-    bool was_empty = mChunk->IsEmpty();
-    mFreeRunInd =
-        mArena.TryCoalesce(mChunk, mFreeRunInd, mFreeRunLen, FreeRunLenBytes());
-    // mFreeRunLen is now invalid.
+    return;
+  }
 
-    if (!was_empty && mChunk->IsEmpty()) {
-      // This now-empty chunk will become the spare chunk and the spare chunk
-      // will be returned for deletion.
-      chunk_to_release = mArena.DemoteChunkToSpare(mChunk);
-    }
+  if (mChunk->ndirty != 0) {
+    mArena.mChunksDirty.Insert(mChunk);
+  }
 
-    if (mChunk != mArena.mSpare) {
-      mArena.mRunsAvail.Insert(&mChunk->map[mFreeRunInd]);
-    }
-
-    if (mChunk->ndirty != 0) {
-      mArena.mChunksDirty.Insert(mChunk);
-    }
 #ifdef MALLOC_DOUBLE_PURGE
+  if (aAddToMAdvised) {
     // The chunk might already be in the list, but this
     // makes sure it's at the front.
     if (mArena.mChunksMAdvised.ElementProbablyInList(mChunk)) {
       mArena.mChunksMAdvised.remove(mChunk);
     }
     mArena.mChunksMAdvised.pushFront(mChunk);
-#endif
   }
-
-  return chunk_to_release;
+#endif
 }
 
 // run_pages and size make each-other redundant. But we use them both and the
