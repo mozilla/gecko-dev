@@ -49,6 +49,7 @@
 #include "mozilla/dom/StaticRange.h"
 #include "mozilla/mozalloc.h"
 #include "nsAString.h"
+#include "nsAlgorithm.h"
 #include "nsAtom.h"
 #include "nsCRT.h"
 #include "nsCRTGlue.h"

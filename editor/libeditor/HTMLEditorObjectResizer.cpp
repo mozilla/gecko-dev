@@ -21,6 +21,7 @@
 #include "mozilla/dom/MouseEvent.h"
 #include "mozilla/dom/EventTarget.h"
 #include "nsAString.h"
+#include "nsAlgorithm.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsError.h"

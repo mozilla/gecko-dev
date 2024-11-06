@@ -13,6 +13,7 @@
 #undef Data
 
 #include "nsTArray.h"
+#include "nsAlgorithm.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Preferences.h"
 #include <algorithm>

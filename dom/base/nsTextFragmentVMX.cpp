@@ -5,6 +5,7 @@
 // This file should only be compiled if you're on Power ISA.
 
 #include "nscore.h"
+#include "nsAlgorithm.h"
 #include "nsTextFragmentImpl.h"
 #include <algorithm>
 #include <altivec.h>

@@ -23,6 +23,7 @@
 #include "mozilla/dom/Selection.h"
 
 #include "nsAString.h"
+#include "nsAlgorithm.h"
 #include "nsAtom.h"
 #include "nsDebug.h"
 #include "nsError.h"

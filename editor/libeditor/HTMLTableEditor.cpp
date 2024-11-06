@@ -22,6 +22,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
 #include "nsAString.h"
+#include "nsAlgorithm.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsError.h"

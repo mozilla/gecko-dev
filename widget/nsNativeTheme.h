@@ -9,6 +9,7 @@
 #ifndef _NSNATIVETHEME_H_
 #define _NSNATIVETHEME_H_
 
+#include "nsAlgorithm.h"
 #include "nsAtom.h"
 #include "nsColor.h"
 #include "nsCOMPtr.h"
