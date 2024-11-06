@@ -5053,12 +5053,12 @@ bool js::Promise_static_species(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-enum class IncumbentGlobalObject {
-  // Do not use the incumbent global, this is a special case used by the
+enum class HostDefinedDataObject {
+  // Do not use the host defined data object, this is a special case used by the
   // debugger.
   No,
 
-  // Use incumbent global, this is the normal operation.
+  // Use host defined data object, this is the normal operation.
   Yes
 };
 
@@ -5075,10 +5075,10 @@ enum class IncumbentGlobalObject {
 static PromiseReactionRecord* NewReactionRecord(
     JSContext* cx, Handle<PromiseCapability> resultCapability,
     HandleValue onFulfilled, HandleValue onRejected,
-    IncumbentGlobalObject incumbentGlobalObjectOption) {
+    HostDefinedDataObject hostDefinedDataObjectOption) {
 #ifdef DEBUG
   if (resultCapability.promise()) {
-    if (incumbentGlobalObjectOption == IncumbentGlobalObject::Yes) {
+    if (hostDefinedDataObjectOption == HostDefinedDataObject::Yes) {
       if (resultCapability.promise()->is<PromiseObject>()) {
         // If `resultCapability.promise` is a Promise object,
         // `resultCapability.{resolve,reject}` may be optimized out,
@@ -5116,7 +5116,7 @@ static PromiseReactionRecord* NewReactionRecord(
     // In any case, other fields are also not used.
     MOZ_ASSERT(!resultCapability.resolve());
     MOZ_ASSERT(!resultCapability.reject());
-    MOZ_ASSERT(incumbentGlobalObjectOption == IncumbentGlobalObject::Yes);
+    MOZ_ASSERT(hostDefinedDataObjectOption == HostDefinedDataObject::Yes);
   }
 #endif
 
@@ -5138,7 +5138,7 @@ static PromiseReactionRecord* NewReactionRecord(
   MOZ_ASSERT(onFulfilled.isNull() == onRejected.isNull());
 
   RootedObject hostDefinedData(cx);
-  if (incumbentGlobalObjectOption == IncumbentGlobalObject::Yes) {
+  if (hostDefinedDataObjectOption == HostDefinedDataObject::Yes) {
     if (!GetObjectFromHostDefinedData(cx, &hostDefinedData)) {
       return nullptr;
     }
@@ -5347,7 +5347,7 @@ static bool PromiseThenNewPromiseCapability(
 
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilled, onRejected,
-                            IncumbentGlobalObject::Yes));
+                            HostDefinedDataObject::Yes));
   if (!reaction) {
     return false;
   }
@@ -5600,7 +5600,7 @@ template <typename T>
   resultCapability.promise().set(resultPromise);
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilledValue,
-                            onRejectedValue, IncumbentGlobalObject::Yes));
+                            onRejectedValue, HostDefinedDataObject::Yes));
   if (!reaction) {
     return false;
   }
@@ -6090,7 +6090,7 @@ bool js::Promise_then(JSContext* cx, unsigned argc, Value* vp) {
   // NOTE: We use single object for both reactions.
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilled, onRejected,
-                            IncumbentGlobalObject::Yes));
+                            HostDefinedDataObject::Yes));
   if (!reaction) {
     return false;
   }
@@ -6130,7 +6130,7 @@ bool js::Promise_then(JSContext* cx, unsigned argc, Value* vp) {
   //           [[Handler]]: onRejectedJobCallback }.
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilled, onRejected,
-                            IncumbentGlobalObject::Yes));
+                            HostDefinedDataObject::Yes));
   if (!reaction) {
     return false;
   }
@@ -6319,7 +6319,7 @@ bool js::Promise_then(JSContext* cx, unsigned argc, Value* vp) {
 
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, capability, NullHandleValue, NullHandleValue,
-                            IncumbentGlobalObject::No));
+                            HostDefinedDataObject::No));
   if (!reaction) {
     return false;
   }
