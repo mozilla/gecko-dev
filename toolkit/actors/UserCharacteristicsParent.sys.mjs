@@ -52,20 +52,6 @@ class UserCharacteristicsParent extends JSWindowActorParent {
           aMessage.data
         );
         break;
-      case "CanvasRendering:GotDebugInfo":
-        Services.obs.notifyObservers(
-          null,
-          "user-characteristics-canvas-rendering-debug-info",
-          JSON.stringify(aMessage.data)
-        );
-        break;
-      case "CanvasRendering:Rendered":
-        Services.obs.notifyObservers(
-          null,
-          "user-characteristics-canvas-rendering-done",
-          JSON.stringify(aMessage.data)
-        );
-        break;
     }
   }
 }

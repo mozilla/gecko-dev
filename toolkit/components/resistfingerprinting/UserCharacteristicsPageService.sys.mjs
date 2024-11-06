@@ -265,84 +265,87 @@ export class UserCharacteristicsPageService {
       },
     });
 
-    const cleanup = () => {
-      ChromeUtils.unregisterWindowActor(actorName);
-    };
+    let data = {};
+    // Returns true if we need to try again
+    const attemptRender = async () => {
+      // Try to find a window that supports hardware rendering
+      let foundActor = null;
+      let fallbackActor = null;
+      for (const win of Services.wm.getEnumerator("navigator:browser")) {
+        if (win.closed) {
+          continue;
+        }
 
-    // Try to find a window that supports hardware rendering
-    let foundActor = null;
-    let fallbackActor = null;
-    for (const win of Services.wm.getEnumerator("navigator:browser")) {
-      if (win.closed) {
-        continue;
+        const actor =
+          win.gBrowser.selectedBrowser.browsingContext?.currentWindowGlobal.getActor(
+            actorName
+          );
+
+        if (!actor) {
+          continue;
+        }
+
+        // Example data: {"backendType":3,"drawTargetType":0,"isAccelerated":false,"isShared":true}
+        const debugInfo = await timeoutPromise(
+          actor.sendQuery("CanvasRendering:GetDebugInfo"),
+          5000
+        ).catch(e => {
+          lazy.console.error("Canvas rendering debug info failed", e);
+          return null;
+        });
+        if (!debugInfo) {
+          continue;
+        }
+
+        lazy.console.debug("Canvas rendering debug info", debugInfo);
+
+        fallbackActor = actor;
+        if (debugInfo.isAccelerated) {
+          foundActor = actor;
+          break;
+        }
       }
 
-      const actor =
-        win.gBrowser.selectedBrowser.browsingContext?.currentWindowGlobal.getActor(
-          actorName
-        );
+      // If we didn't find a hardware accelerated window, we use the last one
+      const actor = foundActor || fallbackActor;
 
       if (!actor) {
-        continue;
+        lazy.console.error("No actor found for canvas rendering");
+        // There's no actor/window to render canvases
+        return false;
       }
 
-      const promise = new Promise(resolve => {
-        Services.obs.addObserver(function observe(_subject, topic, data) {
-          Services.obs.removeObserver(observe, topic);
-          resolve(JSON.parse(data));
-        }, "user-characteristics-canvas-rendering-debug-info");
+      // We have an actor, hw accelerated or not
+      // Ask it to render the canvases.
+      // Timeout must be shorter than 5 minutes, because populateCanvasData
+      // caller itself has a timeout of 5 minutes.
+      data = await timeoutPromise(
+        actor.sendQuery("CanvasRendering:Render"),
+        4 * 60 * 1000
+      ).catch(e => {
+        lazy.console.error("Canvas rendering failed", e);
+        return null;
       });
-
-      actor.sendAsyncMessage("CanvasRendering:GetDebugInfo");
-
-      // Example data: {"backendType":3,"drawTargetType":0,"isAccelerated":false,"isShared":true}
-      const data = await timeoutPromise(promise, 5000);
       if (!data) {
-        continue;
+        lazy.console.error("Canvas rendering failed");
+        return true;
       }
 
-      lazy.console.debug("Canvas rendering debug info", data);
+      return false;
+    };
 
-      fallbackActor = actor;
-      if (data.isAccelerated) {
-        foundActor = actor;
-        break;
-      }
-    }
-
-    // If we didn't find a hardware accelerated window, we use the last one
-    const actor = foundActor || fallbackActor;
-
-    if (!actor) {
-      lazy.console.error("No actor found for canvas rendering");
-      cleanup();
-      return;
-    }
-
-    // We have an actor, hw accelerated or not
-    // Ask it to render the canvases
-    const promise = new Promise(resolve => {
-      Services.obs.addObserver(function observe(_subject, topic, data) {
-        Services.obs.removeObserver(observe, topic);
-        resolve(JSON.parse(data));
-      }, "user-characteristics-canvas-rendering-done");
-    });
-
-    actor.sendAsyncMessage("CanvasRendering:Render");
-
-    // Timeout must be shorter than 5 minutes, because populateCanvasData
-    // caller itself has a timeout of 5 minutes.
-    const data = await timeoutPromise(promise, 4 * 60 * 1000);
-    if (!data) {
-      lazy.console.error("Canvas rendering timed out");
-      cleanup();
-      return;
+    // Try to render canvases
+    while (await attemptRender()) {
+      // If we failed to render canvases, try again.
+      // This can happen if the user closes the tab beforewe render the canvases.
+      // Wait for a bit before trying again
+      await new Promise(resolve => lazy.setTimeout(resolve, 1000));
     }
 
     // We have the data, populate the metrics
     this.collectGleanMetricsFromMap(data);
 
-    cleanup();
+    ChromeUtils.unregisterWindowActor(actorName);
   }
 
   async populateZoomPrefs() {
