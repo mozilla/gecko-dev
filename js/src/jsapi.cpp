@@ -4922,8 +4922,6 @@ JS_PUBLIC_API RefPtr<JS::WasmModule> JS::GetWasmModule(HandleObject obj) {
   return const_cast<wasm::Module*>(&mobj.module());
 }
 
-bool JS::DisableWasmHugeMemory() { return wasm::DisableHugeMemory(); }
-
 JS_PUBLIC_API void JS::SetProcessLargeAllocationFailureCallback(
     JS::LargeAllocationFailureCallback lafc) {
   MOZ_ASSERT(!OnLargeAllocationFailure);

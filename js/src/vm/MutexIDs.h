@@ -57,7 +57,6 @@
   _(WasmStreamStatus, 500)            \
   _(WasmRuntimeInstances, 500)        \
   _(WasmSignalInstallState, 500)      \
-  _(WasmHugeMemoryEnabled, 500)       \
   _(MemoryTracker, 500)               \
   _(StencilCache, 500)                \
   _(SourceCompression, 500)           \

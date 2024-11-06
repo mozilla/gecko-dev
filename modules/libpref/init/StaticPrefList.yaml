@@ -8363,6 +8363,12 @@
 #endif
   mirror: always
 
+- name: javascript.options.wasm_disable_huge_memory
+  type: bool
+  value: false
+  mirror: always
+  set_spidermonkey_pref: startup
+
 - name: javascript.options.wasm_optimizingjit
   type: bool
   value: true

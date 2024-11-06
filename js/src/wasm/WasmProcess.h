@@ -65,8 +65,6 @@ void UnregisterCodeBlock(const CodeBlock* cs);
 
 bool IsHugeMemoryEnabled(IndexType t);
 
-[[nodiscard]] bool DisableHugeMemory();
-
 // Called once before/after the last VM execution which could execute or compile
 // wasm.
 
