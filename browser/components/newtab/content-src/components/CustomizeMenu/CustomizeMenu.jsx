@@ -44,7 +44,7 @@ export class _CustomizeMenu extends React.PureComponent {
                 this.props.onOpen();
               }
             }}
-            data-l10n-id="newtab-personalize-icon-label"
+            data-l10n-id="newtab-personalize-settings-icon-label"
             ref={c => (this.openButton = c)}
           />
         </CSSTransition>
@@ -59,7 +59,7 @@ export class _CustomizeMenu extends React.PureComponent {
           <div
             className="customize-menu"
             role="dialog"
-            data-l10n-id="newtab-personalize-dialog-label"
+            data-l10n-id="newtab-settings-dialog-label"
           >
             <div className="close-button-wrapper">
               <button

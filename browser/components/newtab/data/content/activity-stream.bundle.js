@@ -10330,7 +10330,7 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
           this.props.onOpen();
         }
       },
-      "data-l10n-id": "newtab-personalize-icon-label",
+      "data-l10n-id": "newtab-personalize-settings-icon-label",
       ref: c => this.openButton = c
     })), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
       timeout: 250,
@@ -10342,7 +10342,7 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "customize-menu",
       role: "dialog",
-      "data-l10n-id": "newtab-personalize-dialog-label"
+      "data-l10n-id": "newtab-settings-dialog-label"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "close-button-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("button", {
