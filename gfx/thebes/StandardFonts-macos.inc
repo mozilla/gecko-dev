@@ -293,7 +293,3 @@ static const char* kBaseFonts[] = {
   "Zapf Dingbats",
   "Zapfino",
 };
-
-static const char* kBaseFonts_13_Higher[] = {
-  "Stix Two Math",
-};

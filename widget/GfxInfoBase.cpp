@@ -16,7 +16,6 @@
 #include "js/PropertyAndElement.h"  // JS_SetElement, JS_SetProperty
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
-#include "nsIPropertyBag2.h"
 #include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsVersionComparator.h"
@@ -49,10 +48,6 @@
 #ifdef MOZ_WIDGET_ANDROID
 #  include <set>
 #  include "AndroidBuild.h"
-#endif
-
-#if defined(XP_MACOSX)
-#  include "nsCocoaFeatures.h"
 #endif
 
 using namespace mozilla::widget;
@@ -1763,19 +1758,8 @@ std::pair<Device, nsString>* GfxInfoBase::GetFontVisibilityDeterminationPair() {
   }
 
 #elif defined(XP_MACOSX)
-  ret->first = Device::MacOS_Unknown;
+  ret->first = Device::MacOS_Platform;
   ret->second.AppendASCII("macOS Platform");
-
-  int major = 0;
-  int minor = 0;
-  int bugfix = 0;
-  nsCocoaFeatures::GetSystemVersion(major, minor, bugfix);
-  if (major == 0) {
-    return ret;
-  }
-
-  ret->first = major >= 13 ? Device::MacOS_13_plus : Device::MacOS_sub_13;
-  ret->second.AppendPrintf("macOS %d.%d.%d", major, minor, bugfix);
 #elif defined(XP_WIN)
   ret->first = Device::Windows_Platform;
   ret->second.AppendASCII("Windows Platform");
