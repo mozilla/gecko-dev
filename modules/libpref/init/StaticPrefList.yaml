@@ -10278,11 +10278,7 @@
 # macos still has the deprecated STIXGeneral font pre-installed.
 - name: mathml.stixgeneral_operator_stretching.disabled
   type: bool
-#if defined(XP_MACOSX)
-  value: @IS_NIGHTLY_BUILD@
-#else
   value: true
-#endif
   mirror: always
 
 # Whether to disable fallback for mathvariant=italic/bold/bold-italic via
