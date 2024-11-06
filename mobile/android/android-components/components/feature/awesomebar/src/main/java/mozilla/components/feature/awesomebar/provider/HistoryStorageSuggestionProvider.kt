@@ -150,7 +150,7 @@ internal suspend fun Iterable<SearchResult>.into(
             editSuggestion = if (showEditSuggestion) result.url else null,
             score = result.score,
             onSuggestionClicked = {
-                loadUrlUseCase.invoke(result.url)
+                loadUrlUseCase(result.url)
                 emitHistorySuggestionClickedFact()
             },
         )

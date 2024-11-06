@@ -26,9 +26,9 @@ class ToolbarInteractor(
     fun start() {
         toolbar.setOnUrlCommitListener { text ->
             when {
-                text.isUrl() -> loadUrlUseCase.invoke(text.toNormalizedUrl())
+                text.isUrl() -> loadUrlUseCase(text.toNormalizedUrl())
                 searchUseCase != null -> searchUseCase.invoke(text)
-                else -> loadUrlUseCase.invoke(text)
+                else -> loadUrlUseCase(text)
             }
             true
         }

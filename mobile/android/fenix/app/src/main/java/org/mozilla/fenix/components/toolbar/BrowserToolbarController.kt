@@ -125,7 +125,7 @@ class DefaultBrowserToolbarController(
     override fun handleToolbarPasteAndGo(text: String) {
         if (text.isUrl()) {
             store.updateSearchTermsOfSelectedSession("")
-            activity.components.useCases.sessionUseCases.loadUrl.invoke(text)
+            activity.components.useCases.sessionUseCases.loadUrl(text)
             return
         }
 

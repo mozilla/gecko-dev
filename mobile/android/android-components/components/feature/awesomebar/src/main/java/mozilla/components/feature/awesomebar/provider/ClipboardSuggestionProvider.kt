@@ -72,7 +72,7 @@ class ClipboardSuggestionProvider(
                 icon = icon ?: getSearchIcon(),
                 title = title,
                 onSuggestionClicked = {
-                    loadUrlUseCase.invoke(url)
+                    loadUrlUseCase(url)
                     emitClipboardSuggestionClickedFact()
                 },
             ),
