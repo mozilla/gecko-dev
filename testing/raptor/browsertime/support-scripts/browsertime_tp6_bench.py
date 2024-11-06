@@ -22,9 +22,7 @@ def extract_domain(link):
 class TP6BenchSupport(BasePythonSupport):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._load_times = []
         self._total_times = []
-        self._geomean_load_times = []
         self._sites_tested = 0
         self._test_pages = {}
 
@@ -72,8 +70,6 @@ class TP6BenchSupport(BasePythonSupport):
                 measurements["totalTime"].append(total_time)
                 self._total_times.append(total_time)
 
-        # Gather the load times of each page/cycle to help with diagnosing issues
-        load_times = []
         result_name = None
         for cycle in raw_result["browserScripts"]:
             if not result_name:
@@ -90,34 +86,23 @@ class TP6BenchSupport(BasePythonSupport):
                     )
                     result_name = f"{page_name} - {page_title}"
 
-            load_time = cycle["timings"]["loadEventEnd"]
             fcp = cycle["timings"]["paintTiming"]["first-contentful-paint"]
             lcp = (
                 cycle["timings"]
                 .get("largestContentfulPaint", {})
                 .get("renderTime", None)
             )
-            measurements.setdefault(f"{result_name} - loadTime", []).append(load_time)
 
             measurements.setdefault(f"{result_name} - fcp", []).append(fcp)
 
             if lcp is not None:
                 measurements.setdefault(f"{result_name} - lcp", []).append(lcp)
 
-            load_times.append(load_time)
-
-        cur_load_times = self._load_times or [0] * len(load_times)
-        self._load_times = list(map(sum, zip(cur_load_times, load_times)))
         self._sites_tested += 1
 
         for measurement, values in measurements.items():
             bt_result["measurements"].setdefault(measurement, []).extend(values)
         if last_result:
-            bt_result["measurements"]["totalLoadTime"] = self._load_times
-            bt_result["measurements"]["totalLoadTimePerSite"] = [
-                round(total_load_time / self._sites_tested, 2)
-                for total_load_time in self._load_times
-            ]
             bt_result["measurements"]["totalTimePerSite"] = [
                 round(total_time / self._sites_tested, 2)
                 for total_time in self._total_times
@@ -177,7 +162,6 @@ class TP6BenchSupport(BasePythonSupport):
     def summarize_suites(self, suites):
         fcp_subtests = []
         lcp_subtests = []
-        load_time_subtests = []
 
         for suite in suites:
             for subtest in suite["subtests"]:
@@ -185,8 +169,6 @@ class TP6BenchSupport(BasePythonSupport):
                     fcp_subtests.append(subtest)
                 elif "- lcp" in subtest["name"]:
                     lcp_subtests.append(subtest)
-                elif "- loadTime" in subtest["name"]:
-                    load_time_subtests.append(subtest)
 
         fcp_bench_suites = self._produce_suite_alts(
             suites[0], fcp_subtests, "fcp-bench"
@@ -194,10 +176,6 @@ class TP6BenchSupport(BasePythonSupport):
 
         lcp_bench_suites = self._produce_suite_alts(
             suites[0], lcp_subtests, "lcp-bench"
-        )
-
-        load_time_bench_suites = self._produce_suite_alts(
-            suites[0], load_time_subtests, "loadtime-bench"
         )
 
         overall_suite = copy.deepcopy(suites[0])
@@ -212,7 +190,6 @@ class TP6BenchSupport(BasePythonSupport):
             overall_suite,
             *fcp_bench_suites,
             *lcp_bench_suites,
-            *load_time_bench_suites,
         ]
         suites.pop()
         suites.extend(new_suites)
