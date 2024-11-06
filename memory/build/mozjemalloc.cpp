@@ -2778,7 +2778,7 @@ bool arena_t::SplitRun(arena_run_t* aRun, size_t aSize, bool aLarge,
     chunk->map[run_ind].bits |= aSize;
   }
 
-  if (chunk->ndirty == 0 && old_ndirty > 0) {
+  if (chunk->ndirty == 0 && old_ndirty > 0 && !chunk->mIsPurging) {
     mChunksDirty.Remove(chunk);
   }
   return true;
@@ -3075,7 +3075,8 @@ bool arena_t::Purge(bool aForce) {
     for (auto chunk : mChunksDirty.iter()) {
       ndirty += chunk->ndirty;
     }
-    MOZ_ASSERT(ndirty == mNumDirty);
+    // Not all dirty chunks are in mChunksDirty as others might be being Purged.
+    MOZ_ASSERT(ndirty <= mNumDirty);
 #endif
 
     if (mNumDirty <= (aForce ? 0 : EffectiveMaxDirty() >> 1)) {
@@ -3085,8 +3086,15 @@ bool arena_t::Purge(bool aForce) {
     // Take a single chunk and purge some of its dirty pages.  This will perform
     // only one system call. The caller can use a loop to purge more memory.
     chunk = mChunksDirty.Last();
-    MOZ_DIAGNOSTIC_ASSERT(chunk);
+    if (!chunk) {
+      // There are chunks with dirty pages (because mNumDirty > 0 above) but
+      // they're not in mChunksDirty.  That can happen if they're busy being
+      // purged.
+      return false;
+    }
+
     MOZ_ASSERT(chunk->ndirty > 0);
+    mChunksDirty.Remove(chunk);
 
 #ifdef MALLOC_DECOMMIT
     const size_t free_operation = CHUNK_MAP_DECOMMITTED;
@@ -3153,20 +3161,26 @@ bool arena_t::Purge(bool aForce) {
 
     mStats.committed -= npages;
 
-    if (chunk->ndirty == 0) {
-      mChunksDirty.Remove(chunk);
-    }
     if (chunk->mDying) {
       // Another thread tried to delete this chunk while we weren't holding the
-      // lock.  Now it's our responsibility to finish deleting it.
+      // lock.  Now it's our responsibility to finish deleting it.  First clear
+      // its dirty pages so that RemoveChunk() doesn't try to remove it from
+      // mChunksDirty because it won't be there.
+      mNumDirty -= chunk->ndirty;
+      mStats.committed -= chunk->ndirty;
+      chunk->ndirty = 0;
+
       DebugOnly<bool> release_chunk = RemoveChunk(chunk);
       // RemoveChunk() can't return false because mIsPurging was false during
       // the call.
       MOZ_ASSERT(release_chunk);
       chunk_dealloc((void*)chunk, kChunkSize, ARENA_CHUNK);
 
-#ifdef MALLOC_DOUBLE_PURGE
     } else {
+      if (chunk->ndirty != 0) {
+        mChunksDirty.Insert(chunk);
+      }
+#ifdef MALLOC_DOUBLE_PURGE
       // The chunk might already be in the list, but this
       // makes sure it's at the front.
       if (mChunksMAdvised.ElementProbablyInList(chunk)) {
@@ -3206,7 +3220,7 @@ arena_chunk_t* arena_t::DallocRun(arena_run_t* aRun, bool aDirty) {
       chunk->map[run_ind + i].bits = CHUNK_MAP_DIRTY;
     }
 
-    if (chunk->ndirty == 0) {
+    if (chunk->ndirty == 0 && !chunk->mIsPurging) {
       mChunksDirty.Insert(chunk);
     }
     chunk->ndirty += run_pages;
