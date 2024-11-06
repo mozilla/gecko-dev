@@ -160,3 +160,5 @@ https_first_disabled = true
 ["browser_spoofing_keyboard_event.js"]
 
 ["browser_timezone.js"]
+
+["browser_color_scheme.js"]
