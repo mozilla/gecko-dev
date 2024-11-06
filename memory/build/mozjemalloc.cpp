@@ -3328,7 +3328,8 @@ arena_chunk_t* arena_t::DallocRun(arena_run_t* aRun, bool aDirty) {
 
   // Try to coalesce forward.
   if (run_ind + run_pages < gChunkNumPages - 1 &&
-      (chunk->map[run_ind + run_pages].bits & CHUNK_MAP_ALLOCATED) == 0) {
+      (chunk->map[run_ind + run_pages].bits &
+       (CHUNK_MAP_ALLOCATED | CHUNK_MAP_BUSY)) == 0) {
     size_t nrun_size = chunk->map[run_ind + run_pages].bits & ~gPageSizeMask;
 
     // Remove successor from tree of available runs; the coalesced run is
@@ -3348,7 +3349,8 @@ arena_chunk_t* arena_t::DallocRun(arena_run_t* aRun, bool aDirty) {
 
   // Try to coalesce backward.
   if (run_ind > gChunkHeaderNumPages &&
-      (chunk->map[run_ind - 1].bits & CHUNK_MAP_ALLOCATED) == 0) {
+      (chunk->map[run_ind - 1].bits & (CHUNK_MAP_ALLOCATED | CHUNK_MAP_BUSY)) ==
+          0) {
     size_t prun_size = chunk->map[run_ind - 1].bits & ~gPageSizeMask;
 
     run_ind -= prun_size >> gPageSize2Pow;
