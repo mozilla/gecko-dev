@@ -4001,11 +4001,13 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
     gKioskMonitor = atoi(kioskMonitorNumber);
   }
 
+#if defined(NIGHTLY_BUILD)
   if (XRE_IsParentProcess()) {
     gAllowContentAnalysisArgPresent =
         CheckArg("allow-content-analysis", nullptr, CheckArgFlag::None) ==
         ARG_FOUND;
   }
+#endif
 
   nsresult rv;
   ArgResult ar;
