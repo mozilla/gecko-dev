@@ -83,6 +83,6 @@ async function createTestProfile(profileData = {}) {
     path,
     themeBg: profileData.themeBg ?? "var(--background-color-box)",
     themeFg: profileData.themeFg ?? "var(--text-color)",
-    themeL10nId: profileData.themeL10nId ?? "default",
+    themeId: profileData.themeId ?? "default",
   });
 }

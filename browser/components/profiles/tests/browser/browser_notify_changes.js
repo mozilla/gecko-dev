@@ -37,7 +37,7 @@ add_task(async function test_selector_window() {
          path	TEXT NOT NULL,
          name	TEXT NOT NULL,
          avatar	TEXT NOT NULL,
-         themeL10nId	TEXT NOT NULL,
+         themeId	TEXT NOT NULL,
          themeFg	TEXT NOT NULL,
          themeBg	TEXT NOT NULL,
          PRIMARY KEY(id)
@@ -50,7 +50,7 @@ add_task(async function test_selector_window() {
   let profileData = {
     name: "New Profile",
     avatar: "book",
-    themeL10nId: "default",
+    themeId: "default",
     themeFg: "var(--text-color)",
     themeBg: "var(--background-color-box)",
     path: SelectableProfileService.getRelativeProfilePath(

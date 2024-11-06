@@ -32,18 +32,19 @@ add_task(async function test_recover_storeID() {
       path	TEXT NOT NULL UNIQUE,
       name	TEXT NOT NULL,
       avatar	TEXT NOT NULL,
-      themeL10nId	TEXT NOT NULL,
+      themeId	TEXT NOT NULL,
       themeFg	TEXT NOT NULL,
       themeBg	TEXT NOT NULL,
       PRIMARY KEY(id)
     );`);
+
   await db.execute(
-    `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeL10nId, :themeFg, :themeBg);`,
+    `INSERT INTO Profiles VALUES (NULL, :path, :name, :avatar, :themeId, :themeFg, :themeBg);`,
     {
       path,
       name: "Fake Profile",
       avatar: "book",
-      themeL10nId: "default",
+      themeId: "default",
       themeFg: "",
       themeBg: "",
     }

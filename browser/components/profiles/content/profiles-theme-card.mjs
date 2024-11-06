@@ -36,6 +36,10 @@ export class ProfilesThemeCard extends MozLitElement {
   }
 
   render() {
+    if (!this.theme) {
+      return null;
+    }
+
     return html`<link
         rel="stylesheet"
         href="chrome://browser/content/profiles/profiles-theme-card.css"
@@ -47,7 +51,7 @@ export class ProfilesThemeCard extends MozLitElement {
               src="chrome://browser/content/profiles/assets/theme-selector-background.svg"
             />
           </div>
-          <div class="theme-name">${this.theme.name}</div>
+          <div class="theme-name" data-l10n-id="${this.theme.dataL10nId}"></div>
         </div>
       </moz-card>`;
   }
