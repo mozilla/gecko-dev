@@ -538,7 +538,9 @@ FxAccountsWebChannelHelpers.prototype = {
         );
         await this._disconnect();
       } else {
-        existingServices = JSON.parse(signedInUser.requestedServices);
+        existingServices = signedInUser.requestedServices
+          ? JSON.parse(signedInUser.requestedServices)
+          : {};
         log.debug(
           "Webchannel is updating the info for an already logged in user."
         );
