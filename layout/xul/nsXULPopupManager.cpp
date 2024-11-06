@@ -988,7 +988,7 @@ bool nsXULPopupManager::ShowPopupAsNativeMenu(Element* aPopup, int32_t aXPos,
     EventStateManager::ClearGlobalActiveContent(activeESM);
     activeESM->StopTrackingDragGesture(true);
   }
-  PointerLockManager::Unlock();
+  PointerLockManager::Unlock("ShowPopupAsNativeMenu");
   PresShell::ReleaseCapturingContent();
 
   return true;
@@ -1205,7 +1205,7 @@ void nsXULPopupManager::ShowPopupCallback(Element* aPopup,
   CheckCaretDrawingState();
 
   if (popupType != PopupType::Tooltip) {
-    PointerLockManager::Unlock();
+    PointerLockManager::Unlock("ShowPopupCallback");
   }
 }
 

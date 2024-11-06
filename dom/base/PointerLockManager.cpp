@@ -19,9 +19,15 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/PointerEventHandler.h"
 #include "mozilla/dom/WindowContext.h"
+#include "mozilla/Logging.h"
 #include "nsCOMPtr.h"
 #include "nsMenuPopupFrame.h"
 #include "nsSandboxFlags.h"
+
+mozilla::LazyLogModule gPointerLockLog("PointerLock");
+
+#define MOZ_POINTERLOCK_LOG(...) \
+  MOZ_LOG(gPointerLockLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
 
 namespace mozilla {
 
@@ -68,6 +74,8 @@ static void DispatchPointerLockChange(Document* aTarget) {
     return;
   }
 
+  MOZ_POINTERLOCK_LOG("Dispatch pointerlockchange event [document=0x%p]",
+                      aTarget);
   RefPtr<AsyncEventDispatcher> asyncDispatcher =
       new AsyncEventDispatcher(aTarget, u"pointerlockchange"_ns,
                                CanBubble::eYes, ChromeOnlyDispatch::eNo);
@@ -79,6 +87,9 @@ static void DispatchPointerLockError(Document* aTarget, const char* aMessage) {
     return;
   }
 
+  MOZ_POINTERLOCK_LOG(
+      "Dispatch pointerlockerror event [document=0x%p, message=%s]", aTarget,
+      aMessage);
   RefPtr<AsyncEventDispatcher> asyncDispatcher =
       new AsyncEventDispatcher(aTarget, u"pointerlockerror"_ns, CanBubble::eYes,
                                ChromeOnlyDispatch::eNo);
@@ -172,6 +183,9 @@ void PointerLockManager::RequestLock(Element* aElement,
 
   RefPtr<Document> doc = aElement->OwnerDoc();
   nsCOMPtr<Element> pointerLockedElement = GetLockedElement();
+  MOZ_POINTERLOCK_LOG("Request lock on element 0x%p [document=0x%p]", aElement,
+                      doc.get());
+
   if (aElement == pointerLockedElement) {
     DispatchPointerLockChange(doc);
     return;
@@ -191,10 +205,13 @@ void PointerLockManager::RequestLock(Element* aElement,
 }
 
 /* static */
-void PointerLockManager::Unlock(Document* aDoc) {
+void PointerLockManager::Unlock(const char* aReason, Document* aDoc) {
   if (sLockedRemoteTarget) {
     MOZ_ASSERT(XRE_IsParentProcess());
     MOZ_ASSERT(!sIsLocked);
+    MOZ_POINTERLOCK_LOG(
+        "Unlock document 0x%p [sLockedRemoteTarget=0x%p, reason=%s]", aDoc,
+        sLockedRemoteTarget, aReason);
     Unused << sLockedRemoteTarget->SendReleasePointerLock();
     sLockedRemoteTarget = nullptr;
     return;
@@ -205,6 +222,9 @@ void PointerLockManager::Unlock(Document* aDoc) {
   }
 
   nsCOMPtr<Document> pointerLockedDoc = GetLockedDocument();
+  MOZ_POINTERLOCK_LOG("Unlock document 0x%p [LockedDocument=0x%p, reason=%s]",
+                      aDoc, pointerLockedDoc.get(), aReason);
+
   if (!pointerLockedDoc || (aDoc && aDoc != pointerLockedDoc)) {
     return;
   }
@@ -235,6 +255,8 @@ void PointerLockManager::ChangePointerLockedElement(
   // document is, we just don't try to figure out what it should be.
   MOZ_ASSERT(aDocument);
   MOZ_ASSERT(aElement != aPointerLockedElement);
+  MOZ_POINTERLOCK_LOG("Change locked element from 0x%p to 0x%p [document=0x%p]",
+                      aPointerLockedElement, aElement, aDocument);
   if (aPointerLockedElement) {
     MOZ_ASSERT(aPointerLockedElement->GetComposedDoc() == aDocument);
     aPointerLockedElement->ClearPointerLock();
@@ -360,6 +382,7 @@ void PointerLockManager::SetLockedRemoteTarget(BrowserParent* aBrowserParent,
     return;
   }
 
+  MOZ_POINTERLOCK_LOG("Set locked remote target to 0x%p", aBrowserParent);
   sLockedRemoteTarget = aBrowserParent;
   PointerEventHandler::ReleaseAllPointerCaptureRemoteTarget();
 }
@@ -369,6 +392,8 @@ void PointerLockManager::ReleaseLockedRemoteTarget(
     BrowserParent* aBrowserParent) {
   MOZ_ASSERT(XRE_IsParentProcess());
   if (sLockedRemoteTarget == aBrowserParent) {
+    MOZ_POINTERLOCK_LOG("Release locked remote target 0x%p",
+                        sLockedRemoteTarget);
     sLockedRemoteTarget = nullptr;
   }
 }

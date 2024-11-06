@@ -2080,7 +2080,7 @@ void Element::UnbindFromTree(UnbindContext& aContext) {
   Document* document = GetComposedDoc();
 
   if (HasPointerLock()) {
-    PointerLockManager::Unlock();
+    PointerLockManager::Unlock("Element::UnbindFromTree");
   }
   if (mState.HasState(ElementState::FULLSCREEN)) {
     // The element being removed is an ancestor of the fullscreen element,

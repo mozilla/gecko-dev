@@ -3426,7 +3426,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvReleaseAllPointerCapture() {
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvReleasePointerLock() {
-  PointerLockManager::Unlock();
+  PointerLockManager::Unlock("BrowserChild::RecvReleasePointerLock");
   return IPC_OK();
 }
 

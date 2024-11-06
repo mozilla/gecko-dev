@@ -5069,7 +5069,7 @@ void nsFocusManager::GetFocusInSelection(nsPIDOMWindowOuter* aWindow,
 
 static void MaybeUnlockPointer(BrowsingContext* aCurrentFocusedContext) {
   if (!PointerLockManager::IsInLockContext(aCurrentFocusedContext)) {
-    PointerLockManager::Unlock();
+    PointerLockManager::Unlock("FocusChange");
   }
 }
 

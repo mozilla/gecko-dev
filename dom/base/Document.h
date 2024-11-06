@@ -3436,7 +3436,9 @@ class Document : public nsINode,
   Element* GetUnretargetedFullscreenElement() const;
   bool Fullscreen() const { return !!GetUnretargetedFullscreenElement(); }
   already_AddRefed<Promise> ExitFullscreen(ErrorResult&);
-  void ExitPointerLock() { PointerLockManager::Unlock(this); }
+  void ExitPointerLock() {
+    PointerLockManager::Unlock("Document::ExitPointerLock", this);
+  }
   void GetFgColor(nsAString& aFgColor);
   void SetFgColor(const nsAString& aFgColor);
   void GetLinkColor(nsAString& aLinkColor);

@@ -7228,7 +7228,7 @@ nsresult PresShell::EventHandler::HandleEventUsingCoordinates(
   nsCOMPtr<nsIContent> capturingContent =
       EventHandler::GetCapturingContentFor(aGUIEvent);
   if (GetDocument() && aGUIEvent->mClass == eTouchEventClass) {
-    PointerLockManager::Unlock();
+    PointerLockManager::Unlock("TouchEvent");
   }
 
   nsIFrame* frameForPresShell = MaybeFlushThrottledStyles(aFrameForPresShell);
@@ -8880,7 +8880,7 @@ void PresShell::EventHandler::MaybeHandleKeyboardEventBeforeDispatch(
           CrossProcessForwarding::eStop);
       aKeyboardEvent->mFlags.mOnlyChromeDispatch = true;
       if (aKeyboardEvent->mMessage == eKeyUp) {
-        PointerLockManager::Unlock();
+        PointerLockManager::Unlock("EscapeKey");
       }
     }
   }
