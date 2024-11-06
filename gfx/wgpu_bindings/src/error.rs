@@ -593,10 +593,17 @@ mod foreign {
 
     impl HasErrorBufferType for CommandEncoderError {
         fn error_type(&self) -> ErrorBufferType {
-            // We can't classify this ourselves, because inner error classification is private. We
-            // may need some upstream work to do this properly. For now, we trust that this opaque
-            // type only ever represents `Validation`.
-            ErrorBufferType::Validation
+            match self {
+                CommandEncoderError::Device(e) => e.error_type(),
+                CommandEncoderError::Invalid
+                | CommandEncoderError::NotRecording
+                | CommandEncoderError::Locked
+                | CommandEncoderError::InvalidColorAttachment(..)
+                | CommandEncoderError::InvalidResource(..)
+
+                // N.B: forced non-exhaustiveness
+                _ => ErrorBufferType::Validation,
+            }
         }
     }
 
