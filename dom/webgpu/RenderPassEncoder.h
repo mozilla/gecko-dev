@@ -85,6 +85,9 @@ class RenderPassEncoder final : public ObjectBase,
   void SetBlendConstant(const dom::DoubleSequenceOrGPUColorDict& color);
   void SetStencilReference(uint32_t reference);
 
+  void BeginOcclusionQuery(uint32_t queryIndex);
+  void EndOcclusionQuery();
+
   void PushDebugGroup(const nsAString& aString);
   void PopDebugGroup();
   void InsertDebugMarker(const nsAString& aString);

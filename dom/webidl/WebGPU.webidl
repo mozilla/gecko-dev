@@ -1026,8 +1026,8 @@ interface GPURenderPassEncoder {
     undefined setBlendConstant(GPUColor color);
     undefined setStencilReference(GPUStencilValue reference);
 
-    //undefined beginOcclusionQuery(GPUSize32 queryIndex);
-    //undefined endOcclusionQuery();
+    undefined beginOcclusionQuery(GPUSize32 queryIndex);
+    undefined endOcclusionQuery();
 
     undefined executeBundles(sequence<GPURenderBundle> bundles);
     undefined end();

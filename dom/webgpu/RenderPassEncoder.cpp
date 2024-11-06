@@ -151,6 +151,10 @@ ffi::WGPURecordedRenderPass* BeginRenderPass(
     }
   }
 
+  if (aDesc.mOcclusionQuerySet.WasPassed()) {
+    desc.occlusion_query_set = aDesc.mOcclusionQuerySet.Value().mId;
+  }
+
   ffi::WGPUPassTimestampWrites passTimestampWrites = {};
   if (aDesc.mTimestampWrites.WasPassed()) {
     AssignPassTimestampWrites(aDesc.mTimestampWrites.Value(),
@@ -309,6 +313,21 @@ void RenderPassEncoder::SetStencilReference(uint32_t reference) {
     return;
   }
   ffi::wgpu_recorded_render_pass_set_stencil_reference(mPass.get(), reference);
+}
+
+void RenderPassEncoder::BeginOcclusionQuery(uint32_t aQueryIndex) {
+  if (!mValid) {
+    return;
+  }
+  ffi::wgpu_recorded_render_pass_begin_occlusion_query(mPass.get(),
+                                                       aQueryIndex);
+}
+
+void RenderPassEncoder::EndOcclusionQuery() {
+  if (!mValid) {
+    return;
+  }
+  ffi::wgpu_recorded_render_pass_end_occlusion_query(mPass.get());
 }
 
 void RenderPassEncoder::ExecuteBundles(
