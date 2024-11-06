@@ -47,6 +47,7 @@ tasks-from:
     - node.yml
     - pkgconf.yml
     - python.yml
+    - python-wheels.yml
     - rust.yml
     - rust-size.yml
     - sccache.yml
