@@ -1285,6 +1285,8 @@ struct arena_t {
   // If this arena has more than EffectiveMaxDirty() dirty pages or aForce is
   // true, then purge one run of dirty pages.
   //
+  // This must be called without the mLock held (it'll take the lock).
+  //
   // To release more than a single run of pages then it's best to call Purge
   // in a loop.  It returns true if mNumDirty > EffectiveMaxDirty() so that the
   // caller knows if the loop should continue.
@@ -3032,6 +3034,8 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
 #endif
 
 bool arena_t::Purge(bool aForce) {
+  MaybeMutexAutoLock lock(mLock);
+
 #ifdef MOZ_DEBUG
   size_t ndirty = 0;
   for (auto chunk : mChunksDirty.iter()) {
@@ -3209,11 +3213,6 @@ arena_chunk_t* arena_t::DallocRun(arena_run_t* aRun, bool aDirty) {
   if ((chunk->map[gChunkHeaderNumPages].bits &
        (~gPageSizeMask | CHUNK_MAP_ALLOCATED)) == gMaxLargeClass) {
     chunk_dealloc = DeallocChunk(chunk);
-  }
-
-  bool do_purge = mNumDirty > EffectiveMaxDirty();
-  while (do_purge) {
-    do_purge = Purge();
   }
 
   return chunk_dealloc;
@@ -3584,6 +3583,11 @@ void* arena_t::PallocLarge(size_t aAlignment, size_t aSize, size_t aAllocSize) {
 
     mStats.allocated_large += aSize;
   }
+
+  // Note that since Bug 1488780we don't attempt purge dirty memory on this code
+  // path. In general there won't be dirty memory above the threshold after an
+  // allocation, only after free.  The exception is if the dirty page threshold
+  // has changed.
 
   ApplyZeroOrJunk(ret, aSize);
   return ret;
@@ -4004,7 +4008,7 @@ static inline void arena_dalloc(void* aPtr, size_t aOffset, arena_t* aArena) {
   }
 
   arena_chunk_t* chunk_dealloc_delay = nullptr;
-
+  bool should_purge;
   {
     MaybeMutexAutoLock lock(arena->mLock);
     arena_chunk_map_t* mapelm = &chunk->map[pageind];
@@ -4021,10 +4025,16 @@ static inline void arena_dalloc(void* aPtr, size_t aOffset, arena_t* aArena) {
       // Large allocation.
       chunk_dealloc_delay = arena->DallocLarge(chunk, aPtr);
     }
+
+    should_purge = arena->mNumDirty > arena->EffectiveMaxDirty();
   }
 
   if (chunk_dealloc_delay) {
     chunk_dealloc((void*)chunk_dealloc_delay, kChunkSize, ARENA_CHUNK);
+  }
+
+  while (should_purge) {
+    should_purge = arena->Purge();
   }
 }
 
@@ -4047,9 +4057,17 @@ void arena_t::RallocShrinkLarge(arena_chunk_t* aChunk, void* aPtr, size_t aSize,
 
   // Shrink the run, and make trailing pages available for other
   // allocations.
-  MaybeMutexAutoLock lock(mLock);
-  TrimRunTail(aChunk, (arena_run_t*)aPtr, aOldSize, aSize, true);
-  mStats.allocated_large -= aOldSize - aSize;
+  bool should_purge;
+  {
+    MaybeMutexAutoLock lock(mLock);
+    TrimRunTail(aChunk, (arena_run_t*)aPtr, aOldSize, aSize, true);
+    mStats.allocated_large -= aOldSize - aSize;
+
+    should_purge = mNumDirty > EffectiveMaxDirty();
+  }
+  while (should_purge) {
+    should_purge = Purge();
+  }
 }
 
 // Returns whether reallocation was successful.
@@ -5123,8 +5141,7 @@ inline void MozJemalloc::jemalloc_free_dirty_pages(void) {
     MutexAutoLock lock(gArenas.mLock);
     MOZ_ASSERT(gArenas.IsOnMainThreadWeak());
     for (auto* arena : gArenas.iter()) {
-      MaybeMutexAutoLock arena_lock(arena->mLock);
-      bool do_purge = arena->mNumDirty > 0;
+      bool do_purge = true;
       while (do_purge) {
         do_purge = arena->Purge(true);
       }
@@ -5136,9 +5153,7 @@ inline void MozJemalloc::jemalloc_free_excess_dirty_pages(void) {
   if (malloc_initialized) {
     MutexAutoLock lock(gArenas.mLock);
     for (auto* arena : gArenas.iter()) {
-      MaybeMutexAutoLock arena_lock(arena->mLock);
-      size_t maxDirty = arena->EffectiveMaxDirty();
-      bool do_purge = arena->mNumDirty > maxDirty;
+      bool do_purge = true;
       while (do_purge) {
         do_purge = arena->Purge();
       }
