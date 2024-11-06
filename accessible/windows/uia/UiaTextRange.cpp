@@ -9,6 +9,7 @@
 #include "nsAccUtils.h"
 #include "TextLeafRange.h"
 #include <comdef.h>
+#include <unordered_set>
 
 namespace mozilla::a11y {
 
@@ -417,6 +418,8 @@ UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID aAttributeId,
   MOZ_ASSERT(range.Start() <= range.End(), "Range must be valid to proceed.");
 
   switch (aAttributeId) {
+    case UIA_AnnotationTypesAttributeId:
+      return GetAttribute<UIA_AnnotationTypesAttributeId>(range, *aRetVal);
     case UIA_FontNameAttributeId:
       return GetAttribute<UIA_FontNameAttributeId>(range, *aRetVal);
     case UIA_FontSizeAttributeId:
@@ -720,6 +723,73 @@ UiaTextRange::GetChildren(__RPC__deref_out_opt SAFEARRAY** aRetVal) {
 /*
  * AttributeTraits template specializations
  */
+
+template <>
+struct AttributeTraits<UIA_AnnotationTypesAttributeId> {
+  // Avoiding nsTHashSet here because it has no operator==.
+  using AttrType = std::unordered_set<int32_t>;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    // Check all of the given annotations. Build a set of the annotations that
+    // are present at the given TextLeafPoint.
+    RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+    if (!attrs) {
+      return {};
+    }
+    AttrType annotationsAtPoint{};
+
+    // The "invalid" atom as a key in text attributes could have value
+    // "spelling", "grammar", or "true". Spelling and grammar map directly to
+    // UIA. A non-specific "invalid" indicates a generic data validation error,
+    // and is mapped as such.
+    if (auto invalid =
+            attrs->GetAttribute<RefPtr<nsAtom>>(nsGkAtoms::invalid)) {
+      const nsAtom* invalidAtom = invalid->get();
+      if (invalidAtom == nsGkAtoms::spelling) {
+        annotationsAtPoint.insert(AnnotationType_SpellingError);
+      } else if (invalidAtom == nsGkAtoms::grammar) {
+        annotationsAtPoint.insert(AnnotationType_GrammarError);
+      } else if (invalidAtom == nsGkAtoms::_true) {
+        annotationsAtPoint.insert(AnnotationType_DataValidationError);
+      }
+    }
+
+    // The presence of the "mark" atom as a key in text attributes indicates a
+    // highlight at this point.
+    if (attrs->GetAttribute<bool>(nsGkAtoms::mark)) {
+      annotationsAtPoint.insert(AnnotationType_Highlighted);
+    }
+
+    return Some(annotationsAtPoint);
+  }
+
+  static AttrType DefaultValue() {
+    // Per UIA documentation, the default is an empty collection.
+    return {};
+  }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    SAFEARRAY* outputArr =
+        SafeArrayCreateVector(VT_I4, 0, static_cast<ULONG>(aValue.size()));
+    if (!outputArr) {
+      return E_OUTOFMEMORY;
+    }
+
+    // Copy the elements from the unordered_set to the SAFEARRAY.
+    LONG index = 0;
+    for (auto value : aValue) {
+      const HRESULT hr = SafeArrayPutElement(outputArr, &index, &value);
+      if (FAILED(hr)) {
+        SafeArrayDestroy(outputArr);
+        return hr;
+      }
+      ++index;
+    }
+
+    aVariant.vt = VT_ARRAY | VT_I4;
+    aVariant.parray = outputArr;
+    return S_OK;
+  }
+};
 
 template <>
 struct AttributeTraits<UIA_FontWeightAttributeId> {

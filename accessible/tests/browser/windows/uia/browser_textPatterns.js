@@ -535,6 +535,10 @@ addUiaTask(
 <div id="superscript-container">a <sup>bcd</sup> ef</div>
 <div id="not-hidden-container">a bcd ef</div>
 <div id="readonly-container">a <span contenteditable="true">bcd</span> ef</div>
+<div id="spelling-error-container">a <span aria-invalid="spelling">bcd</span> ef</div>
+<div id="grammar-error-container">a <span aria-invalid="grammar">bcd</span> ef</div>
+<div id="data-validation-error-container">a <span aria-invalid="true">bcd</span> ef</div>
+<div id="highlight-container">a highlighted phrase ef</div>
 `,
   async function testTextRangeGetAttributeValue() {
     // ================== UIA_FontWeightAttributeId ==================
@@ -781,7 +785,147 @@ addUiaTask(
       false,
       "IsReadOnly correct"
     );
-  }
+
+    // ================== UIA_AnnotationTypesAttributeId - AnnotationType_SpellingError ==================
+    await runPython(`
+      global range
+      spellingErrorContainerAcc = findUiaByDomId(doc, "spelling-error-container")
+      range = docText.RangeFromChild(spellingErrorContainerAcc)
+    `);
+    is(await runPython(`range.GetText(-1)`), "a bcd ef", "range text correct");
+    info("checking mixed SpellingError properties");
+    ok(
+      await runPython(`
+        val = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return val == uiaClient.ReservedMixedAttributeValue
+      `),
+      "SpellingError correct (mixed)"
+    );
+    info('Moving to aria-invalid="spelling" text run');
+    is(
+      await runPython(`range.Move(TextUnit_Format, 1)`),
+      1,
+      "Move return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+    info("checking SpellingError");
+    ok(
+      await runPython(`
+        annotations = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return annotations == (AnnotationType_SpellingError,)
+      `),
+      "SpellingError correct"
+    );
+
+    // ================== UIA_AnnotationTypesAttributeId - AnnotationType_GrammarError ==================
+    await runPython(`
+      global range
+      grammarErrorContainerAcc = findUiaByDomId(doc, "grammar-error-container")
+      range = docText.RangeFromChild(grammarErrorContainerAcc)
+    `);
+    is(await runPython(`range.GetText(-1)`), "a bcd ef", "range text correct");
+    info("checking mixed GrammarError properties");
+    ok(
+      await runPython(`
+        val = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return val == uiaClient.ReservedMixedAttributeValue
+      `),
+      "GrammarError correct (mixed)"
+    );
+    info('Moving to aria-invalid="grammar" text run');
+    is(
+      await runPython(`range.Move(TextUnit_Format, 1)`),
+      1,
+      "Move return correct"
+    );
+    is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+    info("checking GrammarError");
+    ok(
+      await runPython(`
+        annotations = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return annotations == (AnnotationType_GrammarError,)
+      `),
+      "GrammarError correct"
+    );
+
+    // ================== UIA_AnnotationTypesAttributeId - AnnotationType_DataValidationError ==================
+    // The IA2 -> UIA bridge does not work for aria-invalid=true or highlights.
+    if (gIsUiaEnabled) {
+      await runPython(`
+      global range
+      dataValidationErrorContainerAcc = findUiaByDomId(doc, "data-validation-error-container")
+      range = docText.RangeFromChild(dataValidationErrorContainerAcc)
+    `);
+      is(
+        await runPython(`range.GetText(-1)`),
+        "a bcd ef",
+        "range text correct"
+      );
+      info("checking mixed DataValidationError properties");
+      ok(
+        await runPython(`
+        val = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return val == uiaClient.ReservedMixedAttributeValue
+      `),
+        "DataValidationError correct (mixed)"
+      );
+      info('Moving to aria-invalid="true" text run');
+      is(
+        await runPython(`range.Move(TextUnit_Format, 1)`),
+        1,
+        "Move return correct"
+      );
+      is(await runPython(`range.GetText(-1)`), "bcd", "range text correct");
+      info("checking DataValidationError");
+      ok(
+        await runPython(`
+        annotations = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return annotations == (AnnotationType_DataValidationError,)
+      `),
+        "DataValidationError correct"
+      );
+
+      // ================== UIA_AnnotationTypesAttributeId - AnnotationType_Highlighted ==================
+      await runPython(`
+      global range
+      highlightContainerAcc = findUiaByDomId(doc, "highlight-container")
+      range = docText.RangeFromChild(highlightContainerAcc)
+    `);
+      is(
+        await runPython(`range.GetText(-1)`),
+        "a highlighted phrase ef",
+        "range text correct"
+      );
+      info("checking mixed Highlighted properties");
+      ok(
+        await runPython(`
+        val = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return val == uiaClient.ReservedMixedAttributeValue
+      `),
+        "Highlighted correct (mixed)"
+      );
+      info("Moving to highlighted text run");
+      is(
+        await runPython(`range.Move(TextUnit_Format, 1)`),
+        1,
+        "Move return correct"
+      );
+      is(
+        await runPython(`range.GetText(-1)`),
+        "highlighted phrase",
+        "range text correct"
+      );
+      info("checking Highlighted");
+      ok(
+        await runPython(`
+        annotations = range.GetAttributeValue(UIA_AnnotationTypesAttributeId)
+        return annotations == (AnnotationType_Highlighted,)
+      `),
+        "Highlighted correct"
+      );
+    }
+  },
+  { urlSuffix: "#:~:text=highlighted%20phrase" }
 );
 
 /**
