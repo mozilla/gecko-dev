@@ -9,7 +9,6 @@
 #include "celldata.h"
 #include "nsTArray.h"
 #include "nsCOMPtr.h"
-#include "nsAlgorithm.h"
 #include "nsRect.h"
 #include <algorithm>
 #include "TableArea.h"

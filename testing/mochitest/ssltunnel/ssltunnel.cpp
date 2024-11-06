@@ -24,7 +24,6 @@
 #include "prenv.h"
 #include "prnetdb.h"
 #include "prtpool.h"
-#include "nsAlgorithm.h"
 #include "nss.h"
 #include "keyhi.h"
 #include "ssl.h"

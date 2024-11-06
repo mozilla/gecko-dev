@@ -13,7 +13,7 @@ namespace mozilla {
 int32_t CompareIgnoreCase(const nsAString& aStr1, const nsAString& aStr2) {
   uint32_t len1 = aStr1.Length();
   uint32_t len2 = aStr2.Length();
-  uint32_t lenMin = XPCOM_MIN(len1, len2);
+  uint32_t lenMin = std::min(len1, len2);
 
   int32_t result = nsCaseInsensitiveStringComparator(
       aStr1.BeginReading(), aStr2.BeginReading(), lenMin, lenMin);

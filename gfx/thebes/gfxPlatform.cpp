@@ -148,7 +148,6 @@ static const uint32_t kDefaultGlyphCacheSize = -1;
 #include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
 
-#include "nsAlgorithm.h"
 #include "nsIGfxInfo.h"
 #include "nsIXULRuntime.h"
 #include "VsyncSource.h"
