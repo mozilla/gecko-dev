@@ -76,6 +76,7 @@ gecko_metrics = [
     "toolkit/mozapps/handling/metrics.yaml",
     "toolkit/profile/metrics.yaml",
     "toolkit/xre/metrics.yaml",
+    "widget/metrics.yaml",
     "xpcom/metrics.yaml",
 ]
 
@@ -119,7 +120,6 @@ firefox_desktop_metrics = [
     "toolkit/modules/metrics.yaml",
     "widget/cocoa/metrics.yaml",
     "widget/gtk/metrics.yaml",
-    "widget/metrics.yaml",
     "widget/windows/metrics.yaml",
 ]
 
