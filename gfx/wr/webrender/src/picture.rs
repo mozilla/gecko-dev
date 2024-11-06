@@ -99,6 +99,7 @@ use api::{PropertyBinding, PropertyBindingId, FilterPrimitive, FilterOpGraphPict
 use api::{DebugFlags, ImageKey, ColorF, ColorU, PrimitiveFlags, SnapshotInfo};
 use api::{ImageRendering, ColorDepth, YuvRangedColorSpace, YuvFormat, AlphaType};
 use api::units::*;
+use crate::prim_store::image::AdjustedImageSource;
 use crate::{command_buffer::PrimitiveCommand, render_task_graph::RenderTaskGraphBuilder, renderer::GpuBufferBuilderF};
 use crate::box_shadow::BLUR_SAMPLE_SCALE;
 use crate::clip::{ClipStore, ClipChainInstance, ClipLeafId, ClipNodeId, ClipTreeBuilder};
@@ -8334,6 +8335,10 @@ fn request_render_task(
 
     let task_id = match snapshot {
         Some(info) => {
+            let adjustment = AdjustedImageSource::from_rects(
+                &info.area,
+                &surface_rects.clipped_local.cast_unit()
+            );
             frame_state.resource_cache.render_as_image(
                 info.key.as_image(),
                 surface_rects.task_size,
@@ -8341,6 +8346,7 @@ fn request_render_task(
                 &mut frame_state.frame_gpu_data.f32,
                 frame_state.gpu_cache,
                 is_opaque,
+                &adjustment,
                 f
             )
         }

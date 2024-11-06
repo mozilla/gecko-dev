@@ -2569,9 +2569,13 @@ impl BatchBuilder {
                         (gpu_cache.get_address(&segment_instance.gpu_cache_handle), segments)
                     };
 
+                    let local_rect = image_instance.adjustment.map_local_rect(&prim_rect);
+                    let local_clip_rect = image_instance.tight_local_clip_rect
+                        .intersection_unchecked(&local_rect);
+
                     let prim_header = PrimitiveHeader {
-                        local_rect: prim_rect,
-                        local_clip_rect: prim_info.clip_chain.local_clip_rect,
+                        local_rect,
+                        local_clip_rect,
                         specific_prim_address: prim_cache_address,
                         transform_id,
                     };

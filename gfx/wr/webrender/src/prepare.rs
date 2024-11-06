@@ -718,7 +718,7 @@ fn prepare_interned_prim_for_render(
                 &mut scratch.segments,
                 &mut scratch.segment_instances,
                 |request| {
-                    image_data.write_prim_gpu_blocks(request);
+                    image_data.write_prim_gpu_blocks(&image_instance.adjustment, request);
                 },
             );
         }
