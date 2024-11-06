@@ -3565,10 +3565,7 @@ void arena_t::TrimRunHead(arena_chunk_t* aChunk, arena_run_t* aRun,
   aChunk->map[pageind + head_npages].bits =
       aNewSize | CHUNK_MAP_LARGE | CHUNK_MAP_ALLOCATED;
 
-#ifdef MOZ_DEBUG
-  arena_chunk_t* no_chunk =
-#endif
-      DallocRun(aRun, false);
+  DebugOnly<arena_chunk_t*> no_chunk = DallocRun(aRun, false);
   // This will never release a chunk as there's still at least one allocated
   // run.
   MOZ_ASSERT(!no_chunk);
@@ -3587,9 +3584,7 @@ void arena_t::TrimRunTail(arena_chunk_t* aChunk, arena_run_t* aRun,
   aChunk->map[pageind + npages].bits =
       (aOldSize - aNewSize) | CHUNK_MAP_LARGE | CHUNK_MAP_ALLOCATED;
 
-#ifdef MOZ_DEBUG
-  arena_chunk_t* no_chunk =
-#endif
+  DebugOnly<arena_chunk_t*> no_chunk =
       DallocRun((arena_run_t*)(uintptr_t(aRun) + aNewSize), aDirty);
 
   // This will never release a chunk as there's still at least one allocated
