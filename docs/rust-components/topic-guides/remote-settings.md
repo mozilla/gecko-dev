@@ -5,7 +5,7 @@ myst:
 
 # Remote Settings Client
 
-The API for the Remote Settings can be found in the Mozilla Rust components [Kotlin API Reference](http://todo.example.com/) and [Swift API Reference](http://todo.example.com).
+The API for the Remote Settings can be found in the Mozilla Rust components [Kotlin API Reference](https://mozilla.github.io/application-services/kotlin/kotlin-components-docs/mozilla.appservices.remotesettings/index.html) and [Swift API Reference](https://mozilla.github.io/application-services/swift/Classes/RemoteSettings.html).
 
 ```{note}
 Make sure you initialize {doc}`viaduct` for this component.
@@ -75,7 +75,7 @@ let appWideRemoteSettingsService = RemoteSettingsService(config: config)
 ```
 :::
 
-## Creating and using remote settings clients
+## Creating Remote Settings clients
 
 `RemoteSettingsService` instances can be used to create new `RemoteSettingsClient` instances that
 fetch remote settings records for a particular collection.
@@ -92,7 +92,9 @@ let remoteSettingsClient = appWideRemoteSettingsService.makeClient(collection: "
 :::
 
 
-Clients can then be used to fetch remote settings records.  Records have some standard attributes
+## Getting records
+
+`RemoteSettingsClient` instances can be used to fetch remote settings records.  Records have some standard attributes
 (`id`, `lastModified`, etc) and also have the `fields` attribute which stores all other JSON data
 serialized as a string.
 
@@ -159,6 +161,33 @@ Both `getRecords` and `getRecordsMap` input an optional `syncIfEmpty` parameter.
 this parameter, you should still check for null, which will be returned if the network request
 fails.  `syncIfEmpty` should be used with caution, since there can be a delay in fetching the
 setting.  For example, it could delay UI updates.
+
+## Getting attachment data
+
+`RemoteSettingsRecord` instances have an optional attachment field.  If present, you can download
+the attachment data as a byte array using `RemoteSettingsClient.getAttachment`.  This will make a
+network request unless the attachment data is cached.
+
+
+:::{tab-set-code}
+
+```kotlin
+    val records = remoteSettingsClient.getRecords()
+    if (records.size > 0 && records[0].attachment != null) {
+        val attachmentData: ByteArray = remoteSettingsClient.getAttachment(records[0].attachment.location)
+        // do something with the attachment data
+    }
+}
+```
+
+```swift
+    let records = remoteSettingsClient.getRecords()
+    if (records.count > 0 && records[0].attachment != nil) {
+        val attachmentData: Data = remoteSettingsClient.getAttachment(location: records[0].attachment.location)
+        // do something with the attachment data
+    }
+```
+:::
 
 ## Syncing with the server
 
