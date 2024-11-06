@@ -625,7 +625,7 @@ void IProtocol::ActorDisconnected(ActorDestroyReason aWhy) {
       }
     }
 
-    actor->RejectPendingResponses();
+    actor->RejectPendingResponses(ResponseRejectReason::ActorDestroyed);
     actor->ActorDestroy(why);
   };
 
@@ -895,49 +895,73 @@ IPDLResolverInner::~IPDLResolverInner() {
   }
 }
 
-namespace {
-template <typename Entry>
-struct PairFirstComparator {
-  bool Equals(const Entry& aA, const Entry& aB) const {
-    return aA.first == aB.first;
-  }
-  bool LessThan(const Entry& aA, const Entry& aB) const {
-    return aA.first < aB.first;
-  }
-};
-}  // namespace
+bool IPDLAsyncReturnsCallbacks::EntryKey::operator==(
+    const EntryKey& aOther) const {
+  return mSeqno == aOther.mSeqno && mType == aOther.mType;
+}
 
-void IPDLAsyncReturnsCallbacks::AddCallback(int32_t aSeqno,
-                                            Callback aCallback) {
-  mMap.InsertElementSorted(std::pair{aSeqno, std::move(aCallback)},
-                           PairFirstComparator<Entry>());
+bool IPDLAsyncReturnsCallbacks::EntryKey::operator<(
+    const EntryKey& aOther) const {
+  return mSeqno < aOther.mSeqno ||
+         (mSeqno == aOther.mSeqno && mType < aOther.mType);
+}
+
+void IPDLAsyncReturnsCallbacks::AddCallback(int32_t aSeqno, msgid_t aType,
+                                            Callback aResolve,
+                                            RejectCallback aReject) {
+  Entry entry{{aSeqno, aType}, std::move(aResolve), std::move(aReject)};
+  MOZ_ASSERT(!mMap.ContainsSorted(entry));
+  mMap.InsertElementSorted(std::move(entry));
 }
 
 auto IPDLAsyncReturnsCallbacks::GotReply(
     IProtocol* aActor, const IPC::Message& aMessage) -> Result {
-  // Check if we have an entry for the given seqno: if we do remove it from the
-  // list and call it, otherwise we'll return MsgProcessingError.
-  // NOTE: The callback is responsible for deserializing the IPC::Message and
-  // validating that the message ID is correct.
-  size_t index = mMap.BinaryIndexOf(std::pair{aMessage.seqno(), nullptr},
-                                    PairFirstComparator<Entry>());
+  // Check if we have an entry for the given seqno and message type.
+  EntryKey key{aMessage.seqno(), aMessage.type()};
+  size_t index = mMap.BinaryIndexOf(key);
   if (index == nsTArray<Entry>::NoIndex) {
     return MsgProcessingError;
   }
 
-  MOZ_ASSERT(mMap[index].first == aMessage.seqno());
-
-  Callback callback = std::move(mMap[index].second);
+  // Move the callbacks out of the map, as we will now be handling it.
+  Entry entry = std::move(mMap[index]);
   mMap.RemoveElementAt(index);
-  return callback(aActor, &aMessage);
+  MOZ_ASSERT(entry == key);
+
+  // Deserialize the message which was serialized by IPDLResolverInner.
+  IPC::MessageReader reader{aMessage, aActor};
+  bool resolve = false;
+  if (!IPC::ReadParam(&reader, &resolve)) {
+    entry.mReject(ResponseRejectReason::HandlerRejected);
+    return MsgValueError;
+  }
+
+  if (resolve) {
+    // Hand off resolve-case deserialization & success to the callback.
+    Result rv = entry.mResolve(&reader);
+    if (rv != MsgProcessed) {
+      // If deserialization failed, we need to call the reject handler.
+      entry.mReject(ResponseRejectReason::HandlerRejected);
+    }
+    return rv;
+  }
+
+  ResponseRejectReason reason;
+  if (!IPC::ReadParam(&reader, &reason)) {
+    entry.mReject(ResponseRejectReason::HandlerRejected);
+    return MsgValueError;
+  }
+  reader.EndRead();
+
+  entry.mReject(reason);
+  return MsgProcessed;
 }
 
-void IPDLAsyncReturnsCallbacks::RejectPendingResponses() {
+void IPDLAsyncReturnsCallbacks::RejectPendingResponses(
+    ResponseRejectReason aReason) {
   nsTArray<Entry> pending = std::move(mMap);
   for (auto& entry : pending) {
-    // Passing `nullptr` as the message is a sentinel to the callback code to
-    // reject the message due to actor shutdown.
-    (entry.second)(nullptr, nullptr);
+    entry.mReject(aReason);
   }
 }
 

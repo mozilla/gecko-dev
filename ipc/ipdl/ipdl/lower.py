@@ -4013,11 +4013,12 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 MethodDecl(
                     "RejectPendingResponses",
                     methodspec=MethodSpec.FINAL,
+                    params=[Decl(_ResponseRejectReason.Type(), "aReason")],
                 )
             )
             rejectpendingresponses.addcode(
                 """
-                mAsyncCallbacks.RejectPendingResponses();
+                mAsyncCallbacks.RejectPendingResponses(aReason);
                 """,
             )
             self.cls.addstmts([rejectpendingresponses, Whitespace.NL])
@@ -4695,8 +4696,15 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         case = StmtBlock()
         case.addcode(
             """
+            ${logMessage}
+            ${profilerLabel}
+
             return mAsyncCallbacks.GotReply(this, ${msgvar});
             """,
+            logMessage=self.logMessage(
+                md, ExprAddrOf(self.msgvar), "Received ", receiving=True
+            ),
+            profilerLabel=self.profilerLabel(md),
             msgvar=self.msgvar,
         )
 
@@ -5046,78 +5054,25 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
         return stmts
 
-    def asyncReplyCallbackImpl(self, md, side, resolvecb, rejectcb):
-        msgvar = self.msgvar
-        readervar = ExprVar("reader__")
-        msgexpr = ExprAddrOf(msgvar)
-        isctor = md.decl.type.isCtor()
-        resolve = ExprVar("resolve__")
-        reason = ExprVar("reason__")
-        actor = ExprVar("aActor")
+    def asyncReplyCallbackImpl(self, md, side, resolvecb):
+        assert md.returns
 
-        # Custom error function handler which uses the correct actor argument.
+        readervar = ExprVar("aReader")
+
+        # Custom error function handler which calls FatalError on the reader
         def errfn(msg, errcode=_Result.ValuError):
             return [
                 StmtExpr(
                     ExprCall(
-                        ExprSelect(actor, "->", "FatalError"),
+                        ExprSelect(readervar, "->", "FatalError"),
                         args=[ExprLiteral.String(msg)],
                     )
                 ),
                 StmtReturn(errcode),
             ]
 
-        # NOTE: The `resolve__` and `reason__` parameters don't have sentinels,
-        # as they are serialized by the IPDLResolverInner type in
-        # ProtocolUtils.cpp rather than by generated code.
-        desresolve = [
-            StmtCode(
-                """
-                bool resolve__ = false;
-                if (!IPC::ReadParam(&${readervar}, &resolve__)) {
-                    ${actor}->FatalError("Error deserializing bool");
-                    return MsgValueError;
-                }
-                """,
-                readervar=readervar,
-                actor=actor,
-            ),
-        ]
-        desrej = [
-            StmtCode(
-                """
-                ResponseRejectReason reason__{};
-                if (!IPC::ReadParam(&${readervar}, &reason__)) {
-                    ${actor}->FatalError("Error deserializing ResponseRejectReason");
-                    return MsgValueError;
-                }
-                ${readervar}.EndRead();
-                """,
-                readervar=readervar,
-                actor=actor,
-            ),
-        ]
-        prologue = [
-            self.logMessage(md, msgexpr, "Received ", actor=actor, receiving=True),
-            self.profilerLabel(md),
-            Whitespace.NL,
-        ]
-
-        if not md.returns:
-            return prologue
-
-        prologue.extend(
-            [
-                StmtDecl(
-                    Decl(Type("IPC::MessageReader"), readervar.name),
-                    initargs=[msgvar, actor],
-                )
-            ]
-            + desresolve
-        )
-
         start, reads = 0, []
-        if isctor:
+        if md.decl.type.isCtor():
             # return the raw actor handle so that its ID can be used
             # to construct the "real" actor
             handlevar = self.handlevar
@@ -5127,7 +5082,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                     None,
                     handletype,
                     handlevar,
-                    ExprAddrOf(readervar),
+                    readervar,
                     errfn,
                     "'%s'" % handletype.name,
                     sentinelKey="actor",
@@ -5136,72 +5091,42 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             ]
             start = 1
 
-        stmts = (
-            reads
-            + [
-                _ParamTraits.checkedRead(
-                    p.ipdltype,
-                    p.bareType(side),
-                    p.var(),
-                    ExprAddrOf(readervar),
-                    errfn,
-                    "'%s'" % p.ipdltype.name(),
-                    sentinelKey=p.name,
-                    errfnSentinel=errfnSentinel(_Result.ValuError),
-                )
-                for p in md.returns[start:]
-            ]
-            + [StmtCode("${reader}.EndRead();", reader=readervar)]
-        )
+        reads += [
+            _ParamTraits.checkedRead(
+                p.ipdltype,
+                p.bareType(side),
+                p.var(),
+                readervar,
+                errfn,
+                "'%s'" % p.ipdltype.name(),
+                sentinelKey=p.name,
+                errfnSentinel=errfnSentinel(_Result.ValuError),
+            )
+            for p in md.returns[start:]
+        ]
 
         if len(md.returns) > 1:
-            resolvetype = _tuple([d.bareType(self.side) for d in md.returns])
             resolvearg = ExprCall(
                 ExprVar("std::make_tuple"),
                 args=[ExprMove(p.var()) for p in md.returns],
             )
         else:
-            resolvetype = md.returns[0].bareType(self.side)
             resolvearg = ExprMove(md.returns[0].var())
 
         return ExprCode(
             """
-            [resolve=std::move(${resolvecb}), reject=std::move(${rejectcb})](IProtocol* ${actor}, const IPC::Message* aMessage) {
-                // If `aMessage` is null, reject the promise with `ActorDestroyed`.
-                if (!aMessage) {
-                    reject(::mozilla::ipc::ResponseRejectReason::ActorDestroyed);
-                    return MsgProcessed;
-                }
-                const IPC::Message& ${msgvar} = *aMessage;
-                if (${msgvar}.type() != ${replyid}) {
-                    ${actor}->FatalError("Unexpected message type");
-                    return MsgNotKnown;
-                }
+            [resolve=std::move(${resolvecb})](IPC::MessageReader* aReader) mutable {
+                $*{reads}
 
-                $*{prologue}
+                aReader->EndRead();
 
-                if (${resolve}) {
-                    $*{desstmts}
-                    resolve(${resolvearg});
-                } else {
-                    $*{desrej}
-                    reject(${reason});
-                }
+                resolve(${resolvearg});
                 return MsgProcessed;
             }
             """,
             resolvecb=resolvecb,
-            rejectcb=rejectcb,
-            actor=actor,
-            replyid=md.pqReplyId(),
-            prologue=prologue,
-            msgvar=self.msgvar,
-            resolve=resolve,
-            resolvetype=resolvetype,
-            desstmts=stmts,
+            reads=reads,
             resolvearg=resolvearg,
-            desrej=desrej,
-            reason=reason,
         )
 
     def deserializeReply(self, md, replyexpr, side, errfn, errfnSentinel, actor=None):
@@ -5271,16 +5196,15 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             )
             stmts.append(ifsendok)
 
-            callback = self.asyncReplyCallbackImpl(
-                md, self.side, ExprVar("aResolve"), ExprVar("aReject")
-            )
+            callback = self.asyncReplyCallbackImpl(md, self.side, ExprVar("aResolve"))
 
             ifsendok.addifstmt(
                 StmtCode(
                     """
-                    mAsyncCallbacks.AddCallback(${seqno}, ${callback});
+                    mAsyncCallbacks.AddCallback(${seqno}, ${replyid}, ${callback}, std::move(aReject));
                     """,
                     seqno=seqno,
+                    replyid=md.pqReplyId(),
                     callback=callback,
                 )
             )

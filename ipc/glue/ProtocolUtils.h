@@ -296,8 +296,8 @@ class IProtocol : public HasResultCodes {
   }
 
   // Called internally to reject the callbacks for all async-returns methods
-  // in-progress on this actor with the `ActorDestroyed` ResponseRejectReason.
-  virtual void RejectPendingResponses() {}
+  // in-progress on this actor with the given ResponseRejectReason.
+  virtual void RejectPendingResponses(ResponseRejectReason aReason) {}
 
   // Called when the actor has been destroyed due to an error, a __delete__
   // message, or a __doom__ reply.
@@ -760,20 +760,33 @@ class IPDLResolverInner final {
 // dispatching the reply.
 class IPDLAsyncReturnsCallbacks : public HasResultCodes {
  public:
-  // Internal handler signature. A null message argument signals that the
-  // callback should be rejected due to actor destruction.
+  // Internal resolve callback signature. The callback should deserialize from
+  // the IPC::MessageReader* argument.
   using Callback =
-      mozilla::MoveOnlyFunction<Result(IProtocol*, const IPC::Message*)>;
+      mozilla::MoveOnlyFunction<Result(IPC::MessageReader* IProtocol)>;
+  using msgid_t = IPC::Message::msgid_t;
 
-  void AddCallback(int32_t aSeqno, Callback aCallback);
+  void AddCallback(int32_t aSeqno, msgid_t aType, Callback aResolve,
+                   RejectCallback aReject);
   Result GotReply(IProtocol* aActor, const IPC::Message& aMessage);
-  void RejectPendingResponses();
+  void RejectPendingResponses(ResponseRejectReason aReason);
 
  private:
+  struct EntryKey {
+    int32_t mSeqno;
+    msgid_t mType;
+
+    bool operator==(const EntryKey& aOther) const;
+    bool operator<(const EntryKey& aOther) const;
+  };
+  struct Entry : EntryKey {
+    Callback mResolve;
+    RejectCallback mReject;
+  };
+
   // NOTE: We expect this table to be quite small most of the time (usually 0-1
   // entries), so use a sorted array as backing storage to reduce unnecessary
   // overhead.
-  using Entry = std::pair<int32_t, Callback>;
   nsTArray<Entry> mMap;
 };
 
