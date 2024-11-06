@@ -497,27 +497,12 @@ Arena* ArenaChunk::allocateArena(GCRuntime* gc, Zone* zone, AllocKind thingKind,
   return arena;
 }
 
-template <size_t N>
-static inline size_t FindFirstBitSet(
-    const mozilla::BitSet<N, uint32_t>& bitset) {
-  MOZ_ASSERT(!bitset.IsEmpty());
-
-  const auto& words = bitset.Storage();
-  for (size_t i = 0; i < words.Length(); i++) {
-    uint32_t word = words[i];
-    if (word) {
-      return i * 32 + mozilla::CountTrailingZeroes32(word);
-    }
-  }
-
-  MOZ_CRASH("No bits found");
-}
-
 void ArenaChunk::commitOnePage(GCRuntime* gc) {
   MOZ_ASSERT(info.numArenasFreeCommitted == 0);
   MOZ_ASSERT(info.numArenasFree >= ArenasPerPage);
 
-  uint32_t pageIndex = FindFirstBitSet(decommittedPages);
+  uint32_t pageIndex = decommittedPages.FindFirst();
+  MOZ_ASSERT(pageIndex < PagesPerChunk);
   MOZ_ASSERT(decommittedPages[pageIndex]);
 
   if (DecommitEnabled()) {
@@ -540,7 +525,8 @@ Arena* ArenaChunk::fetchNextFreeArena(GCRuntime* gc) {
   MOZ_ASSERT(info.numArenasFreeCommitted > 0);
   MOZ_ASSERT(info.numArenasFreeCommitted <= info.numArenasFree);
 
-  size_t index = FindFirstBitSet(freeCommittedArenas);
+  size_t index = freeCommittedArenas.FindFirst();
+  MOZ_ASSERT(index < ArenasPerChunk);
   MOZ_ASSERT(freeCommittedArenas[index]);
 
   freeCommittedArenas[index] = false;

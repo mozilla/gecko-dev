@@ -190,12 +190,8 @@ struct StatsClosure {
 static void DecommittedPagesChunkCallback(JSRuntime* rt, void* data,
                                           gc::ArenaChunk* chunk,
                                           const JS::AutoRequireNoGC& nogc) {
-  size_t n = 0;
-  for (uint32_t word : chunk->decommittedPages.Storage()) {
-    n += mozilla::CountPopulation32(word);
-  }
-
-  *static_cast<size_t*>(data) += n * gc::PageSize;
+  auto* gcHeapDecommittedPages = static_cast<size_t*>(data);
+  *gcHeapDecommittedPages += chunk->decommittedPages.Count() * gc::PageSize;
 }
 
 static void StatsZoneCallback(JSRuntime* rt, void* data, Zone* zone,
