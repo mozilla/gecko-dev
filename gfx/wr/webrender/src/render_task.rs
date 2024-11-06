@@ -677,7 +677,7 @@ impl RenderTaskKind {
                         gpu_buffer_builder,
                         rg_builder,
                         surface_builder,
-                        &mut |rg_builder, _| {
+                        &mut |rg_builder, _, _| {
                             let clip_data = ClipData::rounded_rect(
                                 source.minimal_shadow_rect.size(),
                                 &source.shadow_radius,
