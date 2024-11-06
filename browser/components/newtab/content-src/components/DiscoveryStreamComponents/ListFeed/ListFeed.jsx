@@ -153,6 +153,7 @@ function ListFeed({ type, firstVisibleTimestamp, recs, categories, dispatch }) {
                   received_rank={rec.received_rank}
                   isListCard={true}
                   isFakespot={isFakespot}
+                  category={rec.category}
                 />
               );
             })}

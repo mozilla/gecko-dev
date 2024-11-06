@@ -3927,7 +3927,8 @@ function ListFeed({
       recommended_at: rec.recommended_at,
       received_rank: rec.received_rank,
       isListCard: true,
-      isFakespot: isFakespot
+      isFakespot: isFakespot,
+      category: rec.category
     });
   }), isFakespot && /*#__PURE__*/external_React_default().createElement("div", {
     className: "fakespot-footer"
