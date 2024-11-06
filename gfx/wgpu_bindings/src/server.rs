@@ -1737,6 +1737,12 @@ impl Global {
                     &wgt::RenderBundleDescriptor { label },
                 );
             }
+            DeviceAction::CreateQuerySet(id, desc) => {
+                let (_, error) = self.device_create_query_set(self_id, &desc, Some(id));
+                if let Some(err) = error {
+                    error_buf.init(err);
+                }
+            }
             DeviceAction::CreateCommandEncoder(id, desc) => {
                 let (_, error) = self.device_create_command_encoder(self_id, &desc, Some(id));
                 if let Some(err) = error {
@@ -2178,6 +2184,11 @@ pub extern "C" fn wgpu_server_texture_view_drop(global: &Global, self_id: id::Te
 #[no_mangle]
 pub extern "C" fn wgpu_server_sampler_drop(global: &Global, self_id: id::SamplerId) {
     global.sampler_drop(self_id);
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_server_query_set_drop(global: &Global, self_id: id::QuerySetId) {
+    global.query_set_drop(self_id);
 }
 
 #[no_mangle]

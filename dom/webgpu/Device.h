@@ -39,6 +39,7 @@ struct GPURenderBundleEncoderDescriptor;
 struct GPURenderPipelineDescriptor;
 struct GPUCommandEncoderDescriptor;
 struct GPUCanvasConfiguration;
+struct GPUQuerySetDescriptor;
 
 class EventHandlerNonNull;
 class Promise;
@@ -67,6 +68,7 @@ class ComputePipeline;
 class Fence;
 class InputState;
 class PipelineLayout;
+class QuerySet;
 class Queue;
 class RenderBundleEncoder;
 class RenderPipeline;
@@ -158,6 +160,9 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
       const dom::GPUCommandEncoderDescriptor& aDesc);
   already_AddRefed<RenderBundleEncoder> CreateRenderBundleEncoder(
       const dom::GPURenderBundleEncoderDescriptor& aDesc);
+
+  already_AddRefed<QuerySet> CreateQuerySet(
+      const dom::GPUQuerySetDescriptor& aDesc, ErrorResult& aRv);
 
   already_AddRefed<BindGroupLayout> CreateBindGroupLayout(
       const dom::GPUBindGroupLayoutDescriptor& aDesc);

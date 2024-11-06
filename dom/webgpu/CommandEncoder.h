@@ -11,6 +11,7 @@
 #include "mozilla/webgpu/WebGPUTypes.h"
 #include "nsWrapperCache.h"
 #include "ObjectModel.h"
+#include "QuerySet.h"
 
 namespace mozilla {
 class ErrorResult;
@@ -101,6 +102,9 @@ class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
       const dom::GPUComputePassDescriptor& aDesc);
   already_AddRefed<RenderPassEncoder> BeginRenderPass(
       const dom::GPURenderPassDescriptor& aDesc);
+  void ResolveQuerySet(QuerySet& aQuerySet, uint32_t aFirstQuery,
+                       uint32_t aQueryCount, webgpu::Buffer& aDestination,
+                       uint64_t aDestinationOffset);
   already_AddRefed<CommandBuffer> Finish(
       const dom::GPUCommandBufferDescriptor& aDesc);
 };

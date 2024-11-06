@@ -24,6 +24,7 @@
 #include "InternalError.h"
 #include "OutOfMemoryError.h"
 #include "PipelineLayout.h"
+#include "QuerySet.h"
 #include "Queue.h"
 #include "RenderBundleEncoder.h"
 #include "RenderPipeline.h"
@@ -292,6 +293,41 @@ already_AddRefed<RenderBundleEncoder> Device::CreateRenderBundleEncoder(
   RefPtr<RenderBundleEncoder> encoder =
       new RenderBundleEncoder(this, mBridge, aDesc);
   return encoder.forget();
+}
+
+already_AddRefed<QuerySet> Device::CreateQuerySet(
+    const dom::GPUQuerySetDescriptor& aDesc, ErrorResult& aRv) {
+  ipc::ByteBuf bb;
+  ffi::WGPURawQuerySetDescriptor desc = {};
+
+  webgpu::StringHelper label(aDesc.mLabel);
+  desc.label = label.Get();
+  ffi::WGPURawQueryType type;
+  switch (aDesc.mType) {
+    case dom::GPUQueryType::Occlusion:
+      type = ffi::WGPURawQueryType_Occlusion;
+      break;
+    case dom::GPUQueryType::Timestamp:
+      type = ffi::WGPURawQueryType_Timestamp;
+      if (!mFeatures->Features().count(dom::GPUFeatureName::Timestamp_query)) {
+        aRv.ThrowTypeError(
+            "requested query set of type `timestamp`, but the "
+            "`timestamp-query` feature is not enabled on the device");
+        return nullptr;
+      }
+      break;
+  };
+  desc.ty = type;
+  desc.count = aDesc.mCount;
+
+  RawId id = ffi::wgpu_client_create_query_set(mBridge->GetClient(), &desc,
+                                               ToFFI(&bb));
+  if (mBridge->CanSend()) {
+    mBridge->SendDeviceAction(mId, std::move(bb));
+  }
+
+  RefPtr<QuerySet> querySet = new QuerySet(this, aDesc, id);
+  return querySet.forget();
 }
 
 already_AddRefed<BindGroupLayout> Device::CreateBindGroupLayout(

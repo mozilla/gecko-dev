@@ -234,6 +234,21 @@ already_AddRefed<RenderPassEncoder> CommandEncoder::BeginRenderPass(
   return pass.forget();
 }
 
+void CommandEncoder::ResolveQuerySet(QuerySet& aQuerySet, uint32_t aFirstQuery,
+                                     uint32_t aQueryCount,
+                                     webgpu::Buffer& aDestination,
+                                     uint64_t aDestinationOffset) {
+  if (!mBridge->CanSend()) {
+    return;
+  }
+
+  ipc::ByteBuf bb;
+  ffi::wgpu_command_encoder_resolve_query_set(aQuerySet.mId, aFirstQuery,
+                                              aQueryCount, aDestination.mId,
+                                              aDestinationOffset, ToFFI(&bb));
+  mBridge->SendCommandEncoderAction(mId, mParent->mId, std::move(bb));
+}
+
 void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
   // Because this can be called during child Cleanup, we need to check
   // that the bridge is still alive.

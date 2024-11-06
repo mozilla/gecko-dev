@@ -68,6 +68,7 @@ parent:
   async TextureDrop(RawId selfId);
   async TextureViewDrop(RawId selfId);
   async SamplerDrop(RawId selfId);
+  async QuerySetDrop(RawId selfId);
   async DeviceDestroy(RawId selfId);
   async DeviceDrop(RawId selfId);
 

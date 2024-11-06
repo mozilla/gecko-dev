@@ -302,6 +302,7 @@ struct IdentityHub {
     textures: IdentityManager<markers::Texture>,
     texture_views: IdentityManager<markers::TextureView>,
     samplers: IdentityManager<markers::Sampler>,
+    query_sets: IdentityManager<markers::QuerySet>,
 }
 
 impl Default for IdentityHub {
@@ -322,6 +323,7 @@ impl Default for IdentityHub {
             textures: IdentityManager::new(),
             texture_views: IdentityManager::new(),
             samplers: IdentityManager::new(),
+            query_sets: IdentityManager::new(),
         }
     }
 }
@@ -713,6 +715,49 @@ pub unsafe extern "C" fn wgpu_client_create_render_bundle_error(
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_render_bundle_id(client: &Client, id: id::RenderBundleId) {
     client.identities.lock().render_bundles.free(id)
+}
+
+#[repr(C)]
+pub struct RawQuerySetDescriptor<'a> {
+    label: Option<&'a nsACString>,
+    ty: RawQueryType,
+    count: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub enum RawQueryType {
+    Occlusion,
+    Timestamp,
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_create_query_set(
+    client: &Client,
+    desc: &RawQuerySetDescriptor,
+    bb: &mut ByteBuf,
+) -> wgc::id::QuerySetId {
+    let &RawQuerySetDescriptor { label, ty, count } = desc;
+
+    let label = wgpu_string(label);
+    let ty = match ty {
+        RawQueryType::Occlusion => wgt::QueryType::Occlusion,
+        RawQueryType::Timestamp => wgt::QueryType::Timestamp,
+    };
+
+    let desc = wgc::resource::QuerySetDescriptor { label, ty, count };
+
+    let id = client.identities.lock().query_sets.process();
+
+    let action = DeviceAction::CreateQuerySet(id, desc);
+    *bb = make_byte_buf(&action);
+
+    id
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_free_query_set_id(client: &Client, id: id::QuerySetId) {
+    client.identities.lock().query_sets.free(id)
 }
 
 #[repr(C)]
@@ -1245,6 +1290,25 @@ pub unsafe extern "C" fn wgpu_command_encoder_insert_debug_marker(
 ) {
     let string = marker.to_string();
     let action = CommandEncoderAction::InsertDebugMarker(string);
+    *bb = make_byte_buf(&action);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_command_encoder_resolve_query_set(
+    query_set_id: id::QuerySetId,
+    start_query: u32,
+    query_count: u32,
+    destination: id::BufferId,
+    destination_offset: wgt::BufferAddress,
+    bb: &mut ByteBuf,
+) {
+    let action = CommandEncoderAction::ResolveQuerySet {
+        query_set_id,
+        start_query,
+        query_count,
+        destination,
+        destination_offset,
+    };
     *bb = make_byte_buf(&action);
 }
 

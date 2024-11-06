@@ -153,6 +153,7 @@ enum DeviceAction<'a> {
         wgc::command::RenderBundleDescriptor<'a>,
     ),
     CreateRenderBundleError(id::RenderBundleId, wgc::Label<'a>),
+    CreateQuerySet(id::QuerySetId, wgc::resource::QuerySetDescriptor<'a>),
     CreateCommandEncoder(
         id::CommandEncoderId,
         wgt::CommandEncoderDescriptor<wgc::Label<'a>>,

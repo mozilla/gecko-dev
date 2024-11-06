@@ -83,6 +83,7 @@ include = ["BufferUsages"]
 "TextureDescriptor______nsACString__FfiSlice_TextureFormat" = "WGPUTextureDescriptor"
 "SamplerDescriptor______nsACString" = "WGPUSamplerDescriptor"
 "AdapterInformation_nsString" = "WGPUAdapterInformation"
+"QuerySetDescriptor______nsACString" = "WGPUQuerySetDescriptor"
 
 [parse]
 parse_deps = true

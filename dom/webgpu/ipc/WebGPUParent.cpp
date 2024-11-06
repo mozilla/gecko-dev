@@ -783,6 +783,11 @@ ipc::IPCResult WebGPUParent::RecvSamplerDrop(RawId aSamplerId) {
   return IPC_OK();
 }
 
+ipc::IPCResult WebGPUParent::RecvQuerySetDrop(RawId aQuerySetId) {
+  ffi::wgpu_server_query_set_drop(mContext.get(), aQuerySetId);
+  return IPC_OK();
+}
+
 ipc::IPCResult WebGPUParent::RecvCommandEncoderFinish(
     RawId aEncoderId, RawId aDeviceId,
     const dom::GPUCommandBufferDescriptor& aDesc) {

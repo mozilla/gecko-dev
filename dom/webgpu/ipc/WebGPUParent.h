@@ -69,6 +69,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvTextureDrop(RawId aTextureId);
   ipc::IPCResult RecvTextureViewDrop(RawId aTextureViewId);
   ipc::IPCResult RecvSamplerDrop(RawId aSamplerId);
+  ipc::IPCResult RecvQuerySetDrop(RawId aQuerySetId);
   ipc::IPCResult RecvCommandEncoderFinish(
       RawId aEncoderId, RawId aDeviceId,
       const dom::GPUCommandBufferDescriptor& aDesc);
