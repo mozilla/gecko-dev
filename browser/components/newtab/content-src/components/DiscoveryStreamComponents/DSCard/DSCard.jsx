@@ -86,12 +86,15 @@ export const DefaultMeta = ({
   ctaButtonVariant,
   dispatch,
   spocMessageVariant,
+  mayHaveSectionsCards,
   mayHaveThumbsUpDown,
   onThumbsUpClick,
   onThumbsDownClick,
   isListCard,
   state,
   format,
+  topic,
+  isSectionsCard,
 }) => (
   <div className="meta">
     <div className="info-wrap">
@@ -121,14 +124,25 @@ export const DefaultMeta = ({
         </>
       )}
     </div>
-    {!isListCard && format !== "rectangle" && mayHaveThumbsUpDown && (
-      <DSThumbsUpDownButtons
-        onThumbsDownClick={onThumbsDownClick}
-        onThumbsUpClick={onThumbsUpClick}
-        sponsor={sponsor}
-        isThumbsDownActive={state.isThumbsDownActive}
-        isThumbsUpActive={state.isThumbsUpActive}
-      />
+    {!isListCard &&
+      format !== "rectangle" &&
+      !mayHaveSectionsCards &&
+      mayHaveThumbsUpDown && (
+        <DSThumbsUpDownButtons
+          onThumbsDownClick={onThumbsDownClick}
+          onThumbsUpClick={onThumbsUpClick}
+          sponsor={sponsor}
+          isThumbsDownActive={state.isThumbsDownActive}
+          isThumbsUpActive={state.isThumbsUpActive}
+        />
+      )}
+    {isSectionsCard && (
+      <div className="sections-card-footer">
+        <span
+          className="ds-card-topic"
+          data-l10n-id={`newtab-topic-label-${topic}`}
+        />
+      </div>
     )}
     {!newSponsoredLabel && (
       <DSContextFooter
@@ -140,6 +154,7 @@ export const DefaultMeta = ({
         source={source}
         dispatch={dispatch}
         spocMessageVariant={spocMessageVariant}
+        mayHaveSectionsCards={mayHaveSectionsCards}
       />
     )}
     {/* Sponsored label is normally in the way of any message.
@@ -681,12 +696,15 @@ export class _DSCard extends React.PureComponent {
         className={`ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName}  ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
         ref={this.setContextMenuButtonHostRef}
       >
-        {this.props.showTopics && this.props.topic && !isListCard && (
-          <span
-            className="ds-card-topic"
-            data-l10n-id={`newtab-topic-label-${this.props.topic}`}
-          />
-        )}
+        {this.props.showTopics &&
+          !this.props.mayHaveSectionsCards &&
+          this.props.topic &&
+          !isListCard && (
+            <span
+              className="ds-card-topic"
+              data-l10n-id={`newtab-topic-label-${this.props.topic}`}
+            />
+          )}
         <div className="img-wrapper">
           <DSImage
             extraClassNames="img"
@@ -757,13 +775,20 @@ export class _DSCard extends React.PureComponent {
             ctaButtonVariant={ctaButtonVariant}
             dispatch={this.props.dispatch}
             spocMessageVariant={this.props.spocMessageVariant}
-            mayHaveSectionsCards={this.props.mayHaveSectionsCards}
             mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
+            mayHaveSectionsCards={this.props.mayHaveSectionsCards}
             onThumbsUpClick={this.onThumbsUpClick}
             onThumbsDownClick={this.onThumbsDownClick}
             state={this.state}
             isListCard={isListCard}
+            isSectionsCard={
+              this.props.showTopics &&
+              this.props.mayHaveSectionsCards &&
+              this.props.topic &&
+              !isListCard
+            }
             format={format}
+            topic={this.props.topic}
           />
         )}
 

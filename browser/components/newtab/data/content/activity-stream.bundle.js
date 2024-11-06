@@ -2693,13 +2693,14 @@ const ANIMATION_DURATION = 3000;
 const DSMessageLabel = props => {
   const {
     context,
-    context_type
+    context_type,
+    mayHaveSectionsCards
   } = props;
   const {
     icon,
     fluentID
   } = cardContextTypes[context_type] || {};
-  if (!context && context_type) {
+  if (!context && context_type && !mayHaveSectionsCards) {
     return /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.TransitionGroup, {
       component: null
     }, /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
@@ -2770,7 +2771,8 @@ class DSContextFooter extends (external_React_default()).PureComponent {
       cta_button_variant,
       source,
       spocMessageVariant,
-      dispatch
+      dispatch,
+      mayHaveSectionsCards
     } = this.props;
     const sponsorLabel = SponsorLabel({
       sponsored_by_override,
@@ -2779,7 +2781,8 @@ class DSContextFooter extends (external_React_default()).PureComponent {
     });
     const dsMessageLabel = DSMessageLabel({
       context,
-      context_type
+      context_type,
+      mayHaveSectionsCards
     });
     if (cta_button_variant === "variant-a") {
       return /*#__PURE__*/external_React_default().createElement("div", {
@@ -2938,12 +2941,15 @@ const DefaultMeta = ({
   ctaButtonVariant,
   dispatch,
   spocMessageVariant,
+  mayHaveSectionsCards,
   mayHaveThumbsUpDown,
   onThumbsUpClick,
   onThumbsDownClick,
   isListCard,
   state,
-  format
+  format,
+  topic,
+  isSectionsCard
 }) => /*#__PURE__*/external_React_default().createElement("div", {
   className: "meta"
 }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -2963,13 +2969,18 @@ const DefaultMeta = ({
   className: "title clamp"
 }, "Sponsored"), /*#__PURE__*/external_React_default().createElement("p", {
   className: "excerpt clamp"
-}, "Sponsored content supports our mission to build a better web."))), !isListCard && format !== "rectangle" && mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
+}, "Sponsored content supports our mission to build a better web."))), !isListCard && format !== "rectangle" && !mayHaveSectionsCards && mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
   onThumbsDownClick: onThumbsDownClick,
   onThumbsUpClick: onThumbsUpClick,
   sponsor: sponsor,
   isThumbsDownActive: state.isThumbsDownActive,
   isThumbsUpActive: state.isThumbsUpActive
-}), !newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSContextFooter, {
+}), isSectionsCard && /*#__PURE__*/external_React_default().createElement("div", {
+  className: "sections-card-footer"
+}, /*#__PURE__*/external_React_default().createElement("span", {
+  className: "ds-card-topic",
+  "data-l10n-id": `newtab-topic-label-${topic}`
+})), !newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSContextFooter, {
   context_type: context_type,
   context: context,
   sponsor: sponsor,
@@ -2977,7 +2988,8 @@ const DefaultMeta = ({
   cta_button_variant: ctaButtonVariant,
   source: source,
   dispatch: dispatch,
-  spocMessageVariant: spocMessageVariant
+  spocMessageVariant: spocMessageVariant,
+  mayHaveSectionsCards: mayHaveSectionsCards
 }), newSponsoredLabel && /*#__PURE__*/external_React_default().createElement(DSMessageFooter, {
   context_type: context_type,
   context: null,
@@ -3427,7 +3439,7 @@ class _DSCard extends (external_React_default()).PureComponent {
     return /*#__PURE__*/external_React_default().createElement("article", {
       className: `ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName}  ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
       ref: this.setContextMenuButtonHostRef
-    }, this.props.showTopics && this.props.topic && !isListCard && /*#__PURE__*/external_React_default().createElement("span", {
+    }, this.props.showTopics && !this.props.mayHaveSectionsCards && this.props.topic && !isListCard && /*#__PURE__*/external_React_default().createElement("span", {
       className: "ds-card-topic",
       "data-l10n-id": `newtab-topic-label-${this.props.topic}`
     }), /*#__PURE__*/external_React_default().createElement("div", {
@@ -3494,13 +3506,15 @@ class _DSCard extends (external_React_default()).PureComponent {
       ctaButtonVariant: ctaButtonVariant,
       dispatch: this.props.dispatch,
       spocMessageVariant: this.props.spocMessageVariant,
-      mayHaveSectionsCards: this.props.mayHaveSectionsCards,
       mayHaveThumbsUpDown: this.props.mayHaveThumbsUpDown,
+      mayHaveSectionsCards: this.props.mayHaveSectionsCards,
       onThumbsUpClick: this.onThumbsUpClick,
       onThumbsDownClick: this.onThumbsDownClick,
       state: this.state,
       isListCard: isListCard,
-      format: format
+      isSectionsCard: this.props.showTopics && this.props.mayHaveSectionsCards && this.props.topic && !isListCard,
+      format: format,
+      topic: this.props.topic
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {

@@ -29,6 +29,12 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   --newtab-background-color: #{$in-content-page-background};
   --newtab-background-color-secondary: #{$newtab-background-secondary};
   --newtab-text-primary-color: #{$in-content-page-color};
+  // Card Background includes 20% transparency
+  --newtab-background-card: #{$newtab-background-card};
+  --newtab-text-topic-label-color: #45278D;
+  --newtab-text-secondary-text: #15141AB0;
+  // Non-design system font size for extra small text. Orginially used on ds-card refresh UI
+  --newtab-font-size-xsmall: 11px;
   // We need to be careful about the contrast of text over newtab wallpapers, which might not match the theme.
   // --newtab-text-primary-color is set in contextTheme.js and reacts to possible installed addon themes.
   // If we use that variable here, with light-dark, we can retain that addon theme text color,
@@ -83,6 +89,9 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   --newtab-inner-box-shadow-color: #{$black-10};
   --newtab-overlay-color: color-mix(in srgb, var(--newtab-background-color) 85%, transparent);
 
+  // Custom border radius
+  --border-radius-large: 16px;
+
   @include textbox-focus(var(--newtab-primary-action-background));
 
   // Buttons
@@ -96,6 +105,11 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
     --newtab-background-color: #{$in-content-page-background-dark};
     --newtab-background-color-secondary: #{$newtab-background-secondary-dark};
     --newtab-text-primary-color: #{$in-content-page-color-dark};
+    // Card Background includes 20% transparency
+    --newtab-background-card: #{$newtab-background-card-dark};
+    --newtab-text-topic-label-color: #CB9EFF;
+    --newtab-text-secondary-text: #FBFBFEB0;
+
     --newtab-contextual-text-primary-color: light-dark(#{$in-content-page-color}, var(--newtab-text-primary-color));
     --newtab-primary-action-background-pocket: #{$primary-blue-dark};
     --newtab-primary-action-background-pocket-dimmed: color-mix(in srgb, var(--newtab-primary-action-background) 25%, transparent);
@@ -119,5 +133,7 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
 @media (prefers-contrast) {
   :root {
     --newtab-text-secondary-color: var(--newtab-text-primary-color);
+    --newtab-text-topic-label-color: #CB9EFF;
+    --newtab-text-secondary-text: #FFF;
   }
 }
