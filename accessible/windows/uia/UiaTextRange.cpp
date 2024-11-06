@@ -8,6 +8,7 @@
 
 #include "nsAccUtils.h"
 #include "TextLeafRange.h"
+#include <comdef.h>
 
 namespace mozilla::a11y {
 
@@ -336,10 +337,111 @@ UiaTextRange::FindText(__RPC__in BSTR aText, BOOL aBackward, BOOL aIgnoreCase,
   return E_NOTIMPL;
 }
 
+template <TEXTATTRIBUTEID Attr>
+struct AttributeTraits {
+  /*
+   * To define a trait of this type, define the following members on a
+   * specialization of this template struct:
+   *   // Define the (Gecko) representation of the attribute type.
+   *   using AttrType = <the type associated with the TEXTATTRIBUTEID>;
+   *
+   *   // Returns the attribute value at the TextLeafPoint, or Nothing{} if none
+   *   // can be calculated.
+   *   static Maybe<AttrType> GetValue(TextLeafPoint aPoint);
+   *
+   *   // Return the default value specified by the UIA documentation.
+   *   static AttrType DefaultValue();
+   *
+   *   // Write the given value to the VARIANT output parameter. This may
+   *   // require a non-trivial transformation from Gecko's idea of the value
+   *   // into VARIANT form.
+   *   static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue);
+   */
+};
+
+template <TEXTATTRIBUTEID Attr>
+HRESULT GetAttribute(const TextLeafRange& aRange, VARIANT& aVariant) {
+  // Select the traits of the given TEXTATTRIBUTEID. This helps us choose the
+  // correct functions to call to handle each attribute.
+  using Traits = AttributeTraits<Attr>;
+  using AttrType = typename Traits::AttrType;
+
+  // Get the value at the start point. All other runs in the range must match
+  // this value, otherwise the result is "mixed."
+  const TextLeafPoint end = aRange.End();
+  TextLeafPoint current = aRange.Start();
+  Maybe<AttrType> val = Traits::GetValue(current);
+  if (!val) {
+    // Fall back to the UIA-specified default when we don't have an answer.
+    val = Some(Traits::DefaultValue());
+  }
+
+  // Walk through the range one text attribute run start at a time, poking the
+  // start points to check for the requested attribute. Stop before we hit the
+  // end since the end point is either:
+  //   1. At the start of the one-past-last text attribute run and hence
+  //      excluded from the range
+  //   2. After the start of the last text attribute run in the range and hence
+  //      tested by that last run's start point
+  while ((current = current.FindTextAttrsStart(eDirNext)) && current < end) {
+    Maybe<AttrType> currentVal = Traits::GetValue(current);
+    if (!currentVal) {
+      // Fall back to the UIA-specified default when we don't have an answer.
+      currentVal = Some(Traits::DefaultValue());
+    }
+    if (*currentVal != *val) {
+      // If the attribute ever changes, then we need to return "[t]he address
+      // of the value retrieved by the UiaGetReservedMixedAttributeValue
+      // function."
+      aVariant.vt = VT_UNKNOWN;
+      return UiaGetReservedMixedAttributeValue(&aVariant.punkVal);
+    }
+  }
+
+  // Write the value to the VARIANT output parameter.
+  return Traits::WriteToVariant(aVariant, *val);
+}
+
 STDMETHODIMP
 UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID aAttributeId,
                                 __RPC__out VARIANT* aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  VariantInit(aRetVal);
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+
+  MOZ_ASSERT(range.Start() <= range.End(), "Range must be valid to proceed.");
+
+  switch (aAttributeId) {
+    case UIA_FontNameAttributeId:
+      return GetAttribute<UIA_FontNameAttributeId>(range, *aRetVal);
+    case UIA_FontSizeAttributeId:
+      return GetAttribute<UIA_FontSizeAttributeId>(range, *aRetVal);
+    case UIA_FontWeightAttributeId:
+      return GetAttribute<UIA_FontWeightAttributeId>(range, *aRetVal);
+    case UIA_IsHiddenAttributeId:
+      return GetAttribute<UIA_IsHiddenAttributeId>(range, *aRetVal);
+    case UIA_IsItalicAttributeId:
+      return GetAttribute<UIA_IsItalicAttributeId>(range, *aRetVal);
+    case UIA_IsReadOnlyAttributeId:
+      return GetAttribute<UIA_IsReadOnlyAttributeId>(range, *aRetVal);
+    case UIA_IsSubscriptAttributeId:
+      return GetAttribute<UIA_IsSubscriptAttributeId>(range, *aRetVal);
+    case UIA_IsSuperscriptAttributeId:
+      return GetAttribute<UIA_IsSuperscriptAttributeId>(range, *aRetVal);
+    default:
+      // If the attribute isn't supported, return "[t]he address of the value
+      // retrieved by the UiaGetReservedNotSupportedValue function."
+      aRetVal->vt = VT_UNKNOWN;
+      return UiaGetReservedNotSupportedValue(&aRetVal->punkVal);
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Unhandled UIA Attribute ID");
+  return S_OK;
 }
 
 STDMETHODIMP
@@ -614,5 +716,221 @@ UiaTextRange::GetChildren(__RPC__deref_out_opt SAFEARRAY** aRetVal) {
   *aRetVal = AccessibleArrayToUiaArray(children);
   return S_OK;
 }
+
+/*
+ * AttributeTraits template specializations
+ */
+
+template <>
+struct AttributeTraits<UIA_FontWeightAttributeId> {
+  using AttrType = int32_t;  // LONG, but AccAttributes only accepts int32_t
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+    if (!attrs) {
+      return {};
+    }
+    return attrs->GetAttribute<AttrType>(nsGkAtoms::fontWeight);
+  }
+
+  static AttrType DefaultValue() {
+    // See GDI LOGFONT structure and related standards.
+    return FW_DONTCARE;
+  }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant.vt = VT_I4;
+    aVariant.lVal = aValue;
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_FontSizeAttributeId> {
+  using AttrType = FontSize;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+    if (!attrs) {
+      return {};
+    }
+    return attrs->GetAttribute<AttrType>(nsGkAtoms::font_size);
+  }
+
+  static AttrType DefaultValue() { return FontSize{0}; }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant.vt = VT_I4;
+    aVariant.lVal = aValue.mValue;
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_FontNameAttributeId> {
+  using AttrType = RefPtr<nsAtom>;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+    if (!attrs) {
+      return {};
+    }
+    return attrs->GetAttribute<AttrType>(nsGkAtoms::font_family);
+  }
+
+  static AttrType DefaultValue() {
+    // Default to the empty string (not null).
+    return RefPtr<nsAtom>(nsGkAtoms::_empty);
+  }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    if (!aValue) {
+      return E_INVALIDARG;
+    }
+    BSTR valueBStr = ::SysAllocString(aValue->GetUTF16String());
+    if (!valueBStr) {
+      return E_OUTOFMEMORY;
+    }
+    aVariant.vt = VT_BSTR;
+    aVariant.bstrVal = valueBStr;
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_IsItalicAttributeId> {
+  using AttrType = bool;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+    if (!attrs) {
+      return {};
+    }
+
+    // If the value in the attributes is a RefPtr<nsAtom>, it may be "italic" or
+    // "normal"; check whether it is "italic".
+    auto atomResult =
+        attrs->GetAttribute<RefPtr<nsAtom>>(nsGkAtoms::font_style);
+    if (atomResult) {
+      MOZ_ASSERT(*atomResult, "Atom must be non-null");
+      return Some((*atomResult)->Equals(u"italic"_ns));
+    }
+    // If the FontSlantStyle is not italic, the value is not stored as an nsAtom
+    // in AccAttributes, so there's no need to check further.
+    return {};
+  }
+
+  static AttrType DefaultValue() { return false; }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant = _variant_t(aValue);
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_IsSubscriptAttributeId> {
+  using AttrType = bool;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+    if (!attrs) {
+      return {};
+    }
+    auto atomResult =
+        attrs->GetAttribute<RefPtr<nsAtom>>(nsGkAtoms::textPosition);
+    if (atomResult) {
+      MOZ_ASSERT(*atomResult, "Atom must be non-null");
+      return Some(*atomResult == nsGkAtoms::sub);
+    }
+    return {};
+  }
+
+  static AttrType DefaultValue() { return false; }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant = _variant_t(aValue);
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_IsSuperscriptAttributeId> {
+  using AttrType = bool;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    RefPtr<AccAttributes> attrs = aPoint.GetTextAttributes();
+    if (!attrs) {
+      return {};
+    }
+    auto atomResult =
+        attrs->GetAttribute<RefPtr<nsAtom>>(nsGkAtoms::textPosition);
+    if (atomResult) {
+      MOZ_ASSERT(*atomResult, "Atom must be non-null");
+      return Some((*atomResult)->Equals(NS_ConvertASCIItoUTF16("super")));
+    }
+    return {};
+  }
+
+  static AttrType DefaultValue() { return false; }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant = _variant_t(aValue);
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_IsHiddenAttributeId> {
+  using AttrType = bool;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    if (!aPoint.mAcc) {
+      return {};
+    }
+    const uint64_t state = aPoint.mAcc->State();
+    return Some(!!(state & states::INVISIBLE));
+  }
+
+  static AttrType DefaultValue() { return false; }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant = _variant_t(aValue);
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_IsReadOnlyAttributeId> {
+  using AttrType = bool;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    if (!aPoint.mAcc) {
+      return {};
+    }
+    // Check the parent of the leaf, since the leaf itself will never be
+    // editable, but the parent may. Check for both text fields and hypertexts,
+    // since we might have something like <input> or a contenteditable <span>.
+    Accessible* acc = aPoint.mAcc;
+    Accessible* parent = acc->Parent();
+    if (parent && parent->IsHyperText()) {
+      acc = parent;
+    } else {
+      return Some(true);
+    }
+    const uint64_t state = acc->State();
+    if (state & states::READONLY) {
+      return Some(true);
+    }
+    if (state & states::EDITABLE) {
+      return Some(false);
+    }
+    // Fall back to true if not editable or explicitly marked READONLY.
+    return Some(true);
+  }
+
+  static AttrType DefaultValue() {
+    // UIA says the default is false, but we fall back to true in GetValue since
+    // most things on the web are read-only.
+    return false;
+  }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant = _variant_t(aValue);
+    return S_OK;
+  }
+};
 
 }  // namespace mozilla::a11y
