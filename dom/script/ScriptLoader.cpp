@@ -2912,7 +2912,7 @@ void ScriptLoader::InstantiateClassicScriptFromMaybeEncodedSource(
         bool unused;
         InstantiateStencil(aCx, aCompileOptions, std::move(stencil), aScript,
                            unused, aDebuggerPrivateValue,
-                           aDebuggerIntroductionScript, erv);
+                           aDebuggerIntroductionScript, erv, encodeBytecode);
       }
 
       mMainThreadParseTime += TimeStamp::Now() - startTime;
