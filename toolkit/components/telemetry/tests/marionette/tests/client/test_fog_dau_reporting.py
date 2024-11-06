@@ -29,9 +29,14 @@ class TestDauReporting(FOGTestCase):
         self.assertIn("ping_info", ping1["payload"])
         self.assertIn("client_info", ping1["payload"])
 
-        self.assertIn("dau.id", ping1["payload"]["metrics"]["uuid"])
+        self.assertNotIn("client_id", ping1["payload"]["client_info"])
 
-        dau_id1 = ping1["payload"]["metrics"]["uuid"]["dau.id"]
+        metrics = ping1["payload"]["metrics"]
+        self.assertNotIn("legacy.telemetry.client_id", metrics["uuid"])
+        self.assertNotIn("legacy.telemetry.profile_group_id", metrics["uuid"])
+
+        self.assertIn("usage.profile_id", metrics["uuid"])
+        dau_id1 = metrics["uuid"]["usage.profile_id"]
         self.assertIsValidUUID(dau_id1)
         self.assertNotEqual(CANARY_USAGE_PROFILE_ID, dau_id1)
 

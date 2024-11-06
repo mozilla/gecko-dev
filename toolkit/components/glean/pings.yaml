@@ -17,7 +17,7 @@ dau-reporting:
   description: |
     Minimal ping to measure DAU.
     Sent on the baseline schedule.
-  include_client_id: true
+  include_client_id: false
   send_if_empty: true
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440

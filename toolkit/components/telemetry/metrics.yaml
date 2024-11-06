@@ -44,7 +44,6 @@ legacy.telemetry:
       - 'events'
       - 'newtab'
       - 'baseline'
-      - 'dau-reporting'
 
   profile_group_id:
     type: uuid
