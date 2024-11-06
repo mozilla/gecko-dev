@@ -570,9 +570,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
    */
   void ConstrainSize(int32_t* aWidth, int32_t* aHeight) override {
     SizeConstraints c = GetSizeConstraints();
-    *aWidth = std::max(c.mMinSize.width, std::min(c.mMaxSize.width, *aWidth));
-    *aHeight =
-        std::max(c.mMinSize.height, std::min(c.mMaxSize.height, *aHeight));
+    *aWidth = std::clamp(*aWidth, c.mMinSize.width, c.mMaxSize.width);
+    *aHeight = std::clamp(*aHeight, c.mMinSize.height, c.mMaxSize.height);
   }
 
   CompositorBridgeChild* GetRemoteRenderer() override;
