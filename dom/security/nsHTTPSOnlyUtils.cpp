@@ -556,7 +556,7 @@ nsHTTPSOnlyUtils::PotentiallyDowngradeHttpsFirstRequest(
                                        uri, true);
 
   if (mozilla::StaticPrefs::
-          dom_security_https_first_add_exception_on_failiure()) {
+          dom_security_https_first_add_exception_on_failure()) {
     AddHTTPSFirstException(uri, loadInfo);
   }
 

@@ -4077,7 +4077,7 @@
 
 # If true, will add a special temporary HTTPS-First exception for a site when a
 # HTTPS-First upgrade fails.
-- name: dom.security.https_first_add_exception_on_failiure
+- name: dom.security.https_first_add_exception_on_failure
   type: RelaxedAtomicBool
   value: true
   mirror: always

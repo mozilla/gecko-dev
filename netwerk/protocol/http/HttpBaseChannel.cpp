@@ -6180,7 +6180,7 @@ nsresult HttpBaseChannel::CheckRedirectLimit(nsIURI* aNewURI,
   // upgrade behavior if we have upgrade-downgrade loop to break the loop and
   // load the http request next
   if (mozilla::StaticPrefs::
-          dom_security_https_first_add_exception_on_failiure() &&
+          dom_security_https_first_add_exception_on_failure() &&
       nsHTTPSOnlyUtils::IsUpgradeDowngradeEndlessLoop(
           mURI, aNewURI, mLoadInfo,
           {nsHTTPSOnlyUtils::UpgradeDowngradeEndlessLoopOptions::
