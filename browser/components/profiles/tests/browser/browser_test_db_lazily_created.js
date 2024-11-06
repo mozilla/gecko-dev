@@ -14,7 +14,7 @@ add_task(async function test_dbLazilyCreated() {
     return { runw: () => {} };
   };
 
-  await SelectableProfileService.maybeSetupDataStore();
+  await SelectableProfileService.createNewProfile();
   ok(
     SelectableProfileService.initialized,
     `Selectable Profile Service should be initialized because the store id is ${SelectableProfileService.groupToolkitProfile.storeID}`

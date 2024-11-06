@@ -11,7 +11,6 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "firefox-compact-light@mozilla.org",
     {
-      dataL10nId: "profiles-light-theme",
       colors: {
         chromeColor: "#F0F0F4",
         toolbarColor: "#F9F9FB",
@@ -22,7 +21,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "expressionist-soft-colorway@mozilla.org",
     {
-      dataL10nId: "profiles-marigold-theme",
+      name: "Expressionist – Soft",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4066185/expressionist_soft-2.1.xpi",
       colors: {
@@ -35,7 +34,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "lush-soft-colorway@mozilla.org",
     {
-      dataL10nId: "profiles-lichen-theme",
+      name: "Lush – Soft",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4066281/lush_soft-2.1.xpi",
       colors: {
@@ -48,7 +47,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "playmaker-soft-colorway@mozilla.org",
     {
-      dataL10nId: "profiles-magnolia-theme",
+      name: "Playmaker – Soft",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4066243/playmaker_soft-2.1.xpi",
       colors: {
@@ -61,7 +60,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "dreamer-soft-colorway@mozilla.org",
     {
-      dataL10nId: "profiles-lavender-theme",
+      name: "Dreamer – Soft",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4066182/dreamer_soft-2.1.xpi",
       colors: {
@@ -74,7 +73,6 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "firefox-compact-dark@mozilla.org",
     {
-      dataL10nId: "profiles-dark-theme",
       colors: {
         chromeColor: "#1C1B22",
         toolbarColor: "#2B2A33",
@@ -85,7 +83,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "activist-bold-colorway@mozilla.org",
     {
-      dataL10nId: "profiles-ocean-theme",
+      name: "Activist – Bold",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4066178/activist_bold-2.1.xpi",
       colors: {
@@ -98,7 +96,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "playmaker-bold-colorway@mozilla.org",
     {
-      dataL10nId: "profiles-terracotta-theme",
+      name: "Playmaker – Bold",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4066242/playmaker_bold-2.1.xpi",
       colors: {
@@ -111,7 +109,7 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "elemental-bold-colorway@mozilla.org",
     {
-      dataL10nId: "profiles-moss-theme",
+      name: "Elemental – Bold",
       downloadURL:
         "https://addons.mozilla.org/firefox/downloads/file/4066261/elemental_bold-2.1.xpi",
       colors: {
@@ -124,7 +122,6 @@ const PROFILE_THEMES_MAP = new Map([
   [
     "default-theme@mozilla.org",
     {
-      dataL10nId: "profiles-system-theme",
       colors: {
         chromeColor: "#1C1B22",
         toolbarColor: "#2B2A33",
@@ -285,14 +282,14 @@ export class ProfilesParent extends JSWindowActorParent {
       if (theme) {
         themes.push({
           id: themeId,
-          dataL10nId: themeObj.dataL10nId,
+          name: theme.name,
           isActive: theme.isActive,
           ...themeObj.colors,
         });
       } else {
         themes.push({
           id: themeId,
-          dataL10nId: themeObj.dataL10nId,
+          name: themeObj.name,
           isActive: false,
           ...themeObj.colors,
         });

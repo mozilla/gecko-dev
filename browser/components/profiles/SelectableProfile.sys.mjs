@@ -22,7 +22,7 @@ export class SelectableProfile {
 
   // Cached theme properties, used to allow displaying a SelectableProfile
   // without loading the AddonManager to get theme info.
-  #themeId;
+  #themeL10nId;
   #themeFg;
   #themeBg;
 
@@ -33,7 +33,7 @@ export class SelectableProfile {
     this.#path = row.getResultByName("path");
     this.#name = row.getResultByName("name");
     this.#avatar = row.getResultByName("avatar");
-    this.#themeId = row.getResultByName("themeId");
+    this.#themeL10nId = row.getResultByName("themeL10nId");
     this.#themeFg = row.getResultByName("themeFg");
     this.#themeBg = row.getResultByName("themeBg");
 
@@ -124,11 +124,11 @@ export class SelectableProfile {
    *     the theme foreground color as CSS style string, like "rgb(1,1,1)",
    *     the theme background color as CSS style string, like "rgb(0,0,0)".
    *
-   * @returns {object} an object of the form { themeId, themeFg, themeBg }.
+   * @returns {object} an object of the form { themeL10nId, themeFg, themeBg }.
    */
   get theme() {
     return {
-      themeId: this.#themeId,
+      themeL10nId: this.#themeL10nId,
       themeFg: this.#themeFg,
       themeBg: this.#themeBg,
     };
@@ -139,12 +139,12 @@ export class SelectableProfile {
    * the profile, which will notify() other running instances.
    *
    * @param {object} param0 The theme object
-   * @param {string} param0.themeId L10n id of the theme
+   * @param {string} param0.themeL10nId L10n id of the theme
    * @param {string} param0.themeFg Foreground color of theme as CSS style string, like "rgb(1,1,1)",
    * @param {string} param0.themeBg Background color of theme as CSS style string, like "rgb(0,0,0)".
    */
-  set theme({ themeId, themeFg, themeBg }) {
-    this.#themeId = themeId;
+  set theme({ themeL10nId, themeFg, themeBg }) {
+    this.#themeL10nId = themeL10nId;
     this.#themeFg = themeFg;
     this.#themeBg = themeBg;
 
