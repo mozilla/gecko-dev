@@ -6354,7 +6354,10 @@ auto nsDisplayTransform::ShouldPrerenderTransformedContent(
 
   // Prerendering only makes sense if we are painting to the window so that the
   // extra prerendered content can be animated into view by the compositor.
-  if (!aBuilder->IsPaintingToWindow()) {
+  // GenerateGlyphMask (for background-clip: text) uses a nested builder, so it
+  // can be inside a builder that is painting to window, and it's buggy, so just
+  // allow it to minimize bugs.
+  if (!aBuilder->IsPaintingToWindow() && !aBuilder->IsForGenerateGlyphMask()) {
     return result;
   }
 

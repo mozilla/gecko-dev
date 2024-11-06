@@ -1,0 +1,64 @@
+<style>
+
+*, *::before, *::after {
+    padding: 0;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+body {
+  color: #fff;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  perspective: 450px;
+}
+
+.zigzag {
+  position: relative;
+  transform-style: preserve-3d;
+  animation: zigzag 16s infinite linear;
+  
+  i {
+    --color: hsl(200 100% calc(var(--i) * 5% + 20%));
+    position: absolute;
+    font-family: "Prompt", sans-serif;
+    font-weight: 900;
+    font-size: 150px;
+    padding-inline: 24px;
+    background-image: 
+      linear-gradient(45deg, transparent 30%, var(--color) 0 36%, transparent 0),
+      linear-gradient(-45deg, transparent 30%, var(--color) 0 36%, transparent 0);
+    background-size: 16px 8px;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    transform: translate3d(-50%, -50%, calc(var(--i) * 1px));
+  }
+}
+
+@keyframes zigzag {
+  from { transform: rotate(300deg) rotateX(30deg) rotate(201deg); }
+  to { transform: rotate(301deg) rotateX(30deg) rotate(200deg); }
+}
+</style>
+
+<div class="zigzag">
+  <i style="--i: 0">ZIGZAG</i>
+  <i style="--i: 1">ZIGZAG</i>
+  <i style="--i: 2">ZIGZAG</i>
+  <i style="--i: 3">ZIGZAG</i>
+  <i style="--i: 4">ZIGZAG</i>
+  <i style="--i: 5">ZIGZAG</i>
+  <i style="--i: 6">ZIGZAG</i>
+  <i style="--i: 7">ZIGZAG</i>
+  <i style="--i: 8">ZIGZAG</i>
+  <i style="--i: 9">ZIGZAG</i>
+  <i style="--i: 10">ZIGZAG</i>
+  <i style="--i: 11">ZIGZAG</i>
+  <i style="--i: 12">ZIGZAG</i>
+  <i style="--i: 13">ZIGZAG</i>
+  <i style="--i: 14">ZIGZAG</i>
+  <i style="--i: 15">ZIGZAG</i>
+</div>
