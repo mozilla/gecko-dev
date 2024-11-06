@@ -48,18 +48,6 @@ export class NewProfileCard extends EditProfileCard {
     RPMSendAsyncMessage("Profiles:DeleteNewProfile");
   }
 
-  onDoneClick() {
-    let newName = this.nameInput.value.trim();
-    if (newName === "") {
-      this.showErrorMessage("edit-profile-page-no-name");
-    } else if (this.isDuplicateName(newName)) {
-      this.showErrorMessage("edit-profile-page-duplicate-name");
-    } else {
-      this.updateName();
-      RPMSendAsyncMessage("Profiles:CloseNewProfileTab");
-    }
-  }
-
   headerTemplate() {
     return html`<div>
       <h1 data-l10n-id="new-profile-page-header"></h1>
@@ -84,18 +72,6 @@ export class NewProfileCard extends EditProfileCard {
       value=${this.profile.name}
       @input=${super.handleInputEvent}
     />`;
-  }
-
-  buttonsTemplate() {
-    return html`<moz-button
-        data-l10n-id="edit-profile-page-delete-button"
-        @click=${this.onDeleteClick}
-      ></moz-button>
-      <moz-button
-        data-l10n-id="new-profile-page-done-button"
-        @click=${this.onDoneClick}
-        type="primary"
-      ></moz-button>`;
   }
 }
 

@@ -254,7 +254,7 @@ export class ProfilesParent extends JSWindowActorParent {
         Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
         break;
       }
-      case "Profiles:CloseNewProfileTab": {
+      case "Profiles:CloseProfileTab": {
         let gBrowser = this.browsingContext.topChromeWindow.gBrowser;
         gBrowser.removeTab(gBrowser.selectedTab);
         break;

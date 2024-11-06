@@ -330,12 +330,28 @@ export class EditProfileCard extends MozLitElement {
     RPMSendAsyncMessage("Profiles:OpenDeletePage");
   }
 
+  onDoneClick() {
+    let newName = this.nameInput.value.trim();
+    if (newName === "") {
+      this.showErrorMessage("edit-profile-page-no-name");
+    } else if (this.isDuplicateName(newName)) {
+      this.showErrorMessage("edit-profile-page-duplicate-name");
+    } else {
+      this.updateNameDebouncer.finalize();
+      RPMSendAsyncMessage("Profiles:CloseProfileTab");
+    }
+  }
+
   buttonsTemplate() {
     return html`<moz-button
-      data-l10n-id="edit-profile-page-delete-button"
-      @click=${this.onDeleteClick}
-      type="destructive"
-    ></moz-button>`;
+        data-l10n-id="edit-profile-page-delete-button"
+        @click=${this.onDeleteClick}
+      ></moz-button>
+      <moz-button
+        data-l10n-id="new-profile-page-done-button"
+        @click=${this.onDoneClick}
+        type="primary"
+      ></moz-button>`;
   }
 
   render() {
