@@ -86,6 +86,28 @@ telemetry:
     expires: never
     telemetry_mirror: TELEMETRY_DATA_UPLOAD_OPTIN
 
+usage:
+  profile_id:
+    type: uuid
+    lifetime: user
+    description: |
+      A UUID uniquely identifying the profile,
+      not shared with other telemetry data.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926829
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926829
+    data_sensitivity:
+      - technical
+      - highly_sensitive
+    notification_emails:
+      - glean-team@mozilla.com
+      - jrediger@mozilla.com
+      - loines@mozilla.com
+    expires: never
+    send_in_pings:
+      - dau-reporting
+
 browser.engagement:
   session_time_including_suspend:
     type: quantity
