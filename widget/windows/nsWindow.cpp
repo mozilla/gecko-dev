@@ -1679,7 +1679,7 @@ void nsWindow::Show(bool aState) {
           // background color before uncloaking it to complete the Show().
           ClearWindow(mWnd);
           CloakWindow(mWnd, FALSE);
-          mHasBeenShown = false;
+          mHasBeenShown = true;
         }
 
       } else {
