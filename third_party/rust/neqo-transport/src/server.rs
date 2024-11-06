@@ -195,7 +195,7 @@ impl Server {
     fn handle_initial(
         &mut self,
         initial: InitialDetails,
-        dgram: &Datagram,
+        dgram: Datagram<impl AsRef<[u8]>>,
         now: Instant,
     ) -> Output {
         qdebug!([self], "Handle initial");
@@ -297,7 +297,7 @@ impl Server {
     fn accept_connection(
         &mut self,
         initial: InitialDetails,
-        dgram: &Datagram,
+        dgram: Datagram<impl AsRef<[u8]>>,
         orig_dcid: Option<ConnectionId>,
         now: Instant,
     ) -> Output {
@@ -339,7 +339,7 @@ impl Server {
         }
     }
 
-    fn process_input(&mut self, dgram: &Datagram, now: Instant) -> Output {
+    fn process_input(&mut self, dgram: Datagram<impl AsRef<[u8]>>, now: Instant) -> Output {
         qtrace!("Process datagram: {}", hex(&dgram[..]));
 
         // This is only looking at the first packet header in the datagram.
@@ -430,7 +430,7 @@ impl Server {
         let mut callback = None;
 
         for connection in &mut self.connections {
-            match connection.borrow_mut().process(None, now) {
+            match connection.borrow_mut().process_output(now) {
                 Output::None => {}
                 d @ Output::Datagram(_) => return d,
                 Output::Callback(next) => match callback {
@@ -443,8 +443,14 @@ impl Server {
         callback.map_or(Output::None, Output::Callback)
     }
 
+    /// Short-hand for [`Server::process`] without an input datagram.
     #[must_use]
-    pub fn process(&mut self, dgram: Option<&Datagram>, now: Instant) -> Output {
+    pub fn process_output(&mut self, now: Instant) -> Output {
+        self.process(None::<Datagram>, now)
+    }
+
+    #[must_use]
+    pub fn process(&mut self, dgram: Option<Datagram<impl AsRef<[u8]>>>, now: Instant) -> Output {
         let out = dgram
             .map_or(Output::None, |d| self.process_input(d, now))
             .or_else(|| self.process_next_output(now));

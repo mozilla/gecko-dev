@@ -86,9 +86,9 @@ fn zero_rtt(
     assert_eq!(client.webtransport_enabled(), client_org && server_org);
 
     // exchange token
-    let out = server.process(None, now());
+    let out = server.process_output(now());
     // We do not have a token so we need to wait for a resumption token timer to trigger.
-    std::mem::drop(client.process(out.as_dgram_ref(), now() + Duration::from_millis(250)));
+    std::mem::drop(client.process(out.dgram(), now() + Duration::from_millis(250)));
     assert_eq!(client.state(), Http3State::Connected);
     let token = client
         .events()
@@ -233,8 +233,8 @@ fn zero_rtt_wt_settings() {
 fn exchange_packets2(client: &mut Http3Client, server: &mut Connection) {
     let mut out = None;
     loop {
-        out = client.process(out.as_ref(), now()).dgram();
-        out = server.process(out.as_ref(), now()).dgram();
+        out = client.process(out, now()).dgram();
+        out = server.process(out, now()).dgram();
         if out.is_none() {
             break;
         }

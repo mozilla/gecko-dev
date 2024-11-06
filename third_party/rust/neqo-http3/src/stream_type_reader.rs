@@ -268,8 +268,8 @@ mod tests {
             let (mut conn_c, mut conn_s) = connect();
             // create a stream
             let stream_id = conn_s.stream_create(stream_type).unwrap();
-            let out = conn_s.process(None, now());
-            mem::drop(conn_c.process(out.as_dgram_ref(), now()));
+            let out = conn_s.process_output(now());
+            mem::drop(conn_c.process(out.dgram(), now()));
 
             Self {
                 conn_c,
@@ -291,8 +291,8 @@ mod tests {
                 self.conn_s
                     .stream_send(self.stream_id, &enc[i..=i])
                     .unwrap();
-                let out = self.conn_s.process(None, now());
-                mem::drop(self.conn_c.process(out.as_dgram_ref(), now()));
+                let out = self.conn_s.process_output(now());
+                mem::drop(self.conn_c.process(out.dgram(), now()));
                 assert_eq!(
                     self.decoder.receive(&mut self.conn_c).unwrap(),
                     (ReceiveOutput::NoOutput, false)
@@ -305,8 +305,8 @@ mod tests {
             if fin {
                 self.conn_s.stream_close_send(self.stream_id).unwrap();
             }
-            let out = self.conn_s.process(None, now());
-            mem::drop(self.conn_c.process(out.dgram().as_ref(), now()));
+            let out = self.conn_s.process_output(now());
+            mem::drop(self.conn_c.process(out.dgram(), now()));
             assert_eq!(&self.decoder.receive(&mut self.conn_c), outcome);
             assert_eq!(self.decoder.done(), done);
         }

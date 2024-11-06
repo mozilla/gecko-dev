@@ -39,8 +39,8 @@ impl FrameReaderTest {
 
     fn process<T: FrameDecoder<T>>(&mut self, v: &[u8]) -> Option<T> {
         self.conn_s.stream_send(self.stream_id, v).unwrap();
-        let out = self.conn_s.process(None, now());
-        mem::drop(self.conn_c.process(out.as_dgram_ref(), now()));
+        let out = self.conn_s.process_output(now());
+        mem::drop(self.conn_c.process(out.dgram(), now()));
         let (frame, fin) = self
             .fr
             .receive::<T>(&mut StreamReaderConnectionWrapper::new(
@@ -230,13 +230,13 @@ fn test_reading_frame<T: FrameDecoder<T> + PartialEq + Debug>(
         fr.conn_s.stream_close_send(fr.stream_id).unwrap();
     }
 
-    let out = fr.conn_s.process(None, now());
-    mem::drop(fr.conn_c.process(out.as_dgram_ref(), now()));
+    let out = fr.conn_s.process_output(now());
+    mem::drop(fr.conn_c.process(out.dgram(), now()));
 
     if matches!(test_to_send, FrameReadingTestSend::DataThenFin) {
         fr.conn_s.stream_close_send(fr.stream_id).unwrap();
-        let out = fr.conn_s.process(None, now());
-        mem::drop(fr.conn_c.process(out.as_dgram_ref(), now()));
+        let out = fr.conn_s.process_output(now());
+        mem::drop(fr.conn_c.process(out.dgram(), now()));
     }
 
     let rv = fr.fr.receive::<T>(&mut StreamReaderConnectionWrapper::new(
@@ -478,12 +478,12 @@ fn frame_reading_when_stream_is_closed_before_sending_data() {
     let mut fr = FrameReaderTest::new();
 
     fr.conn_s.stream_send(fr.stream_id, &[0x00]).unwrap();
-    let out = fr.conn_s.process(None, now());
-    mem::drop(fr.conn_c.process(out.as_dgram_ref(), now()));
+    let out = fr.conn_s.process_output(now());
+    mem::drop(fr.conn_c.process(out.dgram(), now()));
 
     assert_eq!(Ok(()), fr.conn_c.stream_close_send(fr.stream_id));
-    let out = fr.conn_c.process(None, now());
-    mem::drop(fr.conn_s.process(out.as_dgram_ref(), now()));
+    let out = fr.conn_c.process_output(now());
+    mem::drop(fr.conn_s.process(out.dgram(), now()));
     assert_eq!(
         Ok((None, true)),
         fr.fr
@@ -501,12 +501,12 @@ fn wt_frame_reading_when_stream_is_closed_before_sending_data() {
     let mut fr = FrameReaderTest::new();
 
     fr.conn_s.stream_send(fr.stream_id, &[0x00]).unwrap();
-    let out = fr.conn_s.process(None, now());
-    mem::drop(fr.conn_c.process(out.as_dgram_ref(), now()));
+    let out = fr.conn_s.process_output(now());
+    mem::drop(fr.conn_c.process(out.dgram(), now()));
 
     assert_eq!(Ok(()), fr.conn_c.stream_close_send(fr.stream_id));
-    let out = fr.conn_c.process(None, now());
-    mem::drop(fr.conn_s.process(out.as_dgram_ref(), now()));
+    let out = fr.conn_c.process_output(now());
+    mem::drop(fr.conn_s.process(out.dgram(), now()));
     assert_eq!(
         Ok((None, true)),
         fr.fr

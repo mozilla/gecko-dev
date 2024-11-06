@@ -41,19 +41,19 @@ fn connect() -> (Http3Client, Http3Server) {
     )
     .expect("create a server");
     assert_eq!(client.state(), Http3State::Initializing);
-    let out = client.process(None, now());
+    let out = client.process_output(now());
     assert_eq!(client.state(), Http3State::Initializing);
 
-    let out = server.process(out.as_dgram_ref(), now());
-    let out = client.process(out.as_dgram_ref(), now());
-    let out = server.process(out.as_dgram_ref(), now());
+    let out = server.process(out.dgram(), now());
+    let out = client.process(out.dgram(), now());
+    let out = server.process(out.dgram(), now());
     assert!(out.as_dgram_ref().is_none());
 
     let authentication_needed = |e| matches!(e, Http3ClientEvent::AuthenticationNeeded);
     assert!(client.events().any(authentication_needed));
     client.authenticated(AuthenticationStatus::Ok, now());
 
-    let mut out = client.process(out.as_dgram_ref(), now()).dgram();
+    let mut out = client.process(out.dgram(), now()).dgram();
     let connected = |e| matches!(e, Http3ClientEvent::StateChange(Http3State::Connected));
     assert!(client.events().any(connected));
 
@@ -61,9 +61,9 @@ fn connect() -> (Http3Client, Http3Server) {
 
     // Exchange H3 setttings
     loop {
-        out = server.process(out.as_ref(), now()).dgram();
+        out = server.process(out, now()).dgram();
         let dgram_present = out.is_some();
-        out = client.process(out.as_ref(), now()).dgram();
+        out = client.process(out, now()).dgram();
         if out.is_none() && !dgram_present {
             break;
         }
@@ -74,8 +74,8 @@ fn connect() -> (Http3Client, Http3Server) {
 fn exchange_packets(client: &mut Http3Client, server: &mut Http3Server) {
     let mut out = None;
     loop {
-        out = client.process(out.as_ref(), now()).dgram();
-        out = server.process(out.as_ref(), now()).dgram();
+        out = client.process(out, now()).dgram();
+        out = server.process(out, now()).dgram();
         if out.is_none() {
             break;
         }

@@ -194,7 +194,7 @@ fn qns_read_response(filename: &str) -> Result<Vec<u8>, io::Error> {
 
 #[allow(clippy::module_name_repetitions)]
 pub trait HttpServer: Display {
-    fn process(&mut self, dgram: Option<&Datagram>, now: Instant) -> Output;
+    fn process(&mut self, dgram: Option<Datagram>, now: Instant) -> Output;
     fn process_events(&mut self, now: Instant);
     fn has_events(&self) -> bool;
 }
@@ -205,6 +205,7 @@ pub struct ServerRunner {
     server: Box<dyn HttpServer>,
     timeout: Option<Pin<Box<Sleep>>>,
     sockets: Vec<(SocketAddr, crate::udp::Socket)>,
+    recv_buf: Vec<u8>,
 }
 
 impl ServerRunner {
@@ -219,6 +220,7 @@ impl ServerRunner {
             server,
             timeout: None,
             sockets,
+            recv_buf: vec![0; neqo_udp::RECV_BUF_SIZE],
         }
     }
 
@@ -236,7 +238,7 @@ impl ServerRunner {
             .unwrap_or(first_socket)
     }
 
-    async fn process(&mut self, mut dgram: Option<&Datagram>) -> Result<(), io::Error> {
+    async fn process(&mut self, mut dgram: Option<Datagram>) -> Result<(), io::Error> {
         loop {
             match self.server.process(dgram.take(), (self.now)()) {
                 Output::Datagram(dgram) => {
@@ -289,12 +291,15 @@ impl ServerRunner {
             match self.ready().await? {
                 Ready::Socket(inx) => loop {
                     let (host, socket) = self.sockets.get_mut(inx).unwrap();
-                    let dgrams = socket.recv(host)?;
-                    if dgrams.is_empty() {
+                    let Some(dgrams) = socket.recv(*host, &mut self.recv_buf)? else {
+                        break;
+                    };
+                    if dgrams.len() == 0 {
                         break;
                     }
+                    let dgrams: Vec<Datagram> = dgrams.map(|d| d.to_owned()).collect();
                     for dgram in dgrams {
-                        self.process(Some(&dgram)).await?;
+                        self.process(Some(dgram)).await?;
                     }
                 },
                 Ready::Timeout => {
@@ -336,20 +341,27 @@ pub async fn server(mut args: Args) -> Res<()> {
             qwarn!("Both -V and --qns-test were set. Ignoring testcase specific versions.");
         }
 
+        // This is the default for all tests except http3.
+        args.shared.use_old_http = true;
         // TODO: More options to deduplicate with client?
         match testcase.as_str() {
-            "http3" => (),
+            "http3" => args.shared.use_old_http = false,
             "zerortt" => {
-                args.shared.use_old_http = true;
                 args.shared.alpn = String::from(HQ_INTEROP);
                 args.shared.quic_parameters.max_streams_bidi = 100;
             }
-            "handshake" | "transfer" | "resumption" | "multiconnect" | "v2" | "ecn" => {
-                args.shared.use_old_http = true;
+            "handshake"
+            | "transfer"
+            | "resumption"
+            | "multiconnect"
+            | "v2"
+            | "ecn"
+            | "rebind-port"
+            | "rebind-addr"
+            | "connectionmigration" => {
                 args.shared.alpn = String::from(HQ_INTEROP);
             }
             "chacha20" => {
-                args.shared.use_old_http = true;
                 args.shared.alpn = String::from(HQ_INTEROP);
                 args.shared.ciphers.clear();
                 args.shared
@@ -357,7 +369,6 @@ pub async fn server(mut args: Args) -> Res<()> {
                     .extend_from_slice(&[String::from("TLS_CHACHA20_POLY1305_SHA256")]);
             }
             "retry" => {
-                args.shared.use_old_http = true;
                 args.shared.alpn = String::from(HQ_INTEROP);
                 args.retry = true;
             }

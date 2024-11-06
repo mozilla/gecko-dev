@@ -7,6 +7,7 @@
 use std::{io, net::SocketAddr};
 
 use neqo_common::Datagram;
+use neqo_udp::DatagramIter;
 
 /// Ideally this would live in [`neqo-udp`]. [`neqo-udp`] is used in Firefox.
 ///
@@ -55,14 +56,19 @@ impl Socket {
 
     /// Receive a batch of [`Datagram`]s on the given [`Socket`], each set with
     /// the provided local address.
-    pub fn recv(&self, local_address: &SocketAddr) -> Result<Vec<Datagram>, io::Error> {
+    pub fn recv<'a>(
+        &self,
+        local_address: SocketAddr,
+        recv_buf: &'a mut [u8],
+    ) -> Result<Option<DatagramIter<'a>>, io::Error> {
         self.inner
             .try_io(tokio::io::Interest::READABLE, || {
-                neqo_udp::recv_inner(local_address, &self.state, &self.inner)
+                neqo_udp::recv_inner(local_address, &self.state, &self.inner, recv_buf)
             })
+            .map(Some)
             .or_else(|e| {
                 if e.kind() == io::ErrorKind::WouldBlock {
-                    Ok(vec![])
+                    Ok(None)
                 } else {
                     Err(e)
                 }

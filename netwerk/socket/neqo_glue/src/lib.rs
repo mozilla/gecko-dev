@@ -41,6 +41,10 @@ use uuid::Uuid;
 use winapi::shared::ws2def::{AF_INET, AF_INET6};
 use xpcom::{interfaces::nsISocketProvider, AtomicRefcnt, RefCounted, RefPtr};
 
+std::thread_local! {
+    static RECV_BUF: RefCell<Vec<u8>> = RefCell::new(vec![0; neqo_udp::RECV_BUF_SIZE]);
+}
+
 #[repr(C)]
 pub struct NeqoHttp3Conn {
     conn: Http3Client,
@@ -517,10 +521,10 @@ pub unsafe extern "C" fn neqo_http3conn_process_input_use_nspr_for_io(
         remote,
         conn.local_addr,
         IpTos::default(),
-        (*packet).to_vec(),
+        (*packet).as_slice(),
     );
     conn.conn
-        .process_input(&d, get_current_or_last_output_time(&conn.last_output_time));
+        .process_input(d, get_current_or_last_output_time(&conn.last_output_time));
     return NS_OK;
 }
 
@@ -538,52 +542,61 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
 ) -> ProcessInputResult {
     let mut bytes_read = 0;
 
-    loop {
-        let mut dgrams = match conn
-            .socket
-            .as_mut()
-            .expect("non NSPR IO")
-            .recv(&conn.local_addr)
-        {
-            Ok(dgrams) => dgrams,
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+    RECV_BUF.with_borrow_mut(|recv_buf| {
+        loop {
+            let dgrams = match conn
+                .socket
+                .as_mut()
+                .expect("non NSPR IO")
+                .recv(conn.local_addr, recv_buf)
+            {
+                Ok(dgrams) => dgrams,
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    break;
+                }
+                Err(e) => {
+                    qwarn!("failed to receive datagrams: {}", e);
+                    return ProcessInputResult {
+                        result: NS_ERROR_FAILURE,
+                        bytes_read: 0,
+                    };
+                }
+            };
+            if dgrams.len() == 0 {
                 break;
             }
-            Err(e) => {
-                qwarn!("failed to receive datagrams: {}", e);
-                return ProcessInputResult {
-                    result: NS_ERROR_FAILURE,
-                    bytes_read: 0,
-                };
-            }
+
+            // Attach metric instrumentation to `dgrams` iterator.
+            let mut sum = 0;
+            conn.datagram_segments_received
+                .accumulate(dgrams.len() as u64);
+            let datagram_segment_size_received = &mut conn.datagram_segment_size_received;
+            let dgrams = dgrams.map(|d| {
+                datagram_segment_size_received.accumulate(d.len() as u64);
+                sum += d.len();
+                d
+            });
+
+            // Override `dgrams` ECN marks according to prefs.
+            let ecn_enabled = static_prefs::pref!("network.http.http3.ecn");
+            let dgrams = dgrams.map(|mut d| {
+                if !ecn_enabled {
+                    d.set_tos(Default::default());
+                }
+                d
+            });
+
+            conn.conn.process_multiple_input(dgrams, Instant::now());
+
+            conn.datagram_size_received.accumulate(sum as u64);
+            bytes_read += sum;
+        }
+
+        return ProcessInputResult {
+            result: NS_OK,
+            bytes_read: bytes_read.try_into().unwrap_or(u32::MAX),
         };
-        if dgrams.is_empty() {
-            break;
-        }
-
-        let mut sum = 0;
-        let ecn_enabled = static_prefs::pref!("network.http.http3.ecn");
-        for dgram in &mut dgrams {
-            if !ecn_enabled {
-                dgram.set_tos(Default::default());
-            }
-            conn.datagram_segment_size_received
-                .accumulate(dgram.len() as u64);
-            sum += dgram.len();
-        }
-        conn.datagram_size_received.accumulate(sum as u64);
-        conn.datagram_segments_received
-            .accumulate(dgrams.len() as u64);
-        bytes_read += sum;
-
-        conn.conn
-            .process_multiple_input(dgrams.iter(), Instant::now());
-    }
-
-    return ProcessInputResult {
-        result: NS_OK,
-        bytes_read: bytes_read.try_into().unwrap_or(u32::MAX),
-    };
+    })
 }
 
 #[no_mangle]
@@ -1001,7 +1014,6 @@ impl From<TransportError> for CloseError {
             TransportError::ConnectionState => CloseError::TransportInternalErrorOther(3),
             TransportError::DecodingFrame => CloseError::TransportInternalErrorOther(4),
             TransportError::DecryptError => CloseError::TransportInternalErrorOther(5),
-            TransportError::HandshakeFailed => CloseError::TransportInternalErrorOther(6),
             TransportError::IntegerOverflow => CloseError::TransportInternalErrorOther(7),
             TransportError::InvalidInput => CloseError::TransportInternalErrorOther(8),
             TransportError::InvalidMigration => CloseError::TransportInternalErrorOther(9),
@@ -1057,7 +1069,6 @@ fn transport_error_to_glean_label(error: &TransportError) -> &'static str {
         TransportError::DecodingFrame => "DecodingFrame",
         TransportError::DecryptError => "DecryptError",
         TransportError::DisabledVersion => "DisabledVersion",
-        TransportError::HandshakeFailed => "HandshakeFailed",
         TransportError::IdleTimeout => "IdleTimeout",
         TransportError::IntegerOverflow => "IntegerOverflow",
         TransportError::InvalidInput => "InvalidInput",

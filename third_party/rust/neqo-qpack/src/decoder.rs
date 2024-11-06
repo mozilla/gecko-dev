@@ -333,8 +333,8 @@ mod tests {
             .peer_conn
             .stream_send(decoder.recv_stream_id, encoder_instruction)
             .unwrap();
-        let out = decoder.peer_conn.process(None, now());
-        mem::drop(decoder.conn.process(out.as_dgram_ref(), now()));
+        let out = decoder.peer_conn.process_output(now());
+        mem::drop(decoder.conn.process(out.dgram(), now()));
         assert_eq!(
             decoder
                 .decoder
@@ -345,8 +345,8 @@ mod tests {
 
     fn send_instructions_and_check(decoder: &mut TestDecoder, decoder_instruction: &[u8]) {
         decoder.decoder.send(&mut decoder.conn).unwrap();
-        let out = decoder.conn.process(None, now());
-        mem::drop(decoder.peer_conn.process(out.as_dgram_ref(), now()));
+        let out = decoder.conn.process_output(now());
+        mem::drop(decoder.peer_conn.process(out.dgram(), now()));
         let mut buf = [0_u8; 100];
         let (amount, fin) = decoder
             .peer_conn

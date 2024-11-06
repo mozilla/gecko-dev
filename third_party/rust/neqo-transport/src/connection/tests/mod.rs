@@ -30,7 +30,7 @@ use crate::{
     stats::{FrameStats, Stats, MAX_PTO_COUNTS},
     tparams::{DISABLE_MIGRATION, GREASE_QUIC_BIT},
     ConnectionIdDecoder, ConnectionIdGenerator, ConnectionParameters, Error, StreamId, StreamType,
-    Version,
+    Version, MIN_INITIAL_PACKET_SIZE,
 };
 
 // All the tests.
@@ -208,7 +208,7 @@ fn handshake_with_modifier(
         if should_ping {
             a.test_frame_writer = Some(Box::new(PingWriter {}));
         }
-        let output = a.process(input.as_ref(), now).dgram();
+        let output = a.process(input, now).dgram();
         if should_ping {
             a.test_frame_writer = None;
             did_ping[a.role()] = true;
@@ -219,7 +219,7 @@ fn handshake_with_modifier(
         mem::swap(&mut a, &mut b);
     }
     if let Some(d) = input {
-        a.process_input(&d, now);
+        a.process_input(d, now);
     }
     now
 }
@@ -299,7 +299,7 @@ fn exchange_ticket(
     server.send_ticket(now, &[]).expect("can send ticket");
     let ticket = server.process_output(now).dgram();
     assert!(ticket.is_some());
-    client.process_input(&ticket.unwrap(), now);
+    client.process_input(ticket.unwrap(), now);
     assert_eq!(*client.state(), State::Confirmed);
     get_tokens(client).pop().expect("should have token")
 }
@@ -397,7 +397,7 @@ fn fill_cwnd(c: &mut Connection, stream: StreamId, mut now: Instant) -> (Vec<Dat
 
     qtrace!(
         "fill_cwnd sent {} bytes",
-        total_dgrams.iter().map(|d| d.len()).sum::<usize>()
+        total_dgrams.iter().map(Datagram::len).sum::<usize>()
     );
     (total_dgrams, now)
 }
@@ -415,7 +415,7 @@ fn increase_cwnd(
         let pkt = sender.process_output(now);
         match pkt {
             Output::Datagram(dgram) => {
-                receiver.process_input(&dgram, now + DEFAULT_RTT / 2);
+                receiver.process_input(dgram, now + DEFAULT_RTT / 2);
             }
             Output::Callback(t) => {
                 if t < DEFAULT_RTT {
@@ -432,7 +432,7 @@ fn increase_cwnd(
     now += DEFAULT_RTT / 2;
     let ack = receiver.process_output(now).dgram();
     now += DEFAULT_RTT / 2;
-    sender.process_input(&ack.unwrap(), now);
+    sender.process_input(ack.unwrap(), now);
     now
 }
 
@@ -453,7 +453,7 @@ where
     let in_dgrams = in_dgrams.into_iter();
     qdebug!([dest], "ack_bytes {} datagrams", in_dgrams.len());
     for dgram in in_dgrams {
-        dest.process_input(&dgram, now);
+        dest.process_input(dgram, now);
     }
 
     loop {
@@ -524,7 +524,7 @@ fn induce_persistent_congestion(
 
     // An ACK for the third PTO causes persistent congestion.
     let s_ack = ack_bytes(server, stream, c_tx_dgrams, now);
-    client.process_input(&s_ack, now);
+    client.process_input(s_ack, now);
     assert_eq!(cwnd(client), cwnd_min(client));
     now
 }
@@ -635,7 +635,7 @@ fn send_with_modifier_and_receive(
     modifier: fn(Datagram) -> Option<Datagram>,
 ) -> Option<Datagram> {
     let dgram = send_something_with_modifier(sender, now, modifier);
-    receiver.process(Some(&dgram), now).dgram()
+    receiver.process(Some(dgram), now).dgram()
 }
 
 /// Send something on a stream from `sender` to `receiver`.
@@ -667,6 +667,27 @@ fn assert_default_stats(stats: &Stats) {
     let dflt_frames = FrameStats::default();
     assert_eq!(stats.frame_rx, dflt_frames);
     assert_eq!(stats.frame_tx, dflt_frames);
+}
+
+fn assert_path_challenge_min_len(c: &Connection, d: &Datagram, now: Instant) {
+    let path = c.paths.find_path(
+        d.source(),
+        d.destination(),
+        c.conn_params.get_cc_algorithm(),
+        c.conn_params.pacing_enabled(),
+        now,
+    );
+    if path.borrow().amplification_limit() < path.borrow().plpmtu() {
+        // If the amplification limit is less than the PLPMTU, then the path
+        // challenge will not have been padded.
+        return;
+    }
+    assert!(
+        d.len() >= MIN_INITIAL_PACKET_SIZE,
+        "{} < {}",
+        d.len(),
+        MIN_INITIAL_PACKET_SIZE
+    );
 }
 
 #[test]

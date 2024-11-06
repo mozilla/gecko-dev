@@ -718,7 +718,7 @@ impl Path {
         // with the current value.
         let tos = self.tos();
         self.ecn_info.on_packet_sent(stats);
-        Datagram::new(self.local, self.remote, tos, payload)
+        Datagram::new(self.local, self.remote, tos, payload.into())
     }
 
     /// Get local address as `SocketAddr`

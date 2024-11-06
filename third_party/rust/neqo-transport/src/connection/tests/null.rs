@@ -26,7 +26,7 @@ fn no_encryption() {
     let client_pkt = client.process_output(now()).dgram().unwrap();
     assert!(client_pkt[..client_pkt.len() - AEAD_NULL_TAG.len()].ends_with(DATA_CLIENT));
 
-    server.process_input(&client_pkt, now());
+    server.process_input(client_pkt, now());
     let mut buf = vec![0; 100];
     let (len, _) = server.stream_recv(stream_id, &mut buf).unwrap();
     assert_eq!(len, DATA_CLIENT.len());
@@ -35,7 +35,7 @@ fn no_encryption() {
     let server_pkt = server.process_output(now()).dgram().unwrap();
     assert!(server_pkt[..server_pkt.len() - AEAD_NULL_TAG.len()].ends_with(DATA_SERVER));
 
-    client.process_input(&server_pkt, now());
+    client.process_input(server_pkt, now());
     let (len, _) = client.stream_recv(stream_id, &mut buf).unwrap();
     assert_eq!(len, DATA_SERVER.len());
     assert_eq!(&buf[..len], DATA_SERVER);
