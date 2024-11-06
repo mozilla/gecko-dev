@@ -1,88 +1,95 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent">
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content" >
+
+    <androidx.core.widget.NestedScrollView
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="125dp"
+        android:clipToPadding="false" >
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?android:windowBackground"
+            android:orientation="vertical" >
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/icon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="16dp"
+                android:importantForAccessibility="no"
+                android:scaleType="center"
+                app:srcCompat="@drawable/mozac_ic_extension_24" />
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@id/icon"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="3dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="11dp"
+                android:layout_toEndOf="@id/icon"
+                android:paddingStart="5dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="5dp"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="16sp"
+                tools:text="Add Ublock Origin?"
+                tools:textColor="#000000" />
+
+            <TextView
+                android:id="@+id/optional_or_required_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/title"
+                android:layout_alignStart="@id/title"
+                android:layout_marginTop="16dp"
+                android:paddingStart="5dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="5dp"
+                android:textColor="?android:attr/textColorPrimary"
+                tools:text="It requires your permission to:" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/permissions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/optional_or_required_text"
+                android:layout_alignStart="@id/optional_or_required_text"
+                android:layout_marginStart="0dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="16dp"
+                android:visibility="visible" />
+
+        </RelativeLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="125dp"
+        android:layout_gravity="bottom"
         android:background="?android:windowBackground"
-        android:orientation="vertical"
-        tools:ignore="Overdraw">
-
-        <androidx.appcompat.widget.AppCompatImageView
-            android:id="@+id/icon"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:importantForAccessibility="no"
-            android:scaleType="center"
-            app:srcCompat="@drawable/mozac_ic_extension_24" />
-
-        <TextView
-            android:id="@+id/title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignBaseline="@id/icon"
-            android:layout_alignParentTop="true"
-            android:layout_marginStart="3dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="11dp"
-            android:layout_toEndOf="@id/icon"
-            android:paddingStart="5dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="5dp"
-            android:textColor="?android:attr/textColorPrimary"
-            android:textSize="16sp"
-            tools:text="Add Ublock Origin?"
-            tools:textColor="#000000" />
-
-        <TextView
-            android:id="@+id/optional_or_required_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/title"
-            android:layout_alignStart="@id/title"
-            android:layout_marginTop="16dp"
-            android:paddingStart="5dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="5dp"
-            android:textColor="?android:attr/textColorPrimary"
-            tools:text="It requires your permission to:" />
-
-        <TextView
-            android:id="@+id/learn_more_link"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/allow_in_private_browsing"
-            android:layout_alignStart="@id/title"
-            android:layout_marginTop="30dp"
-            android:text="@string/mozac_feature_addons_permissions_dialog_learn_more" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/permissions"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/optional_or_required_text"
-            android:layout_alignStart="@id/optional_or_required_text"
-            android:layout_marginStart="0dp"
-            android:paddingStart="5dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="5dp"
-            android:visibility="visible" />
+        android:elevation="12dp"
+        android:paddingStart="48dp"
+        android:paddingEnd="16dp" >
 
         <androidx.appcompat.widget.AppCompatCheckBox
             android:id="@+id/allow_in_private_browsing"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/permissions"
-            android:layout_alignStart="@id/title"
             android:layout_marginTop="16dp"
             android:paddingStart="5dp"
             android:paddingTop="4dp"
@@ -90,13 +97,21 @@
             android:text="@string/mozac_feature_addons_settings_allow_in_private_browsing"
             android:textColor="?android:attr/textColorPrimary" />
 
+        <TextView
+            android:id="@+id/learn_more_link"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/allow_in_private_browsing"
+            android:layout_marginTop="30dp"
+            android:text="@string/mozac_feature_addons_permissions_dialog_learn_more" />
+
         <Button
             android:id="@+id/deny_button"
-            style="?android:attr/borderlessButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/allow_in_private_browsing"
             android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
             android:layout_toStartOf="@id/allow_button"
             android:text="@string/mozac_feature_addons_permissions_dialog_cancel"
             android:textAlignment="center"
@@ -108,13 +123,14 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/allow_in_private_browsing"
             android:layout_alignParentEnd="true"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="8dp"
             android:layout_marginTop="16dp"
-            android:layout_marginEnd="16dp"
             android:layout_marginBottom="16dp"
             android:text="@string/mozac_feature_addons_permissions_dialog_add"
             android:textAlignment="center"
             android:textAllCaps="false" />
 
     </RelativeLayout>
-</androidx.core.widget.NestedScrollView>
+</FrameLayout>
+
