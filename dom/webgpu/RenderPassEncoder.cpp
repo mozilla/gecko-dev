@@ -151,6 +151,13 @@ ffi::WGPURecordedRenderPass* BeginRenderPass(
     }
   }
 
+  ffi::WGPUPassTimestampWrites passTimestampWrites = {};
+  if (aDesc.mTimestampWrites.WasPassed()) {
+    AssignPassTimestampWrites(aDesc.mTimestampWrites.Value(),
+                              passTimestampWrites);
+    desc.timestamp_writes = &passTimestampWrites;
+  }
+
   return ffi::wgpu_command_encoder_begin_render_pass(&desc);
 }
 

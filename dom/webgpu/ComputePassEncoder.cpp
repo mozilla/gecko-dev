@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/WebGPUBinding.h"
+#include "CommandEncoder.h"
 #include "ComputePassEncoder.h"
 #include "BindGroup.h"
 #include "ComputePipeline.h"
@@ -30,6 +31,13 @@ ffi::WGPURecordedComputePass* BeginComputePass(
 
   webgpu::StringHelper label(aDesc.mLabel);
   desc.label = label.Get();
+
+  ffi::WGPUPassTimestampWrites passTimestampWrites = {};
+  if (aDesc.mTimestampWrites.WasPassed()) {
+    AssignPassTimestampWrites(aDesc.mTimestampWrites.Value(),
+                              passTimestampWrites);
+    desc.timestamp_writes = &passTimestampWrites;
+  }
 
   return ffi::wgpu_command_encoder_begin_compute_pass(&desc);
 }
