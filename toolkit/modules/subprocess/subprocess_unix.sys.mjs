@@ -198,10 +198,6 @@ var SubprocessUnix = {
     error.errorCode = SubprocessConstants.ERROR_BAD_EXECUTABLE;
     throw error;
   },
-
-  connectRunning(options) {
-    return Process.fromRunning(options);
-  },
 };
 
 export var SubprocessImpl = SubprocessUnix;

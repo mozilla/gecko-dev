@@ -601,12 +601,6 @@ class Process extends BaseProcess {
     libc.CloseHandle(procInfo.hThread);
   }
 
-  connectRunning(_options) {
-    // Not relevant (yet?) on Windows. This is currently used only on Unix
-    // for native messaging through the WebExtensions portal.
-    throw new Error("Not implemented");
-  }
-
   /**
    * Called when our process handle is signaled as active, meaning the process
    * has exited.

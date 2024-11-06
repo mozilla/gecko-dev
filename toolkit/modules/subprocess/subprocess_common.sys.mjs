@@ -581,22 +581,13 @@ export class BaseProcess {
      */
     this.pid = pid;
 
-    /**
-     * @property {boolean} managed
-     *           Whether the process is externally managed, or spawned by us.
-     *           @readonly
-     */
-    this.managed = pid == 0;
-
     this.exitCode = null;
 
     this.exitPromise = new Promise(resolve => {
-      if (!this.managed) {
-        this.worker.call("wait", [this.id]).then(({ exitCode }) => {
-          resolve(Object.freeze({ exitCode }));
-          this.exitCode = exitCode;
-        });
-      }
+      this.worker.call("wait", [this.id]).then(({ exitCode }) => {
+        resolve(Object.freeze({ exitCode }));
+        this.exitCode = exitCode;
+      });
     });
 
     if (fds[0] !== undefined) {
@@ -644,16 +635,6 @@ export class BaseProcess {
     });
   }
 
-  static fromRunning(options) {
-    let worker = this.getWorker();
-
-    return worker
-      .call("connectRunning", [options])
-      .then(({ processId, fds }) => {
-        return new this(worker, processId, fds, 0);
-      });
-  }
-
   static get WORKER_URL() {
     throw new Error("Not implemented");
   }
@@ -691,10 +672,6 @@ export class BaseProcess {
    *          has exited.
    */
   kill(timeout = 300) {
-    if (this.managed) {
-      throw new Error("Cannot kill a process managed externally");
-    }
-
     // If the process has already exited, don't bother sending a signal.
     if (this.exitCode != null) {
       return this.wait();
@@ -729,9 +706,6 @@ export class BaseProcess {
    * method.
    */
   wait() {
-    if (this.managed) {
-      throw new Error("Cannot wait on a process managed externally");
-    }
     return this.exitPromise;
   }
 }

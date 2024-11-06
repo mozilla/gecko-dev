@@ -53,7 +53,6 @@ inline bool IsRunningUnderFlatpakOrSnap() {
 enum class PortalKind {
   FilePicker,
   MimeHandler,
-  NativeMessaging,
   Settings,
   Location,
   OpenUri,

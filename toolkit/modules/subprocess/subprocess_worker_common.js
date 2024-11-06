@@ -59,11 +59,7 @@ class BaseProcess {
     this.pid = null;
     this.pipes = [];
 
-    if (options.managed) {
-      this.connectRunning(options);
-    } else {
-      this.spawn(options);
-    }
+    this.spawn(options);
   }
 
   /**
@@ -100,7 +96,6 @@ let requests = {
   },
 
   spawn(options) {
-    options.managed = false;
     let process = new Process(options);
     let processId = process.id;
 
@@ -109,18 +104,6 @@ let requests = {
     let fds = process.pipes.map(pipe => pipe.id);
 
     return { data: { processId, fds, pid: process.pid } };
-  },
-
-  connectRunning(fds) {
-    let options = {};
-    options.managed = true;
-    options.fds = fds;
-    let process = new Process(options);
-    let processId = process.id;
-
-    io.addProcess(process);
-
-    return { data: { processId, fds: process.pipes.map(pipe => pipe.id) } };
   },
 
   kill(processId, force = false) {
@@ -178,18 +161,6 @@ let requests = {
     return Promise.all(
       Array.from(io.processes.values(), proc => proc.awaitFinished())
     );
-  },
-
-  getFds(processId) {
-    let process = io.getProcess(processId);
-    let pipes = process.pipes;
-    return {
-      data: [
-        pipes[0].fd.toString(),
-        pipes[1].fd.toString(),
-        pipes[2].fd.toString(),
-      ],
-    };
   },
 };
 
