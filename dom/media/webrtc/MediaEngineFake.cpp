@@ -238,10 +238,9 @@ nsresult MediaEngineFakeVideoSource::Allocate(
 #endif
       );
   mOpts.mWidth =
-      std::max(VIDEO_WIDTH_MIN, std::min(mOpts.mWidth, VIDEO_WIDTH_MAX)) & ~1;
+      std::clamp(mOpts.mWidth, VIDEO_WIDTH_MIN, VIDEO_WIDTH_MAX) & ~1;
   mOpts.mHeight =
-      std::max(VIDEO_HEIGHT_MIN, std::min(mOpts.mHeight, VIDEO_HEIGHT_MAX)) &
-      ~1;
+      std::clamp(mOpts.mHeight, VIDEO_HEIGHT_MIN, VIDEO_HEIGHT_MAX) & ~1;
 
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       __func__, [settings = mSettings, frameRate = mOpts.mFPS,

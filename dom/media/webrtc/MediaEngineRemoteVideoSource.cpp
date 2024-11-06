@@ -845,13 +845,13 @@ bool MediaEngineRemoteVideoSource::ChooseCapability(
       int32_t prefHeight = aPrefs.GetHeight(isHd);
 
       cap.width = c.mWidth.Get(prefWidth);
-      cap.width = std::max(0, std::min(cap.width, 7680));
+      cap.width = std::clamp(cap.width, 0, 7680);
 
       cap.height = c.mHeight.Get(prefHeight);
-      cap.height = std::max(0, std::min(cap.height, 4320));
+      cap.height = std::clamp(cap.height, 0, 4320);
 
       cap.maxFPS = c.mFrameRate.Get(aPrefs.mFPS);
-      cap.maxFPS = std::max(0, std::min(cap.maxFPS, 480));
+      cap.maxFPS = std::clamp(cap.maxFPS, 0, 480);
 
       if (cap.width != prefWidth) {
         // Width was affected by constraints.

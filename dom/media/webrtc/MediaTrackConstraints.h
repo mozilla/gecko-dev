@@ -63,9 +63,7 @@ class NormalizedConstraintSet {
 
     template <class ConstrainRange>
     void SetFrom(const ConstrainRange& aOther);
-    ValueType Clamp(ValueType n) const {
-      return std::max(mMin, std::min(n, mMax));
-    }
+    ValueType Clamp(ValueType n) const { return std::clamp(n, mMin, mMax); }
     ValueType Get(ValueType defaultValue) const {
       return Clamp(mIdeal.valueOr(defaultValue));
     }

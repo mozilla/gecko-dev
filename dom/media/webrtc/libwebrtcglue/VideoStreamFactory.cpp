@@ -136,7 +136,7 @@ static void SelectBitrates(unsigned short width, unsigned short height, int min,
   if (out_min > out_max) {
     out_min = out_max;
   }
-  out_start = std::min(out_max, std::max(out_start, out_min));
+  out_start = std::clamp(out_start, out_min, out_max);
 
   MOZ_ASSERT(pref_cap == 0 || out_max <= pref_cap);
 }
@@ -196,8 +196,8 @@ void VideoStreamFactory::SelectMaxFramerate(
 }
 
 std::vector<webrtc::VideoStream> VideoStreamFactory::CreateEncoderStreams(
-    const webrtc::FieldTrialsView& field_trials,
-    int aWidth, int aHeight, const webrtc::VideoEncoderConfig& aConfig) {
+    const webrtc::FieldTrialsView& field_trials, int aWidth, int aHeight,
+    const webrtc::VideoEncoderConfig& aConfig) {
   // We only allow one layer when screensharing
   const size_t streamCount =
       mCodecMode == webrtc::VideoCodecMode::kScreensharing
