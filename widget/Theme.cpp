@@ -722,7 +722,8 @@ void Theme::PaintRadioControl(PaintBackendData& aPaintData,
   }
 
   if (aState.HasState(ElementState::FOCUSRING)) {
-    PaintRoundedFocusRect(aPaintData, aRect, aColors, aDpiRatio, 5.0f, 1.0f);
+    auto radius = LayoutDeviceCoord(aRect.Size().width) / aDpiRatio;
+    PaintRoundedFocusRect(aPaintData, aRect, aColors, aDpiRatio, radius, 1.0f);
   }
 }
 
