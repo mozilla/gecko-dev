@@ -47,3 +47,81 @@ export const ERRORS = Object.freeze({
    */
   UNSUPPORTED_APPLICATION: 14,
 });
+
+/**
+ * These are steps that the BackupService or any of its subcomponents might
+ * be going through during configuration, creation, deletion of or restoration
+ * from a backup. This is used to provide extra information to our error
+ * telemetry.
+ */
+export const STEPS = Object.freeze({
+  /**
+   * This is the initial step upon creating a backup before any other steps
+   * begin.
+   */
+  CREATE_BACKUP_ENTRYPOINT: 1,
+
+  /**
+   * Determine the final destination for the written archive.
+   */
+  CREATE_BACKUP_RESOLVE_DESTINATION: 2,
+
+  /**
+   * Generate the manifest object for the backup.
+   */
+  CREATE_BACKUP_CREATE_MANIFEST: 3,
+
+  /**
+   * Create the main `backups` working directory in the profile directory if it
+   * doesn't already exist.
+   */
+  CREATE_BACKUP_CREATE_BACKUPS_FOLDER: 4,
+
+  /**
+   * Create the staging directory for the backup.
+   */
+  CREATE_BACKUP_CREATE_STAGING_FOLDER: 5,
+
+  /**
+   * Attempt to load the encryption state if one exists.
+   */
+  CREATE_BACKUP_LOAD_ENCSTATE: 6,
+
+  /**
+   * Run the backup routine for each BackupResource.
+   */
+  CREATE_BACKUP_RUN_BACKUP: 7,
+
+  /**
+   * After populating with the data from each BackupResource, verify that
+   * the manifest adheres to the BackupManifest schema.
+   */
+  CREATE_BACKUP_VERIFY_MANIFEST: 8,
+
+  /**
+   * Write the backup manifest to the staging directory.
+   */
+  CREATE_BACKUP_WRITE_MANIFEST: 9,
+
+  /**
+   * Rename the staging directory with the time code, and clear out any
+   * expired directories.
+   */
+  CREATE_BACKUP_FINALIZE_STAGING: 10,
+
+  /**
+   * Compress the staging directory into a single file.
+   */
+  CREATE_BACKUP_COMPRESS_STAGING: 11,
+
+  /**
+   * Generate the single-file archive.
+   */
+  CREATE_BACKUP_CREATE_ARCHIVE: 12,
+
+  /**
+   * Finalize the single-file archive and move it into the destination
+   * directory.
+   */
+  CREATE_BACKUP_FINALIZE_ARCHIVE: 13,
+});

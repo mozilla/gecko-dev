@@ -87,7 +87,9 @@ add_setup(function () {
  * @returns {Promise<undefined>}
  */
 async function testCreateBackupHelper(sandbox, taskFn) {
+  Services.telemetry.clearEvents();
   Services.fog.testResetFOG();
+
   // Handle for the metric for total byte size of staging folder
   let totalBackupSizeHistogram = TelemetryTestUtils.getAndClearHistogram(
     "BROWSER_BACKUP_TOTAL_BACKUP_SIZE"
@@ -157,6 +159,14 @@ async function testCreateBackupHelper(sandbox, taskFn) {
     profilePath: fakeProfilePath,
   });
   Assert.ok(bs.state.lastBackupDate, "The backup date was recorded.");
+
+  let legacyEvents = TelemetryTestUtils.getEvents(
+    { category: "browser.backup", method: "created", object: "BackupService" },
+    { process: "parent" }
+  );
+  Assert.equal(legacyEvents.length, 1, "Found the created legacy event.");
+  let events = Glean.browserBackup.created.testGetValue();
+  Assert.equal(events.length, 1, "Found the created Glean event.");
 
   // Validate total backup time metrics were recorded
   assertSingleTimeMeasurement(

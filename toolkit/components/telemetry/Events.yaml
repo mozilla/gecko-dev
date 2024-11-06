@@ -3875,3 +3875,115 @@ session_restore:
       - 1874742
     expiry_version: "never"
     release_channel_collection: opt-out
+
+browser.backup:
+  toggle_on:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when scheduled backups are enabled.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+  toggle_off:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when scheduled backups are disabled.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+  created:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when a backup is successfully created.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+  change_location:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when the backup destination location is changed.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+  password_changed:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when the backup encryption password is changed.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+  password_added:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when the backup encryption is enabled.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+  password_removed:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when the backup encryption is removed.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+  error:
+    objects: ["BackupService"]
+    description: >
+      Dispatched when a backup fails to be created. We encode the error code
+      as well as the stage the backup failed in in the extra data.
+    bug_numbers:
+      - 1908732
+    notification_emails:
+      - mconley@mozilla.com
+    products:
+      - "firefox"
+    record_in_processes: [main]
+    release_channel_collection: opt-out
+    expiry_version: never
+    extra_keys:
+      error_code: The string representation of the error code.
+      backup_step: >
+        The string representation of the step that backup creation was in
+        when the error occurred.

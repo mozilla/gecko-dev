@@ -10,6 +10,9 @@ const SCHEDULED_BACKUPS_ENABLED_PREF = "browser.backup.scheduled.enabled";
  * from the settings page via the toggle checkbox.
  */
 add_task(async function test_enable_backup_encryption_checkbox_confirm() {
+  Services.telemetry.clearEvents();
+  Services.fog.testResetFOG();
+
   await BrowserTestUtils.withNewTab("about:preferences", async browser => {
     let sandbox = sinon.createSandbox();
     let enableEncryptionStub = sandbox
@@ -102,6 +105,22 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
       "BackupService was called to enable encryption with inputted password"
     );
 
+    let legacyEvents = TelemetryTestUtils.getEvents(
+      {
+        category: "browser.backup",
+        method: "password_added",
+        object: "BackupService",
+      },
+      { process: "parent" }
+    );
+    Assert.equal(
+      legacyEvents.length,
+      1,
+      "Found the password_added legacy event."
+    );
+    let events = Glean.browserBackup.passwordAdded.testGetValue();
+    Assert.equal(events.length, 1, "Found the passwordAdded Glean event.");
+
     await SpecialPowers.popPrefEnv();
     sandbox.restore();
   });
@@ -113,6 +132,9 @@ add_task(async function test_enable_backup_encryption_checkbox_confirm() {
  */
 add_task(
   async function test_enable_backup_encryption_change_password_confirm() {
+    Services.telemetry.clearEvents();
+    Services.fog.testResetFOG();
+
     await BrowserTestUtils.withNewTab("about:preferences", async browser => {
       let sandbox = sinon.createSandbox();
       let enableEncryptionStub = sandbox
@@ -200,6 +222,22 @@ add_task(
         enableEncryptionStub.calledOnceWith(MOCK_PASSWORD),
         "BackupService was called to re-run encryption with changed password"
       );
+
+      let legacyEvents = TelemetryTestUtils.getEvents(
+        {
+          category: "browser.backup",
+          method: "password_changed",
+          object: "BackupService",
+        },
+        { process: "parent" }
+      );
+      Assert.equal(
+        legacyEvents.length,
+        1,
+        "Found the password_changed legacy event."
+      );
+      let events = Glean.browserBackup.passwordChanged.testGetValue();
+      Assert.equal(events.length, 1, "Found the passwordChanged Glean event.");
 
       await SpecialPowers.popPrefEnv();
       sandbox.restore();

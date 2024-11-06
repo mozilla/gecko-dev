@@ -57,6 +57,9 @@ async function turnOffScheduledBackupsHelper(browser, taskFn) {
  */
 add_task(async function test_turn_off_scheduled_backups_confirm() {
   await BrowserTestUtils.withNewTab("about:preferences", async browser => {
+    Services.telemetry.clearEvents();
+    Services.fog.testResetFOG();
+
     let sandbox = sinon.createSandbox();
     let deleteLastBackupStub = sandbox
       .stub(BackupService.prototype, "deleteLastBackup")
@@ -77,6 +80,18 @@ add_task(async function test_turn_off_scheduled_backups_confirm() {
         "BackupService was called to delete the latest backup file"
       );
     });
+
+    let legacyEvents = TelemetryTestUtils.getEvents(
+      {
+        category: "browser.backup",
+        method: "toggle_off",
+        object: "BackupService",
+      },
+      { process: "parent" }
+    );
+    Assert.equal(legacyEvents.length, 1, "Found the toggle_off legacy event.");
+    let events = Glean.browserBackup.toggleOff.testGetValue();
+    Assert.equal(events.length, 1, "Found the toggleOff Glean event.");
 
     await SpecialPowers.popPrefEnv();
     sandbox.restore();
