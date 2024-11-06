@@ -226,7 +226,7 @@ class FinalizationRegistryObject : public NativeObject {
 class FinalizationQueueObject : public NativeObject {
   enum {
     CleanupCallbackSlot = 0,
-    IncumbentObjectSlot,
+    HostDefinedDataSlot,
     RecordsToBeCleanedUpSlot,
     IsQueuedForCleanupSlot,
     DoCleanupFunctionSlot,
@@ -242,7 +242,7 @@ class FinalizationQueueObject : public NativeObject {
   static const JSClass class_;
 
   JSObject* cleanupCallback() const;
-  JSObject* incumbentObject() const;
+  JSObject* getHostDefinedData() const;
   FinalizationRecordVector* recordsToBeCleanedUp() const;
   bool isQueuedForCleanup() const;
   JSFunction* doCleanupFunction() const;
