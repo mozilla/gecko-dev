@@ -332,7 +332,8 @@ struct arena_chunk_map_t {
   // l : large?
   // a : allocated?
   //
-  // Following are example bit patterns for the three types of runs.
+  // Following are example bit patterns for consecutive pages from the three
+  // types of runs.
   //
   // r : run address
   // s : run size
@@ -345,6 +346,16 @@ struct arena_chunk_map_t {
   //     xxxxxxxx xxxxxxxx xxxx---- ----d---
   //     ssssssss ssssssss ssss---- -----z--
   //
+  //     Note that the size fields are set for the first and last unallocated
+  //     page only.  The pages in-between have invalid/"don't care" size fields,
+  //     they're not cleared during things such as coalescing free runs.
+  //
+  //     Pages before the first or after the last page in a free run must be
+  //     allocated or busy.  Run coalescing depends on the sizes being set in
+  //     the first and last page.  Purging pages and releasing chunks require
+  //     that unallocated pages are always coalesced and the first page has a
+  //     correct size.
+  //
   //   Small:
   //     rrrrrrrr rrrrrrrr rrrr---- -------a
   //     rrrrrrrr rrrrrrrr rrrr---- -------a
@@ -354,6 +365,9 @@ struct arena_chunk_map_t {
   //     ssssssss ssssssss ssss---- ------la
   //     -------- -------- -------- ------la
   //     -------- -------- -------- ------la
+  //
+  //     Note that only the first page has the size set.
+  //
   size_t bits;
 
 // A page can be in one of several states.
@@ -2674,9 +2688,13 @@ bool arena_t::SplitRun(arena_run_t* aRun, size_t aSize, bool aLarge,
   MOZ_ASSERT(need_pages <= total_pages);
   size_t rem_pages = total_pages - need_pages;
 
+  MOZ_ASSERT((chunk->map[run_ind].bits & CHUNK_MAP_BUSY) == 0);
+
 #ifdef MALLOC_DECOMMIT
   size_t i = 0;
   while (i < need_pages) {
+    MOZ_ASSERT((chunk->map[run_ind + i].bits & CHUNK_MAP_BUSY) == 0);
+
     // Commit decommitted pages if necessary.  If a decommitted
     // page is encountered, commit all needed adjacent decommitted
     // pages in one operation, in order to reduce system call
@@ -2891,6 +2909,7 @@ bool arena_t::RemoveChunk(arena_chunk_t* aChunk) {
     // or dirty.
     MOZ_ASSERT(aChunk->map[i].bits &
                (CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED | CHUNK_MAP_DIRTY));
+    MOZ_ASSERT((aChunk->map[i].bits & CHUNK_MAP_BUSY) == 0);
 
     if (aChunk->map[i].bits & CHUNK_MAP_MADVISED) {
       madvised++;
@@ -2945,6 +2964,7 @@ arena_run_t* arena_t::AllocRun(size_t aSize, bool aLarge, bool aZero) {
     size_t pageind =
         (uintptr_t(mapelm) - uintptr_t(chunk->map)) / sizeof(arena_chunk_map_t);
 
+    MOZ_ASSERT((chunk->map[pageind].bits & CHUNK_MAP_BUSY) == 0);
     run = (arena_run_t*)(uintptr_t(chunk) + (pageind << gPageSize2Pow));
   } else if (mSpare) {
     // Use the spare.
@@ -3075,6 +3095,10 @@ bool arena_t::Purge(bool aForce) {
   arena_chunk_t* chunk;
   size_t first_dirty = 0;
   size_t npages = 0;
+  size_t free_run_ind = 0;
+  size_t free_run_len = 0;
+  // The last index of the free run.
+  size_t free_run_last_ind = 0;
 
   // XXX: This block will become the first critical section by the end of this
   // series of patches.
@@ -3104,35 +3128,74 @@ bool arena_t::Purge(bool aForce) {
 
     MOZ_ASSERT(chunk->ndirty > 0);
     mChunksDirty.Remove(chunk);
-
-    // Look for the first dirty page.
+    // Look for the first dirty page, as we do record the beginning of the run
+    // that contains the dirty page.
+    bool previous_page_is_allocated = true;
     for (size_t i = gChunkHeaderNumPages; i < gChunkNumPages - 1; i++) {
-      if (chunk->map[i].bits & CHUNK_MAP_DIRTY) {
+      size_t bits = chunk->map[i].bits;
+
+      // We must not find any busy pages because this chunk shouldn't be in the
+      // dirty list.
+      MOZ_ASSERT((bits & CHUNK_MAP_BUSY) == 0);
+
+      // The first page belonging to a free run has the allocated bit clear and
+      // a non-zero size. To distinguish it from the last page of a free run we
+      // track the allocated bit of the previous page, if it's set then this is
+      // the first.
+      if ((bits & CHUNK_MAP_ALLOCATED) == 0 && (bits & ~gPageSizeMask) != 0 &&
+          previous_page_is_allocated) {
+        free_run_ind = i;
+        free_run_len = bits >> gPageSize2Pow;
+      }
+
+      if (bits & CHUNK_MAP_DIRTY) {
         MOZ_ASSERT((chunk->map[i].bits &
                     CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED) == 0);
         first_dirty = i;
-        chunk->map[i].bits ^= CHUNK_MAP_BUSY | CHUNK_MAP_DIRTY;
         break;
       }
+
+      previous_page_is_allocated = bits & CHUNK_MAP_ALLOCATED;
     }
     MOZ_ASSERT(first_dirty != 0);
+    MOZ_ASSERT(free_run_ind >= gChunkHeaderNumPages);
+    MOZ_ASSERT(free_run_ind <= first_dirty);
+    MOZ_ASSERT(free_run_len > 0);
 
     // Look for the next not-dirty page, it could be the guard page at the end
     // of the chunk.
-    for (size_t i = 1; first_dirty + i < gChunkNumPages; i++) {
-      if (!(chunk->map[first_dirty + i].bits & CHUNK_MAP_DIRTY)) {
+    for (size_t i = 0; first_dirty + i < gChunkNumPages; i++) {
+      size_t& bits = chunk->map[first_dirty + i].bits;
+
+      // We must not find any busy pages because this chunk shouldn't be in the
+      // dirty list.
+      MOZ_ASSERT(!(bits & CHUNK_MAP_BUSY));
+
+      if (!(bits & CHUNK_MAP_DIRTY)) {
         npages = i;
         break;
       }
-      MOZ_ASSERT((chunk->map[first_dirty + i].bits &
-                  CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED) == 0);
-      chunk->map[first_dirty + i].bits ^= CHUNK_MAP_BUSY | CHUNK_MAP_DIRTY;
+      MOZ_ASSERT((bits & CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED) == 0);
+      bits ^= CHUNK_MAP_DIRTY;
     }
     MOZ_ASSERT(npages > 0);
     MOZ_ASSERT(npages <= chunk->ndirty);
+    MOZ_ASSERT(free_run_ind + free_run_len >= first_dirty + npages);
+
+    // Mark the run as busy so that another thread freeing memory won't try to
+    // coalesce it.
+    chunk->map[free_run_ind].bits |= CHUNK_MAP_BUSY;
+    free_run_last_ind = free_run_ind + free_run_len - 1;
+    chunk->map[free_run_last_ind].bits |= CHUNK_MAP_BUSY;
 
     chunk->ndirty -= npages;
     mNumDirty -= npages;
+
+    // Before we unlock ensure that no other thread can allocate from these
+    // pages.
+    if (mSpare != chunk) {
+      mRunsAvail.Remove(&chunk->map[free_run_ind]);
+    }
 
     // Mark the chunk as busy so it won't be deleted.
     MOZ_ASSERT(!chunk->mIsPurging);
@@ -3161,13 +3224,22 @@ bool arena_t::Purge(bool aForce) {
     chunk->mIsPurging = false;
 
     for (size_t i = 0; i < npages; i++) {
-      // The page must have only the busy flag set.
-      MOZ_ASSERT((chunk->map[first_dirty + i].bits &
-                  (CHUNK_MAP_FRESH_MADVISED_DECOMMITTED_OR_BUSY |
-                   CHUNK_MAP_DIRTY)) == CHUNK_MAP_BUSY);
-
-      chunk->map[first_dirty + i].bits ^= free_operation | CHUNK_MAP_BUSY;
+      // The page must not have any of the madvised, decommited or dirty bits
+      // set.
+      MOZ_ASSERT(
+          (chunk->map[first_dirty + i].bits &
+           (CHUNK_MAP_FRESH_MADVISED_OR_DECOMMITTED | CHUNK_MAP_DIRTY)) == 0);
+      chunk->map[first_dirty + i].bits ^= free_operation;
     }
+
+    // Remove the CHUNK_MAP_BUSY marks from the run.
+#ifdef MOZ_DEBUG
+    MOZ_ASSERT(chunk->map[free_run_ind].bits & CHUNK_MAP_BUSY);
+    MOZ_ASSERT(chunk->map[free_run_last_ind].bits & CHUNK_MAP_BUSY);
+#endif
+    chunk->map[free_run_ind].bits &= ~CHUNK_MAP_BUSY;
+    free_run_last_ind = free_run_ind + free_run_len - 1;
+    chunk->map[free_run_last_ind].bits &= ~CHUNK_MAP_BUSY;
 
 #ifndef MALLOC_DECOMMIT
     mNumMAdvised += npages;
@@ -3191,6 +3263,10 @@ bool arena_t::Purge(bool aForce) {
       chunk_dealloc((void*)chunk, kChunkSize, ARENA_CHUNK);
 
     } else {
+      if (chunk != mSpare) {
+        mRunsAvail.Insert(&chunk->map[free_run_ind]);
+      }
+
       if (chunk->ndirty != 0) {
         mChunksDirty.Insert(chunk);
       }
