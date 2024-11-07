@@ -687,6 +687,7 @@ add_task(async function test_ml_engine_get_status() {
         dtype: "q8",
         numThreads: null,
         executionPriority: null,
+        modelHub: null,
       },
       engineId: "default-engine",
     },
@@ -827,6 +828,11 @@ const pipelineOptionsCases = [
 
   // Invalid values
   {
+    description: "Invalid hub",
+    options: { modelHub: "rogue" },
+    expectedError: /Invalid value/,
+  },
+  {
     description: "Invalid timeoutMS",
     options: { timeoutMS: -3 },
     expectedError: /Invalid value/,
@@ -863,6 +869,16 @@ const pipelineOptionsCases = [
   },
 
   // Valid values
+  {
+    description: "valid hub",
+    options: { modelHub: "huggingface" },
+    expected: { modelHub: "huggingface" },
+  },
+  {
+    description: "valid hub",
+    options: { modelHub: "mozilla" },
+    expected: { modelHub: "mozilla" },
+  },
   {
     description: "valid timeoutMS",
     options: { timeoutMS: 12345 },
@@ -1020,4 +1036,25 @@ add_task(async function test_ml_engine_infinite_worker() {
   await EngineProcess.destroyMLEngine();
 
   await cleanup();
+});
+
+add_task(async function test_ml_engine_model_hub_applied() {
+  const options = {
+    taskName: "moz-echo",
+    timeoutMS: -1,
+    modelHub: "huggingface",
+  };
+  const parsedOptions = new PipelineOptions(options);
+
+  Assert.equal(
+    parsedOptions.modelHubRootUrl,
+    "https://huggingface.co/",
+    "modelHubRootUrl is set"
+  );
+
+  Assert.equal(
+    parsedOptions.modelHubUrlTemplate,
+    "{model}/resolve/{revision}",
+    "modelHubUrlTemplate is set"
+  );
 });

@@ -83,7 +83,7 @@ const INFERENCE_PAD_PRESETS = {
     task: "image-to-text",
     modelId: "mozilla/distilvit",
     modelRevision: "main",
-    modelHub: "hf",
+    modelHub: "huggingface",
     dtype: "q8",
     device: "wasm",
   },
@@ -93,7 +93,7 @@ const INFERENCE_PAD_PRESETS = {
     task: "token-classification",
     modelId: "Xenova/bert-base-NER",
     modelRevision: "main",
-    modelHub: "hf",
+    modelHub: "huggingface",
     dtype: "q8",
     device: "wasm",
   },
@@ -107,7 +107,7 @@ const INFERENCE_PAD_PRESETS = {
     task: "summarization",
     modelId: "Xenova/long-t5-tglobal-base-16384-book-summary",
     modelRevision: "main",
-    modelHub: "hf",
+    modelHub: "huggingface",
     dtype: "q8",
     device: "wasm",
   },
@@ -120,7 +120,7 @@ const INFERENCE_PAD_PRESETS = {
     task: "zero-shot-classification",
     modelId: "Xenova/mobilebert-uncased-mnli",
     modelRevision: "main",
-    modelHub: "hf",
+    modelHub: "huggingface",
     dtype: "q8",
     device: "wasm",
   },
@@ -130,7 +130,7 @@ const INFERENCE_PAD_PRESETS = {
     task: "feature-extraction",
     modelId: "Xenova/all-MiniLM-L6-v2",
     modelRevision: "main",
-    modelHub: "hf",
+    modelHub: "huggingface",
     dtype: "q8",
     device: "wasm",
   },
@@ -560,6 +560,7 @@ async function runInference() {
   const device = document.getElementById("device").value;
   const numThreads = parseInt(document.getElementById("numThreads").value);
   const numRuns = parseInt(document.getElementById("numRuns").value);
+  const modelHub = document.getElementById("modelHub").value;
 
   let inputData;
   try {
@@ -568,9 +569,6 @@ async function runInference() {
     alert("Invalid JSON input");
     return;
   }
-
-  const modelHubRootUrl = "https://huggingface.co";
-  const modelHubUrlTemplate = "{model}/resolve/{revision}";
 
   const initData = {
     modelId,
@@ -581,8 +579,7 @@ async function runInference() {
     processorId: modelId,
     taskName,
     engineId: "about-inference",
-    modelHubRootUrl,
-    modelHubUrlTemplate,
+    modelHub,
     device,
     dtype,
     numThreads,

@@ -57,6 +57,7 @@ Below are the options available:
 - **featureId**: The identifier for the feature to be used by the pipeline.
 - **engineId**:  The identifier for the engine to be used by the pipeline.
 - **timeoutMS**: The maximum amount of time in milliseconds the worker will run (-1 to never expire).
+- **modelHub**: The model hub to use, can be `huggingface` or `mozilla`. When used, `modelHubRootUrl` and `modelHubUrlTemplate` are ignored.
 - **modelHubRootUrl**: The root URL of the model hub where models are hosted.
 - **modelHubUrlTemplate**: A template URL for building the full URL for the model.
 - **modelId**: The identifier for the specific model to be used by the pipeline.
@@ -130,11 +131,7 @@ If you want to add a new hub, organization or a specific model, ask us by
 Using the Hugging Face model hub
 ::::::::::::::::::::::::::::::::
 
-By default, the engine will use the Mozilla model hub. You will need to pass `modelHubRootUrl`
-and `modelHubUrlTemplate` with these values:
-
-- `modelHubRootUrl` to `https://huggingface.co`
-- `modelHubUrlTemplate` to `{model}/resolve/{revision}`
+By default, the engine will use the Mozilla model hub. You will need to pass `huggingface` as `modelHub`.
 
 The inference engine will then look for models in the Hugging Face model hub. If the URL is
 not allowed (see previous section) and you still want to experiment with the model,
@@ -155,8 +152,7 @@ Let's say you want to pick the `Xenova/distilbart-cnn-6-6` model. All you have t
   const options = {
     taskName: "summarization",
     modelId: "Xenova/distilbart-cnn-6-6",
-    modelHubRootUrl: "https://huggingface.co",
-    modelHubUrlTemplate: "{model}/resolve/{revision}"
+    modelHub: "huggingface"
   };
 
   const engine = await createEngine(options);

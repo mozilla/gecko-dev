@@ -53,6 +53,32 @@ class PipelineOptionsValidationError extends Error {
 }
 
 /**
+ * Enum for model hubs
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const ModelHub = {
+  HUGGINGFACE: "huggingface",
+  MOZILLA: "mozilla",
+
+  apply(options, hub) {
+    switch (hub) {
+      case ModelHub.HUGGINGFACE:
+        options.modelHubRootUrl = "https://huggingface.co/";
+        options.modelHubUrlTemplate = "{model}/resolve/{revision}";
+        break;
+      case ModelHub.MOZILLA:
+        options.modelHubRootUrl = "https://model-hub.mozilla.org/";
+        options.modelHubUrlTemplate = "{model}/{revision}";
+        break;
+      default:
+        throw new Error(`Unknown model hub: ${hub}`);
+    }
+  },
+};
+
+/**
  * Enum for execution priority.
  *
  * Defines the priority of the task:
@@ -163,6 +189,13 @@ export class PipelineOptions {
    * @type {?number}
    */
   timeoutMS = null;
+
+  /**
+   * The hub to use. When null, looks at modelHubRootUrl and modelHubUrlTemplate
+   *
+   * @type {ModelHub | null}
+   */
+  modelHub = null;
 
   /**
    * The root URL of the model hub where models are hosted.
@@ -288,6 +321,7 @@ export class PipelineOptions {
       device: InferenceDevice,
       executionPriority: ExecutionPriority,
       logLevel: LogLevel,
+      modelHub: ModelHub,
     };
     // Check if the value is part of the enum or null
     if (!Object.values(enums[field]).includes(value)) {
@@ -401,6 +435,7 @@ export class PipelineOptions {
       "engineId",
       "featureId",
       "taskName",
+      "modelHub",
       "modelHubRootUrl",
       "modelHubUrlTemplate",
       "timeoutMS",
@@ -454,7 +489,15 @@ export class PipelineOptions {
         this.#validateRevision(key, options[key]);
       }
 
-      if (["dtype", "device", "executionPriority", "logLevel"].includes(key)) {
+      if (
+        [
+          "modelHub",
+          "dtype",
+          "device",
+          "executionPriority",
+          "logLevel",
+        ].includes(key)
+      ) {
         this.#validateEnum(key, options[key]);
       }
 
@@ -464,6 +507,10 @@ export class PipelineOptions {
 
       if (key === "timeoutMS") {
         this.#validateIntegerRange(key, options[key], -1, 36000000);
+      }
+
+      if (key === "modelHub") {
+        ModelHub.apply(this, options[key]);
       }
 
       this[key] = options[key];
@@ -480,6 +527,7 @@ export class PipelineOptions {
       engineId: this.engineId,
       featureId: this.featureId,
       taskName: this.taskName,
+      modelHub: this.modelHub,
       modelHubRootUrl: this.modelHubRootUrl,
       modelHubUrlTemplate: this.modelHubUrlTemplate,
       timeoutMS: this.timeoutMS,
