@@ -248,11 +248,7 @@ AccessibilityPanel.prototype = {
 
   selectAccessibleForNode(nodeFront, reason) {
     if (reason) {
-      this._telemetry.keyedScalarAdd(
-        "devtools.accessibility.select_accessible_for_node",
-        reason,
-        1
-      );
+      Glean.devtoolsAccessibility.selectAccessibleForNode[reason].add(1);
     }
 
     this.postContentMessage("selectNodeAccessible", nodeFront);

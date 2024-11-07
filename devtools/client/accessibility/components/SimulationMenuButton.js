@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-/* global gTelemetry */
-
 // React
 const {
   createFactory,
@@ -45,8 +43,6 @@ loader.lazyGetter(this, "MenuList", function () {
   );
 });
 
-const TELEMETRY_SIMULATION_ACTIVATED =
-  "devtools.accessibility.simulation_activated";
 const SIMULATION_MENU_LABELS = {
   NONE: "accessibility.filter.none",
   [SIMULATION_TYPE.ACHROMATOPSIA]: "accessibility.simulation.achromatopsia",
@@ -83,9 +79,7 @@ class SimulationMenuButton extends Component {
     const { dispatch, simulation, simulate: simulateFunc } = this.props;
 
     if (!simulation[simKey]) {
-      if (gTelemetry) {
-        gTelemetry.keyedScalarAdd(TELEMETRY_SIMULATION_ACTIVATED, simKey, 1);
-      }
+      Glean.devtoolsAccessibility.simulationActivated[simKey].add(1);
 
       dispatch(actions.simulate(simulateFunc, [simKey]));
       return;

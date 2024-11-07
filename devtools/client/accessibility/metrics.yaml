@@ -1,0 +1,136 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'DevTools :: Accessibility Tools'
+
+devtools.accessibility:
+  node_inspected_count:
+    type: counter
+    description: >
+      Number of times a DOM node was inspected from within the
+      Accessibility tool.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.accessibility.node_inspected_count.
+    bugs:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_NODE_INSPECTED_COUNT
+
+  select_accessible_for_node:
+    type: labeled_counter
+    description: >
+      Number of times an accessible object was inspected from outside the
+      Accessibility tool (navigation to Accessibility panel). Keyed by the
+      source of user action (inspector context menu, browser context menu,
+      etc).
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.accessibility.select_accessible_for_node.
+    bugs:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_SELECT_ACCESSIBLE_FOR_NODE
+
+  accessible_context_menu_opened:
+    type: counter
+    description: >
+      Number of times a context menu was opened for an accessible object
+      in the accessibility tree.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.accessibility.accessible_context_menu_opened.
+    bugs:
+      - https://bugzil.la/1507870
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1507870
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_ACCESSIBLE_CONTEXT_MENU_OPENED
+
+  accessible_context_menu_item_activated:
+    type: labeled_counter
+    description: >
+      Number of times a context menu item for an accessible object was
+      activated (with mouse or keyboard) from the context menu opened in
+      the accessibility tree. Keyed by the id of the context menu item.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar
+      devtools.accessibility.accessible_context_menu_item_activated.
+    bugs:
+      - https://bugzil.la/1507870
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1507870
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_ACCESSIBLE_CONTEXT_MENU_ITEM_ACTIVATED
+
+  audit_activated:
+    type: labeled_counter
+    description: >
+      Number of times accessibility audit was activated (with mouse or
+      keyboard) from the accessibility panel's toolbar. Keyed by the audit
+      filter type (e.g. "CONTRAST").
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.accessibility.audit_activated.
+    bugs:
+      - https://bugzil.la/1548241
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1548241
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_AUDIT_ACTIVATED
+
+  simulation_activated:
+    type: labeled_counter
+    description: >
+      Number of times accessibility simulation was activated (with mouse
+      or keyboard) from the accessibility panel's toolbar. Keyed by the
+      simulation type (e.g. "DEUTERANOPIA").
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.accessibility.simulation_activated.
+    bugs:
+      - https://bugzil.la/1567200
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1567200
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_SIMULATION_ACTIVATED
