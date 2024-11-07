@@ -378,13 +378,13 @@ gfxPlatformFontList::~gfxPlatformFontList() {
   NS_RELEASE(gFontListPrefObserver);
 }
 
-void gfxPlatformFontList::GetMissingFonts(nsCString& aMissingFonts) {
+void gfxPlatformFontList::GetMissingFonts(nsTArray<nsCString>& aMissingFonts) {
   AutoLock lock(mLock);
 
   auto fontLists = GetFilteredPlatformFontLists();
 
   if (!fontLists.Length()) {
-    aMissingFonts.Append("No font list available for this device.");
+    return;
   }
 
   for (unsigned int i = 0; i < fontLists.Length(); i++) {
@@ -395,8 +395,7 @@ void gfxPlatformFontList::GetMissingFonts(nsCString& aMissingFonts) {
       if (SharedFontList()) {
         fontlist::Family* family = SharedFontList()->FindFamily(key);
         if (!family) {
-          aMissingFonts.Append(fontLists[i].first[j]);
-          aMissingFonts.Append("|");
+          aMissingFonts.AppendElement(fontLists[i].first[j]);
         }
       } else {
         gfxFontFamily* familyEntry = mFontFamilies.GetWeak(key);
@@ -404,12 +403,23 @@ void gfxPlatformFontList::GetMissingFonts(nsCString& aMissingFonts) {
           familyEntry = mOtherFamilyNames.GetWeak(key);
         }
         if (!familyEntry) {
-          aMissingFonts.Append(fontLists[i].first[j]);
-          aMissingFonts.Append("|");
+          aMissingFonts.AppendElement(fontLists[i].first[j]);
         }
       }
     }
   }
+}
+
+void gfxPlatformFontList::GetMissingFonts(nsCString& aMissingFonts) {
+  nsTArray<nsCString> fontList;
+  GetMissingFonts(fontList);
+
+  if (fontList.IsEmpty()) {
+    aMissingFonts.Append("No font list available for this device.");
+    return;
+  }
+
+  aMissingFonts.Append(StringJoin("|"_ns, fontList));
 }
 
 /* static */
