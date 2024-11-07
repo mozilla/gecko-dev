@@ -82,20 +82,9 @@ body {
   width: var(--accessibility-full-length-minus-splitter);
 }
 
-.devtools-button,
-.toggle-button {
+.devtools-button {
   cursor: pointer;
   border: 1px solid transparent;
-}
-
-.mainFrame .devtools-button.devtools-throbber::before,
-.mainFrame .toggle-button.devtools-throbber::before {
-  /* Default for .devtools-throbber is set to 1em which is too big for the
-     devtools toolbar. */
-  height: 8px;
-  width: 8px;
-  margin-block-end: 1px;
-  margin-inline-end: 2px;
 }
 
 .split-box.horz {
@@ -121,7 +110,7 @@ body {
   outline: none;
 }
 
-.devtools-button:focus > .btn-content:not(.devtools-throbber) {
+.devtools-button:focus > .btn-content {
   outline: 2px solid var(--accessibility-toolbar-focus);
   outline-offset: -2px;
   box-shadow: 0 0 0 2px var(--accessibility-toolbar-focus-alpha30);
@@ -211,7 +200,6 @@ body {
   vertical-align: text-bottom;
 }
 
-.devtools-toolbar .badge.toggle-button[disabled],
 .tooltip-container .menuitem > .command[disabled] {
   opacity: 0.5;
 }
@@ -477,13 +465,6 @@ body {
   }
 }
 
-.badge.toggle-button {
-  color: var(--theme-body-color);
-  background-color: var(--badge-interactive-background-color);
-  border-color: transparent;
-}
-
-.devtools-toolbar .badge.toggle-button:focus,
 .devtools-toolbar .toolbar-menu-button:focus {
   outline: 2px solid var(--accessibility-toolbar-focus);
   outline-offset: -2px;
@@ -498,17 +479,6 @@ body {
 
 .treeTable:not(:focus, :focus-within) .treeRow.selected .badges .badge {
   color: var(--badge-color);
-}
-
-.badge.toggle-button.checked {
-  background-color: var(--badge-active-background-color);
-  color: var(--theme-selection-color);
-}
-
-/* Avoid having a default dotted border on keyboard focus since we provide focus
-   styling*/
-.badge.toggle-button::-moz-focus-inner {
-  border: none;
 }
 
 /* Right Sidebar */

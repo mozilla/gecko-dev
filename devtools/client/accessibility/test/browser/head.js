@@ -573,9 +573,7 @@ async function toggleRow(doc, rowNumber) {
   EventUtils.sendMouseEvent({ type: "click" }, twisty, win);
   AccessibilityUtils.resetEnv();
   await BrowserTestUtils.waitForCondition(
-    () =>
-      !twisty.classList.contains("devtools-throbber") &&
-      expected === twisty.classList.contains("open"),
+    () => expected === twisty.classList.contains("open"),
     "Twisty updated."
   );
 }
