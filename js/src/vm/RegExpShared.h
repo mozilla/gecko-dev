@@ -373,7 +373,7 @@ class RegExpRealm {
    *  Indices: Has a |groups| property. If |hasIndices| is set, used
    *           for the |.indices| property of the result object.
    */
-  HeapPtr<SharedShape*> matchResultShapes_[ResultShapeKind::NumKinds];
+  GCPtr<SharedShape*> matchResultShapes_[ResultShapeKind::NumKinds];
 
   /*
    * The shape of RegExp.prototype object that satisfies following:
@@ -388,14 +388,14 @@ class RegExpRealm {
    *   * RegExp.prototype[@@match] is an own data property
    *   * RegExp.prototype[@@search] is an own data property
    */
-  HeapPtr<Shape*> optimizableRegExpPrototypeShape_;
+  GCPtr<Shape*> optimizableRegExpPrototypeShape_;
 
   /*
    * The shape of RegExp instance that satisfies following:
    *   * lastProperty is lastIndex
    *   * prototype is RegExp.prototype
    */
-  HeapPtr<Shape*> optimizableRegExpInstanceShape_;
+  GCPtr<Shape*> optimizableRegExpInstanceShape_;
 
   SharedShape* createMatchResultShape(JSContext* cx, ResultShapeKind kind);
 
@@ -461,7 +461,7 @@ class RegExpRealm {
     return offsetof(RegExpRealm, regExpStatics);
   }
   static constexpr size_t offsetOfNormalMatchResultShape() {
-    static_assert(sizeof(HeapPtr<SharedShape*>) == sizeof(uintptr_t));
+    static_assert(sizeof(GCPtr<SharedShape*>) == sizeof(uintptr_t));
     return offsetof(RegExpRealm, matchResultShapes_) +
            ResultShapeKind::Normal * sizeof(uintptr_t);
   }

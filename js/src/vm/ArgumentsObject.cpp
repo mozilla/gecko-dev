@@ -285,7 +285,7 @@ ArgumentsObject* GlobalObject::maybeArgumentsTemplateObject(bool mapped) const {
 ArgumentsObject* GlobalObject::getOrCreateArgumentsTemplateObject(JSContext* cx,
                                                                   bool mapped) {
   GlobalObjectData& data = cx->global()->data();
-  HeapPtr<ArgumentsObject*>& obj =
+  GCPtr<ArgumentsObject*>& obj =
       mapped ? data.mappedArgumentsTemplate : data.unmappedArgumentsTemplate;
 
   ArgumentsObject* templateObj = obj;

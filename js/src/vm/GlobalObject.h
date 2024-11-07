@@ -128,8 +128,8 @@ class GlobalObjectData {
   // referring to the original Array constructor. The actual (writable and even
   // deletable) Object, Array, &c. properties are not stored here.
   struct ConstructorWithProto {
-    HeapPtr<JSObject*> constructor;
-    HeapPtr<JSObject*> prototype;
+    GCPtr<JSObject*> constructor;
+    GCPtr<JSObject*> prototype;
   };
   using CtorArray = mozilla::EnumeratedArray<JSProtoKey, ConstructorWithProto,
                                              size_t(JSProto_LIMIT)>;
@@ -155,72 +155,72 @@ class GlobalObjectData {
 
     Limit
   };
-  using ProtoArray = mozilla::EnumeratedArray<ProtoKind, HeapPtr<JSObject*>,
+  using ProtoArray = mozilla::EnumeratedArray<ProtoKind, GCPtr<JSObject*>,
                                               size_t(ProtoKind::Limit)>;
   ProtoArray builtinProtos;
 
-  HeapPtr<GlobalScope*> emptyGlobalScope;
+  GCPtr<GlobalScope*> emptyGlobalScope;
 
   // The lexical environment for global let/const/class bindings.
-  HeapPtr<GlobalLexicalEnvironmentObject*> lexicalEnvironment;
+  GCPtr<GlobalLexicalEnvironmentObject*> lexicalEnvironment;
 
   // The WindowProxy associated with this global.
-  HeapPtr<JSObject*> windowProxy;
+  GCPtr<JSObject*> windowProxy;
 
   // Functions and other top-level values for self-hosted code. The "computed"
   // holder is used as the target of `SetIntrinsic` calls, but the same property
   // may also be cached on the normal intrinsics holder for `GetIntrinsic`.
-  HeapPtr<NativeObject*> intrinsicsHolder;
-  HeapPtr<NativeObject*> computedIntrinsicsHolder;
+  GCPtr<NativeObject*> intrinsicsHolder;
+  GCPtr<NativeObject*> computedIntrinsicsHolder;
 
   // Cache used to optimize certain for-of operations.
-  HeapPtr<NativeObject*> forOfPICChain;
+  GCPtr<NativeObject*> forOfPICChain;
 
   // List of source URLs for this realm. This is used by the debugger.
-  HeapPtr<ArrayObject*> sourceURLsHolder;
+  GCPtr<ArrayObject*> sourceURLsHolder;
 
   // Realm-specific object that can be used as key in WeakMaps.
-  HeapPtr<PlainObject*> realmKeyObject;
+  GCPtr<PlainObject*> realmKeyObject;
 
   // The unique %ThrowTypeError% function for this global.
-  HeapPtr<JSFunction*> throwTypeError;
+  GCPtr<JSFunction*> throwTypeError;
 
   // The unique %eval% function (for indirect eval) for this global.
-  HeapPtr<JSFunction*> eval;
+  GCPtr<JSFunction*> eval;
 
   // Empty iterator object used for for-in with null/undefined.
-  HeapPtr<PropertyIteratorObject*> emptyIterator;
+  GCPtr<PropertyIteratorObject*> emptyIterator;
 
   // Cached shape for new arrays with Array.prototype as prototype.
-  HeapPtr<SharedShape*> arrayShapeWithDefaultProto;
+  GCPtr<SharedShape*> arrayShapeWithDefaultProto;
 
   // Shape for PlainObject with %Object.prototype% as proto, for each object
   // AllocKind.
   using PlainObjectShapeArray =
-      mozilla::EnumeratedArray<PlainObjectSlotsKind, HeapPtr<SharedShape*>,
+      mozilla::EnumeratedArray<PlainObjectSlotsKind, GCPtr<SharedShape*>,
                                size_t(PlainObjectSlotsKind::Limit)>;
   PlainObjectShapeArray plainObjectShapesWithDefaultProto;
 
   // Shape for JSFunction with %Function.prototype% as proto, for both
   // non-extended and extended functions.
-  HeapPtr<SharedShape*> functionShapeWithDefaultProto;
-  HeapPtr<SharedShape*> extendedFunctionShapeWithDefaultProto;
+  GCPtr<SharedShape*> functionShapeWithDefaultProto;
+  GCPtr<SharedShape*> extendedFunctionShapeWithDefaultProto;
 
   // Shape for BoundFunctionObject with %Function.prototype% as proto.
-  HeapPtr<SharedShape*> boundFunctionShapeWithDefaultProto;
+  GCPtr<SharedShape*> boundFunctionShapeWithDefaultProto;
 
   // Global state for regular expressions.
   RegExpRealm regExpRealm;
 
-  HeapPtr<ArgumentsObject*> mappedArgumentsTemplate;
-  HeapPtr<ArgumentsObject*> unmappedArgumentsTemplate;
+  GCPtr<ArgumentsObject*> mappedArgumentsTemplate;
+  GCPtr<ArgumentsObject*> unmappedArgumentsTemplate;
 
-  HeapPtr<PlainObject*> iterResultTemplate;
-  HeapPtr<PlainObject*> iterResultWithoutPrototypeTemplate;
+  GCPtr<PlainObject*> iterResultTemplate;
+  GCPtr<PlainObject*> iterResultWithoutPrototypeTemplate;
 
   // Lazily initialized script source object to use for scripts cloned from the
   // self-hosting stencil.
-  HeapPtr<ScriptSourceObject*> selfHostingScriptSource;
+  GCPtr<ScriptSourceObject*> selfHostingScriptSource;
 
   UniquePtr<gc::FinalizationRegistryGlobalData> finalizationRegistryData;
 

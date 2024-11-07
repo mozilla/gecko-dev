@@ -1350,7 +1350,7 @@ PlainObject* js::CreateIterResultObject(JSContext* cx, HandleValue value,
 }
 
 PlainObject* GlobalObject::getOrCreateIterResultTemplateObject(JSContext* cx) {
-  HeapPtr<PlainObject*>& obj = cx->global()->data().iterResultTemplate;
+  GCPtr<PlainObject*>& obj = cx->global()->data().iterResultTemplate;
   if (obj) {
     return obj;
   }
@@ -1364,7 +1364,7 @@ PlainObject* GlobalObject::getOrCreateIterResultTemplateObject(JSContext* cx) {
 /* static */
 PlainObject* GlobalObject::getOrCreateIterResultWithoutPrototypeTemplateObject(
     JSContext* cx) {
-  HeapPtr<PlainObject*>& obj =
+  GCPtr<PlainObject*>& obj =
       cx->global()->data().iterResultWithoutPrototypeTemplate;
   if (obj) {
     return obj;
