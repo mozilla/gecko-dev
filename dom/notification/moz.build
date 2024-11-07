@@ -21,6 +21,7 @@ EXPORTS.mozilla.dom += [
 ]
 
 EXPORTS.mozilla.dom.notification += [
+    "IPCUtils.h",
     "NotificationChild.h",
     "NotificationParent.h",
 ]

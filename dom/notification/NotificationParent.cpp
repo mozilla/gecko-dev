@@ -6,6 +6,8 @@
 
 #include "NotificationParent.h"
 
+#include "mozilla/ipc/Endpoint.h"
+
 namespace mozilla::dom::notification {
 
 NS_IMPL_ISUPPORTS(NotificationParent, nsIObserver)
@@ -18,6 +20,24 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
 
 mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
   return IPC_OK();
+}
+
+nsresult NotificationParent::BindToMainThread(
+    Endpoint<PNotificationParent>&& aParentEndpoint,
+    PBackgroundParent::CreateNotificationParentResolver&& aResolver) {
+  nsCOMPtr<nsIThread> thread = NS_GetCurrentThread();
+
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "NotificationParent::BindToMainThread",
+      [self = RefPtr(this), endpoint = std::move(aParentEndpoint),
+       resolver = std::move(aResolver), thread]() mutable {
+        bool result = endpoint.Bind(self);
+        thread->Dispatch(NS_NewRunnableFunction(
+            "NotificationParent::BindToMainThreadResult",
+            [result, resolver = std::move(resolver)]() { resolver(result); }));
+      }));
+
+  return NS_OK;
 }
 
 }  // namespace mozilla::dom::notification

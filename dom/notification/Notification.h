@@ -11,6 +11,7 @@
 #include "mozilla/GlobalFreezeObserver.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/NotificationBinding.h"
+#include "mozilla/dom/notification/NotificationChild.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 
@@ -273,6 +274,8 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
     mScope = aScope;
   }
 
+  WeakPtr<notification::NotificationChild> mActor;
+
   const nsString mID;
   const nsString mTitle;
   const nsString mBody;
@@ -317,6 +320,8 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
       JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
       const NotificationOptions& aOptions, const nsAString& aScope,
       ErrorResult& aRv);
+
+  bool CreateActor(Promise* aPromise);
 
   nsIPrincipal* GetPrincipal();
 

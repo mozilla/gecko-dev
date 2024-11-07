@@ -30,6 +30,9 @@
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/ipc/BackgroundChild.h"
+#include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/ipc/PBackgroundChild.h"
 #include "Navigator.h"
 #include "NotificationUtils.h"
 #include "nsComponentManagerUtils.h"
@@ -2235,6 +2238,52 @@ already_AddRefed<Notification> Notification::CreateAndShow(
   }
 
   return notification.forget();
+}
+
+bool Notification::CreateActor(Promise* aPromise) {
+  mozilla::ipc::PBackgroundChild* backgroundActor =
+      mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
+  IPCNotificationOptions options(mTitle, mDir, mLang, mBody, mTag, mIconUrl,
+                                 mRequireInteraction, mSilent, mVibrate,
+                                 mDataAsBase64, mBehavior);
+
+  // Note: We are not using the typical PBackground managed actor here as we
+  // want the actor to be in the main thread of the main process. Instead we
+  // pass the endpoint to PBackground, it dispatches a runnable to the main
+  // thread, and the endpoint is bound there.
+
+  mozilla::ipc::Endpoint<notification::PNotificationParent> parentEndpoint;
+  mozilla::ipc::Endpoint<notification::PNotificationChild> childEndpoint;
+  notification::PNotification::CreateEndpoints(&parentEndpoint, &childEndpoint);
+
+  mActor = new notification::NotificationChild();
+  if (!childEndpoint.Bind(mActor)) {
+    return false;
+  }
+
+  nsIPrincipal* principal;
+  nsIPrincipal* effectiveStoragePrincipal;
+  bool isSecureContext;
+
+  // TODO: Should get nsIGlobalObject methods for each method
+  if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
+    principal = workerPrivate->GetPrincipal();
+    effectiveStoragePrincipal = workerPrivate->GetEffectiveStoragePrincipal();
+    isSecureContext = workerPrivate->IsSecureContext();
+  } else {
+    nsGlobalWindowInner* win = GetOwnerWindow();
+    NS_ENSURE_TRUE(win, false);
+    principal = win->GetPrincipal();
+    effectiveStoragePrincipal = win->GetEffectiveStoragePrincipal();
+    isSecureContext = win->IsSecureContext();
+  }
+
+  (void)backgroundActor->SendCreateNotificationParent(
+      std::move(parentEndpoint), WrapNotNull(principal),
+      WrapNotNull(effectiveStoragePrincipal), isSecureContext, mID, mScope,
+      options);
+
+  return true;
 }
 
 /* static */

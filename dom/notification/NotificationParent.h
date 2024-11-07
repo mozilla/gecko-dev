@@ -22,11 +22,34 @@ class NotificationParent final : public PNotificationParent,
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
+  NotificationParent(NotNull<nsIPrincipal*> aPrincipal,
+                     NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
+                     bool aIsSecureContext, const nsAString& aId,
+                     const nsAString& aScope,
+                     const IPCNotificationOptions& aOptions)
+      : mPrincipal(aPrincipal),
+        mEffectiveStoragePrincipal(aEffectiveStoragePrincipal),
+        mIsSecureContext(aIsSecureContext),
+        mId(aId),
+        mScope(aScope),
+        mOptions(aOptions) {};
+
   IPCResult RecvShow(ShowResolver&& aResolver);
   IPCResult RecvClose();
 
+  nsresult BindToMainThread(
+      Endpoint<PNotificationParent>&& aParentEndpoint,
+      PBackgroundParent::CreateNotificationParentResolver&& aResolver);
+
  private:
   ~NotificationParent() = default;
+
+  NotNull<nsCOMPtr<nsIPrincipal>> mPrincipal;
+  NotNull<nsCOMPtr<nsIPrincipal>> mEffectiveStoragePrincipal;
+  bool mIsSecureContext;
+  nsString mId;
+  nsString mScope;
+  IPCNotificationOptions mOptions;
 };
 
 }  // namespace mozilla::dom::notification

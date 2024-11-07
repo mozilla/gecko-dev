@@ -7,11 +7,13 @@
 #ifndef DOM_NOTIFICATION_NOTIFICATIONCHILD_H_
 #define DOM_NOTIFICATION_NOTIFICATIONCHILD_H_
 
+#include "mozilla/WeakPtr.h"
 #include "mozilla/dom/notification/PNotificationChild.h"
 
 namespace mozilla::dom::notification {
 
-class NotificationChild final : public PNotificationChild {
+class NotificationChild final : public PNotificationChild,
+                                public SupportsWeakPtr {
   NS_INLINE_DECL_REFCOUNTING(NotificationChild)
 
  private:
