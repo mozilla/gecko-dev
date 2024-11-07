@@ -257,8 +257,6 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
       nsPIDOMWindowInner* aWindow,
       notification::PermissionCheckPurpose aPurpose, ErrorResult& rv);
 
-  static nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin);
-
   void GetAlertName(nsAString& aRetval) {
     AssertIsOnMainThread();
     if (mAlertName.IsEmpty()) {
@@ -325,8 +323,8 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
 
   nsIPrincipal* GetPrincipal();
 
-  nsresult PersistNotification();
-  void UnpersistNotification();
+  nsresult Persist();
+  void Unpersist();
 
   void SetAlertName();
 

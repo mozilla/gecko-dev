@@ -8,9 +8,12 @@
 #define DOM_NOTIFICATION_NOTIFICATIONUTILS_H_
 
 #include <cstdint>
+#include "nsCOMPtr.h"
+#include "nsStringFwd.h"
 
+enum class nsresult : uint32_t;
 class nsIPrincipal;
-
+class nsINotificationStorage;
 namespace mozilla::dom {
 enum class NotificationPermission : uint8_t;
 class Document;
@@ -55,6 +58,23 @@ bool IsNotificationForbiddenFor(nsIPrincipal* aPrincipal,
 NotificationPermission GetNotificationPermission(
     nsIPrincipal* aPrincipal, nsIPrincipal* aEffectiveStoragePrincipal,
     bool isSecureContext, PermissionCheckPurpose aPurpose);
+
+nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate);
+
+nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin);
+
+void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
+                      const nsString& aId, nsString& aResult);
+
+nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId);
+
+enum class CloseMode {
+  CloseMethod,
+  // Either on global teardown or freeze
+  InactiveGlobal,
+};
+void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
+                            const nsString& aAlertName, CloseMode aCloseMode);
 
 }  // namespace mozilla::dom::notification
 

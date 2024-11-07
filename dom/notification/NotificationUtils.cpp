@@ -11,7 +11,11 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/NotificationBinding.h"
 #include "mozilla/glean/GleanMetrics.h"
+#include "nsContentUtils.h"
+#include "nsIAlertsService.h"
+#include "nsINotificationStorage.h"
 #include "nsIPermissionManager.h"
+#include "nsServiceManagerUtils.h"
 
 namespace mozilla::dom::notification {
 
@@ -140,6 +144,68 @@ NotificationPermission GetNotificationPermission(
   }
 
   return GetRawNotificationPermission(aPrincipal);
+}
+
+nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin) {
+  if (!aPrincipal) {
+    return NS_ERROR_FAILURE;
+  }
+
+  MOZ_TRY(
+      nsContentUtils::GetWebExposedOriginSerialization(aPrincipal, aOrigin));
+
+  return NS_OK;
+}
+
+void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
+                      const nsString& aId, nsString& aResult) {
+  nsAutoString alertName;
+  nsresult rv = GetOrigin(aPrincipal, alertName);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return;
+  }
+
+  // Get the notification name that is unique per origin + tag/ID.
+  // The name of the alert is of the form origin#tag/ID.
+  alertName.Append('#');
+  if (!aTag.IsEmpty()) {
+    alertName.AppendLiteral("tag:");
+    alertName.Append(aTag);
+  } else {
+    alertName.AppendLiteral("notag:");
+    alertName.Append(aId);
+  }
+
+  aResult = alertName;
+}
+
+nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate) {
+  return do_GetService(isPrivate ? NS_MEMORY_NOTIFICATION_STORAGE_CONTRACTID
+                                 : NS_NOTIFICATION_STORAGE_CONTRACTID);
+}
+
+nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
+  if (!aPrincipal) {
+    return NS_ERROR_FAILURE;
+  }
+  if (nsCOMPtr<nsINotificationStorage> notificationStorage =
+          GetNotificationStorage(aPrincipal->GetIsInPrivateBrowsing())) {
+    nsString origin;
+    MOZ_TRY(GetOrigin(aPrincipal, origin));
+    return notificationStorage->Delete(origin, aId);
+  }
+  return NS_ERROR_FAILURE;
+}
+
+void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
+                            const nsString& aAlertName, CloseMode aCloseMode) {
+  // XXX: unpersist only when explicitly closed, bug 1095073
+  UnpersistNotification(aPrincipal, aId);
+  if (nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service()) {
+    alertService->CloseAlert(
+        aAlertName,
+        /* aContextClosed */ aCloseMode == CloseMode::InactiveGlobal);
+  }
 }
 
 }  // namespace mozilla::dom::notification
