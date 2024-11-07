@@ -3,7 +3,7 @@ import pytest
 URL = "https://watch.sling.com/"
 INCOMPATIBLE_CSS = "[class*='unsupported-browser']"
 LOADER_CSS = ".loader-container"
-VPN_TEXT = "ONLY AVAILABLE INSIDE THE US"
+VPN_TEXT = "Looks like a location issue"
 
 
 @pytest.mark.skip_platforms("android")
@@ -23,4 +23,4 @@ async def test_enabled(client):
 @pytest.mark.without_interventions
 async def test_disabled(client):
     await client.navigate(URL)
-    assert client.await_css(INCOMPATIBLE_CSS, timeout=2000)
+    assert client.await_css(INCOMPATIBLE_CSS, timeout=20)
