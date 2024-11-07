@@ -32,7 +32,6 @@ const ALLOWED_HEADERS_KEYS = [
   "fileSize", // the size in bytes we store
   "Content-Length", // the size we download (can be different when gzipped)
 ];
-const DEFAULT_URL_TEMPLATE = "{model}/resolve/{revision}";
 
 // Default indexedDB revision.
 const DEFAULT_MODEL_REVISION = 2;
@@ -44,6 +43,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "DEFAULT_MAX_CACHE_SIZE",
   "browser.ml.modelCacheMaxSize"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "DEFAULT_URL_TEMPLATE",
+  "browser.ml.modelHubUrlTemplate",
+  "{model}/{revision}"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "DEFAULT_ROOT_URL",
+  "browser.ml.modelHubRootUrl",
+  "https://model-hub.mozilla.org/"
 );
 
 const ONE_GIB = 1024 * 1024 * 1024;
@@ -855,8 +868,8 @@ export class ModelHub {
    * @param {Array<{filter: 'ALLOW'|'DENY', urlPrefix: string}>} config.allowDenyList - Array of URL patterns with filters.
    */
   constructor({
-    rootUrl,
-    urlTemplate = DEFAULT_URL_TEMPLATE,
+    rootUrl = lazy.DEFAULT_ROOT_URL,
+    urlTemplate = lazy.DEFAULT_URL_TEMPLATE,
     allowDenyList = null,
   } = {}) {
     this.rootUrl = rootUrl;
@@ -923,7 +936,7 @@ export class ModelHub {
     let parts;
     const rootUrl = options.rootUrl || this.rootUrl;
     const urlTemplate =
-      options.urlTemplate || this.urlTemplate || DEFAULT_URL_TEMPLATE;
+      options.urlTemplate || this.urlTemplate || lazy.DEFAULT_URL_TEMPLATE;
 
     // Check if the URL is relative or absolute
     if (url.startsWith("/")) {
