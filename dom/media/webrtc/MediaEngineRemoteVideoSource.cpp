@@ -68,12 +68,6 @@ static Maybe<VideoFacingModeEnum> GetFacingMode(const nsString& aDeviceName) {
     return Some(VideoFacingModeEnum::User);
   }
 #endif  // ANDROID
-#ifdef XP_MACOSX
-  // Kludge to test user-facing cameras on OSX.
-  if (aDeviceName.Find(u"Face"_ns) != -1) {
-    return Some(VideoFacingModeEnum::User);
-  }
-#endif
 #ifdef XP_WIN
   // The cameras' name of Surface book are "Microsoft Camera Front" and
   // "Microsoft Camera Rear" respectively.
