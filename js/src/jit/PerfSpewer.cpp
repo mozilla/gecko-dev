@@ -215,8 +215,8 @@ static bool openJitDump() {
     return false;
   }
 
-  if (snprintf(filenameBuffer, bufferSize, "%s/jit-%d.dump", spew_dir.get(),
-               getpid()) >= bufferSize) {
+  if (SprintfBuf(filenameBuffer, bufferSize, "%s/jit-%d.dump", spew_dir.get(),
+                 getpid()) >= bufferSize) {
     return false;
   }
 
