@@ -44,7 +44,6 @@
 #include "nsINotificationStorage.h"
 #include "nsIPermission.h"
 #include "nsIPermissionManager.h"
-#include "nsIPushService.h"
 #include "nsIScriptError.h"
 #include "nsIServiceWorkerManager.h"
 #include "nsIUUIDGenerator.h"
@@ -623,8 +622,6 @@ class NotificationObserver final : public nsIObserver {
 
  protected:
   virtual ~NotificationObserver() { AssertIsOnMainThread(); }
-
-  nsresult AdjustPushQuota(const char* aTopic);
 };
 
 NS_IMPL_ISUPPORTS(NotificationObserver, nsIObserver)
@@ -1038,45 +1035,33 @@ NotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
 
   if (!strcmp("alertdisablecallback", aTopic)) {
     if (XRE_IsParentProcess()) {
-      return Notification::RemovePermission(mPrincipal);
+      return RemovePermission(mPrincipal);
     }
     // Permissions can't be removed from the content process. Send a message
     // to the parent; `ContentParent::RecvDisableNotifications` will call
     // `RemovePermission`.
     ContentChild::GetSingleton()->SendDisableNotifications(mPrincipal);
     return NS_OK;
-  } else if (!strcmp("alertsettingscallback", aTopic)) {
+  }
+  if (!strcmp("alertsettingscallback", aTopic)) {
     if (XRE_IsParentProcess()) {
-      return Notification::OpenSettings(mPrincipal);
+      return OpenSettings(mPrincipal);
     }
     // `ContentParent::RecvOpenNotificationSettings` notifies observers in the
     // parent process.
     ContentChild::GetSingleton()->SendOpenNotificationSettings(mPrincipal);
     return NS_OK;
-  } else if (!strcmp("alertshow", aTopic) || !strcmp("alertfinished", aTopic)) {
-    Unused << NS_WARN_IF(NS_FAILED(AdjustPushQuota(aTopic)));
+  }
+  if (!strcmp("alertshow", aTopic)) {
+    (void)NS_WARN_IF(NS_FAILED(
+        AdjustPushQuota(mPrincipal, NotificationStatusChange::Shown)));
+  }
+  if (!strcmp("alertfinished", aTopic)) {
+    (void)NS_WARN_IF(NS_FAILED(
+        AdjustPushQuota(mPrincipal, NotificationStatusChange::Closed)));
   }
 
   return mObserver->Observe(aSubject, aTopic, aData);
-}
-
-nsresult NotificationObserver::AdjustPushQuota(const char* aTopic) {
-  nsCOMPtr<nsIPushQuotaManager> pushQuotaManager =
-      do_GetService("@mozilla.org/push/Service;1");
-  if (!pushQuotaManager) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsAutoCString origin;
-  nsresult rv = mPrincipal->GetOrigin(origin);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  if (!strcmp("alertshow", aTopic)) {
-    return pushQuotaManager->NotificationForOriginShown(origin.get());
-  }
-  return pushQuotaManager->NotificationForOriginClosed(origin.get());
 }
 
 // MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is MOZ_CAN_RUN_SCRIPT.  See
@@ -2224,30 +2209,6 @@ bool Notification::CreateActor(Promise* aPromise) {
       options);
 
   return true;
-}
-
-/* static */
-nsresult Notification::RemovePermission(nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  nsCOMPtr<nsIPermissionManager> permissionManager =
-      mozilla::components::PermissionManager::Service();
-  if (!permissionManager) {
-    return NS_ERROR_FAILURE;
-  }
-  permissionManager->RemoveFromPrincipal(aPrincipal, "desktop-notification"_ns);
-  return NS_OK;
-}
-
-/* static */
-nsresult Notification::OpenSettings(nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-  if (!obs) {
-    return NS_ERROR_FAILURE;
-  }
-  // Notify other observers so they can show settings UI.
-  obs->NotifyObservers(aPrincipal, "notifications-open-settings", nullptr);
-  return NS_OK;
 }
 
 void Notification::DisconnectFromOwner() {

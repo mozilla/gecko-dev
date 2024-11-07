@@ -113,7 +113,7 @@
 #include "mozilla/dom/MediaController.h"
 #include "mozilla/dom/MemoryReportRequest.h"
 #include "mozilla/dom/MediaStatusManager.h"
-#include "mozilla/dom/Notification.h"
+#include "mozilla/dom/notification/NotificationUtils.h"
 #include "mozilla/dom/PContentPermissionRequestParent.h"
 #include "mozilla/dom/PCycleCollectWithLogsParent.h"
 #include "mozilla/dom/ParentProcessMessageManager.h"
@@ -4725,7 +4725,7 @@ mozilla::ipc::IPCResult ContentParent::RecvDisableNotifications(
   if (!ValidatePrincipal(aPrincipal)) {
     LogAndAssertFailedPrincipalValidationInfo(aPrincipal, __func__);
   }
-  Unused << Notification::RemovePermission(aPrincipal);
+  Unused << notification::RemovePermission(aPrincipal);
   return IPC_OK();
 }
 
@@ -4738,7 +4738,7 @@ mozilla::ipc::IPCResult ContentParent::RecvOpenNotificationSettings(
   if (!ValidatePrincipal(aPrincipal)) {
     LogAndAssertFailedPrincipalValidationInfo(aPrincipal, __func__);
   }
-  Unused << Notification::OpenSettings(aPrincipal);
+  Unused << notification::OpenSettings(aPrincipal);
   return IPC_OK();
 }
 

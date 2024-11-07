@@ -226,9 +226,6 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
 
   bool DispatchClickEvent();
 
-  static nsresult RemovePermission(nsIPrincipal* aPrincipal);
-  static nsresult OpenSettings(nsIPrincipal* aPrincipal);
-
   nsresult DispatchToMainThread(already_AddRefed<nsIRunnable>&& aRunnable);
 
  protected:

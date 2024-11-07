@@ -16,6 +16,7 @@
 #include "nsIAlertsService.h"
 #include "nsINotificationStorage.h"
 #include "nsIPermissionManager.h"
+#include "nsIPushService.h"
 #include "nsServiceManagerUtils.h"
 
 namespace mozilla::dom::notification {
@@ -240,6 +241,45 @@ void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
         aAlertName,
         /* aContextClosed */ aCloseMode == CloseMode::InactiveGlobal);
   }
+}
+
+nsresult RemovePermission(nsIPrincipal* aPrincipal) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  nsCOMPtr<nsIPermissionManager> permissionManager =
+      mozilla::components::PermissionManager::Service();
+  if (!permissionManager) {
+    return NS_ERROR_FAILURE;
+  }
+  permissionManager->RemoveFromPrincipal(aPrincipal, "desktop-notification"_ns);
+  return NS_OK;
+}
+
+nsresult OpenSettings(nsIPrincipal* aPrincipal) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  if (!obs) {
+    return NS_ERROR_FAILURE;
+  }
+  // Notify other observers so they can show settings UI.
+  obs->NotifyObservers(aPrincipal, "notifications-open-settings", nullptr);
+  return NS_OK;
+}
+
+nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
+                         NotificationStatusChange aChange) {
+  nsCOMPtr<nsIPushQuotaManager> pushQuotaManager =
+      do_GetService("@mozilla.org/push/Service;1");
+  if (!pushQuotaManager) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoCString origin;
+  MOZ_TRY(aPrincipal->GetOrigin(origin));
+
+  if (aChange == NotificationStatusChange::Shown) {
+    return pushQuotaManager->NotificationForOriginShown(origin.get());
+  }
+  return pushQuotaManager->NotificationForOriginClosed(origin.get());
 }
 
 }  // namespace mozilla::dom::notification
