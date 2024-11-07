@@ -65,6 +65,11 @@ class NotificationParent final : public PNotificationParent,
   IPCNotificationOptions mOptions;
 
   nsString mAlertName;
+
+  // Whether it's now a dangling actor without corresponding OS notification,
+  // either because it's closed or denied permission. We don't have to call
+  // CloseAlert if this is the case.
+  bool mDangling = false;
 };
 
 }  // namespace mozilla::dom::notification
