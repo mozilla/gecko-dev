@@ -246,9 +246,6 @@ MACH_COMMANDS = {
     "webidl-parser-test": MachCommandReference("dom/bindings/mach_commands.py"),
     "wpt": MachCommandReference("testing/web-platform/mach_commands.py"),
     "wpt-fetch-logs": MachCommandReference("testing/web-platform/mach_commands.py"),
-    "wpt-fission-regressions": MachCommandReference(
-        "testing/web-platform/mach_commands.py"
-    ),
     "wpt-interop-score": MachCommandReference("testing/web-platform/mach_commands.py"),
     "wpt-manifest-update": MachCommandReference(
         "testing/web-platform/mach_commands.py"
