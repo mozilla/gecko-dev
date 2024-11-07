@@ -1062,7 +1062,7 @@ async function startPopulating() {
   for (const key in data) {
     try {
       output[key] = await data[key];
-      debug(key, output[key].length);
+      debug(key, output[key] ? output[key].length : "null");
     } catch (e) {
       debug("Promise rejected for", key, "Error:", e);
       errors.push(`${key}: ${await stringifyError(e)}`);

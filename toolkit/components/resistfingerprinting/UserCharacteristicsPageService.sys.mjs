@@ -123,7 +123,9 @@ export class UserCharacteristicsPageService {
       } finally {
         lazy.console.debug("Unregistering actors");
         this.cleanUp();
+        lazy.console.debug("Cleanup done");
         this._backgroundBrowsers.delete(browser);
+        lazy.console.debug("Background browser removed");
       }
     });
   }
@@ -131,6 +133,7 @@ export class UserCharacteristicsPageService {
   cleanUp() {
     ChromeUtils.unregisterWindowActor("UserCharacteristics");
     // unregisterWindowActor doesn't throw if the actor is not registered.
+    // (Do note it console.error's but doesn't throw)
     // We can safely double unregister. We do this to handle the case where
     // the actor was registered but the function it was registered timed out.
     ChromeUtils.unregisterWindowActor("UserCharacteristicsWindowInfo");
@@ -244,10 +247,14 @@ export class UserCharacteristicsPageService {
     for (const win of Services.wm.getEnumerator("navigator:browser")) {
       if (!win.closed) {
         for (const tab of win.gBrowser.tabs) {
-          const actor =
+          const actor = await promiseTry(() =>
             tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
               "UserCharacteristicsWindowInfo"
-            );
+            )
+          ).catch(async e => {
+            lazy.console.error("Error getting actor", e);
+            this.handledErrors.push(await stringifyError(e));
+          });
 
           if (!actor) {
             continue;
@@ -895,5 +902,15 @@ function timeoutPromise(promise, ms) {
         reject(error);
       }
     );
+  });
+}
+
+function promiseTry(func) {
+  return new Promise((resolve, reject) => {
+    try {
+      resolve(func());
+    } catch (error) {
+      reject(error);
+    }
   });
 }

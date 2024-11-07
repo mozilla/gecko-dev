@@ -52,7 +52,10 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
           "Error getting canvas debug info during render: ",
           await stringifyError(e)
         );
-        return { error: "COULD_NOT_GET_DEBUG_INFO", originalError: e };
+        return {
+          error: "COULD_NOT_GET_DEBUG_INFO",
+          originalError: await stringifyError(e),
+        };
       }
 
       if (debugInfo.isAccelerated !== isAccelerated) {
@@ -66,10 +69,13 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
         await recipe.func(this.contentWindow, canvas, ctx);
       } catch (e) {
         lazy.console.error("Error rendering canvas: ", await stringifyError(e));
-        return { error: "RENDERING_ERROR", originalError: e };
+        return {
+          error: "RENDERING_ERROR",
+          originalError: await stringifyError(e),
+        };
       }
 
-      return sha1(canvas.toDataURL("image/png", 1));
+      return sha1(canvas.toDataURL("image/png", 1)).catch(stringifyError);
     };
 
     const data = {
