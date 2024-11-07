@@ -85,7 +85,7 @@ class RegExpShared
   friend class RegExpZone;
 
   struct RegExpCompilation {
-    HeapPtr<jit::JitCode*> jitCode;
+    GCPtr<jit::JitCode*> jitCode;
     ByteCode* byteCode = nullptr;
 
     bool compiled(CodeKind kind = CodeKind::Any) const {
