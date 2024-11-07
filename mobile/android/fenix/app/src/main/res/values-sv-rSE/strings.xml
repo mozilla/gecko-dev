@@ -1245,6 +1245,22 @@
     <string name="download_delete_item_1">Ta bort</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Webbplatsen är långsam eller fungerar inte</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Bilder eller videor</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Knappar, länkar och annat innehåll</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Logga in eller logga ut</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Annonsblockerare</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Något annat</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Tyvärr. %1$s kan inte ladda den sidan.</string>
