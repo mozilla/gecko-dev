@@ -2647,7 +2647,8 @@ nsEventStatus AsyncPanZoomController::OnPanMayBegin(
 
   StartTouch(aEvent.mLocalPanStartPoint, aEvent.mTimeStamp);
   MOZ_ASSERT(GetCurrentPanGestureBlock());
-  GetCurrentPanGestureBlock()->GetOverscrollHandoffChain()->CancelAnimations();
+  GetCurrentPanGestureBlock()->GetOverscrollHandoffChain()->CancelAnimations(
+      ExcludeOverscroll);
 
   return nsEventStatus_eConsumeNoDefault;
 }
@@ -2659,6 +2660,11 @@ nsEventStatus AsyncPanZoomController::OnPanCancelled(
 
   mX.CancelGesture();
   mY.CancelGesture();
+
+  MOZ_ASSERT(GetCurrentPanGestureBlock());
+  GetCurrentPanGestureBlock()
+      ->GetOverscrollHandoffChain()
+      ->SnapBackOverscrolledApzc(this);
 
   return nsEventStatus_eConsumeNoDefault;
 }
