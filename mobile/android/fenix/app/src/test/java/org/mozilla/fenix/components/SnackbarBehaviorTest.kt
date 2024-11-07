@@ -21,7 +21,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
 @RunWith(FenixRobolectricTestRunner::class)
-class FenixSnackbarBehaviorTest {
+class SnackbarBehaviorTest {
     private val snackbarContainer = mockk<FrameLayout>(relaxed = true)
     private var snackbarLayoutParams = CoordinatorLayout.LayoutParams(0, 0)
     private val dependency = View(testContext)
@@ -41,7 +41,7 @@ class FenixSnackbarBehaviorTest {
 
     @Test
     fun `GIVEN no valid anchors are shown WHEN the snackbar is shown THEN don't anchor it`() {
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
 
@@ -51,7 +51,7 @@ class FenixSnackbarBehaviorTest {
     @Test
     fun `GIVEN a toolbar shown at top WHEN the snackbar is shown THEN don't anchor it`() {
         dependency.id = R.id.toolbar
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
 
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
 
@@ -61,7 +61,7 @@ class FenixSnackbarBehaviorTest {
     @Test
     fun `GIVEN a toolbar layout shown at top WHEN the snackbar is shown THEN don't anchor it`() {
         dependency.id = R.id.toolbarLayout
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
 
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
 
@@ -71,7 +71,7 @@ class FenixSnackbarBehaviorTest {
     @Test
     fun `GIVEN the dynamic download dialog is shown WHEN the snackbar is shown THEN place the snackbar above the dialog`() {
         dependency.id = R.id.viewDynamicDownloadDialog
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
 
@@ -81,7 +81,7 @@ class FenixSnackbarBehaviorTest {
     @Test
     fun `GIVEN a bottom toolbar is shown WHEN the snackbar is shown THEN place the snackbar above the toolbar`() {
         dependency.id = R.id.toolbar
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
 
@@ -93,7 +93,7 @@ class FenixSnackbarBehaviorTest {
         listOf(R.id.viewDynamicDownloadDialog, R.id.toolbar).forEach {
             parent.addView(View(testContext).apply { id = it })
         }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
 
@@ -105,7 +105,7 @@ class FenixSnackbarBehaviorTest {
         listOf(R.id.viewDynamicDownloadDialog, R.id.toolbar, R.id.startDownloadDialogContainer).forEach {
             parent.addView(View(testContext).apply { id = it })
         }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
 
@@ -120,7 +120,7 @@ class FenixSnackbarBehaviorTest {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
             .also { parent.addView(it) }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         // Test the scenario where the dialog is invisible.
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
@@ -146,7 +146,7 @@ class FenixSnackbarBehaviorTest {
         val dynamicDialog = View(testContext)
             .apply { id = R.id.viewDynamicDownloadDialog }
             .also { parent.addView(it) }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         // Test the scenario where the dialog is invisible.
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
@@ -172,7 +172,7 @@ class FenixSnackbarBehaviorTest {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
             .also { parent.addView(it) }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         // Test the scenario where the dialog is invisible.
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
@@ -195,7 +195,7 @@ class FenixSnackbarBehaviorTest {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
             .also { parent.addView(it) }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.BOTTOM)
 
         // Test the scenario where the toolbar is invisible.
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
@@ -221,7 +221,7 @@ class FenixSnackbarBehaviorTest {
         View(testContext)
             .apply { id = R.id.toolbar }
             .also { parent.addView(it) }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
 
         // Test the scenario where the dialog is invisible.
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)
@@ -244,7 +244,7 @@ class FenixSnackbarBehaviorTest {
         val toolbar = View(testContext)
             .apply { id = R.id.toolbar }
             .also { parent.addView(it) }
-        val behavior = FenixSnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
+        val behavior = SnackbarBehavior<ViewGroup>(testContext, ToolbarPosition.TOP)
 
         // Test the scenario where the toolbar is invisible.
         behavior.layoutDependsOn(parent, snackbarContainer, dependency)

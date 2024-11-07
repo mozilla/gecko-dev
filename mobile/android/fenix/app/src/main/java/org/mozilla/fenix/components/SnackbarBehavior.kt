@@ -22,7 +22,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
  * @property toolbarPosition Where the toolbar is positioned on the screen.
  * Depending on it's position (top / bottom) the snackbar will be shown below / above the toolbar.
  */
-class FenixSnackbarBehavior<V : View>(
+class SnackbarBehavior<V : View>(
     context: Context,
     @get:VisibleForTesting internal val toolbarPosition: ToolbarPosition,
 ) : CoordinatorLayout.Behavior<V>(context, null) {
