@@ -703,11 +703,7 @@ export const ContentAnalysis = {
             aBrowsingContext,
             Ci.nsIPromptService.MODAL_TYPE_TAB,
             await this.l10n.formatValue("contentanalysis-warndialogtitle"),
-            await this.l10n.formatValue("contentanalysis-warndialogtext", {
-              content: this._getResourceNameFromNameOrOperationType(
-                aResourceNameOrOperationType
-              ),
-            }),
+            await this._warnDialogText(aResourceNameOrOperationType),
             Ci.nsIPromptService.BUTTON_POS_0 *
               Ci.nsIPromptService.BUTTON_TITLE_IS_STRING +
               Ci.nsIPromptService.BUTTON_POS_1 *
@@ -752,11 +748,19 @@ export const ContentAnalysis = {
           );
         } else {
           let bodyId = undefined;
+          let bodyHasContent = false;
           switch (aResourceNameOrOperationType.operationType) {
-            case Ci.nsIContentAnalysisRequest.eClipboard:
+            case Ci.nsIContentAnalysisRequest.eClipboard: {
+              // Unlike the cases below, this can be shown when the DLP
+              // agent is not available.  We use a different message for that.
+              const caInfo = await lazy.gContentAnalysis.getDiagnosticInfo();
               titleId = "contentanalysis-block-dialog-title-clipboard";
-              bodyId = "contentanalysis-block-dialog-body-clipboard";
+              bodyId = caInfo.connectedToAgent
+                ? "contentanalysis-block-dialog-body-clipboard"
+                : "contentanalysis-no-agent-connected-message-content";
+              bodyHasContent = true;
               break;
+            }
             case Ci.nsIContentAnalysisRequest.eDroppedText:
               titleId = "contentanalysis-block-dialog-title-dropped-text";
               bodyId = "contentanalysis-block-dialog-body-dropped-text";
@@ -773,7 +777,14 @@ export const ContentAnalysis = {
             );
             return null;
           }
-          body = this.l10n.formatValueSync(bodyId);
+          if (bodyHasContent) {
+            body = this.l10n.formatValueSync(bodyId, {
+              agent: lazy.agentName,
+              content: "",
+            });
+          } else {
+            body = this.l10n.formatValueSync(bodyId);
+          }
         }
         let alertBrowsingContext = aBrowsingContext;
         if (aBrowsingContext.embedderElement?.getAttribute("printpreview")) {
@@ -862,5 +873,26 @@ export const ContentAnalysis = {
     }
 
     return this._showMessage(message, aBrowsingContext, timeoutMs);
+  },
+
+  /**
+   * Returns the correct text for warn dialog contents.
+   */
+  async _warnDialogText(aResourceNameOrOperationType) {
+    const caInfo = await lazy.gContentAnalysis.getDiagnosticInfo();
+    if (caInfo.connectedToAgent) {
+      return await this.l10n.formatValue("contentanalysis-warndialogtext", {
+        content: this._getResourceNameFromNameOrOperationType(
+          aResourceNameOrOperationType
+        ),
+      });
+    }
+    return await this.l10n.formatValue(
+      "contentanalysis-no-agent-connected-message-content",
+      {
+        agent: lazy.agentName,
+        content: "",
+      }
+    );
   },
 };
