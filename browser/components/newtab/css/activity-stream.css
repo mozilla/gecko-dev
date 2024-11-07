@@ -3542,6 +3542,10 @@ main section {
   background-color: var(--newtab-element-hover-color);
   box-shadow: none;
 }
+.discoverystream-admin .toggle-wrapper {
+  margin-block: var(--space-large);
+  width: 200px;
+}
 .discoverystream-admin table {
   border-collapse: collapse;
   width: 100%;
@@ -4401,6 +4405,92 @@ main section {
 }
 .ds-layout .ds-sub-header .section-sub-link:active {
   color: var(--newtab-primary-element-active-color);
+}
+
+.has-sections-grid .ds-outer-wrapper-breakpoint-override main {
+  width: auto;
+}
+.has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card {
+  width: 296px;
+}
+.has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+  grid-gap: var(--space-large);
+}
+.has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+  width: 346px;
+  margin: 0 auto;
+}
+@media (min-width: 610px) {
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
+    width: auto;
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(1, 1fr);
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    width: 346px;
+  }
+}
+@media (min-width: 724px) {
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
+    width: auto;
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    width: 659px;
+  }
+}
+@media (min-width: 1122px) {
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
+    width: auto;
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: var(--space-xlarge);
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    width: 989px;
+  }
+}
+@media (min-width: 1390px) {
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
+    width: auto;
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 1311px;
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-highlights .card-outer {
+    min-width: 216px;
+  }
+  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ds-section-wrapper {
+  padding-inline: 0;
+  margin-block-end: var(--space-xxlarge);
+}
+.ds-section-wrapper .ds-section {
+  border-block: 1px solid var(--newtab-button-static-active-background);
+  padding-block-end: 50px;
+}
+.ds-section-wrapper .ds-section .section-heading {
+  margin-block: var(--space-small) var(--space-xlarge);
+}
+.ds-section-wrapper .ds-section .section-heading .section-title {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xxlarge);
+  color: var(--newtab-text-primary-color);
+  margin-block: 0;
+}
+.ds-section-wrapper .ds-section .section-heading .section-subtitle {
+  margin-block: var(--space-small) 0;
+  font-size: var(--font-size-root);
 }
 
 .ds-dismiss.ds-dismiss-ds-collection .ds-dismiss-button {

@@ -3486,6 +3486,7 @@ describe("DiscoveryStreamFeed", () => {
         personalized: false,
         data: {
           settings: {},
+          sections: [],
           recommendations: [
             {
               id: 1234,

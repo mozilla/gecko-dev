@@ -81,6 +81,7 @@ export class _CollapsibleSection extends React.PureComponent {
       subTitle,
       mayHaveSponsoredStories,
       mayHaveTopicsSelection,
+      sectionsEnabled,
     } = this.props;
     const active = menuButtonHover || showContextMenu;
     let bodyStyle;
@@ -110,41 +111,43 @@ export class _CollapsibleSection extends React.PureComponent {
         // Note: data-section-id is used for web extension api tests in mozilla central
         data-section-id={id}
       >
-        <div className="section-top-bar">
-          <h2
-            className={`section-title-container ${hasSubtitleClassName}`}
-            style={titleStyle}
-          >
-            <span className="section-title">
-              <FluentOrText message={title} />
-            </span>
-            {subTitle && (
-              <span className="section-sub-title">
-                <FluentOrText message={subTitle} />
+        {!sectionsEnabled && (
+          <div className="section-top-bar">
+            <h2
+              className={`section-title-container ${hasSubtitleClassName}`}
+              style={titleStyle}
+            >
+              <span className="section-title">
+                <FluentOrText message={title} />
               </span>
-            )}
-            {mayHaveSponsoredStories &&
-              this.props.spocMessageVariant === "variant-a" && (
-                <SponsoredContentHighlight
-                  position="inset-block-start inset-inline-start"
-                  dispatch={this.props.dispatch}
-                />
+              {subTitle && (
+                <span className="section-sub-title">
+                  <FluentOrText message={subTitle} />
+                </span>
               )}
-          </h2>
-          {mayHaveTopicsSelection && (
-            <div className="button-topic-selection">
-              <moz-button
-                data-l10n-id={
-                  topicsHaveBeenPreviouslySet
-                    ? "newtab-topic-selection-button-update-interests"
-                    : "newtab-topic-selection-button-pick-interests"
-                }
-                type={topicsHaveBeenPreviouslySet ? "default" : "primary"}
-                onClick={this.handleTopicSelectionButtonClick}
-              />
-            </div>
-          )}
-        </div>
+              {mayHaveSponsoredStories &&
+                this.props.spocMessageVariant === "variant-a" && (
+                  <SponsoredContentHighlight
+                    position="inset-block-start inset-inline-start"
+                    dispatch={this.props.dispatch}
+                  />
+                )}
+            </h2>
+            {mayHaveTopicsSelection && (
+              <div className="button-topic-selection">
+                <moz-button
+                  data-l10n-id={
+                    topicsHaveBeenPreviouslySet
+                      ? "newtab-topic-selection-button-update-interests"
+                      : "newtab-topic-selection-button-pick-interests"
+                  }
+                  type={topicsHaveBeenPreviouslySet ? "default" : "primary"}
+                  onClick={this.handleTopicSelectionButtonClick}
+                />
+              </div>
+            )}
+          </div>
+        )}
         <ErrorBoundary className="section-body-fallback">
           <div ref={this.onBodyMount} style={bodyStyle}>
             {this.props.children}

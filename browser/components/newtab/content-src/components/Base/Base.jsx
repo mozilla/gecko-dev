@@ -492,6 +492,7 @@ export class BaseContent extends React.PureComponent {
     const hasThumbsUpDownLayout =
       prefs["discoverystream.thumbsUpDown.searchTopsitesCompact"];
     const hasThumbsUpDown = prefs["discoverystream.thumbsUpDown.enabled"];
+    const sectionsEnabled = prefs["discoverystream.sections.enabled"];
 
     const featureClassName = [
       weatherEnabled && mayHaveWeather && "has-weather", // Show is weather is enabled/visible
@@ -499,6 +500,7 @@ export class BaseContent extends React.PureComponent {
       layoutsVariantAEnabled ? "layout-variant-a" : "", // Layout experiment variant A
       layoutsVariantBEnabled ? "layout-variant-b" : "", // Layout experiment variant B
       pocketEnabled ? "has-recommended-stories" : "no-recommended-stories",
+      sectionsEnabled ? "has-sections-grid" : "",
     ]
       .filter(v => v)
       .join(" ");

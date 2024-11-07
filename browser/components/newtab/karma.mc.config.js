@@ -197,6 +197,14 @@ module.exports = function (config) {
                 functions: 100,
                 branches: 74.63,
               },
+            // remove once Bug #1927917 lands
+            "content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx":
+              {
+                statements: 0,
+                lines: 0,
+                functions: 0,
+                branches: 0,
+              },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,

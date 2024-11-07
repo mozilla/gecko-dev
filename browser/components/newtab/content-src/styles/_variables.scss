@@ -107,6 +107,8 @@ $break-point-medium: $wrapper-max-width-medium + $base-gutter * 2 + $scrollbar-w
 $break-point-layout-variant: 724px;
 $break-point-large: $wrapper-max-width-large + $base-gutter * 2 + $scrollbar-width; // 866px
 $break-point-widest: $wrapper-max-width-widest + $base-gutter * 2 + $scrollbar-width; // 1122px
+// temporary breakpoint for sections experiment
+$break-point-sections-variant: 1310px + $base-gutter * 2 + $scrollbar-width;
 $break-point-weather: $wrapper-max-width-weather + $base-gutter * 2 + $scrollbar-width; // 1506px
 $break-point-ultra-wide: $wrapper-max-width-ultra-wide + $base-gutter * 2 + $scrollbar-width; // 1698px
 

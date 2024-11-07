@@ -132,6 +132,7 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     this.refreshTopicSelectionCache =
       this.refreshTopicSelectionCache.bind(this);
     this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
+    this.handleSectionsToggle = this.handleSectionsToggle.bind(this);
     this.state = {
       toggledStories: {},
       weatherQuery: "",
@@ -216,6 +217,16 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     e.preventDefault();
     const { weatherQuery } = this.state;
     this.props.dispatch(ac.SetPref("weather.query", weatherQuery));
+  }
+
+  handleSectionsToggle(e) {
+    const { pressed } = e.target;
+    this.props.dispatch(
+      ac.SetPref("discoverystream.sections.enabled", pressed)
+    );
+    this.props.dispatch(
+      ac.SetPref("discoverystream.sections.cards.enabled", pressed)
+    );
   }
 
   renderComponent(width, component) {
@@ -431,6 +442,8 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
       this.props.otherPrefs["discoverystream.personalization.enabled"];
     const selectedFeed =
       this.props.otherPrefs["discoverystream.contextualContent.selectedFeed"];
+    const sectionsEnabled =
+      this.props.otherPrefs["discoverystream.sections.enabled"];
     const TBRFeeds = this.props.otherPrefs[
       "discoverystream.contextualContent.feeds"
     ]
@@ -477,9 +490,14 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
             </option>
           ))}
         </select>
-        {/* <button className="button" onClick={this.toggleTBRFeed}>
-          Swap TBR feeds
-        </button> */}
+        <div className="toggle-wrapper">
+          <moz-toggle
+            id="sections-toggle"
+            pressed={sectionsEnabled || null}
+            onToggle={this.handleSectionsToggle}
+            label="Toggle DS Sections"
+          />
+        </div>
         <table>
           <tbody>
             {prefToggles.map(pref => (
