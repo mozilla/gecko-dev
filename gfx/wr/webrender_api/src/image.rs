@@ -54,6 +54,26 @@ impl BlobImageKey {
     }
 }
 
+/// An opaque identifier describing a snapshot image registered with WebRender.
+/// This is used as a handle to reference snapshot images, and can be used as an
+/// image in display items.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, PeekPoke)]
+pub struct SnapshotImageKey(pub ImageKey);
+
+impl SnapshotImageKey {
+    /// Interpret this snapshot image as an image for a display item.
+    pub fn as_image(self) -> ImageKey {
+        self.0
+    }
+}
+
+impl Default for SnapshotImageKey {
+    fn default() -> Self {
+        SnapshotImageKey(ImageKey::DUMMY)
+    }
+}
+
 /// An arbitrary identifier for an external image provided by the
 /// application. It must be a unique identifier for each external
 /// image.
