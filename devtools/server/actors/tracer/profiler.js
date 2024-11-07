@@ -108,8 +108,20 @@ class ProfilerTracingListener {
    *         Return true, if the JavaScriptTracer should log a message to stdout.
    */
   onTracingDOMMutation({ depth, prefix, type, caller, element }) {
+    let elementDescription = element.tagName?.toLowerCase();
+    if (element.id) {
+      elementDescription += `#${element.id}`;
+    }
+    if (element.className) {
+      elementDescription += `.${element.className.trim().replace(/ +/g, ".")}`;
+    }
+
+    const description = `${type} on ${elementDescription}`;
+
     // Bug 1904602: we need a tweak in profiler frontend before being able to show
-    // dom mutation in the stack chart.
+    // dom mutation in the stack chart. Until then, add a custom marker.
+    ChromeUtils.addProfilerMarker("DOM-Mutation", undefined, description);
+
     return false;
   }
 }
