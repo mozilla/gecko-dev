@@ -437,6 +437,10 @@ FRAME_STATE_BIT(SVG, 23, NS_STATE_SVG_TEXT_IN_REFLOW)
 // to update the cached nsTextNode indexes that they correspond to.
 FRAME_STATE_BIT(SVG, 24, NS_STATE_SVG_TEXT_CORRESPONDENCE_DIRTY)
 
+// Set on svg frames when they or their descendants may contain non-scaling
+// stroke contents.
+FRAME_STATE_BIT(SVG, 25, NS_STATE_SVG_MAY_CONTAIN_NON_SCALING_STROKE)
+
 // == Frame state bits that apply to text frames ==============================
 
 FRAME_STATE_GROUP(Text, nsTextFrame)

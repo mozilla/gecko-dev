@@ -41,6 +41,9 @@ bool AnimationPerformanceWarning::ToLocalizedString(
 
       return NS_SUCCEEDED(ToLocalizedStringWithIntParams<2>(
           "CompositorAnimationWarningContentTooLargeArea", aLocalizedString));
+    case Type::NonScalingStroke:
+      key = "CompositorAnimationWarningNonScalingStroke";
+      break;
     case Type::TransformSVG:
       key = "CompositorAnimationWarningTransformSVG";
       break;

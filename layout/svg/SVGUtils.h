@@ -422,6 +422,12 @@ class SVGUtils final {
                                            gfxMatrix* aUserToOuterSVG);
 
   /**
+   * We need to track whether content has non-scaling-stroke because we can't
+   * asynchronously animate it with a scaling transform.
+   */
+  static void UpdateNonScalingStrokeStateBit(nsIFrame* aFrame);
+
+  /**
    * Compute the maximum possible device space stroke extents of a path given
    * the path's device space path extents, its stroke style and its ctm.
    *
