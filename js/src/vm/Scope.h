@@ -21,7 +21,7 @@
 
 #include "builtin/ModuleObject.h"  // ModuleObject, Handle<ModuleObject*>
 #include "frontend/ParserAtom.h"   // frontend::TaggedParserAtomIndex
-#include "gc/Barrier.h"            // HeapPtr
+#include "gc/Barrier.h"            // GCPtr
 #include "gc/Cell.h"               // TenuredCellWithNonGCPointer
 #include "js/GCPolicyAPI.h"        // GCPolicy, IgnoreGCPolicy
 #include "js/HeapAPI.h"            // CellFlagBitsReservedForGC
@@ -332,10 +332,10 @@ class Scope : public gc::TenuredCellWithNonGCPointer<BaseScopeData> {
 
   // If there are any aliased bindings, the shape for the
   // EnvironmentObject. Otherwise nullptr.
-  const HeapPtr<SharedShape*> environmentShape_;
+  const GCPtr<SharedShape*> environmentShape_;
 
   // The enclosing scope or nullptr.
-  HeapPtr<Scope*> enclosingScope_;
+  GCPtr<Scope*> enclosingScope_;
 
   Scope(ScopeKind kind, Scope* enclosing, SharedShape* environmentShape)
       : TenuredCellWithNonGCPointer(nullptr),
@@ -715,7 +715,7 @@ class FunctionScope : public Scope {
     // The canonical function of the scope, as during a scope walk we
     // often query properties of the JSFunction (e.g., is the function an
     // arrow).
-    HeapPtr<JSFunction*> canonicalFunction = {};
+    GCPtr<JSFunction*> canonicalFunction = {};
 
     explicit RuntimeData(size_t length) { PoisonNames(this, length); }
     RuntimeData() = delete;
@@ -1017,7 +1017,7 @@ class ModuleScope : public Scope {
       : public AbstractBaseScopeData<JSAtom> {
     SlotInfo slotInfo;
     // The module of the scope.
-    HeapPtr<ModuleObject*> module = {};
+    GCPtr<ModuleObject*> module = {};
 
     explicit RuntimeData(size_t length);
     RuntimeData() = delete;
@@ -1078,7 +1078,7 @@ class WasmInstanceScope : public Scope {
       : public AbstractBaseScopeData<JSAtom> {
     SlotInfo slotInfo;
     // The wasm instance of the scope.
-    HeapPtr<WasmInstanceObject*> instance = {};
+    GCPtr<WasmInstanceObject*> instance = {};
 
     explicit RuntimeData(size_t length);
     RuntimeData() = delete;

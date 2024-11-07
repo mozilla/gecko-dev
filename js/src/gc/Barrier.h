@@ -617,11 +617,13 @@ class GCPtr : public WriteBarriered<T> {
 
 #ifdef DEBUG
   ~GCPtr() {
-    // No barriers are necessary as this only happens when the GC is sweeping.
+    // No barriers are necessary as this only happens when the GC is sweeping or
+    // before this has been initialized (see above comment).
     //
     // If this assertion fails you may need to make the containing object use a
     // HeapPtr instead, as this can be deleted from outside of GC.
-    MOZ_ASSERT(CurrentThreadIsGCSweeping() || CurrentThreadIsGCFinalizing());
+    MOZ_ASSERT(CurrentThreadIsGCSweeping() || CurrentThreadIsGCFinalizing() ||
+               this->value == JS::SafelyInitialized<T>::create());
 
     Poison(this, JS_FREED_HEAP_PTR_PATTERN, sizeof(*this),
            MemCheckKind::MakeNoAccess);
