@@ -10,6 +10,8 @@ use api::{ColorF, ImageData, ImageDescriptor, ImageKey, ImageRendering, TileSize
 use api::{BlobImageHandler, BlobImageKey, VoidPtrToSizeFn};
 use api::units::*;
 use euclid::size2;
+use crate::render_target::RenderTargetKind;
+use crate::render_task::{RenderTaskLocation, StaticRenderTaskSurface};
 use crate::{render_api::{ClearCache, AddFont, ResourceUpdate, MemoryReport}, util::WeakTable};
 use crate::image_tiling::{compute_tile_size, compute_tile_range};
 #[cfg(feature = "capture")]
@@ -609,6 +611,79 @@ impl ResourceCache {
             surface_builder,
             f
         )
+    }
+
+    pub fn render_as_image(
+        &mut self,
+        image_key: ImageKey,
+        size: DeviceIntSize,
+        rg_builder: &mut RenderTaskGraphBuilder,
+        gpu_buffer_builder: &mut GpuBufferBuilderF,
+        gpu_cache: &mut GpuCache,
+        is_opaque: bool,
+        f: &mut dyn FnMut(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF, &mut GpuCache) -> RenderTaskId,
+    ) -> RenderTaskId {
+
+        let task_id = f(rg_builder, gpu_buffer_builder, gpu_cache);
+
+        let render_task = rg_builder.get_task_mut(task_id);
+
+        let mut texture_cache_handle = TextureCacheHandle::invalid();
+
+        let flags = if is_opaque {
+            ImageDescriptorFlags::IS_OPAQUE
+        } else {
+            ImageDescriptorFlags::empty()
+        };
+
+        let descriptor = ImageDescriptor::new(
+            size.width,
+            size.height,
+            self.texture_cache.shared_color_expected_format(),
+            flags,
+        );
+ 
+        // Allocate space in the texture cache, but don't supply
+        // and CPU-side data to be uploaded.
+        let user_data = [0.0; 4];
+        self.texture_cache.update(
+            &mut texture_cache_handle,
+            descriptor,
+            TextureFilter::Linear,
+            None,
+            user_data,
+            DirtyRect::All,
+            gpu_cache,
+            None,
+            render_task.uv_rect_kind(),
+            Eviction::Manual,
+            TargetShader::Default,
+        );
+
+        // Get the allocation details in the texture cache, and store
+        // this in the render task. The renderer will draw this task
+        // into the appropriate rect of the texture cache on this frame.
+        let (texture_id, uv_rect, _, _, _) =
+            self.texture_cache.get_cache_location(&texture_cache_handle);
+
+        render_task.location = RenderTaskLocation::Static {
+            surface: StaticRenderTaskSurface::TextureCache {
+                texture: texture_id,
+                target_kind: RenderTargetKind::Color,
+            },
+            rect: uv_rect.to_i32(),
+        };
+
+        self.cached_images.insert(
+            image_key,
+            ImageResult::UntiledAuto(CachedImageInfo {
+                texture_cache_handle,
+                dirty_rect: ImageDirtyRect::All,
+                manual_eviction: true,
+            })
+        );
+
+        task_id
     }
 
     pub fn post_scene_building_update(
