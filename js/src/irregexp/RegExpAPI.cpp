@@ -653,7 +653,7 @@ struct RegExpNamedCaptureIndexLess {
     // lowest capture index.
     MOZ_ASSERT(!lhs.indices.empty());
     MOZ_ASSERT(!rhs.indices.empty());
-    MOZ_ASSERT(lhs.indices[0] != rhs.indices[0]);
+    MOZ_ASSERT_IF(&lhs != &rhs, lhs.indices[0] != rhs.indices[0]);
     return lhs.indices[0] < rhs.indices[0];
   }
 };
