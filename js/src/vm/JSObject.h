@@ -1075,7 +1075,7 @@ extern bool TestIntegrityLevel(JSContext* cx, HandleObject obj,
     JSContext* cx, HandleObject obj, JSProtoKey ctorKey,
     bool (*isDefaultSpecies)(JSContext*, JSFunction*));
 
-extern bool GetObjectFromIncumbentGlobal(JSContext* cx,
+extern bool GetObjectFromHostDefinedData(JSContext* cx,
                                          MutableHandleObject obj);
 
 #ifdef DEBUG
