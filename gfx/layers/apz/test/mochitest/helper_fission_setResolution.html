@@ -31,9 +31,9 @@
         }
       );
 
-      is(width, scale * originalWidth,
+      is(width, scale * originalWidth * window.devicePixelRatio,
         "The resolution value should be properly delivered into OOP iframes");
-      is(height, scale * originalHeight,
+      is(height, scale * originalHeight * window.devicePixelRatio,
         "The resolution value should be properly delivered into OOP iframes");
     }
 
