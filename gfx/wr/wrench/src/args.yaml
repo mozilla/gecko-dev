@@ -36,6 +36,9 @@ args:
   - angle:
       long: angle
       help: Enable ANGLE rendering (on Windows only)
+  - compositor:
+      long: compositor
+      help: Enable native OS compositor integration
   - software:
       long: software
       help: Enable software rendering

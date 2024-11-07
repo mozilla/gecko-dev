@@ -3565,6 +3565,7 @@ name = "wrench"
 version = "0.3.0"
 dependencies = [
  "base64",
+ "cc",
  "chrono",
  "clap",
  "core-foundation 0.9.2",

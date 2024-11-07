@@ -14,9 +14,11 @@ use glutin::PixelFormatRequirements;
 use glutin::ReleaseBehavior;
 use glutin::Robustness;
 use glutin::Api;
+use mozangle::egl::ffi::types::EGLAttrib;
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_int;
+use std::os::raw::c_void;
 use std::ptr;
 use std::cell::Cell;
 
@@ -32,6 +34,7 @@ pub struct Context {
     surface: Cell<ffi::egl::types::EGLSurface>,
     api: Api,
     pixel_format: PixelFormat,
+    using_compositor: bool,
 }
 
 impl Context {
@@ -146,6 +149,10 @@ impl Context {
 
     #[inline]
     pub fn swap_buffers(&self) -> Result<(), ContextError> {
+        if self.using_compositor {
+            return Ok(());
+        }
+
         if self.surface.get() == ffi::egl::NO_SURFACE {
             return Err(ContextError::ContextLost);
         }
@@ -201,6 +208,30 @@ impl Context {
     pub fn get_pixel_format(&self) -> PixelFormat {
         self.pixel_format.clone()
     }
+
+    pub fn get_display(&self) -> *const c_void {
+        self.display
+    }
+
+    pub fn get_context(&self) -> *const c_void {
+        self.context
+    }
+
+    pub fn get_d3d11_device(&self) -> *const c_void {
+        let mut egl_device: EGLAttrib = 0;
+        unsafe {
+            egl::QueryDisplayAttribEXT(self.display, egl::DEVICE_EXT as i32, &mut egl_device);
+        }
+        assert!(egl_device != 0);
+
+        let mut d3d_device: EGLAttrib = 0;
+        unsafe {
+            egl::QueryDeviceAttribEXT(egl_device as *const c_void, egl::D3D11_DEVICE_ANGLE as i32, &mut d3d_device);
+        }
+        assert!(d3d_device != 0);
+
+        d3d_device as *const c_void
+    }
 }
 
 unsafe impl Send for Context {}
@@ -239,19 +270,23 @@ impl<'a> ContextPrototype<'a> {
         value
     }
 
-    pub fn finish(self, native_window: ffi::EGLNativeWindowType)
+    pub fn finish(self, native_window: ffi::EGLNativeWindowType, using_compositor: bool)
                   -> Result<Context, CreationError>
     {
-        let surface = unsafe {
-            let surface = egl::CreateWindowSurface(self.display, self.config_id, native_window,
-                                                       ptr::null());
-            if surface.is_null() {
-                return Err(CreationError::OsError(format!("eglCreateWindowSurface failed")))
+        let surface = if using_compositor {
+            ptr::null()
+        } else {
+            unsafe {
+                let surface = egl::CreateWindowSurface(self.display, self.config_id, native_window,
+                                                        ptr::null());
+                if surface.is_null() {
+                    return Err(CreationError::OsError(format!("eglCreateWindowSurface failed")))
+                }
+                surface
             }
-            surface
         };
 
-        self.finish_impl(surface)
+        self.finish_impl(surface, using_compositor)
     }
 
     pub fn finish_pbuffer(self, dimensions: (u32, u32)) -> Result<Context, CreationError> {
@@ -270,10 +305,10 @@ impl<'a> ContextPrototype<'a> {
             surface
         };
 
-        self.finish_impl(surface)
+        self.finish_impl(surface, false)
     }
 
-    fn finish_impl(self, surface: ffi::egl::types::EGLSurface)
+    fn finish_impl(self, surface: ffi::egl::types::EGLSurface, using_compositor: bool)
                    -> Result<Context, CreationError>
     {
         let context = unsafe {
@@ -328,6 +363,7 @@ impl<'a> ContextPrototype<'a> {
             surface: Cell::new(surface),
             api: self.api,
             pixel_format: self.pixel_format,
+            using_compositor,
         })
     }
 }

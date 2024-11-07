@@ -58,7 +58,7 @@ use crate::composite::{CompositeState, CompositeTileSurface, ResolvedExternalSur
 use crate::composite::{CompositorKind, Compositor, NativeTileId, CompositeFeatures, CompositeSurfaceFormat, ResolvedExternalSurfaceColorData};
 use crate::composite::{CompositorConfig, NativeSurfaceOperationDetails, NativeSurfaceId, NativeSurfaceOperation};
 use crate::composite::{TileKind};
-use crate::debug_colors;
+use crate::{debug_colors, Compositor2, CompositorInputConfig};
 use crate::device::{DepthFunction, Device, DrawTarget, ExternalTexture, GpuFrameId, UploadPBOPool};
 use crate::device::{ReadTarget, ShaderError, Texture, TextureFilter, TextureFlags, TextureSlot, Texel};
 use crate::device::query::{GpuSampler, GpuTimer};
@@ -863,8 +863,8 @@ pub struct Renderer {
 
     /// The compositing config, affecting how WR composites into the final scene.
     compositor_config: CompositorConfig,
-
     current_compositor_kind: CompositorKind,
+    compositor2: Option<Box<dyn Compositor2>>,
 
     /// Maintains a set of allocated native composite surfaces. This allows any
     /// currently allocated surfaces to be cleaned up as soon as deinit() is
@@ -3342,6 +3342,17 @@ impl Renderer {
         let _gm = self.gpu_profiler.start_marker("framebuffer");
         let _timer = self.gpu_profiler.start_timer(GPU_TAG_COMPOSITE);
 
+        // If experimental compositor is enabled, notify it that we are beginning
+        // a frame composite. As this expands, we'll likely split it in to a different
+        // function that `composite_simple`, as it begins to diverge.
+        if let Some(ref mut compositor) = self.compositor2 {
+            let input = CompositorInputConfig {
+                framebuffer_size: draw_target.dimensions(),
+            };
+
+            compositor.begin_frame(&input);
+        }
+
         self.device.bind_draw_target(draw_target);
         self.device.disable_depth_write();
         self.device.disable_depth();
@@ -3474,6 +3485,11 @@ impl Renderer {
                 &mut results.stats,
             );
             self.gpu_profiler.finish_sampler(transparent_sampler);
+        }
+
+        // End frame notify for experimental compositor
+        if let Some(ref mut compositor) = self.compositor2 {
+            compositor.end_frame();
         }
     }
 

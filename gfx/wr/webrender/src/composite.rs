@@ -1295,6 +1295,32 @@ pub trait Compositor {
     fn get_window_visibility(&self, device: &mut Device) -> WindowVisibility;
 }
 
+// Provides the parameters about the frame to the compositor implementation.
+// TODO(gw): Include information about picture cache slices and external surfaces.
+pub struct CompositorInputConfig {
+    pub framebuffer_size: DeviceIntSize,
+}
+
+// Provides the configuration that the compositor selected based on the input
+// config.
+// TODO(gw): Return information about promoted surfaces and swapchain count.
+pub struct CompositorOutputConfig {
+
+}
+
+// Skeleton trait for implementors of swapchain based compositing. For now
+// the implementation simply binds a framebuffer-sized surface that can
+// be presented by the native compositor.
+// TODO(gw): Extend to handle external surfaces, layers, swgl, etc.
+pub trait Compositor2 {
+    fn begin_frame(
+        &mut self,
+        input: &CompositorInputConfig,
+    ) -> CompositorOutputConfig;
+
+    fn end_frame(&mut self);
+}
+
 /// Information about the underlying data buffer of a mapped tile.
 #[repr(C)]
 #[derive(Copy, Clone)]

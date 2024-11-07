@@ -13,6 +13,8 @@ extern crate tracy_rs;
 
 mod angle;
 mod blob;
+#[cfg(target_os = "windows")]
+mod composite;
 mod egl;
 mod parse_function;
 mod perf;
@@ -26,6 +28,8 @@ mod wrench;
 mod yaml_frame_reader;
 mod yaml_helper;
 
+#[cfg(target_os = "windows")]
+use composite::WrCompositor;
 use gleam::gl;
 #[cfg(feature = "software")]
 use gleam::gl::Gl;
@@ -44,7 +48,7 @@ use std::rc::Rc;
 #[cfg(feature = "software")]
 use std::slice;
 use std::sync::mpsc::{channel, Sender, Receiver};
-use webrender::DebugFlags;
+use webrender::{DebugFlags, Compositor2};
 use webrender::api::*;
 use webrender::render_api::*;
 use webrender::api::units::*;
@@ -296,6 +300,25 @@ impl WindowWrapper {
         self.update_software(dim);
         wrench.update(dim);
     }
+
+    #[cfg(target_os = "windows")]
+    pub fn get_d3d11_device(&self) -> *const c_void {
+        match *self {
+            WindowWrapper::WindowedContext(_, _, _) |
+            WindowWrapper::Headless(_, _, _) => unreachable!(),
+            WindowWrapper::Angle(_, ref ctx, _, _) => ctx.get_d3d11_device(),
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn create_compositor(&self) -> Option<Box<dyn Compositor2>> {
+        Some(Box::new(WrCompositor::new(self)) as Box<dyn Compositor2>)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    pub fn create_compositor(&self) -> Option<Box<dyn Compositor2>> {
+        None
+    }
 }
 
 #[cfg(feature = "software")]
@@ -317,6 +340,7 @@ fn make_window(
     angle: bool,
     gl_request: glutin::GlRequest,
     software: bool,
+    using_compositor: bool,
 ) -> WindowWrapper {
     let sw_ctx = if software {
         Some(make_software_context())
@@ -336,7 +360,7 @@ fn make_window(
 
         if angle {
             angle::Context::with_window(
-                window_builder, context_builder, events_loop
+                window_builder, context_builder, events_loop, using_compositor,
             ).map(|(_window, _context)| {
                 unsafe {
                     _context
@@ -687,6 +711,8 @@ pub fn main() {
         });
     }
 
+    let using_compositor = args.is_present("compositor");
+
     let mut window = make_window(
         size,
         args.is_present("vsync"),
@@ -694,6 +720,7 @@ pub fn main() {
         args.is_present("angle"),
         gl_request,
         software,
+        using_compositor,
     );
     let dim = window.get_inner_size();
 
@@ -705,6 +732,12 @@ pub fn main() {
         (Some(notifier), Some(rx))
     } else {
         (None, None)
+    };
+
+    let compositor2 = if using_compositor {
+        window.create_compositor()
+    } else {
+        None
     };
 
     let mut wrench = Wrench::new(
@@ -721,6 +754,7 @@ pub fn main() {
         args.is_present("precache"),
         dump_shader_source,
         notifier,
+        compositor2,
     );
 
     if let Some(ui_str) = args.value_of("profiler_ui") {

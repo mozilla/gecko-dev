@@ -25,4 +25,11 @@ fn main() {
         dst.push("wrench.exe.manifest");
         fs::copy(&src, &dst).unwrap();
     }
+
+    println!("cargo:rerun-if-changed=src/composite.cpp");
+
+    cc::Build::new()
+        .cpp(true)
+        .file("src/composite.cpp")
+        .compile("wr_composite");
 }

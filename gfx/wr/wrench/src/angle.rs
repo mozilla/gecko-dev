@@ -17,6 +17,7 @@ impl Context {
         _: WindowBuilder,
         _: ContextBuilder<'_, T>,
         _: &EventLoop<()>,
+        _: bool,
     ) -> Result<(Window, Self), CreationError> {
         Err(CreationError::PlatformSpecific(
             "ANGLE rendering is only supported on Windows".into(),
@@ -28,6 +29,7 @@ impl Context {
         window_builder: WindowBuilder,
         context_builder: ContextBuilder<'_, T>,
         events_loop: &EventLoop<()>,
+        using_compositor: bool,
     ) -> Result<(Window, Self), CreationError> {
         use winit::platform::windows::WindowExtWindows;
 
@@ -36,7 +38,7 @@ impl Context {
         let gl_attr = &context_builder.gl_attr.map_sharing(|_| unimplemented!());
         let window = window_builder.build(events_loop)?;
         Self::new(pf_reqs, gl_attr)
-            .and_then(|p| p.finish(window.hwnd() as _))
+            .and_then(|p| p.finish(window.hwnd() as _, using_compositor))
             .map(|context| (window, context))
     }
 
