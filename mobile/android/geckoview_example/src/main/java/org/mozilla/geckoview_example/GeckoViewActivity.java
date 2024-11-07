@@ -100,6 +100,7 @@ import org.mozilla.geckoview.WebNotificationDelegate;
 import org.mozilla.geckoview.WebRequest;
 import org.mozilla.geckoview.WebRequestError;
 import org.mozilla.geckoview.WebResponse;
+import org.mozilla.geckoview_example.utils.WindowUtils;
 
 interface WebExtensionDelegate {
   default GeckoSession toggleBrowserActionPopup(boolean force) {
@@ -830,6 +831,8 @@ public class GeckoViewActivity extends AppCompatActivity
     mGeckoView.setActivityContextDelegate(new ExampleActivityDelegate());
     mTabSessionManager = new TabSessionManager();
 
+    WindowUtils.setupPersistentInsets(getWindow());
+    WindowUtils.setupImeBehavior(getWindow());
     setSupportActionBar(findViewById(R.id.toolbar));
 
     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);

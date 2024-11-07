@@ -27,9 +27,8 @@
                 android:name=".GeckoViewActivity"
                 android:label="GeckoView Example"
                 android:launchMode="singleTop"
-                android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-                android:exported="true"
-                android:windowSoftInputMode="stateUnspecified|adjustResize">
+                android:theme="@style/GeckoViewTheme"
+                android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -53,15 +52,14 @@
         <activity
                 android:name=".SessionActivity"
                 android:label="GeckoView Example"
-                android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-                android:exported="false"
-                android:windowSoftInputMode="stateUnspecified|adjustResize">
+                android:theme="@style/GeckoViewTheme"
+                android:exported="false">
         </activity>
         <activity
                 android:name=".SettingsActivity"
                 android:label="Settings"
                 android:exported="false"
-                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                android:theme="@style/GeckoViewTheme">
         </activity>
 
         <service

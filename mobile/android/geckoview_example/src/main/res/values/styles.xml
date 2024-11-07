@@ -1,7 +1,12 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="ToolBarStyle" parent="Theme.AppCompat">
         <item name="android:textColorPrimary">@android:color/white</item>
         <item name="android:textColorSecondary">@android:color/white</item>
         <item name="actionMenuTextColor">@android:color/white</item>
+    </style>
+
+    <style name="GeckoViewTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:enforceStatusBarContrast"  tools:targetApi="q">true</item>
+        <item name="android:enforceNavigationBarContrast"  tools:targetApi="q">true</item>
     </style>
 </resources>

@@ -8,12 +8,15 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.preference.PreferenceFragmentCompat;
+import org.mozilla.geckoview_example.utils.WindowUtils;
 
 public class SettingsActivity extends AppCompatActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_settings);
+    WindowUtils.setupPersistentInsets(getWindow());
+
     getSupportFragmentManager()
         .beginTransaction()
         .replace(R.id.container, new SettingsFragment())
