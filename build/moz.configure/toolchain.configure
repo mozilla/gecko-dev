@@ -97,13 +97,30 @@ def forced_pgo_optimization_level(target):
         return "-O3"
 
 
+@imports(_from="__builtin__", _import="reversed")
+@imports(_from="mozbuild.shellutil", _import="quote")
+def check_optimize_flags(src, flags):
+    for flag in reversed(flags):
+        if flag.startswith(("-O", "/O")):
+            if flag[2:] == "0":
+                die(
+                    f"Optimization enabled through {src} but last optimization flag is {flag} which disables optimizations"
+                )
+            break
+    else:
+        die(
+            f"Optimization enabled through {src} but no optimization flag found in {quote(*flags)}"
+        )
+    return flags
+
+
 @depends("--enable-optimize", "MOZ_OPTIMIZE_FLAGS")
 @imports(_from="mozbuild.shellutil", _import="split")
 def configured_moz_optimize_flags(enable_optimize, env_flags):
     if len(enable_optimize):
-        return split(enable_optimize[0])
+        return check_optimize_flags("--enable-optimize", split(enable_optimize[0]))
     if len(env_flags):
-        return split(env_flags[0])
+        return check_optimize_flags("MOZ_OPTIMIZE_FLAGS", split(env_flags[0]))
 
 
 @depends("--enable-optimize", "MOZ_OPTIMIZE_FLAGS")
