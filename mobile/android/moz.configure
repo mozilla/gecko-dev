@@ -52,7 +52,7 @@ set_config(
 
 option(
     "--enable-geckoview-lite",
-    help="Build GeckoView in Lite mode. Lite mode removes all unnecessary dependencies like Glean.",
+    help="Build GeckoView in Lite mode. Lite mode removes all unnecessary dependencies like Glean",
 )
 
 set_config("MOZ_ANDROID_GECKOVIEW_LITE", True, when="--enable-geckoview-lite")

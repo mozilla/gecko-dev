@@ -36,5 +36,5 @@ set_config("NSS_LIBS", nss_config.libs)
 project_flag(
     env="NSS_EXTRA_SYMBOLS_FILE",
     nargs=1,
-    help="Path to a file containing extra symbols to export from NSS.",
+    help="Path to a file containing extra symbols to export from NSS",
 )

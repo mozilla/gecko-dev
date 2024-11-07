@@ -8,8 +8,8 @@ option(
     "--with-windows-version",
     nargs=1,
     default="603",
-    help="Windows SDK version to target. Win 8.1 (603) is currently"
-    "the minimum supported version.",
+    help="Windows SDK version to target. Win 8.1 (603) is currently "
+    "the minimum supported version",
 )
 
 

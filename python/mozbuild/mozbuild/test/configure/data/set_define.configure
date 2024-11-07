@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-option("--set-foo", help="set foo")
+option("--set-foo", help="Set foo")
 
 
 @depends("--set-foo")
@@ -16,7 +16,7 @@ def foo(value):
 set_define("FOO", foo)
 
 
-option("--set-bar", help="set bar")
+option("--set-bar", help="Set bar")
 
 
 @depends("--set-bar")
@@ -27,7 +27,7 @@ def bar(value):
 set_define("BAR", bar)
 
 
-option("--set-value", nargs=1, help="set value")
+option("--set-value", nargs=1, help="Set value")
 
 
 @depends("--set-value")
@@ -39,7 +39,7 @@ def set_value(value):
 set_define("VALUE", set_value)
 
 
-option("--set-name", nargs=1, help="set name")
+option("--set-name", nargs=1, help="Set name")
 
 
 @depends("--set-name")

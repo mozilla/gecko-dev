@@ -581,7 +581,7 @@ set_config("RUSTC_NATVIS_LDFLAGS", rustc_natvis_ldflags)
 option(
     "--enable-rust-debug",
     default=depends(when="--enable-debug")(lambda: True),
-    help="{Build|Do not build} Rust code with debug assertions turned " "on.",
+    help="{Build|Do not build} Rust code with debug assertions turned on",
 )
 
 
@@ -696,7 +696,7 @@ def rust_compile_flags(
 # ==============================================================
 
 
-option("--disable-cargo-incremental", help="Disable incremental rust compilation.")
+option("--disable-cargo-incremental", help="Disable incremental rust compilation")
 
 
 @depends(

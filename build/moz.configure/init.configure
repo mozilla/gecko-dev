@@ -384,7 +384,7 @@ option(
     "--enable-application",
     nargs=1,
     env="MOZ_BUILD_APP",
-    help="Application to build. Same as --enable-project.",
+    help="Application to build. Same as --enable-project",
 )
 
 
@@ -413,7 +413,7 @@ option("--enable-project", nargs=1, default=default_project, help="Project to bu
 option(
     "--enable-artifact-builds",
     env="MOZ_ARTIFACT_BUILDS",
-    help="Download and use prebuilt binary artifacts.",
+    help="Download and use prebuilt binary artifacts",
 )
 
 
@@ -1268,7 +1268,7 @@ option(
     "may vary for full rebrandings (e.g. Iceweasel). Used for "
     'application.ini\'s "Name" field, which controls profile location in '
     'the absence of a "Profile" field (see below), and various system '
-    "integration hooks (Unix remoting, Windows MessageWindow name, etc.",
+    "integration hooks (Unix remoting, Windows MessageWindow name, etc",
 )
 
 
@@ -1323,7 +1323,7 @@ option(
     nargs=1,
     metavar="PREFIX",
     default="/usr/local",
-    help="install files using PREFIX as root directory",
+    help="Install files using PREFIX as root directory",
 )
 set_config("prefix", depends("--prefix")(lambda prefix: prefix[0]))
 
@@ -1345,6 +1345,6 @@ option(
     nargs=1,
     metavar="DIR",
     default=depends("--prefix")(lambda prefix: f"{prefix[0]}/lib"),
-    help="object code libraries in DIR",
+    help="Object code libraries in DIR",
 )
 set_config("libdir", depends("--libdir")(lambda ldir: ldir[0]))

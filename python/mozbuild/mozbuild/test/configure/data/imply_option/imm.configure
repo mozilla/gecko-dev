@@ -6,7 +6,7 @@
 
 imply_option("--enable-foo", True)
 
-option("--enable-foo", help="enable foo")
+option("--enable-foo", help="Enable foo")
 
 
 @depends("--enable-foo", "--help")
@@ -17,7 +17,7 @@ def foo(value, help):
 
 imply_option("--enable-bar", ("foo", "bar"))
 
-option("--enable-bar", nargs="*", help="enable bar")
+option("--enable-bar", nargs="*", help="Enable bar")
 
 
 @depends("--enable-bar")
@@ -28,7 +28,7 @@ def bar(value):
 
 imply_option("--enable-baz", "BAZ")
 
-option("--enable-baz", nargs=1, help="enable baz")
+option("--enable-baz", nargs=1, help="Enable baz")
 
 
 @depends("--enable-baz")

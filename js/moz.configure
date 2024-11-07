@@ -23,7 +23,7 @@ option(
     env="MOZ_APP_NAME",
     nargs=1,
     help="Used for e.g. the binary program file name. If not set, "
-    "defaults to a lowercase form of MOZ_APP_BASENAME.",
+    "defaults to a lowercase form of MOZ_APP_BASENAME",
 )
 
 
@@ -197,7 +197,7 @@ set_define("ENABLE_EXPLICIT_RESOURCE_MANAGEMENT", enable_explicit_resource_manag
 option(
     "--enable-portable-baseline-interp",
     default=False,
-    help="{Enable|Disable} the portable baseline interpreter.",
+    help="{Enable|Disable} the portable baseline interpreter",
 )
 set_define(
     "ENABLE_PORTABLE_BASELINE_INTERP",
@@ -212,7 +212,7 @@ set_config(
 option(
     "--enable-portable-baseline-interp-force",
     default=False,
-    help="{Enable|Disable} forcing use of the portable baseline interpreter.",
+    help="{Enable|Disable} forcing use of the portable baseline interpreter",
 )
 
 set_define(
@@ -576,7 +576,7 @@ set_define("JS_DISASM_ARM64", jit_disasm_arm64)
 option(
     "--enable-masm-verbose",
     default=depends(when=moz_debug)(lambda: True),
-    help="{Enable|Disable} MacroAssembler verbosity of generated code.",
+    help="{Enable|Disable} MacroAssembler verbosity of generated code",
 )
 set_define("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 set_config("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
@@ -597,7 +597,7 @@ def is_apple_silicon(target):
 option(
     "--enable-arm64-fjcvtzs",
     default=is_apple_silicon,
-    help="{Enable|Disable} static use of FJCVTZS instruction on Aarch64 targets.",
+    help="{Enable|Disable} static use of FJCVTZS instruction on Aarch64 targets",
 )
 
 
@@ -676,7 +676,7 @@ set_define("ENABLE_PIPELINE_OPERATOR", enable_pipeline_operator)
 # ==============================================================
 
 option(
-    "--enable-rust-simd", env="MOZ_RUST_SIMD", help="Enable explicit SIMD in Rust code."
+    "--enable-rust-simd", env="MOZ_RUST_SIMD", help="Enable explicit SIMD in Rust code"
 )
 
 
@@ -727,7 +727,7 @@ set_define(
 option(
     "--wasm-no-experimental",
     default=False,
-    help="Force disable all wasm experimental features for testing.",
+    help="Force disable all wasm experimental features for testing",
 )
 
 

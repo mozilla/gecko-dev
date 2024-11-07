@@ -25,7 +25,7 @@ option(
     "--with-android-sdk",
     nargs=1,
     default=default_android_sdk_root,
-    help="location where the Android SDK can be found (like ~/.mozbuild/android-sdk-linux){|}",
+    help="Location where the Android SDK can be found (like ~/.mozbuild/android-sdk-linux){|}",
 )
 
 

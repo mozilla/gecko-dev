@@ -26,7 +26,7 @@ set_config("CLANG_PLUGIN", clang_plugin_path)
 option(
     "--enable-clang-plugin-alpha",
     env="ENABLE_CLANG_PLUGIN_ALPHA",
-    help="Enable static analysis with clang-plugin alpha checks.",
+    help="Enable static analysis with clang-plugin alpha checks",
     when="--enable-clang-plugin",
 )
 

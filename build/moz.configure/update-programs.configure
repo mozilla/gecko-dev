@@ -82,7 +82,7 @@ can_toggle_nss_mar = target_is_windows | target_is_osx
 option(
     "--enable-nss-mar",
     when=can_toggle_nss_mar,
-    help="Enable using NSS to check MAR signatures instead of system crypto.",
+    help="Enable using NSS to check MAR signatures instead of system crypto",
 )
 
 

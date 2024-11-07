@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-option("--enable-foo", help="enable foo")
+option("--enable-foo", help="Enable foo")
 
 
 @depends("--enable-foo")
@@ -16,7 +16,7 @@ def foo(value):
 imply_option("--enable-bar", foo)
 
 
-option("--disable-hoge", help="enable hoge")
+option("--disable-hoge", help="Enable hoge")
 
 
 @depends("--disable-hoge")
@@ -28,7 +28,7 @@ def hoge(value):
 imply_option("--enable-bar", hoge)
 
 
-option("--enable-bar", default=True, help="enable bar")
+option("--enable-bar", default=True, help="Enable bar")
 
 
 @depends("--enable-bar")

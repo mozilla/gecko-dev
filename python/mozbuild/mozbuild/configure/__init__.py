@@ -451,7 +451,7 @@ class ConfigureSandbox(dict):
 
         self._help = None
         self._help_option = self.option_impl(
-            "--help", help="print this message", category=HELP_OPTIONS_CATEGORY
+            "--help", help="Print this message", category=HELP_OPTIONS_CATEGORY
         )
         self._seen.add(self._help_option)
 

@@ -8,7 +8,7 @@
 # ==============================================================
 option(
     env="HOST_CPPFLAGS",
-    help="Extra flags for Preprocessing host sources.",
+    help="Extra flags for Preprocessing host sources",
     nargs=1,
     default="",
 )
@@ -16,7 +16,7 @@ option(
 
 option(
     env="HOST_CFLAGS",
-    help="Extra flags for compiling host C sources.",
+    help="Extra flags for compiling host C sources",
     nargs=1,
     default="",
 )
@@ -24,7 +24,7 @@ option(
 
 option(
     env="HOST_CXXFLAGS",
-    help="Extra flags for compiling host C++ sources.",
+    help="Extra flags for compiling host C++ sources",
     nargs=1,
     default="",
 )
@@ -32,7 +32,7 @@ option(
 
 option(
     env="HOST_LDFLAGS",
-    help="Extra flags for linking host object files.",
+    help="Extra flags for linking host object files",
     nargs=1,
     default="",
 )
@@ -40,7 +40,7 @@ option(
 
 option(
     env="CPPFLAGS",
-    help="Extra flags for preprocessing sources.",
+    help="Extra flags for preprocessing sources",
     nargs=1,
     default="",
 )
@@ -48,7 +48,7 @@ option(
 
 option(
     env="CFLAGS",
-    help="Extra flags for compiling C sources.",
+    help="Extra flags for compiling C sources",
     nargs=1,
     default="",
 )
@@ -56,7 +56,7 @@ option(
 
 option(
     env="CXXFLAGS",
-    help="Extra flags for compiling C++ sources.",
+    help="Extra flags for compiling C++ sources",
     nargs=1,
     default="",
 )
@@ -64,7 +64,7 @@ option(
 
 option(
     env="ASFLAGS",
-    help="Extra flags for assembling sources.",
+    help="Extra flags for assembling sources",
     nargs=1,
     default="",
 )
@@ -72,7 +72,7 @@ option(
 
 option(
     env="LDFLAGS",
-    help="Extra flags for linking object files.",
+    help="Extra flags for linking object files",
     nargs=1,
     default="",
 )
@@ -80,7 +80,7 @@ option(
 
 option(
     env="MOZ_OPTIMIZE_FLAGS",
-    help="Extra optimization flags.",
+    help="Extra optimization flags",
     nargs=1,
 )
 
@@ -3751,7 +3751,7 @@ option(
     "--enable-path-remapping",
     nargs="*",
     choices=("c", "rust"),
-    help="Enable remapping source and object paths in compiled outputs.",
+    help="Enable remapping source and object paths in compiled outputs",
 )
 
 

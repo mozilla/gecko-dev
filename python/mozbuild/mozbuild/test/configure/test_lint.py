@@ -62,7 +62,7 @@ class TestLint(unittest.TestCase):
     def test_depends_failures(self):
         with self.moz_configure(
             """
-            option('--foo', help='foo')
+            option('--foo', help='Foo')
             @depends('--foo')
             def foo(value):
                 return value
@@ -78,7 +78,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(ConfigureError, 7) as e:
             with self.moz_configure(
                 """
-                option('--foo', help='foo')
+                option('--foo', help='Foo')
                 @depends('--foo')
                 def foo(value):
                     return value
@@ -95,7 +95,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(ConfigureError, 3) as e:
             with self.moz_configure(
                 """
-                option('--foo', help='foo')
+                option('--foo', help='Foo')
                 @depends('--foo')
                 @imports('os')
                 def foo(value):
@@ -121,7 +121,7 @@ class TestLint(unittest.TestCase):
                 def tmpl():
                     qux = 42
 
-                    option('--foo', help='foo')
+                    option('--foo', help='Foo')
                     @depends('--foo')
                     def foo(value):
                         qux
@@ -143,7 +143,7 @@ class TestLint(unittest.TestCase):
 
         with self.moz_configure(
             """
-            option('--foo', help='foo')
+            option('--foo', help='Foo')
             @depends('--foo')
             def foo(value):
                 return value
@@ -156,7 +156,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(ConfigureError, 3) as e:
             with self.moz_configure(
                 """
-                option('--foo', help='foo')
+                option('--foo', help='Foo')
                 @depends('--foo')
                 @imports('os')
                 def foo(value):
@@ -172,7 +172,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(ConfigureError, 3) as e:
             with self.moz_configure(
                 """
-                option('--foo', help='foo')
+                option('--foo', help='Foo')
                 @depends('--foo')
                 @imports('os')
                 def foo(value):
@@ -192,13 +192,13 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(ConfigureError, 3) as e:
             with self.moz_configure(
                 """
-                option('--foo', help='foo')
+                option('--foo', help='Foo')
                 @depends('--foo')
                 @imports('os')
                 def foo(value):
                     return value
 
-                option('--bar', help='bar', when=foo)
+                option('--bar', help='Bar', when=foo)
             """
             ):
                 self.lint_test()
@@ -209,12 +209,12 @@ class TestLint(unittest.TestCase):
         # in the past, because of the reference to the builtin False.
         with self.moz_configure(
             """
-            option('--foo', help='foo')
+            option('--foo', help='Foo')
             @depends('--foo')
             def foo(value):
                 return False or value
 
-            option('--bar', help='bar', when=foo)
+            option('--bar', help='Bar', when=foo)
         """
         ):
             self.lint_test()
@@ -228,12 +228,12 @@ class TestLint(unittest.TestCase):
                 def tmpl():
                     sorted = 42
 
-                    option('--foo', help='foo')
+                    option('--foo', help='Foo')
                     @depends('--foo')
                     def foo(value):
                         return sorted
 
-                    option('--bar', help='bar', when=foo)
+                    option('--bar', help='Bar', when=foo)
                 tmpl()
             """
             ):
@@ -245,7 +245,7 @@ class TestLint(unittest.TestCase):
         # @imports, and it's fine to use it without a dependency on --help.
         with self.moz_configure(
             """
-            option('--foo', help='foo')
+            option('--foo', help='Foo')
             @depends('--foo')
             def foo(value):
                 os
@@ -259,7 +259,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(ConfigureError, 3) as e:
             with self.moz_configure(
                 """
-                option('--foo', help='foo')
+                option('--foo', help='Foo')
                 @depends('--foo')
                 def foo(value):
                     return
@@ -327,14 +327,14 @@ class TestLint(unittest.TestCase):
         # --enable-* with default=True is not allowed.
         with self.moz_configure(
             """
-            option('--enable-foo', default=False, help='foo')
+            option('--enable-foo', default=False, help='Foo')
         """
         ):
             self.lint_test()
         with self.assertRaisesFromLine(ConfigureError, 2) as e:
             with self.moz_configure(
                 """
-                option('--enable-foo', default=True, help='foo')
+                option('--enable-foo', default=True, help='Foo')
             """
             ):
                 self.lint_test()
@@ -347,14 +347,14 @@ class TestLint(unittest.TestCase):
         # --disable-* with default=False is not allowed.
         with self.moz_configure(
             """
-            option('--disable-foo', default=True, help='foo')
+            option('--disable-foo', default=True, help='Foo')
         """
         ):
             self.lint_test()
         with self.assertRaisesFromLine(ConfigureError, 2) as e:
             with self.moz_configure(
                 """
-                option('--disable-foo', default=False, help='foo')
+                option('--disable-foo', default=False, help='Foo')
             """
             ):
                 self.lint_test()
@@ -368,14 +368,14 @@ class TestLint(unittest.TestCase):
         # --with-* with default=True is not allowed.
         with self.moz_configure(
             """
-            option('--with-foo', default=False, help='foo')
+            option('--with-foo', default=False, help='Foo')
         """
         ):
             self.lint_test()
         with self.assertRaisesFromLine(ConfigureError, 2) as e:
             with self.moz_configure(
                 """
-                option('--with-foo', default=True, help='foo')
+                option('--with-foo', default=True, help='Foo')
             """
             ):
                 self.lint_test()
@@ -388,14 +388,14 @@ class TestLint(unittest.TestCase):
         # --without-* with default=False is not allowed.
         with self.moz_configure(
             """
-            option('--without-foo', default=True, help='foo')
+            option('--without-foo', default=True, help='Foo')
         """
         ):
             self.lint_test()
         with self.assertRaisesFromLine(ConfigureError, 2) as e:
             with self.moz_configure(
                 """
-                option('--without-foo', default=False, help='foo')
+                option('--without-foo', default=False, help='Foo')
             """
             ):
                 self.lint_test()
@@ -409,7 +409,7 @@ class TestLint(unittest.TestCase):
         # {enable|disable} rule.
         with self.moz_configure(
             """
-            option(env='FOO', help='foo')
+            option(env='FOO', help='Foo')
             option('--enable-bar', default=depends('FOO')(lambda x: bool(x)),
                    help='{Enable|Disable} bar')
         """
@@ -418,7 +418,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(ConfigureError, 3) as e:
             with self.moz_configure(
                 """
-                option(env='FOO', help='foo')
+                option(env='FOO', help='Foo')
                 option('--enable-bar', default=depends('FOO')(lambda x: bool(x)),\
                        help='Enable bar')
             """
@@ -453,11 +453,71 @@ class TestLint(unittest.TestCase):
             "can be both disabled and enabled with an optional value",
         )
 
+    def test_capitalize_help(self):
+        with self.moz_configure("option('--some', help='Help')"):
+            self.lint_test()
+
+        with self.assertRaisesFromLine(ConfigureError, 1) as e0:
+            with self.moz_configure("option('--some', help='help')"):
+                self.lint_test()
+        self.assertEqual(
+            str(e0.exception),
+            'Invalid `help` message for option "--some": `help` is not properly capitalized',
+        )
+
+        with self.assertRaisesFromLine(ConfigureError, 1) as e1:
+            with self.moz_configure("option('--some', help='Help.')"):
+                self.lint_test()
+        self.assertEqual(
+            str(e1.exception),
+            "Invalid `help` message for option \"--some\": `Help.` should not end with a '.'",
+        )
+
+        with self.moz_configure(
+            """
+            option(env='SOME', help='Foo', default='a')
+            option('--enable-some', nargs='*', choices=('a', 'b'),
+                   help='{Enable|Disable} some',
+                   default=depends('SOME')(lambda x: x[0]))
+            """
+        ):
+            self.lint_test()
+
+        with self.assertRaisesFromLine(ConfigureError, 3) as e2:
+            with self.moz_configure(
+                """
+                option(env='SOME', help='Foo', default='a')
+                option('--enable-some', nargs='*', choices=('a', 'b'),
+                       help='{enable|Disable} some',
+                       default=depends('SOME')(lambda x: x[0]))
+                """
+            ):
+                self.lint_test()
+        self.assertEqual(
+            str(e2.exception),
+            'Invalid `help` message for option "--enable-some": `enable` is not properly capitalized',
+        )
+
+        with self.assertRaisesFromLine(ConfigureError, 3) as e3:
+            with self.moz_configure(
+                """
+                option(env='SOME', help='Foo', default='a')
+                option('--enable-some', nargs='*', choices=('a', 'b'),
+                       help='enable some',
+                       default=depends('SOME')(lambda x: x[0]))
+                """
+            ):
+                self.lint_test()
+        self.assertEqual(
+            str(e3.exception),
+            'Invalid `help` message for option "--enable-some": `enable some` is not properly capitalized',
+        )
+
     def test_large_offset(self):
         with self.assertRaisesFromLine(ConfigureError, 375):
             with self.moz_configure(
                 """
-                option(env='FOO', help='foo')
+                option(env='FOO', help='Foo')
             """
                 + "\n" * 371
                 + """
@@ -471,7 +531,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(NameError, 6) as e:
             with self.moz_configure(
                 """
-                option(env='FOO', help='foo')
+                option(env='FOO', help='Foo')
                 @depends('FOO')
                 def foo(value):
                     if value:
@@ -506,7 +566,7 @@ class TestLint(unittest.TestCase):
         with self.assertRaisesFromLine(NameError, 3) as e:
             with self.moz_configure(
                 """
-                option(env='FOO', help='foo')
+                option(env='FOO', help='Foo')
                 @depends('FOO')
                 @imports(_from='__builtin__', _import='list')
                 def foo(value):

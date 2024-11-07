@@ -340,7 +340,7 @@ set_config(
 
 option(
     "--disable-android-bundle",
-    help="{Enable|Disable} AAB build.",
+    help="{Enable|Disable} AAB build",
 )
 
 imply_option("--disable-android-bundle", False, when="--enable-address-sanitizer")
@@ -669,7 +669,7 @@ set_config("GRADLE_ANDROID_DEPENDENCIES_TASKS", gradle_android_dependencies_task
 
 # Automation uses this to change log levels, not use the daemon, and use
 # offline mode.
-option(env="GRADLE_FLAGS", default="", help="Flags to pass to Gradle.")
+option(env="GRADLE_FLAGS", default="", help="Flags to pass to Gradle")
 
 
 @depends("GRADLE_FLAGS")
@@ -690,12 +690,12 @@ option(
         "https://repo.maven.apache.org/maven2/",
         "https://plugins.gradle.org/m2/",
     ),
-    help="Comma-separated URLs of Maven repositories containing Gradle dependencies.",
+    help="Comma-separated URLs of Maven repositories containing Gradle dependencies",
 )
 
 option(
     "--allow-insecure-gradle-repositories",
-    help="Gradle is allowed to connect to insecure Maven repositories.",
+    help="Gradle is allowed to connect to insecure Maven repositories",
 )
 
 set_config(
@@ -706,7 +706,7 @@ set_config(
 
 option(
     "--download-all-gradle-dependencies",
-    help="Download all dependencies, even those that are conditionally used.",
+    help="Download all dependencies, even those that are conditionally used",
 )
 
 set_config(

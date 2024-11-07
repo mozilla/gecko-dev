@@ -19,17 +19,17 @@ option(
     "--with-android-ndk",
     nargs=1,
     default=default_android_ndk_root,
-    help="location where the Android NDK can be found{|}",
+    help="Location where the Android NDK can be found{|}",
 )
 
-option("--with-android-toolchain", nargs=1, help="location of the Android toolchain")
+option("--with-android-toolchain", nargs=1, help="Location of the Android toolchain")
 
 option(
-    "--with-android-lldb-server", nargs=1, help="location of the Android LLDB server"
+    "--with-android-lldb-server", nargs=1, help="Location of the Android LLDB server"
 )
 
 option(
-    "--with-android-googlevr-sdk", nargs=1, help="location of the Android GoogleVR SDK"
+    "--with-android-googlevr-sdk", nargs=1, help="Location of the Android GoogleVR SDK"
 )
 
 
@@ -42,7 +42,7 @@ def min_android_version():
 option(
     "--with-android-version",
     nargs=1,
-    help="android platform version{|}",
+    help="Android platform version{|}",
     default=min_android_version,
 )
 

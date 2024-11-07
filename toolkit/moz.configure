@@ -10,7 +10,7 @@
 project_flag(
     env="MOZ_APP_ID",
     nargs=1,
-    help='used for application.ini\'s "ID" field, and crash reporter server url',
+    help='Used for application.ini\'s "ID" field, and crash reporter server url',
 )
 
 
@@ -23,14 +23,14 @@ def check_moz_app_id(moz_app_id, build_project):
 project_flag(
     env="MOZ_APP_VENDOR",
     nargs=1,
-    help='used for application.ini\'s "Vendor" field, which also impacts profile location and user-visible fields',
+    help='Used for application.ini\'s "Vendor" field, which also impacts profile location and user-visible fields',
 )
 
 project_flag(
     env="MOZ_APP_UA_NAME",
     default="",
     nargs=1,
-    help="application name in the User Agent string",
+    help="Application name in the User Agent string",
 )
 
 project_flag(
@@ -38,20 +38,20 @@ project_flag(
     default="server",
     choices=("all", "server"),
     nargs=1,
-    help="which devtools version should be built",
+    help="Which devtools version should be built",
 )
 
 
 option(
     env="MOZ_STUB_INSTALLER",
-    help="produce a stub installer",
+    help="Produce a stub installer",
 )
 set_config("MOZ_STUB_INSTALLER", True, when="MOZ_STUB_INSTALLER")
 
 
 project_flag(
     env="MOZ_PROFILE_MIGRATOR",
-    help="enable profile migrator",
+    help="Enable profile migrator",
 )
 
 project_flag(
@@ -59,7 +59,7 @@ project_flag(
     default="",
     nargs=1,
     set_as_define=True,
-    help="markup for a single browser window",
+    help="Markup for a single browser window",
 )
 set_define(
     "BROWSER_CHROME_URL_QUOTED",
@@ -68,16 +68,16 @@ set_define(
 
 # External builds (specifically Ubuntu) may drop the hg repo information, so we allow to
 # explicitly set the repository and changeset information in.
-option(env="MOZ_SOURCE_REPO", nargs=1, help="project source repository")
+option(env="MOZ_SOURCE_REPO", nargs=1, help="Project source repository")
 set_config("MOZ_SOURCE_REPO", depends_if("MOZ_SOURCE_REPO")(lambda src: src[0]))
-option(env="MOZ_SOURCE_CHANGESET", nargs=1, help="source changeset")
+option(env="MOZ_SOURCE_CHANGESET", nargs=1, help="Source changeset")
 set_config("MOZ_SOURCE_CHANGESET", depends_if("MOZ_SOURCE_CHANGESET")(lambda v: v[0]))
 
 option(
     env="MOZ_INCLUDE_SOURCE_INFO",
     # Build revisions should always be present in official builds
     default=mozilla_official,
-    help="include build repository informations",
+    help="Include build repository informations",
 )
 set_config("MOZ_INCLUDE_SOURCE_INFO", True, when="MOZ_INCLUDE_SOURCE_INFO")
 
@@ -440,7 +440,7 @@ set_config("MOZ_WASAPI", imply_wasapi, when="--enable-audio-backends")
 option(
     "--enable-alsa",
     env="MOZ_ALSA",
-    help="Enable ALSA audio backend.",
+    help="Enable ALSA audio backend",
     when=use_pkg_config,
 )
 
@@ -465,7 +465,7 @@ set_define("MOZ_ALSA", True, when="--enable-alsa")
 system_lib_option(
     "--enable-jack",
     env="MOZ_JACK",
-    help="Enable JACK audio backend.",
+    help="Enable JACK audio backend",
     when=use_pkg_config,
 )
 
@@ -478,7 +478,7 @@ set_config("MOZ_JACK", depends_if(jack)(lambda _: True))
 option(
     "--enable-pulseaudio",
     env="MOZ_PULSEAUDIO",
-    help="{Enable|Disable} PulseAudio audio backend.",
+    help="{Enable|Disable} PulseAudio audio backend",
     when=use_pkg_config,
 )
 
@@ -492,7 +492,7 @@ set_define("MOZ_PULSEAUDIO", depends_if(pulseaudio)(lambda _: True))
 system_lib_option(
     "--enable-sndio",
     env="MOZ_SNDIO",
-    help="Enable sndio audio backend.",
+    help="Enable sndio audio backend",
     when=use_pkg_config,
 )
 
@@ -967,7 +967,7 @@ set_define("MOZ_WMF_CDM", True, when=wmfcdm)
 
 option(
     name="--enable-chrome-format",
-    help="Select FORMAT of chrome files during packaging.",
+    help="Select FORMAT of chrome files during packaging",
     nargs=1,
     choices=("omni", "jar", "flat"),
     default="omni",
@@ -999,7 +999,7 @@ def enable_minify_default(is_android, debug, is_nightly):
 
 option(
     name="--enable-minify",
-    help="Select types of files to minify during packaging.",
+    help="Select types of files to minify during packaging",
     nargs="*",
     choices=("properties", "js"),
     default=enable_minify_default,
@@ -3100,7 +3100,7 @@ option(
     nargs=1,
     help="Used for the internal program name, which affects profile name "
     "and remoting. If not set, defaults to MOZ_APP_NAME if the update channel "
-    "is release, and MOZ_APP_NAME-MOZ_UPDATE_CHANNEL otherwise.",
+    "is release, and MOZ_APP_NAME-MOZ_UPDATE_CHANNEL otherwise",
 )
 
 
@@ -3136,7 +3136,7 @@ set_config("ANDROID_PACKAGE_NAME", android_package_name)
 
 # Miscellaneous options
 # ==============================================================
-option(env="MOZ_WINCONSOLE", nargs="?", help="Whether we can create a console window.")
+option(env="MOZ_WINCONSOLE", nargs="?", help="Whether we can create a console window")
 set_define("MOZ_WINCONSOLE", True, when=depends("MOZ_WINCONSOLE")(lambda x: x))
 
 
@@ -3426,7 +3426,7 @@ with only_when(target_is_osx):
     option(
         "--with-macbundlename-prefix",
         nargs=1,
-        help="prefix for the mac bundle name",
+        help="Prefix for the mac bundle name",
     )
 
     @depends_if("--with-macbundlename-prefix")
@@ -3444,7 +3444,7 @@ with only_when(target_is_osx):
 
 option(
     env="MOZ_PACKAGE_JSSHELL",
-    help="whether the installer bundles the JS shell",
+    help="Whether the installer bundles the JS shell",
 )
 set_config("MOZ_PACKAGE_JSSHELL", depends_if("MOZ_PACKAGE_JSSHELL")(lambda x: bool(x)))
 
@@ -3682,7 +3682,7 @@ set_config("MOZ_SYSTEM_POLICIES", True, when="--enable-system-policies")
 option(
     "--disable-legacy-profile-creation",
     help="Disable the creation a legacy profile, to be used by old versions "
-    "of Firefox, when no profiles exist.",
+    "of Firefox, when no profiles exist",
 )
 
 set_config("MOZ_CREATE_LEGACY_PROFILE", True, when="--enable-legacy-profile-creation")

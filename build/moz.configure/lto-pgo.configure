@@ -239,7 +239,7 @@ option(
 option(
     env="MOZ_LD64_KNOWN_GOOD",
     nargs=1,
-    help="Indicate that ld64 is free of symbol aliasing bugs.",
+    help="Indicate that ld64 is free of symbol aliasing bugs",
 )
 
 imply_option("MOZ_LD64_KNOWN_GOOD", depends_if("MOZ_AUTOMATION")(lambda _: True))
