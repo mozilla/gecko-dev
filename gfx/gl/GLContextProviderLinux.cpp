@@ -35,10 +35,7 @@ already_AddRefed<GLContext> GLContextProviderLinux::CreateForCompositorWidget(
 /*static*/
 already_AddRefed<GLContext> GLContextProviderLinux::CreateHeadless(
     const GLContextCreateDesc& desc, nsACString* const out_failureId) {
-  if (gfxVars::UseEGL() ||
-      bool(desc.flags & CreateContextFlags::FORBID_HARDWARE)) {
-    // We request EGL if software is required, because we don't know
-    // what X11 is using. It could be software or hardware.
+  if (gfxVars::UseEGL()) {
     return sGLContextProviderEGL.CreateHeadless(desc, out_failureId);
 #ifdef MOZ_X11
   } else {

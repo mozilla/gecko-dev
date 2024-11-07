@@ -1128,30 +1128,6 @@ void CanvasRenderingContext2D::GetContextAttributes(
   // those just keep their default values.
 }
 
-void CanvasRenderingContext2D::GetDebugInfo(
-    bool aEnsureTarget, CanvasRenderingContext2DDebugInfo& aDebugInfo,
-    ErrorResult& aError) {
-  if (aEnsureTarget && !EnsureTarget(aError)) {
-    return;
-  }
-
-  if (!mBufferProvider) {
-    aError.ThrowInvalidStateError("No buffer provider available");
-    return;
-  }
-
-  if (!mTarget) {
-    aError.ThrowInvalidStateError("No target available");
-    return;
-  }
-
-  aDebugInfo = CanvasRenderingContext2DDebugInfo();
-  aDebugInfo.mIsAccelerated = mBufferProvider->IsAccelerated();
-  aDebugInfo.mIsShared = mBufferProvider->IsShared();
-  aDebugInfo.mBackendType = static_cast<int8_t>(mTarget->GetBackendType());
-  aDebugInfo.mDrawTargetType = static_cast<int8_t>(mTarget->GetType());
-}
-
 CanvasRenderingContext2D::ColorStyleCacheEntry
 CanvasRenderingContext2D::ParseColorSlow(const nsACString& aString) {
   ColorStyleCacheEntry result{nsCString(aString)};
