@@ -573,10 +573,24 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// parent, but we need to make sure it's still scrollable.
     #[cfg(feature = "gecko")]
     fn adjust_for_text_control_editing_root(&mut self) {
+        use crate::properties::longhands::white_space_collapse::computed_value::T as WhiteSpaceCollapse;
         use crate::selector_parser::PseudoElement;
 
         if self.style.pseudo != Some(&PseudoElement::MozTextControlEditingRoot) {
             return;
+        }
+
+        let old_collapse = self.style.get_inherited_text().clone_white_space_collapse();
+        let new_collapse = match old_collapse {
+            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => old_collapse,
+            WhiteSpaceCollapse::Collapse |
+            WhiteSpaceCollapse::PreserveSpaces |
+            WhiteSpaceCollapse::PreserveBreaks => WhiteSpaceCollapse::Preserve,
+        };
+        if new_collapse != old_collapse {
+            self.style
+                .mutate_inherited_text()
+                .set_white_space_collapse(new_collapse);
         }
 
         let box_style = self.style.get_box();

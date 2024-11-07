@@ -95,12 +95,6 @@ fuzzy-if(gtkWidget,0-6,0-26200) == 28811-2b.html 28811-2-ref.html  # Bug 1128229
 == 68061-2.xml 68061-2-ref.xml
 == 76331-1.html 76331-1-ref.html
 == 81947-1.html 81947-ref.html
-== 82711-1.html 82711-1-ref.html
-== 82711-2.html 82711-2-ref.html
-== 82711-3.html 82711-3-ref.html
-!= 82711-1-ref.html 82711-2-ref.html
-!= 82711-1-ref.html 82711-3-ref.html
-!= 82711-2-ref.html 82711-3-ref.html
 fuzzy-if(Android,0-4,0-3) == 84400-1.html 84400-1-ref.html
 fuzzy(0-2,0-13) == 84400-2.html 84400-2-ref.html
 == 97777-1.html 97777-1-ref.html
