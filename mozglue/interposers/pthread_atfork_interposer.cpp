@@ -126,6 +126,9 @@ MFBT_API int pthread_atfork(void (*aPrefork)(void),
 #  if defined(LIBC_GLIBC)
                               ,
                               dso_handle
+#  else
+                              ,
+                              (void*)(1)
 #  endif
                               )
            ? 0
