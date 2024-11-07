@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import Union
 
-from . import get_tool_path
+from mozversioncontrol.repo.base import get_tool_path
 
 # The logic here is far from robust. Improvements are welcome.
 
