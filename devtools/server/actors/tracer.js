@@ -232,7 +232,7 @@ class TracerActor extends Actor {
     }
   }
 
-  stopTracing() {
+  async stopTracing() {
     if (!this.tracingListener) {
       return;
     }
@@ -252,13 +252,9 @@ class TracerActor extends Actor {
    *
    * @return {Object} Gecko profiler profile object.
    */
-  getProfile() {
-    const profile = this.#stopResult;
-    // We only open the profile if it contains samples, otherwise it can crash the frontend.
-    if (profile.threads[0].samples.data.length) {
-      return profile;
-    }
-    return null;
+  async getProfile() {
+    // #stopResult is a promise
+    return this.#stopResult;
   }
 
   createValueGrip(value) {
