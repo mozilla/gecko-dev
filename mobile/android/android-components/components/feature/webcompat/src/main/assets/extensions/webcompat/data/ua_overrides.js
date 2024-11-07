@@ -42,7 +42,7 @@ const AVAILABLE_UA_OVERRIDES = [
      * Bug 1577519 - directv.com - Create a UA override for directv.com for playback on desktop
      * WebCompat issue #3846 - https://webcompat.com/issues/3846
      *
-     * directv.com (attwatchtv.com) is blocking Firefox via UA sniffing. Spoofing as Chrome allows
+     * directv.com is blocking Firefox via UA sniffing. Spoofing as Chrome allows
      * to access the site and playback works fine. This is former directvnow.com
      */
     id: "bug1577519",
@@ -51,7 +51,6 @@ const AVAILABLE_UA_OVERRIDES = [
     bug: "1577519",
     config: {
       matches: [
-        "*://*.attwatchtv.com/*",
         "*://*.directv.com.ec/*", // bug 1827706
         "*://*.directv.com/*",
       ],
