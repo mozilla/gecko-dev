@@ -199,8 +199,6 @@ class SVGTextFrame final : public SVGDisplayContainerFrame {
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) override;
 
-  void DidSetComputedStyle(ComputedStyle* aOldComputedStyle) override;
-
   nsresult AttributeChanged(int32_t aNamespaceID, nsAtom* aAttribute,
                             int32_t aModType) override;
 

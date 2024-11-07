@@ -2786,15 +2786,6 @@ void SVGTextFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   aLists.Content()->AppendNewToTop<DisplaySVGText>(aBuilder, this);
 }
 
-void SVGTextFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
-  SVGDisplayContainerFrame::DidSetComputedStyle(aOldComputedStyle);
-  if (StyleSVGReset()->HasNonScalingStroke() &&
-      (!aOldComputedStyle ||
-       !aOldComputedStyle->StyleSVGReset()->HasNonScalingStroke())) {
-    SVGUtils::UpdateNonScalingStrokeStateBit(this);
-  }
-}
-
 nsresult SVGTextFrame::AttributeChanged(int32_t aNameSpaceID,
                                         nsAtom* aAttribute, int32_t aModType) {
   if (aNameSpaceID != kNameSpaceID_None) {
