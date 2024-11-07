@@ -742,6 +742,11 @@ workers:
             implementation: generic-worker
             os: windows
             worker-type: '{alias}'
+        b-win-aarch64:
+            provisioner: '{trust-domain}-{level}'
+            implementation: generic-worker
+            os: windows
+            worker-type: 'win11-a64-24h2-builder'
         image:
             provisioner: '{trust-domain}-{level}'
             implementation: docker-worker

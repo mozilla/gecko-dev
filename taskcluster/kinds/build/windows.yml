@@ -1477,7 +1477,7 @@ win64-aarch64/opt:
 
 win64-aarch64-shippable/opt:
     description: "AArch64 Win64 Shippable"
-    use-pgo: win64-shippable/opt
+    use-pgo: true
     index:
         product: firefox
         job-name: win64-aarch64-opt

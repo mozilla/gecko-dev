@@ -489,3 +489,41 @@ tasks:
                 - windows-rs
             fetch:
                 - upx-3.95-win
+
+    win64-aarch64-shippable/opt:
+        description: "Win64 AArch64 Shippable PGO Instrumented"
+        index:
+            product: firefox
+            job-name: instrumented-win64-aarch64
+        shipping-product: firefox
+        treeherder:
+            platform: windows2012-aarch64-shippable/opt
+        worker-type: b-linux-gcp
+        run:
+            options: [append-env-variables-from-configs]
+            mozconfig-variant: profile-generate
+            config:
+                - builds/releng_base_firefox.py
+                - builds/releng_base_linux_64_builds.py
+            extra-config:
+                stage_platform: win64-aarch64
+                mozconfig_platform: win64-aarch64
+        run-on-projects: ['release']
+        fetches:
+            toolchain:
+                - linux64-clang
+                - linux64-rust-cross
+                - linux64-rust-size
+                - linux64-nasm
+                - linux64-node
+                - linux64-cbindgen
+                - linux64-dump_syms
+                - linux64-wine
+                - linux64-winchecksec
+                - nsis
+                - sysroot-x86_64-linux-gnu
+                - sysroot-wasm32-wasi
+                - vs
+                - windows-rs
+            fetch:
+                - upx-3.95-win
