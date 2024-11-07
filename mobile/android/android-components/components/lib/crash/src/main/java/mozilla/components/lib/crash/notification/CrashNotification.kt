@@ -68,7 +68,12 @@ internal class CrashNotification(
             .setAutoCancel(true)
             .build()
 
-        notificationsDelegate.notify(NOTIFICATION_TAG, NOTIFICATION_ID, notification)
+        notificationsDelegate.notify(
+            NOTIFICATION_TAG,
+            NOTIFICATION_ID,
+            notification,
+            isCrashReportNotification = true,
+        )
     }
 
     companion object {

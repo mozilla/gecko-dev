@@ -100,12 +100,13 @@ class NotificationsDelegate(
         onPermissionGranted: OnPermissionGranted = { },
         onPermissionRejected: OnPermissionRejected = { },
         showPermissionRationale: Boolean = false,
+        isCrashReportNotification: Boolean = false,
     ) {
         if (hasPostNotificationsPermission()) {
             notificationManagerCompat.notify(notificationTag, notificationId, notification)
             onPermissionGranted.invoke()
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isCrashReportNotification) {
                 requestNotificationPermission(
                     onPermissionGranted = {
                         notificationManagerCompat.notify(

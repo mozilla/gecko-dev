@@ -197,7 +197,7 @@ class MediaSessionServiceDelegateTest {
 
         delegate.handleMediaPlaying(mediaTab)
 
-        verify(notificationsDelegate).notify(any(), eq(delegate.notificationId), any(), any(), any(), eq(false))
+        verify(notificationsDelegate).notify(any(), eq(delegate.notificationId), any(), any(), any(), eq(false), eq(false))
     }
 
     @Test
@@ -227,7 +227,7 @@ class MediaSessionServiceDelegateTest {
 
         delegate.updateNotification(mediaTab)
 
-        verify(notificationsDelegate).notify(any(), eq(delegate.notificationId), eq(notification), any(), any(), eq(false))
+        verify(notificationsDelegate).notify(any(), eq(delegate.notificationId), eq(notification), any(), any(), eq(false), eq(false))
     }
 
     @Test
@@ -346,7 +346,7 @@ class MediaSessionServiceDelegateTest {
         verify(delegate).updateMediaSession(mediaTab)
         verify(delegate).unregisterBecomingNoisyListenerIfNeeded()
         verify(delegate.service).stopForegroundCompat(false)
-        verify(notificationsDelegate).notify(any(), eq(notificationId), any(), any(), any(), eq(false))
+        verify(notificationsDelegate).notify(any(), eq(notificationId), any(), any(), any(), eq(false), eq(false))
         assertFalse(delegate.isForegroundService)
     }
 
