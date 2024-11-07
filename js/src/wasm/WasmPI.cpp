@@ -25,7 +25,6 @@
 #include "jit/JitRuntime.h"
 #include "jit/MIRGenerator.h"
 #include "js/CallAndConstruct.h"
-#include "js/Printf.h"
 #include "vm/Iteration.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"

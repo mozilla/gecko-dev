@@ -680,7 +680,18 @@ void JitCode::finalize(JS::GCContext* gcx) {
   }
   setHeaderPtr(nullptr);
 
+#ifdef JS_ION_PERF
+  // Code buffers are stored inside ExecutablePools. Pools are refcounted.
+  // Releasing the pool may free it. Horrible hack: if we are using perf
+  // integration, we don't want to reuse code addresses, so we just leak the
+  // memory instead.
+  if (!PerfEnabled()) {
+    pool_->release(headerSize_ + bufferSize_, CodeKind(kind_));
+  }
+#else
   pool_->release(headerSize_ + bufferSize_, CodeKind(kind_));
+#endif
+
   zone()->decJitMemory(headerSize_ + bufferSize_);
 
   pool_ = nullptr;

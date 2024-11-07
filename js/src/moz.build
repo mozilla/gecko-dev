@@ -157,6 +157,7 @@ EXPORTS.js += [
     "../public/Initialization.h",
     "../public/Interrupt.h",
     "../public/Iterator.h",
+    "../public/JitCodeAPI.h",
     "../public/JSON.h",
     "../public/LocaleSensitive.h",
     "../public/MapAndSet.h",
