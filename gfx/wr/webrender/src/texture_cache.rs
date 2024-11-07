@@ -1574,6 +1574,9 @@ impl TextureCacheUpdate {
         dirty_rect: &ImageDirtyRect,
     ) -> TextureCacheUpdate {
         let source = match data {
+            CachedImageData::Snapshot => {
+                panic!("Snapshots should not do texture uploads");
+            }
             CachedImageData::Blob => {
                 panic!("The vector image should have been rasterized.");
             }
