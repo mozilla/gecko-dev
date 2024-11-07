@@ -4742,25 +4742,6 @@ mozilla::ipc::IPCResult ContentParent::RecvOpenNotificationSettings(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentParent::RecvNotificationEvent(
-    const nsAString& aType, const NotificationEventData& aData) {
-  nsCOMPtr<nsIServiceWorkerManager> swm =
-      mozilla::components::ServiceWorkerManager::Service();
-  if (NS_WARN_IF(!swm)) {
-    // Probably shouldn't happen, but no need to crash the child process.
-    return IPC_OK();
-  }
-
-  MOZ_ASSERT(aType.EqualsLiteral("close"));
-  nsresult rv = swm->SendNotificationCloseEvent(
-      aData.originSuffix(), aData.scope(), aData.ID(), aData.title(),
-      aData.dir(), aData.lang(), aData.body(), aData.tag(), aData.icon(),
-      aData.data(), aData.behavior());
-  Unused << NS_WARN_IF(NS_FAILED(rv));
-
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentParent::RecvSyncMessage(
     const nsAString& aMsg, const ClonedMessageData& aData,
     nsTArray<StructuredCloneData>* aRetvals) {

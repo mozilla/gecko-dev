@@ -694,7 +694,7 @@ Notification::Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
       mIsClosed(false),
       mIsStored(false),
       mTaskCount(0) {
-  if (!NS_IsMainThread()) {
+  if (!NS_IsMainThread() && mScope.IsEmpty()) {
     mWorkerPrivate = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(mWorkerPrivate);
     mWorkerUseRegularPrincipal = mWorkerPrivate->UseRegularPrincipal();
@@ -740,10 +740,15 @@ already_AddRefed<Notification> Notification::Constructor(
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<Notification> notification =
-      CreateAndShow(aGlobal.Context(), global, aTitle, aOptions, u""_ns, aRv);
+      Create(aGlobal.Context(), global, aTitle, aOptions, u""_ns, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
+  notification->ShowOnMainThread(aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
   if (NS_WARN_IF(NS_FAILED(notification->MaybeObserveWindowFrozen()))) {
     return nullptr;
   }
@@ -944,50 +949,6 @@ class WorkerNotificationObserver final : public MainThreadNotificationObserver {
   }
 };
 
-class ServiceWorkerNotificationObserver final : public nsIObserver {
- public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-
-  ServiceWorkerNotificationObserver(
-      const nsAString& aScope, nsIPrincipal* aPrincipal, const nsAString& aID,
-      const nsAString& aTitle, NotificationDirection aDir,
-      const nsAString& aLang, const nsAString& aBody, const nsAString& aTag,
-      const nsAString& aIcon, const nsAString& aData,
-      const nsAString& aBehavior)
-      : mScope(aScope),
-        mID(aID),
-        mPrincipal(aPrincipal),
-        mTitle(aTitle),
-        mDir(aDir),
-        mLang(aLang),
-        mBody(aBody),
-        mTag(aTag),
-        mIcon(aIcon),
-        mData(aData),
-        mBehavior(aBehavior) {
-    AssertIsOnMainThread();
-    MOZ_ASSERT(aPrincipal);
-  }
-
- private:
-  ~ServiceWorkerNotificationObserver() = default;
-
-  const nsString mScope;
-  const nsString mID;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
-  const nsString mTitle;
-  const NotificationDirection mDir;
-  const nsString mLang;
-  const nsString mBody;
-  const nsString mTag;
-  const nsString mIcon;
-  const nsString mData;
-  const nsString mBehavior;
-};
-
-NS_IMPL_ISUPPORTS(ServiceWorkerNotificationObserver, nsIObserver)
-
 bool Notification::DispatchClickEvent() {
   AssertIsOnTargetThread();
   RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
@@ -1144,82 +1105,6 @@ WorkerNotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-ServiceWorkerNotificationObserver::Observe(nsISupports* aSubject,
-                                           const char* aTopic,
-                                           const char16_t* aData) {
-  AssertIsOnMainThread();
-
-  nsAutoCString originSuffix;
-  nsresult rv = mPrincipal->GetOriginSuffix(originSuffix);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  if (!strcmp("alertclickcallback", aTopic)) {
-    if (XRE_IsParentProcess()) {
-      nsCOMPtr<nsIServiceWorkerManager> swm =
-          mozilla::components::ServiceWorkerManager::Service();
-      if (NS_WARN_IF(!swm)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      rv = swm->SendNotificationClickEvent(
-          originSuffix, NS_ConvertUTF16toUTF8(mScope), mID, mTitle,
-          NS_ConvertASCIItoUTF16(GetEnumString(mDir)), mLang, mBody, mTag,
-          mIcon, mData, mBehavior);
-      Unused << NS_WARN_IF(NS_FAILED(rv));
-    } else {
-      auto* cc = ContentChild::GetSingleton();
-      NotificationEventData data(originSuffix, NS_ConvertUTF16toUTF8(mScope),
-                                 mID, mTitle,
-                                 NS_ConvertASCIItoUTF16(GetEnumString(mDir)),
-                                 mLang, mBody, mTag, mIcon, mData, mBehavior);
-      Unused << cc->SendNotificationEvent(u"click"_ns, data);
-    }
-    return NS_OK;
-  }
-
-  if (!strcmp("alertfinished", aTopic)) {
-    nsString origin;
-    nsresult rv = GetOrigin(mPrincipal, origin);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    // Remove closed or dismissed persistent notifications.
-    nsCOMPtr<nsINotificationStorage> notificationStorage =
-        GetNotificationStorage(mPrincipal->GetIsInPrivateBrowsing());
-    if (notificationStorage) {
-      notificationStorage->Delete(origin, mID);
-    }
-
-    if (XRE_IsParentProcess()) {
-      nsCOMPtr<nsIServiceWorkerManager> swm =
-          mozilla::components::ServiceWorkerManager::Service();
-      if (NS_WARN_IF(!swm)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      rv = swm->SendNotificationCloseEvent(
-          originSuffix, NS_ConvertUTF16toUTF8(mScope), mID, mTitle,
-          NS_ConvertASCIItoUTF16(GetEnumString(mDir)), mLang, mBody, mTag,
-          mIcon, mData, mBehavior);
-      Unused << NS_WARN_IF(NS_FAILED(rv));
-    } else {
-      auto* cc = ContentChild::GetSingleton();
-      NotificationEventData data(originSuffix, NS_ConvertUTF16toUTF8(mScope),
-                                 mID, mTitle,
-                                 NS_ConvertASCIItoUTF16(GetEnumString(mDir)),
-                                 mLang, mBody, mTag, mIcon, mData, mBehavior);
-      Unused << cc->SendNotificationEvent(u"close"_ns, data);
-    }
-    return NS_OK;
-  }
-
-  return NS_OK;
-}
-
 bool Notification::IsInPrivateBrowsing() {
   AssertIsOnMainThread();
 
@@ -1319,34 +1204,18 @@ void Notification::ShowInternal() {
     NS_WARNING("Could not persist Notification");
   }
 
-  bool isPersistent = false;
   nsCOMPtr<nsIObserver> observer;
-  if (mScope.IsEmpty()) {
-    // Ownership passed to observer.
-    if (mWorkerPrivate) {
-      // Scope better be set on ServiceWorker initiated requests.
-      MOZ_ASSERT(!mWorkerPrivate->IsServiceWorker());
-      // Keep a pointer so that the feature can tell the observer not to release
-      // the notification.
-      mObserver = new WorkerNotificationObserver(std::move(ownership));
-      observer = mObserver;
-    } else {
-      observer = new MainThreadNotificationObserver(std::move(ownership));
-    }
+  MOZ_ASSERT(mScope.IsEmpty());
+  // Ownership passed to observer.
+  if (mWorkerPrivate) {
+    // Scope better be set on ServiceWorker initiated requests.
+    MOZ_ASSERT(!mWorkerPrivate->IsServiceWorker());
+    // Keep a pointer so that the feature can tell the observer not to release
+    // the notification.
+    mObserver = new WorkerNotificationObserver(std::move(ownership));
+    observer = mObserver;
   } else {
-    isPersistent = true;
-    // This observer does not care about the Notification. It will be released
-    // at the end of this function.
-    //
-    // The observer is wholly owned by the NotificationObserver passed to the
-    // alert service.
-    nsAutoString behavior;
-    if (NS_WARN_IF(!mBehavior.ToJSON(behavior))) {
-      behavior.Truncate();
-    }
-    observer = new ServiceWorkerNotificationObserver(
-        mScope, GetPrincipal(), mID, mTitle, mDir, mLang, mBody, mTag, mIconUrl,
-        mDataAsBase64, behavior);
+    observer = new MainThreadNotificationObserver(std::move(ownership));
   }
   MOZ_ASSERT(observer);
   nsCOMPtr<nsIObserver> alertObserver =
@@ -1368,36 +1237,13 @@ void Notification::ShowInternal() {
   nsCOMPtr<nsIAlertNotification> alert =
       do_CreateInstance(ALERT_NOTIFICATION_CONTRACTID);
   NS_ENSURE_TRUE_VOID(alert);
-  nsIPrincipal* principal = GetPrincipal();
   rv = alert->Init(alertName, mIconUrl, mTitle, mBody, true, uniqueCookie,
                    NS_ConvertASCIItoUTF16(GetEnumString(mDir)), mLang,
                    mDataAsBase64, GetPrincipal(), inPrivateBrowsing,
                    requireInteraction, mSilent, mVibrate);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  if (isPersistent) {
-    JSONStringWriteFunc<nsAutoCString> persistentData;
-    JSONWriter w(persistentData);
-    w.Start();
-
-    nsAutoString origin;
-    GetOrigin(principal, origin);
-    w.StringProperty("origin", NS_ConvertUTF16toUTF8(origin));
-
-    w.StringProperty("id", NS_ConvertUTF16toUTF8(mID));
-
-    nsAutoCString originSuffix;
-    principal->GetOriginSuffix(originSuffix);
-    w.StringProperty("originSuffix", originSuffix);
-
-    w.End();
-
-    alertService->ShowPersistentNotification(
-        NS_ConvertUTF8toUTF16(persistentData.StringCRef()), alert,
-        alertObserver);
-  } else {
-    alertService->ShowAlert(alert, alertObserver);
-  }
+  alertService->ShowAlert(alert, alertObserver);
 }
 
 /* static */
@@ -2087,36 +1933,20 @@ already_AddRefed<Promise> Notification::ShowPersistentNotification(
     return nullptr;
   }
 
-  // We check permission here rather than pass the Promise to NotificationTask
-  // which leads to uglier code.
-  // XXX: GetPermission is a synchronous blocking function on workers.
-  NotificationPermission permission =
-      GetPermission(aGlobal, PermissionCheckPurpose::NotificationShow, aRv);
-
-  // Step 6.1: If the result of getting the notifications permission state is
-  // not "granted", then queue a global task on the DOM manipulation task source
-  // given global to reject promise with a TypeError, and abort these steps.
-  if (NS_WARN_IF(aRv.Failed()) ||
-      permission != NotificationPermission::Granted) {
-    p->MaybeRejectWithTypeError("Permission to show Notification denied.");
-    return p.forget();
-  }
-
-  // "Otherwise, resolve promise with undefined."
-  // The Notification may still not be shown due to other errors, but the spec
-  // is not concerned with those.
-  p->MaybeResolveWithUndefined();
-
   // Step 5: Let notification be the result of creating a notification given
   // title, options, this’s relevant settings object, and
   // serviceWorkerRegistration. If this threw an exception, then reject promise
   // with that exception and return promise.
-  //
-  // XXX: This should happen before the permission check per the spec, as this
-  // can throw errors too. This should be split into create and show.
+  // XXX: We create Notification object almost solely to share the parameter
+  // normalization steps. It would be nice to export that and skip creating
+  // object here.
   RefPtr<Notification> notification =
-      CreateAndShow(aCx, aGlobal, aTitle, aOptions, aScope, aRv);
+      Create(aCx, aGlobal, aTitle, aOptions, aScope, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
+    return nullptr;
+  }
+
+  if (!notification->CreateActor(p) || !notification->SendShow(p)) {
     return nullptr;
   }
 
@@ -2124,7 +1954,7 @@ already_AddRefed<Promise> Notification::ShowPersistentNotification(
 }
 
 /* static */
-already_AddRefed<Notification> Notification::CreateAndShow(
+already_AddRefed<Notification> Notification::Create(
     JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
     const NotificationOptions& aOptions, const nsAString& aScope,
     ErrorResult& aRv) {
@@ -2145,24 +1975,25 @@ already_AddRefed<Notification> Notification::CreateAndShow(
 
   notification->SetScope(aScope);
 
-  auto ref = MakeUnique<NotificationRef>(notification);
+  return notification.forget();
+}
+
+void Notification::ShowOnMainThread(ErrorResult& aRv) {
+  auto ref = MakeUnique<NotificationRef>(this);
   if (NS_WARN_IF(!ref->Initialized())) {
     aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
-    return nullptr;
+    return;
   }
 
   // Queue a task to show the notification.
   nsCOMPtr<nsIRunnable> showNotificationTask = new NotificationTask(
       "Notification::CreateAndShow", std::move(ref), NotificationTask::eShow);
 
-  nsresult rv =
-      notification->DispatchToMainThread(showNotificationTask.forget());
+  nsresult rv = DispatchToMainThread(showNotificationTask.forget());
 
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    notification->DispatchTrustedEvent(u"error"_ns);
+    DispatchTrustedEvent(u"error"_ns);
   }
-
-  return notification.forget();
 }
 
 bool Notification::CreateActor(Promise* aPromise) {
@@ -2208,6 +2039,34 @@ bool Notification::CreateActor(Promise* aPromise) {
       WrapNotNull(effectiveStoragePrincipal), isSecureContext, mID, mScope,
       options);
 
+  return true;
+}
+
+bool Notification::SendShow(Promise* aPromise) {
+  mActor->SendShow()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [self = RefPtr{this}, promise = RefPtr(aPromise)](
+          notification::PNotificationChild::ShowPromise::ResolveOrRejectValue&&
+              aResult) {
+        if (aResult.IsReject()) {
+          promise->MaybeRejectWithUnknownError("Failed to open notification");
+          if (self->mActor) {
+            self->mActor->Close();
+          }
+          return;
+        }
+
+        CopyableErrorResult rv = aResult.ResolveValue();
+        if (rv.Failed()) {
+          promise->MaybeReject(std::move(rv));
+          if (self->mActor) {
+            self->mActor->Close();
+          }
+          return;
+        }
+
+        promise->MaybeResolveWithUndefined();
+      });
   return true;
 }
 
