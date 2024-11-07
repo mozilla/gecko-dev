@@ -243,6 +243,12 @@ void nsLineBox::List(FILE* out, const char* aPrefix,
                              nsIFrame::ConvertToString(vo, aFlags).c_str(),
                              nsIFrame::ConvertToString(so, aFlags).c_str());
     }
+    if (mData->mInFlowChildBounds) {
+      str += nsPrintfCString(
+          "in-flow-scr-overflow=%s ",
+          nsIFrame::ConvertToString(*mData->mInFlowChildBounds, aFlags)
+              .c_str());
+    }
   }
   fprintf_stderr(out, "%s<\n", str.get());
 
@@ -450,7 +456,10 @@ bool nsLineBox::SetCarriedOutBEndMargin(CollapsingMargin aValue) {
 
 void nsLineBox::MaybeFreeData() {
   nsRect bounds = GetPhysicalBounds();
-  if (mData && mData->mOverflowAreas == OverflowAreas(bounds, bounds)) {
+  // If we have space allocated for additional data but no additional data to
+  // represent, just delete it.
+  if (mData && mData->mOverflowAreas == OverflowAreas(bounds, bounds) &&
+      !mData->mInFlowChildBounds) {
     if (IsInline()) {
       if (mInlineData->mFloats.IsEmpty()) {
         delete mInlineData;
@@ -544,6 +553,30 @@ void nsLineBox::SetOverflowAreas(const OverflowAreas& aOverflowAreas) {
     mData->mOverflowAreas = aOverflowAreas;
     MaybeFreeData();
   }
+}
+
+void nsLineBox::SetInFlowChildBounds(const Maybe<nsRect>& aInFlowChildBounds) {
+  if (aInFlowChildBounds) {
+    if (!mData) {
+      nsRect bounds = GetPhysicalBounds();
+      if (IsInline()) {
+        mInlineData = new ExtraInlineData(bounds);
+      } else {
+        mBlockData = new ExtraBlockData(bounds);
+      }
+    }
+    mData->mInFlowChildBounds = aInFlowChildBounds;
+  } else if (mData) {
+    mData->mInFlowChildBounds = Nothing{};
+    MaybeFreeData();
+  }
+}
+
+Maybe<nsRect> nsLineBox::GetInFlowChildBounds() const {
+  if (!mData) {
+    return Nothing{};
+  }
+  return mData->mInFlowChildBounds;
 }
 
 //----------------------------------------------------------------------
