@@ -419,6 +419,7 @@ void gfxPlatformFontList::GetMissingFonts(nsCString& aMissingFonts) {
     return;
   }
 
+  fontList.Sort();
   aMissingFonts.Append(StringJoin("|"_ns, fontList));
 }
 
