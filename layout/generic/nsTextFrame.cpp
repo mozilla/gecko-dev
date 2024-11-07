@@ -939,6 +939,8 @@ static void CreateObserversForAnimatedGlyphs(gfxTextRun* aTextRun) {
 
   aTextRun->SetFlagBits(nsTextFrameUtils::Flags::MightHaveGlyphChanges);
 
+  observers->SetCapacity(observers->Length() +
+                         fontsWithAnimatedGlyphs.Length());
   for (auto font : fontsWithAnimatedGlyphs) {
     observers->AppendElement(MakeUnique<GlyphObserver>(font, aTextRun));
   }
