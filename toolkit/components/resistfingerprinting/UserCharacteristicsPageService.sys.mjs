@@ -121,11 +121,20 @@ export class UserCharacteristicsPageService {
           "user-characteristics-populating-data-done"
         );
       } finally {
-        lazy.console.debug("Unregistering actor");
-        ChromeUtils.unregisterWindowActor("UserCharacteristics");
+        lazy.console.debug("Unregistering actors");
+        this.cleanUp();
         this._backgroundBrowsers.delete(browser);
       }
     });
+  }
+
+  cleanUp() {
+    ChromeUtils.unregisterWindowActor("UserCharacteristics");
+    // unregisterWindowActor doesn't throw if the actor is not registered.
+    // We can safely double unregister. We do this to handle the case where
+    // the actor was registered but the function it was registered timed out.
+    ChromeUtils.unregisterWindowActor("UserCharacteristicsWindowInfo");
+    ChromeUtils.unregisterWindowActor("UserCharacteristicsCanvasRendering");
   }
 
   async populateAndCollectErrors(browser, data) {
