@@ -180,6 +180,7 @@ class SyncedTabsInSidebar extends SidebarPage {
     >
       <sidebar-tab-list
         compactRows
+        maxTabsLength="-1"
         .tabItems=${tabItems}
         .updatesPaused=${false}
         .searchQuery=${this.controller.searchQuery}
