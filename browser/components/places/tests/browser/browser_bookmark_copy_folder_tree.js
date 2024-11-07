@@ -57,6 +57,33 @@ add_setup(async function () {
       },
     ],
   });
+
+  if (AppConstants.platform === "win") {
+    if (Services.env.get("MOZ_AUTOMATION")) {
+      // When running in CI, pre-emptively kill Windows Explorer, using system
+      // from the standard library, since it sometimes holds the clipboard for
+      // long periods, thereby breaking the test (bug 1921759).
+      const { ctypes } = ChromeUtils.importESModule(
+        "resource://gre/modules/ctypes.sys.mjs"
+      );
+      let libc = ctypes.open("ucrtbase.dll");
+      let exec = libc.declare(
+        "system",
+        ctypes.default_abi,
+        ctypes.int,
+        ctypes.char.ptr
+      );
+      let rv = exec(
+        '"powershell -command "&{&Stop-Process -ProcessName explorer}"'
+      );
+      libc.close();
+      is(rv, 0, "Launched powershell to stop explorer.exe");
+    } else {
+      info(
+        "Skipping terminating Windows Explorer since we are not running in automation"
+      );
+    }
+  }
 });
 
 add_task(async function test_sidebar() {
