@@ -413,7 +413,7 @@ fn prepare_interned_prim_for_render(
                     &mut frame_state.frame_gpu_data.f32,
                     frame_state.rg_builder,
                     &mut frame_state.surface_builder,
-                    &mut |rg_builder, _| {
+                    &mut |rg_builder, _, _| {
                         rg_builder.add().init(RenderTask::new_dynamic(
                             task_size,
                             RenderTaskKind::new_line_decoration(
@@ -567,7 +567,7 @@ fn prepare_interned_prim_for_render(
                     &mut frame_state.frame_gpu_data.f32,
                     frame_state.rg_builder,
                     &mut frame_state.surface_builder,
-                    &mut |rg_builder, _| {
+                    &mut |rg_builder, _, _| {
                         rg_builder.add().init(RenderTask::new_dynamic(
                             cache_size,
                             RenderTaskKind::new_border_segment(
