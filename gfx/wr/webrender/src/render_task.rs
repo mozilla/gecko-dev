@@ -12,7 +12,7 @@ use crate::command_buffer::{CommandBufferIndex, QuadFlags};
 use crate::pattern::{PatternKind, PatternShaderInput};
 use crate::spatial_tree::SpatialNodeIndex;
 use crate::filterdata::SFilterData;
-use crate::frame_builder::FrameBuilderConfig;
+use crate::frame_builder::{FrameBuilderConfig, FrameBuildingState};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
 use crate::gpu_types::{BorderInstance, ImageSource, UvRectKind, TransformPaletteId};
 use crate::internal_types::{CacheTextureId, FastHashMap, FilterGraphNode, FilterGraphOp, FilterGraphPictureReference, SVGFE_CONVOLVE_VALUES_LIMIT, TextureSource, Swizzle};
@@ -677,7 +677,7 @@ impl RenderTaskKind {
                         gpu_buffer_builder,
                         rg_builder,
                         surface_builder,
-                        &mut |rg_builder, _, _| {
+                        &mut |rg_builder, _| {
                             let clip_data = ClipData::rounded_rect(
                                 source.minimal_shadow_rect.size(),
                                 &source.shadow_radius,
@@ -1641,8 +1641,7 @@ impl RenderTask {
     /// * render_target.rs : add_svg_filter_node_instances
     pub fn new_svg_filter_graph(
         filter_nodes: &[(FilterGraphNode, FilterGraphOp)],
-        rg_builder: &mut RenderTaskGraphBuilder,
-        gpu_cache: &mut GpuCache,
+        frame_state: &mut FrameBuildingState,
         data_stores: &mut DataStores,
         _uv_rect_kind: UvRectKind,
         original_task_id: RenderTaskId,
@@ -2336,7 +2335,7 @@ impl RenderTask {
                         )
                         .scale(render_to_device_scale, render_to_device_scale);
 
-                    let input_subregion_task_id = rg_builder.add().init(RenderTask::new_dynamic(
+                    let input_subregion_task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         adjusted_blur_task_size.to_i32(),
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
@@ -2354,7 +2353,7 @@ impl RenderTask {
                         ),
                     ).with_uv_rect_kind(UvRectKind::Rect));
                     // Adding the dependencies sets the inputs for this task
-                    rg_builder.add_dependency(input_subregion_task_id, source_task_id);
+                    frame_state.rg_builder.add_dependency(input_subregion_task_id, source_task_id);
 
                     // TODO: We should do this blur in the correct
                     // colorspace, linear=true is the default in SVG and
@@ -2365,13 +2364,13 @@ impl RenderTask {
                         RenderTask::new_blur(
                             adjusted_blur_std_deviation,
                             input_subregion_task_id,
-                            rg_builder,
+                            frame_state.rg_builder,
                             RenderTargetKind::Color,
                             None,
                             adjusted_blur_task_size.to_i32(),
                         );
 
-                    task_id = rg_builder.add().init(RenderTask::new_dynamic(
+                    task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         node_task_size,
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
@@ -2397,7 +2396,7 @@ impl RenderTask {
                         ),
                     ).with_uv_rect_kind(node_uv_rect_kind));
                     // Adding the dependencies sets the inputs for this task
-                    rg_builder.add_dependency(task_id, blur_task_id);
+                    frame_state.rg_builder.add_dependency(task_id, blur_task_id);
                 }
                 FilterGraphOp::SVGFEDropShadow { color, dx, dy, std_deviation_x, std_deviation_y } => {
                     // Note: wrap_prim_with_filters copies the SourceGraphic to
@@ -2454,7 +2453,7 @@ impl RenderTask {
                         )
                         .scale(render_to_device_scale, render_to_device_scale);
 
-                    let input_subregion_task_id = rg_builder.add().init(RenderTask::new_dynamic(
+                    let input_subregion_task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         adjusted_blur_task_size.to_i32(),
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
@@ -2480,7 +2479,7 @@ impl RenderTask {
                         ),
                     ).with_uv_rect_kind(UvRectKind::Rect));
                     // Adding the dependencies sets the inputs for this task
-                    rg_builder.add_dependency(input_subregion_task_id, source_task_id);
+                    frame_state.rg_builder.add_dependency(input_subregion_task_id, source_task_id);
 
                     // The shadow compositing only cares about alpha channel
                     // which is always linear, so we can blur this in sRGB or
@@ -2490,7 +2489,7 @@ impl RenderTask {
                         RenderTask::new_blur(
                             adjusted_blur_std_deviation,
                             input_subregion_task_id,
-                            rg_builder,
+                            frame_state.rg_builder,
                             RenderTargetKind::Color,
                             None,
                             adjusted_blur_task_size.to_i32(),
@@ -2500,7 +2499,7 @@ impl RenderTask {
                     // the blurred shadow image at the correct subregion offset
                     let blur_subregion_translated = blur_subregion
                         .translate(LayoutVector2D::new(dx, dy));
-                    task_id = rg_builder.add().init(RenderTask::new_dynamic(
+                    task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         node_task_size,
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
@@ -2534,8 +2533,8 @@ impl RenderTask {
                         ),
                     ).with_uv_rect_kind(node_uv_rect_kind));
                     // Adding the dependencies sets the inputs for this task
-                    rg_builder.add_dependency(task_id, source_task_id);
-                    rg_builder.add_dependency(task_id, blur_task_id);
+                    frame_state.rg_builder.add_dependency(task_id, source_task_id);
+                    frame_state.rg_builder.add_dependency(task_id, blur_task_id);
                 }
                 FilterGraphOp::SVGFESourceAlpha |
                 FilterGraphOp::SVGFESourceGraphic => {
@@ -2543,7 +2542,7 @@ impl RenderTask {
                     // a fake input binding to make the shader do the copy.  In
                     // the case of SourceAlpha the shader will zero the RGB but
                     // we don't have to care about that distinction here.
-                    task_id = rg_builder.add().init(RenderTask::new_dynamic(
+                    task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         node_task_size,
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
@@ -2571,17 +2570,17 @@ impl RenderTask {
                             }
                         ),
                     ).with_uv_rect_kind(node_uv_rect_kind));
-                    rg_builder.add_dependency(task_id, original_task_id);
+                    frame_state.rg_builder.add_dependency(task_id, original_task_id);
                     made_dependency_on_source = true;
                 }
                 FilterGraphOp::SVGFEComponentTransferInterned { handle, creates_pixels: _ } => {
                     // FIXME: Doing this in prepare_interned_prim_for_render
                     // doesn't seem to be enough, where should it be done?
                     let filter_data = &mut data_stores.filter_data[handle];
-                    filter_data.update(gpu_cache);
+                    filter_data.update(frame_state);
                     // ComponentTransfer has a gpu_cache_handle that we need to
                     // pass along
-                    task_id = rg_builder.add().init(RenderTask::new_dynamic(
+                    task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         node_task_size,
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
@@ -2606,14 +2605,14 @@ impl RenderTask {
                             made_dependency_on_source = true;
                         }
                         if *input_task != RenderTaskId::INVALID {
-                            rg_builder.add_dependency(task_id, *input_task);
+                            frame_state.rg_builder.add_dependency(task_id, *input_task);
                         }
                     }
                 }
                 _ => {
                     // This is the usual case - zero, one or two inputs that
                     // reference earlier node results.
-                    task_id = rg_builder.add().init(RenderTask::new_dynamic(
+                    task_id = frame_state.rg_builder.add().init(RenderTask::new_dynamic(
                         node_task_size,
                         RenderTaskKind::SVGFENode(
                             SVGFEFilterTask{
@@ -2638,7 +2637,7 @@ impl RenderTask {
                             made_dependency_on_source = true;
                         }
                         if *input_task != RenderTaskId::INVALID {
-                            rg_builder.add_dependency(task_id, *input_task);
+                            frame_state.rg_builder.add_dependency(task_id, *input_task);
                         }
                     }
                 }
@@ -2657,7 +2656,7 @@ impl RenderTask {
         // If no tasks referenced the SourceGraphic, we actually have to create
         // a fake dependency so that it does not leak.
         if !made_dependency_on_source && output_task_id != original_task_id {
-            rg_builder.add_dependency(output_task_id, original_task_id);
+            frame_state.rg_builder.add_dependency(output_task_id, original_task_id);
         }
 
         output_task_id

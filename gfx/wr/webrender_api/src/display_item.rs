@@ -6,7 +6,7 @@ use euclid::{SideOffsets2D, Angle};
 use peek_poke::PeekPoke;
 use std::ops::Not;
 // local imports
-use crate::{font, SnapshotImageKey};
+use crate::font;
 use crate::{APZScrollGeneration, HasScrollLinkedEffect, PipelineId, PropertyBinding};
 use crate::serde::{Serialize, Deserialize};
 use crate::color::ColorF;
@@ -877,16 +877,9 @@ pub struct ReferenceFrame {
 }
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
-pub struct SnapshotInfo {
-    pub key: SnapshotImageKey,
-    pub area: LayoutRect,
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Serialize, PeekPoke)]
 pub struct PushStackingContextDisplayItem {
     pub origin: LayoutPoint,
     pub spatial_id: SpatialId,
-    pub snapshot: Option<SnapshotInfo>,
     pub prim_flags: PrimitiveFlags,
     pub ref_frame_offset: LayoutVector2D,
     pub stacking_context: StackingContext,

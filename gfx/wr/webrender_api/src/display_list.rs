@@ -1795,7 +1795,6 @@ impl DisplayListBuilder {
         filter_primitives: &[di::FilterPrimitive],
         raster_space: di::RasterSpace,
         flags: di::StackingContextFlags,
-        snapshot: Option<di::SnapshotInfo>
     ) {
         let ref_frame_offset = self.rf_mapper.current_offset();
         self.push_filters(filters, filter_datas, filter_primitives);
@@ -1803,7 +1802,6 @@ impl DisplayListBuilder {
         let item = di::DisplayItem::PushStackingContext(di::PushStackingContextDisplayItem {
             origin,
             spatial_id,
-            snapshot,
             prim_flags,
             ref_frame_offset,
             stacking_context: di::StackingContext {
@@ -1858,7 +1856,6 @@ impl DisplayListBuilder {
             filter_primitives,
             di::RasterSpace::Screen,
             di::StackingContextFlags::empty(),
-            None,
         );
     }
 
