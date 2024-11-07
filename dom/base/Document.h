@@ -101,7 +101,6 @@
 #include "nsTObserverArray.h"
 #include "nsThreadUtils.h"
 #include "nsURIHashKey.h"
-#include "nsViewportInfo.h"
 #include "nsWeakReference.h"
 #include "nsWindowSizes.h"
 #include "nsXULElement.h"
@@ -181,6 +180,7 @@ class nsRange;
 class nsSimpleContentList;
 class nsTextNode;
 class nsViewManager;
+class nsViewportInfo;
 class nsXULPrototypeDocument;
 struct JSContext;
 struct nsFont;

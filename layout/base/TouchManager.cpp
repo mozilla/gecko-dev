@@ -10,6 +10,7 @@
 #include "Units.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_test.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/Document.h"
