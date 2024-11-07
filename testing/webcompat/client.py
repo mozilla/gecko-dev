@@ -14,6 +14,7 @@ import webdriver
 from PIL import Image
 from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException
 from webdriver.bidi.modules.script import ContextTarget
+from webdriver.error import UnsupportedOperationException
 
 
 class Client:
@@ -54,8 +55,17 @@ class Client:
             if needs_change:
                 self.context = orig_context
 
-    async def apz_click(self, element, no_up=False):
-        pt = self.execute_script(
+    def set_screen_size(self, width, height):
+        try:
+            route = "window/size"
+            body = {"width": width, "height": height}
+            self.session.send_session_command("POST", route, body)
+            return True
+        except UnsupportedOperationException:
+            return False
+
+    def get_element_screen_position(self, element):
+        return self.execute_script(
             """
           const e = arguments[0];
           const b = e.getClientRects()[0];
@@ -67,6 +77,14 @@ class Client:
         """,
             element,
         )
+
+    async def apz_click(self, element=None, x=None, y=None, no_up=False):
+        if x is not None and y is not None:
+            pt = [x, y]
+        elif element is not None:
+            pt = self.get_element_screen_position(element)
+        else:
+            raise ValueError("need element or x and y")
         with self.using_context("chrome"):
             return self.execute_async_script(
                 """
@@ -100,6 +118,80 @@ class Client:
             """,
                 pt,
                 no_up,
+            )
+
+    async def apz_drag(self, element, x=0, y=0, no_up=False):
+        pt1 = self.get_element_screen_position(element)
+        pt2 = [pt1[0] + x, pt1[1] + y]
+        with self.using_context("chrome"):
+            return self.execute_async_script(
+                """
+              const [pt1, pt2, no_up, done] = arguments;
+              const utils = window.windowUtils;
+              const scale = window.devicePixelRatio;
+              const res = utils.getResolution();
+              const ele = window.document.documentElement;
+              window.windowUtils.sendNativeMouseEvent(
+                pt1[0] * scale * res,
+                pt1[1] * scale * res,
+                utils.NATIVE_MOUSE_MESSAGE_BUTTON_DOWN,
+                0,
+                0,
+                ele,
+                () => {
+                  utils.sendNativeMouseEvent(
+                    pt2[0] * scale * res,
+                    pt2[1] * scale * res,
+                    utils.NATIVE_MOUSE_MESSAGE_MOVE,
+                    0,
+                    0,
+                    ele,
+                    () => {
+                      if (no_up) {
+                        return done();
+                      }
+                      utils.sendNativeMouseEvent(
+                        pt2[0] * scale * res,
+                        pt2[1] * scale * res,
+                        utils.NATIVE_MOUSE_MESSAGE_BUTTON_UP,
+                        0,
+                        0,
+                        ele,
+                        done
+                      );
+                    }
+                  );
+                })
+            """,
+                pt1,
+                pt2,
+                no_up,
+            )
+
+    def apz_scroll(self, element, dx=0, dy=0, dz=0):
+        pt = self.get_element_screen_position(element)
+        with self.using_context("chrome"):
+            return self.execute_script(
+                """
+                const [pt, delta] = arguments;
+                const utils = window.windowUtils;
+                const scale = window.devicePixelRatio;
+                const res = utils.getResolution();
+                window.windowUtils.sendWheelEvent(
+                    pt[0] * scale * res,
+                    pt[1] * scale * res,
+                    delta[0],
+                    delta[1],
+                    delta[2],
+                    WheelEvent.DOM_DELTA_PIXEL,
+                    0,
+                    delta[0] > 0 ? 1 : -1,
+                    delta[1] > 0 ? 1 : -1,
+                    undefined,
+                );
+            """,
+                pt,
+                [dx, dy, dz],
             )
 
     def wait_for_content_blocker(self):
@@ -259,19 +351,34 @@ class Client:
 
         return self.wait_for_events("browsingContext.load", wait_for_url)
 
-    async def run_script_in_context(self, context, script):
+    async def run_script_in_context(self, script, context=None, sandbox=None):
+        if not context:
+            context = (await self.top_context())["context"]
+        target = ContextTarget(context, sandbox)
         return await self.session.bidi_session.script.evaluate(
             expression=script,
-            target=ContextTarget(context),
+            target=target,
             await_promise=False,
         )
 
-    async def await_script_in_context(self, context, script):
-        return await self.session.bidi_session.script.evaluate(
-            expression=script,
-            target=ContextTarget(context),
-            await_promise=True,
+    async def run_script(
+        self, script, *args, await_promise=False, context=None, sandbox=None
+    ):
+        if not context:
+            context = (await self.top_context())["context"]
+        target = ContextTarget(context, sandbox)
+        val = await self.session.bidi_session.script.call_function(
+            arguments=self.wrap_script_args(args),
+            await_promise=await_promise,
+            function_declaration=script,
+            target=target,
         )
+        if val and "value" in val:
+            return val["value"]
+        return val
+
+    def await_script(self, script, *args, **kwargs):
+        return self.run_script(script, *args, **kwargs, await_promise=True)
 
     async def navigate(self, url, timeout=90, no_skip=False, **kwargs):
         try:
@@ -552,6 +659,9 @@ class Client:
         for arg in args:
             if arg is None:
                 out.append({"type": "undefined"})
+                continue
+            elif isinstance(arg, webdriver.client.WebElement):
+                out.append({"sharedId": arg.id})
                 continue
             t = type(arg)
             if t is int or t is float:

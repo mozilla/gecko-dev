@@ -24,6 +24,7 @@ APS_PREF = "privacy.partition.always_partition_third_party_non_cookie_storage"
 CB_PBM_PREF = "network.cookie.cookieBehavior.pbmode"
 CB_PREF = "network.cookie.cookieBehavior"
 INJECTIONS_PREF = "extensions.webcompat.perform_injections"
+NOTIFICATIONS_PERMISSIONS_PREF = "permissions.default.desktop-notification"
 PBM_PREF = "browser.privatebrowsing.autostart"
 PIP_OVERRIDES_PREF = "extensions.webcompat.enable_picture_in_picture_overrides"
 SHIMS_PREF = "extensions.webcompat.enable_shims"
@@ -109,6 +110,10 @@ class FirefoxWebDriver(WebDriver):
         prefs[CB_PREF] = cookieBehavior
         prefs[CB_PBM_PREF] = cookieBehavior
 
+        # prevent "allow notifications for?" popups by setting the
+        # default permission for notificaitons to PERM_DENY_ACTION.
+        prefs[NOTIFICATIONS_PERMISSIONS_PREF] = 2
+
         fx_options = {"prefs": prefs}
 
         if self.browser_binary:
@@ -150,6 +155,11 @@ def bug_number(request):
 
 
 @pytest.fixture
+def in_headless_mode(request):
+    return request.config.getoption("headless")
+
+
+@pytest.fixture
 def credentials(bug_number, config_file):
     if not config_file:
         pytest.skip(f"login info required for bug #{bug_number}")
@@ -185,7 +195,11 @@ def pytest_runtest_makereport(item, call):
 @pytest.fixture(scope="function", autouse=True)
 async def test_failed_check(request):
     yield
-    if request.node.rep_setup.passed and request.node.rep_call.failed:
+    if (
+        not request.config.getoption("no_failure_screenshots")
+        and request.node.rep_setup.passed
+        and request.node.rep_call.failed
+    ):
         session = request.node.funcargs["session"]
         try:
             file_name = f'{request.node.nodeid}_failure_{datetime.today().strftime("%Y-%m-%d_%H:%M")}.png'.replace(

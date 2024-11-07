@@ -55,7 +55,7 @@ def create_parser_interventions():
         default="9222",
         help="Port on which to run WebDriver BiDi websocket",
     )
-    parser.add_argument("--bug", help="Bug to run tests for")
+    parser.add_argument("-B", "--bug", help="Bug to run tests for")
     parser.add_argument(
         "--do2fa",
         action="store_true",
@@ -69,6 +69,7 @@ def create_parser_interventions():
         "--debug", action="store_true", default=False, help="Debug failing tests"
     )
     parser.add_argument(
+        "-H",
         "--headless",
         action="store_true",
         default=False,
@@ -93,6 +94,13 @@ def create_parser_interventions():
         action="store",
         choices=["android", "desktop"],
         help="Platform to target",
+    )
+    parser.add_argument(
+        "-S",
+        "--no-failure-screenshots",
+        action="store_true",
+        default=False,
+        help="Do not save a screenshot for each test failure",
     )
 
     desktop_group = parser.add_argument_group("Desktop-specific arguments")
@@ -288,6 +296,7 @@ class InterventionTest(MozbuildObject):
                     headless=kwargs["headless"],
                     do2fa=kwargs["do2fa"],
                     log_level=log_level,
+                    no_failure_screenshots=kwargs.get("no_failure_screenshots"),
                 )
 
         if kwargs["shims"] != "none":
@@ -314,6 +323,7 @@ class InterventionTest(MozbuildObject):
                     config=kwargs["config"],
                     headless=kwargs["headless"],
                     do2fa=kwargs["do2fa"],
+                    no_failure_screenshots=kwargs.get("no_failure_screenshots"),
                 )
 
         summary = status_handler.summarize()

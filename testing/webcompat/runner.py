@@ -31,6 +31,7 @@ def run(
     addon=None,
     do2fa=False,
     log_level="INFO",
+    no_failure_screenshots=None,
 ):
     """"""
     old_environ = os.environ.copy()
@@ -101,6 +102,9 @@ def run(
             if config:
                 args.append("--config")
                 args.append(config)
+
+            if no_failure_screenshots:
+                args.append("--no-failure-screenshots")
 
             if interventions is not None and shims is not None:
                 raise ValueError(
@@ -174,12 +178,21 @@ class WDConfig:
         parser.addoption(
             "--browser", action="store", choices=["firefox"], help="Name of the browser"
         )
-        parser.addoption("--bug", action="store", help="Bug number to run tests for")
+        parser.addoption(
+            "-B", "--bug", action="store", help="Bug number to run tests for"
+        )
         parser.addoption(
             "--do2fa",
             action="store_true",
             default=False,
             help="Do two-factor auth live in supporting tests",
+        )
+        parser.addoption(
+            "-S",
+            "--no-failure-screenshots",
+            action="store_true",
+            default=False,
+            help="Do not save screenshots on failure",
         )
         parser.addoption(
             "--config",
@@ -203,7 +216,7 @@ class WDConfig:
             help="Android package to run/connect to",
         )
         parser.addoption(
-            "--headless", action="store_true", help="Run browser in headless mode"
+            "-H", "--headless", action="store_true", help="Run browser in headless mode"
         )
 
 
