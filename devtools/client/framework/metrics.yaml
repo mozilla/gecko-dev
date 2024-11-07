@@ -1,0 +1,71 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'DevTools :: Framework'
+
+devtools:
+  current_theme:
+    type: labeled_counter
+    description: >
+      Number of times DevTools was opened, keyed by theme.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.current_theme.
+    bugs:
+      - https://bugzil.la/1396811
+    data_reviews:
+      - https://bugzil.la/1396811
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    telemetry_mirror: DEVTOOLS_CURRENT_THEME
+
+devtools.tool:
+  registered:
+    type: labeled_boolean
+    description: >
+      Recorded on enable tool checkbox check/uncheck in Developer Tools
+      options panel. Boolean stating if the tool was enabled or disabled
+      by the user. Keyed by tool id. Current default tools with their id's
+      are defined in https://searchfox.org/mozilla-
+      central/source/devtools/client/definitions.js
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.tool.registered.
+    bugs:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_TOOL_REGISTERED
+
+devtools.toolbox:
+  tabs_reordered:
+    type: labeled_counter
+    description: >
+      Number of times the DevTools tab was reordered. Keyed by tab's id.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.toolbox.tabs_reordered.
+    bugs:
+      - https://bugzil.la/1456551
+      - https://bugzil.la/1566362
+    data_reviews:
+      - https://bugzil.la/1456551
+      - https://bugzil.la/1566362
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - daisuke@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_TOOLBOX_TABS_REORDERED

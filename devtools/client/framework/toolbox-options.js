@@ -252,11 +252,7 @@ OptionsPanel.prototype = {
           tool.id
         );
         // Record which tools were registered and unregistered.
-        telemetry.keyedScalarSet(
-          "devtools.tool.registered",
-          tool.id,
-          this.checked
-        );
+        Glean.devtoolsTool.registered[tool.id].set(this.checked);
       }
     };
 

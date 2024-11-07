@@ -12,7 +12,6 @@ const DEVTOOLS_ALWAYS_ON_TOP = "devtools.toolbox.alwaysOnTop";
 const DISABLE_AUTOHIDE_PREF = "ui.popup.disable_autohide";
 const PSEUDO_LOCALE_PREF = "intl.l10n.pseudo";
 const HOST_HISTOGRAM = "DEVTOOLS_TOOLBOX_HOST";
-const CURRENT_THEME_SCALAR = "devtools.current_theme";
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const REGEX_4XX_5XX = /^[4,5]\d\d$/;
 
@@ -1546,7 +1545,7 @@ Toolbox.prototype = {
     // Log current theme. The question we want to answer is:
     // "What proportion of users use which themes?"
     const currentTheme = Services.prefs.getCharPref("devtools.theme");
-    this.telemetry.keyedScalarAdd(CURRENT_THEME_SCALAR, currentTheme, 1);
+    Glean.devtools.currentTheme[currentTheme].add(1);
 
     const browserWin = this.topWindow;
     this.telemetry.preparePendingEvent(browserWin, "open", "tools", null, [

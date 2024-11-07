@@ -12,7 +12,6 @@ const { AddonManager } = ChromeUtils.importESModule(
 const {
   gDevTools,
 } = require("resource://devtools/client/framework/devtools.js");
-const TABS_REORDERED_SCALAR = "devtools.toolbox.tabs_reordered";
 const PREFERENCE_NAME = "devtools.toolbox.tabsOrder";
 
 /**
@@ -193,7 +192,7 @@ class ToolboxTabsOrderManager {
       // "How frequently are the tabs re-ordered, also which tabs get re-ordered?"
       const toolId =
         this.dragTarget.dataset.extensionId || this.dragTarget.dataset.id;
-      this.toolbox.telemetry.keyedScalarAdd(TABS_REORDERED_SCALAR, toolId, 1);
+      Glean.devtoolsToolbox.tabsReordered[toolId].add(1);
     }
 
     this.eventTarget.removeEventListener("mousemove", this.onMouseMove);
