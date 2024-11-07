@@ -1255,6 +1255,22 @@
     <string name="download_delete_item_1">삭제</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">사이트가 느리거나 작동하지 않음</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">이미지 또는 동영상</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">버튼, 링크 및 기타 콘텐츠</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">로그인 또는 로그아웃</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">광고 차단기</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">기타</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">죄송합니다. %1$s가 페이지를 열 수 없습니다.</string>

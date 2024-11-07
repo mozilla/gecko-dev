@@ -1248,6 +1248,22 @@
     <string name="download_delete_item_1">Αφαίρεση</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Αργός ή μη λειτουργικός ιστότοπος</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Εικόνες ή βίντεο</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Κουμπιά, σύνδεσμοι και άλλο περιεχόμενο</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Σύνδεση ή αποσύνδεση</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Αποκλεισμός διαφημίσεων</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Κάτι άλλο</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Συγγνώμη. Το %1$s δεν μπορεί να φορτώσει αυτή τη σελίδα.</string>

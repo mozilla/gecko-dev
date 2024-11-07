@@ -13,6 +13,8 @@
     <string name="content_description_private_browsing_button">Embojuruja kundahára ñemigua</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Eipe’a kundaha ñemigua</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Ñeikundaha ñemi</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Eheka térã ehai kundaharape</string>
 
@@ -231,6 +233,8 @@
     <string name="browser_menu_discover_more_extensions">Ejuhuvéta jepysokue</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Ndoikomo’ãi sapy’ami</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Ndaipóri jepysokue jurujapyre</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Mba’ete marandu</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -1252,6 +1256,22 @@
     <!-- Text for the button to remove a single download item -->
     <string name="download_delete_item_1">Mboguete</string>
 
+
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Tenda imbegue térã ndoikói</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Ta’ãnga térã ta’ãngamýi</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Votõnguéra, juajuha ha ambue tetepy</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Eike térã emboty tembiapo</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Ñemurã jokoha</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Ambue mba’e</string>
 
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->

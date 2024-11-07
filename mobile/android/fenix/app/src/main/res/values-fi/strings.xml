@@ -1246,6 +1246,22 @@
     <string name="download_delete_item_1">Poista</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Sivusto on hidas tai ei toimi</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Kuvat tai videot</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Painikkeet, linkit ja muu sisältö</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Sisään- tai uloskirjautuminen</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Mainosten esto</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Jotain muuta</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Pahoittelut, %1$s ei voi ladata tätä sivua.</string>

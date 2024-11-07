@@ -1239,6 +1239,22 @@
     <string name="download_delete_item_1">Wotstronić</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Sydło pomałe abo njefunguje</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Wobrazy abo wideja</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Tłóčatka, wotkazy a druhi wobsah</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Přizjewić abo wotzjewić</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Wabjenski blokowak</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Něšto druhe</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Bohužel %1$s njemóže tutu stronu začitać.</string>
