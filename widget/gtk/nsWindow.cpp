@@ -5534,6 +5534,9 @@ gboolean nsWindow::OnTouchpadPinchEvent(GdkEventTouchpadPinch* aEvent) {
 
 void nsWindow::OnTouchpadHoldEvent(GdkTouchpadGesturePhase aPhase, guint aTime,
                                    uint32_t aFingers) {
+  if (!StaticPrefs::apz_gtk_touchpad_hold_enabled()) {
+    return;
+  }
   LOG("OnTouchpadHoldEvent: aPhase %d aFingers %d", aPhase, aFingers);
   MOZ_ASSERT(aPhase !=
              GDK_TOUCHPAD_GESTURE_PHASE_UPDATE);  // not used for hold gestures
