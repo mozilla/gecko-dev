@@ -10,12 +10,6 @@
             getContainerForCookieStoreId,
             isValidCookieStoreId, isContainerCookieStoreId,
             EventManager, URL */
-/* global getCookieStoreIdForTab:false,
-          getCookieStoreIdForContainer:false,
-          getContainerForCookieStoreId: false,
-          isValidCookieStoreId:false, isContainerCookieStoreId:false,
-          isDefaultCookieStoreId: false, isPrivateCookieStoreId:false,
-          EventManager: false */
 
 ChromeUtils.defineESModuleGetters(this, {
   ContextualIdentityService:
@@ -32,8 +26,6 @@ var { ExtensionError } = ExtensionUtils;
 
 global.EventEmitter = ExtensionCommon.EventEmitter;
 global.EventManager = ExtensionCommon.EventManager;
-
-/* globals DEFAULT_STORE, PRIVATE_STORE, CONTAINER_STORE */
 
 global.DEFAULT_STORE = "firefox-default";
 global.PRIVATE_STORE = "firefox-private";

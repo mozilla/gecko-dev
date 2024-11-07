@@ -4,8 +4,6 @@
 
 "use strict";
 
-/* globals DEFAULT_STORE, PRIVATE_STORE */
-
 var { ExtensionError } = ExtensionUtils;
 
 const SAME_SITE_STATUSES = [

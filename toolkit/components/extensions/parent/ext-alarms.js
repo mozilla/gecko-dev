@@ -4,9 +4,6 @@
 
 "use strict";
 
-// The ext-* files are imported into the same scopes.
-/* import-globals-from ext-toolkit.js */
-
 // Manages an alarm created by the extension (alarms API).
 class Alarm {
   constructor(api, name, alarmInfo) {

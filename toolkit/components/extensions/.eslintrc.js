@@ -5,24 +5,6 @@
 "use strict";
 
 module.exports = {
-  globals: {
-    // These are defined in the WebExtension script scopes by ExtensionCommon.sys.mjs
-    Cc: true,
-    Ci: true,
-    Cr: true,
-    Cu: true,
-    AppConstants: true,
-    ExtensionAPI: true,
-    ExtensionAPIPersistent: true,
-    ExtensionCommon: true,
-    ExtensionUtils: true,
-    extensions: true,
-    global: true,
-    require: false,
-    Services: true,
-    XPCOMUtils: true,
-  },
-
   rules: {
     // Rules from the mozilla plugin
     "mozilla/balanced-listeners": "error",

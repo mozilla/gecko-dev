@@ -4,27 +4,8 @@
 
 "use strict";
 
-const {
-  globals,
-} = require("../../toolkit/components/extensions/parent/.eslintrc.js");
-
 module.exports = {
   overrides: [
-    {
-      files: ["components/extensions/ext-*.js"],
-      excludedFiles: ["components/extensions/ext-c-*.js"],
-      globals: {
-        ...globals,
-        // These globals are defined in ext-android.js and can only be used in
-        // the extension files that run in the parent process.
-        EventDispatcher: true,
-        ExtensionError: true,
-        makeGlobalEvent: true,
-        TabContext: true,
-        tabTracker: true,
-        windowTracker: true,
-      },
-    },
     {
       files: [
         "chrome/geckoview/**",
