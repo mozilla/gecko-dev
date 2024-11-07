@@ -105,7 +105,6 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1849058-nicochannel.jp-picture-in-picture-shim.js",
     "injections/js/bug1855014-eksiseyler.com.js",
     "injections/js/bug1859617-installtrigger-removal-shim.js",
-    "injections/js/bug1864564-esri-transfrom-names-shim.js",
     "injections/js/bug1881922-disable-legacy-mutation-events.js",
     "injections/js/bug1889326-office365-email-handling-prompt-autohide.js",
     "injections/js/bug1889505-bankmandiri.co.id-window.chrome.js",

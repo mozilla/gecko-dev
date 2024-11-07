@@ -798,25 +798,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1864564",
-    platform: "all",
-    domain: "Esri breakage",
-    bug: "1864564",
-    contentScripts: {
-      matches: [
-        "*://*.ncep.noaa.gov/*",
-        "*://*.northumberland.gov.uk/*",
-        "*://webmap.gis.gov.mo/*",
-      ],
-      js: [
-        {
-          file: "injections/js/bug1864564-esri-transfrom-names-shim.js",
-        },
-      ],
-      allFrames: true,
-    },
-  },
-  {
     id: "bug1868345",
     platform: "desktop",
     domain: "tvmovie.de",
