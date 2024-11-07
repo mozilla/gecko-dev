@@ -13,7 +13,6 @@ import androidx.test.espresso.action.ViewActions.clearText
 import androidx.test.espresso.action.ViewActions.longClick
 import androidx.test.espresso.action.ViewActions.replaceText
 import androidx.test.espresso.action.ViewActions.typeText
-import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers
 import androidx.test.espresso.matcher.ViewMatchers
@@ -32,6 +31,7 @@ import androidx.test.uiautomator.Until
 import org.hamcrest.Matchers.allOf
 import org.hamcrest.Matchers.containsString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
@@ -46,6 +46,8 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
+import org.mozilla.fenix.helpers.TestHelper.snackbarButton
+import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 
@@ -147,7 +149,7 @@ class BookmarksRobot {
 
     fun verifyUndoDeleteSnackBarButton() {
         Log.i(TAG, "verifyUndoDeleteSnackBarButton: Trying to verify bookmark deletion undo snack bar button")
-        snackBarUndoButton().check(matches(withText("UNDO")))
+        assertTrue(snackbarButton!!.children.count { it.text == "UNDO" } == 1)
         Log.i(TAG, "verifyUndoDeleteSnackBarButton: Verified bookmark deletion undo snack bar button")
     }
 
@@ -159,7 +161,7 @@ class BookmarksRobot {
         )
         Log.i(TAG, "verifySnackBarHidden: Waited until undo snack bar button was gone")
         Log.i(TAG, "verifySnackBarHidden: Trying to verify bookmark snack bar does not exist")
-        onView(withId(R.id.snackbar_layout)).check(doesNotExist())
+        waitUntilSnackbarGone()
         Log.i(TAG, "verifySnackBarHidden: Verified bookmark snack bar does not exist")
     }
 
@@ -490,10 +492,6 @@ private fun threeDotMenu(bookmark: String) = onView(
         hasSibling(withText(bookmark)),
     ),
 )
-
-private fun snackBarText() = onView(withId(R.id.snackbar_text))
-
-private fun snackBarUndoButton() = onView(withId(R.id.snackbar_btn))
 
 private fun bookmarkNameEditBox() = onView(withId(R.id.bookmarkNameEdit))
 

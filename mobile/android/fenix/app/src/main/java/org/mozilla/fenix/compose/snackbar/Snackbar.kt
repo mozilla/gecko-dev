@@ -30,9 +30,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -48,6 +52,9 @@ import org.mozilla.fenix.compose.snackbar.SnackbarState.Type
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 import com.google.android.material.snackbar.Snackbar as MaterialSnackbar
+
+const val SNACKBAR_TEST_TAG = "snackbar"
+const val SNACKBAR_BUTTON_TEST_TAG = "snackbar_button"
 
 private val snackbarBottomSpacing = 8.dp
 private val snackbarHorizontalMargin = 16.dp
@@ -210,6 +217,7 @@ class Snackbar private constructor(
  * @param snackbarState The data to display within the Snackbar.
  * @param modifier The [Modifier] used to configure the Snackbar layout.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun Snackbar(
     snackbarState: SnackbarState,
@@ -223,7 +231,11 @@ internal fun Snackbar(
     Column(
         modifier = modifier
             .padding(horizontal = snackbarHorizontalMargin)
-            .widthIn(max = snackbarMaxWidth),
+            .widthIn(max = snackbarMaxWidth)
+            .semantics {
+                testTagsAsResourceId = true
+            }
+            .testTag(SNACKBAR_TEST_TAG),
     ) {
         Card(
             shape = RoundedCornerShape(size = 8.dp),
@@ -253,6 +265,7 @@ internal fun Snackbar(
                     TextButton(
                         text = snackbarState.action.label,
                         onClick = snackbarState.action.onClick,
+                        modifier = Modifier.testTag(SNACKBAR_BUTTON_TEST_TAG),
                         textColor = colors.actionTextColor,
                     )
 

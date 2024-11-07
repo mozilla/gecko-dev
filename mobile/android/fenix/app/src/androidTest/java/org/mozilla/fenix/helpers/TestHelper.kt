@@ -18,8 +18,10 @@ import androidx.test.espresso.matcher.ViewMatchers.withParent
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.By.res
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject
+import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.UiObjectNotFoundException
 import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
@@ -31,11 +33,12 @@ import org.junit.Assert
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.snackbar.SNACKBAR_BUTTON_TEST_TAG
+import org.mozilla.fenix.compose.snackbar.SNACKBAR_TEST_TAG
 import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeVeryShort
@@ -117,10 +120,12 @@ object TestHelper {
             Log.i(TAG, "clickSnackbarButton: Started try #$i")
             try {
                 Log.i(TAG, "clickSnackbarButton: Waiting for $waitingTimeShort ms for the $expectedText snackbar button to exist")
-                itemWithResIdAndText("$packageName:id/snackbar_btn", expectedText).waitForExists(waitingTimeShort)
+                waitUntilObjectIsFound(SNACKBAR_BUTTON_TEST_TAG)
+                assertTrue(snackbarButton!!.children.count { it.text == expectedText } == 1)
                 Log.i(TAG, "clickSnackbarButton: Waited for $waitingTimeShort ms for the $expectedText snackbar button to exist")
                 Log.i(TAG, "clickSnackbarButton: Trying to click the $expectedText and wait for $waitingTime ms for a new window")
-                itemWithResIdAndText("$packageName:id/snackbar_btn", expectedText).clickAndWaitForNewWindow(waitingTimeShort)
+                snackbarButton!!.click()
+                mDevice.waitForIdle()
                 Log.i(TAG, "clickSnackbarButton: Clicked the $expectedText and waited for $waitingTime ms for a new window")
 
                 break
@@ -136,7 +141,7 @@ object TestHelper {
     fun waitUntilSnackbarGone() {
         Log.i(TAG, "waitUntilSnackbarGone: Waiting for $waitingTime ms until the snckabar is gone")
         mDevice.findObject(
-            UiSelector().resourceId("$packageName:id/snackbar_layout"),
+            UiSelector().resourceId(SNACKBAR_TEST_TAG),
         ).waitUntilGone(waitingTime)
         Log.i(TAG, "waitUntilSnackbarGone: Waited for $waitingTime ms until the snckabar was gone")
     }
@@ -190,4 +195,10 @@ object TestHelper {
         mDevice.waitForWindowUpdate(packageName, waitingTimeVeryShort)
         Log.i(TAG, "waitForAppWindowToBeUpdated: Waited for $waitingTimeVeryShort ms for $packageName window to be updated")
     }
+
+    val snackbar: UiObject2?
+        get() = mDevice.findObject(res(SNACKBAR_TEST_TAG))
+
+    val snackbarButton: UiObject2?
+        get() = mDevice.findObject(res(SNACKBAR_BUTTON_TEST_TAG))
 }
