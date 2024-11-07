@@ -608,7 +608,14 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
     AutoMarkJitCodeWritableForThread writable;
 
     masm.executableCopy(codeStart);
-    memset(codeStart + codeLength, 0, allocationLength - codeLength);
+
+    // Clear the padding between the end of the code and the end of the
+    // allocation.
+    uint8_t* allocationEnd = allocationStart + allocationLength;
+    uint8_t* codeEnd = codeStart + codeLength;
+    MOZ_ASSERT(codeEnd <= allocationEnd);
+    size_t paddingAfterCode = allocationEnd - codeEnd;
+    memset(codeEnd, 0, paddingAfterCode);
 
     if (!stubCodeBlock->segment->linkAndMakeExecutableSubRange(
             writable, masm, allocationStart, codeStart, allocationLength)) {
