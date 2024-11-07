@@ -1377,6 +1377,27 @@ waitForAllPaints(async () => {
     await ensureElementRemoval(div);
   });
 
+  add_task_if_omta_enabled(async function svg_non_scaling_stroke_animation() {
+    const div = addDiv(null, { style: 'overflow: scroll;' +
+                                    'height: 100px; width: 100px;' });
+    const svg = addSVGElement(div, 'svg', { viewBox: '0 0 250 250',
+                                          width:   '40px',
+                                          height:  '40px' });
+    const rect = addSVGElement(svg, 'rect', { x:    '0',
+                                            y:      '0',
+                                            width:  '250',
+                                            height: '250',
+                                            fill:   'red',
+                                            style: 'vector-effect: non-scaling-stroke; animation: rotate 100s infinite;'});
+    const animation = rect.getAnimations()[0];
+    await waitForAnimationReadyToRestyle(animation);
+
+    ok(!SpecialPowers.wrap(animation).isRunningOnCompositor,
+         'The animation of a non-scaling-stroke element is not running on the compositor');
+
+    await ensureElementRemoval(div);
+  });
+
   add_task(async function no_throttling_animations_in_transformed_parent() {
     const div = addDiv(null, { style: 'overflow: scroll;' +
                                     'transform: translateX(50px);' });

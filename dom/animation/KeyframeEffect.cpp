@@ -1632,6 +1632,15 @@ bool KeyframeEffect::CanAnimateTransformOnCompositor(
     return false;
   }
 
+  // If there's any content that might have non-scaling stroke then we can't
+  // run in the compositor.
+  if (primaryFrame->IsSVGFrame() &&
+      primaryFrame->HasAnyStateBits(
+          NS_STATE_SVG_MAY_CONTAIN_NON_SCALING_STROKE)) {
+    aPerformanceWarning = AnimationPerformanceWarning::Type::NonScalingStroke;
+    return false;
+  }
+
   return true;
 }
 
