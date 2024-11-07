@@ -1402,6 +1402,39 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1844503 - UA override for nicochannel.jp and similar video sites
+     * Webcompat issue #124511 - https://webcompat.com/issues/124511
+     * Webcompat issue #124463 - https://webcompat.com/issues/124463
+     *
+     * These sites' video APIs block Firefox, yet they allow a Chrome UA.
+     * (Note that some are NSFW).
+     */
+    id: "1844503",
+    platform: "all",
+    domain: "nicochannel.jp",
+    bug: "1844503",
+    config: {
+      matches: [
+        "*://api.ado-dokidokihimitsukichi-daigakuimo.com/fc/video_pages/*",
+        "*://api.canan8181.com/fc/video_pages/*",
+        "*://api.gs-ch.com/fc/video_pages/*", // 124511
+        "*://api.keisuke-ueda.jp/fc/video_pages/*",
+        "*://api.kemomimirefle.net/fc/video_pages/*",
+        "*://api.nicochannel.jp/fc/video_pages/*", // 124463
+        "*://api.p-jinriki-fc.com/fc/video_pages/*",
+        "*://api.pizzaradio.jp/fc/video_pages/*",
+        "*://api.rnqq.jp/fc/video_pages/*",
+        "*://api.ryogomatsumaru.com/fc/video_pages/*",
+        "*://api.takahashifumiya.com/fc/video_pages/*",
+        "*://api.yamingfc.net/fc/video_pages/*",
+      ],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;

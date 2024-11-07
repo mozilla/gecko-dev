@@ -1027,6 +1027,33 @@ class Client:
         yield
         fastclick_preload_script.stop()
 
+    async def test_nicochannel_like_site(self, url, shouldPass=True):
+        CONSENT = self.css("button.MuiButton-containedPrimary")
+        BLOCKED = self.text("このブラウザはサポートされていません。")
+        PLAY = self.css(".nfcp-overlay-play-lg")
+
+        await self.navigate(url)
+
+        while True:
+            consent, blocked, play = self.await_first_element_of(
+                [
+                    CONSENT,
+                    BLOCKED,
+                    PLAY,
+                ],
+                is_displayed=True,
+                timeout=30,
+            )
+            if not consent:
+                break
+            consent.click()
+            self.await_element_hidden(CONSENT)
+            continue
+        if shouldPass:
+            assert play
+        else:
+            assert blocked
+
     async def test_entrata_banner_hidden(self, url, iframe_css=None):
         # some sites take a while to load, but they always have the browser
         # warning popup, it just isn't shown until the page finishes loading.
