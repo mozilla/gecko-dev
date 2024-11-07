@@ -361,3 +361,86 @@ export async function getInferenceProcessInfo() {
   }
   return {};
 }
+
+const ALWAYS_ALLOWED_HUBS = [
+  "chrome://",
+  "resource://",
+  "http://localhost/",
+  "https://localhost/",
+];
+
+/**
+ * Enum for URL rejection types.
+ *
+ * Defines the type of rejection for a URL:
+ *
+ * - "DENIED" is for URLs explicitly disallowed by the deny list.
+ * - "NONE" is for URLs allowed by the allow list.
+ * - "DISALLOWED" is for URLs not matching any entry in either list.
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const RejectionType = {
+  DENIED: "DENIED",
+  NONE: "NONE",
+  DISALLOWED: "DISALLOWED",
+};
+
+/**
+ * Class for checking URLs against allow and deny lists.
+ */
+export class URLChecker {
+  /**
+   * Creates an instance of URLChecker.
+   *
+   * @param {Array<{filter: 'ALLOW'|'DENY', urlPrefix: string}>} allowDenyList - Array of URL patterns with filters.
+   */
+  constructor(allowDenyList = null) {
+    if (allowDenyList) {
+      this.allowList = allowDenyList
+        .filter(entry => entry.filter === "ALLOW")
+        .map(entry => entry.urlPrefix.toLowerCase());
+
+      this.denyList = allowDenyList
+        .filter(entry => entry.filter === "DENY")
+        .map(entry => entry.urlPrefix.toLowerCase());
+    } else {
+      this.allowList = [];
+      this.denyList = [];
+    }
+
+    // Always allowed
+    for (const url of ALWAYS_ALLOWED_HUBS) {
+      this.allowList.push(url);
+    }
+  }
+
+  /**
+   * Checks if a given URL is allowed based on allowList and denyList patterns.
+   *
+   * @param {string} url - The URL to check.
+   * @returns {{ allowed: boolean, rejectionType: string }} - Returns an object with:
+   *    - `allowed`: true if the URL is allowed, otherwise false.
+   *    - `rejectionType`:
+   *       - "DENIED" if the URL matches an entry in the denyList,
+   *       - "NONE" if the URL matches an entry in the allowList,
+   *       - "DISALLOWED" if the URL does not match any entry in either list.
+   */
+  allowedURL(url) {
+    const normalizedURL = url.toLowerCase();
+
+    // Check if the URL is denied by any entry in the denyList
+    if (this.denyList.some(prefix => normalizedURL.startsWith(prefix))) {
+      return { allowed: false, rejectionType: RejectionType.DENIED };
+    }
+
+    // Check if the URL is allowed by any entry in the allowList
+    if (this.allowList.some(prefix => normalizedURL.startsWith(prefix))) {
+      return { allowed: true, rejectionType: RejectionType.NONE };
+    }
+
+    // If no matches, return a default rejectionType
+    return { allowed: false, rejectionType: RejectionType.DISALLOWED };
+  }
+}

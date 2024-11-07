@@ -34,6 +34,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const RS_RUNTIME_COLLECTION = "ml-onnx-runtime";
 const RS_INFERENCE_OPTIONS_COLLECTION = "ml-inference-options";
+const RS_ALLOW_DENY_COLLECTION = "ml-model-allow-deny-list";
 const TERMINATE_TIMEOUT = 5000;
 
 /**
@@ -307,6 +308,7 @@ export class MLEngineParent extends JSWindowActorParent {
       this.modelHub = new lazy.ModelHub({
         rootUrl,
         urlTemplate,
+        allowDenyList: await MLEngineParent.getAllowDenyList(),
       });
     }
 
@@ -377,6 +379,14 @@ export class MLEngineParent extends JSWindowActorParent {
       record
     );
     return record;
+  }
+
+  /**
+   * Gets the allow/deny list from remote settings
+   *
+   */
+  static async getAllowDenyList() {
+    return MLEngineParent.#getRemoteClient(RS_ALLOW_DENY_COLLECTION).get();
   }
 
   /**

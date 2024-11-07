@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
+  URLChecker: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -23,14 +24,6 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
     prefix: "ML:ModelHub",
   });
 });
-
-const ALLOWED_HUBS = [
-  "chrome://*",
-  "resource://*",
-  "http://localhost",
-  "https://localhost",
-  "https://model-hub.mozilla.org",
-];
 
 const ALLOWED_HEADERS_KEYS = [
   "Content-Type",
@@ -54,48 +47,18 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 const ONE_GIB = 1024 * 1024 * 1024;
+const NO_ETAG = "NO_ETAG";
 
 /**
- * Checks if a given URL string corresponds to an allowed hub.
- *
- * This function validates a URL against a list of allowed hubs, ensuring that it:
- * - Is well-formed according to the URL standard.
- * - Does not include a username or password.
- * - Matches the allowed scheme and hostname.
- *
- * @param {string} urlString The URL string to validate.
- * @returns {boolean} True if the URL is allowed; false otherwise.
+ * Custom error when a fetch is attempted on a forbidden URL
  */
-function allowedHub(urlString) {
-  if (Services.env.exists("MOZ_ALLOW_EXTERNAL_ML_HUB")) {
-    return true;
-  }
-
-  try {
-    const url = new URL(urlString);
-    // Check for username or password in the URL
-    if (url.username !== "" || url.password !== "") {
-      return false; // Reject URLs with username or password
-    }
-    const scheme = url.protocol;
-    const host = url.hostname;
-    const fullPrefix = `${scheme}//${host}`;
-
-    return ALLOWED_HUBS.some(hubName => {
-      const [allowedScheme, allowedHost] = hubName.split("://");
-      if (allowedHost === "*") {
-        return `${allowedScheme}:` === scheme;
-      }
-      const allowedPrefix = `${allowedScheme}://${allowedHost}`;
-      return fullPrefix === allowedPrefix;
-    });
-  } catch (error) {
-    lazy.console.error("Error parsing URL:", error);
-    return false;
+class ForbiddenURLError extends Error {
+  constructor(url, rejectionType) {
+    super(`Forbidden URL: ${url} (${rejectionType})`);
+    this.name = "ForbiddenURLError";
+    this.url = url;
   }
 }
-
-const NO_ETAG = "NO_ETAG";
 
 /**
  * Class for managing a cache stored in IndexedDB.
@@ -889,12 +852,13 @@ export class ModelHub {
    * @param {object} config
    * @param {string} config.rootUrl - Root URL used to download models.
    * @param {string} config.urlTemplate - The template to retrieve the full URL using a model name and revision.
+   * @param {Array<{filter: 'ALLOW'|'DENY', urlPrefix: string}>} config.allowDenyList - Array of URL patterns with filters.
    */
-  constructor({ rootUrl, urlTemplate = DEFAULT_URL_TEMPLATE } = {}) {
-    // Early error when the hub is created on a disallowed url - #fileURL also checks this so API calls with custom hubs are also covered.
-    if (!allowedHub(rootUrl)) {
-      throw new Error(`Invalid model hub root url: ${rootUrl}`);
-    }
+  constructor({
+    rootUrl,
+    urlTemplate = DEFAULT_URL_TEMPLATE,
+    allowDenyList = null,
+  } = {}) {
     this.rootUrl = rootUrl;
     this.cache = null;
 
@@ -907,6 +871,11 @@ export class ModelHub {
       throw new Error(`Invalid URL template: ${urlTemplate}`);
     }
     this.urlTemplate = urlTemplate;
+    if (Services.env.exists("MOZ_ALLOW_EXTERNAL_ML_HUB")) {
+      this.allowDenyList = null;
+    } else {
+      this.allowDenyList = new lazy.URLChecker(allowDenyList);
+    }
   }
 
   async #initCache() {
@@ -914,6 +883,14 @@ export class ModelHub {
       return;
     }
     this.cache = await IndexedDBCache.init();
+  }
+
+  async #fetch(url, options) {
+    const result = this.allowDenyList && this.allowDenyList.allowedURL(url);
+    if (result && !result.allowed) {
+      throw new ForbiddenURLError(url, result.rejectionType);
+    }
+    return fetch(url, options);
   }
 
   /**
@@ -1006,9 +983,6 @@ export class ModelHub {
    */
   #fileUrl({ model, revision, file, modelHubRootUrl, modelHubUrlTemplate }) {
     const rootUrl = modelHubRootUrl || this.rootUrl;
-    if (!allowedHub(rootUrl)) {
-      throw new Error(`Invalid model hub root url: ${rootUrl}`);
-    }
     const urlTemplate = modelHubUrlTemplate || this.urlTemplate;
     const baseUrl = new URL(rootUrl);
 
@@ -1139,13 +1113,16 @@ export class ModelHub {
     const id = lazy.setTimeout(() => controller.abort(), timeout);
 
     try {
-      const headResponse = await fetch(url, {
+      const headResponse = await this.#fetch(url, {
         method: "HEAD",
         signal: controller.signal,
       });
       const currentEtag = headResponse.headers.get("ETag");
       return currentEtag;
     } catch (error) {
+      if (error instanceof ForbiddenURLError) {
+        throw error;
+      }
       lazy.console.warn("An error occurred when calling HEAD:", error);
       return null;
     } finally {
@@ -1332,7 +1309,7 @@ export class ModelHub {
 
     lazy.console.debug(`Fetching ${url}`);
     try {
-      let response = await fetch(url);
+      let response = await this.#fetch(url);
       let isFirstCall = true;
       let responseContentArray = await lazy.Progress.readResponse(
         response,
@@ -1386,6 +1363,9 @@ export class ModelHub {
         return [responseContent, headers];
       }
     } catch (error) {
+      if (error instanceof ForbiddenURLError) {
+        throw error;
+      }
       lazy.console.error(`Failed to fetch ${url}:`, error);
     }
 

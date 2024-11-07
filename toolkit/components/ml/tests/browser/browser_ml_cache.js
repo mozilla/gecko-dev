@@ -35,17 +35,6 @@ const FAKE_ONNX_MODEL_ARGS = {
   taskName: "task_onnx",
 };
 
-const badHubs = [
-  "https://my.cool.hub",
-  "https://sub.localhost/myhub", // Subdomain of allowed domain
-  "https://model-hub.mozilla.org.evil.com", // Manipulating path to mimic domain
-  "httpsz://localhost/myhub", // Similar-looking scheme
-  "https://localhost.", // Trailing dot in domain
-  "resource://user@localhost", // User info in URL
-  "ftp://localhost/myhub", // Disallowed scheme with allowed host
-  "https://model-hub.mozilla.org.hack", // Domain that contains allowed domain
-];
-
 function createRandomBlob(blockSize = 8, count = 1) {
   const blocks = Array.from({ length: count }, () =>
     Uint32Array.from(
@@ -59,31 +48,6 @@ function createRandomBlob(blockSize = 8, count = 1) {
 function createBlob(size = 8) {
   return createRandomBlob(size);
 }
-
-/**
- * Make sure we reject bad model hub URLs.
- */
-add_task(async function test_bad_hubs() {
-  for (const badHub of badHubs) {
-    Assert.throws(
-      () => new ModelHub({ rootUrl: badHub }),
-      new RegExp(`Error: Invalid model hub root url: ${badHub}`),
-      `Should throw with ${badHub}`
-    );
-  }
-});
-
-let goodHubs = [
-  "https:///localhost/myhub", // Triple slashes, see https://stackoverflow.com/a/22775589
-  "https://localhost:8080/myhub",
-  "http://localhost/myhub",
-  "https://model-hub.mozilla.org",
-  "chrome://gre/somewhere/in/the/code/base",
-];
-
-add_task(async function test_allowed_hub() {
-  goodHubs.forEach(url => new ModelHub({ rootUrl: url }));
-});
 
 /**
  * Test the MOZ_ALLOW_EXTERNAL_ML_HUB environment variable
@@ -186,8 +150,6 @@ add_task(async function test_getting_file() {
  */
 add_task(async function test_getting_released_file() {
   const hub = new ModelHub({ rootUrl: FAKE_HUB });
-  console.log(hub);
-
   let spy = sinon.spy(hub, "getETag");
   let [array, headers] = await hub.getModelFileAsArrayBuffer(
     FAKE_RELEASED_MODEL_ARGS
@@ -1534,7 +1496,7 @@ add_task(async function test_getting_file_disallowed_custom_hub() {
       () => {
         throw error;
       },
-      new RegExp(`Error: Invalid model hub root url: https://forbidden.com`),
+      new RegExp(`ForbiddenURLError`),
       `Should throw with https://forbidden.com`
     );
   }
@@ -1547,7 +1509,7 @@ add_task(async function test_getting_file_disallowed_custom_hub() {
       () => {
         throw error;
       },
-      new RegExp(`Error: Invalid model hub root url: https://forbidden.com`),
+      new RegExp(`ForbiddenURLError`),
       `Should throw with https://forbidden.com`
     );
   }
@@ -1560,7 +1522,7 @@ add_task(async function test_getting_file_disallowed_custom_hub() {
       () => {
         throw error;
       },
-      new RegExp(`Error: Invalid model hub root url: https://forbidden.com`),
+      new RegExp(`ForbiddenURLError`),
       `Should throw with https://forbidden.com`
     );
   }

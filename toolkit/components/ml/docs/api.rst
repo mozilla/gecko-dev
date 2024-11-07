@@ -97,19 +97,48 @@ Some values are also set from the preferences (set in `about:config`):
 - **browser.ml.modelCacheMaxSize**: Maximum disk size for ML model cache (in GiB)
 
 
+URL allow and deny list
+:::::::::::::::::::::::
+
+We keep a Remote Settings collection called `ml-model-allow-deny-list` that contains URL prefixes
+that are allowed or denied.
+
+Each record comes with the following fields:
+
+- urlPrefix: The URL prefix to allow or deny
+- filter: Set to `ALLOW` to allow, `DENY` to deny
+- description: an optional description
+
+When the API is about to fetch a file, its URL is controlled in the allow/deny list.
+
+Examples of patterns:
+
+- ALL models ALL VERSIONS from the mozilla organization on hugging face : https://huggingface.co/Mozilla/
+- ALL models ALL VERSIONS from our hub: https://model-hub.mozilla.org/
+- A specific model ALL VERSIONS https://huggingface.co/typeform/distilbert-base-uncased-mnli/
+- A specific model and a specific version https://huggingface.co/Mozilla/distilvit/blob/v0.5.0/
+
+Each URL is tested and needs to be included in the allowlist and not in the denylist
+
+To bypass this check and allow Firefox to download any file for runnings models,
+you need to use the `MOZ_ALLOW_EXTERNAL_ML_HUB` environment variable.
+
+If you want to add a new hub, organization or a specific model, ask us by
+`opening a ticket <https://bugzilla.mozilla.org/enter_bug.cgi?product=Core&component=Machine%20Learning>`_.
+
+
 Using the Hugging Face model hub
 ::::::::::::::::::::::::::::::::
 
-By default, the engine will use the Mozilla model hub and will error out if you try to use any other hub for security reasons.
+By default, the engine will use the Mozilla model hub. You will need to pass `modelHubRootUrl`
+and `modelHubUrlTemplate` with these values:
 
-If you want to use the Hugging Face model hub, you will need to run Firefox with the `MOZ_ALLOW_EXTERNAL_ML_HUB` environment variable
-set to `1`, then set in `about:config` these two values:
+- `modelHubRootUrl` to `https://huggingface.co`
+- `modelHubUrlTemplate` to `{model}/resolve/{revision}`
 
-- `browser.ml.modelHubRootUrl` to `https://huggingface.co`
-- `browser.ml.modelHubUrlTemplate` to `{model}/resolve/{revision}`
-
-The inference engine will then look for models in the Hugging Face model hub.
-
+The inference engine will then look for models in the Hugging Face model hub. If the URL is
+not allowed (see previous section) and you still want to experiment with the model,
+use `MOZ_ALLOW_EXTERNAL_ML_HUB`.
 
 To run against a Hugging Face model, visit `this page <https://huggingface.co/models?library=transformers.js>`_ and select on
 the top left corner `tasks`. You can pick a task and then choose a model.
@@ -126,6 +155,8 @@ Let's say you want to pick the `Xenova/distilbart-cnn-6-6` model. All you have t
   const options = {
     taskName: "summarization",
     modelId: "Xenova/distilbart-cnn-6-6",
+    modelHubRootUrl: "https://huggingface.co",
+    modelHubUrlTemplate: "{model}/resolve/{revision}"
   };
 
   const engine = await createEngine(options);
