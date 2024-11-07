@@ -5,13 +5,40 @@
 import React, { useMemo } from "react";
 import { DSEmptyState } from "../DSEmptyState/DSEmptyState";
 import { DSCard } from "../DSCard/DSCard";
+import { useSelector } from "react-redux";
 
-function CardSections({ data, feed, dispatch, type, firstVisibleTimestamp }) {
+// Prefs
+const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
+const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
+const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
+const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
+const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
+
+function CardSections({
+  data,
+  feed,
+  dispatch,
+  type,
+  firstVisibleTimestamp,
+  is_collection,
+  spocMessageVariant,
+  ctaButtonVariant,
+  ctaButtonSponsors,
+}) {
+  // const prefs = this.props.Prefs.values;
   const { recommendations, sections } = data;
   const isEmpty = recommendations?.length === 0 || !sections;
   const sortedSections = sections?.sort(
     (a, b) => a.receivedRank - b.receivedRank
   );
+
+  const prefs = useSelector(state => state.Prefs.values);
+  const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
+  const showTopics = prefs[PREF_TOPICS_ENABLED];
+  const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
+  const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
+  const selectedTopics = prefs[PREF_TOPICS_SELECTED];
+  const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
 
   // useMemo to only get sorted recs when the data prop changes
   const sortedRecs = useMemo(() => {
@@ -76,6 +103,16 @@ function CardSections({ data, feed, dispatch, type, firstVisibleTimestamp }) {
                     received_rank={rec.received_rank}
                     format={rec.format}
                     alt_text={rec.alt_text}
+                    mayHaveThumbsUpDown={mayHaveThumbsUpDown}
+                    mayHaveSectionsCards={mayHaveSectionsCards}
+                    showTopics={showTopics}
+                    selectedTopics={selectedTopics}
+                    availableTopics={availableTopics}
+                    is_collection={is_collection}
+                    ctaButtonSponsors={ctaButtonSponsors}
+                    ctaButtonVariant={ctaButtonVariant}
+                    spocMessageVariant={spocMessageVariant}
+                    saveToPocketCard={saveToPocketCard}
                   />
                 );
               })}

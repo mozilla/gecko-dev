@@ -3990,7 +3990,6 @@ function ListFeed({
 
 
 const PREF_ONBOARDING_EXPERIENCE_DISMISSED = "discoverystream.onboardingExperience.dismissed";
-const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
@@ -4271,7 +4270,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
     } = DiscoveryStream;
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
     const isOnboardingExperienceDismissed = prefs[PREF_ONBOARDING_EXPERIENCE_DISMISSED];
-    const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
     const mayHaveThumbsUpDown = prefs[PREF_THUMBS_UP_DOWN_ENABLED];
     const showTopics = prefs[PREF_TOPICS_ENABLED];
     const selectedTopics = prefs[PREF_TOPICS_SELECTED];
@@ -4323,7 +4321,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
         spocMessageVariant: spocMessageVariant,
         recommendation_id: rec.recommendation_id,
         firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-        mayHaveSectionsCards: mayHaveSectionsCards,
         mayHaveThumbsUpDown: mayHaveThumbsUpDown,
         scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
         recommended_at: rec.recommended_at,
@@ -9416,19 +9413,41 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
 
 
 
+
+
+// Prefs
+const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
+const CardSections_PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
+const CardSections_PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
+const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
+const CardSections_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
 function CardSections({
   data,
   feed,
   dispatch,
   type,
-  firstVisibleTimestamp
+  firstVisibleTimestamp,
+  is_collection,
+  spocMessageVariant,
+  ctaButtonVariant,
+  ctaButtonSponsors
 }) {
+  // const prefs = this.props.Prefs.values;
   const {
     recommendations,
     sections
   } = data;
   const isEmpty = recommendations?.length === 0 || !sections;
   const sortedSections = sections?.sort((a, b) => a.receivedRank - b.receivedRank);
+  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const {
+    saveToPocketCard
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
+  const showTopics = prefs[CardSections_PREF_TOPICS_ENABLED];
+  const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
+  const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
+  const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
+  const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
 
   // useMemo to only get sorted recs when the data prop changes
   const sortedRecs = (0,external_React_namespaceObject.useMemo)(() => {
@@ -9502,7 +9521,17 @@ function CardSections({
         recommended_at: rec.recommended_at,
         received_rank: rec.received_rank,
         format: rec.format,
-        alt_text: rec.alt_text
+        alt_text: rec.alt_text,
+        mayHaveThumbsUpDown: mayHaveThumbsUpDown,
+        mayHaveSectionsCards: mayHaveSectionsCards,
+        showTopics: showTopics,
+        selectedTopics: selectedTopics,
+        availableTopics: availableTopics,
+        is_collection: is_collection,
+        ctaButtonSponsors: ctaButtonSponsors,
+        ctaButtonVariant: ctaButtonVariant,
+        spocMessageVariant: spocMessageVariant,
+        saveToPocketCard: saveToPocketCard
       });
     })));
   }));
@@ -9674,7 +9703,11 @@ class _DiscoveryStreamBase extends (external_React_default()).PureComponent {
               data: component.data,
               dispatch: this.props.dispatch,
               type: component.type,
-              firstVisibleTimestamp: this.props.firstVisibleTimestamp
+              firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+              is_collection: true,
+              ctaButtonSponsors: component.properties.ctaButtonSponsors,
+              ctaButtonVariant: component.properties.ctaButtonVariant,
+              spocMessageVariant: component.properties.spocMessageVariant
             });
           }
           return /*#__PURE__*/external_React_default().createElement(CardGrid, {
