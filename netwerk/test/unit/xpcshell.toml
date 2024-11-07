@@ -505,6 +505,8 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] #Bug 1553353
 
 ["test_cookies_partition_counting.js"]
 
+["test_cookies_partition_migration.js"]
+
 ["test_cookies_privatebrowsing.js"]
 
 ["test_cookies_profile_close.js"]
