@@ -363,7 +363,9 @@ def add_extra_options(config, tests):
 
         if "android-hw-p6" in test_platform or "android-hw-s24" in test_platform:
             extra_options.append("--power-test")
-        elif "windows" in test_platform and "speedometer3" in test["test-name"]:
+        elif "windows" in test_platform and any(
+            t in test["test-name"] for t in ("speedometer3", "tp6")
+        ):
             extra_options.append("--power-test")
 
         extra_options.append("--project={}".format(config.params.get("project")))

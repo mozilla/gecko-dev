@@ -280,9 +280,7 @@ class BasePythonSupport:
         cpuTime_measurements = {}
 
         # Gather pageload cpuTime measurements
-        cpu_vals = []
-        for result in self.raw_result:
-            cpu_vals += result.get("cpu", [])
+        cpu_vals = raw_result.get("cpu", [])
         if cpu_vals and self.app in FIREFOX_APPS:
             cpuTime_measurements.setdefault("cpuTimePageload", {"unit": "ms"})[
                 "replicates"
@@ -373,15 +371,22 @@ class BasePythonSupport:
         for measurement, measurement_info in all_measurements.items():
             if measurement in exclude:
                 continue
-            suite["subtests"].append(
-                self._build_standard_subtest(
-                    test,
-                    measurement_info["replicates"],
-                    measurement,
-                    unit=measurement_info["unit"],
-                    lower_is_better=True,
+
+            if kwargs.get("unit", None) is None:
+                kwargs["unit"] = measurement_info["unit"]
+            if kwargs.get("lower_is_better", None) is None:
+                kwargs["lower_is_better"] = True
+
+            if isinstance(suite["subtests"], dict):
+                suite["subtests"][measurement] = self._build_standard_subtest(
+                    test, measurement_info["replicates"], measurement, **kwargs
                 )
-            )
+            else:
+                suite["subtests"].append(
+                    self._build_standard_subtest(
+                        test, measurement_info["replicates"], measurement, **kwargs
+                    )
+                )
 
     def report_test_success(self):
         """Used to denote custom test failures.

@@ -117,14 +117,6 @@ class PageloadSupport(BasePythonSupport):
                 raw_result["statistics"]["timings"], raptor, retval={}
             )
 
-        # Bug 1806402 - Handle chrome cpu data properly
-        cpu_vals = raw_result.get("cpu", None)
-        if (
-            cpu_vals
-            and self.app not in NON_FIREFOX_BROWSERS + NON_FIREFOX_BROWSERS_MOBILE
-        ):
-            bt_result["measurements"].setdefault("cpuTime", []).extend(cpu_vals)
-
         if self.perfstats:
             for cycle in raw_result["geckoPerfStats"]:
                 for metric in cycle:
@@ -224,6 +216,19 @@ class PageloadSupport(BasePythonSupport):
                 suite["subtests"][measurement_name]["replicates"].extend(
                     new_subtest["replicates"]
                 )
+
+        # Handle chimeras here, by default the add_additional_metrics
+        # parses for all the results together regardless of cold/warm
+        cycle_type = "browser-cycle"
+        if "warm" in suite["extraOptions"]:
+            cycle_type = "page-cycle"
+
+        self.add_additional_metrics(test, suite, cycle_type=cycle_type)
+
+        # Don't alert on cpuTime metrics
+        for measurement_name, measurement_info in suite["subtests"].items():
+            if "cputime" in measurement_name.lower():
+                measurement_info["shouldAlert"] = False
 
     def summarize_suites(self, suites):
         def _process_geomean(subtest):
