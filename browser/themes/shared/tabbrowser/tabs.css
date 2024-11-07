@@ -532,6 +532,13 @@
     &:hover:active {
       background-color: color-mix(in srgb, currentColor 30%, transparent);
     }
+
+    &:is([soundplaying], [muted], [activemedia-blocked]) {
+      &:hover,
+      &:hover:active {
+        background-color: color-mix(in srgb, currentColor 50%, transparent);
+      }
+    }
   }
 
   :is(
