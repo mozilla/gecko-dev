@@ -158,15 +158,31 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1653075",
+    id: "bug1886293",
     platform: "desktop",
-    domain: "livescience.com",
-    bug: "1653075",
+    domain: "Future PLC websites",
+    bug: "1886293",
     contentScripts: {
-      matches: ["*://*.livescience.com/*"],
+      matches: [
+        "*://*.androidcentral.com/*",
+        "*://*.creativebloq.com/*",
+        "*://*.cyclingnews.com/*",
+        "*://*.gamesradar.com/*",
+        "*://*.imore.com/*",
+        "*://*.itpro.com/*",
+        "*://*.laptopmag.com/*",
+        "*://*.livescience.com/*",
+        "*://*.loudersound.com/*",
+        "*://*.musicradar.com/*",
+        "*://*.pcgamer.com/*",
+        "*://*.space.com/*",
+        "*://*.techradar.com/*",
+        "*://*.tomshardware.com/*",
+        "*://*.windowscentral.com/*",
+      ],
       css: [
         {
-          file: "injections/css/bug1653075-livescience.com-scrollbar-width.css",
+          file: "injections/css/bug1886293-futurePLC-sites-trending_scrollbars.css",
         },
       ],
     },
@@ -535,20 +551,6 @@ const AVAILABLE_INJECTIONS = [
       css: [
         {
           file: "injections/css/bug1819678-nppes.cms.hhs.gov-unsupported-banner.css",
-        },
-      ],
-    },
-  },
-  {
-    id: "bug1829949",
-    platform: "desktop",
-    domain: "tomshardware.com",
-    bug: "1829949",
-    contentScripts: {
-      matches: ["*://*.tomshardware.com/*"],
-      css: [
-        {
-          file: "injections/css/bug1829949-tomshardware.com-scrollbar-width.css",
         },
       ],
     },
@@ -1026,7 +1028,7 @@ const AVAILABLE_INJECTIONS = [
   {
     id: "bug1779908",
     platform: "desktop",
-    domain: "docs.google.com",
+    domain: "play.google.com",
     bug: "1779908",
     contentScripts: {
       matches: ["*://play.google.com/store/*"],

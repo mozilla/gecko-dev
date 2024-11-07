@@ -1,0 +1,34 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * Sites maintained by Future PLC
+ * Bug #1886285 - https://bugzilla.mozilla.org/show_bug.cgi?id=1886285
+ * - androidcentral.com
+ * - creativebloq.com
+ * - cyclingnews.com
+ * - gamesradar.com
+ * - imore.com
+ * - itpro.com
+ * - laptopmag.com
+ * - livescience.com
+ * - loudersound.com
+ * - musicradar.com
+ * - pcgamer.com
+ * - space.com
+ * - techradar.com
+ * - tomshardware.com
+ * - windowscentral.com
+ *
+ * They are using ::webkit-scrollbar to style their "trending" lists,
+ * which results in the wrong colors being applied and sometimes for the
+ * bottom of the text in the list being covered by the scrollbar. Adding
+ * the standard CSS equivalents fixes this.
+ */
+
+.trending__list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--trending-scrollbar-color)
+    var(--trending-scrollbar-background-color);
+}

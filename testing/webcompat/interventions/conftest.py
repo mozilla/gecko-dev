@@ -36,6 +36,11 @@ def pytest_generate_tests(metafunc):
         argvalues.append([dict({"interventions": False}, **otherargs)])
         ids.append("without_interventions")
 
+    if "need_visible_scrollbars" in marks:
+        for mark in metafunc.function.pytestmark:
+            if mark.name == "need_visible_scrollbars":
+                otherargs["need_visible_scrollbars"] = mark.args
+
     if "no_overlay_scrollbars" in marks:
         otherargs["no_overlay_scrollbars"] = True
 

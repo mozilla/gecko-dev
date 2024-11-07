@@ -1041,6 +1041,84 @@ class Client:
         except webdriver.error.NoSuchElementException:
             return True
 
+    def test_future_plc_trending_scrollbar(self, shouldFail=False):
+        trending_list = self.await_css(".trending__list")
+        if not trending_list:
+            raise ValueError("trending list is still where expected")
+
+        # First confirm that the scrollbar is the color the site specifies.
+        css_var_colors = self.execute_script(
+            """
+            // first, force a scrollbar, as the content on each site might
+            // not always be wide enough to force a scrollbar to appear.
+            const list = arguments[0];
+            list.style.overflow = "scroll hidden !important";
+
+            const computedStyle = getComputedStyle(list);
+            return [
+              computedStyle.getPropertyValue('--trending-scrollbar-color'),
+              computedStyle.getPropertyValue('--trending-scrollbar-background-color'),
+            ];
+        """,
+            trending_list,
+        )
+        if not css_var_colors[0] or not css_var_colors[1]:
+            raise ValueError("expected CSS vars are still used for scrollbar-color")
+
+        [expected, actual] = self.execute_script(
+            """
+            const [list, cssVarColors] = arguments;
+            const sbColor = getComputedStyle(list).scrollbarColor;
+            // scrollbar-color is a two-color value wth no easy way to separate
+            // them and no way to be sure the value will remain consistent in
+            // the format "rgb(x, y, z) rgb(x, y, z)". Likewise, the colors the
+            // site specified in the CSS might be in hex format or any CSS color
+            // value. So rather than trying to normalize the values ourselves, we
+            // set the border-color of an element, which is also a two-color CSS
+            // value, and then also read it back through the computed style, so
+            // Firefox normalizes both colors the same way for us and lets us
+            // compare their equivalence as simple strings.
+            list.style.borderColor = sbColor;
+            const actual = getComputedStyle(list).borderColor;
+            list.style.borderColor = cssVarColors.join(" ");
+            const expected = getComputedStyle(list).borderColor;
+            return [expected, actual];
+        """,
+            trending_list,
+            css_var_colors,
+        )
+        if shouldFail:
+            assert expected != actual, "scrollbar is not the correct color"
+        else:
+            assert expected == actual, "scrollbar is the correct color"
+
+        # Also check that the scrollbar does not cover any text (it may not
+        # actually cover any text even without the intervention, so we skip
+        # checking that case). To find out, we color the scrollbar the same as
+        # the trending list's background, and compare screenshots of the
+        # list with and without the scrollbar. This way if no text is covered,
+        # the screenshots will not differ.
+        if not shouldFail:
+            self.execute_script(
+                """
+                const list = arguments[0];
+                const bgc = getComputedStyle(list).backgroundColor;
+                list.style.scrollbarColor = `${bgc} ${bgc}`;
+            """,
+                trending_list,
+            )
+            with_scrollbar = trending_list.screenshot()
+            self.execute_script(
+                """
+                arguments[0].style.scrollbarWidth = "none";
+            """,
+                trending_list,
+            )
+            without_scrollbar = trending_list.screenshot()
+            assert (
+                with_scrollbar == without_scrollbar
+            ), "scrollbar does not cover any text"
+
     def test_for_fastclick(self, element):
         # FastClick cancels touchend, breaking default actions on Fenix.
         # It instead fires a mousedown or click, which we can detect.
