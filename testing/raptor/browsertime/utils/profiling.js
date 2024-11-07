@@ -4,10 +4,83 @@
 
 /* eslint-env node */
 /* eslint-disable mozilla/avoid-Date-timing */
+/* eslint-disable no-unsanitized/method */
 
 const fs = require("fs");
 const os = require("os");
+const path = require("path");
 const { exec } = require("node:child_process");
+
+async function getBrowsertimeResultsPath(context, commands, createDirectories) {
+  // Import needs to be done here because importing at the top-level
+  // requires a wrapped async function call, but that import can then
+  // only be used within the wrapped async call. Outside of it, the imported
+  // variable is undefined.
+  let pathToFolder;
+  if (os.type() == "Windows_NT") {
+    pathToFolder = await import(
+      `file://${process.env.BROWSERTIME_ROOT.replace(
+        "\\",
+        "/"
+      )}/node_modules/browsertime/lib/support/pathToFolder.js`
+    );
+  } else {
+    pathToFolder = await import(
+      path.join(
+        process.env.BROWSERTIME_ROOT,
+        "node_modules",
+        "browsertime",
+        "lib",
+        "support",
+        "pathToFolder.js"
+      )
+    );
+  }
+
+  const browsertimeResultsPath = path.join(
+    context.options.resultDir,
+    await pathToFolder.pathToFolder(
+      commands.measure.result[0].browserScripts.pageinfo.url,
+      context.options
+    )
+  );
+
+  if (createDirectories) {
+    try {
+      await fs.promises.mkdir(browsertimeResultsPath, { recursive: true });
+    } catch (err) {
+      context.log.info(
+        `Failed to create browsertime results path directories: ${err}`
+      );
+    }
+  }
+
+  return browsertimeResultsPath;
+}
+
+async function moveToBrowsertimeResultsPath(
+  destFilename,
+  srcFilepath,
+  context,
+  commands
+) {
+  const browsertimeResultsPath = await getBrowsertimeResultsPath(
+    context,
+    commands,
+    true
+  );
+  const destFilepath = path.join(browsertimeResultsPath, destFilename);
+
+  try {
+    await fs.promises.rename(srcFilepath, destFilepath);
+  } catch (err) {
+    context.log.info(
+      `Failed to rename/copy file into browsertime results: ${err}`
+    );
+  }
+
+  return destFilepath;
+}
 
 function logCommands(commands, logger, command, printFirstArg) {
   let object = commands;
@@ -38,7 +111,7 @@ async function logTask(context, logString, task) {
 }
 
 let startedProfiling = false;
-let childPromise, child, profilePath;
+let childPromise, child, profilePath, profileFilename;
 async function startWindowsPowerProfiling(iterationIndex) {
   let canPowerProfile =
     os.type() == "Windows_NT" &&
@@ -48,8 +121,8 @@ async function startWindowsPowerProfiling(iterationIndex) {
   if (canPowerProfile && !startedProfiling) {
     startedProfiling = true;
 
-    profilePath =
-      process.env.MOZ_UPLOAD_DIR + `/profile_power_${iterationIndex}.json`;
+    profileFilename = `profile_power_${iterationIndex}.json`;
+    profilePath = process.env.MOZ_UPLOAD_DIR + "\\" + profileFilename;
     childPromise = new Promise(resolve => {
       child = exec(
         process.env.XPCSHELL_PATH,
@@ -199,7 +272,16 @@ function logTest(name, test) {
     if (context.options.browsertime.support_class) {
       await stopWindowsPowerProfiling();
       let powerData = await gatherWindowsPowerUsage(testTimes);
+
       if (powerData?.length) {
+        // Move the profile to the appropriate location in the browsertime results folder
+        await moveToBrowsertimeResultsPath(
+          profileFilename,
+          profilePath,
+          context,
+          commands
+        );
+
         powerData.forEach((powerUsage, ind) => {
           if (!commands.measure.result[ind].extras.powerUsage) {
             commands.measure.result[ind].extras.powerUsagePageload = [];
@@ -219,6 +301,8 @@ module.exports = {
   logTest,
   logTask,
   gatherWindowsPowerUsage,
+  getBrowsertimeResultsPath,
+  moveToBrowsertimeResultsPath,
   startWindowsPowerProfiling,
   stopWindowsPowerProfiling,
 };
