@@ -64,18 +64,18 @@ use api::units::*;
 
 /// A visible part of a rectangle after occlusion culling.
 #[derive(Debug, PartialEq)]
-pub struct Item {
+pub struct Item<K> {
     pub rectangle: DeviceBox2D,
-    pub key: usize,
+    pub key: K,
 }
 
 /// A builder that applies occlusion culling with rectangles provided in front-to-back order.
-pub struct FrontToBackBuilder {
-    opaque_items: Vec<Item>,
-    alpha_items: Vec<Item>,
+pub struct FrontToBackBuilder<K> {
+    opaque_items: Vec<Item<K>>,
+    alpha_items: Vec<Item<K>>,
 }
 
-impl FrontToBackBuilder {
+impl<K> FrontToBackBuilder<K> where K: Copy {
 
     /// Pre-allocating constructor.
     pub fn with_capacity(opaque: usize, alpha: usize) -> Self {
@@ -88,7 +88,7 @@ impl FrontToBackBuilder {
     /// Add a rectangle, potentially splitting it and discarding the occluded parts if any.
     ///
     /// Returns true the rectangle is at least partially visible.
-    pub fn add(&mut self, rect: &DeviceBox2D, is_opaque: bool, key: usize) -> bool {
+    pub fn add(&mut self, rect: &DeviceBox2D, is_opaque: bool, key: K) -> bool {
         let mut fragments: SmallVec<[DeviceBox2D; 16]> = SmallVec::new();
         fragments.push(*rect);
 
@@ -132,12 +132,12 @@ impl FrontToBackBuilder {
     }
 
     /// The visible opaque rectangles (front-to-back order).
-    pub fn opaque_items(&self) -> &[Item] {
+    pub fn opaque_items(&self) -> &[Item<K>] {
         &self.opaque_items
     }
 
     /// The visible non-opaque rectangles (front-to-back order).
-    pub fn alpha_items(&self) -> &[Item] {
+    pub fn alpha_items(&self) -> &[Item<K>] {
         &self.alpha_items
     }
 }

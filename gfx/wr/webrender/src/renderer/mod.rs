@@ -3117,7 +3117,7 @@ impl Renderer {
     }
 
     /// Draw a list of tiles to the framebuffer
-    fn draw_tile_list<'a, I: Iterator<Item = &'a occlusion::Item>>(
+    fn draw_tile_list<'a, I: Iterator<Item = &'a occlusion::Item<usize>>>(
         &mut self,
         tiles_iter: I,
         composite_state: &CompositeState,
