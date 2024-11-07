@@ -6,10 +6,6 @@ $excerpt-line-height: 20;
 $ds-card-image-gradient-fade: rgba(0, 0, 0, 0%);
 $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
-:root {
-  --newtab-font-size-xsmall: 11px;
-}
-
 .ds-card {
   display: flex;
   flex-direction: column;
@@ -242,7 +238,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
   }
 
-  > .ds-card-topic {
+  .ds-card-topic {
     position: absolute;
     z-index: 1;
     background: light-dark(#F0F0F4, var(--newtab-background-color-secondary));
@@ -450,96 +446,6 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       .title {
         text-transform: capitalize;
       }
-    }
-  }
-}
-
-// Class is applied to .ds-card element
-.sections-card-ui {
-
-  // Loading Animation
-  &.placeholder {
-    box-shadow: 0 2px 6px #15141A24;
-    border-radius: var(--border-radius-large);
-  }
-
-  .ds-card-grid & {
-    background: var(--newtab-background-card);
-
-    &:not(.placeholder) {
-      box-shadow: 0 1px 2px 0 rgba(58, 57, 68, 20%);
-      border-radius: var(--border-radius-large);
-
-      &.active,
-      &:focus-within,
-      &:hover {
-        box-shadow: 0 2px 14px 0 rgba(58, 57, 68, 20%);
-      }
-
-      .img-wrapper > .ds-image.img > img {
-        border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
-      }
-    }
-
-    .meta {
-      $line-count: 2;
-
-      padding: var(--space-large);
-
-      .title {
-        // show only 2 lines of copy
-        font-size: var(--font-size-root);
-        -webkit-line-clamp: $line-count;
-        line-height: normal;
-        margin-bottom: var(--space-small);
-        font-weight: var(--font-weigth-bold);
-      }
-
-      .excerpt {
-        // show only 2 lines of copy
-        font-size: var(--font-size-small);
-        -webkit-line-clamp: $line-count;
-        line-height: normal;
-      }
-
-      .source {
-        font-size: var(--newtab-font-size-xsmall);
-      }
-
-      // Sponsored by text
-      .story-footer {
-        justify-content: flex-start;
-        display: grid;
-        height: 28px;
-        align-content: center;
-        margin-top: var(--space-small);
-      }
-
-      .story-sponsored-label {
-        line-height: unset;
-        font-size: var(--newtab-font-size-xsmall);
-      }
-    }
-
-    .sections-card-footer {
-      padding-top: var(--space-small);
-    }
-
-    .ds-card-topic {
-      display: grid;
-      align-content: center;
-      height: 28px;
-      font-size: var(--newtab-font-size-xsmall);
-      color: var(--newtab-text-topic-label-color);
-    }
-
-    .card-stp-button-hover-background {
-      border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
-      background-color: transparent;
-    }
-
-    .ds-card-link:focus {
-      border-radius: var(--border-radius-large);
     }
   }
 }

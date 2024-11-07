@@ -58,10 +58,6 @@ $in-content-page-background-dark: #2B2A33;
 $newtab-background-secondary: #FFF;
 $newtab-background-secondary-dark: rgb(66, 65, 77);
 
-// Mirrors $newtab-background-secondary with 20% opacity
-$newtab-background-card: rgba(255, 255, 255, 80%);
-$newtab-background-card-dark: rgb(66, 65, 77, 80%);
-
 // Photon transitions from http://design.firefox.com/photon/motion/duration-and-easing.html
 $photon-easing: cubic-bezier(0.07, 0.95, 0, 1);
 

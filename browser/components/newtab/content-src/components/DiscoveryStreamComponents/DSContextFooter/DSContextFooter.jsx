@@ -13,10 +13,10 @@ import React from "react";
 const ANIMATION_DURATION = 3000;
 
 export const DSMessageLabel = props => {
-  const { context, context_type, mayHaveSectionsCards } = props;
+  const { context, context_type } = props;
   const { icon, fluentID } = cardContextTypes[context_type] || {};
 
-  if (!context && context_type && !mayHaveSectionsCards) {
+  if (!context && context_type) {
     return (
       <TransitionGroup component={null}>
         <CSSTransition
@@ -86,7 +86,6 @@ export class DSContextFooter extends React.PureComponent {
       source,
       spocMessageVariant,
       dispatch,
-      mayHaveSectionsCards,
     } = this.props;
 
     const sponsorLabel = SponsorLabel({
@@ -97,7 +96,6 @@ export class DSContextFooter extends React.PureComponent {
     const dsMessageLabel = DSMessageLabel({
       context,
       context_type,
-      mayHaveSectionsCards,
     });
 
     if (cta_button_variant === "variant-a") {
