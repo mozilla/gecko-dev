@@ -20,7 +20,6 @@
   --in-content-item-hover-text: var(--in-content-page-color);
   --in-content-item-selected: var(--in-content-primary-button-background);
   --in-content-item-selected-text: var(--in-content-primary-button-text-color);
-  --in-content-accent-color-active: var(--in-content-primary-button-background-hover);
   --in-content-border-invalid: var(--red-50);
   --in-content-border-color: #d7d7db;
   --in-content-button-text-color: var(--in-content-text-color);
@@ -153,8 +152,6 @@
     --in-content-item-hover-text: SelectedItemText;
     --in-content-item-selected: SelectedItem;
     --in-content-item-selected-text: SelectedItemText;
-
-    --in-content-accent-color-active: SelectedItem;
 
     /* This is not great, but there is no suitable keyword for this.
      * In theory, we shouldn't be conveying invalid state just with a colour
@@ -787,7 +784,7 @@ html|*#categories > html|*.category:dir(rtl) {
 
   #categories > .category[selected]:hover:active,
   #categories > .category.selected:hover:active {
-    color: var(--in-content-accent-color-active);
+    color: var(--color-accent-primary-active);
   }
 }
 
