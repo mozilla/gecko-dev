@@ -389,3 +389,25 @@ void CodeGenerator::visitWasmAtomicStoreI64(LWasmAtomicStoreI64* lir) {
 
   masm.wasmAtomicStore64(lir->mir()->access(), addr, tmp, value);
 }
+
+void CodeGeneratorMIPS::emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend,
+                                         Register divisor, Register output) {
+  // Callers handle division by zero and integer overflow.
+#ifdef MIPSR6
+  masm.as_div(/* result= */ output, dividend, divisor);
+#else
+  masm.as_div(dividend, divisor);
+  masm.as_mflo(/* result= */ output);
+#endif
+}
+
+void CodeGeneratorMIPS::emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend,
+                                         Register divisor, Register output) {
+  // Callers handle division by zero and integer overflow.
+#ifdef MIPSR6
+  masm.as_mod(/* result= */ output, dividend, divisor);
+#else
+  masm.as_div(dividend, divisor);
+  masm.as_mfhi(/* result= */ output);
+#endif
+}

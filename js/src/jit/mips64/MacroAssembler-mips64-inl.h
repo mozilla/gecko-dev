@@ -56,6 +56,14 @@ void MacroAssembler::move32To64SignExtend(Register src, Register64 dest) {
   ma_sll(dest.reg, src, Imm32(0));
 }
 
+void MacroAssembler::move8SignExtendToPtr(Register src, Register dest) {
+  move8To64SignExtend(src, Register64(dest));
+}
+
+void MacroAssembler::move16SignExtendToPtr(Register src, Register dest) {
+  move16To64SignExtend(src, Register64(dest));
+}
+
 void MacroAssembler::move32SignExtendToPtr(Register src, Register dest) {
   ma_sll(dest, src, Imm32(0));
 }
@@ -315,6 +323,46 @@ void MacroAssembler::inc64(AbsoluteAddress dest) {
   as_sd(SecondScratchReg, ScratchRegister, 0);
 }
 
+void MacroAssembler::quotient64(Register rhs, Register srcDest,
+                                bool isUnsigned) {
+  if (isUnsigned) {
+#ifdef MIPSR6
+    as_ddivu(srcDest, srcDest, rhs);
+#else
+    as_ddivu(srcDest, rhs);
+#endif
+  } else {
+#ifdef MIPSR6
+    as_ddiv(srcDest, srcDest, rhs);
+#else
+    as_ddiv(srcDest, rhs);
+#endif
+  }
+#ifndef MIPSR6
+  as_mflo(srcDest);
+#endif
+}
+
+void MacroAssembler::remainder64(Register rhs, Register srcDest,
+                                 bool isUnsigned) {
+  if (isUnsigned) {
+#ifdef MIPSR6
+    as_dmodu(srcDest, srcDest, rhs);
+#else
+    as_ddivu(srcDest, rhs);
+#endif
+  } else {
+#ifdef MIPSR6
+    as_dmod(srcDest, srcDest, rhs);
+#else
+    as_ddiv(srcDest, rhs);
+#endif
+  }
+#ifndef MIPSR6
+  as_mfhi(srcDest);
+#endif
+}
+
 void MacroAssembler::neg64(Register64 reg) { as_dsubu(reg.reg, zero, reg.reg); }
 
 void MacroAssembler::negPtr(Register reg) { as_dsubu(reg, zero, reg); }
@@ -361,6 +409,10 @@ void MacroAssembler::rshift64(Register shift, Register64 dest) {
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   ma_dsra(dest, dest, imm);
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Register shift, Register dest) {
+  ma_dsra(dest, dest, shift);
 }
 
 void MacroAssembler::rshift64Arithmetic(Imm32 imm, Register64 dest) {

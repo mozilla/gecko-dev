@@ -468,3 +468,27 @@ void CodeGenerator::visitAtomicStore64(LAtomicStore64* lir) {
   }
   masm.memoryBarrierAfter(sync);
 }
+
+void CodeGeneratorMIPS64::emitBigIntPtrDiv(LBigIntPtrDiv* ins,
+                                           Register dividend, Register divisor,
+                                           Register output) {
+  // Callers handle division by zero and integer overflow.
+#ifdef MIPSR6
+  masm.as_ddiv(/* result= */ output, dividend, divisor);
+#else
+  masm.as_ddiv(dividend, divisor);
+  masm.as_mflo(/* result= */ output);
+#endif
+}
+
+void CodeGeneratorMIPS64::emitBigIntPtrMod(LBigIntPtrMod* ins,
+                                           Register dividend, Register divisor,
+                                           Register output) {
+  // Callers handle division by zero and integer overflow.
+#ifdef MIPSR6
+  masm.as_dmod(/* result= */ output, dividend, divisor);
+#else
+  masm.as_ddiv(dividend, divisor);
+  masm.as_mfhi(/* result= */ output);
+#endif
+}

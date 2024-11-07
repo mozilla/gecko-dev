@@ -68,6 +68,8 @@ class LIRGeneratorMIPSShared : public LIRGeneratorShared {
 
   void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
   void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
+  void lowerBigIntPtrDiv(MBigIntPtrDiv* ins);
+  void lowerBigIntPtrMod(MBigIntPtrMod* ins);
 
   LTableSwitch* newLTableSwitch(const LAllocation& in,
                                 const LDefinition& inputCopy,

@@ -75,14 +75,6 @@ void LIRGeneratorMIPS64::lowerUModI64(MMod* mod) {
   defineInt64(lir, mod);
 }
 
-void LIRGeneratorMIPS64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
-  MOZ_CRASH("NYI");
-}
-
-void LIRGeneratorMIPS64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
-  MOZ_CRASH("NYI");
-}
-
 void LIRGeneratorMIPS64::lowerAtomicLoad64(MLoadUnboxedScalar* ins) {
   const LUse elements = useRegister(ins->elements());
   const LAllocation index =

@@ -27,6 +27,11 @@ class CodeGeneratorMIPS64 : public CodeGeneratorMIPSShared {
 
   // Functions for LTestVAndBranch.
   void splitTagForTest(const ValueOperand& value, ScratchTagScope& tag);
+
+  void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
+                        Register output);
+  void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,
+                        Register output);
 };
 
 typedef CodeGeneratorMIPS64 CodeGeneratorSpecific;

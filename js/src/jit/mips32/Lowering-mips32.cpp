@@ -216,14 +216,6 @@ void LIRGeneratorMIPS::lowerUModI64(MMod* mod) {
   defineReturn(lir, mod);
 }
 
-void LIRGeneratorMIPS::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
-  MOZ_CRASH("NYI");
-}
-
-void LIRGeneratorMIPS::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
-  MOZ_CRASH("NYI");
-}
-
 void LIRGenerator::visitWasmTruncateToInt64(MWasmTruncateToInt64* ins) {
   MDefinition* opd = ins->input();
   MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);

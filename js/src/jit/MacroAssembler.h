@@ -1221,7 +1221,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(mips_shared, arm, arm64, loong64, riscv64, wasm32);
 
   inline void quotient64(Register rhs, Register srcDest, bool isUnsigned)
-      DEFINED_ON(arm64, loong64, riscv64);
+      DEFINED_ON(arm64, loong64, mips64, riscv64);
 
   // As above, but srcDest must be eax and tempEdx must be edx.
   inline void quotient32(Register rhs, Register srcDest, Register tempEdx,
@@ -1235,7 +1235,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(mips_shared, arm, arm64, loong64, riscv64, wasm32);
 
   inline void remainder64(Register rhs, Register srcDest, bool isUnsigned)
-      DEFINED_ON(arm64, loong64, riscv64);
+      DEFINED_ON(arm64, loong64, mips64, riscv64);
 
   // As above, but srcDest must be eax and tempEdx must be edx.
   inline void remainder32(Register rhs, Register srcDest, Register tempEdx,
