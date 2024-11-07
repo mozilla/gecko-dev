@@ -433,25 +433,6 @@ const AVAILABLE_UA_OVERRIDES = [
   },
   {
     /*
-     * Bug 1738317 - Add UA override for vmos.cn
-     * Webcompat issue #90432 - https://github.com/webcompat/web-bugs/issues/90432
-     *
-     * Firefox for Android receives a desktop-only layout based on server-side
-     * UA sniffing. Spoofing as Chrome works fine.
-     */
-    id: "bug1738317",
-    platform: "android",
-    domain: "vmos.cn",
-    bug: "1738317",
-    config: {
-      matches: ["*://*.vmos.cn/*"],
-      uaTransformer: () => {
-        return UAHelpers.getDeviceAppropriateChromeUA();
-      },
-    },
-  },
-  {
-    /*
      * Bug 1743627 - Add UA override for renaud-bray.com
      * Webcompat issue #55276 - https://github.com/webcompat/web-bugs/issues/55276
      *
