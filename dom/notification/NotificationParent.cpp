@@ -8,6 +8,9 @@
 
 #include "NotificationUtils.h"
 #include "mozilla/ipc/Endpoint.h"
+#include "mozilla/Components.h"
+#include "nsComponentManagerUtils.h"
+#include "nsIAlertsService.h"
 
 namespace mozilla::dom::notification {
 
@@ -19,8 +22,78 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
+// Step 4 of
+// https://notifications.spec.whatwg.org/#dom-notification-notification
 mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
+  // Step 4.2: Run the fetch steps for notification. (Will happen in
+  // nsIAlertNotification::LoadImage)
+  // Step 4.3: Run the show steps for notification.
+  Show();
   return IPC_OK();
+}
+
+nsresult NotificationParent::Show() {
+  // Step 4.3 the show steps, which are almost all about processing `tag` and
+  // then displaying the notification. Both are handled by
+  // nsIAlertsService::ShowAlert/PersistentNotification. The below is all about
+  // constructing the observer (for show and close events) right and ultimately
+  // call the alerts service function.
+
+  // XXX(krosylight): Non-persistent notifications probably don't need this
+  nsAutoString alertName;
+  GetAlertName(alertName);
+  nsresult rv =
+      PersistNotification(mPrincipal, mId, alertName, mOptions, mScope);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Could not persist Notification");
+  }
+
+  // In the case of IPC, the parent process uses the cookie to map to
+  // nsIObserver. Thus the cookie must be unique to differentiate observers.
+  // XXX(krosylight): This is about ContentChild::mAlertObserver which is not
+  // useful when called by the parent process. This should be removed when we
+  // make nsIAlertsService parent process only.
+  nsString obsoleteCookie = u"notification:"_ns;
+
+  bool requireInteraction = mOptions.requireInteraction();
+  if (!StaticPrefs::dom_webnotifications_requireinteraction_enabled()) {
+    requireInteraction = false;
+  }
+
+  nsCOMPtr<nsIAlertNotification> alert =
+      do_CreateInstance(ALERT_NOTIFICATION_CONTRACTID);
+  if (!alert) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  MOZ_TRY(alert->Init(alertName, mOptions.icon(), mOptions.title(),
+                      mOptions.body(), true, obsoleteCookie,
+                      NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())),
+                      mOptions.lang(), mOptions.dataSerialized(), mPrincipal,
+                      mPrincipal->GetIsInPrivateBrowsing(), requireInteraction,
+                      mOptions.silent(), mOptions.vibrate()));
+
+  nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
+
+  JSONStringWriteFunc<nsAutoCString> persistentData;
+  JSONWriter w(persistentData);
+  w.Start();
+
+  nsAutoString origin;
+  GetOrigin(mPrincipal, origin);
+  w.StringProperty("origin", NS_ConvertUTF16toUTF8(origin));
+
+  w.StringProperty("id", NS_ConvertUTF16toUTF8(mId));
+
+  nsAutoCString originSuffix;
+  mPrincipal->GetOriginSuffix(originSuffix);
+  w.StringProperty("originSuffix", originSuffix);
+
+  w.End();
+
+  MOZ_TRY(alertService->ShowPersistentNotification(
+      NS_ConvertUTF8toUTF16(persistentData.StringCRef()), alert, this));
+
+  return NS_OK;
 }
 
 nsresult NotificationParent::BindToMainThread(

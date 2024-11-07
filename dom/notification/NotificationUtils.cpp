@@ -9,6 +9,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/NotificationBinding.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "nsContentUtils.h"
@@ -182,6 +183,39 @@ void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
 nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate) {
   return do_GetService(isPrivate ? NS_MEMORY_NOTIFICATION_STORAGE_CONTRACTID
                                  : NS_NOTIFICATION_STORAGE_CONTRACTID);
+}
+
+nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
+                             const nsString& aAlertName,
+                             const IPCNotificationOptions& aOptions,
+                             const nsString& aScope) {
+  nsCOMPtr<nsINotificationStorage> notificationStorage =
+      GetNotificationStorage(aPrincipal->GetIsInPrivateBrowsing());
+  if (NS_WARN_IF(!notificationStorage)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  nsString origin;
+  nsresult rv = GetOrigin(aPrincipal, origin);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  nsAutoString behavior;
+  if (!aOptions.behavior().ToJSON(behavior)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  rv = notificationStorage->Put(
+      origin, aId, aOptions.title(), GetEnumString(aOptions.dir()),
+      aOptions.lang(), aOptions.body(), aOptions.tag(), aOptions.icon(),
+      aAlertName, aOptions.dataSerialized(), behavior, aScope);
+
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  return NS_OK;
 }
 
 nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId) {

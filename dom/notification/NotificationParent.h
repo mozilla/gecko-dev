@@ -45,6 +45,8 @@ class NotificationParent final : public PNotificationParent,
  private:
   ~NotificationParent() = default;
 
+  nsresult Show();
+
   void GetAlertName(nsAString& aRetval) {
     if (mAlertName.IsEmpty()) {
       MaybeInitAlertName();
