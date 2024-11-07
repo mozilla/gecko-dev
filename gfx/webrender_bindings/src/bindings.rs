@@ -2312,6 +2312,21 @@ pub extern "C" fn wr_resource_updates_delete_blob_image(txn: &mut Transaction, k
 }
 
 #[no_mangle]
+pub extern "C" fn wr_resource_updates_add_snapshot_image(
+    txn: &mut Transaction,
+    image_key: SnapshotImageKey,
+) {
+    txn.add_snapshot_image(
+        image_key,
+    );
+}
+
+#[no_mangle]
+pub extern "C" fn wr_resource_updates_delete_snapshot_image(txn: &mut Transaction, key: SnapshotImageKey) {
+    txn.delete_snapshot_image(key);
+}
+
+#[no_mangle]
 pub extern "C" fn wr_api_send_transaction(dh: &mut DocumentHandle, transaction: &mut Transaction, is_async: bool) {
     if transaction.is_empty() {
         return;
@@ -2789,6 +2804,7 @@ pub extern "C" fn wr_dp_push_stacking_context(
         &[],
         glyph_raster_space,
         params.flags,
+        None, // TODO(nical)
     );
 
     result

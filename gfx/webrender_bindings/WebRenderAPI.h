@@ -186,6 +186,10 @@ class TransactionBuilder final {
 
   void DeleteBlobImage(wr::BlobImageKey aKey);
 
+  void AddSnapshotImage(wr::SnapshotImageKey aKey);
+
+  void DeleteSnapshotImage(wr::SnapshotImageKey aKey);
+
   void AddRawFont(wr::FontKey aKey, wr::Vec<uint8_t>& aBytes, uint32_t aIndex);
 
   void AddFontDescriptor(wr::FontKey aKey, wr::Vec<uint8_t>& aBytes,
