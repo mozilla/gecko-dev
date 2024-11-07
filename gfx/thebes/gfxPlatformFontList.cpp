@@ -941,6 +941,47 @@ gfxFontEntry* gfxPlatformFontList::LookupInSharedFaceNameList(
   return fe;
 }
 
+void gfxPlatformFontList::MaybeAddToLocalNameTable(
+    const nsACString& aName, const fontlist::LocalFaceRec::InitData& aData) {
+  // Compute a measure of the similarity between aName (which will be a PSName
+  // or FullName) and aReference (a font family name).
+  auto nameSimilarity = [](const nsACString& aName,
+                           const nsACString& aReference) -> uint32_t {
+    uint32_t nameIdx = 0, refIdx = 0, matchCount = 0;
+    while (nameIdx < aName.Length() && refIdx < aReference.Length()) {
+      // Ignore non-alphanumerics in the ASCII range, so that a PSname like
+      // "TimesNewRomanPSMT" is a good match for family "Times New Roman".
+      while (nameIdx < aName.Length() && IsAscii(aName[nameIdx]) &&
+             !IsAsciiAlphanumeric(aName[nameIdx])) {
+        ++nameIdx;
+      }
+      while (refIdx < aReference.Length() && IsAscii(aReference[refIdx]) &&
+             !IsAsciiAlphanumeric(aReference[refIdx])) {
+        ++refIdx;
+      }
+      if (nameIdx == aName.Length() || refIdx == aReference.Length() ||
+          aName[nameIdx] != aReference[refIdx]) {
+        break;
+      }
+      ++nameIdx;
+      ++refIdx;
+      ++matchCount;
+    }
+    return matchCount;
+  };
+
+  mLocalNameTable.WithEntryHandle(aName, [&](auto entry) -> void {
+    if (entry) {
+      if (nameSimilarity(aName, aData.mFamilyName) >
+          nameSimilarity(aName, entry.Data().mFamilyName)) {
+        entry.Update(aData);
+      }
+    } else {
+      entry.OrInsert(aData);
+    }
+  });
+}
+
 void gfxPlatformFontList::LoadBadUnderlineList() {
   gfxFontUtils::GetPrefsFontList("font.blacklist.underline_offset",
                                  mBadUnderlineFamilyNames);

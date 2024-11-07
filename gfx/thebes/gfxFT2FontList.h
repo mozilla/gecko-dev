@@ -208,7 +208,8 @@ class gfxFT2FontList final : public gfxPlatformFontList {
 
   void InitSharedFontListForPlatform() MOZ_REQUIRES(mLock) override;
   void CollectInitData(const FontListEntry& aFLE, const nsCString& aPSName,
-                       const nsCString& aFullName, StandardFile aStdFile);
+                       const nsCString& aFullName, StandardFile aStdFile)
+      MOZ_REQUIRES(mLock);
 
   nsTArray<std::pair<const char**, uint32_t>> GetFilteredPlatformFontLists()
       override;

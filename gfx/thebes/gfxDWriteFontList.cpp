@@ -1539,16 +1539,16 @@ void gfxDWriteFontList::ReadFaceNamesForFamily(
         if (NS_SUCCEEDED(gfxFontUtils::ReadCanonicalName(
                 data, size, gfxFontUtils::NAME_ID_POSTSCRIPT, psname))) {
           ToLowerCase(psname);
-          mLocalNameTable.InsertOrUpdate(
-              psname, fontlist::LocalFaceRec::InitData(key, i));
+          MaybeAddToLocalNameTable(psname,
+                                   fontlist::LocalFaceRec::InitData(key, i));
         }
       }
       if (NS_SUCCEEDED(gfxFontUtils::ReadCanonicalName(
               data, size, gfxFontUtils::NAME_ID_FULL, fullname))) {
         ToLowerCase(fullname);
         if (fullname != psname) {
-          mLocalNameTable.InsertOrUpdate(
-              fullname, fontlist::LocalFaceRec::InitData(key, i));
+          MaybeAddToLocalNameTable(fullname,
+                                   fontlist::LocalFaceRec::InitData(key, i));
         }
       }
 

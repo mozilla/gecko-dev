@@ -871,6 +871,14 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
                                            SlantStyleRange aStyleForEntry)
       MOZ_REQUIRES(mLock);
 
+  // Add an entry for aName to the local names table, but only if it is not
+  // already present, or aName and aData.mFamilyName look like a better match
+  // than the existing entry.
+  void MaybeAddToLocalNameTable(
+      const nsACString& aName,
+      const mozilla::fontlist::LocalFaceRec::InitData& aData)
+      MOZ_REQUIRES(mLock);
+
   // load the bad underline blocklist from pref.
   void LoadBadUnderlineList();
 

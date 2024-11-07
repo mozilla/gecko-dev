@@ -702,13 +702,13 @@ void gfxFT2FontList::CollectInitData(const FontListEntry& aFLE,
   nsAutoCString psname(aPSName), fullname(aFullName);
   if (!psname.IsEmpty()) {
     ToLowerCase(psname);
-    mLocalNameTable.InsertOrUpdate(
+    MaybeAddToLocalNameTable(
         psname, fontlist::LocalFaceRec::InitData(key, aFLE.filepath()));
   }
   if (!fullname.IsEmpty()) {
     ToLowerCase(fullname);
     if (fullname != psname) {
-      mLocalNameTable.InsertOrUpdate(
+      MaybeAddToLocalNameTable(
           fullname, fontlist::LocalFaceRec::InitData(key, aFLE.filepath()));
     }
   }
@@ -1207,15 +1207,18 @@ void gfxFT2FontList::AppendFacesFromFontFile(const nsCString& aFileName,
       uint32_t(s.st_mtime) == timestamp && s.st_size == filesize) {
     CollectFunc unshared =
         [](const FontListEntry& aFLE, const nsCString& aPSName,
-           const nsCString& aFullName, StandardFile aStdFile) {
-          auto* pfl = PlatformFontList();
-          pfl->mLock.AssertCurrentThreadIn();
-          pfl->AppendFaceFromFontListEntry(aFLE, aStdFile);
-        };
+           const nsCString& aFullName, StandardFile aStdFile)
+            MOZ_REQUIRES(PlatformFontList()->mLock) {
+              auto* pfl = PlatformFontList();
+              pfl->mLock.AssertCurrentThreadIn();
+              pfl->AppendFaceFromFontListEntry(aFLE, aStdFile);
+            };
     CollectFunc shared = [](const FontListEntry& aFLE, const nsCString& aPSName,
-                            const nsCString& aFullName, StandardFile aStdFile) {
-      PlatformFontList()->CollectInitData(aFLE, aPSName, aFullName, aStdFile);
-    };
+                            const nsCString& aFullName, StandardFile aStdFile)
+                             MOZ_REQUIRES(PlatformFontList()->mLock) {
+                               PlatformFontList()->CollectInitData(
+                                   aFLE, aPSName, aFullName, aStdFile);
+                             };
     if (AppendFacesFromCachedFaceList(SharedFontList() ? shared : unshared,
                                       aFileName, cachedFaceList, aStdFile)) {
       LOG(("using cached font info for %s", aFileName.get()));
@@ -1495,10 +1498,11 @@ void gfxFT2FontList::AppendFacesFromOmnijarEntry(nsZipArchive* aArchive,
           };
       CollectFunc shared = [](const FontListEntry& aFLE,
                               const nsCString& aPSName,
-                              const nsCString& aFullName,
-                              StandardFile aStdFile) {
-        PlatformFontList()->CollectInitData(aFLE, aPSName, aFullName, aStdFile);
-      };
+                              const nsCString& aFullName, StandardFile aStdFile)
+                               MOZ_REQUIRES(PlatformFontList()->mLock) {
+                                 PlatformFontList()->CollectInitData(
+                                     aFLE, aPSName, aFullName, aStdFile);
+                               };
       if (AppendFacesFromCachedFaceList(SharedFontList() ? shared : unshared,
                                         aEntryName, faceList, kStandard)) {
         return;
