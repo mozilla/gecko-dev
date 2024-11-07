@@ -78,6 +78,11 @@ support-files = [
   "notification_worker_child-parent.js",
 ]
 
+["test_notification_worker_click.html"]
+skip-if = [
+  "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
+]
+
 ["test_notification_worker_permission.html"]
 support-files = ["notification_permission_worker.js"]
 

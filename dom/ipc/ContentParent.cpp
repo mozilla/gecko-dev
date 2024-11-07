@@ -4751,20 +4751,12 @@ mozilla::ipc::IPCResult ContentParent::RecvNotificationEvent(
     return IPC_OK();
   }
 
-  if (aType.EqualsLiteral("click")) {
-    nsresult rv = swm->SendNotificationClickEvent(
-        aData.originSuffix(), aData.scope(), aData.ID(), aData.title(),
-        aData.dir(), aData.lang(), aData.body(), aData.tag(), aData.icon(),
-        aData.data(), aData.behavior());
-    Unused << NS_WARN_IF(NS_FAILED(rv));
-  } else {
-    MOZ_ASSERT(aType.EqualsLiteral("close"));
-    nsresult rv = swm->SendNotificationCloseEvent(
-        aData.originSuffix(), aData.scope(), aData.ID(), aData.title(),
-        aData.dir(), aData.lang(), aData.body(), aData.tag(), aData.icon(),
-        aData.data(), aData.behavior());
-    Unused << NS_WARN_IF(NS_FAILED(rv));
-  }
+  MOZ_ASSERT(aType.EqualsLiteral("close"));
+  nsresult rv = swm->SendNotificationCloseEvent(
+      aData.originSuffix(), aData.scope(), aData.ID(), aData.title(),
+      aData.dir(), aData.lang(), aData.body(), aData.tag(), aData.icon(),
+      aData.data(), aData.behavior());
+  Unused << NS_WARN_IF(NS_FAILED(rv));
 
   return IPC_OK();
 }

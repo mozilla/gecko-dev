@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
+<script src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+
+<script>
+add_task(async function test_notification_worker_click() {
+  await NotificationTest.allowNotifications();
+  await MockAlertsService.register();
+  await MockAlertsService.enableAutoClick();
+
+  var w = new Worker(URL.createObjectURL(new Blob([`
+    new Notification("click").onclick = () => {
+      postMessage("clicked");
+    };
+  `])));
+  await new Promise(resolve => {
+    w.onmessage = function(e) {
+      if (e.data === 'clicked') {
+        resolve();
+      }
+    }
+  });
+  ok(true, "notification click event happened from worker");
+});
+</script>
