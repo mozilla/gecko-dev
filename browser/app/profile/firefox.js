@@ -2441,7 +2441,11 @@ pref("browser.tabs.crashReporting.sendReport", true);
 pref("browser.tabs.crashReporting.includeURL", false);
 
 // Enables the "Unload Tab" context menu item
+#ifdef NIGHTLY_BUILD
+pref("browser.tabs.unloadTabInContextMenu", true);
+#else
 pref("browser.tabs.unloadTabInContextMenu", false);
+#endif
 
 // If true, unprivileged extensions may use experimental APIs on
 // nightly and developer edition.
