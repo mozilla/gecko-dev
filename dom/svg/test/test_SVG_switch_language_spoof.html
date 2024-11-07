@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1924087
+-->
+  <head>
+    <title>Test for Bug 1924087</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+    <script class="testbody" type="application/javascript">
+      SimpleTest.waitForExplicitFinish();
+
+      function clearAndAddSVG() {
+        document.getElementById("display").innerHTML = "";
+        const template = document.querySelector("template");
+        const clone = document.importNode(template.content, true);
+        document.getElementById("display").appendChild(clone);
+      }
+
+      function getShownTexts() {
+        const swtch = document.getElementById("switch");
+        return [...swtch.children].filter(
+          child => child.getBoundingClientRect().width > 0
+        );
+      }
+
+      async function runTests() {
+        await SpecialPowers.pushPrefEnv({
+          set: [["intl.accept_languages", "tr"]],
+        });
+        await SpecialPowers.pushPrefEnv({
+          set: [["privacy.spoof_english", 2]],
+        });
+
+        clearAndAddSVG();
+
+        const spoofedShown = getShownTexts();
+        is(spoofedShown.length, 1, "Only one child should be selected");
+        is(
+          spoofedShown[0].textContent,
+          "Hello!",
+          "The selected child should be the one with the 'en' language"
+        );
+
+        await SpecialPowers.popPrefEnv();
+
+        clearAndAddSVG();
+
+        const shown = getShownTexts();
+        is(shown.length, 1, "Only one child should be selected");
+        is(
+          shown[0].textContent,
+          "Merhaba!",
+          "The selected child should be the one with the 'tr' language"
+        );
+
+        await SpecialPowers.popPrefEnv();
+
+        SimpleTest.finish();
+      }
+    </script>
+  </head>
+  <body onload="runTests()">
+    <a
+      target="_blank"
+      href="https://bugzilla.mozilla.org/show_bug.cgi?id=1924087"
+      >Mozilla Bug 1924087</a
+    >
+    <template>
+      <svg>
+        <switch id="switch">
+          <text systemLanguage="en">Hello!</text>
+          <text systemLanguage="tr">Merhaba!</text>
+        </switch>
+      </svg>
+    </template>
+    <div id="display"></div>
+  </body>
+</html>

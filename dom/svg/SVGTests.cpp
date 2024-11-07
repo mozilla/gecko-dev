@@ -61,15 +61,19 @@ bool SVGTests::IsConditionalProcessingAttribute(
 
 // Find the best match from aAvailLangs for the users accept-languages,
 // returning the index in the aAvailLangs list, or -1 if no match.
-static int32_t FindBestLanguage(const nsTArray<nsCString>& aAvailLangs) {
+static int32_t FindBestLanguage(const nsTArray<nsCString>& aAvailLangs,
+                                const Document* aDoc) {
   AutoTArray<nsCString, 16> reqLangs;
-  nsCString acceptLangs;
-  Preferences::GetLocalizedCString("intl.accept_languages", acceptLangs);
-  nsCCharSeparatedTokenizer languageTokenizer(acceptLangs, ',');
-  while (languageTokenizer.hasMoreTokens()) {
-    reqLangs.AppendElement(languageTokenizer.nextToken());
+  if (nsContentUtils::SpoofLocaleEnglish(aDoc)) {
+    reqLangs.AppendElements(Span(std::array{"en-US", "en"}));
+  } else {
+    nsCString acceptLangs;
+    Preferences::GetLocalizedCString("intl.accept_languages", acceptLangs);
+    nsCCharSeparatedTokenizer languageTokenizer(acceptLangs, ',');
+    while (languageTokenizer.hasMoreTokens()) {
+      reqLangs.AppendElement(languageTokenizer.nextToken());
+    }
   }
-
   for (const auto& req : reqLangs) {
     for (const auto& avail : aAvailLangs) {
       if (avail.Length() > req.Length()) {
@@ -128,7 +132,7 @@ nsIContent* SVGTests::FindActiveSwitchChild(
     return defaultChild;
   }
 
-  int32_t index = FindBestLanguage(availLocales);
+  int32_t index = FindBestLanguage(availLocales, aSwitch->OwnerDoc());
   if (index >= 0) {
     return children[index];
   }
@@ -186,7 +190,7 @@ bool SVGTests::PassesConditionalProcessingTests() const {
     }
 
     mPassesConditionalProcessingTests =
-        Some(FindBestLanguage(availLocales) >= 0);
+        Some(FindBestLanguage(availLocales, AsSVGElement()->OwnerDoc()) >= 0);
     return mPassesConditionalProcessingTests.value();
   }
 

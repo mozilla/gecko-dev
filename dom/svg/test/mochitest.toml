@@ -184,3 +184,5 @@ scheme = "https"
 ["test_viewBox.html"]
 
 ["test_viewport.html"]
+
+["test_SVG_switch_language_spoof.html"]
