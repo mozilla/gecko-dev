@@ -71,7 +71,6 @@ class TextSelectionTest : TestSetup() {
             longClickPageObject(itemContainingText("content"))
             clickContextMenuItem("Copy")
         }.openNavigationToolbar {
-            openEditURLView()
         }
 
         searchScreen {
@@ -170,7 +169,6 @@ class TextSelectionTest : TestSetup() {
             longClickPageObject(itemContainingText("Crossing"))
             clickContextMenuItem("Copy")
         }.openNavigationToolbar {
-            openEditURLView()
         }
 
         searchScreen {

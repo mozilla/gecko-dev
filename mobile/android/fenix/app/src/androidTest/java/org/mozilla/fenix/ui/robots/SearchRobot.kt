@@ -304,13 +304,6 @@ class SearchRobot {
     }
 
     fun longClickToolbar() {
-        Log.i(TAG, "longClickToolbar: Waiting for $waitingTime ms for $packageName window to be updated")
-        mDevice.waitForWindowUpdate(packageName, waitingTime)
-        Log.i(TAG, "longClickToolbar: Waited for $waitingTime ms for $packageName window to be updated")
-        Log.i(TAG, "longClickToolbar: Waiting for $waitingTime ms for the awesome bar to exist")
-        mDevice.findObject(UiSelector().resourceId("$packageName:id/awesomeBar"))
-            .waitForExists(waitingTime)
-        Log.i(TAG, "longClickToolbar: Waited for $waitingTime ms for the awesome bar to exist")
         Log.i(TAG, "longClickToolbar: Waiting for $waitingTime ms for the toolbar to exist")
         mDevice.findObject(UiSelector().resourceId("$packageName:id/toolbar"))
             .waitForExists(waitingTime)
@@ -321,9 +314,9 @@ class SearchRobot {
     }
 
     fun clickPasteText() {
-        Log.i(TAG, "clickPasteText: Waiting for $waitingTime ms for the \"Paste\" option to exist")
-        mDevice.findObject(UiSelector().textContains("Paste")).waitForExists(waitingTime)
-        Log.i(TAG, "clickPasteText: Waited for $waitingTime ms for the \"Paste\" option to exist")
+        Log.i(TAG, "clickPasteText: Waiting for $waitingTimeShort ms for the \"Paste\" option to exist")
+        mDevice.findObject(UiSelector().textContains("Paste")).waitForExists(waitingTimeShort)
+        Log.i(TAG, "clickPasteText: Waited for $waitingTimeShort ms for the \"Paste\" option to exist")
         Log.i(TAG, "clickPasteText: Trying to click the \"Paste\" button")
         mDevice.findObject(By.textContains("Paste")).click()
         Log.i(TAG, "clickPasteText: Clicked the \"Paste\" button")
@@ -336,6 +329,7 @@ class SearchRobot {
         assertUIObjectExists(
             itemWithResIdAndText("$packageName:id/mozac_browser_toolbar_edit_url_view", expectedText),
             exists = exists,
+            waitingTime = waitingTimeShort,
         )
 
     fun verifySearchBarPosition(bottomPosition: Boolean) {

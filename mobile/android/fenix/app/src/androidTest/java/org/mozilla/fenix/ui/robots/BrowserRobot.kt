@@ -1503,7 +1503,7 @@ fun longClickPageObject(item: UiObject) {
 fun clickContextMenuItem(item: String) {
     mDevice.waitNotNull(
         Until.findObject(text(item)),
-        waitingTime,
+        waitingTimeShort,
     )
     Log.i(TAG, "clickContextMenuItem: Trying to click context menu item: $item")
     mDevice.findObject(text(item)).click()
