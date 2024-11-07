@@ -8,6 +8,7 @@ use api::{
     RasterSpace, Shadow, YuvColorSpace, ColorRange, YuvFormat,
 };
 use api::units::*;
+use euclid::point2;
 use crate::composite::CompositorSurfaceKind;
 use crate::scene_building::{CreateShadow, IsVisible};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState};
@@ -72,6 +73,7 @@ pub struct ImageInstance {
     pub visible_tiles: Vec<VisibleImageTile>,
     pub src_color: Option<RenderTaskId>,
     pub normalized_uvs: bool,
+    pub adjustment: AdjustedImageSource,
 }
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -169,9 +171,25 @@ impl ImageData {
             tile: None,
         };
 
+        // Tighten the clip rect because decomposing the repeated image can
+        // produce primitives that are partially covering the original image
+        // rect and we want to clip these extra parts out.
+        // We also rely on having a tight clip rect in some cases other than
+        // tiled/repeated images, for example when rendering a snapshot image
+        // where the snapshot area is tighter than the rasterized area.
+        let tight_clip_rect = visibility
+            .clip_chain
+            .local_clip_rect
+            .intersection(&common.prim_rect).unwrap();
+        image_instance.tight_local_clip_rect = tight_clip_rect;
+
+        image_instance.adjustment = AdjustedImageSource::new();
+
         match image_properties {
             // Non-tiled (most common) path.
-            Some(ImageProperties { tiling: None, ref descriptor, ref external_image, .. }) => {
+            Some(ImageProperties { tiling: None, ref descriptor, ref external_image, adjustment, .. }) => {
+                image_instance.adjustment = adjustment;
+
                 let mut size = frame_state.resource_cache.request_image(
                     request,
                     frame_state.gpu_cache,
@@ -298,15 +316,6 @@ impl ImageData {
                 // thing.
                 let active_rect = visible_rect;
 
-                // Tighten the clip rect because decomposing the repeated image can
-                // produce primitives that are partially covering the original image
-                // rect and we want to clip these extra parts out.
-                let tight_clip_rect = visibility
-                    .clip_chain
-                    .local_clip_rect
-                    .intersection(&common.prim_rect).unwrap();
-                image_instance.tight_local_clip_rect = tight_clip_rect;
-
                 let visible_rect = compute_conservative_visible_rect(
                     &visibility.clip_chain,
                     frame_state.current_dirty_region().combined,
@@ -374,19 +383,20 @@ impl ImageData {
         }
 
         if let Some(mut request) = frame_state.gpu_cache.request(&mut common.gpu_cache_handle) {
-            self.write_prim_gpu_blocks(&mut request);
+            self.write_prim_gpu_blocks(&image_instance.adjustment, &mut request);
         }
     }
 
-    pub fn write_prim_gpu_blocks(&self, request: &mut GpuDataRequest) {
+    pub fn write_prim_gpu_blocks(&self, adjustment: &AdjustedImageSource, request: &mut GpuDataRequest) {
+        let stretch_size = adjustment.map_stretch_size(self.stretch_size);
         // Images are drawn as a white color, modulated by the total
         // opacity coming from any collapsed property bindings.
         // Size has to match `VECS_PER_SPECIFIC_BRUSH` from `brush_image.glsl` exactly.
         request.push(self.color.premultiplied());
         request.push(PremultipliedColorF::WHITE);
         request.push([
-            self.stretch_size.width + self.tile_spacing.width,
-            self.stretch_size.height + self.tile_spacing.height,
+            stretch_size.width + self.tile_spacing.width,
+            stretch_size.height + self.tile_spacing.height,
             0.0,
             0.0,
         ]);
@@ -449,6 +459,7 @@ impl InternablePrimitive for Image {
             visible_tiles: Vec::new(),
             src_color: None,
             normalized_uvs: false,
+            adjustment: AdjustedImageSource::new(),
         });
 
         PrimitiveInstanceKind::Image {
@@ -480,6 +491,95 @@ impl CreateShadow for Image {
 impl IsVisible for Image {
     fn is_visible(&self) -> bool {
         true
+    }
+}
+
+/// Represents an adjustment to apply to an image primitive.
+/// This can be used to compensate for a difference between the bounds of
+/// the images expected by the primitive and the bounds that were actually
+/// drawn in the texture cache.
+///
+/// This happens when rendering snapshot images: A picture is marked so that
+/// a specific reference area in layout space can be rendered as an image.
+/// However, the bounds of the rasterized area of the picture typically differ
+/// from that reference area.
+///
+/// The adjustment is stored as 4 floats (x0, y0, x1, y1) that represent a
+/// transformation of the primitve's local rect such that:
+///
+/// ```ignore
+/// adjusted_rect.min = prim_rect.min + prim_rect.size() * (x0, y0);
+/// adjusted_rect.max = prim_rect.max + prim_rect.size() * (x1, y1);
+/// ```
+#[derive(Copy, Clone, Debug)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub struct AdjustedImageSource {
+    x0: f32,
+    y0: f32,
+    x1: f32,
+    y1: f32,
+}
+
+impl AdjustedImageSource {
+    /// The "identity" adjustment.
+    pub fn new() -> Self {
+        AdjustedImageSource {
+            x0: 0.0,
+            y0: 0.0,
+            x1: 0.0,
+            y1: 0.0,
+        }
+    }
+
+    /// An adjustment to render an image item defined in function of the `reference`
+    /// rect whereas the `actual` rect was cached instead.
+    pub fn from_rects(reference: &LayoutRect, actual: &LayoutRect) -> Self {
+        let ref_size = reference.size();
+        let min_offset = reference.min.to_vector();
+        let max_offset = reference.max.to_vector();
+        AdjustedImageSource {
+            x0: (actual.min.x - min_offset.x) / ref_size.width,
+            y0: (actual.min.y - min_offset.y) / ref_size.height,
+            x1: (actual.max.x - max_offset.x) / ref_size.width,
+            y1: (actual.max.y - max_offset.y) / ref_size.height,
+        }
+    }
+
+    /// Adjust the primitive's local rect.
+    pub fn map_local_rect(&self, rect: &LayoutRect) -> LayoutRect {
+        let w = rect.width();
+        let h = rect.height();
+        LayoutRect {
+            min: point2(
+                rect.min.x + w * self.x0,
+                rect.min.y + h * self.y0,
+            ),
+            max: point2(
+                rect.max.x + w * self.x1,
+                rect.max.y + h * self.y1,
+            ),
+        }
+    }
+
+    /// The stretch size has to be adjusted as well because it is defined
+    /// using the snapshot area as reference but will stretch the rasterized
+    /// area instead.
+    ///
+    /// It has to be scaled by a factor of (adjusted.size() / prim_rect.size()).
+    /// We derive the formula in function of the adjustment factors:
+    ///
+    /// ```ignore
+    /// factor = (adjusted.max - adjusted.min) / (w, h)
+    ///        = (rect.max + (w, h) * (x1, y1) - (rect.min + (w, h) * (x0, y0))) / (w, h)
+    ///        = ((w, h) + (w, h) * (x1, y1) - (w, h) * (x0, y0)) / (w, h)
+    ///        = (1.0, 1.0) + (x1, y1) - (x0, y0)
+    /// ```
+    pub fn map_stretch_size(&self, size: LayoutSize) -> LayoutSize {
+        LayoutSize::new(
+            size.width * (1.0 + self.x1 - self.x0),
+            size.height * (1.0 + self.y1 - self.y0),
+        )
     }
 }
 
