@@ -153,7 +153,14 @@ export class UserCharacteristicsPageService {
       [this.populateClientInfo, []],
       [this.populateCPUInfo, []],
       [this.populateWindowInfo, []],
-      [this.populateWebGlInfo, [browser.ownerGlobal, browser.ownerDocument]],
+      [
+        this.populateWebGlInfo,
+        [browser.ownerGlobal, browser.ownerDocument, false],
+      ],
+      [
+        this.populateWebGlInfo,
+        [browser.ownerGlobal, browser.ownerDocument, true],
+      ],
       [this.populateCanvasData, []],
     ];
     // Bind them to the class and run them in parallel.
@@ -181,9 +188,12 @@ export class UserCharacteristicsPageService {
     Glean.characteristics.jsErrors.set(JSON.stringify(errors));
   }
 
-  async collectGleanMetricsFromMap(data, operation = "set") {
+  async collectGleanMetricsFromMap(
+    data,
+    { prefix = "", suffix = "", operation = "set" } = {}
+  ) {
     for (const [key, value] of Object.entries(data)) {
-      Glean.characteristics[key][operation](value);
+      Glean.characteristics[prefix + key + suffix][operation](value);
     }
   }
 
@@ -564,7 +574,7 @@ export class UserCharacteristicsPageService {
     );
   }
 
-  async populateWebGlInfo(window, document) {
+  async populateWebGlInfo(window, document, forceSoftwareRendering) {
     const results = {
       glVersion: 2,
       parameters: {
@@ -581,17 +591,16 @@ export class UserCharacteristicsPageService {
     };
 
     const canvas = document.createElement("canvas");
-    let gl = canvas.getContext("webgl2");
+    let gl = canvas.getContext("webgl2", { forceSoftwareRendering });
     if (!gl) {
-      gl = canvas.getContext("webgl");
+      gl = canvas.getContext("webgl", { forceSoftwareRendering });
       results.glVersion = 1;
     }
     if (!gl) {
       lazy.console.error(
         "Unable to initialize WebGL. Your browser or machine may not support it."
       );
-      results.glVersion = 0;
-      Glean.characteristics.webglinfo.set(JSON.stringify(results));
+      Glean.characteristics.glVersion.set(results.glVersion);
       return;
     }
 
@@ -791,35 +800,35 @@ export class UserCharacteristicsPageService {
       };
     }
 
-    // General
-    Glean.characteristics.glVersion.set(results.glVersion);
-    // Debug Params
-    Glean.characteristics.glExtensions.set(results.debugParams.extensions);
-    Glean.characteristics.glExtensionsRaw.set(
-      results.debugParams.extensionsRaw
-    );
-    Glean.characteristics.glRenderer.set(results.debugParams.rendererDebugInfo);
-    Glean.characteristics.glRendererRaw.set(results.debugParams.rendererRaw);
-    Glean.characteristics.glVendor.set(results.debugParams.vendorDebugInfo);
-    Glean.characteristics.glVendorRaw.set(results.debugParams.vendorRaw);
-    Glean.characteristics.glVersionRaw.set(results.debugParams.versionRaw);
-    // Debug Shaders
-    Glean.characteristics.glFragmentShader.set(results.debugShaders.fs);
-    Glean.characteristics.glVertexShader.set(results.debugShaders.vs);
-    Glean.characteristics.glMinimalSource.set(results.debugShaders.ms);
-    // Parameters
-    Glean.characteristics.glParamsExtensions.set(
-      JSON.stringify(results.parameters.extensions)
-    );
-    Glean.characteristics.glParamsV1.set(JSON.stringify(results.parameters.v1));
-    Glean.characteristics.glParamsV2.set(JSON.stringify(results.parameters.v2));
-    // Shader Precision
-    Glean.characteristics.glPrecisionFragment.set(
-      JSON.stringify(results.shaderPrecision.FRAGMENT_SHADER)
-    );
-    Glean.characteristics.glPrecisionVertex.set(
-      JSON.stringify(results.shaderPrecision.VERTEX_SHADER)
-    );
+    const map = {
+      // General
+      glVersion: results.glVersion,
+      // Debug Params
+      glExtensions: results.debugParams.extensions,
+      glExtensionsRaw: results.debugParams.extensionsRaw,
+      glRenderer: results.debugParams.rendererDebugInfo,
+      glRendererRaw: results.debugParams.rendererRaw,
+      glVendor: results.debugParams.vendorDebugInfo,
+      glVendorRaw: results.debugParams.vendorRaw,
+      glVersionRaw: results.debugParams.versionRaw,
+      // Debug Shaders
+      glFragmentShader: results.debugShaders.fs,
+      glVertexShader: results.debugShaders.vs,
+      glMinimalSource: results.debugShaders.ms,
+      // Parameters
+      glParamsExtensions: JSON.stringify(results.parameters.extensions),
+      glParamsV1: JSON.stringify(results.parameters.v1),
+      glParamsV2: JSON.stringify(results.parameters.v2),
+      // Shader Precision
+      glPrecisionFragment: JSON.stringify(
+        results.shaderPrecision.FRAGMENT_SHADER
+      ),
+      glPrecisionVertex: JSON.stringify(results.shaderPrecision.VERTEX_SHADER),
+    };
+
+    this.collectGleanMetricsFromMap(map, {
+      suffix: forceSoftwareRendering ? "Software" : "",
+    });
   }
 
   async pageLoaded(browsingContext, data) {
