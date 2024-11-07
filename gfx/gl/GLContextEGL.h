@@ -30,6 +30,15 @@ inline std::shared_ptr<EglDisplay> DefaultEglDisplay(
   return lib->DefaultDisplay(out_failureId);
 }
 
+inline std::shared_ptr<EglDisplay> CreateSoftwareEglDisplay(
+    nsACString* const out_failureId) {
+  const auto lib = GLLibraryEGL::Get(out_failureId);
+  if (!lib) {
+    return nullptr;
+  }
+  return lib->CreateDisplay(false, true, out_failureId);
+}
+
 // -
 
 class GLContextEGL final : public GLContext {

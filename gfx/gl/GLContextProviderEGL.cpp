@@ -1242,7 +1242,11 @@ void GLContextEGL::DestroySurface(EglDisplay& aEgl, const EGLSurface aSurface) {
 /*static*/
 already_AddRefed<GLContext> GLContextProviderEGL::CreateHeadless(
     const GLContextCreateDesc& desc, nsACString* const out_failureId) {
-  const auto display = DefaultEglDisplay(out_failureId);
+  bool useSoftwareDisplay =
+      static_cast<bool>(desc.flags & CreateContextFlags::FORBID_HARDWARE);
+  const auto display = useSoftwareDisplay
+                           ? CreateSoftwareEglDisplay(out_failureId)
+                           : DefaultEglDisplay(out_failureId);
   if (!display) {
     return nullptr;
   }
