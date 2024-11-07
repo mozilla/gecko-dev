@@ -993,17 +993,9 @@ void ReflowInput::ComputeAbsPosInlineAutoMargin(nscoord aAvailMarginSpace,
     if (aIsMarginIEndAuto) {
       // Just 'margin-right' is 'auto'
       aMargin.IEnd(aContainingBlockWM) = aAvailMarginSpace;
-    } else {
-      // We're over-constrained so use the direction of the containing
-      // block to dictate which value to ignore.  (And note that the
-      // spec says to ignore 'left' or 'right' rather than
-      // 'margin-left' or 'margin-right'.)
-      // Note that this case is different from the both-'auto' case
-      // above, where the spec says to ignore
-      // 'margin-left'/'margin-right'.
-      // Ignore the specified value for 'right'.
-      aOffsets.IEnd(aContainingBlockWM) += aAvailMarginSpace;
     }
+    // Else, both margins are non-auto. This margin box would align to the
+    // inset-reduced containing block, so it's not overconstrained.
   }
 }
 
@@ -1029,12 +1021,8 @@ void ReflowInput::ComputeAbsPosBlockAutoMargin(nscoord aAvailMarginSpace,
     if (aIsMarginBEndAuto) {
       // Just margin-block-end is 'auto'
       aMargin.BEnd(aContainingBlockWM) = aAvailMarginSpace;
-    } else {
-      // We're over-constrained so ignore the specified value for
-      // block-end.  (And note that the spec says to ignore 'bottom'
-      // rather than 'margin-bottom'.)
-      aOffsets.BEnd(aContainingBlockWM) += aAvailMarginSpace;
     }
+    // Else, both margins are non-auto. See comment in the inline version.
   }
 }
 
