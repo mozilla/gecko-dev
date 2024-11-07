@@ -2036,3 +2036,62 @@ devtools.main:
           The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
         type: string
     telemetry_mirror: DevtoolsMain_UpdateConnPrompt_Aboutdebugging
+
+devtools.accessibility:
+  opened_count:
+    type: counter
+    description: >
+      Number of times the DevTools Accessibility tool has been opened.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.accessibility.opened_count.
+    bugs:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_OPENED_COUNT
+
+  picker_used_count:
+    type: counter
+    description: >
+      Number of times the picker tool has been used in DevTools
+      Accessibility panel.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.accessibility.picker_used_count.
+    bugs:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    data_reviews:
+      - https://bugzil.la/1447302
+      - https://bugzil.la/1503568
+      - https://bugzil.la/1587985
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - accessibility@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_ACCESSIBILITY_PICKER_USED_COUNT
+
+devtools.changesview:
+  opened_count:
+    type: counter
+    description: >
+      Number of times the Changes panel has been opened.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.changesview.opened_count.
+    bugs:
+      - https://bugzil.la/1509890
+    data_reviews:
+      - https://bugzil.la/1509890
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - mbalfanz@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_CHANGESVIEW_OPENED_COUNT

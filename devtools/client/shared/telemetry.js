@@ -672,8 +672,8 @@ class Telemetry {
     if (charts.countHist) {
       this.getHistogramById(charts.countHist).add(true);
     }
-    if (charts.countScalar) {
-      this.scalarAdd(charts.countScalar, 1);
+    if (charts.gleanCounter) {
+      charts.gleanCounter.add(1);
     }
   }
 
@@ -728,12 +728,10 @@ function getChartsFromToolId(id) {
     return null;
   }
 
-  const lowerCaseId = id.toLowerCase();
-
   let useTimedEvent = null;
   let timerHist = null;
   let countHist = null;
-  let countScalar = null;
+  let gleanCounter = null;
 
   id = id.toUpperCase();
 
@@ -762,16 +760,16 @@ function getChartsFromToolId(id) {
       break;
     case "ACCESSIBILITY":
       timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
-      countScalar = `devtools.${lowerCaseId}.opened_count`;
+      gleanCounter = Glean.devtoolsAccessibility.openedCount;
       break;
     case "ACCESSIBILITY_PICKER":
       timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
-      countScalar = `devtools.accessibility.picker_used_count`;
+      gleanCounter = Glean.devtoolsAccessibility.pickerUsedCount;
       break;
     case "CHANGESVIEW":
       useTimedEvent = true;
       timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
-      countScalar = `devtools.${lowerCaseId}.opened_count`;
+      gleanCounter = Glean.devtoolsChangesview.openedCount;
       break;
     case "ANIMATIONINSPECTOR":
     case "COMPATIBILITYVIEW":
@@ -796,7 +794,7 @@ function getChartsFromToolId(id) {
     useTimedEvent,
     timerHist,
     countHist,
-    countScalar,
+    gleanCounter,
   };
 }
 
