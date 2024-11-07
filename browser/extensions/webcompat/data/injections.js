@@ -1115,6 +1115,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1928216",
+    platform: "desktop",
+    domain: "voice.google.com",
+    bug: "1928216",
+    contentScripts: {
+      matches: ["*://voice.google.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1928216-voice.google.com-permissions.query.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
