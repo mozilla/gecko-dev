@@ -40,7 +40,7 @@ class SettingsSubMenuDataCollectionRobot {
         assertUIObjectExists(
             goBackButton(),
             itemContainingText(getStringResource(R.string.preferences_data_collection)),
-            itemContainingText(getStringResource(R.string.preference_usage_data)),
+            itemContainingText(getStringResource(R.string.preference_usage_data_1)),
             itemContainingText(getStringResource(R.string.preferences_usage_data_description)),
         )
         verifyUsageAndTechnicalDataToggle(isUsageAndTechnicalDataEnabled)
@@ -51,8 +51,8 @@ class SettingsSubMenuDataCollectionRobot {
     }
 
     fun verifyUsageAndTechnicalDataToggle(enabled: Boolean) {
-        Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Trying to verify that the \"Usage and technical data\" toggle is checked: $enabled")
-        onView(withText(R.string.preference_usage_data))
+        Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Trying to verify that the \"Technical and interaction data\" toggle is checked: $enabled")
+        onView(withText(R.string.preference_usage_data_1))
             .check(
                 matches(
                     hasCousin(
@@ -86,9 +86,9 @@ class SettingsSubMenuDataCollectionRobot {
     }
 
     fun clickUsageAndTechnicalDataToggle() {
-        Log.i(TAG, "clickUsageAndTechnicalDataToggle: Trying to click the \"Usage and technical data\" toggle")
-        itemContainingText(getStringResource(R.string.preference_usage_data)).click()
-        Log.i(TAG, "clickUsageAndTechnicalDataToggle: Clicked the \"Usage and technical data\" toggle")
+        Log.i(TAG, "clickUsageAndTechnicalDataToggle: Trying to click the \"Technical and interaction data\" toggle")
+        itemContainingText(getStringResource(R.string.preference_usage_data_1)).click()
+        Log.i(TAG, "clickUsageAndTechnicalDataToggle: Clicked the \"Technical and interaction data\" toggle")
     }
 
     fun clickStudiesOption() {

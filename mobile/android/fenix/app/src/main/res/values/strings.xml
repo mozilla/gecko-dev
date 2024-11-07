@@ -903,7 +903,17 @@
     <string name="exceptions_empty_message_learn_more_link">Learn more</string>
 
     <!-- Preference switch for usage and technical data collection -->
-    <string name="preference_usage_data">Usage and technical data</string>
+    <string name="preference_usage_data" moz:removedIn="134" tools:ignore="UnusedResources">Usage and technical data</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Technical and interaction data</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more">Learn more</string>
+    <!-- Preference switch for daily usage ping usage title -->
+    <string name="preference_daily_usage_ping">Daily usage ping</string>
+    <!-- Preference switch for daily usage ping usage comment-->
+    <string name="preference_daily_usage_ping_description">This helps Mozilla to estimate active users</string>
+    <!-- Preference switch for daily usage ping usage learn more link comment-->
+    <string name="preference_daily_usage_ping_description_learn_more">Learn more</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Shares performance, usage, hardware and customization data about your browser with Mozilla to help us make %1$s better</string>
     <!-- Preference switch for marketing data collection -->
