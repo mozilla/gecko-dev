@@ -28,7 +28,7 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
     this.destroyed = false;
   }
 
-  async render() {
+  async render(hwRenderingExpected) {
     // I couldn't think of a good name. Recipes as in instructions to render.
     const runRecipe = async (isAccelerated, recipe) => {
       const canvas = this.document.createElement("canvas");
@@ -40,7 +40,8 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
       });
 
       if (!ctx) {
-        return null;
+        lazy.console.error("Could not get 2d context");
+        return { error: "COULD_NOT_GET_CONTEXT" };
       }
 
       let debugInfo = null;
@@ -51,48 +52,69 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
           "Error getting canvas debug info during render: ",
           await stringifyError(e)
         );
-        return null;
+        return { error: "COULD_NOT_GET_DEBUG_INFO", originalError: e };
       }
 
       if (debugInfo.isAccelerated !== isAccelerated) {
         lazy.console.error(
           `Canvas is not rendered with expected mode. Expected: ${isAccelerated}, got: ${debugInfo.isAccelerated}`
         );
-        return null;
+        return { error: "WRONG_RENDERING_MODE" };
       }
 
       try {
         await recipe.func(this.contentWindow, canvas, ctx);
       } catch (e) {
         lazy.console.error("Error rendering canvas: ", await stringifyError(e));
-        return null;
+        return { error: "RENDERING_ERROR", originalError: e };
       }
 
       return sha1(canvas.toDataURL("image/png", 1));
     };
 
-    const data = {};
+    const data = {
+      errors: [],
+      renderings: {},
+    };
 
     // Run HW renderings
+    // Attempt HW rendering regardless of the expected rendering mode.
     for (const [name, recipe] of Object.entries(recipes)) {
       lazy.console.debug("[HW] Rendering ", name);
       const result = await runRecipe(true, recipe);
-      if (!result) {
+      if (result.error) {
+        if (!hwRenderingExpected && result.error === "WRONG_RENDERING_MODE") {
+          // If the rendering mode is wrong, we can ignore the error.
+          lazy.console.debug(
+            "Ignoring error because HW rendering is not expected: ",
+            result.error
+          );
+          continue;
+        }
+
+        data.errors.push({
+          name,
+          error: result.error,
+          originalError: result.originalError,
+        });
         continue;
       }
-
-      data[name] = result;
+      data.renderings[name] = result;
     }
 
     // Run SW renderings
     for (const [name, recipe] of Object.entries(recipes)) {
       lazy.console.debug("[SW] Rendering ", name);
       const result = await runRecipe(false, recipe);
-      if (!result) {
+      if (result.error) {
+        data.errors.push({
+          name: name + "software",
+          error: result.error,
+          originalError: result.originalError,
+        });
         continue;
       }
-
-      data[name + "software"] = result;
+      data.renderings[name + "software"] = result;
     }
 
     return data;
@@ -106,9 +128,8 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
       return null;
     }
 
-    let debugInfo = null;
     try {
-      debugInfo = ctx.getDebugInfo(true /* ensureTarget */);
+      return ctx.getDebugInfo(true /* ensureTarget */);
     } catch (e) {
       lazy.console.error(
         "Error getting canvas debug info: ",
@@ -116,8 +137,6 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
       );
       return null;
     }
-
-    return debugInfo;
   }
 
   sendMessage(name, obj, transferables) {
@@ -138,7 +157,7 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
       case "CanvasRendering:GetDebugInfo":
         return this.getDebugInfo();
       case "CanvasRendering:Render":
-        return this.render();
+        return this.render(msg.data.hwRenderingExpected);
     }
 
     return null;

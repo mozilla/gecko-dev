@@ -61,6 +61,7 @@ export class UserCharacteristicsPageService {
       return;
     }
     this._initialized = true;
+    this.handledErrors = [];
   }
 
   shutdown() {}
@@ -162,6 +163,8 @@ export class UserCharacteristicsPageService {
         lazy.console.debug(error);
       }
     }
+
+    errors.push(...this.handledErrors);
 
     Glean.characteristics.jsErrors.set(JSON.stringify(errors));
   }
@@ -268,11 +271,20 @@ export class UserCharacteristicsPageService {
     let data = {};
     // Returns true if we need to try again
     const attemptRender = async () => {
+      const diagnostics = {
+        count: 0,
+        closed: 0,
+        noActor: 0,
+        noDebugInfo: 0,
+        notHW: 0,
+      };
       // Try to find a window that supports hardware rendering
       let foundActor = null;
       let fallbackActor = null;
       for (const win of Services.wm.getEnumerator("navigator:browser")) {
+        diagnostics.count++;
         if (win.closed) {
+          diagnostics.closed++;
           continue;
         }
 
@@ -282,6 +294,7 @@ export class UserCharacteristicsPageService {
           );
 
         if (!actor) {
+          diagnostics.noActor++;
           continue;
         }
 
@@ -289,11 +302,12 @@ export class UserCharacteristicsPageService {
         const debugInfo = await timeoutPromise(
           actor.sendQuery("CanvasRendering:GetDebugInfo"),
           5000
-        ).catch(e => {
+        ).catch(async e => {
           lazy.console.error("Canvas rendering debug info failed", e);
-          return null;
+          this.handledErrors.push(await stringifyError(e));
         });
         if (!debugInfo) {
+          diagnostics.noDebugInfo++;
           continue;
         }
 
@@ -304,6 +318,7 @@ export class UserCharacteristicsPageService {
           foundActor = actor;
           break;
         }
+        diagnostics.notHW++;
       }
 
       // If we didn't find a hardware accelerated window, we use the last one
@@ -312,40 +327,64 @@ export class UserCharacteristicsPageService {
       if (!actor) {
         lazy.console.error("No actor found for canvas rendering");
         // There's no actor/window to render canvases
-        return false;
+        return { error: { message: "NO_ACTOR", diagnostics }, retry: false };
       }
 
       // We have an actor, hw accelerated or not
       // Ask it to render the canvases.
-      // Timeout must be shorter than 5 minutes, because populateCanvasData
-      // caller itself has a timeout of 5 minutes.
-      data = await timeoutPromise(
-        actor.sendQuery("CanvasRendering:Render"),
-        4 * 60 * 1000
-      ).catch(e => {
-        lazy.console.error("Canvas rendering failed", e);
-        return null;
-      });
-      if (!data) {
-        lazy.console.error("Canvas rendering failed");
-        return true;
+      // Timeout after 1 minute to give multiple
+      // chances to render canvases.
+      try {
+        data = await timeoutPromise(
+          actor.sendQuery("CanvasRendering:Render", {
+            hwRenderingExpected: !!foundActor,
+          }),
+          1 * 60 * 1000
+        );
+      } catch (e) {
+        lazy.console.error(
+          "Canvas rendering timed out or actor was destroyed (tab closed etc.)",
+          e
+        );
+        return {
+          error: { message: await stringifyError(e), diagnostics },
+          retry: true,
+        };
       }
 
-      return false;
+      // Successfully rendered at least some canvases, maybe all of them
+      return {
+        error:
+          !foundActor && fallbackActor
+            ? { message: "NO_HW_ACTOR", diagnostics }
+            : null,
+        retry: false,
+      };
     };
 
     // Try to render canvases
-    while (await attemptRender()) {
+    let result = null;
+    while ((result = await attemptRender()).retry) {
+      this.handledErrors.push(result.error);
       // If we failed to render canvases, try again.
-      // This can happen if the user closes the tab beforewe render the canvases.
+      // This can happen if the user closes the tab before we render the canvases.
       // Wait for a bit before trying again
-      await new Promise(resolve => lazy.setTimeout(resolve, 1000));
+      await new Promise(resolve => lazy.setTimeout(resolve, 5 * 1000));
     }
 
-    // We have the data, populate the metrics
-    this.collectGleanMetricsFromMap(data);
+    if (!result.retry && result.error) {
+      this.handledErrors.push(result.error);
+    }
+
+    // We may have HW + SW, or only SW rendered canvases - populate the metrics with what we have
+    this.collectGleanMetricsFromMap(data.renderings);
 
     ChromeUtils.unregisterWindowActor(actorName);
+
+    // Record the errors
+    if (data.errors?.length) {
+      this.handledErrors.push(...data.errors);
+    }
   }
 
   async populateZoomPrefs() {
