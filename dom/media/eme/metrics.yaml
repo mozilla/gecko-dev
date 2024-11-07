@@ -40,3 +40,25 @@ mediadrm:
         description: The video codec used for EME playback
         type: string
     expires: never
+  decryption:
+    type: labeled_boolean
+    description: >
+      Record the statuses related with the media decryption.
+    metadata:
+      tags:
+        - 'Core :: Audio/Video: Playback'
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928183
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928183
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - media-alerts@mozilla.com
+    labels:
+      - has_hardware_decryption
+      - has_hardware_clearlead
+      - has_software_clearlead
+      - has_hdcp22_plus
+      - has_wmf
+    expires: never
