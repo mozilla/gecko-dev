@@ -80,6 +80,7 @@ import org.mozilla.fenix.utils.enterMenu
 import org.mozilla.fenix.utils.enterSubmenu
 import org.mozilla.fenix.utils.exitMenu
 import org.mozilla.fenix.utils.exitSubmenu
+import org.mozilla.fenix.utils.slideDown
 
 // EXPANDED_MIN_RATIO is used for BottomSheetBehavior.halfExpandedRatio().
 // That value needs to be less than the PEEK_HEIGHT.
@@ -416,18 +417,22 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isTranslationSupported = isTranslationSupported,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     onMozillaAccountButtonClick = {
-                                        store.dispatch(
-                                            MenuAction.Navigate.MozillaAccount(
-                                                accountState = accountState,
-                                                accesspoint = args.accesspoint,
-                                            ),
-                                        )
+                                        view?.slideDown {
+                                            store.dispatch(
+                                                MenuAction.Navigate.MozillaAccount(
+                                                    accountState = accountState,
+                                                    accesspoint = args.accesspoint,
+                                                ),
+                                            )
+                                        }
                                     },
                                     onHelpButtonClick = {
                                         store.dispatch(MenuAction.Navigate.Help)
                                     },
                                     onSettingsButtonClick = {
-                                        store.dispatch(MenuAction.Navigate.Settings)
+                                        view?.slideDown {
+                                            store.dispatch(MenuAction.Navigate.Settings)
+                                        }
                                     },
                                     onNewTabMenuClick = {
                                         store.dispatch(MenuAction.Navigate.NewTab)
@@ -460,16 +465,24 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         )
                                     },
                                     onBookmarksMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.Bookmarks)
+                                        view?.slideDown {
+                                            store.dispatch(MenuAction.Navigate.Bookmarks)
+                                        }
                                     },
                                     onHistoryMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.History)
+                                        view?.slideDown {
+                                            store.dispatch(MenuAction.Navigate.History)
+                                        }
                                     },
                                     onDownloadsMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.Downloads)
+                                        view?.slideDown {
+                                            store.dispatch(MenuAction.Navigate.Downloads)
+                                        }
                                     },
                                     onPasswordsMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.Passwords)
+                                        view?.slideDown {
+                                            store.dispatch(MenuAction.Navigate.Passwords)
+                                        }
                                     },
                                     onCustomizeHomepageMenuClick = {
                                         store.dispatch(MenuAction.Navigate.CustomizeHomepage)
@@ -635,10 +648,14 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         store.dispatch(MenuAction.Navigate.ExtensionsLearnMore)
                                     },
                                     onManageExtensionsMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.ManageExtensions)
+                                        view?.slideDown {
+                                            store.dispatch(MenuAction.Navigate.ManageExtensions)
+                                        }
                                     },
                                     onAddonClick = { addon ->
-                                        store.dispatch(MenuAction.Navigate.AddonDetails(addon = addon))
+                                        view?.slideDown {
+                                            store.dispatch(MenuAction.Navigate.AddonDetails(addon = addon))
+                                        }
                                     },
                                     onInstallAddonClick = { addon ->
                                         store.dispatch(MenuAction.InstallAddon(addon = addon))
