@@ -804,7 +804,7 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.spocs.startupCache.enabled",
     {
       title: "Controls if spocs should be included in startup cache.",
-      value: true,
+      value: false,
     },
   ],
   [
