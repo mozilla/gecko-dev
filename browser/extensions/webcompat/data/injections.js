@@ -1089,6 +1089,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1925508",
+    platform: "android",
+    domain: "developer.apple.com",
+    bug: "1925508",
+    contentScripts: {
+      matches: ["*://developer.apple.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1925508-developer-apple.com-transform-scale.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
