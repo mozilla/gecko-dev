@@ -4,14 +4,12 @@
 
 package org.mozilla.fenix.compose
 
-import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
@@ -22,11 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
@@ -59,7 +58,8 @@ data class LinkTextState(
  * A composable for displaying text that contains a clickable link text.
  *
  * @param text The complete text.
- * @param linkTextStates The clickable part of the text.
+ * @param linkTextStates The clickable part of the text. The order of the states added in the list
+ * should be the same as the links shown in the text.
  * @param style [TextStyle] applied to the text.
  * @param linkTextColor [Color] applied to the clickable part of the text.
  * @param linkTextDecoration [TextDecoration] applied to the clickable part of the text.
@@ -88,15 +88,11 @@ fun LinkText(
     if (showDialog.value) {
         LinksDialog(linkTextStates) { showDialog.value = false }
     }
-    // When using UrlAnnotation, talkback shows links in a separate dialog and
-    // opens them in the default browser. Since this component allows the caller to define the
-    // onClick behaviour - e.g. to open the link in in-app custom tab, here StringAnnotation is used
-    // and modifier is enabled with Role.Button when screen reader is enabled.
-    @Suppress("DEPRECATION") // https://bugzilla.mozilla.org/show_bug.cgi?id=1916877
-    ClickableText(
+
+    Text(
         text = annotatedString,
         style = style,
-        modifier = Modifier.semantics(mergeDescendants = true) {
+        modifier = Modifier.clearAndSetSemantics {
             onClick {
                 if (linkTextStates.size > 1) {
                     showDialog.value = true
@@ -109,9 +105,6 @@ fun LinkText(
                 return@onClick true
             }
             contentDescription = "$annotatedString $linksAvailable"
-        },
-        onClick = { charOffset ->
-            onTextClick(annotatedString, charOffset, linkTextStates)
         },
     )
 }
@@ -170,52 +163,36 @@ private fun LinksDialog(
     }
 }
 
-@VisibleForTesting
-internal fun onTextClick(
-    annotatedString: AnnotatedString,
-    charOffset: Int,
-    linkTextStates: List<LinkTextState>,
-) {
-    val range: AnnotatedString.Range<String>? =
-        annotatedString.getStringAnnotations(URL_TAG, charOffset, charOffset).firstOrNull()
-    range?.let { stringAnnotation ->
-        val linkTextState = linkTextStates.firstOrNull {
-            it.text == stringAnnotation.item
-        }
-        linkTextState?.let {
-            it.onClick(it.url)
-        }
-    }
-}
-
-@VisibleForTesting
-internal fun buildUrlAnnotatedString(
-    text: String,
+private fun buildUrlAnnotatedString(
+    fullText: String,
     linkTextStates: List<LinkTextState>,
     color: Color,
     decoration: TextDecoration,
 ) = buildAnnotatedString {
-    append(text)
+    append(fullText)
 
-    linkTextStates.forEach {
-        val startIndex = text.indexOf(it.text, ignoreCase = true)
-        val endIndex = startIndex + it.text.length
+    var previousWordEndIndex = 0
 
-        addStyle(
-            style = SpanStyle(
-                color = color,
-                textDecoration = decoration,
-            ),
-            start = startIndex,
-            end = endIndex,
-        )
-
-        addStringAnnotation(
+    linkTextStates.forEach { linkTextStates ->
+        val link = LinkAnnotation.Clickable(
             tag = URL_TAG,
-            annotation = it.text,
-            start = startIndex,
-            end = endIndex,
+            styles = TextLinkStyles(
+                SpanStyle(
+                    color = color,
+                    textDecoration = decoration,
+                ),
+            ),
+            linkInteractionListener = {
+                linkTextStates.onClick(linkTextStates.url)
+            },
         )
+
+        val startIndex = fullText.indexOf(linkTextStates.text, previousWordEndIndex)
+        val endIndex = startIndex + linkTextStates.text.length
+
+        addLink(link, startIndex, endIndex)
+
+        previousWordEndIndex = endIndex
     }
 }
 
