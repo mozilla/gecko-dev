@@ -1,0 +1,71 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Ensure an unresolved clip area on the top level document interfere OOPIFs hit-test</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/paint_listener.js"></script>
+  <script src="helper_fission_utils.js"></script>
+  <script src="apz_test_utils.js"></script>
+  <script src="apz_test_native_event_utils.js"></script>
+  <script>
+async function test() {
+  const iframe = document.getElementById("testframe");
+  await setupCrossOriginIFrame(iframe, "helper_fission_plain.html");
+  const remoteType = await SpecialPowers.spawn(iframe, [], async () => {
+    return await SpecialPowers.spawnChrome([], () => {
+      return windowGlobalParent.domProcess.remoteType;
+    });
+  });
+  if (remoteType === "web") {
+    is(SpecialPowers.effectiveIsolationStrategy(), SpecialPowers.ISOLATION_STRATEGY.IsolateHighValue);
+    ok(true, "Skipping this test since the document on example.com got loaded in the same content process");
+    return;
+  }
+
+  const utils = SpecialPowers.getDOMWindowUtils(window);
+  checkHitResult(await hitTestOOPIF(centerOf(iframe), iframe),
+                 APZHitResultFlags.VISIBLE,
+                 utils.getViewId(document.scrollingElement),
+                 utils.getLayersId(),
+                 "Hit testing on OOPIF covered by an unresolved clipped element");
+}
+
+if (!SpecialPowers.Services.appinfo.fissionAutostart) {
+  ok(true, "This test doesn't need to run with disabling Fission");
+  subtestDone();
+} else {
+  waitUntilApzStable()
+    .then(test)
+    .then(subtestDone, subtestFailed);
+}
+  </script>
+</head>
+<body>
+<style>
+html, body {
+  margin: 0;
+}
+
+iframe {
+  position: absolute;
+  width: 300px;
+  height: 200px;
+}
+
+#clip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  clip-path: url(#unresolved);
+  opacity: 0;
+}
+</style>
+<div id="clip"></div>
+<iframe id="testframe"></iframe>
+</body>
+</html>

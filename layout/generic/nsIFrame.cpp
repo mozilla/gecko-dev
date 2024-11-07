@@ -3050,14 +3050,6 @@ static Maybe<nsRect> ComputeClipForMaskItem(
     }
   }
   if (combinedClip) {
-    if (combinedClip->IsEmpty()) {
-      // *clipForMask might be empty if all mask references are not resolvable
-      // or the size of them are empty. We still need to create a transparent
-      // mask before bug 1276834 fixed, so don't clip ctx by an empty rectangle
-      // for for now.
-      return Nothing();
-    }
-
     // Convert to user space.
     *combinedClip += devPixelOffsetToUserSpace;
 
