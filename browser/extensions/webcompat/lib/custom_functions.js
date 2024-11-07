@@ -55,23 +55,6 @@ const CUSTOM_FUNCTIONS = {
     browser.webRequest.onBeforeRequest.removeListener(listener);
     delete injection.data.listener;
   },
-  noSniffFix: injection => {
-    const { urls, contentType } = injection.data;
-    const listener = (injection.data.listener = e => {
-      e.responseHeaders.push(contentType);
-      return { responseHeaders: e.responseHeaders };
-    });
-
-    browser.webRequest.onHeadersReceived.addListener(listener, { urls }, [
-      "blocking",
-      "responseHeaders",
-    ]);
-  },
-  noSniffFixDisable: injection => {
-    const { listener } = injection.data;
-    browser.webRequest.onHeadersReceived.removeListener(listener);
-    delete injection.data.listener;
-  },
   runScriptBeforeRequest: injection => {
     const { bug, message, request, script, types } = injection;
     const warning = `${message} See https://bugzilla.mozilla.org/show_bug.cgi?id=${bug} for details.`;

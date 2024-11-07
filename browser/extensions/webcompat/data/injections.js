@@ -99,20 +99,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1583366",
-    platform: "desktop",
-    domain: "Download prompt for files with no content-type",
-    bug: "1583366",
-    data: {
-      urls: ["https://ads-us.rd.linksynergy.com/as.php*"],
-      contentType: {
-        name: "content-type",
-        value: "text/html; charset=utf-8",
-      },
-    },
-    customFunc: "noSniffFix",
-  },
-  {
     id: "bug1575000",
     platform: "all",
     domain: "apply.lloydsbank.co.uk",
