@@ -253,19 +253,7 @@
           },
           "additionalProperties": false,
           "required": ["id"],
-          "description": "Happens when the user clicks on tools/extensions in the sidebar"
-        },
-        {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string",
-              "enum": ["sidebarGenaiOpened"]
-            }
-          },
-          "additionalProperties": false,
-          "required": ["id"],
-          "description": "Happens when the user clicks 2 times on the Insights tool in the sidebar",
+          "description": "Happens when the user clicks on tools/extensions in the sidebar",
           "context": {
             "type": "object",
             "properties": {
