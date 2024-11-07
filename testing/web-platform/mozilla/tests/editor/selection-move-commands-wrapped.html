@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<title>Test for nsSelectionMoveCommands on wrapped text</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<iframe id="edit" width="200" height="100" srcdoc="
+<link rel='stylesheet' href='/fonts/ahem.css'>
+<style>
+  html, body {
+    font-family: Ahem;
+    fontSize: '16px';
+    lineHeight: '16px';
+    height: '400px';
+  }
+</style>
+<body contenteditable>
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod
+tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.
+<br>
+Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie
+consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan
+et iusto odio dignissim qui blandit praesent luptatum zzril delenit augue duis
+dolore te feugait nulla facilisi.
+<p>
+  Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit
+  lobortis nisl ut aliquip ex ea commodo consequat.
+</p>
+<div>
+  <span>Nam</span> liber tempor cum soluta nobis eleifend option
+  <span>congue</span> nihil imperdiet doming id quod mazim placerat facer
+  <a>possim</a> assum.<span></span>
+</div>
+</body>
+"></iframe>
+
+<script>
+
+let selection;
+let body;
+
+promise_setup(async () => {
+  if (edit.contentDocument.readyState !== "complete") {
+    await new Promise(resolve => edit.onload = resolve);
+  }
+  edit.focus();
+
+  selection = edit.contentDocument.getSelection();
+  body = edit.contentDocument.body;
+});
+
+promise_test(async () => {
+  selection.setPosition(body);
+
+  // Gecko stops at "the paragraph stopper" (either a block element or <br>)
+  // rather than within the text node.
+  // See: https://searchfox.org/mozilla-central/rev/113b09cdd5282b39db65b2f62abe843558b9471a/layout/generic/nsIFrame.cpp#9019
+
+  SpecialPowers.doCommand(window, "cmd_beginParagraph");
+  assert_equals(selection.anchorNode, body);
+  assert_equals(selection.anchorOffset, 0);
+
+  SpecialPowers.doCommand(window, "cmd_endParagraph");
+  assert_equals(selection.anchorNode, body);
+  assert_equals(selection.anchorOffset, 1);
+}, "Moving across a single text node");
+
+promise_test(async () => {
+  const textNode = body.childNodes[2];
+  selection.setPosition(textNode, 2);
+
+  SpecialPowers.doCommand(window, "cmd_beginParagraph");
+  assert_equals(selection.anchorNode, body);
+  assert_equals(selection.anchorOffset, 2);
+
+  SpecialPowers.doCommand(window, "cmd_endParagraph");
+  assert_equals(selection.anchorNode, body);
+  assert_equals(selection.anchorOffset, 3);
+}, "Moving from a single text node");
+
+promise_test(async () => {
+  const paragraphEl = body.children[1];
+  const textNode = paragraphEl.childNodes[0];
+  selection.setPosition(textNode, 2);
+
+  SpecialPowers.doCommand(window, "cmd_selectBeginParagraph");
+  assert_equals(selection.anchorNode, textNode);
+  assert_equals(selection.anchorOffset, 2);
+  assert_equals(selection.focusNode, paragraphEl);
+  assert_equals(selection.focusOffset, 0);
+
+  SpecialPowers.doCommand(window, "cmd_selectEndParagraph");
+  assert_equals(selection.anchorNode, textNode);
+  assert_equals(selection.anchorOffset, 2);
+  assert_equals(selection.focusNode, paragraphEl);
+  assert_equals(selection.focusOffset, paragraphEl.childNodes.length);
+}, "Selecting from a single text node");
+
+promise_test(async () => {
+  const divEl = body.children[2];
+  const textNode = divEl.childNodes[2];
+  selection.setPosition(textNode, 2);
+  console.log(textNode, selection.anchorNode);
+
+  SpecialPowers.doCommand(window, "cmd_selectBeginParagraph");
+  assert_equals(selection.anchorNode, textNode);
+  assert_equals(selection.anchorOffset, 2);
+  assert_equals(selection.focusNode, divEl);
+  assert_equals(selection.focusOffset, 0);
+
+  SpecialPowers.doCommand(window, "cmd_selectEndParagraph");
+  assert_equals(selection.anchorNode, textNode);
+  assert_equals(selection.anchorOffset, 2);
+  assert_equals(selection.focusNode, divEl);
+  assert_equals(selection.focusOffset, divEl.childNodes.length);
+}, "Selecting across multiple elements");
+</script>
