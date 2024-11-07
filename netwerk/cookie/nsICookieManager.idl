@@ -118,6 +118,10 @@ interface nsICookieManager : nsISupports
    *        the originAttributes of this cookie.
    * @param aSameSite
    *        the SameSite attribute.
+   * @param aSchemeMap
+   *        the schemes this cookie has been set on. See nsICookie.idl.
+   * @param aIsPartitioned
+   *        true if the cookie should be stored with the Partitioned attribute.
    */
   [implicit_jscontext]
   void add(in AUTF8String aHost,
@@ -130,7 +134,8 @@ interface nsICookieManager : nsISupports
            in int64_t     aExpiry,
            in jsval aOriginAttributes,
            in int32_t aSameSite,
-           in nsICookie_schemeType aSchemeMap);
+           in nsICookie_schemeType aSchemeMap,
+           [optional] in boolean aIsPartitioned);
 
   [notxpcom]
   nsresult addNative(in AUTF8String aHost,

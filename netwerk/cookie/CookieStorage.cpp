@@ -602,6 +602,15 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
                               bool aFromHttp, bool aIsThirdParty,
                               dom::BrowsingContext* aBrowsingContext,
                               const nsID* aOperationID) {
+  if (CookieCommons::IsFirstPartyPartitionedCookieWithoutCHIPS(
+          aCookie, aBaseDomain, aOriginAttributes)) {
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+                      "Invalid first-party partitioned cookie without "
+                      "partitioned cookie attribution.");
+    MOZ_DIAGNOSTIC_ASSERT(false);
+    return;
+  }
+
   int64_t currentTime = aCurrentTimeInUsec / PR_USEC_PER_SEC;
 
   CookieListIter exactIter{};
