@@ -2429,6 +2429,7 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
     case LOCAL_GL_RENDERER:
     case LOCAL_GL_VENDOR:
     case LOCAL_GL_VERSION:
+    case dom::MOZ_debug_Binding::CONTEXT_TYPE:
     case dom::MOZ_debug_Binding::WSI_INFO:
       debugOnly = true;
       asString = true;
