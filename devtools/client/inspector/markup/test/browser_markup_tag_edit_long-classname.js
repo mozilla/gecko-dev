@@ -23,7 +23,7 @@ add_task(async function () {
   // We trigger a click on the container which is not a button, so that would make the
   // test fail on a11y_checks. Since we're handling element selection from the keyboard
   // just fine, we can disable the accessibility check to avoid the test failure.
-  AccessibilityUtils.setEnv({ focusabeRule: false });
+  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
   await clickContainer("div", inspector);
   AccessibilityUtils.resetEnv();
 
