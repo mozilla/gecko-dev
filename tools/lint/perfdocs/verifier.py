@@ -399,7 +399,8 @@ class Verifier(object):
                 # Description doesn't exist for the suite
                 logger.warning(
                     "Missing suite description for {}".format(suite),
-                    yaml_content["manifest"],
+                    [t.get("path") for _, t in test_list.items()],
+                    False,
                 )
                 continue
 

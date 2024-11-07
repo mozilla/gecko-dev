@@ -58,3 +58,11 @@ suites:
         description: "Performance tests running through Mochitest for ML Models"
         tests:
             "ML Test Model": ""
+
+    intl/benchmarks/test/xpcshell:
+        description: "Performance tests running through XPCShell for Intl code"
+        tests:
+            "IntlDateTimeFormat": ""
+            "IntlLocale": ""
+            "IntlNumberFormat": ""
+            "IntlPluralRules": ""
