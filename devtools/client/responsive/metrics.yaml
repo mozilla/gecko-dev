@@ -1,0 +1,45 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'DevTools :: Responsive Design Mode'
+
+devtools.responsive:
+  open_trigger:
+    type: labeled_counter
+    description: >
+      Number of Responsive Design Mode opens keyed by the UI entry point
+      used.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.responsive.open_trigger.
+    bugs:
+      - https://bugzil.la/1444497
+    data_reviews:
+      - https://bugzil.la/1444497
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - jryans@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_RESPONSIVE_OPEN_TRIGGER
+
+  toolbox_opened_first:
+    type: counter
+    description: >
+      Number of Responsive Design Mode opens with a toolbox already open.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar devtools.responsive.toolbox_opened_first.
+    bugs:
+      - https://bugzil.la/1444497
+    data_reviews:
+      - https://bugzil.la/1444497
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - jryans@mozilla.com
+    expires: never
+    telemetry_mirror: DEVTOOLS_RESPONSIVE_TOOLBOX_OPENED_FIRST

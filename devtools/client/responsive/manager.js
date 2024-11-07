@@ -151,7 +151,7 @@ class ResponsiveUIManager {
     const hasToolbox = !!toolbox;
 
     if (hasToolbox) {
-      this.telemetry.scalarAdd("devtools.responsive.toolbox_opened_first", 1);
+      Glean.devtoolsResponsive.toolboxOpenedFirst.add(1);
     }
 
     this.telemetry.recordEvent("activate", "responsive_design", null, {
@@ -164,11 +164,7 @@ class ResponsiveUIManager {
     if (!trigger) {
       trigger = "unknown";
     }
-    this.telemetry.keyedScalarAdd(
-      "devtools.responsive.open_trigger",
-      trigger,
-      1
-    );
+    Glean.devtoolsResponsive.openTrigger[trigger].add(1);
   }
 
   /**
