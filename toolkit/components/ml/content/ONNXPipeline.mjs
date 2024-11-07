@@ -297,6 +297,28 @@ export class Pipeline {
     // ONNX runtime - we set up the wasm runtime we got from RS for the ONNX backend to pick
     transformers.env.backends.onnx.wasm.wasmPaths = {};
     transformers.env.backends.onnx.wasm.wasmBinary = config.runtime;
+
+    // Set the onnxruntime-web log/verbosity.
+    // onnx log levels are "error" | "verbose" | "info" | "warning" | "fatal"
+    // the default level is "warning"
+    switch (config.logLevel) {
+      case "All":
+      case "Trace":
+        transformers.env.backends.onnx.logLevel = "verbose";
+        transformers.env.backends.onnx.trace = true;
+        transformers.env.backends.onnx.debug = true;
+        break;
+      case "Debug":
+        transformers.env.backends.onnx.logLevel = "verbose";
+        transformers.env.backends.onnx.debug = true;
+        break;
+      default:
+        transformers.env.backends.onnx.logLevel = "warning";
+        transformers.env.backends.onnx.trace = false;
+        transformers.env.backends.onnx.debug = false;
+        break;
+    }
+
     lazy.console.debug("Transformers.js env", transformers.env);
 
     const device = config.device || "wasm";
