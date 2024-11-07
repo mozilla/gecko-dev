@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.ModalDrawer
-import androidx.compose.material.Snackbar
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.material.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -81,7 +78,6 @@ fun DebugOverlay(
     onDrawerClose: () -> Unit,
     onDrawerBackButtonClick: () -> Unit,
 ) {
-    val snackbarState = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var debugDrawerFabOffsetX by remember { mutableStateOf(INITIAL_FAB_OFFSET_X) }
     var debugDrawerFabOffsetY by remember { mutableStateOf(INITIAL_FAB_OFFSET_Y) }
@@ -158,16 +154,6 @@ fun DebugOverlay(
                     content = {},
                 )
             }
-        }
-
-        // This must be the last element in the Box
-        SnackbarHost(
-            hostState = snackbarState,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        ) { snackbarData ->
-            Snackbar(
-                snackbarData = snackbarData,
-            )
         }
     }
 }

@@ -18,9 +18,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.Snackbar
-import androidx.compose.material.SnackbarHost
-import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +39,9 @@ import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.list.SelectableListItem
+import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
+import org.mozilla.fenix.compose.snackbar.SnackbarHost
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.ext.getIcon
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -211,27 +211,35 @@ private fun DownloadsScreenPreviews(
     @PreviewParameter(DownloadsScreenPreviewModelParameterProvider::class) state: DownloadFragmentState,
 ) {
     val store = remember { DownloadFragmentStore(initialState = state) }
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { AcornSnackbarHostState() }
     val scope = rememberCoroutineScope()
     FirefoxTheme {
         Box {
             DownloadsScreen(
                 downloadsStore = store,
                 onItemClick = {
-                    scope.launch { snackbarHostState.showSnackbar("Item ${it.fileName} clicked") }
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            SnackbarState(message = "Item ${it.fileName} clicked"),
+                        )
+                    }
                 },
                 onItemDeleteClick = {
                     store.dispatch(DownloadFragmentAction.UpdateDownloadItems(store.state.items - it))
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            SnackbarState(
+                                message = "Item ${it.fileName} deleted",
+                                type = SnackbarState.Type.Warning,
+                            ),
+                        )
+                    }
                 },
             )
             SnackbarHost(
-                hostState = snackbarHostState,
+                snackbarHostState = snackbarHostState,
                 modifier = Modifier.align(Alignment.BottomCenter),
-            ) { snackbarData ->
-                Snackbar(
-                    snackbarData = snackbarData,
-                )
-            }
+            )
         }
     }
 }
