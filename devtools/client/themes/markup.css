@@ -20,6 +20,8 @@
     /* In regular mode, this variable relies on --theme-body-color, which is already set
        to CanvasText for HCM, BUT: we still need to force it here because of Bug 1917523 */
     --markup-selected-focus-visible-non-highlighted-color: CanvasText;
+    --markup-drag-line: GrayText;
+    --markup-drop-line: SelectedItem;
   }
 }
 
@@ -129,6 +131,11 @@ body.dragging .tag-line {
   opacity: 0.7;
   z-index: 1;
   height: 0;
+
+  :root[forced-colors-active] & {
+    opacity: 1;
+    z-index: 2;
+  }
 }
 
 /* Indicates a tag-line in the markup-view as being an active drop target by
