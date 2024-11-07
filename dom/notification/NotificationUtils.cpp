@@ -9,15 +9,9 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/NotificationBinding.h"
 #include "mozilla/glean/GleanMetrics.h"
-#include "nsContentUtils.h"
-#include "nsIAlertsService.h"
-#include "nsINotificationStorage.h"
 #include "nsIPermissionManager.h"
-#include "nsIPushService.h"
-#include "nsServiceManagerUtils.h"
 
 namespace mozilla::dom::notification {
 
@@ -146,140 +140,6 @@ NotificationPermission GetNotificationPermission(
   }
 
   return GetRawNotificationPermission(aPrincipal);
-}
-
-nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin) {
-  if (!aPrincipal) {
-    return NS_ERROR_FAILURE;
-  }
-
-  MOZ_TRY(
-      nsContentUtils::GetWebExposedOriginSerialization(aPrincipal, aOrigin));
-
-  return NS_OK;
-}
-
-void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
-                      const nsString& aId, nsString& aResult) {
-  nsAutoString alertName;
-  nsresult rv = GetOrigin(aPrincipal, alertName);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  // Get the notification name that is unique per origin + tag/ID.
-  // The name of the alert is of the form origin#tag/ID.
-  alertName.Append('#');
-  if (!aTag.IsEmpty()) {
-    alertName.AppendLiteral("tag:");
-    alertName.Append(aTag);
-  } else {
-    alertName.AppendLiteral("notag:");
-    alertName.Append(aId);
-  }
-
-  aResult = alertName;
-}
-
-nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate) {
-  return do_GetService(isPrivate ? NS_MEMORY_NOTIFICATION_STORAGE_CONTRACTID
-                                 : NS_NOTIFICATION_STORAGE_CONTRACTID);
-}
-
-nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                             const nsString& aAlertName,
-                             const IPCNotificationOptions& aOptions,
-                             const nsString& aScope) {
-  nsCOMPtr<nsINotificationStorage> notificationStorage =
-      GetNotificationStorage(aPrincipal->GetIsInPrivateBrowsing());
-  if (NS_WARN_IF(!notificationStorage)) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  nsString origin;
-  nsresult rv = GetOrigin(aPrincipal, origin);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  nsAutoString behavior;
-  if (!aOptions.behavior().ToJSON(behavior)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  rv = notificationStorage->Put(
-      origin, aId, aOptions.title(), GetEnumString(aOptions.dir()),
-      aOptions.lang(), aOptions.body(), aOptions.tag(), aOptions.icon(),
-      aAlertName, aOptions.dataSerialized(), behavior, aScope);
-
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  return NS_OK;
-}
-
-nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
-  if (!aPrincipal) {
-    return NS_ERROR_FAILURE;
-  }
-  if (nsCOMPtr<nsINotificationStorage> notificationStorage =
-          GetNotificationStorage(aPrincipal->GetIsInPrivateBrowsing())) {
-    nsString origin;
-    MOZ_TRY(GetOrigin(aPrincipal, origin));
-    return notificationStorage->Delete(origin, aId);
-  }
-  return NS_ERROR_FAILURE;
-}
-
-void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                            const nsString& aAlertName, CloseMode aCloseMode) {
-  // XXX: unpersist only when explicitly closed, bug 1095073
-  UnpersistNotification(aPrincipal, aId);
-  if (nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service()) {
-    alertService->CloseAlert(
-        aAlertName,
-        /* aContextClosed */ aCloseMode == CloseMode::InactiveGlobal);
-  }
-}
-
-nsresult RemovePermission(nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  nsCOMPtr<nsIPermissionManager> permissionManager =
-      mozilla::components::PermissionManager::Service();
-  if (!permissionManager) {
-    return NS_ERROR_FAILURE;
-  }
-  permissionManager->RemoveFromPrincipal(aPrincipal, "desktop-notification"_ns);
-  return NS_OK;
-}
-
-nsresult OpenSettings(nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-  if (!obs) {
-    return NS_ERROR_FAILURE;
-  }
-  // Notify other observers so they can show settings UI.
-  obs->NotifyObservers(aPrincipal, "notifications-open-settings", nullptr);
-  return NS_OK;
-}
-
-nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
-                         NotificationStatusChange aChange) {
-  nsCOMPtr<nsIPushQuotaManager> pushQuotaManager =
-      do_GetService("@mozilla.org/push/Service;1");
-  if (!pushQuotaManager) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsAutoCString origin;
-  MOZ_TRY(aPrincipal->GetOrigin(origin));
-
-  if (aChange == NotificationStatusChange::Shown) {
-    return pushQuotaManager->NotificationForOriginShown(origin.get());
-  }
-  return pushQuotaManager->NotificationForOriginClosed(origin.get());
 }
 
 }  // namespace mozilla::dom::notification

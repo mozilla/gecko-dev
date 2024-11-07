@@ -1011,6 +1011,9 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvOpenNotificationSettings(
       nsIPrincipal* aPrincipal);
 
+  mozilla::ipc::IPCResult RecvNotificationEvent(
+      const nsAString& aType, const NotificationEventData& aData);
+
   mozilla::ipc::IPCResult RecvLoadURIExternal(
       nsIURI* uri, nsIPrincipal* triggeringPrincipal,
       nsIPrincipal* redirectPrincipal,

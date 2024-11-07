@@ -12,7 +12,6 @@ include "mozilla/dom/PermissionMessageUtils.h";
 include "mozilla/dom/PropertyBagUtils.h";
 include "mozilla/dom/ReferrerInfoUtils.h";
 include "mozilla/dom/TabMessageUtils.h";
-include "mozilla/dom/notification/IPCUtils.h";
 include "mozilla/ipc/URIUtils.h";
 include "mozilla/layers/LayersMessageUtils.h";
 include "mozilla/net/NeckoMessageUtils.h";
@@ -56,8 +55,6 @@ using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingCont
 using mozilla::TimeStamp from "mozilla/TimeStamp.h";
 [RefCounted] using class mozilla::RemoteLazyInputStream from "mozilla/RemoteLazyInputStream.h";
 [MoveOnly] using class mozilla::ipc::BigBuffer from "mozilla/ipc/BigBuffer.h";
-using mozilla::dom::NotificationDirection from "mozilla/dom/NotificationBinding.h";
-using mozilla::dom::NotificationBehavior from "mozilla/dom/NotificationBinding.h";
 
 namespace mozilla {
 namespace dom {
@@ -193,7 +190,7 @@ struct DocShellLoadStateInit
   uint32_t LoadType;
   uint32_t LoadFlags;
   uint32_t InternalLoadFlags;
-
+  
   // The TriggineringSandboxFlags are the SandboxFlags of the entity
   // responsible for causing the load to occur.
   uint32_t TriggeringSandboxFlags;
@@ -330,24 +327,6 @@ struct IPCImage {
     uint32_t stride;
     SurfaceFormat format;
     ImageIntSize size;
-};
-
-// Mostly same as NotificationOptions except:
-// * `title` is included (it's a separate parameter in the Notification constructor)
-// * `data` is serialized to base64 string by StructuredCloneContainer
-// * `vibrate` is normalized to sequence
-struct IPCNotificationOptions {
-  nsString title;
-  NotificationDirection dir;
-  nsString lang;
-  nsString body;
-  nsString tag;
-  nsString icon;
-  bool requireInteraction;
-  bool silent;
-  uint32_t[] vibrate;
-  nsString dataSerialized;
-  NotificationBehavior behavior;
 };
 
 } // namespace dom

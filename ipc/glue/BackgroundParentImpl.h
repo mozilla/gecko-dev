@@ -129,14 +129,6 @@ class BackgroundParentImpl : public PBackgroundParent {
       Endpoint<PWebTransportParent>&& aParentEndpoint,
       CreateWebTransportParentResolver&& aResolver) override;
 
-  mozilla::ipc::IPCResult RecvCreateNotificationParent(
-      Endpoint<dom::notification::PNotificationParent>&& aParentEndpoint,
-      NotNull<nsIPrincipal*> aPrincipal,
-      NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
-      const bool& aIsSecureContext, const nsAString& aId,
-      const nsAString& aScope, const IPCNotificationOptions& aOptions,
-      CreateNotificationParentResolver&& aResolver) final;
-
   already_AddRefed<PIdleSchedulerParent> AllocPIdleSchedulerParent() override;
 
   PTemporaryIPCBlobParent* AllocPTemporaryIPCBlobParent() override;

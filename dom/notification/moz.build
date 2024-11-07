@@ -20,22 +20,10 @@ EXPORTS.mozilla.dom += [
     "NotificationEvent.h",
 ]
 
-EXPORTS.mozilla.dom.notification += [
-    "IPCUtils.h",
-    "NotificationChild.h",
-    "NotificationParent.h",
-    "NotificationUtils.h",  # Exported for ContentParent for now
-]
-
 UNIFIED_SOURCES += [
     "Notification.cpp",
     "NotificationEvent.cpp",
-    "NotificationParent.cpp",
     "NotificationUtils.cpp",
-]
-
-IPDL_SOURCES += [
-    "PNotification.ipdl",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

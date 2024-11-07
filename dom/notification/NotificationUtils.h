@@ -8,20 +8,13 @@
 #define DOM_NOTIFICATION_NOTIFICATIONUTILS_H_
 
 #include <cstdint>
-#include "nsCOMPtr.h"
-#include "nsStringFwd.h"
 
-enum class nsresult : uint32_t;
 class nsIPrincipal;
-class nsINotificationStorage;
+
 namespace mozilla::dom {
 enum class NotificationPermission : uint8_t;
 class Document;
 }  // namespace mozilla::dom
-
-namespace mozilla::dom {
-class IPCNotificationOptions;
-}
 
 namespace mozilla::dom::notification {
 
@@ -62,34 +55,6 @@ bool IsNotificationForbiddenFor(nsIPrincipal* aPrincipal,
 NotificationPermission GetNotificationPermission(
     nsIPrincipal* aPrincipal, nsIPrincipal* aEffectiveStoragePrincipal,
     bool isSecureContext, PermissionCheckPurpose aPurpose);
-
-nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate);
-
-nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin);
-
-void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
-                      const nsString& aId, nsString& aResult);
-
-nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                             const nsString& aAlertName,
-                             const IPCNotificationOptions& aOptions,
-                             const nsString& aScope);
-nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId);
-
-enum class CloseMode {
-  CloseMethod,
-  // Either on global teardown or freeze
-  InactiveGlobal,
-};
-void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                            const nsString& aAlertName, CloseMode aCloseMode);
-
-nsresult RemovePermission(nsIPrincipal* aPrincipal);
-nsresult OpenSettings(nsIPrincipal* aPrincipal);
-
-enum class NotificationStatusChange { Shown, Closed };
-nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
-                         NotificationStatusChange aChange);
 
 }  // namespace mozilla::dom::notification
 

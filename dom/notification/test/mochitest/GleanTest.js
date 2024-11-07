@@ -13,11 +13,6 @@ const GleanTest = new Proxy(
         Services.fog.testResetFOG();
       });
     },
-    async flush() {
-      return SpecialPowers.spawnChrome([], async () => {
-        await Services.fog.testFlushAllChildren();
-      });
-    },
   },
   {
     get(gleanTestObj, gleanTestProp) {

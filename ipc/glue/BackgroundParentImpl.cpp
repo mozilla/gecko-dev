@@ -54,7 +54,6 @@
 #include "mozilla/dom/locks/LockManagerParent.h"
 #include "mozilla/dom/localstorage/ActorsParent.h"
 #include "mozilla/dom/network/UDPSocketParent.h"
-#include "mozilla/dom/notification/NotificationParent.h"
 #include "mozilla/dom/quota/ActorsParent.h"
 #include "mozilla/dom/quota/QuotaParent.h"
 #include "mozilla/dom/simpledb/ActorsParent.h"
@@ -477,23 +476,6 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateWebTransportParent(
   webt->Create(aURL, aPrincipal, aClientInfo, aDedicated, aRequireUnreliable,
                aCongestionControl, std::move(aServerCertHashes),
                std::move(aParentEndpoint), std::move(aResolver));
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateNotificationParent(
-    Endpoint<dom::notification::PNotificationParent>&& aParentEndpoint,
-    NotNull<nsIPrincipal*> aPrincipal,
-    NotNull<nsIPrincipal*> aEffectiveStoragePrincipal,
-    const bool& aIsSecureContext, const nsAString& aId, const nsAString& aScope,
-    const IPCNotificationOptions& aOptions,
-    CreateNotificationParentResolver&& aResolver) {
-  AssertIsInMainProcess();
-  AssertIsOnBackgroundThread();
-
-  auto actor = MakeRefPtr<dom::notification::NotificationParent>(
-      aPrincipal, aEffectiveStoragePrincipal, aIsSecureContext, aId, aScope,
-      aOptions);
-  actor->BindToMainThread(std::move(aParentEndpoint), std::move(aResolver));
   return IPC_OK();
 }
 
@@ -1399,7 +1381,8 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvPLockManagerConstructor(
 already_AddRefed<dom::locks::PLockManagerParent>
 BackgroundParentImpl::AllocPLockManagerParent(NotNull<nsIPrincipal*> aPrincipal,
                                               const Maybe<nsID>& aClientId) {
-  return MakeAndAddRef<dom::locks::LockManagerParent>(aPrincipal, aClientId);
+  return MakeAndAddRef<mozilla::dom::locks::LockManagerParent>(aPrincipal,
+                                                               aClientId);
 }
 
 already_AddRefed<dom::PFetchParent> BackgroundParentImpl::AllocPFetchParent() {
