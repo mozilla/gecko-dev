@@ -11,6 +11,11 @@
 #include <comdef.h>
 #include <unordered_set>
 
+// Handle MinGW builds - see bug 1929755 for more info
+#if defined(__MINGW32__) || defined(__MINGW64__) || defined(__MINGW__)
+#  include "supplementalMinGWDefinitions.h"
+#endif
+
 namespace mozilla::a11y {
 
 // Used internally to safely get a UiaTextRange from a COM pointer provided
