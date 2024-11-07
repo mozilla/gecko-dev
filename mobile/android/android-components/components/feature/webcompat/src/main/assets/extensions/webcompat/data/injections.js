@@ -769,20 +769,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1849388",
-    platform: "android",
-    domain: "kucharkaprodceru.cz",
-    bug: "1849388",
-    contentScripts: {
-      matches: ["*://*.kucharkaprodceru.cz/*"],
-      css: [
-        {
-          file: "injections/css/bug1849388-kucharkaprodceru.cz-scroll-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1855014",
     platform: "android",
     domain: "eksiseyler.com",
