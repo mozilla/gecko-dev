@@ -462,18 +462,20 @@ class nsContainerFrame : public nsSplittableFrame {
    * argument for CSSAlignUtils::AlignJustifySelf(). (The upper 8 bits may
    * encode an <overflow-position>.)
    *
-   * NOTE: This default nsContainerFrame implementation is a stub, and isn't
-   * meant to be called.  Subclasses must provide their own implementations, if
-   * they use CSS Box Alignment to determine the static position of their
-   * absolutely-positioned children. (Though: if subclasses share enough code,
-   * maybe this nsContainerFrame impl should include some shared code.)
-   *
    * @param aChildRI A ReflowInput for the positioned child frame that's being
    *                 aligned.
    * @param aLogicalAxis The axis (of this container frame) in which the caller
    *                     would like to align the child frame.
    */
   virtual mozilla::StyleAlignFlags CSSAlignmentForAbsPosChild(
+      const ReflowInput& aChildRI, mozilla::LogicalAxis aLogicalAxis) const;
+
+  /**
+   * Default implementation of `CSSAlignmentForAbsPosChild`, where we treat
+   * this frame as a plain absolute containing block instead of depending
+   * on its type (By overriding `CSSAlignmentForAbsPosChild`).
+   */
+  mozilla::StyleAlignFlags CSSAlignmentForAbsPosChildWithinContainingBlock(
       const ReflowInput& aChildRI, mozilla::LogicalAxis aLogicalAxis) const;
 
 #define NS_DECLARE_FRAME_PROPERTY_FRAMELIST(prop) \
