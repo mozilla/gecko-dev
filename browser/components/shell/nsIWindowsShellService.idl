@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "imgIContainer.idl"
 #include "nsIShellService.idl"
 
 interface nsIFile;
@@ -286,18 +287,32 @@ interface nsIWindowsShellService : nsIShellService
    *
    * This function should not be called unless it is certain that it's
    * necessary given how few checks there are within.
+   * @param  aAppUserModelId
+   *         The aumid to be contained in the .lnk file
    * @param  aShortcutPath
    *         A path to the .lnk file that should be pinned to the taskbar.
-   * @throws NS_ERROR_FAILURE
-   *         If the COM service could not be initialized
-   * @throws NS_ERROR_FILE_NOT_FOUND
-   *         If aShortcutPath cannot be found
-   * @throws NS_ERROR_NOT_AVAILABLE
-   *         If the taskbar pinning service cannot be initialized
-   * @throws NS_ERROR_FILE_ACCESS_DENIED
-   *         If the taskbar pins cannot be modified
    */
-  void pinShortcutToTaskbar(in AString aShortcutPath);
+  [implicit_jscontext]
+  Promise pinShortcutToTaskbar(
+    in AString aAppUserModelId,
+    in AString aShortcutPath
+  );
+
+  /* This function can be used to convert compatible image formats into .ico
+   * files to be used for .lnk files (see createShortcut).
+   *
+   * This function should not be called unless it is certain that it's
+   * necessary given how few checks there are within.
+   * @param  aFile
+   *         Output file to be written
+   * @param  aContainer
+   *         The graphics container
+   */
+  [implicit_jscontext]
+  Promise createWindowsIcon(
+    in nsIFile aFile,
+    in imgIContainer aContainer
+  );
 
   /*
    * This function is a counterpart to pinShortcutToTaskbar and allows

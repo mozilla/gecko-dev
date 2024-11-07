@@ -3,18 +3,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsDebug.h"
 #define UNICODE
 
 #include "nsWindowsShellService.h"
 #include "nsWindowsShellServiceInternal.h"
 
 #include "BinaryPath.h"
+#include "gfxUtils.h"
 #include "imgIContainer.h"
 #include "imgIRequest.h"
+#include "imgITools.h"
 #include "mozilla/RefPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIContent.h"
 #include "nsIImageLoadingContent.h"
+#include "nsIFile.h"
+#include "nsIFileStreams.h"
 #include "nsIOutputStream.h"
 #include "nsIPrefService.h"
 #include "nsIStringBundle.h"
@@ -34,8 +39,10 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/FileUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/intl/Localization.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "WindowsDefaultBrowser.h"
 #include "WindowsUserChoice.h"
 #include "nsLocalFile.h"
@@ -122,6 +129,13 @@ using BStrPtr = mozilla::UniquePtr<OLECHAR, SysFreeStringDeleter>;
 
 NS_IMPL_ISUPPORTS(nsWindowsShellService, nsIToolkitShellService,
                   nsIShellService, nsIWindowsShellService)
+
+/* Enable logging by setting MOZ_LOG to "nsWindowsShellService:5" for debugging
+ * purposes. */
+static LazyLogModule sLog("nsWindowsShellService");
+
+static nsresult WriteBitmap(nsIFile* aFile, imgIContainer* aImage);
+static nsresult WriteIcon(nsIFile* aIcoFile, imgIContainer* aImage);
 
 static nsresult OpenKeyForReading(HKEY aKeyRoot, const nsAString& aKeyName,
                                   HKEY* aKey) {
@@ -420,6 +434,120 @@ nsWindowsShellService::SetDefaultBrowser(bool aForAllUsers) {
   }
 
   return rv;
+}
+
+/*
+ * Asynchronious function to Write an ico file to the disk / in a nsIFile.
+ * Limitation: Only square images are supported as of now.
+ */
+NS_IMETHODIMP
+nsWindowsShellService::CreateWindowsIcon(nsIFile* aIcoFile,
+                                         imgIContainer* aImage, JSContext* aCx,
+                                         dom::Promise** aPromise) {
+  NS_ENSURE_ARG_POINTER(aIcoFile);
+  NS_ENSURE_ARG_POINTER(aImage);
+  NS_ENSURE_ARG_POINTER(aCx);
+  NS_ENSURE_ARG_POINTER(aPromise);
+
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
+
+  // First available on 1809
+  if (!IsWin10Sep2018UpdateOrLater()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  ErrorResult rv;
+  RefPtr<dom::Promise> promise =
+      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
+
+  if (MOZ_UNLIKELY(rv.Failed())) {
+    return rv.StealNSResult();
+  }
+
+  auto promiseHolder = MakeRefPtr<nsMainThreadPtrHolder<dom::Promise>>(
+      "CreateWindowsIcon promise", promise);
+
+  NS_DispatchBackgroundTask(
+      NS_NewRunnableFunction(
+          "CreateWindowsIcon",
+          [icoFile = aIcoFile, image = aImage,
+           promiseHolder = std::move(promiseHolder)] {
+            nsresult rv = WriteIcon(icoFile, image);
+            NS_DispatchToMainThread(NS_NewRunnableFunction(
+                "CreateWindowsIcon callback",
+                [rv, promiseHolder = std::move(promiseHolder)] {
+                  dom::Promise* promise = promiseHolder.get()->get();
+
+                  if (NS_SUCCEEDED(rv)) {
+                    promise->MaybeResolveWithUndefined();
+                  } else {
+                    promise->MaybeReject(rv);
+                  }
+                }));
+          }),
+      NS_DISPATCH_EVENT_MAY_BLOCK);
+
+  promise.forget(aPromise);
+  return NS_OK;
+}
+
+static nsresult WriteIcon(nsIFile* aIcoFile, imgIContainer* aImage) {
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Reading input image...\n", __FILE__, __LINE__));
+
+  RefPtr<gfx::SourceSurface> surface = aImage->GetFrame(
+      imgIContainer::FRAME_FIRST, imgIContainer::FLAG_SYNC_DECODE);
+  NS_ENSURE_TRUE(surface, NS_ERROR_FAILURE);
+
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Surface found, writing icon... \n", __FILE__, __LINE__));
+
+  const gfx::IntSize size = surface->GetSize();
+  if (size.IsEmpty()) {
+    MOZ_LOG(sLog, LogLevel::Debug,
+            ("%s:%d - The input image looks empty :(\n", __FILE__, __LINE__));
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
+  NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+  int32_t width = dataSurface->GetSize().width;
+  int32_t height = dataSurface->GetSize().height;
+
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Input image dimensions are: %dx%d pixels\n", __FILE__,
+           __LINE__, width, height));
+
+  NS_ENSURE_TRUE(height > 0, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(width > 0, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(width == height, NS_ERROR_FAILURE);
+
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Opening file for writing...\n", __FILE__, __LINE__));
+
+  ScopedCloseFile file;
+  nsresult rv = aIcoFile->OpenANSIFileDesc("wb", getter_Transfers(file));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Writing icon...\n", __FILE__, __LINE__));
+
+  rv = gfxUtils::EncodeSourceSurface(surface, ImageType::ICO, u""_ns,
+                                     gfxUtils::eBinaryEncode, file.get());
+
+  if (NS_FAILED(rv)) {
+    MOZ_LOG(sLog, LogLevel::Debug,
+            ("%s:%d - Could not write the icon!\n", __FILE__, __LINE__));
+    return rv;
+  }
+
+  MOZ_LOG(sLog, LogLevel::Debug,
+          ("%s:%d - Icon written!\n", __FILE__, __LINE__));
+  return NS_OK;
 }
 
 static nsresult WriteBitmap(nsIFile* aFile, imgIContainer* aImage) {
@@ -1504,11 +1632,115 @@ static nsresult ManageShortcutTaskbarPins(bool aCheckOnly, bool aPinType,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsWindowsShellService::PinShortcutToTaskbar(const nsAString& aShortcutPath) {
+/* Application pinning utility: Checks if the application is already pinned to
+ * the taskbar and attempts to pin it only if not already.
+ */
+static nsresult PinCurrentAppToTaskbarWin10(bool aCheckOnly,
+                                            const nsAString& aAppUserModelId,
+                                            const nsAString& aShortcutPath) {
+  // The behavior here is identical if we're only checking or if we try to pin
+  // but the app is already pinned so we update the variable accordingly.
+  if (!aCheckOnly) {
+    aCheckOnly = IsCurrentAppPinnedToTaskbarSync(aAppUserModelId);
+  }
   const bool pinType = true;  // true means pin
-  const bool runInTestMode = false;
-  return ManageShortcutTaskbarPins(runInTestMode, pinType, aShortcutPath);
+  return ManageShortcutTaskbarPins(aCheckOnly, pinType, aShortcutPath);
+}
+
+static nsresult PinShortcutToTaskbarImpl(const nsAString& aAppUserModelId,
+                                         const nsAString& aShortcutPath) {
+  auto pinWithWin11TaskbarAPIResults =
+      PinCurrentAppToTaskbarWin11(false, aAppUserModelId);
+  switch (pinWithWin11TaskbarAPIResults.result) {
+    case Win11PinToTaskBarResultStatus::NotSupported:
+      // Fall through to the win 10 mechanism
+      break;
+
+    case Win11PinToTaskBarResultStatus::Success:
+    case Win11PinToTaskBarResultStatus::AlreadyPinned:
+      return NS_OK;
+
+    case Win11PinToTaskBarResultStatus::NotPinned:
+    case Win11PinToTaskBarResultStatus::NotCurrentlyAllowed:
+    case Win11PinToTaskBarResultStatus::Failed:
+      // return NS_ERROR_FAILURE;
+
+      // Fall through to the old mechanism for now
+      // In future, we should be sending telemetry for when
+      // an error occurs or for when pinning is not allowed
+      // with the Win 11 APIs.
+      break;
+  }
+
+  return PinCurrentAppToTaskbarWin10(false, aAppUserModelId, aShortcutPath);
+}
+
+/* This function pins a shortcut to the taskbar based on its location. While
+ * Windows 11 only needs the `aAppUserModelId`, `aShortcutPath` is required
+ * for pinning in Windows 10.
+ * @param aAppUserModelId
+ *        The same string used to create an lnk file.
+ * @param aShortcutPaths
+ *        Path for existing shortcuts (e.g., start menu)
+ */
+NS_IMETHODIMP
+nsWindowsShellService::PinShortcutToTaskbar(const nsAString& aAppUserModelId,
+                                            const nsAString& aShortcutPath,
+                                            JSContext* aCx,
+                                            dom::Promise** aPromise) {
+  NS_ENSURE_ARG_POINTER(aCx);
+  NS_ENSURE_ARG_POINTER(aPromise);
+
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
+
+  // First available on 1809
+  if (!IsWin10Sep2018UpdateOrLater()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  ErrorResult rv;
+  RefPtr<dom::Promise> promise =
+      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
+
+  if (MOZ_UNLIKELY(rv.Failed())) {
+    return rv.StealNSResult();
+  }
+
+  auto promiseHolder = MakeRefPtr<nsMainThreadPtrHolder<dom::Promise>>(
+      "pinShortcutToTaskbar promise", promise);
+
+  NS_DispatchBackgroundTask(
+      NS_NewRunnableFunction(
+          "pinShortcutToTaskbar",
+          [aumid = nsString{aAppUserModelId},
+           shortcutPath = nsString(aShortcutPath),
+           promiseHolder = std::move(promiseHolder)] {
+            nsresult rv = NS_ERROR_FAILURE;
+            HRESULT hr = CoInitialize(nullptr);
+
+            if (SUCCEEDED(hr)) {
+              rv = PinShortcutToTaskbarImpl(aumid, shortcutPath);
+              CoUninitialize();
+            }
+
+            NS_DispatchToMainThread(NS_NewRunnableFunction(
+                "pinShortcutToTaskbar callback",
+                [rv, promiseHolder = std::move(promiseHolder)] {
+                  dom::Promise* promise = promiseHolder.get()->get();
+
+                  if (NS_SUCCEEDED(rv)) {
+                    promise->MaybeResolveWithUndefined();
+                  } else {
+                    promise->MaybeReject(rv);
+                  }
+                }));
+          }),
+      NS_DISPATCH_EVENT_MAY_BLOCK);
+
+  promise.forget(aPromise);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1683,18 +1915,6 @@ nsWindowsShellService::GetTaskbarTabPins(nsTArray<nsString>& aShortcutPaths) {
 #endif
 }
 
-static nsresult PinCurrentAppToTaskbarWin10(bool aCheckOnly,
-                                            const nsAString& aAppUserModelId,
-                                            const nsAString& aShortcutPath) {
-  // The behavior here is identical if we're only checking or if we try to pin
-  // but the app is already pinned so we update the variable accordingly.
-  if (!aCheckOnly) {
-    aCheckOnly = IsCurrentAppPinnedToTaskbarSync(aAppUserModelId);
-  }
-  const bool pinType = true;  // true means pin
-  return ManageShortcutTaskbarPins(aCheckOnly, pinType, aShortcutPath);
-}
-
 static nsresult PinCurrentAppToTaskbarImpl(
     bool aCheckOnly, bool aPrivateBrowsing, const nsAString& aAppUserModelId,
     const nsAString& aShortcutName, const nsAString& aShortcutSubstring,
@@ -1753,31 +1973,7 @@ static nsresult PinCurrentAppToTaskbarImpl(
       return NS_ERROR_FILE_NOT_FOUND;
     }
   }
-
-  auto pinWithWin11TaskbarAPIResults =
-      PinCurrentAppToTaskbarWin11(aCheckOnly, aAppUserModelId);
-  switch (pinWithWin11TaskbarAPIResults.result) {
-    case Win11PinToTaskBarResultStatus::NotSupported:
-      // Fall through to the win 10 mechanism
-      break;
-
-    case Win11PinToTaskBarResultStatus::Success:
-    case Win11PinToTaskBarResultStatus::AlreadyPinned:
-      return NS_OK;
-
-    case Win11PinToTaskBarResultStatus::NotPinned:
-    case Win11PinToTaskBarResultStatus::NotCurrentlyAllowed:
-    case Win11PinToTaskBarResultStatus::Failed:
-      // return NS_ERROR_FAILURE;
-
-      // Fall through to the old mechanism for now
-      // In future, we should be sending telemetry for when
-      // an error occurs or for when pinning is not allowed
-      // with the Win 11 APIs.
-      break;
-  }
-
-  return PinCurrentAppToTaskbarWin10(aCheckOnly, aAppUserModelId, shortcutPath);
+  return PinShortcutToTaskbarImpl(aAppUserModelId, shortcutPath);
 }
 
 static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
