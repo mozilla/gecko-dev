@@ -133,7 +133,7 @@ export class UserCharacteristicsWindowInfoChild extends JSWindowActorChild {
   didDestroy() {
     this.destroyed = true;
     for (const [type, handler] of Object.entries(this.handlers)) {
-      this.contentWindow.windowRoot.removeEventListener(type, handler);
+      this.contentWindow?.windowRoot?.removeEventListener(type, handler);
     }
   }
 
