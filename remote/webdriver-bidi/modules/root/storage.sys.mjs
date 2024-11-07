@@ -298,6 +298,8 @@ class StorageModule extends RootBiDiModule {
       schemeType = Ci.nsICookie.SCHEME_HTTP;
     }
 
+    const isPartitioned = originAttributes.partitionKey?.length > 0;
+
     try {
       Services.cookies.add(
         domain,
@@ -311,7 +313,8 @@ class StorageModule extends RootBiDiModule {
         expiry === null ? MAX_COOKIE_EXPIRY : expiry,
         originAttributes,
         this.#getSameSitePlatformProperty(sameSite),
-        schemeType
+        schemeType,
+        isPartitioned
       );
     } catch (e) {
       throw new lazy.error.UnableToSetCookieError(e);
