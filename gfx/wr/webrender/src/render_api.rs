@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::u32;
-use api::MinimapData;
+use api::{MinimapData, SnapshotImageKey};
 use time::precise_time_ns;
 use crate::api::channel::{Sender, single_msg_channel, unbounded_channel};
 use crate::api::{BuiltDisplayList, IdNamespace, ExternalScrollId, Parameter, BoolParameter};
@@ -59,6 +59,10 @@ pub enum ResourceUpdate {
     DeleteBlobImage(BlobImageKey),
     /// See `AddBlobImage::visible_area`.
     SetBlobImageVisibleArea(BlobImageKey, DeviceIntRect),
+    /// See `AddSnapshotImage`.
+    AddSnapshotImage(AddSnapshotImage),
+    /// See `AddSnapshotImage`.
+    DeleteSnapshotImage(SnapshotImageKey),
     /// See `AddFont`.
     AddFont(AddFont),
     /// Deletes an already existing font resource.
@@ -99,6 +103,8 @@ impl fmt::Debug for ResourceUpdate {
             ResourceUpdate::DeleteImage(..) => f.write_str("ResourceUpdate::DeleteImage"),
             ResourceUpdate::DeleteBlobImage(..) => f.write_str("ResourceUpdate::DeleteBlobImage"),
             ResourceUpdate::SetBlobImageVisibleArea(..) => f.write_str("ResourceUpdate::SetBlobImageVisibleArea"),
+            ResourceUpdate::AddSnapshotImage(..) => f.write_str("ResourceUpdate::AddSnapshotImage"),
+            ResourceUpdate::DeleteSnapshotImage(..) => f.write_str("ResourceUpdate::DeleteSnapshotImage"),
             ResourceUpdate::AddFont(..) => f.write_str("ResourceUpdate::AddFont"),
             ResourceUpdate::DeleteFont(..) => f.write_str("ResourceUpdate::DeleteFont"),
             ResourceUpdate::AddFontInstance(..) => f.write_str("ResourceUpdate::AddFontInstance"),
@@ -505,6 +511,21 @@ impl Transaction {
         self.resource_updates.push(ResourceUpdate::SetBlobImageVisibleArea(key, area));
     }
 
+    /// See `ResourceUpdate::AddSnapshotImage`.
+    pub fn add_snapshot_image(
+        &mut self,
+        key: SnapshotImageKey,
+    ) {
+        self.resource_updates.push(
+            ResourceUpdate::AddSnapshotImage(AddSnapshotImage { key })
+        );
+    }
+
+    /// See `ResourceUpdate::DeleteSnapshotImage`.
+    pub fn delete_snapshot_image(&mut self, key: SnapshotImageKey) {
+        self.resource_updates.push(ResourceUpdate::DeleteSnapshotImage(key));
+    }
+
     /// See `ResourceUpdate::AddFont`.
     pub fn add_raw_font(&mut self, key: FontKey, bytes: Vec<u8>, index: u32) {
         self.resource_updates
@@ -722,6 +743,16 @@ pub struct UpdateBlobImage {
     /// An optional dirty rect that lets WebRender optimize the amount of
     /// data to to rasterize and transfer to the GPU.
     pub dirty_rect: BlobDirtyRect,
+}
+
+/// Creates a snapshot image resource.
+///
+/// Must be matched with a `DeleteSnapshotImage` at some point to prevent memory leaks.
+#[derive(Clone)]
+#[cfg_attr(any(feature = "serde"), derive(Deserialize, Serialize))]
+pub struct AddSnapshotImage {
+    /// The key identfying the snapshot resource.
+    pub key: SnapshotImageKey,
 }
 
 /// Creates a font resource.

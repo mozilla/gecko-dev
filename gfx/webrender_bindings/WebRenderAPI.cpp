@@ -1059,6 +1059,14 @@ void TransactionBuilder::DeleteBlobImage(BlobImageKey aKey) {
   wr_resource_updates_delete_blob_image(mTxn, aKey);
 }
 
+void TransactionBuilder::AddSnapshotImage(wr::SnapshotImageKey aKey) {
+  wr_resource_updates_add_snapshot_image(mTxn, aKey);
+}
+
+void TransactionBuilder::DeleteSnapshotImage(wr::SnapshotImageKey aKey) {
+  wr_resource_updates_delete_snapshot_image(mTxn, aKey);
+}
+
 void TransactionBuilder::AddRawFont(wr::FontKey aKey, wr::Vec<uint8_t>& aBytes,
                                     uint32_t aIndex) {
   wr_resource_updates_add_raw_font(mTxn, aKey, &aBytes.inner, aIndex);

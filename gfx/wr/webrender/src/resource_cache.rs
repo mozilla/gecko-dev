@@ -673,6 +673,12 @@ impl ResourceCache {
                 ResourceUpdate::DeleteBlobImage(img) => {
                     self.delete_image_template(img.as_image());
                 }
+                ResourceUpdate::AddSnapshotImage(_img) => {
+                    // TODO
+                }
+                ResourceUpdate::DeleteSnapshotImage(_img) => {
+                    // TODO
+                }
                 ResourceUpdate::DeleteFont(font) => {
                     if let Some(shared_key) = self.resources.fonts.font_keys.delete_key(&font) {
                         self.delete_font_template(shared_key);
