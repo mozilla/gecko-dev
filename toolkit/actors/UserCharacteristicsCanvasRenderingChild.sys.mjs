@@ -95,7 +95,7 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
       data[name + "software"] = result;
     }
 
-    this.sendMessage("CanvasRendering:Rendered", data);
+    return data;
   }
 
   async getDebugInfo() {
@@ -103,7 +103,7 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
     const ctx = canvas.getContext("2d");
 
     if (!ctx) {
-      return;
+      return null;
     }
 
     let debugInfo = null;
@@ -114,10 +114,10 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
         "Error getting canvas debug info: ",
         await stringifyError(e)
       );
-      return;
+      return null;
     }
 
-    this.sendMessage("CanvasRendering:GotDebugInfo", debugInfo);
+    return debugInfo;
   }
 
   sendMessage(name, obj, transferables) {
@@ -136,11 +136,9 @@ export class UserCharacteristicsCanvasRenderingChild extends JSWindowActorChild 
     lazy.console.debug("Actor Child: Got ", msg.name);
     switch (msg.name) {
       case "CanvasRendering:GetDebugInfo":
-        this.getDebugInfo();
-        break;
+        return this.getDebugInfo();
       case "CanvasRendering:Render":
-        this.render();
-        break;
+        return this.render();
     }
 
     return null;
