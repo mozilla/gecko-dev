@@ -141,6 +141,7 @@ export class UserCharacteristicsPageService {
       [this.populateCPUInfo, []],
       [this.populateWindowInfo, []],
       [this.populateWebGlInfo, [browser.ownerGlobal, browser.ownerDocument]],
+      [this.populateCanvasData, []],
     ];
     // Bind them to the class and run them in parallel.
     // Timeout if any of them takes too long (5 minutes).
@@ -250,6 +251,98 @@ export class UserCharacteristicsPageService {
 
     const pointerResult = await pointerInfoPromise;
     this.collectGleanMetricsFromMap(pointerResult);
+  }
+
+  async populateCanvasData() {
+    const actorName = "UserCharacteristicsCanvasRendering";
+    ChromeUtils.registerWindowActor(actorName, {
+      parent: {
+        esModuleURI: "resource://gre/actors/UserCharacteristicsParent.sys.mjs",
+      },
+      child: {
+        esModuleURI:
+          "resource://gre/actors/UserCharacteristicsCanvasRenderingChild.sys.mjs",
+      },
+    });
+
+    const cleanup = () => {
+      ChromeUtils.unregisterWindowActor(actorName);
+    };
+
+    // Try to find a window that supports hardware rendering
+    let foundActor = null;
+    let fallbackActor = null;
+    for (const win of Services.wm.getEnumerator("navigator:browser")) {
+      if (win.closed) {
+        continue;
+      }
+
+      const actor =
+        win.gBrowser.selectedBrowser.browsingContext?.currentWindowGlobal.getActor(
+          actorName
+        );
+
+      if (!actor) {
+        continue;
+      }
+
+      const promise = new Promise(resolve => {
+        Services.obs.addObserver(function observe(_subject, topic, data) {
+          Services.obs.removeObserver(observe, topic);
+          resolve(JSON.parse(data));
+        }, "user-characteristics-canvas-rendering-debug-info");
+      });
+
+      actor.sendAsyncMessage("CanvasRendering:GetDebugInfo");
+
+      // Example data: {"backendType":3,"drawTargetType":0,"isAccelerated":false,"isShared":true}
+      const data = await timeoutPromise(promise, 5000);
+      if (!data) {
+        continue;
+      }
+
+      lazy.console.debug("Canvas rendering debug info", data);
+
+      fallbackActor = actor;
+      if (data.isAccelerated) {
+        foundActor = actor;
+        break;
+      }
+    }
+
+    // If we didn't find a hardware accelerated window, we use the last one
+    const actor = foundActor || fallbackActor;
+
+    if (!actor) {
+      lazy.console.error("No actor found for canvas rendering");
+      cleanup();
+      return;
+    }
+
+    // We have an actor, hw accelerated or not
+    // Ask it to render the canvases
+    const promise = new Promise(resolve => {
+      Services.obs.addObserver(function observe(_subject, topic, data) {
+        Services.obs.removeObserver(observe, topic);
+        resolve(JSON.parse(data));
+      }, "user-characteristics-canvas-rendering-done");
+    });
+
+    actor.sendAsyncMessage("CanvasRendering:Render");
+
+    // Timeout must be shorter than 5 minutes, because populateCanvasData
+    // caller itself has a timeout of 5 minutes.
+    const data = await timeoutPromise(promise, 4 * 60 * 1000);
+    if (!data) {
+      lazy.console.error("Canvas rendering timed out");
+      cleanup();
+      return;
+    }
+
+    // We have the data, populate the metrics
+    this.collectGleanMetricsFromMap(data);
+
+    cleanup();
   }
 
   async populateZoomPrefs() {
