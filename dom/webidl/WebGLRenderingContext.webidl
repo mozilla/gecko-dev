@@ -53,7 +53,7 @@ dictionary WebGLContextAttributes {
     GLboolean failIfMajorPerformanceCaveat = false;
     WebGLPowerPreference powerPreference = "default";
 
-    [Func="nsRFPService::IsSoftwareRenderingOptionExposed"]
+    [Func="nsRFPService::IsSystemPrincipalOrAboutFingerprintingProtection"]
     GLboolean forceSoftwareRendering = false;
 };
 
