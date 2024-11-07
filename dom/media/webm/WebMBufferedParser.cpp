@@ -9,7 +9,6 @@
 #include <algorithm>
 
 #include "mozilla/CheckedInt.h"
-#include "nsAlgorithm.h"
 #include "nsThreadUtils.h"
 
 extern mozilla::LazyLogModule gMediaDemuxerLog;

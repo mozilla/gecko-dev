@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "IEnumFE.h"
-#include "nsAlgorithm.h"
 #include <algorithm>
 
 CEnumFormatEtc::CEnumFormatEtc() : mRefCnt(0), mCurrentIdx(0) {}

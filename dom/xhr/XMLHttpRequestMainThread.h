@@ -551,7 +551,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
       bool operator<(const HeaderEntry& aOther) const {
         uint32_t selfLen = mName.Length();
         uint32_t otherLen = aOther.mName.Length();
-        uint32_t min = XPCOM_MIN(selfLen, otherLen);
+        uint32_t min = std::min(selfLen, otherLen);
         for (uint32_t i = 0; i < min; ++i) {
           unsigned char self = mName[i];
           unsigned char other = aOther.mName[i];

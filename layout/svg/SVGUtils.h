@@ -17,7 +17,6 @@
 #include "gfxPoint.h"
 #include "gfxRect.h"
 #include "mozilla/gfx/Rect.h"
-#include "nsAlgorithm.h"
 #include "nsChangeHint.h"
 #include "nsColor.h"
 #include "nsCOMPtr.h"
