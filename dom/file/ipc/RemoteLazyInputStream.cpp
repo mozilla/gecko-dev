@@ -157,7 +157,8 @@ RemoteLazyInputStream::RemoteLazyInputStream(nsIInputStream* aStream)
 
 static already_AddRefed<RemoteLazyInputStreamChild> BindChildActor(
     nsID aId, mozilla::ipc::Endpoint<PRemoteLazyInputStreamChild> aEndpoint) {
-  auto* thread = RemoteLazyInputStreamThread::GetOrCreate();
+  RefPtr<RemoteLazyInputStreamThread> thread =
+      RemoteLazyInputStreamThread::GetOrCreate();
   if (NS_WARN_IF(!thread)) {
     return nullptr;
   }
@@ -803,7 +804,8 @@ void RemoteLazyInputStream::StreamNeeded() {
   MOZ_LOG(gRemoteLazyStreamLog, LogLevel::Debug,
           ("StreamNeeded %s", Describe().get()));
 
-  auto* thread = RemoteLazyInputStreamThread::GetOrCreate();
+  RefPtr<RemoteLazyInputStreamThread> thread =
+      RemoteLazyInputStreamThread::GetOrCreate();
   if (NS_WARN_IF(!thread)) {
     return;
   }
@@ -1216,7 +1218,8 @@ RemoteLazyInputStream::AsyncLengthWait(nsIInputStreamLengthCallback* aCallback,
 
     if (mActor) {
       if (aCallback) {
-        auto* thread = RemoteLazyInputStreamThread::GetOrCreate();
+        RefPtr<RemoteLazyInputStreamThread> thread =
+            RemoteLazyInputStreamThread::GetOrCreate();
         if (NS_WARN_IF(!thread)) {
           return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
         }
@@ -1324,7 +1327,8 @@ void RemoteLazyInputStream::IPCWrite(IPC::MessageWriter* aWriter) {
     MOZ_ALWAYS_SUCCEEDS(
         PRemoteLazyInputStream::CreateEndpoints(&parentEp, &childEp));
 
-    auto* thread = RemoteLazyInputStreamThread::GetOrCreate();
+    RefPtr<RemoteLazyInputStreamThread> thread =
+        RemoteLazyInputStreamThread::GetOrCreate();
     if (thread) {
       thread->Dispatch(NS_NewRunnableFunction(
           "RemoteLazyInputStreamChild::SendClone",
