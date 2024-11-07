@@ -775,7 +775,7 @@ private fun addBookmarkButton() =
     )
 private fun findInPageButton() = itemContainingText(getStringResource(R.string.browser_menu_find_in_page))
 private fun translateButton() = itemContainingText(getStringResource(R.string.browser_menu_translations))
-private fun reportSiteIssueButton() = itemContainingText("Report Site Issue")
+private fun reportSiteIssueButton() = itemContainingText("Report broken site")
 private fun addToHomeScreenButton() = itemContainingText(getStringResource(R.string.browser_menu_add_to_homescreen))
 private fun addToShortcutsButton() = itemContainingText(getStringResource(R.string.browser_menu_add_to_shortcuts))
 private fun saveToCollectionButton() = itemContainingText(getStringResource(R.string.browser_menu_save_to_collection_2))

@@ -51,7 +51,7 @@ class ThreeDotMainMenuRobot {
         val reportSiteIssueButton = mDevice.wait(
             Until.hasObject(
                 By.res("$packageName:id/mozac_browser_menu_menuView").hasDescendant(
-                    By.text("Report Site Issue…"),
+                    By.text("Report broken site…"),
                 ),
             ),
             waitingTime,
