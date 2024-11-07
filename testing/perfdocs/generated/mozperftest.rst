@@ -391,6 +391,42 @@ toolkit/components/ml/tests/browser
 -----------------------------------
 Performance tests running through Mochitest for ML Models
 
+browser_ml_suggest_intent_perf.js
+=================================
+
+:owner: GenAI Team
+:name: ML Suggest Intent Model
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:intent-pipeline-ready-latency,unit:ms,shouldAlert:True, name:intent-initialization-latency,unit:ms,shouldAlert:True, name:intent-model-run-latency,unit:ms,shouldAlert:True, name:intent-pipeline-ready-memory,unit:MB,shouldAlert:True, name:intent-initialization-memory,unit:MB,shouldAlert:True, name:intent-model-run-memory,unit:MB,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Template test for latency for ML suggest Intent Model**
+
+browser_ml_suggest_ner_perf.js
+==============================
+
+:owner: GenAI Team
+:name: ML Suggest NER Model
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:NER-pipeline-ready-latency,unit:ms,shouldAlert:True, name:NER-initialization-latency,unit:ms,shouldAlert:True, name:NER-model-run-latency,unit:ms,shouldAlert:True, name:NER-pipeline-ready-memory,unit:MB,shouldAlert:True, name:NER-initialization-memory,unit:MB,shouldAlert:True, name:NER-model-run-memory,unit:MB,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Template test for latency for ML suggest NER model**
+
 browser_ml_engine_perf.js
 =========================
 
