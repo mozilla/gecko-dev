@@ -6306,7 +6306,8 @@ impl PicturePrimitive {
                         // composite op
                         let filter_task_id = RenderTask::new_svg_filter_graph(
                             filters,
-                            frame_state,
+                            &mut frame_state.rg_builder,
+                            &mut frame_state.gpu_cache,
                             data_stores,
                             surface_rects.uv_rect_kind,
                             picture_task_id,
@@ -6999,7 +7000,7 @@ impl PicturePrimitive {
             }
             PictureCompositeMode::ComponentTransferFilter(handle) => {
                 let filter_data = &mut data_stores.filter_data[handle];
-                filter_data.update(frame_state);
+                filter_data.update(&mut frame_state.gpu_cache);
             }
             PictureCompositeMode::MixBlend(..) |
             PictureCompositeMode::Blit(_) |
@@ -7011,7 +7012,7 @@ impl PicturePrimitive {
                     match op {
                         FilterGraphOp::SVGFEComponentTransferInterned { handle, creates_pixels: _ } => {
                             let filter_data = &mut data_stores.filter_data[*handle];
-                            filter_data.update(frame_state);
+                            filter_data.update(&mut frame_state.gpu_cache);
                         }
                         _ => {}
                     }
