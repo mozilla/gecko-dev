@@ -291,8 +291,7 @@ export class EncryptedMediaParent extends JSWindowActorParent {
 
     // Get CDM capabilities from the GMP process.
     let infos = [];
-    let cdmInfo =
-        await ChromeUtils.getGMPContentDecryptionModuleInformation();
+    let cdmInfo = await ChromeUtils.getGMPContentDecryptionModuleInformation();
     infos.push(...cdmInfo);
 
     // Get CDM capabilities from the MFCDM process, if exists.
@@ -317,7 +316,9 @@ export class EncryptedMediaParent extends JSWindowActorParent {
         hasHdcp22Plus = true;
       }
     }
-    Glean.mediadrm.decryption.has_hardware_decryption.set(hasHardwareDecryption);
+    Glean.mediadrm.decryption.has_hardware_decryption.set(
+      hasHardwareDecryption
+    );
     Glean.mediadrm.decryption.has_hardware_clearlead.set(hasHardwareClearlead);
     Glean.mediadrm.decryption.has_software_clearlead.set(hasSoftwareClearlead);
     Glean.mediadrm.decryption.has_hdcp22_plus.set(hasHdcp22Plus);
