@@ -260,7 +260,7 @@ class DownscalingFilter final : public SurfaceFilter {
 
     // Shift the buffer. We're just moving pointers here, so this is cheap.
     mRowsInWindow -= diff;
-    mRowsInWindow = std::min(std::max(mRowsInWindow, 0), mWindowCapacity);
+    mRowsInWindow = std::clamp(mRowsInWindow, 0, mWindowCapacity);
 
     // If we already have enough rows to satisfy the filter, there is no need
     // to swap as we won't be writing more before the next convolution.

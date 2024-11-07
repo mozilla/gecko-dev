@@ -262,7 +262,7 @@ nsresult imgFrame::InitForDecoderRecycle(const AnimationParams& aAnimParams) {
     // is still in use for some other purpose, it won't be returned to the pool
     // and its owner can hold onto it forever without additional impact here.
     int32_t refreshInterval =
-        std::max(std::min(nsRefreshDriver::DefaultInterval(), 20), 4);
+        std::clamp(nsRefreshDriver::DefaultInterval(), 4, 20);
     TimeDuration waitInterval =
         TimeDuration::FromMilliseconds(refreshInterval >> 2);
     TimeStamp timeout =
