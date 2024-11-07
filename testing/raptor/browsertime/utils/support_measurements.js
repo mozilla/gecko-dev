@@ -7,6 +7,7 @@
 
 const os = require("os");
 const path = require("path");
+const fs = require("fs");
 
 const usbPowerProfiler = require(path.join(
   process.env.BROWSERTIME_ROOT,
@@ -14,8 +15,10 @@ const usbPowerProfiler = require(path.join(
   "usb-power-profiling",
   "usb-power-profiling.js"
 ));
+
 const {
   gatherWindowsPowerUsage,
+  getBrowsertimeResultsPath,
   startWindowsPowerProfiling,
   stopWindowsPowerProfiling,
 } = require("./profiling");
@@ -159,6 +162,22 @@ class SupportMeasurements {
         0
       );
       await usbPowerProfiler.stopSampling();
+
+      const powerProfile = await usbPowerProfiler.profileFromData();
+      const browsertimeResultsPath = await getBrowsertimeResultsPath(
+        this.context,
+        this.commands,
+        true
+      );
+
+      const data = JSON.stringify(powerProfile, undefined, 2);
+      await fs.promises.writeFile(
+        path.join(
+          browsertimeResultsPath,
+          `profile_power_${this.context.index}.json`
+        ),
+        data
+      );
 
       this.commands.measure.addObject({
         [measurementName]: [powerUsage],
