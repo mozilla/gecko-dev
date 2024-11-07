@@ -293,7 +293,7 @@
     --theme-highlight-pink: light-dark(#FF9AA2, #FFDFE7);
     --theme-highlight-gray: light-dark(#5B5B66, #F0F0F4);
 
-
+      /* Text color */
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
     --theme-text-color-alt: CanvasText;
@@ -303,6 +303,10 @@
     --theme-text-selection-color: HighlightText;
     --theme-text-selection-unfocused-background: Highlight;
     --theme-body-color: CanvasText;
+    --theme-link-color: LinkText;
+    --theme-internal-link-color: LinkText;
+
+
     --theme-focus-outline-color: CanvasText;
     --theme-focus-textinput-outline-color: SelectedItem;
     --theme-icon-color: ButtonText;

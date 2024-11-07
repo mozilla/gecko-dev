@@ -245,6 +245,7 @@
   padding: 0 3px;
   cursor: pointer;
   float: inline-end;
+  color: var(--theme-internal-link-color);
 }
 
 /* Take away these two :visited rules to get a core dumper     */
