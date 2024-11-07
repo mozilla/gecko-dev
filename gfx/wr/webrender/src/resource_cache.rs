@@ -13,6 +13,7 @@ use euclid::size2;
 use crate::render_target::RenderTargetKind;
 use crate::render_task::{RenderTaskLocation, StaticRenderTaskSurface};
 use crate::{render_api::{ClearCache, AddFont, ResourceUpdate, MemoryReport}, util::WeakTable};
+use crate::prim_store::image::AdjustedImageSource;
 use crate::image_tiling::{compute_tile_size, compute_tile_range};
 #[cfg(feature = "capture")]
 use crate::capture::ExternalCaptureImage;
@@ -178,6 +179,7 @@ pub struct ImageProperties {
     // Potentially a subset of the image's total rectangle. This rectangle is what
     // we map to the (layout space) display item bounds.
     pub visible_rect: DeviceIntRect,
+    pub adjustment: AdjustedImageSource,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -206,6 +208,7 @@ struct ImageResource {
     /// This is used to express images that are virtually very large
     /// but with only a visible sub-set that is valid at a given time.
     visible_rect: DeviceIntRect,
+    adjustment: AdjustedImageSource,
     generation: ImageGeneration,
 }
 
@@ -636,6 +639,7 @@ impl ResourceCache {
         gpu_buffer_builder: &mut GpuBufferBuilderF,
         gpu_cache: &mut GpuCache,
         is_opaque: bool,
+        adjustment: &AdjustedImageSource,
         f: &mut dyn FnMut(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF, &mut GpuCache) -> RenderTaskId,
     ) -> RenderTaskId {
 
@@ -697,6 +701,11 @@ impl ResourceCache {
                 manual_eviction: true,
             })
         );
+
+        self.resources.image_templates
+            .get_mut(image_key)
+            .unwrap()
+            .adjustment = *adjustment;
 
         task_id
     }
@@ -924,6 +933,7 @@ impl ResourceCache {
             data,
             tiling,
             visible_rect: *visible_rect,
+            adjustment: AdjustedImageSource::new(),
             generation: ImageGeneration(0),
         };
 
@@ -993,6 +1003,7 @@ impl ResourceCache {
             data,
             tiling,
             visible_rect: descriptor.size.into(),
+            adjustment: AdjustedImageSource::new(),
             generation: ImageGeneration(image.generation.0 + 1),
         };
     }
@@ -1373,6 +1384,7 @@ impl ResourceCache {
                 external_image,
                 tiling: image_template.tiling,
                 visible_rect: image_template.visible_rect,
+                adjustment: image_template.adjustment,
             }
         })
     }
@@ -2405,6 +2417,7 @@ impl ResourceCache {
                 descriptor: template.descriptor,
                 tiling: template.tiling,
                 visible_rect: template.descriptor.size.into(),
+                adjustment: AdjustedImageSource::new(), // TODO(nical)
                 generation: template.generation,
             });
         }
