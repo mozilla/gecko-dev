@@ -31,11 +31,13 @@
 #include "nsWindowsHelpers.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/WindowsVersion.h"
+#include "mozilla/WinHeaderOnlyUtils.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/intl/Localization.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "WindowsDefaultBrowser.h"
 #include "WindowsUserChoice.h"
 #include "nsLocalFile.h"
@@ -1695,6 +1697,89 @@ static nsresult PinCurrentAppToTaskbarWin10(bool aCheckOnly,
   return ManageShortcutTaskbarPins(aCheckOnly, pinType, aShortcutPath);
 }
 
+// There's a delay between shortcuts being created in locations visible to
+// `shell:appsfolder` and that information being propogated to
+// `shell:appsfolder`. APIs like `ITaskbarManager` pinning rely on said
+// shortcuts being visible to `shell:appsfolder`, so we have to introduce a wait
+// until they're visible when creating these shortcuts at runtime.
+static bool PollAppsFolderForShortcut(const nsAString& aAppUserModelId,
+                                      const TimeDuration aTimeout) {
+  MOZ_DIAGNOSTIC_ASSERT(!NS_IsMainThread(),
+                        "PollAppsFolderForShortcut blocks and should be called "
+                        "off main thread only");
+
+  // Implementation note: it was taken into consideration at the time of writing
+  // to implement this with `SHChangeNotifyRegister` and a `HWND_MESSAGE`
+  // window. This added significant complexity in terms of resource management
+  // and control flow that was deemed excessive for a function that is rarely
+  // run. Absent evidence that we're consuming excessive system resources, this
+  // simple, poll-based approach seemed more appropriate.
+  //
+  // If in the future it seems appropriate to modify this to be event based,
+  // here are some of the lessons learned during the investigation:
+  //   - `shell:appsfolder` is a virtual directory, composed of shortcut files
+  //     with unique AUMIDs from
+  //     `[%PROGRAMDATA%|%APPDATA%]\Microsoft\Windows\Start Menu\Programs`.
+  //   - `shell:appsfolder` does not have a full path in the filesystem,
+  //     therefore does not work with most file watching APIs.
+  //   - `SHChangeNotifyRegister` should listen for `SHCNE_UPDATEDIR` on
+  //     `FOLDERID_AppsFolder`. `SHCNE_CREATE` events are not issued for
+  //     shortcuts added to `FOLDERID_AppsFolder` likely due to it's virtual
+  //     nature.
+  //   - The mechanism for inspecting the `shell:appsfolder` for a shortcut with
+  //     matching AUMID is the same in an event-based implementation due to
+  //     `SHCNE_UPDATEDIR` events include the modified folder, but not the
+  //     modified file.
+
+  TimeStamp start = TimeStamp::Now();
+
+  ComPtr<IShellItem> appsFolder;
+  HRESULT hr = SHGetKnownFolderItem(FOLDERID_AppsFolder, KF_FLAG_DEFAULT,
+                                    nullptr, IID_PPV_ARGS(&appsFolder));
+  if (FAILED(hr)) {
+    return false;
+  }
+
+  do {
+    // It's possible to have identically named files in `shell:appsfolder` as
+    // it's disambiguated by AUMID instead of file name, so we have to iterate
+    // over all items instead of querying the specific shortcut.
+    ComPtr<IEnumShellItems> shortcutIter;
+    hr = appsFolder->BindToHandler(nullptr, BHID_EnumItems,
+                                   IID_PPV_ARGS(&shortcutIter));
+    if (FAILED(hr)) {
+      return false;
+    }
+
+    ComPtr<IShellItem> shortcut;
+    while (shortcutIter->Next(1, &shortcut, nullptr) == S_OK) {
+      ComPtr<IShellItem2> shortcut2;
+      hr = shortcut.As(&shortcut2);
+      if (FAILED(hr)) {
+        return false;
+      }
+
+      mozilla::UniquePtr<WCHAR, mozilla::CoTaskMemFreeDeleter> shortcutAumid;
+      hr = shortcut2->GetString(PKEY_AppUserModel_ID,
+                                getter_Transfers(shortcutAumid));
+      if (FAILED(hr)) {
+        // `shell:appsfolder` is populated by unique shortcut AUMID; if this is
+        // absent something has gone wrong and we should exit.
+        return false;
+      }
+
+      if (aAppUserModelId == nsDependentString(shortcutAumid.get())) {
+        return true;
+      }
+    }
+
+    // Sleep for a quarter of a second to avoid pinning the CPU while waiting.
+    ::Sleep(250);
+  } while ((TimeStamp::Now() - start) < aTimeout);
+
+  return false;
+}
+
 static nsresult PinCurrentAppToTaskbarImpl(
     bool aCheckOnly, bool aPrivateBrowsing, const nsAString& aAppUserModelId,
     const nsAString& aShortcutName, const nsAString& aShortcutSubstring,
@@ -1752,6 +1837,16 @@ static nsresult PinCurrentAppToTaskbarImpl(
     if (!NS_SUCCEEDED(rv)) {
       return NS_ERROR_FILE_NOT_FOUND;
     }
+  }
+
+  // Verify shortcut is visible to `shell:appsfolder`. Shortcut creation -
+  // during install or runtime - causes a race between it propagating to the
+  // virtual `shell:appsfolder` and attempts to pin via `ITaskbarManager`,
+  // resulting in pin failures when the latter occurs before the former. We can
+  // skip this when we're only checking whether we're pinned.
+  if (!aCheckOnly && !PollAppsFolderForShortcut(
+                         aAppUserModelId, TimeDuration::FromSeconds(15))) {
+    return NS_ERROR_FILE_NOT_FOUND;
   }
 
   auto pinWithWin11TaskbarAPIResults =
