@@ -28,6 +28,10 @@
 #  include "mozilla/webgpu/ExternalTextureDMABuf.h"
 #endif
 
+#if defined(XP_MACOSX)
+#  include "mozilla/webgpu/ExternalTextureMacIOSurface.h"
+#endif
+
 namespace mozilla::webgpu {
 
 const uint64_t POLL_TIME_MS = 100;
@@ -130,6 +134,29 @@ extern WGPUVkImageHandle* wgpu_server_get_vk_image_handle(void* aParam,
 #  endif
 }
 #endif
+
+extern uint32_t wgpu_server_get_external_io_surface_id(void* aParam,
+                                                       WGPUTextureId aId) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  auto texture = parent->GetExternalTexture(aId);
+  if (!texture) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return 0;
+  }
+
+#if defined(XP_MACOSX)
+  auto* textureIOSurface = texture->AsExternalTextureMacIOSurface();
+  if (!textureIOSurface) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return 0;
+  }
+  return textureIOSurface->GetIOSurfaceId();
+#else
+  MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+  return 0;
+#endif
+}
 
 }  // namespace ffi
 

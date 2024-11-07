@@ -36,6 +36,9 @@ use windows::Win32::{Foundation, Graphics::Direct3D12};
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
 use ash::{khr, vk};
 
+#[cfg(target_os = "macos")]
+use objc::{msg_send, sel, sel_impl};
+
 // The seemingly redundant u64 suffixes help cbindgen with generating the right C++ code.
 // See https://github.com/mozilla/cbindgen/issues/849.
 
@@ -256,6 +259,11 @@ fn support_use_external_texture_in_swap_chain(
             }
         };
         return support;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        return backend == wgt::Backend::Metal && is_hardware;
     }
 
     false
@@ -1203,6 +1211,8 @@ extern "C" {
     ) -> *mut VkImageHandle;
     #[allow(dead_code)]
     fn wgpu_server_get_dma_buf_fd(param: *mut c_void, id: id::TextureId) -> i32;
+    #[allow(dead_code)]
+    fn wgpu_server_get_external_io_surface_id(param: *mut c_void, id: id::TextureId) -> u32;
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
@@ -1586,6 +1596,128 @@ impl Global {
         true
     }
 
+    #[cfg(target_os = "macos")]
+    fn create_texture_with_external_texture_iosurface(
+        &self,
+        device_id: id::DeviceId,
+        texture_id: id::TextureId,
+        desc: &wgc::resource::TextureDescriptor,
+        swap_chain_id: Option<SwapChainId>,
+    ) -> bool {
+        let ret = unsafe {
+            wgpu_server_ensure_external_texture_for_swap_chain(
+                self.owner,
+                swap_chain_id.unwrap(),
+                device_id,
+                texture_id,
+                desc.size.width,
+                desc.size.height,
+                desc.format,
+                desc.usage,
+            )
+        };
+        if ret != true {
+            let msg = CString::new(format!("Failed to create external texture")).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+
+        let io_surface_id =
+            unsafe { wgpu_server_get_external_io_surface_id(self.owner, texture_id) };
+        if io_surface_id == 0 {
+            let msg = CString::new(format!("Failed to get io surface id")).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+
+        let io_surface = io_surface::lookup(io_surface_id);
+
+        let desc_ref = &desc;
+
+        let raw = unsafe {
+            self.device_as_hal::<wgc::api::Metal, _, Option<metal::Texture>>(
+                device_id,
+                |hal_device| {
+                    let hal_device = match hal_device {
+                        None => {
+                            let msg = CString::new(format!("metal device is invalid")).unwrap();
+                            gfx_critical_note(msg.as_ptr());
+                            return None;
+                        }
+                        Some(hal_device) => hal_device,
+                    };
+
+                    use metal::foreign_types::ForeignType as _;
+                    let device = hal_device.raw_device();
+
+                    objc::rc::autoreleasepool(|| {
+                        let descriptor = metal::TextureDescriptor::new();
+                        let usage = metal::MTLTextureUsage::RenderTarget
+                            | metal::MTLTextureUsage::ShaderRead
+                            | metal::MTLTextureUsage::PixelFormatView;
+
+                        descriptor.set_texture_type(metal::MTLTextureType::D2);
+                        descriptor.set_width(desc_ref.size.width as u64);
+                        descriptor.set_height(desc_ref.size.height as u64);
+                        descriptor.set_mipmap_level_count(desc_ref.mip_level_count as u64);
+                        descriptor.set_pixel_format(metal::MTLPixelFormat::BGRA8Unorm);
+                        descriptor.set_usage(usage);
+                        descriptor.set_storage_mode(metal::MTLStorageMode::Private);
+
+                        let raw_device = device.lock();
+                        let raw_texture: metal::Texture = msg_send![*raw_device, newTextureWithDescriptor: descriptor
+                        iosurface:io_surface.obj
+                        plane:0];
+
+                        if raw_texture.as_ptr().is_null() {
+                            let msg = CString::new(format!("Failed to create metal::Texture for swap chain")).unwrap();
+                            gfx_critical_note(msg.as_ptr());
+                            return None;
+                        }
+
+                        if let Some(label) = &desc_ref.label {
+                            raw_texture.set_label(&label);
+                        }
+
+                        Some(raw_texture)
+                    })
+                },
+            )
+        };
+
+        let hal_texture = unsafe {
+            <wgh::api::Metal as wgh::Api>::Device::texture_from_raw(
+                raw.unwrap(),
+                wgt::TextureFormat::Bgra8Unorm,
+                metal::MTLTextureType::D2,
+                1,
+                1,
+                wgh::CopyExtent {
+                    width: desc.size.width,
+                    height: desc.size.height,
+                    depth: 1,
+                },
+            )
+        };
+
+        let (_, error) = unsafe {
+            self.create_texture_from_hal(Box::new(hal_texture), device_id, &desc, Some(texture_id))
+        };
+        if let Some(err) = error {
+            let msg = CString::new(format!("create_texture_from_hal() failed: {:?}", err)).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+
+        true
+    }
+
     fn device_action(
         &self,
         self_id: id::DeviceId,
@@ -1631,6 +1763,19 @@ impl Global {
                     #[cfg(target_os = "linux")]
                     {
                         let is_created = self.create_texture_with_external_texture_dmabuf(
+                            self_id,
+                            id,
+                            &desc,
+                            swap_chain_id,
+                        );
+                        if is_created {
+                            return;
+                        }
+                    }
+
+                    #[cfg(target_os = "macos")]
+                    {
+                        let is_created = self.create_texture_with_external_texture_iosurface(
                             self_id,
                             id,
                             &desc,

@@ -13,6 +13,10 @@
 #  include "mozilla/webgpu/ExternalTextureDMABuf.h"
 #endif
 
+#ifdef XP_MACOSX
+#  include "mozilla/webgpu/ExternalTextureMacIOSurface.h"
+#endif
+
 namespace mozilla::webgpu {
 
 // static
@@ -27,6 +31,9 @@ UniquePtr<ExternalTexture> ExternalTexture::Create(
 #elif defined(MOZ_WIDGET_GTK)
   texture = ExternalTextureDMABuf::Create(aContext, aDeviceId, aWidth, aHeight,
                                           aFormat, aUsage);
+#elif defined(XP_MACOSX)
+  texture =
+      ExternalTextureMacIOSurface::Create(aWidth, aHeight, aFormat, aUsage);
 #endif
   return texture;
 }
