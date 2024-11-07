@@ -1164,4 +1164,5 @@ dictionary CDMInformation {
   required DOMString capabilities;
   required boolean clearlead;
   required boolean isHDCP22Compatible;
+  required boolean isHardwareDecryption;
 };

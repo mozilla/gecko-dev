@@ -257,6 +257,9 @@ void UtilityAudioDecoderChild::GetKeySystemCapabilities(
           if (capabilities.isHDCP22Compatible()) {
             info->mIsHDCP22Compatible = *capabilities.isHDCP22Compatible();
           }
+          if (capabilities.isHardwareDecryption()) {
+            info->mIsHardwareDecryption = true;
+          }
         }
         promise->MaybeResolve(cdmInfo);
       },

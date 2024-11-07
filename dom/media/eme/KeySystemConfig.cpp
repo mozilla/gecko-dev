@@ -313,8 +313,10 @@ void KeySystemConfig::GetGMPKeySystemConfigs(dom::Promise* aPromise) {
             info->mKeySystemName = config.mKeySystem;
             info->mCapabilities = config.GetDebugInfo();
             info->mClearlead = DoesKeySystemSupportClearLead(config.mKeySystem);
-            // TODO : ask real CDM
+            // TODO : ask real CDM for HDCP
             info->mIsHDCP22Compatible = false;
+            // GMP-based CDM doesn't support hardware decryption.
+            info->mIsHardwareDecryption = false;
           }
           promise->MaybeResolve(cdmInfo);
         } else {
