@@ -638,6 +638,7 @@ fn create_tile_cache(
         scroll_root,
         RasterSpace::Screen,
         PictureFlags::empty(),
+        None,
     ));
 
     tile_cache_pictures.push(PictureIndex(pic_index));

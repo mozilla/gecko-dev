@@ -260,7 +260,7 @@ impl ImageData {
                         &mut frame_state.frame_gpu_data.f32,
                         frame_state.rg_builder,
                         &mut frame_state.surface_builder,
-                        &mut |rg_builder, _| {
+                        &mut |rg_builder, _, _| {
                             // Create a task to blit from the texture cache to
                             // a normal transient render task surface.
                             // TODO: figure out if/when we can do a blit instead.

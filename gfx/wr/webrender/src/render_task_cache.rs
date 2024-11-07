@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use api::{ImageDescriptor, ImageDescriptorFlags, DirtyRect};
+use api::{DirtyRect, ImageDescriptor, ImageDescriptorFlags, SnapshotImageKey};
 use api::units::*;
 use crate::border::BorderSegmentCacheKey;
 use crate::box_shadow::{BoxShadowCacheKey};
@@ -52,6 +52,7 @@ pub enum RenderTaskCacheKeyKind {
     LinearGradient(LinearGradientCacheKey),
     RadialGradient(RadialGradientCacheKey),
     ConicGradient(ConicGradientCacheKey),
+    Snapshot(SnapshotImageKey),
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -232,13 +233,13 @@ impl RenderTaskCache {
         gpu_buffer_builder: &mut GpuBufferBuilderF,
         rg_builder: &mut RenderTaskGraphBuilder,
         surface_builder: &mut SurfaceBuilder,
-        f: &mut dyn FnMut(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF) -> RenderTaskId,
+        f: &mut dyn FnMut(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF, &mut GpuCache) -> RenderTaskId,
     ) -> RenderTaskId {
         // If this render task cache is being drawn this frame, ensure we hook up the
         // render task for it as a dependency of any render task that uses this as
         // an input source.
         let (task_id, rendered_this_frame) = match key {
-            None => (f(rg_builder, gpu_buffer_builder), true),
+            None => (f(rg_builder, gpu_buffer_builder, gpu_cache), true),
             Some(key) => self.request_render_task_impl(
                 key,
                 is_opaque,
@@ -285,7 +286,7 @@ impl RenderTaskCache {
         gpu_cache: &mut GpuCache,
         gpu_buffer_builder: &mut GpuBufferBuilderF,
         rg_builder: &mut RenderTaskGraphBuilder,
-        f: &mut dyn FnMut(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF) -> RenderTaskId,
+        f: &mut dyn FnMut(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF, &mut GpuCache) -> RenderTaskId,
     ) -> (RenderTaskId, bool) {
         let frame_id = self.frame_id;
         let size = key.size;
@@ -310,7 +311,7 @@ impl RenderTaskCache {
         if texture_cache.request(&cache_entry.handle, gpu_cache) {
             // Invoke user closure to get render task chain
             // to draw this into the texture cache.
-            let render_task_id = f(rg_builder, gpu_buffer_builder);
+            let render_task_id = f(rg_builder, gpu_buffer_builder, gpu_cache);
 
             cache_entry.user_data = None;
             cache_entry.is_opaque = is_opaque;
