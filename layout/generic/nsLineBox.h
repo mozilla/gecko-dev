@@ -306,10 +306,6 @@ class nsLineBox final : public nsLineLink {
     return GetOverflowArea(mozilla::OverflowType::Scrollable);
   }
 
-  // See comment on `mInFlowChildBounds`.
-  void SetInFlowChildBounds(const mozilla::Maybe<nsRect>& aInFlowChildBounds);
-  mozilla::Maybe<nsRect> GetInFlowChildBounds() const;
-
   void SlideBy(nscoord aDBCoord, const nsSize& aContainerSize) {
     NS_ASSERTION(
         aContainerSize == mContainerSize || mContainerSize == nsSize(-1, -1),
@@ -324,9 +320,6 @@ class nsLineBox final : public nsLineLink {
               .GetPhysicalPoint(mWritingMode, nullContainerSize);
       for (const auto otype : mozilla::AllOverflowTypes()) {
         mData->mOverflowAreas.Overflow(otype) += physicalDelta;
-      }
-      if (mData->mInFlowChildBounds) {
-        *mData->mInFlowChildBounds += physicalDelta;
       }
     }
   }
@@ -344,9 +337,6 @@ class nsLineBox final : public nsLineLink {
       nsPoint physicalDelta(-delta.width, 0);
       for (const auto otype : mozilla::AllOverflowTypes()) {
         mData->mOverflowAreas.Overflow(otype) += physicalDelta;
-      }
-      if (mData->mInFlowChildBounds) {
-        *mData->mInFlowChildBounds += physicalDelta;
       }
     }
     return delta;
@@ -534,12 +524,6 @@ class nsLineBox final : public nsLineLink {
     explicit ExtraData(const nsRect& aBounds)
         : mOverflowAreas(aBounds, aBounds) {}
     mozilla::OverflowAreas mOverflowAreas;
-    // Union of the margin-boxes of our in-flow children (only children,
-    // *not* their descendants). This is part of a special contribution to
-    // the scrollable overflow of a scrolled block; as such, this is only
-    // emplaced if our block is a scrolled frame (and we have in-flow children,
-    // and floats, which are considered in-flow for scrollable overflow).
-    mozilla::Maybe<nsRect> mInFlowChildBounds;
   };
 
   struct ExtraBlockData : public ExtraData {

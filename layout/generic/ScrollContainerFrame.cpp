@@ -949,6 +949,27 @@ void ScrollContainerFrame::ReflowScrolledFrame(ScrollReflowInput& aState,
   // overflow area doesn't include the frame bounds.
   aMetrics->UnionOverflowAreasWithDesiredBounds();
 
+  auto* disp = StyleDisplay();
+  if (MOZ_UNLIKELY(disp->mOverflowClipBoxInline ==
+                   StyleOverflowClipBox::ContentBox)) {
+    // The scrolled frame is scrollable in the inline axis with
+    // `overflow-clip-box:content-box`. To prevent its content from being
+    // clipped at the scroll container's padding edges, we inflate its
+    // children's scrollable overflow area with its inline padding, and union
+    // its scrollable overflow area with its children's inflated scrollable
+    // overflow area.
+    OverflowAreas childOverflow;
+    mScrolledFrame->UnionChildOverflow(childOverflow);
+    nsRect childScrollableOverflow = childOverflow.ScrollableOverflow();
+
+    const LogicalMargin inlinePadding =
+        padding.ApplySkipSides(LogicalSides(wm, LogicalSides::BBoth));
+    childScrollableOverflow.Inflate(inlinePadding.GetPhysicalMargin(wm));
+
+    nsRect& so = aMetrics->ScrollableOverflow();
+    so = so.UnionEdges(childScrollableOverflow);
+  }
+
   aState.mContentsOverflowAreas = aMetrics->mOverflowAreas;
   aState.mScrollbarGutterFromLastReflow = scrollbarGutter;
   aState.mReflowedContentsWithHScrollbar = aAssumeHScroll;
