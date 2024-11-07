@@ -12380,21 +12380,7 @@
 # Whether to support CHIPS(Cookies Having Independent Partitioned State).
 - name: network.cookie.CHIPS.enabled
   type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
-# Updated to match the target count when we migrate the unpartitioned CHIPS
-# cookies to their first-party partition.
-- name: network.cookie.CHIPS.lastMigrateDatabase
-  type: RelaxedAtomicUint32
-  value: 0
-  mirror: always
-
-# Used to increase the number of times we want to have migrated the database.
-# This lets us remotely perform a database migration with Nimbus.
-- name: network.cookie.CHIPS.migrateDatabaseTarget
-  type: RelaxedAtomicUint32
-  value: 1
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Stale threshold for cookies in seconds.

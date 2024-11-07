@@ -696,7 +696,7 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
                    bool aIsSecure, bool aIsHttpOnly, bool aIsSession,
                    int64_t aExpiry, JS::Handle<JS::Value> aOriginAttributes,
                    int32_t aSameSite, nsICookie::schemeType aSchemeMap,
-                   bool aIsPartitioned, JSContext* aCx) {
+                   JSContext* aCx) {
   OriginAttributes attrs;
 
   if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
@@ -704,8 +704,8 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
   }
 
   return AddNative(aHost, aPath, aName, aValue, aIsSecure, aIsHttpOnly,
-                   aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap,
-                   aIsPartitioned, nullptr);
+                   aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap, false,
+                   nullptr);
 }
 
 NS_IMETHODIMP_(nsresult)

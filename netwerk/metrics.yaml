@@ -215,36 +215,6 @@ networking:
       - edgul@mozilla.com
     expires: 146
 
-  cookie_count_invalid_first_party_partitioned_in_db:
-    type: counter
-    description: >
-      This counts the number of invalid first-party partitioned cookies that
-      don't have the partitioned cookie attribution(CHIPS).
-    bugs:
-      - https://bugzilla.mozilla.org/1922193
-    data_reviews:
-      - https://bugzilla.mozilla.org/1922193
-    notification_emails:
-      - bvandersloot@mozilla.com
-      - tihuang@mozilla.com
-      - edgul@mozilla.com
-    expires: 146
-
-  set_invalid_first_party_partitioned_cookie:
-    type: counter
-    description: >
-      This counts the number of times we set an invalid first-party partitioned
-      cookie.
-    bugs:
-      - https://bugzilla.mozilla.org/1922193
-    data_reviews:
-      - https://bugzilla.mozilla.org/1922193
-    notification_emails:
-      - bvandersloot@mozilla.com
-      - tihuang@mozilla.com
-      - edgul@mozilla.com
-    expires: 146
-
   cookie_purge_max:
     type: custom_distribution
     description: >
