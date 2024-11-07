@@ -359,10 +359,12 @@ class SelectableProfileServiceClass {
 
     lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
 
-    Services.obs.removeObserver(
-      this.themeObserver,
-      "lightweight-theme-styling-update"
-    );
+    try {
+      Services.obs.removeObserver(
+        this.themeObserver,
+        "lightweight-theme-styling-update"
+      );
+    } catch (e) {}
 
     // During shutdown we don't need to notify ourselves, just other instances
     // so rather than finalizing the task just disarm it and do the notification
