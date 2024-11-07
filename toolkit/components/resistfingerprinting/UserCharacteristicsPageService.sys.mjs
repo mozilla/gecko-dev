@@ -736,6 +736,7 @@ export class UserCharacteristicsPageService {
       extensionsRaw: mozDebugExt.getParameter(mozDebugExt.EXTENSIONS),
       vendorDebugInfo: gl.getParameter(debugExt.UNMASKED_VENDOR_WEBGL),
       rendererDebugInfo: gl.getParameter(debugExt.UNMASKED_RENDERER_WEBGL),
+      contextType: mozDebugExt.getParameter(mozDebugExt.CONTEXT_TYPE),
     };
 
     if (gl.getExtension("WEBGL_debug_shaders")) {
@@ -811,6 +812,7 @@ export class UserCharacteristicsPageService {
       glVendor: results.debugParams.vendorDebugInfo,
       glVendorRaw: results.debugParams.vendorRaw,
       glVersionRaw: results.debugParams.versionRaw,
+      glContextType: results.debugParams.contextType,
       // Debug Shaders
       glFragmentShader: results.debugShaders.fs,
       glVertexShader: results.debugShaders.vs,
