@@ -125,9 +125,9 @@ void NativeKeyBindings::Init(NativeKeyBindingsType aType) {
   SEL_TO_COMMAND(moveLeft:, Command::CharPrevious);
   SEL_TO_COMMAND(moveLeftAndModifySelection:, Command::SelectCharPrevious);
   SEL_TO_COMMAND(moveParagraphBackwardAndModifySelection:,
-                 Command::SelectBeginParagraph);
+                 Command::SelectBeginLine);
   SEL_TO_COMMAND(moveParagraphForwardAndModifySelection:,
-                 Command::SelectEndParagraph);
+                 Command::SelectEndLine);
   SEL_TO_COMMAND(moveRight:, Command::CharNext);
   SEL_TO_COMMAND(moveRightAndModifySelection:, Command::SelectCharNext);
   SEL_TO_COMMAND(moveToBeginningOfDocument:, Command::MoveTop);
@@ -136,16 +136,16 @@ void NativeKeyBindings::Init(NativeKeyBindingsType aType) {
   SEL_TO_COMMAND(moveToBeginningOfLine:, Command::BeginLine);
   SEL_TO_COMMAND(moveToBeginningOfLineAndModifySelection:,
                  Command::SelectBeginLine);
-  SEL_TO_COMMAND(moveToBeginningOfParagraph:, Command::BeginParagraph);
+  SEL_TO_COMMAND(moveToBeginningOfParagraph:, Command::BeginLine);
   SEL_TO_COMMAND(moveToBeginningOfParagraphAndModifySelection:,
-                 Command::SelectBeginParagraph);
+                 Command::SelectBeginLine);
   SEL_TO_COMMAND(moveToEndOfDocument:, Command::MoveBottom);
   SEL_TO_COMMAND(moveToEndOfDocumentAndModifySelection:, Command::SelectBottom);
   SEL_TO_COMMAND(moveToEndOfLine:, Command::EndLine);
   SEL_TO_COMMAND(moveToEndOfLineAndModifySelection:, Command::SelectEndLine);
-  SEL_TO_COMMAND(moveToEndOfParagraph:, Command::EndParagraph);
+  SEL_TO_COMMAND(moveToEndOfParagraph:, Command::EndLine);
   SEL_TO_COMMAND(moveToEndOfParagraphAndModifySelection:,
-                 Command::SelectEndParagraph);
+                 Command::SelectEndLine);
   SEL_TO_COMMAND(moveToLeftEndOfLine:, Command::BeginLine);
   SEL_TO_COMMAND(moveToLeftEndOfLineAndModifySelection:,
                  Command::SelectBeginLine);

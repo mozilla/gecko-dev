@@ -9124,10 +9124,6 @@ nsresult nsIFrame::PeekOffsetForParagraph(PeekOffsetStruct* aPos) {
       aPos->mContentOffset = aPos->mResultContent->GetChildCount();
     }
   }
-
-  aPos->mAttach = aPos->mDirection == eDirNext ? CaretAssociationHint::Before
-                                               : CaretAssociationHint::After;
-
   return NS_OK;
 }
 
@@ -9500,8 +9496,7 @@ nsresult nsIFrame::PeekOffsetForLineEdge(PeekOffsetStruct* aPos) {
   }
 
   nsIFrame* baseFrame = nullptr;
-  bool endOfLine = (eSelectEndLine == aPos->mAmount) ||
-                   (eSelectEndParagraph == aPos->mAmount);
+  bool endOfLine = eSelectEndLine == aPos->mAmount;
 
   if (aPos->mOptions.contains(PeekOffsetOption::Visual) &&
       PresContext()->BidiEnabled()) {
@@ -9599,13 +9594,6 @@ nsresult nsIFrame::PeekOffset(PeekOffsetStruct* aPos) {
     case eSelectBeginLine:
     case eSelectEndLine:
       return PeekOffsetForLineEdge(aPos);
-    case eSelectBeginParagraph:
-    case eSelectEndParagraph:
-      if (StaticPrefs::dom_input_caret_paragraph_movement()) {
-        return PeekOffsetForParagraph(aPos);
-      } else {
-        return PeekOffsetForLineEdge(aPos);
-      }
     case eSelectParagraph:
       return PeekOffsetForParagraph(aPos);
     default: {

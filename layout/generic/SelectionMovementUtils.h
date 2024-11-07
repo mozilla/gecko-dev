@@ -140,8 +140,6 @@ class SelectionMovementUtils final {
       case eSelectWordNoSpace:
       case eSelectBeginLine:
       case eSelectEndLine:
-      case eSelectBeginParagraph:
-      case eSelectEndParagraph:
         return true;
       case eSelectLine:
         return false;

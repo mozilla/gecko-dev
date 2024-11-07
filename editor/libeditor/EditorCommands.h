@@ -144,10 +144,6 @@ class EditorCommand : public nsIControllerCommand {
       case Command::EndLine:
       case Command::SelectBeginLine:
       case Command::SelectEndLine:
-      case Command::BeginParagraph:
-      case Command::EndParagraph:
-      case Command::SelectBeginParagraph:
-      case Command::SelectEndParagraph:
       case Command::WordPrevious:
       case Command::WordNext:
       case Command::SelectWordPrevious:
