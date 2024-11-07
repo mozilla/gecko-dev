@@ -798,7 +798,7 @@ const AVAILABLE_INJECTIONS = [
   },
   {
     id: "bug1868345",
-    platform: "desktop",
+    platform: "all",
     domain: "tvmovie.de",
     bug: "1868345",
     contentScripts: {
