@@ -96,7 +96,6 @@ class MarkupContextMenu {
       return;
     }
 
-    this.telemetry.scalarSet("devtools.copy.full.css.selector.opened", 1);
     this.selection.nodeFront
       .getCssPath()
       .then(path => {
@@ -137,7 +136,6 @@ class MarkupContextMenu {
       return;
     }
 
-    this.telemetry.scalarSet("devtools.copy.unique.css.selector.opened", 1);
     this.selection.nodeFront
       .getUniqueSelector()
       .then(selector => {
@@ -154,7 +152,6 @@ class MarkupContextMenu {
       return;
     }
 
-    this.telemetry.scalarSet("devtools.copy.xpath.opened", 1);
     this.selection.nodeFront
       .getXPath()
       .then(path => {

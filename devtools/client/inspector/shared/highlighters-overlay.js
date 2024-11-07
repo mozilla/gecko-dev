@@ -95,18 +95,18 @@ const TELEMETRY_TOOL_IDS = {
   [TYPES.GRID]: "GRID_HIGHLIGHTER",
 };
 
-// Scalars mapped by highlighter type. Used to log telemetry about highlighter triggers.
-const TELEMETRY_SCALARS = {
+// Glean counter names mapped by highlighter type. Used to log telemetry about highlighter triggers.
+const GLEAN_COUNTER_NAMES = {
   [TYPES.FLEXBOX]: {
-    layout: "devtools.layout.flexboxhighlighter.opened",
-    markup: "devtools.markup.flexboxhighlighter.opened",
-    rule: "devtools.rules.flexboxhighlighter.opened",
+    layout: "devtoolsLayoutFlexboxhighlighter",
+    markup: "devtoolsMarkupFlexboxhighlighter",
+    rule: "devtoolsRulesFlexboxhighlighter",
   },
 
   [TYPES.GRID]: {
-    grid: "devtools.grid.gridinspector.opened",
-    markup: "devtools.markup.gridinspector.opened",
-    rule: "devtools.rules.gridinspector.opened",
+    grid: "devtoolsGridGridinspector",
+    markup: "devtoolsMarkupGridinspector",
+    rule: "devtoolsRulesGridinspector",
   },
 };
 
@@ -280,9 +280,9 @@ class HighlightersOverlay {
           this.telemetry.toolOpened(toolID, this);
         }
 
-        const scalar = TELEMETRY_SCALARS[type]?.[options?.trigger];
-        if (scalar) {
-          this.telemetry.scalarAdd(scalar, 1);
+        const counterName = GLEAN_COUNTER_NAMES[type]?.[options?.trigger];
+        if (counterName) {
+          Glean[counterName].opened.add(1);
         }
 
         break;

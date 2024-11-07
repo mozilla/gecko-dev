@@ -98,12 +98,8 @@ const PORTRAIT_MODE_WIDTH_THRESHOLD = 700;
 const SIDE_PORTAIT_MODE_WIDTH_THRESHOLD = 1000;
 
 const THREE_PANE_ENABLED_PREF = "devtools.inspector.three-pane-enabled";
-const THREE_PANE_ENABLED_SCALAR = "devtools.inspector.three_pane_enabled";
 const THREE_PANE_CHROME_ENABLED_PREF =
   "devtools.inspector.chrome.three-pane-enabled";
-const TELEMETRY_EYEDROPPER_OPENED = "devtools.toolbar.eyedropper.opened";
-const TELEMETRY_SCALAR_NODE_SELECTION_COUNT =
-  "devtools.inspector.node_selection_count";
 const DEFAULT_COLOR_UNIT_PREF = "devtools.defaultColorUnit";
 
 /**
@@ -276,11 +272,7 @@ Inspector.prototype = {
     // Log the 3 pane inspector setting on inspector open. The question we want to answer
     // is:
     // "What proportion of users use the 3 pane vs 2 pane inspector on inspector open?"
-    this.telemetry.keyedScalarAdd(
-      THREE_PANE_ENABLED_SCALAR,
-      this.is3PaneModeEnabled,
-      1
-    );
+    Glean.devtoolsInspector.threePaneEnabled[this.is3PaneModeEnabled].add(1);
 
     return this;
   },
@@ -1562,7 +1554,7 @@ Inspector.prototype = {
     executeSoon(() => {
       try {
         selfUpdate(this.selection.nodeFront);
-        this.telemetry.scalarAdd(TELEMETRY_SCALAR_NODE_SELECTION_COUNT, 1);
+        Glean.devtoolsInspector.nodeSelectionCount.add(1);
       } catch (ex) {
         console.error(ex);
       }
@@ -1839,7 +1831,6 @@ Inspector.prototype = {
     }
     // turn off node picker when color picker is starting
     this.toolbox.nodePicker.stop({ canceled: true }).catch(console.error);
-    this.telemetry.scalarSet(TELEMETRY_EYEDROPPER_OPENED, 1);
     this.eyeDropperButton.classList.add("checked");
     this.startEyeDropperListeners();
     return this.inspectorFront

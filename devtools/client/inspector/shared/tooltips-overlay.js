@@ -80,9 +80,6 @@ const TOOLTIP_IMAGE_TYPE = "image";
 const TOOLTIP_INACTIVE_CSS = "inactive-css";
 const TOOLTIP_VARIABLE_TYPE = "variable";
 
-// Telemetry
-const TOOLTIP_SHOWN_SCALAR = "devtools.tooltip.shown";
-
 /**
  * Manages all tooltips in the style-inspector.
  *
@@ -467,7 +464,7 @@ TooltipsOverlay.prototype = {
    *        The node type from `devtools/client/inspector/shared/node-types` or the Tooltip type.
    */
   sendOpenScalarToTelemetry(type) {
-    this.view.inspector.telemetry.keyedScalarAdd(TOOLTIP_SHOWN_SCALAR, type, 1);
+    Glean.devtoolsTooltip.shown[type].add(1);
   },
 
   /**

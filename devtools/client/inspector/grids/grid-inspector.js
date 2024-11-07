@@ -44,13 +44,6 @@ const SHOW_GRID_AREAS = "devtools.gridinspector.showGridAreas";
 const SHOW_GRID_LINE_NUMBERS = "devtools.gridinspector.showGridLineNumbers";
 const SHOW_INFINITE_LINES_PREF = "devtools.gridinspector.showInfiniteLines";
 
-const TELEMETRY_GRID_AREAS_OVERLAY_CHECKED =
-  "devtools.grid.showGridAreasOverlay.checked";
-const TELEMETRY_GRID_LINE_NUMBERS_CHECKED =
-  "devtools.grid.showGridLineNumbers.checked";
-const TELEMETRY_INFINITE_LINES_CHECKED =
-  "devtools.grid.showInfiniteLines.checked";
-
 // Default grid colors.
 const GRID_COLORS = [
   "#9400FF",
@@ -674,10 +667,6 @@ class GridInspector {
     this.store.dispatch(updateShowGridAreas(enabled));
     Services.prefs.setBoolPref(SHOW_GRID_AREAS, enabled);
 
-    if (enabled) {
-      this.telemetry.scalarSet(TELEMETRY_GRID_AREAS_OVERLAY_CHECKED, 1);
-    }
-
     const { grids } = this.store.getState();
 
     for (const grid of grids) {
@@ -700,10 +689,6 @@ class GridInspector {
     this.store.dispatch(updateShowGridLineNumbers(enabled));
     Services.prefs.setBoolPref(SHOW_GRID_LINE_NUMBERS, enabled);
 
-    if (enabled) {
-      this.telemetry.scalarSet(TELEMETRY_GRID_LINE_NUMBERS_CHECKED, 1);
-    }
-
     const { grids } = this.store.getState();
 
     for (const grid of grids) {
@@ -725,10 +710,6 @@ class GridInspector {
   onToggleShowInfiniteLines(enabled) {
     this.store.dispatch(updateShowInfiniteLines(enabled));
     Services.prefs.setBoolPref(SHOW_INFINITE_LINES_PREF, enabled);
-
-    if (enabled) {
-      this.telemetry.scalarSet(TELEMETRY_INFINITE_LINES_CHECKED, 1);
-    }
 
     const { grids } = this.store.getState();
 

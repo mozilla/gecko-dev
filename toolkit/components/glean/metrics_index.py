@@ -19,6 +19,7 @@ gecko_metrics = [
     "browser/base/content/metrics.yaml",
     "devtools/client/accessibility/metrics.yaml",
     "devtools/client/framework/metrics.yaml",
+    "devtools/client/inspector/metrics.yaml",
     "devtools/client/responsive/metrics.yaml",
     "devtools/client/shared/metrics.yaml",
     "docshell/base/metrics.yaml",

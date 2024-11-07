@@ -286,8 +286,6 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1118592
 ]
 
-["browser_telemetry_button_eyedropper.js"]
-
 ["browser_telemetry_button_responsive.js"]
 skip-if = ["os == 'win'"] # Win: bug 1404197
 

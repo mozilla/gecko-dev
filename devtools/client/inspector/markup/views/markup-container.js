@@ -93,10 +93,7 @@ MarkupContainer.prototype = {
     this.updateIsDisplayed();
 
     if (node.isShadowRoot) {
-      this.markup.telemetry.scalarSet(
-        "devtools.shadowdom.shadow_root_displayed",
-        true
-      );
+      Glean.devtoolsShadowdom.shadowRootDisplayed.set(true);
     }
   },
 
@@ -366,10 +363,7 @@ MarkupContainer.prototype = {
     }
 
     if (this.node.isShadowRoot) {
-      this.markup.telemetry.scalarSet(
-        "devtools.shadowdom.shadow_root_expanded",
-        true
-      );
+      Glean.devtoolsShadowdom.shadowRootExpanded.set(true);
     }
   },
 
