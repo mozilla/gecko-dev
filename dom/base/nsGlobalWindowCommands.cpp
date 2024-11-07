@@ -80,6 +80,11 @@ constexpr const char* sEndLineString = "cmd_endLine";
 constexpr const char* sSelectBeginLineString = "cmd_selectBeginLine";
 constexpr const char* sSelectEndLineString = "cmd_selectEndLine";
 
+constexpr const char* sBeginParagraphString = "cmd_beginParagraph";
+constexpr const char* sEndParagraphString = "cmd_endParagraph";
+constexpr const char* sSelectBeginParagraphString = "cmd_selectBeginParagraph";
+constexpr const char* sSelectEndParagraphString = "cmd_selectEndParagraph";
+
 constexpr const char* sSelectLinePreviousString = "cmd_selectLinePrevious";
 constexpr const char* sSelectLineNextString = "cmd_selectLineNext";
 
@@ -303,7 +308,11 @@ static constexpr struct BrowseCommand {
     {Command::BeginLine, Command::EndLine,
      KeyboardScrollAction::eScrollComplete,
      &nsISelectionController::CompleteScroll,
-     &nsISelectionController::IntraLineMove}};
+     &nsISelectionController::IntraLineMove},
+    {Command::BeginParagraph, Command::EndParagraph,
+     KeyboardScrollAction::eScrollComplete,
+     &nsISelectionController::CompleteScroll,
+     &nsISelectionController::IntraParagraphMove}};
 
 nsresult nsSelectMoveScrollCommand::DoCommand(const char* aCommandName,
                                               nsISupports* aCommandContext) {
@@ -420,18 +429,21 @@ nsresult nsPhysicalSelectMoveScrollCommand::DoCommand(
 static const struct SelectCommand {
   Command reverse, forward;
   nsresult (NS_STDCALL nsISelectionController::*select)(bool, bool);
-} selectCommands[] = {{Command::SelectCharPrevious, Command::SelectCharNext,
-                       &nsISelectionController::CharacterMove},
-                      {Command::SelectWordPrevious, Command::SelectWordNext,
-                       &nsISelectionController::WordMove},
-                      {Command::SelectBeginLine, Command::SelectEndLine,
-                       &nsISelectionController::IntraLineMove},
-                      {Command::SelectLinePrevious, Command::SelectLineNext,
-                       &nsISelectionController::LineMove},
-                      {Command::SelectPageUp, Command::SelectPageDown,
-                       &nsISelectionController::PageMove},
-                      {Command::SelectTop, Command::SelectBottom,
-                       &nsISelectionController::CompleteMove}};
+} selectCommands[] = {
+    {Command::SelectCharPrevious, Command::SelectCharNext,
+     &nsISelectionController::CharacterMove},
+    {Command::SelectWordPrevious, Command::SelectWordNext,
+     &nsISelectionController::WordMove},
+    {Command::SelectBeginLine, Command::SelectEndLine,
+     &nsISelectionController::IntraLineMove},
+    {Command::SelectBeginParagraph, Command::SelectEndParagraph,
+     &nsISelectionController::IntraParagraphMove},
+    {Command::SelectLinePrevious, Command::SelectLineNext,
+     &nsISelectionController::LineMove},
+    {Command::SelectPageUp, Command::SelectPageDown,
+     &nsISelectionController::PageMove},
+    {Command::SelectTop, Command::SelectBottom,
+     &nsISelectionController::CompleteMove}};
 
 nsresult nsSelectCommand::DoCommand(const char* aCommandName,
                                     nsISupports* aCommandContext) {
@@ -1102,6 +1114,8 @@ nsresult nsWindowCommandRegistration::RegisterWindowCommands(
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sWordNextString);
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sBeginLineString);
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sEndLineString);
+  NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sBeginParagraphString);
+  NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sEndParagraphString);
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sMovePageUpString);
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sMovePageDownString);
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sLinePreviousString);
@@ -1125,6 +1139,8 @@ nsresult nsWindowCommandRegistration::RegisterWindowCommands(
   NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectWordNextString);
   NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectBeginLineString);
   NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectEndLineString);
+  NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectBeginParagraphString);
+  NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectEndParagraphString);
   NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectLinePreviousString);
   NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectLineNextString);
   NS_REGISTER_NEXT_COMMAND(nsSelectCommand, sSelectPageUpString);

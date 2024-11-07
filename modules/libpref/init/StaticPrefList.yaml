@@ -3003,6 +3003,12 @@
   value: true
   mirror: always
 
+# Text input caret movement style. Disable this to restore previous behaviour (line edges instead of paragraphs). Currently only effective on macOS.
+- name: dom.input.caret_paragraph_movement
+  type: bool
+  value: true
+  mirror: always
+
 # How often to check for CPOW timeouts (ms). CPOWs are only timed
 # out by the hang monitor.
 - name: dom.ipc.cpow.timeout

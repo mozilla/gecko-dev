@@ -2848,7 +2848,9 @@ bool TextInputHandler::HandleCommand(Command aCommand) {
       case Command::WordNext:
       case Command::SelectWordNext:
       case Command::EndLine:
-      case Command::SelectEndLine: {
+      case Command::SelectEndLine:
+      case Command::EndParagraph:
+      case Command::SelectEndParagraph: {
         nsCocoaUtils::InitInputEvent(keypressEvent, keyEvent);
         keypressEvent.mKeyCode = NS_VK_RIGHT;
         keypressEvent.mKeyNameIndex = KEY_NAME_INDEX_ArrowRight;
@@ -2874,7 +2876,9 @@ bool TextInputHandler::HandleCommand(Command aCommand) {
       case Command::WordPrevious:
       case Command::SelectWordPrevious:
       case Command::BeginLine:
-      case Command::SelectBeginLine: {
+      case Command::SelectBeginLine:
+      case Command::BeginParagraph:
+      case Command::SelectBeginParagraph: {
         nsCocoaUtils::InitInputEvent(keypressEvent, keyEvent);
         keypressEvent.mKeyCode = NS_VK_LEFT;
         keypressEvent.mKeyNameIndex = KEY_NAME_INDEX_ArrowLeft;

@@ -253,6 +253,16 @@ interface nsISelectionController : nsISelectionDisplay
    */
   void intraLineMove(in boolean forward, in boolean extend);
 
+  /** IntraParagraphMove will move the selection to the front of the paragraph or end of the paragraph
+   *  in the document.
+   *  this will also have the effect of collapsing the selection if the aExtend = false
+   *  the "point" of selection that is extended is considered the "focus" point.
+   *  or the last point adjusted by the selection.
+   *  @param aForward forward or backward if false
+   *  @param aExtend  should it collapse the selection of extend it?
+   */
+  void intraParagraphMove(in boolean forward, in boolean extend);
+
   /** PageMove will move the selection one page forward/backward in the document.
    *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.

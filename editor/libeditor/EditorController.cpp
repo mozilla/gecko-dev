@@ -82,6 +82,10 @@ nsresult EditorController::RegisterEditorCommands(
   NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_endLine");
   NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_selectBeginLine");
   NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_selectEndLine");
+  NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_beginParagraph");
+  NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_endParagraph");
+  NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_selectBeginParagraph");
+  NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_selectEndParagraph");
   NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_wordPrevious");
   NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_wordNext");
   NS_REGISTER_COMMAND(SelectionMoveCommands, "cmd_selectWordPrevious");

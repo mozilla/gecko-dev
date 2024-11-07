@@ -2011,6 +2011,16 @@ nsresult nsFrameSelection::IntraLineMove(bool aForward, bool aExtend) {
                    eLogical);
 }
 
+nsresult nsFrameSelection::IntraParagraphMove(bool aForward, bool aExtend) {
+  if (aForward) {
+    return MoveCaret(eDirNext, ExtendSelection(aExtend), eSelectEndParagraph,
+                     eLogical);
+  }
+
+  return MoveCaret(eDirPrevious, ExtendSelection(aExtend),
+                   eSelectBeginParagraph, eLogical);
+}
+
 template <typename RangeType>
 Result<RefPtr<RangeType>, nsresult>
 nsFrameSelection::CreateRangeExtendedToSomewhere(
@@ -2019,7 +2029,8 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
   MOZ_ASSERT(aDirection == eDirNext || aDirection == eDirPrevious);
   MOZ_ASSERT(aAmount == eSelectCharacter || aAmount == eSelectCluster ||
              aAmount == eSelectWord || aAmount == eSelectBeginLine ||
-             aAmount == eSelectEndLine);
+             aAmount == eSelectEndLine || aAmount == eSelectBeginParagraph ||
+             aAmount == eSelectEndParagraph);
   MOZ_ASSERT(aMovementStyle == eLogical || aMovementStyle == eVisual ||
              aMovementStyle == eUsePrefStyle);
 
