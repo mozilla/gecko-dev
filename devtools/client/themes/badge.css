@@ -8,9 +8,10 @@
   --badge-background-color: light-dark(white, var(--grey-80));
   --badge-border-color: light-dark(#CACAD1, var(--grey-50));
   --badge-color: light-dark(var(--grey-60), var(--grey-40));
-  --badge-hover-background-color: light-dark(#DFDFE8, var(--grey-80));
   --badge-interactive-background-color: light-dark(var(--grey-20), var(--grey-70));
   --badge-interactive-color: light-dark(var(--grey-90), var(--grey-30));
+  --badge-hover-interactive-background-color: light-dark(#DFDFE8, var(--grey-80));
+  --badge-hover-interactive-color: var(--badge-color);
   --badge-scrollable-color: light-dark(#8000D7, #B98EFF);
   --badge-scrollable-background-color: light-dark(#FFFFFF, var(--badge-interactive-background-color));
   --badge-scrollable-active-background-color: #8000D7;
@@ -19,6 +20,10 @@
     --badge-active-background-color: SelectedItem;
     --badge-active-border-color: SelectedItemText;
     --badge-color: ButtonText;
+    --badge-interactive-background-color: ButtonFace;
+    --badge-interactive-color: ButtonText;
+    --badge-hover-interactive-background-color:ButtonFace;
+    --badge-hover-interactive-color: SelectedItem;
   }
 }
 
@@ -75,7 +80,8 @@
 }
 
 .inspector-badge:not(.active).interactive:is(:focus, :hover) {
-  background-color: var(--badge-hover-background-color);
+  background-color: var(--badge-hover-interactive-background-color);
+  color: var(--badge-hover-interactive-color);
 }
 
 .inspector-badge:is(.active,.interactive.active) {

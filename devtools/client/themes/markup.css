@@ -314,7 +314,7 @@ ul.children + .tag-line::before {
   background-size: 8px;
   border: 1px solid var(--badge-border-color);
   color: var(--badge-color);
-  fill: var(--badge-interactive-color);
+  fill: currentColor;
   display: block;
   width: 12px;
   height: 8px;
@@ -325,7 +325,8 @@ ul.children + .tag-line::before {
 
 .expandable.collapsed .markup-expand-badge:focus::before,
 .expandable.collapsed .markup-expand-badge:hover::before {
-  background-color: var(--badge-hover-background-color);
+  background-color: var(--badge-hover-interactive-background-color);
+  color: var(--badge-hover-interactive-color);
 }
 
 /* Hide HTML void elements (img, hr, br, …) closing tag when the element is not
