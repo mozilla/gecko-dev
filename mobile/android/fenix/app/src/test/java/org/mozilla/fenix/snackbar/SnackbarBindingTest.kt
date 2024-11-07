@@ -8,6 +8,9 @@ import android.content.Context
 import android.view.View
 import androidx.navigation.NavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
+import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +42,6 @@ import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.ShareAction
@@ -78,7 +80,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = R.string.translation_in_progress_snackbar,
-            duration = FenixSnackbar.LENGTH_INDEFINITE,
+            duration = LENGTH_INDEFINITE,
             isError = false,
         )
 
@@ -107,7 +109,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate, never()).show(
             text = R.string.translation_in_progress_snackbar,
-            duration = FenixSnackbar.LENGTH_LONG,
+            duration = LENGTH_LONG,
             isError = false,
         )
     }
@@ -142,7 +144,7 @@ class SnackbarBindingTest {
         val outputMessage = testContext.getString(R.string.bookmark_saved_in_folder_snackbar, "Bookmarks")
         verify(snackbarDelegate).show(
             text = eq(outputMessage),
-            duration = eq(FenixSnackbar.LENGTH_LONG),
+            duration = eq(LENGTH_LONG),
             isError = eq(false),
             action = eq("EDIT"),
             listener = any(),
@@ -171,7 +173,7 @@ class SnackbarBindingTest {
         val outputMessage = testContext.getString(R.string.bookmark_saved_in_folder_snackbar, "mobile")
         verify(snackbarDelegate).show(
             text = eq(outputMessage),
-            duration = eq(FenixSnackbar.LENGTH_LONG),
+            duration = eq(LENGTH_LONG),
             isError = eq(false),
             action = eq(testContext.getString(R.string.edit_bookmark_snackbar_action)),
             listener = any(),
@@ -195,7 +197,7 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.bookmark_invalid_url_error,
-            duration = FenixSnackbar.LENGTH_LONG,
+            duration = LENGTH_LONG,
         )
     }
 
@@ -212,7 +214,7 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.bookmark_invalid_url_error,
-            duration = FenixSnackbar.LENGTH_LONG,
+            duration = LENGTH_LONG,
             isError = false,
         )
     }
@@ -230,7 +232,7 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.snackbar_added_to_shortcuts,
-            duration = FenixSnackbar.LENGTH_LONG,
+            duration = LENGTH_LONG,
             isError = false,
         )
     }
@@ -248,7 +250,7 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.snackbar_top_site_removed,
-            duration = FenixSnackbar.LENGTH_LONG,
+            duration = LENGTH_LONG,
             isError = false,
         )
     }
@@ -266,7 +268,7 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.deleting_browsing_data_in_progress,
-            duration = FenixSnackbar.LENGTH_INDEFINITE,
+            duration = LENGTH_INDEFINITE,
             isError = false,
         )
     }
@@ -284,7 +286,7 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
         verify(snackbarDelegate).show(
             text = R.string.sync_syncing_in_progress,
-            duration = FenixSnackbar.LENGTH_SHORT,
+            duration = LENGTH_SHORT,
         )
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
     }
@@ -299,7 +301,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = R.string.share_error_snackbar,
-            duration = FenixSnackbar.LENGTH_LONG,
+            duration = LENGTH_LONG,
             isError = false,
         )
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
@@ -317,7 +319,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = R.string.sync_sent_tab_snackbar,
-            duration = FenixSnackbar.LENGTH_SHORT,
+            duration = LENGTH_SHORT,
             isError = false,
         )
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
@@ -335,7 +337,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = R.string.sync_sent_tabs_snackbar,
-            duration = FenixSnackbar.LENGTH_SHORT,
+            duration = LENGTH_SHORT,
             isError = false,
         )
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
@@ -353,7 +355,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = eq(R.string.sync_sent_tab_error_snackbar),
-            duration = eq(FenixSnackbar.LENGTH_LONG),
+            duration = eq(LENGTH_LONG),
             isError = eq(true),
             action = eq(R.string.sync_sent_tab_error_snackbar_action),
             listener = any(),
@@ -382,7 +384,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = eq(R.string.sync_sent_tab_error_snackbar),
-            duration = eq(FenixSnackbar.LENGTH_LONG),
+            duration = eq(LENGTH_LONG),
             isError = eq(true),
             action = eq(R.string.sync_sent_tab_error_snackbar_action),
             listener = retryActionCaptor.capture(),
@@ -393,7 +395,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = R.string.sync_sent_tab_snackbar,
-            duration = FenixSnackbar.LENGTH_SHORT,
+            duration = LENGTH_SHORT,
             isError = false,
         )
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
@@ -420,7 +422,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate).show(
             text = eq(R.string.sync_sent_tab_error_snackbar),
-            duration = eq(FenixSnackbar.LENGTH_LONG),
+            duration = eq(LENGTH_LONG),
             isError = eq(true),
             action = eq(R.string.sync_sent_tab_error_snackbar_action),
             listener = retryActionCaptor.capture(),
@@ -431,7 +433,7 @@ class SnackbarBindingTest {
 
         verify(snackbarDelegate, times(2)).show(
             text = eq(R.string.sync_sent_tab_error_snackbar),
-            duration = eq(FenixSnackbar.LENGTH_LONG),
+            duration = eq(LENGTH_LONG),
             isError = eq(true),
             action = eq(R.string.sync_sent_tab_error_snackbar_action),
             listener = any(),

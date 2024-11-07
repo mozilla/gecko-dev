@@ -6,8 +6,11 @@ package org.mozilla.fenix.browser
 
 import android.view.View
 import androidx.annotation.StringRes
+import androidx.compose.material.SnackbarDuration
 import mozilla.components.ui.widgets.SnackbarDelegate
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.compose.core.Action
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 
 /**
  * An implementation of [SnackbarDelegate] used to override the default snackbar behavior for
@@ -41,17 +44,24 @@ class ContextMenuSnackbarDelegate : SnackbarDelegate {
         action: String?,
         listener: ((v: View) -> Unit)?,
     ) {
-        val view = snackBarParentView
-        val snackbar = FenixSnackbar.make(
-            view = view,
-            duration = FenixSnackbar.LENGTH_SHORT,
-        )
-            .setText(text)
-
-        if (action != null && listener != null) {
-            snackbar.setAction(action) { listener.invoke(view) }
+        val snackbarAction: Action? = if (action != null && listener != null) {
+            Action(
+                label = action,
+                onClick = {
+                    listener.invoke(snackBarParentView)
+                },
+            )
+        } else {
+            null
         }
 
-        snackbar.show()
+        Snackbar.make(
+            snackBarParentView = snackBarParentView,
+            snackbarState = SnackbarState(
+                message = text,
+                duration = SnackbarDuration.Short,
+                action = snackbarAction,
+            ),
+        ).show()
     }
 }

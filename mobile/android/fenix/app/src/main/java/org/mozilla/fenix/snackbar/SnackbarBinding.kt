@@ -6,6 +6,7 @@ package org.mozilla.fenix.snackbar
 
 import android.content.Context
 import androidx.navigation.NavController
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +23,6 @@ import mozilla.components.ui.widgets.SnackbarDelegate
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.appstate.AppAction.ShareAction
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.appstate.AppState
@@ -73,7 +73,7 @@ class SnackbarBinding(
                     is SnackbarState.BookmarkDeleted -> {
                         snackbarDelegate.show(
                             text = context.getString(R.string.bookmark_deletion_snackbar_message, state.title),
-                            duration = FenixSnackbar.LENGTH_LONG,
+                            duration = Snackbar.LENGTH_LONG,
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
@@ -82,7 +82,7 @@ class SnackbarBinding(
                     is SnackbarState.ShortcutAdded -> {
                         snackbarDelegate.show(
                             text = R.string.snackbar_added_to_shortcuts,
-                            duration = FenixSnackbar.LENGTH_LONG,
+                            duration = Snackbar.LENGTH_LONG,
                         )
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
@@ -90,7 +90,7 @@ class SnackbarBinding(
                     is SnackbarState.ShortcutRemoved -> {
                         snackbarDelegate.show(
                             text = R.string.snackbar_top_site_removed,
-                            duration = FenixSnackbar.LENGTH_LONG,
+                            duration = Snackbar.LENGTH_LONG,
                         )
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
@@ -98,7 +98,7 @@ class SnackbarBinding(
                     is SnackbarState.DeletingBrowserDataInProgress -> {
                         snackbarDelegate.show(
                             text = R.string.deleting_browsing_data_in_progress,
-                            duration = FenixSnackbar.LENGTH_INDEFINITE,
+                            duration = Snackbar.LENGTH_INDEFINITE,
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
@@ -116,7 +116,7 @@ class SnackbarBinding(
 
                         snackbarDelegate.show(
                             text = R.string.translation_in_progress_snackbar,
-                            duration = FenixSnackbar.LENGTH_INDEFINITE,
+                            duration = Snackbar.LENGTH_INDEFINITE,
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
@@ -125,7 +125,7 @@ class SnackbarBinding(
                     is SnackbarState.UserAccountAuthenticated -> {
                         snackbarDelegate.show(
                             text = R.string.sync_syncing_in_progress,
-                            duration = FenixSnackbar.LENGTH_SHORT,
+                            duration = Snackbar.LENGTH_SHORT,
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
@@ -134,7 +134,7 @@ class SnackbarBinding(
                     is SnackbarState.ShareToAppFailed -> {
                         snackbarDelegate.show(
                             text = R.string.share_error_snackbar,
-                            duration = FenixSnackbar.LENGTH_LONG,
+                            duration = Snackbar.LENGTH_LONG,
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
@@ -146,7 +146,7 @@ class SnackbarBinding(
                                 1 -> R.string.sync_sent_tab_snackbar
                                 else -> R.string.sync_sent_tabs_snackbar
                             },
-                            duration = FenixSnackbar.LENGTH_SHORT,
+                            duration = Snackbar.LENGTH_SHORT,
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
@@ -156,7 +156,7 @@ class SnackbarBinding(
                         @OptIn(DelicateCoroutinesApi::class)
                         snackbarDelegate.show(
                             text = R.string.sync_sent_tab_error_snackbar,
-                            duration = FenixSnackbar.LENGTH_LONG,
+                            duration = Snackbar.LENGTH_LONG,
                             isError = true,
                             action = R.string.sync_sent_tab_error_snackbar_action,
                         ) {
@@ -196,7 +196,7 @@ class SnackbarBinding(
                     SnackbarState.CopyLinkToClipboard -> {
                         snackbarDelegate.show(
                             text = R.string.toast_copy_link_to_clipboard,
-                            duration = FenixSnackbar.LENGTH_SHORT,
+                            duration = Snackbar.LENGTH_SHORT,
                         )
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)
@@ -219,7 +219,7 @@ class SnackbarBinding(
                     R.string.bookmark_saved_in_folder_snackbar,
                     friendlyRootTitle(context, parentNode),
                 ),
-                duration = FenixSnackbar.LENGTH_LONG,
+                duration = Snackbar.LENGTH_LONG,
                 action = context.getString(R.string.edit_bookmark_snackbar_action),
             ) { view ->
                 navController.navigateWithBreadcrumb(
@@ -235,7 +235,7 @@ class SnackbarBinding(
         }.onFailure {
             snackbarDelegate.show(
                 text = R.string.bookmark_invalid_url_error,
-                duration = FenixSnackbar.LENGTH_LONG,
+                duration = Snackbar.LENGTH_LONG,
             )
         }
 

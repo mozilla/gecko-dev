@@ -24,6 +24,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,7 +49,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
 import androidx.preference.PreferenceManager
-import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
@@ -158,7 +159,6 @@ import org.mozilla.fenix.browser.readermode.DefaultReaderModeController
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.FindInPageIntegration
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FxaWebChannelIntegration
@@ -187,6 +187,9 @@ import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
 import org.mozilla.fenix.compose.Divider
+import org.mozilla.fenix.compose.core.Action
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.crashes.CrashContentIntegration
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
 import org.mozilla.fenix.databinding.FragmentBrowserBinding
@@ -1224,7 +1227,7 @@ abstract class BaseBrowserFragment :
             ContextMenuSnackbarDelegate().show(
                 snackBarParentView = binding.dynamicSnackbarContainer,
                 text = R.string.snackbar_copy_image_to_clipboard_confirmation,
-                duration = Snackbar.LENGTH_LONG,
+                duration = LENGTH_LONG,
             )
         }
     }
@@ -1241,7 +1244,7 @@ abstract class BaseBrowserFragment :
         ContextMenuSnackbarDelegate().show(
             snackBarParentView = binding.dynamicSnackbarContainer,
             text = snackbarText,
-            duration = Snackbar.LENGTH_LONG,
+            duration = LENGTH_LONG,
         )
     }
 
@@ -2272,49 +2275,55 @@ abstract class BaseBrowserFragment :
                 )
 
                 MetricsUtils.recordBookmarkMetrics(MetricsUtils.BookmarkAction.ADD, METRIC_SOURCE)
-                withContext(Main) {
-                    view?.let {
-                        FenixSnackbar.make(
-                            view = binding.dynamicSnackbarContainer,
-                            duration = FenixSnackbar.LENGTH_LONG,
+                showBookmarkSavedSnackbar(
+                    message = getString(
+                        R.string.bookmark_saved_in_folder_snackbar,
+                        friendlyRootTitle(requireContext(), parentNode),
+                    ),
+                    onClick = {
+                        MetricsUtils.recordBookmarkMetrics(
+                            MetricsUtils.BookmarkAction.EDIT,
+                            TOAST_METRIC_SOURCE,
                         )
-                            .setText(
-                                getString(
-                                    R.string.bookmark_saved_in_folder_snackbar,
-                                    friendlyRootTitle(requireContext(), parentNode),
-                                ),
-                            )
-                            .setAction(getString(R.string.edit_bookmark_snackbar_action)) {
-                                MetricsUtils.recordBookmarkMetrics(
-                                    MetricsUtils.BookmarkAction.EDIT,
-                                    TOAST_METRIC_SOURCE,
-                                )
-                                findNavController().navigateWithBreadcrumb(
-                                    directions = BrowserFragmentDirections.actionGlobalBookmarkEditFragment(
-                                        guid,
-                                        true,
-                                    ),
-                                    navigateFrom = "BrowserFragment",
-                                    navigateTo = "ActionGlobalBookmarkEditFragment",
-                                    crashReporter = it.context.components.analytics.crashReporter,
-                                )
-                            }
-                            .show()
-                    }
-                }
+                        findNavController().navigateWithBreadcrumb(
+                            directions = BrowserFragmentDirections.actionGlobalBookmarkEditFragment(
+                                guid,
+                                true,
+                            ),
+                            navigateFrom = "BrowserFragment",
+                            navigateTo = "ActionGlobalBookmarkEditFragment",
+                            crashReporter = requireContext().components.analytics.crashReporter,
+                        )
+                    },
+                )
             } catch (e: PlacesApiException.UrlParseFailed) {
                 withContext(Main) {
                     view?.let {
-                        FenixSnackbar.make(
-                            view = binding.dynamicSnackbarContainer,
-                            duration = FenixSnackbar.LENGTH_LONG,
-                        )
-                            .setText(getString(R.string.bookmark_invalid_url_error))
-                            .show()
+                        Snackbar.make(
+                            snackBarParentView = binding.dynamicSnackbarContainer,
+                            snackbarState = SnackbarState(
+                                message = getString(R.string.bookmark_invalid_url_error),
+                                duration = SnackbarDuration.Long,
+                            ),
+                        ).show()
                     }
                 }
             }
         }
+    }
+
+    private fun showBookmarkSavedSnackbar(message: String, onClick: () -> Unit) {
+        Snackbar.make(
+            snackBarParentView = binding.dynamicSnackbarContainer,
+            snackbarState = SnackbarState(
+                message = message,
+                duration = SnackbarDuration.Long,
+                action = Action(
+                    label = getString(R.string.edit_bookmark_snackbar_action),
+                    onClick = onClick,
+                ),
+            ),
+        ).show()
     }
 
     override fun onHomePressed() = pipFeature?.onHomePressed() ?: false
@@ -2518,11 +2527,12 @@ abstract class BaseBrowserFragment :
         context: Context,
         downloadState: DownloadState,
     ) {
-        FenixSnackbar.make(
-            view = container,
-            duration = Snackbar.LENGTH_SHORT,
-        ).setText(DynamicDownloadDialog.getCannotOpenFileErrorMessage(context, downloadState))
-            .show()
+        Snackbar.make(
+            snackBarParentView = container,
+            snackbarState = SnackbarState(
+                message = DynamicDownloadDialog.getCannotOpenFileErrorMessage(context, downloadState),
+            ),
+        ).show()
     }
 
     companion object {

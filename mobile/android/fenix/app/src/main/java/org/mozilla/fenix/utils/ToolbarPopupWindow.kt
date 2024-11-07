@@ -15,8 +15,8 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import androidx.annotation.VisibleForTesting
+import androidx.compose.material.SnackbarDuration
 import androidx.core.view.isVisible
-import com.google.android.material.snackbar.Snackbar
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
@@ -24,7 +24,8 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.BrowserToolbarPopupWindowBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isToolbarAtBottom
@@ -94,12 +95,13 @@ object ToolbarPopupWindow {
                 // See https://developer.android.com/develop/ui/views/touch-and-input/copy-paste#duplicate-notifications).
                 if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
                     snackbarParent.get()?.let { snackbarParent ->
-                        FenixSnackbar.make(
-                            view = snackbarParent,
-                            duration = Snackbar.LENGTH_SHORT,
-                        )
-                            .setText(context.getString(R.string.browser_toolbar_url_copied_to_clipboard_snackbar))
-                            .show()
+                        Snackbar.make(
+                            snackBarParentView = snackbarParent,
+                            snackbarState = SnackbarState(
+                                message = context.getString(R.string.browser_toolbar_url_copied_to_clipboard_snackbar),
+                                duration = SnackbarDuration.Long,
+                            ),
+                        ).show()
                     }
                 }
                 Events.copyUrlTapped.record(NoExtras())

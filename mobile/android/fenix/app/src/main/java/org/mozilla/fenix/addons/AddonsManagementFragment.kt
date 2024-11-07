@@ -13,6 +13,7 @@ import android.view.View
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.VisibleForTesting
+import androidx.compose.material.SnackbarDuration
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -32,7 +33,6 @@ import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.databinding.FragmentAddOnsManagementBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
@@ -166,7 +166,7 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
     internal fun showErrorSnackBar(text: String, anchorView: View? = this.view) {
         runIfFragmentIsAttached {
             anchorView?.let {
-                showSnackBar(it, text, FenixSnackbar.LENGTH_LONG)
+                showSnackBar(it, text, SnackbarDuration.Long)
             }
         }
     }

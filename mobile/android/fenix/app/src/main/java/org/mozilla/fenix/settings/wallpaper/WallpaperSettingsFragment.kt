@@ -22,7 +22,9 @@ import org.mozilla.fenix.GleanMetrics.Wallpapers
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.compose.core.Action
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
@@ -103,15 +105,19 @@ class WallpaperSettingsFragment : Fragment() {
     ) {
         when (result) {
             Wallpaper.ImageFileState.Downloaded -> {
-                FenixSnackbar.make(
-                    view = view,
-                )
-                    .setText(view.context.getString(R.string.wallpaper_updated_snackbar_message))
-                    .setAction(requireContext().getString(R.string.wallpaper_updated_snackbar_action)) {
-                        (activity as HomeActivity).browsingModeManager.mode = BrowsingMode.Normal
-                        findNavController().navigate(R.id.homeFragment)
-                    }
-                    .show()
+                Snackbar.make(
+                    snackBarParentView = view,
+                    snackbarState = SnackbarState(
+                        message = getString(R.string.wallpaper_updated_snackbar_message),
+                        action = Action(
+                            label = getString(R.string.wallpaper_updated_snackbar_action),
+                            onClick = {
+                                (activity as HomeActivity).browsingModeManager.mode = BrowsingMode.Normal
+                                findNavController().navigate(R.id.homeFragment)
+                            },
+                        ),
+                    ),
+                ).show()
 
                 Wallpapers.wallpaperSelected.record(
                     Wallpapers.WallpaperSelectedExtra(
@@ -122,17 +128,21 @@ class WallpaperSettingsFragment : Fragment() {
                 )
             }
             Wallpaper.ImageFileState.Error -> {
-                FenixSnackbar.make(
-                    view = view,
-                )
-                    .setText(view.context.getString(R.string.wallpaper_download_error_snackbar_message))
-                    .setAction(view.context.getString(R.string.wallpaper_download_error_snackbar_action)) {
-                        viewLifecycleOwner.lifecycleScope.launch {
-                            val retryResult = wallpaperUseCases.selectWallpaper(wallpaper)
-                            onWallpaperSelected(wallpaper, retryResult, view)
-                        }
-                    }
-                    .show()
+                Snackbar.make(
+                    snackBarParentView = view,
+                    snackbarState = SnackbarState(
+                        message = getString(R.string.wallpaper_download_error_snackbar_message),
+                        action = Action(
+                            label = getString(R.string.wallpaper_download_error_snackbar_action),
+                            onClick = {
+                                viewLifecycleOwner.lifecycleScope.launch {
+                                    val retryResult = wallpaperUseCases.selectWallpaper(wallpaper)
+                                    onWallpaperSelected(wallpaper, retryResult, view)
+                                }
+                            },
+                        ),
+                    ),
+                ).show()
             }
             else -> { /* noop */ }
         }

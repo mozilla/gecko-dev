@@ -5,20 +5,23 @@
 package org.mozilla.fenix.addons
 
 import android.view.View
-import org.mozilla.fenix.components.FenixSnackbar
+import androidx.compose.material.SnackbarDuration
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 
 /**
  * Shows the Fenix Snackbar in the given view along with the provided text.
  *
- * @param view A [View] used to determine a parent for the [FenixSnackbar].
- * @param text The text to display in the [FenixSnackbar].
- * @param duration The duration to show the [FenixSnackbar] for.
+ * @param view A [View] used to determine a parent for the [Snackbar].
+ * @param text The text to display in the [Snackbar].
+ * @param duration The duration to show the [Snackbar] for.
  */
-internal fun showSnackBar(view: View, text: String, duration: Int = FenixSnackbar.LENGTH_SHORT) {
-    FenixSnackbar.make(
-        view = view,
-        duration = duration,
-    )
-        .setText(text)
-        .show()
+internal fun showSnackBar(view: View, text: String, duration: SnackbarDuration = SnackbarDuration.Short) {
+    Snackbar.make(
+        snackBarParentView = view,
+        snackbarState = SnackbarState(
+            message = text,
+            duration = duration,
+        ),
+    ).show()
 }

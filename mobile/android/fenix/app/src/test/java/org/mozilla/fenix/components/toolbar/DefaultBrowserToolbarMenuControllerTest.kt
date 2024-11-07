@@ -73,11 +73,11 @@ import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.collections.SaveCollectionStep
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.accounts.AccountState
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.appstate.AppAction.ShortcutAction
+import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.directionsEq
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -113,7 +113,7 @@ class DefaultBrowserToolbarMenuControllerTest {
 
     @RelaxedMockK private lateinit var browserAnimator: BrowserAnimator
 
-    @RelaxedMockK private lateinit var snackbar: FenixSnackbar
+    @RelaxedMockK private lateinit var snackbar: Snackbar
 
     @RelaxedMockK private lateinit var tabCollectionStorage: TabCollectionStorage
 
@@ -143,8 +143,8 @@ class DefaultBrowserToolbarMenuControllerTest {
         )
         every { deleteAndQuit(any(), any()) } just Runs
 
-        mockkObject(FenixSnackbar.Companion)
-        every { FenixSnackbar.make(any(), any(), any()) } returns snackbar
+        mockkObject(Snackbar.Companion)
+        every { Snackbar.make(any(), any()) } returns snackbar
 
         every { activity.components.useCases.sessionUseCases } returns sessionUseCases
         every { activity.components.useCases.customTabsUseCases } returns customTabUseCases
@@ -171,7 +171,7 @@ class DefaultBrowserToolbarMenuControllerTest {
     @After
     fun tearDown() {
         unmockkStatic("org.mozilla.fenix.settings.deletebrowsingdata.DeleteAndQuitKt")
-        unmockkObject(FenixSnackbar.Companion)
+        unmockkObject(Snackbar.Companion)
     }
 
     @Test

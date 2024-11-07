@@ -21,7 +21,8 @@ import mozilla.components.feature.search.ext.createSearchEngine
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentSaveSearchEngineBinding
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.showToolbar
@@ -180,12 +181,12 @@ class SaveSearchEngineFragment : Fragment(R.layout.fragment_save_search_engine) 
                 }
 
                 view?.also {
-                    FenixSnackbar.make(
-                        view = it,
-                        duration = FenixSnackbar.LENGTH_SHORT,
-                    )
-                        .setText(successMessage)
-                        .show()
+                    Snackbar.make(
+                        snackBarParentView = it,
+                        snackbarState = SnackbarState(
+                            message = successMessage,
+                        ),
+                    ).show()
                 }
                 findNavController().popBackStack()
             }

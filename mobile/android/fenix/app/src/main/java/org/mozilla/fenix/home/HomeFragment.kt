@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.runtime.collectAsState
@@ -55,7 +56,6 @@ import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView.SmoothScroller
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.MainScope
@@ -110,7 +110,6 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.PrivateShortcutCreateManager
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
@@ -125,6 +124,8 @@ import org.mozilla.fenix.components.toolbar.navbar.HomeNavBar
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationChange
 import org.mozilla.fenix.compose.Divider
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.containsQueryParameters
@@ -234,12 +235,13 @@ class HomeFragment : Fragment() {
                     binding.sessionControlRecyclerView.adapter?.notifyDataSetChanged()
                 }
 
-                FenixSnackbar.make(
-                    view = binding.dynamicSnackbarContainer,
-                    duration = Snackbar.LENGTH_LONG,
-                )
-                    .setText(it.context.getString(message))
-                    .show()
+                Snackbar.make(
+                    snackBarParentView = binding.dynamicSnackbarContainer,
+                    snackbarState = SnackbarState(
+                        message = it.context.getString(message),
+                        duration = SnackbarDuration.Long,
+                    ),
+                ).show()
             }
         }
     }
@@ -1341,12 +1343,12 @@ class HomeFragment : Fragment() {
                     override fun onAuthenticated(account: OAuthAccount, authType: AuthType) {
                         if (authType != AuthType.Existing) {
                             view?.let {
-                                FenixSnackbar.make(
-                                    view = binding.dynamicSnackbarContainer,
-                                    duration = Snackbar.LENGTH_SHORT,
-                                )
-                                    .setText(it.context.getString(R.string.onboarding_firefox_account_sync_is_on))
-                                    .show()
+                                Snackbar.make(
+                                    snackBarParentView = binding.dynamicSnackbarContainer,
+                                    snackbarState = SnackbarState(
+                                        message = it.context.getString(R.string.onboarding_firefox_account_sync_is_on),
+                                    ),
+                                ).show()
                             }
                         }
                     }
@@ -1544,13 +1546,13 @@ class HomeFragment : Fragment() {
 
     private fun showRenamedSnackbar() {
         view?.let { view ->
-            val string = view.context.getString(R.string.snackbar_collection_renamed)
-            FenixSnackbar.make(
-                view = binding.dynamicSnackbarContainer,
-                duration = Snackbar.LENGTH_LONG,
-            )
-                .setText(string)
-                .show()
+            Snackbar.make(
+                snackBarParentView = binding.dynamicSnackbarContainer,
+                snackbarState = SnackbarState(
+                    message = view.context.getString(R.string.snackbar_collection_renamed),
+                    duration = SnackbarDuration.Long,
+                ),
+            ).show()
         }
     }
 

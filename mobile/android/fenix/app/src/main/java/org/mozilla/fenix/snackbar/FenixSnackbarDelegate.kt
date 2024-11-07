@@ -6,17 +6,22 @@ package org.mozilla.fenix.snackbar
 
 import android.view.View
 import androidx.annotation.StringRes
+import androidx.annotation.VisibleForTesting
+import com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
+import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
 import mozilla.components.ui.widgets.SnackbarDelegate
-import org.mozilla.fenix.components.FenixSnackbar
-import org.mozilla.fenix.components.FenixSnackbar.Companion.LENGTH_ACCESSIBLE
+import org.mozilla.fenix.compose.core.Action
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
+import org.mozilla.fenix.compose.snackbar.toSnackbarDuration
 
 /**
  * An implementation of [SnackbarDelegate] used to display the snackbar.
  */
 class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
 
-    // Holds onto a reference of a [FenixSnackbar] that is displayed for an indefinite duration.
-    private var snackbar: FenixSnackbar? = null
+    // Holds onto a reference of a [Snackbar] that is displayed for an indefinite duration.
+    private var snackbar: Snackbar? = null
 
     /**
      * Displays a snackbar.
@@ -31,7 +36,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      */
     fun show(
         @StringRes text: Int,
-        duration: Int = LENGTH_ACCESSIBLE,
+        duration: Int = LENGTH_LONG,
         isError: Boolean = false,
         @StringRes action: Int = 0,
         listener: ((v: View) -> Unit)? = null,
@@ -59,7 +64,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      */
     fun show(
         text: String,
-        duration: Int = LENGTH_ACCESSIBLE,
+        duration: Int = LENGTH_LONG,
         isError: Boolean = false,
         action: String? = null,
         listener: ((v: View) -> Unit)? = null,
@@ -96,23 +101,19 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
         action: String?,
         listener: ((v: View) -> Unit)?,
     ) {
-        val snackbar = FenixSnackbar.make(
-            view = snackBarParentView,
-            duration = duration,
-        ).apply {
-            setText(text)
-            setAppropriateBackground(isError)
-        }
+        val snackbar = Snackbar.make(
+            snackBarParentView = snackBarParentView,
+            snackbarState = makeSnackbarState(
+                snackBarParentView = snackBarParentView,
+                text = text,
+                duration = duration,
+                isError = isError,
+                actionText = action,
+                listener = listener,
+            ),
+        )
 
-        if (action != null && listener != null) {
-            snackbar.setAction(action) {
-                listener.invoke(
-                    snackBarParentView,
-                )
-            }
-        }
-
-        if (duration == FenixSnackbar.LENGTH_INDEFINITE) {
+        if (duration == LENGTH_INDEFINITE) {
             // Dismiss any existing snackbar with an indefinite duration.
             this.snackbar?.dismiss()
             this.snackbar = snackbar
@@ -126,5 +127,37 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      */
     fun dismiss() {
         snackbar?.dismiss()
+    }
+
+    @VisibleForTesting
+    internal fun makeSnackbarState(
+        snackBarParentView: View,
+        text: String,
+        duration: Int,
+        isError: Boolean,
+        actionText: String?,
+        listener: ((v: View) -> Unit)?,
+    ): SnackbarState {
+        val action: Action? = if (actionText != null && listener != null) {
+            Action(
+                label = actionText,
+                onClick = {
+                    listener.invoke(snackBarParentView)
+                },
+            )
+        } else {
+            null
+        }
+
+        return SnackbarState(
+            message = text,
+            duration = duration.toSnackbarDuration(),
+            type = if (isError) {
+                SnackbarState.Type.Warning
+            } else {
+                SnackbarState.Type.Default
+            },
+            action = action,
+        )
     }
 }

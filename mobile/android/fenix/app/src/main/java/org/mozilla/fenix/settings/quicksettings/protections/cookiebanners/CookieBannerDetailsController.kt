@@ -6,6 +6,7 @@ package org.mozilla.fenix.settings.quicksettings.protections.cookiebanners
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.compose.material.SnackbarDuration
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.navigation.NavController
@@ -27,7 +28,6 @@ import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.R
 import org.mozilla.fenix.addons.showSnackBar
 import org.mozilla.fenix.browser.BrowserFragmentDirections
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
@@ -165,7 +165,7 @@ class DefaultCookieBannerDetailsController(
                         showSnackBar(
                             view,
                             context.getString(R.string.cookie_banner_handling_report_site_snack_bar_text_2),
-                            FenixSnackbar.LENGTH_LONG,
+                            SnackbarDuration.Long,
                         )
                     }
                     withContext(Dispatchers.IO) {

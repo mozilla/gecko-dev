@@ -14,6 +14,7 @@ import android.text.InputFilter
 import android.text.format.DateUtils
 import android.view.View
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.material.SnackbarDuration
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.preference.CheckBoxPreference
@@ -40,9 +41,10 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.SyncAccount
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.requireComponents
@@ -405,12 +407,13 @@ class AccountSettingsFragment : PreferenceFragmentCompat() {
     private fun getChangeListenerForDeviceName(): Preference.OnPreferenceChangeListener {
         return Preference.OnPreferenceChangeListener { _, newValue ->
             accountSettingsInteractor.onChangeDeviceName(newValue as String) {
-                FenixSnackbar.make(
-                    view = requireView(),
-                    duration = FenixSnackbar.LENGTH_LONG,
-                )
-                    .setText(getString(R.string.empty_device_name_error))
-                    .show()
+                Snackbar.make(
+                    snackBarParentView = requireView(),
+                    snackbarState = SnackbarState(
+                        message = getString(R.string.empty_device_name_error),
+                        duration = SnackbarDuration.Long,
+                    ),
+                ).show()
             }
         }
     }

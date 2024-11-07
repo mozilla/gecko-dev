@@ -27,7 +27,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import com.google.android.material.snackbar.Snackbar
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
@@ -37,8 +36,9 @@ import org.mozilla.fenix.GleanMetrics.Logins
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.SecureFragment
-import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.StoreProvider
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.databinding.FragmentLoginDetailBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.increaseTapArea
@@ -221,10 +221,12 @@ class LoginDetailFragment : SecureFragment(R.layout.fragment_login_detail), Menu
     private fun showCopiedSnackbar(view: View, copiedItem: String) {
         // Only show a toast for Android 12 and lower.
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
-            FenixSnackbar.make(
-                view,
-                duration = Snackbar.LENGTH_SHORT,
-            ).setText(copiedItem).show()
+            Snackbar.make(
+                snackBarParentView = view,
+                snackbarState = SnackbarState(
+                    message = copiedItem,
+                ),
+            ).show()
         }
     }
 

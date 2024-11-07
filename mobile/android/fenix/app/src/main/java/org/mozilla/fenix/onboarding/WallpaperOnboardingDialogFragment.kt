@@ -24,7 +24,9 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.Wallpapers
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.compose.core.Action
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
@@ -139,17 +141,21 @@ class WallpaperOnboardingDialogFragment : BottomSheetDialogFragment() {
                 )
             }
             Wallpaper.ImageFileState.Error -> {
-                FenixSnackbar.make(
-                    view = view,
-                )
-                    .setText(view.context.getString(R.string.wallpaper_download_error_snackbar_message))
-                    .setAction(view.context.getString(R.string.wallpaper_download_error_snackbar_action)) {
-                        viewLifecycleOwner.lifecycleScope.launch {
-                            val retryResult = wallpaperUseCases.selectWallpaper(wallpaper)
-                            onWallpaperSelected(wallpaper, retryResult, view)
-                        }
-                    }
-                    .show()
+                Snackbar.make(
+                    snackBarParentView = view,
+                    snackbarState = SnackbarState(
+                        message = getString(R.string.wallpaper_download_error_snackbar_message),
+                        action = Action(
+                            label = getString(R.string.wallpaper_download_error_snackbar_action),
+                            onClick = {
+                                viewLifecycleOwner.lifecycleScope.launch {
+                                    val retryResult = wallpaperUseCases.selectWallpaper(wallpaper)
+                                    onWallpaperSelected(wallpaper, retryResult, view)
+                                }
+                            },
+                        ),
+                    ),
+                ).show()
             }
             else -> { /* noop */ }
         }

@@ -5,20 +5,28 @@
 package org.mozilla.fenix.snackbar
 
 import android.view.View
+import com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
+import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
 import io.mockk.MockKAnnotations
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
-import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import io.mockk.verify
 import org.junit.After
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.FenixSnackbar
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.helpers.MockkRetryTestRule
+
+private const val appName = "Firefox"
+private const val editPassword = "Edit password"
 
 class FenixSnackbarDelegateTest {
 
@@ -26,7 +34,7 @@ class FenixSnackbarDelegateTest {
     private lateinit var view: View
 
     @MockK(relaxed = true)
-    private lateinit var snackbar: FenixSnackbar
+    private lateinit var snackbar: Snackbar
     private lateinit var delegate: FenixSnackbarDelegate
 
     @get:Rule
@@ -35,152 +43,100 @@ class FenixSnackbarDelegateTest {
     @Before
     fun setup() {
         MockKAnnotations.init(this)
-        mockkObject(FenixSnackbar.Companion)
+        mockkObject(Snackbar.Companion)
 
         delegate = FenixSnackbarDelegate(view)
         every {
-            FenixSnackbar.make(view, any())
+            Snackbar.make(view, any())
         } returns snackbar
-        every { snackbar.setText(any()) } returns snackbar
-        every { snackbar.setAction(any(), any()) } returns snackbar
-        every { view.context.getString(R.string.app_name) } returns "Firefox"
-        every { view.context.getString(R.string.edit_2) } returns "Edit password"
+        every { view.context.getString(R.string.app_name) } returns appName
+        every { view.context.getString(R.string.edit_2) } returns editPassword
     }
 
     @After
     fun teardown() {
-        unmockkObject(FenixSnackbar.Companion)
+        unmockkObject(Snackbar.Companion)
     }
 
     @Test
-    fun `GIVEN no listener nor action WHEN show is called THEN show snackbar with no action`() {
-        delegate.show(
-            text = R.string.app_name,
-            duration = 0,
-            action = 0,
+    fun `GIVEN an action listener is not provided WHEN the snackbar is made THEN the snackbar's action listener is null`() {
+        val snackbarState = delegate.makeSnackbarState(
+            snackBarParentView = view,
+            text = appName,
+            duration = LENGTH_LONG,
+            isError = false,
+            actionText = editPassword,
             listener = null,
         )
 
-        verify { snackbar.setText("Firefox") }
-        verify(exactly = 0) { snackbar.setAction(any(), any()) }
-        verify { snackbar.show() }
+        assertNull(snackbarState.action)
     }
 
     @Test
-    fun `GIVEN no listener nor action WHEN show is called with string values THEN show snackbar with no action`() {
+    fun `GIVEN an action string is not provided WHEN the snackbar is made THEN the snackbar's action listener is null`() {
+        val snackbarState = delegate.makeSnackbarState(
+            snackBarParentView = view,
+            text = appName,
+            duration = LENGTH_LONG,
+            isError = false,
+            actionText = null,
+            listener = {},
+        )
+
+        assertNull(snackbarState.action)
+    }
+
+    @Test
+    fun `GIVEN an action string and an action listener are not provided WHEN the snackbar state is made THEN the snackbar state's listener is null`() {
+        val snackbarState = delegate.makeSnackbarState(
+            snackBarParentView = view,
+            text = appName,
+            duration = LENGTH_LONG,
+            isError = false,
+            actionText = null,
+            listener = null,
+        )
+
+        assertNull(snackbarState.action)
+    }
+
+    @Test
+    fun `GIVEN the snackbar is an error WHEN the snackbar state is made THEN the snackbar should be the warning type`() {
+        val snackbarState = delegate.makeSnackbarState(
+            snackBarParentView = view,
+            text = appName,
+            duration = LENGTH_LONG,
+            isError = true,
+            actionText = null,
+            listener = null,
+        )
+
+        assertTrue(snackbarState.type == SnackbarState.Type.Warning)
+    }
+
+    @Test
+    fun `GIVEN the snackbar is not an error WHEN the snackbar state is made THEN the snackbar should be the default type`() {
+        val snackbarState = delegate.makeSnackbarState(
+            snackBarParentView = view,
+            text = appName,
+            duration = LENGTH_LONG,
+            isError = false,
+            actionText = null,
+            listener = null,
+        )
+
+        assertTrue(snackbarState.type == SnackbarState.Type.Default)
+    }
+
+    @Test
+    fun `WHEN the snackbar is requested THEN show snackbar is shown`() {
         delegate.show(
-            text = "Firefox",
-            duration = 0,
+            text = appName,
+            duration = LENGTH_LONG,
             action = null,
             listener = null,
         )
 
-        verify { snackbar.setText("Firefox") }
-        verify(exactly = 0) { snackbar.setAction(any(), any()) }
-        verify { snackbar.show() }
-    }
-
-    @Test
-    fun `GIVEN no listener WHEN show is called THEN show snackbar with no action`() {
-        delegate.show(
-            text = R.string.app_name,
-            duration = 0,
-            action = 0,
-            listener = {},
-        )
-
-        verify { snackbar.setText("Firefox") }
-        verify(exactly = 0) { snackbar.setAction(any(), any()) }
-        verify { snackbar.show() }
-    }
-
-    @Test
-    fun `GIVEN no listener WHEN show is called  with string values THEN show snackbar with no action`() {
-        delegate.show(
-            text = "Firefox",
-            duration = 0,
-            action = null,
-            listener = {},
-        )
-
-        verify { snackbar.setText("Firefox") }
-        verify(exactly = 0) { snackbar.setAction(any(), any()) }
-        verify { snackbar.show() }
-    }
-
-    @Test
-    fun `GIVEN no action WHEN show is called THEN show snackbar with no action`() {
-        delegate.show(
-            text = R.string.app_name,
-            duration = 0,
-            action = R.string.edit_2,
-            listener = null,
-        )
-
-        verify { snackbar.setText("Firefox") }
-        verify(exactly = 0) { snackbar.setAction(any(), any()) }
-        verify { snackbar.show() }
-    }
-
-    @Test
-    fun `GIVEN no action WHEN show is called with string values THEN show snackbar with no action`() {
-        delegate.show(
-            text = "Firefox",
-            duration = 0,
-            action = "action",
-            listener = null,
-        )
-
-        verify { snackbar.setText("Firefox") }
-        verify(exactly = 0) { snackbar.setAction(any(), any()) }
-        verify { snackbar.show() }
-    }
-
-    @Test
-    fun `GIVEN action and listener WHEN show is called THEN show snackbar with action`() {
-        val listener = mockk<(View) -> Unit>(relaxed = true)
-        delegate.show(
-            text = R.string.app_name,
-            duration = 0,
-            action = R.string.edit_2,
-            listener = listener,
-        )
-
-        verify { snackbar.setText("Firefox") }
-        verify {
-            snackbar.setAction(
-                "Edit password",
-                withArg {
-                    verify(exactly = 0) { listener(view) }
-                    it.invoke()
-                    verify { listener(view) }
-                },
-            )
-        }
-        verify { snackbar.show() }
-    }
-
-    @Test
-    fun `GIVEN action and listener WHEN show is called with string values THEN show snackbar with action`() {
-        val listener = mockk<(View) -> Unit>(relaxed = true)
-        delegate.show(
-            text = "Firefox",
-            duration = 0,
-            action = "Edit password",
-            listener = listener,
-        )
-
-        verify { snackbar.setText("Firefox") }
-        verify {
-            snackbar.setAction(
-                "Edit password",
-                withArg {
-                    verify(exactly = 0) { listener(view) }
-                    it.invoke()
-                    verify { listener(view) }
-                },
-            )
-        }
         verify { snackbar.show() }
     }
 
@@ -188,7 +144,7 @@ class FenixSnackbarDelegateTest {
     fun `GIVEN a snackbar is shown for indefinite duration WHEN dismiss is called THEN dismiss the snackbar`() {
         delegate.show(
             text = R.string.app_name,
-            duration = FenixSnackbar.LENGTH_INDEFINITE,
+            duration = LENGTH_INDEFINITE,
             action = R.string.edit_2,
             listener = null,
         )
@@ -202,7 +158,7 @@ class FenixSnackbarDelegateTest {
     fun `GIVEN a snackbar is shown with a short duration WHEN dismiss is called THEN dismiss the snackbar`() {
         delegate.show(
             text = R.string.app_name,
-            duration = 0,
+            duration = LENGTH_SHORT,
             action = R.string.edit_2,
             listener = null,
         )
@@ -213,28 +169,21 @@ class FenixSnackbarDelegateTest {
     }
 
     @Test
-    fun `GIVEN a snackbar requested for an error WHEN showing it THEN set the appropriate UI`() {
+    fun `GIVEN an indefinite snackbar is already displayed WHEN a new indefinite snackbar is requested THEN dismiss the original snackbar`() {
         delegate.show(
             text = R.string.app_name,
-            duration = 0,
+            duration = LENGTH_INDEFINITE,
             action = R.string.edit_2,
             listener = null,
-            isError = true,
         )
 
-        verify { snackbar.setAppropriateBackground(true) }
-    }
-
-    @Test
-    fun `GIVEN a normal snackbar requested WHEN showing it THEN set the appropriate UI`() {
         delegate.show(
             text = R.string.app_name,
-            duration = 0,
+            duration = LENGTH_INDEFINITE,
             action = R.string.edit_2,
             listener = null,
-            isError = false,
         )
 
-        verify { snackbar.setAppropriateBackground(false) }
+        verify { snackbar.dismiss() }
     }
 }
