@@ -238,7 +238,11 @@ class MainActivityNavigation(
         }
 
         val fragmentManager = activity.supportFragmentManager
-        if (fragmentManager.findFragmentByTag(BiometricAuthenticationFragment.FRAGMENT_TAG) != null) {
+
+        val biometricAuthenticationFragment =
+            fragmentManager.findFragmentByTag(BiometricAuthenticationFragment.FRAGMENT_TAG)
+        if (biometricAuthenticationFragment != null) {
+            bundle?.let { biometricAuthenticationFragment.arguments = it }
             return
         }
 
