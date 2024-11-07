@@ -251,12 +251,16 @@ bool WasmGcObject::lookUpProperty(JSContext* cx, Handle<WasmGcObject*> obj,
       }
       uint32_t numElements = obj->as<WasmArrayObject>().numElements_;
       if (index >= numElements) {
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_WASM_OUT_OF_BOUNDS);
         return false;
       }
       uint64_t scaledIndex =
           uint64_t(index) * uint64_t(arrayType.elementType().size());
       if (scaledIndex >= uint64_t(UINT32_MAX)) {
-        // It's unrepresentable as an WasmGcObject::PropOffset.  Give up.
+        // It's unrepresentable as an WasmGcObject::PropOffset. Give up.
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_WASM_OUT_OF_BOUNDS);
         return false;
       }
       offset->set(uint32_t(scaledIndex));
