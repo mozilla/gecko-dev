@@ -2231,7 +2231,12 @@
           );
           delete dragData.groupDropIndex;
         }
-        if (groupDropIndex in this.allTabs) {
+        // If dragging over an ungrouped tab, present the UI for creating a
+        // new tab group on drop
+        if (
+          groupDropIndex in this.allTabs &&
+          !this.allTabs[groupDropIndex].group
+        ) {
           dragData.groupDropIndex = groupDropIndex;
           this.toggleAttribute("movingtab-createGroup", true);
           this.allTabs[groupDropIndex].toggleAttribute(
@@ -2246,7 +2251,7 @@
 
       if (gBrowser._tabGroupsEnabled && !("groupDropIndex" in dragData)) {
         this.#setDragOverGroupColor(
-          this.allTabs[dragData.animDropIndex].group?.color
+          this.allTabs[dragData.animDropIndex]?.group?.color
         );
       }
 
