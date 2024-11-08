@@ -2983,6 +2983,17 @@
       if (this.tabGroupMenu.panel.state != "closed") {
         this.tabGroupMenu.panel.hidePopup(options.animate);
       }
+
+      // This needs to be fired before tabs are removed because session store
+      // needs to respond to this while tabs are still part of the group
+      group.dispatchEvent(
+        new CustomEvent("TabGroupRemoveRequested", { bubbles: true })
+      );
+
+      // Skip session store on a per-tab basis since these tabs will get
+      // recorded as part of a group
+      options.skipSessionStore = true;
+
       this.removeTabs(group.tabs, options);
     },
 
@@ -4280,7 +4291,9 @@
         return;
       }
 
-      SessionStore.resetLastClosedTabCount(window);
+      if (!skipSessionStore) {
+        SessionStore.resetLastClosedTabCount(window);
+      }
       this._clearMultiSelectionLocked = true;
 
       // Guarantee that _clearMultiSelectionLocked lock gets released.

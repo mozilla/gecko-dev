@@ -242,8 +242,8 @@ add_task(async function test_tabUngroup() {
   Assert.equal(groupedTab._tPos, 2, "grouped tab starts in correct position");
   Assert.equal(groupedTab.group, group, "tab belongs to group");
 
-  info("Calling ungroupTabs and waiting for TabGroupRemove event.");
-  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+  info("Calling ungroupTabs and waiting for TabGroupRemoved event.");
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
   group.ungroupTabs();
   await removePromise;
 
@@ -286,8 +286,8 @@ add_task(async function test_tabGroupMoveToNewWindow() {
     label: "test",
   });
 
-  info("Calling adoptTabGroup and waiting for TabGroupRemove event.");
-  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+  info("Calling adoptTabGroup and waiting for TabGroupRemoved event.");
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
 
   let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
   fgWindow.gBrowser.adoptTabGroup(group, 0);
@@ -383,7 +383,7 @@ add_task(async function test_TabGroupEvents() {
     "TabUngrouped fired with correct group"
   );
 
-  let tabGroupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+  let tabGroupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
   await removeTabGroup(group);
   await tabGroupRemoved;
 

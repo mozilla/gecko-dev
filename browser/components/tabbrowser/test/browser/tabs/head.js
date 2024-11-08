@@ -597,7 +597,7 @@ async function removeTabGroup(group) {
     ok(false, "group was already removed");
     return;
   }
-  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
   group.ownerGlobal.gBrowser.removeTabGroup(group, { animate: false });
   await removePromise;
 }

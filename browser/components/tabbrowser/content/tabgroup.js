@@ -74,7 +74,7 @@
         }
         if (!this.tabs.length) {
           this.dispatchEvent(
-            new CustomEvent("TabGroupRemove", { bubbles: true })
+            new CustomEvent("TabGroupRemoved", { bubbles: true })
           );
           this.remove();
         }
