@@ -32,6 +32,8 @@ using ResolveBoolResponseAndReturn =
     ResolveAndReturn<mozilla::ipc::BoolResponseResolver>;
 using ResolveUInt64ResponseAndReturn =
     ResolveAndReturn<mozilla::ipc::UInt64ResponseResolver>;
+using ResolveCStringArrayResponseAndReturn =
+    ResolveAndReturn<mozilla::ipc::CStringArrayResponseResolver>;
 
 using ResolveOriginUsageMetadataArrayResponseAndReturn =
     ResolveAndReturn<OriginUsageMetadataArrayResponseResolver>;

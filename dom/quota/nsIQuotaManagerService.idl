@@ -274,6 +274,12 @@ interface nsIQuotaManagerService : nsISupports
   listOrigins();
 
   /**
+   * Asynchronously lists all cached origins and returns them as plain strings.
+   */
+  [must_use] nsIQuotaRequest
+  listCachedOrigins();
+
+  /**
    * Removes all storages. The files may not be deleted immediately depending
    * on prohibitive concurrent operations.
    * Be careful, this removes *all* the data that has ever been stored!

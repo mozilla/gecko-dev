@@ -44,6 +44,12 @@ union UInt64Response
   uint64_t;
 };
 
+union CStringArrayResponse
+{
+  nsresult;
+  nsCString[];
+};
+
 } // namespace ipc
 
 namespace dom {
@@ -180,6 +186,9 @@ parent:
 
   async GetCachedOriginUsage(PrincipalInfo principalInfo)
       returns(UInt64Response response);
+
+  async ListCachedOrigins()
+      returns(CStringArrayResponse response);
 
   async ClearStoragesForOrigin(PersistenceType? persistenceType,
                                PrincipalInfo principalInfo)

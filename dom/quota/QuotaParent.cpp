@@ -114,6 +114,9 @@ using BoolPromiseResolveOrRejectCallback =
 using UInt64PromiseResolveOrRejectCallback =
     PromiseResolveOrRejectCallback<UInt64Promise, UInt64ResponseResolver,
                                    false>;
+using CStringArrayPromiseResolveOrRejectCallback =
+    PromiseResolveOrRejectCallback<CStringArrayPromise,
+                                   CStringArrayResponseResolver, true>;
 using OriginUsageMetadataArrayPromiseResolveOrRejectCallback =
     PromiseResolveOrRejectCallback<OriginUsageMetadataArrayPromise,
                                    OriginUsageMetadataArrayResponseResolver,
@@ -725,6 +728,24 @@ mozilla::ipc::IPCResult Quota::RecvGetCachedOriginUsage(
   quotaManager->GetCachedOriginUsage(aPrincipalInfo)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              UInt64PromiseResolveOrRejectCallback(this, std::move(aResolver)));
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult Quota::RecvListCachedOrigins(
+    ListCachedOriginsResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveCStringArrayResponseAndReturn(aResolver));
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveCStringArrayResponseAndReturn(aResolver));
+
+  quotaManager->ListCachedOrigins()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      CStringArrayPromiseResolveOrRejectCallback(this, std::move(aResolver)));
 
   return IPC_OK();
 }
