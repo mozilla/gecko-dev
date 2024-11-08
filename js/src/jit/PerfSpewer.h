@@ -15,15 +15,10 @@
 #include "jit/JitCode.h"
 #include "jit/LIR.h"
 #include "js/AllocPolicy.h"
-#include "js/JitCodeAPI.h"
 #include "js/Vector.h"
 #include "vm/JSScript.h"
 
 namespace js::jit {
-
-using ProfilerJitCodeVector = Vector<JS::JitCodeRecord, 0, SystemAllocPolicy>;
-
-void ResetPerfSpewer(bool enabled);
 
 struct AutoLockPerfSpewer {
   AutoLockPerfSpewer();
@@ -80,22 +75,16 @@ class PerfSpewer {
   uint32_t lir_opcode_length = 0;
   uint32_t js_opcode_length = 0;
 
-  virtual JS::JitTier GetTier() { return JS::JitTier::Other; }
-
   virtual const char* CodeName(unsigned op) = 0;
 
   virtual void saveJitCodeSourceInfo(JSScript* script, JitCode* code,
-                                     JS::JitCodeRecord* record,
                                      AutoLockPerfSpewer& lock);
 
-  void saveDebugInfo(JSScript* script, JitCode* code,
-                     JS::JitCodeRecord* profilerRecord,
-                     AutoLockPerfSpewer& lock);
+  void saveDebugInfo(JSScript* script, JitCode* code, AutoLockPerfSpewer& lock);
 
   void saveProfile(JitCode* code, UniqueChars& desc, JSScript* script);
 
-  void saveJitCodeIRInfo(JitCode* code, JS::JitCodeRecord* profilerRecord,
-                         AutoLockPerfSpewer& lock);
+  void saveJitCodeIRInfo(JitCode* code, AutoLockPerfSpewer& lock);
 
  public:
   PerfSpewer() = default;
@@ -105,11 +94,9 @@ class PerfSpewer {
   static void Init();
 
   static void CollectJitCodeInfo(UniqueChars& function_name, JitCode* code,
-                                 JS::JitCodeRecord*, AutoLockPerfSpewer& lock);
-  static void CollectJitCodeInfo(UniqueChars& function_name, void* code_addr,
-                                 uint64_t code_size,
-                                 JS::JitCodeRecord* profilerRecord,
                                  AutoLockPerfSpewer& lock);
+  static void CollectJitCodeInfo(UniqueChars& function_name, void* code_addr,
+                                 uint64_t code_size, AutoLockPerfSpewer& lock);
 };
 
 void CollectPerfSpewerJitCodeProfile(JitCode* code, const char* msg);
@@ -123,7 +110,6 @@ void CollectPerfSpewerWasmFunctionMap(uintptr_t base, uintptr_t size,
                                       const char* funcName);
 
 class IonPerfSpewer : public PerfSpewer {
-  JS::JitTier GetTier() override { return JS::JitTier::Ion; }
   const char* CodeName(unsigned op) override;
 
  public:
@@ -132,12 +118,10 @@ class IonPerfSpewer : public PerfSpewer {
 };
 
 class BaselineInterpreterPerfSpewer : public PerfSpewer {
-  JS::JitTier GetTier() override { return JS::JitTier::Baseline; }
   const char* CodeName(unsigned op) override;
 
   // Do nothing, BaselineInterpreter has no source to reference.
   void saveJitCodeSourceInfo(JSScript* script, JitCode* code,
-                             JS::JitCodeRecord* record,
                              AutoLockPerfSpewer& lock) override {}
 
  public:
@@ -147,7 +131,6 @@ class BaselineInterpreterPerfSpewer : public PerfSpewer {
 };
 
 class BaselinePerfSpewer : public PerfSpewer {
-  JS::JitTier GetTier() override { return JS::JitTier::Baseline; }
   const char* CodeName(unsigned op) override;
 
  public:
@@ -157,7 +140,6 @@ class BaselinePerfSpewer : public PerfSpewer {
 };
 
 class InlineCachePerfSpewer : public PerfSpewer {
-  JS::JitTier GetTier() override { return JS::JitTier::IC; }
   const char* CodeName(unsigned op) override;
 
  public:
@@ -166,7 +148,6 @@ class InlineCachePerfSpewer : public PerfSpewer {
 
 class BaselineICPerfSpewer : public InlineCachePerfSpewer {
   void saveJitCodeSourceInfo(JSScript* script, JitCode* code,
-                             JS::JitCodeRecord* record,
                              AutoLockPerfSpewer& lock) override {
     // Baseline IC stubs are shared and have no source code to reference.
     return;
@@ -181,7 +162,6 @@ class IonICPerfSpewer : public InlineCachePerfSpewer {
   explicit IonICPerfSpewer(jsbytecode* pc);
 
   void saveJitCodeSourceInfo(JSScript* script, JitCode* code,
-                             JS::JitCodeRecord* record,
                              AutoLockPerfSpewer& lock) override;
 
   void saveProfile(JSContext* cx, JSScript* script, JitCode* code,
