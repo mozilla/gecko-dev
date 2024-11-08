@@ -8,7 +8,6 @@ function usage {
 Usage: $(basename "$0") -h # Displays this usage/help text
 Usage: $(basename "$0") -x # lists exit codes
 Usage: $(basename "$0") [-p product]
-           [-r existing_repo_dir]
            # Use mozilla-central builds to check HSTS & HPKP
            [--use-mozilla-central]
            # Use archive.m.o instead of the taskcluster index to get xpcshell
@@ -16,6 +15,12 @@ Usage: $(basename "$0") [-p product]
            # One (or more) of the following actions must be specified.
            --hsts | --hpkp | --remote-settings | --suffix-list | --mobile-experiments | --ct-logs
            -b branch
+           # The name of top source directory to use for the repository clone.
+           [-t topsrcdir]
+           # Skips cloning of the repository.
+           [--skip-clone]
+           # Performs a dry run - no commits are created.
+           [-n]
 
 EOF
 }
@@ -27,8 +32,9 @@ UNPACK_CMD="tar jxf"
 CLOSED_TREE=false
 DONTBUILD=false
 APPROVAL=false
+CLONE_REPO=true
 COMMIT_AUTHOR='ffxbld <ffxbld@mozilla.com>'
-REPODIR=''
+TOPSRCDIR=''
 HGHOST="hg.mozilla.org"
 STAGEHOST="archive.mozilla.org"
 WGET="wget -nv"
@@ -106,7 +112,7 @@ function download_shared_artifacts_from_ftp {
 
   # Download everything we need to run js with xpcshell
   echo "INFO: Downloading all the necessary pieces from ${STAGEHOST}..."
-  ARTIFACT_DIR="nightly/latest-${REPODIR}"
+  ARTIFACT_DIR="nightly/latest-${BRANCH}"
   if [ "${USE_MC}" == "true" ]; then
     ARTIFACT_DIR="nightly/latest-mozilla-central"
   fi
@@ -126,7 +132,7 @@ function download_shared_artifacts_from_tc {
 
   # Download everything we need to run js with xpcshell
   echo "INFO: Downloading all the necessary pieces from the taskcluster index..."
-  TASKID_URL="$index_base/task/gecko.v2.${REPODIR}.shippable.latest.${PRODUCT}.linux64-opt"
+  TASKID_URL="$index_base/task/gecko.v2.${BRANCH}.shippable.latest.${PRODUCT}.linux64-opt"
   if [ "${USE_MC}" == "true" ]; then
     TASKID_URL="$index_base/task/gecko.v2.mozilla-central.shippable.latest.${PRODUCT}.linux64-opt"
   fi
@@ -306,7 +312,7 @@ function compare_remote_settings_files {
 
     # 3. Check to see if the collection exists in the dump directory of the repository,
     #    if it does not then we aren't keeping the dump, and so we skip it.
-    local_dump_file="${REPODIR}${REMOTE_SETTINGS_DIR}/${bucket}/${collection}.json"
+    local_dump_file="${TOPSRCDIR}${REMOTE_SETTINGS_DIR}/${bucket}/${collection}.json"
     if [ ! -r "${local_dump_file}" ]; then
       continue
     fi
@@ -349,7 +355,7 @@ function compare_remote_settings_files {
   done
 
   echo "INFO: diffing old/new remote settings dumps..."
-  ${DIFF} -r "${REPODIR}${REMOTE_SETTINGS_DIR}" "${REMOTE_SETTINGS_OUTPUT}" > "${REMOTE_SETTINGS_DIFF_ARTIFACT}"
+  ${DIFF} -r "${TOPSRCDIR}${REMOTE_SETTINGS_DIR}" "${REMOTE_SETTINGS_OUTPUT}" > "${REMOTE_SETTINGS_DIFF_ARTIFACT}"
   if [ -s "${REMOTE_SETTINGS_DIFF_ARTIFACT}" ]
   then
     return 0
@@ -370,7 +376,7 @@ function update_remote_settings_attachment() {
   # These paths match _readAttachmentDump in services/settings/Attachments.sys.mjs.
   local path_to_attachment="${bucket}/${collection}/${attachment_id}"
   local path_to_meta="${bucket}/${collection}/${attachment_id}.meta.json"
-  local old_meta="${REPODIR}${REMOTE_SETTINGS_DIR}/${path_to_meta}"
+  local old_meta="${TOPSRCDIR}${REMOTE_SETTINGS_DIR}/${path_to_meta}"
   local new_meta="$REMOTE_SETTINGS_OUTPUT/${path_to_meta}"
 
   # Those files should have been created by compare_remote_settings_files before the function call.
@@ -417,51 +423,51 @@ function compare_mobile_experiments() {
 
 function update_ct_logs() {
   echo "INFO: Updating CT logs..."
-  "${REPODIR}"/mach python "${CT_LOG_UPDATE_SCRIPT}"
+  "${TOPSRCDIR}"/mach python "${CT_LOG_UPDATE_SCRIPT}"
 }
 
 # Clones an hg repo
 function clone_repo {
   cd "${BASEDIR}"
-  if [ ! -d "${REPODIR}" ]; then
-    ${HG} robustcheckout --sharebase /tmp/hg-store -b default "${HGREPO}" "${REPODIR}"
+  if [ ! -d "${TOPSRCDIR}" ]; then
+    ${HG} robustcheckout --sharebase /tmp/hg-store -b default "${HGREPO}" "${TOPSRCDIR}"
   fi
 
-  ${HG} -R "${REPODIR}" pull
-  ${HG} -R "${REPODIR}" update -C default
+  ${HG} -R "${TOPSRCDIR}" pull
+  ${HG} -R "${TOPSRCDIR}" update -C default
 }
 
 # Copies new HSTS files in place, and commits them.
 function stage_hsts_files {
   cd "${BASEDIR}"
-  cp -f "${HSTS_PRELOAD_INC_NEW}" "${REPODIR}/security/manager/ssl/"
+  cp -f "${HSTS_PRELOAD_INC_NEW}" "${TOPSRCDIR}/security/manager/ssl/"
 }
 
 function stage_hpkp_files {
   cd "${BASEDIR}"
-  cp -f "${HPKP_PRELOAD_OUTPUT}" "${REPODIR}/security/manager/ssl/${HPKP_PRELOAD_INC}"
+  cp -f "${HPKP_PRELOAD_OUTPUT}" "${TOPSRCDIR}/security/manager/ssl/${HPKP_PRELOAD_INC}"
 }
 
 function stage_remote_settings_files {
   cd "${BASEDIR}"
-  cp -a "${REMOTE_SETTINGS_OUTPUT}"/* "${REPODIR}${REMOTE_SETTINGS_DIR}"
+  cp -a "${REMOTE_SETTINGS_OUTPUT}"/* "${TOPSRCDIR}${REMOTE_SETTINGS_DIR}"
 }
 
 function stage_tld_suffix_files {
   cd "${BASEDIR}"
-  cp -a "${PUBLIC_SUFFIX_LOCAL}" "${REPODIR}/${HG_SUFFIX_PATH}"
+  cp -a "${PUBLIC_SUFFIX_LOCAL}" "${TOPSRCDIR}/${HG_SUFFIX_PATH}"
 }
 
 function stage_mobile_experiments_files {
   cd "${BASEDIR}"
 
-  cp fenix-experiments-new.json "${REPODIR}/${FENIX_INITIAL_EXPERIMENTS}"
-  cp focus-experiments-new.json "${REPODIR}/${FOCUS_INITIAL_EXPERIMENTS}"
+  cp fenix-experiments-new.json "${TOPSRCDIR}/${FENIX_INITIAL_EXPERIMENTS}"
+  cp focus-experiments-new.json "${TOPSRCDIR}/${FOCUS_INITIAL_EXPERIMENTS}"
 }
 
 # Push all pending commits to Phabricator
 function push_repo {
-  cd "${REPODIR}"
+  cd "${TOPSRCDIR}"
   if [ ! -r "${HOME}/.arcrc" ]
   then
     return 1
@@ -508,7 +514,8 @@ while [ $# -gt 0 ]; do
     --suffix-list) DO_SUFFIX_LIST=true ;;
     --mobile-experiments) DO_MOBILE_EXPERIMENTS=true ;;
     --ct-logs) DO_CT_LOGS=true ;;
-    -r) REPODIR="$2"; shift ;;
+    --skip-clone) CLONE_REPO=false ;;
+    -t) TOPSRCDIR="$2"; shift ;;
     --use-mozilla-central) USE_MC=true ;;
     --use-ftp-builds) USE_TC=false ;;
     -*) usage
@@ -547,8 +554,8 @@ case "${PRODUCT}" in
     ;;
 esac
 
-if [ "${REPODIR}" == "" ]; then
-  REPODIR="$(basename "${BRANCH}")"
+if [ "${TOPSRCDIR}" == "" ]; then
+  TOPSRCDIR="$(basename "${BRANCH}")"
 fi
 
 case "${BRANCH}" in
@@ -570,7 +577,10 @@ preflight_cleanup
 
 # Clone the repository here as some sections will use it for source data, and
 # we'll need it later anyway.
-clone_repo
+if [ "${CLONE_REPO}" == "true" ]
+then
+  clone_repo
+fi
 
 if [ "${DO_HSTS}" == "true" ] || [ "${DO_HPKP}" == "true" ] || [ "${DO_PRELOAD_PINSET}" == "true" ]
 then
@@ -676,7 +686,7 @@ if [ ${APPROVAL} == true ]; then
 fi
 
 
-if ${HG} -R "${REPODIR}" commit -u "${COMMIT_AUTHOR}" -m "${COMMIT_MESSAGE}"
+if ${HG} -R "${TOPSRCDIR}" commit -u "${COMMIT_AUTHOR}" -m "${COMMIT_MESSAGE}"
 then
   push_repo
 fi
