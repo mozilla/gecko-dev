@@ -15,7 +15,6 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.DividerItemDecoration
 import mozilla.components.support.utils.ext.getPackageInfoCompat
-import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.GleanMetrics.Events
@@ -194,7 +193,7 @@ class AboutFragment : Fragment(), AboutPageListener {
                 when (item.type) {
                     WHATS_NEW -> {
                         WhatsNew.userViewedWhatsNew(requireContext())
-                        Events.whatsNewTapped.record(NoExtras())
+                        Events.whatsNewTapped.record(Events.WhatsNewTappedExtra(source = "ABOUT"))
                     }
                     SUPPORT, PRIVACY_NOTICE, LICENSING_INFO, RIGHTS -> {} // no telemetry needed
                 }

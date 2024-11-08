@@ -337,9 +337,16 @@ events:
     type: event
     description: |
       A user opened the "what's new" page button
+    extra_keys:
+        source:
+          description: |
+            The view the user was on when they tapped on "what's new" page button (For example:
+            `HOME`, `ABOUT` or `MENU`)
+          type: string
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/5021
       - https://github.com/mozilla-mobile/fenix/issues/19923
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1809328
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/5090
       - https://github.com/mozilla-mobile/fenix/pull/13958#issuecomment-676857877
@@ -348,6 +355,7 @@ events:
       - https://github.com/mozilla-mobile/fenix/pull/21316#issuecomment-944615938
       - https://github.com/mozilla-mobile/fenix/pull/27295
       - https://github.com/mozilla-mobile/firefox-android/pull/4039
+      - https://phabricator.services.mozilla.com/D227615
     data_sensitivity:
       - interaction
     notification_emails:

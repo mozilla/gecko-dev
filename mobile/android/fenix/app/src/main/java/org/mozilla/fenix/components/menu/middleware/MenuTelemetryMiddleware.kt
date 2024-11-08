@@ -141,7 +141,11 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
-            MenuAction.Navigate.ReleaseNotes -> Events.whatsNewTapped.record(NoExtras())
+            MenuAction.Navigate.ReleaseNotes -> Events.whatsNewTapped.record(
+                Events.WhatsNewTappedExtra(
+                    source = "MENU",
+                ),
+            )
 
             MenuAction.Navigate.Settings -> {
                 when (accessPoint) {

@@ -196,7 +196,7 @@ class HomeMenuView(
             }
             HomeMenu.Item.WhatsNew -> {
                 WhatsNew.userViewedWhatsNew(context)
-                Events.whatsNewTapped.record(NoExtras())
+                Events.whatsNewTapped.record(Events.WhatsNewTappedExtra(source = "HOME"))
 
                 homeActivity.openToBrowserAndLoad(
                     searchTermOrURL = SupportUtils.WHATS_NEW_URL,

@@ -14,6 +14,7 @@ import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.menu.view.MenuButton
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.testing.GleanTestRule
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -204,6 +205,11 @@ class HomeMenuViewTest {
         homeMenuView.onItemTapped(HomeMenu.Item.WhatsNew)
 
         assertNotNull(Events.whatsNewTapped.testGetValue())
+
+        val snapshot = Events.whatsNewTapped.testGetValue()!!
+
+        assertEquals(1, snapshot.size)
+        assertEquals("HOME", snapshot.single().extra?.getValue("source"))
 
         verify {
             WhatsNew.userViewedWhatsNew(testContext)
