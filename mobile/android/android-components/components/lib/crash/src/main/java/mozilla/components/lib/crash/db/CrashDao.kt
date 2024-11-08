@@ -10,6 +10,7 @@ import androidx.lifecycle.LiveData
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import java.lang.Exception
 
@@ -40,6 +41,7 @@ internal interface CrashDao {
     /**
      * Returns saved crashes that haven't been reported.
      */
+    @RewriteQueriesToDropUnusedColumns
     @Transaction
     @Query(
         """
