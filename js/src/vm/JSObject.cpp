@@ -1504,10 +1504,14 @@ NativeObject* js::InitClass(JSContext* cx, HandleObject obj,
  * it - e.g. EnqueuePromiseReactionJob - can then unwrap the object and get
  * its global without fear of unwrapping too far.
  */
-bool js::GetObjectFromHostDefinedData(JSContext* cx, MutableHandleObject obj) {
-  if (!cx->runtime()->getHostDefinedData(cx, obj)) {
-    return false;
+bool js::GetObjectFromIncumbentGlobal(JSContext* cx, MutableHandleObject obj) {
+  Rooted<GlobalObject*> globalObj(cx, cx->runtime()->getIncumbentGlobal(cx));
+  if (!globalObj) {
+    obj.set(nullptr);
+    return true;
   }
+
+  obj.set(&globalObj->getObjectPrototype());
 
   // The object might be from a different compartment, so wrap it.
   if (obj && !cx->compartment()->wrap(cx, obj)) {
