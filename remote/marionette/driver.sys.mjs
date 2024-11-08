@@ -3083,17 +3083,40 @@ GeckoDriver.prototype.quit = async function (cmd) {
 GeckoDriver.prototype.installAddon = function (cmd) {
   lazy.assert.desktop();
 
-  let path = cmd.parameters.path;
-  let temp = cmd.parameters.temporary || false;
-  if (
-    typeof path == "undefined" ||
-    typeof path != "string" ||
-    typeof temp != "boolean"
-  ) {
-    throw new lazy.error.InvalidArgumentError();
+  const { addon = null, path = null, temporary = false } = cmd.parameters;
+
+  lazy.assert.boolean(
+    temporary,
+    lazy.pprint`Expected "temporary" to be a boolean, got ${temporary}`
+  );
+
+  if (addon !== null) {
+    if (path !== null) {
+      throw new lazy.error.InvalidArgumentError(
+        `Expected only one of "addon" or "path" to be specified`
+      );
+    }
+
+    lazy.assert.string(
+      addon,
+      lazy.pprint`Expected "addon" to be a string, got ${addon}`
+    );
+
+    return lazy.Addon.installWithBase64(addon, temporary);
   }
 
-  return lazy.Addon.install(path, temp);
+  if (path !== null) {
+    lazy.assert.string(
+      path,
+      lazy.pprint`Expected "path" to be a string, got ${path}`
+    );
+
+    return lazy.Addon.installWithPath(path, temporary);
+  }
+
+  throw new lazy.error.InvalidArgumentError(
+    `Expected "addon" or "path" argument to be specified`
+  );
 };
 
 GeckoDriver.prototype.uninstallAddon = function (cmd) {

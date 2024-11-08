@@ -7,7 +7,9 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
+
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
+  generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
 });
 
 // from https://developer.mozilla.org/en-US/Add-ons/Add-on_Manager/AddonManager#AddonInstall_errors
@@ -28,27 +30,83 @@ const ERRORS = {
     "ERROR_UNSUPPORTED_ADDON_TYPE: The add-on type is not supported by the platform.",
 };
 
-async function installAddon(file) {
-  let install = await lazy.AddonManager.getInstallForFile(file, null, {
-    source: "internal",
-  });
+async function installAddon(file, temporary) {
+  try {
+    if (temporary) {
+      return await lazy.AddonManager.installTemporaryAddon(file);
+    }
 
-  if (install.error) {
-    throw new lazy.error.UnknownError(ERRORS[install.error]);
+    const install = await lazy.AddonManager.getInstallForFile(file, null, {
+      source: "internal",
+    });
+
+    if (install == null) {
+      throw new lazy.error.UnknownError("Unknown error");
+    }
+
+    try {
+      return await install.install();
+    } catch {
+      throw new lazy.error.UnknownError(ERRORS[install.error]);
+    }
+  } catch (e) {
+    throw new lazy.error.UnknownError(
+      `Could not install add-on: ${e.message}`,
+      e
+    );
   }
-
-  return install.install().catch(() => {
-    throw new lazy.error.UnknownError(ERRORS[install.error]);
-  });
 }
 
 /** Installs addons by path and uninstalls by ID. */
 export class Addon {
   /**
-   * Install a Firefox addon.
+   * Install a Firefox addon with provided base64 string representation.
    *
-   * If the addon is restartless, it can be used right away.  Otherwise a
-   * restart is required.
+   * Temporary addons will automatically be uninstalled on shutdown and
+   * do not need to be signed, though they must be restartless.
+   *
+   * @param {string} base64
+   *     Base64 string representation of the extension package archive.
+   * @param {boolean=} temporary
+   *     True to install the addon temporarily, false (default) otherwise.
+   *
+   * @returns {Promise.<string>}
+   *     Addon ID.
+   *
+   * @throws {UnknownError}
+   *     If there is a problem installing the addon.
+   */
+  static async installWithBase64(base64, temporary = false) {
+    const decodedString = atob(base64);
+    const fileContent = Uint8Array.from(decodedString, m => m.codePointAt(0));
+
+    let path;
+    try {
+      path = PathUtils.join(
+        PathUtils.profileDir,
+        `addon-test-${lazy.generateUUID()}.xpi`
+      );
+      await IOUtils.write(path, fileContent);
+    } catch (e) {
+      throw new lazy.error.UnknownError(
+        `Could not write add-on to file: ${e.message}`,
+        e
+      );
+    }
+
+    let addon;
+    try {
+      const file = new lazy.FileUtils.File(path);
+      addon = await installAddon(file, temporary);
+    } finally {
+      await IOUtils.remove(path);
+    }
+
+    return addon.id;
+  }
+
+  /**
+   * Install a Firefox addon with provided path.
    *
    * Temporary addons will automatically be uninstalled on shutdown and
    * do not need to be signed, though they must be restartless.
@@ -64,8 +122,7 @@ export class Addon {
    * @throws {UnknownError}
    *     If there is a problem installing the addon.
    */
-  static async install(path, temporary = false) {
-    let addon;
+  static async installWithPath(path, temporary = false) {
     let file;
 
     try {
@@ -78,18 +135,7 @@ export class Addon {
       throw new lazy.error.UnknownError(`No such file or directory: ${path}`);
     }
 
-    try {
-      if (temporary) {
-        addon = await lazy.AddonManager.installTemporaryAddon(file);
-      } else {
-        addon = await installAddon(file);
-      }
-    } catch (e) {
-      throw new lazy.error.UnknownError(
-        `Could not install add-on: ${path}: ${e.message}`,
-        e
-      );
-    }
+    const addon = await installAddon(file, temporary);
 
     return addon.id;
   }
