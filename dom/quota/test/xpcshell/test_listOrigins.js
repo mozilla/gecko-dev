@@ -3,6 +3,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+const { PrincipalUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/dom/quota/test/modules/PrincipalUtils.sys.mjs"
+);
+const { QuotaUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/dom/quota/test/modules/QuotaUtils.sys.mjs"
+);
+
 async function testSteps() {
   const origins = [
     "https://example.com",
@@ -11,7 +18,7 @@ async function testSteps() {
   ];
 
   function verifyResult(result, expectedOrigins) {
-    ok(result instanceof Array, "Got an array object");
+    ok(Array.isArray(result), "Got an array object");
     Assert.equal(
       result.length,
       expectedOrigins.length,
@@ -43,46 +50,63 @@ async function testSteps() {
 
   info("Clearing");
 
-  let request = clear();
-  await requestFinished(request);
-
-  info("Listing origins");
-
-  request = listOrigins();
-  await requestFinished(request);
-
-  info("Verifying result");
-
-  verifyResult(request.result, []);
-
-  info("Clearing");
-
-  request = clear();
-  await requestFinished(request);
-
-  info("Initializing");
-
-  request = init();
-  await requestFinished(request);
-
-  info("Initializing temporary storage");
-
-  request = initTemporaryStorage();
-  await requestFinished(request);
-
-  info("Initializing origins");
-
-  for (const origin of origins) {
-    request = initTemporaryOrigin("default", getPrincipal(origin));
-    await requestFinished(request);
+  {
+    const request = Services.qms.clear();
+    await QuotaUtils.requestFinished(request);
   }
 
   info("Listing origins");
 
-  request = listOrigins();
-  await requestFinished(request);
+  const originsBeforeInit = await (async function () {
+    const request = Services.qms.listOrigins();
+    const result = await QuotaUtils.requestFinished(request);
+    return result;
+  })();
 
   info("Verifying result");
 
-  verifyResult(request.result, origins);
+  verifyResult(originsBeforeInit, []);
+
+  info("Clearing");
+
+  {
+    const request = Services.qms.clear();
+    await QuotaUtils.requestFinished(request);
+  }
+
+  info("Initializing");
+
+  {
+    const request = Services.qms.init();
+    await QuotaUtils.requestFinished(request);
+  }
+
+  info("Initializing temporary storage");
+
+  {
+    const request = Services.qms.initTemporaryStorage();
+    await QuotaUtils.requestFinished(request);
+  }
+
+  info("Initializing origins");
+
+  for (const origin of origins) {
+    const request = Services.qms.initializeTemporaryOrigin(
+      "default",
+      PrincipalUtils.createPrincipal(origin)
+    );
+    await QuotaUtils.requestFinished(request);
+  }
+
+  info("Listing origins");
+
+  const originsAfterInit = await (async function () {
+    const request = Services.qms.listOrigins();
+    const result = await QuotaUtils.requestFinished(request);
+    return result;
+  })();
+
+  info("Verifying result");
+
+  verifyResult(originsAfterInit, origins);
 }
