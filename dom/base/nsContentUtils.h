@@ -1199,11 +1199,6 @@ class nsContentUtils {
                                const char*** aArgNames);
 
   /**
-   * Returns true if this document is in a Private Browsing window.
-   */
-  static bool IsInPrivateBrowsing(const Document* aDoc);
-
-  /**
    * Returns true if this loadGroup uses Private Browsing.
    */
   static bool IsInPrivateBrowsing(nsILoadGroup* aLoadGroup);
