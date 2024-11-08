@@ -15,6 +15,7 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
+  ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
 });
 
 const TOOLS_OVERFLOW_LIMIT = 5;
@@ -58,6 +59,23 @@ export default class SidebarMain extends MozLitElement {
       totalToolsMinusGenai: 0,
     };
   }
+
+  tooltips = {
+    viewHistorySidebar: {
+      shortcutId: "key_gotoHistory",
+      openl10nId: "sidebar-menu-open-history-tooltip",
+      close10nId: "sidebar-menu-close-history-tooltip",
+    },
+    viewBookmarksSidebar: {
+      shortcutId: "viewBookmarksSidebarKb",
+      openl10nId: "sidebar-menu-open-bookmarks-tooltip",
+      close10nId: "sidebar-menu-close-bookmarks-tooltip",
+    },
+    viewGenaiChatSidebar: {
+      openl10nId: "sidebar-menu-open-ai-chatbot-tooltip",
+      close10nId: "sidebar-menu-close-ai-chatbot-tooltip",
+    },
+  };
 
   connectedCallback() {
     super.connectedCallback();
@@ -312,6 +330,24 @@ export default class SidebarMain extends MozLitElement {
       const attributes = messages?.[0]?.attributes;
       actionLabel = attributes?.find(attr => attr.name === "label")?.value;
     }
+
+    let tooltip = actionLabel;
+    const tooltipInfo = this.tooltips[action.view];
+    if (tooltipInfo) {
+      const { shortcutId, openl10nId, close10nId } = tooltipInfo;
+      const l10nId = isActiveView ? close10nId : openl10nId;
+      if (shortcutId) {
+        const shortcut = lazy.ShortcutUtils.prettifyShortcut(
+          document.getElementById(shortcutId)
+        );
+        tooltip = this.fluentStrings.formatValueSync(l10nId, {
+          shortcut,
+        });
+      } else {
+        tooltip = this.fluentStrings.formatValueSync(l10nId);
+      }
+    }
+
     let toolsOverflowing = this.isToolsOverflowing();
     return html`<moz-button
       class=${classMap({
@@ -322,7 +358,7 @@ export default class SidebarMain extends MozLitElement {
       aria-pressed="${isActiveView}"
       view=${action.view}
       @click=${async () => await this.showView(action.view)}
-      title=${!this.expanded ? actionLabel : nothing}
+      title=${!this.expanded ? tooltip : nothing}
       .iconSrc=${action.iconUrl}
       ?extension=${action.view?.includes("-sidebar-action")}
       extensionId=${ifDefined(action.extensionId)}

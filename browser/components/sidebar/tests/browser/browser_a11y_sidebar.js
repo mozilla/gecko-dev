@@ -6,6 +6,12 @@
 let win;
 
 add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.chat.enabled", true],
+      ["sidebar.main.tools", "aichat,syncedtabs,history,bookmarks"],
+    ],
+  });
   win = await BrowserTestUtils.openNewBrowserWindow();
 });
 
@@ -81,12 +87,23 @@ add_task(async function test_menu_items_labeled() {
     () => sidebar.allButtons,
     "All buttons are shown."
   );
+  const dynamicTooltips = Object.keys(SidebarController.sidebarMain.tooltips);
 
   SidebarController.toggleExpanded(false);
   await sidebar.updateComplete;
   for (const button of allButtons) {
     const view = button.getAttribute("view");
-    ok(button.title, `${view} button has a tooltip.`);
+    const title = button.title;
+    ok(title, `${view} button has a tooltip.`);
+    if (dynamicTooltips.includes(view)) {
+      await SidebarController.show(view);
+      isnot(
+        title,
+        button.title,
+        `${view} button has a different tooltip when the panel is open.`
+      );
+      SidebarController.hide();
+    }
     ok(!button.hasVisibleLabel, `Collapsed ${view} button has no label.`);
   }
 
