@@ -28,7 +28,7 @@ class SyncedTabsIntegration(
         accountManager.register(
             accountObserver,
             owner = ProcessLifecycleOwner.get(),
-            autoPause = true,
+            autoPause = false, // races with lifecycle, bug 1917989
         )
     }
 }
