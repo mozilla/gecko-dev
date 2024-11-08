@@ -66,10 +66,6 @@ void CompositorWidgetChild::NotifyVisibilityUpdated(bool aIsFullyOccluded) {
   Unused << SendNotifyVisibilityUpdated(aIsFullyOccluded);
 };
 
-void CompositorWidgetChild::UpdateTransparency(TransparencyMode aMode) {
-  Unused << SendUpdateTransparency(aMode);
-}
-
 void CompositorWidgetChild::ClearTransparentWindow() {
   Unused << SendClearTransparentWindow();
 }

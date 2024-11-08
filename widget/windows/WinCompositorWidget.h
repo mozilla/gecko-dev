@@ -80,21 +80,13 @@ class WinCompositorWidget : public CompositorWidget {
                                    const HWND aParentWnd) = 0;
   virtual void SetRootLayerTreeID(const layers::LayersId& aRootLayerTreeId) = 0;
 
-  bool TransparencyModeIs(TransparencyMode aMode) const {
-    return TransparencyMode(uint32_t(mTransparencyMode)) == aMode;
-  }
-
  protected:
-  void SetTransparencyMode(TransparencyMode aMode) {
-    mTransparencyMode = uint32_t(aMode);
-  }
-
-  bool mSetParentCompleted = false;
+  bool mSetParentCompleted;
 
  private:
   uintptr_t mWidgetKey;
   HWND mWnd;
-  mozilla::Atomic<uint32_t, MemoryOrdering::Relaxed> mTransparencyMode;
+
   WinCompositorWnds mCompositorWnds;
   LayoutDeviceIntSize mLastCompositorWndSize;
 

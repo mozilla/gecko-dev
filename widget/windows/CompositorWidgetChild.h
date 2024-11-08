@@ -35,7 +35,7 @@ class CompositorWidgetChild final : public PCompositorWidgetChild,
   bool OnWindowResize(const LayoutDeviceIntSize& aSize) override;
   void NotifyVisibilityUpdated(bool aIsFullyOccluded) override;
 
-  void UpdateTransparency(TransparencyMode) override;
+  void UpdateTransparency(TransparencyMode) override {}
   void ClearTransparentWindow() override;
 
   mozilla::ipc::IPCResult RecvObserveVsync() override;

@@ -53,8 +53,6 @@ class CompositorWidgetParent final : public PCompositorWidgetParent,
   mozilla::ipc::IPCResult RecvLeavePresentLock() override;
   mozilla::ipc::IPCResult RecvNotifyVisibilityUpdated(
       const bool& aIsFullyOccluded) override;
-  mozilla::ipc::IPCResult RecvUpdateTransparency(
-      const TransparencyMode& aTransparencyMode) override;
   mozilla::ipc::IPCResult RecvClearTransparentWindow() override;
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -74,6 +72,9 @@ class CompositorWidgetParent final : public PCompositorWidgetParent,
   HWND mWnd;
 
   gfx::CriticalSection mPresentLock;
+
+  // Transparency handling.
+  mozilla::Atomic<uint32_t, MemoryOrdering::Relaxed> mTransparencyMode;
 
   // Visibility handling.
   mozilla::Atomic<nsSizeMode, MemoryOrdering::Relaxed> mSizeMode;
