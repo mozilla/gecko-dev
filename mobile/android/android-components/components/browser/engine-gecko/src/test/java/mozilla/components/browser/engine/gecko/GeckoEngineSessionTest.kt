@@ -2587,6 +2587,39 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun `getWebCompatInfo should correctly process a GV response`() {
+        val engineSession = GeckoEngineSession(
+            mock(),
+            geckoSessionProvider = geckoSessionProvider,
+        )
+        var onResultCalled = false
+        var onExceptionCalled = false
+
+        val ruleResult = GeckoResult<JSONObject>()
+        whenever(geckoSession.webCompatInfo).thenReturn(ruleResult)
+
+        engineSession.getWebCompatInfo(
+            onResult = { onResultCalled = true },
+            onException = { onExceptionCalled = true },
+        )
+
+        val json = JSONObject().apply {
+            put("devicePixelRatio", 2.5)
+            put(
+                "antitracking",
+                JSONObject().apply {
+                    put("hasTrackingContentBlocked", false)
+                },
+            )
+        }
+        ruleResult.complete(json)
+        shadowOf(getMainLooper()).idle()
+
+        assertTrue(onResultCalled)
+        assertFalse(onExceptionCalled)
+    }
+
+    @Test
     fun `WHEN session requestProductAnalysis is successful with analysis object THEN notify of completion`() {
         val engineSession = GeckoEngineSession(mock(), geckoSessionProvider = geckoSessionProvider)
         var onResultCalled = false

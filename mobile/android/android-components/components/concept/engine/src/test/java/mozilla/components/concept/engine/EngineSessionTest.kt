@@ -18,6 +18,7 @@ import mozilla.components.concept.engine.shopping.ProductRecommendation
 import mozilla.components.concept.engine.translate.TranslationOptions
 import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.support.test.mock
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -1012,6 +1013,11 @@ open class DummyEngineSession : EngineSession() {
 
     override fun checkForPdfViewer(
         onResult: (Boolean) -> Unit,
+        onException: (Throwable) -> Unit,
+    ) {}
+
+    override fun getWebCompatInfo(
+        onResult: (JSONObject) -> Unit,
         onException: (Throwable) -> Unit,
     ) {}
 

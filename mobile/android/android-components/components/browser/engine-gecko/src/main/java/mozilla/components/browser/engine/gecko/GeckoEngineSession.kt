@@ -661,6 +661,30 @@ class GeckoEngineSession(
     }
 
     /**
+     * See [EngineSession.getWebCompatInfo].
+     */
+    override fun getWebCompatInfo(
+        onResult: (JSONObject) -> Unit,
+        onException: (Throwable) -> Unit,
+    ) {
+        geckoSession.webCompatInfo.then(
+            { result ->
+                if (result == null) {
+                    logger.error("No result from GeckoView getWebCompatInfo.")
+                    return@then GeckoResult<JSONObject>()
+                }
+                onResult(result)
+                GeckoResult()
+            },
+            { throwable ->
+                logger.error("Getting web compat info failed.", throwable)
+                onException(throwable)
+                GeckoResult()
+            },
+        )
+    }
+
+    /**
      * See [EngineSession.requestProductRecommendations]
      */
     override fun requestProductRecommendations(
