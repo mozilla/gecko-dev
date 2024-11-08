@@ -51,7 +51,6 @@ InProcessWinCompositorWidget::InProcessWinCompositorWidget(
       mWindow(aWindow),
       mWnd(reinterpret_cast<HWND>(aInitData.hWnd())),
       mTransparentSurfaceLock("mTransparentSurfaceLock"),
-      mTransparencyMode(uint32_t(aInitData.transparencyMode())),
       mMemoryDC(nullptr),
       mCompositeDC(nullptr),
       mLockedBackBufferData(nullptr) {
@@ -265,7 +264,7 @@ void InProcessWinCompositorWidget::UpdateTransparency(TransparencyMode aMode) {
     return;
   }
 
-  mTransparencyMode = uint32_t(aMode);
+  SetTransparencyMode(aMode);
   mTransparentSurface = nullptr;
   mMemoryDC = nullptr;
 
