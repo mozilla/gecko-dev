@@ -408,3 +408,13 @@ onboarding-genai-sidebar-title = Try an AI chatbot in the sidebar
 onboarding-genai-sidebar-subtitle = Summarize web content, brainstorm ideas, draft messages — all as you browse. Choose from multiple providers. Switch anytime. <a data-l10n-name="learn-more">Learn more</a>
 onboarding-genai-sidebar-primary-button = Choose a chatbot
 onboarding-genai-sidebar-secondary-button = Start browsing
+
+## New user onboarding checklist
+
+onboarding-checklist-title = Finish setting up { -brand-short-name }
+onboarding-checklist-subtitle = Complete these steps to get the most out of your browsing experience.
+onboarding-checklist-set-default = Set { -brand-short-name } as default browser
+onboarding-checklist-pin = Pin { -brand-short-name } to taskbar
+onboarding-checklist-import = Import from previous browser
+onboarding-checklist-extension = Add an extension
+onboarding-checklist-sign-up = Sign up or sign in to your account
