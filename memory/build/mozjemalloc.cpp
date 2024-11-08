@@ -690,6 +690,7 @@ static bool malloc_initialized;
 static Atomic<bool, MemoryOrdering::ReleaseAcquire> malloc_initialized;
 #endif
 
+// This lock must be held while bootstrapping us.
 static StaticMutex gInitLock MOZ_UNANNOTATED = {STATIC_MUTEX_INIT};
 
 // ***************************************************************************
@@ -948,7 +949,7 @@ class AddressRadixTree {
   void** mRoot;
 
  public:
-  bool Init();
+  bool Init() MOZ_REQUIRES(gInitLock);
 
   inline void* Get(void* aAddr);
 
@@ -1431,9 +1432,11 @@ struct ArenaTreeTrait {
 //   used by the standard API.
 class ArenaCollection {
  public:
-  bool Init() {
+  bool Init() MOZ_REQUIRES(gInitLock) MOZ_EXCLUDES(mLock) {
+    MOZ_PUSH_IGNORE_THREAD_SAFETY
     mArenas.Init();
     mPrivateArenas.Init();
+    MOZ_POP_THREAD_SAFETY
     mMainThreadArenas.Init();
     arena_params_t params;
     // The main arena allows more dirty pages than the default for other arenas.
@@ -1443,11 +1446,13 @@ class ArenaCollection {
     return bool(mDefaultArena);
   }
 
-  inline arena_t* GetById(arena_id_t aArenaId, bool aIsPrivate);
+  inline arena_t* GetById(arena_id_t aArenaId, bool aIsPrivate)
+      MOZ_EXCLUDES(mLock);
 
-  arena_t* CreateArena(bool aIsPrivate, arena_params_t* aParams);
+  arena_t* CreateArena(bool aIsPrivate, arena_params_t* aParams)
+      MOZ_EXCLUDES(mLock);
 
-  void DisposeArena(arena_t* aArena) {
+  void DisposeArena(arena_t* aArena) MOZ_EXCLUDES(mLock) {
     MutexAutoLock lock(mLock);
     Tree& tree =
         aArena->IsMainThreadOnly() ? mMainThreadArenas : mPrivateArenas;
@@ -1491,7 +1496,7 @@ class ArenaCollection {
     Tree* mThirdTree;
   };
 
-  Iterator iter() {
+  Iterator iter() MOZ_REQUIRES(mLock) {
     if (IsOnMainThreadWeak()) {
       return Iterator(&mArenas, &mPrivateArenas, &mMainThreadArenas);
     }
@@ -1514,13 +1519,14 @@ class ArenaCollection {
   }
 
   // After a fork set the new thread ID in the child.
-  void ResetMainThread() {
+  // This is done as the first thing after a fork, before mLock even re-inits.
+  void ResetMainThread() MOZ_EXCLUDES(mLock) {
     // The post fork handler in the child can run from a MacOS worker thread,
     // so we can't set our main thread to it here.  Instead we have to clear it.
     mMainThreadId = Nothing();
   }
 
-  void SetMainThread() {
+  void SetMainThread() MOZ_EXCLUDES(mLock) {
     MutexAutoLock lock(mLock);
     MOZ_ASSERT(mMainThreadId.isNothing());
     mMainThreadId = Some(GetThreadId());
@@ -1529,23 +1535,25 @@ class ArenaCollection {
  private:
   const static arena_id_t MAIN_THREAD_ARENA_BIT = 0x1;
 
+  // Can be called with or without lock, depending on aTree.
   inline arena_t* GetByIdInternal(Tree& aTree, arena_id_t aArenaId);
 
-  arena_id_t MakeRandArenaId(bool aIsMainThreadOnly) const;
+  arena_id_t MakeRandArenaId(bool aIsMainThreadOnly) const MOZ_REQUIRES(mLock);
   static bool ArenaIdIsMainThreadOnly(arena_id_t aArenaId) {
     return aArenaId & MAIN_THREAD_ARENA_BIT;
   }
 
   arena_t* mDefaultArena;
-  arena_id_t mLastPublicArenaId;
+  arena_id_t mLastPublicArenaId MOZ_GUARDED_BY(mLock);
 
   // Accessing mArenas and mPrivateArenas can only be done while holding mLock.
   // Since mMainThreadArenas can only be used from the main thread, it can be
   // accessed without a lock which is why it is a seperate tree.
-  Tree mArenas;
-  Tree mPrivateArenas;
+  Tree mArenas MOZ_GUARDED_BY(mLock);
+  Tree mPrivateArenas MOZ_GUARDED_BY(mLock);
   Tree mMainThreadArenas;
   Atomic<int32_t, MemoryOrdering::Relaxed> mDefaultMaxDirtyPageModifier;
+  // This is never changed except for forking, and it does not need mLock.
   Maybe<ThreadId> mMainThreadId;
 };
 
@@ -1924,6 +1932,15 @@ static inline void pages_decommit(void* aAddr, size_t aSize) {
   MozTagAnonymousMemory(aAddr, aSize, "jemalloc");
 #endif
   return true;
+}
+
+// Initialize base allocation data structures.
+static void base_init() MOZ_REQUIRES(gInitLock) {
+  base_mtx.Init();
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
+  base_mapped = 0;
+  base_committed = 0;
+  MOZ_POP_THREAD_SAFETY
 }
 
 static bool base_pages_alloc(size_t minsize) MOZ_REQUIRES(base_mtx) {
@@ -2439,6 +2456,15 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment) {
   }
 
   return ret;
+}
+
+static void chunks_init() MOZ_REQUIRES(gInitLock) {
+  // Initialize chunks data.
+  chunks_mtx.Init();
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
+  gChunksBySize.Init();
+  gChunksByAddress.Init();
+  MOZ_POP_THREAD_SAFETY
 }
 
 #ifdef XP_WIN
@@ -4716,6 +4742,16 @@ arena_id_t ArenaCollection::MakeRandArenaId(bool aIsMainThreadOnly) const {
 // ***************************************************************************
 // Begin general internal functions.
 
+// Initialize huge allocation data.
+static void huge_init() MOZ_REQUIRES(gInitLock) {
+  huge_mtx.Init();
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
+  huge.Init();
+  huge_allocated = 0;
+  huge_mapped = 0;
+  MOZ_POP_THREAD_SAFETY
+}
+
 void* arena_t::MallocHuge(size_t aSize, bool aZero) {
   return PallocHuge(aSize, kChunkSize, aZero);
 }
@@ -5044,27 +5080,9 @@ static bool malloc_init_hard() {
 #endif
   gRecycledSize = 0;
 
-  // Initialize chunks data.
-  chunks_mtx.Init();
-  MOZ_PUSH_IGNORE_THREAD_SAFETY
-  gChunksBySize.Init();
-  gChunksByAddress.Init();
-  MOZ_POP_THREAD_SAFETY
-
-  // Initialize huge allocation data.
-  huge_mtx.Init();
-  MOZ_PUSH_IGNORE_THREAD_SAFETY
-  huge.Init();
-  huge_allocated = 0;
-  huge_mapped = 0;
-  MOZ_POP_THREAD_SAFETY
-
-  // Initialize base allocation data structures.
-  base_mtx.Init();
-  MOZ_PUSH_IGNORE_THREAD_SAFETY
-  base_mapped = 0;
-  base_committed = 0;
-  MOZ_POP_THREAD_SAFETY
+  chunks_init();
+  huge_init();
+  base_init();
 
   // Initialize arenas collection here.
   if (!gArenas.Init()) {
@@ -5685,9 +5703,11 @@ void _malloc_postfork_child(void) {
 
   base_mtx.Init();
 
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
   for (auto arena : gArenas.iter()) {
     arena->mLock.Reinit(gForkingThread);
   }
+  MOZ_POP_THREAD_SAFETY
 
   gArenas.mLock.Init();
 }
