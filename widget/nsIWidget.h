@@ -541,9 +541,14 @@ class nsIWidget : public nsISupports {
   /**
    * Return the top level Widget of this Widget
    *
-   * @return the top level widget
+   * @return the closest top level widget, as in IsTopLevelWidget().
    */
   nsIWidget* GetTopLevelWidget();
+  bool IsTopLevelWidget() const {
+    return mWindowType == WindowType::TopLevel ||
+           mWindowType == WindowType::Dialog ||
+           mWindowType == WindowType::Invisible;
+  }
 
   /**
    * Return the physical DPI of the screen containing the window ...
