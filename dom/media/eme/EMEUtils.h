@@ -113,11 +113,6 @@ void DeprecationWarningLog(const dom::Document* aDocument,
 
 Maybe<nsCString> GetOrigin(const dom::Document* aDocument);
 
-#ifdef MOZ_WMF
-// TODO : remove this workaround after enabling HEVC by default in bug 1928536.
-bool IsHEVCAllowedByOrigin(const Maybe<nsCString>& aOrigin);
-#endif
-
 }  // namespace mozilla
 
 #endif  // EME_LOG_H_

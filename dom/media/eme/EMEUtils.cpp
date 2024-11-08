@@ -277,29 +277,4 @@ Maybe<nsCString> GetOrigin(const dom::Document* aDocument) {
   return Some(origin);
 }
 
-#ifdef MOZ_WMF
-bool IsHEVCAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
-  if (StaticPrefs::media_wmf_hevc_enabled() == 1) {
-    return true;
-  }
-  if (!aOrigin) {
-    return false;
-  }
-  // This should be the same as the list in IsMFCDMAllowedByOrigin.
-  static nsTArray<nsCString> kAllowedOrigins({
-      "https://www.netflix.com"_ns,
-  });
-  for (const auto& allowedOrigin : kAllowedOrigins) {
-    if (FindInReadable(allowedOrigin, *aOrigin)) {
-      EME_LOG("IsHEVCAllowedByOrigin, origin (%s) is ALLOWED to use HEVC",
-              aOrigin->get());
-      return true;
-    }
-  }
-  EME_LOG("IsHEVCAllowedByOrigin, origin (%s) is NOT ALLOWED to use HEVC",
-          aOrigin->get());
-  return false;
-}
-#endif
-
 }  // namespace mozilla
