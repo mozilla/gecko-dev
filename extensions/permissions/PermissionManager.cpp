@@ -6,9 +6,6 @@
 
 #include "mozilla/AbstractThread.h"
 #include "mozilla/AppShutdown.h"
-#ifdef MOZ_BACKGROUNDTASKS
-#  include "mozilla/BackgroundTasks.h"
-#endif
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ContentPrincipal.h"
@@ -406,10 +403,8 @@ nsresult UpgradeHostToOriginAndInsert(
   // subdomain of this host), and try to add it as a principal.
   bool foundHistory = false;
 
-  nsCOMPtr<nsINavHistoryService> histSrv = nullptr;
-  if (NS_IsMainThread()) {
-    histSrv = do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
-  }
+  nsCOMPtr<nsINavHistoryService> histSrv =
+      do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
 
   if (histSrv) {
     nsCOMPtr<nsINavHistoryQuery> histQuery;
@@ -1710,68 +1705,6 @@ PermissionManager::AddFromPrincipalAndPersistInPrivateBrowsing(
 }
 
 NS_IMETHODIMP
-PermissionManager::AddDefaultFromPrincipal(nsIPrincipal* aPrincipal,
-                                           const nsACString& aType,
-                                           uint32_t aPermission) {
-  ENSURE_NOT_CHILD_PROCESS;
-  MOZ_ASSERT(mState == eReady);
-
-  bool isValidPermissionPrincipal = false;
-  nsresult rv = ShouldHandlePrincipalForPermission(aPrincipal,
-                                                   isValidPermissionPrincipal);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!isValidPermissionPrincipal) {
-    // return early if the principal is invalid for permissions
-    return rv;
-  }
-
-  nsCString origin;
-  rv = GetOriginFromPrincipal(aPrincipal, IsOAForceStripPermission(aType),
-                              origin);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  DefaultEntry entry;
-  {
-    // Lock for mDefaultEntriesForImport
-    MonitorAutoLock lock(mMonitor);
-
-    // Try to update existing entry in mDefaultEntriesForImport, which will
-    // later be used to restore the default permissions when permissions are
-    // cleared
-    bool updatedExistingEntry = false;
-    nsTArray<DefaultEntry>::iterator defaultEntry =
-        mDefaultEntriesForImport.begin();
-    while (defaultEntry != mDefaultEntriesForImport.end()) {
-      if (defaultEntry->mType == aType && defaultEntry->mOrigin == origin) {
-        defaultEntry->mPermission = aPermission;
-        entry = *defaultEntry;
-        if (aPermission == nsIPermissionManager::UNKNOWN_ACTION) {
-          mDefaultEntriesForImport.RemoveElementAt(defaultEntry);
-        }
-        updatedExistingEntry = true;
-        break;
-      }
-      ++defaultEntry;
-    }
-
-    // Or add a new entry if there wasn't already one and we aren't deleting the
-    // default permission
-    if (!updatedExistingEntry) {
-      entry.mOrigin = origin;
-      entry.mPermission = aPermission;
-      entry.mType = aType;
-      if (aPermission != nsIPermissionManager::UNKNOWN_ACTION) {
-        mDefaultEntriesForImport.AppendElement(entry);
-      }
-    }
-  }
-
-  // So far, we have only updated mDefaultEntriesForImport for later recovery.
-  // Now, we actually need to import this change into the permission manager.
-  return ImportDefaultEntry(entry);
-}
-
-NS_IMETHODIMP
 PermissionManager::AddFromPrincipal(nsIPrincipal* aPrincipal,
                                     const nsACString& aType,
                                     uint32_t aPermission, uint32_t aExpireType,
@@ -1835,9 +1768,6 @@ nsresult PermissionManager::AddInternal(
     const nsACString* aOriginString,
     const bool aAllowPersistInPrivateBrowsing) {
   MOZ_ASSERT(NS_IsMainThread());
-
-  // If this is a default permission, no changes should not be written to disk.
-  MOZ_ASSERT((aID != cIDPermissionIsDefault) || (aDBOperation != eWriteToDB));
 
   EnsureReadCompleted();
 
@@ -1949,26 +1879,23 @@ nsresult PermissionManager::AddInternal(
     if (aPermission == oldPermissionEntry.mPermission &&
         aExpireType == oldPermissionEntry.mExpireType &&
         (aExpireType == nsIPermissionManager::EXPIRE_NEVER ||
-         aExpireTime == oldPermissionEntry.mExpireTime)) {
+         aExpireTime == oldPermissionEntry.mExpireTime))
       op = eOperationNone;
-    } else if (oldPermissionEntry.mID == cIDPermissionIsDefault &&
-               aID != cIDPermissionIsDefault) {
-      // An existing default permission already exists, but the new permission
-      // isn't a default permission. This case requires some special handing.
+    else if (oldPermissionEntry.mID == cIDPermissionIsDefault)
+      // The existing permission is one added as a default and the new
+      // permission doesn't exactly match so we are replacing the default.  This
+      // is true even if the new permission is UNKNOWN_ACTION (which means a
+      // "logical remove" of the default)
       op = eOperationReplacingDefault;
-    } else if (oldPermissionEntry.mID != cIDPermissionIsDefault &&
-               aID == cIDPermissionIsDefault) {
+    else if (aID == cIDPermissionIsDefault)
       // We are adding a default permission but a "real" permission already
-      // exists. This means we don't have to do anything here.
+      // exists.  This almost-certainly means we just did a removeAllSince and
+      // are re-importing defaults - so we can ignore this.
       op = eOperationNone;
-    } else if (aPermission == nsIPermissionManager::UNKNOWN_ACTION) {
-      // At this point, both the old and new permission are either both default
-      // permissions, or both not default permissions. Now we only need to check
-      // wether to change or remove the old permission.
+    else if (aPermission == nsIPermissionManager::UNKNOWN_ACTION)
       op = eOperationRemoving;
-    } else {
+    else
       op = eOperationChanging;
-    }
   }
 
   // child processes should *always* be passed a modificationTime of zero.
@@ -2044,20 +1971,6 @@ nsresult PermissionManager::AddInternal(
       // If there are no more permissions stored for that entry, clear it.
       if (entry->GetPermissions().IsEmpty()) {
         mPermissionTable.RemoveEntry(entry);
-      }
-
-      // If the entry we are removing is not a default, restore the potential
-      // default entry in-memory
-      if (oldPermissionEntry.mID != cIDPermissionIsDefault) {
-        for (const DefaultEntry& defaultEntry : mDefaultEntriesForImport) {
-          if (defaultEntry.mType == aType && defaultEntry.mOrigin == origin &&
-              defaultEntry.mPermission !=
-                  nsIPermissionManager::UNKNOWN_ACTION) {
-            rv = ImportDefaultEntry(defaultEntry);
-            NS_ENSURE_SUCCESS(rv, rv);
-            break;
-          }
-        }
       }
 
       break;
@@ -2290,6 +2203,9 @@ nsresult PermissionManager::RemovePermissionEntries(T aCondition) {
         PermissionManager::eWriteToDB, false, &std::get<2>(i));
   }
 
+  // now re-import any defaults as they may now be required if we just deleted
+  // an override.
+  ImportLatestDefaults();
   return NS_OK;
 }
 
@@ -3259,33 +3175,6 @@ void PermissionManager::CompleteRead() {
   }
 }
 
-void PermissionManager::InitRemotePermissionService() {
-  // Check if this service is disabled by pref, and abort if it is.
-  if (!StaticPrefs::permissions_manager_remote_enabled()) {
-    return;
-  }
-
-  // Also abort if we are in a background task. We do not want to call remote
-  // settings there, because we do not want to pollute the background task
-  // profile, and because we don't need the remote permissions there anyways.
-#ifdef MOZ_BACKGROUNDTASKS
-  if (BackgroundTasks::IsBackgroundTaskMode()) {
-    return;
-  }
-#endif
-
-  NS_DispatchToCurrentThreadQueue(
-      NS_NewRunnableFunction(
-          "RemotePermissionService::Init",
-          [&] {
-            nsCOMPtr<nsIRemotePermissionService> remotePermissionService =
-                do_GetService(NS_REMOTEPERMISSIONSERVICE_CONTRACTID);
-            NS_ENSURE_TRUE_VOID(remotePermissionService);
-            remotePermissionService->Init();
-          }),
-      EventQueuePriority::Idle);
-}
-
 void PermissionManager::MaybeAddReadEntryFromMigration(
     const nsACString& aOrigin, const nsCString& aType, uint32_t aPermission,
     uint32_t aExpireType, int64_t aExpireTime, int64_t aModificationTime,
@@ -3733,7 +3622,6 @@ void PermissionManager::EnsureReadCompleted() {
       CompleteMigrations();
       ImportLatestDefaults();
       CompleteRead();
-      InitRemotePermissionService();
 
       [[fallthrough]];
 
@@ -3782,7 +3670,7 @@ void PermissionManager::ConsumeDefaultsInputStream(
   constexpr char kMatchTypeHost[] = "host";
   constexpr char kMatchTypeOrigin[] = "origin";
 
-  mDefaultEntriesForImport.Clear();
+  mDefaultEntries.Clear();
 
   if (!aInputStream) {
     return;
@@ -3826,99 +3714,128 @@ void PermissionManager::ConsumeDefaultsInputStream(
       continue;
     }
 
-    const nsCString& hostOrOrigin = lineArray[3];
-    const nsCString& type = lineArray[1];
+    DefaultEntry::Op op;
 
     if (lineArray[0].EqualsLiteral(kMatchTypeHost)) {
-      UpgradeHostToOriginAndInsert(
-          hostOrOrigin, type, permission, nsIPermissionManager::EXPIRE_NEVER, 0,
-          0,
-          [&](const nsACString& aOrigin, const nsCString& aType,
-              uint32_t aPermission, uint32_t aExpireType, int64_t aExpireTime,
-              int64_t aModificationTime) {
-            AddDefaultEntryForImport(aOrigin, aType, aPermission, aProofOfLock);
-            return NS_OK;
-          });
+      op = DefaultEntry::eImportMatchTypeHost;
     } else if (lineArray[0].EqualsLiteral(kMatchTypeOrigin)) {
-      AddDefaultEntryForImport(hostOrOrigin, type, permission, aProofOfLock);
+      op = DefaultEntry::eImportMatchTypeOrigin;
     } else {
       continue;
     }
 
+    DefaultEntry* entry = mDefaultEntries.AppendElement();
+    MOZ_ASSERT(entry);
+
+    entry->mOp = op;
+    entry->mPermission = permission;
+    entry->mHostOrOrigin = lineArray[3];
+    entry->mType = lineArray[1];
   } while (isMore);
 }
 
-void PermissionManager::AddDefaultEntryForImport(
-    const nsACString& aOrigin, const nsCString& aType, uint32_t aPermission,
-    const MonitorAutoLock& aProofOfLock) {
-  DefaultEntry* entry = mDefaultEntriesForImport.AppendElement();
-  MOZ_ASSERT(entry);
-
-  entry->mPermission = aPermission;
-  entry->mOrigin = aOrigin;
-  entry->mType = aType;
-}
-
-nsresult PermissionManager::ImportDefaultEntry(
-    const DefaultEntry& aDefaultEntry) {
-  nsCOMPtr<nsIPrincipal> principal;
-  nsresult rv = GetPrincipalFromOrigin(
-      aDefaultEntry.mOrigin, IsOAForceStripPermission(aDefaultEntry.mType),
-      getter_AddRefs(principal));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Couldn't import an origin permission - malformed origin");
-    return rv;
-  }
-
-  // the import file format doesn't handle modification times, so we use
-  // 0, which AddInternal will convert to now()
-  int64_t modificationTime = 0;
-
-  rv = AddInternal(principal, aDefaultEntry.mType, aDefaultEntry.mPermission,
-                   cIDPermissionIsDefault, nsIPermissionManager::EXPIRE_NEVER,
-                   0, modificationTime, eDontNotify, eNoDBOperation);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("There was a problem importing an origin permission");
-    return rv;
-  }
-
-  if (StaticPrefs::permissions_isolateBy_privateBrowsing() &&
-      !IsOAForceStripPermission(aDefaultEntry.mType)) {
-    // Also import the permission for private browsing.
-    OriginAttributes attrs = OriginAttributes(principal->OriginAttributesRef());
-    attrs.mPrivateBrowsingId = 1;
-    nsCOMPtr<nsIPrincipal> pbPrincipal =
-        BasePrincipal::Cast(principal)->CloneForcingOriginAttributes(attrs);
-    // May return nullptr if clone fails.
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    rv =
-        AddInternal(pbPrincipal, aDefaultEntry.mType, aDefaultEntry.mPermission,
-                    cIDPermissionIsDefault, nsIPermissionManager::EXPIRE_NEVER,
-                    0, modificationTime, eDontNotify, eNoDBOperation);
-    if (NS_FAILED(rv)) {
-      NS_WARNING(
-          "There was a problem importing an origin permission for private "
-          "browsing");
-      return rv;
-    }
-  }
-
-  return NS_OK;
-}
-
-// ImportLatestDefaults will import the latest default permissions read during
-// the last DB initialization.
+// ImportLatestDefaults will import the latest default cookies read during the
+// last DB initialization.
 nsresult PermissionManager::ImportLatestDefaults() {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mState == eReady);
 
+  nsresult rv;
+
   MonitorAutoLock lock(mMonitor);
 
-  for (const DefaultEntry& entry : mDefaultEntriesForImport) {
-    Unused << ImportDefaultEntry(entry);
+  for (const DefaultEntry& entry : mDefaultEntries) {
+    if (entry.mOp == DefaultEntry::eImportMatchTypeHost) {
+      // the import file format doesn't handle modification times, so we use
+      // 0, which AddInternal will convert to now()
+      int64_t modificationTime = 0;
+
+      rv = UpgradeHostToOriginAndInsert(
+          entry.mHostOrOrigin, entry.mType, entry.mPermission,
+          nsIPermissionManager::EXPIRE_NEVER, 0, modificationTime,
+          [&](const nsACString& aOrigin, const nsCString& aType,
+              uint32_t aPermission, uint32_t aExpireType, int64_t aExpireTime,
+              int64_t aModificationTime) {
+            nsCOMPtr<nsIPrincipal> principal;
+            nsresult rv =
+                GetPrincipalFromOrigin(aOrigin, IsOAForceStripPermission(aType),
+                                       getter_AddRefs(principal));
+            NS_ENSURE_SUCCESS(rv, rv);
+            rv =
+                AddInternal(principal, aType, aPermission,
+                            cIDPermissionIsDefault, aExpireType, aExpireTime,
+                            aModificationTime, PermissionManager::eDontNotify,
+                            PermissionManager::eNoDBOperation, false, &aOrigin);
+            NS_ENSURE_SUCCESS(rv, rv);
+
+            if (StaticPrefs::permissions_isolateBy_privateBrowsing()) {
+              // Also import the permission for private browsing.
+              OriginAttributes attrs =
+                  OriginAttributes(principal->OriginAttributesRef());
+              attrs.mPrivateBrowsingId = 1;
+              nsCOMPtr<nsIPrincipal> pbPrincipal =
+                  BasePrincipal::Cast(principal)->CloneForcingOriginAttributes(
+                      attrs);
+
+              rv = AddInternal(
+                  pbPrincipal, aType, aPermission, cIDPermissionIsDefault,
+                  aExpireType, aExpireTime, aModificationTime,
+                  PermissionManager::eDontNotify,
+                  PermissionManager::eNoDBOperation, false, &aOrigin);
+              NS_ENSURE_SUCCESS(rv, rv);
+            }
+
+            return NS_OK;
+          });
+
+      if (NS_FAILED(rv)) {
+        NS_WARNING("There was a problem importing a host permission");
+      }
+      continue;
+    }
+
+    MOZ_ASSERT(entry.mOp == DefaultEntry::eImportMatchTypeOrigin);
+
+    nsCOMPtr<nsIPrincipal> principal;
+    rv = GetPrincipalFromOrigin(entry.mHostOrOrigin,
+                                IsOAForceStripPermission(entry.mType),
+                                getter_AddRefs(principal));
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Couldn't import an origin permission - malformed origin");
+      continue;
+    }
+
+    // the import file format doesn't handle modification times, so we use
+    // 0, which AddInternal will convert to now()
+    int64_t modificationTime = 0;
+
+    rv = AddInternal(principal, entry.mType, entry.mPermission,
+                     cIDPermissionIsDefault, nsIPermissionManager::EXPIRE_NEVER,
+                     0, modificationTime, eDontNotify, eNoDBOperation);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("There was a problem importing an origin permission");
+    }
+
+    if (StaticPrefs::permissions_isolateBy_privateBrowsing()) {
+      // Also import the permission for private browsing.
+      OriginAttributes attrs =
+          OriginAttributes(principal->OriginAttributesRef());
+      attrs.mPrivateBrowsingId = 1;
+      nsCOMPtr<nsIPrincipal> pbPrincipal =
+          BasePrincipal::Cast(principal)->CloneForcingOriginAttributes(attrs);
+      // May return nullptr if clone fails.
+      NS_ENSURE_TRUE(pbPrincipal, NS_ERROR_FAILURE);
+
+      rv = AddInternal(pbPrincipal, entry.mType, entry.mPermission,
+                       cIDPermissionIsDefault,
+                       nsIPermissionManager::EXPIRE_NEVER, 0, modificationTime,
+                       eDontNotify, eNoDBOperation);
+      if (NS_FAILED(rv)) {
+        NS_WARNING(
+            "There was a problem importing an origin permission for private "
+            "browsing");
+      }
+    }
   }
 
   return NS_OK;
