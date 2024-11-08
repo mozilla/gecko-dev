@@ -1207,6 +1207,9 @@ class Element : public FragmentOrElement {
     return false;
   }
 
+  // Note, this does not notify about the removal.
+  void ClearAttributes() { mAttrs.Clear(); }
+
   void GetTagName(nsAString& aTagName) const { aTagName = NodeName(); }
   void GetId(nsAString& aId) const { GetAttr(nsGkAtoms::id, aId); }
   void GetId(DOMString& aId) const { GetAttr(nsGkAtoms::id, aId); }

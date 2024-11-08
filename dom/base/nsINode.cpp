@@ -818,6 +818,10 @@ void nsINode::LastRelease() {
       nsContentUtils::RemoveListenerManager(this);
       UnsetFlags(NODE_HAS_LISTENERMANAGER);
     }
+
+    if (Element* element = Element::FromNode(this)) {
+      element->ClearAttributes();
+    }
   }
 
   UnsetFlags(NODE_HAS_PROPERTIES);

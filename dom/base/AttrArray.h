@@ -184,6 +184,8 @@ class AttrArray {
   bool GrowBy(uint32_t aGrowSize);
   bool GrowTo(uint32_t aCapacity);
 
+  void Clear() { mImpl = nullptr; }
+
  private:
   // Tries to create an attribute, growing the buffer if needed, with the given
   // name and value.
