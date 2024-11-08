@@ -201,8 +201,8 @@ firefoxview-search-text-box-recentlyclosed =
   .placeholder = Search recently closed tabs
 
 # Placeholder for the input field to search in tabs from other devices ("search" is a verb).
-firefoxview-search-text-box-syncedtabs =
-  .placeholder = Search synced tabs
+firefoxview-search-text-box-tabs =
+  .placeholder = Search tabs
 
 # Placeholder for the input field to search in open tabs ("search" is a verb).
 firefoxview-search-text-box-opentabs =

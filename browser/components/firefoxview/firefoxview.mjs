@@ -53,7 +53,7 @@ async function updateSearchTextboxSize() {
     { id: "firefoxview-search-text-box-recentbrowsing" },
     { id: "firefoxview-search-text-box-opentabs" },
     { id: "firefoxview-search-text-box-recentlyclosed" },
-    { id: "firefoxview-search-text-box-syncedtabs" },
+    { id: "firefoxview-search-text-box-tabs" },
     { id: "firefoxview-search-text-box-history" },
   ];
   let maxLength = 30;
