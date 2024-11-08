@@ -11,6 +11,7 @@
 }
 
 .accordion ._header {
+  --dbg-accordion-twisty-color: var(--theme-icon-dimmed-color);
   background-color: var(--theme-accordion-header-background);
   border-bottom: 1px solid var(--theme-splitter-color);
   display: flex;
@@ -27,16 +28,19 @@
 }
 
 .accordion ._header:hover {
-  background-color: var(--theme-accordion-header-hover);
-}
+  background-color: var(--theme-accordion-header-hover-background);
 
+  :root[forced-colors-active] & {
+    --dbg-accordion-twisty-color: var(--theme-accordion-header-hover-color);
+  }
+}
 
 .accordion ._header .header-label {
   flex-grow: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--theme-toolbar-color);
+  color: var(--theme-accordion-header-color);
   background: transparent;
   padding: 0;
 
@@ -47,6 +51,7 @@
 
   &:hover {
     background: transparent;
+    color: var(--theme-accordion-header-hover-color);
   }
 
   /* The expand arrow needs to be displayed inside the button to be accessible */
@@ -58,7 +63,7 @@
     background-image: url(chrome://devtools/content/debugger/images/arrow.svg);
     background-size: contain;
     -moz-context-properties: fill;
-    fill: var(--theme-icon-dimmed-color);
+    fill: var(--dbg-accordion-twisty-color);
     rotate: -90deg;
     transition: rotate 180ms var(--animation-curve);
   }

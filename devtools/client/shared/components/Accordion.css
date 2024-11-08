@@ -30,12 +30,17 @@
   user-select: none;
   cursor: default;
   background-color: var(--theme-accordion-header-background);
+  color: var(--theme-accordion-header-color);
   /* Adjust outline to make it visible */
   outline-offset: -2px;
-}
 
-.accordion-header:hover {
-  background-color: var(--theme-accordion-header-hover);
+  &:hover {
+    background-color: var(--theme-accordion-header-hover-background);
+
+    & .accordion-header-label {
+      color: var(--theme-accordion-header-hover-color);
+    }
+  }
 }
 
 /*
@@ -53,6 +58,10 @@
   margin-inline-start: 2px;
   margin-inline-end: 4px;
   pointer-events: none;
+}
+
+:root[forced-colors-active] .accordion-header:hover .theme-twisty {
+  fill: var(--theme-accordion-header-hover-color);
 }
 
 .accordion-header-label {

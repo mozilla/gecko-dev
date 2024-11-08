@@ -148,6 +148,7 @@
   --theme-toolbar-background-highlighted: light-dark(#b9dcff, var(--blue-60));
   --theme-toolbar-error-background: light-dark(var(--red-05), var(--red-70));
   --theme-toolbar-hover: light-dark(var(--grey-20), #232327);
+  --theme-toolbar-alternate-hover: light-dark(var(--grey-20), var(--grey-80));
   --theme-toolbar-hover-active: light-dark(var(--grey-20), #252526);
   --theme-toolbar-separator: light-dark(var(--grey-90-a10), var(--grey-10-a20));
 
@@ -165,8 +166,10 @@
   --theme-button-active-background: light-dark(rgba(12, 12, 13, 0.1), rgba(249, 249, 250, 0.15));
 
   /* Accordion headers */
-  --theme-accordion-header-background: light-dark(var(--theme-toolbar-background), #232327);
-  --theme-accordion-header-hover: light-dark(var(--theme-toolbar-hover), #2a2a2e);
+  --theme-accordion-header-background: var(--theme-toolbar-alternate-background);
+  --theme-accordion-header-color: inherit;
+  --theme-accordion-header-hover-background: var(--theme-toolbar-alternate-hover);
+  --theme-accordion-header-hover-color: inherit;
 
   /* Selection */
   --theme-selection-background: light-dark(var(--blue-55), #204e8a);
@@ -294,7 +297,13 @@
     --theme-highlight-pink: light-dark(#FF9AA2, #FFDFE7);
     --theme-highlight-gray: light-dark(#5B5B66, #F0F0F4);
 
-      /* Text color */
+    /* Accordion headers */
+    --theme-accordion-header-background: ButtonFace;
+    --theme-accordion-header-color: ButtonText;
+    --theme-accordion-header-hover-background: ButtonFace;
+    --theme-accordion-header-hover-color: SelectedItem;
+
+    /* Text color */
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
     --theme-text-color-alt: CanvasText;
