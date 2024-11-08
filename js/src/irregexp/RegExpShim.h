@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cctype>
 #include <iterator>
+#include <optional>
 
 #include "irregexp/RegExpTypes.h"
 #include "irregexp/util/FlagsShim.h"
@@ -243,21 +244,6 @@ template <typename... Args>
 [[nodiscard]] uint32_t hash_combine(uint32_t aHash, Args... aArgs) {
   return mozilla::AddToHash(aHash, aArgs...);
 }
-
-template <typename T>
-class Optional {
-  mozilla::Maybe<T> inner_;
-
- public:
-  Optional() = default;
-  Optional(T t) { inner_.emplace(t); }
-
-  bool has_value() const { return inner_.isSome(); }
-  const T& value() const { return inner_.ref(); }
-
-  T* operator->() { return &inner_.ref(); }
-  T& operator*() { return inner_.ref(); }
-};
 
 namespace bits {
 
@@ -1120,13 +1106,15 @@ inline bool IsEitherUnicode(RegExpFlags flags) {
   return flags.unicode() || flags.unicodeSets();
 }
 
-inline base::Optional<RegExpFlag> TryRegExpFlagFromChar(char c) {
+inline std::optional<RegExpFlag> TryRegExpFlagFromChar(char c) {
   RegExpFlag flag;
 
   // The parser only calls this after verifying that it's a supported flag.
-  MOZ_ALWAYS_TRUE(JS::MaybeParseRegExpFlag(c, &flag));
+  if (JS::MaybeParseRegExpFlag(c, &flag)) {
+    return flag;
+  }
 
-  return base::Optional(flag);
+  return std::optional<RegExpFlag>{};
 }
 
 inline bool operator==(const RegExpFlags& lhs, const int& rhs) {
