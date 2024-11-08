@@ -3507,6 +3507,9 @@ void nsCycleCollector::CleanupAfterCollection() {
   mGraph.Clear();
   timeLog.Checkpoint("CleanupAfterCollection::mGraph.Clear()");
 
+  FreeSnowWhite(true);
+  timeLog.Checkpoint("Collect::FreeSnowWhite");
+
   TimeStamp endTime = TimeStamp::Now();
   uint32_t interval = (uint32_t)((endTime - mCollectionStart).ToMilliseconds());
 #ifdef COLLECT_TIME_DEBUG
@@ -3602,7 +3605,11 @@ bool nsCycleCollector::Collect(CCReason aReason, ccIsManual aIsManual,
 
   // If the CC started idle, it will call BeginCollection, which
   // will do FreeSnowWhite, so it doesn't need to be done here.
-  if (!startedIdle) {
+  //
+  // If we're in CleanupPhase, we want to clear the graph before
+  // FreeSnowWhite runs, so that we don't need to remove objects from the graph
+  // one by one. CleanupAfterCollection will call FreeSnowWhite.
+  if (!startedIdle && mIncrementalPhase != CleanupPhase) {
     TimeLog timeLog;
     FreeSnowWhite(true);
     timeLog.Checkpoint("Collect::FreeSnowWhite");
