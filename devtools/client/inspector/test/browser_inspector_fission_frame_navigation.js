@@ -67,7 +67,7 @@ add_task(async function navigateFrameNotExpandedInMarkupView() {
   }
 
   const { inspector } = await openInspectorForURL(TEST_ORG_URI);
-  const resourceCommand = inspector.toolbox.resourceCommand;
+  const { resourceCommand } = inspector.commands;
 
   // At this stage the expected layout of the markup view is
   // v html     (expanded)
@@ -117,6 +117,7 @@ async function navigateIframeTo(inspector, url) {
     resourceCommand.TYPES.ROOT_NODE,
     {
       ignoreExistingResources: true,
+      predicate: resource => resource.targetFront.url === encodeURI(url),
     }
   );
 
