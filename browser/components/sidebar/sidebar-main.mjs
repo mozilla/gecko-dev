@@ -268,36 +268,36 @@ export default class SidebarMain extends MozLitElement {
   }
 
   async checkShouldShowCalloutSurveys(view) {
+    if (view == "viewGenaiChatSidebar") {
+      this.clickCounts.genai++;
+    } else {
+      this.clickCounts.totalToolsMinusGenai++;
+    }
+
+    await lazy.ASRouter.waitForInitialized;
+    lazy.ASRouter.sendTriggerMessage({
+      browser: window.gBrowser.selectedBrowser,
+      id: "sidebarToolOpened",
+      context: {
+        view,
+        clickCounts: this.clickCounts,
+      },
+    });
+  }
+
+  async showView(view) {
     const { currentID, toolsAndExtensions } = window.SidebarController;
     let isToolOpening =
       (!currentID || (currentID && currentID !== view)) &&
       toolsAndExtensions.has(view);
-    if (isToolOpening) {
-      if (view == "viewGenaiChatSidebar") {
-        this.clickCounts.genai++;
-      } else {
-        this.clickCounts.totalToolsMinusGenai++;
-      }
-
-      await lazy.ASRouter.waitForInitialized;
-      lazy.ASRouter.sendTriggerMessage({
-        browser: window.gBrowser.selectedBrowser,
-        id: "sidebarToolOpened",
-        context: {
-          view,
-          clickCounts: this.clickCounts,
-        },
-      });
-    }
-  }
-
-  async showView(view) {
     window.SidebarController.recordIconClick(view, this.expanded);
     window.SidebarController.toggle(view);
     if (view === "viewCustomizeSidebar") {
       Glean.sidebarCustomize.iconClick.record();
     }
-    await this.checkShouldShowCalloutSurveys(view);
+    if (isToolOpening) {
+      await this.checkShouldShowCalloutSurveys(view);
+    }
   }
 
   isToolsOverflowing() {
