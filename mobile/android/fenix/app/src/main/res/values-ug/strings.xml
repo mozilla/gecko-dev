@@ -1233,6 +1233,22 @@
     <string name="download_delete_item_1">چىقىرىۋەت</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">بېكەت ئاستا ياكى ئىشلىمەيدۇ</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">سۈرەت ياكى سىن</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">توپچە، ئۇلانما ۋە باشقا مەزمۇن</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">تىزىمغا كىرىڭ ياكى چىقىڭ</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">ئېلان توسقۇچ</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">باشقا سەۋەب</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">كەچۈرۈڭ. %1$s بۇ بەتنى يۈكلىيەلمەيدۇ.</string>
