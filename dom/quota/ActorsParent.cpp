@@ -6477,6 +6477,19 @@ RefPtr<UInt64Promise> QuotaManager::GetCachedOriginUsage(
   return getCachedOriginUsageOp->OnResults();
 }
 
+RefPtr<CStringArrayPromise> QuotaManager::ListCachedOrigins() {
+  AssertIsOnOwningThread();
+
+  auto listCachedOriginsOp =
+      CreateListCachedOriginsOp(WrapMovingNotNullUnchecked(this));
+
+  RegisterNormalOriginOp(*listCachedOriginsOp);
+
+  listCachedOriginsOp->RunImmediately();
+
+  return listCachedOriginsOp->OnResults();
+}
+
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForOrigin(
     const Maybe<PersistenceType>& aPersistenceType,
     const PrincipalInfo& aPrincipalInfo) {
@@ -7536,6 +7549,25 @@ PrincipalMetadataArray QuotaManager::GetAllTemporaryGroups() const {
                  });
 
   return principalMetadataArray;
+}
+
+OriginMetadataArray QuotaManager::GetAllTemporaryOrigins() const {
+  AssertIsOnIOThread();
+
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  OriginMetadataArray originMetadataArray;
+
+  for (auto iter = ioThreadData->mAllTemporaryOrigins.ConstIter(); !iter.Done();
+       iter.Next()) {
+    const auto& array = iter.Data();
+
+    for (const auto& originMetadata : array) {
+      originMetadataArray.AppendElement(originMetadata);
+    }
+  }
+
+  return originMetadataArray;
 }
 
 void QuotaManager::NoteInitializedOrigin(PersistenceType aPersistenceType,

@@ -92,6 +92,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class InitializeTemporaryGroupOp;
   friend class InitializeTemporaryOriginOp;
   friend class InitTemporaryStorageOp;
+  friend class ListCachedOriginsOp;
   friend class OriginInfo;
   friend class PersistOp;
   friend class ShutdownStorageOp;
@@ -508,6 +509,8 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<UInt64Promise> GetCachedOriginUsage(
       const PrincipalInfo& aPrincipalInfo);
 
+  RefPtr<CStringArrayPromise> ListCachedOrigins();
+
   RefPtr<BoolPromise> ClearStoragesForOrigin(
       const Maybe<PersistenceType>& aPersistenceType,
       const PrincipalInfo& aPrincipalInfo);
@@ -792,6 +795,8 @@ class QuotaManager final : public BackgroundThreadObject {
   void RemoveTemporaryOrigins();
 
   PrincipalMetadataArray GetAllTemporaryGroups() const;
+
+  OriginMetadataArray GetAllTemporaryOrigins() const;
 
   void NoteInitializedOrigin(PersistenceType aPersistenceType,
                              const nsACString& aOrigin);

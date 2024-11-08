@@ -46,10 +46,11 @@ class MozPromise;
 using BoolPromise = MozPromise<bool, nsresult, false>;
 using Int64Promise = MozPromise<int64_t, nsresult, false>;
 using UInt64Promise = MozPromise<uint64_t, nsresult, false>;
-
-using ExclusiveBoolPromise = MozPromise<bool, nsresult, true>;
+using CStringArrayPromise = MozPromise<CStringArray, nsresult, true>;
 
 using MaybeCStringArrayPromise = MozPromise<MaybeCStringArray, nsresult, true>;
+
+using ExclusiveBoolPromise = MozPromise<bool, nsresult, true>;
 
 namespace ipc {
 
