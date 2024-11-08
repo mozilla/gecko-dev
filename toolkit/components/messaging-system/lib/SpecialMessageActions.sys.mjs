@@ -481,12 +481,10 @@ export const SpecialMessageActions = {
     const window = browser.ownerGlobal;
     switch (action.type) {
       case "SHOW_MIGRATION_WIZARD":
-        Services.tm.dispatchToMainThread(() =>
-          lazy.MigrationUtils.showMigrationWizard(window, {
-            entrypoint: lazy.MigrationUtils.MIGRATION_ENTRYPOINTS.NEWTAB,
-            migratorKey: action.data?.source,
-          })
-        );
+        lazy.MigrationUtils.showMigrationWizard(window, {
+          entrypoint: lazy.MigrationUtils.MIGRATION_ENTRYPOINTS.NEWTAB,
+          migratorKey: action.data?.source,
+        });
         break;
       case "OPEN_PRIVATE_BROWSER_WINDOW":
         // Forcefully open about:privatebrowsing

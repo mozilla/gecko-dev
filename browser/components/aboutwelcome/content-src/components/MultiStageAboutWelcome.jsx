@@ -463,13 +463,15 @@ export class WelcomeScreen extends React.PureComponent {
 
     let actionResult;
     if (["OPEN_URL", "SHOW_FIREFOX_ACCOUNTS"].includes(action.type)) {
-      actionResult = await this.handleOpenURL(
+      actionResult = this.handleOpenURL(
         action,
         props.flowParams,
         props.UTMTerm
       );
     } else if (action.type) {
-      actionResult = await AboutWelcomeUtils.handleUserAction(action);
+      actionResult = action.needsAwait
+        ? await AboutWelcomeUtils.handleUserAction(action)
+        : AboutWelcomeUtils.handleUserAction(action);
       if (action.type === "FXA_SIGNIN_FLOW") {
         AboutWelcomeUtils.sendActionTelemetry(
           props.messageId,
@@ -503,7 +505,7 @@ export class WelcomeScreen extends React.PureComponent {
           } else {
             wpAction.data.pref.value = `light-${theme}`;
           }
-          await AboutWelcomeUtils.handleUserAction(actionWallpaper);
+          AboutWelcomeUtils.handleUserAction(actionWallpaper);
         });
       } else {
         window.AWSelectTheme(themeToUse);
@@ -528,8 +530,20 @@ export class WelcomeScreen extends React.PureComponent {
     // `navigate` and `dismiss` can be true/false/undefined, or they can be a
     // string "actionResult" in which case we should use the actionResult
     // (boolean resolved by handleUserAction)
-    const shouldDoBehavior = behavior =>
-      behavior === "actionResult" ? actionResult : behavior;
+    const shouldDoBehavior = behavior => {
+      if (behavior !== "actionResult") {
+        return behavior;
+      }
+
+      if (action.needsAwait) {
+        return actionResult;
+      }
+
+      console.error(
+        "actionResult is only supported for actions with needsAwait"
+      );
+      return false;
+    };
 
     if (shouldDoBehavior(action.navigate)) {
       props.navigate();

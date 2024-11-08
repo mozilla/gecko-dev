@@ -63,6 +63,7 @@ const MR_ABOUT_WELCOME_DEFAULT = {
           },
           action: {
             type: "FXA_SIGNIN_FLOW",
+            needsAwait: true,
             navigate: "actionResult",
             data: {
               entrypoint: "fx-device-migration-onboarding",

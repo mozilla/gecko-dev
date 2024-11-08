@@ -27,9 +27,11 @@ describe("MultiStageAboutWelcome module", () => {
   beforeEach(async () => {
     globals = new GlobalOverrider();
     globals.set({
+      AWEvaluateScreenTargeting: () => {},
       AWGetSelectedTheme: () => Promise.resolve("automatic"),
       AWGetInstalledAddons: () => Promise.resolve(["test-addon-id"]),
       AWSendEventTelemetry: () => {},
+      AWSendToParent: () => {},
       AWWaitForMigrationClose: () => Promise.resolve(),
       AWSelectTheme: () => Promise.resolve(),
       AWFinish: () => Promise.resolve(),
@@ -1129,6 +1131,137 @@ describe("MultiStageAboutWelcome module", () => {
 
           AboutWelcomeUtils.handleUserAction.resetHistory();
         }
+      });
+    });
+
+    describe("#handleUserAction", () => {
+      let SCREEN_PROPS;
+      let TEST_ACTION;
+      let awSendToParentStub;
+      let finishStub;
+      let handleUserActionSpy;
+      beforeEach(() => {
+        SCREEN_PROPS = {
+          content: {
+            primary_button: {
+              action: { type: "TEST_ACTION" },
+              label: "test button",
+            },
+          },
+        };
+        awSendToParentStub = sandbox.stub();
+        globals.set("AWSendToParent", awSendToParentStub);
+        finishStub = sandbox.stub(global, "AWFinish");
+        handleUserActionSpy = sandbox.spy(
+          AboutWelcomeUtils,
+          "handleUserAction"
+        );
+
+        TEST_ACTION = SCREEN_PROPS.content.primary_button.action;
+      });
+
+      afterEach(() => {
+        handleUserActionSpy.restore();
+        finishStub.restore();
+        globals.restore();
+      });
+
+      it("Should dismiss when resolve boolean is true and needAwait true", async () => {
+        TEST_ACTION.dismiss = "actionResult";
+        TEST_ACTION.needsAwait = true;
+        // `needsAwait` is true, so the handleUserAction function should return a `Promise<boolean>`
+        awSendToParentStub.callsFake(
+          () => Promise.resolve(true) // Resolves to a boolean for awaited calls
+        );
+
+        const wrapper = mount(<WelcomeScreen {...SCREEN_PROPS} />);
+        wrapper.find(".primary").simulate("click");
+
+        // Assert click of primary button calls handleUserAction
+        assert.calledOnce(handleUserActionSpy);
+        assert.equal(handleUserActionSpy.firstCall.args[0].type, "TEST_ACTION");
+        // handleUserAction returns a Promise, so let's let the microtask queue
+        // flush so that anything waiting for the handleUserAction Promise to
+        // resolve can run.
+        await new Promise(resolve => queueMicrotask(resolve));
+
+        // Check handleUserAction return value is a `Promise<boolean>`
+        assert.ok(handleUserActionSpy.firstCall.returnValue instanceof Promise);
+        const awaitedResult = await handleUserActionSpy.firstCall.returnValue;
+        // Check that the result is a boolean
+        assert.equal(
+          typeof awaitedResult,
+          "boolean",
+          "The awaited call should return a boolean."
+        );
+        assert.equal(
+          awaitedResult,
+          true,
+          "The awaited call should resolve to true, as per the mock return value."
+        );
+        // Check AWFinish gets called when awaited actionResult value is true
+        assert.calledOnce(finishStub);
+      });
+
+      it("Should not dismiss when resolve boolean is false and needAwait true", async () => {
+        TEST_ACTION.dismiss = "actionResult";
+        TEST_ACTION.needsAwait = true;
+        // `needsAwait` is true, so the handleUserAction function should return a `Promise<boolean>`
+        awSendToParentStub.callsFake(
+          () => Promise.resolve(false) // Resolves to a boolean for awaited calls
+        );
+
+        const wrapper = mount(<WelcomeScreen {...SCREEN_PROPS} />);
+        wrapper.find(".primary").simulate("click");
+
+        // Assert click of primary button calls handleUserAction
+        assert.calledOnce(handleUserActionSpy);
+        assert.equal(handleUserActionSpy.firstCall.args[0].type, "TEST_ACTION");
+        await new Promise(resolve => queueMicrotask(resolve));
+
+        // Check handleUserAction return value is a `Promise<boolean>`
+        assert.ok(handleUserActionSpy.firstCall.returnValue instanceof Promise);
+        const awaitedResult = await handleUserActionSpy.firstCall.returnValue;
+        // Check that the result is a boolean
+        assert.equal(
+          typeof awaitedResult,
+          "boolean",
+          "The awaited call should return a boolean."
+        );
+        assert.equal(
+          awaitedResult,
+          false,
+          "The awaited call should resolve to false, as per the mock return value."
+        );
+        // Check AWFinish not get called when awaited actionResult value is false
+        assert.notCalled(finishStub);
+      });
+
+      it("Should dismiss when true and handleUserAction not awaited", async () => {
+        TEST_ACTION.dismiss = true;
+        // `needsAwait` is not set, so the handleUserAction function should return a `Promise<undefined>`
+        awSendToParentStub.callsFake(
+          () => Promise.resolve(undefined) // Resolves to a undefined for non awaited calls
+        );
+
+        const wrapper = mount(<WelcomeScreen {...SCREEN_PROPS} />);
+        wrapper.find(".primary").simulate("click");
+
+        // Assert click of primary button calls handleUserAction
+        assert.calledOnce(handleUserActionSpy);
+        assert.equal(handleUserActionSpy.firstCall.args[0].type, "TEST_ACTION");
+        await new Promise(resolve => queueMicrotask(resolve));
+
+        // Check handleUserAction return value is a `Promise<undefined>`
+        assert.ok(handleUserActionSpy.firstCall.returnValue instanceof Promise);
+        const awaitedResult = await handleUserActionSpy.firstCall.returnValue;
+        assert.equal(
+          awaitedResult,
+          undefined,
+          "The awaited call should resolve to undefined, as per the mock return value."
+        );
+        // Check AWFinish gets called when dismiss is true for non awaited calls
+        assert.calledOnce(finishStub);
       });
     });
   });
