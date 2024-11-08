@@ -12,6 +12,8 @@ exclude: true
 # GeckoView API Changelog.
 
 ⚠️  breaking change and deprecation notices
+## v134
+- ⚠️ [`WebExtensionController.PromptDelegate.onInstallPrompt`][133.5] is removed see https://bugzilla.mozilla.org/show_bug.cgi?id=1919374 for more details.
 
 ## v133
 - Added [`GeckoSession.getWebCompatInfo`][133.1] that returns a `GeckoResult<JSONObject>` for web compatability information. ([bug 1917273]({{bugzilla}}1917273)).
@@ -1645,4 +1647,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 9875ec607962d0f2546febd1f589a07707f62045
+[api-version]: d56db656ed1dc11ccb79afae4de27474b9b16f87
