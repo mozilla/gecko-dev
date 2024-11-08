@@ -68,12 +68,12 @@
 
   /* Make folder/file icons white on dark focused background */
   .img {
-    background-color: white;
-    fill: white;
+    background-color: var(--theme-selection-color);
+    fill: var(--theme-selection-color);
   }
   /* also toggle the color of the expand arrows */
   .theme-twisty {
-    fill: white;
+    fill: var(--theme-selection-color);
 
     /* avoid distinct background when hovering the arrow */
     &:hover {
