@@ -31,7 +31,6 @@ class NativeCodeCrashTest {
             "extrasPath",
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
         )
-        intent.putExtra("minidumpSuccess", true)
         intent.putExtra("remoteType", "web")
 
         val crash = Crash.NativeCodeCrash.fromBundle(intent.extras!!)
@@ -40,7 +39,6 @@ class NativeCodeCrashTest {
             "afc91225-93d7-4328-b3eb-d26ad5af4d86",
             crash.uuid,
         )
-        assertEquals(crash.minidumpSuccess, true)
         assertEquals(crash.isFatal, false)
         assertEquals(crash.processType, Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD)
         assertEquals(
@@ -59,7 +57,6 @@ class NativeCodeCrashTest {
         val crash = Crash.NativeCodeCrash(
             0,
             "minidumpPath",
-            true,
             "extrasPath",
             Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),

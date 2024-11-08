@@ -33,7 +33,6 @@ class CrashNotificationTest {
         val foregroundChildNativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -55,7 +54,6 @@ class CrashNotificationTest {
         val mainProcessNativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(),
@@ -77,7 +75,6 @@ class CrashNotificationTest {
         val backgroundChildNativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
             breadcrumbs = arrayListOf(),

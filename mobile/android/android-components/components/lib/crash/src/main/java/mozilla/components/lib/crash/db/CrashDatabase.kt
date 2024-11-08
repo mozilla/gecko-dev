@@ -7,10 +7,12 @@ package mozilla.components.lib.crash.db
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
+import androidx.room.migration.AutoMigrationSpec
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
@@ -21,10 +23,11 @@ import kotlinx.serialization.json.Json
  */
 @Database(
     entities = [CrashEntity::class, ReportEntity::class],
-    version = 3,
+    version = 4,
     autoMigrations = [
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
+        AutoMigration(from = 3, to = 4, spec = CrashDatabase.DropCrashEntityMinidumpSuccess::class),
     ],
 )
 @TypeConverters(Converter::class)
@@ -53,6 +56,9 @@ internal abstract class CrashDatabase : RoomDatabase() {
                 }
         }
     }
+
+    @DeleteColumn(tableName = "crashes", columnName = "minidumpSuccess")
+    class DropCrashEntityMinidumpSuccess : AutoMigrationSpec
 }
 
 internal class Converter {

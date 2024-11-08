@@ -52,7 +52,6 @@ class SendCrashTelemetryServiceTest {
             "extrasPath",
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
         )
-        intent.putExtra("minidumpSuccess", true)
         intent.putParcelableArrayListExtra("breadcrumbs", null)
         service = spy(Robolectric.setupService(SendCrashTelemetryService::class.java))
         service?.startService(intent)
@@ -93,7 +92,6 @@ class SendCrashTelemetryServiceTest {
         val originalCrash = Crash.NativeCodeCrash(
             123,
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",
-            true,
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
             Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -114,7 +112,6 @@ class SendCrashTelemetryServiceTest {
             "extrasPath",
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
         )
-        intent.putExtra("minidumpSuccess", true)
         intent.putParcelableArrayListExtra("breadcrumbs", null)
         originalCrash.fillIn(intent)
 
@@ -127,7 +124,6 @@ class SendCrashTelemetryServiceTest {
             ?: throw AssertionError("Expected NativeCodeCrash instance")
 
         assertEquals(123, nativeCrash.timestamp)
-        assertEquals(true, nativeCrash.minidumpSuccess)
         assertEquals(false, nativeCrash.isFatal)
         assertEquals(Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD, nativeCrash.processType)
         assertEquals(

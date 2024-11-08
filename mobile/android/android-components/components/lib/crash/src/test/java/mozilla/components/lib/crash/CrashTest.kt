@@ -21,7 +21,6 @@ class CrashTest {
         val originalCrash = Crash.NativeCodeCrash(
             123,
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.dmp",
-            true,
             "/data/data/org.mozilla.samples.browser/files/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
             Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -35,7 +34,6 @@ class CrashTest {
             ?: throw AssertionError("Expected NativeCodeCrash instance")
 
         assertEquals(recoveredCrash.timestamp, 123)
-        assertEquals(recoveredCrash.minidumpSuccess, true)
         assertEquals(recoveredCrash.isFatal, false)
         assertEquals(recoveredCrash.processType, Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD)
         assertEquals(
@@ -98,7 +96,6 @@ class CrashTest {
                     val crash = Crash.NativeCodeCrash(
                         0,
                         "",
-                        true,
                         "",
                         "",
                         breadcrumbs = arrayListOf(),

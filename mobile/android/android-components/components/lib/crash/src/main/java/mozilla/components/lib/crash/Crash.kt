@@ -32,7 +32,6 @@ private const val INTENT_RUNTIME_TAGS = "runtimeTags"
 private const val INTENT_UUID = "uuid"
 private const val INTENT_MINIDUMP_PATH = "minidumpPath"
 private const val INTENT_EXTRAS_PATH = "extrasPath"
-private const val INTENT_MINIDUMP_SUCCESS = "minidumpSuccess"
 private const val INTENT_PROCESS_TYPE = "processType"
 private const val INTENT_REMOTE_TYPE = "remoteType"
 
@@ -109,8 +108,6 @@ sealed class Crash {
      *
      * @property timestamp Time of when the crash happened.
      * @property minidumpPath Path to a Breakpad minidump file containing information about the crash.
-     * @property minidumpSuccess Indicating whether or not the crash dump was successfully retrieved. If this is false,
-     *                           the dump file may be corrupted or incomplete.
      * @property extrasPath Path to a file containing extra metadata about the crash. The file contains key-value pairs
      *                      in the form `Key=Value`. Be aware, it may contain sensitive data such as the URI that was
      *                      loaded at the time of the crash.
@@ -124,7 +121,6 @@ sealed class Crash {
     data class NativeCodeCrash(
         override val timestamp: Long,
         val minidumpPath: String?,
-        val minidumpSuccess: Boolean,
         val extrasPath: String?,
         @ProcessType val processType: String?,
         override val breadcrumbs: ArrayList<Breadcrumb>,
@@ -135,7 +131,6 @@ sealed class Crash {
         override fun toBundle() = Bundle().apply {
             putString(INTENT_UUID, uuid)
             putString(INTENT_MINIDUMP_PATH, minidumpPath)
-            putBoolean(INTENT_MINIDUMP_SUCCESS, minidumpSuccess)
             putString(INTENT_EXTRAS_PATH, extrasPath)
             putString(INTENT_PROCESS_TYPE, processType)
             putLong(INTENT_CRASH_TIMESTAMP, timestamp)
@@ -182,7 +177,6 @@ sealed class Crash {
             internal fun fromBundle(bundle: Bundle) = NativeCodeCrash(
                 uuid = bundle.getString(INTENT_UUID) ?: UUID.randomUUID().toString(),
                 minidumpPath = bundle.getString(INTENT_MINIDUMP_PATH, null),
-                minidumpSuccess = bundle.getBoolean(INTENT_MINIDUMP_SUCCESS, false),
                 extrasPath = bundle.getString(INTENT_EXTRAS_PATH, null),
                 processType = bundle.getString(INTENT_PROCESS_TYPE, PROCESS_TYPE_MAIN),
                 breadcrumbs = bundle.getParcelableArrayListCompat(

@@ -93,13 +93,6 @@ internal data class CrashEntity(
     var processType: String?,
 
     /**
-     * Indicating whether or not the crash dump was successfully retrieved. If this is false, the
-     * dump file may be corrupted or incomplete.
-     */
-    @ColumnInfo(name = "minidumpSuccess", defaultValue = "null")
-    var minidumpSuccess: Boolean?,
-
-    /**
      * Path to a file containing extra metadata about the crash. The file contains key-value pairs
      * in the form `Key=Value`. Be aware, it may contain sensitive data such as the URI that was
      * loaded at the time of the crash.
@@ -126,7 +119,6 @@ internal fun CrashEntity.toCrash(): Crash {
         CrashType.NATIVE -> Crash.NativeCodeCrash(
             timestamp = this.createdAt,
             minidumpPath = this.minidumpPath,
-            minidumpSuccess = this.minidumpSuccess ?: false,
             extrasPath = this.extrasPath,
             processType = this.processType,
             breadcrumbs = deserializeBreadcrumbs(),
@@ -212,7 +204,6 @@ private fun Crash.NativeCodeCrash.toEntity(): CrashEntity =
         throwableData = null,
         stacktrace = "<native crash>",
         minidumpPath = minidumpPath,
-        minidumpSuccess = minidumpSuccess,
         processType = processType,
         extrasPath = extrasPath,
         remoteType = remoteType,
@@ -228,7 +219,6 @@ private fun Crash.UncaughtExceptionCrash.toEntity(): CrashEntity =
         throwableData = throwable.serialize(),
         stacktrace = throwable.getStacktraceAsString(),
         minidumpPath = null,
-        minidumpSuccess = null,
         processType = null,
         extrasPath = null,
         remoteType = null,

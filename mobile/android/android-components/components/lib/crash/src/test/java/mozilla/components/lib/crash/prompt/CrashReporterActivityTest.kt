@@ -166,7 +166,6 @@ class CrashReporterActivityTest {
         val crash = Crash.NativeCodeCrash(
             0,
             "",
-            true,
             "",
             Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(),
@@ -192,7 +191,6 @@ class CrashReporterActivityTest {
         val crash = Crash.NativeCodeCrash(
             0,
             "",
-            true,
             "",
             Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -218,7 +216,6 @@ class CrashReporterActivityTest {
         val crash = Crash.NativeCodeCrash(
             123,
             "",
-            true,
             "",
             Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
             breadcrumbs = arrayListOf(),

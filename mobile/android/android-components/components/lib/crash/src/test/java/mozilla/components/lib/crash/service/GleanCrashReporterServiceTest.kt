@@ -69,7 +69,6 @@ class GleanCrashReporterServiceTest {
             GleanCrashReporterService.MAIN_PROCESS_NATIVE_CODE_CRASH_KEY to Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(),
@@ -78,7 +77,6 @@ class GleanCrashReporterServiceTest {
             GleanCrashReporterService.FOREGROUND_CHILD_PROCESS_NATIVE_CODE_CRASH_KEY to Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -87,7 +85,6 @@ class GleanCrashReporterServiceTest {
             GleanCrashReporterService.BACKGROUND_CHILD_PROCESS_NATIVE_CODE_CRASH_KEY to Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -179,7 +176,6 @@ class GleanCrashReporterServiceTest {
             val mainProcessNativeCodeCrash = Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(),
@@ -188,7 +184,6 @@ class GleanCrashReporterServiceTest {
             val foregroundChildProcessNativeCodeCrash = Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -197,7 +192,6 @@ class GleanCrashReporterServiceTest {
             val backgroundChildProcessNativeCodeCrash = Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -206,7 +200,6 @@ class GleanCrashReporterServiceTest {
             val extensionProcessNativeCodeCrash = Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -390,7 +383,6 @@ class GleanCrashReporterServiceTest {
         val crash = Crash.NativeCodeCrash(
             12340000,
             "",
-            true,
             "",
             Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(),
@@ -442,7 +434,6 @@ class GleanCrashReporterServiceTest {
         val crash = Crash.NativeCodeCrash(
             12340000,
             null,
-            true,
             null,
             Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(
@@ -638,7 +629,6 @@ class GleanCrashReporterServiceTest {
         val crash = Crash.NativeCodeCrash(
             12340000,
             "",
-            true,
             extrasFile.path,
             Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(),

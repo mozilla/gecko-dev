@@ -86,7 +86,6 @@ class SentryServiceTest {
         val nativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = breadcrumbs,
@@ -113,7 +112,6 @@ class SentryServiceTest {
         val nativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = breadcrumbs,
@@ -140,7 +138,6 @@ class SentryServiceTest {
         val nativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
             breadcrumbs = breadcrumbs,
@@ -167,7 +164,6 @@ class SentryServiceTest {
         val nativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = breadcrumbs,
@@ -193,7 +189,6 @@ class SentryServiceTest {
         val nativeCrash = Crash.NativeCodeCrash(
             timestamp = 0,
             minidumpPath = "",
-            minidumpSuccess = true,
             extrasPath = "",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = breadcrumbs,
@@ -202,7 +197,7 @@ class SentryServiceTest {
 
         val result = service.createMessage(nativeCrash)
         val expected =
-            "NativeCodeCrash(fatal=${nativeCrash.isFatal}, processType=${nativeCrash.processType}, minidumpSuccess=${nativeCrash.minidumpSuccess})"
+            "NativeCodeCrash(fatal=${nativeCrash.isFatal}, processType=${nativeCrash.processType})"
 
         assertEquals(expected, result)
     }

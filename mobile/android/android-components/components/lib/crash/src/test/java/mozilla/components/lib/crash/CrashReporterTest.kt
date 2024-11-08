@@ -269,7 +269,6 @@ class CrashReporterTest {
         val crash = Crash.NativeCodeCrash(
             0,
             "dump.path",
-            true,
             "extras.path",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(),
@@ -305,7 +304,6 @@ class CrashReporterTest {
         val crash = Crash.NativeCodeCrash(
             0,
             "dump.path",
-            true,
             "extras.path",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(),
@@ -613,7 +611,6 @@ class CrashReporterTest {
             Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -766,7 +763,6 @@ class CrashReporterTest {
             Crash.NativeCodeCrash(
                 0,
                 "",
-                true,
                 "",
                 Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -815,7 +811,6 @@ class CrashReporterTest {
         val nativeCrash = Crash.NativeCodeCrash(
             0,
             "dump.path",
-            true,
             "extras.path",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -832,7 +827,6 @@ class CrashReporterTest {
 
         assertEquals(nativeCrash, receivedCrash)
         assertEquals("dump.path", receivedCrash.minidumpPath)
-        assertEquals(true, receivedCrash.minidumpSuccess)
         assertEquals("extras.path", receivedCrash.extrasPath)
         assertEquals(false, receivedCrash.isFatal)
         assertEquals(Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD, receivedCrash.processType)
@@ -856,7 +850,6 @@ class CrashReporterTest {
         val nativeCrash = Crash.NativeCodeCrash(
             0,
             "dump.path",
-            true,
             "extras.path",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
             breadcrumbs = arrayListOf(),
@@ -885,7 +878,6 @@ class CrashReporterTest {
         val nativeCrash = Crash.NativeCodeCrash(
             0,
             "dump.path",
-            true,
             "extras.path",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_BACKGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -916,7 +908,6 @@ class CrashReporterTest {
         val nativeCrash = Crash.NativeCodeCrash(
             0,
             "dump.path",
-            true,
             "extras.path",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -948,7 +939,6 @@ class CrashReporterTest {
         val nativeCrash = Crash.NativeCodeCrash(
             0,
             "dump.path",
-            true,
             "extras.path",
             processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -1120,7 +1110,6 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            minidumpSuccess = null,
             processType = null,
             extrasPath = null,
             remoteType = null,
@@ -1153,7 +1142,6 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            minidumpSuccess = null,
             processType = null,
             extrasPath = null,
             remoteType = null,
@@ -1167,7 +1155,6 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            minidumpSuccess = null,
             processType = null,
             extrasPath = null,
             remoteType = null,
@@ -1205,7 +1192,6 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            minidumpSuccess = null,
             processType = null,
             extrasPath = null,
             remoteType = null,
@@ -1219,7 +1205,6 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            minidumpSuccess = null,
             processType = null,
             extrasPath = null,
             remoteType = null,
@@ -1255,7 +1240,6 @@ class CrashReporterTest {
             stacktrace = "<native crash>",
             throwableData = null,
             minidumpPath = null,
-            minidumpSuccess = null,
             processType = null,
             extrasPath = null,
             remoteType = null,

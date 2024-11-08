@@ -48,7 +48,6 @@ class MozillaSocorroServiceTest {
         val crash = Crash.NativeCodeCrash(
             123,
             "",
-            true,
             "",
             Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
@@ -131,7 +130,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 123456,
                 "dump.path",
-                true,
                 "extras.path",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(Breadcrumb(message = "Hello World", date = "2018-06-12T19:30+00:00".toDate("yyyy-MM-dd'T'HH:mmXXX"))),
@@ -187,7 +185,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 123456,
                 "test/minidumps/3fa772dc-dc89-c08d-c03e-7f441c50821e.ini",
-                true,
                 "test/file/66dd8af2-643c-ca11-5178-e61c6819f827",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(),
@@ -229,7 +226,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 123456,
                 "test/minidumps/test.dmp",
-                true,
                 "test/file/test.extra",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(),
@@ -271,7 +267,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 123456,
                 "test/minidumps/3fa772dc-dc89-c08d-c03e-7f441c50821e.dmp",
-                true,
                 "test/file/66dd8af2-643c-ca11-5178-e61c6819f827.extra",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(),
@@ -320,7 +315,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 123456,
                 "dump.path",
-                true,
                 "extras.path",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(),
@@ -382,7 +376,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 123456,
                 "dump.path",
-                true,
                 "extras.path",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -514,7 +507,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 123,
                 null,
-                true,
                 null,
                 Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
                 breadcrumbs = arrayListOf(),
@@ -679,7 +671,6 @@ class MozillaSocorroServiceTest {
             val crash = Crash.NativeCodeCrash(
                 0,
                 "dump.path",
-                true,
                 "extras.path",
                 processType = Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
                 breadcrumbs = arrayListOf(),

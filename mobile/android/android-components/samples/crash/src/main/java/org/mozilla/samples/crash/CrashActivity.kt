@@ -138,7 +138,6 @@ class CrashActivity : AppCompatActivity(), View.OnClickListener {
                     "extrasPath",
                     "${filesDir.path}/mozilla/Crash Reports/pending/3ba5f665-8422-dc8e-a88e-fc65c081d304.extra",
                 )
-                intent.putExtra("minidumpSuccess", true)
 
                 ContextCompat.startForegroundService(this, intent)
             }
