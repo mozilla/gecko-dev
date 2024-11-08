@@ -6,6 +6,9 @@
 
 #include "mozilla/AbstractThread.h"
 #include "mozilla/AppShutdown.h"
+#ifdef MOZ_BACKGROUNDTASKS
+#  include "mozilla/BackgroundTasks.h"
+#endif
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ContentPrincipal.h"
@@ -3256,6 +3259,33 @@ void PermissionManager::CompleteRead() {
   }
 }
 
+void PermissionManager::InitRemotePermissionService() {
+  // Check if this service is disabled by pref, and abort if it is.
+  if (!StaticPrefs::permissions_manager_remote_enabled()) {
+    return;
+  }
+
+  // Also abort if we are in a background task. We do not want to call remote
+  // settings there, because we do not want to pollute the background task
+  // profile, and because we don't need the remote permissions there anyways.
+#ifdef MOZ_BACKGROUNDTASKS
+  if (BackgroundTasks::IsBackgroundTaskMode()) {
+    return;
+  }
+#endif
+
+  NS_DispatchToCurrentThreadQueue(
+      NS_NewRunnableFunction(
+          "RemotePermissionService::Init",
+          [&] {
+            nsCOMPtr<nsIRemotePermissionService> remotePermissionService =
+                do_GetService(NS_REMOTEPERMISSIONSERVICE_CONTRACTID);
+            NS_ENSURE_TRUE_VOID(remotePermissionService);
+            remotePermissionService->Init();
+          }),
+      EventQueuePriority::Idle);
+}
+
 void PermissionManager::MaybeAddReadEntryFromMigration(
     const nsACString& aOrigin, const nsCString& aType, uint32_t aPermission,
     uint32_t aExpireType, int64_t aExpireTime, int64_t aModificationTime,
@@ -3703,6 +3733,7 @@ void PermissionManager::EnsureReadCompleted() {
       CompleteMigrations();
       ImportLatestDefaults();
       CompleteRead();
+      InitRemotePermissionService();
 
       [[fallthrough]];
 
