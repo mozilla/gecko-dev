@@ -319,6 +319,12 @@ onboarding-mobile-download-security-and-privacy-subtitle = When you’re synced 
 onboarding-gratitude-security-and-privacy-title = { -brand-short-name } has your back
 onboarding-gratitude-security-and-privacy-subtitle = Thank you for using { -brand-short-name }, backed by the Mozilla Foundation. With your support, we’re working to make the internet safer and more accessible for everyone.
 
+# Sign up or Sign in screen
+onboarding-sign-up-title = Sync your data across devices
+onboarding-sign-up-description = Sign up for an account and all of your important info — passwords, bookmarks, and more — will be securely stored and available when you sign in to any device.
+onboarding-sign-up-button = Sign up or sign in
+onboarding-sign-up-secondary-button = Start browsing
+
 ## New user time and familiarity survey strings
 
 onboarding-new-user-time-based-survey-title = How long have you been using { -brand-short-name }?
