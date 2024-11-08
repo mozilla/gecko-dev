@@ -4473,11 +4473,13 @@ main section {
 
 .ds-section-wrapper {
   padding-inline: 0;
-  margin-block-end: var(--space-xxlarge);
 }
 .ds-section-wrapper .ds-section {
-  border-block: 1px solid var(--newtab-button-static-active-background);
+  border-block-start: 1px solid var(--newtab-button-static-active-background);
   padding-block-end: 50px;
+}
+.ds-section-wrapper .ds-section:last-child {
+  padding-block-end: 0;
 }
 .ds-section-wrapper .ds-section .section-heading {
   margin-block: var(--space-small) var(--space-xlarge);
