@@ -70,8 +70,21 @@ add_task(async function test_no_startup_actions() {
 
     Assert.equal(
       nonStartupActions.length,
-      0,
-      "Should be no non-startup actions."
+      2,
+      "Should be no non-ads non-startup actions."
+    );
+
+    // We expect 2 startup actions for ads.
+    Assert.equal(
+      nonStartupActions[0].type,
+      "DISCOVERY_STREAM_SPOCS_UPDATE",
+      "Should be a single DISCOVERY_STREAM_SPOCS_UPDATE action"
+    );
+
+    Assert.equal(
+      nonStartupActions[1].type,
+      "TOP_SITES_UPDATED",
+      "Should be a single TOP_SITES_UPDATED action"
     );
 
     if (nonStartupActions.length) {
