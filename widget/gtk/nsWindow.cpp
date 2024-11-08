@@ -465,6 +465,7 @@ nsWindow::nsWindow()
 
 nsWindow::~nsWindow() {
   LOG("nsWindow::~nsWindow()");
+  MOZ_DIAGNOSTIC_ASSERT(mIsDestroyed);
   Destroy();
 }
 
