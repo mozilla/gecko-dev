@@ -442,7 +442,7 @@ void MediaDecoder::OnPlaybackErrorEvent(const MediaResult& aError) {
       needExternalEngine ? "external engine" : "normal");
 
   nsresult rv = CreateAndInitStateMachine(
-      false /* live stream */,
+      discardStateMachine->IsLiveStream(),
       !needExternalEngine /* disable external engine */);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     LOG("Failed to create a new state machine!");
