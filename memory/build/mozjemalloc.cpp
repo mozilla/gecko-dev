@@ -3799,11 +3799,20 @@ void* arena_t::MallocSmall(size_t aSize, bool aZero) {
   {
     MaybeMutexAutoLock lock(mLock);
 
+#ifdef MOZ_DEBUG
+    bool isInitializingThread(false);
+#endif
+
     if (MOZ_UNLIKELY(mRandomizeSmallAllocations && mPRNG == nullptr &&
                      !mIsPRNGInitializing)) {
+#ifdef MOZ_DEBUG
+      isInitializingThread = true;
+#endif
       InitPRNG();
     }
-    MOZ_ASSERT(!mRandomizeSmallAllocations || mPRNG);
+
+    MOZ_ASSERT(!mRandomizeSmallAllocations || mPRNG ||
+               (mIsPRNGInitializing && !isInitializingThread));
 
     run = bin->mCurrentRun;
     if (MOZ_UNLIKELY(!run || run->mNumFree == 0)) {
