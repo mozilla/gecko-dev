@@ -84,6 +84,81 @@ function add24HourImpressionJEXLTargeting(
 const MESSAGES = () => {
   let messages = [
     {
+      id: "ADDONS_STAFF_PICK_PT_2",
+      template: "feature_callout",
+      groups: ["cfr"],
+      content: {
+        id: "ADDONS_STAFF_PICK_PT_2",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "ADDONS_STAFF_PICK_PT_2_A",
+            anchors: [
+              {
+                selector: "#unified-extensions-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+                arrow_width: "26.9",
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "310px",
+              padding: 16,
+              title_logo: {
+                imageURL:
+                  "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/173414e1-81f7-4612-b868-e78df0557011.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "4px 14px",
+              },
+              title: {
+                raw: "Give your browsing a boost",
+                marginInline: "0 48px",
+              },
+              subtitle: {
+                raw: "Make browsing faster, safer, or just plain fun with Firefox add-ons. See what our staff recommends!",
+                paddingInline: "34px 0",
+              },
+              primary_button: {
+                label: {
+                  raw: "Explore add-ons",
+                },
+                action: {
+                  dismiss: true,
+                  type: "OPEN_URL",
+                  data: {
+                    args: "https://addons.mozilla.org/en-US/firefox/collections/4757633/36d285535db74c6986abbeeed3e214/?page=1&collection_sort=added",
+                    where: "tabshifted",
+                  },
+                },
+              },
+              dismiss_button: {
+                action: {
+                  dismiss: true,
+                },
+                size: "small",
+                marginInline: "0 14px",
+                marginBlock: "14px 0",
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "localeLanguageCode == 'en' && !screenImpressions.AW_AMO_INTRODUCE && !willShowDefaultPrompt && !activeNotifications && source == 'newtab' && previousSessionEnd",
+      trigger: {
+        id: "defaultBrowserCheck",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+    },
+    {
       id: "FIREFOX_VIEW_TAB_PICKUP_REMINDER",
       template: "feature_callout",
       content: {
