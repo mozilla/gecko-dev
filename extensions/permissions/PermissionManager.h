@@ -620,23 +620,25 @@ class PermissionManager final : public nsIPermissionManager,
 
   // A single entry from the defaults URL.
   struct DefaultEntry {
-    DefaultEntry() : mOp(eImportMatchTypeHost), mPermission(0) {}
-
-    enum Op {
-      eImportMatchTypeHost,
-      eImportMatchTypeOrigin,
-    };
-
-    Op mOp;
-
-    nsCString mHostOrOrigin;
+    nsCString mOrigin;
     nsCString mType;
-    uint32_t mPermission;
+    uint32_t mPermission = 0;
   };
 
   // List of entries read from the default settings.
   // This array is protected by the monitor.
-  nsTArray<DefaultEntry> mDefaultEntries;
+  nsTArray<DefaultEntry> mDefaultEntriesForImport;
+  // Adds a default permission entry to AddDefaultEntryForImport for given
+  // origin, type and value
+  void AddDefaultEntryForImport(const nsACString& aOrigin,
+                                const nsCString& aType, uint32_t aPermission,
+                                const MonitorAutoLock& aProofOfLock);
+  // Given a default entry, import it as a default permission (id = -1) into the
+  // permission manager without storing it to disk. If permission isolation for
+  // private browsing is enabled (which is the default), and the permission type
+  // is not exempt from it, this will also create a separate default permission
+  // for private browsing
+  nsresult ImportDefaultEntry(const DefaultEntry& aDefaultEntry);
 
   nsresult Read(const MonitorAutoLock& aProofOfLock);
   void CompleteRead();
