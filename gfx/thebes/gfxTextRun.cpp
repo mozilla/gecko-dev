@@ -5,32 +5,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gfxTextRun.h"
-
-#include "gfx2DGlue.h"
-#include "gfxContext.h"
-#include "gfxFontConstants.h"
-#include "gfxFontMissingGlyphs.h"
 #include "gfxGlyphExtents.h"
 #include "gfxHarfBuzzShaper.h"
 #include "gfxPlatformFontList.h"
-#include "gfxScriptItemizer.h"
 #include "gfxUserFontSet.h"
-#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/gfx/2D.h"
-#include "mozilla/gfx/Logging.h"  // for gfxCriticalError
 #include "mozilla/gfx/PathHelpers.h"
-#include "mozilla/intl/Locale.h"
-#include "mozilla/intl/String.h"
-#include "mozilla/intl/UnicodeProperties.h"
-#include "mozilla/Likely.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPresData.h"
-#include "mozilla/UniquePtr.h"
-#include "mozilla/Unused.h"
+
+#include "gfxContext.h"
+#include "gfxFontConstants.h"
+#include "gfxFontMissingGlyphs.h"
+#include "gfxScriptItemizer.h"
+#include "nsUnicodeProperties.h"
 #include "nsStyleConsts.h"
 #include "nsStyleUtil.h"
-#include "nsUnicodeProperties.h"
+#include "mozilla/Likely.h"
+#include "gfx2DGlue.h"
+#include "mozilla/gfx/Logging.h"  // for gfxCriticalError
+#include "mozilla/intl/String.h"
+#include "mozilla/intl/UnicodeProperties.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/Unused.h"
 #include "SharedFontList-impl.h"
 #include "TextDrawTarget.h"
 
@@ -2557,37 +2555,6 @@ template already_AddRefed<gfxTextRun> gfxFontGroup::MakeTextRun(
     gfx::ShapedTextFlags aFlags, nsTextFrameUtils::Flags aFlags2,
     gfxMissingFontRecorder* aMFR);
 
-// Helper to get a hashtable that maps tags to Script codes, created on first
-// use.
-static const nsTHashMap<nsUint32HashKey, Script>* ScriptTagToCodeTable() {
-  using TableT = nsTHashMap<nsUint32HashKey, Script>;
-
-  // Initialize our static var by creating the hashtable and populating it with
-  // all the valid codes.
-  // According to
-  // https://en.cppreference.com/w/cpp/language/storage_duration#Static_block_variables:
-  // "If multiple threads attempt to initialize the same static local variable
-  // concurrently, the initialization occurs exactly once."
-  static UniquePtr<TableT> sScriptTagToCode = []() {
-    auto tagToCode = MakeUnique<TableT>(size_t(Script::NUM_SCRIPT_CODES));
-    Script scriptCount =
-        Script(std::min<int>(UnicodeProperties::GetMaxNumberOfScripts() + 1,
-                             int(Script::NUM_SCRIPT_CODES)));
-    for (Script s = Script::ARABIC; s < scriptCount;
-         s = Script(static_cast<int>(s) + 1)) {
-      uint32_t tag = GetScriptTagForCode(s);
-      if (tag != HB_SCRIPT_UNKNOWN) {
-        tagToCode->InsertOrUpdate(tag, s);
-      }
-    }
-    // Clearing the UniquePtr at shutdown will free the table.
-    ClearOnShutdown(&sScriptTagToCode);
-    return tagToCode;
-  }();
-
-  return sScriptTagToCode.get();
-}
-
 template <typename T>
 void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
                                const T* aString, uint32_t aLength,
@@ -2683,33 +2650,6 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
                            reinterpret_cast<const char*>(aString) + run.mOffset,
                            run.mLength))
                        .get()));
-      }
-
-      // If COMMON or INHERITED was not resolved, try to use the language code
-      // to guess a likely script.
-      if (run.mScript <= Script::INHERITED) {
-        // This assumes Script codes begin with COMMON and INHERITED, preceding
-        // codes for any "real" scripts.
-        MOZ_ASSERT(
-            run.mScript == Script::COMMON || run.mScript == Script::INHERITED,
-            "unexpected Script code!");
-        nsAutoCString lang;
-        mLanguage->ToUTF8String(lang);
-        Locale locale;
-        if (LocaleParser::TryParse(lang, locale).isOk()) {
-          if (locale.Script().Missing()) {
-            Unused << locale.AddLikelySubtags();
-          }
-          if (locale.Script().Present()) {
-            Span span = locale.Script().Span();
-            MOZ_ASSERT(span.Length() == 4);
-            uint32_t tag = TRUETYPE_TAG(span[0], span[1], span[2], span[3]);
-            Script script;
-            if (ScriptTagToCodeTable()->Get(tag, &script)) {
-              run.mScript = script;
-            }
-          }
-        }
       }
 
       if (textPtr) {
