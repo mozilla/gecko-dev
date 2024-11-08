@@ -2241,3 +2241,55 @@ TEST_F(APZCOverscrollTester, ProgrammaticScroll) {
     EXPECT_FALSE(apzc->IsOverscrolled());
   }
 }
+
+// A touchpad hold gesture should pause any ongoing overscroll animation (so
+// that the page is not moving while the fingers are down on the touchpad),
+// but should not cancel it. The animation should continue if the finger is
+// lifted.
+#ifdef MOZ_WIDGET_GTK  // Handling PANGESTURE_MAYSTART is Linux-only for now
+TEST_F(APZCOverscrollTester, HoldGestureDuringOverscroll) {
+  SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
+
+  ScrollMetadata metadata;
+  FrameMetrics& metrics = metadata.GetMetrics();
+  metrics.SetCompositionBounds(ParentLayerRect(0, 0, 100, 100));
+  metrics.SetScrollableRect(CSSRect(0, 0, 100, 1000));
+  metrics.SetVisualScrollOffset(CSSPoint(0, 0));
+  apzc->SetFrameMetrics(metrics);
+
+  // Pan into overscroll at the top.
+  ScreenIntPoint panPoint(50, 50);
+  PanGesture(PanGestureInput::PANGESTURE_START, apzc, panPoint,
+             ScreenPoint(0, -1), mcc->Time());
+  mcc->AdvanceByMillis(10);
+  PanGesture(PanGestureInput::PANGESTURE_PAN, apzc, panPoint,
+             ScreenPoint(0, -100), mcc->Time());
+  EXPECT_TRUE(apzc->IsOverscrolled());
+  EXPECT_TRUE(apzc->GetOverscrollAmount().y < 0);  // overscrolled at top
+
+  // End the pan. This should start an overscroll animation.
+  mcc->AdvanceByMillis(10);
+  PanGesture(PanGestureInput::PANGESTURE_END, apzc, panPoint, ScreenPoint(0, 0),
+             mcc->Time());
+  EXPECT_TRUE(apzc->GetOverscrollAmount().y < 0);  // overscrolled at top
+  EXPECT_TRUE(apzc->IsOverscrollAnimationRunning());
+
+  // Start a hold gesture (represented using PANGESTURE_MAYSTART).
+  // This should interrupt the animation but not relieve overscroll yet.
+  ParentLayerPoint overscrollBefore = apzc->GetOverscrollAmount();
+  mcc->AdvanceByMillis(10);
+  PanGesture(PanGestureInput::PANGESTURE_MAYSTART, apzc, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+  EXPECT_FALSE(apzc->IsOverscrollAnimationRunning());
+  EXPECT_EQ(overscrollBefore, apzc->GetOverscrollAmount());
+
+  // End the hold gesture (represented using PANGESTURE_CANCELLED).
+  // This should start an overscroll animation again.
+  mcc->AdvanceByMillis(10);
+  PanGesture(PanGestureInput::PANGESTURE_CANCELLED, apzc, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+  EXPECT_TRUE(apzc->IsOverscrollAnimationRunning());
+
+  SampleAnimationUntilRecoveredFromOverscroll(ParentLayerPoint(0, 0));
+}
+#endif
