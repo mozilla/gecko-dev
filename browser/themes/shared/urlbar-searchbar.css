@@ -259,6 +259,7 @@
   /* Match urlbar-background's border. */
   border: 1px solid transparent;
   padding: var(--urlbar-container-padding);
+  min-width: 0;
 }
 
 #urlbar-container[breakout] {
@@ -450,8 +451,10 @@
   }
 }
 
+/* Allow shrinking the urlbar on popup windows */
 :root[chromehidden~="toolbar"] :is(#urlbar-container, #wrapper-urlbar-container) {
   flex-shrink: 1;
+  min-width: 0;
 }
 
 #urlbar-search-splitter {
