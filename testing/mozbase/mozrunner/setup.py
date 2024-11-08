@@ -5,12 +5,12 @@
 from setuptools import find_packages, setup
 
 PACKAGE_NAME = "mozrunner"
-PACKAGE_VERSION = "8.3.1"
+PACKAGE_VERSION = "8.3.2"
 
 desc = """Reliable start/stop/configuration of Mozilla Applications (Firefox, Thunderbird, etc.)"""
 
 deps = [
-    "mozdevice>=4.0.0,<5",
+    "mozdevice>=4.2.0,<5",
     "mozfile>=1.2",
     "mozinfo>=0.7,<2",
     "mozlog>=6.0",

@@ -18,6 +18,11 @@ from .emulator_battery import EmulatorBattery
 from .emulator_geo import EmulatorGeo
 from .emulator_screen import EmulatorScreen
 
+try:
+    from telnetlib import Telnet
+except ImportError:  # telnetlib was removed in Python 3.13
+    from .telnetlib import Telnet
+
 
 class ArchContext(object):
     def __init__(self, arch, context, binary=None, avd=None, extra_args=None):
@@ -188,11 +193,6 @@ class BaseEmulator(Device):
 
     def _run_telnet(self, command):
         if not self.telnet:
-            # telnetlib is dropped in Python 3.13 (bug 1925198).
-            # Import here instead of the top level to avoid breaking users of
-            # this file that are independent of telnet.
-            from telnetlib import Telnet
-
             self.telnet = Telnet("localhost", self.port)
             self._get_telnet_response()
         return self._get_telnet_response(command)

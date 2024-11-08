@@ -11,7 +11,6 @@ import shutil
 import signal
 import subprocess
 import sys
-import telnetlib
 import time
 from collections import namedtuple
 from enum import Enum
@@ -19,6 +18,11 @@ from urllib.request import urlopen
 
 import six
 from mozdevice import ADBDeviceFactory, ADBHost
+
+try:
+    import telnetlib
+except ImportError:  # telnetlib was removed in Python 3.13
+    from . import telnetlib
 
 MOZBUILD_PATH = os.environ.get(
     "MOZBUILD_STATE_PATH", os.path.expanduser(os.path.join("~", ".mozbuild"))
