@@ -275,8 +275,6 @@ tags = "os_integration"
 
 ["browser_switch_remoteness.js"]
 
-["browser_tab_groups_closed.js"]
-
 ["browser_tab_groups_empty.js"]
 
 ["browser_tab_groups_restore_multiple.js"]
