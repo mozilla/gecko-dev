@@ -381,7 +381,7 @@ export class SyncedTabsController {
 
   async getSyncedTabData() {
     this.devices = await lazy.SyncedTabs.getTabClients();
-    let tabs = await lazy.SyncedTabs.createRecentTabsList(this.devices, 50, {
+    let tabs = await lazy.SyncedTabs.createRecentTabsList(this.devices, 5000, {
       removeAllDupes: false,
       removeDeviceDupes: true,
     });
