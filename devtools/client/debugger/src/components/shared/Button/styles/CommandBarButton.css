@@ -18,8 +18,11 @@
 }
 
 .command-bar-button:disabled {
-  opacity: 0.6;
   cursor: default;
+
+  & .img {
+    background-color: var(--theme-icon-disabled-color);
+  }
 }
 
 .command-bar-button:not(.disabled):hover,
