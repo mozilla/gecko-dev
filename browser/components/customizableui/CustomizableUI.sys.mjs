@@ -322,7 +322,6 @@ var CustomizableUIInternal = {
         defaultPlacements: navbarPlacements,
         verticalTabsDefaultPlacements: [
           "firefox-view-button",
-          "new-tab-button",
           "alltabs-button",
         ],
         defaultCollapsed: false,
@@ -4143,6 +4142,9 @@ var CustomizableUIInternal = {
       gCurrentVerticalTabs = true;
     }
 
+    // Remove new tab from AREA_NAVBAR when vertical tabs enabled.
+    this.removeWidgetFromArea("new-tab-button");
+
     // If we've ended up with a non-default CUI state and vertical tabs enabled, ensure
     // there's a sane snapshot to revert to
     if (!lazy.horizontalPlacementsPref) {
@@ -4266,6 +4268,8 @@ var CustomizableUIInternal = {
         // Everything else gets moved to the nav-bar area while tabs are vertical
         CustomizableUI.addWidgetToArea(id, CustomizableUI.AREA_NAVBAR);
       }
+      // Remove new tab from AREA_NAVBAR when vertical tabs enabled.
+      this.removeWidgetFromArea("new-tab-button");
       CustomizableUI.endBatchUpdate();
     } else {
       // We're switching to vertical in this session; pull saved state from pref and update placements
