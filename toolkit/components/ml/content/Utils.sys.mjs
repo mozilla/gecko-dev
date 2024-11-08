@@ -417,6 +417,25 @@ export class URLChecker {
   }
 
   /**
+   * Normalizes localhost URLs to ignore user info, port, and path details.
+   *
+   * @param {string} url - The URL to normalize.
+   * @returns {string} - Normalized URL.
+   */
+  normalizeLocalhost(url) {
+    try {
+      const parsedURL = new URL(url);
+      if (parsedURL.hostname === "localhost") {
+        // Normalize to only scheme and localhost without port or user info
+        return `${parsedURL.protocol}//localhost/`;
+      }
+      return url;
+    } catch (error) {
+      return url;
+    }
+  }
+
+  /**
    * Checks if a given URL is allowed based on allowList and denyList patterns.
    *
    * @param {string} url - The URL to check.
@@ -428,7 +447,7 @@ export class URLChecker {
    *       - "DISALLOWED" if the URL does not match any entry in either list.
    */
   allowedURL(url) {
-    const normalizedURL = url.toLowerCase();
+    const normalizedURL = this.normalizeLocalhost(url).toLowerCase();
 
     // Check if the URL is denied by any entry in the denyList
     if (this.denyList.some(prefix => normalizedURL.startsWith(prefix))) {

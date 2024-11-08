@@ -524,7 +524,7 @@ add_task(async function testURLChecker() {
       description: "Denies access to URL with trailing dot in domain",
     },
     {
-      url: "https://user@localhost/",
+      url: "https://user@huggingface.co/mozilla/",
       expected: { allowed: false, rejectionType: RejectionType.DISALLOWED },
       description: "Denies access to URL with user info",
     },
@@ -540,7 +540,7 @@ add_task(async function testURLChecker() {
       description: "Denies access to domain containing an allowed domain",
     },
     {
-      url: "https:///localhost/myhub",
+      url: "https:///huggingface.co/mozilla/",
       expected: { allowed: false, rejectionType: RejectionType.DISALLOWED },
       description:
         "Denies access to URL with triple slashes, just type correctly",
@@ -564,6 +564,16 @@ add_task(async function testURLChecker() {
       url: "chrome://gre/somewhere/in/the/code/base",
       expected: { allowed: true, rejectionType: RejectionType.NONE },
       description: "Allows access to internal resource URL in code base",
+    },
+    {
+      url: "http://localhost:37001/Xenova/all-M",
+      expected: { allowed: true, rejectionType: RejectionType.NONE },
+      description: "Allows access to URL with localhost with a port",
+    },
+    {
+      url: "https://user@localhost/Xenova/all-M",
+      expected: { allowed: true, rejectionType: RejectionType.NONE },
+      description: "Allows access to URL with localhost with a user",
     },
   ];
 
