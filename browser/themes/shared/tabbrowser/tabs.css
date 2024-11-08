@@ -757,7 +757,7 @@
  */
 .tab-group-line {
   display: none;
-  background-color: var(--tab-group-color, var(--dragover-tab-group-color));
+  background-color: var(--tab-group-color);
   height: 2px;
   margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) calc(-1 * var(--tab-block-margin));
 
@@ -765,9 +765,17 @@
     margin-inline-end: 0;
   }
 
-  tab-group &,
-  #tabbrowser-tabs[movingtab]:not([movingtab-createGroup]) &:is([selected],[multiselected]) {
+  tab-group & {
     display: flex;
+  }
+
+  #tabbrowser-tabs[movingtab] &:is([selected],[multiselected]) {
+    display: flex;
+    background-color: var(--dragover-tab-group-color);
+  }
+
+  #tabbrowser-tabs:is([movingtab-createGroup],[movingtab-ungroup]) &:is([selected],[multiselected]) {
+    display: none;
   }
 }
 
