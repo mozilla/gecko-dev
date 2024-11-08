@@ -1975,6 +1975,20 @@ nsresult PermissionManager::AddInternal(
         mPermissionTable.RemoveEntry(entry);
       }
 
+      // If the entry we are removing is not a default, restore the potential
+      // default entry in-memory
+      if (oldPermissionEntry.mID != cIDPermissionIsDefault) {
+        for (const DefaultEntry& defaultEntry : mDefaultEntriesForImport) {
+          if (defaultEntry.mType == aType && defaultEntry.mOrigin == origin &&
+              defaultEntry.mPermission !=
+                  nsIPermissionManager::UNKNOWN_ACTION) {
+            rv = ImportDefaultEntry(defaultEntry);
+            NS_ENSURE_SUCCESS(rv, rv);
+            break;
+          }
+        }
+      }
+
       break;
     }
 
@@ -2205,9 +2219,6 @@ nsresult PermissionManager::RemovePermissionEntries(T aCondition) {
         PermissionManager::eWriteToDB, false, &std::get<2>(i));
   }
 
-  // now re-import any defaults as they may now be required if we just deleted
-  // an override.
-  ImportLatestDefaults();
   return NS_OK;
 }
 
