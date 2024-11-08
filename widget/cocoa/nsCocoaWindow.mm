@@ -1949,9 +1949,8 @@ CGFloat nsCocoaWindow::BackingScaleFactor() {
 void nsCocoaWindow::BackingScaleFactorChanged() {
   CGFloat newScale = GetBackingScaleFactor(mWindow);
 
-  // ignore notification if it hasn't really changed (or maybe we have
-  // disabled HiDPI mode via prefs)
-  if (mBackingScaleFactor == newScale) {
+  // Ignore notification if it hasn't really changed
+  if (BackingScaleFactor() == newScale) {
     return;
   }
 
@@ -2762,14 +2761,9 @@ void nsCocoaWindow::CocoaWindowDidResize() {
   // To work around this, we check for a backing scale mismatch when we
   // receive a windowDidChangeScreen notification, as we will receive this
   // even if Cocoa was already treating the zero-size window as having
-  // Retina backing scale.
-  NSWindow* window = (NSWindow*)[aNotification object];
-  if ([window respondsToSelector:@selector(backingScaleFactor)]) {
-    if (GetBackingScaleFactor(window) != mGeckoWindow->BackingScaleFactor()) {
-      mGeckoWindow->BackingScaleFactorChanged();
-    }
-  }
-
+  // Retina backing scale. Note that BackingScaleFactorChanged() bails early
+  // if the scale factor did in fact not change.
+  mGeckoWindow->BackingScaleFactorChanged();
   mGeckoWindow->ReportMoveEvent();
 }
 
@@ -2993,15 +2987,7 @@ void nsCocoaWindow::CocoaWindowDidResize() {
 - (void)windowDidChangeBackingProperties:(NSNotification*)aNotification {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
-  NSWindow* window = (NSWindow*)[aNotification object];
-
-  if ([window respondsToSelector:@selector(backingScaleFactor)]) {
-    CGFloat oldFactor = [[[aNotification userInfo]
-        objectForKey:@"NSBackingPropertyOldScaleFactorKey"] doubleValue];
-    if (window.backingScaleFactor != oldFactor) {
-      mGeckoWindow->BackingScaleFactorChanged();
-    }
-  }
+  mGeckoWindow->BackingScaleFactorChanged();
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
