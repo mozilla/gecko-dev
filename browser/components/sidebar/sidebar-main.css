@@ -51,6 +51,12 @@
       --button-outer-padding-block-end: var(--space-small);
     }
   }
+
+  moz-button:not([type~="ghost"]):not(:hover) {
+    &::part(button){
+      background-color: var(--toolbarbutton-active-background);
+    }
+  }
 }
 
 .tools-and-extensions[orientation="horizontal"] {
