@@ -3340,6 +3340,21 @@
             column="1"/>
     </issue>
 
+    <issue id="UnusedResources"
+        message="The resource R.drawable.ic_onboarding_customize_toolbar appears to be unused">
+        <location file="src/main/res/drawable/ic_onboarding_customize_toolbar.xml" />
+    </issue>
+
+    <issue id="UnusedResources"
+        message="The resource R.drawable.ic_onboarding_bottom_toolbar appears to be unused">
+        <location file="src/main/res/drawable/ic_onboarding_bottom_toolbar.xml" />
+    </issue>
+
+    <issue id="UnusedResources"
+        message="The resource R.drawable.ic_onboarding_top_toolbar appears to be unused">
+        <location file="src/main/res/drawable/ic_onboarding_top_toolbar.xml" />
+    </issue>
+
     <issue
         id="UseOfNonLambdaOffsetOverload"
         message="State backed values should use the lambda overload of Modifier.offset"
