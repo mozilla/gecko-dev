@@ -28,6 +28,7 @@ import mozilla.components.concept.engine.shopping.ProductAnalysis
 import mozilla.components.concept.engine.shopping.ProductAnalysisStatus
 import mozilla.components.concept.engine.shopping.ProductRecommendation
 import mozilla.components.concept.engine.translate.TranslationOptions
+import org.json.JSONObject
 import kotlin.reflect.KProperty
 
 internal val xRequestHeader = mapOf(
@@ -423,6 +424,16 @@ class SystemEngineSession(
         onException: (Throwable) -> Unit,
     ) {
         throw UnsupportedOperationException("Checking for PDF viewer is not available in this engine")
+    }
+
+    /**
+     * See [EngineSession.getWebCompatInfo]
+     */
+    override fun getWebCompatInfo(
+        onResult: (JSONObject) -> Unit,
+        onException: (Throwable) -> Unit,
+    ) {
+        throw UnsupportedOperationException("Getting web compat info is not available in this engine")
     }
 
     /**
