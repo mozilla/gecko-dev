@@ -42,12 +42,8 @@
 }
 
 .result-list li.selected {
-  background: var(--theme-accordion-header-background);
-}
-
-.result-list.small li.selected {
   background-color: var(--theme-selection-background);
-  color: white;
+  color: var(--theme-selection-color);
 }
 
 .result-list li .result-item-icon {
@@ -83,11 +79,6 @@
 }
 
 .result-list li.selected .title {
-  color: white;
-}
-
-.result-list.big li.selected {
-  background-color: var(--theme-selection-background);
   color: white;
 }
 

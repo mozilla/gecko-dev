@@ -80,7 +80,7 @@
 .project-search-results-toolbar {
   display: grid;
   grid-template-columns: 1fr auto;
-  background-color: var(--theme-accordion-header-background);
+  background-color: var(--theme-toolbar-alternate-background);
   border-bottom: 1px solid var(--theme-splitter-color);
   padding: 2px 8px;
   align-items: center;
