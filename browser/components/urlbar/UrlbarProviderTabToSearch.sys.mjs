@@ -15,9 +15,13 @@ import {
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ActionsProviderContextualSearch:
+    "resource:///modules/ActionsProviderContextualSearch.sys.mjs",
   UrlbarView: "resource:///modules/UrlbarView.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProviderAutofill: "resource:///modules/UrlbarProviderAutofill.sys.mjs",
+  UrlbarProviderGlobalActions:
+    "resource:///modules/UrlbarProviderGlobalActions.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
@@ -132,7 +136,11 @@ class ProviderTabToSearch extends UrlbarProvider {
       queryContext.searchString &&
       queryContext.tokens.length == 1 &&
       !queryContext.searchMode &&
-      lazy.UrlbarPrefs.get("suggest.engines")
+      lazy.UrlbarPrefs.get("suggest.engines") &&
+      !(
+        lazy.UrlbarProviderGlobalActions.isActive(queryContext) &&
+        lazy.ActionsProviderContextualSearch.isActive(queryContext)
+      )
     );
   }
 

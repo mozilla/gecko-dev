@@ -9,6 +9,7 @@
 add_task(async function test() {
   // Disable search suggestions to avoid hitting the network.
   UrlbarPrefs.set("suggest.searches", false);
+  UrlbarPrefs.set("suggest.quickactions", false);
 
   let engine = await Services.search.getDefault();
   let pref = "browser.newtabpage.activity-stream.hideTopSitesWithSearchParam";

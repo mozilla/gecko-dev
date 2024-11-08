@@ -7,8 +7,10 @@
 
 add_setup(async function () {
   Services.prefs.setBoolPref("browser.urlbar.autoFill", false);
+  Services.prefs.setBoolPref("browser.urlbar.suggest.quickactions", false);
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref("browser.urlbar.autoFill");
+    Services.prefs.clearUserPref("browser.urlbar.suggest.quickactions");
   });
 });
 

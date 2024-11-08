@@ -9,16 +9,19 @@
 
 const SUGGEST_PREF = "browser.urlbar.suggest.searches";
 const SUGGEST_ENABLED_PREF = "browser.search.suggest.enabled";
+const QUICKACTIONS_PREF = "browser.urlbar.suggest.quickactions";
 
 add_task(async function test_places() {
   Services.prefs.setBoolPref(SUGGEST_PREF, true);
   Services.prefs.setBoolPref(SUGGEST_ENABLED_PREF, true);
+  Services.prefs.setBoolPref(QUICKACTIONS_PREF, false);
   let engine = await addTestSuggestionsEngine();
   Services.search.defaultEngine = engine;
   let oldCurrentEngine = Services.search.defaultEngine;
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref(SUGGEST_PREF);
     Services.prefs.clearUserPref(SUGGEST_ENABLED_PREF);
+    Services.prefs.clearUserPref(QUICKACTIONS_PREF);
     Services.search.defaultEngine = oldCurrentEngine;
   });
 

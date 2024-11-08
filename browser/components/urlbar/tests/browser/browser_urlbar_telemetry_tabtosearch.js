@@ -80,7 +80,10 @@ async function checkForTabToSearchResult(engineName, isOnboarding) {
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.tabToSearch.onboard.interactionsLeft", 0]],
+    set: [
+      ["browser.urlbar.tabToSearch.onboard.interactionsLeft", 0],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
+    ],
   });
 
   await SearchTestUtils.installSearchExtension({

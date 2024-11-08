@@ -162,9 +162,8 @@ add_task(async function test_sitesearch() {
     false,
     expectedUrl
   );
-  gURLBar.value = query;
-  UrlbarTestUtils.fireInputEvent(window);
   EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.sendString(query);
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 

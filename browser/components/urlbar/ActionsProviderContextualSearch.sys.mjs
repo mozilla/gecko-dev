@@ -17,7 +17,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   loadAndParseOpenSearchEngine:
     "resource://gre/modules/OpenSearchLoader.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  UrlbarProviderAutofill: "resource:///modules/UrlbarProviderAutofill.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
+  UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
 });
 
 const ENABLED_PREF = "contextualSearch.enabled";
@@ -31,9 +33,15 @@ const CONTEXTUAL_SEARCH_ENGINE = "contextual-search-engine";
  * by the active view if it utilizes OpenSearch.
  */
 class ProviderContextualSearch extends ActionsProvider {
+  // Cache the results of engines looked up by host, these can be
+  // expensive lookups and we don't want to redo the query every time
+  // the user types when the result will not change.
+  #hostEngines = new Map();
+  // Store the engine returned to the user in case they select it.
+  #resultEngine = null;
+
   constructor() {
     super();
-    this.engines = new Map();
   }
 
   get name() {
@@ -44,90 +52,185 @@ class ProviderContextualSearch extends ActionsProvider {
     return (
       queryContext.trimmedSearchString &&
       lazy.UrlbarPrefs.get(ENABLED_PREF) &&
-      !queryContext.searchMode
+      !queryContext.searchMode &&
+      queryContext.tokens.length == 1 &&
+      queryContext.tokens[0].type != lazy.UrlbarTokenizer.TYPE.URL &&
+      lazy.UrlbarPrefs.get("suggest.engines")
     );
   }
 
   async queryActions(queryContext) {
-    let instance = this.queryInstance;
-    const hostname = URL.parse(queryContext.currentPage)?.hostname;
-
-    // This happens on about pages, which won't have associated engines
-    if (!hostname) {
-      return null;
-    }
-
-    let { engine } = await this.fetchEngineDetails();
-    let icon = engine?.icon || (await engine?.getIconURL?.());
+    this.#resultEngine = await this.matchEngine(queryContext);
     let defaultEngine = lazy.UrlbarSearchUtils.getDefaultEngine();
 
     if (
-      !engine ||
-      engine.name === defaultEngine?.name ||
-      instance != this.queryInstance
+      this.#resultEngine &&
+      this.#resultEngine.engine?.name != defaultEngine?.name
     ) {
-      return null;
+      return [await this.createActionResult(this.#resultEngine)];
     }
-
-    return [
-      new ActionsResult({
-        key: "contextual-search",
-        l10nId: "urlbar-result-search-with",
-        l10nArgs: { engine: engine.name || engine.title },
-        icon,
-        onPick: (context, controller) => {
-          this.pickAction(context, controller);
-        },
-      }),
-    ];
+    return null;
   }
 
-  async fetchEngineDetails() {
+  onSearchSessionEnd() {
+    // We cache the results for a host while the user is typing, clear
+    // when the search session ends as the results for the host may
+    // change by the next search session.
+    this.#hostEngines.clear();
+  }
+
+  async createActionResult({ type, engine }) {
+    let icon = engine?.icon || (await engine?.getIconURL?.());
+    return new ActionsResult({
+      key: "contextual-search",
+      l10nId: "urlbar-result-search-with",
+      l10nArgs: { engine: engine.name || engine.title },
+      icon,
+      onPick: (context, controller) => {
+        this.pickAction(context, controller);
+      },
+      onSelection: async (result, element) => {
+        // We don't enter preview searchMode unless the engine is installed.
+        if (type != INSTALLED_ENGINE) {
+          return;
+        }
+        result.payload.engine = engine.name;
+        result.payload.query = "";
+        element.ownerGlobal.gURLBar.maybeConfirmSearchModeFromResult({
+          result,
+          checkValue: false,
+          startQuery: false,
+        });
+      },
+    });
+  }
+
+  /*
+   * Searches for engines that we want to present to the user based on their
+   * current host and the search query they have entered.
+   */
+  async matchEngine(queryContext) {
+    // First find currently installed engines that match the current query
+    // if the user has DuckDuckGo installed and types "duck", offer that.
+    let engine = await this.#matchTabToSearchEngine(queryContext);
+    if (engine) {
+      return engine;
+    }
+
     let browser =
       lazy.BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
-    let hostname;
+    let host;
     try {
-      // currentURI.host will throw on pages without a host ("about:" pages).
-      hostname = browser.currentURI.host;
+      host = UrlbarUtils.stripPrefixAndTrim(browser.currentURI.host, {
+        stripWww: true,
+      })[0];
     } catch (e) {
-      return null;
+      // about: pages will throw when access currentURI.host, ignore.
     }
 
-    if (this.engines.has(hostname)) {
-      return { type: INSTALLED_ENGINE, engine: this.engines.get(hostname) };
+    // Find engines based on the current host.
+    if (host && !this.#hostEngines.has(host)) {
+      // Find currently installed engines that match the current host. If
+      // the user is on wikipedia.com, offer that.
+      let hostEngine = await this.#matchInstalledEngine(host);
+
+      if (!hostEngine) {
+        // Find engines in the search configuration but not installed that match
+        // the current host. If the user is on ecosia.com and starts searching
+        // offer ecosia's search.
+        let contextualEngineConfig =
+          await Services.search.findContextualSearchEngineByHost(host);
+        if (contextualEngineConfig) {
+          hostEngine = {
+            type: CONTEXTUAL_SEARCH_ENGINE,
+            engine: contextualEngineConfig,
+          };
+        }
+      }
+      // Cache the result against this host so we do not need to rerun
+      // the same query every keystroke.
+      this.#hostEngines.set(host, hostEngine);
+      if (hostEngine) {
+        return hostEngine;
+      }
+    } else if (host) {
+      let cachedEngine = this.#hostEngines.get(host);
+      if (cachedEngine) {
+        return cachedEngine;
+      }
     }
 
-    // Strip www. to allow for partial matches when looking for an engine.
-    const [host] = UrlbarUtils.stripPrefixAndTrim(hostname, {
-      stripWww: true,
-    });
-    let engines = await lazy.UrlbarSearchUtils.enginesForDomainPrefix(host, {
-      matchAllDomainLevels: true,
-    });
-
-    if (engines.length) {
-      return { type: INSTALLED_ENGINE, engine: engines[0] };
-    }
-
-    let contextualEngineConfig =
-      await Services.search.findContextualSearchEngineByHost(host);
-    if (contextualEngineConfig) {
-      return {
-        type: CONTEXTUAL_SEARCH_ENGINE,
-        engine: contextualEngineConfig,
-      };
-    }
-
+    // Lastly match any openSearch
     if (browser?.engines?.length) {
       return { type: OPEN_SEARCH_ENGINE, engine: browser.engines[0] };
     }
 
-    return {};
+    return null;
+  }
+
+  async #matchInstalledEngine(query) {
+    let engines = await lazy.UrlbarSearchUtils.enginesForDomainPrefix(query, {
+      matchAllDomainLevels: true,
+    });
+    if (engines.length) {
+      return { type: INSTALLED_ENGINE, engine: engines[0] };
+    }
+    return null;
+  }
+
+  /*
+   * This logic is copied from `UrlbarProviderTabToSearch.sys.mjs` and
+   * matches a users search query to an installed engine.
+   */
+  async #matchTabToSearchEngine(queryContext) {
+    let searchStr = queryContext.trimmedSearchString.toLocaleLowerCase();
+    let engines = await lazy.UrlbarSearchUtils.enginesForDomainPrefix(
+      searchStr,
+      {
+        matchAllDomainLevels: true,
+      }
+    );
+
+    if (!engines.length) {
+      return null;
+    }
+
+    let partialMatchEnginesByHost = new Map();
+
+    for (let engine of engines) {
+      let [host] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
+        stripWww: true,
+      });
+      if (host.startsWith(searchStr)) {
+        return { type: INSTALLED_ENGINE, engine };
+      }
+      if (host.includes("." + searchStr)) {
+        partialMatchEnginesByHost.set(engine.searchUrlDomain, engine);
+      }
+      let baseDomain = Services.eTLD.getBaseDomainFromHost(
+        engine.searchUrlDomain
+      );
+      if (baseDomain.startsWith(searchStr)) {
+        partialMatchEnginesByHost.set(baseDomain, engine);
+      }
+    }
+
+    if (partialMatchEnginesByHost.size) {
+      let host = await lazy.UrlbarProviderAutofill.getTopHostOverThreshold(
+        queryContext,
+        Array.from(partialMatchEnginesByHost.keys())
+      );
+      if (host) {
+        let engine = partialMatchEnginesByHost.get(host);
+        return { type: INSTALLED_ENGINE, engine };
+      }
+    }
+    return null;
   }
 
   async pickAction(queryContext, controller, _element) {
-    let { type, engine } = await this.fetchEngineDetails();
-    let enterSeachMode = true;
+    let { type, engine } = this.#resultEngine;
+    let enterSearchMode = true;
     let engineObj;
 
     if (
@@ -142,7 +245,7 @@ class ProviderContextualSearch extends ActionsProvider {
       engineObj = new lazy.OpenSearchEngine({
         engineData: openSearchEngineData,
       });
-      enterSeachMode = false;
+      enterSearchMode = false;
     } else if (type == INSTALLED_ENGINE || type == CONTEXTUAL_SEARCH_ENGINE) {
       engineObj = engine;
     }
@@ -151,7 +254,7 @@ class ProviderContextualSearch extends ActionsProvider {
       engineObj,
       queryContext.searchString,
       controller.input,
-      enterSeachMode
+      enterSearchMode
     );
   }
 
@@ -168,6 +271,7 @@ class ProviderContextualSearch extends ActionsProvider {
       );
     }
     engineObj.setAttr("auto-installed", true);
+    this.#hostEngines.clear();
     return engineObj;
   }
 
@@ -180,10 +284,6 @@ class ProviderContextualSearch extends ActionsProvider {
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     });
     input.window.gBrowser.selectedBrowser.focus();
-  }
-
-  resetForTesting() {
-    this.engines = new Map();
   }
 }
 

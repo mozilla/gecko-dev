@@ -32,11 +32,10 @@ export class ActionsProvider {
    * Query for actions based on the current users input.
    *
    * @param {UrlbarQueryContext} _queryContext The query context object.
-   * @param {UrlbarController} _controller The urlbar controller.
    * @returns {Array} An array of ActionResult's
    * @abstract
    */
-  async queryActions(_queryContext, _controller) {
+  async queryActions(_queryContext) {
     throw new Error("Not implemented.");
   }
 
@@ -65,6 +64,7 @@ export class ActionsResult {
   #icon;
   #dataset;
   #onPick;
+  #onSelection;
 
   /**
    * @param {object} options
@@ -82,14 +82,17 @@ export class ActionsResult {
    *    can be used to pass data when it is selected.
    * @param { Function} options.onPick
    *    A callback function called when the result has been picked.
+   * @param { Function} options.onSelection
+   *    A callback function called when the result has been selected.
    */
-  constructor({ key, l10nId, l10nArgs, icon, dataset, onPick }) {
+  constructor({ key, l10nId, l10nArgs, icon, dataset, onPick, onSelection }) {
     this.#key = key;
     this.#l10nId = l10nId;
     this.#l10nArgs = l10nArgs;
     this.#icon = icon;
     this.#dataset = dataset;
     this.#onPick = onPick;
+    this.#onSelection = onSelection;
   }
 
   get key() {
@@ -114,5 +117,9 @@ export class ActionsResult {
 
   get onPick() {
     return this.#onPick;
+  }
+
+  get onSelection() {
+    return this.#onSelection;
   }
 }

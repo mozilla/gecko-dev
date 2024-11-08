@@ -1,3 +1,7 @@
+add_setup(() => {
+  UrlbarPrefs.set("suggest.quickactions", false);
+});
+
 add_task(async function test_encoded() {
   info("Searching for over encoded url should not break it");
   let url = "https://www.mozilla.com/search/top/?q=%25%32%35";

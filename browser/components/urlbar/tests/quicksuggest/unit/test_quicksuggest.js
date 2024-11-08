@@ -163,6 +163,8 @@ add_setup(async function init() {
     Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   );
 
+  UrlbarPrefs.set("contextualSearch.enabled", false);
+
   const testDataTypeResults = [
     Object.assign({}, REMOTE_SETTINGS_RESULTS[0], { title: "test-data-type" }),
   ];

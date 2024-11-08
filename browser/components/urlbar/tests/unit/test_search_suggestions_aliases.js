@@ -24,6 +24,8 @@ add_setup(async function () {
   engine = await addTestSuggestionsEngine();
   port = engine.getSubmission("abc").uri.port;
 
+  Services.prefs.setBoolPref("browser.urlbar.suggest.quickactions", false);
+
   // Set a mock engine as the default so we don't hit the network below when we
   // do searches that return the default engine heuristic result.
   await SearchTestUtils.installSearchExtension(

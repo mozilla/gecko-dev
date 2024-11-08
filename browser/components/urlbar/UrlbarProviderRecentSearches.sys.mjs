@@ -86,6 +86,9 @@ class ProviderRecentSearches extends UrlbarProvider {
     let engine = lazy.UrlbarSearchUtils.getDefaultEngine(
       queryContext.isPrivate
     );
+    if (!engine) {
+      return;
+    }
     let results = await lazy.FormHistory.search(["value", "lastUsed"], {
       fieldname: "searchbar-history",
       source: engine.name,

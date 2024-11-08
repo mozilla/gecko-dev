@@ -3,6 +3,10 @@
 
 "use strict";
 
+add_setup(() => {
+  UrlbarPrefs.set("suggest.quickactions", false);
+});
+
 // Testing that we dedupe results that have the same URL and title as another
 // except for their prefix (e.g. http://www.).
 add_task(async function dedupe_prefix() {

@@ -361,6 +361,7 @@ function testEngine_setup() {
 
     registerCleanupFunction(async () => {
       Services.prefs.clearUserPref("browser.urlbar.suggest.searches");
+      Services.prefs.clearUserPref("browser.urlbar.contextualSearch.enabled");
       Services.prefs.clearUserPref(
         "browser.search.separatePrivateDefault.ui.enabled"
       );
@@ -379,6 +380,10 @@ function testEngine_setup() {
       false
     );
     Services.prefs.setBoolPref("browser.urlbar.suggest.searches", false);
+    Services.prefs.setBoolPref(
+      "browser.urlbar.contextualSearch.enabled",
+      false
+    );
   });
 }
 

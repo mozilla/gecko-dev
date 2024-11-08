@@ -23,6 +23,7 @@ const SUGGESTED_INDEX = 1;
 
 const SCOTCH_BONNET_PREF = "scotchBonnet.enableOverride";
 const ACTIONS_PREF = "secondaryActions.featureGate";
+const QUICK_ACTIONS_PREF = "suggest.quickactions";
 
 ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -54,8 +55,9 @@ class ProviderGlobalActions extends UrlbarProvider {
 
   isActive() {
     return (
-      lazy.UrlbarPrefs.get(SCOTCH_BONNET_PREF) ||
-      lazy.UrlbarPrefs.get(ACTIONS_PREF)
+      (lazy.UrlbarPrefs.get(SCOTCH_BONNET_PREF) ||
+        lazy.UrlbarPrefs.get(ACTIONS_PREF)) &&
+      lazy.UrlbarPrefs.get(QUICK_ACTIONS_PREF)
     );
   }
 
@@ -87,6 +89,11 @@ class ProviderGlobalActions extends UrlbarProvider {
     addCallback(this, result);
   }
 
+  onSelection(result, element) {
+    let key = element.dataset.action;
+    this.#actions.get(key).onSelection(result, element);
+  }
+
   onEngagement(queryContext, controller, details) {
     let key = details.element.dataset.action;
     let options = this.#actions.get(key).onPick(queryContext, controller);
@@ -94,6 +101,12 @@ class ProviderGlobalActions extends UrlbarProvider {
       details.element.ownerGlobal.gBrowser.selectedBrowser.focus();
     }
     controller.view.close();
+  }
+
+  onSearchSessionEnd(queryContext, controller, details) {
+    for (let provider of globalActionsProviders) {
+      provider.onSearchSessionEnd?.(queryContext, controller, details);
+    }
   }
 
   getViewTemplate(result) {

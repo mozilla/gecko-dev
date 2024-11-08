@@ -42,6 +42,7 @@ add_task(async function test_persist_searchmode() {
   info("Focus and select the contextual search result");
   let onLoad = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.sendString("test");
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 
@@ -94,6 +95,7 @@ add_task(async function test_escape_searchmode() {
   info("Focus and select the contextual search result");
   let onLoad = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
   EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.sendString("test");
   EventUtils.synthesizeKey("KEY_Enter");
   await onLoad;
 

@@ -27,6 +27,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarEventBufferer: "resource:///modules/UrlbarEventBufferer.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarQueryContext: "resource:///modules/UrlbarUtils.sys.mjs",
+  UrlbarProviderGlobalActions:
+    "resource:///modules/UrlbarProviderGlobalActions.sys.mjs",
   UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
@@ -1035,9 +1037,11 @@ export class UrlbarInput {
     // manner was agreed on as a compromise between consistent UX and
     // engineering effort. See review discussion at bug 1667766.
     if (
-      result.heuristic &&
-      this.searchMode?.isPreview &&
-      this.view.oneOffSearchButtons.selectedButton
+      (this.searchMode?.isPreview &&
+        result.providerName == lazy.UrlbarProviderGlobalActions.name) ||
+      (result.heuristic &&
+        this.searchMode?.isPreview &&
+        this.view.oneOffSearchButtons.selectedButton)
     ) {
       this.confirmSearchMode();
       this.search(this.value);
@@ -2523,7 +2527,11 @@ export class UrlbarInput {
       let engine = Services.search.getEngineByName(this.searchMode.engineName);
       // If the host we are navigating to matches the host of the current
       // searchModes engine host then persist searchMode.
-      return uri.host != engine.searchUrlDomain;
+      try {
+        return uri.host != engine.searchUrlDomain;
+      } catch (e) {
+        // Accessing .host will throw on about pages.
+      }
     }
     return true;
   }
