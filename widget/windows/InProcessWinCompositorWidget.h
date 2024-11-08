@@ -83,11 +83,6 @@ class InProcessWinCompositorWidget final
 
   // Transparency handling.
   mozilla::Mutex mTransparentSurfaceLock MOZ_UNANNOTATED;
-  mozilla::Atomic<uint32_t, MemoryOrdering::Relaxed> mTransparencyMode;
-
-  bool TransparencyModeIs(TransparencyMode aMode) const {
-    return TransparencyMode(uint32_t(mTransparencyMode)) == aMode;
-  }
 
   // Visibility handling.
   mozilla::Atomic<bool, MemoryOrdering::Relaxed> mIsFullyOccluded;

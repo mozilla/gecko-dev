@@ -32,6 +32,7 @@ WinCompositorWidget::WinCompositorWidget(
       mSetParentCompleted(false),
       mWidgetKey(aInitData.widgetKey()),
       mWnd(reinterpret_cast<HWND>(aInitData.hWnd())),
+      mTransparencyMode(uint32_t(aInitData.transparencyMode())),
       mCompositorWnds(nullptr, nullptr) {
   MOZ_ASSERT(mWnd && ::IsWindow(mWnd));
 }

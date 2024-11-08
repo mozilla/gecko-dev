@@ -138,6 +138,12 @@ bool CompositorWidgetParent::GetWindowIsFullyOccluded() const {
   return mIsFullyOccluded;
 }
 
+mozilla::ipc::IPCResult CompositorWidgetParent::RecvUpdateTransparency(
+    const TransparencyMode& aMode) {
+  SetTransparencyMode(aMode);
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult CompositorWidgetParent::RecvClearTransparentWindow() {
   gfx::CriticalSectionAutoEnter lock(&mPresentLock);
 
