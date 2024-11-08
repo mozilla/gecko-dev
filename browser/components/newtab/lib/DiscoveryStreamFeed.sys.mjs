@@ -1587,7 +1587,7 @@ export class DiscoveryStreamFeed {
     const prefs = this.store.getState().Prefs.values;
     const sectionsEnabled = prefs[PREF_SECTIONS_ENABLED];
     let isFakespot;
-    let selectedFeed;
+    const selectedFeedPref = prefs[PREF_CONTEXTUAL_CONTENT_SELECTED_FEED];
     let sections = [];
     const { feeds } = cachedData;
 
@@ -1613,10 +1613,8 @@ export class DiscoveryStreamFeed {
             received_rank: item.receivedRank,
             recommended_at: feedResponse.recommendedAt,
           }));
-          if (feedResponse.feeds && selectedFeed) {
-            const selectedFeedPref =
-              prefs[PREF_CONTEXTUAL_CONTENT_SELECTED_FEED];
-            isFakespot = selectedFeed === "fakespot";
+          if (feedResponse.feeds && selectedFeedPref && !sectionsEnabled) {
+            isFakespot = selectedFeedPref === "fakespot";
             const keyName = isFakespot ? "products" : "recommendations";
             const selectedFeedResponse = feedResponse.feeds[selectedFeedPref];
             selectedFeedResponse?.[keyName]?.forEach(item =>
@@ -1632,7 +1630,7 @@ export class DiscoveryStreamFeed {
                 received_rank: item.receivedRank,
                 recommended_at: feedResponse.recommendedAt,
                 // property to determine if rec is used in ListFeed or not
-                feedName: selectedFeed,
+                feedName: selectedFeedPref,
                 category: item.category,
               })
             );
@@ -1805,8 +1803,10 @@ export class DiscoveryStreamFeed {
 
       if (shouldFetchTBRFeed) {
         body.feeds = [selectedFeed];
-      } else if (sectionsEnabled) {
-        body.feeds = [...(body.feeds || []), "sections"];
+      }
+      if (sectionsEnabled) {
+        // if sections is enabled, it should override the TBR feed
+        body.feeds = ["sections"];
       }
 
       return {
