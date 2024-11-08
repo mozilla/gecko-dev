@@ -460,7 +460,7 @@ TEST_F(APZScrollHandoffTesterMock, StuckInOverscroll_Bug1240202b) {
   // will not ignore the second finger, instead entering the
   // PINCHING state.
   MultiTouchInput secondFingerDown(MultiTouchInput::MULTITOUCH_START, 0,
-                                   TimeStamp(), 0);
+                                   mcc->Time(), 0);
   // Use the same touch identifier for the first touch (0) as TouchDown(). (A
   // bit hacky.)
   secondFingerDown.mTouches.AppendElement(
