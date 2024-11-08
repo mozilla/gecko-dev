@@ -4,23 +4,23 @@
 
 https://www.mozilla.org/firefox/focus/
 
-*Don't see what you're looking for? Check out our shared docs: https://github.com/mozilla-mobile/firefox-android/tree/main/docs/shared.*
+*Don't see what you're looking for? [Check out our shared docs](https://firefox-source-docs.mozilla.org/mobile/android/focus-android/index.html).*
 
 ## User support
 
-* Support articles: https://support.mozilla.org/en-US/products/focus-firefox/firefox-focus-android
-* Support forum: https://support.mozilla.org/en-US/questions/focus-firefox?show=all
+* [Support articles](https://support.mozilla.org/en-US/products/focus-firefox/firefox-focus-android)
+* [Support forum](https://support.mozilla.org/en-US/questions/focus-firefox?show=all)
 
 ## Download
 
-* Google Play - Firefox Focus: https://play.google.com/store/apps/details?id=org.mozilla.focus
-* Google Play - Firefox Klar: https://play.google.com/store/apps/details?id=org.mozilla.klar
-* APKs: https://github.com/mozilla-mobile/firefox-android/releases
+* [Google Play - Firefox Focus](https://play.google.com/store/apps/details?id=org.mozilla.focus)
+* [Google Play - Firefox Klar](https://play.google.com/store/apps/details?id=org.mozilla.klar)
+* [APKs](https://archive.mozilla.org/pub/focus/releases/)
 
 ## Contribute
 
-* [Contributing (Writing code, translating the app, testing the app)](https://github.com/mozilla-mobile/firefox-android/blob/main/docs/shared/android/CONTRIBUTING.md)
-* [List of issues](https://bugzilla.mozilla.org/describecomponents.cgi?product=Focus)
+* [Contributing (Writing code, translating the app, testing the app)](../../docs/shared/android/CONTRIBUTING.md)
+* [List of issues](https://codetribute.mozilla.org/projects/focus?tag%3Dgood-first-bug)
 * [Mozilla Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/)
 
 ## Communication
@@ -29,12 +29,11 @@ https://www.mozilla.org/firefox/focus/
 
 ## Developer Documentation
 
-* [Architecture decisions](https://github.com/mozilla-mobile/firefox-android/blob/main/focus-android/docs/Architecture-Decisions.md)
-* [Automation](https://github.com/mozilla-mobile/firefox-android/blob/main/docs/shared/android/automation.md)
-* [Content blocking](https://github.com/mozilla-mobile/firefox-android/blob/main/focus-android/docs/Content-blocking.md)
-* [Multisession architecture](https://github.com/mozilla-mobile/firefox-android/blob/main/focus-android/docs/Multisession-architecture.md)
-* [Localization](https://github.com/mozilla-mobile/focus-android/wiki/Localization)
-* [Telemetry](https://github.com/mozilla-mobile/firefox-android/blob/main/focus-android/docs/Telemetry.md)
+* [Architecture decisions](Architecture-Decisions.md)
+* [Automation](../../docs/shared/android/automation.md)
+* [Content blocking](Content-blocking.md)
+* [Multisession architecture](Multisession-architecture.md)
+* [Telemetry](Telemetry.md)
 
 ## Product Management
 * [Release schedule 2018](https://wiki.mozilla.org/Mobile/Focus/Android/Train_Schedule)

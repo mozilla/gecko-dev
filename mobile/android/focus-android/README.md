@@ -8,7 +8,7 @@ Firefox Focus provides automatic ad blocking and tracking protection on an easy-
 
 * [Google Play: Firefox Focus (Global)](https://play.google.com/store/apps/details?id=org.mozilla.focus)
 * [Google Play: Firefox Klar (Germany, Austria & Switzerland)](https://play.google.com/store/apps/details?id=org.mozilla.klar)
-* [Download APKs](https://github.com/mozilla-mobile/focus-android/releases)
+* [Download APKs](https://archive.mozilla.org/pub/focus/releases/)
 
 
 
@@ -19,15 +19,15 @@ We encourage you to participate in this open source project. We love Pull Reques
 
 Before you attempt to make a contribution please read the [Community Participation Guidelines](https://www.mozilla.org/en-US/about/governance/policies/participation/).
 
-* [Guide to Contributing](https://github.com/mozilla-mobile/shared-docs/blob/main/android/CONTRIBUTING.md) (**New contributors start here!**)
+* [Guide to Contributing](../../docs/shared/android/CONTRIBUTING.md) (**New contributors start here!**)
 
-* [View current Issues](https://github.com/mozilla-mobile/focus-android/issues), [view current Pull Requests](https://github.com/mozilla-mobile/focus-android/pulls), or [file a security issue][sec issue].
+* [View current Issues](https://codetribute.mozilla.org/projects/focus?tag%3Dgood-first-bug), or [file a security issue][sec issue].
 
 * Opt-in to our Mailing List [firefox-focus-public@](https://mail.mozilla.org/listinfo/firefox-focus-public) to keep up to date.
 
-* [View the Wiki](https://github.com/mozilla-mobile/focus-android/wiki).
+* [View the Wiki](docs/Home.md).
 
-**Beginners!** - Watch out for [Issues with the "Good First Issue" label](https://github.com/mozilla-mobile/focus-android/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22). These are easy bugs that have been left for first timers to have a go, get involved and make a positive contribution to the project!
+**Beginners!** - Watch out for [Issues with the "Good First Issue" label](https://codetribute.mozilla.org/projects/focus?tag%3Dgood-first-bug). These are easy bugs that have been left for first timers to have a go, get involved and make a positive contribution to the project!
 
 ## Build Instructions
 
