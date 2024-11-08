@@ -2059,15 +2059,15 @@ class ImportOKPKeyTask : public ImportKeyTask {
     }
 
     if (mFormat.EqualsLiteral(WEBCRYPTO_KEY_FORMAT_RAW)) {
-      RootedDictionary<Algorithm> params(aCx);
-      mEarlyRv = Coerce(aCx, params, aAlgorithm);
+      nsString paramsAlgName;
+      mEarlyRv = GetAlgorithmName(aCx, aAlgorithm, paramsAlgName);
       if (NS_FAILED(mEarlyRv)) {
         mEarlyRv = NS_ERROR_DOM_SYNTAX_ERR;
         return;
       }
 
       nsString algName;
-      if (!NormalizeToken(params.mName, algName)) {
+      if (!NormalizeToken(paramsAlgName, algName)) {
         mEarlyRv = NS_ERROR_DOM_NOT_SUPPORTED_ERR;
         return;
       }
