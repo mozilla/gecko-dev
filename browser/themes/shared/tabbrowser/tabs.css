@@ -47,6 +47,7 @@
   --tab-selected-outline-color: transparent;
   --tab-hover-outline-color: transparent;
   --tab-outline-offset: -1px;
+  --tabstrip-min-height: calc(var(--tab-min-height) + 2 * var(--tab-block-margin));
   @media (prefers-contrast) {
     --tab-selected-outline-color: currentColor;
     --tab-hover-outline-color: currentColor;
@@ -116,6 +117,7 @@
   &[orient="horizontal"] {
     --tab-overflow-pinned-tabs-width: 0px;
     padding-inline: var(--tab-overflow-pinned-tabs-width) 0;
+    min-height: var(--tabstrip-min-height);
 
     --tab-min-width: 76px;
     :root[uidensity="touch"] & {
@@ -1125,7 +1127,7 @@ tab-group {
   scrollbar-width: thin;
   scrollbar-color: var(--vertical-tabs-scrollbar-color);
   /* Fit slightly more than 5 tabs + padding before overflowing */
-  max-height: calc(5 * (var(--tab-min-height) + 2 * var(--tab-block-margin)) + var(--space-large));
+  max-height: calc(5 * var(--tabstrip-min-height) + var(--space-large));
 
   .tab-content {
     justify-content: center;
