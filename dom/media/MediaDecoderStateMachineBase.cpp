@@ -49,6 +49,7 @@ MediaDecoderStateMachineBase::MediaDecoderStateMachineBase(
       INIT_CANONICAL(mCurrentPosition, media::TimeUnit::Zero()),
       INIT_CANONICAL(mIsAudioDataAudible, false),
       mMinimizePreroll(aDecoder->GetMinimizePreroll()),
+      mIsLiveStream(false),
       mWatchManager(this, mTaskQueue) {}
 
 MediaEventSource<void>& MediaDecoderStateMachineBase::OnMediaNotSeekable()
@@ -175,6 +176,14 @@ void MediaDecoderStateMachineBase::DecodeError(const MediaResult& aError) {
 RefPtr<SetCDMPromise> MediaDecoderStateMachineBase::SetCDMProxy(
     CDMProxy* aProxy) {
   return mReader->SetCDMProxy(aProxy);
+}
+
+void MediaDecoderStateMachineBase::SetIsLiveStream(bool aIsLiveStream) {
+  mIsLiveStream = aIsLiveStream;
+}
+
+bool MediaDecoderStateMachineBase::IsLiveStream() const {
+  return mIsLiveStream;
 }
 
 #undef INIT_MIRROR

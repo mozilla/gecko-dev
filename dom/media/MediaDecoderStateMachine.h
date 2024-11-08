@@ -259,9 +259,6 @@ class MediaDecoderStateMachine
   void AudioAudibleChanged(bool aAudible);
 
   void SetPlaybackRate(double aPlaybackRate) override;
-  void SetIsLiveStream(bool aIsLiveStream) override {
-    mIsLiveStream = aIsLiveStream;
-  }
   void SetCanPlayThrough(bool aCanPlayThrough) override {
     mCanPlayThrough = aCanPlayThrough;
   }
@@ -471,8 +468,6 @@ class MediaDecoderStateMachine
   bool IsInSeamlessLooping() const;
 
   bool mCanPlayThrough = false;
-
-  bool mIsLiveStream = false;
 
   // True if all audio frames are already rendered.
   bool mAudioCompleted = false;

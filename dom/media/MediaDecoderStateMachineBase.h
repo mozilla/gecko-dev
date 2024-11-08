@@ -172,6 +172,8 @@ class MediaDecoderStateMachineBase {
 
   virtual bool IsExternalEngineStateMachine() const { return false; }
 
+  bool IsLiveStream() const;
+
  protected:
   virtual ~MediaDecoderStateMachineBase() = default;
 
@@ -180,7 +182,6 @@ class MediaDecoderStateMachineBase {
   const MediaInfo& Info() const { return mInfo.ref(); }
 
   virtual void SetPlaybackRate(double aPlaybackRate) = 0;
-  virtual void SetIsLiveStream(bool aIsLiveStream) = 0;
   virtual void SetCanPlayThrough(bool aCanPlayThrough) = 0;
   virtual void SetFragmentEndTime(const media::TimeUnit& aFragmentEndTime) = 0;
 
@@ -199,6 +200,8 @@ class MediaDecoderStateMachineBase {
   virtual RefPtr<MediaDecoder::SeekPromise> Seek(const SeekTarget& aTarget) = 0;
 
   virtual void DecodeError(const MediaResult& aError);
+
+  void SetIsLiveStream(bool aIsLiveStream);
 
   // Functions used by assertions to ensure we're calling things
   // on the appropriate threads.
@@ -301,6 +304,9 @@ class MediaDecoderStateMachineBase {
   MozPromiseRequestHolder<VideoDataPromise> mVideoDataRequest;
   MozPromiseRequestHolder<WaitForDataPromise> mAudioWaitRequest;
   MozPromiseRequestHolder<WaitForDataPromise> mVideoWaitRequest;
+
+  // True if playback is live stream.
+  Atomic<bool> mIsLiveStream;
 
  private:
   WatchManager<MediaDecoderStateMachineBase> mWatchManager;
