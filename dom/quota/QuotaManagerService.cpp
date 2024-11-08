@@ -122,6 +122,35 @@ struct ResponseTypeTraits<UInt64Response> {
 };
 
 template <>
+struct ResponseTypeTraits<CStringArrayResponse> {
+  static constexpr auto kType = CStringArrayResponse::TArrayOfnsCString;
+
+  static RefPtr<nsVariant> CreateVariant(
+      const CStringArrayResponse& aResponse) {
+    const CStringArray& strings = aResponse.get_ArrayOfnsCString();
+
+    auto variant = MakeRefPtr<nsVariant>();
+
+    if (strings.IsEmpty()) {
+      MOZ_ALWAYS_SUCCEEDS(variant->SetAsEmptyArray());
+    } else {
+      nsTArray<const char*> stringPointers(strings.Length());
+
+      std::transform(strings.cbegin(), strings.cend(),
+                     MakeBackInserter(stringPointers),
+                     std::mem_fn(&nsCString::get));
+
+      QM_TRY(MOZ_TO_RESULT(variant->SetAsArray(
+                 nsIDataType::VTYPE_CHAR_STR, /* aIID */ nullptr,
+                 stringPointers.Length(), stringPointers.Elements())),
+             nullptr);
+    }
+
+    return variant;
+  }
+};
+
+template <>
 struct ResponseTypeTraits<OriginUsageMetadataArrayResponse> {
   static constexpr auto kType =
       OriginUsageMetadataArrayResponse::TOriginUsageMetadataArray;
@@ -187,7 +216,11 @@ class ResponsePromiseResolveOrRejectCallback {
           RefPtr<nsVariant> variant =
               ResponseTypeTraits<ResponseType>::CreateVariant(response);
 
-          mRequest->SetResult(variant);
+          if (variant) {
+            mRequest->SetResult(variant);
+          } else {
+            mRequest->SetError(NS_ERROR_FAILURE);
+          }
           break;
         }
         default:
@@ -209,6 +242,9 @@ using BoolResponsePromiseResolveOrRejectCallback =
 using UInt64ResponsePromiseResolveOrRejectCallback =
     ResponsePromiseResolveOrRejectCallback<Request, UInt64ResponsePromise,
                                            UInt64Response>;
+using CStringArrayResponsePromiseResolveOrRejectCallback =
+    ResponsePromiseResolveOrRejectCallback<Request, CStringArrayResponsePromise,
+                                           CStringArrayResponse>;
 using OriginUsageMetadataArrayResponsePromiseResolveOrRejectCallback =
     ResponsePromiseResolveOrRejectCallback<
         UsageRequest, OriginUsageMetadataArrayResponsePromise,
@@ -1548,6 +1584,22 @@ QuotaManagerService::ListOrigins(nsIQuotaRequest** _retval) {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::ListCachedOrigins(nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
+
+  auto request = MakeRefPtr<Request>();
+
+  mBackgroundActor->SendListCachedOrigins()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      CStringArrayResponsePromiseResolveOrRejectCallback(request));
 
   request.forget(_retval);
   return NS_OK;

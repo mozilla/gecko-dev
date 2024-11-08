@@ -107,6 +107,9 @@ class Quota final : public PQuotaParent {
       const PrincipalInfo& aPrincipalInfo,
       GetCachedOriginUsageResolver&& aResolve) override;
 
+  virtual mozilla::ipc::IPCResult RecvListCachedOrigins(
+      ListCachedOriginsResolver&& aResolver) override;
+
   virtual mozilla::ipc::IPCResult RecvClearStoragesForOrigin(
       const Maybe<PersistenceType>& aPersistenceType,
       const PrincipalInfo& aPrincipalInfo,
