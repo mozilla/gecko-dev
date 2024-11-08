@@ -3081,8 +3081,6 @@ GeckoDriver.prototype.quit = async function (cmd) {
 };
 
 GeckoDriver.prototype.installAddon = function (cmd) {
-  lazy.assert.desktop();
-
   const { addon = null, path = null, temporary = false } = cmd.parameters;
 
   lazy.assert.boolean(
@@ -3120,8 +3118,6 @@ GeckoDriver.prototype.installAddon = function (cmd) {
 };
 
 GeckoDriver.prototype.uninstallAddon = function (cmd) {
-  lazy.assert.desktop();
-
   let id = cmd.parameters.id;
   if (typeof id == "undefined" || typeof id != "string") {
     throw new lazy.error.InvalidArgumentError();

@@ -8,6 +8,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
 
+  AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
 });
@@ -124,6 +125,12 @@ export class Addon {
    */
   static async installWithPath(path, temporary = false) {
     let file;
+
+    // On Windows we can end up with a path with mixed \ and /
+    // which doesn't work in Firefox.
+    if (lazy.AppInfo.isWindows) {
+      path = path.replace(/\//g, "\\");
+    }
 
     try {
       file = new lazy.FileUtils.File(path);

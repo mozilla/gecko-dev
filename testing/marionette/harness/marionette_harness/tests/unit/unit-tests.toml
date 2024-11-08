@@ -8,8 +8,6 @@
 
 ["test_actions_wheel.py"]
 
-["test_addons.py"]
-
 ["test_capabilities.py"]
 
 ["test_checkbox.py"]
@@ -36,10 +34,7 @@ skip-if = ["!manage_instance"]
 ["test_cookies.py"]
 
 ["test_crash.py"]
-skip-if = [
-  "asan",
-  "!manage_instance",
-]
+skip-if = ["asan", "!manage_instance"]
 
 ["test_data_driven.py"]
 
@@ -111,9 +106,7 @@ skip-if = ["os == 'win'"] # http://bugs.python.org/issue14574
 skip-if = ["!manage_instance"]
 
 ["test_profile_management.py"]
-skip-if = [
-  "!manage_instance"
-]
+skip-if = ["!manage_instance"]
 
 ["test_proxy.py"]
 
@@ -189,4 +182,4 @@ skip-if = ["os == 'linux' && os_version == '18.04' && !swgl"] # Bug 1709584
 ["test_window_type_chrome.py"]
 
 ["test_windowless.py"]
-run-if = ["os == 'mac'"]  # only supported on MacOS
+run-if = ["os == 'mac'"] # only supported on MacOS
