@@ -25,16 +25,6 @@ let CONFIG = [
             { name: "partnerCode", value: "{partnerCode}" },
             { name: "starbase", value: "Regula I" },
             { name: "experiment", value: "Genesis" },
-            {
-              name: "accessPoint",
-              searchAccessPoint: {
-                addressbar: "addressbar",
-                contextmenu: "contextmenu",
-                homepage: "homepage",
-                newtab: "newtab",
-                searchbar: "searchbar",
-              },
-            },
           ],
           searchTermParamName: "search",
         },
@@ -140,7 +130,7 @@ add_task(async function test_engine_with_all_params_set() {
   let submission = engine.getSubmission("test");
   Assert.equal(
     submission.uri.spec,
-    "https://example.com/1?partnerCode=pc&starbase=Regula%20I&experiment=Genesis&accessPoint=searchbar&search=test",
+    "https://example.com/1?partnerCode=pc&starbase=Regula%20I&experiment=Genesis&search=test",
     "Should have the correct search URL"
   );
   Assert.ok(!submission.postData, "Should not have postData for a GET url");

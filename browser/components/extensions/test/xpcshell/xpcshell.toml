@@ -49,9 +49,6 @@ skip-if = ["condprof"] # Bug 1776135 - by design, modifies search settings at st
 
 ["test_ext_settings_overrides_search.js"]
 
-["test_ext_settings_overrides_search_mozParam.js"]
-skip-if = ["condprof"] # Bug 1776652
-
 ["test_ext_settings_overrides_shutdown.js"]
 
 ["test_ext_settings_validate.js"]

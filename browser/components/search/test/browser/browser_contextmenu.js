@@ -43,12 +43,7 @@ add_setup(async function () {
           search_provider: {
             name,
             search_url,
-            params: [
-              {
-                name: "test",
-                value: "{searchTerms}",
-              },
-            ],
+            search_url_get_params: "test={searchTerms}",
           },
         },
       },

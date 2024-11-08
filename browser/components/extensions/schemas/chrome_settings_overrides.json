@@ -151,51 +151,6 @@
                     "type": "boolean",
                     "optional": true,
                     "description": "Sets the default engine to a built-in engine only."
-                  },
-                  "params": {
-                    "optional": true,
-                    "max_manifest_version": 2,
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "description": "A url parameter name"
-                        },
-                        "condition": {
-                          "type": "string",
-                          "optional": true,
-                          "enum": ["purpose", "pref"],
-                          "description": "The type of param can be either \"purpose\" or \"pref\"."
-                        },
-                        "pref": {
-                          "type": "string",
-                          "optional": true,
-                          "description": "The preference to retrieve the value from.",
-                          "preprocess": "localize"
-                        },
-                        "purpose": {
-                          "type": "string",
-                          "optional": true,
-                          "enum": [
-                            "contextmenu",
-                            "searchbar",
-                            "homepage",
-                            "keyword",
-                            "newtab"
-                          ],
-                          "description": "The context that initiates a search, required if condition is \"purpose\"."
-                        },
-                        "value": {
-                          "type": "string",
-                          "optional": true,
-                          "description": "A url parameter value.",
-                          "preprocess": "localize"
-                        }
-                      }
-                    },
-                    "description": "A list of optional search url parameters. This allows the additon of search url parameters based on how the search is performed in Firefox."
                   }
                 }
               }

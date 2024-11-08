@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/* Test that MozParam condition="pref" values used in search URLs can be set
+/* Test that preference parameters used in search URLs can be set
    by Nimbus, and that their special characters are URL encoded. */
 
 "use strict";
@@ -44,8 +44,6 @@ add_setup(async function () {
   getVariableStub = sinon.stub(NimbusFeatures.search, "getVariable");
   sinon.stub(NimbusFeatures.search, "ready").resolves();
 
-  // The test engines used in this test need to be recognized as application
-  // provided engines, or their MozParams will be ignored.
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 

@@ -4,9 +4,12 @@
 
 /* eslint no-shadow: error, mozilla/no-aArgs: error */
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+
 import {
   SearchEngine,
   EngineURL,
+  QueryParameter,
 } from "resource://gre/modules/SearchEngine.sys.mjs";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
@@ -14,6 +17,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
 });
@@ -24,6 +28,13 @@ XPCOMUtils.defineLazyServiceGetter(
   "@mozilla.org/widget/useridleservice;1",
   "nsIUserIdleService"
 );
+
+ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
+  return console.createInstance({
+    prefix: "SearchEngine",
+    maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
+  });
+});
 
 // After the user has been idle for 30s, we'll update icons if we need to.
 const ICON_UPDATE_ON_IDLE_DELAY = 30;
@@ -253,6 +264,100 @@ class IconHandler {
       this.#queuedIdle = true;
       lazy.idleService.addIdleObserver(this, ICON_UPDATE_ON_IDLE_DELAY);
     }
+  }
+}
+
+/**
+ * A simple class to handle caching of preferences that may be read from
+ * parameters.
+ */
+const ParamPreferenceCache = {
+  QueryInterface: ChromeUtils.generateQI([
+    "nsIObserver",
+    "nsISupportsWeakReference",
+  ]),
+
+  initCache() {
+    // Preference params are normally only on the default branch to avoid these being easily changed.
+    // We allow them on the normal branch in nightly builds to make testing easier.
+    let branchFetcher = AppConstants.NIGHTLY_BUILD
+      ? "getBranch"
+      : "getDefaultBranch";
+    this.branch = Services.prefs[branchFetcher](
+      lazy.SearchUtils.BROWSER_SEARCH_PREF + "param."
+    );
+    this.cache = new Map();
+    this.nimbusCache = new Map();
+    for (let prefName of this.branch.getChildList("")) {
+      this.cache.set(prefName, this.branch.getCharPref(prefName, null));
+    }
+    this.branch.addObserver("", this, true);
+
+    this.onNimbusUpdate = this.onNimbusUpdate.bind(this);
+    this.onNimbusUpdate();
+    lazy.NimbusFeatures.search.onUpdate(this.onNimbusUpdate);
+    lazy.NimbusFeatures.search.ready().then(this.onNimbusUpdate);
+  },
+
+  observe(subject, topic, data) {
+    this.cache.set(data, this.branch.getCharPref(data, null));
+  },
+
+  onNimbusUpdate() {
+    let extraParams =
+      lazy.NimbusFeatures.search.getVariable("extraParams") || [];
+    this.nimbusCache.clear();
+    // The try catch ensures that if the params were incorrect for some reason,
+    // the search service can still startup properly.
+    try {
+      for (const { key, value } of extraParams) {
+        this.nimbusCache.set(key, value);
+      }
+    } catch (ex) {
+      console.error("Failed to load nimbus variables for extraParams:", ex);
+    }
+  },
+
+  getPref(prefName) {
+    if (!this.cache) {
+      this.initCache();
+    }
+    return this.nimbusCache.has(prefName)
+      ? this.nimbusCache.get(prefName)
+      : this.cache.get(prefName);
+  },
+};
+
+/**
+ * Represents a special paramater that can be set by preferences. The
+ * value is read from the 'browser.search.param.*' default preference
+ * branch.
+ */
+class QueryPreferenceParameter extends QueryParameter {
+  /**
+   * @param {string} name
+   *   The name of the parameter as injected into the query string.
+   * @param {string} prefName
+   *   The name of the preference to read from the branch.
+   */
+  constructor(name, prefName) {
+    super(name, prefName);
+  }
+
+  get value() {
+    const prefValue = ParamPreferenceCache.getPref(this._value);
+    return prefValue ? encodeURIComponent(prefValue) : null;
+  }
+
+  toJSON() {
+    lazy.logConsole.warn(
+      "QueryPreferenceParameter should only exist for app provided engines which are never saved as JSON"
+    );
+    return {
+      condition: "pref",
+      name: this.name,
+      pref: this._value,
+    };
   }
 }
 
@@ -512,22 +617,9 @@ export class AppProvidedSearchEngine extends SearchEngine {
             );
             break;
           case "experimentConfig" in param:
-            engineURL._addMozParam({
-              name: param.name,
-              pref: param.experimentConfig,
-              condition: "pref",
-            });
-            break;
-          case "searchAccessPoint" in param:
-            for (const [key, value] of Object.entries(
-              param.searchAccessPoint
-            )) {
-              engineURL.addParam(
-                param.name,
-                value,
-                key == "addressbar" ? "keyword" : key
-              );
-            }
+            engineURL.addQueryParameter(
+              new QueryPreferenceParameter(param.name, param.experimentConfig)
+            );
             break;
         }
       }

@@ -18,16 +18,6 @@ let CONFIG_V2 = [
           params: [
             { name: "pc", value: "FIREFOX" },
             {
-              name: "form",
-              searchAccessPoint: {
-                newtab: "MOZNEWTAB",
-                homepage: "MOZHOMEPAGE",
-                searchbar: "MOZSEARCHBAR",
-                addressbar: "MOZKEYWORD",
-                contextmenu: "MOZCONTEXT",
-              },
-            },
-            {
               name: "channel",
               experimentConfig: "testChannelEnabled",
             },
@@ -56,18 +46,6 @@ add_setup(async function () {
   await Services.search.init();
 
   defaultEngine = Services.search.getEngineByName("Test Engine With Purposes");
-});
-
-add_task(async function test_searchTermFromResult_withAllPurposes() {
-  for (let purpose of Object.values(SearchUtils.PARAM_PURPOSES)) {
-    let uri = defaultEngine.getSubmission(TERM, null, purpose).uri;
-    let searchTerm = defaultEngine.searchTermFromResult(uri);
-    Assert.equal(
-      searchTerm,
-      TERM,
-      `Should return the correct url for purpose: ${purpose}`
-    );
-  }
 });
 
 add_task(async function test_searchTermFromResult() {
@@ -227,14 +205,6 @@ add_task(async function test_searchTermFromResult_blank() {
 
   url = getValidEngineUrl();
   url.searchParams.delete("pc");
-  Assert.equal(
-    getTerm(url),
-    "",
-    "Should get a blank string from a url with a missing a query parameter."
-  );
-
-  url = getValidEngineUrl();
-  url.searchParams.delete("form");
   Assert.equal(
     getTerm(url),
     "",

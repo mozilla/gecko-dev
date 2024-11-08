@@ -215,49 +215,11 @@
                 "description": "The value for the parameter will be derived from the equivalent experiment configuration value. If not experiment is present, this parameter will not be included in the final url.",
                 "type": "string",
                 "pattern": "^[a-zA-Z0-9-_]*$"
-              },
-              "searchAccessPoint": {
-                "title": "Search Access Point",
-                "description": "A parameter whose value depends on the access point where the search was initiated.",
-                "type": "object",
-                "properties": {
-                  "searchbar": {
-                    "title": "Name",
-                    "description": "The value for the parameter when searched from the search bar.",
-                    "type": "string",
-                    "pattern": "^[a-zA-Z0-9-_]*$"
-                  },
-                  "addressbar": {
-                    "title": "Name",
-                    "description": "The value for the parameter when searched from the address bar.",
-                    "type": "string",
-                    "pattern": "^[a-zA-Z0-9-_]*$"
-                  },
-                  "contextmenu": {
-                    "title": "Name",
-                    "description": "The value for the parameter when searched from the context menu.",
-                    "type": "string",
-                    "pattern": "^[a-zA-Z0-9-_]*$"
-                  },
-                  "homepage": {
-                    "title": "Name",
-                    "description": "The value for the parameter when searched from the homepage.",
-                    "type": "string",
-                    "pattern": "^[a-zA-Z0-9-_]*$"
-                  },
-                  "newtab": {
-                    "title": "Name",
-                    "description": "The value for the parameter when searched from the new tab page.",
-                    "type": "string",
-                    "pattern": "^[a-zA-Z0-9-_]*$"
-                  }
-                }
               }
             },
             "oneOf": [
               { "required": ["name", "value"] },
-              { "required": ["name", "experimentConfig"] },
-              { "required": ["name", "searchAccessPoint"] }
+              { "required": ["name", "experimentConfig"] }
             ]
           }
         },

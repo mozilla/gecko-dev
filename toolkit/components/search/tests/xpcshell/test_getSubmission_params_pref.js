@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/* Test that MozParam condition="pref" values used in search URLs are from the
+/* Test that preference parameters used in search URLs are from the
  * default branch, and that their special characters are URL encoded. */
 
 "use strict";
@@ -40,8 +40,6 @@ const CONFIG = [
 ];
 
 add_setup(async function () {
-  // The test engines used in this test need to be recognized as application
-  // provided engines, or their MozParams will be ignored.
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
 });
 

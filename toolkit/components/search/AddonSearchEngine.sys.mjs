@@ -213,15 +213,6 @@ export class AddonSearchEngine extends SearchEngine {
       }
     }
 
-    // Filter out any untranslated parameters, the extension has to list all
-    // possible mozParams for each engine where a 'locale' may only provide
-    // actual values for some (or none).
-    if (searchProvider.params) {
-      searchProvider.params = searchProvider.params.filter(param => {
-        return !(param.value && param.value.startsWith("__MSG_"));
-      });
-    }
-
     this._initWithDetails({
       ...searchProvider,
       iconURL,

@@ -45,7 +45,7 @@ const tests = [
     file: "mozilla-ns.xml",
     name: "mozilla-ns",
     description: "An engine using mozilla namespace",
-    // mozilla-ns.xml also specifies a MozParam. However, they are only
+    // mozilla-ns.xml also specifies a MozParam. However, they were only
     // valid for app-provided engines, and hence the param should not show
     // here.
     searchUrl: "https://example.com/search?q=foo",

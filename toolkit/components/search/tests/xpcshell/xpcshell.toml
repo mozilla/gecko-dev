@@ -87,8 +87,6 @@ tags = "remotesettings searchmain"
 
 ["test_getSubmission_params_prefNimbus_invalid.js"]
 
-["test_getSubmission_params_purpose.js"]
-
 ["test_identifiers.js"]
 
 ["test_ignorelist.js"]

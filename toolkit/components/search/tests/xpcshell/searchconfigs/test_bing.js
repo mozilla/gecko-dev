@@ -20,13 +20,6 @@ const test = new SearchConfigTest({
       domain: "bing.com",
       telemetryId:
         SearchUtils.MODIFIED_APP_CHANNEL == "esr" ? "bing-esr" : "bing",
-      codes: {
-        searchbar: "form=MOZLBR",
-        keyword: "form=MOZLBR",
-        contextmenu: "form=MOZLBR",
-        homepage: "form=MOZLBR",
-        newtab: "form=MOZLBR",
-      },
       searchUrlCode:
         SearchUtils.MODIFIED_APP_CHANNEL == "esr" ? "pc=MOZR" : "pc=MOZI",
     },

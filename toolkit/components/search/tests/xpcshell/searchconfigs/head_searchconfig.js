@@ -25,13 +25,6 @@ const TEST_DEBUG = Services.env.get("TEST_DEBUG");
 
 const URLTYPE_SUGGEST_JSON = "application/x-suggestions+json";
 const URLTYPE_SEARCH_HTML = "text/html";
-const SUBMISSION_PURPOSES = [
-  "searchbar",
-  "keyword",
-  "contextmenu",
-  "homepage",
-  "newtab",
-];
 
 let engineSelector;
 
@@ -409,9 +402,6 @@ class SearchConfigTest {
 
     for (const rule of details) {
       this._assertCorrectDomains(location, engine, rule);
-      if (rule.codes) {
-        this._assertCorrectCodes(location, engine, rule);
-      }
       if (rule.searchUrlCode || rule.suggestUrlCode) {
         this._assertCorrectUrlCode(location, engine, rule);
       }
@@ -474,37 +464,6 @@ class SearchConfigTest {
       this.assertOk(
         submission.uri.query.includes(rules.suggestUrlCode),
         `Should have the code in the uri`
-      );
-    }
-  }
-
-  /**
-   * Asserts whether the engine is using the correct codes or not.
-   *
-   * @param {string} location
-   *   Debug string with locale + region information.
-   * @param {object} engine
-   *   The engine being tested.
-   * @param {object} rules
-   *   Rules to test.
-   */
-  _assertCorrectCodes(location, engine, rules) {
-    for (const purpose of SUBMISSION_PURPOSES) {
-      // Don't need to repeat the code if we use it for all purposes.
-      const code =
-        typeof rules.codes === "string" ? rules.codes : rules.codes[purpose];
-      const submission = engine.getSubmission("test", "text/html", purpose);
-      const submissionQueryParams = submission.uri.query.split("&");
-      this.assertOk(
-        submissionQueryParams.includes(code),
-        `Expected "${code}" in url "${submission.uri.spec}" from purpose "${purpose}" ${location}`
-      );
-
-      const paramName = code.split("=")[0];
-      this.assertOk(
-        submissionQueryParams.filter(param => param.startsWith(paramName))
-          .length == 1,
-        `Expected only one "${paramName}" parameter in "${submission.uri.spec}" from purpose "${purpose}" ${location}`
       );
     }
   }
