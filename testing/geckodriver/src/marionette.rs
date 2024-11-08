@@ -6,7 +6,7 @@ use crate::browser::{Browser, LocalBrowser, RemoteBrowser};
 use crate::build;
 use crate::capabilities::{FirefoxCapabilities, FirefoxOptions, ProfileType};
 use crate::command::{
-    AddonInstallParameters, AddonUninstallParameters, GeckoContextParameters,
+    AddonInstallParameters, AddonPath, AddonUninstallParameters, GeckoContextParameters,
     GeckoExtensionCommand, GeckoExtensionRoute,
 };
 use crate::logging;
@@ -1110,7 +1110,18 @@ impl MarionetteCommand {
                 }
                 Extension(ref extension) => match extension {
                     GetContext => (Some("Marionette:GetContext"), None),
-                    InstallAddon(x) => (Some("Addon:Install"), Some(x.to_marionette())),
+                    InstallAddon(x) => match x {
+                        AddonInstallParameters::AddonBase64(data) => {
+                            let addon = AddonPath {
+                                path: browser.create_file(&data.addon)?,
+                                temporary: data.temporary,
+                            };
+                            (Some("Addon:Install"), Some(addon.to_marionette()))
+                        }
+                        AddonInstallParameters::AddonPath(data) => {
+                            (Some("Addon:Install"), Some(data.to_marionette()))
+                        }
+                    },
                     SetContext(x) => (Some("Marionette:SetContext"), Some(x.to_marionette())),
                     UninstallAddon(x) => (Some("Addon:Uninstall"), Some(x.to_marionette())),
                     _ => (None, None),
@@ -1438,7 +1449,7 @@ trait ToMarionette<T> {
     fn to_marionette(&self) -> WebDriverResult<T>;
 }
 
-impl ToMarionette<Map<String, Value>> for AddonInstallParameters {
+impl ToMarionette<Map<String, Value>> for AddonPath {
     fn to_marionette(&self) -> WebDriverResult<Map<String, Value>> {
         let mut data = Map::new();
         data.insert("path".to_string(), serde_json::to_value(&self.path)?);

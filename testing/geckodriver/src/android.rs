@@ -403,6 +403,16 @@ impl AndroidHandler {
         Ok(())
     }
 
+    pub fn push_as_file(&self, content: &[u8], path: &str) -> Result<String> {
+        let mut dest = self.test_root.clone();
+        dest.push(path);
+
+        let buffer = &mut io::Cursor::new(content);
+        self.process.device.push(buffer, &dest, 0o777)?;
+
+        Ok(dest.display().to_string())
+    }
+
     pub fn force_stop(&self) -> Result<()> {
         debug!(
             "Force stopping the Android package: {}",

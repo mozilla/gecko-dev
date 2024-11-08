@@ -8,10 +8,6 @@ use base64::Engine;
 use hyper::Method;
 use serde::de::{self, Deserialize, Deserializer};
 use serde_json::Value;
-use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-use uuid::Uuid;
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand};
 use webdriver::error::WebDriverResult;
 use webdriver::httpapi::WebDriverExtensionRoute;
@@ -106,70 +102,38 @@ impl WebDriverExtensionCommand for GeckoExtensionCommand {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct AddonInstallParameters {
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AddonBase64 {
+    #[serde(deserialize_with = "deserialize_base64")]
+    pub addon: Vec<u8>,
+    pub temporary: Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AddonPath {
     pub path: String,
     pub temporary: Option<bool>,
 }
 
-impl<'de> Deserialize<'de> for AddonInstallParameters {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Debug, Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Base64 {
-            addon: String,
-            temporary: Option<bool>,
-        }
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum AddonInstallParameters {
+    AddonBase64(AddonBase64),
+    AddonPath(AddonPath),
+}
 
-        #[derive(Debug, Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Path {
-            path: String,
-            temporary: Option<bool>,
-        }
+fn deserialize_base64<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let encoded_str = String::deserialize(deserializer)?;
+    let decoded_str = BASE64_STANDARD
+        .decode(encoded_str)
+        .map_err(de::Error::custom)?;
 
-        #[derive(Debug, Deserialize)]
-        #[serde(untagged)]
-        enum Helper {
-            Base64(Base64),
-            Path(Path),
-        }
-
-        let params = match Helper::deserialize(deserializer)? {
-            Helper::Path(ref mut data) => AddonInstallParameters {
-                path: data.path.clone(),
-                temporary: data.temporary,
-            },
-            Helper::Base64(ref mut data) => {
-                let content = BASE64_STANDARD
-                    .decode(&data.addon)
-                    .map_err(de::Error::custom)?;
-
-                let path = env::temp_dir()
-                    .as_path()
-                    .join(format!("addon-{}.xpi", Uuid::new_v4()));
-                let mut xpi_file = File::create(&path).map_err(de::Error::custom)?;
-                xpi_file
-                    .write(content.as_slice())
-                    .map_err(de::Error::custom)?;
-
-                let path = match path.to_str() {
-                    Some(path) => path.to_string(),
-                    None => return Err(de::Error::custom("could not write addon to file")),
-                };
-
-                AddonInstallParameters {
-                    path,
-                    temporary: data.temporary,
-                }
-            }
-        };
-
-        Ok(params)
-    }
+    Ok(decoded_str.clone())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -216,20 +180,26 @@ mod tests {
 
     #[test]
     fn test_json_addon_install_parameters_with_path_and_temporary() {
-        let params = AddonInstallParameters {
+        let params = AddonPath {
             path: "/path/to.xpi".to_string(),
             temporary: Some(true),
         };
-        assert_de(&params, json!({"path": "/path/to.xpi", "temporary": true}));
+        assert_de(
+            &AddonInstallParameters::AddonPath(params),
+            json!({"path": "/path/to.xpi", "temporary": true}),
+        );
     }
 
     #[test]
     fn test_json_addon_install_parameters_with_path() {
-        let params = AddonInstallParameters {
+        let params = AddonPath {
             path: "/path/to.xpi".to_string(),
             temporary: None,
         };
-        assert_de(&params, json!({"path": "/path/to.xpi"}));
+        assert_de(
+            &AddonInstallParameters::AddonPath(params),
+            json!({"path": "/path/to.xpi"}),
+        );
     }
 
     #[test]
@@ -249,11 +219,13 @@ mod tests {
         let json = json!({"addon": "aGVsbG8=", "temporary": true});
         let data = serde_json::from_value::<AddonInstallParameters>(json).unwrap();
 
-        assert_eq!(data.temporary, Some(true));
-        let mut file = File::open(data.path).unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).unwrap();
-        assert_eq!(contents, "hello");
+        match data {
+            AddonInstallParameters::AddonBase64(data) => {
+                assert_eq!(data.temporary, Some(true));
+                assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
+            }
+            _ => (),
+        }
     }
 
     #[test]
@@ -261,11 +233,13 @@ mod tests {
         let json = json!({"addon": "aGVsbG8="});
         let data = serde_json::from_value::<AddonInstallParameters>(json).unwrap();
 
-        assert_eq!(data.temporary, None);
-        let mut file = File::open(data.path).unwrap();
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).unwrap();
-        assert_eq!(contents, "hello");
+        match data {
+            AddonInstallParameters::AddonBase64(data) => {
+                assert_eq!(data.temporary, None);
+                assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
+            }
+            _ => (),
+        }
     }
 
     #[test]
