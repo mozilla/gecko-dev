@@ -598,25 +598,24 @@ export class UrlbarInput {
     // search mode depends on it.
     this.setPageProxyState(valid ? "valid" : "invalid", dueToTabSwitch);
 
-    if (state.persist?.shouldPersist) {
+    if (
+      state.persist?.shouldPersist &&
+      !lazy.UrlbarSearchTermsPersistence.searchModeMatchesState(
+        this.searchMode,
+        state
+      )
+    ) {
       // When search terms persist, on non-default engine search result pages
       // the address bar should show the same search mode. For default engines,
       // search mode should not persist.
-      if (
-        !lazy.UrlbarSearchTermsPersistence.searchModeMatchesState(
-          this.searchMode,
-          state
-        )
-      ) {
-        if (state.persist.isDefaultEngine) {
-          this.searchMode = null;
-        } else {
-          this.searchMode = {
-            engineName: state.persist.originalEngineName,
-            source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
-            isPreview: false,
-          };
-        }
+      if (state.persist.isDefaultEngine) {
+        this.searchMode = null;
+      } else {
+        this.searchMode = {
+          engineName: state.persist.originalEngineName,
+          source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+          isPreview: false,
+        };
       }
     } else if (dueToTabSwitch && !valid) {
       // If we're switching tabs, restore the tab's search mode.
