@@ -413,6 +413,9 @@ UTILITY_PROCESSES += [
     DllBlocklistEntry("ipseng64.dll", ALL_VERSIONS),
     DllBlocklistEntry("ipseng32.dll", ALL_VERSIONS),
     DllBlocklistEntry("kwsui64.dll", ALL_VERSIONS),
+
+    # Causes crashes in the LPAC utility process for PlayReady, bug 1895174
+    DllBlocklistEntry("WRusr.dll", ALL_VERSIONS),
 ]
 
 UTILITY_PROCESSES_TESTS += [
