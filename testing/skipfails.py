@@ -158,6 +158,7 @@ class Skipfails(object):
         dry_run=False,
         turbo=False,
         implicit_vars=False,
+        new_version=None,
     ):
         self.command_context = command_context
         if self.command_context is not None:
@@ -171,6 +172,7 @@ class Skipfails(object):
             self.try_url = try_url
         self.dry_run = dry_run
         self.implicit_vars = implicit_vars
+        self.new_version = new_version
         self.verbose = verbose
         self.turbo = turbo
         if bugzilla is not None:
@@ -1084,7 +1086,7 @@ class Skipfails(object):
                 if os == "macosx":
                     os = "mac"
             if "version" in platform_os:
-                os_version = platform_os["version"]
+                os_version = self.new_version or platform_os["version"]
                 if len(os_version) == 4:
                     os_version = os_version[0:2] + "." + os_version[2:4]
             if "build" in platform_os:
