@@ -118,7 +118,8 @@ const TAB_EVENTS = [
   "TabPinned",
   "TabUnpinned",
   "TabGroupCreate",
-  "TabGroupRemove",
+  "TabGroupRemoveRequested",
+  "TabGroupRemoved",
   "TabGrouped",
   "TabUngrouped",
   "TabGroupCollapse",
@@ -471,6 +472,26 @@ export var SessionStore = {
   },
 
   /**
+   * Forget a closed tab group associated with a given window
+   * Removes the record at the given index so it cannot be un-closed or appear
+   * in a list of recently-closed tabs
+   *
+   * @param {Window|Object} aSource
+   *        Either a DOMWindow or an object with properties to resolve to the window
+   *        the tab was previously open in.
+   * @param {String} aSource.sourceWindowId
+            A SessionStore window id used to look up the window where the tab group was closed
+   * @param {number} aSource.sourceClosedId
+            The closedId used to look up the closed window where the tab group was closed
+   * @param {Integer} [aIndex = 0]
+   *        The index into the window's list of closed tabs
+   * @throws {InvalidArgumentError} if the window is not tracked by SessionStore, or index is out of bounds
+   */
+  forgetClosedTabGroup: function ss_forgetClosedTabGroup(aSource, aIndex) {
+    return SessionStoreInternal.forgetClosedTabGroup(aSource, aIndex);
+  },
+
+  /**
    * Forget a closed tab that corresponds to the closedId
    * Removes the record with this closedId so it cannot be un-closed or appear
    * in a list of recently-closed tabs
@@ -776,10 +797,10 @@ export var SessionStore = {
 
   /**
    * Remove a tab group to the session's saved group list.
-   * @param {MozTabbrowserTabGroup} tabGroup - The group to remove
+   * @param {string} tabGroupId - The ID of the tab group to remove
    */
-  removeSavedTabGroup(tabGroup) {
-    return SessionStoreInternal.removeSavedTabGroup(tabGroup);
+  removeSavedTabGroup(tabGroupId) {
+    return SessionStoreInternal.removeSavedTabGroup(tabGroupId);
   },
 };
 
@@ -1711,12 +1732,16 @@ var SessionStoreInternal = {
         this.saveStateDelayed(win);
         break;
       case "TabGroupCreate":
-      case "TabGroupRemove":
+      case "TabGroupRemoved":
       case "TabGrouped":
       case "TabUngrouped":
       case "TabGroupCollapse":
       case "TabGroupExpand":
         this.saveStateDelayed(win);
+        break;
+      case "TabGroupRemoveRequested":
+        this.onTabGroupRemoveRequested(win, target);
+        this._notifyOfClosedObjectsChange();
         break;
       case "oop-browser-crashed":
       case "oop-browser-buildid-mismatch":
@@ -1778,6 +1803,7 @@ var SessionStoreInternal = {
     this._windows[aWindow.__SSi] = {
       tabs: [],
       groups: [],
+      closedGroups: [],
       selected: 0,
       _closedTabs: [],
       _lastClosedTabGroupCount: -1,
@@ -2616,6 +2642,10 @@ var SessionStoreInternal = {
           this._windows[ix]._closedTabs = [];
           this._closedObjectsChanged = true;
         }
+        if (this._windows[ix].closedGroups.length) {
+          this._windows[ix].closedGroups = [];
+          this._closedObjectsChanged = true;
+        }
       } else {
         delete this._windows[ix];
       }
@@ -2831,6 +2861,38 @@ var SessionStoreInternal = {
 
     // Store closed-tab data for undo.
     this.maybeSaveClosedTab(aWindow, aTab, tabState);
+  },
+
+  onTabGroupRemoveRequested: function ssi_onTabGroupRemoveRequested(
+    win,
+    tabGroup
+  ) {
+    // don't update our internal state if we don't have to
+    if (this._max_tabs_undo == 0) {
+      return;
+    }
+
+    let closedGroups = this._windows[win.__SSi].closedGroups;
+
+    let tabGroupState = lazy.TabGroupState.clone(tabGroup);
+    tabGroupState.closedAt = Date.now();
+
+    // Only save tab state for tabs that qualify
+    tabGroupState.tabs = tabGroupState.tabs.filter(t =>
+      this._shouldSaveTabState(t)
+    );
+
+    if (tabGroupState.tabs.length) {
+      // TODO(jswinarton) it's unclear if updating lastClosedTabGroupCount is
+      // necessary when restoring tab groups — it largely depends on how we
+      // decide to do the restore. If we add a _LAST_ACTION_CLOSED_TAB_GROUP
+      // item to the closed actions list, this may not be necessary.
+      // To address in bug1915174
+      this._windows[win.__SSi]._lastClosedTabGroupCount =
+        tabGroupState.tabs.length;
+      closedGroups.push(tabGroupState);
+      this._closedObjectsChanged = true;
+    }
   },
 
   /**
@@ -3230,9 +3292,19 @@ var SessionStoreInternal = {
       this._closedWindows.map(winData => winData._closedTabs)
     );
 
+    // Remove closed groups of closed windows
+    this._cleanupOldData(
+      this._closedWindows.map(winData => winData.closedGroups)
+    );
+
     // Remove closed tabs of open windows
     this._cleanupOldData(
       Object.keys(this._windows).map(key => this._windows[key]._closedTabs)
+    );
+
+    // Remove closed groups of open windows
+    this._cleanupOldData(
+      Object.keys(this._windows).map(key => this._windows[key].closedGroups)
     );
 
     this._notifyOfClosedObjectsChange();
@@ -3583,10 +3655,12 @@ var SessionStoreInternal = {
     for (let privateness of privateValues) {
       for (let window of this.getWindows({ private: privateness })) {
         const windowState = this._windows[window.__SSi];
-        if (!windowState._closedTabs?.length) {
+        const closedTabs =
+          this._getStateForClosedTabsAndClosedGroupTabs(windowState);
+        if (!closedTabs.length) {
           continue;
         }
-        if (windowState._closedTabs.find(tab => tab.closedId === aClosedId)) {
+        if (closedTabs.find(tab => tab.closedId === aClosedId)) {
           return window;
         }
       }
@@ -3615,7 +3689,9 @@ var SessionStoreInternal = {
 
   getClosedTabCountForWindow: function ssi_getClosedTabCountForWindow(aWindow) {
     if ("__SSi" in aWindow) {
-      return this._windows[aWindow.__SSi]._closedTabs.length;
+      return this._getStateForClosedTabsAndClosedGroupTabs(
+        this._windows[aWindow.__SSi]
+      ).length;
     }
 
     if (!DyingWindowCache.has(aWindow)) {
@@ -3625,7 +3701,9 @@ var SessionStoreInternal = {
       );
     }
 
-    return DyingWindowCache.get(aWindow)._closedTabs.length;
+    return this._getStateForClosedTabsAndClosedGroupTabs(
+      DyingWindowCache.get(aWindow)
+    ).length;
   },
 
   _prepareClosedTabOptions(aOptions = {}) {
@@ -3671,7 +3749,10 @@ var SessionStoreInternal = {
   getClosedTabCountFromClosedWindows:
     function ssi_getClosedTabCountFromClosedWindows() {
       const tabCount = this._closedWindows
-        .map(winData => winData._closedTabs.length)
+        .map(
+          winData =>
+            this._getStateForClosedTabsAndClosedGroupTabs(winData).length
+        )
         .reduce((total, count) => total + count, 0);
       return tabCount;
     },
@@ -3681,12 +3762,12 @@ var SessionStoreInternal = {
     // objects containing FormDatas, which could be stored by
     // form-associated custom elements.
     let options = { wrapReflectors: true };
+
     if ("__SSi" in aWindow) {
-      return Cu.cloneInto(
-        this._windows[aWindow.__SSi]._closedTabs,
-        {},
-        options
+      let closedTabs = this._getStateForClosedTabsAndClosedGroupTabs(
+        this._windows[aWindow.__SSi]
       );
+      return Cu.cloneInto(closedTabs, {}, options);
     }
 
     if (!DyingWindowCache.has(aWindow)) {
@@ -3697,7 +3778,8 @@ var SessionStoreInternal = {
     }
 
     let data = DyingWindowCache.get(aWindow);
-    return Cu.cloneInto(data._closedTabs, {}, options);
+    let closedTabs = this._getStateForClosedTabsAndClosedGroupTabs(data);
+    return Cu.cloneInto(closedTabs, {}, options);
   },
 
   getClosedTabData: function ssi_getClosedTabData(aOptions) {
@@ -3729,6 +3811,15 @@ var SessionStoreInternal = {
       }
       // sorting is left to the caller
       return closedTabData;
+    },
+
+  _getStateForClosedTabsAndClosedGroupTabs:
+    function ssi_getStateForClosedTabsAndClosedGroupTabs(winData) {
+      const closedGroups = winData.closedGroups ?? [];
+      return closedGroups.reduce(
+        (acc, group) => acc.concat(group.tabs),
+        winData._closedTabs ?? []
+      );
     },
 
   undoCloseTab: function ssi_undoCloseTab(aSource, aIndex, aTargetWindow) {
@@ -3888,6 +3979,26 @@ var SessionStoreInternal = {
 
     // remove closed tab from the array
     this.removeClosedTabData(winData, winData._closedTabs, aIndex);
+
+    // Notify of changes to closed objects.
+    this._notifyOfClosedObjectsChange();
+  },
+
+  forgetClosedTabGroup: function ssi_forgetClosedTabGroup(aSource, aIndex) {
+    const winData = this._resolveClosedDataSource(aSource);
+    // default to the most-recently closed tab
+    aIndex = aIndex || 0;
+    if (!(aIndex in winData.closedGroups)) {
+      throw Components.Exception(
+        "Invalid index: not in the closed groups",
+        Cr.NS_ERROR_INVALID_ARG
+      );
+    }
+
+    for (let i = 0; i < winData.closedGroups[aIndex].length; i++) {
+      this.removeClosedTabData(winData, winData.closedGroups[aIndex], i);
+    }
+    winData.closedGroups.splice(aIndex, 1);
 
     // Notify of changes to closed objects.
     this._notifyOfClosedObjectsChange();
@@ -5102,7 +5213,7 @@ var SessionStoreInternal = {
   },
 
   /**
-   * This function will restore window features and then retore window data.
+   * This function will restore window features and then restore window data.
    *
    * @param windows
    *        ordered array of windows to restore
@@ -6253,7 +6364,7 @@ var SessionStoreInternal = {
 
   /**
    * Determine if the tab state we're passed is something we should save. This
-   * is used when closing a tab or closing a window with a single tab
+   * is used when closing a tab, tab group, or closing a window with a single tab
    *
    * @param aTabState
    *        The current tab state
