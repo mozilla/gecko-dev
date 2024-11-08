@@ -18,7 +18,7 @@ export default {
   },
   parameters: {
     status: {
-      type: "unstable",
+      type: "stable",
       links: [
         {
           title: "Learn more",

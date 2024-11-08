@@ -10,7 +10,7 @@ export default {
   title: "UI Widgets/Toggle",
   component: "moz-toggle",
   parameters: {
-    status: "in-development",
+    status: "stable",
     actions: {
       handles: ["toggle"],
     },

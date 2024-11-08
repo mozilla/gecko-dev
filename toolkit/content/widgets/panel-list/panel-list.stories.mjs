@@ -16,7 +16,7 @@ export default {
     },
   },
   parameters: {
-    status: "in-development",
+    status: "stable",
     actions: {
       handles: ["showing", "shown", "hidden", "click"],
     },
