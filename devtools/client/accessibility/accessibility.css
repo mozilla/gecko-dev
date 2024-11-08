@@ -82,8 +82,7 @@ body {
   width: var(--accessibility-full-length-minus-splitter);
 }
 
-.devtools-button,
-.toggle-button {
+.devtools-button {
   cursor: pointer;
   border: 1px solid transparent;
 }
@@ -211,7 +210,6 @@ body {
   vertical-align: text-bottom;
 }
 
-.devtools-toolbar .badge.toggle-button[disabled],
 .tooltip-container .menuitem > .command[disabled] {
   opacity: 0.5;
 }
@@ -477,13 +475,6 @@ body {
   }
 }
 
-.badge.toggle-button {
-  color: var(--theme-body-color);
-  background-color: var(--badge-interactive-background-color);
-  border-color: transparent;
-}
-
-.devtools-toolbar .badge.toggle-button:focus,
 .devtools-toolbar .toolbar-menu-button:focus {
   outline: 2px solid var(--accessibility-toolbar-focus);
   outline-offset: -2px;
@@ -498,17 +489,6 @@ body {
 
 .treeTable:not(:focus, :focus-within) .treeRow.selected .badges .badge {
   color: var(--badge-color);
-}
-
-.badge.toggle-button.checked {
-  background-color: var(--badge-active-background-color);
-  color: var(--theme-selection-color);
-}
-
-/* Avoid having a default dotted border on keyboard focus since we provide focus
-   styling*/
-.badge.toggle-button::-moz-focus-inner {
-  border: none;
 }
 
 /* Right Sidebar */
