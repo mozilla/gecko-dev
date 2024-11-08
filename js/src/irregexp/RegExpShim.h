@@ -431,8 +431,7 @@ constexpr int kSystemPointerSize = sizeof(void*);
 
 // The largest integer n such that n and n + 1 are both exactly
 // representable as a Number value.  ES6 section 20.1.2.6
-constexpr uint64_t kMaxSafeIntegerUint64 = (uint64_t{1} << 53) - 1;
-constexpr double kMaxSafeInteger = static_cast<double>(kMaxSafeIntegerUint64);
+constexpr double kMaxSafeInteger = 9007199254740991.0;  // 2^53-1
 
 constexpr int kBitsPerByte = 8;
 constexpr int kBitsPerByteLog2 = 3;
@@ -1023,8 +1022,6 @@ class String : public HeapObject {
   template <typename Char>
   base::Vector<const Char> GetCharVector(
       const DisallowGarbageCollection& no_gc);
-
-  friend class RegExpUtils;
 };
 
 template <>
@@ -1349,12 +1346,6 @@ class Label {
   js::jit::CodeOffset patchOffset_;
 
   friend class SMRegExpMacroAssembler;
-};
-
-class RegExpUtils {
- public:
-  static uint64_t AdvanceStringIndex(Tagged<String> string, uint64_t index,
-                                     bool unicode);
 };
 
 #define v8_flags js::jit::JitOptions

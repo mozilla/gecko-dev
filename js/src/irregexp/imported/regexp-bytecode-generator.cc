@@ -312,7 +312,10 @@ void RegExpBytecodeGenerator::CheckCharacterNotInRange(base::uc16 from,
   EmitOrLink(on_not_in_range);
 }
 
-void RegExpBytecodeGenerator::EmitSkipTable(Handle<ByteArray> table) {
+void RegExpBytecodeGenerator::CheckBitInTable(Handle<ByteArray> table,
+                                              Label* on_bit_set) {
+  Emit(BC_CHECK_BIT_IN_TABLE, 0);
+  EmitOrLink(on_bit_set);
   for (int i = 0; i < kTableSize; i += kBitsPerByte) {
     int byte = 0;
     for (int j = 0; j < kBitsPerByte; j++) {
@@ -320,25 +323,6 @@ void RegExpBytecodeGenerator::EmitSkipTable(Handle<ByteArray> table) {
     }
     Emit8(byte);
   }
-}
-
-void RegExpBytecodeGenerator::CheckBitInTable(Handle<ByteArray> table,
-                                              Label* on_bit_set) {
-  Emit(BC_CHECK_BIT_IN_TABLE, 0);
-  EmitOrLink(on_bit_set);
-  EmitSkipTable(table);
-}
-
-void RegExpBytecodeGenerator::SkipUntilBitInTable(
-    int cp_offset, Handle<ByteArray> table, Handle<ByteArray> nibble_table,
-    int advance_by) {
-  Label cont;
-  Emit(BC_SKIP_UNTIL_BIT_IN_TABLE, cp_offset);
-  Emit32(advance_by);
-  EmitSkipTable(table);
-  EmitOrLink(&cont);  // goto_when_match
-  EmitOrLink(&cont);  // goto_on_failure
-  Bind(&cont);
 }
 
 void RegExpBytecodeGenerator::CheckNotBackReference(int start_reg,
@@ -389,8 +373,7 @@ void RegExpBytecodeGenerator::IfRegisterEqPos(int register_index,
   EmitOrLink(on_eq);
 }
 
-Handle<HeapObject> RegExpBytecodeGenerator::GetCode(Handle<String> source,
-                                                    RegExpFlags flags) {
+Handle<HeapObject> RegExpBytecodeGenerator::GetCode(Handle<String> source) {
   Bind(&backtrack_);
   Backtrack();
 
