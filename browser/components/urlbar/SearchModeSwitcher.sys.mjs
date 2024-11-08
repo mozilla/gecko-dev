@@ -293,7 +293,8 @@ export class SearchModeSwitcher {
       let engine = searchMode
         ? lazy.UrlbarSearchUtils.getEngineByName(searchMode.engineName)
         : lazy.UrlbarSearchUtils.getDefaultEngine();
-      return { label: engine.name, icon: await engine.getIconURL() };
+      let icon = (await engine.getIconURL()) ?? SearchModeSwitcher.DEFAULT_ICON;
+      return { label: engine.name, icon };
     }
 
     let mode = lazy.UrlbarUtils.LOCAL_SEARCH_MODES.find(
@@ -357,7 +358,8 @@ export class SearchModeSwitcher {
         this.search({ engine, openEngineHomePage: e.shiftKey });
       });
 
-      menuitem.setAttribute("image", await engine.getIconURL());
+      let icon = (await engine.getIconURL()) ?? SearchModeSwitcher.DEFAULT_ICON;
+      menuitem.setAttribute("image", icon);
       remoteContainer.appendChild(menuitem);
     }
     // Add local options.

@@ -967,3 +967,39 @@ add_task(async function test_search_service_fail() {
 
   await BrowserTestUtils.closeWindow(newWin);
 });
+
+add_task(async function test_search_mode_switcher_engine_no_icon() {
+  const testEngineName = "TestEngineNoIcon";
+  let searchExtension = await SearchTestUtils.installSearchExtension(
+    {
+      name: testEngineName,
+      search_url: "https://www.example.com/search?q=",
+      favicon_url: "",
+    },
+    { skipUnload: true }
+  );
+
+  let searchModeSwitcherButton = window.document.getElementById(
+    "searchmode-switcher-icon"
+  );
+
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+
+  popup.querySelector(`toolbarbutton[label=${testEngineName}]`).click();
+
+  let regex = /url\("([^"]+)"\)/;
+  let searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
+    () => searchModeSwitcherButton.style.listStyleImage.match(regex),
+    "Waiting for the search mode switcher icon to update."
+  );
+
+  const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
+
+  Assert.equal(
+    searchModeSwitcherIconUrl[1],
+    searchGlassIconUrl,
+    "The search mode switcher should display the default search glass icon when the engine has no icon."
+  );
+
+  await searchExtension.unload();
+});
