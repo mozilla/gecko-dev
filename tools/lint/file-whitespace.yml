@@ -104,6 +104,8 @@ file-whitespace:
         - layout/xul/test
         - layout/xul/tree
         - modules/libjar/zipwriter/test/unit/data/test_bug399727.html
+        # Room-generated database schemas for migration
+        - mobile/android/android-components/components/lib/crash/schemas
         - netwerk/test/crashtests
         - netwerk/test/mochitests/test1.css
         - netwerk/test/mochitests/test2.css
