@@ -68,6 +68,10 @@ icons) and access to a set of enhanced user actions such as triggering URLs,
 launching menus, or installing addons, which can be attached to interactive
 elements (such as buttons).
 
+Warning! Before reading, you should consider whether a `Messaging Experiment is relevant for your needs`__.
+
+.. __: https://docs.google.com/document/d/1S45a_nFn8QRM8gvsxCM6HHROrIQlQQl6fUlJ2j63PGI/edit
+
 Current templates include\:
 
 .. In theory, we ought to be able to use the :glob: directive here to
@@ -108,7 +112,6 @@ Detailed Docs
   first-run
   messaging-glossary
   remote_cfr
-  simple-cfr-template
   targeting-attributes
   targeting-guide
   telemetry

@@ -1,7 +1,7 @@
 # Contextual Feature Recommendation
 
 ## What are CFRs?
-The most commonly used CFR as a Messaging Surface is the doorhanger, which anchors to one of the UI elements such as the application menu, the identity panel and so on.
+CFR  Messaging Surface is the doorhanger, which anchors to one of the UI elements such as the application menu, the identity panel and so on.
 CFRs like any other messaging screen has specific triggers. You can learn more about triggers [here](https://firefox-source-docs.mozilla.org/toolkit/components/messaging-system/docs/TriggerActionSchemas/index.html).
 
 [More examples of templates supported with CFR](https://experimenter.info/messaging/desktop-messaging-surfaces/#doorhanger)
@@ -81,3 +81,34 @@ You can test CFR messaging surface by creating an experiment or landing message 
   "targeting": "firefoxVersion >= 115"
 }
 ```
+Legacy Simple CFR Template
+--------------------
+
+The “Simple CFR Template” is a two-stage UI (a chiclet notification and a door-hanger)
+that shows up on a configurable trigger condition, such as when the user visits a particular web page.
+
+To test specific Test Messages with legacy CFR templates in the tree, follow these steps:
+
+1. Go to `about:config`, set pref `browser.newtabpage.activity-stream.asrouter.devtoolsEnabled` to `true`
+2. Set pref `browser.newtabpage.activity-stream.asrouter.providers.cfrlocal` to `{"id":"cfrlocal","type":"local","localProvider":"CFRMessageProvider","enabled":true,"exclude":[]}`
+3. Open a new tab and go to `about:asrouter#devtools` in the url bar
+3. In devtools Messages section, under Filters show messages from `cfrlocal` as provider
+4. You should see example JSON messages with `"template": "cfr_doorhanger"` or `"template": "cfr_urlbar_chiclet"`. Clicking `Show` next to CFR message should show respective message UI
+
+![CFRDoorhanger](./cfr_doorhanger_screenshot.png)
+
+## Doorhanger Configuration
+
+### Stage 1 – Chiclet
+
+* **chiclet_label**: The text that shows up in the chiclet. 20 characters max.
+* **chiclet_color**: The background color of the chiclet as a HEX code.
+
+
+### Stage 2 – Door-hanger
+
+* **title**: Title text at the top of the door hanger.
+* **body**: A longer paragraph of text.
+* **icon**: An image (please provide a URL or the image file up to 96x96px).
+* **primary_button_label**: The label of the button.
+* **primary_button_action**: The special action triggered by clicking on the button. Choose any of the available [button actions](https://firefox-source-docs.mozilla.org/toolkit/components/messaging-system/docs/SpecialMessageActionSchemas/index.html). Common examples include opening a section of about:preferences, or opening a URL.
