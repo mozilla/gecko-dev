@@ -139,11 +139,12 @@ export var UpdateUtils = {
         return (this._locale = locale.trim());
       }
     }
-
-    console.error(
-      FILE_UPDATE_LOCALE,
-      " file doesn't exist in either the application or GRE directories"
-    );
+    if (AppConstants.MOZ_UPDATER) {
+      console.error(
+        FILE_UPDATE_LOCALE,
+        " file doesn't exist in either the application or GRE directories"
+      );
+    }
 
     return (this._locale = null);
   },
