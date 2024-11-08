@@ -625,8 +625,7 @@ class GleanCrashReporterService(
 
         val extrasJson = crash.extrasPath?.let { getExtrasJson(it) }
 
-        val minidumpHash =
-            if (!crash.minidumpSuccess) null else crash.minidumpPath?.let { calculateMinidumpHash(it) }
+        val minidumpHash = crash.minidumpPath?.let { calculateMinidumpHash(it) }
 
         recordCrashAction(
             GleanCrashAction.Ping(
