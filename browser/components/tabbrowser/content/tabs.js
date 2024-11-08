@@ -778,6 +778,7 @@
           t => t.pinned == tab.pinned
         ),
         fromTabList,
+        tabGroupCreationColor: gBrowser.tabGroupMenu.nextUnusedColor,
       };
 
       event.stopPropagation();
@@ -1048,6 +1049,7 @@
             gBrowser.addTabGroup([groupTab, ...movingTabs], {
               insertBefore: draggedTab,
               showCreateUI: true,
+              color: draggedTab._dragData.tabGroupCreationColor,
             });
           }
         }
@@ -2236,7 +2238,7 @@
             "dragover-createGroup",
             true
           );
-          this.#setDragOverGroupColor(gBrowser.tabGroupMenu.nextUnusedColor);
+          this.#setDragOverGroupColor(dragData.tabGroupCreationColor);
         } else {
           this.removeAttribute("movingtab-createGroup");
         }
