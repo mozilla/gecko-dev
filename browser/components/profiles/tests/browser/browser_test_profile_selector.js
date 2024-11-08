@@ -47,9 +47,14 @@ add_task(async function test_selector_window() {
 
           let expected;
           if (Services.appinfo.OS === "Darwin") {
-            expected = ["-foreground", "--profile", aProfile.path];
+            expected = [
+              "-foreground",
+              "--profile",
+              aProfile.path,
+              "--profiles-activate",
+            ];
           } else {
-            expected = ["--profile", aProfile.path];
+            expected = ["--profile", aProfile.path, "--profiles-activate"];
           }
 
           Assert.deepEqual(input[1], expected, "Expected runw arguments");

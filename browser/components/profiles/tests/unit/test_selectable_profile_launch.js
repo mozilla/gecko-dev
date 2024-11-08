@@ -25,9 +25,30 @@ add_task(async function test_launcher() {
 
   let expected;
   if (Services.appinfo.OS == "Darwin") {
-    expected = ["-foreground", "--profile", profile.path];
+    expected = [
+      "-foreground",
+      "--profile",
+      profile.path,
+      "--profiles-activate",
+    ];
   } else {
-    expected = ["--profile", profile.path];
+    expected = ["--profile", profile.path, "--profiles-activate"];
+  }
+
+  Assert.deepEqual(expected, input[1], "Expected runw arguments");
+
+  SelectableProfileService.launchInstance(profile, "about:profilemanager");
+
+  if (Services.appinfo.OS == "Darwin") {
+    expected = [
+      "-foreground",
+      "--profile",
+      profile.path,
+      "-url",
+      "about:profilemanager",
+    ];
+  } else {
+    expected = ["--profile", profile.path, "-url", "about:profilemanager"];
   }
 
   Assert.deepEqual(expected, input[1], "Expected runw arguments");
