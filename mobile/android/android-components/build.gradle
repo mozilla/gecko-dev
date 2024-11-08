@@ -352,8 +352,13 @@ tasks.register("ktlint", JavaExec) {
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     mainClass.set("com.pinterest.ktlint.Main")
-    args "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt", "--baseline=ktlint-baseline.xml",
-        "--reporter=json,output=build/reports/ktlint/ktlint.json", "--reporter=plain"
+    args "components/**/*.kt"
+    args "samples/**/*.kt"
+    args "!**/build/**/*.kt"
+    args "buildSrc/**/*.kt"
+    args "--baseline=ktlint-baseline.xml"
+    args "--reporter=json,output=build/reports/ktlint/ktlint.json"
+    args "--reporter=plain"
 }
 
 tasks.register("ktlintFormat", JavaExec) {
@@ -361,7 +366,14 @@ tasks.register("ktlintFormat", JavaExec) {
     description = "Fix Kotlin code style deviations."
     classpath = configurations.ktlint
     mainClass.set("com.pinterest.ktlint.Main")
-    args "-F", "components/**/*.kt" , "samples/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt", "--baseline=ktlint-baseline.xml"
+    args "-F"
+    args "components/**/*.kt"
+    args "samples/**/*.kt"
+    args "!**/build/**/*.kt"
+    args "buildSrc/**/*.kt"
+    args "--baseline=ktlint-baseline.xml"
+    args "--reporter=json,output=build/reports/ktlint/ktlintFormat.json"
+    args "--reporter=plain"
     jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
 }
 

@@ -280,13 +280,16 @@ def report_gradlew(config, fix, subdir, **lintargs):
     except FileNotFoundError:
         pass
 
+    ktlint_file = "ktlint.json"
+    if fix:
+        ktlint_file = "ktlintFormat.json"
     try:
         issues = json.load(
             open(
                 os.path.join(
                     reports,
                     "ktlint",
-                    "ktlint.json",
+                    ktlint_file,
                 ),
                 "rt",
             )

@@ -1,7 +1,7 @@
 ---
-android-fenix:
+android-focus:
     description: Android formatting lint for Focus
-    include: ['mobile/android/focus-android']
+    include: ['mobile/android']
     exclude: []
     extensions: ['java', 'kt']
     support-files:

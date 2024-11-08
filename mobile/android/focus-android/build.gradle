@@ -193,8 +193,11 @@ tasks.register('ktlint', JavaExec) {
     description = "Check Kotlin code style."
     classpath = configurations.ktlint
     mainClass.set("com.pinterest.ktlint.Main")
-    args "app/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt",
-        "--reporter=json,output=build/reports/ktlint/ktlint.json", "--reporter=plain"
+    args "app/**/*.kt"
+    args "!**/build/**/*.kt"
+    args "buildSrc/**/*.kt"
+    args "--reporter=json,output=build/reports/ktlint/ktlint.json"
+    args "--reporter=plain"
 }
 
 
@@ -202,7 +205,12 @@ tasks.register('ktlintFormat', JavaExec) {
     description = "Fix Kotlin code style deviations."
     classpath = configurations.ktlint
     mainClass.set("com.pinterest.ktlint.Main")
-    args "-F", "app/**/*.kt", "!**/build/**/*.kt", "buildSrc/**/*.kt"
+    args "-F"
+    args "app/**/*.kt"
+    args "!**/build/**/*.kt"
+    args "buildSrc/**/*.kt"
+    args "--reporter=json,output=build/reports/ktlint/ktlintFormat.json"
+    args "--reporter=plain"
     jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
 }
 

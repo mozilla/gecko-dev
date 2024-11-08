@@ -1,7 +1,7 @@
 ---
 android-ac:
     description: Android formatting lint for Android Components
-    include: ['mobile/android/android-components']
+    include: ['mobile/android']
     exclude: []
     extensions: ['java', 'kt']
     support-files:
