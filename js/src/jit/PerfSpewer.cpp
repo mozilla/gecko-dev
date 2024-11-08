@@ -256,10 +256,6 @@ static void CheckPerf() {
     const char* env = getenv("IONPERF");
     if (env == nullptr) {
       PerfMode = PerfModeType::None;
-      fprintf(stderr,
-              "Warning: JIT perf reporting requires IONPERF set to \"func\" "
-              ", \"src\" or \"ir\". ");
-      fprintf(stderr, "Perf mapping will be deactivated.\n");
     } else if (!strcmp(env, "src")) {
       PerfMode = PerfModeType::Source;
     } else if (!strcmp(env, "ir")) {
@@ -924,6 +920,10 @@ void PerfSpewer::saveProfile(JitCode* code, UniqueChars& desc,
 }
 
 IonICPerfSpewer::IonICPerfSpewer(jsbytecode* pc) {
+  if (!PerfEnabled()) {
+    return;
+  }
+
   if (!opcodes_.emplaceBack(pc)) {
     AutoLockPerfSpewer lock;
     opcodes_.clear();
