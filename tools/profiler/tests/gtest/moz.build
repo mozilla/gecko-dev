@@ -11,7 +11,6 @@ if (
     in (
         "arm",
         "aarch64",
-        "x86",
         "x86_64",
     )
 ):
@@ -31,7 +30,12 @@ LOCAL_INCLUDES += [
 ]
 
 # Bug 1885381 - Hangs/timeouts under TSAN
-if CONFIG["OS_TARGET"] != "Android" and not CONFIG["MOZ_TSAN"]:
+if (
+    CONFIG["OS_TARGET"] != "Android"
+    and not CONFIG["MOZ_TSAN"]
+    # Bug 1930156 - Frequent OOMs on 32-bit platforms.
+    and CONFIG["TARGET_CPU"] != "x86"
+):
     UNIFIED_SOURCES += [
         "GeckoProfiler.cpp",
         "ThreadProfileTest.cpp",
