@@ -458,7 +458,7 @@ export class _CardGrid extends React.PureComponent {
         // Place the list feed as the 3rd element in the card grid
         cards.splice(
           2,
-          0,
+          1,
           this.renderListFeed(
             this.props.data.recommendations,
             listFeedSelectedFeed
