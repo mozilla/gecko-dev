@@ -1252,12 +1252,6 @@ def manifest(_command_context):
     action="store_true",
     help="Use implicit variables in reftest manifests",
 )
-@CommandArgument(
-    "-n",
-    "--new-version",
-    dest="new_version",
-    help="New version to use for annotations",
-)
 def skipfails(
     command_context,
     try_url,
@@ -1272,7 +1266,6 @@ def skipfails(
     verbose=False,
     dry_run=False,
     implicit_vars=False,
-    new_version=None,
 ):
     from skipfails import Skipfails
 
@@ -1291,14 +1284,7 @@ def skipfails(
         max_failures = -1
 
     Skipfails(
-        command_context,
-        try_url,
-        verbose,
-        bugzilla,
-        dry_run,
-        turbo,
-        implicit_vars,
-        new_version,
+        command_context, try_url, verbose, bugzilla, dry_run, turbo, implicit_vars
     ).run(
         meta_bug_id,
         save_tasks,
