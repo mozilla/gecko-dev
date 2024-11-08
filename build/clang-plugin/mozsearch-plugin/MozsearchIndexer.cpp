@@ -31,6 +31,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <stack>
 #include <string>
 #include <tuple>
 #include <unordered_set>
@@ -989,6 +990,20 @@ public:
     return Context();
   }
 
+  // Searches for the closest CurDeclContext parent that is a function template instantiation
+  const FunctionDecl *getCurrentFunctionTemplateInstantiation() {
+    const auto *Ctxt = CurDeclContext;
+    while (Ctxt) {
+      if (Ctxt->Decl && isa<FunctionDecl>(Ctxt->Decl)) {
+        const auto *F = Ctxt->Decl->getAsFunction();
+        if (F->isTemplateInstantiation())
+          return F;
+      }
+      Ctxt = Ctxt->Prev;
+    }
+    return nullptr;
+  }
+
   // Analyzing template code is tricky. Suppose we have this code:
   //
   //   template<class T>
@@ -1103,6 +1118,9 @@ public:
   };
 
   AutoTemplateContext *TemplateStack;
+
+  std::unordered_multimap<const FunctionDecl *, const Stmt *> ForwardingTemplates;
+  std::unordered_set<unsigned> ForwardedTemplateLocations;
 
   bool shouldVisitTemplateInstantiations() const {
     if (TemplateStack) {
@@ -2094,12 +2112,25 @@ public:
     return true;
   }
 
-  bool VisitCXXConstructExpr(CXXConstructExpr *E) {
+  bool VisitCXXConstructExpr(const CXXConstructExpr *E) {
     SourceLocation Loc = E->getBeginLoc();
     if (!isInterestingLocation(Loc)) {
       return true;
     }
 
+    // If we are in a template and find a Stmt that was registed in ForwardedTemplateLocations,
+    // convert the location to an actual Stmt* in ForwardingTemplates
+    if (TemplateStack && !TemplateStack->inGatherMode()) {
+      if (ForwardedTemplateLocations.find(E->getBeginLoc().getRawEncoding()) != ForwardedTemplateLocations.end()) {
+        ForwardingTemplates.insert({getCurrentFunctionTemplateInstantiation(), E});
+        return true;
+      }
+    }
+
+    return VisitCXXConstructExpr(E, Loc);
+  }
+
+  bool VisitCXXConstructExpr(const CXXConstructExpr *E, SourceLocation Loc) {
     SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
 
     FunctionDecl *Ctor = E->getConstructor();
@@ -2112,6 +2143,19 @@ public:
 
     visitIdentifier("use", "constructor", getQualifiedName(Ctor), Loc, Mangled,
                     QualType(), getContext(SpellingLoc));
+
+    return true;
+  }
+
+  bool VisitUnresolvedLookupExpr(UnresolvedLookupExpr *E) {
+    // If we are in a template and the callee is type-dependent, register it in ForwardedTemplateLocations
+    // to forward its uses to the surrounding template call site
+    if (TemplateStack && TemplateStack->inGatherMode()) {
+      if (E->isTypeDependent()) {
+        TemplateStack->visitDependent(E->getBeginLoc());
+        ForwardedTemplateLocations.insert(E->getBeginLoc().getRawEncoding());
+      }
+    }
 
     return true;
   }
@@ -2251,10 +2295,20 @@ public:
     return true;
   }
 
-  bool VisitDeclRefExpr(DeclRefExpr *E) {
+  bool VisitDeclRefExpr(const DeclRefExpr *E) {
     SourceLocation Loc = E->getExprLoc();
     if (!isInterestingLocation(Loc)) {
       return true;
+    }
+
+    // If we are in a template and find a Stmt that was registed in ForwardedTemplateLocations,
+    // convert the location to an actual Stmt* in ForwardingTemplates
+    if (TemplateStack && !TemplateStack->inGatherMode()) {
+      const auto IsForwarded = ForwardedTemplateLocations.find(E->getBeginLoc().getRawEncoding()) != ForwardedTemplateLocations.end();
+      if (IsForwarded) {
+        ForwardingTemplates.insert({getCurrentFunctionTemplateInstantiation(), E});
+        return true;
+      }
     }
 
     SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
@@ -2264,7 +2318,7 @@ public:
       SpellingLoc = SM.getSpellingLoc(Loc);
     }
 
-    NamedDecl *Decl = E->getDecl();
+    const NamedDecl *Decl = E->getDecl();
     if (const VarDecl *D2 = dyn_cast<VarDecl>(Decl)) {
       int Flags = 0;
       if (D2->isLocalVarDeclOrParm()) {
@@ -2277,6 +2331,35 @@ public:
       const FunctionDecl *F = dyn_cast<FunctionDecl>(Decl);
       if (F->isTemplateInstantiation()) {
         Decl = F->getTemplateInstantiationPattern();
+
+        // If this is a forwarding template (eg MakeUnique), visit the forwarded statements
+        auto todo = std::stack{std::vector<const Stmt *>{E}};
+        auto seen = std::unordered_set<const Stmt *>{};
+        while (!todo.empty()) {
+          const auto forwarded = std::move(todo.top());
+          todo.pop();
+          if (seen.find(forwarded) != seen.end())
+            continue;
+          seen.insert(forwarded);
+
+          if (const auto *C = dyn_cast<CXXConstructExpr>(forwarded))
+            VisitCXXConstructExpr(C, Loc);
+
+          if (const auto *D = dyn_cast<DeclRefExpr>(forwarded)) {
+            const auto *Decl = D->getDecl();
+            if (!Decl)
+              continue;
+            const auto *F = Decl->getAsFunction();
+            if (!F)
+              continue;
+            if (!F->isTemplateInstantiation())
+              continue;
+            const auto [ForwardedBegin, ForwardedEnd] = ForwardingTemplates.equal_range(F);
+            for (auto ForwardedIt = ForwardedBegin; ForwardedIt != ForwardedEnd; ++ForwardedIt)
+              if (seen.find(ForwardedIt->second) == seen.end())
+                todo.push(ForwardedIt->second);
+          }
+        }
       }
 
       std::string Mangled = getMangledName(CurMangleContext, Decl);
@@ -2404,6 +2487,26 @@ public:
     // gather more accurate results from them.
     if (TemplateStack) {
       TemplateStack->visitDependent(Loc);
+    }
+    return true;
+  }
+
+  bool VisitCXXNewExpr(CXXNewExpr *N) {
+    SourceLocation Loc = N->getExprLoc();
+    normalizeLocation(&Loc);
+    if (!isInterestingLocation(Loc)) {
+      return true;
+    }
+
+    // If we are in a template and the new is type-dependent, register it in ForwardedTemplateLocations
+    // to forward its uses to the surrounding template call site
+    if (TemplateStack && TemplateStack->inGatherMode()) {
+      const auto *TypeInfo = N->getAllocatedTypeSourceInfo();
+      const auto ConstructExprLoc = TypeInfo->getTypeLoc().getBeginLoc();
+      if (N->isTypeDependent()) {
+        TemplateStack->visitDependent(ConstructExprLoc);
+        ForwardedTemplateLocations.insert(ConstructExprLoc.getRawEncoding());
+      }
     }
     return true;
   }
