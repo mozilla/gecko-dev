@@ -17,19 +17,22 @@ class BackupTest(MarionetteTestCase):
 
     def setUp(self):
         MarionetteTestCase.setUp(self)
-        # We need to quit the browser and restart with the browser.backup.log
-        # pref already set to true in order for it to be displayed.
+
+        # We need to force the "browser.backup.log" pref already set to true
+        # before Firefox starts in order for it to be displayed.
+        self.marionette.enforce_gecko_prefs({"browser.backup.log": True})
+
+        self.marionette.set_context("chrome")
+
+    def tearDown(self):
+        # Restart Firefox with a new profile to get rid from all modifications.
         self.marionette.quit()
-        self.marionette.instance.prefs = {
-            "browser.backup.log": True,
-        }
-        # Now restart the browser.
         self.marionette.instance.switch_profile()
         self.marionette.start_session()
 
-    def test_backup(self):
-        self.marionette.set_context("chrome")
+        MarionetteTestCase.tearDown(self)
 
+    def test_backup(self):
         self.add_test_cookie()
         self.add_test_login()
         self.add_test_certificate()
@@ -81,9 +84,8 @@ class BackupTest(MarionetteTestCase):
 
         # Restart the browser to force all of the test data we just added
         # to be flushed to disk and to be made ready for backup
-        self.marionette.quit()
-        self.marionette.start_session()
-        self.marionette.set_context("chrome")
+        self.marionette.restart()
+
         # Put the OSKeyStore label back, since it would have been cleared
         # from memory during the restart.
         self.marionette.execute_script(
@@ -147,7 +149,7 @@ class BackupTest(MarionetteTestCase):
         # Start a brand new profile, one without any of the data we created or
         # backed up. This is the one that we'll be starting recovery from.
         self.marionette.quit()
-        self.marionette.instance.profile = None
+        self.marionette.instance.switch_profile()
         self.marionette.start_session()
         self.marionette.set_context("chrome")
 
@@ -273,12 +275,12 @@ class BackupTest(MarionetteTestCase):
         )
         self.assertEqual(recoveredClientID, expectedClientID)
 
-        # Try not to pollute the profile list by getting rid of the one we just
-        # created.
         self.marionette.quit()
         self.marionette.instance.profile = originalProfile
         self.marionette.start_session()
         self.marionette.set_context("chrome")
+
+        # Don't pollute the profile list by getting rid of the one we just created.
         self.marionette.execute_async_script(
             """
           let [newProfileName, outerResolve] = arguments;
@@ -292,8 +294,7 @@ class BackupTest(MarionetteTestCase):
             script_args=[newProfileName],
         )
 
-        # Cleanup the archive we moved, and the recovery folder we decompressed
-        # to.
+        # Cleanup the archive we moved, and the recovery folder we decompressed to.
         mozfile.remove(archivePath)
         mozfile.remove(recoveryPath)
 
