@@ -9,7 +9,7 @@
 var UAHelpers = {
   _deviceAppropriateChromeUAs: {},
   getDeviceAppropriateChromeUA(config = {}) {
-    const { version = "103.0.5060.71", androidDevice, desktopOS } = config;
+    const { version = "130.0.0.0", androidDevice, desktopOS } = config;
     const key = `${version}:${androidDevice}:${desktopOS}`;
     if (!UAHelpers._deviceAppropriateChromeUAs[key]) {
       const userAgent =
