@@ -443,7 +443,6 @@ const AVAILABLE_INJECTIONS = [
         "*://*.franmar.com/*", // 27273
         "*://*.themusiclab.org/*", // 49667
         "*://*.oregonfoodbank.org/*", // 53203
-        "*://bluetokaicoffee.com/*", // 99867
         "*://bathpublishing.com/*", // 100145
         "*://dylantalkstone.com/*", // 101356
         "*://renewd.com.au/*", // 104998
@@ -456,7 +455,6 @@ const AVAILABLE_INJECTIONS = [
         "*://drafthouse.com/*", // 126385
         "*://*.lafoodbank.org/*", // 127006
         "*://rutamayacoffee.com/*", // 129353
-        "*://ottoandspike.com.au/*", // bugzilla 1644602
         "*://give.umrelief.org/give/*", // bugzilla 1916407
       ],
       js: [
