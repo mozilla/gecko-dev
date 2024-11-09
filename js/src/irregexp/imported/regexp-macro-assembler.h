@@ -42,7 +42,8 @@ class RegExpMacroAssembler {
   RegExpMacroAssembler(Isolate* isolate, Zone* zone);
   virtual ~RegExpMacroAssembler() = default;
 
-  virtual Handle<HeapObject> GetCode(Handle<String> source) = 0;
+  virtual Handle<HeapObject> GetCode(Handle<String> source,
+                                     RegExpFlags flags) = 0;
 
   // This function is called when code generation is aborted, so that
   // the assembler could clean up internal data structures.
@@ -50,7 +51,7 @@ class RegExpMacroAssembler {
   // The maximal number of pushes between stack checks. Users must supply
   // kCheckStackLimit flag to push operations (instead of kNoStackLimitCheck)
   // at least once for every stack_limit() pushes that are executed.
-  virtual int stack_limit_slack() = 0;
+  virtual int stack_limit_slack_slot_count() = 0;
   virtual bool CanReadUnaligned() const = 0;
 
   virtual void AdvanceCurrentPosition(int by) = 0;  // Signed cp change.
@@ -105,6 +106,11 @@ class RegExpMacroAssembler {
   // The current character (modulus the kTableSize) is looked up in the byte
   // array, and if the found byte is non-zero, we jump to the on_bit_set label.
   virtual void CheckBitInTable(Handle<ByteArray> table, Label* on_bit_set) = 0;
+
+  virtual void SkipUntilBitInTable(int cp_offset, Handle<ByteArray> table,
+                                   Handle<ByteArray> nibble_table,
+                                   int advance_by) = 0;
+  virtual bool SkipUntilBitInTableUseSimd(int advance_by) { return false; }
 
   // Checks whether the given offset from the current position is before
   // the end of the string.  May overwrite the current character.
@@ -351,7 +357,8 @@ class NativeRegExpMacroAssembler: public RegExpMacroAssembler {
                      int* output, int output_size, Isolate* isolate,
                      Tagged<IrRegExpData> regexp_data);
 
-  ZoneUnorderedMap<uint32_t, Handle<FixedUInt16Array>> range_array_cache_;
+  ZoneUnorderedMap<uint32_t, IndirectHandle<FixedUInt16Array>>
+      range_array_cache_;
 };
 
 }  // namespace internal
