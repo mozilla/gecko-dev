@@ -106,6 +106,7 @@ class MarkStack {
   enum Tag {
     SlotsOrElementsRangeTag = 0,  // Must match SlotsOrElementsKind::Unused.
     ObjectTag,
+    SymbolTag,
     JitCodeTag,
     ScriptTag,
     TempRopeTag,
@@ -494,6 +495,9 @@ class GCMarker {
 
   template <uint32_t markingOptions>
   bool markAndTraversePrivateGCThing(JSObject* source, gc::TenuredCell* target);
+
+  template <uint32_t markingOptions>
+  bool markAndTraverseSymbol(JSObject* source, JS::Symbol* target);
 
   template <typename S, typename T>
   void checkTraversedEdge(S source, T* target);

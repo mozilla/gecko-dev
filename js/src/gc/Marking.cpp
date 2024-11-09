@@ -747,7 +747,7 @@ void GCMarker::markEphemeronEdges(EphemeronEdgeVector& edges,
     }
   }
 
-  // The above marking always goes through markAndPush, which will not cause
+  // The above marking always goes through pushThing, which will not cause
   // 'edges' to be appended to while iterating.
   MOZ_ASSERT(edges.length() == initialLength);
 
@@ -1034,7 +1034,8 @@ template <uint32_t opts>
 void GCMarker::traverse(JS::Symbol* thing) {
 #ifdef NIGHTLY_BUILD
   if constexpr (bool(opts & MarkingOptions::MarkImplicitEdges)) {
-    markImplicitEdges(thing);
+    pushThing<opts>(thing);
+    return;
   }
 #endif
   traceChildren<opts>(thing);
@@ -1174,6 +1175,19 @@ MOZ_NEVER_INLINE bool js::GCMarker::markAndTraversePrivateGCThing(
   ApplyGCThingTyped(target, kind, [this, source](auto t) {
     this->markAndTraverseEdge<opts>(source, t);
   });
+
+  // Ensure stack headroom in case we pushed.
+  if (MOZ_UNLIKELY(!stack.ensureSpace(ValueRangeWords))) {
+    delayMarkingChildrenOnOOM(source);
+    return false;
+  }
+
+  return true;
+}
+
+template <uint32_t opts>
+bool js::GCMarker::markAndTraverseSymbol(JSObject* source, JS::Symbol* target) {
+  this->markAndTraverseEdge<opts>(source, target);
 
   // Ensure stack headroom in case we pushed.
   if (MOZ_UNLIKELY(!stack.ensureSpace(ValueRangeWords))) {
@@ -1523,6 +1537,20 @@ inline bool GCMarker::processMarkStackTop(SliceBudget& budget) {
         goto scan_obj;
       }
 
+      case MarkStack::SymbolTag: {
+#ifdef NIGHTLY_BUILD
+        auto* symbol = ptr.as<JS::Symbol>();
+        if constexpr (bool(opts & MarkingOptions::MarkImplicitEdges)) {
+          markImplicitEdges(symbol);
+        }
+        AutoSetTracingSource asts(tracer(), symbol);
+        symbol->traceChildren(tracer());
+        return true;
+#else
+        MOZ_CRASH("symbols-as-weakmap-keys is enabled only on Nightly");
+#endif
+      }
+
       case MarkStack::JitCodeTag: {
         auto* code = ptr.as<jit::JitCode>();
         AutoSetTracingSource asts(tracer(), code);
@@ -1586,7 +1614,9 @@ scan_value_range:
         goto scan_obj;
       }
     } else if (v.isSymbol()) {
-      markAndTraverseEdge<opts>(obj, v.toSymbol());
+      if (!markAndTraverseSymbol<opts>(obj, v.toSymbol())) {
+        return true;
+      }
     } else if (v.isBigInt()) {
       markAndTraverseEdge<opts>(obj, v.toBigInt());
     } else {
@@ -1671,6 +1701,10 @@ struct MapTypeToMarkStackTag {};
 template <>
 struct MapTypeToMarkStackTag<JSObject*> {
   static const auto value = MarkStack::ObjectTag;
+};
+template <>
+struct MapTypeToMarkStackTag<JS::Symbol*> {
+  static const auto value = MarkStack::SymbolTag;
 };
 template <>
 struct MapTypeToMarkStackTag<jit::JitCode*> {
