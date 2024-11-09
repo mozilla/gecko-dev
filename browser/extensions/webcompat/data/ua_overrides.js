@@ -823,7 +823,7 @@ const AVAILABLE_UA_OVERRIDES = [
      * Webcompat issue #119012 - https://webcompat.com/issues/119012
      */
     id: "bug1827678-webc119012",
-    platform: "all",
+    platform: "desktop",
     domain: "kt.com",
     bug: "1827678",
     config: {
