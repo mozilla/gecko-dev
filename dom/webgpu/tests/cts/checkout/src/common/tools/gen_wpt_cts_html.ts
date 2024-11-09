@@ -9,6 +9,8 @@ import {
 } from '../internal/query/query.js';
 import { assert } from '../util/util.js';
 
+const kMaxQueryLength = 184;
+
 function printUsageAndExit(rc: number): never {
   console.error(`\
 Usage (simple, for webgpu:* suite only):
@@ -193,6 +195,7 @@ let config: Config;
 
   const loader = new DefaultTestFileLoader();
   const lines = [];
+  const tooLongQueries = [];
   for (const prefix of config.argumentsPrefixes) {
     const rootQuery = new TestQueryMultiFile(config.suite, []);
     const tree = await loader.loadTree(rootQuery, {
@@ -219,15 +222,9 @@ let config: Config;
         // Check for a safe-ish path length limit. Filename must be <= 255, and on Windows the whole
         // path must be <= 259. Leave room for e.g.:
         // 'c:\b\s\w\xxxxxxxx\layout-test-results\external\wpt\webgpu\cts_worker=0_q=...-actual.txt'
-        assert(
-          queryString.length < 185,
-          `Generated test variant would produce too-long -actual.txt filename. Possible solutions:
-- Reduce the length of the parts of the test query
-- Reduce the parameterization of the test
-- Make the test function faster and regenerate the listing_meta entry
-- Reduce the specificity of test expectations (if you're using them)
-${queryString}`
-        );
+        if (queryString.length > kMaxQueryLength) {
+          tooLongQueries.push(queryString);
+        }
       }
 
       lines.push({
@@ -243,6 +240,29 @@ ${queryString}`
     }
     prefixComment.comment += `; ${variantCount} variants generated from ${testsSeen.size} tests in ${filesSeen.size} files`;
   }
+
+  if (tooLongQueries.length > 0) {
+    // Try to show some representation of failures. We show one entry from each
+    // test that is different length. Without this the logger cuts off the error
+    // messages and you end up not being told about which tests have issues.
+    const queryStrings = new Map<string, string>();
+    tooLongQueries.forEach(s => {
+      const colonNdx = s.lastIndexOf(':');
+      const prefix = s.substring(0, colonNdx + 1);
+      const id = `${prefix}:${s.length}`;
+      queryStrings.set(id, s);
+    });
+    throw new Error(
+      `Generated test variant would produce too-long -actual.txt filename. Possible solutions:
+  - Reduce the length of the parts of the test query
+  - Reduce the parameterization of the test
+  - Make the test function faster and regenerate the listing_meta entry
+  - Reduce the specificity of test expectations (if you're using them)
+|<${''.padEnd(kMaxQueryLength - 4, '-')}>|
+${[...queryStrings.values()].join('\n')}`
+    );
+  }
+
   await generateFile(lines);
 })().catch(ex => {
   console.log(ex.stack ?? ex.toString());

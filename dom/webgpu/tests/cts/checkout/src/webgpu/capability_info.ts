@@ -830,6 +830,7 @@ export const kFeatureNameInfo: {
   'shader-f16':                         {},
   'rg11b10ufloat-renderable':           {},
   'float32-filterable':                 {},
+  'float32-blendable':                  {},
   'clip-distances':                     {},
   'dual-source-blending':               {},
 };

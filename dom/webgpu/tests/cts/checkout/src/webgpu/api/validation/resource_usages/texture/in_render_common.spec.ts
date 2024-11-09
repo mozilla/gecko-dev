@@ -180,11 +180,21 @@ g.test('subresources,color_attachment_and_bind_group')
         { bgLayer: 0, bgLayerCount: 1 },
         { bgLayer: 1, bgLayerCount: 1 },
         { bgLayer: 1, bgLayerCount: 2 },
+        { bgLayer: 0, bgLayerCount: kTextureLayers },
       ])
       .combine('bgUsage', kTextureBindingTypes)
       .unless(t => t.bgUsage !== 'sampled-texture' && t.bgLevelCount > 1)
       .combine('inSamePass', [true, false])
   )
+  .beforeAllSubcases(t => {
+    if (t.isCompatibility) {
+      t.skipIf(t.params.bgLayer !== 0, 'view base array layer must equal 0 in compatibility mode');
+      t.skipIf(
+        t.params.bgLayerCount !== kTextureLayers,
+        'view array layers must equal texture array layers in compatibility mode'
+      );
+    }
+  })
   .fn(t => {
     const {
       colorAttachmentLevel,
@@ -288,6 +298,7 @@ g.test('subresources,depth_stencil_attachment_and_bind_group')
         { bgLayer: 0, bgLayerCount: 1 },
         { bgLayer: 1, bgLayerCount: 1 },
         { bgLayer: 1, bgLayerCount: 2 },
+        { bgLayer: 0, bgLayerCount: kTextureLayers },
       ])
       .beginSubcases()
       .combine('depthReadOnly', [true, false])
@@ -295,6 +306,15 @@ g.test('subresources,depth_stencil_attachment_and_bind_group')
       .combine('bgAspect', ['depth-only', 'stencil-only'] as const)
       .combine('inSamePass', [true, false])
   )
+  .beforeAllSubcases(t => {
+    if (t.isCompatibility) {
+      t.skipIf(t.params.bgLayer !== 0, 'view base array layer must equal 0 in compatibility mode');
+      t.skipIf(
+        t.params.bgLayerCount !== kTextureLayers,
+        'view array layers must equal texture array layers in compatibility mode'
+      );
+    }
+  })
   .fn(t => {
     const {
       dsLevel,
@@ -411,6 +431,7 @@ g.test('subresources,multiple_bind_groups')
         { base: 0, count: 1 },
         { base: 1, count: 1 },
         { base: 1, count: 2 },
+        { base: 0, count: kTextureLayers },
       ])
       .combine('bg1Levels', [
         { base: 0, count: 1 },
@@ -421,6 +442,7 @@ g.test('subresources,multiple_bind_groups')
         { base: 0, count: 1 },
         { base: 1, count: 1 },
         { base: 1, count: 2 },
+        { base: 0, count: kTextureLayers },
       ])
       .combine('bgUsage0', kTextureBindingTypes)
       .combine('bgUsage1', kTextureBindingTypes)
@@ -432,6 +454,18 @@ g.test('subresources,multiple_bind_groups')
       .beginSubcases()
       .combine('inSamePass', [true, false])
   )
+  .beforeAllSubcases(t => {
+    if (t.isCompatibility) {
+      t.skipIf(
+        t.params.bg0Layers.base !== 0 || t.params.bg1Layers.base !== 0,
+        'view base array layer must equal 0 in compatibility mode'
+      );
+      t.skipIf(
+        t.params.bg0Layers.count !== kTextureLayers || t.params.bg1Layers.count !== kTextureLayers,
+        'view array layers must equal texture array layers in compatibility mode'
+      );
+    }
+  })
   .fn(t => {
     const { bg0Levels, bg0Layers, bg1Levels, bg1Layers, bgUsage0, bgUsage1, inSamePass } = t.params;
 
@@ -524,6 +558,7 @@ g.test('subresources,depth_stencil_texture_in_bind_groups')
         { base: 0, count: 1 },
         { base: 1, count: 1 },
         { base: 1, count: 2 },
+        { base: 0, count: kTextureLayers },
       ])
       .combine('view1Levels', [
         { base: 0, count: 1 },
@@ -534,11 +569,25 @@ g.test('subresources,depth_stencil_texture_in_bind_groups')
         { base: 0, count: 1 },
         { base: 1, count: 1 },
         { base: 1, count: 2 },
+        { base: 0, count: kTextureLayers },
       ])
       .combine('aspect0', ['depth-only', 'stencil-only'] as const)
       .combine('aspect1', ['depth-only', 'stencil-only'] as const)
       .combine('inSamePass', [true, false])
   )
+  .beforeAllSubcases(t => {
+    if (t.isCompatibility) {
+      t.skipIf(
+        t.params.view0Layers.base !== 0 || t.params.view1Layers.base !== 0,
+        'view base array layer must equal 0 in compatibility mode'
+      );
+      t.skipIf(
+        t.params.view0Layers.count !== kTextureLayers ||
+          t.params.view1Layers.count !== kTextureLayers,
+        'view array layers must equal texture array layers in compatibility mode'
+      );
+    }
+  })
   .fn(t => {
     const { view0Levels, view0Layers, view1Levels, view1Layers, aspect0, aspect1, inSamePass } =
       t.params;

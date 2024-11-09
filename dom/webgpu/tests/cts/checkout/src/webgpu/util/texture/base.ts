@@ -239,6 +239,7 @@ export function reifyTextureViewDescriptor(
   const format = view.format ?? texture.format;
   const mipLevelCount = view.mipLevelCount ?? texture.mipLevelCount - baseMipLevel;
   const dimension = view.dimension ?? defaultViewDimensionsForTexture(texture);
+  const usage = (view.usage ?? 0) === 0 ? texture.usage : view.usage!;
 
   let arrayLayerCount = view.arrayLayerCount;
   if (arrayLayerCount === undefined) {
@@ -255,7 +256,7 @@ export function reifyTextureViewDescriptor(
     format,
     dimension,
     aspect,
-    usage: texture.usage,
+    usage,
     baseMipLevel,
     mipLevelCount,
     baseArrayLayer,

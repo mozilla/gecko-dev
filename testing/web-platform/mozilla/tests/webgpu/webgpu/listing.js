@@ -1440,6 +1440,14 @@ export const listing = [
       "api",
       "validation",
       "render_pipeline",
+      "float32_blendable"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "render_pipeline",
       "fragment_state"
     ]
   },
@@ -2985,6 +2993,26 @@ export const listing = [
       "expression",
       "call",
       "builtin",
+      "quadBroadcast"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
+      "quadSwap"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
       "quantizeToF16"
     ]
   },
@@ -3166,6 +3194,16 @@ export const listing = [
       "call",
       "builtin",
       "subgroupBallot"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
+      "subgroupBitwise"
     ]
   },
   {

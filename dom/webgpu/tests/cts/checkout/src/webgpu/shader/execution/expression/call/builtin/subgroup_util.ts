@@ -303,7 +303,8 @@ fn main(
   t.expectOK(checkAccuracy(metadata, output, [idx1, idx2], [val1, val2], identity, intervalGen));
 }
 
-export const kDataSentinel = 999;
+// Repeat the bit pattern evey 16 bits for use with 16-bit types.
+export const kDataSentinel = 999 | (999 << 16);
 
 /**
  * Runs compute shader subgroup test

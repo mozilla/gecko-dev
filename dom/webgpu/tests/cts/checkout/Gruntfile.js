@@ -24,7 +24,10 @@ module.exports = function (grunt) {
     pkg: grunt.file.readJSON('package.json'),
 
     clean: {
-      out: ['gen/', 'out/', 'out-wpt/', 'out-node/'],
+      gen: ['gen/'],
+      out: ['out/'],
+      'out-wpt': ['out-wpt/'],
+      'out-node': ['out-node/'],
     },
 
     run: {
@@ -246,17 +249,20 @@ module.exports = function (grunt) {
   });
 
   grunt.registerTask('generate-common', 'Generate files into gen/ and src/', [
+    'clean:gen',
     'run:generate-version',
     'run:generate-listings-and-webworkers',
     'run:generate-cache',
   ]);
   grunt.registerTask('build-standalone', 'Build out/ (no checks; run after generate-common)', [
+    'clean:out',
     'run:build-out',
     'run:copy-assets',
     'copy:gen-to-out',
     'copy:htmlfiles-to-out',
   ]);
   grunt.registerTask('build-wpt', 'Build out-wpt/ (no checks; run after generate-common)', [
+    'clean:out-wpt',
     'run:build-out-wpt',
     'run:copy-assets-wpt',
     'copy:gen-to-out-wpt',
@@ -265,6 +271,7 @@ module.exports = function (grunt) {
     'run:autoformat-out-wpt',
   ]);
   grunt.registerTask('build-node', 'Build out-node/ (no checks; run after generate-common)', [
+    'clean:out-node',
     'run:build-out-node',
     'run:copy-assets-node',
   ]);
@@ -282,7 +289,6 @@ module.exports = function (grunt) {
   grunt.registerTask('pre', ['all']);
 
   registerTaskAndAddToHelp('all', 'Run all builds and checks', [
-    'clean',
     'generate-common',
     'concurrent:all-builds-and-checks',
   ]);

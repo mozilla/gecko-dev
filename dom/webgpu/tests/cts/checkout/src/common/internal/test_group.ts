@@ -31,6 +31,7 @@ import {
   stringifyPublicParamsUniquely,
 } from '../internal/query/stringify_params.js';
 import { validQueryPart } from '../internal/query/validQueryPart.js';
+import { attemptGarbageCollection } from '../util/collect_garbage.js';
 import { DeepReadonly } from '../util/types.js';
 import { assert, unreachable } from '../util/util.js';
 
@@ -696,6 +697,7 @@ class RunCaseSpecific implements RunCase {
                   subRec.threw(ex);
                 }
               })
+              .finally(attemptGarbageCollectionIfDue)
               .finally(subcaseFinishedCallback);
 
             allPreviousSubcasesFinalizedPromise = allPreviousSubcasesFinalizedPromise.then(
@@ -711,13 +713,17 @@ class RunCaseSpecific implements RunCase {
             rec.skipped(new SkipTestCase('all subcases were skipped'));
           }
         } else {
-          await this.runTest(
-            rec,
-            sharedState,
-            this.params,
-            /* throwSkip */ false,
-            getExpectedStatus(selfQuery)
-          );
+          try {
+            await this.runTest(
+              rec,
+              sharedState,
+              this.params,
+              /* throwSkip */ false,
+              getExpectedStatus(selfQuery)
+            );
+          } finally {
+            await attemptGarbageCollectionIfDue();
+          }
         }
       } finally {
         testHeartbeatCallback();
@@ -754,3 +760,17 @@ export type CaseTimingLogLine = {
    */
   nonskippedSubcaseCount: number;
 };
+
+/** Every `subcasesBetweenAttemptingGC` calls to this function will `attemptGarbageCollection()`. */
+const attemptGarbageCollectionIfDue: () => Promise<void> = (() => {
+  // This state is global because garbage is global.
+  let subcasesSinceLastGC = 0;
+
+  return async function attemptGarbageCollectionIfDue() {
+    subcasesSinceLastGC++;
+    if (subcasesSinceLastGC >= globalTestConfig.subcasesBetweenAttemptingGC) {
+      subcasesSinceLastGC = 0;
+      return attemptGarbageCollection();
+    }
+  };
+})();

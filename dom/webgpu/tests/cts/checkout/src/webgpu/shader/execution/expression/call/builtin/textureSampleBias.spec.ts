@@ -2,14 +2,42 @@ export const description = `
 Execution tests for the 'textureSampleBias' builtin function
 
 Samples a texture with a bias to the mip level.
+
+- TODO: test cube maps with more than one mip level.
+- TODO: Test un-encodable formats.
 `;
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import { kCompressedTextureFormats, kEncodableTextureFormats } from '../../../../../format_info.js';
+import { TextureTestMixin } from '../../../../../gpu_test.js';
 
-import { generateCoordBoundaries, generateOffsets } from './utils.js';
+import {
+  vec2,
+  vec3,
+  TextureCall,
+  generateTextureBuiltinInputs2D,
+  generateTextureBuiltinInputs3D,
+  kSamplePointMethods,
+  kShortAddressModes,
+  kShortAddressModeToAddressMode,
+  doTextureCalls,
+  checkCallResults,
+  createTextureWithRandomDataAndGetTexels,
+  generateSamplePointsCube,
+  kCubeSamplePointMethods,
+  SamplePointMethods,
+  chooseTextureSize,
+  isPotentiallyFilterableAndFillable,
+  skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable,
+  getTextureTypeForTextureViewDimension,
+  WGSLTextureSampleTest,
+  isSupportedViewFormatCombo,
+  skipIfNeedsFilteringAndIsUnfilterable,
+} from './texture_utils.js';
 
-export const g = makeTestGroup(GPUTest);
+const kTestableColorFormats = [...kEncodableTextureFormats, ...kCompressedTextureFormats] as const;
+
+export const g = makeTestGroup(TextureTestMixin(WGSLTextureSampleTest));
 
 g.test('sampled_2d_coords')
   .specURL('https://www.w3.org/TR/WGSL/#texturesamplebias')
@@ -31,14 +59,82 @@ Parameters:
       Values outside of this range will result in a shader-creation error.
 `
   )
-  .paramsSubcasesOnly(u =>
+  .params(u =>
     u
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('coords', generateCoordBoundaries(2))
-      .combine('bias', [-16.1, -16, 0, 1, 15.99, 16] as const)
-      .combine('offset', generateOffsets(2))
+      .combine('format', kTestableColorFormats)
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
+      .combine('filt', ['nearest', 'linear'] as const)
+      .combine('modeU', kShortAddressModes)
+      .combine('modeV', kShortAddressModes)
+      .combine('offset', [false, true] as const)
+      .beginSubcases()
+      .combine('samplePoints', kSamplePointMethods)
   )
-  .unimplemented();
+  .beforeAllSubcases(t =>
+    skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
+  )
+  .fn(async t => {
+    const { format, samplePoints, modeU, modeV, filt: minFilter, offset } = t.params;
+    skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+
+    // We want at least 4 blocks or something wide enough for 3 mip levels.
+    const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+
+    const descriptor: GPUTextureDescriptor = {
+      format,
+      size: { width, height },
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+      mipLevelCount: 3,
+    };
+    const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+    const sampler: GPUSamplerDescriptor = {
+      addressModeU: kShortAddressModeToAddressMode[modeU],
+      addressModeV: kShortAddressModeToAddressMode[modeV],
+      minFilter,
+      magFilter: minFilter,
+      mipmapFilter: minFilter,
+    };
+
+    const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
+      sampler,
+      method: samplePoints,
+      descriptor,
+      bias: true,
+      offset,
+      hashInputs: [format, samplePoints, modeU, modeV, minFilter, offset],
+    }).map(({ coords, derivativeMult, offset, bias }) => {
+      return {
+        builtin: 'textureSampleBias',
+        coordType: 'f',
+        coords,
+        derivativeMult,
+        bias,
+        offset,
+      };
+    });
+    const viewDescriptor = {};
+    const textureType = 'texture_2d<f32>';
+    const results = await doTextureCalls(
+      t,
+      texture,
+      viewDescriptor,
+      textureType,
+      sampler,
+      calls,
+      'f'
+    );
+    const res = await checkCallResults(
+      t,
+      { texels, descriptor, viewDescriptor },
+      textureType,
+      sampler,
+      calls,
+      results,
+      'f',
+      texture
+    );
+    t.expectOK(res);
+  });
 
 g.test('sampled_3d_coords')
   .specURL('https://www.w3.org/TR/WGSL/#texturesamplebias')
@@ -63,23 +159,126 @@ Parameters:
   )
   .params(u =>
     u
-      .combine('texture_type', ['texture_3d', 'texture_cube'] as const)
+      .combine('format', kTestableColorFormats)
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
+      .combine('dim', ['3d', 'cube'] as const)
+      .filter(t => isSupportedViewFormatCombo(t.format, t.dim))
+      .combine('filt', ['nearest', 'linear'] as const)
+      .combine('modeU', kShortAddressModes)
+      .combine('modeV', kShortAddressModes)
+      .combine('modeW', kShortAddressModes)
+      .combine('offset', [false, true] as const)
+      .filter(t => t.dim !== 'cube' || t.offset !== true)
       .beginSubcases()
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('coords', generateCoordBoundaries(3))
-      .combine('bias', [-16.1, -16, 0, 1, 15.99, 16] as const)
-      .combine('offset', generateOffsets(3))
+      .combine('samplePoints', kCubeSamplePointMethods)
+      .filter(t => t.samplePoints !== 'cube-edges' || t.dim !== '3d')
   )
-  .unimplemented();
+  .beforeAllSubcases(t =>
+    skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
+  )
+  .fn(async t => {
+    const {
+      format,
+      dim: viewDimension,
+      samplePoints,
+      modeU,
+      modeV,
+      modeW,
+      filt: minFilter,
+      offset,
+    } = t.params;
+    skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+
+    const size = chooseTextureSize({ minSize: 8, minBlocks: 2, format, viewDimension });
+    const descriptor: GPUTextureDescriptor = {
+      format,
+      dimension: viewDimension === '3d' ? '3d' : '2d',
+      ...(t.isCompatibility && { textureBindingViewDimension: viewDimension }),
+      size,
+      // MAINTENANCE_TODO: use 3 for cube maps when derivatives are supported for cube maps.
+      mipLevelCount: viewDimension === '3d' ? 3 : 1,
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    };
+    const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+    const sampler: GPUSamplerDescriptor = {
+      addressModeU: kShortAddressModeToAddressMode[modeU],
+      addressModeV: kShortAddressModeToAddressMode[modeV],
+      addressModeW: kShortAddressModeToAddressMode[modeW],
+      minFilter,
+      magFilter: minFilter,
+    };
+
+    const hashInputs = [
+      format,
+      viewDimension,
+      samplePoints,
+      modeU,
+      modeV,
+      modeW,
+      minFilter,
+      offset,
+    ];
+    const calls: TextureCall<vec3>[] = (
+      viewDimension === '3d'
+        ? generateTextureBuiltinInputs3D(50, {
+            method: samplePoints as SamplePointMethods,
+            sampler,
+            descriptor,
+            bias: true,
+            offset,
+            hashInputs,
+          })
+        : generateSamplePointsCube(50, {
+            method: samplePoints,
+            sampler,
+            descriptor,
+            bias: true,
+            hashInputs,
+          })
+    ).map(({ coords, derivativeMult, offset, bias }) => {
+      return {
+        builtin: 'textureSampleBias',
+        coordType: 'f',
+        coords,
+        derivativeMult,
+        bias,
+        offset,
+      };
+    });
+    const viewDescriptor = {
+      dimension: viewDimension,
+    };
+    const textureType = getTextureTypeForTextureViewDimension(viewDimension)!;
+    const results = await doTextureCalls(
+      t,
+      texture,
+      viewDescriptor,
+      textureType,
+      sampler,
+      calls,
+      'f'
+    );
+    const res = await checkCallResults(
+      t,
+      { texels, descriptor, viewDescriptor },
+      textureType,
+      sampler,
+      calls,
+      results,
+      'f',
+      texture
+    );
+    t.expectOK(res);
+  });
 
 g.test('arrayed_2d_coords')
   .specURL('https://www.w3.org/TR/WGSL/#texturesamplebias')
   .desc(
     `
-C: i32, u32
+A: i32, u32
 
-fn textureSampleBias(t: texture_2d_array<f32>, s: sampler, coords: vec2<f32>, array_index: C, bias: f32) -> vec4<f32>
-fn textureSampleBias(t: texture_2d_array<f32>, s: sampler, coords: vec2<f32>, array_index: C, bias: f32, offset: vec2<i32>) -> vec4<f32>
+fn textureSampleBias(t: texture_2d_array<f32>, s: sampler, coords: vec2<f32>, array_index: A, bias: f32) -> vec4<f32>
+fn textureSampleBias(t: texture_2d_array<f32>, s: sampler, coords: vec2<f32>, array_index: A, bias: f32, offset: vec2<i32>) -> vec4<f32>
 
 Parameters:
  * t: The sampled texture to read from
@@ -95,25 +294,95 @@ Parameters:
       Values outside of this range will result in a shader-creation error.
 `
   )
-  .paramsSubcasesOnly(u =>
+  .params(u =>
     u
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('coords', generateCoordBoundaries(2))
-      .combine('C', ['i32', 'u32'] as const)
-      .combine('C_value', [-1, 0, 1, 2, 3, 4] as const)
-      /* array_index not param'd as out-of-bounds is implementation specific */
-      .combine('bias', [-16.1, -16, 0, 1, 15.99, 16] as const)
-      .combine('offset', generateOffsets(2))
+      .combine('format', kTestableColorFormats)
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
+      .combine('filt', ['nearest', 'linear'] as const)
+      .combine('modeU', kShortAddressModes)
+      .combine('modeV', kShortAddressModes)
+      .combine('offset', [false, true] as const)
+      .beginSubcases()
+      .combine('samplePoints', kSamplePointMethods)
+      .combine('A', ['i32', 'u32'] as const)
   )
-  .unimplemented();
+  .beforeAllSubcases(t =>
+    skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
+  )
+  .fn(async t => {
+    const { format, samplePoints, A, modeU, modeV, filt: minFilter, offset } = t.params;
+    skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+
+    // We want at least 4 blocks or something wide enough for 3 mip levels.
+    const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+    const depthOrArrayLayers = 4;
+
+    const descriptor: GPUTextureDescriptor = {
+      format,
+      size: { width, height, depthOrArrayLayers },
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+      mipLevelCount: 3,
+    };
+    const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+    const sampler: GPUSamplerDescriptor = {
+      addressModeU: kShortAddressModeToAddressMode[modeU],
+      addressModeV: kShortAddressModeToAddressMode[modeV],
+      minFilter,
+      magFilter: minFilter,
+      mipmapFilter: minFilter,
+    };
+
+    const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
+      method: samplePoints,
+      sampler,
+      descriptor,
+      arrayIndex: { num: texture.depthOrArrayLayers, type: A },
+      bias: true,
+      offset,
+      hashInputs: [format, samplePoints, A, modeU, modeV, minFilter, offset],
+    }).map(({ coords, derivativeMult, arrayIndex, bias, offset }) => {
+      return {
+        builtin: 'textureSampleBias',
+        coordType: 'f',
+        coords,
+        derivativeMult,
+        arrayIndex,
+        arrayIndexType: A === 'i32' ? 'i' : 'u',
+        bias,
+        offset,
+      };
+    });
+    const textureType = 'texture_2d_array<f32>';
+    const viewDescriptor = {};
+    const results = await doTextureCalls(
+      t,
+      texture,
+      viewDescriptor,
+      textureType,
+      sampler,
+      calls,
+      'f'
+    );
+    const res = await checkCallResults(
+      t,
+      { texels, descriptor, viewDescriptor },
+      textureType,
+      sampler,
+      calls,
+      results,
+      'f',
+      texture
+    );
+    t.expectOK(res);
+  });
 
 g.test('arrayed_3d_coords')
   .specURL('https://www.w3.org/TR/WGSL/#texturesamplebias')
   .desc(
     `
-C: i32, u32
+A: i32, u32
 
-fn textureSampleBias(t: texture_cube_array<f32>, s: sampler, coords: vec3<f32>, array_index: C, bias: f32) -> vec4<f32>
+fn textureSampleBias(t: texture_cube_array<f32>, s: sampler, coords: vec3<f32>, array_index: A, bias: f32) -> vec4<f32>
 
 Parameters:
  * t: The sampled texture to read from
@@ -129,13 +398,88 @@ Parameters:
       Values outside of this range will result in a shader-creation error.
 `
   )
-  .paramsSubcasesOnly(u =>
+  .params(u =>
     u
-      .combine('S', ['clamp-to-edge', 'repeat', 'mirror-repeat'])
-      .combine('coords', generateCoordBoundaries(3))
-      .combine('C', ['i32', 'u32'] as const)
-      .combine('C_value', [-1, 0, 1, 2, 3, 4] as const)
-      /* array_index not param'd as out-of-bounds is implementation specific */
-      .combine('bias', [-16.1, -16, 0, 1, 15.99, 16] as const)
+      .combine('format', kTestableColorFormats)
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
+      .combine('filt', ['nearest', 'linear'] as const)
+      .combine('mode', kShortAddressModes)
+      .beginSubcases()
+      .combine('samplePoints', kCubeSamplePointMethods)
+      .combine('A', ['i32', 'u32'] as const)
   )
-  .unimplemented();
+  .beforeAllSubcases(t => {
+    skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format);
+    t.skipIfTextureViewDimensionNotSupported('cube-array');
+  })
+  .fn(async t => {
+    const { format, samplePoints, A, mode, filt: minFilter } = t.params;
+    skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+
+    const viewDimension: GPUTextureViewDimension = 'cube-array';
+    const size = chooseTextureSize({
+      minSize: 32,
+      minBlocks: 4,
+      format,
+      viewDimension,
+    });
+    const descriptor: GPUTextureDescriptor = {
+      format,
+      size,
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+      // MAINTENANCE_TODO: use 3 for cube maps when derivatives are supported for cube maps.
+      mipLevelCount: 1,
+    };
+    const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+    const sampler: GPUSamplerDescriptor = {
+      addressModeU: kShortAddressModeToAddressMode[mode],
+      addressModeV: kShortAddressModeToAddressMode[mode],
+      addressModeW: kShortAddressModeToAddressMode[mode],
+      minFilter,
+      magFilter: minFilter,
+      mipmapFilter: minFilter,
+    };
+
+    const calls: TextureCall<vec3>[] = generateSamplePointsCube(50, {
+      method: samplePoints,
+      sampler,
+      descriptor,
+      bias: true,
+      arrayIndex: { num: texture.depthOrArrayLayers / 6, type: A },
+      hashInputs: [format, viewDimension, A, samplePoints, mode, minFilter],
+    }).map(({ coords, derivativeMult, arrayIndex, bias }) => {
+      return {
+        builtin: 'textureSampleBias',
+        coordType: 'f',
+        coords,
+        derivativeMult,
+        arrayIndex,
+        arrayIndexType: A === 'i32' ? 'i' : 'u',
+        bias,
+      };
+    });
+    const viewDescriptor = {
+      dimension: viewDimension,
+    };
+    const textureType = getTextureTypeForTextureViewDimension(viewDimension);
+    const results = await doTextureCalls(
+      t,
+      texture,
+      viewDescriptor,
+      textureType,
+      sampler,
+      calls,
+      'f'
+    );
+    const res = await checkCallResults(
+      t,
+      { texels, descriptor, viewDescriptor },
+      textureType,
+      sampler,
+      calls,
+      results,
+      'f',
+      texture
+    );
+    t.expectOK(res);
+  });

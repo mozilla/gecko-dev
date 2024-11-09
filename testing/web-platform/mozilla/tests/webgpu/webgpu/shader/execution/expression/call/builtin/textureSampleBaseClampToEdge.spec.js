@@ -13,6 +13,9 @@ import {
   doTextureCalls,
   generateTextureBuiltinInputs2D,
   kSamplePointMethods,
+  kShortAddressModes,
+  kShortAddressModeToAddressMode,
+  kShortShaderStages,
 
 
   WGSLTextureSampleTest } from
@@ -54,12 +57,13 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('textureType', ['texture_2d<f32>', 'texture_external']).
+combine('filt', ['nearest', 'linear']).
+combine('modeU', kShortAddressModes).
+combine('modeV', kShortAddressModes).
 beginSubcases().
-combine('samplePoints', kSamplePointMethods).
-combine('addressModeU', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('addressModeV', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear'])
+combine('samplePoints', kSamplePointMethods)
 ).
 beforeAllSubcases((t) =>
 t.skipIf(
@@ -68,7 +72,7 @@ t.skipIf(
 )
 ).
 fn(async (t) => {
-  const { textureType, samplePoints, addressModeU, addressModeV, minFilter } = t.params;
+  const { textureType, stage, samplePoints, modeU, modeV, filt: minFilter } = t.params;
 
   const descriptor = {
     format: 'rgba8unorm',
@@ -85,8 +89,8 @@ fn(async (t) => {
   );
   try {
     const sampler = {
-      addressModeU,
-      addressModeV,
+      addressModeU: kShortAddressModeToAddressMode[modeU],
+      addressModeV: kShortAddressModeToAddressMode[modeV],
       minFilter,
       magFilter: minFilter,
       mipmapFilter: minFilter
@@ -96,7 +100,7 @@ fn(async (t) => {
       method: samplePoints,
       sampler,
       descriptor,
-      hashInputs: [samplePoints, addressModeU, addressModeV, minFilter]
+      hashInputs: [samplePoints, modeU, modeV, minFilter]
     }).map(({ coords }) => {
       return {
         builtin: 'textureSampleBaseClampToEdge',
@@ -105,14 +109,23 @@ fn(async (t) => {
       };
     });
     const viewDescriptor = {};
-    const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+    const results = await doTextureCalls(
+      t,
+      texture,
+      viewDescriptor,
+      textureType,
+      sampler,
+      calls,
+      stage
+    );
     const res = await checkCallResults(
       t,
       { texels, descriptor, viewDescriptor },
       textureType,
       sampler,
       calls,
-      results
+      results,
+      stage
     );
     t.expectOK(res);
   } finally {

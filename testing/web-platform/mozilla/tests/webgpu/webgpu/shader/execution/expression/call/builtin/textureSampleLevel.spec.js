@@ -3,13 +3,9 @@
 **/export const description = `
 Samples a texture.
 
-Must only be used in a fragment shader stage.
-Must only be invoked in uniform control flow.
-
 - TODO: Test un-encodable formats.
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import {
-  isCompressedTextureFormat,
   isDepthTextureFormat,
   isEncodableTextureFormat,
   kCompressedTextureFormats,
@@ -29,9 +25,14 @@ import {
   getDepthOrArrayLayersForViewDimension,
   getTextureTypeForTextureViewDimension,
   isPotentiallyFilterableAndFillable,
+  isSupportedViewFormatCombo,
   kCubeSamplePointMethods,
   kSamplePointMethods,
+  kShortAddressModes,
+  kShortAddressModeToAddressMode,
+  kShortShaderStages,
 
+  skipIfNeedsFilteringAndIsUnfilterable,
   skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable,
 
 
@@ -69,20 +70,22 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('format', kTestableColorFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
+combine('filt', ['nearest', 'linear']).
+combine('modeU', kShortAddressModes).
+combine('modeV', kShortAddressModes).
+combine('offset', [false, true]).
 beginSubcases().
-combine('samplePoints', kSamplePointMethods).
-combine('addressModeU', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('addressModeV', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear']).
-combine('offset', [false, true])
+combine('samplePoints', kSamplePointMethods)
 ).
 beforeAllSubcases((t) =>
 skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
-  const { format, samplePoints, addressModeU, addressModeV, minFilter, offset } = t.params;
+  const { format, stage, samplePoints, modeU, modeV, filt: minFilter, offset } = t.params;
+  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -94,8 +97,8 @@ fn(async (t) => {
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
-    addressModeU,
-    addressModeV,
+    addressModeU: kShortAddressModeToAddressMode[modeU],
+    addressModeV: kShortAddressModeToAddressMode[modeV],
     minFilter,
     magFilter: minFilter,
     mipmapFilter: minFilter
@@ -107,7 +110,7 @@ fn(async (t) => {
     descriptor,
     mipLevel: { num: texture.mipLevelCount, type: 'f32' },
     offset,
-    hashInputs: [format, samplePoints, addressModeU, addressModeV, minFilter, offset]
+    hashInputs: [stage, format, samplePoints, modeU, modeV, minFilter, offset]
   }).map(({ coords, mipLevel, offset }) => {
     return {
       builtin: 'textureSampleLevel',
@@ -120,14 +123,24 @@ fn(async (t) => {
   });
   const textureType = appendComponentTypeForFormatToTextureType('texture_2d', format);
   const viewDescriptor = {};
-  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    stage
+  );
   const res = await checkCallResults(
     t,
     { texels, descriptor, viewDescriptor },
     textureType,
     sampler,
     calls,
-    results
+    results,
+    stage,
+    texture
   );
   t.expectOK(res);
 });
@@ -161,21 +174,23 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('format', kTestableColorFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
+combine('filt', ['nearest', 'linear']).
+combine('modeU', kShortAddressModes).
+combine('modeV', kShortAddressModes).
+combine('offset', [false, true]).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods).
-combine('A', ['i32', 'u32']).
-combine('addressModeU', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('addressModeV', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear']).
-combine('offset', [false, true])
+combine('A', ['i32', 'u32'])
 ).
 beforeAllSubcases((t) =>
 skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
-  const { format, samplePoints, A, addressModeU, addressModeV, minFilter, offset } = t.params;
+  const { format, stage, samplePoints, A, modeU, modeV, filt: minFilter, offset } = t.params;
+  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -189,8 +204,8 @@ fn(async (t) => {
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
-    addressModeU,
-    addressModeV,
+    addressModeU: kShortAddressModeToAddressMode[modeU],
+    addressModeV: kShortAddressModeToAddressMode[modeV],
     minFilter,
     magFilter: minFilter,
     mipmapFilter: minFilter
@@ -203,7 +218,7 @@ fn(async (t) => {
     mipLevel: { num: texture.mipLevelCount, type: 'f32' },
     arrayIndex: { num: texture.depthOrArrayLayers, type: A },
     offset,
-    hashInputs: [format, samplePoints, A, addressModeU, addressModeV, minFilter, offset]
+    hashInputs: [stage, format, samplePoints, A, modeU, modeV, minFilter, offset]
   }).map(({ coords, mipLevel, arrayIndex, offset }) => {
     return {
       builtin: 'textureSampleLevel',
@@ -218,14 +233,24 @@ fn(async (t) => {
   });
   const textureType = appendComponentTypeForFormatToTextureType('texture_2d_array', format);
   const viewDescriptor = {};
-  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    stage
+  );
   const res = await checkCallResults(
     t,
     { texels, descriptor, viewDescriptor },
     textureType,
     sampler,
     calls,
-    results
+    results,
+    stage,
+    texture
   );
   t.expectOK(res);
 });
@@ -257,23 +282,33 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('format', kTestableColorFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
-combine('viewDimension', ['3d', 'cube']).
-filter((t) => !isCompressedTextureFormat(t.format) || t.viewDimension === 'cube').
+combine('dim', ['3d', 'cube']).
+filter((t) => isSupportedViewFormatCombo(t.format, t.dim)).
+combine('filt', ['nearest', 'linear']).
+combine('mode', kShortAddressModes).
+combine('offset', [false, true]).
+filter((t) => t.dim !== 'cube' || t.offset !== true).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
-filter((t) => t.samplePoints !== 'cube-edges' || t.viewDimension !== '3d').
-combine('addressMode', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear']).
-combine('offset', [false, true]).
-filter((t) => t.viewDimension !== 'cube' || t.offset !== true)
+filter((t) => t.samplePoints !== 'cube-edges' || t.dim !== '3d')
 ).
 beforeAllSubcases((t) =>
 skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
-  const { format, viewDimension, samplePoints, addressMode, minFilter, offset } = t.params;
+  const {
+    format,
+    dim: viewDimension,
+    stage,
+    samplePoints,
+    mode,
+    filt: minFilter,
+    offset
+  } = t.params;
+  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   const [width, height] = chooseTextureSize({ minSize: 32, minBlocks: 2, format, viewDimension });
   const depthOrArrayLayers = getDepthOrArrayLayersForViewDimension(viewDimension);
@@ -288,14 +323,15 @@ fn(async (t) => {
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
-    addressModeU: addressMode,
-    addressModeV: addressMode,
-    addressModeW: addressMode,
+    addressModeU: kShortAddressModeToAddressMode[mode],
+    addressModeV: kShortAddressModeToAddressMode[mode],
+    addressModeW: kShortAddressModeToAddressMode[mode],
     minFilter,
     magFilter: minFilter,
     mipmapFilter: minFilter
   };
 
+  const hashInputs = [stage, format, viewDimension, samplePoints, mode, minFilter, offset];
   const calls = (
   viewDimension === '3d' ?
   generateTextureBuiltinInputs3D(50, {
@@ -304,14 +340,14 @@ fn(async (t) => {
     descriptor,
     mipLevel: { num: texture.mipLevelCount, type: 'f32' },
     offset,
-    hashInputs: [format, viewDimension, samplePoints, addressMode, minFilter, offset]
+    hashInputs
   }) :
   generateSamplePointsCube(50, {
     method: samplePoints,
     sampler,
     descriptor,
     mipLevel: { num: texture.mipLevelCount, type: 'f32' },
-    hashInputs: [format, viewDimension, samplePoints, addressMode, minFilter, offset]
+    hashInputs
   })).
   map(({ coords, mipLevel, offset }) => {
     return {
@@ -327,14 +363,24 @@ fn(async (t) => {
     dimension: viewDimension
   };
   const textureType = getTextureTypeForTextureViewDimension(viewDimension);
-  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    stage
+  );
   const res = await checkCallResults(
     t,
     { texels, descriptor, viewDescriptor },
     textureType,
     sampler,
     calls,
-    results
+    results,
+    stage,
+    texture
   );
   t.expectOK(res);
 });
@@ -369,20 +415,22 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('format', kTestableColorFormats).
 filter((t) => isPotentiallyFilterableAndFillable(t.format)).
+combine('filt', ['nearest', 'linear']).
+combine('mode', kShortAddressModes).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
-combine('A', ['i32', 'u32']).
-combine('addressMode', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear'])
+combine('A', ['i32', 'u32'])
 ).
 beforeAllSubcases((t) => {
   skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format);
   t.skipIfTextureViewDimensionNotSupported('cube-array');
 }).
 fn(async (t) => {
-  const { format, samplePoints, A, addressMode, minFilter } = t.params;
+  const { format, stage, samplePoints, A, mode, filt: minFilter } = t.params;
+  skipIfNeedsFilteringAndIsUnfilterable(t, minFilter, format);
 
   const viewDimension = 'cube-array';
   const size = chooseTextureSize({
@@ -399,9 +447,9 @@ fn(async (t) => {
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
-    addressModeU: addressMode,
-    addressModeV: addressMode,
-    addressModeW: addressMode,
+    addressModeU: kShortAddressModeToAddressMode[mode],
+    addressModeV: kShortAddressModeToAddressMode[mode],
+    addressModeW: kShortAddressModeToAddressMode[mode],
     minFilter,
     magFilter: minFilter,
     mipmapFilter: minFilter
@@ -413,7 +461,7 @@ fn(async (t) => {
     descriptor,
     mipLevel: { num: texture.mipLevelCount, type: 'f32' },
     arrayIndex: { num: texture.depthOrArrayLayers / 6, type: A },
-    hashInputs: [format, viewDimension, A, samplePoints, addressMode, minFilter]
+    hashInputs: [stage, format, viewDimension, A, samplePoints, mode, minFilter]
   }).map(({ coords, mipLevel, arrayIndex }) => {
     return {
       builtin: 'textureSampleLevel',
@@ -429,14 +477,24 @@ fn(async (t) => {
     dimension: viewDimension
   };
   const textureType = getTextureTypeForTextureViewDimension(viewDimension);
-  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    stage
+  );
   const res = await checkCallResults(
     t,
     { texels, descriptor, viewDescriptor },
     textureType,
     sampler,
     calls,
-    results
+    results,
+    stage,
+    texture
   );
   t.expectOK(res);
 });
@@ -469,23 +527,24 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('format', kDepthStencilFormats)
 // filter out stencil only formats
 .filter((t) => isDepthTextureFormat(t.format))
 // MAINTENANCE_TODO: Remove when support for depth24plus, depth24plus-stencil8, and depth32float-stencil8 is added.
 .filter((t) => isEncodableTextureFormat(t.format)).
+combine('filt', ['nearest', 'linear']).
+combine('mode', kShortAddressModes).
+combine('offset', [false, true]).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods).
-combine('addressMode', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear']).
-combine('L', ['i32', 'u32']).
-combine('offset', [false, true])
+combine('L', ['i32', 'u32'])
 ).
 beforeAllSubcases((t) =>
 skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
-  const { format, samplePoints, addressMode, minFilter, L, offset } = t.params;
+  const { format, stage, samplePoints, mode, filt: minFilter, L, offset } = t.params;
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -497,8 +556,8 @@ fn(async (t) => {
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
-    addressModeU: addressMode,
-    addressModeV: addressMode,
+    addressModeU: kShortAddressModeToAddressMode[mode],
+    addressModeV: kShortAddressModeToAddressMode[mode],
     minFilter,
     magFilter: minFilter,
     mipmapFilter: minFilter
@@ -510,7 +569,7 @@ fn(async (t) => {
     descriptor,
     mipLevel: { num: texture.mipLevelCount, type: L },
     offset,
-    hashInputs: [format, samplePoints, addressMode, minFilter, L, offset]
+    hashInputs: [stage, format, samplePoints, mode, minFilter, L, offset]
   }).map(({ coords, mipLevel, offset }) => {
     return {
       builtin: 'textureSampleLevel',
@@ -523,14 +582,24 @@ fn(async (t) => {
   });
   const textureType = appendComponentTypeForFormatToTextureType('texture_depth_2d', format);
   const viewDescriptor = {};
-  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    stage
+  );
   const res = await checkCallResults(
     t,
     { texels, descriptor, viewDescriptor },
     textureType,
     sampler,
     calls,
-    results
+    results,
+    stage,
+    texture
   );
   t.expectOK(res);
 });
@@ -565,24 +634,25 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('format', kDepthStencilFormats)
 // filter out stencil only formats
 .filter((t) => isDepthTextureFormat(t.format))
 // MAINTENANCE_TODO: Remove when support for depth24plus, depth24plus-stencil8, and depth32float-stencil8 is added.
 .filter((t) => isEncodableTextureFormat(t.format)).
+combine('filt', ['nearest', 'linear']).
+combine('mode', kShortAddressModes).
+combine('offset', [false, true]).
 beginSubcases().
 combine('samplePoints', kSamplePointMethods).
-combine('addressMode', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear']).
 combine('A', ['i32', 'u32']).
-combine('L', ['i32', 'u32']).
-combine('offset', [false, true])
+combine('L', ['i32', 'u32'])
 ).
 beforeAllSubcases((t) =>
 skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format)
 ).
 fn(async (t) => {
-  const { format, samplePoints, addressMode, minFilter, A, L, offset } = t.params;
+  const { format, stage, samplePoints, mode, filt: minFilter, A, L, offset } = t.params;
 
   // We want at least 4 blocks or something wide enough for 3 mip levels.
   const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
@@ -595,8 +665,8 @@ fn(async (t) => {
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
-    addressModeU: addressMode,
-    addressModeV: addressMode,
+    addressModeU: kShortAddressModeToAddressMode[mode],
+    addressModeV: kShortAddressModeToAddressMode[mode],
     minFilter,
     magFilter: minFilter,
     mipmapFilter: minFilter
@@ -609,7 +679,7 @@ fn(async (t) => {
     arrayIndex: { num: texture.depthOrArrayLayers, type: A },
     mipLevel: { num: texture.mipLevelCount, type: L },
     offset,
-    hashInputs: [format, samplePoints, addressMode, minFilter, L, A, offset]
+    hashInputs: [stage, format, samplePoints, mode, minFilter, L, A, offset]
   }).map(({ coords, mipLevel, arrayIndex, offset }) => {
     return {
       builtin: 'textureSampleLevel',
@@ -624,14 +694,24 @@ fn(async (t) => {
   });
   const textureType = appendComponentTypeForFormatToTextureType('texture_depth_2d_array', format);
   const viewDescriptor = { dimension: '2d-array' };
-  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    stage
+  );
   const res = await checkCallResults(
     t,
     { texels, descriptor, viewDescriptor },
     textureType,
     sampler,
     calls,
-    results
+    results,
+    stage,
+    texture
   );
   t.expectOK(res);
 });
@@ -665,6 +745,7 @@ Parameters:
 ).
 params((u) =>
 u.
+combine('stage', kShortShaderStages).
 combine('format', kDepthStencilFormats)
 // filter out stencil only formats
 .filter((t) => isDepthTextureFormat(t.format))
@@ -675,18 +756,18 @@ combineWithParams([
 { viewDimension: 'cube-array', A: 'i32' },
 { viewDimension: 'cube-array', A: 'u32' }]
 ).
+combine('filt', ['nearest', 'linear']).
+combine('mode', kShortAddressModes).
 beginSubcases().
 combine('samplePoints', kCubeSamplePointMethods).
-combine('L', ['i32', 'u32']).
-combine('addressMode', ['clamp-to-edge', 'repeat', 'mirror-repeat']).
-combine('minFilter', ['nearest', 'linear'])
+combine('L', ['i32', 'u32'])
 ).
 beforeAllSubcases((t) => {
   skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(t, t.params.format);
   t.skipIfTextureViewDimensionNotSupported(t.params.viewDimension);
 }).
 fn(async (t) => {
-  const { format, viewDimension, samplePoints, A, L, addressMode, minFilter } = t.params;
+  const { format, stage, viewDimension, samplePoints, A, L, mode, filt: minFilter } = t.params;
 
   const size = chooseTextureSize({
     minSize: 32,
@@ -703,9 +784,9 @@ fn(async (t) => {
   };
   const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
   const sampler = {
-    addressModeU: addressMode,
-    addressModeV: addressMode,
-    addressModeW: addressMode,
+    addressModeU: kShortAddressModeToAddressMode[mode],
+    addressModeV: kShortAddressModeToAddressMode[mode],
+    addressModeW: kShortAddressModeToAddressMode[mode],
     minFilter,
     magFilter: minFilter,
     mipmapFilter: minFilter
@@ -717,7 +798,7 @@ fn(async (t) => {
     descriptor,
     mipLevel: { num: texture.mipLevelCount - 1, type: L },
     arrayIndex: A ? { num: texture.depthOrArrayLayers / 6, type: A } : undefined,
-    hashInputs: [format, viewDimension, samplePoints, addressMode, minFilter]
+    hashInputs: [stage, format, viewDimension, samplePoints, mode, minFilter]
   }).map(({ coords, mipLevel, arrayIndex }) => {
     return {
       builtin: 'textureSampleLevel',
@@ -734,7 +815,15 @@ fn(async (t) => {
   };
   const textureType =
   viewDimension === 'cube' ? 'texture_depth_cube' : 'texture_depth_cube_array';
-  const results = await doTextureCalls(t, texture, viewDescriptor, textureType, sampler, calls);
+  const results = await doTextureCalls(
+    t,
+    texture,
+    viewDescriptor,
+    textureType,
+    sampler,
+    calls,
+    stage
+  );
 
   const res = await checkCallResults(
     t,
@@ -742,7 +831,9 @@ fn(async (t) => {
     textureType,
     sampler,
     calls,
-    results
+    results,
+    stage,
+    texture
   );
   t.expectOK(res);
 });
