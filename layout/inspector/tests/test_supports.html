@@ -9,10 +9,10 @@ for (let chrome of [true, false]) {
   is(InspectorUtils.supports("-moz-window-transform: unset", { chrome }), chrome, "InspectorUtils.supports should properly report to support chrome-only properties");
 }
 
-ok(!CSS.supports("-moz-top-layer: top"), "-moz-top-layer is only available to UA sheets");
+ok(!CSS.supports("-moz-top-layer: auto"), "-moz-top-layer is only available to UA sheets");
 ok(!CSS.supports("selector(:-moz-inert)"), "-moz-inert is an UA-only pseudo-class");
 for (let userAgent of [true, false]) {
-  is(InspectorUtils.supports("-moz-top-layer: top", { userAgent }), userAgent, "InspectorUtils.supports should properly report to support UA properties");
+  is(InspectorUtils.supports("-moz-top-layer: auto", { userAgent }), userAgent, "InspectorUtils.supports should properly report to support UA properties");
   is(InspectorUtils.supports("selector(:-moz-inert)", { userAgent }), userAgent, "InspectorUtils.supports should properly report to support UA-only selectors");
 }
 

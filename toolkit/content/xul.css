@@ -362,7 +362,7 @@ menupopup,
 panel,
 tooltip {
   position: fixed;
-  -moz-top-layer: top;
+  -moz-top-layer: auto;
   width: fit-content;
   height: fit-content;
   /* Make sure that popups are interactable when shown, since they escape the

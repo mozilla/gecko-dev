@@ -2654,7 +2654,7 @@ impl<'a> StyleBuilder<'a> {
     #[cfg(feature = "gecko")]
     pub fn in_top_layer(&self) -> bool {
         matches!(self.get_box().clone__moz_top_layer(),
-                 longhands::_moz_top_layer::computed_value::T::Top)
+                 longhands::_moz_top_layer::computed_value::T::Auto)
     }
 
     /// Clears the "have any reset structs been modified" flag.

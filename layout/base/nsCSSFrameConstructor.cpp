@@ -858,7 +858,7 @@ void nsFrameConstructorState::PushAbsoluteContainingBlock(
       // containing block (for mathml for example).
       return &mAbsoluteList;
     }
-    if (aPositionedFrame->StyleDisplay()->mTopLayer == StyleTopLayer::Top) {
+    if (aPositionedFrame->StyleDisplay()->mTopLayer == StyleTopLayer::Auto) {
       // If our new CB is in the top layer, and isn't a fixed CB itself, we also
       // escape the usual containment.
       return &mRealFixedList;
@@ -946,8 +946,8 @@ nsContainerFrame* nsFrameConstructorState::GetGeometricParent(
   }
 
   if (aStyleDisplay.mTopLayer != StyleTopLayer::None) {
-    MOZ_ASSERT(aStyleDisplay.mTopLayer == StyleTopLayer::Top,
-               "-moz-top-layer should be either none or top");
+    MOZ_ASSERT(aStyleDisplay.mTopLayer == StyleTopLayer::Auto,
+               "-moz-top-layer should be either none or auto");
     MOZ_ASSERT(aStyleDisplay.IsAbsolutelyPositionedStyle(),
                "Top layer items should always be absolutely positioned");
     if (aStyleDisplay.mPosition == StylePositionProperty::Fixed) {
@@ -1070,7 +1070,7 @@ AbsoluteFrameList* nsFrameConstructorState::GetOutOfFlowFrameList(
 
 void nsFrameConstructorState::ConstructBackdropFrameFor(nsIContent* aContent,
                                                         nsIFrame* aFrame) {
-  MOZ_ASSERT(aFrame->StyleDisplay()->mTopLayer == StyleTopLayer::Top);
+  MOZ_ASSERT(aFrame->StyleDisplay()->mTopLayer == StyleTopLayer::Auto);
   nsContainerFrame* frame = do_QueryFrame(aFrame);
   if (!frame) {
     NS_WARNING("Cannot create backdrop frame for non-container frame");
@@ -1082,7 +1082,7 @@ void nsFrameConstructorState::ConstructBackdropFrameFor(nsIContent* aContent,
       mPresShell->StyleSet()->ResolvePseudoElementStyle(
           *aContent->AsElement(), PseudoStyleType::backdrop, nullptr,
           parentStyle);
-  MOZ_ASSERT(style->StyleDisplay()->mTopLayer == StyleTopLayer::Top);
+  MOZ_ASSERT(style->StyleDisplay()->mTopLayer == StyleTopLayer::Auto);
   nsContainerFrame* parentFrame =
       GetGeometricParent(*style->StyleDisplay(), nullptr);
 

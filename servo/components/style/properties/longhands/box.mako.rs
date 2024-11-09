@@ -19,11 +19,11 @@ ${helpers.predefined_type(
 
 ${helpers.single_keyword(
     "-moz-top-layer",
-    "none top",
+    "none auto",
     engines="gecko",
     gecko_enum_prefix="StyleTopLayer",
     gecko_ffi_name="mTopLayer",
-    animation_type="none",
+    animation_type="discrete",
     enabled_in="ua",
     spec="Internal (not web-exposed)",
     affects="layout",

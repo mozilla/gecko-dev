@@ -357,7 +357,7 @@
 }
 
 :fullscreen:not(:root) {
-  -moz-top-layer: top !important;
+  -moz-top-layer: auto !important;
   position: fixed !important;
   inset: 0 !important;
   width: 100% !important;
@@ -399,7 +399,7 @@
 }
 
 ::backdrop {
-  -moz-top-layer: top !important;
+  -moz-top-layer: auto !important;
   display: block;
   position: fixed;
   inset: 0;
@@ -444,7 +444,7 @@ parsererror|sourcetext {
 .moz-custom-content-container:-moz-native-anonymous {
   pointer-events: none;
   user-select: none;
-  -moz-top-layer: top;
+  -moz-top-layer: auto;
   position: absolute;
   top: 0;
   left: 0;

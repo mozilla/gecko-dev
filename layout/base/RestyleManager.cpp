@@ -2601,7 +2601,7 @@ struct RestyleManager::TextPostTraversalState {
 static void UpdateBackdropIfNeeded(nsIFrame* aFrame, ServoStyleSet& aStyleSet,
                                    nsStyleChangeList& aChangeList) {
   const nsStyleDisplay* display = aFrame->Style()->StyleDisplay();
-  if (display->mTopLayer != StyleTopLayer::Top) {
+  if (display->mTopLayer != StyleTopLayer::Auto) {
     return;
   }
 
