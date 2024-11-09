@@ -365,6 +365,7 @@ const AVAILABLE_INJECTIONS = [
       matches: [
         "*://*.7streetbrownstones.com/*", // #129553
         "*://*.aptsovation.com/*", // #100131
+        "*://*.arboretumapartments.com/*", // bugzilla 1894682
         "*://*.avanabayview.com/*", // #118617
         "*://*.breakpointeandcoronado.com/*", // #117735
         "*://*.courtsatspringmill.com/*", // #128404
