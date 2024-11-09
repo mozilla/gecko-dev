@@ -1143,6 +1143,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "1875540",
+    platform: "all",
+    domain: "allstate.com",
+    bug: "1875540",
+    contentScripts: {
+      matches: ["*://*.allstate.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1875540-allstate.com-hide-unsupported-message.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
