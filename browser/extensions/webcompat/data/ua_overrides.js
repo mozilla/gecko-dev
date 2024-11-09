@@ -1470,6 +1470,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1898992 - UA override for asp.attenix.co.il
+     * Webcompat issue #101497 - https://webcompat.com/issues/101497
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "1898992",
+    platform: "all",
+    domain: "asp.attenix.co.il",
+    bug: "1898992",
+    config: {
+      matches: ["*://asp.attenix.co.il/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
