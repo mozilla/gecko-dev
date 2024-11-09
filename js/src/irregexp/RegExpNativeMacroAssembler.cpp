@@ -76,8 +76,8 @@ SMRegExpMacroAssembler::SMRegExpMacroAssembler(JSContext* cx,
   masm_.bind(&start_label_);  // and continue from here.
 }
 
-int SMRegExpMacroAssembler::stack_limit_slack_slot_count() {
-  return RegExpStack::kStackLimitSlackSlotCount;
+int SMRegExpMacroAssembler::stack_limit_slack() {
+  return RegExpStack::kStackLimitSlack;
 }
 
 void SMRegExpMacroAssembler::AdvanceCurrentPosition(int by) {
@@ -366,53 +366,6 @@ void SMRegExpMacroAssembler::CheckBitInTable(Handle<ByteArray> table,
 
   // Transfer ownership of |rawTable| to the |tables_| vector.
   AddTable(std::move(rawTable));
-}
-
-void SMRegExpMacroAssembler::SkipUntilBitInTable(int cp_offset,
-                                                 Handle<ByteArray> table,
-                                                 Handle<ByteArray> nibble_table,
-                                                 int advance_by) {
-  // Claim ownership of the ByteArray from the current HandleScope.
-  // ByteArrays are allocated on the C++ heap and are (eventually)
-  // owned by the RegExpShared.
-  PseudoHandle<ByteArrayData> rawTable = table->takeOwnership(isolate());
-
-  // TODO: SIMD support (bug 1928862).
-  MOZ_ASSERT(!SkipUntilBitInTableUseSimd(advance_by));
-
-  // Scalar version.
-  Register tableReg = temp0_;
-  masm_.movePtr(ImmPtr(rawTable->data()), tableReg);
-
-  Label cont;
-  js::jit::Label scalarRepeat;
-  masm_.bind(&scalarRepeat);
-  CheckPosition(cp_offset, &cont);
-  LoadCurrentCharacterUnchecked(cp_offset, 1);
-
-  Register index = current_character_;
-  if (mode_ != LATIN1 || kTableMask != String::kMaxOneByteCharCode) {
-    index = temp1_;
-    masm_.move32(current_character_, index);
-    masm_.and32(Imm32(kTableMask), index);
-  }
-
-  masm_.load8ZeroExtend(BaseIndex(tableReg, index, js::jit::TimesOne), temp2_);
-  masm_.branchTest32(Assembler::NonZero, temp2_, temp2_, cont.inner());
-  AdvanceCurrentPosition(advance_by);
-  masm_.jump(&scalarRepeat);
-
-  masm_.bind(cont.inner());
-
-  // Transfer ownership of |rawTable| to the |tables_| vector.
-  AddTable(std::move(rawTable));
-}
-
-bool SMRegExpMacroAssembler::SkipUntilBitInTableUseSimd(int advance_by) {
-  // V8 found that using SIMD instead of the scalar version was only
-  // faster when we are advancing by 1 byte per iteration.
-  bool simdEnabled = false;
-  return simdEnabled && advance_by * char_size() == 1;
 }
 
 void SMRegExpMacroAssembler::CheckNotBackReferenceImpl(int start_reg,
@@ -1015,8 +968,7 @@ static Handle<HeapObject> DummyCode() {
 
 // Finalize code. This is called last, so that we know how many
 // registers we need.
-Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source,
-                                                   RegExpFlags flags) {
+Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
   if (!cx_->zone()->ensureJitZoneExists(cx_)) {
     return DummyCode();
   }

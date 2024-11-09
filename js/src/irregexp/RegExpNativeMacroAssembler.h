@@ -41,7 +41,7 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
                          Zone* zone, Mode mode, uint32_t num_capture_registers);
   virtual ~SMRegExpMacroAssembler() = default;
 
-  virtual int stack_limit_slack_slot_count();
+  virtual int stack_limit_slack();
   virtual IrregexpImplementation Implementation();
 
   virtual bool Succeed();
@@ -81,10 +81,6 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
   virtual void CheckNotAtStart(int cp_offset, Label* on_not_at_start);
   virtual void CheckPosition(int cp_offset, Label* on_outside_input);
   virtual void CheckBitInTable(Handle<ByteArray> table, Label* on_bit_set);
-  virtual void SkipUntilBitInTable(int cp_offset, Handle<ByteArray> table,
-                                   Handle<ByteArray> nibble_table,
-                                   int advance_by);
-  virtual bool SkipUntilBitInTableUseSimd(int advance_by);
   virtual bool CheckSpecialCharacterClass(StandardCharacterSet type,
                                           Label* on_no_match);
   virtual void CheckNotBackReference(int start_reg, bool read_backward,
@@ -111,7 +107,7 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
   virtual void SetRegister(int register_index, int to);
   virtual void ClearRegisters(int reg_from, int reg_to);
 
-  virtual Handle<HeapObject> GetCode(Handle<String> source, RegExpFlags flags);
+  virtual Handle<HeapObject> GetCode(Handle<String> source);
 
   virtual bool CanReadUnaligned() const;
 
