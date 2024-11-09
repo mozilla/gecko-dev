@@ -1,0 +1,18 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * nsandi.com - Browser is not supported message
+ * Bug #1873166 - https://bugzilla.mozilla.org/show_bug.cgi?id=1873166
+ * WebCompat issue #108408 - https://webcompat.com/issues/108408
+ * WebCompat issue #108319 - https://webcompat.com/issues/108319
+ *
+ * nsandi.com shows a "This browser is not compatible" message in
+ * Firefox. Our contacts indicated that things should be working fine,
+ * yet the message remains. This intervention hides that message.
+ */
+.browser-warning-fade,
+#unsupported_browser {
+  display: none !important;
+}

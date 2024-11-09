@@ -1129,6 +1129,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1873166",
+    platform: "android",
+    domain: "nsandi.com",
+    bug: "1873166",
+    contentScripts: {
+      matches: ["*://*.nsandi.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1873166-nsandi.com-hide-unsupported-message.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
