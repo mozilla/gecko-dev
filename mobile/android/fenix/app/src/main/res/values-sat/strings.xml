@@ -324,6 +324,10 @@
     <string name="browser_menu_back_button_content_description">ᱢᱩᱞ ᱡᱟᱭᱜᱟ ᱛᱮ ᱨᱩᱣᱟᱹᱲ ᱢᱮ</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
     <string name="browser_main_menu_handlebar_content_description">ᱢᱩᱞ ᱢᱮᱱᱩ ᱥᱤᱴ ᱵᱚᱱᱫᱚᱭ ᱢᱮ</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">ᱜᱚᱲᱚ</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">ᱥᱟᱡᱟᱣ ᱠᱚ</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
     <string name="browser_extensions_menu_handlebar_content_description">ᱮᱠᱥᱴᱮᱱᱥᱚᱱ ᱢᱮᱱᱩ ᱥᱤᱴ ᱵᱚᱱᱫᱚᱭ ᱢᱮ</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -542,6 +546,10 @@
     <string name="onboarding_add_on_reviews_label">ᱨᱤᱵᱷᱤᱭᱩᱡ ᱠᱚ: %1$s</string>
     <!-- Content description for the add-on icon. -->
     <string name="onboarding_add_on_icon_content_description">ᱮᱰ-ᱚᱱ ᱪᱤᱱᱦᱟᱹ</string>
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">ᱮᱰ-ᱚᱱ ᱪᱤᱱᱦᱟᱹ ᱵᱚᱦᱟᱞ ᱮᱱᱟ</string>
+    <!-- Content description for the an installing add-on icon. -->
+    <string name="onboarding_installing_add_on_icon_content_description">ᱮᱰ-ᱚᱱ ᱪᱤᱱᱦᱟᱹ ᱵᱚᱦᱟᱞᱚᱜ ᱠᱟᱱᱟ</string>
     <!-- Content description for the add add-on button. -->
     <string name="onboarding_add_on_add_button_content_description">ᱮᱰ-ᱚᱱ ᱵᱩᱛᱟᱹᱢ ᱥᱮᱞᱮᱫ ᱢᱮ</string>
     <!-- Content description for the star rating group. -->
