@@ -1533,6 +1533,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1898994 - UA override for eportal.uestc.edu.cn
+     * Webcompat issue #100234 - https://webcompat.com/issues/100234
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "1898994",
+    platform: "all",
+    domain: "eportal.uestc.edu.cn",
+    bug: "1898994",
+    config: {
+      matches: ["*://eportal.uestc.edu.cn/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
