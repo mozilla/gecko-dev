@@ -10,6 +10,7 @@
 #include "mozilla/MemoryReporting.h"
 
 #include "builtin/SelfHostingDefines.h"
+#include "ds/OrderedHashTable.h"
 #include "vm/JSObject.h"
 #include "vm/NativeObject.h"
 #include "vm/PIC.h"

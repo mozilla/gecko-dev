@@ -785,12 +785,12 @@ void GCMarker::markImplicitEdges(T* markedThing) {
   MOZ_ASSERT(!zone->isGCSweeping());
 
   auto& ephemeronTable = zone->gcEphemeronEdges();
-  auto* p = ephemeronTable.get(markedThing);
+  auto p = ephemeronTable.lookup(markedThing);
   if (!p) {
     return;
   }
 
-  EphemeronEdgeVector& edges = p->value;
+  EphemeronEdgeVector& edges = p->value();
 
   // markedThing might be a key in a debugger weakmap, which can end up marking
   // values that are in a different compartment.
@@ -2165,14 +2165,9 @@ void GCMarker::start() {
 }
 
 static void ClearEphemeronEdges(JSRuntime* rt) {
-  AutoEnterOOMUnsafeRegion oomUnsafe;
   for (GCZonesIter zone(rt); !zone.done(); zone.next()) {
-    if (!zone->gcEphemeronEdges().clear()) {
-      oomUnsafe.crash("clearing weak keys in GCMarker::stop()");
-    }
-    if (!zone->gcNurseryEphemeronEdges().clear()) {
-      oomUnsafe.crash("clearing (nursery) weak keys in GCMarker::stop()");
-    }
+    zone->gcEphemeronEdges().clearAndCompact();
+    zone->gcNurseryEphemeronEdges().clearAndCompact();
   }
 }
 
@@ -2346,15 +2341,10 @@ IncrementalProgress JS::Zone::enterWeakMarkingMode(GCMarker* marker,
 
   MOZ_ASSERT(gcNurseryEphemeronEdges().count() == 0);
 
-  // An OrderedHashMap::MutableRange stays valid even when the underlying table
-  // (zone->gcEphemeronEdges) is mutated, which is useful here since we may add
-  // additional entries while iterating over the Range.
-  EphemeronEdgeTable::MutableRange r = gcEphemeronEdges().mutableAll();
-  while (!r.empty()) {
-    Cell* src = r.front().key;
+  for (auto r = gcEphemeronEdges().all(); !r.empty(); r.popFront()) {
+    Cell* src = r.front().key();
     CellColor srcColor = gc::detail::GetEffectiveColor(marker, src);
-    auto& edges = r.front().value;
-    r.popFront();  // Pop before any mutations happen.
+    auto& edges = r.front().value();
 
     if (IsMarked(srcColor) && edges.length() > 0) {
       uint32_t steps = edges.length();

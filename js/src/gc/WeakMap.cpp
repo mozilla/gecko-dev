@@ -28,10 +28,7 @@ WeakMapBase::~WeakMapBase() {
 }
 
 void WeakMapBase::unmarkZone(JS::Zone* zone) {
-  AutoEnterOOMUnsafeRegion oomUnsafe;
-  if (!zone->gcEphemeronEdges().clear()) {
-    oomUnsafe.crash("clearing ephemeron edges table");
-  }
+  zone->gcEphemeronEdges().clearAndCompact();
   MOZ_ASSERT(zone->gcNurseryEphemeronEdges().count() == 0);
 
   for (WeakMapBase* m : zone->gcWeakMapList()) {
@@ -91,8 +88,13 @@ bool WeakMapBase::addEphemeronEdge(MarkColor color, gc::Cell* src,
   // Add an implicit edge from |src| to |dst|.
 
   auto& edgeTable = src->zone()->gcEphemeronEdges(src);
-  auto* ptr = edgeTable.getOrAdd(src);
-  return ptr && ptr->value.emplaceBack(color, dst);
+  auto p = edgeTable.lookupForAdd(src);
+  if (!p) {
+    if (!edgeTable.add(p, src, EphemeronEdgeVector())) {
+      return false;
+    }
+  }
+  return p->value().emplaceBack(color, dst);
 }
 
 #if defined(JS_GC_ZEAL) || defined(DEBUG)

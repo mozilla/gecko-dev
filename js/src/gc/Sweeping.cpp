@@ -546,10 +546,7 @@ IncrementalProgress GCRuntime::markWeakReferences(
     // needs to be cleared first, then populated.
     if (!marker().incrementalWeakMapMarkingEnabled) {
       for (ZoneIterT zone(this); !zone.done(); zone.next()) {
-        AutoEnterOOMUnsafeRegion oomUnsafe;
-        if (!zone->gcEphemeronEdges().clear()) {
-          oomUnsafe.crash("clearing weak keys when entering weak marking mode");
-        }
+        zone->gcEphemeronEdges().clearAndCompact();
       }
     }
 
@@ -1322,10 +1319,7 @@ void GCRuntime::sweepWeakMaps() {
   SweepingTracer trc(rt);
   for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
     /* No need to look up any more weakmap keys from this sweep group. */
-    AutoEnterOOMUnsafeRegion oomUnsafe;
-    if (!zone->gcEphemeronEdges().clear()) {
-      oomUnsafe.crash("clearing weak keys in beginSweepingSweepGroup()");
-    }
+    zone->gcEphemeronEdges().clearAndCompact();
 
     // Lock the storebuffer since this may access it when rehashing or resizing
     // the tables.
