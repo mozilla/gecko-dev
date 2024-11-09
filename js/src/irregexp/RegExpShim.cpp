@@ -311,5 +311,30 @@ template Handle<String> Isolate::InternalizeString(
 static_assert(JSRegExp::RegistersForCaptureCount(JSRegExp::kMaxCaptures) <=
               RegExpMacroAssembler::kMaxRegisterCount);
 
+// This function implements AdvanceStringIndex and CodePointAt:
+//  - https://tc39.es/ecma262/#sec-advancestringindex
+//  - https://tc39.es/ecma262/#sec-codepointat
+// The semantics are to advance 2 code units for properly paired
+// surrogates in unicode mode, and 1 code unit otherwise
+// (non-surrogates, unpaired surrogates, or non-unicode mode).
+uint64_t RegExpUtils::AdvanceStringIndex(Tagged<String> wrappedString,
+                                         uint64_t index, bool unicode) {
+  MOZ_ASSERT(index < kMaxSafeIntegerUint64);
+  MOZ_ASSERT(wrappedString->IsFlat());
+  JSLinearString* string = &wrappedString->str()->asLinear();
+
+  if (unicode && index < string->length()) {
+    char16_t first = string->latin1OrTwoByteChar(index);
+    if (first >= 0xD800 && first <= 0xDBFF && index + 1 < string->length()) {
+      char16_t second = string->latin1OrTwoByteChar(index + 1);
+      if (second >= 0xDC00 && second <= 0xDFFF) {
+        return index + 2;
+      }
+    }
+  }
+
+  return index + 1;
+}
+
 }  // namespace internal
 }  // namespace v8
