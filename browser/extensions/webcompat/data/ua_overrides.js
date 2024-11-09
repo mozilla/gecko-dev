@@ -1392,7 +1392,7 @@ const AVAILABLE_UA_OVERRIDES = [
      * Site blocks Firefox, but seems to work with a UA spoof.
      */
     id: "1899948",
-    platform: "all",
+    platform: "desktop",
     domain: "tv.partner.co.il",
     bug: "1899948",
     config: {
