@@ -76,8 +76,8 @@ SMRegExpMacroAssembler::SMRegExpMacroAssembler(JSContext* cx,
   masm_.bind(&start_label_);  // and continue from here.
 }
 
-int SMRegExpMacroAssembler::stack_limit_slack() {
-  return RegExpStack::kStackLimitSlack;
+int SMRegExpMacroAssembler::stack_limit_slack_slot_count() {
+  return RegExpStack::kStackLimitSlackSlotCount;
 }
 
 void SMRegExpMacroAssembler::AdvanceCurrentPosition(int by) {
@@ -1015,7 +1015,8 @@ static Handle<HeapObject> DummyCode() {
 
 // Finalize code. This is called last, so that we know how many
 // registers we need.
-Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
+Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source,
+                                                   RegExpFlags flags) {
   if (!cx_->zone()->ensureJitZoneExists(cx_)) {
     return DummyCode();
   }

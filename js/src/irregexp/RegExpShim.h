@@ -81,6 +81,7 @@ class Handle;
 #define CHECK_EQ(lhs, rhs) MOZ_RELEASE_ASSERT((lhs) == (rhs))
 #define CHECK_LE(lhs, rhs) MOZ_RELEASE_ASSERT((lhs) <= (rhs))
 #define CHECK_GE(lhs, rhs) MOZ_RELEASE_ASSERT((lhs) >= (rhs))
+#define CHECK_IMPLIES(lhs, rhs) MOZ_RELEASE_ASSERT(!(lhs) || (rhs))
 #define CONSTEXPR_DCHECK MOZ_ASSERT
 
 // These assertions are necessary to preserve the soundness of the V8
@@ -178,13 +179,17 @@ struct Use {
 template <typename Dst, typename Src>
 inline Dst saturated_cast(Src value);
 
-// This is the only specialization that is needed for regexp code.
+// These are the only specializations that are needed for regexp code.
 // Instead of pulling in dozens of lines of template goo
 // to derive it, I used the implementation from uint8_clamped in
 // ArrayBufferObject.h.
 template <>
 inline uint8_t saturated_cast<uint8_t, int>(int x) {
   return (x >= 0) ? ((x < 255) ? uint8_t(x) : 255) : 0;
+}
+template <>
+inline uint8_t saturated_cast<uint8_t, uint32_t>(uint32_t x) {
+  return (x < 255) ? uint8_t(x) : 255;
 }
 
 // Origin:
@@ -437,6 +442,7 @@ constexpr double kMaxSafeInteger = static_cast<double>(kMaxSafeIntegerUint64);
 constexpr int kBitsPerByte = 8;
 constexpr int kBitsPerByteLog2 = 3;
 constexpr int kUInt16Size = sizeof(uint16_t);
+constexpr int kInt32Size = sizeof(int32_t);
 constexpr int kUInt32Size = sizeof(uint32_t);
 constexpr int kInt64Size = sizeof(int64_t);
 
@@ -921,13 +927,17 @@ inline Handle<T> handle(T object, Isolate* isolate) {
   return Handle<T>(object, isolate);
 }
 
-// DirectHandle is currently an optional feature, when disabled, it is defined
-// as a normal indirect Handle. A DirectHandle points directly at the V8 JS
-// Heap, normal Handles have an extra layer of indirection. This distinction
-// does not matter for our implementation. See:
-// https://github.com/v8/v8/blob/887ec63c43e23c4fefba1c52d4525654bdc71e5b/src/common/globals.h#L1000-L1003
+// V8 is migrating to a conservative stack scanning approach. When that
+// is enabled, a DirectHandle points directly at the V8 heap, and an
+// IndirectHandle is an unmigrated old-style Handle with a layer of
+// indirection. When disabled (which matches our implementation) the two
+// types are the same. See:
+// https://github.com/v8/v8/blob/887ec63c43e23c4fefba1c52d4525654bdc71e5b/src/common/globals.h#L1000-L1012
 template <typename T>
 using DirectHandle = Handle<T>;
+
+template <typename T>
+using IndirectHandle = Handle<T>;
 
 // RAII Guard classes
 
@@ -1043,12 +1053,20 @@ inline base::Vector<const base::uc16> String::GetCharVector(
   return flat.ToUC16Vector();
 }
 
+using RegExpFlags = JS::RegExpFlags;
+using RegExpFlag = JS::RegExpFlags::Flag;
+
 class JSRegExp {
  public:
   // Each capture (including the match itself) needs two registers.
   static constexpr int RegistersForCaptureCount(int count) {
     return (count + 1) * 2;
   }
+
+  static RegExpFlags AsRegExpFlags(RegExpFlags flags) { return flags; }
+  static RegExpFlags AsJSRegExpFlags(RegExpFlags flags) { return flags; }
+
+  static Handle<String> StringFromFlags(Isolate* isolate, RegExpFlags flags);
 
   // ******************************
   // Static constants
@@ -1089,14 +1107,18 @@ class IrRegExpData : public HeapObject {
     return inner()->getMaxRegisters();
   }
 
+  RegExpFlags flags() const { return inner()->getFlags(); }
+
+  size_t capture_count() const {
+    // Subtract 1 because pairCount includes the implicit global capture.
+    return inner()->pairCount() - 1;
+  }
+
  private:
   js::RegExpShared* inner() const {
     return value().toGCThing()->as<js::RegExpShared>();
   }
 };
-
-using RegExpFlags = JS::RegExpFlags;
-using RegExpFlag = JS::RegExpFlags::Flag;
 
 inline bool IsUnicode(RegExpFlags flags) { return flags.unicode(); }
 inline bool IsGlobal(RegExpFlags flags) { return flags.global(); }
