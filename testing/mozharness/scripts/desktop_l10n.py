@@ -207,12 +207,14 @@ class DesktopSingleLocale(LocalesMixin, AutomationMixin, VCSMixin, BaseScript):
         self.make_unpack_en_US()
 
     def _make_export(self):
-        """this step creates nsinstall, needed my make_wget_en_US()"""
+        """this step creates nsinstall, needed my make_wget_en_US() on Windows hosts
+        and creates buildid.h, used by NSIS installer for Windows UBR telemetry
+        """
         dirs = self.query_abs_dirs()
+        config_dir = os.path.join(dirs["abs_obj_dir"], "config")
         env = self.query_bootstrap_env()
-        return self._make(
-            target=["pre-export", "export"], cwd=dirs["abs_obj_dir"], env=env
-        )
+        self._make(target=["export"], cwd=config_dir, env=env)
+        return self._make(target=["buildid.h"], cwd=dirs["abs_obj_dir"], env=env)
 
     def _copy_mozconfig(self):
         """copies the mozconfig file into abs_src_dir/.mozconfig
