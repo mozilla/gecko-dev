@@ -1506,6 +1506,33 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1898988 - UA override for prudential.com.hk
+     * Webcompat issue #105184 - https://webcompat.com/issues/105184
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof. The site also
+     * has flawed UA detection for Linux, causing its page to not load correctly
+     * unless we spoof as a different OS.
+     */
+    id: "1898988",
+    platform: "all",
+    domain: "prudential.com.hk",
+    bug: "1898988",
+    config: {
+      matches: ["*://*.prudential.com.hk/*"],
+      uaTransformer: originalUA => {
+        const override = UAHelpers.getDeviceAppropriateChromeUA();
+        if (originalUA.includes("Linux") && !originalUA.includes("Android")) {
+          return override.replace(
+            /\(.*Linux.*\)/,
+            "(Macintosh; Intel Mac OS X 10.15)"
+          );
+        }
+        return override;
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
