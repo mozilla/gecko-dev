@@ -1452,6 +1452,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1899945 - UA override for nytimes.com Modern Love Questions
+     * Webcompat issue #41961 - https://webcompat.com/issues/41961
+     *
+     * Site blocks Firefox on Android, but seems to work with a UA spoof.
+     */
+    id: "1899945",
+    platform: "android",
+    domain: "nytimes.com Modern Love Questions",
+    bug: "1899945",
+    config: {
+      matches: ["*://www.nytimes.com/interactive/projects/modern-love/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
