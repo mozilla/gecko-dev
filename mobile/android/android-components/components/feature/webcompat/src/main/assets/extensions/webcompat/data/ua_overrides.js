@@ -1435,6 +1435,23 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1912923 - UA override for livelesson.class.com/class
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "1912923",
+    platform: "all",
+    domain: "livelesson.class.com",
+    bug: "1912923",
+    config: {
+      matches: ["*://livelesson.class.com/class/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
