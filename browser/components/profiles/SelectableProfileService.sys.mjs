@@ -858,18 +858,24 @@ class SelectableProfileServiceClass {
    * @returns {SelectableProfile} The newly created profile object.
    */
   async #createProfile(existingProfilePath) {
-    let nextProfileNumber =
-      1 + Math.max(0, ...(await this.getAllProfiles()).map(p => p.id));
-    let [defaultName] = lazy.profilesLocalization.formatMessagesSync([
-      { id: "default-profile-name", args: { number: nextProfileNumber } },
-    ]);
+    let nextProfileNumber = Math.max(
+      0,
+      ...(await this.getAllProfiles()).map(p => p.id)
+    );
+    let [defaultName, originalName] =
+      lazy.profilesLocalization.formatMessagesSync([
+        { id: "default-profile-name", args: { number: nextProfileNumber } },
+        { id: "original-profile-name" },
+      ]);
 
     let window = Services.wm.getMostRecentBrowserWindow();
     let isDark = window?.matchMedia("(-moz-system-dark-theme)").matches;
 
     let randomIndex = Math.floor(Math.random() * this.#defaultAvatars.length);
     let profileData = {
-      name: defaultName.value,
+      // The original toolkit profile is added first and is assigned a
+      // different name.
+      name: nextProfileNumber == 0 ? originalName.value : defaultName.value,
       avatar: this.#defaultAvatars[randomIndex],
       themeId: "default-theme@mozilla.org",
       themeFg: isDark ? "rgb(255,255,255)" : "rgb(21,20,26)",
