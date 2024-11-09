@@ -1488,6 +1488,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1899060 - UA override for wbte.drcedirect.com
+     * Webcompat issue #66885 - https://webcompat.com/issues/66885
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "1899060",
+    platform: "desktop",
+    domain: "wbte.drcedirect.com",
+    bug: "1899060",
+    config: {
+      matches: ["*://wbte.drcedirect.com/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
