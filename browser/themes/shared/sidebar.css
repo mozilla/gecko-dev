@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #sidebar-box {
-  background-color: var(--sidebar-background-color);
-  color: var(--sidebar-text-color);
-  text-shadow: none;
   max-width: 75vw;
   min-width: 14em;
   width: 18em;
@@ -37,20 +34,26 @@
   }
 }
 
-/* Note that with sidebar.revamp we apply the --sidebar-background-color to the
- * #sidebar browser. We still need the #sidebar-box background to match the
- * toolbar tho */
-/* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "sidebar.revamp") {
-  #sidebar-main,
-  #sidebar-box {
-    background-color: var(--toolbar-bgcolor);
-    color: var(--toolbar-color);
-    text-shadow: none;
+#sidebar-main,
+#sidebar-box {
+  text-shadow: none;
 
-    :root[lwtheme] & {
-      background-color: var(--lwt-accent-color);
-      background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
+  &:not(.browser-toolbox-background) {
+    background-color: var(--sidebar-background-color);
+    color: var(--sidebar-text-color);
+
+    /* Note that with sidebar.revamp we apply the --sidebar-background-color to the
+     * #sidebar browser. We still need the #sidebar-box background to match the
+     * toolbar tho */
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media (-moz-bool-pref: "sidebar.revamp") {
+      background-color: var(--toolbar-bgcolor);
+      color: var(--toolbar-color);
+
+      :root[lwtheme] & {
+        background-color: var(--lwt-accent-color);
+        background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
+      }
     }
   }
 }

@@ -134,19 +134,7 @@ body {
 
 #navigator-toolbox {
   appearance: none;
-  position: relative;
   z-index: var(--browser-area-z-index-toolbox);
-
-  background-color: var(--toolbox-non-lwt-bgcolor);
-  color: var(--toolbox-non-lwt-textcolor);
-
-  will-change: background-color;
-  transition: background-color var(--inactive-window-transition);
-
-  &:-moz-window-inactive {
-    background-color: var(--toolbox-non-lwt-bgcolor-inactive);
-    color: var(--toolbox-non-lwt-textcolor-inactive);
-  }
 
   &[fullscreenShouldAnimate] {
     transition: 0.8s margin-top ease-out;
@@ -163,20 +151,16 @@ body {
     border-bottom-color: var(--chrome-content-separator-color);
   }
 
-  :root[customizing] & {
-    border-bottom-style: none;
-  }
-
+  /* Themes define a set of toolbox foreground and background colors which we
+   * want to use across the toolbox and sidebar areas. That happens via the
+   * .browser-toolbox-background class. It's hard to make a theme's background
+   * images work with something other than the toolbox, so for now we ignore
+   * them on other things like the sidebar that could have
+   * .browser-toolbox-background */
   :root[lwtheme] & {
     background-image: var(--lwt-additional-images);
     background-repeat: var(--lwt-background-tiling);
     background-position: var(--lwt-background-alignment);
-    background-color: var(--lwt-accent-color);
-    color: inherit;
-
-    &:-moz-window-inactive {
-      background-color: var(--lwt-accent-color-inactive, var(--lwt-accent-color));
-    }
   }
 
   /* When a theme defines both theme_frame and additional_backgrounds, show
@@ -188,15 +172,59 @@ body {
   }
 }
 
+.browser-toolbox-background {
+  position: relative;
+  background-color: var(--toolbox-bgcolor);
+  color: var(--toolbox-textcolor);
+
+  will-change: background-color;
+  transition: background-color var(--inactive-window-transition);
+
+  &:-moz-window-inactive {
+    background-color: var(--toolbox-bgcolor-inactive);
+    color: var(--toolbox-textcolor-inactive);
+  }
+
+  :root[customizing] & {
+    border-bottom-style: none;
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-platform: macos) and (-moz-bool-pref: "browser.theme.native-theme") {
+    /* Don't make the toolbox vibrant when in full-screen. macOS fullscreen has a
+     * native titlebar outside of the window (revealed on hover) anyways. */
+    :root[tabsintitlebar]:not([lwtheme], [macOSNativeFullscreen]) & {
+      background-color: transparent;
+
+      /* This is conceptually a background, but putting this on a
+       * pseudo-element avoids it from suppressing the chrome-content separator
+       * border, etc */
+      &::after {
+        -moz-default-appearance: -moz-window-titlebar;
+        appearance: auto;
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+      }
+    }
+  }
+}
+
 .browser-toolbar {
   appearance: none;
   /* Reset linux padding */
   padding: 0;
+  border-style: none;
+  background-color: transparent;
+  color: inherit;
 
-  &:not(.browser-titlebar) {
-    background-color: var(--toolbar-bgcolor);
-    color: var(--toolbar-color);
-    border-style: none;
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not (-moz-bool-pref: "sidebar.verticalTabs") {
+    &:not(.browser-titlebar) {
+      background-color: var(--toolbar-bgcolor);
+      color: var(--toolbar-color);
+    }
   }
 }
 

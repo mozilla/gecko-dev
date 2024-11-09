@@ -8040,6 +8040,15 @@ var TabBarVisibility = {
       TabsInTitlebar.enabled && hideTabstrip
     );
 
+    for (let id of ["sidebar-main", "sidebar-box"]) {
+      document
+        .getElementById(id)
+        .classList.toggle(
+          "browser-toolbox-background",
+          TabsInTitlebar.enabled && nonPopupWithVerticalTabs
+        );
+    }
+
     if (
       hideTabstrip == toolbar.collapsed &&
       !force &&

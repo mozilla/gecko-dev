@@ -981,7 +981,8 @@ tab-group {
       background-image: linear-gradient(
         to top,
         transparent 0%,
-        var(--toolbar-bgcolor));
+        var(--toolbox-bgcolor)
+      );
       background-repeat: no-repeat;
       pointer-events: none;
 

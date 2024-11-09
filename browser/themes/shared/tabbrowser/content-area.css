@@ -33,6 +33,11 @@
     /* This reserves space for the content area outline */
     border-bottom-color: var(--toolbar-bgcolor);
   }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.verticalTabs") {
+    border-bottom-style: none;
+  }
 }
 
 #browser,

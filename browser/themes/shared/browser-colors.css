@@ -8,6 +8,11 @@
   --toolbox-non-lwt-bgcolor-inactive: -moz-headerbarinactive;
   --toolbox-non-lwt-textcolor-inactive: -moz-headerbarinactivetext;
 
+  --toolbox-bgcolor: var(--toolbox-non-lwt-bgcolor);
+  --toolbox-textcolor: var(--toolbox-non-lwt-textcolor);
+  --toolbox-bgcolor-inactive: var(--toolbox-non-lwt-bgcolor-inactive);
+  --toolbox-textcolor-inactive: var(--toolbox-non-lwt-textcolor-inactive);
+
   --sidebar-background-color: -moz-sidebar;
   --sidebar-text-color: -moz-sidebartext;
   --sidebar-border-color: -moz-sidebarborder;
@@ -43,6 +48,11 @@
     --link-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
     --tabs-navbar-separator-color: light-dark(rgba(0,0,0,.1), rgba(0,0,0,.3));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);
+
+    --toolbox-bgcolor: var(--lwt-accent-color);
+    --toolbox-bgcolor-inactive: var(--lwt-accent-color-inactive, var(--lwt-accent-color));
+    --toolbox-textcolor: var(--lwt-text-color, currentColor);
+    --toolbox-textcolor-inactive: var(--lwt-text-color, currentColor);
 
     @media not (prefers-contrast) {
       --focus-outline-color: light-dark(#0061E0, #00DDFF);
