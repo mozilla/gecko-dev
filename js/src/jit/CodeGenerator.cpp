@@ -9322,9 +9322,9 @@ void RangeFront<MapObject>(MacroAssembler& masm, Register iter, Register i,
   masm.unboxObject(Address(iter, MapIteratorObject::offsetOfTarget()), front);
   masm.loadPrivate(Address(front, MapObject::offsetOfData()), front);
 
-  static_assert(ValueMap::offsetOfImplDataElement() == 0,
+  static_assert(MapObject::Table::offsetOfImplDataElement() == 0,
                 "offsetof(Data, element) is 0");
-  static_assert(ValueMap::sizeofImplData() == 24, "sizeof(Data) is 24");
+  static_assert(MapObject::Table::sizeofImplData() == 24, "sizeof(Data) is 24");
   masm.mulBy3(i, i);
   masm.lshiftPtr(Imm32(3), i);
   masm.addPtr(i, front);
@@ -9336,9 +9336,9 @@ void RangeFront<SetObject>(MacroAssembler& masm, Register iter, Register i,
   masm.unboxObject(Address(iter, SetIteratorObject::offsetOfTarget()), front);
   masm.loadPrivate(Address(front, SetObject::offsetOfData()), front);
 
-  static_assert(ValueSet::offsetOfImplDataElement() == 0,
+  static_assert(SetObject::Table::offsetOfImplDataElement() == 0,
                 "offsetof(Data, element) is 0");
-  static_assert(ValueSet::sizeofImplData() == 16, "sizeof(Data) is 16");
+  static_assert(SetObject::Table::sizeofImplData() == 16, "sizeof(Data) is 16");
   masm.lshiftPtr(Imm32(4), i);
   masm.addPtr(i, front);
 }
@@ -9408,8 +9408,8 @@ void CodeGenerator::emitLoadIteratorValues<MapObject>(Register result,
                                                       Register front) {
   size_t elementsOffset = NativeObject::offsetOfFixedElements();
 
-  Address keyAddress(front, ValueMap::Entry::offsetOfKey());
-  Address valueAddress(front, ValueMap::Entry::offsetOfValue());
+  Address keyAddress(front, MapObject::Table::Entry::offsetOfKey());
+  Address valueAddress(front, MapObject::Table::Entry::offsetOfValue());
   Address keyElemAddress(result, elementsOffset);
   Address valueElemAddress(result, elementsOffset + sizeof(Value));
   masm.guardedCallPreBarrier(keyElemAddress, MIRType::Value);
@@ -9437,7 +9437,7 @@ void CodeGenerator::emitLoadIteratorValues<SetObject>(Register result,
                                                       Register front) {
   size_t elementsOffset = NativeObject::offsetOfFixedElements();
 
-  Address keyAddress(front, ValueSet::offsetOfEntryKey());
+  Address keyAddress(front, SetObject::Table::offsetOfEntryKey());
   Address keyElemAddress(result, elementsOffset);
   masm.guardedCallPreBarrier(keyElemAddress, MIRType::Value);
   masm.storeValue(keyAddress, keyElemAddress, temp);

@@ -101,12 +101,6 @@ struct HashableValueHasher {
   static void makeEmpty(Key* vp) { vp->set(HashableValue(JS_HASH_KEY_EMPTY)); }
 };
 
-using ValueMap = OrderedHashMapImpl<PreBarriered<HashableValue>, HeapPtr<Value>,
-                                    HashableValueHasher>;
-
-using ValueSet =
-    OrderedHashSetImpl<PreBarriered<HashableValue>, HashableValueHasher>;
-
 template <typename ObjectT>
 class OrderedHashTableRef;
 
@@ -114,6 +108,27 @@ struct UnbarrieredHashPolicy;
 
 class MapObject : public OrderedHashMapObject {
  public:
+  using Table = OrderedHashMapImpl<PreBarriered<HashableValue>, HeapPtr<Value>,
+                                   HashableValueHasher>;
+
+  // PreBarrieredTable has the same memory layout as Table but doesn't have
+  // wrappers that perform post barriers on the keys/values. Used when the
+  // MapObject is in the nursery.
+  using PreBarrieredTable =
+      OrderedHashMapImpl<PreBarriered<HashableValue>, PreBarriered<Value>,
+                         HashableValueHasher>;
+
+  // UnbarrieredTable has the same memory layout as Table but doesn't have any
+  // wrappers that perform barriers on the keys/values. Used to allocate and
+  // delete the table and when updating the nursery allocated keys map during
+  // minor GC.
+  using UnbarrieredTable =
+      OrderedHashMapImpl<Value, Value, UnbarrieredHashPolicy>;
+
+  friend class OrderedHashTableRef<MapObject>;
+
+  enum { NurseryKeysSlot = Table::SlotCount, HasNurseryMemorySlot, SlotCount };
+
   enum IteratorKind { Keys, Values, Entries };
   static_assert(
       Keys == ITEM_KIND_KEY,
@@ -128,12 +143,6 @@ class MapObject : public OrderedHashMapObject {
 
   static const JSClass class_;
   static const JSClass protoClass_;
-
-  enum {
-    NurseryKeysSlot = ValueMap::SlotCount,
-    HasNurseryMemorySlot,
-    SlotCount
-  };
 
   [[nodiscard]] static bool getKeysAndValuesInterleaved(
       HandleObject obj, JS::MutableHandle<GCVector<JS::Value>> entries);
@@ -158,22 +167,6 @@ class MapObject : public OrderedHashMapObject {
   [[nodiscard]] static bool clear(JSContext* cx, HandleObject obj);
   [[nodiscard]] static bool iterator(JSContext* cx, IteratorKind kind,
                                      HandleObject obj, MutableHandleValue iter);
-
-  using Table = ValueMap;
-
-  // OrderedHashMap with the same memory layout as ValueMap but without wrappers
-  // that perform post barriers. Used when the owning JS object is in the
-  // nursery.
-  using PreBarrieredTable =
-      OrderedHashMapImpl<PreBarriered<HashableValue>, PreBarriered<Value>,
-                         HashableValueHasher>;
-
-  // OrderedHashMap with the same memory layout as ValueMap but without any
-  // wrappers that perform barriers. Used to allocate and delete the table and
-  // when updating the nursery allocated keys map during minor GC.
-  using UnbarrieredTable =
-      OrderedHashMapImpl<Value, Value, UnbarrieredHashPolicy>;
-  friend class OrderedHashTableRef<MapObject>;
 
   void clearNurseryRangesBeforeMinorGC();
 
@@ -284,6 +277,14 @@ class MapIteratorObject : public NativeObject {
 
 class SetObject : public OrderedHashSetObject {
  public:
+  using Table =
+      OrderedHashSetImpl<PreBarriered<HashableValue>, HashableValueHasher>;
+  using UnbarrieredTable = OrderedHashSetImpl<Value, UnbarrieredHashPolicy>;
+
+  friend class OrderedHashTableRef<SetObject>;
+
+  enum { NurseryKeysSlot = Table::SlotCount, HasNurseryMemorySlot, SlotCount };
+
   enum IteratorKind { Keys, Values, Entries };
 
   static_assert(
@@ -299,12 +300,6 @@ class SetObject : public OrderedHashSetObject {
 
   static const JSClass class_;
   static const JSClass protoClass_;
-
-  enum {
-    NurseryKeysSlot = ValueSet::SlotCount,
-    HasNurseryMemorySlot,
-    SlotCount
-  };
 
   [[nodiscard]] static bool keys(JSContext* cx, HandleObject obj,
                                  JS::MutableHandle<GCVector<JS::Value>> keys);
@@ -329,10 +324,6 @@ class SetObject : public OrderedHashSetObject {
                                     HandleValue key, bool* rval);
 
   [[nodiscard]] static bool copy(JSContext* cx, unsigned argc, Value* vp);
-
-  using Table = ValueSet;
-  using UnbarrieredTable = OrderedHashSetImpl<Value, UnbarrieredHashPolicy>;
-  friend class OrderedHashTableRef<SetObject>;
 
   void clearNurseryRangesBeforeMinorGC();
 
