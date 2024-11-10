@@ -972,18 +972,11 @@ bool MapObject::delete_(JSContext* cx, HandleObject obj, HandleValue key,
     return false;
   }
 
-  bool ok;
   if (mapObject->isTenured()) {
-    ok = Table(mapObject).remove(k, rval);
+    *rval = Table(mapObject).remove(k);
   } else {
-    ok = PreBarrieredTable(mapObject).remove(k, rval);
+    *rval = PreBarrieredTable(mapObject).remove(k);
   }
-
-  if (!ok) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-
   return true;
 }
 
@@ -1075,19 +1068,11 @@ bool MapObject::clear(JSContext* cx, unsigned argc, Value* vp) {
 
 bool MapObject::clear(JSContext* cx, HandleObject obj) {
   MapObject* mapObject = &obj->as<MapObject>();
-
-  bool ok;
   if (mapObject->isTenured()) {
-    ok = Table(mapObject).clear();
+    Table(mapObject).clear();
   } else {
-    ok = PreBarrieredTable(mapObject).clear();
+    PreBarrieredTable(mapObject).clear();
   }
-
-  if (!ok) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-
   return true;
 }
 
@@ -1717,11 +1702,7 @@ bool SetObject::delete_(JSContext* cx, HandleObject obj, HandleValue key,
   }
 
   SetObject* setObj = &obj->as<SetObject>();
-
-  if (!Table(setObj).remove(k, rval)) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
+  *rval = Table(setObj).remove(k);
   return true;
 }
 
@@ -1732,11 +1713,7 @@ bool SetObject::delete_impl(JSContext* cx, const CallArgs& args) {
 
   SetObject* setObj = &args.thisv().toObject().as<SetObject>();
 
-  bool found;
-  if (!Table(setObj).remove(key, &found)) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
+  bool found = Table(setObj).remove(key);
   args.rval().setBoolean(found);
   return true;
 }
@@ -1792,19 +1769,13 @@ bool SetObject::entries(JSContext* cx, unsigned argc, Value* vp) {
 bool SetObject::clear(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(SetObject::is(obj));
   SetObject* setObj = &obj->as<SetObject>();
-  if (!Table(setObj).clear()) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
+  Table(setObj).clear();
   return true;
 }
 
 bool SetObject::clear_impl(JSContext* cx, const CallArgs& args) {
   SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-  if (!Table(setObj).clear()) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
+  Table(setObj).clear();
   args.rval().setUndefined();
   return true;
 }

@@ -454,15 +454,10 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   }
 
   /*
-   * If the table contains an element matching l, remove it and set *foundp
-   * to true. Otherwise set *foundp to false.
-   *
-   * Return true on success, false if we tried to shrink the table and hit an
-   * allocation failure. Even if this returns false, *foundp is set correctly
-   * and the matching element was removed. Shrinking is an optimization and
-   * it's OK for it to fail.
+   * If the table contains an element matching l, remove it and return true.
+   * Otherwise return false.
    */
-  bool remove(const Lookup& l, bool* foundp) {
+  bool remove(const Lookup& l) {
     // Note: This could be optimized so that removing the last entry,
     // data[dataLength - 1], decrements dataLength. LIFO use cases would
     // benefit.
@@ -470,15 +465,9 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     // If a matching entry exists, empty it.
     Data* e = lookup(l, prepareHash(l));
     if (e == nullptr) {
-      *foundp = false;
-      return true;
+      return false;
     }
 
-    *foundp = true;
-    return remove(e);
-  }
-
-  bool remove(Data* e) {
     MOZ_ASSERT(uint32_t(e - getData()) < getDataCapacity());
 
     uint32_t liveCount = getLiveCount();
@@ -490,12 +479,12 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     uint32_t pos = e - getData();
     forEachRange([this, pos](Range* range) { range->onRemove(obj, pos); });
 
-    // If many entries have been removed, try to shrink the table.
+    // If many entries have been removed, try to shrink the table. Ignore OOM
+    // because shrinking the table is an optimization and it's okay for it to
+    // fail.
     if (hashBuckets() > InitialBuckets &&
         liveCount < getDataLength() * MinDataFill) {
-      if (!rehash(getHashShift() + 1)) {
-        return false;
-      }
+      (void)rehash(getHashShift() + 1);
     }
 
     return true;
@@ -504,15 +493,11 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   /*
    * Remove all entries.
    *
-   * Return true on success, false if we tried to shrink the table and hit an
-   * allocation failure. Even if this returns false, the table was cleared.
-   * Shrinking is an optimization and it's OK for it to fail.
-   *
    * The effect on live Ranges is the same as removing all entries; in
    * particular, those Ranges are still live and will see any entries added
-   * after a successful clear().
+   * after a clear().
    */
-  [[nodiscard]] bool clear() {
+  void clear() {
     if (getDataLength() != 0) {
       destroyData(getData(), getDataLength());
       setDataLength(0);
@@ -523,11 +508,10 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
       forEachRange([](Range* range) { range->onClear(); });
 
-      // Try to shrink the table.
+      // Try to shrink the table. Ignore OOM because shrinking the table is an
+      // optimization and it's okay for it to fail.
       if (buckets > InitialBuckets) {
-        if (!rehash(InitialHashShift)) {
-          return false;
-        }
+        (void)rehash(InitialHashShift);
       }
     }
 
@@ -535,7 +519,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     MOZ_ASSERT(getData());
     MOZ_ASSERT(getDataLength() == 0);
     MOZ_ASSERT(getLiveCount() == 0);
-    return true;
   }
 
   /*
@@ -1103,10 +1086,8 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
   bool has(const Lookup& key) const { return impl.has(key); }
   Range all() const { return impl.all(); }
   Entry* get(const Lookup& key) { return impl.get(key); }
-  bool remove(const Lookup& key, bool* foundp) {
-    return impl.remove(key, foundp);
-  }
-  [[nodiscard]] bool clear() { return impl.clear(); }
+  bool remove(const Lookup& key) { return impl.remove(key); }
+  void clear() { impl.clear(); }
 
   void destroy(JS::GCContext* gcx) { impl.destroy(gcx); }
 
@@ -1199,10 +1180,8 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
   [[nodiscard]] bool put(Input&& value) {
     return impl.put(std::forward<Input>(value));
   }
-  bool remove(const Lookup& value, bool* foundp) {
-    return impl.remove(value, foundp);
-  }
-  [[nodiscard]] bool clear() { return impl.clear(); }
+  bool remove(const Lookup& value) { return impl.remove(value); }
+  void clear() { impl.clear(); }
 
   void destroy(JS::GCContext* gcx) { impl.destroy(gcx); }
 
