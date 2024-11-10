@@ -3356,6 +3356,9 @@ nsresult QuotaManager::CreateDirectoryMetadata2(
     const OriginMetadata& aOriginMetadata) {
   AssertIsOnIOThread();
 
+  QM_TRY(ArtificialFailure(
+      nsIQuotaArtificialFailure::CATEGORY_CREATE_DIRECTORY_METADATA2));
+
   QM_TRY_INSPECT(const auto& file, MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
                                        nsCOMPtr<nsIFile>, aDirectory, Clone));
 

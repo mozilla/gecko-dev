@@ -13,5 +13,6 @@ interface nsIQuotaArtificialFailure : nsISupports
     CATEGORY_NONE = 0,
     CATEGORY_INITIALIZE_ORIGIN = 1 << 0,
     CATEGORY_OPEN_CLIENT_DIRECTORY = 1 << 1,
+    CATEGORY_CREATE_DIRECTORY_METADATA2 = 1 << 2,
   };
 };
