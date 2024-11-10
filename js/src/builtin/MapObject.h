@@ -196,9 +196,8 @@ class MapObject : public OrderedHashMapObject {
   static const JSPropertySpec staticProperties[];
   static const JSFunctionSpec staticMethods[];
 
-  static inline bool setWithHashableKey(JSContext* cx, MapObject* obj,
-                                        Handle<HashableValue> key,
-                                        Handle<Value> value);
+  [[nodiscard]] bool setWithHashableKey(JSContext* cx, const HashableValue& key,
+                                        const Value& value);
 
   static bool finishInit(JSContext* cx, HandleObject ctor, HandleObject proto);
 
@@ -348,6 +347,9 @@ class SetObject : public OrderedHashSetObject {
   static const JSPropertySpec properties[];
   static const JSFunctionSpec methods[];
   static const JSPropertySpec staticProperties[];
+
+  [[nodiscard]] bool addHashableValue(JSContext* cx,
+                                      const HashableValue& value);
 
   static bool finishInit(JSContext* cx, HandleObject ctor, HandleObject proto);
 

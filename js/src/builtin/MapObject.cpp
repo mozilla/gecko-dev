@@ -632,8 +632,10 @@ class js::OrderedHashTableRef : public gc::BufferableRef {
 };
 
 template <typename ObjectT>
-[[nodiscard]] inline static bool PostWriteBarrierImpl(ObjectT* obj,
-                                                      const Value& keyValue) {
+[[nodiscard]] inline static bool PostWriteBarrier(ObjectT* obj,
+                                                  const Value& keyValue) {
+  MOZ_ASSERT(!IsInsideNursery(obj));
+
   if (MOZ_LIKELY(!keyValue.hasObjectPayload() && !keyValue.isBigInt())) {
     MOZ_ASSERT_IF(keyValue.isGCThing(), !IsInsideNursery(keyValue.toGCThing()));
     return true;
@@ -655,21 +657,6 @@ template <typename ObjectT>
   }
 
   return keys->append(keyValue);
-}
-
-[[nodiscard]] inline static bool PostWriteBarrier(MapObject* map,
-                                                  const Value& key) {
-  MOZ_ASSERT(!IsInsideNursery(map));
-  return PostWriteBarrierImpl(map, key);
-}
-
-[[nodiscard]] inline static bool PostWriteBarrier(SetObject* set,
-                                                  const Value& key) {
-  if (IsInsideNursery(set)) {
-    return true;
-  }
-
-  return PostWriteBarrierImpl(set, key);
 }
 
 bool MapObject::getKeysAndValuesInterleaved(
@@ -695,24 +682,21 @@ bool MapObject::set(JSContext* cx, HandleObject obj, HandleValue k,
     return false;
   }
 
-  return setWithHashableKey(cx, mapObject, key, v);
+  return mapObject->setWithHashableKey(cx, key, v);
 }
 
-/* static */
-inline bool MapObject::setWithHashableKey(JSContext* cx, MapObject* obj,
-                                          Handle<HashableValue> key,
-                                          Handle<Value> value) {
-  bool needsPostBarriers = obj->isTenured();
+bool MapObject::setWithHashableKey(JSContext* cx, const HashableValue& key,
+                                   const Value& value) {
+  bool needsPostBarriers = isTenured();
   if (needsPostBarriers) {
     // Use the Table representation which has post barriers.
-    if (!PostWriteBarrier(obj, key.get()) ||
-        !Table(obj).put(key.get(), value)) {
+    if (!PostWriteBarrier(this, key) || !Table(this).put(key, value)) {
       ReportOutOfMemory(cx);
       return false;
     }
   } else {
     // Use the PreBarrieredTable representation which does not.
-    if (!PreBarrieredTable(obj).put(key.get(), value.get())) {
+    if (!PreBarrieredTable(this).put(key, value)) {
       ReportOutOfMemory(cx);
       return false;
     }
@@ -949,7 +933,7 @@ bool MapObject::set_impl(JSContext* cx, const CallArgs& args) {
 
   MapObject* obj = &args.thisv().toObject().as<MapObject>();
   ARG0_KEY(cx, args, key);
-  if (!setWithHashableKey(cx, obj, key, args.get(1))) {
+  if (!obj->setWithHashableKey(cx, key, args.get(1))) {
     return false;
   }
 
@@ -1434,8 +1418,16 @@ bool SetObject::add(JSContext* cx, HandleObject obj, HandleValue k) {
   }
 
   SetObject* setObj = &obj->as<SetObject>();
+  return setObj->addHashableValue(cx, key);
+}
 
-  if (!PostWriteBarrier(setObj, key.get()) || !Table(setObj).put(key.get())) {
+bool SetObject::addHashableValue(JSContext* cx, const HashableValue& value) {
+  bool needsPostBarriers = isTenured();
+  if (needsPostBarriers && !PostWriteBarrier(this, value)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  if (!Table(this).put(value)) {
     ReportOutOfMemory(cx);
     return false;
   }
@@ -1585,12 +1577,10 @@ bool SetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
            ++index) {
         keyVal.set(array->getDenseElement(index));
         MOZ_ASSERT(!keyVal.isMagic(JS_ELEMENTS_HOLE));
-
         if (!key.setValue(cx, keyVal)) {
           return false;
         }
-        if (!PostWriteBarrier(obj, key.get()) || !Table(obj).put(key.get())) {
-          ReportOutOfMemory(cx);
+        if (!obj->addHashableValue(cx, key)) {
           return false;
         }
       }
@@ -1673,12 +1663,9 @@ bool SetObject::has(JSContext* cx, unsigned argc, Value* vp) {
 
 bool SetObject::add_impl(JSContext* cx, const CallArgs& args) {
   MOZ_ASSERT(is(args.thisv()));
-
   ARG0_KEY(cx, args, key);
   SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-
-  if (!PostWriteBarrier(setObj, key.get()) || !Table(setObj).put(key.get())) {
-    ReportOutOfMemory(cx);
+  if (!setObj->addHashableValue(cx, key)) {
     return false;
   }
   args.rval().set(args.thisv());
@@ -1800,9 +1787,7 @@ bool SetObject::copy(JSContext* cx, unsigned argc, Value* vp) {
   for (auto range = Table(from).all(); !range.empty(from);
        range.popFront(from)) {
     HashableValue value = range.front(from).get();
-
-    if (!PostWriteBarrier(result, value) || !Table(result).put(value)) {
-      ReportOutOfMemory(cx);
+    if (!result->addHashableValue(cx, value)) {
       return false;
     }
   }
