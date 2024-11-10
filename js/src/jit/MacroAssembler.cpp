@@ -9509,13 +9509,16 @@ void MacroAssembler::prepareHashObject(Register setObj, ValueOperand value,
                 MapObject::getDataSlotOffset());
   loadPrivate(Address(setObj, SetObject::getDataSlotOffset()), temp1);
 
-  // Load |HashCodeScrambler::mK0| and |HashCodeScrambler::mK0|.
-  static_assert(ValueSet::offsetOfImplHcsK0() == ValueMap::offsetOfImplHcsK0());
-  static_assert(ValueSet::offsetOfImplHcsK1() == ValueMap::offsetOfImplHcsK1());
+  // Load |HashCodeScrambler*|.
+  static_assert(ValueMap::offsetOfImplHashCodeScrambler() ==
+                ValueSet::offsetOfImplHashCodeScrambler());
+  loadPrivate(Address(temp1, ValueSet::offsetOfImplHashCodeScrambler()), temp1);
+
+  // Load |HashCodeScrambler::mK0| and |HashCodeScrambler::mK1|.
   auto k0 = Register64(temp1);
   auto k1 = Register64(temp2);
-  load64(Address(temp1, ValueSet::offsetOfImplHcsK1()), k1);
-  load64(Address(temp1, ValueSet::offsetOfImplHcsK0()), k0);
+  load64(Address(temp1, mozilla::HashCodeScrambler::offsetOfMK1()), k1);
+  load64(Address(temp1, mozilla::HashCodeScrambler::offsetOfMK0()), k0);
 
   // Hash numbers are 32-bit values, so only hash the lower double-word.
   static_assert(sizeof(mozilla::HashNumber) == 4);

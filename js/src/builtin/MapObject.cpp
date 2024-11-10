@@ -731,13 +731,12 @@ inline bool MapObject::setWithHashableKey(JSContext* cx, MapObject* obj,
 
 MapObject* MapObject::create(JSContext* cx,
                              HandleObject proto /* = nullptr */) {
-  auto map = cx->make_unique<UnbarrieredTable>(
-      cx->zone(), cx->realm()->randomHashCodeScrambler());
+  auto map = cx->make_unique<UnbarrieredTable>(cx->zone());
   if (!map) {
     return nullptr;
   }
 
-  if (!map->init()) {
+  if (!map->init(cx->realm()->randomHashCodeScrambler())) {
     ReportOutOfMemory(cx);
     return nullptr;
   }
@@ -1485,13 +1484,12 @@ bool SetObject::add(JSContext* cx, HandleObject obj, HandleValue k) {
 
 SetObject* SetObject::create(JSContext* cx,
                              HandleObject proto /* = nullptr */) {
-  auto set = cx->make_unique<UnbarrieredTable>(
-      cx->zone(), cx->realm()->randomHashCodeScrambler());
+  auto set = cx->make_unique<UnbarrieredTable>(cx->zone());
   if (!set) {
     return nullptr;
   }
 
-  if (!set->init()) {
+  if (!set->init(cx->realm()->randomHashCodeScrambler())) {
     ReportOutOfMemory(cx);
     return nullptr;
   }

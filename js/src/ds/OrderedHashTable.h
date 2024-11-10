@@ -68,6 +68,7 @@ class OrderedHashTable {
  public:
   using Key = typename Ops::KeyType;
   using Lookup = typename Ops::Lookup;
+  using HashCodeScrambler = mozilla::HashCodeScrambler;
 
   struct Data {
     T element;
@@ -116,7 +117,7 @@ class OrderedHashTable {
   AllocPolicy alloc_;
 
   // Scrambler to not reveal pointer hash codes.
-  mozilla::HashCodeScrambler hcs_;
+  const HashCodeScrambler* hashCodeScrambler_ = nullptr;
 
   // Logarithm base 2 of the number of buckets in the hash table initially.
   static constexpr uint32_t InitialBucketsLog2 = 1;
@@ -156,6 +157,7 @@ class OrderedHashTable {
                                               size_t* numBytes) {
     using CheckedSize = mozilla::CheckedInt<size_t>;
     auto res = CheckedSize(dataCapacity) * sizeof(Data) +
+               CheckedSize(sizeof(HashCodeScrambler)) +
                CheckedSize(buckets) * sizeof(Data*);
     if (MOZ_UNLIKELY(!res.isValid())) {
       return false;
@@ -165,9 +167,9 @@ class OrderedHashTable {
   }
 
   // Allocate a single buffer that stores the data array followed by the hash
-  // table entries.
-  std::pair<Data*, Data**> allocateDataAndHashTable(uint32_t dataCapacity,
-                                                    uint32_t buckets) {
+  // code scrambler and the hash table entries.
+  std::tuple<Data*, Data**, HashCodeScrambler*> allocateBuffer(
+      uint32_t dataCapacity, uint32_t buckets) {
     size_t numBytes;
     if (MOZ_UNLIKELY(!calcAllocSize(dataCapacity, buckets, &numBytes))) {
       alloc_.reportAllocOverflow();
@@ -179,28 +181,35 @@ class OrderedHashTable {
       return {};
     }
 
-    static_assert(sizeof(Data) % sizeof(Data*) == 0,
+    static_assert(alignof(Data) % alignof(HashCodeScrambler) == 0,
+                  "Hash code scrambler must be aligned properly");
+    static_assert(alignof(HashCodeScrambler) % alignof(Data*) == 0,
                   "Hash table entries must be aligned properly");
 
-    Data* data = static_cast<Data*>(buf);
-    Data** table = reinterpret_cast<Data**>(data + dataCapacity);
-    return {data, table};
+    auto* data = static_cast<Data*>(buf);
+    auto* hcs = reinterpret_cast<HashCodeScrambler*>(data + dataCapacity);
+    auto** table = reinterpret_cast<Data**>(hcs + 1);
+
+    MOZ_ASSERT(uintptr_t(table + buckets) == uintptr_t(buf) + numBytes);
+
+    return {data, table, hcs};
   }
 
  public:
-  OrderedHashTable(AllocPolicy ap, mozilla::HashCodeScrambler hcs)
-      : alloc_(std::move(ap)), hcs_(hcs) {}
+  explicit OrderedHashTable(AllocPolicy ap) : alloc_(std::move(ap)) {}
 
-  [[nodiscard]] bool init() {
+  [[nodiscard]] bool init(const HashCodeScrambler& hcs) {
     MOZ_ASSERT(!hashTable_, "init must be called at most once");
 
     constexpr uint32_t buckets = InitialBuckets;
     constexpr uint32_t capacity = uint32_t(buckets * FillFactor);
 
-    auto [dataAlloc, tableAlloc] = allocateDataAndHashTable(capacity, buckets);
+    auto [dataAlloc, tableAlloc, hcsAlloc] = allocateBuffer(capacity, buckets);
     if (!dataAlloc) {
       return false;
     }
+
+    *hcsAlloc = hcs;
 
     std::uninitialized_fill_n(tableAlloc, buckets, nullptr);
 
@@ -210,6 +219,7 @@ class OrderedHashTable {
     dataCapacity_ = capacity;
     liveCount_ = 0;
     hashShift_ = InitialHashShift;
+    hashCodeScrambler_ = hcsAlloc;
     MOZ_ASSERT(hashBuckets() == buckets);
     return true;
   }
@@ -227,7 +237,7 @@ class OrderedHashTable {
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     size_t size = 0;
     if (data_) {
-      // Note: this also includes the hashTable_ array.
+      // Note: this also includes the HashCodeScrambler and the hashTable array.
       size += mallocSizeOf(data_);
     }
     return size;
@@ -670,6 +680,9 @@ class OrderedHashTable {
   static constexpr size_t offsetOfLiveCount() {
     return offsetof(OrderedHashTable, liveCount_);
   }
+  static constexpr size_t offsetOfHashCodeScrambler() {
+    return offsetof(OrderedHashTable, hashCodeScrambler_);
+  }
   static constexpr size_t offsetOfDataElement() {
     static_assert(offsetof(Data, element) == 0,
                   "RangeFront and RangePopFront depend on offsetof(Data, "
@@ -679,17 +692,9 @@ class OrderedHashTable {
   static constexpr size_t offsetOfDataChain() { return offsetof(Data, chain); }
   static constexpr size_t sizeofData() { return sizeof(Data); }
 
-  static constexpr size_t offsetOfHcsK0() {
-    return offsetof(OrderedHashTable, hcs_) +
-           mozilla::HashCodeScrambler::offsetOfMK0();
-  }
-  static constexpr size_t offsetOfHcsK1() {
-    return offsetof(OrderedHashTable, hcs_) +
-           mozilla::HashCodeScrambler::offsetOfMK1();
-  }
-
   HashNumber prepareHash(const Lookup& l) const {
-    return mozilla::ScrambleHashCode(Ops::hash(l, hcs_));
+    const HashCodeScrambler& hcs = *hashCodeScrambler_;
+    return mozilla::ScrambleHashCode(Ops::hash(l, hcs));
   }
 
  private:
@@ -818,11 +823,13 @@ class OrderedHashTable {
                               << (js::kHashNumberBits - newHashShift);
     uint32_t newCapacity = uint32_t(newHashBuckets * FillFactor);
 
-    auto [newData, newHashTable] =
-        allocateDataAndHashTable(newCapacity, newHashBuckets);
+    auto [newData, newHashTable, newHcs] =
+        allocateBuffer(newCapacity, newHashBuckets);
     if (!newData) {
       return false;
     }
+
+    *newHcs = *hashCodeScrambler_;
 
     std::uninitialized_fill_n(newHashTable, newHashBuckets, nullptr);
 
@@ -845,6 +852,7 @@ class OrderedHashTable {
     dataLength_ = liveCount_;
     dataCapacity_ = newCapacity;
     hashShift_ = newHashShift;
+    hashCodeScrambler_ = newHcs;
     MOZ_ASSERT(hashBuckets() == newHashBuckets);
 
     compacted();
@@ -951,9 +959,10 @@ class OrderedHashMap {
   using Lookup = typename Impl::Lookup;
   using Range = typename Impl::Range;
 
-  OrderedHashMap(AllocPolicy ap, mozilla::HashCodeScrambler hcs)
-      : impl(std::move(ap), hcs) {}
-  [[nodiscard]] bool init() { return impl.init(); }
+  explicit OrderedHashMap(AllocPolicy ap) : impl(std::move(ap)) {}
+  [[nodiscard]] bool init(const mozilla::HashCodeScrambler& hcs) {
+    return impl.init(hcs);
+  }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& key) const { return impl.has(key); }
   Range all() const { return impl.all(); }
@@ -1014,6 +1023,9 @@ class OrderedHashMap {
   static constexpr size_t offsetOfImplLiveCount() {
     return Impl::offsetOfLiveCount();
   }
+  static constexpr size_t offsetOfImplHashCodeScrambler() {
+    return Impl::offsetOfHashCodeScrambler();
+  }
   static constexpr size_t offsetOfImplDataElement() {
     return Impl::offsetOfDataElement();
   }
@@ -1021,9 +1033,6 @@ class OrderedHashMap {
     return Impl::offsetOfDataChain();
   }
   static constexpr size_t sizeofImplData() { return Impl::sizeofData(); }
-
-  static constexpr size_t offsetOfImplHcsK0() { return Impl::offsetOfHcsK0(); }
-  static constexpr size_t offsetOfImplHcsK1() { return Impl::offsetOfHcsK1(); }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     return impl.sizeOfExcludingThis(mallocSizeOf);
@@ -1054,9 +1063,10 @@ class OrderedHashSet {
   using Lookup = typename Impl::Lookup;
   using Range = typename Impl::Range;
 
-  explicit OrderedHashSet(AllocPolicy ap, mozilla::HashCodeScrambler hcs)
-      : impl(std::move(ap), hcs) {}
-  [[nodiscard]] bool init() { return impl.init(); }
+  explicit OrderedHashSet(AllocPolicy ap) : impl(std::move(ap)) {}
+  [[nodiscard]] bool init(const mozilla::HashCodeScrambler& hcs) {
+    return impl.init(hcs);
+  }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& value) const { return impl.has(value); }
   Range all() const { return impl.all(); }
@@ -1107,6 +1117,9 @@ class OrderedHashSet {
   static constexpr size_t offsetOfImplLiveCount() {
     return Impl::offsetOfLiveCount();
   }
+  static constexpr size_t offsetOfImplHashCodeScrambler() {
+    return Impl::offsetOfHashCodeScrambler();
+  }
   static constexpr size_t offsetOfImplDataElement() {
     return Impl::offsetOfDataElement();
   }
@@ -1114,9 +1127,6 @@ class OrderedHashSet {
     return Impl::offsetOfDataChain();
   }
   static constexpr size_t sizeofImplData() { return Impl::sizeofData(); }
-
-  static constexpr size_t offsetOfImplHcsK0() { return Impl::offsetOfHcsK0(); }
-  static constexpr size_t offsetOfImplHcsK1() { return Impl::offsetOfHcsK1(); }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     return impl.sizeOfExcludingThis(mallocSizeOf);

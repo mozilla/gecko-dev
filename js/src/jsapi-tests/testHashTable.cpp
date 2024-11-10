@@ -549,7 +549,7 @@ BEGIN_TEST(testOrderedHashSetWithoutInit) {
     using OHS = js::OrderedHashSet<uint32_t, NonzeroUint32HashPolicy,
                                    js::SystemAllocPolicy>;
 
-    OHS set(js::SystemAllocPolicy(), mozilla::HashCodeScrambler(17, 42));
+    OHS set((js::SystemAllocPolicy()));
     CHECK(set.count() == 0);
 
     // This test passes if the set is safely destructible even when |init()| is
