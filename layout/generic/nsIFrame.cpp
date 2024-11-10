@@ -8627,7 +8627,7 @@ void nsIFrame::ListGeneric(nsACString& aTo, const char* aPrefix,
     if (contentVisibility == StyleContentVisibility::Auto) {
       aTo += "auto, "_ns;
     } else if (contentVisibility == StyleContentVisibility::Hidden) {
-      aTo += "hiden, "_ns;
+      aTo += "hidden, "_ns;
     }
 
     if (HidesContent()) {
