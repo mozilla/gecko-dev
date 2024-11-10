@@ -690,14 +690,16 @@ bool MapObject::setWithHashableKey(JSContext* cx, const HashableValue& key,
   bool needsPostBarriers = isTenured();
   if (needsPostBarriers) {
     // Use the Table representation which has post barriers.
-    if (!PostWriteBarrier(this, key) || !Table(this).put(key, value)) {
+    if (!PostWriteBarrier(this, key)) {
       ReportOutOfMemory(cx);
+      return false;
+    }
+    if (!Table(this).put(cx, key, value)) {
       return false;
     }
   } else {
     // Use the PreBarrieredTable representation which does not.
-    if (!PreBarrieredTable(this).put(key, value)) {
-      ReportOutOfMemory(cx);
+    if (!PreBarrieredTable(this).put(cx, key, value)) {
       return false;
     }
   }
@@ -713,8 +715,7 @@ MapObject* MapObject::create(JSContext* cx,
     return nullptr;
   }
 
-  if (!UnbarrieredTable(mapObj).init(cx->realm()->randomHashCodeScrambler())) {
-    ReportOutOfMemory(cx);
+  if (!UnbarrieredTable(mapObj).init(cx)) {
     return nullptr;
   }
 
@@ -957,9 +958,9 @@ bool MapObject::delete_(JSContext* cx, HandleObject obj, HandleValue key,
   }
 
   if (mapObject->isTenured()) {
-    *rval = Table(mapObject).remove(k);
+    *rval = Table(mapObject).remove(cx, k);
   } else {
-    *rval = PreBarrieredTable(mapObject).remove(k);
+    *rval = PreBarrieredTable(mapObject).remove(cx, k);
   }
   return true;
 }
@@ -1053,9 +1054,9 @@ bool MapObject::clear(JSContext* cx, unsigned argc, Value* vp) {
 bool MapObject::clear(JSContext* cx, HandleObject obj) {
   MapObject* mapObject = &obj->as<MapObject>();
   if (mapObject->isTenured()) {
-    Table(mapObject).clear();
+    Table(mapObject).clear(cx);
   } else {
-    PreBarrieredTable(mapObject).clear();
+    PreBarrieredTable(mapObject).clear(cx);
   }
   return true;
 }
@@ -1427,11 +1428,7 @@ bool SetObject::addHashableValue(JSContext* cx, const HashableValue& value) {
     ReportOutOfMemory(cx);
     return false;
   }
-  if (!Table(this).put(value)) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
-  return true;
+  return Table(this).put(cx, value);
 }
 
 SetObject* SetObject::create(JSContext* cx,
@@ -1442,8 +1439,7 @@ SetObject* SetObject::create(JSContext* cx,
     return nullptr;
   }
 
-  if (!UnbarrieredTable(obj).init(cx->realm()->randomHashCodeScrambler())) {
-    ReportOutOfMemory(cx);
+  if (!UnbarrieredTable(obj).init(cx)) {
     return nullptr;
   }
 
@@ -1689,7 +1685,7 @@ bool SetObject::delete_(JSContext* cx, HandleObject obj, HandleValue key,
   }
 
   SetObject* setObj = &obj->as<SetObject>();
-  *rval = Table(setObj).remove(k);
+  *rval = Table(setObj).remove(cx, k);
   return true;
 }
 
@@ -1700,7 +1696,7 @@ bool SetObject::delete_impl(JSContext* cx, const CallArgs& args) {
 
   SetObject* setObj = &args.thisv().toObject().as<SetObject>();
 
-  bool found = Table(setObj).remove(key);
+  bool found = Table(setObj).remove(cx, key);
   args.rval().setBoolean(found);
   return true;
 }
@@ -1756,13 +1752,13 @@ bool SetObject::entries(JSContext* cx, unsigned argc, Value* vp) {
 bool SetObject::clear(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(SetObject::is(obj));
   SetObject* setObj = &obj->as<SetObject>();
-  Table(setObj).clear();
+  Table(setObj).clear(cx);
   return true;
 }
 
 bool SetObject::clear_impl(JSContext* cx, const CallArgs& args) {
   SetObject* setObj = &args.thisv().toObject().as<SetObject>();
-  Table(setObj).clear();
+  Table(setObj).clear(cx);
   args.rval().setUndefined();
   return true;
 }

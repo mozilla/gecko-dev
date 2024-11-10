@@ -64,7 +64,8 @@
 #include "gc/Zone.h"
 #include "js/GCPolicyAPI.h"
 #include "js/HashTable.h"
-#include "vm/Runtime.h"
+#include "vm/JSContext.h"
+#include "vm/Realm.h"
 
 class JSTracer;
 
@@ -294,15 +295,17 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   // code scrambler and the hash table entries.
   using AllocationResult =
       std::tuple<Data*, Data**, HashCodeScrambler*, size_t>;
-  AllocationResult allocateBuffer(uint32_t dataCapacity, uint32_t buckets) {
+  AllocationResult allocateBuffer(JSContext* cx, uint32_t dataCapacity,
+                                  uint32_t buckets) {
     size_t numBytes = 0;
     if (MOZ_UNLIKELY(!calcAllocSize(dataCapacity, buckets, &numBytes))) {
-      js::ReportAllocationOverflow(static_cast<JSContext*>(nullptr));
+      ReportAllocationOverflow(cx);
       return {};
     }
 
     void* buf = obj->zone()->pod_malloc<uint8_t>(numBytes);
     if (!buf) {
+      ReportOutOfMemory(cx);
       return {};
     }
 
@@ -357,21 +360,21 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
  public:
   explicit OrderedHashTableImpl(OrderedHashTableObject* obj) : obj(obj) {}
 
-  [[nodiscard]] bool init(const HashCodeScrambler& hcs) {
+  [[nodiscard]] bool init(JSContext* cx) {
     MOZ_ASSERT(!isInitialized(), "init must be called at most once");
 
     constexpr uint32_t buckets = InitialBuckets;
     constexpr uint32_t capacity = uint32_t(buckets * FillFactor);
 
     auto [dataAlloc, tableAlloc, hcsAlloc, numBytes] =
-        allocateBuffer(capacity, buckets);
+        allocateBuffer(cx, capacity, buckets);
     if (!dataAlloc) {
       return false;
     }
 
     AddCellMemory(obj, numBytes, MemoryUse::MapObjectData);
 
-    *hcsAlloc = hcs;
+    *hcsAlloc = cx->realm()->randomHashCodeScrambler();
 
     std::uninitialized_fill_n(tableAlloc, buckets, nullptr);
 
@@ -437,14 +440,14 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
    * means the element was not added to the table.
    */
   template <typename ElementInput>
-  [[nodiscard]] bool put(ElementInput&& element) {
+  [[nodiscard]] bool put(JSContext* cx, ElementInput&& element) {
     HashNumber h = prepareHash(Ops::getKey(element));
     if (Data* e = lookup(Ops::getKey(element), h)) {
       e->element = std::forward<ElementInput>(element);
       return true;
     }
 
-    if (getDataLength() == getDataCapacity() && !rehashOnFull()) {
+    if (getDataLength() == getDataCapacity() && !rehashOnFull(cx)) {
       return false;
     }
 
@@ -457,7 +460,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
    * If the table contains an element matching l, remove it and return true.
    * Otherwise return false.
    */
-  bool remove(const Lookup& l) {
+  bool remove(JSContext* cx, const Lookup& l) {
     // Note: This could be optimized so that removing the last entry,
     // data[dataLength - 1], decrements dataLength. LIFO use cases would
     // benefit.
@@ -484,7 +487,9 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     // fail.
     if (hashBuckets() > InitialBuckets &&
         liveCount < getDataLength() * MinDataFill) {
-      (void)rehash(getHashShift() + 1);
+      if (!rehash(cx, getHashShift() + 1)) {
+        cx->recoverFromOutOfMemory();
+      }
     }
 
     return true;
@@ -497,7 +502,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
    * particular, those Ranges are still live and will see any entries added
    * after a clear().
    */
-  void clear() {
+  void clear(JSContext* cx) {
     if (getDataLength() != 0) {
       destroyData(getData(), getDataLength());
       setDataLength(0);
@@ -511,7 +516,9 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
       // Try to shrink the table. Ignore OOM because shrinking the table is an
       // optimization and it's okay for it to fail.
       if (buckets > InitialBuckets) {
-        (void)rehash(InitialHashShift);
+        if (!rehash(cx, InitialHashShift)) {
+          cx->recoverFromOutOfMemory();
+        }
       }
     }
 
@@ -915,7 +922,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     compacted();
   }
 
-  [[nodiscard]] bool rehashOnFull() {
+  [[nodiscard]] bool rehashOnFull(JSContext* cx) {
     MOZ_ASSERT(getDataLength() == getDataCapacity());
 
     // If the hashTable is more than 1/4 deleted data, simply rehash in
@@ -923,7 +930,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     uint32_t newHashShift = getLiveCount() >= getDataCapacity() * 0.75
                                 ? getHashShift() - 1
                                 : getHashShift();
-    return rehash(newHashShift);
+    return rehash(cx, newHashShift);
   }
 
   /*
@@ -933,7 +940,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
    * empty elements in data[0:dataLength]. On allocation failure, this
    * leaves everything as it was and returns false.
    */
-  [[nodiscard]] bool rehash(uint32_t newHashShift) {
+  [[nodiscard]] bool rehash(JSContext* cx, uint32_t newHashShift) {
     // If the size of the table is not changing, rehash in place to avoid
     // allocating memory.
     if (newHashShift == getHashShift()) {
@@ -950,7 +957,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     //
     // Reorder |kHashNumberBits| so both constants are on the right-hand side.
     if (MOZ_UNLIKELY(newHashShift < (js::kHashNumberBits - maxCapacityLog2))) {
-      ReportAllocationOverflow(static_cast<JSContext*>(nullptr));
+      ReportAllocationOverflow(cx);
       return false;
     }
 
@@ -959,7 +966,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     uint32_t newCapacity = uint32_t(newHashBuckets * FillFactor);
 
     auto [newData, newHashTable, newHcs, numBytes] =
-        allocateBuffer(newCapacity, newHashBuckets);
+        allocateBuffer(cx, newCapacity, newHashBuckets);
     if (!newData) {
       return false;
     }
@@ -1079,21 +1086,19 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
 
   explicit OrderedHashMapImpl(OrderedHashMapObject* obj) : impl(obj) {}
 
-  [[nodiscard]] bool init(const mozilla::HashCodeScrambler& hcs) {
-    return impl.init(hcs);
-  }
+  [[nodiscard]] bool init(JSContext* cx) { return impl.init(cx); }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& key) const { return impl.has(key); }
   Range all() const { return impl.all(); }
   Entry* get(const Lookup& key) { return impl.get(key); }
-  bool remove(const Lookup& key) { return impl.remove(key); }
-  void clear() { impl.clear(); }
+  bool remove(JSContext* cx, const Lookup& key) { return impl.remove(cx, key); }
+  void clear(JSContext* cx) { impl.clear(cx); }
 
   void destroy(JS::GCContext* gcx) { impl.destroy(gcx); }
 
   template <typename K, typename V>
-  [[nodiscard]] bool put(K&& key, V&& value) {
-    return impl.put(Entry(std::forward<K>(key), std::forward<V>(value)));
+  [[nodiscard]] bool put(JSContext* cx, K&& key, V&& value) {
+    return impl.put(cx, Entry(std::forward<K>(key), std::forward<V>(value)));
   }
 
   HashNumber hash(const Lookup& key) const { return impl.prepareHash(key); }
@@ -1170,18 +1175,18 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
 
   explicit OrderedHashSetImpl(OrderedHashSetObject* obj) : impl(obj) {}
 
-  [[nodiscard]] bool init(const mozilla::HashCodeScrambler& hcs) {
-    return impl.init(hcs);
-  }
+  [[nodiscard]] bool init(JSContext* cx) { return impl.init(cx); }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& value) const { return impl.has(value); }
   Range all() const { return impl.all(); }
   template <typename Input>
-  [[nodiscard]] bool put(Input&& value) {
-    return impl.put(std::forward<Input>(value));
+  [[nodiscard]] bool put(JSContext* cx, Input&& value) {
+    return impl.put(cx, std::forward<Input>(value));
   }
-  bool remove(const Lookup& value) { return impl.remove(value); }
-  void clear() { impl.clear(); }
+  bool remove(JSContext* cx, const Lookup& value) {
+    return impl.remove(cx, value);
+  }
+  void clear(JSContext* cx) { impl.clear(cx); }
 
   void destroy(JS::GCContext* gcx) { impl.destroy(gcx); }
 
