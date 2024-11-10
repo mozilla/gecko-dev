@@ -285,6 +285,13 @@ class MapIteratorObject : public NativeObject {
 
   static JSObject* createResultPair(JSContext* cx);
 
+  static constexpr size_t offsetOfRange() {
+    return getFixedSlotOffset(RangeSlot);
+  }
+  static constexpr size_t offsetOfTarget() {
+    return getFixedSlotOffset(TargetSlot);
+  }
+
  private:
   inline MapObject::IteratorKind kind() const;
   MapObject* target() const;
@@ -433,6 +440,13 @@ class SetIteratorObject : public NativeObject {
                                  ArrayObject* resultObj);
 
   static JSObject* createResult(JSContext* cx);
+
+  static constexpr size_t offsetOfRange() {
+    return getFixedSlotOffset(RangeSlot);
+  }
+  static constexpr size_t offsetOfTarget() {
+    return getFixedSlotOffset(TargetSlot);
+  }
 
  private:
   inline SetObject::IteratorKind kind() const;

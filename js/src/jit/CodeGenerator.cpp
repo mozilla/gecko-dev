@@ -9471,9 +9471,7 @@ void CodeGenerator::emitGetNextEntryForIterator(LGetNextEntryForIterator* lir) {
   masm.bind(&success);
 #endif
 
-  masm.loadPrivate(Address(iter, NativeObject::getFixedSlotOffset(
-                                     IteratorObject::RangeSlot)),
-                   range);
+  masm.loadPrivate(Address(iter, IteratorObject::offsetOfRange()), range);
 
   Label iterAlreadyDone, iterDone, done;
   masm.branchTestPtr(Assembler::Zero, range, range, &iterAlreadyDone);
@@ -9504,8 +9502,7 @@ void CodeGenerator::emitGetNextEntryForIterator(LGetNextEntryForIterator* lir) {
     RangeDestruct<OrderedHashTable>(masm, iter, range, temp, dataLength);
 
     masm.storeValue(PrivateValue(nullptr),
-                    Address(iter, NativeObject::getFixedSlotOffset(
-                                      IteratorObject::RangeSlot)));
+                    Address(iter, IteratorObject::offsetOfRange()));
 
     masm.bind(&iterAlreadyDone);
 
