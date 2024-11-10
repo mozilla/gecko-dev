@@ -873,14 +873,10 @@ bool MapObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 bool MapObject::is(HandleValue v) {
-  return v.isObject() && v.toObject().hasClass(&class_) &&
-         !v.toObject().as<MapObject>().getReservedSlot(DataSlot).isUndefined();
+  return v.isObject() && v.toObject().hasClass(&class_);
 }
 
-bool MapObject::is(HandleObject o) {
-  return o->hasClass(&class_) &&
-         !o->as<MapObject>().getReservedSlot(DataSlot).isUndefined();
-}
+bool MapObject::is(HandleObject o) { return o->hasClass(&class_); }
 
 #define ARG0_KEY(cx, args, key)  \
   Rooted<HashableValue> key(cx); \
@@ -1664,14 +1660,10 @@ bool SetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 bool SetObject::is(HandleValue v) {
-  return v.isObject() && v.toObject().hasClass(&class_) &&
-         !v.toObject().as<SetObject>().getReservedSlot(DataSlot).isUndefined();
+  return v.isObject() && v.toObject().hasClass(&class_);
 }
 
-bool SetObject::is(HandleObject o) {
-  return o->hasClass(&class_) &&
-         !o->as<SetObject>().getReservedSlot(DataSlot).isUndefined();
-}
+bool SetObject::is(HandleObject o) { return o->hasClass(&class_); }
 
 ValueSet& SetObject::extract(HandleObject o) {
   MOZ_ASSERT(o->hasClass(&SetObject::class_));
