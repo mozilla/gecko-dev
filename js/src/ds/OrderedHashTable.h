@@ -195,6 +195,40 @@ class OrderedHashTable {
     return {data, table, hcs};
   }
 
+  void updateHashTableForRekey(Data* entry, HashNumber oldHash,
+                               HashNumber newHash) {
+    uint32_t hashShift = hashShift_;
+    oldHash >>= hashShift;
+    newHash >>= hashShift;
+
+    if (oldHash == newHash) {
+      return;
+    }
+
+    // Remove this entry from its old hash chain. (If this crashes reading
+    // nullptr, it would mean we did not find this entry on the hash chain where
+    // we expected it. That probably means the key's hash code changed since it
+    // was inserted, breaking the hash code invariant.)
+    Data** hashTable = hashTable_;
+    Data** ep = &hashTable[oldHash];
+    while (*ep != entry) {
+      ep = &(*ep)->chain;
+    }
+    *ep = entry->chain;
+
+    // Add it to the new hash chain. We could just insert it at the beginning of
+    // the chain. Instead, we do a bit of work to preserve the invariant that
+    // hash chains always go in reverse insertion order (descending memory
+    // order). No code currently depends on this invariant, so it's fine to kill
+    // it if needed.
+    ep = &hashTable[newHash];
+    while (*ep && *ep > entry) {
+      ep = &(*ep)->chain;
+    }
+    entry->chain = *ep;
+    *ep = entry;
+  }
+
  public:
   explicit OrderedHashTable(AllocPolicy ap) : alloc_(std::move(ap)) {}
 
@@ -637,39 +671,13 @@ class OrderedHashTable {
     }
 
     HashNumber currentHash = prepareHash(current);
+    HashNumber newHash = prepareHash(newKey);
+
     Data* entry = lookup(current, currentHash);
     MOZ_ASSERT(entry);
-
-    uint32_t hashShift = hashShift_;
-    HashNumber oldHash = currentHash >> hashShift;
-    HashNumber newHash = prepareHash(newKey) >> hashShift;
-
     entry->element = element;
 
-    // Remove this entry from its old hash chain. (If this crashes
-    // reading nullptr, it would mean we did not find this entry on
-    // the hash chain where we expected it. That probably means the
-    // key's hash code changed since it was inserted, breaking the
-    // hash code invariant.)
-    Data** hashTable = hashTable_;
-    Data** ep = &hashTable[oldHash];
-    while (*ep != entry) {
-      ep = &(*ep)->chain;
-    }
-    *ep = entry->chain;
-
-    // Add it to the new hash chain. We could just insert it at the
-    // beginning of the chain. Instead, we do a bit of work to
-    // preserve the invariant that hash chains always go in reverse
-    // insertion order (descending memory order). No code currently
-    // depends on this invariant, so it's fine to kill it if
-    // needed.
-    ep = &hashTable[newHash];
-    while (*ep && *ep > entry) {
-      ep = &(*ep)->chain;
-    }
-    entry->chain = *ep;
-    *ep = entry;
+    updateHashTableForRekey(entry, currentHash, newHash);
   }
 
   static constexpr size_t offsetOfDataLength() {
@@ -883,34 +891,10 @@ class OrderedHashTable {
   // the current key must return the same hash code as when the entry was added
   // to the table.
   void rekey(Data* entry, const Key& k) {
-    uint32_t hashShift = hashShift_;
-    HashNumber oldHash = prepareHash(Ops::getKey(entry->element)) >> hashShift;
-    HashNumber newHash = prepareHash(k) >> hashShift;
+    HashNumber oldHash = prepareHash(Ops::getKey(entry->element));
+    HashNumber newHash = prepareHash(k);
     Ops::setKey(entry->element, k);
-    if (newHash != oldHash) {
-      // Remove this entry from its old hash chain. (If this crashes reading
-      // nullptr, it would mean we did not find this entry on the hash chain
-      // where we expected it. That probably means the key's hash code changed
-      // since it was inserted, breaking the hash code invariant.)
-      Data** hashTable = hashTable_;
-      Data** ep = &hashTable[oldHash];
-      while (*ep != entry) {
-        ep = &(*ep)->chain;
-      }
-      *ep = entry->chain;
-
-      // Add it to the new hash chain. We could just insert it at the beginning
-      // of the chain. Instead, we do a bit of work to preserve the invariant
-      // that hash chains always go in reverse insertion order (descending
-      // memory order). No code currently depends on this invariant, so it's
-      // fine to kill it if needed.
-      ep = &hashTable[newHash];
-      while (*ep && *ep > entry) {
-        ep = &(*ep)->chain;
-      }
-      entry->chain = *ep;
-      *ep = entry;
-    }
+    updateHashTableForRekey(entry, oldHash, newHash);
   }
 
   // Not copyable.
