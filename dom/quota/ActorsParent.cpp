@@ -3274,11 +3274,15 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
           return std::make_pair(timestamp, persisted);
         });
 
-    QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
-                                                  persisted, aOriginMetadata)));
-
+    // Usually, infallible operations are placed after fallible ones. However,
+    // since we lack atomic support for creating the origin directory along
+    // with its metadata, we need to add the origin to cached origins right
+    // after directory creation.
     AddTemporaryOrigin(
         FullOriginMetadata{aOriginMetadata, persisted, timestamp});
+
+    QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
+                                                  persisted, aOriginMetadata)));
   }
 
   return std::move(directory);
@@ -6104,16 +6108,20 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
     if (created) {
       const int64_t timestamp = PR_Now();
 
-      // Only creating .metadata-v2 to reduce IO.
-      QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
-                                                    /* aPersisted */ false,
-                                                    aOriginMetadata)));
-
       FullOriginMetadata fullOriginMetadata =
           FullOriginMetadata{aOriginMetadata,
                              /* aPersisted */ false, timestamp};
 
+      // Usually, infallible operations are placed after fallible ones.
+      // However, since we lack atomic support for creating the origin
+      // directory along with its metadata, we need to add the origin to cached
+      // origins right after directory creation.
       AddTemporaryOrigin(fullOriginMetadata);
+
+      // Only creating .metadata-v2 to reduce IO.
+      QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
+                                                    /* aPersisted */ false,
+                                                    aOriginMetadata)));
 
       // Don't need to traverse the directory, since it's empty.
       InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),

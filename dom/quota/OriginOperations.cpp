@@ -3556,6 +3556,15 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
       } else {
         timestamp = PR_Now();
       }
+
+      FullOriginMetadata fullOriginMetadata =
+          FullOriginMetadata{originMetadata, /* aPersisted */ true, timestamp};
+
+      // Usually, infallible operations are placed after fallible ones.
+      // However, since we lack atomic support for creating the origin
+      // directory along with its metadata, we need to add the origin to cached
+      // origins right after directory creation.
+      aQuotaManager.AddTemporaryOrigin(fullOriginMetadata);
     } else {
       timestamp = PR_Now();
     }
@@ -3566,11 +3575,6 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
     // Update or create OriginInfo too if temporary storage was already
     // initialized.
     if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
-      FullOriginMetadata fullOriginMetadata =
-          FullOriginMetadata{originMetadata, /* aPersisted */ true, timestamp};
-
-      aQuotaManager.AddTemporaryOrigin(fullOriginMetadata);
-
       if (aQuotaManager.IsTemporaryOriginInitializedInternal(originMetadata)) {
         // In this case, we have a temporary origin which has been initialized
         // without ensuring respective origin directory. So OriginInfo already
@@ -3582,6 +3586,9 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
         // In this case, we have a temporary origin which hasn't been
         // initialized yet. So OriginInfo needs to be created because the
         // origin directory has been just created.
+
+        FullOriginMetadata fullOriginMetadata = FullOriginMetadata{
+            originMetadata, /* aPersisted */ true, timestamp};
 
         aQuotaManager.InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
                                          /* aUsageBytes */ 0);
