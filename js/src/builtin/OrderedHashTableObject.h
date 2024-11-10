@@ -369,7 +369,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
       return false;
     }
 
-    AddCellMemory(obj, numBytes, MemoryUse::MapObjectTable);
+    AddCellMemory(obj, numBytes, MemoryUse::MapObjectData);
 
     *hcsAlloc = hcs;
 
@@ -404,7 +404,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     MOZ_ASSERT(obj->isTenured());
     size_t numBytes = 0;
     MOZ_ALWAYS_TRUE(calcAllocSize(getDataCapacity(), hashBuckets(), &numBytes));
-    AddCellMemory(obj, numBytes, MemoryUse::MapObjectTable);
+    AddCellMemory(obj, numBytes, MemoryUse::MapObjectData);
   }
 
   size_t sizeOfExcludingObject(mozilla::MallocSizeOf mallocSizeOf) const {
@@ -844,7 +844,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     size_t numBytes;
     MOZ_ALWAYS_TRUE(calcAllocSize(capacity, hashBuckets, &numBytes));
 
-    gcx->free_(obj, data, numBytes, MemoryUse::MapObjectTable);
+    gcx->free_(obj, data, numBytes, MemoryUse::MapObjectData);
   }
 
   Data* lookup(const Lookup& l, HashNumber h) const {
@@ -986,7 +986,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     freeData(obj->runtimeFromMainThread()->gcContext(), oldData, oldDataLength,
              getDataCapacity(), hashBuckets());
 
-    AddCellMemory(obj, numBytes, MemoryUse::MapObjectTable);
+    AddCellMemory(obj, numBytes, MemoryUse::MapObjectData);
 
     setHashTable(newHashTable);
     setData(newData);
