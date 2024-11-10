@@ -474,8 +474,9 @@ class OrderedHashTable {
     Range& operator=(const Range& other) = delete;
 
     void seek() {
-      while (i < ht->dataLength_ &&
-             Ops::isEmpty(Ops::getKey(ht->data_[i].element))) {
+      Data* data = ht->data_;
+      uint32_t dataLength = ht->dataLength_;
+      while (i < dataLength && Ops::isEmpty(Ops::getKey(data[i].element))) {
         i++;
       }
     }
@@ -575,9 +576,11 @@ class OrderedHashTable {
   }
 
   void trace(JSTracer* trc) {
-    for (uint32_t i = 0; i < dataLength_; i++) {
-      if (!Ops::isEmpty(Ops::getKey(data_[i].element))) {
-        Ops::trace(trc, this, i, data_[i].element);
+    Data* data = data_;
+    uint32_t dataLength = dataLength_;
+    for (uint32_t i = 0; i < dataLength; i++) {
+      if (!Ops::isEmpty(Ops::getKey(data[i].element))) {
+        Ops::trace(trc, this, i, data[i].element);
       }
     }
   }
@@ -637,8 +640,9 @@ class OrderedHashTable {
     Data* entry = lookup(current, currentHash);
     MOZ_ASSERT(entry);
 
-    HashNumber oldHash = currentHash >> hashShift_;
-    HashNumber newHash = prepareHash(newKey) >> hashShift_;
+    uint32_t hashShift = hashShift_;
+    HashNumber oldHash = currentHash >> hashShift;
+    HashNumber newHash = prepareHash(newKey) >> hashShift;
 
     entry->element = element;
 
@@ -647,7 +651,8 @@ class OrderedHashTable {
     // the hash chain where we expected it. That probably means the
     // key's hash code changed since it was inserted, breaking the
     // hash code invariant.)
-    Data** ep = &hashTable_[oldHash];
+    Data** hashTable = hashTable_;
+    Data** ep = &hashTable[oldHash];
     while (*ep != entry) {
       ep = &(*ep)->chain;
     }
@@ -659,7 +664,7 @@ class OrderedHashTable {
     // insertion order (descending memory order). No code currently
     // depends on this invariant, so it's fine to kill it if
     // needed.
-    ep = &hashTable_[newHash];
+    ep = &hashTable[newHash];
     while (*ep && *ep > entry) {
       ep = &(*ep)->chain;
     }
@@ -667,10 +672,12 @@ class OrderedHashTable {
     *ep = entry;
   }
 
-  static size_t offsetOfDataLength() {
+  static constexpr size_t offsetOfDataLength() {
     return offsetof(OrderedHashTable, dataLength_);
   }
-  static size_t offsetOfData() { return offsetof(OrderedHashTable, data_); }
+  static constexpr size_t offsetOfData() {
+    return offsetof(OrderedHashTable, data_);
+  }
   static constexpr size_t offsetOfHashTable() {
     return offsetof(OrderedHashTable, hashTable_);
   }
@@ -737,12 +744,18 @@ class OrderedHashTable {
   }
 
   std::tuple<Data*, Data*> addEntry(HashNumber hash) {
-    MOZ_ASSERT(dataLength_ < dataCapacity_);
-    hash >>= hashShift_;
+    uint32_t dataLength = dataLength_;
+    MOZ_ASSERT(dataLength < dataCapacity_);
+
+    Data* entry = &data_[dataLength];
+    dataLength_++;
     liveCount_++;
-    Data* entry = &data_[dataLength_++];
-    Data* chain = hashTable_[hash];
-    hashTable_[hash] = entry;
+
+    Data** hashTable = hashTable_;
+    hash >>= hashShift_;
+    Data* chain = hashTable[hash];
+    hashTable[hash] = entry;
+
     return std::make_tuple(entry, chain);
   }
 
@@ -755,23 +768,25 @@ class OrderedHashTable {
 
   /* Compact the entries in |data| and rehash them. */
   void rehashInPlace() {
-    for (uint32_t i = 0, N = hashBuckets(); i < N; i++) {
-      hashTable_[i] = nullptr;
-    }
-    Data* wp = data_;
-    Data* end = data_ + dataLength_;
-    for (Data* rp = data_; rp != end; rp++) {
+    Data** hashTable = hashTable_;
+    std::fill_n(hashTable, hashBuckets(), nullptr);
+
+    Data* const data = data_;
+    uint32_t hashShift = hashShift_;
+    Data* wp = data;
+    Data* end = data + dataLength_;
+    for (Data* rp = data; rp != end; rp++) {
       if (!Ops::isEmpty(Ops::getKey(rp->element))) {
-        HashNumber h = prepareHash(Ops::getKey(rp->element)) >> hashShift_;
+        HashNumber h = prepareHash(Ops::getKey(rp->element)) >> hashShift;
         if (rp != wp) {
           wp->element = std::move(rp->element);
         }
-        wp->chain = hashTable_[h];
-        hashTable_[h] = wp;
+        wp->chain = hashTable[h];
+        hashTable[h] = wp;
         wp++;
       }
     }
-    MOZ_ASSERT(wp == data_ + liveCount_);
+    MOZ_ASSERT(wp == data + liveCount_);
 
     while (wp != end) {
       wp->~Data();
@@ -833,9 +848,12 @@ class OrderedHashTable {
 
     std::uninitialized_fill_n(newHashTable, newHashBuckets, nullptr);
 
+    Data* const oldData = data_;
+    const uint32_t oldDataLength = dataLength_;
+
     Data* wp = newData;
-    Data* end = data_ + dataLength_;
-    for (Data* p = data_; p != end; p++) {
+    Data* end = oldData + oldDataLength;
+    for (Data* p = oldData; p != end; p++) {
       if (!Ops::isEmpty(Ops::getKey(p->element))) {
         HashNumber h = prepareHash(Ops::getKey(p->element)) >> newHashShift;
         new (wp) Data(std::move(p->element), newHashTable[h]);
@@ -845,7 +863,7 @@ class OrderedHashTable {
     }
     MOZ_ASSERT(wp == newData + liveCount_);
 
-    freeData(data_, dataLength_, dataCapacity_, hashBuckets());
+    freeData(oldData, oldDataLength, dataCapacity_, hashBuckets());
 
     hashTable_ = newHashTable;
     data_ = newData;
@@ -865,15 +883,17 @@ class OrderedHashTable {
   // the current key must return the same hash code as when the entry was added
   // to the table.
   void rekey(Data* entry, const Key& k) {
-    HashNumber oldHash = prepareHash(Ops::getKey(entry->element)) >> hashShift_;
-    HashNumber newHash = prepareHash(k) >> hashShift_;
+    uint32_t hashShift = hashShift_;
+    HashNumber oldHash = prepareHash(Ops::getKey(entry->element)) >> hashShift;
+    HashNumber newHash = prepareHash(k) >> hashShift;
     Ops::setKey(entry->element, k);
     if (newHash != oldHash) {
       // Remove this entry from its old hash chain. (If this crashes reading
       // nullptr, it would mean we did not find this entry on the hash chain
       // where we expected it. That probably means the key's hash code changed
       // since it was inserted, breaking the hash code invariant.)
-      Data** ep = &hashTable_[oldHash];
+      Data** hashTable = hashTable_;
+      Data** ep = &hashTable[oldHash];
       while (*ep != entry) {
         ep = &(*ep)->chain;
       }
@@ -884,7 +904,7 @@ class OrderedHashTable {
       // that hash chains always go in reverse insertion order (descending
       // memory order). No code currently depends on this invariant, so it's
       // fine to kill it if needed.
-      ep = &hashTable_[newHash];
+      ep = &hashTable[newHash];
       while (*ep && *ep > entry) {
         ep = &(*ep)->chain;
       }
@@ -927,8 +947,8 @@ class OrderedHashMap {
     const Key key{};
     Value value{};
 
-    static size_t offsetOfKey() { return offsetof(Entry, key); }
-    static size_t offsetOfValue() { return offsetof(Entry, value); }
+    static constexpr size_t offsetOfKey() { return offsetof(Entry, key); }
+    static constexpr size_t offsetOfValue() { return offsetof(Entry, value); }
   };
 
  private:
@@ -1011,9 +1031,11 @@ class OrderedHashMap {
 
   void trace(JSTracer* trc) { impl.trace(trc); }
 
-  static size_t offsetOfEntryKey() { return Entry::offsetOfKey(); }
-  static size_t offsetOfImplDataLength() { return Impl::offsetOfDataLength(); }
-  static size_t offsetOfImplData() { return Impl::offsetOfData(); }
+  static constexpr size_t offsetOfEntryKey() { return Entry::offsetOfKey(); }
+  static constexpr size_t offsetOfImplDataLength() {
+    return Impl::offsetOfDataLength();
+  }
+  static constexpr size_t offsetOfImplData() { return Impl::offsetOfData(); }
   static constexpr size_t offsetOfImplHashTable() {
     return Impl::offsetOfHashTable();
   }
@@ -1105,9 +1127,11 @@ class OrderedHashSet {
 
   void trace(JSTracer* trc) { impl.trace(trc); }
 
-  static size_t offsetOfEntryKey() { return 0; }
-  static size_t offsetOfImplDataLength() { return Impl::offsetOfDataLength(); }
-  static size_t offsetOfImplData() { return Impl::offsetOfData(); }
+  static constexpr size_t offsetOfEntryKey() { return 0; }
+  static constexpr size_t offsetOfImplDataLength() {
+    return Impl::offsetOfDataLength();
+  }
+  static constexpr size_t offsetOfImplData() { return Impl::offsetOfData(); }
   static constexpr size_t offsetOfImplHashTable() {
     return Impl::offsetOfHashTable();
   }
