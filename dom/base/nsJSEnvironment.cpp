@@ -55,6 +55,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectorStats.h"
+#include "mozilla/MainThreadIdlePeriod.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -1246,7 +1247,7 @@ void nsJSContext::EndCycleCollectionCallback(
         "A max duration ICC shouldn't reduce GC delay to 0");
 
     TimeDuration delay;
-    if (aResults.mFreedGCed > 10000 && aResults.mFreedRefCounted > 10000) {
+    if (sScheduler->PreferFasterCollection()) {
       // If we collected lots of objects, trigger the next GC sooner so that
       // GC can cut JS-to-native edges and native objects can be then deleted.
       delay = TimeDuration::FromMilliseconds(
@@ -1268,9 +1269,16 @@ void nsJSContext::EndCycleCollectionCallback(
 #endif
 }
 
-/* static */
 bool CCGCScheduler::CCRunnerFired(TimeStamp aDeadline) {
   AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("Incremental CC", GCCC);
+
+  if (!aDeadline) {
+    mCurrentCollectionHasSeenNonIdle = true;
+  } else if (mPreferFasterCollection) {
+    // We found some idle time, try to utilize that a bit more given that
+    // we're in a mode where idle time is rare.
+    aDeadline = aDeadline + TimeDuration::FromMilliseconds(5.0);
+  }
 
   bool didDoWork = false;
 

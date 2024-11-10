@@ -241,6 +241,10 @@ void CCGCScheduler::NoteCCEnd(const CycleCollectorResults& aResults,
   mIsCollectingCycles = false;
   mLastCCEndTime = aWhen;
   mNeedsFullCC = CCReason::NO_REASON;
+  mPreferFasterCollection =
+      mCurrentCollectionHasSeenNonIdle &&
+      (aResults.mFreedGCed > 10000 || aResults.mFreedRefCounted > 10000);
+  mCurrentCollectionHasSeenNonIdle = false;
 }
 
 void CCGCScheduler::NoteWontGC() {
@@ -254,6 +258,14 @@ void CCGCScheduler::NoteWontGC() {
 
 bool CCGCScheduler::GCRunnerFired(TimeStamp aDeadline) {
   MOZ_ASSERT(!mDidShutdown, "GCRunner still alive during shutdown");
+
+  if (!aDeadline) {
+    mCurrentCollectionHasSeenNonIdle = true;
+  } else if (mPreferFasterCollection) {
+    // We found some idle time, try to utilize that a bit more given that
+    // we're in a mode where idle time is rare.
+    aDeadline = aDeadline + TimeDuration::FromMilliseconds(5.0);
+  }
 
   GCRunnerStep step = GetNextGCRunnerAction(aDeadline);
   switch (step.mAction) {
@@ -544,15 +556,24 @@ void CCGCScheduler::EnsureOrResetGCRunner() {
       StaticPrefs::javascript_options_gc_delay_interslice()));
 }
 
+TimeDuration CCGCScheduler::ComputeMinimumBudgetForRunner(
+    TimeDuration aBaseValue) {
+  // If the main thread was too busy to find idle for the whole last collection,
+  // allow a very short budget this time.
+  return mPreferFasterCollection ? TimeDuration::FromMilliseconds(1.0)
+                                 : TimeDuration::FromMilliseconds(std::max(
+                                       nsRefreshDriver::HighRateMultiplier() *
+                                           aBaseValue.ToMilliseconds(),
+                                       1.0));
+}
+
 void CCGCScheduler::EnsureGCRunner(TimeDuration aDelay) {
   if (mGCRunner) {
     return;
   }
 
-  TimeDuration minimumBudget = TimeDuration::FromMilliseconds(
-      std::max(nsRefreshDriver::HighRateMultiplier() *
-                   mActiveIntersliceGCBudget.ToMilliseconds(),
-               1.0));
+  TimeDuration minimumBudget =
+      ComputeMinimumBudgetForRunner(mActiveIntersliceGCBudget);
 
   // Wait at most the interslice GC delay before forcing a run.
   mGCRunner = IdleTaskRunner::Create(
@@ -615,13 +636,13 @@ void CCGCScheduler::KillGCRunner() {
 void CCGCScheduler::EnsureCCRunner(TimeDuration aDelay, TimeDuration aBudget) {
   MOZ_ASSERT(!mDidShutdown);
 
-  TimeDuration minimumBudget = TimeDuration::FromMilliseconds(std::max(
-      nsRefreshDriver::HighRateMultiplier() * aBudget.ToMilliseconds(), 1.0));
+  TimeDuration minimumBudget = ComputeMinimumBudgetForRunner(aBudget);
 
   if (!mCCRunner) {
     mCCRunner = IdleTaskRunner::Create(
-        CCRunnerFired, "EnsureCCRunner::CCRunnerFired", 0, aDelay,
-        minimumBudget, true, [this] { return mDidShutdown; });
+        [this](TimeStamp aDeadline) { return CCRunnerFired(aDeadline); },
+        "EnsureCCRunner::CCRunnerFired", 0, aDelay, minimumBudget, true,
+        [this] { return mDidShutdown; });
   } else {
     mCCRunner->SetMinimumUsefulBudget(minimumBudget.ToMilliseconds());
     nsIEventTarget* target = mozilla::GetCurrentSerialEventTarget();
