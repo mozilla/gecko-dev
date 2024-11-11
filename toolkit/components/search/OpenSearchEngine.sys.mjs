@@ -254,7 +254,7 @@ export class OpenSearchEngine extends SearchEngine {
     }
 
     for (let image of data.images) {
-      this._setIcon(image.url, image.isPrefered, image.width, image.height);
+      this._setIcon(image.url, image.isPreferred, image.size);
     }
   }
 

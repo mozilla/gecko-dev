@@ -90,12 +90,10 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  * @typedef {object} OpenSearchImage
  * @property {string} url
  *   The source URL of the image.
- * @property {boolean} isPrefered
+ * @property {boolean} isPreferred
  *   If this image is of the preferred 16x16 size.
- * @property {width} width
- *   The reported width of the image.
- * @property {height} height
- *   The reported height of the image.
+ * @property {number} size
+ *   The reported width and height of the image.
  */
 
 /**
@@ -363,20 +361,18 @@ function parseURL(element) {
 function parseImage(element) {
   let width = parseInt(element.getAttribute("width"), 10);
   let height = parseInt(element.getAttribute("height"), 10);
-  let isPrefered = width == 16 && height == 16;
 
-  if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+  if (isNaN(width) || isNaN(height) || width <= 0 || width != height) {
     lazy.logConsole.warn(
-      "OpenSearch image element must have positive width and height."
+      "OpenSearch image element must have equal and positive width and height."
     );
     return null;
   }
 
   return {
     url: element.textContent,
-    isPrefered,
-    width,
-    height,
+    isPreferred: width == 16,
+    size: width,
   };
 }
 

@@ -241,6 +241,31 @@ export class SearchSettings {
       }
     }
 
+    // Migration for _iconMapObj
+    if (this.#settings.version < 11 && this.#settings.engines) {
+      for (let engine of this.#settings.engines) {
+        if (!engine._iconMapObj) {
+          continue;
+        }
+        let oldIconMap = engine._iconMapObj;
+        engine._iconMapObj = {};
+
+        for (let [sizeStr, icon] of Object.entries(oldIconMap)) {
+          let sizeObj = {};
+          try {
+            sizeObj = JSON.parse(sizeStr);
+          } catch {}
+          if (
+            "width" in sizeObj &&
+            parseInt(sizeObj.width) > 0 &&
+            sizeObj.width == sizeObj.height
+          ) {
+            engine._iconMapObj[sizeObj.width] = icon;
+          }
+        }
+      }
+    }
+
     return structuredClone(json);
   }
 

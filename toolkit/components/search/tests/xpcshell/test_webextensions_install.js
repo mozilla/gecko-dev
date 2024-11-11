@@ -178,3 +178,50 @@ add_task(async function test_load_favicon_redirect() {
   await extension.unload();
   await promiseAfterSettings();
 });
+
+add_task(async function test_load_icons() {
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+
+  let extension = await SearchTestUtils.installSearchExtension(
+    {
+      favicon_url: `${gHttpURL}/sjs/iconsRedirect.sjs`,
+      icons: {
+        48: "icon.png",
+        49: "icon2.png",
+      },
+    },
+    { skipUnload: true }
+  );
+
+  let engine = await Services.search.getEngineByName("Example");
+  await promiseIconChanged;
+
+  Assert.ok(await engine.getIconURL(), "Should have set an iconURI");
+  Assert.ok(
+    (await engine.getIconURL()).startsWith("data:image/x-icon;base64,"),
+    "Should have saved the expected content type for the icon"
+  );
+  Assert.equal(
+    await engine.getIconURL(),
+    await engine.getIconURL(16),
+    "16x16 icon is same as default icon."
+  );
+
+  Assert.ok(
+    (await engine.getIconURL(48)).includes("icon.png"),
+    "48x48 icon is correct."
+  );
+  Assert.ok(
+    (await engine.getIconURL(49)).includes("icon2.png"),
+    "49x49 icon is correct."
+  );
+  Assert.ok(!(await engine.getIconURL(74)), "No 74x74 icon");
+
+  // User uninstalls their engine
+  await extension.awaitStartup();
+  await extension.unload();
+  await promiseAfterSettings();
+});

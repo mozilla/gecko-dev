@@ -514,50 +514,28 @@ export class SearchEngine {
   }
 
   /**
-   * Creates a key by serializing an object that contains the icon's width
-   * and height.
-   *
-   * @param {number} width
-   *   Width of the icon.
-   * @param {number} height
-   *   Height of the icon.
-   * @returns {string}
-   *   Key string.
-   */
-  _getIconKey(width, height) {
-    let keyObj = {
-      width,
-      height,
-    };
-
-    return JSON.stringify(keyObj);
-  }
-
-  /**
    * Add an icon to the icon map used by getIconURL().
+   * Icon must be square.
    *
-   * @param {number} width
-   *   Width of the icon.
-   * @param {number} height
-   *   Height of the icon.
+   * @param {number} size
+   *   Width and height of the icon.
    * @param {string} uriSpec
    *   String with the icon's URI.
    */
-  _addIconToMap(width, height, uriSpec) {
-    if (width == 16 && height == 16) {
+  _addIconToMap(size, uriSpec) {
+    if (size == 16) {
       // The 16x16 icon is stored in _iconURL, we don't need to store it twice.
       return;
     }
 
     // Use an object instead of a Map() because it needs to be serializable.
     this._iconMapObj = this._iconMapObj || {};
-    let key = this._getIconKey(width, height);
-    this._iconMapObj[key] = uriSpec;
+    this._iconMapObj[size] = uriSpec;
   }
 
   /**
-   * Sets the .iconURI property of the engine. If both aWidth and aHeight are
-   * provided an entry will be added to _iconMapObj that will enable accessing
+   * Sets the .iconURI property of the engine. If size is provided
+   * an entry will be added to _iconMapObj that will enable accessing
    * icon's data through getIconURL() APIs.
    *
    * @param {string} iconURL
@@ -568,12 +546,10 @@ export class SearchEngine {
    * @param {boolean} isPreferred
    *   Whether or not this icon is to be preferred. Preferred icons can
    *   override non-preferred icons.
-   * @param {number} [width]
-   *   Width of the icon.
-   * @param {number} [height]
-   *   Height of the icon.
+   * @param {number} [size]
+   *   Width and height of the icon.
    */
-  _setIcon(iconURL, isPreferred, width, height) {
+  _setIcon(iconURL, isPreferred, size) {
     var uri = lazy.SearchUtils.makeURI(iconURL);
 
     // Ignore bad URIs
@@ -598,8 +574,8 @@ export class SearchEngine {
           this._hasPreferredIcon = isPreferred;
         }
 
-        if (width && height) {
-          this._addIconToMap(width, height, iconURL);
+        if (size) {
+          this._addIconToMap(size, iconURL);
         }
         break;
       case "http":
@@ -633,12 +609,12 @@ export class SearchEngine {
             "data:" +
             contentType +
             ";base64," +
-            btoa(String.fromCharCode.apply(null, byteArray));
+            btoa(String.fromCharCode(...byteArray));
 
           this._iconURI = lazy.SearchUtils.makeURI(dataURL);
 
-          if (width && height) {
-            this._addIconToMap(width, height, dataURL);
+          if (size) {
+            this._addIconToMap(size, iconURL);
           }
 
           if (this._engineAddedToStore) {
@@ -1454,9 +1430,8 @@ export class SearchEngine {
       return undefined;
     }
 
-    let key = this._getIconKey(preferredWidth, preferredWidth);
-    if (key in this._iconMapObj) {
-      return this._iconMapObj[key];
+    if (preferredWidth in this._iconMapObj) {
+      return this._iconMapObj[preferredWidth];
     }
     return undefined;
   }
