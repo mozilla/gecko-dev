@@ -81,7 +81,7 @@ import org.mozilla.fenix.theme.FirefoxColors
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
-private val minTabStripItemWidth = 160.dp
+private val minTabStripItemWidth = 130.dp
 private val maxTabStripItemWidth = 280.dp
 private val tabItemHeight = 40.dp
 private val tabStripIconSize = 24.dp
@@ -413,26 +413,30 @@ private fun TabItem(
                 }
             }
 
-            IconButton(
-                onClick = { onCloseTabClick(state.id, state.isPrivate) },
-                modifier = if (state.isSelected) {
-                    Modifier.semantics {}
-                } else {
-                    Modifier.clearAndSetSemantics {}
-                },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.mozac_ic_cross_20),
-                    tint = if (state.isSelected) {
-                        FirefoxTheme.colors.iconPrimary
+            if (state.isCloseButtonVisible) {
+                IconButton(
+                    onClick = { onCloseTabClick(state.id, state.isPrivate) },
+                    modifier = if (state.isSelected) {
+                        Modifier.semantics {}
                     } else {
-                        FirefoxTheme.colors.iconSecondary
+                        Modifier.clearAndSetSemantics {}
                     },
-                    contentDescription = stringResource(
-                        id = R.string.close_tab_title,
-                        state.title,
-                    ),
-                )
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.mozac_ic_cross_20),
+                        tint = if (state.isSelected) {
+                            FirefoxTheme.colors.iconPrimary
+                        } else {
+                            FirefoxTheme.colors.iconSecondary
+                        },
+                        contentDescription = stringResource(
+                            id = R.string.close_tab_title,
+                            state.title,
+                        ),
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.size(8.dp))
             }
         }
     }

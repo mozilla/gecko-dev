@@ -490,6 +490,66 @@ class TabStripStateTest {
         assertEquals(Pair(false, 2), closTabParams)
     }
 
+    @Test
+    fun `WHEN more than 7 tabs are present THEN close button should only be visible for the selected tab`() {
+        val tab = createTab(
+            url = "https://example.com",
+            title = "Example",
+            private = false,
+            id = "1",
+        )
+
+        val tabs = List(8) {
+            tab.copy(id = it.toString())
+        }
+
+        val browserState = BrowserState(
+            tabs = tabs,
+            selectedTabId = "1",
+        )
+        val actual =
+            browserState.toTabStripState(
+                isSelectDisabled = false,
+                isPossiblyPrivateMode = false,
+                addTab = {},
+                toggleBrowsingMode = {},
+                closeTab = { _, _ -> },
+            )
+
+        val tabStripItem = TabStripItem(
+            id = "0",
+            title = "Example",
+            url = "https://example.com",
+            isSelected = false,
+            isPrivate = false,
+            isCloseButtonVisible = false,
+        )
+
+        val expected = TabStripState(
+            tabs = listOf(
+                tabStripItem,
+                TabStripItem(
+                    id = "1",
+                    title = "Example",
+                    url = "https://example.com",
+                    isSelected = true,
+                    isPrivate = false,
+                    isCloseButtonVisible = true,
+                ),
+                tabStripItem.copy(id = "2"),
+                tabStripItem.copy(id = "3"),
+                tabStripItem.copy(id = "4"),
+                tabStripItem.copy(id = "5"),
+                tabStripItem.copy(id = "6"),
+                tabStripItem.copy(id = "7"),
+            ),
+            isPrivateMode = false,
+            tabCounterMenuItems = allMenuItems,
+        )
+
+        expected isSameAs actual
+    }
+
     /**
      * Asserts that the [TabStripState] is the same as the [other] [TabStripState] by comparing
      * their properties as assertEquals does. This ignores the lambda references in the

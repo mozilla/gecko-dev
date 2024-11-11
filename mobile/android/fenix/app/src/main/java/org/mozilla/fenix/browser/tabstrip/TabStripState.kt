@@ -10,6 +10,8 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
 
+private const val MAX_TABS_WITH_CLOSE_BUTTON_VISIBLE = 7
+
 /**
  * The ui state of the tabs strip.
  *
@@ -45,6 +47,7 @@ data class TabStripState(
  * @property icon The icon of the tab.
  * @property isPrivate Whether or not the tab is private.
  * @property isSelected Whether or not the tab is selected.
+ * @property isCloseButtonVisible Whether or not the close button is visible.
  */
 data class TabStripItem(
     val id: String,
@@ -53,6 +56,7 @@ data class TabStripItem(
     val icon: Bitmap? = null,
     val isPrivate: Boolean,
     val isSelected: Boolean,
+    val isCloseButtonVisible: Boolean = true,
 )
 
 /**
@@ -87,6 +91,7 @@ internal fun BrowserState.toTabStripState(
                 it.toTabStripItem(
                     isSelectDisabled = isSelectDisabled,
                     selectedTabId = selectedTabId,
+                    showCloseButtonOnUnselectedTabs = tabs.size <= MAX_TABS_WITH_CLOSE_BUTTON_VISIBLE,
                 )
             },
         isPrivateMode = isPrivateMode,
@@ -144,11 +149,16 @@ private fun mapToMenuItems(
 private fun TabSessionState.toTabStripItem(
     isSelectDisabled: Boolean,
     selectedTabId: String?,
-) = TabStripItem(
-    id = id,
-    title = content.title.ifBlank { content.url },
-    url = content.url,
-    icon = content.icon,
-    isPrivate = content.private,
-    isSelected = !isSelectDisabled && id == selectedTabId,
-)
+    showCloseButtonOnUnselectedTabs: Boolean,
+): TabStripItem {
+    val isSelected = !isSelectDisabled && id == selectedTabId
+    return TabStripItem(
+        id = id,
+        title = content.title.ifBlank { content.url },
+        url = content.url,
+        icon = content.icon,
+        isPrivate = content.private,
+        isSelected = isSelected,
+        isCloseButtonVisible = showCloseButtonOnUnselectedTabs || isSelected,
+    )
+}
