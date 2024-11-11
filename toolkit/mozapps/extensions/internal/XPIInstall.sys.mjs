@@ -887,6 +887,7 @@ function getSignedStatus(aRv, aCert, aAddonID) {
     default:
       // Any other error indicates that either the add-on isn't signed or it
       // is signed by a signature that doesn't chain to the trusted root.
+      logger.warn(`Failed to verify signature for ${aAddonID}: ${aRv}`);
       return AddonManager.SIGNEDSTATE_UNKNOWN;
   }
 }
