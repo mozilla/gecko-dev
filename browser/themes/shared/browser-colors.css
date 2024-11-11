@@ -3,15 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --toolbox-non-lwt-bgcolor: -moz-headerbar;
-  --toolbox-non-lwt-textcolor: -moz-headerbartext;
-  --toolbox-non-lwt-bgcolor-inactive: -moz-headerbarinactive;
-  --toolbox-non-lwt-textcolor-inactive: -moz-headerbarinactivetext;
+  --toolbox-bgcolor: -moz-headerbar;
+  --toolbox-textcolor: -moz-headerbartext;
+  --toolbox-bgcolor-inactive: -moz-headerbarinactive;
+  --toolbox-textcolor-inactive: -moz-headerbarinactivetext;
 
-  --toolbox-bgcolor: var(--toolbox-non-lwt-bgcolor);
-  --toolbox-textcolor: var(--toolbox-non-lwt-textcolor);
-  --toolbox-bgcolor-inactive: var(--toolbox-non-lwt-bgcolor-inactive);
-  --toolbox-textcolor-inactive: var(--toolbox-non-lwt-textcolor-inactive);
+  &:where([tabsintitlebar]) {
+    --toolbox-bgcolor: ActiveCaption;
+    --toolbox-textcolor: CaptionText;
+    --toolbox-bgcolor-inactive: InactiveCaption;
+    --toolbox-textcolor-inactive: InactiveCaptionText;
+  }
 
   --sidebar-background-color: -moz-sidebar;
   --sidebar-text-color: -moz-sidebartext;
@@ -66,13 +68,6 @@
     --urlbar-box-focus-bgcolor: color-mix(in srgb, currentColor 16%, transparent);
     --urlbar-box-hover-bgcolor: color-mix(in srgb, currentColor 22%, transparent);
   }
-
-  &:where([tabsintitlebar]) {
-    --toolbox-non-lwt-bgcolor: ActiveCaption;
-    --toolbox-non-lwt-textcolor: CaptionText;
-    --toolbox-non-lwt-bgcolor-inactive: InactiveCaption;
-    --toolbox-non-lwt-textcolor-inactive: InactiveCaptionText;
-  }
 }
 
 /**
@@ -112,12 +107,12 @@
 
     /* stylelint-disable-next-line media-query-no-invalid */
     @media not ((-moz-windows-mica) or ((-moz-windows-accent-color-in-titlebar) and (-moz-bool-pref: "browser.theme.windows.accent-color-in-tabs.enabled"))) {
-      --toolbox-non-lwt-bgcolor: light-dark(rgb(240, 240, 244), rgb(28, 27, 34));
-      --toolbox-non-lwt-textcolor: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
-      --toolbox-non-lwt-bgcolor-inactive: var(--toolbox-non-lwt-bgcolor);
-      --toolbox-non-lwt-textcolor-inactive: var(--toolbox-non-lwt-textcolor);
+      --toolbox-bgcolor: light-dark(rgb(240, 240, 244), rgb(28, 27, 34));
+      --toolbox-textcolor: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
+      --toolbox-bgcolor-inactive: var(--toolbox-bgcolor);
+      --toolbox-textcolor-inactive: var(--toolbox-textcolor);
       &:where([tabsintitlebar]) {
-        --toolbox-non-lwt-bgcolor-inactive: light-dark(rgb(235, 235, 239), rgb(31, 30, 37));
+        --toolbox-bgcolor-inactive: light-dark(rgb(235, 235, 239), rgb(31, 30, 37));
       }
     }
 
