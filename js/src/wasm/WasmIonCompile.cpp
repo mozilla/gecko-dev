@@ -490,12 +490,14 @@ class FunctionCompiler {
     // point in updating it further.
     if (inliningBudget_ >= 0) {
       inliningBudget_ -= int64_t(inlineeBytecodeSize);
-      if (inliningBudget_ <= 0) {
+#ifdef JS_JITSPEW
+      if (inliningBudget_ < 0) {
         JS_LOG(wasmPerf, mozilla::LogLevel::Info,
                "CM=..%06lx  FC::updateILStats     "
                "Inlining budget for fI=%u exceeded",
                0xFFFFFF & (unsigned long)uintptr_t(&codeMeta_), funcIndex());
       }
+#endif
     }
   }
   FunctionCompiler* toplevelCompiler() { return toplevelCompiler_; }
@@ -697,16 +699,18 @@ class FunctionCompiler {
       if (guard->inliningBudget >= 0) {
         guard->inliningBudget -= int64_t(stats_.inlinedDirectBytecodeSize);
         guard->inliningBudget -= int64_t(stats_.inlinedCallRefBytecodeSize);
-        if (guard->inliningBudget <= 0) {
+#ifdef JS_JITSPEW
+        if (guard->inliningBudget < 0) {
           JS_LOG(wasmPerf, mozilla::LogLevel::Info,
                  "CM=..%06lx  FC::finish            "
                  "Inlining budget for entire module exceeded",
                  0xFFFFFF & (unsigned long)uintptr_t(&codeMeta_));
         }
+#endif
       }
       // If this particular top-level function overran the function-level
       // limit, note that in the module too.
-      if (inliningBudget_ <= 0) {
+      if (inliningBudget_ < 0) {
         guard->partialInlineBudgetOverruns++;
       }
     }
@@ -2623,15 +2627,15 @@ class FunctionCompiler {
     // budget.
     //
     // This logic will cause `availableBudget` to be driven slightly negative
-    // (or zero) if a budget overshoot happens, so we will have performed
-    // slightly more inlining than allowed by the initial setting of
-    // `availableBudget`.  The size of this overshoot is however very limited
-    // -- it can't exceed the size of one function body that is inlined.  And
-    // that is limited by InliningHeuristics::isSmallEnoughToInline.
+    // if a budget overshoot happens, so we will have performed slightly more
+    // inlining than allowed by the initial setting of `availableBudget`.  The
+    // size of this overshoot is however very limited -- it can't exceed the
+    // size of one function body that is inlined.  And that is limited by
+    // InliningHeuristics::isSmallEnoughToInline.
     const int64_t availableBudget = toplevelCompiler_
                                         ? toplevelCompiler_->inliningBudget_
                                         : inliningBudget_;
-    if (availableBudget <= 0) {
+    if (availableBudget < 0) {
       return false;
     }
 
