@@ -149,7 +149,7 @@ pub enum ElemKind<'a> {
     /// An active segment associated with a table.
     Active {
         /// The table this `elem` is initializing.
-        table: Index<'a>,
+        table: Option<Index<'a>>,
         /// The offset within `table` that we'll initialize at.
         offset: Expression<'a>,
     },
@@ -197,15 +197,15 @@ impl<'a> Parse<'a> for Elem<'a> {
                 // time, this probably should get removed when the threads
                 // proposal is rebased on the current spec.
                 table_omitted = true;
-                Index::Num(parser.parse()?, span)
+                Some(Index::Num(parser.parse()?, span))
             } else if parser.peek2::<kw::table>()? {
-                parser.parens(|p| {
+                Some(parser.parens(|p| {
                     p.parse::<kw::table>()?;
                     p.parse()
-                })?
+                })?)
             } else {
                 table_omitted = true;
-                Index::Num(0, span)
+                None
             };
 
             let offset = parse_expr_or_single_instr::<kw::offset>(parser)?;

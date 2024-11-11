@@ -1,3 +1,4 @@
+mod branch_hints;
 mod code;
 mod custom;
 mod data;
@@ -16,6 +17,7 @@ mod tables;
 mod tags;
 mod types;
 
+pub use branch_hints::*;
 pub use code::*;
 pub use custom::*;
 pub use data::*;
@@ -152,6 +154,11 @@ impl Module {
     /// Get the encoded Wasm module as a slice.
     pub fn as_slice(&self) -> &[u8] {
         &self.bytes
+    }
+
+    /// Give the current size of the module in bytes.
+    pub fn len(&self) -> usize {
+        self.bytes.len()
     }
 
     /// Finish writing this Wasm module and extract ownership of the encoded

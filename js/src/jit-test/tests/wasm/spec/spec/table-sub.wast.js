@@ -16,6 +16,18 @@
 // ./test/core/table-sub.wast
 
 // ./test/core/table-sub.wast:1
+let $0 = instantiate(`(module
+  (type $$t (func))
+  (table $$t1 10 (ref null func))
+  (table $$t2 10 (ref null $$t))
+  (elem $$el funcref)
+  (func $$f
+    (table.init $$t1 $$el (i32.const 0) (i32.const 1) (i32.const 2))
+    (table.copy $$t1 $$t2 (i32.const 0) (i32.const 1) (i32.const 2))
+  )
+)`);
+
+// ./test/core/table-sub.wast:12
 assert_invalid(
   () => instantiate(`(module
     (table $$t1 10 funcref)
@@ -27,7 +39,7 @@ assert_invalid(
   `type mismatch`,
 );
 
-// ./test/core/table-sub.wast:12
+// ./test/core/table-sub.wast:23
 assert_invalid(
   () => instantiate(`(module
     (table $$t 10 funcref)

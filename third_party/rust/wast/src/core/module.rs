@@ -103,17 +103,11 @@ impl<'a> Module<'a> {
         }
         Ok(())
     }
-}
 
-impl<'a> Parse<'a> for Module<'a> {
-    fn parse(parser: Parser<'a>) -> Result<Self> {
-        let _r = parser.register_annotation("custom");
-        let _r = parser.register_annotation("producers");
-        let _r = parser.register_annotation("name");
-        let _r = parser.register_annotation("dylink.0");
-        let _r = parser.register_annotation("metadata.code.branch_hint");
-
-        let span = parser.parse::<kw::module>()?.0;
+    pub(crate) fn parse_without_module_keyword(
+        module_keyword_span: Span,
+        parser: Parser<'a>,
+    ) -> Result<Self> {
         let id = parser.parse()?;
         let name = parser.parse()?;
 
@@ -128,10 +122,19 @@ impl<'a> Parse<'a> for Module<'a> {
             ModuleKind::Text(ModuleField::parse_remaining(parser)?)
         };
         Ok(Module {
-            span,
+            span: module_keyword_span,
             id,
             name,
             kind,
+        })
+    }
+}
+
+impl<'a> Parse<'a> for Module<'a> {
+    fn parse(parser: Parser<'a>) -> Result<Self> {
+        parser.with_standard_annotations_registered(|parser| {
+            let span = parser.parse::<kw::module>()?.0;
+            Self::parse_without_module_keyword(span, parser)
         })
     }
 }
@@ -156,7 +159,7 @@ pub enum ModuleField<'a> {
 }
 
 impl<'a> ModuleField<'a> {
-    pub(crate) fn parse_remaining(parser: Parser<'a>) -> Result<Vec<ModuleField>> {
+    pub(crate) fn parse_remaining(parser: Parser<'a>) -> Result<Vec<ModuleField<'a>>> {
         let mut fields = Vec::new();
         while !parser.is_empty() {
             fields.push(parser.parens(ModuleField::parse)?);

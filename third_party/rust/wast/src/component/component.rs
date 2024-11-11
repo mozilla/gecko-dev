@@ -1,6 +1,6 @@
 use crate::annotation;
 use crate::component::*;
-use crate::core::Producers;
+use crate::core::{self, Producers};
 use crate::kw;
 use crate::parser::{Parse, Parser, Result};
 use crate::token::Index;
@@ -8,6 +8,7 @@ use crate::token::{Id, NameAnnotation, Span};
 
 /// A parsed WebAssembly component module.
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct Component<'a> {
     /// Where this `component` was defined
     pub span: Span,
@@ -103,16 +104,11 @@ impl<'a> Component<'a> {
         }
         Ok(())
     }
-}
 
-impl<'a> Parse<'a> for Component<'a> {
-    fn parse(parser: Parser<'a>) -> Result<Self> {
-        let _r = parser.register_annotation("custom");
-        let _r = parser.register_annotation("producers");
-        let _r = parser.register_annotation("name");
-        let _r = parser.register_annotation("metadata.code.branch_hint");
-
-        let span = parser.parse::<kw::component>()?.0;
+    pub(crate) fn parse_without_component_keyword(
+        component_keyword_span: Span,
+        parser: Parser<'a>,
+    ) -> Result<Self> {
         let id = parser.parse()?;
         let name = parser.parse()?;
 
@@ -127,10 +123,19 @@ impl<'a> Parse<'a> for Component<'a> {
             ComponentKind::Text(ComponentField::parse_remaining(parser)?)
         };
         Ok(Component {
-            span,
+            span: component_keyword_span,
             id,
             name,
             kind,
+        })
+    }
+}
+
+impl<'a> Parse<'a> for Component<'a> {
+    fn parse(parser: Parser<'a>) -> Result<Self> {
+        parser.with_standard_annotations_registered(|parser| {
+            let span = parser.parse::<kw::component>()?.0;
+            Component::parse_without_component_keyword(span, parser)
         })
     }
 }
@@ -142,6 +147,7 @@ pub enum ComponentField<'a> {
     CoreModule(CoreModule<'a>),
     CoreInstance(CoreInstance<'a>),
     CoreType(CoreType<'a>),
+    CoreRec(core::Rec<'a>),
     Component(NestedComponent<'a>),
     Instance(Instance<'a>),
     Alias(Alias<'a>),
@@ -157,7 +163,7 @@ pub enum ComponentField<'a> {
 }
 
 impl<'a> ComponentField<'a> {
-    fn parse_remaining(parser: Parser<'a>) -> Result<Vec<ComponentField>> {
+    fn parse_remaining(parser: Parser<'a>) -> Result<Vec<ComponentField<'a>>> {
         let mut fields = Vec::new();
         while !parser.is_empty() {
             fields.push(parser.parens(ComponentField::parse)?);
@@ -180,6 +186,10 @@ impl<'a> Parse<'a> for ComponentField<'a> {
             }
             if parser.peek2::<kw::func>()? {
                 return Ok(Self::CoreFunc(parser.parse()?));
+            }
+            if parser.peek2::<kw::rec>()? {
+                parser.parse::<kw::core>()?;
+                return Ok(Self::CoreRec(parser.parse()?));
             }
         } else {
             if parser.peek::<kw::component>()? {

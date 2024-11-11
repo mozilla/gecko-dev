@@ -61,9 +61,10 @@ pub struct Token {
     pub len: u32,
 }
 
-const _: () = {
+#[test]
+fn token_is_not_too_big() {
     assert!(std::mem::size_of::<Token>() <= std::mem::size_of::<u64>() * 2);
-};
+}
 
 /// Classification of what was parsed from the input stream.
 ///

@@ -13,9 +13,14 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "wasm-smith"
-version = "0.214.0"
+version = "0.219.1"
 authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
+build = false
 exclude = ["/benches/corpus"]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A WebAssembly test case generator"
 documentation = "https://docs.rs/wasm-smith"
 readme = "README.md"
@@ -25,11 +30,35 @@ categories = [
     "development-tools::testing",
     "wasm",
 ]
-license = "Apache-2.0 WITH LLVM-exception"
+license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-smith"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lib]
+name = "wasm_smith"
+path = "src/lib.rs"
+
+[[test]]
+name = "available_imports"
+path = "tests/available_imports.rs"
+
+[[test]]
+name = "component"
+path = "tests/component.rs"
+
+[[test]]
+name = "core"
+path = "tests/core.rs"
+
+[[test]]
+name = "exports"
+path = "tests/exports.rs"
 
 [[bench]]
 name = "corpus"
+path = "benches/corpus.rs"
 harness = false
 
 [dependencies.anyhow]
@@ -65,10 +94,11 @@ version = "1.0.166"
 optional = true
 
 [dependencies.wasm-encoder]
-version = "0.214.0"
+version = "0.219.1"
+default-features = false
 
 [dependencies.wasmparser]
-version = "0.214.0"
+version = "0.219.1"
 features = [
     "std",
     "validate",
@@ -77,8 +107,9 @@ optional = true
 default-features = false
 
 [dependencies.wat]
-version = "1.214.0"
+version = "1.219.1"
 optional = true
+default-features = false
 
 [dev-dependencies.criterion]
 version = "0.5.1"
@@ -89,11 +120,20 @@ version = "0.8.4"
 features = ["small_rng"]
 
 [dev-dependencies.wasmparser]
-version = "0.214.0"
+version = "0.219.1"
 features = [
     "std",
     "validate",
+    "features",
 ]
+default-features = false
+
+[dev-dependencies.wasmprinter]
+version = "0.219.1"
+default-features = false
+
+[dev-dependencies.wat]
+version = "1.219.1"
 default-features = false
 
 [features]
@@ -105,16 +145,24 @@ _internal_cli = [
     "wasmparser",
     "wat",
 ]
+component-model = ["wasm-encoder/component-model"]
 wasmparser = [
     "dep:wasmparser",
     "wasm-encoder/wasmparser",
 ]
 
-[target."cfg(not(target_family = \"wasm\"))".dev-dependencies.libfuzzer-sys]
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies.libfuzzer-sys]
 version = "0.4.0"
 
 [lints.clippy]
-all = "allow"
+clone_on_copy = "warn"
+manual_strip = "warn"
+map_clone = "warn"
+unnecessary_to_owned = "warn"
+
+[lints.clippy.all]
+level = "allow"
+priority = -1
 
 [lints.rust]
 unsafe_code = "deny"

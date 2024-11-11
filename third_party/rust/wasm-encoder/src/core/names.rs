@@ -180,6 +180,12 @@ impl NameSection {
         names.encode(&mut self.bytes);
     }
 
+    /// Appends a raw subsection with the given id and data.
+    pub fn raw(&mut self, id: u8, data: &[u8]) {
+        self.bytes.push(id);
+        data.encode(&mut self.bytes);
+    }
+
     fn subsection_header(&mut self, id: Subsection, len: usize) {
         self.bytes.push(id as u8);
         len.encode(&mut self.bytes);

@@ -3,7 +3,14 @@
 //! The [`RoundtripReencoder`] allows encoding identical wasm to the parsed
 //! input.
 
+use crate::CoreTypeEncoder;
 use std::convert::Infallible;
+
+#[cfg(feature = "component-model")]
+mod component;
+
+#[cfg(feature = "component-model")]
+pub use self::component::*;
 
 #[allow(missing_docs)] // FIXME
 pub trait Reencode {
@@ -41,8 +48,21 @@ pub trait Reencode {
         utils::type_index(self, ty)
     }
 
-    fn component_type_index(&mut self, ty: u32) -> u32 {
-        utils::component_type_index(self, ty)
+    fn type_index_unpacked(
+        &mut self,
+        ty: wasmparser::UnpackedIndex,
+    ) -> Result<u32, Error<Self::Error>> {
+        utils::type_index_unpacked(self, ty)
+    }
+
+    fn external_index(&mut self, kind: wasmparser::ExternalKind, index: u32) -> u32 {
+        match kind {
+            wasmparser::ExternalKind::Func => self.function_index(index),
+            wasmparser::ExternalKind::Table => self.table_index(index),
+            wasmparser::ExternalKind::Memory => self.memory_index(index),
+            wasmparser::ExternalKind::Global => self.global_index(index),
+            wasmparser::ExternalKind::Tag => self.tag_index(index),
+        }
     }
 
     fn abstract_heap_type(
@@ -64,52 +84,6 @@ pub trait Reencode {
         arg: wasmparser::BlockType,
     ) -> Result<crate::BlockType, Error<Self::Error>> {
         utils::block_type(self, arg)
-    }
-
-    fn component_primitive_val_type(
-        &mut self,
-        ty: wasmparser::PrimitiveValType,
-    ) -> crate::component::PrimitiveValType {
-        utils::component_primitive_val_type(self, ty)
-    }
-
-    fn component_export_kind(
-        &mut self,
-        ty: wasmparser::ComponentExternalKind,
-    ) -> crate::component::ComponentExportKind {
-        utils::component_export_kind(self, ty)
-    }
-
-    fn component_outer_alias_kind(
-        &mut self,
-        kind: wasmparser::ComponentOuterAliasKind,
-    ) -> crate::component::ComponentOuterAliasKind {
-        utils::component_outer_alias_kind(self, kind)
-    }
-
-    fn component_val_type(
-        &mut self,
-        ty: wasmparser::ComponentValType,
-    ) -> crate::component::ComponentValType {
-        utils::component_val_type(self, ty)
-    }
-
-    fn type_bounds(&mut self, ty: wasmparser::TypeBounds) -> crate::component::TypeBounds {
-        utils::type_bounds(self, ty)
-    }
-
-    fn canonical_option(
-        &mut self,
-        ty: wasmparser::CanonicalOption,
-    ) -> crate::component::CanonicalOption {
-        utils::canonical_option(self, ty)
-    }
-
-    fn component_type_ref(
-        &mut self,
-        ty: wasmparser::ComponentTypeRef,
-    ) -> crate::component::ComponentTypeRef {
-        utils::component_type_ref(self, ty)
     }
 
     fn const_expr(
@@ -155,11 +129,22 @@ pub trait Reencode {
         utils::func_type(self, func_ty)
     }
 
+    fn cont_type(
+        &mut self,
+        cont_ty: wasmparser::ContType,
+    ) -> Result<crate::ContType, Error<Self::Error>> {
+        utils::cont_type(self, cont_ty)
+    }
+
     fn global_type(
         &mut self,
         global_ty: wasmparser::GlobalType,
     ) -> Result<crate::GlobalType, Error<Self::Error>> {
         utils::global_type(self, global_ty)
+    }
+
+    fn handle(&mut self, on: wasmparser::Handle) -> crate::Handle {
+        utils::handle(self, on)
     }
 
     fn heap_type(
@@ -286,12 +271,11 @@ pub trait Reencode {
     }
 
     /// Parses a single instruction from `reader` and adds it to `function`.
-    fn parse_instruction(
+    fn parse_instruction<'a>(
         &mut self,
-        function: &mut crate::Function,
-        reader: &mut wasmparser::OperatorsReader<'_>,
-    ) -> Result<(), Error<Self::Error>> {
-        utils::parse_instruction(self, function, reader)
+        reader: &mut wasmparser::OperatorsReader<'a>,
+    ) -> Result<crate::Instruction<'a>, Error<Self::Error>> {
+        utils::parse_instruction(self, reader)
     }
 
     /// Parses the input `section` given from the `wasmparser` crate and adds
@@ -331,6 +315,13 @@ pub trait Reencode {
         element: wasmparser::Element<'_>,
     ) -> Result<(), Error<Self::Error>> {
         utils::parse_element(self, elements, element)
+    }
+
+    fn element_items<'a>(
+        &mut self,
+        items: wasmparser::ElementItems<'a>,
+    ) -> Result<crate::Elements<'a>, Error<Self::Error>> {
+        utils::element_items(self, items)
     }
 
     /// Parses the input `section` given from the `wasmparser` crate and adds
@@ -451,10 +442,10 @@ pub trait Reencode {
     /// Parses a single [`wasmparser::RecGroup`] and adds it to the `types` section.
     fn parse_recursive_type_group(
         &mut self,
-        types: &mut crate::TypeSection,
+        encoder: CoreTypeEncoder,
         rec_group: wasmparser::RecGroup,
     ) -> Result<(), Error<Self::Error>> {
-        utils::parse_recursive_type_group(self, types, rec_group)
+        utils::parse_recursive_type_group(self, encoder, rec_group)
     }
 
     fn parse_unknown_section(
@@ -500,6 +491,29 @@ pub trait Reencode {
     ) -> Result<(), Error<Self::Error>> {
         utils::parse_core_module(self, module, parser, data)
     }
+
+    fn custom_name_section(
+        &mut self,
+        section: wasmparser::NameSectionReader<'_>,
+    ) -> Result<crate::NameSection, Error<Self::Error>> {
+        utils::custom_name_section(self, section)
+    }
+
+    fn parse_custom_name_subsection(
+        &mut self,
+        names: &mut crate::NameSection,
+        section: wasmparser::Name<'_>,
+    ) -> Result<(), Error<Self::Error>> {
+        utils::parse_custom_name_subsection(self, names, section)
+    }
+
+    fn data_count(&mut self, count: u32) -> u32 {
+        count
+    }
+
+    fn start_section(&mut self, start: u32) -> u32 {
+        self.function_index(start)
+    }
 }
 
 /// An error when re-encoding from `wasmparser` to `wasm-encoder`.
@@ -512,8 +526,14 @@ pub enum Error<E = Infallible> {
     /// The const expression is invalid: not actually constant or something like
     /// that.
     InvalidConstExpr,
+    /// The code section size listed was not valid for the wasm binary provided.
+    InvalidCodeSectionSize,
     /// There was a section that does not belong into a core wasm module.
     UnexpectedNonCoreModuleSection,
+    /// There was a section that does not belong into a compoennt module.
+    UnexpectedNonComponentSection,
+    /// A core type definition was found in a component that's not supported.
+    UnsupportedCoreTypeInComponent,
     /// There was an error when parsing.
     ParseError(wasmparser::BinaryReaderError),
     /// There was a user-defined error when re-encoding.
@@ -538,10 +558,18 @@ impl<E: std::fmt::Display> std::fmt::Display for Error<E> {
                 fmt,
                 "There was a section that does not belong into a core wasm module"
             ),
+            Self::UnexpectedNonComponentSection => write!(
+                fmt,
+                "There was a section that does not belong into a component"
+            ),
             Self::CanonicalizedHeapTypeReference => write!(
                 fmt,
                 "There was a canonicalized heap type reference without type index information"
             ),
+            Self::UnsupportedCoreTypeInComponent => {
+                fmt.write_str("unsupported core type in a component")
+            }
+            Self::InvalidCodeSectionSize => fmt.write_str("invalid code section size"),
         }
     }
 }
@@ -553,7 +581,10 @@ impl<E: 'static + std::error::Error> std::error::Error for Error<E> {
             Self::UserError(e) => Some(e),
             Self::InvalidConstExpr
             | Self::CanonicalizedHeapTypeReference
-            | Self::UnexpectedNonCoreModuleSection => None,
+            | Self::UnexpectedNonCoreModuleSection
+            | Self::UnexpectedNonComponentSection
+            | Self::UnsupportedCoreTypeInComponent
+            | Self::InvalidCodeSectionSize => None,
         }
     }
 }
@@ -570,6 +601,8 @@ impl Reencode for RoundtripReencoder {
 #[allow(missing_docs)] // FIXME
 pub mod utils {
     use super::{Error, Reencode};
+    use crate::{CoreTypeEncoder, Encode};
+    use std::ops::Range;
 
     pub fn parse_core_module<T: ?Sized + Reencode>(
         reencoder: &mut T,
@@ -583,16 +616,25 @@ pub mod utils {
             last_section: &mut Option<crate::SectionId>,
             next_section: Option<crate::SectionId>,
         ) -> Result<(), Error<T::Error>> {
-            let after = std::mem::replace(last_section, next_section.clone());
+            let after = std::mem::replace(last_section, next_section);
             let before = next_section;
             reencoder.intersperse_section_hook(module, after, before)
         }
 
-        let mut sections = parser.parse_all(data);
-        let mut next_section = sections.next();
+        // Convert from `range` to a byte range within `data` while
+        // accounting for various offsets. Then create a
+        // `CodeSectionReader` (which notably the payload does not
+        // give us here) and recurse with that. This means that
+        // users overridding `parse_code_section` always get that
+        // function called.
+        let orig_offset = parser.offset() as usize;
+        let get_original_section = |range: Range<usize>| {
+            data.get(range.start - orig_offset..range.end - orig_offset)
+                .ok_or(Error::InvalidCodeSectionSize)
+        };
         let mut last_section = None;
 
-        'outer: while let Some(section) = next_section {
+        for section in parser.parse_all(data) {
             match section? {
                 wasmparser::Payload::Version {
                     encoding: wasmparser::Encoding::Module,
@@ -697,7 +739,7 @@ pub mod utils {
                         Some(crate::SectionId::Start),
                     )?;
                     module.section(&crate::StartSection {
-                        function_index: reencoder.function_index(func),
+                        function_index: reencoder.start_section(func),
                     });
                 }
                 wasmparser::Payload::ElementSection(section) => {
@@ -718,6 +760,7 @@ pub mod utils {
                         &mut last_section,
                         Some(crate::SectionId::DataCount),
                     )?;
+                    let count = reencoder.data_count(count);
                     module.section(&crate::DataCountSection { count });
                 }
                 wasmparser::Payload::DataSection(section) => {
@@ -731,7 +774,7 @@ pub mod utils {
                     reencoder.parse_data_section(&mut data, section)?;
                     module.section(&data);
                 }
-                wasmparser::Payload::CodeSectionStart { count, .. } => {
+                wasmparser::Payload::CodeSectionStart { range, .. } => {
                     handle_intersperse_section_hook(
                         reencoder,
                         module,
@@ -739,39 +782,26 @@ pub mod utils {
                         Some(crate::SectionId::Code),
                     )?;
                     let mut codes = crate::CodeSection::new();
-                    for _ in 0..count {
-                        if let Some(Ok(wasmparser::Payload::CodeSectionEntry(section))) =
-                            sections.next()
-                        {
-                            reencoder.parse_function_body(&mut codes, section)?;
-                        } else {
-                            return Err(Error::UnexpectedNonCoreModuleSection);
-                        }
-                    }
+
+                    // Convert from `range` to a byte range within `data` while
+                    // accounting for various offsets. Then create a
+                    // `CodeSectionReader` (which notably the payload does not
+                    // give us here) and recurse with that. This means that
+                    // users overridding `parse_code_section` always get that
+                    // function called.
+                    let section = get_original_section(range.clone())?;
+                    let reader = wasmparser::BinaryReader::new(section, range.start);
+                    let section = wasmparser::CodeSectionReader::new(reader)?;
+                    reencoder.parse_code_section(&mut codes, section)?;
                     module.section(&codes);
                 }
-                wasmparser::Payload::CodeSectionEntry(section) => {
-                    handle_intersperse_section_hook(
-                        reencoder,
-                        module,
-                        &mut last_section,
-                        Some(crate::SectionId::Code),
-                    )?;
-                    // we can't do better than start a new code section here
-                    let mut codes = crate::CodeSection::new();
-                    reencoder.parse_function_body(&mut codes, section)?;
-                    while let Some(section) = sections.next() {
-                        let section = section?;
-                        if let wasmparser::Payload::CodeSectionEntry(section) = section {
-                            reencoder.parse_function_body(&mut codes, section)?;
-                        } else {
-                            module.section(&codes);
-                            next_section = Some(Ok(section));
-                            continue 'outer;
-                        }
-                    }
-                    module.section(&codes);
-                }
+
+                // Parsing of code section entries (function bodies) happens
+                // above during the handling of the code section. That means
+                // that we just skip all these payloads.
+                wasmparser::Payload::CodeSectionEntry(_) => {}
+
+                #[cfg(feature = "component-model")]
                 wasmparser::Payload::ModuleSection { .. }
                 | wasmparser::Payload::InstanceSection(_)
                 | wasmparser::Payload::CoreTypeSection(_)
@@ -788,15 +818,18 @@ pub mod utils {
                 wasmparser::Payload::CustomSection(section) => {
                     reencoder.parse_custom_section(module, section)?;
                 }
-                wasmparser::Payload::UnknownSection { id, contents, .. } => {
-                    reencoder.parse_unknown_section(module, id, contents)?;
-                }
                 wasmparser::Payload::End(_) => {
                     handle_intersperse_section_hook(reencoder, module, &mut last_section, None)?;
                 }
-            }
 
-            next_section = sections.next();
+                other => match other.as_section() {
+                    Some((id, range)) => {
+                        let section = get_original_section(range)?;
+                        reencoder.parse_unknown_section(module, id, section)?;
+                    }
+                    None => unreachable!(),
+                },
+            }
         }
 
         Ok(())
@@ -826,137 +859,6 @@ pub mod utils {
         _before: Option<crate::SectionId>,
     ) -> Result<(), Error<T::Error>> {
         Ok(())
-    }
-
-    pub fn component_primitive_val_type<T: ?Sized + Reencode>(
-        _reencoder: &mut T,
-        ty: wasmparser::PrimitiveValType,
-    ) -> crate::component::PrimitiveValType {
-        match ty {
-            wasmparser::PrimitiveValType::Bool => crate::component::PrimitiveValType::Bool,
-            wasmparser::PrimitiveValType::S8 => crate::component::PrimitiveValType::S8,
-            wasmparser::PrimitiveValType::U8 => crate::component::PrimitiveValType::U8,
-            wasmparser::PrimitiveValType::S16 => crate::component::PrimitiveValType::S16,
-            wasmparser::PrimitiveValType::U16 => crate::component::PrimitiveValType::U16,
-            wasmparser::PrimitiveValType::S32 => crate::component::PrimitiveValType::S32,
-            wasmparser::PrimitiveValType::U32 => crate::component::PrimitiveValType::U32,
-            wasmparser::PrimitiveValType::S64 => crate::component::PrimitiveValType::S64,
-            wasmparser::PrimitiveValType::U64 => crate::component::PrimitiveValType::U64,
-            wasmparser::PrimitiveValType::F32 => crate::component::PrimitiveValType::F32,
-            wasmparser::PrimitiveValType::F64 => crate::component::PrimitiveValType::F64,
-            wasmparser::PrimitiveValType::Char => crate::component::PrimitiveValType::Char,
-            wasmparser::PrimitiveValType::String => crate::component::PrimitiveValType::String,
-        }
-    }
-
-    pub fn component_export_kind<T: ?Sized + Reencode>(
-        _reencoder: &mut T,
-        ty: wasmparser::ComponentExternalKind,
-    ) -> crate::component::ComponentExportKind {
-        match ty {
-            wasmparser::ComponentExternalKind::Module => crate::ComponentExportKind::Module,
-            wasmparser::ComponentExternalKind::Func => crate::ComponentExportKind::Func,
-            wasmparser::ComponentExternalKind::Value => crate::ComponentExportKind::Value,
-            wasmparser::ComponentExternalKind::Type => crate::ComponentExportKind::Type,
-            wasmparser::ComponentExternalKind::Instance => crate::ComponentExportKind::Instance,
-            wasmparser::ComponentExternalKind::Component => crate::ComponentExportKind::Component,
-        }
-    }
-
-    pub fn component_outer_alias_kind<T: ?Sized + Reencode>(
-        _reencoder: &mut T,
-        ty: wasmparser::ComponentOuterAliasKind,
-    ) -> crate::component::ComponentOuterAliasKind {
-        match ty {
-            wasmparser::ComponentOuterAliasKind::CoreModule => {
-                crate::component::ComponentOuterAliasKind::CoreModule
-            }
-            wasmparser::ComponentOuterAliasKind::CoreType => {
-                crate::component::ComponentOuterAliasKind::CoreType
-            }
-            wasmparser::ComponentOuterAliasKind::Type => {
-                crate::component::ComponentOuterAliasKind::Type
-            }
-            wasmparser::ComponentOuterAliasKind::Component => {
-                crate::ComponentOuterAliasKind::Component
-            }
-        }
-    }
-
-    pub fn component_val_type<T: ?Sized + Reencode>(
-        reencoder: &mut T,
-        ty: wasmparser::ComponentValType,
-    ) -> crate::component::ComponentValType {
-        match ty {
-            wasmparser::ComponentValType::Type(u) => {
-                crate::component::ComponentValType::Type(reencoder.component_type_index(u))
-            }
-            wasmparser::ComponentValType::Primitive(pty) => {
-                crate::component::ComponentValType::Primitive(
-                    crate::component::PrimitiveValType::from(pty),
-                )
-            }
-        }
-    }
-
-    pub fn type_bounds<T: ?Sized + Reencode>(
-        reencoder: &mut T,
-        ty: wasmparser::TypeBounds,
-    ) -> crate::component::TypeBounds {
-        match ty {
-            wasmparser::TypeBounds::Eq(u) => {
-                crate::component::TypeBounds::Eq(reencoder.component_type_index(u))
-            }
-            wasmparser::TypeBounds::SubResource => crate::component::TypeBounds::SubResource,
-        }
-    }
-
-    pub fn component_type_ref<T: ?Sized + Reencode>(
-        reencoder: &mut T,
-        ty: wasmparser::ComponentTypeRef,
-    ) -> crate::component::ComponentTypeRef {
-        match ty {
-            wasmparser::ComponentTypeRef::Module(u) => {
-                crate::component::ComponentTypeRef::Module(reencoder.component_type_index(u))
-            }
-            wasmparser::ComponentTypeRef::Func(u) => {
-                crate::component::ComponentTypeRef::Func(reencoder.component_type_index(u))
-            }
-            wasmparser::ComponentTypeRef::Value(valty) => {
-                crate::component::ComponentTypeRef::Value(reencoder.component_val_type(valty))
-            }
-            wasmparser::ComponentTypeRef::Type(bounds) => {
-                crate::component::ComponentTypeRef::Type(reencoder.type_bounds(bounds))
-            }
-            wasmparser::ComponentTypeRef::Instance(u) => {
-                crate::component::ComponentTypeRef::Instance(reencoder.component_type_index(u))
-            }
-            wasmparser::ComponentTypeRef::Component(u) => {
-                crate::component::ComponentTypeRef::Component(reencoder.component_type_index(u))
-            }
-        }
-    }
-
-    pub fn canonical_option<T: ?Sized + Reencode>(
-        reencoder: &mut T,
-        ty: wasmparser::CanonicalOption,
-    ) -> crate::component::CanonicalOption {
-        match ty {
-            wasmparser::CanonicalOption::UTF8 => crate::component::CanonicalOption::UTF8,
-            wasmparser::CanonicalOption::UTF16 => crate::component::CanonicalOption::UTF16,
-            wasmparser::CanonicalOption::CompactUTF16 => {
-                crate::component::CanonicalOption::CompactUTF16
-            }
-            wasmparser::CanonicalOption::Memory(u) => {
-                crate::component::CanonicalOption::Memory(reencoder.memory_index(u))
-            }
-            wasmparser::CanonicalOption::Realloc(u) => {
-                crate::component::CanonicalOption::Realloc(reencoder.function_index(u))
-            }
-            wasmparser::CanonicalOption::PostReturn(u) => {
-                crate::component::CanonicalOption::PostReturn(reencoder.function_index(u))
-            }
-        }
     }
 
     pub fn memory_index<T: ?Sized + Reencode>(_reencoder: &mut T, memory: u32) -> u32 {
@@ -1007,6 +909,21 @@ pub mod utils {
         }
     }
 
+    pub fn handle<T: ?Sized + Reencode>(
+        reencoder: &mut T,
+        arg: wasmparser::Handle,
+    ) -> crate::Handle {
+        match arg {
+            wasmparser::Handle::OnLabel { tag, label } => crate::Handle::OnLabel {
+                tag: reencoder.tag_index(tag),
+                label,
+            },
+            wasmparser::Handle::OnSwitch { tag } => crate::Handle::OnSwitch {
+                tag: reencoder.tag_index(tag),
+            },
+        }
+    }
+
     /// Parses the input `section` given from the `wasmparser` crate and
     /// adds the custom section to the `module`.
     pub fn parse_custom_section<T: ?Sized + Reencode>(
@@ -1014,7 +931,14 @@ pub mod utils {
         module: &mut crate::Module,
         section: wasmparser::CustomSectionReader<'_>,
     ) -> Result<(), Error<T::Error>> {
-        module.section(&reencoder.custom_section(section));
+        match section.as_known() {
+            wasmparser::KnownCustom::Name(name) => {
+                module.section(&reencoder.custom_name_section(name)?);
+            }
+            _ => {
+                module.section(&reencoder.custom_section(section));
+            }
+        }
         Ok(())
     }
 
@@ -1069,8 +993,13 @@ pub mod utils {
         ty
     }
 
-    pub fn component_type_index<T: ?Sized + Reencode>(_reencoder: &mut T, ty: u32) -> u32 {
-        ty
+    pub fn type_index_unpacked<T: ?Sized + Reencode>(
+        reencoder: &mut T,
+        ty: wasmparser::UnpackedIndex,
+    ) -> Result<u32, Error<T::Error>> {
+        ty.as_module_index()
+            .map(|ty| reencoder.type_index(ty))
+            .ok_or(Error::CanonicalizedHeapTypeReference)
     }
 
     pub fn tag_type<T: ?Sized + Reencode>(
@@ -1101,6 +1030,8 @@ pub mod utils {
             I31 => crate::AbstractHeapType::I31,
             Exn => crate::AbstractHeapType::Exn,
             NoExn => crate::AbstractHeapType::NoExn,
+            Cont => crate::AbstractHeapType::Cont,
+            NoCont => crate::AbstractHeapType::NoCont,
         }
     }
 
@@ -1112,7 +1043,7 @@ pub mod utils {
         section: wasmparser::TypeSectionReader<'_>,
     ) -> Result<(), Error<T::Error>> {
         for rec_group in section {
-            reencoder.parse_recursive_type_group(types, rec_group?)?;
+            reencoder.parse_recursive_type_group(types.ty(), rec_group?)?;
         }
         Ok(())
     }
@@ -1120,7 +1051,7 @@ pub mod utils {
     /// Parses a single [`wasmparser::RecGroup`] and adds it to the `types` section.
     pub fn parse_recursive_type_group<T: ?Sized + Reencode>(
         reencoder: &mut T,
-        types: &mut crate::TypeSection,
+        encoder: CoreTypeEncoder,
         rec_group: wasmparser::RecGroup,
     ) -> Result<(), Error<T::Error>> {
         if rec_group.is_explicit_rec_group() {
@@ -1128,10 +1059,10 @@ pub mod utils {
                 .into_types()
                 .map(|t| reencoder.sub_type(t))
                 .collect::<Result<Vec<_>, _>>()?;
-            types.rec(subtypes);
+            encoder.rec(subtypes);
         } else {
             let ty = rec_group.into_types().next().unwrap();
-            types.subtype(&reencoder.sub_type(ty)?);
+            encoder.subtype(&reencoder.sub_type(ty)?);
         }
         Ok(())
     }
@@ -1144,11 +1075,7 @@ pub mod utils {
             is_final: sub_ty.is_final,
             supertype_idx: sub_ty
                 .supertype_idx
-                .map(|i| {
-                    i.as_module_index()
-                        .map(|ty| reencoder.type_index(ty))
-                        .ok_or(Error::CanonicalizedHeapTypeReference)
-                })
+                .map(|i| reencoder.type_index_unpacked(i.unpack()))
                 .transpose()?,
             composite_type: reencoder.composite_type(sub_ty.composite_type)?,
         })
@@ -1167,6 +1094,9 @@ pub mod utils {
             }
             wasmparser::CompositeInnerType::Struct(s) => {
                 crate::CompositeInnerType::Struct(reencoder.struct_type(s)?)
+            }
+            wasmparser::CompositeInnerType::Cont(c) => {
+                crate::CompositeInnerType::Cont(reencoder.cont_type(c)?)
             }
         };
         Ok(crate::CompositeType {
@@ -1204,7 +1134,7 @@ pub mod utils {
             fields: struct_ty
                 .fields
                 .iter()
-                .map(|field_ty| reencoder.field_type(field_ty.clone()))
+                .map(|field_ty| reencoder.field_type(*field_ty))
                 .collect::<Result<_, _>>()?,
         })
     }
@@ -1228,6 +1158,15 @@ pub mod utils {
             wasmparser::StorageType::I16 => crate::StorageType::I16,
             wasmparser::StorageType::Val(v) => crate::StorageType::Val(reencoder.val_type(v)?),
         })
+    }
+
+    pub fn cont_type<T: ?Sized + Reencode>(
+        reencoder: &mut T,
+        cont_ty: wasmparser::ContType,
+    ) -> Result<crate::ContType, Error<T::Error>> {
+        Ok(crate::ContType(
+            reencoder.type_index_unpacked(cont_ty.0.unpack())?,
+        ))
     }
 
     pub fn val_type<T: ?Sized + Reencode>(
@@ -1259,11 +1198,9 @@ pub mod utils {
         heap_type: wasmparser::HeapType,
     ) -> Result<crate::HeapType, Error<T::Error>> {
         Ok(match heap_type {
-            wasmparser::HeapType::Concrete(i) => crate::HeapType::Concrete(
-                i.as_module_index()
-                    .map(|ty| reencoder.type_index(ty))
-                    .ok_or(Error::CanonicalizedHeapTypeReference)?,
-            ),
+            wasmparser::HeapType::Concrete(i) => {
+                crate::HeapType::Concrete(reencoder.type_index_unpacked(i)?)
+            }
             wasmparser::HeapType::Abstract { shared, ty } => crate::HeapType::Abstract {
                 shared,
                 ty: reencoder.abstract_heap_type(ty),
@@ -1352,13 +1289,7 @@ pub mod utils {
         exports.export(
             export.name,
             reencoder.export_kind(export.kind),
-            match export.kind {
-                wasmparser::ExternalKind::Func => reencoder.function_index(export.index),
-                wasmparser::ExternalKind::Table => reencoder.table_index(export.index),
-                wasmparser::ExternalKind::Memory => reencoder.memory_index(export.index),
-                wasmparser::ExternalKind::Global => reencoder.global_index(export.index),
-                wasmparser::ExternalKind::Tag => reencoder.tag_index(export.index),
-            },
+            reencoder.external_index(export.kind, export.index),
         );
     }
 
@@ -1521,30 +1452,25 @@ pub mod utils {
         elements: &mut crate::ElementSection,
         element: wasmparser::Element<'_>,
     ) -> Result<(), Error<T::Error>> {
-        let mut funcs;
-        let mut exprs;
-        let elems = match element.items {
-            wasmparser::ElementItems::Functions(f) => {
-                funcs = Vec::new();
-                for func in f {
-                    funcs.push(reencoder.function_index(func?));
-                }
-                crate::Elements::Functions(&funcs)
-            }
-            wasmparser::ElementItems::Expressions(ty, e) => {
-                exprs = Vec::new();
-                for expr in e {
-                    exprs.push(reencoder.const_expr(expr?)?);
-                }
-                crate::Elements::Expressions(reencoder.ref_type(ty)?, &exprs)
-            }
-        };
+        let elems = reencoder.element_items(element.items)?;
         match element.kind {
             wasmparser::ElementKind::Active {
                 table_index,
                 offset_expr,
             } => elements.active(
-                table_index.map(|t| reencoder.table_index(t)),
+                // Inform the reencoder that a table index is being used even if
+                // it's not actually present here. That helps wasm-mutate for
+                // example which wants to track uses to know when it's ok to
+                // remove a table.
+                //
+                // If the table index started at `None` and is still zero then
+                // preserve this encoding and keep it at `None`. Otherwise if
+                // the result is nonzero or it was previously nonzero then keep
+                // that encoding too.
+                match (table_index, reencoder.table_index(table_index.unwrap_or(0))) {
+                    (None, 0) => None,
+                    (_, n) => Some(n),
+                },
                 &reencoder.const_expr(offset_expr)?,
                 elems,
             ),
@@ -1552,6 +1478,28 @@ pub mod utils {
             wasmparser::ElementKind::Declared => elements.declared(elems),
         };
         Ok(())
+    }
+
+    pub fn element_items<'a, T: ?Sized + Reencode>(
+        reencoder: &mut T,
+        items: wasmparser::ElementItems<'a>,
+    ) -> Result<crate::Elements<'a>, Error<T::Error>> {
+        Ok(match items {
+            wasmparser::ElementItems::Functions(f) => {
+                let mut funcs = Vec::new();
+                for func in f {
+                    funcs.push(reencoder.function_index(func?));
+                }
+                crate::Elements::Functions(funcs.into())
+            }
+            wasmparser::ElementItems::Expressions(ty, e) => {
+                let mut exprs = Vec::new();
+                for expr in e {
+                    exprs.push(reencoder.const_expr(expr?)?);
+                }
+                crate::Elements::Expressions(reencoder.ref_type(ty)?, exprs.into())
+            }
+        })
     }
 
     pub fn table_index<T: ?Sized + Reencode>(_reencoder: &mut T, table: u32) -> u32 {
@@ -1574,45 +1522,15 @@ pub mod utils {
         reencoder: &mut T,
         const_expr: wasmparser::ConstExpr,
     ) -> Result<crate::ConstExpr, Error<T::Error>> {
-        let mut ops = const_expr.get_operators_reader().into_iter();
+        let mut ops = const_expr.get_operators_reader();
+        let mut bytes = Vec::new();
 
-        let result = match ops.next() {
-            Some(Ok(wasmparser::Operator::I32Const { value })) => {
-                crate::ConstExpr::i32_const(value)
-            }
-            Some(Ok(wasmparser::Operator::I64Const { value })) => {
-                crate::ConstExpr::i64_const(value)
-            }
-            Some(Ok(wasmparser::Operator::F32Const { value })) => {
-                crate::ConstExpr::f32_const(f32::from_bits(value.bits()))
-            }
-            Some(Ok(wasmparser::Operator::F64Const { value })) => {
-                crate::ConstExpr::f64_const(f64::from_bits(value.bits()))
-            }
-            Some(Ok(wasmparser::Operator::V128Const { value })) => {
-                crate::ConstExpr::v128_const(i128::from_le_bytes(*value.bytes()))
-            }
-            Some(Ok(wasmparser::Operator::RefNull { hty })) => {
-                crate::ConstExpr::ref_null(reencoder.heap_type(hty)?)
-            }
-            Some(Ok(wasmparser::Operator::RefFunc { function_index })) => {
-                crate::ConstExpr::ref_func(reencoder.function_index(function_index))
-            }
-            Some(Ok(wasmparser::Operator::GlobalGet { global_index })) => {
-                crate::ConstExpr::global_get(reencoder.global_index(global_index))
-            }
-
-            // TODO: support the extended-const proposal.
-            Some(Ok(_op)) => return Err(Error::InvalidConstExpr),
-
-            Some(Err(e)) => return Err(Error::ParseError(e)),
-            None => return Err(Error::InvalidConstExpr),
-        };
-
-        match (ops.next(), ops.next()) {
-            (Some(Ok(wasmparser::Operator::End)), None) => Ok(result),
-            _ => Err(Error::InvalidConstExpr),
+        while !ops.is_end_then_eof() {
+            let insn = reencoder.parse_instruction(&mut ops)?;
+            insn.encode(&mut bytes);
         }
+
+        Ok(crate::ConstExpr::raw(bytes))
     }
 
     pub fn block_type<T: ?Sized + Reencode>(
@@ -1635,7 +1553,7 @@ pub mod utils {
         use crate::Instruction;
 
         macro_rules! translate {
-            ($( @$proposal:ident $op:ident $({ $($arg:ident: $argty:ty),* })? => $visit:ident)*) => {
+            ($( @$proposal:ident $op:ident $({ $($arg:ident: $argty:ty),* })? => $visit:ident ($($ann:tt)*))*) => {
                 Ok(match arg {
                     $(
                         wasmparser::Operator::$op $({ $($arg),* })? => {
@@ -1692,6 +1610,12 @@ pub mod utils {
             (map $arg:ident array_size) => ($arg);
             (map $arg:ident field_index) => ($arg);
             (map $arg:ident try_table) => ($arg);
+            (map $arg:ident argument_index) => (reencoder.type_index($arg));
+            (map $arg:ident result_index) => (reencoder.type_index($arg));
+            (map $arg:ident cont_type_index) => (reencoder.type_index($arg));
+            (map $arg:ident resume_table) => ((
+                $arg.handlers.into_iter().map(|h| reencoder.handle(h)).collect::<Vec<_>>().into()
+            ));
 
             // This case takes the arguments of a wasmparser instruction and creates
             // a wasm-encoder instruction. There are a few special cases for where
@@ -1736,7 +1660,7 @@ pub mod utils {
         let mut f = reencoder.new_function_with_parsed_locals(&func)?;
         let mut reader = func.get_operators_reader()?;
         while !reader.eof() {
-            reencoder.parse_instruction(&mut f, &mut reader)?;
+            f.instruction(&reencoder.parse_instruction(&mut reader)?);
         }
         code.function(&f);
         Ok(())
@@ -1757,13 +1681,12 @@ pub mod utils {
     }
 
     /// Parses a single instruction from `reader` and adds it to `function`.
-    pub fn parse_instruction<T: ?Sized + Reencode>(
+    pub fn parse_instruction<'a, T: ?Sized + Reencode>(
         reencoder: &mut T,
-        function: &mut crate::Function,
-        reader: &mut wasmparser::OperatorsReader<'_>,
-    ) -> Result<(), Error<T::Error>> {
-        function.instruction(&reencoder.instruction(reader.read()?)?);
-        Ok(())
+        reader: &mut wasmparser::OperatorsReader<'a>,
+    ) -> Result<crate::Instruction<'a>, Error<T::Error>> {
+        let instruction = reencoder.instruction(reader.read()?)?;
+        Ok(instruction)
     }
 
     pub fn parse_unknown_section<T: ?Sized + Reencode>(
@@ -1775,47 +1698,89 @@ pub mod utils {
         module.section(&crate::RawSection { id, data: contents });
         Ok(())
     }
-}
 
-impl From<wasmparser::ComponentValType> for crate::ComponentValType {
-    fn from(ty: wasmparser::ComponentValType) -> Self {
-        RoundtripReencoder.component_val_type(ty)
+    pub fn custom_name_section<T: ?Sized + Reencode>(
+        reencoder: &mut T,
+        section: wasmparser::NameSectionReader<'_>,
+    ) -> Result<crate::NameSection, Error<T::Error>> {
+        let mut ret = crate::NameSection::new();
+        for subsection in section {
+            reencoder.parse_custom_name_subsection(&mut ret, subsection?)?;
+        }
+        Ok(ret)
     }
-}
 
-impl From<wasmparser::TypeBounds> for crate::TypeBounds {
-    fn from(ty: wasmparser::TypeBounds) -> Self {
-        RoundtripReencoder.type_bounds(ty)
+    pub fn parse_custom_name_subsection<T: ?Sized + Reencode>(
+        reencoder: &mut T,
+        names: &mut crate::NameSection,
+        section: wasmparser::Name<'_>,
+    ) -> Result<(), Error<T::Error>> {
+        match section {
+            wasmparser::Name::Module { name, .. } => {
+                names.module(name);
+            }
+            wasmparser::Name::Function(map) => {
+                names.functions(&name_map(map, |i| reencoder.function_index(i))?);
+            }
+            wasmparser::Name::Type(map) => {
+                names.types(&name_map(map, |i| reencoder.type_index(i))?);
+            }
+            wasmparser::Name::Local(map) => {
+                names.locals(&indirect_name_map(map, |i| reencoder.function_index(i))?);
+            }
+            wasmparser::Name::Label(map) => {
+                names.labels(&indirect_name_map(map, |i| reencoder.function_index(i))?);
+            }
+            wasmparser::Name::Table(map) => {
+                names.tables(&name_map(map, |i| reencoder.table_index(i))?);
+            }
+            wasmparser::Name::Memory(map) => {
+                names.memories(&name_map(map, |i| reencoder.memory_index(i))?);
+            }
+            wasmparser::Name::Global(map) => {
+                names.globals(&name_map(map, |i| reencoder.global_index(i))?);
+            }
+            wasmparser::Name::Element(map) => {
+                names.elements(&name_map(map, |i| reencoder.element_index(i))?);
+            }
+            wasmparser::Name::Data(map) => {
+                names.data(&name_map(map, |i| reencoder.data_index(i))?);
+            }
+            wasmparser::Name::Tag(map) => {
+                names.tags(&name_map(map, |i| reencoder.tag_index(i))?);
+            }
+            wasmparser::Name::Field(map) => {
+                names.fields(&indirect_name_map(map, |i| reencoder.type_index(i))?);
+            }
+            wasmparser::Name::Unknown { ty, data, .. } => {
+                names.raw(ty, data);
+            }
+        }
+        Ok(())
     }
-}
 
-impl From<wasmparser::CanonicalOption> for crate::CanonicalOption {
-    fn from(opt: wasmparser::CanonicalOption) -> Self {
-        RoundtripReencoder.canonical_option(opt)
+    pub fn name_map(
+        map: wasmparser::NameMap<'_>,
+        mut map_index: impl FnMut(u32) -> u32,
+    ) -> wasmparser::Result<crate::NameMap> {
+        let mut ret = crate::NameMap::new();
+        for naming in map {
+            let naming = naming?;
+            ret.append(map_index(naming.index), naming.name);
+        }
+        Ok(ret)
     }
-}
 
-impl From<wasmparser::ComponentExternalKind> for crate::ComponentExportKind {
-    fn from(kind: wasmparser::ComponentExternalKind) -> Self {
-        RoundtripReencoder.component_export_kind(kind)
-    }
-}
-
-impl From<wasmparser::ComponentOuterAliasKind> for crate::ComponentOuterAliasKind {
-    fn from(kind: wasmparser::ComponentOuterAliasKind) -> Self {
-        RoundtripReencoder.component_outer_alias_kind(kind)
-    }
-}
-
-impl From<wasmparser::ComponentTypeRef> for crate::ComponentTypeRef {
-    fn from(ty: wasmparser::ComponentTypeRef) -> Self {
-        RoundtripReencoder.component_type_ref(ty)
-    }
-}
-
-impl From<wasmparser::PrimitiveValType> for crate::PrimitiveValType {
-    fn from(ty: wasmparser::PrimitiveValType) -> Self {
-        RoundtripReencoder.component_primitive_val_type(ty)
+    pub fn indirect_name_map(
+        map: wasmparser::IndirectNameMap<'_>,
+        mut map_index: impl FnMut(u32) -> u32,
+    ) -> wasmparser::Result<crate::IndirectNameMap> {
+        let mut ret = crate::IndirectNameMap::new();
+        for naming in map {
+            let naming = naming?;
+            ret.append(map_index(naming.index), &name_map(naming.names, |i| i)?);
+        }
+        Ok(ret)
     }
 }
 
@@ -1878,6 +1843,12 @@ impl TryFrom<wasmparser::GlobalType> for crate::GlobalType {
 
     fn try_from(global_ty: wasmparser::GlobalType) -> Result<Self, Self::Error> {
         RoundtripReencoder.global_type(global_ty)
+    }
+}
+
+impl From<wasmparser::Handle> for crate::Handle {
+    fn from(arg: wasmparser::Handle) -> Self {
+        RoundtripReencoder.handle(arg)
     }
 }
 

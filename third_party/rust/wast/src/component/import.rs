@@ -80,30 +80,31 @@ impl<'a> Parse<'a> for ItemSigNoName<'a> {
 
 fn parse_item_sig<'a>(parser: Parser<'a>, name: bool) -> Result<ItemSig<'a>> {
     let mut l = parser.lookahead1();
-    let (span, parse_kind): (_, fn(Parser<'a>) -> Result<ItemSigKind>) = if l.peek::<kw::core>()? {
-        let span = parser.parse::<kw::core>()?.0;
-        parser.parse::<kw::module>()?;
-        (span, |parser| Ok(ItemSigKind::CoreModule(parser.parse()?)))
-    } else if l.peek::<kw::func>()? {
-        let span = parser.parse::<kw::func>()?.0;
-        (span, |parser| Ok(ItemSigKind::Func(parser.parse()?)))
-    } else if l.peek::<kw::component>()? {
-        let span = parser.parse::<kw::component>()?.0;
-        (span, |parser| Ok(ItemSigKind::Component(parser.parse()?)))
-    } else if l.peek::<kw::instance>()? {
-        let span = parser.parse::<kw::instance>()?.0;
-        (span, |parser| Ok(ItemSigKind::Instance(parser.parse()?)))
-    } else if l.peek::<kw::value>()? {
-        let span = parser.parse::<kw::value>()?.0;
-        (span, |parser| Ok(ItemSigKind::Value(parser.parse()?)))
-    } else if l.peek::<kw::r#type>()? {
-        let span = parser.parse::<kw::r#type>()?.0;
-        (span, |parser| {
-            Ok(ItemSigKind::Type(parser.parens(|parser| parser.parse())?))
-        })
-    } else {
-        return Err(l.error());
-    };
+    let (span, parse_kind): (_, fn(Parser<'a>) -> Result<ItemSigKind<'a>>) =
+        if l.peek::<kw::core>()? {
+            let span = parser.parse::<kw::core>()?.0;
+            parser.parse::<kw::module>()?;
+            (span, |parser| Ok(ItemSigKind::CoreModule(parser.parse()?)))
+        } else if l.peek::<kw::func>()? {
+            let span = parser.parse::<kw::func>()?.0;
+            (span, |parser| Ok(ItemSigKind::Func(parser.parse()?)))
+        } else if l.peek::<kw::component>()? {
+            let span = parser.parse::<kw::component>()?.0;
+            (span, |parser| Ok(ItemSigKind::Component(parser.parse()?)))
+        } else if l.peek::<kw::instance>()? {
+            let span = parser.parse::<kw::instance>()?.0;
+            (span, |parser| Ok(ItemSigKind::Instance(parser.parse()?)))
+        } else if l.peek::<kw::value>()? {
+            let span = parser.parse::<kw::value>()?.0;
+            (span, |parser| Ok(ItemSigKind::Value(parser.parse()?)))
+        } else if l.peek::<kw::r#type>()? {
+            let span = parser.parse::<kw::r#type>()?.0;
+            (span, |parser| {
+                Ok(ItemSigKind::Type(parser.parens(|parser| parser.parse())?))
+            })
+        } else {
+            return Err(l.error());
+        };
     Ok(ItemSig {
         span,
         id: if name { parser.parse()? } else { None },

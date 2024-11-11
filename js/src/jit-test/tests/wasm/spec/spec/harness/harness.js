@@ -193,16 +193,10 @@ let linkage = {
   spectest,
 };
 
-function getInstance(instanceish) {
-  if (typeof instanceish === "string") {
-    assertEq(
-      instanceish in linkage,
-      true,
-      `'${instanceish}'' must be registered`,
-    );
-    return linkage[instanceish];
-  }
-  return instanceish;
+function module(source) {
+  let bytecode = wasmTextToBinary(source);
+  let module = new WebAssembly.Module(bytecode);
+  return module;
 }
 
 function instantiate(source) {
@@ -212,18 +206,23 @@ function instantiate(source) {
   return instance.exports;
 }
 
-function register(instanceish, name) {
-  linkage[name] = getInstance(instanceish);
+function instantiateFromModule(module) {
+  let instance = new WebAssembly.Instance(module, linkage);
+  return instance.exports;
 }
 
-function invoke(instanceish, field, params) {
-  let func = getInstance(instanceish)[field];
+function register(instance, name) {
+  linkage[name] = instance;
+}
+
+function invoke(instance, field, params) {
+  let func = instance[field];
   assertEq(func instanceof Function, true, "expected a function");
   return wasmLosslessInvoke(func, ...params);
 }
 
-function get(instanceish, field) {
-  let global = getInstance(instanceish)[field];
+function get(instance, field) {
+  let global = instance[field];
   assertEq(
     global instanceof WebAssembly.Global,
     true,

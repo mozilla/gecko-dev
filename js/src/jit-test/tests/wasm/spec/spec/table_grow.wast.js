@@ -193,7 +193,45 @@ assert_return(() => invoke($4, `grow`, [10]), [value("i32", 10)]);
 // ./test/core/table_grow.wast:108
 assert_return(() => invoke($4, `check-table-null`, [0, 19]), [value('anyfunc', null)]);
 
-// ./test/core/table_grow.wast:113
+// ./test/core/table_grow.wast:111
+let $5 = instantiate(`(module $$Tgt
+  (table (export "table") 1 funcref) ;; initial size is 1
+  (func (export "grow") (result i32) (table.grow (ref.null func) (i32.const 1)))
+)`);
+let $Tgt = $5;
+
+// ./test/core/table_grow.wast:115
+register($Tgt, `grown-table`);
+
+// ./test/core/table_grow.wast:116
+assert_return(() => invoke($Tgt, `grow`, []), [value("i32", 1)]);
+
+// ./test/core/table_grow.wast:117
+let $6 = instantiate(`(module $$Tgit1
+  ;; imported table limits should match, because external table size is 2 now
+  (table (export "table") (import "grown-table" "table") 2 funcref)
+  (func (export "grow") (result i32) (table.grow (ref.null func) (i32.const 1)))
+)`);
+let $Tgit1 = $6;
+
+// ./test/core/table_grow.wast:122
+register($Tgit1, `grown-imported-table`);
+
+// ./test/core/table_grow.wast:123
+assert_return(() => invoke($Tgit1, `grow`, []), [value("i32", 2)]);
+
+// ./test/core/table_grow.wast:124
+let $7 = instantiate(`(module $$Tgit2
+  ;; imported table limits should match, because external table size is 3 now
+  (import "grown-imported-table" "table" (table 3 funcref))
+  (func (export "size") (result i32) (table.size))
+)`);
+let $Tgit2 = $7;
+
+// ./test/core/table_grow.wast:129
+assert_return(() => invoke($Tgit2, `size`, []), [value("i32", 3)]);
+
+// ./test/core/table_grow.wast:134
 assert_invalid(
   () => instantiate(`(module
     (table $$t 0 externref)
@@ -204,7 +242,7 @@ assert_invalid(
   `type mismatch`,
 );
 
-// ./test/core/table_grow.wast:122
+// ./test/core/table_grow.wast:143
 assert_invalid(
   () => instantiate(`(module
     (table $$t 0 externref)
@@ -215,7 +253,7 @@ assert_invalid(
   `type mismatch`,
 );
 
-// ./test/core/table_grow.wast:131
+// ./test/core/table_grow.wast:152
 assert_invalid(
   () => instantiate(`(module
     (table $$t 0 externref)
@@ -226,7 +264,7 @@ assert_invalid(
   `type mismatch`,
 );
 
-// ./test/core/table_grow.wast:140
+// ./test/core/table_grow.wast:161
 assert_invalid(
   () => instantiate(`(module
     (table $$t 0 externref)
@@ -237,7 +275,7 @@ assert_invalid(
   `type mismatch`,
 );
 
-// ./test/core/table_grow.wast:149
+// ./test/core/table_grow.wast:170
 assert_invalid(
   () => instantiate(`(module
     (table $$t 0 funcref)
@@ -248,7 +286,7 @@ assert_invalid(
   `type mismatch`,
 );
 
-// ./test/core/table_grow.wast:159
+// ./test/core/table_grow.wast:180
 assert_invalid(
   () => instantiate(`(module
     (table $$t 1 externref)
@@ -259,7 +297,7 @@ assert_invalid(
   `type mismatch`,
 );
 
-// ./test/core/table_grow.wast:168
+// ./test/core/table_grow.wast:189
 assert_invalid(
   () => instantiate(`(module
     (table $$t 1 externref)

@@ -13,25 +13,34 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "wasm-encoder"
-version = "0.214.0"
+version = "0.219.1"
 authors = ["Nick Fitzgerald <fitzgen@gmail.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 A low-level WebAssembly encoder.
 """
 homepage = "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-encoder"
 documentation = "https://docs.rs/wasm-encoder"
 readme = "README.md"
-license = "Apache-2.0 WITH LLVM-exception"
+license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-encoder"
 
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+name = "wasm_encoder"
+path = "src/lib.rs"
+
 [dependencies.leb128]
 version = "0.2.4"
 
 [dependencies.wasmparser]
-version = "0.214.0"
+version = "0.219.1"
 features = ["std"]
 optional = true
 default-features = false
@@ -42,8 +51,23 @@ version = "1.0.58"
 [dev-dependencies.tempfile]
 version = "3.2.0"
 
+[dev-dependencies.wasmprinter]
+version = "0.219.1"
+default-features = false
+
+[features]
+component-model = ["wasmparser?/component-model"]
+default = ["component-model"]
+
 [lints.clippy]
-all = "allow"
+clone_on_copy = "warn"
+manual_strip = "warn"
+map_clone = "warn"
+unnecessary_to_owned = "warn"
+
+[lints.clippy.all]
+level = "allow"
+priority = -1
 
 [lints.rust]
 unsafe_code = "deny"

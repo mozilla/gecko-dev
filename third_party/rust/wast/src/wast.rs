@@ -1,3 +1,4 @@
+#[cfg(feature = "component-model")]
 use crate::component::WastVal;
 use crate::core::{WastArgCore, WastRetCore};
 use crate::kw;
@@ -20,17 +21,19 @@ impl<'a> Parse<'a> for Wast<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
         let mut directives = Vec::new();
 
-        // If it looks like a directive token is in the stream then we parse a
-        // bunch of directives, otherwise assume this is an inline module.
-        if parser.peek2::<WastDirectiveToken>()? {
-            while !parser.is_empty() {
-                directives.push(parser.parens(|p| p.parse())?);
+        parser.with_standard_annotations_registered(|parser| {
+            // If it looks like a directive token is in the stream then we parse a
+            // bunch of directives, otherwise assume this is an inline module.
+            if parser.peek2::<WastDirectiveToken>()? {
+                while !parser.is_empty() {
+                    directives.push(parser.parens(|p| p.parse())?);
+                }
+            } else {
+                let module = parser.parse::<Wat>()?;
+                directives.push(WastDirective::Module(QuoteWat::Wat(module)));
             }
-        } else {
-            let module = parser.parse::<Wat>()?;
-            directives.push(WastDirective::Wat(QuoteWat::Wat(module)));
-        }
-        Ok(Wast { directives })
+            Ok(Wast { directives })
+        })
     }
 }
 
@@ -56,67 +59,110 @@ impl Peek for WastDirectiveToken {
 
 /// The different kinds of directives found in a `*.wast` file.
 ///
-/// It's not entirely clear to me what all of these are per se, but they're only
-/// really interesting to test harnesses mostly.
+///
+/// Some more information about these various branches can be found at
+/// <https://github.com/WebAssembly/spec/blob/main/interpreter/README.md#scripts>.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub enum WastDirective<'a> {
-    Wat(QuoteWat<'a>),
+    /// The provided module is defined, validated, and then instantiated.
+    Module(QuoteWat<'a>),
+
+    /// The provided module is defined and validated.
+    ///
+    /// This module is not instantiated automatically.
+    ModuleDefinition(QuoteWat<'a>),
+
+    /// The named module is instantiated under the instance name provided.
+    ModuleInstance {
+        span: Span,
+        instance: Option<Id<'a>>,
+        module: Option<Id<'a>>,
+    },
+
+    /// Asserts the module cannot be decoded with the given error.
     AssertMalformed {
         span: Span,
         module: QuoteWat<'a>,
         message: &'a str,
     },
+
+    /// Asserts the module cannot be validated with the given error.
     AssertInvalid {
         span: Span,
         module: QuoteWat<'a>,
         message: &'a str,
     },
+
+    /// Registers the `module` instance with the given `name` to be available
+    /// for importing in future module instances.
     Register {
         span: Span,
         name: &'a str,
         module: Option<Id<'a>>,
     },
+
+    /// Invokes the specified export.
     Invoke(WastInvoke<'a>),
+
+    /// The invocation provided should trap with the specified error.
     AssertTrap {
         span: Span,
         exec: WastExecute<'a>,
         message: &'a str,
     },
+
+    /// The invocation provided should succeed with the specified results.
     AssertReturn {
         span: Span,
         exec: WastExecute<'a>,
         results: Vec<WastRet<'a>>,
     },
+
+    /// The invocation provided should exhaust system resources (e.g. stack
+    /// overflow).
     AssertExhaustion {
         span: Span,
         call: WastInvoke<'a>,
         message: &'a str,
     },
+
+    /// The provided module should fail to link when instantiation is attempted.
     AssertUnlinkable {
         span: Span,
         module: Wat<'a>,
         message: &'a str,
     },
-    AssertException {
+
+    /// The invocation provided should throw an exception.
+    AssertException { span: Span, exec: WastExecute<'a> },
+
+    /// The invocation should fail to handle a suspension.
+    AssertSuspension {
         span: Span,
         exec: WastExecute<'a>,
+        message: &'a str,
     },
+
+    /// Creates a new system thread which executes the given commands.
     Thread(WastThread<'a>),
-    Wait {
-        span: Span,
-        thread: Id<'a>,
-    },
+
+    /// Waits for the specified thread to exit.
+    Wait { span: Span, thread: Id<'a> },
 }
 
 impl WastDirective<'_> {
     /// Returns the location in the source that this directive was defined at
     pub fn span(&self) -> Span {
         match self {
-            WastDirective::Wat(QuoteWat::Wat(w)) => w.span(),
-            WastDirective::Wat(QuoteWat::QuoteModule(span, _)) => *span,
-            WastDirective::Wat(QuoteWat::QuoteComponent(span, _)) => *span,
-            WastDirective::AssertMalformed { span, .. }
+            WastDirective::Module(QuoteWat::Wat(w))
+            | WastDirective::ModuleDefinition(QuoteWat::Wat(w)) => w.span(),
+            WastDirective::Module(QuoteWat::QuoteModule(span, _))
+            | WastDirective::ModuleDefinition(QuoteWat::QuoteModule(span, _)) => *span,
+            WastDirective::Module(QuoteWat::QuoteComponent(span, _))
+            | WastDirective::ModuleDefinition(QuoteWat::QuoteComponent(span, _)) => *span,
+            WastDirective::ModuleInstance { span, .. }
+            | WastDirective::AssertMalformed { span, .. }
             | WastDirective::Register { span, .. }
             | WastDirective::AssertTrap { span, .. }
             | WastDirective::AssertReturn { span, .. }
@@ -124,6 +170,7 @@ impl WastDirective<'_> {
             | WastDirective::AssertUnlinkable { span, .. }
             | WastDirective::AssertInvalid { span, .. }
             | WastDirective::AssertException { span, .. }
+            | WastDirective::AssertSuspension { span, .. }
             | WastDirective::Wait { span, .. } => *span,
             WastDirective::Invoke(i) => i.span,
             WastDirective::Thread(t) => t.span,
@@ -135,7 +182,7 @@ impl<'a> Parse<'a> for WastDirective<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
         let mut l = parser.lookahead1();
         if l.peek::<kw::module>()? || l.peek::<kw::component>()? {
-            Ok(WastDirective::Wat(parser.parse()?))
+            parse_wast_module(parser)
         } else if l.peek::<kw::assert_malformed>()? {
             let span = parser.parse::<kw::assert_malformed>()?.0;
             Ok(WastDirective::AssertMalformed {
@@ -197,6 +244,13 @@ impl<'a> Parse<'a> for WastDirective<'a> {
             Ok(WastDirective::AssertException {
                 span,
                 exec: parser.parens(|p| p.parse())?,
+            })
+        } else if l.peek::<kw::assert_suspension>()? {
+            let span = parser.parse::<kw::assert_suspension>()?.0;
+            Ok(WastDirective::AssertSuspension {
+                span,
+                exec: parser.parens(|p| p.parse())?,
+                message: parser.parse()?,
             })
         } else if l.peek::<kw::thread>()? {
             Ok(WastDirective::Thread(parser.parse()?))
@@ -296,6 +350,55 @@ impl<'a> Parse<'a> for WastInvoke<'a> {
     }
 }
 
+fn parse_wast_module<'a>(parser: Parser<'a>) -> Result<WastDirective<'a>> {
+    if parser.peek2::<kw::quote>()? {
+        QuoteWat::parse(parser).map(WastDirective::Module)
+    } else if parser.peek2::<kw::definition>()? {
+        fn parse_module(span: Span, parser: Parser<'_>) -> Result<Wat<'_>> {
+            Ok(Wat::Module(
+                crate::core::Module::parse_without_module_keyword(span, parser)?,
+            ))
+        }
+        fn parse_component(_span: Span, parser: Parser<'_>) -> Result<Wat<'_>> {
+            #[cfg(feature = "component-model")]
+            return Ok(Wat::Component(
+                crate::component::Component::parse_without_component_keyword(_span, parser)?,
+            ));
+            #[cfg(not(feature = "component-model"))]
+            return Err(parser.error("component model support disabled at compile time"));
+        }
+        let (span, ctor) = if parser.peek::<kw::component>()? {
+            (
+                parser.parse::<kw::component>()?.0,
+                parse_component as fn(_, _) -> _,
+            )
+        } else {
+            (
+                parser.parse::<kw::module>()?.0,
+                parse_module as fn(_, _) -> _,
+            )
+        };
+        parser.parse::<kw::definition>()?;
+        Ok(WastDirective::ModuleDefinition(QuoteWat::Wat(ctor(
+            span, parser,
+        )?)))
+    } else if parser.peek2::<kw::instance>()? {
+        let span = if parser.peek::<kw::component>()? {
+            parser.parse::<kw::component>()?.0
+        } else {
+            parser.parse::<kw::module>()?.0
+        };
+        parser.parse::<kw::instance>()?;
+        Ok(WastDirective::ModuleInstance {
+            span,
+            instance: parser.parse()?,
+            module: parser.parse()?,
+        })
+    } else {
+        QuoteWat::parse(parser).map(WastDirective::Module)
+    }
+}
+
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub enum QuoteWat<'a> {
@@ -304,7 +407,7 @@ pub enum QuoteWat<'a> {
     QuoteComponent(Span, Vec<(Span, &'a [u8])>),
 }
 
-impl QuoteWat<'_> {
+impl<'a> QuoteWat<'a> {
     /// Encodes this module to bytes, either by encoding the module directly or
     /// parsing the contents and then encoding it.
     pub fn encode(&mut self) -> Result<Vec<u8>, Error> {
@@ -340,6 +443,15 @@ impl QuoteWat<'_> {
             ret.push(b')');
         }
         Ok(QuoteWatTest::Text(ret))
+    }
+
+    /// Returns the identifier, if registered, for this module.
+    pub fn name(&self) -> Option<Id<'a>> {
+        match self {
+            QuoteWat::Wat(Wat::Module(m)) => m.id,
+            QuoteWat::Wat(Wat::Component(m)) => m.id,
+            QuoteWat::QuoteModule(..) | QuoteWat::QuoteComponent(..) => None,
+        }
     }
 
     /// Returns the defining span of this module.
@@ -388,16 +500,25 @@ pub enum QuoteWatTest {
 #[allow(missing_docs)]
 pub enum WastArg<'a> {
     Core(WastArgCore<'a>),
+    // TODO: technically this isn't cargo-compliant since it means that this
+    // isn't and additive feature by defining this conditionally. That being
+    // said this seems unlikely to break many in practice so this isn't a shared
+    // type, so fixing this is left to a future commit.
+    #[cfg(feature = "component-model")]
     Component(WastVal<'a>),
 }
 
 impl<'a> Parse<'a> for WastArg<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
+        #[cfg(feature = "component-model")]
         if parser.peek::<WastArgCore<'_>>()? {
             Ok(WastArg::Core(parser.parse()?))
         } else {
             Ok(WastArg::Component(parser.parse()?))
         }
+
+        #[cfg(not(feature = "component-model"))]
+        Ok(WastArg::Core(parser.parse()?))
     }
 }
 
@@ -405,16 +526,21 @@ impl<'a> Parse<'a> for WastArg<'a> {
 #[allow(missing_docs)]
 pub enum WastRet<'a> {
     Core(WastRetCore<'a>),
+    #[cfg(feature = "component-model")]
     Component(WastVal<'a>),
 }
 
 impl<'a> Parse<'a> for WastRet<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
+        #[cfg(feature = "component-model")]
         if parser.peek::<WastRetCore<'_>>()? {
             Ok(WastRet::Core(parser.parse()?))
         } else {
             Ok(WastRet::Component(parser.parse()?))
         }
+
+        #[cfg(not(feature = "component-model"))]
+        Ok(WastRet::Core(parser.parse()?))
     }
 }
 

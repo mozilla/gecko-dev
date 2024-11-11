@@ -1,4 +1,4 @@
-use crate::{ComponentSection, Encode, Section};
+use crate::{Encode, Section};
 
 /// A section made up of uninterpreted, raw bytes.
 ///
@@ -23,7 +23,8 @@ impl Section for RawSection<'_> {
     }
 }
 
-impl ComponentSection for RawSection<'_> {
+#[cfg(feature = "component-model")]
+impl crate::ComponentSection for RawSection<'_> {
     fn id(&self) -> u8 {
         self.id
     }

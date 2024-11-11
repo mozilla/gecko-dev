@@ -19,16 +19,33 @@
 let $0 = instantiate(`(module;;comment
 )`);
 
-// ./test/core/comments.wast:56:11
+// ./test/core/comments.wast:57:11
 let $1 = instantiate(`(module(;comment;)
 (;comment;))`);
 
-// ./test/core/comments.wast:66
+// ./test/core/comments.wast:67
 let $2 = instantiate(`(module
   (;comment(;nested(;further;)nested;)comment;)
 )`);
 
-// ./test/core/comments.wast:75
+// ./test/core/comments.wast:76
 let $3 = instantiate(`(module
   (;comment;;comment(;nested;)comment;)
 )`);
+
+// ./test/core/comments.wast:83:8
+let $4 = instantiate(`(func (export "f1") (result i32)   (i32.const 1)   ;; comment
+   (return (i32.const 2)) 
+ ) (func (export "f2") (result i32)   (i32.const 1)   ;; comment   (return (i32.const 2)) 
+ ) (func (export "f3") (result i32)   (i32.const 1)   ;; comment
+   (return (i32.const 2)) 
+ ) `);
+
+// ./test/core/comments.wast:104
+assert_return(() => invoke($4, `f1`, []), [value("i32", 2)]);
+
+// ./test/core/comments.wast:105
+assert_return(() => invoke($4, `f2`, []), [value("i32", 2)]);
+
+// ./test/core/comments.wast:106
+assert_return(() => invoke($4, `f3`, []), [value("i32", 2)]);

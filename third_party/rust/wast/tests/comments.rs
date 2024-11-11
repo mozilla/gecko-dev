@@ -14,10 +14,9 @@ impl<'a> Parse<'a> for Comments<'a> {
                     None => break,
                 };
                 cursor = c;
-                comments.push(if comment.starts_with(";;") {
-                    &comment[2..]
-                } else {
-                    &comment[2..comment.len() - 2]
+                comments.push(match comment.strip_prefix(";;") {
+                    Some(rest) => rest,
+                    None => &comment[2..comment.len() - 2],
                 });
             }
             Ok((comments, cursor))

@@ -13,23 +13,45 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "wast"
-version = "214.0.0"
+version = "219.0.1"
 authors = ["Alex Crichton <alex@alexcrichton.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 Customizable Rust parsers for the WebAssembly Text formats WAT and WAST
 """
 homepage = "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wast"
 documentation = "https://docs.rs/wast"
 readme = "README.md"
-license = "Apache-2.0 WITH LLVM-exception"
+license = "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT"
 repository = "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wast"
 
 [package.metadata.docs.rs]
 all-features = true
 
+[lib]
+name = "wast"
+path = "src/lib.rs"
+
+[[test]]
+name = "annotations"
+path = "tests/annotations.rs"
+
+[[test]]
+name = "comments"
+path = "tests/comments.rs"
+
 [[test]]
 name = "parse-fail"
+path = "tests/parse-fail.rs"
 harness = false
+
+[[test]]
+name = "recursive"
+path = "tests/recursive.rs"
 
 [dependencies.bumpalo]
 version = "3.14.0"
@@ -48,7 +70,8 @@ version = "2.4.1"
 version = "0.1.9"
 
 [dependencies.wasm-encoder]
-version = "0.214.0"
+version = "0.219.1"
+default-features = false
 
 [dev-dependencies.anyhow]
 version = "1.0.58"
@@ -61,12 +84,26 @@ version = "0.8.4"
 features = ["small_rng"]
 
 [features]
-default = ["wasm-module"]
+component-model = [
+    "wasm-module",
+    "wasm-encoder/component-model",
+]
+default = [
+    "wasm-module",
+    "component-model",
+]
 dwarf = ["dep:gimli"]
 wasm-module = []
 
 [lints.clippy]
-all = "allow"
+clone_on_copy = "warn"
+manual_strip = "warn"
+map_clone = "warn"
+unnecessary_to_owned = "warn"
+
+[lints.clippy.all]
+level = "allow"
+priority = -1
 
 [lints.rust]
 unsafe_code = "deny"

@@ -22,8 +22,8 @@ let $0 = instantiate(`(module
   (func $$dummy3 (param i32 i32 i32))
 
   (func (export "type-i32") (result i32) (unreachable))
-  (func (export "type-i64") (result i32) (unreachable))
-  (func (export "type-f32") (result f64) (unreachable))
+  (func (export "type-i64") (result i64) (unreachable))
+  (func (export "type-f32") (result f32) (unreachable))
   (func (export "type-f64") (result f64) (unreachable))
 
   (func (export "as-func-first") (result i32)

@@ -95,6 +95,7 @@ fn smoke_test_with_mutable_global_exports() {
 fn get_func_and_global_exports(features: WasmFeatures, module: &[u8]) -> Vec<(String, ExportType)> {
     let mut validator = Validator::new_with_features(features);
     let types = validate(&mut validator, module);
+    let types = types.as_ref();
     let mut exports = vec![];
 
     for payload in Parser::new(0).parse_all(module) {

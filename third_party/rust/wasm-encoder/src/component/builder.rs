@@ -285,7 +285,7 @@ impl ComponentBuilder {
     }
 
     /// Creates a new encoder for the next core type in this component.
-    pub fn core_type(&mut self) -> (u32, CoreTypeEncoder<'_>) {
+    pub fn core_type(&mut self) -> (u32, ComponentCoreTypeEncoder<'_>) {
         (inc(&mut self.core_types), self.core_types().ty())
     }
 
@@ -369,6 +369,18 @@ impl ComponentBuilder {
     /// Declares a new `resource.rep` intrinsic.
     pub fn resource_rep(&mut self, ty: u32) -> u32 {
         self.canonical_functions().resource_rep(ty);
+        inc(&mut self.core_funcs)
+    }
+
+    /// Declares a new `thread.spawn` intrinsic.
+    pub fn thread_spawn(&mut self, ty: u32) -> u32 {
+        self.canonical_functions().thread_spawn(ty);
+        inc(&mut self.core_funcs)
+    }
+
+    /// Declares a new `thread.hw_concurrency` intrinsic.
+    pub fn thread_hw_concurrency(&mut self) -> u32 {
+        self.canonical_functions().thread_hw_concurrency();
         inc(&mut self.core_funcs)
     }
 

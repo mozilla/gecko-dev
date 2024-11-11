@@ -175,6 +175,12 @@ pub(crate) enum DuplicateImportsBehavior {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AllowEmptyRecGroup {
+    Yes,
+    No,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MaxTypeLimit {
     ModuleTypes,
     Num(u32),
@@ -202,7 +208,8 @@ impl Module {
         Ok(module)
     }
 
-    fn empty(config: Config, duplicate_imports_behavior: DuplicateImportsBehavior) -> Self {
+    fn empty(mut config: Config, duplicate_imports_behavior: DuplicateImportsBehavior) -> Self {
+        config.sanitize();
         Module {
             config,
             duplicate_imports_behavior,
@@ -271,6 +278,7 @@ pub(crate) struct CompositeType {
 }
 
 impl CompositeType {
+    #[cfg(any(feature = "component-model", feature = "wasmparser"))]
     pub(crate) fn new_func(func: Rc<FuncType>, shared: bool) -> Self {
         Self {
             inner: CompositeInnerType::Func(func),
@@ -303,7 +311,7 @@ impl CompositeType {
 impl From<&CompositeType> for wasm_encoder::CompositeType {
     fn from(ty: &CompositeType) -> Self {
         let inner = match &ty.inner {
-            CompositeInnerType::Array(a) => wasm_encoder::CompositeInnerType::Array(a.clone()),
+            CompositeInnerType::Array(a) => wasm_encoder::CompositeInnerType::Array(*a),
             CompositeInnerType::Func(f) => wasm_encoder::CompositeInnerType::Func(
                 wasm_encoder::FuncType::new(f.params.iter().cloned(), f.results.iter().cloned()),
             ),
@@ -548,14 +556,14 @@ impl Module {
     fn arbitrary_types(&mut self, u: &mut Unstructured) -> Result<()> {
         assert!(self.config.min_types <= self.config.max_types);
         while self.types.len() < self.config.min_types {
-            self.arbitrary_rec_group(u)?;
+            self.arbitrary_rec_group(u, AllowEmptyRecGroup::No)?;
         }
         while self.types.len() < self.config.max_types {
             let keep_going = u.arbitrary().unwrap_or(false);
             if !keep_going {
                 break;
             }
-            self.arbitrary_rec_group(u)?;
+            self.arbitrary_rec_group(u, AllowEmptyRecGroup::Yes)?;
         }
         Ok(())
     }
@@ -585,20 +593,28 @@ impl Module {
         index
     }
 
-    fn arbitrary_rec_group(&mut self, u: &mut Unstructured) -> Result<()> {
+    fn arbitrary_rec_group(
+        &mut self,
+        u: &mut Unstructured,
+        kind: AllowEmptyRecGroup,
+    ) -> Result<()> {
         let rec_group_start = self.types.len();
 
         assert!(matches!(self.max_type_limit, MaxTypeLimit::ModuleTypes));
 
         if self.config.gc_enabled {
             // With small probability, clone an existing rec group.
-            if self.clonable_rec_groups().next().is_some() && u.ratio(1, u8::MAX)? {
-                return self.clone_rec_group(u);
+            if self.clonable_rec_groups(kind).next().is_some() && u.ratio(1, u8::MAX)? {
+                return self.clone_rec_group(u, kind);
             }
 
             // Otherwise, create a new rec group with multiple types inside.
             let max_rec_group_size = self.config.max_types - self.types.len();
-            let rec_group_size = u.int_in_range(0..=max_rec_group_size)?;
+            let min_rec_group_size = match kind {
+                AllowEmptyRecGroup::Yes => 0,
+                AllowEmptyRecGroup::No => 1,
+            };
+            let rec_group_size = u.int_in_range(min_rec_group_size..=max_rec_group_size)?;
             let type_ref_limit = u32::try_from(self.types.len() + rec_group_size).unwrap();
             self.max_type_limit = MaxTypeLimit::Num(type_ref_limit);
             for _ in 0..rec_group_size {
@@ -620,14 +636,27 @@ impl Module {
 
     /// Returns an iterator of rec groups that we could currently clone while
     /// still staying within the max types limit.
-    fn clonable_rec_groups(&self) -> impl Iterator<Item = Range<usize>> + '_ {
+    fn clonable_rec_groups(
+        &self,
+        kind: AllowEmptyRecGroup,
+    ) -> impl Iterator<Item = Range<usize>> + '_ {
         self.rec_groups
             .iter()
-            .filter(|r| r.end - r.start <= self.config.max_types.saturating_sub(self.types.len()))
+            .filter(move |r| {
+                match kind {
+                    AllowEmptyRecGroup::Yes => {}
+                    AllowEmptyRecGroup::No => {
+                        if r.is_empty() {
+                            return false;
+                        }
+                    }
+                }
+                r.end - r.start <= self.config.max_types.saturating_sub(self.types.len())
+            })
             .cloned()
     }
 
-    fn clone_rec_group(&mut self, u: &mut Unstructured) -> Result<()> {
+    fn clone_rec_group(&mut self, u: &mut Unstructured, kind: AllowEmptyRecGroup) -> Result<()> {
         // NB: this does *not* guarantee that the cloned rec group will
         // canonicalize the same as the original rec group and be
         // deduplicated. That would reqiure a second pass over the cloned types
@@ -635,7 +664,7 @@ impl Module {
         // into the new rec group. That might make sense to do one day, but for
         // now we don't do it. That also means that we can't mark the new types
         // as "subtypes" of the old types and vice versa.
-        let candidates: Vec<_> = self.clonable_rec_groups().collect();
+        let candidates: Vec<_> = self.clonable_rec_groups(kind).collect();
         let group = u.choose(&candidates)?.clone();
         let new_rec_group_start = self.types.len();
         for index in group {
@@ -797,7 +826,7 @@ impl Module {
                     Extern => {
                         choices.push(ht(NoExtern));
                     }
-                    Exn | NoExn | None | NoExtern | NoFunc => {}
+                    Exn | NoExn | None | NoExtern | NoFunc | Cont | NoCont => {}
                 }
             }
             HT::Concrete(idx) => {
@@ -918,7 +947,10 @@ impl Module {
                     Eq => {
                         choices.push(ht(Any));
                     }
-                    Exn | Any | Func | Extern => {}
+                    NoCont => {
+                        choices.push(ht(Cont));
+                    }
+                    Exn | Any | Func | Extern | Cont => {}
                 }
             }
             HT::Concrete(mut idx) => {
@@ -1462,7 +1494,7 @@ impl Module {
     }
 
     fn arbitrary_valtype(&self, u: &mut Unstructured) -> Result<ValType> {
-        #[derive(Arbitrary)]
+        #[derive(PartialEq, Eq, PartialOrd, Ord)]
         enum ValTypeClass {
             I32,
             I64,
@@ -1472,25 +1504,28 @@ impl Module {
             Ref,
         }
 
-        match u.arbitrary::<ValTypeClass>()? {
+        let mut val_classes: Vec<_> = self
+            .valtypes
+            .iter()
+            .map(|vt| match vt {
+                ValType::I32 => ValTypeClass::I32,
+                ValType::I64 => ValTypeClass::I64,
+                ValType::F32 => ValTypeClass::F32,
+                ValType::F64 => ValTypeClass::F64,
+                ValType::V128 => ValTypeClass::V128,
+                ValType::Ref(_) => ValTypeClass::Ref,
+            })
+            .collect();
+        val_classes.sort_unstable();
+        val_classes.dedup();
+
+        match u.choose(&val_classes)? {
             ValTypeClass::I32 => Ok(ValType::I32),
             ValTypeClass::I64 => Ok(ValType::I64),
             ValTypeClass::F32 => Ok(ValType::F32),
             ValTypeClass::F64 => Ok(ValType::F64),
-            ValTypeClass::V128 => {
-                if self.config.simd_enabled {
-                    Ok(ValType::V128)
-                } else {
-                    Ok(ValType::I32)
-                }
-            }
-            ValTypeClass::Ref => {
-                if self.config.reference_types_enabled {
-                    Ok(ValType::Ref(self.arbitrary_ref_type(u)?))
-                } else {
-                    Ok(ValType::I32)
-                }
-            }
+            ValTypeClass::V128 => Ok(ValType::V128),
+            ValTypeClass::Ref => Ok(ValType::Ref(self.arbitrary_ref_type(u)?)),
         }
     }
 
@@ -1727,6 +1762,7 @@ impl Module {
         }
 
         // For each export, add necessary prerequisites to the module.
+        let exports_types = exports_types.as_ref();
         for export in required_exports {
             let new_index = match exports_types
                 .entity_type_from_export(&export)
@@ -2479,12 +2515,14 @@ pub(crate) fn configured_valtypes(config: &Config) -> Vec<ValType> {
     let mut valtypes = Vec::with_capacity(25);
     valtypes.push(ValType::I32);
     valtypes.push(ValType::I64);
-    valtypes.push(ValType::F32);
-    valtypes.push(ValType::F64);
+    if config.allow_floats {
+        valtypes.push(ValType::F32);
+        valtypes.push(ValType::F64);
+    }
     if config.simd_enabled {
         valtypes.push(ValType::V128);
     }
-    if config.gc_enabled {
+    if config.gc_enabled && config.reference_types_enabled {
         for nullable in [
             // TODO: For now, only create allow nullable reference
             // types. Eventually we should support non-nullable reference types,
@@ -2805,6 +2843,24 @@ impl InstructionKinds {
     pub fn contains(&self, kind: InstructionKind) -> bool {
         self.0.contains(kind)
     }
+
+    /// Restrict each [InstructionKind] to its subset not involving floats
+    pub fn without_floats(&self) -> Self {
+        let mut floatless = self.0;
+        if floatless.contains(InstructionKind::Numeric) {
+            floatless -= InstructionKind::Numeric;
+            floatless |= InstructionKind::NumericInt;
+        }
+        if floatless.contains(InstructionKind::Vector) {
+            floatless -= InstructionKind::Vector;
+            floatless |= InstructionKind::VectorInt;
+        }
+        if floatless.contains(InstructionKind::Memory) {
+            floatless -= InstructionKind::Memory;
+            floatless |= InstructionKind::MemoryInt;
+        }
+        Self(floatless)
+    }
 }
 
 flags! {
@@ -2813,15 +2869,18 @@ flags! {
     #[allow(missing_docs)]
     #[cfg_attr(feature = "_internal_cli", derive(serde_derive::Deserialize))]
     pub enum InstructionKind: u16 {
-        Numeric,
-        Vector,
-        Reference,
-        Parametric,
-        Variable,
-        Table,
-        Memory,
-        Control,
-        Aggregate,
+        NumericInt = 1 << 0,
+        Numeric = (1 << 1) | (1 << 0),
+        VectorInt = 1 << 2,
+        Vector = (1 << 3) | (1 << 2),
+        Reference = 1 << 4,
+        Parametric = 1 << 5,
+        Variable = 1 << 6,
+        Table = 1 << 7,
+        MemoryInt = 1 << 8,
+        Memory = (1 << 9) | (1 << 8),
+        Control = 1 << 10,
+        Aggregate = 1 << 11,
     }
 }
 
@@ -2841,12 +2900,15 @@ impl FromStr for InstructionKind {
     type Err = String;
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "numeric_non_float" => Ok(InstructionKind::NumericInt),
             "numeric" => Ok(InstructionKind::Numeric),
+            "vector_non_float" => Ok(InstructionKind::VectorInt),
             "vector" => Ok(InstructionKind::Vector),
             "reference" => Ok(InstructionKind::Reference),
             "parametric" => Ok(InstructionKind::Parametric),
             "variable" => Ok(InstructionKind::Variable),
             "table" => Ok(InstructionKind::Table),
+            "memory_non_float" => Ok(InstructionKind::MemoryInt),
             "memory" => Ok(InstructionKind::Memory),
             "control" => Ok(InstructionKind::Control),
             _ => Err(format!("unknown instruction kind: {}", s)),

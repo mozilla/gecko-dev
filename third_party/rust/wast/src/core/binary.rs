@@ -1,8 +1,10 @@
+#[cfg(feature = "component-model")]
 use crate::component::Component;
 use crate::core::*;
 use crate::encode::Encode;
 use crate::token::*;
 use crate::Wat;
+use std::borrow::Cow;
 use std::marker;
 #[cfg(feature = "dwarf")]
 use std::path::Path;
@@ -76,6 +78,7 @@ impl<'a> EncodeOptions<'a> {
     /// Encodes the given [`Component`] with these options.
     ///
     /// For more information see [`Component::encode`].
+    #[cfg(feature = "component-model")]
     pub fn encode_component(
         &self,
         component: &mut Component<'_>,
@@ -90,7 +93,10 @@ impl<'a> EncodeOptions<'a> {
     pub fn encode_wat(&self, wat: &mut Wat<'_>) -> std::result::Result<Vec<u8>, crate::Error> {
         match wat {
             Wat::Module(m) => self.encode_module(m),
+            #[cfg(feature = "component-model")]
             Wat::Component(c) => self.encode_component(c),
+            #[cfg(not(feature = "component-model"))]
+            Wat::Component(_) => unreachable!(),
         }
     }
 }
@@ -135,33 +141,37 @@ pub(crate) fn encode(
     }
 
     let mut e = Encoder {
-        wasm: Vec::new(),
-        tmp: Vec::new(),
+        wasm: wasm_encoder::Module::new(),
         customs: &customs,
     };
-    e.wasm.extend(b"\0asm");
-    e.wasm.extend(b"\x01\0\0\0");
 
     e.custom_sections(BeforeFirst);
 
-    e.section_list(1, Type, &types);
-    e.section_list(2, Import, &imports);
+    e.typed_section(&types);
+    e.typed_section(&imports);
 
-    let functys = funcs.iter().map(|f| &f.ty).collect::<Vec<_>>();
-    e.section_list(3, Func, &functys);
-    e.section_list(4, Table, &tables);
-    e.section_list(5, Memory, &memories);
-    e.section_list(13, Tag, &tags);
-    e.section_list(6, Global, &globals);
-    e.section_list(7, Export, &exports);
+    let functys = funcs
+        .iter()
+        .map(|f| FuncSectionTy(&f.ty))
+        .collect::<Vec<_>>();
+    e.typed_section(&functys);
+    e.typed_section(&tables);
+    e.typed_section(&memories);
+    e.typed_section(&tags);
+    e.typed_section(&globals);
+    e.typed_section(&exports);
     e.custom_sections(Before(Start));
     if let Some(start) = start.get(0) {
-        e.section(8, start);
+        e.wasm.section(&wasm_encoder::StartSection {
+            function_index: start.unwrap_u32(),
+        });
     }
     e.custom_sections(After(Start));
-    e.section_list(9, Elem, &elem);
+    e.typed_section(&elem);
     if needs_data_count(&funcs) {
-        e.section(12, &data.len());
+        e.wasm.section(&wasm_encoder::DataCountSection {
+            count: data.len().try_into().unwrap(),
+        });
     }
 
     // Prepare to and emit the code section. This is where DWARF may optionally
@@ -175,17 +185,17 @@ pub(crate) fn encode(
     let mut dwarf = dwarf::Dwarf::new(num_import_funcs, opts, &names, &types);
     e.code_section(&funcs, num_import_funcs, dwarf.as_mut());
 
-    e.section_list(11, Data, &data);
+    e.typed_section(&data);
 
     if !names.is_empty() {
-        e.section(0, &("name", names));
+        e.wasm.section(&names.to_name_section());
     }
     e.custom_sections(AfterLast);
     if let Some(dwarf) = &mut dwarf {
         dwarf.emit(&mut e);
     }
 
-    return e.wasm;
+    return e.wasm.finish();
 
     fn needs_data_count(funcs: &[&crate::core::Func<'_>]) -> bool {
         funcs
@@ -200,43 +210,32 @@ pub(crate) fn encode(
 }
 
 struct Encoder<'a> {
-    wasm: Vec<u8>,
-    tmp: Vec<u8>,
+    wasm: wasm_encoder::Module,
     customs: &'a [&'a Custom<'a>],
 }
 
 impl Encoder<'_> {
-    fn section(&mut self, id: u8, section: &dyn Encode) {
-        self.tmp.truncate(0);
-        section.encode(&mut self.tmp);
-        self.wasm.push(id);
-        self.tmp.encode(&mut self.wasm);
-    }
-
     fn custom_sections(&mut self, place: CustomPlace) {
         for entry in self.customs.iter() {
             if entry.place() == place {
-                let mut data = Vec::new();
-                entry.encode(&mut data);
-                self.custom_section(entry.name(), &data);
+                entry.encode(&mut self.wasm);
             }
         }
     }
 
-    fn custom_section(&mut self, name: &str, data: &[u8]) {
-        self.tmp.truncate(0);
-        name.encode(&mut self.tmp);
-        self.tmp.extend_from_slice(data);
-        self.wasm.push(0);
-        self.tmp.encode(&mut self.wasm);
-    }
-
-    fn section_list(&mut self, id: u8, anchor: CustomPlaceAnchor, list: &[impl Encode]) {
-        self.custom_sections(CustomPlace::Before(anchor));
+    fn typed_section<T>(&mut self, list: &[T])
+    where
+        T: SectionItem,
+    {
+        self.custom_sections(CustomPlace::Before(T::ANCHOR));
         if !list.is_empty() {
-            self.section(id, &list)
+            let mut section = T::Section::default();
+            for item in list {
+                item.encode(&mut section);
+            }
+            self.wasm.section(&section);
         }
-        self.custom_sections(CustomPlace::After(anchor));
+        self.custom_sections(CustomPlace::After(T::ANCHOR));
     }
 
     /// Encodes the code section of a wasm module module while additionally
@@ -261,14 +260,13 @@ impl Encoder<'_> {
         self.custom_sections(CustomPlace::Before(CustomPlaceAnchor::Code));
 
         if !list.is_empty() {
-            let mut branch_hints = Vec::new();
-            let mut code_section = Vec::new();
+            let mut branch_hints = wasm_encoder::BranchHints::new();
+            let mut code_section = wasm_encoder::CodeSection::new();
 
-            list.len().encode(&mut code_section);
             for func in list.iter() {
                 let hints = func.encode(&mut code_section, dwarf.as_deref_mut());
                 if !hints.is_empty() {
-                    branch_hints.push(FunctionBranchHints { func_index, hints });
+                    branch_hints.function_hints(func_index, hints.into_iter());
                 }
                 func_index += 1;
             }
@@ -276,52 +274,78 @@ impl Encoder<'_> {
             // Branch hints section has to be inserted before the Code section
             // Insert the section only if we have some hints
             if !branch_hints.is_empty() {
-                self.section(0, &("metadata.code.branch_hint", branch_hints));
+                self.wasm.section(&branch_hints);
             }
 
             // Finally, insert the Code section from the tmp buffer
-            self.wasm.push(10);
-            code_section.encode(&mut self.wasm);
+            self.wasm.section(&code_section);
 
             if let Some(dwarf) = &mut dwarf {
-                dwarf.set_code_section_size(code_section.len());
+                dwarf.set_code_section_size(code_section.byte_len());
             }
         }
         self.custom_sections(CustomPlace::After(CustomPlaceAnchor::Code));
     }
 }
 
-impl Encode for FunctionType<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.params.len().encode(e);
-        for (_, _, ty) in self.params.iter() {
-            ty.encode(e);
+trait SectionItem {
+    type Section: wasm_encoder::Section + Default;
+    const ANCHOR: CustomPlaceAnchor;
+
+    fn encode(&self, section: &mut Self::Section);
+}
+
+impl<T> SectionItem for &T
+where
+    T: SectionItem,
+{
+    type Section = T::Section;
+    const ANCHOR: CustomPlaceAnchor = T::ANCHOR;
+
+    fn encode(&self, section: &mut Self::Section) {
+        T::encode(self, section)
+    }
+}
+
+impl From<&FunctionType<'_>> for wasm_encoder::FuncType {
+    fn from(ft: &FunctionType) -> Self {
+        wasm_encoder::FuncType::new(
+            ft.params.iter().map(|(_, _, ty)| (*ty).into()),
+            ft.results.iter().map(|ty| (*ty).into()),
+        )
+    }
+}
+
+impl From<&StructType<'_>> for wasm_encoder::StructType {
+    fn from(st: &StructType) -> wasm_encoder::StructType {
+        wasm_encoder::StructType {
+            fields: st.fields.iter().map(|f| f.into()).collect(),
         }
-        self.results.encode(e);
     }
 }
 
-impl Encode for StructType<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.fields.len().encode(e);
-        for field in self.fields.iter() {
-            field.ty.encode(e);
-            (field.mutable as i32).encode(e);
+impl From<&StructField<'_>> for wasm_encoder::FieldType {
+    fn from(f: &StructField) -> wasm_encoder::FieldType {
+        wasm_encoder::FieldType {
+            element_type: f.ty.into(),
+            mutable: f.mutable,
         }
     }
 }
 
-impl Encode for ArrayType<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.ty.encode(e);
-        (self.mutable as i32).encode(e);
+impl From<&ArrayType<'_>> for wasm_encoder::ArrayType {
+    fn from(at: &ArrayType) -> Self {
+        let field = wasm_encoder::FieldType {
+            element_type: at.ty.into(),
+            mutable: at.mutable,
+        };
+        wasm_encoder::ArrayType(field)
     }
 }
 
-impl Encode for ExportType<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.name.encode(e);
-        self.item.encode(e);
+impl From<&ContType<'_>> for wasm_encoder::ContType {
+    fn from(at: &ContType) -> Self {
+        wasm_encoder::ContType(at.0.into())
     }
 }
 
@@ -330,63 +354,90 @@ enum RecOrType<'a> {
     Rec(&'a Rec<'a>),
 }
 
-impl Encode for RecOrType<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+impl SectionItem for RecOrType<'_> {
+    type Section = wasm_encoder::TypeSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Type;
+
+    fn encode(&self, types: &mut wasm_encoder::TypeSection) {
         match self {
-            RecOrType::Type(ty) => ty.encode(e),
-            RecOrType::Rec(rec) => rec.encode(e),
+            RecOrType::Type(ty) => types.ty().subtype(&ty.to_subtype()),
+            RecOrType::Rec(rec) => types.ty().rec(rec.types.iter().map(|t| t.to_subtype())),
         }
     }
 }
 
-impl Encode for Type<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match (&self.parent, self.final_type) {
-            (Some(parent), Some(true)) => {
-                // Type is final with a supertype
-                e.push(0x4f);
-                e.push(0x01);
-                parent.encode(e);
-            }
-            (Some(parent), Some(false) | None) => {
-                // Type is not final and has a declared supertype
-                e.push(0x50);
-                e.push(0x01);
-                parent.encode(e);
-            }
-            (None, Some(false)) => {
-                // Sub was used without any declared supertype
-                e.push(0x50);
-                e.push(0x00);
-            }
-            (None, _) => {} // No supertype, sub wasn't used
-        }
-        if self.def.shared {
-            e.push(0x65);
-        }
-        match &self.def.kind {
-            InnerTypeKind::Func(func) => {
-                e.push(0x60);
-                func.encode(e)
-            }
-            InnerTypeKind::Struct(r#struct) => {
-                e.push(0x5f);
-                r#struct.encode(e)
-            }
-            InnerTypeKind::Array(array) => {
-                e.push(0x5e);
-                array.encode(e)
-            }
+impl Type<'_> {
+    pub(crate) fn to_subtype(&self) -> wasm_encoder::SubType {
+        self.def.to_subtype()
+    }
+}
+
+impl TypeDef<'_> {
+    pub(crate) fn to_subtype(&self) -> wasm_encoder::SubType {
+        use wasm_encoder::CompositeInnerType::*;
+        let composite_type = wasm_encoder::CompositeType {
+            inner: match &self.kind {
+                InnerTypeKind::Func(ft) => Func(ft.into()),
+                InnerTypeKind::Struct(st) => Struct(st.into()),
+                InnerTypeKind::Array(at) => Array(at.into()),
+                InnerTypeKind::Cont(ct) => Cont(ct.into()),
+            },
+            shared: self.shared,
+        };
+        wasm_encoder::SubType {
+            composite_type,
+            is_final: self.final_type.unwrap_or(true),
+            supertype_idx: self.parent.map(|i| i.unwrap_u32()),
         }
     }
 }
 
-impl Encode for Rec<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        e.push(0x4e);
-        self.types.len().encode(e);
-        for ty in &self.types {
-            ty.encode(e);
+impl From<ValType<'_>> for wasm_encoder::ValType {
+    fn from(ty: ValType) -> Self {
+        match ty {
+            ValType::I32 => Self::I32,
+            ValType::I64 => Self::I64,
+            ValType::F32 => Self::F32,
+            ValType::F64 => Self::F64,
+            ValType::V128 => Self::V128,
+            ValType::Ref(r) => Self::Ref(r.into()),
+        }
+    }
+}
+
+impl From<RefType<'_>> for wasm_encoder::RefType {
+    fn from(r: RefType<'_>) -> Self {
+        wasm_encoder::RefType {
+            nullable: r.nullable,
+            heap_type: r.heap.into(),
+        }
+    }
+}
+
+impl From<HeapType<'_>> for wasm_encoder::HeapType {
+    fn from(r: HeapType<'_>) -> Self {
+        use wasm_encoder::AbstractHeapType::*;
+        match r {
+            HeapType::Abstract { shared, ty } => {
+                let ty = match ty {
+                    AbstractHeapType::Func => Func,
+                    AbstractHeapType::Extern => Extern,
+                    AbstractHeapType::Exn => Exn,
+                    AbstractHeapType::NoExn => NoExn,
+                    AbstractHeapType::Any => Any,
+                    AbstractHeapType::Eq => Eq,
+                    AbstractHeapType::Struct => Struct,
+                    AbstractHeapType::Array => Array,
+                    AbstractHeapType::NoFunc => NoFunc,
+                    AbstractHeapType::NoExtern => NoExtern,
+                    AbstractHeapType::None => None,
+                    AbstractHeapType::I31 => I31,
+                    AbstractHeapType::Cont => Cont,
+                    AbstractHeapType::NoCont => NoCont,
+                };
+                Self::Abstract { shared, ty }
+            }
+            HeapType::Concrete(i) => Self::Concrete(i.unwrap_u32()),
         }
     }
 }
@@ -399,388 +450,268 @@ impl Encode for Option<Id<'_>> {
 
 impl<'a> Encode for ValType<'a> {
     fn encode(&self, e: &mut Vec<u8>) {
-        match self {
-            ValType::I32 => e.push(0x7f),
-            ValType::I64 => e.push(0x7e),
-            ValType::F32 => e.push(0x7d),
-            ValType::F64 => e.push(0x7c),
-            ValType::V128 => e.push(0x7b),
-            ValType::Ref(ty) => {
-                ty.encode(e);
-            }
-        }
+        wasm_encoder::Encode::encode(&wasm_encoder::ValType::from(*self), e)
     }
 }
 
 impl<'a> Encode for HeapType<'a> {
     fn encode(&self, e: &mut Vec<u8>) {
+        wasm_encoder::Encode::encode(&wasm_encoder::HeapType::from(*self), e)
+    }
+}
+
+impl From<StorageType<'_>> for wasm_encoder::StorageType {
+    fn from(st: StorageType) -> Self {
+        use wasm_encoder::StorageType::*;
+        match st {
+            StorageType::I8 => I8,
+            StorageType::I16 => I16,
+            StorageType::Val(vt) => Val(vt.into()),
+        }
+    }
+}
+
+impl SectionItem for Import<'_> {
+    type Section = wasm_encoder::ImportSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Import;
+
+    fn encode(&self, section: &mut wasm_encoder::ImportSection) {
+        section.import(self.module, self.field, self.item.to_entity_type());
+    }
+}
+
+impl ItemSig<'_> {
+    pub(crate) fn to_entity_type(&self) -> wasm_encoder::EntityType {
+        self.kind.to_entity_type()
+    }
+}
+
+impl ItemKind<'_> {
+    fn to_entity_type(&self) -> wasm_encoder::EntityType {
+        use wasm_encoder::EntityType as ET;
         match self {
-            HeapType::Abstract { shared, ty } => {
-                if *shared {
-                    e.push(0x65);
-                }
-                ty.encode(e)
-            }
-            // Note that this is encoded as a signed leb128 so be sure to cast
-            // to an i64 first
-            HeapType::Concrete(Index::Num(n, _)) => i64::from(*n).encode(e),
-            HeapType::Concrete(Index::Id(n)) => {
-                panic!("unresolved index in emission: {:?}", n)
-            }
+            ItemKind::Func(t) => ET::Function(t.unwrap_u32()),
+            ItemKind::Table(t) => ET::Table(t.to_table_type()),
+            ItemKind::Memory(t) => ET::Memory(t.to_memory_type()),
+            ItemKind::Global(t) => ET::Global(t.to_global_type()),
+            ItemKind::Tag(t) => ET::Tag(t.to_tag_type()),
         }
     }
 }
 
-impl<'a> Encode for AbstractHeapType {
-    fn encode(&self, e: &mut Vec<u8>) {
-        use AbstractHeapType::*;
+impl TableType<'_> {
+    fn to_table_type(&self) -> wasm_encoder::TableType {
+        wasm_encoder::TableType {
+            element_type: self.elem.into(),
+            minimum: self.limits.min,
+            maximum: self.limits.max,
+            table64: self.limits.is64,
+            shared: self.shared,
+        }
+    }
+}
+
+impl MemoryType {
+    fn to_memory_type(&self) -> wasm_encoder::MemoryType {
+        wasm_encoder::MemoryType {
+            minimum: self.limits.min,
+            maximum: self.limits.max,
+            memory64: self.limits.is64,
+            shared: self.shared,
+            page_size_log2: self.page_size_log2,
+        }
+    }
+}
+
+impl GlobalType<'_> {
+    fn to_global_type(&self) -> wasm_encoder::GlobalType {
+        wasm_encoder::GlobalType {
+            val_type: self.ty.into(),
+            mutable: self.mutable,
+            shared: self.shared,
+        }
+    }
+}
+
+impl TagType<'_> {
+    fn to_tag_type(&self) -> wasm_encoder::TagType {
         match self {
-            Func => e.push(0x70),
-            Extern => e.push(0x6f),
-            Exn => e.push(0x69),
-            Any => e.push(0x6e),
-            Eq => e.push(0x6d),
-            Struct => e.push(0x6b),
-            Array => e.push(0x6a),
-            I31 => e.push(0x6c),
-            NoFunc => e.push(0x73),
-            NoExtern => e.push(0x72),
-            NoExn => e.push(0x74),
-            None => e.push(0x71),
+            TagType::Exception(r) => wasm_encoder::TagType {
+                kind: wasm_encoder::TagKind::Exception,
+                func_type_idx: r.unwrap_u32(),
+            },
         }
     }
 }
 
-impl<'a> Encode for RefType<'a> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match self {
-            // Binary abbreviations (i.e., short form), for when the ref is
-            // nullable.
-            RefType {
-                nullable: true,
-                heap: HeapType::Abstract { shared, ty },
-            } => {
-                if *shared {
-                    e.push(0x65);
-                }
-                ty.encode(e);
-            }
-
-            // Generic 'ref null <heaptype>' encoding (i.e., long form).
-            RefType {
-                nullable: true,
-                heap,
-            } => {
-                e.push(0x63);
-                heap.encode(e);
-            }
-
-            // Generic 'ref <heaptype>' encoding.
-            RefType {
-                nullable: false,
-                heap,
-            } => {
-                e.push(0x64);
-                heap.encode(e);
-            }
-        }
-    }
-}
-
-impl<'a> Encode for StorageType<'a> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match self {
-            StorageType::I8 => e.push(0x78),
-            StorageType::I16 => e.push(0x77),
-            StorageType::Val(ty) => {
-                ty.encode(e);
-            }
-        }
-    }
-}
-
-impl Encode for Import<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.module.encode(e);
-        self.field.encode(e);
-        self.item.encode(e);
-    }
-}
-
-impl Encode for ItemSig<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match &self.kind {
-            ItemKind::Func(f) => {
-                e.push(0x00);
-                f.encode(e);
-            }
-            ItemKind::Table(f) => {
-                e.push(0x01);
-                f.encode(e);
-            }
-            ItemKind::Memory(f) => {
-                e.push(0x02);
-                f.encode(e);
-            }
-            ItemKind::Global(f) => {
-                e.push(0x03);
-                f.encode(e);
-            }
-            ItemKind::Tag(f) => {
-                e.push(0x04);
-                f.encode(e);
-            }
-        }
-    }
-}
-
-impl<T> Encode for TypeUse<'_, T> {
-    fn encode(&self, e: &mut Vec<u8>) {
+impl<T> TypeUse<'_, T> {
+    fn unwrap_u32(&self) -> u32 {
         self.index
             .as_ref()
             .expect("TypeUse should be filled in by this point")
-            .encode(e)
+            .unwrap_u32()
+    }
+}
+
+struct FuncSectionTy<'a>(&'a TypeUse<'a, FunctionType<'a>>);
+
+impl SectionItem for FuncSectionTy<'_> {
+    type Section = wasm_encoder::FunctionSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Func;
+
+    fn encode(&self, section: &mut wasm_encoder::FunctionSection) {
+        section.function(self.0.unwrap_u32());
     }
 }
 
 impl Encode for Index<'_> {
     fn encode(&self, e: &mut Vec<u8>) {
+        self.unwrap_u32().encode(e)
+    }
+}
+
+impl Index<'_> {
+    fn unwrap_u32(&self) -> u32 {
         match self {
-            Index::Num(n, _) => n.encode(e),
+            Index::Num(n, _) => *n,
             Index::Id(n) => panic!("unresolved index in emission: {:?}", n),
         }
     }
 }
 
-impl<'a> Encode for TableType<'a> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.elem.encode(e);
-
-        let mut flags = 0;
-        if self.limits.max.is_some() {
-            flags |= 1 << 0;
-        }
-        if self.shared {
-            flags |= 1 << 1;
-        }
-        if self.limits.is64 {
-            flags |= 1 << 2;
-        }
-        e.push(flags);
-        self.limits.min.encode(e);
-        if let Some(max) = self.limits.max {
-            max.encode(e);
+impl From<Index<'_>> for u32 {
+    fn from(i: Index<'_>) -> Self {
+        match i {
+            Index::Num(i, _) => i,
+            Index::Id(_) => unreachable!("unresolved index in encoding: {:?}", i),
         }
     }
 }
 
-impl Encode for MemoryType {
-    fn encode(&self, e: &mut Vec<u8>) {
-        let mut flags = 0;
-        if self.limits.max.is_some() {
-            flags |= 1 << 0;
-        }
-        if self.shared {
-            flags |= 1 << 1;
-        }
-        if self.limits.is64 {
-            flags |= 1 << 2;
-        }
-        if self.page_size_log2.is_some() {
-            flags |= 1 << 3;
-        }
-        e.push(flags);
-        self.limits.min.encode(e);
-        if let Some(max) = self.limits.max {
-            max.encode(e);
-        }
-        if let Some(p) = self.page_size_log2 {
-            p.encode(e);
-        }
-    }
-}
+impl SectionItem for Table<'_> {
+    type Section = wasm_encoder::TableSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Table;
 
-impl<'a> Encode for GlobalType<'a> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.ty.encode(e);
-        let mut flags = 0;
-        if self.mutable {
-            flags |= 0b01;
-        }
-        if self.shared {
-            flags |= 0b10;
-        }
-        e.push(flags);
-    }
-}
-
-impl Encode for Table<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+    fn encode(&self, section: &mut wasm_encoder::TableSection) {
         assert!(self.exports.names.is_empty());
         match &self.kind {
             TableKind::Normal {
                 ty,
                 init_expr: None,
-            } => ty.encode(e),
+            } => {
+                section.table(ty.to_table_type());
+            }
             TableKind::Normal {
                 ty,
                 init_expr: Some(init_expr),
             } => {
-                e.push(0x40);
-                e.push(0x00);
-                ty.encode(e);
-                init_expr.encode(e, None);
+                section.table_with_init(ty.to_table_type(), &init_expr.to_const_expr());
             }
             _ => panic!("TableKind should be normal during encoding"),
         }
     }
 }
 
-impl Encode for Memory<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+impl SectionItem for Memory<'_> {
+    type Section = wasm_encoder::MemorySection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Memory;
+
+    fn encode(&self, section: &mut wasm_encoder::MemorySection) {
         assert!(self.exports.names.is_empty());
         match &self.kind {
-            MemoryKind::Normal(t) => t.encode(e),
+            MemoryKind::Normal(t) => {
+                section.memory(t.to_memory_type());
+            }
             _ => panic!("MemoryKind should be normal during encoding"),
         }
     }
 }
 
-impl Encode for Global<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+impl SectionItem for Global<'_> {
+    type Section = wasm_encoder::GlobalSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Global;
+
+    fn encode(&self, section: &mut wasm_encoder::GlobalSection) {
         assert!(self.exports.names.is_empty());
-        self.ty.encode(e);
-        match &self.kind {
-            GlobalKind::Inline(expr) => {
-                let _hints = expr.encode(e, None);
-            }
+        let init = match &self.kind {
+            GlobalKind::Inline(expr) => expr.to_const_expr(),
             _ => panic!("GlobalKind should be inline during encoding"),
+        };
+        section.global(self.ty.to_global_type(), &init);
+    }
+}
+
+impl SectionItem for Export<'_> {
+    type Section = wasm_encoder::ExportSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Export;
+
+    fn encode(&self, section: &mut wasm_encoder::ExportSection) {
+        section.export(self.name, self.kind.into(), self.item.unwrap_u32());
+    }
+}
+
+impl From<ExportKind> for wasm_encoder::ExportKind {
+    fn from(kind: ExportKind) -> Self {
+        match kind {
+            ExportKind::Func => Self::Func,
+            ExportKind::Table => Self::Table,
+            ExportKind::Memory => Self::Memory,
+            ExportKind::Global => Self::Global,
+            ExportKind::Tag => Self::Tag,
         }
     }
 }
 
-impl Encode for Export<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.name.encode(e);
-        self.kind.encode(e);
-        self.item.encode(e);
-    }
-}
+impl SectionItem for Elem<'_> {
+    type Section = wasm_encoder::ElementSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Elem;
 
-impl Encode for ExportKind {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match self {
-            ExportKind::Func => e.push(0x00),
-            ExportKind::Table => e.push(0x01),
-            ExportKind::Memory => e.push(0x02),
-            ExportKind::Global => e.push(0x03),
-            ExportKind::Tag => e.push(0x04),
-        }
-    }
-}
+    fn encode(&self, section: &mut wasm_encoder::ElementSection) {
+        use wasm_encoder::Elements;
 
-impl Encode for Elem<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match (&self.kind, &self.payload) {
-            (
-                ElemKind::Active {
-                    table: Index::Num(0, _),
-                    offset,
-                },
-                ElemPayload::Indices(_),
-            ) => {
-                e.push(0x00);
-                offset.encode(e, None);
+        let elements = match &self.payload {
+            ElemPayload::Indices(v) => {
+                Elements::Functions(Cow::Owned(v.iter().map(|i| i.unwrap_u32()).collect()))
             }
-            (ElemKind::Passive, ElemPayload::Indices(_)) => {
-                e.push(0x01); // flags
-                e.push(0x00); // extern_kind
-            }
-            (ElemKind::Active { table, offset }, ElemPayload::Indices(_)) => {
-                e.push(0x02); // flags
-                table.encode(e);
-                offset.encode(e, None);
-                e.push(0x00); // extern_kind
-            }
-            (ElemKind::Declared, ElemPayload::Indices(_)) => {
-                e.push(0x03); // flags
-                e.push(0x00); // extern_kind
-            }
-            (
-                ElemKind::Active {
-                    table: Index::Num(0, _),
-                    offset,
-                },
-                ElemPayload::Exprs {
-                    ty:
-                        RefType {
-                            nullable: true,
-                            heap:
-                                HeapType::Abstract {
-                                    shared: false,
-                                    ty: AbstractHeapType::Func,
-                                },
-                        },
-                    ..
-                },
-            ) => {
-                e.push(0x04);
-                offset.encode(e, None);
-            }
-            (ElemKind::Passive, ElemPayload::Exprs { ty, .. }) => {
-                e.push(0x05);
-                ty.encode(e);
-            }
-            (ElemKind::Active { table, offset }, ElemPayload::Exprs { ty, .. }) => {
-                e.push(0x06);
-                table.encode(e);
-                offset.encode(e, None);
-                ty.encode(e);
-            }
-            (ElemKind::Declared, ElemPayload::Exprs { ty, .. }) => {
-                e.push(0x07); // flags
-                ty.encode(e);
-            }
-        }
-
-        self.payload.encode(e);
-    }
-}
-
-impl Encode for ElemPayload<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match self {
-            ElemPayload::Indices(v) => v.encode(e),
-            ElemPayload::Exprs { exprs, ty: _ } => {
-                exprs.len().encode(e);
-                for expr in exprs {
-                    expr.encode(e, None);
-                }
-            }
-        }
-    }
-}
-
-impl Encode for Data<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+            ElemPayload::Exprs { exprs, ty } => Elements::Expressions(
+                (*ty).into(),
+                Cow::Owned(exprs.iter().map(|e| e.to_const_expr()).collect()),
+            ),
+        };
         match &self.kind {
-            DataKind::Passive => e.push(0x01),
-            DataKind::Active {
-                memory: Index::Num(0, _),
-                offset,
-            } => {
-                e.push(0x00);
-                offset.encode(e, None);
+            ElemKind::Active { table, offset } => {
+                section.active(
+                    table.map(|t| t.unwrap_u32()),
+                    &offset.to_const_expr(),
+                    elements,
+                );
+            }
+            ElemKind::Passive => {
+                section.passive(elements);
+            }
+            ElemKind::Declared => {
+                section.declared(elements);
+            }
+        }
+    }
+}
+
+impl SectionItem for Data<'_> {
+    type Section = wasm_encoder::DataSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Data;
+
+    fn encode(&self, section: &mut wasm_encoder::DataSection) {
+        let mut data = Vec::new();
+        for val in self.data.iter() {
+            val.push_onto(&mut data);
+        }
+        match &self.kind {
+            DataKind::Passive => {
+                section.passive(data);
             }
             DataKind::Active { memory, offset } => {
-                e.push(0x02);
-                memory.encode(e);
-                offset.encode(e, None);
+                section.active(memory.unwrap_u32(), &offset.to_const_expr(), data);
             }
-        }
-        self.data.iter().map(|l| l.len()).sum::<usize>().encode(e);
-        for val in self.data.iter() {
-            val.push_onto(e);
         }
     }
 }
@@ -791,7 +722,11 @@ impl Func<'_> {
     ///
     /// The `dwarf` field is optional and used to track debugging information
     /// for each instruction.
-    fn encode(&self, e: &mut Vec<u8>, mut dwarf: Option<&mut dwarf::Dwarf>) -> Vec<BranchHint> {
+    fn encode(
+        &self,
+        section: &mut wasm_encoder::CodeSection,
+        mut dwarf: Option<&mut dwarf::Dwarf>,
+    ) -> Vec<wasm_encoder::BranchHint> {
         assert!(self.exports.names.is_empty());
         let (expr, locals) = match &self.kind {
             FuncKind::Inline { expression, locals } => (expression, locals),
@@ -809,32 +744,17 @@ impl Func<'_> {
         // Encode the function into a temporary vector because functions are
         // prefixed with their length. The temporary vector, when encoded,
         // encodes its length first then the body.
-        let mut tmp = Vec::new();
-        locals.encode(&mut tmp);
-        let branch_hints = expr.encode(&mut tmp, dwarf.as_deref_mut());
-        tmp.encode(e);
+        let mut func =
+            wasm_encoder::Function::new_with_locals_types(locals.iter().map(|t| t.ty.into()));
+        let branch_hints = expr.encode(&mut func, dwarf.as_deref_mut());
+        let func_size = func.byte_len();
+        section.function(&func);
 
         if let Some(dwarf) = &mut dwarf {
-            dwarf.end_func(tmp.len(), e.len());
+            dwarf.end_func(func_size, section.byte_len());
         }
 
         branch_hints
-    }
-}
-
-impl Encode for Box<[Local<'_>]> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        let mut locals_compressed = Vec::<(u32, ValType)>::new();
-        for local in self.iter() {
-            if let Some((cnt, prev)) = locals_compressed.last_mut() {
-                if *prev == local.ty {
-                    *cnt += 1;
-                    continue;
-                }
-            }
-            locals_compressed.push((1, local.ty));
-        }
-        locals_compressed.encode(e);
     }
 }
 
@@ -843,17 +763,22 @@ impl Expression<'_> {
     /// information for each instruction in `dwarf`.
     ///
     /// Returns all branch hints, if any, found while parsing this function.
-    fn encode(&self, e: &mut Vec<u8>, mut dwarf: Option<&mut dwarf::Dwarf>) -> Vec<BranchHint> {
+    fn encode(
+        &self,
+        func: &mut wasm_encoder::Function,
+        mut dwarf: Option<&mut dwarf::Dwarf>,
+    ) -> Vec<wasm_encoder::BranchHint> {
         let mut hints = Vec::with_capacity(self.branch_hints.len());
         let mut next_hint = self.branch_hints.iter().peekable();
+        let mut tmp = Vec::new();
 
         for (i, instr) in self.instrs.iter().enumerate() {
             // Branch hints are stored in order of increasing `instr_index` so
             // check to see if the next branch hint matches this instruction's
             // index.
             if let Some(hint) = next_hint.next_if(|h| h.instr_index == i) {
-                hints.push(BranchHint {
-                    branch_func_offset: u32::try_from(e.len()).unwrap(),
+                hints.push(wasm_encoder::BranchHint {
+                    branch_func_offset: u32::try_from(func.byte_len() + tmp.len()).unwrap(),
                     branch_hint_value: hint.value,
                 });
             }
@@ -862,16 +787,25 @@ impl Expression<'_> {
             // and source location.
             if let Some(dwarf) = &mut dwarf {
                 if let Some(span) = self.instr_spans.as_ref().map(|s| s[i]) {
-                    dwarf.instr(e.len(), span);
+                    dwarf.instr(func.byte_len() + tmp.len(), span);
                 }
             }
 
             // Finally emit the instruction and move to the next.
-            instr.encode(e);
+            instr.encode(&mut tmp);
         }
-        e.push(0x0b);
+        func.raw(tmp.iter().copied());
+        func.instruction(&wasm_encoder::Instruction::End);
 
         hints
+    }
+
+    fn to_const_expr(&self) -> wasm_encoder::ConstExpr {
+        let mut tmp = Vec::new();
+        for instr in self.instrs.iter() {
+            instr.encode(&mut tmp);
+        }
+        wasm_encoder::ConstExpr::raw(tmp)
     }
 }
 
@@ -947,7 +881,7 @@ impl Encode for LoadOrStoreLane<'_> {
 
 impl Encode for CallIndirect<'_> {
     fn encode(&self, e: &mut Vec<u8>) {
-        self.ty.encode(e);
+        self.ty.unwrap_u32().encode(e);
         self.table.encode(e);
     }
 }
@@ -1171,7 +1105,7 @@ fn find_names<'a>(
         if let ModuleField::Type(ty) = field {
             let mut field_names = vec![];
             match &ty.def.kind {
-                InnerTypeKind::Func(_) | InnerTypeKind::Array(_) => {}
+                InnerTypeKind::Func(_) | InnerTypeKind::Array(_) | InnerTypeKind::Cont(_) => {}
                 InnerTypeKind::Struct(ty_struct) => {
                     for (idx, field) in ty_struct.fields.iter().enumerate() {
                         if let Some(name) = get_name(&field.id, &None) {
@@ -1205,69 +1139,72 @@ impl Names<'_> {
             && self.data.is_empty()
             && self.fields.is_empty()
             && self.tags.is_empty()
-        // NB: specifically don't check modules/instances since they're
-        // not encoded for now.
     }
 }
 
-impl Encode for Names<'_> {
-    fn encode(&self, dst: &mut Vec<u8>) {
-        let mut tmp = Vec::new();
-
-        let mut subsec = |id: u8, data: &mut Vec<u8>| {
-            dst.push(id);
-            data.encode(dst);
-            data.truncate(0);
-        };
+impl Names<'_> {
+    fn to_name_section(&self) -> wasm_encoder::NameSection {
+        let mut names = wasm_encoder::NameSection::default();
 
         if let Some(id) = self.module {
-            id.encode(&mut tmp);
-            subsec(0, &mut tmp);
+            names.module(id);
         }
-        if self.funcs.len() > 0 {
-            self.funcs.encode(&mut tmp);
-            subsec(1, &mut tmp);
+        let name_map = |indices: &[(u32, &str)]| {
+            if indices.is_empty() {
+                return None;
+            }
+            let mut map = wasm_encoder::NameMap::default();
+            for (idx, name) in indices {
+                map.append(*idx, *name);
+            }
+            Some(map)
+        };
+        let indirect_name_map = |indices: &[(u32, Vec<(u32, &str)>)]| {
+            if indices.is_empty() {
+                return None;
+            }
+            let mut map = wasm_encoder::IndirectNameMap::default();
+            for (idx, names) in indices {
+                if let Some(names) = name_map(names) {
+                    map.append(*idx, &names);
+                }
+            }
+            Some(map)
+        };
+        if let Some(map) = name_map(&self.funcs) {
+            names.functions(&map);
         }
-        if self.locals.len() > 0 {
-            self.locals.encode(&mut tmp);
-            subsec(2, &mut tmp);
+        if let Some(map) = indirect_name_map(&self.locals) {
+            names.locals(&map);
         }
-        if self.labels.len() > 0 {
-            self.labels.encode(&mut tmp);
-            subsec(3, &mut tmp);
+        if let Some(map) = indirect_name_map(&self.labels) {
+            names.labels(&map);
         }
-        if self.types.len() > 0 {
-            self.types.encode(&mut tmp);
-            subsec(4, &mut tmp);
+        if let Some(map) = name_map(&self.types) {
+            names.types(&map);
         }
-        if self.tables.len() > 0 {
-            self.tables.encode(&mut tmp);
-            subsec(5, &mut tmp);
+        if let Some(map) = name_map(&self.tables) {
+            names.tables(&map);
         }
-        if self.memories.len() > 0 {
-            self.memories.encode(&mut tmp);
-            subsec(6, &mut tmp);
+        if let Some(map) = name_map(&self.memories) {
+            names.memories(&map);
         }
-        if self.globals.len() > 0 {
-            self.globals.encode(&mut tmp);
-            subsec(7, &mut tmp);
+        if let Some(map) = name_map(&self.globals) {
+            names.globals(&map);
         }
-        if self.elems.len() > 0 {
-            self.elems.encode(&mut tmp);
-            subsec(8, &mut tmp);
+        if let Some(map) = name_map(&self.elems) {
+            names.elements(&map);
         }
-        if self.data.len() > 0 {
-            self.data.encode(&mut tmp);
-            subsec(9, &mut tmp);
+        if let Some(map) = name_map(&self.data) {
+            names.data(&map);
         }
-        if self.fields.len() > 0 {
-            self.fields.encode(&mut tmp);
-            subsec(10, &mut tmp);
+        if let Some(map) = indirect_name_map(&self.fields) {
+            names.fields(&map);
         }
-        if self.tags.len() > 0 {
-            self.tags.encode(&mut tmp);
-            subsec(11, &mut tmp);
+        if let Some(map) = name_map(&self.tags) {
+            names.tags(&map);
         }
+        names
     }
 }
 
@@ -1304,6 +1241,57 @@ impl<'a> Encode for TryTableCatch<'a> {
     }
 }
 
+impl<'a> Encode for ContBind<'a> {
+    fn encode(&self, dst: &mut Vec<u8>) {
+        self.argument_index.encode(dst);
+        self.result_index.encode(dst);
+    }
+}
+
+impl<'a> Encode for Resume<'a> {
+    fn encode(&self, dst: &mut Vec<u8>) {
+        self.type_index.encode(dst);
+        self.table.encode(dst);
+    }
+}
+
+impl<'a> Encode for ResumeThrow<'a> {
+    fn encode(&self, dst: &mut Vec<u8>) {
+        self.type_index.encode(dst);
+        self.tag_index.encode(dst);
+        self.table.encode(dst);
+    }
+}
+
+impl<'a> Encode for ResumeTable<'a> {
+    fn encode(&self, dst: &mut Vec<u8>) {
+        self.handlers.encode(dst);
+    }
+}
+
+impl<'a> Encode for Handle<'a> {
+    fn encode(&self, dst: &mut Vec<u8>) {
+        match self {
+            Handle::OnLabel { tag, label } => {
+                dst.push(0x00);
+                tag.encode(dst);
+                label.encode(dst);
+            }
+            Handle::OnSwitch { tag } => {
+                dst.push(0x01);
+                tag.encode(dst);
+            }
+        }
+    }
+}
+
+impl<'a> Encode for Switch<'a> {
+    fn encode(&self, dst: &mut Vec<u8>) {
+        self.type_index.encode(dst);
+        self.tag_index.encode(dst);
+    }
+}
+
 impl Encode for V128Const {
     fn encode(&self, dst: &mut Vec<u8>) {
         dst.extend_from_slice(&self.to_le_bytes());
@@ -1328,37 +1316,61 @@ impl<'a> Encode for SelectTypes<'a> {
     }
 }
 
-impl Encode for Custom<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+impl Custom<'_> {
+    fn encode(&self, module: &mut wasm_encoder::Module) {
         match self {
-            Custom::Raw(r) => r.encode(e),
-            Custom::Producers(p) => p.encode(e),
-            Custom::Dylink0(p) => p.encode(e),
+            Custom::Raw(r) => {
+                module.section(&r.to_section());
+            }
+            Custom::Producers(p) => {
+                module.section(&p.to_section());
+            }
+            Custom::Dylink0(p) => {
+                module.section(&p.to_section());
+            }
         }
     }
 }
 
-impl Encode for RawCustomSection<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+impl RawCustomSection<'_> {
+    fn to_section(&self) -> wasm_encoder::CustomSection<'_> {
+        let mut ret = Vec::new();
         for list in self.data.iter() {
-            e.extend_from_slice(list);
+            ret.extend_from_slice(list);
+        }
+        wasm_encoder::CustomSection {
+            name: self.name.into(),
+            data: ret.into(),
         }
     }
 }
 
-impl Encode for Producers<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.fields.encode(e);
+impl Producers<'_> {
+    pub(crate) fn to_section(&self) -> wasm_encoder::ProducersSection {
+        let mut ret = wasm_encoder::ProducersSection::default();
+        for (name, fields) in self.fields.iter() {
+            let mut field = wasm_encoder::ProducersField::new();
+            for (key, value) in fields {
+                field.value(key, value);
+            }
+            ret.field(name, &field);
+        }
+        ret
     }
 }
 
-impl Encode for Dylink0<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
+impl Dylink0<'_> {
+    fn to_section(&self) -> wasm_encoder::CustomSection<'_> {
+        let mut e = Vec::new();
         for section in self.subsections.iter() {
             e.push(section.id());
             let mut tmp = Vec::new();
             section.encode(&mut tmp);
-            tmp.encode(e);
+            tmp.encode(&mut e);
+        }
+        wasm_encoder::CustomSection {
+            name: "dylink.0".into(),
+            data: e.into(),
         }
     }
 }
@@ -1384,48 +1396,15 @@ impl Encode for Dylink0Subsection<'_> {
     }
 }
 
-struct FunctionBranchHints {
-    func_index: u32,
-    hints: Vec<BranchHint>,
-}
+impl SectionItem for Tag<'_> {
+    type Section = wasm_encoder::TagSection;
+    const ANCHOR: CustomPlaceAnchor = CustomPlaceAnchor::Tag;
 
-struct BranchHint {
-    branch_func_offset: u32,
-    branch_hint_value: u32,
-}
-
-impl Encode for FunctionBranchHints {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.func_index.encode(e);
-        self.hints.encode(e);
-    }
-}
-
-impl Encode for BranchHint {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.branch_func_offset.encode(e);
-        1u32.encode(e);
-        self.branch_hint_value.encode(e);
-    }
-}
-
-impl Encode for Tag<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        self.ty.encode(e);
+    fn encode(&self, section: &mut wasm_encoder::TagSection) {
+        section.tag(self.ty.to_tag_type());
         match &self.kind {
             TagKind::Inline() => {}
             _ => panic!("TagKind should be inline during encoding"),
-        }
-    }
-}
-
-impl Encode for TagType<'_> {
-    fn encode(&self, e: &mut Vec<u8>) {
-        match self {
-            TagType::Exception(ty) => {
-                e.push(0x00);
-                ty.encode(e);
-            }
         }
     }
 }

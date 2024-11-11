@@ -432,7 +432,10 @@ impl<'a> Dwarf<'a> {
         sections
             .for_each(|id, writer| {
                 if !writer.bytes.is_empty() {
-                    dst.custom_section(id.name(), &writer.bytes);
+                    dst.wasm.section(&wasm_encoder::CustomSection {
+                        name: id.name().into(),
+                        data: (&writer.bytes).into(),
+                    });
                 }
                 Ok::<_, std::convert::Infallible>(())
             })

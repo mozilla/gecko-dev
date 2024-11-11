@@ -131,8 +131,7 @@ impl ComponentImportSection {
 
     /// Define an import in the component import section.
     pub fn import(&mut self, name: &str, ty: ComponentTypeRef) -> &mut Self {
-        push_extern_name_byte(&mut self.bytes, name);
-        name.encode(&mut self.bytes);
+        encode_component_import_name(&mut self.bytes, name);
         ty.encode(&mut self.bytes);
         self.num_added += 1;
         self
@@ -155,21 +154,16 @@ impl ComponentSection for ComponentImportSection {
 /// discriminated with a leading byte indicating what kind of import they are.
 /// After that PR though names are always prefixed with a 0x00 byte.
 ///
-/// This function is a compatibility shim for the time being while this change
-/// is being rolled out. That PR is technically a spec-breaking change relative
-/// to prior but we want old tooling to continue to work with new modules. To
-/// handle that names that look like IDs, `a:b/c`, get an 0x01 prefix instead of
-/// the spec-defined 0x00 prefix. That makes components produced by current
-/// versions of this crate compatible with older parsers.
+/// On 2023-10-28 in bytecodealliance/wasm-tools#1262 was landed to start
+/// transitioning to "always lead with 0x00". That updated the validator/parser
+/// to accept either 0x00 or 0x01 but the encoder wasn't updated at the time.
 ///
-/// Note that wasmparser has a similar case where it parses either 0x01 or 0x00.
-/// That means that the selection of a byte here doesn't actually matter for
-/// wasmparser's own validation. Eventually this will go away and an 0x00 byte
-/// will always be emitted to align with the spec.
-pub(crate) fn push_extern_name_byte(bytes: &mut Vec<u8>, name: &str) {
-    if name.contains(':') {
-        bytes.push(0x01);
-    } else {
-        bytes.push(0x00);
-    }
+/// On 2024-09-03 in bytecodealliance/wasm-tools#TODO this encoder was updated
+/// to always emit 0x00 as a leading byte.
+///
+/// This function corresponds with the `importname'` production in the
+/// specification.
+pub(crate) fn encode_component_import_name(bytes: &mut Vec<u8>, name: &str) {
+    bytes.push(0x00);
+    name.encode(bytes);
 }

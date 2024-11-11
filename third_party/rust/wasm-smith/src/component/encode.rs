@@ -117,10 +117,11 @@ impl CoreTypeSection {
 }
 
 impl CoreType {
-    fn encode(&self, enc: wasm_encoder::CoreTypeEncoder<'_>) {
+    fn encode(&self, enc: wasm_encoder::ComponentCoreTypeEncoder<'_>) {
         match self {
             Self::Func(ty) => {
-                enc.function(ty.params.iter().copied(), ty.results.iter().copied());
+                enc.core()
+                    .function(ty.params.iter().copied(), ty.results.iter().copied());
             }
             Self::Module(mod_ty) => {
                 let mut enc_mod_ty = wasm_encoder::ModuleType::new();

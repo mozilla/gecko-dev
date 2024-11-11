@@ -83,6 +83,8 @@ impl<'a> Parse<'a> for ModuleType<'a> {
 pub enum ModuleTypeDecl<'a> {
     /// A core type.
     Type(core::Type<'a>),
+    /// A core recursion group.
+    Rec(core::Rec<'a>),
     /// An alias local to the component type.
     Alias(Alias<'a>),
     /// An import.
@@ -96,6 +98,8 @@ impl<'a> Parse<'a> for ModuleTypeDecl<'a> {
         let mut l = parser.lookahead1();
         if l.peek::<kw::r#type>()? {
             Ok(Self::Type(parser.parse()?))
+        } else if l.peek::<kw::rec>()? {
+            Ok(Self::Rec(parser.parse()?))
         } else if l.peek::<kw::alias>()? {
             Ok(Self::Alias(Alias::parse_outer_core_type_alias(parser)?))
         } else if l.peek::<kw::import>()? {

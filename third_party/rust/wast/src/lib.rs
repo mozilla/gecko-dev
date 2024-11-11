@@ -377,6 +377,10 @@ id! {
     pub mod core;
 
     // Support for component model parsing
+    #[cfg(feature = "component-model")]
+    pub mod component;
+    #[cfg(not(feature = "component-model"))]
+    #[path = "component_disabled.rs"]
     pub mod component;
 }
 
@@ -396,6 +400,7 @@ pub mod kw {
     custom_keyword!(assert_return);
     custom_keyword!(assert_trap);
     custom_keyword!(assert_unlinkable);
+    custom_keyword!(assert_suspension);
     custom_keyword!(before);
     custom_keyword!(binary);
     custom_keyword!(block);
@@ -405,6 +410,8 @@ pub mod kw {
     custom_keyword!(catch_all);
     custom_keyword!(catch_all_ref);
     custom_keyword!(code);
+    custom_keyword!(cont);
+    custom_keyword!(contref);
     custom_keyword!(component);
     custom_keyword!(data);
     custom_keyword!(declare);
@@ -454,16 +461,19 @@ pub mod kw {
     custom_keyword!(modulecode);
     custom_keyword!(nan_arithmetic = "nan:arithmetic");
     custom_keyword!(nan_canonical = "nan:canonical");
+    custom_keyword!(nocont);
     custom_keyword!(nofunc);
     custom_keyword!(noextern);
     custom_keyword!(noexn);
     custom_keyword!(none);
     custom_keyword!(null);
+    custom_keyword!(nullcontref);
     custom_keyword!(nullfuncref);
     custom_keyword!(nullexternref);
     custom_keyword!(nullexnref);
     custom_keyword!(nullref);
     custom_keyword!(offset);
+    custom_keyword!(on);
     custom_keyword!(outer);
     custom_keyword!(own);
     custom_keyword!(pagesize);
@@ -492,6 +502,7 @@ pub mod kw {
     custom_keyword!(shared);
     custom_keyword!(start);
     custom_keyword!(sub);
+    custom_keyword!(switch);
     custom_keyword!(r#final = "final");
     custom_keyword!(table);
     custom_keyword!(then);
@@ -543,7 +554,10 @@ pub mod kw {
     custom_keyword!(export_info = "export-info");
     custom_keyword!(import_info = "import-info");
     custom_keyword!(thread);
+    custom_keyword!(thread_spawn = "thread.spawn");
+    custom_keyword!(thread_hw_concurrency = "thread.hw_concurrency");
     custom_keyword!(wait);
+    custom_keyword!(definition);
 }
 
 /// Common annotations used to parse WebAssembly text files.

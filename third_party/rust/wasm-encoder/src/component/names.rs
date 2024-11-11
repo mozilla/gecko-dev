@@ -104,6 +104,12 @@ impl ComponentNameSection {
         self.component_decls(INSTANCE_SORT, names)
     }
 
+    /// Appends a raw subsection with the given id and data.
+    pub fn raw(&mut self, id: u8, data: &[u8]) {
+        self.bytes.push(id);
+        data.encode(&mut self.bytes);
+    }
+
     fn component_decls(&mut self, kind: u8, names: &NameMap) {
         self.subsection_header(Subsection::Decls, 1 + names.size());
         self.bytes.push(kind);

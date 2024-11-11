@@ -14,7 +14,7 @@ use std::borrow::Cow;
 /// };
 ///
 /// let mut types = TypeSection::new();
-/// types.function(vec![], vec![ValType::I32]);
+/// types.ty().function(vec![], vec![ValType::I32]);
 ///
 /// let mut functions = FunctionSection::new();
 /// let type_index = 0;
@@ -83,12 +83,12 @@ impl CodeSection {
     /// into a new code section encoder:
     ///
     /// ```
-    /// # use wasmparser::{BinaryReader, WasmFeatures, CodeSectionReader};
+    /// # use wasmparser::{BinaryReader, CodeSectionReader};
     /// //                  id, size, # entries, entry
     /// let code_section = [10, 6,    1,         4, 0, 65, 0, 11];
     ///
     /// // Parse the code section.
-    /// let reader = BinaryReader::new(&code_section, 0, WasmFeatures::all());
+    /// let reader = BinaryReader::new(&code_section, 0);
     /// let reader = CodeSectionReader::new(reader).unwrap();
     /// let body = reader.into_iter().next().unwrap().unwrap();
     /// let body_range = body.range();
@@ -1203,6 +1203,32 @@ pub enum Instruction<'a> {
         array_type_index: u32,
     },
     RefI31Shared,
+    // Stack switching
+    ContNew(u32),
+    ContBind {
+        argument_index: u32,
+        result_index: u32,
+    },
+    Suspend(u32),
+    Resume {
+        cont_type_index: u32,
+        resume_table: Cow<'a, [Handle]>,
+    },
+    ResumeThrow {
+        cont_type_index: u32,
+        tag_index: u32,
+        resume_table: Cow<'a, [Handle]>,
+    },
+    Switch {
+        cont_type_index: u32,
+        tag_index: u32,
+    },
+
+    // Wide Arithmetic
+    I64Add128,
+    I64Sub128,
+    I64MulWideS,
+    I64MulWideU,
 }
 
 impl Encode for Instruction<'_> {
@@ -3693,7 +3719,65 @@ impl Encode for Instruction<'_> {
             }
             Instruction::RefI31Shared => {
                 sink.push(0xFE);
-                sink.push(0x1F);
+                sink.push(0x72);
+            }
+            Instruction::ContNew(type_index) => {
+                sink.push(0xE0);
+                type_index.encode(sink);
+            }
+            Instruction::ContBind {
+                argument_index,
+                result_index,
+            } => {
+                sink.push(0xE1);
+                argument_index.encode(sink);
+                result_index.encode(sink);
+            }
+            Instruction::Suspend(tag_index) => {
+                sink.push(0xE2);
+                tag_index.encode(sink);
+            }
+            Instruction::Resume {
+                cont_type_index,
+                ref resume_table,
+            } => {
+                sink.push(0xE3);
+                cont_type_index.encode(sink);
+                resume_table.encode(sink);
+            }
+            Instruction::ResumeThrow {
+                cont_type_index,
+                tag_index,
+                ref resume_table,
+            } => {
+                sink.push(0xE4);
+                cont_type_index.encode(sink);
+                tag_index.encode(sink);
+                resume_table.encode(sink);
+            }
+            Instruction::Switch {
+                cont_type_index,
+                tag_index,
+            } => {
+                sink.push(0xE5);
+                cont_type_index.encode(sink);
+                tag_index.encode(sink);
+            }
+            Instruction::I64Add128 => {
+                sink.push(0xFC);
+                19u32.encode(sink);
+            }
+            Instruction::I64Sub128 => {
+                sink.push(0xFC);
+                20u32.encode(sink);
+            }
+            Instruction::I64MulWideS => {
+                sink.push(0xFC);
+                21u32.encode(sink);
+            }
+            Instruction::I64MulWideU => {
+                sink.push(0xFC);
+                22u32.encode(sink);
             }
         }
     }
@@ -3733,10 +3817,33 @@ impl Encode for Catch {
     }
 }
 
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub enum Handle {
+    OnLabel { tag: u32, label: u32 },
+    OnSwitch { tag: u32 },
+}
+
+impl Encode for Handle {
+    fn encode(&self, sink: &mut Vec<u8>) {
+        match self {
+            Handle::OnLabel { tag, label } => {
+                sink.push(0x00);
+                tag.encode(sink);
+                label.encode(sink);
+            }
+            Handle::OnSwitch { tag } => {
+                sink.push(0x01);
+                tag.encode(sink);
+            }
+        }
+    }
+}
+
 /// A constant expression.
 ///
 /// Usable in contexts such as offsets or initializers.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ConstExpr {
     bytes: Vec<u8>,
 }

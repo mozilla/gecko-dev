@@ -3376,19 +3376,130 @@ assert_return(
   [value("f64", 0.9999999999999998)],
 );
 
+// ./test/core/float_misc.wast:591
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 0.24999999)]), [value("f32", 0.49999997)]);
+
 // ./test/core/float_misc.wast:592
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 0.25)]), [value("f32", 0.5)]);
+
+// ./test/core/float_misc.wast:593
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 0.25000003)]), [value("f32", 0.5)]);
+
+// ./test/core/float_misc.wast:594
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 0.25000006)]), [value("f32", 0.50000006)]);
+
+// ./test/core/float_misc.wast:595
+assert_return(
+  () => invoke($0, `f64.sqrt`, [value("f64", 0.24999999999999997)]),
+  [value("f64", 0.49999999999999994)],
+);
+
+// ./test/core/float_misc.wast:596
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 0.25)]), [value("f64", 0.5)]);
+
+// ./test/core/float_misc.wast:597
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 0.25000000000000006)]), [value("f64", 0.5)]);
+
+// ./test/core/float_misc.wast:598
+assert_return(
+  () => invoke($0, `f64.sqrt`, [value("f64", 0.2500000000000001)]),
+  [value("f64", 0.5000000000000001)],
+);
+
+// ./test/core/float_misc.wast:602
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 272331600000)]), [value("f32", 521854)]);
+
+// ./test/core/float_misc.wast:603
+assert_return(
+  () => invoke($0, `f64.sqrt`, [value("f64", 272331606109.83676)]),
+  [value("f64", 521854.0084255718)],
+);
+
+// ./test/core/float_misc.wast:607
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 10616006000)]), [value("f32", 103034)]);
+
+// ./test/core/float_misc.wast:608
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 3014768300000000)]), [value("f32", 54906904)]);
+
+// ./test/core/float_misc.wast:609
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 24597324000000)]), [value("f32", 4959569)]);
+
+// ./test/core/float_misc.wast:610
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 1234568000)]), [value("f32", 35136.418)]);
+
+// ./test/core/float_misc.wast:611
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 10616005156)]), [value("f64", 103034)]);
+
+// ./test/core/float_misc.wast:612
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 3014768326492836)]), [value("f64", 54906906)]);
+
+// ./test/core/float_misc.wast:613
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 24597324665761)]), [value("f64", 4959569)]);
+
+// ./test/core/float_misc.wast:614
+assert_return(
+  () => invoke($0, `f64.sqrt`, [value("f64", 1234567891)]),
+  [value("f64", 35136.41830067487)],
+);
+
+// ./test/core/float_misc.wast:618
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 0.515808)]), [value("f32", 0.71819776)]);
+
+// ./test/core/float_misc.wast:619
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 0.5028961)]), [value("f32", 0.7091517)]);
+
+// ./test/core/float_misc.wast:620
+assert_return(
+  () => invoke($0, `f64.sqrt`, [value("f64", 0.5158079862594604)]),
+  [value("f64", 0.7181977347913737)],
+);
+
+// ./test/core/float_misc.wast:621
+assert_return(
+  () => invoke($0, `f64.sqrt`, [value("f64", 0.5028960704803467)]),
+  [value("f64", 0.7091516554872778)],
+);
+
+// ./test/core/float_misc.wast:625
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 9)]), [value("f32", 3)]);
+
+// ./test/core/float_misc.wast:626
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 137)]), [value("f32", 11.7046995)]);
+
+// ./test/core/float_misc.wast:627
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 1.7737712)]), [value("f32", 1.33183)]);
+
+// ./test/core/float_misc.wast:628
+assert_return(() => invoke($0, `f32.sqrt`, [value("f32", 1000)]), [value("f32", 31.622776)]);
+
+// ./test/core/float_misc.wast:629
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 9)]), [value("f64", 3)]);
+
+// ./test/core/float_misc.wast:630
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 137)]), [value("f64", 11.704699910719626)]);
+
+// ./test/core/float_misc.wast:631
+assert_return(
+  () => invoke($0, `f64.sqrt`, [value("f64", 1.7737712281864233)]),
+  [value("f64", 1.3318300297659695)],
+);
+
+// ./test/core/float_misc.wast:632
+assert_return(() => invoke($0, `f64.sqrt`, [value("f64", 1000)]), [value("f64", 31.622776601683793)]);
+
+// ./test/core/float_misc.wast:636
 assert_return(
   () => invoke($0, `f32.abs`, [bytes("f32", [0xe2, 0xf1, 0x80, 0x7f])]),
   [bytes("f32", [0xe2, 0xf1, 0x80, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:593
+// ./test/core/float_misc.wast:637
 assert_return(
   () => invoke($0, `f32.abs`, [bytes("f32", [0xe2, 0xf1, 0x80, 0xff])]),
   [bytes("f32", [0xe2, 0xf1, 0x80, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:594
+// ./test/core/float_misc.wast:638
 assert_return(
   () => invoke($0, `f64.abs`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f]),
@@ -3396,7 +3507,7 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:595
+// ./test/core/float_misc.wast:639
 assert_return(
   () => invoke($0, `f64.abs`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0xff]),
@@ -3404,19 +3515,19 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:597
+// ./test/core/float_misc.wast:641
 assert_return(
   () => invoke($0, `f32.neg`, [bytes("f32", [0xe2, 0xf1, 0x80, 0x7f])]),
   [bytes("f32", [0xe2, 0xf1, 0x80, 0xff])],
 );
 
-// ./test/core/float_misc.wast:598
+// ./test/core/float_misc.wast:642
 assert_return(
   () => invoke($0, `f32.neg`, [bytes("f32", [0xe2, 0xf1, 0x80, 0xff])]),
   [bytes("f32", [0xe2, 0xf1, 0x80, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:599
+// ./test/core/float_misc.wast:643
 assert_return(
   () => invoke($0, `f64.neg`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f]),
@@ -3424,7 +3535,7 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0xff])],
 );
 
-// ./test/core/float_misc.wast:600
+// ./test/core/float_misc.wast:644
 assert_return(
   () => invoke($0, `f64.neg`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0xff]),
@@ -3432,7 +3543,7 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:602
+// ./test/core/float_misc.wast:646
 assert_return(
   () => invoke($0, `f32.copysign`, [
     bytes("f32", [0xe2, 0xf1, 0x80, 0x7f]),
@@ -3441,7 +3552,7 @@ assert_return(
   [bytes("f32", [0xe2, 0xf1, 0x80, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:603
+// ./test/core/float_misc.wast:647
 assert_return(
   () => invoke($0, `f32.copysign`, [
     bytes("f32", [0xe2, 0xf1, 0x80, 0x7f]),
@@ -3450,7 +3561,7 @@ assert_return(
   [bytes("f32", [0xe2, 0xf1, 0x80, 0xff])],
 );
 
-// ./test/core/float_misc.wast:604
+// ./test/core/float_misc.wast:648
 assert_return(
   () => invoke($0, `f32.copysign`, [
     bytes("f32", [0xe2, 0xf1, 0x80, 0xff]),
@@ -3459,7 +3570,7 @@ assert_return(
   [bytes("f32", [0xe2, 0xf1, 0x80, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:605
+// ./test/core/float_misc.wast:649
 assert_return(
   () => invoke($0, `f32.copysign`, [
     bytes("f32", [0xe2, 0xf1, 0x80, 0xff]),
@@ -3468,7 +3579,7 @@ assert_return(
   [bytes("f32", [0xe2, 0xf1, 0x80, 0xff])],
 );
 
-// ./test/core/float_misc.wast:606
+// ./test/core/float_misc.wast:650
 assert_return(
   () => invoke($0, `f64.copysign`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f]),
@@ -3477,7 +3588,7 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:607
+// ./test/core/float_misc.wast:651
 assert_return(
   () => invoke($0, `f64.copysign`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f]),
@@ -3486,7 +3597,7 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0xff])],
 );
 
-// ./test/core/float_misc.wast:608
+// ./test/core/float_misc.wast:652
 assert_return(
   () => invoke($0, `f64.copysign`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0xff]),
@@ -3495,7 +3606,7 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0x7f])],
 );
 
-// ./test/core/float_misc.wast:609
+// ./test/core/float_misc.wast:653
 assert_return(
   () => invoke($0, `f64.copysign`, [
     bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0xff]),
@@ -3504,175 +3615,175 @@ assert_return(
   [bytes("f64", [0x6b, 0x7a, 0xe2, 0xf1, 0x0, 0x0, 0xf0, 0xff])],
 );
 
-// ./test/core/float_misc.wast:612
+// ./test/core/float_misc.wast:656
 assert_return(() => invoke($0, `f32.ceil`, [value("f32", 0.99999994)]), [value("f32", 1)]);
 
-// ./test/core/float_misc.wast:613
+// ./test/core/float_misc.wast:657
 assert_return(() => invoke($0, `f32.ceil`, [value("f32", 1.0000001)]), [value("f32", 2)]);
 
-// ./test/core/float_misc.wast:614
+// ./test/core/float_misc.wast:658
 assert_return(() => invoke($0, `f64.ceil`, [value("f64", 0.9999999999999999)]), [value("f64", 1)]);
 
-// ./test/core/float_misc.wast:615
+// ./test/core/float_misc.wast:659
 assert_return(() => invoke($0, `f64.ceil`, [value("f64", 1.0000000000000002)]), [value("f64", 2)]);
 
-// ./test/core/float_misc.wast:618
+// ./test/core/float_misc.wast:662
 assert_return(() => invoke($0, `f32.ceil`, [value("f32", 8388607.5)]), [value("f32", 8388608)]);
 
-// ./test/core/float_misc.wast:619
+// ./test/core/float_misc.wast:663
 assert_return(() => invoke($0, `f32.ceil`, [value("f32", -8388607.5)]), [value("f32", -8388607)]);
 
-// ./test/core/float_misc.wast:620
+// ./test/core/float_misc.wast:664
 assert_return(
   () => invoke($0, `f64.ceil`, [value("f64", 4503599627370495.5)]),
   [value("f64", 4503599627370496)],
 );
 
-// ./test/core/float_misc.wast:621
+// ./test/core/float_misc.wast:665
 assert_return(
   () => invoke($0, `f64.ceil`, [value("f64", -4503599627370495.5)]),
   [value("f64", -4503599627370495)],
 );
 
-// ./test/core/float_misc.wast:625
+// ./test/core/float_misc.wast:669
 assert_return(() => invoke($0, `f32.ceil`, [value("f32", 16777215)]), [value("f32", 16777215)]);
 
-// ./test/core/float_misc.wast:626
+// ./test/core/float_misc.wast:670
 assert_return(() => invoke($0, `f32.ceil`, [value("f32", -16777215)]), [value("f32", -16777215)]);
 
-// ./test/core/float_misc.wast:627
+// ./test/core/float_misc.wast:671
 assert_return(
   () => invoke($0, `f64.ceil`, [value("f64", 9007199254740991)]),
   [value("f64", 9007199254740991)],
 );
 
-// ./test/core/float_misc.wast:628
+// ./test/core/float_misc.wast:672
 assert_return(
   () => invoke($0, `f64.ceil`, [value("f64", -9007199254740991)]),
   [value("f64", -9007199254740991)],
 );
 
-// ./test/core/float_misc.wast:631
+// ./test/core/float_misc.wast:675
 assert_return(() => invoke($0, `f32.floor`, [value("f32", -0.99999994)]), [value("f32", -1)]);
 
-// ./test/core/float_misc.wast:632
+// ./test/core/float_misc.wast:676
 assert_return(() => invoke($0, `f32.floor`, [value("f32", -1.0000001)]), [value("f32", -2)]);
 
-// ./test/core/float_misc.wast:633
+// ./test/core/float_misc.wast:677
 assert_return(() => invoke($0, `f64.floor`, [value("f64", -0.9999999999999999)]), [value("f64", -1)]);
 
-// ./test/core/float_misc.wast:634
+// ./test/core/float_misc.wast:678
 assert_return(() => invoke($0, `f64.floor`, [value("f64", -1.0000000000000002)]), [value("f64", -2)]);
 
-// ./test/core/float_misc.wast:637
+// ./test/core/float_misc.wast:681
 assert_return(() => invoke($0, `f32.floor`, [value("f32", -8388607.5)]), [value("f32", -8388608)]);
 
-// ./test/core/float_misc.wast:638
+// ./test/core/float_misc.wast:682
 assert_return(() => invoke($0, `f32.floor`, [value("f32", 8388607.5)]), [value("f32", 8388607)]);
 
-// ./test/core/float_misc.wast:639
+// ./test/core/float_misc.wast:683
 assert_return(
   () => invoke($0, `f64.floor`, [value("f64", -4503599627370495.5)]),
   [value("f64", -4503599627370496)],
 );
 
-// ./test/core/float_misc.wast:640
+// ./test/core/float_misc.wast:684
 assert_return(
   () => invoke($0, `f64.floor`, [value("f64", 4503599627370495.5)]),
   [value("f64", 4503599627370495)],
 );
 
-// ./test/core/float_misc.wast:644
+// ./test/core/float_misc.wast:688
 assert_return(() => invoke($0, `f32.floor`, [value("f32", 88607)]), [value("f32", 88607)]);
 
-// ./test/core/float_misc.wast:645
+// ./test/core/float_misc.wast:689
 assert_return(() => invoke($0, `f64.floor`, [value("f64", 88607)]), [value("f64", 88607)]);
 
-// ./test/core/float_misc.wast:648
+// ./test/core/float_misc.wast:692
 assert_return(() => invoke($0, `f32.trunc`, [value("f32", -8388607.5)]), [value("f32", -8388607)]);
 
-// ./test/core/float_misc.wast:649
+// ./test/core/float_misc.wast:693
 assert_return(() => invoke($0, `f32.trunc`, [value("f32", 8388607.5)]), [value("f32", 8388607)]);
 
-// ./test/core/float_misc.wast:650
+// ./test/core/float_misc.wast:694
 assert_return(
   () => invoke($0, `f64.trunc`, [value("f64", -4503599627370495.5)]),
   [value("f64", -4503599627370495)],
 );
 
-// ./test/core/float_misc.wast:651
+// ./test/core/float_misc.wast:695
 assert_return(
   () => invoke($0, `f64.trunc`, [value("f64", 4503599627370495.5)]),
   [value("f64", 4503599627370495)],
 );
 
-// ./test/core/float_misc.wast:656
+// ./test/core/float_misc.wast:700
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", 8388609)]), [value("f32", 8388609)]);
 
-// ./test/core/float_misc.wast:657
+// ./test/core/float_misc.wast:701
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", 8388610)]), [value("f32", 8388610)]);
 
-// ./test/core/float_misc.wast:658
+// ./test/core/float_misc.wast:702
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", 0.49999997)]), [value("f32", 0)]);
 
-// ./test/core/float_misc.wast:659
+// ./test/core/float_misc.wast:703
 assert_return(
   () => invoke($0, `f32.nearest`, [value("f32", 281474960000000)]),
   [value("f32", 281474960000000)],
 );
 
-// ./test/core/float_misc.wast:660
+// ./test/core/float_misc.wast:704
 assert_return(
   () => invoke($0, `f64.nearest`, [value("f64", 4503599627370497)]),
   [value("f64", 4503599627370497)],
 );
 
-// ./test/core/float_misc.wast:661
+// ./test/core/float_misc.wast:705
 assert_return(
   () => invoke($0, `f64.nearest`, [value("f64", 4503599627370498)]),
   [value("f64", 4503599627370498)],
 );
 
-// ./test/core/float_misc.wast:662
+// ./test/core/float_misc.wast:706
 assert_return(() => invoke($0, `f64.nearest`, [value("f64", 0.49999999999999994)]), [value("f64", 0)]);
 
-// ./test/core/float_misc.wast:663
+// ./test/core/float_misc.wast:707
 assert_return(
   () => invoke($0, `f64.nearest`, [value("f64", 81129638414606670000000000000000)]),
   [value("f64", 81129638414606670000000000000000)],
 );
 
-// ./test/core/float_misc.wast:667
+// ./test/core/float_misc.wast:711
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", 4.5)]), [value("f32", 4)]);
 
-// ./test/core/float_misc.wast:668
+// ./test/core/float_misc.wast:712
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", -4.5)]), [value("f32", -4)]);
 
-// ./test/core/float_misc.wast:669
+// ./test/core/float_misc.wast:713
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", -3.5)]), [value("f32", -4)]);
 
-// ./test/core/float_misc.wast:670
+// ./test/core/float_misc.wast:714
 assert_return(() => invoke($0, `f64.nearest`, [value("f64", 4.5)]), [value("f64", 4)]);
 
-// ./test/core/float_misc.wast:671
+// ./test/core/float_misc.wast:715
 assert_return(() => invoke($0, `f64.nearest`, [value("f64", -4.5)]), [value("f64", -4)]);
 
-// ./test/core/float_misc.wast:672
+// ./test/core/float_misc.wast:716
 assert_return(() => invoke($0, `f64.nearest`, [value("f64", -3.5)]), [value("f64", -4)]);
 
-// ./test/core/float_misc.wast:675
+// ./test/core/float_misc.wast:719
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", -8388607.5)]), [value("f32", -8388608)]);
 
-// ./test/core/float_misc.wast:676
+// ./test/core/float_misc.wast:720
 assert_return(() => invoke($0, `f32.nearest`, [value("f32", 8388607.5)]), [value("f32", 8388608)]);
 
-// ./test/core/float_misc.wast:677
+// ./test/core/float_misc.wast:721
 assert_return(
   () => invoke($0, `f64.nearest`, [value("f64", -4503599627370495.5)]),
   [value("f64", -4503599627370496)],
 );
 
-// ./test/core/float_misc.wast:678
+// ./test/core/float_misc.wast:722
 assert_return(
   () => invoke($0, `f64.nearest`, [value("f64", 4503599627370495.5)]),
   [value("f64", 4503599627370496)],

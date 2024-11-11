@@ -81,89 +81,31 @@ diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory_trap64.wast.js b/js
 diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js b/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/memory64/memory.wast.js
-@@ -33,14 +33,16 @@ let $4 = instantiate(`(module (memory 1 256))`);
- // ./test/core/memory.wast:8
- let $5 = instantiate(`(module (memory 0 65536))`);
- 
--// ./test/core/memory.wast:10
--assert_invalid(() => instantiate(`(module (memory 0) (memory 0))`), `multiple memories`);
-+if (!wasmMultiMemoryEnabled()) {
-+  // ./test/core/memory.wast:10
-+  assert_invalid(() => instantiate(`(module (memory 0) (memory 0))`), `multiple memories`);
- 
--// ./test/core/memory.wast:11
--assert_invalid(
--  () => instantiate(`(module (memory (import "spectest" "memory") 0) (memory 0))`),
--  `multiple memories`,
--);
-+  // ./test/core/memory.wast:11
-+  assert_invalid(
-+    () => instantiate(`(module (memory (import "spectest" "memory") 0) (memory 0))`),
-+    `multiple memories`,
-+  );
-+}
- 
- // ./test/core/memory.wast:13
- let $6 = instantiate(`(module (memory (data)) (func (export "memsize") (result i32) (memory.size)))`);
-@@ -147,24 +149,6 @@ assert_invalid(
+@@ -138,24 +138,6 @@ assert_invalid(
    `memory size must be at most 65536 pages (4GiB)`,
  );
  
--// ./test/core/memory.wast:79
+-// ./test/core/memory.wast:76
 -assert_invalid(
 -  () => instantiate(`(memory 0x1_0000_0000) `),
 -  `memory size must be at most 65536 pages (4GiB)`,
 -);
 -
--// ./test/core/memory.wast:83
+-// ./test/core/memory.wast:80
 -assert_invalid(
 -  () => instantiate(`(memory 0x1_0000_0000 0x1_0000_0000) `),
 -  `memory size must be at most 65536 pages (4GiB)`,
 -);
 -
--// ./test/core/memory.wast:87
+-// ./test/core/memory.wast:84
 -assert_invalid(
 -  () => instantiate(`(memory 0 0x1_0000_0000) `),
 -  `memory size must be at most 65536 pages (4GiB)`,
 -);
 -
- // ./test/core/memory.wast:92
+ // ./test/core/memory.wast:89
  let $9 = instantiate(`(module
    (memory 1)
-diff --git a/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js b/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js
---- a/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/memory64/memory64.wast.js
-@@ -27,17 +27,19 @@ let $2 = instantiate(`(module (memory i64 1 256))`);
- // ./test/core/memory64.wast:6
- let $3 = instantiate(`(module (memory i64 0 65536))`);
- 
--// ./test/core/memory64.wast:9
--assert_invalid(
--  () => instantiate(`(module (memory i64 0) (memory i64 0))`),
--  `multiple memories`,
--);
--
--// ./test/core/memory64.wast:10
--assert_invalid(
--  () => instantiate(`(module (memory (import "spectest" "memory") i64 0) (memory i64 0))`),
--  `multiple memories`,
--);
-+if (!wasmMultiMemoryEnabled()) {
-+  // ./test/core/memory64.wast:9
-+  assert_invalid(
-+    () => instantiate(`(module (memory i64 0) (memory i64 0))`),
-+    `multiple memories`,
-+  );
-+
-+  // ./test/core/memory64.wast:10
-+  assert_invalid(
-+    () => instantiate(`(module (memory (import "spectest" "memory") i64 0) (memory i64 0))`),
-+    `multiple memories`,
-+  );
-+}
- 
- // ./test/core/memory64.wast:11
- let $4 = instantiate(`(module (memory i64 (data)) (func (export "memsize") (result i64) (memory.size)))`);
 diff --git a/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js b/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js
@@ -173,176 +115,63 @@ diff --git a/js/src/jit-test/tests/wasm/spec/memory64/simd_address.wast.js b/js/
  /* Copyright 2021 Mozilla Foundation
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
-diff --git a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js
---- a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_load.wast.js
-@@ -1,3 +1,5 @@
-+// |jit-test| skip-if: !wasmSimdEnabled()
-+
- /* Copyright 2021 Mozilla Foundation
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-diff --git a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_memory-multi.wast.js b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_memory-multi.wast.js
---- a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_memory-multi.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_memory-multi.wast.js
-@@ -1,3 +1,5 @@
-+// |jit-test| skip-if: !wasmSimdEnabled()
-+
- /* Copyright 2021 Mozilla Foundation
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-diff --git a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_store.wast.js b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_store.wast.js
---- a/js/src/jit-test/tests/wasm/spec/multi-memory/simd_store.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/multi-memory/simd_store.wast.js
-@@ -1,3 +1,5 @@
-+// |jit-test| skip-if: !wasmSimdEnabled()
-+
- /* Copyright 2021 Mozilla Foundation
-  *
-  * Licensed under the Apache License, Version 2.0 (the "License");
-diff --git a/js/src/jit-test/tests/wasm/spec/multi-memory/harness/harness.js b/js/src/jit-test/tests/wasm/spec/multi-memory/harness/harness.js
---- a/js/src/jit-test/tests/wasm/spec/multi-memory/harness/harness.js
-+++ b/js/src/jit-test/tests/wasm/spec/multi-memory/harness/harness.js
-@@ -19,6 +19,15 @@ if (!wasmIsSupported()) {
-   quit();
- }
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/ref_null.wast.js b/js/src/jit-test/tests/wasm/spec/spec/ref_null.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/ref_null.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/ref_null.wast.js
+@@ -37,8 +37,9 @@ assert_return(() => invoke($0, `anyref`, []), [value('anyref', null)]);
+ // ./test/core/ref_null.wast:17
+ assert_return(() => invoke($0, `funcref`, []), [value('anyfunc', null)]);
  
-+function partialOobWriteMayWritePartialData() {
-+  let arm_native = getBuildConfiguration("arm") && !getBuildConfiguration("arm-simulator");
-+  let arm64_native = getBuildConfiguration("arm64") && !getBuildConfiguration("arm64-simulator");
-+  return arm_native || arm64_native;
-+}
-+
-+let native_arm = getBuildConfiguration("arm") && !getBuildConfiguration("arm-simulator");
-+let native_arm64 = getBuildConfiguration("arm64") && !getBuildConfiguration("arm64-simulator");
-+
- function bytes(type, bytes) {
-   var typedBuffer = new Uint8Array(bytes);
-   return wasmGlobalFromArrayBuffer(type, typedBuffer.buffer);
-diff --git a/js/src/jit-test/tests/wasm/spec/multi-memory/memory_trap1.wast.js b/js/src/jit-test/tests/wasm/spec/multi-memory/memory_trap1.wast.js
---- a/js/src/jit-test/tests/wasm/spec/multi-memory/memory_trap1.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/multi-memory/memory_trap1.wast.js
-@@ -562,11 +562,15 @@ assert_trap(() => invoke($0, `i64.load32_u`, [-3]), `out of bounds memory access
- // ./test/core/multi-memory/memory_trap1.wast:234
- assert_trap(() => invoke($0, `i64.load32_u`, [-4]), `out of bounds memory access`);
+-// ./test/core/ref_null.wast:18
+-assert_return(() => invoke($0, `exnref`, []), [value('exnref', null)]);
++// exnref values are not exportable to JS
++// // ./test/core/ref_null.wast:18
++// assert_return(() => invoke($0, `exnref`, []), [value('exnref', null)]);
  
--// ./test/core/multi-memory/memory_trap1.wast:237
--assert_return(() => invoke($0, `i64.load`, [65528]), [value("i64", 7523094288207667809n)]);
-+// Bug 1842293 - do not observe the partial store caused by bug 1666747 on
-+// some native platforms.
-+if (!partialOobWriteMayWritePartialData()) {
-+  // ./test/core/multi-memory/memory_trap1.wast:237
-+  assert_return(() => invoke($0, `i64.load`, [65528]), [value("i64", 7523094288207667809n)]);
- 
--// ./test/core/multi-memory/memory_trap1.wast:238
--assert_return(() => invoke($0, `i64.load`, [0]), [value("i64", 7523094288207667809n)]);
-+  // ./test/core/multi-memory/memory_trap1.wast:238
-+  assert_return(() => invoke($0, `i64.load`, [0]), [value("i64", 7523094288207667809n)]);
-+}
- 
- // ./test/core/multi-memory/memory_trap1.wast:242
- assert_return(() => invoke($0, `i64.store`, [65528, 0n]), []);
-@@ -574,14 +578,18 @@ assert_return(() => invoke($0, `i64.store`, [65528, 0n]), []);
- // ./test/core/multi-memory/memory_trap1.wast:243
- assert_trap(() => invoke($0, `i32.store`, [65533, 305419896]), `out of bounds memory access`);
- 
--// ./test/core/multi-memory/memory_trap1.wast:244
--assert_return(() => invoke($0, `i32.load`, [65532]), [value("i32", 0)]);
-+if (!partialOobWriteMayWritePartialData()) {
-+  // ./test/core/multi-memory/memory_trap1.wast:244
-+  assert_return(() => invoke($0, `i32.load`, [65532]), [value("i32", 0)]);
-+}
- 
- // ./test/core/multi-memory/memory_trap1.wast:245
- assert_trap(() => invoke($0, `i64.store`, [65529, 1311768467294899695n]), `out of bounds memory access`);
- 
--// ./test/core/multi-memory/memory_trap1.wast:246
--assert_return(() => invoke($0, `i64.load`, [65528]), [value("i64", 0n)]);
-+if (!partialOobWriteMayWritePartialData()) {
-+  // ./test/core/multi-memory/memory_trap1.wast:246
-+  assert_return(() => invoke($0, `i64.load`, [65528]), [value("i64", 0n)]);
-+}
- 
- // ./test/core/multi-memory/memory_trap1.wast:247
- assert_trap(
-@@ -589,8 +597,10 @@ assert_trap(
-   `out of bounds memory access`,
- );
- 
--// ./test/core/multi-memory/memory_trap1.wast:248
--assert_return(() => invoke($0, `f32.load`, [65532]), [value("f32", 0)]);
-+if (!partialOobWriteMayWritePartialData()) {
-+  // ./test/core/multi-memory/memory_trap1.wast:248
-+  assert_return(() => invoke($0, `f32.load`, [65532]), [value("f32", 0)]);
-+}
- 
- // ./test/core/multi-memory/memory_trap1.wast:249
- assert_trap(
-@@ -598,5 +608,7 @@ assert_trap(
-   `out of bounds memory access`,
- );
- 
--// ./test/core/multi-memory/memory_trap1.wast:250
--assert_return(() => invoke($0, `f64.load`, [65528]), [value("f64", 0)]);
-+if (!partialOobWriteMayWritePartialData()) {
-+  // ./test/core/multi-memory/memory_trap1.wast:250
-+  assert_return(() => invoke($0, `f64.load`, [65528]), [value("f64", 0)]);
-+}
-diff --git a/js/src/jit-test/tests/wasm/spec/relaxed-simd/i32x4_relaxed_trunc.wast.js b/js/src/jit-test/tests/wasm/spec/relaxed-simd/i32x4_relaxed_trunc.wast.js
---- a/js/src/jit-test/tests/wasm/spec/relaxed-simd/i32x4_relaxed_trunc.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/relaxed-simd/i32x4_relaxed_trunc.wast.js
-@@ -92,6 +92,7 @@ assert_return(
-     either(
-       i32x4([0x0, 0x0, 0xffffff00, 0xffffffff]),
-       i32x4([0x0, 0xffffffff, 0xffffff00, 0xffffffff]),
-+      i32x4([0x0, 0xffffffff, 0xffffff00, 0x0]),
-     ),
-   ],
- );
-@@ -122,6 +123,7 @@ assert_return(
-     either(
-       i32x4([0x0, 0x0, 0x0, 0x0]),
-       i32x4([0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff]),
-+      i32x4([0x80000000, 0x80000000, 0x80000000, 0x80000000]),
-     ),
-   ],
- );
-@@ -173,6 +175,7 @@ assert_return(
-     either(
-       i32x4([0x0, 0xffffffff, 0x0, 0x0]),
-       i32x4([0xffffffff, 0xffffffff, 0x0, 0x0]),
-+      i32x4([0xfffffffe, 0x0, 0x0, 0x0]),
-     ),
-   ],
- );
-diff --git a/js/src/jit-test/tests/wasm/spec/spec/memory.wast.js b/js/src/jit-test/tests/wasm/spec/spec/memory.wast.js
---- a/js/src/jit-test/tests/wasm/spec/spec/memory.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/spec/memory.wast.js
-@@ -33,14 +33,16 @@ let $4 = instantiate(`(module (memory 1 256))`);
- // ./test/core/memory.wast:8
- let $5 = instantiate(`(module (memory 0 65536))`);
- 
--// ./test/core/memory.wast:10
--assert_invalid(() => instantiate(`(module (memory 0) (memory 0))`), `multiple memories`);
+ // ./test/core/ref_null.wast:19
+ assert_return(() => invoke($0, `externref`, []), [value('externref', null)]);
+@@ -115,23 +116,24 @@ assert_return(() => invoke($1, `nullfuncref`, []), [value('nullfuncref', null)])
+ // ./test/core/ref_null.wast:66
+ assert_return(() => invoke($1, `nullfuncref`, []), [null]);
+
+-// ./test/core/ref_null.wast:67
+-assert_return(() => invoke($1, `exnref`, []), [value('exnref', null)]);
 -
--// ./test/core/memory.wast:11
--assert_invalid(
--  () => instantiate(`(module (memory (import "spectest" "memory") 0) (memory 0))`),
--  `multiple memories`,
--);
-+if (!wasmMultiMemoryEnabled()) {
-+  // ./test/core/memory.wast:10
-+  assert_invalid(() => instantiate(`(module (memory 0) (memory 0))`), `multiple memories`);
-+
-+  // ./test/core/memory.wast:11
-+  assert_invalid(
-+    () => instantiate(`(module (memory (import "spectest" "memory") 0) (memory 0))`),
-+    `multiple memories`,
-+  );
-+}
+-// ./test/core/ref_null.wast:68
+-assert_return(() => invoke($1, `exnref`, []), [value('nullexnref', null)]);
+-
+-// ./test/core/ref_null.wast:69
+-assert_return(() => invoke($1, `exnref`, []), [null]);
+-
+-// ./test/core/ref_null.wast:70
+-assert_return(() => invoke($1, `nullexnref`, []), [value('exnref', null)]);
+-
+-// ./test/core/ref_null.wast:71
+-assert_return(() => invoke($1, `nullexnref`, []), [value('nullexnref', null)]);
+-
+-// ./test/core/ref_null.wast:72
+-assert_return(() => invoke($1, `nullexnref`, []), [null]);
++// exnref values are not exportable to JS
++// // ./test/core/ref_null.wast:67
++// assert_return(() => invoke($1, `exnref`, []), [value('exnref', null)]);
++//
++// // ./test/core/ref_null.wast:68
++// assert_return(() => invoke($1, `exnref`, []), [value('nullexnref', null)]);
++//
++// // ./test/core/ref_null.wast:69
++// assert_return(() => invoke($1, `exnref`, []), [null]);
++//
++// // ./test/core/ref_null.wast:70
++// assert_return(() => invoke($1, `nullexnref`, []), [value('exnref', null)]);
++//
++// // ./test/core/ref_null.wast:71
++// assert_return(() => invoke($1, `nullexnref`, []), [value('nullexnref', null)]);
++//
++// // ./test/core/ref_null.wast:72
++// assert_return(() => invoke($1, `nullexnref`, []), [null]);
  
- // ./test/core/memory.wast:13
- let $6 = instantiate(`(module (memory (data)) (func (export "memsize") (result i32) (memory.size)))`);
+ // ./test/core/ref_null.wast:73
+ assert_return(() => invoke($1, `externref`, []), [value('externref', null)]);
 diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_address.wast.js b/js/src/jit-test/tests/wasm/spec/spec/simd_address.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/spec/simd_address.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/spec/simd_address.wast.js
@@ -712,6 +541,15 @@ diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_lane.wast.js b/js/src/jit
  /* Copyright 2021 Mozilla Foundation
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_linking.wast.js b/js/src/jit-test/tests/wasm/spec/spec/simd_linking.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/simd_linking.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/simd_linking.wast.js
+@@ -1,3 +1,5 @@
++// |jit-test| skip-if: !wasmSimdEnabled()
++
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
 diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_load.wast.js b/js/src/jit-test/tests/wasm/spec/spec/simd_load.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/spec/simd_load.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/spec/simd_load.wast.js
@@ -784,6 +622,15 @@ diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_load_zero.wast.js b/js/sr
  /* Copyright 2021 Mozilla Foundation
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_memory-multi.wast.js b/js/src/jit-test/tests/wasm/spec/spec/simd_memory-multi.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/simd_memory-multi.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/simd_memory-multi.wast.js
+@@ -1,3 +1,5 @@
++// |jit-test| skip-if: !wasmSimdEnabled()
++
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
 diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_splat.wast.js b/js/src/jit-test/tests/wasm/spec/spec/simd_splat.wast.js
 --- a/js/src/jit-test/tests/wasm/spec/spec/simd_splat.wast.js
 +++ b/js/src/jit-test/tests/wasm/spec/spec/simd_splat.wast.js
@@ -838,75 +685,83 @@ diff --git a/js/src/jit-test/tests/wasm/spec/spec/simd_store8_lane.wast.js b/js/
  /* Copyright 2021 Mozilla Foundation
   *
   * Licensed under the Apache License, Version 2.0 (the "License");
-diff --git a/js/src/jit-test/tests/wasm/spec/spec/global.wast.js b/js/src/jit-test/tests/wasm/spec/spec/global.wast.js
---- a/js/src/jit-test/tests/wasm/spec/spec/global.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/spec/global.wast.js
-@@ -476,17 +476,21 @@ assert_invalid(
-   `unknown global`,
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/i8x16_relaxed_swizzle.wast.js b/js/src/jit-test/tests/wasm/spec/spec/i8x16_relaxed_swizzle.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/i8x16_relaxed_swizzle.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/i8x16_relaxed_swizzle.wast.js
+@@ -1,3 +1,4 @@
++// |jit-test| --setpref=wasm_relaxed_simd=true; skip-if: !wasmRelaxedSimdEnabled()
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/i16x8_relaxed_q15mulr_s.wast.js b/js/src/jit-test/tests/wasm/spec/spec/i16x8_relaxed_q15mulr_s.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/i16x8_relaxed_q15mulr_s.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/i16x8_relaxed_q15mulr_s.wast.js
+@@ -1,3 +1,4 @@
++// |jit-test| --setpref=wasm_relaxed_simd=true; skip-if: !wasmRelaxedSimdEnabled()
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/i32x4_relaxed_trunc.wast.js b/js/src/jit-test/tests/wasm/spec/spec/i32x4_relaxed_trunc.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/i32x4_relaxed_trunc.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/i32x4_relaxed_trunc.wast.js
+@@ -1,3 +1,4 @@
++// |jit-test| --setpref=wasm_relaxed_simd=true; skip-if: !wasmRelaxedSimdEnabled()
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+@@ -92,6 +92,7 @@ assert_return(
+     either(
+       i32x4([0x0, 0x0, 0xffffff00, 0xffffffff]),
+       i32x4([0x0, 0xffffffff, 0xffffff00, 0xffffffff]),
++      i32x4([0x0, 0xffffffff, 0xffffff00, 0x0]),
+     ),
+   ],
  );
- 
--// ./test/core/global.wast:351
--assert_invalid(
--  () => instantiate(`(module (global i32 (i32.const 0)) (global i32 (global.get 0)))`),
--  `unknown global`,
--);
--
--// ./test/core/global.wast:355
--assert_invalid(
--  () => instantiate(`(module (global $$g i32 (i32.const 0)) (global i32 (global.get $$g)))`),
--  `unknown global`,
--);
-+// The GC proposal allows global initializers to reference previously-defined
-+// immutable globals. These tests are out of date.
-+// See https://bugzilla.mozilla.org/show_bug.cgi?id=1926357
-+
-+// // ./test/core/global.wast:351
-+// assert_invalid(
-+//   () => instantiate(`(module (global i32 (i32.const 0)) (global i32 (global.get 0)))`),
-+//   `unknown global`,
-+// );
-+
-+// // ./test/core/global.wast:355
-+// assert_invalid(
-+//   () => instantiate(`(module (global $$g i32 (i32.const 0)) (global i32 (global.get $$g)))`),
-+//   `unknown global`,
-+// );
- 
- // ./test/core/global.wast:360
- assert_invalid(
-diff --git a/js/src/jit-test/tests/wasm/spec/extended-const/global.wast.js b/js/src/jit-test/tests/wasm/spec/extended-const/global.wast.js
---- a/js/src/jit-test/tests/wasm/spec/extended-const/global.wast.js
-+++ b/js/src/jit-test/tests/wasm/spec/extended-const/global.wast.js
-@@ -496,17 +496,21 @@ assert_invalid(
-   `unknown global`,
+@@ -122,6 +123,7 @@ assert_return(
+     either(
+       i32x4([0x0, 0x0, 0x0, 0x0]),
+       i32x4([0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff]),
++      i32x4([0x80000000, 0x80000000, 0x80000000, 0x80000000]),
+     ),
+   ],
  );
- 
--// ./test/core/global.wast:363
--assert_invalid(
--  () => instantiate(`(module (global i32 (i32.const 0)) (global i32 (global.get 0)))`),
--  `unknown global`,
--);
--
--// ./test/core/global.wast:367
--assert_invalid(
--  () => instantiate(`(module (global $$g i32 (i32.const 0)) (global i32 (global.get $$g)))`),
--  `unknown global`,
--);
-+// The GC proposal allows global initializers to reference previously-defined
-+// immutable globals. These tests are out of date.
-+// See https://bugzilla.mozilla.org/show_bug.cgi?id=1926357
-+
-+// // ./test/core/global.wast:363
-+// assert_invalid(
-+//   () => instantiate(`(module (global i32 (i32.const 0)) (global i32 (global.get 0)))`),
-+//   `unknown global`,
-+// );
-+
-+// // ./test/core/global.wast:367
-+// assert_invalid(
-+//   () => instantiate(`(module (global $$g i32 (i32.const 0)) (global i32 (global.get $$g)))`),
-+//   `unknown global`,
-+// );
- 
- // ./test/core/global.wast:372
- assert_invalid(
+@@ -173,6 +175,7 @@ assert_return(
+     either(
+       i32x4([0x0, 0xffffffff, 0x0, 0x0]),
+       i32x4([0xffffffff, 0xffffffff, 0x0, 0x0]),
++      i32x4([0xfffffffe, 0x0, 0x0, 0x0]),
+     ),
+   ],
+ );
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/relaxed_dot_product.wast.js b/js/src/jit-test/tests/wasm/spec/spec/relaxed_dot_product.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/relaxed_dot_product.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/relaxed_dot_product.wast.js
+@@ -1,3 +1,4 @@
++// |jit-test| --setpref=wasm_relaxed_simd=true; skip-if: !wasmRelaxedSimdEnabled()
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/relaxed_laneselect.wast.js b/js/src/jit-test/tests/wasm/spec/spec/relaxed_laneselect.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/relaxed_laneselect.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/relaxed_laneselect.wast.js
+@@ -1,3 +1,4 @@
++// |jit-test| --setpref=wasm_relaxed_simd=true; skip-if: !wasmRelaxedSimdEnabled()
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/relaxed_madd_nmadd.wast.js b/js/src/jit-test/tests/wasm/spec/spec/relaxed_madd_nmadd.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/relaxed_madd_nmadd.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/relaxed_madd_nmadd.wast.js
+@@ -1,3 +1,4 @@
++// |jit-test| --setpref=wasm_relaxed_simd=true; skip-if: !wasmRelaxedSimdEnabled()
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");
+diff --git a/js/src/jit-test/tests/wasm/spec/spec/relaxed_min_max.wast.js b/js/src/jit-test/tests/wasm/spec/spec/relaxed_min_max.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/spec/relaxed_min_max.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/spec/relaxed_min_max.wast.js
+@@ -1,3 +1,4 @@
++// |jit-test| --setpref=wasm_relaxed_simd=true; skip-if: !wasmRelaxedSimdEnabled()
+ /* Copyright 2021 Mozilla Foundation
+  *
+  * Licensed under the Apache License, Version 2.0 (the "License");

@@ -35,7 +35,7 @@ fn run_test(test: &Path, bless: bool) -> anyhow::Result<()> {
     };
     let assert = test.with_extension("wat.err");
     if bless {
-        std::fs::write(assert, err.to_string())?;
+        std::fs::write(assert, err)?;
         return Ok(());
     }
 

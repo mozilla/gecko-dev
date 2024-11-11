@@ -105,6 +105,7 @@ impl<'a> Expander<'a> {
                 self.expand_core_type(t);
                 None
             }
+            ComponentField::CoreRec(_) => None,
             ComponentField::Component(c) => self.expand_nested_component(c),
             ComponentField::Instance(i) => self.expand_instance(i),
             ComponentField::Type(t) => {
@@ -263,7 +264,9 @@ impl<'a> Expander<'a> {
             CanonicalFuncKind::Lower(_)
             | CanonicalFuncKind::ResourceNew(_)
             | CanonicalFuncKind::ResourceRep(_)
-            | CanonicalFuncKind::ResourceDrop(_) => {}
+            | CanonicalFuncKind::ResourceDrop(_)
+            | CanonicalFuncKind::ThreadSpawn(_)
+            | CanonicalFuncKind::ThreadHwConcurrency(_) => {}
         }
     }
 
@@ -305,6 +308,20 @@ impl<'a> Expander<'a> {
                 name: func.name,
                 kind: CanonicalFuncKind::ResourceRep(mem::take(info)),
             })),
+            CoreFuncKind::ThreadSpawn(info) => Some(ComponentField::CanonicalFunc(CanonicalFunc {
+                span: func.span,
+                id: func.id,
+                name: func.name,
+                kind: CanonicalFuncKind::ThreadSpawn(mem::take(info)),
+            })),
+            CoreFuncKind::ThreadHwConcurrency(info) => {
+                Some(ComponentField::CanonicalFunc(CanonicalFunc {
+                    span: func.span,
+                    id: func.id,
+                    name: func.name,
+                    kind: CanonicalFuncKind::ThreadHwConcurrency(mem::take(info)),
+                }))
+            }
         }
     }
 
@@ -435,7 +452,9 @@ impl<'a> Expander<'a> {
                     }
                     core::InnerTypeKind::Struct(_) => {}
                     core::InnerTypeKind::Array(_) => {}
+                    core::InnerTypeKind::Cont(_) => {}
                 },
+                ModuleTypeDecl::Rec(_) => {}
                 ModuleTypeDecl::Alias(_) => {}
                 ModuleTypeDecl::Import(ty) => {
                     expand_sig(&mut ty.item, &mut to_prepend, &mut func_type_to_idx);
@@ -455,7 +474,7 @@ impl<'a> Expander<'a> {
         ) {
             match &mut item.kind {
                 core::ItemKind::Func(t) | core::ItemKind::Tag(core::TagType::Exception(t)) => {
-                    // If the index is already filled in then this is skipped
+                    // If the index is already filled in then this is skipped.
                     if t.index.is_some() {
                         return;
                     }
@@ -476,9 +495,11 @@ impl<'a> Expander<'a> {
                         span: item.span,
                         id: Some(id),
                         name: None,
-                        def: key.to_def(item.span),
-                        parent: None,
-                        final_type: None,
+                        // Currently, there is no way in the WebAssembly text
+                        //  format to mark a function `shared` inline; a
+                        // `shared` function must use an explicit type index,
+                        // e.g., `(func (type $ft))`.
+                        def: key.to_def(item.span, /* shared = */ false),
                     }));
                     let idx = Index::Id(id);
                     t.index = Some(idx);

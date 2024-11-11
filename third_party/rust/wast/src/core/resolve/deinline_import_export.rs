@@ -139,7 +139,7 @@ pub fn run(fields: &mut Vec<ModuleField>) {
                             id: None,
                             name: None,
                             kind: ElemKind::Active {
-                                table: Index::Id(id),
+                                table: Some(Index::Id(id)),
                                 offset: Expression::one(if is64 {
                                     Instruction::I64Const(0)
                                 } else {

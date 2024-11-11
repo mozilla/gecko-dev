@@ -93,8 +93,7 @@ impl ComponentExportSection {
         index: u32,
         ty: Option<ComponentTypeRef>,
     ) -> &mut Self {
-        crate::component::imports::push_extern_name_byte(&mut self.bytes, name);
-        name.encode(&mut self.bytes);
+        crate::encode_component_export_name(&mut self.bytes, name);
         kind.encode(&mut self.bytes);
         index.encode(&mut self.bytes);
         match ty {
@@ -121,4 +120,10 @@ impl ComponentSection for ComponentExportSection {
     fn id(&self) -> u8 {
         ComponentSectionId::Export.into()
     }
+}
+
+/// For more information on this see `encode_component_import_name`.
+pub(crate) fn encode_component_export_name(bytes: &mut Vec<u8>, name: &str) {
+    bytes.push(0x00);
+    name.encode(bytes);
 }

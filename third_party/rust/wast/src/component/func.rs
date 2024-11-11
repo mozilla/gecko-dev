@@ -51,6 +51,8 @@ pub enum CoreFuncKind<'a> {
     ResourceNew(CanonResourceNew<'a>),
     ResourceDrop(CanonResourceDrop<'a>),
     ResourceRep(CanonResourceRep<'a>),
+    ThreadSpawn(CanonThreadSpawn<'a>),
+    ThreadHwConcurrency(CanonThreadHwConcurrency),
 }
 
 impl<'a> Parse<'a> for CoreFuncKind<'a> {
@@ -73,6 +75,10 @@ impl<'a> Parse<'a> for CoreFuncKind<'a> {
                 Ok(CoreFuncKind::ResourceDrop(parser.parse()?))
             } else if l.peek::<kw::resource_rep>()? {
                 Ok(CoreFuncKind::ResourceRep(parser.parse()?))
+            } else if l.peek::<kw::thread_spawn>()? {
+                Ok(CoreFuncKind::ThreadSpawn(parser.parse()?))
+            } else if l.peek::<kw::thread_hw_concurrency>()? {
+                Ok(CoreFuncKind::ThreadHwConcurrency(parser.parse()?))
             } else {
                 Err(l.error())
             }
@@ -261,6 +267,9 @@ pub enum CanonicalFuncKind<'a> {
     ResourceNew(CanonResourceNew<'a>),
     ResourceDrop(CanonResourceDrop<'a>),
     ResourceRep(CanonResourceRep<'a>),
+
+    ThreadSpawn(CanonThreadSpawn<'a>),
+    ThreadHwConcurrency(CanonThreadHwConcurrency),
 }
 
 /// Information relating to lifting a core function.
@@ -406,6 +415,48 @@ impl Default for CanonResourceRep<'_> {
         CanonResourceRep {
             ty: Index::Num(0, Span::from_offset(0)),
         }
+    }
+}
+
+/// Information relating to the `thread.spawn` intrinsic.
+#[derive(Debug)]
+pub struct CanonThreadSpawn<'a> {
+    /// The function type that is being spawned.
+    pub ty: Index<'a>,
+}
+
+impl<'a> Parse<'a> for CanonThreadSpawn<'a> {
+    fn parse(parser: Parser<'a>) -> Result<Self> {
+        parser.parse::<kw::thread_spawn>()?;
+
+        Ok(Self {
+            ty: parser.parse()?,
+        })
+    }
+}
+
+impl Default for CanonThreadSpawn<'_> {
+    fn default() -> Self {
+        CanonThreadSpawn {
+            ty: Index::Num(0, Span::from_offset(0)),
+        }
+    }
+}
+
+/// Information relating to the `thread.spawn` intrinsic.
+#[derive(Debug)]
+pub struct CanonThreadHwConcurrency;
+
+impl<'a> Parse<'a> for CanonThreadHwConcurrency {
+    fn parse(parser: Parser<'a>) -> Result<Self> {
+        parser.parse::<kw::thread_hw_concurrency>()?;
+        Ok(Self)
+    }
+}
+
+impl Default for CanonThreadHwConcurrency {
+    fn default() -> Self {
+        Self
     }
 }
 

@@ -4,7 +4,7 @@ use super::{
 use crate::{encode_section, Encode, Section, SectionId};
 
 /// Represents the kind of an export from a WebAssembly module.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 #[repr(u8)]
 pub enum ExportKind {
     /// The export is a function.

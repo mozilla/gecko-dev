@@ -41,6 +41,10 @@ let $0 = instantiate(`(module
   (func (export "f32.max_finite") (result i32) (i32.reinterpret_f32 (f32.const 0x1.fffffep+127)))
   (func (export "f32.max_subnormal") (result i32) (i32.reinterpret_f32 (f32.const 0x1.fffffcp-127)))
   (func (export "f32.trailing_dot") (result i32) (i32.reinterpret_f32 (f32.const 0x1.p10)))
+  (func (export "f32.misc_int") (result i32) (i32.reinterpret_f32 (f32.const 0x12345)))
+  (func (export "f32.large_int") (result i32) (i32.reinterpret_f32 (f32.const 0x1_0000_0000_0000_0000_0000)))
+  (func (export "f32.min_int32") (result i32) (i32.reinterpret_f32 (f32.const -0x8000_0000)))
+  (func (export "f32.min_int64") (result i32) (i32.reinterpret_f32 (f32.const -0x8000_0000_0000_0000)))
 
   ;; f32 in decimal format
   (func (export "f32_dec.zero") (result i32) (i32.reinterpret_f32 (f32.const 0.0e0)))
@@ -52,6 +56,10 @@ let $0 = instantiate(`(module
   (func (export "f32_dec.max_subnormal") (result i32) (i32.reinterpret_f32 (f32.const 1.1754942e-38)))
   (func (export "f32_dec.max_finite") (result i32) (i32.reinterpret_f32 (f32.const 3.4028234e+38)))
   (func (export "f32_dec.trailing_dot") (result i32) (i32.reinterpret_f32 (f32.const 1.e10)))
+  (func (export "f32_dec.misc_int") (result i32) (i32.reinterpret_f32 (f32.const 12345)))
+  (func (export "f32_dec.large_int") (result i32) (i32.reinterpret_f32 (f32.const 100_000_000_000_000_000_000)))
+  (func (export "f32_dec.min_int32") (result i32) (i32.reinterpret_f32 (f32.const -2147483648)))
+  (func (export "f32_dec.min_int64") (result i32) (i32.reinterpret_f32 (f32.const -9223372036854775808)))
 
   ;; https://twitter.com/Archivd/status/994637336506912768
   (func (export "f32_dec.root_beer_float") (result i32) (i32.reinterpret_f32 (f32.const 1.000000119)))
@@ -80,6 +88,10 @@ let $0 = instantiate(`(module
   (func (export "f64.max_subnormal") (result i64) (i64.reinterpret_f64 (f64.const 0x0.fffffffffffffp-1022)))
   (func (export "f64.max_finite") (result i64) (i64.reinterpret_f64 (f64.const 0x1.fffffffffffffp+1023)))
   (func (export "f64.trailing_dot") (result i64) (i64.reinterpret_f64 (f64.const 0x1.p100)))
+  (func (export "f64.misc_int") (result i64) (i64.reinterpret_f64 (f64.const 0x12345)))
+  (func (export "f64.large_int") (result i64) (i64.reinterpret_f64 (f64.const 0x1_0000_0000_0000_0000_0000)))
+  (func (export "f64.min_int32") (result i64) (i64.reinterpret_f64 (f64.const -0x8000_0000)))
+  (func (export "f64.min_int64") (result i64) (i64.reinterpret_f64 (f64.const -0x8000_0000_0000_0000)))
 
   ;; f64 numbers in decimal format
   (func (export "f64_dec.zero") (result i64) (i64.reinterpret_f64 (f64.const 0.0e0)))
@@ -91,6 +103,10 @@ let $0 = instantiate(`(module
   (func (export "f64_dec.max_subnormal") (result i64) (i64.reinterpret_f64 (f64.const 2.2250738585072011e-308)))
   (func (export "f64_dec.max_finite") (result i64) (i64.reinterpret_f64 (f64.const 1.7976931348623157e+308)))
   (func (export "f64_dec.trailing_dot") (result i64) (i64.reinterpret_f64 (f64.const 1.e100)))
+  (func (export "f64_dec.misc_int") (result i64) (i64.reinterpret_f64 (f64.const 12345)))
+  (func (export "f64_dec.large_int") (result i64) (i64.reinterpret_f64 (f64.const 100_000_000_000_000_000_000)))
+  (func (export "f64_dec.min_int32") (result i64) (i64.reinterpret_f64 (f64.const -2147483648)))
+  (func (export "f64_dec.min_int64") (result i64) (i64.reinterpret_f64 (f64.const -9223372036854775808)))
 
   ;; https://twitter.com/Archivd/status/994637336506912768
   (func (export "f64_dec.root_beer_float") (result i64) (i64.reinterpret_f64 (f64.const 1.000000119)))
@@ -118,235 +134,283 @@ let $0 = instantiate(`(module
   (func (export "f64-hex-sep5") (result f64) (f64.const 0x2a_f00a.1f_3_eep2_3))
 )`);
 
-// ./test/core/float_literals.wast:105
+// ./test/core/float_literals.wast:121
 assert_return(() => invoke($0, `f32.nan`, []), [value("i32", 2143289344)]);
 
-// ./test/core/float_literals.wast:106
+// ./test/core/float_literals.wast:122
 assert_return(() => invoke($0, `f32.positive_nan`, []), [value("i32", 2143289344)]);
 
-// ./test/core/float_literals.wast:107
+// ./test/core/float_literals.wast:123
 assert_return(() => invoke($0, `f32.negative_nan`, []), [value("i32", -4194304)]);
 
-// ./test/core/float_literals.wast:108
+// ./test/core/float_literals.wast:124
 assert_return(() => invoke($0, `f32.plain_nan`, []), [value("i32", 2143289344)]);
 
-// ./test/core/float_literals.wast:109
+// ./test/core/float_literals.wast:125
 assert_return(() => invoke($0, `f32.informally_known_as_plain_snan`, []), [value("i32", 2141192192)]);
 
-// ./test/core/float_literals.wast:110
+// ./test/core/float_literals.wast:126
 assert_return(() => invoke($0, `f32.all_ones_nan`, []), [value("i32", -1)]);
 
-// ./test/core/float_literals.wast:111
+// ./test/core/float_literals.wast:127
 assert_return(() => invoke($0, `f32.misc_nan`, []), [value("i32", 2139169605)]);
 
-// ./test/core/float_literals.wast:112
+// ./test/core/float_literals.wast:128
 assert_return(() => invoke($0, `f32.misc_positive_nan`, []), [value("i32", 2142257232)]);
 
-// ./test/core/float_literals.wast:113
+// ./test/core/float_literals.wast:129
 assert_return(() => invoke($0, `f32.misc_negative_nan`, []), [value("i32", -5587746)]);
 
-// ./test/core/float_literals.wast:114
+// ./test/core/float_literals.wast:130
 assert_return(() => invoke($0, `f32.infinity`, []), [value("i32", 2139095040)]);
 
-// ./test/core/float_literals.wast:115
+// ./test/core/float_literals.wast:131
 assert_return(() => invoke($0, `f32.positive_infinity`, []), [value("i32", 2139095040)]);
 
-// ./test/core/float_literals.wast:116
+// ./test/core/float_literals.wast:132
 assert_return(() => invoke($0, `f32.negative_infinity`, []), [value("i32", -8388608)]);
 
-// ./test/core/float_literals.wast:117
+// ./test/core/float_literals.wast:133
 assert_return(() => invoke($0, `f32.zero`, []), [value("i32", 0)]);
 
-// ./test/core/float_literals.wast:118
+// ./test/core/float_literals.wast:134
 assert_return(() => invoke($0, `f32.positive_zero`, []), [value("i32", 0)]);
 
-// ./test/core/float_literals.wast:119
+// ./test/core/float_literals.wast:135
 assert_return(() => invoke($0, `f32.negative_zero`, []), [value("i32", -2147483648)]);
 
-// ./test/core/float_literals.wast:120
+// ./test/core/float_literals.wast:136
 assert_return(() => invoke($0, `f32.misc`, []), [value("i32", 1086918619)]);
 
-// ./test/core/float_literals.wast:121
+// ./test/core/float_literals.wast:137
 assert_return(() => invoke($0, `f32.min_positive`, []), [value("i32", 1)]);
 
-// ./test/core/float_literals.wast:122
+// ./test/core/float_literals.wast:138
 assert_return(() => invoke($0, `f32.min_normal`, []), [value("i32", 8388608)]);
 
-// ./test/core/float_literals.wast:123
+// ./test/core/float_literals.wast:139
 assert_return(() => invoke($0, `f32.max_subnormal`, []), [value("i32", 8388607)]);
 
-// ./test/core/float_literals.wast:124
+// ./test/core/float_literals.wast:140
 assert_return(() => invoke($0, `f32.max_finite`, []), [value("i32", 2139095039)]);
 
-// ./test/core/float_literals.wast:125
+// ./test/core/float_literals.wast:141
 assert_return(() => invoke($0, `f32.trailing_dot`, []), [value("i32", 1149239296)]);
 
-// ./test/core/float_literals.wast:126
+// ./test/core/float_literals.wast:142
+assert_return(() => invoke($0, `f32.misc_int`, []), [value("i32", 1200726656)]);
+
+// ./test/core/float_literals.wast:143
+assert_return(() => invoke($0, `f32.large_int`, []), [value("i32", 1736441856)]);
+
+// ./test/core/float_literals.wast:144
+assert_return(() => invoke($0, `f32.min_int32`, []), [value("i32", -822083584)]);
+
+// ./test/core/float_literals.wast:145
+assert_return(() => invoke($0, `f32.min_int64`, []), [value("i32", -553648128)]);
+
+// ./test/core/float_literals.wast:146
 assert_return(() => invoke($0, `f32_dec.zero`, []), [value("i32", 0)]);
 
-// ./test/core/float_literals.wast:127
+// ./test/core/float_literals.wast:147
 assert_return(() => invoke($0, `f32_dec.positive_zero`, []), [value("i32", 0)]);
 
-// ./test/core/float_literals.wast:128
+// ./test/core/float_literals.wast:148
 assert_return(() => invoke($0, `f32_dec.negative_zero`, []), [value("i32", -2147483648)]);
 
-// ./test/core/float_literals.wast:129
+// ./test/core/float_literals.wast:149
 assert_return(() => invoke($0, `f32_dec.misc`, []), [value("i32", 1086918619)]);
 
-// ./test/core/float_literals.wast:130
+// ./test/core/float_literals.wast:150
 assert_return(() => invoke($0, `f32_dec.min_positive`, []), [value("i32", 1)]);
 
-// ./test/core/float_literals.wast:131
+// ./test/core/float_literals.wast:151
 assert_return(() => invoke($0, `f32_dec.min_normal`, []), [value("i32", 8388608)]);
 
-// ./test/core/float_literals.wast:132
+// ./test/core/float_literals.wast:152
 assert_return(() => invoke($0, `f32_dec.max_subnormal`, []), [value("i32", 8388607)]);
 
-// ./test/core/float_literals.wast:133
+// ./test/core/float_literals.wast:153
 assert_return(() => invoke($0, `f32_dec.max_finite`, []), [value("i32", 2139095039)]);
 
-// ./test/core/float_literals.wast:134
+// ./test/core/float_literals.wast:154
 assert_return(() => invoke($0, `f32_dec.trailing_dot`, []), [value("i32", 1343554297)]);
 
-// ./test/core/float_literals.wast:135
+// ./test/core/float_literals.wast:155
 assert_return(() => invoke($0, `f32_dec.root_beer_float`, []), [value("i32", 1065353217)]);
 
-// ./test/core/float_literals.wast:137
+// ./test/core/float_literals.wast:156
+assert_return(() => invoke($0, `f32_dec.misc_int`, []), [value("i32", 1178657792)]);
+
+// ./test/core/float_literals.wast:157
+assert_return(() => invoke($0, `f32_dec.large_int`, []), [value("i32", 1621981420)]);
+
+// ./test/core/float_literals.wast:158
+assert_return(() => invoke($0, `f32_dec.min_int32`, []), [value("i32", -822083584)]);
+
+// ./test/core/float_literals.wast:159
+assert_return(() => invoke($0, `f32_dec.min_int64`, []), [value("i32", -553648128)]);
+
+// ./test/core/float_literals.wast:161
 assert_return(() => invoke($0, `f64.nan`, []), [value("i64", 9221120237041090560n)]);
 
-// ./test/core/float_literals.wast:138
+// ./test/core/float_literals.wast:162
 assert_return(() => invoke($0, `f64.positive_nan`, []), [value("i64", 9221120237041090560n)]);
 
-// ./test/core/float_literals.wast:139
+// ./test/core/float_literals.wast:163
 assert_return(() => invoke($0, `f64.negative_nan`, []), [value("i64", -2251799813685248n)]);
 
-// ./test/core/float_literals.wast:140
+// ./test/core/float_literals.wast:164
 assert_return(() => invoke($0, `f64.plain_nan`, []), [value("i64", 9221120237041090560n)]);
 
-// ./test/core/float_literals.wast:141
+// ./test/core/float_literals.wast:165
 assert_return(
   () => invoke($0, `f64.informally_known_as_plain_snan`, []),
   [value("i64", 9219994337134247936n)],
 );
 
-// ./test/core/float_literals.wast:142
+// ./test/core/float_literals.wast:166
 assert_return(() => invoke($0, `f64.all_ones_nan`, []), [value("i64", -1n)]);
 
-// ./test/core/float_literals.wast:143
+// ./test/core/float_literals.wast:167
 assert_return(() => invoke($0, `f64.misc_nan`, []), [value("i64", 9218888453225749180n)]);
 
-// ./test/core/float_literals.wast:144
+// ./test/core/float_literals.wast:168
 assert_return(() => invoke($0, `f64.misc_positive_nan`, []), [value("i64", 9219717281780008969n)]);
 
-// ./test/core/float_literals.wast:145
+// ./test/core/float_literals.wast:169
 assert_return(() => invoke($0, `f64.misc_negative_nan`, []), [value("i64", -3751748707474619n)]);
 
-// ./test/core/float_literals.wast:146
+// ./test/core/float_literals.wast:170
 assert_return(() => invoke($0, `f64.infinity`, []), [value("i64", 9218868437227405312n)]);
 
-// ./test/core/float_literals.wast:147
+// ./test/core/float_literals.wast:171
 assert_return(() => invoke($0, `f64.positive_infinity`, []), [value("i64", 9218868437227405312n)]);
 
-// ./test/core/float_literals.wast:148
+// ./test/core/float_literals.wast:172
 assert_return(() => invoke($0, `f64.negative_infinity`, []), [value("i64", -4503599627370496n)]);
 
-// ./test/core/float_literals.wast:149
+// ./test/core/float_literals.wast:173
 assert_return(() => invoke($0, `f64.zero`, []), [value("i64", 0n)]);
 
-// ./test/core/float_literals.wast:150
+// ./test/core/float_literals.wast:174
 assert_return(() => invoke($0, `f64.positive_zero`, []), [value("i64", 0n)]);
 
-// ./test/core/float_literals.wast:151
+// ./test/core/float_literals.wast:175
 assert_return(() => invoke($0, `f64.negative_zero`, []), [value("i64", -9223372036854775808n)]);
 
-// ./test/core/float_literals.wast:152
+// ./test/core/float_literals.wast:176
 assert_return(() => invoke($0, `f64.misc`, []), [value("i64", 4618760256179416344n)]);
 
-// ./test/core/float_literals.wast:153
+// ./test/core/float_literals.wast:177
 assert_return(() => invoke($0, `f64.min_positive`, []), [value("i64", 1n)]);
 
-// ./test/core/float_literals.wast:154
+// ./test/core/float_literals.wast:178
 assert_return(() => invoke($0, `f64.min_normal`, []), [value("i64", 4503599627370496n)]);
 
-// ./test/core/float_literals.wast:155
+// ./test/core/float_literals.wast:179
 assert_return(() => invoke($0, `f64.max_subnormal`, []), [value("i64", 4503599627370495n)]);
 
-// ./test/core/float_literals.wast:156
+// ./test/core/float_literals.wast:180
 assert_return(() => invoke($0, `f64.max_finite`, []), [value("i64", 9218868437227405311n)]);
 
-// ./test/core/float_literals.wast:157
+// ./test/core/float_literals.wast:181
 assert_return(() => invoke($0, `f64.trailing_dot`, []), [value("i64", 5057542381537067008n)]);
 
-// ./test/core/float_literals.wast:158
-assert_return(() => invoke($0, `f64_dec.zero`, []), [value("i64", 0n)]);
-
-// ./test/core/float_literals.wast:159
-assert_return(() => invoke($0, `f64_dec.positive_zero`, []), [value("i64", 0n)]);
-
-// ./test/core/float_literals.wast:160
-assert_return(() => invoke($0, `f64_dec.negative_zero`, []), [value("i64", -9223372036854775808n)]);
-
-// ./test/core/float_literals.wast:161
-assert_return(() => invoke($0, `f64_dec.misc`, []), [value("i64", 4618760256179416344n)]);
-
-// ./test/core/float_literals.wast:162
-assert_return(() => invoke($0, `f64_dec.min_positive`, []), [value("i64", 1n)]);
-
-// ./test/core/float_literals.wast:163
-assert_return(() => invoke($0, `f64_dec.min_normal`, []), [value("i64", 4503599627370496n)]);
-
-// ./test/core/float_literals.wast:164
-assert_return(() => invoke($0, `f64_dec.max_subnormal`, []), [value("i64", 4503599627370495n)]);
-
-// ./test/core/float_literals.wast:165
-assert_return(() => invoke($0, `f64_dec.max_finite`, []), [value("i64", 9218868437227405311n)]);
-
-// ./test/core/float_literals.wast:166
-assert_return(() => invoke($0, `f64_dec.trailing_dot`, []), [value("i64", 6103021453049119613n)]);
-
-// ./test/core/float_literals.wast:167
-assert_return(() => invoke($0, `f64_dec.root_beer_float`, []), [value("i64", 4607182419335945764n)]);
-
-// ./test/core/float_literals.wast:169
-assert_return(() => invoke($0, `f32-dec-sep1`, []), [value("f32", 1000000)]);
-
-// ./test/core/float_literals.wast:170
-assert_return(() => invoke($0, `f32-dec-sep2`, []), [value("f32", 1000)]);
-
-// ./test/core/float_literals.wast:171
-assert_return(() => invoke($0, `f32-dec-sep3`, []), [value("f32", 1003.1416)]);
-
-// ./test/core/float_literals.wast:172
-assert_return(() => invoke($0, `f32-dec-sep4`, []), [value("f32", 990000000000000)]);
-
-// ./test/core/float_literals.wast:173
-assert_return(() => invoke($0, `f32-dec-sep5`, []), [value("f32", 12200012000000000000000000000)]);
-
-// ./test/core/float_literals.wast:174
-assert_return(() => invoke($0, `f32-hex-sep1`, []), [value("f32", 168755360)]);
-
-// ./test/core/float_literals.wast:175
-assert_return(() => invoke($0, `f32-hex-sep2`, []), [value("f32", 109071)]);
-
-// ./test/core/float_literals.wast:176
-assert_return(() => invoke($0, `f32-hex-sep3`, []), [value("f32", 41215.94)]);
-
-// ./test/core/float_literals.wast:177
-assert_return(() => invoke($0, `f32-hex-sep4`, []), [value("f32", 1966080)]);
-
-// ./test/core/float_literals.wast:178
-assert_return(() => invoke($0, `f32-hex-sep5`, []), [value("f32", 23605224000000)]);
-
-// ./test/core/float_literals.wast:180
-assert_return(() => invoke($0, `f64-dec-sep1`, []), [value("f64", 1000000)]);
-
-// ./test/core/float_literals.wast:181
-assert_return(() => invoke($0, `f64-dec-sep2`, []), [value("f64", 1000)]);
-
 // ./test/core/float_literals.wast:182
-assert_return(() => invoke($0, `f64-dec-sep3`, []), [value("f64", 1003.141592)]);
+assert_return(() => invoke($0, `f64.misc_int`, []), [value("i64", 4679860480993394688n)]);
 
 // ./test/core/float_literals.wast:183
+assert_return(() => invoke($0, `f64.large_int`, []), [value("i64", 4967470388989657088n)]);
+
+// ./test/core/float_literals.wast:184
+assert_return(() => invoke($0, `f64.min_int32`, []), [value("i64", -4476578029606273024n)]);
+
+// ./test/core/float_literals.wast:185
+assert_return(() => invoke($0, `f64.min_int64`, []), [value("i64", -4332462841530417152n)]);
+
+// ./test/core/float_literals.wast:186
+assert_return(() => invoke($0, `f64_dec.zero`, []), [value("i64", 0n)]);
+
+// ./test/core/float_literals.wast:187
+assert_return(() => invoke($0, `f64_dec.positive_zero`, []), [value("i64", 0n)]);
+
+// ./test/core/float_literals.wast:188
+assert_return(() => invoke($0, `f64_dec.negative_zero`, []), [value("i64", -9223372036854775808n)]);
+
+// ./test/core/float_literals.wast:189
+assert_return(() => invoke($0, `f64_dec.misc`, []), [value("i64", 4618760256179416344n)]);
+
+// ./test/core/float_literals.wast:190
+assert_return(() => invoke($0, `f64_dec.min_positive`, []), [value("i64", 1n)]);
+
+// ./test/core/float_literals.wast:191
+assert_return(() => invoke($0, `f64_dec.min_normal`, []), [value("i64", 4503599627370496n)]);
+
+// ./test/core/float_literals.wast:192
+assert_return(() => invoke($0, `f64_dec.max_subnormal`, []), [value("i64", 4503599627370495n)]);
+
+// ./test/core/float_literals.wast:193
+assert_return(() => invoke($0, `f64_dec.max_finite`, []), [value("i64", 9218868437227405311n)]);
+
+// ./test/core/float_literals.wast:194
+assert_return(() => invoke($0, `f64_dec.trailing_dot`, []), [value("i64", 6103021453049119613n)]);
+
+// ./test/core/float_literals.wast:195
+assert_return(() => invoke($0, `f64_dec.root_beer_float`, []), [value("i64", 4607182419335945764n)]);
+
+// ./test/core/float_literals.wast:196
+assert_return(() => invoke($0, `f64_dec.misc_int`, []), [value("i64", 4668012349850910720n)]);
+
+// ./test/core/float_literals.wast:197
+assert_return(() => invoke($0, `f64_dec.large_int`, []), [value("i64", 4906019910204099648n)]);
+
+// ./test/core/float_literals.wast:198
+assert_return(() => invoke($0, `f64_dec.min_int32`, []), [value("i64", -4476578029606273024n)]);
+
+// ./test/core/float_literals.wast:199
+assert_return(() => invoke($0, `f64_dec.min_int64`, []), [value("i64", -4332462841530417152n)]);
+
+// ./test/core/float_literals.wast:201
+assert_return(() => invoke($0, `f32-dec-sep1`, []), [value("f32", 1000000)]);
+
+// ./test/core/float_literals.wast:202
+assert_return(() => invoke($0, `f32-dec-sep2`, []), [value("f32", 1000)]);
+
+// ./test/core/float_literals.wast:203
+assert_return(() => invoke($0, `f32-dec-sep3`, []), [value("f32", 1003.1416)]);
+
+// ./test/core/float_literals.wast:204
+assert_return(() => invoke($0, `f32-dec-sep4`, []), [value("f32", 990000000000000)]);
+
+// ./test/core/float_literals.wast:205
+assert_return(() => invoke($0, `f32-dec-sep5`, []), [value("f32", 12200012000000000000000000000)]);
+
+// ./test/core/float_literals.wast:206
+assert_return(() => invoke($0, `f32-hex-sep1`, []), [value("f32", 168755360)]);
+
+// ./test/core/float_literals.wast:207
+assert_return(() => invoke($0, `f32-hex-sep2`, []), [value("f32", 109071)]);
+
+// ./test/core/float_literals.wast:208
+assert_return(() => invoke($0, `f32-hex-sep3`, []), [value("f32", 41215.94)]);
+
+// ./test/core/float_literals.wast:209
+assert_return(() => invoke($0, `f32-hex-sep4`, []), [value("f32", 1966080)]);
+
+// ./test/core/float_literals.wast:210
+assert_return(() => invoke($0, `f32-hex-sep5`, []), [value("f32", 23605224000000)]);
+
+// ./test/core/float_literals.wast:212
+assert_return(() => invoke($0, `f64-dec-sep1`, []), [value("f64", 1000000)]);
+
+// ./test/core/float_literals.wast:213
+assert_return(() => invoke($0, `f64-dec-sep2`, []), [value("f64", 1000)]);
+
+// ./test/core/float_literals.wast:214
+assert_return(() => invoke($0, `f64-dec-sep3`, []), [value("f64", 1003.141592)]);
+
+// ./test/core/float_literals.wast:215
 assert_return(
   () => invoke($0, `f64-dec-sep4`, []),
   [
@@ -354,25 +418,25 @@ assert_return(
   ],
 );
 
-// ./test/core/float_literals.wast:184
+// ./test/core/float_literals.wast:216
 assert_return(() => invoke($0, `f64-dec-sep5`, []), [value("f64", 12200011354000000000000000000)]);
 
-// ./test/core/float_literals.wast:185
+// ./test/core/float_literals.wast:217
 assert_return(() => invoke($0, `f64-hex-sep1`, []), [value("f64", 3078696982321561)]);
 
-// ./test/core/float_literals.wast:186
+// ./test/core/float_literals.wast:218
 assert_return(() => invoke($0, `f64-hex-sep2`, []), [value("f64", 109071)]);
 
-// ./test/core/float_literals.wast:187
+// ./test/core/float_literals.wast:219
 assert_return(() => invoke($0, `f64-hex-sep3`, []), [value("f64", 41215.94240794191)]);
 
-// ./test/core/float_literals.wast:188
+// ./test/core/float_literals.wast:220
 assert_return(() => invoke($0, `f64-hex-sep4`, []), [value("f64", 1966080)]);
 
-// ./test/core/float_literals.wast:189
+// ./test/core/float_literals.wast:221
 assert_return(() => invoke($0, `f64-hex-sep5`, []), [value("f64", 23605225168752)]);
 
-// ./test/core/float_literals.wast:192
+// ./test/core/float_literals.wast:224
 let $1 = instantiate(`(module binary
   ;; (func (export "4294967249") (result f64) (f64.const 4294967249))
   "\\00\\61\\73\\6d\\01\\00\\00\\00\\01\\85\\80\\80\\80\\00\\01\\60"
@@ -382,383 +446,395 @@ let $1 = instantiate(`(module binary
   "\\fa\\ff\\ff\\ef\\41\\0b"
 )`);
 
-// ./test/core/float_literals.wast:201
+// ./test/core/float_literals.wast:233
 assert_return(() => invoke($1, `4294967249`, []), [value("f64", 4294967249)]);
 
-// ./test/core/float_literals.wast:203
+// ./test/core/float_literals.wast:235
 assert_malformed(() => instantiate(`(global f32 (f32.const _100)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:207
+// ./test/core/float_literals.wast:239
 assert_malformed(() => instantiate(`(global f32 (f32.const +_100)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:211
+// ./test/core/float_literals.wast:243
 assert_malformed(() => instantiate(`(global f32 (f32.const -_100)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:215
+// ./test/core/float_literals.wast:247
 assert_malformed(() => instantiate(`(global f32 (f32.const 99_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:219
+// ./test/core/float_literals.wast:251
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 1__000)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:223
+// ./test/core/float_literals.wast:255
 assert_malformed(() => instantiate(`(global f32 (f32.const _1.0)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:227
+// ./test/core/float_literals.wast:259
 assert_malformed(() => instantiate(`(global f32 (f32.const 1.0_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:231
+// ./test/core/float_literals.wast:263
 assert_malformed(() => instantiate(`(global f32 (f32.const 1_.0)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:235
+// ./test/core/float_literals.wast:267
 assert_malformed(() => instantiate(`(global f32 (f32.const 1._0)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:239
+// ./test/core/float_literals.wast:271
 assert_malformed(() => instantiate(`(global f32 (f32.const _1e1)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:243
+// ./test/core/float_literals.wast:275
 assert_malformed(() => instantiate(`(global f32 (f32.const 1e1_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:247
+// ./test/core/float_literals.wast:279
 assert_malformed(() => instantiate(`(global f32 (f32.const 1_e1)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:251
+// ./test/core/float_literals.wast:283
 assert_malformed(() => instantiate(`(global f32 (f32.const 1e_1)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:255
+// ./test/core/float_literals.wast:287
 assert_malformed(
   () => instantiate(`(global f32 (f32.const _1.0e1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:259
+// ./test/core/float_literals.wast:291
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 1.0e1_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:263
+// ./test/core/float_literals.wast:295
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 1.0_e1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:267
+// ./test/core/float_literals.wast:299
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 1.0e_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:271
+// ./test/core/float_literals.wast:303
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 1.0e+_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:275
+// ./test/core/float_literals.wast:307
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 1.0e_+1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:279
+// ./test/core/float_literals.wast:311
 assert_malformed(
   () => instantiate(`(global f32 (f32.const _0x100)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:283
+// ./test/core/float_literals.wast:315
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0_x100)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:287
+// ./test/core/float_literals.wast:319
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x_100)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:291
+// ./test/core/float_literals.wast:323
 assert_malformed(() => instantiate(`(global f32 (f32.const 0x00_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:295
+// ./test/core/float_literals.wast:327
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0xff__ffff)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:299
+// ./test/core/float_literals.wast:331
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x_1.0)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:303
+// ./test/core/float_literals.wast:335
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1.0_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:307
+// ./test/core/float_literals.wast:339
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1_.0)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:311
+// ./test/core/float_literals.wast:343
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1._0)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:315
+// ./test/core/float_literals.wast:347
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x_1p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:319
+// ./test/core/float_literals.wast:351
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1p1_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:323
+// ./test/core/float_literals.wast:355
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1_p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:327
+// ./test/core/float_literals.wast:359
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1p_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:331
+// ./test/core/float_literals.wast:363
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x_1.0p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:335
+// ./test/core/float_literals.wast:367
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1.0p1_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:339
+// ./test/core/float_literals.wast:371
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1.0_p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:343
+// ./test/core/float_literals.wast:375
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1.0p_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:347
+// ./test/core/float_literals.wast:379
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1.0p+_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:351
+// ./test/core/float_literals.wast:383
 assert_malformed(
   () => instantiate(`(global f32 (f32.const 0x1.0p_+1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:356
+// ./test/core/float_literals.wast:387
+assert_malformed(
+  () => instantiate(`(global f32 (f32.const nan:0x80_0000)) `),
+  `constant out of range`,
+);
+
+// ./test/core/float_literals.wast:392
 assert_malformed(() => instantiate(`(global f64 (f64.const _100)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:360
+// ./test/core/float_literals.wast:396
 assert_malformed(() => instantiate(`(global f64 (f64.const +_100)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:364
+// ./test/core/float_literals.wast:400
 assert_malformed(() => instantiate(`(global f64 (f64.const -_100)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:368
+// ./test/core/float_literals.wast:404
 assert_malformed(() => instantiate(`(global f64 (f64.const 99_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:372
+// ./test/core/float_literals.wast:408
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 1__000)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:376
+// ./test/core/float_literals.wast:412
 assert_malformed(() => instantiate(`(global f64 (f64.const _1.0)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:380
+// ./test/core/float_literals.wast:416
 assert_malformed(() => instantiate(`(global f64 (f64.const 1.0_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:384
+// ./test/core/float_literals.wast:420
 assert_malformed(() => instantiate(`(global f64 (f64.const 1_.0)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:388
+// ./test/core/float_literals.wast:424
 assert_malformed(() => instantiate(`(global f64 (f64.const 1._0)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:392
+// ./test/core/float_literals.wast:428
 assert_malformed(() => instantiate(`(global f64 (f64.const _1e1)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:396
+// ./test/core/float_literals.wast:432
 assert_malformed(() => instantiate(`(global f64 (f64.const 1e1_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:400
+// ./test/core/float_literals.wast:436
 assert_malformed(() => instantiate(`(global f64 (f64.const 1_e1)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:404
+// ./test/core/float_literals.wast:440
 assert_malformed(() => instantiate(`(global f64 (f64.const 1e_1)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:408
+// ./test/core/float_literals.wast:444
 assert_malformed(
   () => instantiate(`(global f64 (f64.const _1.0e1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:412
+// ./test/core/float_literals.wast:448
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 1.0e1_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:416
+// ./test/core/float_literals.wast:452
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 1.0_e1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:420
+// ./test/core/float_literals.wast:456
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 1.0e_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:424
+// ./test/core/float_literals.wast:460
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 1.0e+_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:428
+// ./test/core/float_literals.wast:464
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 1.0e_+1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:432
+// ./test/core/float_literals.wast:468
 assert_malformed(
   () => instantiate(`(global f64 (f64.const _0x100)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:436
+// ./test/core/float_literals.wast:472
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0_x100)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:440
+// ./test/core/float_literals.wast:476
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x_100)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:444
+// ./test/core/float_literals.wast:480
 assert_malformed(() => instantiate(`(global f64 (f64.const 0x00_)) `), `unknown operator`);
 
-// ./test/core/float_literals.wast:448
+// ./test/core/float_literals.wast:484
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0xff__ffff)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:452
+// ./test/core/float_literals.wast:488
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x_1.0)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:456
+// ./test/core/float_literals.wast:492
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1.0_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:460
+// ./test/core/float_literals.wast:496
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1_.0)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:464
+// ./test/core/float_literals.wast:500
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1._0)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:468
+// ./test/core/float_literals.wast:504
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x_1p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:472
+// ./test/core/float_literals.wast:508
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1p1_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:476
+// ./test/core/float_literals.wast:512
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1_p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:480
+// ./test/core/float_literals.wast:516
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1p_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:484
+// ./test/core/float_literals.wast:520
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x_1.0p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:488
+// ./test/core/float_literals.wast:524
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1.0p1_)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:492
+// ./test/core/float_literals.wast:528
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1.0_p1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:496
+// ./test/core/float_literals.wast:532
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1.0p_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:500
+// ./test/core/float_literals.wast:536
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1.0p+_1)) `),
   `unknown operator`,
 );
 
-// ./test/core/float_literals.wast:504
+// ./test/core/float_literals.wast:540
 assert_malformed(
   () => instantiate(`(global f64 (f64.const 0x1.0p_+1)) `),
   `unknown operator`,
+);
+
+// ./test/core/float_literals.wast:544
+assert_malformed(
+  () => instantiate(`(global f64 (f64.const nan:0x10_0000_0000_0000)) `),
+  `constant out of range`,
 );

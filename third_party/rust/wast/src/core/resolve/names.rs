@@ -65,7 +65,7 @@ impl<'a> Resolver<'a> {
                 }
             }
 
-            InnerTypeKind::Array(_) | InnerTypeKind::Func(_) => {}
+            InnerTypeKind::Array(_) | InnerTypeKind::Func(_) | InnerTypeKind::Cont(_) => {}
         }
 
         // Record function signatures as we see them to so we can
@@ -116,22 +116,6 @@ impl<'a> Resolver<'a> {
             }
         };
 
-        Ok(())
-    }
-
-    fn resolve_type(&self, ty: &mut Type<'a>) -> Result<(), Error> {
-        match &mut ty.def.kind {
-            InnerTypeKind::Func(func) => func.resolve(self)?,
-            InnerTypeKind::Struct(struct_) => {
-                for field in &mut struct_.fields {
-                    self.resolve_storagetype(&mut field.ty)?;
-                }
-            }
-            InnerTypeKind::Array(array) => self.resolve_storagetype(&mut array.ty)?,
-        }
-        if let Some(parent) = &mut ty.parent {
-            self.resolve(parent, Ns::Type)?;
-        }
         Ok(())
     }
 
@@ -200,7 +184,9 @@ impl<'a> Resolver<'a> {
             ModuleField::Elem(e) => {
                 match &mut e.kind {
                     ElemKind::Active { table, offset } => {
-                        self.resolve(table, Ns::Table)?;
+                        if let Some(table) = table {
+                            self.resolve(table, Ns::Table)?;
+                        }
                         self.resolve_expr(offset)?;
                     }
                     ElemKind::Passive { .. } | ElemKind::Declared { .. } => {}
@@ -279,36 +265,6 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn resolve_valtype(&self, ty: &mut ValType<'a>) -> Result<(), Error> {
-        match ty {
-            ValType::Ref(ty) => self.resolve_heaptype(&mut ty.heap)?,
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn resolve_reftype(&self, ty: &mut RefType<'a>) -> Result<(), Error> {
-        self.resolve_heaptype(&mut ty.heap)
-    }
-
-    fn resolve_heaptype(&self, ty: &mut HeapType<'a>) -> Result<(), Error> {
-        match ty {
-            HeapType::Concrete(i) => {
-                self.resolve(i, Ns::Type)?;
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn resolve_storagetype(&self, ty: &mut StorageType<'a>) -> Result<(), Error> {
-        match ty {
-            StorageType::Val(ty) => self.resolve_valtype(ty)?,
-            _ => {}
-        }
-        Ok(())
-    }
-
     fn resolve_item_sig(&self, item: &mut ItemSig<'a>) -> Result<(), Error> {
         match &mut item.kind {
             ItemKind::Func(t) | ItemKind::Tag(TagType::Exception(t)) => {
@@ -359,6 +315,18 @@ impl<'a> Resolver<'a> {
             Ns::Tag => self.tags.resolve(idx, "tag"),
             Ns::Type => self.types.resolve(idx, "type"),
         }
+    }
+
+    fn resolve_type(&self, ty: &mut Type<'a>) -> Result<(), Error> {
+        ResolveCoreType::resolve_type(&mut &*self, ty)
+    }
+
+    fn resolve_valtype(&self, ty: &mut ValType<'a>) -> Result<(), Error> {
+        ResolveCoreType::resolve_valtype(&mut &*self, ty)
+    }
+
+    fn resolve_heaptype(&self, ty: &mut HeapType<'a>) -> Result<(), Error> {
+        ResolveCoreType::resolve_heaptype(&mut &*self, ty)
     }
 }
 
@@ -681,7 +649,49 @@ impl<'a, 'b> ExprResolver<'a, 'b> {
 
             RefNull(ty) => self.resolver.resolve_heaptype(ty)?,
 
+            ContNew(ty) => {
+                self.resolver.resolve(ty, Ns::Type)?;
+            }
+            ContBind(cb) => {
+                self.resolver.resolve(&mut cb.argument_index, Ns::Type)?;
+                self.resolver.resolve(&mut cb.result_index, Ns::Type)?;
+            }
+            Suspend(ty) => {
+                self.resolver.resolve(ty, Ns::Tag)?;
+            }
+            Resume(r) => {
+                self.resolver.resolve(&mut r.type_index, Ns::Type)?;
+                self.resolve_resume_table(&mut r.table)?;
+            }
+            ResumeThrow(rt) => {
+                self.resolver.resolve(&mut rt.type_index, Ns::Type)?;
+                self.resolver.resolve(&mut rt.tag_index, Ns::Tag)?;
+                self.resolve_resume_table(&mut rt.table)?;
+            }
+            Switch(s) => {
+                self.resolver.resolve(&mut s.type_index, Ns::Type)?;
+                self.resolver.resolve(&mut s.tag_index, Ns::Tag)?;
+            }
+
             _ => {}
+        }
+        Ok(())
+    }
+
+    fn resolve_resume_table(&self, table: &mut ResumeTable<'a>) -> Result<(), Error> {
+        for handle in &mut table.handlers {
+            match handle {
+                Handle::OnLabel {
+                    ref mut tag,
+                    ref mut label,
+                } => {
+                    self.resolver.resolve(tag, Ns::Tag)?;
+                    self.resolve_label(label)?;
+                }
+                Handle::OnSwitch { ref mut tag } => {
+                    self.resolver.resolve(tag, Ns::Tag)?;
+                }
+            }
         }
         Ok(())
     }
@@ -751,10 +761,10 @@ impl<'a> TypeReference<'a> for FunctionType<'a> {
         // opportunistically here to see if the values are equal.
 
         let types_not_equal = |a: &ValType, b: &ValType| {
-            let mut a = a.clone();
-            let mut b = b.clone();
-            drop(cx.resolve_valtype(&mut a));
-            drop(cx.resolve_valtype(&mut b));
+            let mut a = *a;
+            let mut b = *b;
+            drop((&cx).resolve_valtype(&mut a));
+            drop((&cx).resolve_valtype(&mut b));
             a != b
         };
 
@@ -779,13 +789,80 @@ impl<'a> TypeReference<'a> for FunctionType<'a> {
     }
 
     fn resolve(&mut self, cx: &Resolver<'a>) -> Result<(), Error> {
-        // Resolve the (ref T) value types in the final function type
-        for param in self.params.iter_mut() {
-            cx.resolve_valtype(&mut param.2)?;
+        (&mut &*cx).resolve_type_func(self)
+    }
+}
+
+pub(crate) trait ResolveCoreType<'a> {
+    fn resolve_type_name(&mut self, name: &mut Index<'a>) -> Result<u32, Error>;
+
+    fn resolve_type(&mut self, ty: &mut Type<'a>) -> Result<(), Error> {
+        self.resolve_type_def(&mut ty.def)?;
+        Ok(())
+    }
+
+    fn resolve_type_def(&mut self, ty: &mut TypeDef<'a>) -> Result<(), Error> {
+        if let Some(parent) = &mut ty.parent {
+            self.resolve_type_name(parent)?;
         }
-        for result in self.results.iter_mut() {
-            cx.resolve_valtype(result)?;
+        match &mut ty.kind {
+            InnerTypeKind::Func(func) => self.resolve_type_func(func),
+            InnerTypeKind::Struct(struct_) => {
+                for field in &mut struct_.fields {
+                    self.resolve_storagetype(&mut field.ty)?;
+                }
+                Ok(())
+            }
+            InnerTypeKind::Array(array) => self.resolve_storagetype(&mut array.ty),
+            InnerTypeKind::Cont(cont) => {
+                self.resolve_type_name(&mut cont.0)?;
+                Ok(())
+            }
+        }
+    }
+
+    fn resolve_type_func(&mut self, ty: &mut FunctionType<'a>) -> Result<(), Error> {
+        // Resolve the (ref T) value types in the final function type
+        for param in ty.params.iter_mut() {
+            self.resolve_valtype(&mut param.2)?;
+        }
+        for result in ty.results.iter_mut() {
+            self.resolve_valtype(result)?;
         }
         Ok(())
+    }
+
+    fn resolve_valtype(&mut self, ty: &mut ValType<'a>) -> Result<(), Error> {
+        match ty {
+            ValType::Ref(ty) => self.resolve_reftype(ty),
+            ValType::I32 | ValType::I64 | ValType::F32 | ValType::F64 | ValType::V128 => Ok(()),
+        }
+    }
+
+    fn resolve_reftype(&mut self, ty: &mut RefType<'a>) -> Result<(), Error> {
+        self.resolve_heaptype(&mut ty.heap)
+    }
+
+    fn resolve_heaptype(&mut self, ty: &mut HeapType<'a>) -> Result<(), Error> {
+        match ty {
+            HeapType::Concrete(i) => {
+                self.resolve_type_name(i)?;
+            }
+            HeapType::Abstract { .. } => {}
+        }
+        Ok(())
+    }
+
+    fn resolve_storagetype(&mut self, ty: &mut StorageType<'a>) -> Result<(), Error> {
+        match ty {
+            StorageType::Val(ty) => self.resolve_valtype(ty),
+            StorageType::I8 | StorageType::I16 => Ok(()),
+        }
+    }
+}
+
+impl<'a> ResolveCoreType<'a> for &Resolver<'a> {
+    fn resolve_type_name(&mut self, name: &mut Index<'a>) -> Result<u32, Error> {
+        self.resolve(name, Ns::Type)
     }
 }

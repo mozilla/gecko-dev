@@ -36,21 +36,19 @@ impl Module {
         for group in &self.rec_groups {
             if group.end - group.start == 1 {
                 let ty = &self.types[group.start];
-                section.subtype(&wasm_encoder::SubType {
+                section.ty().subtype(&wasm_encoder::SubType {
                     is_final: ty.is_final,
                     supertype_idx: ty.supertype,
                     composite_type: (&ty.composite_type).into(),
                 });
             } else {
-                section.rec(
-                    self.types[group.clone()]
-                        .iter()
-                        .map(|ty| wasm_encoder::SubType {
-                            is_final: ty.is_final,
-                            supertype_idx: ty.supertype,
-                            composite_type: (&ty.composite_type).into(),
-                        }),
-                );
+                section.ty().rec(self.types[group.clone()].iter().map(|ty| {
+                    wasm_encoder::SubType {
+                        is_final: ty.is_final,
+                        supertype_idx: ty.supertype,
+                        composite_type: (&ty.composite_type).into(),
+                    }
+                }));
             }
         }
 
@@ -166,10 +164,10 @@ impl Module {
         let mut elems = wasm_encoder::ElementSection::new();
         for el in &self.elems {
             let elements = match &el.items {
-                Elements::Expressions(es) => wasm_encoder::Elements::Expressions(el.ty, es),
+                Elements::Expressions(es) => wasm_encoder::Elements::Expressions(el.ty, es.into()),
                 Elements::Functions(fs) => {
                     assert_eq!(el.ty, RefType::FUNCREF);
-                    wasm_encoder::Elements::Functions(fs)
+                    wasm_encoder::Elements::Functions(fs.into())
                 }
             };
             match &el.kind {
