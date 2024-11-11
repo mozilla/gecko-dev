@@ -48,6 +48,7 @@ include protocol PVsync;
 include protocol PRemoteDecoderManager;
 include protocol PWebTransport;
 include protocol PFetch;
+include protocol PNotification;
 
 include ClientIPCTypes;
 include DOMTypes;
@@ -185,6 +186,21 @@ parent:
       WebTransportHash[] aServerCertHashes,
       Endpoint<PWebTransportParent> aParentEndpoint)
       returns(nsresult rv, uint8_t aReliability); // Actually WebTransportReliabityMode enum
+
+
+  // XXX(krosylight): This should ultimately use nsID instead of scope, see bug 1881812.
+  /**
+   * Finish the setup of a new PNotification top level protocol.
+   */
+  async CreateNotificationParent(
+    Endpoint<PNotificationParent> aParentEndpoint,
+    nsIPrincipal aPrincipal,
+    nsIPrincipal aEffectiveStoragePrincipal,
+    bool aIsSecureContext,
+    nsString aId,
+    nsString aScope,
+    IPCNotificationOptions aOptions
+  ) returns (bool rv);
 
   async PVsync();
 
