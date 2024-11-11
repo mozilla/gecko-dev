@@ -35,7 +35,6 @@
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "Navigator.h"
 #include "NotificationUtils.h"
-#include "nsComponentManagerUtils.h"
 #include "nsContentPermissionHelper.h"
 #include "nsContentUtils.h"
 #include "nsFocusManager.h"
@@ -55,6 +54,8 @@
 #include "nsStructuredCloneContainer.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
+
+using namespace mozilla::dom::notification;
 
 namespace mozilla::dom {
 
@@ -165,11 +166,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(NotificationStorageCallback)
   NS_INTERFACE_MAP_ENTRY(nsINotificationStorageCallback)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
-
-nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate) {
-  return do_GetService(isPrivate ? NS_MEMORY_NOTIFICATION_STORAGE_CONTRACTID
-                                 : NS_NOTIFICATION_STORAGE_CONTRACTID);
-}
 
 class NotificationGetRunnable final : public Runnable {
   bool mIsPrivate;
@@ -727,24 +723,7 @@ void Notification::SetAlertName() {
     return;
   }
 
-  nsAutoString alertName;
-  nsresult rv = GetOrigin(GetPrincipal(), alertName);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  // Get the notification name that is unique per origin + tag/ID.
-  // The name of the alert is of the form origin#tag/ID.
-  alertName.Append('#');
-  if (!mTag.IsEmpty()) {
-    alertName.AppendLiteral("tag:");
-    alertName.Append(mTag);
-  } else {
-    alertName.AppendLiteral("notag:");
-    alertName.Append(mID);
-  }
-
-  mAlertName = alertName;
+  ComputeAlertName(GetPrincipal(), mTag, mID, mAlertName);
 }
 
 // May be called on any thread.
@@ -807,7 +786,7 @@ Notification::ConstructFromFields(
   return notification.forget();
 }
 
-nsresult Notification::PersistNotification() {
+nsresult Notification::Persist() {
   AssertIsOnMainThread();
 
   nsCOMPtr<nsINotificationStorage> notificationStorage =
@@ -845,19 +824,10 @@ nsresult Notification::PersistNotification() {
   return NS_OK;
 }
 
-void Notification::UnpersistNotification() {
+void Notification::Unpersist() {
   AssertIsOnMainThread();
   if (IsStored()) {
-    nsCOMPtr<nsINotificationStorage> notificationStorage =
-        GetNotificationStorage(IsInPrivateBrowsing());
-    if (notificationStorage) {
-      nsString origin;
-      nsresult rv = GetOrigin(GetPrincipal(), origin);
-      if (NS_SUCCEEDED(rv)) {
-        notificationStorage->Delete(origin, mID);
-      }
-    }
-    SetStoredState(false);
+    UnpersistNotification(GetPrincipal(), mID);
   }
 }
 
@@ -1149,7 +1119,7 @@ MainThreadNotificationObserver::Observe(nsISupports* aSubject,
       nsFocusManager::FocusWindow(outerWindow, CallerType::System);
     }
   } else if (!strcmp("alertfinished", aTopic)) {
-    notification->UnpersistNotification();
+    notification->Unpersist();
     notification->mIsClosed = true;
     notification->DispatchTrustedEvent(u"close"_ns);
   } else if (!strcmp("alertshow", aTopic)) {
@@ -1192,7 +1162,7 @@ WorkerNotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
 
     r = new NotificationClickWorkerRunnable(notification, windowHandle);
   } else if (!strcmp("alertfinished", aTopic)) {
-    notification->UnpersistNotification();
+    notification->Unpersist();
     notification->mIsClosed = true;
     r = new NotificationEventWorkerRunnable(notification, u"close"_ns);
   } else if (!strcmp("alertshow", aTopic)) {
@@ -1244,7 +1214,7 @@ ServiceWorkerNotificationObserver::Observe(nsISupports* aSubject,
 
   if (!strcmp("alertfinished", aTopic)) {
     nsString origin;
-    nsresult rv = Notification::GetOrigin(mPrincipal, origin);
+    nsresult rv = GetOrigin(mPrincipal, origin);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -1376,7 +1346,7 @@ void Notification::ShowInternal() {
   // call the alerts service function.
 
   // XXX(krosylight): Non-persistent notifications probably don't need this
-  nsresult rv = PersistNotification();
+  nsresult rv = Persist();
   if (NS_FAILED(rv)) {
     NS_WARNING("Could not persist Notification");
   }
@@ -1443,7 +1413,7 @@ void Notification::ShowInternal() {
     w.Start();
 
     nsAutoString origin;
-    Notification::GetOrigin(principal, origin);
+    GetOrigin(principal, origin);
     w.StringProperty("origin", NS_ConvertUTF16toUTF8(origin));
 
     w.StringProperty("id", NS_ConvertUTF16toUTF8(mID));
@@ -1768,7 +1738,7 @@ class WorkerGetRunnable final : public Runnable {
       return NS_ERROR_UNEXPECTED;
     }
     nsString origin;
-    nsresult rv = Notification::GetOrigin(principal, origin);
+    nsresult rv = GetOrigin(principal, origin);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       callback->Done();
       return rv;
@@ -1844,28 +1814,15 @@ void Notification::CloseInternal(bool aContextClosed) {
   UniquePtr<NotificationRef> ownership;
   std::swap(ownership, mTempRef);
 
-  SetAlertName();
-  UnpersistNotification();
-  if (!mIsClosed) {
-    nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
-    if (alertService) {
-      nsAutoString alertName;
-      GetAlertName(alertName);
-      alertService->CloseAlert(alertName, aContextClosed);
-    }
-  }
-}
-
-nsresult Notification::GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin) {
-  if (!aPrincipal) {
-    return NS_ERROR_FAILURE;
+  if (mIsClosed) {
+    return;
   }
 
-  nsresult rv =
-      nsContentUtils::GetWebExposedOriginSerialization(aPrincipal, aOrigin);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
+  nsAutoString alertName;
+  GetAlertName(alertName);
+  UnregisterNotification(
+      GetPrincipal(), mID, alertName,
+      aContextClosed ? CloseMode::InactiveGlobal : CloseMode::CloseMethod);
 }
 
 bool Notification::RequireInteraction() const { return mRequireInteraction; }
