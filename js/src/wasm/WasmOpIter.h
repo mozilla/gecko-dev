@@ -2282,12 +2282,12 @@ inline bool OpIter<Policy>::readGetGlobal(uint32_t* id) {
     return fail("global.get index out of range");
   }
 
-  // Initializer expressions can access immutable imported globals, or any
-  // previously defined immutable global with GC enabled.
+  // Initializer expressions can only access previously-defined immutable
+  // globals.
   if (kind_ == OpIter::InitExpr && codeMeta_.globals[*id].isMutable()) {
     return fail(
-        "global.get in initializer expression must reference a global "
-        "immutable import");
+        "global.get in initializer expression must reference a "
+        "previously-defined immutable global");
   }
 
   return push(codeMeta_.globals[*id].type());
