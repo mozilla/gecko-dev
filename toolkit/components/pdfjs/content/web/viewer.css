@@ -1893,6 +1893,7 @@
 
         .tooltip{
           display:none;
+          word-wrap:anywhere;
 
           &.show{
             --alt-text-tooltip-bg:#f0f0f4;
