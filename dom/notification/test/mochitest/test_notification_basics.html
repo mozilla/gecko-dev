@@ -45,7 +45,7 @@
 
       await new Promise(r => new Notification("first party").onerror = r);
       const showCount = await GleanTest.webNotification.showOrigin.first_party.testGetValue();
-      is(showCount, 1, "Notification first party request permission counter should increment once.");
+      is(showCount, 1, "Notification first party show attempt counter should increment once.");
     },
 
     async function(done) {

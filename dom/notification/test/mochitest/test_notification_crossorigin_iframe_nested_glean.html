@@ -49,7 +49,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
     });
 
     const requestCount = await GleanTest.webNotification.requestPermissionOrigin.nested_first_party.testGetValue();
-    is(requestCount, 1, "Notification third party request permission counter should increment once.");
+    is(requestCount, 1, "Notification nested first party request permission counter should increment once.");
 
     await SpecialPowers.spawn(iframe, [], async () => {
       const nested = this.content.document.querySelector("iframe");
@@ -59,7 +59,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
     });
 
     const permissionCount = await GleanTest.webNotification.permissionOrigin.nested_first_party.testGetValue();
-    is(permissionCount, 1, "Notification third party permission read counter should increment once.");
+    is(permissionCount, 1, "Notification nested first party permission read counter should increment once.");
 
     await SpecialPowers.spawn(iframe, [], async () => {
       const nested = this.content.document.querySelector("iframe");
@@ -69,7 +69,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
     });
 
     const showCount = await GleanTest.webNotification.showOrigin.nested_first_party.testGetValue();
-    is(showCount, 1, "Notification third party show attempt counter should increment once.");
+    is(showCount, 1, "Notification nested first party show attempt counter should increment once.");
 
     SimpleTest.finish();
   })();

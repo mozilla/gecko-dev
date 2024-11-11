@@ -3,9 +3,10 @@
 <head>
   <title>ServiceWorkerRegistration.getNotifications() on main thread and worker thread.</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/MockAlertsService.js"></script>
-  <script type="text/javascript" src="/tests/dom/notification/test/mochitest/NotificationTest.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <script src="MockAlertsService.js"></script>
+  <script src="NotificationTest.js"></script>
+  <script src="GleanTest.js"></script>
+  <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
 <p id="display"></p>
@@ -43,10 +44,15 @@
   }
 
   async function testDismiss() {
+    await GleanTest.testResetFOG();
+
     // Dismissed persistent notifications should be removed from the
     // notification list.
     const reg = await navigator.serviceWorker.getRegistration("./notification/");
     await reg.showNotification("This is a notification that will be closed", { tag: "dismiss" });
+    const showCount = await GleanTest.webNotification.showOrigin.first_party.testGetValue();
+    is(showCount, 1, "Notification first party show attempt counter should increment once.");
+
     const notifications = await reg.getNotifications();
     is(notifications.length, 1, "There should be one visible notification");
     is(notifications[0].tag, "dismiss", "Tag should match");
