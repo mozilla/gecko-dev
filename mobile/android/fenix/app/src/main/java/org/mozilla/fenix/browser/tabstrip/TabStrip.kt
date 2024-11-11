@@ -228,6 +228,7 @@ private fun TabStripContent(
             tabCount = state.tabs.size,
             size = dimensionResource(R.dimen.tab_strip_height),
             menuItems = state.menuItems,
+            privacyBadgeVisible = state.isPrivateMode,
             onClick = onTabCounterClick,
         )
     }

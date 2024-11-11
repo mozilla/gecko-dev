@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.compose.TabCounter
+import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.menu.DropdownMenu
 import org.mozilla.fenix.compose.menu.MenuItem
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -41,6 +42,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param tabCount The number of tabs to display in the counter.
  * @param size The size of the button.
  * @param menuItems The list of [MenuItem] to display in the dropdown menu.
+ * @param privacyBadgeVisible Whether to show the privacy badge.
  * @param modifier The [modifier] applied to the composable.
  * @param onClick Invoked when the user clicks the button.
  */
@@ -50,6 +52,7 @@ fun TabStripTabCounterButton(
     tabCount: Int,
     size: Dp,
     menuItems: List<MenuItem>,
+    privacyBadgeVisible: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
@@ -70,6 +73,7 @@ fun TabStripTabCounterButton(
     ) {
         TabCounter(
             tabCount = tabCount,
+            showPrivacyBadge = privacyBadgeVisible,
         )
 
         DropdownMenu(
@@ -109,6 +113,7 @@ private fun TabStripTabCounterButtonPreview() {
                 color = FirefoxTheme.colors.textPrimary,
             )
 
+            var privacyBadgeVisible by remember { mutableStateOf(false) }
             var tabCount by remember { mutableIntStateOf(1) }
             TabStripTabCounterButton(
                 tabCount = tabCount,
@@ -123,7 +128,14 @@ private fun TabStripTabCounterButtonPreview() {
                     .align(Alignment.End)
                     .background(FirefoxTheme.colors.layer2),
                 onClick = { tabCount++ },
+                privacyBadgeVisible = privacyBadgeVisible,
             )
+
+            PrimaryButton(
+                text = "Toggle privacy badge",
+            ) {
+                privacyBadgeVisible = !privacyBadgeVisible
+            }
         }
     }
 }
