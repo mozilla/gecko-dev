@@ -74,8 +74,8 @@ class MOZ_STACK_CLASS InitExprInterpreter {
   [[nodiscard]] bool pushRef(ValType type, AnyRef ref) {
     return stack.append(Val(type, ref));
   }
-  [[nodiscard]] bool pushFuncRef(HandleFuncRef ref) {
-    return stack.append(Val(RefType::func(), ref));
+  [[nodiscard]] bool pushFuncRef(RefType type, HandleFuncRef ref) {
+    return stack.append(Val(type, ref));
   }
 
   int32_t popI32() {
@@ -104,7 +104,8 @@ class MOZ_STACK_CLASS InitExprInterpreter {
     if (!instance().constantRefFunc(funcIndex, &func)) {
       return false;
     }
-    return pushFuncRef(func);
+    const TypeDef& t = instance().codeMeta().getFuncTypeDef(funcIndex);
+    return pushFuncRef(RefType::fromTypeDef(&t, false), func);
   }
   bool evalRefNull(RefType type) { return pushRef(type, AnyRef::null()); }
   bool evalI32Add() {

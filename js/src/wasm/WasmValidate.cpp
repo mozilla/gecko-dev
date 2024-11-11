@@ -2730,7 +2730,11 @@ static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta,
   // the type or definition kind of the payload. `Active` element segments are
   // restricted to MVP behavior, which assumes only function indices.
   if (segmentKind == ElemSegmentKind::Active) {
-    elemType = RefType::func();
+    // Bizarrely, the spec prescribes that the default type is (ref func) when
+    // encoding function indices, and (ref null func) when encoding expressions.
+    elemType = payload == ElemSegmentPayload::Expressions
+                   ? RefType::func()
+                   : RefType::func().asNonNullable();
   } else {
     switch (payload) {
       case ElemSegmentPayload::Expressions: {
@@ -2747,7 +2751,7 @@ static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta,
         if (elemKind != uint8_t(DefinitionKind::Function)) {
           return d.fail("invalid element kind");
         }
-        elemType = RefType::func();
+        elemType = RefType::func().asNonNullable();
       } break;
     }
   }
