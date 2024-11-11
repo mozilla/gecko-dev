@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1737025619000000);
+static const PRTime kCTExpirationTime = INT64_C(1737371702000000);
 
 namespace mozilla::ct {
 
@@ -452,7 +452,7 @@ const CTLogInfo kCTLogList[] = {
      "\xa9",
      91},
     {"Let's Encrypt 'Oak2026h1'", CTLogState::Admissible,
-     1724198400000,  // 2024-08-21T00:00:00Z
+     1730678400000,  // 2024-11-04T00:00:00Z
      4,              // operated by Let's Encrypt
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x99\xd4\x61\x70\x22\xfa\x77\x93\x0d"
@@ -462,7 +462,7 @@ const CTLogInfo kCTLogList[] = {
      "\x49",
      91},
     {"Let's Encrypt 'Oak2026h2'", CTLogState::Admissible,
-     1724198400000,  // 2024-08-21T00:00:00Z
+     1730678400000,  // 2024-11-04T00:00:00Z
      4,              // operated by Let's Encrypt
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x6a\x70\x9d\xb3\x96\xe3\xec\x85\x36"
