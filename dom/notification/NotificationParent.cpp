@@ -19,6 +19,20 @@ NS_IMPL_ISUPPORTS(NotificationParent, nsIObserver)
 NS_IMETHODIMP
 NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
                             const char16_t* aData) {
+  if (!strcmp("alertdisablecallback", aTopic)) {
+    return RemovePermission(mPrincipal);
+  }
+  if (!strcmp("alertsettingscallback", aTopic)) {
+    return OpenSettings(mPrincipal);
+  }
+  if (!strcmp("alertshow", aTopic)) {
+    (void)NS_WARN_IF(NS_FAILED(
+        AdjustPushQuota(mPrincipal, NotificationStatusChange::Shown)));
+  }
+  if (!strcmp("alertfinished", aTopic)) {
+    (void)NS_WARN_IF(NS_FAILED(
+        AdjustPushQuota(mPrincipal, NotificationStatusChange::Closed)));
+  }
   return NS_OK;
 }
 

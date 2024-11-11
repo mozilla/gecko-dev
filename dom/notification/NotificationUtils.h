@@ -84,6 +84,13 @@ enum class CloseMode {
 void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
                             const nsString& aAlertName, CloseMode aCloseMode);
 
+nsresult RemovePermission(nsIPrincipal* aPrincipal);
+nsresult OpenSettings(nsIPrincipal* aPrincipal);
+
+enum class NotificationStatusChange { Shown, Closed };
+nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
+                         NotificationStatusChange aChange);
+
 }  // namespace mozilla::dom::notification
 
 #endif  // DOM_NOTIFICATION_NOTIFICATIONUTILS_H_
