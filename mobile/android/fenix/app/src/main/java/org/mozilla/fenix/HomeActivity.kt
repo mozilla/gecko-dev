@@ -637,7 +637,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             // User has been enrolled in alternative app icon experiment.
             with(applicationContext) {
                 changeAppLauncherIconBackgroundColor(
-                    packageManager = applicationContext.packageManager,
+                    context = this,
                     appAlias = ComponentName(this, "$packageName.App"),
                     alternativeAppAlias = ComponentName(this, "$packageName.AlternativeApp"),
                     resetToDefault = FxNimbus.features.alternativeAppLauncherIcon.value().resetToDefault,

@@ -5,7 +5,10 @@
 package org.mozilla.fenix.utils
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.pm.PackageManager
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import org.mozilla.fenix.nimbus.FxNimbus
 
 /**
@@ -14,27 +17,29 @@ import org.mozilla.fenix.nimbus.FxNimbus
  * Will set the app launcher icon based on the [resetToDefault] flag.
  * Checks whether the icon needs updating to prevent unnecessary icon updates.
  *
- * @param packageManager The application [PackageManager].
+ * @param context The application [Context].
+ * @param shortcutManager [ShortcutManagerWrapper] to safely access some features in [ShortcutInfoCompat].
  * @param appAlias The 'default' app alias defined in AndroidManifest.xml.
  * @param alternativeAppAlias The 'alternative' app alias defined in AndroidManifest.xml.
  * @param resetToDefault True to reset the icon to default, otherwise false to use the alternative icon.
  */
 fun changeAppLauncherIconBackgroundColor(
-    packageManager: PackageManager,
+    context: Context,
+    shortcutManager: ShortcutManagerWrapper = ShortcutManagerWrapperDefault(context),
     appAlias: ComponentName,
     alternativeAppAlias: ComponentName,
     resetToDefault: Boolean,
 ) {
     val userHasAlternativeAppIconSet =
-        userHasAlternativeAppIconSet(packageManager, appAlias, alternativeAppAlias)
+        userHasAlternativeAppIconSet(context.packageManager, appAlias, alternativeAppAlias)
 
     if (resetToDefault && userHasAlternativeAppIconSet) {
-        resetAppIconsToDefault(packageManager, appAlias, alternativeAppAlias)
+        resetAppIconsToDefault(context, shortcutManager, appAlias, alternativeAppAlias)
         return
     }
 
     if (!resetToDefault && !userHasAlternativeAppIconSet) {
-        setAppIconsToAlternative(packageManager, appAlias, alternativeAppAlias)
+        setAppIconsToAlternative(context, shortcutManager, appAlias, alternativeAppAlias)
     }
 }
 
@@ -54,21 +59,33 @@ private fun userHasAlternativeAppIconSet(
 }
 
 private fun setAppIconsToAlternative(
-    packageManager: PackageManager,
+    context: Context,
+    shortcutManager: ShortcutManagerWrapper,
     appAlias: ComponentName,
     alternativeAppAlias: ComponentName,
 ) {
-    appAlias.setEnabledStateTo(packageManager, false)
+    val packageManager = context.packageManager
     alternativeAppAlias.setEnabledStateTo(packageManager, true)
+
+    // Ensure the user's existing shortcuts are not affected by the component state change.
+    updateShortcutsComponentName(context, shortcutManager, alternativeAppAlias)
+
+    appAlias.setEnabledStateTo(packageManager, false)
 }
 
 private fun resetAppIconsToDefault(
-    packageManager: PackageManager,
+    context: Context,
+    shortcutManager: ShortcutManagerWrapper,
     appAlias: ComponentName,
     alternativeAppAlias: ComponentName,
 ) {
-    alternativeAppAlias.setEnabledStateToDefault(packageManager)
+    val packageManager = context.packageManager
     appAlias.setEnabledStateToDefault(packageManager)
+
+    // Ensure the user's existing shortcuts are not affected by the component state change.
+    updateShortcutsComponentName(context, shortcutManager, appAlias)
+
+    alternativeAppAlias.setEnabledStateToDefault(packageManager)
 }
 
 private fun ComponentName.setEnabledStateToDefault(packageManager: PackageManager) {
@@ -91,4 +108,66 @@ private fun ComponentName.setEnabledStateTo(packageManager: PackageManager, enab
         newState,
         PackageManager.DONT_KILL_APP,
     )
+}
+
+private fun updateShortcutsComponentName(
+    context: Context,
+    shortcutManager: ShortcutManagerWrapper,
+    alternativeAppAlias: ComponentName,
+) {
+    val currentPinnedShortcuts = shortcutManager.getPinnedShortcuts()
+    val updatedPinnedShortcuts =
+        updatedShortcuts(context, currentPinnedShortcuts, alternativeAppAlias)
+
+    shortcutManager.updateShortcuts(updatedPinnedShortcuts)
+}
+
+private fun updatedShortcuts(
+    context: Context,
+    shortcuts: List<ShortcutInfoCompat>,
+    alternativeAppAlias: ComponentName,
+) = shortcuts.map { updateShortcutComponentName(context, it, alternativeAppAlias) }
+
+private fun updateShortcutComponentName(
+    context: Context,
+    originalShortcut: ShortcutInfoCompat,
+    alternativeAppAlias: ComponentName,
+): ShortcutInfoCompat {
+    with(originalShortcut) {
+        val builder = ShortcutInfoCompat.Builder(context, id)
+            .setShortLabel(shortLabel)
+            .setIntent(intent)
+            .setActivity(alternativeAppAlias) // this links the shortcut to the new component name.
+
+        longLabel?.let { builder.setLongLabel(it) }
+
+        return builder.build()
+    }
+}
+
+/**
+ * Wrapper to safely access some features in [ShortcutManagerCompat].
+ */
+interface ShortcutManagerWrapper {
+    /**
+     * @return a list of the current pinned shortcuts for Firefox.
+     */
+    fun getPinnedShortcuts(): List<ShortcutInfoCompat>
+
+    /**
+     * Update all existing Firefox shortcuts to the given [updatedShortcuts].
+     */
+    fun updateShortcuts(updatedShortcuts: List<ShortcutInfoCompat>)
+}
+
+/**
+ * Implementation of [ShortcutManagerWrapper] that uses [ShortcutManagerCompat].
+ */
+class ShortcutManagerWrapperDefault(private val context: Context) : ShortcutManagerWrapper {
+    override fun updateShortcuts(updatedShortcuts: List<ShortcutInfoCompat>) {
+        ShortcutManagerCompat.updateShortcuts(context, updatedShortcuts)
+    }
+
+    override fun getPinnedShortcuts(): List<ShortcutInfoCompat> =
+        ShortcutManagerCompat.getShortcuts(context, ShortcutManagerCompat.FLAG_MATCH_PINNED)
 }
