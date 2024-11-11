@@ -308,6 +308,15 @@ class SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot {
             return SettingsSubMenuLoginsAndPasswordRobot.Transition()
         }
 
+        fun goBackToHomeScreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
+            Log.i(TAG, "goBackToHomeScreen: Trying to click the navigate up button")
+            goBackButton().perform(ViewActions.click())
+            Log.i(TAG, "goBackToHomeScreen: Clicked the navigate up button")
+
+            HomeScreenRobot().interact()
+            return HomeScreenRobot.Transition()
+        }
+
         fun goBackToSavedLogins(interact: SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot.() -> Unit): SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot.Transition {
             Log.i(TAG, "goBackToSavedLogins: Trying to click the navigate up button")
             goBackButton().perform(ViewActions.click())

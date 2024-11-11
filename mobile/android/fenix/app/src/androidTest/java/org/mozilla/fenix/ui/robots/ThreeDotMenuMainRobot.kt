@@ -304,6 +304,18 @@ class ThreeDotMenuMainRobot {
             return DownloadRobot.Transition()
         }
 
+        fun openPasswords(interact: SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot.() -> Unit): SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot.Transition {
+            Log.i(TAG, "openPasswords: Trying to perform swipe down action on the three dot menu")
+            threeDotMenuRecyclerView().perform(swipeDown())
+            Log.i(TAG, "openPasswords: Performed swipe down action on the three dot menu")
+            Log.i(TAG, "openPasswords: Trying to click the \"Passwords\" button")
+            passwordsButton().click()
+            Log.i(TAG, "openPasswords: Clicked the \"Passwords\" button")
+
+            SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot().interact()
+            return SettingsSubMenuLoginsAndPasswordsSavedLoginsRobot.Transition()
+        }
+
         fun openSyncSignIn(interact: SyncSignInRobot.() -> Unit): SyncSignInRobot.Transition {
             Log.i(TAG, "openSyncSignIn: Trying to perform swipe down action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeDown())
