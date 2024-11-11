@@ -285,7 +285,7 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
 
         // Checks whether the signature of the imported exception object matches
         // the signature declared in the exception import's TagDesc.
-        if (obj->resultType() != tags[index].type->resultType()) {
+        if (!TagType::matches(*obj->tagType(), *tags[index].type)) {
           UniqueChars fieldQuoted = import.field.toQuotedString(cx);
           UniqueChars moduleQuoted = import.module.toQuotedString(cx);
           if (!fieldQuoted || !moduleQuoted) {
@@ -3384,8 +3384,16 @@ bool WasmTagObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   if (!ParseValTypes(cx, paramsVal, params)) {
     return false;
   }
+
+  RefPtr<TypeContext> types = js_new<TypeContext>();
+  if (!types) {
+    return false;
+  }
+  const TypeDef* tagTypeDef =
+      types->addType(FuncType(std::move(params), ValTypeVector()));
+
   wasm::MutableTagType tagType = js_new<wasm::TagType>();
-  if (!tagType || !tagType->initialize(std::move(params))) {
+  if (!tagType || !tagType->initialize(tagTypeDef)) {
     return false;
   }
 
@@ -3463,10 +3471,6 @@ const TagType* WasmTagObject::tagType() const {
 const wasm::ValTypeVector& WasmTagObject::valueTypes() const {
   return tagType()->argTypes();
 };
-
-wasm::ResultType WasmTagObject::resultType() const {
-  return wasm::ResultType::Vector(valueTypes());
-}
 
 // ============================================================================
 // WebAssembly.Exception class and methods

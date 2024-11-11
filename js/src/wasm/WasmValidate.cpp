@@ -144,6 +144,31 @@ bool wasm::DecodeValidatedLocalEntries(const TypeContext& types, Decoder& d,
 }
 
 bool wasm::CheckIsSubtypeOf(Decoder& d, const CodeMetadata& codeMeta,
+                            size_t opcodeOffset, ResultType subType,
+                            ResultType superType) {
+  if (subType.length() != superType.length()) {
+    UniqueChars error(
+        JS_smprintf("type mismatch: expected %zu values, got %zu values",
+                    superType.length(), subType.length()));
+    if (!error) {
+      return false;
+    }
+    MOZ_ASSERT(!ResultType::isSubTypeOf(subType, superType));
+    return d.fail(opcodeOffset, error.get());
+  }
+  for (uint32_t i = 0; i < subType.length(); i++) {
+    StorageType sub = subType[i].storageType();
+    StorageType super = superType[i].storageType();
+    if (!CheckIsSubtypeOf(d, codeMeta, opcodeOffset, sub, super)) {
+      MOZ_ASSERT(!ResultType::isSubTypeOf(subType, superType));
+      return false;
+    }
+  }
+  MOZ_ASSERT(ResultType::isSubTypeOf(subType, superType));
+  return true;
+}
+
+bool wasm::CheckIsSubtypeOf(Decoder& d, const CodeMetadata& codeMeta,
                             size_t opcodeOffset, StorageType subType,
                             StorageType superType) {
   if (StorageType::isSubTypeOf(subType, superType)) {
@@ -2150,13 +2175,9 @@ static bool DecodeImport(Decoder& d, CodeMetadata* codeMeta,
       if (!DecodeTag(d, codeMeta, &tagKind, &funcTypeIndex)) {
         return false;
       }
-      ValTypeVector args;
-      if (!args.appendAll(
-              (*codeMeta->types)[funcTypeIndex].funcType().args())) {
-        return false;
-      }
       MutableTagType tagType = js_new<TagType>();
-      if (!tagType || !tagType->initialize(std::move(args))) {
+      if (!tagType ||
+          !tagType->initialize(&(*codeMeta->types)[funcTypeIndex])) {
         return false;
       }
       if (!codeMeta->tags.emplaceBack(tagKind, tagType)) {
@@ -2453,12 +2474,8 @@ static bool DecodeTagSection(Decoder& d, CodeMetadata* codeMeta) {
     if (!DecodeTag(d, codeMeta, &tagKind, &funcTypeIndex)) {
       return false;
     }
-    ValTypeVector args;
-    if (!args.appendAll((*codeMeta->types)[funcTypeIndex].funcType().args())) {
-      return false;
-    }
     MutableTagType tagType = js_new<TagType>();
-    if (!tagType || !tagType->initialize(std::move(args))) {
+    if (!tagType || !tagType->initialize(&(*codeMeta->types)[funcTypeIndex])) {
       return false;
     }
     codeMeta->tags.infallibleEmplaceBack(tagKind, tagType);

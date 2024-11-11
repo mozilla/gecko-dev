@@ -409,7 +409,6 @@ class WasmTagObject : public NativeObject {
 
   const wasm::TagType* tagType() const;
   const wasm::ValTypeVector& valueTypes() const;
-  wasm::ResultType resultType() const;
 };
 
 // The class of WebAssembly.Exception. This class is used for

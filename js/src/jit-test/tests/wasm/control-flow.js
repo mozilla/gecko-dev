@@ -164,13 +164,13 @@ wasmFullPass(`(module
 assertEq(counter, 0);
 
 // "if" doesn't return an expression value
-wasmFailValidateText('(module (func (result i32) (if (result i32) (i32.const 42) (then (i32.const 0)))))', /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText('(module (func (result i32) (if (result i32) (i32.const 42) (then (i32.const 0)))))', /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 wasmFailValidateText('(module (func (result i32) (if (result i32) (i32.const 42) (then (drop (i32.const 0))))))', emptyStackError);
-wasmFailValidateText('(module (func (result i32) (if (result i32) (i32.const 1) (then (i32.const 0)) (else (if (result i32) (i32.const 1) (then (i32.const 1)))))))', /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText('(module (func (result i32) (if (result i32) (i32.const 1) (then (i32.const 0)) (else (if (result i32) (i32.const 1) (then (i32.const 1)))))))', /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 wasmFailValidateText('(module (func (result i32) (if (result i32) (i32.const 1) (then (drop (i32.const 0))) (else (if (i32.const 1) (then (drop (i32.const 1))))))))', emptyStackError);
-wasmFailValidateText('(module (func (if (result i32) (i32.const 1) (then (i32.const 0)) (else (if (result i32) (i32.const 1) (then (i32.const 1)))))))', /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText('(module (func (if (result i32) (i32.const 1) (then (i32.const 0)) (else (if (result i32) (i32.const 1) (then (i32.const 1)))))))', /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 wasmFailValidateText('(module (func (if (result i32) (i32.const 1) (then (i32.const 0)) (else (if (i32.const 1) (then (drop (i32.const 1))))))))', emptyStackError);
-wasmFailValidateText('(module (func (if (i32.const 1) (then (drop (i32.const 0))) (else (if (result i32) (i32.const 1) (then (i32.const 1)))))))', /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText('(module (func (if (i32.const 1) (then (drop (i32.const 0))) (else (if (result i32) (i32.const 1) (then (i32.const 1)))))))', /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 wasmEvalText('(module (func (if (i32.const 1) (then (drop (i32.const 0))) (else (if (i32.const 1) (then (drop (i32.const 1))))))))');
 
 // ----------------------------------------------------------------------------
@@ -322,7 +322,7 @@ wasmFailValidateText('(module (func (result i32) (br 0 (f32.const 42))))', misma
 wasmFailValidateText('(module (func (result i32) (block (br 0))))', emptyStackError);
 wasmFailValidateText('(module (func (result i32) (block (result f32) (br 0 (f32.const 42)))))', mismatchError("f32", "i32"));
 
-wasmFailValidateText(`(module (func (param i32) (result i32) (block (if (result i32) (local.get 0) (then (br 0 (i32.const 42)))))) (export "" (func 0)))`, /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText(`(module (func (param i32) (result i32) (block (if (result i32) (local.get 0) (then (br 0 (i32.const 42)))))) (export "" (func 0)))`, /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 wasmFailValidateText(`(module (func (param i32) (result i32) (block (result i32) (if (local.get 0) (then (drop (i32.const 42)))) (else (br 0 (f32.const 42))))) (export "" (func 0)))`, mismatchError("f32", "i32"));
 
 wasmFullPass('(module (func (result i32) (br 0 (i32.const 42)) (i32.const 13)) (export "run" (func 0)))', 42);
@@ -335,7 +335,7 @@ var f = wasmEvalText(`(module (func (param i32) (result i32) (block (result i32)
 assertEq(f(0), 43);
 assertEq(f(1), 43);
 
-wasmFailValidateText(`(module (func (param i32) (result i32) (block (result i32) (if (result i32) (local.get 0) (then (br 0 (i32.const 42)))) (i32.const 43))) (export "" (func 0)))`, /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText(`(module (func (param i32) (result i32) (block (result i32) (if (result i32) (local.get 0) (then (br 0 (i32.const 42)))) (i32.const 43))) (export "" (func 0)))`, /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 
 var f = wasmEvalText(`(module (func (param i32) (result i32) (block (result i32) (if (local.get 0) (then (br 1 (i32.const 42)))) (i32.const 43))) (export "" (func 0)))`).exports[""];
 assertEq(f(0), 43);
@@ -351,7 +351,7 @@ var f = wasmEvalText(`(module (func (param i32) (result i32) (block (result i32)
 assertEq(f(0), 43);
 assertEq(f(1), 43);
 
-wasmFailValidateText(`(module (func (param i32) (result i32) (block (result i32) (if (result i32) (local.get 0) (then (br 0 (i32.const 42)))) (br 0 (i32.const 43)))) (export "" (func 0)))`, /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText(`(module (func (param i32) (result i32) (block (result i32) (if (result i32) (local.get 0) (then (br 0 (i32.const 42)))) (br 0 (i32.const 43)))) (export "" (func 0)))`, /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 
 var f = wasmEvalText(`(module (func (param i32) (result i32) (if (local.get 0) (then (br 1 (i32.const 42)))) (br 0 (i32.const 43))) (export "" (func 0)))`).exports[""];
 assertEq(f(0), 43);
@@ -373,7 +373,7 @@ var f = wasmEvalText(`(module (func (param i32) (result i32) (i32.add (i32.const
 assertEq(f(0), 0);
 assertEq(f(1), 0);
 
-wasmFailValidateText(`(module (func (param i32) (result i32) (i32.add (i32.const 1) (block (result i32) (if (result i32) (local.get 0) (then (br 0 (i32.const 99)))) (i32.const -1)))) (export "" (func 0)))`, /(if without else with a result value)|(type mismatch: expected i32 but nothing on stack)/);
+wasmFailValidateText(`(module (func (param i32) (result i32) (i32.add (i32.const 1) (block (result i32) (if (result i32) (local.get 0) (then (br 0 (i32.const 99)))) (i32.const -1)))) (export "" (func 0)))`, /(if without an else.*compatible)|(type mismatch: expected i32 but nothing on stack)/);
 
 var f = wasmEvalText(`(module (func (param i32) (result i32) (i32.add (i32.const 1) (block (result i32) (if (local.get 0) (then (br 1 (i32.const 99)))) (i32.const -1)))) (export "" (func 0)))`).exports[""];
 assertEq(f(0), 0);

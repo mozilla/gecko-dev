@@ -24,6 +24,7 @@ using namespace js;
 using namespace js::wasm;
 
 const TypeDef* StaticTypeDefs::arrayMutI16 = nullptr;
+const TypeDef* StaticTypeDefs::jsTag = nullptr;
 
 bool StaticTypeDefs::init() {
   RefPtr<TypeContext> types = js_new<TypeContext>();
@@ -37,6 +38,16 @@ bool StaticTypeDefs::init() {
   }
   arrayMutI16->recGroup().AddRef();
 
+  ValTypeVector params;
+  if (!params.append(ValType(RefType::extern_()))) {
+    return false;
+  }
+  jsTag = types->addType(FuncType(std::move(params), ValTypeVector()));
+  if (!jsTag) {
+    return false;
+  }
+  jsTag->recGroup().AddRef();
+
   return true;
 }
 
@@ -44,5 +55,9 @@ void StaticTypeDefs::destroy() {
   if (arrayMutI16) {
     arrayMutI16->recGroup().Release();
     arrayMutI16 = nullptr;
+  }
+  if (jsTag) {
+    jsTag->recGroup().Release();
+    jsTag = nullptr;
   }
 }

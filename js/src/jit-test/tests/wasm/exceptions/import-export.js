@@ -64,6 +64,22 @@ function testImportExport() {
   );
 }
 
+function testImportExportRecGroup() {
+  const a = wasmEvalText(`(module
+    (type $t1 (func (param i32)))
+    (tag (export "tag") (type $t1))
+  )`);
+  assertErrorMessage(() => {
+    wasmEvalText(`(module
+      (rec
+        (type $t1 (func (param i32)))
+        (type $t2 (func (param i32)))
+      )
+      (tag (import "a" "tag") (type $t2))
+    )`, { a: a.exports });
+  }, WebAssembly.LinkError, /signature mismatch/);
+}
+
 // Test imports/exports descriptions.
 function testDescriptions() {
   const imports = WebAssembly.Module.imports(
@@ -97,4 +113,5 @@ function testDescriptions() {
 testImports();
 testExports();
 testImportExport();
+testImportExportRecGroup();
 testDescriptions();

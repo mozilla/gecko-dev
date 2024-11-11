@@ -500,23 +500,29 @@ using GlobalDescVector = Vector<GlobalDesc, 0, SystemAllocPolicy>;
 using TagOffsetVector = Vector<uint32_t, 2, SystemAllocPolicy>;
 
 class TagType : public AtomicRefCounted<TagType> {
-  ValTypeVector argTypes_;
+  SharedTypeDef type_;
   TagOffsetVector argOffsets_;
   uint32_t size_;
 
  public:
   TagType() : size_(0) {}
-  ~TagType();
 
-  const ValTypeVector& argTypes() const { return argTypes_; }
+  [[nodiscard]] bool initialize(const SharedTypeDef& funcType);
+
+  const TypeDef& type() const { return *type_; }
+  const ValTypeVector& argTypes() const { return type_->funcType().args(); }
   const TagOffsetVector& argOffsets() const { return argOffsets_; }
-  ResultType resultType() const { return ResultType::Vector(argTypes_); }
+  ResultType resultType() const { return ResultType::Vector(argTypes()); }
 
   uint32_t tagSize() const { return size_; }
 
-  [[nodiscard]] bool initialize(ValTypeVector&& argTypes);
+  static bool matches(const TagType& a, const TagType& b) {
+    // Note that this does NOT use subtyping. This is deliberate per the spec.
+    return a.type_ == b.type_;
+  }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+  WASM_DECLARE_FRIEND_SERIALIZE(TagType);
 };
 
 using MutableTagType = RefPtr<TagType>;

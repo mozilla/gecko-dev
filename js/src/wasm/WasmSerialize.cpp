@@ -532,9 +532,8 @@ CoderResult CodePackedTypeCode(Coder<mode>& coder,
   }
 }
 
-template <CoderMode mode>
-CoderResult CodeTypeDefRef(Coder<mode>& coder,
-                           CoderArg<mode, const TypeDef*> item) {
+template <CoderMode mode, typename T>
+CoderResult CodeTypeDefRef_Impl(Coder<mode>& coder, CoderArg<mode, T> item) {
   static constexpr uint32_t NullTypeIndex = UINT32_MAX;
   static_assert(NullTypeIndex > MaxTypes, "invariant");
 
@@ -551,6 +550,18 @@ CoderResult CodeTypeDefRef(Coder<mode>& coder,
     uint32_t typeIndex = !*item ? NullTypeIndex : coder.types_->indexOf(**item);
     return CodePod(coder, &typeIndex);
   }
+}
+
+template <CoderMode mode>
+CoderResult CodeTypeDefRef(Coder<mode>& coder,
+                           CoderArg<mode, const TypeDef*> item) {
+  return CodeTypeDefRef_Impl<mode, const TypeDef*>(coder, item);
+}
+
+template <CoderMode mode>
+CoderResult CodeTypeDefRef(Coder<mode>& coder,
+                           CoderArg<mode, SharedTypeDef> item) {
+  return CodeTypeDefRef_Impl<mode, SharedTypeDef>(coder, item);
 }
 
 template <CoderMode mode>
@@ -829,20 +840,16 @@ CoderResult CodeGlobalDesc(Coder<mode>& coder,
 
 template <CoderMode mode>
 CoderResult CodeTagType(Coder<mode>& coder, CoderArg<mode, TagType> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::TagType, 232);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::TagType, 72);
   // We skip serializing/deserializing the size and argOffsets fields because
   // those are computed from the argTypes field when we deserialize.
+  MOZ_TRY(CodeTypeDefRef(coder, &item->type_));
   if constexpr (mode == MODE_DECODE) {
-    ValTypeVector argTypes;
-    MOZ_TRY((CodeVector<MODE_DECODE, ValType, &CodeValType<MODE_DECODE>>(
-        coder, &argTypes)));
-    if (!item->initialize(std::move(argTypes))) {
+    if (!item->initialize(item->type_)) {
       return Err(OutOfMemory());
     }
-  } else {
-    MOZ_TRY((CodeVector<mode, ValType, &CodeValType<mode>>(coder,
-                                                           &item->argTypes())));
   }
+
   return Ok();
 }
 

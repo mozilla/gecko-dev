@@ -111,6 +111,9 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 // Shared subtyping function across validation.
 
 [[nodiscard]] bool CheckIsSubtypeOf(Decoder& d, const CodeMetadata& codeMeta,
+                                    size_t opcodeOffset, ResultType subType,
+                                    ResultType superType);
+[[nodiscard]] bool CheckIsSubtypeOf(Decoder& d, const CodeMetadata& codeMeta,
                                     size_t opcodeOffset, StorageType subType,
                                     StorageType superType);
 
