@@ -231,6 +231,78 @@ add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
   await BrowserTestUtils.closeWindow(fgWindow);
 });
 
+add_task(async function test_closingLastTabBeforeCollapsedTabGroup() {
+  // If there is one standalone tab that's active and there is a collapsed
+  // tab group, and the user closes the standalone tab, the first tab of
+  // the collapsed tab group should become the active tab (also expanding
+  // the tab group in the process)
+  let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
+
+  Assert.equal(fgWindow.gBrowser.tabs.length, 1, "only one tab exists");
+  let [standaloneTab] = fgWindow.gBrowser.tabs;
+
+  let groupedTab1 = BrowserTestUtils.addTab(fgWindow.gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let groupedTab2 = BrowserTestUtils.addTab(fgWindow.gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let group = fgWindow.gBrowser.addTabGroup([groupedTab1, groupedTab2]);
+  group.collapsed = true;
+
+  fgWindow.gBrowser.selectedTab = standaloneTab;
+
+  let waitForClose = BrowserTestUtils.waitForTabClosing(standaloneTab);
+  BrowserTestUtils.removeTab(standaloneTab);
+  await waitForClose;
+
+  Assert.equal(
+    fgWindow.gBrowser.selectedTab,
+    groupedTab1,
+    "first tab in the group should be the active tab"
+  );
+  Assert.ok(!group.collapsed, "tab group should now be expanded");
+
+  await BrowserTestUtils.closeWindow(fgWindow);
+});
+
+add_task(async function test_closingLastTabAfterCollapsedTabGroup() {
+  // If there is a collapsed tab group followed by a single standalone tab,
+  // and the user closes the standalone tab, the last tab of the collapsed
+  // tab group should become the active tab (also expanding the tab group
+  // in the process)
+  let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
+
+  Assert.equal(fgWindow.gBrowser.tabs.length, 1, "only one tab exists");
+  let [standaloneTab] = fgWindow.gBrowser.tabs;
+
+  let groupedTab1 = BrowserTestUtils.addTab(fgWindow.gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let groupedTab2 = BrowserTestUtils.addTab(fgWindow.gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let group = fgWindow.gBrowser.addTabGroup([groupedTab1, groupedTab2], {
+    insertBefore: standaloneTab,
+  });
+  group.collapsed = true;
+
+  fgWindow.gBrowser.selectedTab = standaloneTab;
+
+  let waitForClose = BrowserTestUtils.waitForTabClosing(standaloneTab);
+  BrowserTestUtils.removeTab(standaloneTab);
+  await waitForClose;
+
+  Assert.equal(
+    fgWindow.gBrowser.selectedTab,
+    groupedTab2,
+    "last tab in the group should be the active tab"
+  );
+  Assert.ok(!group.collapsed, "tab group should now be expanded");
+
+  await BrowserTestUtils.closeWindow(fgWindow);
+});
+
 add_task(async function test_tabUngroup() {
   let extraTab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
 
