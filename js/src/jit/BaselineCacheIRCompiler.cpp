@@ -2164,6 +2164,7 @@ const JSClassOps ShapeListObject::classOps_ = {
 
   // Register this object so the GC can sweep its weak pointers.
   if (!cx->zone()->registerObjectWithWeakPointers(obj)) {
+    ReportOutOfMemory(cx);
     return nullptr;
   }
 
