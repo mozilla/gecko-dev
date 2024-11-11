@@ -12911,7 +12911,9 @@ bool InitOptionParser(OptionParser& op) {
                         "Enable Joint Iteration") ||
       !op.addBoolOption('\0', "enable-atomics-pause", "Enable Atomics pause") ||
       !op.addBoolOption('\0', "enable-explicit-resource-management",
-                        "Enable Explicit Resource Management")) {
+                        "Enable Explicit Resource Management") ||
+      !op.addBoolOption('\0', "disable-explicit-resource-management",
+                        "Disable Explicit Resource Management")) {
     return false;
   }
 
@@ -13009,6 +13011,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   if (op.getBoolOption("enable-explicit-resource-management")) {
     JS::Prefs::set_experimental_explicit_resource_management(true);
+  }
+  if (op.getBoolOption("disable-explicit-resource-management")) {
+    JS::Prefs::set_experimental_explicit_resource_management(false);
   }
 #endif
   if (op.getBoolOption("enable-json-parse-with-source")) {
