@@ -124,7 +124,7 @@ class TabsUseCases(
          * @param url The URL to be loaded in the new tab.
          * @param flags the [LoadUrlFlags] to use when loading the provided URL.
          */
-        override fun invoke(
+        override operator fun invoke(
             url: String,
             flags: LoadUrlFlags,
             additionalHeaders: Map<String, String>?,

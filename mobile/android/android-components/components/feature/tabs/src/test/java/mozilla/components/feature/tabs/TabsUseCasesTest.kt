@@ -298,7 +298,7 @@ class TabsUseCasesTest {
 
     @Test
     fun `GIVEN a tab is added with a parent loadURL will include the parent`() {
-        val parentTabId = tabsUseCases.addTab(url = "https://www.firefox.com")
+        val parentTabId = tabsUseCases.addTab(url = "https://www.firefox.com", selectTab = true)
         store.waitUntilIdle()
         dispatcher.scheduler.advanceUntilIdle()
 
