@@ -1136,5 +1136,5 @@
     <string name="exit_fullscreen_with_gesture_short">Drag frå toppen, og så til venstre for å avslutte</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
-    <string name="exit_fullscreen_with_back_button_short">Drag frå toppen, og trykk tilbake</string>
+    <string name="exit_fullscreen_with_back_button_short">Drag frå toppen, og trykk tilbake for å avslutte</string>
 </resources>
