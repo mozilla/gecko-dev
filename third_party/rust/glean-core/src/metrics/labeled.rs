@@ -11,7 +11,7 @@ use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorTy
 use crate::histogram::HistogramType;
 use crate::metrics::{
     BooleanMetric, CounterMetric, CustomDistributionMetric, MemoryDistributionMetric, MemoryUnit,
-    Metric, MetricType, StringMetric, TimeUnit, TimingDistributionMetric,
+    Metric, MetricType, QuantityMetric, StringMetric, TimeUnit, TimingDistributionMetric,
 };
 use crate::Glean;
 
@@ -36,6 +36,9 @@ pub type LabeledMemoryDistribution = LabeledMetric<MemoryDistributionMetric>;
 
 /// A labeled timing_distribution.
 pub type LabeledTimingDistribution = LabeledMetric<TimingDistributionMetric>;
+
+/// A labeled quantity
+pub type LabeledQuantity = LabeledMetric<QuantityMetric>;
 
 /// The metric data needed to construct inner submetrics.
 ///
@@ -90,7 +93,7 @@ mod private {
     use super::LabeledMetricData;
     use crate::metrics::{
         BooleanMetric, CounterMetric, CustomDistributionMetric, MemoryDistributionMetric,
-        StringMetric, TimingDistributionMetric,
+        QuantityMetric, StringMetric, TimingDistributionMetric,
     };
 
     /// The sealed labeled trait.
@@ -159,6 +162,15 @@ mod private {
             match meta {
                 LabeledMetricData::TimingDistribution { cmd, unit } => Self::new(cmd, unit),
                 _ => panic!("Incorrect construction of Labeled<TimingDistributionMetric>"),
+            }
+        }
+    }
+
+    impl Sealed for QuantityMetric {
+        fn new_inner(meta: LabeledMetricData) -> Self {
+            match meta {
+                LabeledMetricData::Common { cmd } => Self::new(cmd),
+                _ => panic!("Incorrect construction of Labeled<QuantityMetric>"),
             }
         }
     }

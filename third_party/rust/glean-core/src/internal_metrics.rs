@@ -303,7 +303,7 @@ impl DatabaseMetrics {
                     category: "glean.database".into(),
                     send_in_pings: vec!["metrics".into()],
                     lifetime: Lifetime::Ping,
-                    disabled: false,
+                    disabled: true,
                     dynamic_label: None,
                 },
                 TimeUnit::Microsecond,

@@ -54,7 +54,7 @@ pub use self::event::EventMetric;
 pub(crate) use self::experiment::ExperimentMetric;
 pub use self::labeled::{
     LabeledBoolean, LabeledCounter, LabeledCustomDistribution, LabeledMemoryDistribution,
-    LabeledMetric, LabeledString, LabeledTimingDistribution,
+    LabeledMetric, LabeledQuantity, LabeledString, LabeledTimingDistribution,
 };
 pub use self::memory_distribution::{LocalMemoryDistribution, MemoryDistributionMetric};
 pub use self::memory_unit::MemoryUnit;

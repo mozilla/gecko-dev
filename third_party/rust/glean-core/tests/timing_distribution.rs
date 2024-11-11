@@ -64,7 +64,6 @@ fn serializer_should_correctly_serialize_timing_distribution() {
             "sum": duration,
             "values": {
                 "58": 1,
-                "64": 0,
             }
         });
         assert_eq!(
@@ -102,7 +101,6 @@ fn set_value_properly_sets_the_value_in_all_stores() {
         "sum": 1,
         "values": {
             "1": 1,
-            "2": 0,
         }
     });
     for store_name in store_names {

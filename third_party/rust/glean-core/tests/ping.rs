@@ -284,6 +284,7 @@ fn test_scheduled_pings_are_sent() {
 }
 
 #[test]
+#[ignore] // This metric is disabled by default now, so we can skip this test. See Bug 1928161
 fn database_write_timings_get_recorded() {
     let (mut glean, _t) = new_glean(None);
 

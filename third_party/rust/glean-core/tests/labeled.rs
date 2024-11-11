@@ -180,7 +180,7 @@ fn can_create_labeled_memory_distribution_metric() {
     assert_eq!(
         json!({
             "labeled_memory_distribution": {
-                "telemetry.labeled_metric": { "label1": { "sum": 42, "values": {"41": 1, "43": 0} } }
+                "telemetry.labeled_metric": { "label1": { "sum": 42, "values": {"41": 1} } }
             }
         }),
         snapshot
@@ -215,7 +215,41 @@ fn can_create_labeled_timing_distribution_metric() {
     assert_eq!(
         json!({
             "labeled_timing_distribution": {
-                "telemetry.labeled_metric": { "label1": { "sum": 42, "values": {"41": 1, "45": 0} } }
+                "telemetry.labeled_metric": { "label1": { "sum": 42, "values": {"41": 1} } }
+            }
+        }),
+        snapshot
+    );
+}
+
+#[test]
+fn can_create_labeled_quantity_metric() {
+    let (glean, _t) = new_glean(None);
+    let labeled = LabeledQuantity::new(
+        LabeledMetricData::Common {
+            cmd: CommonMetricData {
+                name: "labeled_metric".into(),
+                category: "telemetry".into(),
+                send_in_pings: vec!["store1".into()],
+                disabled: false,
+                lifetime: Lifetime::Ping,
+                ..Default::default()
+            },
+        },
+        Some(vec!["label1".into()]),
+    );
+
+    let metric = labeled.get("label1");
+    metric.set_sync(&glean, 42);
+
+    let snapshot = StorageManager
+        .snapshot_as_json(glean.storage(), "store1", true)
+        .unwrap();
+
+    assert_eq!(
+        json!({
+            "labeled_quantity": {
+                "telemetry.labeled_metric": { "label1": 42, },
             }
         }),
         snapshot

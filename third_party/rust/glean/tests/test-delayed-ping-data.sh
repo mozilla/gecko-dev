@@ -32,7 +32,7 @@ fi
 $cmd accumulate_ten_and_orderly_shutdown
 count=$(ls -1q "$datapath/sent_pings" | wc -l)
 if [[ "$count" -ne 0 ]]; then
-  echo "test result: FAILED."
+  echo "1/3 test result: FAILED. Expected 0, got $count pings"
   exit 101
 fi
 
@@ -40,12 +40,12 @@ fi
 $cmd submit_ping
 count=$(ls -1q "$datapath/sent_pings" | wc -l)
 if [[ "$count" -ne 1 ]]; then
-  echo "test result: FAILED."
+  echo "2/3 test result: FAILED. Expect 1, got $count pings"
   exit 101
 fi
 
 if ! grep -q '"test.metrics.sample_counter":10' "$datapath"/sent_pings/*; then
-  echo "test result: FAILED."
+  echo "3/3 test result: FAILED. Inaccurate number of sample counts."
   exit 101
 fi
 

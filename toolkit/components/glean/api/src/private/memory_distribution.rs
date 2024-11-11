@@ -227,7 +227,6 @@ mod test {
 
         let metric_data = metric.test_get_value("store1").unwrap();
         assert_eq!(1, metric_data.values[&42494]);
-        assert_eq!(0, metric_data.values[&44376]);
         assert_eq!(43008, metric_data.sum);
     }
 
@@ -248,7 +247,6 @@ mod test {
 
         let metric_data = parent_metric.test_get_value("store1").unwrap();
         assert_eq!(1, metric_data.values[&42494]);
-        assert_eq!(0, metric_data.values[&44376]);
         assert_eq!(43008, metric_data.sum);
 
         // Single-process IPC machine goes brrrrr...
