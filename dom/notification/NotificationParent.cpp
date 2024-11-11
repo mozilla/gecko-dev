@@ -6,7 +6,9 @@
 
 #include "NotificationParent.h"
 
+#include "nsThreadUtils.h"
 #include "NotificationUtils.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/Components.h"
 #include "nsComponentManagerUtils.h"
@@ -56,7 +58,17 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
       mResolver.take().value()(CopyableErrorResult(NS_ERROR_FAILURE));
       return NS_OK;
     }
+
+    // XXX: QM_TRY?
+    (void)NS_WARN_IF(NS_FAILED(UnpersistNotification(mPrincipal, mId)));
+    (void)NS_WARN_IF(NS_FAILED(FireCloseEvent()));
+    Close();
+
+    return NS_OK;
   }
+
+  MOZ_ASSERT_UNREACHABLE("Unknown notification topic");
+
   return NS_OK;
 }
 
@@ -81,6 +93,28 @@ nsresult NotificationParent::FireClickEvent() {
     return NS_OK;
   }
 
+  return NS_ERROR_FAILURE;
+}
+
+nsresult NotificationParent::FireCloseEvent() {
+  // This needs to be done here rather than in the child actor's
+  // RecvNotifyClose because the caller might not be in the service worker
+  // context but in the window context
+  if (nsCOMPtr<nsIServiceWorkerManager> swm =
+          mozilla::components::ServiceWorkerManager::Service()) {
+    nsAutoCString originSuffix;
+    MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
+    nsAutoString behavior;
+    if (!mOptions.behavior().ToJSON(behavior)) {
+      return NS_ERROR_FAILURE;
+    }
+    MOZ_TRY(swm->SendNotificationCloseEvent(
+        originSuffix, NS_ConvertUTF16toUTF8(mScope), mId, mOptions.title(),
+        NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
+        mOptions.body(), mOptions.tag(), mOptions.icon(),
+        mOptions.dataSerialized(), behavior));
+    return NS_OK;
+  }
   return NS_ERROR_FAILURE;
 }
 

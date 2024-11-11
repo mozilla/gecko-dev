@@ -32,7 +32,9 @@ class NotificationParent final : public PNotificationParent,
         mIsSecureContext(aIsSecureContext),
         mId(aId),
         mScope(aScope),
-        mOptions(aOptions) {};
+        mOptions(aOptions) {
+    MOZ_ASSERT(!mScope.IsEmpty(), "Only for persistent notifications for now");
+  };
 
   IPCResult RecvShow(ShowResolver&& aResolver);
 
@@ -47,6 +49,7 @@ class NotificationParent final : public PNotificationParent,
 
   nsresult Show();
   nsresult FireClickEvent();
+  nsresult FireCloseEvent();
 
   void GetAlertName(nsAString& aRetval) {
     if (mAlertName.IsEmpty()) {
