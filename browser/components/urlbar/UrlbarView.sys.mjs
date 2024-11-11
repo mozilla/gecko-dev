@@ -2255,6 +2255,11 @@ export class UrlbarView {
     } else {
       this.panel.setAttribute("noresults", "true");
     }
+
+    this.#rows.toggleAttribute(
+      "actionmode",
+      this.visibleResults[0]?.source == lazy.UrlbarUtils.RESULT_SOURCE.ACTIONS
+    );
   }
 
   /**

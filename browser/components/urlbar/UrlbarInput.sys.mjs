@@ -3733,9 +3733,6 @@ export class UrlbarInput {
     this._searchModeIndicatorTitle.removeAttribute("data-l10n-id");
     this._searchModeLabel.removeAttribute("data-l10n-id");
 
-    let results = this.querySelector(".urlbarView-results");
-    results.removeAttribute("searchmodesource");
-
     if (!engineName && !source) {
       try {
         // This will throw before DOMContentLoaded in
@@ -3767,7 +3764,6 @@ export class UrlbarInput {
         this.inputField,
         `urlbar-placeholder-search-mode-other-${sourceName}`
       );
-      results.setAttribute("searchmodesource", sourceName);
     }
 
     this.toggleAttribute("searchmode", true);

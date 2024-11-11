@@ -940,16 +940,16 @@
 }
 
 /* Actions */
-
-.urlbarView-results[searchmodesource=actions] {
+.urlbarView-results[actionmode] {
   white-space: wrap;
-
-  > .urlbarView-row[dynamicType="actions"] {
-    display: inline-flex;
-  }
 }
 
-.urlbarView-row:has(.urlbarView-actions-container:not(:empty)) {
+.urlbarView-row[dynamicType="actions"] {
+  display: inline-flex;
+}
+
+/* To align the label and action button */
+.urlbarView-row:has(.urlbarView-actions-container) {
   flex-direction: column;
   align-items: flex-start;
 }

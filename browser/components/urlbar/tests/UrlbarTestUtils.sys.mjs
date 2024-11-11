@@ -831,21 +831,12 @@ export var UrlbarTestUtils = {
     );
 
     let results = window.gURLBar.querySelector(".urlbarView-results");
-    if (
-      window.gURLBar.searchMode?.source &&
-      window.gURLBar.searchMode.source !== UrlbarUtils.RESULT_SOURCE.SEARCH
-    ) {
-      this.Assert.equal(
-        results.getAttribute("searchmodesource"),
-        UrlbarUtils.getResultSourceName(window.gURLBar.searchMode.source),
-        "Urlbar results have proper searchmodesource attribute"
-      );
-    } else {
-      this.Assert.ok(
-        !results.hasAttribute("searchmodesource"),
-        "Urlbar results does not have searchmodesource attribute"
-      );
-    }
+    await lazy.BrowserTestUtils.waitForCondition(
+      () =>
+        results.hasAttribute("actionmode") ==
+        (window.gURLBar.searchMode?.source == UrlbarUtils.RESULT_SOURCE.ACTIONS)
+    );
+    this.Assert.ok(true, "Urlbar results have proper actionmode attribute");
 
     if (!expectedSearchMode) {
       // Check the input's placeholder.
@@ -853,11 +844,20 @@ export var UrlbarTestUtils = {
         "browser.urlbar.placeholderName" +
         (lazy.PrivateBrowsingUtils.isWindowPrivate(window) ? ".private" : "");
       let engineName = Services.prefs.getStringPref(prefName, "");
-      this.Assert.deepEqual(
-        window.document.l10n.getAttributes(window.gURLBar.inputField),
-        engineName
-          ? { id: "urlbar-placeholder-with-name", args: { name: engineName } }
-          : { id: "urlbar-placeholder", args: null },
+      let expectedPlaceholder = engineName
+        ? { id: "urlbar-placeholder-with-name", args: { name: engineName } }
+        : { id: "urlbar-placeholder", args: null };
+      await lazy.BrowserTestUtils.waitForCondition(() => {
+        let l10nAttributes = window.document.l10n.getAttributes(
+          window.gURLBar.inputField
+        );
+        return (
+          l10nAttributes.id == expectedPlaceholder.id &&
+          l10nAttributes.args?.name == expectedPlaceholder.args?.name
+        );
+      });
+      this.Assert.ok(
+        true,
         "Expected placeholder l10n when search mode is inactive"
       );
       return;
