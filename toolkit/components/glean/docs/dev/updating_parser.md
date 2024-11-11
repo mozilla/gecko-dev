@@ -5,12 +5,18 @@ It depends on [glean-parser] from pypi.org
 
 [glean-parser]: https://pypi.org/project/glean-parser/
 
-To update the in-tree glean-parser change the version in `third_party/python/requirements.in`,
+To update the in-tree glean-parser change the version in `third_party/python/pyproject.toml`,
 then run
 
 ```
 ./mach vendor python
 ```
+
+We presently pin our version of glean-parser to the version in [sdk_generator.sh],
+otherwise we could use some of the
+[more interesting switches on ./mach vendor python][vendor-python].
+
+[vendor-python]: /python/index
 
 ```{note}
 **Important**: the glean_parser and all of its dependencies must support Python 3.5, as discussed here.

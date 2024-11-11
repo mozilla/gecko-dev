@@ -44,5 +44,7 @@ However each Glean SDK release requires a specific `glean_parser` version.
 When updating one or the other ensure versions stay compatible.
 You can find the currently used `glean_parser` version in the Glean SDK source tree, e.g. in [sdk_generator.sh].
 
+In most cases you should update `glean_parser` first before updating the SDK.
+
 [sdk_generator.sh]: https://github.com/mozilla/glean/blob/main/glean-core/ios/sdk_generator.sh#L28
 [glean-bug]: https://bugzilla.mozilla.org/enter_bug.cgi?product=Data+Platform+and+Tools&component=Glean%3A+SDK&priority=P3&status_whiteboard=%5Btelemetry%3Aglean-rs%3Am%3F%5D

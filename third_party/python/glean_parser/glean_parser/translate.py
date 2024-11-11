@@ -11,7 +11,6 @@ High-level interface for translating `metrics.yaml` into other formats.
 from pathlib import Path
 import os
 import shutil
-import sys
 import tempfile
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
@@ -98,7 +97,6 @@ def transform_metrics(objects):
             raise ValueError(
                 f"No `counter` named {denominator_name} found to be used as"
                 "denominator for {numerators}",
-                file=sys.stderr,
             )
         counters[denominator_name].__class__ = metrics.Denominator
         counters[denominator_name].type = "denominator"

@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: glean_parser
-Version: 15.0.1
+Version: 15.2.1
 Summary: Parser tools for Mozilla's Glean telemetry
 Home-page: https://github.com/mozilla/glean_parser
 Author: The Glean Team
@@ -18,11 +18,11 @@ Classifier: Programming Language :: Python :: 3.12
 Description-Content-Type: text/markdown
 License-File: LICENSE
 License-File: AUTHORS.md
-Requires-Dist: appdirs>=1.4
 Requires-Dist: Click>=7
 Requires-Dist: diskcache>=4
 Requires-Dist: Jinja2>=2.10.1
 Requires-Dist: jsonschema>=3.0.2
+Requires-Dist: platformdirs>=2.4.0
 Requires-Dist: PyYAML>=5.3.1
 
 # Glean Parser
@@ -48,11 +48,11 @@ code for various integrations, linting and coverage testing.
 The following library requirements are installed automatically when
 `glean_parser` is installed by `pip`.
 
--   appdirs
 -   Click
 -   diskcache
 -   Jinja2
 -   jsonschema
+-   platformdirs
 -   PyYAML
 
 ## Usage
@@ -78,6 +78,19 @@ $ glean_parser check < ping.json
 # Changelog
 
 ## Unreleased
+
+## 15.2.1
+
+- Allow earlier versions of platformdirs ([#769](https://github.com/mozilla/glean_parser/pull/769))
+
+## 15.2.0
+
+- New Metric Type: `labeled_quantity` ([bug 1925346](https://bugzilla.mozilla.org/show_bug.cgi?id=1925346))
+
+## 15.1.0
+
+- Bugfix: Remove unused keyword argument from exception ([#755](https://github.com/mozilla/glean_parser/pull/755))
+- Add Go log outputter support for custom pings (`go_server`) ([#758](https://github.com/mozilla/glean_parser/pull/758))
 
 ## 15.0.1
 

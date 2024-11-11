@@ -425,6 +425,8 @@ class LabeledMemoryDistribution(Labeled, MemoryDistribution):
 class LabeledTimingDistribution(Labeled, TimingDistribution):
     typename = "labeled_timing_distribution"
 
+class LabeledQuantity(Labeled, Quantity):
+    typename = "labeled_quantity"
 
 class Rate(Metric):
     typename = "rate"

@@ -83,6 +83,7 @@ vendored:third_party/python/packaging
 vendored:third_party/python/pip
 vendored:third_party/python/pip_tools
 vendored:third_party/python/pkgutil_resolve_name
+vendored:third_party/python/platformdirs
 vendored:third_party/python/pyproject_hooks
 vendored:third_party/python/pyrsistent
 vendored:third_party/python/python-hglib

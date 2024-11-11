@@ -15,7 +15,7 @@ Jinja2 template is not. Please file bugs! #}
     {{ generate_structure(name ~ "Item", struct["items"]) }}
 
 {% elif struct.type == "object" %}
-    #[derive(Debug, Hash, Eq, PartialEq, ::glean::traits::__serde::Serialize, ::glean::traits::__serde::Deserialize)]
+    #[derive(Debug, Hash, Eq, PartialEq, Clone, ::glean::traits::__serde::Serialize, ::glean::traits::__serde::Deserialize)]
     #[serde(crate = "::glean::traits::__serde")]
     #[serde(deny_unknown_fields)]
     pub struct {{ name }} {

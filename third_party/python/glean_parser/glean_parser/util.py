@@ -13,11 +13,11 @@ import textwrap
 from typing import Any, Callable, Iterable, Sequence, Tuple, Union, Optional
 import urllib.request
 
-import appdirs  # type: ignore
 import diskcache  # type: ignore
 import jinja2
 import jsonschema  # type: ignore
 from jsonschema import _utils  # type: ignore
+import platformdirs  # type: ignore
 import yaml
 
 try:
@@ -278,7 +278,7 @@ def fetch_remote_url(url: str, cache: bool = True):
             return fd.read()
 
     if cache:
-        cache_dir = appdirs.user_cache_dir("glean_parser", "mozilla")
+        cache_dir = platformdirs.user_cache_dir("glean_parser", "mozilla")
         with diskcache.Cache(cache_dir) as dc:
             if key in dc:
                 return dc[key]

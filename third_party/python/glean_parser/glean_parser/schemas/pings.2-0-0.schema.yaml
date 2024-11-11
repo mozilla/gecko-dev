@@ -192,7 +192,7 @@ additionalProperties:
 
         When `true`, the ping will be sent as usual.
         When `false`, the ping will not be sent, but the data will continue to
-        be collected but will not be cleared when the ping is submitted.
+        be collected and will be cleared when the ping is submitted.
 
         Defaults to `true` if omitted.
       type: boolean

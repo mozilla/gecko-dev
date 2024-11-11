@@ -122,7 +122,7 @@ definitions:
 
                 `labeled_boolean`, `labeled_string`, `labeled_counter`,
                 `labeled_custom_distribution`, `labeled_memory_distribution`,
-                `labeled_timing_distribution`.
+                `labeled_timing_distribution`, `labeled_quantity`.
 
             - `text`: Record long text data.
 
@@ -151,6 +151,7 @@ definitions:
           - labeled_custom_distribution
           - labeled_memory_distribution
           - labeled_timing_distribution
+          - labeled_quantity
           - rate
           - text
           - object

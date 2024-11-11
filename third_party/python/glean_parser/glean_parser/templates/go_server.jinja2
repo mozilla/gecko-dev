@@ -130,7 +130,7 @@ func (g GleanEventsLogger) createPing(documentType string, config RequestInfo, p
 	}
 }
 
-// method called by each event method.
+// method called by each ping-specific record method.
 // construct the ping, wrap it in the envelope, and print to stdout
 func (g GleanEventsLogger) record(
 	documentType string,
@@ -159,71 +159,109 @@ func (g GleanEventsLogger) record(
 	}
 	fmt.Println(string(envelopeJson))
 }
+{# if any ping has an event metric, create methods and types for them #}
+{% if events %}
 
-{% for event in events_ping["event"] %}
+func newGleanEvent(category, name string, extra map[string]string) gleanEvent {
+	return gleanEvent{
+		Category:  category,
+		Name:      name,
+		Timestamp: time.Now().UnixMilli(),
+		Extra: extra,
+	}
+}
+{# each event has a type and method to create a gleanEvent #}
+{% for event in events %}
+
 type {{ event|event_type_name }} struct {
-  {% for metric_type, metrics in events_ping.items() %}
-  {% if metric_type != 'event' %}
-  {% for metric in metrics %}
-  {{ metric|metric_argument_name }} {{ metric.type|go_metric_type }} // {{ metric.description|clean_string }}
-  {% endfor %}
-  {% endif %}
-  {% endfor %}
-  {% for extra, metadata in event.extra_keys.items() %}
-  {{ extra|event_extra_name }} {{ metadata.type|go_metric_type }} // {{ metadata.description|clean_string }}
-  {% endfor %}
+    {% for extra, metadata in event.extra_keys.items() %}
+    {{ extra|event_extra_name }} {{ metadata.type|go_metric_type }} // {{ metadata.description|clean_string }}
+    {% endfor %}
 }
 
-// Record and submit an {{ event|event_type_name }} event.
-// {{ event.description|clean_string }}
-func (g GleanEventsLogger) Record{{ event|event_type_name }}(
-	requestInfo RequestInfo,
-	params {{ event|event_type_name }},
+func (e {{ event|event_type_name }}) gleanEvent() gleanEvent {
+    return newGleanEvent(
+        "{{ event.category }}",
+        "{{ event.name }}",
+        map[string]string{
+        {% for extra, metadata in event.extra_keys.items() %}
+            {# convert all extra fields to string for submission #}
+            {% if metadata.type == 'boolean' %}
+            "{{ extra }}": fmt.Sprintf("%t", e.{{ extra|event_extra_name }}),
+            {% elif metadata.type == 'quantity' %}
+            "{{ extra }}": fmt.Sprintf("%d", e.{{ extra|event_extra_name }}),
+            {% else %}
+            "{{ extra }}": e.{{ extra|event_extra_name }},
+            {% endif %}
+        {% endfor %}
+        },
+    )
+}
+{% endfor %}
+{% endif %}
+{# struct & methods for submitting pings #}
+{% for ping, metrics_by_type in pings.items() %}
+{% if metrics_by_type['event'] %}
+
+{# interface that eligible events for this ping will implement #}
+type {{ ping|ping_events_type_name }} interface {
+    is{{ping|ping_events_type_name }}()
+    gleanEvent() gleanEvent
+}
+
+{# create functions for valid events for this ping #}
+{% for metric in metrics_by_type['event'] %}
+func (e {{ metric|event_type_name}}) is{{ ping|ping_events_type_name }}() {}
+{% endfor %}
+{% endif %}
+
+type {{ ping|ping_type_name }} struct {
+    {% for metric_type, metrics in metrics_by_type.items() %}
+    {% if metric_type != 'event' %}
+    {% for metric in metrics %}
+    {{ metric|metric_argument_name }} {{ metric_type|go_metric_type}} // {{ metric.description|clean_string }}
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+    {% if metrics_by_type['event'] %}
+    Event {{ ping|ping_events_type_name }} // valid event for this ping
+    {% endif %}
+}
+
+// Record and submit `{{ ping }}` ping
+func (g GleanEventsLogger) Record{{ ping|ping_type_name }}(
+    requestInfo RequestInfo,
+    params {{ ping|ping_type_name }},
 ) {
-	var metrics = metrics{
-    {% for metric_type, metrics in events_ping.items() %}
-		{% if metric_type != 'event' %}
-		"{{ metric_type }}": {
-		{% for metric in metrics %}
-            {% if metric_type =='datetime' %}
+    var metrics = metrics{
+    {% for metric_type, metrics in metrics_by_type.items() %}
+    {% if metric_type != 'event' %}
+        "{{ metric_type }}": {
+        {% for metric in metrics %}
+            {% if metric_type == 'datetime' %}
 			"{{ metric|metric_name }}": params.{{ metric|metric_argument_name }}.Format("2006-01-02T15:04:05.000Z"),
-            {%  else %}
+            {% else %}
             "{{ metric|metric_name }}": params.{{ metric|metric_argument_name }},
             {% endif %}
-		{% endfor %}
-		},
-		{% endif %}
+        {% endfor %}
+        },
+    {% endif %}
     {% endfor %}
+    }
+
+    events := []gleanEvent{}
+    {% if metrics_by_type['event'] %}
+    if params.Event != nil {
+		events = append(events, params.Event.gleanEvent())
 	}
-	var extraKeys = map[string]string{
-    {% for extra, metadata in event.extra_keys.items() %}
-		{# convert all extra fields to string for submission #}
-		{% if metadata.type == 'boolean' %}
-		"{{ extra }}": fmt.Sprintf("%t", params.{{ extra|event_extra_name }}),
-		{% elif metadata.type == 'quantity' %}
-		"{{ extra }}": fmt.Sprintf("%d", params.{{ extra|event_extra_name }}),
-		{% else %}
-		"{{ extra }}": params.{{ extra|event_extra_name }},
-		{% endif %}
-    {% endfor %}
-	}
-	var events = []gleanEvent{
-		gleanEvent{
-			Category:  "{{ event.category }}",
-			Name:      "{{ event.name }}",
-			Timestamp: time.Now().UnixMilli(),
-			Extra:     extraKeys,
-		},
-	}
-	g.record("events", requestInfo, metrics, events)
+    {% endif %}
+    g.record("{{ ping }}", requestInfo, metrics, events)
 }
 
-// Record and submit an {{ event|event_type_name }} event omitting user request info
-// {{ event.description|clean_string }}
-func (g GleanEventsLogger) Record{{ event|event_type_name }}WithoutUserInfo(
-  params {{ event|event_type_name }},
+// Record and submit `{{ ping }}` ping omitting user request info
+func (g GleanEventsLogger) Record{{ ping|ping_type_name}}WithoutUserInfo(
+    params {{ ping|ping_type_name}},
 ) {
-	g.Record{{ event|event_type_name }}(defaultRequestInfo, params)
+    g.Record{{ ping|ping_type_name }}(defaultRequestInfo, params)
 }
-
 {% endfor %}

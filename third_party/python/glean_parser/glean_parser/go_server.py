@@ -17,9 +17,9 @@ conforming to Glean schema.
 Warning: this outputter supports limited set of metrics,
 see `SUPPORTED_METRIC_TYPES` below.
 
-The generated code creates the following:
-* Two methods for logging an Event metric
-    one with and one without user request info specified
+Generated code creates two methods for each ping (`RecordPingX` and `RecordPingXWithoutUserInfo`)
+that are used for submitting (logging) them.
+If pings have `event` metrics assigned, they can be passed to these methods.
 """
 
 from collections import defaultdict
@@ -32,11 +32,19 @@ from . import util
 
 # Adding a metric here will require updating the `generate_metric_type` function
 # and require adjustments to `metrics` variables the the template.
-SUPPORTED_METRIC_TYPES = ["string", "quantity", "event", "datetime"]
+SUPPORTED_METRIC_TYPES = ["string", "quantity", "event", "datetime", "boolean"]
+
+
+def generate_ping_type_name(ping_name: str) -> str:
+    return f"{util.Camelize(ping_name)}Ping"
+
+
+def generate_ping_events_type_name(ping_name: str) -> str:
+    return f"{util.Camelize(ping_name)}PingEvent"
 
 
 def generate_event_type_name(metric: metrics.Metric) -> str:
-    return f"Event{util.Camelize(metric.category)}{util.Camelize(metric.name)}"
+    return f"{util.Camelize(metric.category)}{util.Camelize(metric.name)}Event"
 
 
 def generate_metric_name(metric: metrics.Metric) -> str:
@@ -87,6 +95,8 @@ def output_go(
     template = util.get_jinja2_template(
         "go_server.jinja2",
         filters=(
+            ("ping_type_name", generate_ping_type_name),
+            ("ping_events_type_name", generate_ping_events_type_name),
             ("event_type_name", generate_event_type_name),
             ("event_extra_name", generate_extra_name),
             ("metric_name", generate_metric_name),
@@ -96,14 +106,8 @@ def output_go(
         ),
     )
 
-    PING_METRIC_ERROR_MSG = (
-        " Server-side environment is simplified and only supports the events ping type."
-        + " You should not be including pings.yaml with your parser call"
-        + " or referencing any other pings in your metric configuration."
-    )
-    if "pings" in objs:
-        print("❌ Ping definition found." + PING_METRIC_ERROR_MSG)
-        return
+    # unique list of event metrics used in any ping
+    event_metrics: List[metrics.Metric] = []
 
     # Go through all metrics in objs and build a map of
     # ping->list of metric categories->list of metrics
@@ -120,22 +124,22 @@ def output_go(
                         + " metric type."
                     )
                     continue
+
                 for ping in metric.send_in_pings:
-                    if ping != "events":
-                        (
-                            print(
-                                "❌ Non-events ping reference found."
-                                + PING_METRIC_ERROR_MSG
-                                + f"Ignoring the {ping} ping type."
-                            )
-                        )
-                        continue
+                    if metric.type == "event" and metric not in event_metrics:
+                        event_metrics.append(metric)
+
                     metrics_by_type = ping_to_metrics[ping]
                     metrics_list = metrics_by_type.setdefault(metric.type, [])
                     metrics_list.append(metric)
 
-    if "event" not in ping_to_metrics["events"]:
-        print("❌ No event metrics found...at least one event metric is required")
+    PING_METRIC_ERROR_MSG = (
+        " Server-side environment is simplified and this"
+        + " parser doesn't generate individual metric files. Make sure to pass all"
+        + " your ping and metric definitions in a single invocation of the parser."
+    )
+    if not ping_to_metrics:
+        print("❌ No pings with metrics found." + PING_METRIC_ERROR_MSG)
         return
 
     extension = ".go"
@@ -143,6 +147,8 @@ def output_go(
     with filepath.open("w", encoding="utf-8") as fd:
         fd.write(
             template.render(
-                parser_version=__version__, events_ping=ping_to_metrics["events"]
+                parser_version=__version__,
+                pings=ping_to_metrics,
+                events=event_metrics
             )
         )
