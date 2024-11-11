@@ -2055,8 +2055,6 @@ std::pair<nsBlockFrame*, nsLineBox*> FindLineClampTarget(
     nsBlockFrame* const aRootFrame, const nsBlockFrame* const aStopAtFrame,
     StyleLineClamp aLineNumber) {
   MOZ_ASSERT(aLineNumber > 0);
-  MOZ_ASSERT(!aRootFrame->HasLineClampEllipsis(),
-             "Should have been removed earlier");
 
   nsLineBox* targetLine = nullptr;
   nsBlockFrame* targetFrame = nullptr;
@@ -2090,11 +2088,18 @@ std::pair<nsBlockFrame*, nsLineBox*> FindLineClampTarget(
   }
 
   if (!foundFollowingLine) {
+    MOZ_ASSERT(!aRootFrame->HasLineClampEllipsis(),
+               "should have been removed earlier");
     return std::pair(nullptr, nullptr);
   }
 
   MOZ_ASSERT(targetLine);
   MOZ_ASSERT(targetFrame);
+
+  // If targetFrame is not the same as the line-clamp root, any ellipsis on the
+  // root should have been previously cleared.
+  MOZ_ASSERT(targetFrame == aRootFrame || !aRootFrame->HasLineClampEllipsis(),
+             "line-clamp target mismatch");
 
   return std::pair(targetFrame, targetLine);
 }
