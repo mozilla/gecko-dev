@@ -1259,7 +1259,7 @@ bool nsBlockFrame::MaybeHasFloats() const {
  */
 class MOZ_RAII LineClampLineIterator {
  public:
-  LineClampLineIterator(nsBlockFrame* aFrame, nsBlockFrame* aStopAtFrame)
+  LineClampLineIterator(nsBlockFrame* aFrame, const nsBlockFrame* aStopAtFrame)
       : mCur(aFrame->LinesBegin()),
         mEnd(aFrame->LinesEnd()),
         mCurrentFrame(mCur == mEnd ? nullptr : aFrame),
@@ -2051,18 +2051,18 @@ bool nsBlockFrame::CheckForCollapsedBEndMarginFromClearanceLine() {
   return false;
 }
 
-static nsLineBox* FindLineClampTarget(nsBlockFrame*& aFrame,
-                                      nsBlockFrame* aStopAtFrame,
-                                      StyleLineClamp aLineNumber) {
+std::pair<nsBlockFrame*, nsLineBox*> FindLineClampTarget(
+    nsBlockFrame* const aRootFrame, const nsBlockFrame* const aStopAtFrame,
+    StyleLineClamp aLineNumber) {
   MOZ_ASSERT(aLineNumber > 0);
-  MOZ_ASSERT(!aFrame->HasLineClampEllipsis(),
+  MOZ_ASSERT(!aRootFrame->HasLineClampEllipsis(),
              "Should have been removed earlier");
 
-  nsLineBox* target = nullptr;
+  nsLineBox* targetLine = nullptr;
   nsBlockFrame* targetFrame = nullptr;
   bool foundFollowingLine = false;
 
-  LineClampLineIterator iter(aFrame, aStopAtFrame);
+  LineClampLineIterator iter(aRootFrame, aStopAtFrame);
 
   while (nsLineBox* line = iter.GetCurrentLine()) {
     // Don't count a line that only has collapsible white space (as might exist
@@ -2082,7 +2082,7 @@ static nsLineBox* FindLineClampTarget(nsBlockFrame*& aFrame,
     if (--aLineNumber == 0) {
       // This is our target line.  Continue looping to confirm that we
       // have another line after us.
-      target = line;
+      targetLine = line;
       targetFrame = iter.GetCurrentFrame();
     }
 
@@ -2090,15 +2090,13 @@ static nsLineBox* FindLineClampTarget(nsBlockFrame*& aFrame,
   }
 
   if (!foundFollowingLine) {
-    aFrame = nullptr;
-    return nullptr;
+    return std::pair(nullptr, nullptr);
   }
 
-  MOZ_ASSERT(target);
+  MOZ_ASSERT(targetLine);
   MOZ_ASSERT(targetFrame);
 
-  aFrame = targetFrame;
-  return target;
+  return std::pair(targetFrame, targetLine);
 }
 
 nscoord nsBlockFrame::ApplyLineClamp(nscoord aContentBlockEndEdge) {
@@ -2108,8 +2106,7 @@ nscoord nsBlockFrame::ApplyLineClamp(nscoord aContentBlockEndEdge) {
   }
 
   auto lineClamp = root->StyleDisplay()->mWebkitLineClamp;
-  nsBlockFrame* target = root;
-  nsLineBox* line = FindLineClampTarget(target, this, lineClamp);
+  auto [target, line] = FindLineClampTarget(root, this, lineClamp);
   if (!line) {
     // The number of lines did not exceed the -webkit-line-clamp value.
     return aContentBlockEndEdge;
