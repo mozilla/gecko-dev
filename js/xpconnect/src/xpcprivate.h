@@ -380,6 +380,10 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
     IDX_INDEXEDDB,
     IDX_STRUCTUREDCLONE,
     IDX_LOCKS,
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    IDX_SUPPRESSED,
+    IDX_ERROR,
+#endif
     IDX_TOTAL_COUNT  // just a count of the above
   };
 
