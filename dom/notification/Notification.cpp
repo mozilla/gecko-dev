@@ -789,32 +789,15 @@ Notification::ConstructFromFields(
 nsresult Notification::Persist() {
   AssertIsOnMainThread();
 
-  nsCOMPtr<nsINotificationStorage> notificationStorage =
-      GetNotificationStorage(IsInPrivateBrowsing());
-  if (NS_WARN_IF(!notificationStorage)) {
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  nsString origin;
-  nsresult rv = GetOrigin(GetPrincipal(), origin);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  nsString id;
-  GetID(id);
-
   nsString alertName;
   GetAlertName(alertName);
 
-  nsAutoString behavior;
-  if (!mBehavior.ToJSON(behavior)) {
-    return NS_ERROR_FAILURE;
-  }
+  IPCNotificationOptions options(mTitle, mDir, mLang, mBody, mTag, mIconUrl,
+                                 mRequireInteraction, mSilent, mVibrate,
+                                 mDataAsBase64, mBehavior);
 
-  rv = notificationStorage->Put(origin, id, mTitle, GetEnumString(mDir), mLang,
-                                mBody, mTag, mIconUrl, alertName, mDataAsBase64,
-                                behavior, mScope);
+  nsresult rv =
+      PersistNotification(GetPrincipal(), mID, alertName, options, mScope);
 
   if (NS_FAILED(rv)) {
     return rv;

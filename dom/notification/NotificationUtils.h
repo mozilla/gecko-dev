@@ -19,6 +19,10 @@ enum class NotificationPermission : uint8_t;
 class Document;
 }  // namespace mozilla::dom
 
+namespace mozilla::dom {
+class IPCNotificationOptions;
+}
+
 namespace mozilla::dom::notification {
 
 /**
@@ -66,6 +70,10 @@ nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin);
 void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
                       const nsString& aId, nsString& aResult);
 
+nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
+                             const nsString& aAlertName,
+                             const IPCNotificationOptions& aOptions,
+                             const nsString& aScope);
 nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId);
 
 enum class CloseMode {
