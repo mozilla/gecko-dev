@@ -6,6 +6,7 @@
 
 #include "NotificationParent.h"
 
+#include "NotificationUtils.h"
 #include "mozilla/ipc/Endpoint.h"
 
 namespace mozilla::dom::notification {
@@ -38,6 +39,20 @@ nsresult NotificationParent::BindToMainThread(
       }));
 
   return NS_OK;
+}
+
+void NotificationParent::ActorDestroy(ActorDestroyReason aWhy) {
+  nsAutoString alertName;
+  GetAlertName(alertName);
+  UnregisterNotification(mPrincipal, mId, alertName, CloseMode::InactiveGlobal);
+}
+
+void NotificationParent::MaybeInitAlertName() {
+  if (!mAlertName.IsEmpty()) {
+    return;
+  }
+
+  ComputeAlertName(mPrincipal, mOptions.tag(), mId, mAlertName);
 }
 
 }  // namespace mozilla::dom::notification

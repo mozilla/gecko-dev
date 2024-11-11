@@ -35,14 +35,23 @@ class NotificationParent final : public PNotificationParent,
         mOptions(aOptions) {};
 
   IPCResult RecvShow(ShowResolver&& aResolver);
-  IPCResult RecvClose();
 
   nsresult BindToMainThread(
       Endpoint<PNotificationParent>&& aParentEndpoint,
       PBackgroundParent::CreateNotificationParentResolver&& aResolver);
 
+  void ActorDestroy(ActorDestroyReason aWhy) override;
+
  private:
   ~NotificationParent() = default;
+
+  void GetAlertName(nsAString& aRetval) {
+    if (mAlertName.IsEmpty()) {
+      MaybeInitAlertName();
+    }
+    aRetval = mAlertName;
+  }
+  void MaybeInitAlertName();
 
   NotNull<nsCOMPtr<nsIPrincipal>> mPrincipal;
   NotNull<nsCOMPtr<nsIPrincipal>> mEffectiveStoragePrincipal;
@@ -50,6 +59,8 @@ class NotificationParent final : public PNotificationParent,
   nsString mId;
   nsString mScope;
   IPCNotificationOptions mOptions;
+
+  nsString mAlertName;
 };
 
 }  // namespace mozilla::dom::notification
