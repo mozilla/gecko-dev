@@ -8262,9 +8262,9 @@ bool BaseCompiler::emitArrayNewElem() {
 }
 
 bool BaseCompiler::emitArrayInitData() {
-  uint32_t typeIndex, segIndex;
+  uint32_t unusedTypeIndex, segIndex;
   Nothing nothing;
-  if (!iter_.readArrayInitData(&typeIndex, &segIndex, &nothing, &nothing,
+  if (!iter_.readArrayInitData(&unusedTypeIndex, &segIndex, &nothing, &nothing,
                                &nothing, &nothing)) {
     return false;
   }
@@ -8273,12 +8273,12 @@ bool BaseCompiler::emitArrayInitData() {
     return true;
   }
 
-  pushPtr(loadTypeDefInstanceData(typeIndex));
   pushI32(int32_t(segIndex));
 
-  // The call removes 6 items from the stack: the array, array index, segment
+  // The call removes 5 items from the stack: the array, array index, segment
   // byte offset, and number of elements (operands to array.init_data), and the
-  // type data and seg index as pushed above.
+  // seg index as pushed above. TypeDefInstanceData is not necessary for this
+  // call because the array object has a reference to its type.
   return emitInstanceCall(SASigArrayInitData);
 }
 

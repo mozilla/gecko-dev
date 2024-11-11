@@ -389,8 +389,8 @@ constexpr SymbolicAddressSignature SASigArrayInitData = {
     SymbolicAddress::ArrayInitData,
     _VOID,
     _FailOnNegI32,
-    7,
-    {_PTR, _RoN, _I32, _I32, _I32, _PTR, _I32, _END}};
+    6,
+    {_PTR, _RoN, _I32, _I32, _I32, _I32, _END}};
 constexpr SymbolicAddressSignature SASigArrayInitElem = {
     SymbolicAddress::ArrayInitElem,
     _VOID,
@@ -1586,7 +1586,7 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
       MOZ_ASSERT(*abiType == ToABIType(SASigArrayNewElem));
       return FuncCast(Instance::arrayNewElem, *abiType);
     case SymbolicAddress::ArrayInitData:
-      *abiType = Args_Int32_GeneralGeneralInt32Int32Int32GeneralInt32;
+      *abiType = Args_Int32_GeneralGeneralInt32Int32Int32Int32;
       MOZ_ASSERT(*abiType == ToABIType(SASigArrayInitData));
       return FuncCast(Instance::arrayInitData, *abiType);
     case SymbolicAddress::ArrayInitElem:

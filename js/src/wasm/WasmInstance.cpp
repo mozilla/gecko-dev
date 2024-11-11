@@ -1504,15 +1504,16 @@ template void* Instance::arrayNew<false>(Instance* instance,
 
 // Copies from a data segment into a wasm GC array. Performs the necessary
 // bounds checks, accounting for the array's element size. If this function
-// returns false, it has already reported a trap error.
+// returns false, it has already reported a trap error. Null arrays should
+// be handled in the caller.
 static bool ArrayCopyFromData(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
-                              const TypeDef* typeDef, uint32_t arrayIndex,
-                              const DataSegment* seg, uint32_t segByteOffset,
-                              uint32_t numElements) {
+                              uint32_t arrayIndex, const DataSegment* seg,
+                              uint32_t segByteOffset, uint32_t numElements) {
+  uint32_t elemSize = arrayObj->typeDef().arrayType().elementType().size();
+
   // Compute the number of bytes to copy, ensuring it's below 2^32.
   CheckedUint32 numBytesToCopy =
-      CheckedUint32(numElements) *
-      CheckedUint32(typeDef->arrayType().elementType().size());
+      CheckedUint32(numElements) * CheckedUint32(elemSize);
   if (!numBytesToCopy.isValid()) {
     // Because the request implies that 2^32 or more bytes are to be copied.
     ReportTrapError(cx, JSMSG_WASM_OUT_OF_BOUNDS);
@@ -1541,10 +1542,15 @@ static bool ArrayCopyFromData(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
     return false;
   }
 
+  // This value is safe due to the previous range check on number of elements.
+  // (We know the full result fits in the array, and we can't overflow uint64_t
+  // since elemSize caps out at 16.)
+  uint64_t dstByteOffset = uint64_t(arrayIndex) * uint64_t(elemSize);
+
   // Because `numBytesToCopy` is an in-range `CheckedUint32`, the cast to
   // `size_t` is safe even on a 32-bit target.
   if (numElements != 0) {
-    memcpy(arrayObj->data_, &seg->bytes[segByteOffset],
+    memcpy(&arrayObj->data_[dstByteOffset], &seg->bytes[segByteOffset],
            size_t(numBytesToCopy.value()));
   }
 
@@ -1579,7 +1585,7 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
 
   GCPtr<AnyRef>* dst = reinterpret_cast<GCPtr<AnyRef>*>(arrayObj->data_);
   for (uint32_t i = 0; i < numElements; i++) {
-    dst[i] = seg[segOffset + i];
+    dst[arrayIndex + i] = seg[segOffset + i];
   }
 
   return true;
@@ -1614,7 +1620,6 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
   // At this point, if `seg` is null then `numElements` and `segByteOffset`
   // are both zero.
 
-  const TypeDef* typeDef = typeDefData->typeDef;
   Rooted<WasmArrayObject*> arrayObj(
       cx,
       WasmArrayObject::createArray<true>(
@@ -1630,8 +1635,7 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
     return arrayObj;
   }
 
-  if (!ArrayCopyFromData(cx, arrayObj, typeDef, 0, seg, segByteOffset,
-                         numElements)) {
+  if (!ArrayCopyFromData(cx, arrayObj, 0, seg, segByteOffset, numElements)) {
     // Trap errors will be reported by ArrayCopyFromData.
     return nullptr;
   }
@@ -1692,9 +1696,11 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
 //
 // Traps if accesses are out of bounds for either the data segment or the array,
 // or if the array object is null.
-/* static */ int32_t Instance::arrayInitData(
-    Instance* instance, void* array, uint32_t index, uint32_t segByteOffset,
-    uint32_t numElements, TypeDefInstanceData* typeDefData, uint32_t segIndex) {
+/* static */ int32_t Instance::arrayInitData(Instance* instance, void* array,
+                                             uint32_t index,
+                                             uint32_t segByteOffset,
+                                             uint32_t numElements,
+                                             uint32_t segIndex) {
   MOZ_ASSERT(SASigArrayInitData.failureMode == FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
 
@@ -1721,16 +1727,16 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
   }
 
   if (!seg) {
-    // A zero-length init was requested, so we're done.
+    // The segment was dropped, therefore a zero-length init was requested, so
+    // we're done.
     return 0;
   }
 
   // Get hold of the array.
-  const TypeDef* typeDef = typeDefData->typeDef;
   Rooted<WasmArrayObject*> arrayObj(cx, static_cast<WasmArrayObject*>(array));
   MOZ_RELEASE_ASSERT(arrayObj->is<WasmArrayObject>());
 
-  if (!ArrayCopyFromData(cx, arrayObj, typeDef, index, seg, segByteOffset,
+  if (!ArrayCopyFromData(cx, arrayObj, index, seg, segByteOffset,
                          numElements)) {
     // Trap errors will be reported by ArrayCopyFromData.
     return -1;

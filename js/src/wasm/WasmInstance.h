@@ -607,7 +607,6 @@ class alignas(16) Instance {
                             uint32_t segIndex);
   static int32_t arrayInitData(Instance* instance, void* array, uint32_t index,
                                uint32_t segByteOffset, uint32_t numElements,
-                               TypeDefInstanceData* typeDefData,
                                uint32_t segIndex);
   static int32_t arrayInitElem(Instance* instance, void* array, uint32_t index,
                                uint32_t segOffset, uint32_t numElements,

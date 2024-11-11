@@ -198,6 +198,9 @@
   args: [General, General, Int32, Int32]
 
 - ret: Int32
+  args: [General, General, Int32, Int32, Int32, Int32]
+
+- ret: Int32
   args: [General, General, Int32, Int32, Int32, General, Int32]
 
 - ret: Int32

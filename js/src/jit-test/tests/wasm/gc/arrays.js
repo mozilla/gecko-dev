@@ -1256,14 +1256,14 @@ assertErrorMessage(() => wasmEvalText(`(module
   let { initData } = wasmEvalText(`(module
     (type $a (array (mut i8)))
     (data $other "\\\\9")
-    (data $d "1337")
+    (data $d "xX1337Xx")
     (func (export "initData") (result eqref)
       (local $arr (ref $a))
-      (local.set $arr (array.new_default $a (i32.const 4)))
+      (local.set $arr (array.new_default $a (i32.const 6)))
 
       (; array to init ;)       local.get $arr
-      (; offset=0 into array ;) i32.const 0
-      (; offset=0 into data ;)  i32.const 0
+      (; offset=1 into array ;) i32.const 1
+      (; offset=2 into data ;)  i32.const 2
       (; size=4 elements ;)     i32.const 4
       array.init_data $a $d
 
@@ -1272,11 +1272,13 @@ assertErrorMessage(() => wasmEvalText(`(module
     (func data.drop 0) ;; force write of data count section, see https://github.com/bytecodealliance/wasm-tools/pull/1194
   )`).exports;
   let arr = initData();
-  assertEq(wasmGcArrayLength(arr), 4);
-  assertEq(wasmGcReadField(arr, 0), 48+1);
-  assertEq(wasmGcReadField(arr, 1), 48+3);
+  assertEq(wasmGcArrayLength(arr), 6);
+  assertEq(wasmGcReadField(arr, 0), 0);
+  assertEq(wasmGcReadField(arr, 1), 48+1);
   assertEq(wasmGcReadField(arr, 2), 48+3);
-  assertEq(wasmGcReadField(arr, 3), 48+7);
+  assertEq(wasmGcReadField(arr, 3), 48+3);
+  assertEq(wasmGcReadField(arr, 4), 48+7);
+  assertEq(wasmGcReadField(arr, 5), 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1635,18 +1637,19 @@ assertErrorMessage(() => wasmEvalText(`(module
 {
   let { initElem, f1, f2, f3, f4 } = wasmEvalText(`(module
     (type $a (array (mut funcref)))
-    (elem $e func $f1 $f2 $f3 $f4)
+    (elem $e func $f5 $f5 $f1 $f2 $f3 $f4 $f5 $f5)
     (func $f1 (export "f1"))
     (func $f2 (export "f2"))
     (func $f3 (export "f3"))
     (func $f4 (export "f4"))
+    (func $f5)
     (func (export "initElem") (result eqref)
       (local $arr (ref $a))
-      (local.set $arr (array.new_default $a (i32.const 4)))
+      (local.set $arr (array.new_default $a (i32.const 6)))
 
       (; array to init ;)       local.get $arr
-      (; offset=0 into array ;) i32.const 0
-      (; offset=0 into elem ;)  i32.const 0
+      (; offset=1 into array ;) i32.const 1
+      (; offset=2 into elem ;)  i32.const 2
       (; size=4 into elem ;)    i32.const 4
       array.init_elem $a $e
 
@@ -1654,11 +1657,13 @@ assertErrorMessage(() => wasmEvalText(`(module
     )
   )`).exports;
   let arr = initElem();
-  assertEq(wasmGcArrayLength(arr), 4);
-  assertEq(wasmGcReadField(arr, 0), f1);
-  assertEq(wasmGcReadField(arr, 1), f2);
-  assertEq(wasmGcReadField(arr, 2), f3);
-  assertEq(wasmGcReadField(arr, 3), f4);
+  assertEq(wasmGcArrayLength(arr), 6);
+  assertEq(wasmGcReadField(arr, 0), null);
+  assertEq(wasmGcReadField(arr, 1), f1);
+  assertEq(wasmGcReadField(arr, 2), f2);
+  assertEq(wasmGcReadField(arr, 3), f3);
+  assertEq(wasmGcReadField(arr, 4), f4);
+  assertEq(wasmGcReadField(arr, 5), null);
 }
 
 //////////////////////////////////////////////////////////////////////////////
