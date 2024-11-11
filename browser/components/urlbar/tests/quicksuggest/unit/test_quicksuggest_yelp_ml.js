@@ -259,6 +259,41 @@ add_task(async function intents() {
   }
 });
 
+// The search string passed in to `MLSuggest.makeSuggestions()` should be
+// trimmed and lowercased.
+add_task(async function searchString() {
+  let ml = {
+    intent: "yelp_intent",
+    subject: "burgers",
+  };
+  let expected = {
+    url: "https://www.yelp.com/search?find_desc=burgers&find_loc=Yokohama%2C+Kanagawa",
+    originalUrl: "https://www.yelp.com/search?find_desc=burgers",
+    displayUrl: "yelp.com/search?find_desc=burgers&find_loc=Yokohama,+Kanagawa",
+    title: "burgers in Yokohama, Kanagawa",
+  };
+
+  let searchStrings = [];
+  gMakeSuggestionsStub.callsFake(str => {
+    searchStrings.push(str);
+    return ml;
+  });
+
+  await check_results({
+    context: createContext("  AaA   bBb     CcC   ", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [makeExpectedResult(expected)],
+  });
+
+  Assert.deepEqual(
+    searchStrings,
+    ["aaa   bbb     ccc"],
+    "The search string passed in to MLSuggest should be trimmed and lowercased"
+  );
+});
+
 // The metadata cache should be populated from the "coffee" Rust suggestion when
 // it's present in remote settings.
 add_task(async function cache_fromRust() {

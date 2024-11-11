@@ -140,7 +140,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     }
     let mlBackend = lazy.QuickSuggest.getFeature("SuggestBackendMl");
     if (mlBackend.isEnabled) {
-      promises.push(mlBackend.query(searchString));
+      promises.push(mlBackend.query(queryContext.trimmedLowerCaseSearchString));
     }
 
     // Wait for both sources to finish.
