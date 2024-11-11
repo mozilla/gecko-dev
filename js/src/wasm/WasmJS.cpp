@@ -589,7 +589,11 @@ static bool EnforceRangeU64(JSContext* cx, HandleValue v, const char* kind,
 
 static bool EnforceRangeBigInt64(JSContext* cx, HandleValue v, const char* kind,
                                  const char* noun, uint64_t* u64) {
-  if (!v.isBigInt() || !BigInt::isUint64(v.toBigInt(), u64)) {
+  RootedBigInt bi(cx, ToBigInt(cx, v));
+  if (!bi) {
+    return false;
+  }
+  if (!BigInt::isUint64(bi, u64)) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_WASM_BAD_ENFORCE_RANGE, kind, noun);
     return false;
