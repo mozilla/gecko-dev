@@ -1151,7 +1151,7 @@ export var UrlbarTestUtils = {
         urlbarValue,
         "Urlbar value hasn't changed."
       );
-      this.assertSearchMode(window, null);
+      await this.assertSearchMode(window, null);
     } else if (clickClose) {
       // We need to hover the indicator to make the close button clickable in the
       // test.

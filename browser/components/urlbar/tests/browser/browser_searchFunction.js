@@ -49,7 +49,7 @@ add_task(async function searchEngineAlias() {
     gURLBar.search("@example")
   );
   ok(gURLBar.hasAttribute("focused"), "url bar is focused");
-  UrlbarTestUtils.assertSearchMode(window, null);
+  await UrlbarTestUtils.assertSearchMode(window, null);
   await assertUrlbarValue("@example");
 
   assertOneOffButtonsVisible(false);
