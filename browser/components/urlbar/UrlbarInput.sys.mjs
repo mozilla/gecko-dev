@@ -1511,11 +1511,17 @@ export class UrlbarInput {
       let enteredSearchMode;
       // Only preview search mode if the result is selected.
       if (this.view.resultIsSelected(result)) {
-        // Not starting a query means we will only preview search mode.
+        // For ScotchBonnet, As Tab and Arrow Down/Up, Page Down/Up key are used
+        // for selection of the urlbar results, keep the search mode as preview
+        // mode if there are multiple results.
+        // If ScotchBonnet is disabled, not starting a query means we will only
+        // preview search mode.
         enteredSearchMode = this.maybeConfirmSearchModeFromResult({
           result,
           checkValue: false,
-          startQuery: false,
+          startQuery:
+            lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") &&
+            this.view.visibleResults.length == 1,
         });
       }
       if (!enteredSearchMode) {

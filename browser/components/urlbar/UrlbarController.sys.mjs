@@ -455,6 +455,7 @@ export class UrlbarController {
       case KeyEvent.DOM_VK_END:
         this.input.maybeConfirmSearchModeFromResult({
           entry: "typed",
+          startQuery: true,
         });
       // Fall through.
       case KeyEvent.DOM_VK_LEFT:
