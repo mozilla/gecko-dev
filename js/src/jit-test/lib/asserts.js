@@ -51,39 +51,49 @@ if (typeof assertNoWarning === 'undefined') {
 }
 
 if (typeof assertErrorMessage === 'undefined') {
-    var assertErrorMessage = function assertErrorMessage(f, ctor, test, message) {
-        try {
-            f();
-        } catch (e) {
-            // Propagate non-specific OOM errors, we never test for these with
-            // assertErrorMessage, as there is no meaningful ctor.
-            if (e === "out of memory")
-                throw e;
-            if (!(e instanceof ctor))
-                throw new Error("Assertion failed: expected exception " + ctor.name + ", got " + e + (message ? `: ${message}` : ""));
-            if (typeof test == "string") {
-                if (test != e.message)
-                    throw new Error("Assertion failed: expected " + test + ", got " + e.message + (message ? `: ${message}` : ""));
-            } else {
-                if (!test.test(e.message))
-                    throw new Error("Assertion failed: expected " + test.toString() + ", got " + e.message + (message ? `: ${message}` : ""));
-            }
-            return;
+  var assertErrorMessage = function assertErrorMessage(f, ctor, test, message) {
+    try {
+      f();
+    } catch (e) {
+      // Propagate non-specific OOM errors, we never test for these with
+      // assertErrorMessage, as there is no meaningful ctor.
+      if (e === "out of memory") {
+        throw e;
+      }
+      if (!(e instanceof ctor)) {
+        throw new Error((message ? `${message}: ` : "") + `assertion failed: expected exception ${ctor.name}, got ${e}`);
+      }
+      if (typeof test == "string") {
+        if (test == e.message) {
+          return;
         }
-        throw new Error("Assertion failed: expected exception " + ctor.name + ", no exception thrown" + (message ? `: ${message}` : ""));
-    };
+        throw new Error((message ? `${message}: ` : "") + `assertion failed: expected message "${test}", got "${e.message}"`);
+      }
+      if (test instanceof RegExp) {
+        if (test.test(e.message)) {
+          return;
+        }
+        throw new Error((message ? `${message}: ` : "") + `assertion failed: expected message ${test.toString()}, got "${e.message}"`);
+      }
+      if (!test) {
+        throw new Error((message ? `${message}: ` : "") + `assertErrorMessage requires an error message`);
+      }
+      throw new Error((message ? `${message}: ` : "") + `unknown failure in assertErrorMessage: ${e}`);
+    }
+    throw new Error((message ? `${message}: ` : "") + `assertion failed: expected exception ${ctor.name}, no exception thrown`);
+  };
 }
 
 if (typeof assertTypeErrorMessage === 'undefined') {
-    var assertTypeErrorMessage = function assertTypeErrorMessage(f, test) {
-      assertErrorMessage(f, TypeError, test);
-    };
+  var assertTypeErrorMessage = function assertTypeErrorMessage(f, test) {
+    assertErrorMessage(f, TypeError, test);
+  };
 }
 
 if (typeof assertRangeErrorMessage === 'undefined') {
-    var assertRangeErrorMessage = function assertRangeErrorMessage(f, test) {
-      assertErrorMessage(f, RangeError, test);
-    };
+  var assertRangeErrorMessage = function assertRangeErrorMessage(f, test) {
+    assertErrorMessage(f, RangeError, test);
+  };
 }
 
 if (typeof assertArrayEq === 'undefined') {

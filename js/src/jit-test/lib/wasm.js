@@ -74,7 +74,7 @@ function wasmValidateBinary(binary) {
 
 function wasmFailValidateBinary(binary, pattern) {
     assertEq(WebAssembly.validate(binary), false, "module passed WebAssembly.validate when it should not have");
-    assertErrorMessage(() => new WebAssembly.Module(binary), WebAssembly.CompileError, pattern, "module failed WebAssembly.validate but did not fail to compile as expected");
+    assertErrorMessage(() => new WebAssembly.Module(binary), WebAssembly.CompileError, pattern, "module failed WebAssembly.validate but did not fail to compile in the expected way");
 }
 
 function wasmValidateText(str) {
