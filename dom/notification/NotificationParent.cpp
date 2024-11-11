@@ -61,6 +61,20 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
 mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
   mResolver.emplace(std::move(aResolver));
 
+  // Step 4.1: If the result of getting the notifications permission state is
+  // not "granted", then queue a task to fire an event named error on this, and
+  // abort these steps.
+  NotificationPermission permission = GetNotificationPermission(
+      mPrincipal, mEffectiveStoragePrincipal, mIsSecureContext,
+      PermissionCheckPurpose::NotificationShow);
+  if (permission != NotificationPermission::Granted) {
+    CopyableErrorResult rv;
+    rv.ThrowTypeError("Permission to show Notification denied.");
+    mResolver.take().value()(rv);
+    mDangling = true;
+    return IPC_OK();
+  }
+
   // Step 4.2: Run the fetch steps for notification. (Will happen in
   // nsIAlertNotification::LoadImage)
   // Step 4.3: Run the show steps for notification.
@@ -154,6 +168,11 @@ nsresult NotificationParent::BindToMainThread(
 }
 
 void NotificationParent::ActorDestroy(ActorDestroyReason aWhy) {
+  if (mDangling) {
+    // We had no permission, so nothing to clean up.
+    return;
+  }
+
   nsAutoString alertName;
   GetAlertName(alertName);
   UnregisterNotification(mPrincipal, mId, alertName, CloseMode::InactiveGlobal);
