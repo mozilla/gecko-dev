@@ -196,6 +196,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val translateLanguageCode = selectedTab?.translationsState?.translationEngineState
                         ?.requestedTranslationPair?.toLanguage
                     val isExtensionsProcessDisabled = browserStore.state.extensionsProcessDisabled
+                    val isReportSiteIssueSupported =
+                        FxNimbus.features.menuRedesign.value().reportSiteIssue
 
                     val customTab = args.customTabSessionId?.let {
                         browserStore.state.findCustomTab(it)
@@ -416,6 +418,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isPdf = isPdf,
                                     isTranslationSupported = isTranslationSupported,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+                                    reportSiteIssueLabel = if (
+                                        isReportSiteIssueSupported && pageWebExtensionMenuItems.isNotEmpty()
+                                    ) {
+                                        pageWebExtensionMenuItems[0].label.removeSuffix("…")
+                                    } else {
+                                        null
+                                    },
                                     onMozillaAccountButtonClick = {
                                         view?.slideDown {
                                             store.dispatch(
@@ -543,6 +552,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 ToolsSubmenu(
                                     isPdf = isPdf,
                                     webExtensionMenuItems = pageWebExtensionMenuItems,
+                                    isReportSiteIssueSupported = isReportSiteIssueSupported,
                                     isReaderable = isReaderable,
                                     isReaderViewActive = isReaderViewActive,
                                     hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,

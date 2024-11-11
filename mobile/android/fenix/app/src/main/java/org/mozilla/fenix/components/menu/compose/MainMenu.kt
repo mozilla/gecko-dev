@@ -39,6 +39,7 @@ import org.mozilla.fenix.theme.Theme
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
+ * @param reportSiteIssueLabel The label of report site issue web extension menu item.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onHelpButtonClick Invoked when the user clicks on the help button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
@@ -72,6 +73,7 @@ fun MainMenu(
     isTranslationSupported: Boolean,
     showQuitMenu: Boolean,
     isExtensionsProcessDisabled: Boolean,
+    reportSiteIssueLabel: String?,
     onMozillaAccountButtonClick: () -> Unit,
     onHelpButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
@@ -115,6 +117,7 @@ fun MainMenu(
             isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+            reportSiteIssueLabel = reportSiteIssueLabel,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
             onFindInPageMenuClick = onFindInPageMenuClick,
             onToolsMenuClick = onToolsMenuClick,
@@ -213,6 +216,7 @@ private fun ToolsAndActionsMenuGroup(
     isPdf: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
+    reportSiteIssueLabel: String?,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -257,9 +261,14 @@ private fun ToolsAndActionsMenuGroup(
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
                 description = stringResource(
                     id = if (isTranslationSupported) {
-                        R.string.browser_menu_tools_description_with_translate
+                        R.string.browser_menu_tools_description_with_translate_2
                     } else {
-                        R.string.browser_menu_tools_description
+                        R.string.browser_menu_tools_description_2
+                    },
+                    if (reportSiteIssueLabel != null) {
+                        (" $reportSiteIssueLabel,")
+                    } else {
+                        ""
                     },
                 ),
                 onClick = onToolsMenuClick,
@@ -395,6 +404,7 @@ private fun MenuDialogPreview() {
                 isTranslationSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
+                reportSiteIssueLabel = "Report Site Issue",
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},
@@ -436,6 +446,7 @@ private fun MenuDialogPrivatePreview() {
                 isTranslationSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = false,
+                reportSiteIssueLabel = "Report Site Issue",
                 onMozillaAccountButtonClick = {},
                 onHelpButtonClick = {},
                 onSettingsButtonClick = {},

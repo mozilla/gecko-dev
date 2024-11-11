@@ -29,6 +29,7 @@ import org.mozilla.fenix.theme.Theme
 @Composable
 internal fun ToolsSubmenu(
     isPdf: Boolean,
+    isReportSiteIssueSupported: Boolean,
     webExtensionMenuItems: List<WebExtensionMenuItem.WebExtensionPageMenuItem>,
     isReaderable: Boolean,
     isReaderViewActive: Boolean,
@@ -85,7 +86,7 @@ internal fun ToolsSubmenu(
                 )
             }
 
-            if (webExtensionMenuItems.isNotEmpty()) {
+            if (webExtensionMenuItems.isNotEmpty() && isReportSiteIssueSupported) {
                 Divider(color = FirefoxTheme.colors.borderSecondary)
 
                 for (webExtensionMenuItem in webExtensionMenuItems) {
@@ -204,6 +205,7 @@ private fun ToolsSubmenuPreview() {
         ) {
             ToolsSubmenu(
                 isPdf = false,
+                isReportSiteIssueSupported = false,
                 webExtensionMenuItems = listOf(
                     WebExtensionMenuItem.WebExtensionPageMenuItem(
                         label = "label",
@@ -247,6 +249,7 @@ private fun ToolsSubmenuPrivatePreview() {
         ) {
             ToolsSubmenu(
                 isPdf = false,
+                isReportSiteIssueSupported = true,
                 webExtensionMenuItems = listOf(
                     WebExtensionMenuItem.WebExtensionPageMenuItem(
                         label = "label",

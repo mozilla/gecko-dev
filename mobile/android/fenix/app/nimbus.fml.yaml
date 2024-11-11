@@ -547,6 +547,14 @@ features:
         description: If true, the new menu redesign is available.
         type: Boolean
         default: false
+      report-site-issue:
+        description: If true, report site issue menu item and preview is available.
+        type: Boolean
+        default: true
+    defaults:
+      - channel: release
+        value:
+          report-site-issue: false
 
   microsurveys:
     description: Feature for microsurveys.
