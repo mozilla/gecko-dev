@@ -15,7 +15,7 @@ function memoryTypeModuleText(shared, initial, max) {
 }
 function memoryTypeDescriptor(shared, initial, max) {
   return {
-    index: 'i64',
+    address: 'i64',
     initial,
     maximum: max,
     shared,
@@ -44,7 +44,7 @@ function tableTypeModuleText(element, initial, max) {
 }
 function tableTypeDescriptor(element, initial, max) {
   return {
-    index: 'i64',
+    address: 'i64',
     element,
     initial,
     maximum: max,
@@ -100,23 +100,23 @@ validAndInstantiableTableType('funcref', 0n, MaxTable64ElemsValidation);
 assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, MaxTable64ElemsValidation + 1n)), TypeError, /bad Table maximum/);
 
 // further validation of memory64 descriptor params
-assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0)), TypeError, /bad Memory initial size/);
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0)), TypeError, /can't convert 0 to BigInt/);
 assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, -1n)), TypeError, /bad Memory initial size/);
 assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 2n**64n)), TypeError, /bad Memory initial size/);
-assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0n, 1)), TypeError, /bad Memory maximum size/);
+assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0n, 1)), TypeError, /can't convert 1 to BigInt/);
 assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0n, -1n)), TypeError, /bad Memory maximum size/);
 assertErrorMessage(() => new WebAssembly.Memory(memoryTypeDescriptor(false, 0n, 2n**64n)), TypeError, /bad Memory maximum size/);
-assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0)), TypeError, /bad Table initial size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0)), TypeError, /can't convert 0 to BigInt/);
 assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', -1n)), TypeError, /bad Table initial size/);
 assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 2n**64n)), TypeError, /bad Table initial size/);
-assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, 1)), TypeError, /bad Table maximum size/);
+assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, 1)), TypeError, /can't convert 1 to BigInt/);
 assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, -1n)), TypeError, /bad Table maximum size/);
 assertErrorMessage(() => new WebAssembly.Table(tableTypeDescriptor('funcref', 0n, 2n**64n)), TypeError, /bad Table maximum size/);
 
 // test that linking requires address types to be equal
 function testLinkMemory(importedAddressType, importAddressType) {
   let imported = new WebAssembly.Memory({
-    index: importedAddressType,
+    address: importedAddressType,
     initial: importedAddressType === 'i64' ? 0n : 0,
   });
   let testModule =
@@ -131,7 +131,7 @@ function testLinkMemory(importedAddressType, importAddressType) {
 function testLinkTable(importedAddressType, importAddressType) {
   const imported = new WebAssembly.Table({
     element: 'funcref',
-    index: importedAddressType,
+    address: importedAddressType,
     initial: importedAddressType === 'i64' ? 0n : 0,
   });
   const testModule =
@@ -429,7 +429,7 @@ wasmFailValidateText(`
 
 if (getBuildConfiguration("pointer-byte-size") == 8) {
     try {
-        new WebAssembly.Memory({index:"i64", initial:BigInt(65536 * 1.5), maximum:BigInt(65536 * 2)});
+        new WebAssembly.Memory({address:"i64", initial:BigInt(65536 * 1.5), maximum:BigInt(65536 * 2)});
     } catch (e) {
         // OOM is OK.
         if (!(e instanceof WebAssembly.RuntimeError) || !String(e).match(/too many memory pages/)) {
@@ -441,26 +441,26 @@ if (getBuildConfiguration("pointer-byte-size") == 8) {
 // JS-API
 
 if (WebAssembly.Function) {
-  const m64 = new WebAssembly.Memory({ index: "i64", initial:1n });
-  assertEq(m64.type().index, "i64");
+  const m64 = new WebAssembly.Memory({ address: "i64", initial:1n });
+  assertEq(m64.type().address, "i64");
 
   const m32 = new WebAssembly.Memory({ initial:1 });
-  assertEq(m32.type().index, "i32");
+  assertEq(m32.type().address, "i32");
 
-  const t64 = new WebAssembly.Table({ index: "i64", element: "funcref", initial: 1n });
-  assertEq(t64.type().index, "i64");
+  const t64 = new WebAssembly.Table({ address: "i64", element: "funcref", initial: 1n });
+  assertEq(t64.type().address, "i64");
 
   const t32 = new WebAssembly.Table({ initial: 1, element: "funcref" });
-  assertEq(t32.type().index, "i32");
+  assertEq(t32.type().address, "i32");
 
   const ins = wasmEvalText(`(module
     (memory (export "mem") i64 1 0x100000000)
     (table (export "table") i64 1 0x1000 funcref)
   )`);
-  assertEq(ins.exports.mem.type().index, "i64");
+  assertEq(ins.exports.mem.type().address, "i64");
   assertEq(ins.exports.mem.type().minimum, 1n);
   assertEq(ins.exports.mem.type().maximum, 0x100000000n);
-  assertEq(ins.exports.table.type().index, "i64");
+  assertEq(ins.exports.table.type().address, "i64");
   assertEq(ins.exports.table.type().minimum, 1n);
   assertEq(ins.exports.table.type().maximum, 0x1000n);
 }
@@ -1783,7 +1783,7 @@ const table64Tests = [
   },
 ];
 for (const test of table64Tests) {
-  const externalTable = new WebAssembly.Table({ index: "i64", element: test.elem, initial: 2n });
+  const externalTable = new WebAssembly.Table({ address: "i64", element: test.elem, initial: 2n });
   externalTable.set(0n, test.jsval);
   externalTable.set(1n, null);
 
@@ -1934,8 +1934,8 @@ for (const test of table64Tests) {
 }
 
 // Bulk table operations
-for (const [idxType1, idxType2] of types) {
-  const lenType = idxType1 === "i64" && idxType2 === "i64" ? "i64" : "i32";
+for (const [addrType1, addrType2] of types) {
+  const lenType = addrType1 === "i64" && addrType2 === "i64" ? "i64" : "i32";
 
   const {
     f1, f2, e1, e2,
@@ -1955,14 +1955,14 @@ for (const [idxType1, idxType2] of types) {
     (global $ec (import "" "ec") externref)
     (global $ed (import "" "ed") externref)
 
-    (table $f1 (export "f1") ${idxType1} 8 funcref)
-    (table $f2 (export "f2") ${idxType2} 8 funcref)
-    (table $e1 (export "e1") ${idxType1} 8 externref)
-    (table $e2 (export "e2") ${idxType2} 8 externref)
+    (table $f1 (export "f1") ${addrType1} 8 funcref)
+    (table $f2 (export "f2") ${addrType2} 8 funcref)
+    (table $e1 (export "e1") ${addrType1} 8 externref)
+    (table $e2 (export "e2") ${addrType2} 8 externref)
 
-    (elem (table $f1) (offset ${idxType1}.const 2) funcref (ref.func $a) (ref.func $b))
+    (elem (table $f1) (offset ${addrType1}.const 2) funcref (ref.func $a) (ref.func $b))
     (elem $fcd funcref (ref.func $c) (ref.func $d))
-    (elem (table $e1) (offset ${idxType1}.const 2) externref (global.get $ea) (global.get $eb))
+    (elem (table $e1) (offset ${addrType1}.const 2) externref (global.get $ea) (global.get $eb))
     (elem $ecd externref (global.get $ec) (global.get $ed))
 
     (type $ft (func (result i32)))
@@ -1971,7 +1971,7 @@ for (const [idxType1, idxType2] of types) {
     (func $c (result i32) i32.const 99)   ;; 'c'
     (func $d (result i32) i32.const 100)  ;; 'd'
 
-    (func (export "callF1") (param ${idxType1}) (result i32)
+    (func (export "callF1") (param ${addrType1}) (result i32)
       (if (ref.is_null (table.get $f1 (local.get 0)))
         (then
           (return (i32.const 0))
@@ -1982,7 +1982,7 @@ for (const [idxType1, idxType2] of types) {
       ref.cast (ref $ft)
       call_ref $ft
     )
-    (func (export "callF2") (param ${idxType2}) (result i32)
+    (func (export "callF2") (param ${addrType2}) (result i32)
       (if (ref.is_null (table.get $f2 (local.get 0)))
         (then
           (return (i32.const 0))
@@ -1994,50 +1994,50 @@ for (const [idxType1, idxType2] of types) {
       call_ref $ft
     )
 
-    (func (export "getE1") (param ${idxType1}) (result externref)
+    (func (export "getE1") (param ${addrType1}) (result externref)
       (table.get $e1 (local.get 0))
     )
-    (func (export "getE2") (param ${idxType2}) (result externref)
+    (func (export "getE2") (param ${addrType2}) (result externref)
       (table.get $e2 (local.get 0))
     )
 
-    (func (export "sizeF1") (result ${idxType1}) table.size $f1)
-    (func (export "sizeF2") (result ${idxType2}) table.size $f2)
-    (func (export "sizeE1") (result ${idxType1}) table.size $e1)
-    (func (export "sizeE2") (result ${idxType2}) table.size $e2)
+    (func (export "sizeF1") (result ${addrType1}) table.size $f1)
+    (func (export "sizeF2") (result ${addrType2}) table.size $f2)
+    (func (export "sizeE1") (result ${addrType1}) table.size $e1)
+    (func (export "sizeE2") (result ${addrType2}) table.size $e2)
 
-    (func (export "initF1") (param ${idxType1} i32 i32)
+    (func (export "initF1") (param ${addrType1} i32 i32)
       (table.init $f1 $fcd (local.get 0) (local.get 1) (local.get 2))
     )
-    (func (export "initE1") (param ${idxType1} i32 i32)
+    (func (export "initE1") (param ${addrType1} i32 i32)
       (table.init $e1 $ecd (local.get 0) (local.get 1) (local.get 2))
     )
 
-    (func (export "copyF") (param ${idxType2} ${idxType1} ${lenType})
+    (func (export "copyF") (param ${addrType2} ${addrType1} ${lenType})
       (table.copy $f2 $f1 (local.get 0) (local.get 1) (local.get 2))
     )
-    (func (export "copyE") (param ${idxType2} ${idxType1} ${lenType})
+    (func (export "copyE") (param ${addrType2} ${addrType1} ${lenType})
       (table.copy $e2 $e1 (local.get 0) (local.get 1) (local.get 2))
     )
 
-    (func (export "growF1") (param ${idxType1}) (result ${idxType1})
+    (func (export "growF1") (param ${addrType1}) (result ${addrType1})
       (table.grow $f1 (ref.null func) (local.get 0))
     )
-    (func (export "growE1") (param ${idxType1}) (result ${idxType1})
+    (func (export "growE1") (param ${addrType1}) (result ${addrType1})
       (table.grow $e1 (ref.null extern) (local.get 0))
     )
 
-    (func (export "growF2") (param ${idxType2}) (result ${idxType2})
+    (func (export "growF2") (param ${addrType2}) (result ${addrType2})
       (table.grow $f2 (ref.null func) (local.get 0))
     )
-    (func (export "growE2") (param ${idxType2}) (result ${idxType2})
+    (func (export "growE2") (param ${addrType2}) (result ${addrType2})
       (table.grow $e2 (ref.null extern) (local.get 0))
     )
 
-    (func (export "fillF1WithA") (param ${idxType1} ${idxType1})
+    (func (export "fillF1WithA") (param ${addrType1} ${addrType1})
       (table.fill $f1 (local.get 0) (ref.func $a) (local.get 1))
     )
-    (func (export "fillE1WithA") (param ${idxType1} ${idxType1})
+    (func (export "fillE1WithA") (param ${addrType1} ${addrType1})
       (table.fill $e1 (local.get 0) (global.get $ea) (local.get 1))
     )
   )`, {
@@ -2049,12 +2049,12 @@ for (const [idxType1, idxType2] of types) {
     },
   }).exports;
 
-  function idx1(n) {
-    return idxType1 === "i64" ? BigInt(n) : n;
+  function addr1(n) {
+    return addrType1 === "i64" ? BigInt(n) : n;
   }
 
-  function idx2(n) {
-    return idxType2 === "i64" ? BigInt(n) : n;
+  function addr2(n) {
+    return addrType2 === "i64" ? BigInt(n) : n;
   }
 
   function len(n) {
@@ -2070,13 +2070,13 @@ for (const [idxType1, idxType2] of types) {
 
   function testFuncTable(table, vals) {
     const actual = (table === 1 ? sizeF1 : sizeF2)();
-    const expected = table === 1 ? idx1(vals.length) : idx2(vals.length);
+    const expected = table === 1 ? addr1(vals.length) : addr2(vals.length);
     assertEq(actual, expected, `table $f${table} had wrong size`);
 
     for (let i = 0; i < vals.length; i++) {
-      const idx = table === 1 ? idx1(i) : idx2(i);
+      const addr = table === 1 ? addr1(i) : addr2(i);
       const expected = typeof vals[i] === "string" ? vals[i].charCodeAt(0) : vals[i];
-      const actual = (table === 1 ? callF1 : callF2)(idx);
+      const actual = (table === 1 ? callF1 : callF2)(addr);
       assertEq(actual, expected, `table $e${table} index ${i}`);
     }
   }
@@ -2085,13 +2085,13 @@ for (const [idxType1, idxType2] of types) {
   // I will not apologize for this.
   function testExtnTable(table, vals) {
     const actual = (table === 1 ? sizeE1 : sizeE2)();
-    const expected = table === 1 ? idx1(vals.length) : idx2(vals.length);
+    const expected = table === 1 ? addr1(vals.length) : addr2(vals.length);
     assertEq(actual, expected, `table $e${table} had wrong size`);
 
     for (let i = 0; i < vals.length; i++) {
-      const idx = table === 1 ? idx1(i) : idx2(i);
+      const addr = table === 1 ? addr1(i) : addr2(i);
       const expected = vals[i];
-      const actual = (table === 1 ? getE1 : getE2)(idx);
+      const actual = (table === 1 ? getE1 : getE2)(addr);
       assertEq(actual, expected, `table $e${table} index ${i}`);
     }
   }
@@ -2101,34 +2101,34 @@ for (const [idxType1, idxType2] of types) {
   testExtnTable(1, [null, null, "a", "b", null, null, null, null]);
   testExtnTable(2, [null, null, null, null, null, null, null, null]);
 
-  initF1(idx1(4), 0, 2);
-  initE1(idx1(4), 0, 2);
+  initF1(addr1(4), 0, 2);
+  initE1(addr1(4), 0, 2);
 
   testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0]);
   testFuncTable(2, [0, 0, 0, 0, 0, 0, 0, 0]);
   testExtnTable(1, [null, null, "a", "b", "c", "d", null, null]);
   testExtnTable(2, [null, null, null, null, null, null, null, null]);
 
-  copyF(idx2(4), idx1(2), len(4));
-  copyE(idx2(4), idx1(2), len(4));
+  copyF(addr2(4), addr1(2), len(4));
+  copyE(addr2(4), addr1(2), len(4));
 
   testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0]);
   testFuncTable(2, [0, 0, 0, 0, "a", "b", "c", "d"]);
   testExtnTable(1, [null, null, "a", "b", "c", "d", null, null]);
   testExtnTable(2, [null, null, null, null, "a", "b", "c", "d"]);
 
-  tryGrow(() => growF1(idx1(4)));
-  tryGrow(() => growF2(idx2(4)));
-  tryGrow(() => growE1(idx1(4)));
-  tryGrow(() => growE2(idx2(4)));
+  tryGrow(() => growF1(addr1(4)));
+  tryGrow(() => growF2(addr2(4)));
+  tryGrow(() => growE1(addr1(4)));
+  tryGrow(() => growE2(addr2(4)));
 
   testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0, 0, 0, 0, 0]);
   testFuncTable(2, [0, 0, 0, 0, "a", "b", "c", "d", 0, 0, 0, 0]);
   testExtnTable(1, [null, null, "a", "b", "c", "d", null, null, null, null, null, null]);
   testExtnTable(2, [null, null, null, null, "a", "b", "c", "d", null, null, null, null]);
 
-  fillF1WithA(idx1(8), idx1(4));
-  fillE1WithA(idx1(8), idx1(4));
+  fillF1WithA(addr1(8), addr1(4));
+  fillE1WithA(addr1(8), addr1(4));
 
   testFuncTable(1, [0, 0, "a", "b", "c", "d", 0, 0, "a", "a", "a", "a"]);
   testFuncTable(2, [0, 0, 0, 0, "a", "b", "c", "d", 0, 0, 0, 0]);
@@ -2137,11 +2137,11 @@ for (const [idxType1, idxType2] of types) {
 
   // and now explode!
 
-  if (idxType1 === "i64") {
+  if (addrType1 === "i64") {
     // JS API must use BigInt for i64
-    assertErrorMessage(() => f1.grow(1), TypeError, /Table grow delta/);
-    assertErrorMessage(() => f1.get(0), TypeError, /Table get address/);
-    assertErrorMessage(() => f1.set(0, null), TypeError, /Table set address/);
+    assertErrorMessage(() => f1.grow(1), TypeError, /can't convert 1 to BigInt/);
+    assertErrorMessage(() => f1.get(0), TypeError, /can't convert 0 to BigInt/);
+    assertErrorMessage(() => f1.set(0, null), TypeError, /can't convert 0 to BigInt/);
     assertEq(typeof f1.length, "bigint");
   }
 
@@ -2156,51 +2156,51 @@ for (const [idxType1, idxType2] of types) {
     Number.MAX_SAFE_INTEGER,
     Number.MAX_SAFE_INTEGER + 1,
   ];
-  if (idxType1 === "i64") {
+  if (addrType1 === "i64") {
     for (const i of indexes) {
       assertErrorMessage(
-        () => fillF1WithA(idx1(i), idx1(2)),
+        () => fillF1WithA(addr1(i), addr1(2)),
         WebAssembly.RuntimeError, /index out of bounds/,
         `start index ${i}`,
       );
       assertErrorMessage(
-        () => fillE1WithA(idx1(i), idx1(2)),
+        () => fillE1WithA(addr1(i), addr1(2)),
         WebAssembly.RuntimeError, /index out of bounds/,
         `start index ${i}`,
       );
 
       assertErrorMessage(
-        () => copyF(idx2(0), idx1(i), len(2)),
+        () => copyF(addr2(0), addr1(i), len(2)),
         WebAssembly.RuntimeError, /index out of bounds/,
         `src index ${i}`,
       );
       assertErrorMessage(
-        () => copyE(idx2(0), idx1(i), len(2)),
+        () => copyE(addr2(0), addr1(i), len(2)),
         WebAssembly.RuntimeError, /index out of bounds/,
         `src index ${i}`,
       );
 
       assertErrorMessage(
-        () => initF1(idx1(i), 0, 2),
+        () => initF1(addr1(i), 0, 2),
         WebAssembly.RuntimeError, /index out of bounds/,
         `dst index ${i}`,
       );
       assertErrorMessage(
-        () => initE1(idx1(i), 0, 2),
+        () => initE1(addr1(i), 0, 2),
         WebAssembly.RuntimeError, /index out of bounds/,
         `dst index ${i}`,
       );
     }
   }
-  if (idxType2 === "i64") {
+  if (addrType2 === "i64") {
     for (const i of indexes) {
       assertErrorMessage(
-        () => copyF(idx2(i), idx1(0), len(2)),
+        () => copyF(addr2(i), addr1(0), len(2)),
         WebAssembly.RuntimeError, /index out of bounds/,
         `dst index ${i}`,
       );
       assertErrorMessage(
-        () => copyE(idx2(i), idx1(0), len(2)),
+        () => copyE(addr2(i), addr1(0), len(2)),
         WebAssembly.RuntimeError, /index out of bounds/,
         `dst index ${i}`,
       );
@@ -2212,40 +2212,40 @@ for (const [idxType1, idxType2] of types) {
 
   try {
     // Grow the tables up to max size using both the instruction and the JS API
-    tryGrow(() => growF1(idx1(maxDelta / 2)));
-    tryGrow(() => growF2(idx2(maxDelta / 2)));
-    tryGrow(() => growE1(idx1(maxDelta / 2)));
-    tryGrow(() => growE2(idx2(maxDelta / 2)));
-    f1.grow(idx1(maxDelta / 2), null);
-    f2.grow(idx2(maxDelta / 2), null);
-    e1.grow(idx1(maxDelta / 2), null);
-    e2.grow(idx2(maxDelta / 2), null);
+    tryGrow(() => growF1(addr1(maxDelta / 2)));
+    tryGrow(() => growF2(addr2(maxDelta / 2)));
+    tryGrow(() => growE1(addr1(maxDelta / 2)));
+    tryGrow(() => growE2(addr2(maxDelta / 2)));
+    f1.grow(addr1(maxDelta / 2), null);
+    f2.grow(addr2(maxDelta / 2), null);
+    e1.grow(addr1(maxDelta / 2), null);
+    e2.grow(addr2(maxDelta / 2), null);
 
-    assertEq(sizeF1(), idx1(MaxTableElemsRuntime));
-    assertEq(sizeF2(), idx2(MaxTableElemsRuntime));
-    assertEq(sizeE1(), idx1(MaxTableElemsRuntime));
-    assertEq(sizeE2(), idx2(MaxTableElemsRuntime));
+    assertEq(sizeF1(), addr1(MaxTableElemsRuntime));
+    assertEq(sizeF2(), addr2(MaxTableElemsRuntime));
+    assertEq(sizeE1(), addr1(MaxTableElemsRuntime));
+    assertEq(sizeE2(), addr2(MaxTableElemsRuntime));
 
     for (const delta of indexes) {
-      if (idxType1 === "i64") {
+      if (addrType1 === "i64") {
         console.log(delta);
-        assertEq(growF1(idx1(delta)), idx1(-1), `growing by ${delta}`);
-        assertEq(growE1(idx1(delta)), idx1(-1), `growing by ${delta}`);
-        assertErrorMessage(() => f1.grow(idx1(delta), null), Error, /grow/); // Loose to accept either TypeError or RangeError
-        assertErrorMessage(() => e1.grow(idx1(delta), null), Error, /grow/);
+        assertEq(growF1(addr1(delta)), addr1(-1), `growing by ${delta}`);
+        assertEq(growE1(addr1(delta)), addr1(-1), `growing by ${delta}`);
+        assertErrorMessage(() => f1.grow(addr1(delta), null), Error, /grow/); // Loose to accept either TypeError or RangeError
+        assertErrorMessage(() => e1.grow(addr1(delta), null), Error, /grow/);
       }
-      if (idxType2 === "i64") {
-        assertEq(growF2(idx2(delta)), idx2(-1), `growing by ${delta}`);
-        assertEq(growE2(idx2(delta)), idx2(-1), `growing by ${delta}`);
-        assertErrorMessage(() => f2.grow(idx2(delta), null), Error, /grow/);
-        assertErrorMessage(() => e2.grow(idx2(delta), null), Error, /grow/);
+      if (addrType2 === "i64") {
+        assertEq(growF2(addr2(delta)), addr2(-1), `growing by ${delta}`);
+        assertEq(growE2(addr2(delta)), addr2(-1), `growing by ${delta}`);
+        assertErrorMessage(() => f2.grow(addr2(delta), null), Error, /grow/);
+        assertErrorMessage(() => e2.grow(addr2(delta), null), Error, /grow/);
       }
     }
 
-    assertEq(sizeF1(), idx1(MaxTableElemsRuntime));
-    assertEq(sizeF2(), idx2(MaxTableElemsRuntime));
-    assertEq(sizeE1(), idx1(MaxTableElemsRuntime));
-    assertEq(sizeE2(), idx2(MaxTableElemsRuntime));
+    assertEq(sizeF1(), addr1(MaxTableElemsRuntime));
+    assertEq(sizeF2(), addr2(MaxTableElemsRuntime));
+    assertEq(sizeE1(), addr1(MaxTableElemsRuntime));
+    assertEq(sizeE2(), addr2(MaxTableElemsRuntime));
   } catch (e) {
     if (e instanceof RangeError) {
       // This can happen due to resource exhaustion on some platforms and is not worth

@@ -6,7 +6,7 @@ var memtypes = wasmMemory64Enabled() ? ['i32', 'i64'] : [''];
 
 function makeMemoryDesc(memtype, d) {
     if (memtype != '') {
-        d.index = memtype;
+        d.address = memtype;
     }
     return d;
 }
@@ -50,7 +50,7 @@ for ( let memtype of memtypes ) {
     assertEq(buf1 !== buf2, true);
     assertEq(buf1.byteLength, buf2.byteLength);
     if (memtype != '' && mem2.type) {
-        assertEq(mem2.type().index, memtype);
+        assertEq(mem2.type().address, memtype);
     }
 
     // Effects to one buffer must be reflected in the other:

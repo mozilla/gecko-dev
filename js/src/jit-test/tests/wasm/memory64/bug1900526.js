@@ -1,7 +1,7 @@
 // |jit-test| heavy; allow-oom; skip-if: !canRunHugeMemoryTests()
 
 const maxPages = wasmMaxMemoryPages("i64");
-const m = new WebAssembly.Memory({initial: 0n, index: "i64"});
+const m = new WebAssembly.Memory({initial: 0n, address: "i64"});
 try {
     m.grow(BigInt(maxPages));
     assertEq(m.buffer.byteLength, maxPages * PageSizeInBytes);

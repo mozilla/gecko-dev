@@ -26,6 +26,7 @@
   IF_DECORATORS(MACRO_(accessor, "accessor"))                                  \
   MACRO_(add, "add")                                                           \
   IF_DECORATORS(MACRO_(addInitializer, "addInitializer"))                      \
+  MACRO_(address, "address")                                                   \
   MACRO_(allowContentIter, "allowContentIter")                                 \
   MACRO_(allowContentIterWith, "allowContentIterWith")                         \
   MACRO_(allowContentIterWithNext, "allowContentIterWithNext")                 \

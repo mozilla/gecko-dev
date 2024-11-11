@@ -184,3 +184,14 @@ size_t CustomSection::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
   return name.sizeOfExcludingThis(mallocSizeOf) + sizeof(*payload) +
          payload->sizeOfExcludingThis(mallocSizeOf);
 }
+
+const char* wasm::ToString(LimitsKind kind) {
+  switch (kind) {
+    case LimitsKind::Memory:
+      return "Memory";
+    case LimitsKind::Table:
+      return "Table";
+    default:
+      MOZ_CRASH();
+  }
+}

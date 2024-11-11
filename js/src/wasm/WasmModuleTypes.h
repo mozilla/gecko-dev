@@ -716,6 +716,8 @@ enum class LimitsKind {
   Table,
 };
 
+extern const char* ToString(LimitsKind kind);
+
 // Represents the resizable limits of memories and tables.
 
 struct Limits {
