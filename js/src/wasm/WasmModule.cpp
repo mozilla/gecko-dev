@@ -250,10 +250,10 @@ bool wasm::GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId) {
   buildId->infallibleAppend(')');
 
   buildId->infallibleAppend('m');
-  buildId->infallibleAppend(wasm::IsHugeMemoryEnabled(IndexType::I32) ? '+'
-                                                                      : '-');
-  buildId->infallibleAppend(wasm::IsHugeMemoryEnabled(IndexType::I64) ? '+'
-                                                                      : '-');
+  buildId->infallibleAppend(wasm::IsHugeMemoryEnabled(AddressType::I32) ? '+'
+                                                                        : '-');
+  buildId->infallibleAppend(wasm::IsHugeMemoryEnabled(AddressType::I64) ? '+'
+                                                                        : '-');
 
   return true;
 }
@@ -492,15 +492,15 @@ bool Module::instantiateMemories(
                     memory->buffer().isPreparedForAsmJS());
       MOZ_ASSERT_IF(!codeMeta().isAsmJS(), memory->buffer().isWasm());
 
-      if (memory->indexType() != desc.indexType()) {
+      if (memory->addressType() != desc.addressType()) {
         JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                 JSMSG_WASM_BAD_IMP_INDEX,
-                                 ToString(memory->indexType()));
+                                 JSMSG_WASM_BAD_IMP_ADDRESS,
+                                 ToString(memory->addressType()));
         return false;
       }
 
       if (!CheckLimits(cx, desc.initialPages(), desc.maximumPages(),
-                       /* defaultMax */ MaxMemoryPages(desc.indexType()),
+                       /* defaultMax */ MaxMemoryPages(desc.addressType()),
                        /* actualLength */
                        memory->volatilePages(), memory->sourceMaxPages(),
                        codeMeta().isAsmJS(), "Memory")) {
@@ -513,7 +513,7 @@ bool Module::instantiateMemories(
     } else {
       MOZ_ASSERT(!codeMeta().isAsmJS());
 
-      if (desc.initialPages() > MaxMemoryPages(desc.indexType())) {
+      if (desc.initialPages() > MaxMemoryPages(desc.addressType())) {
         JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                  JSMSG_WASM_MEM_IMP_LIMIT);
         return false;
@@ -527,7 +527,7 @@ bool Module::instantiateMemories(
 
       RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmMemory));
       memory = WasmMemoryObject::create(
-          cx, buffer, IsHugeMemoryEnabled(desc.indexType()), proto);
+          cx, buffer, IsHugeMemoryEnabled(desc.addressType()), proto);
       if (!memory) {
         return false;
       }
@@ -535,7 +535,7 @@ bool Module::instantiateMemories(
 
     MOZ_RELEASE_ASSERT(codeMeta().isAsmJS() ||
                        memory->isHuge() ==
-                           IsHugeMemoryEnabled(desc.indexType()));
+                           IsHugeMemoryEnabled(desc.addressType()));
 
     if (!memoryObjs.get().append(memory)) {
       return false;
@@ -580,15 +580,15 @@ bool Module::instantiateImportedTable(JSContext* cx, const TableDesc& td,
   MOZ_ASSERT(!codeMeta().isAsmJS());
 
   Table& table = tableObj->table();
-  if (table.indexType() != td.indexType()) {
+  if (table.addressType() != td.addressType()) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                             JSMSG_WASM_BAD_IMP_INDEX,
-                             ToString(tableObj->table().indexType()));
+                             JSMSG_WASM_BAD_IMP_ADDRESS,
+                             ToString(tableObj->table().addressType()));
     return false;
   }
   if (!CheckLimits(cx, /*declaredMin=*/td.initialLength(),
                    /*declaredMax=*/td.maximumLength(),
-                   /*defaultMax=*/MaxTableElemsValidation(td.indexType()),
+                   /*defaultMax=*/MaxTableElemsValidation(td.addressType()),
                    /*actualLength=*/uint64_t(table.length()),
                    /*actualMax=*/table.maximum(), codeMeta().isAsmJS(),
                    "Table")) {

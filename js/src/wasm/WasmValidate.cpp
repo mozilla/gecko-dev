@@ -1884,12 +1884,13 @@ static bool DecodeFuncTypeIndex(Decoder& d, const SharedTypeContext& types,
   return true;
 }
 
-static bool DecodeLimitBound(Decoder& d, IndexType indexType, uint64_t* bound) {
-  if (indexType == IndexType::I64) {
+static bool DecodeLimitBound(Decoder& d, AddressType addressType,
+                             uint64_t* bound) {
+  if (addressType == AddressType::I64) {
     return d.readVarU64(bound);
   }
 
-  // Spec tests assert that we only decode a LEB32 when index type is I32.
+  // Spec tests assert that we only decode a LEB32 when address type is I32.
   uint32_t bound32;
   if (!d.readVarU32(&bound32)) {
     return false;
@@ -1927,24 +1928,25 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
   }
 
 #ifdef ENABLE_WASM_MEMORY64
-  limits->indexType =
-      (flags & uint8_t(LimitsFlags::IsI64)) ? IndexType::I64 : IndexType::I32;
+  limits->addressType = (flags & uint8_t(LimitsFlags::IsI64))
+                            ? AddressType::I64
+                            : AddressType::I32;
 #else
-  limits->indexType = IndexType::I32;
+  limits->addressType = AddressType::I32;
   if (flags & uint8_t(LimitsFlags::IsI64)) {
     return d.fail("i64 is not supported for memory or table limits");
   }
 #endif
 
   uint64_t initial;
-  if (!DecodeLimitBound(d, limits->indexType, &initial)) {
+  if (!DecodeLimitBound(d, limits->addressType, &initial)) {
     return d.fail("expected initial length");
   }
   limits->initial = initial;
 
   if (flags & uint8_t(LimitsFlags::HasMaximum)) {
     uint64_t maximum;
-    if (!DecodeLimitBound(d, limits->indexType, &maximum)) {
+    if (!DecodeLimitBound(d, limits->addressType, &maximum)) {
       return d.fail("expected maximum length");
     }
 
@@ -1987,16 +1989,17 @@ static bool DecodeTableTypeAndLimits(Decoder& d, CodeMetadata* codeMeta) {
     return false;
   }
 
-  if (limits.indexType == IndexType::I64 && !codeMeta->memory64Enabled()) {
+  if (limits.addressType == AddressType::I64 && !codeMeta->memory64Enabled()) {
     return d.fail("memory64 is disabled");
   }
 
   // If there's a maximum, check it is in range.  The check to exclude
   // initial > maximum is carried out by the DecodeLimits call above, so
   // we don't repeat it here.
-  if (limits.initial > MaxTableElemsValidation(limits.indexType) ||
+  if (limits.initial > MaxTableElemsValidation(limits.addressType) ||
       ((limits.maximum.isSome() &&
-        limits.maximum.value() > MaxTableElemsValidation(limits.indexType)))) {
+        limits.maximum.value() >
+            MaxTableElemsValidation(limits.addressType)))) {
     return d.fail("too many table elements");
   }
 
@@ -2058,7 +2061,7 @@ static bool DecodeMemoryTypeAndLimits(Decoder& d, CodeMetadata* codeMeta,
     return false;
   }
 
-  uint64_t maxField = MaxMemoryPagesValidation(limits.indexType);
+  uint64_t maxField = MaxMemoryPagesValidation(limits.addressType);
 
   if (limits.initial > maxField) {
     return d.fail("initial memory size too big");
@@ -2073,7 +2076,7 @@ static bool DecodeMemoryTypeAndLimits(Decoder& d, CodeMetadata* codeMeta,
     return d.fail("shared memory is disabled");
   }
 
-  if (limits.indexType == IndexType::I64 && !codeMeta->memory64Enabled()) {
+  if (limits.addressType == AddressType::I64 && !codeMeta->memory64Enabled()) {
     return d.fail("memory64 is disabled");
   }
 
@@ -2709,7 +2712,7 @@ static bool DecodeElemSegment(Decoder& d, CodeMetadata* codeMeta,
 
     InitExpr offset;
     if (!InitExpr::decodeAndValidate(
-            d, codeMeta, ToValType(codeMeta->tables[tableIndex].indexType()),
+            d, codeMeta, ToValType(codeMeta->tables[tableIndex].addressType()),
             &offset)) {
       return false;
     }
@@ -3184,7 +3187,7 @@ static bool DecodeDataSection(Decoder& d, CodeMetadata* codeMeta,
 
       InitExpr segOffset;
       ValType exprType =
-          ToValType(codeMeta->memories[segRange.memoryIndex].indexType());
+          ToValType(codeMeta->memories[segRange.memoryIndex].addressType());
       if (!InitExpr::decodeAndValidate(d, codeMeta, exprType, &segOffset)) {
         return false;
       }

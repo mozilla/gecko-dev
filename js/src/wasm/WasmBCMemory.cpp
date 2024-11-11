@@ -374,11 +374,11 @@ static inline void ToValidIndex(MacroAssembler& masm, RegI32 ptr) {
 static inline void ToValidIndex(MacroAssembler& masm, RegI64 ptr) {}
 #endif
 
-// RegIndexType is RegI32 for Memory32 and RegI64 for Memory64.
-template <typename RegIndexType>
+// RegAddressType is RegI32 for Memory32 and RegI64 for Memory64.
+template <typename RegAddressType>
 void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
                                        AccessCheck* check, RegPtr instance,
-                                       RegIndexType ptr) {
+                                       RegAddressType ptr) {
   uint64_t offsetGuardLimit = GetMaxOffsetGuardLimit(
       codeMeta_.hugeMemoryEnabled(access->memoryIndex()));
 
@@ -430,7 +430,8 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
     // bits are in the bound.
     static_assert(0x100000000 % PageSize == 0);
     if (!codeMeta_.memories[access->memoryIndex()].boundsCheckLimitIs32Bits() &&
-        MaxMemoryPages(codeMeta_.memories[access->memoryIndex()].indexType()) >=
+        MaxMemoryPages(
+            codeMeta_.memories[access->memoryIndex()].addressType()) >=
             Pages(0x100000000 / PageSize)) {
       boundsCheck4GBOrLargerAccess(access->memoryIndex(), instance, ptr, &ok);
     } else {
@@ -446,11 +447,11 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
   ToValidIndex(masm, ptr);
 }
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::computeEffectiveAddress(MemoryAccessDesc* access) {
   if (access->offset64()) {
     Label ok;
-    RegIndexType ptr = pop<RegIndexType>();
+    RegAddressType ptr = pop<RegAddressType>();
     branchAddNoOverflow(access->offset64(), ptr, &ok);
     masm.wasmTrap(Trap::OutOfBounds, bytecodeOffset());
     masm.bind(&ok);
@@ -1023,12 +1024,12 @@ static inline Register ToRegister(RegI64 r) { return r.low; }
 // Some consumers depend on the returned Address not incorporating instance, as
 // instance may be the scratch register.
 //
-// RegIndexType is RegI32 for Memory32 and RegI64 for Memory64.
-template <typename RegIndexType>
+// RegAddressType is RegI32 for Memory32 and RegI64 for Memory64.
+template <typename RegAddressType>
 Address BaseCompiler::prepareAtomicMemoryAccess(MemoryAccessDesc* access,
                                                 AccessCheck* check,
                                                 RegPtr instance,
-                                                RegIndexType ptr) {
+                                                RegAddressType ptr) {
   MOZ_ASSERT(needInstanceForAccess(access, *check) == instance.isValid());
   prepareMemoryAccess(access, check, instance, ptr);
 
@@ -1100,13 +1101,13 @@ static void Deallocate(BaseCompiler*, RegI64) {}
 }  // namespace atomic_load64
 
 #if !defined(JS_64BIT)
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::atomicLoad64(MemoryAccessDesc* access) {
   RegI64 rd, temp;
   atomic_load64::Allocate(this, &rd, &temp);
 
   AccessCheck check;
-  RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
+  RegAddressType rp = popMemoryAccess<RegAddressType>(access, &check);
 
 #  ifdef WASM_HAS_HEAPREG
   RegPtr instance = maybeLoadInstanceForAccess(access, check);
@@ -1381,7 +1382,7 @@ static void Deallocate(BaseCompiler*, RegI32, const Temps&) {}
 
 }  // namespace atomic_rmw32
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::atomicRMW32(MemoryAccessDesc* access, ValType type,
                                AtomicOp op) {
   Scalar::Type viewType = access->type();
@@ -1390,7 +1391,7 @@ void BaseCompiler::atomicRMW32(MemoryAccessDesc* access, ValType type,
   atomic_rmw32::PopAndAllocate(this, type, viewType, op, &rd, &rv, &temps);
 
   AccessCheck check;
-  RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
+  RegAddressType rp = popMemoryAccess<RegAddressType>(access, &check);
   RegPtr instance = maybeLoadInstanceForAccess(access, check);
 
   auto memaddr = prepareAtomicMemoryAccess(access, &check, instance, rp);
@@ -1559,14 +1560,14 @@ static void Deallocate(BaseCompiler*, AtomicOp, RegI64, RegI64) {}
 
 }  // namespace atomic_rmw64
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::atomicRMW64(MemoryAccessDesc* access, ValType type,
                                AtomicOp op) {
   RegI64 rd, rv, temp;
   atomic_rmw64::PopAndAllocate(this, op, &rd, &rv, &temp);
 
   AccessCheck check;
-  RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
+  RegAddressType rp = popMemoryAccess<RegAddressType>(access, &check);
 
 #if defined(WASM_HAS_HEAPREG)
   RegPtr instance = maybeLoadInstanceForAccess(access, check);
@@ -1764,7 +1765,7 @@ static void Deallocate(BaseCompiler*, RegI32, const Temps&) {}
 
 }  // namespace atomic_xchg32
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::atomicXchg32(MemoryAccessDesc* access, ValType type) {
   Scalar::Type viewType = access->type();
 
@@ -1774,7 +1775,7 @@ void BaseCompiler::atomicXchg32(MemoryAccessDesc* access, ValType type) {
 
   AccessCheck check;
 
-  RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
+  RegAddressType rp = popMemoryAccess<RegAddressType>(access, &check);
   RegPtr instance = maybeLoadInstanceForAccess(access, check);
 
   auto memaddr = prepareAtomicMemoryAccess(access, &check, instance, rp);
@@ -1895,19 +1896,19 @@ static void Deallocate(BaseCompiler*, RegI64, RegI64) {}
 
 }  // namespace atomic_xchg64
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::atomicXchg64(MemoryAccessDesc* access,
                                 WantResult wantResult) {
   RegI64 rd, rv;
   atomic_xchg64::PopAndAllocate(this, &rd, &rv);
 
   AccessCheck check;
-  RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
+  RegAddressType rp = popMemoryAccess<RegAddressType>(access, &check);
 
 #ifdef WASM_HAS_HEAPREG
   RegPtr instance = maybeLoadInstanceForAccess(access, check);
   auto memaddr =
-      prepareAtomicMemoryAccess<RegIndexType>(access, &check, instance, rp);
+      prepareAtomicMemoryAccess<RegAddressType>(access, &check, instance, rp);
   masm.wasmAtomicExchange64(*access, memaddr, rv, rd);
 #  ifndef RABALDR_PIN_INSTANCE
   maybeFree(instance);
@@ -2127,7 +2128,7 @@ static void Deallocate(BaseCompiler*, RegI32, RegI32, const Temps&) {}
 
 }  // namespace atomic_cmpxchg32
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::atomicCmpXchg32(MemoryAccessDesc* access, ValType type) {
   Scalar::Type viewType = access->type();
   RegI32 rexpect, rnew, rd;
@@ -2136,7 +2137,7 @@ void BaseCompiler::atomicCmpXchg32(MemoryAccessDesc* access, ValType type) {
                                    &temps);
 
   AccessCheck check;
-  RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
+  RegAddressType rp = popMemoryAccess<RegAddressType>(access, &check);
   RegPtr instance = maybeLoadInstanceForAccess(access, check);
 
   auto memaddr = prepareAtomicMemoryAccess(access, &check, instance, rp);
@@ -2160,16 +2161,16 @@ namespace atomic_cmpxchg64 {
 // The templates are needed for x86 code generation, which needs complicated
 // register allocation for memory64.
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void PopAndAllocate(BaseCompiler* bc, RegI64* rexpect, RegI64* rnew,
                            RegI64* rd);
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew);
 
 #if defined(JS_CODEGEN_X64)
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void PopAndAllocate(BaseCompiler* bc, RegI64* rexpect, RegI64* rnew,
                            RegI64* rd) {
   // For cmpxchg, the expected value and the result are both in rax.
@@ -2184,14 +2185,14 @@ static void Perform(BaseCompiler* bc, const MemoryAccessDesc& access,
   bc->masm.wasmCompareExchange64(access, srcAddr, rexpect, rnew, rd);
 }
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
   bc->freeI64(rnew);
 }
 
 #elif defined(JS_CODEGEN_X86)
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void Perform(BaseCompiler* bc, const MemoryAccessDesc& access,
                     Address srcAddr, RegI64 rexpect, RegI64 rnew, RegI64 rd,
                     ScratchAtomicNoHeapReg& scratch);
@@ -2280,7 +2281,7 @@ void Deallocate<RegI64>(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
 
 #elif defined(JS_CODEGEN_ARM)
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void PopAndAllocate(BaseCompiler* bc, RegI64* rexpect, RegI64* rnew,
                            RegI64* rd) {
   // The replacement value and the result must both be odd/even pairs.
@@ -2294,7 +2295,7 @@ static void Perform(BaseCompiler* bc, const MemoryAccessDesc& access,
   bc->masm.wasmCompareExchange64(access, srcAddr, rexpect, rnew, rd);
 }
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
   bc->freeI64(rexpect);
   bc->freeI64(rnew);
@@ -2303,7 +2304,7 @@ static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
 #elif defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_MIPS64) || \
     defined(JS_CODEGEN_LOONG64)
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void PopAndAllocate(BaseCompiler* bc, RegI64* rexpect, RegI64* rnew,
                            RegI64* rd) {
   *rnew = bc->popI64();
@@ -2316,7 +2317,7 @@ static void Perform(BaseCompiler* bc, const MemoryAccessDesc& access,
   bc->masm.wasmCompareExchange64(access, srcAddr, rexpect, rnew, rd);
 }
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
   bc->freeI64(rexpect);
   bc->freeI64(rnew);
@@ -2324,7 +2325,7 @@ static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
 
 #elif defined(JS_CODEGEN_RISCV64)
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void PopAndAllocate(BaseCompiler* bc, RegI64* rexpect, RegI64* rnew,
                            RegI64* rd) {
   *rnew = bc->popI64();
@@ -2337,7 +2338,7 @@ static void Perform(BaseCompiler* bc, const MemoryAccessDesc& access,
   bc->masm.wasmCompareExchange64(access, srcAddr, rexpect, rnew, rd);
 }
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
   bc->freeI64(rexpect);
   bc->freeI64(rnew);
@@ -2345,25 +2346,25 @@ static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
 
 #elif defined(JS_CODEGEN_NONE) || defined(JS_CODEGEN_WASM32)
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void PopAndAllocate(BaseCompiler* bc, RegI64* rexpect, RegI64* rnew,
                            RegI64* rd) {}
 static void Perform(BaseCompiler* bc, const MemoryAccessDesc& access,
                     Address srcAddr, RegI64 rexpect, RegI64 rnew, RegI64 rd) {}
-template <typename RegIndexType>
+template <typename RegAddressType>
 static void Deallocate(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {}
 
 #endif
 
 }  // namespace atomic_cmpxchg64
 
-template <typename RegIndexType>
+template <typename RegAddressType>
 void BaseCompiler::atomicCmpXchg64(MemoryAccessDesc* access, ValType type) {
   RegI64 rexpect, rnew, rd;
-  atomic_cmpxchg64::PopAndAllocate<RegIndexType>(this, &rexpect, &rnew, &rd);
+  atomic_cmpxchg64::PopAndAllocate<RegAddressType>(this, &rexpect, &rnew, &rd);
 
   AccessCheck check;
-  RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
+  RegAddressType rp = popMemoryAccess<RegAddressType>(access, &check);
 
 #ifdef WASM_HAS_HEAPREG
   RegPtr instance = maybeLoadInstanceForAccess(access, check);
@@ -2377,13 +2378,13 @@ void BaseCompiler::atomicCmpXchg64(MemoryAccessDesc* access, ValType type) {
   RegPtr instance =
       maybeLoadInstanceForAccess(access, check, RegIntptrToRegPtr(scratch));
   Address memaddr = prepareAtomicMemoryAccess(access, &check, instance, rp);
-  atomic_cmpxchg64::Perform<RegIndexType>(this, *access, memaddr, rexpect, rnew,
-                                          rd, scratch);
+  atomic_cmpxchg64::Perform<RegAddressType>(this, *access, memaddr, rexpect,
+                                            rnew, rd, scratch);
   MOZ_ASSERT(instance == scratch);
 #endif
 
   free(rp);
-  atomic_cmpxchg64::Deallocate<RegIndexType>(this, rexpect, rnew);
+  atomic_cmpxchg64::Deallocate<RegAddressType>(this, rexpect, rnew);
 
   pushI64(rd);
 }

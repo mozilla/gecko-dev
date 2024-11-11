@@ -31,18 +31,19 @@ using mozilla::IsPowerOfTwo;
 using namespace js;
 using namespace js::wasm;
 
-const char* wasm::ToString(IndexType indexType) {
-  switch (indexType) {
-    case IndexType::I32:
+const char* wasm::ToString(AddressType addressType) {
+  switch (addressType) {
+    case AddressType::I32:
       return "i32";
-    case IndexType::I64:
+    case AddressType::I64:
       return "i64";
     default:
       MOZ_CRASH();
   }
 }
 
-bool wasm::ToIndexType(JSContext* cx, HandleValue value, IndexType* indexType) {
+bool wasm::ToAddressType(JSContext* cx, HandleValue value,
+                         AddressType* addressType) {
   RootedString typeStr(cx, ToString(cx, value));
   if (!typeStr) {
     return false;
@@ -54,12 +55,12 @@ bool wasm::ToIndexType(JSContext* cx, HandleValue value, IndexType* indexType) {
   }
 
   if (StringEqualsLiteral(typeLinearStr, "i32")) {
-    *indexType = IndexType::I32;
+    *addressType = AddressType::I32;
   } else if (StringEqualsLiteral(typeLinearStr, "i64")) {
-    *indexType = IndexType::I64;
+    *addressType = AddressType::I64;
   } else {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                             JSMSG_WASM_BAD_STRING_IDX_TYPE);
+                             JSMSG_WASM_BAD_STRING_ADDR_TYPE);
     return false;
   }
   return true;
@@ -247,14 +248,14 @@ static_assert(MaxInlineMemoryCopyLength < MinOffsetGuardLimit, "precondition");
 static_assert(MaxInlineMemoryFillLength < MinOffsetGuardLimit, "precondition");
 
 #ifdef JS_64BIT
-wasm::Pages wasm::MaxMemoryPages(IndexType t) {
-  MOZ_ASSERT_IF(t == IndexType::I64, !IsHugeMemoryEnabled(t));
+wasm::Pages wasm::MaxMemoryPages(AddressType t) {
+  MOZ_ASSERT_IF(t == AddressType::I64, !IsHugeMemoryEnabled(t));
   size_t desired = MaxMemoryPagesValidation(t);
   constexpr size_t actual = ArrayBufferObject::ByteLengthLimit / PageSize;
   return wasm::Pages(std::min(desired, actual));
 }
 
-size_t wasm::MaxMemoryBoundsCheckLimit(IndexType t) {
+size_t wasm::MaxMemoryBoundsCheckLimit(AddressType t) {
   return MaxMemoryPages(t).byteLength();
 }
 
@@ -262,7 +263,7 @@ size_t wasm::MaxMemoryBoundsCheckLimit(IndexType t) {
 // On 32-bit systems, the heap limit must be representable in the nonnegative
 // range of an int32_t, which means the maximum heap size as observed by wasm
 // code is one wasm page less than 2GB.
-wasm::Pages wasm::MaxMemoryPages(IndexType t) {
+wasm::Pages wasm::MaxMemoryPages(AddressType t) {
   static_assert(ArrayBufferObject::ByteLengthLimit >= INT32_MAX / PageSize);
   return wasm::Pages(INT32_MAX / PageSize);
 }
@@ -270,7 +271,7 @@ wasm::Pages wasm::MaxMemoryPages(IndexType t) {
 // The max bounds check limit can be larger than the MaxMemoryPages because it
 // is really MaxMemoryPages rounded up to the next valid bounds check immediate,
 // see ComputeMappedSize().
-size_t wasm::MaxMemoryBoundsCheckLimit(IndexType t) {
+size_t wasm::MaxMemoryBoundsCheckLimit(AddressType t) {
   size_t boundsCheckLimit = size_t(INT32_MAX) + 1;
   MOZ_ASSERT(IsValidBoundsCheckImmediate(boundsCheckLimit));
   return boundsCheckLimit;
@@ -311,7 +312,7 @@ uint64_t wasm::RoundUpToNextValidARMImmediate(uint64_t i) {
   return i;
 }
 
-Pages wasm::ClampedMaxPages(IndexType t, Pages initialPages,
+Pages wasm::ClampedMaxPages(AddressType t, Pages initialPages,
                             const mozilla::Maybe<Pages>& sourceMaxPages,
                             bool useHugeMemory) {
   Pages clampedMaxPages;

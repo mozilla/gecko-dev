@@ -719,8 +719,8 @@ enum class LimitsKind {
 // Represents the resizable limits of memories and tables.
 
 struct Limits {
-  // `indexType` may be I64 when memory64 is enabled.
-  IndexType indexType;
+  // `addressType` may be I64 when memory64 is enabled.
+  AddressType addressType;
 
   // The initial and maximum limit. The unit is pages for memories and elements
   // for tables.
@@ -731,13 +731,13 @@ struct Limits {
   // memories.
   Shareable shared;
 
-  WASM_CHECK_CACHEABLE_POD(indexType, initial, maximum, shared);
+  WASM_CHECK_CACHEABLE_POD(addressType, initial, maximum, shared);
 
   Limits() = default;
   explicit Limits(uint64_t initial,
                   const mozilla::Maybe<uint64_t>& maximum = mozilla::Nothing(),
                   Shareable shared = Shareable::False)
-      : indexType(IndexType::I32),
+      : addressType(AddressType::I32),
         initial(initial),
         maximum(maximum),
         shared(shared) {}
@@ -765,7 +765,7 @@ struct MemoryDesc {
            limits.maximum.value() < (0x100000000 / PageSize);
   }
 
-  IndexType indexType() const { return limits.indexType; }
+  AddressType addressType() const { return limits.addressType; }
 
   // The initial length of this memory in pages.
   Pages initialPages() const { return Pages(limits.initial); }
@@ -777,13 +777,13 @@ struct MemoryDesc {
 
   // The initial length of this memory in bytes. Only valid for memory32.
   uint64_t initialLength32() const {
-    MOZ_ASSERT(indexType() == IndexType::I32);
+    MOZ_ASSERT(addressType() == AddressType::I32);
     // See static_assert after MemoryDesc for why this is safe.
     return limits.initial * PageSize;
   }
 
   uint64_t initialLength64() const {
-    MOZ_ASSERT(indexType() == IndexType::I64);
+    MOZ_ASSERT(addressType() == AddressType::I64);
     return limits.initial * PageSize;
   }
 
@@ -818,7 +818,7 @@ struct TableDesc {
         isAsmJS(isAsmJS),
         initExpr(std::move(initExpr)) {}
 
-  IndexType indexType() const { return limits.indexType; }
+  AddressType addressType() const { return limits.addressType; }
 
   uint64_t initialLength() const { return limits.initial; }
 

@@ -768,15 +768,15 @@ MWasmCallCatchable* MWasmCallCatchable::New(
     const wasm::CalleeDesc& callee, const Args& args,
     uint32_t stackArgAreaSizeUnaligned, uint32_t tryNoteIndex,
     MBasicBlock* fallthroughBlock, MBasicBlock* prePadBlock,
-    MDefinition* tableIndexOrRef) {
+    MDefinition* tableAddressOrRef) {
   MWasmCallCatchable* call = new (alloc)
       MWasmCallCatchable(desc, callee, stackArgAreaSizeUnaligned, tryNoteIndex);
 
   call->setSuccessor(FallthroughBranchIndex, fallthroughBlock);
   call->setSuccessor(PrePadBranchIndex, prePadBlock);
 
-  MOZ_ASSERT_IF(callee.isTable() || callee.isFuncRef(), tableIndexOrRef);
-  if (!call->initWithArgs(alloc, call, args, tableIndexOrRef)) {
+  MOZ_ASSERT_IF(callee.isTable() || callee.isFuncRef(), tableAddressOrRef);
+  if (!call->initWithArgs(alloc, call, args, tableAddressOrRef)) {
     return nullptr;
   }
 
@@ -806,12 +806,12 @@ MWasmCallCatchable* MWasmCallCatchable::NewBuiltinInstanceMethodCall(
 MWasmCallUncatchable* MWasmCallUncatchable::New(
     TempAllocator& alloc, const wasm::CallSiteDesc& desc,
     const wasm::CalleeDesc& callee, const Args& args,
-    uint32_t stackArgAreaSizeUnaligned, MDefinition* tableIndexOrRef) {
+    uint32_t stackArgAreaSizeUnaligned, MDefinition* tableAddressOrRef) {
   MWasmCallUncatchable* call =
       new (alloc) MWasmCallUncatchable(desc, callee, stackArgAreaSizeUnaligned);
 
-  MOZ_ASSERT_IF(callee.isTable() || callee.isFuncRef(), tableIndexOrRef);
-  if (!call->initWithArgs(alloc, call, args, tableIndexOrRef)) {
+  MOZ_ASSERT_IF(callee.isTable() || callee.isFuncRef(), tableAddressOrRef);
+  if (!call->initWithArgs(alloc, call, args, tableAddressOrRef)) {
     return nullptr;
   }
 
@@ -841,12 +841,12 @@ MWasmReturnCall* MWasmReturnCall::New(TempAllocator& alloc,
                                       const wasm::CalleeDesc& callee,
                                       const Args& args,
                                       uint32_t stackArgAreaSizeUnaligned,
-                                      MDefinition* tableIndexOrRef) {
+                                      MDefinition* tableAddressOrRef) {
   MWasmReturnCall* call =
       new (alloc) MWasmReturnCall(desc, callee, stackArgAreaSizeUnaligned);
 
-  MOZ_ASSERT_IF(callee.isTable() || callee.isFuncRef(), tableIndexOrRef);
-  if (!call->initWithArgs(alloc, call, args, tableIndexOrRef)) {
+  MOZ_ASSERT_IF(callee.isTable() || callee.isFuncRef(), tableAddressOrRef);
+  if (!call->initWithArgs(alloc, call, args, tableAddressOrRef)) {
     return nullptr;
   }
 

@@ -277,7 +277,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 
   bool hugeMemoryEnabled(uint32_t memoryIndex) const {
     return !isAsmJS() && memoryIndex < memories.length() &&
-           IsHugeMemoryEnabled(memories[memoryIndex].indexType());
+           IsHugeMemoryEnabled(memories[memoryIndex].addressType());
   }
   bool usesSharedMemory(uint32_t memoryIndex) const {
     return memoryIndex < memories.length() && memories[memoryIndex].isShared();

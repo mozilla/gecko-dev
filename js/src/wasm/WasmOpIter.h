@@ -766,10 +766,10 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                    Value* val, Value* len);
   [[nodiscard]] bool readMemDiscard(uint32_t* memoryIndex, Value* start,
                                     Value* len);
-  [[nodiscard]] bool readTableGet(uint32_t* tableIndex, Value* index);
+  [[nodiscard]] bool readTableGet(uint32_t* tableIndex, Value* address);
   [[nodiscard]] bool readTableGrow(uint32_t* tableIndex, Value* initValue,
                                    Value* delta);
-  [[nodiscard]] bool readTableSet(uint32_t* tableIndex, Value* index,
+  [[nodiscard]] bool readTableSet(uint32_t* tableIndex, Value* address,
                                   Value* value);
 
   [[nodiscard]] bool readTableSize(uint32_t* tableIndex);
@@ -2016,8 +2016,8 @@ inline bool OpIter<Policy>::readLinearMemoryAddress(
     return fail("unable to read load offset");
   }
 
-  IndexType it = codeMeta_.memories[addr->memoryIndex].indexType();
-  if (it == IndexType::I32 && addr->offset > UINT32_MAX) {
+  AddressType at = codeMeta_.memories[addr->memoryIndex].addressType();
+  if (at == AddressType::I32 && addr->offset > UINT32_MAX) {
     return fail("offset too large for memory type");
   }
 
@@ -2025,7 +2025,7 @@ inline bool OpIter<Policy>::readLinearMemoryAddress(
     return fail("greater than natural alignment");
   }
 
-  if (!popWithType(ToValType(it), &addr->base)) {
+  if (!popWithType(ToValType(at), &addr->base)) {
     return false;
   }
 
@@ -2111,7 +2111,7 @@ inline bool OpIter<Policy>::readMemorySize(uint32_t* memoryIndex) {
     return fail("memory index out of range for memory.size");
   }
 
-  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].indexType());
+  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].addressType());
   return push(ptrType);
 }
 
@@ -2128,7 +2128,7 @@ inline bool OpIter<Policy>::readMemoryGrow(uint32_t* memoryIndex,
     return fail("memory index out of range for memory.grow");
   }
 
-  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].indexType());
+  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].addressType());
   if (!popWithType(ptrType, input)) {
     return false;
   }
@@ -2620,7 +2620,7 @@ inline bool OpIter<Policy>::readCallIndirect(uint32_t* funcTypeIndex,
     return fail("indirect calls must go through a table of 'funcref'");
   }
 
-  if (!popWithType(ToValType(codeMeta_.tables[*tableIndex].indexType()),
+  if (!popWithType(ToValType(codeMeta_.tables[*tableIndex].addressType()),
                    callee)) {
     return false;
   }
@@ -2669,7 +2669,7 @@ inline bool OpIter<Policy>::readReturnCallIndirect(uint32_t* funcTypeIndex,
     return fail("indirect calls must go through a table of 'funcref'");
   }
 
-  if (!popWithType(ToValType(codeMeta_.tables[*tableIndex].indexType()),
+  if (!popWithType(ToValType(codeMeta_.tables[*tableIndex].addressType()),
                    callee)) {
     return false;
   }
@@ -2978,11 +2978,13 @@ inline bool OpIter<Policy>::readMemOrTableCopy(bool isMem,
   ValType srcPtrType;
   ValType lenType;
   if (isMem) {
-    dstPtrType = ToValType(codeMeta_.memories[*dstMemOrTableIndex].indexType());
-    srcPtrType = ToValType(codeMeta_.memories[*srcMemOrTableIndex].indexType());
+    dstPtrType =
+        ToValType(codeMeta_.memories[*dstMemOrTableIndex].addressType());
+    srcPtrType =
+        ToValType(codeMeta_.memories[*srcMemOrTableIndex].addressType());
   } else {
-    dstPtrType = ToValType(codeMeta_.tables[*dstMemOrTableIndex].indexType());
-    srcPtrType = ToValType(codeMeta_.tables[*srcMemOrTableIndex].indexType());
+    dstPtrType = ToValType(codeMeta_.tables[*dstMemOrTableIndex].addressType());
+    srcPtrType = ToValType(codeMeta_.tables[*srcMemOrTableIndex].addressType());
   }
   if (dstPtrType == ValType::I64 && srcPtrType == ValType::I64) {
     lenType = ValType::I64;
@@ -3039,7 +3041,7 @@ inline bool OpIter<Policy>::readMemFill(uint32_t* memoryIndex, Value* start,
     return fail("memory index out of range for memory.fill");
   }
 
-  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].indexType());
+  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].addressType());
 
   if (!popWithType(ptrType, len)) {
     return false;
@@ -3105,8 +3107,8 @@ inline bool OpIter<Policy>::readMemOrTableInit(bool isMem, uint32_t* segIndex,
   }
 
   ValType ptrType =
-      isMem ? ToValType(codeMeta_.memories[*dstMemOrTableIndex].indexType())
-            : ToValType(codeMeta_.tables[*dstMemOrTableIndex].indexType());
+      isMem ? ToValType(codeMeta_.memories[*dstMemOrTableIndex].addressType())
+            : ToValType(codeMeta_.tables[*dstMemOrTableIndex].addressType());
   return popWithType(ptrType, dst);
 }
 
@@ -3124,13 +3126,13 @@ inline bool OpIter<Policy>::readTableFill(uint32_t* tableIndex, Value* start,
 
   const TableDesc& table = codeMeta_.tables[*tableIndex];
 
-  if (!popWithType(ToValType(table.indexType()), len)) {
+  if (!popWithType(ToValType(table.addressType()), len)) {
     return false;
   }
   if (!popWithType(table.elemType, val)) {
     return false;
   }
-  return popWithType(ToValType(table.indexType()), start);
+  return popWithType(ToValType(table.addressType()), start);
 }
 
 template <typename Policy>
@@ -3145,7 +3147,7 @@ inline bool OpIter<Policy>::readMemDiscard(uint32_t* memoryIndex, Value* start,
     return fail("memory index out of range for memory.discard");
   }
 
-  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].indexType());
+  ValType ptrType = ToValType(codeMeta_.memories[*memoryIndex].addressType());
 
   if (!popWithType(ptrType, len)) {
     return false;
@@ -3155,7 +3157,7 @@ inline bool OpIter<Policy>::readMemDiscard(uint32_t* memoryIndex, Value* start,
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readTableGet(uint32_t* tableIndex, Value* index) {
+inline bool OpIter<Policy>::readTableGet(uint32_t* tableIndex, Value* address) {
   MOZ_ASSERT(Classify(op_) == OpKind::TableGet);
 
   if (!readVarU32(tableIndex)) {
@@ -3167,7 +3169,7 @@ inline bool OpIter<Policy>::readTableGet(uint32_t* tableIndex, Value* index) {
 
   const TableDesc& table = codeMeta_.tables[*tableIndex];
 
-  if (!popWithType(ToValType(table.indexType()), index)) {
+  if (!popWithType(ToValType(table.addressType()), address)) {
     return false;
   }
 
@@ -3189,19 +3191,19 @@ inline bool OpIter<Policy>::readTableGrow(uint32_t* tableIndex,
 
   const TableDesc& table = codeMeta_.tables[*tableIndex];
 
-  if (!popWithType(ToValType(table.indexType()), delta)) {
+  if (!popWithType(ToValType(table.addressType()), delta)) {
     return false;
   }
   if (!popWithType(table.elemType, initValue)) {
     return false;
   }
 
-  infalliblePush(ToValType(table.indexType()));
+  infalliblePush(ToValType(table.addressType()));
   return true;
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readTableSet(uint32_t* tableIndex, Value* index,
+inline bool OpIter<Policy>::readTableSet(uint32_t* tableIndex, Value* address,
                                          Value* value) {
   MOZ_ASSERT(Classify(op_) == OpKind::TableSet);
 
@@ -3218,7 +3220,7 @@ inline bool OpIter<Policy>::readTableSet(uint32_t* tableIndex, Value* index,
     return false;
   }
 
-  return popWithType(ToValType(table.indexType()), index);
+  return popWithType(ToValType(table.addressType()), address);
 }
 
 template <typename Policy>
@@ -3234,7 +3236,7 @@ inline bool OpIter<Policy>::readTableSize(uint32_t* tableIndex) {
     return fail("table index out of range for table.size");
   }
 
-  return push(ToValType(codeMeta_.tables[*tableIndex].indexType()));
+  return push(ToValType(codeMeta_.tables[*tableIndex].addressType()));
 }
 
 template <typename Policy>

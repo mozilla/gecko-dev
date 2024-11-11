@@ -3409,7 +3409,7 @@
   type_policy: none
   alias_set: none
 
-- name: WasmClampTable64Index
+- name: WasmClampTable64Address
   operands:
     input: Int64
   result_type: Int32

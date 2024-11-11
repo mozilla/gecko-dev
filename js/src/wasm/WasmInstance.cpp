@@ -946,7 +946,7 @@ bool Instance::initSegments(JSContext* cx,
       }
 
       const wasm::Table* table = tables()[seg.tableIndex];
-      uint64_t offset = table->indexType() == IndexType::I32
+      uint64_t offset = table->addressType() == AddressType::I32
                             ? offsetVal.get().i32()
                             : offsetVal.get().i64();
 
@@ -977,7 +977,7 @@ bool Instance::initSegments(JSContext* cx,
     if (!seg->offset().evaluate(cx, instanceObj, &offsetVal)) {
       return false;  // OOM
     }
-    uint64_t offset = memoryObj->indexType() == IndexType::I32
+    uint64_t offset = memoryObj->addressType() == AddressType::I32
                           ? offsetVal.get().i32()
                           : offsetVal.get().i64();
     uint32_t count = seg->bytes.length();
@@ -1287,24 +1287,24 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
   return MemDiscardShared(instance, byteOffset, byteLen, memBase);
 }
 
-/* static */ void* Instance::tableGet(Instance* instance, uint32_t index,
+/* static */ void* Instance::tableGet(Instance* instance, uint32_t address,
                                       uint32_t tableIndex) {
   MOZ_ASSERT(SASigTableGet.failureMode == FailureMode::FailOnInvalidRef);
 
   JSContext* cx = instance->cx();
   const Table& table = *instance->tables()[tableIndex];
-  if (index >= table.length()) {
+  if (address >= table.length()) {
     ReportTrapError(cx, JSMSG_WASM_TABLE_OUT_OF_BOUNDS);
     return AnyRef::invalid().forCompiledCode();
   }
 
   switch (table.repr()) {
     case TableRepr::Ref:
-      return table.getAnyRef(index).forCompiledCode();
+      return table.getAnyRef(address).forCompiledCode();
     case TableRepr::Func: {
       MOZ_RELEASE_ASSERT(!table.isAsmJS());
       RootedFunction fun(cx);
-      if (!table.getFuncRef(cx, index, &fun)) {
+      if (!table.getFuncRef(cx, address, &fun)) {
         return AnyRef::invalid().forCompiledCode();
       }
       return FuncRef::fromJSFunction(fun).forCompiledCode();
@@ -1335,25 +1335,25 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
   return oldSize;
 }
 
-/* static */ int32_t Instance::tableSet(Instance* instance, uint32_t index,
+/* static */ int32_t Instance::tableSet(Instance* instance, uint32_t address,
                                         void* value, uint32_t tableIndex) {
   MOZ_ASSERT(SASigTableSet.failureMode == FailureMode::FailOnNegI32);
 
   JSContext* cx = instance->cx();
   Table& table = *instance->tables()[tableIndex];
 
-  if (index >= table.length()) {
+  if (address >= table.length()) {
     ReportTrapError(cx, JSMSG_WASM_TABLE_OUT_OF_BOUNDS);
     return -1;
   }
 
   switch (table.repr()) {
     case TableRepr::Ref:
-      table.setAnyRef(index, AnyRef::fromCompiledCode(value));
+      table.setAnyRef(address, AnyRef::fromCompiledCode(value));
       break;
     case TableRepr::Func:
       MOZ_RELEASE_ASSERT(!table.isAsmJS());
-      table.fillFuncRef(index, 1, FuncRef::fromCompiledCode(value), cx);
+      table.fillFuncRef(address, 1, FuncRef::fromCompiledCode(value), cx);
       break;
   }
 

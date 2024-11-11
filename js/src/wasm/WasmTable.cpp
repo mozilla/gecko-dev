@@ -38,7 +38,7 @@ Table::Table(JSContext* cx, const TableDesc& desc,
     : maybeObject_(maybeObject),
       observers_(cx->zone()),
       functions_(std::move(functions)),
-      indexType_(desc.indexType()),
+      addressType_(desc.addressType()),
       elemType_(desc.elemType),
       isAsmJS_(desc.isAsmJS),
       length_(desc.initialLength()),
@@ -55,7 +55,7 @@ Table::Table(JSContext* cx, const TableDesc& desc,
     : maybeObject_(maybeObject),
       observers_(cx->zone()),
       objects_(std::move(objects)),
-      indexType_(desc.indexType()),
+      addressType_(desc.addressType()),
       elemType_(desc.elemType),
       isAsmJS_(desc.isAsmJS),
       length_(desc.initialLength()),
@@ -156,16 +156,16 @@ uint8_t* Table::instanceElements() const {
   return (uint8_t*)functions_.begin();
 }
 
-const FunctionTableElem& Table::getFuncRef(uint32_t index) const {
+const FunctionTableElem& Table::getFuncRef(uint32_t address) const {
   MOZ_ASSERT(isFunction());
-  return functions_[index];
+  return functions_[address];
 }
 
-bool Table::getFuncRef(JSContext* cx, uint32_t index,
+bool Table::getFuncRef(JSContext* cx, uint32_t address,
                        MutableHandleFunction fun) const {
   MOZ_ASSERT(isFunction());
 
-  const FunctionTableElem& elem = getFuncRef(index);
+  const FunctionTableElem& elem = getFuncRef(address);
   if (!elem.code) {
     fun.set(nullptr);
     return true;
@@ -179,7 +179,7 @@ bool Table::getFuncRef(JSContext* cx, uint32_t index,
                                           codeRange.funcIndex(), fun);
 }
 
-void Table::setFuncRef(uint32_t index, JSFunction* fun) {
+void Table::setFuncRef(uint32_t address, JSFunction* fun) {
   MOZ_ASSERT(isFunction());
   MOZ_ASSERT(fun->isWasm());
 
@@ -194,13 +194,13 @@ void Table::setFuncRef(uint32_t index, JSFunction* fun) {
   const CodeRange* codeRange;
   instanceObj->getExportedFunctionCodeRange(fun, &codeRange, &codeRangeBase);
   void* code = codeRangeBase + codeRange->funcCheckedCallEntry();
-  setFuncRef(index, code, &instance);
+  setFuncRef(address, code, &instance);
 }
 
-void Table::setFuncRef(uint32_t index, void* code, Instance* instance) {
+void Table::setFuncRef(uint32_t address, void* code, Instance* instance) {
   MOZ_ASSERT(isFunction());
 
-  FunctionTableElem& elem = functions_[index];
+  FunctionTableElem& elem = functions_[address];
   if (elem.instance) {
     gc::PreWriteBarrier(elem.instance->objectUnbarriered());
   }
@@ -216,12 +216,12 @@ void Table::setFuncRef(uint32_t index, void* code, Instance* instance) {
   }
 }
 
-void Table::fillFuncRef(uint32_t index, uint32_t fillCount, FuncRef ref,
+void Table::fillFuncRef(uint32_t address, uint32_t fillCount, FuncRef ref,
                         JSContext* cx) {
   MOZ_ASSERT(isFunction());
 
   if (ref.isNull()) {
-    for (uint32_t i = index, end = index + fillCount; i != end; i++) {
+    for (uint32_t i = address, end = address + fillCount; i != end; i++) {
       setNull(i);
     }
     return;
@@ -245,46 +245,46 @@ void Table::fillFuncRef(uint32_t index, uint32_t fillCount, FuncRef ref,
   const CodeRange& codeRange =
       codeBlock.codeRange(codeBlock.lookupFuncExport(funcIndex));
   void* code = codeBlock.segment->base() + codeRange.funcCheckedCallEntry();
-  for (uint32_t i = index, end = index + fillCount; i != end; i++) {
+  for (uint32_t i = address, end = address + fillCount; i != end; i++) {
     setFuncRef(i, code, &instance);
   }
 }
 
-AnyRef Table::getAnyRef(uint32_t index) const {
+AnyRef Table::getAnyRef(uint32_t address) const {
   MOZ_ASSERT(!isFunction());
-  return objects_[index];
+  return objects_[address];
 }
 
-void Table::setAnyRef(uint32_t index, AnyRef ref) {
+void Table::setAnyRef(uint32_t address, AnyRef ref) {
   MOZ_ASSERT(!isFunction());
-  objects_[index] = ref;
+  objects_[address] = ref;
 }
 
-void Table::fillAnyRef(uint32_t index, uint32_t fillCount, AnyRef ref) {
+void Table::fillAnyRef(uint32_t address, uint32_t fillCount, AnyRef ref) {
   MOZ_ASSERT(!isFunction());
-  for (uint32_t i = index, end = index + fillCount; i != end; i++) {
+  for (uint32_t i = address, end = address + fillCount; i != end; i++) {
     objects_[i] = ref;
   }
 }
 
-void Table::setRef(uint32_t index, AnyRef ref) {
+void Table::setRef(uint32_t address, AnyRef ref) {
   if (ref.isNull()) {
-    setNull(index);
+    setNull(address);
   } else if (isFunction()) {
     JSFunction* func = &ref.toJSObject().as<JSFunction>();
-    setFuncRef(index, func);
+    setFuncRef(address, func);
   } else {
-    setAnyRef(index, ref);
+    setAnyRef(address, ref);
   }
 }
 
-bool Table::getValue(JSContext* cx, uint32_t index,
+bool Table::getValue(JSContext* cx, uint32_t address,
                      MutableHandleValue result) const {
   switch (repr()) {
     case TableRepr::Func: {
       MOZ_RELEASE_ASSERT(!isAsmJS());
       RootedFunction fun(cx);
-      if (!getFuncRef(cx, index, &fun)) {
+      if (!getFuncRef(cx, address, &fun)) {
         return false;
       }
       result.setObjectOrNull(fun);
@@ -296,18 +296,18 @@ bool Table::getValue(JSContext* cx, uint32_t index,
                                  JSMSG_WASM_BAD_VAL_TYPE);
         return false;
       }
-      return ToJSValue(cx, &objects_[index], ValType(elemType_), result);
+      return ToJSValue(cx, &objects_[address], ValType(elemType_), result);
     }
     default:
       MOZ_CRASH();
   }
 }
 
-void Table::setNull(uint32_t index) {
+void Table::setNull(uint32_t address) {
   switch (repr()) {
     case TableRepr::Func: {
       MOZ_RELEASE_ASSERT(!isAsmJS_);
-      FunctionTableElem& elem = functions_[index];
+      FunctionTableElem& elem = functions_[address];
       if (elem.instance) {
         gc::PreWriteBarrier(elem.instance->objectUnbarriered());
       }
@@ -317,7 +317,7 @@ void Table::setNull(uint32_t index) {
       break;
     }
     case TableRepr::Ref: {
-      setAnyRef(index, AnyRef::null());
+      setAnyRef(address, AnyRef::null());
       break;
     }
   }
@@ -444,51 +444,51 @@ bool Table::addMovingGrowObserver(JSContext* cx, WasmInstanceObject* instance) {
   return true;
 }
 
-void Table::fillUninitialized(uint32_t index, uint32_t fillCount,
+void Table::fillUninitialized(uint32_t address, uint32_t fillCount,
                               HandleAnyRef ref, JSContext* cx) {
 #ifdef DEBUG
-  assertRangeNull(index, fillCount);
+  assertRangeNull(address, fillCount);
 #endif  // DEBUG
   switch (repr()) {
     case TableRepr::Func: {
       MOZ_RELEASE_ASSERT(!isAsmJS_);
-      fillFuncRef(index, fillCount, FuncRef::fromAnyRefUnchecked(ref), cx);
+      fillFuncRef(address, fillCount, FuncRef::fromAnyRefUnchecked(ref), cx);
       break;
     }
     case TableRepr::Ref: {
-      fillAnyRef(index, fillCount, ref);
+      fillAnyRef(address, fillCount, ref);
       break;
     }
   }
 }
 
 #ifdef DEBUG
-void Table::assertRangeNull(uint32_t index, uint32_t length) const {
+void Table::assertRangeNull(uint32_t address, uint32_t length) const {
   switch (repr()) {
     case TableRepr::Func:
-      for (uint32_t i = index; i < index + length; i++) {
+      for (uint32_t i = address; i < address + length; i++) {
         MOZ_ASSERT(getFuncRef(i).instance == nullptr);
         MOZ_ASSERT(getFuncRef(i).code == nullptr);
       }
       break;
     case TableRepr::Ref:
-      for (uint32_t i = index; i < index + length; i++) {
+      for (uint32_t i = address; i < address + length; i++) {
         MOZ_ASSERT(getAnyRef(i).isNull());
       }
       break;
   }
 }
 
-void Table::assertRangeNotNull(uint32_t index, uint32_t length) const {
+void Table::assertRangeNotNull(uint32_t address, uint32_t length) const {
   switch (repr()) {
     case TableRepr::Func:
-      for (uint32_t i = index; i < index + length; i++) {
+      for (uint32_t i = address; i < address + length; i++) {
         MOZ_ASSERT_IF(!isAsmJS_, getFuncRef(i).instance != nullptr);
         MOZ_ASSERT(getFuncRef(i).code != nullptr);
       }
       break;
     case TableRepr::Ref:
-      for (uint32_t i = index; i < index + length; i++) {
+      for (uint32_t i = address; i < address + length; i++) {
         MOZ_ASSERT(!getAnyRef(i).isNull());
       }
       break;

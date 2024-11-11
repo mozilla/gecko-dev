@@ -263,7 +263,7 @@ assertEq(e.tbl1.get(1), null);
 assertEq(e.tbl1.get(2), e.tbl1.get(2));
 assertEq(e.tbl1.get(2)(), 2);
 assertEq(e.tbl1.get(3), null);
-assertErrorMessage(() => e.tbl1.get(4), RangeError, /bad Table get index/);
+assertErrorMessage(() => e.tbl1.get(4), RangeError, /bad Table get address/);
 assertEq(e.tbl1.get(1), null);
 e.tbl1.set(1, e.f3);
 assertEq(e.tbl1.get(1), e.f3);

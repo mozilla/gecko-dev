@@ -47,11 +47,11 @@ BytecodeOffset BaseCompiler::bytecodeOffset() const {
 }
 
 bool BaseCompiler::isMem32(uint32_t memoryIndex) const {
-  return codeMeta_.memories[memoryIndex].indexType() == IndexType::I32;
+  return codeMeta_.memories[memoryIndex].addressType() == AddressType::I32;
 }
 
 bool BaseCompiler::isMem64(uint32_t memoryIndex) const {
-  return codeMeta_.memories[memoryIndex].indexType() == IndexType::I64;
+  return codeMeta_.memories[memoryIndex].addressType() == AddressType::I64;
 }
 
 bool BaseCompiler::hugeMemoryEnabled(uint32_t memoryIndex) const {

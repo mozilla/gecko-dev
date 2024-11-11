@@ -2123,7 +2123,7 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
                                                            : Shareable::False;
       limits.initial = memory_.minPages();
       limits.maximum = Nothing();
-      limits.indexType = IndexType::I32;
+      limits.addressType = AddressType::I32;
       if (!codeMeta_->memories.append(MemoryDesc(limits))) {
         return nullptr;
       }
@@ -7385,7 +7385,7 @@ bool js::IsValidAsmJSHeapLength(size_t length) {
   }
 
   // The heap length is limited by what a wasm memory32 can handle.
-  if (length > MaxMemoryBytes(IndexType::I32)) {
+  if (length > MaxMemoryBytes(AddressType::I32)) {
     return false;
   }
 

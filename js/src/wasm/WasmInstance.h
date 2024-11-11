@@ -553,11 +553,11 @@ class alignas(16) Instance {
                                 uint64_t byteLen, uint8_t* memBase);
   static int32_t memDiscardShared_m64(Instance* instance, uint64_t byteOffset,
                                       uint64_t byteLen, uint8_t* memBase);
-  static void* tableGet(Instance* instance, uint32_t index,
+  static void* tableGet(Instance* instance, uint32_t address,
                         uint32_t tableIndex);
   static uint32_t tableGrow(Instance* instance, void* initValue, uint32_t delta,
                             uint32_t tableIndex);
-  static int32_t tableSet(Instance* instance, uint32_t index, void* value,
+  static int32_t tableSet(Instance* instance, uint32_t address, void* value,
                           uint32_t tableIndex);
   static uint32_t tableSize(Instance* instance, uint32_t tableIndex);
   static int32_t tableInit(Instance* instance, uint32_t dstOffset,

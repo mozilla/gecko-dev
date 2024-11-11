@@ -3523,13 +3523,13 @@ void LIRGenerator::visitWasmWrapU32Index(MWasmWrapU32Index* ins) {
   defineReuseInput(lir, ins, 0);
 }
 
-void LIRGenerator::visitWasmClampTable64Index(MWasmClampTable64Index* ins) {
+void LIRGenerator::visitWasmClampTable64Address(MWasmClampTable64Address* ins) {
   MDefinition* input = ins->input();
   MOZ_ASSERT(input->type() == MIRType::Int64);
   MOZ_ASSERT(ins->type() == MIRType::Int32);
 
   auto* lir =
-      new (alloc()) LWasmClampTable64Index(useInt64RegisterAtStart(input));
+      new (alloc()) LWasmClampTable64Address(useInt64RegisterAtStart(input));
   define(lir, ins);
 }
 

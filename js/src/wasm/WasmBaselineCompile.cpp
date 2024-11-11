@@ -5517,7 +5517,8 @@ bool BaseCompiler::emitCallIndirect() {
 
   // Stack: ... arg1 .. argn callee
 
-  replaceTableIndexWithClampedInt32(codeMeta_.tables[tableIndex].indexType());
+  replaceTableAddressWithClampedInt32(
+      codeMeta_.tables[tableIndex].addressType());
 
   sync();
 
@@ -5582,7 +5583,8 @@ bool BaseCompiler::emitReturnCallIndirect() {
 
   // Stack: ... arg1 .. argn callee
 
-  replaceTableIndexWithClampedInt32(codeMeta_.tables[tableIndex].indexType());
+  replaceTableAddressWithClampedInt32(
+      codeMeta_.tables[tableIndex].addressType());
 
   sync();
   if (!insertDebugCollapseFrame()) {
@@ -6846,14 +6848,14 @@ bool BaseCompiler::memCopyCall(uint32_t dstMemIndex, uint32_t srcMemIndex) {
 
   // Do the general-purpose fallback for copying between any combination of
   // memories. This works by moving everything to the lowest-common denominator.
-  // i32 indices are promoted to i64, and non-shared memories are treated as
+  // i32 addresses are promoted to i64, and non-shared memories are treated as
   // shared.
-  IndexType dstIndexType = codeMeta_.memories[dstMemIndex].indexType();
-  IndexType srcIndexType = codeMeta_.memories[srcMemIndex].indexType();
-  IndexType lenIndexType = MinIndexType(dstIndexType, srcIndexType);
+  AddressType dstAddressType = codeMeta_.memories[dstMemIndex].addressType();
+  AddressType srcAddressType = codeMeta_.memories[srcMemIndex].addressType();
+  AddressType lenAddressType = MinAddressType(dstAddressType, srcAddressType);
 
   // Pop the operands off of the stack and widen them
-  RegI64 len = popIndexToInt64(lenIndexType);
+  RegI64 len = popAddressToInt64(lenAddressType);
 #ifdef JS_CODEGEN_X86
   {
     // Stash the length value to prevent running out of registers
@@ -6862,8 +6864,8 @@ bool BaseCompiler::memCopyCall(uint32_t dstMemIndex, uint32_t srcMemIndex) {
     freeI64(len);
   }
 #endif
-  RegI64 srcIndex = popIndexToInt64(srcIndexType);
-  RegI64 dstIndex = popIndexToInt64(dstIndexType);
+  RegI64 srcIndex = popAddressToInt64(srcAddressType);
+  RegI64 dstIndex = popAddressToInt64(dstAddressType);
 
   pushI64(dstIndex);
   pushI64(srcIndex);
@@ -6947,15 +6949,15 @@ bool BaseCompiler::emitTableCopy() {
     return true;
   }
 
-  IndexType dstIndexType = codeMeta_.tables[dstTable].indexType();
-  IndexType srcIndexType = codeMeta_.tables[srcTable].indexType();
-  IndexType lenIndexType = MinIndexType(dstIndexType, srcIndexType);
+  AddressType dstAddressType = codeMeta_.tables[dstTable].addressType();
+  AddressType srcAddressType = codeMeta_.tables[srcTable].addressType();
+  AddressType lenAddressType = MinAddressType(dstAddressType, srcAddressType);
 
   // Instance::tableCopy(dstOffset:u32, srcOffset:u32, len:u32, dstTable:u32,
   // srcTable:u32)
-  RegI32 len = popTableIndexToClampedInt32(lenIndexType);
-  RegI32 src = popTableIndexToClampedInt32(srcIndexType);
-  replaceTableIndexWithClampedInt32(dstIndexType);
+  RegI32 len = popTableAddressToClampedInt32(lenAddressType);
+  RegI32 src = popTableAddressToClampedInt32(srcAddressType);
+  replaceTableAddressWithClampedInt32(dstAddressType);
   pushI32(src);
   pushI32(len);
   pushI32(dstTable);
@@ -6979,7 +6981,7 @@ bool BaseCompiler::emitTableInit() {
   // Instance::tableInit(dst:u32, src:u32, len:u32, seg:u32, table:u32)
   RegI32 len = popI32();
   RegI32 src = popI32();
-  replaceTableIndexWithClampedInt32(codeMeta_.tables[dstTable].indexType());
+  replaceTableAddressWithClampedInt32(codeMeta_.tables[dstTable].addressType());
   pushI32(src);
   pushI32(len);
   pushI32(segIndex);
@@ -6997,12 +6999,12 @@ bool BaseCompiler::emitTableFill() {
     return true;
   }
 
-  IndexType indexType = codeMeta_.tables[tableIndex].indexType();
+  AddressType addressType = codeMeta_.tables[tableIndex].addressType();
 
   // Instance::tableFill(start:u32, val:ref, len:u32, table:u32) -> void
-  RegI32 len = popTableIndexToClampedInt32(indexType);
+  RegI32 len = popTableAddressToClampedInt32(addressType);
   AnyReg val = popAny();
-  replaceTableIndexWithClampedInt32(indexType);
+  replaceTableAddressWithClampedInt32(addressType);
   pushAny(val);
   pushI32(len);
   pushI32(tableIndex);
@@ -7037,7 +7039,8 @@ bool BaseCompiler::emitTableGet() {
     return true;
   }
 
-  replaceTableIndexWithClampedInt32(codeMeta_.tables[tableIndex].indexType());
+  replaceTableAddressWithClampedInt32(
+      codeMeta_.tables[tableIndex].addressType());
   if (codeMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
     return emitTableGetAnyRef(tableIndex);
   }
@@ -7056,16 +7059,16 @@ bool BaseCompiler::emitTableGrow() {
     return true;
   }
 
-  IndexType indexType = codeMeta_.tables[tableIndex].indexType();
+  AddressType addressType = codeMeta_.tables[tableIndex].addressType();
 
   // Instance::tableGrow(initValue:anyref, delta:u32, table:u32) -> u32
-  replaceTableIndexWithClampedInt32(indexType);
+  replaceTableAddressWithClampedInt32(addressType);
   pushI32(tableIndex);
   if (!emitInstanceCall(SASigTableGrow)) {
     return false;
   }
 
-  if (indexType == IndexType::I64) {
+  if (addressType == AddressType::I64) {
     RegI64 r;
     popI32ForSignExtendI64(&r);
     masm.move32To64SignExtend(lowPart(r), r);
@@ -7084,16 +7087,16 @@ bool BaseCompiler::emitTableSet() {
   if (deadCode_) {
     return true;
   }
-  if (codeMeta_.tables[tableIndex].indexType() == IndexType::I64) {
+  if (codeMeta_.tables[tableIndex].addressType() == AddressType::I64) {
     AnyReg value = popAny();
-    replaceTableIndexWithClampedInt32(IndexType::I64);
+    replaceTableAddressWithClampedInt32(AddressType::I64);
     pushAny(value);
   }
   if (codeMeta_.tables[tableIndex].elemType.tableRepr() == TableRepr::Ref) {
     return emitTableSetAnyRef(tableIndex);
   }
   pushI32(tableIndex);
-  // Instance::tableSet(index:u32, value:ref, table:u32) -> void
+  // Instance::tableSet(address:u32, value:ref, table:u32) -> void
   return emitInstanceCall(SASigTableSet);
 }
 
@@ -7112,7 +7115,7 @@ bool BaseCompiler::emitTableSize() {
   fr.loadInstancePtr(instance);
   loadTableLength(tableIndex, instance, length);
 
-  if (codeMeta_.tables[tableIndex].indexType() == IndexType::I64) {
+  if (codeMeta_.tables[tableIndex].addressType() == AddressType::I64) {
     pushU32AsI64(length);
   } else {
     pushI32(length);
@@ -7121,11 +7124,11 @@ bool BaseCompiler::emitTableSize() {
   return true;
 }
 
-void BaseCompiler::emitTableBoundsCheck(uint32_t tableIndex, RegI32 index,
+void BaseCompiler::emitTableBoundsCheck(uint32_t tableIndex, RegI32 address,
                                         RegPtr instance) {
   Label ok;
   masm.wasmBoundsCheck32(
-      Assembler::Condition::Below, index,
+      Assembler::Condition::Below, address,
       addressOfTableField(tableIndex, offsetof(TableInstanceData, length),
                           instance),
       &ok);
@@ -7136,15 +7139,15 @@ void BaseCompiler::emitTableBoundsCheck(uint32_t tableIndex, RegI32 index,
 bool BaseCompiler::emitTableGetAnyRef(uint32_t tableIndex) {
   RegPtr instance = needPtr();
   RegPtr elements = needPtr();
-  RegI32 index = popI32();
+  RegI32 address = popI32();
 
   fr.loadInstancePtr(instance);
-  emitTableBoundsCheck(tableIndex, index, instance);
+  emitTableBoundsCheck(tableIndex, address, instance);
   loadTableElements(tableIndex, instance, elements);
-  masm.loadPtr(BaseIndex(elements, index, ScalePointer), elements);
+  masm.loadPtr(BaseIndex(elements, address, ScalePointer), elements);
 
   pushRef(RegRef(elements));
-  freeI32(index);
+  freeI32(address);
   freePtr(instance);
 
   return true;
@@ -7159,7 +7162,7 @@ bool BaseCompiler::emitTableSetAnyRef(uint32_t tableIndex) {
   RegPtr instance = needPtr();
   RegPtr elements = needPtr();
   RegRef value = popRef();
-  RegI32 index = popI32();
+  RegI32 address = popI32();
 
   // x86 is one register too short for this operation, shuffle `value` back
   // onto the stack until it is needed.
@@ -7168,12 +7171,12 @@ bool BaseCompiler::emitTableSetAnyRef(uint32_t tableIndex) {
 #endif
 
   fr.loadInstancePtr(instance);
-  emitTableBoundsCheck(tableIndex, index, instance);
+  emitTableBoundsCheck(tableIndex, address, instance);
   loadTableElements(tableIndex, instance, elements);
-  masm.computeEffectiveAddress(BaseIndex(elements, index, ScalePointer),
+  masm.computeEffectiveAddress(BaseIndex(elements, address, ScalePointer),
                                valueAddr);
 
-  freeI32(index);
+  freeI32(address);
   freePtr(elements);
   freePtr(instance);
 

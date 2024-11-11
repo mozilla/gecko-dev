@@ -10865,13 +10865,14 @@ void CodeGenerator::visitWasmStoreElementI64(LWasmStoreElementI64* ins) {
 #endif
 }
 
-void CodeGenerator::visitWasmClampTable64Index(LWasmClampTable64Index* lir) {
+void CodeGenerator::visitWasmClampTable64Address(
+    LWasmClampTable64Address* lir) {
 #ifdef ENABLE_WASM_MEMORY64
-  Register64 index = ToRegister64(lir->index());
+  Register64 address = ToRegister64(lir->address());
   Register out = ToRegister(lir->output());
-  masm.wasmClampTable64Index(index, out);
+  masm.wasmClampTable64Address(address, out);
 #else
-  MOZ_CRASH("table64 indexes should not be valid without memory64");
+  MOZ_CRASH("table64 addresses should not be valid without memory64");
 #endif
 }
 

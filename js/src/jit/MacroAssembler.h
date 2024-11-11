@@ -3989,7 +3989,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(x86_shared, arm, arm64, loong64, mips64, riscv64);
 
 #ifdef ENABLE_WASM_MEMORY64
-  void wasmClampTable64Index(Register64 index, Register out);
+  void wasmClampTable64Address(Register64 address, Register out);
 #endif
 
   // WasmTableCallIndexReg must contain the index of the indirect call.  This is

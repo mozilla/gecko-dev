@@ -58,7 +58,7 @@
 #include "vm/NativeObject-inl.h"
 #include "vm/Realm-inl.h"  // js::AutoRealm
 
-using js::wasm::IndexType;
+using js::wasm::AddressType;
 using js::wasm::Pages;
 using mozilla::Atomic;
 using mozilla::DebugOnly;
@@ -169,7 +169,7 @@ uint64_t js::WasmReservedBytes() { return wasmReservedBytes; }
   return true;
 }
 
-void* js::MapBufferMemory(wasm::IndexType t, size_t mappedSize,
+void* js::MapBufferMemory(wasm::AddressType t, size_t mappedSize,
                           size_t initialCommittedSize) {
   MOZ_ASSERT(mappedSize % gc::SystemPageSize() == 0);
   MOZ_ASSERT(initialCommittedSize % gc::SystemPageSize() == 0);
@@ -288,7 +288,7 @@ bool js::ExtendBufferMapping(void* dataPointer, size_t mappedSize,
 #endif
 }
 
-void js::UnmapBufferMemory(wasm::IndexType t, void* base, size_t mappedSize) {
+void js::UnmapBufferMemory(wasm::AddressType t, void* base, size_t mappedSize) {
   MOZ_ASSERT(mappedSize % gc::SystemPageSize() == 0);
 
 #ifdef XP_WIN
@@ -1165,7 +1165,7 @@ void WasmArrayRawBuffer::discard(size_t byteOffset, size_t byteLen) {
 
 /* static */
 WasmArrayRawBuffer* WasmArrayRawBuffer::AllocateWasm(
-    IndexType indexType, Pages initialPages, Pages clampedMaxPages,
+    AddressType addressType, Pages initialPages, Pages clampedMaxPages,
     const Maybe<Pages>& sourceMaxPages, const Maybe<size_t>& mapped) {
   // Prior code has asserted that initial pages is within our implementation
   // limits (wasm::MaxMemoryPages) and we can assume it is a valid size_t.
@@ -1191,7 +1191,7 @@ WasmArrayRawBuffer* WasmArrayRawBuffer::AllocateWasm(
   uint64_t mappedSizeWithHeader = mappedSize + gc::SystemPageSize();
   uint64_t numBytesWithHeader = numBytes + gc::SystemPageSize();
 
-  void* data = MapBufferMemory(indexType, (size_t)mappedSizeWithHeader,
+  void* data = MapBufferMemory(addressType, (size_t)mappedSizeWithHeader,
                                (size_t)numBytesWithHeader);
   if (!data) {
     return nullptr;
@@ -1201,7 +1201,7 @@ WasmArrayRawBuffer* WasmArrayRawBuffer::AllocateWasm(
   uint8_t* header = base - sizeof(WasmArrayRawBuffer);
 
   auto rawBuf = new (header) WasmArrayRawBuffer(
-      indexType, base, clampedMaxPages, sourceMaxPages, mappedSize, numBytes);
+      addressType, base, clampedMaxPages, sourceMaxPages, mappedSize, numBytes);
   return rawBuf;
 }
 
@@ -1216,7 +1216,7 @@ void WasmArrayRawBuffer::Release(void* mem) {
   static_assert(std::is_trivially_destructible_v<WasmArrayRawBuffer>,
                 "no need to call the destructor");
 
-  UnmapBufferMemory(header->indexType(), header->basePointer(),
+  UnmapBufferMemory(header->addressType(), header->basePointer(),
                     mappedSizeWithHeader);
 }
 
@@ -1228,11 +1228,11 @@ WasmArrayRawBuffer* ArrayBufferObject::BufferContents::wasmBuffer() const {
 template <typename ObjT, typename RawbufT>
 static ArrayBufferObjectMaybeShared* CreateSpecificWasmBuffer(
     JSContext* cx, const wasm::MemoryDesc& memory) {
-  bool useHugeMemory = wasm::IsHugeMemoryEnabled(memory.indexType());
+  bool useHugeMemory = wasm::IsHugeMemoryEnabled(memory.addressType());
   Pages initialPages = memory.initialPages();
   Maybe<Pages> sourceMaxPages = memory.maximumPages();
   Pages clampedMaxPages = wasm::ClampedMaxPages(
-      memory.indexType(), initialPages, sourceMaxPages, useHugeMemory);
+      memory.addressType(), initialPages, sourceMaxPages, useHugeMemory);
 
   Maybe<size_t> mappedSize;
 #ifdef WASM_SUPPORTS_HUGE_MEMORY
@@ -1244,7 +1244,7 @@ static ArrayBufferObjectMaybeShared* CreateSpecificWasmBuffer(
 #endif
 
   RawbufT* buffer =
-      RawbufT::AllocateWasm(memory.limits.indexType, initialPages,
+      RawbufT::AllocateWasm(memory.limits.addressType, initialPages,
                             clampedMaxPages, sourceMaxPages, mappedSize);
   if (!buffer) {
     if (useHugeMemory) {
@@ -1268,7 +1268,7 @@ static ArrayBufferObjectMaybeShared* CreateSpecificWasmBuffer(
 
     uint64_t cur = clampedMaxPages.value() / 2;
     for (; Pages(cur) > initialPages; cur /= 2) {
-      buffer = RawbufT::AllocateWasm(memory.limits.indexType, initialPages,
+      buffer = RawbufT::AllocateWasm(memory.limits.addressType, initialPages,
                                      Pages(cur), sourceMaxPages, mappedSize);
       if (buffer) {
         break;
@@ -1338,7 +1338,7 @@ static ArrayBufferObjectMaybeShared* CreateSpecificWasmBuffer(
 ArrayBufferObjectMaybeShared* js::CreateWasmBuffer(
     JSContext* cx, const wasm::MemoryDesc& memory) {
   MOZ_RELEASE_ASSERT(memory.initialPages() <=
-                     wasm::MaxMemoryPages(memory.indexType()));
+                     wasm::MaxMemoryPages(memory.addressType()));
   MOZ_RELEASE_ASSERT(cx->wasm().haveSignalHandlers);
 
   if (memory.isShared()) {
@@ -1507,12 +1507,12 @@ size_t ArrayBufferObject::wasmMappedSize() const {
   return byteLength();
 }
 
-IndexType ArrayBufferObject::wasmIndexType() const {
+AddressType ArrayBufferObject::wasmAddressType() const {
   if (isWasm()) {
-    return contents().wasmBuffer()->indexType();
+    return contents().wasmBuffer()->addressType();
   }
   MOZ_ASSERT(isPreparedForAsmJS());
-  return wasm::IndexType::I32;
+  return wasm::AddressType::I32;
 }
 
 Pages ArrayBufferObject::wasmPages() const {
@@ -1546,12 +1546,12 @@ size_t js::WasmArrayBufferMappedSize(const ArrayBufferObjectMaybeShared* buf) {
   return buf->as<SharedArrayBufferObject>().wasmMappedSize();
 }
 
-IndexType js::WasmArrayBufferIndexType(
+AddressType js::WasmArrayBufferAddressType(
     const ArrayBufferObjectMaybeShared* buf) {
   if (buf->is<ArrayBufferObject>()) {
-    return buf->as<ArrayBufferObject>().wasmIndexType();
+    return buf->as<ArrayBufferObject>().wasmAddressType();
   }
-  return buf->as<SharedArrayBufferObject>().wasmIndexType();
+  return buf->as<SharedArrayBufferObject>().wasmAddressType();
 }
 Pages js::WasmArrayBufferPages(const ArrayBufferObjectMaybeShared* buf) {
   if (buf->is<ArrayBufferObject>()) {
@@ -1587,7 +1587,7 @@ static void CheckStealPreconditions(Handle<ArrayBufferObject*> buffer,
 
 /* static */
 ArrayBufferObject* ArrayBufferObject::wasmGrowToPagesInPlace(
-    wasm::IndexType t, Pages newPages, Handle<ArrayBufferObject*> oldBuf,
+    wasm::AddressType t, Pages newPages, Handle<ArrayBufferObject*> oldBuf,
     JSContext* cx) {
   if (oldBuf->isLengthPinned()) {
     return nullptr;
@@ -1647,7 +1647,7 @@ ArrayBufferObject* ArrayBufferObject::wasmGrowToPagesInPlace(
 
 /* static */
 ArrayBufferObject* ArrayBufferObject::wasmMovingGrowToPages(
-    IndexType t, Pages newPages, Handle<ArrayBufferObject*> oldBuf,
+    AddressType t, Pages newPages, Handle<ArrayBufferObject*> oldBuf,
     JSContext* cx) {
   // On failure, do not throw and ensure that the original buffer is
   // unmodified and valid.
@@ -1681,8 +1681,9 @@ ArrayBufferObject* ArrayBufferObject::wasmMovingGrowToPages(
 
   Pages clampedMaxPages =
       wasm::ClampedMaxPages(t, newPages, Nothing(), /* hugeMemory */ false);
-  WasmArrayRawBuffer* newRawBuf = WasmArrayRawBuffer::AllocateWasm(
-      oldBuf->wasmIndexType(), newPages, clampedMaxPages, Nothing(), Nothing());
+  WasmArrayRawBuffer* newRawBuf =
+      WasmArrayRawBuffer::AllocateWasm(oldBuf->wasmAddressType(), newPages,
+                                       clampedMaxPages, Nothing(), Nothing());
   if (!newRawBuf) {
     return nullptr;
   }

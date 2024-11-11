@@ -6622,11 +6622,11 @@ void MacroAssembler::wasmBoundsCheckRange32(
 }
 
 #ifdef ENABLE_WASM_MEMORY64
-void MacroAssembler::wasmClampTable64Index(Register64 index, Register out) {
+void MacroAssembler::wasmClampTable64Address(Register64 address, Register out) {
   Label oob;
   Label ret;
-  branch64(Assembler::Above, index, Imm64(UINT32_MAX), &oob);
-  move64To32(index, out);
+  branch64(Assembler::Above, address, Imm64(UINT32_MAX), &oob);
+  move64To32(address, out);
   jump(&ret);
   bind(&oob);
   static_assert(wasm::MaxTableElemsRuntime < UINT32_MAX);

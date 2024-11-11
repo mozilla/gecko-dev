@@ -63,7 +63,7 @@ void UnregisterCodeBlock(const CodeBlock* cs);
 // is not precise enough to tell whether a particular memory uses huge memory,
 // there are additional conditions for that.
 
-bool IsHugeMemoryEnabled(IndexType t);
+bool IsHugeMemoryEnabled(AddressType t);
 
 // Called once before/after the last VM execution which could execute or compile
 // wasm.

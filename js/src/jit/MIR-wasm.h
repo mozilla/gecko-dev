@@ -1755,7 +1755,7 @@ class MWasmCallBase {
   template <class MVariadicT>
   [[nodiscard]] bool initWithArgs(TempAllocator& alloc, MVariadicT* ins,
                                   const Args& args,
-                                  MDefinition* tableIndexOrRef) {
+                                  MDefinition* tableAddressOrRef) {
     if (!argRegs_.init(alloc, args.length())) {
       return false;
     }
@@ -1763,15 +1763,15 @@ class MWasmCallBase {
       argRegs_[i] = args[i].reg;
     }
 
-    if (!ins->init(alloc, argRegs_.length() + (tableIndexOrRef ? 1 : 0))) {
+    if (!ins->init(alloc, argRegs_.length() + (tableAddressOrRef ? 1 : 0))) {
       return false;
     }
     // FixedList doesn't initialize its elements, so do an unchecked init.
     for (size_t i = 0; i < argRegs_.length(); i++) {
       ins->initOperand(i, args[i].def);
     }
-    if (tableIndexOrRef) {
-      ins->initOperand(argRegs_.length(), tableIndexOrRef);
+    if (tableAddressOrRef) {
+      ins->initOperand(argRegs_.length(), tableAddressOrRef);
     }
     return true;
   }
@@ -1835,7 +1835,7 @@ class MWasmCallCatchable final : public MVariadicControlInstruction<2>,
       const wasm::CalleeDesc& callee, const Args& args,
       uint32_t stackArgAreaSizeUnaligned, uint32_t tryNoteIndex,
       MBasicBlock* fallthroughBlock, MBasicBlock* prePadBlock,
-      MDefinition* tableIndexOrRef = nullptr);
+      MDefinition* tableAddressOrRef = nullptr);
 
   static MWasmCallCatchable* NewBuiltinInstanceMethodCall(
       TempAllocator& alloc, const wasm::CallSiteDesc& desc,
@@ -1870,7 +1870,7 @@ class MWasmCallUncatchable final : public MVariadicInstruction,
                                    const wasm::CalleeDesc& callee,
                                    const Args& args,
                                    uint32_t stackArgAreaSizeUnaligned,
-                                   MDefinition* tableIndexOrRef = nullptr);
+                                   MDefinition* tableAddressOrRef = nullptr);
 
   static MWasmCallUncatchable* NewBuiltinInstanceMethodCall(
       TempAllocator& alloc, const wasm::CallSiteDesc& desc,
@@ -1898,7 +1898,7 @@ class MWasmReturnCall final : public MVariadicControlInstruction<0>,
                               const wasm::CallSiteDesc& desc,
                               const wasm::CalleeDesc& callee, const Args& args,
                               uint32_t stackArgAreaSizeUnaligned,
-                              MDefinition* tableIndexOrRef = nullptr);
+                              MDefinition* tableAddressOrRef = nullptr);
 
   bool possiblyCalls() const override { return true; }
 };

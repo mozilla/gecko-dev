@@ -3508,10 +3508,10 @@
     input: WordSized
   mir_op: true
 
-- name: WasmClampTable64Index
+- name: WasmClampTable64Address
   result_type: WordSized
   operands:
-    index: Int64
+    address: Int64
   mir_op: true
 
 - name: WasmAlignmentCheck

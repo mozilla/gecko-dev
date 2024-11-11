@@ -130,8 +130,8 @@ static const size_t MinVirtualMemoryLimitForHugeMemory =
 
 static bool sHugeMemoryEnabled32 = false;
 
-bool wasm::IsHugeMemoryEnabled(wasm::IndexType t) {
-  if (t == IndexType::I64) {
+bool wasm::IsHugeMemoryEnabled(wasm::AddressType t) {
+  if (t == AddressType::I64) {
     // No support for huge memory with 64-bit memories
     return false;
   }
