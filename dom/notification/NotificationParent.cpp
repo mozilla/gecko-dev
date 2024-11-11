@@ -62,6 +62,9 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
     // XXX: QM_TRY?
     (void)NS_WARN_IF(NS_FAILED(UnpersistNotification(mPrincipal, mId)));
     (void)NS_WARN_IF(NS_FAILED(FireCloseEvent()));
+
+    // Unpersisted already and being unregistered already by nsIAlertsService
+    mDangling = true;
     Close();
 
     return NS_OK;
