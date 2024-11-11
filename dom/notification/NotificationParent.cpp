@@ -11,6 +11,7 @@
 #include "mozilla/Components.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIAlertsService.h"
+#include "nsIServiceWorkerManager.h"
 
 namespace mozilla::dom::notification {
 
@@ -24,6 +25,9 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
   }
   if (!strcmp("alertsettingscallback", aTopic)) {
     return OpenSettings(mPrincipal);
+  }
+  if (!strcmp("alertclickcallback", aTopic)) {
+    return FireClickEvent();
   }
   if (!strcmp("alertshow", aTopic)) {
     (void)NS_WARN_IF(NS_FAILED(
@@ -54,6 +58,30 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
     }
   }
   return NS_OK;
+}
+
+nsresult NotificationParent::FireClickEvent() {
+  // This needs to be done here rather than in the child actor's
+  // RecvNotifyClick because the caller might not be in the service worker
+  // context but in the window context
+  if (nsCOMPtr<nsIServiceWorkerManager> swm =
+          mozilla::components::ServiceWorkerManager::Service()) {
+    nsAutoCString originSuffix;
+    MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
+    nsAutoString behavior;
+    if (!mOptions.behavior().ToJSON(behavior)) {
+      return NS_ERROR_FAILURE;
+    }
+    MOZ_TRY(swm->SendNotificationClickEvent(
+        originSuffix, NS_ConvertUTF16toUTF8(mScope), mId, mOptions.title(),
+        NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())), mOptions.lang(),
+        mOptions.body(), mOptions.tag(), mOptions.icon(),
+        mOptions.dataSerialized(), behavior));
+
+    return NS_OK;
+  }
+
+  return NS_ERROR_FAILURE;
 }
 
 // Step 4 of
