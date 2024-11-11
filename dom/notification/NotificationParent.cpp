@@ -28,10 +28,30 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp("alertshow", aTopic)) {
     (void)NS_WARN_IF(NS_FAILED(
         AdjustPushQuota(mPrincipal, NotificationStatusChange::Shown)));
+    if (!mResolver) {
+#ifdef ANDROID
+      // XXX: This can happen as we resolve showNotification() immediately on
+      // Android for now and a mock service may still call this.
+      return NS_OK;
+#else
+      MOZ_ASSERT_UNREACHABLE("Are we getting double show events?");
+      return NS_ERROR_FAILURE;
+#endif
+    }
+    mResolver.take().value()(CopyableErrorResult());
+    return NS_OK;
   }
   if (!strcmp("alertfinished", aTopic)) {
     (void)NS_WARN_IF(NS_FAILED(
         AdjustPushQuota(mPrincipal, NotificationStatusChange::Closed)));
+    if (mResolver) {
+      // alertshow happens first before alertfinished, and it should have If
+      // not it means it failed to show and is bailing out.
+      // XXX: Apparently XUL manual do not disturb mode does this without firing
+      // alertshow at all.
+      mResolver.take().value()(CopyableErrorResult(NS_ERROR_FAILURE));
+      return NS_OK;
+    }
   }
   return NS_OK;
 }
@@ -39,10 +59,17 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
 // Step 4 of
 // https://notifications.spec.whatwg.org/#dom-notification-notification
 mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
+  mResolver.emplace(std::move(aResolver));
+
   // Step 4.2: Run the fetch steps for notification. (Will happen in
   // nsIAlertNotification::LoadImage)
   // Step 4.3: Run the show steps for notification.
-  Show();
+  nsresult rv = Show();
+  if (NS_FAILED(rv)) {
+    mResolver.take().value()(CopyableErrorResult(rv));
+  }
+  // If not failed, the resolver will be called asynchronously by
+  // NotificationObserver
   return IPC_OK();
 }
 
@@ -95,6 +122,15 @@ nsresult NotificationParent::Show() {
   // UnpersistNotification(), we should remove
   // nsIAlertsService::ShowPersistentNotification.
   MOZ_TRY(alertService->ShowAlert(alert, this));
+
+#ifdef ANDROID
+  // XXX: the Android nsIAlertsService is broken and doesn't send alertshow
+  // properly, which means we cannot depend on it to resolve the promise. For
+  // now we resolve the promise here.
+  // (This now fires onshow event regardless of the actual result, but it should
+  // be better than the previous behavior that did not do anything at all)
+  mResolver.take().value()(CopyableErrorResult());
+#endif
 
   return NS_OK;
 }

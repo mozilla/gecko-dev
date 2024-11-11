@@ -55,6 +55,8 @@ class NotificationParent final : public PNotificationParent,
   }
   void MaybeInitAlertName();
 
+  Maybe<NotificationParent::ShowResolver> mResolver;
+
   NotNull<nsCOMPtr<nsIPrincipal>> mPrincipal;
   NotNull<nsCOMPtr<nsIPrincipal>> mEffectiveStoragePrincipal;
   bool mIsSecureContext;
