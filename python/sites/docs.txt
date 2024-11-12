@@ -12,7 +12,7 @@ pypi:sphinx-js==3.2.2
 pypi:sphinx-tabs==3.4.7
 pypi:sphinx-markdown-tables==0.0.17
 pypi:sphinx-rtd-theme==2.0.0
-pypi:sphinxcontrib-mermaid==0.9.2
+pypi:sphinxcontrib-mermaid==1.0.0
 
 # The following are only required by autodoc
 pth:python/mach
