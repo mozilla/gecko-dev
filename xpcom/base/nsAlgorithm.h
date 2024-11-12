@@ -29,26 +29,4 @@ inline const T& XPCOM_MAX(const T& aA, const T& aB) {
   return aA > aB ? aA : aB;
 }
 
-namespace mozilla {
-
-template <class T>
-inline const T& clamped(const T& aA, const T& aMin, const T& aMax) {
-  MOZ_ASSERT(aMax >= aMin,
-             "clamped(): aMax must be greater than or equal to aMin");
-  return XPCOM_MIN(XPCOM_MAX(aA, aMin), aMax);
-}
-
-}  // namespace mozilla
-
-template <class InputIterator, class T>
-inline uint32_t NS_COUNT(InputIterator& aFirst, const InputIterator& aLast,
-                         const T& aValue) {
-  uint32_t result = 0;
-  for (; aFirst != aLast; ++aFirst)
-    if (*aFirst == aValue) {
-      ++result;
-    }
-  return result;
-}
-
 #endif  // !defined(nsAlgorithm_h___)
