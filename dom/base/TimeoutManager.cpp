@@ -382,9 +382,10 @@ void TimeoutManager::UpdateBudget(const TimeStamp& aNow,
     double factor = GetRegenerationFactor(isBackground);
     TimeDuration regenerated = (aNow - mLastBudgetUpdate).MultDouble(factor);
     // Clamp the budget to the range of minimum and maximum allowed budget.
-    mExecutionBudget =
-        std::clamp(mExecutionBudget - aDuration + regenerated,
-                   GetMinBudget(isBackground), GetMaxBudget(isBackground));
+    mExecutionBudget = TimeDuration::Max(
+        GetMinBudget(isBackground),
+        TimeDuration::Min(GetMaxBudget(isBackground),
+                          mExecutionBudget - aDuration + regenerated));
   } else {
     // If budget throttling isn't enabled, reset the execution budget
     // to the max budget specified in preferences. Always doing this
@@ -663,8 +664,8 @@ void TimeoutManager::RunTimeout(const TimeStamp& aNow,
   uint32_t totalTimeLimitMS =
       std::max(1u, StaticPrefs::dom_timeout_max_consecutive_callbacks_ms());
   const TimeDuration totalTimeLimit =
-      std::clamp(mExecutionBudget, TimeDuration(),
-                 TimeDuration::FromMilliseconds(totalTimeLimitMS));
+      TimeDuration::Min(TimeDuration::FromMilliseconds(totalTimeLimitMS),
+                        TimeDuration::Max(TimeDuration(), mExecutionBudget));
 
   // Allow up to 25% of our total time budget to be used figuring out which
   // timers need to run.  This is the initial loop in this method.
