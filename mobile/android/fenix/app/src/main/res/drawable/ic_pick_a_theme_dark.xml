@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="60dp"
+    android:height="97dp"
+    android:viewportWidth="60"
+    android:viewportHeight="97">
+  <path
+      android:pathData="M10.178,0.5L49.822,0.5A9.678,9.678 0,0 1,59.5 10.178L59.5,86.822A9.678,9.678 0,0 1,49.822 96.5L10.178,96.5A9.678,9.678 0,0 1,0.5 86.822L0.5,10.178A9.678,9.678 0,0 1,10.178 0.5z">
+    <aapt:attr name="android:fillColor">
+      <gradient 
+          android:startX="4.063"
+          android:startY="95.898"
+          android:endX="89.8"
+          android:endY="52.12"
+          android:type="linear">
+        <item android:offset="0" android:color="#FF3A3944"/>
+        <item android:offset="1" android:color="#003A3944"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:pathData="M10.178,0.5L49.822,0.5A9.678,9.678 0,0 1,59.5 10.178L59.5,86.822A9.678,9.678 0,0 1,49.822 96.5L10.178,96.5A9.678,9.678 0,0 1,0.5 86.822L0.5,10.178A9.678,9.678 0,0 1,10.178 0.5z">
+    <aapt:attr name="android:fillColor">
+      <gradient 
+          android:startX="4.063"
+          android:startY="95.898"
+          android:endX="89.8"
+          android:endY="52.12"
+          android:type="linear">
+        <item android:offset="0.086" android:color="#FF3A3944"/>
+        <item android:offset="1" android:color="#FF686777"/>
+      </gradient>
+    </aapt:attr>
+  </path>
+  <path
+      android:strokeWidth="1"
+      android:pathData="M10.178,0.5L49.822,0.5A9.678,9.678 0,0 1,59.5 10.178L59.5,86.822A9.678,9.678 0,0 1,49.822 96.5L10.178,96.5A9.678,9.678 0,0 1,0.5 86.822L0.5,10.178A9.678,9.678 0,0 1,10.178 0.5z"
+      android:strokeLineJoin="round"
+      android:fillColor="#00000000"
+      android:strokeColor="#A7A7A7"/>
+</vector>
