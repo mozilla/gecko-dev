@@ -81,7 +81,7 @@ tasks:
         symbol: I(ub22-build-python-wheels)
         parent: ubuntu2204-base
         definition: build-python-wheels
-    # Neither the ubuntu1804-*raw nor the ubuntu1804-*packages images can have
+    # Neither the ubuntu2004-*raw nor the ubuntu2004-*packages images can have
     # packages dependencies.
     ubuntu2004-raw:
         symbol: I(ub20-raw)
@@ -150,6 +150,12 @@ tasks:
         packages:
             - ub24-mercurial
             - ub24-python-zstandard
+    ubuntu2404-test-base:
+        symbol: I(ub24-test-base)
+        parent: ubuntu2404-base
+    ubuntu2404-test:
+        symbol: I(ub24-test)
+        parent: ubuntu2404-test-base
     # Neither the debian8-*raw nor the debian8-*packages images can have
     # packages dependencies.
     debian8-raw:

@@ -1,0 +1,69 @@
+FROM          $DOCKER_IMAGE_PARENT
+
+# Create necessary directories
+RUN     mkdir -p /artifacts
+
+# We need to declare all potentially cache volumes as caches. Also,
+# making high I/O paths volumes increase I/O throughput because of
+# AUFS slowness.
+VOLUME  /builds/worker/.cache
+VOLUME  /builds/worker/checkouts
+VOLUME  /builds/worker/tooltool-cache
+VOLUME  /builds/worker/workspace
+
+# In test.sh we accept START_VNC to start a vnc daemon.
+# Exposing this port allows it to work.
+EXPOSE  5900
+
+# Add wrapper scripts for xvfb allowing tasks to easily retry starting up xvfb
+# %include taskcluster/docker/recipes/xvfb.sh
+ADD topsrcdir/taskcluster/docker/recipes/xvfb.sh /builds/worker/scripts/xvfb.sh
+
+# %include python/mozbuild/mozbuild/action/tooltool.py
+ADD topsrcdir/python/mozbuild/mozbuild/action/tooltool.py /builds/worker/scripts/tooltool.py
+
+# %include taskcluster/docker/recipes/ubuntu2404-test-system-setup.sh
+ADD topsrcdir/taskcluster/docker/recipes/ubuntu2404-test-system-setup.sh /setup/system-setup.sh
+RUN     bash /setup/system-setup.sh
+
+# %include taskcluster/scripts/tester/test-linux.sh
+ADD topsrcdir/taskcluster/scripts/tester/test-linux.sh /builds/worker/bin/test-linux.sh
+
+# Set variable normally configured at login, by the shells parent process, these
+# are taken from GNU su manual
+ENV     LANG            en_US.UTF-8
+ENV     LC_ALL          en_US.UTF-8
+ENV     PATH            $PATH:/builds/worker/bin
+
+# This helps not forgetting setting DISPLAY=:0 when running
+# tests outside of test.sh
+ENV DISPLAY :0
+
+# Add utilities and configuration
+COPY    dot-files/config        /builds/worker/.config
+
+# Disable apport (app crash reporter) to avoid stealing focus from test runs
+ADD apport /etc/default/apport
+
+# Disable font antialiasing for now to match releng's setup
+ADD fonts.conf /builds/worker/.fonts.conf
+
+# allow the worker user to access video devices
+RUN     usermod -a -G video worker
+
+# Set execution and ownership privileges
+RUN     chmod +x bin/*; chown -R worker:worker /builds/worker
+
+# Set up first-run experience for interactive mode
+ADD motd /etc/taskcluster-motd
+ADD taskcluster-interactive-shell /bin/taskcluster-interactive-shell
+RUN     chmod +x /bin/taskcluster-interactive-shell
+
+# Ubuntu 24.04 (or any other GNOME3 based systems) needs dbus to have various
+# test function as expected. Use entrypoint to initialize dbus as root.
+COPY dbus.sh /usr/local/bin/dbus.sh
+RUN chmod +x /usr/local/bin/dbus.sh
+ENTRYPOINT ["/usr/local/bin/dbus.sh"]
+
+# Set a default command useful for debugging
+CMD ["/bin/bash", "--login"]
