@@ -82,7 +82,7 @@
             ? `<stack class="wizard-header-stack" flex="1">
            <vbox class="wizard-header-box-1">
              <vbox class="wizard-header-box-text">
-               <label class="wizard-header-label"/>
+               <label id="wizard-header-label" class="wizard-header-label"/>
              </vbox>
            </vbox>
            <hbox class="wizard-header-box-icon">
@@ -92,7 +92,7 @@
          </stack>`
             : `<hbox class="wizard-header-box-1" flex="1">
            <vbox class="wizard-header-box-text" flex="1">
-             <label class="wizard-header-label"/>
+             <label id="wizard-header-label" class="wizard-header-label"/>
              <label class="wizard-header-description"/>
            </vbox>
            <image class="wizard-header-icon"/>

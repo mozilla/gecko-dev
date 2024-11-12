@@ -50,6 +50,10 @@ function initWizard() {
 
 // Called every time the second wizard page is displayed.
 function initSecondWizardPage() {
+  document
+    .getElementById("createProfileWizard")
+    .removeAttribute("aria-describedby");
+
   var profileName = document.getElementById("profileName");
   profileName.select();
   profileName.focus();

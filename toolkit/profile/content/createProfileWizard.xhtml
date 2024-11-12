@@ -13,6 +13,8 @@
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   onload="initWizard();"
   data-l10n-attrs="style"
+  aria-describedby="profile-creation-explanation-1 profile-creation-explanation-2 profile-creation-explanation-3 profile-creation-explanation-4"
+  aria-labelledby="wizard-header-label"
 >
   <linkset>
     <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
@@ -39,30 +41,54 @@
       id="explanation"
       data-header-label-id="create-profile-first-page-header2"
     >
-      <description data-l10n-id="profile-creation-explanation-1"></description>
-      <description data-l10n-id="profile-creation-explanation-2"></description>
-      <description data-l10n-id="profile-creation-explanation-3"></description>
+      <description
+        id="profile-creation-explanation-1"
+        data-l10n-id="profile-creation-explanation-1"
+      ></description>
+      <description
+        id="profile-creation-explanation-2"
+        data-l10n-id="profile-creation-explanation-2"
+      ></description>
+      <description
+        id="profile-creation-explanation-3"
+        data-l10n-id="profile-creation-explanation-3"
+      ></description>
       <spacer flex="1" />
-      <description data-l10n-id="profile-creation-explanation-4"></description>
+      <description
+        id="profile-creation-explanation-4"
+        data-l10n-id="profile-creation-explanation-4"
+      ></description>
     </wizardpage>
 
     <wizardpage
       id="createProfile"
       data-header-label-id="create-profile-last-page-header2"
     >
-      <description data-l10n-id="profile-creation-intro"></description>
+      <description
+        id="profile-creation-intro"
+        data-l10n-id="profile-creation-intro"
+      ></description>
 
-      <label data-l10n-id="profile-prompt" control="ProfileName"></label>
+      <label
+        id="profile-prompt"
+        data-l10n-id="profile-prompt"
+        control="ProfileName"
+      ></label>
       <html:input
         id="profileName"
         data-l10n-id="profile-default-name"
         data-l10n-attrs="value"
         oninput="updateProfileName(this.value);"
+        aria-describedby="profile-creation-intro finishText"
+        aria-labelledby="profile-prompt"
       />
 
       <separator />
 
-      <description data-l10n-id="profile-directory-explanation"></description>
+      <description
+        id="profile-directory-explanation"
+        data-l10n-id="profile-directory-explanation"
+      ></description>
 
       <vbox class="indent" flex="1" style="overflow: auto">
         <description id="profileDisplay">*</description>
@@ -72,6 +98,7 @@
         <button
           data-l10n-id="create-profile-choose-folder"
           oncommand="chooseProfileFolder();"
+          aria-describedby="profile-directory-explanation profileDisplay"
         />
 
         <button
