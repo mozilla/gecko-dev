@@ -81,9 +81,8 @@ add_task(async function test_selector_window() {
 
   // Setting shared prefs should notify.
   notifications = [];
-  await SelectableProfileService.setPref("test.pref1", "hello");
-  await SelectableProfileService.setPref("test.pref2", 5);
-  await SelectableProfileService.setPref("test.pref3", true);
+  Services.prefs.setCharPref("test.pref1", "hello");
+  await SelectableProfileService.trackPref("test.pref1");
 
   await TestUtils.waitForCondition(() => notifications.length >= 2);
 
@@ -91,11 +90,6 @@ add_task(async function test_selector_window() {
   Assert.equal(notifications[1], "remote");
   // Notifications should be debounced
   Assert.equal(notifications.length, 2);
-
-  // Should have actually set the prefs.
-  Assert.equal(Services.prefs.getCharPref("test.pref1", null), "hello");
-  Assert.equal(Services.prefs.getIntPref("test.pref2", 0), 5);
-  Assert.equal(Services.prefs.getBoolPref("test.pref3", false), true);
 
   // Properly simulate a set from another instance.
   notifications = [];
