@@ -32,8 +32,12 @@ module.exports = {
           ) &&
           node.callee.property?.name == "only"
         ) {
+          let sourceCode = context.getSourceCode();
           context.report({
-            node,
+            loc: {
+              start: sourceCode.getLocFromIndex(node.callee.object.range[1]),
+              end: sourceCode.getLocFromIndex(node.range[1]),
+            },
             messageId: "addTaskNotAllowed",
             suggest: [
               {
