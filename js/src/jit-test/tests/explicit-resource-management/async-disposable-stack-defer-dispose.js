@@ -1,8 +1,8 @@
-// |jit-test| skip-if: !getBuildConfiguration("explicit-resource-management")
+// |jit-test| skip-if: !getBuildConfiguration("explicit-resource-management"); --enable-explicit-resource-management
 
 load(libdir + "asserts.js");
 
-// |jit-test| skip-if: !getBuildConfiguration("explicit-resource-management")
+// |jit-test| skip-if: !getBuildConfiguration("explicit-resource-management"); --enable-explicit-resource-management
 
 load(libdir + "asserts.js");
 
