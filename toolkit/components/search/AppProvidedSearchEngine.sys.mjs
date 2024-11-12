@@ -438,7 +438,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
    * @param {object} options.configuration
    *   The search engine configuration for application provided engines.
    */
-  update({ configuration } = {}) {
+  update({ configuration }) {
     this._urls = [];
     this.#init(configuration);
     lazy.SearchUtils.notifyAction(this, lazy.SearchUtils.MODIFIED_TYPE.CHANGED);
@@ -553,7 +553,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
   /**
    * Initializes the engine.
    *
-   * @param {object} [engineConfig]
+   * @param {object} engineConfig
    *   The search engine configuration for application provided engines.
    */
   #init(engineConfig) {
