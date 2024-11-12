@@ -49,8 +49,7 @@
           "cpufreq",
           "bandwidth",
           "memory",
-          "tracing",
-          "sandbox"
+          "tracing"
         ]
       },
       {

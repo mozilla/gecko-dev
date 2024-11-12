@@ -10,9 +10,6 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-// Test verifies absence of data by relying on timeout
-requestLongerTimeout(2);
-
 async function addTab() {
   const tab = BrowserTestUtils.addTab(gBrowser, "https://example.com/browser", {
     forceNewProcess: true,
@@ -22,14 +19,7 @@ async function addTab() {
   return tab;
 }
 
-const sandboxSettingsEnabled = {
-  entries: 8 * 1024 * 1024, // 8M entries = 64MB
-  interval: 1, // ms
-  features: ["stackwalk", "sandbox"],
-  threads: ["SandboxProfilerEmitter"],
-};
-
-const sandboxSettingsDisabled = {
+const sandboxSettings = {
   entries: 8 * 1024 * 1024, // 8M entries = 64MB
   interval: 1, // ms
   features: ["stackwalk"],
@@ -38,12 +28,7 @@ const sandboxSettingsDisabled = {
 
 const kNewProcesses = 2;
 
-async function waitForMaybeSandboxProfilerData(
-  threadName,
-  name1,
-  withStacks,
-  enabled
-) {
+async function waitForSandboxProfilerData(threadName, name1, withStacks) {
   let tabs = [];
   for (let i = 0; i < kNewProcesses; ++i) {
     tabs.push(await addTab());
@@ -51,46 +36,32 @@ async function waitForMaybeSandboxProfilerData(
 
   let profile;
   let intercepted = undefined;
-  try {
-    await TestUtils.waitForCondition(
-      async () => {
-        profile = await Services.profiler.getProfileDataAsync();
-        intercepted = profile.processes
-          .flatMap(ps => {
-            let sandboxThreads = ps.threads.filter(
-              th => th.name === threadName
-            );
-            return sandboxThreads.flatMap(th => {
-              let markersData = th.markers.data;
-              return markersData.flatMap(d => {
-                let [, , , , , o] = d;
-                return o;
-              });
+  await TestUtils.waitForCondition(
+    async () => {
+      profile = await Services.profiler.getProfileDataAsync();
+      intercepted = profile.processes
+        .flatMap(ps => {
+          let sandboxThreads = ps.threads.filter(th => th.name === threadName);
+          return sandboxThreads.flatMap(th => {
+            let markersData = th.markers.data;
+            return markersData.flatMap(d => {
+              let [, , , , , o] = d;
+              return o;
             });
-          })
-          .filter(x => "name1" in x && name1.includes(x.name1) >= 0);
-        return !!intercepted.length;
-      },
-      `Wait for some samples from ${threadName}`,
-      /* interval*/ 250,
-      /* maxTries */ 75
-    );
-    Assert.greater(
-      intercepted.length,
-      0,
-      `Should have collected some data from ${threadName}`
-    );
-  } catch (ex) {
-    if (!enabled && ex.includes(`Wait for some samples from ${threadName}`)) {
-      Assert.equal(
-        intercepted.length,
-        0,
-        `Should have NOT collected data from ${threadName}`
-      );
-    } else {
-      throw ex;
-    }
-  }
+          });
+        })
+        .filter(x => "name1" in x && name1.includes(x.name1) >= 0);
+      return !!intercepted.length;
+    },
+    `Wait for some samples from ${threadName}`,
+    /* interval*/ 250,
+    /* maxTries */ 75
+  );
+  Assert.greater(
+    intercepted.length,
+    0,
+    `Should have collected some data from ${threadName}`
+  );
 
   if (withStacks) {
     let stacks = profile.processes.flatMap(ps => {
@@ -102,11 +73,7 @@ async function waitForMaybeSandboxProfilerData(
         });
       });
     });
-    if (enabled) {
-      Assert.greater(stacks.length, 0, "Should have some stack as well");
-    } else {
-      Assert.equal(stacks.length, 0, "Should have NO stack as well");
-    }
+    Assert.greater(stacks.length, 0, "Should have some stack as well");
   }
 
   for (let tab of tabs) {
@@ -115,41 +82,21 @@ async function waitForMaybeSandboxProfilerData(
 }
 
 add_task(async () => {
-  await startProfiler(sandboxSettingsEnabled);
+  await startProfiler(sandboxSettings);
 
-  await waitForMaybeSandboxProfilerData(
+  await waitForSandboxProfilerData(
     "SandboxProfilerEmitterSyscalls",
     ["id", "init"],
-    /* withStacks */ true,
-    /* enabled */ true
+    true
   );
 
-  await waitForMaybeSandboxProfilerData(
+  await waitForSandboxProfilerData(
     "SandboxProfilerEmitterLogs",
     ["log"],
-    /* withStacks */ false,
-    /* enabled */ true
+    false
   );
 
   await Services.profiler.StopProfiler();
 });
 
-add_task(async () => {
-  await startProfiler(sandboxSettingsDisabled);
-
-  await waitForMaybeSandboxProfilerData(
-    "SandboxProfilerEmitterSyscalls",
-    ["id", "init"],
-    /* withStacks */ true,
-    /* enabled */ false
-  );
-
-  await waitForMaybeSandboxProfilerData(
-    "SandboxProfilerEmitterLogs",
-    ["log"],
-    /* withStacks */ false,
-    /* enabled */ false
-  );
-
-  await Services.profiler.StopProfiler();
-});
+add_task(async () => {});
