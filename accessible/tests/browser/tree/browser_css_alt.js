@@ -29,6 +29,7 @@ addAccessibleTask(
 <h1 id="attr" style='content: ${IMAGE} / attr(data-alt)' data-alt="replaced">attr</h1>
 <h1 id="attrFallback" style='content: ${IMAGE} / attr(data-alt, "fallback")'>attrFallback</h1>
 <h1 id="mixed" style='content: ${IMAGE} / "re" attr(data-alt, "fallback") attr(missing, "ed")' data-alt="plac">mixed</h1>
+<h1 id="noInitialContent">noInitialContent</h1>
   `,
   async function testReplacing(browser, docAcc) {
     testAccessibleTree(findAccessibleChildByID(docAcc, "noAlt"), {
@@ -105,6 +106,30 @@ addAccessibleTask(
     await invokeSetAttribute(browser, "attrFallback", "data-alt", "replaced");
     await changed;
     testAccessibleTree(attrFallback, {
+      role: ROLE_HEADING,
+      name: "replaced",
+      children: [],
+    });
+
+    const noInitialContent = findAccessibleChildByID(
+      docAcc,
+      "noInitialContent"
+    );
+    testAccessibleTree(noInitialContent, {
+      role: ROLE_HEADING,
+      name: "noInitialContent",
+      children: [{ role: ROLE_TEXT_LEAF, name: "noInitialContent" }],
+    });
+    info("Add content prop to noInitialContent");
+    changed = waitForEvent(EVENT_NAME_CHANGE, noInitialContent);
+    await invokeSetStyle(
+      browser,
+      "noInitialContent",
+      "content",
+      `${IMAGE} / "replaced"`
+    );
+    await changed;
+    testAccessibleTree(noInitialContent, {
       role: ROLE_HEADING,
       name: "replaced",
       children: [],
