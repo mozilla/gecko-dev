@@ -35,8 +35,16 @@ const Template = ({ label, description, l10nId }) => html`
       label="First setting"
       description="These could have descriptions too."
     ></moz-toggle>
-    <label><input type="checkbox" /> Second setting</label>
-    <label><input type="checkbox" /> Third setting</label>
+    <moz-checkbox label="Second setting"></moz-checkbox>
+    <moz-checkbox
+      label="Third setting"
+      description="Checkbox with a description."
+      support-page="foo"
+    ></moz-checkbox>
+    <moz-select label="Make a choice">
+      <moz-option label="Option One" value="1"></moz-option>
+      <moz-option label="Option A" value="a"></moz-option>
+    </moz-select>
   </moz-fieldset>
 `;
 
