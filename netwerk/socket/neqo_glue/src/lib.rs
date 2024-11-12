@@ -352,6 +352,37 @@ impl NeqoHttp3Conn {
             return;
         }
 
+        for (s, postfix) in [(stats.frame_tx, "_tx"), (stats.frame_rx, "_rx")] {
+            let add = |label: &str, value: usize| {
+                glean::http_3_quic_frame_count
+                    .get(&(label.to_string() + postfix))
+                    .add(value.try_into().unwrap_or(i32::MAX));
+            };
+
+            add("ack", s.ack);
+            add("crypto", s.crypto);
+            add("stream", s.stream);
+            add("reset_stream", s.reset_stream);
+            add("stop_sending", s.stop_sending);
+            add("ping", s.ping);
+            add("padding", s.padding);
+            add("max_streams", s.max_streams);
+            add("streams_blocked", s.streams_blocked);
+            add("max_data", s.max_data);
+            add("data_blocked", s.data_blocked);
+            add("max_stream_data", s.max_stream_data);
+            add("stream_data_blocked", s.stream_data_blocked);
+            add("new_connection_id", s.new_connection_id);
+            add("retire_connection_id", s.retire_connection_id);
+            add("path_challenge", s.path_challenge);
+            add("path_response", s.path_response);
+            add("connection_close", s.connection_close);
+            add("handshake_done", s.handshake_done);
+            add("new_token", s.new_token);
+            add("ack_frequency", s.ack_frequency);
+            add("datagram", s.datagram);
+        }
+
         if static_prefs::pref!("network.http.http3.ecn") {
             if stats.ecn_tx[IpTosEcn::Ect0] > 0 {
                 let ratio =

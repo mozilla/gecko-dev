@@ -1193,6 +1193,67 @@ networking:
       - VersionNegotiation
       - WrongRole
 
+  http_3_quic_frame_count:
+    type: labeled_counter
+    description: >
+      Number of QUIC frames send and received by type.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929818
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929818
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+    labels:
+      - ack_tx
+      - ack_rx
+      - crypto_tx
+      - crypto_rx
+      - stream_tx
+      - stream_rx
+      - reset_stream_tx
+      - reset_stream_rx
+      - stop_sending_tx
+      - stop_sending_rx
+      - ping_tx
+      - ping_rx
+      - padding_tx
+      - padding_rx
+      - max_streams_tx
+      - max_streams_rx
+      - streams_blocked_tx
+      - streams_blocked_rx
+      - max_data_tx
+      - max_data_rx
+      - data_blocked_tx
+      - data_blocked_rx
+      - max_stream_data_tx
+      - max_stream_data_rx
+      - stream_data_blocked_tx
+      - stream_data_blocked_rx
+      - new_connection_id_tx
+      - new_connection_id_rx
+      - retire_connection_id_tx
+      - retire_connection_id_rx
+      - path_challenge_tx
+      - path_challenge_rx
+      - path_response_tx
+      - path_response_rx
+      - connection_close_tx
+      - connection_close_rx
+      - handshake_done_tx
+      - handshake_done_rx
+      - new_token_tx
+      - new_token_rx
+      - ack_frequency_tx
+      - ack_frequency_rx
+      - datagram_tx
+      - datagram_rx
+
+
   cache_metadata_first_read_time: &cache_metadata_first_read_time
     type: timing_distribution
     time_unit: millisecond
