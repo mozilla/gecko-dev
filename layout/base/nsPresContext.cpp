@@ -3204,7 +3204,8 @@ nscoord nsPresContext::GetBimodalDynamicToolbarHeightInAppUnits() const {
              : 0;
 }
 
-void nsPresContext::SetSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets) {
+void nsPresContext::SetSafeAreaInsets(
+    const LayoutDeviceIntMargin& aSafeAreaInsets) {
   if (mSafeAreaInsets == aSafeAreaInsets) {
     return;
   }

@@ -408,37 +408,33 @@ class nsView final : public nsIWidgetListener {
   }
 
   // nsIWidgetListener
-  virtual mozilla::PresShell* GetPresShell() override;
-  virtual nsView* GetView() override { return this; }
-  virtual bool WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y,
-                           ByMoveToRect) override;
-  virtual bool WindowResized(nsIWidget* aWidget, int32_t aWidth,
-                             int32_t aHeight) override;
+  mozilla::PresShell* GetPresShell() override;
+  nsView* GetView() override { return this; }
+  bool WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y,
+                   ByMoveToRect) override;
+  bool WindowResized(nsIWidget* aWidget, int32_t aWidth,
+                     int32_t aHeight) override;
 #if defined(MOZ_WIDGET_ANDROID)
-  virtual void DynamicToolbarMaxHeightChanged(
-      mozilla::ScreenIntCoord aHeight) override;
-  virtual void DynamicToolbarOffsetChanged(
-      mozilla::ScreenIntCoord aOffset) override;
-  virtual void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight) override;
+  void DynamicToolbarMaxHeightChanged(mozilla::ScreenIntCoord aHeight) override;
+  void DynamicToolbarOffsetChanged(mozilla::ScreenIntCoord aOffset) override;
+  void KeyboardHeightChanged(mozilla::ScreenIntCoord aHeight) override;
 #endif
-  virtual bool RequestWindowClose(nsIWidget* aWidget) override;
+  bool RequestWindowClose(nsIWidget* aWidget) override;
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  virtual void WillPaintWindow(nsIWidget* aWidget) override;
+  void WillPaintWindow(nsIWidget* aWidget) override;
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  virtual bool PaintWindow(nsIWidget* aWidget,
-                           LayoutDeviceIntRegion aRegion) override;
+  bool PaintWindow(nsIWidget* aWidget, LayoutDeviceIntRegion aRegion) override;
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  virtual void DidPaintWindow() override;
-  virtual void DidCompositeWindow(
-      mozilla::layers::TransactionId aTransactionId,
-      const mozilla::TimeStamp& aCompositeStart,
-      const mozilla::TimeStamp& aCompositeEnd) override;
-  virtual void RequestRepaint() override;
-  virtual bool ShouldNotBeVisible() override;
+  void DidPaintWindow() override;
+  void DidCompositeWindow(mozilla::layers::TransactionId aTransactionId,
+                          const mozilla::TimeStamp& aCompositeStart,
+                          const mozilla::TimeStamp& aCompositeEnd) override;
+  void RequestRepaint() override;
+  bool ShouldNotBeVisible() override;
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  virtual nsEventStatus HandleEvent(mozilla::WidgetGUIEvent* aEvent,
-                                    bool aUseAttachedEvents) override;
-  virtual void SafeAreaInsetsChanged(const mozilla::ScreenIntMargin&) override;
+  nsEventStatus HandleEvent(mozilla::WidgetGUIEvent* aEvent,
+                            bool aUseAttachedEvents) override;
+  void SafeAreaInsetsChanged(const mozilla::LayoutDeviceIntMargin&) override;
 
   virtual ~nsView();
 

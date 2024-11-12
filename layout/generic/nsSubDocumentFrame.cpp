@@ -283,26 +283,27 @@ nsRect nsSubDocumentFrame::GetDestRect(const nsRect& aConstraintRect) {
       GetIntrinsicRatio(), StylePosition());
 }
 
-ScreenIntSize nsSubDocumentFrame::GetSubdocumentSize() {
+LayoutDeviceIntSize nsSubDocumentFrame::GetSubdocumentSize() {
   if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
     if (RefPtr<nsFrameLoader> frameloader = FrameLoader()) {
       nsIFrame* detachedFrame = frameloader->GetDetachedSubdocFrame();
       if (nsView* view = detachedFrame ? detachedFrame->GetView() : nullptr) {
         nsSize size = view->GetBounds().Size();
         nsPresContext* presContext = detachedFrame->PresContext();
-        return ScreenIntSize(presContext->AppUnitsToDevPixels(size.width),
-                             presContext->AppUnitsToDevPixels(size.height));
+        return LayoutDeviceIntSize(
+            presContext->AppUnitsToDevPixels(size.width),
+            presContext->AppUnitsToDevPixels(size.height));
       }
     }
     // Pick some default size for now.  Using 10x10 because that's what the
     // code used to do.
-    return ScreenIntSize(10, 10);
+    return LayoutDeviceIntSize(10, 10);
   }
 
   nsSize docSizeAppUnits = GetDestRect().Size();
   nsPresContext* pc = PresContext();
-  return ScreenIntSize(pc->AppUnitsToDevPixels(docSizeAppUnits.width),
-                       pc->AppUnitsToDevPixels(docSizeAppUnits.height));
+  return LayoutDeviceIntSize(pc->AppUnitsToDevPixels(docSizeAppUnits.width),
+                             pc->AppUnitsToDevPixels(docSizeAppUnits.height));
 }
 
 static void WrapBackgroundColorInOwnLayer(nsDisplayListBuilder* aBuilder,

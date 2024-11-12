@@ -90,8 +90,8 @@ bool BrowserHost::Show(const OwnerShowInfo& aShowInfo) {
   return mRoot->Show(aShowInfo);
 }
 
-void BrowserHost::UpdateDimensions(const nsIntRect& aRect,
-                                   const ScreenIntSize& aSize) {
+void BrowserHost::UpdateDimensions(const LayoutDeviceIntRect& aRect,
+                                   const LayoutDeviceIntSize& aSize) {
   mRoot->UpdateDimensions(aRect, aSize);
 }
 

@@ -103,7 +103,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
   mozilla::PresShell* GetSubdocumentPresShellForPainting(uint32_t aFlags);
   nsRect GetDestRect();
   nsRect GetDestRect(const nsRect& aConstraintRect);
-  mozilla::ScreenIntSize GetSubdocumentSize();
+  mozilla::LayoutDeviceIntSize GetSubdocumentSize();
 
   bool ContentReactsToPointerEvents() const;
 

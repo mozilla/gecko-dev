@@ -28,6 +28,7 @@
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/widget/ScreenManager.h"
 #include "mozilla/NativeKeyBindingsType.h"
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/PointerLockManager.h"
@@ -604,7 +605,7 @@ BrowserChild::SetDimensions(DimensionRequest&& aRequest) {
 NS_IMETHODIMP
 BrowserChild::GetDimensions(DimensionKind aDimensionKind, int32_t* aX,
                             int32_t* aY, int32_t* aCx, int32_t* aCy) {
-  ScreenIntRect rect = GetOuterRect();
+  LayoutDeviceIntRect rect = GetOuterRect();
   if (aDimensionKind == DimensionKind::Inner) {
     if (aX || aY) {
       return NS_ERROR_NOT_IMPLEMENTED;
@@ -1007,7 +1008,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateRemotePrintSettings(
 }
 
 void BrowserChild::DoFakeShow(const ParentShowInfo& aParentShowInfo) {
-  OwnerShowInfo ownerInfo{ScreenIntSize(), ScrollbarPreference::Auto,
+  OwnerShowInfo ownerInfo{LayoutDeviceIntSize(), ScrollbarPreference::Auto,
                           nsSizeMode_Normal};
   RecvShow(aParentShowInfo, ownerInfo);
   mDidFakeShow = true;
@@ -1125,20 +1126,20 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateDimensions(
     mHasValidInnerSize = true;
   }
 
-  ScreenIntSize screenSize = GetInnerSize();
-  ScreenIntRect screenRect = GetOuterRect();
-
+  const LayoutDeviceIntSize innerSize = GetInnerSize();
   // Make sure to set the size on the document viewer first.  The
   // MobileViewportManager needs the content viewer size to be updated before
   // the reflow, otherwise it gets a stale size when it computes a new CSS
   // viewport.
   nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(WebNavigation());
-  baseWin->SetPositionAndSize(0, 0, screenSize.width, screenSize.height,
+  baseWin->SetPositionAndSize(0, 0, innerSize.width, innerSize.height,
                               nsIBaseWindow::eRepaint);
 
-  mPuppetWidget->Resize(screenRect.x + mClientOffset.x + mChromeOffset.x,
-                        screenRect.y + mClientOffset.y + mChromeOffset.y,
-                        screenSize.width, screenSize.height, true);
+  const LayoutDeviceIntRect outerRect =
+      GetOuterRect() + mClientOffset + mChromeOffset;
+
+  mPuppetWidget->Resize(outerRect.x, outerRect.y, innerSize.width,
+                        innerSize.height, true);
 
   RecvSafeAreaInsetsChanged(mPuppetWidget->GetSafeAreaInsets());
 
@@ -3345,23 +3346,22 @@ void BrowserChild::NotifyJankedAnimations(
 
 mozilla::ipc::IPCResult BrowserChild::RecvUIResolutionChanged(
     const float& aDpi, const int32_t& aRounding, const double& aScale) {
-  ScreenIntSize oldScreenSize = GetInnerSize();
+  const LayoutDeviceIntSize oldInnerSize = GetInnerSize();
   if (aDpi > 0) {
     mPuppetWidget->UpdateBackingScaleCache(aDpi, aRounding, aScale);
   }
 
-  ScreenIntSize screenSize = GetInnerSize();
-  if (mHasValidInnerSize && oldScreenSize != screenSize) {
-    ScreenIntRect screenRect = GetOuterRect();
-
+  const LayoutDeviceIntSize innerSize = GetInnerSize();
+  if (mHasValidInnerSize && oldInnerSize != innerSize) {
     // See RecvUpdateDimensions for the order of these operations.
     nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(WebNavigation());
-    baseWin->SetPositionAndSize(0, 0, screenSize.width, screenSize.height,
+    baseWin->SetPositionAndSize(0, 0, innerSize.width, innerSize.height,
                                 nsIBaseWindow::eRepaint);
 
-    mPuppetWidget->Resize(screenRect.x + mClientOffset.x + mChromeOffset.x,
-                          screenRect.y + mClientOffset.y + mChromeOffset.y,
-                          screenSize.width, screenSize.height, true);
+    const LayoutDeviceIntRect outerRect =
+        GetOuterRect() + mClientOffset + mChromeOffset;
+    mPuppetWidget->Resize(outerRect.x, outerRect.y, innerSize.width,
+                          innerSize.height, true);
   }
 
   nsCOMPtr<Document> document(GetTopLevelDocument());
@@ -3375,32 +3375,23 @@ mozilla::ipc::IPCResult BrowserChild::RecvUIResolutionChanged(
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvSafeAreaInsetsChanged(
-    const mozilla::ScreenIntMargin& aSafeAreaInsets) {
+    const mozilla::LayoutDeviceIntMargin& aSafeAreaInsets) {
   mPuppetWidget->UpdateSafeAreaInsets(aSafeAreaInsets);
 
-  nsCOMPtr<nsIScreenManager> screenMgr =
-      do_GetService("@mozilla.org/gfx/screenmanager;1");
-  ScreenIntMargin currentSafeAreaInsets;
-  if (screenMgr) {
-    // aSafeAreaInsets is for current screen. But we have to calculate
-    // safe insets for content window.
-    int32_t x, y, cx, cy;
-    GetDimensions(DimensionKind::Outer, &x, &y, &cx, &cy);
-    nsCOMPtr<nsIScreen> screen;
-    screenMgr->ScreenForRect(x, y, cx, cy, getter_AddRefs(screen));
-
-    if (screen) {
-      LayoutDeviceIntRect windowRect(x + mClientOffset.x + mChromeOffset.x,
-                                     y + mClientOffset.y + mChromeOffset.y, cx,
-                                     cy);
-      currentSafeAreaInsets = nsContentUtils::GetWindowSafeAreaInsets(
-          screen, aSafeAreaInsets, windowRect);
-    }
+  LayoutDeviceIntMargin currentSafeAreaInsets;
+  // aSafeAreaInsets is for current screen. But we have to calculate safe insets
+  // for content window.
+  LayoutDeviceIntRect outerRect = GetOuterRect();
+  RefPtr<Screen> screen = widget::ScreenManager::GetSingleton().ScreenForRect(
+      RoundedToInt(outerRect / mPuppetWidget->GetDesktopToDeviceScale()));
+  if (screen) {
+    LayoutDeviceIntRect windowRect = outerRect + mClientOffset + mChromeOffset;
+    currentSafeAreaInsets = nsContentUtils::GetWindowSafeAreaInsets(
+        screen, aSafeAreaInsets, windowRect);
   }
 
   if (nsCOMPtr<Document> document = GetTopLevelDocument()) {
-    nsPresContext* presContext = document->GetPresContext();
-    if (presContext) {
+    if (nsPresContext* presContext = document->GetPresContext()) {
       presContext->SetSafeAreaInsets(currentSafeAreaInsets);
     }
   }
@@ -3441,11 +3432,8 @@ bool BrowserChild::DeallocPPaymentRequestChild(PPaymentRequestChild* actor) {
   return true;
 }
 
-ScreenIntSize BrowserChild::GetInnerSize() {
-  LayoutDeviceIntSize innerSize =
-      RoundedToInt(mUnscaledInnerSize * mPuppetWidget->GetDefaultScale());
-  return ViewAs<ScreenPixel>(
-      innerSize, PixelCastJustification::LayoutDeviceIsScreenForTabDims);
+LayoutDeviceIntSize BrowserChild::GetInnerSize() {
+  return RoundedToInt(mUnscaledInnerSize * mPuppetWidget->GetDefaultScale());
 };
 
 Maybe<nsRect> BrowserChild::GetVisibleRect() const {
@@ -3489,11 +3477,8 @@ BrowserChild::GetTopLevelViewportVisibleRectInSelfCoords() const {
   return rect;
 }
 
-ScreenIntRect BrowserChild::GetOuterRect() {
-  LayoutDeviceIntRect outerRect =
-      RoundedToInt(mUnscaledOuterRect * mPuppetWidget->GetDefaultScale());
-  return ViewAs<ScreenPixel>(
-      outerRect, PixelCastJustification::LayoutDeviceIsScreenForTabDims);
+LayoutDeviceIntRect BrowserChild::GetOuterRect() {
+  return RoundedToInt(mUnscaledOuterRect * mPuppetWidget->GetDefaultScale());
 }
 
 void BrowserChild::PaintWhileInterruptingJS() {

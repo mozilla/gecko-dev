@@ -890,8 +890,8 @@ template <class Src, class Dst>
 gfx::MarginTyped<Dst> operator/(const gfx::MarginTyped<Src>& aMargin,
                                 const gfx::ScaleFactor<Dst, Src>& aScale) {
   return gfx::MarginTyped<Dst>(
-      aMargin.top / aScale.scale, aMargin.right / aScale.scale,
-      aMargin.bottom / aScale.scale, aMargin.left / aScale.scale);
+      aMargin.top.value / aScale.scale, aMargin.right.value / aScale.scale,
+      aMargin.bottom.value / aScale.scale, aMargin.left.value / aScale.scale);
 }
 
 template <class Src, class Dst, class F>

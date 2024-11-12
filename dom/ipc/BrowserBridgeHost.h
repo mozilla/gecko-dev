@@ -21,7 +21,7 @@ namespace mozilla::dom {
  * See `dom/docs/Fission-IPC-Diagram.svg` for an overview of the DOM IPC
  * actors.
  */
-class BrowserBridgeHost : public RemoteBrowser {
+class BrowserBridgeHost final : public RemoteBrowser {
  public:
   typedef mozilla::layers::LayersId LayersId;
 
@@ -48,8 +48,8 @@ class BrowserBridgeHost : public RemoteBrowser {
   void DestroyComplete() override;
 
   bool Show(const OwnerShowInfo&) override;
-  void UpdateDimensions(const nsIntRect& aRect,
-                        const ScreenIntSize& aSize) override;
+  void UpdateDimensions(const LayoutDeviceIntRect& aRect,
+                        const LayoutDeviceIntSize& aSize) override;
 
   void UpdateEffects(EffectsInfo aInfo) override;
 

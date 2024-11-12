@@ -204,8 +204,8 @@ class PuppetWidget final : public nsBaseWidget,
   }
 
   // safe area insets support
-  ScreenIntMargin GetSafeAreaInsets() const override;
-  void UpdateSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets);
+  LayoutDeviceIntMargin GetSafeAreaInsets() const override;
+  void UpdateSafeAreaInsets(const LayoutDeviceIntMargin& aSafeAreaInsets);
 
   // Get the offset to the chrome of the window that this tab belongs to.
   //
@@ -363,8 +363,7 @@ class PuppetWidget final : public nsBaseWidget,
   int32_t mRounding = 1;
   double mDefaultScale = GetFallbackDefaultScale().scale;
 
-  ScreenIntMargin mSafeAreaInsets;
-
+  LayoutDeviceIntMargin mSafeAreaInsets;
   RefPtr<TextEventDispatcherListener> mNativeTextEventDispatcherListener;
 
  protected:

@@ -740,14 +740,12 @@ nsresult nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow) {
 
   if (mWindow && mDocument->IsTopLevelContentDocument()) {
     // Set initial safe area insets
-    ScreenIntMargin windowSafeAreaInsets;
+    LayoutDeviceIntMargin windowSafeAreaInsets;
     LayoutDeviceIntRect windowRect = mWindow->GetScreenBounds();
-    nsCOMPtr<nsIScreen> screen = mWindow->GetWidgetScreen();
-    if (screen) {
+    if (nsCOMPtr<nsIScreen> screen = mWindow->GetWidgetScreen()) {
       windowSafeAreaInsets = nsContentUtils::GetWindowSafeAreaInsets(
           screen, mWindow->GetSafeAreaInsets(), windowRect);
     }
-
     mPresContext->SetSafeAreaInsets(windowSafeAreaInsets);
   }
 

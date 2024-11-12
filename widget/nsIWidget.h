@@ -1667,8 +1667,8 @@ class nsIWidget : public nsISupports {
    * Get safe area insets except to cutout.
    * See https://drafts.csswg.org/css-env-1/#safe-area-insets.
    */
-  virtual mozilla::ScreenIntMargin GetSafeAreaInsets() const {
-    return mozilla::ScreenIntMargin();
+  virtual mozilla::LayoutDeviceIntMargin GetSafeAreaInsets() const {
+    return mozilla::LayoutDeviceIntMargin();
   }
 
  private:

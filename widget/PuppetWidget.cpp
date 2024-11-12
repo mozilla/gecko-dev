@@ -988,12 +988,12 @@ void PuppetWidget::StartAsyncScrollbarDrag(
   mBrowserChild->StartScrollbarDrag(aDragMetrics);
 }
 
-ScreenIntMargin PuppetWidget::GetSafeAreaInsets() const {
+LayoutDeviceIntMargin PuppetWidget::GetSafeAreaInsets() const {
   return mSafeAreaInsets;
 }
 
 void PuppetWidget::UpdateSafeAreaInsets(
-    const ScreenIntMargin& aSafeAreaInsets) {
+    const LayoutDeviceIntMargin& aSafeAreaInsets) {
   mSafeAreaInsets = aSafeAreaInsets;
 }
 

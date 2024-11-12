@@ -1013,7 +1013,8 @@ nsEventStatus nsView::HandleEvent(WidgetGUIEvent* aEvent,
   return result;
 }
 
-void nsView::SafeAreaInsetsChanged(const ScreenIntMargin& aSafeAreaInsets) {
+void nsView::SafeAreaInsetsChanged(
+    const LayoutDeviceIntMargin& aSafeAreaInsets) {
   if (!IsRoot()) {
     return;
   }
@@ -1023,10 +1024,9 @@ void nsView::SafeAreaInsetsChanged(const ScreenIntMargin& aSafeAreaInsets) {
     return;
   }
 
-  ScreenIntMargin windowSafeAreaInsets;
-  LayoutDeviceIntRect windowRect = mWindow->GetScreenBounds();
-  nsCOMPtr<nsIScreen> screen = mWindow->GetWidgetScreen();
-  if (screen) {
+  LayoutDeviceIntMargin windowSafeAreaInsets;
+  const LayoutDeviceIntRect windowRect = mWindow->GetScreenBounds();
+  if (nsCOMPtr<nsIScreen> screen = mWindow->GetWidgetScreen()) {
     windowSafeAreaInsets = nsContentUtils::GetWindowSafeAreaInsets(
         screen, aSafeAreaInsets, windowRect);
   }

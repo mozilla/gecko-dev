@@ -66,8 +66,8 @@ bool BrowserBridgeHost::Show(const OwnerShowInfo& aShowInfo) {
   return true;
 }
 
-void BrowserBridgeHost::UpdateDimensions(const nsIntRect& aRect,
-                                         const ScreenIntSize& aSize) {
+void BrowserBridgeHost::UpdateDimensions(const LayoutDeviceIntRect& aRect,
+                                         const LayoutDeviceIntSize& aSize) {
   Unused << mBridge->SendUpdateDimensions(aRect, aSize);
 }
 

@@ -39,7 +39,7 @@ using mozilla::DesktopToLayoutDeviceScale from "Units.h";
 using mozilla::CSSToLayoutDeviceScale from "Units.h";
 using mozilla::CSSRect from "Units.h";
 using mozilla::CSSSize from "Units.h";
-using mozilla::ScreenIntSize from "Units.h";
+using mozilla::LayoutDeviceIntSize from "Units.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::ImageIntSize from "Units.h";
 using nsSizeMode from "nsIWidgetListener.h";
@@ -315,7 +315,7 @@ struct ParentShowInfo
 struct OwnerShowInfo {
   // This can be an IntSize rather than a Rect because content processes always
   // render to a virtual <0, 0> top-left point.
-  ScreenIntSize size;
+  LayoutDeviceIntSize size;
 
   // TODO(emilio): Margin preferences go here.
   ScrollbarPreference scrollbarPreference;

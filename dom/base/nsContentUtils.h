@@ -3423,8 +3423,8 @@ class nsContentUtils {
    * Return safe area insets of window that defines as
    * https://drafts.csswg.org/css-env-1/#safe-area-insets.
    */
-  static mozilla::ScreenIntMargin GetWindowSafeAreaInsets(
-      nsIScreen* aScreen, const mozilla::ScreenIntMargin& aSafeareaInsets,
+  static mozilla::LayoutDeviceIntMargin GetWindowSafeAreaInsets(
+      nsIScreen* aScreen, const mozilla::LayoutDeviceIntMargin& aSafeareaInsets,
       const mozilla::LayoutDeviceIntRect& aWindowRect);
 
   struct SubresourceCacheValidationInfo {

@@ -1027,8 +1027,7 @@ void BrowserParent::InitRendering() {
 
   RefPtr<nsIWidget> widget = GetTopLevelWidget();
   if (widget) {
-    ScreenIntMargin safeAreaInsets = widget->GetSafeAreaInsets();
-    Unused << SendSafeAreaInsetsChanged(safeAreaInsets);
+    Unused << SendSafeAreaInsetsChanged(widget->GetSafeAreaInsets());
   }
 
 #if defined(MOZ_WIDGET_ANDROID)
@@ -1116,7 +1115,7 @@ nsresult BrowserParent::UpdatePosition() {
   if (!frameLoader) {
     return NS_OK;
   }
-  nsIntRect windowDims;
+  LayoutDeviceIntRect windowDims;
   NS_ENSURE_SUCCESS(frameLoader->GetWindowDimensions(windowDims),
                     NS_ERROR_FAILURE);
   // Avoid updating sizes here.
@@ -1139,8 +1138,8 @@ void BrowserParent::NotifyPositionUpdatedForContentsInPopup() {
   }
 }
 
-void BrowserParent::UpdateDimensions(const nsIntRect& rect,
-                                     const ScreenIntSize& size) {
+void BrowserParent::UpdateDimensions(const LayoutDeviceIntRect& rect,
+                                     const LayoutDeviceIntSize& size) {
   if (mIsDestroyed) {
     return;
   }
@@ -1169,26 +1168,18 @@ void BrowserParent::UpdateDimensions(const nsIntRect& rect,
 }
 
 DimensionInfo BrowserParent::GetDimensionInfo() {
-  LayoutDeviceIntRect devicePixelRect = ViewAs<LayoutDevicePixel>(
-      mRect, PixelCastJustification::LayoutDeviceIsScreenForTabDims);
-  LayoutDeviceIntSize devicePixelSize = ViewAs<LayoutDevicePixel>(
-      mDimensions, PixelCastJustification::LayoutDeviceIsScreenForTabDims);
-
-  CSSRect unscaledRect = devicePixelRect / mDefaultScale;
-  CSSSize unscaledSize = devicePixelSize / mDefaultScale;
-  DimensionInfo di(unscaledRect, unscaledSize, mClientOffset, mChromeOffset);
-  return di;
+  CSSRect unscaledRect = mRect / mDefaultScale;
+  CSSSize unscaledSize = mDimensions / mDefaultScale;
+  return DimensionInfo(unscaledRect, unscaledSize, mClientOffset,
+                       mChromeOffset);
 }
 
 void BrowserParent::UpdateNativePointerLockCenter(nsIWidget* aWidget) {
   if (!mLockedNativePointer) {
     return;
   }
-  LayoutDeviceIntRect dims(
-      {0, 0},
-      ViewAs<LayoutDevicePixel>(
-          mDimensions, PixelCastJustification::LayoutDeviceIsScreenForTabDims));
-  aWidget->SetNativePointerLockCenter((dims + mChromeOffset).Center());
+  aWidget->SetNativePointerLockCenter(
+      LayoutDeviceIntRect(mChromeOffset, mDimensions).Center());
 }
 
 void BrowserParent::SizeModeChanged(const nsSizeMode& aSizeMode) {

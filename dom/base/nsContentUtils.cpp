@@ -11295,8 +11295,8 @@ bool nsContentUtils::IsURIInList(nsIURI* aURI, const nsCString& aList) {
 }
 
 /* static */
-ScreenIntMargin nsContentUtils::GetWindowSafeAreaInsets(
-    nsIScreen* aScreen, const ScreenIntMargin& aSafeAreaInsets,
+LayoutDeviceIntMargin nsContentUtils::GetWindowSafeAreaInsets(
+    nsIScreen* aScreen, const LayoutDeviceIntMargin& aSafeAreaInsets,
     const LayoutDeviceIntRect& aWindowRect) {
   // This calculates safe area insets of window from screen rectangle, window
   // rectangle and safe area insets of screen.
@@ -11312,28 +11312,15 @@ ScreenIntMargin nsContentUtils::GetWindowSafeAreaInsets(
   // |  +-------------------------------+     |
   // +----------------------------------------+
   //
-  ScreenIntMargin windowSafeAreaInsets;
-
+  LayoutDeviceIntMargin windowSafeAreaInsets;
   if (windowSafeAreaInsets == aSafeAreaInsets) {
     // no safe area insets.
     return windowSafeAreaInsets;
   }
 
-  int32_t screenLeft, screenTop, screenWidth, screenHeight;
-  nsresult rv =
-      aScreen->GetRect(&screenLeft, &screenTop, &screenWidth, &screenHeight);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return windowSafeAreaInsets;
-  }
-
-  const ScreenIntRect screenRect(screenLeft, screenTop, screenWidth,
-                                 screenHeight);
-
-  ScreenIntRect safeAreaRect = screenRect;
+  const LayoutDeviceIntRect screenRect = aScreen->GetRect();
+  LayoutDeviceIntRect safeAreaRect = screenRect;
   safeAreaRect.Deflate(aSafeAreaInsets);
-
-  ScreenIntRect windowRect = ViewAs<ScreenPixel>(
-      aWindowRect, PixelCastJustification::LayoutDeviceIsScreenForTabDims);
 
   // FIXME(bug 1754323): This can trigger because the screen rect is not
   // orientation-aware.
@@ -11341,7 +11328,7 @@ ScreenIntMargin nsContentUtils::GetWindowSafeAreaInsets(
   //            "Screen doesn't contain window rect? Something seems off");
 
   // window's rect of safe area
-  safeAreaRect = safeAreaRect.Intersect(windowRect);
+  safeAreaRect = safeAreaRect.Intersect(aWindowRect);
 
   windowSafeAreaInsets.top = safeAreaRect.y - aWindowRect.y;
   windowSafeAreaInsets.left = safeAreaRect.x - aWindowRect.x;
@@ -11350,7 +11337,7 @@ ScreenIntMargin nsContentUtils::GetWindowSafeAreaInsets(
   windowSafeAreaInsets.bottom = aWindowRect.y + aWindowRect.height -
                                 (safeAreaRect.y + safeAreaRect.height);
 
-  windowSafeAreaInsets.EnsureAtLeast(ScreenIntMargin());
+  windowSafeAreaInsets.EnsureAtLeast(LayoutDeviceIntMargin());
   // This shouldn't be needed, but it wallpapers orientation issues, see bug
   // 1754323.
   windowSafeAreaInsets.EnsureAtMost(aSafeAreaInsets);

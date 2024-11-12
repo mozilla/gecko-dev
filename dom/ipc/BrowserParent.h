@@ -468,7 +468,8 @@ class BrowserParent final : public PBrowserParent,
 
   bool Show(const OwnerShowInfo&);
 
-  void UpdateDimensions(const nsIntRect& aRect, const ScreenIntSize& aSize);
+  void UpdateDimensions(const LayoutDeviceIntRect& aRect,
+                        const LayoutDeviceIntSize& aSize);
 
   DimensionInfo GetDimensionInfo();
 
@@ -922,8 +923,8 @@ class BrowserParent final : public PBrowserParent,
   };
   nsTArray<SentKeyEventData> mWaitingReplyKeyboardEvents;
 
-  nsIntRect mRect;
-  ScreenIntSize mDimensions;
+  LayoutDeviceIntRect mRect;
+  LayoutDeviceIntSize mDimensions;
   float mDPI;
   int32_t mRounding;
   CSSToLayoutDeviceScale mDefaultScale;

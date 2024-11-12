@@ -390,7 +390,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
               nsIContentSecurityPolicy** aCsp);
 
   // Properly retrieves documentSize of any subdocument type.
-  nsresult GetWindowDimensions(nsIntRect& aRect);
+  nsresult GetWindowDimensions(mozilla::LayoutDeviceIntRect& aRect);
 
   virtual mozilla::dom::ProcessMessageManager* GetProcessMessageManager()
       const override;
@@ -523,7 +523,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
   RefPtr<nsDocShell> mDocShell;
 
   // Holds the last known size of the frame.
-  mozilla::ScreenIntSize mLazySize;
+  mozilla::LayoutDeviceIntSize mLazySize;
 
   // Actor for collecting session store data from content children. This will be
   // cleared and set to null eagerly when taking down the frameloader to break

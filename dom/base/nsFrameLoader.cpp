@@ -956,7 +956,7 @@ bool nsFrameLoader::Show(nsSubDocumentFrame* aFrame) {
   if (IsRemoteFrame()) {
     return ShowRemoteFrame(aFrame);
   }
-  const ScreenIntSize size = aFrame->GetSubdocumentSize();
+  const LayoutDeviceIntSize size = aFrame->GetSubdocumentSize();
   nsresult rv = MaybeCreateDocShell();
   if (NS_FAILED(rv)) {
     return false;
@@ -1123,7 +1123,8 @@ bool nsFrameLoader::ShowRemoteFrame(nsSubDocumentFrame* aFrame) {
     baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
     nsSizeMode sizeMode =
         mainWidget ? mainWidget->SizeMode() : nsSizeMode_Normal;
-    const auto size = hasSize ? aFrame->GetSubdocumentSize() : ScreenIntSize();
+    const auto size =
+        hasSize ? aFrame->GetSubdocumentSize() : LayoutDeviceIntSize();
     OwnerShowInfo info(size, GetScrollbarPreference(mOwnerContent), sizeMode);
     if (!mRemoteBrowser->Show(info)) {
       return false;
@@ -2364,7 +2365,7 @@ nsresult nsFrameLoader::CheckForRecursiveLoad(nsIURI* aURI) {
   return NS_OK;
 }
 
-nsresult nsFrameLoader::GetWindowDimensions(nsIntRect& aRect) {
+nsresult nsFrameLoader::GetWindowDimensions(LayoutDeviceIntRect& aRect) {
   if (!mOwnerContent) {
     return NS_ERROR_FAILURE;
   }
@@ -2394,8 +2395,8 @@ nsresult nsFrameLoader::GetWindowDimensions(nsIntRect& aRect) {
   }
 
   nsCOMPtr<nsIBaseWindow> treeOwnerAsWin(do_GetInterface(parentOwner));
-  treeOwnerAsWin->GetPosition(&aRect.x, &aRect.y);
-  treeOwnerAsWin->GetSize(&aRect.width, &aRect.height);
+  aRect.MoveTo(treeOwnerAsWin->GetPosition());
+  aRect.SizeTo(treeOwnerAsWin->GetSize());
   return NS_OK;
 }
 
@@ -2410,8 +2411,8 @@ nsresult nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame* aFrame) {
       if (!mRemoteBrowserShown) {
         ShowRemoteFrame(aFrame);
       }
-      nsIntRect dimensions;
-      NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), NS_ERROR_FAILURE);
+      LayoutDeviceIntRect dimensions;
+      MOZ_TRY(GetWindowDimensions(dimensions));
       mRemoteBrowser->UpdateDimensions(dimensions, size);
       mRemoteBrowserSized = true;
     }

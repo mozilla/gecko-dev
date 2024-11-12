@@ -544,9 +544,11 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   /**
    * Notify the pres context that the safe area insets have changed.
    */
-  void SetSafeAreaInsets(const mozilla::ScreenIntMargin& aInsets);
+  void SetSafeAreaInsets(const mozilla::LayoutDeviceIntMargin& aInsets);
 
-  mozilla::ScreenIntMargin GetSafeAreaInsets() const { return mSafeAreaInsets; }
+  const mozilla::LayoutDeviceIntMargin& GetSafeAreaInsets() const {
+    return mSafeAreaInsets;
+  }
 
   void RegisterManagedPostRefreshObserver(mozilla::ManagedPostRefreshObserver*);
   void UnregisterManagedPostRefreshObserver(
@@ -1245,7 +1247,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   // The software keyboard height.
   mozilla::ScreenIntCoord mKeyboardHeight;
   // Safe area insets support
-  mozilla::ScreenIntMargin mSafeAreaInsets;
+  mozilla::LayoutDeviceIntMargin mSafeAreaInsets;
   nsSize mPageSize;
 
   // The computed page margins from the print settings.

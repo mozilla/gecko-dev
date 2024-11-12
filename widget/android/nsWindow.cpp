@@ -1747,7 +1747,7 @@ class LayerViewSupport final
       return;
     }
 
-    ScreenIntMargin safeAreaInsets(aTop, aRight, aBottom, aLeft);
+    LayoutDeviceIntMargin safeAreaInsets(aTop, aRight, aBottom, aLeft);
     gkWindow->UpdateSafeAreaInsets(safeAreaInsets);
   }
 };
@@ -3275,9 +3275,12 @@ void nsWindow::KeyboardHeightChanged(ScreenIntCoord aHeight) {
   }
 }
 
-ScreenIntMargin nsWindow::GetSafeAreaInsets() const { return mSafeAreaInsets; }
+LayoutDeviceIntMargin nsWindow::GetSafeAreaInsets() const {
+  return mSafeAreaInsets;
+}
 
-void nsWindow::UpdateSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets) {
+void nsWindow::UpdateSafeAreaInsets(
+    const LayoutDeviceIntMargin& aSafeAreaInsets) {
   mSafeAreaInsets = aSafeAreaInsets;
 
   if (mWidgetListener) {

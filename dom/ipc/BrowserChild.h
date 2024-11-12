@@ -436,7 +436,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
       const IPCTabContext& aContext);
 
   mozilla::ipc::IPCResult RecvSafeAreaInsetsChanged(
-      const mozilla::ScreenIntMargin& aSafeAreaInsets);
+      const mozilla::LayoutDeviceIntMargin& aSafeAreaInsets);
 
 #ifdef ACCESSIBILITY
   PDocAccessibleChild* AllocPDocAccessibleChild(
@@ -568,7 +568,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   const mozilla::layers::CompositorOptions& GetCompositorOptions() const;
   bool AsyncPanZoomEnabled() const;
 
-  ScreenIntSize GetInnerSize();
+  LayoutDeviceIntSize GetInnerSize();
   CSSSize GetUnscaledInnerSize() { return mUnscaledInnerSize; }
 
   Maybe<nsRect> GetVisibleRect() const;
@@ -758,7 +758,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   bool HasValidInnerSize();
 
-  ScreenIntRect GetOuterRect();
+  LayoutDeviceIntRect GetOuterRect();
 
   void SetUnscaledInnerSize(const CSSSize& aSize) {
     mUnscaledInnerSize = aSize;

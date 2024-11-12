@@ -61,8 +61,8 @@ class RemoteBrowser : public nsISupports {
   virtual void DestroyComplete() = 0;
 
   virtual bool Show(const OwnerShowInfo&) = 0;
-  virtual void UpdateDimensions(const nsIntRect& aRect,
-                                const ScreenIntSize& aSize) = 0;
+  virtual void UpdateDimensions(const LayoutDeviceIntRect& aRect,
+                                const LayoutDeviceIntSize& aSize) = 0;
 
   virtual void UpdateEffects(EffectsInfo aInfo) = 0;
 };

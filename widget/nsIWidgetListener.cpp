@@ -33,8 +33,8 @@ bool nsIWidgetListener::WindowResized(nsIWidget* aWidget, int32_t aWidth,
 
 void nsIWidgetListener::SizeModeChanged(nsSizeMode aSizeMode) {}
 
-void nsIWidgetListener::SafeAreaInsetsChanged(const mozilla::ScreenIntMargin&) {
-}
+void nsIWidgetListener::SafeAreaInsetsChanged(
+    const mozilla::LayoutDeviceIntMargin&) {}
 
 #if defined(MOZ_WIDGET_ANDROID)
 void nsIWidgetListener::DynamicToolbarMaxHeightChanged(ScreenIntCoord aHeight) {

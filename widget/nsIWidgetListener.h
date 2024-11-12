@@ -176,7 +176,7 @@ class nsIWidgetListener {
    * Called when safe area insets are changed.
    */
   virtual void SafeAreaInsetsChanged(
-      const mozilla::ScreenIntMargin& aSafeAreaInsets);
+      const mozilla::LayoutDeviceIntMargin& aSafeAreaInsets);
 };
 
 #endif
