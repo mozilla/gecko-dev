@@ -871,8 +871,9 @@ RefPtr<MediaDataEncoder::EncodePromise> AppleVTEncoder::ProcessDrain() {
   // with those frames.
   RefPtr<AppleVTEncoder> self = this;
   return InvokeAsync(mTaskQueue, __func__, [self]() {
-    LOGV("Resolve drain promise");
     EncodedData pendingFrames(std::move(self->mEncodedData));
+    LOGV("Resolve drain promise with %zu encoded outputs",
+         pendingFrames.Length());
     self->mEncodedData = EncodedData();
     return EncodePromise::CreateAndResolve(std::move(pendingFrames), __func__);
   });
