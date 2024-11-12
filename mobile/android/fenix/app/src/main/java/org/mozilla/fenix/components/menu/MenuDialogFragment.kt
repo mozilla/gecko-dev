@@ -466,12 +466,16 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         contentState = Route.SaveMenu
                                     },
                                     onExtensionsMenuClick = {
-                                        contentState = Route.ExtensionsMenu
-                                        Events.browserMenuAction.record(
-                                            Events.BrowserMenuActionExtra(
-                                                item = "extensions_submenu",
-                                            ),
-                                        )
+                                        if (args.accesspoint == MenuAccessPoint.Home) {
+                                            store.dispatch(MenuAction.Navigate.ManageExtensions)
+                                        } else {
+                                            contentState = Route.ExtensionsMenu
+                                            Events.browserMenuAction.record(
+                                                Events.BrowserMenuActionExtra(
+                                                    item = "extensions_submenu",
+                                                ),
+                                            )
+                                        }
                                     },
                                     onBookmarksMenuClick = {
                                         view?.slideDown {
