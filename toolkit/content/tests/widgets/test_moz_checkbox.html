@@ -9,16 +9,16 @@
   <script type="module" src="chrome://global/content/elements/moz-checkbox.mjs"></script>
   <script src="input-test-helpers.js"></script>
   <script class="testbody" type="application/javascript">
-    const { TestUtils } = ChromeUtils.importESModule(
-      "resource://testing-common/TestUtils.sys.mjs"
-    );
-
     let testHelpers = new InputTestHelpers();
-    let literal, html;
+    let html;
 
     add_setup(async function setup() {
-      ({ literal, html } = await testHelpers.setupLit());
-      await testHelpers.setupInputTests(literal`moz-checkbox`);
+      ({ html } = await testHelpers.setupLit());
+      await testHelpers.setupInputTests({
+        templateFn: (attrs, children) =>
+          html`<moz-checkbox ${attrs}>${children}</moz-checkbox>`,
+      });
+      testHelpers.checkable = true;
     });
 
     add_task(async function testMozCheckboxProperties() {

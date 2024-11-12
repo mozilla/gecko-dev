@@ -9,29 +9,29 @@
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <script src="input-test-helpers.js"></script>
   <script>
-    const { TestUtils } = ChromeUtils.importESModule(
-      "resource://testing-common/TestUtils.sys.mjs"
-    );
-
     let testHelpers = new InputTestHelpers();
-    let literal, html;
+    let html;
+    let defaultTemplate;
 
     add_setup(async function setup() {
-      ({ literal, html } = await testHelpers.setupLit());
-      let defaultTemplate = html`
-        <moz-radio-group name="test-name" label="Radio group label">
+      ({ html } = await testHelpers.setupLit());
+      let templateFn = attrs => html`
+        <moz-radio-group ${attrs}>
           <moz-radio checked value="first" label="First"></moz-radio>
           <moz-radio value="second" label="Second"></moz-radio>
           <moz-radio value="third" label="Third"></moz-radio>
         </moz-radio-group>
       `;
-      await testHelpers.setupInputTests(literal`moz-radio`, defaultTemplate);
+      defaultTemplate = templateFn(
+        testHelpers.spread({ label: "Radio group label", name: "test-name" })
+      );
+      await testHelpers.setupInputTests({ templateFn });
     });
 
     // Verify the radio group label.
     add_task(async function testRadioGroupLabel() {
       const TEST_LABEL = "Testing...";
-      let renderTarget = await testHelpers.renderInputElements();
+      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
 
       is(
@@ -53,7 +53,7 @@
       const FIRST_NAME = "test-name";
       const SECOND_NAME = "test-name-two";
 
-      let renderTarget = await testHelpers.renderInputElements();
+      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let radioButtons = renderTarget.querySelectorAll("moz-radio");
 
@@ -72,7 +72,7 @@
 
     // Verify effects and methods of changing radio button checked state.
     add_task(async function testChangeRadioButtonChecked() {
-      let renderTarget = await testHelpers.renderInputElements();
+      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let radioButtons = [...renderTarget.querySelectorAll("moz-radio")];
       let [firstButton, secondButton, thirdButton] = radioButtons;
@@ -124,7 +124,7 @@
     // Verify that changing the radio group's value updates the checked state of
     // its moz-radio children.
     add_task(async function testChangeRadioGroupValue() {
-      let renderTarget = await testHelpers.renderInputElements();
+      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let [firstButton, , thirdButton] = renderTarget.querySelectorAll("moz-radio");
 
@@ -160,7 +160,7 @@
         is(radioGroup.value, button.value, "Radio group value is updated.");
       }
 
-      let renderTarget = await testHelpers.renderInputElements();
+      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let [firstButton, secondButton, thirdButton] = renderTarget.querySelectorAll("moz-radio");
 
@@ -373,7 +373,7 @@
 
     // Verify expected events emitted in the correct order.
     add_task(async function testRadioEvents() {
-      let renderTarget = await testHelpers.renderInputElements();
+      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let radioButtons = renderTarget.querySelectorAll("moz-radio");
       let [firstButton, secondButton, thirdButton] = radioButtons;
@@ -449,7 +449,7 @@
     // Verify disabling the group disables all buttons in the group as well as
     // the ways it's possible to disable/enable individual buttons.
     add_task(async function testDisablingRadioElements() {
-      let renderTarget = await testHelpers.renderInputElements();
+      let renderTarget = await testHelpers.renderInputElements(defaultTemplate);
       let radioGroup = renderTarget.querySelector("moz-radio-group");
       let radioButtons = renderTarget.querySelectorAll("moz-radio");
       let [firstButton, ...otherButtons] = radioButtons;

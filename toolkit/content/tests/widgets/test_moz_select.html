@@ -2,18 +2,110 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title><!-- TODO: insert title here --></title>
+  <title>MozSelect Tests</title>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script src="input-test-helpers.js"></script>
   <script>
-    add_task(async function test_TODO() {
-      ok(true, "TODO: implement the test");
+    let testHelpers = new InputTestHelpers();
+
+    add_setup(async function setup() {
+      await testHelpers.setupLit();
+      let templateFn = (attrs, children) => testHelpers.html`
+        <moz-select ${attrs}>
+          <moz-option value="1" label="One"></moz-option>
+          <moz-option value="value" label="Initial"></moz-option>
+          <moz-option value="new value" label="Changed"></moz-option>
+          <moz-option value="4" label="Four"></moz-option>
+          ${children}
+        </moz-select>
+      `;
+      await testHelpers.setupInputTests({ templateFn });
+    });
+
+    add_task(async function testMozSelectProperties() {
+      await testHelpers.testCommonInputProperties("moz-select");
+    });
+
+    add_task(async function testMozSelectChange() {
+      let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
+      let target = await testHelpers.renderInputElements();
+      let select = target.querySelector("moz-select");
+      await select.updateComplete;
+      is(select.value, "1", "First option is selected");
+
+      select.addEventListener("change", trackEvent);
+      select.addEventListener("input", trackEvent);
+      select.addEventListener("click", trackEvent);
+
+      let changed = BrowserTestUtils.waitForEvent(select, "change");
+      let topWindow = window.docShell.chromeEventHandler.ownerGlobal;
+      let pickerOpened = BrowserTestUtils.waitForSelectPopupShown(topWindow);
+      select.focus();
+      synthesizeKey(" ");
+      await pickerOpened;
+      synthesizeKey("KEY_ArrowDown");
+      synthesizeKey("KEY_Enter");
+      let event = await changed;
+
+      is(select.value, "value", "Second option is selected");
+      is(event.target, select, "Change event is on moz-select");
+
+      verifyEvents([
+        { type: "input", localName: "moz-select", value: "value" },
+        { type: "change", localName: "moz-select", value: "value" },
+      ]);
+
+      changed = BrowserTestUtils.waitForEvent(select, "change");
+      pickerOpened = BrowserTestUtils.waitForSelectPopupShown(topWindow);
+      synthesizeMouseAtCenter(select, {});
+      let menupopup = await pickerOpened;
+      let thirdOption = menupopup.querySelectorAll("menuitem")[2];
+      synthesizeMouseAtCenter(thirdOption, {}, topWindow);
+      event = await changed;
+
+      is(select.value, "new value", "Second option is selected");
+      is(event.target, select, "Change event is on moz-select");
+
+      verifyEvents([
+        { type: "click", localName: "moz-select", value: "value" },
+        { type: "input", localName: "moz-select", value: "new value" },
+        { type: "change", localName: "moz-select", value: "new value" },
+        { type: "click", localName: "moz-select", value: "new value" },
+      ]);
+    });
+
+    add_task(async function testMozSelectModifyOptions() {
+      let target = await testHelpers.renderInputElements();
+      let select = target.querySelector("moz-select");
+      await select.updateComplete;
+
+      let options = select.inputEl.querySelectorAll("option");
+      let mozOptions = select.querySelectorAll("moz-option");
+
+      is(select.value, "1", "moz-select value correct");
+      is(options[0].textContent.trim(), "One", "First option text correct");
+      is(options[0].value, "1", "First option value correct");
+      is(options[1].textContent.trim(), "Initial", "Second option text correct");
+      is(options[1].value, "value", "Second option value correct");
+
+      mozOptions[0].label = "First";
+      mozOptions[0].value = "i";
+      mozOptions[1].label = "Second";
+      mozOptions[1].value = "ii";
+      await TestUtils.waitForTick();
+      await select.updateComplete;
+
+      is(select.value, "i", "moz-select value updated");
+      is(options[0].textContent.trim(), "First", "First option text updated");
+      is(options[0].value, "i", "First option value updated");
+      is(options[1].textContent.trim(), "Second", "Second option text updated");
+      is(options[1].value, "ii", "Second option value updated");
     });
   </script>
 </head>
 <body>
-<p id="display"></p>
-<div id="content" style="display: none"></div>
-<pre id="test"></pre>
 </body>
 </html>

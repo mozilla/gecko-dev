@@ -13,12 +13,13 @@
 
     add_setup(async function setup() {
       let { literal, html } = await testHelpers.setupLit();
-      let wrapperFn = template => html`
+      let templateFn = (attrs, children) => html`
         <moz-radio-group name="test-name" label="Radio group label">
-          ${template}
+          <moz-radio ${attrs}>${children}</moz-radio>
         </moz-radio-group>
       `;
-      await testHelpers.setupInputTests(literal`moz-radio`, null, wrapperFn);
+      await testHelpers.setupInputTests({ inputTag: literal`moz-radio`, templateFn });
+      testHelpers.checkable = true;
     });
 
     add_task(async function testMozRadioProperties() {
