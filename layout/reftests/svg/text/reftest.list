@@ -124,6 +124,7 @@ fuzzy(0-1,0-15) == textpath.svg textpath-ref.svg
 == textpath-after-anchor-end.svg textpath-after-anchor-end-ref.svg
 == textpath-reset-position.svg textpath-reset-position-ref.svg
 == textpath-inherit-position.svg textpath-inherit-position-ref.svg
+fails-if(useDrawSnapshot) == textpath-transform-zoom.html textpath-transform-zoom-ref.html # drawSnapshot doesn't deal with zoom properly.
 
 == textLength.svg textLength-ref.svg
 fuzzy(0-1,0-200) == textLength-2.svg textLength-2-ref.svg
