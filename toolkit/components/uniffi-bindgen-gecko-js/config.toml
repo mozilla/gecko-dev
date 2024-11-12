@@ -11,7 +11,9 @@
 
 
 [suggest.async_wrappers]
+# All functions/methods are wrapped to be async by default and must be `await`ed.
 enable = true
+# These are exceptions to the async wrapping.  These functions must not be `await`ed.
 main_thread = [
   "raw_suggestion_url_matches",
   "SuggestStore",
@@ -25,7 +27,9 @@ main_thread = [
 ]
 
 [relevancy.async_wrappers]
+# All functions/methods are wrapped to be async by default and must be `await`ed.
 enable = true
+# These are exceptions to the async wrapping.  These functions must not be `await`ed.
 main_thread = [
   "RelevancyStore",
   "RelevancyStore.close",
@@ -34,21 +38,19 @@ main_thread = [
 ]
 
 [remote_settings.async_wrappers]
+# All functions/methods are wrapped to be async by default and must be `await`ed.
 enable = true
+# These are exceptions to the async wrapping.  These functions must not be `await`ed.
 main_thread = [
   "RemoteSettings",
 ]
 
-[uniffi_fixture_callbacks.async_wrappers]
-enable = true
-main_thread = [
-  "log_even_numbers_main_thread",
-]
-
 [error_support.async_wrappers]
+# All functions/methods are wrapped to be async by default and must be `await`ed.
 enable = true
 
 [tabs.async_wrappers]
+# All functions/methods are wrapped to be async by default and must be `await`ed.
 enable = true
 
 [arithmetical.async_wrappers]
@@ -56,6 +58,12 @@ enable = true
 
 [uniffi_custom_types.async_wrappers]
 enable = true
+
+[uniffi_fixture_callbacks.async_wrappers]
+enable = true
+main_thread = [
+  "log_even_numbers_main_thread",
+]
 
 [uniffi_fixture_external_types.async_wrappers]
 enable = true

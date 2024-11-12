@@ -7,6 +7,20 @@ myst:
 
 The `relevancy` component tracks the user's interests locally, without sharing any data over the network. The component currently supports building an interest vector based on the URLs they visit.
 
+## Prerequisites
+
+That {doc}`viaduct` must be initialized during application startup.
+
+## Async
+
+The Relevancy API is synchronous, which means calling it directly will block the current
+thread.  To deal with this, all current consumers wrap the API in order to make it async.  For
+details on this wrapping, see the consumer code itself.
+
+On JS, this wrapping is handled automatically by UniFFI.  See
+https://searchfox.org/mozilla-central/source/toolkit/components/uniffi-bindgen-gecko-js/config.toml
+for details on which functions/methods are wrapped to be async.
+
 ## Setting up the store
 
 To use the `RelevancyStore` in either Kotlin or Swift, you need to import the relevant classes and data types from the `MozillaAppServices` library.
@@ -24,19 +38,13 @@ import MozillaAppServices
 
 let store = RelevancyStore(dbPath: "path/to/database")
 ```
-:::
 
+```js
+ChromeUtils.defineESModuleGetters(lazy, {
+  RelevancyStore: "resource://gre/modules/RustSuggest.sys.mjs",
+});
 
-
-To work with the RelevancyStore, you need to create an instance using a database path where the user’s interest data will be stored:
-
-:::{tab-set-code}
-```kotlin
-val store = RelevancyStore(dbPath)
-```
-
-```swift
-let store = RelevancyStore(dbPath: "path/to/database")
+const store = RelevancyStore.init(dbPath);
 ```
 :::
 
@@ -58,6 +66,11 @@ val interestVector = store.ingest(topUrlsByFrequency)
 ```swift
 let topUrlsByFrequency = ["https://example.com", "https://another-example.com"]
 let interestVector = store.ingest(topUrlsByFrequency)
+```
+
+```js
+const topUrlsByFrequency = ["https://example.com", "https://another-example.com"];
+const interestVector = await store.ingest(topUrlsByFrequency);
 ```
 :::
 

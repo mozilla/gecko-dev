@@ -7,14 +7,19 @@ myst:
 
 The API for the `SuggestStore` can be found in the [MozillaComponents Kotlin documentation](https://mozilla.github.io/application-services/kotlin/kotlin-components-docs/mozilla.appservices.suggest/-suggest-store/index.html).
 
-```{note}
-   Make sure you initialize {doc}`viaduct` for this component.
-```
+## Prerequisites
 
-```{warning}
-   The `SuggestStore` is synchronous, which means it needs to be wrapped in the asynchronous primitive of the target language you are using.
-```
+That {doc}`viaduct` must be initialized during application startup.
 
+## Async
+
+The Suggest API is synchronous, which means calling it directly will block the current
+thread.  To deal with this, all current consumers wrap the API in order to make it async.  For
+details on this wrapping, see the consumer code itself.
+
+On JS, this wrapping is handled automatically by UniFFI.  See
+https://searchfox.org/mozilla-central/source/toolkit/components/uniffi-bindgen-gecko-js/config.toml
+for details on which functions/methods are wrapped to be async.
 
 ## Setting up the store
 
@@ -35,6 +40,20 @@ import mozilla.appservices.suggest.SuggestionQuery
 ```swift
 import MozillaAppServices
 ```
+
+```js
+ChromeUtils.defineESModuleGetters(lazy, {
+  RemoteSettingsServer: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestApiException: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestIngestionConstraints: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestStore: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestStoreBuilder: "resource://gre/modules/RustSuggest.sys.mjs",
+  Suggestion: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestionProvider: "resource://gre/modules/RustSuggest.sys.mjs",
+  SuggestionQuery: "resource://gre/modules/RustSuggest.sys.mjs",
+});
+```
+
 :::
 
 Create a `SuggestStore` as a singleton. You do this via the `SuggestStoreBuilder`, which returns a `SuggestStore`. No I/O or network requests are performed during construction, which makes this safe to do at any point in the application startup:
@@ -56,6 +75,15 @@ let store: SuggestStore = {
     return storeBuilder.build()
 }
 ```
+
+
+```js
+const store: SuggestStore = SuggestStoreBuilder()
+    .dataPath(pathForSuggestDatabase)
+    .remoteSettingsServer(remoteSettingsServer)
+    .build();
+}
+
 :::
 
 * You need to set the `dataPath`, which is the path (the SQLite location) where you store your suggestions.
@@ -75,18 +103,26 @@ Ingest with `SuggestIngestionConstraints(emptyOnly=true)` shortly after each sta
 
 :::{tab-set-code}
 ```kotlin
-store.value.ingest(SuggestIngestionConstraints(
+store.ingest(SuggestIngestionConstraints(
     emptyOnly = true,
     providers = listOf(SuggestionProvider.AMP_MOBILE, SuggestionProvider.WIKIPEDIA, SuggestionProvider.WEATHER)
 ))
 ```
 
 ```swift
-store.value.ingest(SuggestIngestionConstraints(
+store.ingest(SuggestIngestionConstraints(
     emptyOnly: true,
     providers: [.AMP_MOBILE, .WIKIPEDIA, .WEATHER]
 ))
 ```
+
+```js
+store.ingest(SuggestIngestionConstraints(
+    emptyOnly: true,
+    providers: [SuggestionProvider.AMP_MOBILE, SuggestionProvider.WIKIPEDIA, SuggestionProvider.WEATHER]
+))
+```
+
 :::
 
 ### Periodically
@@ -95,11 +131,25 @@ Ingest with `SuggestIngestionConstraints(emptyOnly=false)` on a regular schedule
 
 :::{tab-set-code}
 ```kotlin
-store.value.ingest(SuggestIngestionConstraints(emptyOnly = false))
+store.ingest(SuggestIngestionConstraints(
+    emptyOnly = false,
+    providers = listOf(SuggestionProvider.AMP_MOBILE, SuggestionProvider.WIKIPEDIA, SuggestionProvider.WEATHER)
+))
 ```
 
 ```swift
-store.value.ingest(SuggestIngestionConstraints(emptyOnly: false))
+store.ingest(SuggestIngestionConstraints(
+    emptyOnly: false,
+    providers: [.AMP_MOBILE, .WIKIPEDIA, .WEATHER]
+))
+```
+
+
+```js
+store.ingest(SuggestIngestionConstraints(
+    emptyOnly: false,
+    providers: [SuggestionProvider.AMP_MOBILE, SuggestionProvider.WIKIPEDIA, SuggestionProvider.WEATHER]
+))
 ```
 :::
 
@@ -109,7 +159,7 @@ Call `SuggestStore::query` to fetch suggestions for the suggest bar. The `provid
 
 :::{tab-set-code}
 ```kotlin
-store.value.query(
+store.query(
     SuggestionQuery(
         keyword = text,
         providers = listOf(SuggestionProvider.AMP_MOBILE, SuggestionProvider.WIKIPEDIA, SuggestionProvider.WEATHER),
@@ -119,7 +169,7 @@ store.value.query(
 ```
 
 ```swift
-store.value.query(
+store.query(
     SuggestionQuery(
         keyword: text,
         providers: [.AMP_MOBILE, .WIKIPEDIA, .WEATHER],
@@ -127,32 +177,50 @@ store.value.query(
     )
 )
 ```
+
+```js
+store.query(
+    SuggestionQuery(
+        keyword = text,
+        providers = [SuggestionProvider.AMP_MOBILE, SuggestionProvider.WIKIPEDIA, SuggestionProvider.WEATHER],
+        limit = MAX_NUM_OF_FIREFOX_SUGGESTIONS,
+    ),
+)
+```
 :::
 
 ## Interrupt querying
 
-Call `SuggestStore::Interrupt` with `InterruptKind::Read` to interrupt any in-progress queries when the user cancels a query and before running the next query.
+Call `interrupt()` with `InterruptKind::Read` to interrupt any in-progress queries when the user cancels a query and before running the next query.
 
 :::{tab-set-code}
 ```kotlin
-store.value.interrupt()
+store.interrupt(InterruptKind.READ)
 ```
 
 ```swift
-store.value.interrupt()
+store.interrupt(kind: InterruptKind.READ)
+```
+
+```js
+store.interrupt(InterruptKind.READ)
 ```
 :::
 
 ## Shutdown the store
 
-On shutdown, call `SuggestStore::Interrupt` with `InterruptKind::ReadWrite` to interrupt any in-progress ingestion and queries.
+On shutdown, call `interrupt()` with `InterruptKind::ReadWrite` to interrupt any in-progress ingestion in addition to queries.
 
 :::{tab-set-code}
 ```kotlin
-store.value.interrupt()
+store.interrupt(InterruptKind.READ_WRITE)
 ```
 
 ```swift
-store.value.interrupt()
+store.interrupt(kind: InterruptKind.READ_WRITE)
+```
+
+```js
+store.interrupt(InterruptKind.READ_WRITE)
 ```
 :::

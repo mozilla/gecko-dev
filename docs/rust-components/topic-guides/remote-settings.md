@@ -7,13 +7,15 @@ myst:
 
 The API for the Remote Settings can be found in the Mozilla Rust components [Kotlin API Reference](https://mozilla.github.io/application-services/kotlin/kotlin-components-docs/mozilla.appservices.remotesettings/index.html) and [Swift API Reference](https://mozilla.github.io/application-services/swift/Classes/RemoteSettings.html).
 
-```{note}
-Make sure you initialize {doc}`viaduct` for this component.
-```
+## Prerequisites
 
-```{warning}
-The remote settings code is synchronous, which means it needs to be wrapped in the asynchronous primitive of the target language you are using.
-```
+That {doc}`viaduct` must be initialized during application startup.
+
+## Async
+
+The Remote Settings API is synchronous, which means calling it directly will block the current
+thread.  To deal with this, all current consumers wrap the API in order to make it async.  For
+details on this wrapping, see the consumer code itself.
 
 ## Importing items
 
