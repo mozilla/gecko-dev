@@ -15,6 +15,7 @@
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/ServiceWorkerOpArgs.h"
 #include "mozilla/dom/ServiceWorkerOpPromise.h"
+#include "mozilla/dom/SharedWorkerOpArgs.h"
 
 namespace mozilla::dom {
 

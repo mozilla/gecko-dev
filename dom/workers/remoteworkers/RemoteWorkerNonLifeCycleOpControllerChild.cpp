@@ -8,6 +8,10 @@
 
 namespace mozilla::dom {
 
+using remoteworker::Canceled;
+using remoteworker::Killed;
+using remoteworker::Running;
+
 /* static */
 RefPtr<RemoteWorkerNonLifeCycleOpControllerChild>
 RemoteWorkerNonLifeCycleOpControllerChild::Create() {
@@ -20,10 +24,28 @@ RemoteWorkerNonLifeCycleOpControllerChild::Create() {
 }
 
 RemoteWorkerNonLifeCycleOpControllerChild::
-    RemoteWorkerNonLifeCycleOpControllerChild() = default;
+    RemoteWorkerNonLifeCycleOpControllerChild()
+    : mState(VariantType<remoteworker::Running>(),
+             "RemoteWorkerNonLifeCycleOpControllerChild") {}
 
 RemoteWorkerNonLifeCycleOpControllerChild::
     ~RemoteWorkerNonLifeCycleOpControllerChild() = default;
+
+void RemoteWorkerNonLifeCycleOpControllerChild::TransistionStateToCanceled() {
+  auto lock = mState.Lock();
+  MOZ_ASSERT(lock->is<Running>());
+
+  /*Canceling pending/processing operations here*/
+
+  *lock = VariantType<Canceled>();
+}
+
+void RemoteWorkerNonLifeCycleOpControllerChild::TransistionStateToKilled() {
+  auto lock = mState.Lock();
+  MOZ_ASSERT(lock->is<Canceled>());
+  Unused << SendTerminated();
+  *lock = VariantType<Killed>();
+}
 
 IPCResult RemoteWorkerNonLifeCycleOpControllerChild::RecvShutdown() {
   return IPC_OK();

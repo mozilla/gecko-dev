@@ -13,4 +13,9 @@ RemoteWorkerNonLifeCycleOpControllerParent::
 RemoteWorkerNonLifeCycleOpControllerParent::
     ~RemoteWorkerNonLifeCycleOpControllerParent() = default;
 
+IPCResult RemoteWorkerNonLifeCycleOpControllerParent::RecvTerminated() {
+  Unused << SendShutdown();
+  return IPC_OK();
+}
+
 }  // namespace mozilla::dom

@@ -7,6 +7,8 @@
 
 #include "mozilla/dom/PRemoteWorkerNonLifeCycleOpControllerParent.h"
 
+using mozilla::ipc::IPCResult;
+
 namespace mozilla::dom {
 
 class RemoteWorkerNonLifeCycleOpControllerParent final
@@ -16,6 +18,8 @@ class RemoteWorkerNonLifeCycleOpControllerParent final
                              override);
 
   RemoteWorkerNonLifeCycleOpControllerParent();
+
+  IPCResult RecvTerminated();
 
  private:
   ~RemoteWorkerNonLifeCycleOpControllerParent();
