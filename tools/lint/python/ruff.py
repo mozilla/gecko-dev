@@ -135,9 +135,11 @@ def lint(paths, config, log, **lintargs):
         # Do a first pass with --fix-only as the json format doesn't return the
         # number of fixed issues.
         fix_args = args + ["--fix-only"]
+        if not lintargs.get("warning"):
+            # Don't fix warnings to limit unrelated changes sneaking into patches.
+            # except when  --fix -W  is passed
+            fix_args.append(f"--extend-ignore={','.join(warning_rules)}")
 
-        # Don't fix warnings to limit unrelated changes sneaking into patches.
-        fix_args.append(f"--extend-ignore={','.join(warning_rules)}")
         log.debug(f"Running --fix: {fix_args}")
         output = run_process(config, fix_args, **process_kwargs)
         matches = re.match(r"Fixed (\d+) errors?.", output)

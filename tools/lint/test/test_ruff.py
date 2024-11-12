@@ -26,6 +26,40 @@ def test_lint_fix(lint, create_temp_file):
     assert fixed == 1
 
 
+def test_lint_fix_warning(lint, create_temp_file):
+    contents = dedent(
+        """
+        import distutils
+        import os
+
+        def foo():
+            unused_var = 42
+            return
+        """
+    )
+
+    path = create_temp_file(contents, "bad.py")
+    lint([path], warning=True, fix=True)
+    assert fixed == 3
+
+
+def test_lint_fix_withotu_warning(lint, create_temp_file):
+    contents = dedent(
+        """
+        import distutils
+        import os
+
+        def foo():
+            unused_var = 42
+            return
+        """
+    )
+
+    path = create_temp_file(contents, "bad.py")
+    lint([path], warning=False, fix=True)
+    assert fixed == 2
+
+
 def test_lint_ruff(lint, paths):
     results = lint(paths())
     pprint(results, indent=2)
