@@ -310,6 +310,7 @@ add_task(async function test_tabUngroup() {
   let group = gBrowser.addTabGroup([groupedTab]);
 
   let extraTab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let group2 = gBrowser.addTabGroup([extraTab2]);
 
   Assert.equal(groupedTab._tPos, 2, "grouped tab starts in correct position");
   Assert.equal(groupedTab.group, group, "tab belongs to group");
@@ -325,6 +326,11 @@ add_task(async function test_tabUngroup() {
     "tab is in the same position as before ungroup"
   );
   Assert.equal(groupedTab.group, null, "tab no longer belongs to group");
+  Assert.equal(
+    groupedTab.nextElementSibling,
+    group2,
+    "tab moved before the next group"
+  );
 
   BrowserTestUtils.removeTab(groupedTab);
   BrowserTestUtils.removeTab(extraTab1);

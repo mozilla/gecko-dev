@@ -3006,11 +3006,7 @@
 
       let oldPosition = tab._tPos;
       let wasFocused = document.activeElement == this.selectedTab;
-      let adjacentTab = gBrowser.tabContainer.findNextTab(
-        tab.group.tabs.at(-1)
-      );
-
-      gBrowser.tabContainer.insertBefore(tab, adjacentTab);
+      gBrowser.tabContainer.insertBefore(tab, tab.group.nextElementSibling);
 
       this._updateAfterMoveTabTo(tab, oldPosition, wasFocused);
     },
