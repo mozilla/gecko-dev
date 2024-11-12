@@ -426,7 +426,9 @@ var FullScreen = {
 
     let transform = shiftSize > 0 ? `translateY(${shiftSize}px)` : "";
     gNavToolbox.style.transform = transform;
-    gURLBar.textbox.style.transform = transform;
+    gURLBar.textbox.style.transform = gURLBar.textbox.hasAttribute("breakout")
+      ? transform
+      : "";
     if (shiftSize > 0) {
       // If the mouse tracking missed our fullScreenToggler, then the toolbox
       // might not have been shown before the menubar is animated down. Make
