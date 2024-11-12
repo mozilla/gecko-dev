@@ -26,6 +26,7 @@ class HistoryView(
     val store: HistoryFragmentStore,
     val onZeroItemsLoaded: () -> Unit,
     val onRecentlyClosedClicked: () -> Unit,
+    val onHistoryItemClicked: (History) -> Unit,
     val onEmptyStateChanged: (Boolean) -> Unit,
 ) : LibraryPageView(container) {
 
@@ -40,6 +41,7 @@ class HistoryView(
 
     val historyAdapter = HistoryAdapter(
         store = store,
+        onHistoryItemClicked = onHistoryItemClicked,
         onRecentlyClosedClicked = onRecentlyClosedClicked,
     ) { isEmpty ->
         onEmptyStateChanged(isEmpty)

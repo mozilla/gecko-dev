@@ -4,17 +4,12 @@
 
 package org.mozilla.fenix.library.history.state
 
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
-import org.mozilla.fenix.R
-import org.mozilla.fenix.library.history.History
 import org.mozilla.fenix.library.history.HistoryFragmentAction
-import org.mozilla.fenix.library.history.HistoryFragmentDirections
 import org.mozilla.fenix.library.history.HistoryFragmentState
 import org.mozilla.fenix.library.history.HistoryFragmentStore
 
@@ -22,14 +17,10 @@ import org.mozilla.fenix.library.history.HistoryFragmentStore
  * A [Middleware] for initiating navigation events based on [HistoryFragmentAction]s that are
  * dispatched to the [HistoryFragmentStore].
  *
- * @param navController [NavController] for handling navigation events
- * @param openToBrowser Callback to open history items in a browser window.
  * @param onBackPressed Callback to handle back press actions.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
 class HistoryNavigationMiddleware(
-    private val navController: NavController,
-    private val openToBrowser: (item: History.Regular) -> Unit,
     private val onBackPressed: () -> Unit,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main),
 ) : Middleware<HistoryFragmentState, HistoryFragmentAction> {
@@ -48,25 +39,6 @@ class HistoryNavigationMiddleware(
                     // When editing, we override the back pressed event to update the mode.
                     if (currentState.mode !is HistoryFragmentState.Mode.Editing) {
                         onBackPressed()
-                    }
-                }
-                is HistoryFragmentAction.HistoryItemClicked -> {
-                    if (currentState.mode.selectedItems.isEmpty()) {
-                        when (val item = action.item) {
-                            is History.Regular -> openToBrowser(item)
-                            is History.Group -> {
-                                navController.navigate(
-                                    HistoryFragmentDirections.actionGlobalHistoryMetadataGroup(
-                                        title = item.title,
-                                        historyMetadataItems = item.items.toTypedArray(),
-                                    ),
-                                    NavOptions.Builder()
-                                        .setPopUpTo(R.id.historyMetadataGroupFragment, true)
-                                        .build(),
-                                )
-                            }
-                            else -> Unit
-                        }
                     }
                 }
                 else -> Unit

@@ -23,6 +23,7 @@ class HistoryListItemViewHolder(
     view: View,
     private val selectionHolder: SelectionHolder<History>,
     private val store: HistoryFragmentStore,
+    private val onHistoryItemClicked: (History) -> Unit,
     private val onRecentlyClosedClicked: () -> Unit,
 ) : RecyclerView.ViewHolder(view) {
 
@@ -88,6 +89,9 @@ class HistoryListItemViewHolder(
 
         binding.historyLayout.setOnClickListener {
             store.dispatch(HistoryFragmentAction.HistoryItemClicked(item))
+            if (mode.selectedItems.isEmpty()) {
+                onHistoryItemClicked(item)
+            }
         }
         binding.historyLayout.setOnLongClickListener {
             store.dispatch(HistoryFragmentAction.HistoryItemLongClicked(item))

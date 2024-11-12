@@ -112,8 +112,6 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
                 initialState = HistoryFragmentState.initial,
                 middleware = listOf(
                     HistoryNavigationMiddleware(
-                        navController = findNavController(),
-                        openToBrowser = ::openItem,
                         onBackPressed = { findNavController().popBackStack() },
                     ),
                     HistoryTelemetryMiddleware(
@@ -149,6 +147,7 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
                 )
             },
             onRecentlyClosedClicked = ::navigateToRecentlyClosed,
+            onHistoryItemClicked = ::openItem,
         )
 
         return view
@@ -388,15 +387,25 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
         _binding = null
     }
 
-    private fun openItem(item: History.Regular) = runIfFragmentIsAttached {
-        GleanHistory.openedItem.record(
-            GleanHistory.OpenedItemExtra(
-                isRemote = item.isRemote,
-                timeGroup = item.historyTimeGroup.toString(),
-                isPrivate = (activity as HomeActivity).browsingModeManager.mode == BrowsingMode.Private,
-            ),
-        )
+    private fun openItem(item: History) {
+        when (item) {
+            is History.Regular -> openRegularItem(item)
+            is History.Group -> {
+                findNavController().navigate(
+                    HistoryFragmentDirections.actionGlobalHistoryMetadataGroup(
+                        title = item.title,
+                        historyMetadataItems = item.items.toTypedArray(),
+                    ),
+                    NavOptions.Builder()
+                        .setPopUpTo(R.id.historyMetadataGroupFragment, true)
+                        .build(),
+                )
+            }
+            else -> Unit
+        }
+    }
 
+    private fun openRegularItem(item: History.Regular) = runIfFragmentIsAttached {
         (activity as HomeActivity).openToBrowserAndLoad(
             searchTermOrURL = item.url,
             newTab = true,
