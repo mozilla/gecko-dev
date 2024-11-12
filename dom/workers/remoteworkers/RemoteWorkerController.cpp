@@ -97,6 +97,7 @@ void RemoteWorkerController::CreationFailed() {
 
   if (mState == eTerminated) {
     MOZ_ASSERT(!mActor);
+    MOZ_ASSERT(!mNonLifeCycleOpController);
     MOZ_ASSERT(mPendingOps.IsEmpty());
     // Nothing to do.
     return;
@@ -113,12 +114,14 @@ void RemoteWorkerController::CreationSucceeded() {
 
   if (mState == eTerminated) {
     MOZ_ASSERT(!mActor);
+    MOZ_ASSERT(!mNonLifeCycleOpController);
     MOZ_ASSERT(mPendingOps.IsEmpty());
     // Nothing to do.
     return;
   }
 
   MOZ_ASSERT(mActor);
+  MOZ_ASSERT(mNonLifeCycleOpController);
   mState = eReady;
 
   mObserver->CreationSucceeded();
@@ -181,7 +184,9 @@ void RemoteWorkerController::Shutdown() {
   CancelAllPendingOps();
 
   if (mNonLifeCycleOpController) {
-    Unused << mNonLifeCycleOpController->SendShutdown();
+    if (mNonLifeCycleOpController->CanSend()) {
+      Unused << mNonLifeCycleOpController->SendShutdown();
+    }
     mNonLifeCycleOpController = nullptr;
   }
 
@@ -390,7 +395,11 @@ bool RemoteWorkerController::PendingSharedWorkerOp::MaybeStart(
       Unused << aOwner->mActor->SendExecOp(SharedWorkerThawOpArgs());
       break;
     case ePortIdentifier:
-      Unused << aOwner->mActor->SendExecOp(
+      MOZ_ASSERT(aOwner->mNonLifeCycleOpController);
+      if (!aOwner->mNonLifeCycleOpController->CanSend()) {
+        return false;
+      }
+      Unused << aOwner->mNonLifeCycleOpController->SendExecOp(
           SharedWorkerPortIdentifierOpArgs(mPortIdentifier));
       break;
     case eAddWindowID:

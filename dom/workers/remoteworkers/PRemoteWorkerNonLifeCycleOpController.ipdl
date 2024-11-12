@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+include RemoteWorkerTypes;
+include SharedWorkerOpArgs;
 
 namespace mozilla {
 namespace dom{
@@ -13,9 +15,12 @@ protocol PRemoteWorkerNonLifeCycleOpController
 parent:
   async Terminated();
 
-child:
-  async Shutdown();
+  async Error(ErrorValue aValue);
 
+child:
+  async ExecOp(SharedWorkerOpArgs aOpArgs);
+
+  async Shutdown();
 };
 
 } // namespace dom
