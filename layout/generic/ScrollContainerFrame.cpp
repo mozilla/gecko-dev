@@ -1453,7 +1453,7 @@ Maybe<nscoord> ScrollContainerFrame::GetNaturalBaselineBOffset(
         LogicalMargin border = GetLogicalUsedBorder(aWM);
         const auto bSize = GetLogicalSize(aWM).BSize(aWM);
         // Clamp the baseline to the border rect. See bug 1791069.
-        return std::clamp(border.BStart(aWM) + aBaseline, 0, bSize);
+        return CSSMinMax(border.BStart(aWM) + aBaseline, 0, bSize);
       });
 }
 
