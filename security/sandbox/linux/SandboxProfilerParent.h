@@ -26,6 +26,7 @@ struct UprofilerFuncPtrs uprofiler = {
     .backtrace_into_buffer = uprofiler_backtrace_into_buffer,
     .native_backtrace = uprofiler_native_backtrace,
     .is_active = uprofiler_is_active,
+    .feature_active = uprofiler_feature_active,
 };
 
 bool uprofiler_initted = true;

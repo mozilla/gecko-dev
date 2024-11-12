@@ -308,6 +308,10 @@ void uprofiler_native_backtrace(const void* top, NativeStack* nativeStack) {
 
 bool uprofiler_is_active() { return profiler_is_active(); }
 
+bool uprofiler_feature_active(int32_t aFeature) {
+  return profiler_feature_active(aFeature);
+}
+
 bool uprofiler_get(struct UprofilerFuncPtrs* aFuncPtrs) {
   if (!aFuncPtrs) {
     return false;
@@ -323,6 +327,7 @@ bool uprofiler_get(struct UprofilerFuncPtrs* aFuncPtrs) {
   aFuncPtrs->backtrace_into_buffer = uprofiler_backtrace_into_buffer;
   aFuncPtrs->native_backtrace = uprofiler_native_backtrace;
   aFuncPtrs->is_active = uprofiler_is_active;
+  aFuncPtrs->feature_active = uprofiler_feature_active;
 
   return true;
 }

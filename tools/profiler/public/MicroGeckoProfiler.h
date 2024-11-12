@@ -60,6 +60,8 @@ extern MOZ_EXPORT void uprofiler_native_backtrace(const void* top,
 
 extern MOZ_EXPORT bool uprofiler_is_active();
 
+extern MOZ_EXPORT bool uprofiler_feature_active(int32_t feature);
+
 extern MOZ_EXPORT bool uprofiler_get(struct UprofilerFuncPtrs* aFuncPtrs);
 
 /* NOLINT because we want to stick to C here */
@@ -106,6 +108,7 @@ struct UprofilerFuncPtrs {
   bool (*backtrace_into_buffer)(struct NativeStack* stack, void* aBuffer);
   void (*native_backtrace)(const void* top, struct NativeStack* stack);
   bool (*is_active)();
+  bool (*feature_active)(int32_t feature);
 };
 
 #pragma GCC diagnostic push
@@ -147,6 +150,8 @@ static void native_backtrace_noop(const void* top,
 
 static bool is_active_noop() { /* no-op */ return false; }
 
+static bool feature_active_noop(int32_t feature) { /* no-op */ return false; }
+
 #pragma GCC diagnostic pop
 
 #if defined(_WIN32)
@@ -183,7 +188,8 @@ static bool is_active_noop() { /* no-op */ return false; }
   FETCH(simple_event_marker_with_stack)    \
   FETCH(backtrace_into_buffer)             \
   FETCH(native_backtrace)                  \
-  FETCH(is_active)
+  FETCH(is_active)                         \
+  FETCH(feature_active)
 
 // Assumes that a variable of type UprofilerFuncPtrs, named uprofiler
 // is accessible in the scope
@@ -201,6 +207,7 @@ static bool is_active_noop() { /* no-op */ return false; }
     uprofiler.backtrace_into_buffer = backtrace_into_buffer_noop; \
     uprofiler.native_backtrace = native_backtrace_noop;           \
     uprofiler.is_active = is_active_noop;                         \
+    uprofiler.feature_active = feature_active_noop;               \
   }                                                               \
   UPROFILER_VISIT()
 
