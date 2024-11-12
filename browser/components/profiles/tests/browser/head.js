@@ -95,9 +95,9 @@ async function openDatabase() {
 add_setup(async () => {
   await SelectableProfileService.resetProfileService(gProfileService);
 
-  registerCleanupFunction(async () => {
+  registerCleanupFunction(() => {
     SelectableProfileService.overrideDirectoryService(null);
-    await SelectableProfileService.resetProfileService(null);
+    SelectableProfileService.resetProfileService(null);
   });
 });
 

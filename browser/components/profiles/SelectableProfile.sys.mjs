@@ -134,15 +134,6 @@ export class SelectableProfile {
     };
   }
 
-  get iconPaintContext() {
-    return {
-      fillColor: this.#themeBg,
-      strokeColor: this.#themeFg,
-      fillOpacity: 1.0,
-      strokeOpacity: 1.0,
-    };
-  }
-
   /**
    * Update the theme (all three properties are required), then trigger saving
    * the profile, which will notify() other running instances.

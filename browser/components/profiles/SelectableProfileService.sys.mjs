@@ -26,8 +26,6 @@ const NOTIFY_TIMEOUT = 200;
 const COMMAND_LINE_UPDATE = "profiles-updated";
 const COMMAND_LINE_ACTIVATE = "profiles-activate";
 
-const gSupportsBadging = "nsIMacDockSupport" in Ci || "nsIWinTaskbar" in Ci;
-
 function loadImage(url) {
   return new Promise((resolve, reject) => {
     let imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
@@ -35,7 +33,6 @@ function loadImage(url) {
     let observer = imageTools.createScriptedObserver({
       sizeAvailable() {
         resolve(imageContainer);
-        imageContainer = null;
       },
     });
 
@@ -61,6 +58,36 @@ function loadImage(url) {
   });
 }
 
+// This is waiting to be used by bug 1926507.
+// eslint-disable-next-line no-unused-vars
+async function updateTaskbar(iconUrl, profileName, strokeColor, fillColor) {
+  try {
+    let image = await loadImage(iconUrl);
+
+    if ("nsIMacDockSupport" in Ci) {
+      Cc["@mozilla.org/widget/macdocksupport;1"]
+        .getService(Ci.nsIMacDockSupport)
+        .setBadgeImage(image, { fillColor, strokeColor });
+    } else if ("nsIWinTaskbar" in Ci) {
+      lazy.EveryWindow.registerCallback(
+        "profiles",
+        win => {
+          let iconController = Cc["@mozilla.org/windows-taskbar;1"]
+            .getService(Ci.nsIWinTaskbar)
+            .getOverlayIconController(win.docShell);
+          iconController.setOverlayIcon(image, profileName, {
+            fillColor,
+            strokeColor,
+          });
+        },
+        () => {}
+      );
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 /**
  * The service that manages selectable profiles
  */
@@ -83,34 +110,15 @@ class SelectableProfileServiceClass {
   ];
   #initPromise = null;
   #notifyTask = null;
-  #observedPrefs = null;
-  #badge = null;
   static #dirSvc = null;
-
-  // The initial preferences that will be shared amongst profiles. Only used during database
-  // creation, after that the set in the database is used.
-  static initialSharedPrefs = ["toolkit.telemetry.cachedProfileGroupID"];
-  // Preferences that were previously shared but should now be ignored.
-  static ignoredSharedPrefs = [
-    "browser.profiles.enabled",
-    "toolkit.profiles.storeID",
-  ];
-  // Preferences that need to be set in newly created profiles.
-  static profileInitialPrefs = [
-    "browser.profiles.enabled",
-    "toolkit.profiles.storeID",
-  ];
 
   constructor() {
     this.themeObserver = this.themeObserver.bind(this);
-    this.prefObserver = (subject, topic, prefName) =>
-      this.flushSharedPrefToDatabase(prefName);
     this.#profileService = Cc[
       "@mozilla.org/toolkit/profile-service;1"
     ].getService(Ci.nsIToolkitProfileService);
 
     this.#asyncShutdownBlocker = () => this.uninit();
-    this.#observedPrefs = new Set();
   }
 
   get isEnabled() {
@@ -329,6 +337,8 @@ class SelectableProfileServiceClass {
       );
     } catch {}
 
+    this.setSharedPrefs();
+
     // The 'activate' event listeners use #currentProfile, so this line has
     // to come after #currentProfile has been set.
     this.initWindowTracker();
@@ -339,13 +349,6 @@ class SelectableProfileServiceClass {
     );
 
     this.#initialized = true;
-
-    // this.#currentProfile is unset in the case that the database has only just been created. We
-    // don't need to import from the database in this case.
-    if (this.#currentProfile) {
-      // Assume that settings in the database may have changed while we weren't running.
-      await this.databaseChanged("startup");
-    }
   }
 
   async uninit() {
@@ -366,11 +369,6 @@ class SelectableProfileServiceClass {
       );
     } catch (e) {}
 
-    for (let prefName of this.#observedPrefs) {
-      Services.prefs.removeObserver(prefName, this.prefObserver);
-    }
-    this.#observedPrefs.clear();
-
     // During shutdown we don't need to notify ourselves, just other instances
     // so rather than finalizing the task just disarm it and do the notification
     // manually.
@@ -384,7 +382,6 @@ class SelectableProfileServiceClass {
     this.#currentProfile = null;
     this.#groupToolkitProfile = null;
     this.#storeID = null;
-    this.#badge = null;
 
     this.#initialized = false;
   }
@@ -393,17 +390,6 @@ class SelectableProfileServiceClass {
     lazy.EveryWindow.registerCallback(
       this.#everyWindowCallbackId,
       window => {
-        if (this.#badge && "nsIWinTaskbar" in Ci) {
-          let iconController = Cc["@mozilla.org/windows-taskbar;1"]
-            .getService(Ci.nsIWinTaskbar)
-            .getOverlayIconController(window.docShell);
-          iconController.setOverlayIcon(
-            this.#badge.image,
-            this.#badge.description,
-            this.#badge.iconPaintContext
-          );
-        }
-
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -486,36 +472,22 @@ class SelectableProfileServiceClass {
   }
 
   /**
-   * Flushes the value of a preference to the database.
-   *
-   * @param {string} prefName the name of the preference.
+   * Set the shared prefs that will be needed when creating a
+   * new selectable profile.
    */
-  async flushSharedPrefToDatabase(prefName) {
-    if (!this.#observedPrefs.has(prefName)) {
-      Services.prefs.addObserver(prefName, this.prefObserver);
-      this.#observedPrefs.add(prefName);
-    }
-
-    if (!Services.prefs.prefHasUserValue(prefName)) {
-      await this.#deleteDBPref(prefName);
-      return;
-    }
-
-    let value;
-
-    switch (Services.prefs.getPrefType(prefName)) {
-      case Ci.nsIPrefBranch.PREF_BOOL:
-        value = Services.prefs.getBoolPref(prefName);
-        break;
-      case Ci.nsIPrefBranch.PREF_INT:
-        value = Services.prefs.getIntPref(prefName);
-        break;
-      case Ci.nsIPrefBranch.PREF_STRING:
-        value = Services.prefs.getCharPref(prefName);
-        break;
-    }
-
-    await this.#setDBPref(prefName, value);
+  setSharedPrefs() {
+    this.setPref(
+      "toolkit.profiles.storeID",
+      Services.prefs.getStringPref("toolkit.profiles.storeID", "")
+    );
+    this.setPref(
+      "browser.profiles.enabled",
+      Services.prefs.getBoolPref("browser.profiles.enabled", true)
+    );
+    this.setPref(
+      "toolkit.telemetry.cachedProfileGroupID",
+      Services.prefs.getStringPref("toolkit.telemetry.cachedProfileGroupID", "")
+    );
   }
 
   /**
@@ -639,84 +611,20 @@ class SelectableProfileServiceClass {
     }
   }
 
-  async #updateTaskbar() {
-    try {
-      if (!gSupportsBadging) {
-        return;
-      }
-
-      let count = await this.getProfileCount();
-
-      if (count > 1 && !this.#badge) {
-        this.#badge = {
-          image: await loadImage(
-            Services.io.newURI(
-              `chrome://browser/content/profiles/assets/48_${
-                this.#currentProfile.avatar
-              }.svg`
-            )
-          ),
-          iconPaintContext: this.#currentProfile.iconPaintContext,
-          description: this.#currentProfile.name,
-        };
-
-        if ("nsIMacDockSupport" in Ci) {
-          Cc["@mozilla.org/widget/macdocksupport;1"]
-            .getService(Ci.nsIMacDockSupport)
-            .setBadgeImage(this.#badge.image, this.#badge.iconPaintContext);
-        } else if ("nsIWinTaskbar" in Ci) {
-          for (let win of lazy.EveryWindow.readyWindows) {
-            let iconController = Cc["@mozilla.org/windows-taskbar;1"]
-              .getService(Ci.nsIWinTaskbar)
-              .getOverlayIconController(win.docShell);
-            iconController.setOverlayIcon(
-              this.#badge.image,
-              this.#badge.description,
-              this.#badge.iconPaintContext
-            );
-          }
-        }
-      } else if (count <= 1 && this.#badge) {
-        this.#badge = null;
-
-        if ("nsIMacDockSupport" in Ci) {
-          Cc["@mozilla.org/widget/macdocksupport;1"]
-            .getService(Ci.nsIMacDockSupport)
-            .setBadgeImage(null);
-        } else if ("nsIWinTaskbar" in Ci) {
-          for (let win of lazy.EveryWindow.readyWindows) {
-            let iconController = Cc["@mozilla.org/windows-taskbar;1"]
-              .getService(Ci.nsIWinTaskbar)
-              .getOverlayIconController(win.docShell);
-            iconController.setOverlayIcon(null, null);
-          }
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   /**
    * Invoked when changes have been made to the database. Sends the observer
    * notification "sps-profiles-updated" indicating that something has changed.
    *
-   * @param {"local"|"remote"|"startup"} source The source of the notification.
-   *   Either "local" meaning that the change was made in this process, "remote"
-   *   meaning the change was made by a different Firefox instance or "startup"
-   *   meaning the application has just launched and we may need to reload
-   *   changes from the database.
+   * @param {"local"|"remote"} source The source of the notification. Either
+   *   "local" meaning that the change was made in this process or "remote"
+   *   meaning the change was made by a different Firefox instance.
    */
   async databaseChanged(source) {
-    if (source != "local") {
-      await this.loadSharedPrefsFromDatabase();
+    if (source == "remote") {
+      await this.refreshPrefs();
     }
 
-    await this.#updateTaskbar();
-
-    if (source != "startup") {
-      Services.obs.notifyObservers(null, "sps-profiles-updated", source);
-    }
+    Services.obs.notifyObservers(null, "sps-profiles-updated", source);
   }
 
   /**
@@ -769,40 +677,19 @@ class SelectableProfileServiceClass {
   /**
    * Fetch all prefs from the DB and write to the current instance.
    */
-  async loadSharedPrefsFromDatabase() {
-    // This stops us from observing the change during the load and means we stop observing any prefs
-    // no longer in the database.
-    for (let prefName of this.#observedPrefs) {
-      Services.prefs.removeObserver(prefName, this.prefObserver);
-    }
-    this.#observedPrefs.clear();
-
-    for (let { name, value, type } of await this.getAllDBPrefs()) {
-      if (SelectableProfileServiceClass.ignoredSharedPrefs.includes(name)) {
-        continue;
+  async refreshPrefs() {
+    for (let { name, value, type } of await this.getAllPrefs()) {
+      switch (type) {
+        case "boolean":
+          Services.prefs.setBoolPref(name, value);
+          break;
+        case "string":
+          Services.prefs.setCharPref(name, value);
+          break;
+        case "number":
+          Services.prefs.setIntPref(name, value);
+          break;
       }
-
-      if (value === null) {
-        Services.prefs.clearUserPref(name);
-      } else {
-        switch (type) {
-          case "boolean":
-            Services.prefs.setBoolPref(name, value);
-            break;
-          case "string":
-            Services.prefs.setCharPref(name, value);
-            break;
-          case "number":
-            Services.prefs.setIntPref(name, value);
-            break;
-          case "null":
-            Services.prefs.clearUserPref(name);
-            break;
-        }
-      }
-
-      Services.prefs.addObserver(name, this.prefObserver);
-      this.#observedPrefs.add(name);
     }
   }
 
@@ -906,14 +793,14 @@ class SelectableProfileServiceClass {
     let prefsJsFilePath = await IOUtils.createUniqueFile(
       profileDir.path,
       "prefs.js",
-      0o600
+      0o700
     );
 
-    const sharedPrefs = await this.getAllDBPrefs();
+    const sharedPrefs = await this.getAllPrefs();
 
     const LINEBREAK = AppConstants.platform === "win" ? "\r\n" : "\n";
 
-    const prefsJs = [
+    const prefsJsHeader = [
       "// Mozilla User Preferences",
       LINEBREAK,
       "// DO NOT EDIT THIS FILE.",
@@ -925,33 +812,19 @@ class SelectableProfileServiceClass {
       "// - modify it via the UI (e.g. via about:config in the browser); or",
       "// - set it within a user.js file in your profile.",
       LINEBREAK,
-      'user_pref("browser.profiles.profile-name.updated", false);',
     ];
 
-    for (let pref of sharedPrefs) {
-      prefsJs.push(
+    const prefsJsContent = sharedPrefs.map(
+      pref =>
         `user_pref("${pref.name}", ${
           pref.type === "string" ? `"${pref.value}"` : `${pref.value}`
         });`
-      );
-    }
+    );
 
-    for (let prefName of SelectableProfileServiceClass.profileInitialPrefs) {
-      let value;
-      switch (Services.prefs.getPrefType(prefName)) {
-        case Ci.nsIPrefBranch.PREF_STRING:
-          value = `"${Services.prefs.getCharPref(prefName)}"`;
-          break;
-        case Ci.nsIPrefBranch.PREF_BOOL:
-          value = Services.prefs.getBoolPref(prefName);
-          break;
-        case Ci.nsIPrefBranch.PREF_INT:
-          value = Services.prefs.getIntPref(prefName);
-          break;
-      }
-
-      prefsJs.push(`user_pref("${prefName}", ${value});`);
-    }
+    const prefsJs = prefsJsHeader.concat(
+      prefsJsContent,
+      'user_pref("browser.profiles.profile-name.updated", false);'
+    );
 
     await IOUtils.writeUTF8(prefsJsFilePath, prefsJs.join(LINEBREAK));
   }
@@ -1026,23 +899,15 @@ class SelectableProfileServiceClass {
    * be added to the datastore.
    */
   async maybeSetupDataStore() {
-    if (this.#connection) {
-      return;
-    }
-
     // Create the profiles db and set the storeID on the toolkit profile if it
     // doesn't exist so we can init the service.
     await this.maybeCreateProfilesStorePath();
     await this.init();
 
-    // Flush our shared prefs into the database.
-    for (let prefName of SelectableProfileServiceClass.initialSharedPrefs) {
-      await this.flushSharedPrefToDatabase(prefName);
-    }
-
     // If this is the first time the user has created a selectable profile,
     // add the current toolkit profile to the datastore.
-    if (!this.#currentProfile) {
+    let profiles = await this.getAllProfiles();
+    if (!profiles.length) {
       let path = this.#profileService.currentProfile.rootDir;
       this.#currentProfile = await this.#createProfile(path);
     }
@@ -1183,12 +1048,6 @@ class SelectableProfileServiceClass {
       profileObj
     );
 
-    if (aSelectableProfile.id == this.#currentProfile.id) {
-      // Force a rebuild of the taskbar icon.
-      this.#badge = null;
-      this.#currentProfile = aSelectableProfile;
-    }
-
     this.#notifyTask.arm();
   }
 
@@ -1211,24 +1070,6 @@ class SelectableProfileServiceClass {
   }
 
   /**
-   * Get the number of profiles in the group.
-   *
-   * @returns {number}
-   *   The number of profiles in the group.
-   */
-  async getProfileCount() {
-    if (!this.#connection) {
-      return 0;
-    }
-
-    let rows = await this.#connection.executeCached(
-      'SELECT COUNT(*) AS "count" FROM "Profiles";'
-    );
-
-    return rows[0]?.getResultByName("count") ?? 0;
-  }
-
-  /**
    * Get a specific profile by its internal ID.
    *
    * @param {number} aProfileID The internal id of the profile
@@ -1241,12 +1082,9 @@ class SelectableProfileServiceClass {
     }
 
     let row = (
-      await this.#connection.executeCached(
-        "SELECT * FROM Profiles WHERE id = :id;",
-        {
-          id: aProfileID,
-        }
-      )
+      await this.#connection.execute("SELECT * FROM Profiles WHERE id = :id;", {
+        id: aProfileID,
+      })
     )[0];
 
     return row ? new SelectableProfile(row, this) : null;
@@ -1316,7 +1154,7 @@ class SelectableProfileServiceClass {
    *
    * @returns {{name: string, value: *, type: string}}
    */
-  async getAllDBPrefs() {
+  async getAllPrefs() {
     return (
       await this.#connection.executeCached("SELECT * FROM SharedPrefs;")
     ).map(row => {
@@ -1330,34 +1168,80 @@ class SelectableProfileServiceClass {
   }
 
   /**
-   * Get the value of a specific shared pref from the database.
+   * Get the value of a specific shared pref.
    *
    * @param {string} aPrefName The name of the pref to get
    *
    * @returns {any} Value of the pref
    */
-  async getDBPref(aPrefName) {
-    let rows = await this.#connection.execute(
-      "SELECT value, isBoolean FROM SharedPrefs WHERE name = :name;",
-      {
-        name: aPrefName,
-      }
-    );
+  async getPref(aPrefName) {
+    let row = (
+      await this.#connection.execute(
+        "SELECT value, isBoolean FROM SharedPrefs WHERE name = :name;",
+        {
+          name: aPrefName,
+        }
+      )
+    )[0];
 
-    if (!rows.length) {
-      throw new Error(`Unknown preference '${aPrefName}'`);
-    }
-
-    return this.getPrefValueFromRow(rows[0]);
+    return this.getPrefValueFromRow(row);
   }
 
   /**
-   * Insert or update a pref value in the database, then notify() other running instances.
+   * Get the value of a specific shared pref.
+   *
+   * @param {string} aPrefName The name of the pref to get
+   *
+   * @returns {boolean} Value of the pref
+   */
+  async getBoolPref(aPrefName) {
+    let prefValue = await this.getPref(aPrefName);
+    if (typeof prefValue !== "boolean") {
+      return null;
+    }
+
+    return prefValue;
+  }
+
+  /**
+   * Get the value of a specific shared pref.
+   *
+   * @param {string} aPrefName The name of the pref to get
+   *
+   * @returns {number} Value of the pref
+   */
+  async getIntPref(aPrefName) {
+    let prefValue = await this.getPref(aPrefName);
+    if (typeof prefValue !== "number") {
+      return null;
+    }
+
+    return prefValue;
+  }
+
+  /**
+   * Get the value of a specific shared pref.
+   *
+   * @param {string} aPrefName The name of the pref to get
+   *
+   * @returns {string} Value of the pref
+   */
+  async getStringPref(aPrefName) {
+    let prefValue = await this.getPref(aPrefName);
+    if (typeof prefValue !== "string") {
+      return null;
+    }
+
+    return prefValue;
+  }
+
+  /**
+   * Insert or update a pref value, then notify() other running instances.
    *
    * @param {string} aPrefName The name of the pref
    * @param {any} aPrefValue The value of the pref
    */
-  async #setDBPref(aPrefName, aPrefValue) {
+  async setPref(aPrefName, aPrefValue) {
     await this.#connection.execute(
       "INSERT INTO SharedPrefs(id, name, value, isBoolean) VALUES (NULL, :name, :value, :isBoolean) ON CONFLICT(name) DO UPDATE SET value=excluded.value, isBoolean=excluded.isBoolean;",
       {
@@ -1370,21 +1254,53 @@ class SelectableProfileServiceClass {
     this.#notifyTask.arm();
   }
 
-  // Starts tracking a new shared pref across the profiles.
-  async trackPref(aPrefName) {
-    await this.flushSharedPrefToDatabase(aPrefName);
+  /**
+   * Insert or update a pref value, then notify() other running instances.
+   *
+   * @param {string} aPrefName The name of the pref
+   * @param {boolean} aPrefValue The value of the pref
+   */
+  async setBoolPref(aPrefName, aPrefValue) {
+    if (typeof aPrefValue !== "boolean") {
+      throw new Error("aPrefValue must be of type boolean");
+    }
+    await this.setPref(aPrefName, aPrefValue);
   }
 
   /**
-   * Remove a shared pref from the database, then notify() other running instances.
+   * Insert or update a pref value, then notify() other running instances.
+   *
+   * @param {string} aPrefName The name of the pref
+   * @param {number} aPrefValue The value of the pref
+   */
+  async setIntPref(aPrefName, aPrefValue) {
+    if (typeof aPrefValue !== "number") {
+      throw new Error("aPrefValue must be of type number");
+    }
+    await this.setPref(aPrefName, aPrefValue);
+  }
+
+  /**
+   * Insert or update a pref value, then notify() other running instances.
+   *
+   * @param {string} aPrefName The name of the pref
+   * @param {string} aPrefValue The value of the pref
+   */
+  async setStringPref(aPrefName, aPrefValue) {
+    if (typeof aPrefValue !== "string") {
+      throw new Error("aPrefValue must be of type string");
+    }
+    await this.setPref(aPrefName, aPrefValue);
+  }
+
+  /**
+   * Remove a shared pref, then notify() other running instances.
    *
    * @param {string} aPrefName The name of the pref to delete
    */
-  async #deleteDBPref(aPrefName) {
-    // We mark the value as null if it already exists in the database so other profiles know what
-    // preference to remove.
-    await this.#connection.executeCached(
-      "UPDATE SharedPrefs SET value=NULL, isBoolean=FALSE WHERE name=:name;",
+  async deletePref(aPrefName) {
+    await this.#connection.execute(
+      "DELETE FROM SharedPrefs WHERE name = :name;",
       {
         name: aPrefName,
       }
@@ -1426,9 +1342,7 @@ export class CommandLineHandler {
   handle(cmdLine) {
     // This is only ever sent when the application is already running.
     if (cmdLine.handleFlag(COMMAND_LINE_UPDATE, true)) {
-      if (SelectableProfileService.initialized) {
-        SelectableProfileService.databaseChanged("remote").catch(console.error);
-      }
+      SelectableProfileService.databaseChanged("remote").catch(console.error);
       cmdLine.preventDefault = true;
       return;
     }
