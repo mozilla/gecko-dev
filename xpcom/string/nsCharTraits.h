@@ -94,7 +94,8 @@ struct nsCharTraits<char16_t> {
   typedef uint16_t unsigned_char_type;
   typedef char incompatible_char_type;
 
-  static char_type* const sEmptyBuffer;
+  static constexpr char_type gNullChar = 0;
+  static constexpr char_type* sEmptyBuffer = const_cast<char_type*>(&gNullChar);
 
   // integer representation of characters:
   typedef int int_type;
@@ -282,7 +283,8 @@ struct nsCharTraits<char> {
   typedef unsigned char unsigned_char_type;
   typedef char16_t incompatible_char_type;
 
-  static char_type* const sEmptyBuffer;
+  static constexpr char_type gNullChar = 0;
+  static constexpr char_type* sEmptyBuffer = const_cast<char_type*>(&gNullChar);
 
   // integer representation of characters:
 

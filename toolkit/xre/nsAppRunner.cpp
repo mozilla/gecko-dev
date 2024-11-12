@@ -328,10 +328,10 @@ int gKioskMonitor = -1;
 
 bool gAllowContentAnalysisArgPresent = false;
 
-MOZ_RUNINIT nsString gAbsoluteArgv0Path;
+MOZ_CONSTINIT nsString gAbsoluteArgv0Path;
 
 #if defined(XP_WIN)
-MOZ_RUNINIT nsString gProcessStartupShortcut;
+MOZ_CONSTINIT nsString gProcessStartupShortcut;
 #endif
 
 #if defined(MOZ_WIDGET_GTK)
@@ -1287,8 +1287,8 @@ nsXULAppInfo::GetRemoteType(nsACString& aRemoteType) {
   return NS_OK;
 }
 
-MOZ_RUNINIT static nsCString gLastAppVersion;
-MOZ_RUNINIT static nsCString gLastAppBuildID;
+MOZ_CONSTINIT static nsCString gLastAppVersion;
+MOZ_CONSTINIT static nsCString gLastAppBuildID;
 
 NS_IMETHODIMP
 nsXULAppInfo::GetLastAppVersion(nsACString& aResult) {
