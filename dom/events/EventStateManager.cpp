@@ -4620,8 +4620,8 @@ static gfx::IntPoint ComputeHotspot(imgIContainer* aContainer,
     aContainer->GetWidth(&imgWidth);
     aContainer->GetHeight(&imgHeight);
     auto hotspot = gfx::IntPoint::Round(*aHotspot);
-    return {std::max(std::min(hotspot.x.value, imgWidth - 1), 0),
-            std::max(std::min(hotspot.y.value, imgHeight - 1), 0)};
+    return {std::clamp(hotspot.x.value, 0, imgWidth - 1),
+            std::clamp(hotspot.y.value, 0, imgHeight - 1)};
   }
 
   gfx::IntPoint hotspot;

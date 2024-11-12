@@ -16328,7 +16328,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
             ${nativeType}* self = UnwrapProxy(proxy);
             uint32_t length = self->Length(${callerType});
             // Compute the end of the indices we'll get ourselves
-            uint32_t ourEnd = std::max(begin, std::min(end, length));
+            uint32_t ourEnd = std::clamp(length, begin, end);
 
             for (uint32_t index = begin; index < ourEnd; ++index) {
               $*{get}

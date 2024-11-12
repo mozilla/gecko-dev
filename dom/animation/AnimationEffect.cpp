@@ -151,9 +151,8 @@ ComputedTiming AnimationEffect::GetComputedTimingAt(
       return result;
     }
     result.mActiveTime =
-        std::max(std::min(StickyTimeDuration(localTime - aTiming.Delay()),
-                          result.mActiveDuration),
-                 zeroDuration);
+        std::clamp(result.mActiveDuration, zeroDuration,
+                   StickyTimeDuration(localTime - aTiming.Delay()));
   } else if (localTime < beforeActiveBoundary ||
              (aPlaybackRate < 0 && localTime == beforeActiveBoundary &&
               !atProgressTimelineBoundary)) {
