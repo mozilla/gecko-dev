@@ -3,6 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PRemoteWorker;
+include protocol PRemoteWorkerNonLifeCycleOpController;
 
 include ProtocolTypes;
 include RemoteWorkerTypes;
@@ -19,7 +20,8 @@ protocol PRemoteWorkerService
   manages PRemoteWorker;
 
 child:
-  async PRemoteWorker(RemoteWorkerData data);
+  async PRemoteWorker(RemoteWorkerData data,
+      Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild> childEp);
 };
 
 } // namespace dom

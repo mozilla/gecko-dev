@@ -19,6 +19,7 @@ namespace mozilla::dom {
 
 class RemoteWorkerController;
 class RemoteWorkerServiceParent;
+class RemoteWorkerNonLifeCycleOpControllerParent;
 
 /**
  * PBackground instance that keeps tracks of RemoteWorkerServiceParent actors
