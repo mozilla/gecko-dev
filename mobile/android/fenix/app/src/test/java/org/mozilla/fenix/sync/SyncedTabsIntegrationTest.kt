@@ -32,7 +32,7 @@ class SyncedTabsIntegrationTest {
     fun setup() {
         MockKAnnotations.init(this)
         every { syncedTabsStorage.stop() } just Runs
-        every { accountManager.register(any(), owner = any(), autoPause = true) } just Runs
+        every { accountManager.register(any(), owner = any(), autoPause = false) } just Runs
         every { context.applicationContext } returns mockk<FenixApplication> {
             every { components } returns mockk {
                 every { backgroundServices.syncedTabsStorage } returns syncedTabsStorage
@@ -44,7 +44,7 @@ class SyncedTabsIntegrationTest {
     fun `starts and stops syncedTabsStorage on user authentication`() {
         val observer = slot<AccountObserver>()
         SyncedTabsIntegration(context, accountManager).launch()
-        verify { accountManager.register(capture(observer), owner = any(), autoPause = true) }
+        verify { accountManager.register(capture(observer), owner = any(), autoPause = false) }
 
         every { syncedTabsStorage.start() } just Runs
         observer.captured.onAuthenticated(mockk(), mockk())
