@@ -2265,6 +2265,24 @@ void Http3Session::Authenticated(int32_t aError) {
       mError = psm::GetXPCOMFromNSSError(aError);
       LOG(("Http3Session::Authenticated psm-error=0x%" PRIx32 " [this=%p].",
            static_cast<uint32_t>(mError), this));
+    } else if (StaticPrefs::
+                   network_http_http3_disable_when_third_party_roots_found()) {
+      // In test, we use another perf value to override the value of
+      // hasThirdPartyRoots.
+      bool hasThirdPartyRoots =
+          (xpc::IsInAutomation() || PR_GetEnv("XPCSHELL_TEST_PROFILE_DIR"))
+              ? StaticPrefs::
+                    network_http_http3_has_third_party_roots_found_in_automation()
+              : !mSocketControl->IsBuiltCertChainRootBuiltInRoot();
+      LOG(("Http3Session::Authenticated [this=%p, hasThirdPartyRoots=%d]", this,
+           hasThirdPartyRoots));
+      if (hasThirdPartyRoots) {
+        if (mFirstHttpTransaction) {
+          mFirstHttpTransaction->DisableHttp3(false);
+        }
+        mUdpConn->CloseTransaction(this, NS_ERROR_NET_RESET);
+        return;
+      }
     }
     mHttp3Connection->PeerAuthenticated(aError);
 

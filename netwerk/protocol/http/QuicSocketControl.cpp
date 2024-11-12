@@ -124,5 +124,9 @@ void QuicSocketControl::SetRetryEchConfig(const nsACString& aEchConfig) {
   mRetryEchConfig = aEchConfig;
 }
 
+bool QuicSocketControl::IsBuiltCertChainRootBuiltInRoot() const {
+  return mIsBuiltCertChainRootBuiltInRoot;
+}
+
 }  // namespace net
 }  // namespace mozilla
