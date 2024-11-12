@@ -1098,14 +1098,9 @@ var gSync = {
   },
 
   updateFxAPanel(state = {}) {
+    const isNewSyncSetupFlowEnabled =
+      NimbusFeatures.syncDecouplingUpdates.getVariable("syncSetup");
     const mainWindowEl = document.documentElement;
-
-    // The Firefox Account toolbar currently handles 3 different states for
-    // users. The default `not_configured` state shows an empty avatar, `unverified`
-    // state shows an avatar with an email icon, `login-failed` state shows an avatar
-    // with a danger icon and the `verified` state will show the users
-    // custom profile image or a filled avatar.
-    let stateValue = "not_configured";
 
     const menuHeaderTitleEl = PanelMultiView.getViewNode(
       document,
@@ -1115,110 +1110,113 @@ var gSync = {
       document,
       "fxa-menu-header-description"
     );
-
     const cadButtonEl = PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-connect-device-button"
     );
-
-    const isNewSyncSetupFlowEnabled =
-      NimbusFeatures.syncDecouplingUpdates.getVariable("syncSetup");
-
     const syncSetupEl = PanelMultiView.getViewNode(
       document,
       isNewSyncSetupFlowEnabled
         ? "PanelUI-fxa-menu-setup-sync-container"
         : "PanelUI-fxa-menu-setup-sync-button"
     );
-
     const syncNowButtonEl = PanelMultiView.getViewNode(
       document,
       "PanelUI-fxa-menu-syncnow-button"
     );
-
     const fxaMenuAccountButtonEl = PanelMultiView.getViewNode(
       document,
       "fxa-manage-account-button"
     );
-
     const signedInContainer = PanelMultiView.getViewNode(
       document,
       "PanelUI-signedin-panel"
     );
 
-    cadButtonEl.setAttribute("disabled", true);
-    cadButtonEl.hidden = isNewSyncSetupFlowEnabled;
-    syncNowButtonEl.hidden = true;
-    signedInContainer.hidden = true;
-    fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
-    fxaMenuAccountButtonEl.removeAttribute("closemenu");
-
-    let headerTitleL10nId = this.FXA_CTA_MENU_ENABLED
-      ? "synced-tabs-fxa-sign-in"
-      : "appmenuitem-sign-in-account";
-    let headerDescription;
-    if (state.status === UIState.STATUS_NOT_CONFIGURED) {
+    function resetElementsToDefault() {
+      cadButtonEl.setAttribute("disabled", true);
+      cadButtonEl.hidden = isNewSyncSetupFlowEnabled;
+      syncNowButtonEl.hidden = true;
+      signedInContainer.hidden = true;
+      fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
+      fxaMenuAccountButtonEl.removeAttribute("closemenu");
+      syncSetupEl.removeAttribute("hidden");
       mainWindowEl.style.removeProperty("--avatar-image-url");
-      const headerDescString = this.FXA_CTA_MENU_ENABLED
-        ? "fxa-menu-sync-description"
-        : "appmenu-fxa-signed-in-label";
-      headerDescription = this.fluentStrings.formatValueSync(headerDescString);
-
-      if (this.FXA_CTA_MENU_ENABLED) {
-        const ctaCopy = this.getMenuCtaCopy(NimbusFeatures.fxaAvatarMenuItem);
-        if (ctaCopy) {
-          headerTitleL10nId = ctaCopy.headerTitleL10nId;
-          headerDescription = ctaCopy.headerDescription;
-        }
-      }
-    } else if (state.status === UIState.STATUS_LOGIN_FAILED) {
-      stateValue = "login-failed";
-      headerTitleL10nId = "account-disconnected2";
-      headerDescription = state.displayName || state.email;
-      mainWindowEl.style.removeProperty("--avatar-image-url");
-    } else if (state.status === UIState.STATUS_NOT_VERIFIED) {
-      stateValue = "unverified";
-      headerTitleL10nId = "account-finish-account-setup";
-      headerDescription = state.displayName || state.email;
-    } else if (state.status === UIState.STATUS_SIGNED_IN) {
-      stateValue = "signedin";
-      if (state.avatarURL && !state.avatarIsDefault) {
-        // The user has specified a custom avatar, attempt to load the image on all the menu buttons.
-        const bgImage = `url("${state.avatarURL}")`;
-        let img = new Image();
-        img.onload = () => {
-          // If the image has successfully loaded, update the menu buttons else
-          // we will use the default avatar image.
-          mainWindowEl.style.setProperty("--avatar-image-url", bgImage);
-        };
-        img.onerror = () => {
-          // If the image failed to load, remove the property and default
-          // to standard avatar.
-          mainWindowEl.style.removeProperty("--avatar-image-url");
-        };
-        img.src = state.avatarURL;
-        signedInContainer.hidden = false;
-        menuHeaderDescriptionEl.hidden = false;
-      } else {
-        mainWindowEl.style.removeProperty("--avatar-image-url");
-      }
-
-      cadButtonEl.removeAttribute("disabled");
-
-      if (state.syncEnabled) {
-        syncNowButtonEl.removeAttribute("hidden");
-      }
-      syncSetupEl.setAttribute("hidden", state.syncEnabled);
-
-      headerTitleL10nId = "appmenuitem-fxa-manage-account";
-      headerDescription = state.displayName || state.email;
-    } else {
-      headerDescription = this.fluentStrings.formatValueSync(
-        "fxa-menu-turn-on-sync-default"
-      );
+      menuHeaderDescriptionEl.hidden = false;
     }
-    mainWindowEl.setAttribute("fxastatus", stateValue);
+    // Reset UI elements to default state
+    resetElementsToDefault();
 
+    // The Firefox Account toolbar currently handles 3 different states for
+    // users. The default `not_configured` state shows an empty avatar, `unverified`
+    // state shows an avatar with an email icon, `login-failed` state shows an avatar
+    // with a danger icon and the `verified` state will show the users
+    // custom profile image or a filled avatar.
+    let stateValue = "not_configured";
+    let headerTitleL10nId;
+    let headerDescription;
+
+    switch (state.status) {
+      case UIState.STATUS_NOT_CONFIGURED:
+        headerTitleL10nId = this.FXA_CTA_MENU_ENABLED
+          ? "synced-tabs-fxa-sign-in"
+          : "appmenuitem-sign-in-account";
+        headerDescription = this.fluentStrings.formatValueSync(
+          this.FXA_CTA_MENU_ENABLED
+            ? "fxa-menu-sync-description"
+            : "appmenu-fxa-signed-in-label"
+        );
+        if (this.FXA_CTA_MENU_ENABLED) {
+          const ctaCopy = this.getMenuCtaCopy(NimbusFeatures.fxaAvatarMenuItem);
+          if (ctaCopy) {
+            headerTitleL10nId = ctaCopy.headerTitleL10nId;
+            headerDescription = ctaCopy.headerDescription;
+          }
+        }
+        break;
+
+      case UIState.STATUS_LOGIN_FAILED:
+        stateValue = "login-failed";
+        headerTitleL10nId = "account-disconnected2";
+        headerDescription = state.displayName || state.email;
+        break;
+
+      case UIState.STATUS_NOT_VERIFIED:
+        stateValue = "unverified";
+        headerTitleL10nId = "account-finish-account-setup";
+        headerDescription = state.displayName || state.email;
+        break;
+
+      case UIState.STATUS_SIGNED_IN:
+        stateValue = "signedin";
+        headerTitleL10nId = "appmenuitem-fxa-manage-account";
+        headerDescription = state.displayName || state.email;
+        this.updateAvatarURL(
+          mainWindowEl,
+          state.avatarURL,
+          state.avatarIsDefault
+        );
+        signedInContainer.hidden = false;
+        cadButtonEl.removeAttribute("disabled");
+
+        if (state.syncEnabled) {
+          syncNowButtonEl.removeAttribute("hidden");
+          syncSetupEl.hidden = true;
+        }
+        break;
+
+      default:
+        headerTitleL10nId = this.FXA_CTA_MENU_ENABLED
+          ? "synced-tabs-fxa-sign-in"
+          : "appmenuitem-sign-in-account";
+        headerDescription = this.fluentStrings.formatValueSync(
+          "fxa-menu-turn-on-sync-default"
+        );
+        break;
+    }
+
+    // Update UI elements with determined values
+    mainWindowEl.setAttribute("fxastatus", stateValue);
     menuHeaderTitleEl.value =
       this.fluentStrings.formatValueSync(headerTitleL10nId);
     // If we description is empty, we hide it
@@ -1229,6 +1227,22 @@ var gSync = {
     // around in the DOM.
     menuHeaderTitleEl.removeAttribute("data-l10n-id");
     menuHeaderDescriptionEl.removeAttribute("data-l10n-id");
+  },
+
+  updateAvatarURL(mainWindowEl, avatarURL, avatarIsDefault) {
+    if (avatarURL && !avatarIsDefault) {
+      const bgImage = `url("${avatarURL}")`;
+      const img = new Image();
+      img.onload = () => {
+        mainWindowEl.style.setProperty("--avatar-image-url", bgImage);
+      };
+      img.onerror = () => {
+        mainWindowEl.style.removeProperty("--avatar-image-url");
+      };
+      img.src = avatarURL;
+    } else {
+      mainWindowEl.style.removeProperty("--avatar-image-url");
+    }
   },
 
   enableSendTabIfValidTab() {
