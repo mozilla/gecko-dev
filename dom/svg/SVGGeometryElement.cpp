@@ -248,14 +248,14 @@ gfx::Matrix SVGGeometryElement::LocalTransform() const {
     return result;
   }
   nsStyleTransformMatrix::TransformReferenceBox refBox(f);
-  const float a2css = AppUnitsPerCSSPixel();
-  nsDisplayTransform::FrameTransformProperties props(f, refBox, a2css);
+  const float a2d = f->PresContext()->AppUnitsPerDevPixel();
+  nsDisplayTransform::FrameTransformProperties props(f, refBox, a2d);
   if (!props.HasTransform()) {
     return result;
   }
   auto matrix = nsStyleTransformMatrix::ReadTransforms(
       props.mTranslate, props.mRotate, props.mScale,
-      props.mMotion.ptrOr(nullptr), props.mTransform, refBox, a2css);
+      props.mMotion.ptrOr(nullptr), props.mTransform, refBox, a2d);
   if (!matrix.IsIdentity()) {
     std::ignore = matrix.CanDraw2D(&result);
   }
