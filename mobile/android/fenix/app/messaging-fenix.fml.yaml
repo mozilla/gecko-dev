@@ -82,6 +82,7 @@ import:
               OPEN_SETTINGS_TRACKING_PROTECTION: ://settings_tracking_protection
               OPEN_SETTINGS_WALLPAPERS: ://settings_wallpapers
               OPEN_SETTINGS: ://settings
+              OPEN_SHARE_SHEET: ://share_sheet
               TURN_ON_SYNC: ://turn_on_sync
             styles:
               DEFAULT:

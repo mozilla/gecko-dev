@@ -168,6 +168,8 @@
                 <data android:scheme="${deepLinkScheme}"
                     android:host="settings_tracking_protection"/>
                 <data android:scheme="${deepLinkScheme}"
+                    android:host="share_sheet"/>
+                <data android:scheme="${deepLinkScheme}"
                     android:host="turn_on_sync"/>
                 <data android:scheme="${deepLinkScheme}"
                     android:host="urls_bookmarks"/>
