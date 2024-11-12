@@ -129,10 +129,13 @@ void CSSAnimation::Tick(TickState& aState) {
 }
 
 bool CSSAnimation::HasLowerCompositeOrderThan(
-    const CSSAnimation& aOther) const {
-  MOZ_ASSERT(IsTiedToMarkup() && aOther.IsTiedToMarkup(),
+    const Maybe<EventContext>& aContext, const CSSAnimation& aOther,
+    const Maybe<EventContext>& aOtherContext) const {
+  MOZ_ASSERT((IsTiedToMarkup() || aContext) &&
+                 (aOther.IsTiedToMarkup() || aOtherContext),
              "Should only be called for CSS animations that are sorted "
-             "as CSS animations (i.e. tied to CSS markup)");
+             "as CSS animations (i.e. tied to CSS markup) or with overridden "
+             "target and animation index");
 
   // 0. Object-equality case
   if (&aOther == this) {
@@ -140,14 +143,32 @@ bool CSSAnimation::HasLowerCompositeOrderThan(
   }
 
   // 1. Sort by document order
-  if (!mOwningElement.Equals(aOther.mOwningElement)) {
-    return mOwningElement.LessThan(
-        const_cast<CSSAnimation*>(this)->CachedChildIndexRef(),
-        aOther.mOwningElement,
+  const OwningElementRef& owningElement1 =
+      aContext ? OwningElementRef(aContext->mTarget) : mOwningElement;
+  const OwningElementRef& owningElement2 =
+      aOtherContext ? OwningElementRef(aOtherContext->mTarget)
+                    : aOther.mOwningElement;
+  if (!owningElement1.Equals(owningElement2)) {
+    return owningElement1.LessThan(
+        const_cast<CSSAnimation*>(this)->CachedChildIndexRef(), owningElement2,
         const_cast<CSSAnimation*>(&aOther)->CachedChildIndexRef());
   }
 
   // 2. (Same element and pseudo): Sort by position in animation-name
+  // https://drafts.csswg.org/css-animations-2/#animation-composite-order
+  //
+  // Case 1: if Both have been cancelled, we just sort by the old positions in
+  // the list
+  if (aContext && aOtherContext) {
+    return aContext->mIndex < aOtherContext->mIndex;
+  }
+  // Case 2: if only one animation has been cancelled, the cancelled animation
+  // sorts first.
+  if (aContext.isSome() != aOtherContext.isSome()) {
+    return aContext.isSome();
+  }
+  // Case 3: If neither |this| nor |aOther| have been cancelled, we sort by the
+  // positions in the current list.
   return mAnimationIndex < aOther.mAnimationIndex;
 }
 
