@@ -62,7 +62,7 @@ add_task(async function enable_external_startuptask() {
     value: { enabled: true },
   });
   // Ensure the task is disabled before enabling it
-  await WindowsLaunchOnLogin.disableLaunchOnLoginMSIX();
+  await WindowsLaunchOnLogin._disableLaunchOnLoginMSIX();
   let enabled = await WindowsLaunchOnLogin.enableLaunchOnLoginMSIX();
   ok(enabled, "Task is enabled");
 
@@ -86,7 +86,7 @@ add_task(async function disable_external_startuptask() {
     value: { enabled: true },
   });
   // Disable the startup task to ensure it's reflected in the settings
-  await WindowsLaunchOnLogin.disableLaunchOnLoginMSIX();
+  await WindowsLaunchOnLogin._disableLaunchOnLoginMSIX();
 
   // Open preferences to general pane
   await openPreferencesViaOpenPreferencesAPI("paneGeneral", {

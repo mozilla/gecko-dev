@@ -278,7 +278,7 @@ export class MockRegistry {
     return this.roots.get(root);
   }
 
-  setValue(root, path, name, value) {
+  setValue(root, path, name, value, type = Ci.nsIWindowsRegKey.TYPE_STRING) {
     let key = new MockWindowsRegKey();
     key.create(root, path, Ci.nsIWindowsRegKey.ACCESS_ALL);
     if (value == null) {
@@ -292,7 +292,20 @@ export class MockRegistry {
         }
       }
     } else {
-      key.writeStringValue(name, value);
+      switch (type) {
+        case Ci.nsIWindowsRegKey.TYPE_STRING:
+          key.writeStringValue(name, value);
+          break;
+        case Ci.nsIWindowsRegKey.TYPE_BINARY:
+          key.writeBinaryValue(name, value);
+          break;
+        case Ci.nsIWindowsRegKey.TYPE_INT:
+          key.writeIntValue(name, value);
+          break;
+        case Ci.nsIWindowsRegKey.TYPE_INT64:
+          key.writeInt64Value(name, value);
+          break;
+      }
     }
   }
 

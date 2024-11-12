@@ -84,23 +84,28 @@ export var WindowsLaunchOnLogin = {
   },
 
   /**
-   * Either deletes a Windows launch on login registry key and shortcut on
-   * regular installs or disables the startup task within the app manifest due
-   * to restrictions on writing to the registry in MSIX.
+   * Stop launching on login by removing our registry key (on non-MSIX builds) or disabling
+   * our startup task (on MSIX builds).
+   * If the user has disabled launch on login via the Windows settings, this method will
+   * no-op as we do not want to change the (separate) keys Windows uses to manage user
+   * settings, and removing our own launch on login registry key but leaving the Windows
+   * keys alone would leave the registry in a dubious state.
    */
   async removeLaunchOnLogin() {
-    if (Services.sysinfo.getProperty("hasWinPackageId")) {
-      await this.disableLaunchOnLoginMSIX();
-    } else {
-      await this.removeLaunchOnLoginRegistryKey();
-      await this.removeLaunchOnLoginShortcuts();
+    if (await this.getLaunchOnLoginApproved()) {
+      if (Services.sysinfo.getProperty("hasWinPackageId")) {
+        await this._disableLaunchOnLoginMSIX();
+      } else {
+        await this._removeLaunchOnLoginRegistryKey();
+        await this._removeLaunchOnLoginShortcuts();
+      }
     }
   },
 
   /**
    * Safely removes a Windows launch on login registry key
    */
-  async removeLaunchOnLoginRegistryKey() {
+  async _removeLaunchOnLoginRegistryKey() {
     try {
       await this.withLaunchOnLoginRegistryKey(async wrk => {
         let registryName = this.getLaunchOnLoginRegistryName();
@@ -147,7 +152,7 @@ export var WindowsLaunchOnLogin = {
    * @returns {Promise<bool>}
    *          Whether the disable operation was successful.
    */
-  async disableLaunchOnLoginMSIX() {
+  async _disableLaunchOnLoginMSIX() {
     if (!Services.sysinfo.getProperty("hasWinPackageId")) {
       throw Components.Exception(
         "Called on non-MSIX build",
@@ -204,7 +209,7 @@ export var WindowsLaunchOnLogin = {
    * %USERNAME%\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup folder
    * that point to the current Firefox executable.
    */
-  async removeLaunchOnLoginShortcuts() {
+  async _removeLaunchOnLoginShortcuts() {
     let shortcuts = this.getLaunchOnLoginShortcutList();
     for (let i = 0; i < shortcuts.length; i++) {
       await IOUtils.remove(shortcuts[i]);
