@@ -135,6 +135,10 @@ pub enum StyleParseErrorKind<'i> {
     UnexpectedFunction(CowRcStr<'i>),
     /// Error encountered parsing a @property's `syntax` descriptor
     PropertySyntaxField(PropertySyntaxParseError),
+    /// Error encountered parsing a @property's `inherits` descriptor.
+    ///
+    /// TODO(zrhoffman, bug 1920365): Include the custom property name in error messages.
+    PropertyInheritsField(PropertyInheritsParseError),
     /// @namespace must be before any rule but @charset and @import
     UnexpectedNamespaceRule,
     /// @import must be before any rule but @charset
@@ -241,6 +245,19 @@ pub enum PropertySyntaxParseError {
     ///
     /// <https://drafts.css-houdini.org/css-properties-values-api-1/#supported-names>
     UnknownDataTypeName,
+}
+
+/// Errors that can be encountered while parsing the @property rule's inherits descriptor.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PropertyInheritsParseError {
+    /// The inherits descriptor is required for the @property rule to be valid; if it’s missing,
+    /// the @property rule is invalid.
+    ///
+    /// <https://drafts.css-houdini.org/css-properties-values-api-1/#ref-for-descdef-property-inherits②>
+    NoInherits,
+
+    /// The inherits descriptor must successfully parse as `true` or `false`.
+    InvalidInherits,
 }
 
 bitflags! {

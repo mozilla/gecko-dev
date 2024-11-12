@@ -133,6 +133,14 @@
       css: '@property --my-property { initial-value: green; inherits: true; }',
       error: "@property syntax descriptor is missing."
     },
+    {
+      css: '@property --my-property { syntax: "<color>"; initial-value: green; }',
+      error: "@property inherits descriptor is missing."
+    },
+    {
+      css: '@property --my-property { syntax: "<color>"; initial-value: green; inherits: maybe; }',
+      error: "@property inherits descriptor ‘inherits: maybe;’ does not match specified syntax."
+    },
   ];
 
   // Tests that apply only to constructed style sheets

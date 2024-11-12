@@ -28,7 +28,10 @@ use cssparser::{
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, PropertySyntaxParseError, StyleParseErrorKind, ToCss};
+use style_traits::{
+    CssWriter, ParseError, PropertyInheritsParseError, PropertySyntaxParseError,
+    StyleParseErrorKind, ToCss,
+};
 use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// Parse the block inside a `@property` rule.
@@ -48,6 +51,7 @@ pub fn parse_property_block<'i, 't>(
     };
     let mut iter = RuleBodyParser::new(input, &mut parser);
     let mut syntax_err = None;
+    let mut inherits_err = None;
     while let Some(declaration) = iter.next() {
         if !context.error_reporting_enabled() {
             continue;
@@ -60,6 +64,13 @@ pub fn parse_property_block<'i, 't>(
                 // it), the descriptor is invalid and must be ignored.
                 ParseErrorKind::Custom(StyleParseErrorKind::PropertySyntaxField(_)) => {
                     syntax_err = Some(error.clone());
+                    ContextualParseError::UnsupportedValue(slice, error)
+                },
+
+                // If the provided string is not a valid inherits string,
+                // the descriptor is invalid and must be ignored.
+                ParseErrorKind::Custom(StyleParseErrorKind::PropertyInheritsField(_)) => {
+                    inherits_err = Some(error.clone());
                     ContextualParseError::UnsupportedValue(slice, error)
                 },
 
@@ -95,7 +106,18 @@ pub fn parse_property_block<'i, 't>(
     //     The inherits descriptor is required for the @property rule to be valid; if it’s
     //     missing, the @property rule is invalid.
     let Some(inherits) = descriptors.inherits else {
-        return Err(input.new_error(BasicParseErrorKind::AtRuleBodyInvalid));
+        return Err(if let Some(err) = inherits_err {
+            err
+        } else {
+            let err = input.new_custom_error(StyleParseErrorKind::PropertyInheritsField(
+                PropertyInheritsParseError::NoInherits,
+            ));
+            context.log_css_error(
+                source_location,
+                ContextualParseError::UnsupportedValue("", err.clone()),
+            );
+            err
+        });
     };
 
     if PropertyRegistration::validate_initial_value(&syntax, descriptors.initial_value.as_deref())
@@ -338,12 +360,38 @@ impl ToCss for PropertyRuleName {
 }
 
 /// <https://drafts.css-houdini.org/css-properties-values-api-1/#inherits-descriptor>
-#[derive(Clone, Debug, MallocSizeOf, Parse, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum Inherits {
     /// `true` value for the `inherits` descriptor
     True,
     /// `false` value for the `inherits` descriptor
     False,
+}
+
+impl Parse for Inherits {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // FIXME(bug 1927012): Remove `return` from try_match_ident_ignore_ascii_case so the closure
+        // can be removed.
+        let result: Result<Inherits, ParseError> = (|| {
+            try_match_ident_ignore_ascii_case! { input,
+                "true" => Ok(Inherits::True),
+                "false" => Ok(Inherits::False),
+            }
+        })();
+        if let Err(err) = result {
+            Err(ParseError {
+                kind: ParseErrorKind::Custom(StyleParseErrorKind::PropertyInheritsField(
+                    PropertyInheritsParseError::InvalidInherits,
+                )),
+                location: err.location,
+            })
+        } else {
+            result
+        }
+    }
 }
 
 /// Specifies the initial value of the custom property registration represented by the @property
