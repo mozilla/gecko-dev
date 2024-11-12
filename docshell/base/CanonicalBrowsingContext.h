@@ -357,12 +357,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
     mPriorityActive = aIsActive;
   }
 
-  void SetIsActive(bool aIsActive, ErrorResult& aRv) {
-    MOZ_ASSERT(ManuallyManagesActiveness(),
-               "Shouldn't be setting active status of this browsing context if "
-               "not manually managed");
-    SetIsActiveInternal(aIsActive, aRv);
-  }
+  void SetIsActive(bool aIsActive, ErrorResult& aRv);
 
   void SetIsActiveInternal(bool aIsActive, ErrorResult& aRv) {
     SetExplicitActive(aIsActive ? ExplicitActiveStatus::Active

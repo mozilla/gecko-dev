@@ -3049,6 +3049,18 @@ bool CanonicalBrowsingContext::AllowedInBFCache(
   return bfcacheCombo == 0;
 }
 
+void CanonicalBrowsingContext::SetIsActive(bool aIsActive, ErrorResult& aRv) {
+#ifdef DEBUG
+  if (MOZ_UNLIKELY(!ManuallyManagesActiveness())) {
+    xpc_DumpJSStack(true, true, false);
+    MOZ_ASSERT_UNREACHABLE(
+        "Trying to manually manage activeness of a browsing context that isn't "
+        "manually managed (see manualactiveness attribute)");
+  }
+#endif
+  SetIsActiveInternal(aIsActive, aRv);
+}
+
 void CanonicalBrowsingContext::SetTouchEventsOverride(
     dom::TouchEventsOverride aOverride, ErrorResult& aRv) {
   SetTouchEventsOverrideInternal(aOverride, aRv);
