@@ -1060,14 +1060,14 @@ impl NoCalcLength {
             "pt" => Self::Absolute(AbsoluteLength::Pt(value)),
             "pc" => Self::Absolute(AbsoluteLength::Pc(value)),
             // font-relative
-            "em" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Em(value)),
-            "ex" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Ex(value)),
-            "ch" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Ch(value)),
-            "cap" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Cap(value)),
-            "ic" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Ic(value)),
-            "rem" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Rem(value)),
-            "lh" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Lh(value)),
-            "rlh" if context.parsing_mode.allows_font_relative_lengths() => Self::FontRelative(FontRelativeLength::Rlh(value)),
+            "em" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Em(value)),
+            "ex" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Ex(value)),
+            "ch" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Ch(value)),
+            "cap" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Cap(value)),
+            "ic" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Ic(value)),
+            "rem" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Rem(value)),
+            "lh" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Lh(value)),
+            "rlh" if context.allows_computational_dependence() => Self::FontRelative(FontRelativeLength::Rlh(value)),
             // viewport percentages
             "vw" if !context.in_page_rule() => {
                 Self::ViewportPercentage(ViewportPercentageLength::Vw(value))

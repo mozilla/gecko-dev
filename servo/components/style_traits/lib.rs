@@ -256,7 +256,7 @@ bitflags! {
         /// In CSS Properties and Values, the initial value must be computationally
         /// independent.
         /// <https://drafts.css-houdini.org/css-properties-values-api-1/#ref-for-computationally-independent%E2%91%A0>
-        const DISALLOW_FONT_RELATIVE = 1 << 2;
+        const DISALLOW_COMPUTATIONALLY_DEPENDENT = 1 << 2;
     }
 }
 
@@ -273,10 +273,10 @@ impl ParsingMode {
         self.intersects(ParsingMode::ALLOW_ALL_NUMERIC_VALUES)
     }
 
-    /// Whether the parsing mode allows font-relative units.
+    /// Whether the parsing mode allows units or functions that are not computationally independent.
     #[inline]
-    pub fn allows_font_relative_lengths(&self) -> bool {
-        !self.intersects(ParsingMode::DISALLOW_FONT_RELATIVE)
+    pub fn allows_computational_dependence(&self) -> bool {
+        !self.intersects(ParsingMode::DISALLOW_COMPUTATIONALLY_DEPENDENT)
     }
 }
 

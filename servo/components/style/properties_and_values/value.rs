@@ -404,7 +404,7 @@ impl<'a> Parser<'a> {
     ) -> Result<(), StyleParseError<'i>> {
         use self::AllowComputationallyDependent::*;
         let parsing_mode = match allow_computationally_dependent {
-            No => ParsingMode::DISALLOW_FONT_RELATIVE,
+            No => ParsingMode::DISALLOW_COMPUTATIONALLY_DEPENDENT,
             Yes => ParsingMode::DEFAULT,
         };
         let ref context = ParserContext::new(
