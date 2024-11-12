@@ -811,10 +811,9 @@
 
       this.showTab(aTab);
       if (this.tabContainer.verticalMode) {
-        let wasFocused = document.activeElement == this.selectedTab;
-        let oldPosition = aTab._tPos;
-        this.verticalPinnedTabsContainer.appendChild(aTab);
-        this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
+        this._handleTabMove(aTab, () =>
+          this.verticalPinnedTabsContainer.appendChild(aTab)
+        );
       } else {
         this.moveTabTo(aTab, this.pinnedTabCount);
       }
@@ -829,14 +828,13 @@
       }
 
       if (this.tabContainer.verticalMode) {
-        let wasFocused = document.activeElement == this.selectedTab;
-        let oldPosition = aTab._tPos;
-        // we remove this attribute first, so that allTabs represents
-        // the moving of a tab from the vertical pinned tabs container
-        // and back into arrowscrollbox.
-        aTab.removeAttribute("pinned");
-        this.tabContainer.arrowScrollbox.prepend(aTab);
-        this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
+        this._handleTabMove(aTab, () => {
+          // we remove this attribute first, so that allTabs represents
+          // the moving of a tab from the vertical pinned tabs container
+          // and back into arrowscrollbox.
+          aTab.removeAttribute("pinned");
+          this.tabContainer.arrowScrollbox.prepend(aTab);
+        });
       } else {
         this.moveTabTo(aTab, this.pinnedTabCount - 1);
         aTab.removeAttribute("pinned");
@@ -3004,11 +3002,9 @@
         return;
       }
 
-      let oldPosition = tab._tPos;
-      let wasFocused = document.activeElement == this.selectedTab;
-      gBrowser.tabContainer.insertBefore(tab, tab.group.nextElementSibling);
-
-      this._updateAfterMoveTabTo(tab, oldPosition, wasFocused);
+      this._handleTabMove(tab, () =>
+        gBrowser.tabContainer.insertBefore(tab, tab.group.nextElementSibling)
+      );
     },
 
     adoptTabGroup(group, index) {
@@ -5612,18 +5608,13 @@
     },
 
     moveTabTo(aTab, aIndex, aKeepRelatedTabs) {
-      var oldPosition = aTab._tPos;
-      if (oldPosition == aIndex) {
-        return;
-      }
-
       // Don't allow mixing pinned and unpinned tabs.
       if (aTab.pinned) {
         aIndex = Math.min(aIndex, this.pinnedTabCount - 1);
       } else {
         aIndex = Math.max(aIndex, this.pinnedTabCount);
       }
-      if (oldPosition == aIndex) {
+      if (aTab._tPos == aIndex) {
         return;
       }
 
@@ -5631,20 +5622,18 @@
         this._lastRelatedTabMap = new WeakMap();
       }
 
-      let wasFocused = document.activeElement == this.selectedTab;
-
-      let neighbor = this.tabs[aIndex];
-      if (aIndex < aTab._tPos) {
-        neighbor.before(aTab);
-      } else if (!neighbor) {
-        // Put the tab after the neighbor, as once we remove the tab from its current position,
-        // the indexing of the tabs will shift.
-        aTab.parentElement.append(aTab);
-      } else {
-        neighbor.after(aTab);
-      }
-
-      this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
+      this._handleTabMove(aTab, () => {
+        let neighbor = this.tabs[aIndex];
+        if (aIndex < aTab._tPos) {
+          neighbor.before(aTab);
+        } else if (!neighbor) {
+          // Put the tab after the neighbor, as once we remove the tab from its current position,
+          // the indexing of the tabs will shift.
+          aTab.parentElement.append(aTab);
+        } else {
+          neighbor.after(aTab);
+        }
+      });
     },
 
     moveTabToGroup(aTab, aGroup) {
@@ -5655,14 +5644,15 @@
         return;
       }
 
-      let oldPosition = aTab._tPos;
-      let wasFocused = document.activeElement == this.selectedTab;
-      aGroup.appendChild(aTab);
-
-      this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
+      this._handleTabMove(aTab, () => aGroup.appendChild(aTab));
     },
 
-    _updateAfterMoveTabTo(aTab, oldPosition, wasFocused = null) {
+    _handleTabMove(aTab, moveActionCallback) {
+      let wasFocused = document.activeElement == this.selectedTab;
+      let oldPosition = aTab._tPos;
+
+      moveActionCallback();
+
       // We want to clear _allTabs after moving nodes because the order of
       // vertical tabs may have changed.
       this.tabContainer._invalidateCachedTabs();
@@ -5770,17 +5760,11 @@
     },
 
     moveTabToStart() {
-      let tabPos = this.selectedTab._tPos;
-      if (tabPos > 0) {
-        this.moveTabTo(this.selectedTab, 0);
-      }
+      this.moveTabTo(this.selectedTab, 0);
     },
 
     moveTabToEnd() {
-      let tabPos = this.selectedTab._tPos;
-      if (tabPos < this.browsers.length - 1) {
-        this.moveTabTo(this.selectedTab, this.browsers.length - 1);
-      }
+      this.moveTabTo(this.selectedTab, this.tabs.length - 1);
     },
 
     /**
