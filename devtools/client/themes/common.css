@@ -330,7 +330,6 @@ iframe {
   border: none;
   border-radius: 2px;
   color: var(--theme-body-color);
-  transition: background-color 0.05s ease-in-out;
   align-items: center;
   text-shadow: none;
   padding: 2px;
@@ -366,7 +365,6 @@ iframe {
   width: 16px;
   height: 16px;
   margin: 0 3px;
-  transition: opacity 0.05s ease-in-out;
   color: var(--theme-icon-color);
   font-size: 11px;
   -moz-context-properties: fill;
@@ -801,8 +799,6 @@ iframe {
   border-radius: 1em;
   border: 1px solid var(--toggle-track-border-color);
   box-sizing: content-box;
-  /* Animate the background color between states of the checkbox. */
-  transition: background-color .1s ease-out;
 
   &:checked {
     --x-pos: 1.15em;
