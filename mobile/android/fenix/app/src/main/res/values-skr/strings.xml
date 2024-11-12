@@ -14,6 +14,8 @@
     <string name="content_description_private_browsing_button">نجی براؤزنگ فعال کرو</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">نجی براؤزنگ  غیرفعال کرو</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">نجی براؤزنگ</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">ڳولو یا پتہ درج کرو</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -312,6 +314,10 @@
     <string name="browser_menu_tools">اوزار</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">مین مینیو تے واپس ون٘ڄو</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">مدد</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">ترتیباں</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">قاری منظر، ترجمہ، پرنٹ، شیئر، اوپن ایپ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -543,6 +549,8 @@
     <string name="preferences_category_privacy_security">رازداری تے سلامتی</string>
     <!-- Preference for advanced site permissions -->
     <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">سائٹ اجازتاں</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">سائٹ ترتیباں</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">نجی براؤزنگ</string>
     <!-- Preference for opening links in a private tab-->
@@ -1186,6 +1194,22 @@
     <string name="download_delete_item_1">ہٹاؤ</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">سائٹ مٹھی ہے یا کم کائنی کریندی پئی؟</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">تصویراں یا وڈیوز</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">بٹݨ، لنکس، اَتے ٻِیا مواد</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">سائن ان یا سائن آؤٹ</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">اشتہار بلاکر</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">ایندے علاوہ کجھ ٻیا</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">افسوس۔ ایں ورقے کوں %1$s لوڈ کائنی کر سڳدا۔</string>
@@ -1217,7 +1241,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">فولڈر بݨاؤ</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">نشانی محفوظ!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">نشانی محفوظ!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">“%s” وچ محفوظ تھیا</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1309,7 +1333,7 @@
     <string name="bookmark_empty_list_folder_description">ڄݙݨ تساں براؤز کرو تاں نشانیاں شامل کرو تاکہ تساں بعد وچ آپݨیاں پسند دیاں سائٹاں لبھ سڳو۔</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">نواں فولڈر</string>
+    <string name="bookmark_select_folder_new_folder_button_title">نواں فولڈر</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1563,7 +1587,7 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">ٹیب بند تھئے: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">کتاب نشانیاں محفوظ تھی ڳیاں!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">کتاب نشانیاں محفوظ تھی ڳیاں!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">شارٹ کٹاں وچ شامل تھی ڳیا!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
