@@ -1093,11 +1093,17 @@ void ScriptSource::PinnedUnitsBase::addReader() {
 
 template <typename Unit>
 void ScriptSource::PinnedUnitsBase::removeReader() {
-  // Note: We use a Mutex with Exclusive access, such that no PinnedUnits
-  // instance is live while we are compressing the source.
+  // If the off-thread compression task couldn't perform
+  // convertToCompressedSource, the conversion is pending on
+  // the pendingCompressed field.
+  //
+  // If there's no other reader at this point, perform the pending conversion
+  // here.
+  //
+  // See also ScriptSource::triggerConvertToCompressedSource.
   auto guard = source_->readers_.lock();
   MOZ_ASSERT(guard->count > 0);
-  if (--guard->count) {
+  if (--guard->count == 0) {
     source_->performDelayedConvertToCompressedSource<Unit>(guard);
   }
 }
