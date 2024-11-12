@@ -166,9 +166,16 @@ fi
 if $NEED_WINDOW_MANAGER; then
     # This is read by xsession to select the window manager
     . /etc/lsb-release
-    if [ $DISTRIBUTION == "Ubuntu" ] && [ $RELEASE == "18.04" ]; then
-        echo export DESKTOP_SESSION=gnome > $HOME/.xsessionrc
-        echo export XDG_CURRENT_DESKTOP=GNOME > $HOME/.xsessionrc
+    if [ $DISTRIBUTION == "Ubuntu" ]; then
+        xsession_args=()
+        if [ $RELEASE = "18.04" ]; then
+            echo export XDG_CURRENT_DESKTOP=GNOME > $HOME/.xsessionrc
+        elif [ $RELEASE = "24.04" ]; then
+            # taken from /usr/share/xsessions/ubuntu.desktop
+            echo export XDG_CURRENT_DESKTOP=ubuntu:GNOME > $HOME/.xsessionrc
+            echo export GNOME_SHELL_SESSION_MODE=ubuntu >> $HOME/.xsessionrc
+            xsession_args=("/usr/bin/gnome-session --session=ubuntu")
+        fi
         if [ $MOZ_ENABLE_WAYLAND ]; then
             echo export XDG_SESSION_TYPE=wayland >> $HOME/.xsessionrc
         else
@@ -191,7 +198,7 @@ if $NEED_WINDOW_MANAGER; then
     (
         # if env var is >8K, we have a seg fault in xsession
         unset MOZHARNESS_TEST_PATHS
-        /etc/X11/Xsession 2>&1 &
+        /etc/X11/Xsession "${xsession_args[@]}" 2>&1 &
     )
 
     # Turn off the screen saver and screen locking
