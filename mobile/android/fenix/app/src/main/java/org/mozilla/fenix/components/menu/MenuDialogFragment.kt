@@ -611,6 +611,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 SaveSubmenu(
                                     isBookmarked = isBookmarked,
                                     isPinned = isPinned,
+                                    isInstallable = webAppUseCases.isInstallable(),
                                     onBackButtonClick = {
                                         contentState = Route.MainMenu
                                     },

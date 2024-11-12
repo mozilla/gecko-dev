@@ -161,7 +161,16 @@ open class DefaultToolbarMenu(
     // Predicates that need to be repeatedly called as the session changes
     @VisibleForTesting(otherwise = PRIVATE)
     fun canAddToHomescreen(): Boolean =
-        selectedSession != null && isPinningSupported
+        selectedSession != null && isPinningSupported &&
+            !context.components.useCases.webAppUseCases.isInstallable()
+
+    /**
+     * Should the menu item to install as PWA be visible?
+     */
+    @VisibleForTesting(otherwise = PRIVATE)
+    fun canAddAppToHomescreen(): Boolean =
+        selectedSession != null && isPinningSupported &&
+            context.components.useCases.webAppUseCases.isInstallable()
 
     /**
      * Should the "Open in regular tab" menu item be visible?
@@ -305,11 +314,16 @@ open class DefaultToolbarMenu(
         iconTintColorResource = primaryTextColor(),
         isCollapsingMenuLimit = true,
     ) {
-        if (context.components.useCases.webAppUseCases.isInstallable()) {
-            onItemTapped.invoke(ToolbarMenu.Item.InstallPwaToHomeScreen)
-        } else {
-            onItemTapped.invoke(ToolbarMenu.Item.AddToHomeScreen)
-        }
+        onItemTapped.invoke(ToolbarMenu.Item.AddToHomeScreen)
+    }
+
+    private val addAppToHomeScreenItem = BrowserMenuImageText(
+        label = context.getString(R.string.browser_menu_add_app_to_homescreen),
+        imageResource = R.drawable.mozac_ic_add_to_homescreen_24,
+        iconTintColorResource = primaryTextColor(),
+        isCollapsingMenuLimit = true,
+    ) {
+        onItemTapped.invoke(ToolbarMenu.Item.InstallPwaToHomeScreen)
     }
 
     private val addRemoveTopSitesItem = TwoStateBrowserMenuImageText(
@@ -426,6 +440,7 @@ open class DefaultToolbarMenu(
                 reportSiteIssuePlaceholder,
                 BrowserMenuDivider(),
                 addToHomeScreenItem.apply { visible = ::canAddToHomescreen },
+                addAppToHomeScreenItem.apply { visible = ::canAddAppToHomescreen },
                 if (shouldShowTopSites) addRemoveTopSitesItem else null,
                 saveToCollectionItem,
                 if (FxNimbus.features.print.value().browserPrintEnabled) printPageItem else null,

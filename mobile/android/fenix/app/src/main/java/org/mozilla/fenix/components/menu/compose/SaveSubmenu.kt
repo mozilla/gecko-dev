@@ -23,6 +23,7 @@ import org.mozilla.fenix.theme.Theme
 internal fun SaveSubmenu(
     isBookmarked: Boolean,
     isPinned: Boolean,
+    isInstallable: Boolean,
     onBackButtonClick: () -> Unit,
     onBookmarkPageMenuClick: () -> Unit,
     onEditBookmarkButtonClick: () -> Unit,
@@ -59,7 +60,11 @@ internal fun SaveSubmenu(
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_add_to_homescreen_2),
+                label = if (isInstallable) {
+                    stringResource(id = R.string.browser_menu_add_app_to_homescreen_2)
+                } else {
+                    stringResource(id = R.string.browser_menu_add_to_homescreen_2)
+                },
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_add_to_homescreen_24),
                 onClick = onAddToHomeScreenMenuClick,
             )
@@ -140,6 +145,7 @@ private fun SaveSubmenuPreview() {
             SaveSubmenu(
                 isBookmarked = false,
                 isPinned = false,
+                isInstallable = false,
                 onBackButtonClick = {},
                 onBookmarkPageMenuClick = {},
                 onEditBookmarkButtonClick = {},
@@ -162,6 +168,7 @@ private fun SaveSubmenuPrivatePreview() {
             SaveSubmenu(
                 isBookmarked = false,
                 isPinned = false,
+                isInstallable = true,
                 onBackButtonClick = {},
                 onBookmarkPageMenuClick = {},
                 onEditBookmarkButtonClick = {},
