@@ -41,6 +41,8 @@ neterror-generic-error = { -brand-short-name } can’t load this page for some r
 neterror-load-error-try-again = The site could be temporarily unavailable or too busy. Try again in a few moments.
 neterror-load-error-connection = If you are unable to load any pages, check your computer’s network connection.
 neterror-load-error-firewall = If your computer or network is protected by a firewall or proxy, make sure that { -brand-short-name } is permitted to access the web.
+# This warning is only shown on macOS Sequoia and later (see bug 1929377)
+neterror-load-osx-permission = If you are trying to load a local network page, please check that { -brand-short-name } has been granted Local Network permissions in the macOS Privacy & Security settings.
 
 neterror-captive-portal = You must log in to this network before you can access the internet.
 

@@ -119,6 +119,7 @@ export let RemotePageAccessManager = {
       RPMGetTRRDomain: ["*"],
       RPMIsSiteSpecificTRRError: ["*"],
       RPMSetTRRDisabledLoadFlags: ["*"],
+      RPMShowOSXLocalNetworkPermissionWarning: ["*"],
       RPMSendQuery: ["Browser:AddTRRExcludedDomain"],
       RPMGetIntPref: ["network.trr.mode"],
     },

@@ -718,12 +718,17 @@ function getNetErrorDescParts() {
     case "netInterrupt":
     case "netReset":
     case "netTimeout":
-    case "serverError":
-      return [
+    case "serverError": {
+      let errorTags = [
         ["li", "neterror-load-error-try-again"],
         ["li", "neterror-load-error-connection"],
         ["li", "neterror-load-error-firewall"],
       ];
+      if (RPMShowOSXLocalNetworkPermissionWarning()) {
+        errorTags.push(["li", "neterror-load-osx-permission"]);
+      }
+      return errorTags;
+    }
 
     case "blockedByPolicy":
     case "deniedPortAccess":

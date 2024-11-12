@@ -39,5 +39,6 @@ module.exports = {
     RPMGetTRRDomain: false,
     RPMIsSiteSpecificTRRError: false,
     RPMSetTRRDisabledLoadFlags: false,
+    RPMShowOSXLocalNetworkPermissionWarning: false,
   },
 };
