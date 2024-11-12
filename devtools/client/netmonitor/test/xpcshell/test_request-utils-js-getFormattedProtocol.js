@@ -20,7 +20,7 @@ function run_test() {
       headers: [
         {
           name: "X-Firefox-Spdy",
-          value: "http/1.1",
+          value: "HTTP/1.1",
         },
       ],
     },

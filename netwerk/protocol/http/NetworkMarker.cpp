@@ -23,7 +23,7 @@ struct NetworkMarker {
       bool aIsPrivateBrowsing, const net::TimingStruct& aTimings,
       const ProfilerString8View& aRedirectURI,
       const ProfilerString8View& aContentType, uint32_t aRedirectFlags,
-      int64_t aRedirectChannelId) {
+      int64_t aRedirectChannelId, mozilla::net::HttpVersion aHttpVersion) {
     // This payload still streams a startTime and endTime property because it
     // made the migration to MarkerTiming on the front-end easier.
     aWriter.TimeProperty("startTime", aStart);
@@ -31,6 +31,10 @@ struct NetworkMarker {
 
     aWriter.IntProperty("id", aID);
     aWriter.StringProperty("status", GetNetworkState(aType));
+    aWriter.StringProperty("httpVersion",
+                           ProfilerString8View::WrapNullTerminatedString(
+                               nsHttp::GetProtocolVersion(aHttpVersion)));
+
     if (Span<const char> cacheString = GetCacheState(aCacheDisposition);
         !cacheString.IsEmpty()) {
       aWriter.StringProperty("cache", cacheString);
@@ -307,7 +311,8 @@ void profiler_add_network_marker(
     uint64_t aChannelId, NetworkLoadType aType, mozilla::TimeStamp aStart,
     mozilla::TimeStamp aEnd, int64_t aCount,
     mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
-    bool aIsPrivateBrowsing, const mozilla::net::TimingStruct* aTimings,
+    bool aIsPrivateBrowsing, mozilla::net::HttpVersion aHttpVersion,
+    const mozilla::net::TimingStruct* aTimings,
     UniquePtr<ProfileChunkedBuffer> aSource,
     const Maybe<nsDependentCString>& aContentType, nsIURI* aRedirectURI,
     uint32_t aRedirectFlags, uint64_t aRedirectChannelId) {
@@ -343,6 +348,6 @@ void profiler_add_network_marker(
       aIsPrivateBrowsing, aTimings ? *aTimings : scEmptyNetTimingStruct,
       redirect_spec,
       aContentType ? ProfilerString8View(*aContentType) : ProfilerString8View(),
-      aRedirectFlags, aRedirectChannelId);
+      aRedirectFlags, aRedirectChannelId, aHttpVersion);
 }
 }  // namespace mozilla::net

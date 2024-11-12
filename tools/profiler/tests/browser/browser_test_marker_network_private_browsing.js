@@ -56,6 +56,7 @@ add_task(async function test_network_markers() {
       data: Expect.objectContains({
         status: "STATUS_STOP",
         URI: url,
+        httpVersion: "http/1.1",
         requestMethod: "GET",
         contentType: "text/html",
         startTime: Expect.number(),

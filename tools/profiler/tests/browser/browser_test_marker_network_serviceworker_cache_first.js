@@ -303,6 +303,7 @@ add_task(async function test_network_markers_service_worker_use() {
       const commonDataProperties = {
         type: "Network",
         URI: expectedFile,
+        httpVersion: "http/1.1",
         requestMethod: "GET",
         contentType: Expect.stringMatches(/^(text\/html|image\/svg\+xml)$/),
         startTime: Expect.number(),
@@ -325,6 +326,7 @@ add_task(async function test_network_markers_service_worker_use() {
         Assert.objectContainsOnly(parentRedirectMarker.data, {
           ...commonDataProperties,
           status: "STATUS_REDIRECT",
+          httpVersion: "http/1.1",
           contentType: null,
           cache: "Unresolved",
           RedirectURI: expectedFile,
@@ -346,6 +348,7 @@ add_task(async function test_network_markers_service_worker_use() {
         Assert.objectContainsOnly(parentRedirectMarker.data, {
           ...commonDataProperties,
           status: "STATUS_REDIRECT",
+          httpVersion: "http/1.1",
           contentType: null,
           cache: "Unresolved",
           innerWindowID: Expect.number(),

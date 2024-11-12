@@ -164,6 +164,7 @@ add_task(async function test_network_markers_service_worker_use() {
         type: "Network",
         status: "STATUS_STOP",
         URI: expectedFile,
+        httpVersion: "http/1.1",
         requestMethod: "GET",
         contentType: Expect.stringMatches(/^(text\/html|image\/svg\+xml)$/),
         startTime: Expect.number(),
