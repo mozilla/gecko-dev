@@ -96,6 +96,8 @@ export class ProfileCard extends MozLitElement {
         href="chrome://browser/content/profiles/profile-card.css"
       />
       <div
+        data-l10n-id="profile-card"
+        data-l10n-args=${JSON.stringify({ profileName: this.profile.name })}
         class="profile-card"
         role="button"
         tabindex="0"
@@ -110,11 +112,13 @@ export class ProfileCard extends MozLitElement {
           <h3 class="text-truncated-ellipsis">${this.profile.name}</h3>
           <moz-button-group
             ><moz-button
+              data-l10n-id="profile-card-edit-button"
               type="ghost"
               iconsrc="chrome://global/skin/icons/edit.svg"
               @click=${this.handleEditClick}
             ></moz-button
             ><moz-button
+              data-l10n-id="profile-card-delete-button"
               type="ghost"
               iconsrc="chrome://global/skin/icons/delete.svg"
               @click=${this.handleDeleteClick}

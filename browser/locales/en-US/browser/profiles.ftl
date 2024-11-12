@@ -9,6 +9,18 @@ profile-window-body = Keep your work and personal browsing, including things lik
 profile-window-checkbox-label =
     .label = Show this when { -brand-short-name } opens
 profile-window-create-profile = Create a profile
+profile-card-edit-button =
+    .title = Edit profile
+    .aria-label = Edit profile
+profile-card-delete-button =
+    .title = Delete profile
+    .aria-label = Delete profile
+
+# Variables
+#   $profileName (string) - The name of the profile
+profile-card =
+    .title = Open { $profileName }
+    .aria-label = Open { $profileName }
 
 # Variables
 #   $number (number) - The number of the profile
