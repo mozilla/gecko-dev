@@ -40,6 +40,7 @@
     static observedAttributes = ["orient"];
 
     #maxTabsPerRow;
+    #dragOverCreateGroupTimer;
 
     constructor() {
       super();
@@ -2238,18 +2239,15 @@
         }
         // If dragging over an ungrouped tab, present the UI for creating a
         // new tab group on drop.
+        this.#clearDragOverCreateGroupTimer();
         if (
           groupDropIndex in this.allTabs &&
           !this.allTabs[groupDropIndex].group
         ) {
-          dragData.groupDropIndex = groupDropIndex;
-          this.toggleAttribute("movingtab-createGroup", true);
-          this.removeAttribute("movingtab-ungroup");
-          this.allTabs[groupDropIndex].toggleAttribute(
-            "dragover-createGroup",
-            true
+          this.#dragOverCreateGroupTimer = setTimeout(
+            () => this.#triggerDragOverCreateGroup(dragData, groupDropIndex),
+            Services.prefs.getIntPref("browser.tabs.groups.dragOverDelayMS")
           );
-          this.#setDragOverGroupColor(dragData.tabGroupCreationColor);
         } else {
           this.removeAttribute("movingtab-createGroup");
         }
@@ -2275,6 +2273,26 @@
         }
         let shift = getTabShift(tab, newIndex);
         tab.style.transform = shift ? `${translateAxis}(${shift}px)` : "";
+      }
+    }
+
+    #triggerDragOverCreateGroup(dragData, groupDropIndex) {
+      this.#clearDragOverCreateGroupTimer();
+
+      dragData.groupDropIndex = groupDropIndex;
+      this.toggleAttribute("movingtab-createGroup", true);
+      this.removeAttribute("movingtab-ungroup");
+      this.allTabs[groupDropIndex].toggleAttribute(
+        "dragover-createGroup",
+        true
+      );
+      this.#setDragOverGroupColor(dragData.tabGroupCreationColor);
+    }
+
+    #clearDragOverCreateGroupTimer() {
+      if (this.#dragOverCreateGroupTimer) {
+        clearTimeout(this.#dragOverCreateGroupTimer);
+        this.#dragOverCreateGroupTimer = 0;
       }
     }
 
@@ -2304,16 +2322,17 @@
         return;
       }
 
+      this.removeAttribute("movingtab");
+      gNavToolbox.removeAttribute("movingtab");
+
       for (let tab of this.visibleTabs) {
         tab.style.transform = "";
         tab.removeAttribute("dragover-createGroup");
       }
-
-      this.removeAttribute("movingtab");
       this.removeAttribute("movingtab-createGroup");
       this.removeAttribute("movingtab-ungroup");
       this.#setDragOverGroupColor(null);
-      gNavToolbox.removeAttribute("movingtab");
+      this.#clearDragOverCreateGroupTimer();
 
       this._handleTabSelect();
     }
