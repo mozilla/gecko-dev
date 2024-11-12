@@ -76,12 +76,23 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
 
             InvokeAsync(
                 dataManager->MutableIOTaskQueuePtr(), __func__,
-                [dataManager =
-                     RefPtr<fs::data::FileSystemDataManager>(dataManager),
-                 rootId, parentEndpoint = std::move(parentEndpoint)]() mutable {
+                [dataManager = dataManager, rootId,
+                 parentEndpoint = std::move(parentEndpoint)]() mutable {
                   RefPtr<FileSystemManagerParent> parent =
-                      new FileSystemManagerParent(std::move(dataManager),
+                      new FileSystemManagerParent(dataManager.inspect(),
                                                   rootId);
+
+                  auto autoProxyDestroyFileSystemDataManagerHandle =
+                      MakeScopeExit([&dataManager] {
+                        nsCOMPtr<nsISerialEventTarget> target =
+                            dataManager->MutableBackgroundTargetPtr();
+
+                        MOZ_ALWAYS_SUCCEEDS(target->Dispatch(
+                            NS_NewRunnableFunction(
+                                "DestroyFileSystemDataManagerHandle",
+                                [dataManager = std::move(dataManager)]() {}),
+                            NS_DISPATCH_NORMAL));
+                      });
 
                   LOG(("Binding parent endpoint"));
                   if (!parentEndpoint.Bind(parent)) {
