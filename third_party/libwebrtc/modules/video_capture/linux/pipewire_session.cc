@@ -76,7 +76,7 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
     : session_(session),
       id_(id),
       display_name_(spa_dict_lookup(props, PW_KEY_NODE_DESCRIPTION)),
-      unique_id_(rtc::ToString(id)) {
+      unique_id_(spa_dict_lookup(props, PW_KEY_NODE_NAME)) {
   RTC_LOG(LS_VERBOSE) << "Found Camera: " << display_name_;
 
   proxy_ = static_cast<pw_proxy*>(pw_registry_bind(

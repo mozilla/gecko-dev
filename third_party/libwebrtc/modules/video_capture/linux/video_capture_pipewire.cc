@@ -83,12 +83,15 @@ int32_t VideoCaptureModulePipeWire::Init(const char* deviceUniqueId) {
   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
   RTC_DCHECK_RUN_ON(&api_checker_);
 
-  std::optional<int> id;
-  id = rtc::StringToNumber<int>(deviceUniqueId);
-  if (id == std::nullopt)
+  auto node =
+      std::find_if(session_->nodes_.begin(), session_->nodes_.end(),
+                   [deviceUniqueId](const PipeWireNode::PipeWireNodePtr& node) {
+                     return node->unique_id() == deviceUniqueId;
+                   });
+  if (node == session_->nodes_.end())
     return -1;
 
-  node_id_ = id.value();
+  node_id_ = (*node)->id();
 
   const int len = strlen(deviceUniqueId);
   _deviceUniqueId = new (std::nothrow) char[len + 1];
