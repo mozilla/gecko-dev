@@ -380,7 +380,7 @@ export class EditProfileCard extends MozLitElement {
             <h3 data-l10n-id="edit-profile-page-theme-header"></h3>
             <div id="themes">${this.themesTemplate()}</div>
             <a
-              href="about:addons"
+              href="https://addons.mozilla.org/firefox/themes/"
               target="_blank"
               data-l10n-id="edit-profile-page-explore-themes"
             ></a>
