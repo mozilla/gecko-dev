@@ -1056,13 +1056,13 @@ add_task(async function test_search_mode_switcher_engine_no_icon() {
 
   let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
 
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
   popup.querySelector(`toolbarbutton[label=${testEngineName}]`).click();
+  await popupHidden;
 
   let regex = /url\("([^"]+)"\)/;
-  let searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
-    () => searchModeSwitcherButton.style.listStyleImage.match(regex),
-    "Waiting for the search mode switcher icon to update."
-  );
+  let searchModeSwitcherIconUrl =
+    searchModeSwitcherButton.style.listStyleImage.match(regex);
 
   const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
 
@@ -1071,6 +1071,10 @@ add_task(async function test_search_mode_switcher_engine_no_icon() {
     searchGlassIconUrl,
     "The search mode switcher should display the default search glass icon when the engine has no icon."
   );
+
+  info("Press the close button and escape search mode");
+  window.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(window, null);
 
   await searchExtension.unload();
 });
