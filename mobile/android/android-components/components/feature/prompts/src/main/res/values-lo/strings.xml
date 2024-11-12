@@ -105,6 +105,11 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">ໃຊ້ລະຫັດຜ່ານທີ່ຄາດເດົາຍາກບໍ່?</string>
 
+    <!-- Pressing this will use the suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_use_password">ໃຊ້ລະຫັດຜ່ານ</string>
+    <!-- Pressing this will dismiss the suggested strong password dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">ບໍ່ແມ່ນຕອນນີ້</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">ສົ່ງຂໍ້ມູນຄືນສູ່ເວັບໄຊທນີ້ອີກບໍ?</string>
     <string name="mozac_feature_prompt_repost_message">ການລີເຟສຫນ້ານີ້ອາດຈະເຮັດໃຫ້ການກະທຳກ່ອນຫນ້ານີ້ຊໍ້າກັນເຊັ່ນວ່າ: ການສົ່ງລາຍການຈ່າຍເງິນ ຫລື ການໂພສຄອມເມັ້ນ 2 ຄັ້ງ.</string>

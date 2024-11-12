@@ -260,6 +260,8 @@
     <string name="mozac_feature_addons_status_see_details">Sjå detaljar</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s er slått av på grunn av sikkerheits- eller stabilitetsproblem.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">Denne utvidinga er blokkert for brot på Mozillas retningslinjer og har blitt deaktivert.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Denne utvidinga bryt Mozillas retningslinjer og har vorte deaktivert. Du kan aktivere det, men dette kan vere risikabelt.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
