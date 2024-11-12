@@ -365,7 +365,7 @@ To copy tests and manifests from a source:
 
     manifestparser [options] copy from_manifest to_manifest -tag1 -tag2 `key1=value1 key2=value2 ...
 
-To update the tests associated with with a manifest from a source
+To update the tests associated with a manifest from a source
 directory:
 
 .. code-block:: text
@@ -391,7 +391,7 @@ To copy tests and manifests from a source:
 Updating Tests
 ``````````````
 
-To update the tests associated with with a manifest from a source
+To update the tests associated with a manifest from a source
 directory:
 
 .. code-block:: text
