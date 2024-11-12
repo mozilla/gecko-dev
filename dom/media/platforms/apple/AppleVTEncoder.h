@@ -50,15 +50,18 @@ class AppleVTEncoder final : public MediaDataEncoder {
                                   : "apple software VT encoder"_ns;
   }
 
-  void OutputFrame(CMSampleBufferRef aBuffer);
+  void OutputFrame(OSStatus aStatus, VTEncodeInfoFlags aFlags,
+                   CMSampleBufferRef aBuffer);
 
  private:
+  enum class EncodeResult { Success, EncodeError, FrameDropped, EmptyBuffer };
+
   virtual ~AppleVTEncoder() { MOZ_ASSERT(!mSession); }
   void ProcessEncode(const RefPtr<const VideoData>& aSample);
   RefPtr<ReconfigurationPromise> ProcessReconfigure(
       const RefPtr<const EncoderConfigurationChangeList>&
           aConfigurationChanges);
-  void ProcessOutput(RefPtr<MediaRawData>&& aOutput);
+  void ProcessOutput(RefPtr<MediaRawData>&& aOutput, EncodeResult aResult);
   void ForceOutputIfNeeded();
   void MaybeResolveOrRejectEncodePromise();
   RefPtr<EncodePromise> ProcessDrain();
