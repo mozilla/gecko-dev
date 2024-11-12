@@ -91,7 +91,7 @@ internal fun BookmarksScreen(
 ) {
     val navController = rememberNavController()
     val store = buildStore(navController)
-    BackHandler { store.dispatch(BackClicked) }
+
     DisposableEffect(LocalLifecycleOwner.current) {
         onDispose {
             store.dispatch(ViewDisposed)
@@ -102,18 +102,23 @@ internal fun BookmarksScreen(
         startDestination = startDestination,
     ) {
         composable(route = BookmarksDestinations.LIST) {
+            BackHandler { store.dispatch(BackClicked) }
             BookmarksList(store = store)
         }
         composable(route = BookmarksDestinations.ADD_FOLDER) {
+            BackHandler { store.dispatch(BackClicked) }
             AddFolderScreen(store = store)
         }
         composable(route = BookmarksDestinations.EDIT_FOLDER) {
+            BackHandler { store.dispatch(BackClicked) }
             EditFolderScreen(store = store)
         }
         composable(route = BookmarksDestinations.EDIT_BOOKMARK) {
+            BackHandler { store.dispatch(BackClicked) }
             EditBookmarkScreen(store = store)
         }
         composable(route = BookmarksDestinations.SELECT_FOLDER) {
+            BackHandler { store.dispatch(BackClicked) }
             SelectFolderScreen(store = store)
         }
     }
