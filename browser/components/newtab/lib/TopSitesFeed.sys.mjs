@@ -468,21 +468,23 @@ export class ContileIntegration {
     const responseTilesData = Object.values(data);
 
     for (const tileData of responseTilesData) {
-      // eslint-disable-next-line prefer-destructuring
-      const tile = tileData[0];
+      if (tileData?.length) {
+        // eslint-disable-next-line prefer-destructuring
+        const tile = tileData[0];
 
-      const formattedData = {
-        id: tile.block_key,
-        block_key: tile.block_key,
-        name: tile.name,
-        url: tile.url,
-        click_url: tile.callbacks.click,
-        image_url: tile.image_url,
-        impression_url: tile.callbacks.impression,
-        image_size: 200,
-      };
+        const formattedData = {
+          id: tile.block_key,
+          block_key: tile.block_key,
+          name: tile.name,
+          url: tile.url,
+          click_url: tile.callbacks.click,
+          image_url: tile.image_url,
+          impression_url: tile.callbacks.impression,
+          image_size: 200,
+        };
 
-      formattedTileData.push(formattedData);
+        formattedTileData.push(formattedData);
+      }
     }
 
     return { tiles: formattedTileData };
