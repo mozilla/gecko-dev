@@ -136,11 +136,6 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_InternalError:
     case JSProto_Iterator:
     case JSProto_AggregateError:
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-    case JSProto_SuppressedError:
-    case JSProto_DisposableStack:
-    case JSProto_AsyncDisposableStack:
-#endif
     case JSProto_EvalError:
     case JSProto_RangeError:
     case JSProto_ReferenceError:
@@ -253,6 +248,13 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
 
     case JSProto_Float16Array:
       return !JS::Prefs::experimental_float16array();
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    case JSProto_SuppressedError:
+    case JSProto_DisposableStack:
+    case JSProto_AsyncDisposableStack:
+      return !JS::Prefs::experimental_explicit_resource_management();
+#endif
 
     default:
       MOZ_CRASH("unexpected JSProtoKey");
