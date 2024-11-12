@@ -17,6 +17,7 @@
 #include "mozilla/dom/InternalResponse.h"
 #include "mozilla/dom/RemoteWorkerControllerParent.h"
 #include "mozilla/dom/RemoteWorkerParent.h"
+#include "mozilla/dom/RemoteWorkerServiceParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 
 namespace mozilla {
