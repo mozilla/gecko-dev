@@ -11,7 +11,6 @@ import androidx.annotation.StringRes
 import androidx.annotation.StyleRes
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
-import mozilla.components.support.ktx.util.PromptAbuserDetector
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 
 /**
@@ -25,10 +24,6 @@ import mozilla.components.ui.widgets.withCenterAlignedButtons
 class SimpleRedirectDialogFragment : RedirectDialogFragment() {
 
     @VisibleForTesting
-    internal var promptAbuserDetector =
-        PromptAbuserDetector(maxSuccessiveDialogSecondsLimit = TIME_SHOWN_OFFSET_SECONDS)
-
-    @VisibleForTesting
     internal var testingContext: Context? = null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -36,8 +31,6 @@ class SimpleRedirectDialogFragment : RedirectDialogFragment() {
             val context = testingContext ?: requireContext()
             return if (themeID == 0) AlertDialog.Builder(context) else AlertDialog.Builder(context, themeID)
         }
-
-        promptAbuserDetector.updateJSDialogAbusedState()
 
         return with(requireBundle()) {
             val dialogTitleText = getInt(KEY_TITLE_TEXT, R.string.mozac_feature_applinks_normal_confirm_dialog_title)
@@ -47,29 +40,18 @@ class SimpleRedirectDialogFragment : RedirectDialogFragment() {
             val themeResId = getInt(KEY_THEME_ID, 0)
             val cancelable = getBoolean(KEY_CANCELABLE, false)
 
-            val dialog = getBuilder(themeResId)
+            getBuilder(themeResId)
                 .setTitle(dialogTitleText)
                 .setMessage(dialogMessageString)
-                .setPositiveButton(positiveButtonText) { _, _ -> }
+                .setPositiveButton(positiveButtonText) { _, _ ->
+                    onConfirmRedirect()
+                }
                 .setNegativeButton(negativeButtonText) { _, _ ->
                     onCancelRedirect()
                 }
                 .setCancelable(cancelable)
                 .create()
-
-            dialog.withCenterAlignedButtons()
-            dialog.setOnShowListener {
-                val okButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                okButton.setOnClickListener {
-                    if (promptAbuserDetector.areDialogsBeingAbused()) {
-                        promptAbuserDetector.updateJSDialogAbusedState()
-                    } else {
-                        onConfirmRedirect()
-                        dialog.dismiss()
-                    }
-                }
-            }
-            dialog
+                .withCenterAlignedButtons()
         }
     }
 
@@ -119,7 +101,6 @@ class SimpleRedirectDialogFragment : RedirectDialogFragment() {
         const val KEY_THEME_ID = "KEY_THEME_ID"
 
         const val KEY_CANCELABLE = "KEY_CANCELABLE"
-        private const val TIME_SHOWN_OFFSET_SECONDS = 1
     }
 
     private fun requireBundle(): Bundle {

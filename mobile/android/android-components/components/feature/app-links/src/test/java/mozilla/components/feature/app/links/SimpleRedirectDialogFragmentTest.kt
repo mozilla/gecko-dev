@@ -13,7 +13,6 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.doNothing
@@ -28,7 +27,6 @@ class SimpleRedirectDialogFragmentTest {
     private val themeResId = appcompatR.style.Theme_AppCompat_Light
 
     @Test
-    @Ignore
     fun `Dialog confirmed callback is called correctly`() {
         var onConfirmCalled = false
         var onCancelCalled = false
