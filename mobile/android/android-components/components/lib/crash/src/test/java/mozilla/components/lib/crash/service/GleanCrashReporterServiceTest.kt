@@ -621,7 +621,7 @@ class GleanCrashReporterServiceTest {
                 "ExperimentalFeatures": "expa,expb",
                 "AsyncShutdownTimeout": "{\"phase\":\"abcd\",\"conditions\":[{\"foo\":\"bar\"}],\"brokenAddBlockers\":[\"foo\"]}",
                 "QuotaManagerShutdownTimeout": "line1\nline2\nline3",
-                "StackTraces": "${stackTracesAnnotation.replace("\"", "\\\"")}"
+                "StackTraces": $stackTracesAnnotation
             }
             """.trimIndent(),
         )

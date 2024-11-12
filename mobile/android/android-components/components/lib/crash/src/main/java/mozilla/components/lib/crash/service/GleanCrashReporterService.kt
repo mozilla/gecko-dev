@@ -269,28 +269,27 @@ class GleanCrashReporterService(
                 private fun ObjectMetricType<StackTracesObject>.setStackTracesIfNonNull(
                     element: JsonElement?,
                 ) {
-                    element?.jsonPrimitive?.content?.let { content ->
+                    element?.jsonObject?.let { obj ->
                         // The Glean metric has a slightly different layout. We
                         // explicitly set/filter to the values we support, in
                         // case there are new values in the object.
-                        val m =
-                            Json.decodeFromString<JsonObject>(content).mapNotNull { (key, value) ->
-                                when (key) {
-                                    "status" -> if (value.jsonPrimitive.content != "OK") {
-                                        listOf("error" to value)
-                                    } else {
-                                        null
-                                    }
-
-                                    "crash_info" -> (value as? JsonObject)?.let(::crashInfoEntries)
-                                    "modules" -> (value as? JsonArray)?.let(::modulesEntries)
-                                    "threads" -> (value as? JsonArray)?.let(::threadsEntries)
-                                    "main_module" -> listOf("mainModule" to value)
-                                    else -> null
+                        val m = obj.mapNotNull { (key, value) ->
+                            when (key) {
+                                "status" -> if (value.jsonPrimitive.content != "OK") {
+                                    listOf("error" to value)
+                                } else {
+                                    null
                                 }
+
+                                "crash_info" -> (value as? JsonObject)?.let(::crashInfoEntries)
+                                "modules" -> (value as? JsonArray)?.let(::modulesEntries)
+                                "threads" -> (value as? JsonArray)?.let(::threadsEntries)
+                                "main_module" -> listOf("mainModule" to value)
+                                else -> null
                             }
-                                .flatten()
-                                .toMap()
+                        }
+                            .flatten()
+                            .toMap()
                         set(Json.decodeFromJsonElement(JsonObject(m)))
                     }
                 }
