@@ -70,7 +70,7 @@ class AppleVTEncoder final : public MediaDataEncoder {
   EncoderConfig mConfig;
   const RefPtr<TaskQueue> mTaskQueue;
   const bool mHardwareNotAllowed;
-  // Access only in mTaskQueue.
+  // Accessed only in mTaskQueue.
   EncodedData mEncodedData;
   RefPtr<MediaByteBuffer> mAvcc;  // Stores latest avcC data.
   MediaResult mError;
