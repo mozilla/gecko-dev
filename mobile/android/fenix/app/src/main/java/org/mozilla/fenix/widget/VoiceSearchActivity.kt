@@ -37,7 +37,7 @@ class VoiceSearchActivity : AppCompatActivity() {
     @VisibleForTesting
     internal fun handleActivityResult(result: ActivityResult) {
         if (result.resultCode == RESULT_OK) {
-            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.first()
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             val context = this
 
             previousIntent?.apply {

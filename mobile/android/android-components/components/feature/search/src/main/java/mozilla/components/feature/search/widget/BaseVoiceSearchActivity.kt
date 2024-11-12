@@ -76,7 +76,7 @@ abstract class BaseVoiceSearchActivity : AppCompatActivity() {
         if (activityResult.resultCode == Activity.RESULT_OK) {
             val spokenText =
                 activityResult.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                    ?.first()
+                    ?.firstOrNull()
             previousIntent?.apply {
                 spokenText?.let { onSpeechRecognitionEnded(it) }
             }
