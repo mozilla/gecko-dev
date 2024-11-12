@@ -7,38 +7,21 @@
 #include "nsDeviceContext.h"
 #include <algorithm>  // for max
 #include "gfxContext.h"
-#include "gfxImageSurface.h"  // for gfxImageSurface
-#include "gfxPoint.h"         // for gfxSize
-#include "gfxTextRun.h"       // for gfxFontGroup
+#include "gfxPoint.h"    // for gfxSize
+#include "gfxTextRun.h"  // for gfxFontGroup
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/gfx/PrintTarget.h"
-#include "mozilla/Preferences.h"  // for Preferences
 #include "mozilla/ProfilerMarkers.h"
-#include "mozilla/Services.h"  // for GetObserverService
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/Try.h"            // for MOZ_TRY
-#include "mozilla/mozalloc.h"       // for operator new
 #include "mozilla/widget/Screen.h"  // for Screen
-#include "nsCRT.h"                  // for nsCRT
 #include "nsDebug.h"                // for NS_ASSERTION, etc
-#include "nsFont.h"                 // for nsFont
-#include "nsFontCache.h"            // for nsFontCache
 #include "nsFontMetrics.h"          // for nsFontMetrics
-#include "nsAtom.h"                 // for nsAtom, NS_Atomize
-#include "nsID.h"
 #include "nsIDeviceContextSpec.h"   // for nsIDeviceContextSpec
-#include "nsLanguageAtomService.h"  // for nsLanguageAtomService
-#include "nsIObserver.h"            // for nsIObserver, etc
-#include "nsIObserverService.h"     // for nsIObserverService
-#include "nsISupportsImpl.h"        // for MOZ_COUNT_CTOR, etc
-#include "nsISupportsUtils.h"       // for NS_ADDREF, NS_RELEASE
 #include "nsIWidget.h"              // for nsIWidget, NS_NATIVE_WINDOW
 #include "nsRect.h"                 // for nsRect
-#include "nsServiceManagerUtils.h"  // for do_GetService
-#include "nsString.h"               // for nsDependentString
 #include "nsTArray.h"               // for nsTArray, nsTArray_Impl
-#include "nsThreadUtils.h"          // for NS_IsMainThread
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/widget/ScreenManager.h"  // for ScreenManager
 
