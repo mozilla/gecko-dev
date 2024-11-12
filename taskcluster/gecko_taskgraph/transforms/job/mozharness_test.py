@@ -147,7 +147,6 @@ def mozharness_test_on_docker(config, job, taskdesc):
             "MOZHARNESS_CONFIG": " ".join(mozharness["config"]),
             "MOZHARNESS_SCRIPT": mozharness["script"],
             "MOZILLA_BUILD_URL": {"task-reference": installer},
-            "NEED_PULSEAUDIO": "true",
             "NEED_WINDOW_MANAGER": "true",
             "ENABLE_E10S": str(bool(test.get("e10s"))).lower(),
             "WORKING_DIR": "/builds/worker",
@@ -156,14 +155,19 @@ def mozharness_test_on_docker(config, job, taskdesc):
 
     env["PYTHON"] = "python3"
 
-    # Bug 1602701/1601828 - use compiz on ubuntu1804 due to GTK asynchiness
-    # when manipulating windows.
     if test.get("docker-image", {}).get("in-tree") == "ubuntu1804-test":
+        env["NEED_PULSEAUDIO"] = "true"
+
+        # Bug 1602701/1601828 - use compiz on ubuntu1804 due to GTK asynchiness
+        # when manipulating windows.
         if "wdspec" in job["run"]["test"]["suite"] or (
             "marionette" in job["run"]["test"]["suite"]
             and "headless" not in job["label"]
         ):
             env.update({"NEED_COMPIZ": "true"})
+
+    if test.get("docker-image", {}).get("in-tree") == "ubuntu2404-test":
+        env["NEED_PIPEWIRE"] = "true"
 
     # Set MOZ_ENABLE_WAYLAND env variables to enable Wayland backend.
     if "wayland" in job["label"]:
