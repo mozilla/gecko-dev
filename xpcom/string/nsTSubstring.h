@@ -1182,7 +1182,7 @@ class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
   }
 
  protected:
-  constexpr void AssertValid() {
+  void AssertValid() {
     MOZ_DIAGNOSTIC_ASSERT(!(this->mClassFlags & ClassFlags::INVALID_MASK));
     MOZ_DIAGNOSTIC_ASSERT(!(this->mDataFlags & DataFlags::INVALID_MASK));
     MOZ_ASSERT(!(this->mClassFlags & ClassFlags::NULL_TERMINATED) ||
@@ -1251,7 +1251,7 @@ class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
   }
 
   // initialization with ClassFlags
-  constexpr explicit nsTSubstring(ClassFlags aClassFlags)
+  explicit nsTSubstring(ClassFlags aClassFlags)
       : base_string_type(char_traits::sEmptyBuffer, 0, DataFlags::TERMINATED,
                          aClassFlags) {
     AssertValid();
