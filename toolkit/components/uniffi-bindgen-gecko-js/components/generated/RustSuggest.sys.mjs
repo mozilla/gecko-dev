@@ -452,6 +452,36 @@ export class FfiConverterBytes extends FfiConverterArrayBuffer {
     }
 }
 
+/**
+ * The store is the entry point to the Suggest component. It incrementally
+ * downloads suggestions from the Remote Settings service, stores them in a
+ * local database, and returns them in response to user queries.
+ *
+ * Your application should create a single store, and manage it as a singleton.
+ * The store is thread-safe, and supports concurrent queries and ingests. We
+ * expect that your application will call [`SuggestStore::query()`] to show
+ * suggestions as the user types into the address bar, and periodically call
+ * [`SuggestStore::ingest()`] in the background to update the database with
+ * new suggestions from Remote Settings.
+ *
+ * For responsiveness, we recommend always calling `query()` on a worker
+ * thread. When the user types new input into the address bar, call
+ * [`SuggestStore::interrupt()`] on the main thread to cancel the query
+ * for the old input, and unblock the worker thread for the new query.
+ *
+ * The store keeps track of the state needed to support incremental ingestion,
+ * but doesn't schedule the ingestion work itself, or decide how many
+ * suggestions to ingest at once. This is for two reasons:
+ *
+ * 1. The primitives for scheduling background work vary between platforms, and
+ * aren't available to the lower-level Rust layer. You might use an idle
+ * timer on Desktop, `WorkManager` on Android, or `BGTaskScheduler` on iOS.
+ * 2. Ingestion constraints can change, depending on the platform and the needs
+ * of your application. A mobile device on a metered connection might want
+ * to request a small subset of the Suggest data and download the rest
+ * later, while a desktop on a fast link might download the entire dataset
+ * on the first launch.
+ */
 export class SuggestStore {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -466,9 +496,8 @@ export class SuggestStore {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * A constructor for SuggestStore.
-     * 
-     * @returns { SuggestStore }
+     * Creates a Suggest store.
+     * @returns {SuggestStore}
      */
     static init(path,settingsConfig = null) {
         const liftResult = (result) => FfiConverterTypeSuggestStore.lift(result);
@@ -498,6 +527,9 @@ export class SuggestStore {
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
 
+    /**
+     * Removes all content from the database.
+     */
     clear() {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -514,6 +546,9 @@ export class SuggestStore {
         }
     }
 
+    /**
+     * Clear dismissed suggestions
+     */
     clearDismissedSuggestions() {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -530,6 +565,13 @@ export class SuggestStore {
         }
     }
 
+    /**
+     * Dismiss a suggestion
+     *
+     * Dismissed suggestions will not be returned again
+     *
+     * In the case of AMP suggestions this should be the raw URL.
+     */
     dismissSuggestion(suggestionUrl) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -555,6 +597,10 @@ export class SuggestStore {
         }
     }
 
+    /**
+     * fetchGlobalConfig
+     * @returns {SuggestGlobalConfig}
+     */
     fetchGlobalConfig() {
         const liftResult = (result) => FfiConverterTypeSuggestGlobalConfig.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -571,6 +617,10 @@ export class SuggestStore {
         }
     }
 
+    /**
+     * fetchProviderConfig
+     * @returns {?SuggestProviderConfig}
+     */
     fetchProviderConfig(provider) {
         const liftResult = (result) => FfiConverterOptionalTypeSuggestProviderConfig.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -596,6 +646,10 @@ export class SuggestStore {
         }
     }
 
+    /**
+     * Ingests new suggestions from Remote Settings.
+     * @returns {SuggestIngestionMetrics}
+     */
     ingest(constraints) {
         const liftResult = (result) => FfiConverterTypeSuggestIngestionMetrics.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -621,6 +675,13 @@ export class SuggestStore {
         }
     }
 
+    /**
+     * Interrupts any ongoing queries.
+     *
+     * This should be called when the user types new input into the address
+     * bar, to ensure that they see fresh suggestions as they type. This
+     * method does not interrupt any ongoing ingests.
+     */
     interrupt(kind = null) {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -642,6 +703,10 @@ export class SuggestStore {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    /**
+     * Queries the database for suggestions.
+     * @returns {Array.<Suggestion>}
+     */
     query(query) {
         const liftResult = (result) => FfiConverterSequenceTypeSuggestion.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -667,6 +732,10 @@ export class SuggestStore {
         }
     }
 
+    /**
+     * Queries the database for suggestions.
+     * @returns {QueryWithMetricsResult}
+     */
     queryWithMetrics(query) {
         const liftResult = (result) => FfiConverterTypeQueryWithMetricsResult.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -723,6 +792,12 @@ export class FfiConverterTypeSuggestStore extends FfiConverter {
     }
 }
 
+/**
+ * Builder for [SuggestStore]
+ *
+ * Using a builder is preferred to calling the constructor directly since it's harder to confuse
+ * the data_path and cache_path strings.
+ */
 export class SuggestStoreBuilder {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -737,9 +812,8 @@ export class SuggestStoreBuilder {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * A constructor for SuggestStoreBuilder.
-     * 
-     * @returns { SuggestStoreBuilder }
+     * init
+     * @returns {SuggestStoreBuilder}
      */
     static init() {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
@@ -751,6 +825,10 @@ export class SuggestStoreBuilder {
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
 
+    /**
+     * build
+     * @returns {SuggestStore}
+     */
     build() {
         const liftResult = (result) => FfiConverterTypeSuggestStore.lift(result);
         const liftError = (data) => FfiConverterTypeSuggestApiError.lift(data);
@@ -763,6 +841,10 @@ export class SuggestStoreBuilder {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    /**
+     * Deprecated: this is no longer used by the suggest component.
+     * @returns {SuggestStoreBuilder}
+     */
     cachePath(path) {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
@@ -788,6 +870,10 @@ export class SuggestStoreBuilder {
         }
     }
 
+    /**
+     * dataPath
+     * @returns {SuggestStoreBuilder}
+     */
     dataPath(path) {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
@@ -809,6 +895,14 @@ export class SuggestStoreBuilder {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    /**
+     * Add an sqlite3 extension to load
+     *
+     * library_name should be the name of the library without any extension, for example `libmozsqlite3`.
+     * entrypoint should be the entry point, for example `sqlite3_fts5_init`.  If `null` (the default)
+     * entry point will be used (see https://sqlite.org/loadext.html for details).
+     * @returns {SuggestStoreBuilder}
+     */
     loadExtension(library,entryPoint) {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
@@ -839,6 +933,10 @@ export class SuggestStoreBuilder {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    /**
+     * remoteSettingsBucketName
+     * @returns {SuggestStoreBuilder}
+     */
     remoteSettingsBucketName(bucketName) {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
@@ -860,6 +958,10 @@ export class SuggestStoreBuilder {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    /**
+     * remoteSettingsServer
+     * @returns {SuggestStoreBuilder}
+     */
     remoteSettingsServer(server) {
         const liftResult = (result) => FfiConverterTypeSuggestStoreBuilder.lift(result);
         const liftError = null;
@@ -912,6 +1014,9 @@ export class FfiConverterTypeSuggestStoreBuilder extends FfiConverter {
     }
 }
 
+/**
+ * Single sample for a Glean labeled_timing_distribution
+ */
 export class LabeledTimingSample {
     constructor({ label, value } = {}) {
         try {
@@ -930,9 +1035,17 @@ export class LabeledTimingSample {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.label = label;
+        /**
+         * Time in microseconds
+         * @type {number}
+         */
         this.value = value;
     }
+
     equals(other) {
         return (
             this.label == other.label &&
@@ -985,6 +1098,9 @@ export class FfiConverterTypeLabeledTimingSample extends FfiConverterArrayBuffer
     }
 }
 
+/**
+ * QueryWithMetricsResult
+ */
 export class QueryWithMetricsResult {
     constructor({ suggestions, queryTimes } = {}) {
         try {
@@ -1003,9 +1119,17 @@ export class QueryWithMetricsResult {
             }
             throw e;
         }
+        /**
+         * @type {Array.<Suggestion>}
+         */
         this.suggestions = suggestions;
+        /**
+         * Samples for the `suggest.query_time` metric
+         * @type {Array.<LabeledTimingSample>}
+         */
         this.queryTimes = queryTimes;
     }
+
     equals(other) {
         return (
             this.suggestions == other.suggestions &&
@@ -1058,6 +1182,9 @@ export class FfiConverterTypeQueryWithMetricsResult extends FfiConverterArrayBuf
     }
 }
 
+/**
+ * Global Suggest configuration data.
+ */
 export class SuggestGlobalConfig {
     constructor({ showLessFrequentlyCap } = {}) {
         try {
@@ -1068,8 +1195,12 @@ export class SuggestGlobalConfig {
             }
             throw e;
         }
+        /**
+         * @type {number}
+         */
         this.showLessFrequentlyCap = showLessFrequentlyCap;
     }
+
     equals(other) {
         return (
             this.showLessFrequentlyCap == other.showLessFrequentlyCap
@@ -1110,6 +1241,9 @@ export class FfiConverterTypeSuggestGlobalConfig extends FfiConverterArrayBuffer
     }
 }
 
+/**
+ * Constraints limit which suggestions to ingest from Remote Settings.
+ */
 export class SuggestIngestionConstraints {
     constructor({ providers = null, providerConstraints = null, emptyOnly = false } = {}) {
         try {
@@ -1136,10 +1270,22 @@ export class SuggestIngestionConstraints {
             }
             throw e;
         }
+        /**
+         * @type {?Array.<SuggestionProvider>}
+         */
         this.providers = providers;
+        /**
+         * @type {?SuggestionProviderConstraints}
+         */
         this.providerConstraints = providerConstraints;
+        /**
+         * Only run ingestion if the table `suggestions` is empty
+         *
+         * @type {Boolean}
+         */
         this.emptyOnly = emptyOnly;
     }
+
     equals(other) {
         return (
             this.providers == other.providers &&
@@ -1204,6 +1350,11 @@ export class FfiConverterTypeSuggestIngestionConstraints extends FfiConverterArr
     }
 }
 
+/**
+ * Ingestion metrics
+ *
+ * These are recorded during [crate::Store::ingest] and returned to the consumer to record.
+ */
 export class SuggestIngestionMetrics {
     constructor({ ingestionTimes, downloadTimes } = {}) {
         try {
@@ -1222,9 +1373,18 @@ export class SuggestIngestionMetrics {
             }
             throw e;
         }
+        /**
+         * Samples for the `suggest.ingestion_time` metric
+         * @type {Array.<LabeledTimingSample>}
+         */
         this.ingestionTimes = ingestionTimes;
+        /**
+         * Samples for the `suggest.ingestion_download_time` metric
+         * @type {Array.<LabeledTimingSample>}
+         */
         this.downloadTimes = downloadTimes;
     }
+
     equals(other) {
         return (
             this.ingestionTimes == other.ingestionTimes &&
@@ -1277,6 +1437,10 @@ export class FfiConverterTypeSuggestIngestionMetrics extends FfiConverterArrayBu
     }
 }
 
+/**
+ * Some providers manage multiple suggestion subtypes. Queries, ingests, and
+ * other operations on those providers must be constrained to a desired subtype.
+ */
 export class SuggestionProviderConstraints {
     constructor({ exposureSuggestionTypes = null } = {}) {
         try {
@@ -1287,8 +1451,15 @@ export class SuggestionProviderConstraints {
             }
             throw e;
         }
+        /**
+         * `Exposure` provider - For each desired exposure suggestion type, this
+         * should contain the value of the `suggestion_type` field of its remote
+         * settings record(s).
+         * @type {?Array.<string>}
+         */
         this.exposureSuggestionTypes = exposureSuggestionTypes;
     }
+
     equals(other) {
         return (
             this.exposureSuggestionTypes == other.exposureSuggestionTypes
@@ -1329,6 +1500,9 @@ export class FfiConverterTypeSuggestionProviderConstraints extends FfiConverterA
     }
 }
 
+/**
+ * A query for suggestions to show in the address bar.
+ */
 export class SuggestionQuery {
     constructor({ keyword, providers, providerConstraints = null, limit = null } = {}) {
         try {
@@ -1363,11 +1537,24 @@ export class SuggestionQuery {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.keyword = keyword;
+        /**
+         * @type {Array.<SuggestionProvider>}
+         */
         this.providers = providers;
+        /**
+         * @type {?SuggestionProviderConstraints}
+         */
         this.providerConstraints = providerConstraints;
+        /**
+         * @type {?number}
+         */
         this.limit = limit;
     }
+
     equals(other) {
         return (
             this.keyword == other.keyword &&
@@ -1445,9 +1632,22 @@ export class FfiConverterTypeSuggestionQuery extends FfiConverterArrayBuffer {
 }
 
 
+/**
+ * What should be interrupted when [SuggestStore::interrupt] is called?
+ */
 export const InterruptKind = {
+    /**
+     * Interrupt read operations like [SuggestStore::query]
+     */
     READ: 1,
+    /**
+     * Interrupt write operations.  This mostly means [SuggestStore::ingest], but
+     * [SuggestStore::dismiss_suggestion] may also be interrupted.
+     */
     WRITE: 2,
+    /**
+     * Interrupt both read and write operations,
+     */
     READ_WRITE: 3,
 };
 
@@ -1498,9 +1698,16 @@ export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * The error type for all Suggest component operations. These errors are
+ * exposed to your application, which should handle them as needed.
+ */
 export class SuggestApiError extends Error {}
 
 
+/**
+ * Network
+ */
 export class Network extends SuggestApiError {
 
     constructor(
@@ -1516,6 +1723,9 @@ export class Network extends SuggestApiError {
     }
 }
 
+/**
+ * The server requested a backoff after too many requests
+ */
 export class Backoff extends SuggestApiError {
 
     constructor(
@@ -1531,6 +1741,9 @@ export class Backoff extends SuggestApiError {
     }
 }
 
+/**
+ * An operation was interrupted by calling `SuggestStore.interrupt()`
+ */
 export class Interrupted extends SuggestApiError {
 
     constructor(
@@ -1543,6 +1756,9 @@ export class Interrupted extends SuggestApiError {
     }
 }
 
+/**
+ * Other
+ */
 export class Other extends SuggestApiError {
 
     constructor(
@@ -1628,7 +1844,13 @@ export class FfiConverterTypeSuggestApiError extends FfiConverterArrayBuffer {
 }
 
 
+/**
+ * Per-provider configuration data.
+ */
 export class SuggestProviderConfig {}
+/**
+ * Weather
+ */
 SuggestProviderConfig.Weather = class extends SuggestProviderConfig{
     constructor(
         score,
@@ -1684,7 +1906,13 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
 
 
 
+/**
+ * A suggestion from the database to show in the address bar.
+ */
 export class Suggestion {}
+/**
+ * Amp
+ */
 Suggestion.Amp = class extends Suggestion{
     constructor(
         title,
@@ -1717,6 +1945,9 @@ Suggestion.Amp = class extends Suggestion{
             this.score = score;
         }
 }
+/**
+ * Pocket
+ */
 Suggestion.Pocket = class extends Suggestion{
     constructor(
         title,
@@ -1731,6 +1962,9 @@ Suggestion.Pocket = class extends Suggestion{
             this.isTopPick = isTopPick;
         }
 }
+/**
+ * Wikipedia
+ */
 Suggestion.Wikipedia = class extends Suggestion{
     constructor(
         title,
@@ -1747,6 +1981,9 @@ Suggestion.Wikipedia = class extends Suggestion{
             this.fullKeyword = fullKeyword;
         }
 }
+/**
+ * Amo
+ */
 Suggestion.Amo = class extends Suggestion{
     constructor(
         title,
@@ -1769,6 +2006,9 @@ Suggestion.Amo = class extends Suggestion{
             this.score = score;
         }
 }
+/**
+ * Yelp
+ */
 Suggestion.Yelp = class extends Suggestion{
     constructor(
         url,
@@ -1791,6 +2031,9 @@ Suggestion.Yelp = class extends Suggestion{
             this.locationParam = locationParam;
         }
 }
+/**
+ * Mdn
+ */
 Suggestion.Mdn = class extends Suggestion{
     constructor(
         title,
@@ -1805,6 +2048,9 @@ Suggestion.Mdn = class extends Suggestion{
             this.score = score;
         }
 }
+/**
+ * Weather
+ */
 Suggestion.Weather = class extends Suggestion{
     constructor(
         city,
@@ -1823,6 +2069,9 @@ Suggestion.Weather = class extends Suggestion{
             this.score = score;
         }
 }
+/**
+ * Fakespot
+ */
 Suggestion.Fakespot = class extends Suggestion{
     constructor(
         fakespotGrade,
@@ -1847,6 +2096,9 @@ Suggestion.Fakespot = class extends Suggestion{
             this.score = score;
         }
 }
+/**
+ * Exposure
+ */
 Suggestion.Exposure = class extends Suggestion{
     constructor(
         suggestionType,
@@ -2153,16 +2405,49 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * A provider is a source of search suggestions.
+ */
 export const SuggestionProvider = {
+    /**
+     * AMP
+     */
     AMP: 1,
+    /**
+     * WIKIPEDIA
+     */
     WIKIPEDIA: 2,
+    /**
+     * AMO
+     */
     AMO: 3,
+    /**
+     * POCKET
+     */
     POCKET: 4,
+    /**
+     * YELP
+     */
     YELP: 5,
+    /**
+     * MDN
+     */
     MDN: 6,
+    /**
+     * WEATHER
+     */
     WEATHER: 7,
+    /**
+     * AMP_MOBILE
+     */
     AMP_MOBILE: 8,
+    /**
+     * FAKESPOT
+     */
     FAKESPOT: 9,
+    /**
+     * EXPOSURE
+     */
     EXPOSURE: 10,
 };
 
@@ -2818,6 +3103,12 @@ export { FfiConverterTypeRemoteSettingsServer, RemoteSettingsServer };
 
 
 
+/**
+ * Determines whether a "raw" sponsored suggestion URL is equivalent to a
+ * "cooked" URL. The two URLs are equivalent if they are identical except for
+ * their replaced template parameters, which can be different.
+ * @returns {Boolean}
+ */
 export function rawSuggestionUrlMatches(rawUrl,cookedUrl) {
 
         const liftResult = (result) => FfiConverterBool.lift(result);

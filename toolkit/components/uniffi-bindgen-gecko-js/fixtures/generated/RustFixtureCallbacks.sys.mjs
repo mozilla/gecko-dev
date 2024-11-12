@@ -665,6 +665,9 @@ UnitTestObjs.callbackHandlerLogger = callbackHandlerLogger;
 
 
 
+/**
+ * callLogRepeat
+ */
 export function callLogRepeat(logger,message,count,exclude) {
 
         const liftResult = (result) => undefined;
@@ -717,6 +720,9 @@ export function callLogRepeat(logger,message,count,exclude) {
         }
 }
 
+/**
+ * logEvenNumbers
+ */
 export function logEvenNumbers(logger,items) {
 
         const liftResult = (result) => undefined;
@@ -751,6 +757,9 @@ export function logEvenNumbers(logger,items) {
         }
 }
 
+/**
+ * logEvenNumbersMainThread
+ */
 export function logEvenNumbersMainThread(logger,items) {
 
         const liftResult = (result) => undefined;

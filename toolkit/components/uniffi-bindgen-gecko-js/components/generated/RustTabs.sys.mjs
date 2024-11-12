@@ -375,6 +375,9 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * RemoteCommandStore
+ */
 export class RemoteCommandStore {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -389,6 +392,10 @@ export class RemoteCommandStore {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
 
+    /**
+     * Add a new command, after which it will be pending. Returns false if the command is already active.
+     * @returns {Boolean}
+     */
     addRemoteCommand(deviceId,command) {
         const liftResult = (result) => FfiConverterBool.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -423,6 +430,10 @@ export class RemoteCommandStore {
         }
     }
 
+    /**
+     * Add a new command with an explicit timestamp. Primarily used by tests.
+     * @returns {Boolean}
+     */
     addRemoteCommandAt(deviceId,command,when) {
         const liftResult = (result) => FfiConverterBool.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -466,6 +477,10 @@ export class RemoteCommandStore {
         }
     }
 
+    /**
+     * Return all unsent commands. This is for the code sending the commands, result is sorted by time_requested.
+     * @returns {Array.<PendingCommand>}
+     */
     getUnsentCommands() {
         const liftResult = (result) => FfiConverterSequenceTypePendingCommand.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -482,6 +497,11 @@ export class RemoteCommandStore {
         }
     }
 
+    /**
+     * Removes the remote command. Typically used to implement "undo" but may also be used by the queue
+     * processor when it gives up trying to send a command.
+     * @returns {Boolean}
+     */
     removeRemoteCommand(deviceId,command) {
         const liftResult = (result) => FfiConverterBool.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -516,6 +536,10 @@ export class RemoteCommandStore {
         }
     }
 
+    /**
+     * Flag a command as sent.
+     * @returns {Boolean}
+     */
     setPendingCommandSent(command) {
         const liftResult = (result) => FfiConverterBool.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -572,6 +596,11 @@ export class FfiConverterTypeRemoteCommandStore extends FfiConverter {
     }
 }
 
+/**
+ * Note the canonical docs for this are in https://searchfox.org/mozilla-central/source/services/interfaces/mozIBridgedSyncEngine.idl
+ * It's only actually used in desktop, but it's fine to expose this everywhere.
+ * NOTE: all timestamps here are milliseconds.
+ */
 export class TabsBridgedEngine {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -586,6 +615,10 @@ export class TabsBridgedEngine {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
 
+    /**
+     * apply
+     * @returns {Array.<string>}
+     */
     apply() {
         const liftResult = (result) => FfiConverterSequencestring.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -602,6 +635,10 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * ensureCurrentSyncId
+     * @returns {string}
+     */
     ensureCurrentSyncId(newSyncId) {
         const liftResult = (result) => FfiConverterString.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -627,6 +664,10 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * lastSync
+     * @returns {number}
+     */
     lastSync() {
         const liftResult = (result) => FfiConverterI64.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -643,6 +684,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * prepareForSync
+     */
     prepareForSync(clientData) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -668,6 +712,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * reset
+     */
     reset() {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -684,6 +731,10 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * resetSyncId
+     * @returns {string}
+     */
     resetSyncId() {
         const liftResult = (result) => FfiConverterString.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -700,6 +751,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * setLastSync
+     */
     setLastSync(lastSync) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -725,6 +779,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * setUploaded
+     */
     setUploaded(newTimestamp,uploadedIds) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -759,6 +816,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * storeIncoming
+     */
     storeIncoming(incomingEnvelopesAsJson) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -784,6 +844,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * syncFinished
+     */
     syncFinished() {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -800,6 +863,10 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * syncId
+     * @returns {?string}
+     */
     syncId() {
         const liftResult = (result) => FfiConverterOptionalstring.lift(result);
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -816,6 +883,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * syncStarted
+     */
     syncStarted() {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -832,6 +902,9 @@ export class TabsBridgedEngine {
         }
     }
 
+    /**
+     * wipe
+     */
     wipe() {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTabsApiError.lift(data);
@@ -879,6 +952,9 @@ export class FfiConverterTypeTabsBridgedEngine extends FfiConverter {
     }
 }
 
+/**
+ * TabsStore
+ */
 export class TabsStore {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -893,10 +969,8 @@ export class TabsStore {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * An async constructor for TabsStore.
-     * 
-     * @returns {Promise<TabsStore>}: A promise that resolves
-     *      to a newly constructed TabsStore
+     * init
+     * @returns {TabsStore}
      */
     static init(path) {
         const liftResult = (result) => FfiConverterTypeTabsStore.lift(result);
@@ -921,6 +995,10 @@ export class TabsStore {
             return Promise.reject(error)
         }}
 
+    /**
+     * bridgedEngine
+     * @returns {TabsBridgedEngine}
+     */
     bridgedEngine() {
         const liftResult = (result) => FfiConverterTypeTabsBridgedEngine.lift(result);
         const liftError = null;
@@ -937,6 +1015,9 @@ export class TabsStore {
         }
     }
 
+    /**
+     * closeConnection
+     */
     closeConnection() {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -953,6 +1034,10 @@ export class TabsStore {
         }
     }
 
+    /**
+     * getAll
+     * @returns {Array.<ClientRemoteTabs>}
+     */
     getAll() {
         const liftResult = (result) => FfiConverterSequenceTypeClientRemoteTabs.lift(result);
         const liftError = null;
@@ -969,6 +1054,10 @@ export class TabsStore {
         }
     }
 
+    /**
+     * newRemoteCommandStore
+     * @returns {RemoteCommandStore}
+     */
     newRemoteCommandStore() {
         const liftResult = (result) => FfiConverterTypeRemoteCommandStore.lift(result);
         const liftError = null;
@@ -985,6 +1074,9 @@ export class TabsStore {
         }
     }
 
+    /**
+     * registerWithSyncManager
+     */
     registerWithSyncManager() {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -1001,6 +1093,9 @@ export class TabsStore {
         }
     }
 
+    /**
+     * setLocalTabs
+     */
     setLocalTabs(remoteTabs) {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -1057,6 +1152,9 @@ export class FfiConverterTypeTabsStore extends FfiConverter {
     }
 }
 
+/**
+ * ClientRemoteTabs
+ */
 export class ClientRemoteTabs {
     constructor({ clientId, clientName, deviceType, lastModified, remoteTabs } = {}) {
         try {
@@ -1099,12 +1197,29 @@ export class ClientRemoteTabs {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.clientId = clientId;
+        /**
+         * @type {string}
+         */
         this.clientName = clientName;
+        /**
+         * @type {DeviceType}
+         */
         this.deviceType = deviceType;
+        /**
+         * Number of ms since the unix epoch (as reported by the server's clock)
+         * @type {number}
+         */
         this.lastModified = lastModified;
+        /**
+         * @type {Array.<RemoteTabRecord>}
+         */
         this.remoteTabs = remoteTabs;
     }
+
     equals(other) {
         return (
             this.clientId == other.clientId &&
@@ -1193,6 +1308,9 @@ export class FfiConverterTypeClientRemoteTabs extends FfiConverterArrayBuffer {
     }
 }
 
+/**
+ * Represents a "pending" command.
+ */
 export class PendingCommand {
     constructor({ deviceId, command, timeRequested, timeSent } = {}) {
         try {
@@ -1227,11 +1345,24 @@ export class PendingCommand {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.deviceId = deviceId;
+        /**
+         * @type {RemoteCommand}
+         */
         this.command = command;
+        /**
+         * @type {Timestamp}
+         */
         this.timeRequested = timeRequested;
+        /**
+         * @type {?Timestamp}
+         */
         this.timeSent = timeSent;
     }
+
     equals(other) {
         return (
             this.deviceId == other.deviceId &&
@@ -1308,6 +1439,9 @@ export class FfiConverterTypePendingCommand extends FfiConverterArrayBuffer {
     }
 }
 
+/**
+ * RemoteTabRecord
+ */
 export class RemoteTabRecord {
     constructor({ title, urlHistory, icon, lastUsed, inactive = false } = {}) {
         try {
@@ -1350,12 +1484,29 @@ export class RemoteTabRecord {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.title = title;
+        /**
+         * @type {Array.<string>}
+         */
         this.urlHistory = urlHistory;
+        /**
+         * @type {?string}
+         */
         this.icon = icon;
+        /**
+         * Number of ms since the unix epoch (as reported by the client's clock)
+         * @type {number}
+         */
         this.lastUsed = lastUsed;
+        /**
+         * @type {Boolean}
+         */
         this.inactive = inactive;
     }
+
     equals(other) {
         return (
             this.title == other.title &&
@@ -1445,7 +1596,13 @@ export class FfiConverterTypeRemoteTabRecord extends FfiConverterArrayBuffer {
 }
 
 
+/**
+ * A command which should be sent to a remote device.
+ */
 export class RemoteCommand {}
+/**
+ * CloseTab
+ */
 RemoteCommand.CloseTab = class extends RemoteCommand{
     constructor(
         url
@@ -1498,9 +1655,15 @@ export class FfiConverterTypeRemoteCommand extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * TabsApiError
+ */
 export class TabsApiError extends Error {}
 
 
+/**
+ * SyncError
+ */
 export class SyncError extends TabsApiError {
 
     constructor(
@@ -1516,6 +1679,9 @@ export class SyncError extends TabsApiError {
     }
 }
 
+/**
+ * SqlError
+ */
 export class SqlError extends TabsApiError {
 
     constructor(
@@ -1531,6 +1697,9 @@ export class SqlError extends TabsApiError {
     }
 }
 
+/**
+ * UnexpectedTabsError
+ */
 export class UnexpectedTabsError extends TabsApiError {
 
     constructor(

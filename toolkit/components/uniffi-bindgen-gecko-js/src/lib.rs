@@ -4,7 +4,7 @@
 
 use anyhow::{Context, Result};
 use askama::Template;
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -12,6 +12,7 @@ use std::fs::File;
 use std::io::Write;
 
 mod ci_list;
+mod docs;
 mod render;
 
 use ci_list::{CallbackIds, ComponentUniverse, FunctionIds, ObjectIds};
@@ -40,6 +41,9 @@ struct CliArgs {
 
     #[clap(long, value_name = "FILE")]
     cpp_path: Utf8PathBuf,
+
+    #[clap(long, value_name = "FILE")]
+    docs_path: Utf8PathBuf,
 }
 
 type Component = uniffi_bindgen::Component<Config>;
@@ -91,7 +95,7 @@ fn render_cpp(
 }
 
 fn render_js(
-    out_dir: Utf8PathBuf,
+    out_dir: &Utf8Path,
     components: &[Component],
     function_ids: &FunctionIds,
     object_ids: &ObjectIds,
@@ -127,19 +131,20 @@ pub fn run_main() -> Result<()> {
         &callback_ids,
     )?;
     render_js(
-        args.js_dir,
+        &args.js_dir,
         &components.components,
         &function_ids,
         &object_ids,
         &callback_ids,
     )?;
     render_js(
-        args.fixture_js_dir,
+        &args.fixture_js_dir,
         &components.fixture_components,
         &function_ids,
         &object_ids,
         &callback_ids,
     )?;
+    docs::render_docs(&args.docs_path, &components.components)?;
 
     Ok(())
 }

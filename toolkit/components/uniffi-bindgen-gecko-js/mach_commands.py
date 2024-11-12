@@ -10,6 +10,7 @@ from mach.decorators import Command, SubCommand
 CPP_PATH = "toolkit/components/uniffi-js/UniFFIGeneratedScaffolding.cpp"
 JS_DIR = "toolkit/components/uniffi-bindgen-gecko-js/components/generated"
 FIXTURE_JS_DIR = "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated"
+DOCS_PATH = "docs/rust-components/api/js/"
 
 
 def build_gkrust_uniffi_library(command_context, package_name):
@@ -91,6 +92,8 @@ def generate_command(command_context):
         FIXTURE_JS_DIR,
         "--cpp-path",
         CPP_PATH,
+        "--docs-path",
+        DOCS_PATH,
     ]
     subprocess.check_call(cmdline, cwd=command_context.topsrcdir)
     return 0

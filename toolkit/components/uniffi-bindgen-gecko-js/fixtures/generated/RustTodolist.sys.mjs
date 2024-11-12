@@ -287,6 +287,9 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * TodoList
+ */
 export class TodoList {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -301,10 +304,8 @@ export class TodoList {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * An async constructor for TodoList.
-     * 
-     * @returns {Promise<TodoList>}: A promise that resolves
-     *      to a newly constructed TodoList
+     * init
+     * @returns {TodoList}
      */
     static init() {
         const liftResult = (result) => FfiConverterTypeTodoList.lift(result);
@@ -320,6 +321,9 @@ export class TodoList {
             return Promise.reject(error)
         }}
 
+    /**
+     * addEntries
+     */
     addEntries(entries) {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -345,6 +349,9 @@ export class TodoList {
         }
     }
 
+    /**
+     * addEntry
+     */
     addEntry(entry) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTodoError.lift(data);
@@ -370,6 +377,9 @@ export class TodoList {
         }
     }
 
+    /**
+     * addItem
+     */
     addItem(todo) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTodoError.lift(data);
@@ -395,6 +405,9 @@ export class TodoList {
         }
     }
 
+    /**
+     * addItems
+     */
     addItems(items) {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -420,6 +433,9 @@ export class TodoList {
         }
     }
 
+    /**
+     * clearItem
+     */
     clearItem(todo) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeTodoError.lift(data);
@@ -445,6 +461,10 @@ export class TodoList {
         }
     }
 
+    /**
+     * getEntries
+     * @returns {Array.<TodoEntry>}
+     */
     getEntries() {
         const liftResult = (result) => FfiConverterSequenceTypeTodoEntry.lift(result);
         const liftError = null;
@@ -461,6 +481,10 @@ export class TodoList {
         }
     }
 
+    /**
+     * getFirst
+     * @returns {string}
+     */
     getFirst() {
         const liftResult = (result) => FfiConverterString.lift(result);
         const liftError = (data) => FfiConverterTypeTodoError.lift(data);
@@ -477,6 +501,10 @@ export class TodoList {
         }
     }
 
+    /**
+     * getItems
+     * @returns {Array.<string>}
+     */
     getItems() {
         const liftResult = (result) => FfiConverterSequencestring.lift(result);
         const liftError = null;
@@ -493,6 +521,10 @@ export class TodoList {
         }
     }
 
+    /**
+     * getLast
+     * @returns {string}
+     */
     getLast() {
         const liftResult = (result) => FfiConverterString.lift(result);
         const liftError = (data) => FfiConverterTypeTodoError.lift(data);
@@ -509,6 +541,10 @@ export class TodoList {
         }
     }
 
+    /**
+     * getLastEntry
+     * @returns {TodoEntry}
+     */
     getLastEntry() {
         const liftResult = (result) => FfiConverterTypeTodoEntry.lift(result);
         const liftError = (data) => FfiConverterTypeTodoError.lift(data);
@@ -525,6 +561,9 @@ export class TodoList {
         }
     }
 
+    /**
+     * makeDefault
+     */
     makeDefault() {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -572,6 +611,9 @@ export class FfiConverterTypeTodoList extends FfiConverter {
     }
 }
 
+/**
+ * TodoEntry
+ */
 export class TodoEntry {
     constructor({ text } = {}) {
         try {
@@ -582,8 +624,12 @@ export class TodoEntry {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.text = text;
     }
+
     equals(other) {
         return (
             this.text == other.text
@@ -627,9 +673,15 @@ export class FfiConverterTypeTodoEntry extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * TodoError
+ */
 export class TodoError extends Error {}
 
 
+/**
+ * TODO_DOES_NOT_EXIST
+ */
 export class TodoDoesNotExist extends TodoError {
 
     constructor(message, ...params) {
@@ -641,6 +693,9 @@ export class TodoDoesNotExist extends TodoError {
     }
 }
 
+/**
+ * EMPTY_TODO_LIST
+ */
 export class EmptyTodoList extends TodoError {
 
     constructor(message, ...params) {
@@ -652,6 +707,9 @@ export class EmptyTodoList extends TodoError {
     }
 }
 
+/**
+ * DUPLICATE_TODO
+ */
 export class DuplicateTodo extends TodoError {
 
     constructor(message, ...params) {
@@ -663,6 +721,9 @@ export class DuplicateTodo extends TodoError {
     }
 }
 
+/**
+ * EMPTY_STRING
+ */
 export class EmptyString extends TodoError {
 
     constructor(message, ...params) {
@@ -674,6 +735,9 @@ export class EmptyString extends TodoError {
     }
 }
 
+/**
+ * DELIGATED_ERROR
+ */
 export class DeligatedError extends TodoError {
 
     constructor(message, ...params) {
@@ -879,6 +943,10 @@ export class FfiConverterSequenceTypeTodoEntry extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * createEntryWith
+ * @returns {TodoEntry}
+ */
 export function createEntryWith(todo) {
 
         const liftResult = (result) => FfiConverterTypeTodoEntry.lift(result);
@@ -904,6 +972,10 @@ export function createEntryWith(todo) {
         }
 }
 
+/**
+ * getDefaultList
+ * @returns {?TodoList}
+ */
 export function getDefaultList() {
 
         const liftResult = (result) => FfiConverterOptionalTypeTodoList.lift(result);
@@ -920,6 +992,9 @@ export function getDefaultList() {
         }
 }
 
+/**
+ * setDefaultList
+ */
 export function setDefaultList(list) {
 
         const liftResult = (result) => undefined;

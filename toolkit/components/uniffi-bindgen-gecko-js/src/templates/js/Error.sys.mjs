@@ -1,9 +1,11 @@
 {%- let string_type = Type::String %}
 {%- let string_ffi_converter = string_type.ffi_converter() %}
 
+{{ error.js_docstring(0) -}}
 export class {{ error.js_name() }} extends Error {}
 {% for variant in error.variants() %}
 
+{{ variant.js_docstring(error.is_flat(), 0) -}}
 export class {{ variant.name().to_upper_camel_case() }} extends {{ error.js_name() }} {
 {% if error.is_flat() %}
     constructor(message, ...params) {

@@ -400,6 +400,9 @@ export class FfiConverterBytes extends FfiConverterArrayBuffer {
     }
 }
 
+/**
+ * RemoteSettings
+ */
 export class RemoteSettings {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -414,9 +417,8 @@ export class RemoteSettings {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * A constructor for RemoteSettings.
-     * 
-     * @returns { RemoteSettings }
+     * Construct a new Remote Settings client with the given configuration.
+     * @returns {RemoteSettings}
      */
     static init(remoteSettingsConfig) {
         const liftResult = (result) => FfiConverterTypeRemoteSettings.lift(result);
@@ -437,6 +439,9 @@ export class RemoteSettings {
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
 
+    /**
+     * Download an attachment with the provided id to the provided path.
+     */
     downloadAttachmentToPath(attachmentId,path) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
@@ -471,6 +476,10 @@ export class RemoteSettings {
         }
     }
 
+    /**
+     * Fetch all records for the configuration this client was initialized with.
+     * @returns {RemoteSettingsResponse}
+     */
     getRecords() {
         const liftResult = (result) => FfiConverterTypeRemoteSettingsResponse.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
@@ -487,6 +496,11 @@ export class RemoteSettings {
         }
     }
 
+    /**
+     * Fetch all records added to the server since the provided timestamp,
+     * using the configuration this client was initialized with.
+     * @returns {RemoteSettingsResponse}
+     */
     getRecordsSince(timestamp) {
         const liftResult = (result) => FfiConverterTypeRemoteSettingsResponse.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
@@ -543,6 +557,11 @@ export class FfiConverterTypeRemoteSettings extends FfiConverter {
     }
 }
 
+/**
+ * Client for a single Remote Settings collection
+ *
+ * Use [RemoteSettingsService::make_client] to create these.
+ */
 export class RemoteSettingsClient {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -557,6 +576,10 @@ export class RemoteSettingsClient {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
 
+    /**
+     * Collection this client is for
+     * @returns {string}
+     */
     collectionName() {
         const liftResult = (result) => FfiConverterString.lift(result);
         const liftError = null;
@@ -573,6 +596,18 @@ export class RemoteSettingsClient {
         }
     }
 
+    /**
+     * Get attachment data for a remote settings record
+     *
+     * Attachments are large binary blobs used for data that doesn't fit in a normal record.  They
+     * are handled differently than other record data:
+     *
+     * - Attachments are not downloaded in [RemoteSettingsService::sync]
+     * - This method will make network requests if the attachment is not cached
+     * - This method will throw if there is a network or other error when fetching the
+     * attachment data.
+     * @returns {string}
+     */
     getAttachment(attachmentId) {
         const liftResult = (result) => FfiConverterBytes.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
@@ -598,6 +633,27 @@ export class RemoteSettingsClient {
         }
     }
 
+    /**
+     * Get the current set of records.
+     *
+     * This method normally fetches records from the last sync.  This means that it returns fast
+     * and does not make any network requests.
+     *
+     * If records have not yet been synced it will return None.  Use `sync_if_empty = true` to
+     * change this behavior and perform a network request in this case.  That this is probably a
+     * bad idea if you want to fetch the setting in application startup or when building the UI.
+     *
+     * None will also be returned on disk IO errors or other unexpected errors.  The reason for
+     * this is that there is not much an application can do in this situation other than fall back
+     * to the same default handling as if records have not been synced.
+     *
+     * TODO(Bug 1919141):
+     *
+     * Application-services schedules regular dumps of the server data for specific collections.
+     * For these collections, `get_records` will never return None.  If you would like to add your
+     * collection to this list, please reach out to the DISCO team.
+     * @returns {?Array.<RemoteSettingsRecord>}
+     */
     getRecords(syncIfEmpty = false) {
         const liftResult = (result) => FfiConverterOptionalSequenceTypeRemoteSettingsRecord.lift(result);
         const liftError = null;
@@ -623,6 +679,13 @@ export class RemoteSettingsClient {
         }
     }
 
+    /**
+     * Get the current set of records as a map of record_id -> record.
+     *
+     * See [Self::get_records] for an explanation of when this makes network requests, error
+     * handling, and how the `sync_if_empty` param works.
+     * @returns {?object}
+     */
     getRecordsMap(syncIfEmpty = false) {
         const liftResult = (result) => FfiConverterOptionalMapStringTypeRemoteSettingsRecord.lift(result);
         const liftError = null;
@@ -679,6 +742,12 @@ export class FfiConverterTypeRemoteSettingsClient extends FfiConverter {
     }
 }
 
+/**
+ * Application-level Remote Settings manager.
+ *
+ * This handles application-level operations, like syncing all the collections, and acts as a
+ * factory for creating clients.
+ */
 export class RemoteSettingsService {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -693,10 +762,10 @@ export class RemoteSettingsService {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * An async constructor for RemoteSettingsService.
-     * 
-     * @returns {Promise<RemoteSettingsService>}: A promise that resolves
-     *      to a newly constructed RemoteSettingsService
+     * Construct a [RemoteSettingsService]
+     *
+     * This is typically done early in the application-startup process
+     * @returns {RemoteSettingsService}
      */
     static init(storageDir,config) {
         const liftResult = (result) => FfiConverterTypeRemoteSettingsService.lift(result);
@@ -730,6 +799,10 @@ export class RemoteSettingsService {
             return Promise.reject(error)
         }}
 
+    /**
+     * Create a new Remote Settings client
+     * @returns {RemoteSettingsClient}
+     */
     makeClient(collectionName) {
         const liftResult = (result) => FfiConverterTypeRemoteSettingsClient.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
@@ -755,6 +828,10 @@ export class RemoteSettingsService {
         }
     }
 
+    /**
+     * Sync collections for all active clients
+     * @returns {Array.<string>}
+     */
     sync() {
         const liftResult = (result) => FfiConverterSequencestring.lift(result);
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
@@ -771,6 +848,15 @@ export class RemoteSettingsService {
         }
     }
 
+    /**
+     * Update the remote settings config
+     *
+     * This will cause all current and future clients to use new config and will delete any stored
+     * records causing the clients to return new results from the new config.
+     *
+     * Only intended for QA/debugging.  Swapping the remote settings server in the middle of
+     * execution can cause weird effects.
+     */
     updateConfig(config) {
         const liftResult = (result) => undefined;
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
@@ -827,6 +913,10 @@ export class FfiConverterTypeRemoteSettingsService extends FfiConverter {
     }
 }
 
+/**
+ * Attachment metadata that can be optionally attached to a [Record]. The [location] should
+ * included in calls to [Client::get_attachment].
+ */
 export class Attachment {
     constructor({ filename, mimetype, location, hash, size } = {}) {
         try {
@@ -869,12 +959,28 @@ export class Attachment {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.filename = filename;
+        /**
+         * @type {string}
+         */
         this.mimetype = mimetype;
+        /**
+         * @type {string}
+         */
         this.location = location;
+        /**
+         * @type {string}
+         */
         this.hash = hash;
+        /**
+         * @type {number}
+         */
         this.size = size;
     }
+
     equals(other) {
         return (
             this.filename == other.filename &&
@@ -963,6 +1069,14 @@ export class FfiConverterTypeAttachment extends FfiConverterArrayBuffer {
     }
 }
 
+/**
+ * Custom configuration for the client.
+ * Currently includes the following:
+ * - `server`: The Remote Settings server to use. If not specified, defaults to the production server (`RemoteSettingsServer::Prod`).
+ * - `server_url`: An optional custom Remote Settings server URL. Deprecated; please use `server` instead.
+ * - `bucket_name`: The optional name of the bucket containing the collection on the server. If not specified, the standard bucket will be used.
+ * - `collection_name`: The name of the collection for the settings server.
+ */
 export class RemoteSettingsConfig {
     constructor({ collectionName, bucketName = null, serverUrl = null, server = null } = {}) {
         try {
@@ -997,11 +1111,24 @@ export class RemoteSettingsConfig {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.collectionName = collectionName;
+        /**
+         * @type {?string}
+         */
         this.bucketName = bucketName;
+        /**
+         * @type {?string}
+         */
         this.serverUrl = serverUrl;
+        /**
+         * @type {?RemoteSettingsServer}
+         */
         this.server = server;
     }
+
     equals(other) {
         return (
             this.collectionName == other.collectionName &&
@@ -1078,6 +1205,13 @@ export class FfiConverterTypeRemoteSettingsConfig extends FfiConverterArrayBuffe
     }
 }
 
+/**
+ * Remote settings configuration
+ *
+ * This is the version used in the new API, hence the `2` at the end.  The plan is to move
+ * consumers to the new API, remove the RemoteSettingsConfig struct, then remove the `2` from this
+ * name.
+ */
 export class RemoteSettingsConfig2 {
     constructor({ server = null, bucketName = null } = {}) {
         try {
@@ -1096,9 +1230,18 @@ export class RemoteSettingsConfig2 {
             }
             throw e;
         }
+        /**
+         * The Remote Settings server to use. Defaults to [RemoteSettingsServer::Prod],
+         * @type {?RemoteSettingsServer}
+         */
         this.server = server;
+        /**
+         * Bucket name to use, defaults to "main".  Use "main-preview" for a preview bucket
+         * @type {?string}
+         */
         this.bucketName = bucketName;
     }
+
     equals(other) {
         return (
             this.server == other.server &&
@@ -1151,6 +1294,10 @@ export class FfiConverterTypeRemoteSettingsConfig2 extends FfiConverterArrayBuff
     }
 }
 
+/**
+ * A parsed Remote Settings record. Records can contain arbitrary fields, so clients
+ * are required to further extract expected values from the [fields] member.
+ */
 export class RemoteSettingsRecord {
     constructor({ id, lastModified, deleted, attachment, fields } = {}) {
         try {
@@ -1193,12 +1340,28 @@ export class RemoteSettingsRecord {
             }
             throw e;
         }
+        /**
+         * @type {string}
+         */
         this.id = id;
+        /**
+         * @type {number}
+         */
         this.lastModified = lastModified;
+        /**
+         * @type {Boolean}
+         */
         this.deleted = deleted;
+        /**
+         * @type {?Attachment}
+         */
         this.attachment = attachment;
+        /**
+         * @type {RsJsonObject}
+         */
         this.fields = fields;
     }
+
     equals(other) {
         return (
             this.id == other.id &&
@@ -1287,6 +1450,10 @@ export class FfiConverterTypeRemoteSettingsRecord extends FfiConverterArrayBuffe
     }
 }
 
+/**
+ * Data structure representing the top-level response from the Remote Settings.
+ * [last_modified] will be extracted from the etag header of the response.
+ */
 export class RemoteSettingsResponse {
     constructor({ records, lastModified } = {}) {
         try {
@@ -1305,9 +1472,16 @@ export class RemoteSettingsResponse {
             }
             throw e;
         }
+        /**
+         * @type {Array.<RemoteSettingsRecord>}
+         */
         this.records = records;
+        /**
+         * @type {number}
+         */
         this.lastModified = lastModified;
     }
+
     equals(other) {
         return (
             this.records == other.records &&
@@ -1363,9 +1537,15 @@ export class FfiConverterTypeRemoteSettingsResponse extends FfiConverterArrayBuf
 
 
 
+/**
+ * Public error class, this is what we return to consumers
+ */
 export class RemoteSettingsError extends Error {}
 
 
+/**
+ * Network error while making a remote settings request
+ */
 export class Network extends RemoteSettingsError {
 
     constructor(
@@ -1381,6 +1561,9 @@ export class Network extends RemoteSettingsError {
     }
 }
 
+/**
+ * The server has asked the client to backoff.
+ */
 export class Backoff extends RemoteSettingsError {
 
     constructor(
@@ -1396,6 +1579,9 @@ export class Backoff extends RemoteSettingsError {
     }
 }
 
+/**
+ * Other
+ */
 export class Other extends RemoteSettingsError {
 
     constructor(
@@ -1471,25 +1657,40 @@ export class FfiConverterTypeRemoteSettingsError extends FfiConverterArrayBuffer
 }
 
 
+/**
+ * The Remote Settings server that the client should use.
+ */
 export class RemoteSettingsServer {}
+/**
+ * Prod
+ */
 RemoteSettingsServer.Prod = class extends RemoteSettingsServer{
     constructor(
         ) {
             super();
         }
 }
+/**
+ * Stage
+ */
 RemoteSettingsServer.Stage = class extends RemoteSettingsServer{
     constructor(
         ) {
             super();
         }
 }
+/**
+ * Dev
+ */
 RemoteSettingsServer.Dev = class extends RemoteSettingsServer{
     constructor(
         ) {
             super();
         }
 }
+/**
+ * Custom
+ */
 RemoteSettingsServer.Custom = class extends RemoteSettingsServer{
     constructor(
         url

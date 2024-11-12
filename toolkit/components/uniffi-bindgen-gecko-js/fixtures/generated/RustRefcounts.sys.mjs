@@ -315,6 +315,9 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * SingletonObject
+ */
 export class SingletonObject {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -329,6 +332,9 @@ export class SingletonObject {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
 
+    /**
+     * method
+     */
     method() {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -376,6 +382,10 @@ export class FfiConverterTypeSingletonObject extends FfiConverter {
 
 
 
+/**
+ * getJsRefcount
+ * @returns {number}
+ */
 export function getJsRefcount() {
 
         const liftResult = (result) => FfiConverterI32.lift(result);
@@ -388,6 +398,10 @@ export function getJsRefcount() {
         return handleRustResult(functionCall(), liftResult, liftError);
 }
 
+/**
+ * getSingleton
+ * @returns {SingletonObject}
+ */
 export function getSingleton() {
 
         const liftResult = (result) => FfiConverterTypeSingletonObject.lift(result);

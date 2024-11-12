@@ -306,6 +306,9 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * Sprite
+ */
 export class Sprite {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -320,10 +323,8 @@ export class Sprite {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * An async constructor for Sprite.
-     * 
-     * @returns {Promise<Sprite>}: A promise that resolves
-     *      to a newly constructed Sprite
+     * init
+     * @returns {Sprite}
      */
     static init(initialPosition) {
         const liftResult = (result) => FfiConverterTypeSprite.lift(result);
@@ -348,10 +349,8 @@ export class Sprite {
             return Promise.reject(error)
         }}
     /**
-     * An async constructor for Sprite.
-     * 
-     * @returns {Promise<Sprite>}: A promise that resolves
-     *      to a newly constructed Sprite
+     * newRelativeTo
+     * @returns {Sprite}
      */
     static newRelativeTo(reference,direction) {
         const liftResult = (result) => FfiConverterTypeSprite.lift(result);
@@ -385,6 +384,10 @@ export class Sprite {
             return Promise.reject(error)
         }}
 
+    /**
+     * getPosition
+     * @returns {Point}
+     */
     getPosition() {
         const liftResult = (result) => FfiConverterTypePoint.lift(result);
         const liftError = null;
@@ -401,6 +404,9 @@ export class Sprite {
         }
     }
 
+    /**
+     * moveBy
+     */
     moveBy(direction) {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -426,6 +432,9 @@ export class Sprite {
         }
     }
 
+    /**
+     * moveTo
+     */
     moveTo(position) {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -482,6 +491,9 @@ export class FfiConverterTypeSprite extends FfiConverter {
     }
 }
 
+/**
+ * Point
+ */
 export class Point {
     constructor({ x, y } = {}) {
         try {
@@ -500,9 +512,16 @@ export class Point {
             }
             throw e;
         }
+        /**
+         * @type {number}
+         */
         this.x = x;
+        /**
+         * @type {number}
+         */
         this.y = y;
     }
+
     equals(other) {
         return (
             this.x == other.x &&
@@ -555,6 +574,9 @@ export class FfiConverterTypePoint extends FfiConverterArrayBuffer {
     }
 }
 
+/**
+ * Vector
+ */
 export class Vector {
     constructor({ dx, dy } = {}) {
         try {
@@ -573,9 +595,16 @@ export class Vector {
             }
             throw e;
         }
+        /**
+         * @type {number}
+         */
         this.dx = dx;
+        /**
+         * @type {number}
+         */
         this.dy = dy;
     }
+
     equals(other) {
         return (
             this.dx == other.dx &&
@@ -669,6 +698,10 @@ export class FfiConverterOptionalTypePoint extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * translate
+ * @returns {Point}
+ */
 export function translate(position,direction) {
 
         const liftResult = (result) => FfiConverterTypePoint.lift(result);

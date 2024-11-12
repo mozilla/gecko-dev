@@ -380,6 +380,10 @@ export { FfiConverterTypePoint, Point };
 
 
 
+/**
+ * gradient
+ * @returns {number}
+ */
 export function gradient(value) {
 
         const liftResult = (result) => FfiConverterF64.lift(result);
@@ -405,6 +409,10 @@ export function gradient(value) {
         }
 }
 
+/**
+ * intersection
+ * @returns {?Point}
+ */
 export function intersection(ln1,ln2) {
 
         const liftResult = (result) => FfiConverterOptionalTypePoint.lift(result);

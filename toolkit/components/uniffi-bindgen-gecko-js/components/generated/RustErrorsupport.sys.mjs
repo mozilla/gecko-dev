@@ -546,6 +546,9 @@ UnitTestObjs.callbackHandlerApplicationErrorReporter = callbackHandlerApplicatio
 
 
 
+/**
+ * Set the global error reporter.  This is typically done early in startup.
+ */
 export function setApplicationErrorReporter(errorReporter) {
 
         const liftResult = (result) => undefined;
@@ -571,6 +574,10 @@ export function setApplicationErrorReporter(errorReporter) {
         }
 }
 
+/**
+ * Unset the global error reporter.  This is typically done at shutdown for
+ * platforms that want to cleanup references like Desktop.
+ */
 export function unsetApplicationErrorReporter() {
 
         const liftResult = (result) => undefined;

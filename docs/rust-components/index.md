@@ -7,4 +7,5 @@ This section is meant to make it easier to use and implement cross-platform comp
 :maxdepth: 2
 
 Topic Guides <topic-guides/index>
+API References <api/index>
 uniffi

@@ -292,6 +292,9 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * CustomTypesDemo
+ */
 export class CustomTypesDemo {
     constructor({ url, handle } = {}) {
         try {
@@ -310,9 +313,16 @@ export class CustomTypesDemo {
             }
             throw e;
         }
+        /**
+         * @type {Url}
+         */
         this.url = url;
+        /**
+         * @type {Handle}
+         */
         this.handle = handle;
     }
+
     equals(other) {
         return (
             this.url == other.url &&
@@ -454,6 +464,10 @@ export class FfiConverterTypeUrl extends FfiConverter {
 
 
 
+/**
+ * getCustomTypesDemo
+ * @returns {CustomTypesDemo}
+ */
 export function getCustomTypesDemo(demo) {
 
         const liftResult = (result) => FfiConverterTypeCustomTypesDemo.lift(result);

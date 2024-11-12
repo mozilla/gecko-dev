@@ -334,6 +334,9 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * RelevancyStore
+ */
 export class RelevancyStore {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -348,9 +351,10 @@ export class RelevancyStore {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
     /**
-     * A constructor for RelevancyStore.
-     * 
-     * @returns { RelevancyStore }
+     * Construct a new RelevancyStore
+     *
+     * This is non-blocking since databases and other resources are lazily opened.
+     * @returns {RelevancyStore}
      */
     static init(dbPath) {
         const liftResult = (result) => FfiConverterTypeRelevancyStore.lift(result);
@@ -371,6 +375,13 @@ export class RelevancyStore {
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
 
+    /**
+     * Calculate metrics for the validation phase
+     *
+     * This runs after [Self::ingest].  It takes the interest vector that ingest created and
+     * calculates a set of metrics that we can report to glean.
+     * @returns {InterestMetrics}
+     */
     calculateMetrics() {
         const liftResult = (result) => FfiConverterTypeInterestMetrics.lift(result);
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
@@ -387,6 +398,11 @@ export class RelevancyStore {
         }
     }
 
+    /**
+     * Close any open resources (for example databases)
+     *
+     * Calling `close` will interrupt any in-progress queries on other threads.
+     */
     close() {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -399,6 +415,20 @@ export class RelevancyStore {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    /**
+     * Ingest top URLs to build the user's interest vector.
+     *
+     * Consumer should pass a list of the user's top URLs by frecency to this method.  It will
+     * then:
+     *
+     * - Download the URL interest data from remote settings.  Eventually this should be cached /
+     * stored in the database, but for now it would be fine to download fresh data each time.
+     * - Match the user's top URls against the interest data to build up their interest vector.
+     * - Store the user's interest vector in the database.
+     *
+     * This method may execute for a long time and should only be called from a worker thread.
+     * @returns {InterestVector}
+     */
     ingest(topUrlsByFrecency) {
         const liftResult = (result) => FfiConverterTypeInterestVector.lift(result);
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
@@ -424,6 +454,9 @@ export class RelevancyStore {
         }
     }
 
+    /**
+     * Interrupt any current database queries
+     */
     interrupt() {
         const liftResult = (result) => undefined;
         const liftError = null;
@@ -436,6 +469,13 @@ export class RelevancyStore {
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
+    /**
+     * Get the user's interest vector directly.
+     *
+     * This runs after [Self::ingest].  It returns the interest vector directly so that the
+     * consumer can show it in an `about:` page.
+     * @returns {InterestVector}
+     */
     userInterestVector() {
         const liftResult = (result) => FfiConverterTypeInterestVector.lift(result);
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
@@ -483,6 +523,18 @@ export class FfiConverterTypeRelevancyStore extends FfiConverter {
     }
 }
 
+/**
+ * Interest metrics that we want to send to Glean as part of the validation process.  These contain
+ * the cosine similarity when comparing the user's interest against various interest vectors that
+ * consumers may use.
+ *
+ * Cosine similarly was chosen because it seems easy to calculate.  This was then matched against
+ * some semi-plausible real-world interest vectors that consumers might use.  This is all up for
+ * debate and we may decide to switch to some other metrics.
+ *
+ * Similarity values are transformed to integers by multiplying the floating point value by 1000 and
+ * rounding.  This is to make them compatible with Glean's distribution metrics.
+ */
 export class InterestMetrics {
     constructor({ topSingleInterestSimilarity, top2interestSimilarity, top3interestSimilarity } = {}) {
         try {
@@ -509,10 +561,29 @@ export class InterestMetrics {
             }
             throw e;
         }
+        /**
+         * Similarity between the user's interest vector and an interest vector where the element for
+         * the user's top interest is copied, but all other interests are set to zero.  This measures
+         * the highest possible similarity with consumers that used interest vectors with a single
+         * interest set.
+         * @type {number}
+         */
         this.topSingleInterestSimilarity = topSingleInterestSimilarity;
+        /**
+         * The same as before, but the top 2 interests are copied. This measures the highest possible
+         * similarity with consumers that used interest vectors with a two interests (note: this means
+         * they would need to choose the user's top two interests and have the exact same proportion
+         * between them as the user).
+         * @type {number}
+         */
         this.top2interestSimilarity = top2interestSimilarity;
+        /**
+         * The same as before, but the top 3 interests are copied.
+         * @type {number}
+         */
         this.top3interestSimilarity = top3interestSimilarity;
     }
+
     equals(other) {
         return (
             this.topSingleInterestSimilarity == other.topSingleInterestSimilarity &&
@@ -577,6 +648,12 @@ export class FfiConverterTypeInterestMetrics extends FfiConverterArrayBuffer {
     }
 }
 
+/**
+ * Vector storing a count value for each interest
+ *
+ * Here "vector" refers to the mathematical object, not a Rust `Vec`.  It always has a fixed
+ * number of elements.
+ */
 export class InterestVector {
     constructor({ inconclusive, animals, arts, autos, business, career, education, fashion, finance, food, government, hobbies, home, news, realEstate, society, sports, tech, travel } = {}) {
         try {
@@ -731,26 +808,84 @@ export class InterestVector {
             }
             throw e;
         }
+        /**
+         * @type {number}
+         */
         this.inconclusive = inconclusive;
+        /**
+         * @type {number}
+         */
         this.animals = animals;
+        /**
+         * @type {number}
+         */
         this.arts = arts;
+        /**
+         * @type {number}
+         */
         this.autos = autos;
+        /**
+         * @type {number}
+         */
         this.business = business;
+        /**
+         * @type {number}
+         */
         this.career = career;
+        /**
+         * @type {number}
+         */
         this.education = education;
+        /**
+         * @type {number}
+         */
         this.fashion = fashion;
+        /**
+         * @type {number}
+         */
         this.finance = finance;
+        /**
+         * @type {number}
+         */
         this.food = food;
+        /**
+         * @type {number}
+         */
         this.government = government;
+        /**
+         * @type {number}
+         */
         this.hobbies = hobbies;
+        /**
+         * @type {number}
+         */
         this.home = home;
+        /**
+         * @type {number}
+         */
         this.news = news;
+        /**
+         * @type {number}
+         */
         this.realEstate = realEstate;
+        /**
+         * @type {number}
+         */
         this.society = society;
+        /**
+         * @type {number}
+         */
         this.sports = sports;
+        /**
+         * @type {number}
+         */
         this.tech = tech;
+        /**
+         * @type {number}
+         */
         this.travel = travel;
     }
+
     equals(other) {
         return (
             this.inconclusive == other.inconclusive &&
@@ -1008,25 +1143,87 @@ export class FfiConverterTypeInterestVector extends FfiConverterArrayBuffer {
 }
 
 
+/**
+ * List of possible interests for a domain.  Domains can have be associated with one or multiple
+ * interests.  `Inconclusive` is used for domains in the user's top sites that we can't classify
+ * because there's no corresponding entry in the interest database.
+ */
 export const Interest = {
+    /**
+     * INCONCLUSIVE
+     */
     INCONCLUSIVE: 1,
+    /**
+     * ANIMALS
+     */
     ANIMALS: 2,
+    /**
+     * ARTS
+     */
     ARTS: 3,
+    /**
+     * AUTOS
+     */
     AUTOS: 4,
+    /**
+     * BUSINESS
+     */
     BUSINESS: 5,
+    /**
+     * CAREER
+     */
     CAREER: 6,
+    /**
+     * EDUCATION
+     */
     EDUCATION: 7,
+    /**
+     * FASHION
+     */
     FASHION: 8,
+    /**
+     * FINANCE
+     */
     FINANCE: 9,
+    /**
+     * FOOD
+     */
     FOOD: 10,
+    /**
+     * GOVERNMENT
+     */
     GOVERNMENT: 11,
+    /**
+     * HOBBIES
+     */
     HOBBIES: 12,
+    /**
+     * HOME
+     */
     HOME: 13,
+    /**
+     * NEWS
+     */
     NEWS: 14,
+    /**
+     * REAL_ESTATE
+     */
     REAL_ESTATE: 15,
+    /**
+     * SOCIETY
+     */
     SOCIETY: 16,
+    /**
+     * SPORTS
+     */
     SPORTS: 17,
+    /**
+     * TECH
+     */
     TECH: 18,
+    /**
+     * TRAVEL
+     */
     TRAVEL: 19,
 };
 
@@ -1173,9 +1370,15 @@ export class FfiConverterTypeInterest extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * Errors we return via the public interface.
+ */
 export class RelevancyApiError extends Error {}
 
 
+/**
+ * Unexpected
+ */
 export class Unexpected extends RelevancyApiError {
 
     constructor(
@@ -1316,6 +1519,20 @@ export class FfiConverterSequenceTypeInterest extends FfiConverterArrayBuffer {
 
 
 
+/**
+ * Calculate score for a piece of categorized content based on a user interest vector.
+ *
+ * This scoring function is of the following properties:
+ * - The score ranges from 0.0 to 1.0
+ * - The score is monotonically increasing for the accumulated interest count
+ *
+ * Params:
+ * - `interest_vector`: a user interest vector that can be fetched via
+ * `RelevancyStore::user_interest_vector()`.
+ * - `content_categories`: a list of categories (interests) of the give content.
+ * Return:
+ * @returns {number}
+ */
 export function score(interestVector,contentCategories) {
 
         const liftResult = (result) => FfiConverterF64.lift(result);

@@ -315,6 +315,9 @@ export class FfiConverterString extends FfiConverter {
     }
 }
 
+/**
+ * Calc
+ */
 export class Calc {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
@@ -329,6 +332,10 @@ export class Calc {
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
 
+    /**
+     * add
+     * @returns {number}
+     */
     add(a,b) {
         const liftResult = (result) => FfiConverterU32.lift(result);
         const liftError = null;
@@ -394,6 +401,10 @@ export class FfiConverterTypeCalc extends FfiConverter {
 
 
 
+/**
+ * makeBuggyCalculator
+ * @returns {Calc}
+ */
 export function makeBuggyCalculator() {
 
         const liftResult = (result) => FfiConverterTypeCalc.lift(result);
@@ -406,6 +417,10 @@ export function makeBuggyCalculator() {
         return handleRustResult(functionCall(), liftResult, liftError);
 }
 
+/**
+ * makeCalculator
+ * @returns {Calc}
+ */
 export function makeCalculator() {
 
         const liftResult = (result) => FfiConverterTypeCalc.lift(result);

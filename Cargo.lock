@@ -6496,6 +6496,7 @@ dependencies = [
  "extend",
  "heck",
  "serde",
+ "textwrap",
  "toml",
  "uniffi",
  "uniffi_bindgen",

@@ -1,8 +1,10 @@
 {%- if enum_.is_flat() -%}
 
+{{ enum_.js_docstring(0) -}}
 export const {{ enum_.js_name() }} = {
     {%- for variant in enum_.variants() %}
-    {{ variant.name().to_shouty_snake_case() }}: {{loop.index}},
+    {{ variant.js_docstring(true, 4) -}}
+    {{ variant.js_name(true) }}: {{loop.index}},
     {%- endfor %}
 };
 
@@ -13,7 +15,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
         switch (dataStream.readInt32()) {
             {%- for variant in enum_.variants() %}
             case {{ loop.index }}:
-                return {{ enum_.js_name() }}.{{ variant.name().to_shouty_snake_case() }}
+                return {{ enum_.js_name() }}.{{ variant.js_name(true) }}
             {%- endfor %}
             default:
                 throw new UniFFITypeError("Unknown {{ enum_.js_name() }} variant");
@@ -22,7 +24,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
 
     static write(dataStream, value) {
         {%- for variant in enum_.variants() %}
-        if (value === {{ enum_.js_name() }}.{{ variant.name().to_shouty_snake_case() }}) {
+        if (value === {{ enum_.js_name() }}.{{ variant.js_name(true) }}) {
             dataStream.writeInt32({{ loop.index }});
             return;
         }
@@ -43,9 +45,12 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
 
 {%- else -%}
 
+{{ enum_.js_docstring(0) -}}
 export class {{ enum_.js_name() }} {}
+
 {%- for variant in enum_.variants() %}
-{{enum_.js_name()}}.{{variant.name().to_upper_camel_case() }} = class extends {{ enum_.js_name() }}{
+{{ variant.js_docstring(false, 0) -}}
+{{enum_.js_name()}}.{{ variant.js_name(false) }} = class extends {{ enum_.js_name() }}{
     constructor(
         {% for field in variant.fields() -%}
         {{ field.js_name() }}{%- if loop.last %}{%- else %}, {%- endif %}
@@ -65,7 +70,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
         switch (dataStream.readInt32()) {
             {%- for variant in enum_.variants() %}
             case {{ loop.index }}:
-                return new {{ enum_.js_name() }}.{{ variant.name().to_upper_camel_case()  }}(
+                return new {{ enum_.js_name() }}.{{ variant.js_name(false)  }}(
                     {%- for field in variant.fields() %}
                     {{ field.ffi_converter() }}.read(dataStream){%- if loop.last %}{% else %}, {%- endif %}
                     {%- endfor %}
@@ -78,7 +83,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
 
     static write(dataStream, value) {
         {%- for variant in enum_.variants() %}
-        if (value instanceof {{enum_.js_name()}}.{{ variant.name().to_upper_camel_case() }}) {
+        if (value instanceof {{enum_.js_name()}}.{{ variant.js_name(false) }}) {
             dataStream.writeInt32({{ loop.index }});
             {%- for field in variant.fields() %}
             {{ field.ffi_converter() }}.write(dataStream, value.{{ field.js_name() }});
@@ -93,7 +98,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
         // Size of the Int indicating the variant
         let totalSize = 4;
         {%- for variant in enum_.variants() %}
-        if (value instanceof {{enum_.js_name()}}.{{ variant.name().to_upper_camel_case() }}) {
+        if (value instanceof {{enum_.js_name()}}.{{ variant.js_name(false) }}) {
             {%- for field in variant.fields() %}
             totalSize += {{ field.ffi_converter() }}.computeSize(value.{{ field.js_name() }});
             {%- endfor %}

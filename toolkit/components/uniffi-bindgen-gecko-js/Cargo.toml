@@ -15,6 +15,7 @@ clap = { version = "4", default-features = false, features = ["std", "derive", "
 cargo_metadata = "0.15"
 extend = "1.1"
 heck = "0.5"
+textwrap = { version = "0.16", features = ["smawk"], default-features = false }
 uniffi = { workspace = true }
 uniffi_bindgen = { workspace = true }
 serde = "1"

@@ -80,6 +80,7 @@ js_source_path = [
     "../toolkit/components/pictureinpicture",
     "../toolkit/components/pictureinpicture/content",
     "../toolkit/components/search",
+    "../toolkit/components/uniffi-bindgen-gecko-js/components/generated",
 ]
 root_for_relative_js_paths = ".."
 jsdoc_config_path = "jsdoc.json"
