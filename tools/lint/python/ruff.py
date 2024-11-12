@@ -125,7 +125,7 @@ def lint(paths, config, log, **lintargs):
 
     args = ["ruff", "check", "--force-exclude"] + paths + non_py_files
 
-    if config["exclude"]:
+    if config.get("exclude"):
         args.append(f"--extend-exclude={','.join(config['exclude'])}")
 
     process_kwargs = {"processStderrLine": lambda line: log.debug(line)}
