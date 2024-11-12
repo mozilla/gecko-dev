@@ -378,6 +378,10 @@ CHILD_PROCESSES += [
 
     # Causes crashes in the content, gmp and utility processes, bug 1929333
     DllBlocklistEntry("ks3rdhmpg.dll", ALL_VERSIONS),
+
+    # Causes crashes in the content process with USER_RESTRICTED, bug 1930472
+    DllBlocklistEntry("TbdgHook.dll", (1, 5, 9, 0)),
+    DllBlocklistEntry("TbdgHook64.dll", (1, 5, 9, 0)),
 ]
 
 GPU_PROCESSES += [
