@@ -34,7 +34,7 @@ from slack_notifier import (
 
 # Constants
 SUCCESS_CHANNEL_ID = "C07HUFVU2UD"  # mobile-testeng-releases
-ERROR_CHANNEL_ID = "G016BC5FUHJ"  # mobile-alerts-sandbox
+ERROR_CHANNEL_ID = "C0134KJ4JHL"  # mobile-alerts-android
 
 
 def main():

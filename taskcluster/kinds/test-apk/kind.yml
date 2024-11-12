@@ -89,13 +89,13 @@ tasks:
         routes:
             by-level:
                 '3':
-                    - notify.slack-channel.G016BC5FUHJ.on-failed
+                    - notify.slack-channel.C0134KJ4JHL.on-failed
                 'default': []
         scopes:
             by-level:
                 '3':
-                    - queue:route:notify.slack-channel.G016BC5FUHJ.on-failed
-                    - notify:slack-channel:G016BC5FUHJ
+                    - queue:route:notify.slack-channel.C0134KJ4JHL.on-failed
+                    - notify:slack-channel:C0134KJ4JHL
                 'default': []
         extra:
             notify:
