@@ -66,6 +66,7 @@ SHELL_OPTIONS = {
     "RegExp.escape": "--enable-regexp-escape",
     "regexp-modifiers": "--enable-regexp-modifiers",
     "promise-try": "--enable-promise-try",
+    "explicit-resource-management": "--enable-explicit-resource-management",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {
