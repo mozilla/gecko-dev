@@ -160,4 +160,11 @@ object TestAssetHelper {
 
         return TestAsset(url, "", title)
     }
+
+    fun getPromptAsset(server: MockWebServer): TestAsset {
+        val url = server.url("pages/beforeUnload.html").toString().toUri()!!
+        val title = "BeforeUnload_Test_Page"
+
+        return TestAsset(url, "", title)
+    }
 }

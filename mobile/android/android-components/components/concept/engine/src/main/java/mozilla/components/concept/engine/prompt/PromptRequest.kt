@@ -89,12 +89,14 @@ sealed class PromptRequest(
      * @property title of the dialog.
      * @property onLeave callback to notify that the user wants leave the site.
      * @property onStay callback to notify that the user wants stay in the site.
+     * @property onDismiss callback to let the page know the user dismissed the dialog.
      */
     data class BeforeUnload(
         val title: String,
         val onLeave: () -> Unit,
         val onStay: () -> Unit,
-    ) : PromptRequest()
+        override val onDismiss: () -> Unit,
+    ) : PromptRequest(shouldDismissOnLoad = false), Dismissible
 
     /**
      * Value type that represents a request for a save credit card prompt.

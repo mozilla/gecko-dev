@@ -104,7 +104,7 @@ class PromptMiddlewareTest {
         assertEquals(1, tab()!!.content.promptRequests.size)
         assertEquals(alert, tab()!!.content.promptRequests[0])
 
-        val beforeUnloadPrompt = PromptRequest.BeforeUnload("title", onLeave = { }, onStay = { })
+        val beforeUnloadPrompt = PromptRequest.BeforeUnload("title", onLeave = { }, onStay = { }, onDismiss = { })
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, beforeUnloadPrompt)).joinBlocking()
         assertEquals(2, tab()!!.content.promptRequests.size)
         assertEquals(alert, tab()!!.content.promptRequests[0])

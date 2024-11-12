@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<p>
+  Focus on the text field, then focus on the url bar and navigate to another
+  site.
+  <br />
+  <input id="nameInput" />
+  <script>
+    nameInput.addEventListener("focus", event => {
+      addEventListener("beforeunload", e => {
+        document.body.innerHTML = "<h1>beforeunload fired</h1>";
+        e.preventDefault();
+      });
+    });
+  </script>
+</p>

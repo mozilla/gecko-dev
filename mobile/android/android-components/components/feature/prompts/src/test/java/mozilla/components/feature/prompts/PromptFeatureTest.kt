@@ -1568,6 +1568,7 @@ class PromptFeatureTest {
             title = "title",
             onLeave = { onLeaveWasCalled = true },
             onStay = { },
+            onDismiss = { },
         )
 
         feature.start()
@@ -1757,9 +1758,12 @@ class PromptFeatureTest {
             ) { }
         var onCancelWasCalled = false
 
-        val promptRequest = PromptRequest.BeforeUnload("http://www.test.com/", { }) {
-            onCancelWasCalled = true
-        }
+        val promptRequest = PromptRequest.BeforeUnload(
+            title = "http://www.test.com/",
+            onLeave = { },
+            onStay = { onCancelWasCalled = true },
+            onDismiss = { },
+        )
 
         feature.start()
 

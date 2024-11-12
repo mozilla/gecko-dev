@@ -700,8 +700,12 @@ internal class GeckoPromptDelegate(private val geckoEngineSession: GeckoEngineSe
             }
         }
 
+        val onDismiss: () -> Unit = {
+            geckoPrompt.dismissSafely(geckoResult)
+        }
+
         geckoEngineSession.notifyObservers {
-            onPromptRequest(PromptRequest.BeforeUnload(title, onAllow, onDeny))
+            onPromptRequest(PromptRequest.BeforeUnload(title, onAllow, onDeny, onDismiss))
         }
 
         return geckoResult
