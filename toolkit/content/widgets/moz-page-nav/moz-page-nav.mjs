@@ -94,7 +94,10 @@ export default class MozPageNav extends MozLitElement {
         href="chrome://global/content/elements/moz-page-nav.css"
       />
       <nav>
-        <h1 class="page-nav-header" id="page-nav-header">${this.heading}</h1>
+        <div class="page-nav-header-wrapper">
+          <div class="logo"></div>
+          <h1 class="page-nav-header" id="page-nav-header">${this.heading}</h1>
+        </div>
         <div
           class="primary-nav-group"
           role="tablist"
