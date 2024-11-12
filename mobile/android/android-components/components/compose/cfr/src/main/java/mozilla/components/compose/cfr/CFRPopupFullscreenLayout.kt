@@ -40,6 +40,7 @@ import mozilla.components.compose.cfr.CFRPopup.IndicatorDirection.UP
 import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.BODY_CENTERED_IN_SCREEN
 import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.BODY_TO_ANCHOR_CENTER
 import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.BODY_TO_ANCHOR_START
+import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.BODY_TO_ANCHOR_START_WITH_OFFSET
 import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.INDICATOR_CENTERED_IN_ANCHOR
 import mozilla.components.compose.cfr.CFRPopupShape.Companion
 import mozilla.components.compose.cfr.helper.DisplayOrientationListener
@@ -313,6 +314,10 @@ internal class CFRPopupFullscreenLayout(
                 Pixels(anchor.x.roundToInt() + leftInsets.value)
             }
 
+            BODY_TO_ANCHOR_START_WITH_OFFSET -> {
+                Pixels(anchor.x.roundToInt() + leftInsets.value + properties.popupStartOffset.toPx())
+            }
+
             BODY_TO_ANCHOR_CENTER -> {
                 Pixels(
                     anchor.x.roundToInt()
@@ -393,6 +398,9 @@ internal class CFRPopupFullscreenLayout(
         var startCoord = when (properties.popupAlignment) {
             BODY_TO_ANCHOR_START -> {
                 Pixels(anchor.x.roundToInt() + anchor.width + leftInsets.value)
+            }
+            BODY_TO_ANCHOR_START_WITH_OFFSET -> {
+                Pixels(anchor.x.roundToInt() + anchor.width + leftInsets.value + properties.popupStartOffset.toPx())
             }
             BODY_TO_ANCHOR_CENTER -> {
                 val anchorEndCoord = anchor.x.roundToInt() + anchor.width
@@ -477,6 +485,7 @@ internal class CFRPopupFullscreenLayout(
     ): Pixels {
         return when (properties.popupAlignment) {
             BODY_TO_ANCHOR_START,
+            BODY_TO_ANCHOR_START_WITH_OFFSET,
             BODY_TO_ANCHOR_CENTER,
             -> Pixels(properties.indicatorArrowStartOffset.toPx())
             BODY_CENTERED_IN_SCREEN,

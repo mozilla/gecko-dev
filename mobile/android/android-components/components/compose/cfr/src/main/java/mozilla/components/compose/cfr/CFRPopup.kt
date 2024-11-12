@@ -38,6 +38,7 @@ import java.lang.ref.WeakReference
  * @property indicatorArrowStartOffset Maximum distance between the popup start and the indicator arrow.
  * If there isn't enough space this could automatically be overridden up to 0 such that
  * the indicator arrow will be pointing to the middle of the anchor.
+ * @property popupStartOffset Maximum distance between the popup and anchor start.
  */
 data class CFRPopupProperties(
     val popupWidth: Dp = CFRPopup.DEFAULT_WIDTH.dp,
@@ -51,6 +52,7 @@ data class CFRPopupProperties(
     val overlapAnchor: Boolean = false,
     val indicatorDirection: IndicatorDirection = IndicatorDirection.UP,
     val indicatorArrowStartOffset: Dp = CFRPopup.DEFAULT_INDICATOR_START_OFFSET.dp,
+    val popupStartOffset: Dp = CFRPopup.DEFAULT_EXTRA_HORIZONTAL_PADDING.dp,
 )
 
 /**
@@ -143,6 +145,11 @@ class CFRPopup(
          * The popup body will be shown aligned to exactly the anchor start.
          */
         BODY_TO_ANCHOR_START,
+
+        /**
+         * The popup body will be shown aligned to exactly the anchor start with offset.
+         */
+        BODY_TO_ANCHOR_START_WITH_OFFSET,
 
         /**
          * The popup will be aligned such that the indicator arrow will point to exactly the middle of the anchor.

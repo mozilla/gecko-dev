@@ -241,7 +241,7 @@ import mozilla.components.ui.widgets.behavior.ToolbarPosition as OldToolbarPosit
 import org.mozilla.fenix.GleanMetrics.TabStrip as TabStripMetrics
 
 private const val NAVIGATION_CFR_VERTICAL_OFFSET = 10
-private const val NAVIGATION_CFR_ARROW_OFFSET = 48
+private const val NAVIGATION_CFR_ARROW_OFFSET = 24
 private const val NAVIGATION_CFR_MAX_MS_BETWEEN_CLICKS = 5000
 
 /**
@@ -1586,6 +1586,7 @@ abstract class BaseBrowserFragment :
                 indicatorDirection = CFRPopup.IndicatorDirection.DOWN,
                 popupVerticalOffset = NAVIGATION_CFR_VERTICAL_OFFSET.dp,
                 indicatorArrowStartOffset = NAVIGATION_CFR_ARROW_OFFSET.dp,
+                popupAlignment = CFRPopup.PopupAlignment.BODY_TO_ANCHOR_START_WITH_OFFSET,
             ),
             onCFRShown = {
                 NavigationBar.navigationButtonsCfrShown.record(NoExtras())
