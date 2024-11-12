@@ -926,21 +926,19 @@ sync-currently-syncing-payment-methods = Payment methods
 sync-currently-syncing-addons = Add-ons
 sync-currently-syncing-settings = Settings
 
-sync-change-options =
-    .label = Change…
-    .accesskey = C
+sync-manage-options =
+    .label = Manage sync…
+    .accesskey = M
 
 ## The "Choose what to sync" dialog.
 
-sync-choose-what-to-sync-dialog3 =
-    .title = Choose What To Sync
+sync-choose-what-to-sync-dialog4 =
+    .title = Manage what syncs on all your connected devices
     .style = min-width: 36em;
-    .buttonlabelaccept = Save Changes
+    .buttonlabelaccept = Save
     .buttonaccesskeyaccept = S
     .buttonlabelextra2 = Disconnect…
     .buttonaccesskeyextra2 = D
-
-sync-choose-dialog-subtitle = Changes to the list of items to sync will be reflected across all your connected devices.
 
 sync-engine-bookmarks =
     .label = Bookmarks

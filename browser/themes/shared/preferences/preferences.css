@@ -572,8 +572,7 @@ a[is="moz-support-link"]:not(.sidebar-footer-link) {
 #historyPane:not([selectedIndex="2"]) > #historyCustomPane,
 #weavePrefsDeck:not([selectedIndex="1"]) > #hasFxaAccount,
 #fxaLoginStatus:not([selectedIndex="1"]) > #fxaLoginUnverified,
-#fxaLoginStatus:not([selectedIndex="2"]) > #fxaLoginRejected,
-#syncStatus:not([selectedIndex="1"]) > #syncConfigured {
+#fxaLoginStatus:not([selectedIndex="2"]) > #fxaLoginRejected {
   visibility: collapse;
 }
 
@@ -810,8 +809,12 @@ html|dialog,
   margin-inline: 4px 8px;
 }
 
-#syncStatus {
+#syncStatusContainer {
   margin-top: 32px;
+}
+
+#syncChangeOptions {
+  margin-inline-start: 0;
 }
 
 .sync-group {
@@ -823,16 +826,15 @@ html|dialog,
   display: block;
 }
 
-.sync-choose-dialog-description {
-  margin-block-end: 10px;
+.sync-info-box {
+  border-radius: var(--border-radius-medium);
+  padding: var(--space-large);
 }
 
 .sync-engines-list > div,
 .sync-engines-list + hbox {
   margin-top: 0;
   padding-top: var(--space-large);
-  max-width: 300px;
-  height: auto;
 }
 
 dialog > .sync-engines-list > div,
@@ -861,7 +863,7 @@ dialog > .sync-engines-list + hbox {
 }
 
 .sync-engines-list {
-  column-count: 2;
+  column-count: 3;
   column-fill: balance;
   margin-block-end: 10px;
 }

@@ -168,33 +168,27 @@
         </groupbox>
 
         <groupbox>
-          <deck id="syncStatus" flex="1">
-            <!-- sync not yet configured. -->
+          <vbox id="syncStatusContainer" flex="1">
+            <hbox>
+              <html:h2 id="syncStatusTitle" data-l10n-id="prefs-syncing-off"/>
+              <spacer flex="1"/>
+              <!-- 'Sync Now' button, visible only when sync is on -->
+              <button id="syncNow" class="accessory-button needs-account-ready"></button>
+            </hbox>
             <vbox id="syncNotConfigured">
-              <label>
-                <html:h2 data-l10n-id="prefs-syncing-off"/>
-              </label>
               <hbox class="sync-group info-box-container">
                 <vbox flex="1">
                   <label data-l10n-id="prefs-sync-offer-setup-label2"/>
                 </vbox>
-                <vbox>
-                  <button id="syncSetup"
-                          is="highlightable-button"
-                          class="accessory-button needs-account-ready"
-                          data-l10n-id="prefs-sync-turn-on-syncing"/>
-                </vbox>
+              <button id="syncSetup"
+                      is="highlightable-button"
+                      class="accessory-button needs-account-ready"
+                      data-l10n-id="prefs-sync-turn-on-syncing"/>
               </hbox>
             </vbox>
 
             <vbox id="syncConfigured">
-              <hbox>
-                <html:h2 data-l10n-id="prefs-syncing-on"/>
-                <spacer flex="1"/>
-                <button id="syncNow"
-                        class="accessory-button needs-account-ready"/>
-              </hbox>
-              <vbox class="sync-group info-box-container sync-configured">
+              <vbox class="sync-group sync-info-box sync-configured">
                 <label data-l10n-id="sync-syncing-across-devices-heading"/>
                 <html:div class="sync-engines-list">
                   <html:div engine_preference="services.sync.engine.bookmarks">
@@ -233,12 +227,12 @@
                 <hbox>
                   <button id="syncChangeOptions"
                           is="highlightable-button"
-                          data-l10n-id="sync-change-options"/>
+                          data-l10n-id="sync-manage-options"/>
                   <spacer flex="1"/>
                 </hbox>
               </vbox>
             </vbox>
-          </deck>
+          </vbox>
         </groupbox>
       </vbox>
     </hbox>

@@ -20,7 +20,7 @@ let gSyncChooseWhatToSync = {
     this._adjustForPrefs();
     let options = window.arguments[0];
     if (options.disconnectFun) {
-      // We offer 'disconnect'
+      // Offer 'Disconnect' functionality if it was provided
       document.addEventListener("dialogextra2", function () {
         options.disconnectFun().then(disconnected => {
           if (disconnected) {
@@ -29,7 +29,7 @@ let gSyncChooseWhatToSync = {
         });
       });
     } else {
-      // no "disconnect" - hide the button.
+      // Hide the 'Disconnect' button if not applicable
       document
         .getElementById("syncChooseOptions")
         .getButton("extra2").hidden = true;
