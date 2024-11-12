@@ -1788,6 +1788,7 @@ export class UrlbarView {
     let isFirstChild = item === this.#rows.children[0];
     let secAction = result.payload.action;
     let container = item.querySelector(".urlbarView-actions-container");
+    item.toggleAttribute("secondary-action", !!secAction);
     if (secAction && !container) {
       item.appendChild(this.#createSecondaryAction(secAction, isFirstChild));
     } else if (

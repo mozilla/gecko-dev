@@ -949,7 +949,7 @@
 }
 
 /* To align the label and action button */
-.urlbarView-row:has(.urlbarView-actions-container) {
+.urlbarView-row[secondary-action] {
   flex-direction: column;
   align-items: flex-start;
 }
