@@ -16,17 +16,12 @@
   --message-bar-border-radius: var(--border-radius-small);
   --message-bar-border-width: var(--border-width);
 
-  /* Text */
-  --message-bar-text-color: var(--text-color);
-  --message-bar-text-line-height: 1.5em;
-
   /* Background */
   --message-bar-background-color: var(--background-color-information);
 
   background-color: var(--message-bar-background-color);
   border: var(--message-bar-border-width) solid var(--message-bar-border-color);
   border-radius: var(--message-bar-border-radius);
-  color: var(--message-bar-text-color);
   text-align: start;
 }
 
@@ -63,7 +58,7 @@
 .text-container {
   display: flex;
   gap: var(--space-xsmall) var(--space-small);
-  padding-block: calc((var(--message-bar-container-min-height) - var(--message-bar-text-line-height)) / 2);
+  padding-block: calc((var(--message-bar-container-min-height) - 1lh) / 2);
 }
 
 .text-content {
@@ -71,13 +66,12 @@
   gap: var(--space-xsmall) var(--space-small);
   flex-wrap: wrap;
   word-break: break-word;
-  line-height: var(--message-bar-text-line-height);
 }
 
 /* MozMessageBar icon style */
 
 .icon-container {
-  height: var(--message-bar-text-line-height);
+  height: 1lh;
   display: flex;
   justify-content: center;
   align-items: center;
