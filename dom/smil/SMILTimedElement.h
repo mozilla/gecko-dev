@@ -515,8 +515,8 @@ class SMILTimedElement {
   void UpdateCurrentInterval(bool aForceChangeNotice = false);
   void SampleSimpleTime(SMILTime aActiveTime);
   void SampleFillValue();
-  nsresult AddInstanceTimeFromCurrentTime(SMILTime aCurrentTime,
-                                          double aOffsetSeconds, bool aIsBegin);
+  void AddInstanceTimeFromCurrentTime(SMILTime aCurrentTime,
+                                      double aOffsetSeconds, bool aIsBegin);
   void RegisterMilestone();
   bool GetNextMilestone(SMILMilestone& aNextMilestone) const;
 
