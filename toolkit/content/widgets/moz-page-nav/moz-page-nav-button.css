@@ -4,7 +4,6 @@
 
 :host {
   border-radius: var(--border-radius-small);
-  font-size: var(--font-size-large);
   &:focus-visible {
     outline-offset: var(--page-nav-focus-outline-inset);
   }
@@ -90,19 +89,10 @@ button[selected]:focus-visible {
 }
 
 .page-nav-icon {
-  height: 20px;
-  width: 20px;
+  height: var(--icon-size-default);
+  width: var(--icon-size-default);
   -moz-context-properties: fill;
   fill: currentColor;
-}
-
-:host(.secondary-nav-item) {
-  font-size: var(--font-size-small);
-
-  & .page-nav-icon {
-    height: var(--icon-size-default);
-    width: var(--icon-size-default);
-  }
 }
 
 @media (prefers-contrast) {

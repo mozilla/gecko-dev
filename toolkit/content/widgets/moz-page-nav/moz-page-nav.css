@@ -8,14 +8,15 @@
   --page-nav-button-background-color: transparent;
   --page-nav-button-background-color-hover: var(--button-background-color-hover);
   --page-nav-button-background-color-selected: var(--color-accent-primary);
-  --page-nav-button-padding: var(--space-small);
+  --page-nav-button-padding: var(--space-small) var(--space-medium);
   --page-nav-margin-top: 72px;
   --page-nav-margin-bottom: 36px;
-  --page-nav-gap: 25px;
+  --page-nav-gap: var(--space-large);
   --page-nav-button-gap: var(--space-xsmall);
   --page-nav-border-color: var(--border-color);
   --page-nav-focus-outline-inset: var(--focus-outline-inset);
   --page-nav-width: 240px;
+  --page-nav-hr-color: #CFCFD8;
   margin-inline-start: 42px;
   position: sticky;
   top: 0;
@@ -30,19 +31,17 @@
 
   @media (max-width: 52rem) {
     grid-template-rows: 1fr auto;
-    --page-nav-width: 118px;
+    --page-nav-width: fit-content;
+    --page-nav-button-padding: var(--space-small);
   }
 }
 
 nav {
   display: grid;
-  grid-template-rows: min-content 1fr auto;
+  grid-template-rows: repeat(3, min-content);
   gap: var(--page-nav-gap);
   margin-block: var(--page-nav-margin-top) var(--page-nav-margin-bottom);
   height: calc(100% - var(--page-nav-margin-top) - var(--page-nav-margin-bottom));
-  @media (max-width: 52rem) {
-    grid-template-rows: 1fr auto;
-  }
 }
 
 .page-nav-header {
@@ -66,8 +65,15 @@ nav {
 
   @media (max-width: 52rem) {
     justify-content: center;
-    grid-template-columns: min-content;
   }
+}
+
+hr {
+  width: 100%;
+  margin: 0;
+  height: 1px;
+  border: 0;
+  background-color: var(--page-nav-hr-color);
 }
 
 @media (prefers-contrast) {

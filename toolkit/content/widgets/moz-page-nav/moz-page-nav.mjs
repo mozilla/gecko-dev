@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html } from "chrome://global/content/vendor/lit.all.mjs";
+import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-support-link.mjs";
@@ -79,8 +79,10 @@ export default class MozPageNav extends MozLitElement {
     }
   }
 
-  onSecondaryNavChange() {
-    this.secondaryNavGroupSlot.assignedElements()?.forEach(el => {
+  onSecondaryNavChange(event) {
+    let secondaryNavElements = event.target.assignedElements();
+    this.hasSecondaryNav = !!secondaryNavElements.length;
+    secondaryNavElements?.forEach(el => {
       el.classList.add("secondary-nav-item");
     });
   }
@@ -104,6 +106,7 @@ export default class MozPageNav extends MozLitElement {
             @keydown=${this.handleFocus}
           ></slot>
         </div>
+        ${when(this.hasSecondaryNav, () => html`<hr />`)}
         <div id="secondary-nav-group" role="group">
           <slot
             name="secondary-nav"
