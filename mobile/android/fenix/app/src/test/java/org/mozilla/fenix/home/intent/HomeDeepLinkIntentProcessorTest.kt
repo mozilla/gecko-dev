@@ -17,6 +17,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.concept.engine.prompt.ShareData
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -224,6 +225,35 @@ class HomeDeepLinkIntentProcessorTest {
             )
         }
         verify { navController wasNot Called }
+        verify { out wasNot Called }
+    }
+
+    @Test
+    fun `process share_sheet deep link`() {
+        assertTrue(processorHome.process(testIntent("share_sheet"), navController, out))
+
+        verify { navController wasNot Called }
+        verify { out wasNot Called }
+
+        assertTrue(processorHome.process(testIntent("share_sheet?url=test"), navController, out))
+
+        verify { navController wasNot Called }
+        verify { out wasNot Called }
+
+        assertTrue(processorHome.process(testIntent("share_sheet?url=https%3A%2F%2Fexample.com&title=TestTitle&text=TestText&subject=TestSubject"), navController, out))
+
+        verify {
+            navController.navigate(
+                directions = match {
+                    with(it.arguments) {
+                        getBoolean("showPage") == false &&
+                            getParcelableArray("data", ShareData::class.java)?.get(0)?.url == "https://example.com" &&
+                            getString("sessionId") == null &&
+                            getString("shareSubject") == "TestSubject"
+                    }
+                },
+            )
+        }
         verify { out wasNot Called }
     }
 
