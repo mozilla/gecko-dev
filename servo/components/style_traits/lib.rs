@@ -216,6 +216,11 @@ impl<'i> StyleParseErrorKind<'i> {
 /// Errors that can be encountered while parsing the @property rule's syntax descriptor.
 #[derive(Clone, Debug, PartialEq)]
 pub enum PropertySyntaxParseError {
+    /// The syntax descriptor is required for the @property rule to be valid; if it’s missing, the
+    /// @property rule is invalid.
+    ///
+    /// <https://drafts.css-houdini.org/css-properties-values-api-1/#ref-for-descdef-property-syntax②>
+    NoSyntax,
     /// The string's length was 0.
     EmptyInput,
     /// A non-whitespace, non-pipe character was fount after parsing a component.

@@ -129,6 +129,10 @@
       css: "@position-try --foo { width: 10px !important; }",
       error: "Property cannot be declared as !important in this context.  Declaration dropped."
     },
+    {
+      css: '@property --my-property { initial-value: green; inherits: true; }',
+      error: "@property syntax descriptor is missing."
+    },
   ];
 
   // Tests that apply only to constructed style sheets
