@@ -694,27 +694,11 @@ DesktopToLayoutDeviceScale nsWindow::GetDesktopToDeviceScale() {
 
 DesktopToLayoutDeviceScale nsWindow::GetDesktopToDeviceScaleByScreen() {
 #ifdef MOZ_WAYLAND
-  // In Wayland there's no way to get absolute position of the window and use it
-  // to determine the screen factor of the monitor on which the window is
-  // placed. The window is notified of the current scale factor but not at this
-  // point, so the GdkScaleFactor can return wrong value which can lead to wrong
-  // popup placement. We need to use parent's window scale factor for the new
-  // one.
   if (GdkIsWaylandDisplay()) {
-    nsView* view = nsView::GetViewFor(this);
-    if (view) {
-      nsView* parentView = view->GetParent();
-      if (parentView) {
-        nsIWidget* parentWidget = parentView->GetNearestWidget(nullptr);
-        if (parentWidget) {
-          return DesktopToLayoutDeviceScale(
-              parentWidget->RoundsWidgetCoordinatesTo());
-        }
-        NS_WARNING("Widget has no parent");
-      }
-    } else {
-      NS_WARNING("Cannot find widget view");
-    }
+    // In wayland there's no absolute screen position, so we need to use the
+    // scale factor of our top level, which is what FractionalScaleFactor does,
+    // luckily.
+    return DesktopToLayoutDeviceScale(FractionalScaleFactor());
   }
 #endif
   return nsBaseWidget::GetDesktopToDeviceScale();
