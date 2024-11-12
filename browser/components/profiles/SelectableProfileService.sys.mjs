@@ -26,6 +26,8 @@ const NOTIFY_TIMEOUT = 200;
 const COMMAND_LINE_UPDATE = "profiles-updated";
 const COMMAND_LINE_ACTIVATE = "profiles-activate";
 
+const gSupportsBadging = "nsIMacDockSupport" in Ci || "nsIWinTaskbar" in Ci;
+
 function loadImage(url) {
   return new Promise((resolve, reject) => {
     let imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
@@ -33,6 +35,7 @@ function loadImage(url) {
     let observer = imageTools.createScriptedObserver({
       sizeAvailable() {
         resolve(imageContainer);
+        imageContainer = null;
       },
     });
 
@@ -58,36 +61,6 @@ function loadImage(url) {
   });
 }
 
-// This is waiting to be used by bug 1926507.
-// eslint-disable-next-line no-unused-vars
-async function updateTaskbar(iconUrl, profileName, strokeColor, fillColor) {
-  try {
-    let image = await loadImage(iconUrl);
-
-    if ("nsIMacDockSupport" in Ci) {
-      Cc["@mozilla.org/widget/macdocksupport;1"]
-        .getService(Ci.nsIMacDockSupport)
-        .setBadgeImage(image, { fillColor, strokeColor });
-    } else if ("nsIWinTaskbar" in Ci) {
-      lazy.EveryWindow.registerCallback(
-        "profiles",
-        win => {
-          let iconController = Cc["@mozilla.org/windows-taskbar;1"]
-            .getService(Ci.nsIWinTaskbar)
-            .getOverlayIconController(win.docShell);
-          iconController.setOverlayIcon(image, profileName, {
-            fillColor,
-            strokeColor,
-          });
-        },
-        () => {}
-      );
-    }
-  } catch (e) {
-    console.error(e);
-  }
-}
-
 /**
  * The service that manages selectable profiles
  */
@@ -111,6 +84,7 @@ class SelectableProfileServiceClass {
   #initPromise = null;
   #notifyTask = null;
   #observedPrefs = null;
+  #badge = null;
   static #dirSvc = null;
 
   // The initial preferences that will be shared amongst profiles. Only used during database
@@ -410,6 +384,7 @@ class SelectableProfileServiceClass {
     this.#currentProfile = null;
     this.#groupToolkitProfile = null;
     this.#storeID = null;
+    this.#badge = null;
 
     this.#initialized = false;
   }
@@ -418,6 +393,17 @@ class SelectableProfileServiceClass {
     lazy.EveryWindow.registerCallback(
       this.#everyWindowCallbackId,
       window => {
+        if (this.#badge && "nsIWinTaskbar" in Ci) {
+          let iconController = Cc["@mozilla.org/windows-taskbar;1"]
+            .getService(Ci.nsIWinTaskbar)
+            .getOverlayIconController(window.docShell);
+          iconController.setOverlayIcon(
+            this.#badge.image,
+            this.#badge.description,
+            this.#badge.iconPaintContext
+          );
+        }
+
         let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
         if (isPBM) {
           return;
@@ -653,6 +639,64 @@ class SelectableProfileServiceClass {
     }
   }
 
+  async #updateTaskbar() {
+    try {
+      if (!gSupportsBadging) {
+        return;
+      }
+
+      let count = await this.getProfileCount();
+
+      if (count > 1 && !this.#badge) {
+        this.#badge = {
+          image: await loadImage(
+            Services.io.newURI(
+              `chrome://browser/content/profiles/assets/48_${
+                this.#currentProfile.avatar
+              }.svg`
+            )
+          ),
+          iconPaintContext: this.#currentProfile.iconPaintContext,
+          description: this.#currentProfile.name,
+        };
+
+        if ("nsIMacDockSupport" in Ci) {
+          Cc["@mozilla.org/widget/macdocksupport;1"]
+            .getService(Ci.nsIMacDockSupport)
+            .setBadgeImage(this.#badge.image, this.#badge.iconPaintContext);
+        } else if ("nsIWinTaskbar" in Ci) {
+          for (let win of lazy.EveryWindow.readyWindows) {
+            let iconController = Cc["@mozilla.org/windows-taskbar;1"]
+              .getService(Ci.nsIWinTaskbar)
+              .getOverlayIconController(win.docShell);
+            iconController.setOverlayIcon(
+              this.#badge.image,
+              this.#badge.description,
+              this.#badge.iconPaintContext
+            );
+          }
+        }
+      } else if (count <= 1 && this.#badge) {
+        this.#badge = null;
+
+        if ("nsIMacDockSupport" in Ci) {
+          Cc["@mozilla.org/widget/macdocksupport;1"]
+            .getService(Ci.nsIMacDockSupport)
+            .setBadgeImage(null);
+        } else if ("nsIWinTaskbar" in Ci) {
+          for (let win of lazy.EveryWindow.readyWindows) {
+            let iconController = Cc["@mozilla.org/windows-taskbar;1"]
+              .getService(Ci.nsIWinTaskbar)
+              .getOverlayIconController(win.docShell);
+            iconController.setOverlayIcon(null, null);
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   /**
    * Invoked when changes have been made to the database. Sends the observer
    * notification "sps-profiles-updated" indicating that something has changed.
@@ -667,6 +711,8 @@ class SelectableProfileServiceClass {
     if (source != "local") {
       await this.loadSharedPrefsFromDatabase();
     }
+
+    await this.#updateTaskbar();
 
     if (source != "startup") {
       Services.obs.notifyObservers(null, "sps-profiles-updated", source);
@@ -1137,6 +1183,12 @@ class SelectableProfileServiceClass {
       profileObj
     );
 
+    if (aSelectableProfile.id == this.#currentProfile.id) {
+      // Force a rebuild of the taskbar icon.
+      this.#badge = null;
+      this.#currentProfile = aSelectableProfile;
+    }
+
     this.#notifyTask.arm();
   }
 
@@ -1159,6 +1211,24 @@ class SelectableProfileServiceClass {
   }
 
   /**
+   * Get the number of profiles in the group.
+   *
+   * @returns {number}
+   *   The number of profiles in the group.
+   */
+  async getProfileCount() {
+    if (!this.#connection) {
+      return 0;
+    }
+
+    let rows = await this.#connection.executeCached(
+      'SELECT COUNT(*) AS "count" FROM "Profiles";'
+    );
+
+    return rows[0]?.getResultByName("count") ?? 0;
+  }
+
+  /**
    * Get a specific profile by its internal ID.
    *
    * @param {number} aProfileID The internal id of the profile
@@ -1171,9 +1241,12 @@ class SelectableProfileServiceClass {
     }
 
     let row = (
-      await this.#connection.execute("SELECT * FROM Profiles WHERE id = :id;", {
-        id: aProfileID,
-      })
+      await this.#connection.executeCached(
+        "SELECT * FROM Profiles WHERE id = :id;",
+        {
+          id: aProfileID,
+        }
+      )
     )[0];
 
     return row ? new SelectableProfile(row, this) : null;

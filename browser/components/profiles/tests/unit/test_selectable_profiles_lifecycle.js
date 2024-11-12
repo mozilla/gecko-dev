@@ -3,6 +3,60 @@ https://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+const { MockRegistrar } = ChromeUtils.importESModule(
+  "resource://testing-common/MockRegistrar.sys.mjs"
+);
+
+const badgingService = {
+  isRegistered: false,
+  badge: null,
+
+  // nsIMacDockSupport
+  setBadgeImage(image, paintContext) {
+    this.badge = { image, paintContext };
+  },
+
+  QueryInterface: ChromeUtils.generateQI(["nsIMacDockSupport"]),
+
+  assertBadged(fg, bg) {
+    if (!this.isRegistered) {
+      return;
+    }
+
+    Assert.ok(this.badge?.image, "Should have set a badge image");
+    Assert.ok(this.badge?.paintContext, "Should have set a paint context");
+    Assert.equal(
+      this.badge?.paintContext?.strokeColor,
+      fg,
+      "Stroke color should be correct"
+    );
+    Assert.equal(
+      this.badge?.paintContext?.fillColor,
+      bg,
+      "Stroke color should be correct"
+    );
+  },
+
+  assertNotBadged() {
+    if (!this.isRegistered) {
+      return;
+    }
+
+    Assert.ok(!this.badge?.image, "Should not have set a badge image");
+    Assert.ok(!this.badge?.paintContext, "Should not have set a paint context");
+  },
+};
+
+add_setup(() => {
+  if ("nsIMacDockSupport" in Ci) {
+    badgingService.isRegistered = true;
+    MockRegistrar.register(
+      "@mozilla.org/widget/macdocksupport;1",
+      badgingService
+    );
+  }
+});
+
 add_task(async function test_SelectableProfileLifecycle() {
   startProfileService();
   const SelectableProfileService = getSelectableProfileService();
@@ -27,6 +81,8 @@ add_task(async function test_SelectableProfileLifecycle() {
 
   await SelectableProfileService.maybeSetupDataStore();
   let currentProfile = SelectableProfileService.currentProfile;
+
+  badgingService.assertNotBadged();
 
   const leafName = (await currentProfile.rootDir).leafName;
 
@@ -57,6 +113,12 @@ add_task(async function test_SelectableProfileLifecycle() {
 
   let selectableProfile = profiles[0];
 
+  Assert.equal(
+    selectableProfile.id,
+    SelectableProfileService.currentProfile.id,
+    "Should be the selected profile."
+  );
+
   let profile = await SelectableProfileService.getProfile(selectableProfile.id);
 
   for (let attr of ["id", "name", "path"]) {
@@ -74,8 +136,13 @@ add_task(async function test_SelectableProfileLifecycle() {
   }
 
   selectableProfile.name = "updatedTestProfile";
+  selectableProfile.theme = {
+    themeId: "lightTheme",
+    themeFg: "#e2e1e3",
+    themeBg: "010203",
+  };
 
-  await SelectableProfileService.updateProfile(selectableProfile);
+  await updateNotified();
 
   profile = await SelectableProfileService.getProfile(selectableProfile.id);
 
@@ -85,7 +152,12 @@ add_task(async function test_SelectableProfileLifecycle() {
     "We got the correct profile name: updatedTestProfile"
   );
 
+  badgingService.assertNotBadged();
+
   let newProfile = await createTestProfile({ name: "New profile" });
+
+  await updateNotified();
+
   let rootDir = await newProfile.rootDir;
   let localDir = PathUtils.join(
     Services.dirsvc.get("DefProfLRt", Ci.nsIFile).path,
@@ -135,10 +207,15 @@ add_task(async function test_SelectableProfileLifecycle() {
   profiles = await SelectableProfileService.getAllProfiles();
   Assert.equal(profiles.length, 2, "Should now be two profiles.");
 
+  badgingService.assertBadged("#e2e1e3", "010203");
+
   await SelectableProfileService.deleteProfile(newProfile);
+  await updateNotified();
 
   profiles = await SelectableProfileService.getAllProfiles();
   Assert.equal(profiles.length, 1, "Should now be one profiles.");
+
+  badgingService.assertNotBadged();
 
   profileDirExists = await IOUtils.exists(rootDir.path);
   profileLocalDirExists = await IOUtils.exists(localDir);
