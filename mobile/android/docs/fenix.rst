@@ -100,3 +100,25 @@ The following commands will ensure that all the required tests are run based on 
 Failures on ``try`` will show up with the test name highlighted in orange. Select the test to find out more.
 Intermittent failures occasionally occur due to issues with the test harness. Retriggering the test is a good way to confirm it is an intermittent failure and not due to the patch.
 Usually there will also be a bug number with a portion of the stack trace as well for documented intermittent failures.
+
+Speed Up the CI
+-------------------
+
+Currently, the CI builds GeckoView even if your commit doesn't impact it.
+
+If you know your changes don't impact GeckoView, you can try using the following option: ``--use-existing-tasks`` or ``-E``. For example:
+
+``./mach try --preset firefox-android -E``
+
+This will try to reuse a GeckoView build from a previous CI job, and thus reduce the CI time.
+
+Other Links:
+-------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   Understanding Artifact Builds <https://firefox-source-docs.mozilla.org/contributing/build/artifact_builds.html>
+   Pushing to Try <https://firefox-source-docs.mozilla.org/tools/try/index.html>
+   Submitting a Patch <https://firefox-source-docs.mozilla.org/contributing/how_to_submit_a_patch.html>
+   Landing a Patch <https://moz-conduit.readthedocs.io/en/latest/lando-user.html>
