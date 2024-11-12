@@ -608,6 +608,7 @@ Section "-Application" APP_IDX
     ${Else}
       CreateShortCut "$SMPROGRAMS\${BrandShortName}.lnk" "$INSTDIR\${FileMainEXE}"
       ${If} ${FileExists} "$SMPROGRAMS\${BrandShortName}.lnk"
+        ShellLink::SetShortCutDescription "$SMPROGRAMS\${BrandShortName}.lnk" "$(BRIEF_APP_DESC)"
         ShellLink::SetShortCutWorkingDirectory "$SMPROGRAMS\${BrandShortName}.lnk" \
                                                "$INSTDIR"
         ${If} "$AppUserModelID" != ""
@@ -655,6 +656,7 @@ Section "-Application" APP_IDX
     ${Else}
       CreateShortCut "$DESKTOP\${BrandShortName}.lnk" "$INSTDIR\${FileMainEXE}"
       ${If} ${FileExists} "$DESKTOP\${BrandShortName}.lnk"
+        ShellLink::SetShortCutDescription "$DESKTOP\${BrandShortName}.lnk" "$(BRIEF_APP_DESC)"
         ShellLink::SetShortCutWorkingDirectory "$DESKTOP\${BrandShortName}.lnk" \
                                                "$INSTDIR"
         ${If} "$AppUserModelID" != ""

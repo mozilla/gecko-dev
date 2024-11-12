@@ -376,6 +376,15 @@ ${RemoveDefaultBrowserAgentShortcut}
     ReadINIStr $R8 "$R9" "${LOG_SECTION}" "Shortcut0"
     ${IfNot} ${Errors}
       ${If} ${FileExists} "${SHORTCUT_DIR}\$R8"
+
+        ; If the shortcut does not have a description, add one. See https://nsis.sourceforge.io/ShellLink_plug-in#Get_Shortcut_Description
+        ShellLink::GetShortCutDescription "${SHORTCUT_DIR}\$R8"
+        ; Let's use R7 to store the result, since it's going to be reused in the next check
+        Pop $R7
+        ${If} $R7 == ""
+          ; Looks like there is no description. Let's add one. See https://nsis.sourceforge.io/ShellLink_plug-in#Set_Shortcut_Description
+          ShellLink::SetShortCutDescription "${SHORTCUT_DIR}\$R8" "$(BRIEF_APP_DESC)"
+        ${EndIf}
         ShellLink::GetShortCutTarget "${SHORTCUT_DIR}\$R8"
         Pop $R7
         ${GetLongPath} "$R7" $R7
