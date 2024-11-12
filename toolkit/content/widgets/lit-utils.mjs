@@ -242,10 +242,16 @@ export class MozBaseInputElement extends MozLitElement {
     supportPage: { type: String, attribute: "support-page" },
     accessKey: { type: String, mapped: true, fluent: true },
   };
+  static inputLayout = "inline";
 
   constructor() {
     super();
     this.disabled = false;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.setAttribute("inputlayout", this.constructor.inputLayout);
   }
 
   get inputEl() {
@@ -279,6 +285,7 @@ export class MozBaseInputElement extends MozLitElement {
   }
 
   render() {
+    let isInlineLayout = this.constructor.inputLayout == "inline";
     return html`
       <link
         rel="stylesheet"
@@ -290,9 +297,10 @@ export class MozBaseInputElement extends MozLitElement {
         for="input"
         shownaccesskey=${ifDefined(this.accessKey)}
       >
-        ${this.inputTemplate()}${this.labelTemplate()}
+        ${isInlineLayout ? this.inputTemplate() : ""}${this.labelTemplate()}
       </label>
       ${this.descriptionTemplate()}
+      ${!isInlineLayout ? this.inputTemplate() : ""}
     `;
   }
 

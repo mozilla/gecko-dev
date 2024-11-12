@@ -10,7 +10,13 @@
     --input-width: var(--size-item-small);
     --input-space-offset: calc(var(--input-width) + var(--space-small));
     --input-margin-block-adjust: calc((1lh - var(--input-height)) / 2);
+    --icon-margin-block-adjust: calc((1lh - var(--icon-size-default)) / 2);
     --input-margin-inline-start-adjust: calc(-1 * var(--input-space-offset));
+  }
+
+  :host([inputlayout="block"]) {
+    --input-space-offset: 0;
+    --input-margin-block-adjust: var(--space-xsmall) 0;
   }
 
   label {
@@ -41,7 +47,7 @@
     position: absolute;
     width: var(--icon-size-default);
     height: var(--icon-size-default);
-    margin-block: var(--input-margin-block-adjust);
+    margin-block: var(--icon-margin-block-adjust);
     -moz-context-properties: fill, fill-opacity, stroke;
     fill: currentColor;
     stroke: currentColor;
@@ -53,5 +59,6 @@
 
   .description {
     margin-inline-start: var(--input-space-offset);
+    margin-block-start: var(--space-xxsmall);
   }
 }

@@ -835,12 +835,14 @@
             "moz-message-bar",
             "chrome://global/content/elements/moz-message-bar.mjs",
           ],
+          ["moz-option", "chrome://global/content/elements/moz-select.mjs"],
           ["moz-page-nav", "chrome://global/content/elements/moz-page-nav.mjs"],
           ["moz-radio", "chrome://global/content/elements/moz-radio-group.mjs"],
           [
             "moz-radio-group",
             "chrome://global/content/elements/moz-radio-group.mjs",
           ],
+          ["moz-select", "chrome://global/content/elements/moz-select.mjs"],
           [
             "moz-support-link",
             "chrome://global/content/elements/moz-support-link.mjs",

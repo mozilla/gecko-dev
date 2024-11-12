@@ -50,6 +50,8 @@ skip-if = ["os == 'mac'"]
 
 ["test_moz_radio_group.html"]
 
+["test_moz_select.html"]
+
 ["test_moz_support_link.html"]
 
 ["test_moz_toggle.html"]
