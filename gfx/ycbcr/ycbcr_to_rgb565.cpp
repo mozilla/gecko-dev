@@ -7,7 +7,6 @@
 #include <limits.h>
 #include "nsDebug.h"
 #include "ycbcr_to_rgb565.h"
-#include "nsAlgorithm.h"
 
 
 
@@ -118,9 +117,9 @@ static uint16_t yu2rgb565(int y, int u, int v, int dither) {
   int r;
   int g;
   int b;
-  r = clamped((74*y+102*v+DITHER_BIAS[dither][0])>>9, 0, 31);
-  g = clamped((74*y-25*u-52*v+DITHER_BIAS[dither][1])>>8, 0, 63);
-  b = clamped((74*y+129*u+DITHER_BIAS[dither][2])>>9, 0, 31);
+  r = std::clamp((74*y+102*v+DITHER_BIAS[dither][0])>>9, 0, 31);
+  g = std::clamp((74*y-25*u-52*v+DITHER_BIAS[dither][1])>>8, 0, 63);
+  b = std::clamp((74*y+129*u+DITHER_BIAS[dither][2])>>9, 0, 31);
   return (uint16_t)(r<<11 | g<<5 | b);
 }
 
@@ -426,10 +425,10 @@ void ScaleYCbCrToRGB565(const uint8_t *y_buf,
       int source_y;
       ctx.rgb_row = (uint16_t *)(rgb_buf + y*rgb_pitch);
       source_y = source_y0_q16>>16;
-      source_y = clamped(source_y, ymin, ymax);
+      source_y = std::clamp(source_y, ymin, ymax);
       ctx.y_row = y_buf + source_y*y_pitch;
       source_y = (source_y0_q16+source_uv_yoffs_q16)>>(16+y_shift);
-      source_y = clamped(source_y, uvmin, uvmax);
+      source_y = std::clamp(source_y, uvmin, uvmax);
       source_y0_q16 += source_dy_q16;
       ctx.u_row = u_buf + source_y*uv_pitch;
       ctx.v_row = v_buf + source_y*uv_pitch;
