@@ -101,9 +101,13 @@ internal fun normalModeAdapterItems(
     // when we switch to a Compose-only home screen.
     if (firstFrameDrawn && settings.showPocketRecommendationsFeature && pocketStories.isNotEmpty()) {
         shouldShowCustomizeHome = true
+
         items.add(AdapterItem.PocketStoriesItem)
-        items.add(AdapterItem.PocketCategoriesItem)
-        items.add(AdapterItem.PocketRecommendationsFooterItem)
+
+        if (!settings.showContentRecommendations) {
+            items.add(AdapterItem.PocketCategoriesItem)
+            items.add(AdapterItem.PocketRecommendationsFooterItem)
+        }
     }
 
     if (shouldShowCustomizeHome) {
