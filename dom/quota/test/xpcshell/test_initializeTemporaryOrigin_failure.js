@@ -10,7 +10,7 @@ const { QuotaUtils } = ChromeUtils.importESModule(
   "resource://testing-common/dom/quota/test/modules/QuotaUtils.sys.mjs"
 );
 
-async function testSteps() {
+async function testCachedOrigins() {
   const origin = "https://example.com";
   const principal = PrincipalUtils.createPrincipal(origin);
 
@@ -84,4 +84,16 @@ async function testSteps() {
 
   Assert.equal(cachedOrigins.length, 1, "Returned one origin");
   Assert.equal(cachedOrigins[0], origin, "Returned correct origin");
+
+  info("Clearing storage");
+
+  {
+    const request = Services.qms.clear();
+    await QuotaUtils.requestFinished(request);
+  }
+}
+
+/* exported testSteps */
+async function testSteps() {
+  add_task(testCachedOrigins);
 }
