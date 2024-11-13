@@ -230,7 +230,7 @@ class StoreOptimizedEncodingRunnable final : public Runnable {
     nsresult rv;
 
     nsCOMPtr<nsIAsyncOutputStream> stream;
-    rv = mCache->OpenAlternativeOutputStream(FetchUtil::WasmAltDataType,
+    rv = mCache->OpenAlternativeOutputStream(FetchUtil::GetWasmAltDataType(),
                                              int64_t(mBytes.length()),
                                              getter_AddRefs(stream));
     if (NS_FAILED(rv)) {
@@ -655,26 +655,25 @@ class JSStreamConsumer final : public nsIInputStreamCallback,
 NS_IMPL_ISUPPORTS(JSStreamConsumer, nsIInputStreamCallback)
 
 // static
-MOZ_RUNINIT const nsCString FetchUtil::WasmAltDataType;
+MOZ_CONSTINIT nsCString FetchUtil::WasmAltDataType;
 
 // static
 void FetchUtil::InitWasmAltDataType() {
-  nsCString& type = const_cast<nsCString&>(WasmAltDataType);
-  MOZ_ASSERT(type.IsEmpty());
+  MOZ_ASSERT(WasmAltDataType.IsEmpty());
 
   RunOnShutdown([]() {
     // Avoid StringBuffer leak tests failures.
-    const_cast<nsCString&>(WasmAltDataType).Truncate();
+    WasmAltDataType.Truncate();
   });
 
-  type.Append(nsLiteralCString("wasm-"));
+  WasmAltDataType.Append(nsLiteralCString("wasm-"));
 
   JS::BuildIdCharVector buildId;
   if (!JS::GetOptimizedEncodingBuildId(&buildId)) {
     MOZ_CRASH("build id oom");
   }
 
-  type.Append(buildId.begin(), buildId.length());
+  WasmAltDataType.Append(buildId.begin(), buildId.length());
 }
 
 static bool ThrowException(JSContext* aCx, unsigned errorNumber) {

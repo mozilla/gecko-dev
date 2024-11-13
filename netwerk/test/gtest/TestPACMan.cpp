@@ -20,7 +20,7 @@
 #define GETTING_NETWORK_PROXY_TYPE_FAILED (-1)
 
 static mozilla::StaticMutex sMutex;
-MOZ_RUNINIT nsCString WPADOptionResult MOZ_GUARDED_BY(sMutex);
+MOZ_CONSTINIT nsCString WPADOptionResult MOZ_GUARDED_BY(sMutex);
 
 namespace mozilla {
 namespace net {

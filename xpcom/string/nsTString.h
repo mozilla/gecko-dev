@@ -68,7 +68,7 @@ class nsTString : public nsTSubstring<T> {
    * constructors
    */
 
-  nsTString() : substring_type(ClassFlags::NULL_TERMINATED) {}
+  constexpr nsTString() : substring_type(ClassFlags::NULL_TERMINATED) {}
 
   explicit nsTString(const char_type* aData, size_type aLength = size_type(-1))
       : substring_type(ClassFlags::NULL_TERMINATED) {

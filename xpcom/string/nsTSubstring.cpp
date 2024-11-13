@@ -44,15 +44,6 @@ using double_conversion::DoubleToStringConverter;
 
 // ---------------------------------------------------------------------------
 
-static const char16_t gNullChar = 0;
-
-char* const nsCharTraits<char>::sEmptyBuffer =
-    (char*)const_cast<char16_t*>(&gNullChar);
-char16_t* const nsCharTraits<char16_t>::sEmptyBuffer =
-    const_cast<char16_t*>(&gNullChar);
-
-// ---------------------------------------------------------------------------
-
 static void ReleaseData(void* aData, nsAString::DataFlags aFlags) {
   if (aFlags & nsAString::DataFlags::REFCOUNTED) {
     mozilla::StringBuffer::FromData(aData)->Release();
