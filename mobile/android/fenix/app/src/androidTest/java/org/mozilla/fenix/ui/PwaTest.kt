@@ -40,7 +40,7 @@ class PwaTest : TestSetup() {
         }.enterURLAndEnterToBrowser(externalLinksPWAPage.toUri()) {
             verifyPageContent("Misc Link Types")
         }.openThreeDotMenu {
-        }.clickInstall {
+        }.clickAddAppToHomeScreen {
             clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut(shortcutTitle) {
             clickPageObject(itemContainingText("External link"))
@@ -58,7 +58,7 @@ class PwaTest : TestSetup() {
         }.enterURLAndEnterToBrowser(externalLinksPWAPage.toUri()) {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openThreeDotMenu {
-        }.clickInstall {
+        }.clickAddAppToHomeScreen {
             clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut(shortcutTitle) {
         }
@@ -79,7 +79,7 @@ class PwaTest : TestSetup() {
         }.enterURLAndEnterToBrowser(pwaPage.toUri()) {
             verifyPageContent("Login Form")
         }.openThreeDotMenu {
-        }.clickInstall {
+        }.clickAddAppToHomeScreen {
             clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut("TEST_APP") {
             mDevice.waitForIdle()

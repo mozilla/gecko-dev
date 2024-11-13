@@ -604,16 +604,16 @@ class ThreeDotMenuMainRobot {
             return AddToHomeScreenRobot.Transition()
         }
 
-        fun clickInstall(interact: AddToHomeScreenRobot.() -> Unit): AddToHomeScreenRobot.Transition {
+        fun clickAddAppToHomeScreen(interact: AddToHomeScreenRobot.() -> Unit): AddToHomeScreenRobot.Transition {
             Log.i(TAG, "clickInstall: Trying to perform swipe up action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeUp())
             Log.i(TAG, "clickInstall: Performed swipe up action on the three dot menu")
             Log.i(TAG, "clickInstall: Trying to perform swipe up action on the three dot menu")
             threeDotMenuRecyclerView().perform(swipeUp())
             Log.i(TAG, "clickInstall: Performed swipe up action on the three dot menu")
-            Log.i(TAG, "clickInstall: Trying to click the \"Install\" button")
-            installPWAButton().click()
-            Log.i(TAG, "clickInstall: Clicked the \"Install\" button")
+            Log.i(TAG, "clickInstall: Trying to click the \"Add app to Home screen\" button")
+            addAppToHomeScreenButton().click()
+            Log.i(TAG, "clickInstall: Clicked the \"Add app to Home screen\" button")
 
             AddToHomeScreenRobot().interact()
             return AddToHomeScreenRobot.Transition()
@@ -727,8 +727,8 @@ private fun readerViewAppearanceToggle() =
 private fun removeFromShortcutsButton() =
     onView(allOf(withText(R.string.browser_menu_remove_from_shortcuts)))
 
-private fun installPWAButton() =
-    itemContainingText(getStringResource(R.string.browser_menu_add_to_homescreen))
+private fun addAppToHomeScreenButton() =
+    itemContainingText(getStringResource(R.string.browser_menu_add_app_to_homescreen))
 
 private fun openInAppButton() =
     onView(
