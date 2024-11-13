@@ -14,9 +14,9 @@
 #include "nsThreadManager.h"
 #include "nsThreadUtils.h"
 #include "mozilla/EventQueue.h"
+#include "mozilla/IOInterposer.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ThreadEventQueue.h"
-#include "GeckoProfiler.h"
 
 #ifdef XP_WIN
 #  include <windows.h>
@@ -141,18 +141,24 @@ nsresult CacheIOThread::Init() {
     mNativeThreadHandle = MakeUnique<detail::NativeThreadHandle>();
   }
 
-  nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableFunction("CacheIOThread::ThreadFunc",
-                             [self = RefPtr{this}] { self->ThreadFunc(); });
-
-  nsCOMPtr<nsIThread> thread;
-  nsresult rv =
-      NS_NewNamedThread("Cache2 I/O", getter_AddRefs(thread), runnable);
-  if (NS_FAILED(rv) || NS_FAILED(thread->GetPRThread(&mThread)) || !mThread) {
+  // Increase the reference count while spawning a new thread.
+  // If PR_CreateThread succeeds, we will forget this reference and the thread
+  // will be responsible to release it when it completes.
+  RefPtr<CacheIOThread> self = this;
+  mThread =
+      PR_CreateThread(PR_USER_THREAD, ThreadFunc, this, PR_PRIORITY_NORMAL,
+                      PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 128 * 1024);
+  if (!mThread) {
+    // Treat this thread as already shutdown.
     MonitorAutoLock lock(mMonitor);
     mShutdown = true;
-    return NS_FAILED(rv) ? rv : NS_ERROR_FAILURE;
+    return NS_ERROR_FAILURE;
   }
+
+  // IMPORTANT: The thread now owns this reference, so it's important that we
+  // leak it here, otherwise we'll end up with a bad refcount.
+  // See the dont_AddRef in ThreadFunc().
+  Unused << self.forget().take();
 
   return NS_OK;
 }
@@ -263,9 +269,7 @@ void CacheIOThread::Shutdown() {
     mMonitor.NotifyAll();
   }
 
-  if (nsIThread* thread = mXPCOMThread) {
-    thread->Shutdown();
-  }
+  PR_JoinThread(mThread);
   mThread = nullptr;
 }
 
@@ -302,8 +306,21 @@ already_AddRefed<nsIEventTarget> CacheIOThread::Target() {
   return target.forget();
 }
 
+// static
+void CacheIOThread::ThreadFunc(void* aClosure) {
+  // XXXmstange We'd like to register this thread with the profiler, but doing
+  // so causes leaks, see bug 1323100.
+  NS_SetCurrentThreadName("Cache2 I/O");
+
+  mozilla::IOInterposer::RegisterCurrentThread();
+  // We hold on to this reference for the duration of the thread.
+  RefPtr<CacheIOThread> thread =
+      dont_AddRef(static_cast<CacheIOThread*>(aClosure));
+  thread->ThreadFunc();
+  mozilla::IOInterposer::UnregisterCurrentThread();
+}
+
 void CacheIOThread::ThreadFunc() {
-  AUTO_PROFILER_REGISTER_THREAD("Cache2 I/O");
   nsCOMPtr<nsIThreadInternal> threadInternal;
 
   {
@@ -312,15 +329,16 @@ void CacheIOThread::ThreadFunc() {
     MOZ_ASSERT(mNativeThreadHandle);
     mNativeThreadHandle->InitThread();
 
-    nsCOMPtr<nsIThread> xpcomThread = NS_GetCurrentThread();
-    nsCOMPtr<nsIThread> thread = xpcomThread;
+    auto queue =
+        MakeRefPtr<ThreadEventQueue>(MakeUnique<mozilla::EventQueue>());
+    nsCOMPtr<nsIThread> xpcomThread =
+        nsThreadManager::get().CreateCurrentThread(queue);
 
     threadInternal = do_QueryInterface(xpcomThread);
-    if (threadInternal) {
-      threadInternal->SetObserver(this);
-    }
+    if (threadInternal) threadInternal->SetObserver(this);
 
     mXPCOMThread = xpcomThread.forget().take();
+    nsCOMPtr<nsIThread> thread = NS_GetCurrentThread();
 
     lock.NotifyAll();
 
@@ -376,15 +394,13 @@ void CacheIOThread::ThreadFunc() {
 
     MOZ_ASSERT(!EventsPending());
 
-    if (threadInternal) {
-      threadInternal->SetObserver(nullptr);
-    }
-
 #ifdef DEBUG
     // This is for correct assertion on XPCOM events dispatch.
     mInsideLoop = false;
 #endif
   }  // lock
+
+  if (threadInternal) threadInternal->SetObserver(nullptr);
 }
 
 void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
@@ -459,11 +475,7 @@ bool CacheIOThread::EventsPending(uint32_t aLastLevel) {
 NS_IMETHODIMP CacheIOThread::OnDispatchedEvent() {
   MonitorAutoLock lock(mMonitor);
   mHasXPCOMEvents = true;
-  // There's a race between the observer being removed on the CacheIOThread
-  // and the thread being shutdown on the main thread.
-  // When shutting down, even if there are more events, they will be processed
-  // by the XPCOM thread instead of ThreadFunc.
-  MOZ_ASSERT(mInsideLoop || mShutdown);
+  MOZ_ASSERT(mInsideLoop);
   lock.Notify();
   return NS_OK;
 }

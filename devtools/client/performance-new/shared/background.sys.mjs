@@ -265,7 +265,6 @@ export const presets = {
       "memory",
     ],
     threads: [
-      "Cache2 I/O",
       "Compositor",
       "DNS Resolver",
       "DOM Worker",
