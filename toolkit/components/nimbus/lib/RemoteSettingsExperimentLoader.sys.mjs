@@ -85,7 +85,9 @@ const SCHEMAS = {
   get NimbusExperiment() {
     return fetch("resource://nimbus/schemas/NimbusExperiment.schema.json", {
       credentials: "omit",
-    }).then(rsp => rsp.json());
+    })
+      .then(rsp => rsp.json())
+      .then(json => json.definitions.NimbusExperiment);
   },
 };
 

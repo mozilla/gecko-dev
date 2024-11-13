@@ -529,9 +529,6 @@ export class _ExperimentManager {
       featureIds,
       isRollout,
       localizations,
-      isFirefoxLabsOptIn,
-      firefoxLabsTitle,
-      firefoxLabsDescription,
     },
     branch,
     source,
@@ -581,14 +578,6 @@ export class _ExperimentManager {
 
     if (localizations) {
       experiment.localizations = localizations;
-    }
-
-    if (typeof isFirefoxLabsOptIn !== "undefined") {
-      Object.assign(experiment, {
-        isFirefoxLabsOptIn,
-        firefoxLabsTitle,
-        firefoxLabsDescription,
-      });
     }
 
     if (typeof isRollout !== "undefined") {
