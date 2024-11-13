@@ -133,6 +133,37 @@ add_task(async function () {
   await resume(dbg);
 });
 
+add_task(async function testSettingAppliedOnStartup() {
+  let dbg = await initDebugger("doc-exceptions.html", "exceptions.js");
+
+  await togglePauseOnExceptions(dbg, true, true);
+
+  await dbg.toolbox.closeToolbox();
+
+  // Do not use `initDebugger` as it resets all settings
+  const toolbox = await openNewTabAndToolbox(
+    EXAMPLE_URL + "doc-exceptions.html",
+    "jsdebugger"
+  );
+  dbg = createDebuggerContext(toolbox);
+
+  await waitForSource(dbg, "exceptions.js");
+
+  const pauseOnCaughtExceptionCheckbox = findElementWithSelector(
+    dbg,
+    ".breakpoints-exceptions-caught input"
+  );
+  ok(pauseOnCaughtExceptionCheckbox.checked, "The settings is visualy enabled");
+
+  uncaughtException();
+  await waitForPaused(dbg);
+  await assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "exceptions.js").id,
+    2
+  );
+});
+
 function uncaughtException() {
   return invokeInTab("uncaughtException").catch(() => {});
 }

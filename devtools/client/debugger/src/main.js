@@ -61,10 +61,10 @@ function setPauseOnDebuggerStatement() {
 }
 
 function setPauseOnExceptions() {
-  const { pauseOnExceptions, pauseOnCaughtException } = prefs;
+  const { pauseOnExceptions, pauseOnCaughtExceptions } = prefs;
   return firefox.clientCommands.pauseOnExceptions(
     pauseOnExceptions,
-    pauseOnCaughtException
+    pauseOnCaughtExceptions
   );
 }
 
