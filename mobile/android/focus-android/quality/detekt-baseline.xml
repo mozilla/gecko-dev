@@ -111,7 +111,6 @@
     <ID>UndocumentedPublicClass:LocaleDescriptor.kt$LocaleDescriptor$Companion</ID>
     <ID>UndocumentedPublicClass:LocaleManager.kt$LocaleManager$Companion</ID>
     <ID>UndocumentedPublicClass:LocalizedContent.kt$LocalizedContent</ID>
-    <ID>UndocumentedPublicClass:LockObserver.kt$LockObserver : DefaultLifecycleObserver</ID>
     <ID>UndocumentedPublicClass:MainActivity.kt$MainActivity : LocaleAwareAppCompatActivity</ID>
     <ID>UndocumentedPublicClass:MainActivity.kt$MainActivity$AppOpenType</ID>
     <ID>UndocumentedPublicClass:MainActivity.kt$MainActivity$Companion</ID>
@@ -199,7 +198,6 @@
     <ID>UndocumentedPublicClass:StartupPathProvider.kt$StartupPathProvider$StartupPath</ID>
     <ID>UndocumentedPublicClass:StartupPathProvider.kt$StartupPathProvider$StartupPathLifecycleObserver : DefaultLifecycleObserver</ID>
     <ID>UndocumentedPublicClass:StartupStateProvider.kt$StartupStateProvider$StartupState</ID>
-    <ID>UndocumentedPublicClass:StartupTypeTelemetry.kt$StartupTypeTelemetry$StartupTypeLifecycleObserver : DefaultLifecycleObserver</ID>
     <ID>UndocumentedPublicClass:StudiesAdapter.kt$StudiesAdapter : ListAdapter</ID>
     <ID>UndocumentedPublicClass:StudiesAdapter.kt$StudiesAdapter$StudiesDiffCallback : ItemCallback</ID>
     <ID>UndocumentedPublicClass:StudiesFragment.kt$StudiesFragment : BaseSettingsLikeFragment</ID>
@@ -335,7 +333,6 @@
     <ID>UndocumentedPublicFunction:RadioButtonPreference.kt$fun Iterable&lt;GroupableRadioButton&gt;.uncheckAll()</ID>
     <ID>UndocumentedPublicFunction:RemoveSearchEnginesSettingsFragment.kt$RemoveSearchEnginesSettingsFragment.Companion$fun newInstance()</ID>
     <ID>UndocumentedPublicFunction:SearchEngineListPreference.kt$SearchEngineListPreference$fun refetchSearchEngines()</ID>
-    <ID>UndocumentedPublicFunction:SearchOverlay.kt$@OptIn(DelicateCoroutinesApi::class) @Composable fun SearchOverlay( viewModel: SearchSuggestionsViewModel, defaultSearchEngineName: String, onListScrolled: () -&gt; Unit, )</ID>
     <ID>UndocumentedPublicFunction:SearchSettingsFragment.kt$SearchSettingsFragment.Companion$fun newInstance(): SearchSettingsFragment</ID>
     <ID>UndocumentedPublicFunction:SearchSuggestionsFragment.kt$SearchSuggestionsFragment.Companion$fun create()</ID>
     <ID>UndocumentedPublicFunction:SearchSuggestionsPreferences.kt$SearchSuggestionsPreferences$fun disableSearchSuggestions()</ID>
@@ -395,8 +392,6 @@
     <ID>UndocumentedPublicFunction:StartupActivityLog.kt$StartupActivityLog$fun registerInAppOnCreate( application: Application, processLifecycleOwner: LifecycleOwner = ProcessLifecycleOwner.get(), )</ID>
     <ID>UndocumentedPublicFunction:StartupPathProvider.kt$StartupPathProvider$@VisibleForTesting(otherwise = NONE) fun getTestCallbacks()</ID>
     <ID>UndocumentedPublicFunction:StartupPathProvider.kt$StartupPathProvider$fun attachOnActivityOnCreate(lifecycle: Lifecycle, intent: Intent?)</ID>
-    <ID>UndocumentedPublicFunction:StartupTypeTelemetry.kt$StartupTypeTelemetry$@VisibleForTesting(otherwise = NONE) fun getTestCallbacks()</ID>
-    <ID>UndocumentedPublicFunction:StartupTypeTelemetry.kt$StartupTypeTelemetry$fun attachOnMainActivityOnCreate(lifecycle: Lifecycle)</ID>
     <ID>UndocumentedPublicFunction:StoreLink.kt$StoreLink$fun start()</ID>
     <ID>UndocumentedPublicFunction:StudiesViewHolder.kt$StudiesViewHolder.ActiveStudiesViewHolder$fun bindStudy( activeStudy: StudiesListItem.ActiveStudy, removeStudyListener: (StudiesListItem.ActiveStudy) -&gt; Unit, )</ID>
     <ID>UndocumentedPublicFunction:StudiesViewHolder.kt$StudiesViewHolder.SectionViewHolder$fun bindSection(section: StudiesListItem.Section)</ID>
@@ -407,9 +402,6 @@
     <ID>UndocumentedPublicFunction:SupportUtils.kt$SupportUtils$fun openDefaultBrowserSumoPage(context: Context)</ID>
     <ID>UndocumentedPublicFunction:SupportUtils.kt$SupportUtils$fun openUrlInCustomTab(activity: FragmentActivity, destinationUrl: String)</ID>
     <ID>UndocumentedPublicFunction:Theme.kt$fun Resources.Theme.resolveAttribute(attribute: Int): Int</ID>
-    <ID>UndocumentedPublicFunction:TopSitesOverlay.kt$@OptIn(DelicateCoroutinesApi::class) @Composable fun TopSitesOverlay(modifier: Modifier = Modifier)</ID>
-    <ID>UndocumentedPublicFunction:TopSitesOverlay.kt$@OptIn(DelicateCoroutinesApi::class) fun removeTopSite(item: TopSite, components: Components)</ID>
-    <ID>UndocumentedPublicFunction:TopSitesOverlay.kt$@OptIn(DelicateCoroutinesApi::class) fun renameTopSite(selectedTopSite: TopSite, newTitle: String, components: Components)</ID>
     <ID>UndocumentedPublicFunction:UrlInputFragment.kt$UrlInputFragment$fun onBackPressed(): Boolean</ID>
     <ID>UndocumentedPublicFunction:UrlInputFragment.kt$UrlInputFragment.Companion$@JvmStatic fun createWithTab( tabId: String, ): UrlInputFragment</ID>
     <ID>UndocumentedPublicFunction:UrlInputFragment.kt$UrlInputFragment.Companion$@JvmStatic fun createWithoutSession(): UrlInputFragment</ID>

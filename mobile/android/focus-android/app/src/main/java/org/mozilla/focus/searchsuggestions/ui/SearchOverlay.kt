@@ -16,7 +16,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.drawable.toBitmap
-import kotlinx.coroutines.DelicateCoroutinesApi
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.awesomebar.AwesomeBarDefaults
 import mozilla.components.concept.awesomebar.AwesomeBar
@@ -28,7 +27,13 @@ import org.mozilla.focus.searchsuggestions.State
 import org.mozilla.focus.topsites.TopSitesOverlay
 import org.mozilla.focus.ui.theme.focusColors
 
-@OptIn(DelicateCoroutinesApi::class)
+/**
+ * Composable function that displays the search overlay.
+ *
+ * @param viewModel The ViewModel that provides the state and search query.
+ * @param defaultSearchEngineName The name of the default search engine.
+ * @param onListScrolled Callback function to be invoked when the list is scrolled.
+ */
 @Composable
 fun SearchOverlay(
     viewModel: SearchSuggestionsViewModel,

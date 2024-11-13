@@ -10,12 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.feature.top.sites.TopSite
@@ -25,7 +25,11 @@ import org.mozilla.focus.GleanMetrics.Shortcuts
 import org.mozilla.focus.components
 import org.mozilla.focus.state.AppAction
 
-@OptIn(DelicateCoroutinesApi::class)
+/**
+ * Composable function that displays the top sites list.
+ *
+ * @param modifier Modifier to be applied to the layout.
+ */
 @Composable
 fun TopSitesOverlay(modifier: Modifier = Modifier) {
     val components = components
@@ -34,7 +38,9 @@ fun TopSitesOverlay(modifier: Modifier = Modifier) {
     val showRenameDialog: MutableState<Boolean> = remember { mutableStateOf(false) }
     val topSiteItem: MutableState<TopSite?> = remember { mutableStateOf(null) }
 
-    if (!topSites.isNullOrEmpty()) {
+    val coroutineScope = rememberCoroutineScope()
+
+    if (topSites.isNotEmpty()) {
         Column(
             modifier = modifier,
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -45,7 +51,7 @@ fun TopSitesOverlay(modifier: Modifier = Modifier) {
                 topSites = topSites,
                 onTopSiteClicked = { item -> openTopSite(item, components) },
                 onRemoveTopSiteClicked = { item ->
-                    removeTopSite(item, components)
+                    removeTopSite(item, components, coroutineScope)
                 },
                 onRenameTopSiteClicked = { topSite ->
                     showRenameDialog.value = true
@@ -60,7 +66,7 @@ fun TopSitesOverlay(modifier: Modifier = Modifier) {
                 RenameTopSiteDialog(
                     currentName = selectedTopSite.title ?: "",
                     onConfirm = { newTitle ->
-                        renameTopSite(selectedTopSite, newTitle, components)
+                        renameTopSite(selectedTopSite, newTitle, components, coroutineScope)
                         showRenameDialog.value = false
                         topSiteItem.value = null
                     },
@@ -74,6 +80,12 @@ fun TopSitesOverlay(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Opens the specified top site in a browser tab.
+ *
+ * @param item The top site to open.
+ * @param components The components required to open the top site.
+ */
 private fun openTopSite(item: TopSite, components: Components) {
     val currentTabId = components.store.state.selectedTabId
     if (currentTabId.isNullOrEmpty()) {
@@ -91,18 +103,36 @@ private fun openTopSite(item: TopSite, components: Components) {
     Shortcuts.shortcutOpenedCounter.add()
 }
 
-@OptIn(DelicateCoroutinesApi::class)
-fun removeTopSite(item: TopSite, components: Components) {
+/**
+ * Removes the specified top site.
+ *
+ * @param item The top site to remove.
+ * @param components The components required to remove the top site.
+ * @param coroutineScope The coroutine scope to launch the removal operation.
+ */
+fun removeTopSite(item: TopSite, components: Components, coroutineScope: CoroutineScope) {
     Shortcuts.shortcutRemovedCounter["removed_from_home_screen"].add()
 
-    GlobalScope.launch(Dispatchers.IO) {
+    coroutineScope.launch(Dispatchers.IO) {
         components.topSitesUseCases.removeTopSites(item)
     }
 }
 
-@OptIn(DelicateCoroutinesApi::class)
-fun renameTopSite(selectedTopSite: TopSite, newTitle: String, components: Components) {
-    GlobalScope.launch(Dispatchers.IO) {
+/**
+ * Renames the specified top site.
+ *
+ * @param selectedTopSite The top site to rename.
+ * @param newTitle The new title for the top site.
+ * @param components The components required to rename the top site.
+ * @param coroutineScope The coroutine scope to launch the rename operation.
+ */
+fun renameTopSite(
+    selectedTopSite: TopSite,
+    newTitle: String,
+    components: Components,
+    coroutineScope: CoroutineScope,
+) {
+    coroutineScope.launch(Dispatchers.IO) {
         components.topSitesUseCases.updateTopSites.invoke(
             selectedTopSite,
             newTitle,

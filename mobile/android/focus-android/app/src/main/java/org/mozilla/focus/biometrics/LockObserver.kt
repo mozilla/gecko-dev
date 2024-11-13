@@ -7,9 +7,8 @@ package org.mozilla.focus.biometrics
 import android.content.Context
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import kotlinx.coroutines.DelicateCoroutinesApi
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.store.BrowserStore
@@ -21,6 +20,14 @@ import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.state.AppStore
 import org.mozilla.focus.topsites.DefaultTopSitesStorage
 
+/**
+ * Observer that locks the app when it goes to the background or is paused,
+ * based on biometric settings and screen contents.
+ *
+ * @param context The application context.
+ * @param browserStore The store that holds the browser state.
+ * @param appStore The store that holds the app state.
+ */
 class LockObserver(
     private val context: Context,
     private val browserStore: BrowserStore,
@@ -29,30 +36,58 @@ class LockObserver(
 
     override fun onCreate(owner: LifecycleOwner) {
         super.onCreate(owner)
-        triggerAppLock()
+        checkAndLockApp(owner)
     }
 
     override fun onPause(owner: LifecycleOwner) {
         super.onPause(owner)
-        triggerAppLock()
+        checkAndLockApp(owner)
+        recordTabCount()
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
-    private fun triggerAppLock() {
-        GlobalScope.launch(Dispatchers.IO) {
-            val tabCount = browserStore.state.privateTabs.size.toLong()
-            TabCount.appBackgrounded.accumulateSamples(listOf(tabCount))
-            val topSitesList = context.components.topSitesStorage.getTopSites(
-                totalSites = DefaultTopSitesStorage.TOP_SITES_MAX_LIMIT,
-                frecencyConfig = null,
-            )
-            if (tabCount == 0L && topSitesList.isEmpty()) {
-                return@launch
-            }
-            if (context.settings.shouldUseBiometrics() &&
-                context.canUseBiometricFeature()
-            ) {
-                appStore.dispatch(AppAction.Lock())
+    /**
+     * Records the count of private tabs when the app goes to the background.
+     */
+    private fun recordTabCount() {
+        val tabCount = browserStore.state.privateTabs.size.toLong()
+        TabCount.appBackgrounded.accumulateSamples(listOf(tabCount))
+    }
+
+    /**
+     * Checks if the app can be locked based on biometric settings, SDK version and hardware capabilities.
+     *
+     * @return True if the app can be locked, false otherwise.
+     */
+    private fun canLockApp(): Boolean {
+        return context.settings.shouldUseBiometrics() && context.canUseBiometricFeature()
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        super.onResume(owner)
+        checkAndLockApp(owner)
+    }
+
+    /**
+     * Checks conditions and locks the app if necessary.
+     *
+     * @param owner The lifecycle owner.
+     */
+    private fun checkAndLockApp(owner: LifecycleOwner) {
+        owner.lifecycleScope.launch(Dispatchers.IO) {
+            if (canLockApp()) {
+                if (browserStore.state.privateTabs.isNotEmpty()) {
+                    appStore.dispatch(AppAction.Lock())
+                    return@launch
+                }
+
+                val topSitesList = context.components.topSitesStorage.getTopSites(
+                    totalSites = DefaultTopSitesStorage.TOP_SITES_MAX_LIMIT,
+                    frecencyConfig = null,
+                )
+
+                if (topSitesList.isNotEmpty()) {
+                    appStore.dispatch(AppAction.Lock())
+                }
             }
         }
     }
