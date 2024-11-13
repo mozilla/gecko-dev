@@ -466,7 +466,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         contentState = Route.SaveMenu
                                     },
                                     onExtensionsMenuClick = {
-                                        if (args.accesspoint == MenuAccessPoint.Home) {
+                                        if (args.accesspoint == MenuAccessPoint.Home || isExtensionsProcessDisabled) {
                                             store.dispatch(MenuAction.Navigate.ManageExtensions)
                                         } else {
                                             contentState = Route.ExtensionsMenu
