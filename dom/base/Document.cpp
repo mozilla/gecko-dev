@@ -11868,6 +11868,10 @@ void Document::Destroy() {
     return;
   }
 
+  if (RefPtr transition = mActiveViewTransition) {
+    transition->SkipTransition(SkipTransitionReason::DocumentHidden);
+  }
+
   ReportDocumentUseCounters();
   ReportLCP();
   SetDevToolsWatchingDOMMutations(false);
