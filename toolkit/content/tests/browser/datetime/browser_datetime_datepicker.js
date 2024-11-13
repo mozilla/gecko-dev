@@ -265,6 +265,69 @@ add_task(async function test_datepicker_reopen_state() {
   await helper.tearDown();
 });
 
+add_task(async function test_datepicker_minmax_current_year() {
+  const today = new Date();
+  const thisYear = today.getFullYear();
+  const thisMonth = today.getMonth();
+  // Testing bug 1778086: the month would default to the current month if the
+  // current year is allowed, regardless of whether the current month is valid.
+  // Make sure the min/max are for a month other than the current month.
+  // today.getMonth() is 0-indexed; testMonth is 1-indexed for interpolation
+  // into a YYYY-MM-DD date string.
+  const testMonth = thisMonth == 0 ? "03" : "01";
+
+  // Ensure the allowed day numbers are in the middle of the month and will
+  // never overlap day numbers from the end of the preceding month or beginning
+  // of the next, which may be displayed at the start/end of the widget. This
+  // is necessary for the allowed/notAllowed filters below to work correctly.
+  const minDay = 14;
+  const maxDay = 19;
+
+  const inputMin = `${thisYear}-${testMonth}-${minDay}`;
+  const inputMax = `${thisYear}-${testMonth}-${maxDay}`;
+
+  await helper.openPicker(
+    `data:text/html, <input type="date" min="${inputMin}" max="${inputMax}">`
+  );
+
+  let days = [];
+  for (const tr of helper.getChildren(DAYS_VIEW)) {
+    for (const td of tr.children) {
+      days.push(td);
+    }
+  }
+  const getDay = d => parseInt(d.textContent, 10);
+  const allowedDays = days.filter(
+    d => getDay(d) >= minDay && getDay(d) <= maxDay
+  );
+  const notAllowedDays = days.filter(
+    d => getDay(d) < minDay || getDay(d) > maxDay
+  );
+
+  Assert.equal(
+    helper.getElement(MONTH_YEAR).textContent,
+    DATE_FORMAT(new Date(inputMin)),
+    "Selected month is testMonth"
+  );
+  // The calendar always shows 6 full weeks, even though the current month
+  // would often fit within 5 rows (occasionally 4).
+  // If we ever make the widget use a dynamic number of rows, this will need
+  // adjusting to account for the variability.
+  Assert.equal(days.length, 42, "42 total days");
+  Assert.equal(allowedDays.length, 6, "6 allowed days");
+  Assert.equal(notAllowedDays.length, 36, "36 not-allowed days");
+  Assert.ok(
+    allowedDays.every(d => !d.classList.contains(R)),
+    "Allowed days are not out of range"
+  );
+  Assert.ok(
+    notAllowedDays.every(d => d.classList.contains(R)),
+    "Not allowed days are out of range"
+  );
+
+  await helper.tearDown();
+});
+
 /**
  * When step attribute is set, calendar should show some dates as off-step.
  */
