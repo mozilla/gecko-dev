@@ -85,7 +85,6 @@
     <string name="share_dialog_title">Аша уртаклашу</string>
 
     <string name="notification_erase_title_android_14">Гизү тарихы бетерелсенме?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Гизү тарихыгызны хәвефсез рәвештә бетерү өчен бу искәртүгә басыгыз яки аны чистартыгыз.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -124,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Focus эченнән эзләү</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Focus эченнән эзләү</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Klar эченнән эзләү</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Klar эченнән эзләү</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Focus Beta эченнән эзләү</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Focus Beta эченнән эзләү</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Focus Nightly эченнән эзләү</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightly эченнән эзләү</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s дилбегәне Сезнең кулга тапшыра.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s дилбегәне Сезнең кулга тапшыра.</p>
 <p>Аны хосусый браузер буларак кулланып, түбәндәгеләрне эшләп була:
   <ul>
     <li>Турыдан-туры кушымта эчендә эзләү һәм пәрәвездә гизү</li>
@@ -517,7 +516,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Ябу</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Ябу</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -608,9 +607,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Гизү тарихын бетерү</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Башка табларны да ябу</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox\'ны йөкләп алу</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox\'ны йөкләп алу</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -622,23 +624,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s Сезгә <a href="%2$s">Mozilla Public License</a> һәм башка ачык чыганак лицензияләренең шартлары белән тәкъдим ителә.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s Сезгә <a href="%2$s">Mozilla Public License</a> һәм башка ачык чыганак лицензияләренең шартлары белән тәкъдим ителә.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Сезгә Mozilla Foundation-ның яисә башка тарафларның һичбер теркәлгән сәүдә билгеләренә, шул исәптән Mozilla, Firefox яисә %1$s исемнәре яки логотипларына бернинди дә хокуклар я лицензияләр бирелми. Өстәмә мәгълүматны <a href="%2$s">монда</a> табып була.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Сезгә Mozilla Foundation-ның яисә башка тарафларның һичбер теркәлгән сәүдә билгеләренә, шул исәптән Mozilla, Firefox яисә %1$s исемнәре яки логотипларына бернинди дә хокуклар я лицензияләр бирелми. Өстәмә мәгълүматны <a href="%2$s">монда</a> табып була.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[%1$s өчен өстәмә чыганак кодлары башка берничә ирекле һәм ачык чыганак <a href="%2$s">лицензияләләре</a> астында нәшер ителә.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s өчен өстәмә чыганак кодлары башка берничә ирекле һәм ачык чыганак <a href="%2$s">лицензияләләре</a> астында нәшер ителә.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[Моннан тыш, %1$s, аерым һәм бәйсез әсәрләр буларак, Disconnect, Inc. тәэмин иткән блоклау исемлекләрен куллана. Аларны <a href="%2$s">GNU General Public License v3</a> шартлары белән һәм түләүсез <a href="%3$s">монда</a> табып була.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Моннан тыш, %1$s, аерым һәм бәйсез әсәрләр буларак, Disconnect, Inc. тәэмин иткән блоклау исемлекләрен куллана. Аларны <a href="%2$s">GNU General Public License v3</a> шартлары белән һәм түләүсез <a href="%3$s">монда</a> табып була.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Кулланучы исеме</string>
@@ -829,7 +831,7 @@
     <string name="preference_studies">Тикшеренүләр</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox кайвакытта тикшеренүләр урнаштырырга һәм үткәрергә мөмкин.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox кайвакытта тикшеренүләр урнаштырырга һәм үткәрергә мөмкин.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Күбрәк белү</string>
@@ -923,9 +925,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Күчү</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Тулы экран режимына күчү</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Яңа табтагы сылтамага шундук күчү</string>
@@ -1031,7 +1030,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s күбрәк хәвефсезлек өчен мөмкин булганда HTTPS бәйләнешен кулланырга тырыша.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s күбрәк хәвефсезлек өчен мөмкин булганда HTTPS бәйләнешен кулланырга тырыша.
     <a href="%2$s">Күбрәк белү</a><br/><br/>
     Бу көйләнүне үзгәртү өчен Көйләүләр > Хосусыйлык һәм Хәвефсезлек > Хәвефсезлек бүлегенә күчегез.]]></string>
 
@@ -1100,4 +1099,17 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Виджет өй экранына өстәлде</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Тулы экраннан чыгу өчен, экранны өстән тартып, &quot;кире кайту&quot; ишарәсен кулланыгыз</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Тулы экраннан чыгу өчен, экранны өстән тартып, &quot;кире кайту&quot; төймәсенә басыгыз</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Чыгу өчен экранны өстән тартып, &quot;кире кайту&quot; ишарәсен кулланыгыз</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Чыгу өчен экранны өстән тартып, &quot;кире кайту&quot; төймәсенә басыгыз</string>
 </resources>
