@@ -132,5 +132,9 @@
   "tokopedia": {
     "queryParams": ["extParam"],
     "topLevelSites": ["www.tokopedia.com"]
+  },
+  "spotify": {
+    "queryParams": ["si"],
+    "topLevelSites": ["open.spotify.com"]
   }
 }
