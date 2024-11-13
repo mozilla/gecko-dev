@@ -51,7 +51,6 @@
 #include "mozilla/dom/PromiseDebugging.h"
 #include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/RemoteWorkerChild.h"
-#include "mozilla/dom/RemoteWorkerNonLifeCycleOpControllerChild.h"
 #include "mozilla/dom/RemoteWorkerService.h"
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/SimpleGlobalObject.h"
@@ -2495,9 +2494,7 @@ WorkerPrivate::WorkerPrivate(
     nsString&& aId, const nsID& aAgentClusterId,
     const nsILoadInfo::CrossOriginOpenerPolicy aAgentClusterOpenerPolicy,
     CancellationCallback&& aCancellationCallback,
-    TerminationCallback&& aTerminationCallback,
-    mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
-        aChildEp)
+    TerminationCallback&& aTerminationCallback)
     : mMutex("WorkerPrivate Mutex"),
       mCondVar(mMutex, "WorkerPrivate CondVar"),
       mParent(aParent),
@@ -2516,7 +2513,6 @@ WorkerPrivate::WorkerPrivate(
           this, WorkerEventTarget::Behavior::ControlOnly)),
       mWorkerHybridEventTarget(
           new WorkerEventTarget(this, WorkerEventTarget::Behavior::Hybrid)),
-      mChildEp(std::move(aChildEp)),
       mParentStatus(Pending),
       mStatus(Pending),
       mCreationTimeStamp(TimeStamp::Now()),
@@ -2750,9 +2746,7 @@ already_AddRefed<WorkerPrivate> WorkerPrivate::Constructor(
     const nsACString& aServiceWorkerScope, WorkerLoadInfo* aLoadInfo,
     ErrorResult& aRv, nsString aId,
     CancellationCallback&& aCancellationCallback,
-    TerminationCallback&& aTerminationCallback,
-    mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
-        aChildEp) {
+    TerminationCallback&& aTerminationCallback) {
   WorkerPrivate* parent =
       NS_IsMainThread() ? nullptr : GetCurrentThreadWorkerPrivate();
 
@@ -2817,7 +2811,7 @@ already_AddRefed<WorkerPrivate> WorkerPrivate::Constructor(
       parent, aScriptURL, aIsChromeWorker, aWorkerKind, aRequestCredentials,
       aWorkerType, aWorkerName, aServiceWorkerScope, *aLoadInfo, std::move(aId),
       idAndCoop.mId, idAndCoop.mCoop, std::move(aCancellationCallback),
-      std::move(aTerminationCallback), std::move(aChildEp));
+      std::move(aTerminationCallback));
 
   // Gecko contexts always have an explicitly-set default locale (set by
   // XPJSRuntime::Initialize for the main thread, set by
@@ -3381,16 +3375,6 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
     // Now, start to run the event loop, mPreStartRunnables can be cleared,
     // since when get here, Worker initialization has done successfully.
     mPreStartRunnables.Clear();
-  }
-
-  // Create IPC between the content process worker thread and the parent
-  // process background thread for non-life cycle related operations of
-  // SharedWorker/ServiceWorker
-  if (mChildEp.IsValid()) {
-    mRemoteWorkerNonLifeCycleOpController =
-        RemoteWorkerNonLifeCycleOpControllerChild::Create();
-    MOZ_ASSERT_DEBUG_OR_FUZZING(mRemoteWorkerNonLifeCycleOpController);
-    mChildEp.Bind(mRemoteWorkerNonLifeCycleOpController);
   }
 
   // Now that we've done that, we can go ahead and set up our AutoJSAPI.  We
@@ -5332,15 +5316,6 @@ bool WorkerPrivate::NotifyInternal(WorkerStatus aStatus) {
   // Let all our holders know the new status.
   if (aStatus == Canceling) {
     NotifyWorkerRefs(aStatus);
-  }
-
-  if (aStatus == Canceling && mRemoteWorkerNonLifeCycleOpController) {
-    mRemoteWorkerNonLifeCycleOpController->TransistionStateToCanceled();
-  }
-
-  if (aStatus == Killing && mRemoteWorkerNonLifeCycleOpController) {
-    mRemoteWorkerNonLifeCycleOpController->TransistionStateToKilled();
-    mRemoteWorkerNonLifeCycleOpController = nullptr;
   }
 
   // If the worker script never ran, or failed to compile, we don't need to do

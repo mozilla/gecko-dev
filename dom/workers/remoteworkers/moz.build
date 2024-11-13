@@ -10,9 +10,6 @@ EXPORTS.mozilla.dom += [
     "RemoteWorkerControllerChild.h",
     "RemoteWorkerControllerParent.h",
     "RemoteWorkerManager.h",
-    "RemoteWorkerNonLifeCycleOpControllerChild.h",
-    "RemoteWorkerNonLifeCycleOpControllerParent.h",
-    "RemoteWorkerOp.h",
     "RemoteWorkerParent.h",
     "RemoteWorkerService.h",
     "RemoteWorkerServiceChild.h",
@@ -25,9 +22,6 @@ UNIFIED_SOURCES += [
     "RemoteWorkerControllerChild.cpp",
     "RemoteWorkerControllerParent.cpp",
     "RemoteWorkerManager.cpp",
-    "RemoteWorkerNonLifeCycleOpControllerChild.cpp",
-    "RemoteWorkerNonLifeCycleOpControllerParent.cpp",
-    "RemoteWorkerOp.cpp",
     "RemoteWorkerParent.cpp",
     "RemoteWorkerService.cpp",
     "RemoteWorkerServiceChild.cpp",
@@ -42,7 +36,6 @@ LOCAL_INCLUDES += [
 IPDL_SOURCES += [
     "PRemoteWorker.ipdl",
     "PRemoteWorkerController.ipdl",
-    "PRemoteWorkerNonLifeCycleOpController.ipdl",
     "PRemoteWorkerService.ipdl",
     "RemoteWorkerTypes.ipdlh",
 ]
