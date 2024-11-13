@@ -196,6 +196,9 @@ document.addEventListener(
         case "menu_HelpPopup":
           buildHelpMenu();
           break;
+        case "menu_ProfilesPopup":
+          gProfiles.onPopupShowing(event);
+          break;
       }
     });
 

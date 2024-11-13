@@ -248,6 +248,15 @@ menu-bookmarks-other =
 menu-bookmarks-mobile =
     .label = Mobile Bookmarks
 
+## Profiles Menu
+
+menu-profiles =
+    .label = Profiles
+menu-profiles-manage-profiles =
+    .label = Manage profiles
+menu-profiles-new-profile =
+    .label = New profile
+
 ## Tools Menu
 
 menu-tools =

@@ -328,6 +328,11 @@
     </menupopup>
   </menu>
 
+  <menu id="profiles-menu" data-l10n-id="menu-profiles" hidden="true">
+    <menupopup id="menu_ProfilesPopup">
+    </menupopup>
+  </menu>
+
             <menu id="tools-menu" data-l10n-id="menu-tools">
               <menupopup id="menu_ToolsPopup">
               <menuitem id="menu_openDownloads"

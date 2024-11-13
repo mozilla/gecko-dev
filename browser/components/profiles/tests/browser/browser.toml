@@ -9,9 +9,15 @@ prefs = [
 
 ["browser_activate.js"]
 
+["browser_appmenu_menuitem_updates.js"]
+head = "../unit/head.js head.js"
+
 ["browser_create_profile_page_test.js"]
 
 ["browser_edit_profile_test.js"]
+
+["browser_menubar_profiles.js"]
+head = "../unit/head.js head.js"
 
 ["browser_notify_changes.js"]
 run-if = ["os != 'linux'"] # Linux clients cannot remote themselves.
