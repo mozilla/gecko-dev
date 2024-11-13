@@ -278,6 +278,9 @@ class nsDeviceContext final {
       bool aWantReferenceContext);
 
   void SetDPI();
+
+  // Determines which screen intersects the largest area of the given surface,
+  // or returns the primary screen.
   already_AddRefed<mozilla::widget::Screen> FindScreen();
 
   // Return false if the surface is not right

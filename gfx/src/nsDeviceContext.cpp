@@ -149,11 +149,6 @@ UniquePtr<gfxContext> nsDeviceContext::CreateRenderingContextCommon(
 
 uint32_t nsDeviceContext::GetDepth() {
   RefPtr<widget::Screen> screen = FindScreen();
-  if (!screen) {
-    ScreenManager& screenManager = ScreenManager::GetSingleton();
-    screen = screenManager.GetPrimaryScreen();
-    MOZ_ASSERT(screen);
-  }
   int32_t depth = 0;
   screen->GetColorDepth(&depth);
   return uint32_t(depth);
@@ -161,11 +156,6 @@ uint32_t nsDeviceContext::GetDepth() {
 
 dom::ScreenColorGamut nsDeviceContext::GetColorGamut() {
   RefPtr<widget::Screen> screen = FindScreen();
-  if (!screen) {
-    auto& screenManager = ScreenManager::GetSingleton();
-    screen = screenManager.GetPrimaryScreen();
-    MOZ_ASSERT(screen);
-  }
   dom::ScreenColorGamut colorGamut;
   screen->GetColorGamut(&colorGamut);
   return colorGamut;
@@ -173,31 +163,16 @@ dom::ScreenColorGamut nsDeviceContext::GetColorGamut() {
 
 hal::ScreenOrientation nsDeviceContext::GetScreenOrientationType() {
   RefPtr<widget::Screen> screen = FindScreen();
-  if (!screen) {
-    auto& screenManager = ScreenManager::GetSingleton();
-    screen = screenManager.GetPrimaryScreen();
-    MOZ_ASSERT(screen);
-  }
   return screen->GetOrientationType();
 }
 
 uint16_t nsDeviceContext::GetScreenOrientationAngle() {
   RefPtr<widget::Screen> screen = FindScreen();
-  if (!screen) {
-    auto& screenManager = ScreenManager::GetSingleton();
-    screen = screenManager.GetPrimaryScreen();
-    MOZ_ASSERT(screen);
-  }
   return screen->GetOrientationAngle();
 }
 
 bool nsDeviceContext::GetScreenIsHDR() {
   RefPtr<widget::Screen> screen = FindScreen();
-  if (!screen) {
-    auto& screenManager = ScreenManager::GetSingleton();
-    screen = screenManager.GetPrimaryScreen();
-    MOZ_ASSERT(screen);
-  }
   return screen->GetIsHDR();
 }
 
@@ -210,9 +185,6 @@ nsRect nsDeviceContext::GetRect() {
     return {0, 0, mWidth, mHeight};
   }
   RefPtr<widget::Screen> screen = FindScreen();
-  if (!screen) {
-    return {};
-  }
   return LayoutDeviceIntRect::ToAppUnits(screen->GetRect(),
                                          AppUnitsPerDevPixel());
 }
@@ -222,9 +194,6 @@ nsRect nsDeviceContext::GetClientRect() {
     return {0, 0, mWidth, mHeight};
   }
   RefPtr<widget::Screen> screen = FindScreen();
-  if (!screen) {
-    return {};
-  }
   return LayoutDeviceIntRect::ToAppUnits(screen->GetAvailRect(),
                                          AppUnitsPerDevPixel());
 }
@@ -353,23 +322,14 @@ nsresult nsDeviceContext::EndPage() {
   return NS_OK;
 }
 
-// FindScreen
-//
-// Determines which screen intersects the largest area of the given surface.
-//
 already_AddRefed<widget::Screen> nsDeviceContext::FindScreen() {
-  if (!mWidget) {
-    return nullptr;
+  if (mWidget) {
+    CheckDPIChange();
+    if (RefPtr<widget::Screen> screen = mWidget->GetWidgetScreen()) {
+      return screen.forget();
+    }
   }
-
-  CheckDPIChange();
-
-  if (RefPtr<widget::Screen> screen = mWidget->GetWidgetScreen()) {
-    return screen.forget();
-  }
-
-  ScreenManager& screenManager = ScreenManager::GetSingleton();
-  return screenManager.GetPrimaryScreen();
+  return ScreenManager::GetSingleton().GetPrimaryScreen();
 }
 
 bool nsDeviceContext::CalcPrintingSize() {
@@ -426,7 +386,8 @@ void nsDeviceContext::UpdateAppUnitsForFullZoom() {
 }
 
 DesktopToLayoutDeviceScale nsDeviceContext::GetDesktopToDeviceScale() {
-  if (RefPtr<widget::Screen> screen = FindScreen()) {
+  if (mWidget) {
+    RefPtr<widget::Screen> screen = FindScreen();
     return screen->GetDesktopToLayoutDeviceScale();
   }
   return DesktopToLayoutDeviceScale(1.0);
