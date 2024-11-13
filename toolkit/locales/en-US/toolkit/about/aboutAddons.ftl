@@ -314,13 +314,12 @@ header-back-button =
 
 # Explanatory introduction to the list of recommended add-ons. The action word
 # ("recommends") in the final sentence is a link to external documentation.
-discopane-intro =
-    Extensions and themes are like apps for your browser, and they let you
-    protect passwords, download videos, find deals, block annoying ads, change
-    how your browser looks, and much more. These small software programs are
-    often developed by a third party. Here’s a selection { -brand-product-name }
-    <a data-l10n-name="learn-more-trigger">recommends</a> for exceptional
-    security, performance, and functionality.
+discopane-intro2 =
+    Extensions and themes let you customize { -brand-product-name }. They can boost privacy,
+    enhance productivity, improve media, change the way { -brand-product-name } looks, and
+    so much more. These small software programs are often developed by a third party. Here’s
+    a selection { -brand-product-name } <a data-l10n-name="learn-more-trigger">recommends</a>
+    for exceptional security, performance, and functionality.
 
 # Notice to make user aware that the recommendations are personalized.
 discopane-notice-recommendations2 =
