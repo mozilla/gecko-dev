@@ -18,7 +18,6 @@
     <dimen name="mozac_browser_toolbar_button_container_item_size">48dp</dimen>
     <dimen name="mozac_browser_toolbar_button_height">48dp</dimen>
     <dimen name="mozac_browser_toolbar_button_width">36dp</dimen>
-    <dimen name="mozac_browser_toolbar_start_end_margin">0dp</dimen>
 
     <!-- EditToolbar -->
     <dimen name="mozac_browser_toolbar_url_horizontal_padding">8dp</dimen>

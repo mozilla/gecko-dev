@@ -184,6 +184,11 @@ interface Toolbar : ScrollableToolbar {
     fun showMenuButton()
 
     /**
+     * Sets the horizontal padding in display mode.
+     */
+    fun setDisplayHorizontalPadding(horizontalPadding: Int)
+
+    /**
      * Casts this toolbar to an Android View object.
      */
     fun asView(): View = this as View
