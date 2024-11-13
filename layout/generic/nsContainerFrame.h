@@ -456,7 +456,8 @@ class nsContainerFrame : public nsSplittableFrame {
   /**
    * Returns a CSS Box Alignment constant which the caller can use to align
    * the absolutely-positioned child (whose ReflowInput is aChildRI) within
-   * a CSS Box Alignment area associated with this container.
+   * a CSS Box Alignment area associated with this container. Used for
+   * computing the static position of an absolutely positioned box.
    *
    * The lower 8 bits of the returned value are guaranteed to form a valid
    * argument for CSSAlignUtils::AlignJustifySelf(). (The upper 8 bits may

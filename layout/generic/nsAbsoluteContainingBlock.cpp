@@ -437,8 +437,9 @@ struct NonAutoAlignParams {
  * according to CSS Box Alignment.  This function only operates in a single
  * axis at a time -- callers can choose which axis via the |aAbsPosCBAxis|
  * parameter. This is called under two scenarios:
- * 1. The offsets are auto and will change depending on the alignment of the
- *    box.
+ * 1. We're statically positioning this absolutely positioned box, meaning
+ *    that the offsets are auto and will change depending on the alignment
+ *    of the box.
  * 2. The offsets are non-auto, but the element may not fill the inset-reduced
  *    containing block, so its margin box needs to be aligned in that axis.
  *    This is the step 4 of [1]. Should also be noted that, unlike static
