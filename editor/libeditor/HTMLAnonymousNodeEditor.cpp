@@ -196,16 +196,6 @@ ManualNACPtr HTMLEditor::CreateAnonymousElement(nsAtom* aTag,
   }
 
   ManualNACPtr newNativeAnonymousContent(newElement.forget());
-
-  // Must style the new element, otherwise the PostRecreateFramesFor call
-  // below will do nothing.
-  ServoStyleSet* styleSet = presShell->StyleSet();
-  // Sometimes editor likes to append anonymous content to elements
-  // in display:none subtrees, so avoid styling in those cases.
-  if (ServoStyleSet::MayTraverseFrom(newNativeAnonymousContent)) {
-    styleSet->StyleNewSubtree(newNativeAnonymousContent);
-  }
-
   auto* observer = new ElementDeletionObserver(newNativeAnonymousContent,
                                                aParentContent.AsElement());
   NS_ADDREF(observer);  // NodeWillBeDestroyed releases.
@@ -220,7 +210,7 @@ ManualNACPtr HTMLEditor::CreateAnonymousElement(nsAtom* aTag,
 #endif  // DEBUG
 
   // display the element
-  presShell->PostRecreateFramesFor(newNativeAnonymousContent);
+  presShell->ContentAppended(newNativeAnonymousContent);
 
   return newNativeAnonymousContent;
 }

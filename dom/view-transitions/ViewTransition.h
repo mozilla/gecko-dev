@@ -19,6 +19,7 @@ class ErrorResult;
 namespace dom {
 
 class Document;
+class Element;
 class Promise;
 class ViewTransitionUpdateCallback;
 
@@ -57,6 +58,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void SkipTransition(SkipTransitionReason = SkipTransitionReason::JS);
   void PerformPendingOperations();
 
+  Element* GetRoot() const { return mViewTransitionRoot; }
+
   nsIGlobalObject* GetParentObject() const;
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
@@ -73,6 +76,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void Setup();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureOldState();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureNewState();
+  void SetupTransitionPseudoElements();
   void ClearNamedElements();
   void HandleFrame();
   void SkipTransition(SkipTransitionReason, JS::Handle<JS::Value>);
@@ -102,6 +106,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   RefPtr<nsITimer> mTimeoutTimer;
 
   Phase mPhase = Phase::PendingCapture;
+  RefPtr<Element> mViewTransitionRoot;
 };
 
 }  // namespace dom
