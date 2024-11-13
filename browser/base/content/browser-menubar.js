@@ -115,6 +115,35 @@ document.addEventListener(
         historyMenu._placesView._onCommand(event);
       });
 
+    let bookmarksMenuPopup = document.getElementById("bookmarksMenuPopup");
+    bookmarksMenuPopup.addEventListener("command", event => {
+      BookmarksEventHandler.onCommand(event);
+    });
+
+    bookmarksMenuPopup.addEventListener("click", event => {
+      BookmarksEventHandler.onClick(
+        event,
+        bookmarksMenuPopup.parentNode._placesView
+      );
+    });
+
+    bookmarksMenuPopup.addEventListener("mouseup", event => {
+      BookmarksEventHandler.onMouseUp(event);
+    });
+
+    mainMenuBar.addEventListener("dragover", event =>
+      PlacesMenuDNDHandler.onDragOver(event)
+    );
+    mainMenuBar.addEventListener("dragenter", event =>
+      PlacesMenuDNDHandler.onDragEnter(event)
+    );
+    mainMenuBar.addEventListener("dragleave", event =>
+      PlacesMenuDNDHandler.onDragLeave(event)
+    );
+    mainMenuBar.addEventListener("drop", event =>
+      PlacesMenuDNDHandler.onDrop(event)
+    );
+
     mainMenuBar.addEventListener("popupshowing", event => {
       // On macOS, we don't track whether activation of the native menubar happened
       // with the keyboard.

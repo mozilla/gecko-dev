@@ -256,9 +256,6 @@
             </menu>
 
   <menu id="bookmarksMenu"
-        ondragenter="PlacesMenuDNDHandler.onDragEnter(event);"
-        ondragover="PlacesMenuDNDHandler.onDragOver(event);"
-        ondrop="PlacesMenuDNDHandler.onDrop(event);"
         data-l10n-id="menu-bookmarks-menu">
     <menupopup id="bookmarksMenuPopup"
 #ifndef XP_MACOSX
@@ -267,9 +264,6 @@
 #endif
                context="placesContext"
                openInTabs="children"
-               onmouseup="BookmarksEventHandler.onMouseUp(event);"
-               oncommand="BookmarksEventHandler.onCommand(event);"
-               onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
                tooltip="bhTooltip" popupsinherittooltip="true">
       <menuitem id="bookmarksShowAll"
                 command="Browser:ShowAllBookmarks"
