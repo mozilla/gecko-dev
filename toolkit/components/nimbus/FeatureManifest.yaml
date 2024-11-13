@@ -1464,6 +1464,19 @@ password-autocomplete:
       type: boolean
       description: Enable direct migration?
 
+# Experiment for different Relay UI treatments. Variations at:
+# https://www.figma.com/design/gnyElr1Wtce3RdQT54y8kS/Relay-%26-Firefox-Integration?node-id=316-2024&node-type=canvas&t=A3iAuevSTtwXeFxb-0
+email-autocomplete-relay:
+  description: Relay UI for email fields.
+  exposureDescription: Exposure is sent each time a user sees the Relay autocomplete dropdown item
+  hasExposure: true
+  owner: lcrouch@mozilla.com
+  variables:
+    firstOfferVersion:
+      type: string
+      description: Which Relay UI treatment to show
+      fallbackPref: signon.firefoxRelay.firstOfferVersionFallback
+
 # This feature flag mirrors the one used for ios
 # https://github.com/mozilla-mobile/firefox-ios/blob/main/nimbus-features/addressAutofillFeature.yaml
 address-autofill-feature:
