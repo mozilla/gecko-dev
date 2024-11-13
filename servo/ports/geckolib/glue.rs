@@ -6348,7 +6348,7 @@ struct PropertyAndIndex {
 
 struct PrioritizedPropertyIter<'a> {
     properties: &'a [PropertyValuePair],
-    sorted_property_indices: Vec<PropertyAndIndex>,
+    sorted_property_indices: Box<[PropertyAndIndex]>,
     curr: usize,
 }
 
@@ -6359,7 +6359,7 @@ impl<'a> PrioritizedPropertyIter<'a> {
         // If we fail to convert a nsCSSPropertyID into a PropertyId we
         // shouldn't fail outright but instead by treating that property as the
         // 'all' property we make it sort last.
-        let mut sorted_property_indices: Vec<PropertyAndIndex> = properties
+        let mut sorted_property_indices: Box<[PropertyAndIndex]> = properties
             .iter()
             .enumerate()
             .map(|(index, pair)| {
