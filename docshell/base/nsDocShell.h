@@ -445,7 +445,7 @@ class nsDocShell final : public nsDocLoader,
       bool aIsTopFrame, bool aAllowKeywordFixup, bool aUsePrivateBrowsing,
       bool aNotifyKeywordSearchLoading = false,
       nsIInputStream** aNewPostData = nullptr,
-      bool* outWasSchemelessInput = nullptr);
+      nsILoadInfo::SchemelessInputType* outSchemelessInput = nullptr);
 
   static already_AddRefed<nsIURI> MaybeFixBadCertDomainErrorURI(
       nsIChannel* aChannel, nsIURI* aUrl);

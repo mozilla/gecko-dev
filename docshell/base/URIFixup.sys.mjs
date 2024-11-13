@@ -396,7 +396,7 @@ URIFixup.prototype = {
       if (uriWithProtocol) {
         info.fixedURI = uriWithProtocol;
         info.fixupChangedProtocol = true;
-        info.wasSchemelessInput = true;
+        info.schemelessInput = Ci.nsILoadInfo.SchemelessInputTypeSchemeless;
         maybeSetAlternateFixedURI(info, fixupFlags);
         info.preferredURI = info.fixedURI;
         // Check if it's a forced visit. The user can enforce a visit by
@@ -421,9 +421,9 @@ URIFixup.prototype = {
     // Memoize the public suffix check, since it may be expensive and should
     // only run once when necessary.
     let suffixInfo;
-    function checkSuffix(info) {
+    function checkSuffix(i) {
       if (!suffixInfo) {
-        suffixInfo = checkAndFixPublicSuffix(info);
+        suffixInfo = checkAndFixPublicSuffix(i);
       }
       return suffixInfo;
     }
@@ -699,11 +699,11 @@ URIFixupInfo.prototype = {
     return this._keywordAsSent || "";
   },
 
-  set wasSchemelessInput(changed) {
-    this._wasSchemelessInput = changed;
+  set schemelessInput(changed) {
+    this._schemelessInput = changed;
   },
-  get wasSchemelessInput() {
-    return !!this._wasSchemelessInput;
+  get schemelessInput() {
+    return this._schemelessInput ?? Ci.nsILoadInfo.SchemelessInputTypeUnset;
   },
 
   set fixupChangedProtocol(changed) {
