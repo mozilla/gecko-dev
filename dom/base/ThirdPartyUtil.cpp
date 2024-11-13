@@ -436,7 +436,14 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI, nsACString& aBaseDomain) {
     // aHostURI is either an IP address, an alias such as 'localhost', an eTLD
     // such as 'co.uk', or the empty string. Uses the normalized host in such
     // cases.
-    rv = aHostURI->GetAsciiHost(aBaseDomain);
+
+    // The aHostURI can be a view-source URI, in which case we need to get the
+    // base domain from the inner most URI.
+    if (net::SchemeIsViewSource(aHostURI)) {
+      rv = NS_GetInnermostURIHost(aHostURI, aBaseDomain);
+    } else {
+      rv = aHostURI->GetAsciiHost(aBaseDomain);
+    }
   }
 
   if (NS_FAILED(rv)) {
