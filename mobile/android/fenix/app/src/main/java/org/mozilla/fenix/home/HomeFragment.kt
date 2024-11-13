@@ -1178,7 +1178,6 @@ class HomeFragment : Fragment() {
     }
 
     private fun initHomepage() {
-        binding.homeAppBar.isVisible = false
         binding.homepageView.isVisible = true
 
         binding.homepageView.apply {

@@ -66,7 +66,10 @@ internal fun Homepage(
     interactor: HomepageInteractor,
     onTopSitesItemBound: () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
+    ) {
         with(state) {
             when (this) {
                 is HomepageState.Private -> {
@@ -130,6 +133,8 @@ internal fun Homepage(
                     }
 
                     CollectionsSection(collectionsState = collectionsState, interactor = interactor)
+                    // This is a temporary value until I can fix layout issues
+                    Spacer(Modifier.height(288.dp))
                 }
             }
         }
