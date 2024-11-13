@@ -24,7 +24,7 @@ class GeckoViewInputStream : public nsIInputStream {
   virtual ~GeckoViewInputStream() = default;
 
  private:
-  mozilla::java::GeckoViewInputStream::LocalRef mInstance;
+  mozilla::java::GeckoViewInputStream::GlobalRef mInstance;
   bool mClosed{false};
 };
 
