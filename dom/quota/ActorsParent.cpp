@@ -6118,6 +6118,13 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
       // Don't need to traverse the directory, since it's empty.
       InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
                          /* aUsageBytes */ 0);
+    } else {
+      QM_TRY_INSPECT(const auto& metadata,
+                     LoadFullOriginMetadataWithRestore(directory));
+
+      QM_TRY(MOZ_TO_RESULT(InitializeOrigin(metadata.mPersistenceType, metadata,
+                                            metadata.mLastAccessTime,
+                                            metadata.mPersisted, directory)));
     }
 
     // TODO: If the metadata file exists and we didn't call
@@ -6128,6 +6135,8 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
     //       origin will be marked as "accessed", so
     //       LoadFullOriginMetadataWithRestore will be called for the metadata
     //       file in next session in LoadQuotaFromCache.
+    //       (If a previous origin initialization failed, we actually do call
+    //       LoadFullOriginMetadataWithRestore which updates the group)
 
     return std::pair(std::move(directory), created);
   };
