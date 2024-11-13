@@ -22,6 +22,7 @@ import org.mozilla.fenix.theme.Theme
 /**
  * Wrapper column containing the main menu items.
  *
+ * @param isPdf Whether or not the current custom tab is a PDF.
  * @param isDesktopMode Whether or not the current site is in desktop mode.
  * @param customTabMenuItems Additional [CustomTabMenuItem]s to be displayed to the custom tab menu.
  * @param onCustomMenuItemClick Invoked when the user clicks on [CustomTabMenuItem]s.
@@ -34,6 +35,7 @@ import org.mozilla.fenix.theme.Theme
 @Suppress("LongParameterList")
 @Composable
 internal fun CustomTabMenu(
+    isPdf: Boolean,
     isDesktopMode: Boolean,
     customTabMenuItems: List<CustomTabMenuItem>?,
     onCustomMenuItemClick: (PendingIntent) -> Unit,
@@ -63,7 +65,7 @@ internal fun CustomTabMenu(
             MenuItem(
                 label = stringResource(id = labelId),
                 beforeIconPainter = painterResource(id = iconId),
-                state = menuItemState,
+                state = if (isPdf) MenuItemState.DISABLED else menuItemState,
                 onClick = onSwitchToDesktopSiteMenuClick,
             )
 
@@ -121,6 +123,7 @@ private fun CustomTabMenuPreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             CustomTabMenu(
+                isPdf = false,
                 isDesktopMode = false,
                 customTabMenuItems = null,
                 onCustomMenuItemClick = { _: PendingIntent -> },
@@ -142,6 +145,7 @@ private fun CustomTabMenuPrivatePreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             CustomTabMenu(
+                isPdf = true,
                 isDesktopMode = false,
                 customTabMenuItems = null,
                 onCustomMenuItemClick = { _: PendingIntent -> },
