@@ -110,7 +110,7 @@ object Versions {
         const val androidx_test_uiautomator = "2.3.0"
         const val falcon = "2.2.0"
         const val fastlane = "2.1.1"
-        const val junit = "5.11.2"
+        const val junit = "5.11.3"
         const val mockito = "5.14.2"
         const val mockk = "1.13.13"
     }
