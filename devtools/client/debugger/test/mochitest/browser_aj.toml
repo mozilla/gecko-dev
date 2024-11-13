@@ -161,7 +161,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-editor-mode.js"]
 
 ["browser_dbg-editor-scroll.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-editor-select.js"]
 
