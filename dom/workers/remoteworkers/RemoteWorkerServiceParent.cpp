@@ -6,6 +6,8 @@
 
 #include "RemoteWorkerServiceParent.h"
 #include "RemoteWorkerManager.h"
+#include "RemoteWorkerParent.h"
+#include "mozilla/dom/RemoteWorkerTypes.h"
 #include "mozilla/ipc/BackgroundParent.h"
 
 namespace mozilla {
