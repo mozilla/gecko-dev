@@ -222,3 +222,5 @@ skip-if = ["bits == 32"] # Large ArrayBuffers not supported on 32-bit.
 ["test_xrayToJS.xhtml"]
 
 ["test_xrayic.xhtml"]
+
+["test_xrayToExplicitResourceManagement.html"]

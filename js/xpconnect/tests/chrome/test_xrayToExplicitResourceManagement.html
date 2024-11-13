@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=1929055
+-->
+
+<head>
+  <meta charset="UTF-8">
+  <title>Test for Bug 1929055</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="chrome://global/skin" />
+  <link rel="stylesheet" type="text/css" href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+  <script>
+    var { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
+      "resource://gre/modules/AppConstants.sys.mjs"
+    );
+    const isExplicitResourceManagementEnabled = AppConstants.ENABLE_EXPLICIT_RESOURCE_MANAGEMENT;
+
+    async function go() {
+      SimpleTest.waitForExplicitFinish();
+
+      let simpleConstructors = [
+        'DisposableStack',
+        'AsyncDisposableStack',
+      ];
+
+      const errorObjectClasses = [
+        'SuppressedError',
+      ]
+
+      simpleConstructors = simpleConstructors.concat(errorObjectClasses);
+
+      const iwin = document.getElementById('ifr').contentWindow;
+
+      if (!isExplicitResourceManagementEnabled) {
+        for (let c of simpleConstructors) {
+          is(iwin[c], undefined, "Constructors should not be exposed: " + c);
+        }
+        SimpleTest.finish();
+        return;
+      }
+
+      await SpecialPowers.pushPrefEnv({
+        set: [["javascript.options.experimental.explicit_resource_management", true]],
+      });
+
+      let global = Cu.getGlobalForObject.bind(Cu);
+
+      // Copied from js/xpconnect/tests/chrome/test_xrayToJS.xhtml
+      // ==== BEGIN ===
+
+      // Test constructors that can be instantiated with zero arguments, or with
+      // a fixed set of arguments provided using `...rest`.
+      for (let c of simpleConstructors) {
+        var args = [];
+        if (typeof c === 'object') {
+          args = c.args;
+          c = c.name;
+        }
+        ok(iwin[c], "Constructors appear: " + c);
+        is(iwin[c], Cu.unwaiveXrays(iwin.wrappedJSObject[c]),
+          "we end up with the appropriate constructor: " + c);
+        is(Cu.unwaiveXrays(Cu.waiveXrays(new iwin[c](...args)).constructor), iwin[c],
+          "constructor property is set up right: " + c);
+        let expectedProto = Cu.isOpaqueWrapper(new iwin[c](...args)) ?
+          iwin.Object.prototype : iwin[c].prototype;
+        is(Object.getPrototypeOf(new iwin[c](...args)), expectedProto,
+          "prototype is correct: " + c);
+        is(global(new iwin[c](...args)), iwin, "Got the right global: " + c);
+      }
+
+      var gPrototypeProperties = {};
+      var gConstructorProperties = {};
+      // Properties which cannot be invoked if callable without potentially
+      // rendering the object useless.
+      var gStatefulProperties = {};
+
+      function testProtoCallables(protoCallables, xray, xrayProto, localProto, callablesExcluded) {
+        // Handle undefined callablesExcluded.
+        let dontCall = callablesExcluded ?? [];
+        for (let name of protoCallables) {
+          info("Running tests for property: " + name);
+          // Test both methods and getter properties.
+          function lookupCallable(obj) {
+            let desc = null;
+            do {
+              desc = Object.getOwnPropertyDescriptor(obj, name);
+              if (desc) {
+                break;
+              }
+              obj = Object.getPrototypeOf(obj);
+            } while (obj);
+            return desc ? (desc.get || desc.value) : undefined;
+          };
+          ok(xrayProto.hasOwnProperty(name), `proto should have the property '${name}' as own`);
+          ok(!xray.hasOwnProperty(name), `instance should not have the property '${name}' as own`);
+          let method = lookupCallable(xrayProto);
+          is(typeof method, 'function', "Methods from Xrays are functions");
+          is(global(method), window, "Methods from Xrays are local");
+          ok(method instanceof Function, "instanceof works on methods from Xrays");
+          is(lookupCallable(xrayProto), method, "Holder caching works properly");
+          is(lookupCallable(xray), method, "Proto props resolve on the instance");
+          let local = lookupCallable(localProto);
+          is(method.length, local.length, "Function.length identical");
+          if (!method.length && !dontCall.includes(name)) {
+            is(method.call(xray) + "", local.call(xray) + "",
+              "Xray and local method results stringify identically");
+
+            // If invoking this method returns something non-Xrayable (opaque), the
+            // stringification is going to return [object Object].
+            // This happens for set[@@iterator] and other Iterator objects.
+            let callable = lookupCallable(xray.wrappedJSObject);
+            if (!Cu.isOpaqueWrapper(method.call(xray)) && callable) {
+              is(method.call(xray) + "",
+                callable.call(xray.wrappedJSObject) + "",
+                "Xray and waived method results stringify identically");
+            }
+          }
+        }
+      }
+
+      function testCtorCallables(ctorCallables, xrayCtor, localCtor) {
+        for (let name of ctorCallables) {
+          // Don't try to test Function.prototype, since that is in fact a callable
+          // but doesn't really do the things we expect callables to do here
+          // (e.g. it's in the wrong global, since it gets Xrayed itself).
+          if (name == "prototype" && localCtor.name == "Function") {
+            continue;
+          }
+          info(`Running tests for property: ${localCtor.name}.${name}`);
+          // Test both methods and getter properties.
+          function lookupCallable(obj) {
+            let desc = null;
+            do {
+              desc = Object.getOwnPropertyDescriptor(obj, name);
+              obj = Object.getPrototypeOf(obj);
+            } while (!desc);
+            return desc.get || desc.value;
+          };
+
+          ok(xrayCtor.hasOwnProperty(name), "ctor should have the property as own");
+          let method = lookupCallable(xrayCtor);
+          is(typeof method, 'function', "Methods from ctor Xrays are functions");
+          is(global(method), window, "Methods from ctor Xrays are local");
+          ok(method instanceof Function,
+            "instanceof works on methods from ctor Xrays");
+          is(lookupCallable(xrayCtor), method,
+            "Holder caching works properly on ctors");
+          let local = lookupCallable(localCtor);
+          is(method.length, local.length,
+            "Function.length identical for method from ctor");
+          // Don't try to do the return-value check on Date.now(), since there is
+          // absolutely no reason it should return the same value each time.
+          //
+          // Also don't try to do the return-value check on Regexp.lastMatch and
+          // Regexp["$&"] (which are aliases), because they get state off the global
+          // they live in, as far as I can tell, so testing them over Xrays will be
+          // wrong: on the Xray they will actaully get the lastMatch of _our_
+          // global, not the Xrayed one.
+          if (!method.length &&
+            !(localCtor.name == "Date" && name == "now") &&
+            !(localCtor.name == "RegExp" && (name == "lastMatch" || name == "$&"))) {
+            is(method.call(xrayCtor) + "", local.call(xrayCtor) + "",
+              "Xray and local method results stringify identically on constructors");
+            is(method.call(xrayCtor) + "",
+              lookupCallable(xrayCtor.wrappedJSObject).call(xrayCtor.wrappedJSObject) + "",
+              "Xray and waived method results stringify identically");
+          }
+        }
+      }
+
+      function filterOut(array, props) {
+        return array.filter(p => !props.includes(p));
+      }
+
+      function propertyIsGetter(obj, name) {
+        return !!Object.getOwnPropertyDescriptor(obj, name).get;
+      }
+
+      function constructorProps(arr) {
+        // Some props live on all constructors
+        return arr.concat(["prototype", "length", "name"]);
+      }
+
+      // Sort an array that may contain symbols as well as strings.
+      function sortProperties(arr) {
+        function sortKey(prop) {
+          return typeof prop + ":" + prop.toString();
+        }
+        arr.sort((a, b) => sortKey(a) < sortKey(b) ? -1 : +1);
+      }
+
+      function testXray(classname, xray, xray2, propsToSkip, ctorPropsToSkip = []) {
+        propsToSkip = propsToSkip || [];
+        let xrayProto = Object.getPrototypeOf(xray);
+        let localProto = window[classname].prototype;
+        let desiredProtoProps = Object.getOwnPropertyNames(localProto).sort();
+
+        is(desiredProtoProps.toSource(),
+          gPrototypeProperties[classname].filter(id => typeof id === "string").toSource(),
+          "A property on the " + classname +
+          " prototype has changed! You need a security audit from an XPConnect peer");
+        is(Object.getOwnPropertySymbols(localProto).map(uneval).sort().toSource(),
+          gPrototypeProperties[classname].filter(id => typeof id !== "string").map(uneval).sort().toSource(),
+          "A symbol-keyed property on the " + classname +
+          " prototype has been changed! You need a security audit from an XPConnect peer");
+
+        let protoProps = filterOut(desiredProtoProps, propsToSkip);
+        let protoCallables = protoProps.filter(name => propertyIsGetter(localProto, name, classname) ||
+          typeof localProto[name] == 'function' &&
+          name != 'constructor');
+        let callablesExcluded = gStatefulProperties[classname];
+        ok(!!protoCallables.length, "Need something to test");
+        is(xrayProto, iwin[classname].prototype, "Xray proto is correct");
+        is(xrayProto, xray.__proto__, "Proto accessors agree");
+        var protoProto = classname == "Object" ? null : iwin.Object.prototype;
+        is(Object.getPrototypeOf(xrayProto), protoProto, "proto proto is correct");
+        testProtoCallables(protoCallables, xray, xrayProto, localProto, callablesExcluded);
+        is(Object.getOwnPropertyNames(xrayProto).sort().toSource(),
+          protoProps.toSource(), "getOwnPropertyNames works");
+        is(Object.getOwnPropertySymbols(xrayProto).map(uneval).sort().toSource(),
+          gPrototypeProperties[classname].filter(id => typeof id !== "string" && !propsToSkip.includes(id))
+            .map(uneval).sort().toSource(),
+          "getOwnPropertySymbols works");
+
+        is(xrayProto.constructor, iwin[classname], "constructor property works");
+
+        xrayProto.expando = 42;
+        is(xray.expando, 42, "Xrayed instances see proto expandos");
+        is(xray2.expando, 42, "Xrayed instances see proto expandos");
+
+        // Now test constructors
+        let localCtor = window[classname];
+        let xrayCtor = xrayProto.constructor;
+        // We already checked that this is the same as iwin[classname]
+
+        let desiredCtorProps =
+          Object.getOwnPropertyNames(localCtor).sort();
+        is(desiredCtorProps.toSource(),
+          gConstructorProperties[classname].filter(id => typeof id === "string").toSource(),
+          "A property on the " + classname +
+          " constructor has changed! You need a security audit from an XPConnect peer");
+        let desiredCtorSymbols =
+          Object.getOwnPropertySymbols(localCtor).map(uneval).sort()
+        is(desiredCtorSymbols.toSource(),
+          gConstructorProperties[classname].filter(id => typeof id !== "string").map(uneval).sort().toSource(),
+          "A symbol-keyed property on the " + classname +
+          " constructor has been changed! You need a security audit from an XPConnect peer");
+
+        let ctorProps = filterOut(desiredCtorProps, ctorPropsToSkip);
+        let ctorSymbols = filterOut(desiredCtorSymbols, ctorPropsToSkip.map(uneval));
+        let ctorCallables = ctorProps.filter(name => propertyIsGetter(localCtor, name, classname) ||
+          typeof localCtor[name] == 'function');
+        testCtorCallables(ctorCallables, xrayCtor, localCtor);
+        is(Object.getOwnPropertyNames(xrayCtor).sort().toSource(),
+          ctorProps.toSource(), "getOwnPropertyNames works on Xrayed ctors");
+        is(Object.getOwnPropertySymbols(xrayCtor).map(uneval).sort().toSource(),
+          ctorSymbols.toSource(), "getOwnPropertySymbols works on Xrayed ctors");
+      }
+
+      // ==== END ===
+
+      gPrototypeProperties.DisposableStack = [
+        "adopt", "constructor", "defer", "dispose", "disposed", "move", "use",
+        Symbol.toStringTag, Symbol.dispose
+      ];
+      gStatefulProperties.DisposableStack = ["dispose", Symbol.dispose, "move"];
+      gConstructorProperties.DisposableStack = constructorProps([]);
+
+      gPrototypeProperties.AsyncDisposableStack = [
+        "adopt", "constructor", "defer", "disposeAsync", "disposed", "move", "use",
+        Symbol.toStringTag, Symbol.asyncDispose
+      ];
+      gStatefulProperties.AsyncDisposableStack = ["disposeAsync", Symbol.asyncDispose, "move"];
+      gConstructorProperties.AsyncDisposableStack = constructorProps([]);
+
+      // Sort all the lists so we don't need to mutate them later (or copy them
+      // again to sort them).
+      for (let c of Object.keys(gPrototypeProperties))
+        sortProperties(gPrototypeProperties[c]);
+      for (let c of Object.keys(gConstructorProperties))
+        sortProperties(gConstructorProperties[c]);
+
+      function testDisposableStack() {
+        testXray("DisposableStack", new iwin.DisposableStack(), new iwin.DisposableStack());
+      }
+
+      function testAsyncDisposableStack() {
+        testXray("AsyncDisposableStack", new iwin.AsyncDisposableStack(), new iwin.AsyncDisposableStack());
+      }
+
+      function testSuppressedError() {
+        const c = errorObjectClasses[0];
+        const args = ['error', 'suppressed', 'some message'];
+        var e = new iwin.SuppressedError(...args);
+
+        // Copied from js/xpconnect/tests/chrome/test_xrayToJS.xhtml
+        // ==== BEGIN ===
+
+        is(Object.getPrototypeOf(e).name, c, "Prototype has correct name");
+        is(Object.getPrototypeOf(Object.getPrototypeOf(e)), iwin.Error.prototype, "Dependent prototype set up correctly");
+        is(e.name, c, "Exception name inherited correctly");
+
+        function testProperty(name, criterion, goodReplacement, faultyReplacement) {
+          ok(criterion(e[name]), name + " property is correct: " + e[name]);
+          e.wrappedJSObject[name] = goodReplacement;
+          is(e[name], goodReplacement, name + " property ok after replacement: " + goodReplacement);
+          e.wrappedJSObject[name] = faultyReplacement;
+          is(e[name], name == 'message' ? "" : undefined, name + " property skipped after suspicious replacement");
+        }
+        testProperty('message', x => x == 'some message', 'some other message', 42);
+        testProperty('fileName', x => x == '', 'otherFilename.html', new iwin.Object());
+        testProperty('columnNumber', x => x == 1, 99, 99.5);
+        testProperty('lineNumber', x => x == 0, 50, 'foo');
+
+        // ==== END ===
+
+        e.wrappedJSObject.error = 42;
+        is(e.wrappedJSObject.error, 42, "errors is a plain data property");
+        is(e.error, 42, "error visible over Xrays");
+
+        e.wrappedJSObject.suppressed = 43;
+        is(e.wrappedJSObject.suppressed, 43, "suppressed is a plain data property");
+        is(e.suppressed, 43, "suppressed visible over Xrays");
+      }
+
+      testDisposableStack();
+
+      testAsyncDisposableStack();
+
+      testSuppressedError();
+
+      await SpecialPowers.popPrefEnv();
+      SimpleTest.finish();
+    }
+  </script>
+</head>
+
+<body>
+  <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1929055">Mozilla Bug 1929055</a>
+
+  <iframe id="ifr" onload="go();" src="http://example.org/tests/js/xpconnect/tests/mochitest/file_empty.html" />
+</body>
+
+</html>
