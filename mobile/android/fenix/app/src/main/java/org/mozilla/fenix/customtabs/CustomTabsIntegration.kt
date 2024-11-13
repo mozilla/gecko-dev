@@ -151,7 +151,7 @@ class CustomTabsIntegration(
     private fun getCustomTabsColorsConfig() = when (activity.settings().navigationToolbarEnabled) {
         true -> CustomTabsColorsConfig(
             updateStatusBarColor = false,
-            updateSystemNavigationBarColor = true,
+            updateSystemNavigationBarColor = false,
             updateToolbarsColor = !isPrivate,
         )
 

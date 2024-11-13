@@ -17,11 +17,10 @@ import androidx.annotation.StyleRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
-import androidx.core.content.ContextCompat
 import mozilla.components.support.ktx.android.content.getColorFromAttr
 import mozilla.components.support.ktx.android.content.getStatusBarColor
 import mozilla.components.support.ktx.android.view.createWindowInsetsController
-import mozilla.components.support.ktx.android.view.setNavigationBarTheme
+import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
 import mozilla.components.support.ktx.android.view.setStatusBarColorCompat
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -69,15 +68,16 @@ abstract class ThemeManager(
                     Configuration.UI_MODE_NIGHT_YES -> {
                         clearLightSystemBars(window)
                         setStatusBarColor(window, context, overrideThemeStatusBarColor)
+                        updateNavigationBar(window, context)
                     }
                 }
             }
             BrowsingMode.Private -> {
                 clearLightSystemBars(window)
                 setStatusBarColor(window, context, overrideThemeStatusBarColor)
+                updateNavigationBar(window, context)
             }
         }
-        updateNavigationBar(window, context)
     }
 
     fun setActivityTheme(activity: Activity) {
@@ -127,11 +127,7 @@ abstract class ThemeManager(
         }
 
         private fun updateNavigationBar(window: Window, context: Context) {
-            if (context.settings().navigationToolbarEnabled) {
-                window.setNavigationBarTheme(ContextCompat.getColor(context, android.R.color.black))
-            } else {
-                window.setNavigationBarTheme(context.getColorFromAttr(R.attr.layer1))
-            }
+            window.setNavigationBarColorCompat(context.getColorFromAttr(R.attr.layer1))
         }
 
         private fun setStatusBarColor(
