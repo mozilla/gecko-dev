@@ -10735,7 +10735,7 @@ static bool HtmlObjectContentSupportsDocument(const nsCString& aMimeType) {
 
 /* static */
 uint32_t nsContentUtils::HtmlObjectContentTypeForMIMEType(
-    const nsCString& aMIMEType) {
+    const nsCString& aMIMEType, bool aIsSandboxed) {
   if (aMIMEType.IsEmpty()) {
     return nsIObjectLoadingContent::TYPE_FALLBACK;
   }
@@ -10746,8 +10746,11 @@ uint32_t nsContentUtils::HtmlObjectContentTypeForMIMEType(
 
   // Faking support of the PDF content as a document for EMBED tags
   // when internal PDF viewer is enabled.
-  if (aMIMEType.LowerCaseEqualsLiteral("application/pdf") && IsPDFJSEnabled()) {
-    return nsIObjectLoadingContent::TYPE_DOCUMENT;
+  if (aMIMEType.LowerCaseEqualsLiteral(APPLICATION_PDF) && IsPDFJSEnabled()) {
+    // Sandboxed iframes are just never allowed to display plugins. In the
+    // modern world, this just means "application/pdf".
+    return aIsSandboxed ? nsIObjectLoadingContent::TYPE_FALLBACK
+                        : nsIObjectLoadingContent::TYPE_DOCUMENT;
   }
 
   if (HtmlObjectContentSupportsDocument(aMIMEType)) {
