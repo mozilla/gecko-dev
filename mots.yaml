@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-31T09:00:11.146905+00:00'
+updated_at: '2024-11-13T12:21:45.583395'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2884,7 +2884,7 @@ modules:
       # TODO: "the display list and layer related methods on nsIFrame and its subclasses"
     meta:
       group: dev-platform
-      url: :ref:`Layout & CSS`
+      url: :ref:`Style system (CSS) & Layout`
       components:
         - 'Core::Layout: Web Painting'
       owners_emeritus:
@@ -4483,5 +4483,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 0b795b86d62a546442fb92d06fdc4ba419ce57bc
-  export: e245536a757e250ca84676f60a36549977689328
+  config: 566da29d0c80097a943bfda5c10d8c098f17d062
+  export: 2753c88f5afbdbe96f887be1f5484a43b1eed0f5

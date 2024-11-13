@@ -115,7 +115,7 @@ The style system is responsible for parsing the document's CSS and using that to
 every CSS property on every element in the document.  This determines many characteristics of how
 each element will render (e.g. fonts, colors, size, layout model).
 
-:ref:`Read more <Layout & CSS>`
+:ref:`Read more <Style system (CSS) & Layout>`
 
 Layout
 ------
@@ -123,7 +123,7 @@ Layout
 The layout engine is responsible for taking the DOM and styles and generating and updating a frame
 tree ready for presentation to the user.
 
-:ref:`Read more <Layout & CSS>`
+:ref:`Read more <Style system (CSS) & Layout>`
 
 Graphics
 --------
