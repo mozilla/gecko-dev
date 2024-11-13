@@ -17,12 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.RecentlyVisitedHomepage
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.home.HomeSectionHeader
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
@@ -32,6 +32,7 @@ import org.mozilla.fenix.home.collections.Collections
 import org.mozilla.fenix.home.collections.CollectionsState
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.interactor.HomepageInteractor
+import org.mozilla.fenix.home.pocket.PocketSection
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTab
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
@@ -50,6 +51,7 @@ import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.topsites.TopSiteColors
 import org.mozilla.fenix.home.topsites.TopSites
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.theme.Theme
 import org.mozilla.fenix.wallpapers.WallpaperState
 
 /**
@@ -59,7 +61,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @param interactor for interactions with the homepage UI.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
-@Suppress("LongParameterList")
+@Suppress("LongMethod")
 @Composable
 internal fun Homepage(
     state: HomepageState,
@@ -67,7 +69,8 @@ internal fun Homepage(
     onTopSitesItemBound: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp)
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState()),
     ) {
         with(state) {
@@ -133,6 +136,15 @@ internal fun Homepage(
                     }
 
                     CollectionsSection(collectionsState = collectionsState, interactor = interactor)
+
+                    if (showPocketStories) {
+                        PocketSection(
+                            state = pocketState,
+                            cardBackgroundColor = cardBackgroundColor,
+                            interactor = interactor,
+                        )
+                    }
+
                     // This is a temporary value until I can fix layout issues
                     Spacer(Modifier.height(288.dp))
                 }
@@ -237,6 +249,7 @@ private fun RecentlyVisitedSection(
                     RecentlyVisitedHomepage.historyHighlightOpened.record(NoExtras())
                     interactor.onRecentHistoryHighlightClicked(recentlyVisitedItem)
                 }
+
                 is RecentHistoryGroup -> {
                     RecentlyVisitedHomepage.searchGroupOpened.record(NoExtras())
                     History.recentSearchesTapped.record(
@@ -289,46 +302,39 @@ private fun CollectionsPlaceholder() {
 }
 
 @Composable
-@LightDarkPreview
+@Preview
 private fun HomepagePreview() {
     FirefoxTheme {
-        val scrollState = rememberScrollState()
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = FirefoxTheme.colors.layer1)
-                .verticalScroll(scrollState),
-        ) {
-            Homepage(
-                HomepageState.Normal(
-                    showTopSites = true,
-                    topSiteColors = TopSiteColors.colors(),
-                    topSites = FakeHomepagePreview.topSites(),
-                    showRecentTabs = true,
-                    recentTabs = FakeHomepagePreview.recentTabs(),
-                    cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
-                    buttonTextColor = WallpaperState.default.buttonTextColor,
-                    buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
-                    showRecentSyncedTab = true,
-                    syncedTab = FakeHomepagePreview.recentSyncedTab(),
-                    showBookmarks = true,
-                    bookmarks = FakeHomepagePreview.bookmarks(),
-                    showRecentlyVisited = true,
-                    recentlyVisited = FakeHomepagePreview.recentHistory(),
-                    collectionsState = FakeHomepagePreview.collectionState(),
-                ),
-                interactor = FakeHomepagePreview.homepageInteractor,
-                onTopSitesItemBound = {},
-            )
-        }
+        Homepage(
+            HomepageState.Normal(
+                topSites = FakeHomepagePreview.topSites(),
+                recentTabs = FakeHomepagePreview.recentTabs(),
+                syncedTab = FakeHomepagePreview.recentSyncedTab(),
+                bookmarks = FakeHomepagePreview.bookmarks(),
+                recentlyVisited = FakeHomepagePreview.recentHistory(),
+                collectionsState = FakeHomepagePreview.collectionState(),
+                pocketState = FakeHomepagePreview.pocketState(),
+                showTopSites = true,
+                showRecentTabs = true,
+                showRecentSyncedTab = true,
+                showBookmarks = true,
+                showRecentlyVisited = true,
+                showPocketStories = true,
+                topSiteColors = TopSiteColors.colors(),
+                cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
+                buttonTextColor = WallpaperState.default.buttonTextColor,
+                buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
+            ),
+            interactor = FakeHomepagePreview.homepageInteractor,
+            onTopSitesItemBound = {},
+        )
     }
 }
 
 @Composable
-@LightDarkPreview
+@Preview
 private fun PrivateHomepagePreview() {
-    FirefoxTheme {
+    FirefoxTheme(theme = Theme.Private) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
