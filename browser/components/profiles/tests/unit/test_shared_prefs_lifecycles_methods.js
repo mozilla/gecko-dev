@@ -24,19 +24,6 @@ add_setup(async () => {
   await SelectableProfileService.maybeSetupDataStore();
 });
 
-// Waits for the profile service to update about a change
-async function updateNotified() {
-  let { resolve, promise } = Promise.withResolvers();
-  let observer = (subject, topic, data) => {
-    Services.obs.removeObserver(observer, "sps-profiles-updated");
-    resolve(data);
-  };
-
-  Services.obs.addObserver(observer, "sps-profiles-updated");
-
-  await promise;
-}
-
 add_task(async function test_SharedPrefsLifecycle() {
   const SelectableProfileService = getSelectableProfileService();
   let prefs = await SelectableProfileService.getAllDBPrefs();
