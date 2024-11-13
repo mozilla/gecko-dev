@@ -1771,6 +1771,9 @@ nsresult PermissionManager::AddInternal(
     const bool aAllowPersistInPrivateBrowsing) {
   MOZ_ASSERT(NS_IsMainThread());
 
+  // If this is a default permission, no changes should not be written to disk.
+  MOZ_ASSERT((aID != cIDPermissionIsDefault) || (aDBOperation != eWriteToDB));
+
   EnsureReadCompleted();
 
   nsresult rv = NS_OK;
@@ -1881,23 +1884,26 @@ nsresult PermissionManager::AddInternal(
     if (aPermission == oldPermissionEntry.mPermission &&
         aExpireType == oldPermissionEntry.mExpireType &&
         (aExpireType == nsIPermissionManager::EXPIRE_NEVER ||
-         aExpireTime == oldPermissionEntry.mExpireTime))
+         aExpireTime == oldPermissionEntry.mExpireTime)) {
       op = eOperationNone;
-    else if (oldPermissionEntry.mID == cIDPermissionIsDefault)
-      // The existing permission is one added as a default and the new
-      // permission doesn't exactly match so we are replacing the default.  This
-      // is true even if the new permission is UNKNOWN_ACTION (which means a
-      // "logical remove" of the default)
+    } else if (oldPermissionEntry.mID == cIDPermissionIsDefault &&
+               aID != cIDPermissionIsDefault) {
+      // An existing default permission already exists, but the new permission
+      // isn't a default permission. This case requires some special handing.
       op = eOperationReplacingDefault;
-    else if (aID == cIDPermissionIsDefault)
+    } else if (oldPermissionEntry.mID != cIDPermissionIsDefault &&
+               aID == cIDPermissionIsDefault) {
       // We are adding a default permission but a "real" permission already
-      // exists.  This almost-certainly means we just did a removeAllSince and
-      // are re-importing defaults - so we can ignore this.
+      // exists. This means we don't have to do anything here.
       op = eOperationNone;
-    else if (aPermission == nsIPermissionManager::UNKNOWN_ACTION)
+    } else if (aPermission == nsIPermissionManager::UNKNOWN_ACTION) {
+      // At this point, both the old and new permission are either both default
+      // permissions, or both not default permissions. Now we only need to check
+      // wether to change or remove the old permission.
       op = eOperationRemoving;
-    else
+    } else {
       op = eOperationChanging;
+    }
   }
 
   // child processes should *always* be passed a modificationTime of zero.
