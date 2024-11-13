@@ -100,6 +100,41 @@ add_task(async function test_SelectableProfileLifecycle() {
     "Profile local dir was successfully created"
   );
 
+  let times = PathUtils.join(rootDir.path, "times.json");
+  Assert.ok(await IOUtils.exists(times), "times.json should exist");
+  let json = await IOUtils.readJSON(times);
+  Assert.ok(
+    json.created <= Date.now() && json.created >= Date.now() - 30000,
+    "Should have been created roughly now."
+  );
+
+  let prefs = PathUtils.join(rootDir.path, "prefs.js");
+  Assert.ok(await IOUtils.exists(prefs), "prefs.js should exist");
+  let contents = (await IOUtils.readUTF8(prefs)).split("\n");
+
+  let sawStoreID = false;
+  let sawEnabled = false;
+  for (let line of contents) {
+    // Strip the windows \r
+    line = line.trim();
+
+    if (line == `user_pref("browser.profiles.enabled", true);`) {
+      sawEnabled = true;
+    }
+
+    if (
+      line ==
+      `user_pref("toolkit.profiles.storeID", "${
+        getProfileService().currentProfile.storeID
+      }");`
+    ) {
+      sawStoreID = true;
+    }
+  }
+
+  Assert.ok(sawStoreID, "Should have seen the store ID defined in prefs.js");
+  Assert.ok(sawEnabled, "Should have seen the service enabled in prefs.js");
+
   profiles = await SelectableProfileService.getAllProfiles();
   Assert.equal(profiles.length, 2, "Should now be two profiles.");
 
