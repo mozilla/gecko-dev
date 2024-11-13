@@ -21,7 +21,11 @@ const COLLECTION_NAME = "remote-permissions";
  * https-only-load-insecure) may include different values. Only change this
  * value with a review from #permissions-reviewers.
  */
-const ALLOWED_PERMISSION_VALUES = {};
+const ALLOWED_PERMISSION_VALUES = {
+  "https-only-load-insecure": [
+    Ci.nsIHttpsOnlyModePermission.HTTPSFIRST_LOAD_INSECURE_ALLOW,
+  ],
+};
 
 /**
  * See nsIRemotePermissionService.idl
