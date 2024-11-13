@@ -1452,27 +1452,6 @@ main section {
     grid-template-columns: repeat(auto-fit, 309px);
   }
 }
-.topics ul {
-  margin: 0;
-  padding: 0;
-}
-@media (min-width: 866px) {
-  .topics ul {
-    display: inline;
-    padding-inline-start: 12px;
-  }
-}
-.topics ul li {
-  display: inline-block;
-}
-.topics ul li::after {
-  content: "•";
-  padding: 8px;
-}
-.topics ul li:last-child::after {
-  content: none;
-}
-
 .search-wrapper {
   padding: 34px 0 38px;
 }

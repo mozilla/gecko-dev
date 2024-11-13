@@ -2796,32 +2796,6 @@ getHardcodedLayout = ({
           newFooterSection,
           properties: {
             alignment: "left-align",
-            links: [
-              {
-                name: "Self improvement",
-                url: "https://getpocket.com/explore/self-improvement?utm_source=pocket-newtab",
-              },
-              {
-                name: "Food",
-                url: "https://getpocket.com/explore/food?utm_source=pocket-newtab",
-              },
-              {
-                name: "Entertainment",
-                url: "https://getpocket.com/explore/entertainment?utm_source=pocket-newtab",
-              },
-              {
-                name: "Health & fitness",
-                url: "https://getpocket.com/explore/health?utm_source=pocket-newtab",
-              },
-              {
-                name: "Science",
-                url: "https://getpocket.com/explore/science?utm_source=pocket-newtab",
-              },
-              {
-                name: "More recommendations ›",
-                url: "https://getpocket.com/explore?utm_source=pocket-newtab",
-              },
-            ],
             extraLinks: [
               {
                 name: "Career",
@@ -2837,11 +2811,6 @@ getHardcodedLayout = ({
               title: {
                 id: "newtab-section-menu-privacy-notice",
               },
-            },
-          },
-          header: {
-            title: {
-              id: "newtab-pocket-read-more",
             },
           },
           styles: {

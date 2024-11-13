@@ -5968,40 +5968,6 @@ class _PocketLoggedInCta extends (external_React_default()).PureComponent {
 const PocketLoggedInCta = (0,external_ReactRedux_namespaceObject.connect)(state => ({
   Pocket: state.Pocket
 }))(_PocketLoggedInCta);
-;// CONCATENATED MODULE: ./content-src/components/Topics/Topics.jsx
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-
-class Topic extends (external_React_default()).PureComponent {
-  render() {
-    const {
-      url,
-      name: topicName
-    } = this.props;
-    return /*#__PURE__*/external_React_default().createElement("li", null, /*#__PURE__*/external_React_default().createElement("a", {
-      key: topicName,
-      href: url
-    }, topicName));
-  }
-}
-class Topics extends (external_React_default()).PureComponent {
-  render() {
-    const {
-      topics
-    } = this.props;
-    return /*#__PURE__*/external_React_default().createElement("span", {
-      className: "topics"
-    }, /*#__PURE__*/external_React_default().createElement("span", {
-      "data-l10n-id": "newtab-pocket-read-more"
-    }), /*#__PURE__*/external_React_default().createElement("ul", null, topics && topics.map(t => /*#__PURE__*/external_React_default().createElement(Topic, {
-      key: t.name,
-      url: t.url,
-      name: t.name
-    }))));
-  }
-}
 ;// CONCATENATED MODULE: ./content-src/components/TopSites/SearchShortcutsForm.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -8677,7 +8643,6 @@ function Sections_extends() { Sections_extends = Object.assign ? Object.assign.b
 
 
 
-
 const Sections_VISIBLE = "visible";
 const Sections_VISIBILITY_CHANGE_EVENT = "visibilitychange";
 const CARDS_PER_ROW_DEFAULT = 3;
@@ -8810,7 +8775,6 @@ class Section extends (external_React_default()).PureComponent {
       title,
       rows,
       Pocket,
-      topics,
       emptyState,
       dispatch,
       compactCards,
@@ -8837,19 +8801,8 @@ class Section extends (external_React_default()).PureComponent {
     const {
       useCta
     } = pocketCta || {};
-
-    // Don't display anything until we have a definitve result from Pocket,
-    // to avoid a flash of logged out state while we render.
-    const isPocketLoggedInDefined = isUserLoggedIn === true || isUserLoggedIn === false;
-    const hasTopics = topics && !!topics.length;
     const shouldShowPocketCta = id === "topstories" && useCta && isUserLoggedIn === false;
-
-    // Show topics only for top stories and if it has loaded with topics.
-    // The classs .top-stories-bottom-container ensures content doesn't shift as things load.
-    const shouldShowTopics = id === "topstories" && hasTopics && (useCta && isUserLoggedIn === true || !useCta && isPocketLoggedInDefined);
-
-    // We use topics to determine language support for read more.
-    const shouldShowReadMore = read_more_endpoint && hasTopics;
+    const shouldShowReadMore = read_more_endpoint;
     const realRows = rows.slice(0, maxCards);
 
     // The empty state should only be shown after we have initialized and there is no content.
@@ -8918,11 +8871,7 @@ class Section extends (external_React_default()).PureComponent {
       className: "empty-state-message"
     })))), id === "topstories" && /*#__PURE__*/external_React_default().createElement("div", {
       className: "top-stories-bottom-container"
-    }, shouldShowTopics && /*#__PURE__*/external_React_default().createElement("div", {
-      className: "wrapper-topics"
-    }, /*#__PURE__*/external_React_default().createElement(Topics, {
-      topics: this.props.topics
-    })), shouldShowPocketCta && /*#__PURE__*/external_React_default().createElement("div", {
+    }, shouldShowPocketCta && /*#__PURE__*/external_React_default().createElement("div", {
       className: "wrapper-cta"
     }, /*#__PURE__*/external_React_default().createElement(PocketLoggedInCta, null)), /*#__PURE__*/external_React_default().createElement("div", {
       className: "wrapper-more-recommendations"
@@ -9026,7 +8975,7 @@ class HorizontalRule extends (external_React_default()).PureComponent {
 
 
 
-class Navigation_Topic extends (external_React_default()).PureComponent {
+class Topic extends (external_React_default()).PureComponent {
   constructor(props) {
     super(props);
     this.onLinkClick = this.onLinkClick.bind(this);
@@ -9085,7 +9034,7 @@ class Navigation extends (external_React_default()).PureComponent {
       className: "ds-navigation-header"
     })) : null, english ? /*#__PURE__*/external_React_default().createElement("ul", null, links && links.map(t => /*#__PURE__*/external_React_default().createElement("li", {
       key: t.name
-    }, /*#__PURE__*/external_React_default().createElement(Navigation_Topic, {
+    }, /*#__PURE__*/external_React_default().createElement(Topic, {
       url: t.url,
       name: t.name,
       dispatch: this.props.dispatch
