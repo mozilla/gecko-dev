@@ -20,9 +20,6 @@ ChromeUtils.defineLazyGetter(lazy, "gCryptoHash", () => {
   return Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
 });
 
-const SEARCH_DATA_TRANSFERRED_SCALAR = "browser.search.data_transferred";
-const SEARCH_TELEMETRY_PRIVATE_BROWSING_KEY_SUFFIX = "pb";
-
 // Exported for tests.
 export const ADLINK_CHECK_TIMEOUT_MS = 1000;
 // Unlike the standard adlink check, the timeout for single page apps is not
@@ -1194,7 +1191,6 @@ class ContentHandler {
 
     Services.obs.addObserver(this, "http-on-examine-response");
     Services.obs.addObserver(this, "http-on-examine-cached-response");
-    Services.obs.addObserver(this, "http-on-stop-request");
   }
 
   /**
@@ -1203,7 +1199,6 @@ class ContentHandler {
   uninit() {
     Services.obs.removeObserver(this, "http-on-examine-response");
     Services.obs.removeObserver(this, "http-on-examine-cached-response");
-    Services.obs.removeObserver(this, "http-on-stop-request");
   }
 
   /**
@@ -1216,82 +1211,8 @@ class ContentHandler {
     Services.ppmm.sharedData.set("SearchTelemetry:ProviderInfo", providerInfo);
   }
 
-  /**
-   * Reports bandwidth used by the given channel if it is used by search requests.
-   *
-   * @param {object} aChannel The channel that generated the activity.
-   */
-  _reportChannelBandwidth(aChannel) {
-    if (!(aChannel instanceof Ci.nsIChannel)) {
-      return;
-    }
-    let wrappedChannel = ChannelWrapper.get(aChannel);
-
-    let getTopURL = channel => {
-      // top-level document
-      if (
-        channel.loadInfo &&
-        channel.loadInfo.externalContentPolicyType ==
-          Ci.nsIContentPolicy.TYPE_DOCUMENT
-      ) {
-        return channel.finalURL;
-      }
-
-      // iframe
-      let frameAncestors;
-      try {
-        frameAncestors = channel.frameAncestors;
-      } catch (e) {
-        frameAncestors = null;
-      }
-      if (frameAncestors) {
-        let ancestor = frameAncestors.find(obj => obj.frameId == 0);
-        if (ancestor) {
-          return ancestor.url;
-        }
-      }
-
-      // top-level resource
-      if (channel.loadInfo && channel.loadInfo.loadingPrincipal) {
-        return channel.loadInfo.loadingPrincipal.spec;
-      }
-
-      return null;
-    };
-
-    let topUrl = getTopURL(wrappedChannel);
-    if (!topUrl) {
-      return;
-    }
-
-    let info = this._checkURLForSerpMatch(topUrl);
-    if (!info) {
-      return;
-    }
-
-    let bytesTransferred =
-      wrappedChannel.requestSize + wrappedChannel.responseSize;
-    let { provider } = info;
-
-    let isPrivate =
-      wrappedChannel.loadInfo &&
-      wrappedChannel.loadInfo.originAttributes.privateBrowsingId > 0;
-    if (isPrivate) {
-      provider += `-${SEARCH_TELEMETRY_PRIVATE_BROWSING_KEY_SUFFIX}`;
-    }
-
-    Services.telemetry.keyedScalarAdd(
-      SEARCH_DATA_TRANSFERRED_SCALAR,
-      provider,
-      bytesTransferred
-    );
-  }
-
   observe(aSubject, aTopic) {
     switch (aTopic) {
-      case "http-on-stop-request":
-        this._reportChannelBandwidth(aSubject);
-        break;
       case "http-on-examine-response":
       case "http-on-examine-cached-response":
         this.observeActivity(aSubject);

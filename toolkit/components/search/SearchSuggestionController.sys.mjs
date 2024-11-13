@@ -19,10 +19,6 @@ const BROWSER_RICH_SUGGEST_PREF = "browser.urlbar.richSuggestions.featureGate";
 const REMOTE_TIMEOUT_PREF = "browser.search.suggest.timeout";
 const REMOTE_TIMEOUT_DEFAULT = 500; // maximum time (ms) to wait before giving up on a remote suggestions
 
-const SEARCH_DATA_TRANSFERRED_SCALAR = "browser.search.data_transferred";
-const SEARCH_TELEMETRY_KEY_PREFIX = "sggt";
-const SEARCH_TELEMETRY_PRIVATE_BROWSING_KEY_SUFFIX = "pb";
-
 const SEARCH_TELEMETRY_LATENCY = "SEARCH_SUGGESTIONS_LATENCY_MS";
 
 /**
@@ -391,8 +387,6 @@ export class SearchSuggestionController {
    *   The search context.
    */
   #reportTelemetryForEngine(context) {
-    this.#reportBandwidthForEngine(context);
-
     // Stop the latency stopwatch.
     if (!context.telemetryHandled) {
       if (context.abort) {
@@ -410,44 +404,6 @@ export class SearchSuggestionController {
       }
       context.telemetryHandled = true;
     }
-  }
-
-  /**
-   * Report bandwidth used by search activities. It only reports when it matches
-   * search provider information.
-   *
-   * @param {object} context
-   *   The search context.
-   * @param {boolean} context.abort
-   *   If the request should be aborted.
-   * @param {string} context.engineId
-   *   The search engine identifier.
-   * @param {object} context.request
-   *   Request information
-   * @param {boolean} context.privateMode
-   *   Set to true if this is coming from a private browsing mode request.
-   */
-  #reportBandwidthForEngine(context) {
-    if (context.abort || !context.request.channel) {
-      return;
-    }
-
-    let channel = ChannelWrapper.get(context.request.channel);
-    let bytesTransferred = channel.requestSize + channel.responseSize;
-    if (bytesTransferred == 0) {
-      return;
-    }
-
-    let telemetryKey = `${SEARCH_TELEMETRY_KEY_PREFIX}-${context.engineId}`;
-    if (context.privateMode) {
-      telemetryKey += `-${SEARCH_TELEMETRY_PRIVATE_BROWSING_KEY_SUFFIX}`;
-    }
-
-    Services.telemetry.keyedScalarAdd(
-      SEARCH_DATA_TRANSFERRED_SCALAR,
-      telemetryKey,
-      bytesTransferred
-    );
   }
 
   /**
