@@ -3027,10 +3027,16 @@ impl CascadeData {
                 }),
             )
         } else {
-            let implicit_root = condition_ref
+            let implicit_root = match condition_ref
                 .implicit_scope_root
-                .as_ref()
-                .expect("No boundaries, no implicit root?");
+                .as_ref() {
+                    Some(r) => r,
+                    None => {
+                        // TODO(dshin): Relaxed the assertion here, until we can figure out bug 1930618.
+                        warn!("No implicit root found.");
+                        return ScopeRootCandidates::empty(is_trivial)
+                    },
+            };
             match implicit_root {
                 StylistImplicitScopeRoot::Normal(r) => {
                     match r.element(context.current_host.clone()) {
