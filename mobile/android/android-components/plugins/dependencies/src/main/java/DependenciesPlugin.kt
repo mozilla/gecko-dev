@@ -116,7 +116,7 @@ object Versions {
     }
 
     object ThirdParty {
-        const val sentry = "7.16.0"
+        const val sentry = "7.17.0"
     }
 }
 
