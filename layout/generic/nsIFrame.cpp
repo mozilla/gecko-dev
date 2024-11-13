@@ -6827,7 +6827,17 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
                                    : LogicalSize(aWM);
   auto shouldStretch = [](StyleSelfAlignment aAlignment, const nsIFrame* aFrame,
                           bool aStartIsAuto, bool aEndIsAuto) {
-    const bool insetNonAuto = !aStartIsAuto && !aEndIsAuto;
+    if (aStartIsAuto || aEndIsAuto) {
+      // Note(dshin, bug 1930427): This is not part of the current spec [1];
+      // however, no one implements the new inset behaviour [2], and the old
+      // behaviour [3] ends up computing the static size if both or one inset is
+      // auto.
+      //
+      // [1]: https://drafts.csswg.org/css-position-3/#abspos-auto-size
+      // [2]: https://drafts.csswg.org/css-position-3/#resolving-insets
+      // [3]: https://drafts.csswg.org/css-position-3/#abspos-old
+      return false;
+    }
     // Don't care about flag bits for auto-sizing.
     aAlignment &= ~StyleSelfAlignment::FLAG_BITS;
 
@@ -6838,8 +6848,7 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
     if (aAlignment == StyleSelfAlignment::NORMAL) {
       // Some replaced elements behave as semi-replaced elements - we want them
       // to stretch (See bug 1740580).
-      return insetNonAuto && !aFrame->HasReplacedSizing() &&
-             !aFrame->IsTableWrapperFrame();
+      return !aFrame->HasReplacedSizing() && !aFrame->IsTableWrapperFrame();
     }
 
     return false;
