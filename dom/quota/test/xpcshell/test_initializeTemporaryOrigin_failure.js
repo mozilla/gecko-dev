@@ -175,10 +175,5 @@ async function testCreateConnection() {
 /* exported testSteps */
 async function testSteps() {
   add_task(testCachedOrigins);
-  add_task(
-    {
-      skip_if: () => true,
-    },
-    testCreateConnection
-  );
+  add_task(testCreateConnection);
 }
