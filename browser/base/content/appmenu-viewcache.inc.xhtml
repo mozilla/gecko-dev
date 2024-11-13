@@ -29,12 +29,15 @@
           </vbox>
         </toolbarbutton>
       </toolbaritem>
-#ifdef MOZ_SELECTABLE_PROFILES
+      <toolbarbutton id="appMenu-empty-profiles-button"
+                     class="subviewbutton subviewbutton-nav"
+                     closemenu="none"
+                     data-l10n-id="appmenu-profiles"
+                     hidden="true"/>
       <toolbarbutton id="appMenu-profiles-button"
                      class="subviewbutton subviewbutton-nav subviewbutton-iconic"
                      closemenu="none"
                      hidden="true"/>
-#endif
       <toolbarseparator id="appMenu-fxa-separator" class="proton-zap"/>
       <toolbarbutton id="appMenu-new-tab-button2"
                      class="subviewbutton"
