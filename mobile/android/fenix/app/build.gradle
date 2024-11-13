@@ -716,12 +716,6 @@ dependencies {
     implementation ComponentsDependencies.play_review
     implementation ComponentsDependencies.play_review_ktx
 
-    constraints {
-        implementation (ComponentsDependencies.androidx_tracing) {
-            because 'AndroidX Test gets force-downgraded to 1.0.0 and breaks otherwise'
-        }
-    }
-
     androidTestImplementation ComponentsDependencies.testing_fastlane
     androidTestImplementation ComponentsDependencies.testing_falcon
 
@@ -733,6 +727,7 @@ dependencies {
     androidTestImplementation ComponentsDependencies.androidx_espresso_intents
     androidTestImplementation ComponentsDependencies.androidx_test_core
     androidTestImplementation ComponentsDependencies.androidx_test_junit
+    androidTestImplementation ComponentsDependencies.androidx_test_monitor
     androidTestImplementation ComponentsDependencies.androidx_test_rules
     androidTestImplementation ComponentsDependencies.androidx_test_runner
     androidTestImplementation ComponentsDependencies.androidx_test_uiautomator

@@ -362,12 +362,6 @@ dependencies {
     androidTestImplementation ComponentsDependencies.testing_fastlane
     androidTestImplementation ComponentsDependencies.testing_falcon
 
-    constraints {
-        implementation (ComponentsDependencies.androidx_tracing) {
-            because 'AndroidX Test gets force-downgraded to 1.0.0 and breaks otherwise'
-        }
-    }
-
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_runner
     testImplementation ComponentsDependencies.androidx_test_rules
@@ -378,8 +372,9 @@ dependencies {
     androidTestImplementation ComponentsDependencies.androidx_espresso_web
     androidTestImplementation ComponentsDependencies.androidx_test_core
     androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
+    androidTestImplementation ComponentsDependencies.androidx_test_monitor
     androidTestImplementation ComponentsDependencies.androidx_test_runner
+    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
     androidTestUtil ComponentsDependencies.androidx_test_orchestrator
 
     lintChecks project(':tooling-lint')

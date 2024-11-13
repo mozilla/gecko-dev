@@ -164,14 +164,9 @@ dependencies {
     testImplementation ComponentsDependencies.testing_mockito
     testImplementation ComponentsDependencies.testing_coroutines
 
-    constraints {
-        implementation (ComponentsDependencies.androidx_tracing) {
-            because 'AndroidX Test gets force-downgraded to 1.0.0 and breaks otherwise'
-        }
-    }
-
     androidTestImplementation project(':support-android-test')
     androidTestImplementation ComponentsDependencies.androidx_test_core
+    androidTestImplementation ComponentsDependencies.androidx_test_monitor
     androidTestImplementation ComponentsDependencies.androidx_test_runner
     androidTestImplementation ComponentsDependencies.androidx_test_rules
     androidTestImplementation ComponentsDependencies.androidx_test_junit
