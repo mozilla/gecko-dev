@@ -246,7 +246,11 @@ class MOZ_RAII AutoProfilerStats {
                                                                              \
     MACRO(25, "tracing", Tracing,                                            \
           "Instead of sampling periodically, captures information about "    \
-          "every function executed for the duration (JS only)")
+          "every function executed for the duration (JS only)")              \
+                                                                             \
+    MACRO(26, "sandbox", Sandbox,                                            \
+          "Report sandbox syscalls and logs in the "                         \
+          "profiler.")
 // *** Synchronize with lists in ProfilerState.h and geckoProfiler.json ***
 
 struct ProfilerFeature {

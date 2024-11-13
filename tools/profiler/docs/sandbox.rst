@@ -6,7 +6,9 @@ Recoding sandbox violations
 
 The profiler now offers a way to track sandbox violations happening from child
 processes on Linux systems. One can also rely on `MOZ_PROFILER_STARTUP=1`.
-Please make sure you select the `Debug` preset.
+Please make sure you select the `Debug` preset and that you enable the
+`Sandbox` feature. If you make use of a different preset, make sure the threads
+list includes `SandboxProfilerEmitter` to capture both threads.
 
 It will record sandbox requests (child process system calls intercepted) as
 well as audit (deny decision, whether the sandbox is running in permissive mode

@@ -572,6 +572,11 @@ const featureDescriptions = [
       "Disable periodic stack sampling, and capture information about every JS function executed.",
     experimental: true,
   },
+  {
+    name: "Sandbox profiling",
+    value: "sandbox",
+    title: "Report sandbox syscalls and logs in the profiler.",
+  },
 ];
 
 module.exports = {

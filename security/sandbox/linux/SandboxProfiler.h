@@ -15,6 +15,7 @@
 #include "MicroGeckoProfiler.h"
 
 #include "mozilla/ProfileChunkedBuffer.h"
+#include "mozilla/ProfilerState.h"
 
 #include "mozilla/ArrayUtils.h"
 
@@ -76,7 +77,13 @@ class SandboxProfiler final {
       return false;
     }
 
-    return uprofiler.is_active();
+    if (!uprofiler.feature_active ||
+        uprofiler.feature_active == feature_active_noop) {
+      return false;
+    }
+
+    return uprofiler.is_active() &&
+           uprofiler.feature_active(ProfilerFeature::Sandbox);
   }
 
   static void Shutdown();
@@ -159,5 +166,4 @@ class SandboxProfiler final {
 };
 
 }  // namespace mozilla
-
 #endif  // SANDBOX_PROFILER_H
