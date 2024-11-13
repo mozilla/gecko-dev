@@ -115,6 +115,7 @@ dictionary LoadURIOptions {
 
   /**
    * Whether the search/URL term was without an explicit scheme.
+   * This holds enum values for SchemelessInputType from nsILoadInfo.idl.
    */
-  boolean wasSchemelessInput = false;
+  octet schemelessInput = 0;
 };

@@ -1916,7 +1916,7 @@ interface nsIURIFixupInfo extends nsISupports {
   fixedURI: nsIURI;
   keywordProviderName: string;
   keywordAsSent: string;
-  wasSchemelessInput: boolean;
+  schemelessInput: nsILoadInfo.SchemelessInputType;
   fixupChangedProtocol: boolean;
   fixupCreatedAlternateURI: boolean;
   originalInput: string;
@@ -6187,6 +6187,12 @@ enum CrossOriginEmbedderPolicy {
   EMBEDDER_POLICY_CREDENTIALLESS = 2,
 }
 
+enum SchemelessInputType {
+  SchemelessInputTypeUnset = 0,
+  SchemelessInputTypeSchemeful = 1,
+  SchemelessInputTypeSchemeless = 2,
+}
+
 enum HTTPSUpgradeTelemetryType {
   NOT_INITIALIZED = 0,
   NO_UPGRADE = 1,
@@ -6365,7 +6371,7 @@ interface nsILoadInfo extends nsISupports, Enums<typeof nsILoadInfo.StoragePermi
   readonly shouldSkipCheckForBrokenURLOrZeroSized: boolean;
   unstrippedURI: nsIURI;
   hasInjectedCookieForCookieBannerHandling: boolean;
-  wasSchemelessInput: boolean;
+  schemelessInput: nsILoadInfo.SchemelessInputType;
   httpsUpgradeTelemetry: nsILoadInfo.HTTPSUpgradeTelemetryType;
 }
 

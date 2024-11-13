@@ -21,46 +21,7 @@ support-files = [
   "file_download_attribute.sjs",
 ]
 
-["browser_httpsfirst.js"]
-support-files = ["file_httpsfirst_timeout_server.sjs"]
-
-["browser_httpsfirst_console_logging.js"]
-
-["browser_httpsfirst_speculative_connect.js"]
-support-files = ["file_httpsfirst_speculative_connect.html"]
-
-["browser_mixed_content_console.js"]
-support-files = ["file_mixed_content_console.html"]
-
-["browser_mixed_content_download.js"]
-support-files = [
-  "download_page.html",
-  "download_server.sjs",
-]
-
-["browser_navigation.js"]
-support-files = ["file_navigation.html"]
-
-["browser_subdocument_downgrade.js"]
-support-files = [
-  "file_empty.html",
-  "file_subdocument_downgrade.sjs",
-]
-
-["browser_schemeless.js"]
-skip-if = ["!debug && tsan"] #Bug 1890170
-
-["browser_slow_download.js"]
-support-files = [
-  "file_slow_download.html",
-  "file_slow_download.sjs",
-]
-
-["browser_superfluos_auth.js"]
-
-["browser_tlds.js"]
-
-["browser_upgrade_onion.js"]
+["browser_http_scheme_no_upgrade.js"]
 
 ["browser_https_telemetry.js"]
 support-files = [
@@ -82,3 +43,44 @@ skip-if = [
   "http2",
   "socketprocess_networking",
 ]
+
+["browser_httpsfirst.js"]
+support-files = ["file_httpsfirst_timeout_server.sjs"]
+
+["browser_httpsfirst_console_logging.js"]
+
+["browser_httpsfirst_speculative_connect.js"]
+support-files = ["file_httpsfirst_speculative_connect.html"]
+
+["browser_mixed_content_console.js"]
+support-files = ["file_mixed_content_console.html"]
+
+["browser_mixed_content_download.js"]
+support-files = [
+  "download_page.html",
+  "download_server.sjs",
+]
+
+["browser_navigation.js"]
+support-files = ["file_navigation.html"]
+
+["browser_schemeless.js"]
+skip-if = ["!debug && tsan"] #Bug 1890170
+
+["browser_slow_download.js"]
+support-files = [
+  "file_slow_download.html",
+  "file_slow_download.sjs",
+]
+
+["browser_subdocument_downgrade.js"]
+support-files = [
+  "file_empty.html",
+  "file_subdocument_downgrade.sjs",
+]
+
+["browser_superfluos_auth.js"]
+
+["browser_tlds.js"]
+
+["browser_upgrade_onion.js"]
