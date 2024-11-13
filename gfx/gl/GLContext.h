@@ -297,6 +297,10 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
 
   bool HasPBOState() const { return (!IsGLES() || Version() >= 300); }
 
+  bool HasVertexAttribDivisor() const {
+    return !!mSymbols.fVertexAttribDivisor;
+  }
+
   /**
    * If this context is double-buffered, returns TRUE.
    */

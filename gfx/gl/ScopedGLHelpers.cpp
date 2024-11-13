@@ -271,33 +271,11 @@ ScopedVertexAttribPointer::ScopedVertexAttribPointer(
     GLContext* aGL, GLuint index, GLint size, GLenum type,
     realGLboolean normalized, GLsizei stride, GLuint buffer,
     const GLvoid* pointer)
-    : mGL(aGL),
-      mAttribEnabled(0),
-      mAttribSize(0),
-      mAttribStride(0),
-      mAttribType(0),
-      mAttribNormalized(0),
-      mAttribBufferBinding(0),
-      mAttribPointer(nullptr),
-      mBoundBuffer(0) {
+    : mGL(aGL) {
   WrapImpl(index);
   mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, buffer);
   mGL->fVertexAttribPointer(index, size, type, normalized, stride, pointer);
   mGL->fEnableVertexAttribArray(index);
-}
-
-ScopedVertexAttribPointer::ScopedVertexAttribPointer(GLContext* aGL,
-                                                     GLuint index)
-    : mGL(aGL),
-      mAttribEnabled(0),
-      mAttribSize(0),
-      mAttribStride(0),
-      mAttribType(0),
-      mAttribNormalized(0),
-      mAttribBufferBinding(0),
-      mAttribPointer(nullptr),
-      mBoundBuffer(0) {
-  WrapImpl(index);
 }
 
 void ScopedVertexAttribPointer::WrapImpl(GLuint index) {
@@ -318,9 +296,17 @@ void ScopedVertexAttribPointer::WrapImpl(GLuint index) {
    * or alternatively in the internal vertex array state
    * for a buffer object.
    */
+  // TODO: This should really be using VAOs when available.
 
   mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_ENABLED,
                           &mAttribEnabled);
+
+  if (mGL->HasVertexAttribDivisor()) {
+    mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_DIVISOR,
+                            reinterpret_cast<GLint*>(&mAttribDivisor));
+    mGL->fVertexAttribDivisor(mAttribIndex, 0);
+  }
+
   mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_SIZE,
                           &mAttribSize);
   mGL->fGetVertexAttribiv(mAttribIndex, LOCAL_GL_VERTEX_ATTRIB_ARRAY_STRIDE,
@@ -345,6 +331,9 @@ ScopedVertexAttribPointer::~ScopedVertexAttribPointer() {
   mGL->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mAttribBufferBinding);
   mGL->fVertexAttribPointer(mAttribIndex, mAttribSize, mAttribType,
                             mAttribNormalized, mAttribStride, mAttribPointer);
+  if (mGL->HasVertexAttribDivisor()) {
+    mGL->fVertexAttribDivisor(mAttribIndex, mAttribDivisor);
+  }
   if (mAttribEnabled)
     mGL->fEnableVertexAttribArray(mAttribIndex);
   else
