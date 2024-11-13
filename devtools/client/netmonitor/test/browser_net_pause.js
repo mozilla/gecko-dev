@@ -87,9 +87,9 @@ async function waitForPauseButtonToChange(doc, isPaused) {
   await waitUntil(
     () =>
       !!doc.querySelector(
-        `.requests-list-pause-button.devtools-${
-          isPaused ? "play" : "pause"
-        }-icon`
+        `.requests-list-pause-button[aria-pressed="${
+          isPaused ? "true" : "false"
+        }"]`
       )
   );
   ok(

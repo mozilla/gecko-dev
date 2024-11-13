@@ -318,17 +318,10 @@ class Toolbar extends Component {
    * Render a ToggleRecording button.
    */
   renderToggleRecordingButton(recording, toggleRecording) {
-    // Calculate class-list for toggle recording button.
-    // The button has two states: pause/play.
-    const toggleRecordingButtonClass = [
-      "devtools-button",
-      "requests-list-pause-button",
-      recording ? "devtools-pause-icon" : "devtools-play-icon",
-    ].join(" ");
-
     return button({
-      className: toggleRecordingButtonClass,
+      className: "devtools-button requests-list-pause-button",
       title: TOOLBAR_TOGGLE_RECORDING,
+      "aria-pressed": !recording,
       onClick: toggleRecording,
     });
   }

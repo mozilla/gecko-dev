@@ -427,6 +427,7 @@ iframe {
 .devtools-button:not(:empty, .checked, [aria-pressed="true"]):hover,
 .devtools-button[aria-haspopup="menu"][aria-expanded="true"] {
   background-color: var(--toolbarbutton-hover-background);
+  color: var(--toolbarbutton-hover-color);
 }
 
 .devtools-button:empty:is(.checked, [aria-pressed="true"]) {

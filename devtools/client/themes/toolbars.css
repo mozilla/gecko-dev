@@ -180,6 +180,10 @@ splitter.devtools-horizontal-splitter,
   padding-inline: 2px 10px !important;
   fill: var(--theme-icon-color);
   -moz-context-properties: fill;
+
+  &:hover {
+    fill: var(--theme-icon-hover-color);
+ }
 }
 
 .devtools-dropdown-button:dir(rtl) {

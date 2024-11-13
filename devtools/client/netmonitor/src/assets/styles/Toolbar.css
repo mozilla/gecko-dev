@@ -19,16 +19,15 @@
   margin: 0 7px;
 }
 
-.devtools-button.devtools-pause-icon::before,
-.devtools-button.devtools-play-icon::before {
+.devtools-button.requests-list-pause-button::before {
   margin-bottom: 1px;
 }
 
-.devtools-button.devtools-pause-icon::before {
+.devtools-button.requests-list-pause-button::before {
   background-image: url("chrome://devtools/skin/images/pause.svg");
 }
 
-.devtools-button.devtools-play-icon::before {
+.devtools-button.requests-list-pause-button[aria-pressed="true"]::before {
   background-image: url("chrome://devtools/content/netmonitor/src/assets/icons/play.svg");
 }
 
