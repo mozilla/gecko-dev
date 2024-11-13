@@ -1192,9 +1192,7 @@ void Animation::Remove() {
   QueuePlaybackEvent(nsGkAtoms::onremove, GetTimelineCurrentTimeAsTimeStamp());
 }
 
-bool Animation::HasLowerCompositeOrderThan(
-    const Maybe<EventContext>& aContext, const Animation& aOther,
-    const Maybe<EventContext>& aOtherContext) const {
+bool Animation::HasLowerCompositeOrderThan(const Animation& aOther) const {
   // 0. Object-equality case
   if (&aOther == this) {
     return false;
@@ -1203,20 +1201,14 @@ bool Animation::HasLowerCompositeOrderThan(
   // 1. CSS Transitions sort lowest
   {
     auto asCSSTransitionForSorting =
-        [](const Animation& anim,
-           const Maybe<EventContext>& aContext) -> const CSSTransition* {
+        [](const Animation& anim) -> const CSSTransition* {
       const CSSTransition* transition = anim.AsCSSTransition();
-      return transition && (aContext || transition->IsTiedToMarkup())
-                 ? transition
-                 : nullptr;
+      return transition && transition->IsTiedToMarkup() ? transition : nullptr;
     };
-    const auto* const thisTransition =
-        asCSSTransitionForSorting(*this, aContext);
-    const auto* const otherTransition =
-        asCSSTransitionForSorting(aOther, aOtherContext);
+    auto thisTransition = asCSSTransitionForSorting(*this);
+    auto otherTransition = asCSSTransitionForSorting(aOther);
     if (thisTransition && otherTransition) {
-      return thisTransition->HasLowerCompositeOrderThan(
-          aContext, *otherTransition, aOtherContext);
+      return thisTransition->HasLowerCompositeOrderThan(*otherTransition);
     }
     if (thisTransition || otherTransition) {
       // Cancelled transitions no longer have an owning element. To be strictly
@@ -1237,18 +1229,14 @@ bool Animation::HasLowerCompositeOrderThan(
   // 2. CSS Animations sort next
   {
     auto asCSSAnimationForSorting =
-        [](const Animation& anim,
-           const Maybe<EventContext>& aContext) -> const CSSAnimation* {
+        [](const Animation& anim) -> const CSSAnimation* {
       const CSSAnimation* animation = anim.AsCSSAnimation();
-      return animation && (aContext || animation->IsTiedToMarkup()) ? animation
-                                                                    : nullptr;
+      return animation && animation->IsTiedToMarkup() ? animation : nullptr;
     };
-    const auto* const thisAnimation = asCSSAnimationForSorting(*this, aContext);
-    const auto* const otherAnimation =
-        asCSSAnimationForSorting(aOther, aOtherContext);
+    auto thisAnimation = asCSSAnimationForSorting(*this);
+    auto otherAnimation = asCSSAnimationForSorting(aOther);
     if (thisAnimation && otherAnimation) {
-      return thisAnimation->HasLowerCompositeOrderThan(
-          aContext, *otherAnimation, aOtherContext);
+      return thisAnimation->HasLowerCompositeOrderThan(*otherAnimation);
     }
     if (thisAnimation || otherAnimation) {
       return thisAnimation;

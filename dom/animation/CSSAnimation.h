@@ -84,8 +84,6 @@ class CSSAnimation final : public Animation {
   void PlayFromStyle();
   void PauseFromStyle();
   void CancelFromStyle(PostRestyleMode aPostRestyle) {
-    Animation::Cancel(aPostRestyle);
-
     // When an animation is disassociated with style it enters an odd state
     // where its composite order is undefined until it first transitions
     // out of the idle state.
@@ -96,12 +94,10 @@ class CSSAnimation final : public Animation {
     // if it had been added to the end of the global animation list so that
     // its sort order is defined. We'll update this index again once the
     // animation leaves the idle state.
-    //
-    // Note: We have to update |mAnimationIndex| after calling
-    // Animation::Cancel(), which enqueues animationcancel event, to make sure
-    // we have the correct |mAnimationIndex| in AnimationEventInfo.
     mAnimationIndex = sNextAnimationIndex++;
     mNeedsNewAnimationIndexWhenRun = true;
+
+    Animation::Cancel(aPostRestyle);
 
     // We need to do this *after* calling Cancel() since
     // Cancel() might synchronously trigger a cancel event for which
@@ -113,9 +109,7 @@ class CSSAnimation final : public Animation {
   void QueueEvents(
       const StickyTimeDuration& aActiveTime = StickyTimeDuration());
 
-  bool HasLowerCompositeOrderThan(
-      const Maybe<EventContext>& aContext, const CSSAnimation& aOther,
-      const Maybe<EventContext>& aOtherContext) const;
+  bool HasLowerCompositeOrderThan(const CSSAnimation& aOther) const;
 
   void SetAnimationIndex(uint64_t aIndex) {
     MOZ_ASSERT(IsTiedToMarkup());

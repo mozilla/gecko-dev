@@ -51,20 +51,16 @@ class CSSTransition final : public Animation {
   }
 
   void CancelFromStyle(PostRestyleMode aPostRestyle) {
-    Animation::Cancel(aPostRestyle);
-
     // The animation index to use for compositing will be established when
     // this transition next transitions out of the idle state but we still
     // update it now so that the sort order of this transition remains
     // defined until that moment.
     //
     // See longer explanation in CSSAnimation::CancelFromStyle.
-    //
-    // Note: We have to update |mAnimationIndex| after calling
-    // Animation::Cancel(), which enqueues transitioncancel event, to make sure
-    // we have the correct |mAnimationIndex| in AnimationEventInfo.
     mAnimationIndex = sNextAnimationIndex++;
     mNeedsNewAnimationIndexWhenRun = true;
+
+    Animation::Cancel(aPostRestyle);
 
     // It is important we do this *after* calling Cancel().
     // This is because Cancel() will end up posting a restyle and
@@ -81,9 +77,7 @@ class CSSTransition final : public Animation {
   const AnimatedPropertyID& TransitionProperty() const;
   AnimationValue ToValue() const;
 
-  bool HasLowerCompositeOrderThan(
-      const Maybe<EventContext>& aContext, const CSSTransition& aOther,
-      const Maybe<EventContext>& aOtherContext) const;
+  bool HasLowerCompositeOrderThan(const CSSTransition& aOther) const;
   EffectCompositor::CascadeLevel CascadeLevel() const override {
     return IsTiedToMarkup() ? EffectCompositor::CascadeLevel::Transitions
                             : EffectCompositor::CascadeLevel::Animations;
