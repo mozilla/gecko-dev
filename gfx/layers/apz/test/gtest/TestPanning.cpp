@@ -5,9 +5,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "APZCBasicTester.h"
+#include "APZCTreeManagerTester.h"
 #include "APZTestCommon.h"
+#include "FrameMetrics.h"
 #include "InputUtils.h"
 #include "gtest/gtest.h"
+#include "mozilla/ScrollSnapInfo.h"
+#include "mozilla/ServoComputedData.h"
+#include "mozilla/gfx/CompositorHitTestInfo.h"
+#include "mozilla/layers/ScrollableLayerGuid.h"
 
 class APZCPanningTester : public APZCBasicTester {
  protected:
@@ -255,6 +261,11 @@ TEST_F(APZCPanningTester, DuplicatePanEndEvents_Bug1833950) {
              /*aSimulateMomentum=*/true);
 }
 
+class APZCPanningTesterMock : public APZCTreeManagerTester {
+ public:
+  APZCPanningTesterMock() { CreateMockHitTester(); }
+};
+
 #ifdef MOZ_WIDGET_GTK  // Handling PANGESTURE_MAYSTART is Linux-only for now
 TEST_F(APZCPanningTester, HoldGesture_HoldAndRelease) {
   // Send a pan gesture that triggers a fling animation at the end.
@@ -320,5 +331,217 @@ TEST_F(APZCPanningTester, HoldGesture_HoldAndScroll) {
   // Check that we've done additional scrolling.
   float scrollYAfter = apzc->GetFrameMetrics().GetVisualScrollOffset().y;
   EXPECT_GT(scrollYAfter, scrollYBefore);
+}
+
+TEST_F(APZCPanningTesterMock, HoldGesture_ActiveWheelListener) {
+  // Explicitly set the content response timeout.
+  // The value should be greater than the sum of the AdvanceByMillis()
+  // intervals from the MAYSTART event until the content response.
+  SCOPED_GFX_PREF_INT("apz.content_response_timeout", 100);
+
+  CreateSimpleScrollingLayer();
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
+  UpdateHitTestingTree();
+
+  RefPtr<TestAsyncPanZoomController> apzc = ApzcOf(root);
+  ScrollableLayerGuid::ViewID scrollId = ScrollableLayerGuid::START_SCROLL_ID;
+  ScreenIntPoint panPoint(50, 80);
+
+  // Simulate an active wheel listener by having the MockHitTester
+  // return eApzAwareListeners as the hit-test result for every event.
+  gfx::CompositorHitTestInfo dispatchToContent{
+      CompositorHitTestFlags::eVisibleToHitTest,
+      CompositorHitTestFlags::eApzAwareListeners};
+
+  // Send a MAYSTART. Note that this has zero delta and does not
+  // result in an event sent to web content (so it will not itself
+  // result in a content response).
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_MAYSTART, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+
+  // Send a CANCELLED. This signifies the end of the hold gesture on Linux.
+  // FIXME: When enabling this test on other desktop platforms, restrict the
+  // sending of this event to Linux, since on Mac the widget code goes directly
+  // to sending to START.
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_CANCELLED, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+
+  // Send a START. This does result in an event sent to web
+  // content if there is a nonzero delta.
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(scrollId, dispatchToContent);
+  auto startResult = PanGesture(PanGestureInput::PANGESTURE_START, manager,
+                                panPoint, ScreenPoint(0, 10), mcc->Time());
+
+  // Send a couple of PAN events.
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_PAN, manager, panPoint,
+             ScreenPoint(0, 10), mcc->Time());
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_PAN, manager, panPoint,
+             ScreenPoint(0, 10), mcc->Time());
+
+  // Simulate a content response which allows the scroll.
+  manager->SetTargetAPZC(startResult.mInputBlockId, {startResult.mTargetGuid});
+  manager->ContentReceivedInputBlock(startResult.mInputBlockId,
+                                     /*aPreventDefault=*/false);
+
+  // Check that we did scroll.
+  // In the buggy scenario for which this test case is written,
+  // the input block for the hold gesture was never confirmed,
+  // stalling the input queue so that we don't scroll until that input
+  // block is timed out.
+  EXPECT_GT(apzc->GetFrameMetrics().GetVisualScrollOffset().y, 0);
+
+  // Clean up by sending an END event.
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_END, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+  apzc->AssertStateIsReset();
+}
+
+TEST_F(APZCPanningTesterMock, HoldGesture_PreventDefaultAfterLongHold) {
+  // Explicitly set a content response timeout.
+  SCOPED_GFX_PREF_INT("apz.content_response_timeout", 20);
+
+  CreateSimpleScrollingLayer();
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
+  UpdateHitTestingTree();
+
+  RefPtr<TestAsyncPanZoomController> apzc = ApzcOf(root);
+  ScrollableLayerGuid::ViewID scrollId = ScrollableLayerGuid::START_SCROLL_ID;
+  ScreenIntPoint panPoint(50, 80);
+
+  // Simulate an active wheel listener by having the MockHitTester
+  // return eApzAwareListeners as the hit-test result for every event.
+  gfx::CompositorHitTestInfo dispatchToContent{
+      CompositorHitTestFlags::eVisibleToHitTest,
+      CompositorHitTestFlags::eApzAwareListeners};
+
+  // Send a MAYSTART. Note that this has zero delta and does not
+  // result in an event sent to web content (so it will not itself
+  // result in a content response).
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_MAYSTART, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+
+  // Allow enough time to pass for the content response timeout to be reached.
+  mcc->AdvanceByMillis(30);
+
+  // Send a CANCELLED. This signifies the end of the hold gesture on Linux.
+  // FIXME: When enabling this test on other desktop platforms, restrict the
+  // sending of this event to Linux, since on Mac the widget code goes directly
+  // to sending to START.
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_CANCELLED, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+
+  // Send a START. This does result in an event sent to web
+  // content if there is a nonzero delta.
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(scrollId, dispatchToContent);
+  auto startResult = PanGesture(PanGestureInput::PANGESTURE_START, manager,
+                                panPoint, ScreenPoint(0, 10), mcc->Time());
+
+  // Send a couple of PAN events.
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_PAN, manager, panPoint,
+             ScreenPoint(0, 10), mcc->Time());
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_PAN, manager, panPoint,
+             ScreenPoint(0, 10), mcc->Time());
+
+  // Simulate a content response which does NOT allow the scroll.
+  manager->SetTargetAPZC(startResult.mInputBlockId, {startResult.mTargetGuid});
+  manager->ContentReceivedInputBlock(startResult.mInputBlockId,
+                                     /*aPreventDefault=*/true);
+
+  // Check that we did NOT scroll.
+  // In the buggy scenario for which this test case is written,
+  // the hold gesture and the scroll go into the same input block,
+  // for which the content response times out during the hold gesture,
+  // and we don't wait for the content response for the scroll.
+  EXPECT_EQ(apzc->GetFrameMetrics().GetVisualScrollOffset().y, 0);
+
+  // Clean up by sending an END event.
+  QueueMockHitResult(scrollId, dispatchToContent);
+  PanGesture(PanGestureInput::PANGESTURE_END, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+  apzc->AssertStateIsReset();
+}
+
+TEST_F(APZCPanningTesterMock, HoldGesture_SubframeTargeting) {
+  // Set up a layer tree with a scrollable subframe handing off to a root frame.
+  const char* treeShape = "x(x)";
+  LayerIntRect layerVisibleRect[] = {
+      LayerIntRect(0, 0, 100, 100),
+      LayerIntRect(0, 0, 100, 100),
+  };
+  CreateScrollData(treeShape, layerVisibleRect);
+  SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
+                            CSSRect(0, 0, 100, 100));
+  SetScrollableFrameMetrics(layers[1], ScrollableLayerGuid::START_SCROLL_ID + 1,
+                            CSSRect(0, 0, 100, 200));
+  SetScrollHandoff(layers[1], root);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
+  UpdateHitTestingTree();
+
+  auto* rootApzc = ApzcOf(root);
+  auto* subframeApzc = ApzcOf(layers[1]);
+  rootApzc->GetFrameMetrics().SetIsRootContent(true);
+
+  // Mark the subframe as overscroll-behavior:none. This is important to
+  // trigger the codepath in FindFirstScrollable() that exposes the bug.
+  subframeApzc->GetScrollMetadata().SetOverscrollBehavior(
+      OverscrollBehaviorInfo::FromStyleConstants(
+          StyleOverscrollBehavior::None, StyleOverscrollBehavior::None));
+
+  ScrollableLayerGuid::ViewID subframeScrollId =
+      ScrollableLayerGuid::START_SCROLL_ID + 1;
+  ScreenIntPoint panPoint(50, 50);
+
+  // Send a MAYSTART. Note that this has zero delta, and causes its input
+  // block to be marked as having empty mAllowedScrollDirections because the
+  // subframe fails the "can this APZC be scrolled by this event" check
+  // and is overscroll-behavior:none.
+  QueueMockHitResult(subframeScrollId,
+                     CompositorHitTestFlags::eVisibleToHitTest);
+  PanGesture(PanGestureInput::PANGESTURE_MAYSTART, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+
+  // Send a CANCELLED. This signifies the end of the hold gesture on Linux.
+  // FIXME: When enabling this test on other desktop platforms, restrict the
+  // sending of this event to Linux, since on Mac the widget code goes directly
+  // to sending to START.
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(subframeScrollId,
+                     CompositorHitTestFlags::eVisibleToHitTest);
+  PanGesture(PanGestureInput::PANGESTURE_CANCELLED, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+
+  // Send a START. In the buggy scenario, this gets added to the same input
+  // block as the MAYSTART, which has been marked as having empty
+  // mAllowedScrollDirections, and thus fails to scroll anything.
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(subframeScrollId,
+                     CompositorHitTestFlags::eVisibleToHitTest);
+  PanGesture(PanGestureInput::PANGESTURE_START, manager, panPoint,
+             ScreenPoint(0, 10), mcc->Time());
+
+  // Check that the subframe scrolled.
+  EXPECT_GT(subframeApzc->GetFrameMetrics().GetVisualScrollOffset().y, 0);
+
+  // Clean up by sending an END event.
+  QueueMockHitResult(subframeScrollId,
+                     CompositorHitTestFlags::eVisibleToHitTest);
+  PanGesture(PanGestureInput::PANGESTURE_END, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
 }
 #endif

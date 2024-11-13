@@ -501,6 +501,10 @@ APZEventResult InputQueue::ReceivePanGestureInput(
     INPQ_LOG("started new pan gesture block %p id %" PRIu64 " for target %p\n",
              block.get(), block->GetBlockId(), aTarget.get());
 
+    if (event.mType == PanGestureInput::PANGESTURE_MAYSTART) {
+      block->ConfirmForHoldGesture();
+    }
+
     mActivePanGestureBlock = block;
 
     CancelAnimationsForNewBlock(block);
