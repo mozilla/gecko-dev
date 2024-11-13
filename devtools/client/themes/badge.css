@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-:root {
+ :root {
   --badge-active-background-color: var(--blue-60);
   --badge-active-border-color: light-dark(rgba(255, 255, 255, 0.7), #FFF6);
   --badge-background-color: light-dark(white, var(--grey-80));
@@ -15,6 +15,7 @@
   --badge-scrollable-color: light-dark(#8000D7, #B98EFF);
   --badge-scrollable-background-color: light-dark(#FFFFFF, var(--badge-interactive-background-color));
   --badge-scrollable-active-background-color: #8000D7;
+  --badge-scrollable-active-color: var(--theme-selection-color);
 
   &[forced-colors-active] {
     --badge-active-background-color: SelectedItem;
@@ -22,8 +23,12 @@
     --badge-color: ButtonText;
     --badge-interactive-background-color: ButtonFace;
     --badge-interactive-color: ButtonText;
-    --badge-hover-interactive-background-color:ButtonFace;
+    --badge-hover-interactive-background-color: ButtonFace;
     --badge-hover-interactive-color: SelectedItem;
+    --badge-scrollable-color: var(--theme-highlight-purple);
+    --badge-scrollable-background-color: var(--theme-highlight-purple-text);
+    --badge-scrollable-active-background-color: var(--theme-highlight-purple);
+    --badge-scrollable-active-color: var(--theme-highlight-purple-text);
   }
 }
 
@@ -94,11 +99,13 @@
   background-color: var(--badge-scrollable-background-color);
   border-color: var(--badge-scrollable-color);
   color: var(--badge-scrollable-color);
+  forced-color-adjust: none;
 }
 
 .inspector-badge.interactive.scrollable-badge.active {
   background-color: var(--badge-scrollable-active-background-color);
-  color: var(--theme-selection-color);
+  color: var(--badge-scrollable-active-color);
+  border-color: currentColor;
 }
 
 .inspector-badge.has-disabled-events {

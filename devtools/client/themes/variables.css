@@ -296,6 +296,7 @@
     --theme-highlight-red: light-dark(#C50042, #FF9AA2);
     --theme-highlight-green: light-dark(#005E5E, #3FE1B0);
     --theme-highlight-purple: #952BB9;
+    --theme-highlight-purple-text: #F7E2FF;
     --theme-highlight-yellow: light-dark(#FFFFCC, #FFEA80);
     --theme-highlight-orange: light-dark(#CC3D00, #FFB587);
     --theme-highlight-pink: light-dark(#FF9AA2, #FFDFE7);
