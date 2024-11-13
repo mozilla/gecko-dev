@@ -60,12 +60,19 @@ div[hidetabs=true] .tabs .tabs-navigation {
   color: var(--theme-toolbar-color);
 }
 
-.tabs .tabs-menu-item.is-active {
-  color: var(--theme-toolbar-selected-color);
-}
-
 .tabs .tabs-menu-item:hover {
   background-color: var(--theme-toolbar-hover);
+  color: var(--theme-toolbar-hover-color);
+}
+
+.tabs .tabs-menu-item.is-active {
+  color: var(--theme-toolbar-selected-color);
+  background-color:  var(--theme-toolbar-selected-background);
+
+  &:hover {
+    background-color: var(--theme-toolbar-selected-hover);
+    color: var(--theme-toolbar-selected-hover-color);
+  }
 }
 
 .tabs .tabs-menu-item:hover:active:not(.is-active) {

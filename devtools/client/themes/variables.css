@@ -142,14 +142,18 @@
   --theme-toolbar-alternate-background: light-dark(var(--grey-10), #232327);
   --theme-toolbar-color: light-dark(var(--grey-90), var(--grey-40));
   --theme-toolbar-selected-color: light-dark(var(--blue-60), white);
+  --theme-toolbar-selected-background: transparent;
   --theme-toolbar-highlighted-color: light-dark(var(--green-60), var(--green-50));
   --theme-toolbar-background-hover: light-dark(rgba(221, 225, 228, 0.66), #232327);
   --theme-toolbar-background-alt: light-dark(#f5f5f5, var(--grey-85));
   --theme-toolbar-background-highlighted: light-dark(#b9dcff, var(--blue-60));
   --theme-toolbar-error-background: light-dark(var(--red-05), var(--red-70));
   --theme-toolbar-hover: light-dark(var(--grey-20), #232327);
+  --theme-toolbar-hover-color: var(--theme-toolbar-color);
   --theme-toolbar-alternate-hover: light-dark(var(--grey-20), var(--grey-80));
   --theme-toolbar-hover-active: light-dark(var(--grey-20), #252526);
+  --theme-toolbar-selected-hover: var(--theme-toolbar-hover);
+  --theme-toolbar-selected-hover-color: var(--theme-toolbar-selected-color);
   --theme-toolbar-separator: light-dark(var(--grey-90-a10), var(--grey-10-a20));
 
   /* Toolbar buttons */
@@ -296,6 +300,15 @@
     --theme-highlight-orange: light-dark(#CC3D00, #FFB587);
     --theme-highlight-pink: light-dark(#FF9AA2, #FFDFE7);
     --theme-highlight-gray: light-dark(#5B5B66, #F0F0F4);
+
+    /* Toolbar */
+    --theme-toolbar-selected-color: SelectedItemText;
+    --theme-toolbar-selected-background: SelectedItem;
+    --theme-toolbar-hover: SelectedItemText;
+    --theme-toolbar-hover-color: SelectedItem;
+    --theme-toolbar-hover-active: var(--theme-toolbar-hover);
+    --theme-toolbar-selected-hover: var(--theme-toolbar-selected-background);
+    --theme-toolbar-selected-hover-color: var(--theme-toolbar-selected-color);
 
     /* Accordion headers */
     --theme-accordion-header-background: ButtonFace;

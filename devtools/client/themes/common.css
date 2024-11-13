@@ -745,6 +745,10 @@ iframe {
   transition: transform 250ms var(--animation-curve), opacity 250ms var(--animation-curve);
   opacity: 0;
   transform: scaleX(0);
+
+  :root[forced-colors-active] & {
+    display: none;
+  }
 }
 
 .devtools-tab:hover .devtools-tab-line,
