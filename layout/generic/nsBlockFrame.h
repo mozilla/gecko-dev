@@ -268,6 +268,11 @@ class nsBlockFrame : public nsContainerFrame {
 
   void CheckIntrinsicCacheAgainstShrinkWrapState();
 
+  nsRect ComputePaddingInflatedScrollableOverflow(
+      const nsRect& aInFlowChildBounds) const;
+  Maybe<nsRect> GetLineFrameInFlowBounds(const nsLineBox& aLine,
+                                         const nsIFrame& aLineChildFrame) const;
+
   template <typename LineIteratorType>
   Maybe<nscoord> GetBaselineBOffset(LineIteratorType aStart,
                                     LineIteratorType aEnd,
@@ -503,16 +508,7 @@ class nsBlockFrame : public nsContainerFrame {
    * children, and includes them into aOverflowAreas.
    */
   void ComputeOverflowAreas(mozilla::OverflowAreas& aOverflowAreas,
-                            nscoord aBEndEdgeOfChildren,
                             const nsStyleDisplay* aDisplay) const;
-
-  /**
-   * Helper method for ComputeOverflowAreas(). Incorporates aBEndEdgeOfChildren
-   * into the aOverflowAreas.
-   */
-  void ConsiderBlockEndEdgeOfChildren(mozilla::OverflowAreas& aOverflowAreas,
-                                      nscoord aBEndEdgeOfChildren,
-                                      const nsStyleDisplay* aDisplay) const;
 
   /**
    * Add the frames in aFrameList to this block after aPrevSibling.

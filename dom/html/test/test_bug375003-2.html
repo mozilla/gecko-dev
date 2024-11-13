@@ -18,7 +18,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=375003
         body {
             color:black; background-color:white; font-size:12px; padding:10px; margin:0;
         }
-	
+
         #div1,#abs1,#table1 {
           border: 20px solid lime;
           padding: 30px;
@@ -47,28 +47,38 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=375003
 
 <script type="text/javascript">
 var x = [ 'Left','Top','Width','Height' ];
-function test(id,s,expected) {
+function test(id,s,expected, fuzzy) {
   var el = document.getElementById(id);
   for(var i = 0; i < x.length; ++i) {
     // eslint-disable-next-line no-eval
     var actual = eval('el.'+s+x[i]);
-    if (expected[i] != -1 && s+x[i]!='scrollHeight')
-      is(actual, expected[i], id+"."+s+x[i]);
+    if (expected[i] != -1 && s+x[i]!='scrollHeight') {
+      let check = fuzzy ?
+        (actual, expected, desc) => isfuzzy(actual, expected, 1, desc) :
+        is;
+      check(actual, expected[i], id+"."+s+x[i]);
+    }
   }
 }
-function t3(id,c,o,s,pid) {
+function t3(id,c,o,s,pid,fuzzy) {
   test(id,'client',c);
   test(id,'offset',o);
-  test(id,'scroll',s);
-  var p = document.getElementById(id).offsetParent; 
+  test(id,'scroll',s,fuzzy);
+  var p = document.getElementById(id).offsetParent;
   is(p.id, pid, id+".offsetParent");
 }
 
 function run_test() {
+   // Due to how the document is rendered and then scaled to viewport,
+   // rounding errors are introduced that we need to account for.
+   // This is propagated to only tests that we observed failures attributed
+   // to the cause above, to prevent false negatives.
+   // TODO(dshin, Bug 1930223): Perhaps the test runner should handle this.
+   const fuzzy = navigator.appVersion.includes("Android");
    // XXX how test clientWidth/clientHeight (the -1 below) in cross-platform manner
    // without hard-coding the scrollbar width?
-   t3('div1',[20,20,-1,-1],[10,10,200,160],[0,0,230,20],'body');
-   t3('abs1',[20,20,-1,-1],[500,170,200,160],[0,0,230,20],'body');
+   t3('div1',[20,20,-1,-1],[10,10,200,160],[0,0,260,20],'body',fuzzy);
+   t3('abs1',[20,20,-1,-1],[500,170,200,160],[0,0,260,20],'body',fuzzy);
    t3('table1',[0,0,306,306],[10,170,306,306],[0,0,306,306],'body');
    t3('table2',[0,0,206,206],[0,0,206,206],[0,0,206,20],'table2parent');
    t3('table3',[0,0,228,228],[0,0,228,228],[0,0,228,228],'table3parent');

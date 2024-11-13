@@ -17,6 +17,7 @@
 #include "mozilla/Baseline.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ScrollContainerFrame.h"
@@ -59,6 +60,7 @@
 #include "mozilla/RestyleManager.h"
 #include "mozilla/ServoStyleSet.h"
 #include "nsFlexContainerFrame.h"
+#include "nsTextControlFrame.h"
 
 #include "nsBidiPresUtils.h"
 
@@ -260,6 +262,11 @@ static nscolor GetBackplateColor(nsIFrame* aFrame) {
   return NS_ComposeColors(backgroundColor, currentBackgroundColor);
 }
 
+static nsRect GetNormalMarginRect(nsIFrame* aFrame) {
+  auto rect = aFrame->GetMarginRectRelativeToSelf();
+  return rect + aFrame->GetNormalPosition();
+}
+
 #ifdef DEBUG
 #  include "nsBlockDebugFlags.h"
 
@@ -422,7 +429,6 @@ NS_DECLARE_FRAME_PROPERTY_FRAMELIST(FloatsProperty)
 NS_DECLARE_FRAME_PROPERTY_FRAMELIST(PushedFloatsProperty)
 NS_DECLARE_FRAME_PROPERTY_FRAMELIST(OutsideMarkerProperty)
 NS_DECLARE_FRAME_PROPERTY_WITHOUT_DTOR(InsideMarkerProperty, nsIFrame)
-NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(BlockEndEdgeOfChildrenProperty, nscoord)
 
 //----------------------------------------------------------------------
 
@@ -1699,9 +1705,7 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
   }
 
   aMetrics.SetOverflowAreasToDesiredBounds();
-  ComputeOverflowAreas(aMetrics.mOverflowAreas,
-                       trialState.mBlockEndEdgeOfChildren,
-                       aReflowInput.mStyleDisplay);
+  ComputeOverflowAreas(aMetrics.mOverflowAreas, aReflowInput.mStyleDisplay);
   // Factor overflow container child bounds into the overflow area
   aMetrics.mOverflowAreas.UnionWith(trialState.mOcBounds);
   // Factor pushed float child bounds into the overflow area
@@ -2382,13 +2386,6 @@ nscoord nsBlockFrame::ComputeFinalSize(const ReflowInput& aReflowInput,
 
   // Screen out negative block sizes --- can happen due to integer overflows :-(
   finalSize.BSize(wm) = std::max(0, finalSize.BSize(wm));
-
-  if (blockEndEdgeOfChildren != finalSize.BSize(wm) - borderPadding.BEnd(wm)) {
-    SetProperty(BlockEndEdgeOfChildrenProperty(), blockEndEdgeOfChildren);
-  } else {
-    RemoveProperty(BlockEndEdgeOfChildrenProperty());
-  }
-
   aMetrics.SetSize(wm, finalSize);
 
   return blockEndEdgeOfChildren;
@@ -2465,69 +2462,7 @@ void nsBlockFrame::AlignContent(BlockReflowState& aState,
   }
 }
 
-void nsBlockFrame::ConsiderBlockEndEdgeOfChildren(
-    OverflowAreas& aOverflowAreas, nscoord aBEndEdgeOfChildren,
-    const nsStyleDisplay* aDisplay) const {
-  const auto wm = GetWritingMode();
-
-  // Factor in the block-end edge of the children.  Child frames will be added
-  // to the overflow area as we iterate through the lines, but their margins
-  // won't, so we need to account for block-end margins here.
-  // REVIEW: For now, we do this for both visual and scrollable area,
-  // although when we make scrollable overflow area not be a subset of
-  // visual, we can change this.
-
-  if (Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
-    // If we are a scrolled inner frame, add our block-end padding to our
-    // children's block-end edge.
-    //
-    // Note: aBEndEdgeOfChildren already includes our own block-start padding
-    // because it is relative to our block-start edge of our border-box, which
-    // is the same as our padding-box here.
-    MOZ_ASSERT(GetLogicalUsedBorderAndPadding(wm) == GetLogicalUsedPadding(wm),
-               "A scrolled inner frame shouldn't have any border!");
-    aBEndEdgeOfChildren += GetLogicalUsedPadding(wm).BEnd(wm);
-  }
-
-  // XXX Currently, overflow areas are stored as physical rects, so we have
-  // to handle writing modes explicitly here. If we change overflow rects
-  // to be stored logically, this can be simplified again.
-  if (wm.IsVertical()) {
-    if (wm.IsVerticalLR()) {
-      for (const auto otype : AllOverflowTypes()) {
-        if (!(aDisplay->IsContainLayout() &&
-              otype == OverflowType::Scrollable)) {
-          // Layout containment should force all overflow to be ink (visual)
-          // overflow, so if we're layout-contained, we only add our children's
-          // block-end edge to the ink (visual) overflow -- not to the
-          // scrollable overflow.
-          nsRect& o = aOverflowAreas.Overflow(otype);
-          o.width = std::max(o.XMost(), aBEndEdgeOfChildren) - o.x;
-        }
-      }
-    } else {
-      for (const auto otype : AllOverflowTypes()) {
-        if (!(aDisplay->IsContainLayout() &&
-              otype == OverflowType::Scrollable)) {
-          nsRect& o = aOverflowAreas.Overflow(otype);
-          nscoord xmost = o.XMost();
-          o.x = std::min(o.x, xmost - aBEndEdgeOfChildren);
-          o.width = xmost - o.x;
-        }
-      }
-    }
-  } else {
-    for (const auto otype : AllOverflowTypes()) {
-      if (!(aDisplay->IsContainLayout() && otype == OverflowType::Scrollable)) {
-        nsRect& o = aOverflowAreas.Overflow(otype);
-        o.height = std::max(o.YMost(), aBEndEdgeOfChildren) - o.y;
-      }
-    }
-  }
-}
-
 void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
-                                        nscoord aBEndEdgeOfChildren,
                                         const nsStyleDisplay* aDisplay) const {
   // XXX_perf: This can be done incrementally.  It is currently one of
   // the things that makes incremental reflow O(N^2).
@@ -2540,21 +2475,56 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
   // We rely here on our caller having called SetOverflowAreasToDesiredBounds().
   nsRect frameBounds = aOverflowAreas.ScrollableOverflow();
 
+  const auto wm = GetWritingMode();
+  const auto borderPadding =
+      GetLogicalUsedBorderAndPadding(wm).GetPhysicalMargin(wm);
+  // Compute content-box by subtracting borderPadding off of frame rect.
+  // This gives us a reasonable starting-rect for the child-rect-unioning
+  // below, which we can then inflate by our padding (without needing to
+  // worry about having double-counted our padding or anything).
+  auto frameContentBounds = frameBounds;
+  frameContentBounds.Deflate(borderPadding);
+  // Margin rects (Zero-area rects included) of in-flow children (And floats,
+  // as discussed later) are unioned (starting with the scroller's own
+  // content-box), then inflated by the scroll container's padding...
+  auto inFlowChildBounds = frameContentBounds;
+  // ... While scrollable overflow rects contributed from further descendants
+  // (Regardless of if they're in-flow or out-of-flow) are unioned separately
+  // and their union does not get inflated by the scroll container's padding.
+  auto inFlowScrollableOverflow = frameContentBounds;
+
   for (const auto& line : Lines()) {
+    aOverflowAreas.InkOverflow() =
+        aOverflowAreas.InkOverflow().Union(line.InkOverflowRect());
     if (aDisplay->IsContainLayout()) {
       // If we have layout containment, we should only consider our child's
       // ink overflow, leaving the scrollable regions of the parent
       // unaffected.
-      // Note: scrollable overflow is a subset of ink overflow,
-      // so this has the same affect as unioning the child's visual and
-      // scrollable overflow with its parent's ink overflow.
-      nsRect childVisualRect = line.InkOverflowRect();
-      OverflowAreas childVisualArea = OverflowAreas(childVisualRect, nsRect());
-      aOverflowAreas.UnionWith(childVisualArea);
-    } else {
-      aOverflowAreas.UnionWith(line.GetOverflowAreas());
+      // Note: Any overflow must be treated as ink overflow (As per
+      // https://drafts.csswg.org/css-contain/#containment-layout part 3).
+      // However, by unioning the children's ink overflow, we've already
+      // incorporated its scrollable overflow, since scrollable overflow
+      // is a subset of ink overflow.
+      continue;
     }
+
+    auto lineInFlowChildBounds = line.GetInFlowChildBounds();
+    if (lineInFlowChildBounds) {
+      inFlowChildBounds = inFlowChildBounds.UnionEdges(*lineInFlowChildBounds);
+    }
+    inFlowScrollableOverflow =
+        inFlowScrollableOverflow.Union(line.ScrollableOverflowRect());
   }
+
+  if (Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
+    // Padding inflation only applies to scrolled containers.
+    const auto paddingInflatedOverflow =
+        ComputePaddingInflatedScrollableOverflow(inFlowChildBounds);
+    aOverflowAreas.UnionAllWith(paddingInflatedOverflow);
+  }
+  // Note: we're using UnionAllWith so as to maintain the invariant of
+  // ink overflow being a superset of scrollable overflow.
+  aOverflowAreas.UnionAllWith(inFlowScrollableOverflow);
 
   // Factor an outside ::marker in; normally the ::marker will be factored
   // into the line-box's overflow areas. However, if the line is a block
@@ -2564,8 +2534,6 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
   if (nsIFrame* outsideMarker = GetOutsideMarker()) {
     aOverflowAreas.UnionAllWith(outsideMarker->GetRect());
   }
-
-  ConsiderBlockEndEdgeOfChildren(aOverflowAreas, aBEndEdgeOfChildren, aDisplay);
 
   if (!overflowClipAxes.isEmpty()) {
     aOverflowAreas.ApplyClipping(frameBounds, overflowClipAxes,
@@ -2579,12 +2547,113 @@ void nsBlockFrame::ComputeOverflowAreas(OverflowAreas& aOverflowAreas,
 #endif
 }
 
+// Is this scrolled frame part of textarea?
+// This assumes that the passed-in frame is a scrolled frame.
+static bool IsScrolledFrameForTextArea(const nsIFrame* aFrame) {
+  MOZ_ASSERT(aFrame && aFrame->Style()->GetPseudoType() ==
+                           PseudoStyleType::scrolledContent,
+             "expecting a scrolled frame");
+  // If we're `textarea`, our grandparent element must be the text control
+  // element that we can query.
+  const auto* parent = aFrame->GetParent();
+  if (!parent) {
+    return false;
+  }
+  MOZ_ASSERT(parent->IsScrollContainerOrSubclass(), "Not a scrolled frame?");
+  // `textarea` is guaranteed to have one of these pseudoelements:
+  // ::placeholder, the ::-moz-text-control-editing-root and the preview.
+  if (!parent->Style()->IsPseudoElement()) {
+    return false;
+  }
+  const auto* grandParent = parent->GetParent();
+  if (!grandParent) {
+    return false;
+  }
+  const auto* textControlElement =
+      mozilla::TextControlElement::FromNodeOrNull(grandParent->GetContent());
+  if (!textControlElement) {
+    return false;
+  }
+  return textControlElement->IsTextArea();
+}
+
+nsRect nsBlockFrame::ComputePaddingInflatedScrollableOverflow(
+    const nsRect& aInFlowChildBounds) const {
+  MOZ_ASSERT(Style()->GetPseudoType() == PseudoStyleType::scrolledContent,
+             "Expected scrolled frame");
+  auto result = aInFlowChildBounds;
+  const auto wm = GetWritingMode();
+  auto padding = GetLogicalUsedPadding(wm);
+  MOZ_ASSERT(GetLogicalUsedBorderAndPadding(wm) == padding,
+             "A scrolled inner frame shouldn't have any border!");
+  // HACK(dshin): Reaching out and querying the type like this isn't ideal.
+  // However, we use `textarea` as a special case of a div, but based on
+  // web-platform-tests, different rules apply for it - namely, no inline
+  // padding inflation. See
+  // `textarea-padding-iend-overlaps-content-001.tentative.html`.
+  if (MOZ_UNLIKELY(IsScrolledFrameForTextArea(this))) {
+    padding.IStart(wm) = padding.IEnd(wm) = 0;
+  }
+  result.Inflate(padding.GetPhysicalMargin(wm));
+  return result;
+}
+
+Maybe<nsRect> nsBlockFrame::GetLineFrameInFlowBounds(
+    const nsLineBox& aLine, const nsIFrame& aLineChildFrame) const {
+  MOZ_ASSERT(aLineChildFrame.GetParent() == this,
+             "Line's frame doesn't belong to this block frame?");
+  if (aLineChildFrame.IsPlaceholderFrame()) {
+    return Nothing{};
+  }
+  if (aLine.IsInline()) {
+    return Some(aLineChildFrame.GetMarginRectRelativeToSelf() +
+                aLineChildFrame.GetNormalPosition());
+  }
+  const auto wm = GetWritingMode();
+  // Ensure we use the margin we actually carried out.
+  auto logicalMargin = aLineChildFrame.GetLogicalUsedMargin(wm);
+  logicalMargin.BEnd(wm) = aLine.GetCarriedOutBEndMargin().Get();
+
+  const auto linePoint = aLine.GetPhysicalBounds().TopLeft();
+  // Special handling is required for boxes of zero block size, which carry
+  // out margin collapsing with themselves. We end up "rewinding" the line
+  // position after carrying out the block start margin. This is not reflected
+  // in the zero-sized frame's own frame-position.
+  const auto normalPosition = aLineChildFrame.GetLogicalSize(wm).BSize(wm) == 0
+                                  ? linePoint
+                                  : aLineChildFrame.GetNormalPosition();
+  const auto margin = logicalMargin.GetPhysicalMargin(wm).ApplySkipSides(
+      aLineChildFrame.GetSkipSides());
+  auto rect = aLineChildFrame.GetRectRelativeToSelf();
+  rect.Inflate(margin);
+  return Some(rect + normalPosition);
+}
+
 void nsBlockFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
                                       bool aAsIfScrolled) {
   // We need to update the overflow areas of lines manually, as they
   // get cached and re-used otherwise. Lines aren't exposed as normal
   // frame children, so calling UnionChildOverflow alone will end up
   // using the old cached values.
+  const auto wm = GetWritingMode();
+  const auto borderPadding =
+      GetLogicalUsedBorderAndPadding(wm).GetPhysicalMargin(wm);
+  // Overflow area computed here should agree with one computed in
+  // `ComputeOverflowAreas` (See bug 1800939 and bug 1800719). So the
+  // documentation in that function applies here as well.
+  const bool isScrolled =
+      Style()->GetPseudoType() == PseudoStyleType::scrolledContent;
+
+  // Relying on aOverflowAreas having been set to frame border rect.
+  auto frameContentBounds = aOverflowAreas.ScrollableOverflow();
+  frameContentBounds.Deflate(borderPadding);
+  // We need to take in-flow children's margin rect into account, and inflate
+  // it by the padding.
+  auto inFlowChildBounds = frameContentBounds;
+  auto inFlowScrollableOverflow = frameContentBounds;
+
+  const auto inkOverflowOnly = StyleDisplay()->IsContainLayout();
+
   for (auto& line : Lines()) {
     nsRect bounds = line.GetPhysicalBounds();
     OverflowAreas lineAreas(bounds, bounds);
@@ -2592,19 +2661,45 @@ void nsBlockFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
     int32_t n = line.GetChildCount();
     for (nsIFrame* lineFrame = line.mFirstChild; n > 0;
          lineFrame = lineFrame->GetNextSibling(), --n) {
+      // Ensure this is called for each frame in the line
       ConsiderChildOverflow(lineAreas, lineFrame);
+
+      if (inkOverflowOnly || !isScrolled) {
+        continue;
+      }
+
+      if (auto lineFrameBounds = GetLineFrameInFlowBounds(line, *lineFrame)) {
+        inFlowChildBounds = inFlowChildBounds.UnionEdges(*lineFrameBounds);
+      }
     }
 
     // Consider the overflow areas of the floats attached to the line as well
     if (line.HasFloats()) {
       for (nsIFrame* f : line.Floats()) {
         ConsiderChildOverflow(lineAreas, f);
+        if (inkOverflowOnly || !isScrolled) {
+          continue;
+        }
+        inFlowChildBounds =
+            inFlowChildBounds.UnionEdges(GetNormalMarginRect(f));
       }
     }
 
     line.SetOverflowAreas(lineAreas);
-    aOverflowAreas.UnionWith(lineAreas);
+    aOverflowAreas.InkOverflow() =
+        aOverflowAreas.InkOverflow().Union(lineAreas.InkOverflow());
+    if (!inkOverflowOnly) {
+      inFlowScrollableOverflow =
+          inFlowScrollableOverflow.Union(lineAreas.ScrollableOverflow());
+    }
   }
+
+  if (isScrolled) {
+    const auto paddingInflatedOverflow =
+        ComputePaddingInflatedScrollableOverflow(inFlowChildBounds);
+    aOverflowAreas.UnionAllWith(paddingInflatedOverflow);
+  }
+  aOverflowAreas.UnionAllWith(inFlowScrollableOverflow);
 
   // Union with child frames, skipping the principal and float lists
   // since we already handled those using the line boxes.
@@ -2614,14 +2709,6 @@ void nsBlockFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas,
 }
 
 bool nsBlockFrame::ComputeCustomOverflow(OverflowAreas& aOverflowAreas) {
-  bool found;
-  nscoord blockEndEdgeOfChildren =
-      GetProperty(BlockEndEdgeOfChildrenProperty(), &found);
-  if (found) {
-    ConsiderBlockEndEdgeOfChildren(aOverflowAreas, blockEndEdgeOfChildren,
-                                   StyleDisplay());
-  }
-
   // Line cursor invariants depend on the overflow areas of the lines, so
   // we must clear the line cursor since those areas may have changed.
   ClearLineCursors();
@@ -4573,6 +4660,15 @@ void nsBlockFrame::ReflowBlockFrame(BlockReflowState& aState,
         }
       }
 
+      if (Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
+        auto lineFrameBounds = GetLineFrameInFlowBounds(*aLine, *frame);
+        MOZ_ASSERT(aLine->GetChildCount() == 1,
+                   "More than one child in block line?");
+        // Inline-line (i.e. Multiple frames in one line) handled in one of
+        // other callsites.
+        aLine->SetInFlowChildBounds(lineFrameBounds);
+      }
+
       aLine->SetOverflowAreas(overflowAreas);
       if (*aKeepReflowGoing) {
         // Some of the child block fit
@@ -5555,6 +5651,23 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
   // might have moved frames around!
   OverflowAreas overflowAreas;
   aLineLayout.RelativePositionFrames(overflowAreas);
+  if (Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
+    Maybe<nsRect> inFlowBounds;
+    int32_t n = aLine->GetChildCount();
+    for (nsIFrame* lineFrame = aLine->mFirstChild; n > 0;
+         lineFrame = lineFrame->GetNextSibling(), --n) {
+      auto lineFrameBounds = GetLineFrameInFlowBounds(*aLine, *lineFrame);
+      if (!lineFrameBounds) {
+        continue;
+      }
+      if (inFlowBounds) {
+        *inFlowBounds = inFlowBounds->UnionEdges(*lineFrameBounds);
+      } else {
+        inFlowBounds = Some(*lineFrameBounds);
+      }
+    }
+    aLine->SetInFlowChildBounds(inFlowBounds);
+  }
   aLine->SetOverflowAreas(overflowAreas);
   if (addedMarker) {
     aLineLayout.RemoveMarkerFrame(GetOutsideMarker());
@@ -5631,6 +5744,18 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
     OverflowAreas lineOverflowAreas = aState.mFloatOverflowAreas;
     lineOverflowAreas.UnionWith(aLine->GetOverflowAreas());
     aLine->SetOverflowAreas(lineOverflowAreas);
+    if (Style()->GetPseudoType() == PseudoStyleType::scrolledContent) {
+      auto itr = aLine->Floats().begin();
+      // Guaranteed to have at least 1 element since `HasFloats()` is true.
+      auto floatRect = GetNormalMarginRect(*itr);
+      ++itr;
+      for (; itr != aLine->Floats().end(); ++itr) {
+        floatRect = floatRect.UnionEdges(GetNormalMarginRect(*itr));
+      }
+      auto inFlowBounds = aLine->GetInFlowChildBounds();
+      aLine->SetInFlowChildBounds(
+          Some(inFlowBounds ? inFlowBounds->UnionEdges(floatRect) : floatRect));
+    }
 
 #ifdef NOISY_OVERFLOW_AREAS
     printf("%s: Line %p, InkOverflowRect=%s, ScrollableOverflowRect=%s\n",

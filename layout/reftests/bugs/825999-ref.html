@@ -29,6 +29,18 @@
                 vertical-align:top;
                 background:lime;
                 width:36px;
+                position: relative;
+            }
+            x > span ~ div {
+                /* See the test file - we sized the span to ensure that <span>
+                   fits within <x>'s content box, so we need to occlude the
+                   part visible in the padding area. */
+                position: absolute;
+                right: 0px;
+                top: 0px;
+                width: 1px;
+                height: 100%;
+                background: lime;
             }
             .bb * {
                 box-sizing: border-box;
@@ -66,7 +78,7 @@
       </div>
       <div class="cb">
         <p>testing</p>
-        <x><span>testing</span></x>
+        <x><span>testing</span><div class="padding-inflation"></div></x>
         <button>testing</button>
         <select size=1><option>testing</select>
         <select size=3><option>testing<option>testing<option>testing</select>

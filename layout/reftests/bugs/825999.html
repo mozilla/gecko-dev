@@ -30,6 +30,12 @@
                 background:lime;
                 width:36px;
             }
+            x > span {
+                /* As of bug 1768921, <x>'s padding on right contributes to the
+                   scroller, so pull back on <span>'s right side padding by that
+                   of <x>'s. */
+                padding-right: 16px;
+            }
             .bb * {
                 box-sizing: border-box;
             }
