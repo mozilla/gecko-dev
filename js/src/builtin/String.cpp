@@ -2369,7 +2369,7 @@ bool js::str_includes(JSContext* cx, unsigned argc, Value* vp) {
       if (!ToInteger(cx, args[1], &d)) {
         return false;
       }
-      pos = uint32_t(std::min(std::max(d, 0.0), double(UINT32_MAX)));
+      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
     }
   }
 
@@ -2433,7 +2433,7 @@ bool js::str_indexOf(JSContext* cx, unsigned argc, Value* vp) {
       if (!ToInteger(cx, args[1], &d)) {
         return false;
       }
-      pos = uint32_t(std::min(std::max(d, 0.0), double(UINT32_MAX)));
+      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
     }
   }
 
@@ -2686,7 +2686,7 @@ bool js::str_startsWith(JSContext* cx, unsigned argc, Value* vp) {
       if (!ToInteger(cx, args[1], &d)) {
         return false;
       }
-      pos = uint32_t(std::min(std::max(d, 0.0), double(UINT32_MAX)));
+      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
     }
   }
 
@@ -2773,7 +2773,7 @@ bool js::str_endsWith(JSContext* cx, unsigned argc, Value* vp) {
       if (!ToInteger(cx, args[1], &d)) {
         return false;
       }
-      pos = uint32_t(std::min(std::max(d, 0.0), double(UINT32_MAX)));
+      pos = uint32_t(std::clamp(d, 0.0, double(UINT32_MAX)));
     }
   }
 

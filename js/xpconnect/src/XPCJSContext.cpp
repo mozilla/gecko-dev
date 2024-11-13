@@ -1257,9 +1257,8 @@ nsresult XPCJSContext::Initialize() {
   struct rlimit rlim;
   const size_t kUncappedStackQuota =
       getrlimit(RLIMIT_STACK, &rlim) == 0
-          ? std::max(std::min(size_t(rlim.rlim_cur - kStackSafeMargin),
-                              kStackQuotaMax - kStackSafeMargin),
-                     kStackQuotaMin)
+          ? std::clamp(size_t(rlim.rlim_cur - kStackSafeMargin), kStackQuotaMin,
+                       kStackQuotaMax - kStackSafeMargin)
           : kStackQuotaMin;
 #  if defined(MOZ_ASAN)
   // See the standalone MOZ_ASAN branch below for the ASan case.

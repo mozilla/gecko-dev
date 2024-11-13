@@ -55,10 +55,7 @@ class LazyTieringHeuristics {
   // Don't use this directly, except for logging etc.
   static uint32_t rawLevel() {
     uint32_t level = JS::Prefs::wasm_lazy_tiering_level();
-    // Clamp to range MIN_LEVEL .. MAX_LEVEL.
-    level = std::max<uint32_t>(level, MIN_LEVEL);
-    level = std::min<uint32_t>(level, MAX_LEVEL);
-    return level;
+    return std::clamp(level, MIN_LEVEL, MAX_LEVEL);
   }
 
   // Estimate the cost of compiling a function of bytecode size `bodyLength`
@@ -88,9 +85,8 @@ class LazyTieringHeuristics {
       thresholdF *= scale_[level - (MIN_LEVEL + 1)];
 
       // Clamp and convert.
-      thresholdF = std::max<float>(thresholdF, 10.0);   // at least 10
-      thresholdF = std::min<float>(thresholdF, 2.0e9);  // at most 2 billion
-      int32_t thresholdI = int32_t(thresholdF);
+      constexpr float thresholdHigh = 2.0e9f;  // at most 2 billion;
+      int32_t thresholdI = int32_t(std::clamp(thresholdF, 10.f, thresholdHigh));
       MOZ_RELEASE_ASSERT(thresholdI >= 0);
       return thresholdI;
     }
@@ -119,10 +115,7 @@ class InliningHeuristics {
   // Don't use these directly, except for logging etc.
   static uint32_t rawLevel() {
     uint32_t level = JS::Prefs::wasm_inlining_level();
-    // Clamp to range MIN_LEVEL .. MAX_LEVEL.
-    level = std::max<uint32_t>(level, MIN_LEVEL);
-    level = std::min<uint32_t>(level, MAX_LEVEL);
-    return level;
+    return std::clamp(level, MIN_LEVEL, MAX_LEVEL);
   }
   static bool rawDirectAllowed() { return JS::Prefs::wasm_direct_inlining(); }
   static bool rawCallRefAllowed() {
@@ -134,9 +127,7 @@ class InliningHeuristics {
   static uint32_t rawCallRefPercent() {
     uint32_t percent = JS::Prefs::wasm_call_ref_inlining_percent();
     // Clamp to range 10 .. 100 (%).
-    percent = std::max<uint32_t>(10, percent);
-    percent = std::min<uint32_t>(100, percent);
-    return percent;
+    return std::clamp(percent, 10u, 100u);
   }
 
   // Given a call of kind `callKind` to a function of bytecode size

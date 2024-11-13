@@ -2163,8 +2163,8 @@ void js::Nursery::maybeResizeNursery(JS::GCOptions options,
 
   decommitTask->join();
 
-  size_t newCapacity = mozilla::Clamp(targetSize(options, reason),
-                                      minSpaceSize(), maxSpaceSize());
+  size_t newCapacity =
+      std::clamp(targetSize(options, reason), minSpaceSize(), maxSpaceSize());
 
   MOZ_ASSERT(roundSize(newCapacity) == newCapacity);
   MOZ_ASSERT(newCapacity >= SystemPageSize());

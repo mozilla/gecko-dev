@@ -3036,8 +3036,8 @@ static bool GetActualDeleteCount(JSContext* cx, const CallArgs& args,
 
     // Step 10.b. Let actualDeleteCount be the result of clamping dc between 0
     // and len - actualStart.
-    *actualDeleteCount = uint64_t(
-        std::min(std::max(0.0, deleteCount), double(len - actualStart)));
+    *actualDeleteCount =
+        uint64_t(std::clamp(deleteCount, 0.0, double(len - actualStart)));
     MOZ_ASSERT(*actualDeleteCount <= len);
 
     // Step 11. Let newLen be len + insertCount - actualDeleteCount.

@@ -1213,10 +1213,10 @@ Range* Range::sign(TempAllocator& alloc, const Range* op) {
     return nullptr;
   }
 
-  return new (alloc) Range(std::max(std::min(op->lower_, 1), -1),
-                           std::max(std::min(op->upper_, 1), -1),
-                           Range::ExcludesFractionalParts,
-                           NegativeZeroFlag(op->canBeNegativeZero()), 0);
+  return new (alloc)
+      Range(std::clamp(op->lower_, -1, 1), std::clamp(op->upper_, -1, 1),
+            Range::ExcludesFractionalParts,
+            NegativeZeroFlag(op->canBeNegativeZero()), 0);
 }
 
 Range* Range::NaNToZero(TempAllocator& alloc, const Range* op) {
