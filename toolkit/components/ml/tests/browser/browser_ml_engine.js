@@ -1058,3 +1058,36 @@ add_task(async function test_ml_engine_model_hub_applied() {
     "modelHubUrlTemplate is set"
   );
 });
+
+add_task(async function test_ml_engine_blessed_model() {
+  const { cleanup, remoteClients } = await setup();
+
+  const options = { taskName: "test-echo" };
+  const engineInstance = await createEngine(options);
+
+  info("Check the inference process is running");
+  Assert.equal(await checkForRemoteType("inference"), true);
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  const res = await inferencePromise;
+
+  Assert.equal(
+    res.config.modelId,
+    "test-echo",
+    "The blessed model was picked."
+  );
+
+  ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+
+  await cleanup();
+});
