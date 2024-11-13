@@ -15,7 +15,7 @@ use crate::{
     values::{
         animated::ToAnimatedValue,
         generics::calc::{CalcUnits, GenericCalcNode},
-        specified::calc::Leaf,
+        specified::calc::{AllowParse, Leaf},
     },
 };
 use cssparser::{color::OPAQUE, Parser, Token};
@@ -85,12 +85,12 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
             },
             Token::Function(ref name) => {
                 let function = GenericCalcNode::math_function(context, name, location)?;
-                let units = if rcs_enabled() {
+                let allow = AllowParse::new(if rcs_enabled() {
                     ValueType::units() | CalcUnits::COLOR_COMPONENT
                 } else {
                     ValueType::units()
-                };
-                let mut node = GenericCalcNode::parse(context, input, function, units)?;
+                });
+                let mut node = GenericCalcNode::parse(context, input, function, allow)?;
 
                 // TODO(tlouw): We only have to simplify the node when we have to store it, but we
                 //              only know if we have to store it much later when the whole color
