@@ -60,8 +60,8 @@ The ellipsis menu on the right-hand side of Developer Tools contains several com
     :class: center
 
 
-Page Inspector
---------------
+`Page Inspector <page_inspector>`__
+-----------------------------------
 
 .. image:: landingpage_pageinspector.png
     :class: border
@@ -71,8 +71,8 @@ Page Inspector
 View and edit page content and layout. Visualize many aspects of the page including the box model, animations, and grid layouts
 
 
-Web Console
------------
+`Web Console <web_console>`__
+-----------------------------
 
 .. image:: landingpage_console.png
     :class: border
@@ -82,8 +82,8 @@ Web Console
 See messages logged by a web page and interact with the page using JavaScript.
 
 
-JavaScript Debugger
--------------------
+`JavaScript Debugger <debugger>`__
+----------------------------------
 
 .. image:: landingpage_debugger.png
     :class: border
@@ -93,8 +93,8 @@ JavaScript Debugger
 Stop, step through, and examine the JavaScript running on a page.
 
 
-Network Monitor
----------------
+`Network Monitor <network_monitor>`__
+-------------------------------------
 
 .. image:: landingpage_network.png
     :class: border
@@ -105,8 +105,8 @@ Network Monitor
 See the network requests made when a page is loaded.
 
 
-Performance Panel
------------------
+`Performance Panel <https://profiler.firefox.com/docs/>`__
+----------------------------------------------------------
 
 .. image:: landingpage_performance_2022.png
     :class: border
@@ -116,8 +116,8 @@ Performance Panel
 Analyze your site's general responsiveness, JavaScript, and layout performance.
 
 
-Responsive Design Mode
-----------------------
+`Responsive Design Mode <responsive_design_mode>`__
+---------------------------------------------------
 
 .. image:: landingpage_responsivedesign.png
     :class: border
@@ -127,8 +127,8 @@ Responsive Design Mode
 See how your website or app will look and behave on different devices and network types.
 
 
-Accessibility inspector
------------------------
+`Accessibility inspector <accessibility_inspector>`__
+-----------------------------------------------------
 
 .. image:: landingpage_accessibility.png
     :class: border
@@ -138,8 +138,8 @@ Accessibility inspector
 Provides a means to access the page's accessibility tree, allowing you to check what's missing or otherwise needs attention.
 
 
-Application panel
------------------
+`Application panel <application>`__
+-----------------------------------
 
 .. image:: just-application-panel.png
     :class: border
