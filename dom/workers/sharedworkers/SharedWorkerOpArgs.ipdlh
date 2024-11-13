@@ -1,0 +1,52 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include DOMTypes;
+
+namespace mozilla {
+namespace dom {
+
+struct SharedWorkerSuspendOpArgs
+{};
+
+struct SharedWorkerResumeOpArgs
+{};
+
+struct SharedWorkerFreezeOpArgs
+{};
+
+struct SharedWorkerThawOpArgs
+{};
+
+struct SharedWorkerTerminateOpArgs
+{};
+
+struct SharedWorkerPortIdentifierOpArgs
+{
+  MessagePortIdentifier portIdentifier;
+};
+
+struct SharedWorkerAddWindowIDOpArgs
+{
+  uint64_t windowID;
+};
+
+struct SharedWorkerRemoveWindowIDOpArgs
+{
+  uint64_t windowID;
+};
+
+union SharedWorkerOpArgs {
+  SharedWorkerSuspendOpArgs;
+  SharedWorkerResumeOpArgs;
+  SharedWorkerFreezeOpArgs;
+  SharedWorkerThawOpArgs;
+  SharedWorkerTerminateOpArgs;
+  SharedWorkerPortIdentifierOpArgs;
+  SharedWorkerAddWindowIDOpArgs;
+  SharedWorkerRemoveWindowIDOpArgs;
+};
+
+} // namespace dom
+} // namespace mozilla

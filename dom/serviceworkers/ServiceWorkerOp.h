@@ -20,14 +20,17 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/RemoteWorkerChild.h"
+#include "mozilla/dom/RemoteWorkerOp.h"
 #include "mozilla/dom/ServiceWorkerOpArgs.h"
 #include "mozilla/dom/WorkerRunnable.h"
 
 namespace mozilla::dom {
 
+using remoteworker::RemoteWorkerState;
+
 class FetchEventOpProxyChild;
 
-class ServiceWorkerOp : public RemoteWorkerChild::Op {
+class ServiceWorkerOp : public RemoteWorkerOp {
  public:
   // `aCallback` will be called when the operation completes or is canceled.
   static already_AddRefed<ServiceWorkerOp> Create(
@@ -47,8 +50,7 @@ class ServiceWorkerOp : public RemoteWorkerChild::Op {
   ServiceWorkerOp& operator=(ServiceWorkerOp&&) = default;
 
   // Returns `true` if the operation has started and `false` otherwise.
-  bool MaybeStart(RemoteWorkerChild* aOwner,
-                  RemoteWorkerChild::State& aState) final;
+  bool MaybeStart(RemoteWorkerChild* aOwner, RemoteWorkerState& aState) final;
 
   void StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) final;
 
