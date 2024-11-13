@@ -3147,8 +3147,13 @@ static bool ReadLine(JSContext* cx, unsigned argc, Value* vp) {
   size_t bufsize = BUFSIZE;
   char* buf = (char*)JS_malloc(cx, bufsize);
   if (!buf) {
+    JS_ReportOutOfMemory(cx);
     return false;
   }
+  auto freeBuf = mozilla::MakeScopeExit([&]() {
+    JS_free(cx, buf);
+    buf = nullptr;
+  });
 
   bool sawNewline = false;
   size_t gotlength;
@@ -3166,38 +3171,24 @@ static bool ReadLine(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     /* Else, grow our buffer for another pass. */
-    char* tmp;
     bufsize *= 2;
-    if (bufsize > buflength) {
-      tmp = static_cast<char*>(JS_realloc(cx, buf, bufsize / 2, bufsize));
-    } else {
-      JS_ReportOutOfMemory(cx);
-      tmp = nullptr;
-    }
-
-    if (!tmp) {
-      JS_free(cx, buf);
+    if (bufsize <= buflength) {
+      JS_ReportAllocationOverflow(cx);
       return false;
     }
-
+    char* tmp = static_cast<char*>(JS_realloc(cx, buf, bufsize / 2, bufsize));
+    if (!tmp) {
+      JS_ReportOutOfMemory(cx);
+      return false;
+    }
     buf = tmp;
   }
 
   /* Treat the empty string specially. */
   if (buflength == 0) {
     args.rval().set(feof(from) ? NullValue() : JS_GetEmptyStringValue(cx));
-    JS_free(cx, buf);
     return true;
   }
-
-  /* Shrink the buffer to the real size. */
-  char* tmp = static_cast<char*>(JS_realloc(cx, buf, bufsize, buflength));
-  if (!tmp) {
-    JS_free(cx, buf);
-    return false;
-  }
-
-  buf = tmp;
 
   /*
    * Turn buf into a JSString. Note that buflength includes the trailing null
@@ -3205,7 +3196,6 @@ static bool ReadLine(JSContext* cx, unsigned argc, Value* vp) {
    */
   JSString* str =
       JS_NewStringCopyN(cx, buf, sawNewline ? buflength - 1 : buflength);
-  JS_free(cx, buf);
   if (!str) {
     return false;
   }
