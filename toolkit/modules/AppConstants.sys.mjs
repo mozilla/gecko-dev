@@ -19,13 +19,6 @@ export var AppConstants = Object.freeze({
   false,
 #endif
 
-  ENABLE_EXPLICIT_RESOURCE_MANAGEMENT:
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  true,
-#else
-  false,
-#endif
-
   RELEASE_OR_BETA:
 #ifdef RELEASE_OR_BETA
   true,
