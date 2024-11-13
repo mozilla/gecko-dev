@@ -11,18 +11,25 @@ using mozilla::ipc::IPCResult;
 
 namespace mozilla::dom {
 
+class RemoteWorkerController;
+
 class RemoteWorkerNonLifeCycleOpControllerParent final
     : public PRemoteWorkerNonLifeCycleOpControllerParent {
  public:
   NS_INLINE_DECL_REFCOUNTING(RemoteWorkerNonLifeCycleOpControllerParent,
                              override);
 
-  RemoteWorkerNonLifeCycleOpControllerParent();
+  explicit RemoteWorkerNonLifeCycleOpControllerParent(
+      RemoteWorkerController* aRemoteWorkerController);
 
   IPCResult RecvTerminated();
 
+  IPCResult RecvError(const ErrorValue& aError);
+
  private:
   ~RemoteWorkerNonLifeCycleOpControllerParent();
+
+  RefPtr<RemoteWorkerController> mController;
 };
 
 }  // namespace mozilla::dom

@@ -3389,9 +3389,8 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
   if (mChildEp.IsValid()) {
     mRemoteWorkerNonLifeCycleOpController =
         RemoteWorkerNonLifeCycleOpControllerChild::Create();
-    if (mRemoteWorkerNonLifeCycleOpController) {
-      mChildEp.Bind(mRemoteWorkerNonLifeCycleOpController);
-    }
+    MOZ_ASSERT_DEBUG_OR_FUZZING(mRemoteWorkerNonLifeCycleOpController);
+    mChildEp.Bind(mRemoteWorkerNonLifeCycleOpController);
   }
 
   // Now that we've done that, we can go ahead and set up our AutoJSAPI.  We
@@ -5341,6 +5340,7 @@ bool WorkerPrivate::NotifyInternal(WorkerStatus aStatus) {
 
   if (aStatus == Killing && mRemoteWorkerNonLifeCycleOpController) {
     mRemoteWorkerNonLifeCycleOpController->TransistionStateToKilled();
+    mRemoteWorkerNonLifeCycleOpController = nullptr;
   }
 
   // If the worker script never ran, or failed to compile, we don't need to do

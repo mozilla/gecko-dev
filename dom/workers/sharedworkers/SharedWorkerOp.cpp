@@ -5,6 +5,7 @@
 #include "SharedWorkerOp.h"
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/RemoteWorkerChild.h"
+#include "mozilla/dom/RemoteWorkerNonLifeCycleOpControllerChild.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/dom/WorkerScope.h"
@@ -13,15 +14,18 @@ namespace mozilla::dom {
 
 using remoteworker::Canceled;
 using remoteworker::Killed;
+using remoteworker::Pending;
+using remoteworker::Running;
 
 namespace {
 
 // Normal runnable because AddPortIdentifier() is going to exec JS code.
-class MessagePortIdentifierRunnable final : public WorkerThreadRunnable {
+class MessagePortIdentifierRunnable final : public WorkerSameThreadRunnable {
  public:
-  MessagePortIdentifierRunnable(RemoteWorkerChild* aActor,
-                                const MessagePortIdentifier& aPortIdentifier)
-      : WorkerThreadRunnable("MessagePortIdentifierRunnable"),
+  MessagePortIdentifierRunnable(
+      RemoteWorkerNonLifeCycleOpControllerChild* aActor,
+      const MessagePortIdentifier& aPortIdentifier)
+      : WorkerSameThreadRunnable("MessagePortIdentifierRunnable"),
         mActor(aActor),
         mPortIdentifier(aPortIdentifier) {}
 
@@ -31,11 +35,13 @@ class MessagePortIdentifierRunnable final : public WorkerThreadRunnable {
       mPortIdentifier.ForceClose();
       return true;
     }
-    mActor->AddPortIdentifier(aCx, aWorkerPrivate, mPortIdentifier);
+    if (!aWorkerPrivate->ConnectMessagePort(aCx, mPortIdentifier)) {
+      mActor->ErrorPropagation(NS_ERROR_FAILURE);
+    }
     return true;
   }
 
-  RefPtr<RemoteWorkerChild> mActor;
+  RefPtr<RemoteWorkerNonLifeCycleOpControllerChild> mActor;
   UniqueMessagePortId mPortIdentifier;
 };
 
@@ -71,11 +77,6 @@ bool SharedWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
 #ifdef DEBUG
     mStarted = true;
 #endif
-    if (mOpArgs.type() ==
-        SharedWorkerOpArgs::TSharedWorkerPortIdentifierOpArgs) {
-      MessagePort::ForceClose(
-          mOpArgs.get_SharedWorkerPortIdentifierOpArgs().portIdentifier());
-    }
     return true;
   }
 
@@ -91,13 +92,6 @@ bool SharedWorkerOp::MaybeStart(RemoteWorkerChild* aOwner,
 
           if (NS_WARN_IF(lock->is<Canceled>() || lock->is<Killed>())) {
             self->Cancel();
-            // Worker has already canceled, force close the MessagePort.
-            if (self->mOpArgs.type() ==
-                SharedWorkerOpArgs::TSharedWorkerPortIdentifierOpArgs) {
-              MessagePort::ForceClose(
-                  self->mOpArgs.get_SharedWorkerPortIdentifierOpArgs()
-                      .portIdentifier());
-            }
             return;
           }
         }
@@ -143,12 +137,9 @@ void SharedWorkerOp::StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) {
     workerPrivate->Thaw(nullptr);
   } else if (mOpArgs.type() ==
              SharedWorkerOpArgs::TSharedWorkerPortIdentifierOpArgs) {
-    RefPtr<MessagePortIdentifierRunnable> r = new MessagePortIdentifierRunnable(
-        aOwner,
-        mOpArgs.get_SharedWorkerPortIdentifierOpArgs().portIdentifier());
-    if (NS_WARN_IF(!r->Dispatch(workerPrivate))) {
-      aOwner->ErrorPropagationDispatch(NS_ERROR_FAILURE);
-    }
+    MOZ_CRASH(
+        "PortIdentifierOpArgs should not be processed by "
+        "StartOnMainThread!!!");
   } else if (mOpArgs.type() ==
              SharedWorkerOpArgs::TSharedWorkerAddWindowIDOpArgs) {
     aOwner->mWindowIDs.AppendElement(
@@ -160,6 +151,48 @@ void SharedWorkerOp::StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) {
   } else {
     MOZ_CRASH("Unknown SharedWorkerOpArgs type!");
   }
+}
+
+void SharedWorkerOp::Start(RemoteWorkerNonLifeCycleOpControllerChild* aOwner,
+                           RemoteWorkerState& aState) {
+  MOZ_ASSERT(!mStarted);
+  MOZ_ASSERT(aOwner);
+  // Thread: We are on the Worker thread.
+
+  // Only PortIdentifierOp is NonLifeCycle related opertaion.
+  MOZ_ASSERT(mOpArgs.type() ==
+             SharedWorkerOpArgs::TSharedWorkerPortIdentifierOpArgs);
+
+  // Should never be Pending state.
+  MOZ_ASSERT(!aState.is<Pending>());
+
+  // If the worker is already shutting down (which should be unexpected
+  // because we should be told new operations after a termination op), just
+  // return directly.
+  if (aState.is<Canceled>() || aState.is<Killed>()) {
+#ifdef DEBUG
+    mStarted = true;
+#endif
+    MessagePort::ForceClose(
+        mOpArgs.get_SharedWorkerPortIdentifierOpArgs().portIdentifier());
+    return;
+  }
+
+  MOZ_ASSERT(aState.is<Running>());
+
+  // RefPtr<WorkerPrivate> workerPrivate = aState.as<Running>().mWorkerPrivate;
+  WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+
+  RefPtr<MessagePortIdentifierRunnable> r = new MessagePortIdentifierRunnable(
+      aOwner, mOpArgs.get_SharedWorkerPortIdentifierOpArgs().portIdentifier());
+
+  if (NS_WARN_IF(!r->Dispatch(workerPrivate))) {
+    aOwner->ErrorPropagation(NS_ERROR_FAILURE);
+  }
+
+#ifdef DEBUG
+  mStarted = true;
+#endif
 }
 
 bool SharedWorkerOp::IsTerminationOp() const {
