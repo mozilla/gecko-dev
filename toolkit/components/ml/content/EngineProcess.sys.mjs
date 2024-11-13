@@ -16,6 +16,9 @@ ChromeUtils.defineESModuleGetters(
  * @typedef {import("../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
  */
 
+// Default engine id value
+export const DEFAULT_ENGINE_ID = "default-engine";
+
 /**
  * Lists Firefox internal features
  */
@@ -164,7 +167,7 @@ export class PipelineOptions {
    *
    * @type {?string}
    */
-  engineId = "default-engine";
+  engineId = DEFAULT_ENGINE_ID;
 
   /**
    * The name of the feature to be used by the pipeline.

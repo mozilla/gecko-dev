@@ -16,6 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
   URLChecker: "chrome://global/content/ml/Utils.sys.mjs",
+  DEFAULT_ENGINE_ID: "chrome://global/content/ml/EngineProcess.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -34,7 +35,7 @@ const ALLOWED_HEADERS_KEYS = [
 ];
 
 // Default indexedDB revision.
-const DEFAULT_MODEL_REVISION = 2;
+const DEFAULT_MODEL_REVISION = 3;
 
 // The origin to use for storage. If null uses system.
 const DEFAULT_PRINCIPAL_ORIGIN = null;
@@ -123,6 +124,13 @@ export class IndexedDBCache {
   taskStoreName;
 
   /**
+   * Name of the object store for storing (model, file, revision, engineIds)
+   *
+   * @type {string}
+   */
+  enginesStoreName;
+
+  /**
    * Name and KeyPath for indices to be created on object stores.
    *
    * @type {object}
@@ -167,6 +175,7 @@ export class IndexedDBCache {
     this.fileStoreName = "files";
     this.headersStoreName = "headers";
     this.taskStoreName = "tasks";
+    this.enginesStoreName = "engines";
     this.#maxSize = maxSize;
   }
 
@@ -207,13 +216,18 @@ export class IndexedDBCache {
 
   #migrateStore(db, oldVersion) {
     const newVersion = db.version;
-    // Delete all existing data when migrating from 1 to 2
-    if (oldVersion == 1 && newVersion == 2) {
-      // Version 1 may contains task depe
+
+    // Delete all existing data when migrating for now
+    if (oldVersion < newVersion) {
+      lazy.console.debug(
+        `Migrating from version ${oldVersion} to ${newVersion}`
+      );
+
       for (const name of [
         this.fileStoreName,
         this.headersStoreName,
         this.taskStoreName,
+        this.enginesStoreName,
       ]) {
         if (db.objectStoreNames.contains(name)) {
           db.deleteObjectStore(name);
@@ -339,6 +353,20 @@ export class IndexedDBCache {
             keyPath: ["taskName", "model", "revision", "file"],
           });
         }
+
+        if (!db.objectStoreNames.contains(this.enginesStoreName)) {
+          db.createObjectStore(this.enginesStoreName, {
+            keyPath: ["model", "revision", "file"],
+          });
+        }
+        const enginesStore = request.transaction.objectStore(
+          this.enginesStoreName
+        );
+        this.#createOrMigrateIndices({
+          store: enginesStore,
+          name: this.#indices.modelRevisionIndex.name,
+          keyPath: this.#indices.modelRevisionIndex.keyPath,
+        });
 
         const taskStore = request.transaction.objectStore(this.taskStoreName);
         for (const { name, keyPath } of Object.values(this.#indices)) {
@@ -563,34 +591,83 @@ export class IndexedDBCache {
    * Retrieves the file for a specific cache entry.
    *
    * @param {object} config
+   * @param {string} config.engineId - The engine Id. Defaults to "default-engine"
    * @param {string} config.model - The model name (organization/name)
    * @param {string} config.revision - The model revision.
    * @param {string} config.file - The file name.
    * @returns {Promise<[ArrayBuffer, object]|null>} The file ArrayBuffer and its headers or null if not found.
    */
-  async getFile({ model, revision, file }) {
+  async getFile({ engineId = lazy.DEFAULT_ENGINE_ID, model, revision, file }) {
     const cacheKey = this.#generatePrimaryKey({ model, revision, file });
     const stored = (
       await this.#getData({ storeName: this.fileStoreName, key: cacheKey })
     )[0];
     if (stored) {
       const headers = await this.getHeaders({ model, revision, file });
+
+      await this.#updateEngines({
+        engineId,
+        model,
+        revision,
+        file,
+      });
+
       return [stored.data, headers];
     }
     return null; // Return null if no file is found
+  }
+
+  async #updateEngines({ engineId, model, revision, file }) {
+    // Add the consumer id to the set of consumer ids
+    const stored = await this.#getData({
+      storeName: this.enginesStoreName,
+      key: [model, revision, file],
+    });
+
+    let engineIds;
+
+    if (stored.length) {
+      engineIds = stored[0].engineIds || [];
+      if (!engineIds.includes(engineId)) {
+        engineIds.push(engineId);
+      }
+    } else {
+      engineIds = [engineId];
+    }
+
+    await this.#updateData(this.enginesStoreName, {
+      engineIds,
+      model,
+      revision,
+      file,
+    });
   }
 
   /**
    * Adds or updates task entry.
    *
    * @param {object} config
+   * @param {string} config.engineId - ID of the engine
    * @param {string} config.taskName - name of the inference task.
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model version.
    * @param {string} config.file - The file name.
    * @returns {Promise<void>}
    */
-  async updateTask({ taskName, model, revision, file }) {
+  async updateTask({
+    engineId = lazy.DEFAULT_ENGINE_ID,
+    taskName,
+    model,
+    revision,
+    file,
+  }) {
+    await this.#updateEngines({
+      engineId,
+      model,
+      revision,
+      file,
+    });
+
     await this.#updateData(this.taskStoreName, {
       taskName,
       model,
@@ -631,6 +708,7 @@ export class IndexedDBCache {
    * Adds or updates a cache entry.
    *
    * @param {object} config
+   * @param {string} config.engineId - ID of the engine.
    * @param {string} config.taskName - name of the inference task.
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model version.
@@ -639,7 +717,15 @@ export class IndexedDBCache {
    * @param {object} [config.headers] - The headers for the file.
    * @returns {Promise<void>}
    */
-  async put({ taskName, model, revision, file, data, headers }) {
+  async put({
+    engineId = lazy.DEFAULT_ENGINE_ID,
+    taskName,
+    model,
+    revision,
+    file,
+    data,
+    headers,
+  }) {
     const updatePromises = [];
     const fileSize = data.size;
     const cacheKey = this.#generatePrimaryKey({ model, revision, file });
@@ -660,6 +746,7 @@ export class IndexedDBCache {
     // Store task metadata
     updatePromises.push(
       this.updateTask({
+        engineId,
         taskName,
         model,
         revision,
@@ -696,6 +783,72 @@ export class IndexedDBCache {
 
     await Promise.all(updatePromises);
   }
+
+  /**
+   * Deletes files associated with a specific engine ID.
+   * If the engine ID is the only one associated with a file, the file is deleted.
+   * Otherwise, the engine ID is removed from the file's engine list.
+   *
+   * @async
+   * @param {string} engineId - The ID of the engine whose files are to be deleted.
+   * @returns {Promise<void>} A promise that resolves once the deletion process is complete.
+   */
+  async deleteFilesByEngine(engineId) {
+    // looking at all files for deletion candidates
+    const files = [];
+    const items = await this.#getData({ storeName: this.enginesStoreName });
+    for (const item of items) {
+      if (item.engineIds.includes(engineId)) {
+        // if it's the only one, we delete the file
+        if (item.engineIds.length === 1) {
+          files.push({
+            model: item.model,
+            file: item.file,
+            revision: item.revision,
+          });
+        } else {
+          // we remove the entry
+          const engineIds = new Set(item.engineIds);
+          engineIds.delete(engineId);
+          await this.#updateData(this.enginesStoreName, {
+            engineIds: Array.from(engineIds),
+            model: item.model,
+            revision: item.revision,
+            file: item.file,
+          });
+        }
+      }
+    }
+    // deleting the files from task, engines, files, headers
+    for (const file of files) {
+      await this.#deleteFile(file);
+    }
+  }
+
+  /**
+   * Deletes a file and its associated data across various storage locations.
+   *
+   * @async
+   * @private
+   * @param {object} file - The file object containing model, revision, and file details.
+   * @param {string} file.model - The model associated with the file.
+   * @param {string} file.revision - The revision of the file.
+   * @param {string} file.file - The filename or unique identifier for the file.
+   * @returns {Promise<void>} A promise that resolves once the file and associated data are deleted.
+   */
+  async #deleteFile({ model, revision, file }) {
+    const cacheKey = this.#generatePrimaryKey({ model, revision, file });
+    let deletePromises = [];
+    for (const storage of [
+      this.fileStoreName,
+      this.headersStoreName,
+      this.enginesStoreName,
+    ]) {
+      deletePromises.push(await this.#deleteData(storage, cacheKey));
+    }
+    await Promise.all(deletePromises);
+  }
+
   /**
    * Deletes all data related to the specifed models.
    *
@@ -768,18 +921,13 @@ export class IndexedDBCache {
 
     for (const key of filesToDelete) {
       const [modelValue, revisionValue, fileValue] = JSON.parse(key);
-
-      deletePromises.push(
-        this.#deleteData(
-          this.fileStoreName,
-          this.#generatePrimaryKey({
-            model: modelValue,
-            revision: revisionValue,
-            file: fileValue,
-          })
-        )
-      );
-
+      const primaryKey = this.#generatePrimaryKey({
+        model: modelValue,
+        revision: revisionValue,
+        file: fileValue,
+      });
+      deletePromises.push(this.#deleteData(this.enginesStoreName, primaryKey));
+      deletePromises.push(this.#deleteData(this.fileStoreName, primaryKey));
       deletePromises.push(
         this.#deleteData(this.headersStoreName, [
           modelValue,
@@ -1147,6 +1295,7 @@ export class ModelHub {
    * Given an organization, model, and version, fetch a model file in the hub as a Response.
    *
    * @param {object} config
+   * @param {string} config.engineId - The model engine id
    * @param {string} config.taskName - name of the inference task.
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model revision.
@@ -1156,6 +1305,7 @@ export class ModelHub {
    * @returns {Promise<Response>} The file content
    */
   async getModelFileAsResponse({
+    engineId,
     taskName,
     model,
     revision,
@@ -1164,6 +1314,7 @@ export class ModelHub {
     modelHubUrlTemplate,
   }) {
     const [blob, headers] = await this.getModelFileAsBlob({
+      engineId,
       taskName,
       model,
       revision,
@@ -1179,6 +1330,7 @@ export class ModelHub {
    * Given an organization, model, and version, fetch a model file in the hub as an blob.
    *
    * @param {object} config
+   * @param {string} config.engineId - The model engine id
    * @param {string} config.taskName - name of the inference task.
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model revision.
@@ -1188,6 +1340,7 @@ export class ModelHub {
    * @returns {Promise<[Blob, object]>} The file content
    */
   async getModelFileAsBlob({
+    engineId,
     taskName,
     model,
     revision,
@@ -1196,6 +1349,7 @@ export class ModelHub {
     modelHubUrlTemplate,
   }) {
     const [buffer, headers] = await this.getModelFileAsArrayBuffer({
+      engineId,
       taskName,
       model,
       revision,
@@ -1211,6 +1365,7 @@ export class ModelHub {
    * while supporting status callback.
    *
    * @param {object} config
+   * @param {string} config.engineId - The model engine id
    * @param {string} config.taskName - name of the inference task.
    * @param {string} config.model - The model name (organization/name).
    * @param {string} config.revision - The model revision.
@@ -1221,6 +1376,7 @@ export class ModelHub {
    * @returns {Promise<[ArrayBuffer, headers]>} The file content
    */
   async getModelFileAsArrayBuffer({
+    engineId,
     taskName,
     model,
     revision,
@@ -1292,13 +1448,20 @@ export class ModelHub {
         })
       );
       const [blob, headers] = await this.cache.getFile({
+        engineId,
         model,
         revision,
         file,
       });
 
       // Ensure that we indicate that the taskName is stored
-      await this.cache.updateTask({ taskName, model, revision, file });
+      await this.cache.updateTask({
+        engineId,
+        taskName,
+        model,
+        revision,
+        file,
+      });
 
       progressCallback?.(
         new lazy.Progress.ProgressAndStatusCallbackParams({
@@ -1356,6 +1519,7 @@ export class ModelHub {
         };
 
         await this.cache.put({
+          engineId,
           taskName,
           model,
           revision,

@@ -292,6 +292,7 @@ export class MLEngineParent extends JSWindowActorParent {
    * only once and reused for subsequent calls to optimize performance.
    *
    * @param {object} config
+   * @param {string} config.engineId - The engine id.
    * @param {string} config.taskName - name of the inference task.
    * @param {string} config.url - The URL of the model file to fetch. Can be a path relative to
    * the model hub root or an absolute URL.
@@ -301,7 +302,7 @@ export class MLEngineParent extends JSWindowActorParent {
    * the model hub root or an absolute URL.
    * @returns {Promise<[ArrayBuffer, object]>} The file content and headers
    */
-  async getModelFile({ taskName, url, rootUrl, urlTemplate }) {
+  async getModelFile({ engineId, taskName, url, rootUrl, urlTemplate }) {
     // Create the model hub instance if needed
     if (!this.modelHub) {
       lazy.console.debug("Creating model hub instance");
@@ -325,6 +326,7 @@ export class MLEngineParent extends JSWindowActorParent {
     const parsedUrl = this.modelHub.parseUrl(url, { rootUrl, urlTemplate });
 
     const [data, headers] = await this.modelHub.getModelFileAsArrayBuffer({
+      engineId,
       taskName,
       ...parsedUrl,
       modelHubRootUrl: rootUrl,

@@ -1332,82 +1332,6 @@ add_task(async function test_initDbFromExistingNoChange() {
 });
 
 /**
- * Test that upgrading the indices of an existing database does not lead to data deletion.
- */
-add_task(async function test_initDbFromExistingIndexChanges() {
-  const randomSuffix = Math.floor(Math.random() * 10000);
-  const dbName = `modelFiles-${randomSuffix}`;
-
-  const dbVersion = 2;
-  const model = "mozilla/distilvit";
-  const revision = "main";
-  const taskName = "echo";
-
-  const blob = createBlob();
-  // Create version 2
-  let cache = await IndexedDBCache.init({ dbName, version: dbVersion });
-
-  Assert.notEqual(cache, null);
-  Assert.equal(cache.db.version, 2);
-  await cache.put({
-    taskName,
-    model,
-    revision,
-    file: "file.txt",
-    data: blob,
-    headers: null,
-  });
-
-  cache.db.close();
-
-  // Delete all indices
-  async function openDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(dbName, dbVersion + 1);
-      request.onerror = event => reject(event.target.error);
-      request.onsuccess = event => resolve(event.target.result);
-      request.onupgradeneeded = event => {
-        const db = event.target.result;
-
-        for (const storeName of db.objectStoreNames) {
-          const store = request.transaction.objectStore(storeName);
-
-          for (const indexName of store.indexNames) {
-            store.deleteIndex(indexName);
-          }
-        }
-      };
-    });
-  }
-
-  const db = await openDB();
-  db.close();
-
-  // Create version 4
-  cache = await IndexedDBCache.init({ dbName, version: dbVersion + 2 });
-
-  Assert.notEqual(cache, null);
-  Assert.equal(cache.db.version, 4);
-
-  const expected = [
-    {
-      path: "file.txt",
-      headers: {
-        "Content-Type": "application/octet-stream",
-        fileSize: 8,
-        ETag: "NO_ETAG",
-      },
-    },
-  ];
-
-  // Ensure every table & indices is on so that we can list files
-  const files = await cache.listFiles({ taskName });
-  Assert.deepEqual(files, expected);
-
-  await deleteCache(cache);
-});
-
-/**
  * Test that upgrading an existing cache from another source is possible.
  */
 add_task(async function test_initDbFromExistingElseWhereStoreChanges() {
@@ -1557,4 +1481,71 @@ add_task(async function test_getting_file_disallowed_custom_hub() {
       `Should throw with https://forbidden.com`
     );
   }
+});
+
+/**
+ * Test deleting files used by several engines
+ */
+add_task(async function test_DeleteFileByEngines() {
+  const cache = await initializeCache();
+  const testData = createBlob();
+  const engineOne = "engine-1";
+  const engineTwo = "engine-2";
+
+  // a file is stored by engineOne
+  await cache.put({
+    engineId: engineOne,
+    taskName: "task",
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+    data: createBlob(),
+    headers: null,
+  });
+
+  // The file is read by engineTwo
+  let retrievedData = await cache.getFile({
+    engineId: engineTwo,
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
+
+  Assert.deepEqual(
+    retrievedData[0],
+    testData,
+    "The retrieved data should match the stored data."
+  );
+
+  // if we delete the model by engineOne, it will still be around for engineTwo
+  await cache.deleteFilesByEngine(engineOne);
+
+  retrievedData = await cache.getFile({
+    engineId: engineTwo,
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
+  Assert.deepEqual(
+    retrievedData[0],
+    testData,
+    "The retrieved data should match the stored data."
+  );
+
+  // now deleting via engineTwo
+  await cache.deleteFilesByEngine(engineTwo);
+
+  // at this point we should not have anymore files
+  const dataAfterDelete = await cache.getFile({
+    engineId: engineOne,
+    model: "org/model",
+    revision: "v1",
+    file: "file.txt",
+  });
+  Assert.equal(
+    dataAfterDelete,
+    null,
+    "The data for the deleted model should not exist."
+  );
+  await deleteCache(cache);
 });
