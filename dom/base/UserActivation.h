@@ -21,6 +21,15 @@ struct ParamTraits;
 
 namespace mozilla::dom {
 
+/**
+ * Most of this class is for the old user activation model. The new model
+ * defined in the spec [1] is implemented by `dom::WindowContext` (see
+ * `WindowContext::GetUserActivationState` etc.) since the state defined in the
+ * spec is associated with the `window` object.
+ *
+ * [1]:
+ * https://html.spec.whatwg.org/multipage/interaction.html#user-activation-data-model
+ */
 class UserActivation final : public nsISupports, public nsWrapperCache {
  public:
   // WebIDL UserActivation
