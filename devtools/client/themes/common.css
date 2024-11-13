@@ -397,8 +397,17 @@ iframe {
   }
 }
 
-.devtools-button:empty:not([aria-expanded="true"]):hover {
+.devtools-button:empty:not(
+  [aria-expanded="true"],
+  [aria-pressed="true"],
+  .checked
+):hover {
   background: var(--toolbarbutton-hover-background);
+  color: var(--toolbarbutton-hover-color);
+
+  &::before {
+    color: var(--theme-icon-hover-color);
+  }
 }
 
 /* Standalone buttons */
@@ -416,18 +425,16 @@ iframe {
 /* Selectable button which is unchecked. */
 
 .devtools-button:not(:empty, .checked, [aria-pressed="true"]):hover,
-.devtools-button:empty:is(:hover:active,.checked, [aria-pressed="true"]),
 .devtools-button[aria-haspopup="menu"][aria-expanded="true"] {
   background-color: var(--toolbarbutton-hover-background);
 }
 
-.devtools-button:not(:empty, .checked, [aria-pressed="true"]):hover:active {
-  background-color: var(--theme-selection-background-hover);
+.devtools-button:empty:is(.checked, [aria-pressed="true"]) {
+  background-color: var(--toolbarbutton-checked-background);
 }
 
-.devtools-button:not(:empty, .checked, [aria-pressed="true"]):focus {
-  background-color: var(--toolbarbutton-focus-background);
-  color: var(--toolbarbutton-focus-color);
+.devtools-button:not(:empty, .checked, [aria-pressed="true"]):hover:active {
+  background-color: var(--theme-selection-background-hover);
 }
 
 .devtools-togglebutton:not([aria-pressed="true"]) {
@@ -444,10 +451,6 @@ iframe {
 .devtools-button:not(:empty):is(.checked, [aria-pressed="true"]) {
   background: var(--toolbarbutton-checked-background);
   color: var(--toolbarbutton-checked-color);
-
-  &:focus {
-    background-color: var(--toolbarbutton-checked-focus-background);
-  }
 }
 
 .devtools-togglebutton[aria-pressed="true"] {

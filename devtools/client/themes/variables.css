@@ -161,11 +161,9 @@
   /* Toolbar buttons */
   --toolbarbutton-background: light-dark(var(--grey-10), var(--grey-70));
   --toolbarbutton-hover-background: light-dark(var(--grey-20), var(--grey-70));
-  --toolbarbutton-focus-background: light-dark(var(--grey-20), var(--grey-60));
-  --toolbarbutton-focus-color: light-dark(var(--grey-70), var(--grey-30));
-  --toolbarbutton-checked-background: light-dark(var(--blue-55), #204e8a);
-  --toolbarbutton-checked-focus-background: var(--blue-60);
-  --toolbarbutton-checked-color: #ffffff;
+  --toolbarbutton-hover-color: inherit;
+  --toolbarbutton-checked-background: var(--toolbarbutton-hover-background);
+  --toolbarbutton-checked-color: var(--theme-icon-checked-color);
 
   /* Buttons */
   --theme-button-background: light-dark(rgba(12, 12, 13, 0.05), rgba(249, 249, 250, 0.1));
@@ -321,6 +319,13 @@
     --theme-accordion-header-hover-background: ButtonFace;
     --theme-accordion-header-hover-color: SelectedItem;
 
+    /* Toolbar buttons */
+    --toolbarbutton-background: ButtonFace;
+    --toolbarbutton-hover-background: ButtonFace;
+    --toolbarbutton-hover-color: SelectedItem;
+    --toolbarbutton-checked-background: SelectedItem;
+    --toolbarbutton-checked-color: SelectedItemText;
+
     /* Text color */
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
@@ -344,6 +349,7 @@
     --theme-icon-disabled-color: GrayText;
     --theme-icon-error-color: ButtonText;
     --theme-icon-warning-color: ButtonText;
+    --theme-icon-checked-color: SelectedItemText;
 
     --theme-search-results-background: Mark;
     --theme-search-results-color: MarkText;
