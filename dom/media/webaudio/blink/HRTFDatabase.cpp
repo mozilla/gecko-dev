@@ -122,9 +122,8 @@ void HRTFDatabase::getKernelsFromAzimuthElevation(
 
 unsigned HRTFDatabase::indexFromElevationAngle(double elevationAngle) {
   // Clamp to allowed range.
-  elevationAngle =
-      mozilla::clamped(elevationAngle, static_cast<double>(MinElevation),
-                       static_cast<double>(MaxElevation));
+  elevationAngle = std::clamp(elevationAngle, static_cast<double>(MinElevation),
+                              static_cast<double>(MaxElevation));
 
   unsigned elevationIndex =
       static_cast<int>(InterpolationFactor * (elevationAngle - MinElevation) /

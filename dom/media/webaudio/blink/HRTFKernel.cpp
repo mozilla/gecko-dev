@@ -90,7 +90,7 @@ nsReturnRef<HRTFKernel> HRTFKernel::createInterpolatedKernel(
   if (!kernel1 || !kernel2) return nsReturnRef<HRTFKernel>();
 
   MOZ_ASSERT(x >= 0.0 && x < 1.0);
-  x = mozilla::clamped(x, 0.0f, 1.0f);
+  x = std::clamp(x, 0.0f, 1.0f);
 
   float sampleRate1 = kernel1->sampleRate();
   float sampleRate2 = kernel2->sampleRate();
