@@ -29,6 +29,7 @@ use std::ops::Deref;
 use std::{slice, str};
 use style_traits::SpecifiedValueInfo;
 use to_shmem::{SharedMemoryBuilder, ToShmem};
+use serde::{Deserialize, Serialize};
 
 #[macro_use]
 #[allow(improper_ctypes, non_camel_case_types, missing_docs)]
@@ -52,6 +53,41 @@ pub use self::namespace::{Namespace, WeakNamespace};
 #[derive(Eq, PartialEq)]
 #[repr(C)]
 pub struct Atom(NonZeroUsize);
+
+impl Serialize for Atom {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer
+    {
+        // TODO(dshin, Bug 1929015): Optimization for static atoms is possible.
+        self.deref().with_str(|s| serializer.serialize_str(s))
+    }
+}
+
+struct AtomStrVisitor;
+impl<'de> serde::de::Visitor<'de> for AtomStrVisitor {
+    type Value = Atom;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        write!(formatter, "A string to atomize")
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(Atom::from(s))
+    }
+}
+
+impl<'de> Deserialize<'de> for Atom {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_str(AtomStrVisitor)
+    }
+}
 
 /// An atom *without* a strong reference.
 ///
