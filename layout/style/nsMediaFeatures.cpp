@@ -89,9 +89,7 @@ static nsSize GetDeviceSize(const Document& aDocument) {
     return pc->GetPageSize();
   }
 
-  nsSize size;
-  pc->DeviceContext()->GetDeviceSurfaceDimensions(size.width, size.height);
-  return size;
+  return pc->DeviceContext()->GetDeviceSurfaceDimensions();
 }
 
 bool Gecko_MediaFeatures_IsResourceDocument(const Document* aDocument) {

@@ -155,37 +155,26 @@ class nsDeviceContext final {
   bool GetScreenIsHDR();
 
   /**
-   * Get the size of the displayable area of the output device
-   * in app units.
-   * @param aWidth out parameter for width
-   * @param aHeight out parameter for height
-   * @return error status
+   * Get the size of the displayable area of the output device in app units.
    */
-  nsresult GetDeviceSurfaceDimensions(nscoord& aWidth, nscoord& aHeight);
+  nsSize GetDeviceSurfaceDimensions();
 
   /**
    * Get the size of the content area of the output device in app
    * units.  This corresponds on a screen device, for instance, to
    * the entire screen.
-   * @param aRect out parameter for full rect. Position (x,y) will
-   *              be (0,0) or relative to the primary monitor if
-   *              this is not the primary.
-   * @return error status
    */
-  nsresult GetRect(nsRect& aRect);
+  nsRect GetRect();
 
   /**
    * Get the size of the content area of the output device in app
    * units.  This corresponds on a screen device, for instance, to
    * the area reported by GetDeviceSurfaceDimensions, minus the
    * taskbar (Windows) or menubar (Macintosh).
-   * @param aRect out parameter for client rect. Position (x,y) will
-   *              be (0,0) adjusted for any upper/left non-client
-   *              space if present or relative to the primary
-   *              monitor if this is not the primary.
-   * @return error status
+   * Position (x,y) will be (0,0) adjusted for any upper/left non-client space
+   * if present or relative to the primary monitor if this is not the primary.
    */
-  nsresult GetClientRect(nsRect& aRect);
+  nsRect GetClientRect();
 
   /**
    * Returns true if we're currently between BeginDocument() and
@@ -289,8 +278,6 @@ class nsDeviceContext final {
       bool aWantReferenceContext);
 
   void SetDPI();
-  void ComputeClientRectUsingScreen(nsRect* outRect);
-  void ComputeFullAreaUsingScreen(nsRect* outRect);
   already_AddRefed<mozilla::widget::Screen> FindScreen();
 
   // Return false if the surface is not right

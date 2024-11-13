@@ -1229,9 +1229,7 @@ nsresult nsPrintJob::SetRootView(nsPrintObject* aPO, bool& doReturn,
       canCreateScrollbars = false;
     }
   } else {
-    nscoord pageWidth, pageHeight;
-    mPrt->mPrintDC->GetDeviceSurfaceDimensions(pageWidth, pageHeight);
-    adjSize = nsSize(pageWidth, pageHeight);
+    adjSize = mPrt->mPrintDC->GetDeviceSurfaceDimensions();
     documentIsTopLevel = true;
     parentView = GetParentViewForRoot();
   }

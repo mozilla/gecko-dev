@@ -1543,9 +1543,8 @@ gfxSize nsPresContext::ScreenSizeInchesForFontInflation(bool* aChanged) {
   }
 
   nsDeviceContext* dx = DeviceContext();
-  nsRect clientRect;
-  dx->GetClientRect(clientRect);  // FIXME: GetClientRect looks expensive
   float unitsPerInch = dx->AppUnitsPerPhysicalInch();
+  nsRect clientRect = dx->GetClientRect();
   gfxSize deviceSizeInches(float(clientRect.width) / unitsPerInch,
                            float(clientRect.height) / unitsPerInch);
 

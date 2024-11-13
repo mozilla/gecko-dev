@@ -82,10 +82,7 @@ CSSIntRect nsScreen::GetRect() {
   if (NS_WARN_IF(!context)) {
     return {};
   }
-
-  nsRect r;
-  context->GetRect(r);
-  return CSSIntRect::FromAppUnitsRounded(r);
+  return CSSIntRect::FromAppUnitsRounded(context->GetRect());
 }
 
 CSSIntRect nsScreen::GetAvailRect() {
@@ -111,10 +108,7 @@ CSSIntRect nsScreen::GetAvailRect() {
   if (NS_WARN_IF(!context)) {
     return {};
   }
-
-  nsRect r;
-  context->GetClientRect(r);
-  return CSSIntRect::FromAppUnitsRounded(r);
+  return CSSIntRect::FromAppUnitsRounded(context->GetClientRect());
 }
 
 uint16_t nsScreen::GetOrientationAngle() const {
