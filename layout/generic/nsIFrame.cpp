@@ -7678,17 +7678,15 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
 
     if (zoomedContentRoot) {
       Matrix4x4Flagged layoutToVisual;
-      ScrollableLayerGuid::ViewID targetScrollId =
-          nsLayoutUtils::FindOrCreateIDFor(zoomedContentRoot->GetContent());
       if (aFlags & nsIFrame::IN_CSS_UNITS) {
-        layoutToVisual =
-            ViewportUtils::GetVisualToLayoutTransform(targetScrollId)
-                .Inverse()
-                .ToUnknownMatrix();
+        layoutToVisual = ViewportUtils::GetVisualToLayoutTransform(
+                             zoomedContentRoot->GetContent())
+                             .Inverse()
+                             .ToUnknownMatrix();
       } else {
         layoutToVisual =
             ViewportUtils::GetVisualToLayoutTransform<LayoutDevicePixel>(
-                targetScrollId)
+                zoomedContentRoot->GetContent())
                 .Inverse()
                 .ToUnknownMatrix();
       }
