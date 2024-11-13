@@ -114,16 +114,9 @@ class SelectableProfileServiceClass {
   }
 
   get isEnabled() {
-    // If a storeID has been assigned then profiles may have been created so force us on. Also
-    // covers the case when the selector is shown at startup and we don't have preferences
-    // available.
-    if (this.storeID) {
-      return true;
-    }
-
     return (
       Services.prefs.getBoolPref("browser.profiles.enabled", false) &&
-      !!this.#groupToolkitProfile
+      !!(this.#storeID || this.#groupToolkitProfile)
     );
   }
 
@@ -145,13 +138,6 @@ class SelectableProfileServiceClass {
         Ci.nsIToolkitProfileService
       );
     await this.init();
-
-    let enabled = Services.prefs.getBoolPref("browser.profiles.enabled", false);
-    if (enabled) {
-      // Various parts of the UI listen to the pref to trigger updating so toggle it here.
-      Services.prefs.setBoolPref("browser.profiles.enabled", false);
-      Services.prefs.setBoolPref("browser.profiles.enabled", true);
-    }
   }
 
   overrideDirectoryService(dirSvc) {

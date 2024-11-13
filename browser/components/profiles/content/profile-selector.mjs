@@ -28,18 +28,10 @@ export class ProfileSelector extends MozLitElement {
     createProfileCard: "new-profile-card",
   };
 
-  #initPromise = null;
-
   constructor() {
     super();
 
-    this.#initPromise = this.init();
-  }
-
-  async getUpdateComplete() {
-    let result = await super.getUpdateComplete();
-    await this.#initPromise;
-    return result;
+    this.init();
   }
 
   async init() {
@@ -53,7 +45,6 @@ export class ProfileSelector extends MozLitElement {
 
     this.selectableProfileService = SelectableProfileService;
 
-    await this.selectableProfileService.init();
     await this.selectableProfileService.maybeSetupDataStore();
     this.profiles = await this.selectableProfileService.getAllProfiles();
 
@@ -62,7 +53,6 @@ export class ProfileSelector extends MozLitElement {
     }
 
     this.initialized = true;
-    this.#initPromise = null;
   }
 
   handleCheckboxToggle() {

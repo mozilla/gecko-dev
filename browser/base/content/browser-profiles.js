@@ -208,10 +208,10 @@ var gProfiles = {
 
   manageProfiles() {
     return SelectableProfileService.maybeSetupDataStore().then(() => {
-      toOpenWindowByType(
+      window.openDialog(
         "about:profilemanager",
-        "about:profilemanager",
-        "chrome,extrachrome,menubar,resizable,scrollbars,status,toolbar,centerscreen"
+        "_blank",
+        "centerscreen,chrome,titlebar"
       );
     });
   },
