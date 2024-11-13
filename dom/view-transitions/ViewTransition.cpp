@@ -4,7 +4,6 @@
 
 #include "ViewTransition.h"
 #include "nsPresContext.h"
-#include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/ViewTransitionBinding.h"
@@ -50,7 +49,6 @@ static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
 
 struct CapturedElementOldState {
   // TODO: mImage
-  bool mHasImage = false;
 
   // Encompasses width and height.
   nsSize mSize;
@@ -63,8 +61,7 @@ struct CapturedElementOldState {
 
   CapturedElementOldState(nsIFrame* aFrame,
                           const nsSize& aSnapshotContainingBlockSize)
-      : mHasImage(true),
-        mSize(aFrame->Style()->IsRootElementStyle()
+      : mSize(aFrame->Style()->IsRootElementStyle()
                   ? aSnapshotContainingBlockSize
                   : aFrame->GetRect().Size()),
         mTransform(EffectiveTransform(aFrame)),
@@ -72,16 +69,12 @@ struct CapturedElementOldState {
         mMixBlendMode(aFrame->StyleEffects()->mMixBlendMode),
         mBackdropFilters(aFrame->StyleEffects()->mBackdropFilters),
         mColorScheme(aFrame->StyleUI()->mColorScheme.bits) {}
-
-  CapturedElementOldState() = default;
 };
 
 // https://drafts.csswg.org/css-view-transitions/#captured-element
 struct ViewTransition::CapturedElement {
   CapturedElementOldState mOldState;
   RefPtr<Element> mNewElement;
-
-  CapturedElement() = default;
 
   CapturedElement(nsIFrame* aFrame, const nsSize& aSnapshotContainingBlockSize)
       : mOldState(aFrame, aSnapshotContainingBlockSize) {}
@@ -100,8 +93,7 @@ static inline void ImplCycleCollectionTraverse(
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(ViewTransition, mDocument,
                                       mUpdateCallback,
                                       mUpdateCallbackDonePromise, mReadyPromise,
-                                      mFinishedPromise, mNamedElements,
-                                      mViewTransitionRoot)
+                                      mFinishedPromise, mNamedElements)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ViewTransition)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -261,102 +253,6 @@ void ViewTransition::Timeout() {
   }
 }
 
-static already_AddRefed<Element> MakePseudo(Document& aDoc,
-                                            PseudoStyleType aType,
-                                            nsAtom* aName) {
-  RefPtr<Element> el = aDoc.CreateHTMLElement(nsGkAtoms::div);
-  if (!aName) {
-    MOZ_ASSERT(aType == PseudoStyleType::viewTransition);
-    el->SetIsNativeAnonymousRoot();
-  }
-  el->SetPseudoElementType(aType);
-  if (aName) {
-    el->SetAttr(nsGkAtoms::name, nsDependentAtomString(aName), IgnoreErrors());
-  }
-  // This is not needed, but useful for debugging.
-  el->SetAttr(nsGkAtoms::type,
-              nsDependentAtomString(nsCSSPseudoElements::GetPseudoAtom(aType)),
-              IgnoreErrors());
-  return el.forget();
-}
-
-// https://drafts.csswg.org/css-view-transitions-1/#setup-transition-pseudo-elements
-void ViewTransition::SetupTransitionPseudoElements() {
-  MOZ_ASSERT(!mViewTransitionRoot);
-
-  nsAutoScriptBlocker scriptBlocker;
-
-  RefPtr docElement = mDocument->GetRootElement();
-  if (!docElement) {
-    return;
-  }
-
-  // Step 1 is a declaration.
-
-  // Step 2: Set document's show view transition tree to true.
-  // (we lazily create this pseudo-element so we don't need the flag for now at
-  // least).
-  mViewTransitionRoot =
-      MakePseudo(*mDocument, PseudoStyleType::viewTransition, nullptr);
-#ifdef DEBUG
-  // View transition pseudos don't care about frame tree ordering, so can be
-  // restyled just fine.
-  mViewTransitionRoot->SetProperty(nsGkAtoms::restylableAnonymousNode,
-                                   reinterpret_cast<void*>(true));
-#endif
-  // Step 3: For each transitionName -> capturedElement of transition’s named
-  // elements:
-  for (auto& entry : mNamedElements) {
-    // We don't need to notify while constructing the tree.
-    constexpr bool kNotify = false;
-
-    nsAtom* transitionName = entry.GetKey();
-    const CapturedElement& capturedElement = *entry.GetData();
-    // Let group be a new ::view-transition-group(), with its view transition
-    // name set to transitionName.
-    RefPtr<Element> group = MakePseudo(
-        *mDocument, PseudoStyleType::viewTransitionGroup, transitionName);
-    // Append group to transition’s transition root pseudo-element.
-    mViewTransitionRoot->AppendChildTo(group, kNotify, IgnoreErrors());
-    // Let imagePair be a new ::view-transition-image-pair(), with its view
-    // transition name set to transitionName.
-    RefPtr<Element> imagePair = MakePseudo(
-        *mDocument, PseudoStyleType::viewTransitionImagePair, transitionName);
-    // Append imagePair to group.
-    group->AppendChildTo(imagePair, kNotify, IgnoreErrors());
-    // If capturedElement's old image is not null, then:
-    if (capturedElement.mOldState.mHasImage) {
-      // Let old be a new ::view-transition-old(), with its view transition
-      // name set to transitionName, displaying capturedElement's old image as
-      // its replaced content.
-      RefPtr<Element> old = MakePseudo(
-          *mDocument, PseudoStyleType::viewTransitionOld, transitionName);
-      // Append old to imagePair.
-      imagePair->AppendChildTo(old, kNotify, IgnoreErrors());
-    }
-    // If capturedElement's new element is not null, then:
-    if (capturedElement.mNewElement) {
-      // Let new be a new ::view-transition-new(), with its view transition
-      // name set to transitionName.
-      RefPtr<Element> new_ = MakePseudo(
-          *mDocument, PseudoStyleType::viewTransitionOld, transitionName);
-      // Append new to imagePair.
-      imagePair->AppendChildTo(new_, kNotify, IgnoreErrors());
-    }
-    // TODO(emilio): Dynamic UA sheet shenanigans. Seems we could have a custom
-    // element class with a transition-specific
-  }
-  BindContext context(*docElement, BindContext::ForNativeAnonymous);
-  if (NS_FAILED(mViewTransitionRoot->BindToTree(context, *docElement))) {
-    mViewTransitionRoot->UnbindFromTree();
-    mViewTransitionRoot = nullptr;
-    return;
-  }
-  if (PresShell* ps = mDocument->GetPresShell()) {
-    ps->ContentAppended(mViewTransitionRoot);
-  }
-}
-
 // https://drafts.csswg.org/css-view-transitions-1/#activate-view-transition
 void ViewTransition::Activate() {
   // Step 1: If transition's phase is "done", then return.
@@ -381,12 +277,7 @@ void ViewTransition::Activate() {
     return SkipTransition(*skipReason);
   }
 
-  // TODO(emilio): Step 5.
-
-  // Step 6: Setup transition pseudo-elements for transition.
-  SetupTransitionPseudoElements();
-
-  // TODO(emilio): Step 7.
+  // TODO(emilio): Steps 5-7:
 
   // Step 8: Set transition's phase to "animating".
   mPhase = Phase::Animating;
@@ -552,8 +443,12 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
           SkipTransitionReason::DuplicateTransitionNameCapturingNewState);
       return false;
     }
-    auto& capturedElement = mNamedElements.LookupOrInsertWith(
-        name, [&] { return MakeUnique<CapturedElement>(); });
+    auto& capturedElement = mNamedElements.LookupOrInsertWith(name, [&] {
+      // TODO(emilio): See if we need to store something different here (rather
+      // than the properties of the new element). Maybe identity / null / etc?
+      return MakeUnique<CapturedElement>(aFrame,
+                                         mInitialSnapshotContainingBlockSize);
+    });
     capturedElement->mNewElement = aFrame->GetContent()->AsElement();
     return true;
   });
@@ -616,16 +511,7 @@ void ViewTransition::ClearActiveTransition() {
   // Step 3
   ClearNamedElements();
 
-  // Step 4: Clear show transition tree flag (we just destroy the pseudo tree,
-  // see SetupTransitionPseudoElements).
-  if (mViewTransitionRoot) {
-    nsAutoScriptBlocker scriptBlocker;
-    if (PresShell* ps = mDocument->GetPresShell()) {
-      ps->ContentRemoved(mViewTransitionRoot, nullptr);
-    }
-    mViewTransitionRoot->UnbindFromTree();
-    mViewTransitionRoot = nullptr;
-  }
+  // TODO(emilio): Step 4 (clear show transition tree flag)
   mDocument->ClearActiveViewTransition();
 }
 
