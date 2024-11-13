@@ -2661,7 +2661,7 @@
         insertTab = true,
         globalHistoryOptions,
         triggeringRemoteType,
-        schemelessInput,
+        wasSchemelessInput,
         hasValidUserGestureActivation = false,
         textDirectiveUserActivation = false,
       } = {}
@@ -2852,7 +2852,7 @@
           csp,
           globalHistoryOptions,
           triggeringRemoteType,
-          schemelessInput,
+          wasSchemelessInput,
           hasValidUserGestureActivation:
             hasValidUserGestureActivation ||
             !!openWindowInfo?.hasValidUserGestureActivation,
@@ -3261,7 +3261,7 @@
         csp,
         globalHistoryOptions,
         triggeringRemoteType,
-        schemelessInput,
+        wasSchemelessInput,
         hasValidUserGestureActivation,
         textDirectiveUserActivation,
       }
@@ -3327,7 +3327,7 @@
             csp,
             globalHistoryOptions,
             triggeringRemoteType,
-            schemelessInput,
+            wasSchemelessInput,
             hasValidUserGestureActivation,
             textDirectiveUserActivation,
           });
@@ -6428,14 +6428,13 @@
           aEvent.preventDefault();
           break;
         }
-        case "visibilitychange": {
+        case "visibilitychange":
           const inactive = document.hidden;
           if (!this._switcher) {
             this.selectedBrowser.preserveLayers(inactive);
             this.selectedBrowser.docShellIsActive = !inactive;
           }
           break;
-        }
         case "TabGroupCreate":
           if (aEvent.detail.showCreateUI) {
             this.tabGroupMenu.openCreateModal(aEvent.target);
@@ -8463,13 +8462,12 @@ var TabContextMenu = {
           this.contextTab.removeEventListener("TabAttrModified", this);
         }
         break;
-      case "TabAttrModified": {
+      case "TabAttrModified":
         let tab = aEvent.target;
         this._updateToggleMuteMenuItems(tab, attr =>
           aEvent.detail.changed.includes(attr)
         );
         break;
-      }
     }
   },
 

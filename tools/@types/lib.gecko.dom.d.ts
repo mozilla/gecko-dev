@@ -1580,7 +1580,7 @@ interface LoadURIOptions {
     triggeringSandboxFlags?: number;
     triggeringStorageAccess?: boolean;
     triggeringWindowId?: number;
-    schemelessInput?: SchemelessInputType;
+    wasSchemelessInput?: boolean;
 }
 
 interface LockInfo {

@@ -47,7 +47,6 @@ nsresult LoadInfoArgsToLoadInfo(const mozilla::net::LoadInfoArgs& aLoadInfoArgs,
                                 const nsACString& aOriginRemoteType,
                                 nsINode* aCspToInheritLoadingContext,
                                 net::LoadInfo** outLoadInfo);
-
 }  // namespace ipc
 
 namespace net {
@@ -259,8 +258,7 @@ class LoadInfo final : public nsILoadInfo {
       nsILoadInfo::CrossOriginEmbedderPolicy aLoadingEmbedderPolicy,
       bool aIsOriginTrialCoepCredentiallessEnabledForTopLevel,
       nsIURI* aUnstrippedURI, nsIInterceptionInfo* aInterceptionInfo,
-      bool aHasInjectedCookieForCookieBannerHandling,
-      nsILoadInfo::SchemelessInputType aSchemelessInput,
+      bool aHasInjectedCookieForCookieBannerHandling, bool aWasSchemelessInput,
       nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry,
       bool aIsNewWindowTarget);
 
@@ -415,8 +413,7 @@ class LoadInfo final : public nsILoadInfo {
   nsCOMPtr<nsIInterceptionInfo> mInterceptionInfo;
 
   bool mHasInjectedCookieForCookieBannerHandling = false;
-  nsILoadInfo::SchemelessInputType mSchemelessInput =
-      nsILoadInfo::SchemelessInputTypeUnset;
+  bool mWasSchemelessInput = false;
 
   nsILoadInfo::HTTPSUpgradeTelemetryType mHttpsUpgradeTelemetry =
       nsILoadInfo::NOT_INITIALIZED;

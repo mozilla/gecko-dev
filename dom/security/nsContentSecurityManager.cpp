@@ -728,7 +728,8 @@ static void DebugDoContentSecurityCheck(nsIChannel* aChannel,
             ("  allowDeprecatedSystemRequests: %s\n",
              aLoadInfo->GetAllowDeprecatedSystemRequests() ? "true" : "false"));
     MOZ_LOG(sCSMLog, LogLevel::Verbose,
-            ("  schemelessInput: %d\n", aLoadInfo->GetSchemelessInput()));
+            ("  wasSchemeless: %s\n",
+             aLoadInfo->GetWasSchemelessInput() ? "true" : "false"));
 
     // Log CSPrequestPrincipal
     nsCOMPtr<nsIContentSecurityPolicy> csp = aLoadInfo->GetCsp();

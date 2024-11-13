@@ -20,13 +20,6 @@ struct ParamTraits<nsILoadInfo::HTTPSUpgradeTelemetryType>
           nsILoadInfo::HTTPSUpgradeTelemetryType::NOT_INITIALIZED,
           nsILoadInfo::HTTPSUpgradeTelemetryType::UPGRADE_EXCEPTION> {};
 
-template <>
-struct ParamTraits<nsILoadInfo::SchemelessInputType>
-    : public ContiguousEnumSerializerInclusive<
-          nsILoadInfo::SchemelessInputType,
-          nsILoadInfo::SchemelessInputType::SchemelessInputTypeUnset,
-          nsILoadInfo::SchemelessInputType::SchemelessInputTypeSchemeless> {};
-
 }  // namespace IPC
 
 #endif  // mozilla_dom_domsecurityipcutils_h

@@ -129,8 +129,11 @@ function openInWindow(url, params, sourceWindow) {
       );
     }
   }
-  if (params.schemelessInput !== undefined) {
-    extraOptions.setPropertyAsUint32("schemelessInput", params.schemelessInput);
+  if (params.wasSchemelessInput !== undefined) {
+    extraOptions.setPropertyAsBool(
+      "wasSchemelessInput",
+      params.wasSchemelessInput
+    );
   }
 
   var allowThirdPartyFixupSupports = Cc[
@@ -263,7 +266,7 @@ function openInCurrentTab(targetBrowser, url, uriObj, params) {
     hasValidUserGestureActivation,
     globalHistoryOptions,
     triggeringRemoteType,
-    schemelessInput,
+    wasSchemelessInput,
   } = params;
 
   targetBrowser.fixupAndLoadURIString(url, {
@@ -276,7 +279,7 @@ function openInCurrentTab(targetBrowser, url, uriObj, params) {
     hasValidUserGestureActivation,
     globalHistoryOptions,
     triggeringRemoteType,
-    schemelessInput,
+    wasSchemelessInput,
   });
   params.resolveOnContentBrowserCreated?.(targetBrowser);
 }
@@ -368,7 +371,7 @@ export const URILoadingHelper = {
    * @param {string}  params.charset
    *                  Character set to use for the load. Only honoured for tabs.
    *                  Legacy argument - do not use.
-   * @param {SchemelessInputType}  params.schemelessInput
+   * @param {string}  params.wasSchemelessInput
    *                  Whether the search/URL term was without an explicit scheme.
    *
    * Options relating to security, whether the load is allowed to happen,
@@ -560,7 +563,7 @@ export const URILoadingHelper = {
       case "tabshifted":
         loadInBackground = !loadInBackground;
       // fall through
-      case "tab": {
+      case "tab":
         focusUrlBar =
           !loadInBackground &&
           w.isBlankPageURL(url) &&
@@ -586,7 +589,7 @@ export const URILoadingHelper = {
           openerBrowser: params.openerBrowser,
           fromExternal: params.fromExternal,
           globalHistoryOptions,
-          schemelessInput: params.schemelessInput,
+          wasSchemelessInput: params.wasSchemelessInput,
           hasValidUserGestureActivation,
           textDirectiveUserActivation,
         });
@@ -613,7 +616,6 @@ export const URILoadingHelper = {
           );
         }
         break;
-      }
     }
 
     if (

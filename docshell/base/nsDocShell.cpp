@@ -5872,7 +5872,7 @@ already_AddRefed<nsIURI> nsDocShell::AttemptURIFixup(
     const mozilla::Maybe<nsCString>& aOriginalURIString, uint32_t aLoadType,
     bool aIsTopFrame, bool aAllowKeywordFixup, bool aUsePrivateBrowsing,
     bool aNotifyKeywordSearchLoading, nsIInputStream** aNewPostData,
-    nsILoadInfo::SchemelessInputType* outSchemelessInput) {
+    bool* outWasSchemelessInput) {
   if (aStatus != NS_ERROR_UNKNOWN_HOST && aStatus != NS_ERROR_NET_RESET &&
       aStatus != NS_ERROR_CONNECTION_REFUSED &&
       aStatus !=
@@ -5958,7 +5958,7 @@ already_AddRefed<nsIURI> nsDocShell::AttemptURIFixup(
         }
         if (info) {
           info->GetPreferredURI(getter_AddRefs(newURI));
-          info->GetSchemelessInput(outSchemelessInput);
+          info->GetWasSchemelessInput(outWasSchemelessInput);
           if (newURI) {
             info->GetKeywordAsSent(keywordAsSent);
             info->GetKeywordProviderName(keywordProviderName);

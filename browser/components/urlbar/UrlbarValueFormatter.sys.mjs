@@ -193,9 +193,7 @@ export class UrlbarValueFormatter {
       // The protocol has been trimmed, so we add it back.
       url = trimmedProtocol + inputValue;
       trimmedLength = trimmedProtocol.length;
-    } else if (
-      uriInfo.schemelessInput == Ci.nsILoadInfo.SchemelessInputTypeSchemeless
-    ) {
+    } else if (uriInfo.wasSchemelessInput) {
       // The original string didn't have a protocol, but it was identified as
       // a URL. It's not important which scheme we use for parsing, so we'll
       // just copy URIFixup.

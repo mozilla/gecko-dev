@@ -536,7 +536,7 @@ interface nsILoadInfo : nsISupports
   /**
    * Reflects whetehr this is an HTTP Strict Transport Security host
    */
-  [infallible] attribute boolean hstsStatus;
+[infallible] attribute boolean hstsStatus;
 
   /**
    * Returns true if at the time of the loadinfo construction the document
@@ -1568,15 +1568,10 @@ interface nsILoadInfo : nsISupports
    */
   [infallible] attribute boolean hasInjectedCookieForCookieBannerHandling;
 
-  cenum SchemelessInputType : 8 {
-    SchemelessInputTypeUnset = 0,
-    SchemelessInputTypeSchemeful = 1,
-    SchemelessInputTypeSchemeless = 2,
-  };
   /**
    * Whether the load has gone through the URL bar, where the fixup had to add * the protocol scheme.
    */
-   [infallible] attribute nsILoadInfo_SchemelessInputType schemelessInput;
+   [infallible] attribute boolean wasSchemelessInput;
 
   cenum HTTPSUpgradeTelemetryType : 32 {
     NOT_INITIALIZED = 0,

@@ -2994,8 +2994,7 @@ static bool ShouldSecureUpgradeNoHSTS(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
   }
   // 4.a Https-First
   if (nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(aURI, aLoadInfo)) {
-    if (aLoadInfo->GetSchemelessInput() ==
-        nsILoadInfo::SchemelessInputTypeSchemeless) {
+    if (aLoadInfo->GetWasSchemelessInput()) {
       aLoadInfo->SetHttpsUpgradeTelemetry(
           nsILoadInfo::HTTPS_FIRST_SCHEMELESS_UPGRADE);
     } else {

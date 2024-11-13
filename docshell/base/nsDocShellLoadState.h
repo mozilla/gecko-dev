@@ -10,8 +10,6 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/SessionHistoryEntry.h"
 
-#include "nsILoadInfo.h"
-
 // Helper Classes
 #include "mozilla/Maybe.h"
 #include "nsCOMPtr.h"
@@ -337,13 +335,11 @@ class nsDocShellLoadState final {
 
   void SetRemoteTypeOverride(const nsCString& aRemoteTypeOverride);
 
-  void SetSchemelessInput(nsILoadInfo::SchemelessInputType aSchemelessInput) {
-    mSchemelessInput = aSchemelessInput;
+  void SetWasSchemelessInput(bool aWasSchemelessInput) {
+    mWasSchemelessInput = aWasSchemelessInput;
   }
 
-  nsILoadInfo::SchemelessInputType GetSchemelessInput() {
-    return mSchemelessInput;
-  }
+  bool GetWasSchemelessInput() { return mWasSchemelessInput; }
 
   void SetHttpsUpgradeTelemetry(
       nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry) {
@@ -631,9 +627,8 @@ class nsDocShellLoadState final {
   // Remote type of the process which originally requested the load.
   nsCString mTriggeringRemoteType;
 
-  // if the address had an intentional protocol
-  nsILoadInfo::SchemelessInputType mSchemelessInput =
-      nsILoadInfo::SchemelessInputTypeUnset;
+  // if the to-be-loaded address had it protocol added through a fixup
+  bool mWasSchemelessInput = false;
 
   // Solely for the use of collecting Telemetry for HTTPS upgrades.
   nsILoadInfo::HTTPSUpgradeTelemetryType mHttpsUpgradeTelemetry =

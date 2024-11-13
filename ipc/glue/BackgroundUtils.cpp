@@ -577,7 +577,7 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetSendCSPViolationEvents(), aLoadInfo->GetOriginAttributes(),
       redirectChainIncludingInternalRedirects, redirectChain,
       aLoadInfo->GetHasInjectedCookieForCookieBannerHandling(),
-      aLoadInfo->GetSchemelessInput(), aLoadInfo->GetHttpsUpgradeTelemetry(),
+      aLoadInfo->GetWasSchemelessInput(), aLoadInfo->GetHttpsUpgradeTelemetry(),
       ipcClientInfo, ipcReservedClientInfo, ipcInitialClientInfo, ipcController,
       aLoadInfo->CorsUnsafeHeaders(), aLoadInfo->GetForcePreflight(),
       aLoadInfo->GetIsPreflight(), aLoadInfo->GetLoadTriggeredFromExternal(),
@@ -891,7 +891,7 @@ nsresult LoadInfoArgsToLoadInfo(const LoadInfoArgs& loadInfoArgs,
       loadInfoArgs.originTrialCoepCredentiallessEnabledForTopLevel(),
       loadInfoArgs.unstrippedURI(), interceptionInfo,
       loadInfoArgs.hasInjectedCookieForCookieBannerHandling(),
-      loadInfoArgs.schemelessInput(), loadInfoArgs.httpsUpgradeTelemetry(),
+      loadInfoArgs.wasSchemelessInput(), loadInfoArgs.httpsUpgradeTelemetry(),
       loadInfoArgs.isNewWindowTarget());
 
   if (loadInfoArgs.isFromProcessingFrameAttributes()) {
@@ -960,7 +960,7 @@ void LoadInfoToParentLoadInfoForwarder(
   *aForwarderArgsOut = ParentLoadInfoForwarderArgs(
       aLoadInfo->GetAllowInsecureRedirectToDataURI(), ipcController, tainting,
       aLoadInfo->GetSkipContentSniffing(), aLoadInfo->GetHttpsOnlyStatus(),
-      aLoadInfo->GetSchemelessInput(), aLoadInfo->GetHttpsUpgradeTelemetry(),
+      aLoadInfo->GetWasSchemelessInput(), aLoadInfo->GetHttpsUpgradeTelemetry(),
       aLoadInfo->GetHstsStatus(), aLoadInfo->GetHasValidUserGestureActivation(),
       aLoadInfo->GetTextDirectiveUserActivation(),
       aLoadInfo->GetAllowDeprecatedSystemRequests(),
@@ -1008,7 +1008,7 @@ nsresult MergeParentLoadInfoForwarder(
   rv = aLoadInfo->SetHttpsOnlyStatus(aForwarderArgs.httpsOnlyStatus());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = aLoadInfo->SetSchemelessInput(aForwarderArgs.schemelessInput());
+  rv = aLoadInfo->SetWasSchemelessInput(aForwarderArgs.wasSchemelessInput());
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = aLoadInfo->SetHttpsUpgradeTelemetry(

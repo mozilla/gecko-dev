@@ -693,7 +693,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mInterceptionInfo(rhs.mInterceptionInfo),
       mHasInjectedCookieForCookieBannerHandling(
           rhs.mHasInjectedCookieForCookieBannerHandling),
-      mSchemelessInput(rhs.mSchemelessInput),
+      mWasSchemelessInput(rhs.mWasSchemelessInput),
       mHttpsUpgradeTelemetry(rhs.mHttpsUpgradeTelemetry),
       mIsNewWindowTarget(rhs.mIsNewWindowTarget) {
 }
@@ -744,8 +744,7 @@ LoadInfo::LoadInfo(
     nsILoadInfo::CrossOriginEmbedderPolicy aLoadingEmbedderPolicy,
     bool aIsOriginTrialCoepCredentiallessEnabledForTopLevel,
     nsIURI* aUnstrippedURI, nsIInterceptionInfo* aInterceptionInfo,
-    bool aHasInjectedCookieForCookieBannerHandling,
-    nsILoadInfo::SchemelessInputType aSchemelessInput,
+    bool aHasInjectedCookieForCookieBannerHandling, bool aWasSchemelessInput,
     nsILoadInfo::HTTPSUpgradeTelemetryType aHttpsUpgradeTelemetry,
     bool aIsNewWindowTarget)
     : mLoadingPrincipal(aLoadingPrincipal),
@@ -828,7 +827,7 @@ LoadInfo::LoadInfo(
       mInterceptionInfo(aInterceptionInfo),
       mHasInjectedCookieForCookieBannerHandling(
           aHasInjectedCookieForCookieBannerHandling),
-      mSchemelessInput(aSchemelessInput),
+      mWasSchemelessInput(aWasSchemelessInput),
       mHttpsUpgradeTelemetry(aHttpsUpgradeTelemetry),
       mIsNewWindowTarget(aIsNewWindowTarget) {
   // Only top level TYPE_DOCUMENT loads can have a null loadingPrincipal
@@ -2455,16 +2454,14 @@ LoadInfo::SetHasInjectedCookieForCookieBannerHandling(
 }
 
 NS_IMETHODIMP
-LoadInfo::GetSchemelessInput(
-    nsILoadInfo::SchemelessInputType* aSchemelessInput) {
-  *aSchemelessInput = mSchemelessInput;
+LoadInfo::GetWasSchemelessInput(bool* aWasSchemelessInput) {
+  *aWasSchemelessInput = mWasSchemelessInput;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-LoadInfo::SetSchemelessInput(
-    nsILoadInfo::SchemelessInputType aSchemelessInput) {
-  mSchemelessInput = aSchemelessInput;
+LoadInfo::SetWasSchemelessInput(bool aWasSchemelessInput) {
+  mWasSchemelessInput = aWasSchemelessInput;
   return NS_OK;
 }
 

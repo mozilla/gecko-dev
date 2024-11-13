@@ -888,14 +888,12 @@ TRRLoadInfo::SetHasInjectedCookieForCookieBannerHandling(
 }
 
 NS_IMETHODIMP
-TRRLoadInfo::GetSchemelessInput(
-    nsILoadInfo::SchemelessInputType* aSchemelessInput) {
+TRRLoadInfo::GetWasSchemelessInput(bool* aWasSchemelessInput) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-TRRLoadInfo::SetSchemelessInput(
-    nsILoadInfo::SchemelessInputType aSchemelessInput) {
+TRRLoadInfo::SetWasSchemelessInput(bool aWasSchemelessInput) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

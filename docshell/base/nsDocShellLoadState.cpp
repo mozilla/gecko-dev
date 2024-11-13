@@ -7,7 +7,6 @@
 #include "nsDocShellLoadState.h"
 #include "nsIDocShell.h"
 #include "nsDocShell.h"
-#include "nsILoadInfo.h"
 #include "nsIProtocolHandler.h"
 #include "nsISHEntry.h"
 #include "nsIURIFixup.h"
@@ -92,7 +91,7 @@ nsDocShellLoadState::nsDocShellLoadState(
   mTriggeringWindowId = aLoadState.TriggeringWindowId();
   mTriggeringStorageAccess = aLoadState.TriggeringStorageAccess();
   mTriggeringRemoteType = aLoadState.TriggeringRemoteType();
-  mSchemelessInput = aLoadState.SchemelessInput();
+  mWasSchemelessInput = aLoadState.WasSchemelessInput();
   mHttpsUpgradeTelemetry = aLoadState.HttpsUpgradeTelemetry();
   mCsp = aLoadState.Csp();
   mOriginalURIString = aLoadState.OriginalURIString();
@@ -200,7 +199,7 @@ nsDocShellLoadState::nsDocShellLoadState(const nsDocShellLoadState& aOther)
       mUnstrippedURI(aOther.mUnstrippedURI),
       mRemoteTypeOverride(aOther.mRemoteTypeOverride),
       mTriggeringRemoteType(aOther.mTriggeringRemoteType),
-      mSchemelessInput(aOther.mSchemelessInput),
+      mWasSchemelessInput(aOther.mWasSchemelessInput),
       mHttpsUpgradeTelemetry(aOther.mHttpsUpgradeTelemetry) {
   MOZ_DIAGNOSTIC_ASSERT(
       XRE_IsParentProcess(),
@@ -245,7 +244,7 @@ nsDocShellLoadState::nsDocShellLoadState(nsIURI* aURI, uint64_t aLoadIdentifier)
       mTriggeringRemoteType(XRE_IsContentProcess()
                                 ? ContentChild::GetSingleton()->GetRemoteType()
                                 : NOT_REMOTE_TYPE),
-      mSchemelessInput(nsILoadInfo::SchemelessInputTypeUnset) {
+      mWasSchemelessInput(false) {
   MOZ_ASSERT(aURI, "Cannot create a LoadState with a null URI!");
 
   // For https telemetry we set a flag indicating whether the load is https.
@@ -502,8 +501,7 @@ nsresult nsDocShellLoadState::CreateFromLoadURIOptions(
         aLoadURIOptions.mRemoteTypeOverride.Value());
   }
 
-  loadState->SetSchemelessInput(static_cast<nsILoadInfo::SchemelessInputType>(
-      aLoadURIOptions.mSchemelessInput));
+  loadState->SetWasSchemelessInput(aLoadURIOptions.mWasSchemelessInput);
 
   loadState.forget(aResult);
   return NS_OK;
@@ -1336,7 +1334,7 @@ DocShellLoadStateInit nsDocShellLoadState::Serialize(
   loadState.TriggeringWindowId() = mTriggeringWindowId;
   loadState.TriggeringStorageAccess() = mTriggeringStorageAccess;
   loadState.TriggeringRemoteType() = mTriggeringRemoteType;
-  loadState.SchemelessInput() = mSchemelessInput;
+  loadState.WasSchemelessInput() = mWasSchemelessInput;
   loadState.HttpsUpgradeTelemetry() = mHttpsUpgradeTelemetry;
   loadState.Csp() = mCsp;
   loadState.OriginalURIString() = mOriginalURIString;

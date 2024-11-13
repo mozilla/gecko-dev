@@ -775,7 +775,7 @@ var gBrowserInit = {
         let globalHistoryOptions = undefined;
         let triggeringRemoteType = undefined;
         let forceAllowDataURI = false;
-        let schemelessInput = Ci.nsILoadInfo.SchemelessInputTypeUnset;
+        let wasSchemelessInput = false;
         if (window.arguments[1]) {
           if (!(window.arguments[1] instanceof Ci.nsIPropertyBag2)) {
             throw new Error(
@@ -814,9 +814,9 @@ var gBrowserInit = {
             forceAllowDataURI =
               extraOptions.getPropertyAsBool("forceAllowDataURI");
           }
-          if (extraOptions.hasKey("schemelessInput")) {
-            schemelessInput =
-              extraOptions.getPropertyAsUint32("schemelessInput");
+          if (extraOptions.hasKey("wasSchemelessInput")) {
+            wasSchemelessInput =
+              extraOptions.getPropertyAsBool("wasSchemelessInput");
           }
         }
 
@@ -841,7 +841,7 @@ var gBrowserInit = {
             fromExternal,
             globalHistoryOptions,
             triggeringRemoteType,
-            schemelessInput,
+            wasSchemelessInput,
           });
         } catch (e) {
           console.error(e);

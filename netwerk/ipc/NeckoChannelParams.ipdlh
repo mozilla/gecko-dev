@@ -41,7 +41,6 @@ using mozilla::dom::RequestMode from "mozilla/dom/RequestBinding.h";
 using mozilla::net::LinkHeader from "nsNetUtil.h";
 using mozilla::dom::FeaturePolicyInfo from "mozilla/dom/FeaturePolicy.h";
 using nsILoadInfo::HTTPSUpgradeTelemetryType from "nsILoadInfo.h";
-using nsILoadInfo::SchemelessInputType from "nsILoadInfo.h";
 
 namespace mozilla {
 namespace net {
@@ -140,7 +139,7 @@ struct LoadInfoArgs
   RedirectHistoryEntryInfo[]  redirectChainIncludingInternalRedirects;
   RedirectHistoryEntryInfo[]  redirectChain;
   bool                        hasInjectedCookieForCookieBannerHandling;
-  SchemelessInputType         schemelessInput;
+  bool                        wasSchemelessInput;
   HTTPSUpgradeTelemetryType   httpsUpgradeTelemetry;
 
   /**
@@ -230,7 +229,7 @@ struct ParentLoadInfoForwarderArgs
 
   uint32_t httpsOnlyStatus;
 
-  SchemelessInputType schemelessInput;
+  bool wasSchemelessInput;
 
   HTTPSUpgradeTelemetryType httpsUpgradeTelemetry;
 
