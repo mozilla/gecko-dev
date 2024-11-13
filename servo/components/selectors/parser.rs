@@ -1969,7 +1969,7 @@ impl CombinatorComposition {
 
 impl<Impl: SelectorImpl> RelativeSelector<Impl> {
     fn from_selector_list(selector_list: SelectorList<Impl>) -> Box<[Self]> {
-        let vec: Vec<Self> = selector_list
+        selector_list
             .slice()
             .iter()
             .map(|selector| {
@@ -2001,8 +2001,7 @@ impl<Impl: SelectorImpl> RelativeSelector<Impl> {
                     selector: selector.clone(),
                 }
             })
-            .collect();
-        vec.into_boxed_slice()
+            .collect()
     }
 }
 
