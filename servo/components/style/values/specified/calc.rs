@@ -150,6 +150,15 @@ impl CalcLengthPercentage {
 
 impl SpecifiedValueInfo for CalcLengthPercentage {}
 
+/// Should parsing anchor-positioning functions in `calc()` be allowed?
+#[derive(Clone, Copy, PartialEq)]
+pub enum AllowAnchorPositioningFunctions {
+    /// Don't allow any anchor positioning function.
+    No,
+    /// Allow `anchor()` to be parsed.
+    AllowAnchor,
+}
+
 bitflags! {
     /// Additional functions within math functions that are permitted to be parsed depending on
     /// the context of parsing (e.g. Parsing `inset` allows use of `anchor()` within `calc()`).
@@ -1049,14 +1058,23 @@ impl CalcNode {
         Self::parse_number(context, input, function).map(|n| (n + 0.5).floor() as CSSInteger)
     }
 
-    /// Convenience parsing function for `<length> | <percentage>`.
+    /// Convenience parsing function for `<length> | <percentage>`, and, optionally, `anchor()`.
     pub fn parse_length_or_percentage<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         clamping_mode: AllowedNumericType,
         function: MathFunction,
+        allow_anchor: AllowAnchorPositioningFunctions
     ) -> Result<CalcLengthPercentage, ParseError<'i>> {
-        Self::parse(context, input, function, AllowParse::new(CalcUnits::LENGTH_PERCENTAGE))?
+        let allowed = if allow_anchor == AllowAnchorPositioningFunctions::AllowAnchor {
+            AllowParse {
+                units: CalcUnits::LENGTH_PERCENTAGE,
+                additional_functions: AdditionalFunctions::ANCHOR,
+            }
+        } else {
+            AllowParse::new(CalcUnits::LENGTH_PERCENTAGE)
+        };
+        Self::parse(context, input, function, allowed)?
             .into_length_or_percentage(clamping_mode)
             .map_err(|()| input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }

@@ -19,7 +19,7 @@ use crate::values::generics::length::{
     GenericMargin, GenericMaxSize, GenericSize,
 };
 use crate::values::generics::NonNegative;
-use crate::values::specified::calc::{self, CalcNode};
+use crate::values::specified::calc::{self, AllowAnchorPositioningFunctions, CalcNode};
 use crate::values::specified::NonNegativeNumber;
 use crate::values::CSSFloat;
 use crate::{Zero, ZeroNoPercent};
@@ -1692,6 +1692,7 @@ impl LengthPercentage {
         input: &mut Parser<'i, 't>,
         num_context: AllowedNumericType,
         allow_quirks: AllowQuirks,
+        allow_anchor: AllowAnchorPositioningFunctions,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let token = input.next()?;
@@ -1722,8 +1723,7 @@ impl LengthPercentage {
             },
             Token::Function(ref name) => {
                 let function = CalcNode::math_function(context, name, location)?;
-                let calc =
-                    CalcNode::parse_length_or_percentage(context, input, num_context, function)?;
+                let calc = CalcNode::parse_length_or_percentage(context, input, num_context, function, allow_anchor)?;
                 Ok(LengthPercentage::Calc(Box::new(calc)))
             },
             _ => return Err(location.new_unexpected_token_error(token.clone())),
@@ -1738,7 +1738,30 @@ impl LengthPercentage {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input, AllowedNumericType::All, allow_quirks)
+        Self::parse_internal(
+            context,
+            input,
+            AllowedNumericType::All,
+            allow_quirks,
+            AllowAnchorPositioningFunctions::No,
+        )
+    }
+
+    /// Parses allowing the unitless length quirk, as well as allowing
+    /// `anchor()`.
+    #[inline]
+    pub fn parse_quirky_anchor<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_internal(
+            context,
+            input,
+            AllowedNumericType::All,
+            allow_quirks,
+            AllowAnchorPositioningFunctions::AllowAnchor,
+        )
     }
 
     /// Parse a non-negative length.
@@ -1765,6 +1788,7 @@ impl LengthPercentage {
             input,
             AllowedNumericType::NonNegative,
             allow_quirks,
+            AllowAnchorPositioningFunctions::No,
         )
     }
 
@@ -2021,10 +2045,13 @@ impl Size {
         parse_fit_content_function!(Size, input, context, allow_quirks);
 
         if let Ok(length) =
-            input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks)) {
+            input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks))
+        {
             return Ok(GenericSize::LengthPercentage(length));
         }
-        Ok(Self::AnchorSizeFunction(Box::new(GenericAnchorSizeFunction::parse(context, input)?)))
+        Ok(Self::AnchorSizeFunction(Box::new(
+            GenericAnchorSizeFunction::parse(context, input)?,
+        )))
     }
 
     /// Returns `0%`.

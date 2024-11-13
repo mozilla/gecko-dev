@@ -632,6 +632,7 @@ cbindgen-types = [
     { gecko = "StylePointerEvents", servo = "crate::values::computed::ui::PointerEvents" },
     { gecko = "StyleInert", servo = "crate::values::computed::ui::Inert" },
     { gecko = "StyleMargin", servo = "crate::values::computed::length::Margin" },
+    { gecko = "StyleGenericAnchorFunction", servo = "crate::values::generics::position::GenericAnchorFunction" },
 ]
 
 mapped-generic-types = [

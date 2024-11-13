@@ -1754,7 +1754,8 @@ impl Inset {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(l) = input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+        if let Ok(l) =
+            input.try_parse(|i| LengthPercentage::parse_quirky_anchor(context, i, allow_quirks))
         {
             return Ok(Self::LengthPercentage(l));
         }
