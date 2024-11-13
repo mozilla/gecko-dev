@@ -67,7 +67,9 @@ pub struct PercentageVariant {
 #[cfg(target_pointer_width = "32")]
 pub struct CalcVariant {
     tag: u8,
-    ptr: *mut CalcLengthPercentage,
+    // Ideally CalcLengthPercentage, but that would cause circular references
+    // for leaves referencing LengthPercentage.
+    ptr: *mut (),
 }
 
 #[doc(hidden)]
@@ -358,7 +360,7 @@ impl LengthPercentage {
         #[cfg(target_pointer_width = "32")]
         let calc = CalcVariant {
             tag: LengthPercentageUnion::TAG_CALC,
-            ptr,
+            ptr: ptr as *mut (),
         };
 
         #[cfg(target_pointer_width = "64")]

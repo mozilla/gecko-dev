@@ -48,6 +48,11 @@ struct nsCSSValueSharedList;
 class gfxFontFeatureValueSet;
 struct GeckoFontMetrics;
 namespace mozilla {
+
+// Forward declaration for `StyleLengthPercentageUnion::AsCalc`, which
+// references the type below in the generated code.
+struct StyleCalcLengthPercentage;
+
 namespace gfx {
 struct FontVariation;
 struct FontFeature;

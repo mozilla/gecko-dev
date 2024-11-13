@@ -574,7 +574,7 @@ StyleCalcLengthPercentage& LengthPercentage::AsCalc() {
   MOZ_ASSERT(IsCalc());
   // NOTE: in 32-bits, the pointer is not swapped, and goes along with the tag.
 #ifdef SERVO_32_BITS
-  return *calc.ptr;
+  return *reinterpret_cast<StyleCalcLengthPercentage*>(calc.ptr);
 #else
   return *reinterpret_cast<StyleCalcLengthPercentage*>(
       NativeEndian::swapFromLittleEndian(calc.ptr));
