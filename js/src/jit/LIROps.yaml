@@ -4294,6 +4294,13 @@
     input: WordSized
   num_temps: 1
 
+- name: WasmAnyRefJSStringLength
+  mir_op: true
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+
 - name: WasmNewI31Ref
   mir_op: true
   result_type: WordSized

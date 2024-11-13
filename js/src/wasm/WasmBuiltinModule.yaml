@@ -338,6 +338,7 @@
     name: StringLength
     type: Args_Int32_GeneralGeneral
   entry: Instance::stringLength
+  inline_op: StringLength
   export: length
   params:
     - 'externref'

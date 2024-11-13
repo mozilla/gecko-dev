@@ -6973,6 +6973,12 @@ void MacroAssembler::extractWasmAnyRefTag(Register src, Register dest) {
   andPtr(Imm32(int32_t(wasm::AnyRef::TagMask)), dest);
 }
 
+void MacroAssembler::untagWasmAnyRef(Register src, Register dest,
+                                     wasm::AnyRefTag tag) {
+  MOZ_ASSERT(tag != wasm::AnyRefTag::ObjectOrNull, "No untagging needed");
+  computeEffectiveAddress(Address(src, -int32_t(tag)), dest);
+}
+
 void MacroAssembler::branchWasmAnyRefIsNull(bool isNull, Register src,
                                             Label* label) {
   branchTestPtr(isNull ? Assembler::Zero : Assembler::NonZero, src, src, label);
@@ -7579,8 +7585,7 @@ void MacroAssembler::convertWasmAnyRefToValue(Register instance, Register src,
                 &isObjectOrNull);
 
   // If we're not i31, object, or null, we must be a string
-  rshiftPtr(Imm32(wasm::AnyRef::TagShift), src);
-  lshiftPtr(Imm32(wasm::AnyRef::TagShift), src);
+  untagWasmAnyRef(src, src, wasm::AnyRefTag::String);
   moveValue(TypedOrValueRegister(MIRType::String, AnyRegister(src)), dst);
   jump(&done);
 

@@ -49,6 +49,7 @@
 #include "vm/FunctionFlags.h"
 #include "vm/Opcodes.h"
 #include "vm/RealmFuses.h"
+#include "wasm/WasmAnyRef.h"
 
 // [SMDOC] MacroAssembler multi-platform overview
 //
@@ -4148,6 +4149,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   // Extract the tag of wasm anyref `src`.
   void extractWasmAnyRefTag(Register src, Register dest);
+
+  // Remove the known tag of wasm anyref `src`.
+  void untagWasmAnyRef(Register src, Register dest, wasm::AnyRefTag tag);
 
   // Branch if the wasm anyref `src` is or is not the null value.
   void branchWasmAnyRefIsNull(bool isNull, Register src, Label* label);

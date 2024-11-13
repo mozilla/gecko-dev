@@ -22018,6 +22018,19 @@ void CodeGenerator::visitWasmTrapIfAnyRefIsNotJSString(
   masm.bind(&isJSString);
 }
 
+void CodeGenerator::visitWasmAnyRefJSStringLength(
+    LWasmAnyRefJSStringLength* lir) {
+  Register input = ToRegister(lir->input());
+  Register output = ToRegister(lir->output());
+  Register temp = ToRegister(lir->temp0());
+  Label isJSString;
+  masm.branchWasmAnyRefIsJSString(true, input, temp, &isJSString);
+  masm.wasmTrap(lir->mir()->trap(), lir->mir()->bytecodeOffset());
+  masm.bind(&isJSString);
+  masm.untagWasmAnyRef(input, temp, wasm::AnyRefTag::String);
+  masm.loadStringLength(temp, output);
+}
+
 void CodeGenerator::visitWasmNewI31Ref(LWasmNewI31Ref* lir) {
   if (lir->value()->isConstant()) {
     // i31ref are often created with constants. If that's the case we will

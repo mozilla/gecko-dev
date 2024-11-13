@@ -3720,6 +3720,13 @@ void LIRGenerator::visitWasmTrapIfAnyRefIsNotJSString(
   add(lir, ins);
 }
 
+void LIRGenerator::visitWasmAnyRefJSStringLength(
+    MWasmAnyRefJSStringLength* ins) {
+  LWasmAnyRefJSStringLength* lir = new (alloc())
+      LWasmAnyRefJSStringLength(useRegisterAtStart(ins->input()), temp());
+  define(lir, ins);
+}
+
 void LIRGenerator::visitWasmNewI31Ref(MWasmNewI31Ref* ins) {
   // If it's a constant, it will be put directly into the register.
   LWasmNewI31Ref* lir =

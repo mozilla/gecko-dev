@@ -3245,6 +3245,16 @@ class FunctionCompiler {
     return ins;
   }
 
+  [[nodiscard]] MDefinition* stringLength(MDefinition* string) {
+    auto* ins = MWasmAnyRefJSStringLength::New(
+        alloc(), string, wasm::Trap::BadCast, bytecodeOffset());
+    if (!ins) {
+      return nullptr;
+    }
+    curBlock_->add(ins);
+    return ins;
+  }
+
   [[nodiscard]] bool dispatchInlineBuiltinModuleFunc(
       const BuiltinModuleFunc& builtinModuleFunc, const DefVector& params) {
     BuiltinInlineOp inlineOp = builtinModuleFunc.inlineOp();
@@ -3268,6 +3278,16 @@ class FunctionCompiler {
           return false;
         }
         iter().setResult(test);
+        return true;
+      }
+      case BuiltinInlineOp::StringLength: {
+        MOZ_ASSERT(params.length() == 1);
+        MDefinition* string = params[0];
+        MDefinition* length = stringLength(string);
+        if (!length) {
+          return false;
+        }
+        iter().setResult(length);
         return true;
       }
       case BuiltinInlineOp::None:
