@@ -305,11 +305,7 @@ struct arena_t;
 
 // Each element of the chunk map corresponds to one page within the chunk.
 struct arena_chunk_map_t {
-  // Linkage for run trees.  There are two disjoint uses:
-  //
-  // 1) arena_t's tree or available runs.
-  // 2) arena_run_t conceptually uses this linkage for in-use non-full
-  //    runs, rather than directly embedding linkage.
+  // Linkage for run trees. Used for arena_t's tree or available runs.
   RedBlackTreeNode<arena_chunk_map_t> link;
 
   // Run address (or size) and various flags are stored together.  The bit
@@ -987,15 +983,6 @@ struct ArenaChunkMapLink {
   }
 };
 
-struct ArenaRunTreeTrait : public ArenaChunkMapLink {
-  static inline Order Compare(arena_chunk_map_t* aNode,
-                              arena_chunk_map_t* aOther) {
-    MOZ_ASSERT(aNode);
-    MOZ_ASSERT(aOther);
-    return CompareAddr(aNode, aOther);
-  }
-};
-
 struct ArenaAvailTreeTrait : public ArenaChunkMapLink {
   static inline Order Compare(arena_chunk_map_t* aNode,
                               arena_chunk_map_t* aOther) {
@@ -1051,6 +1038,9 @@ struct arena_run_t {
   unsigned mNumFree;
 #endif
 
+  // Used by arena_bin_t::mNonFullRuns.
+  DoublyLinkedListElement<arena_run_t> mRunListElem;
+
   // Bin this run is associated with.
   arena_bin_t* mBin;
 
@@ -1066,17 +1056,28 @@ struct arena_run_t {
   unsigned mRegionsMask[];  // Dynamically sized.
 };
 
-struct arena_bin_t {
-  // Current run being used to service allocations of this bin's size
-  // class.
-  arena_run_t* mCurrentRun;
+namespace mozilla {
 
-  // Tree of non-full runs.  This tree is used when looking for an
-  // existing run when mCurrentRun is no longer usable.  We choose the
-  // non-full run that is lowest in memory; this policy tends to keep
-  // objects packed well, and it can also help reduce the number of
-  // almost-empty chunks.
-  RedBlackTree<arena_chunk_map_t, ArenaRunTreeTrait> mNonFullRuns;
+template <>
+struct GetDoublyLinkedListElement<arena_run_t> {
+  static DoublyLinkedListElement<arena_run_t>& Get(arena_run_t* aThis) {
+    return aThis->mRunListElem;
+  }
+};
+
+}  // namespace mozilla
+
+struct arena_bin_t {
+  // We use a LIFO ("last-in-first-out") policy to refill non-full runs.
+  //
+  // This has the following reasons:
+  // 1. It is cheap, as all our non-full-runs' book-keeping is O(1), no
+  //    tree-balancing or walking is needed.
+  // 2. It also helps to increase the probability for CPU cache hits for the
+  //    book-keeping and the reused slots themselves, as the same memory was
+  //    most recently touched during free, especially when used from the same
+  //    core (or via the same shared cache, depending on the architecture).
+  DoublyLinkedList<arena_run_t> mNonFullRuns;
 
   // Bin's size class.
   size_t mSizeClass;
@@ -1293,7 +1294,9 @@ struct arena_t {
   void TrimRunTail(arena_chunk_t* aChunk, arena_run_t* aRun, size_t aOldSize,
                    size_t aNewSize, bool dirty) MOZ_REQUIRES(mLock);
 
-  arena_run_t* GetNonFullBinRun(arena_bin_t* aBin) MOZ_REQUIRES(mLock);
+  arena_run_t* GetNewEmptyBinRun(arena_bin_t* aBin) MOZ_REQUIRES(mLock);
+
+  inline arena_run_t* GetNonFullBinRun(arena_bin_t* aBin) MOZ_REQUIRES(mLock);
 
   inline uint8_t FindFreeBitInMask(uint32_t aMask, uint32_t& aRng)
       MOZ_REQUIRES(mLock);
@@ -3653,31 +3656,15 @@ void arena_t::TrimRunTail(arena_chunk_t* aChunk, arena_run_t* aRun,
   MOZ_ASSERT(!no_chunk);
 }
 
-arena_run_t* arena_t::GetNonFullBinRun(arena_bin_t* aBin) {
-  arena_chunk_map_t* mapelm;
+arena_run_t* arena_t::GetNewEmptyBinRun(arena_bin_t* aBin) {
   arena_run_t* run;
   unsigned i, remainder;
-
-  // Look for a usable run.
-  mapelm = aBin->mNonFullRuns.First();
-  if (mapelm) {
-    // run is guaranteed to have available space.
-    aBin->mNonFullRuns.Remove(mapelm);
-    run = (arena_run_t*)(mapelm->bits & ~gPageSizeMask);
-    return run;
-  }
-  // No existing runs have any space available.
 
   // Allocate a new run.
   run = AllocRun(static_cast<size_t>(aBin->mRunSizePages) << gPageSize2Pow,
                  false, false);
   if (!run) {
     return nullptr;
-  }
-  // Don't initialize if a race in arena_t::RunAlloc() allowed an existing
-  // run to become usable.
-  if (run == aBin->mCurrentRun) {
-    return run;
   }
 
   // Initialize run internals.
@@ -3702,8 +3689,25 @@ arena_run_t* arena_t::GetNonFullBinRun(arena_bin_t* aBin) {
   run->mMagic = ARENA_RUN_MAGIC;
 #endif
 
+  // Make sure we continue to use this run for subsequent allocations.
+  new (&run->mRunListElem) DoublyLinkedListElement<arena_run_t>();
+  aBin->mNonFullRuns.pushFront(run);
+
   aBin->mNumRuns++;
   return run;
+}
+
+arena_run_t* arena_t::GetNonFullBinRun(arena_bin_t* aBin) {
+  auto mrf_head = aBin->mNonFullRuns.begin();
+  if (mrf_head) {
+    // Take the head and if we are going to fill it, remove it from our list.
+    arena_run_t* run = &(*mrf_head);
+    if (run->mNumFree == 1) {
+      aBin->mNonFullRuns.remove(run);
+    }
+    return run;
+  }
+  return GetNewEmptyBinRun(aBin);
 }
 
 void arena_bin_t::Init(SizeClass aSizeClass) {
@@ -3716,8 +3720,6 @@ void arena_bin_t::Init(SizeClass aSizeClass) {
 
   try_run_size = gPageSize;
 
-  mCurrentRun = nullptr;
-  mNonFullRuns.Init();
   mSizeClass = aSizeClass.Size();
   mNumRuns = 0;
 
@@ -3780,6 +3782,10 @@ void arena_bin_t::Init(SizeClass aSizeClass) {
   MOZ_ASSERT(kFixedHeaderSize + (sizeof(unsigned) * try_mask_nelms) <=
              try_reg0_offset);
   MOZ_ASSERT((try_mask_nelms << (LOG2(sizeof(int)) + 3)) >= try_nregs);
+
+  // Our list management would break if mRunNumRegions == 1 and we should use
+  // a large size class instead, anyways.
+  MOZ_ASSERT(try_nregs > 1);
 
   // Copy final settings.
   MOZ_ASSERT((try_run_size >> gPageSize2Pow) <= UINT8_MAX);
@@ -3875,10 +3881,7 @@ void* arena_t::MallocSmall(size_t aSize, bool aZero) {
     MOZ_ASSERT(!mRandomizeSmallAllocations || mPRNG ||
                (mIsPRNGInitializing && !isInitializingThread));
 
-    run = bin->mCurrentRun;
-    if (MOZ_UNLIKELY(!run || run->mNumFree == 0)) {
-      run = bin->mCurrentRun = GetNonFullBinRun(bin);
-    }
+    run = GetNonFullBinRun(bin);
     if (MOZ_UNLIKELY(!run)) {
       return nullptr;
     }
@@ -4325,53 +4328,28 @@ arena_chunk_t* arena_t::DallocSmall(arena_chunk_t* aChunk, void* aPtr,
   arena_chunk_t* dealloc_chunk = nullptr;
 
   if (run->mNumFree == bin->mRunNumRegions) {
-    // Deallocate run.
-    if (run == bin->mCurrentRun) {
-      bin->mCurrentRun = nullptr;
-    } else if (bin->mRunNumRegions != 1) {
-      size_t run_pageind =
-          (uintptr_t(run) - uintptr_t(aChunk)) >> gPageSize2Pow;
-      arena_chunk_map_t* run_mapelm = &aChunk->map[run_pageind];
-
-      // This block's conditional is necessary because if the
-      // run only contains one region, then it never gets
-      // inserted into the non-full runs tree.
-      MOZ_DIAGNOSTIC_ASSERT(bin->mNonFullRuns.Search(run_mapelm) == run_mapelm);
-      bin->mNonFullRuns.Remove(run_mapelm);
-    }
+    // This run is entirely freed, remove it from our bin.
 #if defined(MOZ_DIAGNOSTIC_ASSERT_ENABLED)
     run->mMagic = 0;
 #endif
+    MOZ_ASSERT(bin->mNonFullRuns.ElementProbablyInList(run));
+    bin->mNonFullRuns.remove(run);
     dealloc_chunk = DallocRun(run, true);
     bin->mNumRuns--;
-  } else if (run->mNumFree == 1 && run != bin->mCurrentRun) {
-    // Make sure that bin->mCurrentRun always refers to the lowest
-    // non-full run, if one exists.
-    if (!bin->mCurrentRun) {
-      bin->mCurrentRun = run;
-    } else if (uintptr_t(run) < uintptr_t(bin->mCurrentRun)) {
-      // Switch mCurrentRun.
-      if (bin->mCurrentRun->mNumFree > 0) {
-        arena_chunk_t* runcur_chunk = GetChunkForPtr(bin->mCurrentRun);
-        size_t runcur_pageind =
-            (uintptr_t(bin->mCurrentRun) - uintptr_t(runcur_chunk)) >>
-            gPageSize2Pow;
-        arena_chunk_map_t* runcur_mapelm = &runcur_chunk->map[runcur_pageind];
-
-        // Insert runcur.
-        MOZ_DIAGNOSTIC_ASSERT(!bin->mNonFullRuns.Search(runcur_mapelm));
-        bin->mNonFullRuns.Insert(runcur_mapelm);
-      }
-      bin->mCurrentRun = run;
-    } else {
-      size_t run_pageind =
-          (uintptr_t(run) - uintptr_t(aChunk)) >> gPageSize2Pow;
-      arena_chunk_map_t* run_mapelm = &aChunk->map[run_pageind];
-
-      MOZ_DIAGNOSTIC_ASSERT(bin->mNonFullRuns.Search(run_mapelm) == nullptr);
-      bin->mNonFullRuns.Insert(run_mapelm);
-    }
+  } else if (run->mNumFree == 1) {
+    // This is first slot we freed from this run, start tracking.
+    MOZ_ASSERT(!bin->mNonFullRuns.ElementProbablyInList(run));
+    bin->mNonFullRuns.pushFront(run);
   }
+  // else we just keep the run in mNonFullRuns where it is.
+  // Note that we could move it to the head of the list here to get a strict
+  // "most-recently-freed" order, but some of our benchmarks seem to be more
+  // sensible to the increased overhead that this brings than to the order
+  // supposedly slightly better for keeping CPU caches warm if we do.
+  // In general we cannot foresee the future, so any order we choose might
+  // perform different for different use cases and needs to be balanced with
+  // the book-keeping overhead via measurements.
+
   mStats.allocated_small -= size;
 
   return dealloc_chunk;
@@ -4674,7 +4652,7 @@ arena_t::~arena_t() {
     chunk_dealloc(mSpare, kChunkSize, ARENA_CHUNK);
   }
   for (i = 0; i < NUM_SMALL_CLASSES; i++) {
-    MOZ_RELEASE_ASSERT(!mBins[i].mNonFullRuns.First(), "Bin is not empty");
+    MOZ_RELEASE_ASSERT(mBins[i].mNonFullRuns.isEmpty(), "Bin is not empty");
   }
 #ifdef MOZ_DEBUG
   {
@@ -5393,14 +5371,8 @@ inline void MozJemalloc::jemalloc_stats_internal(
         size_t bin_unused = 0;
         size_t num_non_full_runs = 0;
 
-        for (auto mapelm : bin->mNonFullRuns.iter()) {
-          arena_run_t* run = (arena_run_t*)(mapelm->bits & ~gPageSizeMask);
-          bin_unused += run->mNumFree * bin->mSizeClass;
-          num_non_full_runs++;
-        }
-
-        if (bin->mCurrentRun) {
-          bin_unused += bin->mCurrentRun->mNumFree * bin->mSizeClass;
+        for (auto run : bin->mNonFullRuns) {
+          bin_unused += run.mNumFree * bin->mSizeClass;
           num_non_full_runs++;
         }
 
