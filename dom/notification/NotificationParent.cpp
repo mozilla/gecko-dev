@@ -155,9 +155,9 @@ mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
 nsresult NotificationParent::Show() {
   // Step 4.3 the show steps, which are almost all about processing `tag` and
   // then displaying the notification. Both are handled by
-  // nsIAlertsService::ShowAlert/PersistentNotification. The below is all about
-  // constructing the observer (for show and close events) right and ultimately
-  // call the alerts service function.
+  // nsIAlertsService::ShowAlert. The below is all about constructing the
+  // observer (for show and close events) right and ultimately call the alerts
+  // service function.
 
   // XXX(krosylight): Non-persistent notifications probably don't need this
   nsAutoString alertName;
@@ -193,13 +193,6 @@ nsresult NotificationParent::Show() {
                       mOptions.silent(), mOptions.vibrate()));
 
   nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
-
-  // XXX: We previously used ShowPersistentNotification here, but on all desktop
-  // backends and PContent it has always been just a pure alias to ShowAlert.
-  // And using it properly causes incorrect behavior on Android listener
-  // registration. Given the persistence happens elsewhere via
-  // UnpersistNotification(), we should remove
-  // nsIAlertsService::ShowPersistentNotification.
   MOZ_TRY(alertService->ShowAlert(alert, this));
 
 #ifdef ANDROID

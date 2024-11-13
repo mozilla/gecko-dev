@@ -33,13 +33,6 @@ AndroidAlerts::ShowAlertNotification(
 NS_IMETHODIMP
 AndroidAlerts::ShowAlert(nsIAlertNotification* aAlert,
                          nsIObserver* aAlertListener) {
-  return ShowPersistentNotification(u""_ns, aAlert, aAlertListener);
-}
-
-NS_IMETHODIMP
-AndroidAlerts::ShowPersistentNotification(const nsAString& aPersistentData,
-                                          nsIAlertNotification* aAlert,
-                                          nsIObserver* aAlertListener) {
   // nsAlertsService disables our alerts backend if we ever return failure
   // here. To keep the backend enabled, we always return NS_OK even if we
   // encounter an error here.
@@ -99,7 +92,7 @@ AndroidAlerts::ShowPersistentNotification(const nsAString& aPersistentData,
   rv = aAlert->GetVibrate(vibrate);
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
-  if (aPersistentData.IsEmpty() && aAlertListener) {
+  if (aAlertListener) {
     if (!sListenerMap) {
       sListenerMap = new ListenerMap();
     }

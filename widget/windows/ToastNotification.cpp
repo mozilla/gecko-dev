@@ -395,13 +395,6 @@ ToastNotification::ShowAlertNotification(
 }
 
 NS_IMETHODIMP
-ToastNotification::ShowPersistentNotification(const nsAString& aPersistentData,
-                                              nsIAlertNotification* aAlert,
-                                              nsIObserver* aAlertListener) {
-  return ShowAlert(aAlert, aAlertListener);
-}
-
-NS_IMETHODIMP
 ToastNotification::SetManualDoNotDisturb(bool aDoNotDisturb) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

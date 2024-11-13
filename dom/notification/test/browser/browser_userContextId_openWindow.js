@@ -24,10 +24,6 @@ let mockAlertsService = {
     }, 100);
   },
 
-  showPersistentNotification(persistentData, alert, alertListener) {
-    this.showAlert(alert, alertListener);
-  },
-
   QueryInterface: ChromeUtils.generateQI(["nsIAlertsService"]),
 
   createInstance(aIID) {

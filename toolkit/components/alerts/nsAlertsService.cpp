@@ -112,13 +112,7 @@ nsresult ShowWithIconBackend(nsIAlertsService* aBackend,
 
 nsresult ShowWithBackend(nsIAlertsService* aBackend,
                          nsIAlertNotification* aAlert,
-                         nsIObserver* aAlertListener,
-                         const nsAString& aPersistentData) {
-  if (!aPersistentData.IsEmpty()) {
-    return aBackend->ShowPersistentNotification(aPersistentData, aAlert,
-                                                aAlertListener);
-  }
-
+                         nsIObserver* aAlertListener) {
   if (Preferences::GetBool("alerts.showFavicons")) {
     nsresult rv = ShowWithIconBackend(aBackend, aAlert, aAlertListener);
     if (NS_SUCCEEDED(rv)) {
@@ -195,11 +189,6 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(
   return ShowAlert(alert, aAlertListener);
 }
 
-NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification* aAlert,
-                                         nsIObserver* aAlertListener) {
-  return ShowPersistentNotification(u""_ns, aAlert, aAlertListener);
-}
-
 static bool ShouldFallBackToXUL() {
 #if defined(XP_WIN) || defined(XP_MACOSX)
   // We know we always have system backend on Windows and macOS. Let's not
@@ -212,9 +201,8 @@ static bool ShouldFallBackToXUL() {
 #endif
 }
 
-NS_IMETHODIMP nsAlertsService::ShowPersistentNotification(
-    const nsAString& aPersistentData, nsIAlertNotification* aAlert,
-    nsIObserver* aAlertListener) {
+NS_IMETHODIMP nsAlertsService::ShowAlert(nsIAlertNotification* aAlert,
+                                         nsIObserver* aAlertListener) {
   NS_ENSURE_ARG(aAlert);
 
   nsAutoString cookie;
@@ -233,7 +221,7 @@ NS_IMETHODIMP nsAlertsService::ShowPersistentNotification(
   // Check if there is an optional service that handles system-level
   // notifications
   if (ShouldUseSystemBackend()) {
-    rv = ShowWithBackend(mBackend, aAlert, aAlertListener, aPersistentData);
+    rv = ShowWithBackend(mBackend, aAlert, aAlertListener);
     if (NS_SUCCEEDED(rv) || !ShouldFallBackToXUL()) {
       return rv;
     }
@@ -252,7 +240,7 @@ NS_IMETHODIMP nsAlertsService::ShowPersistentNotification(
   // Use XUL notifications as a fallback if above methods have failed.
   nsCOMPtr<nsIAlertsService> xulBackend(nsXULAlerts::GetInstance());
   NS_ENSURE_TRUE(xulBackend, NS_ERROR_FAILURE);
-  return ShowWithBackend(xulBackend, aAlert, aAlertListener, aPersistentData);
+  return ShowWithBackend(xulBackend, aAlert, aAlertListener);
 }
 
 NS_IMETHODIMP nsAlertsService::CloseAlert(const nsAString& aAlertName,

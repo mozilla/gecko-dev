@@ -19,10 +19,6 @@ function mockServicesChromeScript() {
   let activeNotifications = Object.create(null);
 
   const mockAlertsService = {
-    showPersistentNotification(persistentData, alert, alertListener) {
-      this.showAlert(alert, alertListener);
-    },
-
     showAlert(alert, listener) {
       activeNotifications[alert.name] = {
         listener,

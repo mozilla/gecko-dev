@@ -221,13 +221,6 @@ OSXNotificationCenter::ShowAlertNotification(
 }
 
 NS_IMETHODIMP
-OSXNotificationCenter::ShowPersistentNotification(
-    const nsAString& aPersistentData, nsIAlertNotification* aAlert,
-    nsIObserver* aAlertListener) {
-  return ShowAlert(aAlert, aAlertListener);
-}
-
-NS_IMETHODIMP
 OSXNotificationCenter::ShowAlert(nsIAlertNotification* aAlert,
                                  nsIObserver* aAlertListener) {
   return ShowAlertWithIconData(aAlert, aAlertListener, 0, nullptr);
