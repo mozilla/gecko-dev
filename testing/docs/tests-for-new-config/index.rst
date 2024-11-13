@@ -68,7 +68,7 @@ with skip-if conditions to green up the tests faster.
 Please input the proper `meta_bug_id` and `rev` into the above command.
 
 The first time running this, you will need to get a `bugzilla api key <https://bugzilla.mozilla.org/userprefs.cgi?tab=apikey>`__.  copy
-this key and add it to your `~/.config/python-bugzilla/bugzilla-rc` file:
+this key and add it to your `~/.config/python-bugzilla/bugzillarc` file:
 
 .. code-block:: none
 
