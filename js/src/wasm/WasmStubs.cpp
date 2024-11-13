@@ -1367,6 +1367,10 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
   masm.loadJSContext(scratch);
   masm.enterFakeExitFrame(scratch, scratch, ExitFrameType::DirectWasmJitCall);
 
+  static_assert(ExitFrameLayout::SizeWithFooter() % WasmStackAlignment == 0);
+  MOZ_ASSERT(
+      (masm.framePushed() + framePushedAtFakeFrame) % WasmStackAlignment == 0);
+
   // Move stack arguments to their final locations.
   unsigned bytesNeeded = StackArgBytesForWasmABI(funcType);
   bytesNeeded = StackDecrementForCall(

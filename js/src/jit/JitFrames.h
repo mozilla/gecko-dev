@@ -413,8 +413,8 @@ class ExitFrameLayout : public CommonFrameLayout {
   inline uint8_t* top() { return reinterpret_cast<uint8_t*>(this + 1); }
 
  public:
-  static inline size_t Size() { return sizeof(ExitFrameLayout); }
-  static inline size_t SizeWithFooter() {
+  static constexpr size_t Size() { return sizeof(ExitFrameLayout); }
+  static constexpr size_t SizeWithFooter() {
     return Size() + ExitFooterFrame::Size();
   }
 
