@@ -647,6 +647,68 @@ class RuntimeSettingsTest : BaseSessionTest() {
     }
 
     @Test
+    fun parallelMarkingEnabling() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        assertThat(
+            "Parallel Marking settings should default to false",
+            geckoRuntimeSettings.parallelMarkingEnabled,
+            equalTo(false),
+        )
+
+        geckoRuntimeSettings.setParallelMarkingEnabled(true)
+
+        assertThat(
+            "Parallel Marking setting should be set to true.",
+            geckoRuntimeSettings.parallelMarkingEnabled,
+            equalTo(true),
+        )
+
+        assertThat(
+            "Parallel Marking getter should be set to true.",
+            geckoRuntimeSettings.getParallelMarkingEnabled(),
+            equalTo(true),
+        )
+
+        val enabled =
+            (sessionRule.getPrefs("javascript.options.mem.gc_parallel_marking").get(0)) as Boolean
+
+        assertThat(
+            "Parallel Marking pref should be set to the expected value",
+            enabled,
+            equalTo(true),
+        )
+    }
+
+    @Test
+    fun parallelMarkingDisabling() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setParallelMarkingEnabled(false)
+
+        assertThat(
+            "Parallel Marking settings should be set to false.",
+            geckoRuntimeSettings.parallelMarkingEnabled,
+            equalTo(false),
+        )
+
+        assertThat(
+            "Parallel Marking getter should be set to false.",
+            geckoRuntimeSettings.getParallelMarkingEnabled(),
+            equalTo(false),
+        )
+
+        val enabled =
+            (sessionRule.getPrefs("javascript.options.mem.gc_parallel_marking").get(0)) as Boolean
+
+        assertThat(
+            "Parallel Marking pref should be set to the expected value",
+            enabled,
+            equalTo(false),
+        )
+    }
+
+    @Test
     fun cookieBehaviorOptInPartitioning() {
         val geckoRuntimeSettings = sessionRule.runtime.settings
 

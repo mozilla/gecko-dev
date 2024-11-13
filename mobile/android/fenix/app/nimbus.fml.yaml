@@ -617,6 +617,15 @@ features:
         type: Boolean
         default: true
 
+  javascript:
+    description: Enables Javascript Engine (Spidermonkey) features
+    variables:
+      parallelMarkingEnabled:
+        description: >
+          Enables or disables javascript.options.mem.gc_parallel_marking preference.
+        type: Boolean
+        default: false
+
 types:
   objects: {}
 

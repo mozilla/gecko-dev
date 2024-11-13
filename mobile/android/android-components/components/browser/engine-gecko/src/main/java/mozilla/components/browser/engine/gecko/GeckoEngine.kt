@@ -1374,6 +1374,10 @@ class GeckoEngine(
             get() = runtime.settings.fetchPriorityEnabled
             set(value) { runtime.settings.setFetchPriorityEnabled(value) }
 
+        override var parallelMarkingEnabled: Boolean
+            get() = runtime.settings.parallelMarkingEnabled
+            set(value) { runtime.settings.setParallelMarkingEnabled(value) }
+
         override var cookieBehaviorOptInPartitioning: Boolean
             get() = runtime.settings.cookieBehaviorOptInPartitioning
             set(value) { runtime.settings.setCookieBehaviorOptInPartitioning(value) }
@@ -1414,6 +1418,7 @@ class GeckoEngine(
             this.userCharacteristicPingCurrentVersion = it.userCharacteristicPingCurrentVersion
             this.webContentIsolationStrategy = it.webContentIsolationStrategy
             this.fetchPriorityEnabled = it.fetchPriorityEnabled
+            this.parallelMarkingEnabled = it.parallelMarkingEnabled
             this.cookieBehaviorOptInPartitioning = it.cookieBehaviorOptInPartitioning
             this.cookieBehaviorOptInPartitioningPBM = it.cookieBehaviorOptInPartitioningPBM
         }

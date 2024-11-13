@@ -894,6 +894,7 @@ package org.mozilla.geckoview {
     method @NonNull public int getLargeKeepaliveFactor();
     method @Nullable public String[] getLocales();
     method public boolean getLoginAutofillEnabled();
+    method public boolean getParallelMarkingEnabled();
     method public boolean getPauseForDebuggerEnabled();
     method public int getPreferredColorScheme();
     method public boolean getRemoteDebuggingEnabled();
@@ -935,6 +936,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setLargeKeepaliveFactor(int);
     method public void setLocales(@Nullable String[]);
     method @NonNull public GeckoRuntimeSettings setLoginAutofillEnabled(boolean);
+    method @NonNull public GeckoRuntimeSettings setParallelMarkingEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setPreferredColorScheme(int);
     method @NonNull public GeckoRuntimeSettings setRemoteDebuggingEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setTranslationsOfferPopup(boolean);

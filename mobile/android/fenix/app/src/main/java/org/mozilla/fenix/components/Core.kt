@@ -179,6 +179,7 @@ class Core(
             },
             webContentIsolationStrategy = WebContentIsolationStrategy.ISOLATE_HIGH_VALUE,
             fetchPriorityEnabled = FxNimbus.features.networking.value().fetchPriorityEnabled,
+            parallelMarkingEnabled = FxNimbus.features.javascript.value().parallelMarkingEnabled,
         )
 
         // Apply fingerprinting protection overrides if the feature is enabled in Nimbus
