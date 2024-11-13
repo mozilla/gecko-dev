@@ -1,235 +1,206 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "#/definitions/NimbusEnrollment",
-  "definitions": {
-    "NimbusEnrollment": {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$title": "NimbusEnrollment",
+  "description": "An enrollment in a Nimbus Experiment saved to disk",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "Unique identifier for the experiment"
+    },
+    "userFacingName": {
+      "type": "string",
+      "description": "Public name of the experiment displayed on \"about:studies\""
+    },
+    "userFacingDescription": {
+      "type": "string",
+      "description": "Short public description of the experiment displayed on on \"about:studies\""
+    },
+    "isRollout": {
+      "type": "boolean",
+      "description": "When this property is set to true, treat this experiment as a rollout. Rollouts are currently handled as single-branch experiments separated from the bucketing namespace for normal experiments. See also: https://mozilla-hub.atlassian.net/browse/SDK-405"
+    },
+    "featureIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of featureIds the experiment contains configurations for."
+    },
+    "branch": {
+      "$ref": "#/$defs/DesktopExperimentBranch",
+      "description": "Branch configuration for the experiment"
+    },
+    "experimentType": {
+      "type": "string",
+      "description": "What kind of experiment this enrollment corresponds to."
+    },
+    "active": {
+      "type": "boolean",
+      "description": "Whether or not the enrollment is active."
+    },
+    "lastSeen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The last time the experiment was seen."
+    },
+    "force": {
+      "type": "boolean",
+      "description": "Whether or not this was a force enrollment."
+    },
+    "prefs": {
+      "type": "array",
+      "description": "Information about prefs set by this enrollment.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the pref that was set."
+          },
+          "featureId": {
+            "type": "string",
+            "description": "The ID of the feature that owns the variable that set this pref."
+          },
+          "variable": {
+            "type": "string",
+            "description": "The variable that set this pref."
+          },
+          "branch": {
+            "type": "string",
+            "enum": ["user", "default"],
+            "description": "The branch the pref was set on."
+          },
+          "originalValue": {
+            "description": "The original value before the experiment."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "prefFlips": {
       "type": "object",
+      "description": "Information stored on this enrollment by the prefFlips feature. Only present if an experiment uses the prefFlips feature.",
+      "properties": {
+        "originalValues": {
+          "type": "object",
+          "description": "Original values for prefs set by this experiment.",
+          "patternProperties": {
+            ".*": {
+              "description": "The original value of the pref, or null if the pref was not set.",
+              "type": ["string", "integer", "boolean", "null"]
+            }
+          }
+        }
+      }
+    },
+    "localizations": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExperimentLocalizations"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Per-locale localization substitutions.\n\nThe top level key is the locale (e.g., \"en-US\" or \"fr\"). Each entry is a mapping of string IDs to their localized equivalents.\n\nOnly supported on desktop."
+    },
+    "unenrollReason": {
+      "type": "string",
+      "description": "The reason for unenrollment. Only present when the enrollment is inactive."
+    },
+    "isFirefoxLabsOptIn": {
+      "description": "When this property is set to true, treat this experiment as aFirefox Labs experiment",
+      "type": "boolean"
+    },
+    "firefoxLabsTitle": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "An optional string containing the Fluent ID for the title of the opt-in"
+    },
+    "firefoxLabsDescription": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "An optional string containing the Fluent ID for the description of the opt-in"
+    }
+  },
+  "required": [
+    "slug",
+    "userFacingName",
+    "userFacingDescription",
+    "branch",
+    "active",
+    "lastSeen"
+  ],
+  "$defs": {
+    "DesktopExperimentBranch": {
+      "description": "The branch definition supported on Firefox Desktop 95+.",
       "properties": {
         "slug": {
-          "type": "string",
-          "description": "Unique identifier for the experiment"
+          "description": "Identifier for the branch.",
+          "type": "string"
         },
-        "userFacingName": {
-          "type": "string",
-          "description": "Public name of the experiment displayed on \"about:studies\""
+        "ratio": {
+          "description": "Relative ratio of population for the branch. e.g., if branch A=1 and branch B=3, then branch A would get 25% of the population.",
+          "type": "integer"
         },
-        "userFacingDescription": {
-          "type": "string",
-          "description": "Short public description of the experiment displayed on on \"about:studies\""
-        },
-        "isRollout": {
-          "type": "boolean",
-          "description": "When this property is set to true, treat this experiment as a rollout. Rollouts are currently handled as single-branch experiments separated from the bucketing namespace for normal experiments. See also: https://mozilla-hub.atlassian.net/browse/SDK-405"
-        },
-        "featureIds": {
-          "type": "array",
+        "features": {
+          "description": "An array of feature configurations.",
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/ExperimentFeatureConfig"
           },
-          "description": "A list of featureIds the experiment contains configurations for."
+          "type": "array"
         },
-        "branch": {
+        "firefoxLabsTitle": {
           "anyOf": [
             {
-              "type": "object",
-              "properties": {
-                "slug": {
-                  "type": "string",
-                  "description": "Identifier for the branch"
-                },
-                "feature": {
-                  "type": "object",
-                  "properties": {
-                    "featureId": {
-                      "type": "string",
-                      "description": "The identifier for the feature flag"
-                    },
-                    "value": {
-                      "type": "object",
-                      "additionalProperties": {},
-                      "description": "Optional extra params for the feature (this should be validated against a schema)"
-                    }
-                  },
-                  "required": ["featureId", "value"],
-                  "description": "A single feature configuration"
-                }
-              },
-              "required": ["slug", "feature"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "slug": {
-                  "type": "string",
-                  "description": "Identifier for the branch"
-                },
-                "feature": {
-                  "type": "object",
-                  "properties": {
-                    "featureId": {
-                      "type": "string",
-                      "const": "unused-feature-id-for-legacy-support"
-                    },
-                    "enabled": {
-                      "type": "boolean",
-                      "const": false
-                    },
-                    "value": {
-                      "type": "object",
-                      "additionalProperties": {}
-                    }
-                  },
-                  "required": ["featureId", "enabled", "value"],
-                  "description": "The feature key must be provided with valid values to prevent crashes if the DTO is encountered by Desktop clients earlier than version 95."
-                },
-                "features": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "featureId": {
-                        "type": "string",
-                        "description": "The identifier for the feature flag"
-                      },
-                      "value": {
-                        "type": "object",
-                        "additionalProperties": {},
-                        "description": "Optional extra params for the feature (this should be validated against a schema)"
-                      }
-                    },
-                    "required": ["featureId", "value"]
-                  },
-                  "description": "An array of feature configurations"
-                }
-              },
-              "required": ["slug", "feature", "features"]
-            },
-            {
-              "type": "object",
-              "properties": {
-                "slug": {
-                  "type": "string",
-                  "description": "Identifier for the branch"
-                },
-                "features": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "featureId": {
-                        "type": "string",
-                        "description": "The identifier for the feature flag"
-                      },
-                      "value": {
-                        "type": "object",
-                        "additionalProperties": {},
-                        "description": "Optional extra params for the feature (this should be validated against a schema)"
-                      }
-                    },
-                    "required": ["featureId", "value"]
-                  },
-                  "description": "An array of feature configurations"
-                }
-              },
-              "required": ["slug", "features"]
-            }
-          ],
-          "description": "Branch configuration for the experiment"
-        },
-        "experimentType": {
-          "type": "string",
-          "description": "What kind of experiment this enrollment corresponds to."
-        },
-        "active": {
-          "type": "boolean",
-          "description": "Whether or not the enrollment is active."
-        },
-        "lastSeen": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The last time the experiment was seen."
-        },
-        "force": {
-          "type": "boolean",
-          "description": "Whether or not this was a force enrollment."
-        },
-        "prefs": {
-          "type": "array",
-          "description": "Information about prefs set by this enrollment.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "The name of the pref that was set."
-              },
-              "featureId": {
-                "type": "string",
-                "description": "The ID of the feature that owns the variable that set this pref."
-              },
-              "variable": {
-                "type": "string",
-                "description": "The variable that set this pref."
-              },
-              "branch": {
-                "type": "string",
-                "enum": ["user", "default"],
-                "description": "The branch the pref was set on."
-              },
-              "originalValue": {
-                "description": "The original value before the experiment."
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "prefFlips": {
-          "type": "object",
-          "description": "Information stored on this enrollment by the prefFlips feature. Only present if an experiment uses the prefFlips feature.",
-          "properties": {
-            "originalValues": {
-              "type": "object",
-              "description": "Original values for prefs set by this experiment.",
-              "patternProperties": {
-                ".*": {
-                  "description": "The original value of the pref, or null if the pref was not set.",
-                  "type": ["string", "integer", "boolean", "null"]
-                }
-              }
-            }
-          }
-        },
-        "localizations": {
-          "anyOf": [
-            {
-              "type": "object",
-              "additionalProperties": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
+              "type": "string"
             },
             {
               "type": "null"
             }
           ],
-          "description": "Per-locale localization substitutions.\n\nThe top level key is the locale (e.g., \"en-US\" or \"fr\"). Each entry is a mapping of string IDs to their localized equivalents.\n\nOnly supported on desktop."
-        },
-        "unenrollReason": {
-          "type": "string",
-          "description": "The reason for unenrollment. Only present when the enrollment is inactive."
+          "description": "An optional string containing the title of the branch"
         }
       },
-      "required": [
-        "slug",
-        "userFacingName",
-        "userFacingDescription",
-        "branch",
-        "active",
-        "lastSeen"
-      ],
-      "description": "An enrollment in a Nimbus Experiment saved to disk"
+      "required": ["slug", "ratio", "features"],
+      "type": "object"
+    },
+    "ExperimentFeatureConfig": {
+      "properties": {
+        "featureId": {
+          "description": "The identifier for the feature flag.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The values that define the feature configuration. This should be validated against a schema.",
+          "type": "object"
+        }
+      },
+      "required": ["featureId", "value"],
+      "type": "object"
+    },
+    "ExperimentLocalizations": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "description": "Per-locale localization substitutions. The top level key is the locale (e.g., \"en-US\" or \"fr\"). Each entry is a mapping of string IDs to their localized equivalents.",
+      "type": "object"
     }
   }
 }
