@@ -120,7 +120,7 @@ def run(src_root, obj_root, logger=None, **kwargs):
 
     ensure_manifest_directories(logger, test_paths)
 
-    local_config = read_local_config(src_wpt_dir)
+    local_config = read_local_config(os.path.join(src_wpt_dir, "wptrunner.ini"))
     for section in ["manifest:upstream", "manifest:mozilla"]:
         url_base = local_config.get(section, "url_base")
         manifest_rel_path = os.path.join(
@@ -172,9 +172,7 @@ def ensure_manifest_directories(logger, test_paths):
             raise IOError("Manifest directory is a file")
 
 
-def read_local_config(wpt_dir):
-    src_config_path = os.path.join(wpt_dir, "wptrunner.ini")
-
+def read_local_config(src_config_path):
     parser = configparser.ConfigParser()
     success = parser.read(src_config_path)
     assert src_config_path in success
@@ -193,15 +191,20 @@ def generate_config(logger, repo_root, wpt_dir, dest_path, force_rewrite=False):
             if e.errno != errno.EEXIST:
                 raise
 
+    src_config_path = os.path.join(wpt_dir, "wptrunner.ini")
     dest_config_path = os.path.join(dest_path, "wptrunner.local.ini")
 
-    if not force_rewrite and os.path.exists(dest_config_path):
+    if (
+        not force_rewrite
+        and os.path.exists(dest_config_path)
+        and os.stat(dest_config_path).st_mtime >= os.stat(src_config_path).st_mtime
+    ):
         logger.debug("Config is up to date, not regenerating")
         return dest_config_path
 
-    logger.info("Creating config file %s" % dest_config_path)
+    logger.info(f"Creating config file {dest_config_path}")
 
-    parser = read_local_config(wpt_dir)
+    parser = read_local_config(src_config_path)
 
     for section in ["manifest:upstream", "manifest:mozilla"]:
         meta_rel_path = parser.get(section, "metadata")
@@ -218,6 +221,11 @@ def generate_config(logger, repo_root, wpt_dir, dest_path, force_rewrite=False):
         "prefs",
         os.path.abspath(os.path.join(wpt_dir, parser.get("paths", "prefs"))),
     )
+    ws_extra_paths = ";".join(
+        os.path.abspath(os.path.join(wpt_dir, path))
+        for path in parser.get("paths", "ws_extra").split(";")
+    )
+    parser.set("paths", "ws_extra", ws_extra_paths)
 
     with open(dest_config_path, "wt") as config_file:
         parser.write(config_file)
