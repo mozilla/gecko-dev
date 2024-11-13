@@ -209,7 +209,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       aColor = NS_RGB(0xFF, 0xFF, 0xFF);
       break;
     case ColorID::MozSidebar:
-      aColor = aScheme == ColorScheme::Light ? NS_RGB(0xf6, 0xf6, 0xf6)
+      aColor = aScheme == ColorScheme::Light ? NS_RGB(0xff, 0xff, 0xff)
                                              : NS_RGB(0x2d, 0x2d, 0x2d);
       break;
     case ColorID::MozSidebarborder:
