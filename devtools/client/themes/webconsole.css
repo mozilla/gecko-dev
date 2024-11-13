@@ -44,6 +44,9 @@
      be renamed and/or moved to variables.css so they work everywhere */
   --error-color: light-dark(var(--red-70), var(--red-20));
   --console-output-color: light-dark(var(--grey-90), white);
+
+  --console-tracer-dom-background: light-dark(var(--blue-55), #204e8a);
+  --console-tracer-dom-color: white;
 }
 
 /* General output styles */
@@ -774,12 +777,12 @@ a.learn-more-link.webconsole-learn-more-link {
   margin-inline: 2px;
 }
 .webconsole-app .jstracer-dom-event {
-  background-color: var(--toolbarbutton-checked-background);
-  color: var(--toolbarbutton-checked-color);
+  background-color: var( --console-tracer-dom-background);
+  color: var(--console-tracer-dom-color);
 }
 .webconsole-app .jstracer-dom-mutation {
-  background-color: var(--toolbarbutton-checked-background);
-  color: var(--toolbarbutton-checked-color);
+  background-color: var( --console-tracer-dom-background);
+  color: var(--console-tracer-dom-color);
   margin-inline-end: 4px;
 }
 .webconsole-app .jstracer-implementation {
