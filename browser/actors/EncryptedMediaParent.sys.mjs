@@ -278,7 +278,7 @@ export class EncryptedMediaParent extends JSWindowActorParent {
   async reportEMEDecryptionProbe() {
     const isGleanReported =
       await Glean.mediadrm.decryption.has_hardware_decryption.testGetValue();
-    if (isGleanReported !== undefined) {
+    if (typeof isGleanReported === "boolean") {
       // Probe already exists, no need to report it again.
       return;
     }
