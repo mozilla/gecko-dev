@@ -29,7 +29,7 @@ Requirements
 1.1 Install Python
 ~~~~~~~~~~~~~~~~~~
 
-To build Firefox, it's necessary to have a Python of version 3.6 or later
+To build Firefox, it's necessary to have a Python of version 3.8 or later
 installed. Python 2 is no longer required to build Firefox, although it is still
 required for running some kinds of tests. Additionally, you will probably need
 Python development files as well to install some pip packages.
