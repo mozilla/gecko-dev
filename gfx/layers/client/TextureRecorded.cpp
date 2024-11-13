@@ -13,19 +13,14 @@
 namespace mozilla {
 namespace layers {
 
-// The texture ID is used in the GPU process both to lookup the real texture in
-// the canvas threads and to lookup the SurfaceDescriptor for that texture in
-// the compositor thread. It is therefore important that the ID is unique (per
-// recording process), otherwise an old descriptor can be picked up. This means
-// we can't use the pointer in the recording process as an ID like we do for
-// other objects.
-static int64_t sNextRecordedTextureId = 0;
-
 RecordedTextureData::RecordedTextureData(
     already_AddRefed<CanvasChild> aCanvasChild, gfx::IntSize aSize,
     gfx::SurfaceFormat aFormat, TextureType aTextureType,
     TextureType aWebglTextureType)
-    : mCanvasChild(aCanvasChild), mSize(aSize), mFormat(aFormat) {}
+    : mRemoteTextureOwnerId(RemoteTextureOwnerId::GetNext()),
+      mCanvasChild(aCanvasChild),
+      mSize(aSize),
+      mFormat(aFormat) {}
 
 RecordedTextureData::~RecordedTextureData() {
   // We need the translator to drop its reference for the DrawTarget first,
@@ -36,9 +31,9 @@ RecordedTextureData::~RecordedTextureData() {
     mDT->DetachTextureData(this);
     mDT = nullptr;
   }
-  mCanvasChild->CleanupTexture(mTextureId);
+  mCanvasChild->CleanupTexture(mRemoteTextureOwnerId);
   mCanvasChild->RecordEvent(RecordedTextureDestruction(
-      mTextureId, ToRemoteTextureTxnType(mFwdTransactionTracker),
+      mRemoteTextureOwnerId, ToRemoteTextureTxnType(mFwdTransactionTracker),
       ToRemoteTextureTxnId(mFwdTransactionTracker)));
 }
 
@@ -49,11 +44,6 @@ void RecordedTextureData::FillInfo(TextureData::Info& aInfo) const {
   aInfo.hasSynchronization = true;
 }
 
-void RecordedTextureData::SetRemoteTextureOwnerId(
-    RemoteTextureOwnerId aRemoteTextureOwnerId) {
-  mRemoteTextureOwnerId = aRemoteTextureOwnerId;
-}
-
 void RecordedTextureData::InvalidateContents() { mInvalidContents = true; }
 
 bool RecordedTextureData::Lock(OpenMode aMode) {
@@ -61,8 +51,7 @@ bool RecordedTextureData::Lock(OpenMode aMode) {
     return false;
   }
 
-  if (!mRemoteTextureOwnerId.IsValid()) {
-    MOZ_ASSERT(false);
+  if (!mDT && mInited) {
     return false;
   }
 
@@ -74,10 +63,9 @@ bool RecordedTextureData::Lock(OpenMode aMode) {
   bool wasInvalidContents = mInvalidContents;
   mInvalidContents = false;
 
-  if (!mDT) {
-    mTextureId = sNextRecordedTextureId++;
-    mDT = mCanvasChild->CreateDrawTarget(mTextureId, mRemoteTextureOwnerId,
-                                         mSize, mFormat);
+  if (!mDT && !mInited) {
+    mInited = true;
+    mDT = mCanvasChild->CreateDrawTarget(mRemoteTextureOwnerId, mSize, mFormat);
     if (!mDT) {
       return false;
     }
@@ -90,7 +78,7 @@ bool RecordedTextureData::Lock(OpenMode aMode) {
   }
 
   mCanvasChild->RecordEvent(
-      RecordedTextureLock(mTextureId, aMode, wasInvalidContents));
+      RecordedTextureLock(mRemoteTextureOwnerId, aMode, wasInvalidContents));
   mLockedMode = aMode;
   return true;
 }
@@ -119,7 +107,7 @@ void RecordedTextureData::Unlock() {
     mCanvasChild->RecordEvent(RecordedCacheDataSurface(mSnapshot.get()));
   }
 
-  mCanvasChild->RecordEvent(RecordedTextureUnlock(mTextureId));
+  mCanvasChild->RecordEvent(RecordedTextureUnlock(mRemoteTextureOwnerId));
 
   mLockedMode = OpenMode::OPEN_NONE;
 }
@@ -167,7 +155,7 @@ already_AddRefed<gfx::SourceSurface> RecordedTextureData::BorrowSnapshot() {
   }
 
   RefPtr<gfx::SourceSurface> wrapper = mCanvasChild->WrapSurface(
-      mSnapshot ? mSnapshot : mDT->Snapshot(), mTextureId);
+      mSnapshot ? mSnapshot : mDT->Snapshot(), mRemoteTextureOwnerId);
   mSnapshotWrapper = wrapper;
   return wrapper.forget();
 }
@@ -184,20 +172,12 @@ void RecordedTextureData::ReturnSnapshot(
 void RecordedTextureData::Deallocate(LayersIPCChannel* aAllocator) {}
 
 bool RecordedTextureData::Serialize(SurfaceDescriptor& aDescriptor) {
-  if (!mRemoteTextureOwnerId.IsValid()) {
-    MOZ_ASSERT_UNREACHABLE("Missing remote texture owner id!");
-    return false;
-  }
-
   // If something is querying the id, assume it is going to be composited.
   if (!mUsedRemoteTexture) {
     mLastRemoteTextureId = RemoteTextureId::GetNext();
     mCanvasChild->RecordEvent(
-        RecordedPresentTexture(mTextureId, mLastRemoteTextureId));
+        RecordedPresentTexture(mRemoteTextureOwnerId, mLastRemoteTextureId));
     mUsedRemoteTexture = true;
-  } else if (!mLastRemoteTextureId.IsValid()) {
-    MOZ_ASSERT_UNREACHABLE("Missing remote texture id!");
-    return false;
   }
 
   aDescriptor = SurfaceDescriptorRemoteTexture(mLastRemoteTextureId,
@@ -223,7 +203,7 @@ TextureFlags RecordedTextureData::GetTextureFlags() const {
 }
 
 bool RecordedTextureData::RequiresRefresh() const {
-  return mCanvasChild->RequiresRefresh(mTextureId);
+  return mCanvasChild->RequiresRefresh(mRemoteTextureOwnerId);
 }
 
 }  // namespace layers

@@ -10,6 +10,7 @@
 #include "mozilla/layers/RemoteTextureMap.h"
 #include "mozilla/layers/TextureClient.h"
 #include "mozilla/layers/TextureForwarder.h"
+#include "mozilla/layers/TextureRecorded.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/CanvasManagerChild.h"
 #include "mozilla/gfx/DrawTargetWebgl.h"
@@ -102,22 +103,17 @@ PersistentBufferProviderBasic::Create(gfx::IntSize aSize,
 static already_AddRefed<TextureClient> CreateTexture(
     KnowsCompositor* aKnowsCompositor, gfx::SurfaceFormat aFormat,
     gfx::IntSize aSize, bool aWillReadFrequently = false,
-    Maybe<RemoteTextureOwnerId> aRemoteTextureOwnerId = {}) {
+    bool aUseRemoteTexture = false) {
   TextureAllocationFlags flags = ALLOC_DEFAULT;
   if (aWillReadFrequently) {
     flags = TextureAllocationFlags(flags | ALLOC_DO_NOT_ACCELERATE);
   }
-  if (aRemoteTextureOwnerId) {
+  if (aUseRemoteTexture) {
     flags = TextureAllocationFlags(flags | ALLOC_FORCE_REMOTE);
   }
   RefPtr<TextureClient> tc = TextureClient::CreateForDrawing(
       aKnowsCompositor, aFormat, aSize, BackendSelector::Canvas,
       TextureFlags::DEFAULT | TextureFlags::NON_BLOCKING_READ_LOCK, flags);
-  if (tc && aRemoteTextureOwnerId) {
-    if (TextureData* td = tc->GetInternalData()) {
-      td->SetRemoteTextureOwnerId(*aRemoteTextureOwnerId);
-    }
-  }
   return tc.forget();
 }
 
@@ -144,16 +140,23 @@ PersistentBufferProviderAccelerated::Create(gfx::IntSize aSize,
 #endif
   }
 
-  auto remoteTextureOwnerId = RemoteTextureOwnerId::GetNext();
-
   RefPtr<TextureClient> texture = CreateTexture(
-      aKnowsCompositor, aFormat, aSize, false, Some(remoteTextureOwnerId));
+      aKnowsCompositor, aFormat, aSize, false, /* aUseRemoteTexture */ true);
   if (!texture) {
     return nullptr;
   }
 
+  auto* recordedTextureData =
+      texture->GetInternalData()->AsRecordedTextureData();
+  if (!recordedTextureData) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    gfxCriticalNoteOnce << "Expected RecordedTextureData";
+    return nullptr;
+  }
+
   RefPtr<PersistentBufferProviderAccelerated> provider =
-      new PersistentBufferProviderAccelerated(remoteTextureOwnerId, texture);
+      new PersistentBufferProviderAccelerated(
+          recordedTextureData->mRemoteTextureOwnerId, texture);
   return provider.forget();
 }
 

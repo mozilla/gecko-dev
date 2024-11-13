@@ -63,6 +63,7 @@ class TextureClient;
 class ITextureClientRecycleAllocator;
 class SharedSurfaceTextureData;
 class TextureForwarder;
+class RecordedTextureData;
 struct RemoteTextureOwnerId;
 
 /**
@@ -306,6 +307,8 @@ class TextureData {
     return nullptr;
   }
 
+  virtual RecordedTextureData* AsRecordedTextureData() { return nullptr; }
+
   // It is used by AndroidHardwareBufferTextureData and
   // SharedSurfaceTextureData. Returns buffer id when it owns
   // AndroidHardwareBuffer. It is used only on android.
@@ -317,8 +320,6 @@ class TextureData {
   virtual mozilla::ipc::FileDescriptor GetAcquireFence() {
     return mozilla::ipc::FileDescriptor();
   }
-
-  virtual void SetRemoteTextureOwnerId(RemoteTextureOwnerId) {}
 
   virtual bool RequiresRefresh() const { return false; }
 

@@ -53,10 +53,11 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
 
   ipc::IPCResult RecvBlockCanvas();
 
-  ipc::IPCResult RecvNotifyRequiresRefresh(int64_t aTextureId);
+  ipc::IPCResult RecvNotifyRequiresRefresh(
+      const RemoteTextureOwnerId aTextureOwnerId);
 
-  ipc::IPCResult RecvSnapshotShmem(int64_t aTextureId, Handle&& aShmemHandle,
-                                   uint32_t aShmemSize,
+  ipc::IPCResult RecvSnapshotShmem(const RemoteTextureOwnerId aTextureOwnerId,
+                                   Handle&& aShmemHandle, uint32_t aShmemSize,
                                    SnapshotShmemResolver&& aResolve);
 
   /**
@@ -100,14 +101,14 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
 
   /**
    * Create a DrawTargetRecording for a canvas texture.
-   * @param aTextureId the id of the new texture
+   * @param aTextureOwnerId the id of the new texture
    * @param aSize size for the DrawTarget
    * @param aFormat SurfaceFormat for the DrawTarget
    * @returns newly created DrawTargetRecording
    */
   already_AddRefed<gfx::DrawTargetRecording> CreateDrawTarget(
-      int64_t aTextureId, const RemoteTextureOwnerId& aTextureOwnerId,
-      gfx::IntSize aSize, gfx::SurfaceFormat aFormat);
+      const RemoteTextureOwnerId& aTextureOwnerId, gfx::IntSize aSize,
+      gfx::SurfaceFormat aFormat);
 
   /**
    * Record an event for processing by the CanvasParent's CanvasTranslator.
@@ -121,11 +122,12 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
    * Wrap the given surface, so that we can provide a DataSourceSurface if
    * required.
    * @param aSurface the SourceSurface to wrap
-   * @param aTextureId the texture id of the source TextureData
+   * @param aTextureOwnerId the texture id of the source TextureData
    * @returns a SourceSurface that can provide a DataSourceSurface if required
    */
   already_AddRefed<gfx::SourceSurface> WrapSurface(
-      const RefPtr<gfx::SourceSurface>& aSurface, int64_t aTextureId);
+      const RefPtr<gfx::SourceSurface>& aSurface,
+      const RemoteTextureOwnerId aTextureOwnerId);
 
   /**
    * The DrawTargetRecording backing the surface has not been modified since the
@@ -142,7 +144,7 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
   /**
    * Get DataSourceSurface from the translated equivalent version of aSurface in
    * the GPU process.
-   * @param aTextureId the source TextureData to read from
+   * @param aTextureOwnerId the source TextureData to read from
    * @param aSurface the SourceSurface in this process for which we need a
    *                 DataSourceSurface
    * @param aDetached whether the surface is old
@@ -151,12 +153,12 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
    *          GPU process
    */
   already_AddRefed<gfx::DataSourceSurface> GetDataSurface(
-      int64_t aTextureId, const gfx::SourceSurface* aSurface, bool aDetached,
-      bool& aMayInvalidate);
+      const RemoteTextureOwnerId aTextureOwnerId,
+      const gfx::SourceSurface* aSurface, bool aDetached, bool& aMayInvalidate);
 
-  bool RequiresRefresh(int64_t aTextureId) const;
+  bool RequiresRefresh(const RemoteTextureOwnerId aTextureOwnerId) const;
 
-  void CleanupTexture(int64_t aTextureId);
+  void CleanupTexture(const RemoteTextureOwnerId aTextureOwnerId);
 
   void ReturnDataSurfaceShmem(
       already_AddRefed<ipc::SharedMemory> aDataSurfaceShmem);
@@ -190,7 +192,9 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
     RefPtr<mozilla::ipc::SharedMemory> mSnapshotShmem;
     bool mRequiresRefresh = false;
   };
-  std::unordered_map<int64_t, TextureInfo> mTextureInfo;
+  std::unordered_map<RemoteTextureOwnerId, TextureInfo,
+                     RemoteTextureOwnerId::HashFn>
+      mTextureInfo;
   bool mIsInTransaction = false;
   bool mDormant = false;
   bool mBlocked = false;

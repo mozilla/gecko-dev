@@ -45,13 +45,14 @@ class RecordedTextureData final : public TextureData {
 
   TextureFlags GetTextureFlags() const final;
 
-  void SetRemoteTextureOwnerId(
-      RemoteTextureOwnerId aRemoteTextureOwnerId) final;
-
   bool RequiresRefresh() const final;
 
   already_AddRefed<FwdTransactionTracker> UseCompositableForwarder(
       CompositableForwarder* aForwarder) final;
+
+  RecordedTextureData* AsRecordedTextureData() final { return this; }
+
+  const RemoteTextureOwnerId mRemoteTextureOwnerId;
 
  protected:
   friend class gfx::DrawTargetRecording;
@@ -65,7 +66,6 @@ class RecordedTextureData final : public TextureData {
 
   void DetachSnapshotWrapper(bool aInvalidate = false, bool aRelease = true);
 
-  int64_t mTextureId;
   RefPtr<CanvasChild> mCanvasChild;
   gfx::IntSize mSize;
   gfx::SurfaceFormat mFormat;
@@ -74,10 +74,10 @@ class RecordedTextureData final : public TextureData {
   RefPtr<gfx::SourceSurface> mSnapshotWrapper;
   OpenMode mLockedMode;
   RemoteTextureId mLastRemoteTextureId;
-  RemoteTextureOwnerId mRemoteTextureOwnerId;
   RefPtr<layers::FwdTransactionTracker> mFwdTransactionTracker;
   bool mUsedRemoteTexture = false;
   bool mInvalidContents = true;
+  bool mInited = false;
 };
 
 }  // namespace layers

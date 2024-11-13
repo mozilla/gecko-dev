@@ -195,14 +195,14 @@ class FilterNodeRecording : public FilterNode {
 };
 
 DrawTargetRecording::DrawTargetRecording(
-    layers::CanvasDrawEventRecorder* aRecorder, int64_t aTextureId,
+    layers::CanvasDrawEventRecorder* aRecorder,
     const layers::RemoteTextureOwnerId& aTextureOwnerId, DrawTarget* aDT,
     const IntSize& aSize)
     : mRecorder(static_cast<DrawEventRecorderPrivate*>(aRecorder)),
       mFinalDT(aDT),
       mRect(IntPoint(0, 0), aSize) {
   RecordEventSkipFlushTransform(layers::RecordedCanvasDrawTargetCreation(
-      this, aTextureId, aTextureOwnerId, mFinalDT->GetBackendType(), aSize,
+      this, aTextureOwnerId, mFinalDT->GetBackendType(), aSize,
       mFinalDT->GetFormat()));
   mFormat = mFinalDT->GetFormat();
   DrawTarget::SetPermitSubpixelAA(IsOpaque(mFormat));

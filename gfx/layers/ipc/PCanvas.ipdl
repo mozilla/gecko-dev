@@ -92,12 +92,12 @@ child:
   /**
    * Notify that a remote accelerated canvas requires a fallback refresh.
    */
-  async NotifyRequiresRefresh(int64_t aTextureId);
+  async NotifyRequiresRefresh(RemoteTextureOwnerId aTextureOwnerId);
 
   /**
    * Cache the shmem of the framebuffer for snapshotting.
    */
-  async SnapshotShmem(int64_t aTextureId, Handle aShmemHandle, uint32_t aShmemSize) returns (bool aSuccess);
+  async SnapshotShmem(RemoteTextureOwnerId aTextureOwnerId, Handle aShmemHandle, uint32_t aShmemSize) returns (bool aSuccess);
 };
 
 } // layers
