@@ -27,6 +27,16 @@ XPCOM_MANIFESTS += [
     "components.conf",
 ]
 
+XPIDL_MODULE = "permissions"
+
+XPIDL_SOURCES += [
+    "nsIRemotePermissionService.idl",
+]
+
+EXTRA_JS_MODULES += [
+    "RemotePermissionService.sys.mjs",
+]
+
 LOCAL_INCLUDES += [
     "/caps",
 ]

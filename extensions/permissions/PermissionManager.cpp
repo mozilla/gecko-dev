@@ -6,6 +6,9 @@
 
 #include "mozilla/AbstractThread.h"
 #include "mozilla/AppShutdown.h"
+#ifdef MOZ_BACKGROUNDTASKS
+#  include "mozilla/BackgroundTasks.h"
+#endif
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/ContentPrincipal.h"
@@ -2795,10 +2798,13 @@ NS_IMETHODIMP PermissionManager::Observe(nsISupports* aSubject,
                                          const char16_t* someData) {
   ENSURE_NOT_CHILD_PROCESS;
 
-  if (!nsCRT::strcmp(aTopic, "profile-do-change") && !mPermissionsFile) {
-    // profile startup is complete, and we didn't have the permissions file
-    // before; init the db from the new location
-    InitDB(false);
+  if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
+    if (!mPermissionsFile) {
+      // profile startup is complete, and we didn't have the permissions file
+      // before; init the db from the new location
+      InitDB(false);
+    }
+    InitRemotePermissionService();
   } else if (!nsCRT::strcmp(aTopic, "testonly-reload-permissions-from-disk")) {
     // Testing mechanism to reload all permissions from disk. Because the
     // permission manager automatically initializes itself at startup, tests
@@ -2810,6 +2816,7 @@ NS_IMETHODIMP PermissionManager::Observe(nsISupports* aSubject,
     RemoveAllFromMemory();
     CloseDB(eNone);
     InitDB(false);
+    InitRemotePermissionService();
   } else if (!nsCRT::strcmp(aTopic, OBSERVER_TOPIC_IDLE_DAILY)) {
     PerformIdleDailyMaintenance();
   }
@@ -3254,6 +3261,33 @@ void PermissionManager::CompleteRead() {
                      &entry.mOrigin);
     Unused << NS_WARN_IF(NS_FAILED(rv));
   }
+}
+
+void PermissionManager::InitRemotePermissionService() {
+  // Check if this service is disabled by pref, and abort if it is.
+  if (!StaticPrefs::permissions_manager_remote_enabled()) {
+    return;
+  }
+
+  // Also abort if we are in a background task. We do not want to call remote
+  // settings there, because we do not want to pollute the background task
+  // profile, and because we don't need the remote permissions there anyways.
+#ifdef MOZ_BACKGROUNDTASKS
+  if (BackgroundTasks::IsBackgroundTaskMode()) {
+    return;
+  }
+#endif
+
+  NS_DispatchToCurrentThreadQueue(
+      NS_NewRunnableFunction(
+          "RemotePermissionService::Init",
+          [&] {
+            nsCOMPtr<nsIRemotePermissionService> remotePermissionService =
+                do_GetService(NS_REMOTEPERMISSIONSERVICE_CONTRACTID);
+            NS_ENSURE_TRUE_VOID(remotePermissionService);
+            remotePermissionService->Init();
+          }),
+      EventQueuePriority::Idle);
 }
 
 void PermissionManager::MaybeAddReadEntryFromMigration(

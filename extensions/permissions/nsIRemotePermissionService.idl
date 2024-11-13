@@ -1,0 +1,41 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIPrincipal;
+
+/**
+ * Service to import default permissions from Remote Settings. Will be
+ * initialized by permission manager after it itself has completed its
+ * initialization, and will then import default permissions from Remote Settings
+ * asynchronously. This also means default permissions aren't guranteed to be
+ * available directly after startup.
+ */
+[scriptable, uuid(a4b1b3b1-b68a-4129-aa2f-eb086162a8c7)]
+interface nsIRemotePermissionService : nsISupports {
+    /**
+     * Asynchonously import all default permissions from remote settings into
+     * the permission manager. Also, if not already done, set up remote settings
+     * event listener to keep remote permissions in sync.
+     */
+    void init();
+    /**
+     * Promise that is resolved when the remote permission service has been
+     * fully initialized, meaning all intial permissions have been imported and
+     * the remote settings sync event listener has been set up. If any errors
+     * are encountered during inizialization, this promise will be rejected.
+     */
+    readonly attribute Promise isInitialized;
+    /**
+     * Allowed permission types and values to be set through remote settings.
+     * See RemotePermissionService.sys.mjs for further documentation. Exposed
+     * only for testing purposes.
+     */
+    attribute jsval testAllowedPermissionValues;
+};
+
+%{C++
+#define NS_REMOTEPERMISSIONSERVICE_CONTRACTID "@mozilla.org/remote-permission-service;1"
+%}
