@@ -170,7 +170,7 @@ class MenuDialogMiddleware(
         try {
             val addons = addonManager.getAddons()
 
-            store.dispatch(MenuAction.UpdateInstalledAddons(addons.filter { it.isInstalled() }))
+            store.dispatch(MenuAction.UpdateAvailableAddons(addons.filter { it.isInstalled() && it.isEnabled() }))
 
             if (addons.any { it.isInstalled() }) {
                 store.dispatch(MenuAction.UpdateShowExtensionsOnboarding(false))

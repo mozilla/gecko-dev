@@ -31,7 +31,7 @@ import org.mozilla.fenix.theme.Theme
  * @param accessPoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
  * @param account [Account] information available for a synced account.
  * @param accountState The [AccountState] of a Mozilla account.
- * @param installedAddons A list of installed [Addon]s to be shown.
+ * @param availableAddons A list of installed and enabled [Addon]s to be shown.
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
@@ -66,7 +66,7 @@ fun MainMenu(
     accessPoint: MenuAccessPoint,
     account: Account?,
     accountState: AccountState,
-    installedAddons: List<Addon>,
+    availableAddons: List<Addon>,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
@@ -112,7 +112,7 @@ fun MainMenu(
 
         ToolsAndActionsMenuGroup(
             accessPoint = accessPoint,
-            installedAddons = installedAddons,
+            availableAddons = availableAddons,
             isDesktopMode = isDesktopMode,
             isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
@@ -211,7 +211,7 @@ private fun NewTabsMenuGroup(
 @Composable
 private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
-    installedAddons: List<Addon>,
+    availableAddons: List<Addon>,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
@@ -293,15 +293,11 @@ private fun ToolsAndActionsMenuGroup(
             description = if (isExtensionsProcessDisabled) {
                 stringResource(R.string.browser_menu_extensions_disabled_description)
             } else {
-                if (installedAddons.isEmpty()) {
+                if (availableAddons.isEmpty()) {
                     stringResource(R.string.browser_menu_no_extensions_installed_description)
                 } else {
-                    var description: String? = ""
                     val context = LocalContext.current
-                    for (addon in installedAddons) {
-                        description += addon.displayName(context) + if (installedAddons.size > 1) ", " else ""
-                    }
-                    description
+                    availableAddons.joinToString(separator = ", ") { it.displayName(context) }
                 }
             },
             descriptionState = if (isExtensionsProcessDisabled) {
@@ -397,7 +393,7 @@ private fun MenuDialogPreview() {
                 accessPoint = MenuAccessPoint.Browser,
                 account = null,
                 accountState = NotAuthenticated,
-                installedAddons = emptyList(),
+                availableAddons = emptyList(),
                 isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,
@@ -439,7 +435,7 @@ private fun MenuDialogPrivatePreview() {
                 accessPoint = MenuAccessPoint.Home,
                 account = null,
                 accountState = NotAuthenticated,
-                installedAddons = emptyList(),
+                availableAddons = emptyList(),
                 isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,

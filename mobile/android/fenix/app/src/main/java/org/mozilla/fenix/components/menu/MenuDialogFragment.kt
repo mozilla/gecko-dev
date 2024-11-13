@@ -332,8 +332,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         state.extensionMenuState.showDisabledExtensionsOnboarding
                     }
 
-                    val installedAddons by store.observeAsState(initialValue = emptyList()) { state ->
-                        state.extensionMenuState.installedAddons
+                    val availableAddons by store.observeAsState(initialValue = emptyList()) { state ->
+                        state.extensionMenuState.availableAddons
                     }
 
                     val initRoute = when (args.accesspoint) {
@@ -411,7 +411,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     accessPoint = args.accesspoint,
                                     account = account,
                                     accountState = accountState,
-                                    installedAddons = installedAddons,
+                                    availableAddons = availableAddons,
                                     isPrivate = browsingModeManager.mode.isPrivate,
                                     isDesktopMode = isDesktopMode,
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,

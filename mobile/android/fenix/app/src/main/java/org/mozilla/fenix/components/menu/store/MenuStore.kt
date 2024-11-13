@@ -80,7 +80,7 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.InstallAddonSuccess -> state.copyWithExtensionMenuState { extensionState ->
             extensionState.copy(
                 recommendedAddons = state.extensionMenuState.recommendedAddons.filter { it != action.addon },
-                installedAddons = state.extensionMenuState.installedAddons.plus(action.addon),
+                availableAddons = state.extensionMenuState.availableAddons.plus(action.addon),
                 addonInstallationInProgress = null,
             )
         }
@@ -97,8 +97,8 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
             it.copy(shouldShowManageExtensionsMenuItem = action.isVisible)
         }
 
-        is MenuAction.UpdateInstalledAddons -> state.copyWithExtensionMenuState {
-            it.copy(installedAddons = action.installedAddons)
+        is MenuAction.UpdateAvailableAddons -> state.copyWithExtensionMenuState {
+            it.copy(availableAddons = action.availableAddons)
         }
     }
 }

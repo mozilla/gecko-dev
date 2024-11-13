@@ -188,7 +188,7 @@ class MenuDialogMiddlewareTest {
         // Wait for UpdateExtensionState and middleware
         store.waitUntilIdle()
 
-        assertTrue(store.state.extensionMenuState.installedAddons.isEmpty())
+        assertTrue(store.state.extensionMenuState.availableAddons.isEmpty())
         assertEquals(1, store.state.extensionMenuState.recommendedAddons.size)
         assertEquals(addon, store.state.extensionMenuState.recommendedAddons.first())
         assertTrue(store.state.extensionMenuState.showExtensionsOnboarding)
@@ -203,6 +203,7 @@ class MenuDialogMiddlewareTest {
                 installedState = Addon.InstalledState(
                     id = "id",
                     version = "1.0",
+                    enabled = true,
                     optionsPageUrl = "",
                 ),
             )
@@ -219,7 +220,38 @@ class MenuDialogMiddlewareTest {
             // Wait for UpdateExtensionState and middleware
             store.waitUntilIdle()
 
-            assertEquals(1, store.state.extensionMenuState.installedAddons.size)
+            assertEquals(1, store.state.extensionMenuState.availableAddons.size)
+            assertTrue(store.state.extensionMenuState.recommendedAddons.isEmpty())
+            assertFalse(store.state.extensionMenuState.showExtensionsOnboarding)
+            assertTrue(store.state.extensionMenuState.shouldShowManageExtensionsMenuItem)
+        }
+
+    @Test
+    fun `GIVEN at least one addon is installed and not enabled WHEN init action is dispatched THEN initial extension state is updated`() =
+        runTestOnMain {
+            val addon = Addon(
+                id = "ext",
+                installedState = Addon.InstalledState(
+                    id = "id",
+                    version = "1.0",
+                    enabled = false,
+                    optionsPageUrl = "",
+                ),
+            )
+
+            whenever(addonManager.getAddons()).thenReturn(listOf(addon))
+
+            val store = createStore()
+
+            assertEquals(0, store.state.extensionMenuState.recommendedAddons.size)
+
+            // Wait for InitAction and middleware
+            store.waitUntilIdle()
+
+            // Wait for UpdateExtensionState and middleware
+            store.waitUntilIdle()
+
+            assertTrue(store.state.extensionMenuState.availableAddons.isEmpty())
             assertTrue(store.state.extensionMenuState.recommendedAddons.isEmpty())
             assertFalse(store.state.extensionMenuState.showExtensionsOnboarding)
             assertTrue(store.state.extensionMenuState.shouldShowManageExtensionsMenuItem)
