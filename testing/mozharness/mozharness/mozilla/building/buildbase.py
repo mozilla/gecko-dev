@@ -989,10 +989,9 @@ items from that key's value."
         if self.config.get("debug_build"):
             return False
 
-        # OS X opt builds without a variant are shipped.
-        if self.config.get("platform") == "macosx64":
-            if not self.config.get("build_variant"):
-                return True
+        # shippable builds set nightly_build
+        if self.query_is_nightly():
+            return True
 
         # Android opt builds without a variant are shipped.
         if self.config.get("platform") == "android":
