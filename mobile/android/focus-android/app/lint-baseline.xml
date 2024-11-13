@@ -684,28 +684,6 @@
     </issue>
 
     <issue
-        id="Typos"
-        message="&quot;media&quot; is a common misspelling; did you mean &quot;medier&quot;?"
-        errorLine1="    &lt;string name=&quot;preference_privacy_block_social&quot;>Blokker sosiale media-sporere&lt;/string>"
-        errorLine2="                                                                   ^">
-        <location
-            file="src/main/res/values-nb-rNO/strings.xml"
-            line="296"
-            column="68"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="Repeated word &quot;zaman&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;preference_studies_summary&quot; tools:ignore=&quot;BrandUsage&quot;>Firefox zaman zaman araştırmalar yükleyip çalıştırabilir.&lt;/string>"
-        errorLine2="                                                                                ^">
-        <location
-            file="src/main/res/values-tr/strings.xml"
-            line="837"
-            column="81"/>
-    </issue>
-
-    <issue
         id="ExtraTranslation"
         message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
         errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Докоснете или изчистете това известие, за да изтриете сигурно историята на сърфирането.&lt;/string>"

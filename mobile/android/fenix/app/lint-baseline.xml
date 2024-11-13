@@ -1200,61 +1200,6 @@
     </issue>
 
     <issue
-        id="Typos"
-        message="&quot;internett&quot; is usually capitalized as &quot;Internett&quot;"
-        errorLine1="    &lt;string name=&quot;private_browsing_placeholder_description_2&quot;>%1$s fjerner søk- og nettleserhistorikken fra private nettlesingsfaner når du lukker dem eller avslutter appen. Selv om dette ikke gjør deg anonym for nettsteder eller internett-leverandøren din, vil det gjøre det lettere"
-        errorLine2="                                                                                                                                                                                                                                      ^">
-        <location
-            file="src/main/res/values-nb-rNO/strings.xml"
-            line="63"
-            column="231"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="&quot;internett&quot; is usually capitalized as &quot;Internett&quot;"
-        errorLine1="    &lt;string name=&quot;onboarding_home_welcome_title_2&quot;>Velkommen til et mer personlig internett&lt;/string>"
-        errorLine2="                                                                                  ^">
-        <location
-            file="src/main/res/values-nb-rNO/strings.xml"
-            line="411"
-            column="83"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="Repeated word &quot;zaman&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;studies_description_2&quot;>%1$s zaman zaman araştırmalar yükleyip çalıştırabilir.&lt;/string>"
-        errorLine2="                                              ^">
-        <location
-            file="src/main/res/values-tr/strings.xml"
-            line="1080"
-            column="47"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="&quot;A a&quot; is a common misspelling; did you mean &quot;A&quot;?"
-        errorLine1="    &lt;string name=&quot;review_quality_check_info_review_grade_header&quot;>&lt;![CDATA[Atribuímos às avaliações de cada produto uma &lt;b>classificação baseada em letras&lt;/b> de A a F.]]&gt;&lt;/string>"
-        errorLine2="                                                                                                                                                                 ^">
-        <location
-            file="src/main/res/values-pt-rPT/strings.xml"
-            line="2401"
-            column="162"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="&quot;A a&quot; is a common misspelling; did you mean &quot;A&quot;?"
-        errorLine1="    &lt;string name=&quot;review_quality_check_info_review_grade_header&quot;>&lt;![CDATA[Atribuímos às avaliações de cada produto uma &lt;b>nota com letra&lt;/b> de A a F.]]&gt;&lt;/string>"
-        errorLine2="                                                                                                                                                ^">
-        <location
-            file="src/main/res/values-pt-rBR/strings.xml"
-            line="2404"
-            column="145"/>
-    </issue>
-
-    <issue
         id="NotifyUsage"
         message="Using Android NOTIFY instead of base component"
         errorLine1="        notificationManagerCompat.notify(TABS_CLOSED_TAG, notificationId, notification)"
