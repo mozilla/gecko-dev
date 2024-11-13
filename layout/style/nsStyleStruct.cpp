@@ -3508,6 +3508,10 @@ void StyleCalcNode::ScaleLengthsBy(float aScale) {
       ScaleNode(*sign);
       break;
     }
+    case Tag::Anchor: {
+      MOZ_ASSERT_UNREACHABLE("Unresolved anchor() function");
+      break;
+    }
   }
 }
 

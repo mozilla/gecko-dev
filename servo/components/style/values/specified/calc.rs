@@ -7,7 +7,8 @@
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
 use crate::color::parsing::ChannelKeyword;
-use crate::parser::ParserContext;
+use crate::parser::{ParserContext, Parse};
+use crate::values::generics::position::{AnchorSide, AnchorSideKeyword,GenericAnchorFunction};
 use crate::values::generics::calc::{
     self as generic, CalcNodeLeaf, CalcUnits, MinMaxOp, ModRemOp, PositivePercentageBasis,
     RoundingStrategy, SortKey,
@@ -15,7 +16,7 @@ use crate::values::generics::calc::{
 use crate::values::specified::length::{AbsoluteLength, FontRelativeLength, NoCalcLength};
 use crate::values::specified::length::{ContainerRelativeLength, ViewportPercentageLength};
 use crate::values::specified::{self, Angle, Resolution, Time};
-use crate::values::{serialize_number, serialize_percentage, CSSFloat, CSSInteger};
+use crate::values::{serialize_number, serialize_percentage, CSSFloat, CSSInteger, DashedIdent};
 use cssparser::{CowRcStr, Parser, Token};
 use smallvec::SmallVec;
 use std::cmp;
@@ -475,6 +476,50 @@ impl generic::CalcNodeLeaf for Leaf {
     }
 }
 
+impl AnchorSide<Box<CalcNode>> {
+    fn parse_in_calc<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(k) = input.try_parse(|i| AnchorSideKeyword::parse(i)) {
+            return Ok(Self::Keyword(k));
+        }
+        Ok(Self::Percentage(Box::new(CalcNode::parse_argument(context, input, AllowParse::new(CalcUnits::PERCENTAGE))?)))
+    }
+}
+
+impl GenericAnchorFunction<Box<CalcNode>, Box<CalcNode>> {
+    fn parse_in_calc<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if !static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        input.parse_nested_block(|i| {
+            let target_element = i.try_parse(|i| DashedIdent::parse(context, i)).ok();
+            let side = AnchorSide::parse_in_calc(context, i)?;
+            let target_element = if target_element.is_none() {
+                i.try_parse(|i| DashedIdent::parse(context, i)).ok()
+            } else {
+                target_element
+            };
+            let fallback = i
+                .try_parse(|i| {
+                    i.expect_comma()?;
+                    let node = CalcNode::parse_argument(context, i, AllowParse::new(CalcUnits::LENGTH_PERCENTAGE))?;
+                    Ok::<Box<CalcNode>, ParseError<'i>>(Box::new(node))
+                })
+                .ok();
+            Ok(Self {
+                target_element: target_element.unwrap_or_else(DashedIdent::empty),
+                side,
+                fallback: fallback.into(),
+            })
+        })
+    }
+}
+
 /// A calc node representation for specified values.
 pub type CalcNode = generic::GenericCalcNode<Leaf>;
 
@@ -525,6 +570,10 @@ impl CalcNode {
             &Token::ParenthesisBlock => input.parse_nested_block(|input| {
                 CalcNode::parse_argument(context, input, allowed)
             }),
+            &Token::Function(ref name) if allowed.additional_functions.intersects(AdditionalFunctions::ANCHOR) && name.eq_ignore_ascii_case("anchor") => {
+                let anchor_function = GenericAnchorFunction::parse_in_calc(context, input)?;
+                Ok(CalcNode::Anchor(Box::new(anchor_function)))
+            },
             &Token::Function(ref name) => {
                 let function = CalcNode::math_function(context, name, location)?;
                 CalcNode::parse(context, input, function, allowed)

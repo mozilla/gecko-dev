@@ -129,7 +129,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                         },
                         l => l.clone(),
                     })
-                }) else {
+                }, |_| Err(())) else {
                     return Err(());
                 };
 
