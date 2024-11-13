@@ -7,3 +7,4 @@ DESKTOP_DEFAULT(CanvasRandomization)
 DESKTOP_DEFAULT(FontVisibilityLangPack)
 
 ANDROID_DEFAULT(CanvasRandomization)
+ANDROID_DEFAULT(FontVisibilityLangPack)
