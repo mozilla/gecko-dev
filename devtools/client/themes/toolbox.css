@@ -305,6 +305,7 @@
 
 .devtools-tab:hover {
   background-color: var(--theme-toolbar-hover);
+  color: var(--theme-toolbar-hover-color);
 }
 
 /* Remove system control border from devtools-tab. */
@@ -318,6 +319,12 @@
 
 .devtools-tab.selected {
   color: var(--theme-toolbar-selected-color);
+  background-color: var(--theme-toolbar-selected-background);
+
+  &:hover {
+    background-color: var(--theme-toolbar-selected-hover);
+    color: var(--theme-toolbar-selected-hover-color);
+  }
 }
 
 .devtools-tab > img {
@@ -330,6 +337,10 @@
   flex-shrink: 0;
   -moz-context-properties: fill;
   fill: var(--theme-icon-color);
+}
+
+.devtools-tab:hover > img {
+  fill: var(--theme-toolbar-hover-color);
 }
 
 .devtools-tab.selected > img {
@@ -673,6 +684,7 @@
 }
 
 #toolbox-container.tabs-reordering .devtools-tab.selected {
-  background-color: var(--theme-toolbar-hover);
+  background-color: var(--theme-toolbar-reordering-background);
+  color: var(--theme-toolbar-reordering-color);
   z-index: 1;
 }

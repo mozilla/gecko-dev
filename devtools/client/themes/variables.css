@@ -155,6 +155,8 @@
   --theme-toolbar-selected-hover: var(--theme-toolbar-hover);
   --theme-toolbar-selected-hover-color: var(--theme-toolbar-selected-color);
   --theme-toolbar-separator: light-dark(var(--grey-90-a10), var(--grey-10-a20));
+  --theme-toolbar-reordering-background: var(--theme-toolbar-hover);
+  --theme-toolbar-reordering-color: var(--theme-toolbar-hover-color);
 
   /* Toolbar buttons */
   --toolbarbutton-background: light-dark(var(--grey-10), var(--grey-70));
@@ -302,6 +304,7 @@
     --theme-highlight-gray: light-dark(#5B5B66, #F0F0F4);
 
     /* Toolbar */
+    --theme-toolbar-background: ButtonFace;
     --theme-toolbar-selected-color: SelectedItemText;
     --theme-toolbar-selected-background: SelectedItem;
     --theme-toolbar-hover: SelectedItemText;
@@ -309,6 +312,8 @@
     --theme-toolbar-hover-active: var(--theme-toolbar-hover);
     --theme-toolbar-selected-hover: var(--theme-toolbar-selected-background);
     --theme-toolbar-selected-hover-color: var(--theme-toolbar-selected-color);
+    --theme-toolbar-reordering-background: var(--theme-toolbar-selected-background);
+    --theme-toolbar-reordering-color: var(--theme-toolbar-selected-color);
 
     /* Accordion headers */
     --theme-accordion-header-background: ButtonFace;
