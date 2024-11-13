@@ -786,6 +786,23 @@ network:
     telemetry_mirror: HTTP3_COMPLETE_LOAD
     expires: never
 
+  http3_avg_read_interval:
+    type: labeled_timing_distribution
+    time_unit: millisecond
+    description: >
+      The average time between read operations in a HTTP/3 connection, keyed by the server header
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902931
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902931
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    labels:
+      - cloudflare
+      - others
+    expires: never
+
   system_channel_success_or_failure: &system_channel_success_or_failure
     type: labeled_counter
     description: >

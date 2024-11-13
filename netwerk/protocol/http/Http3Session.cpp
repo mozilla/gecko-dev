@@ -384,6 +384,15 @@ Http3Session::~Http3Session() {
       mTransactionsSenderBlockedByFlowControlCount);
 
   Shutdown();
+
+  // We only record the average interval for performance reason.
+  if (mTotelReadInterval) {
+    nsAutoCString key(mServer.EqualsLiteral("cloudflare") ? "cloudflare"_ns
+                                                          : "others"_ns);
+    glean::network::http3_avg_read_interval.Get(key).AccumulateRawDuration(
+        TimeDuration::FromMilliseconds(
+            static_cast<double>(mTotelReadInterval / mTotelReadIntervalCount)));
+  }
 }
 
 // This function may return a socket error.
@@ -399,6 +408,15 @@ nsresult Http3Session::ProcessInput(nsIUDPSocket* socket) {
   LOG(("Http3Session::ProcessInput writer=%p [this=%p state=%d]",
        mUdpConn.get(), this, mState));
 
+  PRIntervalTime now = PR_IntervalNow();
+  if (!mLastReadTime) {
+    mLastReadTime = now;
+  } else {
+    mTotelReadInterval +=
+        PR_IntervalToMilliseconds(PR_IntervalNow() - mLastReadTime);
+    mTotelReadIntervalCount++;
+    mLastReadTime = now;
+  }
   if (mUseNSPRForIO) {
     while (true) {
       nsTArray<uint8_t> data;
