@@ -231,6 +231,7 @@ class BasePythonSupport:
 
         :return dict: A dict containing the measurements found.
         """
+        default_power_settings = {"unit": "uWh", "lower_is_better": True}
         power_usage_measurements = {}
 
         def __convert_from_pico_to_micro(vals):
@@ -251,14 +252,14 @@ class BasePythonSupport:
                     for powerMetric, powerVals in flat_power_data.items():
                         power_usage_measurements.setdefault(
                             powerMetric.replace(power_usage_search_name, "powerUsage"),
-                            {"unit": "uWh"},
+                            default_power_settings,
                         ).setdefault("replicates", []).extend(
                             __convert_from_pico_to_micro(powerVals)
                         )
                 else:
                     power_usage_measurements.setdefault(
                         metric.replace(power_usage_search_name, "powerUsage"),
-                        {"unit": "uWh"},
+                        default_power_settings,
                     ).setdefault("replicates", []).extend(
                         __convert_from_pico_to_micro(vals)
                     )
@@ -270,7 +271,7 @@ class BasePythonSupport:
             power_vals = raw_result.get("android").get("power", {})
             if power_vals:
                 power_usage_measurements.setdefault(
-                    "powerUsage", {"unit": "uWh"}
+                    "powerUsage", default_power_settings
                 ).setdefault("replicates", []).extend(
                     __convert_from_pico_to_micro(
                         [vals["powerUsage"] for vals in power_vals]
@@ -286,6 +287,7 @@ class BasePythonSupport:
 
         :return dict: A dict containing the measurements found.
         """
+        default_cputime_settings = {"unit": "ms", "lower_is_better": True}
         cpuTime_measurements = {}
 
         # Gather support cpuTime measurements (e.g. benchmarks)
@@ -293,16 +295,16 @@ class BasePythonSupport:
             for metric, vals in res.items():
                 if metric != "cpuTime":
                     continue
-                cpuTime_measurements.setdefault("cpuTime", {"unit": "ms"}).setdefault(
-                    "replicates", []
-                ).extend(vals)
+                cpuTime_measurements.setdefault(
+                    "cpuTime", default_cputime_settings
+                ).setdefault("replicates", []).extend(vals)
 
         # Gather pageload cpuTime measurements, but only if benchmark
         # cpuTime wasn't gathered since they both use the same name
         if "cpuTime" not in cpuTime_measurements:
             cpu_vals = raw_result.get("cpu", [])
             if cpu_vals and self.app in FIREFOX_APPS:
-                cpuTime_measurements.setdefault("cpuTime", {"unit": "ms"})[
+                cpuTime_measurements.setdefault("cpuTime", default_cputime_settings)[
                     "replicates"
                 ] = cpu_vals
 
@@ -320,9 +322,9 @@ class BasePythonSupport:
             for metric, vals in res.items():
                 if metric != "wallclock-for-tracking-only":
                     continue
-                wallclock_measurements.setdefault(metric, {"unit": "ms"}).setdefault(
-                    "replicates", []
-                ).extend(vals)
+                wallclock_measurements.setdefault(
+                    metric, {"unit": "ms", "lower_is_better": True}
+                ).setdefault("replicates", []).extend(vals)
         return wallclock_measurements
 
     def _gather_additional_measurements(self, raw_result, bt_result):
@@ -383,10 +385,16 @@ class BasePythonSupport:
             if measurement in exclude:
                 continue
 
-            if kwargs.get("unit", None) is None:
+            if kwargs.get(measurement, None):
+                kwargs["unit"] = kwargs[measurement].get(
+                    "unit", measurement_info["unit"]
+                )
+                kwargs["lower_is_better"] = kwargs[measurement].get(
+                    "lower_is_better", measurement_info["lower_is_better"]
+                )
+            else:
                 kwargs["unit"] = measurement_info["unit"]
-            if kwargs.get("lower_is_better", None) is None:
-                kwargs["lower_is_better"] = True
+                kwargs["lower_is_better"] = measurement_info["lower_is_better"]
 
             if isinstance(suite["subtests"], dict):
                 suite["subtests"][measurement] = self._build_standard_subtest(
