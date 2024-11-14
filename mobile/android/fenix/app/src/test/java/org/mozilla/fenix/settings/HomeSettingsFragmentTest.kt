@@ -25,7 +25,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.settings
@@ -130,7 +130,7 @@ internal class HomeSettingsFragmentTest {
         assertTrue(result)
         verify { appPrefsEditor.putBoolean(testContext.getString(R.string.pref_key_pocket_sponsored_stories), false) }
         verify { pocketService.deleteProfile() }
-        verify { appStore.dispatch(AppAction.PocketSponsoredStoriesChange(emptyList())) }
+        verify { appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(emptyList())) }
     }
 
     private fun activateFragment() {

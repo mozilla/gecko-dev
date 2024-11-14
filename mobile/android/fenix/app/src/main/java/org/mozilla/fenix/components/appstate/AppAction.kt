@@ -104,31 +104,6 @@ sealed class AppAction : Action {
     data class DisbandSearchGroupAction(val searchTerm: String) : AppAction()
 
     /**
-     * Indicates the given [categoryName] was selected by the user.
-     */
-    data class SelectPocketStoriesCategory(val categoryName: String) : AppAction()
-
-    /**
-     * Indicates the given [categoryName] was deselected by the user.
-     */
-    data class DeselectPocketStoriesCategory(val categoryName: String) : AppAction()
-
-    /**
-     * Indicates the given [storiesShown] were seen by the user.
-     */
-    data class PocketStoriesShown(val storiesShown: List<PocketStory>) : AppAction()
-
-    /**
-     * Cleans all in-memory data about Pocket stories and categories.
-     */
-    object PocketStoriesClean : AppAction()
-
-    /**
-     * Replaces the current list of Pocket sponsored stories.
-     */
-    data class PocketSponsoredStoriesChange(val sponsoredStories: List<PocketSponsoredStory>) : AppAction()
-
-    /**
      * Adds a set of items marked for removal to the app state, to be hidden in the UI.
      */
     data class AddPendingDeletionSet(val historyItems: Set<PendingDeletionHistory>) : AppAction()
@@ -138,20 +113,7 @@ sealed class AppAction : Action {
      */
     data class UndoPendingDeletionSet(val historyItems: Set<PendingDeletionHistory>) : AppAction()
 
-    /**
-     * Replaces the list of available Pocket recommended stories categories.
-     */
-    data class PocketStoriesCategoriesChange(val storiesCategories: List<PocketRecommendedStoriesCategory>) :
-        AppAction()
-
-    /**
-     * Restores the list of Pocket recommended stories categories selections.
-     */
-    data class PocketStoriesCategoriesSelectionsChange(
-        val storiesCategories: List<PocketRecommendedStoriesCategory>,
-        val categoriesSelected: List<PocketRecommendedStoriesSelectedCategory>,
-    ) : AppAction()
-    object RemoveCollectionsPlaceholder : AppAction()
+    data object RemoveCollectionsPlaceholder : AppAction()
 
     /**
      * Action dispatched when the user has authenticated with their account.
@@ -543,5 +505,53 @@ sealed class AppAction : Action {
          * state.
          */
         data object Reset : ReaderViewAction()
+    }
+
+    /**
+     * [AppAction]s related to the content recommendations feature.
+     */
+    sealed class ContentRecommendationsAction : AppAction() {
+        /**
+         * Indicates the given [categoryName] was selected by the user.
+         */
+        data class SelectPocketStoriesCategory(val categoryName: String) :
+            ContentRecommendationsAction()
+
+        /**
+         * Indicates the given [categoryName] was deselected by the user.
+         */
+        data class DeselectPocketStoriesCategory(val categoryName: String) :
+            ContentRecommendationsAction()
+
+        /**
+         * Indicates the given [storiesShown] were seen by the user.
+         */
+        data class PocketStoriesShown(val storiesShown: List<PocketStory>) :
+            ContentRecommendationsAction()
+
+        /**
+         * Cleans all in-memory data about Pocket stories and categories.
+         */
+        data object PocketStoriesClean : ContentRecommendationsAction()
+
+        /**
+         * Replaces the current list of Pocket sponsored stories.
+         */
+        data class PocketSponsoredStoriesChange(val sponsoredStories: List<PocketSponsoredStory>) :
+            ContentRecommendationsAction()
+
+        /**
+         * Replaces the list of available Pocket recommended stories categories.
+         */
+        data class PocketStoriesCategoriesChange(val storiesCategories: List<PocketRecommendedStoriesCategory>) :
+            ContentRecommendationsAction()
+
+        /**
+         * Restores the list of Pocket recommended stories categories selections.
+         */
+        data class PocketStoriesCategoriesSelectionsChange(
+            val storiesCategories: List<PocketRecommendedStoriesCategory>,
+            val categoriesSelected: List<PocketRecommendedStoriesSelectedCategory>,
+        ) : ContentRecommendationsAction()
     }
 }
