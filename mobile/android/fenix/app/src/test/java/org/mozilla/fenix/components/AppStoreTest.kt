@@ -29,6 +29,7 @@ import org.junit.Test
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.UpdateMessageToShow
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.filterOut
@@ -331,7 +332,7 @@ class AppStoreTest {
         mockkStatic("org.mozilla.fenix.ext.AppStateKt") {
             every { any<AppState>().getFilteredStories() } returns filteredStories
 
-            appStore.dispatch(AppAction.SelectPocketStoriesCategory("another")).join()
+            appStore.dispatch(ContentRecommendationsAction.SelectPocketStoriesCategory("another")).join()
 
             verify { any<AppState>().getFilteredStories() }
         }
@@ -360,7 +361,7 @@ class AppStoreTest {
         mockkStatic("org.mozilla.fenix.ext.AppStateKt") {
             every { any<AppState>().getFilteredStories() } returns filteredStories
 
-            appStore.dispatch(AppAction.DeselectPocketStoriesCategory("other")).join()
+            appStore.dispatch(ContentRecommendationsAction.DeselectPocketStoriesCategory("other")).join()
 
             verify { any<AppState>().getFilteredStories() }
         }
@@ -382,7 +383,7 @@ class AppStoreTest {
             ),
         )
 
-        appStore.dispatch(AppAction.PocketStoriesClean)
+        appStore.dispatch(ContentRecommendationsAction.PocketStoriesClean)
             .join()
 
         assertTrue(appStore.state.pocketStoriesCategories.isEmpty())
@@ -410,14 +411,14 @@ class AppStoreTest {
         mockkStatic("org.mozilla.fenix.ext.AppStateKt") {
             val firstFilteredStories = listOf(mockk<PocketSponsoredStory>())
             every { any<AppState>().getFilteredStories() } returns firstFilteredStories
-            appStore.dispatch(AppAction.PocketSponsoredStoriesChange(listOf(story1, story2))).join()
+            appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(listOf(story1, story2))).join()
             assertTrue(appStore.state.pocketSponsoredStories.containsAll(listOf(story1, story2)))
             assertEquals(firstFilteredStories, appStore.state.pocketStories)
 
             val secondFilteredStories = firstFilteredStories + mockk<PocketRecommendedStory>()
             every { any<AppState>().getFilteredStories() } returns secondFilteredStories
             val updatedStories = listOf(story2.copy(title = "title3"))
-            appStore.dispatch(AppAction.PocketSponsoredStoriesChange(updatedStories)).join()
+            appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(updatedStories)).join()
             assertTrue(updatedStories.containsAll(appStore.state.pocketSponsoredStories))
             assertEquals(secondFilteredStories, appStore.state.pocketStories)
         }
@@ -449,7 +450,7 @@ class AppStoreTest {
             ),
         )
 
-        appStore.dispatch(AppAction.PocketStoriesShown(listOf(story1, story3))).join()
+        appStore.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(story1, story3))).join()
 
         assertEquals(4, appStore.state.pocketSponsoredStories.size)
         assertEquals(3, appStore.state.pocketSponsoredStories[0].caps.currentImpressions.size)
@@ -469,7 +470,7 @@ class AppStoreTest {
             every { any<AppState>().getFilteredStories() } returns firstFilteredStories
 
             appStore.dispatch(
-                AppAction.PocketStoriesCategoriesChange(listOf(otherStoriesCategory, anotherStoriesCategory)),
+                ContentRecommendationsAction.PocketStoriesCategoriesChange(listOf(otherStoriesCategory, anotherStoriesCategory)),
             ).join()
             verify { any<AppState>().getFilteredStories() }
             assertTrue(
@@ -483,7 +484,7 @@ class AppStoreTest {
             val secondFilteredStories = listOf(mockk<PocketStory>())
             every { any<AppState>().getFilteredStories() } returns secondFilteredStories
             appStore.dispatch(
-                AppAction.PocketStoriesCategoriesChange(
+                ContentRecommendationsAction.PocketStoriesCategoriesChange(
                     updatedCategories,
                 ),
             ).join()
@@ -505,7 +506,7 @@ class AppStoreTest {
             every { any<AppState>().getFilteredStories() } returns firstFilteredStories
 
             appStore.dispatch(
-                AppAction.PocketStoriesCategoriesSelectionsChange(
+                ContentRecommendationsAction.PocketStoriesCategoriesSelectionsChange(
                     storiesCategories = listOf(otherStoriesCategory, anotherStoriesCategory),
                     categoriesSelected = listOf(selectedCategory),
                 ),

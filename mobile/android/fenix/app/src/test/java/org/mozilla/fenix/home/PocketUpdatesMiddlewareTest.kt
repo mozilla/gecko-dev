@@ -21,7 +21,7 @@ import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories.SelectedPocketStoriesCategory
@@ -54,7 +54,7 @@ class PocketUpdatesMiddlewareTest {
             listOf(pocketMiddleware),
         )
 
-        appstore.dispatch(AppAction.PocketStoriesShown(listOf(story2))).joinBlocking()
+        appstore.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(story2))).joinBlocking()
 
         coVerify { pocketService.updateStoriesTimesShown(listOf(story2.copy(timesShown = 1))) }
     }
@@ -108,11 +108,11 @@ class PocketUpdatesMiddlewareTest {
             ),
         )
 
-        appStore.dispatch(AppAction.PocketStoriesCategoriesChange(currentCategories)).joinBlocking()
+        appStore.dispatch(ContentRecommendationsAction.PocketStoriesCategoriesChange(currentCategories)).joinBlocking()
 
         verify {
             appStore.dispatch(
-                AppAction.PocketStoriesCategoriesSelectionsChange(
+                ContentRecommendationsAction.PocketStoriesCategoriesSelectionsChange(
                     storiesCategories = currentCategories,
                     categoriesSelected = listOf(
                         PocketRecommendedStoriesSelectedCategory("testCategory", 123),
@@ -140,7 +140,7 @@ class PocketUpdatesMiddlewareTest {
             ),
         )
 
-        appStore.dispatch(AppAction.SelectPocketStoriesCategory(categ2.name)).joinBlocking()
+        appStore.dispatch(ContentRecommendationsAction.SelectPocketStoriesCategory(categ2.name)).joinBlocking()
 
         // Seems like the most we can test is that an update was made.
         coVerify { dataStore.updateData(any()) }
@@ -164,7 +164,7 @@ class PocketUpdatesMiddlewareTest {
             ),
         )
 
-        appStore.dispatch(AppAction.DeselectPocketStoriesCategory(categ2.name)).joinBlocking()
+        appStore.dispatch(ContentRecommendationsAction.DeselectPocketStoriesCategory(categ2.name)).joinBlocking()
 
         // Seems like the most we can test is that an update was made.
         coVerify { dataStore.updateData(any()) }
@@ -211,7 +211,7 @@ class PocketUpdatesMiddlewareTest {
 
         coVerify {
             appStore.dispatch(
-                AppAction.PocketStoriesCategoriesSelectionsChange(
+                ContentRecommendationsAction.PocketStoriesCategoriesSelectionsChange(
                     storiesCategories = currentCategories,
                     categoriesSelected = listOf(
                         PocketRecommendedStoriesSelectedCategory("testCategory", 123),

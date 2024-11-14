@@ -13,7 +13,7 @@ import androidx.preference.SwitchPreference
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.CustomizeHome
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
 import org.mozilla.fenix.ext.settings
@@ -133,7 +133,7 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                         false -> {
                             context.components.core.pocketStoriesService.deleteProfile()
                             context.components.appStore.dispatch(
-                                AppAction.PocketSponsoredStoriesChange(emptyList()),
+                                ContentRecommendationsAction.PocketSponsoredStoriesChange(emptyList()),
                             )
                         }
                     }

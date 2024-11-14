@@ -14,7 +14,7 @@ import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.GleanMetrics.Pocket
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.view.POCKET_CATEGORIES_SELECTED_AT_A_TIME_COUNT
@@ -85,7 +85,7 @@ internal class DefaultPocketStoriesController(
         storyShown: PocketStory,
         storyPosition: Pair<Int, Int>,
     ) {
-        appStore.dispatch(AppAction.PocketStoriesShown(listOf(storyShown)))
+        appStore.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(storyShown)))
 
         when (storyShown) {
             is PocketSponsoredStory -> {
@@ -107,7 +107,7 @@ internal class DefaultPocketStoriesController(
     }
 
     override fun handleStoriesShown(storiesShown: List<PocketStory>) {
-        appStore.dispatch(AppAction.PocketStoriesShown(storiesShown))
+        appStore.dispatch(ContentRecommendationsAction.PocketStoriesShown(storiesShown))
         Pocket.homeRecsShown.record(NoExtras())
     }
 
@@ -116,7 +116,7 @@ internal class DefaultPocketStoriesController(
 
         // First check whether the category is clicked to be deselected.
         if (initialCategoriesSelections.map { it.name }.contains(categoryClicked.name)) {
-            appStore.dispatch(AppAction.DeselectPocketStoriesCategory(categoryClicked.name))
+            appStore.dispatch(ContentRecommendationsAction.DeselectPocketStoriesCategory(categoryClicked.name))
             Pocket.homeRecsCategoryClicked.record(
                 Pocket.HomeRecsCategoryClickedExtra(
                     categoryName = categoryClicked.name,
@@ -136,11 +136,11 @@ internal class DefaultPocketStoriesController(
                 null
             }
         oldestCategoryToDeselect?.let {
-            appStore.dispatch(AppAction.DeselectPocketStoriesCategory(it.name))
+            appStore.dispatch(ContentRecommendationsAction.DeselectPocketStoriesCategory(it.name))
         }
 
         // Finally update the selection.
-        appStore.dispatch(AppAction.SelectPocketStoriesCategory(categoryClicked.name))
+        appStore.dispatch(ContentRecommendationsAction.SelectPocketStoriesCategory(categoryClicked.name))
 
         Pocket.homeRecsCategoryClicked.record(
             Pocket.HomeRecsCategoryClickedExtra(

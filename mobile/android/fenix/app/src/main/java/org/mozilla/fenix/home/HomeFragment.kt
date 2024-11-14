@@ -113,6 +113,7 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.PrivateShortcutCreateManager
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.MicrosurveyAction
 import org.mozilla.fenix.components.components
@@ -324,17 +325,17 @@ class HomeFragment : Fragment() {
                     .groupBy { story -> story.category }
                     .map { (category, stories) -> PocketRecommendedStoriesCategory(category, stories) }
 
-                components.appStore.dispatch(AppAction.PocketStoriesCategoriesChange(categories))
+                components.appStore.dispatch(ContentRecommendationsAction.PocketStoriesCategoriesChange(categories))
 
                 if (requireContext().settings().showPocketSponsoredStories) {
                     components.appStore.dispatch(
-                        AppAction.PocketSponsoredStoriesChange(
+                        ContentRecommendationsAction.PocketSponsoredStoriesChange(
                             components.core.pocketStoriesService.getSponsoredStories(),
                         ),
                     )
                 }
             } else {
-                components.appStore.dispatch(AppAction.PocketStoriesClean)
+                components.appStore.dispatch(ContentRecommendationsAction.PocketStoriesClean)
             }
         }
 

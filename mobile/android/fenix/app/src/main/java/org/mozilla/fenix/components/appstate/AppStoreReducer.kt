@@ -6,19 +6,15 @@ package org.mozilla.fenix.components.appstate
 
 import androidx.annotation.VisibleForTesting
 import mozilla.components.lib.crash.store.crashReducer
-import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
-import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
-import mozilla.components.service.pocket.ext.recordNewImpression
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.readerview.ReaderViewStateReducer
+import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsReducer
 import org.mozilla.fenix.components.appstate.reducer.FindInPageStateReducer
 import org.mozilla.fenix.components.appstate.shopping.ShoppingStateReducer
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarStateReducer
 import org.mozilla.fenix.ext.filterOutTab
-import org.mozilla.fenix.ext.getFilteredStories
-import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
@@ -117,99 +113,7 @@ internal object AppStoreReducer {
                 it is RecentHistoryGroup && it.title.equals(action.searchTerm, true)
             },
         )
-        is AppAction.SelectPocketStoriesCategory -> {
-            val updatedCategoriesState = state.copy(
-                pocketStoriesCategoriesSelections =
-                state.pocketStoriesCategoriesSelections + PocketRecommendedStoriesSelectedCategory(
-                    name = action.categoryName,
-                ),
-            )
 
-            // Selecting a category means the stories to be displayed needs to also be changed.
-            updatedCategoriesState.copy(
-                pocketStories = updatedCategoriesState.getFilteredStories(),
-            )
-        }
-        is AppAction.DeselectPocketStoriesCategory -> {
-            val updatedCategoriesState = state.copy(
-                pocketStoriesCategoriesSelections = state.pocketStoriesCategoriesSelections.filterNot {
-                    it.name == action.categoryName
-                },
-            )
-
-            // Deselecting a category means the stories to be displayed needs to also be changed.
-            updatedCategoriesState.copy(
-                pocketStories = updatedCategoriesState.getFilteredStories(),
-            )
-        }
-        is AppAction.PocketStoriesCategoriesChange -> {
-            val updatedCategoriesState =
-                state.copy(pocketStoriesCategories = action.storiesCategories)
-            // Whenever categories change stories to be displayed needs to also be changed.
-            updatedCategoriesState.copy(
-                pocketStories = updatedCategoriesState.getFilteredStories(),
-            )
-        }
-        is AppAction.PocketStoriesCategoriesSelectionsChange -> {
-            val updatedCategoriesState = state.copy(
-                pocketStoriesCategories = action.storiesCategories,
-                pocketStoriesCategoriesSelections = action.categoriesSelected,
-            )
-            // Whenever categories change stories to be displayed needs to also be changed.
-            updatedCategoriesState.copy(
-                pocketStories = updatedCategoriesState.getFilteredStories(),
-            )
-        }
-        is AppAction.PocketStoriesClean -> state.copy(
-            pocketStoriesCategories = emptyList(),
-            pocketStoriesCategoriesSelections = emptyList(),
-            pocketStories = emptyList(),
-            pocketSponsoredStories = emptyList(),
-        )
-        is AppAction.PocketSponsoredStoriesChange -> {
-            val updatedStoriesState = state.copy(
-                pocketSponsoredStories = action.sponsoredStories,
-            )
-
-            updatedStoriesState.copy(
-                pocketStories = updatedStoriesState.getFilteredStories(),
-            )
-        }
-        is AppAction.PocketStoriesShown -> {
-            var updatedCategories = state.pocketStoriesCategories
-            action.storiesShown.filterIsInstance<PocketRecommendedStory>().forEach { shownStory ->
-                updatedCategories = updatedCategories.map { category ->
-                    when (category.name == shownStory.category) {
-                        true -> {
-                            category.copy(
-                                stories = category.stories.map { story ->
-                                    when (story.title == shownStory.title) {
-                                        true -> story.copy(timesShown = story.timesShown.inc())
-                                        false -> story
-                                    }
-                                },
-                            )
-                        }
-                        false -> category
-                    }
-                }
-            }
-
-            var updatedSponsoredStories = state.pocketSponsoredStories
-            action.storiesShown.filterIsInstance<PocketSponsoredStory>().forEach { shownStory ->
-                updatedSponsoredStories = updatedSponsoredStories.map { story ->
-                    when (story.id == shownStory.id) {
-                        true -> story.recordNewImpression()
-                        false -> story
-                    }
-                }
-            }
-
-            state.copy(
-                pocketStoriesCategories = updatedCategories,
-                pocketSponsoredStories = updatedSponsoredStories,
-            )
-        }
         is AppAction.AddPendingDeletionSet ->
             state.copy(pendingDeletionHistoryItems = state.pendingDeletionHistoryItems + action.historyItems)
 
@@ -297,6 +201,11 @@ internal object AppStoreReducer {
         is AppAction.UpdateWasNativeDefaultBrowserPromptShown -> {
             state.copy(wasNativeDefaultBrowserPromptShown = action.wasShown)
         }
+
+        is AppAction.ContentRecommendationsAction -> ContentRecommendationsReducer.reduce(
+            state = state,
+            action = action,
+        )
     }
 }
 
