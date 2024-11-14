@@ -7,40 +7,40 @@
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
   // Load all existing rep templates
-  const Undefined = require("devtools/client/shared/components/reps/reps/undefined");
-  const Null = require("devtools/client/shared/components/reps/reps/null");
-  const StringRep = require("devtools/client/shared/components/reps/reps/string");
-  const Number = require("devtools/client/shared/components/reps/reps/number");
-  const ArrayRep = require("devtools/client/shared/components/reps/reps/array");
-  const Obj = require("devtools/client/shared/components/reps/reps/object");
-  const SymbolRep = require("devtools/client/shared/components/reps/reps/symbol");
-  const InfinityRep = require("devtools/client/shared/components/reps/reps/infinity");
-  const NaNRep = require("devtools/client/shared/components/reps/reps/nan");
-  const Accessor = require("devtools/client/shared/components/reps/reps/accessor");
+  const Undefined = require("resource://devtools/client/shared/components/reps/reps/undefined.js");
+  const Null = require("resource://devtools/client/shared/components/reps/reps/null.js");
+  const StringRep = require("resource://devtools/client/shared/components/reps/reps/string.js");
+  const Number = require("resource://devtools/client/shared/components/reps/reps/number.js");
+  const ArrayRep = require("resource://devtools/client/shared/components/reps/reps/array.js");
+  const Obj = require("resource://devtools/client/shared/components/reps/reps/object.js");
+  const SymbolRep = require("resource://devtools/client/shared/components/reps/reps/symbol.js");
+  const InfinityRep = require("resource://devtools/client/shared/components/reps/reps/infinity.js");
+  const NaNRep = require("resource://devtools/client/shared/components/reps/reps/nan.js");
+  const Accessor = require("resource://devtools/client/shared/components/reps/reps/accessor.js");
 
   // DOM types (grips)
-  const Accessible = require("devtools/client/shared/components/reps/reps/accessible");
-  const Attribute = require("devtools/client/shared/components/reps/reps/attribute");
-  const BigInt = require("devtools/client/shared/components/reps/reps/big-int");
-  const DateTime = require("devtools/client/shared/components/reps/reps/date-time");
-  const Document = require("devtools/client/shared/components/reps/reps/document");
-  const DocumentType = require("devtools/client/shared/components/reps/reps/document-type");
-  const Event = require("devtools/client/shared/components/reps/reps/event");
-  const Func = require("devtools/client/shared/components/reps/reps/function");
-  const PromiseRep = require("devtools/client/shared/components/reps/reps/promise");
-  const RegExp = require("devtools/client/shared/components/reps/reps/regexp");
-  const StyleSheet = require("devtools/client/shared/components/reps/reps/stylesheet");
-  const CommentNode = require("devtools/client/shared/components/reps/reps/comment-node");
-  const ElementNode = require("devtools/client/shared/components/reps/reps/element-node");
-  const TextNode = require("devtools/client/shared/components/reps/reps/text-node");
-  const ErrorRep = require("devtools/client/shared/components/reps/reps/error");
-  const Window = require("devtools/client/shared/components/reps/reps/window");
-  const ObjectWithText = require("devtools/client/shared/components/reps/reps/object-with-text");
-  const ObjectWithURL = require("devtools/client/shared/components/reps/reps/object-with-url");
-  const GripArray = require("devtools/client/shared/components/reps/reps/grip-array");
-  const GripEntry = require("devtools/client/shared/components/reps/reps/grip-entry");
-  const GripMap = require("devtools/client/shared/components/reps/reps/grip-map");
-  const Grip = require("devtools/client/shared/components/reps/reps/grip");
+  const Accessible = require("resource://devtools/client/shared/components/reps/reps/accessible.js");
+  const Attribute = require("resource://devtools/client/shared/components/reps/reps/attribute.js");
+  const BigInt = require("resource://devtools/client/shared/components/reps/reps/big-int.js");
+  const DateTime = require("resource://devtools/client/shared/components/reps/reps/date-time.js");
+  const Document = require("resource://devtools/client/shared/components/reps/reps/document.js");
+  const DocumentType = require("resource://devtools/client/shared/components/reps/reps/document-type.js");
+  const Event = require("resource://devtools/client/shared/components/reps/reps/event.js");
+  const Func = require("resource://devtools/client/shared/components/reps/reps/function.js");
+  const PromiseRep = require("resource://devtools/client/shared/components/reps/reps/promise.js");
+  const RegExp = require("resource://devtools/client/shared/components/reps/reps/regexp.js");
+  const StyleSheet = require("resource://devtools/client/shared/components/reps/reps/stylesheet.js");
+  const CommentNode = require("resource://devtools/client/shared/components/reps/reps/comment-node.js");
+  const ElementNode = require("resource://devtools/client/shared/components/reps/reps/element-node.js");
+  const TextNode = require("resource://devtools/client/shared/components/reps/reps/text-node.js");
+  const ErrorRep = require("resource://devtools/client/shared/components/reps/reps/error.js");
+  const Window = require("resource://devtools/client/shared/components/reps/reps/window.js");
+  const ObjectWithText = require("resource://devtools/client/shared/components/reps/reps/object-with-text.js");
+  const ObjectWithURL = require("resource://devtools/client/shared/components/reps/reps/object-with-url.js");
+  const GripArray = require("resource://devtools/client/shared/components/reps/reps/grip-array.js");
+  const GripEntry = require("resource://devtools/client/shared/components/reps/reps/grip-entry.js");
+  const GripMap = require("resource://devtools/client/shared/components/reps/reps/grip-map.js");
+  const Grip = require("resource://devtools/client/shared/components/reps/reps/grip.js");
 
   // List of all registered template.
   // XXX there should be a way for extensions to register a new
@@ -144,7 +144,7 @@ define(function (require, exports, module) {
     );
 
     if (useCustomFormatters) {
-      const CustomFormatter = require("devtools/client/shared/components/reps/reps/custom-formatter");
+      const CustomFormatter = require("resource://devtools/client/shared/components/reps/reps/custom-formatter.js");
       reps.unshift(CustomFormatter);
       exportedReps.CustomFormatter = CustomFormatter;
     }

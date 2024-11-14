@@ -10,22 +10,22 @@ define(function (require, exports, module) {
   const {
     button,
     span,
-  } = require("devtools/client/shared/vendor/react-dom-factories");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 
   // Utils
   const {
     appendRTLClassNameIfNeeded,
     wrapRender,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
   const {
     rep: StringRep,
     isLongString,
-  } = require("devtools/client/shared/components/reps/reps/string");
+  } = require("resource://devtools/client/shared/components/reps/reps/string.js");
   const {
     MODE,
-  } = require("devtools/client/shared/components/reps/reps/constants");
-  const nodeConstants = require("devtools/client/shared/components/reps/shared/dom-node-constants");
+  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+  const nodeConstants = require("resource://devtools/client/shared/components/reps/shared/dom-node-constants.js");
 
   const MAX_ATTRIBUTE_LENGTH = 50;
 

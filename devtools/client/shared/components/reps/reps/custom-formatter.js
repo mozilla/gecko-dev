@@ -7,16 +7,16 @@
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
   // ReactJS
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
   // Dependencies
   const {
     Component,
     createElement,
     createFactory,
-  } = require("devtools/client/shared/vendor/react");
+  } = require("resource://devtools/client/shared/vendor/react.js");
   const {
     cleanupStyle,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
   const flags = require("resource://devtools/shared/flags.js");
 
   const ALLOWED_TAGS = new Set([
@@ -205,7 +205,7 @@ define(function (require, exports, module) {
             const {
               objectInspector,
               MODE,
-            } = require("devtools/client/shared/components/reps/index");
+            } = require("resource://devtools/client/shared/components/reps/index.js");
             childElement = createElement(objectInspector.ObjectInspector, {
               ...props,
               mode: props.mode == MODE.LONG ? MODE.SHORT : MODE.TINY,

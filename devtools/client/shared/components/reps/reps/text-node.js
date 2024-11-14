@@ -10,22 +10,22 @@ define(function (require, exports, module) {
   const {
     button,
     span,
-  } = require("devtools/client/shared/vendor/react-dom-factories");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 
   // Reps
   const {
     appendRTLClassNameIfNeeded,
     cropString,
     wrapRender,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
   const {
     MODE,
-  } = require("devtools/client/shared/components/reps/reps/constants");
+  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
   const {
     rep: StringRep,
     isLongString,
-  } = require("devtools/client/shared/components/reps/reps/string");
+  } = require("resource://devtools/client/shared/components/reps/reps/string.js");
 
   /**
    * Renders DOM #text node.

@@ -6,19 +6,19 @@
 
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 
   const {
     wrapRender,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
   const {
     MODE,
-  } = require("devtools/client/shared/components/reps/reps/constants");
+  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
   const {
     ModePropType,
-  } = require("devtools/client/shared/components/reps/reps/array");
+  } = require("resource://devtools/client/shared/components/reps/reps/array.js");
 
-  const dom = require("devtools/client/shared/vendor/react-dom-factories");
+  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
   const { span } = dom;
 
   GripLengthBubble.propTypes = {

@@ -9,14 +9,14 @@ define(function (require, exports, module) {
   const {
     button,
     span,
-  } = require("devtools/client/shared/vendor/react-dom-factories");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
   const {
     wrapRender,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
   const {
     MODE,
-  } = require("devtools/client/shared/components/reps/reps/constants");
+  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
 
   /**
    * Renders an object. An object is represented by a list of its
@@ -41,7 +41,7 @@ define(function (require, exports, module) {
       const {
         Rep,
         Grip,
-      } = require("devtools/client/shared/components/reps/reps/rep");
+      } = require("resource://devtools/client/shared/components/reps/reps/rep.js");
       return span(
         {
           className: "objectBox objectBox-accessor objectTitle",

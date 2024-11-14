@@ -10,8 +10,8 @@ define(function (require, exports, module) {
   const {
     a,
     span,
-  } = require("devtools/client/shared/vendor/react-dom-factories");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 
   const {
     appendRTLClassNameIfNeeded,
@@ -24,7 +24,7 @@ define(function (require, exports, module) {
     ELLIPSIS,
     uneatLastUrlCharsRegex,
     urlRegex,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
 
   /**
    * Renders a string. String value is enclosed within quotes.

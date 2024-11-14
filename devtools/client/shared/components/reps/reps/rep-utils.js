@@ -67,7 +67,7 @@ define(function (require, exports, module) {
   const uneatLastUrlCharsRegex = /(?:[),;.!?`'"]|[.!?]\)|\)[.!?])$/;
 
   const ELLIPSIS = "\u2026";
-  const dom = require("devtools/client/shared/vendor/react-dom-factories");
+  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
   const { span } = dom;
 
   function escapeNewLines(value) {

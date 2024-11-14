@@ -6,19 +6,19 @@
 
 const {
   MODE,
-} = require("devtools/client/shared/components/reps/reps/constants");
+} = require("resource://devtools/client/shared/components/reps/reps/constants.js");
 const {
   REPS,
   getRep,
-} = require("devtools/client/shared/components/reps/reps/rep");
-const objectInspector = require("devtools/client/shared/components/object-inspector/index");
+} = require("resource://devtools/client/shared/components/reps/reps/rep.js");
+const objectInspector = require("resource://devtools/client/shared/components/object-inspector/index.js");
 
 const {
   parseURLEncodedText,
   parseURLParams,
   maybeEscapePropertyName,
   getGripPreviewItems,
-} = require("devtools/client/shared/components/reps/reps/rep-utils");
+} = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
 
 module.exports = {
   REPS,

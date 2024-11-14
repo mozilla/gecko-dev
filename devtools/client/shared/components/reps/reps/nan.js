@@ -7,14 +7,16 @@
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
   // Dependencies
-  const { span } = require("devtools/client/shared/vendor/react-dom-factories");
+  const {
+    span,
+  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 
   const {
     getGripType,
     wrapRender,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
 
   /**
    * Renders a NaN object

@@ -7,19 +7,21 @@
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
   // ReactJS
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const { span } = require("devtools/client/shared/vendor/react-dom-factories");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+  const {
+    span,
+  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 
   // Reps
   const {
     getGripType,
     getURLDisplayString,
     wrapRender,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
 
   const {
     MODE,
-  } = require("devtools/client/shared/components/reps/reps/constants");
+  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
 
   /**
    * Renders a grip representing a window.

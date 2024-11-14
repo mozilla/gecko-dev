@@ -7,17 +7,19 @@
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
   // ReactJS
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 
   // Reps
   const {
     wrapRender,
-  } = require("devtools/client/shared/components/reps/reps/rep-utils");
+  } = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
 
   const {
     MODE,
-  } = require("devtools/client/shared/components/reps/reps/constants");
-  const { rep } = require("devtools/client/shared/components/reps/reps/grip");
+  } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+  const {
+    rep,
+  } = require("resource://devtools/client/shared/components/reps/reps/grip.js");
 
   /**
    * Renders DOM event objects.
