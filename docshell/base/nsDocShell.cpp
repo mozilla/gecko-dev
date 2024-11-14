@@ -5067,13 +5067,15 @@ nsDocShell::ForceRefreshURI(nsIURI* aURI, nsIPrincipal* aPrincipal,
     loadState->SetLoadType(LOAD_REFRESH);
   }
 
-  /* We mimic HTTP, which passes the original referrer.
-   * TODO(bug 266554): Send the referrer to the server (if allowed by referrer
-   * policy and tracking protection).
-   * See step 3 of
+  const bool sendReferrer = StaticPrefs::network_http_referer_sendFromRefresh();
+  /* The document's referrer policy is needed instead of mReferrerInfo's
+   * referrer policy.
+   */
+  const nsCOMPtr<nsIReferrerInfo> referrerInfo =
+      new ReferrerInfo(*doc, sendReferrer);
+  /* We mimic HTTP, which passes the original referrer. See step 3 of
    * <https://html.spec.whatwg.org/multipage/browsing-the-web.html#create-navigation-params-by-fetching>.
    */
-  const nsCOMPtr<nsIReferrerInfo> referrerInfo = new ReferrerInfo(*doc, false);
   loadState->SetReferrerInfo(referrerInfo);
 
   loadState->SetLoadFlags(
