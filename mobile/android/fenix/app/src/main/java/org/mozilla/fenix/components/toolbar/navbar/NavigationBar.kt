@@ -247,6 +247,7 @@ fun HomeNavBar(
  * @param onForwardButtonLongPress Invoked when the user long-presses the forward button in the nav bar.
  * @param onOpenInBrowserButtonClick Invoked when the user clicks the open in fenix button in the nav bar.
  * @param onMenuButtonClick Invoked when the user clicks on the menu button in the navigation bar.
+ * @param isSandboxCustomTab If true, navigation bar should disable "Open in Firefox" icon.
  * @param backgroundColor Custom background color of the navigation bar.
  * When `null`, [FirefoxTheme.layer1] will be used.
  * @param showDivider Whether or not the top divider should be shown.
@@ -269,6 +270,7 @@ fun CustomTabNavBar(
     onForwardButtonLongPress: () -> Unit,
     onOpenInBrowserButtonClick: () -> Unit,
     onMenuButtonClick: () -> Unit,
+    isSandboxCustomTab: Boolean,
     backgroundColor: Color,
     showDivider: Boolean,
     @ColorInt buttonTint: Int? = null,
@@ -283,6 +285,7 @@ fun CustomTabNavBar(
     val canGoForward by browserStore.observeAsState(initialValue = false) {
         it.findCustomTab(customTabSessionId)?.content?.canGoForward ?: false
     }
+    val canOpenInFirefox = !isSandboxCustomTab
     val iconTint = buttonTint?.let { Color(it) } ?: FirefoxTheme.colors.iconPrimary
     val disabledIconTint = buttonDisabledTint?.let { Color(it) } ?: FirefoxTheme.colors.iconDisabled
 
@@ -309,7 +312,7 @@ fun CustomTabNavBar(
 
         OpenInBrowserButton(
             onOpenInBrowserButtonClick = onOpenInBrowserButtonClick,
-            tint = iconTint,
+            enabled = canOpenInFirefox,
         )
 
         MenuButton(
@@ -460,18 +463,21 @@ private fun MenuButton(
 
 @Composable
 private fun OpenInBrowserButton(
-    tint: Color = FirefoxTheme.colors.iconPrimary,
     onOpenInBrowserButtonClick: () -> Unit,
+    enabled: Boolean,
+    buttonEnabledTint: Color = FirefoxTheme.colors.iconPrimary,
+    buttonDisabledTint: Color = FirefoxTheme.colors.iconDisabled,
 ) {
     IconButton(
         onClick = onOpenInBrowserButtonClick,
+        enabled = enabled,
         modifier = Modifier
             .testTag(NavBarTestTags.openInBrowserButton),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_open_in),
             stringResource(R.string.browser_menu_open_in_fenix, R.string.app_name),
-            tint = tint,
+            tint = if (enabled) buttonEnabledTint else buttonDisabledTint,
         )
     }
 }
@@ -581,6 +587,7 @@ private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
         onOpenInBrowserButtonClick = {},
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
+        isSandboxCustomTab = false,
         backgroundColor = FirefoxTheme.colors.layer1,
         showDivider = true,
         buttonTint = FirefoxTheme.colors.iconPrimary.toArgb(),

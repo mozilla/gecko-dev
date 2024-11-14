@@ -294,6 +294,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                                 ),
                             )
                         },
+                        isSandboxCustomTab = args.isSandboxCustomTab,
                         backgroundColor = background,
                         showDivider = !isToolbarAtBottom,
                         buttonTint = navbarIntegration.buttonTint,

@@ -115,7 +115,7 @@ class CustomTabsIntegrationTest {
 
         assertNull(integration.openInAction)
 
-        integration.initOpenInAction(testContext)
+        integration.initOpenInAction(testContext, 0, 0)
 
         assertNotNull(integration.openInAction)
         verify { toolbar.addBrowserAction(any()) }
@@ -243,7 +243,7 @@ class CustomTabsIntegrationTest {
             context = testContext,
         )
 
-        verify { integration.initOpenInAction(any()) }
+        verify { integration.initOpenInAction(any(), any(), any()) }
     }
 
     @Test

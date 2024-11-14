@@ -56,7 +56,7 @@ class CustomTabsIntegration(
     private val activity: Activity,
     private val interactor: BrowserToolbarInteractor,
     shouldReverseItems: Boolean,
-    isSandboxCustomTab: Boolean,
+    private val isSandboxCustomTab: Boolean,
     private val isPrivate: Boolean,
     isMenuRedesignEnabled: Boolean,
     private val isNavBarEnabled: Boolean,
@@ -231,7 +231,16 @@ class CustomTabsIntegration(
         context: Context,
     ) {
         if (!isNavbarVisible) {
-            initOpenInAction(context)
+            val enableTint = feature.iconColor
+            val disableTint = ColorUtils.setAlphaComponent(
+                feature.iconColor,
+                calculateAlphaFromPercentage(DISABLED_STATE_OPACITY),
+            )
+            initOpenInAction(
+                context = context,
+                enableTint = enableTint,
+                disableTint = disableTint,
+            )
         } else {
             removeOpenInAction()
         }
@@ -366,21 +375,39 @@ class CustomTabsIntegration(
     }
 
     @VisibleForTesting
-    internal fun initOpenInAction(context: Context) {
+    internal fun initOpenInAction(
+        context: Context,
+        @ColorInt enableTint: Int,
+        @ColorInt disableTint: Int,
+    ) {
         if (openInAction == null) {
-            val imageDrawable = getDrawable(
+            val primaryDrawable = getDrawable(
                 context,
                 R.drawable.mozac_ic_open_in,
             )?.apply {
-                setTint(feature.iconColor)
+                setTint(enableTint)
             } ?: return
 
-            openInAction = BrowserToolbar.Button(
-                imageDrawable = imageDrawable,
-                contentDescription = context.getString(
+            val secondaryDrawable = getDrawable(
+                context,
+                R.drawable.mozac_ic_open_in,
+            )?.apply {
+                setTint(disableTint)
+            } ?: return
+
+            openInAction = BrowserToolbar.TwoStateButton(
+                primaryImage = primaryDrawable,
+                primaryContentDescription = context.getString(
                     R.string.browser_menu_open_in_fenix,
                     context.getString(R.string.app_name),
                 ),
+                secondaryImage = secondaryDrawable,
+                secondaryContentDescription = context.getString(
+                    R.string.browser_menu_open_in_fenix,
+                    context.getString(R.string.app_name),
+                ),
+                isInPrimaryState = { !isSandboxCustomTab },
+                disableInSecondaryState = true,
                 weight = { OPEN_IN_ACTION_WEIGHT },
                 listener = {
                     interactor.onBrowserToolbarMenuItemTapped(
