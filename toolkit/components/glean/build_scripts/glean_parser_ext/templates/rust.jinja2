@@ -211,6 +211,7 @@ pub mod {{ category_name|snake_case }} {
 #[allow(dead_code)]
 pub(crate) mod __glean_metric_maps {
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     use crate::metrics::extra_keys_len;
     use crate::private::*;
@@ -417,7 +418,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_{{labeled_type}} by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_{{labeled_type}}_get(metric_id: u32, label: &str) -> Labeled{{labeled_type|Camelize}}Metric {
+    pub(crate) fn labeled_{{labeled_type}}_get(metric_id: u32, label: &str) -> Arc<Labeled{{labeled_type|Camelize}}Metric> {
         match metric_id {
 {% for metric_id, (labeled, _) in labeleds_by_id.items() %}
             {{metric_id}} => super::{{labeled}}.get(label),
@@ -441,7 +442,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_{{labeled_type}} by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_{{labeled_type}}_enum_get(metric_id: u32, label_enum: u16) -> Labeled{{labeled_type|Camelize}}Metric {
+    pub(crate) fn labeled_{{labeled_type}}_enum_get(metric_id: u32, label_enum: u16) -> Arc<Labeled{{labeled_type|Camelize}}Metric> {
         match metric_id {
 {% for metric_id, (labeled, has_enum) in labeleds_by_id.items() %}
 {% if has_enum %}
@@ -469,6 +470,7 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) mod submetric_maps {
         use std::sync::{
           atomic::AtomicU32,
+          Arc,
           RwLock,
         };
         use super::*;
@@ -484,7 +486,7 @@ pub(crate) mod __glean_metric_maps {
 
 {% for typ, metrics in metric_by_type.items() %}
 {% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'CUSTOM_DISTRIBUTION_MAP', 'MEMORY_DISTRIBUTION_MAP', 'STRING_MAP', 'TIMING_DISTRIBUTION_MAP') %}
-        pub static {{typ.0}}: Lazy<RwLock<HashMap<MetricId, Labeled{{typ.1}}>>> = Lazy::new(||
+        pub static {{typ.0}}: Lazy<RwLock<HashMap<MetricId, Arc<Labeled{{typ.1}}>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
 {% endif %}

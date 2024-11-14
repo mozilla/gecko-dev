@@ -12,6 +12,7 @@ use super::{
 use crate::ipc::need_ipc;
 use std::borrow::Cow;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// Sealed traits protect against downstream implementations.
 ///
@@ -282,7 +283,7 @@ where
 }
 
 #[inherent]
-impl<U, E> glean::traits::Labeled<U> for LabeledMetric<U, E>
+impl<U, E> glean::traits::Labeled<Arc<U>> for LabeledMetric<U, E>
 where
     U: AllowLabeled + Clone,
 {
@@ -297,9 +298,9 @@ where
     ///
     /// Labels must be `snake_case` and less than 30 characters.
     /// If an invalid label is used, the metric will be recorded in the special `OTHER_LABEL` label.
-    pub fn get(&self, label: &str) -> U {
+    pub fn get(&self, label: &str) -> Arc<U> {
         let metric = self.core.get(label);
-        U::from_glean_metric(self.id, metric, label, self.permit_unordered_ipc)
+        Arc::new(U::from_glean_metric(self.id, metric, label, self.permit_unordered_ipc))
     }
 
     /// **Exported for test purposes.**

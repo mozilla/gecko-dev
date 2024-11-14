@@ -659,6 +659,7 @@ pub mod test_nested {
 #[allow(dead_code)]
 pub(crate) mod __glean_metric_maps {
     use std::collections::HashMap;
+    use std::sync::Arc;
 
     use crate::metrics::extra_keys_len;
     use crate::private::*;
@@ -946,7 +947,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_boolean by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_boolean_get(metric_id: u32, label: &str) -> LabeledBooleanMetric {
+    pub(crate) fn labeled_boolean_get(metric_id: u32, label: &str) -> Arc<LabeledBooleanMetric> {
         match metric_id {
             4 => super::test::labeled_boolean_metric.get(label),
             5 => super::test::labeled_boolean_metric_labels.get(label),
@@ -970,7 +971,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_boolean by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_boolean_enum_get(metric_id: u32, label_enum: u16) -> LabeledBooleanMetric {
+    pub(crate) fn labeled_boolean_enum_get(metric_id: u32, label_enum: u16) -> Arc<LabeledBooleanMetric> {
         match metric_id {
             5 => super::test::labeled_boolean_metric_labels.get(labeled_enum_to_str(metric_id, label_enum)),
             _ => panic!("No labeled_boolean for metric id {}", metric_id),
@@ -991,7 +992,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_counter by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_counter_get(metric_id: u32, label: &str) -> LabeledCounterMetric {
+    pub(crate) fn labeled_counter_get(metric_id: u32, label: &str) -> Arc<LabeledCounterMetric> {
         match metric_id {
             6 => super::test::labeled_counter_metric.get(label),
             7 => super::test::labeled_counter_metric_labels.get(label),
@@ -1014,7 +1015,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_counter by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_counter_enum_get(metric_id: u32, label_enum: u16) -> LabeledCounterMetric {
+    pub(crate) fn labeled_counter_enum_get(metric_id: u32, label_enum: u16) -> Arc<LabeledCounterMetric> {
         match metric_id {
             7 => super::test::labeled_counter_metric_labels.get(labeled_enum_to_str(metric_id, label_enum)),
             _ => panic!("No labeled_counter for metric id {}", metric_id),
@@ -1035,7 +1036,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_string by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_string_get(metric_id: u32, label: &str) -> LabeledStringMetric {
+    pub(crate) fn labeled_string_get(metric_id: u32, label: &str) -> Arc<LabeledStringMetric> {
         match metric_id {
             8 => super::test::labeled_string_metric.get(label),
             9 => super::test::labeled_string_metric_labels.get(label),
@@ -1058,7 +1059,7 @@ pub(crate) mod __glean_metric_maps {
     ///
     /// Panics if no labeled_string by the given metric ID could be found.
     #[allow(unused_variables)]
-    pub(crate) fn labeled_string_enum_get(metric_id: u32, label_enum: u16) -> LabeledStringMetric {
+    pub(crate) fn labeled_string_enum_get(metric_id: u32, label_enum: u16) -> Arc<LabeledStringMetric> {
         match metric_id {
             9 => super::test::labeled_string_metric_labels.get(labeled_enum_to_str(metric_id, label_enum)),
             _ => panic!("No labeled_string for metric id {}", metric_id),
@@ -1077,6 +1078,7 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) mod submetric_maps {
         use std::sync::{
           atomic::AtomicU32,
+          Arc,
           RwLock,
         };
         use super::*;
@@ -1090,22 +1092,22 @@ pub(crate) mod __glean_metric_maps {
             RwLock::new(HashMap::new())
         );
 
-        pub static BOOLEAN_MAP: Lazy<RwLock<HashMap<MetricId, LabeledBooleanMetric>>> = Lazy::new(||
+        pub static BOOLEAN_MAP: Lazy<RwLock<HashMap<MetricId, Arc<LabeledBooleanMetric>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
-        pub static COUNTER_MAP: Lazy<RwLock<HashMap<MetricId, LabeledCounterMetric>>> = Lazy::new(||
+        pub static COUNTER_MAP: Lazy<RwLock<HashMap<MetricId, Arc<LabeledCounterMetric>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
-        pub static CUSTOM_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, LabeledCustomDistributionMetric>>> = Lazy::new(||
+        pub static CUSTOM_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, Arc<LabeledCustomDistributionMetric>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
-        pub static MEMORY_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, LabeledMemoryDistributionMetric>>> = Lazy::new(||
+        pub static MEMORY_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, Arc<LabeledMemoryDistributionMetric>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
-        pub static STRING_MAP: Lazy<RwLock<HashMap<MetricId, LabeledStringMetric>>> = Lazy::new(||
+        pub static STRING_MAP: Lazy<RwLock<HashMap<MetricId, Arc<LabeledStringMetric>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
-        pub static TIMING_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, LabeledTimingDistributionMetric>>> = Lazy::new(||
+        pub static TIMING_DISTRIBUTION_MAP: Lazy<RwLock<HashMap<MetricId, Arc<LabeledTimingDistributionMetric>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
     }
