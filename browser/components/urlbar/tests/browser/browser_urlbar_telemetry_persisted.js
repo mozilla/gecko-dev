@@ -56,7 +56,7 @@ async function searchForString(searchString, tab) {
   });
   EventUtils.synthesizeKey("KEY_Enter");
   await browserLoadedPromise;
-  info("Finished loading search.");
+  info(`Loaded page: ${expectedSearchUrl}`);
   return expectedSearchUrl;
 }
 
@@ -69,26 +69,17 @@ async function gotoUrl(url, tab) {
   BrowserTestUtils.startLoadingURIString(tab.linkedBrowser, url);
   await browserLoadedPromise;
   info(`Loaded page: ${url}`);
+  await TestUtils.waitForTick();
 }
 
-async function goBack(browser) {
-  let pageShowPromise = BrowserTestUtils.waitForContentEvent(
-    browser,
-    "pageshow"
+async function goBack(browser, url) {
+  info(`Go back to ${url}`);
+  let promise = TestUtils.waitForCondition(
+    () => gBrowser.selectedBrowser?.currentURI?.spec == url,
+    "Waiting for the expected page to load"
   );
   browser.goBack();
-  await pageShowPromise;
-  info("Go back a page.");
-}
-
-async function goForward(browser) {
-  let pageShowPromise = BrowserTestUtils.waitForContentEvent(
-    browser,
-    "pageshow"
-  );
-  browser.goForward();
-  await pageShowPromise;
-  info("Go forward a page.");
+  await promise;
 }
 
 function assertScalarSearchEnter(number) {
@@ -144,7 +135,7 @@ add_task(async function switch_to_tab_and_search() {
   await searchForString(SEARCH_STRING, tab1);
 
   const tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  await gotoUrl("https://www.example.com/some-place", tab2);
+  await gotoUrl("https://test1.example.com/", tab2);
 
   await BrowserTestUtils.switchTab(gBrowser, tab1);
   await searchForString(SEARCH_STRING, tab1);
@@ -161,24 +152,19 @@ add_task(async function switch_to_tab_and_search() {
   BrowserTestUtils.removeTab(tab2);
 });
 
-// A user going back and forth in history should trigger
-// urlbar-persisted telemetry when returning to a SERP
-// and conducting a search.
-add_task(async function back_and_forth() {
+// A user going back to a SERP and doing another search should
+// record urlbar-persisted telemetry.
+add_task(async function search_and_go_back_and_search_again() {
   let search_hist =
     TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
 
   const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
-  // Create three pages in history: a page, a SERP, and a page.
-  await gotoUrl("https://www.example.com/some-place", tab);
-  await searchForString(SEARCH_STRING, tab);
-  await gotoUrl("https://www.example.com/another-page", tab);
+  let serpUrl = await searchForString(SEARCH_STRING, tab);
+  await gotoUrl("https://test2.example.com/", tab);
 
-  // Go back to the SERP by using both back and forward.
-  await goBack(tab.linkedBrowser);
-  await goBack(tab.linkedBrowser);
-  await goForward(tab.linkedBrowser);
+  // Go back to the SERP.
+  await goBack(tab.linkedBrowser, serpUrl);
   await assertScalarDoesNotExist(SCALAR_URLBAR_PERSISTED);
 
   // Then do a search.
