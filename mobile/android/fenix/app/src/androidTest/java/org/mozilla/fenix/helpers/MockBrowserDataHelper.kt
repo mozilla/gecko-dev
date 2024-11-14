@@ -32,19 +32,56 @@ object MockBrowserDataHelper {
      * @param url The URL of the bookmark item to add. URLs should use the "https://example.com" format.
      * @param title The title of the bookmark item to add.
      * @param position Example for the position param: 1u, 2u, etc.
+     * @param parentGuid The parent guid of the bookmark item to add.
+     * BookmarkRoot.Mobile.id is the root id for mobile bookmarks.
      */
-    fun createBookmarkItem(url: String, title: String, position: UInt?) {
-        Log.i(TAG, "createBookmarkItem: Trying to add bookmark item at position: $position, with url: $url, and with title: $title")
+    fun createBookmarkItem(
+        url: String,
+        title: String,
+        position: UInt?,
+        parentGuid: String = BookmarkRoot.Mobile.id,
+    ) {
+        Log.i(
+            TAG,
+            "createBookmarkItem: Trying to add bookmark item at position: $position, with url: $url, and with title: $title",
+        )
         runBlocking {
             PlacesBookmarksStorage(context)
                 .addItem(
-                    BookmarkRoot.Mobile.id,
+                    parentGuid,
                     url,
                     title,
                     position,
                 )
         }
-        Log.i(TAG, "createBookmarkItem: Added bookmark item at position: $position, with url: $url, and with title: $title")
+        Log.i(
+            TAG,
+            "createBookmarkItem: Added bookmark item at position: $position, with url: $url, and with title: $title",
+        )
+    }
+
+    /**
+     * Adds a new bookmark folder, visible in the Bookmarks folder.
+     *
+     * @param parentGuid The parent guid of the bookmark folder to add.
+     * BookmarkRoot.Mobile.id is the root id for mobile bookmarks.
+     * @param title The title of the bookmark folder to add.
+     * @param position Example for the position param: null, 1u, 2u, etc.
+     * @return The guid of the newly created bookmark folder.
+     */
+    fun generateBookmarkFolder(
+        parentGuid: String = BookmarkRoot.Mobile.id,
+        title: String,
+        position: UInt?,
+    ): String {
+        return runBlocking {
+            PlacesBookmarksStorage(context)
+                .addFolder(
+                    parentGuid = parentGuid,
+                    title = title,
+                    position = position,
+                )
+        }
     }
 
     /**
