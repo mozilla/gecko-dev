@@ -144,6 +144,7 @@ ${helpers.single_keyword(
     name="white-space-collapse",
     values="collapse preserve preserve-breaks break-spaces",
     extra_gecko_values="preserve-spaces",
+    gecko_aliases="-moz-pre-space=preserve-spaces",
     engines="gecko servo",
     gecko_enum_prefix="StyleWhiteSpaceCollapse",
     animation_type="discrete",
