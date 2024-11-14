@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1737371702000000);
+static const PRTime kCTExpirationTime = INT64_C(1737631407000000);
 
 namespace mozilla::ct {
 
@@ -162,7 +162,7 @@ const CTLogInfo kCTLogList[] = {
      "\x97",
      91},
     {"Cloudflare 'Nimbus2026'", CTLogState::Admissible,
-     1724814000000,  // 2024-08-28T03:00:00Z
+     1731088800000,  // 2024-11-08T18:00:00Z
      1,              // operated by Cloudflare
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xd8\x5c\x61\x4f\xac\x6a\xd2\x20\x80"
@@ -242,7 +242,7 @@ const CTLogInfo kCTLogList[] = {
      "\x2e",
      91},
     {"DigiCert 'Wyvern2026h1'", CTLogState::Admissible,
-     1724630400000,  // 2024-08-26T00:00:00Z
+     1731024000000,  // 2024-11-08T00:00:00Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xec\xbc\x34\x39\xe2\x9a\x8d\xb7\x99"
@@ -252,7 +252,7 @@ const CTLogInfo kCTLogList[] = {
      "\x55",
      91},
     {"DigiCert 'Wyvern2026h2'", CTLogState::Admissible,
-     1724630400000,  // 2024-08-26T00:00:00Z
+     1731024000000,  // 2024-11-08T00:00:00Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x7a\x73\xdb\x4a\xf2\xde\x4f\xec\xe1"
@@ -292,7 +292,7 @@ const CTLogInfo kCTLogList[] = {
      "\x69",
      91},
     {"DigiCert 'Sphinx2026h1'", CTLogState::Admissible,
-     1724630400000,  // 2024-08-26T00:00:00Z
+     1731024000000,  // 2024-11-08T00:00:00Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xab\x84\xbe\xf8\x3c\x87\xa2\x42\x25"
@@ -302,7 +302,7 @@ const CTLogInfo kCTLogList[] = {
      "\xf4",
      91},
     {"DigiCert 'Sphinx2026h2'", CTLogState::Admissible,
-     1724630400000,  // 2024-08-26T00:00:00Z
+     1731024000000,  // 2024-11-08T00:00:00Z
      2,              // operated by DigiCert
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xaa\xe0\xf4\x26\x44\x50\x4f\xfd\xa2"
