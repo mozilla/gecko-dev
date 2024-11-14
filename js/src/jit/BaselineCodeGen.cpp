@@ -3249,10 +3249,10 @@ bool BaselineCompilerCodeGen::tryOptimizeBindUnqualifiedGlobalName() {
   JSScript* script = handler.script();
   MOZ_ASSERT(!script->hasNonSyntacticScope());
 
-  Rooted<GlobalObject*> global(cx, &script->global());
-  Rooted<PropertyName*> name(cx, script->getName(handler.pc()));
+  GlobalObject* global = &script->global();
+  PropertyName* name = script->getName(handler.pc());
   if (JSObject* binding =
-          MaybeOptimizeBindUnqualifiedGlobalName(cx, global, name)) {
+          MaybeOptimizeBindUnqualifiedGlobalName(global, name)) {
     frame.push(ObjectValue(*binding));
     return true;
   }

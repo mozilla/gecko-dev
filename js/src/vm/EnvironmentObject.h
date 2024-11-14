@@ -1618,8 +1618,8 @@ ModuleEnvironmentObject* GetModuleEnvironmentForScript(JSScript* script);
 bool AnalyzeEntrainedVariables(JSContext* cx, HandleScript script);
 #endif
 
-extern JSObject* MaybeOptimizeBindUnqualifiedGlobalName(
-    JSContext* cx, Handle<GlobalObject*> global, Handle<PropertyName*> name);
+extern JSObject* MaybeOptimizeBindUnqualifiedGlobalName(GlobalObject* global,
+                                                        PropertyName* name);
 }  // namespace js
 
 #endif /* vm_EnvironmentObject_h */
