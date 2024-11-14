@@ -16,6 +16,7 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getHTMLControlsFormAsset
+import org.mozilla.fenix.helpers.TestHelper.waitForAppWindowToBeUpdated
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.navigationToolbar
@@ -37,6 +38,7 @@ class WebControlsTest : TestSetup() {
     val activityTestRule = HomeActivityTestRule(
         isNavigationBarCFREnabled = false,
         shouldUseBottomToolbar = true,
+        isOpenInAppBannerEnabled = false,
     )
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316067
@@ -131,6 +133,7 @@ class WebControlsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(itemContainingText("Email link"))
+            waitForAppWindowToBeUpdated()
             clickPageObject(itemWithResIdAndText("android:id/button1", "OPEN"))
             assertNativeAppOpens(Constants.PackageName.GMAIL_APP, emailLink)
         }
@@ -145,6 +148,7 @@ class WebControlsTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPage.url) {
             clickPageObject(itemContainingText("Telephone link"))
+            waitForAppWindowToBeUpdated()
             clickPageObject(itemWithResIdAndText("android:id/button1", "OPEN"))
             assertNativeAppOpens(Constants.PackageName.PHONE_APP, phoneLink)
         }
