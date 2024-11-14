@@ -198,7 +198,7 @@ void RemoteWorkerController::Shutdown() {
   if (mIsServiceWorker) {
     mActor->MaybeSendDelete();
   } else {
-    Unused << mActor->SendExecOp(RemoteWorkerTerminateOp());
+    Unused << mActor->SendExecOp(SharedWorkerTerminateOpArgs());
   }
 
   mActor = nullptr;
@@ -378,28 +378,28 @@ bool RemoteWorkerController::PendingSharedWorkerOp::MaybeStart(
       aOwner->Shutdown();
       break;
     case eSuspend:
-      Unused << aOwner->mActor->SendExecOp(RemoteWorkerSuspendOp());
+      Unused << aOwner->mActor->SendExecOp(SharedWorkerSuspendOpArgs());
       break;
     case eResume:
-      Unused << aOwner->mActor->SendExecOp(RemoteWorkerResumeOp());
+      Unused << aOwner->mActor->SendExecOp(SharedWorkerResumeOpArgs());
       break;
     case eFreeze:
-      Unused << aOwner->mActor->SendExecOp(RemoteWorkerFreezeOp());
+      Unused << aOwner->mActor->SendExecOp(SharedWorkerFreezeOpArgs());
       break;
     case eThaw:
-      Unused << aOwner->mActor->SendExecOp(RemoteWorkerThawOp());
+      Unused << aOwner->mActor->SendExecOp(SharedWorkerThawOpArgs());
       break;
     case ePortIdentifier:
       Unused << aOwner->mActor->SendExecOp(
-          RemoteWorkerPortIdentifierOp(mPortIdentifier));
+          SharedWorkerPortIdentifierOpArgs(mPortIdentifier));
       break;
     case eAddWindowID:
       Unused << aOwner->mActor->SendExecOp(
-          RemoteWorkerAddWindowIDOp(mWindowID));
+          SharedWorkerAddWindowIDOpArgs(mWindowID));
       break;
     case eRemoveWindowID:
       Unused << aOwner->mActor->SendExecOp(
-          RemoteWorkerRemoveWindowIDOp(mWindowID));
+          SharedWorkerRemoveWindowIDOpArgs(mWindowID));
       break;
     default:
       MOZ_CRASH("Unknown op.");
