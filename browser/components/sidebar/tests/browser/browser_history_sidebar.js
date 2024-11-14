@@ -28,7 +28,7 @@ const yesterday = new Date(
 
 // Get date for the second-last day of the previous month.
 // (Do not use the last day, since that could be the same as yesterday's date.)
-const lastMonth = new Date(today.getFullYear(), today.getMonth(), -1);
+const lastMonth = new Date(today.getFullYear(), today.getMonth(), -2);
 
 const dates = [today, yesterday, lastMonth];
 
