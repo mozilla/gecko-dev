@@ -6,6 +6,7 @@
 
 #include "nscore.h"
 #include "nsTextFragmentImpl.h"
+#include "mozilla/Assertions.h"
 #include <algorithm>
 #include <altivec.h>
 
