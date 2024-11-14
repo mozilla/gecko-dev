@@ -92,15 +92,6 @@
      *          removed - notification has been removed
      *          dismissed - user dismissed notification
      *          disconnected - notification removed in any way
-     *    telemetry
-     *        Specifies the telemetry key to use that triggers when the notification
-     *        is shown, dismissed and an action taken. This telemetry is a keyed scalar with keys for:
-     *          'shown', 'dismissed' and 'action'. If a button specifies a separate key,
-     *        then 'action' is replaced by values specific to each button. The value telemetryFilter
-     *        can be used to filter out each type.
-     *    telemetryFilter
-     *        If assigned, then an array of the telemetry types to send telemetry for. If not set,
-     *        then all telemetry is sent.
      * aButtons
      *        Array of objects defining action buttons:
      *        {
@@ -211,13 +202,6 @@
         newitem.setButtons(aButtons);
       }
 
-      if (aNotification.telemetry) {
-        newitem.telemetry = aNotification.telemetry;
-        if (aNotification.telemetryFilter) {
-          newitem.telemetryFilter = aNotification.telemetryFilter;
-        }
-      }
-
       newitem.priority = aNotification.priority;
       if (aNotification.priority == this.PRIORITY_SYSTEM) {
         newitem.setAttribute("type", "system");
@@ -245,13 +229,6 @@
       var event = document.createEvent("Events");
       event.initEvent("AlertActive", true, true);
       newitem.dispatchEvent(event);
-
-      // If the notification is not visible, don't call shown() on the
-      // new notification until it is visible. This will typically be
-      // a tabbrowser that does this when a tab is selected.
-      if (this.isShown) {
-        newitem.shown();
-      }
 
       return newitem;
     }
@@ -319,22 +296,6 @@
           this.removeNotification(notification, true);
         }
       }
-    }
-
-    shown() {
-      for (let notification of this.allNotifications) {
-        notification.shown();
-      }
-    }
-
-    get isShown() {
-      let stack = this.stack;
-      let parent = this.stack.parentNode;
-      if (parent.localName == "named-deck") {
-        return parent.selectedViewName == stack.getAttribute("name");
-      }
-
-      return true;
     }
 
     _showNotification(aNotification, aSlideIn, aSkipAnimation) {
@@ -418,9 +379,7 @@
         this.persistence = 0;
         this.priority = 0;
         this.timeout = 0;
-        this.telemetry = null;
         this.dismissable = true;
-        this._shown = false;
 
         this.addEventListener("click", this);
         this.addEventListener("command", this);
@@ -457,15 +416,6 @@
         this.renderRoot.append(style);
       }
 
-      _doTelemetry(type) {
-        if (
-          this.telemetry &&
-          (!this.telemetryFilter || this.telemetryFilter.includes(type))
-        ) {
-          Services.telemetry.keyedScalarAdd(this.telemetry, type, 1);
-        }
-      }
-
       get control() {
         return this.closest(".notificationbox-stack")._notificationBox;
       }
@@ -475,15 +425,6 @@
           return;
         }
         this.control.removeNotification(this);
-      }
-
-      // This will be called when the host (such as a tabbrowser) determines that
-      // the notification is made visible to the user.
-      shown() {
-        if (!this._shown) {
-          this._shown = true;
-          this._doTelemetry("shown");
-        }
       }
 
       setAlertRole() {
@@ -505,8 +446,6 @@
         if ("buttonInfo" in e.target) {
           let { buttonInfo } = e.target;
           let { callback, popup } = buttonInfo;
-
-          this._doTelemetry(buttonInfo.telemetry || "action");
 
           if (popup) {
             document
@@ -602,8 +541,6 @@
       }
 
       dismiss() {
-        this._doTelemetry("dismissed");
-
         if (this.eventCallback) {
           this.eventCallback("dismissed");
         }

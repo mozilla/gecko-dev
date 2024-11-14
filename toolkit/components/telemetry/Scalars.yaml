@@ -4040,42 +4040,6 @@ formautofill.creditCards:
     record_in_processes:
       - 'main'
 
-# This section is for notification bars testing
-notificationbar:
-  # Used only for testing
-  testone:
-    bug_numbers:
-      - 1676943
-    description: >
-      Used to test notificationbar telemetry
-    expires: never
-    kind: uint
-    keyed: true
-    notification_emails:
-      - telemetry-client-dev@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-
-  # Used only for testing
-  testtwo:
-    bug_numbers:
-      - 1676943
-    description: >
-      Used to test notificationbar telemetry
-    expires: never
-    kind: uint
-    keyed: true
-    notification_emails:
-      - telemetry-client-dev@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-
 # The following section contains scalars for the Screenshots extension.
 screenshots:
   download:
