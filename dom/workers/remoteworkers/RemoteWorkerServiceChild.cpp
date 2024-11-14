@@ -16,14 +16,18 @@ RemoteWorkerServiceChild::~RemoteWorkerServiceChild() = default;
 
 already_AddRefed<PRemoteWorkerChild>
 RemoteWorkerServiceChild::AllocPRemoteWorkerChild(
-    const RemoteWorkerData& aData) {
+    const RemoteWorkerData& aData,
+    mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&
+        aChildEp) {
   return MakeAndAddRef<RemoteWorkerChild>(aData);
 }
 
 mozilla::ipc::IPCResult RemoteWorkerServiceChild::RecvPRemoteWorkerConstructor(
-    PRemoteWorkerChild* aActor, const RemoteWorkerData& aData) {
+    PRemoteWorkerChild* aActor, const RemoteWorkerData& aData,
+    mozilla::ipc::Endpoint<PRemoteWorkerNonLifeCycleOpControllerChild>&&
+        aChildEp) {
   RemoteWorkerChild* actor = static_cast<RemoteWorkerChild*>(aActor);
-  actor->ExecWorker(aData);
+  actor->ExecWorker(aData, std::move(aChildEp));
   return IPC_OK();
 }
 

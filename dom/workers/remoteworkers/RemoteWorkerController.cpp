@@ -23,6 +23,7 @@
 #include "mozilla/ipc/BackgroundParent.h"
 #include "RemoteWorkerControllerParent.h"
 #include "RemoteWorkerManager.h"
+#include "RemoteWorkerNonLifeCycleOpControllerParent.h"
 #include "RemoteWorkerParent.h"
 
 namespace mozilla {
@@ -178,6 +179,11 @@ void RemoteWorkerController::Shutdown() {
   mState = eTerminated;
 
   CancelAllPendingOps();
+
+  if (mNonLifeCycleOpController) {
+    Unused << mNonLifeCycleOpController->SendShutdown();
+    mNonLifeCycleOpController = nullptr;
+  }
 
   if (!mActor) {
     return;
