@@ -17,6 +17,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import org.hamcrest.Matchers.equalTo
 import org.junit.* // ktlint-disable no-wildcard-imports
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeThat
 import org.junit.rules.RuleChain
@@ -97,7 +98,10 @@ class GeckoViewTest : BaseSessionTest() {
     private fun waitUntilContentProcessPriority(high: List<GeckoSession>, low: List<GeckoSession>) {
         val highPids = high.map { sessionRule.getSessionPid(it) }.toSet()
         val lowPids = low.map { sessionRule.getSessionPid(it) }.toSet()
+        waitUntilContentProcessPriorityByPid(highPids = highPids, lowPids = lowPids)
+    }
 
+    private fun waitUntilContentProcessPriorityByPid(highPids: Collection<Int>, lowPids: Collection<Int>) {
         UiThreadUtils.waitForCondition({
             val shouldBeHighPri = getContentProcessesOomScore(highPids)
             val shouldBeLowPri = getContentProcessesOomScore(lowPids)
@@ -123,15 +127,16 @@ class GeckoViewTest : BaseSessionTest() {
         )
 
         val otherSession = sessionRule.createOpenSession()
+
+        // Need a dummy page to be able to get the PID from the session
+        otherSession.loadUri("https://example.com")
+        otherSession.waitForPageStop()
+
         // The process manager sets newly created processes to FOREGROUND priority until they
         // are de-prioritized, so we need to activate and deactivate the session to trigger
         // a setPriority call.
         otherSession.setActive(true)
         otherSession.setActive(false)
-
-        // Need a dummy page to be able to get the PID from the session
-        otherSession.loadUri("https://example.com")
-        otherSession.waitForPageStop()
 
         mainSession.loadTestPath(HELLO_HTML_PATH)
         mainSession.waitForPageStop()
@@ -147,8 +152,8 @@ class GeckoViewTest : BaseSessionTest() {
     @Test
     @NullDelegate(Autofill.Delegate::class)
     fun setTabActiveKeepsTabAtHighPriority() {
-        // Bug 1768102 - Doesn't seem to work on Fission
-        assumeThat(env.isFission || env.isIsolatedProcess, equalTo(false))
+        // Bug 1927595
+        assumeThat(env.isIsolatedProcess, equalTo(false))
         activityRule.scenario.onActivity {
             val otherSession = setupPriorityTest()
 
@@ -175,8 +180,8 @@ class GeckoViewTest : BaseSessionTest() {
     @Test
     @NullDelegate(Autofill.Delegate::class)
     fun processPriorityTest() {
-        // Doesn't seem to work on Fission
-        assumeThat(env.isFission || env.isIsolatedProcess, equalTo(false))
+        // Bug 1927595
+        assumeThat(env.isIsolatedProcess, equalTo(false))
         activityRule.scenario.onActivity {
             val otherSession = setupPriorityTest()
 
@@ -216,9 +221,8 @@ class GeckoViewTest : BaseSessionTest() {
     @Test
     @NullDelegate(Autofill.Delegate::class)
     fun setPriorityHint() {
-        // Bug 1768102 - Doesn't seem to work on Fission
-        assumeThat(env.isFission || env.isIsolatedProcess, equalTo(false))
-
+        // Bug 1927595
+        assumeThat(env.isIsolatedProcess, equalTo(false))
         val otherSession = setupPriorityTest()
 
         // Setting priorityHint to PRIORITY_HIGH raises priority
@@ -236,6 +240,64 @@ class GeckoViewTest : BaseSessionTest() {
             high = listOf(mainSession),
             low = listOf(otherSession),
         )
+    }
+
+    // Purpose of this test is to illustrate differences in setActive pre/post fission.
+    @Test
+    @NullDelegate(Autofill.Delegate::class)
+    fun setActiveProcessPriorityTest() {
+        // Bug 1927595
+        assumeThat(env.isIsolatedProcess, equalTo(false))
+
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "dom.ipc.processPriorityManager.backgroundGracePeriodMS" to 0,
+                "dom.ipc.processPriorityManager.backgroundPerceivableGracePeriodMS" to 0,
+                "fission.webContentIsolationStrategy" to 1,
+            ),
+        )
+
+        // Can't use getSessionPid until the session is loaded,
+        // but we can safely assume the opening session is the only PID
+        val initialPids = sessionRule.getAllSessionPids()
+        assertTrue("Only one session PID detected on startup", initialPids.size == 1)
+        val initialPid = initialPids.first()
+
+        mainSession.setActive(true)
+        mainSession.setActive(false)
+
+        mainSession.loadTestPath(HELLO_HTML_PATH)
+        mainSession.waitForPageStop()
+        val loadedPid = sessionRule.getSessionPid(mainSession)
+
+        val isLoadedActive = sessionRule.getActive(mainSession)
+        assertFalse("The session was set to inactive.", isLoadedActive)
+
+        if (env.isFission) {
+            assertTrue("A process switch did occur for fission, so the PIDs are different.", initialPid != loadedPid)
+
+            waitUntilContentProcessPriorityByPid(highPids = listOf(loadedPid), lowPids = listOf(initialPid))
+            val initialOomScore = getContentProcessesOomScore(listOf(initialPid)).first()
+            val loadedOomScore = getContentProcessesOomScore(listOf(loadedPid)).first()
+
+            // Note that higher oom score means less priority
+            assertTrue(
+                "The initial oom score has less priority than the loaded oom score process at this point due to being backgrounded.",
+                loadedOomScore < initialOomScore,
+            )
+            // setActive(false) occurred on this PID
+            assertTrue("The initial oom score indicates lower priority.", initialOomScore > 300)
+            // setActive(false) never occurred on this PID
+            assertTrue("The loaded oom score indicates higher priority.", loadedOomScore < 300)
+        } else {
+            assertTrue("A process switch did not occur.", initialPid == loadedPid)
+
+            // setActive(false) occurred on this PID, give time for it to settle
+            UiThreadUtils.waitForCondition({
+                getContentProcessesOomScore(listOf(loadedPid)).first() > 100
+            }, env.defaultTimeoutMillis)
+            assertTrue("The loaded oom score indicates low priority.", true)
+        }
     }
 
     private fun visit(node: MockViewStructure, callback: (MockViewStructure) -> Unit) {
