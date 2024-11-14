@@ -21,6 +21,13 @@ const MERINO_TIMEOUT_MS = 5000; // 5s
 const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_WEATHER_MS";
 const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
 
+// Cache period for Merino's weather response. This is intentionally a small
+// amount of time. See the `cachePeriodMs` discussion in `MerinoClient`. In
+// addition, caching also helps prevent the weather suggestion from flickering
+// out of and into the view as the user matches the same suggestion with each
+// keystroke, especially when Merino has high latency.
+const MERINO_WEATHER_CACHE_PERIOD_MS = 60000; // 1 minute
+
 // The mean Earth radius used in distance calculations.
 const EARTH_RADIUS_KM = 6371.009;
 
@@ -313,7 +320,9 @@ export class Weather extends BaseFeature {
     }
 
     if (!this.#merino) {
-      this.#merino = new lazy.MerinoClient(this.constructor.name);
+      this.#merino = new lazy.MerinoClient(this.constructor.name, {
+        cachePeriodMs: MERINO_WEATHER_CACHE_PERIOD_MS,
+      });
     }
 
     // Set up location params to pass to Merino. We need to null-check each

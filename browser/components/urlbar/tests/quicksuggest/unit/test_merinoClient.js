@@ -102,6 +102,171 @@ add_task(async function noSuggestions() {
   MerinoTestUtils.server.response.body.suggestions = suggestions;
 });
 
+// Tests `MerinoClient`'s simplistic caching mechanism.
+add_task(async function cache() {
+  MerinoTestUtils.enableClientCache(true);
+
+  // Stub `MerinoClient`'s `Date.now()` so we can artificially set the date.
+  let sandbox = sinon.createSandbox();
+  let dateNowStub = sandbox.stub(
+    Cu.getGlobalForObject(MerinoClient).Date,
+    "now"
+  );
+  let startDateMs = Date.now();
+  dateNowStub.returns(startDateMs);
+
+  // We'll do fetches with this client and pass it this provider.
+  let provider = "test-provider";
+  let client = new MerinoClient("cache-test", { cachePeriodMs: 60 * 1000 });
+
+  // We'll do each of these fetches in order.
+  let fetches = [
+    {
+      timeOffsetMs: 0,
+      query: "aaa",
+      shouldCallMerino: true,
+    },
+    {
+      timeOffsetMs: 30 * 1000,
+      query: "aaa",
+      shouldCallMerino: false,
+    },
+    // This call is exactly when the cache period expires, so the cache should
+    // not be used.
+    {
+      timeOffsetMs: 60 * 1000,
+      query: "aaa",
+      shouldCallMerino: true,
+    },
+    {
+      timeOffsetMs: 90 * 1000,
+      query: "aaa",
+      shouldCallMerino: false,
+    },
+    // This call is well past the previous cache period (which expired at an
+    // offset of 120), so the cache should not be used.
+    {
+      timeOffsetMs: 200 * 1000,
+      query: "aaa",
+      shouldCallMerino: true,
+    },
+    {
+      timeOffsetMs: 259 * 1000,
+      query: "aaa",
+      shouldCallMerino: false,
+    },
+    // This call is exactly when the cache period expires, so the cache should
+    // not be used.
+    {
+      timeOffsetMs: 260 * 1000,
+      query: "aaa",
+      shouldCallMerino: true,
+    },
+    {
+      timeOffsetMs: 261 * 1000,
+      query: "aaa",
+      shouldCallMerino: false,
+    },
+    // A different query creates a different request URL, so the cache should
+    // not be used even though this request is within the current cache period.
+    {
+      timeOffsetMs: 262 * 1000,
+      query: "bbb",
+      shouldCallMerino: true,
+    },
+    {
+      timeOffsetMs: 263 * 1000,
+      query: "bbb",
+      shouldCallMerino: false,
+    },
+    {
+      timeOffsetMs: 264 * 1000,
+      query: "aaa",
+      shouldCallMerino: true,
+    },
+    {
+      timeOffsetMs: 265 * 1000,
+      query: "aaa",
+      shouldCallMerino: false,
+    },
+  ];
+
+  // Do each fetch one after another.
+  for (let i = 0; i < fetches.length; i++) {
+    let fetch = fetches[i];
+    info(`Fetch ${i} start: ` + JSON.stringify(fetch));
+
+    let { timeOffsetMs, query, shouldCallMerino } = fetch;
+
+    // Set the date forward.
+    dateNowStub.returns(startDateMs + timeOffsetMs);
+
+    // Do the fetch.
+    let callsByProvider = await doFetchAndGetCalls(client, {
+      query,
+      providers: [provider],
+    });
+    info(`Fetch ${i} callsByProvider: ` + JSON.stringify(callsByProvider));
+
+    // Stringify each `URLSearchParams` in the `calls` array in each
+    // `[provider, calls]` for easier comparison.
+    let actualCalls = Object.entries(callsByProvider).map(([p, calls]) => [
+      p,
+      calls.map(params => {
+        params.delete(MerinoClient.SEARCH_PARAMS.SESSION_ID);
+        params.delete(MerinoClient.SEARCH_PARAMS.SEQUENCE_NUMBER);
+        return params.toString();
+      }),
+    ]);
+
+    if (!shouldCallMerino) {
+      Assert.deepEqual(
+        actualCalls,
+        [],
+        `Fetch ${i} should not have called Merino`
+      );
+    } else {
+      // Build the expected params.
+      let expectedParams = new URLSearchParams();
+      expectedParams.set(MerinoClient.SEARCH_PARAMS.PROVIDERS, provider);
+      expectedParams.set(MerinoClient.SEARCH_PARAMS.QUERY, query);
+      expectedParams.sort();
+
+      Assert.deepEqual(
+        actualCalls,
+        [[provider, [expectedParams.toString()]]],
+        `Fetch ${i} should have called Merino`
+      );
+    }
+  }
+
+  sandbox.restore();
+  MerinoTestUtils.enableClientCache(false);
+});
+
+async function doFetchAndGetCalls(client, fetchArgs) {
+  let callsByProvider = {};
+
+  MerinoTestUtils.server.requestHandler = req => {
+    let params = new URLSearchParams(req.queryString);
+    params.sort();
+    let provider = params.get("providers");
+    callsByProvider[provider] ||= [];
+    callsByProvider[provider].push(params);
+    return {
+      body: {
+        request_id: "request_id",
+        suggestions: [{ foo: "bar" }],
+      },
+    };
+  };
+
+  await client.fetch(fetchArgs);
+
+  MerinoTestUtils.server.requestHandler = null;
+  return callsByProvider;
+}
+
 // Checks a response that's valid but also has some unexpected properties.
 add_task(async function unexpectedResponseProperties() {
   let histograms = MerinoTestUtils.getAndClearHistograms();

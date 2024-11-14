@@ -40,9 +40,37 @@ export class MerinoClient {
   /**
    * @param {string} name
    *   An optional name for the client. It will be included in log messages.
+   * @param {object} options
+   *   Options object
+   * @param {string} options.cachePeriodMs
+   *   Enables caching when nonzero. The client will cache the response
+   *   suggestions from its most recent successful request for the specified
+   *   period. The client will serve the cached suggestions for all fetches for
+   *   the same URL until either the cache period elapses or a successful fetch
+   *   for a different URL is made (ignoring session-related URL params like
+   *   session ID and sequence number). Caching is per `MerinoClient` instance
+   *   and is not shared across instances.
+   *
+   *   WARNING: Cached suggestions are only ever evicted when new suggestions
+   *   are cached. They are not evicted on a timer. If the client has cached
+   *   some suggestions and no further fetches are made, they'll stay cached
+   *   indefinitely. If your request URLs contain senstive data that should not
+   *   stick around in the object graph indefinitely, you should either not use
+   *   caching or you should implement an eviction mechanism.
+   *
+   *   This cache strategy is intentionally simplistic and designed to be used
+   *   by the urlbar with very short cache periods to make sure Firefox doesn't
+   *   repeatedly call the same Merino URL on each keystroke in a urlbar
+   *   session, which is wasteful and can cause a suggestion to flicker out of
+   *   and into the urlbar panel as the user matches it again and again,
+   *   especially when Merino latency is high. It is not designed to be a
+   *   general caching mechanism. If you need more complex or long-lived
+   *   caching, try working with the Merino team to add cache headers to the
+   *   relevant responses so you can leverage Firefox's HTTP cache.
    */
-  constructor(name = "anonymous") {
+  constructor(name = "anonymous", { cachePeriodMs = 0 } = {}) {
     this.#name = name;
+    this.#cachePeriodMs = cachePeriodMs;
     ChromeUtils.defineLazyGetter(this, "logger", () =>
       lazy.UrlbarUtils.getLogger({ prefix: `MerinoClient [${name}]` })
     );
@@ -134,24 +162,6 @@ export class MerinoClient {
   }) {
     this.logger.info(`Fetch starting with query: "${query}"`);
 
-    // Set up the Merino session ID and related state. The session ID is a UUID
-    // without leading and trailing braces.
-    if (!this.#sessionID) {
-      let uuid = Services.uuid.generateUUID().toString();
-      this.#sessionID = uuid.substring(1, uuid.length - 1);
-      this.#sequenceNumber = 0;
-      this.#sessionTimer?.cancel();
-
-      // Per spec, for the user's privacy, the session should time out and a new
-      // session ID should be used if the engagement does not end soon.
-      this.#sessionTimer = new lazy.SkippableTimer({
-        name: "Merino session timeout",
-        time: this.#sessionTimeoutMs,
-        logger: this.logger,
-        callback: () => this.resetSession(),
-      });
-    }
-
     // Get the endpoint URL. It's empty by default when running tests so they
     // don't hit the network.
     let endpointString = lazy.UrlbarPrefs.get("merinoEndpointURL");
@@ -165,10 +175,9 @@ export class MerinoClient {
       this.logger.error("Error creating endpoint URL: " + error);
       return [];
     }
+
+    // Start setting search params. Leave session-related params for last.
     url.searchParams.set(SEARCH_PARAMS.QUERY, query);
-    url.searchParams.set(SEARCH_PARAMS.SESSION_ID, this.#sessionID);
-    url.searchParams.set(SEARCH_PARAMS.SEQUENCE_NUMBER, this.#sequenceNumber);
-    this.#sequenceNumber++;
 
     let clientVariants = lazy.UrlbarPrefs.get("merinoClientVariants");
     if (clientVariants) {
@@ -201,8 +210,51 @@ export class MerinoClient {
       url.searchParams.set(param, value);
     }
 
-    let details = { query, providers, timeoutMs, url };
+    // At this point, all search params should be set except for session-related
+    // params.
+
+    let details = { query, providers, timeoutMs, url: url.toString() };
     this.logger.debug("Fetch details: " + JSON.stringify(details));
+
+    // If caching is enabled, generate the cache key for this request URL.
+    let cacheKey;
+    if (this.#cachePeriodMs && !MerinoClient._test_disableCache) {
+      url.searchParams.sort();
+      cacheKey = url.toString();
+
+      // If we have cached suggestions and they're still valid, return them.
+      if (
+        this.#cache.suggestions &&
+        Date.now() < this.#cache.dateMs + this.#cachePeriodMs &&
+        this.#cache.key == cacheKey
+      ) {
+        this.logger.info("Fetch served from cache");
+        return this.#cache.suggestions;
+      }
+    }
+
+    // At this point, we're calling Merino.
+
+    // Set up the Merino session ID and related state. The session ID is a UUID
+    // without leading and trailing braces.
+    if (!this.#sessionID) {
+      let uuid = Services.uuid.generateUUID().toString();
+      this.#sessionID = uuid.substring(1, uuid.length - 1);
+      this.#sequenceNumber = 0;
+      this.#sessionTimer?.cancel();
+
+      // Per spec, for the user's privacy, the session should time out and a new
+      // session ID should be used if the engagement does not end soon.
+      this.#sessionTimer = new lazy.SkippableTimer({
+        name: "Merino session timeout",
+        time: this.#sessionTimeoutMs,
+        logger: this.logger,
+        callback: () => this.resetSession(),
+      });
+    }
+    url.searchParams.set(SEARCH_PARAMS.SESSION_ID, this.#sessionID);
+    url.searchParams.set(SEARCH_PARAMS.SEQUENCE_NUMBER, this.#sequenceNumber);
+    this.#sequenceNumber++;
 
     let recordResponse = category => {
       this.logger.info("Fetch done with status: " + category);
@@ -320,11 +372,21 @@ export class MerinoClient {
     }
 
     recordResponse?.("success");
-    return suggestions.map(suggestion => ({
+    suggestions = suggestions.map(suggestion => ({
       ...suggestion,
       request_id,
       source: "merino",
     }));
+
+    if (cacheKey) {
+      this.#cache = {
+        suggestions,
+        key: cacheKey,
+        dateMs: Date.now(),
+      };
+    }
+
+    return suggestions;
   }
 
   /**
@@ -374,6 +436,8 @@ export class MerinoClient {
     return this.#nextSessionResetDeferred.promise;
   }
 
+  static _test_disableCache = false;
+
   get _test_sessionTimer() {
     return this.#sessionTimer;
   }
@@ -403,4 +467,17 @@ export class MerinoClient {
   #lastFetchStatus = null;
   #nextResponseDeferred = null;
   #nextSessionResetDeferred = null;
+  #cachePeriodMs = 0;
+
+  // When caching is enabled, we cache response suggestions from the most recent
+  // successful request.
+  #cache = {
+    // The cached suggestions array.
+    suggestions: null,
+    // The cache key: the stringified request URL without session-related params
+    // (session ID and sequence number).
+    key: null,
+    // The date the suggestions were cached as returned by `Date.now()`.
+    dateMs: 0,
+  };
 }

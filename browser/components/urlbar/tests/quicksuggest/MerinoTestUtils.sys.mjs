@@ -4,6 +4,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
@@ -95,7 +96,8 @@ const GEOLOCATION_DATA = {
  */
 class _MerinoTestUtils {
   /**
-   * Initializes the utils.
+   * Initializes the utils. Also disables caching in `MerinoClient` since
+   * caching typically makes it harder to write tests.
    *
    * @param {object} scope
    *   The global JS scope where tests are being run. This allows the instance
@@ -116,6 +118,7 @@ class _MerinoTestUtils {
 
     if (!this.#server) {
       this.#server = new MockMerinoServer(scope);
+      this.enableClientCache(false);
     }
     lazy.UrlbarPrefs.set("merino.timeoutMs", CLIENT_TIMEOUT_MS);
     scope.registerCleanupFunction?.(() => {
@@ -341,6 +344,16 @@ class _MerinoTestUtils {
   async initGeolocation() {
     await this.server.start();
     this.server.response.body.suggestions = [GEOLOCATION_DATA];
+  }
+
+  /**
+   * Enables or disables caching in `MerinoClient`.
+   *
+   * @param {boolean} enable
+   *   Whether caching should be enabled.
+   */
+  enableClientCache(enable) {
+    lazy.MerinoClient._test_disableCache = !enable;
   }
 
   #initDepth = 0;

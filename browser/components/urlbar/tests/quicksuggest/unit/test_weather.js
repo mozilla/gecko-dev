@@ -12,6 +12,7 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   UrlbarProviderPlaces: "resource:///modules/UrlbarProviderPlaces.sys.mjs",
 });
 
@@ -776,7 +777,6 @@ async function doCityTest({ desc, query, geolocation, expected }) {
     expected.weatherParams.q ??= "";
   }
 
-  QuickSuggest._test_clearCachedGeolocation();
   let callsByProvider = await doSearch({
     query,
     geolocation,
@@ -815,62 +815,102 @@ add_task(async function cachedGeolocation() {
     },
   };
 
-  QuickSuggest._test_clearCachedGeolocation();
+  MerinoTestUtils.enableClientCache(true);
 
-  // Do a search. We should call Merino and cache the response.
-  info("Doing first search");
+  let startDateMs = Date.now();
+  let sandbox = sinon.createSandbox();
+  let dateNowStub = sandbox.stub(
+    Cu.getGlobalForObject(MerinoClient).Date,
+    "now"
+  );
+  dateNowStub.returns(startDateMs);
+
+  // Search 1: Firefox should call Merino for both geolocation and weather and
+  // cache the responses.
+  info("Doing search 1");
   let callsByProvider = await doSearch({
     query,
     geolocation,
     suggestionCity: "Waterloo",
   });
-  info("First search callsByProvider: " + JSON.stringify(callsByProvider));
+  info("search 1 callsByProvider: " + JSON.stringify(callsByProvider));
   Assert.equal(
     callsByProvider.geolocation.length,
     1,
-    "geolocation provider should have been called on first search"
+    "geolocation provider should have been called on search 1"
+  );
+  Assert.equal(
+    callsByProvider.accuweather.length,
+    1,
+    "accuweather provider should have been called on search 1"
   );
 
-  // Do a second search. We should use the cached geolocaton, so we shouldn't
-  // call Merino.
-  info("Doing second search");
+  // Set the date forward 0.5 minutes, which is shorter than the geolocation
+  // cache period of 2 minutes and the weather cache period of 1 minute.
+  dateNowStub.returns(startDateMs + 0.5 * 60 * 1000);
+
+  // Search 2: Firefox should use the cached responses, so it should not call
+  // Merino.
+  info("Doing search 2");
   callsByProvider = await doSearch({
     query,
-    geolocation,
     suggestionCity: "Waterloo",
   });
-  info("Second search callsByProvider: " + JSON.stringify(callsByProvider));
+  info("search 2 callsByProvider: " + JSON.stringify(callsByProvider));
   Assert.ok(
     !callsByProvider.geolocation,
-    "geolocation provider should not have been called on second search"
+    "geolocation provider should not have been called on search 2"
+  );
+  Assert.ok(
+    !callsByProvider.accuweather,
+    "accuweather provider should not have been called on search 2"
   );
 
-  // Set the date forward 3 minutes, which is longer than the cache period.
-  let futureMs = Date.now() + 3 * 60 * 1000;
-  let sandbox = sinon.createSandbox();
-  let dateNowStub = sandbox.stub(
-    Cu.getGlobalForObject(QuickSuggest).Date,
-    "now"
-  );
-  dateNowStub.returns(futureMs);
+  // Set the date forward 1.5 minutes, which is shorter than the geolocation
+  // cache period but longer than the weather cache period.
+  dateNowStub.returns(startDateMs + 1.5 * 60 * 1000);
 
-  // Do a third search. The previous response is cached but it's stale, so we
-  // should call Merino again.
-  info("Doing third search");
+  // Search 3: Firefox should call Merino for the weather suggestion but not for
+  // geolocation.
+  info("Doing search 3");
   callsByProvider = await doSearch({
     query,
-    geolocation,
     suggestionCity: "Waterloo",
   });
-  info("Third search callsByProvider: " + JSON.stringify(callsByProvider));
+  info("search 3 callsByProvider: " + JSON.stringify(callsByProvider));
+  Assert.ok(
+    !callsByProvider.geolocation,
+    "geolocation provider should not have been called on search 3"
+  );
+  Assert.equal(
+    callsByProvider.accuweather.length,
+    1,
+    "accuweather provider should have been called on search 3"
+  );
+
+  // Set the date forward 3 minutes.
+  dateNowStub.returns(startDateMs + 3 * 60 * 1000);
+
+  // Search 4: Firefox should call Merino for both weather and geolocation.
+  info("Doing search 4");
+  callsByProvider = await doSearch({
+    query,
+    suggestionCity: "Waterloo",
+  });
+  info("search 4 callsByProvider: " + JSON.stringify(callsByProvider));
   Assert.equal(
     callsByProvider.geolocation.length,
     1,
-    "geolocation provider should have been called on third search"
+    "geolocation provider should have been called on search 4"
+  );
+  Assert.equal(
+    callsByProvider.accuweather.length,
+    1,
+    "accuweather provider should have been called on search 4"
   );
 
   sandbox.restore();
-  QuickSuggest._test_clearCachedGeolocation();
+  MerinoTestUtils.enableClientCache(false);
 });
 
 async function doSearch({ query, geolocation, suggestionCity }) {
