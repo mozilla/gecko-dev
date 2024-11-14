@@ -380,8 +380,15 @@ class _QuickSuggest {
     }
 
     if (result.payload.source == "rust") {
-      // The Rust implementation has its own equivalence function.
-      return lazy.rawSuggestionUrlMatches(result.payload.originalUrl, url);
+      // Rust has its own equivalence function. The urlbar implementation for an
+      // individual Rust suggestion type will define `originalUrl` only when
+      // necessary. Its value depends on the type and generally represents the
+      // suggestion's URL before UTM and timestamp params are added. If it's not
+      // defined, fall back to the main URL.
+      return lazy.rawSuggestionUrlMatches(
+        result.payload.originalUrl || resultURL,
+        url
+      );
     }
 
     // If the result URL doesn't have a timestamp, then do a straight string

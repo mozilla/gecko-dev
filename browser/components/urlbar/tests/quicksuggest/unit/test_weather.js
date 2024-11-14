@@ -11,6 +11,10 @@
 
 "use strict";
 
+ChromeUtils.defineESModuleGetters(this, {
+  UrlbarProviderPlaces: "resource:///modules/UrlbarProviderPlaces.sys.mjs",
+});
+
 const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_WEATHER_MS";
 const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
 
@@ -118,6 +122,59 @@ add_task(async function noSuggestion() {
   });
 
   MerinoTestUtils.server.response.body.suggestions = suggestions;
+});
+
+// When the query matches both the weather suggestion and a previous visit to
+// the suggestion's URL, the suggestion should be shown and the history visit
+// should not be shown.
+add_task(async function urlAlreadyInHistory() {
+  // A visit to the weather suggestion's exact URL.
+  let suggestionVisit = {
+    uri: MerinoTestUtils.WEATHER_SUGGESTION.url,
+    title: MerinoTestUtils.WEATHER_SUGGESTION.title,
+  };
+
+  // A visit to a totally unrelated URL that also matches "weather" just to make
+  // sure the Places provider is enabled and returning matches as expected.
+  let otherVisit = {
+    uri: "https://example.com/some-other-weather-page",
+    title: "Some other weather page",
+  };
+
+  await PlacesTestUtils.addVisits([suggestionVisit, otherVisit]);
+
+  // First make sure both visit results are matched by doing a search with only
+  // the Places provider.
+  info("Doing first search");
+  let context = createContext("weather", {
+    providers: [UrlbarProviderPlaces.name],
+    isPrivate: false,
+  });
+  await check_results({
+    context,
+    matches: [
+      makeVisitResult(context, otherVisit),
+      makeVisitResult(context, suggestionVisit),
+    ],
+  });
+
+  // Now do a search with both the Suggest and Places providers.
+  info("Doing second search");
+  context = createContext("weather", {
+    providers: [UrlbarProviderQuickSuggest.name, UrlbarProviderPlaces.name],
+    isPrivate: false,
+  });
+  await check_results({
+    context,
+    matches: [
+      // The visit result to the unrelated URL will be first since the weather
+      // suggestion has a `suggestedIndex` of 1.
+      makeVisitResult(context, otherVisit),
+      QuickSuggestTestUtils.weatherResult(),
+    ],
+  });
+
+  await PlacesUtils.history.clear();
 });
 
 // Tests a Merino fetch that fails with a network error.
