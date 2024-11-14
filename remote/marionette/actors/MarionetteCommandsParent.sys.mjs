@@ -5,14 +5,12 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   capture: "chrome://remote/content/shared/Capture.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   getSeenNodesForBrowsingContext:
     "chrome://remote/content/shared/webdriver/Session.sys.mjs",
   json: "chrome://remote/content/marionette/json.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
-  WebElement: "chrome://remote/content/marionette/web-reference.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () =>
@@ -24,144 +22,39 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 let webDriverSessionId = null;
 
 export class MarionetteCommandsParent extends JSWindowActorParent {
-  #actionsOptions;
-  #actionState;
   #deferredDialogOpened;
 
   actorCreated() {
-    // The {@link Actions.State} of the input actions.
-    this.#actionState = null;
-
-    // Options for actions to pass through performActions and releaseActions.
-    this.#actionsOptions = {
-      // Callbacks as defined in the WebDriver specification.
-      getElementOrigin: this.#getElementOrigin.bind(this),
-      isElementOrigin: this.#isElementOrigin.bind(this),
-
-      // Custom properties and callbacks
-      context: this.browsingContext,
-
-      assertInViewPort: this.#assertInViewPort.bind(this),
-      dispatchEvent: this.#dispatchEvent.bind(this),
-      getClientRects: this.#getClientRects.bind(this),
-      getInViewCentrePoint: this.#getInViewCentrePoint.bind(this),
-    };
-
     this.#deferredDialogOpened = null;
   }
 
-  /**
-   * Assert that the target coordinates are within the visible viewport.
-   *
-   * @param {Array.<number>} target
-   *     Coordinates [x, y] of the target relative to the viewport.
-   * @param {BrowsingContext} _context
-   *     Unused in Marionette.
-   *
-   * @returns {Promise<undefined>}
-   *     Promise that rejects, if the coordinates are not within
-   *     the visible viewport.
-   *
-   * @throws {MoveTargetOutOfBoundsError}
-   *     If target is outside the viewport.
-   */
-  #assertInViewPort(target, _context) {
+  assertInViewPort(target, _context) {
     return this.sendQuery("MarionetteCommandsParent:_assertInViewPort", {
       target,
     });
   }
 
-  /**
-   * Dispatch an event.
-   *
-   * @param {string} eventName
-   *     Name of the event to be dispatched.
-   * @param {BrowsingContext} _context
-   *     Unused in Marionette.
-   * @param {object} details
-   *     Details of the event to be dispatched.
-   *
-   * @returns {Promise}
-   *     Promise that resolves once the event is dispatched.
-   */
-  #dispatchEvent(eventName, _context, details) {
+  dispatchEvent(eventName, details) {
     return this.sendQuery("MarionetteCommandsParent:_dispatchEvent", {
       eventName,
       details,
     });
   }
 
-  /**
-   * Finalize an action command.
-   *
-   * @returns {Promise}
-   *     Promise that resolves when the finalization is done.
-   */
-  #finalizeAction() {
+  finalizeAction() {
     return this.sendQuery("MarionetteCommandsParent:_finalizeAction");
   }
 
-  /**
-   * Retrieves the WebElement reference of the origin.
-   *
-   * @param {ElementOrigin} origin
-   *     Reference to the element origin of the action.
-   * @param {BrowsingContext} _context
-   *     Unused in Marionette.
-   *
-   * @returns {WebElement}
-   *     The WebElement reference.
-   */
-  #getElementOrigin(origin, _context) {
-    return origin;
-  }
-
-  /**
-   * Retrieve the list of client rects for the element.
-   *
-   * @param {WebElement} element
-   *     The web element reference to retrieve the rects from.
-   * @param {BrowsingContext} _context
-   *     Unused in Marionette.
-   *
-   * @returns {Promise<Array<Map.<string, number>>>}
-   *     Promise that resolves to a list of DOMRect-like objects.
-   */
-  #getClientRects(element, _context) {
+  getClientRects(element, _context) {
     return this.executeScript("return arguments[0].getClientRects()", [
       element,
     ]);
   }
 
-  /**
-   * Retrieve the in-view center point for the rect and visible viewport.
-   *
-   * @param {DOMRect} rect
-   *     Size and position of the rectangle to check.
-   * @param { BrowsingContext } _context
-   *     Unused in Marionette.
-   *
-   * @returns {Promise<Map.<string, number>>}
-   *     X and Y coordinates that denotes the in-view centre point of
-   *     `rect`.
-   */
-  #getInViewCentrePoint(rect, _context) {
+  getInViewCentrePoint(rect, _context) {
     return this.sendQuery("MarionetteCommandsParent:_getInViewCentrePoint", {
       rect,
     });
-  }
-
-  /**
-   * Checks if the given object is a valid element origin.
-   *
-   * @param {object} origin
-   *     The object to check.
-   *
-   * @returns {boolean}
-   *     True, if it's a WebElement.
-   */
-  #isElementOrigin(origin) {
-    return lazy.WebElement.Identifier in origin;
   }
 
   async sendQuery(name, serializedValue) {
@@ -378,34 +271,10 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
     });
   }
 
-  async performActions(actions, asyncEventsEnabled) {
-    if (!asyncEventsEnabled) {
-      // Bug 1920959: Remove if we no longer need to dispatch in content.
-      await this.sendQuery("MarionetteCommandsParent:performActions", {
-        actions,
-      });
-
-      return;
-    }
-
-    // Bug 1821460: Use top-level browsing context.
-    if (this.#actionState === null) {
-      this.#actionState = new lazy.action.State();
-    }
-
-    const actionChain = await lazy.action.Chain.fromJSON(
-      this.#actionState,
+  performActions(actions) {
+    return this.sendQuery("MarionetteCommandsParent:performActions", {
       actions,
-      this.#actionsOptions
-    );
-
-    // Enqueue to serialize access to input state.
-    await this.#actionState.enqueueAction(() =>
-      actionChain.dispatch(this.#actionState, this.#actionsOptions)
-    );
-
-    // Process async follow-up tasks in content before the reply is sent.
-    await this.#finalizeAction();
+    });
   }
 
   /**
@@ -414,29 +283,8 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
    * as if the state was released by an explicit series of actions. It also
    * clears all the internal state of the virtual devices.
    */
-  async releaseActions(asyncEventsEnabled) {
-    if (!asyncEventsEnabled) {
-      // Bug 1920959: Remove if we no longer need to dispatch in content.
-      await this.sendQuery("MarionetteCommandsParent:releaseActions");
-
-      return;
-    }
-
-    // Bug 1821460: Use top-level browsing context.
-    if (this.#actionState === null) {
-      return;
-    }
-
-    // Enqueue to serialize access to input state.
-    await this.#actionState.enqueueAction(() => {
-      const undoActions = this.#actionState.inputCancelList.reverse();
-      undoActions.dispatch(this.#actionState, this.#actionsOptions);
-    });
-
-    this.#actionState = null;
-
-    // Process async follow-up tasks in content before the reply is sent.
-    await this.#finalizeAction();
+  releaseActions() {
+    return this.sendQuery("MarionetteCommandsParent:releaseActions");
   }
 
   async switchToFrame(id) {
@@ -528,16 +376,29 @@ export function getMarionetteCommandsActorProxy(browsingContextFn) {
       get(target, methodName) {
         return async (...args) => {
           let attempts = 0;
+          // eslint-disable-next-line no-constant-condition
           while (true) {
-            try {
-              const browsingContext = browsingContextFn();
-              if (!browsingContext) {
-                throw new DOMException(
-                  "No BrowsingContext found",
-                  "NoBrowsingContext"
-                );
-              }
+            let browsingContext = browsingContextFn();
 
+            // If a top-level browsing context was replaced and retrying is allowed,
+            // retrieve the new one for the current browser.
+            if (
+              browsingContext?.isReplaced &&
+              browsingContext.top === browsingContext &&
+              !NO_RETRY_METHODS.includes(methodName)
+            ) {
+              browsingContext = BrowsingContext.getCurrentTopByBrowserId(
+                browsingContext.browserId
+              );
+            }
+
+            if (!browsingContext) {
+              throw new lazy.error.UnknownError(
+                `BrowsingContext does no longer exist`
+              );
+            }
+
+            try {
               // TODO: Scenarios where the window/tab got closed and
               // currentWindowGlobal is null will be handled in Bug 1662808.
               const actor =
@@ -555,25 +416,27 @@ export function getMarionetteCommandsActorProxy(browsingContextFn) {
               }
 
               if (NO_RETRY_METHODS.includes(methodName)) {
-                const browsingContextId = browsingContextFn()?.id;
                 lazy.logger.trace(
-                  `[${browsingContextId}] Querying "${methodName}" failed with` +
-                    ` ${e.name}, returning "null" as fallback`
+                  `[${browsingContext.id}] Querying "${methodName}"` +
+                    ` failed with ${e.name}, returning "null" as fallback`
                 );
                 return null;
               }
 
               if (++attempts > MAX_ATTEMPTS) {
-                const browsingContextId = browsingContextFn()?.id;
                 lazy.logger.trace(
-                  `[${browsingContextId}] Querying "${methodName} "` +
-                    `reached the limit of retry attempts (${MAX_ATTEMPTS})`
+                  `[${browsingContext.id}] Querying "${methodName}"` +
+                    ` reached the limit of retry attempts (${MAX_ATTEMPTS})`
                 );
                 throw e;
               }
 
               lazy.logger.trace(
-                `Retrying "${methodName}", attempt: ${attempts}`
+                `[${browsingContext.id}] Retrying "${methodName}"` +
+                  `, attempt: ${attempts}`
+              );
+              await new Promise(resolve =>
+                Services.tm.dispatchToMainThread(resolve)
               );
             }
           }

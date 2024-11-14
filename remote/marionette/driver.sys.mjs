@@ -5,6 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  action: "chrome://remote/content/shared/webdriver/Actions.sys.mjs",
   Addon: "chrome://remote/content/marionette/addon.sys.mjs",
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
@@ -102,6 +103,181 @@ const TOPIC_QUIT_APPLICATION_REQUESTED = "quit-application-requested";
  * @namespace driver
  */
 
+class ActionsHelper {
+  #actionsOptions;
+  #driver;
+
+  constructor(driver) {
+    this.#driver = driver;
+
+    // Options for actions to pass through performActions and releaseActions.
+    this.#actionsOptions = {
+      // Callbacks as defined in the WebDriver specification.
+      getElementOrigin: this.getElementOrigin.bind(this),
+      isElementOrigin: this.isElementOrigin.bind(this),
+
+      // Custom callbacks.
+      assertInViewPort: this.assertInViewPort.bind(this),
+      dispatchEvent: this.dispatchEvent.bind(this),
+      getClientRects: this.getClientRects.bind(this),
+      getInViewCentrePoint: this.getInViewCentrePoint.bind(this),
+    };
+  }
+
+  get actionsOptions() {
+    return this.#actionsOptions;
+  }
+
+  #getActor(browsingContext) {
+    return lazy.getMarionetteCommandsActorProxy(() => browsingContext);
+  }
+
+  /**
+   * Assert that the target coordinates are within the visible viewport.
+   *
+   * @param {Array.<number>} target
+   *     Coordinates [x, y] of the target relative to the viewport.
+   * @param {BrowsingContext} browsingContext
+   *     The browsing context to dispatch the event to.
+   *
+   * @returns {Promise<undefined>}
+   *     Promise that rejects, if the coordinates are not within
+   *     the visible viewport.
+   *
+   * @throws {MoveTargetOutOfBoundsError}
+   *     If target is outside the viewport.
+   */
+  assertInViewPort(target, browsingContext) {
+    return this.#getActor(browsingContext).assertInViewPort(target);
+  }
+
+  /**
+   * Dispatch an event.
+   *
+   * @param {string} eventName
+   *     Name of the event to be dispatched.
+   * @param {BrowsingContext} browsingContext
+   *     The browsing context to dispatch the event to.
+   * @param {object} details
+   *     Details of the event to be dispatched.
+   *
+   * @returns {Promise}
+   *     Promise that resolves once the event is dispatched.
+   */
+  dispatchEvent(eventName, browsingContext, details) {
+    return this.#getActor(browsingContext).dispatchEvent(eventName, details);
+  }
+
+  /**
+   * Finalize an action command.
+   *
+   * @param {BrowsingContext} browsingContext
+   *     The browsing context to dispatch the event to.
+   *
+   * @returns {Promise}
+   *     Promise that resolves when the finalization is done.
+   */
+  finalizeAction(browsingContext) {
+    this.#getActor(browsingContext).finalizeAction();
+  }
+
+  /**
+   * Retrieves the WebElement reference of the origin.
+   *
+   * @param {ElementOrigin} origin
+   *     Reference to the element origin of the action.
+   * @param {BrowsingContext} _browsingContext
+   *     Not used by Marionette.
+   *
+   * @returns {WebElement}
+   *     The WebElement reference.
+   */
+  getElementOrigin(origin, _browsingContext) {
+    return origin;
+  }
+
+  /**
+   * Retrieve the list of client rects for the element.
+   *
+   * @param {WebElement} element
+   *     The web element reference to retrieve the rects from.
+   * @param {BrowsingContext} browsingContext
+   *     The browsing context to dispatch the event to.
+   *
+   * @returns {Promise<Array<Map.<string, number>>>}
+   *     Promise that resolves to a list of DOMRect-like objects.
+   */
+  getClientRects(element, browsingContext) {
+    return this.#getActor(browsingContext).executeScript(
+      "return arguments[0].getClientRects()",
+      [element]
+    );
+  }
+
+  /**
+   * Retrieve the in-view center point for the rect and visible viewport.
+   *
+   * @param {DOMRect} rect
+   *     Size and position of the rectangle to check.
+   * @param {BrowsingContext} browsingContext
+   *     The browsing context to dispatch the event to.
+   *
+   * @returns {Promise<Map.<string, number>>}
+   *     X and Y coordinates that denotes the in-view centre point of
+   *     `rect`.
+   */
+  getInViewCentrePoint(rect, browsingContext) {
+    return this.#getActor(browsingContext).getInViewCentrePoint(rect);
+  }
+
+  /**
+   * Retrieves the action's input state.
+   *
+   * @param {BrowsingContext} browsingContext
+   *     The Browsing Context to retrieve the input state for.
+   *
+   * @returns {Actions.InputState}
+   *     The action's input state.
+   */
+  getInputState(browsingContext) {
+    // Bug 1821460: Fetch top-level browsing context.
+    let inputState = this.#driver._inputStates.get(browsingContext);
+
+    if (inputState === undefined) {
+      inputState = new lazy.action.State();
+      this.#driver._inputStates.set(browsingContext, inputState);
+    }
+
+    return inputState;
+  }
+
+  /**
+   * Checks if the given object is a valid element origin.
+   *
+   * @param {object} origin
+   *     The object to check.
+   *
+   * @returns {boolean}
+   *     True, if it's a WebElement.
+   */
+  isElementOrigin(origin) {
+    return lazy.WebElement.Identifier in origin;
+  }
+
+  /**
+   * Resets the action's input state.
+   *
+   * @param {BrowsingContext} browsingContext
+   *     The Browsing Context to reset the input state for.
+   */
+  resetInputState(browsingContext) {
+    // Bug 1821460: Fetch top-level browsing context.
+    if (this.#driver._inputStates.has(browsingContext)) {
+      this.#driver._inputStates.delete(browsingContext);
+    }
+  }
+}
+
 /**
  * Implements (parts of) the W3C WebDriver protocol.  GeckoDriver lives
  * in chrome space and mediates calls to the current browsing context's actor.
@@ -140,6 +316,12 @@ export function GeckoDriver(server) {
   // used for modal dialogs
   this.dialog = null;
   this.promptListener = null;
+
+  // Browsing context => input state.
+  // Bug 1821460: Move to WebDriver Session and share with Remote Agent.
+  this._inputStates = new WeakMap();
+
+  this._actionsHelper = new ActionsHelper(this);
 }
 
 /**
@@ -1490,11 +1672,37 @@ GeckoDriver.prototype.setTimeouts = function (cmd) {
  *     Not yet available in current context.
  */
 GeckoDriver.prototype.performActions = async function (cmd) {
-  lazy.assert.open(this.getBrowsingContext());
+  const { actions } = cmd.parameters;
+
+  const browsingContext = lazy.assert.open(this.getBrowsingContext());
   await this._handleUserPrompts();
 
-  const actions = cmd.parameters.actions;
-  await this.getActor().performActions(actions, lazy.prefAsyncEventsEnabled);
+  if (!lazy.prefAsyncEventsEnabled) {
+    // Bug 1920959: Remove if we no longer need to dispatch in content.
+    await this.getActor().performActions(actions);
+    return;
+  }
+
+  // Bug 1821460: Fetch top-level browsing context.
+  const inputState = this._actionsHelper.getInputState(browsingContext);
+  const actionsOptions = {
+    ...this._actionsHelper.actionsOptions,
+    context: browsingContext,
+  };
+
+  const actionChain = await lazy.action.Chain.fromJSON(
+    inputState,
+    actions,
+    actionsOptions
+  );
+
+  // Enqueue to serialize access to input state.
+  await inputState.enqueueAction(() =>
+    actionChain.dispatch(inputState, actionsOptions)
+  );
+
+  // Process async follow-up tasks in content before the reply is sent.
+  await this._actionsHelper.finalizeAction(browsingContext);
 };
 
 /**
@@ -1508,10 +1716,32 @@ GeckoDriver.prototype.performActions = async function (cmd) {
  *     Not available in current context.
  */
 GeckoDriver.prototype.releaseActions = async function () {
-  lazy.assert.open(this.getBrowsingContext());
+  const browsingContext = lazy.assert.open(this.getBrowsingContext());
   await this._handleUserPrompts();
 
-  await this.getActor().releaseActions(lazy.prefAsyncEventsEnabled);
+  if (!lazy.prefAsyncEventsEnabled) {
+    // Bug 1920959: Remove if we no longer need to dispatch in content.
+    await this.getActor().releaseActions();
+    return;
+  }
+
+  // Bug 1821460: Fetch top-level browsing context.
+  const inputState = this._actionsHelper.getInputState(browsingContext);
+  const actionsOptions = {
+    ...this._actionsHelper.actionsOptions,
+    context: browsingContext,
+  };
+
+  // Enqueue to serialize access to input state.
+  await inputState.enqueueAction(() => {
+    const undoActions = inputState.inputCancelList.reverse();
+    return undoActions.dispatch(inputState, actionsOptions);
+  });
+
+  this._actionsHelper.resetInputState(browsingContext);
+
+  // Process async follow-up tasks in content before the reply is sent.
+  await this._actionsHelper.finalizeAction(browsingContext);
 };
 
 /**

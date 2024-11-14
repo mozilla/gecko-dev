@@ -34,10 +34,10 @@ add_task(async function test_commandsActor_getActorProxy_noBrowsingContext() {
 
   try {
     await getMarionetteCommandsActorProxy(() => null).sendQuery("foo", "bar");
-    ok(false, "Expected NoBrowsingContext error not raised");
+    ok(false, "Expected error not raised");
   } catch (e) {
     ok(
-      e.message.includes("No BrowsingContext found"),
+      e.message.includes("BrowsingContext does no longer exist"),
       "Expected default error message found"
     );
   }
