@@ -8,6 +8,7 @@ support-files = [
   "../av1.mp4",
   "../bipbop_short_vp8.webm",
   "../bunny_hd_5s.mp4",
+  "../bogus.wav",
   "../eme_standalone.js",
   "../gizmo.mp4",
   "../gizmo.webm",
@@ -27,6 +28,8 @@ tags = "bleedover"
 ["browser_glean_first_frame_loaded_time.js"]
 tags = "os_integration"
 skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64'"]  # Bug 1909908
+
+["browser_glean_media_error.js"]
 
 ["browser_tab_visibility_and_play_time.js"]
 
