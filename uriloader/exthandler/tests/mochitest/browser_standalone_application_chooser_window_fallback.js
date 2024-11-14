@@ -44,7 +44,7 @@ add_task(async function () {
   // Delete getTabDialogBox from gBrowser, to test the fallback to the standalone
   // application chooser window.
   let _getTabDialogBox = gBrowser.getTabDialogBox;
-  delete gBrowser.getTabDialogBox;
+  gBrowser.getTabDialogBox = null;
 
   let appChooserDialogOpenPromise = BrowserTestUtils.domWindowOpened(
     null,
