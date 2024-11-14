@@ -350,20 +350,27 @@ add_task(async function manage() {
 add_task(async function simpleUI() {
   const testData = [
     {
-      weatherSimpleUI: true,
+      // The simple UI should be enabled by default, when no Nimbus experiment
+      // is installed.
+      nimbusVariables: null,
       expectedSummary:
         MerinoTestUtils.WEATHER_SUGGESTION.current_conditions.summary,
     },
     {
-      weatherSimpleUI: false,
+      nimbusVariables: { weatherSimpleUI: true },
+      expectedSummary:
+        MerinoTestUtils.WEATHER_SUGGESTION.current_conditions.summary,
+    },
+    {
+      nimbusVariables: { weatherSimpleUI: false },
       expectedSummary: `${MerinoTestUtils.WEATHER_SUGGESTION.current_conditions.summary}; ${MerinoTestUtils.WEATHER_SUGGESTION.forecast.summary}`,
     },
   ];
 
-  for (let { weatherSimpleUI, expectedSummary } of testData) {
-    let nimbusCleanup = await UrlbarTestUtils.initNimbusFeature({
-      weatherSimpleUI,
-    });
+  for (let { nimbusVariables, expectedSummary } of testData) {
+    let nimbusCleanup = nimbusVariables
+      ? await UrlbarTestUtils.initNimbusFeature(nimbusVariables)
+      : null;
 
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
@@ -394,7 +401,7 @@ add_task(async function simpleUI() {
     );
 
     await UrlbarTestUtils.promisePopupClose(window);
-    await nimbusCleanup();
+    await nimbusCleanup?.();
   }
 });
 

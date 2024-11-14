@@ -805,8 +805,8 @@ async function doCityTest({ desc, query, geolocation, expected }) {
   }
 }
 
-// We should cache the geolocation returned by Merino.
-add_task(async function cachedGeolocation() {
+// `MerinoClient` should cache Merino responses for geolocation and weather.
+add_task(async function merinoCache() {
   let query = "waterloo";
   let geolocation = {
     location: {

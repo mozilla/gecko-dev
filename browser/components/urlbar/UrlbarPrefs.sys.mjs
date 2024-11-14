@@ -595,7 +595,7 @@ const NIMBUS_DEFAULTS = {
   recordNavigationalSuggestionTelemetry: false,
   weatherKeywordsMinimumLength: null,
   weatherShowLessFrequentlyCap: null,
-  weatherSimpleUI: false,
+  weatherSimpleUI: true,
   yelpMinKeywordLength: null,
   yelpSuggestNonPriorityIndex: null,
 };
