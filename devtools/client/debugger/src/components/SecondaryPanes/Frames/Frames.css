@@ -32,6 +32,7 @@
 
 .frames .location {
   font-weight: normal;
+  color: var(--theme-comment);
   margin: 0;
   flex-grow: 1;
   max-width: 100%;
@@ -56,15 +57,6 @@
   color: var(--theme-comment);
 }
 
-.theme-light .frames .location {
-  color: var(--theme-comment);
-}
-
-:root.theme-dark .frames .location {
-  color: var(--theme-body-color);
-  opacity: 0.6;
-}
-
 .frames .title {
   text-overflow: ellipsis;
   overflow: hidden;
@@ -87,16 +79,15 @@
   background-color: var(--theme-body-background);
 }
 
-.theme-dark .frames [role="list"] [role="listitem"]:focus,
-.theme-dark .frames [role="list"] [role="listitem"]:focus .async-label,
-.theme-dark .frames [role="list"] [role="listitem"]:focus .async-label {
+.theme-dark .frames [role="list"] [role="listitem"]:not(.selected):focus,
+.theme-dark .frames [role="list"] [role="listitem"]:not(.selected):focus .async-label {
   background-color: var(--theme-tab-toolbar-background);
 }
 
 .frames [role="list"] [role="listitem"].selected,
 .frames [role="list"] [role="listitem"].selected .async-label {
   background-color: var(--theme-selection-background);
-  color: white;
+  color: var(--theme-selection-color);
 }
 
 .frames [role="list"] [role="listitem"].inactive,
@@ -106,12 +97,12 @@
 
 
 .frames [role="list"] [role="listitem"].selected i.annotation-logo svg path {
-  fill: white;
+  fill: var(--theme-selection-color);
 }
 
 :root.theme-light .frames [role="list"] [role="listitem"].selected .location,
 :root.theme-dark .frames [role="list"] [role="listitem"].selected .location {
-  color: white;
+  color: var(--theme-selection-color);
 }
 
 .frames .show-more-container {
