@@ -2,6 +2,7 @@
 subsuite = "media-bc"
 prefs = ["gfx.font_loader.delay=0"]
 support-files = [
+  "decode_error_vp9.webm",
   "head.js",
   "file_empty_page.html",
   "file_media.html",
