@@ -323,7 +323,7 @@ open class PlacesHistoryStorage(
         }
         withContext(writeScope.coroutineContext) {
             handlePlacesExceptions("noteHistoryMetadataObservation") {
-                places.writer().noteHistoryMetadataObservation(observation.into(key))
+                places.writer().noteHistoryMetadataObservation(observation.into(key), observation.options())
             }
         }
     }

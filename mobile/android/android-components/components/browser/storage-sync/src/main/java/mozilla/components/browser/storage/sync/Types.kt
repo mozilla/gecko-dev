@@ -8,6 +8,7 @@ package mozilla.components.browser.storage.sync
 
 import mozilla.appservices.places.SyncAuthInfo
 import mozilla.appservices.places.uniffi.BookmarkItem
+import mozilla.appservices.places.uniffi.HistoryMetadataPageMissingBehavior
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.DocumentType
@@ -240,5 +241,23 @@ internal fun HistoryMetadataObservation.into(
                 documentType = this.documentType.into(),
             )
         }
+    }
+}
+
+internal fun HistoryMetadataObservation.options() = when (this) {
+    is HistoryMetadataObservation.ViewTimeObservation -> {
+        // Don't record view time observations if the page has been
+        // removed from history (bug 1869369).
+        mozilla.appservices.places.uniffi.NoteHistoryMetadataObservationOptions(
+            ifPageMissing = HistoryMetadataPageMissingBehavior.IGNORE_OBSERVATION,
+        )
+    }
+    is HistoryMetadataObservation.DocumentTypeObservation -> {
+        // ...But record document type observations, because these might be
+        // recorded on first load, before a page has been added to history
+        // (bug 1927543, comment 1).
+        mozilla.appservices.places.uniffi.NoteHistoryMetadataObservationOptions(
+            ifPageMissing = HistoryMetadataPageMissingBehavior.INSERT_PAGE,
+        )
     }
 }
