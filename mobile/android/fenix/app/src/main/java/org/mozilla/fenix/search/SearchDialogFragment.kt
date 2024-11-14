@@ -26,6 +26,7 @@ import android.view.ViewStub
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.inputmethod.InputMethodManager
+import android.window.OnBackInvokedDispatcher
 import androidx.activity.ComponentDialog
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
@@ -201,6 +202,17 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                     }
                 },
             )
+
+            // This makes sure that we don't miss any onBackPressed calls because
+            // of the introduction of predictive back gesture to Android OS.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_OVERLAY,
+                ) {
+                    this@SearchDialogFragment.onBackPressed()
+                }
+            }
+
             window?.setupPersistentInsets()
         }
     }
