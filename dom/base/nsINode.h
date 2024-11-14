@@ -1662,6 +1662,20 @@ class nsINode : public mozilla::dom::EventTarget {
   bool IsSelected(uint32_t aStartOffset, uint32_t aEndOffset,
                   mozilla::dom::SelectionNodeCache* aCache = nullptr) const;
 
+#ifdef DEBUG
+  void AssertIsRootElementSlow(bool) const;
+#endif
+
+  /** Returns whether we're the root element of our document. */
+  bool IsRootElement() const {
+    // This should be faster than pointer-chasing in the common cases.
+    const bool isRoot = !GetParent() && IsInUncomposedDoc() && IsElement();
+#ifdef DEBUG
+    AssertIsRootElementSlow(isRoot);
+#endif
+    return isRoot;
+  }
+
   /**
    * Get the root element of the text editor associated with this node or the
    * root element of the text editor of the ancestor 'TextControlElement' if
