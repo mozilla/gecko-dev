@@ -2711,7 +2711,7 @@
     <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
     <string name="translation_settings_automatic_translation">Tradução automática</string>
     <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
-    <string name="translation_settings_automatic_never_translate_sites">Nunca traduzir esse sites</string>
+    <string name="translation_settings_automatic_never_translate_sites">Nunca traduzir estes sites</string>
     <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
     <string name="translation_settings_download_language">Baixar idiomas</string>
 
@@ -2740,7 +2740,7 @@
 
     <!-- Never translate site preference screen -->
     <!-- Title of the never translate site preference screen that will appear on the toolbar.-->
-    <string name="never_translate_site_toolbar_title_preference">Nunca traduzir esse sites</string>
+    <string name="never_translate_site_toolbar_title_preference">Nunca traduzir estes sites</string>
     <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
     <string name="never_translate_site_header_preference">Para adicionar um site: Abra em uma aba e selecione “Nunca traduzir este site” no menu de tradução.</string>
     <!-- Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
