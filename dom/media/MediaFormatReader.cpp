@@ -2423,8 +2423,17 @@ void MediaFormatReader::Update(TrackType aTrack) {
     } else if (decoder.HasFatalError()) {
       nsCString mimeType = decoder.GetCurrentInfo()->mMimeType;
       if (!mimeType.IsEmpty()) {
+        // TODO : remove this probe in next patch.
         glean::media::decode_error_per_mime_type.Get(mimeType).Add(
             1 /* error count */);
+        glean::media_playback::DecodeErrorExtra extraData;
+        extraData.mimeType = Some(mimeType);
+        extraData.errorName = Some(decoder.mError->ErrorName());
+        if (mCDMProxy) {
+          extraData.keySystem =
+              Some(NS_ConvertUTF16toUTF8(mCDMProxy->KeySystem()));
+        }
+        glean::media_playback::decode_error.Record(Some(extraData));
       }
       LOG("Rejecting %s promise for %s : DECODE_ERROR", TrackTypeToStr(aTrack),
           mimeType.get());

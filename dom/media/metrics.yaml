@@ -202,6 +202,35 @@ media.playback:
       - media-alerts@mozilla.com
     expires: never
 
+  decode_error:
+    type: event
+    description: >
+      Record the decode error details.
+    metadata:
+      tags:
+        - 'Core :: Audio/Video: Playback'
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929335
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929335
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - media-alerts@mozilla.com
+    extra_keys:
+      mime_type:
+        description: The mime type of the media track when the error occurred.
+        type: string
+      error_name:
+        description: The name of the error.
+        type: string
+      key_system:
+        description: >
+          The value indicates the key system in use when the error occurred. It
+          will be null if the error is related to non-EME playback.
+        type : string
+    expires: never
+
 media:
   element_in_page_count:
     type: counter
