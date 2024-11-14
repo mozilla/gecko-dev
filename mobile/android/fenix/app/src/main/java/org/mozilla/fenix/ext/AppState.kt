@@ -38,19 +38,19 @@ internal const val POCKET_SPONSORED_STORIES_TO_SHOW_COUNT = 2
  * @return a list of [PocketStory]es from the currently selected categories.
  */
 fun AppState.getFilteredStories(): List<PocketStory> {
-    val recommendedStories = when (recommendationState.pocketStoriesCategoriesSelections.isEmpty()) {
+    val recommendedStories = when (pocketStoriesCategoriesSelections.isEmpty()) {
         true -> {
-            recommendationState.pocketStoriesCategories
+            pocketStoriesCategories
                 .find { it.name == POCKET_STORIES_DEFAULT_CATEGORY_NAME }
                 ?.stories
                 ?.sortedBy { it.timesShown }
                 ?.take(POCKET_STORIES_TO_SHOW_COUNT) ?: emptyList()
         }
         false -> {
-            val oldestSortedCategories = recommendationState.pocketStoriesCategoriesSelections
+            val oldestSortedCategories = pocketStoriesCategoriesSelections
                 .sortedByDescending { it.selectionTimestamp }
                 .mapNotNull { selectedCategory ->
-                    recommendationState.pocketStoriesCategories.find {
+                    pocketStoriesCategories.find {
                         it.name == selectedCategory.name
                     }
                 }
@@ -70,7 +70,7 @@ fun AppState.getFilteredStories(): List<PocketStory> {
     }
 
     val sponsoredStories = getFilteredSponsoredStories(
-        stories = recommendationState.pocketSponsoredStories,
+        stories = pocketSponsoredStories,
         limit = POCKET_SPONSORED_STORIES_TO_SHOW_COUNT,
     )
 

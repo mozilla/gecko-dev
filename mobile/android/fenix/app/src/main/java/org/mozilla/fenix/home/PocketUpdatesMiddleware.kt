@@ -20,7 +20,6 @@ import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
-import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories.SelectedPocketStoriesCategory
@@ -47,7 +46,7 @@ class PocketUpdatesMiddleware(
     ) {
         // Pre process actions
         when (action) {
-            is ContentRecommendationsAction.PocketStoriesCategoriesChange -> {
+            is AppAction.PocketStoriesCategoriesChange -> {
                 // Intercept the original action which would only update categories and
                 // dispatch a new action which also updates which categories are selected by the user
                 // from previous locally persisted data.
@@ -67,19 +66,19 @@ class PocketUpdatesMiddleware(
 
         // Post process actions
         when (action) {
-            is ContentRecommendationsAction.PocketStoriesShown -> {
+            is AppAction.PocketStoriesShown -> {
                 persistStoriesImpressions(
                     coroutineScope = coroutineScope,
                     pocketStoriesService = pocketStoriesService,
                     updatedStories = action.storiesShown,
                 )
             }
-            is ContentRecommendationsAction.SelectPocketStoriesCategory,
-            is ContentRecommendationsAction.DeselectPocketStoriesCategory,
+            is AppAction.SelectPocketStoriesCategory,
+            is AppAction.DeselectPocketStoriesCategory,
             -> {
                 persistSelectedCategories(
                     coroutineScope = coroutineScope,
-                    currentCategoriesSelections = context.state.recommendationState.pocketStoriesCategoriesSelections,
+                    currentCategoriesSelections = context.state.pocketStoriesCategoriesSelections,
                     selectedPocketCategoriesDataStore = selectedPocketCategoriesDataStore,
                 )
             }
@@ -166,7 +165,7 @@ internal fun restoreSelectedCategories(
 ) {
     coroutineScope.launch {
         store.dispatch(
-            ContentRecommendationsAction.PocketStoriesCategoriesSelectionsChange(
+            AppAction.PocketStoriesCategoriesSelectionsChange(
                 currentCategories,
                 selectedPocketCategoriesDataStore.data.first()
                     .valuesList.map {
