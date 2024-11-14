@@ -4,8 +4,10 @@
 
 package mozilla.components.service.pocket
 
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
+import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
 import mozilla.components.service.pocket.helpers.assertConstructorsVisibility
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -20,7 +22,7 @@ class PocketStoryTest {
 
     @Test
     fun `GIVEN PocketSponsoredStoryCaps THEN it should be publicly available`() {
-        assertConstructorsVisibility(PocketRecommendedStory::class, KVisibility.PUBLIC)
+        assertConstructorsVisibility(PocketSponsoredStoryCaps::class, KVisibility.PUBLIC)
     }
 
     @Test
@@ -96,5 +98,28 @@ class PocketStoryTest {
         val result = (pocketRecommendedStory as PocketStory).url
 
         assertEquals("testUrl", result)
+    }
+
+    @Test
+    fun `GIVEN a ContentRecommendation WHEN the title and url are accessed from parent THEN it returns the previously set value`() {
+        val recommendation = ContentRecommendation(
+            scheduledCorpusItemId = "1",
+            url = "testUrl",
+            title = "",
+            excerpt = "",
+            topic = "",
+            publisher = "",
+            isTimeSensitive = false,
+            imageUrl = "",
+            tileId = 1,
+            receivedRank = 33,
+            impressions = 0,
+        )
+
+        val title = (recommendation as PocketStory).title
+        val url = (recommendation as PocketStory).url
+
+        assertEquals(recommendation.title, title)
+        assertEquals(recommendation.url, url)
     }
 }

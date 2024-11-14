@@ -182,6 +182,10 @@ internal class DefaultPocketStoriesController(
                 Pocket.spocShim.set(storyClicked.shim.click)
                 Pings.spoc.submit(Pings.spocReasonCodes.click)
             }
+
+            is PocketStory.ContentRecommendation -> {
+                // no-op
+            }
         }
     }
 
