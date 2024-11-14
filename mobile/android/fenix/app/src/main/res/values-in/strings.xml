@@ -1267,6 +1267,8 @@
     <string name="bookmark_folder_label">FOLDER</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">NAMA</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Nama</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Tambah folder</string>
     <!-- Bookmark select folder screen title -->
@@ -1287,8 +1289,33 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">URUNGKAN</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">%s dihapus</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items">Item yang dihapus: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Masukkan istilah pencarian</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Navigasi mundur</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Tambahkan folder baru</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Hapus markah</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Hapus folder</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Cari markah</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Item Menu untuk %s</string>
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Belum ada markah</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Simpan situs saat Anda menjelajah. Masuk untuk mengambil markah dari perangkat lain yang disinkronkan.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Masuk untuk sinkronisasi</string>
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title">Folder baru</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1374,6 +1401,13 @@
     <string name="studies_on">Aktif</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Mati</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Izin</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Konten</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Selalu minta situs desktop</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1484,6 +1518,10 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Tutup tab privat</string>
 
+    <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
+    <string name="notification_erase_title_android_14">Tutup tab pribadi?</string>
+    <string name="notification_erase_text_android_14">Ketuk atau geser notifikasi ini untuk menutup tab pribadi.</string>
+
     <!-- Name of the marketing notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="notification_marketing_channel_name">Pemasaran</string>
 
@@ -1529,8 +1567,12 @@
     <string name="snackbar_tab_closed">Tab ditutup</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Tab ditutup</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Tab ditutup: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Markah tersimpan!</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in">Markah disimpan di “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Ditambahkan ke pintasan!</string>
     <!-- Text shown in snackbar when user closes a private tab -->

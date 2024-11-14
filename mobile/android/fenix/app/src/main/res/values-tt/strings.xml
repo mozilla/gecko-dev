@@ -565,11 +565,24 @@
     <string name="preferences_enable_autocomplete_urls">URL aдресларын автотәмамлау</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Сылтамаларны кушымталарда ачу</string>
+    <!-- Preference for open links in third party apps always open in apps option -->
+    <string name="preferences_open_links_in_apps_always">Һәрвакыт</string>
+    <!-- Preference for open links in third party apps ask before opening option -->
+    <string name="preferences_open_links_in_apps_ask">Ачу алдыннан сорау</string>
+    <!-- Preference for open links in third party apps never open in apps option -->
+    <string name="preferences_open_links_in_apps_never">Беркайчан да</string>
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">Тышкы йөкләп алу менеджеры</string>
 
+    <!-- Preference for enabling gecko engine logs -->
+    <string name="preferences_enable_gecko_logs">Gecko журналларын кабызу</string>
+    <!-- Message to indicate users that we are quitting the application to apply the changes -->
+    <string name="quit_application">Үзгәртүләрне гамәлгә ашыру өчен кушымтадан чыгу…</string>
+
     <!-- Preference for extensions -->
     <string name="preferences_extensions">Киңәйтүләр</string>
+    <!-- Preference for installing a local extension -->
+    <string name="preferences_install_local_extension">Файлдан киңәйтү урнаштыру</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Искәртүләр</string>
 
@@ -584,6 +597,12 @@
     <!-- The title of the optional permissions section from addon's permissions screen -->
     <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Мәҗбүри түгел</string>
 
+    <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
+    <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Барлык сайтлар өчен рөхсәт итү</string>
+
+    <!-- Add-on Preferences -->
+    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
+    <string name="preferences_customize_extension_collection">Үзгә киңәйтүләр җыентыгы</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">ОК</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -1407,6 +1426,10 @@
 
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Билгеле күзәтүче вебсайтларга булган юнәлтүләр урнаштырган кукиларны чистарта.</string>
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Шөбһәле бармак эзләрен җыючылар</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Билгеле бармак эзләрен җыючылар</string>
     <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
     <string name="preference_etp_smartblock_learn_more">Күбрәк белү</string>
 
@@ -1451,6 +1474,10 @@
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">Ярлык исеме</string>
 
+    <!-- Preference for managing the settings for logins and passwords in Fenix -->
+    <string name="preferences_passwords_logins_and_passwords_2">Серсүзләр</string>
+    <!-- Preference for managing the saving of logins and passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_2">Серсүзләрне саклау</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Саклар алдыннан сорау</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -1465,10 +1492,23 @@
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Җиһазыгыздагы башка кушымталарда кулланучы исемнәре һәм серсүзләр тутырылсын.</string>
 
+    <!-- Preference option for adding a password -->
+    <string name="preferences_logins_add_login_2">Серсүзне өстәү</string>
+
+    <!-- Preference for syncing saved passwords in Fenix -->
+    <string name="preferences_passwords_sync_logins_2">Серсүзләрне синхронлау</string>
+    <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
+    <string name="preferences_passwords_sync_logins_across_devices_2">Серсүзләрне җиһазлар арасында синхронлау</string>
+    <!-- Preference to access list of saved passwords -->
+    <string name="preferences_passwords_saved_logins_2">Сакланган серсүзләр</string>
+    <!-- Clickable text for opening an external link for more information about Sync. -->
+    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Синхронлау турында күбрәк белү</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Чыгармалар</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Барлык чыгармаларны бетерү</string>
+    <!-- Hint for search box in passwords list -->
+    <string name="preferences_passwords_saved_logins_search_2">Серсүзләрдә эзләү</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Сайт</string>
     <!-- The header for the username for a login -->
@@ -1509,10 +1549,34 @@
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Соңгы кулланылган</string>
 
+    <!-- Content description (not visible, for screen readers etc.) -->
+    <string name="saved_logins_menu_dropdown_chevron_icon_content_description_2">Серсүзләрне тәртипкә китерү менюсы</string>
+
+    <!-- Autofill -->
+    <!-- Preference and title for managing the autofill settings -->
+    <string name="preferences_autofill">Автотутыру</string>
+    <!-- Preference and title for managing the settings for addresses -->
+    <string name="preferences_addresses">Адреслар</string>
+    <!-- Preference and title for managing the settings for payment methods -->
+    <string name="preferences_credit_cards_2">Түләү ысуллары</string>
+    <!-- Preference for saving and autofilling credit cards -->
+    <string name="preferences_credit_cards_save_and_autofill_cards_2">Түләү ысулларын саклау һәм тутыру</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">Карталарны җиһазлар арасында синхронлау</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
     <string name="preferences_credit_cards_sync_cards">Карталарны синхронлау</string>
+
+    <!-- Preference option for adding a card -->
+    <string name="preferences_credit_cards_add_credit_card_2">Карта өстәү</string>
+    <!-- Preference option for managing saved cards -->
+    <string name="preferences_credit_cards_manage_saved_cards_2">Карталар белән идарә итү</string>
+    <!-- Preference option for adding an address -->
+    <string name="preferences_addresses_add_address">Адрес өстәү</string>
+
+    <!-- Preference option for managing saved addresses -->
+    <string name="preferences_addresses_manage_addresses">Адреслар белән идарә итү</string>
+    <!-- Preference for saving and filling addresses -->
+    <string name="preferences_addresses_save_and_autofill_addresses_2">Адресларны саклау һәм тутыру</string>
 
     <!-- Title of the "Add card" screen -->
     <string name="credit_cards_add_card">Картаны өстәү</string>
@@ -1532,6 +1596,10 @@
     <string name="credit_cards_menu_delete_card">Картаны бетерү</string>
     <!-- The text for the "Delete card" button for deleting a credit card -->
     <string name="credit_cards_delete_card_button">Картаны бетерү</string>
+    <!-- The text for the confirmation message of "Delete card" dialog -->
+    <string name="credit_cards_delete_dialog_confirmation_2">Картаны бетерергәме?</string>
+    <!-- The text for the positive button on "Delete card" dialog -->
+    <string name="credit_cards_delete_dialog_button">Бетерү</string>
     <!-- The title for the "Save" menu item for saving a credit card -->
     <string name="credit_cards_menu_save">Саклау</string>
     <!-- The text for the "Save" button for saving a credit card -->
@@ -1542,6 +1610,8 @@
     <!-- Title of the "Saved cards" screen -->
     <string name="credit_cards_saved_cards">Сакланган карталар</string>
 
+    <!-- Error message for card name on card validation -->
+    <string name="credit_cards_name_on_card_validation_error_message_2">Исем өстәгез</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
     <string name="credit_cards_biometric_prompt_message">Сакланган карталарыгызны карау өчен йозакны ачыгыз</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1551,8 +1621,43 @@
     <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
     <string name="credit_cards_biometric_prompt_message_pin">Җиһазыгызның йозагын ачыгыз</string>
 
+    <!-- The header for the street address of an address -->
+    <string name="addresses_street_address">Урам</string>
+    <!-- The header for the city of an address -->
+    <string name="addresses_city">Шәһәр</string>
+    <!-- The header for the subregion of an address when "state" should be used -->
+    <string name="addresses_state">Өлкә</string>
+    <!-- The header for the subregion of an address when "province" should be used -->
+    <string name="addresses_province">Өлкә</string>
+    <!-- The header for the zip code of an address -->
+    <string name="addresses_zip">Почта индексы</string>
+    <!-- The header for the country or region of an address -->
+    <string name="addresses_country">Ил яки өлкә</string>
+    <!-- The header for the phone number of an address -->
+    <string name="addresses_phone">Телефон</string>
+    <!-- The header for the email of an address -->
+    <string name="addresses_email">Эл. почта</string>
+    <!-- The text for the "Save" button for saving an address -->
+    <string name="addresses_save_button">Саклау</string>
+    <!-- The text for the "Cancel" button for cancelling adding, updating or deleting an address -->
+    <string name="addresses_cancel_button">Баш тарту</string>
+    <!-- The text for the "Delete address" button for deleting an address -->
+    <string name="addressess_delete_address_button">Адресны бетерү</string>
+    <!-- The title for the "Delete address" confirmation dialog -->
+    <string name="addressess_confirm_dialog_message_2">Бу адрес бетерелсенме?</string>
+    <!-- The text for the positive button on "Delete address" dialog -->
+    <string name="addressess_confirm_dialog_ok_button">Бетерү</string>
+    <!-- The text for the negative button on "Delete address" dialog -->
+    <string name="addressess_confirm_dialog_cancel_button">Баш тарту</string>
+    <!-- The text for the "Save address" menu item for saving an address -->
+    <string name="address_menu_save_address">Адресны саклау</string>
+    <!-- The text for the "Delete address" menu item for deleting an address -->
+    <string name="address_menu_delete_address">Адресны бетерү</string>
+
     <!-- Title of the Add search engine screen -->
     <string name="search_engine_add_custom_search_engine_title">Эзләү системасын өстәү</string>
+    <!-- Content description (not visible, for screen readers etc.): Title for the button that navigates to add new engine screen -->
+    <string name="search_engine_add_custom_search_engine_button_content_description">Яңа бер эзләү системасын өстәү</string>
     <!-- Title of the Edit search engine screen -->
     <string name="search_engine_edit_custom_search_engine_title">Эзләү системасын үзгәртү</string>
     <!-- Text for the menu button to edit a search engine -->
@@ -1560,6 +1665,14 @@
     <!-- Text for the menu button to delete a search engine -->
     <string name="search_engine_delete">Бетерү</string>
 
+    <!-- Label for the TextField in which user enters custom search engine name -->
+    <string name="search_add_custom_engine_name_label">Исем</string>
+    <!-- Placeholder text shown in the Search Engine Name text field before a user enters text -->
+    <string name="search_add_custom_engine_name_hint_2">Эзләү системасының исеме</string>
+    <!-- Label for the TextField in which user enters custom search engine URL -->
+    <string name="search_add_custom_engine_url_label">Эзләнәсе сүзтезмәнең URL-ы</string>
+    <!-- Placeholder text shown in the Search String TextField before a user enters text -->
+    <string name="search_add_custom_engine_search_string_hint_2">Эзләү өчен кулланылучы URL</string>
     <!-- Description text for the Search String TextField. The %s is part of the string -->
     <string name="search_add_custom_engine_search_string_example" formatted="false">Сорауны “%s” юлы белән алыштырыгыз. Мисал өчен:\nhttps://www.google.com/search?q=%s</string>
 
@@ -1766,5 +1879,18 @@
 
     <!-- Translations feature-->
 
+
+    <!-- Translation settings dialog -->
+    <!-- Title of the translation settings dialog that allows a user to set their preferred translation settings. -->
+    <string name="translation_settings_toolbar_title">Тәрҗемәләр</string>
+    <!-- Section header text that begins the section of a list of different options the user may select to adjust their translation preferences. -->
+    <string name="translation_settings_translation_preference">Тәрҗемә көйләүләре</string>
+    <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
+    <string name="translation_settings_automatic_translation">Автоматик тәрҗемә итү</string>
+
+    <!-- Preference option for always translate. Radio button title text. -->
+    <string name="automatic_translation_option_always_translate_title_preference">Һәрвакыт тәрҗемә итү</string>
+    <!-- Preference option for never translate. Radio button title text.-->
+    <string name="automatic_translation_option_never_translate_title_preference">Беркайчан да тәрҗемә итмәү</string>
 
     </resources>

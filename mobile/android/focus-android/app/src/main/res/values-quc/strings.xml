@@ -85,7 +85,6 @@
     <string name="share_dialog_title">Ukomone\'xik pa</string>
 
     <string name="notification_erase_title_android_14">Kayuj ucholajil b\'anoj rech nik\'onel?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Chachapa\' on chachupu\' we ub\'ixikil are chi man k\'o ta uk\'axk\'olil chi rij uyujik ucholajil b\'anoj.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -769,6 +768,84 @@
 </string>
     <!-- CFR for Cookie Banner (Banner Info Message). This string is used as text for a link in cfr_cookie_banner and takes the user to the app settings. -->
     <string name="cfr_cookie_banner_link">taq wiqitajem</string>
+
+    <!-- Preference for autoplay -->
+    <string name="preference_autoplay">Utzijik pa utukelam</string>
+
+    <!-- Heading for the instructions to allow a permission -->
+    <string name="phone_feature_blocked_intro">Chech uya\'ik b\'e:</string>
+
+    <!-- First step for the allowing a permission -->
+    <string name="phone_feature_blocked_step_settings">1. B\'enam pa taq wiqitajem rech Android</string>
+
+    <!-- Second step for the allowing a permission -->
+    <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Chatz\'ib\'aj <b>Ya\'b\'al b\'e</b>]]></string>
+
+    <!-- Button label that take the user to the Android App setting -->
+    <string name="phone_feature_go_to_settings">B\'enam pa taq Wiqitajem</string>
+
+    <!-- Third step for allowing a permission. The placeholder will be updated by, for example, "Camera" -->
+    <string name="phone_feature_blocked_step_feature"><![CDATA[3. Uxolik <b>%1$s</b> pa UTZIJIK]]></string>
+
+    <!-- Preference for altering the camera access for all websites -->
+    <string name="preference_phone_feature_camera">Elesab\'al wachib\'al</string>
+
+    <!-- Preference for altering the microphone access for all websites -->
+    <string name="preference_phone_feature_microphone">Chaweb\'al</string>
+
+    <!-- Preference for altering the location access for all websites -->
+    <string name="preference_phone_feature_location">K\'olib\'al</string>
+
+    <!-- Preference for altering the notification access for all websites -->
+    <string name="preference_phone_feature_notification">Ub\'ixikil</string>
+
+    <!-- Preference for altering the EME access for all websites -->
+    <string name="preference_phone_feature_media_key_system_access">Ilawachital upam chak rumal DRM</string>
+
+    <!-- Label that indicates that a permission must be asked always -->
+    <string name="preference_option_phone_feature_ask_to_allow">Chata\' yab\'al b\'e</string>
+
+    <!-- Label that indicates that a permission must be blocked -->
+    <string name="preference_option_phone_feature_blocked">Chaq\'atej</string>
+
+    <!-- Label that indicates that a permission must be allowed -->
+    <string name="preference_option_phone_feature_allowed">Ya\'tal b\'e</string>
+
+    <!--Label that indicates a permission is by the Android OS-->
+    <string name="phone_feature_blocked_by_android">Xq\'atex rumal Android</string>
+
+    <!-- Preference for allow autoplay audio and video-->
+    <string name="preference_allow_audio_video_autoplay">Uya\'ik b\'e chech ch\'aweb\'al xuquje\' silob\'wachib\'al</string>
+
+    <!-- Preference for block autoplay audio only-->
+    <string name="preference_block_autoplay_audio_only">Xew chaq\'atej ch\'aweb\'al</string>
+
+    <!-- Preference summary for block autoplay audio only-->
+    <string name="preference_block_autoplay_audio_only_summary">B\'im chi utz no\'jib\'al</string>
+
+    <!-- Preference for block autoplay audio and video-->
+    <string name="preference_block_autoplay_audio_video">Uq\'atexik ch\'ab\'al xuquje\' silob\'wachib\'al</string>
+
+    <!-- Preference for studies -->
+    <string name="preference_studies">Eta\'manem</string>
+
+    <!-- Preference for studies summary-->
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Le Firefox wene kujeqeb\'a\' chi\'l kukoj taq eta\'manem pa taq uq\'ijol.</string>
+
+    <!-- Learn more link for studies, links to an article for more information about studies. -->
+    <string name="studies_learn_more">Chaweta\'maj nik\'aj chik</string>
+
+    <!-- Dialog message shown when some changes are made on studies -->
+    <string name="studies_restart_app">Ktz\'api\' le kojkemchak are chi kkoj taq k\'exelo\'nem</string>
+
+    <!-- Title of the remove studies button -->
+    <string name="studies_remove">Relesaxik</string>
+
+    <!-- Title of the active section on the studies list -->
+    <string name="studies_active">Tzijitalik</string>
+
+    <!-- Title of the completed section on the studies list -->
+    <string name="studies_completed">Xtz\'aqatik</string>
 
     <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
     <string name="enable_search_suggestions_no">Ja\'i\'</string>
