@@ -628,6 +628,31 @@ def gen_fetchop(fun_name, cpp_type, size, op):
     raise Exception("Unexpected arch")
 
 
+def gen_pause(fun_name):
+    if cpu_arch in ("x86", "x86_64"):
+        return r"""
+            INLINE_ATTR void %(fun_name)s() {
+                asm volatile ("pause" :::);
+            }""" % {
+            "fun_name": fun_name,
+        }
+    if cpu_arch == "aarch64":
+        return r"""
+            INLINE_ATTR void %(fun_name)s() {
+                asm volatile ("isb" ::: "memory");
+            }""" % {
+            "fun_name": fun_name,
+        }
+    if cpu_arch == "arm":
+        return r"""
+            INLINE_ATTR void %(fun_name)s() {
+                asm volatile ("yield" :::);
+            }""" % {
+            "fun_name": fun_name,
+        }
+    raise Exception("Unexpected arch")
+
+
 def gen_copy(fun_name, cpp_type, size, unroll, direction):
     assert direction in ("down", "up")
     offset = 0
@@ -794,6 +819,9 @@ def generate_atomics_header(c_out):
         contents += gen_fetchop("AtomicXor32SeqCst", "uint32_t", 32, "xor")
         if is_64bit:
             contents += gen_fetchop("AtomicXor64SeqCst", "uint64_t", 64, "xor")
+
+        # Pause or yield instruction.
+        contents += gen_pause("AtomicPause")
 
         # See comment in jit/AtomicOperations-shared-jit.cpp for an explanation.
         wordsize = 8 if is_64bit else 4

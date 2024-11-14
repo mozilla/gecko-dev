@@ -52,6 +52,8 @@ inline bool js::jit::AtomicOperations::isLockfree8() { return true; }
 
 inline void js::jit::AtomicOperations::fenceSeqCst() { AtomicFenceSeqCst(); }
 
+inline void js::jit::AtomicOperations::pause() { AtomicPause(); }
+
 #define JIT_LOADOP(T, U, loadop)                   \
   template <>                                      \
   inline T AtomicOperations::loadSeqCst(T* addr) { \

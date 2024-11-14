@@ -174,6 +174,9 @@ class AtomicOperations {
   // Execute a full memory barrier (LoadLoad+LoadStore+StoreLoad+StoreStore).
   static inline void fenceSeqCst();
 
+  // Pause or yield instruction.
+  static inline void pause();
+
   // All clients should use the APIs that take SharedMem pointers.
   // See above for semantics and acceptable types.
 

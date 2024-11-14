@@ -468,6 +468,7 @@
   MACRO_(parseFloat, "parseFloat")                                             \
   MACRO_(parseInt, "parseInt")                                                 \
   MACRO_(pattern, "pattern")                                                   \
+  MACRO_(pause, "pause")                                                       \
   MACRO_(pending, "pending")                                                   \
   MACRO_(percentSign, "percentSign")                                           \
   MACRO_(pipeTo, "pipeTo")                                                     \
