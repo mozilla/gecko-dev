@@ -1928,8 +1928,11 @@ export var BrowserTestUtils = {
     if (!params.hasOwnProperty("overflowTabFactor")) {
       params.overflowTabFactor = 1.1;
     }
-    let index = params.overflowAtStart ? 0 : undefined;
     let { gBrowser } = win;
+    let overflowDirection = gBrowser.tabContainer.verticalMode
+      ? "height"
+      : "width";
+    let index = params.overflowAtStart ? 0 : undefined;
     let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
     if (arrowScrollbox.hasAttribute("overflowing")) {
       return;
@@ -1949,12 +1952,12 @@ export var BrowserTestUtils = {
       arrowScrollbox.smoothScroll = originalSmoothScroll;
     });
 
-    let width = ele => ele.getBoundingClientRect().width;
-    let tabMinWidth = parseInt(
-      win.getComputedStyle(gBrowser.selectedTab).minWidth
-    );
+    let size = ele => ele.getBoundingClientRect()[overflowDirection];
+    let tabMinSize = gBrowser.tabContainer.verticalMode
+      ? size(gBrowser.selectedTab)
+      : parseInt(win.getComputedStyle(gBrowser.selectedTab).minWidth);
     let tabCountForOverflow = Math.ceil(
-      (width(arrowScrollbox) / tabMinWidth) * params.overflowTabFactor
+      (size(arrowScrollbox) / tabMinSize) * params.overflowTabFactor
     );
     while (gBrowser.tabs.length < tabCountForOverflow) {
       promises.push(
