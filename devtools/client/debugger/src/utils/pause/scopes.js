@@ -5,7 +5,7 @@
 // This file contains utility functions which supports the structure & display of
 // scopes information in Scopes panel.
 
-import { objectInspector } from "devtools/client/shared/components/reps/index";
+import * as objectInspector from "resource://devtools/client/shared/components/object-inspector/index.js";
 import { simplifyDisplayName } from "../pause/frames/index";
 
 const {

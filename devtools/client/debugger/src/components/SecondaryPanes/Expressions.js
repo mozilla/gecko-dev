@@ -18,7 +18,7 @@ import { connect } from "devtools/client/shared/vendor/react-redux";
 import { features } from "../../utils/prefs";
 import AccessibleImage from "../shared/AccessibleImage";
 
-import { objectInspector } from "devtools/client/shared/components/reps/index";
+import * as objectInspector from "resource://devtools/client/shared/components/object-inspector/index.js";
 
 import actions from "../../actions/index";
 import {

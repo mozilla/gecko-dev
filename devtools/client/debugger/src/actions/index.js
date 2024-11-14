@@ -23,7 +23,7 @@ import * as preview from "./preview";
 import * as tracing from "./tracing";
 import * as contextMenu from "./context-menus/index";
 
-import { objectInspector } from "devtools/client/shared/components/reps/index";
+import * as objectInspector from "devtools/client/shared/components/object-inspector/index";
 
 export default {
   ...ast,

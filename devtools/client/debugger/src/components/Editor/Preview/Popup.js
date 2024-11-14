@@ -11,8 +11,8 @@ import Reps from "devtools/client/shared/components/reps/index";
 const {
   REPS: { Grip },
   MODE,
-  objectInspector,
 } = Reps;
+import * as objectInspector from "resource://devtools/client/shared/components/object-inspector/index.js";
 
 const { ObjectInspector, utils } = objectInspector;
 

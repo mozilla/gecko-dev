@@ -30,7 +30,7 @@ import {
 } from "../../utils/pause/scopes";
 import { clientCommands } from "../../client/firefox";
 
-import { objectInspector } from "devtools/client/shared/components/reps/index";
+import * as objectInspector from "resource://devtools/client/shared/components/object-inspector/index.js";
 const { ObjectInspector } = objectInspector;
 
 class Scopes extends PureComponent {

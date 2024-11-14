@@ -27,7 +27,7 @@ import eventListenerBreakpoints, {
 import exceptions, { initialExceptionsState } from "./exceptions";
 import tracerFrames from "./tracer-frames";
 
-import { objectInspector } from "devtools/client/shared/components/reps/index";
+import * as objectInspector from "resource://devtools/client/shared/components/object-inspector/index.js";
 
 /**
  * Note that this is only used by jest tests.

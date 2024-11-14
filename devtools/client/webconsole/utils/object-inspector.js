@@ -18,8 +18,8 @@ loader.lazyGetter(this, "MODE", function () {
     .MODE;
 });
 loader.lazyGetter(this, "ObjectInspector", function () {
-  const reps = require("resource://devtools/client/shared/components/reps/index.js");
-  return createFactory(reps.objectInspector.ObjectInspector);
+  const objectInspector = require("resource://devtools/client/shared/components/object-inspector/index.js");
+  return createFactory(objectInspector.ObjectInspector);
 });
 
 loader.lazyRequireGetter(

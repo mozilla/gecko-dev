@@ -19,8 +19,10 @@ const Types = require("resource://devtools/client/inspector/extensions/types.js"
 const {
   REPS: { Grip },
   MODE,
-  objectInspector: { ObjectInspector: ObjectInspectorClass },
 } = require("resource://devtools/client/shared/components/reps/index.js");
+const {
+  ObjectInspector: ObjectInspectorClass,
+} = require("resource://devtools/client/shared/components/object-inspector/index.js");
 
 loader.lazyRequireGetter(
   this,

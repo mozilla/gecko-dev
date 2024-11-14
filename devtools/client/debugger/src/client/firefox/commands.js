@@ -5,7 +5,7 @@
 import { createFrame } from "./create";
 import { makeBreakpointServerLocationId } from "../../utils/breakpoint/index";
 
-import Reps from "devtools/client/shared/components/reps/index";
+import * as objectInspector from "resource://devtools/client/shared/components/object-inspector/index.js";
 
 let commands;
 let breakpoints;
@@ -46,7 +46,7 @@ function createObjectFront(grip, frame) {
 }
 
 async function loadObjectProperties(root, threadActorID) {
-  const { utils } = Reps.objectInspector;
+  const { utils } = objectInspector;
   const properties = await utils.loadProperties.loadItemProperties(
     root,
     commands.client,

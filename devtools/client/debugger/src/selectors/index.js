@@ -34,7 +34,7 @@ export {
 } from "./visibleBreakpoints";
 export * from "./visibleColumnBreakpoints";
 
-import { objectInspector } from "devtools/client/shared/components/reps/index";
+import * as objectInspector from "resource://devtools/client/shared/components/object-inspector/index.js";
 
 const { reducer } = objectInspector;
 

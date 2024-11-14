@@ -11,7 +11,6 @@ const {
   REPS,
   getRep,
 } = require("resource://devtools/client/shared/components/reps/reps/rep.js");
-const objectInspector = require("resource://devtools/client/shared/components/object-inspector/index.js");
 
 const {
   parseURLEncodedText,
@@ -28,5 +27,4 @@ module.exports = {
   parseURLEncodedText,
   parseURLParams,
   getGripPreviewItems,
-  objectInspector,
 };
