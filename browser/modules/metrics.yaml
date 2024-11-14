@@ -1329,3 +1329,23 @@ browser.ui.interaction:
       - dtownsend@mozilla.com
     expires: never
     telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANEUNKNOWN
+
+timestamps:
+  about_home_topsites_first_paint:
+    type: quantity
+    description: >
+      Record the timestamp of when the first about:home's Topsites are
+      painted. Only records if about:home is set as the default homepage,
+      and if sessions are not being restored by default.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar timestamps.about_home_topsites_first_paint.
+    bugs:
+      - https://bugzil.la/1518521
+    data_reviews:
+      - https://bugzil.la/1518521
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    unit: ms
+    telemetry_mirror: TIMESTAMPS_ABOUT_HOME_TOPSITES_FIRST_PAINT

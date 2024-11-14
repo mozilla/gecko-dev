@@ -215,12 +215,10 @@ export const AboutNewTab = {
       return;
     }
 
-    const SCALAR_KEY = "timestamps.about_home_topsites_first_paint";
-
     let startupInfo = Services.startup.getStartupInfo();
     let processStartTs = startupInfo.process.getTime();
     let delta = Math.round(timestamp - processStartTs);
-    Services.telemetry.scalarSet(SCALAR_KEY, delta);
+    Glean.timestamps.aboutHomeTopsitesFirstPaint.set(delta);
     ChromeUtils.addProfilerMarker("aboutHomeTopsitesFirstPaint");
     this._alreadyRecordedTopsitesPainted = true;
   },

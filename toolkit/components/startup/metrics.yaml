@@ -1,0 +1,48 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Startup and Profile System'
+
+timestamps:
+  first_paint:
+    type: quantity
+    description: >
+      Record the timestamp of the first content window paint, in
+      milliseconds since process start.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar timestamps.first_paint.
+    bugs:
+      - https://bugzil.la/1386186
+    data_reviews:
+      - https://bugzil.la/1386186
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    unit: ms
+    telemetry_mirror: TIMESTAMPS_FIRST_PAINT
+
+  first_paint_two:
+    type: quantity
+    description: >
+      Record the timestamp of the first main window paint, in milliseconds
+      since process start. Intended to replace first_paint since
+      first_paint is broken.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar timestamps.first_paint_two.
+    bugs:
+      - https://bugzil.la/1556568
+    data_reviews:
+      - https://bugzil.la/1556568
+    notification_emails:
+      - perf-telemetry-alerts@mozilla.com
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+    unit: ms
+    telemetry_mirror: TIMESTAMPS_FIRST_PAINT_TWO
