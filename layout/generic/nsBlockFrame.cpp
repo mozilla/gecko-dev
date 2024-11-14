@@ -1470,7 +1470,16 @@ void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
   // than keeping it around only during reflow then we should create it
   // only when there are actually floats to manage.  Otherwise things
   // like tables will gain significant bloat.
-  bool needFloatManager = nsBlockFrame::BlockNeedsFloatManager(this);
+  //
+  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1931286:
+  // if we're a reflow root and no float manager is provided by the caller
+  // in aReflowInput, we'd normally expect the block to be a BFC and so
+  // BlockNeedsFloatManager will return true. But sometimes the block may
+  // have lost its BFC-ness since it was recorded as a dirty reflow root
+  // but before the reflow actually happens. Creating a float manager here
+  // avoids crashing, but may not be entirely correct in such a case.
+  bool needFloatManager =
+      !aReflowInput.mFloatManager || nsBlockFrame::BlockNeedsFloatManager(this);
   if (needFloatManager) {
     autoFloatManager.CreateFloatManager(aPresContext);
   }
