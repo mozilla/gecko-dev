@@ -376,3 +376,43 @@ browser.engagement:
       - rtestard@mozilla.com
     expires: never
     telemetry_mirror: BROWSER_ENGAGEMENT_BOOKMARKS_TOOLBAR_BOOKMARK_OPENED
+
+networking:
+  captive_portal_banner_displayed:
+    type: counter
+    description: >
+      Number of times the captive portal banner was displayed in this
+      session.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.captive_portal_banner_displayed.
+    bugs:
+      - https://bugzil.la/1868145
+    data_reviews:
+      - https://bugzil.la/1868145
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORKING_CAPTIVE_PORTAL_BANNER_DISPLAYED
+
+  captive_portal_banner_display_time:
+    type: labeled_counter
+    description: >
+      Number of seconds the captive portal banner was displayed for, keyed
+      by close reason:
+        "success" - the portal login was completed
+        "abort"   - the portal login was aborted (e.g. loss of network)
+        "dismiss" - the user dismissed the banner
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.captive_portal_banner_display_time.
+    bugs:
+      - https://bugzil.la/1868145
+    data_reviews:
+      - https://bugzil.la/1868145
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    labels:
+      - success
+      - abort
+      - dismiss
+    telemetry_mirror: NETWORKING_CAPTIVE_PORTAL_BANNER_DISPLAY_TIME

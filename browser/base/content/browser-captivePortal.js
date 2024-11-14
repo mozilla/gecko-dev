@@ -247,11 +247,15 @@ var CaptivePortalWatcher = {
       (Date.now() - this._bannerDisplayTime) / 1000
     );
 
-    Services.telemetry.keyedScalarAdd(
-      "networking.captive_portal_banner_display_time",
-      aSuccess ? "success" : "abort",
-      durationInSeconds
-    );
+    if (aSuccess) {
+      Glean.networking.captivePortalBannerDisplayTime.success.add(
+        durationInSeconds
+      );
+    } else {
+      Glean.networking.captivePortalBannerDisplayTime.abort.add(
+        durationInSeconds
+      );
+    }
 
     if (!this._captivePortalTab) {
       return;
@@ -316,10 +320,7 @@ var CaptivePortalWatcher = {
       return;
     }
 
-    Services.telemetry.scalarAdd(
-      "networking.captive_portal_banner_displayed",
-      1
-    );
+    Glean.networking.captivePortalBannerDisplayed.add(1);
     this._bannerDisplayTime = Date.now();
 
     let buttons = [
@@ -346,9 +347,7 @@ var CaptivePortalWatcher = {
           (Date.now() - this._bannerDisplayTime) / 1000
         );
 
-        Services.telemetry.keyedScalarAdd(
-          "networking.captive_portal_banner_display_time",
-          "dismiss",
+        Glean.networking.captivePortalBannerDisplayTime.dismiss.add(
           durationInSeconds
         );
       }
