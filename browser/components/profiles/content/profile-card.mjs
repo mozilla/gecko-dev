@@ -114,7 +114,7 @@ export class ProfileCard extends MozLitElement {
             ><moz-button
               data-l10n-id="profile-card-edit-button"
               type="ghost"
-              iconsrc="chrome://global/skin/icons/edit.svg"
+              iconsrc="chrome://global/skin/icons/edit-outline.svg"
               @click=${this.handleEditClick}
             ></moz-button
             ><moz-button
