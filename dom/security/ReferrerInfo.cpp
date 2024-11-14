@@ -948,10 +948,8 @@ ReferrerInfo::ReferrerInfo()
       mInitialized(false),
       mOverridePolicyByDefault(false) {}
 
-ReferrerInfo::ReferrerInfo(const Document& aDoc, const bool aSendReferrer)
-    : ReferrerInfo() {
+ReferrerInfo::ReferrerInfo(const Document& aDoc) : ReferrerInfo() {
   InitWithDocument(&aDoc);
-  mSendReferrer = aSendReferrer;
 }
 
 ReferrerInfo::ReferrerInfo(const Element& aElement) : ReferrerInfo() {
@@ -998,6 +996,13 @@ already_AddRefed<ReferrerInfo> ReferrerInfo::CloneWithNewPolicy(
   RefPtr<ReferrerInfo> copy(new ReferrerInfo(*this));
   copy->mPolicy = aPolicy;
   copy->mOriginalPolicy = aPolicy;
+  return copy.forget();
+}
+
+already_AddRefed<ReferrerInfo> ReferrerInfo::CloneWithNewSendReferrer(
+    bool aSendReferrer) const {
+  RefPtr<ReferrerInfo> copy(new ReferrerInfo(*this));
+  copy->mSendReferrer = aSendReferrer;
   return copy.forget();
 }
 
