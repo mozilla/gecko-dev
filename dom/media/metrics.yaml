@@ -291,3 +291,32 @@ media:
       - media-alerts@mozilla.com
     expires: never
     telemetry_mirror: MEDIA_VIDEO_HD_HARDWARE_DECODING_SUPPORT
+
+  error:
+    type: event
+    description: >
+      Record the error details happened on a media element.
+    metadata:
+      tags:
+        - 'Core :: Audio/Video: Playback'
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929335
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1929335
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - media-alerts@mozilla.com
+    extra_keys:
+      error_type:
+        description: The error type defined in MediaError.webidl.
+        type: string
+      error_name:
+        description: The name of the internal error.
+        type: string
+      key_system:
+        description: >
+          The value indicates the key system in use when the error occurred. It
+          will be null if the error is related to non-EME playback.
+        type : string
+    expires: never
