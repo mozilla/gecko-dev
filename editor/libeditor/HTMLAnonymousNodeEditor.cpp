@@ -180,25 +180,38 @@ ManualNACPtr HTMLEditor::CreateAnonymousElement(nsAtom* aTag,
     }
   }
 
-  nsAutoScriptBlocker scriptBlocker;
+  {
+    nsAutoScriptBlocker scriptBlocker;
 
-  // establish parenthood of the element
-  newElement->SetIsNativeAnonymousRoot();
-  BindContext context(*aParentContent.AsElement(),
-                      BindContext::ForNativeAnonymous);
-  if (NS_FAILED(newElement->BindToTree(context, aParentContent))) {
-    NS_WARNING("Element::BindToTree(BindContext::ForNativeAnonymous) failed");
-    newElement->UnbindFromTree();
-    return nullptr;
+    // establish parenthood of the element
+    newElement->SetIsNativeAnonymousRoot();
+    BindContext context(*aParentContent.AsElement(),
+                        BindContext::ForNativeAnonymous);
+    nsresult rv = newElement->BindToTree(context, aParentContent);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Element::BindToTree(BindContext::ForNativeAnonymous) failed");
+      newElement->UnbindFromTree();
+      return nullptr;
+    }
   }
 
   ManualNACPtr newNativeAnonymousContent(newElement.forget());
+
+  // Must style the new element, otherwise the PostRecreateFramesFor call
+  // below will do nothing.
+  ServoStyleSet* styleSet = presShell->StyleSet();
+  // Sometimes editor likes to append anonymous content to elements
+  // in display:none subtrees, so avoid styling in those cases.
+  if (ServoStyleSet::MayTraverseFrom(newNativeAnonymousContent)) {
+    styleSet->StyleNewSubtree(newNativeAnonymousContent);
+  }
+
   auto* observer = new ElementDeletionObserver(newNativeAnonymousContent,
                                                aParentContent.AsElement());
   NS_ADDREF(observer);  // NodeWillBeDestroyed releases.
 
 #ifdef DEBUG
-  // Editor anonymous content gets passed to PostRecreateFramesFor... Which
+  // Editor anonymous content gets passed to PostRecreateFramesFor... which
   // can't _really_ deal with anonymous content (because it can't get the frame
   // tree ordering right).  But for us the ordering doesn't matter so this is
   // sort of ok.
@@ -207,7 +220,7 @@ ManualNACPtr HTMLEditor::CreateAnonymousElement(nsAtom* aTag,
 #endif  // DEBUG
 
   // display the element
-  presShell->ContentAppended(newNativeAnonymousContent);
+  presShell->PostRecreateFramesFor(newNativeAnonymousContent);
 
   return newNativeAnonymousContent;
 }

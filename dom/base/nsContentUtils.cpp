@@ -200,7 +200,6 @@
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/Text.h"
 #include "mozilla/dom/UserActivation.h"
-#include "mozilla/dom/ViewTransition.h"
 #include "mozilla/dom/WindowContext.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -10488,15 +10487,6 @@ void nsContentUtils::AppendNativeAnonymousChildren(const nsIContent* aContent,
       }
     }
 
-    // View transition pseudos.
-    if (aContent->IsRootElement()) {
-      if (auto* vt = aContent->OwnerDoc()->GetActiveViewTransition()) {
-        if (auto* root = vt->GetRoot()) {
-          aKids.AppendElement(root);
-        }
-      }
-    }
-
     // Get manually created NAC (editor resize handles, etc.).
     if (auto nac = static_cast<ManualNACArray*>(
             aContent->GetProperty(nsGkAtoms::manualNACProperty))) {
@@ -10507,7 +10497,7 @@ void nsContentUtils::AppendNativeAnonymousChildren(const nsIContent* aContent,
   // The root scroll frame is not the primary frame of the root element.
   // Detect and handle this case.
   if (!(aFlags & nsIContent::eSkipDocumentLevelNativeAnonymousContent) &&
-      aContent->IsRootElement()) {
+      aContent == aContent->OwnerDoc()->GetRootElement()) {
     AppendDocumentLevelNativeAnonymousContentTo(aContent->OwnerDoc(), aKids);
   }
 }

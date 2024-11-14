@@ -85,25 +85,19 @@ void RestyleManager::ContentInserted(nsIContent* aChild) {
 }
 
 void RestyleManager::ContentAppended(nsIContent* aFirstNewContent) {
-  MOZ_ASSERT(aFirstNewContent->GetParentNode());
+  auto* container = aFirstNewContent->GetParentNode();
+  MOZ_ASSERT(container);
 
 #ifdef DEBUG
-  for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
-    NS_ASSERTION(cur->IsRootOfNativeAnonymousSubtree() ==
-                     aFirstNewContent->IsRootOfNativeAnonymousSubtree(),
-                 "anonymous nodes should not be in child lists");
+  {
+    for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
+      NS_ASSERTION(!cur->IsRootOfNativeAnonymousSubtree(),
+                   "anonymous nodes should not be in child lists");
+    }
   }
 #endif
-
-  // We get called explicitly with NAC by editor and view transitions code, but
-  // in those cases we don't need to do any invalidation.
-  if (MOZ_UNLIKELY(aFirstNewContent->IsRootOfNativeAnonymousSubtree())) {
-    return;
-  }
-
   StyleSet()->MaybeInvalidateForElementAppend(*aFirstNewContent);
 
-  auto* container = aFirstNewContent->GetParentNode();
   const auto selectorFlags = container->GetSelectorFlags() &
                              NodeSelectorFlags::AllSimpleRestyleFlagsForAppend;
   if (!selectorFlags) {
@@ -447,17 +441,6 @@ void RestyleManager::ContentRemoved(nsIContent* aOldChild,
     // invalidated.
     IncrementUndisplayedRestyleGeneration();
   }
-
-  // This is called with anonymous nodes explicitly by editor and view
-  // transitions code, which manage anon content manually.
-  // See similar code in ContentAppended.
-  if (MOZ_UNLIKELY(aOldChild->IsRootOfNativeAnonymousSubtree())) {
-    MOZ_ASSERT(!aFollowingSibling, "NAC doesn't have siblings");
-    MOZ_ASSERT(aOldChild->GetProperty(nsGkAtoms::restylableAnonymousNode),
-               "anonymous nodes should not be in child lists (bug 439258)");
-    return;
-  }
-
   if (aOldChild->IsElement()) {
     StyleSet()->MaybeInvalidateForElementRemove(*aOldChild->AsElement(),
                                                 aFollowingSibling);
@@ -467,6 +450,14 @@ void RestyleManager::ContentRemoved(nsIContent* aOldChild,
       container->GetSelectorFlags() & NodeSelectorFlags::AllSimpleRestyleFlags;
   if (!selectorFlags) {
     return;
+  }
+
+  if (aOldChild->IsRootOfNativeAnonymousSubtree()) {
+    // This should be an assert, but this is called incorrectly in
+    // HTMLEditor::DeleteRefToAnonymousNode and the assertions were clogging
+    // up the logs.  Make it an assert again when that's fixed.
+    MOZ_ASSERT(aOldChild->GetProperty(nsGkAtoms::restylableAnonymousNode),
+               "anonymous nodes should not be in child lists (bug 439258)");
   }
 
   // The container cannot be a document.

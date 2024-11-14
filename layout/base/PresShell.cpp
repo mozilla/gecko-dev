@@ -4620,7 +4620,8 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void PresShell::ContentRemoved(
   // frame reconstruction.
   nsIContent* oldNextSibling = nullptr;
 
-  // Editor and view transitions code call into here with NAC.
+  // Editor calls into here with NAC via HTMLEditor::DeleteRefToAnonymousNode.
+  // This could be asserted if that caller is fixed.
   if (MOZ_LIKELY(!aChild->IsRootOfNativeAnonymousSubtree())) {
     oldNextSibling = aPreviousSibling ? aPreviousSibling->GetNextSibling()
                                       : container->GetFirstChild();
