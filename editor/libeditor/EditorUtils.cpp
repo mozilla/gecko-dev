@@ -33,16 +33,6 @@ namespace mozilla {
 using namespace dom;
 
 /******************************************************************************
- * mozilla::EditActionResult
- *****************************************************************************/
-
-EditActionResult& EditActionResult::operator|=(
-    const MoveNodeResult& aMoveNodeResult) {
-  mHandled |= aMoveNodeResult.Handled();
-  return *this;
-}
-
-/******************************************************************************
  * some general purpose editor utils
  *****************************************************************************/
 

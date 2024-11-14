@@ -82,10 +82,9 @@ inline std::ostream& operator<<(std::ostream& aStream,
  * This stores whether it's handled or not, and next insertion point and a
  * suggestion for new caret position.
  *****************************************************************************/
-class MOZ_STACK_CLASS MoveNodeResult final : public CaretPoint {
+class MOZ_STACK_CLASS MoveNodeResult final : public CaretPoint,
+                                             public EditActionResult {
  public:
-  constexpr bool Handled() const { return mHandled; }
-  constexpr bool Ignored() const { return !Handled(); }
   constexpr const EditorDOMPoint& NextInsertionPointRef() const {
     return mNextInsertionPoint;
   }
@@ -96,11 +95,6 @@ class MOZ_STACK_CLASS MoveNodeResult final : public CaretPoint {
   EditorDOMPointType NextInsertionPoint() const {
     return mNextInsertionPoint.To<EditorDOMPointType>();
   }
-
-  /**
-   * Override the result as "handled" forcibly.
-   */
-  void MarkAsHandled() { mHandled = true; }
 
   MoveNodeResult(const MoveNodeResult& aOther) = delete;
   MoveNodeResult& operator=(const MoveNodeResult& aOther) = delete;
@@ -115,7 +109,12 @@ class MOZ_STACK_CLASS MoveNodeResult final : public CaretPoint {
     // Should be handled again even if it's already handled
     UnmarkAsHandledCaretPoint();
 
-    mHandled |= aOther.mHandled;
+    if (aOther.Canceled()) {
+      MarkAsCanceled();
+    } else if (aOther.Handled()) {
+      MarkAsHandled();
+      UnmarkAsCanceled();
+    }
 
     // Take the new one for the next insertion point.
     mNextInsertionPoint = aOther.mNextInsertionPoint;
@@ -184,52 +183,51 @@ class MOZ_STACK_CLASS MoveNodeResult final : public CaretPoint {
  private:
   explicit MoveNodeResult(const EditorDOMPoint& aNextInsertionPoint,
                           bool aHandled)
-      : mNextInsertionPoint(aNextInsertionPoint),
-        mHandled(aHandled && aNextInsertionPoint.IsSet()) {
+      : EditActionResult(false, aHandled && aNextInsertionPoint.IsSet()),
+        mNextInsertionPoint(aNextInsertionPoint) {
     AutoEditorDOMPointChildInvalidator computeOffsetAndForgetChild(
         mNextInsertionPoint);
   }
   explicit MoveNodeResult(EditorDOMPoint&& aNextInsertionPoint, bool aHandled)
-      : mNextInsertionPoint(std::move(aNextInsertionPoint)),
-        mHandled(aHandled && mNextInsertionPoint.IsSet()) {
+      : EditActionResult(false, aHandled && aNextInsertionPoint.IsSet()),
+        mNextInsertionPoint(std::move(aNextInsertionPoint)) {
     AutoEditorDOMPointChildInvalidator computeOffsetAndForgetChild(
         mNextInsertionPoint);
   }
   explicit MoveNodeResult(const EditorDOMPoint& aNextInsertionPoint,
                           const EditorDOMPoint& aPointToPutCaret)
       : CaretPoint(aPointToPutCaret),
-        mNextInsertionPoint(aNextInsertionPoint),
-        mHandled(mNextInsertionPoint.IsSet()) {
+        EditActionResult(false, aNextInsertionPoint.IsSet()),
+        mNextInsertionPoint(aNextInsertionPoint) {
     AutoEditorDOMPointChildInvalidator computeOffsetAndForgetChild(
         mNextInsertionPoint);
   }
   explicit MoveNodeResult(EditorDOMPoint&& aNextInsertionPoint,
                           const EditorDOMPoint& aPointToPutCaret)
       : CaretPoint(aPointToPutCaret),
-        mNextInsertionPoint(std::move(aNextInsertionPoint)),
-        mHandled(mNextInsertionPoint.IsSet()) {
+        EditActionResult(false, aNextInsertionPoint.IsSet()),
+        mNextInsertionPoint(std::move(aNextInsertionPoint)) {
     AutoEditorDOMPointChildInvalidator computeOffsetAndForgetChild(
         mNextInsertionPoint);
   }
   explicit MoveNodeResult(const EditorDOMPoint& aNextInsertionPoint,
                           EditorDOMPoint&& aPointToPutCaret)
       : CaretPoint(std::move(aPointToPutCaret)),
-        mNextInsertionPoint(aNextInsertionPoint),
-        mHandled(mNextInsertionPoint.IsSet()) {
+        EditActionResult(false, aNextInsertionPoint.IsSet()),
+        mNextInsertionPoint(aNextInsertionPoint) {
     AutoEditorDOMPointChildInvalidator computeOffsetAndForgetChild(
         mNextInsertionPoint);
   }
   explicit MoveNodeResult(EditorDOMPoint&& aNextInsertionPoint,
                           EditorDOMPoint&& aPointToPutCaret)
       : CaretPoint(std::move(aPointToPutCaret)),
-        mNextInsertionPoint(std::move(aNextInsertionPoint)),
-        mHandled(mNextInsertionPoint.IsSet()) {
+        EditActionResult(false, aNextInsertionPoint.IsSet()),
+        mNextInsertionPoint(std::move(aNextInsertionPoint)) {
     AutoEditorDOMPointChildInvalidator computeOffsetAndForgetChild(
         mNextInsertionPoint);
   }
 
   EditorDOMPoint mNextInsertionPoint;
-  bool mHandled;
 };
 
 /*****************************************************************************

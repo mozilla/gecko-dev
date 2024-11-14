@@ -144,7 +144,7 @@ class MOZ_STACK_CLASS CaretPoint {
  * EditActionResult is useful to return the handling state of edit sub actions
  * without out params.
  */
-class MOZ_STACK_CLASS EditActionResult final {
+class MOZ_STACK_CLASS EditActionResult {
  public:
   bool Canceled() const { return mCanceled; }
   bool Handled() const { return mHandled; }
@@ -158,8 +158,6 @@ class MOZ_STACK_CLASS EditActionResult final {
     mHandled |= aOther.mHandled;
     return *this;
   }
-
-  EditActionResult& operator|=(const MoveNodeResult& aMoveNodeResult);
 
   static EditActionResult IgnoredResult() {
     return EditActionResult(false, false);
@@ -176,14 +174,17 @@ class MOZ_STACK_CLASS EditActionResult final {
   EditActionResult(EditActionResult&&) = default;
   EditActionResult& operator=(EditActionResult&&) = default;
 
- private:
-  bool mCanceled = false;
-  bool mHandled = false;
-
+ protected:
   EditActionResult(bool aCanceled, bool aHandled)
       : mCanceled(aCanceled), mHandled(aHandled) {}
 
   EditActionResult() : mCanceled(false), mHandled(false) {}
+
+  void UnmarkAsCanceled() { mCanceled = false; }
+
+ private:
+  bool mCanceled = false;
+  bool mHandled = false;
 };
 
 /***************************************************************************
