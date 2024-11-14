@@ -5,8 +5,8 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "StackArena.h"
-#include "nsAlgorithm.h"
 #include "nsDebug.h"
+#include "mozilla/gfx/NumericTools.h"
 
 namespace mozilla {
 
@@ -114,7 +114,7 @@ void* StackArena::Allocate(size_t aSize) {
   NS_ASSERTION(mStackTop > 0, "Allocate called without Push");
 
   // Align to a multiple of 8.
-  aSize = NS_ROUNDUP<size_t>(aSize, 8);
+  aSize = RoundUpToMultiple(aSize, 8);
 
   // On stack overflow, grab another block.
   if (mPos + aSize >= StackBlock::MAX_USABLE_SIZE) {
