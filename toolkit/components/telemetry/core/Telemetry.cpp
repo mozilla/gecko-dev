@@ -24,6 +24,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/BackgroundHangMonitor.h"
@@ -334,8 +335,7 @@ class nsFetchTelemetryData : public Runnable {
       telemetry->ReadLateWritesStacks(mProfileDir);
     }
 
-    TelemetryScalar::Set(Telemetry::ScalarID::BROWSER_TIMINGS_LAST_SHUTDOWN,
-                         lastShutdownDuration);
+    glean::browser_timings::last_shutdown.Set(lastShutdownDuration);
 
     nsCOMPtr<nsIRunnable> e =
         NewRunnableMethod("nsFetchTelemetryData::MainThread", this,
