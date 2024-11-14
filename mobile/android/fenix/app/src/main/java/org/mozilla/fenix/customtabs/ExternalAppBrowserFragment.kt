@@ -291,6 +291,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                                 ExternalAppBrowserFragmentDirections.actionGlobalMenuDialogFragment(
                                     accesspoint = MenuAccessPoint.External,
                                     customTabSessionId = customTabSessionId,
+                                    isSandboxCustomTab = args.isSandboxCustomTab,
                                 ),
                             )
                         },

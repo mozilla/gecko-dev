@@ -516,6 +516,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 CustomTabMenu(
                                     isPdf = customTab?.content?.isPdf == true,
                                     isDesktopMode = isDesktopMode,
+                                    isSandboxCustomTab = args.isSandboxCustomTab,
                                     customTabMenuItems = customTab?.config?.menuItems,
                                     onCustomMenuItemClick = { intent: PendingIntent ->
                                         store.dispatch(

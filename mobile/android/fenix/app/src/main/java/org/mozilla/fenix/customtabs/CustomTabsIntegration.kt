@@ -116,6 +116,7 @@ class CustomTabsIntegration(
                 interactor.onMenuButtonClicked(
                     accessPoint = MenuAccessPoint.External,
                     customTabSessionId = sessionId,
+                    isSandboxCustomTab = isSandboxCustomTab,
                 )
             },
             shareListener = { interactor.onBrowserToolbarMenuItemTapped(ToolbarMenu.Item.Share) },

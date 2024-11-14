@@ -1569,6 +1569,10 @@
             android:defaultValue="@null"
             app:nullable="true"
             app:argType="string" />
+        <argument
+            android:name="isSandboxCustomTab"
+            android:defaultValue="false"
+            app:argType="boolean" />
         <dialog
             android:id="@+id/menuDialogFragment"
             android:name="org.mozilla.fenix.components.menu.MenuDialogFragment">
@@ -1580,6 +1584,10 @@
                 android:defaultValue="@null"
                 app:nullable="true"
                 app:argType="string" />
+            <argument
+                android:name="isSandboxCustomTab"
+                android:defaultValue="false"
+                app:argType="boolean" />
             <action
                 android:id="@+id/action_menuDialogFragment_to_translationsDialogFragment"
                 app:destination="@id/translationsDialogFragment" />

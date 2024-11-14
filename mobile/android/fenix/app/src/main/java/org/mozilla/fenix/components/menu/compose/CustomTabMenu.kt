@@ -24,6 +24,7 @@ import org.mozilla.fenix.theme.Theme
  *
  * @param isPdf Whether or not the current custom tab is a PDF.
  * @param isDesktopMode Whether or not the current site is in desktop mode.
+ * @param isSandboxCustomTab Whether or not the current custom tab is sandboxed.
  * @param customTabMenuItems Additional [CustomTabMenuItem]s to be displayed to the custom tab menu.
  * @param onCustomMenuItemClick Invoked when the user clicks on [CustomTabMenuItem]s.
  * @param onSwitchToDesktopSiteMenuClick Invoked when the user clicks on the switch to desktop site
@@ -37,6 +38,7 @@ import org.mozilla.fenix.theme.Theme
 internal fun CustomTabMenu(
     isPdf: Boolean,
     isDesktopMode: Boolean,
+    isSandboxCustomTab: Boolean,
     customTabMenuItems: List<CustomTabMenuItem>?,
     onCustomMenuItemClick: (PendingIntent) -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
@@ -86,6 +88,11 @@ internal fun CustomTabMenu(
                 ),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_open_in),
                 onClick = onOpenInFirefoxMenuClick,
+                state = if (isSandboxCustomTab) {
+                    MenuItemState.DISABLED
+                } else {
+                    MenuItemState.ENABLED
+                },
             )
 
             Divider(color = FirefoxTheme.colors.borderSecondary)
@@ -125,6 +132,7 @@ private fun CustomTabMenuPreview() {
             CustomTabMenu(
                 isPdf = false,
                 isDesktopMode = false,
+                isSandboxCustomTab = false,
                 customTabMenuItems = null,
                 onCustomMenuItemClick = { _: PendingIntent -> },
                 onSwitchToDesktopSiteMenuClick = {},
@@ -147,6 +155,7 @@ private fun CustomTabMenuPrivatePreview() {
             CustomTabMenu(
                 isPdf = true,
                 isDesktopMode = false,
+                isSandboxCustomTab = false,
                 customTabMenuItems = null,
                 onCustomMenuItemClick = { _: PendingIntent -> },
                 onSwitchToDesktopSiteMenuClick = {},
