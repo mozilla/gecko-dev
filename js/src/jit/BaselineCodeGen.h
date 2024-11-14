@@ -9,6 +9,7 @@
 
 #include "jit/BaselineFrameInfo.h"
 #include "jit/BytecodeAnalysis.h"
+#include "jit/CompileWrappers.h"
 #include "jit/FixedList.h"
 #include "jit/MacroAssembler.h"
 #include "jit/PerfSpewer.h"
@@ -37,6 +38,7 @@ class BaselineCodeGen {
   Handler handler;
 
   JSContext* cx;
+  CompileRuntime* runtime;
   StackMacroAssembler masm;
 
   typename Handler::FrameInfoT& frame;

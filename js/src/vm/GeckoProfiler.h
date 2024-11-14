@@ -128,7 +128,7 @@ class GeckoProfilerRuntime {
   explicit GeckoProfilerRuntime(JSRuntime* rt);
 
   /* management of whether instrumentation is on or off */
-  bool enabled() { return enabled_; }
+  bool enabled() const { return enabled_; }
   void enable(bool enabled);
   void enableSlowAssertions(bool enabled) { slowAssertions = enabled; }
   bool slowAssertionsEnabled() { return slowAssertions; }
@@ -148,7 +148,7 @@ class GeckoProfilerRuntime {
   size_t stringsCount();
   void stringsReset();
 
-  uint32_t* addressOfEnabled() { return &enabled_; }
+  const uint32_t* addressOfEnabled() const { return &enabled_; }
 
   void fixupStringsMapAfterMovingGC();
 #ifdef JSGC_HASH_TABLE_CHECKS

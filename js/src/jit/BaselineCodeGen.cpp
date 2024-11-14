@@ -93,6 +93,7 @@ BaselineCodeGen<Handler>::BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
                                           HandlerArgs&&... args)
     : handler(cx, masm, std::forward<HandlerArgs>(args)...),
       cx(cx),
+      runtime(CompileRuntime::get(cx->runtime())),
       masm(cx, alloc),
       frame(handler.frame()) {}
 
@@ -526,7 +527,7 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 
   // Check one element cache to avoid VM call.
   Label skipBarrier;
-  auto* lastCellAddr = cx->runtime()->gc.addressOfLastBufferedWholeCell();
+  auto* lastCellAddr = runtime->addressOfLastBufferedWholeCell();
   masm.branchPtr(Assembler::Equal, AbsoluteAddress(lastCellAddr), objReg,
                  &skipBarrier);
 
@@ -542,7 +543,7 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 
   using Fn = void (*)(JSRuntime* rt, js::gc::Cell* cell);
   masm.setupUnalignedABICall(scratch);
-  masm.movePtr(ImmPtr(cx->runtime()), scratch);
+  masm.movePtr(ImmPtr(runtime), scratch);
   masm.passABIArg(scratch);
   masm.passABIArg(objReg);
   masm.callWithABI<Fn, PostWriteBarrier>();
@@ -746,7 +747,7 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
   inCall_ = false;
 #endif
 
-  TrampolinePtr code = cx->runtime()->jitRuntime()->getVMWrapper(id);
+  TrampolinePtr code = runtime->jitRuntime()->getVMWrapper(id);
   const VMFunctionData& fun = GetVMFunction(id);
 
   uint32_t argSize = GetVMFunctionArgSize(fun);
@@ -795,11 +796,11 @@ bool BaselineCodeGen<Handler>::emitStackCheck() {
     masm.moveStackPtrTo(scratch);
     subtractScriptSlotsSize(scratch, R2.scratchReg());
     masm.branchPtr(Assembler::BelowOrEqual,
-                   AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
+                   AbsoluteAddress(runtime->addressOfJitStackLimit()), scratch,
                    &skipCall);
   } else {
     masm.branchStackPtrRhs(Assembler::BelowOrEqual,
-                           AbsoluteAddress(cx->addressOfJitStackLimit()),
+                           AbsoluteAddress(runtime->addressOfJitStackLimit()),
                            &skipCall);
   }
 
@@ -1164,7 +1165,7 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
   // the caller), take that ICScript and store it in the frame, then
   // overwrite cx->inlinedICScript with nullptr.
   Label notInlined, done;
-  masm.movePtr(ImmPtr(cx->addressOfInlinedICScript()), scratch);
+  masm.movePtr(ImmPtr(runtime->addressOfInlinedICScript()), scratch);
   Address inlinedAddr(scratch, 0);
   masm.branchPtr(Assembler::Equal, inlinedAddr, ImmWord(0), &notInlined);
   masm.loadPtr(inlinedAddr, scratch2);
@@ -1380,8 +1381,9 @@ bool BaselineCodeGen<Handler>::emitInterruptCheck() {
   frame.syncStack(0);
 
   Label done;
-  masm.branch32(Assembler::Equal, AbsoluteAddress(cx->addressOfInterruptBits()),
-                Imm32(0), &done);
+  masm.branch32(Assembler::Equal,
+                AbsoluteAddress(runtime->addressOfInterruptBits()), Imm32(0),
+                &done);
 
   prepareVMCall();
 
@@ -1540,9 +1542,10 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
     {
       Label checkOk;
       AbsoluteAddress addressOfEnabled(
-          cx->runtime()->geckoProfiler().addressOfEnabled());
+          runtime->geckoProfiler().addressOfEnabled());
       masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &checkOk);
-      masm.loadPtr(AbsoluteAddress((void*)&cx->jitActivation), scratchReg);
+      masm.loadPtr(AbsoluteAddress(runtime->addressOfJitActivation()),
+                   scratchReg);
       masm.loadPtr(
           Address(scratchReg, JitActivation::offsetOfLastProfilingFrame()),
           scratchReg);
@@ -1643,12 +1646,12 @@ bool BaselineCompiler::emitDebugTrap() {
                  DebugAPI::hasBreakpointsAt(script, handler.pc());
 
   // Emit patchable call to debug trap handler.
-  JitCode* handlerCode = cx->runtime()->jitRuntime()->debugTrapHandler(
-      cx, DebugTrapHandlerKind::Compiler);
-  if (!handlerCode) {
+  if (!cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
+          cx, DebugTrapHandlerKind::Compiler)) {
     return false;
   }
-
+  JitCode* handlerCode =
+      runtime->jitRuntime()->debugTrapHandler(DebugTrapHandlerKind::Compiler);
   CodeOffset nativeOffset = masm.toggledCall(handlerCode, enabled);
 
   uint32_t pcOffset = script->pcToOffset(handler.pc());
@@ -2493,7 +2496,7 @@ bool BaselineInterpreterCodeGen::emit_String() {
 template <>
 bool BaselineCompilerCodeGen::emit_Symbol() {
   unsigned which = GET_UINT8(handler.pc());
-  JS::Symbol* sym = cx->runtime()->wellKnownSymbols->get(which);
+  JS::Symbol* sym = runtime->wellKnownSymbols().get(which);
   frame.push(SymbolValue(sym));
   return true;
 }
@@ -2504,7 +2507,7 @@ bool BaselineInterpreterCodeGen::emit_Symbol() {
   Register scratch2 = R1.scratchReg();
   LoadUint8Operand(masm, scratch1);
 
-  masm.movePtr(ImmPtr(cx->runtime()->wellKnownSymbols), scratch2);
+  masm.movePtr(ImmPtr(&runtime->wellKnownSymbols()), scratch2);
   masm.loadPtr(BaseIndex(scratch2, scratch1, ScalePointer), scratch1);
 
   masm.tagValue(JSVAL_TYPE_SYMBOL, scratch1, R0);
@@ -5393,7 +5396,7 @@ bool BaselineCodeGen<Handler>::emit_TableSwitch() {
 
   // Call a stub to convert R0 from double to int32 if needed.
   // Note: this stub may clobber scratch1.
-  masm.call(cx->runtime()->jitRuntime()->getDoubleToInt32ValueStub());
+  masm.call(runtime->jitRuntime()->getDoubleToInt32ValueStub());
 
   // Load the index in the jump table in |key|, or branch to default pc if not
   // int32 or out-of-range.
@@ -5857,7 +5860,7 @@ bool BaselineInterpreterCodeGen::emitAfterYieldDebugInstrumentation(
   if (!handler.addDebugInstrumentationOffset(cx, toggleOffset)) {
     return false;
   }
-  masm.loadPtr(AbsoluteAddress(cx->addressOfRealm()), scratch);
+  masm.loadPtr(AbsoluteAddress(runtime->addressOfRealm()), scratch);
   masm.branchTest32(Assembler::Zero,
                     Address(scratch, Realm::offsetOfDebugModeBits()),
                     Imm32(Realm::debugModeIsDebuggeeBit()), &done);
@@ -5916,7 +5919,7 @@ bool BaselineCodeGen<Handler>::emit_FinalYieldRval() {
 template <>
 void BaselineCompilerCodeGen::emitJumpToInterpretOpLabel() {
   TrampolinePtr code =
-      cx->runtime()->jitRuntime()->baselineInterpreter().interpretOpAddr();
+      runtime->jitRuntime()->baselineInterpreter().interpretOpAddr();
   masm.jump(code);
 }
 
@@ -6098,7 +6101,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
     Register scratchReg = scratch2;
     Label skip;
     AbsoluteAddress addressOfEnabled(
-        cx->runtime()->geckoProfiler().addressOfEnabled());
+        runtime->geckoProfiler().addressOfEnabled());
     masm.branch32(Assembler::Equal, addressOfEnabled, Imm32(0), &skip);
     masm.loadJSContext(scratchReg);
     masm.loadPtr(Address(scratchReg, JSContext::offsetOfProfilingActivation()),
@@ -6824,13 +6827,12 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // Emit debug trap handler code (target of patchable call instructions). This
   // is just a tail call to the debug trap handler trampoline code.
   {
-    JitRuntime* jrt = cx->runtime()->jitRuntime();
-    JitCode* handlerCode =
-        jrt->debugTrapHandler(cx, DebugTrapHandlerKind::Interpreter);
-    if (!handlerCode) {
+    if (!cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
+            cx, DebugTrapHandlerKind::Interpreter)) {
       return false;
     }
-
+    JitCode* handlerCode = runtime->jitRuntime()->debugTrapHandler(
+        DebugTrapHandlerKind::Interpreter);
     debugTrapHandlerOffset_ = masm.currentOffset();
     masm.jump(handlerCode);
   }

@@ -3902,13 +3902,8 @@ void MacroAssembler::loadBaselineFramePtr(Register framePtr, Register dest) {
   subPtr(Imm32(BaselineFrame::Size()), dest);
 }
 
-static const uint8_t* ContextInlinedICScriptPtr(CompileRuntime* rt) {
-  return (static_cast<const uint8_t*>(rt->mainContextPtr()) +
-          JSContext::offsetOfInlinedICScript());
-}
-
 void MacroAssembler::storeICScriptInJSContext(Register icScript) {
-  storePtr(icScript, AbsoluteAddress(ContextInlinedICScriptPtr(runtime())));
+  storePtr(icScript, AbsoluteAddress(runtime()->addressOfInlinedICScript()));
 }
 
 void MacroAssembler::handleFailure() {

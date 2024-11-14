@@ -357,9 +357,16 @@ class JitRuntime {
     return trampolineCode(functionWrapperOffsets_[size_t(funId)]);
   }
 
-  JitCode* debugTrapHandler(JSContext* cx, DebugTrapHandlerKind kind);
+  bool ensureDebugTrapHandler(JSContext* cx, DebugTrapHandlerKind kind);
+  JitCode* debugTrapHandler(DebugTrapHandlerKind kind) const {
+    MOZ_ASSERT(debugTrapHandlers_[kind]);
+    return debugTrapHandlers_[kind];
+  }
 
   BaselineInterpreter& baselineInterpreter() { return baselineInterpreter_; }
+  const BaselineInterpreter& baselineInterpreter() const {
+    return baselineInterpreter_;
+  }
 
   TrampolinePtr getGenericBailoutHandler() const {
     return trampolineCode(bailoutHandlerOffset_);

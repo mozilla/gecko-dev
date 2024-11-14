@@ -877,6 +877,8 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 
   void* addressOfInlinedICScript() { return &inlinedICScript_; }
 
+  const void* addressOfJitActivation() const { return &jitActivation; }
+
   // Futex state, used by Atomics.wait() and Atomics.wake() on the Atomics
   // object.
   js::FutexThread fx;
