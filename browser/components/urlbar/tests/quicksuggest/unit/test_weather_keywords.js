@@ -140,12 +140,12 @@ add_task(async function () {
 });
 
 // * Settings data: keywords and min keyword length > 0
-// * Nimbus values: min keyword length > 0
+// * Nimbus values: min keyword length > settings min keyword length
 // * Min keyword length pref: none
 // * Expected: Nimbus min keyword length
 add_task(async function () {
   await doKeywordsTest({
-    desc: "Settings: keywords, min keyword length > 0; Nimbus: min keyword length > 0",
+    desc: "Settings: keywords, min keyword length > 0; Nimbus: min keyword length > settings min keyword length",
     settingsData: {
       keywords: ["weather"],
       min_keyword_length: 3,
@@ -195,12 +195,12 @@ add_task(async function () {
 });
 
 // * Settings data: keywords and min keyword length > 0
-// * Nimbus values: min keyword length > 0
+// * Nimbus values: min keyword length > settings min keyword length
 // * Min keyword length pref: exists
 // * Expected: min keyword length pref
 add_task(async function () {
   await doKeywordsTest({
-    desc: "Settings: keywords, min keyword length > 0; Nimbus: min keyword length > 0; pref exists",
+    desc: "Settings: keywords, min keyword length > 0; Nimbus: min keyword length > settings min keyword length; pref exists",
     settingsData: {
       keywords: ["weather"],
       min_keyword_length: 3,
@@ -218,6 +218,124 @@ add_task(async function () {
       weath: false,
       weathe: true,
       weather: true,
+    },
+  });
+});
+
+// * Settings data: keywords only
+// * Nimbus values: min keyword length = 0
+// * Min keyword length pref: none
+// * Expected: Full keywords are required due to the Rust component
+add_task(async function () {
+  await doKeywordsTest({
+    desc: "Settings: keywords only; Nimbus: min keyword length = 0",
+    settingsData: {
+      keywords: ["weather"],
+    },
+    nimbusValues: {
+      weatherKeywordsMinimumLength: 0,
+    },
+    tests: {
+      "": false,
+      w: false,
+      we: false,
+      wea: false,
+      weat: false,
+      weath: false,
+      weathe: false,
+      weather: true,
+    },
+  });
+});
+
+// * Settings data: keywords only
+// * Nimbus values: min keyword length > 0
+// * Min keyword length pref: none
+// * Expected: Full keywords are required due to the Rust component; the Nimbus
+//   min-length check only happens after the Rust component has returned
+//   suggestions
+add_task(async function () {
+  await doKeywordsTest({
+    desc: "Settings: keywords only; Nimbus: min keyword length > 0",
+    settingsData: {
+      keywords: ["weather"],
+    },
+    nimbusValues: {
+      weatherKeywordsMinimumLength: 4,
+    },
+    tests: {
+      "": false,
+      w: false,
+      we: false,
+      wea: false,
+      weat: false,
+      weath: false,
+      weathe: false,
+      weather: true,
+    },
+  });
+});
+
+// * Settings data: keywords only
+// * Nimbus values: min keyword length = 0
+// * Min keyword length pref: exists
+// * Expected: Full keywords are required due to the Rust component; the pref
+//   min-length check only happens after the Rust component has returned
+//   suggestions; full keywords < min length pref are not matched
+add_task(async function () {
+  await doKeywordsTest({
+    desc: "Settings: keywords only; Nimbus: min keyword length = 0; pref exists",
+    settingsData: {
+      keywords: ["weather", "wind"],
+    },
+    nimbusValues: {
+      weatherKeywordsMinimumLength: 0,
+    },
+    minKeywordLength: 6,
+    tests: {
+      "": false,
+      w: false,
+      we: false,
+      wea: false,
+      weat: false,
+      weath: false,
+      weathe: false,
+      weather: true,
+      wi: false,
+      win: false,
+      wind: false,
+    },
+  });
+});
+
+// * Settings data: keywords and min keyword length > 0
+// * Nimbus values: min keyword length > settings min keyword length
+// * Min keyword length pref: exists
+// * Expected: Full keywords are required due to the Rust component; the pref
+//   and Nimbus min-length checks only happens after the Rust component has
+//   returned suggestions; full keywords < min length pref are not matched
+add_task(async function () {
+  await doKeywordsTest({
+    desc: "Settings: keywords only; Nimbus: min keyword length > settings min keyword length; pref exists",
+    settingsData: {
+      keywords: ["weather", "wind"],
+    },
+    nimbusValues: {
+      weatherKeywordsMinimumLength: 4,
+    },
+    minKeywordLength: 6,
+    tests: {
+      "": false,
+      w: false,
+      we: false,
+      wea: false,
+      weat: false,
+      weath: false,
+      weathe: false,
+      weather: true,
+      wi: false,
+      win: false,
+      wind: false,
     },
   });
 });
@@ -317,285 +435,123 @@ async function doKeywordsTest({
   UrlbarPrefs.clear("weather.minKeywordLength");
 }
 
+// Tests the "Show less frequently" command when no show-less-frequently cap is
+// defined.
 add_task(async function () {
-  await doIncrementTest({
-    desc: "Settings only without cap",
+  await doShowLessFrequentlyTest({
+    desc: "No cap",
     weather: {
-      keywords: ["forecast", "wind"],
+      keywords: ["forecast"],
       min_keyword_length: 3,
     },
     tests: [
       {
-        minKeywordLength: 3,
-        canIncrement: true,
-        searches: {
-          fo: false,
-          for: true,
-          fore: true,
-          forec: true,
-          wi: false,
-          win: true,
-          wind: true,
+        input: "for",
+        before: {
+          canShowLessFrequently: true,
+          showLessFrequentlyCount: 0,
+          minKeywordLength: 0,
+        },
+        after: {
+          canShowLessFrequently: true,
+          showLessFrequentlyCount: 1,
+          minKeywordLength: 4,
         },
       },
       {
-        minKeywordLength: 4,
-        canIncrement: true,
-        searches: {
-          fo: false,
-          for: false,
-          fore: true,
-          forec: true,
-          wi: false,
-          win: false,
-          wind: true,
+        input: "fore",
+        before: {
+          canShowLessFrequently: true,
+          showLessFrequentlyCount: 1,
+          minKeywordLength: 4,
+        },
+        after: {
+          canShowLessFrequently: true,
+          showLessFrequentlyCount: 2,
+          minKeywordLength: 5,
         },
       },
       {
-        minKeywordLength: 5,
-        canIncrement: true,
-        searches: {
-          fo: false,
-          for: false,
-          fore: false,
-          forec: true,
-          wi: false,
-          win: false,
-          wind: false,
+        input: "forecast",
+        before: {
+          canShowLessFrequently: true,
+          showLessFrequentlyCount: 2,
+          minKeywordLength: 5,
+        },
+        after: {
+          canShowLessFrequently: true,
+          showLessFrequentlyCount: 3,
+          minKeywordLength: 9,
         },
       },
     ],
   });
 });
 
+// Tests the "Show less frequently" command when the show-less-frequently cap is
+// defined in the remote settings config, Nimbus, or both.
 add_task(async function () {
-  await doIncrementTest({
-    desc: "Settings only with cap",
-    weather: {
-      keywords: ["forecast", "wind"],
-      min_keyword_length: 3,
-    },
-    configuration: {
-      show_less_frequently_cap: 3,
-    },
-    tests: [
-      {
-        minKeywordLength: 3,
-        canIncrement: true,
-        searches: {
-          fo: false,
-          for: true,
-          fore: true,
-          forec: true,
-          foreca: true,
-          forecas: true,
-          wi: false,
-          win: true,
-          wind: true,
+  for (let configuration of [null, { show_less_frequently_cap: 3 }]) {
+    for (let nimbusValues of [null, { weatherShowLessFrequentlyCap: 3 }]) {
+      if (!configuration && !nimbusValues) {
+        continue;
+      }
+      await doShowLessFrequentlyTest({
+        desc: "Cap: " + JSON.stringify({ configuration, nimbusValues }),
+        weather: {
+          keywords: ["forecast"],
+          min_keyword_length: 3,
         },
-      },
-      {
-        minKeywordLength: 4,
-        canIncrement: true,
-        searches: {
-          fo: false,
-          for: false,
-          fore: true,
-          forec: true,
-          foreca: true,
-          forecas: true,
-          wi: false,
-          win: false,
-          wind: true,
-        },
-      },
-      {
-        minKeywordLength: 5,
-        canIncrement: true,
-        searches: {
-          fo: false,
-          for: false,
-          fore: false,
-          forec: true,
-          foreca: true,
-          forecas: true,
-          wi: false,
-          win: false,
-          wind: false,
-          windy: false,
-        },
-      },
-      {
-        minKeywordLength: 6,
-        canIncrement: false,
-        searches: {
-          fo: false,
-          for: false,
-          fore: false,
-          forec: false,
-          foreca: true,
-          forecas: true,
-          wi: false,
-          win: false,
-          wind: false,
-          windy: false,
-        },
-      },
-      {
-        minKeywordLength: 6,
-        canIncrement: false,
-        searches: {
-          fo: false,
-          for: false,
-          fore: false,
-          forec: false,
-          foreca: true,
-          forecas: true,
-          wi: false,
-          win: false,
-          wind: false,
-          windy: false,
-        },
-      },
-    ],
-  });
+        configuration,
+        nimbusValues,
+        tests: [
+          {
+            input: "for",
+            before: {
+              canShowLessFrequently: true,
+              showLessFrequentlyCount: 0,
+              minKeywordLength: 0,
+            },
+            after: {
+              canShowLessFrequently: true,
+              showLessFrequentlyCount: 1,
+              minKeywordLength: 4,
+            },
+          },
+          {
+            input: "fore",
+            before: {
+              canShowLessFrequently: true,
+              showLessFrequentlyCount: 1,
+              minKeywordLength: 4,
+            },
+            after: {
+              canShowLessFrequently: true,
+              showLessFrequentlyCount: 2,
+              minKeywordLength: 5,
+            },
+          },
+          {
+            input: "forecast",
+            before: {
+              canShowLessFrequently: true,
+              showLessFrequentlyCount: 2,
+              minKeywordLength: 5,
+            },
+            after: {
+              // Shouldn't be able to show less frequently now.
+              canShowLessFrequently: false,
+              showLessFrequentlyCount: 3,
+              minKeywordLength: 9,
+            },
+          },
+        ],
+      });
+    }
+  }
 });
 
-add_task(async function () {
-  await doIncrementTest({
-    desc: "Settings and Nimbus without cap",
-    weather: {
-      keywords: ["weather"],
-      min_keyword_length: 5,
-    },
-    nimbusValues: {
-      weatherKeywordsMinimumLength: 3,
-    },
-    // The Rust component will use the min keyword length in the RS config. The
-    // Nimbus value will be ignored.
-    tests: [
-      {
-        minKeywordLength: 3,
-        canIncrement: true,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: true,
-          weathe: true,
-        },
-      },
-      {
-        minKeywordLength: 4,
-        canIncrement: true,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: true,
-          weathe: true,
-        },
-      },
-      {
-        minKeywordLength: 5,
-        canIncrement: true,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: true,
-          weathe: true,
-        },
-      },
-      {
-        minKeywordLength: 6,
-        canIncrement: true,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: false,
-          weathe: true,
-        },
-      },
-    ],
-  });
-});
-
-add_task(async function () {
-  await doIncrementTest({
-    desc: "Settings and Nimbus with cap in Nimbus",
-    weather: {
-      keywords: ["weather"],
-      min_keyword_length: 5,
-    },
-    nimbusValues: {
-      weatherKeywordsMinimumLength: 3,
-      weatherKeywordsMinimumLengthCap: 6,
-    },
-    // The Rust component will use the min keyword length in the RS config. The
-    // Nimbus value will be ignored.
-    tests: [
-      {
-        minKeywordLength: 3,
-        canIncrement: true,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: true,
-          weathe: true,
-        },
-      },
-      {
-        minKeywordLength: 4,
-        canIncrement: true,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: true,
-          weathe: true,
-        },
-      },
-      {
-        minKeywordLength: 5,
-        canIncrement: true,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: true,
-          weathe: true,
-        },
-      },
-      {
-        minKeywordLength: 6,
-        canIncrement: false,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: false,
-          weathe: true,
-        },
-      },
-      {
-        minKeywordLength: 6,
-        canIncrement: false,
-        searches: {
-          we: false,
-          wea: false,
-          weat: false,
-          weath: false,
-          weathe: true,
-        },
-      },
-    ],
-  });
-});
-
-async function doIncrementTest({
+async function doShowLessFrequentlyTest({
   desc,
   tests,
   weather,
@@ -619,43 +575,69 @@ async function doIncrementTest({
   }
   await QuickSuggestTestUtils.setRemoteSettingsRecords(records);
 
+  let feature = QuickSuggest.weather;
   let expectedResult = QuickSuggestTestUtils.weatherResult();
 
-  for (let { minKeywordLength, canIncrement, searches } of tests) {
-    info(
-      "Doing increment test case: " +
-        JSON.stringify({
-          minKeywordLength,
-          canIncrement,
-        })
+  for (let { input, before, after } of tests) {
+    info("Doing increment test case: " + JSON.stringify({ input }));
+
+    await check_results({
+      context: createContext(input, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [expectedResult],
+    });
+
+    Assert.equal(
+      UrlbarPrefs.get("weather.minKeywordLength"),
+      before.minKeywordLength,
+      "weather.minKeywordLength before"
+    );
+    Assert.equal(
+      feature.canShowLessFrequently,
+      before.canShowLessFrequently,
+      "feature.canShowLessFrequently before"
+    );
+    Assert.equal(
+      feature.showLessFrequentlyCount,
+      before.showLessFrequentlyCount,
+      "feature.showLessFrequentlyCount before"
+    );
+
+    feature.handleCommand(
+      {
+        acknowledgeFeedback: () => {},
+        invalidateResultMenuCommands: () => {},
+      },
+      expectedResult,
+      "show_less_frequently",
+      input
     );
 
     Assert.equal(
-      QuickSuggest.weather.minKeywordLength,
-      minKeywordLength,
-      "minKeywordLength should be correct"
+      UrlbarPrefs.get("weather.minKeywordLength"),
+      after.minKeywordLength,
+      "weather.minKeywordLength after"
     );
     Assert.equal(
-      QuickSuggest.weather.canIncrementMinKeywordLength,
-      canIncrement,
-      "canIncrement should be correct"
+      feature.canShowLessFrequently,
+      after.canShowLessFrequently,
+      "feature.canShowLessFrequently after"
+    );
+    Assert.equal(
+      feature.showLessFrequentlyCount,
+      after.showLessFrequentlyCount,
+      "feature.showLessFrequentlyCount after"
     );
 
-    for (let [searchString, expected] of Object.entries(searches)) {
-      await check_results({
-        context: createContext(searchString, {
-          providers: [UrlbarProviderQuickSuggest.name],
-          isPrivate: false,
-        }),
-        matches: expected ? [expectedResult] : [],
-      });
-    }
-
-    QuickSuggest.weather.incrementMinKeywordLength();
-    info(
-      "Incremented min keyword length, new value is: " +
-        QuickSuggest.weather.minKeywordLength
-    );
+    await check_results({
+      context: createContext(input, {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
   }
 
   await nimbusCleanup?.();
@@ -664,4 +646,5 @@ async function doIncrementTest({
     QuickSuggestTestUtils.weatherRecord(),
   ]);
   UrlbarPrefs.clear("weather.minKeywordLength");
+  UrlbarPrefs.clear("weather.showLessFrequentlyCount");
 }

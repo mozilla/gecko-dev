@@ -547,6 +547,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // or remote settings.
   ["weather.minKeywordLength", 0],
 
+  // The number of times the user has clicked the "Show less frequently" command
+  // for weather suggestions.
+  ["weather.showLessFrequentlyCount", 0],
+
   // Feature gate pref for Yelp suggestions in the urlbar.
   ["yelp.featureGate", false],
 
@@ -589,8 +593,8 @@ const NIMBUS_DEFAULTS = {
   quickSuggestRemoteSettingsDataType: "data",
   quickSuggestScoreMap: null,
   recordNavigationalSuggestionTelemetry: false,
-  weatherKeywordsMinimumLength: 0,
-  weatherKeywordsMinimumLengthCap: 0,
+  weatherKeywordsMinimumLength: null,
+  weatherShowLessFrequentlyCap: null,
   weatherSimpleUI: false,
   yelpMinKeywordLength: null,
   yelpSuggestNonPriorityIndex: null,

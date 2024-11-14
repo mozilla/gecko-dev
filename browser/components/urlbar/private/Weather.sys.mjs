@@ -159,6 +159,19 @@ export class Weather extends BaseFeature {
     return ["Weather"];
   }
 
+  get showLessFrequentlyCount() {
+    const count = lazy.UrlbarPrefs.get("weather.showLessFrequentlyCount") || 0;
+    return Math.max(count, 0);
+  }
+
+  get canShowLessFrequently() {
+    const cap =
+      lazy.UrlbarPrefs.get("weatherShowLessFrequentlyCap") ||
+      lazy.QuickSuggest.backend.config?.showLessFrequentlyCap ||
+      0;
+    return !cap || this.showLessFrequentlyCount < cap;
+  }
+
   isSuggestionSponsored(_suggestion) {
     return true;
   }
@@ -167,75 +180,9 @@ export class Weather extends BaseFeature {
     return "weather";
   }
 
-  /**
-   * @returns {number}
-   *   The minimum prefix length of a weather keyword the user must type to
-   *   trigger the suggestion. Note that the strings returned from `keywords`
-   *   already take this into account. The min length is determined from the
-   *   first config source below whose value is non-zero. If no source has a
-   *   non-zero value, zero will be returned, and `this.keywords` will contain
-   *   only full keywords.
-   *
-   *   1. The `weather.minKeywordLength` pref, which is set when the user
-   *      increments the min length
-   *   2. `weatherKeywordsMinimumLength` in Nimbus
-   *   3. `min_keyword_length` in the weather record in remote settings (i.e.,
-   *      the weather config)
-   */
-  get minKeywordLength() {
-    let minLength =
-      lazy.UrlbarPrefs.get("weather.minKeywordLength") ||
-      lazy.UrlbarPrefs.get("weatherKeywordsMinimumLength") ||
-      this.#config.minKeywordLength ||
-      0;
-    return Math.max(minLength, 0);
-  }
-
-  /**
-   * @returns {boolean}
-   *   Weather the min keyword length can be incremented. A cap on the min
-   *   length can be set in remote settings and Nimbus.
-   */
-  get canIncrementMinKeywordLength() {
-    let nimbusMax =
-      lazy.UrlbarPrefs.get("weatherKeywordsMinimumLengthCap") || 0;
-
-    let maxKeywordLength;
-    if (nimbusMax) {
-      // In Nimbus, the cap is the max keyword length.
-      maxKeywordLength = nimbusMax;
-    } else {
-      // In the RS config, the cap is the max number of times the user can click
-      // "Show less frequently". The max keyword length is therefore the initial
-      // min length plus the cap.
-      let min = this.#config.minKeywordLength;
-      let cap = lazy.QuickSuggest.backend.config?.showLessFrequentlyCap;
-      if (min && cap) {
-        maxKeywordLength = min + cap;
-      }
-    }
-
-    return !maxKeywordLength || this.minKeywordLength < maxKeywordLength;
-  }
-
   enable(enabled) {
     if (!enabled) {
       this.#merino = null;
-    }
-  }
-
-  /**
-   * Increments the minimum prefix length of a weather keyword the user must
-   * type to trigger the suggestion, if possible. A cap on the min length can be
-   * set in remote settings and Nimbus, and if the cap has been reached, the
-   * length is not incremented.
-   */
-  incrementMinKeywordLength() {
-    if (this.canIncrementMinKeywordLength) {
-      lazy.UrlbarPrefs.set(
-        "weather.minKeywordLength",
-        this.minKeywordLength + 1
-      );
     }
   }
 
@@ -361,11 +308,7 @@ export class Weather extends BaseFeature {
   }
 
   async makeResult(queryContext, suggestion, searchString) {
-    // The Rust component doesn't enforce a minimum keyword length, so discard
-    // the suggestion if the search string isn't long enough. This conditional
-    // will always be false for the JS backend since in that case keywords are
-    // never shorter than `minKeywordLength`.
-    if (searchString.length < this.minKeywordLength) {
+    if (searchString.length < this.#minKeywordLength) {
       return null;
     }
 
@@ -516,7 +459,7 @@ export class Weather extends BaseFeature {
       },
     ];
 
-    if (this.canIncrementMinKeywordLength) {
+    if (this.canShowLessFrequently) {
       commands.push({
         name: RESULT_MENU_COMMAND.SHOW_LESS_FREQUENTLY,
         l10n: {
@@ -557,7 +500,7 @@ export class Weather extends BaseFeature {
     return commands;
   }
 
-  handleCommand(view, result, selType) {
+  handleCommand(view, result, selType, searchString) {
     switch (selType) {
       case RESULT_MENU_COMMAND.MANAGE:
         // "manage" is handled by UrlbarInput, no need to do anything here.
@@ -582,11 +525,24 @@ export class Weather extends BaseFeature {
         break;
       case RESULT_MENU_COMMAND.SHOW_LESS_FREQUENTLY:
         view.acknowledgeFeedback(result);
-        this.incrementMinKeywordLength();
-        if (!this.canIncrementMinKeywordLength) {
+        this.incrementShowLessFrequentlyCount();
+        if (!this.canShowLessFrequently) {
           view.invalidateResultMenuCommands();
         }
+        lazy.UrlbarPrefs.set(
+          "weather.minKeywordLength",
+          searchString.length + 1
+        );
         break;
+    }
+  }
+
+  incrementShowLessFrequentlyCount() {
+    if (this.canShowLessFrequently) {
+      lazy.UrlbarPrefs.set(
+        "weather.showLessFrequentlyCount",
+        this.showLessFrequentlyCount + 1
+      );
     }
   }
 
@@ -596,6 +552,27 @@ export class Weather extends BaseFeature {
       ? rustBackend.getConfigForSuggestionType(this.rustSuggestionTypes[0])
       : null;
     return config || {};
+  }
+
+  get #minKeywordLength() {
+    // Use the pref value if it has a user value, which means the user clicked
+    // "Show less frequently" at least once. Otherwise, fall back to the Nimbus
+    // value and then the config value. That lets us override the pref's default
+    // value using Nimbus or the config, if necessary.
+    let minLength = lazy.UrlbarPrefs.get("weather.minKeywordLength");
+    if (
+      !Services.prefs.prefHasUserValue(
+        "browser.urlbar.weather.minKeywordLength"
+      )
+    ) {
+      let nimbusValue = lazy.UrlbarPrefs.get("weatherKeywordsMinimumLength");
+      if (nimbusValue !== null) {
+        minLength = nimbusValue;
+      } else if (!isNaN(this.#config.minKeywordLength)) {
+        minLength = this.#config.minKeywordLength;
+      }
+    }
+    return Math.max(minLength, 0);
   }
 
   get _test_merino() {
