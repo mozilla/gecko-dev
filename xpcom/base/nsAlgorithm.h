@@ -10,6 +10,11 @@
 #include <cstdint>
 #include "mozilla/Assertions.h"
 
+template <class T>
+inline T NS_ROUNDUP(const T& aA, const T& aB) {
+  return ((aA + (aB - 1)) / aB) * aB;
+}
+
 // We use these instead of std::min/max because we can't include the algorithm
 // header in all of XPCOM because the stl wrappers will error out when included
 // in parts of XPCOM. These functions should never be used outside of XPCOM.
