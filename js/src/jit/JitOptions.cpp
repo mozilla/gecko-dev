@@ -343,8 +343,10 @@ DefaultJitOptions::DefaultJitOptions() {
 
   // Until which wasm bytecode size should we accumulate functions, in order
   // to compile efficiently on helper threads. Baseline code compiles much
-  // faster than Ion code so use scaled thresholds (see also bug 1320374).
-  SET_DEFAULT(wasmBatchBaselineThreshold, 10000);
+  // faster than Ion code so use scaled thresholds (see also bug 1320374
+  // and bug 1930875).  Ion compilation can use a lot of memory, so having a
+  // low threshold here (1100) helps avoid OOMs in the per-task pool allocators.
+  SET_DEFAULT(wasmBatchBaselineThreshold, 25000);
   SET_DEFAULT(wasmBatchIonThreshold, 1100);
 
   // Controls how much assertion checking code is emitted
