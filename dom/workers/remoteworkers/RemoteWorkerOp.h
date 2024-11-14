@@ -12,6 +12,7 @@
 namespace mozilla::dom {
 
 class RemoteWorkerChild;
+class RemtoeWorkerNonfLifeCycleOpControllerChild;
 class RemoteWorkerOp;
 // class RemoteWorkerNonLifeCycleOpControllerChild;
 
@@ -82,6 +83,9 @@ class RemoteWorkerOp {
                           remoteworker::RemoteWorkerState& aState) = 0;
 
   virtual void StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) = 0;
+
+  virtual void Start(RemoteWorkerNonLifeCycleOpControllerChild* aOwner,
+                     remoteworker::RemoteWorkerState& aState) = 0;
 
   virtual void Cancel() = 0;
 };

@@ -8,13 +8,30 @@
 namespace mozilla::dom {
 
 RemoteWorkerNonLifeCycleOpControllerParent::
-    RemoteWorkerNonLifeCycleOpControllerParent() {}
+    RemoteWorkerNonLifeCycleOpControllerParent(
+        RemoteWorkerController* aController)
+    : mController(aController) {
+  MOZ_ASSERT(mController);
+}
 
 RemoteWorkerNonLifeCycleOpControllerParent::
     ~RemoteWorkerNonLifeCycleOpControllerParent() = default;
 
 IPCResult RemoteWorkerNonLifeCycleOpControllerParent::RecvTerminated() {
   Unused << SendShutdown();
+
+  // mController could be nullptr when the controller had already shutted down.
+  if (mController) {
+    mController->mNonLifeCycleOpController = nullptr;
+  }
+
+  return IPC_OK();
+}
+
+IPCResult RemoteWorkerNonLifeCycleOpControllerParent::RecvError(
+    const ErrorValue& aError) {
+  MOZ_ASSERT(mController);
+  mController->ErrorPropagation(aError);
   return IPC_OK();
 }
 
