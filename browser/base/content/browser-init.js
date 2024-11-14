@@ -132,7 +132,8 @@ var gBrowserInit = {
       .getInterface(Ci.nsIAppWindow).XULBrowserWindow = window.XULBrowserWindow;
     window.browserDOMWindow = new nsBrowserAccess();
 
-    gBrowser = new window.Tabbrowser();
+    gBrowser = window._gBrowser;
+    delete window._gBrowser;
     gBrowser.init();
 
     BrowserWindowTracker.track(window);
