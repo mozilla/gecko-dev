@@ -212,3 +212,21 @@ os.environment:
       - rtestard@mozilla.com
     expires: never
     telemetry_mirror: OS_ENVIRONMENT_ALLOWED_APP_SOURCES
+
+mozstorage:
+  sqlitejsm_transaction_timeout:
+    type: labeled_counter
+    description: >
+      Collection of javascript modules that created a Sqlite.sys.mjs
+      transaction taking too long and timing out. This can be used to
+      identify and optimize those modules transactions.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar mozstorage.sqlitejsm_transaction_timeout.
+    bugs:
+      - https://bugzil.la/1727261
+    data_reviews:
+      - https://bugzil.la/1727261
+    notification_emails:
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: MOZSTORAGE_SQLITEJSM_TRANSACTION_TIMEOUT

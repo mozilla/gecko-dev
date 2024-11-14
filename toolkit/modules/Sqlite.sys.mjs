@@ -852,9 +852,7 @@ ConnectionData.prototype = Object.freeze({
               // generated an unexpected error. Then we rollback.
               if (ex.becauseTimedOut) {
                 let caller_module = caller.split(":", 1)[0];
-                Services.telemetry.keyedScalarAdd(
-                  "mozstorage.sqlitejsm_transaction_timeout",
-                  caller_module,
+                Glean.mozstorage.sqlitejsmTransactionTimeout[caller_module].add(
                   1
                 );
                 this._logger.error(
