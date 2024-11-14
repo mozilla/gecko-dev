@@ -187,6 +187,7 @@ private val darkColorPalette = FirefoxColors(
     borderDisabled = PhotonColors.LightGrey05A40,
     borderCritical = PhotonColors.Red20,
     borderToolbarDivider = PhotonColors.DarkGrey60,
+    ripple = PhotonColors.White,
 )
 
 private val lightColorPalette = FirefoxColors(
@@ -267,6 +268,7 @@ private val lightColorPalette = FirefoxColors(
     borderDisabled = PhotonColors.DarkGrey90A40,
     borderCritical = PhotonColors.Red70,
     borderToolbarDivider = PhotonColors.LightGrey10,
+    ripple = PhotonColors.Black,
 )
 
 private val privateColorPalette = darkColorPalette.copy(
@@ -362,6 +364,7 @@ class FirefoxColors(
     borderDisabled: Color,
     borderCritical: Color,
     borderToolbarDivider: Color,
+    ripple: Color,
 ) {
     // Layers
 
@@ -667,6 +670,9 @@ class FirefoxColors(
     var borderToolbarDivider by mutableStateOf(borderToolbarDivider)
         private set
 
+    var ripple by mutableStateOf(ripple)
+        private set
+
     /**
      * Updates the existing colors with the provided [FirefoxColors].
      */
@@ -749,6 +755,7 @@ class FirefoxColors(
         borderDisabled = other.borderDisabled
         borderCritical = other.borderCritical
         borderToolbarDivider = other.borderToolbarDivider
+        ripple = other.ripple
     }
 
     /**
@@ -833,6 +840,7 @@ class FirefoxColors(
         borderDisabled: Color = this.borderDisabled,
         borderWarning: Color = this.borderCritical,
         borderToolbarDivider: Color = this.borderToolbarDivider,
+        ripple: Color = this.ripple,
     ): FirefoxColors = FirefoxColors(
         layer1 = layer1,
         layer2 = layer2,
@@ -911,6 +919,7 @@ class FirefoxColors(
         borderDisabled = borderDisabled,
         borderCritical = borderWarning,
         borderToolbarDivider = borderToolbarDivider,
+        ripple = ripple,
     )
 }
 
