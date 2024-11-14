@@ -86,11 +86,7 @@ class ProviderQuickActions extends ActionsProvider {
   pickAction(_queryContext, _controller, element) {
     let action = element.dataset.action;
     let inputLength = Math.min(element.dataset.inputLength, 10);
-    Services.telemetry.keyedScalarAdd(
-      `quickaction.picked`,
-      `${action}-${inputLength}`,
-      1
-    );
+    Glean.urlbarQuickaction.picked[`${action}-${inputLength}`].add(1);
     let options = this.#actions.get(action).onPick();
     if (options?.focusContent) {
       element.ownerGlobal.gBrowser.selectedBrowser.focus();

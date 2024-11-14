@@ -2187,3 +2187,21 @@ urlbar.zeroprefix:
       - fx-search-telemetry@mozilla.com
     expires: never
     telemetry_mirror: URLBAR_ZEROPREFIX_EXPOSURE
+
+urlbar.quickaction:
+  picked:
+    type: labeled_counter
+    description: >
+      Counts how many times quickaction results were selected. The key is
+      the in the form "actionkey-N" where N is the number of characters
+      the user typed to be shown the action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar quickaction.picked.
+    bugs:
+      - https://bugzil.la/1783155
+    data_reviews:
+      - https://bugzil.la/1783155
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: QUICKACTION_PICKED
