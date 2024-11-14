@@ -2911,26 +2911,6 @@ media:
     record_in_processes:
       - main
 
-  decode_error_per_mime_type:
-    bug_numbers:
-      - 1688775
-      - 1804291
-    description: >
-      Count the number of times the media with a specific mime type (Eg. audio/vorbis, that would be used as the key) encounters a decode error during playback.
-    expires: never
-    kind: uint
-    keyed: true
-    notification_emails:
-      - media-alerts@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'content'
-      - 'gpu'
-      - 'rdd'
-      - 'utility'
-
   video_hardware_decoding_support:
     bug_numbers:
       - 1733722

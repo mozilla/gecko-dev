@@ -257,25 +257,6 @@ media:
     expires: never
     telemetry_mirror: MEDIA_ELEMENT_IN_PAGE_COUNT
 
-  decode_error_per_mime_type:
-    type: labeled_counter
-    description: >
-      Count the number of times the media with a specific mime type (Eg.
-      audio/vorbis, that would be used as the key) encounters a decode
-      error during playback.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar media.decode_error_per_mime_type.
-    bugs:
-      - https://bugzil.la/1688775
-      - https://bugzil.la/1804291
-    data_reviews:
-      - https://bugzil.la/1688775
-      - https://bugzil.la/1804291
-    notification_emails:
-      - media-alerts@mozilla.com
-    expires: never
-    telemetry_mirror: MEDIA_DECODE_ERROR_PER_MIME_TYPE
-
   video_hardware_decoding_support:
     type: labeled_boolean
     description: >
