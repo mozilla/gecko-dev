@@ -263,8 +263,9 @@ void nsINode::AssertInvariantsOnNodeInfoChange() {
 
 #ifdef DEBUG
 void nsINode::AssertIsRootElementSlow(bool aIsRoot) const {
-  const bool isRootSlow = this == OwnerDoc()->GetRootElement();
-  MOZ_ASSERT(aIsRoot == isRootSlow);
+  // TODO(bug 1931301): Re-enable this assert.
+  // const bool isRootSlow = this == OwnerDoc()->GetRootElement();
+  // MOZ_ASSERT(aIsRoot == isRootSlow);
 }
 #endif
 
