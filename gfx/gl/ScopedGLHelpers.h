@@ -186,22 +186,22 @@ struct ScopedScissorRect final {
 struct ScopedVertexAttribPointer final {
  private:
   GLContext* const mGL;
-  GLuint mAttribIndex = 0;
-  GLint mAttribEnabled = 0;
-  GLuint mAttribDivisor = 0;
-  GLint mAttribSize = 0;
-  GLint mAttribStride = 0;
-  GLint mAttribType = 0;
-  GLint mAttribNormalized = 0;
-  GLint mAttribBufferBinding = 0;
-  void* mAttribPointer = nullptr;
-  GLuint mBoundBuffer = 0;
+  GLuint mAttribIndex;
+  GLint mAttribEnabled;
+  GLint mAttribSize;
+  GLint mAttribStride;
+  GLint mAttribType;
+  GLint mAttribNormalized;
+  GLint mAttribBufferBinding;
+  void* mAttribPointer;
+  GLuint mBoundBuffer;
 
  public:
   ScopedVertexAttribPointer(GLContext* aGL, GLuint index, GLint size,
                             GLenum type, realGLboolean normalized,
                             GLsizei stride, GLuint buffer,
                             const GLvoid* pointer);
+  explicit ScopedVertexAttribPointer(GLContext* aGL, GLuint index);
   ~ScopedVertexAttribPointer();
 
  private:

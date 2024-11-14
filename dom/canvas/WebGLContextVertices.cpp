@@ -90,9 +90,10 @@ void WebGLContext::EnableVertexAttribArray(GLuint index) {
 
   if (!ValidateAttribIndex(*this, index)) return;
 
+  gl->fEnableVertexAttribArray(index);
+
   MOZ_ASSERT(mBoundVertexArray);
   mBoundVertexArray->SetAttribIsArray(index, true);
-  mBoundVertexArray->DoVertexAttrib(index);
 }
 
 void WebGLContext::DisableVertexAttribArray(GLuint index) {
@@ -101,9 +102,12 @@ void WebGLContext::DisableVertexAttribArray(GLuint index) {
 
   if (!ValidateAttribIndex(*this, index)) return;
 
+  if (index || !gl->IsCompatibilityProfile()) {
+    gl->fDisableVertexAttribArray(index);
+  }
+
   MOZ_ASSERT(mBoundVertexArray);
   mBoundVertexArray->SetAttribIsArray(index, false);
-  mBoundVertexArray->DoVertexAttrib(index);
 }
 
 Maybe<double> WebGLContext::GetVertexAttrib(GLuint index, GLenum pname) {

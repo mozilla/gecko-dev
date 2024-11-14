@@ -1190,9 +1190,6 @@ bool WebGLContext::DoFakeVertexAttrib0(
   }
 
   gl->fEnableVertexAttribArray(0);
-  if (gl->HasVertexAttribDivisor()) {
-    gl->fVertexAttribDivisor(0, 0);
-  }
 
   if (!mFakeVertexAttrib0BufferObject) {
     gl->fGenBuffers(1, &mFakeVertexAttrib0BufferObject);
