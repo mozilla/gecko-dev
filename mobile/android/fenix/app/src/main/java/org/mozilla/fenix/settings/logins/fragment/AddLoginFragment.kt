@@ -382,7 +382,8 @@ class AddLoginFragment : Fragment(R.layout.fragment_add_login), MenuProvider {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate = false
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+            false
     }
 
     companion object {

@@ -12,9 +12,11 @@ object BiometricAuthenticationManager {
 }
 
 /**
- * Data class containing the boolean that dictates the need of displaying the
- * biometric authentication prompt
+ * Data class containing a boolean that dictates the need of displaying the
+ * biometric authentication prompt and another boolean about the biometric authentication
+ * being successful or not
  */
 data class BiometricAuthenticationNeededInfo(
-    var shouldAuthenticate: Boolean = true,
+    var shouldShowAuthenticationPrompt: Boolean = true,
+    var authenticated: Boolean = false,
 )

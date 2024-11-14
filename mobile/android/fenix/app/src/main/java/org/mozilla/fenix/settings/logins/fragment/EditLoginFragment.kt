@@ -72,8 +72,9 @@ class EditLoginFragment : Fragment(R.layout.fragment_edit_login), MenuProvider {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         startForResult = registerForActivityResult {
-            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate =
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
                 false
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = true
             setSecureContentVisibility(true)
         }
     }
@@ -330,17 +331,23 @@ class EditLoginFragment : Fragment(R.layout.fragment_edit_login), MenuProvider {
 
     override fun onResume() {
         super.onResume()
-        if (BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate) {
-            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate =
+        if (BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt) {
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
                 false
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = false
             setSecureContentVisibility(false)
+
             bindBiometricsCredentialsPromptOrShowWarning(
                 view = requireView(),
                 onShowPinVerification = { intent -> startForResult.launch(intent) },
-                onAuthSuccess = { setSecureContentVisibility(true) },
+                onAuthSuccess = {
+                    BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated =
+                        true
+                    setSecureContentVisibility(true)
+                },
             )
         } else {
-            setSecureContentVisibility(true)
+            setSecureContentVisibility(BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated)
         }
     }
 
@@ -362,7 +369,7 @@ class EditLoginFragment : Fragment(R.layout.fragment_edit_login), MenuProvider {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate = false
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt = false
     }
 
     private fun setSecureContentVisibility(isVisible: Boolean) {
