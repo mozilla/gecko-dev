@@ -382,11 +382,11 @@
    *                                                                           \
    * Multiple of threshold.bytes() which triggers a non-incremental GC.        \
    *                                                                           \
-   * The small heap limit must be greater than 1.3 to maintain performance on  \
+   * The small heap limit must be at least 1.7 to maintain performance on      \
    * splay-latency.                                                            \
    */                                                                          \
   _(JSGC_SMALL_HEAP_INCREMENTAL_LIMIT, double, smallHeapIncrementalLimit,      \
-    ConvertTimes100, CheckIncrementalLimit, 1.50)                              \
+    ConvertTimes100, CheckIncrementalLimit, 1.70)                              \
   _(JSGC_LARGE_HEAP_INCREMENTAL_LIMIT, double, largeHeapIncrementalLimit,      \
     ConvertTimes100, CheckIncrementalLimit, 1.10)                              \
                                                                                \
