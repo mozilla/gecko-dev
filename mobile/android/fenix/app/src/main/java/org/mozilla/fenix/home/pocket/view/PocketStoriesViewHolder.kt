@@ -57,7 +57,7 @@ class PocketStoriesViewHolder(
             .observeAsComposableState { state -> state.firstFrameDrawn }.value ?: false
 
         val stories = components.appStore
-            .observeAsComposableState { state -> state.pocketStories }.value
+            .observeAsComposableState { state -> state.recommendationState.pocketStories }.value
 
         val wallpaperState = components.appStore
             .observeAsComposableState { state -> state.wallpaperState }.value ?: WallpaperState.default

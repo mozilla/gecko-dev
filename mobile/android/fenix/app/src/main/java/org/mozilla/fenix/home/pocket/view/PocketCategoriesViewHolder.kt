@@ -57,9 +57,9 @@ class PocketCategoriesViewHolder(
             .observeAsComposableState { state -> state.firstFrameDrawn }.value ?: false
 
         val categories = components.appStore
-            .observeAsComposableState { state -> state.pocketStoriesCategories }.value
+            .observeAsComposableState { state -> state.recommendationState.pocketStoriesCategories }.value
         val categoriesSelections = components.appStore
-            .observeAsComposableState { state -> state.pocketStoriesCategoriesSelections }.value
+            .observeAsComposableState { state -> state.recommendationState.pocketStoriesCategoriesSelections }.value
 
         val wallpaperState = components.appStore
             .observeAsComposableState { state -> state.wallpaperState }.value ?: WallpaperState.default

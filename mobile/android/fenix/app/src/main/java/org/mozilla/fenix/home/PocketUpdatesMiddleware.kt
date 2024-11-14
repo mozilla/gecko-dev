@@ -79,7 +79,7 @@ class PocketUpdatesMiddleware(
             -> {
                 persistSelectedCategories(
                     coroutineScope = coroutineScope,
-                    currentCategoriesSelections = context.state.pocketStoriesCategoriesSelections,
+                    currentCategoriesSelections = context.state.recommendationState.pocketStoriesCategoriesSelections,
                     selectedPocketCategoriesDataStore = selectedPocketCategoriesDataStore,
                 )
             }

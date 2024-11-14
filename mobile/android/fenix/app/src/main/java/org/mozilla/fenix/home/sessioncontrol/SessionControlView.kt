@@ -150,7 +150,7 @@ private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> = when
         shouldShowRecentTabs(settings),
         shouldShowRecentSyncedTabs(),
         recentHistory,
-        pocketStories,
+        recommendationState.pocketStories,
         firstFrameDrawn,
     )
     BrowsingMode.Private -> privateModeAdapterItems()

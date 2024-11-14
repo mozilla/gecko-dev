@@ -112,7 +112,8 @@ internal class DefaultPocketStoriesController(
     }
 
     override fun handleCategoryClick(categoryClicked: PocketRecommendedStoriesCategory) {
-        val initialCategoriesSelections = appStore.state.pocketStoriesCategoriesSelections
+        val initialCategoriesSelections =
+            appStore.state.recommendationState.pocketStoriesCategoriesSelections
 
         // First check whether the category is clicked to be deselected.
         if (initialCategoriesSelections.map { it.name }.contains(categoryClicked.name)) {

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.appstate.recommendations
 
+import androidx.annotation.VisibleForTesting
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.ext.recordNewImpression
@@ -25,71 +26,89 @@ internal object ContentRecommendationsReducer {
     fun reduce(state: AppState, action: ContentRecommendationsAction): AppState {
         return when (action) {
             is ContentRecommendationsAction.SelectPocketStoriesCategory -> {
-                val updatedCategoriesState = state.copy(
-                    pocketStoriesCategoriesSelections =
-                    state.pocketStoriesCategoriesSelections + PocketRecommendedStoriesSelectedCategory(
-                        name = action.categoryName,
-                    ),
-                )
+                val updatedCategoriesState =
+                    state.copyWithRecommendationsState {
+                        it.copy(
+                            pocketStoriesCategoriesSelections =
+                            it.pocketStoriesCategoriesSelections + PocketRecommendedStoriesSelectedCategory(
+                                name = action.categoryName,
+                            ),
+                        )
+                    }
 
                 // Selecting a category means the stories to be displayed needs to also be changed.
-                updatedCategoriesState.copy(
-                    pocketStories = updatedCategoriesState.getFilteredStories(),
-                )
+                updatedCategoriesState.copyWithRecommendationsState {
+                    it.copy(pocketStories = updatedCategoriesState.getFilteredStories())
+                }
             }
 
             is ContentRecommendationsAction.DeselectPocketStoriesCategory -> {
-                val updatedCategoriesState = state.copy(
-                    pocketStoriesCategoriesSelections = state.pocketStoriesCategoriesSelections.filterNot {
-                        it.name == action.categoryName
-                    },
-                )
+                val updatedCategoriesState = state.copyWithRecommendationsState {
+                    it.copy(
+                        pocketStoriesCategoriesSelections =
+                        it.pocketStoriesCategoriesSelections.filterNot { category ->
+                            category.name == action.categoryName
+                        },
+                    )
+                }
 
                 // Deselecting a category means the stories to be displayed needs to also be changed.
-                updatedCategoriesState.copy(
-                    pocketStories = updatedCategoriesState.getFilteredStories(),
-                )
+                updatedCategoriesState.copyWithRecommendationsState {
+                    it.copy(pocketStories = updatedCategoriesState.getFilteredStories())
+                }
             }
 
             is ContentRecommendationsAction.PocketStoriesCategoriesChange -> {
-                val updatedCategoriesState =
-                    state.copy(pocketStoriesCategories = action.storiesCategories)
+                val updatedCategoriesState = state.copyWithRecommendationsState {
+                    it.copy(pocketStoriesCategories = action.storiesCategories)
+                }
+
                 // Whenever categories change stories to be displayed needs to also be changed.
-                updatedCategoriesState.copy(
-                    pocketStories = updatedCategoriesState.getFilteredStories(),
-                )
+                updatedCategoriesState.copyWithRecommendationsState {
+                    it.copy(pocketStories = updatedCategoriesState.getFilteredStories())
+                }
             }
 
             is ContentRecommendationsAction.PocketStoriesCategoriesSelectionsChange -> {
-                val updatedCategoriesState = state.copy(
-                    pocketStoriesCategories = action.storiesCategories,
-                    pocketStoriesCategoriesSelections = action.categoriesSelected,
-                )
+                val updatedCategoriesState = state.copyWithRecommendationsState {
+                    it.copy(
+                        pocketStoriesCategories = action.storiesCategories,
+                        pocketStoriesCategoriesSelections = action.categoriesSelected,
+                    )
+                }
+
                 // Whenever categories change stories to be displayed needs to also be changed.
-                updatedCategoriesState.copy(
-                    pocketStories = updatedCategoriesState.getFilteredStories(),
+                updatedCategoriesState.copyWithRecommendationsState {
+                    it.copy(pocketStories = updatedCategoriesState.getFilteredStories())
+                }
+            }
+
+            is ContentRecommendationsAction.PocketStoriesClean -> state.copyWithRecommendationsState {
+                it.copy(
+                    pocketStoriesCategories = emptyList(),
+                    pocketStoriesCategoriesSelections = emptyList(),
+                    pocketStories = emptyList(),
+                    pocketSponsoredStories = emptyList(),
                 )
             }
 
-            is ContentRecommendationsAction.PocketStoriesClean -> state.copy(
-                pocketStoriesCategories = emptyList(),
-                pocketStoriesCategoriesSelections = emptyList(),
-                pocketStories = emptyList(),
-                pocketSponsoredStories = emptyList(),
-            )
-
             is ContentRecommendationsAction.PocketSponsoredStoriesChange -> {
-                val updatedStoriesState = state.copy(
-                    pocketSponsoredStories = action.sponsoredStories,
-                )
+                val updatedStoriesState = state.copyWithRecommendationsState {
+                    it.copy(
+                        pocketSponsoredStories = action.sponsoredStories,
+                    )
+                }
 
-                updatedStoriesState.copy(
-                    pocketStories = updatedStoriesState.getFilteredStories(),
-                )
+                updatedStoriesState.copyWithRecommendationsState {
+                    it.copy(
+                        pocketStories = updatedStoriesState.getFilteredStories(),
+                    )
+                }
             }
 
             is ContentRecommendationsAction.PocketStoriesShown -> {
-                var updatedCategories = state.pocketStoriesCategories
+                var updatedCategories = state.recommendationState.pocketStoriesCategories
+
                 action.storiesShown.filterIsInstance<PocketRecommendedStory>()
                     .forEach { shownStory ->
                         updatedCategories = updatedCategories.map { category ->
@@ -110,7 +129,7 @@ internal object ContentRecommendationsReducer {
                         }
                     }
 
-                var updatedSponsoredStories = state.pocketSponsoredStories
+                var updatedSponsoredStories = state.recommendationState.pocketSponsoredStories
                 action.storiesShown.filterIsInstance<PocketSponsoredStory>().forEach { shownStory ->
                     updatedSponsoredStories = updatedSponsoredStories.map { story ->
                         when (story.id == shownStory.id) {
@@ -120,11 +139,20 @@ internal object ContentRecommendationsReducer {
                     }
                 }
 
-                state.copy(
-                    pocketStoriesCategories = updatedCategories,
-                    pocketSponsoredStories = updatedSponsoredStories,
-                )
+                state.copyWithRecommendationsState {
+                    it.copy(
+                        pocketStoriesCategories = updatedCategories,
+                        pocketSponsoredStories = updatedSponsoredStories,
+                    )
+                }
             }
         }
     }
+}
+
+@VisibleForTesting
+internal inline fun AppState.copyWithRecommendationsState(
+    crossinline update: (ContentRecommendationsState) -> ContentRecommendationsState,
+): AppState {
+    return this.copy(recommendationState = update(recommendationState))
 }
