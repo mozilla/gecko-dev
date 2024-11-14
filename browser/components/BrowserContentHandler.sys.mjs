@@ -1585,7 +1585,9 @@ nsDefaultCommandLineHandler.prototype = {
         cmdLine.state != Ci.nsICommandLine.STATE_INITIAL_LAUNCH &&
         lazy.WindowsUIUtils.inWin10TabletMode
       ) {
-        // In windows 10 tablet mode, do not create a new window, but reuse the existing one.
+        // In Win10's tablet mode, do not create a new window, but reuse the
+        // existing one. (Win11's tablet mode is still windowed and has no need
+        // for this workaround.)
         let win = lazy.BrowserWindowTracker.getTopWindow();
         if (win) {
           win.focus();

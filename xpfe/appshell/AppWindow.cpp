@@ -1821,6 +1821,8 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
     nsCOMPtr<nsIWindowsUIUtils> uiUtils(
         do_GetService("@mozilla.org/windows-ui-utils;1"));
     if (!NS_WARN_IF(!uiUtils)) {
+      // We switch to the touch-optimized layout in both Win10 and Win11 tablet-
+      // modes, since only the input mechanism is relevant. (See bug 1819421.)
       if (IsWin11OrLater()) {
         uiUtils->GetInWin11TabletMode(&isInTabletMode);
       } else {
