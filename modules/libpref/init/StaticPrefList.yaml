@@ -665,7 +665,7 @@
 
 -   name: apz.gtk.touchpad_hold.enabled
     type: RelaxedAtomicBool
-    value: true
+    value: false
     mirror: always
 #endif
 
