@@ -958,6 +958,7 @@ class ContentScriptContextChild extends BaseContext {
 
       let isMV2 = extension.manifestVersion == 2;
       let wantGlobalProperties;
+      let sandboxContentSecurityPolicy;
       if (isMV2) {
         // In MV2, fetch/XHR support cross-origin requests.
         // WebSocket was also included to avoid CSP effects (bug 1676024).
@@ -965,11 +966,16 @@ class ContentScriptContextChild extends BaseContext {
       } else {
         // In MV3, fetch/XHR have the same capabilities as the web page.
         wantGlobalProperties = [];
+        // In MV3, the base CSP is enforced for content scripts. Overrides are
+        // currently not supported, but this was considered at some point, see
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1581611#c10
+        sandboxContentSecurityPolicy = extension.policy.baseCSP;
       }
       this.sandbox = Cu.Sandbox(principal, {
         metadata,
         sandboxName: `Content Script ${extension.policy.debugName}`,
         sandboxPrototype: contentWindow,
+        sandboxContentSecurityPolicy,
         sameZoneAs: contentWindow,
         wantXrays: true,
         isWebExtensionContentScript: true,

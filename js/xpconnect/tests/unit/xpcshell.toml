@@ -361,6 +361,8 @@ head = "head_ongc.js"
 
 ["test_sandbox_atob.js"]
 
+["test_sandbox_csp.js"]
+
 ["test_sandbox_metadata.js"]
 
 ["test_sandbox_name.js"]

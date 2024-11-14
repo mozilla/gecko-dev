@@ -185,6 +185,13 @@ interface nsIXPCComponents_Utils : nsISupports
      *            Content scripts should pass the window they're running in as this
      *          parameter, in order to ensure that the script is cleaned up at the
      *          same time as the content itself.
+     *        - sandboxContentSecurityPolicy: {String} The Content Security Policy
+     *          to apply in this sandbox. This can be used to restrict eval
+     *          (e.g. "script-src 'self'"). It does not apply to DOM methods
+     *          that were retrieved from objects outside the sandbox.
+     *          This is only implemented for Expanded Principals; if desired for
+     *          other principals, bug 1548468 must be resolved first.
+     *          When not specified, the default CSP is used (usually no CSP).
      *        - sandboxName: {String} Identifies the sandbox in about:memory. This
      *          property is optional, but very useful for tracking memory usage. A
      *          recommended value for this property is an absolute path to the script

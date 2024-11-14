@@ -1149,41 +1149,34 @@ bool xpc::GlobalProperties::DefineInSandbox(JSContext* cx,
   return Define(cx, obj);
 }
 
-/**
- * If enabled, apply the extension base CSP, then apply the
- * content script CSP which will either be a default or one
- * provided by the extension in its manifest.
- */
-nsresult ApplyAddonContentScriptCSP(nsISupports* prinOrSop) {
+nsresult SetSandboxCSP(nsISupports* prinOrSop, const nsAString& cspString) {
   nsCOMPtr<nsIPrincipal> principal = do_QueryInterface(prinOrSop);
   if (!principal) {
-    return NS_OK;
+    return NS_ERROR_INVALID_ARG;
   }
-
   auto* basePrin = BasePrincipal::Cast(principal);
-  // We only get an addonPolicy if the principal is an
-  // expanded principal with an extension principal in it.
-  auto* addonPolicy = basePrin->ContentScriptAddonPolicy();
-  if (!addonPolicy) {
-    return NS_OK;
+  if (!basePrin->Is<ExpandedPrincipal>()) {
+    return NS_ERROR_INVALID_ARG;
   }
-  // For backwards compatibility, content scripts have no CSP
-  // in manifest v2.  Only apply content script CSP to V3 or later.
-  if (addonPolicy->ManifestVersion() < 3) {
-    return NS_OK;
-  }
+  auto* expanded = basePrin->As<ExpandedPrincipal>();
 
-  nsString url;
-  MOZ_TRY_VAR(url, addonPolicy->GetURL(u""_ns));
-
-  nsCOMPtr<nsIURI> selfURI;
-  MOZ_TRY(NS_NewURI(getter_AddRefs(selfURI), url));
-
-  const nsAString& baseCSP = addonPolicy->BaseCSP();
-
-  // If we got here, we're definitly an expanded principal.
-  auto expanded = basePrin->As<ExpandedPrincipal>();
   nsCOMPtr<nsIContentSecurityPolicy> csp;
+
+  // The choice of self-uri (self-origin) to use in a Sandbox depends on the
+  // use case. For now, we default to a non-existing URL because there is no
+  // use case that requires 'self' to have a particular value. Consumers can
+  // always specify the URL explicitly instead of 'self'. Besides, the CSP
+  // enforcement in a Sandbox is barely implemented, except for eval()-like
+  // execution.
+  //
+  // moz-extension:-resources are never blocked by CSP because the protocol is
+  // registered with URI_IS_LOCAL_RESOURCE and subjectToCSP in nsCSPService.cpp
+  // therefore allows the load. This matches the CSP spec, which explicitly
+  // states that CSP should not interfere with addons. Because of this, we do
+  // not need to set selfURI to the real moz-extension:-URL, even in cases
+  // where we want to restrict all scripts except for moz-extension:-URLs.
+  nsCOMPtr<nsIURI> selfURI;
+  MOZ_TRY(NS_NewURI(getter_AddRefs(selfURI), "moz-extension://dummy"_ns));
 
 #ifdef MOZ_DEBUG
   // Bug 1548468: Move CSP off ExpandedPrincipal
@@ -1196,7 +1189,7 @@ nsresult ApplyAddonContentScriptCSP(nsISupports* prinOrSop) {
       nsAutoString parsedPolicyStr;
       for (uint32_t i = 0; i < count; i++) {
         csp->GetPolicyString(i, parsedPolicyStr);
-        MOZ_ASSERT(!parsedPolicyStr.Equals(baseCSP));
+        MOZ_ASSERT(!parsedPolicyStr.Equals(cspString));
       }
     }
   }
@@ -1217,7 +1210,7 @@ nsresult ApplyAddonContentScriptCSP(nsISupports* prinOrSop) {
   MOZ_TRY(
       csp->SetRequestContextWithPrincipal(clonedPrincipal, selfURI, ""_ns, 0));
 
-  MOZ_TRY(csp->AppendPolicy(baseCSP, false, false));
+  MOZ_TRY(csp->AppendPolicy(cspString, false, false));
 
   expanded->SetCsp(csp);
   return NS_OK;
@@ -1799,6 +1792,33 @@ bool OptionsBase::ParseString(const char* name, nsString& prop) {
 }
 
 /*
+ * Helper that tries to get a string property from the options object.
+ */
+bool OptionsBase::ParseOptionalString(const char* name, Maybe<nsString>& prop) {
+  RootedValue value(mCx);
+  bool found;
+  bool ok = ParseValue(name, &value, &found);
+  NS_ENSURE_TRUE(ok, false);
+
+  if (!found || value.isUndefined()) {
+    return true;
+  }
+
+  if (!value.isString()) {
+    JS_ReportErrorASCII(mCx, "Expected a string value for property %s", name);
+    return false;
+  }
+
+  nsAutoJSString strVal;
+  if (!strVal.init(mCx, value.toString())) {
+    return false;
+  }
+
+  prop = Some(strVal);
+  return true;
+}
+
+/*
  * Helper that tries to get jsid property from the options object.
  */
 bool OptionsBase::ParseId(const char* name, MutableHandleId prop) {
@@ -1883,6 +1903,8 @@ bool SandboxOptions::Parse() {
             ParseBoolean("isWebExtensionContentScript",
                          &isWebExtensionContentScript) &&
             ParseBoolean("forceSecureContext", &forceSecureContext) &&
+            ParseOptionalString("sandboxContentSecurityPolicy",
+                                sandboxContentSecurityPolicy) &&
             ParseString("sandboxName", sandboxName) &&
             ParseObject("sameZoneAs", &sameZoneAs) &&
             ParseBoolean("freshCompartment", &freshCompartment) &&
@@ -1994,8 +2016,6 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
       } else {
         ok = GetExpandedPrincipal(cx, obj, options, getter_AddRefs(expanded));
         prinOrSop = expanded;
-        // If this is an addon content script we need to apply the csp.
-        MOZ_TRY(ApplyAddonContentScriptCSP(prinOrSop));
       }
     } else {
       ok = GetPrincipalOrSOP(cx, obj, getter_AddRefs(prinOrSop));
@@ -2008,6 +2028,21 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
 
   if (!ok) {
     return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
+  }
+
+  if (options.sandboxContentSecurityPolicy.isSome()) {
+    if (!expanded) {
+      // CSP is currently stored on ExpandedPrincipal. If CSP moves off
+      // ExpandedPrincipal (bug 1548468), then we can drop/relax this check.
+      JS_ReportErrorASCII(cx,
+                          "sandboxContentSecurityPolicy is currently only "
+                          "supported with ExpandedPrincipals");
+      return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
+    }
+    rv = SetSandboxCSP(prinOrSop, options.sandboxContentSecurityPolicy.value());
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
   }
 
   if (NS_FAILED(AssembleSandboxMemoryReporterName(cx, options.sandboxName))) {
