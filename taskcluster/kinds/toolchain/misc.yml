@@ -209,7 +209,7 @@ macosx-arm64-custom-car:
         symbol: TM(custom-car-arm)
         tier: 2
     worker:
-        max-run-time: 25000
+        max-run-time: 40000
     use-python: default
     run-on-projects: []
     run:
