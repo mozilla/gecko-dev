@@ -23,6 +23,7 @@ import org.junit.Test
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories
 import org.mozilla.fenix.datastore.SelectedPocketStoriesCategories.SelectedPocketStoriesCategory
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
@@ -49,7 +50,9 @@ class PocketUpdatesMiddlewareTest {
         val pocketMiddleware = PocketUpdatesMiddleware(pocketService, mockk(), this)
         val appstore = AppStore(
             AppState(
-                pocketStories = listOf(story1, story2, story3),
+                recommendationState = ContentRecommendationsState(
+                    pocketStories = listOf(story1, story2, story3),
+                ),
             ),
             listOf(pocketMiddleware),
         )
@@ -102,7 +105,9 @@ class PocketUpdatesMiddlewareTest {
         val appStore = spyk(
             AppStore(
                 AppState(
-                    pocketStoriesCategories = currentCategories,
+                    recommendationState = ContentRecommendationsState(
+                        pocketStoriesCategories = currentCategories,
+                    ),
                 ),
                 listOf(pocketMiddleware),
             ),
@@ -134,7 +139,9 @@ class PocketUpdatesMiddlewareTest {
         val appStore = spyk(
             AppStore(
                 AppState(
-                    pocketStoriesCategories = listOf(categ1, categ2),
+                    recommendationState = ContentRecommendationsState(
+                        pocketStoriesCategories = listOf(categ1, categ2),
+                    ),
                 ),
                 listOf(pocketMiddleware),
             ),
@@ -158,7 +165,9 @@ class PocketUpdatesMiddlewareTest {
         val appStore = spyk(
             AppStore(
                 AppState(
-                    pocketStoriesCategories = listOf(categ1, categ2),
+                    recommendationState = ContentRecommendationsState(
+                        pocketStoriesCategories = listOf(categ1, categ2),
+                    ),
                 ),
                 listOf(pocketMiddleware),
             ),

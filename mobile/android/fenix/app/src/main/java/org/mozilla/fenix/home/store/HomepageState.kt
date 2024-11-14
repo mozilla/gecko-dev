@@ -82,7 +82,7 @@ internal sealed class HomepageState {
          * Builds a new [HomepageState] from the current [AppState] and [Settings].
          *
          * @param appState State to build the [HomepageState] from.
-         * @param settings Settings corresponding to how the homepage should be displayed.
+         * @param settings [Settings] corresponding to how the homepage should be displayed.
          */
         @Composable
         internal fun build(
@@ -102,6 +102,7 @@ internal sealed class HomepageState {
                             RecentSyncedTabState.None,
                             RecentSyncedTabState.Loading,
                             -> null
+
                             is RecentSyncedTabState.Success -> recentSyncedTabState.tabs.firstOrNull()
                         },
                         bookmarks = bookmarks,
@@ -110,13 +111,14 @@ internal sealed class HomepageState {
                             appState = appState,
                             browserState = components.core.store.state,
                         ),
-                        pocketState = PocketState.build(appState),
+                        pocketState = PocketState.build(appState, settings),
                         showTopSites = settings.showTopSitesFeature && topSites.isNotEmpty(),
                         showRecentTabs = shouldShowRecentTabs(settings),
                         showBookmarks = settings.showBookmarksHomeFeature && bookmarks.isNotEmpty(),
                         showRecentSyncedTab = shouldShowRecentSyncedTabs(),
                         showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
-                        showPocketStories = settings.showPocketRecommendationsFeature && pocketStories.isNotEmpty(),
+                        showPocketStories = settings.showPocketRecommendationsFeature &&
+                            recommendationState.pocketStories.isNotEmpty(),
                         topSiteColors = TopSiteColors.colors(wallpaperState = wallpaperState),
                         cardBackgroundColor = wallpaperState.cardBackgroundColor,
                         buttonBackgroundColor = wallpaperState.buttonBackgroundColor,

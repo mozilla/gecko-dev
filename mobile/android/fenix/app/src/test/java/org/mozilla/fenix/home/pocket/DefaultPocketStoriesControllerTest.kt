@@ -31,6 +31,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAction
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
@@ -60,8 +61,10 @@ class DefaultPocketStoriesControllerTest {
         val store = spyk(
             AppStore(
                 AppState(
-                    pocketStoriesCategories = listOf(category1, category2),
-                    pocketStoriesCategoriesSelections = selections,
+                    recommendationState = ContentRecommendationsState(
+                        pocketStoriesCategories = listOf(category1, category2),
+                        pocketStoriesCategoriesSelections = selections,
+                    ),
                 ),
             ),
         )
@@ -97,15 +100,17 @@ class DefaultPocketStoriesControllerTest {
         val store = spyk(
             AppStore(
                 AppState(
-                    pocketStoriesCategoriesSelections = listOf(
-                        category1,
-                        category2,
-                        category3,
-                        category4,
-                        category5,
-                        category6,
-                        category7,
-                        oldestSelectedCategory,
+                    recommendationState = ContentRecommendationsState(
+                        pocketStoriesCategoriesSelections = listOf(
+                            category1,
+                            category2,
+                            category3,
+                            category4,
+                            category5,
+                            category6,
+                            category7,
+                            oldestSelectedCategory,
+                        ),
                     ),
                 ),
             ),
@@ -141,14 +146,16 @@ class DefaultPocketStoriesControllerTest {
         val store = spyk(
             AppStore(
                 AppState(
-                    pocketStoriesCategoriesSelections = listOf(
-                        category1,
-                        category2,
-                        category3,
-                        category4,
-                        category5,
-                        category6,
-                        oldestSelectedCategory,
+                    recommendationState = ContentRecommendationsState(
+                        pocketStoriesCategoriesSelections = listOf(
+                            category1,
+                            category2,
+                            category3,
+                            category4,
+                            category5,
+                            category6,
+                            oldestSelectedCategory,
+                        ),
                     ),
                 ),
             ),

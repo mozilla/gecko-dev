@@ -383,6 +383,7 @@ internal object FakeHomepagePreview {
             .split(" ")
             .map { PocketRecommendedStoriesCategory(it) },
         categoriesSelections = emptyList(),
+        showContentRecommendations = false,
         categoryColors = SelectableChipColors.buildColors(),
         textColor = FirefoxTheme.colors.textPrimary,
         linkTextColor = FirefoxTheme.colors.textAccent,

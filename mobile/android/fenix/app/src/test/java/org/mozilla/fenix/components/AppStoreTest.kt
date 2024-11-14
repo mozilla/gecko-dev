@@ -33,6 +33,7 @@ import org.mozilla.fenix.components.appstate.AppAction.ContentRecommendationsAct
 import org.mozilla.fenix.components.appstate.AppAction.MessagingAction.UpdateMessageToShow
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.filterOut
+import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getFilteredStories
 import org.mozilla.fenix.home.bookmarks.Bookmark
@@ -322,9 +323,11 @@ class AppStoreTest {
         val filteredStories = listOf(mockk<PocketStory>())
         appStore = AppStore(
             AppState(
-                pocketStoriesCategories = listOf(otherStoriesCategory, anotherStoriesCategory),
-                pocketStoriesCategoriesSelections = listOf(
-                    PocketRecommendedStoriesSelectedCategory(otherStoriesCategory.name),
+                recommendationState = ContentRecommendationsState(
+                    pocketStoriesCategories = listOf(otherStoriesCategory, anotherStoriesCategory),
+                    pocketStoriesCategoriesSelections = listOf(
+                        PocketRecommendedStoriesSelectedCategory(otherStoriesCategory.name),
+                    ),
                 ),
             ),
         )
@@ -337,10 +340,10 @@ class AppStoreTest {
             verify { any<AppState>().getFilteredStories() }
         }
 
-        val selectedCategories = appStore.state.pocketStoriesCategoriesSelections
+        val selectedCategories = appStore.state.recommendationState.pocketStoriesCategoriesSelections
         assertEquals(2, selectedCategories.size)
         assertTrue(otherStoriesCategory.name === selectedCategories[0].name)
-        assertSame(filteredStories, appStore.state.pocketStories)
+        assertSame(filteredStories, appStore.state.recommendationState.pocketStories)
     }
 
     @Test
@@ -350,10 +353,12 @@ class AppStoreTest {
         val filteredStories = listOf(mockk<PocketStory>())
         appStore = AppStore(
             AppState(
-                pocketStoriesCategories = listOf(otherStoriesCategory, anotherStoriesCategory),
-                pocketStoriesCategoriesSelections = listOf(
-                    PocketRecommendedStoriesSelectedCategory(otherStoriesCategory.name),
-                    PocketRecommendedStoriesSelectedCategory(anotherStoriesCategory.name),
+                recommendationState = ContentRecommendationsState(
+                    pocketStoriesCategories = listOf(otherStoriesCategory, anotherStoriesCategory),
+                    pocketStoriesCategoriesSelections = listOf(
+                        PocketRecommendedStoriesSelectedCategory(otherStoriesCategory.name),
+                        PocketRecommendedStoriesSelectedCategory(anotherStoriesCategory.name),
+                    ),
                 ),
             ),
         )
@@ -366,30 +371,32 @@ class AppStoreTest {
             verify { any<AppState>().getFilteredStories() }
         }
 
-        val selectedCategories = appStore.state.pocketStoriesCategoriesSelections
+        val selectedCategories = appStore.state.recommendationState.pocketStoriesCategoriesSelections
         assertEquals(1, selectedCategories.size)
         assertTrue(anotherStoriesCategory.name === selectedCategories[0].name)
-        assertSame(filteredStories, appStore.state.pocketStories)
+        assertSame(filteredStories, appStore.state.recommendationState.pocketStories)
     }
 
     @Test
     fun `Test cleaning the list of Pocket stories`() = runTest {
         appStore = AppStore(
             AppState(
-                pocketStoriesCategories = listOf(mockk()),
-                pocketStoriesCategoriesSelections = listOf(mockk()),
-                pocketStories = listOf(mockk()),
-                pocketSponsoredStories = listOf(mockk()),
+                recommendationState = ContentRecommendationsState(
+                    pocketStoriesCategories = listOf(mockk()),
+                    pocketStoriesCategoriesSelections = listOf(mockk()),
+                    pocketStories = listOf(mockk()),
+                    pocketSponsoredStories = listOf(mockk()),
+                ),
             ),
         )
 
         appStore.dispatch(ContentRecommendationsAction.PocketStoriesClean)
             .join()
 
-        assertTrue(appStore.state.pocketStoriesCategories.isEmpty())
-        assertTrue(appStore.state.pocketStoriesCategoriesSelections.isEmpty())
-        assertTrue(appStore.state.pocketStories.isEmpty())
-        assertTrue(appStore.state.pocketSponsoredStories.isEmpty())
+        assertTrue(appStore.state.recommendationState.pocketStoriesCategories.isEmpty())
+        assertTrue(appStore.state.recommendationState.pocketStoriesCategoriesSelections.isEmpty())
+        assertTrue(appStore.state.recommendationState.pocketStories.isEmpty())
+        assertTrue(appStore.state.recommendationState.pocketSponsoredStories.isEmpty())
     }
 
     @Test
@@ -412,15 +419,15 @@ class AppStoreTest {
             val firstFilteredStories = listOf(mockk<PocketSponsoredStory>())
             every { any<AppState>().getFilteredStories() } returns firstFilteredStories
             appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(listOf(story1, story2))).join()
-            assertTrue(appStore.state.pocketSponsoredStories.containsAll(listOf(story1, story2)))
-            assertEquals(firstFilteredStories, appStore.state.pocketStories)
+            assertTrue(appStore.state.recommendationState.pocketSponsoredStories.containsAll(listOf(story1, story2)))
+            assertEquals(firstFilteredStories, appStore.state.recommendationState.pocketStories)
 
             val secondFilteredStories = firstFilteredStories + mockk<PocketRecommendedStory>()
             every { any<AppState>().getFilteredStories() } returns secondFilteredStories
             val updatedStories = listOf(story2.copy(title = "title3"))
             appStore.dispatch(ContentRecommendationsAction.PocketSponsoredStoriesChange(updatedStories)).join()
-            assertTrue(updatedStories.containsAll(appStore.state.pocketSponsoredStories))
-            assertEquals(secondFilteredStories, appStore.state.pocketStories)
+            assertTrue(updatedStories.containsAll(appStore.state.recommendationState.pocketSponsoredStories))
+            assertEquals(secondFilteredStories, appStore.state.recommendationState.pocketStories)
         }
     }
 
@@ -446,17 +453,19 @@ class AppStoreTest {
         val story4 = story1.copy(id = 44)
         appStore = AppStore(
             AppState(
-                pocketSponsoredStories = listOf(story1, story2, story3, story4),
+                recommendationState = ContentRecommendationsState(
+                    pocketSponsoredStories = listOf(story1, story2, story3, story4),
+                ),
             ),
         )
 
         appStore.dispatch(ContentRecommendationsAction.PocketStoriesShown(listOf(story1, story3))).join()
 
-        assertEquals(4, appStore.state.pocketSponsoredStories.size)
-        assertEquals(3, appStore.state.pocketSponsoredStories[0].caps.currentImpressions.size)
-        assertEquals(2, appStore.state.pocketSponsoredStories[1].caps.currentImpressions.size)
-        assertEquals(3, appStore.state.pocketSponsoredStories[2].caps.currentImpressions.size)
-        assertEquals(2, appStore.state.pocketSponsoredStories[3].caps.currentImpressions.size)
+        assertEquals(4, appStore.state.recommendationState.pocketSponsoredStories.size)
+        assertEquals(3, appStore.state.recommendationState.pocketSponsoredStories[0].caps.currentImpressions.size)
+        assertEquals(2, appStore.state.recommendationState.pocketSponsoredStories[1].caps.currentImpressions.size)
+        assertEquals(3, appStore.state.recommendationState.pocketSponsoredStories[2].caps.currentImpressions.size)
+        assertEquals(2, appStore.state.recommendationState.pocketSponsoredStories[3].caps.currentImpressions.size)
     }
 
     @Test
@@ -474,11 +483,11 @@ class AppStoreTest {
             ).join()
             verify { any<AppState>().getFilteredStories() }
             assertTrue(
-                appStore.state.pocketStoriesCategories.containsAll(
+                appStore.state.recommendationState.pocketStoriesCategories.containsAll(
                     listOf(otherStoriesCategory, anotherStoriesCategory),
                 ),
             )
-            assertSame(firstFilteredStories, appStore.state.pocketStories)
+            assertSame(firstFilteredStories, appStore.state.recommendationState.pocketStories)
 
             val updatedCategories = listOf(PocketRecommendedStoriesCategory("yetAnother"))
             val secondFilteredStories = listOf(mockk<PocketStory>())
@@ -489,8 +498,8 @@ class AppStoreTest {
                 ),
             ).join()
             verify(exactly = 2) { any<AppState>().getFilteredStories() }
-            assertTrue(updatedCategories.containsAll(appStore.state.pocketStoriesCategories))
-            assertSame(secondFilteredStories, appStore.state.pocketStories)
+            assertTrue(updatedCategories.containsAll(appStore.state.recommendationState.pocketStoriesCategories))
+            assertSame(secondFilteredStories, appStore.state.recommendationState.pocketStories)
         }
     }
 
@@ -513,14 +522,14 @@ class AppStoreTest {
             ).join()
             verify { any<AppState>().getFilteredStories() }
             assertTrue(
-                appStore.state.pocketStoriesCategories.containsAll(
+                appStore.state.recommendationState.pocketStoriesCategories.containsAll(
                     listOf(otherStoriesCategory, anotherStoriesCategory),
                 ),
             )
             assertTrue(
-                appStore.state.pocketStoriesCategoriesSelections.containsAll(listOf(selectedCategory)),
+                appStore.state.recommendationState.pocketStoriesCategoriesSelections.containsAll(listOf(selectedCategory)),
             )
-            assertSame(firstFilteredStories, appStore.state.pocketStories)
+            assertSame(firstFilteredStories, appStore.state.recommendationState.pocketStories)
         }
     }
 

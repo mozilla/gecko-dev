@@ -10,18 +10,14 @@ import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
 import mozilla.components.lib.crash.store.CrashState
 import mozilla.components.lib.state.State
-import mozilla.components.service.pocket.PocketStory
-import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
-import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import org.mozilla.fenix.browser.StandardSnackbarError
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.readerview.ReaderViewState
+import org.mozilla.fenix.components.appstate.recommendations.ContentRecommendationsState
 import org.mozilla.fenix.components.appstate.shopping.ShoppingState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.bookmarks.Bookmark
-import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
-import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
@@ -52,10 +48,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property recentSyncedTabState The [RecentSyncedTabState] in the [HomeFragment].
  * @property bookmarks The list of recently saved [BookmarkNode]s to show on the [HomeFragment].
  * @property recentHistory The list of [RecentlyVisitedItem]s.
- * @property pocketStories The list of currently shown [PocketRecommendedStory]s.
- * @property pocketStoriesCategories All [PocketRecommendedStory] categories.
- * @property pocketStoriesCategoriesSelections Current Pocket recommended stories categories selected by the user.
- * @property pocketSponsoredStories All [PocketSponsoredStory]s.
+ * @property recommendationState The [ContentRecommendationsState] to display.
  * @property messaging State related messages.
  * @property pendingDeletionHistoryItems The set of History items marked for removal in the UI,
  * awaiting to be removed once the Undo snackbar hides away.
@@ -89,10 +82,7 @@ data class AppState(
     val recentSyncedTabState: RecentSyncedTabState = RecentSyncedTabState.None,
     val bookmarks: List<Bookmark> = emptyList(),
     val recentHistory: List<RecentlyVisitedItem> = emptyList(),
-    val pocketStories: List<PocketStory> = emptyList(),
-    val pocketStoriesCategories: List<PocketRecommendedStoriesCategory> = emptyList(),
-    val pocketStoriesCategoriesSelections: List<PocketRecommendedStoriesSelectedCategory> = emptyList(),
-    val pocketSponsoredStories: List<PocketSponsoredStory> = emptyList(),
+    val recommendationState: ContentRecommendationsState = ContentRecommendationsState(),
     val messaging: MessagingState = MessagingState(),
     val pendingDeletionHistoryItems: Set<PendingDeletionHistory> = emptySet(),
     val wallpaperState: WallpaperState = WallpaperState.default,

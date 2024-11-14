@@ -32,7 +32,7 @@ import org.mozilla.fenix.home.collections.Collections
 import org.mozilla.fenix.home.collections.CollectionsState
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.interactor.HomepageInteractor
-import org.mozilla.fenix.home.pocket.PocketSection
+import org.mozilla.fenix.home.pocket.ui.PocketSection
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTab
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
