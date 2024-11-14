@@ -15,6 +15,8 @@ import org.mozilla.fenix.BiometricAuthenticationManager
 class VisibilityLifecycleObserver : DefaultLifecycleObserver {
     override fun onPause(owner: LifecycleOwner) {
         super.onPause(owner)
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate = true
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
+            true
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = false
     }
 }
