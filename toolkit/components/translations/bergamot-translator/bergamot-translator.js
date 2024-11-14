@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function loadBergamot(Module) {
-  var BERGAMOT_VERSION_FULL = "v0.4.5+371c2da";
+  var BERGAMOT_VERSION_FULL = "v0.4.5+60e8730";
   null;
 
   var Module = typeof Module != "undefined" ? Module : {};
@@ -528,7 +528,7 @@ function loadBergamot(Module) {
 
   var wasmBinaryFile;
 
-  wasmBinaryFile = "bergamot-translator-worker.wasm";
+  wasmBinaryFile = "bergamot-translator.wasm";
 
   if (!isDataURI(wasmBinaryFile)) {
     wasmBinaryFile = locateFile(wasmBinaryFile);
@@ -3505,5 +3505,6 @@ function loadBergamot(Module) {
     Module.print(`Using fallback gemm implementation`);
     return fallbackGemmModuleExports;
   }
+
   return Module;
 }

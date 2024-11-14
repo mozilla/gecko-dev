@@ -14,6 +14,7 @@ not to check the code change in.
 
 import argparse
 import os
+import platform
 import shutil
 import subprocess
 from collections import namedtuple
@@ -26,7 +27,7 @@ MOZ_YAML_PATH = os.path.join(DIR_PATH, "moz.yaml")
 REPO_PATH = os.path.join(THIRD_PARTY_PATH, "translations")
 INFERENCE_PATH = os.path.join(REPO_PATH, "inference")
 BUILD_PATH = os.path.join(INFERENCE_PATH, "build-wasm")
-JS_PATH = os.path.join(BUILD_PATH, "bergamot-translator-worker.js")
+JS_PATH = os.path.join(BUILD_PATH, "bergamot-translator.js")
 FINAL_JS_PATH = os.path.join(DIR_PATH, "bergamot-translator.js")
 ROOT_PATH = os.path.join(DIR_PATH, "../../../..")
 
@@ -141,15 +142,16 @@ def create_command(allow_run_on_host: bool, task_args: list[str]):
             "task",
             "inference-build-wasm",
             "--volume",
-            f"{REPO_PATH}/inference/build-wasm:/inference/build-wasm",
-            "--",
-            "-j",
-            "1",
+            f"{BUILD_PATH}:/inference/build_wasm",
         ]
+
+        if platform.system() == "Linux":
+            # Linux seems to have an issue with permissions involving `tar`
+            # unless the UID and GID are set to the current user.
+            command.append("--run-as-user")
 
     # Append task arguments if they exist
     if task_args:
-        command.append("--")
         command.extend(task_args)
 
     return command
@@ -184,56 +186,27 @@ def build_bergamot(args: ArgNamespace):
 
 def write_final_bergamot_js_file():
     """
-    The generated JS file requires some light patching for integration.
+    Formats and writes the final JavaScript file for Bergamot by running ESLint on
+    a temporary copy and moving it to the final destination.
     """
-    source = "\n".join(
-        [
-            "/* This Source Code Form is subject to the terms of the Mozilla Public",
-            " * License, v. 2.0. If a copy of the MPL was not distributed with this",
-            " * file, You can obtain one at http://mozilla.org/MPL/2.0/. */",
-            "",
-            "function loadBergamot(Module) {",
-            "",
-        ]
-    )
-
     with open(JS_PATH, "r", encoding="utf8") as file:
-        for line in file.readlines():
-            source += "  " + line
+        print("\n📐 Formatting the final Bergamot file")
 
-    source += "  return Module;\n}"
+        # Create the file outside of this directory so it's not ignored by ESLint.
+        temp_path = os.path.join(DIR_PATH, "../temp-bergamot.js")
+        with open(temp_path, "w", encoding="utf8") as temp_file:
+            temp_file.write(file.read())
 
-    # Use the Module's printing.
-    source = source.replace("console.log(", "Module.print(")
+        subprocess.run(
+            f"./mach eslint --fix {temp_path} --rule 'curly:error'",
+            cwd=ROOT_PATH,
+            check=True,
+            shell=True,
+            capture_output=True,
+        )
 
-    # Add some instrumentation to the module's memory size.
-    source = source.replace(
-        "function updateGlobalBufferAndViews(buf) {",
-        """
-        function updateGlobalBufferAndViews(buf) {
-          const mb = (buf.byteLength / 1_000_000).toFixed();
-          Module.print(
-            `Growing wasm buffer to ${mb}MB (${buf.byteLength} bytes).`
-          );
-    """,
-    )
-
-    print("\n Formatting the final bergamot file")
-    # Create the file outside of this directory so it's not ignored by eslint.
-    temp_path = os.path.join(DIR_PATH, "../temp-bergamot.js")
-    with open(temp_path, "w", encoding="utf8") as file:
-        file.write(source)
-
-    subprocess.run(
-        f"./mach eslint --fix {temp_path} --rule 'curly:error'",
-        cwd=ROOT_PATH,
-        check=True,
-        shell=True,
-        capture_output=True,
-    )
-
-    print(f"\n Writing out final bergamot file: {FINAL_JS_PATH}")
-    shutil.move(temp_path, FINAL_JS_PATH)
+        print(f"\n💾 Writing out final Bergamot file: {FINAL_JS_PATH}")
+        shutil.move(temp_path, FINAL_JS_PATH)
 
 
 def main():
