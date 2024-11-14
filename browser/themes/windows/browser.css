@@ -91,7 +91,13 @@
   -moz-context-properties: stroke;
   stroke: currentColor;
 
-  :root[tabletmode] & {
+  /* Win10's tablet mode is non-windowed -- windows can't be moved or resized
+     freely. In theory "minimize" might still make sense, but for simplicity we
+     just hide everything but "close".
+
+     (This is not called for in Win11's tablet mode, which _is_ windowed.)
+  */
+  :root[win10-tablet-mode] &:not(.titlebar-close) {
     display: none;
   }
 
