@@ -279,9 +279,7 @@ export var WindowsLaunchOnLogin = {
       // There's very little consistency with these binary values aside from if the first byte
       // is even it's enabled and odd is disabled. There's also no published specification.
       let approvedByWindows =
-        wrkApproved.readBinaryValue(registryName).charCodeAt(0).toString(16) %
-          2 ==
-        0;
+        wrkApproved.readBinaryValue(registryName).charCodeAt(0) % 2 == 0;
       wrkApproved.close();
       return approvedByWindows;
     } catch (e) {
