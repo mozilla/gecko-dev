@@ -254,3 +254,31 @@ slow_script_warning:
     telemetry_mirror: Slow_script_warning_Shown_Content
     no_lint:
       - COMMON_PREFIX
+
+script.preloader:
+  mainthread_recompile:
+    type: counter
+    description: >
+      How many times we ended up recompiling a script from the script
+      preloader on the main thread.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar script.preloader.mainthread_recompile.
+    bugs:
+      - https://bugzil.la/1364235
+      - https://bugzil.la/1590385
+      - https://bugzil.la/1623098
+      - https://bugzil.la/1649954
+      - https://bugzil.la/1689257
+      - https://bugzil.la/1754639
+    data_reviews:
+      - https://bugzil.la/1364235
+      - https://bugzil.la/1590385
+      - https://bugzil.la/1623098
+      - https://bugzil.la/1649954
+      - https://bugzil.la/1689257
+      - https://bugzil.la/1754639
+    notification_emails:
+      - dothayer@mozilla.com
+      - plawless@mozilla.com
+    expires: never
+    telemetry_mirror: SCRIPT_PRELOADER_MAINTHREAD_RECOMPILE

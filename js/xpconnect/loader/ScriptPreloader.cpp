@@ -23,6 +23,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_javascript.h"
 #include "mozilla/TaskController.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/Unused.h"
@@ -1001,8 +1002,7 @@ already_AddRefed<JS::Stencil> ScriptPreloader::WaitForCachedStencil(
         LOG(Info, "Script is small enough to recompile on main thread\n");
 
         script->mReadyToExecute = true;
-        Telemetry::ScalarAdd(
-            Telemetry::ScalarID::SCRIPT_PRELOADER_MAINTHREAD_RECOMPILE, 1);
+        glean::script_preloader::mainthread_recompile.Add(1);
       } else {
         LOG(Info, "Must wait for async script load: %s\n", script->mURL.get());
         auto start = TimeStamp::Now();
