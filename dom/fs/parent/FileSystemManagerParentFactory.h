@@ -11,6 +11,9 @@
 
 enum class nsresult : uint32_t;
 
+template <class T>
+class RefPtr;
+
 namespace mozilla {
 
 namespace ipc {
@@ -19,6 +22,7 @@ template <class T>
 class Endpoint;
 
 class IPCResult;
+class PBackgroundParent;
 class PrincipalInfo;
 
 }  // namespace ipc
@@ -28,6 +32,7 @@ namespace dom {
 class PFileSystemManagerParent;
 
 mozilla::ipc::IPCResult CreateFileSystemManagerParent(
+    RefPtr<mozilla::ipc::PBackgroundParent> aBackgroundActor,
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
     mozilla::ipc::Endpoint<mozilla::dom::PFileSystemManagerParent>&&
         aParentEndpoint,

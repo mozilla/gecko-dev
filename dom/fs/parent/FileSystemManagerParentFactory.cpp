@@ -17,11 +17,13 @@
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/ipc/Endpoint.h"
+#include "mozilla/ipc/PBackgroundParent.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsString.h"
 
 namespace mozilla::dom {
 mozilla::ipc::IPCResult CreateFileSystemManagerParent(
+    RefPtr<mozilla::ipc::PBackgroundParent> aBackgroundActor,
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
     mozilla::ipc::Endpoint<PFileSystemManagerParent>&& aParentEndpoint,
     std::function<void(const nsresult&)>&& aResolver) {
@@ -60,6 +62,9 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
   LOG(("CreateFileSystemManagerParent, origin: %s",
        originMetadata.mOrigin.get()));
 
+  RefPtr<mozilla::ipc::PBackgroundParent> backgroundActor =
+      std::move(aBackgroundActor);
+
   // This creates the file system data manager, which has to be done on
   // PBackground
   fs::data::FileSystemDataManager::GetOrCreateFileSystemDataManager(
@@ -67,12 +72,18 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [origin = originMetadata.mOrigin,
-           parentEndpoint = std::move(aParentEndpoint),
+           parentEndpoint = std::move(aParentEndpoint), backgroundActor,
            aResolver](const fs::Registered<fs::data::FileSystemDataManager>&
                           dataManager) mutable {
-            QM_TRY_UNWRAP(
-                fs::EntryId rootId, fs::data::GetRootHandle(origin), QM_VOID,
-                [aResolver](const auto& aRv) { aResolver(ToNSResult(aRv)); });
+            QM_TRY_UNWRAP(fs::EntryId rootId, fs::data::GetRootHandle(origin),
+                          QM_VOID,
+                          ([backgroundActor, aResolver](const auto& aRv) {
+                            if (!backgroundActor->CanSend()) {
+                              return;
+                            }
+
+                            aResolver(ToNSResult(aRv));
+                          }));
 
             InvokeAsync(
                 dataManager->MutableIOTaskQueuePtr(), __func__,
@@ -140,8 +151,12 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
                                                                       __func__);
                        })
                 ->Then(GetCurrentSerialEventTarget(), __func__,
-                       [aResolver](
+                       [backgroundActor, aResolver](
                            const BoolPromise::ResolveOrRejectValue& aValue) {
+                         if (!backgroundActor->CanSend()) {
+                           return;
+                         }
+
                          if (aValue.IsReject()) {
                            aResolver(aValue.RejectValue());
                          } else {
@@ -149,7 +164,13 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
                          }
                        });
           },
-          [aResolver](nsresult aRejectValue) { aResolver(aRejectValue); });
+          [backgroundActor, aResolver](nsresult aRejectValue) {
+            if (!backgroundActor->CanSend()) {
+              return;
+            }
+
+            aResolver(aRejectValue);
+          });
 
   return IPC_OK();
 }

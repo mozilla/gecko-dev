@@ -459,7 +459,7 @@ mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateFileSystemManagerParent(
   AssertIsOnBackgroundThread();
 
   return mozilla::dom::CreateFileSystemManagerParent(
-      aPrincipalInfo, std::move(aParentEndpoint), std::move(aResolver));
+      this, aPrincipalInfo, std::move(aParentEndpoint), std::move(aResolver));
 }
 
 mozilla::ipc::IPCResult BackgroundParentImpl::RecvCreateWebTransportParent(
