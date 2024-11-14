@@ -319,7 +319,7 @@ class InputModule extends WindowGlobalBiDiModule {
     }
 
     const undoActions = this.#actionState.inputCancelList.reverse();
-    undoActions.dispatch(this.#actionState, this.#actionsOptions);
+    await undoActions.dispatch(this.#actionState, this.#actionsOptions);
 
     this.#actionState = null;
   }
