@@ -884,3 +884,20 @@ translations.select_translations_panel:
     notification_emails:
       - translations-telemetry-alerts@mozilla.com
     expires: never
+
+translations.about_translations_page:
+  open:
+    type: event
+    description: >
+      Triggers when the about-translations page is opened.
+    extra_keys:
+      flow_id: *flow_id
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814195
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1814195
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - translations-telemetry-alerts@mozilla.com
+    expires: never

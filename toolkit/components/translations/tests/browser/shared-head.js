@@ -100,7 +100,7 @@ async function openAboutTranslations({
   languagePairs = LANGUAGE_PAIRS,
   prefs,
   autoDownloadFromRemoteSettings = false,
-}) {
+} = {}) {
   await SpecialPowers.pushPrefEnv({
     set: [
       // Enabled by default.
@@ -182,6 +182,8 @@ async function openAboutTranslations({
       await EngineProcess.destroyTranslationsEngine();
 
       await SpecialPowers.popPrefEnv();
+      TestTranslationsTelemetry.reset();
+      Services.fog.testResetFOG();
     },
     resolveDownloads,
     rejectDownloads,

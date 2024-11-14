@@ -53,6 +53,15 @@ export class TranslationsTelemetry {
   }
 
   /**
+   * Telemetry functions for the AboutTranslations page.
+   *
+   * @returns {AboutTranslationsPageTelemetry}
+   */
+  static aboutTranslationsPage() {
+    return AboutTranslationsPageTelemetry;
+  }
+
+  /**
    * Forces the creation of a new Translations telemetry flowId and returns it.
    *
    * @returns {string}
@@ -597,6 +606,29 @@ class SelectTranslationsPanelTelemetry {
     );
     TranslationsTelemetry.logEventToConsole(
       SelectTranslationsPanelTelemetry.onUnsupportedLanguageMessage,
+      data
+    );
+  }
+}
+
+/**
+ * Telemetry functions for the AboutTranslations Page
+ */
+class AboutTranslationsPageTelemetry {
+  /**
+   * Records when the about:translations page is opened.
+   *
+   * @param {object} data
+   * @param {boolean} data.maintainFlow
+   */
+  static onOpen(data) {
+    Glean.translationsAboutTranslationsPage.open.record({
+      flow_id: data.maintainFlow
+        ? TranslationsTelemetry.getOrCreateFlowId()
+        : TranslationsTelemetry.createFlowId(),
+    });
+    TranslationsTelemetry.logEventToConsole(
+      AboutTranslationsPageTelemetry.onOpen,
       data
     );
   }

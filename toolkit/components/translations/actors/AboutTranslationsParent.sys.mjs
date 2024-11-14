@@ -57,6 +57,23 @@ export class AboutTranslationsParent extends JSWindowActorParent {
       case "AboutTranslations:IsTranslationsEngineSupported": {
         return lazy.TranslationsParent.getIsTranslationsEngineSupported();
       }
+      case "AboutTranslations:Telemetry": {
+        const { telemetryFunctionName, telemetryData } = data;
+        const aboutTranslationsTelemetry =
+          lazy.TranslationsParent.telemetry().aboutTranslationsPage();
+        const telemetryFunction =
+          aboutTranslationsTelemetry[telemetryFunctionName];
+
+        if (typeof telemetryFunction !== "function") {
+          throw new Error(
+            `Unknown AboutTranslationsTelemetry function name '${telemetryFunctionName}'`
+          );
+        }
+
+        aboutTranslationsTelemetry[telemetryFunctionName](telemetryData);
+
+        return undefined;
+      }
       default:
         throw new Error("Unknown AboutTranslations message: " + name);
     }

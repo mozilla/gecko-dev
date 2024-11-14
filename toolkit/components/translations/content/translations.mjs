@@ -8,7 +8,7 @@
 
 /* global AT_getSupportedLanguages, AT_log, AT_getScriptDirection,
    AT_logError, AT_createTranslationsPort, AT_isHtmlTranslation,
-   AT_isTranslationEngineSupported, AT_identifyLanguage */
+   AT_isTranslationEngineSupported, AT_identifyLanguage, AT_telemetry */
 
 import { Translator } from "chrome://global/content/translations/Translator.mjs";
 
@@ -385,6 +385,9 @@ class TranslationsUI {
     this.state = state;
     this.translationTo.style.visibility = "visible";
     this.#detectOption = document.querySelector('option[value="detect"]');
+    AT_telemetry("onOpen", {
+      maintainFlow: false,
+    });
   }
 
   /**
