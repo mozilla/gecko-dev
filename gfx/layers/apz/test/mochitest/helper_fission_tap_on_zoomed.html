@@ -30,7 +30,7 @@
             resolve();
           }
         });
-      }, { once: true });
+      });
 
       let result = await SpecialPowers.spawn(iframe, [], async () => {
         content.document.addEventListener("click", (e) => {

@@ -26,7 +26,7 @@
             resolve(ids);
           }
         });
-      }, { once: true });
+      });
 
       let result = await SpecialPowers.spawn(iframe, [], async () => {
         // Ensure the oopif is scrollable, and wait for the paint so that the
