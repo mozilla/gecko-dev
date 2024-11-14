@@ -7,7 +7,7 @@
 #include "WinUtils.h"
 
 #include <knownfolders.h>
-#include <Psapi.h>
+#include <psapi.h>
 #include <winioctl.h>
 
 #include "gfxPlatform.h"

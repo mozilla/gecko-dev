@@ -13,81 +13,74 @@
 #include "imgIContainer.h"
 #include "imgIRequest.h"
 #include "imgITools.h"
-#include "mozilla/RefPtr.h"
-#include "nsComponentManagerUtils.h"
-#include "nsIContent.h"
-#include "nsIImageLoadingContent.h"
-#include "nsIFile.h"
-#include "nsIFileStreams.h"
-#include "nsIOutputStream.h"
-#include "nsIPrefService.h"
-#include "nsIStringBundle.h"
-#include "nsIMIMEService.h"
-#include "nsNetUtil.h"
-#include "nsProxyRelease.h"
-#include "nsServiceManagerUtils.h"
-#include "nsShellService.h"
-#include "nsDirectoryServiceUtils.h"
-#include "nsAppDirectoryServiceDefs.h"
-#include "nsDirectoryServiceDefs.h"
-#include "nsIWindowsRegKey.h"
-#include "nsUnicharUtils.h"
-#include "nsWindowsHelpers.h"
-#include "nsXULAppAPI.h"
-#include "mozilla/WindowsVersion.h"
-#include "mozilla/WinHeaderOnlyUtils.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/intl/Localization.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtrExtensions.h"
+#include "mozilla/widget/WinTaskbar.h"
+#include "mozilla/WindowsVersion.h"
+#include "mozilla/WinHeaderOnlyUtils.h"
+#include "nsAppDirectoryServiceDefs.h"
+#include "nsComponentManagerUtils.h"
+#include "nsDirectoryServiceDefs.h"
+#include "nsDirectoryServiceUtils.h"
+#include "nsIContent.h"
+#include "nsIFile.h"
+#include "nsIFileStreams.h"
+#include "nsIImageLoadingContent.h"
+#include "nsIMIMEService.h"
+#include "nsINIParser.h"
+#include "nsIOutputStream.h"
+#include "nsIPrefService.h"
+#include "nsIStringBundle.h"
+#include "nsIWindowsRegKey.h"
+#include "nsIXULAppInfo.h"
+#include "nsLocalFile.h"
+#include "nsNativeAppSupportWin.h"
+#include "nsNetUtil.h"
+#include "nsProxyRelease.h"
+#include "nsServiceManagerUtils.h"
+#include "nsShellService.h"
+#include "nsUnicharUtils.h"
+#include "nsWindowsHelpers.h"
+#include "nsXULAppAPI.h"
+#include "Windows11TaskbarPinning.h"
 #include "WindowsDefaultBrowser.h"
 #include "WindowsUserChoice.h"
-#include "nsLocalFile.h"
-#include "nsIXULAppInfo.h"
-#include "nsINIParser.h"
-#include "nsNativeAppSupportWin.h"
-#include "Windows11TaskbarPinning.h"
+#include "WinUtils.h"
 
-#include <windows.h>
+#include <comutil.h>
+#include <knownfolders.h>
+#include <mbstring.h>
+#include <objbase.h>
+#include <propkey.h>
+#include <propvarutil.h>
 #include <shellapi.h>
 #include <strsafe.h>
-#include <propvarutil.h>
-#include <propkey.h>
+#include <windows.h>
+#include <windows.foundation.h>
+#include <wrl.h>
+#include <wrl/wrappers/corewrappers.h>
 
-#ifdef __MINGW32__
-// MinGW-w64 headers are missing PropVariantToString.
-#  include <propsys.h>
-PSSTDAPI PropVariantToString(REFPROPVARIANT propvar, PWSTR psz, UINT cch);
-#  define UNLEN 256
-#else
-#  include <Lmcons.h>  // For UNLEN
-#  include <wrl.h>
-#  include <wrl/wrappers/corewrappers.h>
-#  include <windows.applicationmodel.h>
-#  include <windows.applicationmodel.core.h>
-#  include <windows.applicationmodel.activation.h>
-#  include <windows.foundation.h>
-#  include <windows.ui.startscreen.h>
-using namespace Microsoft::WRL;
 using namespace ABI::Windows;
 using namespace ABI::Windows::Foundation;
 using namespace ABI::Windows::Foundation::Collections;
+using namespace Microsoft::WRL;
+using namespace Microsoft::WRL::Wrappers;
+
+#ifndef __MINGW32__
+#  include <windows.applicationmodel.h>
+#  include <windows.applicationmodel.activation.h>
+#  include <windows.applicationmodel.core.h>
+#  include <windows.ui.startscreen.h>
 using namespace ABI::Windows::ApplicationModel;
 using namespace ABI::Windows::ApplicationModel::Core;
 using namespace ABI::Windows::UI::StartScreen;
-using namespace Microsoft::WRL::Wrappers;
 #endif
-
-#include <comutil.h>
-#include <objbase.h>
-#include <knownfolders.h>
-#include "WinUtils.h"
-#include "mozilla/widget/WinTaskbar.h"
-
-#include <mbstring.h>
 
 #define PRIVATE_BROWSING_BINARY L"private_browsing.exe"
 
