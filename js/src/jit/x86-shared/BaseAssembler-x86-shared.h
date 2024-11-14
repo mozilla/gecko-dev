@@ -4561,6 +4561,12 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.twoByteOp(OP_FENCE, (RegisterID)0, 0b110);
   }
 
+  void pause() {
+    spew("pause");
+    m_formatter.oneByteOp(PRE_REP);
+    m_formatter.oneByteOp(OP_NOP);
+  }
+
   // Assembler admin methods:
 
   JmpDst label() {

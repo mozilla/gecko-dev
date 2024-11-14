@@ -1782,6 +1782,15 @@ BufferOffset Assembler::as_csdb() {
   return writeInst(0xe320f000 | 0x14);
 }
 
+// Move Special Register and Hints:
+
+BufferOffset Assembler::as_yield() {
+  // YIELD hint instruction.
+  //
+  // YIELD A32: 1110_0011_0010_0000_1111_0000_0000_0001
+  return writeInst(0xe320f001);
+}
+
 // Control flow stuff:
 
 // bx can *only* branch to a register, never to an immediate.

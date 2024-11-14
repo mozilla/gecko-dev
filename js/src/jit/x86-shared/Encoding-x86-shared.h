@@ -158,6 +158,7 @@ enum OneByteOpcodeID {
   PRE_LOCK = 0xF0,
   PRE_SSE_F2 = 0xF2,
   PRE_SSE_F3 = 0xF3,
+  PRE_REP = 0xF3,
   OP_HLT = 0xF4,
   OP_GROUP3_EbIb = 0xF6,
   OP_GROUP3_Ev = 0xF7,

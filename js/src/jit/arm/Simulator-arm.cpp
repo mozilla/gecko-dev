@@ -292,6 +292,9 @@ class SimInstruction {
   // Test for a nop instruction, which falls under type 1.
   inline bool isNopType1() const { return bits(24, 0) == 0x0120F000; }
 
+  // Test for a yield instruction, which falls under type 1.
+  inline bool isYieldType1() const { return bits(24, 0) == 0x0120F001; }
+
   // Test for a nop instruction, which falls under type 1.
   inline bool isCsdbType1() const { return bits(24, 0) == 0x0120F014; }
 
@@ -2861,6 +2864,8 @@ void Simulator::decodeType01(SimInstruction* instr) {
     }
   } else if ((type == 1) && instr->isNopType1()) {
     // NOP.
+  } else if ((type == 1) && instr->isYieldType1()) {
+    AtomicOperations::pause();
   } else if ((type == 1) && instr->isCsdbType1()) {
     // Speculation barrier. (No-op for the simulator)
   } else {

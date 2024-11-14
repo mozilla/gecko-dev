@@ -1553,6 +1553,11 @@ class Assembler : public AssemblerShared {
   // Speculation barrier
   BufferOffset as_csdb();
 
+  // Move Special Register and Hints:
+
+  // yield hint instruction.
+  BufferOffset as_yield();
+
   // Control flow stuff:
 
   // bx can *only* branch to a register never to an immediate.
