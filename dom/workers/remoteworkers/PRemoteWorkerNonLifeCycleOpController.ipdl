@@ -3,6 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include RemoteWorkerTypes;
+include ServiceWorkerOpArgs;
 include SharedWorkerOpArgs;
 
 namespace mozilla {
@@ -19,6 +20,9 @@ parent:
 
 child:
   async ExecOp(SharedWorkerOpArgs aOpArgs);
+
+  async ExecServiceWorkerOp(ServiceWorkerOpArgs aOpArgs)
+      returns (ServiceWorkerOpResult aResult) ;
 
   async Shutdown();
 };

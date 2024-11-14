@@ -55,7 +55,7 @@ class ServiceWorkerOp : public RemoteWorkerOp {
   void StartOnMainThread(RefPtr<RemoteWorkerChild>& aOwner) final;
 
   void Start(RemoteWorkerNonLifeCycleOpControllerChild* aOwner,
-             RemoteWorkerState& aState) final {}
+             RemoteWorkerState& aState) final;
 
   void Cancel() final;
 

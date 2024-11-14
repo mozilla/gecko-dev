@@ -18,9 +18,12 @@ namespace mozilla::dom {
 
 using remoteworker::RemoteWorkerState;
 
+class ServiceWorkerOp;
+
 class RemoteWorkerNonLifeCycleOpControllerChild final
     : public PRemoteWorkerNonLifeCycleOpControllerChild {
   friend class PRemoteWorkerNonLifeCycleOpControllerChild;
+  friend class ServiceWorkerOp;
 
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(
@@ -31,6 +34,9 @@ class RemoteWorkerNonLifeCycleOpControllerChild final
   RemoteWorkerNonLifeCycleOpControllerChild();
 
   IPCResult RecvExecOp(SharedWorkerOpArgs&& aOpArgs);
+
+  IPCResult RecvExecServiceWorkerOp(ServiceWorkerOpArgs&& aOpArgs,
+                                    ExecServiceWorkerOpResolver&& aResolve);
 
   IPCResult RecvShutdown();
 
