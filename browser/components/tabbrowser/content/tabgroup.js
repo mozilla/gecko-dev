@@ -196,8 +196,8 @@
      *
      */
     ungroupTabs() {
-      for (let tab of this.tabs) {
-        gBrowser.ungroupTab(tab);
+      for (let i = this.tabs.length - 1; i >= 0; i--) {
+        gBrowser.ungroupTab(this.tabs[i]);
       }
     }
 

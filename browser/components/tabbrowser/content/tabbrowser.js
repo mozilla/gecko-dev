@@ -8566,8 +8566,8 @@ var TabContextMenu = {
 
   ungroupTabs() {
     if (this.contextTab.multiselected) {
-      for (let tab of gBrowser.selectedTabs) {
-        gBrowser.ungroupTab(tab);
+      for (let i = gBrowser.selectedTabs.length - 1; i >= 0; i--) {
+        gBrowser.ungroupTab(gBrowser.selectedTabs[i]);
       }
     } else {
       gBrowser.ungroupTab(this.contextTab);
