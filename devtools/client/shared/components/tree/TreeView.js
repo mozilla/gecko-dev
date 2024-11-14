@@ -10,23 +10,27 @@ define(function (require, exports, module) {
     Component,
     createFactory,
     createRef,
-  } = require("devtools/client/shared/vendor/react");
-  const { findDOMNode } = require("devtools/client/shared/vendor/react-dom");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const dom = require("devtools/client/shared/vendor/react-dom-factories");
+  } = require("resource://devtools/client/shared/vendor/react.js");
+  const {
+    findDOMNode,
+  } = require("resource://devtools/client/shared/vendor/react-dom.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 
   // Reps
   const {
     ObjectProvider,
-  } = require("devtools/client/shared/components/tree/ObjectProvider");
+  } = require("resource://devtools/client/shared/components/tree/ObjectProvider.js");
   const TreeRow = createFactory(
-    require("devtools/client/shared/components/tree/TreeRow")
+    require("resource://devtools/client/shared/components/tree/TreeRow.js")
   );
   const TreeHeader = createFactory(
-    require("devtools/client/shared/components/tree/TreeHeader")
+    require("resource://devtools/client/shared/components/tree/TreeHeader.js")
   );
 
-  const { scrollIntoView } = require("devtools/client/shared/scroll");
+  const {
+    scrollIntoView,
+  } = require("resource://devtools/client/shared/scroll.js");
 
   const SUPPORTED_KEYS = [
     "ArrowUp",

@@ -6,7 +6,7 @@
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
   // Dependencies
-  const React = require("devtools/client/shared/vendor/react");
+  const React = require("resource://devtools/client/shared/vendor/react.js");
 
   /**
    * Create React factories for given arguments.

@@ -5,9 +5,11 @@
 
 // Make this available to both AMD and CJS environments
 define(function (require, exports, module) {
-  const { Component } = require("devtools/client/shared/vendor/react");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const dom = require("devtools/client/shared/vendor/react-dom-factories");
+  const {
+    Component,
+  } = require("resource://devtools/client/shared/vendor/react.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
   const { thead, tr, td, div } = dom;
 
   /**

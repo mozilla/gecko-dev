@@ -9,24 +9,26 @@ define(function (require, exports, module) {
     Component,
     createFactory,
     createRef,
-  } = require("devtools/client/shared/vendor/react");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const dom = require("devtools/client/shared/vendor/react-dom-factories");
-  const { findDOMNode } = require("devtools/client/shared/vendor/react-dom");
+  } = require("resource://devtools/client/shared/vendor/react.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+  const {
+    findDOMNode,
+  } = require("resource://devtools/client/shared/vendor/react-dom.js");
   const { tr } = dom;
 
   // Tree
   const TreeCell = createFactory(
-    require("devtools/client/shared/components/tree/TreeCell")
+    require("resource://devtools/client/shared/components/tree/TreeCell.js")
   );
   const LabelCell = createFactory(
-    require("devtools/client/shared/components/tree/LabelCell")
+    require("resource://devtools/client/shared/components/tree/LabelCell.js")
   );
 
   const {
     wrapMoveFocus,
     getFocusableElements,
-  } = require("devtools/client/shared/focus");
+  } = require("resource://devtools/client/shared/focus.js");
 
   const UPDATE_ON_PROPS = [
     "name",

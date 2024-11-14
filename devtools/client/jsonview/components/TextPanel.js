@@ -5,15 +5,19 @@
 "use strict";
 
 define(function (require, exports) {
-  const { Component } = require("devtools/client/shared/vendor/react");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const dom = require("devtools/client/shared/vendor/react-dom-factories");
-  const { createFactories } = require("devtools/client/shared/react-utils");
+  const {
+    Component,
+  } = require("resource://devtools/client/shared/vendor/react.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+  const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
+  const {
+    createFactories,
+  } = require("resource://devtools/client/shared/react-utils.js");
   const { TextToolbar } = createFactories(
-    require("devtools/client/jsonview/components/TextToolbar")
+    require("resource://devtools/client/jsonview/components/TextToolbar.js")
   );
   const { LiveText } = createFactories(
-    require("devtools/client/jsonview/components/LiveText")
+    require("resource://devtools/client/jsonview/components/LiveText.js")
   );
   const { div } = dom;
 

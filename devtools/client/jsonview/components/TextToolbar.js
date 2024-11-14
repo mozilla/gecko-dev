@@ -5,11 +5,15 @@
 "use strict";
 
 define(function (require, exports) {
-  const { Component } = require("devtools/client/shared/vendor/react");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const { createFactories } = require("devtools/client/shared/react-utils");
+  const {
+    Component,
+  } = require("resource://devtools/client/shared/vendor/react.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+  const {
+    createFactories,
+  } = require("resource://devtools/client/shared/react-utils.js");
   const { Toolbar, ToolbarButton } = createFactories(
-    require("devtools/client/jsonview/components/reps/Toolbar")
+    require("resource://devtools/client/jsonview/components/reps/Toolbar.js")
   );
 
   /**

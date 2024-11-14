@@ -5,12 +5,16 @@
 "use strict";
 
 define(function (require) {
-  const { render } = require("devtools/client/shared/vendor/react-dom");
-  const { createFactories } = require("devtools/client/shared/react-utils");
+  const {
+    render,
+  } = require("resource://devtools/client/shared/vendor/react-dom.js");
+  const {
+    createFactories,
+  } = require("resource://devtools/client/shared/react-utils.js");
   const { MainTabbedArea } = createFactories(
-    require("devtools/client/jsonview/components/MainTabbedArea")
+    require("resource://devtools/client/jsonview/components/MainTabbedArea.js")
   );
-  const TreeViewClass = require("devtools/client/shared/components/tree/TreeView");
+  const TreeViewClass = require("resource://devtools/client/shared/components/tree/TreeView.js");
 
   const AUTO_EXPAND_MAX_SIZE = 100 * 1024;
   const AUTO_EXPAND_MAX_LEVEL = 7;

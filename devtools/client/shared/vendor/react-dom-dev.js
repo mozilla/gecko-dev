@@ -10,8 +10,8 @@
 'use strict';
 
 (function (global, factory) {
-	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('devtools/client/shared/vendor/react')) :
-	typeof define === 'function' && define.amd ? define(['devtools/client/shared/vendor/react'], factory) :
+	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('resource://devtools/client/shared/vendor/react.js')) :
+	typeof define === 'function' && define.amd ? define(['resource://devtools/client/shared/vendor/react.js'], factory) :
 	(global.ReactDOM = factory(global.React));
 }(this, (function (React) { 'use strict';
 

@@ -9,10 +9,10 @@
 
 (function(f) {
   if (typeof exports === 'object' && typeof module !== 'undefined') {
-    module.exports = f(require('devtools/client/shared/vendor/react'));
+    module.exports = f(require('resource://devtools/client/shared/vendor/react.js'));
     /* global define */
   } else if (typeof define === 'function' && define.amd) {
-    define(['devtools/client/shared/vendor/react'], f);
+    define(['resource://devtools/client/shared/vendor/react.js'], f);
   } else {
     var g;
     if (typeof window !== 'undefined') {

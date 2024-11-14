@@ -68,6 +68,11 @@ yarn
 yarn build
 ```
 
+## Edit the generated files
+
+- Replace all instances of `'react'` with `'resource://devtools/client/shared/vendor/react.js'` (including the quotes) in all the files
+  to be copied in the next paragraph.
+
 ### Copy the Files Into your Firefox Repo
 
 ```bash

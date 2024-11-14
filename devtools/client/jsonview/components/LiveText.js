@@ -5,10 +5,16 @@
 "use strict";
 
 define(function (require, exports) {
-  const { Component } = require("devtools/client/shared/vendor/react");
-  const PropTypes = require("devtools/client/shared/vendor/react-prop-types");
-  const { findDOMNode } = require("devtools/client/shared/vendor/react-dom");
-  const { pre } = require("devtools/client/shared/vendor/react-dom-factories");
+  const {
+    Component,
+  } = require("resource://devtools/client/shared/vendor/react.js");
+  const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
+  const {
+    findDOMNode,
+  } = require("resource://devtools/client/shared/vendor/react-dom.js");
+  const {
+    pre,
+  } = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 
   /**
    * This object represents a live DOM text node in a <pre>.

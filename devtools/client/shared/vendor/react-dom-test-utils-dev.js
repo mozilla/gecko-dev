@@ -11,7 +11,7 @@
 
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require("resource://devtools/client/shared/vendor/react.js"), require("resource://devtools/client/shared/vendor/react-dom.js")) :
-	typeof define === 'function' && define.amd ? define(['devtools/client/shared/vendor/react', 'devtools/client/shared/vendor/react-dom'], factory) :
+	typeof define === 'function' && define.amd ? define(['resource://devtools/client/shared/vendor/react.js', 'resource://devtools/client/shared/vendor/react-dom.js'], factory) :
 	(global.ReactTestUtils = factory(global.React,global.ReactDOM));
 }(this, (function (React,ReactDOM) { 'use strict';
 
