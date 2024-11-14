@@ -72,27 +72,12 @@ export class CookieBannerChild extends JSWindowActorChild {
   // Caches the enabled state to ensure we only compute it once for the lifetime
   // of the actor. Particularly the private browsing check can be expensive.
   #isEnabledCached = null;
-  #isTopLevel;
   #clickRules;
   #observerCleanUp;
   #observerCleanUpTimer;
   // Indicates whether the page "load" event occurred.
   #didLoad = false;
-  // Indicates whether we are using global rules to handle the banner.
-  #isUsingGlobalRules = false;
 
-  // Used to keep track of click telemetry for the current window.
-  #telemetryStatus = {
-    currentStage: null,
-    success: false,
-    successStage: null,
-    failReason: null,
-    bannerVisibilityFail: false,
-    querySelectorCount: 0,
-    querySelectorTimeMS: 0,
-    bannerDetectedAfterCookieInjection: false,
-    detectedCMP: [],
-  };
   // Indicates whether we should stop running the cookie banner handling
   // mechanism because it has been previously executed for the site. So, we can
   // cool down the cookie banner handing to improve performance.
@@ -192,9 +177,7 @@ export class CookieBannerChild extends JSWindowActorChild {
    */
   async #onDOMContentLoaded() {
     lazy.logConsole.debug("onDOMContentLoaded", { didLoad: this.#didLoad });
-    this.#isTopLevel = this.browsingContext == this.browsingContext?.top;
     this.#didLoad = false;
-    this.#telemetryStatus.currentStage = "dom_content_loaded";
 
     let principal = this.document?.nodePrincipal;
 
@@ -211,7 +194,7 @@ export class CookieBannerChild extends JSWindowActorChild {
 
     lazy.logConsole.debug("Send message to get rule", {
       baseDomain: principal.baseDomain,
-      isTopLevel: this.#isTopLevel,
+      isTopLevel: this.browsingContext == this.browsingContext?.top,
     });
     let rules;
 
@@ -232,28 +215,13 @@ export class CookieBannerChild extends JSWindowActorChild {
     if (!rules.length) {
       // If the cookie injector has handled the banner and there are no click
       // rules we still need to dispatch a "cookiebannerhandled" event.
-      let dispatchedEvents = this.#dispatchEventsForBannerHandledByInjection();
-      // Record telemetry about handling the banner via cookie injection.
-      // Note: The success state recorded here may be invalid if the given
-      // cookie fails to handle the banner. Since we don't have a presence
-      // detector for this rule we can't determine whether the banner is still
-      // showing or not.
-      if (dispatchedEvents) {
-        this.#telemetryStatus.failReason = null;
-        this.#telemetryStatus.success = true;
-        this.#telemetryStatus.successStage = "cookie_injected";
-      }
+      this.#dispatchEventsForBannerHandledByInjection();
 
       this.#maybeSendTestMessage();
       return;
     }
 
     this.#clickRules = rules;
-
-    // Check if we are using global rules. If we are using a site rule, there
-    // will be one rule has its isGlobalRule property set to false. Otherwise,
-    // we are using global rules if every rule has this property set to true.
-    this.#isUsingGlobalRules = rules.every(rule => rule.isGlobalRule);
 
     let { bannerHandled, bannerDetected, matchedRules } =
       await this.handleCookieBanner();
@@ -263,20 +231,6 @@ export class CookieBannerChild extends JSWindowActorChild {
 
     let dispatchedEventsForCookieInjection =
       this.#dispatchEventsForBannerHandledByInjection();
-    if (dispatchedEventsForCookieInjection) {
-      if (bannerDetected) {
-        // Record the failure that the banner is still present with cookies
-        // injected.
-        this.#telemetryStatus.bannerDetectedAfterCookieInjection = true;
-      } else {
-        // A cookie injection followed by not detecting the banner via querySelector
-        // is a success state. Record that in telemetry.
-        // Note: The success state reported may be invalid in edge cases where both
-        // the cookie injection and the banner detection via query selector fails.
-        this.#telemetryStatus.success = true;
-        this.#telemetryStatus.successStage = "cookie_injected";
-      }
-    }
 
     // 1. Detected event.
     if (bannerDetected) {
@@ -322,11 +276,6 @@ export class CookieBannerChild extends JSWindowActorChild {
       hasActiveObserver: !!this.#observerCleanUp,
       observerCleanupTimer: this.#observerCleanUpTimer,
     });
-
-    // Update stage for click telemetry.
-    if (!this.#telemetryStatus.success) {
-      this.#telemetryStatus.currentStage = "mutation_post_load";
-    }
 
     // On load reset the timer for cleanup.
     this.#startOrResetCleanupTimer();
@@ -379,129 +328,8 @@ export class CookieBannerChild extends JSWindowActorChild {
   }
 
   didDestroy() {
-    this.#reportTelemetry();
-
     // Clean up the observer and timer if needed.
     this.#observerCleanUp?.();
-  }
-
-  #reportTelemetry() {
-    // Nothing to report, banner handling didn't run.
-    if (
-      this.#telemetryStatus.successStage == null &&
-      this.#telemetryStatus.failReason == null
-    ) {
-      lazy.logConsole.debug(
-        "Skip telemetry",
-        this.#telemetryStatus,
-        this.#clickRules
-      );
-      return;
-    }
-
-    let {
-      success,
-      successStage,
-      currentStage,
-      failReason,
-      bannerDetectedAfterCookieInjection,
-      detectedCMP,
-    } = this.#telemetryStatus;
-
-    // Check if we got interrupted during an observe.
-    if (this.#observerCleanUp && !success) {
-      failReason = "actor_destroyed";
-    }
-
-    let status, reason;
-    if (success) {
-      status = "success";
-      reason = successStage;
-    } else {
-      status = "fail";
-      reason = failReason;
-    }
-
-    // Select the target result telemetry.
-    let resultTelemetry = this.#isUsingGlobalRules
-      ? Glean.cookieBannersCmp.result
-      : Glean.cookieBannersClick.result;
-
-    // Increment general success or failure counter.
-    resultTelemetry[status].add(1);
-    // Increment reason counters.
-    if (reason) {
-      resultTelemetry[`${status}_${reason}`].add(1);
-    } else {
-      lazy.logConsole.debug(
-        "Could not determine success / fail reason for telemetry."
-      );
-    }
-
-    lazy.logConsole.debug("Submitted clickResult telemetry", status, reason, {
-      success,
-      successStage,
-      currentStage,
-      failReason,
-    });
-
-    let { querySelectorCount, querySelectorTimeMS } = this.#telemetryStatus;
-
-    // Glean needs an integer.
-    let querySelectorTimeUS = Math.round(querySelectorTimeMS * 1000);
-
-    if (this.#isTopLevel) {
-      Glean.cookieBannersClick.querySelectorRunCountPerWindowTopLevel.accumulateSingleSample(
-        querySelectorCount
-      );
-      Glean.cookieBannersClick.querySelectorRunDurationPerWindowTopLevel.accumulateSingleSample(
-        querySelectorTimeUS
-      );
-    } else {
-      Glean.cookieBannersClick.querySelectorRunCountPerWindowFrame.accumulateSingleSample(
-        querySelectorCount
-      );
-      Glean.cookieBannersClick.querySelectorRunDurationPerWindowFrame.accumulateSingleSample(
-        querySelectorTimeUS
-      );
-    }
-
-    lazy.logConsole.debug("Submitted querySelector telemetry", {
-      isTopLevel: this.#isTopLevel,
-      querySelectorCount,
-      querySelectorTimeUS,
-      querySelectorTimeMS,
-    });
-
-    if (bannerDetectedAfterCookieInjection) {
-      Glean.cookieBanners.cookieInjectionFail.add(1);
-    }
-
-    lazy.logConsole.debug("Submitted cookieInjectionFail telemetry", {
-      bannerDetectedAfterCookieInjection,
-    });
-
-    if (detectedCMP.length) {
-      detectedCMP.forEach(id => {
-        Glean.cookieBannersCmp.detectedCmp[id].add(1);
-      });
-    }
-
-    lazy.logConsole.debug("Submitted detectedCMP telemetry", {
-      detectedCMP,
-    });
-
-    // Record whether the banner was handled by a global rule or a site rule.
-    if (success && reason != "cookie_injected") {
-      Glean.cookieBannersCmp.ratioHandledByCmpRule.addToDenominator(1);
-      if (this.#isUsingGlobalRules) {
-        Glean.cookieBannersCmp.ratioHandledByCmpRule.addToNumerator(1);
-      }
-
-      lazy.logConsole.debug("Submitted handled ratio telemetry", {
-        isUsingGlobalRules: this.#isUsingGlobalRules,
-      });
-    }
   }
 
   /**
@@ -524,23 +352,7 @@ export class CookieBannerChild extends JSWindowActorChild {
 
     if (!rules.length) {
       // The banner was never shown.
-      this.#telemetryStatus.success = false;
-      if (this.#telemetryStatus.bannerVisibilityFail) {
-        this.#telemetryStatus.failReason = "banner_not_visible";
-      } else {
-        this.#telemetryStatus.failReason = "banner_not_found";
-      }
-
       return { bannerHandled: false, bannerDetected: false };
-    }
-
-    // Record every detected CMP. Note that our detection mechanism return every
-    // rule if the presence detector matches. So, we could have multiple CMPs
-    // if the page contains elements match presence detector of them.
-    if (this.#isUsingGlobalRules) {
-      rules.forEach(rule => {
-        this.#telemetryStatus.detectedCMP.push(rule.id);
-      });
     }
 
     // No rule with valid button to click. This can happen if we're in
@@ -548,8 +360,6 @@ export class CookieBannerChild extends JSWindowActorChild {
     // This also applies when detect-only mode is enabled. We only want to
     // dispatch events matching the current service mode.
     if (rules.every(rule => rule.target == null)) {
-      this.#telemetryStatus.success = false;
-      this.#telemetryStatus.failReason = "no_rule_for_mode";
       return { bannerHandled: false, bannerDetected: false };
     }
 
@@ -560,15 +370,6 @@ export class CookieBannerChild extends JSWindowActorChild {
 
     let successClick = false;
     successClick = await this.#clickTarget(rules);
-
-    if (successClick) {
-      // For telemetry, Keep track of in which stage we successfully handled the banner.
-      this.#telemetryStatus.successStage = this.#telemetryStatus.currentStage;
-    } else {
-      this.#telemetryStatus.failReason = "button_not_found";
-      this.#telemetryStatus.successStage = null;
-    }
-    this.#telemetryStatus.success = successClick;
 
     return {
       bannerHandled: successClick,
@@ -684,7 +485,7 @@ export class CookieBannerChild extends JSWindowActorChild {
       let matchingRules = this.#clickRules.filter(rule => {
         let { presence, skipPresenceVisibilityCheck } = rule;
 
-        let banner = this.#querySelector(presence);
+        let banner = this.document.querySelector(presence);
         lazy.logConsole.debug("Testing banner el presence", {
           result: banner,
           rule,
@@ -694,16 +495,11 @@ export class CookieBannerChild extends JSWindowActorChild {
         if (!banner) {
           return false;
         }
+
         if (skipPresenceVisibilityCheck) {
           return true;
         }
-
-        let isVisible = this.#isVisible(banner);
-        // Store visibility of banner element to keep track of why detection
-        // failed.
-        this.#telemetryStatus.bannerVisibilityFail = !isVisible;
-
-        return isVisible;
+        return this.#isVisible(banner);
       });
 
       // For no rules matched return null explicitly so #promiseObserve knows we
@@ -725,7 +521,6 @@ export class CookieBannerChild extends JSWindowActorChild {
         "Initial presenceDetector failed, registering MutationObserver",
         rules
       );
-      this.#telemetryStatus.currentStage = "mutation_pre_load";
       rules = await this.#promiseObserve(presenceDetector);
     }
 
@@ -745,7 +540,7 @@ export class CookieBannerChild extends JSWindowActorChild {
 
     let targetEl;
     for (let rule of rules) {
-      targetEl = this.#querySelector(rule.target);
+      targetEl = this.document.querySelector(rule.target);
       if (targetEl) {
         break;
       }
@@ -756,7 +551,7 @@ export class CookieBannerChild extends JSWindowActorChild {
     if (!targetEl) {
       targetEl = await this.#promiseObserve(() => {
         for (let rule of rules) {
-          let el = this.#querySelector(rule.target);
+          let el = this.document.querySelector(rule.target);
 
           lazy.logConsole.debug("Testing button el presence", {
             result: el,
@@ -794,22 +589,6 @@ export class CookieBannerChild extends JSWindowActorChild {
       checkOpacity: true,
       checkVisibilityCSS: true,
     });
-  }
-
-  /**
-   * Wrapper around document.querySelector calls which collects perf telemetry.
-   * @param {string} selectors - Selector list passed into document.querySelector.
-   * @returns document.querySelector result.
-   */
-  #querySelector(selectors) {
-    let start = Cu.now();
-
-    let result = this.document.querySelector(selectors);
-
-    this.#telemetryStatus.querySelectorTimeMS += Cu.now() - start;
-    this.#telemetryStatus.querySelectorCount += 1;
-
-    return result;
   }
 
   #maybeSendTestMessage() {

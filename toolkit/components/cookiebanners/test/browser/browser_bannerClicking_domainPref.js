@@ -37,8 +37,6 @@ add_task(async function test_domain_preference() {
       });
     }
 
-    await testClickResultTelemetry({});
-
     info(
       "Make sure the example.org follows the pref setting when there is no domain preference."
     );
@@ -49,14 +47,6 @@ add_task(async function test_domain_preference() {
       visible: true,
       expected: "NoClick",
     });
-
-    await testClickResultTelemetry(
-      {
-        fail: 1,
-        fail_no_rule_for_mode: 1,
-      },
-      false
-    );
 
     Services.cookieBanners.removeAllExecutedRecords(testPBM);
 
@@ -84,13 +74,6 @@ add_task(async function test_domain_preference() {
     if (testPBM) {
       await BrowserTestUtils.closeWindow(testWin);
     }
-
-    await testClickResultTelemetry({
-      fail: 1,
-      fail_no_rule_for_mode: 1,
-      success: 1,
-      success_dom_content_loaded: 1,
-    });
   }
 });
 
@@ -114,8 +97,6 @@ add_task(async function test_domain_preference_iframe() {
   Services.cookieBanners.removeAllExecutedRecords(true);
   Services.cookieBanners.removeAllExecutedRecords(false);
 
-  await testClickResultTelemetry({});
-
   for (let testPBM of [false, true]) {
     let testWin = window;
     if (testPBM) {
@@ -134,14 +115,6 @@ add_task(async function test_domain_preference_iframe() {
       visible: true,
       expected: "NoClick",
     });
-
-    await testClickResultTelemetry(
-      {
-        fail: 1,
-        fail_no_rule_for_mode: 1,
-      },
-      false
-    );
 
     Services.cookieBanners.removeAllExecutedRecords(testPBM);
 
@@ -171,13 +144,6 @@ add_task(async function test_domain_preference_iframe() {
     if (testPBM) {
       await BrowserTestUtils.closeWindow(testWin);
     }
-
-    await testClickResultTelemetry({
-      fail: 1,
-      fail_no_rule_for_mode: 1,
-      success: 1,
-      success_dom_content_loaded: 1,
-    });
   }
 });
 

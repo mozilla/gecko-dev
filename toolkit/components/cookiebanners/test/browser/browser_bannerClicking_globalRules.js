@@ -76,8 +76,6 @@ add_task(async function test_clicking_global_rules() {
   );
   Services.cookieBanners.insertRule(ruleD);
 
-  await testCMPResultTelemetry({});
-
   info("The global rule ruleA should handle both test pages with div#banner.");
   await openPageAndVerify({
     domain: TEST_DOMAIN_A,
@@ -85,14 +83,6 @@ add_task(async function test_clicking_global_rules() {
     visible: false,
     expected: "OptOut",
   });
-
-  await testCMPResultTelemetry(
-    {
-      success: 1,
-      success_dom_content_loaded: 1,
-    },
-    false
-  );
 
   Services.cookieBanners.removeAllExecutedRecords(false);
 
@@ -102,14 +92,6 @@ add_task(async function test_clicking_global_rules() {
     visible: false,
     expected: "OptOut",
   });
-
-  await testCMPResultTelemetry(
-    {
-      success: 2,
-      success_dom_content_loaded: 2,
-    },
-    false
-  );
 
   Services.cookieBanners.removeAllExecutedRecords(false);
 
@@ -121,16 +103,6 @@ add_task(async function test_clicking_global_rules() {
     expected: "NoClick",
     bannerId: "bannerB",
   });
-
-  await testCMPResultTelemetry(
-    {
-      success: 2,
-      success_dom_content_loaded: 2,
-      fail: 1,
-      fail_banner_not_found: 1,
-    },
-    false
-  );
 
   await SpecialPowers.pushPrefEnv({
     set: [["cookiebanners.bannerClicking.timeoutAfterLoad", 10000]],
@@ -150,14 +122,6 @@ add_task(async function test_clicking_global_rules() {
   });
 
   await SpecialPowers.popPrefEnv();
-
-  await testCMPResultTelemetry({
-    success: 3,
-    success_dom_content_loaded: 2,
-    fail: 1,
-    fail_banner_not_found: 1,
-    success_mutation_pre_load: 1,
-  });
 });
 
 /**
@@ -216,8 +180,6 @@ add_task(async function test_clicking_global_rules_precedence() {
   );
   Services.cookieBanners.insertRule(ruleDomain);
 
-  await testCMPResultTelemetry({});
-
   info("Test that the domain-specific rule applies, not the global one.");
   await openPageAndVerify({
     domain: TEST_DOMAIN_A,
@@ -227,8 +189,4 @@ add_task(async function test_clicking_global_rules_precedence() {
     // applies, opt-in means the domain specific rule applies.
     expected: "OptIn",
   });
-
-  // Ensure we don't accidentally collect CMP result telemetry when
-  // domain-specific rule applies.
-  await testCMPResultTelemetry({});
 });

@@ -177,9 +177,7 @@ add_setup(async () => {
     insertRule,
     removeRule,
     resetRules() {},
-    resetDomainTelemetryRecord() {},
   };
-
   // Remove stubs on test end.
   registerCleanupFunction(() => {
     Services.cookieBanners = oldCookieBanners;

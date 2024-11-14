@@ -57,8 +57,6 @@ add_task(async function test_clicking_with_delayed_banner() {
 
     insertVisibilityTestRules(skipPresenceVisibilityCheck);
 
-    await testClickResultTelemetry({});
-
     await openPageAndVerify({
       win: window,
       domain: TEST_DOMAIN_A,
@@ -66,19 +64,5 @@ add_task(async function test_clicking_with_delayed_banner() {
       visible: false,
       expected: skipPresenceVisibilityCheck ? "OptOut" : "NoClick",
     });
-
-    let expectedTelemetry;
-    if (skipPresenceVisibilityCheck) {
-      expectedTelemetry = {
-        success: 1,
-        success_dom_content_loaded: 1,
-      };
-    } else {
-      expectedTelemetry = {
-        fail: 1,
-        fail_banner_not_visible: 1,
-      };
-    }
-    await testClickResultTelemetry(expectedTelemetry);
   }
 });
