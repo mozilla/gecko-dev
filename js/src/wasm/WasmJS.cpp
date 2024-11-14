@@ -3395,13 +3395,19 @@ bool WasmTagObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 
   RefPtr<TypeContext> types = js_new<TypeContext>();
   if (!types) {
+    ReportOutOfMemory(cx);
     return false;
   }
   const TypeDef* tagTypeDef =
       types->addType(FuncType(std::move(params), ValTypeVector()));
+  if (!tagTypeDef) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
 
   wasm::MutableTagType tagType = js_new<wasm::TagType>();
   if (!tagType || !tagType->initialize(tagTypeDef)) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
