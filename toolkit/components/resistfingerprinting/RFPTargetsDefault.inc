@@ -5,6 +5,8 @@
 
 DESKTOP_DEFAULT(CanvasRandomization)
 DESKTOP_DEFAULT(FontVisibilityLangPack)
+DESKTOP_DEFAULT(JSMathFdlibm)
 
 ANDROID_DEFAULT(CanvasRandomization)
 ANDROID_DEFAULT(FontVisibilityLangPack)
+ANDROID_DEFAULT(JSMathFdlibm)

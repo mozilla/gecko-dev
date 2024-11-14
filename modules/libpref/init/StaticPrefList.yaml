@@ -8663,7 +8663,11 @@
 # anyway.
 - name: javascript.options.use_fdlibm_for_sin_cos_tan
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+#if defined(XP_WIN)
+  value: false
+#else
+  value: true
+#endif
   mirror: always
   set_spidermonkey_pref: always
 
