@@ -369,7 +369,8 @@
     <color name="material_scrim_color">#52000000</color>
 
     <!-- Add-ons colors -->
-    <color name="mozac_feature_addons_error_text_color" tools:ignore="UnusedResources">@color/photonRed50</color>
+    <color name="mozac_feature_addons_messagebar_error_background_color" tools:ignore="UnusedResources">@color/fx_mobile_layer_color_critical</color>
+    <color name="mozac_feature_addons_messagebar_warning_background_color" tools:ignore="UnusedResources">@color/fx_mobile_layer_color_warning</color>
 
     <!-- Star icon fill colors -->
     <color name="mozac_ic_star_filled">@color/photonBlack</color>

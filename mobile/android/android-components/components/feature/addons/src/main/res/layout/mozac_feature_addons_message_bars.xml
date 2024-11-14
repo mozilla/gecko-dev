@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/add_on_messagebar_warning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:visibility="gone"
+        tools:visibility="visible"
+        app:cardCornerRadius="8dp"
+        app:cardBackgroundColor="@color/mozac_feature_addons_messagebar_warning_background_color"
+        app:cardElevation="0dp"
+        android:layout_marginHorizontal="16dp">
+
+          <LinearLayout
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:orientation="horizontal"
+              android:layout_marginVertical="8dp">
+
+              <androidx.appcompat.widget.AppCompatImageView
+                  android:id="@+id/add_on_messagebar_warning_icon"
+                  android:layout_width="0dp"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="center_horizontal"
+                  android:layout_marginStart="8dp"
+                  android:layout_marginEnd="8dp"
+                  android:layout_weight="1"
+                  app:tint="?attr/mozac_primary_text_color"
+                  app:srcCompat="@drawable/mozac_ic_warning_fill_24"
+                  tools:tint="@color/photonDarkGrey90" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="9"
+                    android:layout_marginEnd="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/add_on_messagebar_warning_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/mozac_primary_text_color"
+                        android:textSize="14sp"
+                        tools:text="@string/mozac_feature_addons_status_softblocked_1"
+                        tools:textColor="@color/photonDarkGrey90" />
+
+                    <TextView
+                        android:id="@+id/add_on_messagebar_warning_learn_more_link"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/mozac_feature_addons_status_see_details"
+                        android:textColor="?attr/mozac_primary_text_color"
+                        android:textSize="14sp"
+                        tools:textColor="@color/photonDarkGrey90" />
+                </LinearLayout>
+          </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/add_on_messagebar_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:visibility="gone"
+        tools:visibility="visible"
+        app:cardCornerRadius="8dp"
+        app:cardBackgroundColor="@color/mozac_feature_addons_messagebar_error_background_color"
+        app:cardElevation="0dp"
+        android:layout_marginHorizontal="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginVertical="8dp">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/add_on_messagebar_icon"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                app:tint="?attr/mozac_primary_text_color"
+                app:srcCompat="@drawable/mozac_ic_critical_fill_24"
+                tools:tint="@color/photonDarkGrey90" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="9"
+                android:layout_marginEnd="12dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/add_on_messagebar_error_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/mozac_primary_text_color"
+                    android:textSize="14sp"
+                    tools:textColor="@color/photonDarkGrey90"
+                    tools:text="@string/mozac_feature_addons_status_unsigned" />
+
+                <TextView
+                    android:id="@+id/add_on_messagebar_error_learn_more_link"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/mozac_feature_addons_status_learn_more"
+                    android:textColor="?attr/mozac_primary_text_color"
+                    android:textSize="14sp"
+                    tools:textColor="@color/photonDarkGrey90" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</LinearLayout>

@@ -6,6 +6,6 @@
   -->
 
 <resources>
-    <!-- Color for the text of the error statuses in the add-ons manager. -->
-    <color name="mozac_feature_addons_error_text_color">#ff0000</color>
+    <color name="mozac_feature_addons_messagebar_error_background_color">#ff0000</color>
+    <color name="mozac_feature_addons_messagebar_warning_background_color">#ffff00</color>
 </resources>
