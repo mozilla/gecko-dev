@@ -8199,11 +8199,18 @@
   set_spidermonkey_pref: startup
 
 # Experimental support for Uint8Array base64/hex in JavaScript.
--   name: javascript.options.experimental.uint8array_base64
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: startup
+- name: javascript.options.experimental.uint8array_base64
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
+
+# Experimental support for Promise.try in JavaScript.
+- name: javascript.options.experimental.promise_try
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
 
 #ifdef NIGHTLY_BUILD
   # Experimental support for Async Iterator Helpers in JavaScript.
@@ -8228,13 +8235,6 @@
 
   # Experimental support for RegExp.escape in JavaScript.
 -   name: javascript.options.experimental.regexp_escape
-    type: bool
-    value: false
-    mirror: always
-    set_spidermonkey_pref: startup
-
-  # Experimental support for Promise.try in JavaScript.
--   name: javascript.options.experimental.promise_try
     type: bool
     value: false
     mirror: always

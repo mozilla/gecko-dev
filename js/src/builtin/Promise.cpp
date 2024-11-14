@@ -4907,7 +4907,6 @@ PromiseObject* PromiseObject::unforgeableResolveWithNonPromise(
   return promise;
 }
 
-#ifdef NIGHTLY_BUILD
 /**
  * https://tc39.es/proposal-promise-try/
  *
@@ -4984,7 +4983,6 @@ static bool Promise_static_try(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setObject(*promiseObject);
   return true;
 }
-#endif
 
 /**
  * https://tc39.es/proposal-promise-with-resolvers/
@@ -7086,9 +7084,7 @@ static const JSFunctionSpec promise_static_methods[] = {
     JS_FN("reject", Promise_reject, 1, 0),
     JS_FN("resolve", js::Promise_static_resolve, 1, 0),
     JS_FN("withResolvers", Promise_static_withResolvers, 0, 0),
-#ifdef NIGHTLY_BUILD
     JS_FN("try", Promise_static_try, 1, 0),
-#endif
     JS_FS_END,
 };
 
