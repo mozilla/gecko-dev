@@ -31,8 +31,14 @@ void GlobalVariableInitializationChecker::check(
     const MatchFinder::MatchResult &Result) {
   if (const VarDecl *VD =
           Result.Nodes.getNodeAs<VarDecl>("flagged-constinit_global")) {
-    diag(VD->getBeginLoc(), "Global variable flagged as MOZ_RUNINIT but actually has constant initialisation. Consider flagging it as constexpr or MOZ_CONSTINIT instead.",
-         DiagnosticIDs::Error);
+    if (VD->hasConstantInitialization()) {
+      diag(VD->getBeginLoc(), "Global variable flagged as MOZ_RUNINIT but actually has constinit initialisation. Consider flagging it as constexpr or MOZ_CONSTINIT instead.",
+           DiagnosticIDs::Error);
+    }
+    else {
+      diag(VD->getBeginLoc(), "Global variable flagged as MOZ_RUNINIT but actually has constant initialisation. Consider removing the annotation or (as a last resort) flagging it as MOZ_GLOBINIT.",
+           DiagnosticIDs::Error);
+    }
   }
 
   if (const VarDecl *VD =

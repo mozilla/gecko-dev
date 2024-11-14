@@ -43,7 +43,15 @@ struct InvalidRuninitGlobal {
   constexpr InvalidRuninitGlobal() {}
 };
 
-MOZ_RUNINIT InvalidRuninitGlobal g5; // expected-error {{Global variable flagged as MOZ_RUNINIT but actually has constant initialisation. Consider flagging it as constexpr or MOZ_CONSTINIT instead.}}
+MOZ_RUNINIT InvalidRuninitGlobal g5; // expected-error {{Global variable flagged as MOZ_RUNINIT but actually has constinit initialisation. Consider flagging it as constexpr or MOZ_CONSTINIT instead.}}
+constexpr InvalidRuninitGlobal g5a;
+
+struct InvalidRuninitGlobal2 {
+  int i;
+};
+
+MOZ_RUNINIT InvalidRuninitGlobal2 g5b; // expected-error {{Global variable flagged as MOZ_RUNINIT but actually has constant initialisation. Consider removing the annotation or (as a last resort) flagging it as MOZ_GLOBINIT.}}
+InvalidRuninitGlobal2 g5c;
 
 // Static variable with extern constructor
 Global g6;  // expected-error {{Global variable has runtime initialisation, try to remove it, make it constexpr or MOZ_CONSTINIT if possible, or as a last resort flag it as MOZ_RUNINIT.}}
