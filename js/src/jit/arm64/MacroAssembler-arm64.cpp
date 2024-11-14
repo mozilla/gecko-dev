@@ -2968,6 +2968,8 @@ void MacroAssembler::atomicEffectOpJS(Scalar::Type arrayType,
                        value, temp, temp);
 }
 
+void MacroAssembler::atomicPause() { Isb(); }
+
 void MacroAssembler::flexibleQuotient32(Register rhs, Register srcDest,
                                         bool isUnsigned,
                                         const LiveRegisterSet&) {

@@ -1725,6 +1725,8 @@ void MacroAssembler::atomicFetchOpJS(Scalar::Type arrayType,
   AtomicFetchOpJS(*this, arrayType, sync, op, value, mem, temp1, temp2, output);
 }
 
+void MacroAssembler::atomicPause() { masm.pause(); }
+
 // ========================================================================
 // Spectre Mitigations.
 

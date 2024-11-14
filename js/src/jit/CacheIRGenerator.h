@@ -757,6 +757,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
   AttachDecision tryAttachAtomicsLoad();
   AttachDecision tryAttachAtomicsStore();
   AttachDecision tryAttachAtomicsIsLockFree();
+  AttachDecision tryAttachAtomicsPause();
   AttachDecision tryAttachBoolean();
   AttachDecision tryAttachBailout();
   AttachDecision tryAttachAssertFloat32();

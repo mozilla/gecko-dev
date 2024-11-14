@@ -4813,6 +4813,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void atomicIsLockFreeJS(Register value, Register output);
 
+  void atomicPause() PER_SHARED_ARCH;
+
   // ========================================================================
   // Spectre Mitigations.
   //

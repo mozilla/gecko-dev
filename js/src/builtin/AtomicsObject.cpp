@@ -1118,7 +1118,7 @@ const JSFunctionSpec AtomicsMethods[] = {
     JS_FN("notify", atomics_notify, 3, 0),
     JS_FN("wake", atomics_notify, 3, 0),  // Legacy name
 #ifdef NIGHTLY_BUILD
-    JS_FN("pause", atomics_pause, 0, 0),
+    JS_INLINABLE_FN("pause", atomics_pause, 0, 0, AtomicsPause),
 #endif
     JS_FS_END,
 };

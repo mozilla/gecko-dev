@@ -42,6 +42,7 @@
   _(AtomicsOr)                                     \
   _(AtomicsXor)                                    \
   _(AtomicsIsLockFree)                             \
+  _(AtomicsPause)                                  \
                                                    \
   _(BigInt)                                        \
   _(BigIntAsIntN)                                  \

@@ -5111,6 +5111,14 @@ bool WarpCacheIRTranspiler::emitAtomicsIsLockFreeResult(
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitAtomicsPauseResult() {
+  auto* ins = MAtomicPause::New(alloc());
+  add(ins);
+
+  pushResult(constant(UndefinedValue()));
+  return true;
+}
+
 bool WarpCacheIRTranspiler::emitBigIntAsIntNResult(Int32OperandId bitsId,
                                                    BigIntOperandId bigIntId) {
   MDefinition* bits = getOperand(bitsId);

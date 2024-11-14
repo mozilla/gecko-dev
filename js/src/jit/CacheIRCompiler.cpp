@@ -10390,6 +10390,17 @@ bool CacheIRCompiler::emitAtomicsIsLockFreeResult(Int32OperandId valueId) {
   return true;
 }
 
+bool CacheIRCompiler::emitAtomicsPauseResult() {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoOutputRegister output(*this);
+
+  masm.atomicPause();
+  masm.moveValue(UndefinedValue(), output.valueReg());
+
+  return true;
+}
+
 bool CacheIRCompiler::emitBigIntAsIntNResult(Int32OperandId bitsId,
                                              BigIntOperandId bigIntId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

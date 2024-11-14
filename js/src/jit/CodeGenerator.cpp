@@ -19153,6 +19153,8 @@ void CodeGenerator::visitAtomicIsLockFree(LAtomicIsLockFree* lir) {
   masm.atomicIsLockFreeJS(value, output);
 }
 
+void CodeGenerator::visitAtomicPause(LAtomicPause* lir) { masm.atomicPause(); }
+
 void CodeGenerator::visitClampIToUint8(LClampIToUint8* lir) {
   Register output = ToRegister(lir->output());
   MOZ_ASSERT(output == ToRegister(lir->input()));

@@ -5860,6 +5860,8 @@ void MacroAssembler::atomicEffectOpJS(Scalar::Type arrayType,
   AtomicEffectOp(*this, nullptr, arrayType, sync, op, value, mem, temp);
 }
 
+void MacroAssembler::atomicPause() { as_yield(); }
+
 // ========================================================================
 // Primitive atomic operations.
 

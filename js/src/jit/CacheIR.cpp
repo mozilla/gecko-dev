@@ -9733,6 +9733,25 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsIsLockFree() {
   return AttachDecision::Attach;
 }
 
+AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsPause() {
+  // We don't yet support inlining when the iteration count argument is present.
+  if (argc_ != 0) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  initializeInputOperand();
+
+  // Guard callee is the `pause` native function.
+  emitNativeCalleeGuard();
+
+  writer.atomicsPauseResult();
+  writer.returnFromIC();
+
+  trackAttached("AtomicsPause");
+  return AttachDecision::Attach;
+}
+
 AttachDecision InlinableNativeIRGenerator::tryAttachBoolean() {
   // Need zero or one argument.
   if (argc_ > 1) {
@@ -12241,6 +12260,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachAtomicsStore();
     case InlinableNative::AtomicsIsLockFree:
       return tryAttachAtomicsIsLockFree();
+    case InlinableNative::AtomicsPause:
+      return tryAttachAtomicsPause();
 
     // BigInt natives.
     case InlinableNative::BigInt:

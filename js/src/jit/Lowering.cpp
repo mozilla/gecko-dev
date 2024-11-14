@@ -7129,6 +7129,10 @@ void LIRGenerator::visitAtomicIsLockFree(MAtomicIsLockFree* ins) {
   define(new (alloc()) LAtomicIsLockFree(useRegister(ins->input())), ins);
 }
 
+void LIRGenerator::visitAtomicPause(MAtomicPause* ins) {
+  add(new (alloc()) LAtomicPause());
+}
+
 void LIRGenerator::visitCheckReturn(MCheckReturn* ins) {
   MDefinition* retVal = ins->returnValue();
   MDefinition* thisVal = ins->thisValue();

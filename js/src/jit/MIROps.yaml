@@ -2823,6 +2823,12 @@
 - name: AtomicIsLockFree
   gen_boilerplate: false
 
+- name: AtomicPause
+  guard: true
+  movable: false
+  alias_set: none
+  generate_lir: true
+
 - name: CompareExchangeTypedArrayElement
   gen_boilerplate: false
 

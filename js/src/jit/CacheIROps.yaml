@@ -1853,6 +1853,12 @@
   args:
     value: Int32Id
 
+- name: AtomicsPauseResult
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+
 - name: CallNativeSetter
   shared: false
   transpile: true

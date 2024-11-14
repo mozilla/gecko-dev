@@ -2811,6 +2811,9 @@ void MacroAssembler::atomicFetchOp(Scalar::Type type, Synchronization sync,
   AtomicFetchOp(*this, nullptr, type, sync, op, mem, value, valueTemp,
                 offsetTemp, maskTemp, output);
 }
+
+void MacroAssembler::atomicPause() { MOZ_CRASH("NYI"); }
+
 void MacroAssembler::branchPtrInNurseryChunk(Condition cond, Register ptr,
                                              Register temp, Label* label) {
   MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);

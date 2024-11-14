@@ -312,6 +312,8 @@ void MacroAssembler::wasmAtomicExchange64(const wasm::MemoryAccessDesc& access,
   MOZ_CRASH();
 }
 
+void MacroAssembler::atomicPause() { MOZ_CRASH(); }
+
 void MacroAssembler::speculationBarrier() { MOZ_CRASH(); }
 
 void MacroAssembler::shiftIndex32AndAdd(Register indexTemp32, int shift,
