@@ -11,7 +11,6 @@
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
-#include "nsAlgorithm.h"
 #include <algorithm>
 
 namespace mozilla::dom {
