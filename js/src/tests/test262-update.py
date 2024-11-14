@@ -27,7 +27,6 @@ UNSUPPORTED_FEATURES = set(
         "source-phase-imports",
         "source-phase-imports-module-source",
         "Math.sumPrecise",
-        "Atomics.pause",
     ]
 )
 FEATURE_CHECK_NEEDED = {
@@ -46,6 +45,7 @@ FEATURE_CHECK_NEEDED = {
     "RegExp.escape": "!RegExp.escape",
     "promise-try": "!Promise.try",
     "explicit-resource-management": "!(this.hasOwnProperty('getBuildConfiguration')&&getBuildConfiguration('explicit-resource-management'))",  # Bug 1569081
+    "Atomics.pause": "!this.hasOwnProperty('Atomics')||!Atomics.pause",
 }
 RELEASE_OR_BETA = set(
     [
@@ -67,6 +67,7 @@ SHELL_OPTIONS = {
     "regexp-modifiers": "--enable-regexp-modifiers",
     "promise-try": "--enable-promise-try",
     "explicit-resource-management": "--enable-explicit-resource-management",
+    "Atomics.pause": "--enable-atomics-pause",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {
