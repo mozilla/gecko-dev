@@ -423,7 +423,9 @@ class Promise : public SupportsWeakPtr {
 
   template <typename T>
   void MaybeSomething(T&& aArgument, MaybeFunc aFunc) {
-    MOZ_ASSERT(PromiseObj());  // It was preserved!
+    if (NS_WARN_IF(!PromiseObj())) {
+      return;
+    }
 
     AutoAllowLegacyScriptExecution exemption;
     AutoEntryScript aes(mGlobal, "Promise resolution or rejection");
