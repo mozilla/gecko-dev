@@ -123,6 +123,17 @@ mod test {
         {
             // scope for need_ipc RAII
             let _raii = ipc::test_set_need_ipc(true);
+
+            // clear the per-process submetric cache,
+            // or else we'll be given the parent-process child metric.
+            {
+                let mut map =
+                    crate::metrics::__glean_metric_maps::submetric_maps::CUSTOM_DISTRIBUTION_MAP
+                        .write()
+                        .expect("Write lock for CUSTOM_DISTRIBUTION_MAP was poisoned");
+                map.clear();
+            }
+
             let child_metric = parent_metric.get(label);
 
             let metric_id = child_metric.metric_id();
@@ -141,6 +152,16 @@ mod test {
                     "Stored the correct value in the ipc payload"
                 );
             });
+
+            // clear the per-process submetric cache again,
+            // or else we'll be given the child-process child metric below.
+            {
+                let mut map =
+                    crate::metrics::__glean_metric_maps::submetric_maps::CUSTOM_DISTRIBUTION_MAP
+                        .write()
+                        .expect("Write lock for CUSTOM_DISTRIBUTION_MAP was poisoned");
+                map.clear();
+            }
         }
 
         assert!(

@@ -102,12 +102,29 @@ mod test {
         let label = "some_label";
 
         let parent_metric = &metrics::test_only_ipc::an_unordered_labeled_boolean;
-        parent_metric.get(label).set(true);
+        let submetric = parent_metric.get(label);
+        assert!(matches!(*submetric, super::LabeledBooleanMetric::Parent(_)));
+        submetric.set(true);
 
         {
             // scope for need_ipc RAII
             let _raii = ipc::test_set_need_ipc(true);
+
+            // clear the per-process submetric cache,
+            // or else we'll be given the parent-process child metric.
+            {
+                let mut map = crate::metrics::__glean_metric_maps::submetric_maps::BOOLEAN_MAP
+                    .write()
+                    .expect("Write lock for BOOLEAN_MAP was poisoned");
+                map.clear();
+            }
+
             let child_metric = parent_metric.get(label);
+
+            assert!(matches!(
+                *child_metric,
+                super::LabeledBooleanMetric::UnorderedChild { .. }
+            ));
 
             let metric_id = child_metric.metric_id();
 
@@ -124,6 +141,15 @@ mod test {
                     "Stored the correct value in the ipc payload"
                 );
             });
+
+            // clear the per-process submetric cache again,
+            // otherwise we'll supply the child metric instead of the parent, below.
+            {
+                let mut map = crate::metrics::__glean_metric_maps::submetric_maps::BOOLEAN_MAP
+                    .write()
+                    .expect("Write lock for BOOLEAN_MAP was poisoned");
+                map.clear();
+            }
         }
 
         assert!(

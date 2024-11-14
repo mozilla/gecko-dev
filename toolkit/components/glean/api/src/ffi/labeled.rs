@@ -6,7 +6,10 @@
 
 use crate::metrics::__glean_metric_maps as metric_maps;
 use nsstring::nsACString;
-use std::sync::atomic::Ordering;
+
+fn is_jog_id(id: u32) -> bool {
+    id & (1 << crate::factory::DYNAMIC_METRIC_BIT) > 0
+}
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_enum_to_str(id: u32, label: u16, value: &mut nsACString) {
@@ -16,138 +19,126 @@ pub extern "C" fn fog_labeled_enum_to_str(id: u32, label: u16, value: &mut nsACS
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_boolean_get(id: u32, label: &nsACString) -> u32 {
-    labeled_submetric_get!(
-        id,
-        label,
-        LABELED_BOOLEAN_MAP,
-        labeled_boolean_get,
-        BOOLEAN_MAP,
-        LabeledBooleanMetric
-    )
+    let label = &label.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            LABELED_BOOLEAN_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(label)
+        )
+    } else {
+        metric_maps::labeled_submetric_id_get(id, label)
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_boolean_enum_get(id: u32, label: u16) -> u32 {
-    labeled_submetric_enum_get!(
-        id,
-        label,
-        labeled_boolean_enum_get,
-        BOOLEAN_MAP,
-        LabeledBooleanMetric
-    )
+    assert!(!is_jog_id(id), "No enum_get support for JOG");
+    metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_counter_get(id: u32, label: &nsACString) -> u32 {
-    labeled_submetric_get!(
-        id,
-        label,
-        LABELED_COUNTER_MAP,
-        labeled_counter_get,
-        COUNTER_MAP,
-        LabeledCounterMetric
-    )
+    let label = &label.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            LABELED_COUNTER_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(label)
+        )
+    } else {
+        metric_maps::labeled_submetric_id_get(id, label)
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_counter_enum_get(id: u32, label: u16) -> u32 {
-    labeled_submetric_enum_get!(
-        id,
-        label,
-        labeled_counter_enum_get,
-        COUNTER_MAP,
-        LabeledCounterMetric
-    )
+    assert!(!is_jog_id(id), "No enum_get support for JOG");
+    metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_custom_distribution_get(id: u32, label: &nsACString) -> u32 {
-    labeled_submetric_get!(
-        id,
-        label,
-        LABELED_CUSTOM_DISTRIBUTION_MAP,
-        labeled_custom_distribution_get,
-        CUSTOM_DISTRIBUTION_MAP,
-        LabeledCustomDistributionMetric
-    )
+    let label = &label.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            LABELED_CUSTOM_DISTRIBUTION_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(label)
+        )
+    } else {
+        metric_maps::labeled_submetric_id_get(id, label)
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_custom_distribution_enum_get(id: u32, label: u16) -> u32 {
-    labeled_submetric_enum_get!(
-        id,
-        label,
-        labeled_custom_distribution_enum_get,
-        CUSTOM_DISTRIBUTION_MAP,
-        LabeledCustomDistributionMetric
-    )
+    assert!(!is_jog_id(id), "No enum_get support for JOG");
+    metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_memory_distribution_get(id: u32, label: &nsACString) -> u32 {
-    labeled_submetric_get!(
-        id,
-        label,
-        LABELED_MEMORY_DISTRIBUTION_MAP,
-        labeled_memory_distribution_get,
-        MEMORY_DISTRIBUTION_MAP,
-        LabeledMemoryDistributionMetric
-    )
+    let label = &label.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            LABELED_MEMORY_DISTRIBUTION_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(label)
+        )
+    } else {
+        metric_maps::labeled_submetric_id_get(id, label)
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_memory_distribution_enum_get(id: u32, label: u16) -> u32 {
-    labeled_submetric_enum_get!(
-        id,
-        label,
-        labeled_memory_distribution_enum_get,
-        MEMORY_DISTRIBUTION_MAP,
-        LabeledMemoryDistributionMetric
-    )
+    assert!(!is_jog_id(id), "No enum_get support for JOG");
+    metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_string_get(id: u32, label: &nsACString) -> u32 {
-    labeled_submetric_get!(
-        id,
-        label,
-        LABELED_STRING_MAP,
-        labeled_string_get,
-        STRING_MAP,
-        LabeledStringMetric
-    )
+    let label = &label.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            LABELED_STRING_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(label)
+        )
+    } else {
+        metric_maps::labeled_submetric_id_get(id, label)
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_string_enum_get(id: u32, label: u16) -> u32 {
-    labeled_submetric_enum_get!(
-        id,
-        label,
-        labeled_string_enum_get,
-        STRING_MAP,
-        LabeledStringMetric
-    )
+    assert!(!is_jog_id(id), "No enum_get support for JOG");
+    metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_timing_distribution_get(id: u32, label: &nsACString) -> u32 {
-    labeled_submetric_get!(
-        id,
-        label,
-        LABELED_TIMING_DISTRIBUTION_MAP,
-        labeled_timing_distribution_get,
-        TIMING_DISTRIBUTION_MAP,
-        LabeledTimingDistributionMetric
-    )
+    let label = &label.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            LABELED_TIMING_DISTRIBUTION_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(label)
+        )
+    } else {
+        metric_maps::labeled_submetric_id_get(id, label)
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn fog_labeled_timing_distribution_enum_get(id: u32, label: u16) -> u32 {
-    labeled_submetric_enum_get!(
-        id,
-        label,
-        labeled_timing_distribution_enum_get,
-        TIMING_DISTRIBUTION_MAP,
-        LabeledTimingDistributionMetric
-    )
+    assert!(!is_jog_id(id), "No enum_get support for JOG");
+    metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }

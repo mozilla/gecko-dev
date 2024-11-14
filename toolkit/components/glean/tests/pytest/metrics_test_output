@@ -955,28 +955,6 @@ pub(crate) mod __glean_metric_maps {
             _ => panic!("No labeled_boolean for metric id {}", metric_id),
         }
     }
-
-    /// Gets the submetric from the specified labeled_boolean metric, by enum.
-    ///
-    /// # Arguments
-    ///
-    /// * `metric_id` - The metric's ID to look up
-    /// * `label_enum` - The label enum identifying the boolean submetric.
-    ///
-    /// # Returns
-    ///
-    /// Returns the boolean submetric.
-    ///
-    /// # Panics
-    ///
-    /// Panics if no labeled_boolean by the given metric ID could be found.
-    #[allow(unused_variables)]
-    pub(crate) fn labeled_boolean_enum_get(metric_id: u32, label_enum: u16) -> Arc<LabeledBooleanMetric> {
-        match metric_id {
-            5 => super::test::labeled_boolean_metric_labels.get(labeled_enum_to_str(metric_id, label_enum)),
-            _ => panic!("No labeled_boolean for metric id {}", metric_id),
-        }
-    }
     /// Gets the submetric from the specified labeled_counter metric.
     ///
     /// # Arguments
@@ -996,28 +974,6 @@ pub(crate) mod __glean_metric_maps {
         match metric_id {
             6 => super::test::labeled_counter_metric.get(label),
             7 => super::test::labeled_counter_metric_labels.get(label),
-            _ => panic!("No labeled_counter for metric id {}", metric_id),
-        }
-    }
-
-    /// Gets the submetric from the specified labeled_counter metric, by enum.
-    ///
-    /// # Arguments
-    ///
-    /// * `metric_id` - The metric's ID to look up
-    /// * `label_enum` - The label enum identifying the counter submetric.
-    ///
-    /// # Returns
-    ///
-    /// Returns the counter submetric.
-    ///
-    /// # Panics
-    ///
-    /// Panics if no labeled_counter by the given metric ID could be found.
-    #[allow(unused_variables)]
-    pub(crate) fn labeled_counter_enum_get(metric_id: u32, label_enum: u16) -> Arc<LabeledCounterMetric> {
-        match metric_id {
-            7 => super::test::labeled_counter_metric_labels.get(labeled_enum_to_str(metric_id, label_enum)),
             _ => panic!("No labeled_counter for metric id {}", metric_id),
         }
     }
@@ -1044,34 +1000,25 @@ pub(crate) mod __glean_metric_maps {
         }
     }
 
-    /// Gets the submetric from the specified labeled_string metric, by enum.
-    ///
-    /// # Arguments
-    ///
-    /// * `metric_id` - The metric's ID to look up
-    /// * `label_enum` - The label enum identifying the string submetric.
-    ///
-    /// # Returns
-    ///
-    /// Returns the string submetric.
-    ///
-    /// # Panics
-    ///
-    /// Panics if no labeled_string by the given metric ID could be found.
-    #[allow(unused_variables)]
-    pub(crate) fn labeled_string_enum_get(metric_id: u32, label_enum: u16) -> Arc<LabeledStringMetric> {
-        match metric_id {
-            9 => super::test::labeled_string_metric_labels.get(labeled_enum_to_str(metric_id, label_enum)),
-            _ => panic!("No labeled_string for metric id {}", metric_id),
-        }
-    }
-
     pub(crate) fn labeled_enum_to_str(metric_id: u32, label: u16) -> &'static str {
         match metric_id {
             5 => super::test::LabeledBooleanMetricLabelsLabel::from(label).into(),
             7 => super::test::LabeledCounterMetricLabelsLabel::from(label).into(),
             9 => super::test::LabeledStringMetricLabelsLabel::from(label).into(),
             _ => panic!("Can't turn label enum to string for metric {} which isn't a labeled metric with static labels", metric_id),
+        }
+    }
+
+    pub(crate) fn labeled_submetric_id_get(metric_id: u32, label: &str) -> u32 {
+        match metric_id {
+            4 => super::test::labeled_boolean_metric.get_submetric_id(label),
+            5 => super::test::labeled_boolean_metric_labels.get_submetric_id(label),
+            6 => super::test::labeled_counter_metric.get_submetric_id(label),
+            7 => super::test::labeled_counter_metric_labels.get_submetric_id(label),
+            8 => super::test::labeled_string_metric.get_submetric_id(label),
+            9 => super::test::labeled_string_metric_labels.get_submetric_id(label),
+            17 => super::test::unordered_labeled_boolean_metric.get_submetric_id(label),
+            _ => panic!("No labeled metric for id {}", metric_id),
         }
     }
 
