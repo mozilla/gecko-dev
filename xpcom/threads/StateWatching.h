@@ -138,9 +138,10 @@ class Watchable : public WatchTarget {
 
   const T& Ref() const { return mValue; }
   operator const T&() const { return Ref(); }
-  Watchable& operator=(const T& aNewValue) {
+  template <typename U>
+  Watchable& operator=(U&& aNewValue) {
     if (aNewValue != mValue) {
-      mValue = aNewValue;
+      mValue = std::forward<U>(aNewValue);
       NotifyWatchers();
     }
 
