@@ -17,12 +17,12 @@ struct JS_PUBLIC_API JSContext;
 class JS_PUBLIC_API JSObject;
 
 /*
- * Telemetry reasons passed to the accumulate telemetry callback.
+ * Legacy telemetry metrics passed to the accumulate telemetry callback.
  *
  * It's OK for these enum values to change as they will be mapped to a fixed
  * member of the mozilla::Telemetry::HistogramID enum by the callback.
  */
-#define FOR_EACH_JS_METRIC(_)                   \
+#define FOR_EACH_JS_LEGACY_METRIC(_)            \
   _(GC_REASON_2, Enumeration)                   \
   _(GC_IS_COMPARTMENTAL, Boolean)               \
   _(GC_ZONE_COUNT, QuantityDistribution)        \
@@ -69,6 +69,17 @@ class JS_PUBLIC_API JSObject;
   _(GC_PARALLEL_MARK_UTILIZATION, Percentage)   \
   _(GC_PARALLEL_MARK_INTERRUPTIONS, Integer)    \
   _(GC_TASK_START_DELAY_US, TimeDuration_US)
+
+/*
+ * Append any glean only telemetry metrics to the following list.
+ * However, unlike the legacy list, each glean metric must be manually added
+ * to the switch statement in AccumulateTelemetryCallback().
+ */
+#define FOR_EACH_JS_GLEAN_METRIC(_)
+
+#define FOR_EACH_JS_METRIC(_)  \
+  FOR_EACH_JS_LEGACY_METRIC(_) \
+  FOR_EACH_JS_GLEAN_METRIC(_)
 
 // clang-format off
 #define ENUM_DEF(NAME, _) NAME,
