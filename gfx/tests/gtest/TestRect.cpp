@@ -11,6 +11,7 @@
 #include "nsRect.h"
 #include "nsRectAbsolute.h"
 #include "gfxRect.h"
+#include "mozilla/gfx/Point.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/RectAbsolute.h"
 #include "mozilla/WritingModes.h"
@@ -22,6 +23,7 @@ using mozilla::CSSCoord;
 using mozilla::CSSIntCoord;
 using mozilla::CSSIntSize;
 using mozilla::ScreenIntCoord;
+using mozilla::gfx::IntPoint;
 using mozilla::gfx::IntRect;
 using mozilla::gfx::IntRectAbsolute;
 
@@ -679,4 +681,29 @@ TEST(Gfx, MoveInsideAndClamp)
                          IntRect(-10, -1, 10, 0));
   TestMoveInsideAndClamp(IntRect(0, 0, 0, 0), IntRect(10, -10, 10, 10),
                          IntRect(10, 0, 0, 0));
+}
+
+TEST(Gfx, ClampPoint)
+{
+  /* Various bounds */
+  IntRect Square(0, 0, 10, 10);
+  EXPECT_EQ(Square.ClampPoint(IntPoint(-5, -5)), IntPoint(0, 0));
+  EXPECT_EQ(Square.ClampPoint(IntPoint(-5, 5)), IntPoint(0, 5));
+  EXPECT_EQ(Square.ClampPoint(IntPoint(-5, 15)), IntPoint(0, 10));
+
+  EXPECT_EQ(Square.ClampPoint(IntPoint(5, -5)), IntPoint(5, 0));
+  EXPECT_EQ(Square.ClampPoint(IntPoint(5, 5)), IntPoint(5, 5));
+  EXPECT_EQ(Square.ClampPoint(IntPoint(5, 15)), IntPoint(5, 10));
+
+  EXPECT_EQ(Square.ClampPoint(IntPoint(15, -5)), IntPoint(10, 0));
+  EXPECT_EQ(Square.ClampPoint(IntPoint(15, 5)), IntPoint(10, 5));
+  EXPECT_EQ(Square.ClampPoint(IntPoint(15, 15)), IntPoint(10, 10));
+
+  /* Special case of empty rect */
+  IntRect Empty(0, 0, -1, -1);
+  EXPECT_TRUE(Empty.IsEmpty());
+  EXPECT_EQ(Empty.ClampPoint(IntPoint(-1, -1)), IntPoint(0, 0));
+  EXPECT_EQ(Empty.ClampPoint(IntPoint(-1, 1)), IntPoint(0, 0));
+  EXPECT_EQ(Empty.ClampPoint(IntPoint(1, -1)), IntPoint(0, 0));
+  EXPECT_EQ(Empty.ClampPoint(IntPoint(1, 1)), IntPoint(0, 0));
 }
