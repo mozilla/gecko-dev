@@ -30,7 +30,7 @@ function reportMarks(prefix = "") {
 
 function startGCMarking() {
   startgc(100000);
-  while (gcstate() === "Prepare") {
+  while (gcstate() === "Prepare" || gcstate() === "MarkRoots") {
     gcslice(100000);
   }
 }
@@ -112,10 +112,7 @@ function removeKey() {
   // Do it again, but this time, remove all other roots.
   m.set(vals.key, vals.val);
   vals.key = vals.val = null;
-  startgc(10000);
-  while (gcstate() !== "Mark") {
-    gcslice(100000);
-  }
+  startGCMarking();
   marks = getMarks();
   assertEq(marks[0], "black", "map is black");
   assertEq(marks[1], "unmarked", "key not marked yet");
@@ -171,7 +168,7 @@ function nukeMarking() {
 
   // Okay, run through the GC now.
   startgc(1000000);
-  while (gcstate() !== "Mark") {
+  while (gcstate() === "Prepare" || gcstate() === "MarkRoots") {
     gcslice(100000);
   }
   assertEq(gcstate(), "Mark", "expected to yield after marking map");
@@ -220,7 +217,7 @@ function nukeMarkingSweepGroups() {
 
   // Okay, run through the GC now.
   startgc(1);
-  while (gcstate() === "Prepare") {
+  while (gcstate() !== "Mark") {
     gcslice(100000);
   }
   assertEq(gcstate(), "Mark", "expected to yield after marking map");

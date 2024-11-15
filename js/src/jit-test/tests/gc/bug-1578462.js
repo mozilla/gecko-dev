@@ -18,7 +18,7 @@ function createOtherCompartment() {
 
 function startGCMarking() {
   startgc(1);
-  while (gcstate() === "Prepare") {
+  while (gcstate() === "Prepare" || gcstate() === "MarkRoots") {
     gcslice(1);
   }
 }

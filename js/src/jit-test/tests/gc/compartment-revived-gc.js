@@ -15,7 +15,7 @@ function compartmentCount() {
 
 function startIncrementalGC() {
   startgc(1);
-  while (gcstate() === "Prepare") {
+  while (gcstate() === "Prepare" || gcstate() == "MarkRoots") {
     gcslice(100, {dontStart: true});
   }
   assertEq(gcstate(), "Mark");

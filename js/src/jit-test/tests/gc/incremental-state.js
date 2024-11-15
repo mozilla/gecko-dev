@@ -68,7 +68,7 @@ assertEq(gcstate(), "NotActive");
 // in sweeping, where normal IGC (above) does not.
 gczeal(10, 0);
 gcslice(1000000);
-while (gcstate() === "Prepare") {
+while (gcstate() === "Prepare" || gcstate() == "MarkRoots") {
   gcslice(1000000);
 }
 assertEq(gcstate(), "Sweep");

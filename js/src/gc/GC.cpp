@@ -2216,8 +2216,8 @@ void GCRuntime::decommitFreeArenasWithoutUnlocking(const AutoLockGC& lock) {
 void GCRuntime::maybeRequestGCAfterBackgroundTask(
     const AutoLockHelperThreadState& lock) {
   if (requestSliceAfterBackgroundTask) {
-    // Trigger a slice so the main thread can continue the collection
-    // immediately.
+    // Request a slice. The main thread may continue the collection immediately
+    // or it may yield to let the embedding schedule a slice.
     requestSliceAfterBackgroundTask = false;
     requestMajorGC(JS::GCReason::BG_TASK_FINISHED);
   }
@@ -2837,22 +2837,28 @@ void BackgroundUnmarkTask::initZones() {
   }
 }
 
-void BackgroundUnmarkTask::run(AutoLockHelperThreadState& helperTheadLock) {
-  AutoUnlockHelperThreadState unlock(helperTheadLock);
+void BackgroundUnmarkTask::run(AutoLockHelperThreadState& lock) {
+  {
+    AutoUnlockHelperThreadState unlock(lock);
+    unmark();
+    zones.clear();
+  }
 
+  gc->maybeRequestGCAfterBackgroundTask(lock);
+}
+
+void BackgroundUnmarkTask::unmark() {
   for (Zone* zone : zones) {
     for (auto kind : AllAllocKinds()) {
       ArenaList& arenas = zone->arenas.collectingArenaList(kind);
       for (auto arena = arenas.iter(); !arena.done(); arena.next()) {
         arena->unmarkAll();
         if (isCancelled()) {
-          break;
+          return;
         }
       }
     }
   }
-
-  zones.clear();
 }
 
 void GCRuntime::endPreparePhase(JS::GCReason reason) {
@@ -3636,16 +3642,18 @@ GCRuntime::IncrementalResult GCRuntime::resetIncrementalGC(
 
   switch (incrementalState) {
     case State::NotActive:
-    case State::MarkRoots:
     case State::Finish:
       MOZ_CRASH("Unexpected GC state in resetIncrementalGC");
       break;
 
     case State::Prepare:
       unmarkTask.cancelAndWait();
+      [[fallthrough]];
 
+    case State::MarkRoots:
+      // We haven't done any marking yet at this point.
       for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-        zone->changeGCState(Zone::Prepare, Zone::NoGC);
+        zone->changeGCState(zone->gcState(), Zone::NoGC);
         zone->clearGCSliceThresholds();
         zone->arenas.clearFreeLists();
         zone->arenas.mergeArenasFromCollectingLists();
@@ -3831,12 +3839,23 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
       [[fallthrough]];
 
     case State::Prepare:
-      if (waitForBackgroundTask(unmarkTask, budget, shouldPauseMutator,
-                                DontTriggerSliceWhenFinished) == NotFinished) {
+      if (waitForBackgroundTask(unmarkTask, budget, shouldPauseMutator) ==
+          NotFinished) {
         break;
       }
 
       incrementalState = State::MarkRoots;
+
+      if (isIncremental && initialState == State::Prepare &&
+          reason == JS::GCReason::BG_TASK_FINISHED) {
+        // The next slice may be long so wait for the embedding to schedule it
+        // rather than doing it as soon as unmarking finishes. This can happen
+        // when the embedding's GC callback sees this slice end with work
+        // available.
+        MOZ_ASSERT(hasForegroundWork());
+        break;
+      }
+
       [[fallthrough]];
 
     case State::MarkRoots:
@@ -3926,8 +3945,8 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
       [[fallthrough]];
 
     case State::Finalize:
-      if (waitForBackgroundTask(sweepTask, budget, shouldPauseMutator,
-                                TriggerSliceWhenFinished) == NotFinished) {
+      if (waitForBackgroundTask(sweepTask, budget, shouldPauseMutator) ==
+          NotFinished) {
         break;
       }
 
@@ -3975,8 +3994,8 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
       [[fallthrough]];
 
     case State::Decommit:
-      if (waitForBackgroundTask(decommitTask, budget, shouldPauseMutator,
-                                TriggerSliceWhenFinished) == NotFinished) {
+      if (waitForBackgroundTask(decommitTask, budget, shouldPauseMutator) ==
+          NotFinished) {
         break;
       }
 
@@ -4027,9 +4046,9 @@ bool GCRuntime::hasForegroundWork() const {
   }
 }
 
-IncrementalProgress GCRuntime::waitForBackgroundTask(
-    GCParallelTask& task, const SliceBudget& budget, bool shouldPauseMutator,
-    ShouldTriggerSliceWhenFinished triggerSlice) {
+IncrementalProgress GCRuntime::waitForBackgroundTask(GCParallelTask& task,
+                                                     const SliceBudget& budget,
+                                                     bool shouldPauseMutator) {
   // Wait here in non-incremental collections, or if we want to pause the
   // mutator to let the GC catch up.
   if (budget.isUnlimited() || shouldPauseMutator) {
@@ -4041,14 +4060,12 @@ IncrementalProgress GCRuntime::waitForBackgroundTask(
     task.join(deadline);
   }
 
-  // In incremental collections, yield if the task has not finished and
-  // optionally request a slice to notify us when this happens.
+  // In incremental collections, yield if the task has not finished and request
+  // a slice to notify us when this happens.
   if (!budget.isUnlimited()) {
     AutoLockHelperThreadState lock;
     if (task.wasStarted(lock)) {
-      if (triggerSlice) {
-        requestSliceAfterBackgroundTask = true;
-      }
+      requestSliceAfterBackgroundTask = true;
       return NotFinished;
     }
 
@@ -4057,9 +4074,7 @@ IncrementalProgress GCRuntime::waitForBackgroundTask(
 
   MOZ_ASSERT(task.isIdle());
 
-  if (triggerSlice) {
-    cancelRequestedGCAfterBackgroundTask();
-  }
+  cancelRequestedGCAfterBackgroundTask();
 
   return Finished;
 }
