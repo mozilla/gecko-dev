@@ -12,6 +12,9 @@ Usage: $(basename "$0") [-p product]
            [--use-mozilla-central]
            # Use archive.m.o instead of the taskcluster index to get xpcshell
            [--use-ftp-builds]
+           # Use git rather than hg. Using git does not currently support cloning (use
+           # --skip-repo as well).
+           [--use-git]
            # One (or more) of the following actions must be specified.
            --hsts | --hpkp | --remote-settings | --suffix-list | --mobile-experiments | --ct-logs
            -b branch
@@ -21,6 +24,9 @@ Usage: $(basename "$0") [-p product]
            [--skip-clone]
            # Performs a dry run - no commits are created.
            [-n]
+           # Skips pushing of the repository - create a commit but does not try
+           # to push it.
+           [--skip-push]
 
 EOF
 }
@@ -44,6 +50,8 @@ CLONE_REPO=true
 
 USE_MC=false
 USE_TC=true
+USE_GIT=false
+SKIP_PUSH=false
 
 # Parse our command-line options.
 while [ $# -gt 0 ]; do
@@ -63,9 +71,11 @@ while [ $# -gt 0 ]; do
     --mobile-experiments) DO_MOBILE_EXPERIMENTS=true ;;
     --ct-logs) DO_CT_LOGS=true ;;
     --skip-clone) CLONE_REPO=false ;;
+    --skip-push) SKIP_PUSH=true ;;
     -t) TOPSRCDIR="$2"; shift ;;
     --use-mozilla-central) USE_MC=true ;;
     --use-ftp-builds) USE_TC=false ;;
+    --use-git) USE_GIT=true ;;
     -*) usage
       exit 11 ;;
     *)  break ;; # terminate while loop
@@ -129,8 +139,13 @@ STAGEHOST="archive.mozilla.org"
 WGET="wget -nv"
 UNTAR="tar -zxf"
 DIFF="$(command -v diff) -u"
-HG="$(command -v hg)"
 JQ="$(command -v jq)"
+
+if [ "${USE_GIT}" == "true" ]; then
+  GIT="$(command -v git)"
+else
+  HG="$(command -v hg)"
+fi
 
 BASEDIR="${HOME}"
 SCRIPTDIR="$(realpath "$(dirname "$0")")"
@@ -180,7 +195,11 @@ queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
 index_base="$TASKCLUSTER_ROOT_URL/api/index/v1"
 
 function create_repo_diff() {
-  ${HG} -R "${TOPSRCDIR}" diff "$1" > "$2"
+  if [ "${USE_GIT}" == "true" ]; then
+    ${GIT} -C "${TOPSRCDIR}" diff -u "$1" > "$2"
+  else
+    ${HG} -R "${TOPSRCDIR}" diff "$1" > "$2"
+  fi
 }
 
 # Cleanup common artifacts.
@@ -549,6 +568,11 @@ function stage_mobile_experiments_files {
 
 # Push all pending commits to Phabricator
 function push_repo {
+  if [ "${SKIP_PUSH}" == "true" ]; then
+    echo "Skipping push due to --skip-push"
+    return 0
+  fi
+
   cd "${TOPSRCDIR}"
   if [ ! -r "${HOME}/.arcrc" ]
   then
@@ -692,10 +716,16 @@ if [ ${APPROVAL} == true ]; then
   COMMIT_MESSAGE="${COMMIT_MESSAGE} - a=repo-update"
 fi
 
-
-if ${HG} -R "${TOPSRCDIR}" commit -u "${COMMIT_AUTHOR}" -m "${COMMIT_MESSAGE}"
-then
-  push_repo
+if [ "${USE_GIT}" == "true" ]; then
+  if ${GIT} -C "${TOPSRCDIR}" commit -a --author "${COMMIT_AUTHOR}" -m "${COMMIT_MESSAGE}"
+  then
+    push_repo
+  fi
+else
+  if ${HG} -R "${TOPSRCDIR}" commit -u "${COMMIT_AUTHOR}" -m "${COMMIT_MESSAGE}"
+  then
+    push_repo
+  fi
 fi
 
 echo "All done"
