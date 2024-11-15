@@ -87,9 +87,7 @@ enum class PermissionCheckPurpose : uint8_t;
  * dispatch a control runnable instead.
  *
  */
-class Notification : public DOMEventTargetHelper,
-                     public GlobalFreezeObserver,
-                     public SupportsWeakPtr {
+class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
   friend class CloseNotificationRunnable;
   friend class NotificationTask;
   friend class NotificationPermissionRequest;
@@ -245,14 +243,11 @@ class Notification : public DOMEventTargetHelper,
       nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
       const NotificationOptions& aOptions, ErrorResult& aRv);
 
-  // Triggers CloseInternal for non-persistent notifications if window freezes
-  nsresult MaybeObserveWindowFrozen();
   bool IsInPrivateBrowsing();
   void ShowInternal();
   void CloseInternal(bool aContextClosed = false);
 
-  void DisconnectFromOwner() override;
-  void FrozenCallback(nsIGlobalObject* aOwner) override;
+  void Deactivate();
 
   static NotificationPermission GetPermissionInternal(
       nsPIDOMWindowInner* aWindow,

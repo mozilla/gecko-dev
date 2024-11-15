@@ -22,6 +22,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/PromiseWorkerProxy.h"
 #include "mozilla/dom/QMResult.h"
 #include "mozilla/dom/RootedDictionary.h"
@@ -626,23 +627,6 @@ class NotificationObserver final : public nsIObserver {
 
 NS_IMPL_ISUPPORTS(NotificationObserver, nsIObserver)
 
-class MainThreadNotificationObserver : public nsIObserver {
- public:
-  UniquePtr<NotificationRef> mNotificationRef;
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIOBSERVER
-
-  explicit MainThreadNotificationObserver(UniquePtr<NotificationRef> aRef)
-      : mNotificationRef(std::move(aRef)) {
-    AssertIsOnMainThread();
-  }
-
- protected:
-  virtual ~MainThreadNotificationObserver() { AssertIsOnMainThread(); }
-};
-
-NS_IMPL_ISUPPORTS(MainThreadNotificationObserver, nsIObserver)
-
 NS_IMETHODIMP
 NotificationTask::Run() {
   AssertIsOnMainThread();
@@ -701,19 +685,6 @@ Notification::Notification(nsIGlobalObject* aGlobal, const nsAString& aID,
   }
 }
 
-nsresult Notification::MaybeObserveWindowFrozen() {
-  // NOTE: Non-persistent notifications can also be opened from workers, but we
-  // don't care and nobody else cares. And it's not clear whether we even should
-  // do this for window at all, see
-  // https://github.com/whatwg/notifications/issues/204.
-  // NOTE: Also GlobalFreezeObserver is only supported for window now.
-  if (!mWorkerPrivate) {
-    GlobalFreezeObserver::BindToOwner(GetOwnerGlobal());
-  }
-
-  return NS_OK;
-}
-
 void Notification::SetAlertName() {
   AssertIsOnMainThread();
   if (!mAlertName.IsEmpty()) {
@@ -744,17 +715,37 @@ already_AddRefed<Notification> Notification::Constructor(
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
-  notification->ShowOnMainThread(aRv);
-  if (NS_WARN_IF(aRv.Failed())) {
+
+  if (!NS_IsMainThread()) {
+    notification->ShowOnMainThread(aRv);
+    if (NS_WARN_IF(aRv.Failed())) {
+      return nullptr;
+    }
+    return notification.forget();
+  }
+
+  RefPtr<Promise> promise = Promise::CreateInfallible(global);
+  promise->AddCallbacksWithCycleCollectedArgs(
+      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&,
+         Notification* aNotification) {
+        aNotification->DispatchTrustedEvent(u"show"_ns);
+      },
+      [](JSContext*, JS::Handle<JS::Value> aValue, ErrorResult&,
+         Notification* aNotification) {
+        aNotification->DispatchTrustedEvent(u"error"_ns);
+        aNotification->Deactivate();
+      },
+      notification);
+  if (!notification->CreateActor() || !notification->SendShow(promise)) {
+    notification->Deactivate();
     return nullptr;
   }
 
-  if (NS_WARN_IF(NS_FAILED(notification->MaybeObserveWindowFrozen()))) {
-    return nullptr;
-  }
+  notification->KeepAliveIfHasListenersFor(nsGkAtoms::onclick);
+  notification->KeepAliveIfHasListenersFor(nsGkAtoms::onshow);
+  notification->KeepAliveIfHasListenersFor(nsGkAtoms::onerror);
+  notification->KeepAliveIfHasListenersFor(nsGkAtoms::onclose);
 
-  // This is be ok since we are on the worker thread where this function will
-  // run to completion before the Notification has a chance to go away.
   return notification.forget();
 }
 
@@ -929,14 +920,14 @@ nsIPrincipal* Notification::GetPrincipal() {
   return win->GetPrincipal();
 }
 
-class WorkerNotificationObserver final : public MainThreadNotificationObserver {
+class WorkerNotificationObserver : public nsIObserver {
  public:
-  NS_INLINE_DECL_REFCOUNTING_INHERITED(WorkerNotificationObserver,
-                                       MainThreadNotificationObserver)
+  UniquePtr<NotificationRef> mNotificationRef;
+  NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
   explicit WorkerNotificationObserver(UniquePtr<NotificationRef> aRef)
-      : MainThreadNotificationObserver(std::move(aRef)) {
+      : mNotificationRef(std::move(aRef)) {
     AssertIsOnMainThread();
     MOZ_ASSERT(mNotificationRef->GetNotification()->mWorkerPrivate);
   }
@@ -957,6 +948,8 @@ class WorkerNotificationObserver final : public MainThreadNotificationObserver {
     }
   }
 };
+
+NS_IMPL_ISUPPORTS(WorkerNotificationObserver, nsIObserver)
 
 bool Notification::DispatchClickEvent() {
   AssertIsOnTargetThread();
@@ -1032,38 +1025,6 @@ NotificationObserver::Observe(nsISupports* aSubject, const char* aTopic,
   }
 
   return mObserver->Observe(aSubject, aTopic, aData);
-}
-
-// MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is MOZ_CAN_RUN_SCRIPT.  See
-// bug 1539845.
-MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
-MainThreadNotificationObserver::Observe(nsISupports* aSubject,
-                                        const char* aTopic,
-                                        const char16_t* aData) {
-  AssertIsOnMainThread();
-  MOZ_ASSERT(mNotificationRef);
-  Notification* notification = mNotificationRef->GetNotification();
-  MOZ_ASSERT(notification);
-  if (!strcmp("alertclickcallback", aTopic)) {
-    nsCOMPtr<nsPIDOMWindowInner> window = notification->GetOwnerWindow();
-    if (NS_WARN_IF(!window || !window->IsCurrentInnerWindow())) {
-      // Window has been closed, this observer is not valid anymore
-      return NS_ERROR_FAILURE;
-    }
-
-    bool doDefaultAction = notification->DispatchClickEvent();
-    if (doDefaultAction) {
-      nsCOMPtr<nsPIDOMWindowOuter> outerWindow = window->GetOuterWindow();
-      nsFocusManager::FocusWindow(outerWindow, CallerType::System);
-    }
-  } else if (!strcmp("alertfinished", aTopic)) {
-    notification->Unpersist();
-    notification->mIsClosed = true;
-    notification->DispatchTrustedEvent(u"close"_ns);
-  } else if (!strcmp("alertshow", aTopic)) {
-    notification->DispatchTrustedEvent(u"show"_ns);
-  }
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1215,17 +1176,14 @@ void Notification::ShowInternal() {
 
   nsCOMPtr<nsIObserver> observer;
   MOZ_ASSERT(mScope.IsEmpty());
+  MOZ_ASSERT(mWorkerPrivate);
   // Ownership passed to observer.
-  if (mWorkerPrivate) {
-    // Scope better be set on ServiceWorker initiated requests.
-    MOZ_ASSERT(!mWorkerPrivate->IsServiceWorker());
-    // Keep a pointer so that the feature can tell the observer not to release
-    // the notification.
-    mObserver = new WorkerNotificationObserver(std::move(ownership));
-    observer = mObserver;
-  } else {
-    observer = new MainThreadNotificationObserver(std::move(ownership));
-  }
+  // Scope better be set on ServiceWorker initiated requests.
+  MOZ_ASSERT(!mWorkerPrivate->IsServiceWorker());
+  // Keep a pointer so that the feature can tell the observer not to release
+  // the notification.
+  mObserver = new WorkerNotificationObserver(std::move(ownership));
+  observer = mObserver;
   MOZ_ASSERT(observer);
   nsCOMPtr<nsIObserver> alertObserver =
       new NotificationObserver(observer, GetPrincipal(), IsInPrivateBrowsing());
@@ -1613,6 +1571,20 @@ JSObject* Notification::WrapObject(JSContext* aCx,
 
 void Notification::Close() {
   AssertIsOnTargetThread();
+
+  if (NS_IsMainThread()) {
+    if (mIsClosed) {
+      return;
+    }
+    if (!mActor) {
+      CreateActor();
+    }
+    if (mActor) {
+      (void)mActor->SendClose();
+    }
+    return;
+  }
+
   auto ref = MakeUnique<NotificationRef>(this);
   if (!ref->Initialized()) {
     return;
@@ -2063,18 +2035,14 @@ bool Notification::SendShow(Promise* aPromise) {
               aResult) {
         if (aResult.IsReject()) {
           promise->MaybeRejectWithUnknownError("Failed to open notification");
-          if (self->mActor) {
-            self->mActor->Close();
-          }
+          self->Deactivate();
           return;
         }
 
         CopyableErrorResult rv = aResult.ResolveValue();
         if (rv.Failed()) {
           promise->MaybeReject(std::move(rv));
-          if (self->mActor) {
-            self->mActor->Close();
-          }
+          self->Deactivate();
           return;
         }
 
@@ -2083,19 +2051,16 @@ bool Notification::SendShow(Promise* aPromise) {
   return true;
 }
 
-void Notification::DisconnectFromOwner() {
-  // Unregister the backend handler if it's non-persistent.
-  // XXX(krosylight): CloseInternal currently assumes main thread, will be
-  // fixed by IPC migration (bug 1891807)
-  if (NS_IsMainThread() && mScope.IsEmpty()) {
-    CloseInternal(true);
+void Notification::Deactivate() {
+  IgnoreKeepAliveIfHasListenersFor(nsGkAtoms::onclick);
+  IgnoreKeepAliveIfHasListenersFor(nsGkAtoms::onshow);
+  IgnoreKeepAliveIfHasListenersFor(nsGkAtoms::onerror);
+  IgnoreKeepAliveIfHasListenersFor(nsGkAtoms::onclose);
+  mIsClosed = true;
+  if (mActor) {
+    mActor->Close();
+    mActor = nullptr;
   }
-  DOMEventTargetHelper::DisconnectFromOwner();
-}
-
-void Notification::FrozenCallback(nsIGlobalObject* aOwner) {
-  CloseInternal(true);
-  DisconnectFreezeObserver();
 }
 
 nsresult Notification::DispatchToMainThread(
