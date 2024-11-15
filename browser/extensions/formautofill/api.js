@@ -74,7 +74,7 @@ this.formautofill = class extends ExtensionAPI {
 
     if (!addressAutofillAvailable && !creditCardAutofillAvailable) {
       Services.prefs.clearUserPref("dom.forms.autocomplete.formautofill");
-      Services.telemetry.scalarSet("formautofill.availability", false);
+      Glean.formautofill.availability.set(false);
       return;
     }
 
@@ -82,7 +82,7 @@ this.formautofill = class extends ExtensionAPI {
     // When it's true, "element.autocomplete" will return tokens we currently
     // support -- otherwise it'll return an empty string.
     Services.prefs.setBoolPref("dom.forms.autocomplete.formautofill", true);
-    Services.telemetry.scalarSet("formautofill.availability", true);
+    Glean.formautofill.availability.set(true);
 
     // These "*.available" prefs determines whether the "addresses"/"creditcards" sync engine is
     // available (ie, whether it is shown in any UI etc) - it *does not* determine

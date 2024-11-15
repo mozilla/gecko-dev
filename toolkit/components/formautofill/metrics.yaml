@@ -324,6 +324,23 @@ formautofill:
           iframe.
         type: string
 
+  availability:
+    type: boolean
+    description: >
+      A boolean sent once per session to represent whether the
+      formautofill is available in the build
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar formautofill.availability.
+    bugs:
+      - https://bugzil.la/1386959
+    data_reviews:
+      - https://bugzil.la/1386959
+    notification_emails:
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    telemetry_mirror: FORMAUTOFILL_AVAILABILITY
+
 address:
   show_capture_doorhanger:
     type: event
