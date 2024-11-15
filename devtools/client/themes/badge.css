@@ -44,7 +44,10 @@
   height: 12px;
   margin-top: 1px;
   vertical-align: top;
-  border: 1px solid var(--badge-border-color);
+  /* borders are getting clipped in High Contrast Mode because of backplating,
+     so we use an outline instead */
+  border: none;
+  outline: 1px solid var(--badge-border-color);
   border-radius: 3px;
   padding: 0px 2px;
   margin-inline-start: 5px;
@@ -52,6 +55,8 @@
   background-color: var(--badge-background-color);
   color: var(--badge-color);
   box-sizing: border-box;
+  /* center the badge text vertically */
+  align-content: center;
 }
 
 .editor.text .whitespace::before {
@@ -91,13 +96,13 @@
 
 .inspector-badge:is(.active,.interactive.active) {
   background-color: var(--badge-active-background-color);
-  border-color: var(--badge-active-border-color);
+  outline-color: var(--badge-active-border-color);
   color: var(--theme-selection-color);
 }
 
 .inspector-badge.interactive.scrollable-badge {
   background-color: var(--badge-scrollable-background-color);
-  border-color: var(--badge-scrollable-color);
+  outline-color: var(--badge-scrollable-color);
   color: var(--badge-scrollable-color);
   forced-color-adjust: none;
 }
@@ -105,7 +110,7 @@
 .inspector-badge.interactive.scrollable-badge.active {
   background-color: var(--badge-scrollable-active-background-color);
   color: var(--badge-scrollable-active-color);
-  border-color: currentColor;
+  outline-color: currentColor;
 }
 
 .inspector-badge.has-disabled-events {
