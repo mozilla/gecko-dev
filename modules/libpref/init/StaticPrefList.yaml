@@ -12401,20 +12401,6 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
-# Updated to match the target count when we migrate the unpartitioned CHIPS
-# cookies to their first-party partition.
-- name: network.cookie.CHIPS.lastMigrateDatabase
-  type: RelaxedAtomicUint32
-  value: 0
-  mirror: always
-
-# Used to increase the number of times we want to have migrated the database.
-# This lets us remotely perform a database migration with Nimbus.
-- name: network.cookie.CHIPS.migrateDatabaseTarget
-  type: RelaxedAtomicUint32
-  value: 1
-  mirror: always
-
 # Stale threshold for cookies in seconds.
 - name: network.cookie.staleThreshold
   type: uint32_t

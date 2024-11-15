@@ -2214,12 +2214,6 @@ networking:
       setPref:
         branch: default
         pref: "network.cookie.CHIPS.enabled"
-    chipsMigrationTarget:
-      description: What CHIPS migration count target the browser should reach.
-      type: int
-      setPref:
-        branch: default
-        pref: "network.cookie.CHIPS.migrateDatabaseTarget"
     chipsPartitionLimitEnabled:
       description: Whether we enforce CHIPS partition limit
       type: boolean

@@ -97,7 +97,6 @@ class CookiePersistentStorage final : public CookieStorage {
 
   OpenDBResult TryInitDB(bool aRecreateDB);
   OpenDBResult Read();
-  void MoveUnpartitionedChipsCookies();
 
   nsresult CreateTableWorker(const char* aName);
   nsresult CreateTable();
