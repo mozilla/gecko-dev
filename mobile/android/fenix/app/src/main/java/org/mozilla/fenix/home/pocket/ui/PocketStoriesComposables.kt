@@ -55,7 +55,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import mozilla.components.service.pocket.PocketStory
-import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
@@ -346,10 +345,6 @@ fun PocketStories(
                                         onStoryClicked(story, rowIndex to columnIndex)
                                     }
                                 }
-                            }
-
-                            is ContentRecommendation -> {
-                                // no-op
                             }
                         }
                     }
