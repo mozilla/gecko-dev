@@ -3717,7 +3717,14 @@
           let lastRelatedTab =
             openerTab && this._lastRelatedTabMap.get(openerTab);
           let previousTab = lastRelatedTab || openerTab || this.selectedTab;
-          if (previousTab.visible) {
+          if (
+            Services.prefs.getBoolPref(
+              "browser.tabs.insertAfterCurrentExceptPinned"
+            ) &&
+            previousTab.pinned
+          ) {
+            index = Infinity;
+          } else if (previousTab.visible) {
             index = previousTab._tPos + 1;
           } else if (previousTab == FirefoxViewHandler.tab) {
             index = 0;
