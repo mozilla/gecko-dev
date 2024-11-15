@@ -383,6 +383,8 @@ impl<LengthPercent> LengthPercentageOrNormal<LengthPercent> {
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
+    Serialize,
+    Deserialize,
 )]
 #[repr(C)]
 pub struct GenericAnchorSizeFunction<LengthPercentage> {
@@ -485,6 +487,8 @@ where
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
+    Serialize,
+    Deserialize,
 )]
 #[repr(u8)]
 pub enum AnchorSizeKeyword {
