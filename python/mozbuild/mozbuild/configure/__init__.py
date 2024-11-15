@@ -320,6 +320,7 @@ class ConfigureSandbox(dict):
                 "max",
                 "min",
                 "range",
+                "reversed",
                 "set",
                 "sorted",
                 "tuple",

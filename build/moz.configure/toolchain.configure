@@ -97,7 +97,6 @@ def forced_pgo_optimization_level(target):
         return "-O3"
 
 
-@imports(_from="__builtin__", _import="reversed")
 @imports(_from="mozbuild.shellutil", _import="quote")
 def check_optimize_flags(src, flags):
     for flag in reversed(flags):
