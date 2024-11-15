@@ -12,6 +12,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIOSKeyStore.h"
+#include "nsISerialEventTarget.h"
 #include "nsString.h"
 #include "ScopedNSSTypes.h"
 
@@ -95,6 +96,7 @@ class OSKeyStore final : public nsIOSKeyStore {
   ~OSKeyStore() = default;
 
   std::unique_ptr<AbstractOSKeyStore> mKs;
+  nsCOMPtr<nsISerialEventTarget> mBackgroundSerialEventTarget;
 };
 
 #endif  // OSKeyStore_h
