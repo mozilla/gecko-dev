@@ -10811,8 +10811,11 @@ function LocationSearch({
     onChange: handleChange,
     value: userInput,
     onKeyDown: handleKeyDown
-  }), /*#__PURE__*/external_React_default().createElement("button", {
-    className: "close-icon",
+  }), /*#__PURE__*/external_React_default().createElement("moz-button", {
+    class: "close-icon",
+    type: "icon ghost",
+    size: "small",
+    iconSrc: "chrome://global/skin/icons/close.svg",
     onClick: handleCloseSearch
   }), /*#__PURE__*/external_React_default().createElement("datalist", {
     id: "merino-location-list"

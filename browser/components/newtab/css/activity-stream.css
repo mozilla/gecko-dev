@@ -2873,20 +2873,13 @@ main section {
   inset-inline-start: 18px;
 }
 .location-input-wrapper .close-icon {
-  background-image: url("chrome://global/skin/icons/close.svg");
-  -moz-context-properties: fill;
-  fill: var(--icon-color);
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  inset-inline-end: 18px;
-  width: var(--size-item-small);
-  height: var(--size-item-small);
-  appearance: none;
-  border: none;
+  inset-inline-end: var(--space-medium);
 }
 .location-input-wrapper .close-icon:focus-visible {
-  outline: 1px solid var(--focus-outline-color);
+  outline: var(--focus-outline);
 }
 .location-input-wrapper input {
   border-radius: var(--border-radius-medium);
