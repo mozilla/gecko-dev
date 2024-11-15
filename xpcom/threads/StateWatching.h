@@ -14,6 +14,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"
+#include "nsCycleCollectionNoteChild.h"
 #include "nsISupports.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
@@ -154,6 +155,18 @@ class Watchable : public WatchTarget {
 
   T mValue;
 };
+
+template <typename T>
+inline void ImplCycleCollectionUnlink(Watchable<T>& aField) {
+  ImplCycleCollectionUnlink<T>(aField);
+}
+
+template <typename T>
+inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCallback, const Watchable<T>& aField,
+    const char* aName, uint32_t aFlags = 0) {
+  ImplCycleCollectionTraverse(aCallback, aField.Ref(), aName, aFlags);
+}
 
 // Manager class for state-watching. Declare one of these in any class for which
 // you want to invoke method callbacks.
