@@ -2018,6 +2018,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         val isToolbarAtBottom = toolbarPosition == ToolbarPosition.BOTTOM
 
         val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        val navbarDividerHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_divider_height)
         val microsurveyHeight =
             appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
         val toolbarHeight =
@@ -2031,7 +2032,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
             isNavbarVisible && isToolbarAtBottom -> navbarHeight + toolbarHeight
             isMicrosurveyEnabled && isToolbarAtBottom -> microsurveyHeight + toolbarHeight
 
-            isNavbarVisible -> navbarHeight
+            isNavbarVisible -> navbarHeight + navbarDividerHeight
             isMicrosurveyEnabled -> microsurveyHeight
             isToolbarAtBottom -> toolbarHeight
 
@@ -2067,12 +2068,13 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         val isNavBarEnabled = navigationToolbarEnabled
         val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
         val navbarHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        val navbarDividerHeight = appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_divider_height)
         val microsurveyHeight =
             appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
 
         return when {
             isNavBarEnabled && isMicrosurveyEnabled -> navbarHeight + microsurveyHeight
-            isNavBarEnabled -> navbarHeight
+            isNavBarEnabled -> navbarHeight + navbarDividerHeight
             isMicrosurveyEnabled -> microsurveyHeight
             else -> 0
         }

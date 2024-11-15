@@ -1523,14 +1523,11 @@ abstract class BaseBrowserFragment :
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> browserToolbar })
+                        } else if (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value) {
+                            Divider()
                         }
 
-                        NavigationButtonsCFR(
-                            context = context,
-                            activity = activity,
-                            showDivider = !isToolbarAtBottom &&
-                                (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value),
-                        )
+                        NavigationButtonsCFR(context = context, activity = activity)
                     }
                 }
             },
@@ -1555,7 +1552,6 @@ abstract class BaseBrowserFragment :
     internal fun NavigationButtonsCFR(
         context: Context,
         activity: HomeActivity,
-        showDivider: Boolean,
     ) {
         var showCFR by remember { mutableStateOf(false) }
         val lastTimeNavigationButtonsClicked = remember { mutableLongStateOf(0L) }
@@ -1625,7 +1621,6 @@ abstract class BaseBrowserFragment :
 
             BrowserNavBar(
                 isPrivateMode = activity.browsingModeManager.mode.isPrivate,
-                showDivider = showDivider,
                 browserStore = context.components.core.store,
                 menuButton = menuButton,
                 newTabMenu = NewTabMenu(

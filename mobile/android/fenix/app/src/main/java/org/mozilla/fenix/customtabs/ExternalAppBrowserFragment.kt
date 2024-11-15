@@ -40,6 +40,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.CustomTabNavBar
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
+import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
@@ -225,6 +226,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         ContextMenuSnackbarDelegate(),
     )
 
+    @Suppress("LongMethod")
     private fun initializeNavBar() {
         // Update the contents of the bottomToolbarContainer with the CustomTabNavBar configuration
         // only if a navbar should be used and it was initialized in the parent.
@@ -254,6 +256,8 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                         // the toolbar might have been already set.
                         (browserToolbarView.view.parent as? ViewGroup)?.removeView(browserToolbarView.view)
                         AndroidView(factory = { _ -> browserToolbarView.view })
+                    } else {
+                        Divider()
                     }
 
                     CustomTabNavBar(
@@ -297,7 +301,6 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                         },
                         isSandboxCustomTab = args.isSandboxCustomTab,
                         backgroundColor = background,
-                        showDivider = !isToolbarAtBottom,
                         buttonTint = navbarIntegration.buttonTint,
                         buttonDisabledTint = navbarIntegration.buttonDisabledTint,
                         onVisibilityUpdated = {
