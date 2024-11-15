@@ -545,6 +545,39 @@ bool CookieCommons::ShouldIncludeCrossSiteCookie(int32_t aSameSiteAttr,
   return aSameSiteAttr == nsICookie::SAMESITE_NONE;
 }
 
+// static
+bool CookieCommons::IsFirstPartyPartitionedCookieWithoutCHIPS(
+    Cookie* aCookie, const nsACString& aBaseDomain,
+    const OriginAttributes& aOriginAttributes) {
+  MOZ_ASSERT(aCookie);
+
+  // The cookie is set with partitioned attribute. This is a CHIPS cookies.
+  if (aCookie->RawIsPartitioned()) {
+    return false;
+  }
+
+  // The originAttributes is not partitioned. This is not a partitioned cookie.
+  if (aOriginAttributes.mPartitionKey.IsEmpty()) {
+    return false;
+  }
+
+  nsAutoString scheme;
+  nsAutoString baseDomain;
+  int32_t port;
+  bool foreignByAncestorContext;
+  // Bail out early if the partition key is not valid.
+  if (!OriginAttributes::ParsePartitionKey(aOriginAttributes.mPartitionKey,
+                                           scheme, baseDomain, port,
+                                           foreignByAncestorContext)) {
+    return false;
+  }
+
+  // Check whether the base domain of the cookie match the base domain in the
+  // partitionKey and it is not an ABA context
+  return aBaseDomain.Equals(NS_ConvertUTF16toUTF8(baseDomain)) &&
+         !foreignByAncestorContext;
+}
+
 bool CookieCommons::IsSafeTopLevelNav(nsIChannel* aChannel) {
   if (!aChannel) {
     return false;

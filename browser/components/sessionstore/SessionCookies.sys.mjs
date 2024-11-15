@@ -74,7 +74,8 @@ var SessionCookiesInternal = {
             expiry,
             cookie.originAttributes || {},
             cookie.sameSite || Ci.nsICookie.SAMESITE_NONE,
-            cookie.schemeMap || Ci.nsICookie.SCHEME_HTTPS
+            cookie.schemeMap || Ci.nsICookie.SCHEME_HTTPS,
+            cookie.isPartitioned
           );
         } catch (ex) {
           console.error(
@@ -254,6 +255,10 @@ var CookieStore = {
 
     if (cookie.schemeMap) {
       jscookie.schemeMap = cookie.schemeMap;
+    }
+
+    if (cookie.isPartitioned) {
+      jscookie.isPartitioned = true;
     }
 
     this._entries.set(this._getKeyForCookie(cookie), jscookie);
