@@ -2246,7 +2246,7 @@ TEST_F(APZCOverscrollTester, ProgrammaticScroll) {
 // that the page is not moving while the fingers are down on the touchpad),
 // but should not cancel it. The animation should continue if the finger is
 // lifted.
-#ifdef MOZ_WIDGET_GTK  // Handling PANGESTURE_MAYSTART is Linux-only for now
+#ifndef MOZ_WIDGET_ANDROID  // Requires GenericOverscrollEffect
 TEST_F(APZCOverscrollTester, HoldGestureDuringOverscroll) {
   SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
 
