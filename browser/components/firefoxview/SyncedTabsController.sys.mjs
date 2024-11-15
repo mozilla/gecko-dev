@@ -195,19 +195,13 @@ export class SyncedTabsController {
 
   #getMessageCardForState({ error = false, action, errorState }) {
     errorState = errorState || this.errorState;
-    let header,
-      description,
-      descriptionLink,
-      buttonLabel,
-      headerIconUrl,
-      mainImageUrl;
+    let header, description, descriptionLink, buttonLabel, mainImageUrl;
     let descriptionArray;
     if (error) {
       let link;
       ({ header, description, link, buttonLabel } =
         SyncedTabsErrorHandler.getFluentStringsForErrorType(errorState));
       action = `${errorState}`;
-      headerIconUrl = "chrome://global/skin/icons/info-filled.svg";
       mainImageUrl =
         "chrome://browser/content/firefoxview/synced-tabs-error.svg";
       descriptionArray = [description];
@@ -235,7 +229,6 @@ export class SyncedTabsController {
       descriptionLink,
       error,
       header,
-      headerIconUrl,
       mainImageUrl,
     };
   }

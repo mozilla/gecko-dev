@@ -13,7 +13,6 @@ import { navigateToLink } from "chrome://browser/content/firefoxview/helpers.mjs
 /**
  * An empty state card to be used throughout Firefox View
  *
- * @property {string} headerIconUrl - (Optional) The chrome:// url for an icon to be displayed within the header
  * @property {string} headerLabel - (Optional) The l10n id for the header text for the empty/error state
  * @property {object} headerArgs - (Optional) The l10n args for the header text for the empty/error state
  * @property {string} isInnerCard - (Optional) True if the card is displayed within another card and needs a border instead of box shadow
@@ -35,7 +34,6 @@ class FxviewEmptyState extends MozLitElement {
   static properties = {
     headerLabel: { type: String },
     headerArgs: { type: Object },
-    headerIconUrl: { type: String },
     isInnerCard: { type: Boolean },
     isSelectedTab: { type: Boolean },
     descriptionLabels: { type: Array },

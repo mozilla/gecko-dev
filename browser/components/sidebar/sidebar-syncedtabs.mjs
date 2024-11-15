@@ -126,7 +126,6 @@ class SyncedTabsInSidebar extends SidebarPage {
    * @param {string[]} options.descriptionArray
    * @param {string} options.descriptionLink
    * @param {string} options.header
-   * @param {string} options.headerIconUrl
    * @param {string} options.mainImageUrl
    * @returns {TemplateResult}
    */
@@ -136,7 +135,6 @@ class SyncedTabsInSidebar extends SidebarPage {
     descriptionArray,
     descriptionLink,
     header,
-    headerIconUrl,
     mainImageUrl,
   }) {
     return html`
@@ -147,7 +145,6 @@ class SyncedTabsInSidebar extends SidebarPage {
         class="empty-state synced-tabs error"
         isSelectedTab
         mainImageUrl="${ifDefined(mainImageUrl)}"
-        headerIconUrl="${ifDefined(headerIconUrl)}"
         id="empty-container"
       >
         <moz-button
