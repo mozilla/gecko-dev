@@ -1,4 +1,4 @@
-// |reftest| skip -- Intl.DurationFormat is not supported
+// |reftest| skip-if(!Intl.hasOwnProperty('DurationFormat')) -- Intl.DurationFormat is not enabled unconditionally
 // Copyright (C) 2021 Nikhil Singhal. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 // Copyright 2022 Igalia, S.L. All rights reserved.
