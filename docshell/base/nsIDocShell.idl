@@ -398,7 +398,7 @@ interface nsIDocShell : nsIDocShellTreeItem
   /**
    * Keeps track of the previous nsISHEntry index and the current
    * nsISHEntry index at the time that the doc shell begins to load.
-   * Used for ContentViewer eviction.
+   * Used for DocumentViewer eviction.
    */
   readonly attribute long previousEntryIndex;
   readonly attribute long loadedEntryIndex;

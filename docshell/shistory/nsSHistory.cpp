@@ -303,14 +303,14 @@ uint32_t nsSHistory::CalcMaxTotalViewers() {
 #  define MAX_TOTAL_VIEWERS_BIAS 14
 #endif
 
-  // Calculate an estimate of how many ContentViewers we should cache based
-  // on RAM.  This assumes that the average ContentViewer is 4MB (conservative)
-  // and caps the max at 8 ContentViewers
+  // Calculate an estimate of how many DocumentViewers we should cache based
+  // on RAM.  This assumes that the average DocumentViewer is 4MB (conservative)
+  // and caps the max at 8 DocumentViewers
   //
-  // TODO: Should we split the cache memory betw. ContentViewer caching and
+  // TODO: Should we split the cache memory betw. DocumentViewer caching and
   // nsCacheService?
   //
-  // RAM    | ContentViewers | on Android
+  // RAM    | DocumentViewers | on Android
   // -------------------------------------
   // 32   Mb       0                0
   // 64   Mb       1                0
@@ -339,7 +339,7 @@ uint32_t nsSHistory::CalcMaxTotalViewers() {
 
   // This is essentially the same calculation as for nsCacheService,
   // except that we divide the final memory calculation by 4, since
-  // we assume each ContentViewer takes on average 4MB
+  // we assume each DocumentViewer takes on average 4MB
   uint32_t viewers = 0;
   double x = std::log(kBytesD) / std::log(2.0) - MAX_TOTAL_VIEWERS_BIAS;
   if (x > 0) {

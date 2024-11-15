@@ -834,7 +834,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvCreateAboutBlankDocumentViewer(
   MOZ_ALWAYS_SUCCEEDS(
       WebNavigation()->GetCurrentURI(getter_AddRefs(currentURI)));
   if (!currentURI || !NS_IsAboutBlank(currentURI)) {
-    NS_WARNING("Can't create a ContentViewer unless on about:blank");
+    NS_WARNING("Can't create a DocumentViewer unless on about:blank");
     return IPC_OK();
   }
 

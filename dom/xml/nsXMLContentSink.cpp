@@ -340,7 +340,7 @@ nsresult nsXMLContentSink::OnDocumentCreated(Document* aSourceDocument,
 
   nsCOMPtr<nsIDocumentViewer> viewer;
   mDocShell->GetDocViewer(getter_AddRefs(viewer));
-  // Make sure that we haven't loaded a new document into the contentviewer
+  // Make sure that we haven't loaded a new document into the documentviewer
   // after starting the XSLT transform.
   if (viewer && viewer->GetDocument() == aSourceDocument) {
     return viewer->SetDocumentInternal(aResultDocument, true);
@@ -362,7 +362,7 @@ nsresult nsXMLContentSink::OnTransformDone(Document* aSourceDocument,
   RefPtr<Document> originalDocument = mDocument;
   bool blockingOnload = mIsBlockingOnload;
 
-  // Make sure that we haven't loaded a new document into the contentviewer
+  // Make sure that we haven't loaded a new document into the documentviewer
   // after starting the XSLT transform.
   if (viewer && (viewer->GetDocument() == aSourceDocument ||
                  viewer->GetDocument() == aResultDocument)) {

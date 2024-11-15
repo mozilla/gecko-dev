@@ -2020,7 +2020,7 @@ nsDocumentViewer::Show() {
     mPreviousViewer = nullptr;
     prevViewer->Destroy();
 
-    // Make sure we don't have too many cached ContentViewers
+    // Make sure we don't have too many cached DocumentViewers
     nsCOMPtr<nsIDocShellTreeItem> treeItem(mContainer);
     if (treeItem) {
       // We need to find the root DocShell since only that object has an
@@ -2933,7 +2933,7 @@ nsDocumentViewer::PrintPreview(nsIPrintSettings* aPrintSettings,
   }
 
   NS_ENSURE_STATE(!GetIsPrinting());
-  // beforeprint event may have caused ContentViewer to be shutdown.
+  // beforeprint event may have caused DocumentViewer to be shutdown.
   NS_ENSURE_STATE(mContainer);
   NS_ENSURE_STATE(mDeviceContext);
 

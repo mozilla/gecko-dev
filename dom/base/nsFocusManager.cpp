@@ -2190,7 +2190,7 @@ Element* nsFocusManager::FlushAndCheckIfFocusable(Element* aElement,
       // called during reflow, calling GetBrowsingContext() could cause frame
       // loader initialization at a time when it isn't safe.
       if (BrowsingContext* bc = flo->GetExtantBrowsingContext()) {
-        // This call may create a contentViewer-created about:blank.
+        // This call may create a documentViewer-created about:blank.
         // That's intentional, so we can move focus there.
         Unused << bc->GetDocument();
       }

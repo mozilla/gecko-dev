@@ -134,7 +134,7 @@ interface nsIDocumentViewer : nsISupports
    * If it is non-null, the document will not be destroyed, and the following
    * actions will happen when destroy() is called (*):
    *  - Sanitize() will be called on the viewer's document
-   *  - The content viewer will set the contentViewer property on the
+   *  - The content viewer will set the documentViewer property on the
    *    history entry, and release its reference (ownership reversal).
    *  - hide() will be called, and no further destruction will happen.
    *

@@ -2338,14 +2338,14 @@ class Document : public nsINode,
                         nsIPrincipal* aPartitionedPrincipal);
 
   /**
-   * Notify the document that its associated ContentViewer is being destroyed.
+   * Notify the document that its associated DocumentViewer is being destroyed.
    * This releases circular references so that the document can go away.
    * Destroy() is only called on documents that have a content viewer.
    */
   virtual void Destroy();
 
   /**
-   * Notify the document that its associated ContentViewer is no longer
+   * Notify the document that its associated DocumentViewer is no longer
    * the current viewer for the docshell. The document might still
    * be rendered in "zombie state" until the next document is ready.
    * The document should save form control state.

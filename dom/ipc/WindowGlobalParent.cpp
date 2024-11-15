@@ -877,7 +877,7 @@ class CheckPermitUnloadRequest final : public PromiseNativeHandler,
     }
 
     // Handle any failure in prompting by aborting the navigation. See comment
-    // in nsContentViewer::PermitUnload for reasoning.
+    // in nsDocumentViewer::PermitUnload for reasoning.
     auto cleanup = MakeScopeExit([&]() { SendReply(false); });
 
     if (nsCOMPtr<nsIPromptCollection> prompt =

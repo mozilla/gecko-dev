@@ -240,7 +240,7 @@ nsresult nsSHEntryShared::SetDocumentViewer(nsIDocumentViewer* aViewer) {
     }
 
     // Store observed document in strong pointer in case it is removed from
-    // the contentviewer
+    // the documentviewer
     mDocument = mDocumentViewer->GetDocument();
     if (mDocument) {
       mDocument->SetBFCacheEntry(this);
