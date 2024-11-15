@@ -20,6 +20,8 @@ XPIDL_SOURCES += [
 
 XPIDL_MODULE = "toolkitprofile"
 
+EXPORTS += ["nsProfileLock.h"]
+
 UNIFIED_SOURCES += ["nsProfileLock.cpp"]
 
 if CONFIG["OS_ARCH"] == "WINNT":
