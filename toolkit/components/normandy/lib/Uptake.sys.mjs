@@ -54,11 +54,7 @@ export var Uptake = {
   async reportRecipe(recipe, status) {
     await Uptake._report(status, `recipe/${recipe.id}`);
     const revisionId = parseInt(recipe.revision_id, 10);
-    Services.telemetry.keyedScalarSet(
-      "normandy.recipe_freshness",
-      recipe.id,
-      revisionId
-    );
+    Glean.normandy.recipeFreshness[recipe.id].set(revisionId);
   },
 
   async reportAction(actionName, status) {

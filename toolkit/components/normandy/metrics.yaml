@@ -692,3 +692,19 @@ normandy:
 
         type: string
     telemetry_mirror: Normandy_Validationfailed_NimbusExperiment
+
+  recipe_freshness:
+    type: labeled_quantity
+    description: >
+      For each recipe ID seen by the Normandy client, its last_modified.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar normandy.recipe_freshness.
+    bugs:
+      - https://bugzil.la/1530508
+    data_reviews:
+      - https://bugzil.la/1530508
+    notification_emails:
+      - product-delivery@mozilla.com
+    expires: never
+    unit: revision id
+    telemetry_mirror: NORMANDY_RECIPE_FRESHNESS
