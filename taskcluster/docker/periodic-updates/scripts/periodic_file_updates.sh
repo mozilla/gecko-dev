@@ -25,40 +25,123 @@ Usage: $(basename "$0") [-p product]
 EOF
 }
 
+# Defaults
 PRODUCT="firefox"
-BRANCH=""
-PLATFORM_EXT="tar.bz2"
-UNPACK_CMD="tar jxf"
+DRY_RUN=false
 CLOSED_TREE=false
 DONTBUILD=false
 APPROVAL=false
+
+DO_PRELOAD_PINSET=false
+DO_HSTS=false
+DO_HPKP=false
+DO_REMOTE_SETTINGS=false
+DO_SUFFIX_LIST=false
+DO_MOBILE_EXPERIMENTS=false
+DO_CT_LOGS=false
+
 CLONE_REPO=true
+
+USE_MC=false
+USE_TC=true
+
+# Parse our command-line options.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h) usage; exit 0 ;;
+    -p) PRODUCT="$2"; shift ;;
+    -b) BRANCH="$2"; shift ;;
+    -n) DRY_RUN=true ;;
+    -c) CLOSED_TREE=true ;;
+    -d) DONTBUILD=true ;;
+    -a) APPROVAL=true ;;
+    --pinset) DO_PRELOAD_PINSET=true ;;
+    --hsts) DO_HSTS=true ;;
+    --hpkp) DO_HPKP=true ;;
+    --remote-settings) DO_REMOTE_SETTINGS=true ;;
+    --suffix-list) DO_SUFFIX_LIST=true ;;
+    --mobile-experiments) DO_MOBILE_EXPERIMENTS=true ;;
+    --ct-logs) DO_CT_LOGS=true ;;
+    --skip-clone) CLONE_REPO=false ;;
+    -t) TOPSRCDIR="$2"; shift ;;
+    --use-mozilla-central) USE_MC=true ;;
+    --use-ftp-builds) USE_TC=false ;;
+    -*) usage
+      exit 11 ;;
+    *)  break ;; # terminate while loop
+  esac
+  shift
+done
+
+# Must supply a code branch to work with.
+if [ "${BRANCH}" == "" ]; then
+  echo "Error: You must specify a branch with -b branchname." >&2
+  usage
+  exit 12
+fi
+
+# Must choose at least one update action.
+if [ "$DO_HSTS" == "false" ] && [ "$DO_HPKP" == "false" ] && [ "$DO_REMOTE_SETTINGS" == "false" ] && [ "$DO_SUFFIX_LIST" == "false" ] && [ "$DO_MOBILE_EXPERIMENTS" == false ] && [ "$DO_CT_LOGS" == false ]
+then
+  echo "Error: you must specify at least one action from: --hsts, --hpkp, --remote-settings, or --suffix-list" >&2
+  usage
+  exit 13
+fi
+
+# per-product constants
+case "${PRODUCT}" in
+  thunderbird)
+    COMMIT_AUTHOR="tbirdbld <tbirdbld@thunderbird.net>"
+    ;;
+  firefox)
+    ;;
+  *)
+    echo "Error: Invalid product specified"
+    usage
+    exit 14
+    ;;
+esac
+
+if [ "${TOPSRCDIR}" == "" ]; then
+  TOPSRCDIR="$(basename "${BRANCH}")"
+fi
+
+case "${BRANCH}" in
+  mozilla-central|comm-central|try )
+    HGREPO="https://${HGHOST}/${BRANCH}"
+    ;;
+  mozilla-*|comm-* )
+    HGREPO="https://${HGHOST}/releases/${BRANCH}"
+    ;;
+  * )
+    HGREPO="https://${HGHOST}/projects/${BRANCH}"
+    ;;
+esac
+
+BROWSER_ARCHIVE="target.${PLATFORM_EXT}"
+TESTS_ARCHIVE="target.common.tests.tar.gz"
+
+PLATFORM_EXT="tar.bz2"
+UNPACK_CMD="tar jxf"
 COMMIT_AUTHOR='ffxbld <ffxbld@mozilla.com>'
-TOPSRCDIR=''
 HGHOST="hg.mozilla.org"
 STAGEHOST="archive.mozilla.org"
 WGET="wget -nv"
 UNTAR="tar -zxf"
 DIFF="$(command -v diff) -u"
-BASEDIR="${HOME}"
-
-SCRIPTDIR="$(realpath "$(dirname "$0")")"
 HG="$(command -v hg)"
-DATADIR="${BASEDIR}/data"
-mkdir -p "${DATADIR}"
-
-USE_MC=false
-USE_TC=true
 JQ="$(command -v jq)"
 
-DO_HSTS=false
+BASEDIR="${HOME}"
+SCRIPTDIR="$(realpath "$(dirname "$0")")"
+DATADIR="${BASEDIR}/data"
+
 HSTS_PRELOAD_SCRIPT="${SCRIPTDIR}/getHSTSPreloadList.js"
 HSTS_PRELOAD_ERRORS="nsSTSPreloadList.errors"
 HSTS_PRELOAD_INC_OLD="${DATADIR}/nsSTSPreloadList.inc"
 HSTS_PRELOAD_INC_NEW="${BASEDIR}/${PRODUCT}/nsSTSPreloadList.inc"
 HSTS_UPDATED=false
 
-DO_HPKP=false
 HPKP_PRELOAD_SCRIPT="${SCRIPTDIR}/genHPKPStaticPins.js"
 HPKP_PRELOAD_ERRORS="StaticHPKPins.errors"
 HPKP_PRELOAD_JSON="${DATADIR}/PreloadedHPKPins.json"
@@ -67,26 +150,22 @@ HPKP_PRELOAD_INPUT="${DATADIR}/${HPKP_PRELOAD_INC}"
 HPKP_PRELOAD_OUTPUT="${DATADIR}/${HPKP_PRELOAD_INC}.out"
 HPKP_UPDATED=false
 
-DO_REMOTE_SETTINGS=false
 REMOTE_SETTINGS_SERVER=''
 REMOTE_SETTINGS_OUTPUT="${DATADIR}/remote-settings.out"
 REMOTE_SETTINGS_DIR="/services/settings/dumps"
 REMOTE_SETTINGS_UPDATED=false
 
-DO_SUFFIX_LIST=false
 PUBLIC_SUFFIX_URL="https://publicsuffix.org/list/public_suffix_list.dat"
 PUBLIC_SUFFIX_LOCAL="public_suffix_list.dat"
 HG_SUFFIX_LOCAL="effective_tld_names.dat"
 HG_SUFFIX_PATH="/netwerk/dns/${HG_SUFFIX_LOCAL}"
 SUFFIX_LIST_UPDATED=false
 
-DO_MOBILE_EXPERIMENTS=false
 EXPERIMENTER_URL="https://experimenter.services.mozilla.com/api/v6/experiments-first-run/"
 FENIX_INITIAL_EXPERIMENTS="mobile/android/fenix/app/src/main/res/raw/initial_experiments.json"
 FOCUS_INITIAL_EXPERIMENTS="mobile/android/focus-android/app/src/main/res/raw/initial_experiments.json"
 MOBILE_EXPERIMENTS_UPDATED=false
 
-DO_CT_LOGS=false
 CT_LOG_UPDATE_SCRIPT="${SCRIPTDIR}/getCTKnownLogs.py"
 
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-.}"
@@ -497,83 +576,9 @@ function push_repo {
 
 # Main
 
-# Parse our command-line options.
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -h) usage; exit 0 ;;
-    -p) PRODUCT="$2"; shift ;;
-    -b) BRANCH="$2"; shift ;;
-    -n) DRY_RUN=true ;;
-    -c) CLOSED_TREE=true ;;
-    -d) DONTBUILD=true ;;
-    -a) APPROVAL=true ;;
-    --pinset) DO_PRELOAD_PINSET=true ;;
-    --hsts) DO_HSTS=true ;;
-    --hpkp) DO_HPKP=true ;;
-    --remote-settings) DO_REMOTE_SETTINGS=true ;;
-    --suffix-list) DO_SUFFIX_LIST=true ;;
-    --mobile-experiments) DO_MOBILE_EXPERIMENTS=true ;;
-    --ct-logs) DO_CT_LOGS=true ;;
-    --skip-clone) CLONE_REPO=false ;;
-    -t) TOPSRCDIR="$2"; shift ;;
-    --use-mozilla-central) USE_MC=true ;;
-    --use-ftp-builds) USE_TC=false ;;
-    -*) usage
-      exit 11 ;;
-    *)  break ;; # terminate while loop
-  esac
-  shift
-done
-
-# Must supply a code branch to work with.
-if [ "${BRANCH}" == "" ]; then
-  echo "Error: You must specify a branch with -b branchname." >&2
-  usage
-  exit 12
-fi
-
-# Must choose at least one update action.
-if [ "$DO_HSTS" == "false" ] && [ "$DO_HPKP" == "false" ] && [ "$DO_REMOTE_SETTINGS" == "false" ] && [ "$DO_SUFFIX_LIST" == "false" ] && [ "$DO_MOBILE_EXPERIMENTS" == false ] && [ "$DO_CT_LOGS" == false ]
-then
-  echo "Error: you must specify at least one action from: --hsts, --hpkp, --remote-settings, or --suffix-list" >&2
-  usage
-  exit 13
-fi
-
-# per-product constants
-case "${PRODUCT}" in
-  thunderbird)
-    COMMIT_AUTHOR="tbirdbld <tbirdbld@thunderbird.net>"
-    ;;
-  firefox)
-    ;;
-  *)
-    echo "Error: Invalid product specified"
-    usage
-    exit 14
-    ;;
-esac
-
-if [ "${TOPSRCDIR}" == "" ]; then
-  TOPSRCDIR="$(basename "${BRANCH}")"
-fi
-
-case "${BRANCH}" in
-  mozilla-central|comm-central|try )
-    HGREPO="https://${HGHOST}/${BRANCH}"
-    ;;
-  mozilla-*|comm-* )
-    HGREPO="https://${HGHOST}/releases/${BRANCH}"
-    ;;
-  * )
-    HGREPO="https://${HGHOST}/projects/${BRANCH}"
-    ;;
-esac
-
-BROWSER_ARCHIVE="target.${PLATFORM_EXT}"
-TESTS_ARCHIVE="target.common.tests.tar.gz"
-
 preflight_cleanup
+
+mkdir -p "${DATADIR}"
 
 # Clone the repository here as some sections will use it for source data, and
 # we'll need it later anyway.
