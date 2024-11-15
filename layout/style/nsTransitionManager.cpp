@@ -204,27 +204,33 @@ static nsTArray<Keyframe> GetTransitionKeyframes(
 using ReplacedTransitionProperties =
     CSSTransition::ReplacedTransitionProperties;
 static Maybe<ReplacedTransitionProperties> GetReplacedTransitionProperties(
-    const CSSTransition* aTransition,
+    const CSSTransition& aTransition,
     const DocumentTimeline* aTimelineToMatch) {
   Maybe<ReplacedTransitionProperties> result;
 
-  // Transition needs to be currently running on the compositor to be
-  // replaceable.
-  if (!aTransition || !aTransition->HasCurrentEffect() ||
-      !aTransition->IsRunningOnCompositor() ||
-      aTransition->GetStartTime().IsNull()) {
+  if (!aTransition.HasCurrentEffect()) {
     return result;
   }
 
   // Transition needs to be running on the same timeline.
-  if (aTransition->GetTimeline() != aTimelineToMatch) {
+  if (aTransition.GetTimeline() != aTimelineToMatch) {
+    return result;
+  }
+
+  auto startTime = aTransition.GetStartTime();
+  if (startTime.IsNull() && !aTransition.GetPendingReadyTime().IsNull()) {
+    startTime =
+        aTimelineToMatch->ToTimelineTime(aTransition.GetPendingReadyTime());
+  }
+
+  if (startTime.IsNull()) {
     return result;
   }
 
   // The transition needs to have a keyframe effect.
   const KeyframeEffect* keyframeEffect =
-      aTransition->GetEffect() ? aTransition->GetEffect()->AsKeyframeEffect()
-                               : nullptr;
+      aTransition.GetEffect() ? aTransition.GetEffect()->AsKeyframeEffect()
+                              : nullptr;
   if (!keyframeEffect) {
     return result;
   }
@@ -234,7 +240,7 @@ static Maybe<ReplacedTransitionProperties> GetReplacedTransitionProperties(
   if (keyframeEffect->Properties().Length() != 1 ||
       keyframeEffect->Properties()[0].mSegments.Length() != 1 ||
       keyframeEffect->Properties()[0].mProperty !=
-          aTransition->TransitionProperty()) {
+          aTransition.TransitionProperty()) {
     return result;
   }
 
@@ -242,7 +248,7 @@ static Maybe<ReplacedTransitionProperties> GetReplacedTransitionProperties(
       keyframeEffect->Properties()[0].mSegments[0];
 
   result.emplace(ReplacedTransitionProperties(
-      {aTransition->GetStartTime().Value(), aTransition->PlaybackRate(),
+      {startTime.Value(), aTransition.PlaybackRate(),
        keyframeEffect->SpecifiedTiming(), segment.mTimingFunction,
        segment.mFromValue, segment.mToValue}));
 
@@ -297,10 +303,10 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
 
   // For compositor animations, |aOldStyle| may have out-of-date transition
   // rules, and it may be equal to the |endValue| of a reversing transition by
-  // accidentally. This causes Servo_ComputedValues_ShouldTransition() returns
+  // accidentally. This causes Servo_ComputedValues_ShouldTransition() to return
   // an incorrect result. Therefore, we have to recompute the current value if
   // this transition is running on the compositor, to make sure we create the
-  // transition properly. Here, we precompute the progress and collect the
+  // transition properly. Here, we pre-compute the progress and collect the
   // necessary info, so Servo_ComputedValues_ShouldTransition() could compute
   // the current value if needed.
   // FIXME: Bug 1634945. We should use the last value from the compositor as the
@@ -308,21 +314,19 @@ bool nsTransitionManager::ConsiderInitiatingTransition(
   Maybe<ReplacedTransitionProperties> replacedTransitionProperties;
   Maybe<double> progress;
   if (oldTransition) {
-    // If this new transition is replacing an existing transition that is
-    // running on the compositor, we store select parameters from the replaced
-    // transition so that later, once all scripts have run, we can update the
-    // start value of the transition using TimeStamp::Now(). This allows us to
-    // avoid a large jump when starting a new transition when the main thread
-    // lags behind the compositor.
+    // If this new transition is replacing an existing transition, we store
+    // select parameters from the replaced transition so that later, once all
+    // scripts have run, we can update the start value of the transition using
+    // TimeStamp::Now(). This allows us to avoid a large jump when starting a
+    // new transition when the main thread lags behind the compositor.
     //
     // Note: We compute this before calling
     // Servo_ComputedValues_ShouldTransition() so we can reuse it for computing
     // the current value and setting the replaced transition properties later in
-    // this function. Also, |replacedTransitionProperties| is Nothing() if the
-    // running transition is not on the compositor.
+    // this function.
     const dom::DocumentTimeline* timeline = aElement->OwnerDoc()->Timeline();
     replacedTransitionProperties =
-        GetReplacedTransitionProperties(oldTransition, timeline);
+        GetReplacedTransitionProperties(*oldTransition, timeline);
     progress = replacedTransitionProperties.andThen(
         [&](const ReplacedTransitionProperties& aProperties) {
           const dom::AnimationTimeline* timeline = oldTransition->GetTimeline();

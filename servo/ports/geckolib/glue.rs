@@ -1223,16 +1223,13 @@ pub extern "C" fn Servo_ComputedValues_ShouldTransition(
     // For main thread animations, it's fine to use |old_value| because it represents the value in
     // before-change style [1] if not transitions and animations, or the current value [2] if it
     // has a running transition.
-    // If this property has a running transition on the compositor, |old_value| may be invalid, and
-    // we have to compute the current value here to make sure the check of
-    // `current_or_old_value == new_value` below makes sense.
     //
-    // Note: For compositor animaitons, in we may only compose the transition rule only once when
-    // creating the transition on the main thread. And then we throttle the animations, so the
-    // transition rules in |old| are out-of-date. This means |old_value| is not equal to current
-    // value. In some cases, it could be equal to the start value of the running transition. This
-    // situation prevent us from creating a reversing transition. Therefore, it's necessay to
-    // compute current value if needed, for compositor animations.
+    // If this property is replacing a running or pending transition, we might want to compute a
+    // more accurate current value, to make sure the check of `current_or_old_value == new_value`
+    // below makes sense. |old_value| might be stale, even being the initial value of the
+    // transition (if we've throttled the animation on the main thread, due to it being off-screen,
+    // or a compositor animation). This prevents us from creating a reversing transition
+    // incorrectly.
     //
     // [1] https://drafts.csswg.org/css-transitions-1/#before-change-style
     // [2] https://drafts.csswg.org/css-transitions-1/#current-value
@@ -1253,8 +1250,8 @@ pub extern "C" fn Servo_ComputedValues_ShouldTransition(
     //    transition-property value, and the end value is not equal to the value of the property
     //    in the after-change style. Also, if the **current value** of the property in the
     //    running transition is equal to the value of the property in the after-change style, or
-    //    if these two values are not transitionable. In this case, we don't create new
-    //    transition and we will cancel the running transition.
+    //    if these two values are not transitionable. In this case, we don't create new transition
+    //    and we will cancel the running transition.
     let current_or_old_value = current_value.unwrap_or(old_value);
     if current_or_old_value == new_value ||
         matches!(behavior, computed::TransitionBehavior::Normal if !current_or_old_value.interpolable_with(&new_value))
