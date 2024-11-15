@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
-  --preview-image-border-radius: 6px;
+  --theme-card-border-radius: 10px;
+  --preview-image-border-radius: 9px;
   --theme-card-border-width: 2px;
 }
 
@@ -13,8 +14,9 @@ moz-card {
 
 .theme-card {
   width: 120px;
-  outline-offset: var(--focus-outline-offset);
-  border: var(--focus-outline-width) solid var(--card-border-color);
+  border-radius: var(--theme-card-border-radius);
+  border-color: var(--border-color-interactive);
+  box-shadow: none;
 
   &:hover {
     background-color: var(--button-background-color-hover);
@@ -22,6 +24,7 @@ moz-card {
 
   &:focus-visible {
     outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
   }
 }
 
