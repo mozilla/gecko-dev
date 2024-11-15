@@ -48,20 +48,21 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
   if (!strcmp("alertfinished", aTopic)) {
+    // XXX: QM_TRY?
     (void)NS_WARN_IF(NS_FAILED(
         AdjustPushQuota(mPrincipal, NotificationStatusChange::Closed)));
+    (void)NS_WARN_IF(NS_FAILED(UnpersistNotification(mPrincipal, mId)));
+
     if (mResolver) {
-      // alertshow happens first before alertfinished, and it should have If
-      // not it means it failed to show and is bailing out.
+      // alertshow happens first before alertfinished, and it should have
+      // nullified mResolver. If not it means it failed to show and is bailing
+      // out.
       // XXX: Apparently XUL manual do not disturb mode does this without firing
       // alertshow at all.
       mResolver.take().value()(CopyableErrorResult(NS_ERROR_FAILURE));
-      return NS_OK;
+    } else {
+      (void)NS_WARN_IF(NS_FAILED(FireCloseEvent()));
     }
-
-    // XXX: QM_TRY?
-    (void)NS_WARN_IF(NS_FAILED(UnpersistNotification(mPrincipal, mId)));
-    (void)NS_WARN_IF(NS_FAILED(FireCloseEvent()));
 
     // Unpersisted already and being unregistered already by nsIAlertsService
     mDangling = true;
