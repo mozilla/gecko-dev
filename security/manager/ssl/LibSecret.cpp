@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "mozilla/Base64.h"
+#include "mozilla/GUniquePtr.h"
 #include "mozilla/Logging.h"
 #include "MainThreadUtils.h"
 #include "prlink.h"
@@ -124,9 +125,6 @@ nsresult MaybeLoadLibSecret() {
 }
 
 struct ScopedDelete {
-  void operator()(GError* error) {
-    if (error) g_error_free(error);
-  }
   void operator()(char* val) {
     if (val) secret_password_free(val);
   }
@@ -142,7 +140,6 @@ struct ScopedMaybeDelete {
   }
 };
 
-typedef std::unique_ptr<GError, ScopedMaybeDelete<GError>> ScopedGError;
 typedef std::unique_ptr<char, ScopedMaybeDelete<char>> ScopedPassword;
 
 LibSecret::LibSecret() = default;
@@ -183,14 +180,14 @@ nsresult LibSecret::StoreSecret(const nsACString& aSecret,
     MOZ_LOG(gLibSecretLog, LogLevel::Debug, ("Error base64-encoding secret"));
     return rv;
   }
-  GError* raw_error = nullptr;
+  GUniquePtr<GError> error;
   bool stored = secret_password_store_sync(
       &kSchema, SECRET_COLLECTION_DEFAULT, PromiseFlatCString(aLabel).get(),
       PromiseFlatCString(base64).get(),
       nullptr,  // GCancellable
-      &raw_error, "string", PromiseFlatCString(aLabel).get(), nullptr);
-  ScopedGError error(raw_error);
-  if (raw_error) {
+      getter_Transfers(error), "string", PromiseFlatCString(aLabel).get(),
+      nullptr);
+  if (error) {
     MOZ_LOG(gLibSecretLog, LogLevel::Debug, ("Error storing secret"));
     return NS_ERROR_FAILURE;
   }
@@ -203,14 +200,14 @@ nsresult LibSecret::DeleteSecret(const nsACString& aLabel) {
   if (!secret_password_clear_sync || !secret_error_get_quark) {
     return NS_ERROR_FAILURE;
   }
-  GError* raw_error = nullptr;
-  Unused << secret_password_clear_sync(
-      &kSchema,
-      nullptr,  // GCancellable
-      &raw_error, "string", PromiseFlatCString(aLabel).get(), nullptr);
-  ScopedGError error(raw_error);
-  if (raw_error && !(raw_error->domain == secret_error_get_quark() &&
-                     raw_error->code == SECRET_ERROR_NO_SUCH_OBJECT)) {
+  GUniquePtr<GError> error;
+  Unused << secret_password_clear_sync(&kSchema,
+                                       nullptr,  // GCancellable
+                                       getter_Transfers(error), "string",
+                                       PromiseFlatCString(aLabel).get(),
+                                       nullptr);
+  if (error && !(error->domain == secret_error_get_quark() &&
+                 error->code == SECRET_ERROR_NO_SUCH_OBJECT)) {
     MOZ_LOG(gLibSecretLog, LogLevel::Debug, ("Error deleting secret"));
     return NS_ERROR_FAILURE;
   }
@@ -224,14 +221,14 @@ nsresult LibSecret::RetrieveSecret(const nsACString& aLabel,
   if (!secret_password_lookup_sync || !secret_password_free) {
     return NS_ERROR_FAILURE;
   }
-  GError* raw_error = nullptr;
+  GUniquePtr<GError> error;
   aSecret.Truncate();
-  ScopedPassword s(secret_password_lookup_sync(
-      &kSchema,
-      nullptr,  // GCancellable
-      &raw_error, "string", PromiseFlatCString(aLabel).get(), nullptr));
-  ScopedGError error(raw_error);
-  if (raw_error || !s) {
+  ScopedPassword s(
+      secret_password_lookup_sync(&kSchema,
+                                  nullptr,  // GCancellable
+                                  getter_Transfers(error), "string",
+                                  PromiseFlatCString(aLabel).get(), nullptr));
+  if (error || !s) {
     MOZ_LOG(gLibSecretLog, LogLevel::Debug,
             ("Error retrieving secret or didn't find it"));
     return NS_ERROR_FAILURE;
