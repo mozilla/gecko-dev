@@ -9,6 +9,7 @@
 #include <iosfwd>
 
 #include "nsPoint.h"
+#include "mozilla/DefineEnum.h"
 #include "mozilla/ScrollGeneration.h"
 #include "mozilla/ScrollOrigin.h"
 #include "mozilla/ScrollSnapTargetId.h"
@@ -22,19 +23,20 @@ struct ParamTraits;
 
 namespace mozilla {
 
-enum class ScrollUpdateType {
-  // A scroll update to a specific destination, regardless of the current
-  // scroll position.
-  Absolute,
-  // A scroll update by a specific amount, based off a given starting scroll
-  // position. XXX Fold this into PureRelative, it should be relatively
-  // straightforward after bug 1655733.
-  Relative,
-  // A scroll update by a specific amount, where only the delta is provided.
-  // The delta should be applied to whatever the current scroll position is
-  // on the receiver side.
-  PureRelative,
-};
+MOZ_DEFINE_ENUM_CLASS_WITH_BASE_AND_TOSTRING(
+    ScrollUpdateType, uint8_t,
+    (
+        // A scroll update to a specific destination, regardless of the current
+        // scroll position.
+        Absolute,
+        // A scroll update by a specific amount, based off a given starting
+        // scroll position. XXX Fold this into PureRelative, it should be
+        // relatively straightforward after bug 1655733.
+        Relative,
+        // A scroll update by a specific amount, where only the delta is
+        // provided. The delta should be applied to whatever the current scroll
+        // position is on the receiver side.
+        PureRelative));
 
 enum class ScrollTriggeredByScript : bool { No, Yes };
 

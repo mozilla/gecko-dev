@@ -128,10 +128,9 @@ CSSPoint ScrollPositionUpdate::GetDelta() const {
 
 std::ostream& operator<<(std::ostream& aStream,
                          const ScrollPositionUpdate& aUpdate) {
-  aStream << "{ gen=" << aUpdate.mScrollGeneration
-          << ", type=" << (int)aUpdate.mType
-          << ", mode=" << (int)aUpdate.mScrollMode
-          << ", origin=" << (int)aUpdate.mScrollOrigin
+  aStream << "{ gen=" << aUpdate.mScrollGeneration << ", type=" << aUpdate.mType
+          << ", mode=" << aUpdate.mScrollMode
+          << ", origin=" << aUpdate.mScrollOrigin
           << ", dst=" << aUpdate.mDestination << ", src=" << aUpdate.mSource
           << ", delta=" << aUpdate.mDelta
           << ", triggered by script=" << aUpdate.WasTriggeredByScript() << " }";
