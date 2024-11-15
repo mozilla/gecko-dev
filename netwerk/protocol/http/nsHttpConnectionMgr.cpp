@@ -2433,6 +2433,7 @@ void nsHttpConnectionMgr::OnMsgVerifyTraffic(int32_t, ARefBase*) {
 
   // Mark connections for traffic verification
   for (const auto& entry : mCT.Values()) {
+    entry->ResetIPFamilyPreference();
     entry->VerifyTraffic();
   }
 
