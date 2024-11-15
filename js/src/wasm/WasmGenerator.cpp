@@ -1406,7 +1406,8 @@ SharedModule ModuleGenerator::finishModule(
   // If we can serialize (not asm.js), are not planning on serializing already
   // and are testing serialization, then do a roundtrip through serialization
   // to test it out.
-  if (!isAsmJS() && compileArgs_->features.testSerialization) {
+  if (!isAsmJS() && compileArgs_->features.testSerialization &&
+      module->canSerialize()) {
     MOZ_RELEASE_ASSERT(mode() == CompileMode::Once &&
                        tier() == Tier::Serialized);
 

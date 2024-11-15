@@ -1495,6 +1495,7 @@ bool Module::canSerialize() const {
   // TODO(bug 1903131): JS string builtins don't support serialization
   // TODO(bug 1913109): lazy tiering doesn't support serialization
   return code_->mode() != CompileMode::LazyTiering &&
+         !codeMeta().isBuiltinModule() &&
          codeMeta().features().builtinModules.hasNone() &&
          !codeMeta().debugEnabled;
 }
