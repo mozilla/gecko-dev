@@ -90,12 +90,19 @@ impl<'a> MinidumpAnalyzer<'a> {
             "modules": used_modules.iter().map(|module| {
                 let code_file = module.code_file();
                 let code_file_path: &std::path::Path = code_file.as_ref().as_ref();
+
+                fn file_name_str(p: &std::path::Path) -> Option<Cow<'_, str>> {
+                    p.file_name().map(|s| s.to_string_lossy())
+                }
+
                 json!({
                     "base_addr": format!("{:#x}", module.base_address()),
                     "end_addr": format!("{:#x}", module.base_address() + module.size()),
-                    "filename": code_file_path.file_name().map(|s| s.to_string_lossy()),
+                    "filename": file_name_str(code_file_path),
                     "code_id": module.code_identifier().as_ref().map(|id| id.as_str()),
-                    "debug_file": module.debug_file().as_deref(),
+                    // `debug_file` may be a file path with additional components; we just want the
+                    // final component. See bug 1931237.
+                    "debug_file": module.debug_file().as_deref().and_then(|s| file_name_str(Path::new(s))),
                     "debug_id": module.debug_identifier().map(|debug| debug.breakpad().to_string()),
                     "version": module.version().as_deref()
                 })

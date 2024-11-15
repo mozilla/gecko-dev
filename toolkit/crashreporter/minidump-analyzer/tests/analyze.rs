@@ -145,6 +145,17 @@ fn analyze_basic_minidump() {
         let extra = json::parse(&extra_content).expect("failed to parse extra json");
         let stack_traces = &extra["StackTraces"];
         assert!(stack_traces.is_object());
+        let modules = &stack_traces["modules"];
+        assert!(modules.is_array());
+        for m in modules.members() {
+            assert!(m.is_object());
+            if m.has_key("debug_file") {
+                assert!(!m["debug_file"]
+                    .as_str()
+                    .unwrap()
+                    .contains(std::path::MAIN_SEPARATOR));
+            }
+        }
         let threads = &stack_traces["threads"];
         assert!(threads.is_array() && threads.len() == 1);
         assert!(threads[0].is_object());
