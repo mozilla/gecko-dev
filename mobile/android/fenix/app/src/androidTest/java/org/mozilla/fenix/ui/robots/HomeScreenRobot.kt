@@ -410,6 +410,10 @@ class HomeScreenRobot {
             waitingTime,
         )
         mDevice.waitNotNull(
+            findObject(By.text("Edit")),
+            waitingTime,
+        )
+        mDevice.waitNotNull(
             findObject(By.text("Remove")),
             waitingTime,
         )
