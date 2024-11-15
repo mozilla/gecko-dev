@@ -44,10 +44,6 @@ LOCAL_INCLUDES += [
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
     DEFINES['UNICODE'] = True
     DEFINES['_UNICODE'] = True
-    UNIFIED_SOURCES += [
-        'skia/src/fonts/SkFontMgr_indirect.cpp',
-        'skia/src/fonts/SkRemotableFontMgr.cpp',
-    ]
 
 # We should autogenerate these SSE related flags.
 
@@ -196,6 +192,7 @@ def generate_separated_sources(platform_sources):
     'SkXPS',
     'SkCreateCGImageRef',
     'skia/src/ports/SkGlobalInitialization',
+    'skia/src/utils/SkJSON',
   ]
 
   def isignorelisted(value):
@@ -221,7 +218,7 @@ def generate_separated_sources(platform_sources):
       'skia/src/ports/SkMemory_mozalloc.cpp',
       'skia/src/ports/SkImageGenerator_none.cpp',
       'skia/modules/skcms/skcms.cc',
-      'skia/modules/src/skcms_TransformBaseline.cc',
+      'skia/modules/skcms/src/skcms_TransformBaseline.cc',
       'skia/src/core/SkImageFilterTypes.cpp',
     },
     'android': {
@@ -331,6 +328,7 @@ unified_ignorelist = [
   'SkRTree.cpp',
   'SkVertices.cpp',
   'SkSLLexer.cpp',
+  'SkTypeface_mac_ct.cpp',
 ] + opt_allowlist
 
 def write_sources(f, values, indent):
