@@ -19,10 +19,10 @@ It causes various reftest regressions.
  9 files changed, 18 insertions(+), 19 deletions(-)
 
 diff --git a/llvm/lib/Passes/PassBuilderPipelines.cpp b/llvm/lib/Passes/PassBuilderPipelines.cpp
-index 16fe9a74bb9c..220f84ddf42d 100644
+index 5a7c327de958..8fae92ebae75 100644
 --- a/llvm/lib/Passes/PassBuilderPipelines.cpp
 +++ b/llvm/lib/Passes/PassBuilderPipelines.cpp
-@@ -701,9 +701,10 @@ PassBuilder::buildFunctionSimplificationPipeline(OptimizationLevel Level,
+@@ -702,9 +702,10 @@ PassBuilder::buildFunctionSimplificationPipeline(OptimizationLevel Level,
    // Delete small array after loop unroll.
    FPM.addPass(SROAPass(SROAOptions::ModifyCFG));
  
@@ -37,10 +37,10 @@ index 16fe9a74bb9c..220f84ddf42d 100644
    // Eliminate redundancies.
    FPM.addPass(MergedLoadStoreMotionPass());
 diff --git a/llvm/lib/Transforms/Vectorize/VectorCombine.cpp b/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
-index 332c52040e21..c8d8c43920dd 100644
+index b9caf8c0df9b..e4468d2b3c91 100644
 --- a/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
 +++ b/llvm/lib/Transforms/Vectorize/VectorCombine.cpp
-@@ -2796,23 +2796,6 @@ bool VectorCombine::run() {
+@@ -2868,23 +2868,6 @@ bool VectorCombine::run() {
      bool IsFixedVectorType = isa<FixedVectorType>(I.getType());
      auto Opcode = I.getOpcode();
  
@@ -64,12 +64,13 @@ index 332c52040e21..c8d8c43920dd 100644
      // This transform works with scalable and fixed vectors
      // TODO: Identify and allow other scalable transforms
      if (isa<VectorType>(I.getType())) {
-@@ -2835,9 +2818,11 @@ bool VectorCombine::run() {
+@@ -2907,10 +2890,12 @@ bool VectorCombine::run() {
      if (IsFixedVectorType) {
        switch (Opcode) {
        case Instruction::InsertElement:
 +        MadeChange |= vectorizeLoadInsert(I);
          MadeChange |= foldInsExtFNeg(I);
+         MadeChange |= foldInsExtVectorToShuffle(I);
          break;
        case Instruction::ShuffleVector:
 +        MadeChange |= widenSubvectorLoad(I);
@@ -77,10 +78,10 @@ index 332c52040e21..c8d8c43920dd 100644
          MadeChange |= foldShuffleOfBinops(I);
          MadeChange |= foldShuffleOfCastops(I);
 diff --git a/llvm/test/Other/new-pm-defaults.ll b/llvm/test/Other/new-pm-defaults.ll
-index 55dbdb1b8366..a7c724920b00 100644
+index 7cf035b0c6f3..33cbb433640b 100644
 --- a/llvm/test/Other/new-pm-defaults.ll
 +++ b/llvm/test/Other/new-pm-defaults.ll
-@@ -193,7 +193,7 @@
+@@ -194,7 +194,7 @@
  ; CHECK-O-NEXT: Running pass: LoopFullUnrollPass
  ; CHECK-EP-LOOP-END-NEXT: Running pass: NoOpLoopPass
  ; CHECK-O-NEXT: Running pass: SROAPass on foo
@@ -90,10 +91,10 @@ index 55dbdb1b8366..a7c724920b00 100644
  ; CHECK-O23SZ-NEXT: Running pass: GVNPass
  ; CHECK-O23SZ-NEXT: Running analysis: MemoryDependenceAnalysis
 diff --git a/llvm/test/Other/new-pm-thinlto-postlink-defaults.ll b/llvm/test/Other/new-pm-thinlto-postlink-defaults.ll
-index fcf84dc5e110..fcffb901ae73 100644
+index ed13402e1c4b..5d8712841801 100644
 --- a/llvm/test/Other/new-pm-thinlto-postlink-defaults.ll
 +++ b/llvm/test/Other/new-pm-thinlto-postlink-defaults.ll
-@@ -123,7 +123,6 @@
+@@ -124,7 +124,6 @@
  ; CHECK-O-NEXT: Running pass: LoopDeletionPass
  ; CHECK-O-NEXT: Running pass: LoopFullUnrollPass
  ; CHECK-O-NEXT: Running pass: SROAPass on foo
@@ -102,10 +103,10 @@ index fcf84dc5e110..fcffb901ae73 100644
  ; CHECK-O23SZ-NEXT: Running pass: GVNPass
  ; CHECK-O23SZ-NEXT: Running analysis: MemoryDependenceAnalysis
 diff --git a/llvm/test/Other/new-pm-thinlto-postlink-pgo-defaults.ll b/llvm/test/Other/new-pm-thinlto-postlink-pgo-defaults.ll
-index 4d5b5e733a87..4da49af21851 100644
+index c82c34f7ff01..c6f95b393170 100644
 --- a/llvm/test/Other/new-pm-thinlto-postlink-pgo-defaults.ll
 +++ b/llvm/test/Other/new-pm-thinlto-postlink-pgo-defaults.ll
-@@ -109,7 +109,6 @@
+@@ -110,7 +110,6 @@
  ; CHECK-O-NEXT: Running pass: LoopDeletionPass
  ; CHECK-O-NEXT: Running pass: LoopFullUnrollPass
  ; CHECK-O-NEXT: Running pass: SROAPass on foo
@@ -114,10 +115,10 @@ index 4d5b5e733a87..4da49af21851 100644
  ; CHECK-O23SZ-NEXT: Running pass: GVNPass
  ; CHECK-O23SZ-NEXT: Running analysis: MemoryDependenceAnalysis
 diff --git a/llvm/test/Other/new-pm-thinlto-postlink-samplepgo-defaults.ll b/llvm/test/Other/new-pm-thinlto-postlink-samplepgo-defaults.ll
-index 62b81ac7cad0..9e1f767aa9f5 100644
+index d375747547d6..b17556bc528a 100644
 --- a/llvm/test/Other/new-pm-thinlto-postlink-samplepgo-defaults.ll
 +++ b/llvm/test/Other/new-pm-thinlto-postlink-samplepgo-defaults.ll
-@@ -118,7 +118,6 @@
+@@ -119,7 +119,6 @@
  ; CHECK-O-NEXT: Running pass: LoopDeletionPass
  ; CHECK-O-NEXT: Running pass: LoopFullUnrollPass
  ; CHECK-O-NEXT: Running pass: SROAPass on foo
@@ -126,10 +127,10 @@ index 62b81ac7cad0..9e1f767aa9f5 100644
  ; CHECK-O23SZ-NEXT: Running pass: GVNPass
  ; CHECK-O23SZ-NEXT: Running analysis: MemoryDependenceAnalysis
 diff --git a/llvm/test/Other/new-pm-thinlto-prelink-pgo-defaults.ll b/llvm/test/Other/new-pm-thinlto-prelink-pgo-defaults.ll
-index c5fc4d57539c..5b843a0df0c0 100644
+index f6a940659680..8551ea2bc998 100644
 --- a/llvm/test/Other/new-pm-thinlto-prelink-pgo-defaults.ll
 +++ b/llvm/test/Other/new-pm-thinlto-prelink-pgo-defaults.ll
-@@ -157,7 +157,6 @@
+@@ -159,7 +159,6 @@
  ; CHECK-O-NEXT: Running pass: LoopDeletionPass
  ; CHECK-O-NEXT: Running pass: LoopFullUnrollPass
  ; CHECK-O-NEXT: Running pass: SROAPass on foo
@@ -138,10 +139,10 @@ index c5fc4d57539c..5b843a0df0c0 100644
  ; CHECK-O23SZ-NEXT: Running pass: GVNPass
  ; CHECK-O23SZ-NEXT: Running analysis: MemoryDependenceAnalysis
 diff --git a/llvm/test/Other/new-pm-thinlto-prelink-samplepgo-defaults.ll b/llvm/test/Other/new-pm-thinlto-prelink-samplepgo-defaults.ll
-index 096110f775b0..292538f2990b 100644
+index 48a9433d2499..531dc0361873 100644
 --- a/llvm/test/Other/new-pm-thinlto-prelink-samplepgo-defaults.ll
 +++ b/llvm/test/Other/new-pm-thinlto-prelink-samplepgo-defaults.ll
-@@ -122,7 +122,6 @@
+@@ -123,7 +123,6 @@
  ; CHECK-O-NEXT: Running pass: IndVarSimplifyPass
  ; CHECK-O-NEXT: Running pass: LoopDeletionPass
  ; CHECK-O-NEXT: Running pass: SROAPass on foo
@@ -179,5 +180,5 @@ index 2296531bd1de..9032b318b092 100644
    %2 = alloca ptr, align 8
    %3 = alloca <4 x float>, align 16
 -- 
-2.39.0.1.g6739ec1790
+2.47.0.1.g59ce1bf855
 
