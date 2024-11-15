@@ -252,14 +252,14 @@ class BasePythonSupport:
                     for powerMetric, powerVals in flat_power_data.items():
                         power_usage_measurements.setdefault(
                             powerMetric.replace(power_usage_search_name, "powerUsage"),
-                            default_power_settings,
+                            dict(default_power_settings),
                         ).setdefault("replicates", []).extend(
                             __convert_from_pico_to_micro(powerVals)
                         )
                 else:
                     power_usage_measurements.setdefault(
                         metric.replace(power_usage_search_name, "powerUsage"),
-                        default_power_settings,
+                        dict(default_power_settings),
                     ).setdefault("replicates", []).extend(
                         __convert_from_pico_to_micro(vals)
                     )
@@ -271,7 +271,7 @@ class BasePythonSupport:
             power_vals = raw_result.get("android").get("power", {})
             if power_vals:
                 power_usage_measurements.setdefault(
-                    "powerUsage", default_power_settings
+                    "powerUsage", dict(default_power_settings)
                 ).setdefault("replicates", []).extend(
                     __convert_from_pico_to_micro(
                         [vals["powerUsage"] for vals in power_vals]
@@ -296,7 +296,7 @@ class BasePythonSupport:
                 if metric != "cpuTime":
                     continue
                 cpuTime_measurements.setdefault(
-                    "cpuTime", default_cputime_settings
+                    "cpuTime", dict(default_cputime_settings)
                 ).setdefault("replicates", []).extend(vals)
 
         # Gather pageload cpuTime measurements, but only if benchmark
@@ -304,9 +304,9 @@ class BasePythonSupport:
         if "cpuTime" not in cpuTime_measurements:
             cpu_vals = raw_result.get("cpu", [])
             if cpu_vals and self.app in FIREFOX_APPS:
-                cpuTime_measurements.setdefault("cpuTime", default_cputime_settings)[
-                    "replicates"
-                ] = cpu_vals
+                cpuTime_measurements.setdefault(
+                    "cpuTime", dict(default_cputime_settings)
+                )["replicates"] = cpu_vals
 
         return cpuTime_measurements
 
