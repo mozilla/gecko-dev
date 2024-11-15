@@ -85,4 +85,23 @@ const long AnnotationType_CircularReferenceError = 60022;
 const long AnnotationType_Mathematics = 60023;
 const long AnnotationType_Sensitive = 60024;
 
+// UIA Style Identifiers
+const long StyleId_Custom = 70000;
+const long StyleId_Heading1 = 70001;
+const long StyleId_Heading2 = 70002;
+const long StyleId_Heading3 = 70003;
+const long StyleId_Heading4 = 70004;
+const long StyleId_Heading5 = 70005;
+const long StyleId_Heading6 = 70006;
+const long StyleId_Heading7 = 70007;
+const long StyleId_Heading8 = 70008;
+const long StyleId_Heading9 = 70009;
+const long StyleId_Title = 70010;
+const long StyleId_Subtitle = 70011;
+const long StyleId_Normal = 70012;
+const long StyleId_Emphasis = 70013;
+const long StyleId_Quote = 70014;
+const long StyleId_BulletedList = 70015;
+const long StyleId_NumberedList = 70016;
+
 #endif  // mozilla_a11y_supplementalMinGWDefinitions_h__

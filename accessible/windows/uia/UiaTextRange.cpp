@@ -437,6 +437,8 @@ UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID aAttributeId,
       return GetAttribute<UIA_IsItalicAttributeId>(range, *aRetVal);
     case UIA_IsReadOnlyAttributeId:
       return GetAttribute<UIA_IsReadOnlyAttributeId>(range, *aRetVal);
+    case UIA_StyleIdAttributeId:
+      return GetAttribute<UIA_StyleIdAttributeId>(range, *aRetVal);
     case UIA_IsSubscriptAttributeId:
       return GetAttribute<UIA_IsSubscriptAttributeId>(range, *aRetVal);
     case UIA_IsSuperscriptAttributeId:
@@ -895,6 +897,52 @@ struct AttributeTraits<UIA_IsItalicAttributeId> {
 
   static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
     aVariant = _variant_t(aValue);
+    return S_OK;
+  }
+};
+
+template <>
+struct AttributeTraits<UIA_StyleIdAttributeId> {
+  using AttrType = int32_t;
+  static Maybe<AttrType> GetValue(TextLeafPoint aPoint) {
+    Accessible* acc = aPoint.mAcc;
+    if (!acc || !acc->Parent()) {
+      return {};
+    }
+    acc = acc->Parent();
+    const role role = acc->Role();
+    if (role == roles::HEADING) {
+      switch (acc->GetLevel(true)) {
+        case 1:
+          return Some(StyleId_Heading1);
+        case 2:
+          return Some(StyleId_Heading2);
+        case 3:
+          return Some(StyleId_Heading3);
+        case 4:
+          return Some(StyleId_Heading4);
+        case 5:
+          return Some(StyleId_Heading5);
+        case 6:
+          return Some(StyleId_Heading6);
+        default:
+          return {};
+      }
+    }
+    if (role == roles::BLOCKQUOTE) {
+      return Some(StyleId_Quote);
+    }
+    if (role == roles::EMPHASIS) {
+      return Some(StyleId_Emphasis);
+    }
+    return {};
+  }
+
+  static AttrType DefaultValue() { return 0; }
+
+  static HRESULT WriteToVariant(VARIANT& aVariant, const AttrType& aValue) {
+    aVariant.vt = VT_I4;
+    aVariant.lVal = aValue;
     return S_OK;
   }
 };

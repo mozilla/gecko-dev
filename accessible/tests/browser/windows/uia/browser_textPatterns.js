@@ -539,6 +539,9 @@ addUiaTask(
 <div id="grammar-error-container">a <span aria-invalid="grammar">bcd</span> ef</div>
 <div id="data-validation-error-container">a <span aria-invalid="true">bcd</span> ef</div>
 <div id="highlight-container">a highlighted phrase ef</div>
+<div id="heading-container">ab<h3>h3</h3>cd</div>
+<div id="blockquote-container">ab<blockquote>quote</blockquote>cd</div>
+<div id="emphasis-container">ab<em>emph</em>cd</div>
 `,
   async function testTextRangeGetAttributeValue() {
     // ================== UIA_FontWeightAttributeId ==================
@@ -922,6 +925,110 @@ addUiaTask(
         return annotations == (AnnotationType_Highlighted,)
       `),
         "Highlighted correct"
+      );
+    }
+
+    // The IA2 -> UIA bridge does not work correctly here.
+    if (gIsUiaEnabled) {
+      // ================== UIA_StyleIdAttributeId - StyleId_Heading* ==================
+      await runPython(`
+        global range
+        headingContainerAcc = findUiaByDomId(doc, "heading-container")
+        range = docText.RangeFromChild(headingContainerAcc)
+      `);
+      is(await runPython(`range.GetText(-1)`), "abh3cd", "range text correct");
+      info("checking mixed StyleId properties");
+      ok(
+        await runPython(`
+          val = range.GetAttributeValue(UIA_StyleIdAttributeId)
+          return val == uiaClient.ReservedMixedAttributeValue
+        `),
+        "StyleId correct (mixed)"
+      );
+      info("Moving to h3 text run");
+      is(
+        await runPython(`range.Move(TextUnit_Format, 1)`),
+        1,
+        "Move return correct"
+      );
+      is(await runPython(`range.GetText(-1)`), "h3", "range text correct");
+      info("checking StyleId");
+      ok(
+        await runPython(`
+          styleId = range.GetAttributeValue(UIA_StyleIdAttributeId)
+          return styleId == StyleId_Heading3
+        `),
+        "StyleId correct"
+      );
+
+      // ================== UIA_StyleIdAttributeId - StyleId_Quote ==================
+      await runPython(`
+        global range
+        blockquoteContainerAcc = findUiaByDomId(doc, "blockquote-container")
+        range = docText.RangeFromChild(blockquoteContainerAcc)
+      `);
+      is(
+        await runPython(`range.GetText(-1)`),
+        "abquotecd",
+        "range text correct"
+      );
+      info("checking mixed StyleId properties");
+      ok(
+        await runPython(`
+          val = range.GetAttributeValue(UIA_StyleIdAttributeId)
+          return val == uiaClient.ReservedMixedAttributeValue
+        `),
+        "StyleId correct (mixed)"
+      );
+      info("Moving to blockquote text run");
+      is(
+        await runPython(`range.Move(TextUnit_Format, 1)`),
+        1,
+        "Move return correct"
+      );
+      is(await runPython(`range.GetText(-1)`), "quote", "range text correct");
+      info("checking StyleId");
+      ok(
+        await runPython(`
+          styleId = range.GetAttributeValue(UIA_StyleIdAttributeId)
+          return styleId == StyleId_Quote
+        `),
+        "StyleId correct"
+      );
+
+      // ================== UIA_StyleIdAttributeId - StyleId_Emphasis ==================
+      await runPython(`
+        global range
+        emphasisContainerAcc = findUiaByDomId(doc, "emphasis-container")
+        range = docText.RangeFromChild(emphasisContainerAcc)
+      `);
+      is(
+        await runPython(`range.GetText(-1)`),
+        "abemphcd",
+        "range text correct"
+      );
+      info("checking mixed StyleId properties");
+      ok(
+        await runPython(`
+          val = range.GetAttributeValue(UIA_StyleIdAttributeId)
+          return val == uiaClient.ReservedMixedAttributeValue
+        `),
+        "StyleId correct (mixed)"
+      );
+      info("Moving to emphasized text run");
+      is(
+        await runPython(`range.Move(TextUnit_Format, 1)`),
+        1,
+        "Move return correct"
+      );
+      is(await runPython(`range.GetText(-1)`), "emph", "range text correct");
+      info("checking StyleId");
+      ok(
+        await runPython(`
+          styleId = range.GetAttributeValue(UIA_StyleIdAttributeId)
+          return styleId == StyleId_Emphasis
+        `),
+        "StyleId correct"
       );
     }
   },

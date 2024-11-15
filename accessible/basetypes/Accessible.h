@@ -732,6 +732,14 @@ class Accessible {
   static void TranslateString(const nsString& aKey, nsAString& aStringOut,
                               const nsTArray<nsString>& aParams = {});
 
+  /*
+   * Return calculated group level based on accessible hierarchy.
+   *
+   * @param aFast  [in] Don't climb up tree. Calculate level from aria and
+   *                    roles.
+   */
+  virtual int32_t GetLevel(bool aFast) const;
+
  protected:
   // Some abstracted group utility methods.
 
@@ -750,14 +758,6 @@ class Accessible {
    * Return group info or create and update.
    */
   virtual AccGroupInfo* GetOrCreateGroupInfo() = 0;
-
-  /*
-   * Return calculated group level based on accessible hierarchy.
-   *
-   * @param aFast  [in] Don't climb up tree. Calculate level from aria and
-   *                    roles.
-   */
-  virtual int32_t GetLevel(bool aFast) const;
 
   /**
    * Calculate position in group and group size ('posinset' and 'setsize') based
