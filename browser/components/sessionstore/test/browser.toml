@@ -96,6 +96,8 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && o
 
 ["browser_cookies_legacy.js"]
 
+["browser_cookies_partitioned.js"]
+
 ["browser_cookies_privacy.js"]
 
 ["browser_cookies_sameSite.js"]
