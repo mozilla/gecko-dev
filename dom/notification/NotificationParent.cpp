@@ -208,7 +208,21 @@ nsresult NotificationParent::Show() {
   return NS_OK;
 }
 
-mozilla::ipc::IPCResult NotificationParent::RecvClose() { return IPC_OK(); }
+mozilla::ipc::IPCResult NotificationParent::RecvClose() {
+  Unregister(CloseMode::CloseMethod);
+  return IPC_OK();
+}
+
+void NotificationParent::Unregister(CloseMode aCloseMode) {
+  if (mDangling) {
+    // We had no permission, so nothing to clean up.
+    return;
+  }
+
+  nsAutoString alertName;
+  GetAlertName(alertName);
+  UnregisterNotification(mPrincipal, mId, alertName, aCloseMode);
+}
 
 nsresult NotificationParent::BindToMainThread(
     Endpoint<PNotificationParent>&& aParentEndpoint,
@@ -229,14 +243,7 @@ nsresult NotificationParent::BindToMainThread(
 }
 
 void NotificationParent::ActorDestroy(ActorDestroyReason aWhy) {
-  if (mDangling) {
-    // We had no permission, so nothing to clean up.
-    return;
-  }
-
-  nsAutoString alertName;
-  GetAlertName(alertName);
-  UnregisterNotification(mPrincipal, mId, alertName, CloseMode::InactiveGlobal);
+  Unregister(CloseMode::InactiveGlobal);
 }
 
 void NotificationParent::MaybeInitAlertName() {

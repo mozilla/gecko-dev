@@ -13,6 +13,8 @@
 
 namespace mozilla::dom::notification {
 
+enum class CloseMode;
+
 class NotificationParent final : public PNotificationParent,
                                  public nsIObserver {
   using IPCResult = mozilla::ipc::IPCResult;
@@ -49,6 +51,8 @@ class NotificationParent final : public PNotificationParent,
   nsresult Show();
   nsresult FireClickEvent();
   nsresult FireCloseEvent();
+
+  void Unregister(CloseMode aCloseMode);
 
   void GetAlertName(nsAString& aRetval) {
     if (mAlertName.IsEmpty()) {
