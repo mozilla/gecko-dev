@@ -1671,7 +1671,8 @@ export class DiscoveryStreamFeed {
                   sectionKey,
                   title: sectionData.title,
                   subtitle: sectionData.subtitle || "",
-                  receivedRank: sectionData.receivedRank,
+                  receivedRank: sectionData.receivedFeedRank,
+                  layout: sectionData.layout,
                 });
               }
             }

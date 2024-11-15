@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import React, { useMemo } from "react";
+import React from "react";
 import { DSEmptyState } from "../DSEmptyState/DSEmptyState";
 import { DSCard } from "../DSCard/DSCard";
 import { useSelector } from "react-redux";
@@ -28,9 +28,6 @@ function CardSections({
   // const prefs = this.props.Prefs.values;
   const { recommendations, sections } = data;
   const isEmpty = recommendations?.length === 0 || !sections;
-  const sortedSections = sections?.sort(
-    (a, b) => a.receivedRank - b.receivedRank
-  );
 
   const prefs = useSelector(state => state.Prefs.values);
   const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
@@ -40,15 +37,6 @@ function CardSections({
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
 
-  // useMemo to only get sorted recs when the data prop changes
-  const sortedRecs = useMemo(() => {
-    return data.recommendations.reduce((acc, recommendation) => {
-      const { section } = recommendation;
-      acc[section] = acc[section] || [];
-      acc[section].push(recommendation);
-      return acc;
-    }, {});
-  }, [data]);
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
     return null;
@@ -60,7 +48,7 @@ function CardSections({
     </div>
   ) : (
     <div className="ds-section-wrapper">
-      {sortedSections.map(section => {
+      {sections.map(section => {
         const { sectionKey, title, subtitle } = section;
         return (
           <section key={sectionKey} className="ds-section">
@@ -69,7 +57,7 @@ function CardSections({
               {subtitle && <p className="section-subtitle">{subtitle}</p>}
             </div>
             <div className="ds-section-grid ds-card-grid">
-              {sortedRecs[sectionKey].slice(0, 4).map(rec => {
+              {section.data.slice(0, 4).map(rec => {
                 return (
                   <DSCard
                     key={`dscard-${rec.id}`}

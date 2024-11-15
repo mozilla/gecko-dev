@@ -63,6 +63,7 @@ describe("selectLayoutRender", () => {
           { id: "foo", pos: 0 },
           { id: "bar", pos: 1 },
         ],
+        sections: [],
       },
     });
   });
@@ -125,7 +126,7 @@ describe("selectLayoutRender", () => {
       data: {
         lastUpdated: 0,
         spocs: {
-          spocs: {
+          newtab_spocs: {
             items: [{ id: 1 }, { id: 2 }, { id: 3 }],
           },
         },
@@ -203,6 +204,7 @@ describe("selectLayoutRender", () => {
 
     assert.deepEqual(layoutRender[0].components[0].data, {
       recommendations: [{ id: "bar" }],
+      sections: [],
     });
   });
 
@@ -220,7 +222,7 @@ describe("selectLayoutRender", () => {
     ];
     const fakeSpocsData = {
       lastUpdated: 0,
-      spocs: { spocs: { items: ["fooSpoc", "barSpoc"] } },
+      spocs: { newtab_spocs: { items: ["fooSpoc", "barSpoc"] } },
     };
 
     store.dispatch({
@@ -497,7 +499,7 @@ describe("selectLayoutRender", () => {
     const fakeSpocsData = {
       lastUpdated: 0,
       spocs: {
-        spocs: { items: [{ name: "spoc", url: "https://foo.com" }] },
+        newtab_spocs: { items: [{ name: "spoc", url: "https://foo.com" }] },
       },
     };
     store.dispatch({

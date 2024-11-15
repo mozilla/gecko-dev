@@ -9117,7 +9117,7 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
    */
   function fillSpocPositionsForPlacement(
     data,
-    spocsConfig,
+    spocsPositions,
     spocsData,
     placementName
   ) {
@@ -9128,7 +9128,7 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
       spocIndexPlacementMap[placementName] = 0;
     }
     const results = [...data];
-    for (let position of spocsConfig.positions) {
+    for (let position of spocsPositions) {
       const spoc = spocsData[spocIndexPlacementMap[placementName]];
       // If there are no spocs left, we can stop filling positions.
       if (!spoc) {
@@ -9202,27 +9202,18 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
   };
 
   // TODO update devtools to show placements
-  const handleSpocs = (data, component) => {
+  const handleSpocs = (data, spocsPositions, spocsPlacement) => {
     let result = [...data];
     // Do we ever expect to possibly have a spoc.
-    if (
-      component.spocs &&
-      component.spocs.positions &&
-      component.spocs.positions.length
-    ) {
-      const placement = component.placement || {};
-      const placementName = placement.name || "spocs";
+    if (spocsPositions?.length) {
+      const placement = spocsPlacement || {};
+      const placementName = placement.name || "newtab_spocs";
       const spocsData = spocs.data[placementName];
       // We expect a spoc, spocs are loaded, and the server returned spocs.
-      if (
-        spocs.loaded &&
-        spocsData &&
-        spocsData.items &&
-        spocsData.items.length
-      ) {
+      if (spocs.loaded && spocsData?.items?.length) {
         result = fillSpocPositionsForPlacement(
           result,
-          component.spocs,
+          spocsPositions,
           spocsData.items,
           placementName
         );
@@ -9231,21 +9222,30 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
     return result;
   };
 
+  const handleSections = (sections = [], recommendations = []) => {
+    let result = sections.sort((a, b) => a.receivedRank - b.receivedRank);
+
+    const sectionsMap = recommendations.reduce((acc, recommendation) => {
+      const { section } = recommendation;
+      acc[section] = acc[section] || [];
+      acc[section].push(recommendation);
+      return acc;
+    }, {});
+
+    result.forEach(section => {
+      const { sectionKey } = section;
+      section.data = sectionsMap[sectionKey];
+    });
+
+    return result;
+  };
+
   const handleComponent = component => {
-    if (
-      component.spocs &&
-      component.spocs.positions &&
-      component.spocs.positions.length
-    ) {
+    if (component?.spocs?.positions?.length) {
       const placement = component.placement || {};
-      const placementName = placement.name || "spocs";
+      const placementName = placement.name || "newtab_spocs";
       const spocsData = spocs.data[placementName];
-      if (
-        spocs.loaded &&
-        spocsData &&
-        spocsData.items &&
-        spocsData.items.length
-      ) {
+      if (spocs.loaded && spocsData?.items?.length) {
         return {
           ...component,
           data: {
@@ -9271,13 +9271,15 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
     positions[component.type] = positions[component.type] || 0;
     let data = {
       recommendations: [],
+      sections: [],
     };
 
     const feed = feeds.data[component.feed.url];
-    if (feed && feed.data) {
+    if (feed?.data) {
       data = {
         ...feed.data,
         recommendations: [...(feed.data.recommendations || [])],
+        sections: [...(feed.data.sections || [])],
       };
     }
 
@@ -9289,10 +9291,47 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
         ),
       };
     }
+    const spocsPositions = component?.spocs?.positions;
+    const spocsPlacement = component?.placement;
 
+    const sectionsEnabled = prefs["discoverystream.sections.enabled"];
     data = {
       ...data,
-      recommendations: handleSpocs(data.recommendations, component),
+      ...(sectionsEnabled
+        ? {
+            sections: handleSections(data.sections, data.recommendations).map(
+              section => {
+                const sectionsSpocsPositions = [];
+                section.layout.responsiveLayouts
+                  // Initial position for spocs is going to be for the smallest breakpoint.
+                  // We can then move it from there via breakpoints.
+                  .find(item => item.columnCount === 1)
+                  .tiles.forEach(tile => {
+                    if (tile.hasAd) {
+                      sectionsSpocsPositions.push({ index: tile.position });
+                    }
+                  });
+                return {
+                  ...section,
+                  data: handleSpocs(
+                    section.data,
+                    sectionsSpocsPositions,
+                    spocsPlacement
+                  ),
+                };
+              }
+            ),
+            // We don't fill spocs in recs if sections are enabled,
+            // because recs are not going to be seen.
+            recommendations: data.recommendations,
+          }
+        : {
+            recommendations: handleSpocs(
+              data.recommendations,
+              spocsPositions,
+              spocsPlacement
+            ),
+          }),
     };
 
     let items = 0;
@@ -9387,7 +9426,6 @@ function CardSections({
     sections
   } = data;
   const isEmpty = recommendations?.length === 0 || !sections;
-  const sortedSections = sections?.sort((a, b) => a.receivedRank - b.receivedRank);
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const {
     saveToPocketCard
@@ -9398,17 +9436,6 @@ function CardSections({
   const selectedTopics = prefs[CardSections_PREF_TOPICS_SELECTED];
   const availableTopics = prefs[CardSections_PREF_TOPICS_AVAILABLE];
 
-  // useMemo to only get sorted recs when the data prop changes
-  const sortedRecs = (0,external_React_namespaceObject.useMemo)(() => {
-    return data.recommendations.reduce((acc, recommendation) => {
-      const {
-        section
-      } = recommendation;
-      acc[section] = acc[section] || [];
-      acc[section].push(recommendation);
-      return acc;
-    }, {});
-  }, [data]);
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
     return null;
@@ -9421,7 +9448,7 @@ function CardSections({
     feed: feed
   })) : /*#__PURE__*/external_React_default().createElement("div", {
     className: "ds-section-wrapper"
-  }, sortedSections.map(section => {
+  }, sections.map(section => {
     const {
       sectionKey,
       title,
@@ -9438,7 +9465,7 @@ function CardSections({
       className: "section-subtitle"
     }, subtitle)), /*#__PURE__*/external_React_default().createElement("div", {
       className: "ds-section-grid ds-card-grid"
-    }, sortedRecs[sectionKey].slice(0, 4).map(rec => {
+    }, section.data.slice(0, 4).map(rec => {
       return /*#__PURE__*/external_React_default().createElement(DSCard, {
         key: `dscard-${rec.id}`,
         pos: rec.pos,
