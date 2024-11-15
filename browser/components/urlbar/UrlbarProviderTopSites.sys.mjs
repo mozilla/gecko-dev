@@ -28,9 +28,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
 });
 
-// The scalar category of TopSites impression for Contextual Services
-const SCALAR_CATEGORY_TOPSITES = "contextual.services.topsites.impression";
-
 // These prefs must be true for the provider to return results. They are assumed
 // to be booleans. We check `system.topsites` because if it is disabled we would
 // get stale or empty top sites data.
@@ -371,11 +368,7 @@ class ProviderTopSites extends UrlbarProvider {
 
     providerVisibleResults.forEach(({ index, result }) => {
       if (result?.payload.isSponsored) {
-        Services.telemetry.keyedScalarAdd(
-          SCALAR_CATEGORY_TOPSITES,
-          `urlbar_${index}`,
-          1
-        );
+        Glean.contextualServicesTopsites.impression[`urlbar_${index}`].add(1);
       }
     });
   }

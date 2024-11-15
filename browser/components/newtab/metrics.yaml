@@ -3011,3 +3011,40 @@ activity_stream:
     expires: never
     extra_keys: *activity_stream_event_extra
     telemetry_mirror: Activity_stream_Event_Unpin
+
+contextual.services.topsites:
+  impression:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user has viewed the
+      sponsored TopSites on the newtab page. The key is a combination of
+      the source and the placement of the TopSites tile (1-based). such as
+      'urlbar_1', 'newtab_2'.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar contextual.services.topsites.impression.
+    bugs:
+      - https://bugzil.la/1688698
+    data_reviews:
+      - https://bugzil.la/1688698
+    notification_emails:
+      - najiang@mozilla.com
+    expires: never
+    telemetry_mirror: CONTEXTUAL_SERVICES_TOPSITES_IMPRESSION
+
+  click:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user has clicked on the
+      sponsored TopSites on the newtab page. The key is a combination of
+      the source and the placement of the TopSites tile (1-based). such as
+      'urlbar_1', 'newtab_2'.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar contextual.services.topsites.click.
+    bugs:
+      - https://bugzil.la/1688698
+    data_reviews:
+      - https://bugzil.la/1688698
+    notification_emails:
+      - najiang@mozilla.com
+    expires: never
+    telemetry_mirror: CONTEXTUAL_SERVICES_TOPSITES_CLICK

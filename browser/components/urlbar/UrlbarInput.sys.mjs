@@ -70,9 +70,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 const DEFAULT_FORM_HISTORY_NAME = "searchbar-history";
 const SEARCH_BUTTON_CLASS = "urlbar-search-button";
 
-// The scalar category of TopSites click for Contextual Services
-const SCALAR_CATEGORY_TOPSITES = "contextual.services.topsites.click";
-
 const UNLIMITED_MAX_RESULTS = 99;
 
 let getBoundsWithoutFlushing = element =>
@@ -1414,11 +1411,7 @@ export class UrlbarInput {
       if (!this.isPrivate && result.providerName === "UrlbarProviderTopSites") {
         // The position is 1-based for telemetry
         const position = result.rowIndex + 1;
-        Services.telemetry.keyedScalarAdd(
-          SCALAR_CATEGORY_TOPSITES,
-          `urlbar_${position}`,
-          1
-        );
+        Glean.contextualServicesTopsites.click[`urlbar_${position}`].add(1);
       }
     }
 
