@@ -2543,27 +2543,3 @@ void js::Nursery::sweepMapAndSetObjects() {
 }
 
 void js::Nursery::joinDecommitTask() { decommitTask->join(); }
-
-JS_PUBLIC_API void JS::EnableNurseryStrings(JSContext* cx) {
-  AutoEmptyNursery empty(cx);
-  ReleaseAllJITCode(cx->gcContext());
-  cx->runtime()->gc.nursery().enableStrings();
-}
-
-JS_PUBLIC_API void JS::DisableNurseryStrings(JSContext* cx) {
-  AutoEmptyNursery empty(cx);
-  ReleaseAllJITCode(cx->gcContext());
-  cx->runtime()->gc.nursery().disableStrings();
-}
-
-JS_PUBLIC_API void JS::EnableNurseryBigInts(JSContext* cx) {
-  AutoEmptyNursery empty(cx);
-  ReleaseAllJITCode(cx->gcContext());
-  cx->runtime()->gc.nursery().enableBigInts();
-}
-
-JS_PUBLIC_API void JS::DisableNurseryBigInts(JSContext* cx) {
-  AutoEmptyNursery empty(cx);
-  ReleaseAllJITCode(cx->gcContext());
-  cx->runtime()->gc.nursery().disableBigInts();
-}

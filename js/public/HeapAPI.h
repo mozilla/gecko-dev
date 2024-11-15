@@ -774,14 +774,6 @@ static MOZ_ALWAYS_INLINE bool GCThingIsMarkedGrayInCC(GCCellPtr thing) {
 
 extern JS_PUBLIC_API JS::TraceKind GCThingTraceKind(void* thing);
 
-extern JS_PUBLIC_API void EnableNurseryStrings(JSContext* cx);
-
-extern JS_PUBLIC_API void DisableNurseryStrings(JSContext* cx);
-
-extern JS_PUBLIC_API void EnableNurseryBigInts(JSContext* cx);
-
-extern JS_PUBLIC_API void DisableNurseryBigInts(JSContext* cx);
-
 /*
  * Returns true when writes to GC thing pointers (and reads from weak pointers)
  * must call an incremental barrier. This is generally only true when running
