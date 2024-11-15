@@ -4,22 +4,25 @@
 #define SkPDFDocument_DEFINED
 
 #include "include/core/SkDocument.h"
-
-#include <vector>
-
-#include "include/core/SkColor.h"
 #include "include/core/SkMilestone.h"
+#include "include/core/SkRefCnt.h"
 #include "include/core/SkScalar.h"
 #include "include/core/SkString.h"
+#include "include/private/base/SkAPI.h"
 #include "include/private/base/SkNoncopyable.h"
-#include "src/base/SkTime.h"
+
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+class SkCanvas;
+class SkExecutor;
+class SkPDFArray;
+class SkPDFStructTree;
+class SkWStream;
 
 #define SKPDF_STRING(X) SKPDF_STRING_IMPL(X)
 #define SKPDF_STRING_IMPL(X) #X
-
-class SkExecutor;
-class SkPDFArray;
-class SkPDFTagTree;
 
 namespace SkPDF {
 
@@ -43,9 +46,10 @@ public:
                            const std::vector<int>& nodeIds);
 
 private:
-    friend class ::SkPDFTagTree;
+    friend class ::SkPDFStructTree;
 
     std::unique_ptr<SkPDFArray> fAttrs;
+    std::vector<int> fElemIds; // element identifiers referenced by fAttrs
 };
 
 /** A node in a PDF structure tree, giving a semantic representation
@@ -57,7 +61,6 @@ struct StructureElementNode {
     SkString fTypeString;
     std::vector<std::unique_ptr<StructureElementNode>> fChildVector;
     int fNodeId = 0;
-    std::vector<int> fAdditionalNodeIds;
     AttributeList fAttributes;
     SkString fAlt;
     SkString fLang;

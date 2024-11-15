@@ -27,6 +27,7 @@
 #include "include/effects/SkImageFilters.h"
 #include "include/private/base/SkAlign.h"
 #include "include/private/base/SkAssert.h"
+#include "include/private/base/SkFloatingPoint.h"
 #include "include/private/base/SkTemplates.h"
 #include "src/base/SkTLazy.h"
 #include "src/core/SkBlitter_A8.h"
@@ -137,6 +138,9 @@ static bool prepare_to_draw_into_mask(const SkRect& bounds, SkMaskBuilder* mask)
     mask->rowBytes() = SkAlign4(mask->fBounds.width());
     mask->format() = SkMask::kA8_Format;
     const size_t size = mask->computeImageSize();
+    if (size == 0) {
+        return false;
+    }
     mask->image() = SkMaskBuilder::AllocImage(size, SkMaskBuilder::kZeroInit_Alloc);
     if (nullptr == mask->fImage) {
         return false;
@@ -532,7 +536,7 @@ void SkBlurMaskFilterImpl::flatten(SkWriteBuffer& buffer) const {
 void sk_register_blur_maskfilter_createproc() { SK_REGISTER_FLATTENABLE(SkBlurMaskFilterImpl); }
 
 sk_sp<SkMaskFilter> SkMaskFilter::MakeBlur(SkBlurStyle style, SkScalar sigma, bool respectCTM) {
-    if (SkScalarIsFinite(sigma) && sigma > 0) {
+    if (SkIsFinite(sigma) && sigma > 0) {
         return sk_sp<SkMaskFilter>(new SkBlurMaskFilterImpl(sigma, style, respectCTM));
     }
     return nullptr;

@@ -438,7 +438,7 @@ static inline SkPMColor blend_lcd16_opaque(int srcR, int srcG, int srcB,
                 // Load four destination pixels into dst_sse.
                 __m128i dst_sse = _mm_load_si128(d);
                 // Load four 16-bit masks into lower half of mask_sse.
-                __m128i mask_sse =  _mm_loadl_epi64((const __m128i*)mask);
+                __m128i mask_sse = _mm_loadl_epi64((const __m128i*)mask);
 
                 // Check whether masks are equal to 0 and get the highest bit
                 // of each byte of result, if masks are all zero, we will get

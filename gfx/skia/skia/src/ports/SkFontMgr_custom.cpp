@@ -13,6 +13,7 @@
 #include "include/core/SkString.h"
 #include "include/core/SkTypeface.h"
 #include "include/core/SkTypes.h"
+#include "include/ports/SkFontScanner_FreeType.h"
 #include "include/private/base/SkTArray.h"
 #include "include/private/base/SkTemplates.h"
 #include "src/core/SkFontDescriptor.h"
@@ -69,7 +70,8 @@ std::unique_ptr<SkStreamAsset> SkTypeface_File::onOpenStream(int* ttcIndex) cons
 }
 
 sk_sp<SkTypeface> SkTypeface_File::onMakeClone(const SkFontArguments& args) const {
-    std::unique_ptr<SkFontData> data = this->cloneFontData(args);
+    SkFontStyle style = this->fontStyle();
+    std::unique_ptr<SkFontData> data = this->cloneFontData(args, &style);
     if (!data) {
         return nullptr;
     }
@@ -77,10 +79,8 @@ sk_sp<SkTypeface> SkTypeface_File::onMakeClone(const SkFontArguments& args) cons
     SkString familyName;
     this->getFamilyName(&familyName);
 
-    return sk_make_sp<SkTypeface_FreeTypeStream>(std::move(data),
-                                                 familyName,
-                                                 this->fontStyle(),
-                                                 this->isFixedPitch());
+    return sk_make_sp<SkTypeface_FreeTypeStream>(
+        std::move(data), familyName, style, this->isFixedPitch());
 }
 
 std::unique_ptr<SkFontData> SkTypeface_File::onMakeFontData() const {
@@ -128,7 +128,7 @@ SkString SkFontStyleSet_Custom::getFamilyName() { return fFamilyName; }
 
 SkFontMgr_Custom::SkFontMgr_Custom(const SystemFontLoader& loader)
         : fDefaultFamily(nullptr)
-        , fScanner(std::make_unique<SkFontScanner_FreeType>()) {
+        , fScanner(SkFontScanner_Make_FreeType()) {
 
     loader.loadSystemFonts(fScanner.get(), &fFamilies);
 

@@ -1756,10 +1756,7 @@ bool SkScalerContext_DW::generatePngMetrics(const SkGlyph& glyph, SkRect* bounds
     }
 
     SkImageInfo info = codec->getInfo();
-    *bounds = SkRect::MakeLTRB(SkIntToScalar(info.bounds().fLeft),
-                               SkIntToScalar(info.bounds().fTop),
-                               SkIntToScalar(info.bounds().fRight),
-                               SkIntToScalar(info.bounds().fBottom));
+    *bounds = SkRect::Make(info.bounds());
 
     SkMatrix matrix = fSkXform;
     SkScalar scale = fTextSizeRender / glyphData.pixelsPerEm;
@@ -2442,7 +2439,7 @@ void SkScalerContext_DW::generateImage(const SkGlyph& glyph, void* imageBuffer) 
     }
 }
 
-bool SkScalerContext_DW::generatePath(const SkGlyph& glyph, SkPath* path) {
+bool SkScalerContext_DW::generatePath(const SkGlyph& glyph, SkPath* path, bool* modified) {
     SkASSERT(path);
     path->reset();
 

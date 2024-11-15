@@ -25,8 +25,8 @@ extern "C" {
 void skjpeg_err_exit(j_common_ptr dinfo) {
     // Simply return to Skia client code
     // JpegDecoderMgr will take care of freeing memory
-    skjpeg_error_mgr* error = (skjpeg_error_mgr*) dinfo->err;
-    (*error->output_message) (dinfo);
+    skjpeg_error_mgr* error = static_cast<skjpeg_error_mgr*>(dinfo->err);
+    (*error->output_message)(dinfo);
     if (error->fStack[0] == nullptr) {
         SK_ABORT("JPEG error with no jmp_buf set.");
     }
@@ -56,12 +56,12 @@ static boolean sk_fill_buffered_input_buffer(j_decompress_ptr dinfo) {
         // Let libjpeg know that the buffer needs to be refilled
         src->next_input_byte = nullptr;
         src->bytes_in_buffer = 0;
-        return false;
+        return FALSE;
     }
 
     src->next_input_byte = (const JOCTET*) src->fBuffer;
     src->bytes_in_buffer = bytes;
-    return true;
+    return TRUE;
 }
 
 /*
@@ -124,7 +124,7 @@ static boolean sk_fill_mem_input_buffer (j_decompress_ptr cinfo) {
      * buffer, so any request for more data beyond the given buffer size
      * is treated as an error.
      */
-    return false;
+    return FALSE;
 }
 
 /*

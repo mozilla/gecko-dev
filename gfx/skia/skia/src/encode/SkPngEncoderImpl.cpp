@@ -135,6 +135,14 @@ bool SkPngEncoderMgr::setHeader(const SkImageInfo& srcInfo, const SkPngEncoder::
             pngColorType = srcInfo.isOpaque() ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGB_ALPHA;
             fPngBytesPerPixel = 8;
             break;
+        case kRGB_F16F16F16x_SkColorType:
+            sigBit.red = 16;
+            sigBit.green = 16;
+            sigBit.blue = 16;
+            pngColorType = PNG_COLOR_TYPE_RGB;
+            fPngBytesPerPixel = 8;
+            SkASSERT(srcInfo.isOpaque());
+            break;
         case kGray_8_SkColorType:
             sigBit.gray = 8;
             pngColorType = PNG_COLOR_TYPE_GRAY;
@@ -201,6 +209,15 @@ bool SkPngEncoderMgr::setHeader(const SkImageInfo& srcInfo, const SkPngEncoder::
             sigBit.blue = 10;
             pngColorType = PNG_COLOR_TYPE_RGB;
             fPngBytesPerPixel = 6;
+            break;
+        case kBGRA_10101010_XR_SkColorType:
+            bitDepth = 16;
+            sigBit.red = 10;
+            sigBit.green = 10;
+            sigBit.blue = 10;
+            sigBit.alpha = 10;
+            pngColorType = srcInfo.isOpaque() ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGB_ALPHA;
+            fPngBytesPerPixel = 8;
             break;
         default:
             return false;
@@ -319,6 +336,8 @@ static transform_scanline_proc choose_proc(const SkImageInfo& info) {
                     SkDEBUGFAIL("unknown alpha type");
                     return nullptr;
             }
+        case kRGB_F16F16F16x_SkColorType:
+            return transform_scanline_F16F16F16x;
         case kRGBA_F32_SkColorType:
             switch (info.alphaType()) {
                 case kOpaque_SkAlphaType:
@@ -364,6 +383,17 @@ static transform_scanline_proc choose_proc(const SkImageInfo& info) {
                     SkDEBUGFAIL("unsupported color type");
                     return nullptr;
             }
+        case kBGRA_10101010_XR_SkColorType:
+            switch (info.alphaType()) {
+                case kOpaque_SkAlphaType:
+                case kUnpremul_SkAlphaType:
+                    return transform_scanline_bgra_10101010_xr;
+                case kPremul_SkAlphaType:
+                    return transform_scanline_bgra_10101010_xr_premul;
+                default:
+                    SkDEBUGFAIL("unknown alpha type");
+                    return nullptr;
+            }
         case kAlpha_8_SkColorType:
             return transform_scanline_A8_to_GrayAlpha;
         case kR8G8_unorm_SkColorType:
@@ -373,7 +403,6 @@ static transform_scanline_proc choose_proc(const SkImageInfo& info) {
         case kA16_float_SkColorType:
         case kR16G16B16A16_unorm_SkColorType:
         case kR8_unorm_SkColorType:
-        case kBGRA_10101010_XR_SkColorType:
         case kRGBA_10x6_SkColorType:
             return nullptr;
     }

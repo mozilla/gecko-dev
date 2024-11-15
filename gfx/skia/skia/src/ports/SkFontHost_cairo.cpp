@@ -125,12 +125,12 @@ public:
 protected:
     GlyphMetrics generateMetrics(const SkGlyph& glyph, SkArenaAlloc* arena) override;
     void generateImage(const SkGlyph& glyph, void* imageBuffer) override;
-    bool generatePath(const SkGlyph& glyph, SkPath* path) override;
+    bool generatePath(const SkGlyph& glyph, SkPath* path, bool* modified) override;
     void generateFontMetrics(SkFontMetrics* metrics) override;
 
 private:
     bool computeShapeMatrix(const SkMatrix& m);
-    void prepareGlyph(FT_GlyphSlot glyph);
+    bool prepareGlyph(FT_GlyphSlot glyph);
 
     SkScalerContextFTUtils fUtils;
     FT_Face fFTFace;
@@ -490,12 +490,15 @@ bool SkScalerContext_CairoFT::computeShapeMatrix(const SkMatrix& m)
     return true;
 }
 
-void SkScalerContext_CairoFT::prepareGlyph(FT_GlyphSlot glyph)
+bool SkScalerContext_CairoFT::prepareGlyph(FT_GlyphSlot glyph)
 {
+    bool modified = false;
     if (fRec.fFlags & SkScalerContext::kEmbolden_Flag) {
         // Not FT_GlyphSlot_Embolden because we want a less extreme effect.
         mozilla_glyphslot_embolden_less(glyph);
+        bool modified = true;
     }
+    return modified;
 }
 
 SkScalerContext::GlyphMetrics SkScalerContext_CairoFT::generateMetrics(const SkGlyph& glyph, SkArenaAlloc* arena)
@@ -647,7 +650,7 @@ void SkScalerContext_CairoFT::generateImage(const SkGlyph& glyph, void* imageBuf
     }
 }
 
-bool SkScalerContext_CairoFT::generatePath(const SkGlyph& glyph, SkPath* path)
+bool SkScalerContext_CairoFT::generatePath(const SkGlyph& glyph, SkPath* path, bool* modified)
 {
     AutoLockFTFace faceLock(this);
 
@@ -666,7 +669,7 @@ bool SkScalerContext_CairoFT::generatePath(const SkGlyph& glyph, SkPath* path)
         return false;
     }
 
-    prepareGlyph(fFTFace->glyph);
+    *modified |= prepareGlyph(fFTFace->glyph);
 
     return fUtils.generateGlyphPath(fFTFace, path);
 }

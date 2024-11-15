@@ -16,7 +16,6 @@
 #include "include/private/base/SkTArray.h"
 
 #include <chrono>
-#include <vector>
 
 struct AHardwareBuffer;
 class SkCanvas;
@@ -45,6 +44,7 @@ class DrawBufferManager;
 class GlobalCache;
 class ImageProvider;
 class ProxyCache;
+class ProxyReadCountMap;
 class RecorderPriv;
 class ResourceProvider;
 class RuntimeEffectDictionary;
@@ -55,9 +55,9 @@ class TextureDataBlock;
 class TextureInfo;
 class UniformDataBlock;
 class UploadBufferManager;
+class UploadList;
 
 template<typename T> class PipelineDataCache;
-using UniformDataCache = PipelineDataCache<UniformDataBlock>;
 using TextureDataCache = PipelineDataCache<TextureDataBlock>;
 
 struct SK_API RecorderOptions final {
@@ -89,6 +89,11 @@ public:
     const ImageProvider* clientImageProvider() const { return fClientImageProvider.get(); }
 
     /**
+     * Gets the maximum supported texture size.
+     */
+    int maxTextureSize() const;
+
+    /**
      * Creates a new backend gpu texture matching the dimensions and TextureInfo. If an invalid
      * TextureInfo or a TextureInfo Skia can't support is passed in, this will return an invalid
      * BackendTexture. Thus the client should check isValid on the returned BackendTexture to know
@@ -115,7 +120,9 @@ public:
      * to insert a Recording into the Context and call `submit` to send the upload work to the gpu.
      * The backend texture must be compatible with the provided pixmap(s). Compatible, in this case,
      * means that the backend format is compatible with the base pixmap's colortype. The src data
-     * can be deleted when this call returns.
+     * can be deleted when this call returns. When the BackendTexture is safe to be destroyed by the
+     * client, Skia will call the passed in GpuFinishedProc. The BackendTexture should not be
+     * destroyed before that.
      * If the backend texture is mip mapped, the data for all the mipmap levels must be provided.
      * In the mipmapped case all the colortypes of the provided pixmaps must be the same.
      * Additionally, all the miplevels must be sized correctly (please see
@@ -126,13 +133,16 @@ public:
      */
     bool updateBackendTexture(const BackendTexture&,
                               const SkPixmap srcData[],
-                              int numLevels);
+                              int numLevels,
+                              GpuFinishedProc = nullptr,
+                              GpuFinishedContext = nullptr);
 
     /**
      * If possible, updates a compressed backend texture filled with the provided raw data. The
      * client should check the return value to see if the update was successful. The client is
      * required to insert a Recording into the Context and call `submit` to send the upload work to
-     * the gpu.
+     * the gpu. When the BackendTexture is safe to be destroyed by the client, Skia will call the
+     * passed in GpuFinishedProc. The BackendTexture should not be destroyed before that.
      * If the backend texture is mip mapped, the data for all the mipmap levels must be provided.
      * Additionally, all the miplevels must be sized correctly (please see
      * SkMipMap::ComputeLevelSize and ComputeLevelCount).
@@ -141,7 +151,9 @@ public:
      */
     bool updateCompressedBackendTexture(const BackendTexture&,
                                         const void* data,
-                                        size_t dataSize);
+                                        size_t dataSize,
+                                        GpuFinishedProc = nullptr,
+                                        GpuFinishedContext = nullptr);
 
     /**
      * Called to delete the passed in BackendTexture. This should only be called if the
@@ -188,6 +200,11 @@ public:
     size_t currentBudgetedBytes() const;
 
     /**
+     * Returns the number of bytes of the Recorder's resource cache that are currently purgeable.
+     */
+    size_t currentPurgeableBytes() const;
+
+    /**
      * Returns the size of Recorder's gpu memory cache budget in bytes.
      */
     size_t maxBudgetedBytes() const;
@@ -207,7 +224,9 @@ private:
     friend class Device; // For registering and deregistering Devices;
     friend class RecorderPriv; // for ctor and hidden methods
 
-    Recorder(sk_sp<SharedContext>, const RecorderOptions&);
+    // If Context is non-null, the Recorder will use the Context's resource provider
+    // instead of creating its own.
+    Recorder(sk_sp<SharedContext>, const RecorderOptions&, const Context*);
 
     SingleOwner* singleOwner() const { return &fSingleOwner; }
 
@@ -233,16 +252,26 @@ private:
     void deregisterDevice(const Device*);
 
     sk_sp<SharedContext> fSharedContext;
-    std::unique_ptr<ResourceProvider> fResourceProvider;
+    ResourceProvider* fResourceProvider; // May point to the Context's resource provider
+    std::unique_ptr<ResourceProvider> fOwnedResourceProvider; // May be null
     std::unique_ptr<RuntimeEffectDictionary> fRuntimeEffectDict;
 
     // NOTE: These are stored by pointer to allow them to be forward declared.
     std::unique_ptr<TaskList> fRootTaskList;
-    std::unique_ptr<UniformDataCache> fUniformDataCache;
+    // Aggregated one-time uploads that preceed all tasks in the root task list.
+    std::unique_ptr<UploadList> fRootUploads;
+
     std::unique_ptr<TextureDataCache> fTextureDataCache;
     std::unique_ptr<DrawBufferManager> fDrawBufferManager;
     std::unique_ptr<UploadBufferManager> fUploadBufferManager;
-    std::vector<sk_sp<Device>> fTrackedDevices;
+    std::unique_ptr<ProxyReadCountMap> fProxyReadCounts;
+
+    // Iterating over tracked devices in flushTrackedDevices() needs to be re-entrant and support
+    // additions to fTrackedDevices if registerDevice() is triggered by a temporary device during
+    // flushing. Removals are handled by setting elements to null; final clean up is handled at the
+    // end of the initial call to flushTrackedDevices().
+    skia_private::TArray<sk_sp<Device>> fTrackedDevices;
+    int fFlushingDevicesIndex = -1;
 
     uint32_t fUniqueID;  // Needed for MessageBox handling for text
     uint32_t fNextRecordingID = 1;
@@ -263,7 +292,7 @@ private:
 
     skia_private::TArray<sk_sp<RefCntedCallback>> fFinishedProcs;
 
-#if defined(GRAPHITE_TEST_UTILS)
+#if defined(GPU_TEST_UTILS)
     // For testing use only -- the Context used to create this Recorder
     Context* fContext = nullptr;
 #endif

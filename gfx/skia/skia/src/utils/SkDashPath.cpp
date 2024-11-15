@@ -9,7 +9,6 @@
 
 #include "include/core/SkPaint.h"
 #include "include/core/SkPath.h"
-#include "include/core/SkPathEffect.h"
 #include "include/core/SkPathMeasure.h"
 #include "include/core/SkPoint.h"
 #include "include/core/SkRect.h"
@@ -19,6 +18,7 @@
 #include "include/private/base/SkAlign.h"
 #include "include/private/base/SkFloatingPoint.h"
 #include "include/private/base/SkTo.h"
+#include "src/core/SkPathEffectBase.h"
 #include "src/core/SkPathEnums.h"
 #include "src/core/SkPathPriv.h"
 #include "src/core/SkPointPriv.h"
@@ -254,7 +254,7 @@ public:
 
         fPathLength = pathLength;
         fTangent.scale(sk_ieee_float_divide(1.0f, pathLength));
-        if (!SkScalarsAreFinite(fTangent.fX, fTangent.fY)) {
+        if (!SkIsFinite(fTangent.fX, fTangent.fY)) {
             return false;
         }
         SkPointPriv::RotateCCW(fTangent, &fNormal);
@@ -266,7 +266,7 @@ public:
 
         SkScalar ptCount = pathLength * intervalCount / (float)intervalLength;
         ptCount = std::min(ptCount, SkDashPath::kMaxDashCount);
-        if (SkScalarIsNaN(ptCount)) {
+        if (SkIsNaN(ptCount)) {
             return false;
         }
         int n = SkScalarCeilToInt(ptCount) << 2;
@@ -331,11 +331,7 @@ bool SkDashPath::InternalFilter(SkPath* dst, const SkPath& src, SkStrokeRec* rec
         // potentially a better fix is described here: bug.skia.org/7445
         if (src.isRect(nullptr) && src.isLastContourClosed() && is_even(initialDashIndex)) {
             SkScalar pathLength = SkPathMeasure(src, false, rec->getResScale()).getLength();
-#if defined(SK_LEGACY_RECT_DASHING_BUG)
-            SkScalar endPhase = SkScalarMod(pathLength + initialDashLength, intervalLength);
-#else
             SkScalar endPhase = SkScalarMod(pathLength + startPhase, intervalLength);
-#endif
             int index = 0;
             while (endPhase > intervals[index]) {
                 endPhase -= intervals[index++];
@@ -460,7 +456,7 @@ bool SkDashPath::InternalFilter(SkPath* dst, const SkPath& src, SkStrokeRec* rec
 }
 
 bool SkDashPath::FilterDashPath(SkPath* dst, const SkPath& src, SkStrokeRec* rec,
-                                const SkRect* cullRect, const SkPathEffect::DashInfo& info) {
+                                const SkRect* cullRect, const SkPathEffectBase::DashInfo& info) {
     if (!ValidDashPath(info.fPhase, info.fIntervals, info.fCount)) {
         return false;
     }
@@ -485,5 +481,5 @@ bool SkDashPath::ValidDashPath(SkScalar phase, const SkScalar intervals[], int32
         length += intervals[i];
     }
     // watch out for values that might make us go out of bounds
-    return length > 0 && SkScalarIsFinite(phase) && SkScalarIsFinite(length);
+    return length > 0 && SkIsFinite(phase, length);
 }

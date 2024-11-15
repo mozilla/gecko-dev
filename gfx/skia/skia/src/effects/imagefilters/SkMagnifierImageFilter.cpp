@@ -21,6 +21,7 @@
 #include "include/core/SkSpan.h"
 #include "include/core/SkTypes.h"
 #include "include/effects/SkRuntimeEffect.h"
+#include "include/private/base/SkFloatingPoint.h"
 #include "src/core/SkImageFilterTypes.h"
 #include "src/core/SkImageFilter_Base.h"
 #include "src/core/SkKnownRuntimeEffects.h"
@@ -85,8 +86,8 @@ sk_sp<SkImageFilter> SkImageFilters::Magnifier(const SkRect& lensBounds,
                                                sk_sp<SkImageFilter> input,
                                                const CropRect& cropRect) {
     if (lensBounds.isEmpty() || !lensBounds.isFinite() ||
-        zoomAmount <= 0.f || !SkScalarIsFinite(zoomAmount) ||
-        inset < 0.f || !SkScalarIsFinite(inset)) {
+        zoomAmount <= 0.f || inset < 0.f ||
+        !SkIsFinite(zoomAmount, inset)) {
         return nullptr; // invalid
     }
     // The magnifier automatically restricts its output based on the size of the image it receives
@@ -192,7 +193,9 @@ skif::FilterResult SkMagnifierImageFilter::onFilterImage(const skif::Context& co
     // the parameter-space scale matrix is a no-op. Thus layerZoom == fZoomAmount and we can avoid
     // all of that math. This assumption is invalid if the matrix complexity is more than S+T.
     SkASSERT(this->getCTMCapability() == MatrixCapability::kScaleTranslate);
-    float invZoom = 1.f / fZoomAmount;
+    // But also clamp the maximum amount of zoom to scale half of a layer pixel to the entire lens.
+    const float maxLensSize = std::max(1.f, std::max(lensBounds.width(), lensBounds.height()));
+    const float invZoom = 1.f /  std::min(fZoomAmount, 2.f * maxLensSize);
 
     // The srcRect is the bounding box of the pixels that are linearly scaled up, about zoomCenter.
     // This is not the visual bounds of this upscaled region, but the bounds of the source pixels
@@ -242,7 +245,9 @@ skif::FilterResult SkMagnifierImageFilter::onFilterImage(const skif::Context& co
         // input from the child filter, and transform it by the inverse of zoomXform (to go from
         // src to lens bounds, since it was constructed to go from lens to src).
         skif::LayerSpace<SkMatrix> invZoomXform;
-        SkAssertResult(zoomXform.invert(&invZoomXform));
+        if (!zoomXform.invert(&invZoomXform)) {
+            return {}; // pathological input
+        }
         skif::FilterResult childOutput =
                 this->getChildOutput(0, context.withNewDesiredOutput(srcRect.roundOut()));
         return childOutput.applyTransform(context, invZoomXform, fSampling)

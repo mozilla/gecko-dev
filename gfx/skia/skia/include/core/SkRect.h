@@ -21,6 +21,7 @@
 #include <cstring>
 
 struct SkRect;
+class SkString;
 
 /** \struct SkIRect
     SkIRect holds four 32-bit integer coordinates describing the upper and
@@ -709,18 +710,7 @@ struct SK_API SkRect {
         @return  true if no member is infinite or NaN
     */
     bool isFinite() const {
-        float accum = 0;
-        accum *= fLeft;
-        accum *= fTop;
-        accum *= fRight;
-        accum *= fBottom;
-
-        // accum is either NaN or it is finite (zero).
-        SkASSERT(0 == accum || std::isnan(accum));
-
-        // value==value will be true iff value is not NaN
-        // TODO: is it faster to say !accum or accum==accum?
-        return !std::isnan(accum);
+        return SkIsFinite(fLeft, fTop, fRight, fBottom);
     }
 
     /** Returns left edge of SkRect, if sorted. Call isSorted() to see if SkRect is valid.
@@ -1257,14 +1247,14 @@ public:
 
     /** Sets SkRect by discarding the fractional portion of fLeft and fTop; and rounding
         up fRight and fBottom, using
-        (sk_float_floor(fLeft), sk_float_floor(fTop),
-         sk_float_ceil(fRight), sk_float_ceil(fBottom)).
+        (std::floor(fLeft), std::floor(fTop),
+         std::ceil(fRight), std::ceil(fBottom)).
 
         @param dst  storage for SkRect
     */
     void roundOut(SkRect* dst) const {
-        dst->setLTRB(sk_float_floor(fLeft), sk_float_floor(fTop),
-                     sk_float_ceil(fRight), sk_float_ceil(fBottom));
+        dst->setLTRB(std::floor(fLeft), std::floor(fTop),
+                     std::ceil(fRight), std::ceil(fBottom));
     }
 
     /** Sets SkRect by rounding up fLeft and fTop; and discarding the fractional portion
@@ -1358,6 +1348,7 @@ public:
         example: https://fiddle.skia.org/c/@Rect_dump
     */
     void dump(bool asHex) const;
+    SkString dumpToString(bool asHex) const;
 
     /** Writes text representation of SkRect to standard output. The representation may be
         directly compiled as C++ code. Floating point values are written

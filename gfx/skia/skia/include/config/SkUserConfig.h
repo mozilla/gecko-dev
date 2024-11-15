@@ -90,9 +90,10 @@
    integrate with their histogram collection backend.
 */
 //#define SK_HISTOGRAM_BOOLEAN(name, sample)
-//#define SK_HISTOGRAM_ENUMERATION(name, sample, enum_size)
-//#define SK_HISTOGRAM_EXACT_LINEAR(name, sample, value_max)
+//#define SK_HISTOGRAM_ENUMERATION(name, sampleEnum, enumSize)
+//#define SK_HISTOGRAM_EXACT_LINEAR(name, sample, valueMax)
 //#define SK_HISTOGRAM_MEMORY_KB(name, sample)
+//#define SK_HISTOGRAM_CUSTOM_MICROSECONDS_TIMES(name, sampleUSec, minUSec, maxUSec, bucketCount)
 
 // To use smaller but slower mipmap builder
 //#define SK_USE_DRAWING_MIPMAP_DOWNSAMPLER
@@ -142,8 +143,6 @@
 
 #define SK_IGNORE_MAC_BLENDING_MATCH_FIX
 
-#define SK_DISABLE_LEGACY_IMAGE_READBUFFER
-
 #ifndef MOZ_IMPLICIT
 #  ifdef MOZ_CLANG_PLUGIN
 #    define MOZ_IMPLICIT __attribute__((annotate("moz_implicit")))
@@ -151,5 +150,7 @@
 #    define MOZ_IMPLICIT
 #  endif
 #endif
+
+#define SK_DISABLE_LEGACY_IMAGE_READBUFFER
 
 #endif
