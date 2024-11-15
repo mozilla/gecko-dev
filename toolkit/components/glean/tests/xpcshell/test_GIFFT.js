@@ -306,8 +306,8 @@ add_task(async function test_gifft_timespan() {
   Glean.testOnly.mirrorTime.stop();
 
   const NANOS_IN_MILLIS = 1e6;
-  // bug 1701949 - Sleep gets close, but sometimes doesn't wait long enough.
-  const EPSILON = 40000;
+  // bug 1931539 - Sleep gets close, but sometimes doesn't wait long enough.
+  const EPSILON = 50000;
   Assert.greater(
     Glean.testOnly.mirrorTime.testGetValue(),
     10 * NANOS_IN_MILLIS - EPSILON
