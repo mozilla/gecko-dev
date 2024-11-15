@@ -511,6 +511,8 @@
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Jangan sekarang</string>
 
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Jelajahi lebih banyak ekstensi.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Mulai menjelajah.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
@@ -857,6 +859,11 @@
     <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
     <string name="extension_process_crash_dialog_title">Ekstensi dinonaktifkan untuk sementara</string>
 
+    <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
+    <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Cobalah memulai ulang ekstensi</string>
+    <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
+    <string name="extension_process_crash_dialog_disable_extensions_button_text">Lanjutkan dengan ekstensi yang dinonaktifkan</string>
+
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
     <string name="preferences_manage_account">Kelola akun</string>
@@ -912,6 +919,14 @@
     <!-- %s is the device name -->
     <string name="fxa_tab_received_from_notification_name">Tab dari %s</string>
 
+    <!-- Close Synced Tabs -->
+    <!-- The title for a notification shown when the user closes tabs that are currently
+    open on this device from another device that's signed in to the same Mozilla account.
+    %1$s is a placeholder for the app name; %2$d is the number of tabs closed.  -->
+    <string name="fxa_tabs_closed_notification_title">%1$s tab ditutup: %2$d</string>
+    <!-- The body for a "closed synced tabs" notification. -->
+    <string name="fxa_tabs_closed_text">Lihat tab yang baru saja ditutup</string>
+
     <!-- Advanced Preferences -->
     <!-- Preference for tracking protection exceptions -->
     <string name="preferences_tracking_protection_exceptions">Kekecualian</string>
@@ -931,6 +946,10 @@
     <string name="preferences_marketing_data">Data pemasaran</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Bagikan data penggunaan dasar dengan Adjust, vendor pemasaran seluler kami</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Kirim laporan kerusakan secara otomatis</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Bagikan data kerusakan secara otomatis saat memulai dengan Mozilla setelah terjadi kerusakan</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Kajian</string>
     <!-- Summary for studies preferences -->
@@ -972,6 +991,11 @@
     <string name="preference_gestures_dynamic_toolbar">Gulir untuk menyembunyikan bilah alat</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Geser bilah alat ke atas untuk membuka tab</string>
+
+    <!-- Preference for using the dynamic toolbars -->
+    <string name="preference_gestures_dynamic_toolbar_2">Gulir untuk menyembunyikan bilah alamat dan bilah alat</string>
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Gesek bilah alamat ke samping untuk beralih tab</string>
 
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
@@ -1210,6 +1234,20 @@
 
     <!-- WebCompat Reporter -->
 
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Situs lambat atau tidak berfungsi</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Gambar atau video</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Tombol, tautan, dan konten lainnya</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Masuk atau keluar</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Pemblokir iklan</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Lainnya</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Maaf. %1$s tidak dapat memuat halaman.</string>
@@ -1221,9 +1259,20 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Pulihkan tab</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s harus dimulai ulang</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Kirim laporan kerusakan secara otomatis</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Tutup</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Kirim laporan kerusakan</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Yakin akan menghapus folder ini?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Yakin ingin menghapus item yang dipilih?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s akan menghapus item terpilih.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1232,8 +1281,12 @@
     <string name="bookmark_add_folder">Tambah folder</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Markah berhasil disimpan!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Disimpan di “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">EDIT</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Pindah</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Ubah</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1265,6 +1318,8 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">FOLDER</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Simpan di</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">NAMA</string>
     <!-- Label for a text input field for a bookmark or folder name -->
@@ -1314,6 +1369,10 @@
     <string name="bookmark_empty_list_guest_description">Simpan situs saat Anda menjelajah. Masuk untuk mengambil markah dari perangkat lain yang disinkronkan.</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">Masuk untuk sinkronisasi</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Simpan situs saat Anda menjelajah. Kami juga akan mengambil markah dari perangkat lain yang disinkronkan.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Tambahkan markah saat Anda menjelajah sehingga Anda dapat menemukan situs favorit Anda nanti.</string>
     <!-- Description for the add new folder button when selecting a folder. -->
     <string name="bookmark_select_folder_new_folder_button_title">Folder baru</string>
 
@@ -1768,6 +1827,8 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Hanya di tab Pribadi</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Penambang Kripto</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Sidik Jari yang Dikenal</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Rincian</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1790,6 +1851,8 @@
     <string name="etp_cryptominers_title">Penambang Kripto</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Mencegah skrip berbahaya yang dapat mengakses ke perangkat Anda untuk menambang mata uang digital.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Menghentikan pengumpulan data yang dapat diidentifikasi secara unik terkait perangkat Anda yang dapat digunakan untuk tujuan pelacakan.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Pelacakan Konten</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1814,6 +1877,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Menghapus kuki yang ditetapkan oleh pengalihan ke situs web pelacakan yang dikenal.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Sidik Jari yang Dicurigai</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Memfungsikan perlindungan sidik jari untuk menghentikan sidik jari yang dicurigai.</string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Sidik Jari yang Dikenal</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Beberapa pelacak yang ditandai di bawah telah diblokir sebagian pada laman ini karena Anda berinteraksi dengan mereka *.</string>
@@ -1867,6 +1936,10 @@
     <!-- Describes the add to homescreen functionality -->
     <string name="add_to_homescreen_description_2">Anda dapat dengan mudah menambahkan situs web ini ke layar Beranda perangkat Anda untuk mendapatkan akses instan dan penjelajahan lebih cepat seperti menggunakan aplikasi.</string>
 
+    <!-- Preference for managing the settings for logins and passwords in Fenix -->
+    <string name="preferences_passwords_logins_and_passwords_2">Sandi</string>
+    <!-- Preference for managing the saving of logins and passwords in Fenix -->
+    <string name="preferences_passwords_save_logins_2">Simpan kata sandi</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Minta untuk menyimpan</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -1880,10 +1953,29 @@
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Isi nama pengguna dan sandi di aplikasi lain pada perangkat Anda.</string>
 
+    <!-- Preference option for adding a password -->
+    <string name="preferences_logins_add_login_2">Tambahkan sandi</string>
+
+    <!-- Preference for syncing saved passwords in Fenix -->
+    <string name="preferences_passwords_sync_logins_2">Sinkronkan sandi</string>
+    <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
+    <string name="preferences_passwords_sync_logins_across_devices_2">Sinkronkan sandi antar perangkat</string>
+    <!-- Preference to access list of saved passwords -->
+    <string name="preferences_passwords_saved_logins_2">Sandi tersimpan</string>
+    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
+    <string name="preferences_passwords_saved_logins_description_empty_text_2">Sandi yang Anda simpan atau sinkronkan ke %s akan dicantumkan di sini. Semua kata sandi yang Anda simpan dienkripsi.</string>
+    <!-- Clickable text for opening an external link for more information about Sync. -->
+    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Pelajari lebih lanjut tentang sinkronisasi</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Kekecualian</string>
+    <!-- Empty description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_empty_2">%s tidak akan menyimpan sandi untuk situs yang terdaftar di sini.</string>
+    <!-- Description of list of login exceptions that we never save passwords for. Parameter will be replaced by app name. -->
+    <string name="preferences_passwords_exceptions_description_2">%s tidak akan menyimpan sandi untuk situs ini.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Hapus semua pengecualian</string>
+    <!-- Hint for search box in passwords list -->
+    <string name="preferences_passwords_saved_logins_search_2">Cari kata sandi</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Situs</string>
     <!-- The header for the username for a login -->
@@ -1910,6 +2002,12 @@
     <string name="saved_login_reveal_password">Tampilkan sandi</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Sembunyikan sandi</string>
+    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+    <string name="logins_biometric_prompt_message_2">Buka kunci untuk melihat kata sandi Anda yang tersimpan</string>
+    <!-- Title of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_title_2">Amankan kata sandi Anda yang tersimpan</string>
+    <!-- Message of warning dialog if users have no device authentication set up -->
+    <string name="logins_warning_dialog_message_2">Atur pola kunci perangkat, PIN, atau kata sandi untuk melindungi kata sandi Anda yang tersimpan agar tidak diakses jika orang lain menguasai perangkat Anda.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Nanti</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1926,11 +2024,16 @@
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Terakhir digunakan</string>
 
+    <!-- Content description (not visible, for screen readers etc.) -->
+    <string name="saved_logins_menu_dropdown_chevron_icon_content_description_2">Menu urutkan kata sandi</string>
+
     <!-- Autofill -->
     <!-- Preference and title for managing the autofill settings -->
     <string name="preferences_autofill">Isi Otomatis</string>
     <!-- Preference and title for managing the settings for addresses -->
     <string name="preferences_addresses">Alamat</string>
+    <!-- Preference and title for managing the settings for payment methods -->
+    <string name="preferences_credit_cards_2">Metode pembayaran</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
     <string name="preferences_credit_cards_sync_cards_across_devices">Sinkronisasi kartu antar perangkat</string>
     <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
@@ -2241,6 +2344,85 @@
     <!-- Review quality check feature-->
     <!-- Name for the review quality check feature used as title for the panel. -->
     <string name="review_quality_check_feature_name_2">Pemeriksa Tinjauan</string>
+
+    <!-- Title for list of highlights from a product's review emphasizing a product's important traits. -->
+    <string name="review_quality_check_highlights_title">Sorotan dari ulasan terbaru</string>
+    <!-- Title for section explaining how we analyze the reliability of a product's reviews. -->
+    <string name="review_quality_check_explanation_title">Bagaimana kami menentukan kualitas ulasan</string>
+    <!-- Paragraph explaining how we analyze the reliability of a product's reviews. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_explanation_body_reliability">Kami menggunakan teknologi AI dari %s oleh Mozilla untuk memeriksa keandalan ulasan produk. Ini hanya akan membantu Anda menilai kualitas ulasan, bukan kualitas produk. </string>
+    <!-- Paragraph explaining the grading system we use to classify the reliability of a product's reviews. -->
+    <string name="review_quality_check_info_review_grade_header"><![CDATA[Kami menetapkan <b>nilai huruf</b> untuk setiap ulasan produk dari A hingga F.]]></string>
+    <!-- Description explaining grades A and B for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_AB">Ulasan handal. Kami percaya ulasan tersebut kemungkinan berasal dari pelanggan nyata yang meninggalkan ulasan yang jujur dan tidak bias.</string>
+    <!-- Description explaining grade C for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_C">Kami percaya ada campuran ulasan yang dapat diandalkan dan tidak dapat diandalkan.</string>
+    <!-- Description explaining grades D and F for review quality check adjusted grading. -->
+    <string name="review_quality_check_info_grade_info_DF">Ulasan yang tidak dapat diandalkan. Kami yakin ulasan tersebut kemungkinan palsu atau dari peninjau yang bias.</string>
+    <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
+    <string name="review_quality_check_explanation_body_adjusted_grading"><![CDATA[<b>Peringkat yang disesuaikan</b> hanya didasarkan pada ulasan yang kami yakini dapat diandalkan.]]></string>
+    <!-- Paragraph explaining product review highlights. First parameter is the name of the retailer (e.g. Amazon). -->
+    <string name="review_quality_check_explanation_body_highlights"><![CDATA[<b>Sorotan</b> berasal dari %s ulasan dalam 80 hari terakhir yang kami yakini dapat diandalkan.]]></string>
+    <!-- Text for learn more caption presenting a link with information about review quality. First parameter is for clickable text defined in review_quality_check_info_learn_more_link. -->
+    <string name="review_quality_check_info_learn_more">Pelajari lebih lanjut tentang %s.</string>
+    <!-- Clickable text that links to review quality check SuMo page. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_info_learn_more_link_2">bagaimana %s menentukan kualitas ulasan</string>
+    <!-- Text for title of settings section. -->
+    <string name="review_quality_check_settings_title">Pengaturan</string>
+    <!-- Text for label for switch preference to show recommended products from review quality check settings section. -->
+    <string name="review_quality_check_settings_recommended_products">Tampilkan iklan di pemeriksa ulasan</string>
+    <!-- Description for switch preference to show recommended products from review quality check settings section. First parameter is for clickable text defined in review_quality_check_settings_recommended_products_learn_more.-->
+    <string name="review_quality_check_settings_recommended_products_description_2" tools:ignore="UnusedResources">Anda akan melihat iklan sesekali untuk produk yang relevan. Kami hanya mengiklankan produk dengan ulasan yang dapat diandalkan. %s</string>
+
+    <!-- Clickable text that links to review quality check recommended products support article. -->
+    <string name="review_quality_check_settings_recommended_products_learn_more" tools:ignore="UnusedResources">Pelajari lebih lanjut</string>
+    <!-- Text for turning sidebar off button from review quality check settings section. -->
+    <string name="review_quality_check_settings_turn_off">Matikan pemeriksa ulasan</string>
+    <!-- Text for title of recommended product section. This is displayed above a product image, suggested as an alternative to the product reviewed. -->
+    <string name="review_quality_check_ad_title" tools:ignore="UnusedResources">Lebih banyak untuk dipertimbangkan</string>
+    <!-- Caption for recommended product section indicating this is an ad by Fakespot. First parameter is the Fakespot product name. -->
+    <string name="review_quality_check_ad_caption" tools:ignore="UnusedResources">Iklan oleh %s</string>
+    <!-- Caption for review quality check panel. First parameter is for clickable text defined in review_quality_check_powered_by_link. -->
+    <string name="review_quality_check_powered_by_2">Pemeriksa ulasan ditenagai oleh %s</string>
+    <!-- Clickable text that links to Fakespot.com. First parameter is the Fakespot product name. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
+    <string name="review_quality_check_powered_by_link" tools:ignore="UnusedResources">%s oleh Mozilla</string>
+    <!-- Text for title of warning card informing the user that the current analysis is outdated. -->
+    <string name="review_quality_check_outdated_analysis_warning_title" tools:ignore="UnusedResources">Info baru untuk diperiksa</string>
+    <!-- Text for button from warning card informing the user that the current analysis is outdated. Clicking this should trigger the product's re-analysis. -->
+    <string name="review_quality_check_outdated_analysis_warning_action" tools:ignore="UnusedResources">Periksa sekarang</string>
+    <!-- Title for warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_title">Belum cukup ulasan</string>
+    <!-- Text for body of warning card informing the user that the current product does not have enough reviews for a review analysis. -->
+    <string name="review_quality_check_no_reviews_warning_body">Ketika produk ini memiliki lebih banyak ulasan, kami akan dapat memeriksa kualitasnya.</string>
+    <!-- Title for warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_title">Produk tidak tersedia</string>
+    <!-- Text for the body of warning card informing the user that the current product is currently not available. -->
+    <string name="review_quality_check_product_availability_warning_body">Jika Anda melihat produk ini tersedia kembali, laporkan dan kami akan bekerja untuk memeriksa ulasannya.</string>
+    <!-- Clickable text for warning card informing the user that the current product is currently not available. Clicking this should inform the server that the product is available. -->
+    <string name="review_quality_check_product_availability_warning_action_2">Laporkan bahwa produk tersedia</string>
+    <!-- Title for warning card informing the user that the current product's analysis is still processing. The parameter is the percentage progress (0-100%) of the analysis process (e.g. 56%). -->
+    <string name="review_quality_check_analysis_in_progress_warning_title_2">Memeriksa kualitas ulasan (%s)</string>
+    <!-- Text for body of warning card informing the user that the current product's analysis is still processing. -->
+    <string name="review_quality_check_analysis_in_progress_warning_body">Ini bisa memakan waktu sekitar 60 detik.</string>
+    <!-- Title for info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_title">Terima kasih untuk laporannya!</string>
+
+    <!-- Text for body of info card displayed after the user reports a product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_info_body">Kami akan memiliki info tentang ulasan produk ini dalam waktu 24 jam. Silakan periksa kembali.</string>
+    <!-- Title for info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
+    <string name="review_quality_check_not_analyzable_info_title">Kami tidak dapat memeriksa ulasan ini</string>
+    <!-- Text for body of info card displayed when the user review checker while on a product that Fakespot does not analyze (e.g. gift cards, music). -->
+    <string name="review_quality_check_not_analyzable_info_body">Sayangnya, kami tidak bisa memeriksa kualitas ulasan untuk jenis produk tertentu. Misalnya, kartu hadiah, video streaming, musik, dan permainan.</string>
+    <!-- Title for info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_title" tools:ignore="UnusedResources">Informasi segera hadir</string>
+    <!-- Text for body of info card displayed when another user reported the displayed product is back in stock. -->
+    <string name="review_quality_check_analysis_requested_other_user_info_body" tools:ignore="UnusedResources">Kami akan memiliki info tentang ulasan produk ini dalam waktu 24 jam. Silakan periksa kembali.</string>
+    <!-- Title for info card displayed to the user when analysis finished updating. -->
+    <string name="review_quality_check_analysis_updated_confirmation_title" tools:ignore="UnusedResources">Analisis ini mutakhir</string>
+    <!-- Text for the action button from info card displayed to the user when analysis finished updating. -->
+    <string name="review_quality_check_analysis_updated_confirmation_action" tools:ignore="UnusedResources">Paham</string>
+    <!-- Title for error card displayed to the user when an error occurred. -->
+    <string name="review_quality_check_generic_error_title">Tidak ada info yang tersedia saat ini</string>
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->

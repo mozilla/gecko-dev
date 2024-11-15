@@ -402,14 +402,24 @@
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Хәзер түгел</string>
 
+    <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Firefox эзләү виджетын кулланып карагыз</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Firefox виджетын өстәү</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Хәзер түгел</string>
 
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Firefox-ны киңәйтүләр ярдәмендә шәхсиләштерегез</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Башка киңәйтүләр белән дә танышып чыгыгыз.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Гизүне башлау.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2">Башка киңәйтүләр белән дә танышып чыгыгыз</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2">Гизүне башлау</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
@@ -459,6 +469,8 @@
     <string name="preferences_search_engines">Эзләү системалары</string>
     <!-- Preference for settings related to Search engines suggestions-->
     <string name="preferences_search_engines_suggestions">Эзләү системаларыннан тәкъдимнәр</string>
+    <!-- Preference Category for settings related to Search address bar -->
+    <string name="preferences_settings_address_bar">Адрес юлына кагылышлы көйләүләр</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Google Play-да бәяләү</string>
     <!-- Preference linking to about page for Fenix
@@ -1877,7 +1889,30 @@
     <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
     <string name="a11y_state_label_expanded">җәелде</string>
 
+    <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
+    <string name="a11y_action_label_read_article">мәкаләне уку</string>
+
+    <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
+    <string name="a11y_action_label_pocket_learn_more">күбрәк белү өчен сылтаманы ачыгыз</string>
+    <!-- Content description for headings announced by accessibility service. The first parameter is the text of the heading. Talkback will announce the first parameter and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
+    <string name="a11y_heading">%s, Башлык</string>
+    <!-- Title for dialog displayed when trying to access links present in a text. -->
+    <string name="a11y_links_title">Сылтамалар</string>
+    <!-- Additional content description for text bodies that contain urls. -->
+    <string name="a11y_links_available">Кулланырлык сылтамалар</string>
+
     <!-- Translations feature-->
+
+
+    <!-- Translation request dialog -->
+    <!-- Title for the translation dialog that allows a user to translate the webpage. -->
+    <string name="translations_bottom_sheet_title">Бу бит тәрҗемә ителсенме?</string>
+    <!-- Text that links to additional information about the Firefox translations feature. -->
+    <string name="translations_bottom_sheet_info_message_learn_more">Күбрәк белү</string>
+    <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
+    <string name="translations_bottom_sheet_negative_button">Хәзер түгел</string>
+    <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->
+    <string name="translations_bottom_sheet_negative_button_restore">Оригиналны күрсәтү</string>
 
 
     <!-- Translation settings dialog -->
