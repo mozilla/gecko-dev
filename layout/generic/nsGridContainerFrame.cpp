@@ -339,13 +339,13 @@ struct RepeatTrackSizingInput {
     nscoord& size = mSize.Size(aAxis, aWM);
     const auto& styleSize = pos->Size(aAxis, aWM);
     if (styleSize.ConvertsToLength()) {
-      size = Clamp(adjustForBoxSizing(styleSize.ToLength()), min, max);
+      size = std::clamp(adjustForBoxSizing(styleSize.ToLength()), min, max);
     } else if (aAspectRatio && IsInitialSize(styleSize, aAxis)) {
       const auto& styleRDSize = pos->Size(GetOrthogonalAxis(aAxis), aWM);
       if (Maybe<nscoord> resolvedSize = ComputeTransferredSize(
               styleRDSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment,
               aContainingBlockSize)) {
-        size = Clamp(*resolvedSize, min, max);
+        size = std::clamp(*resolvedSize, min, max);
       }
     }
   }
