@@ -9,8 +9,8 @@
   --toolbarbutton-outer-padding: 2px;
   --toolbarbutton-inner-padding: 8px;
 
-  --toolbarbutton-hover-background: var(--button-background-color-hover);
-  --toolbarbutton-active-background: var(--button-background-color-active);
+  --toolbarbutton-hover-background: color-mix(in srgb, currentColor 17%, transparent);
+  --toolbarbutton-active-background: color-mix(in srgb, currentColor 30%, transparent);
   --toolbarbutton-outline-color: transparent;
   --toolbarbutton-hover-outline-color: transparent;
   --toolbarbutton-active-outline-color: transparent;
@@ -128,15 +128,13 @@ toolbar .toolbarbutton-1 {
       outline-color: var(--toolbarbutton-hover-outline-color);
     }
 
-    &:hover:active > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
+    &:is(:hover:active, [open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
       background-color: var(--toolbarbutton-active-background);
       color: inherit;
       outline-color: var(--toolbarbutton-active-outline-color);
     }
 
     &:is([open], [checked]) > :is(.toolbarbutton-icon, .toolbarbutton-text, .toolbarbutton-badge-stack) {
-      background-color: var(--toolbarbutton-active-background);
-      color: inherit;
       outline-color: var(--toolbarbutton-selected-outline-color);
     }
   }
