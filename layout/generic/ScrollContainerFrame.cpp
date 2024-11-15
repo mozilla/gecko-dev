@@ -6104,21 +6104,10 @@ void ScrollContainerFrame::UpdateMinimumScaleSize(
     return;
   }
 
-  WritingMode writingMode = GetWritingMode();
-  LogicalRect logicalOverflow(writingMode, aScrollableOverflow, aICBSize);
-  // Do not incorpolate __underflow__ area into the minimum-scale size,
-  // otherwise the size will be bigger than expected.
-  LogicalSize scrollableOverflowSize(
-      writingMode,
-      logicalOverflow.IStart(writingMode) + logicalOverflow.ISize(writingMode),
-      logicalOverflow.BStart(writingMode) + logicalOverflow.BSize(writingMode));
-
   // The intrinsic minimum scale is the scale that fits the entire content
   // width into the visual viewport.
   CSSToScreenScale intrinsicMinScale(
-      float(displaySize.width) /
-      CSSSize::FromAppUnits(scrollableOverflowSize.GetPhysicalSize(writingMode))
-          .width);
+      displaySize.width / CSSRect::FromAppUnits(aScrollableOverflow).XMost());
 
   // The scale used to compute the minimum-scale size is the larger of the
   // intrinsic minimum and the min-scale from the meta viewport tag.
