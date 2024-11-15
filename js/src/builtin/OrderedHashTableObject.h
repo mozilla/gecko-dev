@@ -529,15 +529,9 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   }
 
   /*
-   * Ranges are used to iterate over OrderedHashTableObjects.
-   *
-   * Suppose 'Map' is an OrderedHashMapImpl, and 'obj' is a MapObject.
-   * Then you can walk all the key-value pairs like this:
-   *
-   *     for (Map::Range r = Map(obj).all(); !r.empty(obj); r.popFront(obj)) {
-   *         Map::Entry& pair = r.front(obj);
-   *         ... do something with pair ...
-   *     }
+   * Ranges are used to implement the JS Map/Set iterator objects. Each iterator
+   * object has a pointer to a Range. Eventually this Range class could be
+   * folded into the iterator objects.
    *
    * Ranges remain valid for the lifetime of the OrderedHashTableObject, even if
    * entries are added or removed or the table is resized. Don't do anything
@@ -550,16 +544,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
    * HashTable::Enum doesn't skip any entries when you removeFront() and then
    * popFront(). OrderedHashTableObject::Range does! (This is useful for using a
    * Range to implement JS Map.prototype.iterator.)
-   *
-   * The workaround is to call popFront() as soon as possible,
-   * before there's any possibility of modifying the table:
-   *
-   *     for (Map::Range r = Map(obj).all(); !r.empty(obj); ) {
-   *         Key key = r.front(obj).key;         // this won't modify the map
-   *         Value val = r.front(obj).value;     // this won't modify the map
-   *         r.popFront(obj);
-   *         // ...do things that might modify the map...
-   *     }
    */
   class Range {
     friend class OrderedHashTableImpl;
@@ -587,10 +571,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     Range** prevp;
     Range* next;
 
-    /*
-     * Create a Range over all the entries in |obj|.
-     * (This is private on purpose. End users must use ::all().)
-     */
+    // Create a Range over all the entries in |obj|.
     Range(OrderedHashTableObject* obj, Range** listp)
         : prevp(listp), next(*listp) {
       *prevp = this;
@@ -725,11 +706,51 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     static size_t offsetOfNext() { return offsetof(Range, next); }
   };
 
-  Range all() const {
-    // Range operates on a mutable table but its interface does not permit
-    // modification of the contents of the table.
-    return Range(obj, getRangesPtr());
+  // Calls |f| for each entry in the table. This function must not mutate the
+  // table.
+  template <typename F>
+  [[nodiscard]] bool forEachEntry(F&& f) const {
+    const Data* data = getData();
+    uint32_t dataLength = getDataLength();
+#ifdef DEBUG
+    uint32_t liveCount = getLiveCount();
+#endif
+    for (uint32_t i = 0; i < dataLength; i++) {
+      if (!Ops::isEmpty(Ops::getKey(data[i].element))) {
+        if (!f(data[i].element)) {
+          return false;
+        }
+      }
+    }
+    MOZ_ASSERT(getData() == data);
+    MOZ_ASSERT(getDataLength() == dataLength);
+    MOZ_ASSERT(getLiveCount() == liveCount);
+    return true;
   }
+#ifdef DEBUG
+  // Like forEachEntry, but infallible and the function is called at most
+  // maxCount times. This is useful for debug assertions.
+  template <typename F>
+  void forEachEntryUpTo(size_t maxCount, F&& f) const {
+    MOZ_ASSERT(maxCount > 0);
+    const Data* data = getData();
+    uint32_t dataLength = getDataLength();
+    uint32_t liveCount = getLiveCount();
+    size_t count = 0;
+    for (uint32_t i = 0; i < dataLength; i++) {
+      if (!Ops::isEmpty(Ops::getKey(data[i].element))) {
+        f(data[i].element);
+        count++;
+        if (count == maxCount) {
+          break;
+        }
+      }
+    }
+    MOZ_ASSERT(getData() == data);
+    MOZ_ASSERT(getDataLength() == dataLength);
+    MOZ_ASSERT(getLiveCount() == liveCount);
+  }
+#endif
 
   void trace(JSTracer* trc) {
     Data* data = getData();
@@ -1089,7 +1110,16 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
   [[nodiscard]] bool init(JSContext* cx) { return impl.init(cx); }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& key) const { return impl.has(key); }
-  Range all() const { return impl.all(); }
+  template <typename F>
+  [[nodiscard]] bool forEachEntry(F&& f) const {
+    return impl.forEachEntry(f);
+  }
+#ifdef DEBUG
+  template <typename F>
+  void forEachEntryUpTo(size_t maxCount, F&& f) const {
+    impl.forEachEntryUpTo(maxCount, f);
+  }
+#endif
   Entry* get(const Lookup& key) { return impl.get(key); }
   bool remove(JSContext* cx, const Lookup& key) { return impl.remove(cx, key); }
   void clear(JSContext* cx) { impl.clear(cx); }
@@ -1178,7 +1208,16 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
   [[nodiscard]] bool init(JSContext* cx) { return impl.init(cx); }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& value) const { return impl.has(value); }
-  Range all() const { return impl.all(); }
+  template <typename F>
+  [[nodiscard]] bool forEachEntry(F&& f) const {
+    return impl.forEachEntry(f);
+  }
+#ifdef DEBUG
+  template <typename F>
+  void forEachEntryUpTo(size_t maxCount, F&& f) const {
+    impl.forEachEntryUpTo(maxCount, f);
+  }
+#endif
   template <typename Input>
   [[nodiscard]] bool put(JSContext* cx, Input&& value) {
     return impl.put(cx, std::forward<Input>(value));

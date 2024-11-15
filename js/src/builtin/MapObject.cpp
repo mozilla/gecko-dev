@@ -662,16 +662,10 @@ template <typename ObjectT>
 bool MapObject::getKeysAndValuesInterleaved(
     HandleObject obj, JS::MutableHandle<GCVector<JS::Value>> entries) {
   MapObject* mapObj = &obj->as<MapObject>();
-
-  for (Table::Range r = Table(mapObj).all(); !r.empty(mapObj);
-       r.popFront(mapObj)) {
-    if (!entries.append(r.front(mapObj).key.get()) ||
-        !entries.append(r.front(mapObj).value)) {
-      return false;
-    }
-  }
-
-  return true;
+  auto appendEntry = [&entries](auto& entry) {
+    return entries.append(entry.key.get()) && entries.append(entry.value);
+  };
+  return Table(mapObj).forEachEntry(appendEntry);
 }
 
 bool MapObject::set(JSContext* cx, HandleObject obj, HandleValue k,
@@ -753,18 +747,12 @@ void MapObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   // nursery thing into the table would require it to be live, which means it
   // would have been marked.
   if (obj->isTenured()) {
-    size_t count = 0;
-    for (auto r = UnbarrieredTable(mapObj).all(); !r.empty(mapObj);
-         r.popFront(mapObj)) {
-      Value key = r.front(mapObj).key;
+    UnbarrieredTable(mapObj).forEachEntryUpTo(1000, [](auto& entry) {
+      Value key = entry.key;
       MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
-      Value value = r.front(mapObj).value;
+      Value value = entry.value;
       MOZ_ASSERT_IF(value.isGCThing(), !IsInsideNursery(value.toGCThing()));
-      count++;
-      if (count == 1000) {
-        break;
-      }
-    }
+    });
   }
 #endif
 
@@ -1401,15 +1389,8 @@ const JSPropertySpec SetObject::staticProperties[] = {
 bool SetObject::keys(JSContext* cx, HandleObject obj,
                      JS::MutableHandle<GCVector<JS::Value>> keys) {
   SetObject* setObj = &obj->as<SetObject>();
-
-  for (Table::Range r = Table(setObj).all(); !r.empty(setObj);
-       r.popFront(setObj)) {
-    if (!keys.append(r.front(setObj).get())) {
-      return false;
-    }
-  }
-
-  return true;
+  auto appendEntry = [&keys](auto& entry) { return keys.append(entry.get()); };
+  return Table(setObj).forEachEntry(appendEntry);
 }
 
 bool SetObject::add(JSContext* cx, HandleObject obj, HandleValue k) {
@@ -1479,16 +1460,10 @@ void SetObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   // nursery thing into the set would require it to be live, which means it
   // would have been marked.
   if (obj->isTenured()) {
-    size_t count = 0;
-    for (auto r = UnbarrieredTable(setObj).all(); !r.empty(setObj);
-         r.popFront(setObj)) {
-      Value key = r.front(setObj);
+    UnbarrieredTable(setObj).forEachEntryUpTo(1000, [](auto& entry) {
+      Value key = entry;
       MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
-      count++;
-      if (count == 1000) {
-        break;
-      }
-    }
+    });
   }
 #endif
 
@@ -1780,12 +1755,12 @@ bool SetObject::copy(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   auto* from = &args[0].toObject().as<SetObject>();
-  for (auto range = Table(from).all(); !range.empty(from);
-       range.popFront(from)) {
-    HashableValue value = range.front(from).get();
-    if (!result->addHashableValue(cx, value)) {
-      return false;
-    }
+
+  auto addToResult = [cx, result](auto& entry) {
+    return result->addHashableValue(cx, entry);
+  };
+  if (!Table(from).forEachEntry(addToResult)) {
+    return false;
   }
 
   args.rval().setObject(*result);
