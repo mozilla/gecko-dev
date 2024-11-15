@@ -6795,17 +6795,6 @@ bool WebGLShaderPrecisionFormatJS::WrapObject(
 
 // ---------------------
 
-// Todo: Move this to RefPtr.h.
-template <typename T>
-void ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& callback,
-                                 const RefPtr<T>& field, const char* name,
-                                 uint32_t flags) {
-  ImplCycleCollectionTraverse(callback, const_cast<RefPtr<T>&>(field), name,
-                              flags);
-}
-
-// -
-
 template <typename T>
 void ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& callback,
                                  const std::vector<RefPtr<T>>& field,
