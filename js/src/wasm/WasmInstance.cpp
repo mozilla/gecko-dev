@@ -2174,7 +2174,7 @@ void* Instance::stringConcat(Instance* instance, void* firstStringArg,
   Rooted<JSString*> secondString(cx, secondStringRef.toJSString());
   JSString* result = ConcatStrings<CanGC>(cx, firstString, secondString);
   if (!result) {
-    MOZ_ASSERT(cx->isThrowingOutOfMemory());
+    MOZ_ASSERT(cx->isExceptionPending());
     return nullptr;
   }
   return AnyRef::fromJSString(result).forCompiledCode();
