@@ -10,10 +10,44 @@
   grid-column: span 1;
 }
 
+// DS Large Card
 @mixin section-card-large {
   // styles
   grid-row: span 2;
   grid-column: span 2;
+
+  &.ds-card.sections-card-ui {
+    @media (min-width: $break-point-widest) {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xlarge);
+      padding: var(--space-xxlarge);
+
+      .ds-image.img {
+        // Square ratio
+        aspect-ratio: 1/1;
+
+        img {
+          border-radius: var(--border-radius-large);
+        }
+      }
+
+      .meta {
+        padding: 0;
+
+        .title {
+          -webkit-line-clamp: 3;
+          font-size: var(--font-size-large);
+          font-weight: var(--font-weight-bold);
+        }
+
+        .excerpt {
+          -webkit-line-clamp: 3;
+          font-size: var(--font-size-root);
+        }
+      }
+    }
+  }
 }
 
 .has-sections-grid {

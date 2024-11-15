@@ -220,8 +220,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
   }
 
   .img {
-    height: 0;
-    padding-top: 50%; // 2:1 aspect ratio
+    aspect-ratio: 2/1;
 
     img {
       border-radius: 4px;
@@ -455,6 +454,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 }
 
 // Class is applied to .ds-card element
+// See _CardSections.scss for large and small card style mixins
 .sections-card-ui {
 
   // Loading Animation
@@ -492,7 +492,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         -webkit-line-clamp: $line-count;
         line-height: normal;
         margin-bottom: var(--space-small);
-        font-weight: var(--font-weigth-bold);
+        font-weight: var(--font-weight-bold);
       }
 
       .excerpt {

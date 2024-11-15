@@ -230,6 +230,26 @@ export class _DSCard extends React.PureComponent {
       },
     ];
 
+    this.largeCardImageSizes = [
+      {
+        mediaMatcher: "(min-width: 1122px)",
+        width: 220,
+        height: 220,
+      },
+
+      {
+        mediaMatcher: "(min-width: 866px)",
+        width: 218,
+        height: 109,
+      },
+
+      {
+        mediaMatcher: "(max-width: 610px)",
+        width: 202,
+        height: 101,
+      },
+    ];
+
     this.listCardImageSizes = [
       {
         mediaMatcher: "(min-width: 1122px)",
@@ -666,6 +686,8 @@ export class _DSCard extends React.PureComponent {
     if (!isMediumRectangle) {
       sizes = isListCard ? this.listCardImageSizes : this.dsImageSizes;
     }
+
+    // TODO: Add logic to assign this.largeCardImageSizes
 
     let stpButton = () => {
       return (
