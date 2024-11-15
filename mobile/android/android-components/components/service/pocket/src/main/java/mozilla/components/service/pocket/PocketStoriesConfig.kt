@@ -12,12 +12,18 @@ import java.util.concurrent.TimeUnit
 internal const val DEFAULT_SPONSORED_STORIES_SITE_ID = "1240699"
 internal const val DEFAULT_REFRESH_INTERVAL = 4L
 internal const val DEFAULT_SPONSORED_STORIES_REFRESH_INTERVAL = 4L
+internal const val DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_INTERNAL = 4L
+
+internal const val DEFAULT_CONTENT_RECOMMENDATIONS_COUNT = 100
 
 @Suppress("TopLevelPropertyNaming")
 internal val DEFAULT_REFRESH_TIMEUNIT = TimeUnit.HOURS
 
 @Suppress("TopLevelPropertyNaming")
 internal val DEFAULT_SPONSORED_STORIES_REFRESH_TIMEUNIT = TimeUnit.HOURS
+
+@Suppress("TopLevelPropertyNaming")
+internal val DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_TIMEUNIT = TimeUnit.HOURS
 
 /**
  * Indicating all details for how the pocket stories should be refreshed.
@@ -28,6 +34,10 @@ internal val DEFAULT_SPONSORED_STORIES_REFRESH_TIMEUNIT = TimeUnit.HOURS
  * @param sponsoredStoriesRefreshFrequency Optional - The interval at which to try and refresh sponsored stories.
  * Defaults to 4 hours.
  * @param sponsoredStoriesParams Optional - Configuration containing parameters used to get the spoc content.
+ * @param contentRecommendationsRefreshFrequency Optional - The interval at which to try and refresh
+ * content recommendations. Defaults to 4 hours.
+ * @param contentRecommendationsParams Optional - Configuration containing parameters used to fetch
+ * the content recommendations.
  */
 class PocketStoriesConfig(
     val client: Client,
@@ -41,6 +51,11 @@ class PocketStoriesConfig(
         DEFAULT_SPONSORED_STORIES_REFRESH_TIMEUNIT,
     ),
     val sponsoredStoriesParams: PocketStoriesRequestConfig = PocketStoriesRequestConfig(),
+    val contentRecommendationsRefreshFrequency: Frequency = Frequency(
+        DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_INTERNAL,
+        DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_TIMEUNIT,
+    ),
+    val contentRecommendationsParams: ContentRecommendationsRequestConfig = ContentRecommendationsRequestConfig(),
 )
 
 /**
@@ -66,3 +81,19 @@ class PocketStoriesRequestConfig(
  * @param appId Unique identifier of the application using this feature.
  */
 class Profile(val profileId: UUID, val appId: String)
+
+/**
+ * Configuration for content recommendations request.
+ *
+ * @property locale Optional locale to specify the language of the recommendations to return.
+ * @property region Optional country-level region to improve the recommendations to return.
+ * @property count Optional number of recommendations to return.
+ * @property topics Optional list to specify the preferred topics to return for the content
+ * recommendations.
+ */
+data class ContentRecommendationsRequestConfig(
+    val locale: String = "",
+    val region: String = "",
+    val count: Int = DEFAULT_CONTENT_RECOMMENDATIONS_COUNT,
+    val topics: List<String> = listOf(),
+)

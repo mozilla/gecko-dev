@@ -4,7 +4,11 @@
 
 package mozilla.components.service.pocket.helpers
 
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
+import mozilla.components.service.pocket.recommendations.api.ContentRecommendationResponseItem
+import mozilla.components.service.pocket.recommendations.api.ContentRecommendationsResponse
+import mozilla.components.service.pocket.recommendations.db.ContentRecommendationEntity
 import mozilla.components.service.pocket.spocs.api.ApiSpoc
 import mozilla.components.service.pocket.spocs.api.ApiSpocCaps
 import mozilla.components.service.pocket.spocs.api.ApiSpocShim
@@ -36,6 +40,14 @@ internal object PocketTestResources {
 
     val pocketEndpointNullImageUrlStoryBadResponse = this::class.java.classLoader!!.getResource(
         "$POCKET_DIR/story_recommendation_null_imageUrl_response.json",
+    )!!.readText()
+
+    val contentRecommendationsJSONResponse = this::class.java.classLoader!!.getResource(
+        "$POCKET_DIR/content_recommendations_response.json",
+    )!!.readText()
+
+    val contentRecommendationsNullUrlResponse = this::class.java.classLoader!!.getResource(
+        "$POCKET_DIR/content_recommendations_null_url_response.json",
     )!!.readText()
 
     val apiExpectedPocketStoriesRecommendations: List<PocketApiStory> = listOf(
@@ -167,5 +179,94 @@ internal object PocketTestResources {
         lifetimeCapCount = 50,
         flightCapCount = 10,
         flightCapPeriod = 86400,
+    )
+
+    val contentRecommendationEntity = ContentRecommendationEntity(
+        scheduledCorpusItemId = "2222",
+        url = "https://getpocket.com/",
+        title = "Pocket",
+        excerpt = "Pocket",
+        topic = "food",
+        publisher = "Pocket",
+        isTimeSensitive = false,
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/",
+        tileId = 1,
+        receivedRank = 2,
+        impressions = 1,
+    )
+
+    val contentRecommendation = ContentRecommendation(
+        scheduledCorpusItemId = "2222",
+        url = "https://getpocket.com/",
+        title = "Pocket",
+        excerpt = "Pocket",
+        topic = "food",
+        publisher = "Pocket",
+        isTimeSensitive = false,
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/",
+        tileId = 1,
+        receivedRank = 2,
+        impressions = 1,
+    )
+
+    val contentRecommendationResponseItem1 = ContentRecommendationResponseItem(
+        scheduledCorpusItemId = "1111",
+        url = "https://getpocket.com/1",
+        title = "Pocket1",
+        excerpt = "Pocket1",
+        topic = "food",
+        publisher = "Pocket1",
+        isTimeSensitive = false,
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/1",
+        tileId = 1,
+        receivedRank = 1,
+    )
+    private val contentRecommendationResponseItem2 = ContentRecommendationResponseItem(
+        scheduledCorpusItemId = "2222",
+        url = "https://getpocket.com/2",
+        title = "Pocket2",
+        excerpt = "Pocket2",
+        topic = "business",
+        publisher = "Pocket2",
+        isTimeSensitive = true,
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/2",
+        tileId = 2,
+        receivedRank = 2,
+    )
+    private val contentRecommendationResponseItem3 = ContentRecommendationResponseItem(
+        scheduledCorpusItemId = "3333",
+        url = "https://getpocket.com/3",
+        title = "Pocket3",
+        excerpt = "Pocket3",
+        topic = null,
+        publisher = "Pocket3",
+        isTimeSensitive = true,
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/3",
+        tileId = 3,
+        receivedRank = 3,
+    )
+    private val contentRecommendationResponseItem4 = ContentRecommendationResponseItem(
+        scheduledCorpusItemId = "4444",
+        url = "https://getpocket.com/4",
+        title = "Pocket4",
+        excerpt = "Pocket4",
+        topic = "career",
+        publisher = "Pocket4",
+        isTimeSensitive = true,
+        imageUrl = "https://img-getpocket.cdn.mozilla.net/4",
+        tileId = 4,
+        receivedRank = 4,
+    )
+
+    val contentRecommendationResponseItems = listOf(
+        contentRecommendationResponseItem1,
+        contentRecommendationResponseItem2,
+        contentRecommendationResponseItem3,
+        contentRecommendationResponseItem4,
+    )
+
+    val contentRecommendationsResponse = ContentRecommendationsResponse(
+        recommendedAt = 0,
+        data = contentRecommendationResponseItems,
     )
 }

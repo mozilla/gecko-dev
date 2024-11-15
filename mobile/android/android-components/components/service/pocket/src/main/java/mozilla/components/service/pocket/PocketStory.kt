@@ -19,6 +19,36 @@ sealed class PocketStory {
     abstract val url: String
 
     /**
+     * A curated content recommendation.
+     *
+     * @property scheduledCorpusItemId The ID of the scheduled corpus item for this recommendation.
+     * @property url The url of the recommendation.
+     * @property title The title of the recommendation.
+     * @property excerpt An excerpt of the recommendation.
+     * @property topic The topic of interest under which similar recommendations are grouped.
+     * @property publisher The publisher of the recommendation.
+     * @property isTimeSensitive Whether or not the recommendation is time sensitive.
+     * @property imageUrl The image URL of the recommendation.
+     * @property tileId The tile ID of the recommendation.
+     * @property receivedRank The original position/sort order of this item. This is provided to
+     * include in telemetry payloads.
+     * @property impressions The number of impressions (times shown) of the recommendation.
+     */
+    data class ContentRecommendation(
+        val scheduledCorpusItemId: String,
+        override val url: String,
+        override val title: String,
+        val excerpt: String,
+        val topic: String?,
+        val publisher: String,
+        val isTimeSensitive: Boolean,
+        val imageUrl: String,
+        val tileId: Long,
+        val receivedRank: Int,
+        val impressions: Long,
+    ) : PocketStory()
+
+    /**
      * A Pocket recommended story.
      *
      * @property title The title of the story.

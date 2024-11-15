@@ -5,10 +5,14 @@
 package mozilla.components.service.pocket.ext
 
 import androidx.annotation.VisibleForTesting
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryShim
+import mozilla.components.service.pocket.recommendations.api.ContentRecommendationResponseItem
+import mozilla.components.service.pocket.recommendations.db.ContentRecommendationEntity
+import mozilla.components.service.pocket.recommendations.db.ContentRecommendationImpression
 import mozilla.components.service.pocket.spocs.api.ApiSpoc
 import mozilla.components.service.pocket.spocs.db.SpocEntity
 import mozilla.components.service.pocket.stories.api.PocketApiStory
@@ -97,3 +101,49 @@ internal fun SpocEntity.toPocketSponsoredStory(
         flightPeriod = flightCapPeriod,
     ),
 )
+
+/**
+ * Maps the Room entities to the object type that we expose to service clients.
+ */
+internal fun ContentRecommendationEntity.toContentRecommendation() =
+    ContentRecommendation(
+        scheduledCorpusItemId = scheduledCorpusItemId,
+        url = url,
+        title = title,
+        excerpt = excerpt,
+        topic = topic,
+        publisher = publisher,
+        isTimeSensitive = isTimeSensitive,
+        imageUrl = imageUrl,
+        tileId = tileId,
+        receivedRank = receivedRank,
+        impressions = impressions,
+    )
+
+/**
+ * Maps the content recommendation response item to the object type that is persisted locally.
+ */
+internal fun ContentRecommendationResponseItem.toContentRecommendationEntity() =
+    ContentRecommendationEntity(
+        scheduledCorpusItemId = scheduledCorpusItemId,
+        url = url,
+        title = title,
+        excerpt = excerpt,
+        topic = topic,
+        publisher = publisher,
+        isTimeSensitive = isTimeSensitive,
+        imageUrl = imageUrl,
+        tileId = tileId,
+        receivedRank = receivedRank,
+        impressions = DEFAULT_TIMES_SHOWN,
+    )
+
+/**
+ * Maps the content recommendation client object to an object that can facilitate updating the
+ * [ContentRecommendation.impressions] property that is persisted locally.
+ */
+internal fun ContentRecommendation.toImpressions() =
+    ContentRecommendationImpression(
+        scheduledCorpusItemId = scheduledCorpusItemId,
+        impressions = impressions,
+    )
