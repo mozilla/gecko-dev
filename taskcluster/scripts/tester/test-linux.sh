@@ -76,7 +76,7 @@ maybe_start_pulse() {
     fi
 }
 cleanup_pipewire() {
-    if [ -n "$pw_pids" ]; then
+    if [ -n "$pw_pids" ] && [ $TASKCLUSTER_INTERACTIVE = false ]; then
         kill "${pw_pids[@]}"
     fi
 }
