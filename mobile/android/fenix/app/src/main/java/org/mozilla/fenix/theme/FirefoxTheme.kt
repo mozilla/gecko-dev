@@ -37,22 +37,21 @@ enum class Theme {
          *
          * @param allowPrivateTheme Boolean used to control whether [Theme.Private] is an option
          * for [FirefoxTheme] colors.
-         * @param isCustomTab Boolean whether theme is used for a custom tab.
          *
          * @return the current [Theme] that is displayed.
          */
         @Composable
-        fun getTheme(allowPrivateTheme: Boolean = true, isCustomTab: Boolean = false): Theme {
-            val settings = LocalContext.current.settings()
-            val isPrivateMode =
-                settings.lastKnownMode.isPrivate || (isCustomTab && settings.openLinksInAPrivateTab)
-
-            return when {
-                allowPrivateTheme && !inComposePreview && isPrivateMode -> Private
-                isSystemInDarkTheme() -> Dark
-                else -> Light
+        fun getTheme(allowPrivateTheme: Boolean = true) =
+            if (allowPrivateTheme &&
+                !inComposePreview &&
+                LocalContext.current.settings().lastKnownMode.isPrivate
+            ) {
+                Private
+            } else if (isSystemInDarkTheme()) {
+                Dark
+            } else {
+                Light
             }
-        }
     }
 }
 
