@@ -8,9 +8,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.fetch.Client
+import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.helpers.assertConstructorsVisibility
+import mozilla.components.service.pocket.recommendations.ContentRecommendationsUseCases
+import mozilla.components.service.pocket.recommendations.ContentRecommendationsUseCases.GetContentRecommendations
+import mozilla.components.service.pocket.recommendations.ContentRecommendationsUseCases.UpdateRecommendationsImpressions
 import mozilla.components.service.pocket.spocs.SpocsUseCases
 import mozilla.components.service.pocket.spocs.SpocsUseCases.GetSponsoredStories
 import mozilla.components.service.pocket.spocs.SpocsUseCases.RecordImpression
@@ -38,15 +42,19 @@ import kotlin.reflect.KVisibility
 class PocketStoriesServiceTest {
     private val storiesUseCases: PocketStoriesUseCases = mock()
     private val spocsUseCases: SpocsUseCases = mock()
+    private val contentRecommendationsUseCases: ContentRecommendationsUseCases = mock()
     private val service = PocketStoriesService(testContext, PocketStoriesConfig(mock())).also {
         it.storiesRefreshScheduler = mock()
         it.spocsRefreshscheduler = mock()
+        it.contentRecommendationsRefreshScheduler = mock()
         it.storiesUseCases = storiesUseCases
         it.spocsUseCases = spocsUseCases
+        it.contentRecommendationsUseCases = contentRecommendationsUseCases
     }
 
     @After
     fun teardown() {
+        GlobalDependencyProvider.ContentRecommendations.reset()
         GlobalDependencyProvider.SponsoredStories.reset()
         GlobalDependencyProvider.RecommendedStories.reset()
     }
@@ -225,5 +233,44 @@ class PocketStoriesServiceTest {
         service.recordStoriesImpressions(storiesIds)
 
         verify(recordImpressionsUseCase).invoke(storiesIds)
+    }
+
+    @Test
+    fun `WHEN start periodic content recommendations refresh is invoked THEN schedule content recommendations refreshes`() {
+        service.startPeriodicContentRecommendationsRefresh()
+
+        assertNotNull(GlobalDependencyProvider.ContentRecommendations.useCases)
+        verify(service.contentRecommendationsRefreshScheduler).startPeriodicWork(any())
+    }
+
+    @Test
+    fun `WHEN stop periodic content recommendations refresh is invoked THEN unschedule content recommendations refreshes`() {
+        service.stopPeriodicContentRecommendationsRefresh()
+
+        assertNull(GlobalDependencyProvider.ContentRecommendations.useCases)
+        verify(service.contentRecommendationsRefreshScheduler).stopPeriodicWork(any())
+    }
+
+    @Test
+    fun `WHEN get content recommendations is invoked THEN content recommendations use cases should return a list of content recommendations`() = runTest {
+        val recommendations = listOf(mock<ContentRecommendation>())
+        val getContentRecommendations: GetContentRecommendations = mock()
+        doReturn(recommendations).`when`(getContentRecommendations).invoke()
+        doReturn(getContentRecommendations).`when`(contentRecommendationsUseCases).getContentRecommendations
+
+        val result = service.getContentRecommendations()
+
+        assertEquals(recommendations, result)
+    }
+
+    @Test
+    fun `WHEN update content recommendations impressions is invoked THEN delegate to the content recommendations use cases`() = runTest {
+        val recommendationsShown = listOf(mock<ContentRecommendation>())
+        val updateRecommendationsImpressions: UpdateRecommendationsImpressions = mock()
+        doReturn(updateRecommendationsImpressions).`when`(contentRecommendationsUseCases).updateRecommendationsImpressions
+
+        service.updateRecommendationsImpressions(recommendationsShown)
+
+        verify(updateRecommendationsImpressions).invoke(recommendationsShown)
     }
 }
