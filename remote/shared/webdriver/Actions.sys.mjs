@@ -1078,8 +1078,6 @@ class KeyDownAction extends KeyAction {
       inputSource.setModState(keyEvent.key, true);
     }
 
-    // Append a copy of |a| with keyUp subtype
-    state.inputsToCancel.push(new KeyUpAction(this.id, this));
     keyEvent.update(state, inputSource);
 
     await dispatchEvent("synthesizeKeyDown", context, {
@@ -1087,6 +1085,9 @@ class KeyDownAction extends KeyAction {
       y: inputSource.y,
       eventData: keyEvent,
     });
+
+    // Append a copy of |this| with keyUp subtype if event dispatched
+    state.inputsToCancel.push(new KeyUpAction(this.id, this));
   }
 }
 
@@ -1371,10 +1372,11 @@ class PointerDownAction extends PointerAction {
     }
 
     inputSource.press(this.button);
-    // Append a copy of |a| with pointerUp subtype
-    state.inputsToCancel.push(new PointerUpAction(this.id, this));
 
     await inputSource.pointer.pointerDown(state, inputSource, this, options);
+
+    // Append a copy of |this| with pointerUp subtype if event dispatched
+    state.inputsToCancel.push(new PointerUpAction(this.id, this));
   }
 
   /**
@@ -2002,11 +2004,8 @@ class PointerDownTouchActionGroup extends TouchActionGroup {
       const eventData = new MultiTouchEventData("touchstart");
 
       for (const [actionInputSource, action] of actions) {
-        // Skip if already pressed
         eventData.addPointerEventData(actionInputSource, action);
         actionInputSource.press(action.button);
-        // Append a copy of |action| with pointerUp subtype
-        state.inputsToCancel.push(new PointerUpAction(action.id, action));
         eventData.update(state, actionInputSource);
       }
 
@@ -2025,6 +2024,11 @@ class PointerDownTouchActionGroup extends TouchActionGroup {
       }
 
       await dispatchEvent("synthesizeMultiTouch", context, { eventData });
+
+      for (const [, action] of actions) {
+        // Append a copy of |action| with pointerUp subtype if event dispatched
+        state.inputsToCancel.push(new PointerUpAction(action.id, action));
+      }
     }
   }
 }

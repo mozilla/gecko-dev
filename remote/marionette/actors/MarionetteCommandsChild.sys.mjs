@@ -634,7 +634,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     }
 
     const undoActions = this.#actionState.inputCancelList.reverse();
-    undoActions.dispatch(this.#actionState, this.#actionsOptions);
+    await undoActions.dispatch(this.#actionState, this.#actionsOptions);
 
     this.#actionState = null;
 
