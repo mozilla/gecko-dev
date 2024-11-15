@@ -612,3 +612,22 @@ fxa_app_menu:
     telemetry_mirror: Fxa_app_menu_Click_SyncCta
     no_lint:
       - COMMON_PREFIX
+
+deletion.request:
+  sync_device_id:
+    type: string
+    description: >
+      An identifier used by sync ping, to identify the current Firefox
+      profile for a specific Account.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar deletion.request.sync_device_id.
+    bugs:
+      - https://bugzil.la/1604844
+    data_reviews:
+      - https://bugzil.la/1604844
+    notification_emails:
+      - rfkelly@mozilla.com
+      - sync-team@mozilla.com
+    expires: never
+    send_in_pings: ["deletion-request"]
+    telemetry_mirror: DELETION_REQUEST_SYNC_DEVICE_ID

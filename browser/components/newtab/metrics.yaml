@@ -3012,6 +3012,41 @@ activity_stream:
     extra_keys: *activity_stream_event_extra
     telemetry_mirror: Activity_stream_Event_Unpin
 
+deletion.request:
+  impression_id:
+    type: string
+    description: >
+      An identifier used by user interaction pings in Pocket/newtab and
+      Messaging System.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar deletion.request.impression_id.
+    bugs:
+      - https://bugzil.la/1602064
+    data_reviews:
+      - https://bugzil.la/1602064
+    notification_emails:
+      - najiang@mozilla.com
+    expires: never
+    send_in_pings: ["deletion-request"]
+    telemetry_mirror: DELETION_REQUEST_IMPRESSION_ID
+
+  context_id:
+    type: string
+    description: >
+      An identifier to identify users for Contextual Services user
+      interaction pings.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar deletion.request.context_id.
+    bugs:
+      - https://bugzil.la/1729474
+    data_reviews:
+      - https://bugzil.la/1729474
+    notification_emails:
+      - najiang@mozilla.com
+    expires: never
+    send_in_pings: ["deletion-request"]
+    telemetry_mirror: DELETION_REQUEST_CONTEXT_ID
+
 contextual.services.topsites:
   impression:
     type: labeled_counter
