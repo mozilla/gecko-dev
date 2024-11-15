@@ -31,6 +31,14 @@ class DurationFormatObject : public NativeObject {
   static const ClassSpec classSpec_;
 };
 
+/**
+ * Returns the time separator string for the given locale and numbering system.
+ *
+ * Usage: separator = intl_GetTimeSeparator(locale, numberingSystem)
+ */
+[[nodiscard]] extern bool intl_GetTimeSeparator(JSContext* cx, unsigned argc,
+                                                Value* vp);
+
 }  // namespace js
 
 #endif /* builtin_intl_DurationFormat_h */

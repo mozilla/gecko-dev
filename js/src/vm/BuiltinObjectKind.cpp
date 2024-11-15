@@ -21,6 +21,8 @@ static JSProtoKey ToProtoKey(BuiltinObjectKind kind) {
       return JSProto_ArrayBuffer;
     case BuiltinObjectKind::Int32Array:
       return JSProto_Int32Array;
+    case BuiltinObjectKind::ListFormat:
+      return JSProto_ListFormat;
     case BuiltinObjectKind::Map:
       return JSProto_Map;
     case BuiltinObjectKind::Promise:
@@ -61,6 +63,7 @@ static bool IsPrototype(BuiltinObjectKind kind) {
     case BuiltinObjectKind::Array:
     case BuiltinObjectKind::ArrayBuffer:
     case BuiltinObjectKind::Int32Array:
+    case BuiltinObjectKind::ListFormat:
     case BuiltinObjectKind::Map:
     case BuiltinObjectKind::Promise:
     case BuiltinObjectKind::RegExp:
@@ -96,6 +99,9 @@ BuiltinObjectKind js::BuiltinConstructorForName(
   }
   if (name == frontend::TaggedParserAtomIndex::WellKnown::Int32Array()) {
     return BuiltinObjectKind::Int32Array;
+  }
+  if (name == frontend::TaggedParserAtomIndex::WellKnown::ListFormat()) {
+    return BuiltinObjectKind::ListFormat;
   }
   if (name == frontend::TaggedParserAtomIndex::WellKnown::Map()) {
     return BuiltinObjectKind::Map;
@@ -169,6 +175,8 @@ const char* js::BuiltinObjectName(BuiltinObjectKind kind) {
       return "ArrayBuffer";
     case BuiltinObjectKind::Int32Array:
       return "Int32Array";
+    case BuiltinObjectKind::ListFormat:
+      return "ListFormat";
     case BuiltinObjectKind::Map:
       return "Map";
     case BuiltinObjectKind::Promise:

@@ -9,11 +9,14 @@
 #include "builtin/intl/DurationFormat.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/intl/DateTimeFormat.h"
+#include "mozilla/Span.h"
 
 #include "jspubtd.h"
 #include "NamespaceImports.h"
 
 #include "builtin/intl/CommonFunctions.h"
+#include "builtin/intl/FormatBuffer.h"
 #include "gc/AllocKind.h"
 #include "gc/GCContext.h"
 #include "js/CallArgs.h"
@@ -57,6 +60,9 @@ static const JSFunctionSpec durationFormat_static_methods[] = {
 static const JSFunctionSpec durationFormat_methods[] = {
     JS_SELF_HOSTED_FN("resolvedOptions", "Intl_DurationFormat_resolvedOptions",
                       0, 0),
+    JS_SELF_HOSTED_FN("format", "Intl_DurationFormat_format", 1, 0),
+    JS_SELF_HOSTED_FN("formatToParts", "Intl_DurationFormat_formatToParts", 1,
+                      0),
     JS_FN("toSource", durationFormat_toSource, 0, 0),
     JS_FS_END,
 };
@@ -114,5 +120,39 @@ static bool DurationFormat(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   args.rval().setObject(*durationFormat);
+  return true;
+}
+
+bool js::intl_GetTimeSeparator(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 2);
+  MOZ_ASSERT(args[0].isString());
+  MOZ_ASSERT(args[1].isString());
+
+  UniqueChars locale = intl::EncodeLocale(cx, args[0].toString());
+  if (!locale) {
+    return false;
+  }
+
+  UniqueChars numberingSystem = EncodeAscii(cx, args[1].toString());
+  if (!numberingSystem) {
+    return false;
+  }
+
+  intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> separator(cx);
+  auto result = mozilla::intl::DateTimeFormat::GetTimeSeparator(
+      mozilla::MakeStringSpan(locale.get()),
+      mozilla::MakeStringSpan(numberingSystem.get()), separator);
+  if (result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
+    return false;
+  }
+
+  JSString* str = separator.toString(cx);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
   return true;
 }
