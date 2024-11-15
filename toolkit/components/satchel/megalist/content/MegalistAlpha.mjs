@@ -277,7 +277,6 @@ export class MegalistAlpha extends MozLitElement {
     return html` <moz-card
       class="empty-state-card"
       data-l10n-id="passwords-no-passwords-found-header"
-      data-l10n-attrs="heading"
     >
       <div
         class="empty-search-results"

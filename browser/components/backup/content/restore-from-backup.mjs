@@ -285,7 +285,6 @@ export default class RestoreFromBackup extends MozLitElement {
         id="restore-from-backup-error"
         type="error"
         data-l10n-id="${getRecoveryErrorL10nId(this.recoveryErrorCode)}"
-        data-l10n-attrs="heading, message"
       >
       </moz-message-bar>
     `;

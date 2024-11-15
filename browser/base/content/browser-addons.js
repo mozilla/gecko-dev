@@ -2240,7 +2240,6 @@ var gUnifiedExtensions = {
     messageBar.setAttribute("type", type);
     messageBar.classList.add("unified-extensions-message-bar");
     document.l10n.setAttributes(messageBar, messageBarFluentId);
-    messageBar.setAttribute("data-l10n-attrs", "heading, message");
 
     if (supportPage) {
       const supportUrl = document.createElement("a", {

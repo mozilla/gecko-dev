@@ -59,8 +59,8 @@ export default class MozMessageBar extends MozLitElement {
 
   static properties = {
     type: { type: String },
-    heading: { type: String },
-    message: { type: String },
+    heading: { type: String, fluent: true },
+    message: { type: String, fluent: true },
     dismissable: { type: Boolean },
     messageL10nId: { type: String },
     messageL10nArgs: { type: String },

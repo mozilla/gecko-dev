@@ -847,7 +847,6 @@ let gTranslationsPane = {
   showErrorMessage(parentNode, fluentId, language) {
     const errorElement = document.createElement("moz-message-bar");
     errorElement.setAttribute("type", "error");
-    errorElement.setAttribute("data-l10n-attrs", "message");
     document.l10n.setAttributes(errorElement, fluentId, {
       name: language,
     });

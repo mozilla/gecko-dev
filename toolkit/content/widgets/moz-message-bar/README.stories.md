@@ -50,18 +50,16 @@ And used as follows:
 
 Generally the `heading` and `message` properties of
 `moz-message-bar` will be provided via [Fluent attributes](https://mozilla-l10n.github.io/localizer-documentation/tools/fluent/basic_syntax.html#attributes).
-To get this working you will need to specify a `data-l10n-id` as well as
-`data-l10n-attrs` if you're providing a heading and a message:
-
-```html
-<moz-message-bar data-l10n-id="with-heading-and-message"
-                 data-l10n-attrs="heading, message"></moz-message-bar>
-```
-
-In which case your Fluent messages will look something like this:
+To get this working you will need to format your Fluent message like this:
 
 ```
 with-heading-and-message =
   .heading = Heading text goes here
   .message = Message text goes here
 ```
+
+The `data-l10n-attrs` will be set up automatically via `MozLitElement`, so you can just specify `data-l10n-id` on your message bar as you would with any other markup:
++
++ ```html
++ <moz-message-bar data-l10n-id="with-heading-and-message"></moz-message-bar>
++ ```

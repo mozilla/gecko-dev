@@ -65,7 +65,6 @@ const Template = ({
     heading=${ifDefined(heading)}
     message=${ifDefined(message)}
     data-l10n-id=${ifDefined(l10nId)}
-    data-l10n-attrs="heading, message"
     ?dismissable=${dismissable}
   >
     ${hasSupportLink

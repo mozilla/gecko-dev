@@ -23,7 +23,6 @@ const notificationShell = ({
   onDismiss,
   messageHandler,
   dataL10nId,
-  dataL10nAttrs,
   dataL10nArgs,
   messageL10nId,
   messageL10nArgs,
@@ -38,7 +37,6 @@ const notificationShell = ({
       dismissable
       type=${type}
       data-l10n-id=${dataL10nId}
-      data-l10n-attrs=${dataL10nAttrs}
       data-l10n-args=${ifDefined(dataL10nArgs)}
       messageL10nId=${ifDefined(messageL10nId)}
       .messageL10nArgs=${ifDefined(messageL10nArgs)}
@@ -90,7 +88,6 @@ class NotificationMessageBar extends MozLitElement {
       onDismiss: this.onDismiss,
       messageHandler: this.messageHandler,
       dataL10nId: "passwords-import-success-heading",
-      dataL10nAttrs: "heading",
       messageL10nId: "passwords-import-success-message",
       messageL10nArgs: this.notification.l10nArgs,
       type: "success",
@@ -113,7 +110,6 @@ class NotificationMessageBar extends MozLitElement {
       onDismiss: this.onDismiss,
       messageHandler: this.messageHandler,
       dataL10nId: "passwords-import-error-heading-and-message",
-      dataL10nAttrs: "heading, message",
       type: "error",
       link: {
         url: "https://support.mozilla.org/kb/import-login-data-file",
@@ -137,7 +133,6 @@ class NotificationMessageBar extends MozLitElement {
       ${notificationShell({
         onDismiss: this.onDismiss,
         dataL10nId: "passwords-add-password-success-heading",
-        dataL10nAttrs: "heading",
         dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
         type: "success",
         primaryAction: {
@@ -158,7 +153,6 @@ class NotificationMessageBar extends MozLitElement {
       ${notificationShell({
         onDismiss: this.onDismiss,
         dataL10nId: "passwords-password-already-exists-error-heading",
-        dataL10nAttrs: "heading",
         dataL10nArgs: JSON.stringify(this.notification.l10nArgs),
         type: "warning",
         primaryAction: {
