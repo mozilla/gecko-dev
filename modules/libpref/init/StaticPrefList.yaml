@@ -12412,7 +12412,7 @@
 # This lets us remotely perform a database migration with Nimbus.
 - name: network.cookie.CHIPS.migrateDatabaseTarget
   type: RelaxedAtomicUint32
-  value: 0
+  value: 1
   mirror: always
 
 # Stale threshold for cookies in seconds.
