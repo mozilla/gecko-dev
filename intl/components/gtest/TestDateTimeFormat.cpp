@@ -633,4 +633,75 @@ TEST(IntlDateTimeFormat, SetStartTimeIfGregorian)
     ASSERT_TRUE(buffer.verboseMatches(Jan01_1583));
   }
 }
+
+TEST(IntlDateTimeFormat, GetTimeSeparator)
+{
+  struct TestData {
+    const char* locale;
+    const char* numberingSystem;
+    const char16_t* expected;
+  } testData[] = {
+      {"root", "latn", u":"},
+      {"root", "arab", u":"},
+      {"root", "thai", u":"},
+      {"root", "arabext", u"٫"},
+
+      // English uses the same data as the root locale.
+      {"en", "latn", u":"},
+      {"en", "arab", u":"},
+      {"en", "thai", u":"},
+      {"en", "arabext", u"٫"},
+
+      // Spanish uses the same data as the root locale.
+      {"es", "latn", u":"},
+      {"es", "arab", u":"},
+      {"es", "thai", u":"},
+      {"es", "arabext", u"٫"},
+
+      // German (Austria) uses the same data as the root locale.
+      {"de-AT", "latn", u":"},
+      {"de-AT", "arab", u":"},
+      {"de-AT", "thai", u":"},
+      {"de-AT", "arabext", u"٫"},
+
+      // Danish has a different time separator for "latn".
+      {"da", "latn", u"."},
+      {"da", "arab", u":"},
+      {"da", "thai", u"."},
+      {"da", "arabext", u"٫"},
+
+      // Same time separator as Danish.
+      {"en-DK", "latn", u"."},
+      {"en-DK", "arab", u":"},
+      {"en-DK", "thai", u"."},
+      {"en-DK", "arabext", u"٫"},
+
+      // Norwegian overrides time separators for "arab" and "arabext".
+      {"no", "latn", u":"},
+      {"no", "arab", u"."},
+      {"no", "thai", u":"},
+      {"no", "arabext", u"."},
+
+      // Parent locale of Bokmål is Norwegian.
+      {"nb", "latn", u":"},
+      {"nb", "arab", u"."},
+      {"nb", "thai", u":"},
+      {"nb", "arabext", u"."},
+
+      // Farsi overrides the time separator for "arabext".
+      {"fa", "latn", u":"},
+      {"fa", "arab", u":"},
+      {"fa", "thai", u":"},
+      {"fa", "arabext", u":"},
+  };
+
+  for (const auto& data : testData) {
+    TestBuffer<char16_t> timeSeparator;
+    auto timeSeparatorResult = DateTimeFormat::GetTimeSeparator(
+        MakeStringSpan(data.locale), MakeStringSpan(data.numberingSystem),
+        timeSeparator);
+    ASSERT_TRUE(timeSeparatorResult.isOk());
+    ASSERT_TRUE(timeSeparator.verboseMatches(data.expected));
+  }
+}
 }  // namespace mozilla::intl

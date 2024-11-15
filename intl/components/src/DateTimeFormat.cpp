@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <algorithm>
 #include <cstring>
 
 #include "unicode/ucal.h"
@@ -12,6 +13,7 @@
 #include "DateTimeFormatUtils.h"
 #include "ScopedICUObject.h"
 
+#include "mozilla/Buffer.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/intl/Calendar.h"
 #include "mozilla/intl/DateTimeFormat.h"
@@ -802,6 +804,181 @@ DateTimeFormat::GetAllowedHourCycles(Span<const char> aLanguage,
   }
 
   return result;
+}
+
+template <typename CharT>
+static Result<Buffer<char>, ICUError> DuplicateChars(Span<CharT> aView) {
+  auto chars = MakeUnique<char[]>(aView.Length() + 1);
+  std::copy_n(aView.Elements(), aView.Length(), chars.get());
+  chars[aView.Length()] = '\0';
+  return Buffer{std::move(chars), aView.Length()};
+}
+
+static Result<Buffer<char>, ICUError> GetParentLocale(
+    const UResourceBundle* aLocaleBundle) {
+  UErrorCode status = U_ZERO_ERROR;
+
+  // First check for an explicit parent locale using the "%%Parent" key.
+  int32_t length = 0;
+  const char16_t* parent =
+      ures_getStringByKey(aLocaleBundle, "%%Parent", &length, &status);
+  if (status == U_MISSING_RESOURCE_ERROR) {
+    status = U_ZERO_ERROR;
+    parent = nullptr;
+  }
+  if (U_FAILURE(status)) {
+    return Err(ToICUError(status));
+  }
+  if (parent) {
+    return DuplicateChars(Span{parent, size_t(length)});
+  }
+
+  // Retrieve the actual locale of the resource bundle.
+  const char* locale =
+      ures_getLocaleByType(aLocaleBundle, ULOC_ACTUAL_LOCALE, &status);
+  if (U_FAILURE(status)) {
+    return Err(ToICUError(status));
+  }
+
+  // Strip off the last subtag, if possible.
+  if (const char* sep = std::strrchr(locale, '_')) {
+    return DuplicateChars(Span{locale, size_t(sep - locale)});
+  }
+
+  // The parent locale of all locales is "root".
+  if (std::strcmp(locale, "root") != 0) {
+    static constexpr auto root = MakeStringSpan("root");
+    return DuplicateChars(root);
+  }
+
+  // "root" itself doesn't have a parent locale.
+  static constexpr auto empty = MakeStringSpan("");
+  return DuplicateChars(empty);
+}
+
+static Result<Span<const char16_t>, ICUError> FindTimeSeparator(
+    Span<const char> aRequestedLocale, Span<const char> aLocale,
+    Span<const char> aNumberingSystem) {
+  // We didn't find the numbering system. Retry using the default numbering
+  // system "latn". (We don't use the default numbering system of the requested
+  // locale to match ICU.)
+  if (aLocale == MakeStringSpan("")) {
+    return FindTimeSeparator(aRequestedLocale, aRequestedLocale, "latn");
+  }
+
+  // First open the resource bundle of the input locale.
+  //
+  // Note: ICU's resource API accepts both Unicode CLDR locale identifiers and
+  // Unicode BCP 47 locale identifiers, so we don't have to convert the input
+  // into a Unicode CLDR locale identifier.
+  UErrorCode status = U_ZERO_ERROR;
+  UResourceBundle* localeBundle =
+      ures_open(nullptr, AssertNullTerminatedString(aLocale), &status);
+  if (U_FAILURE(status)) {
+    return Err(ToICUError(status));
+  }
+  ScopedICUObject<UResourceBundle, ures_close> closeLocaleBundle(localeBundle);
+
+  do {
+    // Search for the "NumberElements" table. Fall back to the parent locale if
+    // no "NumberElements" table is present.
+    UResourceBundle* numberElements =
+        ures_getByKey(localeBundle, "NumberElements", nullptr, &status);
+    if (status == U_MISSING_RESOURCE_ERROR) {
+      break;
+    }
+    if (U_FAILURE(status)) {
+      return Err(ToICUError(status));
+    }
+    ScopedICUObject<UResourceBundle, ures_close> closeNumberElements(
+        numberElements);
+
+    // Search for the table of the requested numbering system. Fall back to the
+    // parent locale if no table was found.
+    UResourceBundle* numberingSystem = ures_getByKey(
+        numberElements, AssertNullTerminatedString(aNumberingSystem), nullptr,
+        &status);
+    if (status == U_MISSING_RESOURCE_ERROR) {
+      break;
+    }
+    if (U_FAILURE(status)) {
+      return Err(ToICUError(status));
+    }
+    ScopedICUObject<UResourceBundle, ures_close> closeNumberingSystem(
+        numberingSystem);
+
+    // Search for the "symbols" table. Fall back to the parent locale if no
+    // "symbols" table is present.
+    UResourceBundle* symbols =
+        ures_getByKey(numberingSystem, "symbols", nullptr, &status);
+    if (status == U_MISSING_RESOURCE_ERROR) {
+      break;
+    }
+    if (U_FAILURE(status)) {
+      return Err(ToICUError(status));
+    }
+    ScopedICUObject<UResourceBundle, ures_close> closeSymbols(symbols);
+
+    // And finally look up the "timeSeparator" string in the "symbols" table. If
+    // the string isn't present, fall back to the parent locale.
+    int32_t length = 0;
+    const UChar* str =
+        ures_getStringByKey(symbols, "timeSeparator", &length, &status);
+    if (status == U_MISSING_RESOURCE_ERROR) {
+      break;
+    }
+    if (U_FAILURE(status)) {
+      return Err(ToICUError(status));
+    }
+
+    Span<const char16_t> timeSeparator{str, size_t(length)};
+
+    static constexpr auto defaultTimeSeparator = MakeStringSpan(u":");
+
+    // Many numbering systems don't define their own symbols, but instead link
+    // to the symbols for "latn" of the requested locale. The link is performed
+    // through an alias entry like:
+    // `symbols:alias{"/LOCALE/NumberElements/latn/symbols"}`
+    //
+    // ICU doesn't provide a public API to detect these alias entries, but
+    // instead always automatically resolves the link. But that leads to
+    // incorrectly using the symbols from the "root" locale instead of the
+    // requested locale.
+    //
+    // Thankfully these alias entries are only present on the "root" locale. So
+    // we are using this heuristic to detect alias entries:
+    //
+    // - If the resolved time separator is the default time separator ":".
+    // - The current locale is "root".
+    // - And the numbering system is neither "latn" nor "arab".
+    // - Then search the time separator for "latn" of the requested locale.
+    //
+    // We have to exclude "arab", because it's also using ":" for the time
+    // separator, but doesn't use an alias link to "latn".
+    if (timeSeparator == defaultTimeSeparator &&
+        aLocale == MakeStringSpan("root") &&
+        aNumberingSystem != MakeStringSpan("latn") &&
+        aNumberingSystem != MakeStringSpan("arab")) {
+      return FindTimeSeparator(aRequestedLocale, aRequestedLocale,
+                               MakeStringSpan("latn"));
+    }
+
+    return timeSeparator;
+  } while (false);
+
+  // Fall back to the parent locale.
+  auto parent = GetParentLocale(localeBundle);
+  if (parent.isErr()) {
+    return parent.propagateErr();
+  }
+  return FindTimeSeparator(aRequestedLocale, parent.inspect().AsSpan(),
+                           aNumberingSystem);
+}
+
+/* static */
+Result<Span<const char16_t>, ICUError> DateTimeFormat::GetTimeSeparator(
+    Span<const char> aLocale, Span<const char> aNumberingSystem) {
+  return FindTimeSeparator(aLocale, aLocale, aNumberingSystem);
 }
 
 Result<DateTimeFormat::ComponentsBag, ICUError>
