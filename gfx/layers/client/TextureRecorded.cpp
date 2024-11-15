@@ -31,7 +31,6 @@ RecordedTextureData::~RecordedTextureData() {
     mDT->DetachTextureData(this);
     mDT = nullptr;
   }
-  mCanvasChild->CleanupTexture(mRemoteTextureOwnerId);
   mCanvasChild->RecordEvent(RecordedTextureDestruction(
       mRemoteTextureOwnerId, ToRemoteTextureTxnType(mFwdTransactionTracker),
       ToRemoteTextureTxnId(mFwdTransactionTracker)));

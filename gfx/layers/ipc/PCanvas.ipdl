@@ -98,6 +98,8 @@ child:
    * Cache the shmem of the framebuffer for snapshotting.
    */
   async SnapshotShmem(RemoteTextureOwnerId aTextureOwnerId, Handle aShmemHandle, uint32_t aShmemSize) returns (bool aSuccess);
+
+  async NotifyTextureDestruction(RemoteTextureOwnerId aTextureOwnerId);
 };
 
 } // layers

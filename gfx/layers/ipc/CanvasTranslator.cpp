@@ -1196,6 +1196,16 @@ already_AddRefed<gfx::DrawTarget> CanvasTranslator::CreateDrawTarget(
   return nullptr;
 }
 
+void CanvasTranslator::NotifyTextureDestruction(
+    const RemoteTextureOwnerId aTextureOwnerId) {
+  MOZ_ASSERT(gfx::CanvasRenderThread::IsInCanvasRenderThread());
+
+  if (mIPDLClosed) {
+    return;
+  }
+  Unused << SendNotifyTextureDestruction(aTextureOwnerId);
+}
+
 void CanvasTranslator::RemoveTexture(const RemoteTextureOwnerId aTextureOwnerId,
                                      RemoteTextureTxnType aTxnType,
                                      RemoteTextureTxnId aTxnId) {
@@ -1221,6 +1231,11 @@ void CanvasTranslator::RemoveTexture(const RemoteTextureOwnerId aTextureOwnerId,
       mRemoteTextureOwner->UnregisterTextureOwner(aTextureOwnerId);
     }
   }
+
+  gfx::CanvasRenderThread::Dispatch(NewRunnableMethod<RemoteTextureOwnerId>(
+      "CanvasTranslator::NotifyTextureDestruction", this,
+      &CanvasTranslator::NotifyTextureDestruction, aTextureOwnerId));
+
   mTextureInfo.erase(result);
 }
 
@@ -1368,6 +1383,8 @@ bool CanvasTranslator::PushRemoteTexture(
 }
 
 void CanvasTranslator::ClearTextureInfo() {
+  MOZ_ASSERT(mIPDLClosed);
+
   mUsedDataSurfaceForSurfaceDescriptor = nullptr;
   mUsedWrapperForSurfaceDescriptor = nullptr;
   mUsedSurfaceDescriptorForSurfaceDescriptor = Nothing();

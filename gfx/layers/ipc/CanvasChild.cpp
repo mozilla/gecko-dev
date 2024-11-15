@@ -363,6 +363,7 @@ void CanvasChild::ActorDestroy(ActorDestroyReason aWhy) {
   if (mRecorder) {
     mRecorder->DetachResources();
   }
+  mTextureInfo.clear();
 }
 
 void CanvasChild::Destroy() {
@@ -443,13 +444,14 @@ bool CanvasChild::ShouldBeCleanedUp() const {
   }
 
   // We can only be cleaned up if nothing else references our recorder.
-  return !mRecorder || mRecorder->hasOneRef();
+  return !mRecorder || (mRecorder->hasOneRef() && mTextureInfo.empty());
 }
 
 already_AddRefed<gfx::DrawTargetRecording> CanvasChild::CreateDrawTarget(
     const RemoteTextureOwnerId& aTextureOwnerId, gfx::IntSize aSize,
     gfx::SurfaceFormat aFormat) {
   NS_ASSERT_OWNINGTHREAD(CanvasChild);
+  MOZ_ASSERT(mTextureInfo.find(aTextureOwnerId) == mTextureInfo.end());
 
   if (!mRecorder) {
     return nullptr;
@@ -689,8 +691,16 @@ ipc::IPCResult CanvasChild::RecvSnapshotShmem(
   return IPC_OK();
 }
 
-void CanvasChild::CleanupTexture(const RemoteTextureOwnerId aTextureOwnerId) {
+ipc::IPCResult CanvasChild::RecvNotifyTextureDestruction(
+    const RemoteTextureOwnerId aTextureOwnerId) {
+  auto it = mTextureInfo.find(aTextureOwnerId);
+  if (it == mTextureInfo.end()) {
+    MOZ_ASSERT(!CanSend());
+    return IPC_OK();
+  }
+
   mTextureInfo.erase(aTextureOwnerId);
+  return IPC_OK();
 }
 
 }  // namespace layers

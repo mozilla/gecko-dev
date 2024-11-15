@@ -443,6 +443,8 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   void PostCanvasTranslatorEvents(const MutexAutoLock& aProofOfLock);
   void HandleCanvasTranslatorEvents();
 
+  void NotifyTextureDestruction(const RemoteTextureOwnerId aTextureOwnerId);
+
   const RefPtr<TaskQueue> mTranslationTaskQueue;
   const RefPtr<SharedSurfacesHolder> mSharedSurfacesHolder;
 #if defined(XP_WIN)

@@ -60,6 +60,9 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
                                    Handle&& aShmemHandle, uint32_t aShmemSize,
                                    SnapshotShmemResolver&& aResolve);
 
+  ipc::IPCResult RecvNotifyTextureDestruction(
+      const RemoteTextureOwnerId aTextureOwnerId);
+
   /**
    * Ensures that the DrawEventRecorder has been created.
    *
@@ -157,8 +160,6 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
       const gfx::SourceSurface* aSurface, bool aDetached, bool& aMayInvalidate);
 
   bool RequiresRefresh(const RemoteTextureOwnerId aTextureOwnerId) const;
-
-  void CleanupTexture(const RemoteTextureOwnerId aTextureOwnerId);
 
   void ReturnDataSurfaceShmem(
       already_AddRefed<ipc::SharedMemory> aDataSurfaceShmem);
