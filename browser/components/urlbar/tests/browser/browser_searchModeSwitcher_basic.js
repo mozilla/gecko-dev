@@ -878,8 +878,68 @@ add_task(async function test_focus_order_by_tab() {
     }
   }
 
+  await UrlbarTestUtils.promisePopupClose(window, () => {
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+  gURLBar.handleRevert();
   await PlacesUtils.bookmarks.eraseEverything();
 });
+
+add_task(async function test_focus_order_by_tab_with_no_results() {
+  for (const scotchBonnetEnabled of [true, false]) {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["browser.urlbar.scotchBonnet.enableOverride", scotchBonnetEnabled],
+      ],
+    });
+
+    await test_focus_order_with_no_results({ input: "", shiftKey: false });
+    await test_focus_order_with_no_results({ input: "", shiftKey: true });
+    await test_focus_order_with_no_results({ input: "test", shiftKey: false });
+    await test_focus_order_with_no_results({ input: "test", shiftKey: true });
+
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
+async function test_focus_order_with_no_results({ input, shiftKey }) {
+  const scotchBonnetEnabled = UrlbarPrefs.get("scotchBonnet.enableOverride");
+  info(`Test for ${JSON.stringify({ scotchBonnetEnabled, input, shiftKey })}`);
+
+  info("Open urlbar results");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+
+  info("Enter Tabs mode");
+  const keywordToEnterTabsMode = scotchBonnetEnabled ? "@tabs " : "% ";
+  keywordToEnterTabsMode.split("").forEach(c => EventUtils.synthesizeKey(c));
+  await BrowserTestUtils.waitForCondition(
+    () => UrlbarTestUtils.getResultCount(window) == 0,
+    "Wait until updating the results"
+  );
+  Assert.equal(document.activeElement.id, "urlbar-input");
+
+  info("Enter extra value");
+  input.split("").forEach(c => EventUtils.synthesizeKey(c));
+
+  let ok = false;
+  for (let i = 0; i < 10; i++) {
+    EventUtils.synthesizeKey("KEY_Tab", { shiftKey });
+
+    ok =
+      document.activeElement.id != "urlbar-input" &&
+      document.activeElement.id != "urlbar-searchmode-switcher";
+    if (ok) {
+      break;
+    }
+  }
+  Assert.ok(ok, "Focus was moved to a component other than the urlbar");
+
+  info("Clean up");
+  gURLBar.searchMode = null;
+}
 
 add_task(async function nimbusScotchBonnetEnableOverride() {
   info("Setup initial local pref");
