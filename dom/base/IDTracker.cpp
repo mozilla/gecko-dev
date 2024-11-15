@@ -57,7 +57,7 @@ IDTracker::~IDTracker() { Unlink(); }
 
 void IDTracker::ResetToURIWithFragmentID(nsIContent* aFromContent, nsIURI* aURI,
                                          nsIReferrerInfo* aReferrerInfo,
-                                         bool aWatch, bool aReferenceImage) {
+                                         bool aReferenceImage) {
   MOZ_ASSERT(aFromContent,
              "ResetToURIWithFragmentID() expects non-null content pointer");
 
@@ -105,7 +105,7 @@ void IDTracker::ResetToURIWithFragmentID(nsIContent* aFromContent, nsIURI* aURI,
                                        getter_AddRefs(load));
     docOrShadow = doc;
     if (!doc) {
-      if (!load || !aWatch) {
+      if (!load) {
         // Nothing will ever happen here
         return;
       }
@@ -120,17 +120,13 @@ void IDTracker::ResetToURIWithFragmentID(nsIContent* aFromContent, nsIURI* aURI,
     docOrShadow = FindTreeToWatch(*aFromContent, ref, aReferenceImage);
   }
 
-  if (aWatch) {
-    mWatchID = NS_Atomize(ref);
-  }
-
+  mWatchID = NS_Atomize(ref);
   mReferencingImage = aReferenceImage;
-  HaveNewDocumentOrShadowRoot(docOrShadow, aWatch, ref);
+  HaveNewDocumentOrShadowRoot(docOrShadow, /*aWatch*/ true, ref);
 }
 
 void IDTracker::ResetToLocalFragmentID(Element& aFrom,
-                                       const nsAString& aLocalRef,
-                                       bool aWatch) {
+                                       const nsAString& aLocalRef) {
   MOZ_ASSERT(nsContentUtils::IsLocalRefURL(aLocalRef));
 
   auto ref = Substring(aLocalRef, 1);
@@ -157,10 +153,10 @@ void IDTracker::ResetToLocalFragmentID(Element& aFrom,
   }
 
   RefPtr<nsAtom> idAtom = NS_Atomize(unescaped);
-  ResetToID(aFrom, idAtom, aWatch);
+  ResetToID(aFrom, idAtom);
 }
 
-void IDTracker::ResetToID(Element& aFrom, nsAtom* aID, bool aWatch) {
+void IDTracker::ResetToID(Element& aFrom, nsAtom* aID) {
   MOZ_ASSERT(aID);
 
   Unlink();
@@ -169,16 +165,13 @@ void IDTracker::ResetToID(Element& aFrom, nsAtom* aID, bool aWatch) {
     return;
   }
 
-  if (aWatch) {
-    mWatchID = aID;
-  }
-
+  mWatchID = aID;
   mReferencingImage = false;
 
   nsDependentAtomString str(aID);
   DocumentOrShadowRoot* docOrShadow =
       FindTreeToWatch(aFrom, str, /* aReferenceImage = */ false);
-  HaveNewDocumentOrShadowRoot(docOrShadow, aWatch, str);
+  HaveNewDocumentOrShadowRoot(docOrShadow, /*aWatch*/ true, str);
 }
 
 void IDTracker::HaveNewDocumentOrShadowRoot(DocumentOrShadowRoot* aDocOrShadow,
@@ -278,8 +271,7 @@ IDTracker::DocumentLoadNotification::Observe(nsISupports* aSubject,
     nsCOMPtr<Document> doc = do_QueryInterface(aSubject);
     mTarget->mPendingNotification = nullptr;
     NS_ASSERTION(!mTarget->mElement, "Why do we have content here?");
-    // If we got here, that means we had Reset*() called with
-    // aWatch == true.  So keep watching if IsPersistent().
+    // Keep watching if IsPersistent().
     mTarget->HaveNewDocumentOrShadowRoot(doc, mTarget->IsPersistent(), mRef);
     mTarget->ElementChanged(nullptr, mTarget->mElement);
   }

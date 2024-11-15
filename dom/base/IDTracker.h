@@ -68,16 +68,12 @@ class IDTracker {
    *   target element.
    * @param aReferrerInfo The referrerInfo for the source element. Needed if
    *   the referenced element is in an external resource document.
-   * @param aWatch If false, then we do not set up the notifications to track
-   *   changes, so ElementChanged won't fire and get() will always return the
-   *   same value, the current element for the ID.
    * @param aReferenceImage Whether the reference comes from a -moz-element
    *   property (that is, we're creating a reference an "image element", which
    *   is subject to the document's mozSetImageElement overriding mechanism).
    */
   void ResetToURIWithFragmentID(nsIContent* aFrom, nsIURI* aURI,
                                 nsIReferrerInfo* aReferrerInfo,
-                                bool aWatch = true,
                                 bool aReferenceImage = false);
 
   /**
@@ -88,12 +84,8 @@ class IDTracker {
    * @param aFrom The source element that is making the reference.
    * @param aLocalRef The fragment identifier that identifies the target
    *   element. Must begin with "#".
-   * @param aWatch If false, then we do not set up the notifications to track
-   *   changes, so ElementChanged won't fire and get() will always return the
-   *   same value, the current element for the ID.
    */
-  void ResetToLocalFragmentID(Element& aFrom, const nsAString& aLocalRef,
-                              bool aWatch = true);
+  void ResetToLocalFragmentID(Element& aFrom, const nsAString& aLocalRef);
 
   /**
    * A variation on ResetToURIWithFragmentID() to set up a reference that
@@ -102,11 +94,8 @@ class IDTracker {
    *
    * @param aFrom The source element that is making the reference.
    * @param aID The ID of the target element.
-   * @param aWatch If false, then we do not set up the notifications to track
-   *   changes, so ElementChanged won't fire and get() will always return the
-   *   same value, the current element for the ID.
    */
-  void ResetToID(Element& aFrom, nsAtom* aID, bool aWatch = true);
+  void ResetToID(Element& aFrom, nsAtom* aID);
 
   /**
    * Clears the reference. ElementChanged is not triggered. get() will return
