@@ -106,6 +106,7 @@ FINAL_TARGET_FILES += [
     "data/replace_log_success",
     "data/simple.mar",
     "data/syncManagerTestChild.js",
+    "data/updateMutexTestChild.js",
     "TestAUSReadStrings1.ini",
     "TestAUSReadStrings2.ini",
     "TestAUSReadStrings3.ini",

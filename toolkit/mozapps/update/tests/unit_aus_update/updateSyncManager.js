@@ -7,15 +7,6 @@
 // b) starting a second copy of the same binary and making sure we can tell we
 //    are no longer the only one that's opened it.
 
-const { Subprocess } = ChromeUtils.importESModule(
-  "resource://gre/modules/Subprocess.sys.mjs"
-);
-
-// Save off the real GRE directory and binary path before we register our
-// mock directory service which overrides them both.
-const thisBinary = Services.dirsvc.get("XREExeF", Ci.nsIFile);
-const greDir = Services.dirsvc.get("GreD", Ci.nsIFile);
-
 add_task(async function () {
   setupTestCommon();
 
@@ -29,50 +20,11 @@ add_task(async function () {
   );
 
   // Now start a second copy of this xpcshell binary so that something else
-  // takes the same lock. First we'll define its command line.
-  // Most of the child's code is in a separate script file, so all the command
-  // line has to do is set up a few required path strings we need to pass
-  // through to the child, and then include the script file.
-  const args = [
-    "-g",
-    greDir.path,
-    "-e",
-    `
-      const customGreDirPath = "${getApplyDirFile(
-        DIR_RESOURCES
-      ).path.replaceAll("\\", "\\\\")}";
-      const customGreBinDirPath = "${getApplyDirFile(DIR_MACOS).path.replaceAll(
-        "\\",
-        "\\\\"
-      )}";
-      const customExePath = "${getApplyDirFile(
-        DIR_MACOS + FILE_APP_BIN
-      ).path.replaceAll("\\", "\\\\")}";
-      const customUpdDirPath = "${getMockUpdRootD().path.replaceAll(
-        "\\",
-        "\\\\"
-      )}";
-      const customOldUpdDirPath = "${getMockUpdRootD(true).path.replaceAll(
-        "\\",
-        "\\\\"
-      )}";
-    `,
-    "-f",
-    getTestDirFile("syncManagerTestChild.js").path,
-  ];
-
-  // Run the second copy two times, to show the lock is usable after having
-  // been closed.
+  // takes the same lock. Run the second copy two times, to show the lock is
+  // usable after having been closed.
   for (let runs = 0; runs < 2; runs++) {
-    // Now we can actually invoke the process.
-    debugDump(
-      `launching child process at ${thisBinary.path} with args ${args}`
-    );
-    Subprocess.call({
-      command: thisBinary.path,
-      arguments: args,
-      stderr: "stdout",
-    });
+    // Actually invoke the process.
+    runInSubprocessWithPrelude(getTestDirFile("syncManagerTestChild.js").path);
 
     // It will take the new xpcshell a little time to start up, but we should see
     // the effect on the lock within at most a few seconds.

@@ -15,35 +15,44 @@ async function run_test() {
   testFile.remove(false);
   Assert.ok(!testFile.exists(), MSG_SHOULD_NOT_EXIST);
 
-  let updateMutex = Cc["@mozilla.org/updates/update-mutex;1"].createInstance(
-    Ci.nsIUpdateMutex
-  );
+  let testUpdateMutexes = [
+    new TestUpdateMutexInProcess(),
+    new TestUpdateMutexCrossProcess(),
+  ];
 
-  // Acquire the update mutex to prevent the current instance from being
+  // Acquire the update mutex(es) to prevent the current instance from being
   // able to check for or apply updates -- and check that it can't.
-  debugDump("attempting to acquire the update mutex");
-  Assert.ok(
-    updateMutex.tryLock(),
-    "should be able to acquire the update mutex"
-  );
-
-  try {
-    // Check that available updates cannot be checked for when the update
-    // mutex for this installation path is acquired.
+  for (let testUpdateMutex of testUpdateMutexes) {
+    debugDump(
+      "attempting to acquire the " + testUpdateMutex.kind + " update mutex"
+    );
     Assert.ok(
-      !gAUS.canCheckForUpdates,
-      "should not be able to check for updates when the update mutex is acquired by another instance"
+      await testUpdateMutex.expectAcquire(),
+      "should be able to acquire the " + testUpdateMutex.kind + " update mutex"
     );
 
-    // Check if updates cannot be applied when the update mutex for this
-    // installation path is acquired.
-    Assert.ok(
-      !gAUS.canApplyUpdates,
-      "should not be able to apply updates when the update mutex is acquired by another instance"
-    );
-  } finally {
-    debugDump("releasing the update mutex");
-    updateMutex.unlock();
+    try {
+      // Check that available updates cannot be checked for when the update
+      // mutex for this installation path is acquired.
+      Assert.ok(
+        !gAUS.canCheckForUpdates,
+        "should not be able to check for updates when the " +
+          testUpdateMutex.kind +
+          " update mutex is acquired"
+      );
+
+      // Check if updates cannot be applied when the update mutex for this
+      // installation path is acquired.
+      Assert.ok(
+        !gAUS.canApplyUpdates,
+        "should not be able to apply updates when the " +
+          testUpdateMutex.kind +
+          " update mutex is acquired"
+      );
+    } finally {
+      debugDump("releasing the " + testUpdateMutex.kind + " update mutex");
+      await testUpdateMutex.release();
+    }
   }
 
   // Check that available updates can be checked for
@@ -53,16 +62,17 @@ async function run_test() {
 
   // Attempt to acquire the update mutex(es) now that the current instance has
   // acquired it.
-  debugDump("attempting to acquire the update mutex");
-  let isAcquired = updateMutex.tryLock();
-  if (isAcquired) {
-    updateMutex.unlock();
+  for (let testUpdateMutex of testUpdateMutexes) {
+    debugDump(
+      "attempting to acquire the " + testUpdateMutex.kind + " update mutex"
+    );
+    Assert.ok(
+      await testUpdateMutex.expectFailToAcquire(),
+      "should not be able to acquire the " +
+        testUpdateMutex.kind +
+        " update mutex when the current instance has already acquired it"
+    );
   }
-
-  Assert.ok(
-    !isAcquired,
-    "should not be able to acquire the update mutex when the current instance has already acquired it"
-  );
 
   await doTestFinish();
 }
