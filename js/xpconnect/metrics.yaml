@@ -54,6 +54,20 @@ performance.clone.deserialize:
       - sfink@mozilla.com
     expires: never
 
+javascript.ion:
+  compile_time:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      Time in microseconds of an Ion compilation.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918166
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918166
+    notification_emails:
+      - dpalmeiro@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
 
 javascript.gc:
   total_time:

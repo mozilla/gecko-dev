@@ -380,6 +380,11 @@ static bool LinkCodeGen(JSContext* cx, CodeGenerator* codegen,
     return false;
   }
 
+  // Record Ion compile time in glean.
+  if (mozilla::TimeDuration compileTime = codegen->getCompilationTime()) {
+    cx->metrics().ION_COMPILE_TIME(compileTime);
+  }
+
   return true;
 }
 
@@ -1612,6 +1617,7 @@ CodeGenerator* CompileBackEnd(MIRGenerator* mir, WarpSnapshot* snapshot) {
   // Everything in CompileBackEnd can potentially run on a helper thread.
   AutoEnterIonBackend enter;
   AutoSpewEndFunction spewEndFunction(mir);
+  mozilla::TimeStamp compileStartTime = mozilla::TimeStamp::Now();
 
   {
     WarpCompilation comp(mir->alloc());
@@ -1630,7 +1636,11 @@ CodeGenerator* CompileBackEnd(MIRGenerator* mir, WarpSnapshot* snapshot) {
     return nullptr;
   }
 
-  return GenerateCode(mir, lir);
+  CodeGenerator* codegen = GenerateCode(mir, lir);
+  if (codegen) {
+    codegen->setCompilationTime(mozilla::TimeStamp::Now() - compileStartTime);
+  }
+  return codegen;
 }
 
 static AbortReasonOr<WarpSnapshot*> CreateWarpSnapshot(JSContext* cx,
