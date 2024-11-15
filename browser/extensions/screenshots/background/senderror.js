@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* globals startBackground, analytics, communication, catcher, log, browser, getStrings */
+/* globals startBackground, communication, catcher, log, browser, getStrings */
 
 "use strict";
 
@@ -95,40 +95,7 @@ this.senderror = (function () {
   };
 
   exports.reportError = function (e) {
-    if (!analytics.isTelemetryEnabled()) {
-      log.error("Telemetry disabled. Not sending critical error:", e);
-      return;
-    }
-    const exception = new Error(e.message);
-    exception.stack = e.multilineStack || e.stack || undefined;
-
-    // To improve Sentry reporting & grouping, replace the
-    // moz-extension://$uuid base URL with a generic resource:// URL.
-    if (exception.stack) {
-      exception.stack = exception.stack.replace(
-        /moz-extension:\/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g,
-        "resource://screenshots-addon"
-      );
-    }
-    const rest = {};
-    for (const attr in e) {
-      if (
-        ![
-          "name",
-          "message",
-          "stack",
-          "multilineStack",
-          "popupMessage",
-          "version",
-          "sentryPublicDSN",
-          "help",
-          "fromMakeError",
-        ].includes(attr)
-      ) {
-        rest[attr] = e[attr];
-      }
-    }
-    rest.stack = exception.stack;
+    log.error("critical error:", e);
   };
 
   catcher.registerHandler(errorObj => {

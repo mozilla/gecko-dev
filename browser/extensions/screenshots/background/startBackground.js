@@ -54,7 +54,6 @@ this.startBackground = (function () {
     "background/senderror.js",
     "build/shot.js",
     "build/thumbnailGenerator.js",
-    "background/analytics.js",
     "background/deviceInfo.js",
     "background/takeshot.js",
     "background/main.js",
