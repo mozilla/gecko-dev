@@ -2662,20 +2662,12 @@ export class SearchService {
       }
     }
 
-    Services.telemetry.scalarSet(
-      "browser.searchinit.secure_opensearch_engine_count",
-      totalSecure
-    );
-    Services.telemetry.scalarSet(
-      "browser.searchinit.insecure_opensearch_engine_count",
-      totalInsecure
-    );
-    Services.telemetry.scalarSet(
-      "browser.searchinit.secure_opensearch_update_count",
+    Glean.browserSearchinit.secureOpensearchEngineCount.set(totalSecure);
+    Glean.browserSearchinit.insecureOpensearchEngineCount.set(totalInsecure);
+    Glean.browserSearchinit.secureOpensearchUpdateCount.set(
       totalWithSecureUpdates
     );
-    Services.telemetry.scalarSet(
-      "browser.searchinit.insecure_opensearch_update_count",
+    Glean.browserSearchinit.insecureOpensearchUpdateCount.set(
       totalWithInsecureUpdates
     );
   }

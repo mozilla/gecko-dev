@@ -125,18 +125,14 @@ export class AddonSearchEngine extends SearchEngine {
       lazy.logConsole.debug(
         `Add-on ${this._extensionID} for search engine ${this.name} is not installed!`
       );
-      Services.telemetry.keyedScalarSet(
-        "browser.searchinit.engine_invalid_webextension",
-        this._extensionID,
+      Glean.browserSearchinit.engineInvalidWebextension[this._extensionID].set(
         1
       );
     } else if (!addon.isActive) {
       lazy.logConsole.debug(
         `Add-on ${this._extensionID} for search engine ${this.name} is not active!`
       );
-      Services.telemetry.keyedScalarSet(
-        "browser.searchinit.engine_invalid_webextension",
-        this._extensionID,
+      Glean.browserSearchinit.engineInvalidWebextension[this._extensionID].set(
         2
       );
     } else {
@@ -150,29 +146,23 @@ export class AddonSearchEngine extends SearchEngine {
         lazy.logConsole.debug(
           `Add-on ${this._extensionID} for search engine ${this.name} no longer has an engine defined`
         );
-        Services.telemetry.keyedScalarSet(
-          "browser.searchinit.engine_invalid_webextension",
-          this._extensionID,
-          4
-        );
+        Glean.browserSearchinit.engineInvalidWebextension[
+          this._extensionID
+        ].set(4);
       } else if (this.name != providerSettings.name) {
         lazy.logConsole.debug(
           `Add-on ${this._extensionID} for search engine ${this.name} has a different name!`
         );
-        Services.telemetry.keyedScalarSet(
-          "browser.searchinit.engine_invalid_webextension",
-          this._extensionID,
-          5
-        );
+        Glean.browserSearchinit.engineInvalidWebextension[
+          this._extensionID
+        ].set(5);
       } else if (!this.checkSearchUrlMatchesManifest(providerSettings)) {
         lazy.logConsole.debug(
           `Add-on ${this._extensionID} for search engine ${this.name} has out-of-date manifest!`
         );
-        Services.telemetry.keyedScalarSet(
-          "browser.searchinit.engine_invalid_webextension",
-          this._extensionID,
-          6
-        );
+        Glean.browserSearchinit.engineInvalidWebextension[
+          this._extensionID
+        ].set(6);
       }
     }
   }

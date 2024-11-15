@@ -392,3 +392,140 @@ search.service:
       - failedFetchEngines
       - failedLoadEngines
       - success
+
+browser.searchinit:
+  engine_invalid_webextension:
+    type: labeled_quantity
+    description: >
+      Records the WebExtension ID of a search engine where the
+      WebExtension is not installed (= 1), disabled (= 2), search engine
+      no longer specified (= 4), a different name (= 5), where the
+      submission URL is different between the search engine and the
+      WebExtension (= 6). The value '3' has been replaced by '6' to
+      distinguish newer entries.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.searchinit.engine_invalid_webextension.
+    bugs:
+      - https://bugzil.la/1665938
+      - https://bugzil.la/1691050
+      - https://bugzil.la/1725501
+      - https://bugzil.la/1763528
+      - https://bugzil.la/1801017
+      - https://bugzil.la/1832463
+      - https://bugzil.la/1871199
+      - https://bugzil.la/1897049
+    data_reviews:
+      - https://bugzil.la/1665938
+      - https://bugzil.la/1691050
+      - https://bugzil.la/1725501
+      - https://bugzil.la/1763528
+      - https://bugzil.la/1801017
+      - https://bugzil.la/1832463
+      - https://bugzil.la/1871199
+      - https://bugzil.la/1897049
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - mbanner@mozilla.com
+    expires: 136
+    unit: custom enum value
+    telemetry_mirror: BROWSER_SEARCHINIT_ENGINE_INVALID_WEBEXTENSION
+
+  secure_opensearch_engine_count:
+    type: quantity
+    description: >
+      Records the number of secure (i.e., using https) OpenSearch search
+      engines a given user has installed.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.searchinit.secure_opensearch_engine_count.
+    bugs:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    data_reviews:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: 145
+    unit: engines
+    telemetry_mirror: BROWSER_SEARCHINIT_SECURE_OPENSEARCH_ENGINE_COUNT
+
+  insecure_opensearch_engine_count:
+    type: quantity
+    description: >
+      Records the number of insecure (i.e., using http) OpenSearch search
+      engines a given user has installed.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.searchinit.insecure_opensearch_engine_count.
+    bugs:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    data_reviews:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: 145
+    unit: engines
+    telemetry_mirror: BROWSER_SEARCHINIT_INSECURE_OPENSEARCH_ENGINE_COUNT
+
+  secure_opensearch_update_count:
+    type: quantity
+    description: >
+      Records the number of OpenSearch search engines with secure updates
+      enabled (i.e., using https) a given user has installed.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.searchinit.secure_opensearch_update_count.
+    bugs:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    data_reviews:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: 145
+    unit: updates
+    telemetry_mirror: BROWSER_SEARCHINIT_SECURE_OPENSEARCH_UPDATE_COUNT
+
+  insecure_opensearch_update_count:
+    type: quantity
+    description: >
+      Records the number of OpenSearch search engines with insecure
+      updates enabled (i.e., using http) a given user has installed.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.searchinit.insecure_opensearch_update_count.
+    bugs:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    data_reviews:
+      - https://bugzil.la/1789438
+      - https://bugzil.la/1811158
+      - https://bugzil.la/1846899
+      - https://bugzil.la/1881408
+      - https://bugzil.la/1916866
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: 145
+    unit: updates
+    telemetry_mirror: BROWSER_SEARCHINIT_INSECURE_OPENSEARCH_UPDATE_COUNT
