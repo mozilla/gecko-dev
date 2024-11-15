@@ -493,7 +493,7 @@ const JSClass MapObject::class_ = {
     "Map",
     JSCLASS_DELAY_METADATA_BUILDER |
         JSCLASS_HAS_RESERVED_SLOTS(MapObject::SlotCount) |
-        JSCLASS_HAS_CACHED_PROTO(JSProto_Map) | JSCLASS_FOREGROUND_FINALIZE |
+        JSCLASS_HAS_CACHED_PROTO(JSProto_Map) | JSCLASS_BACKGROUND_FINALIZE |
         JSCLASS_SKIP_NURSERY_FINALIZE,
     &MapObject::classOps_, &MapObject::classSpec_, &MapObject::classExtension_};
 
@@ -735,8 +735,6 @@ size_t MapObject::sizeOfData(mozilla::MallocSizeOf mallocSizeOf) {
 }
 
 void MapObject::finalize(JS::GCContext* gcx, JSObject* obj) {
-  MOZ_ASSERT(gcx->onMainThread());
-
   MapObject* mapObj = &obj->as<MapObject>();
 
   MOZ_ASSERT_IF(obj->isTenured(), !UnbarrieredTable(mapObj).hasNurseryRanges());
@@ -1317,7 +1315,7 @@ const JSClass SetObject::class_ = {
     "Set",
     JSCLASS_DELAY_METADATA_BUILDER |
         JSCLASS_HAS_RESERVED_SLOTS(SetObject::SlotCount) |
-        JSCLASS_HAS_CACHED_PROTO(JSProto_Set) | JSCLASS_FOREGROUND_FINALIZE |
+        JSCLASS_HAS_CACHED_PROTO(JSProto_Set) | JSCLASS_BACKGROUND_FINALIZE |
         JSCLASS_SKIP_NURSERY_FINALIZE,
     &SetObject::classOps_, &SetObject::classSpec_, &SetObject::classExtension_};
 
@@ -1450,8 +1448,6 @@ size_t SetObject::sizeOfData(mozilla::MallocSizeOf mallocSizeOf) {
 }
 
 void SetObject::finalize(JS::GCContext* gcx, JSObject* obj) {
-  MOZ_ASSERT(gcx->onMainThread());
-
   SetObject* setObj = &obj->as<SetObject>();
 
 #ifdef DEBUG

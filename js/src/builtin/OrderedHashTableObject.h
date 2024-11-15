@@ -126,6 +126,8 @@ template <class T, class Ops>
 class MOZ_STACK_CLASS OrderedHashTableImpl {
  public:
   using Key = typename Ops::KeyType;
+  using MutableKey = std::remove_const_t<Key>;
+  using UnbarrieredKey = typename RemoveBarrier<MutableKey>::Type;
   using Lookup = typename Ops::Lookup;
   using HashCodeScrambler = mozilla::HashCodeScrambler;
   static constexpr size_t SlotCount = OrderedHashTableObject::SlotCount;
@@ -398,7 +400,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
       Data* data = getData();
       MOZ_ASSERT(data);
       freeData(gcx, data, getDataLength(), getDataCapacity(), hashBuckets());
-      setData(nullptr);
     }
   }
 
@@ -755,11 +756,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   }
 
   // For use by the implementation of Ops::trace.
-  template <typename Key>
-  void traceKey(JSTracer* trc, uint32_t index, Key& key) {
+  void traceKey(JSTracer* trc, uint32_t index, const Key& key) {
     MOZ_ASSERT(index < getDataLength());
-    using MutableKey = std::remove_const_t<Key>;
-    using UnbarrieredKey = typename RemoveBarrier<MutableKey>::Type;
     UnbarrieredKey newKey = key;
     JS::GCPolicy<UnbarrieredKey>::trace(trc, &newKey,
                                         "OrderedHashTableObject key");
@@ -1025,10 +1023,10 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   // This calls Ops::hash on both the current key and the new key. Ops::hash on
   // the current key must return the same hash code as when the entry was added
   // to the table.
-  void rekey(Data* entry, const Key& k) {
+  void rekey(Data* entry, const UnbarrieredKey& k) {
     HashNumber oldHash = prepareHash(Ops::getKey(entry->element));
     HashNumber newHash = prepareHash(k);
-    Ops::setKey(entry->element, k);
+    reinterpret_cast<UnbarrieredKey&>(Ops::getKeyRef(entry->element)) = k;
     updateHashTableForRekey(entry, oldHash, newHash);
   }
 };
@@ -1082,7 +1080,7 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
       e->value = Value();
     }
     static const Key& getKey(const Entry& e) { return e.key; }
-    static void setKey(Entry& e, const Key& k) { const_cast<Key&>(e.key) = k; }
+    static Key& getKeyRef(Entry& e) { return const_cast<Key&>(e.key); }
     static void trace(JSTracer* trc, Impl* table, uint32_t index,
                       Entry& entry) {
       table->traceKey(trc, index, entry.key);
@@ -1182,7 +1180,7 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
   struct SetOps : OrderedHashPolicy {
     using KeyType = const T;
     static const T& getKey(const T& v) { return v; }
-    static void setKey(const T& e, const T& v) { const_cast<T&>(e) = v; }
+    static T& getKeyRef(T& e) { return e; }
     static void trace(JSTracer* trc, Impl* table, uint32_t index, T& entry) {
       table->traceKey(trc, index, entry);
     }
