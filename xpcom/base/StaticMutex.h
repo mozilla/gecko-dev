@@ -38,6 +38,10 @@ class MOZ_ONLY_USED_TO_AVOID_STATIC_CONSTRUCTORS MOZ_CAPABILITY("mutex")
 
   void Lock() MOZ_CAPABILITY_ACQUIRE() { Mutex()->Lock(); }
 
+  [[nodiscard]] bool TryLock() MOZ_TRY_ACQUIRE(true) {
+    return Mutex()->TryLock();
+  }
+
   void Unlock() MOZ_CAPABILITY_RELEASE() { Mutex()->Unlock(); }
 
   void AssertCurrentThreadOwns() MOZ_ASSERT_CAPABILITY(this) {

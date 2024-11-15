@@ -201,14 +201,9 @@ function lockWriteTestFile() {
  * acquires it through a fresh nsIUpdateMutex object, so the update code thinks
  * there is another instance handling updates.
  *
- * @throws If the function is called on a platform other than Windows, or if we
- *         fail to acquire the update mutex.
+ * @throws If acquiring the update mutex fails.
  */
 function setOtherInstanceHandlingUpdates() {
-  if (AppConstants.platform != "win") {
-    throw new Error("Windows only test function called");
-  }
-
   gAUS.observe(null, "test-unlock-update-mutex", "");
 
   let updateMutex = Cc["@mozilla.org/updates/update-mutex;1"].createInstance(

@@ -25,7 +25,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UpdateLog: "resource://gre/modules/UpdateLog.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   WindowsRegistry: "resource://gre/modules/WindowsRegistry.sys.mjs",
-  ctypes: "resource://gre/modules/ctypes.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
@@ -557,9 +556,6 @@ function testWriteAccess(updateTestFile, createDirectory) {
  *         holding
  */
 function hasUpdateMutex() {
-  if (AppConstants.platform != "win") {
-    return true;
-  }
   return lazy.UpdateMutex.tryLock();
 }
 
@@ -2543,146 +2539,6 @@ class Update {
   ]);
 }
 
-/**
- * This class provides an object interface to acquire and release the update
- * mutex for the current installation. See nsIUpdateMutex in
- * nsIUpdateService.idl for more details.
- */
-export class UpdateMutex {
-  classID = Components.ID("{4545fe83-111d-4b39-8f1e-23e526ff0fd9}");
-  QueryInterface = ChromeUtils.generateQI([Ci.nsIUpdateMutex]);
-
-  #winHandle;
-
-  /**
-   * Constructs an object that can be used to acquire the update mutex. The
-   * update mutex is not initially acquired after creation. Acquisition
-   * requires an explicit call to tryLock().
-   *
-   * @throws on platforms without a legacy update mutex implementation.
-   */
-  constructor() {
-    if (AppConstants.platform != "win") {
-      throw Components.Exception("", Cr.NS_ERROR_NOT_IMPLEMENTED);
-    }
-
-    this.#winHandle = null;
-  }
-
-  /**
-   * Checks current acquisition status for the current object.
-   *
-   * @returns true if the update mutex for the current installation has
-   *          been acquired by this instance, through the current object.
-   */
-  isLocked() {
-    return this.#winHandle !== null;
-  }
-
-  /**
-   * Attempts to acquire the update mutex for the current installation path.
-   *
-   * @returns true if the update mutex was successfully acquired.
-   */
-  tryLock() {
-    if (this.isLocked()) {
-      return true;
-    }
-
-    this.#winHandle = UpdateMutex.#createMutex(
-      UpdateMutex.#getPerInstallationMutexName()
-    );
-
-    return this.isLocked();
-  }
-
-  /**
-   * Releases the legacy update mutex for the current installation path, if
-   * acquired.
-   */
-  unlock() {
-    if (this.isLocked()) {
-      UpdateMutex.#closeHandle(this.#winHandle);
-      this.#winHandle = null;
-    }
-  }
-
-  /**
-   * Windows only function that closes a Win32 handle.
-   *
-   * @param handle The handle to close
-   */
-  static #closeHandle(handle) {
-    if (handle) {
-      let lib = lazy.ctypes.open("kernel32.dll");
-      let CloseHandle = lib.declare(
-        "CloseHandle",
-        lazy.ctypes.winapi_abi,
-        lazy.ctypes.int32_t /* success */,
-        lazy.ctypes.void_t.ptr /* handle */
-      );
-      CloseHandle(handle);
-      lib.close();
-    }
-  }
-
-  /**
-   * Windows only function that creates a mutex. Only succeeds if the mutex
-   * does not already exist.
-   *
-   * @param  aName
-   *         The name for the mutex.
-   * @return The Win32 handle to the mutex, or null upon failure.
-   */
-  static #createMutex(aName) {
-    const INITIAL_OWN = 1;
-    const ERROR_ALREADY_EXISTS = 0xb7;
-    let lib = lazy.ctypes.open("kernel32.dll");
-    let CreateMutexW = lib.declare(
-      "CreateMutexW",
-      lazy.ctypes.winapi_abi,
-      lazy.ctypes.void_t.ptr /* return handle */,
-      lazy.ctypes.void_t.ptr /* security attributes */,
-      lazy.ctypes.int32_t /* initial owner */,
-      lazy.ctypes.char16_t.ptr /* name */
-    );
-
-    let handle = CreateMutexW(null, INITIAL_OWN, aName);
-    let alreadyExists = lazy.ctypes.winLastError == ERROR_ALREADY_EXISTS;
-    if (handle && !handle.isNull() && alreadyExists) {
-      UpdateMutex.#closeHandle(handle);
-      handle = null;
-    }
-    lib.close();
-
-    if (handle && handle.isNull()) {
-      handle = null;
-    }
-
-    return handle;
-  }
-
-  /**
-   * Windows only function that determines a unique mutex name for the
-   * installation.
-   *
-   * @return Global mutex path
-   */
-  static #getPerInstallationMutexName() {
-    let hasher = Cc["@mozilla.org/security/hash;1"].createInstance(
-      Ci.nsICryptoHash
-    );
-    hasher.init(hasher.SHA1);
-
-    let exeFile = Services.dirsvc.get(KEY_EXECUTABLE, Ci.nsIFile);
-
-    var data = new TextEncoder().encode(exeFile.path.toLowerCase());
-
-    hasher.update(data, data.length);
-    return "Global\\MozillaUpdateMutex-" + hasher.finish(true);
-  }
-}
-
 export class UpdateService {
   #initPromise;
 
@@ -2779,7 +2635,7 @@ export class UpdateService {
       case "quit-application":
         Services.obs.removeObserver(this, topic);
 
-        if (AppConstants.platform == "win" && lazy.UpdateMutex.isLocked()) {
+        if (lazy.UpdateMutex.isLocked()) {
           // If we hold the update mutex, let it go!
           // The OS would clean this up sometime after shutdown,
           // but that would have no guarantee on timing.
@@ -2810,7 +2666,7 @@ export class UpdateService {
         break;
       case "test-unlock-update-mutex":
         if (Cu.isInAutomation) {
-          if (AppConstants.platform == "win" && lazy.UpdateMutex.isLocked()) {
+          if (lazy.UpdateMutex.isLocked()) {
             LOG("UpdateService:observe - releasing update mutex for testing");
             lazy.UpdateMutex.unlock();
           }
