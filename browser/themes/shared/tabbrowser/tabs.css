@@ -4,6 +4,7 @@
 
 :root {
   --tabstrip-inner-border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  --tabstrip-min-height: calc(var(--tab-min-height) + 2 * var(--tab-block-margin));
   --tab-min-height: 36px;
   &[uidensity=compact] {
     --tab-min-height: 29px;
@@ -44,10 +45,9 @@
   --tab-selected-shadow: 0 0 4px rgba(0,0,0,.4);
   --tab-outline: 1px solid var(--tab-outline-color);
   --tab-outline-color: transparent;
+  --tab-outline-offset: -1px;
   --tab-selected-outline-color: transparent;
   --tab-hover-outline-color: transparent;
-  --tab-outline-offset: -1px;
-  --tabstrip-min-height: calc(var(--tab-min-height) + 2 * var(--tab-block-margin));
   @media (prefers-contrast) {
     --tab-selected-outline-color: currentColor;
     --tab-hover-outline-color: currentColor;
@@ -62,6 +62,7 @@
   &[lwtheme] {
     --tab-selected-outline-color: var(--lwt-tab-line-color, currentColor);
   }
+  --tab-dragover-transition: transform 200ms var(--animation-easing-function);
 
   --vertical-tabs-scrollbar-color: auto;
   @media (-moz-platform: macos) {
@@ -215,7 +216,7 @@
     #tabbrowser-tabs[movingtab] &[fadein]:not([selected]):not([multiselected]),
     &[multiselected-move-together],
     &[tabdrop-samewindow] {
-      transition: transform 200ms var(--animation-easing-function);
+      transition: var(--tab-dragover-transition);
     }
   }
 
@@ -801,6 +802,8 @@ tab-group {
   padding-inline-end: 3px;
 
   position: relative;
+  transform: var(--tabgroup-dragover-transform);
+  transition: var(--tab-dragover-transition);
 
   tab-group:not([collapsed]) > &::after {
     content: "";

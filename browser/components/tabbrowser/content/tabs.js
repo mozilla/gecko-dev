@@ -2340,7 +2340,14 @@
           continue;
         }
         let shift = getTabShift(tab, newIndex);
-        tab.style.transform = shift ? `${translateAxis}(${shift}px)` : "";
+        let transform = shift ? `${translateAxis}(${shift}px)` : "";
+        tab.style.transform = transform;
+        if (tab.group?.tabs[0] == tab) {
+          tab.group.style.setProperty(
+            "--tabgroup-dragover-transform",
+            transform
+          );
+        }
       }
     }
 
@@ -2395,6 +2402,9 @@
 
       for (let tab of this.visibleTabs) {
         tab.style.transform = "";
+        if (tab.group) {
+          tab.group.style.removeProperty("--tabgroup-dragover-transform");
+        }
         tab.removeAttribute("dragover-createGroup");
       }
       this.removeAttribute("movingtab-createGroup");
