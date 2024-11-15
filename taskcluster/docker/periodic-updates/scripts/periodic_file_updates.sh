@@ -151,8 +151,7 @@ HPKP_PRELOAD_OUTPUT="${DATADIR}/${HPKP_PRELOAD_INC}.out"
 HPKP_UPDATED=false
 
 REMOTE_SETTINGS_SERVER=''
-REMOTE_SETTINGS_OUTPUT="${DATADIR}/remote-settings.out"
-REMOTE_SETTINGS_DIR="/services/settings/dumps"
+REMOTE_SETTINGS_DIR="${TOPSRCDIR}/services/settings/dumps"
 REMOTE_SETTINGS_UPDATED=false
 
 PUBLIC_SUFFIX_URL="https://publicsuffix.org/list/public_suffix_list.dat"
@@ -179,6 +178,10 @@ EXPERIMENTER_DIFF_ARTIFACT="${ARTIFACTS_DIR}/initial_experiments.diff"
 # duplicate the functionality of taskcluster-lib-urls, but in bash..
 queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
 index_base="$TASKCLUSTER_ROOT_URL/api/index/v1"
+
+function create_repo_diff() {
+  ${HG} -R "${TOPSRCDIR}" diff "$1" > "$2"
+}
 
 # Cleanup common artifacts.
 function preflight_cleanup {
@@ -380,6 +383,8 @@ function compare_suffix_lists {
 }
 
 function compare_remote_settings_files {
+  # cd "${TOPSRCDIR}"
+
   REMOTE_SETTINGS_SERVER="https://firefox.settings.services.mozilla.com/v1"
 
   # 1. List remote settings collections from server.
@@ -391,15 +396,15 @@ function compare_remote_settings_files {
 
     # 3. Check to see if the collection exists in the dump directory of the repository,
     #    if it does not then we aren't keeping the dump, and so we skip it.
-    local_dump_file="${TOPSRCDIR}${REMOTE_SETTINGS_DIR}/${bucket}/${collection}.json"
+    local_dump_file="${REMOTE_SETTINGS_DIR}/${bucket}/${collection}.json"
     if [ ! -r "${local_dump_file}" ]; then
       continue
     fi
 
-    # 4. Download server version into REMOTE_SETTINGS_OUTPUT folder
+    # 4. Download server version into REMOTE_SETTINGS_DIR folder
     remote_records_url="$REMOTE_SETTINGS_SERVER/buckets/${bucket}/collections/${collection}/changeset?_expected=${last_modified}"
-    local_location_output="$REMOTE_SETTINGS_OUTPUT/${bucket}/${collection}.json"
-    mkdir -p "$REMOTE_SETTINGS_OUTPUT/${bucket}"
+    local_location_output="$REMOTE_SETTINGS_DIR/${bucket}/${collection}.json"
+
     # We sort both the keys and the records in search-config-v2 to make it
     # easier to read and to experiment with making changes via the dump file.
     if [ "${collection}" = "search-config-v2" ]; then
@@ -434,7 +439,9 @@ function compare_remote_settings_files {
   done
 
   echo "INFO: diffing old/new remote settings dumps..."
-  ${DIFF} -r "${TOPSRCDIR}${REMOTE_SETTINGS_DIR}" "${REMOTE_SETTINGS_OUTPUT}" > "${REMOTE_SETTINGS_DIFF_ARTIFACT}"
+  create_repo_diff "${REMOTE_SETTINGS_DIR}" "${REMOTE_SETTINGS_DIFF_ARTIFACT}"
+
+  # cd "${BASEDIR}"
   if [ -s "${REMOTE_SETTINGS_DIFF_ARTIFACT}" ]
   then
     return 0
@@ -455,29 +462,30 @@ function update_remote_settings_attachment() {
   # These paths match _readAttachmentDump in services/settings/Attachments.sys.mjs.
   local path_to_attachment="${bucket}/${collection}/${attachment_id}"
   local path_to_meta="${bucket}/${collection}/${attachment_id}.meta.json"
-  local old_meta="${TOPSRCDIR}${REMOTE_SETTINGS_DIR}/${path_to_meta}"
-  local new_meta="$REMOTE_SETTINGS_OUTPUT/${path_to_meta}"
+  local meta_file="${REMOTE_SETTINGS_DIR}/${path_to_meta}"
 
   # Those files should have been created by compare_remote_settings_files before the function call.
-  local local_location_output="$REMOTE_SETTINGS_OUTPUT/${bucket}/${collection}.json"
+  local source_collection_location="${REMOTE_SETTINGS_DIR}/${bucket}/${collection}.json"
 
-  # Download the current meta data files.
-  mkdir -p "$REMOTE_SETTINGS_OUTPUT/${bucket}/${collection}"
-  ${JQ} -cj <"$local_location_output" "${jq_attachment_selector}" > "${new_meta}"
-
-  if cmp --silent "${old_meta}" "${new_meta}" ; then
+  # Exact the metadata for this attachment from the already downloaded collection,
+  # and compare with our current metadata to see if the attachment has changed or not.
+  # Uses cmp for fast compare (rather than repository tools).
+  if ${JQ} -cj "${jq_attachment_selector}" < "${source_collection_location}" | cmp --silent - "${meta_file}"; then
     # Metadata not changed, don't bother downloading the attachments themselves.
     return
   fi
   # Metadata changed. Download attachments.
+
+  # Save the metadata.
+  ${JQ} -cj <"${source_collection_location}" "${jq_attachment_selector}" > "${meta_file}"
 
   echo "INFO: Downloading updated remote settings dump: ${bucket}/${collection}/${attachment_id}"
 
   if [ -z "${ATTACHMENT_BASE_URL}" ] ; then
     ATTACHMENT_BASE_URL=$(${WGET} -qO- "${REMOTE_SETTINGS_SERVER}" | ${JQ} -r .capabilities.attachments.base_url)
   fi
-  attachment_path_from_meta=$(${JQ} -r < "${new_meta}" .attachment.location)
-  ${WGET} -qO "${REMOTE_SETTINGS_OUTPUT}/${path_to_attachment}" "${ATTACHMENT_BASE_URL}${attachment_path_from_meta}"
+  attachment_path_from_meta=$(${JQ} -r < "${meta_file}" .attachment.location)
+  ${WGET} -qO "${REMOTE_SETTINGS_DIR}/${path_to_attachment}" "${ATTACHMENT_BASE_URL}${attachment_path_from_meta}"
 }
 
 function compare_mobile_experiments() {
@@ -525,11 +533,6 @@ function stage_hsts_files {
 function stage_hpkp_files {
   cd "${BASEDIR}"
   cp -f "${HPKP_PRELOAD_OUTPUT}" "${TOPSRCDIR}/security/manager/ssl/${HPKP_PRELOAD_INC}"
-}
-
-function stage_remote_settings_files {
-  cd "${BASEDIR}"
-  cp -a "${REMOTE_SETTINGS_OUTPUT}"/* "${TOPSRCDIR}${REMOTE_SETTINGS_DIR}"
 }
 
 function stage_tld_suffix_files {
@@ -657,7 +660,6 @@ fi
 
 if [ "${REMOTE_SETTINGS_UPDATED}" == "true" ]
 then
-  stage_remote_settings_files
   COMMIT_MESSAGE="${COMMIT_MESSAGE} remote-settings"
 fi
 
