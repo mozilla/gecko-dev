@@ -96,6 +96,8 @@ class OrderedHashTableObject : public NativeObject {
     SlotCount
   };
 
+  inline void* allocateCellBuffer(JSContext* cx, size_t numBytes);
+
  public:
   static constexpr size_t offsetOfDataLength() {
     return getFixedSlotOffset(DataLengthSlot);
@@ -305,12 +307,17 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
       return {};
     }
 
-    void* buf = obj->zone()->pod_malloc<uint8_t>(numBytes);
+    void* buf = obj->allocateCellBuffer(cx, numBytes);
     if (!buf) {
-      ReportOutOfMemory(cx);
       return {};
     }
 
+    return getBufferParts(buf, numBytes, dataCapacity, buckets);
+  }
+
+  static AllocationResult getBufferParts(void* buf, size_t numBytes,
+                                         uint32_t dataCapacity,
+                                         uint32_t buckets) {
     static_assert(alignof(Data) % alignof(HashCodeScrambler) == 0,
                   "Hash code scrambler must be aligned properly");
     static_assert(alignof(HashCodeScrambler) % alignof(Data*) == 0,
@@ -403,11 +410,49 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     }
   }
 
-  void trackMallocBufferOnPromotion() {
-    MOZ_ASSERT(obj->isTenured());
+  void maybeMoveBufferOnPromotion(Nursery& nursery) {
+    Data* oldData = getData();
+    uint32_t dataCapacity = getDataCapacity();
+    uint32_t buckets = hashBuckets();
+
     size_t numBytes = 0;
-    MOZ_ALWAYS_TRUE(calcAllocSize(getDataCapacity(), hashBuckets(), &numBytes));
-    AddCellMemory(obj, numBytes, MemoryUse::MapObjectData);
+    MOZ_ALWAYS_TRUE(calcAllocSize(dataCapacity, buckets, &numBytes));
+
+    void* buf = oldData;
+    Nursery::WasBufferMoved result = nursery.maybeMoveBufferOnPromotion(
+        &buf, obj, numBytes, MemoryUse::MapObjectData);
+    if (result == Nursery::BufferNotMoved) {
+      return;
+    }
+
+    // The buffer was moved in memory. Update reserved slots and fix up the
+    // |Data*| pointers for the hash table chains.
+    // TODO(bug 1931492): consider storing indices instead of pointers to
+    // simplify this.
+
+    auto [data, table, hcs, numBytesUnused] =
+        getBufferParts(buf, numBytes, dataCapacity, buckets);
+
+    auto entryIndex = [=](const Data* entry) {
+      MOZ_ASSERT(entry >= oldData);
+      MOZ_ASSERT(size_t(entry - oldData) < dataCapacity);
+      return entry - oldData;
+    };
+
+    for (uint32_t i = 0, len = getDataLength(); i < len; i++) {
+      if (const Data* chain = data[i].chain) {
+        data[i].chain = data + entryIndex(chain);
+      }
+    }
+    for (uint32_t i = 0; i < buckets; i++) {
+      if (const Data* chain = table[i]) {
+        table[i] = data + entryIndex(chain);
+      }
+    }
+
+    setData(data);
+    setHashTable(table);
+    setHashCodeScrambler(hcs);
   }
 
   size_t sizeOfExcludingObject(mozilla::MallocSizeOf mallocSizeOf) const {
@@ -862,6 +907,13 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     size_t numBytes;
     MOZ_ALWAYS_TRUE(calcAllocSize(capacity, hashBuckets, &numBytes));
 
+    if (IsInsideNursery(obj)) {
+      if (gcx->runtime()->gc.nursery().isInside(data)) {
+        return;
+      }
+      gcx->runtime()->gc.nursery().removeMallocedBuffer(data, numBytes);
+    }
+
     gcx->free_(obj, data, numBytes, MemoryUse::MapObjectData);
   }
 
@@ -1149,8 +1201,8 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
   bool hasNurseryRanges() const { return impl.hasNurseryRanges(); }
 #endif
 
-  void trackMallocBufferOnPromotion() {
-    return impl.trackMallocBufferOnPromotion();
+  void maybeMoveBufferOnPromotion(Nursery& nursery) {
+    return impl.maybeMoveBufferOnPromotion(nursery);
   }
 
   void trace(JSTracer* trc) { impl.trace(trc); }
@@ -1246,8 +1298,8 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
   bool hasNurseryRanges() const { return impl.hasNurseryRanges(); }
 #endif
 
-  void trackMallocBufferOnPromotion() {
-    return impl.trackMallocBufferOnPromotion();
+  void maybeMoveBufferOnPromotion(Nursery& nursery) {
+    return impl.maybeMoveBufferOnPromotion(nursery);
   }
 
   void trace(JSTracer* trc) { impl.trace(trc); }

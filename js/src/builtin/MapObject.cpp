@@ -29,6 +29,7 @@
 #  include "vm/TupleType.h"
 #endif
 
+#include "builtin/OrderedHashTableObject-inl.h"
 #include "gc/GCContext-inl.h"
 #include "gc/Marking-inl.h"
 #include "vm/GeckoProfiler-inl.h"
@@ -736,32 +737,37 @@ size_t MapObject::sizeOfData(mozilla::MallocSizeOf mallocSizeOf) {
 
 void MapObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   MapObject* mapObj = &obj->as<MapObject>();
-
-  MOZ_ASSERT_IF(obj->isTenured(), !UnbarrieredTable(mapObj).hasNurseryRanges());
+  MOZ_ASSERT(!IsInsideNursery(mapObj));
+  MOZ_ASSERT(!UnbarrieredTable(mapObj).hasNurseryRanges());
 
 #ifdef DEBUG
   // If we're finalizing a tenured map then it cannot contain nursery things,
   // because we evicted the nursery at the start of collection and writing a
   // nursery thing into the table would require it to be live, which means it
   // would have been marked.
-  if (obj->isTenured()) {
-    UnbarrieredTable(mapObj).forEachEntryUpTo(1000, [](auto& entry) {
-      Value key = entry.key;
-      MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
-      Value value = entry.value;
-      MOZ_ASSERT_IF(value.isGCThing(), !IsInsideNursery(value.toGCThing()));
-    });
-  }
+  UnbarrieredTable(mapObj).forEachEntryUpTo(1000, [](auto& entry) {
+    Value key = entry.key;
+    MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
+    Value value = entry.value;
+    MOZ_ASSERT_IF(value.isGCThing(), !IsInsideNursery(value.toGCThing()));
+  });
 #endif
 
-  // No post barriers are required for nursery tables. Finalized tenured tables
-  // do not contain nursery GC things, so do not require post barriers. Pre
-  // barriers are not required during finalization.
+  // Finalized tenured maps do not contain nursery GC things, so do not require
+  // post barriers. Pre barriers are not required for finalization.
   UnbarrieredTable(mapObj).destroy(gcx);
 }
 
 size_t MapObject::objectMoved(JSObject* obj, JSObject* old) {
-  Table(&obj->as<MapObject>()).updateRangesAfterMove(&old->as<MapObject>());
+  auto* mapObj = &obj->as<MapObject>();
+
+  Table(mapObj).updateRangesAfterMove(&old->as<MapObject>());
+
+  if (IsInsideNursery(old)) {
+    Nursery& nursery = mapObj->runtimeFromMainThread()->gc.nursery();
+    Table(mapObj).maybeMoveBufferOnPromotion(nursery);
+  }
+
   return 0;
 }
 
@@ -775,7 +781,6 @@ MapObject* MapObject::sweepAfterMinorGC(JS::GCContext* gcx, MapObject* mapobj) {
   Nursery& nursery = gcx->runtime()->gc.nursery();
   bool wasInCollectedRegion = nursery.inCollectedRegion(mapobj);
   if (wasInCollectedRegion && !IsForwarded(mapobj)) {
-    finalize(gcx, mapobj);
     return nullptr;
   }
 
@@ -784,10 +789,6 @@ MapObject* MapObject::sweepAfterMinorGC(JS::GCContext* gcx, MapObject* mapobj) {
   bool insideNursery = IsInsideNursery(mapobj);
   if (insideNursery) {
     SetHasNurseryMemory(mapobj, true);
-  }
-
-  if (wasInCollectedRegion && mapobj->isTenured()) {
-    Table(mapobj).trackMallocBufferOnPromotion();
   }
 
   if (!HasNurseryMemory(mapobj)) {
@@ -1449,28 +1450,35 @@ size_t SetObject::sizeOfData(mozilla::MallocSizeOf mallocSizeOf) {
 
 void SetObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   SetObject* setObj = &obj->as<SetObject>();
+  MOZ_ASSERT(!IsInsideNursery(setObj));
+  MOZ_ASSERT(!UnbarrieredTable(setObj).hasNurseryRanges());
 
 #ifdef DEBUG
   // If we're finalizing a tenured set then it cannot contain nursery things,
   // because we evicted the nursery at the start of collection and writing a
   // nursery thing into the set would require it to be live, which means it
   // would have been marked.
-  if (obj->isTenured()) {
-    UnbarrieredTable(setObj).forEachEntryUpTo(1000, [](auto& entry) {
-      Value key = entry;
-      MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
-    });
-  }
+  UnbarrieredTable(setObj).forEachEntryUpTo(1000, [](auto& entry) {
+    Value key = entry;
+    MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
+  });
 #endif
 
-  // No post barriers are required for nursery sets. Finalized tenured sets do
-  // not contain nursery GC things, so do not require post barriers. Pre
-  // barriers are not required for finalization.
+  // Finalized tenured sets do not contain nursery GC things, so do not require
+  // post barriers. Pre barriers are not required for finalization.
   UnbarrieredTable(setObj).destroy(gcx);
 }
 
 size_t SetObject::objectMoved(JSObject* obj, JSObject* old) {
-  Table(&obj->as<SetObject>()).updateRangesAfterMove(&old->as<SetObject>());
+  auto* setObj = &obj->as<SetObject>();
+
+  Table(setObj).updateRangesAfterMove(&old->as<SetObject>());
+
+  if (IsInsideNursery(old)) {
+    Nursery& nursery = setObj->runtimeFromMainThread()->gc.nursery();
+    Table(setObj).maybeMoveBufferOnPromotion(nursery);
+  }
+
   return 0;
 }
 
@@ -1484,7 +1492,6 @@ SetObject* SetObject::sweepAfterMinorGC(JS::GCContext* gcx, SetObject* setobj) {
   Nursery& nursery = gcx->runtime()->gc.nursery();
   bool wasInCollectedRegion = nursery.inCollectedRegion(setobj);
   if (wasInCollectedRegion && !IsForwarded(setobj)) {
-    finalize(gcx, setobj);
     return nullptr;
   }
 
@@ -1493,10 +1500,6 @@ SetObject* SetObject::sweepAfterMinorGC(JS::GCContext* gcx, SetObject* setobj) {
   bool insideNursery = IsInsideNursery(setobj);
   if (insideNursery) {
     SetHasNurseryMemory(setobj, true);
-  }
-
-  if (wasInCollectedRegion && setobj->isTenured()) {
-    Table(setobj).trackMallocBufferOnPromotion();
   }
 
   if (!HasNurseryMemory(setobj)) {
