@@ -39,7 +39,9 @@ sequenceDiagram
 		deactivate F
 ```
 
-## Flow diagram for source code
+## Firefox Desktop
+
+### Flow diagram for source code
 
 The source code for push is available under [`dom/push`](https://searchfox.org/mozilla-central/source/dom/push) in mozilla-central.
 
@@ -70,7 +72,7 @@ flowchart TD
     end
 ```
 
-## The Push Web Socket
+### The Push Web Socket
 Push in Firefox Desktop communicates with Autopush using a web socket connection.
 
 The web socket connection is created as the browser initializes and is managed by the following state diagram.
@@ -99,7 +101,7 @@ Once the Push web socket is on the `Ready` state, it is ready to send new subscr
 Push uses an observer pattern to notify observers of any incoming push notifications. See the [high level architecture](#high-level-push-architecture) section.
 
 
-## Push Storage
+### Push Storage
 Push uses IndexedDB to store subscriptions for the following reasons:
 1. In case the consumer attempts to re-subscribe, storage is used as a cache to serve the URL and the public key
 1. In order to persist the private key, so that it can be used to decrypt any incoming push notifications
@@ -115,4 +117,58 @@ erDiagram
         Object p256dhPublicKey "Object representing the public key"
         Object p256dhPrivateKey "Object representing the private key"
     }
+```
+
+## Firefox for Android
+
+See also:
+
+* [Rust Push Component](https://mozilla.github.io/application-services/book/rust-docs/push/index.html)
+* [Push Service Bridge HTTP Interface](https://autopush.readthedocs.io/en/latest/http.html#push-service-bridge-http-interface)
+* [Android Components: Push](https://github.com/mozilla/gecko-dev/blob/master/mobile/android/android-components/components/feature/push/README.md)
+
+### Flow diagram for source code
+
+The source code for push is available under the following paths in mozilla-central:
+
+* [`dom/push/`](https://searchfox.org/mozilla-central/source/dom/push/)
+* [`mobile/shared/components/geckoview/GeckoViewPush.sys.mjs`](mobile/shared/components/geckoview/GeckoViewPush.sys.mjs)
+* [`mobile/android/geckoview/src/main/java/org/mozilla/geckoview/WebPush*.java`](https://searchfox.org/mozilla-central/source/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/)
+* Under `mobile/android/android-components/components`:
+	* [`feature/push/src/main/java/mozilla/components/feature/push/`](https://searchfox.org/mozilla-central/source/mobile/android/android-components/components/feature/push/src/main/java/mozilla/components/feature/push/)
+	* [`browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/webpush/`](https://searchfox.org/mozilla-central/source/mobile/android/android-components/components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/webpush/)
+	* [`concept/engine/src/main/java/mozilla/components/concept/engine/webpush`](https://searchfox.org/mozilla-central/source/mobile/android/android-components/components/concept/engine/src/main/java/mozilla/components/concept/engine/webpush/)
+* [Rust Push Component](https://github.com/mozilla/application-services/tree/main/components/push)
+
+The following flow diagram describes how different modules interact with each other to provide the push API to consumers.
+
+```{mermaid}
+flowchart TD
+    subgraph Public API
+
+    W[Third party Web app]-->|imports| P[PushManager.webidl]
+    end
+    subgraph Browser Code
+        P-->|Implemented by| MM
+        MM{Main Thread?}-->|Yes| B[Push.sys.mjs]
+        MM -->|NO| A[PushManager.cpp]
+        B-->|subscribe,getSubscription| D[GeckoViewPush.sys.mjs]
+        A-->|subscribe,getSubscription| D
+        D-->|PushSubscribe,PushGetSubscription| WPC[WebPushController.java]
+        WPC-->|onSubscribe,onGetSubscription| WPEI[WebPushEngineIntegration.kt]
+        WPEI-->|subscribe,getSubscription| APF[AutoPushFeature.kt]
+        APF-->|start| PS[AbstractFirebasePushService.kt]
+        FCM[Firebase Cloud Messaging]-->|onNewToken| PS
+        PS-->|onNewToken| APF
+        APF-->|subscribe,getSubscription| PRS[push/src/lib.rs]
+        PRS-->|subscribe,get_subscription| PM[internal/push_manager.rs]
+        PM-->|Storage| S[internal/storage/db.rs]
+        PM-->|Network| N[internal/communications.rs]
+    end
+    subgraph Server
+    N-. bridge interface.-> O[Autopush]
+    end
+    subgraph Local Storage
+    S-->|Read,Write| SQL[(SQLite)]
+    end
 ```
