@@ -395,7 +395,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   void destroy(JS::GCContext* gcx) {
     if (isInitialized()) {
-      forEachRange([](Range* range) { range->onTableDestroyed(); });
       Data* data = getData();
       MOZ_ASSERT(data);
       freeData(gcx, data, getDataLength(), getDataCapacity(), hashBuckets());
@@ -653,13 +652,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 #ifdef DEBUG
     bool valid() const { return /* *prevp == this && */ next != this; }
 #endif
-
-    void onTableDestroyed() {
-      MOZ_ASSERT(valid());
-      prevp = &next;
-      next = this;
-      MOZ_ASSERT(!valid());
-    }
 
    public:
     bool empty(OrderedHashTableObject* obj) const {
