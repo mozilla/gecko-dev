@@ -442,6 +442,25 @@ where
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
         input.expect_function_matching("anchor-size")?;
+        Self::parse_inner(
+            context,
+            input,
+            |i| LengthPercentage::parse(context, i)
+        )
+    }
+}
+
+impl<LengthPercentage> GenericAnchorSizeFunction<LengthPercentage>
+{
+    /// Parse the inner part of `anchor-size()`, after the parser has consumed "anchor-size(".
+    pub fn parse_inner<'i, 't, F>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        f: F,
+    ) -> Result<Self, ParseError<'i>>
+    where
+        F: FnOnce(&mut Parser<'i, '_>) -> Result<LengthPercentage, ParseError<'i>>,
+    {
         input.parse_nested_block(|i| {
             let mut target_element = i
                 .try_parse(|i| DashedIdent::parse(context, i))
@@ -458,7 +477,7 @@ where
                     if previous_parsed {
                         i.expect_comma()?;
                     }
-                    LengthPercentage::parse(context, i)
+                    f(i)
                 })
                 .ok();
             Ok(GenericAnchorSizeFunction {

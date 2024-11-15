@@ -1748,9 +1748,9 @@ impl LengthPercentage {
     }
 
     /// Parses allowing the unitless length quirk, as well as allowing
-    /// `anchor()`.
+    /// anchor-positioning related functions, `anchor()` and `anchor-size()`.
     #[inline]
-    pub fn parse_quirky_anchor<'i, 't>(
+    pub fn parse_quirky_with_anchor_functions<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
@@ -1761,6 +1761,22 @@ impl LengthPercentage {
             AllowedNumericType::All,
             allow_quirks,
             AllowAnchorPositioningFunctions::AllowAnchorAndAnchorSize,
+        )
+    }
+
+    /// Parses non-negative length, allowing the unitless length quirk,
+    /// as well as allowing `anchor-size()`.
+    pub fn parse_non_negative_with_anchor_size<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_internal(
+            context,
+            input,
+            AllowedNumericType::NonNegative,
+            allow_quirks,
+            AllowAnchorPositioningFunctions::AllowAnchorSize,
         )
     }
 
@@ -1934,6 +1950,18 @@ impl NonNegativeLengthPercentage {
     ) -> Result<Self, ParseError<'i>> {
         LengthPercentage::parse_non_negative_quirky(context, input, allow_quirks).map(NonNegative)
     }
+
+    /// Parses a length or a percentage, allowing the unitless length quirk,
+    /// as well as allowing `anchor-size()`.
+    #[inline]
+    pub fn parse_non_negative_with_anchor_size<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
+        LengthPercentage::parse_non_negative_with_anchor_size(context, input, allow_quirks).map(NonNegative)
+    }
+
 }
 
 /// Either a `<length>` or the `auto` keyword.
@@ -2045,7 +2073,7 @@ impl Size {
         parse_fit_content_function!(Size, input, context, allow_quirks);
 
         if let Ok(length) =
-            input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks))
+            input.try_parse(|i| NonNegativeLengthPercentage::parse_non_negative_with_anchor_size(context, i, allow_quirks))
         {
             return Ok(GenericSize::LengthPercentage(length));
         }
@@ -2084,7 +2112,7 @@ impl MaxSize {
         parse_fit_content_function!(MaxSize, input, context, allow_quirks);
 
         if let Ok(length) =
-            input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks))
+            input.try_parse(|i| NonNegativeLengthPercentage::parse_non_negative_with_anchor_size(context, i, allow_quirks))
         {
             return Ok(GenericMaxSize::LengthPercentage(length));
         }

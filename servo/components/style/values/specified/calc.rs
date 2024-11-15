@@ -8,7 +8,8 @@
 
 use crate::color::parsing::ChannelKeyword;
 use crate::parser::{ParserContext, Parse};
-use crate::values::generics::position::{AnchorSide, AnchorSideKeyword,GenericAnchorFunction};
+use crate::values::generics::position::{AnchorSide, AnchorSideKeyword, GenericAnchorFunction};
+use crate::values::generics::length::GenericAnchorSizeFunction;
 use crate::values::generics::calc::{
     self as generic, CalcNodeLeaf, CalcUnits, MinMaxOp, ModRemOp, PositivePercentageBasis,
     RoundingStrategy, SortKey,
@@ -524,6 +525,22 @@ impl GenericAnchorFunction<Box<CalcNode>, Box<CalcNode>> {
     }
 }
 
+impl GenericAnchorSizeFunction<Box<CalcNode>> {
+    fn parse_in_calc<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if !static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        GenericAnchorSizeFunction::parse_inner(
+            context,
+            input,
+            |i| CalcNode::parse_argument(context, i, AllowParse::new(CalcUnits::LENGTH_PERCENTAGE)).map(|r| Box::new(r))
+        )
+    }
+}
+
 /// A calc node representation for specified values.
 pub type CalcNode = generic::GenericCalcNode<Leaf>;
 
@@ -577,6 +594,10 @@ impl CalcNode {
             &Token::Function(ref name) if allowed.additional_functions.intersects(AdditionalFunctions::ANCHOR) && name.eq_ignore_ascii_case("anchor") => {
                 let anchor_function = GenericAnchorFunction::parse_in_calc(context, input)?;
                 Ok(CalcNode::Anchor(Box::new(anchor_function)))
+            },
+            &Token::Function(ref name) if allowed.additional_functions.intersects(AdditionalFunctions::ANCHOR_SIZE) && name.eq_ignore_ascii_case("anchor-size") => {
+                let anchor_size_function = GenericAnchorSizeFunction::parse_in_calc(context, input)?;
+                Ok(CalcNode::AnchorSize(Box::new(anchor_size_function)))
             },
             &Token::Function(ref name) => {
                 let function = CalcNode::math_function(context, name, location)?;

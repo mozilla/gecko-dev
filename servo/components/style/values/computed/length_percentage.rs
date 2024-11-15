@@ -916,6 +916,12 @@ impl CalcLengthPercentage {
                         }
                         Ok(CalcNode::Leaf(CalcLengthPercentageLeaf::Length(Length::zero())))
                     },
+                    CalcNode::AnchorSize(f) => {
+                        if let Some(fallback) = f.fallback.as_ref() {
+                            return Ok((**fallback).clone());
+                        }
+                        Ok(CalcNode::Leaf(CalcLengthPercentageLeaf::Length(Length::zero())))
+                    }
                     _ => Err(()),
                 }
             })

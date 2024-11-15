@@ -1755,7 +1755,7 @@ impl Inset {
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(l) =
-            input.try_parse(|i| LengthPercentage::parse_quirky_anchor(context, i, allow_quirks))
+            input.try_parse(|i| LengthPercentage::parse_quirky_with_anchor_functions(context, i, allow_quirks))
         {
             return Ok(Self::LengthPercentage(l));
         }

@@ -12,6 +12,7 @@ use std::fmt::{self, Write};
 use std::ops::{Add, Mul, Neg, Rem, Sub};
 use std::{cmp, mem};
 use style_traits::{CssWriter, ToCss};
+use crate::values::generics::length::GenericAnchorSizeFunction;
 use crate::values::generics::position::{AnchorSide, GenericAnchorFunction};
 
 /// Whether we're a `min` or `max` function.
@@ -236,7 +237,9 @@ pub enum GenericCalcNode<L> {
     /// A `sign()` function.
     Sign(Box<GenericCalcNode<L>>),
     /// An `anchor()` function.
-    Anchor(Box<GenericAnchorFunction<Box<GenericCalcNode<L>>, Box<GenericCalcNode<L>>>>)
+    Anchor(Box<GenericAnchorFunction<Box<GenericCalcNode<L>>, Box<GenericCalcNode<L>>>>),
+    /// An `anchor-size()` function.
+    AnchorSize(Box<GenericAnchorSizeFunction<Box<GenericCalcNode<L>>>>),
 }
 
 pub use self::GenericCalcNode as CalcNode;
@@ -547,7 +550,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 let _ = child.unit()?;
                 CalcUnits::empty()
             },
-            CalcNode::Anchor(..) => {
+            CalcNode::Anchor(..) | CalcNode::AnchorSize(..) => {
                 CalcUnits::LENGTH_PERCENTAGE
             }
         })
@@ -652,7 +655,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             CalcNode::Sign(ref mut child) => {
                 child.negate();
             },
-            CalcNode::Anchor(_) => {
+            CalcNode::Anchor(_) | CalcNode::AnchorSize(_) => {
                 wrap_self_in_negate(self);
             },
         }
@@ -661,7 +664,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
     fn sort_key(&self) -> SortKey {
         match *self {
             Self::Leaf(ref l) => l.sort_key(),
-            Self::Anchor(..) => SortKey::Px,
+            Self::Anchor(..) | Self::AnchorSize(..) => SortKey::Px,
             _ => SortKey::Other,
         }
     }
@@ -778,8 +781,8 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 },
                 CalcNode::Abs(child) | CalcNode::Sign(child) => map_internal(child, op),
                 // It is invalid to treat inner `CalcNode`s here - `anchor(--foo 50%) / 2` != `anchor(--foo 25%)`.
-                // Same applies to fallback, as we don't know if it will be used.
-                CalcNode::Anchor(_) => Err(())
+                // Same applies to fallback, as we don't know if it will be used. Similar reasoning applies to `anchor-size()`.
+                CalcNode::Anchor(_) | CalcNode::AnchorSize(_) => Err(())
             }
         }
 
@@ -862,12 +865,19 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             Self::Abs(ref c) => CalcNode::Abs(Box::new(c.map_leaves_internal(map))),
             Self::Sign(ref c) => CalcNode::Sign(Box::new(c.map_leaves_internal(map))),
             Self::Anchor(ref f) => CalcNode::Anchor(Box::new(
-                GenericAnchorFunction{
+                GenericAnchorFunction {
                     target_element: f.target_element.clone(),
                     side: match &f.side {
                         AnchorSide::Keyword(k) => AnchorSide::Keyword(*k),
                         AnchorSide::Percentage(p) => AnchorSide::Percentage(Box::new(p.map_leaves_internal(map))),
                     },
+                    fallback: f.fallback.as_ref().map(|fb| Box::new(fb.map_leaves_internal(map))).into(),
+                }
+            )),
+            Self::AnchorSize(ref f) => CalcNode::AnchorSize(Box::new(
+                GenericAnchorSizeFunction {
+                    target_element: f.target_element.clone(),
+                    size: f.size,
                     fallback: f.fallback.as_ref().map(|fb| Box::new(fb.map_leaves_internal(map))).into(),
                 }
             )),
@@ -1144,7 +1154,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 let result = c.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
                 Ok(L::sign_from(&result)?)
             },
-            Self::Anchor(_) => Err(()),
+            Self::Anchor(_) | Self::AnchorSize(_) => Err(()),
         }
     }
 
@@ -1226,7 +1236,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             Self::Abs(ref mut value) | Self::Sign(ref mut value) => {
                 value.visit_depth_first_internal(f);
             },
-            Self::Leaf(..) | Self::Anchor(..) => {},
+            Self::Leaf(..) | Self::Anchor(..) | Self::AnchorSize(..) => {},
         }
         f(self);
     }
@@ -1665,6 +1675,11 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     fallback.simplify_and_sort();
                 }
             },
+            Self::AnchorSize(ref mut f) => {
+                if let Some(fallback) = f.fallback.as_mut() {
+                    fallback.simplify_and_sort();
+                }
+            }
         }
     }
 
@@ -1745,7 +1760,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     true
                 },
             },
-            Self::Leaf(_) | Self::Anchor(_) => match level {
+            Self::Leaf(_) | Self::Anchor(_) | Self::AnchorSize(_) => match level {
                 ArgumentLevel::CalculationRoot => {
                     dest.write_str("calc(")?;
                     true
@@ -1855,6 +1870,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             },
             Self::Leaf(ref l) => l.to_css(dest)?,
             Self::Anchor(ref f) => f.to_css(dest)?,
+            Self::AnchorSize(ref f) => f.to_css(dest)?,
         }
 
         if write_closing_paren {
