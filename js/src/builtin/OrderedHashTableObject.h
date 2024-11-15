@@ -149,11 +149,20 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   using Slots = OrderedHashTableObject::Slots;
   OrderedHashTableObject* const obj;
 
+  // Whether we have allocated a buffer for this object. This buffer is
+  // allocated when adding the first entry and it contains the data array, the
+  // hash table buckets and the hash code scrambler.
+  bool hasAllocatedBuffer() const {
+    MOZ_ASSERT(hasInitializedSlots());
+    return obj->getReservedSlot(Slots::DataSlot).toPrivate() != nullptr;
+  }
+
   // Hash table. Has hashBuckets() elements.
   // Note: a single malloc buffer is used for the data and hashTable arrays and
   // the HashCodeScrambler. The pointer in DataSlot points to the start of this
   // buffer.
   Data** getHashTable() const {
+    MOZ_ASSERT(hasAllocatedBuffer());
     Value v = obj->getReservedSlot(Slots::HashTableSlot);
     return static_cast<Data**>(v.toPrivate());
   }
@@ -163,9 +172,16 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   // Array of Data objects. Elements data[0:dataLength] are constructed and the
   // total capacity is dataCapacity.
-  Data* getData() const {
+  //
+  // maybeData returns nullptr if this object doesn't have a buffer yet.
+  // getData asserts the object has a buffer.
+  Data* maybeData() const {
     Value v = obj->getReservedSlot(Slots::DataSlot);
     return static_cast<Data*>(v.toPrivate());
+  }
+  Data* getData() const {
+    MOZ_ASSERT(hasAllocatedBuffer());
+    return maybeData();
   }
   void setData(Data* data) {
     obj->setReservedSlot(Slots::DataSlot, PrivateValue(data));
@@ -198,6 +214,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   // Multiplicative hash shift.
   uint32_t getHashShift() const {
+    MOZ_ASSERT(hasAllocatedBuffer(),
+               "hash shift is meaningless if there's no hash table");
     return obj->getReservedSlot(Slots::HashShiftSlot).toPrivateUint32();
   }
   void setHashShift(uint32_t hashShift) {
@@ -237,6 +255,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   // Scrambler to not reveal pointer hash codes.
   const HashCodeScrambler* getHashCodeScrambler() const {
+    MOZ_ASSERT(hasAllocatedBuffer());
     Value v = obj->getReservedSlot(Slots::HashCodeScramblerSlot);
     return static_cast<const HashCodeScrambler*>(v.toPrivate());
   }
@@ -277,7 +296,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     }
   }
 
-  bool isInitialized() const {
+  bool hasInitializedSlots() const {
     return !obj->getReservedSlot(Slots::DataSlot).isUndefined();
   }
 
@@ -332,6 +351,35 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return {data, table, hcs, numBytes};
   }
 
+  [[nodiscard]] bool initBuffer(JSContext* cx) {
+    MOZ_ASSERT(!hasAllocatedBuffer());
+    MOZ_ASSERT(getDataLength() == 0);
+    MOZ_ASSERT(getLiveCount() == 0);
+
+    constexpr uint32_t buckets = InitialBuckets;
+    constexpr uint32_t capacity = uint32_t(buckets * FillFactor);
+
+    auto [dataAlloc, tableAlloc, hcsAlloc, numBytes] =
+        allocateBuffer(cx, capacity, buckets);
+    if (!dataAlloc) {
+      return false;
+    }
+
+    AddCellMemory(obj, numBytes, MemoryUse::MapObjectData);
+
+    *hcsAlloc = cx->realm()->randomHashCodeScrambler();
+
+    std::uninitialized_fill_n(tableAlloc, buckets, nullptr);
+
+    setHashTable(tableAlloc);
+    setData(dataAlloc);
+    setDataCapacity(capacity);
+    setHashShift(InitialHashShift);
+    setHashCodeScrambler(hcsAlloc);
+    MOZ_ASSERT(hashBuckets() == buckets);
+    return true;
+  }
+
   void updateHashTableForRekey(Data* entry, HashNumber oldHash,
                                HashNumber newHash) {
     uint32_t hashShift = getHashShift();
@@ -369,48 +417,33 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
  public:
   explicit OrderedHashTableImpl(OrderedHashTableObject* obj) : obj(obj) {}
 
-  [[nodiscard]] bool init(JSContext* cx) {
-    MOZ_ASSERT(!isInitialized(), "init must be called at most once");
-
-    constexpr uint32_t buckets = InitialBuckets;
-    constexpr uint32_t capacity = uint32_t(buckets * FillFactor);
-
-    auto [dataAlloc, tableAlloc, hcsAlloc, numBytes] =
-        allocateBuffer(cx, capacity, buckets);
-    if (!dataAlloc) {
-      return false;
-    }
-
-    AddCellMemory(obj, numBytes, MemoryUse::MapObjectData);
-
-    *hcsAlloc = cx->realm()->randomHashCodeScrambler();
-
-    std::uninitialized_fill_n(tableAlloc, buckets, nullptr);
-
-    obj->initReservedSlot(Slots::HashTableSlot, PrivateValue(tableAlloc));
-    obj->initReservedSlot(Slots::DataSlot, PrivateValue(dataAlloc));
+  void initSlots() {
+    MOZ_ASSERT(!hasInitializedSlots(), "init must be called at most once");
+    obj->initReservedSlot(Slots::HashTableSlot, PrivateValue(nullptr));
+    obj->initReservedSlot(Slots::DataSlot, PrivateValue(nullptr));
     obj->initReservedSlot(Slots::DataLengthSlot, PrivateUint32Value(0));
-    obj->initReservedSlot(Slots::DataCapacitySlot,
-                          PrivateUint32Value(capacity));
+    obj->initReservedSlot(Slots::DataCapacitySlot, PrivateUint32Value(0));
     obj->initReservedSlot(Slots::LiveCountSlot, PrivateUint32Value(0));
-    obj->initReservedSlot(Slots::HashShiftSlot,
-                          PrivateUint32Value(InitialHashShift));
+    obj->initReservedSlot(Slots::HashShiftSlot, PrivateUint32Value(0));
     obj->initReservedSlot(Slots::RangesSlot, PrivateValue(nullptr));
     obj->initReservedSlot(Slots::NurseryRangesSlot, PrivateValue(nullptr));
-    obj->initReservedSlot(Slots::HashCodeScramblerSlot, PrivateValue(hcsAlloc));
-    MOZ_ASSERT(hashBuckets() == buckets);
-    return true;
+    obj->initReservedSlot(Slots::HashCodeScramblerSlot, PrivateValue(nullptr));
   }
 
   void destroy(JS::GCContext* gcx) {
-    if (isInitialized()) {
-      Data* data = getData();
-      MOZ_ASSERT(data);
+    if (!hasInitializedSlots()) {
+      return;
+    }
+    if (Data* data = maybeData()) {
       freeData(gcx, data, getDataLength(), getDataCapacity(), hashBuckets());
     }
   }
 
   void maybeMoveBufferOnPromotion(Nursery& nursery) {
+    if (!hasAllocatedBuffer()) {
+      return;
+    }
+
     Data* oldData = getData();
     uint32_t dataCapacity = getDataCapacity();
     uint32_t buckets = hashBuckets();
@@ -457,7 +490,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   size_t sizeOfExcludingObject(mozilla::MallocSizeOf mallocSizeOf) const {
     size_t size = 0;
-    if (isInitialized()) {
+    if (hasInitializedSlots() && hasAllocatedBuffer()) {
       // Note: this also includes the HashCodeScrambler and the hashTable array.
       size += mallocSizeOf(getData());
     }
@@ -472,7 +505,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
 
   /* Return a pointer to the element, if any, that matches l, or nullptr. */
   T* get(const Lookup& l) {
-    Data* e = lookup(l, prepareHash(l));
+    Data* e = lookup(l);
     return e ? &e->element : nullptr;
   }
 
@@ -486,16 +519,22 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
    */
   template <typename ElementInput>
   [[nodiscard]] bool put(JSContext* cx, ElementInput&& element) {
-    HashNumber h = prepareHash(Ops::getKey(element));
-    if (Data* e = lookup(Ops::getKey(element), h)) {
-      e->element = std::forward<ElementInput>(element);
-      return true;
+    HashNumber h;
+    if (hasAllocatedBuffer()) {
+      h = prepareHash(Ops::getKey(element));
+      if (Data* e = lookup(Ops::getKey(element), h)) {
+        e->element = std::forward<ElementInput>(element);
+        return true;
+      }
+      if (getDataLength() == getDataCapacity() && !rehashOnFull(cx)) {
+        return false;
+      }
+    } else {
+      if (!initBuffer(cx)) {
+        return false;
+      }
+      h = prepareHash(Ops::getKey(element));
     }
-
-    if (getDataLength() == getDataCapacity() && !rehashOnFull(cx)) {
-      return false;
-    }
-
     auto [entry, chain] = addEntry(h);
     new (entry) Data(std::forward<ElementInput>(element), chain);
     return true;
@@ -511,7 +550,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     // benefit.
 
     // If a matching entry exists, empty it.
-    Data* e = lookup(l, prepareHash(l));
+    Data* e = lookup(l);
     if (e == nullptr) {
       return false;
     }
@@ -567,8 +606,6 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
       }
     }
 
-    MOZ_ASSERT(getHashTable());
-    MOZ_ASSERT(getData());
     MOZ_ASSERT(getDataLength() == 0);
     MOZ_ASSERT(getLiveCount() == 0);
   }
@@ -657,7 +694,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     Range& operator=(const Range& other) = delete;
 
     void seek(OrderedHashTableObject* obj) {
-      Data* data = OrderedHashTableImpl(obj).getData();
+      Data* data = OrderedHashTableImpl(obj).maybeData();
       uint32_t dataLength = OrderedHashTableImpl(obj).getDataLength();
       while (i < dataLength && Ops::isEmpty(Ops::getKey(data[i].element))) {
         i++;
@@ -748,7 +785,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   // table.
   template <typename F>
   [[nodiscard]] bool forEachEntry(F&& f) const {
-    const Data* data = getData();
+    const Data* data = maybeData();
     uint32_t dataLength = getDataLength();
 #ifdef DEBUG
     uint32_t liveCount = getLiveCount();
@@ -760,7 +797,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
         }
       }
     }
-    MOZ_ASSERT(getData() == data);
+    MOZ_ASSERT(maybeData() == data);
     MOZ_ASSERT(getDataLength() == dataLength);
     MOZ_ASSERT(getLiveCount() == liveCount);
     return true;
@@ -771,7 +808,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   template <typename F>
   void forEachEntryUpTo(size_t maxCount, F&& f) const {
     MOZ_ASSERT(maxCount > 0);
-    const Data* data = getData();
+    const Data* data = maybeData();
     uint32_t dataLength = getDataLength();
     uint32_t liveCount = getLiveCount();
     size_t count = 0;
@@ -784,14 +821,14 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
         }
       }
     }
-    MOZ_ASSERT(getData() == data);
+    MOZ_ASSERT(maybeData() == data);
     MOZ_ASSERT(getDataLength() == dataLength);
     MOZ_ASSERT(getLiveCount() == liveCount);
   }
 #endif
 
   void trace(JSTracer* trc) {
-    Data* data = getData();
+    Data* data = maybeData();
     uint32_t dataLength = getDataLength();
     for (uint32_t i = 0; i < dataLength; i++) {
       if (!Ops::isEmpty(Ops::getKey(data[i].element))) {
@@ -878,6 +915,8 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   static constexpr size_t sizeofData() { return sizeof(Data); }
 
   HashNumber prepareHash(const Lookup& l) const {
+    MOZ_ASSERT(hasAllocatedBuffer(),
+               "the hash code scrambler is allocated in the buffer");
     const HashCodeScrambler& hcs = *getHashCodeScrambler();
     return mozilla::ScrambleHashCode(Ops::hash(l, hcs));
   }
@@ -916,6 +955,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
   }
 
   Data* lookup(const Lookup& l, HashNumber h) const {
+    MOZ_ASSERT(hasAllocatedBuffer());
     Data** hashTable = getHashTable();
     uint32_t hashShift = getHashShift();
     for (Data* e = hashTable[h >> hashShift]; e; e = e->chain) {
@@ -926,7 +966,13 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     return nullptr;
   }
 
-  const Data* lookup(const Lookup& l) const {
+  Data* lookup(const Lookup& l) const {
+    // Note: checking |getLiveCount() > 0| is a minor performance optimization
+    // but this check is also required for correctness because it implies
+    // |hasAllocatedBuffer()|.
+    if (getLiveCount() == 0) {
+      return nullptr;
+    }
     return lookup(l, prepareHash(l));
   }
 
@@ -1147,7 +1193,7 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
 
   explicit OrderedHashMapImpl(OrderedHashMapObject* obj) : impl(obj) {}
 
-  [[nodiscard]] bool init(JSContext* cx) { return impl.init(cx); }
+  void initSlots() { impl.initSlots(); }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& key) const { return impl.has(key); }
   template <typename F>
@@ -1243,7 +1289,7 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
 
   explicit OrderedHashSetImpl(OrderedHashSetObject* obj) : impl(obj) {}
 
-  [[nodiscard]] bool init(JSContext* cx) { return impl.init(cx); }
+  void initSlots() { impl.initSlots(); }
   uint32_t count() const { return impl.count(); }
   bool has(const Lookup& value) const { return impl.has(value); }
   template <typename F>

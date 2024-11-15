@@ -708,10 +708,7 @@ MapObject* MapObject::create(JSContext* cx,
     return nullptr;
   }
 
-  if (!UnbarrieredTable(mapObj).init(cx)) {
-    return nullptr;
-  }
-
+  UnbarrieredTable(mapObj).initSlots();
   mapObj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
   mapObj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
   return mapObj;
@@ -1400,10 +1397,7 @@ SetObject* SetObject::create(JSContext* cx,
     return nullptr;
   }
 
-  if (!UnbarrieredTable(obj).init(cx)) {
-    return nullptr;
-  }
-
+  UnbarrieredTable(obj).initSlots();
   obj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
   obj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
   return obj;

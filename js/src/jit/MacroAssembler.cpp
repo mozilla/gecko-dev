@@ -9504,10 +9504,15 @@ void MacroAssembler::prepareHashObject(Register setObj, ValueOperand value,
   // Inline implementation of |OrderedHashTableImpl::prepareHash()| and
   // |HashCodeScrambler::scramble(v.asRawBits())|.
 
-  // Load |HashCodeScrambler*|.
+  // Load |HashCodeScrambler*|. If the object has no buffer yet this will be
+  // nullptr. In this case we use 0 as hash number because the hash won't be
+  // used in MacroAssembler::orderedHashTableLookup when there are no entries.
+  Label done;
   static_assert(MapObject::offsetOfHashCodeScrambler() ==
                 SetObject::offsetOfHashCodeScrambler());
   loadPrivate(Address(setObj, SetObject::offsetOfHashCodeScrambler()), temp1);
+  move32(Imm32(0), result);
+  branchTestPtr(Assembler::Zero, temp1, temp1, &done);
 
   // Load |HashCodeScrambler::mK0| and |HashCodeScrambler::mK1|.
   auto k0 = Register64(temp1);
@@ -9614,6 +9619,8 @@ void MacroAssembler::prepareHashObject(Register setObj, ValueOperand value,
   move64To32(v0, result);
 
   scrambleHashCode(result);
+
+  bind(&done);
 #else
   MOZ_CRASH("Not implemented");
 #endif
@@ -9690,6 +9697,13 @@ void MacroAssembler::orderedHashTableLookup(Register setOrMapObj,
   }
   bind(&ok);
 #endif
+
+  // Jump to notFound if the hash table has no entries and may not have a
+  // buffer. Check this before calling Assert{Map,Set}ObjectHash because |hash|
+  // may be 0 when there's no hash code scrambler.
+  Label notFound;
+  unboxInt32(Address(setOrMapObj, TableObject::offsetOfLiveCount()), temp1);
+  branchTest32(Assembler::Zero, temp1, temp1, &notFound);
 
 #ifdef DEBUG
   PushRegsInMask(LiveRegisterSet(RegisterSet::Volatile()));
@@ -9774,6 +9788,8 @@ void MacroAssembler::orderedHashTableLookup(Register setOrMapObj,
           entryTemp);
   bind(&start);
   branchTestPtr(Assembler::NonZero, entryTemp, entryTemp, &loop);
+
+  bind(&notFound);
 }
 
 void MacroAssembler::setObjectHas(Register setObj, ValueOperand value,
