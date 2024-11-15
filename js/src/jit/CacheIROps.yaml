@@ -1397,6 +1397,20 @@
     templateObject: ObjectField
     array: ObjId
 
+- name: NewMapObjectResult
+  shared: true
+  transpile: true
+  cost_estimate: 5
+  args:
+    templateObject: ObjectField
+
+- name: NewSetObjectResult
+  shared: true
+  transpile: true
+  cost_estimate: 5
+  args:
+    templateObject: ObjectField
+
 - name: NewStringObjectResult
   shared: true
   transpile: true

@@ -95,6 +95,7 @@
   _(IntlGuardToSegments)                           \
   _(IntlGuardToSegmentIterator)                    \
                                                    \
+  _(MapConstructor)                                \
   _(MapGet)                                        \
   _(MapHas)                                        \
                                                    \
@@ -151,6 +152,7 @@
   _(RegExpInstanceOptimizable)                     \
   _(GetFirstDollarIndex)                           \
                                                    \
+  _(SetConstructor)                                \
   _(SetHas)                                        \
   _(SetSize)                                       \
                                                    \

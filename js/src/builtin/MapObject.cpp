@@ -475,7 +475,8 @@ const JSClassOps MapObject::classOps_ = {
 };
 
 const ClassSpec MapObject::classSpec_ = {
-    GenericCreateConstructor<MapObject::construct, 0, gc::AllocKind::FUNCTION>,
+    GenericCreateConstructor<MapObject::construct, 0, gc::AllocKind::FUNCTION,
+                             &jit::JitInfo_MapConstructor>,
     GenericCreatePrototype<MapObject>,
     MapObject::staticMethods,
     MapObject::staticProperties,
@@ -1332,7 +1333,8 @@ const JSClassOps SetObject::classOps_ = {
 };
 
 const ClassSpec SetObject::classSpec_ = {
-    GenericCreateConstructor<SetObject::construct, 0, gc::AllocKind::FUNCTION>,
+    GenericCreateConstructor<SetObject::construct, 0, gc::AllocKind::FUNCTION,
+                             &jit::JitInfo_SetConstructor>,
     GenericCreatePrototype<SetObject>,
     nullptr,
     SetObject::staticProperties,

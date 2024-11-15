@@ -2507,6 +2507,28 @@ bool WarpCacheIRTranspiler::emitLoadStringCodePointResult(
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitNewMapObjectResult(
+    uint32_t templateObjectOffset) {
+  JSObject* templateObj = tenuredObjectStubField(templateObjectOffset);
+
+  auto* obj = MNewMapObject::New(alloc(), templateObj);
+  addEffectful(obj);
+
+  pushResult(obj);
+  return resumeAfter(obj);
+}
+
+bool WarpCacheIRTranspiler::emitNewSetObjectResult(
+    uint32_t templateObjectOffset) {
+  JSObject* templateObj = tenuredObjectStubField(templateObjectOffset);
+
+  auto* obj = MNewSetObject::New(alloc(), templateObj);
+  addEffectful(obj);
+
+  pushResult(obj);
+  return resumeAfter(obj);
+}
+
 bool WarpCacheIRTranspiler::emitNewStringObjectResult(
     uint32_t templateObjectOffset, StringOperandId strId) {
   JSObject* templateObj = tenuredObjectStubField(templateObjectOffset);

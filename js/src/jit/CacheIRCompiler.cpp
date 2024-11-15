@@ -4667,6 +4667,32 @@ bool CacheIRCompiler::emitLoadStringCodePointResult(StringOperandId strId,
   return true;
 }
 
+bool CacheIRCompiler::emitNewMapObjectResult(uint32_t templateObjectOffset) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoCallVM callvm(masm, this, allocator);
+
+  callvm.prepare();
+  masm.Push(ImmPtr(nullptr));  // proto
+
+  using Fn = MapObject* (*)(JSContext*, HandleObject);
+  callvm.call<Fn, MapObject::create>();
+  return true;
+}
+
+bool CacheIRCompiler::emitNewSetObjectResult(uint32_t templateObjectOffset) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoCallVM callvm(masm, this, allocator);
+
+  callvm.prepare();
+  masm.Push(ImmPtr(nullptr));  // proto
+
+  using Fn = SetObject* (*)(JSContext*, HandleObject);
+  callvm.call<Fn, SetObject::create>();
+  return true;
+}
+
 bool CacheIRCompiler::emitNewStringObjectResult(uint32_t templateObjectOffset,
                                                 StringOperandId strId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
@@ -11294,6 +11320,14 @@ struct ReturnTypeToJSValueType<ArrayObject*> {
 };
 template <>
 struct ReturnTypeToJSValueType<TypedArrayObject*> {
+  static constexpr JSValueType result = JSVAL_TYPE_OBJECT;
+};
+template <>
+struct ReturnTypeToJSValueType<MapObject*> {
+  static constexpr JSValueType result = JSVAL_TYPE_OBJECT;
+};
+template <>
+struct ReturnTypeToJSValueType<SetObject*> {
   static constexpr JSValueType result = JSVAL_TYPE_OBJECT;
 };
 

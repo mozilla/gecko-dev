@@ -251,6 +251,18 @@ void LIRGenerator::visitNewCallObject(MNewCallObject* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGenerator::visitNewMapObject(MNewMapObject* ins) {
+  auto* lir = new (alloc()) LNewMapObject(temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitNewSetObject(MNewSetObject* ins) {
+  auto* lir = new (alloc()) LNewSetObject(temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
 void LIRGenerator::visitNewStringObject(MNewStringObject* ins) {
   MOZ_ASSERT(ins->input()->type() == MIRType::String);
 

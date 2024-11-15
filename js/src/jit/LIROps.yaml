@@ -262,6 +262,16 @@
   num_temps: 1
   mir_op: true
 
+- name: NewMapObject
+  result_type: WordSized
+  num_temps: 1
+  mir_op: true
+
+- name: NewSetObject
+  result_type: WordSized
+  num_temps: 1
+  mir_op: true
+
 - name: NewStringObject
   result_type: WordSized
   operands:

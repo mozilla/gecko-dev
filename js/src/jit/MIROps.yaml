@@ -303,6 +303,18 @@
   guard: true
   possibly_calls: true
 
+- name: NewMapObject
+  arguments:
+    templateObject: JSObject*
+  result_type: Object
+  possibly_calls: true
+
+- name: NewSetObject
+  arguments:
+    templateObject: JSObject*
+  result_type: Object
+  possibly_calls: true
+
 - name: NewObject
   gen_boilerplate: false
 

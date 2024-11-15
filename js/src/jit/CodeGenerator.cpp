@@ -8722,6 +8722,36 @@ void CodeGenerator::visitNewCallObject(LNewCallObject* lir) {
   masm.bind(ool->rejoin());
 }
 
+void CodeGenerator::visitNewMapObject(LNewMapObject* lir) {
+  Register output = ToRegister(lir->output());
+  Register temp = ToRegister(lir->temp0());
+
+  // Note: pass nullptr for |proto| to use |Map.prototype|.
+  using Fn = MapObject* (*)(JSContext*, HandleObject);
+  auto* ool = oolCallVM<Fn, MapObject::create>(lir, ArgList(ImmPtr(nullptr)),
+                                               StoreRegisterTo(output));
+
+  TemplateObject templateObject(lir->mir()->templateObject());
+  masm.createGCObject(output, temp, templateObject, gc::Heap::Default,
+                      ool->entry());
+  masm.bind(ool->rejoin());
+}
+
+void CodeGenerator::visitNewSetObject(LNewSetObject* lir) {
+  Register output = ToRegister(lir->output());
+  Register temp = ToRegister(lir->temp0());
+
+  // Note: pass nullptr for |proto| to use |Set.prototype|.
+  using Fn = SetObject* (*)(JSContext*, HandleObject);
+  auto* ool = oolCallVM<Fn, SetObject::create>(lir, ArgList(ImmPtr(nullptr)),
+                                               StoreRegisterTo(output));
+
+  TemplateObject templateObject(lir->mir()->templateObject());
+  masm.createGCObject(output, temp, templateObject, gc::Heap::Default,
+                      ool->entry());
+  masm.bind(ool->rejoin());
+}
+
 void CodeGenerator::visitNewStringObject(LNewStringObject* lir) {
   Register input = ToRegister(lir->input());
   Register output = ToRegister(lir->output());
