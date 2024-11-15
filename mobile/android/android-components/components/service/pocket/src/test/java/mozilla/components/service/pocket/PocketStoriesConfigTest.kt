@@ -9,6 +9,7 @@ import mozilla.components.support.base.worker.Frequency
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.reflect.KVisibility
 
@@ -40,6 +41,18 @@ class PocketStoriesConfigTest {
     }
 
     @Test
+    fun `WHEN instantiating a PocketStoriesConfig THEN content recommendations refresh frequency has a default value`() {
+        val config = PocketStoriesConfig(mock())
+
+        val defaultFrequency = Frequency(
+            DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_INTERNAL,
+            DEFAULT_CONTENT_RECOMMENDATIONS_REFRESH_TIMEUNIT,
+        )
+        assertEquals(defaultFrequency.repeatInterval, config.contentRecommendationsRefreshFrequency.repeatInterval)
+        assertEquals(defaultFrequency.repeatIntervalTimeUnit, config.contentRecommendationsRefreshFrequency.repeatIntervalTimeUnit)
+    }
+
+    @Test
     fun `WHEN instantiating a PocketStoriesConfig THEN profile is by default null`() {
         val config = PocketStoriesConfig(mock())
 
@@ -58,5 +71,15 @@ class PocketStoriesConfigTest {
         assertEquals(DEFAULT_SPONSORED_STORIES_SITE_ID, config.sponsoredStoriesParams.siteId)
         assertEquals("", config.sponsoredStoriesParams.country)
         assertEquals("", config.sponsoredStoriesParams.city)
+    }
+
+    @Test
+    fun `WHEN instantiating a PocketStoriesConfig THEN contentRecommendationsParams default value is used`() {
+        val config = PocketStoriesConfig(mock())
+
+        assertTrue(config.contentRecommendationsParams.locale.isBlank())
+        assertTrue(config.contentRecommendationsParams.region.isBlank())
+        assertTrue(config.contentRecommendationsParams.topics.isEmpty())
+        assertEquals(DEFAULT_CONTENT_RECOMMENDATIONS_COUNT, config.contentRecommendationsParams.count)
     }
 }

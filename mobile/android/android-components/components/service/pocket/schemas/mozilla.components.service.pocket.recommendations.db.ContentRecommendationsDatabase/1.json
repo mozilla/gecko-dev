@@ -1,0 +1,94 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "d1b396b0d1d2a36450bd80f72262b149",
+    "entities": [
+      {
+        "tableName": "content_recommendations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scheduledCorpusItemId` TEXT NOT NULL, `url` TEXT NOT NULL, `title` TEXT NOT NULL, `excerpt` TEXT NOT NULL, `topic` TEXT, `publisher` TEXT NOT NULL, `isTimeSensitive` INTEGER NOT NULL, `imageUrl` TEXT NOT NULL, `tileId` INTEGER NOT NULL, `receivedRank` INTEGER NOT NULL, `impressions` INTEGER NOT NULL, PRIMARY KEY(`scheduledCorpusItemId`))",
+        "fields": [
+          {
+            "fieldPath": "scheduledCorpusItemId",
+            "columnName": "scheduledCorpusItemId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "url",
+            "columnName": "url",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "excerpt",
+            "columnName": "excerpt",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "topic",
+            "columnName": "topic",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "publisher",
+            "columnName": "publisher",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isTimeSensitive",
+            "columnName": "isTimeSensitive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imageUrl",
+            "columnName": "imageUrl",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tileId",
+            "columnName": "tileId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "receivedRank",
+            "columnName": "receivedRank",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "impressions",
+            "columnName": "impressions",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "scheduledCorpusItemId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd1b396b0d1d2a36450bd80f72262b149')"
+    ]
+  }
+}
