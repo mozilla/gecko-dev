@@ -85,15 +85,12 @@ fxview-empty-state {
     font-size: var(--font-size-large);
   }
 
-  &::part(image) {
-    fill: var(--toolbar-bgcolor);
-    stroke: var(--toolbar-color);
-  }
   &::part(image-container) {
     min-width: auto;
     width: 100%;
     max-width: 250px;
   }
+
   /* these illustrations need a larger width otherwise they look too small */
   &.synced-tabs::part(image-container) {
     min-width: auto;
