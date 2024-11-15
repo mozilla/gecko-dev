@@ -652,7 +652,7 @@ bool OmxDataDecoder::Event(OMX_EVENTTYPE aEvent, OMX_U32 aData1,
         //
         // So client needs to disable port and reallocate buffers.
         MOZ_ASSERT(mPortSettingsChanged == -1);
-        mPortSettingsChanged = aData1;
+        mPortSettingsChanged = AssertedCast<int32_t>(aData1);
       }
       LOG("Got OMX_EventPortSettingsChanged event");
       break;
@@ -664,7 +664,7 @@ bool OmxDataDecoder::Event(OMX_EVENTTYPE aEvent, OMX_U32 aData1,
                     MediaResult(NS_ERROR_DOM_MEDIA_DECODE_ERR, __func__));
         return true;
       }
-      LOG("WARNING: got none handle event: %d, aData1: %ld, aData2: %ld",
+      LOG("WARNING: got none handle event: %d, aData1: %lu, aData2: %lu",
           aEvent, aData1, aData2);
       return false;
     }
@@ -929,7 +929,7 @@ already_AddRefed<VideoData> MediaDataHelper::CreateYUV420VideoData(
     BufferData* aBufferData) {
   uint8_t* yuv420p_buffer = (uint8_t*)aBufferData->mBuffer->pBuffer;
   int32_t stride = mOutputPortDef.format.video.nStride;
-  int32_t slice_height = mOutputPortDef.format.video.nSliceHeight;
+  uint32_t slice_height = mOutputPortDef.format.video.nSliceHeight;
   int32_t width = mTrackInfo->GetAsVideoInfo()->mImage.width;
   int32_t height = mTrackInfo->GetAsVideoInfo()->mImage.height;
 
