@@ -488,10 +488,10 @@ void nsBlockFrame::Destroy(DestroyContext& aContext) {
     RemoveStateBits(NS_BLOCK_HAS_OVERFLOW_OUT_OF_FLOWS);
   }
 
-  if (HasOutsideMarker()) {
+  if (HasMarker()) {
     SafelyDestroyFrameListProp(aContext, presShell, OutsideMarkerProperty());
+    RemoveStateBits(NS_BLOCK_HAS_MARKER);
   }
-  RemoveStateBits(NS_BLOCK_HAS_MARKER);
 
   nsContainerFrame::Destroy(aContext);
 }
@@ -1995,7 +1995,8 @@ nsReflowStatus nsBlockFrame::TrialReflow(nsPresContext* aPresContext,
   // rare case: an empty first line followed by a second line that
   // contains a block (example: <LI>\n<P>... ). This is where
   // the second case can happen.
-  if (HasOutsideMarker() && !mLines.empty() &&
+  nsIFrame* outsideMarker = GetOutsideMarker();
+  if (outsideMarker && !mLines.empty() &&
       (mLines.front()->IsBlock() ||
        (0 == mLines.front()->BSize() && mLines.front() != mLines.back() &&
         mLines.begin().next()->IsBlock()))) {
@@ -2009,12 +2010,11 @@ nsReflowStatus nsBlockFrame::TrialReflow(nsPresContext* aPresContext,
     nscoord lineBStart =
         havePosition ? position.mBStart
                      : aReflowInput.ComputedLogicalBorderPadding(wm).BStart(wm);
-    nsIFrame* marker = GetOutsideMarker();
-    ReflowOutsideMarker(marker, state, reflowOutput, lineBStart);
-    NS_ASSERTION(!MarkerIsEmpty() || reflowOutput.BSize(wm) == 0,
+    ReflowOutsideMarker(outsideMarker, state, reflowOutput, lineBStart);
+    NS_ASSERTION(!MarkerIsEmpty(outsideMarker) || reflowOutput.BSize(wm) == 0,
                  "empty ::marker frame took up space");
 
-    if (havePosition && !MarkerIsEmpty()) {
+    if (havePosition && !MarkerIsEmpty(outsideMarker)) {
       // We have some lines to align the ::marker with.
 
       // Doing the alignment using the baseline will also cater for
@@ -2022,18 +2022,20 @@ nsReflowStatus nsBlockFrame::TrialReflow(nsPresContext* aPresContext,
 
       // Tall ::markers won't look particularly nice here...
       LogicalRect bbox =
-          marker->GetLogicalRect(wm, reflowOutput.PhysicalSize());
+          outsideMarker->GetLogicalRect(wm, reflowOutput.PhysicalSize());
       const auto baselineGroup = BaselineSharingGroup::First;
       Maybe<nscoord> result;
-      if (MOZ_LIKELY(!wm.IsOrthogonalTo(marker->GetWritingMode()))) {
-        result = marker->GetNaturalBaselineBOffset(
+      if (MOZ_LIKELY(!wm.IsOrthogonalTo(outsideMarker->GetWritingMode()))) {
+        result = outsideMarker->GetNaturalBaselineBOffset(
             wm, baselineGroup, BaselineExportContext::LineLayout);
       }
-      const auto markerBaseline = result.valueOrFrom([bbox, wm, marker]() {
-        return bbox.BSize(wm) + marker->GetLogicalUsedMargin(wm).BEnd(wm);
-      });
+      const auto markerBaseline =
+          result.valueOrFrom([bbox, wm, outsideMarker]() {
+            return bbox.BSize(wm) +
+                   outsideMarker->GetLogicalUsedMargin(wm).BEnd(wm);
+          });
       bbox.BStart(wm) = position.mBaseline - markerBaseline;
-      marker->SetRect(wm, bbox, reflowOutput.PhysicalSize());
+      outsideMarker->SetRect(wm, bbox, reflowOutput.PhysicalSize());
     }
     // Otherwise just leave the ::marker where it is, up against our
     // block-start padding.
@@ -2457,9 +2459,9 @@ void nsBlockFrame::AlignContent(BlockReflowState& aState,
       kid->MovePositionBy(wm, translation);
       nsContainerFrame::PlaceFrameView(kid);
     }
-    if (HasOutsideMarker() && !mLines.empty()) {
-      nsIFrame* marker = GetOutsideMarker();
-      marker->MovePositionBy(wm, translation);
+    nsIFrame* outsideMarker = GetOutsideMarker();
+    if (outsideMarker && !mLines.empty()) {
+      outsideMarker->MovePositionBy(wm, translation);
     }
   }
 
@@ -3680,17 +3682,17 @@ bool nsBlockFrame::ReflowDirtyLines(BlockReflowState& aState) {
   }
 
   // Handle an odd-ball case: a list-item with no lines
-  if (mLines.empty() && HasOutsideMarker()) {
+  nsIFrame* outsideMarker = GetOutsideMarker();
+  if (outsideMarker && mLines.empty()) {
     ReflowOutput metrics(aState.mReflowInput);
-    nsIFrame* marker = GetOutsideMarker();
     WritingMode wm = aState.mReflowInput.GetWritingMode();
     ReflowOutsideMarker(
-        marker, aState, metrics,
+        outsideMarker, aState, metrics,
         aState.mReflowInput.ComputedPhysicalBorderPadding().top);
-    NS_ASSERTION(!MarkerIsEmpty() || metrics.BSize(wm) == 0,
+    NS_ASSERTION(!MarkerIsEmpty(outsideMarker) || metrics.BSize(wm) == 0,
                  "empty ::marker frame took up space");
 
-    if (!MarkerIsEmpty()) {
+    if (!MarkerIsEmpty(outsideMarker)) {
       // There are no lines so we have to fake up some y motion so that
       // we end up with *some* height.
       // (Note: if we're layout-contained, we have to be sure to leave our
@@ -3700,7 +3702,7 @@ bool nsBlockFrame::ReflowDirtyLines(BlockReflowState& aState) {
           metrics.BlockStartAscent() == ReflowOutput::ASK_FOR_BASELINE) {
         nscoord ascent;
         WritingMode wm = aState.mReflowInput.GetWritingMode();
-        if (nsLayoutUtils::GetFirstLineBaseline(wm, marker, &ascent)) {
+        if (nsLayoutUtils::GetFirstLineBaseline(wm, outsideMarker, &ascent)) {
           metrics.SetBlockStartAscent(ascent);
         } else {
           metrics.SetBlockStartAscent(metrics.BSize(wm));
@@ -3720,7 +3722,7 @@ bool nsBlockFrame::ReflowDirtyLines(BlockReflowState& aState) {
 
       nscoord offset = minAscent - metrics.BlockStartAscent();
       if (offset > 0) {
-        marker->SetRect(marker->GetRect() + nsPoint(0, offset));
+        outsideMarker->SetRect(outsideMarker->GetRect() + nsPoint(0, offset));
       }
     }
   }
@@ -4085,7 +4087,8 @@ bool nsBlockFrame::IsSelfEmpty() {
     return false;
   }
 
-  if (HasOutsideMarker() && !MarkerIsEmpty()) {
+  nsIFrame* outsideMarker = GetOutsideMarker();
+  if (outsideMarker && !MarkerIsEmpty(outsideMarker)) {
     return false;
   }
 
@@ -5541,17 +5544,17 @@ bool nsBlockFrame::PlaceLine(BlockReflowState& aState,
   // rare case: when the first line is empty.
   WritingMode wm = aState.mReflowInput.GetWritingMode();
   bool addedMarker = false;
-  if (HasOutsideMarker() &&
+  nsIFrame* outsideMarker = GetOutsideMarker();
+  if (outsideMarker &&
       ((aLine == mLines.front() &&
         (!aLineLayout.IsZeroBSize() || (aLine == mLines.back()))) ||
        (mLines.front() != mLines.back() && 0 == mLines.front()->BSize() &&
         aLine == mLines.begin().next()))) {
     ReflowOutput metrics(aState.mReflowInput);
-    nsIFrame* marker = GetOutsideMarker();
-    ReflowOutsideMarker(marker, aState, metrics, aState.mBCoord);
-    NS_ASSERTION(!MarkerIsEmpty() || metrics.BSize(wm) == 0,
+    ReflowOutsideMarker(outsideMarker, aState, metrics, aState.mBCoord);
+    NS_ASSERTION(!MarkerIsEmpty(outsideMarker) || metrics.BSize(wm) == 0,
                  "empty ::marker frame took up space");
-    aLineLayout.AddMarkerFrame(marker, metrics);
+    aLineLayout.AddMarkerFrame(outsideMarker, metrics);
     addedMarker = true;
   }
   aLineLayout.VerticalAlignLine();
@@ -6181,13 +6184,13 @@ void nsBlockFrame::SetOverflowOutOfFlows(nsFrameList&& aList,
 }
 
 nsIFrame* nsBlockFrame::GetInsideMarker() const {
-  if (!HasInsideMarker()) {
+  if (!HasMarker()) {
     return nullptr;
   }
-  NS_ASSERTION(!HasOutsideMarker(), "invalid marker state");
-  nsIFrame* frame = GetProperty(InsideMarkerProperty());
-  NS_ASSERTION(frame, "bogus inside ::marker frame");
-  return frame;
+  if (nsIFrame* frame = GetProperty(InsideMarkerProperty())) {
+    return frame;
+  }
+  return nullptr;
 }
 
 nsIFrame* nsBlockFrame::GetOutsideMarker() const {
@@ -6196,13 +6199,14 @@ nsIFrame* nsBlockFrame::GetOutsideMarker() const {
 }
 
 nsFrameList* nsBlockFrame::GetOutsideMarkerList() const {
-  if (!HasOutsideMarker()) {
+  if (!HasMarker()) {
     return nullptr;
   }
-  NS_ASSERTION(!HasInsideMarker(), "invalid marker state");
-  nsFrameList* list = GetProperty(OutsideMarkerProperty());
-  NS_ASSERTION(list && list->GetLength() == 1, "bogus outside ::marker list");
-  return list;
+  if (nsFrameList* list = GetProperty(OutsideMarkerProperty())) {
+    MOZ_ASSERT(list->GetLength() == 1, "bogus outside ::marker list");
+    return list;
+  }
+  return nullptr;
 }
 
 bool nsBlockFrame::HasFloats() const {
@@ -7879,9 +7883,9 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   aBuilder->MarkFramesForDisplayList(this,
                                      GetChildList(FrameChildListID::Float));
 
-  if (HasOutsideMarker()) {
+  if (nsIFrame* outsideMarker = GetOutsideMarker()) {
     // Display outside ::marker manually.
-    BuildDisplayListForChild(aBuilder, GetOutsideMarker(), aLists);
+    BuildDisplayListForChild(aBuilder, outsideMarker, aLists);
   }
 
   // Prepare for text-overflow processing.
@@ -8300,19 +8304,14 @@ void nsBlockFrame::SetMarkerFrameForListItem(nsIFrame* aMarkerFrame) {
   AddStateBits(NS_BLOCK_HAS_MARKER);
 }
 
-bool nsBlockFrame::MarkerIsEmpty() const {
-  NS_ASSERTION(mContent->GetPrimaryFrame()->StyleDisplay()->IsListItem() &&
-                   HasOutsideMarker(),
-               "should only care when we have an outside ::marker");
-  nsIFrame* marker = GetMarker();
-  const nsStyleList* list = marker->StyleList();
-  return marker->StyleContent()->mContent.IsNone() ||
+bool nsBlockFrame::MarkerIsEmpty(const nsIFrame* aMarker) const {
+  MOZ_ASSERT(mContent->GetPrimaryFrame()->StyleDisplay()->IsListItem() &&
+                 aMarker == GetOutsideMarker(),
+             "should only care about an outside ::marker");
+  const nsStyleList* list = aMarker->StyleList();
+  return aMarker->StyleContent()->mContent.IsNone() ||
          (list->mListStyleType.IsNone() && list->mListStyleImage.IsNone() &&
-          marker->StyleContent()->NonAltContentItems().IsEmpty());
-}
-
-bool nsBlockFrame::HasInsideMarker() const {
-  return HasMarker() && HasProperty(InsideMarkerProperty());
+          aMarker->StyleContent()->NonAltContentItems().IsEmpty());
 }
 
 bool nsBlockFrame::HasOutsideMarker() const {
