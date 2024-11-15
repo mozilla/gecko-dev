@@ -84,20 +84,20 @@ sidebar-callout-survey-privacy-notice-link = Privacy Notice
 sidebar-callout-survey-very-satisfied = Very satisfied
 sidebar-callout-survey-satisfied = Satisfied
 sidebar-callout-survey-neutral = Neutral
-sidebar-callout-survey-dissatisfied = Unsatisfied
-sidebar-callout-survey-very-dissatisfied = Very unsatisfied
+sidebar-callout-survey-dissatisfied-2 = Dissatisfied
+sidebar-callout-survey-very-dissatisfied-2 = Very dissatisfied
 sidebar-callout-survey-dont-use-it = I don’t use it
 sidebar-callout-survey-productive-question =
     To what extent do you agree or disagree with this statement:<br/>
     “The { -brand-short-name } sidebar helps me be more productive”?
-sidebar-callout-survey-strongly-agree = Strongly Agree
+sidebar-callout-survey-strongly-agree = Strongly agree
 sidebar-callout-survey-agree = Agree
 sidebar-callout-survey-disagree = Disagree
 sidebar-callout-survey-strongly-disagree = Strongly disagree
 sidebar-callout-survey-features-question = The following are potential sidebar features. Which would improve your productivity in { -brand-short-name } the most?
 sidebar-callout-survey-split-view = View any two websites at once, in a side-by-side split view
 sidebar-callout-survey-keep-website-open = Keep a website, like email or calendar, open in the sidebar as you browse
-sidebar-callout-survey-saved-websites = Quick access to all your saved websites
+sidebar-callout-survey-saved-websites-2 = Quick access to your bookmarks
 sidebar-callout-survey-none-of-above = None of the above
 sidebar-callout-survey-submit = Submit
 sidebar-callout-survey-thank-you = Thank you for your feedback!
