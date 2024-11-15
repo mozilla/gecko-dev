@@ -13,13 +13,19 @@ import androidx.test.espresso.contrib.RecyclerViewActions
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.hasDescendant
 import androidx.test.espresso.matcher.ViewMatchers.hasSibling
+import androidx.test.espresso.matcher.ViewMatchers.withClassName
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.Matchers
+import org.hamcrest.Matchers.endsWith
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.TestHelper.hasCousin
 import org.mozilla.fenix.helpers.click
+import org.mozilla.fenix.helpers.isChecked
 
 /**
  * Implementation of Robot Pattern for the settings Site Permissions sub menu.
@@ -37,6 +43,25 @@ class SettingsSubMenuSitePermissionsRobot {
         goBackButton().check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
         Log.i(TAG, "verifyToolbarGoBackButton: Verified that the navigate up toolbar button is visible")
     }
+
+    fun verifyContentHeading() =
+        onView(withText(getStringResource(org.mozilla.fenix.R.string.preferences_category_content))).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+
+    fun verifyAlwaysRequestDesktopSiteOption() {
+        Log.i(TAG, "verifyAlwaysRequestDesktopSiteOption: Trying to verify that the \"Always request desktop site\" option is visible")
+        alwaysRequestDesktopSiteOption().check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        Log.i(TAG, "verifyAlwaysRequestDesktopSiteOption: Verified that the \"Always request desktop site\" toption is visible")
+    }
+
+    fun verifyAlwaysRequestDesktopSiteToggleIsEnabled(enabled: Boolean) {
+        Log.i(TAG, "verifyAlwaysRequestDesktopSiteToggleIsEnabled: Trying to verify that the \"Always request desktop site\" toggle is checked: $enabled")
+        alwaysRequestDesktopSiteOption()
+            .check(matches(hasCousin(Matchers.allOf(withClassName(endsWith("Switch")), isChecked(enabled)))))
+        Log.i(TAG, "verifyAlwaysRequestDesktopSiteToggleIsEnabled: Verified that the \"Always request desktop site\" toggle is checked: $enabled")
+    }
+
+    fun verifyPermissionsHeading() =
+        onView(withText(getStringResource(org.mozilla.fenix.R.string.preferences_category_permissions))).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
 
     fun verifySitePermissionOption(option: String, summary: String = "") {
         Log.i(TAG, "verifySitePermissionOption: Trying to perform scroll action to the $option option button")
@@ -213,6 +238,9 @@ class SettingsSubMenuSitePermissionsRobot {
 
 private fun goBackButton() =
     onView(withContentDescription("Navigate up"))
+
+private fun alwaysRequestDesktopSiteOption() =
+    onView(withText(getStringResource(org.mozilla.fenix.R.string.preference_feature_desktop_mode_default)))
 
 private fun openAutoPlay() =
     onView(allOf(withText("Autoplay")))

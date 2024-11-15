@@ -54,6 +54,10 @@ class SettingsSitePermissionsTest : TestSetup() {
         }.openSettingsSubMenuSiteSettings {
             verifySiteSettingsToolbarTitle()
             verifyToolbarGoBackButton()
+            verifyContentHeading()
+            verifyAlwaysRequestDesktopSiteOption()
+            verifyAlwaysRequestDesktopSiteToggleIsEnabled(enabled = false)
+            verifyPermissionsHeading()
             verifySitePermissionOption("Autoplay", "Block audio only")
             verifySitePermissionOption("Camera", "Blocked by Android")
             verifySitePermissionOption("Location", "Blocked by Android")
