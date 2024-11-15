@@ -2496,47 +2496,46 @@ void js::Nursery::clearMapAndSetNurseryRanges() {
   // Clears the lists of nursery ranges used by map and set iterators. These
   // lists are cleared at the start of minor GC and rebuilt when iterators are
   // promoted during minor GC.
-  for (auto* map : mapsWithNurseryMemory_) {
+  for (auto* map : mapsWithNurseryRanges_) {
     map->clearNurseryRangesBeforeMinorGC();
   }
-  for (auto* set : setsWithNurseryMemory_) {
+  for (auto* set : setsWithNurseryRanges_) {
     set->clearNurseryRangesBeforeMinorGC();
   }
 }
 
 void js::Nursery::sweepMapAndSetObjects() {
   // This processes all Map and Set objects that are known to have associated
-  // nursery memory (either they are nursery allocated themselves or they have
-  // iterator objects that are nursery allocated).
+  // nursery ranges (iterator objects that are nursery allocated).
   //
   // These objects may die and be finalized or if not their internal state and
   // memory tracking are updated.
   //
   // Finally the lists themselves are rebuilt so as to remove objects that are
-  // no longer associated with nursery memory (either because they died or
-  // because the nursery object was promoted to the tenured heap).
+  // no longer associated with nursery ranges (because all iterators died or
+  // were promoted to the tenured heap).
 
   auto* gcx = runtime()->gcContext();
 
   AutoEnterOOMUnsafeRegion oomUnsafe;
 
   MapObjectVector maps;
-  std::swap(mapsWithNurseryMemory_, maps);
+  std::swap(mapsWithNurseryRanges_, maps);
   for (auto* mapobj : maps) {
     mapobj = MapObject::sweepAfterMinorGC(gcx, mapobj);
     if (mapobj) {
-      if (!mapsWithNurseryMemory_.append(mapobj)) {
+      if (!mapsWithNurseryRanges_.append(mapobj)) {
         oomUnsafe.crash("sweepAfterMinorGC");
       }
     }
   }
 
   SetObjectVector sets;
-  std::swap(setsWithNurseryMemory_, sets);
+  std::swap(setsWithNurseryRanges_, sets);
   for (auto* setobj : sets) {
     setobj = SetObject::sweepAfterMinorGC(gcx, setobj);
     if (setobj) {
-      if (!setsWithNurseryMemory_.append(setobj)) {
+      if (!setsWithNurseryRanges_.append(setobj)) {
         oomUnsafe.crash("sweepAfterMinorGC");
       }
     }

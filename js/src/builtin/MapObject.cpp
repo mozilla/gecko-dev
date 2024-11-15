@@ -244,13 +244,15 @@ bool GlobalObject::initMapIteratorProto(JSContext* cx,
 }
 
 template <typename TableObject>
-static inline bool HasNurseryMemory(TableObject* t) {
-  return t->getReservedSlot(TableObject::HasNurseryMemorySlot).toBoolean();
+static inline bool HasRegisteredNurseryRanges(TableObject* t) {
+  Value v = t->getReservedSlot(TableObject::RegisteredNurseryRangesSlot);
+  return v.toBoolean();
 }
 
 template <typename TableObject>
-static inline void SetHasNurseryMemory(TableObject* t, bool b) {
-  t->setReservedSlot(TableObject::HasNurseryMemorySlot, JS::BooleanValue(b));
+static inline void SetRegisteredNurseryRanges(TableObject* t, bool b) {
+  t->setReservedSlot(TableObject::RegisteredNurseryRangesSlot,
+                     JS::BooleanValue(b));
 }
 
 MapIteratorObject* MapIteratorObject::create(JSContext* cx, HandleObject obj,
@@ -297,12 +299,12 @@ MapIteratorObject* MapIteratorObject::create(JSContext* cx, HandleObject obj,
   bool insideNursery = IsInsideNursery(iterobj);
   MOZ_ASSERT(insideNursery == nursery.isInside(buffer));
 
-  if (insideNursery && !HasNurseryMemory(mapobj.get())) {
-    if (!cx->nursery().addMapWithNurseryMemory(mapobj)) {
+  if (insideNursery && !HasRegisteredNurseryRanges(mapobj.get())) {
+    if (!cx->nursery().addMapWithNurseryRanges(mapobj)) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    SetHasNurseryMemory(mapobj.get(), true);
+    SetRegisteredNurseryRanges(mapobj.get(), true);
   }
 
   auto range = MapObject::Table(mapobj).createRange(buffer, insideNursery);
@@ -354,10 +356,6 @@ size_t MapIteratorObject::objectMoved(JSObject* obj, JSObject* old) {
       new (buffer) MapObject::Table::Range(mapObj, *range, iteratorIsInNursery);
   range->~Range();
   iter->setReservedSlot(MapIteratorObject::RangeSlot, PrivateValue(newRange));
-
-  if (iteratorIsInNursery && iter->target()) {
-    SetHasNurseryMemory(iter->target(), true);
-  }
 
   return size;
 }
@@ -714,15 +712,8 @@ MapObject* MapObject::create(JSContext* cx,
     return nullptr;
   }
 
-  bool insideNursery = IsInsideNursery(mapObj);
-  if (insideNursery && !cx->nursery().addMapWithNurseryMemory(mapObj)) {
-    ReportOutOfMemory(cx);
-    return nullptr;
-  }
-
   mapObj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
-  mapObj->initReservedSlot(HasNurseryMemorySlot,
-                           JS::BooleanValue(insideNursery));
+  mapObj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
   return mapObj;
 }
 
@@ -773,7 +764,6 @@ size_t MapObject::objectMoved(JSObject* obj, JSObject* old) {
 
 void MapObject::clearNurseryRangesBeforeMinorGC() {
   Table(this).destroyNurseryRanges();
-  SetHasNurseryMemory(this, false);
 }
 
 /* static */
@@ -781,21 +771,16 @@ MapObject* MapObject::sweepAfterMinorGC(JS::GCContext* gcx, MapObject* mapobj) {
   Nursery& nursery = gcx->runtime()->gc.nursery();
   bool wasInCollectedRegion = nursery.inCollectedRegion(mapobj);
   if (wasInCollectedRegion && !IsForwarded(mapobj)) {
+    // This MapObject is dead.
     return nullptr;
   }
 
   mapobj = MaybeForwarded(mapobj);
 
-  bool insideNursery = IsInsideNursery(mapobj);
-  if (insideNursery) {
-    SetHasNurseryMemory(mapobj, true);
-  }
-
-  if (!HasNurseryMemory(mapobj)) {
-    return nullptr;
-  }
-
-  return mapobj;
+  // Keep |mapobj| registered with the nursery if it still has nursery ranges.
+  bool hasNurseryRanges = Table(mapobj).hasNurseryRanges();
+  SetRegisteredNurseryRanges(mapobj, hasNurseryRanges);
+  return hasNurseryRanges ? mapobj : nullptr;
 }
 
 bool MapObject::construct(JSContext* cx, unsigned argc, Value* vp) {
@@ -1161,12 +1146,12 @@ SetIteratorObject* SetIteratorObject::create(JSContext* cx, HandleObject obj,
   bool insideNursery = IsInsideNursery(iterobj);
   MOZ_ASSERT(insideNursery == nursery.isInside(buffer));
 
-  if (insideNursery && !HasNurseryMemory(setobj.get())) {
-    if (!cx->nursery().addSetWithNurseryMemory(setobj)) {
+  if (insideNursery && !HasRegisteredNurseryRanges(setobj.get())) {
+    if (!cx->nursery().addSetWithNurseryRanges(setobj)) {
       ReportOutOfMemory(cx);
       return nullptr;
     }
-    SetHasNurseryMemory(setobj.get(), true);
+    SetRegisteredNurseryRanges(setobj.get(), true);
   }
 
   auto range = SetObject::Table(setobj).createRange(buffer, insideNursery);
@@ -1219,10 +1204,6 @@ size_t SetIteratorObject::objectMoved(JSObject* obj, JSObject* old) {
       new (buffer) SetObject::Table::Range(setObj, *range, iteratorIsInNursery);
   range->~Range();
   iter->setReservedSlot(SetIteratorObject::RangeSlot, PrivateValue(newRange));
-
-  if (iteratorIsInNursery && iter->target()) {
-    SetHasNurseryMemory(iter->target(), true);
-  }
 
   return size;
 }
@@ -1423,14 +1404,8 @@ SetObject* SetObject::create(JSContext* cx,
     return nullptr;
   }
 
-  bool insideNursery = IsInsideNursery(obj);
-  if (insideNursery && !cx->nursery().addSetWithNurseryMemory(obj)) {
-    ReportOutOfMemory(cx);
-    return nullptr;
-  }
-
   obj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
-  obj->initReservedSlot(HasNurseryMemorySlot, JS::BooleanValue(insideNursery));
+  obj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
   return obj;
 }
 
@@ -1484,7 +1459,6 @@ size_t SetObject::objectMoved(JSObject* obj, JSObject* old) {
 
 void SetObject::clearNurseryRangesBeforeMinorGC() {
   Table(this).destroyNurseryRanges();
-  SetHasNurseryMemory(this, false);
 }
 
 /* static */
@@ -1492,21 +1466,16 @@ SetObject* SetObject::sweepAfterMinorGC(JS::GCContext* gcx, SetObject* setobj) {
   Nursery& nursery = gcx->runtime()->gc.nursery();
   bool wasInCollectedRegion = nursery.inCollectedRegion(setobj);
   if (wasInCollectedRegion && !IsForwarded(setobj)) {
+    // This SetObject is dead.
     return nullptr;
   }
 
   setobj = MaybeForwarded(setobj);
 
-  bool insideNursery = IsInsideNursery(setobj);
-  if (insideNursery) {
-    SetHasNurseryMemory(setobj, true);
-  }
-
-  if (!HasNurseryMemory(setobj)) {
-    return nullptr;
-  }
-
-  return setobj;
+  // Keep |setobj| registered with the nursery if it still has nursery ranges.
+  bool hasNurseryRanges = Table(setobj).hasNurseryRanges();
+  SetRegisteredNurseryRanges(setobj, hasNurseryRanges);
+  return hasNurseryRanges ? setobj : nullptr;
 }
 
 bool SetObject::isBuiltinAdd(HandleValue add) {

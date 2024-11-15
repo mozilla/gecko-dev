@@ -844,9 +844,7 @@ class MOZ_STACK_CLASS OrderedHashTableImpl {
     }
   }
 
-#ifdef DEBUG
   bool hasNurseryRanges() const { return getNurseryRanges(); }
-#endif
 
   /*
    * Change the value of the given key.
@@ -1197,9 +1195,7 @@ class MOZ_STACK_CLASS OrderedHashMapImpl {
   void updateRangesAfterMove(OrderedHashMapObject* old) {
     impl.updateRangesAfterMove(old);
   }
-#ifdef DEBUG
   bool hasNurseryRanges() const { return impl.hasNurseryRanges(); }
-#endif
 
   void maybeMoveBufferOnPromotion(Nursery& nursery) {
     return impl.maybeMoveBufferOnPromotion(nursery);
@@ -1294,9 +1290,7 @@ class MOZ_STACK_CLASS OrderedHashSetImpl {
   void updateRangesAfterMove(OrderedHashSetObject* old) {
     impl.updateRangesAfterMove(old);
   }
-#ifdef DEBUG
   bool hasNurseryRanges() const { return impl.hasNurseryRanges(); }
-#endif
 
   void maybeMoveBufferOnPromotion(Nursery& nursery) {
     return impl.maybeMoveBufferOnPromotion(nursery);

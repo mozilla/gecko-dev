@@ -127,7 +127,11 @@ class MapObject : public OrderedHashMapObject {
 
   friend class OrderedHashTableRef<MapObject>;
 
-  enum { NurseryKeysSlot = Table::SlotCount, HasNurseryMemorySlot, SlotCount };
+  enum {
+    NurseryKeysSlot = Table::SlotCount,
+    RegisteredNurseryRangesSlot,
+    SlotCount
+  };
 
   enum IteratorKind { Keys, Values, Entries };
   static_assert(
@@ -282,7 +286,11 @@ class SetObject : public OrderedHashSetObject {
 
   friend class OrderedHashTableRef<SetObject>;
 
-  enum { NurseryKeysSlot = Table::SlotCount, HasNurseryMemorySlot, SlotCount };
+  enum {
+    NurseryKeysSlot = Table::SlotCount,
+    RegisteredNurseryRangesSlot,
+    SlotCount
+  };
 
   enum IteratorKind { Keys, Values, Entries };
 
