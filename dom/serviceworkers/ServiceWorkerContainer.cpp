@@ -606,39 +606,6 @@ Promise* ServiceWorkerContainer::GetReady(ErrorResult& aRv) {
   return mReadyPromise;
 }
 
-// Testing only.
-void ServiceWorkerContainer::GetScopeForUrl(const nsAString& aUrl,
-                                            nsString& aScope,
-                                            ErrorResult& aRv) {
-  nsCOMPtr<nsIServiceWorkerManager> swm =
-      mozilla::components::ServiceWorkerManager::Service();
-  if (!swm) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
-  if (NS_WARN_IF(!window)) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return;
-  }
-
-  nsCOMPtr<nsIPrincipal> principal;
-  nsresult rv = StoragePrincipalHelper::GetPrincipal(
-      window,
-      StaticPrefs::privacy_partition_serviceWorkers()
-          ? StoragePrincipalHelper::eForeignPartitionedPrincipal
-          : StoragePrincipalHelper::eRegularPrincipal,
-      getter_AddRefs(principal));
-
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(rv);
-    return;
-  }
-
-  aRv = swm->GetScopeForUrl(principal, aUrl, aScope);
-}
-
 nsIGlobalObject* ServiceWorkerContainer::GetGlobalIfValid(
     ErrorResult& aRv,
     const std::function<void(nsIGlobalObject*)>&& aStorageFailureCB) const {

@@ -35,12 +35,6 @@ interface ServiceWorkerContainer : EventTarget {
   attribute EventHandler onmessageerror;
 };
 
-// Testing only.
-partial interface ServiceWorkerContainer {
-  [Throws,Pref="dom.serviceWorkers.testing.enabled"]
-  DOMString getScopeForUrl(DOMString url);
-};
-
 dictionary RegistrationOptions {
   USVString scope;
   ServiceWorkerUpdateViaCache updateViaCache = "imports";
