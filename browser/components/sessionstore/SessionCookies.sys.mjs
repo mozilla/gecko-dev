@@ -62,6 +62,14 @@ var SessionCookiesInternal = {
         );
       }
       if (!exists) {
+        // Enforces isPartitioned if the partitionKey is set. We need to do this
+        // because the session store didn't store the isPartitioned flag.
+        // Otherwise, we'd end up setting partitioned cookies without
+        // isPartitioned flag.
+        let isPartitioned =
+          cookie.isPartitioned ||
+          cookie.originAttributes?.partitionKey?.length > 0;
+
         try {
           Services.cookies.add(
             cookie.host,
@@ -75,7 +83,7 @@ var SessionCookiesInternal = {
             cookie.originAttributes || {},
             cookie.sameSite || Ci.nsICookie.SAMESITE_NONE,
             cookie.schemeMap || Ci.nsICookie.SCHEME_HTTPS,
-            cookie.isPartitioned
+            isPartitioned
           );
         } catch (ex) {
           console.error(
