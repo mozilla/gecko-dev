@@ -37,6 +37,9 @@ const gConfig = (function () {
     privacyPolicyUrl: Services.urlFormatter.formatURLPref(
       "signon.firefoxRelay.privacy_policy_url"
     ),
+    allowListForFirstOfferPref: "signon.firefoxRelay.allowListForFirstOffer",
+    allowListRemoteSettingsCollectionPref:
+      "signon.firefoxRelay.allowListRemoteSettingsCollection",
   };
 })();
 
@@ -59,6 +62,11 @@ ChromeUtils.defineLazyGetter(lazy, "strings", function () {
     "toolkit/branding/brandings.ftl",
   ]);
 });
+ChromeUtils.defineESModuleGetters(lazy, {
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  RemoteSettingsClient:
+    "resource://services-settings/RemoteSettingsClient.sys.mjs",
+});
 
 if (Services.appinfo.processType !== Services.appinfo.PROCESS_TYPE_DEFAULT) {
   throw new Error("FirefoxRelay.sys.mjs should only run in the parent process");
@@ -68,6 +76,7 @@ if (Services.appinfo.processType !== Services.appinfo.PROCESS_TYPE_DEFAULT) {
 const AUTH_TOKEN_ERROR_CODE = 418;
 
 let gFlowId;
+let gAllowListCollection;
 
 async function getRelayTokenAsync() {
   try {
@@ -420,14 +429,52 @@ function isSignup(scenarioName) {
   return scenarioName == "SignUpFormScenario";
 }
 
+async function onAllowList(origin) {
+  const allowListForFirstOffer = Services.prefs.getBoolPref(
+    gConfig.allowListForFirstOfferPref,
+    true
+  );
+  if (!allowListForFirstOffer) {
+    return true;
+  }
+  if (!gAllowListCollection) {
+    const allowListRemoteSettingsCollection = Services.prefs.getStringPref(
+      gConfig.allowListRemoteSettingsCollectionPref,
+      "fxrelay-allowlist"
+    );
+    try {
+      gAllowListCollection = await lazy
+        .RemoteSettings(allowListRemoteSettingsCollection)
+        .get();
+      lazy.RemoteSettings(allowListRemoteSettingsCollection).on("sync", () => {
+        gAllowListCollection = null;
+      });
+    } catch (ex) {
+      if (ex instanceof lazy.RemoteSettingsClient.UnknownCollectionError) {
+        lazy.log.warn(
+          "Could not get Remote Settings collection.",
+          gConfig.allowListRemoteSettingsCollection,
+          ex
+        );
+      }
+      throw ex;
+    }
+  }
+  const originHost = new URL(origin).host;
+  return gAllowListCollection.some(
+    allowListRecord => allowListRecord.domain == originHost
+  );
+}
+
 class RelayOffered {
-  async *autocompleteItemsAsync(_origin, scenarioName, hasInput) {
+  async *autocompleteItemsAsync(origin, scenarioName, hasInput) {
     if (
       !hasInput &&
       isSignup(scenarioName) &&
       !Services.prefs.prefIsLocked(gConfig.relayFeaturePref) &&
       ((await hasFirefoxAccountAsync()) ||
-        Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false))
+        Services.prefs.getBoolPref(gConfig.showToAllBrowsersPref, false)) &&
+      (await onAllowList(origin))
     ) {
       const [title, subtitle] = await formatMessages(
         "firefox-relay-opt-in-title-1",

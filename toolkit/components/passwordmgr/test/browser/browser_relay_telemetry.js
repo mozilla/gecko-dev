@@ -116,6 +116,7 @@ add_task(async function test_pref_toggle() {
 add_task(async function test_popup_option_optin_enabled() {
   await setupRelayScenario("available");
   setupServerScenario();
+  const rsSandbox = await stubRemoteSettingsAllowList();
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -180,10 +181,12 @@ add_task(async function test_popup_option_optin_enabled() {
       ]);
     }
   );
+  rsSandbox.restore();
 });
 
 add_task(async function test_popup_option_optin_postponed() {
   await setupRelayScenario("available");
+  const rsSandbox = await stubRemoteSettingsAllowList();
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -217,10 +220,12 @@ add_task(async function test_popup_option_optin_postponed() {
       ]);
     }
   );
+  rsSandbox.restore();
 });
 
 add_task(async function test_popup_option_optin_disabled() {
   await setupRelayScenario("available");
+  const rsSandbox = await stubRemoteSettingsAllowList();
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -253,10 +258,12 @@ add_task(async function test_popup_option_optin_disabled() {
       ]);
     }
   );
+  rsSandbox.restore();
 });
 
 add_task(async function test_popup_option_fillusername() {
   await setupRelayScenario("enabled");
+  const rsSandbox = await stubRemoteSettingsAllowList();
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -277,11 +284,13 @@ add_task(async function test_popup_option_fillusername() {
       ]);
     }
   );
+  rsSandbox.restore();
 });
 
 add_task(async function test_fillusername_free_tier_limit() {
   await setupRelayScenario("enabled");
   setupServerScenario("free_tier_limit");
+  const rsSandbox = await stubRemoteSettingsAllowList();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -336,11 +345,13 @@ add_task(async function test_fillusername_free_tier_limit() {
       });
     }
   );
+  rsSandbox.restore();
 });
 
 add_task(async function test_fillusername_error() {
   await setupRelayScenario("enabled");
   setupServerScenario("unknown_error");
+  const rsSandbox = await stubRemoteSettingsAllowList();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -377,10 +388,12 @@ add_task(async function test_fillusername_error() {
       ]);
     }
   );
+  rsSandbox.restore();
 });
 
 add_task(async function test_auth_token_error() {
   setupRelayScenario("enabled");
+  const rsSandbox = await stubRemoteSettingsAllowList();
   gFxAccounts.getOAuthToken.restore();
   const oauthTokenStub = sinon.stub(gFxAccounts, "getOAuthToken").throws();
   await BrowserTestUtils.withNewTab(
@@ -427,5 +440,6 @@ add_task(async function test_auth_token_error() {
       ]);
     }
   );
+  rsSandbox.restore();
   oauthTokenStub.restore();
 });

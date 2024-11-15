@@ -791,7 +791,7 @@ export class LoginManagerParent extends JSWindowActorParent {
     if (!hasBeenTypePassword) {
       autocompleteItems.push(
         ...(await lazy.FirefoxRelay.autocompleteItemsAsync({
-          formOrigin,
+          origin: formOrigin,
           scenarioName,
           hasInput: !!searchStringLower.length,
         }))

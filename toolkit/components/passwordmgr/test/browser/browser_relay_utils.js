@@ -1,3 +1,5 @@
+const lazy = {};
+
 const { HttpServer } = ChromeUtils.importESModule(
   "resource://testing-common/httpd.sys.mjs"
 );
@@ -7,7 +9,14 @@ const { sinon } = ChromeUtils.importESModule(
 const { getFxAccountsSingleton } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
 );
+ChromeUtils.defineESModuleGetters(lazy, {
+  RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+});
 
+const allowListRemoteSettingsCollection = Services.prefs.getStringPref(
+  "signon.firefoxRelay.allowListRemoteSettingsCollection",
+  "fxrelay-allowlist"
+);
 const gFxAccounts = getFxAccountsSingleton();
 let gRelayHttpServer;
 let gRelayACOptionsTitles;
@@ -89,6 +98,16 @@ async function setUpMockRelayServer() {
     SpecialPowers.clearUserPref("signon.firefoxRelay.feature");
     SpecialPowers.clearUserPref("signon.firefoxRelay.base_url");
   });
+}
+
+async function stubRemoteSettingsAllowList(
+  allowList = [{ domain: "example.org" }]
+) {
+  const allowListRS = await lazy.RemoteSettings("fxrelay-allowlist");
+  const rsSandbox = sinon.createSandbox();
+  rsSandbox.stub(allowListRS, "get").returns(allowList);
+  allowListRS.emit("sync");
+  return rsSandbox;
 }
 
 add_setup(async function () {

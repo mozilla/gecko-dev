@@ -28,6 +28,7 @@ add_task(
 
 add_task(async function test_default_displays_Relay_to_signed_in_browser() {
   const sandbox = stubFxAccountsToSimulateSignedIn();
+  const rsSandbox = await stubRemoteSettingsAllowList();
 
   await BrowserTestUtils.withNewTab(
     {
@@ -47,11 +48,13 @@ add_task(async function test_default_displays_Relay_to_signed_in_browser() {
   );
 
   sandbox.restore();
+  rsSandbox.restore();
 });
 
 add_task(
   async function test_authenticated_browser_use_email_mask_calls_fxa_and_relay_functions() {
     const sandbox = stubFxAccountsToSimulateSignedIn();
+    const rsSandbox = await stubRemoteSettingsAllowList();
     await setUpMockRelayServer();
     setupServerScenario();
 
@@ -84,5 +87,6 @@ add_task(
       }
     );
     sandbox.restore();
+    rsSandbox.restore();
   }
 );

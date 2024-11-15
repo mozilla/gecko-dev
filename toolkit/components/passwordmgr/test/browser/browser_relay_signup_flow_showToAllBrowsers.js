@@ -13,6 +13,7 @@ add_setup(async () => {
 
 add_task(
   async function test_showToAllBrowsers_displays_Relay_autocomplete_item_to_unauthenticated_browser() {
+    const rsSandbox = await stubRemoteSettingsAllowList();
     await BrowserTestUtils.withNewTab(
       {
         gBrowser,
@@ -29,11 +30,82 @@ add_task(
         );
       }
     );
+    rsSandbox.restore();
+  }
+);
+
+add_task(async function test_site_not_on_allowList_doesnt_show_Relay() {
+  const rsSandbox = await stubRemoteSettingsAllowList([
+    { domain: "not-example.org" },
+  ]);
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_URL_PATH,
+    },
+    async function (browser) {
+      const popup = document.getElementById("PopupAutoComplete");
+      await openACPopup(popup, browser, "#form-basic-username");
+
+      const relayItem = getRelayItemFromACPopup(popup);
+      Assert.ok(
+        !relayItem,
+        "Relay item SHOULD NOT be present in the autocomplete popup when the site is not on the allow-list."
+      );
+    }
+  );
+  rsSandbox.restore();
+});
+
+add_task(
+  async function test_showToAllBrowsers_open_ACPopup_twice_calls_RemoteSettings_once() {
+    const rsSandbox = await stubRemoteSettingsAllowList();
+    await BrowserTestUtils.withNewTab(
+      {
+        gBrowser,
+        url: TEST_URL_PATH,
+      },
+      async function (browser) {
+        const popup = document.getElementById("PopupAutoComplete");
+        await openACPopup(popup, browser, "#form-basic-username");
+
+        const relayItem = getRelayItemFromACPopup(popup);
+        Assert.ok(
+          relayItem,
+          "Relay item SHOULD be present in the autocomplete popup when the browser IS NOT signed in and the signon.firefoxRelay.showToAllBrowsers config is set to true."
+        );
+      }
+    );
+    const rsSandboxRemoteSettingsGetCallsBeforeSecondACPopup =
+      rsSandbox.getFakes()[0].callCount;
+    await BrowserTestUtils.withNewTab(
+      {
+        gBrowser,
+        url: TEST_URL_PATH,
+      },
+      async function (browser) {
+        const popup = document.getElementById("PopupAutoComplete");
+        await openACPopup(popup, browser, "#form-basic-username");
+
+        const relayItem = getRelayItemFromACPopup(popup);
+        Assert.ok(
+          relayItem,
+          "Relay item SHOULD be present in the autocomplete popup when the browser IS NOT signed in and the signon.firefoxRelay.showToAllBrowsers config is set to true."
+        );
+      }
+    );
+    Assert.equal(
+      rsSandbox.getFakes()[0].callCount,
+      rsSandboxRemoteSettingsGetCallsBeforeSecondACPopup,
+      "FirefoxRelay onAllowList should only call RemoteSettings.get() once."
+    );
+    rsSandbox.restore();
   }
 );
 
 add_task(
   async function test_showToAllBrowsers_click_on_Relay_opens_optin_prompt() {
+    const rsSandbox = await stubRemoteSettingsAllowList();
     await BrowserTestUtils.withNewTab(
       {
         gBrowser,
@@ -78,10 +150,12 @@ add_task(
         );
       }
     );
+    rsSandbox.restore();
   }
 );
 
 add_task(async function test_dismiss_Relay_optin_shows_Relay_again_later() {
+  const rsSandbox = await stubRemoteSettingsAllowList();
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
@@ -109,6 +183,7 @@ add_task(async function test_dismiss_Relay_optin_shows_Relay_again_later() {
       );
     }
   );
+  rsSandbox.restore();
 });
 
 async function clickThruMoreActionsToDisableRelay(notificationPopup) {
@@ -125,6 +200,7 @@ async function clickThruMoreActionsToDisableRelay(notificationPopup) {
 
 add_task(
   async function test_disable_Relay_optin_does_not_show_Relay_again_later() {
+    const rsSandbox = await stubRemoteSettingsAllowList();
     await BrowserTestUtils.withNewTab(
       {
         gBrowser,
@@ -146,6 +222,7 @@ add_task(
         );
       }
     );
+    rsSandbox.restore();
 
     // restore Relay to default
     await SpecialPowers.clearUserPref("signon.firefoxRelay.feature");
@@ -154,6 +231,7 @@ add_task(
 
 add_task(
   async function test_disable_Relay_optin_can_reenable_via_preferences() {
+    const rsSandbox = await stubRemoteSettingsAllowList();
     // Disable Relay from the opt-in prompt
     await BrowserTestUtils.withNewTab(
       {
@@ -208,6 +286,7 @@ add_task(
         );
       }
     );
+    rsSandbox.restore();
   }
 );
 
@@ -243,6 +322,7 @@ add_task(
       ],
     });
 
+    const rsSandbox = await stubRemoteSettingsAllowList();
     await BrowserTestUtils.withNewTab(
       {
         gBrowser,
@@ -276,6 +356,7 @@ add_task(
         BrowserTestUtils.removeTab(newTab);
       }
     );
+    rsSandbox.restore();
     await new Promise(resolve => {
       fxaServer.stop(resolve);
     });
