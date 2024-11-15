@@ -22,6 +22,7 @@
 #  include "builtin/intl/Collator.h"
 #  include "builtin/intl/DateTimeFormat.h"
 #  include "builtin/intl/DisplayNames.h"
+#  include "builtin/intl/DurationFormat.h"
 #  include "builtin/intl/ListFormat.h"
 #  include "builtin/intl/Locale.h"
 #  include "builtin/intl/NumberFormat.h"
@@ -211,6 +212,13 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
 
     case JSProto_Segmenter:
 #  if defined(MOZ_ICU4X)
+      return false;
+#  else
+      return true;
+#  endif
+
+    case JSProto_DurationFormat:
+#  ifdef NIGHTLY_BUILD
       return false;
 #  else
       return true;

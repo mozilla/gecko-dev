@@ -234,6 +234,8 @@ bool js::intl_BestAvailableLocale(JSContext* cx, unsigned argc, Value* vp) {
       kind = SupportedLocaleKind::DateTimeFormat;
     } else if (StringEqualsLiteral(typeStr, "DisplayNames")) {
       kind = SupportedLocaleKind::DisplayNames;
+    } else if (StringEqualsLiteral(typeStr, "DurationFormat")) {
+      kind = SupportedLocaleKind::DurationFormat;
     } else if (StringEqualsLiteral(typeStr, "ListFormat")) {
       kind = SupportedLocaleKind::ListFormat;
     } else if (StringEqualsLiteral(typeStr, "NumberFormat")) {
@@ -419,6 +421,7 @@ bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
   // the set of supported locales of Intl.DateTimeFormat.
   for (auto kind : {
            SupportedLocaleKind::DisplayNames,
+           SupportedLocaleKind::DurationFormat,
            SupportedLocaleKind::ListFormat,
            SupportedLocaleKind::NumberFormat,
            SupportedLocaleKind::PluralRules,
@@ -895,6 +898,7 @@ static bool IntlClassFinish(JSContext* cx, HandleObject intl,
            JSProto_Collator,
            JSProto_DateTimeFormat,
            JSProto_DisplayNames,
+           JSProto_DurationFormat,
            JSProto_ListFormat,
            JSProto_Locale,
            JSProto_NumberFormat,

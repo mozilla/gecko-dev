@@ -643,6 +643,10 @@ MSG_DEF(JSMSG_UNDEFINED_TYPE,          0, JSEXN_TYPEERR, "missing \"type\" optio
 MSG_DEF(JSMSG_NAN_NUMBER_RANGE,        3, JSEXN_RANGEERR, "range can't {0} with NaN in {1}.{2}()")
 MSG_DEF(JSMSG_INVALID_NUMBER_OPTION,   2, JSEXN_TYPEERR, "can't set option {0} when {1} is used")
 MSG_DEF(JSMSG_UNEQUAL_FRACTION_DIGITS, 0, JSEXN_RANGEERR, "fraction digits must be the same when roundingIncrement is used")
+MSG_DEF(JSMSG_INTL_DURATION_INVALID_NON_NUMERIC_OPTION, 2, JSEXN_RANGEERR, "invalid non-numeric value {0} for option {1}")
+MSG_DEF(JSMSG_INTL_DURATION_INVALID_DISPLAY_OPTION, 1, JSEXN_RANGEERR, "{0} can't use \"numeric\" style with \"always\" display")
+MSG_DEF(JSMSG_INTL_DURATION_INVALID_DISPLAY_OPTION_DEFAULT_STYLE, 1, JSEXN_RANGEERR, "{0} can't use \"always\" display when style defaults to \"numeric\"")
+MSG_DEF(JSMSG_INTL_DURATION_INVALID_DISPLAY_OPTION_DEFAULT_DISPLAY, 1, JSEXN_RANGEERR, "{0} can't use \"numeric\" style when display defaults to \"always\"")
 
 // RegExp
 MSG_DEF(JSMSG_BAD_CLASS_RANGE,         0, JSEXN_SYNTAXERR, "invalid range in character class")

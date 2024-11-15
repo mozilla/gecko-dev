@@ -531,6 +531,7 @@ bool js::intl::SharedIntlData::isSupportedLocale(JSContext* cx,
       return true;
     case SupportedLocaleKind::DateTimeFormat:
     case SupportedLocaleKind::DisplayNames:
+    case SupportedLocaleKind::DurationFormat:
     case SupportedLocaleKind::ListFormat:
     case SupportedLocaleKind::NumberFormat:
     case SupportedLocaleKind::PluralRules:
@@ -555,6 +556,7 @@ js::ArrayObject* js::intl::SharedIntlData::availableLocalesOf(
       break;
     case SupportedLocaleKind::DateTimeFormat:
     case SupportedLocaleKind::DisplayNames:
+    case SupportedLocaleKind::DurationFormat:
     case SupportedLocaleKind::ListFormat:
     case SupportedLocaleKind::NumberFormat:
     case SupportedLocaleKind::PluralRules:

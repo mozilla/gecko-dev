@@ -10,6 +10,7 @@
 #  include "builtin/intl/Collator.h"
 #  include "builtin/intl/DateTimeFormat.h"
 #  include "builtin/intl/DisplayNames.h"
+#  include "builtin/intl/DurationFormat.h"
 #  include "builtin/intl/ListFormat.h"
 #  include "builtin/intl/NumberFormat.h"
 #  include "builtin/intl/PluralRules.h"
@@ -49,6 +50,8 @@ const JSClass* js::jit::InlinableNativeGuardToClass(InlinableNative native) {
       return &DateTimeFormatObject::class_;
     case InlinableNative::IntlGuardToDisplayNames:
       return &DisplayNamesObject::class_;
+    case InlinableNative::IntlGuardToDurationFormat:
+      return &DurationFormatObject::class_;
     case InlinableNative::IntlGuardToListFormat:
       return &ListFormatObject::class_;
     case InlinableNative::IntlGuardToNumberFormat:
@@ -175,6 +178,7 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::IntlGuardToCollator:
     case InlinableNative::IntlGuardToDateTimeFormat:
     case InlinableNative::IntlGuardToDisplayNames:
+    case InlinableNative::IntlGuardToDurationFormat:
     case InlinableNative::IntlGuardToListFormat:
     case InlinableNative::IntlGuardToNumberFormat:
     case InlinableNative::IntlGuardToPluralRules:

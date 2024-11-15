@@ -299,6 +299,7 @@
   MACRO_(InitializeCollator, "InitializeCollator")                             \
   MACRO_(InitializeDateTimeFormat, "InitializeDateTimeFormat")                 \
   MACRO_(InitializeDisplayNames, "InitializeDisplayNames")                     \
+  MACRO_(InitializeDurationFormat, "InitializeDurationFormat")                 \
   MACRO_(InitializeListFormat, "InitializeListFormat")                         \
   MACRO_(InitializeLocale, "InitializeLocale")                                 \
   MACRO_(InitializeNumberFormat, "InitializeNumberFormat")                     \
