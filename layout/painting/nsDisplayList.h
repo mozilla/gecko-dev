@@ -3405,8 +3405,6 @@ class nsDisplayListSet {
    */
   nsDisplayList* Content() const { return mLists[5]; }
 
-  const std::array<nsDisplayList*, 6>& Lists() const { return mLists; }
-
   /**
    * Clears all the display lists in the set.
    */
