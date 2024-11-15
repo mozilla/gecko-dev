@@ -12,6 +12,7 @@
   --badge-interactive-color: light-dark(var(--grey-90), var(--grey-30));
   --badge-hover-interactive-background-color: light-dark(#DFDFE8, var(--grey-80));
   --badge-hover-interactive-color: var(--badge-color);
+  --badge-interactive-border-color: light-dark(#CACAD1, var(--grey-50));
   --badge-scrollable-color: light-dark(#8000D7, #B98EFF);
   --badge-scrollable-background-color: light-dark(#FFFFFF, var(--badge-interactive-background-color));
   --badge-scrollable-active-background-color: #8000D7;
@@ -20,9 +21,11 @@
   &[forced-colors-active] {
     --badge-active-background-color: SelectedItem;
     --badge-active-border-color: SelectedItemText;
-    --badge-color: ButtonText;
+    --badge-color: CanvasText;
+    --badge-border-color: GrayText;
     --badge-interactive-background-color: ButtonFace;
     --badge-interactive-color: ButtonText;
+    --badge-interactive-border-color: ButtonText;
     --badge-hover-interactive-background-color: ButtonFace;
     --badge-hover-interactive-color: SelectedItem;
     --badge-scrollable-color: var(--theme-highlight-purple);
@@ -39,6 +42,7 @@
   display: inline-block;
   /* 9px text is too blurry on low-resolution screens */
   font-size: 10px;
+  font-family: var(--monospace-font-family);
   font-weight: normal;
   line-height: 10px;
   height: 12px;
@@ -48,8 +52,8 @@
      so we use an outline instead */
   border: none;
   outline: 1px solid var(--badge-border-color);
-  border-radius: 3px;
-  padding: 0px 2px;
+  border-radius: 5px;
+  padding: 0px 4px;
   margin-inline-start: 5px;
   user-select: none;
   background-color: var(--badge-background-color);
@@ -80,6 +84,7 @@
 .inspector-badge.interactive {
   background-color: var(--badge-interactive-background-color);
   color: var(--badge-interactive-color);
+  outline-color: var(--badge-interactive-border-color);
   cursor: pointer;
 
   &:focus {

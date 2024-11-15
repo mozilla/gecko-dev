@@ -319,8 +319,8 @@ ul.children + .tag-line::before {
   background-repeat: no-repeat;
   background-position: center;
   background-size: 8px;
-  border: 1px solid var(--badge-border-color);
-  color: var(--badge-color);
+  border: 1px solid var(--badge-interactive-border-color);
+  color: var(--badge-interactive-color);
   fill: currentColor;
   display: block;
   width: 12px;
