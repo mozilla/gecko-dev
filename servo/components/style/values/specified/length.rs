@@ -1760,7 +1760,7 @@ impl LengthPercentage {
             input,
             AllowedNumericType::All,
             allow_quirks,
-            AllowAnchorPositioningFunctions::AllowAnchor,
+            AllowAnchorPositioningFunctions::AllowAnchorAndAnchorSize,
         )
     }
 

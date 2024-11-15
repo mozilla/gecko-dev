@@ -156,8 +156,10 @@ impl SpecifiedValueInfo for CalcLengthPercentage {}
 pub enum AllowAnchorPositioningFunctions {
     /// Don't allow any anchor positioning function.
     No,
-    /// Allow `anchor()` to be parsed.
-    AllowAnchor,
+    /// Allow `anchor-size()` to be parsed.
+    AllowAnchorSize,
+    /// Allow `anchor()` and `anchor-size()` to be parsed.
+    AllowAnchorAndAnchorSize,
 }
 
 bitflags! {
@@ -167,6 +169,8 @@ bitflags! {
     struct AdditionalFunctions: u8 {
         /// `anchor()` function.
         const ANCHOR = 1 << 0;
+        /// `anchor-size()` function.
+        const ANCHOR_SIZE = 1 << 1;
     }
 }
 
@@ -1115,13 +1119,17 @@ impl CalcNode {
         function: MathFunction,
         allow_anchor: AllowAnchorPositioningFunctions
     ) -> Result<CalcLengthPercentage, ParseError<'i>> {
-        let allowed = if allow_anchor == AllowAnchorPositioningFunctions::AllowAnchor {
+        let allowed = if allow_anchor == AllowAnchorPositioningFunctions::No {
+            AllowParse::new(CalcUnits::LENGTH_PERCENTAGE)
+        } else {
             AllowParse {
                 units: CalcUnits::LENGTH_PERCENTAGE,
-                additional_functions: AdditionalFunctions::ANCHOR,
+                additional_functions: match allow_anchor {
+                    AllowAnchorPositioningFunctions::No => unreachable!(),
+                    AllowAnchorPositioningFunctions::AllowAnchorSize => AdditionalFunctions::ANCHOR_SIZE,
+                    AllowAnchorPositioningFunctions::AllowAnchorAndAnchorSize => AdditionalFunctions::ANCHOR | AdditionalFunctions::ANCHOR_SIZE,
+                },
             }
-        } else {
-            AllowParse::new(CalcUnits::LENGTH_PERCENTAGE)
         };
         Self::parse(context, input, function, allowed)?
             .into_length_or_percentage(clamping_mode)
