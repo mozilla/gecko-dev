@@ -14,7 +14,14 @@ namespace mozilla::dom::notification {
 
 class NotificationChild final : public PNotificationChild,
                                 public SupportsWeakPtr {
+  using IPCResult = mozilla::ipc::IPCResult;
+
   NS_INLINE_DECL_REFCOUNTING(NotificationChild)
+
+ public:
+  explicit NotificationChild();
+
+  IPCResult RecvNotifyClick();
 
  private:
   ~NotificationChild() = default;

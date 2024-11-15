@@ -29,6 +29,7 @@ EXPORTS.mozilla.dom.notification += [
 
 UNIFIED_SOURCES += [
     "Notification.cpp",
+    "NotificationChild.cpp",
     "NotificationEvent.cpp",
     "NotificationParent.cpp",
     "NotificationUtils.cpp",

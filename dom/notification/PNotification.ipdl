@@ -16,6 +16,10 @@ namespace notification {
 async protocol PNotification {
  parent:
   async Show() returns (CopyableErrorResult rv);
+  async Close();
+
+ child:
+  async NotifyClick();
 };
 
 } // namespace notification

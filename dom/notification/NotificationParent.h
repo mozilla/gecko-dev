@@ -32,11 +32,10 @@ class NotificationParent final : public PNotificationParent,
         mIsSecureContext(aIsSecureContext),
         mId(aId),
         mScope(aScope),
-        mOptions(aOptions) {
-    MOZ_ASSERT(!mScope.IsEmpty(), "Only for persistent notifications for now");
-  };
+        mOptions(aOptions) {};
 
   IPCResult RecvShow(ShowResolver&& aResolver);
+  IPCResult RecvClose();
 
   nsresult BindToMainThread(
       Endpoint<PNotificationParent>&& aParentEndpoint,

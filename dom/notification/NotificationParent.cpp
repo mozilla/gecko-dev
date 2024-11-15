@@ -208,6 +208,8 @@ nsresult NotificationParent::Show() {
   return NS_OK;
 }
 
+mozilla::ipc::IPCResult NotificationParent::RecvClose() { return IPC_OK(); }
+
 nsresult NotificationParent::BindToMainThread(
     Endpoint<PNotificationParent>&& aParentEndpoint,
     PBackgroundParent::CreateNotificationParentResolver&& aResolver) {
