@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-11-13T12:21:45.583395'
+updated_at: '2024-11-14T23:41:50.615140+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -74,6 +74,10 @@ people:
     bmo_id: 555858
     name: Andi
     nick: andi
+  - &annaweine
+    bmo_id: 697976
+    name: Anna Weine
+    nick: anna.weine
   - &aoprea
     bmo_id: 509499
     name: Andrei Oprea
@@ -195,6 +199,10 @@ people:
     bmo_id: 525693
     name: Nazım Can Altınova
     nick: canova
+  - &charlie
+    bmo_id: 710471
+    name: Charlie Humphreys
+    nick: charlie
   - &chunmin
     bmo_id: 521646
     name: C
@@ -213,7 +221,7 @@ people:
     nick: cmartin
   - &cmkm
     bmo_id: 693338
-    name: Cieara Meador
+    name: ''
     nick: cmkm
   - &cpeterson
     bmo_id: 430528
@@ -266,14 +274,14 @@ people:
     bmo_id: 278074
     name: Daniel Holbert
     nick: dholbert
+  - &dimi
+    bmo_id: 468232
+    name: Dimi Lee
+    nick: dimi
   - &djackson
     bmo_id: 644159
     name: Dennis Jackson
     nick: djackson
-  - &dlee
-    bmo_id: 468232
-    name: Dimi Lee
-    nick: dlee
   - &dlrobertson
     bmo_id: 705145
     name: Dan Robertson
@@ -308,7 +316,7 @@ people:
     nick: edgar
   - &edgul
     bmo_id: 701256
-    name: Ed Guloien
+    name: edgul
     nick: edgul
   - &eeejay
     bmo_id: 291675
@@ -492,10 +500,6 @@ people:
     bmo_id: 559949
     name: Julian Descottes
     nick: jdescottes
-  - &jeddai
-    bmo_id: 710471
-    name: Charlie Humphreys
-    nick: jeddai
   - &jesup
     bmo_id: 11539
     name: Randell Jesup
@@ -552,10 +556,6 @@ people:
     bmo_id: 541747
     name: Jamie Nicol
     nick: jnicol
-  - &johannes
-    bmo_id: 723184
-    name: Johannes Schmidt
-    nick: johannes
   - &jonalmeida
     bmo_id: 541581
     name: Jonathan Almeida
@@ -564,6 +564,10 @@ people:
     bmo_id: 443194
     name: Jon Coppeard
     nick: jonco
+  - &joschmidt
+    bmo_id: 723184
+    name: Johannes
+    nick: joschmidt
   - &josh
     bmo_id: 621062
     name: Josh Groves
@@ -655,14 +659,14 @@ people:
     bmo_id: 617144
     name: Kris Wright
     nick: KrisWright
+  - &ksenia
+    bmo_id: 638886
+    name: Ksenia Berezina
+    nick: ksenia
   - &kshampur
     bmo_id: 698141
     name: Kash Shampur
     nick: kshampur
-  - &ksy36
-    bmo_id: 638886
-    name: Ksenia Berezina
-    nick: ksy36
   - &kvark
     bmo_id: 582393
     name: Dzmitry Malyshau
@@ -723,6 +727,10 @@ people:
     bmo_id: 305228
     name: Matthew N
     nick: MattN
+  - &maxx
+    bmo_id: 636237
+    name: Maxx Crawford
+    nick: maxx
   - &mcarare
     bmo_id: 648814
     name: Mihai Adrian Carare
@@ -791,6 +799,10 @@ people:
     bmo_id: 538785
     name: Nan Jiang
     nick: nanj
+  - &nbarrett
+    bmo_id: 690000
+    name: Nathan Barrett
+    nick: nbarrett
   - &nbp
     bmo_id: 422187
     name: Nicolas B
@@ -811,10 +823,6 @@ people:
     bmo_id: 690738
     name: Niklas Baumgardner
     nick: niklas
-  - &nkulatova
-    bmo_id: 697976
-    name: Anna Weine
-    nick: nkulatova
   - &nlapre
     bmo_id: 711793
     name: Nathan LaPré
@@ -915,13 +923,13 @@ people:
     bmo_id: 381992
     name: Ryan Sleevi
     nick: ryan.sleevi
-  - &ryanvm
+  - &RyanVM
     bmo_id: 75935
     name: Ryan VanderMeulen
-    nick: ryanvm
+    nick: RyanVM
   - &saschanaz
     bmo_id: 473060
-    name: Kagami
+    name: Kagami Rosylight
     nick: saschanaz
   - &Sasha
     bmo_id: 704132
@@ -1236,7 +1244,7 @@ modules:
       - *timhuang
     peers:
       - *bvandersloot
-      - *dlee
+      - *dimi
       - *pbz
     machine_name: core_antitracking
 
@@ -2654,7 +2662,7 @@ modules:
       - *ryansleevi
       - *ekr
       - *ueno
-      - *nkulatova
+      - *annaweine
       - *djackson
       - *jschanck
     machine_name: core_security
@@ -3526,7 +3534,7 @@ modules:
         peers:
           - *Gijs
           - *emcminn
-          - *jeddai
+          - *charlie
         machine_name: normandy
 
       - machine_name: firefox_view
@@ -3554,7 +3562,7 @@ modules:
           - *serg
         peers:
           - *tgiles
-          - *dlee
+          - *dimi
         machine_name: form_autofill
 
       - name: In-product Messaging
@@ -3627,6 +3635,8 @@ modules:
           - *thecount
         peers:
           - *amy
+          - *nbarrett
+          - *maxx
         machine_name: new_tab_page
 
       - name: Password Manager
@@ -3651,11 +3661,11 @@ modules:
             - Compatibility
             - Firefox::about:logins
         owners:
-          - *dlee
+          - *dimi
         peers:
           - *enndeakin
           - *issammani
-          - *johannes
+          - *joschmidt
           - *micah
         machine_name: password_manager
 
@@ -4393,7 +4403,7 @@ modules:
           - *denschub
           - *twisniewski
         peers:
-          - *ksy36
+          - *ksenia
         machine_name: webcompat_addons
 
       - name: Webextensions
@@ -4450,7 +4460,9 @@ modules:
       group: sheriffs
       url: https://wiki.mozilla.org/Sheriffing
       owner_emeritus:
-        - *ryanvm
+        - bmo_id: 75935
+          name: Ryan VanderMeulen
+          nick: ryanvm
         - Ed Morley
       peers_emeritus:
         - Carsten Book
@@ -4458,7 +4470,7 @@ modules:
     owners:
       - *aryx
     peers:
-      - *ryanvm
+      - *RyanVM
   - machine_name: url_classifier
     name: URL Classifier
     description: Database and list-based classification of URL resources, such as
@@ -4468,7 +4480,7 @@ modules:
       - netwerk/url-classifier/**/*
     excludes: []
     owners:
-      - *dlee
+      - *dimi
       - *groovecoder
     peers:
       - *timhuang
@@ -4483,5 +4495,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 566da29d0c80097a943bfda5c10d8c098f17d062
-  export: 2753c88f5afbdbe96f887be1f5484a43b1eed0f5
+  config: b942b23a79fe57b250d4fab82951d9c755dbc954
+  export: 50e502ebc58645c402ff7855df3bb277a960eca0
