@@ -729,12 +729,12 @@ class RecordedPushLayer : public RecordedEventDerived<RecordedPushLayer> {
   template <class S>
   MOZ_IMPLICIT RecordedPushLayer(S& aStream);
 
-  bool mOpaque;
-  Float mOpacity;
+  bool mOpaque = false;
+  Float mOpacity = 1.0f;
   ReferencePtr mMask;
   Matrix mMaskTransform;
   IntRect mBounds;
-  bool mCopyBackground;
+  bool mCopyBackground = false;
 };
 
 class RecordedPushLayerWithBlend
@@ -768,13 +768,13 @@ class RecordedPushLayerWithBlend
   template <class S>
   MOZ_IMPLICIT RecordedPushLayerWithBlend(S& aStream);
 
-  bool mOpaque;
-  Float mOpacity;
+  bool mOpaque = false;
+  Float mOpacity = 1.0f;
   ReferencePtr mMask;
   Matrix mMaskTransform;
   IntRect mBounds;
-  bool mCopyBackground;
-  CompositionOp mCompositionOp;
+  bool mCopyBackground = false;
+  CompositionOp mCompositionOp = CompositionOp::OP_OVER;
 };
 
 class RecordedPopLayer : public RecordedEventDerived<RecordedPopLayer> {
@@ -998,7 +998,7 @@ class RecordedDrawShadow : public RecordedEventDerived<RecordedDrawShadow> {
   PatternStorage mPattern;
   ShadowOptions mShadow;
   DrawOptions mOptions;
-  bool mHasStrokeOptions;
+  bool mHasStrokeOptions = false;
   StrokeOptions mStrokeOptions;
 };
 

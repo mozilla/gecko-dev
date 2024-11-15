@@ -42,6 +42,7 @@ struct ElementStreamFormat<S, bool> {
         break;
       default:
         aStream.SetIsBad();
+        aElement = false;
         break;
     }
   }

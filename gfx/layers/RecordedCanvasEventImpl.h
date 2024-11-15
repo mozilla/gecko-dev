@@ -161,8 +161,8 @@ class RecordedTextureLock final
 
  private:
   RemoteTextureOwnerId mTextureOwnerId;
-  OpenMode mMode;
-  bool mInvalidContents;
+  OpenMode mMode = OpenMode::OPEN_NONE;
+  bool mInvalidContents = false;
 };
 
 inline bool RecordedTextureLock::PlayCanvasEvent(
