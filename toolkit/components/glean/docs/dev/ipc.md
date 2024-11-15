@@ -37,6 +37,7 @@ so we forbid setting a String metric from multiple processes.
 * UUID's `set` and `generateAndSet` (these are the metric type's only operations)
 * Datetime's `set` (this is the metric type's only operation)
 * Quantity's `set` (this is the metric type's only operation)
+* Labeled Quantity's `set` (this is the metric type's only operation)
 
 This list may grow over time as new metric types are added.
 

@@ -7921,6 +7921,23 @@ telemetry.test:
       - 'main'
       - 'content'
 
+  mirror_for_labeled_quantity:
+    bug_numbers:
+      - 1929979
+    description: A testing keyed uint scalar; not meant to be touched.
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+      - 'thunderbird'
+    record_in_processes:
+      - 'main'
+      - 'content'
+
   keyed_with_keys:
     bug_numbers:
       - 1277806

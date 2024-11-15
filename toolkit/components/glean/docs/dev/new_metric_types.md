@@ -64,6 +64,9 @@ Should it be mirrored?
 If so, add an appropriate Telemetry probe for it to mirror to,
 documenting the compatibility in
 [the GIFFT docs](../user/gifft.md).
+Also inform {searchfox}`toolkit/components/glean/build_scripts/glean_parser_ext/run_glean_parser.py`
+that your new type is mirrorable by placing its name in the part of `GIFFT_TYPES`
+that contains the mirrored probe type (Event, Histogram, Scalar).
 
 ### GIFFT Tests
 
@@ -285,6 +288,9 @@ There are five pieces to this:
   `Labeled<YourSubMetric, E>::{EnumGet|Get}` and `Labeled<YourSubMetric, DynamicLabel>` to
   {searchfox}`toolkit/components/glean/bindings/private/Labeled.h`.
   This will ensure C++ consumers can fetch or create sub metric instances.
+- For GIFFT, ensure the submetric type (e.g. `quantity` for `labeled_quantity`)
+  is aware that its mirrors might be submetric mirrors
+  (ie, check `IsSubmetricId(mId)` and, if so, look at the labeled mirror map).
 
 #### JS
 

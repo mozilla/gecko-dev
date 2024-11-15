@@ -142,3 +142,24 @@ pub extern "C" fn fog_labeled_timing_distribution_enum_get(id: u32, label: u16) 
     assert!(!is_jog_id(id), "No enum_get support for JOG");
     metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
 }
+
+#[no_mangle]
+pub extern "C" fn fog_labeled_quantity_get(id: u32, label: &nsACString) -> u32 {
+    let label = &label.to_utf8();
+    if is_jog_id(id) {
+        just_with_jog_metric!(
+            LABELED_QUANTITY_MAP,
+            id,
+            metric,
+            metric.get_submetric_id(label)
+        )
+    } else {
+        metric_maps::labeled_submetric_id_get(id, label)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn fog_labeled_quantity_enum_get(id: u32, label: u16) -> u32 {
+    assert!(!is_jog_id(id), "No enum_get support for JOG");
+    metric_maps::labeled_submetric_id_get(id, metric_maps::labeled_enum_to_str(id, label))
+}

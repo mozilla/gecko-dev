@@ -863,3 +863,39 @@ add_task(async function test_jog_labeled_timing_distribution_works() {
     "Only two buckets with samples"
   );
 });
+
+add_task(async function test_jog_labeled_quantity_works() {
+  Services.fog.testRegisterRuntimeMetric(
+    "labeled_quantity",
+    "jog_cat",
+    "jog_labeled_quantity",
+    ["test-only"],
+    `"ping"`,
+    false
+  );
+  Assert.equal(
+    undefined,
+    Glean.jogCat.jogLabeledQuantity.label_1.testGetValue(),
+    "New labels with no values should return undefined"
+  );
+  Glean.jogCat.jogLabeledQuantity.label_1.set(9000);
+  Glean.jogCat.jogLabeledQuantity.label_2.set(0);
+  Assert.equal(9000, Glean.jogCat.jogLabeledQuantity.label_1.testGetValue());
+  Assert.equal(0, Glean.jogCat.jogLabeledQuantity.label_2.testGetValue());
+  // What about invalid/__other__?
+  Assert.equal(
+    undefined,
+    Glean.jogCat.jogLabeledQuantity.__other__.testGetValue()
+  );
+  Glean.jogCat.jogLabeledQuantity.NowValidLabel.set(100);
+  Assert.equal(
+    100,
+    Glean.jogCat.jogLabeledQuantity.NowValidLabel.testGetValue()
+  );
+  Glean.jogCat.jogLabeledQuantity["1".repeat(72)].set(true);
+  Assert.throws(
+    () => Glean.jogCat.jogLabeledQuantity.__other__.testGetValue(),
+    /DataError/,
+    "Should throw because of a recording error."
+  );
+});

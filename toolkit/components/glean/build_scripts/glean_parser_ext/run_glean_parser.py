@@ -56,6 +56,7 @@ GIFFT_TYPES = {
         "uuid",
         "datetime",
         "quantity",
+        "labeled_quantity",
         "rate",
         "url",
     ],

@@ -56,6 +56,7 @@ pub use self::memory_distribution::{LocalMemoryDistribution, MemoryDistributionM
 pub use self::numerator::NumeratorMetric;
 pub use self::object::ObjectMetric;
 pub use self::ping::Ping;
+pub use self::quantity::QuantityMetric as LabeledQuantityMetric;
 pub use self::quantity::QuantityMetric;
 pub use self::rate::RateMetric;
 pub use self::string::StringMetric;
@@ -144,7 +145,6 @@ pub(crate) mod profiler_utils {
             }
         }
     }
-
 }
 
 // These two methods "live" within profiler_utils, but as we need them available

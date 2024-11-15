@@ -29,6 +29,9 @@ macro_rules! with_metric {
     (MEMORY_DISTRIBUTION_MAP, $id:ident, $m:ident, $f:expr) => {
         maybe_labeled_with_metric!(MEMORY_DISTRIBUTION_MAP, $id, $m, $f)
     };
+    (QUANTITY_MAP, $id:ident, $m:ident, $f:expr) => {
+        maybe_labeled_with_metric!(QUANTITY_MAP, $id, $m, $f)
+    };
     (STRING_MAP, $id:ident, $m:ident, $f:expr) => {
         maybe_labeled_with_metric!(STRING_MAP, $id, $m, $f)
     };

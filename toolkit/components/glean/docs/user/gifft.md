@@ -50,6 +50,7 @@ This compatibility table explains which Telemetry probe types can be mirrors for
 | [datetime](https://mozilla.github.io/glean/book/reference/metrics/datetime.html) | [Scalar of kind: string](/toolkit/components/telemetry/collection/scalars.html). Value will be in ISO8601 format. |
 | [events](https://mozilla.github.io/glean/book/reference/metrics/event.html) | [Events](/toolkit/components/telemetry/collection/events.html). The `value` field will be filled by the Glean extra named `value` if defined and present. |
 | [quantity](https://mozilla.github.io/glean/book/reference/metrics/quantity.html) | [Scalar of kind: uint](/toolkit/components/telemetry/collection/scalars.html) |
+| [labeled_quantity](https://mozilla.github.io/glean/book/reference/metrics/labeled_quantity.html) | [Keyed Scalar of kind: uint](/toolkit/components/telemetry/collection/scalars.html) |
 | [rate](https://mozilla.github.io/glean/book/reference/metrics/rate.html) | [Keyed Scalar of kind: uint](/toolkit/components/telemetry/collection/scalars.html). The keys are "numerator" and "denominator". Does not work for `rate` metrics with external denominators. |
 | [text](https://mozilla.github.io/glean/book/reference/metrics/text.html) | *No Supported Telemetry Type* |
 

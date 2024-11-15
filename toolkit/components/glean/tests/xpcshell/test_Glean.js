@@ -767,3 +767,23 @@ add_task(async function test_labeled_timing_distribution_works() {
     "Only two buckets with samples"
   );
 });
+
+add_task(async function test_fog_labeled_quantity_works() {
+  Assert.equal(
+    undefined,
+    Glean.testOnly.buttonJars.up.testGetValue(),
+    "New labels with no values should return undefined"
+  );
+  Glean.testOnly.buttonJars.up.set(2);
+  Glean.testOnly.buttonJars.curling.set(0);
+  Assert.equal(2, Glean.testOnly.buttonJars.up.testGetValue());
+  Assert.equal(0, Glean.testOnly.buttonJars.curling.testGetValue());
+  // What about invalid/__other__?
+  Assert.equal(undefined, Glean.testOnly.buttonJars.__other__.testGetValue());
+  Glean.testOnly.buttonJars["1".repeat(72)].set(0);
+  Assert.throws(
+    () => Glean.testOnly.buttonJars.__other__.testGetValue(),
+    /DataError/,
+    "Should throw because of a recording error."
+  );
+});

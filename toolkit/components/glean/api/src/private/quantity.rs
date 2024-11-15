@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use inherent::inherent;
+use std::sync::Arc;
 
 use glean::traits::Quantity;
 
@@ -16,7 +17,7 @@ use crate::private::MetricId;
 /// Records a single numeric value of a specific unit.
 #[derive(Clone)]
 pub enum QuantityMetric {
-    Parent(glean::private::QuantityMetric),
+    Parent(Arc<glean::private::QuantityMetric>),
     Child(QuantityMetricIpc),
 }
 #[derive(Clone, Debug)]
@@ -28,7 +29,7 @@ impl QuantityMetric {
         if need_ipc() {
             QuantityMetric::Child(QuantityMetricIpc)
         } else {
-            QuantityMetric::Parent(glean::private::QuantityMetric::new(meta))
+            QuantityMetric::Parent(Arc::new(glean::private::QuantityMetric::new(meta)))
         }
     }
 

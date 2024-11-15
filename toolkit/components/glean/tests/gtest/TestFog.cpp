@@ -571,6 +571,17 @@ TEST_F(FOGFixture, TestLabeledTimingDistWorks) {
   ASSERT_EQ(sampleCount, (uint64_t)2);
 }
 
+TEST_F(FOGFixture, TestLabeledQuantityWorks) {
+  ASSERT_EQ(mozilla::Nothing(),
+            test_only::button_jars.Get("shirt"_ns).TestGetValue().unwrap());
+  test_only::button_jars.Get("shirt"_ns).Set(42);
+  test_only::button_jars.Get("push"_ns).Set(0);
+  ASSERT_EQ(
+      42, test_only::button_jars.Get("shirt"_ns).TestGetValue().unwrap().ref());
+  ASSERT_EQ(
+      0, test_only::button_jars.Get("push"_ns).TestGetValue().unwrap().ref());
+}
+
 extern "C" void Rust_TestRustInGTest();
 TEST_F(FOGFixture, TestRustInGTest) { Rust_TestRustInGTest(); }
 

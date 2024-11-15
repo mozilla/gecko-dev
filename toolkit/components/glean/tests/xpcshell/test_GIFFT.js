@@ -628,3 +628,35 @@ add_task(async function test_gifft_labeled_timing_dist() {
     "Only two samples"
   );
 });
+
+add_task(async function test_gifft_labeled_quantity() {
+  Assert.equal(
+    undefined,
+    Glean.testOnly.buttonJars.pants.testGetValue(),
+    "New labels with no values should return undefined"
+  );
+  Glean.testOnly.buttonJars.pants.set(42);
+  Glean.testOnly.buttonJars.whoseGot.set(1);
+  Assert.equal(42, Glean.testOnly.buttonJars.pants.testGetValue());
+  Assert.equal(1, Glean.testOnly.buttonJars.whoseGot.testGetValue());
+  // What about invalid/__other__?
+  Assert.equal(undefined, Glean.testOnly.buttonJars.__other__.testGetValue());
+  Glean.testOnly.buttonJars["1".repeat(72)].set(9000);
+  Assert.throws(
+    () => Glean.testOnly.buttonJars.__other__.testGetValue(),
+    /DataError/,
+    "Should throw because of a recording error."
+  );
+
+  info(JSON.stringify(Telemetry.getSnapshotForKeyedScalars()));
+  // In Telemetry there is no invalid label
+  let value = keyedScalarValue("telemetry.test.mirror_for_labeled_quantity");
+  Assert.deepEqual(
+    {
+      pants: 42,
+      whoseGot: 1,
+      ["1".repeat(72)]: 9000,
+    },
+    value
+  );
+});

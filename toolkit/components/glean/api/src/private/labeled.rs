@@ -6,7 +6,7 @@ use inherent::inherent;
 
 use super::{
     ErrorType, LabeledBooleanMetric, LabeledCounterMetric, LabeledCustomDistributionMetric,
-    LabeledMemoryDistributionMetric, LabeledMetricData, LabeledStringMetric,
+    LabeledMemoryDistributionMetric, LabeledMetricData, LabeledQuantityMetric, LabeledStringMetric,
     LabeledTimingDistributionMetric, MetricId,
 };
 use crate::ipc::need_ipc;
@@ -21,8 +21,8 @@ use std::sync::Arc;
 mod private {
     use super::{
         need_ipc, submetric_maps, LabeledBooleanMetric, LabeledCounterMetric,
-        LabeledCustomDistributionMetric, LabeledMemoryDistributionMetric, LabeledStringMetric,
-        LabeledTimingDistributionMetric, MetricId,
+        LabeledCustomDistributionMetric, LabeledMemoryDistributionMetric, LabeledQuantityMetric,
+        LabeledStringMetric, LabeledTimingDistributionMetric, MetricId,
     };
     use crate::private::labeled_timing_distribution::LabeledTimingDistributionMetricKind;
     use crate::private::{
@@ -259,6 +259,34 @@ mod private {
                         label: label.to_string(),
                         kind: LabeledTimingDistributionMetricKind::Parent,
                     }
+                };
+                Arc::new(submetric)
+            });
+            (Arc::clone(submetric), submetric_id)
+        }
+    }
+
+    // `LabeledMetric<LabeledQuantityMetric>` is possible.
+    //
+    // See [Labeled Quantities](https://mozilla.github.io/glean/book/user/metrics/labeled_quantities.html).
+    impl Sealed for LabeledQuantityMetric {
+        type GleanMetric = glean::private::QuantityMetric;
+        fn from_glean_metric(
+            id: MetricId,
+            metric: &glean::private::LabeledMetric<Self::GleanMetric>,
+            label: &str,
+            _permit_unordered_ipc: bool,
+        ) -> (Arc<Self>, MetricId) {
+            let submetric_id = submetric_id_for(id, label);
+            let mut map = submetric_maps::QUANTITY_MAP
+                .write()
+                .expect("write lock of QUANTITY_MAP was poisoned");
+            let submetric = map.entry(submetric_id).or_insert_with(|| {
+                let submetric = if need_ipc() {
+                    // TODO: Instrument this error.
+                    LabeledQuantityMetric::Child(crate::private::quantity::QuantityMetricIpc)
+                } else {
+                    LabeledQuantityMetric::Parent(metric.get(label))
                 };
                 Arc::new(submetric)
             });

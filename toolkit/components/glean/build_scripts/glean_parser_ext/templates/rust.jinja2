@@ -472,7 +472,7 @@ pub(crate) mod __glean_metric_maps {
         );
 
 {% for typ, metrics in metric_by_type.items() %}
-{% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'CUSTOM_DISTRIBUTION_MAP', 'MEMORY_DISTRIBUTION_MAP', 'STRING_MAP', 'TIMING_DISTRIBUTION_MAP') %}
+{% if typ.0 in ('BOOLEAN_MAP', 'COUNTER_MAP', 'CUSTOM_DISTRIBUTION_MAP', 'MEMORY_DISTRIBUTION_MAP', 'QUANTITY_MAP', 'STRING_MAP', 'TIMING_DISTRIBUTION_MAP') %}
         pub static {{typ.0}}: Lazy<RwLock<HashMap<MetricId, Arc<Labeled{{typ.1}}>>>> = Lazy::new(||
             RwLock::new(HashMap::new())
         );
