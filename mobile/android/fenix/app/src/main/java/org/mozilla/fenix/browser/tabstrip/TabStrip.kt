@@ -40,7 +40,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -65,7 +64,6 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.ext.observeAsState
-import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
@@ -77,7 +75,6 @@ import org.mozilla.fenix.compose.ext.thenConditional
 import org.mozilla.fenix.tabstray.browser.compose.DragItemContainer
 import org.mozilla.fenix.tabstray.browser.compose.createListReorderState
 import org.mozilla.fenix.tabstray.browser.compose.detectListPressAndDrag
-import org.mozilla.fenix.theme.FirefoxColors
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
@@ -343,9 +340,9 @@ private fun TabItem(
     onSelectedTabClick: (id: String) -> Unit,
 ) {
     val backgroundColor = if (state.isSelected) {
-        FirefoxTheme.colors.tabSelectedBackground(state.isPrivate)
+        FirefoxTheme.colors.tabActive
     } else {
-        FirefoxTheme.colors.layer3
+        FirefoxTheme.colors.tabInactive
     }
     val closeTabLabel = stringResource(R.string.close_tab)
 
@@ -601,13 +598,6 @@ private fun TabStripContentPreview(tabs: List<TabStripItem>) {
         )
     }
 }
-
-private fun FirefoxColors.tabSelectedBackground(isPrivate: Boolean): Color =
-    if (isPrivate) {
-        PhotonColors.Purple60
-    } else {
-        layer2
-    }
 
 @Preview(device = Devices.PIXEL_TABLET)
 @Composable
