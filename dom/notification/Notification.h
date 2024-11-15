@@ -317,7 +317,7 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
       ErrorResult& aRv);
   void ShowOnMainThread(ErrorResult& aRv);
 
-  bool CreateActor(Promise* aPromise);
+  bool CreateActor();
   bool SendShow(Promise* aPromise);
 
   nsIPrincipal* GetPrincipal();

@@ -1946,7 +1946,7 @@ already_AddRefed<Promise> Notification::ShowPersistentNotification(
     return nullptr;
   }
 
-  if (!notification->CreateActor(p) || !notification->SendShow(p)) {
+  if (!notification->CreateActor() || !notification->SendShow(p)) {
     return nullptr;
   }
 
@@ -1996,7 +1996,7 @@ void Notification::ShowOnMainThread(ErrorResult& aRv) {
   }
 }
 
-bool Notification::CreateActor(Promise* aPromise) {
+bool Notification::CreateActor() {
   mozilla::ipc::PBackgroundChild* backgroundActor =
       mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
   IPCNotificationOptions options(mTitle, mDir, mLang, mBody, mTag, mIconUrl,
