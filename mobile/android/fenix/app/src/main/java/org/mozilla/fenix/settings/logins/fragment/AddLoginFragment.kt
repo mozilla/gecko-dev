@@ -382,8 +382,11 @@ class AddLoginFragment : Fragment(R.layout.fragment_add_login), MenuProvider {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        // If you've made it here you're already authenticated. Let's reset the values so we don't
+        // prompt the user again when navigating back.
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
             false
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticated = true
     }
 
     companion object {
