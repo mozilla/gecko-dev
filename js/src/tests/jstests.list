@@ -672,6 +672,9 @@ skip script test262/intl402/Intl/getCanonicalLocales/unicode-ext-canonicalize-ti
 # https://github.com/tc39/test262/pull/4283
 skip script test262/staging/Intl402/Temporal/old/non-iso-calendars.js
 
+# https://github.com/tc39/test262/pull/4318
+skip script test262/intl402/DurationFormat/prototype/format/precision-exact-mathematical-values.js
+
 
 ##############################################
 # Enable Iterator Helpers tests in the shell #
