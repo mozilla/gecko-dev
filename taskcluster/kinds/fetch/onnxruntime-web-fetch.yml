@@ -34,3 +34,21 @@ xenova-all-minilm-l6-v2:
         revision: 5f8986ea538762fd82a43a768d583a5a9d71d1ec
         path-prefix: "onnx-models/Xenova/all-MiniLM-L6-v2/main/"
         artifact-name: all-MiniLM-L6-v2.tar.zst
+
+mozilla-ner:
+    description: named entity model
+    fetch:
+        type: git
+        repo: https://huggingface.co/Mozilla/distilbert-uncased-NER-LoRA
+        revision: 7cd1d24c22a55fea06dd2d52e449235954d6c51d
+        path-prefix: "onnx-models/Mozilla/distilbert-uncased-NER-LoRA/main/"
+        artifact-name: distilbert-uncased-NER-LoRA.tar.zst
+
+mozilla-intent:
+    description: intent model
+    fetch:
+        type: git
+        repo: https://huggingface.co/Mozilla/mobilebert-uncased-finetuned-LoRA-intent-classifier
+        revision: 67edcd40da2b681d03072d5ea4943d2bff1284ef
+        path-prefix: "onnx-models/Mozilla/mobilebert-uncased-finetuned-LoRA-intent-classifier/main/"
+        artifact-name: mobilebert-uncased-finetuned-LoRA-intent-classifier.tar.zst

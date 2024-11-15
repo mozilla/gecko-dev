@@ -58,6 +58,7 @@ suites:
         description: "Performance tests running through Mochitest for ML Models"
         tests:
             "ML Test Model": ""
+            "ML Test Multi Model": ""
             "ML Suggest Intent Model": ""
             "ML Suggest NER Model": ""
 

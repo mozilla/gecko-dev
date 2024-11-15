@@ -445,5 +445,23 @@ browser_ml_engine_perf.js
 
 **Template test for latency for ml models**
 
+browser_ml_engine_multi_perf.js
+===============================
+
+:owner: GenAI Team
+:name: ML Test Multi Model
+:Default options:
+
+::
+
+ --perfherder
+ --perfherder-metrics name:intent-pipeline-ready-latency,unit:ms,shouldAlert:True, name:intent-initialization-latency,unit:ms,shouldAlert:True, name:intent-model-run-latency,unit:ms,shouldAlert:True, name:intent-pipeline-ready-memory,unit:MB,shouldAlert:True, name:intent-initialization-memory,unit:MB,shouldAlert:True, name:intent-model-run-memory,unit:MB,shouldAlert:True, name:suggest-pipeline-ready-latency,unit:ms,shouldAlert:True, name:suggest-initialization-latency,unit:ms,shouldAlert:True, name:suggest-model-run-latency,unit:ms,shouldAlert:True, name:suggest-pipeline-ready-memory,unit:MB,shouldAlert:True, name:suggest-initialization-memory,unit:MB,shouldAlert:True, name:suggest-model-run-memory,unit:MB,shouldAlert:True, name:engine3-pipeline-ready-latency,unit:ms,shouldAlert:True, name:engine3-initialization-latency,unit:ms,shouldAlert:True, name:engine3-model-run-latency,unit:ms,shouldAlert:True, name:engine3-pipeline-ready-memory,unit:MB,shouldAlert:True, name:engine3-initialization-memory,unit:MB,shouldAlert:True, name:engine3-model-run-memory,unit:MB,shouldAlert:True, name:engine4-pipeline-ready-latency,unit:ms,shouldAlert:True, name:engine4-initialization-latency,unit:ms,shouldAlert:True, name:engine4-model-run-latency,unit:ms,shouldAlert:True, name:engine4-pipeline-ready-memory,unit:MB,shouldAlert:True, name:engine4-initialization-memory,unit:MB,shouldAlert:True, name:engine4-model-run-memory,unit:MB,shouldAlert:True
+ --verbose
+ --manifest perftest.toml
+ --manifest-flavor browser-chrome
+ --try-platform linux, mac, win
+
+**Testing model execution concurrenty**
+
 
 If you have any questions, please see this `wiki page <https://wiki.mozilla.org/TestEngineering/Performance#Where_to_find_us>`_.
