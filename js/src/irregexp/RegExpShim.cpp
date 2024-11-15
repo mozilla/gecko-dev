@@ -336,5 +336,12 @@ uint64_t RegExpUtils::AdvanceStringIndex(Tagged<String> wrappedString,
   return index + 1;
 }
 
+// RegexpMacroAssemblerTracer::GetCode dumps the flags by first converting to
+// a String, then into a C string. To avoid allocating while assembling,
+// we just return a handle to the well-known atom "flags".
+Handle<String> JSRegExp::StringFromFlags(Isolate* isolate, RegExpFlags flags) {
+  return Handle<String>(String(isolate->cx()->names().flags), isolate);
+}
+
 }  // namespace internal
 }  // namespace v8

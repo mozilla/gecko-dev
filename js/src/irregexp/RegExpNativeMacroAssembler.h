@@ -41,7 +41,7 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
                          Zone* zone, Mode mode, uint32_t num_capture_registers);
   virtual ~SMRegExpMacroAssembler() = default;
 
-  virtual int stack_limit_slack();
+  virtual int stack_limit_slack_slot_count();
   virtual IrregexpImplementation Implementation();
 
   virtual bool Succeed();
@@ -111,7 +111,7 @@ class SMRegExpMacroAssembler final : public NativeRegExpMacroAssembler {
   virtual void SetRegister(int register_index, int to);
   virtual void ClearRegisters(int reg_from, int reg_to);
 
-  virtual Handle<HeapObject> GetCode(Handle<String> source);
+  virtual Handle<HeapObject> GetCode(Handle<String> source, RegExpFlags flags);
 
   virtual bool CanReadUnaligned() const;
 

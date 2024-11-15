@@ -76,8 +76,11 @@ SMRegExpMacroAssembler::SMRegExpMacroAssembler(JSContext* cx,
   masm_.bind(&start_label_);  // and continue from here.
 }
 
-int SMRegExpMacroAssembler::stack_limit_slack() {
-  return RegExpStack::kStackLimitSlack;
+int SMRegExpMacroAssembler::stack_limit_slack_slot_count() {
+  // We have to divide by 2 here because V8 stores 4-byte values
+  // on the backtrack stack, while we store 8-byte values.
+  // See bug 1931445.
+  return RegExpStack::kStackLimitSlackSlotCount / 2;
 }
 
 void SMRegExpMacroAssembler::AdvanceCurrentPosition(int by) {
@@ -1015,7 +1018,8 @@ static Handle<HeapObject> DummyCode() {
 
 // Finalize code. This is called last, so that we know how many
 // registers we need.
-Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
+Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source,
+                                                   RegExpFlags flags) {
   if (!cx_->zone()->ensureJitZoneExists(cx_)) {
     return DummyCode();
   }
