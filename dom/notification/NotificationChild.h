@@ -10,6 +10,11 @@
 #include "mozilla/WeakPtr.h"
 #include "mozilla/dom/notification/PNotificationChild.h"
 
+namespace mozilla::dom {
+class Notification;
+class WindowGlobalChild;
+}  // namespace mozilla::dom
+
 namespace mozilla::dom::notification {
 
 class NotificationChild final : public PNotificationChild,
@@ -19,12 +24,16 @@ class NotificationChild final : public PNotificationChild,
   NS_INLINE_DECL_REFCOUNTING(NotificationChild)
 
  public:
-  explicit NotificationChild();
+  explicit NotificationChild(Notification* aNonPersistentNotification,
+                             WindowGlobalChild* aWindow);
 
   IPCResult RecvNotifyClick();
 
  private:
   ~NotificationChild() = default;
+
+  WeakPtr<Notification> mNonPersistentNotification;
+  WeakPtr<WindowGlobalChild> mWindow;
 };
 
 }  // namespace mozilla::dom::notification

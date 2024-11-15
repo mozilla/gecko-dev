@@ -893,6 +893,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(Notification)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(Notification,
                                                 DOMEventTargetHelper)
   tmp->mData.setUndefined();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(Notification,
@@ -2012,7 +2013,11 @@ bool Notification::CreateActor() {
   mozilla::ipc::Endpoint<notification::PNotificationChild> childEndpoint;
   notification::PNotification::CreateEndpoints(&parentEndpoint, &childEndpoint);
 
-  mActor = new notification::NotificationChild();
+  bool persistent = !mScope.IsEmpty();
+  RefPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
+  mActor = new notification::NotificationChild(
+      persistent ? nullptr : this,
+      window ? window->GetWindowGlobalChild() : nullptr);
   if (!childEndpoint.Bind(mActor)) {
     return false;
   }

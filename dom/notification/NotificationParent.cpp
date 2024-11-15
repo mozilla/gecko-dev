@@ -77,6 +77,13 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 nsresult NotificationParent::FireClickEvent() {
+  if (mScope.IsEmpty()) {
+    if (SendNotifyClick()) {
+      return NS_OK;
+    }
+    return NS_ERROR_FAILURE;
+  }
+
   // This needs to be done here rather than in the child actor's
   // RecvNotifyClick because the caller might not be in the service worker
   // context but in the window context
