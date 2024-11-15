@@ -53,7 +53,7 @@ add_task(async function testTabPreview() {
     1,
     1,
     {
-      type: "mouseover",
+      type: "mousemove",
     },
     window
   );
@@ -69,7 +69,7 @@ add_task(async function testTabPreview() {
     document.getElementById("tabs-newtab-button"),
     1,
     1,
-    { type: "mouseover" }
+    { type: "mousemove" }
   );
   info("waiting for preview to hide");
   await previewHidden;
