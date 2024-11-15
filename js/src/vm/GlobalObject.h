@@ -54,9 +54,11 @@ namespace js {
 class ArgumentsObject;
 class GlobalScope;
 class GlobalLexicalEnvironmentObject;
+class MapObject;
 class PlainObject;
 class PropertyIteratorObject;
 class RegExpStatics;
+class SetObject;
 
 namespace gc {
 class FinalizationRegistryGlobalData;
@@ -214,6 +216,10 @@ class GlobalObjectData {
 
   GCPtr<ArgumentsObject*> mappedArgumentsTemplate;
   GCPtr<ArgumentsObject*> unmappedArgumentsTemplate;
+
+  // Template objects to speed up allocation of Map/Set objects.
+  GCPtr<MapObject*> mapObjectTemplate;
+  GCPtr<SetObject*> setObjectTemplate;
 
   GCPtr<PlainObject*> iterResultTemplate;
   GCPtr<PlainObject*> iterResultWithoutPrototypeTemplate;
@@ -1013,6 +1019,9 @@ class GlobalObject : public NativeObject {
   static ArgumentsObject* getOrCreateArgumentsTemplateObject(JSContext* cx,
                                                              bool mapped);
   ArgumentsObject* maybeArgumentsTemplateObject(bool mapped) const;
+
+  static MapObject* getOrCreateMapTemplateObject(JSContext* cx);
+  static SetObject* getOrCreateSetTemplateObject(JSContext* cx);
 
   static const size_t IterResultObjectValueSlot = 0;
   static const size_t IterResultObjectDoneSlot = 1;

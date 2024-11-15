@@ -1123,6 +1123,9 @@ void GlobalObjectData::trace(JSTracer* trc, GlobalObject* global) {
   TraceNullableEdge(trc, &unmappedArgumentsTemplate,
                     "unmapped-arguments-template");
 
+  TraceNullableEdge(trc, &mapObjectTemplate, "map-object-template");
+  TraceNullableEdge(trc, &setObjectTemplate, "set-object-template");
+
   TraceNullableEdge(trc, &iterResultTemplate, "iter-result-template_");
   TraceNullableEdge(trc, &iterResultWithoutPrototypeTemplate,
                     "iter-result-without-prototype-template");

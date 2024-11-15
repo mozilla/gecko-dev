@@ -700,10 +700,13 @@ bool MapObject::setWithHashableKey(JSContext* cx, const HashableValue& key,
   return true;
 }
 
-MapObject* MapObject::create(JSContext* cx,
-                             HandleObject proto /* = nullptr */) {
+MapObject* MapObject::createWithProto(JSContext* cx, HandleObject proto,
+                                      NewObjectKind newKind) {
+  MOZ_ASSERT(proto);
+
   AutoSetNewObjectMetadata metadata(cx);
-  MapObject* mapObj = NewObjectWithClassProto<MapObject>(cx, proto);
+  auto* mapObj =
+      NewObjectWithGivenProtoAndKinds<MapObject>(cx, proto, allocKind, newKind);
   if (!mapObj) {
     return nullptr;
   }
@@ -711,6 +714,58 @@ MapObject* MapObject::create(JSContext* cx,
   UnbarrieredTable(mapObj).initSlots();
   mapObj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
   mapObj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
+  return mapObj;
+}
+
+MapObject* MapObject::create(JSContext* cx,
+                             HandleObject proto /* = nullptr */) {
+  MOZ_ASSERT(gc::ForegroundToBackgroundAllocKind(
+                 gc::GetGCObjectKind(SlotCount)) == allocKind,
+             "allocKind constant doesn't match SlotCount");
+
+  if (proto) {
+    return createWithProto(cx, proto, GenericObject);
+  }
+
+  // This is the common case so use the template object's shape to optimize the
+  // allocation.
+  MapObject* templateObj = GlobalObject::getOrCreateMapTemplateObject(cx);
+  if (!templateObj) {
+    return nullptr;
+  }
+
+  AutoSetNewObjectMetadata metadata(cx);
+  Rooted<SharedShape*> shape(cx, templateObj->sharedShape());
+  auto* mapObj =
+      NativeObject::create<MapObject>(cx, allocKind, gc::Heap::Default, shape);
+  if (!mapObj) {
+    return nullptr;
+  }
+
+  UnbarrieredTable(mapObj).initSlots();
+  mapObj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
+  mapObj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
+  return mapObj;
+}
+
+// static
+MapObject* GlobalObject::getOrCreateMapTemplateObject(JSContext* cx) {
+  GlobalObjectData& data = cx->global()->data();
+  if (MapObject* obj = data.mapObjectTemplate) {
+    return obj;
+  }
+
+  Rooted<JSObject*> proto(cx,
+                          GlobalObject::getOrCreatePrototype(cx, JSProto_Map));
+  if (!proto) {
+    return nullptr;
+  }
+  auto* mapObj = MapObject::createWithProto(cx, proto, TenuredObject);
+  if (!mapObj) {
+    return nullptr;
+  }
+
+  data.mapObjectTemplate.init(mapObj);
   return mapObj;
 }
 
@@ -1389,18 +1444,73 @@ bool SetObject::addHashableValue(JSContext* cx, const HashableValue& value) {
   return Table(this).put(cx, value);
 }
 
-SetObject* SetObject::create(JSContext* cx,
-                             HandleObject proto /* = nullptr */) {
+SetObject* SetObject::createWithProto(JSContext* cx, HandleObject proto,
+                                      NewObjectKind newKind) {
+  MOZ_ASSERT(proto);
+
   AutoSetNewObjectMetadata metadata(cx);
-  SetObject* obj = NewObjectWithClassProto<SetObject>(cx, proto);
-  if (!obj) {
+  auto* setObj =
+      NewObjectWithGivenProtoAndKinds<SetObject>(cx, proto, allocKind, newKind);
+  if (!setObj) {
     return nullptr;
   }
 
-  UnbarrieredTable(obj).initSlots();
-  obj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
-  obj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
-  return obj;
+  UnbarrieredTable(setObj).initSlots();
+  setObj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
+  setObj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
+  return setObj;
+}
+
+SetObject* SetObject::create(JSContext* cx,
+                             HandleObject proto /* = nullptr */) {
+  MOZ_ASSERT(gc::ForegroundToBackgroundAllocKind(
+                 gc::GetGCObjectKind(SlotCount)) == allocKind,
+             "allocKind constant doesn't match SlotCount");
+
+  if (proto) {
+    return createWithProto(cx, proto, GenericObject);
+  }
+
+  // This is the common case so use the template object's shape to optimize the
+  // allocation.
+  SetObject* templateObj = GlobalObject::getOrCreateSetTemplateObject(cx);
+  if (!templateObj) {
+    return nullptr;
+  }
+
+  AutoSetNewObjectMetadata metadata(cx);
+  Rooted<SharedShape*> shape(cx, templateObj->sharedShape());
+  auto* setObj =
+      NativeObject::create<SetObject>(cx, allocKind, gc::Heap::Default, shape);
+  if (!setObj) {
+    return nullptr;
+  }
+
+  UnbarrieredTable(setObj).initSlots();
+  setObj->initReservedSlot(NurseryKeysSlot, PrivateValue(nullptr));
+  setObj->initReservedSlot(RegisteredNurseryRangesSlot, BooleanValue(false));
+  return setObj;
+}
+
+// static
+SetObject* GlobalObject::getOrCreateSetTemplateObject(JSContext* cx) {
+  GlobalObjectData& data = cx->global()->data();
+  if (SetObject* obj = data.setObjectTemplate) {
+    return obj;
+  }
+
+  Rooted<JSObject*> proto(cx,
+                          GlobalObject::getOrCreatePrototype(cx, JSProto_Set));
+  if (!proto) {
+    return nullptr;
+  }
+  auto* setObj = SetObject::createWithProto(cx, proto, TenuredObject);
+  if (!setObj) {
+    return nullptr;
+  }
+
+  data.setObjectTemplate.init(setObj);
+  return setObj;
 }
 
 void SetObject::trace(JSTracer* trc, JSObject* obj) {

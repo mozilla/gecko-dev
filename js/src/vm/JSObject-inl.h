@@ -450,7 +450,7 @@ inline T* NewObjectWithGivenProtoAndKinds(JSContext* cx, HandleObject proto,
                                           gc::AllocKind allocKind,
                                           NewObjectKind newKind) {
   JSObject* obj = NewObjectWithGivenTaggedProto(
-      cx, &T::class_, AsTaggedProto(proto), allocKind, newKind);
+      cx, &T::class_, AsTaggedProto(proto), allocKind, newKind, ObjectFlags());
   return obj ? &obj->as<T>() : nullptr;
 }
 
