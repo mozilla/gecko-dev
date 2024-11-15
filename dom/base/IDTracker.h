@@ -54,17 +54,26 @@ class IDTracker {
   Element* get() { return mElement; }
 
   /**
-   * Set up the reference. This can be called multiple times to
-   * change which reference is being tracked, but these changes
-   * do not trigger ElementChanged.
-   * @param aFrom the source element for context
-   * @param aURI the URI containing a hash-reference to the element
-   * @param aReferrerInfo the referrerInfo for loading external resource
-   * @param aWatch if false, then we do not set up the notifications to track
-   * changes, so ElementChanged won't fire and get() will always return the same
-   * value, the current element for the ID.
-   * @param aReferenceImage whether the ID references image elements which are
-   * subject to the document's mozSetImageElement overriding mechanism.
+   * Set up a reference to another element, identified by the fragment
+   * identifier in aURI. If aURI identifies an element in a document that is
+   * not aFrom's document, then an ExternalResourceLoad object will be created
+   * to load and store that document in the background as a resource document
+   * (until we, and any other observers, no longer observe it).
+   *
+   * This can be called multiple times with different URIs to change which
+   * element is being tracked, but these changes do not trigger ElementChanged.
+   *
+   * @param aFrom The source element that has made the reference to aURI.
+   * @param aURI A URI containing a fragment identifier that identifies the
+   *   target element.
+   * @param aReferrerInfo The referrerInfo for the source element. Needed if
+   *   the referenced element is in an external resource document.
+   * @param aWatch If false, then we do not set up the notifications to track
+   *   changes, so ElementChanged won't fire and get() will always return the
+   *   same value, the current element for the ID.
+   * @param aReferenceImage Whether the reference comes from a -moz-element
+   *   property (that is, we're creating a reference an "image element", which
+   *   is subject to the document's mozSetImageElement overriding mechanism).
    */
   void ResetToURIFragmentID(nsIContent* aFrom, nsIURI* aURI,
                             nsIReferrerInfo* aReferrerInfo, bool aWatch = true,
@@ -72,24 +81,28 @@ class IDTracker {
 
   /**
    * A variation on ResetToURIFragmentID() to set up a reference that consists
-   * of a local reference of an element in the same document as aFrom.
-   * @param aFrom the source element for context
-   * @param aLocalRef the local reference of the element
-   * @param aWatch if false, then we do not set up the notifications to track
-   * changes, so ElementChanged won't fire and get() will always return the same
-   * value, the current element for the ID.
+   * only of a fragment identifier, referencing an element in the same document
+   * as aFrom.
+   *
+   * @param aFrom The source element that is making the reference.
+   * @param aLocalRef The fragment identifier that identifies the target
+   *   element. Must begin with "#".
+   * @param aWatch If false, then we do not set up the notifications to track
+   *   changes, so ElementChanged won't fire and get() will always return the
+   *   same value, the current element for the ID.
    */
   void ResetWithLocalRef(Element& aFrom, const nsAString& aLocalRef,
                          bool aWatch = true);
 
   /**
    * A variation on ResetToURIFragmentID() to set up a reference that consists
-   * of the ID of an element in the same document as aFrom.
-   * @param aFrom the source element for context
-   * @param aID the ID of the element
-   * @param aWatch if false, then we do not set up the notifications to track
-   * changes, so ElementChanged won't fire and get() will always return the same
-   * value, the current element for the ID.
+   * of a pre-parsed ID, referencing an element in the same document as aFrom.
+   *
+   * @param aFrom The source element that is making the reference.
+   * @param aID The ID of the target element.
+   * @param aWatch If false, then we do not set up the notifications to track
+   *   changes, so ElementChanged won't fire and get() will always return the
+   *   same value, the current element for the ID.
    */
   void ResetWithID(Element& aFrom, nsAtom* aID, bool aWatch = true);
 
