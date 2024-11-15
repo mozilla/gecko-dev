@@ -239,16 +239,10 @@ class nsBlockFrame : public nsContainerFrame {
   bool HasMarker() const { return HasAnyStateBits(NS_BLOCK_HAS_MARKER); }
 
   // Return true if this frame has an inside ::marker frame.
-  bool HasInsideMarker() const {
-    return HasMarker() && StyleList()->mListStylePosition ==
-                              mozilla::StyleListStylePosition::Inside;
-  }
+  bool HasInsideMarker() const;
 
   // Return true if this frame has an outside ::marker frame.
-  bool HasOutsideMarker() const {
-    return HasMarker() && StyleList()->mListStylePosition ==
-                              mozilla::StyleListStylePosition::Outside;
-  }
+  bool HasOutsideMarker() const;
 
   /**
    * @return the first-letter frame or nullptr if we don't have one.

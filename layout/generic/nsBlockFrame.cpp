@@ -8311,6 +8311,14 @@ bool nsBlockFrame::MarkerIsEmpty() const {
           marker->StyleContent()->NonAltContentItems().IsEmpty());
 }
 
+bool nsBlockFrame::HasInsideMarker() const {
+  return HasMarker() && HasProperty(InsideMarkerProperty());
+}
+
+bool nsBlockFrame::HasOutsideMarker() const {
+  return HasMarker() && HasProperty(OutsideMarkerProperty());
+}
+
 void nsBlockFrame::ReflowOutsideMarker(nsIFrame* aMarkerFrame,
                                        BlockReflowState& aState,
                                        ReflowOutput& aMetrics,
