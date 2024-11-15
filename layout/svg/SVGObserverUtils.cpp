@@ -457,7 +457,7 @@ SVGIDRenderingObserver::SVGIDRenderingObserver(
     referrerInfo = aURI->GetReferrerInfo();
   }
 
-  mObservedElementTracker.ResetToURIFragmentID(
+  mObservedElementTracker.ResetToURIWithFragmentID(
       aObservingContent, uri, referrerInfo, true, aReferenceImage);
   TargetChanged();
   StartObserving();

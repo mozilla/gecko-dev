@@ -93,7 +93,7 @@ void SMILTimeValueSpec::ResolveReferences(Element& aContextElement) {
   RefPtr<Element> oldReferencedElement = mReferencedElement.get();
 
   if (mParams.mDependentElemID) {
-    mReferencedElement.ResetWithID(aContextElement, mParams.mDependentElemID);
+    mReferencedElement.ResetToID(aContextElement, mParams.mDependentElemID);
   } else if (mParams.mType == SMILTimeValueSpecParams::EVENT) {
     Element* target = mOwner->GetTargetElement();
     mReferencedElement.ResetWithElement(target);

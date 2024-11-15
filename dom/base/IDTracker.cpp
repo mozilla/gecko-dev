@@ -55,11 +55,11 @@ IDTracker::IDTracker() = default;
 
 IDTracker::~IDTracker() { Unlink(); }
 
-void IDTracker::ResetToURIFragmentID(nsIContent* aFromContent, nsIURI* aURI,
-                                     nsIReferrerInfo* aReferrerInfo,
-                                     bool aWatch, bool aReferenceImage) {
+void IDTracker::ResetToURIWithFragmentID(nsIContent* aFromContent, nsIURI* aURI,
+                                         nsIReferrerInfo* aReferrerInfo,
+                                         bool aWatch, bool aReferenceImage) {
   MOZ_ASSERT(aFromContent,
-             "ResetToURIFragmentID() expects non-null content pointer");
+             "ResetToURIWithFragmentID() expects non-null content pointer");
 
   Unlink();
 
@@ -128,8 +128,9 @@ void IDTracker::ResetToURIFragmentID(nsIContent* aFromContent, nsIURI* aURI,
   HaveNewDocumentOrShadowRoot(docOrShadow, aWatch, ref);
 }
 
-void IDTracker::ResetWithLocalRef(Element& aFrom, const nsAString& aLocalRef,
-                                  bool aWatch) {
+void IDTracker::ResetToLocalFragmentID(Element& aFrom,
+                                       const nsAString& aLocalRef,
+                                       bool aWatch) {
   MOZ_ASSERT(nsContentUtils::IsLocalRefURL(aLocalRef));
 
   auto ref = Substring(aLocalRef, 1);
@@ -156,10 +157,10 @@ void IDTracker::ResetWithLocalRef(Element& aFrom, const nsAString& aLocalRef,
   }
 
   RefPtr<nsAtom> idAtom = NS_Atomize(unescaped);
-  ResetWithID(aFrom, idAtom, aWatch);
+  ResetToID(aFrom, idAtom, aWatch);
 }
 
-void IDTracker::ResetWithID(Element& aFrom, nsAtom* aID, bool aWatch) {
+void IDTracker::ResetToID(Element& aFrom, nsAtom* aID, bool aWatch) {
   MOZ_ASSERT(aID);
 
   Unlink();

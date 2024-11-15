@@ -75,14 +75,15 @@ class IDTracker {
    *   property (that is, we're creating a reference an "image element", which
    *   is subject to the document's mozSetImageElement overriding mechanism).
    */
-  void ResetToURIFragmentID(nsIContent* aFrom, nsIURI* aURI,
-                            nsIReferrerInfo* aReferrerInfo, bool aWatch = true,
-                            bool aReferenceImage = false);
+  void ResetToURIWithFragmentID(nsIContent* aFrom, nsIURI* aURI,
+                                nsIReferrerInfo* aReferrerInfo,
+                                bool aWatch = true,
+                                bool aReferenceImage = false);
 
   /**
-   * A variation on ResetToURIFragmentID() to set up a reference that consists
-   * only of a fragment identifier, referencing an element in the same document
-   * as aFrom.
+   * A variation on ResetToURIWithFragmentID() to set up a reference that
+   * consists only of a fragment identifier, referencing an element in the same
+   * document as aFrom.
    *
    * @param aFrom The source element that is making the reference.
    * @param aLocalRef The fragment identifier that identifies the target
@@ -91,12 +92,13 @@ class IDTracker {
    *   changes, so ElementChanged won't fire and get() will always return the
    *   same value, the current element for the ID.
    */
-  void ResetWithLocalRef(Element& aFrom, const nsAString& aLocalRef,
-                         bool aWatch = true);
+  void ResetToLocalFragmentID(Element& aFrom, const nsAString& aLocalRef,
+                              bool aWatch = true);
 
   /**
-   * A variation on ResetToURIFragmentID() to set up a reference that consists
-   * of a pre-parsed ID, referencing an element in the same document as aFrom.
+   * A variation on ResetToURIWithFragmentID() to set up a reference that
+   * consists of a pre-parsed ID, referencing an element in the same document
+   * as aFrom.
    *
    * @param aFrom The source element that is making the reference.
    * @param aID The ID of the target element.
@@ -104,7 +106,7 @@ class IDTracker {
    *   changes, so ElementChanged won't fire and get() will always return the
    *   same value, the current element for the ID.
    */
-  void ResetWithID(Element& aFrom, nsAtom* aID, bool aWatch = true);
+  void ResetToID(Element& aFrom, nsAtom* aID, bool aWatch = true);
 
   /**
    * Clears the reference. ElementChanged is not triggered. get() will return
