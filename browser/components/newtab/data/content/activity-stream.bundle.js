@@ -3425,7 +3425,7 @@ class _DSCard extends (external_React_default()).PureComponent {
     const imageGradientClassName = imageGradient ? `ds-card-image-gradient` : ``;
     const listCardClassName = isListCard ? `list-feed-card` : ``;
     const fakespotClassName = isFakespot ? `fakespot` : ``;
-    const sectionsCardsClassName = mayHaveSectionsCards ? `sections-card-ui` : ``;
+    const sectionsCardsClassName = [mayHaveSectionsCards ? `sections-card-ui` : ``, this.props.sectionsClassNames].join(" ");
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     const isMediumRectangle = format === "rectangle";
@@ -3453,8 +3453,12 @@ class _DSCard extends (external_React_default()).PureComponent {
       })));
     };
     return /*#__PURE__*/external_React_default().createElement("article", {
-      className: `ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName}  ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
-      ref: this.setContextMenuButtonHostRef
+      className: `ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
+      ref: this.setContextMenuButtonHostRef,
+      "data-position-one": this.props["data-position-one"],
+      "data-position-two": this.props["data-position-one"],
+      "data-position-three": this.props["data-position-one"],
+      "data-position-four": this.props["data-position-one"]
     }, this.props.showTopics && !this.props.mayHaveSectionsCards && this.props.topic && !isListCard && /*#__PURE__*/external_React_default().createElement("span", {
       className: "ds-card-topic",
       "data-l10n-id": `newtab-topic-label-${this.props.topic}`
@@ -9440,6 +9444,30 @@ function CardSections({
   if (!data) {
     return null;
   }
+  function getLayoutData(responsiveLayout, index) {
+    let layoutData = {
+      position: {},
+      classNames: []
+    };
+    responsiveLayout.flatMap(layout => layout.tiles.filter((_, tileIndex) => tileIndex === index).forEach(tile => {
+      layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
+      layoutData.position[`col${layout.columnCount}`] = tile.position;
+    }));
+    return layoutData;
+  }
+
+  // function to determine amount of tiles shown per section per viewport
+  function getMaxTiles(responsiveLayout) {
+    return responsiveLayout.flatMap(layout => layout).reduce((acc, t) => {
+      acc[t.columnCount] = t.tiles.length;
+
+      // Update maxTile if current tile count is greater
+      if (!acc.maxTile || t.tiles.length > acc.maxTile) {
+        acc.maxTile = t.tiles.length;
+      }
+      return acc;
+    }, {});
+  }
   return isEmpty ? /*#__PURE__*/external_React_default().createElement("div", {
     className: "ds-card-grid empty"
   }, /*#__PURE__*/external_React_default().createElement(DSEmptyState, {
@@ -9454,6 +9482,12 @@ function CardSections({
       title,
       subtitle
     } = section;
+    const {
+      responsiveLayouts
+    } = section.layout;
+    const {
+      maxTile
+    } = getMaxTiles(responsiveLayouts);
     return /*#__PURE__*/external_React_default().createElement("section", {
       key: sectionKey,
       className: "ds-section"
@@ -9465,7 +9499,12 @@ function CardSections({
       className: "section-subtitle"
     }, subtitle)), /*#__PURE__*/external_React_default().createElement("div", {
       className: "ds-section-grid ds-card-grid"
-    }, section.data.slice(0, 4).map(rec => {
+    }, section.data.slice(0, maxTile).map((rec, index) => {
+      const layoutData = getLayoutData(responsiveLayouts, index);
+      const {
+        classNames,
+        position
+      } = layoutData;
       return /*#__PURE__*/external_React_default().createElement(DSCard, {
         key: `dscard-${rec.id}`,
         pos: rec.pos,
@@ -9507,7 +9546,12 @@ function CardSections({
         ctaButtonSponsors: ctaButtonSponsors,
         ctaButtonVariant: ctaButtonVariant,
         spocMessageVariant: spocMessageVariant,
-        saveToPocketCard: saveToPocketCard
+        saveToPocketCard: saveToPocketCard,
+        sectionsClassNames: classNames.join(" "),
+        "data-position-one": position.col1,
+        "data-position-two": position.col2,
+        "data-position-three": position.col3,
+        "data-position-four": position.col4
       });
     })));
   }));

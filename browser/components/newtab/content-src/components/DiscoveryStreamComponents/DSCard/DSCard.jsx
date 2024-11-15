@@ -653,9 +653,10 @@ export class _DSCard extends React.PureComponent {
       : ``;
     const listCardClassName = isListCard ? `list-feed-card` : ``;
     const fakespotClassName = isFakespot ? `fakespot` : ``;
-    const sectionsCardsClassName = mayHaveSectionsCards
-      ? `sections-card-ui`
-      : ``;
+    const sectionsCardsClassName = [
+      mayHaveSectionsCards ? `sections-card-ui` : ``,
+      this.props.sectionsClassNames,
+    ].join(" ");
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     const isMediumRectangle = format === "rectangle";
@@ -693,8 +694,12 @@ export class _DSCard extends React.PureComponent {
     };
     return (
       <article
-        className={`ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName}  ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
+        className={`ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
         ref={this.setContextMenuButtonHostRef}
+        data-position-one={this.props["data-position-one"]}
+        data-position-two={this.props["data-position-one"]}
+        data-position-three={this.props["data-position-one"]}
+        data-position-four={this.props["data-position-one"]}
       >
         {this.props.showTopics &&
           !this.props.mayHaveSectionsCards &&

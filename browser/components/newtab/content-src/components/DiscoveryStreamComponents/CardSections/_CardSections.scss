@@ -1,14 +1,28 @@
+@mixin section-card-small {
+  // styles
+  grid-row: span 1;
+  grid-column: span 1;
+}
+
+@mixin section-card-medium {
+  // styles
+  grid-row: span 2;
+  grid-column: span 1;
+}
+
+@mixin section-card-large {
+  // styles
+  grid-row: span 2;
+  grid-column: span 2;
+}
+
 .has-sections-grid {
   .ds-outer-wrapper-breakpoint-override main {
     width: auto;
 
     .ds-card {
       // TODO update width once new card layouts have been added
-      width: 296px;
-    }
-
-    .ds-card-grid {
-      grid-gap: var(--space-large);
+      max-width: 100%;
     }
 
     .body-wrapper {
@@ -19,41 +33,25 @@
     @media (min-width: $break-point-medium) {
       width: auto;
 
-      .ds-card-grid {
-        grid-template-columns: repeat(1, 1fr);
-      }
-
       .body-wrapper {
         width: 346px;
       }
-
     }
 
     @media (min-width: $break-point-layout-variant) {
       width: auto;
 
-      .ds-card-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
       .body-wrapper {
         width: 659px;
       }
-
     }
 
     @media (min-width: $break-point-widest) {
       width: auto;
 
-      .ds-card-grid {
-        grid-template-columns: repeat(3, 1fr);
-        grid-gap: var(--space-xlarge);
-      }
-
       .body-wrapper {
         width: 989px;
       }
-
     }
 
     @media (min-width: $break-point-sections-variant) {
@@ -67,10 +65,6 @@
 
       .ds-highlights .card-outer {
         min-width: 216px;
-      }
-
-      .ds-card-grid {
-        grid-template-columns: repeat(4, 1fr);
       }
     }
   }
@@ -101,6 +95,101 @@
         margin-block: var(--space-small) 0;
         font-size: var(--font-size-root);
       }
+    }
+  }
+}
+
+.ds-section-grid.ds-card-grid {
+  grid-gap: var(--space-large);
+  grid-template-rows: repeat(auto-fill, 150px);
+
+  @media (min-width: $break-point-medium) {
+    grid-template-columns: repeat(1, 300px);
+
+    @for $i from 0 through 6 {
+      .ds-card[data-position-one="#{$i}"] {
+        order: $i;
+      }
+    }
+
+    .col-1-small {
+      @include section-card-small;
+    }
+
+    .col-1-medium {
+      @include section-card-medium;
+    }
+
+    .col-1-large {
+      @include section-card-large;
+    }
+  }
+
+  @media (min-width: $break-point-layout-variant) {
+    grid-template-columns: repeat(2, 300px);
+
+    @for $i from 0 through 6 {
+      .ds-card[data-position-two="#{$i}"] {
+        order: $i;
+      }
+    }
+
+    .col-2-small {
+      @include section-card-small;
+    }
+
+    .col-2-medium {
+      @include section-card-medium;
+    }
+
+    .col-2-large {
+      @include section-card-large;
+    }
+  }
+
+  @media (min-width: $break-point-widest) {
+    grid-template-columns: repeat(3, 300px);
+    grid-gap: var(--space-xlarge);
+
+    @for $i from 0 through 6 {
+      .ds-card[data-property-three="#{$i}"] {
+        order: $i;
+      }
+    }
+
+    .col-3-small {
+      @include section-card-small;
+    }
+
+    .col-3-medium {
+      @include section-card-medium;
+    }
+
+    .col-3-large {
+      @include section-card-large;
+    }
+  }
+
+
+  @media (min-width: $break-point-sections-variant) {
+    grid-template-columns: repeat(4, 300px);
+
+    @for $i from 0 through 6 {
+      .ds-card[data-property-four="#{$i}"] {
+        order: $i;
+      }
+    }
+
+    .col-4-small {
+      @include section-card-small;
+    }
+
+    .col-4-medium {
+      @include section-card-medium;
+    }
+
+    .col-4-large {
+      @include section-card-large;
     }
   }
 }

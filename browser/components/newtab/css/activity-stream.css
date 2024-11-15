@@ -4383,10 +4383,7 @@ main section {
   width: auto;
 }
 .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card {
-  width: 296px;
-}
-.has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
-  grid-gap: var(--space-large);
+  max-width: 100%;
 }
 .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
   width: 346px;
@@ -4396,9 +4393,6 @@ main section {
   .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
     width: auto;
   }
-  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
-    grid-template-columns: repeat(1, 1fr);
-  }
   .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
     width: 346px;
   }
@@ -4407,9 +4401,6 @@ main section {
   .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
     width: auto;
   }
-  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
     width: 659px;
   }
@@ -4417,10 +4408,6 @@ main section {
 @media (min-width: 1122px) {
   .has-sections-grid .ds-outer-wrapper-breakpoint-override main {
     width: auto;
-  }
-  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
-    grid-template-columns: repeat(3, 1fr);
-    grid-gap: var(--space-xlarge);
   }
   .has-sections-grid .ds-outer-wrapper-breakpoint-override main .body-wrapper {
     width: 989px;
@@ -4437,9 +4424,6 @@ main section {
   }
   .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-highlights .card-outer {
     min-width: 216px;
-  }
-  .has-sections-grid .ds-outer-wrapper-breakpoint-override main .ds-card-grid {
-    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -4465,6 +4449,164 @@ main section {
 .ds-section-wrapper .ds-section .section-heading .section-subtitle {
   margin-block: var(--space-small) 0;
   font-size: var(--font-size-root);
+}
+
+.ds-section-grid.ds-card-grid {
+  grid-gap: var(--space-large);
+  grid-template-rows: repeat(auto-fill, 150px);
+}
+@media (min-width: 610px) {
+  .ds-section-grid.ds-card-grid {
+    grid-template-columns: repeat(1, 300px);
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-one="0"] {
+    order: 0;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-one="1"] {
+    order: 1;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-one="2"] {
+    order: 2;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-one="3"] {
+    order: 3;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-one="4"] {
+    order: 4;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-one="5"] {
+    order: 5;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-one="6"] {
+    order: 6;
+  }
+  .ds-section-grid.ds-card-grid .col-1-small {
+    grid-row: span 1;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-1-medium {
+    grid-row: span 2;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-1-large {
+    grid-row: span 2;
+    grid-column: span 2;
+  }
+}
+@media (min-width: 724px) {
+  .ds-section-grid.ds-card-grid {
+    grid-template-columns: repeat(2, 300px);
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-two="0"] {
+    order: 0;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-two="1"] {
+    order: 1;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-two="2"] {
+    order: 2;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-two="3"] {
+    order: 3;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-two="4"] {
+    order: 4;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-two="5"] {
+    order: 5;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-position-two="6"] {
+    order: 6;
+  }
+  .ds-section-grid.ds-card-grid .col-2-small {
+    grid-row: span 1;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-2-medium {
+    grid-row: span 2;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-2-large {
+    grid-row: span 2;
+    grid-column: span 2;
+  }
+}
+@media (min-width: 1122px) {
+  .ds-section-grid.ds-card-grid {
+    grid-template-columns: repeat(3, 300px);
+    grid-gap: var(--space-xlarge);
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-three="0"] {
+    order: 0;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-three="1"] {
+    order: 1;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-three="2"] {
+    order: 2;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-three="3"] {
+    order: 3;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-three="4"] {
+    order: 4;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-three="5"] {
+    order: 5;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-three="6"] {
+    order: 6;
+  }
+  .ds-section-grid.ds-card-grid .col-3-small {
+    grid-row: span 1;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-3-medium {
+    grid-row: span 2;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-3-large {
+    grid-row: span 2;
+    grid-column: span 2;
+  }
+}
+@media (min-width: 1390px) {
+  .ds-section-grid.ds-card-grid {
+    grid-template-columns: repeat(4, 300px);
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-four="0"] {
+    order: 0;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-four="1"] {
+    order: 1;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-four="2"] {
+    order: 2;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-four="3"] {
+    order: 3;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-four="4"] {
+    order: 4;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-four="5"] {
+    order: 5;
+  }
+  .ds-section-grid.ds-card-grid .ds-card[data-property-four="6"] {
+    order: 6;
+  }
+  .ds-section-grid.ds-card-grid .col-4-small {
+    grid-row: span 1;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-4-medium {
+    grid-row: span 2;
+    grid-column: span 1;
+  }
+  .ds-section-grid.ds-card-grid .col-4-large {
+    grid-row: span 2;
+    grid-column: span 2;
+  }
 }
 
 .ds-dismiss.ds-dismiss-ds-collection .ds-dismiss-button {

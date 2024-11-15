@@ -42,6 +42,38 @@ function CardSections({
     return null;
   }
 
+  function getLayoutData(responsiveLayout, index) {
+    let layoutData = {
+      position: {},
+      classNames: [],
+    };
+
+    responsiveLayout.flatMap(layout =>
+      layout.tiles
+        .filter((_, tileIndex) => tileIndex === index)
+        .forEach(tile => {
+          layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
+          layoutData.position[`col${layout.columnCount}`] = tile.position;
+        })
+    );
+    return layoutData;
+  }
+
+  // function to determine amount of tiles shown per section per viewport
+  function getMaxTiles(responsiveLayout) {
+    return responsiveLayout
+      .flatMap(layout => layout)
+      .reduce((acc, t) => {
+        acc[t.columnCount] = t.tiles.length;
+
+        // Update maxTile if current tile count is greater
+        if (!acc.maxTile || t.tiles.length > acc.maxTile) {
+          acc.maxTile = t.tiles.length;
+        }
+        return acc;
+      }, {});
+  }
+
   return isEmpty ? (
     <div className="ds-card-grid empty">
       <DSEmptyState status={data.status} dispatch={dispatch} feed={feed} />
@@ -50,6 +82,8 @@ function CardSections({
     <div className="ds-section-wrapper">
       {sections.map(section => {
         const { sectionKey, title, subtitle } = section;
+        const { responsiveLayouts } = section.layout;
+        const { maxTile } = getMaxTiles(responsiveLayouts);
         return (
           <section key={sectionKey} className="ds-section">
             <div className="section-heading">
@@ -57,7 +91,9 @@ function CardSections({
               {subtitle && <p className="section-subtitle">{subtitle}</p>}
             </div>
             <div className="ds-section-grid ds-card-grid">
-              {section.data.slice(0, 4).map(rec => {
+              {section.data.slice(0, maxTile).map((rec, index) => {
+                const layoutData = getLayoutData(responsiveLayouts, index);
+                const { classNames, position } = layoutData;
                 return (
                   <DSCard
                     key={`dscard-${rec.id}`}
@@ -101,6 +137,11 @@ function CardSections({
                     ctaButtonVariant={ctaButtonVariant}
                     spocMessageVariant={spocMessageVariant}
                     saveToPocketCard={saveToPocketCard}
+                    sectionsClassNames={classNames.join(" ")}
+                    data-position-one={position.col1}
+                    data-position-two={position.col2}
+                    data-position-three={position.col3}
+                    data-position-four={position.col4}
                   />
                 );
               })}
