@@ -149,6 +149,8 @@ class Notification : public DOMEventTargetHelper,
 
   bool IsStored() { return mIsStored; }
 
+  void MaybeNotifyClose();
+
   static bool RequestPermissionEnabledForScope(JSContext* aCx,
                                                JSObject* /* unused */);
 

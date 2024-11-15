@@ -29,6 +29,8 @@ class NotificationChild final : public PNotificationChild,
 
   IPCResult RecvNotifyClick();
 
+  void ActorDestroy(ActorDestroyReason aWhy) override;
+
  private:
   ~NotificationChild() = default;
 

@@ -788,6 +788,14 @@ Notification::ConstructFromFields(
   return notification.forget();
 }
 
+void Notification::MaybeNotifyClose() {
+  if (mIsClosed) {
+    return;
+  }
+  mIsClosed = true;
+  DispatchTrustedEvent(u"close"_ns);
+}
+
 nsresult Notification::Persist() {
   AssertIsOnMainThread();
 
