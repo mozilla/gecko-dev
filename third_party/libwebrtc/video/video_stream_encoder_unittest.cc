@@ -2537,11 +2537,11 @@ enum class RequestedResolutionVersion {
   kLegacyRequestedResolution,
   kStandardRequestedResolution,
 };
-class VideoStreamEncoderStandardOrLegacyRequestedResolutionTest
+class VideoStreamEncoderResolutionTest
     : public VideoStreamEncoderTest,
       public ::testing::WithParamInterface<RequestedResolutionVersion> {
  public:
-  VideoStreamEncoderStandardOrLegacyRequestedResolutionTest()
+  VideoStreamEncoderResolutionTest()
       : VideoStreamEncoderTest(), requested_resolution_version_(GetParam()) {}
 
   void SetUp() override {
@@ -2573,14 +2573,13 @@ class VideoStreamEncoderStandardOrLegacyRequestedResolutionTest
 };
 
 INSTANTIATE_TEST_SUITE_P(
-    VideoStreamEncoderStandardOrLegacyRequestedResolutionTest,
-    VideoStreamEncoderStandardOrLegacyRequestedResolutionTest,
+    VideoStreamEncoderResolutionTest,
+    VideoStreamEncoderResolutionTest,
     ::testing::Values(
         RequestedResolutionVersion::kLegacyRequestedResolution,
         RequestedResolutionVersion::kStandardRequestedResolution));
 
-TEST_P(VideoStreamEncoderStandardOrLegacyRequestedResolutionTest,
-       ResolutionLimitMaybePropagatedToSinkWantsBeforeFirstFrame) {
+TEST_P(VideoStreamEncoderResolutionTest, RequestInSinkWantsBeforeFirstFrame) {
   ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
   video_encoder_config_.simulcast_layers[0].requested_resolution.emplace(
       Resolution({.width = 320, .height = 160}));
@@ -2618,8 +2617,7 @@ TEST_P(VideoStreamEncoderStandardOrLegacyRequestedResolutionTest,
   video_stream_encoder_->Stop();
 }
 
-TEST_P(VideoStreamEncoderStandardOrLegacyRequestedResolutionTest,
-       RequestedResolutionInWrongAspectRatioAndSourceIsAdapting) {
+TEST_P(VideoStreamEncoderResolutionTest, RequestInWrongAspectRatioWithAdapter) {
   // Use a source that adapts resolution based on OnSinkWants.
   AdaptingFrameForwarder source(&time_controller_);
   source.set_adaptation_enabled(true);
