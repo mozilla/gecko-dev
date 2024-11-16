@@ -296,8 +296,6 @@ void nsHttpRequestHead::ParseMethod(const nsCString& aRawMethod,
     aParsedMethod = kMethod_Get;
   } else if (!strcmp(aRawMethod.get(), "POST")) {
     aParsedMethod = kMethod_Post;
-  } else if (!strcmp(aRawMethod.get(), "PATCH")) {
-    aParsedMethod = kMethod_Patch;
   } else if (!strcmp(aRawMethod.get(), "OPTIONS")) {
     aParsedMethod = kMethod_Options;
   } else if (!strcmp(aRawMethod.get(), "CONNECT")) {
