@@ -165,10 +165,8 @@ void DtlsSrtpTransport::SetupRtpDtlsSrtp() {
 
   if (!ExtractParams(rtp_dtls_transport_, &selected_crypto_suite, &send_key,
                      &recv_key) ||
-      !SetRtpParams(selected_crypto_suite, &send_key[0],
-                    static_cast<int>(send_key.size()), send_extension_ids,
-                    selected_crypto_suite, &recv_key[0],
-                    static_cast<int>(recv_key.size()), recv_extension_ids)) {
+      !SetRtpParams(selected_crypto_suite, send_key, send_extension_ids,
+                    selected_crypto_suite, recv_key, recv_extension_ids)) {
     RTC_LOG(LS_WARNING) << "DTLS-SRTP key installation for RTP failed";
   }
 }
@@ -195,10 +193,8 @@ void DtlsSrtpTransport::SetupRtcpDtlsSrtp() {
   rtc::ZeroOnFreeBuffer<unsigned char> rtcp_recv_key;
   if (!ExtractParams(rtcp_dtls_transport_, &selected_crypto_suite,
                      &rtcp_send_key, &rtcp_recv_key) ||
-      !SetRtcpParams(selected_crypto_suite, &rtcp_send_key[0],
-                     static_cast<int>(rtcp_send_key.size()), send_extension_ids,
-                     selected_crypto_suite, &rtcp_recv_key[0],
-                     static_cast<int>(rtcp_recv_key.size()),
+      !SetRtcpParams(selected_crypto_suite, rtcp_send_key, send_extension_ids,
+                     selected_crypto_suite, rtcp_recv_key,
                      recv_extension_ids)) {
     RTC_LOG(LS_WARNING) << "DTLS-SRTP key installation for RTCP failed";
   }

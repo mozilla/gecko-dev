@@ -15,9 +15,10 @@
 
 namespace rtc {
 
-static const uint8_t kTestKey1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234";
-static const uint8_t kTestKey2[] = "4321ZYXWVUTSRQPONMLKJIHGFEDCBA";
-static const int kTestKeyLen = 30;
+static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKey1{
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234", 30};
+static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKey2{
+    "4321ZYXWVUTSRQPONMLKJIHGFEDCBA", 30};
 
 static int rtp_auth_tag_len(int crypto_suite) {
   switch (crypto_suite) {

@@ -595,6 +595,7 @@ rtc_source_set("srtp_session") {
     "../api:scoped_refptr",
     "../api:sequence_checker",
     "../modules/rtp_rtcp:rtp_rtcp_format",
+    "../rtc_base:buffer",
     "../rtc_base:byte_order",
     "../rtc_base:checks",
     "../rtc_base:logging",

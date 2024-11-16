@@ -32,17 +32,18 @@
 using rtc::kSrtpAeadAes128Gcm;
 using rtc::kTestKey1;
 using rtc::kTestKey2;
-using rtc::kTestKeyLen;
 
 namespace webrtc {
-static const uint8_t kTestKeyGcm128_1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ12";
-static const uint8_t kTestKeyGcm128_2[] = "21ZYXWVUTSRQPONMLKJIHGFEDCBA";
-static const int kTestKeyGcm128Len = 28;  // 128 bits key + 96 bits salt.
-static const uint8_t kTestKeyGcm256_1[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr";
-static const uint8_t kTestKeyGcm256_2[] =
-    "rqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA";
-static const int kTestKeyGcm256Len = 44;  // 256 bits key + 96 bits salt.
+// 128 bits key + 96 bits salt.
+static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKeyGcm128_1{
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ12", 28};
+static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKeyGcm128_2{
+    "21ZYXWVUTSRQPONMLKJIHGFEDCBA", 28};
+// 256 bits key + 96 bits salt.
+static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKeyGcm256_1{
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqr", 44};
+static const rtc::ZeroOnFreeBuffer<uint8_t> kTestKeyGcm256_2{
+    "rqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA", 44};
 
 class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
  protected:
@@ -216,28 +217,22 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
 
   void TestSendRecvPacket(bool enable_external_auth,
                           int crypto_suite,
-                          const uint8_t* key1,
-                          int key1_len,
-                          const uint8_t* key2,
-                          int key2_len) {
-    EXPECT_EQ(key1_len, key2_len);
+                          const rtc::ZeroOnFreeBuffer<uint8_t>& key1,
+                          const rtc::ZeroOnFreeBuffer<uint8_t>& key2) {
+    EXPECT_EQ(key1.size(), key2.size());
     if (enable_external_auth) {
       srtp_transport1_->EnableExternalAuth();
       srtp_transport2_->EnableExternalAuth();
     }
     std::vector<int> extension_ids;
-    EXPECT_TRUE(srtp_transport1_->SetRtpParams(crypto_suite, key1, key1_len,
-                                               extension_ids, crypto_suite,
-                                               key2, key2_len, extension_ids));
-    EXPECT_TRUE(srtp_transport2_->SetRtpParams(crypto_suite, key2, key2_len,
-                                               extension_ids, crypto_suite,
-                                               key1, key1_len, extension_ids));
-    EXPECT_TRUE(srtp_transport1_->SetRtcpParams(crypto_suite, key1, key1_len,
-                                                extension_ids, crypto_suite,
-                                                key2, key2_len, extension_ids));
-    EXPECT_TRUE(srtp_transport2_->SetRtcpParams(crypto_suite, key2, key2_len,
-                                                extension_ids, crypto_suite,
-                                                key1, key1_len, extension_ids));
+    EXPECT_TRUE(srtp_transport1_->SetRtpParams(
+        crypto_suite, key1, extension_ids, crypto_suite, key2, extension_ids));
+    EXPECT_TRUE(srtp_transport2_->SetRtpParams(
+        crypto_suite, key2, extension_ids, crypto_suite, key1, extension_ids));
+    EXPECT_TRUE(srtp_transport1_->SetRtcpParams(
+        crypto_suite, key1, extension_ids, crypto_suite, key2, extension_ids));
+    EXPECT_TRUE(srtp_transport2_->SetRtcpParams(
+        crypto_suite, key2, extension_ids, crypto_suite, key1, extension_ids));
     EXPECT_TRUE(srtp_transport1_->IsSrtpActive());
     EXPECT_TRUE(srtp_transport2_->IsSrtpActive());
     if (rtc::IsGcmCryptoSuite(crypto_suite)) {
@@ -308,22 +303,21 @@ class SrtpTransportTest : public ::testing::Test, public sigslot::has_slots<> {
         original_rtp_data, rtp_len, encrypted_header_ids, false);
   }
 
-  void TestSendRecvEncryptedHeaderExtension(int crypto_suite,
-                                            const uint8_t* key1,
-                                            int key1_len,
-                                            const uint8_t* key2,
-                                            int key2_len) {
+  void TestSendRecvEncryptedHeaderExtension(
+      int crypto_suite,
+      const rtc::ZeroOnFreeBuffer<uint8_t>& key1,
+      const rtc::ZeroOnFreeBuffer<uint8_t>& key2) {
     std::vector<int> encrypted_headers;
     encrypted_headers.push_back(kHeaderExtensionIDs[0]);
     // Don't encrypt header ids 2 and 3.
     encrypted_headers.push_back(kHeaderExtensionIDs[1]);
-    EXPECT_EQ(key1_len, key2_len);
-    EXPECT_TRUE(srtp_transport1_->SetRtpParams(
-        crypto_suite, key1, key1_len, encrypted_headers, crypto_suite, key2,
-        key2_len, encrypted_headers));
-    EXPECT_TRUE(srtp_transport2_->SetRtpParams(
-        crypto_suite, key2, key2_len, encrypted_headers, crypto_suite, key1,
-        key1_len, encrypted_headers));
+    EXPECT_EQ(key1.size(), key2.size());
+    EXPECT_TRUE(srtp_transport1_->SetRtpParams(crypto_suite, key1,
+                                               encrypted_headers, crypto_suite,
+                                               key2, encrypted_headers));
+    EXPECT_TRUE(srtp_transport2_->SetRtpParams(crypto_suite, key2,
+                                               encrypted_headers, crypto_suite,
+                                               key1, encrypted_headers));
     EXPECT_TRUE(srtp_transport1_->IsSrtpActive());
     EXPECT_TRUE(srtp_transport2_->IsSrtpActive());
     EXPECT_FALSE(srtp_transport1_->IsExternalAuthActive());
@@ -353,56 +347,52 @@ TEST_P(SrtpTransportTestWithExternalAuth,
        SendAndRecvPacket_AES_CM_128_HMAC_SHA1_80) {
   bool enable_external_auth = GetParam();
   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAes128CmSha1_80, kTestKey1,
-                     kTestKeyLen, kTestKey2, kTestKeyLen);
+                     kTestKey2);
 }
 
 TEST_F(SrtpTransportTest,
        SendAndRecvPacketWithHeaderExtension_AES_CM_128_HMAC_SHA1_80) {
   TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAes128CmSha1_80, kTestKey1,
-                                       kTestKeyLen, kTestKey2, kTestKeyLen);
+                                       kTestKey2);
 }
 
 TEST_P(SrtpTransportTestWithExternalAuth,
        SendAndRecvPacket_AES_CM_128_HMAC_SHA1_32) {
   bool enable_external_auth = GetParam();
   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAes128CmSha1_32, kTestKey1,
-                     kTestKeyLen, kTestKey2, kTestKeyLen);
+                     kTestKey2);
 }
 
 TEST_F(SrtpTransportTest,
        SendAndRecvPacketWithHeaderExtension_AES_CM_128_HMAC_SHA1_32) {
   TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAes128CmSha1_32, kTestKey1,
-                                       kTestKeyLen, kTestKey2, kTestKeyLen);
+                                       kTestKey2);
 }
 
 TEST_P(SrtpTransportTestWithExternalAuth,
        SendAndRecvPacket_kSrtpAeadAes128Gcm) {
   bool enable_external_auth = GetParam();
   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAeadAes128Gcm,
-                     kTestKeyGcm128_1, kTestKeyGcm128Len, kTestKeyGcm128_2,
-                     kTestKeyGcm128Len);
+                     kTestKeyGcm128_1, kTestKeyGcm128_2);
 }
 
 TEST_F(SrtpTransportTest,
        SendAndRecvPacketWithHeaderExtension_kSrtpAeadAes128Gcm) {
   TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAeadAes128Gcm,
-                                       kTestKeyGcm128_1, kTestKeyGcm128Len,
-                                       kTestKeyGcm128_2, kTestKeyGcm128Len);
+                                       kTestKeyGcm128_1, kTestKeyGcm128_2);
 }
 
 TEST_P(SrtpTransportTestWithExternalAuth,
        SendAndRecvPacket_kSrtpAeadAes256Gcm) {
   bool enable_external_auth = GetParam();
   TestSendRecvPacket(enable_external_auth, rtc::kSrtpAeadAes256Gcm,
-                     kTestKeyGcm256_1, kTestKeyGcm256Len, kTestKeyGcm256_2,
-                     kTestKeyGcm256Len);
+                     kTestKeyGcm256_1, kTestKeyGcm256_2);
 }
 
 TEST_F(SrtpTransportTest,
        SendAndRecvPacketWithHeaderExtension_kSrtpAeadAes256Gcm) {
   TestSendRecvEncryptedHeaderExtension(rtc::kSrtpAeadAes256Gcm,
-                                       kTestKeyGcm256_1, kTestKeyGcm256Len,
-                                       kTestKeyGcm256_2, kTestKeyGcm256Len);
+                                       kTestKeyGcm256_1, kTestKeyGcm256_2);
 }
 
 // Run all tests both with and without external auth enabled.
@@ -414,11 +404,17 @@ INSTANTIATE_TEST_SUITE_P(ExternalAuth,
 TEST_F(SrtpTransportTest, TestSetParamsKeyTooShort) {
   std::vector<int> extension_ids;
   EXPECT_FALSE(srtp_transport1_->SetRtpParams(
-      rtc::kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen - 1, extension_ids,
-      rtc::kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen - 1, extension_ids));
+      rtc::kSrtpAes128CmSha1_80,
+      rtc::ZeroOnFreeBuffer<uint8_t>(kTestKey1.data(), kTestKey1.size() - 1),
+      extension_ids, rtc::kSrtpAes128CmSha1_80,
+      rtc::ZeroOnFreeBuffer<uint8_t>(kTestKey1.data(), kTestKey1.size() - 1),
+      extension_ids));
   EXPECT_FALSE(srtp_transport1_->SetRtcpParams(
-      rtc::kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen - 1, extension_ids,
-      rtc::kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen - 1, extension_ids));
+      rtc::kSrtpAes128CmSha1_80,
+      rtc::ZeroOnFreeBuffer<uint8_t>(kTestKey1.data(), kTestKey1.size() - 1),
+      extension_ids, rtc::kSrtpAes128CmSha1_80,
+      rtc::ZeroOnFreeBuffer<uint8_t>(kTestKey1.data(), kTestKey1.size() - 1),
+      extension_ids));
 }
 
 TEST_F(SrtpTransportTest, RemoveSrtpReceiveStream) {
@@ -437,9 +433,8 @@ TEST_F(SrtpTransportTest, RemoveSrtpReceiveStream) {
 
   std::vector<int> extension_ids;
   EXPECT_TRUE(srtp_transport->SetRtpParams(
-      rtc::kSrtpAeadAes128Gcm, kTestKeyGcm128_1, kTestKeyGcm128Len,
-      extension_ids, rtc::kSrtpAeadAes128Gcm, kTestKeyGcm128_1,
-      kTestKeyGcm128Len, extension_ids));
+      rtc::kSrtpAeadAes128Gcm, kTestKeyGcm128_1, extension_ids,
+      rtc::kSrtpAeadAes128Gcm, kTestKeyGcm128_1, extension_ids));
 
   RtpDemuxerCriteria demuxer_criteria;
   uint32_t ssrc = 0x1;  // SSRC of kPcmuFrame
