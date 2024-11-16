@@ -59,7 +59,6 @@ suites:
         tests:
             "ML Test Model": ""
             "ML Test Multi Model": ""
-            "ML Suggest Inference Model": ""
             "ML Suggest Intent Model": ""
             "ML Suggest NER Model": ""
 

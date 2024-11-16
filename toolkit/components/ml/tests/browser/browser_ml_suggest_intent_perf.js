@@ -55,19 +55,6 @@ requestLongerTimeout(120);
  * Tests local suggest intent model
  */
 add_task(async function test_ml_generic_pipeline() {
-  const modelDirectory = normalizePathForOS(
-    `${Services.env.get("MOZ_FETCHES_DIR")}/onnx-models`
-  );
-  info(`Model Directory: ${modelDirectory}`);
-  const { baseUrl: modelHubRootUrl } = startHttpServer(modelDirectory);
-  info(`ModelHubRootUrl: ${modelHubRootUrl}`);
-  const { cleanup } = await perfSetup({
-    prefs: [
-      ["browser.ml.modelHubRootUrl", modelHubRootUrl],
-      ["javascript.options.wasm_lazy_tiering", true],
-    ],
-  });
-
   const options = new PipelineOptions({
     taskName: "text-classification",
     modelId: "Mozilla/mobilebert-uncased-finetuned-LoRA-intent-classifier",
@@ -81,12 +68,9 @@ add_task(async function test_ml_generic_pipeline() {
   for (let i = 0; i < ITERATIONS; i++) {
     let metrics = await runInference(options, args);
     for (let [metricName, metricVal] of Object.entries(metrics)) {
-      if (metricName !== `${MODEL_RUN_MEMORY}`) {
-        Assert.ok(metricVal >= 0, "Metric should be non-negative.");
-      }
+      Assert.ok(metricVal >= 0, "Metric should be non-negative.");
       journal[`${PREFIX}_${metricName}`].push(metricVal);
     }
   }
   reportMetrics(journal);
-  await cleanup();
 });

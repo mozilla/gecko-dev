@@ -13,6 +13,24 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
 
+/**
+ * These INTENT_OPTIONS and NER_OPTIONS will go to remote setting server and depends
+ * on https://bugzilla.mozilla.org/show_bug.cgi?id=1923553
+ */
+const INTENT_OPTIONS = {
+  taskName: "text-classification",
+  featureId: "suggest-intent-classification",
+  engineId: "ml-suggest-intent",
+  timeoutMS: -1,
+};
+
+const NER_OPTIONS = {
+  taskName: "token-classification",
+  featureId: "suggest-NER",
+  engineId: "ml-suggest-ner",
+  timeoutMS: -1,
+};
+
 // List of prepositions used in subject cleaning.
 const PREPOSITIONS = ["in", "at", "on", "for", "to", "near"];
 
@@ -24,20 +42,6 @@ const PREPOSITIONS = ["in", "at", "on", "for", "to", "near"];
 class _MLSuggest {
   #modelEngines = {};
 
-  INTENT_OPTIONS = {
-    taskName: "text-classification",
-    featureId: "suggest-intent-classification",
-    engineId: "ml-suggest-intent",
-    timeoutMS: -1,
-  };
-
-  NER_OPTIONS = {
-    taskName: "token-classification",
-    featureId: "suggest-NER",
-    engineId: "ml-suggest-ner",
-    timeoutMS: -1,
-  };
-
   // Helper to wrap createEngine for testing purpose
   createEngine(args) {
     return lazy.createEngine(args);
@@ -48,8 +52,8 @@ class _MLSuggest {
    */
   async initialize() {
     await Promise.all([
-      this.#initializeModelEngine(this.INTENT_OPTIONS),
-      this.#initializeModelEngine(this.NER_OPTIONS),
+      this.#initializeModelEngine(INTENT_OPTIONS),
+      this.#initializeModelEngine(NER_OPTIONS),
     ]);
   }
 
@@ -95,10 +99,10 @@ class _MLSuggest {
     );
 
     return {
-      intent: intentRes[0].label,
+      intent: intentRes,
       location: locationResVal,
       subject: this.#findSubjectFromQuery(query, locationResVal),
-      metrics: { intent: intentRes.metrics, ner: nerResult.metrics },
+      metrics: this.#sumObjectsByKey(intentRes.metrics, nerResult.metrics),
     };
   }
 
@@ -138,12 +142,11 @@ class _MLSuggest {
    *   The user's input query.
    * @param {object} options
    *   The options for the engine pipeline
-   * @returns {object[] | null}
-   *   The intent results or null if the model is not initialized.
+   * @returns {string|null}
+   *   The predicted intent label or null if the model is not initialized.
    */
   async _findIntent(query, options = {}) {
-    const engineIntentClassifier =
-      this.#modelEngines[this.INTENT_OPTIONS.engineId];
+    const engineIntentClassifier = this.#modelEngines[INTENT_OPTIONS.engineId];
     if (!engineIntentClassifier) {
       return null;
     }
@@ -157,11 +160,12 @@ class _MLSuggest {
     } catch (error) {
       // engine could timeout or fail, so remove that from cache
       // and reinitialize
-      this.#modelEngines[this.INTENT_OPTIONS.engineId] = null;
-      this.#initializeModelEngine(this.INTENT_OPTIONS);
+      this.#modelEngines[INTENT_OPTIONS.engineId] = null;
+      this.#initializeModelEngine(INTENT_OPTIONS);
       return null;
     }
-    return res;
+    // Return the first label from the result
+    return res[0].label;
   }
 
   /**
@@ -176,14 +180,14 @@ class _MLSuggest {
    *   The NER results or null if the model is not initialized.
    */
   async _findNER(query, options = {}) {
-    const engineNER = this.#modelEngines[this.NER_OPTIONS.engineId];
+    const engineNER = this.#modelEngines[NER_OPTIONS.engineId];
     try {
       return engineNER?.run({ args: [query], options });
     } catch (error) {
       // engine could timeout or fail, so remove that from cache
       // and reinitialize
-      this.#modelEngines[this.NER_OPTIONS.engineId] = null;
-      this.#initializeModelEngine(this.NER_OPTIONS);
+      this.#modelEngines[NER_OPTIONS.engineId] = null;
+      this.#initializeModelEngine(NER_OPTIONS);
       return null;
     }
   }
@@ -302,6 +306,17 @@ class _MLSuggest {
       subject = subject.substring(0, subject.length - end.length).trimEnd();
     }
     return subject;
+  }
+
+  #sumObjectsByKey(...objs) {
+    return objs.reduce((a, b) => {
+      for (let k in b) {
+        if (b.hasOwnProperty(k)) {
+          a[k] = (a[k] || 0) + b[k];
+        }
+      }
+      return a;
+    }, {});
   }
 }
 

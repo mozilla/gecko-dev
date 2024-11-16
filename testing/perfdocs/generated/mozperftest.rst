@@ -391,24 +391,6 @@ toolkit/components/ml/tests/browser
 -----------------------------------
 Performance tests running through Mochitest for ML Models
 
-browser_ml_suggest_inference.js
-===============================
-
-:owner: GenAI Team
-:name: ML Suggest Inference Model
-:Default options:
-
-::
-
- --perfherder
- --perfherder-metrics name:inference-pipeline-ready-latency,unit:ms,shouldAlert:True, name:inference-initialization-latency,unit:ms,shouldAlert:True, name:inference-model-run-latency,unit:ms,shouldAlert:True, name:inference-pipeline-ready-memory,unit:MB,shouldAlert:True, name:inference-initialization-memory,unit:MB,shouldAlert:True, name:inference-model-run-memory,unit:MB,shouldAlert:True
- --verbose
- --manifest perftest.toml
- --manifest-flavor browser-chrome
- --try-platform linux, mac, win
-
-**Template test for ML suggest Inference Model**
-
 browser_ml_suggest_intent_perf.js
 =================================
 

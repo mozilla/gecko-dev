@@ -47,19 +47,6 @@ requestLongerTimeout(120);
  * Tests local suggest NER model
  */
 add_task(async function test_ml_generic_pipeline() {
-  const modelDirectory = normalizePathForOS(
-    `${Services.env.get("MOZ_FETCHES_DIR")}/onnx-models`
-  );
-  info(`Model Directory: ${modelDirectory}`);
-  const { baseUrl: modelHubRootUrl } = startHttpServer(modelDirectory);
-  info(`ModelHubRootUrl: ${modelHubRootUrl}`);
-  const { cleanup } = await perfSetup({
-    prefs: [
-      ["browser.ml.modelHubRootUrl", modelHubRootUrl],
-      ["javascript.options.wasm_lazy_tiering", true],
-    ],
-  });
-
   const options = new PipelineOptions({
     taskName: "token-classification",
     modelId: "Mozilla/distilbert-uncased-NER-LoRA",
@@ -78,5 +65,4 @@ add_task(async function test_ml_generic_pipeline() {
     }
   }
   reportMetrics(journal);
-  await cleanup();
 });
