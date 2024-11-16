@@ -11,15 +11,15 @@
 #import <AVFoundation/AVFoundation.h>
 #import <Foundation/Foundation.h>
 
-#import "RTCMacros.h"
 #import "RTCVideoCapturer.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-RTC_OBJC_EXPORT
 // Camera capture that implements RTCVideoCapturer. Delivers frames to a
 // RTCVideoCapturerDelegate (usually RTCVideoSource).
 NS_EXTENSION_UNAVAILABLE_IOS("Camera not available in app extensions.")
+RTC_OBJC_EXPORT
 @interface RTC_OBJC_TYPE (RTCCameraVideoCapturer) : RTC_OBJC_TYPE(RTCVideoCapturer)
 
 // Capture session that is used for capturing. Valid from initialization to dealloc.

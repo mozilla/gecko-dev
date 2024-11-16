@@ -13,7 +13,7 @@
 #import <UIKit/UIKit.h>
 #endif
 
-#import "RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

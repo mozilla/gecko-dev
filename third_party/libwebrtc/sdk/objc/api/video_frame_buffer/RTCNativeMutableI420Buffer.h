@@ -10,9 +10,9 @@
 
 #import <AVFoundation/AVFoundation.h>
 
-#import "RTCMacros.h"
 #import "RTCMutableI420Buffer.h"
 #import "RTCNativeI420Buffer.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

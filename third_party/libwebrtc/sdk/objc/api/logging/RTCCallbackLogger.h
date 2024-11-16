@@ -11,7 +11,7 @@
 #import <Foundation/Foundation.h>
 
 #import "RTCLogging.h"
-#import "RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

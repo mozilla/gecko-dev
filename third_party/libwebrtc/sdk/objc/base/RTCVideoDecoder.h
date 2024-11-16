@@ -12,9 +12,9 @@
 
 #import "RTCCodecSpecificInfo.h"
 #import "RTCEncodedImage.h"
-#import "RTCMacros.h"
 #import "RTCVideoEncoderSettings.h"
 #import "RTCVideoFrame.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

@@ -11,7 +11,7 @@
 #import <Foundation/Foundation.h>
 
 #import "RTCCodecSpecificInfo.h"
-#import "RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 /** Class for H264 specific config. */
 typedef NS_ENUM(NSUInteger, RTCH264PacketizationMode) {

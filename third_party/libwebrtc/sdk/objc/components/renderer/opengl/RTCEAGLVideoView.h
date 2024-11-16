@@ -11,9 +11,9 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#import "RTCMacros.h"
 #import "RTCVideoRenderer.h"
 #import "RTCVideoViewShading.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -23,8 +23,8 @@ NS_ASSUME_NONNULL_BEGIN
  * RTCEAGLVideoView is an RTCVideoRenderer which renders video frames
  * in its bounds using OpenGLES 2.0 or OpenGLES 3.0.
  */
-RTC_OBJC_EXPORT
 NS_EXTENSION_UNAVAILABLE_IOS("Rendering not available in app extensions.")
+RTC_OBJC_EXPORT
 @interface RTC_OBJC_TYPE (RTCEAGLVideoView) : UIView <RTC_OBJC_TYPE(RTCVideoRenderer)>
 
 @property(nonatomic, weak) id<RTC_OBJC_TYPE(RTCVideoViewDelegate)> delegate;

@@ -10,8 +10,8 @@
 
 #import <Foundation/Foundation.h>
 
-#import "base/RTCMacros.h"
 #import "base/RTCVideoEncoder.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 // NativeVideoEncoder pretends to conform to RTCVideoEncoder protocol, but
 // expects its methods won't be called.

@@ -11,11 +11,10 @@
 #ifndef SDK_OBJC_NATIVE_SRC_OBJC_VIDEO_DECODER_FACTORY_H_
 #define SDK_OBJC_NATIVE_SRC_OBJC_VIDEO_DECODER_FACTORY_H_
 
-#import "base/RTCMacros.h"
-
 #include "api/environment/environment.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "media/base/codec.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @protocol RTC_OBJC_TYPE
 (RTCVideoDecoderFactory);

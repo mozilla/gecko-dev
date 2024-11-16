@@ -10,7 +10,6 @@
 
 #include "sdk/objc/native/src/objc_video_decoder_factory.h"
 
-#import "base/RTCMacros.h"
 #import "base/RTCVideoDecoder.h"
 #import "base/RTCVideoDecoderFactory.h"
 #import "base/RTCVideoFrame.h"
@@ -19,6 +18,7 @@
 #import "sdk/objc/api/peerconnection/RTCEncodedImage+Private.h"
 #import "sdk/objc/api/peerconnection/RTCVideoCodecInfo+Private.h"
 #import "sdk/objc/api/video_codec/RTCNativeVideoDecoderBuilder+Native.h"
+#import "sdk/objc/base/RTCMacros.h"
 #import "sdk/objc/helpers/NSString+StdString.h"
 
 #include "api/video_codecs/sdp_video_format.h"

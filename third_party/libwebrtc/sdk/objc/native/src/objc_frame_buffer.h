@@ -13,9 +13,8 @@
 
 #import <CoreVideo/CoreVideo.h>
 
-#import "base/RTCMacros.h"
-
 #include "common_video/include/video_frame_buffer.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @protocol RTC_OBJC_TYPE
 (RTCVideoFrameBuffer);

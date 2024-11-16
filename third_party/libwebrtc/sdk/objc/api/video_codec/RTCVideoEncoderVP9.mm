@@ -11,11 +11,11 @@
 
 #import <Foundation/Foundation.h>
 
-#import "RTCMacros.h"
 #import "RTCNativeVideoEncoder.h"
 #import "RTCNativeVideoEncoderBuilder+Native.h"
 #import "RTCVideoEncoderVP9.h"
 #import "helpers/NSString+StdString.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 #include "api/video_codecs/scalability_mode.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"

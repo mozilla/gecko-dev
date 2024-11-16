@@ -10,9 +10,9 @@
 
 #include "sdk/objc/native/src/objc_video_renderer.h"
 
-#import "base/RTCMacros.h"
 #import "base/RTCVideoFrame.h"
 #import "base/RTCVideoRenderer.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 #include "sdk/objc/native/src/objc_video_frame.h"
 

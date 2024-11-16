@@ -9,7 +9,7 @@
  */
 
 #import "RTCVideoEncoderFactory.h"
-#import "RTCMacros.h"
+#import "sdk/objc/base/RTCMacros.h"
 
 @implementation RTC_OBJC_TYPE (RTCVideoEncoderCodecSupport)
 

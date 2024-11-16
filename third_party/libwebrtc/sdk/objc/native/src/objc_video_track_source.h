@@ -13,9 +13,9 @@
 
 #import "base/RTCVideoCapturer.h"
 
-#include "base/RTCMacros.h"
 #include "media/base/adapted_video_track_source.h"
 #include "rtc_base/timestamp_aligner.h"
+#include "sdk/objc/base/RTCMacros.h"
 
 RTC_FWD_DECL_OBJC_CLASS(RTC_OBJC_TYPE(RTCVideoFrame));
 
