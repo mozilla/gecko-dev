@@ -8436,9 +8436,6 @@ TEST_F(WebRtcVideoChannelTest, FallbackForUnsetOrUnsupportedScalabilityMode) {
 
 TEST_F(WebRtcVideoChannelTest,
        DefaultValueUsedIfScalabilityModeIsUnsupportedByCodec) {
-  const absl::InlinedVector<ScalabilityMode, webrtc::kScalabilityModeCount>
-      kVp9SupportedModes = {ScalabilityMode::kL3T3};
-
   encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
       "VP8", webrtc::CodecParameterMap(), {ScalabilityMode::kL1T1}));
   encoder_factory_->AddSupportedVideoCodec(webrtc::SdpVideoFormat(
