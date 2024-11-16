@@ -4123,16 +4123,13 @@ nsresult nsHttpChannel::OpenCacheEntry(bool isHttps) {
 
   // make sure we're not abusing this function
   MOZ_ASSERT(!mCacheEntry, "cache entry already open");
-
-  if (mRequestHead.IsPost()) {
-    // If the post id is already set then this is an attempt to replay
-    // a post transaction via the cache.  Otherwise, we need a unique
-    // post id for this transaction.
-    if (mPostID == 0) mPostID = gHttpHandler->GenerateUniqueID();
-  } else if (!mRequestHead.IsGet() && !mRequestHead.IsHead()) {
+  if (!mRequestHead.IsGet() && !mRequestHead.IsHead() &&
+      !mRequestHead.IsPost() && !mRequestHead.IsPatch()) {
     // don't use the cache for other types of requests
     return NS_OK;
   }
+
+  MOZ_ASSERT_IF(mRequestHead.IsPost() || mRequestHead.IsPatch(), mPostID > 0);
 
   return OpenCacheEntryInternal(isHttps);
 }
@@ -7061,6 +7058,25 @@ nsresult nsHttpChannel::BeginConnect() {
   if (NS_FAILED(rv)) {
     LOG(("nsHttpChannel %p AddAuthorizationHeaders failed (%08x)", this,
          static_cast<uint32_t>(rv)));
+  }
+
+  if (mRequestHead.IsPost() || mRequestHead.IsPatch()) {
+    // If the post id is already set then this is an attempt to replay
+    // a post/patch transaction via the cache.  Otherwise, we need a unique
+    // post id for this transaction.
+    if (mPostID == 0) {
+      mPostID = gHttpHandler->GenerateUniqueID();
+    }
+
+    if (!mRequestHead.HasHeader(nsHttp::Idempotency_Key)) {
+      // check if we need to add
+      // idempotency-key header
+      // See Bug 1830022 for more details
+      nsAutoCString key;
+      gHttpHandler->GenerateIdempotencyKeyForPost(mPostID, mLoadInfo, key);
+      MOZ_ALWAYS_SUCCEEDS(
+          mRequestHead.SetHeader(nsHttp::Idempotency_Key, key, false));
+    }
   }
 
   // If TimingEnabled flag is not set after OnModifyRequest() then
