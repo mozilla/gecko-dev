@@ -399,42 +399,6 @@ bool SrtpTransport::IsExternalAuthActive() const {
   return send_session_->IsExternalAuthActive();
 }
 
-bool SrtpTransport::MaybeSetKeyParams() {
-  if (!send_crypto_suite_ || !recv_crypto_suite_) {
-    return true;
-  }
-
-  return SetRtpParams(*send_crypto_suite_, send_key_.data(),
-                      static_cast<int>(send_key_.size()), std::vector<int>(),
-                      *recv_crypto_suite_, recv_key_.data(),
-                      static_cast<int>(recv_key_.size()), std::vector<int>());
-}
-
-bool SrtpTransport::ParseKeyParams(const std::string& key_params,
-                                   uint8_t* key,
-                                   size_t len) {
-  // example key_params: "inline:YUJDZGVmZ2hpSktMbW9QUXJzVHVWd3l6MTIzNDU2"
-
-  // Fail if key-method is wrong.
-  if (!absl::StartsWith(key_params, "inline:")) {
-    return false;
-  }
-
-  // Fail if base64 decode fails, or the key is the wrong size.
-  std::string key_b64(key_params.substr(7)), key_str;
-  if (!rtc::Base64::Decode(key_b64, rtc::Base64::DO_STRICT, &key_str,
-                           nullptr) ||
-      key_str.size() != len) {
-    return false;
-  }
-
-  memcpy(key, key_str.c_str(), len);
-  // TODO(bugs.webrtc.org/8905): Switch to ZeroOnFreeBuffer for storing
-  // sensitive data.
-  rtc::ExplicitZeroMemory(&key_str[0], key_str.size());
-  return true;
-}
-
 void SrtpTransport::MaybeUpdateWritableState() {
   bool writable = IsWritable(/*rtcp=*/true) && IsWritable(/*rtcp=*/false);
   // Only fire the signal if the writable state changes.

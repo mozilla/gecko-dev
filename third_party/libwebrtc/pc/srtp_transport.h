@@ -141,9 +141,6 @@ class SrtpTransport : public RtpTransport {
 
   bool UnprotectRtcp(void* data, int in_len, int* out_len);
 
-  bool MaybeSetKeyParams();
-  bool ParseKeyParams(const std::string& key_params, uint8_t* key, size_t len);
-
   const std::string content_name_;
 
   std::unique_ptr<cricket::SrtpSession> send_session_;
