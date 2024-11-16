@@ -1,25 +1,30 @@
-From: Dan Baker <dbaker@mozilla.com>
-Date: Tue, 27 Aug 2024 14:09:00 -0600
-Subject: Bug 1912989 - (fix-2360208f7d) Removed build command causing failure.
- - moz.build file updates
+From: Byron Campen <docfaraday@gmail.com>
+Date: Thu, 25 Jul 2024 10:07:00 -0500
+Subject: Bug 1909234 - (fix-4fec6f9c67dc) Hollow out the new ssl_adapter lib.
+ r?mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd4bc7427678a45283f0f56418ee2c70fac711e6
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee2f06666bcc6d22c4d7c93b78fb52d28452d055
 ---
- .gn | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ rtc_base/BUILD.gn | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/.gn b/.gn
-index 8325a46ed3..52acee7e60 100644
---- a/.gn
-+++ b/.gn
-@@ -38,7 +38,9 @@ no_check_targets = [
- exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
-                         [ "//build_overrides/build.gni" ]
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 6f8e2d1d98..c659427577 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1619,6 +1619,7 @@ if (!build_with_mozilla) {
+ }
  
--export_compile_commands = [ "*" ]
-+# Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
-+# available yet.
-+#export_compile_commands = [ "*" ]
+ rtc_library("ssl_adapter") {
++if (!build_with_mozilla) {
+   visibility = [ "*" ]
+   sources = [
+     "openssl_adapter.cc",
+@@ -1668,6 +1669,7 @@ rtc_library("ssl_adapter") {
+     configs += [ "..:external_ssl_library" ]
+   }
+ }
++}
  
- default_args = {
-   # Webrtc does not support component builds because we are not using the
+ rtc_source_set("gtest_prod") {
+   sources = [ "gtest_prod_util.h" ]

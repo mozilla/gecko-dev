@@ -1,23 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Thu, 19 Sep 2024 13:23:00 -0500
-Subject: Bug 1918268 - (fix-2bc77cebf2) our base-toolchains builds need the
- struct name to build
+Date: Tue, 17 Sep 2024 13:33:00 -0500
+Subject: Bug 1918268 - (fix-96c1b9c5ea) provide template arg for optional to
+ fix compile error
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1055b3892393f16136a29d12e616f29b010ab2c9
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ca2211dbb0dd8864768cdcce1ea146bdbb0faeda
 ---
- modules/audio_coding/neteq/neteq_impl.cc | 2 +-
+ video/video_send_stream_impl.cc | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/audio_coding/neteq/neteq_impl.cc b/modules/audio_coding/neteq/neteq_impl.cc
-index 35075108a1..1ed6fda8e7 100644
---- a/modules/audio_coding/neteq/neteq_impl.cc
-+++ b/modules/audio_coding/neteq/neteq_impl.cc
-@@ -108,7 +108,7 @@ NetEqImpl::Dependencies::Dependencies(
-                                      stats.get())),
-       neteq_controller(controller_factory.Create(
-           env,
--          {.allow_time_stretching = !config.for_test_no_time_stretching,
-+          NetEqController::Config{.allow_time_stretching = !config.for_test_no_time_stretching,
-            .max_packets_in_buffer =
-                static_cast<int>(config.max_packets_in_buffer),
-            .base_min_delay_ms = config.min_delay_ms,
+diff --git a/video/video_send_stream_impl.cc b/video/video_send_stream_impl.cc
+index 77f40f9001..0514ee9456 100644
+--- a/video/video_send_stream_impl.cc
++++ b/video/video_send_stream_impl.cc
+@@ -782,7 +782,7 @@ MediaStreamAllocationConfig VideoSendStreamImpl::GetAllocationConfig() const {
+       !config_.suspend_below_min_bitrate,
+       encoder_bitrate_priority_,
+       (content_type_ == VideoEncoderConfig::ContentType::kRealtimeVideo)
+-          ? std::optional(TrackRateElasticity::kCanConsumeExtraRate)
++          ? std::optional<TrackRateElasticity>(TrackRateElasticity::kCanConsumeExtraRate)
+           : std::nullopt};
+ }
+ 

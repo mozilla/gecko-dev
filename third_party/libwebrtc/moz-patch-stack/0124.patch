@@ -1,50 +1,138 @@
-From: Jan Grulich <jgrulich@redhat.com>
-Date: Tue, 24 Sep 2024 11:20:00 +0000
-Subject: Bug 1920460 - WebRTC backport: PipeWire camera: get max FPS for each
- format when specified as list r=pehrsons,webrtc-reviewers
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Fri, 13 Sep 2024 09:48:00 +0000
+Subject: Bug 1918096 - Make SckPickerHandle thread safe. r=padenot
 
-In many cases, the framerate can be specified as list of possible values
-and in that case, we would end up with max FPS to be set to 0 as this
-case was not handled.
+We cannot guarantee that the thread it is used on is static, as both the
+VideoCapture and DesktopCapture threads can come and go.
 
-This is a simple backport of an WebRTC upstream change.
-
-Upstream commit: 3aa47cfd30dc965446cf1405bb062b756a62e6d1
-
-Differential Revision: https://phabricator.services.mozilla.com/D223112
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90f241650577182dbd08f8c5b96c645cf48ff397
+Differential Revision: https://phabricator.services.mozilla.com/D222082
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/cfcdd5339805363c495841abc4b4f82cd287f712
 ---
- modules/video_capture/linux/pipewire_session.cc | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ .../desktop_capture/mac/sck_picker_handle.mm  | 90 +++++++++++++------
+ 1 file changed, 62 insertions(+), 28 deletions(-)
 
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index 29e454f00b..dc270b7b3a 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -17,6 +17,8 @@
- #include <spa/param/video/raw.h>
- #include <spa/pod/parser.h>
+diff --git a/modules/desktop_capture/mac/sck_picker_handle.mm b/modules/desktop_capture/mac/sck_picker_handle.mm
+index 25e98b671f..0f26be79d1 100644
+--- a/modules/desktop_capture/mac/sck_picker_handle.mm
++++ b/modules/desktop_capture/mac/sck_picker_handle.mm
+@@ -12,57 +12,91 @@
  
-+#include <algorithm>
+ #import <ScreenCaptureKit/ScreenCaptureKit.h>
+ 
+-#include "api/sequence_checker.h"
++#include "absl/base/attributes.h"
++#include "rtc_base/synchronization/mutex.h"
 +
- #include "common_video/libyuv/include/webrtc_libyuv.h"
- #include "modules/video_capture/device_info_impl.h"
- #include "rtc_base/logging.h"
-@@ -152,9 +154,15 @@ void PipeWireNode::OnNodeParam(void* data,
++#include <memory>
++#include <optional>
  
-       fract = static_cast<spa_fraction*>(SPA_POD_BODY(val));
+ namespace webrtc {
  
--      if (choice == SPA_CHOICE_None)
-+      if (choice == SPA_CHOICE_None) {
-         cap.maxFPS = 1.0 * fract[0].num / fract[0].denom;
--      else if (choice == SPA_CHOICE_Range && fract[1].num > 0)
-+      } else if (choice == SPA_CHOICE_Enum) {
-+        for (uint32_t i = 1; i < n_items; i++) {
-+          cap.maxFPS = std::max(
-+              static_cast<int32_t>(1.0 * fract[i].num / fract[i].denom),
-+              cap.maxFPS);
-+        }
-+      } else if (choice == SPA_CHOICE_Range && fract[1].num > 0)
-         cap.maxFPS = 1.0 * fract[1].num / fract[1].denom;
+-class API_AVAILABLE(macos(14.0)) SckPickerHandle : public SckPickerHandleInterface {
++class SckPickerProxy;
++
++class API_AVAILABLE(macos(14.0)) SckPickerProxy {
+  public:
+-  explicit SckPickerHandle(DesktopCapturer::SourceId source) : source_(source) {
+-    RTC_DCHECK_RUN_ON(&checker_);
+-    RTC_CHECK_LE(sHandleCount, maximumStreamCount);
+-    if (sHandleCount++ == 0) {
++  static SckPickerProxy* Get() {
++    static SckPickerProxy* sPicker = new SckPickerProxy();
++    return sPicker;
++  }
++
++  bool AtCapacity() const {
++    MutexLock lock(&mutex_);
++    return AtCapacityLocked();
++  }
++
++  SCContentSharingPicker* GetPicker() const { return SCContentSharingPicker.sharedPicker; }
++
++  ABSL_MUST_USE_RESULT std::optional<DesktopCapturer::SourceId> AcquireSourceId() {
++    MutexLock lock(&mutex_);
++    if (AtCapacityLocked()) {
++      return std::nullopt;
++    }
++    if (handle_count_++ == 0) {
+       auto* picker = GetPicker();
+       picker.maximumStreamCount = [NSNumber numberWithUnsignedInt:maximumStreamCount];
+       picker.active = YES;
      }
++    return ++unique_source_id_;
    }
+ 
+-  ~SckPickerHandle() {
+-    RTC_DCHECK_RUN_ON(&checker_);
+-    if (--sHandleCount > 0) {
++  void RelinquishSourceId(DesktopCapturer::SourceId source) {
++    MutexLock lock(&mutex_);
++    if (--handle_count_ > 0) {
+       return;
+     }
+     GetPicker().active = NO;
+   }
+ 
+-  SCContentSharingPicker* GetPicker() const override {
+-    return SCContentSharingPicker.sharedPicker;
++ private:
++  bool AtCapacityLocked() const {
++    mutex_.AssertHeld();
++    return handle_count_ == maximumStreamCount;
+   }
+ 
+-  DesktopCapturer::SourceId Source() const override {
+-    return source_;
++  mutable Mutex mutex_;
++  // 100 is an arbitrary number that seems high enough to never get reached, while still providing
++  // a reasonably low upper bound.
++  static constexpr size_t maximumStreamCount = 100;
++  size_t handle_count_ RTC_GUARDED_BY(mutex_) = 0;
++  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(mutex_) = 0;
++};
++
++class API_AVAILABLE(macos(14.0)) SckPickerHandle : public SckPickerHandleInterface {
++ public:
++  static std::unique_ptr<SckPickerHandle> Create(SckPickerProxy* proxy) {
++    std::optional<DesktopCapturer::SourceId> id = proxy->AcquireSourceId();
++    if (!id) {
++      return nullptr;
++    }
++    return std::unique_ptr<SckPickerHandle>(new SckPickerHandle(proxy, *id));
+   }
+ 
+-  static bool AtCapacity() { return sHandleCount == maximumStreamCount; }
++  ~SckPickerHandle() { proxy_->RelinquishSourceId(source_); }
++
++  SCContentSharingPicker* GetPicker() const override { return proxy_->GetPicker(); }
++
++  DesktopCapturer::SourceId Source() const override { return source_; }
+ 
+  private:
+-  // 100 is an arbitrary number that seems high enough to never get reached, while still providing
+-  // a reasonably low upper bound.
+-  static constexpr size_t maximumStreamCount = 100;
+-  static size_t sHandleCount;
+-  SequenceChecker checker_;
++  SckPickerHandle(SckPickerProxy* proxy, DesktopCapturer::SourceId source)
++      : proxy_(proxy), source_(source) {}
++
++  SckPickerProxy* const proxy_;
+   const DesktopCapturer::SourceId source_;
+ };
+ 
+-size_t SckPickerHandle::sHandleCount = 0;
+-
+-std::unique_ptr<SckPickerHandleInterface> CreateSckPickerHandle() API_AVAILABLE(macos(14.0)) {
+-  if (SckPickerHandle::AtCapacity()) {
+-    return nullptr;
+-  }
+-  static DesktopCapturer::SourceId unique_source_id = 0;
+-  return std::make_unique<SckPickerHandle>(++unique_source_id);
++std::unique_ptr<SckPickerHandleInterface> CreateSckPickerHandle() {
++  return SckPickerHandle::Create(SckPickerProxy::Get());
+ }
+ 
+-}  // namespace webrtc
+\ No newline at end of file
++}  // namespace webrtc

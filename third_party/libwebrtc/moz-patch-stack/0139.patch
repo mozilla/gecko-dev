@@ -1,0 +1,31 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Tue, 29 Oct 2024 18:20:00 +0000
+Subject: Bug 1925119 - add dcsctp to libwebrtc build. r=bwc,webrtc-reviewers
+
+Differential Revision: https://phabricator.services.mozilla.com/D225892
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90a33b06e51017d25542a95c2a460bfed41c553b
+---
+ BUILD.gn | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 1bb6eacea0..bd5d0922a1 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -575,6 +575,7 @@ if (!build_with_chromium) {
+       "call",
+       "common_audio",
+       "common_video",
++      ":dcsctp",
+       "logging:rtc_event_log_api",
+       "media",
+       "modules",
+@@ -892,7 +893,7 @@ if (rtc_include_tests && !build_with_chromium) {
+ # Build target for standalone dcsctp
+ rtc_static_library("dcsctp") {
+   # Only the root target should depend on this.
+-  visibility = [ "//:default" ]
++  visibility = [ "//:default", "//libwebrtc:webrtc" ]
+   sources = []
+   complete_static_lib = true
+   suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]

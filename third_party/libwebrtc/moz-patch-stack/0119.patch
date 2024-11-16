@@ -1,81 +1,23 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 12 Sep 2024 22:36:00 +0000
-Subject: Bug 1918096 - In ScreenCapturerSck improve dictionary ergonomics.
- r=webrtc-reviewers,ng
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 19 Sep 2024 13:23:00 -0500
+Subject: Bug 1918268 - (fix-2bc77cebf2) our base-toolchains builds need the
+ struct name to build
 
-Differential Revision: https://phabricator.services.mozilla.com/D221940
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/aabf0bd94f282ae97a010016058446e45fc781c8
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1055b3892393f16136a29d12e616f29b010ab2c9
 ---
- .../mac/screen_capturer_sck.mm                | 25 ++++++++-----------
- 1 file changed, 10 insertions(+), 15 deletions(-)
+ modules/audio_coding/neteq/neteq_impl.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index b92399e6b6..96d54c5c03 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -103,7 +103,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
-   void StartWithFilter(SCContentFilter* filter) RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
- 
-   // Called by SckHelper to notify of a newly captured frame. May run on an arbitrary thread.
--  void OnNewIOSurface(IOSurfaceRef io_surface, CFDictionaryRef attachment);
-+  void OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* attachment);
- 
-  private:
-   // Called when starting the capturer or the configuration has changed (either from a
-@@ -480,10 +480,13 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
-   }
- }
- 
--void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, CFDictionaryRef attachment) {
-+void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* attachment) {
-   RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " " << __func__
-                       << " width=" << IOSurfaceGetWidth(io_surface)
-                       << ", height=" << IOSurfaceGetHeight(io_surface) << ".";
-+
-+  const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
-+
-   rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(io_surface, rtc::RetainPolicy::RETAIN);
-   std::unique_ptr<DesktopFrameIOSurface> desktop_frame_io_surface =
-       DesktopFrameIOSurface::Wrap(scoped_io_surface);
-@@ -505,28 +508,20 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, CFDictionaryRef
-   }
- 
-   if (!dirty) {
--    const void* dirty_rects_ptr =
--        CFDictionaryGetValue(attachment, (__bridge CFStringRef)SCStreamFrameInfoDirtyRects);
--    if (!dirty_rects_ptr) {
-+    if (!dirty_rects) {
-       // This is never expected to happen - SCK attaches a non-empty dirty-rects list to every
-       // frame, even when nothing has changed.
-       return;
-     }
--    if (CFGetTypeID(dirty_rects_ptr) != CFArrayGetTypeID()) {
--      return;
--    }
--
--    CFArrayRef dirty_rects_array = static_cast<CFArrayRef>(dirty_rects_ptr);
--    int size = CFArrayGetCount(dirty_rects_array);
--    for (int i = 0; i < size; i++) {
--      const void* rect_ptr = CFArrayGetValueAtIndex(dirty_rects_array, i);
-+    for (NSUInteger i = 0; i < dirty_rects.count; i++) {
-+      const auto* rect_ptr = (__bridge CFDictionaryRef)dirty_rects[i];
-       if (CFGetTypeID(rect_ptr) != CFDictionaryGetTypeID()) {
-         // This is never expected to happen - the dirty-rects attachment should always be an array
-         // of dictionaries.
-         return;
-       }
-       CGRect rect{};
--      CGRectMakeWithDictionaryRepresentation(static_cast<CFDictionaryRef>(rect_ptr), &rect);
-+      CGRectMakeWithDictionaryRepresentation(rect_ptr, &rect);
-       if (!CGRectIsEmpty(rect)) {
-         dirty = true;
-         break;
-@@ -673,7 +668,7 @@ std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(const DesktopCaptureOp
- 
-   webrtc::MutexLock lock(&_capturer_lock);
-   if (_capturer) {
--    _capturer->OnNewIOSurface(ioSurface, attachment);
-+    _capturer->OnNewIOSurface(ioSurface, (__bridge NSDictionary*)attachment);
-   }
- }
- 
+diff --git a/modules/audio_coding/neteq/neteq_impl.cc b/modules/audio_coding/neteq/neteq_impl.cc
+index 35075108a1..1ed6fda8e7 100644
+--- a/modules/audio_coding/neteq/neteq_impl.cc
++++ b/modules/audio_coding/neteq/neteq_impl.cc
+@@ -108,7 +108,7 @@ NetEqImpl::Dependencies::Dependencies(
+                                      stats.get())),
+       neteq_controller(controller_factory.Create(
+           env,
+-          {.allow_time_stretching = !config.for_test_no_time_stretching,
++          NetEqController::Config{.allow_time_stretching = !config.for_test_no_time_stretching,
+            .max_packets_in_buffer =
+                static_cast<int>(config.max_packets_in_buffer),
+            .base_min_delay_ms = config.min_delay_ms,
