@@ -301,11 +301,7 @@ if (rtc_include_tests) {
   if (!build_with_chromium) {
     group("audio_processing_tests") {
       testonly = true
-      deps = [
-        ":audioproc_test_utils",
-        "transient:click_annotate",
-        "transient:transient_suppression_test",
-      ]
+      deps = [ ":audioproc_test_utils" ]
 
       if (rtc_enable_protobuf) {
         deps += [
@@ -393,7 +389,6 @@ if (rtc_include_tests) {
         "capture_levels_adjuster",
         "capture_levels_adjuster:capture_levels_adjuster_unittests",
         "test/conversational_speech:unittest",
-        "transient:transient_suppression_unittests",
         "utility:legacy_delay_estimator_unittest",
         "utility:pffft_wrapper_unittest",
         "vad:vad_unittests",
