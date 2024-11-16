@@ -66,12 +66,6 @@ struct NaluIndex {
 RTC_EXPORT std::vector<NaluIndex> FindNaluIndices(
     rtc::ArrayView<const uint8_t> buffer);
 
-// TODO: bugs.webrtc.org/42225170 - Deprecate.
-inline std::vector<NaluIndex> FindNaluIndices(const uint8_t* buffer,
-                                              size_t buffer_size) {
-  return FindNaluIndices(rtc::MakeArrayView(buffer, buffer_size));
-}
-
 // Get the NAL type from the header byte immediately following start sequence.
 RTC_EXPORT NaluType ParseNaluType(uint8_t data);
 

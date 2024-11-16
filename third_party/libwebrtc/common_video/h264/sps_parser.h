@@ -44,11 +44,6 @@ class RTC_EXPORT SpsParser {
 
   // Unpack RBSP and parse SPS state from the supplied buffer.
   static std::optional<SpsState> ParseSps(rtc::ArrayView<const uint8_t> data);
-  // TODO: bugs.webrtc.org/42225170 - Deprecate.
-  static inline std::optional<SpsState> ParseSps(const uint8_t* data,
-                                                 size_t length) {
-    return ParseSps(rtc::MakeArrayView(data, length));
-  }
 
  protected:
   // Parse the SPS state, up till the VUI part, for a buffer where RBSP
