@@ -23,6 +23,7 @@
 #include "mozilla/intl/String.h"
 #include "mozilla/intl/UnicodeProperties.h"
 #include "mozilla/Likely.h"
+#include "mozilla/MruCache.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPresData.h"
@@ -2596,6 +2597,66 @@ static const nsTHashMap<nsUint32HashKey, Script>* ScriptTagToCodeTable() {
   return sScriptTagToCode.get();
 }
 
+static Script ResolveScriptForLang(const nsAtom* aLanguage, Script aDefault) {
+  // Cache for lang-to-script lookups, to avoid constantly needing to parse
+  // and resolve the lang code from scratch.
+  class LangScriptCache
+      : public MruCache<const nsAtom*, std::pair<const nsAtom*, Script>,
+                        LangScriptCache> {
+   public:
+    static HashNumber Hash(const nsAtom* const& aKey) { return aKey->hash(); }
+    static bool Match(const nsAtom* const& aKey,
+                      const std::pair<const nsAtom*, Script>& aValue) {
+      return aKey == aValue.first;
+    }
+  };
+
+  static LangScriptCache sCache;
+  static RWLock sLock("LangScriptCache lock");
+
+  MOZ_ASSERT(aDefault != Script::INVALID &&
+             aDefault < Script::NUM_SCRIPT_CODES);
+
+  {
+    // Try to use a cached value without taking an exclusive lock.
+    AutoReadLock lock(sLock);
+    auto p = sCache.Lookup(aLanguage);
+    if (p) {
+      return p.Data().second;
+    }
+  }
+
+  // Didn't find an existing entry, so lock the cache and do a full
+  // lookup-and-update.
+  AutoWriteLock lock(sLock);
+  auto p = sCache.Lookup(aLanguage);
+  if (p) {
+    return p.Data().second;
+  }
+
+  Script script = aDefault;
+  nsAutoCString lang;
+  aLanguage->ToUTF8String(lang);
+  Locale locale;
+  if (LocaleParser::TryParse(lang, locale).isOk()) {
+    if (locale.Script().Missing()) {
+      Unused << locale.AddLikelySubtags();
+    }
+    if (locale.Script().Present()) {
+      Span span = locale.Script().Span();
+      MOZ_ASSERT(span.Length() == 4);
+      uint32_t tag = TRUETYPE_TAG(span[0], span[1], span[2], span[3]);
+      Script localeScript;
+      if (ScriptTagToCodeTable()->Get(tag, &localeScript)) {
+        script = localeScript;
+      }
+    }
+  }
+  p.Set(std::pair(aLanguage, script));
+
+  return script;
+}
+
 template <typename T>
 void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
                                const T* aString, uint32_t aLength,
@@ -2701,23 +2762,7 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
         MOZ_ASSERT(
             run.mScript == Script::COMMON || run.mScript == Script::INHERITED,
             "unexpected Script code!");
-        nsAutoCString lang;
-        mLanguage->ToUTF8String(lang);
-        Locale locale;
-        if (LocaleParser::TryParse(lang, locale).isOk()) {
-          if (locale.Script().Missing()) {
-            Unused << locale.AddLikelySubtags();
-          }
-          if (locale.Script().Present()) {
-            Span span = locale.Script().Span();
-            MOZ_ASSERT(span.Length() == 4);
-            uint32_t tag = TRUETYPE_TAG(span[0], span[1], span[2], span[3]);
-            Script script;
-            if (ScriptTagToCodeTable()->Get(tag, &script)) {
-              run.mScript = script;
-            }
-          }
-        }
+        run.mScript = ResolveScriptForLang(mLanguage, run.mScript);
       }
 
       if (textPtr) {
