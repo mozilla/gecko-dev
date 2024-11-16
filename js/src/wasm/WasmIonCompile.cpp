@@ -2490,6 +2490,9 @@ class FunctionCompiler {
       case MIRType::WasmAnyRef:
         def = MWasmRegisterResult::New(alloc(), MIRType::WasmAnyRef, ReturnReg);
         break;
+      case MIRType::None:
+        MOZ_ASSERT(result == nullptr, "Not expecting any results created");
+        return true;
       default:
         MOZ_CRASH("unexpected MIRType result for builtin call");
     }
@@ -2985,6 +2988,38 @@ class FunctionCompiler {
     CallCompileState callState;
     return passCallArg(arg1, builtin.argTypes[0], &callState) &&
            passCallArg(arg2, builtin.argTypes[1], &callState) &&
+           finishCallArgs(&callState) &&
+           builtinCall(&callState, builtin, lineOrBytecode, result);
+  }
+
+  [[nodiscard]]
+  bool builtinCall5(const SymbolicAddressSignature& builtin,
+                    uint32_t lineOrBytecode, MDefinition* arg1,
+                    MDefinition* arg2, MDefinition* arg3, MDefinition* arg4,
+                    MDefinition* arg5, MDefinition** result) {
+    CallCompileState callState;
+    return passCallArg(arg1, builtin.argTypes[0], &callState) &&
+           passCallArg(arg2, builtin.argTypes[1], &callState) &&
+           passCallArg(arg3, builtin.argTypes[2], &callState) &&
+           passCallArg(arg4, builtin.argTypes[3], &callState) &&
+           passCallArg(arg5, builtin.argTypes[4], &callState) &&
+           finishCallArgs(&callState) &&
+           builtinCall(&callState, builtin, lineOrBytecode, result);
+  }
+
+  [[nodiscard]]
+  bool builtinCall6(const SymbolicAddressSignature& builtin,
+                    uint32_t lineOrBytecode, MDefinition* arg1,
+                    MDefinition* arg2, MDefinition* arg3, MDefinition* arg4,
+                    MDefinition* arg5, MDefinition* arg6,
+                    MDefinition** result) {
+    CallCompileState callState;
+    return passCallArg(arg1, builtin.argTypes[0], &callState) &&
+           passCallArg(arg2, builtin.argTypes[1], &callState) &&
+           passCallArg(arg3, builtin.argTypes[2], &callState) &&
+           passCallArg(arg4, builtin.argTypes[3], &callState) &&
+           passCallArg(arg5, builtin.argTypes[4], &callState) &&
+           passCallArg(arg6, builtin.argTypes[5], &callState) &&
            finishCallArgs(&callState) &&
            builtinCall(&callState, builtin, lineOrBytecode, result);
   }
@@ -5333,6 +5368,113 @@ class FunctionCompiler {
     }
 
     return arrayObject;
+  }
+
+  [[nodiscard]] bool createArrayCopy(uint32_t lineOrBytecode,
+                                     MDefinition* dstArrayObject,
+                                     MDefinition* dstArrayIndex,
+                                     MDefinition* srcArrayObject,
+                                     MDefinition* srcArrayIndex,
+                                     MDefinition* numElements, int32_t elemSize,
+                                     bool elemsAreRefTyped) {
+    // Check for null is done in getWasmArrayObjectNumElements.
+
+    // Get the arrays' actual sizes.
+    MDefinition* dstNumElements = getWasmArrayObjectNumElements(dstArrayObject);
+    if (!dstNumElements) {
+      return false;
+    }
+    MDefinition* srcNumElements = getWasmArrayObjectNumElements(srcArrayObject);
+    if (!srcNumElements) {
+      return false;
+    }
+
+    // Create the bounds checks.
+    MInstruction* dstBoundsCheck = MWasmBoundsCheckRange32::New(
+        alloc(), dstArrayIndex, numElements, dstNumElements, bytecodeOffset());
+    if (!dstBoundsCheck) {
+      return false;
+    }
+    curBlock_->add(dstBoundsCheck);
+
+    MInstruction* srcBoundsCheck = MWasmBoundsCheckRange32::New(
+        alloc(), srcArrayIndex, numElements, srcNumElements, bytecodeOffset());
+    if (!srcBoundsCheck) {
+      return false;
+    }
+    curBlock_->add(srcBoundsCheck);
+
+    // Check if numElements != 0 -- optimization to not invoke builtins.
+    MBasicBlock* copyBlock = nullptr;
+    if (!newBlock(curBlock_, &copyBlock)) {
+      return false;
+    }
+    MBasicBlock* joinBlock = nullptr;
+    if (!newBlock(curBlock_, &joinBlock)) {
+      return false;
+    }
+
+    MInstruction* condition =
+        MCompare::NewWasm(alloc(), numElements, constantI32(0), JSOp::StrictEq,
+                          MCompare::Compare_UInt32);
+    curBlock_->add(condition);
+
+    MTest* test = MTest::New(alloc(), condition, joinBlock, copyBlock);
+    if (!test) {
+      return false;
+    }
+    curBlock_->end(test);
+    curBlock_ = copyBlock;
+
+    MInstruction* dstData = MWasmLoadField::New(
+        alloc(), dstArrayObject, WasmArrayObject::offsetOfData(),
+        MIRType::WasmArrayData, MWideningOp::None,
+        AliasSet::Load(AliasSet::WasmArrayDataPointer));
+    if (!dstData) {
+      return false;
+    }
+    curBlock_->add(dstData);
+
+    MInstruction* srcData = MWasmLoadField::New(
+        alloc(), srcArrayObject, WasmArrayObject::offsetOfData(),
+        MIRType::WasmArrayData, MWideningOp::None,
+        AliasSet::Load(AliasSet::WasmArrayDataPointer));
+    if (!srcData) {
+      return false;
+    }
+    curBlock_->add(srcData);
+
+    if (elemsAreRefTyped) {
+      MOZ_RELEASE_ASSERT(elemSize == sizeof(void*));
+
+      if (!builtinCall5(SASigArrayRefsMove, lineOrBytecode, dstData,
+                        dstArrayIndex, srcData, srcArrayIndex, numElements,
+                        nullptr)) {
+        return false;
+      }
+    } else {
+      MDefinition* elemSizeDef = constantI32(elemSize);
+      if (!elemSizeDef) {
+        return false;
+      }
+
+      if (!builtinCall6(SASigArrayMemMove, lineOrBytecode, dstData,
+                        dstArrayIndex, srcData, srcArrayIndex, elemSizeDef,
+                        numElements, nullptr)) {
+        return false;
+      }
+    }
+
+    MGoto* fallthrough = MGoto::New(alloc(), joinBlock);
+    if (!fallthrough) {
+      return false;
+    }
+    curBlock_->end(fallthrough);
+    if (!joinBlock->addPredecessor(alloc(), curBlock_)) {
+      return false;
+    }
+    curBlock_ = joinBlock;
+    return true;
   }
 
   [[nodiscard]] bool createArrayFill(uint32_t lineOrBytecode,
@@ -8772,23 +8914,9 @@ static bool EmitArrayCopy(FunctionCompiler& f) {
                                        elemSize == 4 || elemSize == 8 ||
                                        elemSize == 16);
 
-  // A negative element size is used to inform Instance::arrayCopy that the
-  // values are reftyped.  This avoids having to pass it an extra boolean
-  // argument.
-  MDefinition* elemSizeDef =
-      f.constantI32(elemsAreRefTyped ? -elemSize : elemSize);
-  if (!elemSizeDef) {
-    return false;
-  }
-
-  // Create call:
-  // Instance::arrayCopy(dstArrayObject:word, dstArrayIndex:u32,
-  //                     srcArrayObject:word, srcArrayIndex:u32,
-  //                     numElements:u32,
-  //                     (elemsAreRefTyped ? -elemSize : elemSize):u32))
-  return f.emitInstanceCall6(lineOrBytecode, SASigArrayCopy, dstArrayObject,
-                             dstArrayIndex, srcArrayObject, srcArrayIndex,
-                             numElements, elemSizeDef);
+  return f.createArrayCopy(lineOrBytecode, dstArrayObject, dstArrayIndex,
+                           srcArrayObject, srcArrayIndex, numElements, elemSize,
+                           elemsAreRefTyped);
 }
 
 static bool EmitArrayFill(FunctionCompiler& f) {

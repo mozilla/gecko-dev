@@ -77,6 +77,7 @@ static const unsigned BUILTIN_THUNK_LIFO_SIZE = 64 * 1024;
 #define _I64 MIRType::Int64
 #define _PTR MIRType::Pointer
 #define _RoN MIRType::WasmAnyRef
+#define _WAD MIRType::WasmArrayData
 #define _VOID MIRType::None
 #define _END MIRType::None
 #define _Infallible FailureMode::Infallible
@@ -130,6 +131,18 @@ constexpr SymbolicAddressSignature SASigPowD = {
     SymbolicAddress::PowD, _F64, _Infallible, 2, {_F64, _F64, _END}};
 constexpr SymbolicAddressSignature SASigATan2D = {
     SymbolicAddress::ATan2D, _F64, _Infallible, 2, {_F64, _F64, _END}};
+constexpr SymbolicAddressSignature SASigArrayMemMove = {
+    SymbolicAddress::ArrayMemMove,
+    _VOID,
+    _Infallible,
+    6,
+    {_WAD, _I32, _WAD, _I32, _I32, _I32, _END}};
+constexpr SymbolicAddressSignature SASigArrayRefsMove = {
+    SymbolicAddress::ArrayRefsMove,
+    _VOID,
+    _Infallible,
+    5,
+    {_WAD, _I32, _WAD, _I32, _I32, _END}};
 constexpr SymbolicAddressSignature SASigMemoryGrowM32 = {
     SymbolicAddress::MemoryGrowM32,
     _I32,
@@ -1227,6 +1240,29 @@ static float Uint64ToFloat32(int32_t x_hi, uint32_t x_lo) {
   return float(x);
 }
 
+static void WasmArrayMemMove(uint8_t* destArrayData, uint32_t destIndex,
+                             const uint8_t* srcArrayData, uint32_t srcIndex,
+                             uint32_t elementSize, uint32_t count) {
+  AutoUnsafeCallWithABI unsafe;
+  memmove(&destArrayData[size_t(elementSize) * destIndex],
+          &srcArrayData[size_t(elementSize) * srcIndex],
+          size_t(elementSize) * count);
+}
+
+static void WasmArrayRefsMove(GCPtr<AnyRef>* destArrayData, uint32_t destIndex,
+                              AnyRef* srcArrayData, uint32_t srcIndex,
+                              uint32_t count) {
+  AutoUnsafeCallWithABI unsafe;
+  GCPtr<AnyRef>* dstBegin = destArrayData + destIndex;
+  AnyRef* srcBegin = srcArrayData + srcIndex;
+  // The std::copy performs GCPtr::set() operation under the hood.
+  if (uintptr_t(dstBegin) < uintptr_t(srcBegin)) {
+    std::copy(srcBegin, srcBegin + count, dstBegin);
+  } else {
+    std::copy_backward(srcBegin, srcBegin + count, dstBegin + count);
+  }
+}
+
 template <class F>
 static inline void* FuncCast(F* funcPtr, ABIFunctionType abiType) {
   void* pf = JS_FUNC_TO_DATA_PTR(void*, funcPtr);
@@ -1400,6 +1436,12 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
     case SymbolicAddress::ATan2D:
       *abiType = Args_Double_DoubleDouble;
       return FuncCast(ecmaAtan2, *abiType);
+    case SymbolicAddress::ArrayMemMove:
+      *abiType = Args_Void_GeneralInt32GeneralInt32Int32Int32;
+      return FuncCast(WasmArrayMemMove, *abiType);
+    case SymbolicAddress::ArrayRefsMove:
+      *abiType = Args_Void_GeneralInt32GeneralInt32Int32;
+      return FuncCast(WasmArrayRefsMove, *abiType);
 
     case SymbolicAddress::MemoryGrowM32:
       *abiType = Args_Int32_GeneralInt32Int32;
@@ -1746,6 +1788,8 @@ bool wasm::NeedsBuiltinThunk(SymbolicAddress sym) {
     case SymbolicAddress::LogD:
     case SymbolicAddress::PowD:
     case SymbolicAddress::ATan2D:
+    case SymbolicAddress::ArrayMemMove:
+    case SymbolicAddress::ArrayRefsMove:
     case SymbolicAddress::MemoryGrowM32:
     case SymbolicAddress::MemoryGrowM64:
     case SymbolicAddress::MemorySizeM32:

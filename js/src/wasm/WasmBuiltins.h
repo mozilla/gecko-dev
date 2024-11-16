@@ -70,6 +70,8 @@ enum class SymbolicAddress {
   LogD,
   PowD,
   ATan2D,
+  ArrayMemMove,
+  ArrayRefsMove,
   HandleDebugTrap,
   HandleRequestTierUp,
   HandleThrow,
@@ -235,6 +237,8 @@ extern const SymbolicAddressSignature SASigExpD;
 extern const SymbolicAddressSignature SASigLogD;
 extern const SymbolicAddressSignature SASigPowD;
 extern const SymbolicAddressSignature SASigATan2D;
+extern const SymbolicAddressSignature SASigArrayMemMove;
+extern const SymbolicAddressSignature SASigArrayRefsMove;
 extern const SymbolicAddressSignature SASigMemoryGrowM32;
 extern const SymbolicAddressSignature SASigMemoryGrowM64;
 extern const SymbolicAddressSignature SASigMemorySizeM32;

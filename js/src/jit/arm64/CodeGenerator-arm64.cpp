@@ -2144,7 +2144,8 @@ void CodeGenerator::visitWasmSelect(LWasmSelect* lir) {
 
   switch (mirType) {
     case MIRType::Int32:
-    case MIRType::WasmAnyRef: {
+    case MIRType::WasmAnyRef:
+    case MIRType::WasmArrayData: {
       Register outReg = ToRegister(lir->output());
       Register trueReg = ToRegister(lir->trueExpr());
       Register falseReg = ToRegister(lir->falseExpr());

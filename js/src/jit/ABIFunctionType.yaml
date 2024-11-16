@@ -300,3 +300,10 @@
 
 - ret: Int64
   args: [General, Int64, Int32]
+
+# void
+- ret: Void
+  args: [General, Int32, General, Int32, Int32]
+
+- ret: Void
+  args: [General, Int32, General, Int32, Int32, Int32]
