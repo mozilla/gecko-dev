@@ -246,6 +246,20 @@ int16_t WebRtcOpus_DisableDtx(OpusEncInst* inst);
 int16_t WebRtcOpus_GetUseDtx(OpusEncInst* inst);
 
 /****************************************************************************
+ * WebRtcOpus_GetUseDtx()
+ *
+ * This function gets if the encoder is in DTX.
+ *
+ * Input:
+ *      - inst               : Encoder context
+ *
+ * Return value              :  0 - Encoder is not DTX.
+ *                              1 - Encoder is in DTX.
+ *                             -1 - Error.
+ */
+int16_t WebRtcOpus_GetInDtx(OpusEncInst* inst);
+
+/****************************************************************************
  * WebRtcOpus_EnableCbr()
  *
  * This function enables CBR for encoding.
