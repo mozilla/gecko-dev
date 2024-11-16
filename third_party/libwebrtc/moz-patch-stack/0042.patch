@@ -253,10 +253,10 @@ index 029fc3a5e2..33aa986e8b 100644
    RtcpLossNotificationObserver* const rtcp_loss_notification_observer_;
    NetworkStateEstimateObserver* const network_state_estimate_observer_;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index cba11f2b26..236179a906 100644
+index 8ee991330f..3cfd0d4d01 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-@@ -75,6 +75,9 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
+@@ -70,6 +70,9 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
      // bandwidth estimation related message.
      NetworkLinkRtcpObserver* network_link_rtcp_observer = nullptr;
  

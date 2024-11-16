@@ -50,15 +50,6 @@ constexpr uint32_t kTimestampTicksPerMs = 90;
 constexpr TimeDelta kBitrateStatisticsWindow = TimeDelta::Seconds(1);
 constexpr size_t kRtpSequenceNumberMapMaxEntries = 1 << 13;
 constexpr TimeDelta kUpdateInterval = kBitrateStatisticsWindow;
-
-bool GetUseNtpTimeForAbsoluteSendTime(const FieldTrialsView* field_trials) {
-  if (field_trials != nullptr &&
-      field_trials->IsDisabled("WebRTC-UseNtpTimeAbsoluteSendTime")) {
-    return false;
-  }
-  return true;
-}
-
 }  // namespace
 
 RtpSenderEgress::NonPacedPacketSender::NonPacedPacketSender(
@@ -138,8 +129,8 @@ RtpSenderEgress::RtpSenderEgress(const Environment& env,
                                    ? std::make_unique<RtpSequenceNumberMap>(
                                          kRtpSequenceNumberMapMaxEntries)
                                    : nullptr),
-      use_ntp_time_for_absolute_send_time_(
-          GetUseNtpTimeForAbsoluteSendTime(config.field_trials)) {
+      use_ntp_time_for_absolute_send_time_(!env_.field_trials().IsDisabled(
+          "WebRTC-UseNtpTimeAbsoluteSendTime")) {
   RTC_DCHECK(worker_queue_);
   RTC_DCHECK(config.transport_feedback_callback == nullptr)
       << "transport_feedback_callback is no longer used and will soon be "

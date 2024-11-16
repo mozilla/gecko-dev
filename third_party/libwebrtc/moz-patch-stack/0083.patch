@@ -30,10 +30,10 @@ index 6959445285..47e2fddd3b 100644
    virtual VideoFrameMetadata Metadata() const = 0;
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.h b/modules/rtp_rtcp/source/rtp_sender.h
-index d97e4ae036..8336e85e2b 100644
+index 0a29968b0c..c23051401e 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.h
 +++ b/modules/rtp_rtcp/source/rtp_sender.h
-@@ -145,6 +145,10 @@ class RTPSender {
+@@ -141,6 +141,10 @@ class RTPSender {
  
    uint32_t SSRC() const RTC_LOCKS_EXCLUDED(send_mutex_) { return ssrc_; }
  
@@ -45,10 +45,10 @@ index d97e4ae036..8336e85e2b 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index e505e282c6..248a85e91d 100644
+index dfa848858c..dd50300c46 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
-@@ -156,6 +156,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
+@@ -179,6 +179,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
                      this,
                      config.frame_transformer,
                      rtp_sender_->SSRC(),

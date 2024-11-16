@@ -74,15 +74,7 @@ ModuleRtpRtcpImpl::RtpSenderContext::RtpSenderContext(
 
 std::unique_ptr<RtpRtcp> RtpRtcp::Create(const Environment& env,
                                          const Configuration& configuration) {
-  RTC_DCHECK(configuration.field_trials == nullptr);
-  RTC_DCHECK(configuration.clock == nullptr);
-  RTC_DCHECK(configuration.event_log == nullptr);
-
-  Configuration config = configuration;
-  config.field_trials = &env.field_trials();
-  config.clock = &env.clock();
-  config.event_log = &env.event_log();
-  return std::make_unique<ModuleRtpRtcpImpl>(env, config);
+  return std::make_unique<ModuleRtpRtcpImpl>(env, configuration);
 }
 
 ModuleRtpRtcpImpl::ModuleRtpRtcpImpl(const Environment& env,

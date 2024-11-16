@@ -131,8 +131,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
   RtpRtcpModule(SimulatedClock* clock, bool is_sender)
       : env_(CreateEnvironment(clock)),
         is_sender_(is_sender),
-        receive_statistics_(ReceiveStatistics::Create(clock)),
-        clock_(clock) {
+        receive_statistics_(ReceiveStatistics::Create(clock)) {
     CreateModuleImpl();
     transport_.SimulateNetworkDelay(kOneWayNetworkDelay.ms(), clock);
   }
@@ -178,7 +177,6 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
   void CreateModuleImpl() {
     RtpRtcpInterface::Configuration config;
     config.audio = false;
-    config.clock = clock_;
     config.outgoing_transport = &transport_;
     config.receive_statistics = receive_statistics_.get();
     config.rtcp_packet_type_counter_observer = this;
@@ -193,7 +191,6 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver {
     impl_->SetRTCPStatus(RtcpMode::kCompound);
   }
 
-  SimulatedClock* const clock_;
   std::map<uint32_t, RtcpPacketTypeCounter> counter_map_;
 };
 }  // namespace

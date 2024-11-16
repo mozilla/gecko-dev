@@ -49,10 +49,6 @@ class RTPSender {
             RtpPacketHistory* packet_history,
             RtpPacketSender* packet_sender);
 
-  [[deprecated("bugs.webrtc.org/362762208")]]  //
-  RTPSender(const RtpRtcpInterface::Configuration& config,
-            RtpPacketHistory* packet_history,
-            RtpPacketSender* packet_sender);
   RTPSender(const RTPSender&) = delete;
   RTPSender& operator=(const RTPSender&) = delete;
 
@@ -165,11 +161,6 @@ class RTPSender {
   RtpState GetRtxRtpState() const RTC_LOCKS_EXCLUDED(send_mutex_);
 
  private:
-  RTPSender(Clock* clock,
-            const RtpRtcpInterface::Configuration& config,
-            RtpPacketHistory* packet_history,
-            RtpPacketSender* packet_sender);
-
   std::unique_ptr<RtpPacketToSend> BuildRtxPacket(
       const RtpPacketToSend& packet);
 

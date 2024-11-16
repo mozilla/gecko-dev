@@ -20,7 +20,6 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
-#include "api/field_trials_view.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_packet_sender.h"
@@ -43,7 +42,6 @@ namespace webrtc {
 // Forward declarations.
 class FrameEncryptorInterface;
 class RateLimiter;
-class RtcEventLog;
 class RTPSender;
 class Transport;
 class VideoBitrateAllocationObserver;
@@ -55,9 +53,6 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     // a video version.
     bool audio = false;
     bool receiver_only = false;
-
-    // The clock to use to read time. If nullptr then system clock will be used.
-    Clock* clock = nullptr;
 
     ReceiveStatisticsProvider* receive_statistics = nullptr;
 
@@ -104,7 +99,6 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     VideoFecGenerator* fec_generator = nullptr;
 
     BitrateStatisticsObserver* send_bitrate_observer = nullptr;
-    RtcEventLog* event_log = nullptr;
     SendPacketObserver* send_packet_observer = nullptr;
     RateLimiter* retransmission_rate_limiter = nullptr;
     StreamDataCountersCallback* rtp_stats_callback = nullptr;
@@ -130,9 +124,6 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     // when it knows that the receiver is ready to demux based on SSRC. This is
     // done by RTCP RR acking.
     bool always_send_mid_and_rid = false;
-
-    // If set, field trials are read from `field_trials`.
-    const FieldTrialsView* field_trials = nullptr;
 
     // SSRCs for media and retransmission, respectively.
     // FlexFec SSRC is fetched from `flexfec_sender`.

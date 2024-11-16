@@ -81,10 +81,10 @@ index 3a77df5e3e..deda5f71c8 100644
  
  TEST_F(RtcpSenderTest, SendFir) {
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index 83d507357d..7286088e2b 100644
+index 5f7ff274cd..45516a4404 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-@@ -321,6 +321,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
+@@ -313,6 +313,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
  
  int32_t ModuleRtpRtcpImpl::SetSendingStatus(const bool sending) {
    if (rtcp_sender_.Sending() != sending) {
@@ -93,10 +93,10 @@ index 83d507357d..7286088e2b 100644
    }
    return 0;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index f14b7ca244..865f523e36 100644
+index 44fad3889a..e312dbe9a5 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-@@ -283,7 +283,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
+@@ -274,7 +274,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
    // Returns the FlexFEC SSRC, if there is one.
    virtual std::optional<uint32_t> FlexfecSsrc() const = 0;
  
