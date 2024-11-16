@@ -16,7 +16,8 @@
 #include <memory>
 
 #include "api/environment/environment.h"
-#include "modules/audio_coding/acm2/acm_receiver.h"
+#include "api/neteq/neteq.h"
+#include "modules/audio_coding/acm2/acm_resampler.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "modules/audio_coding/test/PCMFile.h"
 
@@ -31,7 +32,7 @@ class TestPackStereo : public AudioPacketizationCallback {
   TestPackStereo();
   ~TestPackStereo();
 
-  void RegisterReceiverACM(acm2::AcmReceiver* acm_receiver);
+  void RegisterReceiverNetEq(NetEq* neteq);
 
   int32_t SendData(AudioFrameType frame_type,
                    uint8_t payload_type,
@@ -47,7 +48,7 @@ class TestPackStereo : public AudioPacketizationCallback {
   void set_lost_packet(bool lost);
 
  private:
-  acm2::AcmReceiver* receiver_acm_;
+  NetEq* neteq_;
   int16_t seq_no_;
   uint32_t timestamp_diff_;
   uint32_t last_in_timestamp_;
@@ -84,7 +85,8 @@ class TestStereo {
 
   const Environment env_;
   std::unique_ptr<AudioCodingModule> acm_a_;
-  std::unique_ptr<acm2::AcmReceiver> acm_b_;
+  std::unique_ptr<NetEq> neteq_;
+  acm2::ResamplerHelper resampler_helper_;
 
   TestPackStereo* channel_a2b_;
 

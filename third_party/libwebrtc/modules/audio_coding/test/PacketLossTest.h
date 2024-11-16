@@ -21,7 +21,7 @@ namespace webrtc {
 class ReceiverWithPacketLoss : public Receiver {
  public:
   ReceiverWithPacketLoss();
-  void Setup(acm2::AcmReceiver* acm_receiver,
+  void Setup(NetEq* neteq,
              RTPStream* rtpStream,
              absl::string_view out_file_name,
              int channels,

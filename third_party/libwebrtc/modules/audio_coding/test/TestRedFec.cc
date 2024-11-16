@@ -28,6 +28,7 @@
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
 #include "modules/audio_coding/codecs/red/audio_encoder_copy_red.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
+#include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "rtc_base/strings/string_builder.h"
 #include "test/gtest.h"
 #include "test/testsupport/file_utils.h"
@@ -45,9 +46,9 @@ TestRedFec::TestRedFec()
                                                  AudioDecoderL16,
                                                  AudioDecoderOpus>()),
       _acmA(AudioCodingModule::Create()),
-      _acm_receiver(std::make_unique<acm2::AcmReceiver>(
-          env_,
-          acm2::AcmReceiver::Config(decoder_factory_))),
+      _neteq(DefaultNetEqFactory().Create(env_,
+                                          NetEq::Config(),
+                                          decoder_factory_)),
       _channelA2B(NULL),
       _testCntr(0) {}
 
@@ -66,7 +67,7 @@ void TestRedFec::Perform() {
   // Create and connect the channel
   _channelA2B = new Channel;
   _acmA->RegisterTransportCallback(_channelA2B);
-  _channelA2B->RegisterReceiverACM(_acm_receiver.get());
+  _channelA2B->RegisterReceiverNetEq(_neteq.get());
 
   RegisterSendCodec(_acmA, {"L16", 8000, 1}, Vad::kVadAggressive, true);
 
@@ -166,7 +167,7 @@ void TestRedFec::RegisterSendCodec(
     }
   }
   acm->SetEncoder(std::move(encoder));
-  _acm_receiver->SetCodecs(receive_codecs);
+  _neteq->SetCodecs(receive_codecs);
 }
 
 void TestRedFec::Run() {
@@ -181,7 +182,8 @@ void TestRedFec::Run() {
     EXPECT_GT(_inFileA.Read10MsData(audioFrame), 0);
     EXPECT_GE(_acmA->Add10MsData(audioFrame), 0);
     bool muted;
-    EXPECT_EQ(0, _acm_receiver->GetAudio(outFreqHzB, &audioFrame, &muted));
+    EXPECT_EQ(NetEq::kOK, _neteq->GetAudio(&audioFrame, &muted));
+    EXPECT_TRUE(_resampler_helper.MaybeResample(outFreqHzB, &audioFrame));
     ASSERT_FALSE(muted);
     _outFileB.Write10MsData(audioFrame.data(), audioFrame.samples_per_channel_);
   }
