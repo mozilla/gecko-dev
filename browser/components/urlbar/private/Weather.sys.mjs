@@ -360,10 +360,12 @@ export class Weather extends BaseFeature {
         lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
         {
           url: suggestion.url,
+          input: suggestion.url,
           iconId: suggestion.current_conditions.icon_id,
           requestId: suggestion.request_id,
           dynamicType: WEATHER_DYNAMIC_TYPE,
           city: suggestion.city_name,
+          region: suggestion.region_code,
           temperatureUnit: unit,
           temperature: suggestion.current_conditions.temperature[unit],
           currentConditions: suggestion.current_conditions.summary,
@@ -405,7 +407,7 @@ export class Weather extends BaseFeature {
       title: {
         l10n: {
           id: "firefox-suggest-weather-title",
-          args: { city: result.payload.city },
+          args: { city: result.payload.city, region: result.payload.region },
           cacheable: true,
           excludeArgsFromCacheKey: true,
         },

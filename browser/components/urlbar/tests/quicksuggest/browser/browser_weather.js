@@ -400,6 +400,19 @@ add_task(async function simpleUI() {
       "The summary text should be correct"
     );
 
+    // Check the title too while we're here.
+    let title = row.querySelector(".urlbarView-dynamic-weather-title");
+    let expectedTitle = "Weather for San Francisco, CA";
+    await TestUtils.waitForCondition(
+      () => title.textContent == expectedTitle,
+      "Waiting for the row's title text to be updated"
+    );
+    Assert.equal(
+      title.textContent,
+      expectedTitle,
+      "The title text should be correct"
+    );
+
     await UrlbarTestUtils.promisePopupClose(window);
     await nimbusCleanup?.();
   }

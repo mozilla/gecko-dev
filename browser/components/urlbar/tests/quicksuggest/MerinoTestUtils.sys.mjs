@@ -62,6 +62,7 @@ const WEATHER_SUGGESTION = {
   score: 0.2,
   icon: null,
   city_name: "San Francisco",
+  region_code: "CA",
   current_conditions: {
     url: "https://example.com/weather-current-conditions",
     summary: "Mostly cloudy",

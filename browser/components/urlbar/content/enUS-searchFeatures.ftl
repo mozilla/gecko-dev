@@ -114,7 +114,8 @@ firefox-suggest-weather-temperature = { $value }°{ $unit }
 # This string is the title of the weather summary
 # Variables:
 #   $city (String) - The name of the city the weather data is for
-firefox-suggest-weather-title = Weather for { $city }
+#   $region (String) - The name of the region (e.g., U.S. state)
+firefox-suggest-weather-title = Weather for { $city }, { $region }
 
 # This string displays the weather summary
 # Variables:

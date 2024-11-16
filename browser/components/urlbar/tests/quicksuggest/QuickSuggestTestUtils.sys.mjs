@@ -946,6 +946,7 @@ class _QuickSuggestTestUtils {
     source,
     provider,
     city = null,
+    region = null,
     telemetryType = undefined,
     temperatureUnit = undefined,
   } = {}) {
@@ -962,12 +963,14 @@ class _QuickSuggestTestUtils {
       payload: {
         temperatureUnit,
         url: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
+        input: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
         iconId: "6",
         requestId: lazy.MerinoTestUtils.server.response.body.request_id,
         source: "merino",
         provider: "accuweather",
         dynamicType: "weather",
         city: city || lazy.MerinoTestUtils.WEATHER_SUGGESTION.city_name,
+        region: region || lazy.MerinoTestUtils.WEATHER_SUGGESTION.region_code,
         temperature:
           lazy.MerinoTestUtils.WEATHER_SUGGESTION.current_conditions
             .temperature[temperatureUnit],
