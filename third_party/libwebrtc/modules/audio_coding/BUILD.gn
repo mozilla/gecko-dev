@@ -550,6 +550,7 @@ if (rtc_enable_protobuf) {
     sources = [ "audio_network_adaptor/debug_dump.proto" ]
     link_deps = [ ":ana_config_proto" ]
     proto_out_dir = "modules/audio_coding/audio_network_adaptor"
+    proto_data_sources = [ "audio_network_adaptor/config.proto" ]
   }
   proto_library("ana_config_proto") {
     visibility += [ "*" ]
