@@ -794,7 +794,17 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
     if (encoding.rid.empty()) {
       continue;
     }
-    send_rids.push_back(RidDescription(encoding.rid, RidDirection::kSend));
+    auto send_rid = RidDescription(encoding.rid, RidDirection::kSend);
+    if (encoding.codec) {
+      auto send_codecs = transceiver->sender_internal()->GetSendCodecs();
+      for (const cricket::Codec& codec : send_codecs) {
+        if (codec.MatchesRtpCodec(*encoding.codec)) {
+          send_rid.payload_types.push_back(codec.id);
+          break;
+        }
+      }
+    }
+    send_rids.push_back(send_rid);
     send_layers.AddLayer(SimulcastLayer(encoding.rid, !encoding.active));
   }
 

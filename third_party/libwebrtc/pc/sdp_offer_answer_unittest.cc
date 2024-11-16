@@ -41,7 +41,9 @@
 #include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/metrics.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/scoped_key_value_config.h"
 
 // This file contains unit tests that relate to the behavior of the
 // SdpOfferAnswer module.
@@ -87,7 +89,9 @@ class SdpOfferAnswerTest : public ::testing::Test {
                                             OpenH264DecoderTemplateAdapter,
                                             Dav1dDecoderTemplateAdapter>>(),
             nullptr /* audio_mixer */,
-            nullptr /* audio_processing */)) {
+            nullptr /* audio_processing */,
+            nullptr /* audio_frame_processor */,
+            std::make_unique<test::ScopedKeyValueConfig>(field_trials_, ""))) {
     metrics::Reset();
   }
 
@@ -108,7 +112,21 @@ class SdpOfferAnswerTest : public ::testing::Test {
         pc_factory_, result.MoveValue(), std::move(observer));
   }
 
+  std::optional<RtpCodecCapability> FindFirstSendCodecWithName(
+      cricket::MediaType media_type,
+      const std::string& name) const {
+    std::vector<RtpCodecCapability> codecs =
+        pc_factory_->GetRtpSenderCapabilities(media_type).codecs;
+    for (const auto& codec : codecs) {
+      if (absl::EqualsIgnoreCase(codec.name, name)) {
+        return codec;
+      }
+    }
+    return std::nullopt;
+  }
+
  protected:
+  test::ScopedKeyValueConfig field_trials_;
   std::unique_ptr<rtc::Thread> signaling_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;
 
@@ -608,6 +626,51 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
       SdpType::kAnswer,
       absl::StrReplaceAll(sdp, {{"m=video 9 ", "m=video 0 "}}));
   EXPECT_TRUE(pc->SetRemoteDescription(std::move(rejected_answer)));
+}
+
+TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
+  test::ScopedKeyValueConfig field_trials(
+      field_trials_, "WebRTC-MixedCodecSimulcast/Enabled/");
+
+  auto pc = CreatePeerConnection();
+
+  std::optional<RtpCodecCapability> vp8_codec = FindFirstSendCodecWithName(
+      cricket::MEDIA_TYPE_VIDEO, cricket::kVp8CodecName);
+  ASSERT_TRUE(vp8_codec);
+  std::optional<RtpCodecCapability> vp9_codec = FindFirstSendCodecWithName(
+      cricket::MEDIA_TYPE_VIDEO, cricket::kVp9CodecName);
+  ASSERT_TRUE(vp9_codec);
+
+  RtpTransceiverInit init;
+  RtpEncodingParameters rid1;
+  rid1.rid = "1";
+  rid1.codec = *vp8_codec;
+  init.send_encodings.push_back(rid1);
+  RtpEncodingParameters rid2;
+  rid2.rid = "2";
+  rid2.codec = *vp9_codec;
+  init.send_encodings.push_back(rid2);
+
+  auto transceiver = pc->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  auto offer = pc->CreateOffer();
+  auto& offer_contents = offer->description()->contents();
+  auto send_codecs = offer_contents[0].media_description()->codecs();
+  // Verify that the serialized SDP includes pt=.
+  std::string sdp;
+  offer->ToString(&sdp);
+  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:1 send pt=" +
+                                      std::to_string(send_codecs[0].id)));
+  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:2 send pt=" +
+                                      std::to_string(send_codecs[1].id)));
+  // Verify that SDP containing pt= can be parsed correctly.
+  auto offer2 = CreateSessionDescription(SdpType::kOffer, sdp);
+  auto& offer_contents2 = offer2->description()->contents();
+  auto send_rids2 = offer_contents2[0].media_description()->streams()[0].rids();
+  auto send_codecs2 = offer_contents2[0].media_description()->codecs();
+  EXPECT_EQ(send_rids2[0].payload_types.size(), 1u);
+  EXPECT_EQ(send_rids2[0].payload_types[0], send_codecs2[0].id);
+  EXPECT_EQ(send_rids2[1].payload_types.size(), 1u);
+  EXPECT_EQ(send_rids2[1].payload_types[0], send_codecs2[1].id);
 }
 
 TEST_F(SdpOfferAnswerTest, ExpectAllSsrcsSpecifiedInSsrcGroupFid) {
