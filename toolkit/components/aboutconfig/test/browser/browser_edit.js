@@ -42,7 +42,7 @@ add_task(async function test_add_user_pref() {
     ]) {
       this.search(PREF_NEW);
       let row = this.getRow(PREF_NEW);
-      Assert.ok(row.hasClass("deleted"));
+      Assert.ok(!row.hasClass("deleted"));
       Assert.ok(row.hasClass("add"));
 
       // Adding the preference should set the default for the data type.
@@ -430,7 +430,7 @@ add_task(async function test_double_click_modify() {
 
     // Check that double/triple-click on the add row selects text as usual.
     let addRow = this.getRow(PREF_MODIFY_PREFIX);
-    Assert.ok(addRow.hasClass("deleted"));
+    Assert.ok(!addRow.hasClass("deleted"));
     doubleClick(addRow.nameCell);
     Assert.ok(PREF_MODIFY_PREFIX.includes(this.window.getSelection()));
     tripleClick(addRow.nameCell);

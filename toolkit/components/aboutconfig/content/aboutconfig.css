@@ -158,8 +158,8 @@
 }
 
 #prefs > tr.deleted > th > span {
-  font-weight: bold;
   color: var(--text-color-deemphasized);
+  text-decoration: line-through;
 }
 
 #prefs > tr > td.cell-edit,
