@@ -11,6 +11,7 @@
 #include "api/data_channel_interface.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "absl/functional/any_invocable.h"

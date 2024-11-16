@@ -10,6 +10,7 @@
 
 #include "api/sctp_transport_interface.h"
 
+#include <optional>
 #include <utility>
 
 #include "api/dtls_transport_interface.h"
