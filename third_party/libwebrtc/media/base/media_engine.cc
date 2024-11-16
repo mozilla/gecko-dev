@@ -186,6 +186,11 @@ webrtc::RTCError CheckRtpParametersValues(
 
     if (rtp_parameters.encodings[i].requested_resolution.has_value()) {
       has_requested_resolution = true;
+      if (rtp_parameters.encodings[i].requested_resolution->width <= 0 ||
+          rtp_parameters.encodings[i].requested_resolution->height <= 0) {
+        LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
+                             "The resolution dimensions must be positive.");
+      }
     }
 
     if (!field_trials.IsEnabled("WebRTC-MixedCodecSimulcast")) {

@@ -2134,6 +2134,15 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
 
+  // AddTransceiver: Width and height must not be zero.
+  init.send_encodings[0].requested_resolution = {.width = 1280, .height = 0};
+  init.send_encodings[1].requested_resolution = {.width = 0, .height = 720};
+  transceiver_or_error =
+      pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  EXPECT_FALSE(transceiver_or_error.ok());
+  EXPECT_EQ(transceiver_or_error.error().type(),
+            RTCErrorType::UNSUPPORTED_OPERATION);
+
   // AddTransceiver: Specifying both `requested_resolution` and
   // `scale_resolution_down_by` is allowed (the latter is ignored).
   init.send_encodings[0].requested_resolution = {.width = 640, .height = 480};
@@ -2151,6 +2160,15 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
   parameters.encodings[1].requested_resolution = std::nullopt;
   auto error = sender->SetParameters(parameters);
+  EXPECT_FALSE(error.ok());
+  EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
+
+  // SetParameters: Width and height must not be zero.
+  sender = transceiver_or_error.value()->sender();
+  parameters = sender->GetParameters();
+  parameters.encodings[0].requested_resolution = {.width = 1280, .height = 0};
+  parameters.encodings[1].requested_resolution = {.width = 0, .height = 720};
+  error = sender->SetParameters(parameters);
   EXPECT_FALSE(error.ok());
   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
 

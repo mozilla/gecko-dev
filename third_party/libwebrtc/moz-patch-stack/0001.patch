@@ -63,10 +63,10 @@ index c2a17c59d4..2da0918062 100644
                                                  codec_specific_);
      }
 diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
-index ed087894e7..d3bc97377a 100644
+index 208f33fc8f..df4122baa6 100644
 --- a/pc/peer_connection_encodings_integrationtest.cc
 +++ b/pc/peer_connection_encodings_integrationtest.cc
-@@ -2399,6 +2399,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+@@ -2417,6 +2417,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
    EXPECT_THAT(*outbound_rtps[2]->scalability_mode, StrEq("L1T3"));
  }
  
