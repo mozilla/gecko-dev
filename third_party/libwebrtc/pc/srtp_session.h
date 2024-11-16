@@ -23,7 +23,7 @@
 
 // Forward declaration to avoid pulling in libsrtp headers here
 struct srtp_event_data_t;
-struct srtp_ctx_t_;
+struct srtp_ctx_t_;  // Trailing _ is required.
 
 namespace cricket {
 

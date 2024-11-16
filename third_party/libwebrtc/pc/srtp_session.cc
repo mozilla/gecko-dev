@@ -44,6 +44,12 @@ class LibSrtpInitializer {
     static LibSrtpInitializer* const instance = new LibSrtpInitializer();
     return *instance;
   }
+
+  // There is only one global log handler in libsrtp so we can not resolve this
+  // to a particular session.
+  static void LibSrtpLogHandler(srtp_log_level_t level,
+                                const char* msg,
+                                void* data);
   void ProhibitLibsrtpInitialization();
 
   // These methods are responsible for initializing libsrtp (if the usage count
@@ -52,7 +58,7 @@ class LibSrtpInitializer {
   //
   // Returns true if successful (will always be successful if already inited).
   bool IncrementLibsrtpUsageCountAndMaybeInit(
-      srtp_event_handler_func_t* handler);
+      srtp_event_handler_func_t* event_handler);
   void DecrementLibsrtpUsageCountAndMaybeDeinit();
 
  private:
@@ -62,25 +68,48 @@ class LibSrtpInitializer {
   int usage_count_ RTC_GUARDED_BY(mutex_) = 0;
 };
 
+void LibSrtpInitializer::LibSrtpLogHandler(srtp_log_level_t level,
+                                           const char* msg,
+                                           void* data) {
+  RTC_DCHECK(data == nullptr);
+  if (level == srtp_log_level_error) {
+    RTC_LOG(LS_ERROR) << "SRTP log: " << msg;
+  } else if (level == srtp_log_level_warning) {
+    RTC_LOG(LS_WARNING) << "SRTP log: " << msg;
+  } else if (level == srtp_log_level_info) {
+    RTC_LOG(LS_INFO) << "SRTP log: " << msg;
+  } else if (level == srtp_log_level_debug) {
+    RTC_LOG(LS_VERBOSE) << "SRTP log: " << msg;
+  }
+}
+
 void LibSrtpInitializer::ProhibitLibsrtpInitialization() {
   webrtc::MutexLock lock(&mutex_);
   ++usage_count_;
 }
 
 bool LibSrtpInitializer::IncrementLibsrtpUsageCountAndMaybeInit(
-    srtp_event_handler_func_t* handler) {
+    srtp_event_handler_func_t* event_handler) {
   webrtc::MutexLock lock(&mutex_);
+  RTC_DCHECK(event_handler);
 
   RTC_DCHECK_GE(usage_count_, 0);
   if (usage_count_ == 0) {
     int err;
+
+    err = srtp_install_log_handler(&LibSrtpInitializer::LibSrtpLogHandler,
+                                   nullptr);
+    if (err != srtp_err_status_ok) {
+      RTC_LOG(LS_ERROR) << "Failed to install libsrtp log handler, err=" << err;
+      return false;
+    }
     err = srtp_init();
     if (err != srtp_err_status_ok) {
       RTC_LOG(LS_ERROR) << "Failed to init SRTP, err=" << err;
       return false;
     }
 
-    err = srtp_install_event_handler(handler);
+    err = srtp_install_event_handler(event_handler);
     if (err != srtp_err_status_ok) {
       RTC_LOG(LS_ERROR) << "Failed to install SRTP event handler, err=" << err;
       return false;
@@ -101,8 +130,13 @@ void LibSrtpInitializer::DecrementLibsrtpUsageCountAndMaybeDeinit() {
 
   RTC_DCHECK_GE(usage_count_, 1);
   if (--usage_count_ == 0) {
-    int err = srtp_shutdown();
-    if (err) {
+    int err = srtp_install_log_handler(nullptr, nullptr);
+    if (err != srtp_err_status_ok) {
+      RTC_LOG(LS_ERROR) << "Failed to uninstall libsrtp log handler, err="
+                        << err;
+    }
+    err = srtp_shutdown();
+    if (err != srtp_err_status_ok) {
       RTC_LOG(LS_ERROR) << "srtp_shutdown failed. err=" << err;
     }
   }
