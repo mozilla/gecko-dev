@@ -63,7 +63,7 @@ index 96d23c6c17..a82d33ab36 100644
                                                  codec_specific_);
      }
 diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
-index 552df132a1..c0aa62a589 100644
+index ed087894e7..d3bc97377a 100644
 --- a/pc/peer_connection_encodings_integrationtest.cc
 +++ b/pc/peer_connection_encodings_integrationtest.cc
 @@ -2399,6 +2399,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,

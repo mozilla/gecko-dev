@@ -9724,7 +9724,7 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecast) {
   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
 }
 
-TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastCropping) {
+TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastScaling) {
   cricket::VideoSenderParameters parameters;
   parameters.codecs.push_back(GetEngineCodec("VP8"));
   ASSERT_TRUE(send_channel_->SetSenderParameters(parameters));
@@ -9747,8 +9747,10 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastCropping) {
 
     auto streams = stream->GetVideoStreams();
     ASSERT_EQ(streams.size(), 1u);
+    // The scaling factor is 720/1280 because of orientation,
+    // scaling the height (720) by this value gets you 405p.
     EXPECT_EQ(rtc::checked_cast<size_t>(720), streams[0].width);
-    EXPECT_EQ(rtc::checked_cast<size_t>(720), streams[0].height);
+    EXPECT_EQ(rtc::checked_cast<size_t>(405), streams[0].height);
   }
 
   {
@@ -9762,7 +9764,8 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastCropping) {
 
     auto streams = stream->GetVideoStreams();
     ASSERT_EQ(streams.size(), 1u);
-    EXPECT_EQ(rtc::checked_cast<size_t>(720), streams[0].width);
+    // No downscale needed to fit 1280x1280.
+    EXPECT_EQ(rtc::checked_cast<size_t>(1280), streams[0].width);
     EXPECT_EQ(rtc::checked_cast<size_t>(720), streams[0].height);
   }
 
@@ -9775,8 +9778,24 @@ TEST_F(WebRtcVideoChannelTest, RequestedResolutionSinglecastCropping) {
 
     auto streams = stream->GetVideoStreams();
     ASSERT_EQ(streams.size(), 1u);
-    EXPECT_EQ(rtc::checked_cast<size_t>(480), streams[0].width);
-    EXPECT_EQ(rtc::checked_cast<size_t>(480), streams[0].height);
+    // The scaling factor is 650/1280 because of orientation,
+    // scaling the height (720) by this value gets you 365.625 which is rounded.
+    EXPECT_EQ(rtc::checked_cast<size_t>(650), streams[0].width);
+    EXPECT_EQ(rtc::checked_cast<size_t>(366), streams[0].height);
+  }
+
+  {
+    auto rtp_parameters = send_channel_->GetRtpSendParameters(last_ssrc_);
+    EXPECT_EQ(1UL, rtp_parameters.encodings.size());
+    rtp_parameters.encodings[0].requested_resolution = {.width = 2560,
+                                                        .height = 1440};
+    send_channel_->SetRtpSendParameters(last_ssrc_, rtp_parameters);
+
+    auto streams = stream->GetVideoStreams();
+    ASSERT_EQ(streams.size(), 1u);
+    // We don't upscale.
+    EXPECT_EQ(rtc::checked_cast<size_t>(1280), streams[0].width);
+    EXPECT_EQ(rtc::checked_cast<size_t>(720), streams[0].height);
   }
 
   EXPECT_TRUE(send_channel_->SetVideoSend(last_ssrc_, nullptr, nullptr));
