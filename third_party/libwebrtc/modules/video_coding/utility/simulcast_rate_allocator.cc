@@ -13,14 +13,19 @@
 #include <stdio.h>
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <numeric>
-#include <string>
 #include <tuple>
 #include <vector>
 
 #include "api/environment/environment.h"
+#include "api/units/data_rate.h"
+#include "api/video/video_bitrate_allocation.h"
+#include "api/video/video_bitrate_allocator.h"
+#include "api/video/video_codec_constants.h"
+#include "api/video/video_codec_type.h"
+#include "api/video_codecs/simulcast_stream.h"
+#include "api/video_codecs/video_codec.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/rate_control_settings.h"
 
@@ -61,8 +66,7 @@ float SimulcastRateAllocator::GetTemporalRateAllocation(
 SimulcastRateAllocator::SimulcastRateAllocator(const Environment& env,
                                                const VideoCodec& codec)
     : codec_(codec),
-      stable_rate_settings_(StableTargetRateExperiment::ParseFromKeyValueConfig(
-          &env.field_trials())),
+      stable_rate_settings_(env.field_trials()),
       rate_control_settings_(env.field_trials()),
       legacy_conference_mode_(false) {}
 

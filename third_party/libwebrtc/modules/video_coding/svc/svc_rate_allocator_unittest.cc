@@ -11,13 +11,23 @@
 #include "modules/video_coding/svc/svc_rate_allocator.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
+#include "absl/container/inlined_vector.h"
+#include "api/units/data_rate.h"
+#include "api/video/video_bitrate_allocation.h"
+#include "api/video/video_bitrate_allocator.h"
+#include "api/video/video_codec_constants.h"
 #include "api/video/video_codec_type.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/spatial_layer.h"
+#include "api/video_codecs/video_codec.h"
 #include "modules/video_coding/codecs/av1/av1_svc_config.h"
 #include "modules/video_coding/codecs/vp9/svc_config.h"
 #include "rtc_base/checks.h"
-#include "test/field_trial.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gtest.h"
 
 namespace webrtc {
@@ -76,7 +86,8 @@ static VideoCodec Configure(VideoCodecType codecType,
 
 TEST(SvcRateAllocatorTest, SingleLayerFor320x180Input) {
   VideoCodec codec = Configure(kVideoCodecVP9, 320, 180, 3, 3, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(1000 * 1000, 30));
@@ -87,7 +98,8 @@ TEST(SvcRateAllocatorTest, SingleLayerFor320x180Input) {
 
 TEST(SvcRateAllocatorTest, TwoLayersFor640x360Input) {
   VideoCodec codec = Configure(kVideoCodecVP9, 640, 360, 3, 3, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(1000 * 1000, 30));
@@ -99,7 +111,8 @@ TEST(SvcRateAllocatorTest, TwoLayersFor640x360Input) {
 
 TEST(SvcRateAllocatorTest, ThreeLayersFor1280x720Input) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 3, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(1000 * 1000, 30));
@@ -112,7 +125,8 @@ TEST(SvcRateAllocatorTest, ThreeLayersFor1280x720Input) {
 TEST(SvcRateAllocatorTest,
      BaseLayerNonZeroBitrateEvenIfTotalIfLessThanMinimum) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 3, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   const SpatialLayer* layers = codec.spatialLayers;
 
@@ -126,7 +140,8 @@ TEST(SvcRateAllocatorTest,
 
 TEST(SvcRateAllocatorTest, Disable640x360Layer) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 3, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   const SpatialLayer* layers = codec.spatialLayers;
 
@@ -143,7 +158,8 @@ TEST(SvcRateAllocatorTest, Disable640x360Layer) {
 
 TEST(SvcRateAllocatorTest, Disable1280x720Layer) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 3, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   const SpatialLayer* layers = codec.spatialLayers;
 
@@ -161,7 +177,8 @@ TEST(SvcRateAllocatorTest, Disable1280x720Layer) {
 
 TEST(SvcRateAllocatorTest, BitrateIsCapped) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 3, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   const SpatialLayer* layers = codec.spatialLayers;
 
@@ -178,7 +195,8 @@ TEST(SvcRateAllocatorTest, BitrateIsCapped) {
 
 TEST(SvcRateAllocatorTest, MinBitrateToGetQualityLayer) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 1, true);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   const SpatialLayer* layers = codec.spatialLayers;
 
@@ -196,6 +214,7 @@ TEST(SvcRateAllocatorTest, MinBitrateToGetQualityLayer) {
 }
 
 TEST(SvcRateAllocatorTest, DeactivateHigherLayers) {
+  ExplicitKeyValueConfig field_trials("");
   for (int deactivated_idx = 2; deactivated_idx >= 0; --deactivated_idx) {
     VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 1, false);
     EXPECT_LE(codec.VP9()->numberOfSpatialLayers, 3U);
@@ -203,7 +222,7 @@ TEST(SvcRateAllocatorTest, DeactivateHigherLayers) {
     for (int i = deactivated_idx; i < 3; ++i)
       codec.spatialLayers[i].active = false;
 
-    SvcRateAllocator allocator = SvcRateAllocator(codec);
+    SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
     VideoBitrateAllocation allocation = allocator.Allocate(
         VideoBitrateAllocationParameters(10 * 1000 * 1000, 30));
@@ -221,6 +240,7 @@ TEST(SvcRateAllocatorTest, DeactivateHigherLayers) {
 }
 
 TEST(SvcRateAllocatorTest, DeactivateLowerLayers) {
+  ExplicitKeyValueConfig field_trials("");
   for (int deactivated_idx = 0; deactivated_idx < 3; ++deactivated_idx) {
     VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 1, false);
     EXPECT_LE(codec.VP9()->numberOfSpatialLayers, 3U);
@@ -228,7 +248,7 @@ TEST(SvcRateAllocatorTest, DeactivateLowerLayers) {
     for (int i = deactivated_idx; i >= 0; --i)
       codec.spatialLayers[i].active = false;
 
-    SvcRateAllocator allocator = SvcRateAllocator(codec);
+    SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
     VideoBitrateAllocation allocation = allocator.Allocate(
         VideoBitrateAllocationParameters(10 * 1000 * 1000, 30));
@@ -248,7 +268,8 @@ TEST(SvcRateAllocatorTest, DeactivateLowerLayers) {
 
 TEST(SvcRateAllocatorTest, SignalsBwLimited) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 1, false);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   // Rough estimate calculated by hand.
   uint32_t min_to_enable_all = 900000;
@@ -310,8 +331,9 @@ TEST(SvcRateAllocatorTest, SupportsAv1) {
   codec.spatialLayers[2].minBitrate = 193;
   codec.spatialLayers[2].targetBitrate = 305;
   codec.spatialLayers[2].maxBitrate = 418;
+  ExplicitKeyValueConfig field_trials("");
 
-  SvcRateAllocator allocator(codec);
+  SvcRateAllocator allocator(codec, field_trials);
 
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(1'000'000, 30));
@@ -339,8 +361,9 @@ TEST(SvcRateAllocatorTest, SupportsAv1WithSkippedLayer) {
   codec.spatialLayers[2].minBitrate = 193;
   codec.spatialLayers[2].targetBitrate = 305;
   codec.spatialLayers[2].maxBitrate = 418;
+  ExplicitKeyValueConfig field_trials("");
 
-  SvcRateAllocator allocator(codec);
+  SvcRateAllocator allocator(codec, field_trials);
 
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(1'000'000, 30));
@@ -368,8 +391,9 @@ TEST(SvcRateAllocatorTest, UsesScalabilityModeToGetNumberOfLayers) {
   codec.spatialLayers[2].minBitrate = 193;
   codec.spatialLayers[2].targetBitrate = 305;
   codec.spatialLayers[2].maxBitrate = 418;
+  ExplicitKeyValueConfig field_trials("");
 
-  SvcRateAllocator allocator(codec);
+  SvcRateAllocator allocator(codec, field_trials);
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(1'000'000, 30));
 
@@ -386,7 +410,9 @@ TEST(SvcRateAllocatorTest, UsesScalabilityModeToGetNumberOfLayers) {
 TEST(SvcRateAllocatorTest, CapsAllocationToMaxBitrate) {
   VideoCodec codec = Configure(kVideoCodecVP9, 1280, 720, 3, 3, false);
   codec.maxBitrate = 70;  // Cap the overall max bitrate to 70kbps.
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   // Allocate 3Mbps which should be enough for all layers.
   VideoBitrateAllocation allocation =
@@ -423,7 +449,8 @@ TEST_P(SvcRateAllocatorTestParametrizedContentType, MaxBitrate) {
 TEST_P(SvcRateAllocatorTestParametrizedContentType, PaddingBitrate) {
   VideoCodec codec =
       Configure(kVideoCodecVP9, 1280, 720, 3, 1, is_screen_sharing_);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   DataRate padding_bitrate = SvcRateAllocator::GetPaddingBitrate(codec);
 
@@ -467,7 +494,7 @@ TEST_P(SvcRateAllocatorTestParametrizedContentType, PaddingBitrate) {
 }
 
 TEST_P(SvcRateAllocatorTestParametrizedContentType, StableBitrate) {
-  ScopedFieldTrials field_trial(
+  ExplicitKeyValueConfig field_trials(
       "WebRTC-StableTargetRate/enabled:true,video_hysteresis_factor:1.0,"
       "screenshare_hysteresis_factor:1.0/");
 
@@ -486,7 +513,7 @@ TEST_P(SvcRateAllocatorTestParametrizedContentType, StableBitrate) {
           : DataRate::KilobitsPerSec(codec.spatialLayers[0].maxBitrate +
                                      codec.spatialLayers[1].maxBitrate);
 
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
 
   // Two layers, stable and target equal.
   auto allocation = allocator.Allocate(VideoBitrateAllocationParameters(
@@ -532,10 +559,10 @@ TEST_P(SvcRateAllocatorTestParametrizedContentType,
   const DataRate min_rate_two_layers = start_rates[1];
   const DataRate min_rate_three_layers = start_rates[2];
 
-  ScopedFieldTrials field_trial(
+  ExplicitKeyValueConfig field_trials(
       "WebRTC-StableTargetRate/enabled:true,video_hysteresis_factor:1.1,"
       "screenshare_hysteresis_factor:1.1/");
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
   // Always use max bitrate as target, verify only stable is used for layer
   // count selection.
   const DataRate max_bitrate = allocator.GetMaxBitrate(codec);
@@ -618,7 +645,8 @@ TEST_P(SvcRateAllocatorTestParametrizedContentType,
 TEST_P(SvcRateAllocatorTestParametrizedContentType, TwoTemporalLayersAv1) {
   VideoCodec codec =
       Configure(kVideoCodecAV1, 1280, 720, 1, 2, is_screen_sharing_);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(
           /*total_bitrate_bps=*/1024'000, /*framerate=*/30));
@@ -632,7 +660,8 @@ TEST_P(SvcRateAllocatorTestParametrizedContentType, TwoTemporalLayersAv1) {
 TEST_P(SvcRateAllocatorTestParametrizedContentType, ThreeTemporalLayersAv1) {
   VideoCodec codec =
       Configure(kVideoCodecAV1, 1280, 720, 1, 3, is_screen_sharing_);
-  SvcRateAllocator allocator = SvcRateAllocator(codec);
+  ExplicitKeyValueConfig field_trials("");
+  SvcRateAllocator allocator = SvcRateAllocator(codec, field_trials);
   VideoBitrateAllocation allocation =
       allocator.Allocate(VideoBitrateAllocationParameters(
           /*total_bitrate_bps=*/1024'000, /*framerate=*/30));

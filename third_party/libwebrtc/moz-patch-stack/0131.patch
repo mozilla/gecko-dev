@@ -647,7 +647,7 @@ index 901597ecde..6828388b31 100644
  import("../../webrtc.gni")
  
 diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index 7c78f5064a..5e6f0971c5 100644
+index a09a9a8d82..2667600240 100644
 --- a/modules/video_coding/BUILD.gn
 +++ b/modules/video_coding/BUILD.gn
 @@ -6,7 +6,7 @@
@@ -828,7 +828,7 @@ index b4fd619f3d..8f8b15e9fb 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index 09faca4cc2..bc5114b9f4 100644
+index e692bdbed8..ce53a9f9af 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@

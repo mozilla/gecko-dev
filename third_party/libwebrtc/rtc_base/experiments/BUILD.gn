@@ -145,7 +145,6 @@ rtc_library("stable_target_rate_experiment") {
   deps = [
     ":field_trial_parser",
     "../../api:field_trials_view",
-    "../../api/transport:field_trial_based_config",
   ]
 }
 
