@@ -1329,7 +1329,6 @@ class GeckoEngineSession(
             notifyObservers {
                 onProgress(PROGRESS_START)
                 onLoadingStateChange(true)
-                onLocationChange(url, hasUserGesture = false)
             }
         }
 
