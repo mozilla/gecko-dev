@@ -59,6 +59,7 @@ skip-if = ["true"] # Crashes: @ mozilla::dom::ServiceWorkerManagerService::Propa
 
 ["browser_storage_recovery.js"]
 
-#["browser_sw_lifetime_extension.js"]
+["browser_sw_lifetime_extension.js"]
+disabled = "Pending re-enabling, remove from browser.toml when enabled."
 
 ["browser_unregister_with_containers.js"]

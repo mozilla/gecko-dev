@@ -3,14 +3,14 @@ support-files = [
     "head.js",
 ]
 
+["browser_ml_engine_multi_perf.js"]
+disabled = "Disabled as we want to run this only as perftest, not regular CI"
+
 ["browser_ml_engine_perf.js"]
-skip-if = true # Disabled as we want to run this only as perftest, not regular CI
+disabled = "Disabled as we want to run this only as perftest, not regular CI"
 
 ["browser_ml_suggest_intent_perf.js"]
-skip-if = true # Disabled as we want to run this only as perftest, not regular CI
+disabled = "Disabled as we want to run this only as perftest, not regular CI"
 
 ["browser_ml_suggest_ner_perf.js"]
-skip-if = true # Disabled as we want to run this only as perftest, not regular CI
-
-["browser_ml_engine_multi_perf.js"]
-skip-if = true # Disabled as we want to run this only as perftest, not regular CI
+disabled = "Disabled as we want to run this only as perftest, not regular CI"
