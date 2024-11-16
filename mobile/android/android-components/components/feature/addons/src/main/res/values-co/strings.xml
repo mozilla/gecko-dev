@@ -130,6 +130,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">Permette</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">Ricusà</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">Sapene di più</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Abbandunà</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
@@ -186,10 +188,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Traduzzione micca trova, nè per a lucale %1$s, nè per a lingua predefinita %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">Installazione riesciuta di %1$s</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Fiascu di l’installazione di %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Fiascu per installà st’estensione.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Impussibule d’installà l’estensione</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">St’estensione ùn pò micca esse scaricata per via d’un fiascu di cunnessione.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -199,9 +203,15 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s ùn pò micca esse installatu perchè ùn hè micca cumpatibile cù %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">%1$s ùn pò micca esse installatu perchè ci hè un risicu tamantu di cagiunà prublemi di stabilità o di sicurità.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s ùn pò micca esse installatu perchè ci hè un risicu tamantu di cagiunà prublemi di stabilità o di sicurità.</string>
+    <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_blocklisted_2">%1$s trasgredisce e regule di Mozilla è ùn pò micca esse installatu nant’à %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s ùn pò micca esse installatu perchè a so installazione si pò fà solu da un urganismu impieghendu strategie d’impresa, ciò chì ùn hè micca accettatu nant’à sta piattaforma.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s trasgredisce e regule di Mozilla è ùn pò micca esse installatu.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">%1$s trasgredisce e regule di Mozilla è ùn pò micca esse installatu nant’à %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">Attivazione riesciuta di %1$s</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +256,18 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">Vai</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Sapene di più</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Vede i detaglii</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s hè statu disattivatu per via di prublemi di sicurità o di stabilità.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s hè statu disattivatu per via di prublemi di sicurità o di stabilità.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">St’estensione hè stata bluccata perchè trasgredisce e regule di Mozilla è tandu hè stata disattivata.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">St’estensione chì trasgredisce e regule di Mozilla hè stata disattivata.Pudete attivalla, ma puderia esse risicatu.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">St’estensione hè stata ristrinta perchè trasgredisce e regule di Mozilla è tandu hè stata disattivata. Pudete attivalla, ma puderia esse risicatu.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">St’estensione trasgredisce e regule di Mozilla. Impiegalla hè risicatu.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s ùn pò micca esse verificatu cum’è sicuru è hè statu disattivatu.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
