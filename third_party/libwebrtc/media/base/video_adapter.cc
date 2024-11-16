@@ -342,12 +342,6 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
   resolution_alignment_ = cricket::LeastCommonMultiple(
       source_resolution_alignment_, sink_wants.resolution_alignment);
 
-  if (!sink_wants.aggregates) {
-    RTC_LOG(LS_WARNING)
-        << "These should always be created by VideoBroadcaster!";
-    return;
-  }
-
   // If requested_resolution is used, and there are no active encoders
   // that are NOT using requested_resolution (aka newapi), then override
   // calls to OnOutputFormatRequest and use values from requested_resolution
@@ -365,7 +359,14 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
     return;
   }
 
-  if (sink_wants.aggregates->any_active_without_requested_resolution) {
+  // The code below is only needed when `requested_resolution` is signalled back
+  // to the video source which only happens if
+  // `VideoStreamEncoderSettings::use_standard_requested_resolution` is false.
+  // TODO(https://crbug.com/webrtc/366284861): Delete the code below as part of
+  // deleting this flag and only supporting the standard behavior.
+
+  if (sink_wants.aggregates.has_value() &&
+      sink_wants.aggregates->any_active_without_requested_resolution) {
     return;
   }
 
