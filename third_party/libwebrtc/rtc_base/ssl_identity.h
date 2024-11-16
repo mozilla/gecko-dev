@@ -82,11 +82,6 @@ class RTC_EXPORT KeyParams {
   } params_;
 };
 
-// TODO(hbos): Remove once rtc::KeyType (to be modified) and
-// blink::WebRTCKeyType (to be landed) match. By using this function in Chromium
-// appropriately we can change KeyType enum -> class without breaking Chromium.
-KeyType IntKeyTypeFamilyToKeyType(int key_type_family);
-
 // Parameters for generating a certificate. If `common_name` is non-empty, it
 // will be used for the certificate's subject and issuer name, otherwise a
 // random string will be used.
