@@ -305,11 +305,41 @@
   }
 }
 
-.home-section .section .sponsored-checkbox:focus-visible,
-.selector:focus-visible,
 .external-link:focus-visible,
 .close-button:focus-visible {
   border: 1px solid var(--newtab-primary-action-background);
   outline: 0;
   box-shadow: $shadow-focus;
+}
+
+// Make sure form elements under the "Shortcuts" subsection don't change position on focus
+// by always having a 2px box shadow around them - one that blends in with the background.
+.home-section .section {
+  .sponsored-checkbox, .selector {
+    outline: 0;
+    box-shadow: 0 0 0 2px light-dark(var(--newtab-background-color), var(--newtab-background-color-dark));
+  }
+}
+
+// Move the Shortcuts dropdown slightly down so that the box shadow is not cut off at the top
+// in active & focus states.
+.home-section .section .selector {
+  margin-block-start: var(--space-xxsmall)
+}
+
+// Improve accessibility of shortcuts dropdown and sponsored shortcuts checkbox
+// by setting a bright 2px box shadow in active and focus states.
+.home-section .section
+{
+  .sponsored-checkbox, .selector {
+    &:is(:focus-visible) {
+      box-shadow: 0 0 0 2px var(--color-accent-primary);
+      outline: var(--focus-outline); // For Windows high-contrast mode
+    }
+
+    &:is(:active) {
+      box-shadow: 0 0 0 2px var(--color-accent-primary-active);
+      outline: 0;
+    }
+  }
 }

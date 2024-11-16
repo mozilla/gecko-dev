@@ -2191,13 +2191,29 @@ main section {
   text-decoration: none;
 }
 
-.home-section .section .sponsored-checkbox:focus-visible,
-.selector:focus-visible,
 .external-link:focus-visible,
 .close-button:focus-visible {
   border: 1px solid var(--newtab-primary-action-background);
   outline: 0;
   box-shadow: 0 0 0 2px var(--newtab-primary-action-background-dimmed);
+}
+
+.home-section .section .sponsored-checkbox, .home-section .section .selector {
+  outline: 0;
+  box-shadow: 0 0 0 2px light-dark(var(--newtab-background-color), var(--newtab-background-color-dark));
+}
+
+.home-section .section .selector {
+  margin-block-start: var(--space-xxsmall);
+}
+
+.home-section .section .sponsored-checkbox:is(:focus-visible), .home-section .section .selector:is(:focus-visible) {
+  box-shadow: 0 0 0 2px var(--color-accent-primary);
+  outline: var(--focus-outline);
+}
+.home-section .section .sponsored-checkbox:is(:active), .home-section .section .selector:is(:active) {
+  box-shadow: 0 0 0 2px var(--color-accent-primary-active);
+  outline: 0;
 }
 
 .category-list {
