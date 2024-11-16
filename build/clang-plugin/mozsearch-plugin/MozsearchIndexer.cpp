@@ -2393,8 +2393,13 @@ public:
 
       FieldDecl *Member = Ci->getMember();
       std::string Mangled = getMangledName(CurMangleContext, Member);
+      // We want the constructor to be the context of the field use and
+      // `getContext(D)` would skip the current context.  An alternate approach
+      // would be `getContext(Loc)` but the heuristic to omit a context if we're
+      // in a macro body expansion seems incorrect for field initializations; if
+      // code is using macros to initialize the fields, we still care.
       visitIdentifier("use", "field", getQualifiedName(Member), Loc, Mangled,
-                      Member->getType(), getContext(D));
+                      Member->getType(), translateContext(D));
     }
 
     return true;
