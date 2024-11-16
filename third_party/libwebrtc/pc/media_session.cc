@@ -29,6 +29,7 @@
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
 #include "media/base/media_engine.h"
@@ -1353,9 +1354,11 @@ MediaSessionDescriptionFactory::MediaSessionDescriptionFactory(
     cricket::MediaEngineInterface* media_engine,
     bool rtx_enabled,
     rtc::UniqueRandomIdGenerator* ssrc_generator,
-    const TransportDescriptionFactory* transport_desc_factory)
+    const TransportDescriptionFactory* transport_desc_factory,
+    webrtc::PayloadTypeSuggester* pt_suggester)
     : ssrc_generator_(ssrc_generator),
-      transport_desc_factory_(transport_desc_factory) {
+      transport_desc_factory_(transport_desc_factory),
+      pt_suggester_(pt_suggester) {
   RTC_CHECK(transport_desc_factory_);
   if (media_engine) {
     audio_send_codecs_ = media_engine->voice().send_codecs();
@@ -2049,7 +2052,7 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
 
   std::vector<Codec> codecs_to_include;
   if (media_description_options.codecs_to_include.empty()) {
-    const std::vector<Codec>& supported_codecs =
+    std::vector<Codec> supported_codecs =
         media_description_options.type == MEDIA_TYPE_AUDIO
             ? GetAudioCodecsForOffer(media_description_options.direction)
             : GetVideoCodecsForOffer(media_description_options.direction);
@@ -2063,6 +2066,22 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
   } else {
     // Ignore both the codecs argument and the Get*CodecsForOffer results.
     codecs_to_include = media_description_options.codecs_to_include;
+  }
+  for (cricket::Codec& codec : codecs_to_include) {
+    if (codec.id == Codec::kIdNotSet) {
+      // Add payload types to codecs, if needed
+      // This should only happen if WebRTC-PayloadTypesInTransport field trial
+      // is enabled.
+      RTC_CHECK(pt_suggester_);
+      RTC_CHECK(transport_desc_factory_->trials().IsEnabled(
+          "WebRTC-PayloadTypesInTransport"));
+      auto result = pt_suggester_->SuggestPayloadType(
+          media_description_options.mid, codec);
+      if (!result.ok()) {
+        return result.error();
+      }
+      codec.id = result.value();
+    }
   }
   std::unique_ptr<MediaContentDescription> content_description;
   if (media_description_options.type == MEDIA_TYPE_AUDIO) {
@@ -2250,6 +2269,20 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
                     &negotiated_codecs,
                     media_description_options.codec_preferences.empty());
     codecs_to_include = negotiated_codecs;
+  }
+  for (cricket::Codec& codec : codecs_to_include) {
+    if (codec.id == Codec::kIdNotSet) {
+      // Add payload types to codecs, if needed
+      RTC_CHECK(pt_suggester_);
+      RTC_CHECK(transport_desc_factory_->trials().IsEnabled(
+          "WebRTC-PayloadTypesInTransport"));
+      auto result = pt_suggester_->SuggestPayloadType(
+          media_description_options.mid, codec);
+      if (!result.ok()) {
+        return result.error();
+      }
+      codec.id = result.value();
+    }
   }
 
   if (!SetCodecsInAnswer(offer_content_description, codecs_to_include,

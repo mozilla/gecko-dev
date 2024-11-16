@@ -50,6 +50,7 @@
 #include "api/uma_metrics.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
 #include "api/video/video_codec_constants.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/media_engine.h"
 #include "media/base/rid_description.h"
@@ -1379,16 +1380,18 @@ std::unique_ptr<SdpOfferAnswerHandler> SdpOfferAnswerHandler::Create(
     PeerConnectionSdpMethods* pc,
     const PeerConnectionInterface::RTCConfiguration& configuration,
     PeerConnectionDependencies& dependencies,
-    ConnectionContext* context) {
+    ConnectionContext* context,
+    PayloadTypeSuggester* pt_suggester) {
   auto handler = absl::WrapUnique(new SdpOfferAnswerHandler(pc, context));
-  handler->Initialize(configuration, dependencies, context);
+  handler->Initialize(configuration, dependencies, context, pt_suggester);
   return handler;
 }
 
 void SdpOfferAnswerHandler::Initialize(
     const PeerConnectionInterface::RTCConfiguration& configuration,
     PeerConnectionDependencies& dependencies,
-    ConnectionContext* context) {
+    ConnectionContext* context,
+    PayloadTypeSuggester* pt_suggester) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   // 100 kbps is used by default, but can be overriden by a non-standard
   // RTCConfiguration value (not available on Web).
@@ -1421,7 +1424,7 @@ void SdpOfferAnswerHandler::Initialize(
             RTC_DCHECK_RUN_ON(signaling_thread());
             transport_controller_s()->SetLocalCertificate(certificate);
           },
-          pc_->trials());
+          pt_suggester, pc_->trials());
 
   if (pc_->options()->disable_encryption) {
     RTC_LOG(LS_INFO)

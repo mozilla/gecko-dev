@@ -12,7 +12,6 @@
 
 #include <stddef.h>
 
-#include <algorithm>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -24,24 +23,31 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/candidate.h"
+#include "api/media_types.h"
 #include "api/rtp_parameters.h"
+#include "api/rtp_transceiver_direction.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
+#include "media/base/rid_description.h"
+#include "media/base/stream_params.h"
 #include "media/base/test_utils.h"
 #include "media/sctp/sctp_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/transport_description.h"
+#include "p2p/base/transport_description_factory.h"
 #include "p2p/base/transport_info.h"
 #include "pc/media_protocol_names.h"
 #include "pc/rtp_media_utils.h"
 #include "pc/rtp_parameters_conversion.h"
-#include "rtc_base/arraysize.h"
+#include "pc/session_description.h"
+#include "pc/simulcast_description.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/fake_ssl_identity.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_identity.h"
-#include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/unique_id_generator.h"
@@ -382,8 +388,8 @@ class MediaSessionDescriptionFactoryTest : public testing::Test {
   MediaSessionDescriptionFactoryTest()
       : tdf1_(field_trials),
         tdf2_(field_trials),
-        f1_(nullptr, false, &ssrc_generator1, &tdf1_),
-        f2_(nullptr, false, &ssrc_generator2, &tdf2_) {
+        f1_(nullptr, false, &ssrc_generator1, &tdf1_, nullptr),
+        f2_(nullptr, false, &ssrc_generator2, &tdf2_, nullptr) {
     f1_.set_audio_codecs(MAKE_VECTOR(kAudioCodecs1),
                          MAKE_VECTOR(kAudioCodecs1));
     f1_.set_video_codecs(MAKE_VECTOR(kVideoCodecs1),
@@ -742,12 +748,14 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateOfferWithCustomCodecs) {
 
   webrtc::SdpAudioFormat audio_format("custom-audio", 8000, 2);
   Codec custom_audio_codec = CreateAudioCodec(audio_format);
+  custom_audio_codec.id = 123;  // picked at random, but valid
   auto audio_options = MediaDescriptionOptions(
       MEDIA_TYPE_AUDIO, "0", RtpTransceiverDirection::kSendRecv, kActive);
   audio_options.codecs_to_include.push_back(custom_audio_codec);
   opts.media_description_options.push_back(audio_options);
 
   Codec custom_video_codec = CreateVideoCodec("custom-video");
+  custom_video_codec.id = 124;  // picked at random, but valid
   auto video_options = MediaDescriptionOptions(
       MEDIA_TYPE_VIDEO, "1", RtpTransceiverDirection::kSendRecv, kActive);
   video_options.codecs_to_include.push_back(custom_video_codec);
@@ -769,6 +777,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateOfferWithCustomCodecs) {
   // Fields in codec are set during the gen process, so simple compare
   // does not work.
   EXPECT_EQ(acd->codecs()[0].name, custom_audio_codec.name);
+  RTC_LOG(LS_ERROR) << "DEBUG: audio PT assigned is " << acd->codecs()[0].id;
 
   EXPECT_EQ(MEDIA_TYPE_VIDEO, vcd->type());
   ASSERT_EQ(vcd->codecs().size(), 1U);
@@ -786,12 +795,14 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateAnswerWithCustomCodecs) {
   // on the caller, not on this function.
   webrtc::SdpAudioFormat audio_format("custom-audio", 8000, 2);
   Codec custom_audio_codec = CreateAudioCodec(audio_format);
+  custom_audio_codec.id = 123;  // picked at random, but valid
   auto audio_options = MediaDescriptionOptions(
       MEDIA_TYPE_AUDIO, "audio", RtpTransceiverDirection::kSendRecv, kActive);
   audio_options.codecs_to_include.push_back(custom_audio_codec);
   answer_opts.media_description_options.push_back(audio_options);
 
   Codec custom_video_codec = CreateVideoCodec("custom-video");
+  custom_video_codec.id = 124;
   auto video_options = MediaDescriptionOptions(
       MEDIA_TYPE_VIDEO, "video", RtpTransceiverDirection::kSendRecv, kActive);
   video_options.codecs_to_include.push_back(custom_video_codec);
@@ -4395,8 +4406,8 @@ class MediaProtocolTest : public testing::TestWithParam<const char*> {
   MediaProtocolTest()
       : tdf1_(field_trials_),
         tdf2_(field_trials_),
-        f1_(nullptr, false, &ssrc_generator1, &tdf1_),
-        f2_(nullptr, false, &ssrc_generator2, &tdf2_) {
+        f1_(nullptr, false, &ssrc_generator1, &tdf1_, nullptr),
+        f2_(nullptr, false, &ssrc_generator2, &tdf2_, nullptr) {
     f1_.set_audio_codecs(MAKE_VECTOR(kAudioCodecs1),
                          MAKE_VECTOR(kAudioCodecs1));
     f1_.set_video_codecs(MAKE_VECTOR(kVideoCodecs1),
@@ -4459,7 +4470,8 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestSetAudioCodecs) {
       std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id"))));
 
   UniqueRandomIdGenerator ssrc_generator;
-  MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf);
+  MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf,
+                                    nullptr);
   std::vector<Codec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
   std::vector<Codec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
 
@@ -4530,7 +4542,8 @@ void TestAudioCodecsOffer(RtpTransceiverDirection direction) {
       std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id"))));
 
   UniqueRandomIdGenerator ssrc_generator;
-  MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf);
+  MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf,
+                                    nullptr);
   const std::vector<Codec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
   const std::vector<Codec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
   const std::vector<Codec> sendrecv_codecs = MAKE_VECTOR(kAudioCodecsAnswer);
@@ -4634,9 +4647,9 @@ void TestAudioCodecsAnswer(RtpTransceiverDirection offer_direction,
           new rtc::FakeSSLIdentity("answer_id"))));
   UniqueRandomIdGenerator ssrc_generator1, ssrc_generator2;
   MediaSessionDescriptionFactory offer_factory(nullptr, false, &ssrc_generator1,
-                                               &offer_tdf);
-  MediaSessionDescriptionFactory answer_factory(nullptr, false,
-                                                &ssrc_generator2, &answer_tdf);
+                                               &offer_tdf, nullptr);
+  MediaSessionDescriptionFactory answer_factory(
+      nullptr, false, &ssrc_generator2, &answer_tdf, nullptr);
 
   offer_factory.set_audio_codecs(
       VectorFromIndices(kOfferAnswerCodecs, kOfferSendCodecs),
