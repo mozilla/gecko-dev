@@ -44,6 +44,7 @@
 #include "rtc_base/rate_statistics.h"
 #include "rtc_base/thread_annotations.h"
 #include "video/adaptation/video_stream_encoder_resource_manager.h"
+#include "video/corruption_detection/frame_instrumentation_generator.h"
 #include "video/encoder_bitrate_adjuster.h"
 #include "video/frame_cadence_adapter.h"
 #include "video/frame_encode_metadata_writer.h"
@@ -447,6 +448,10 @@ class VideoStreamEncoder : public VideoStreamEncoderInterface,
   ScopedTaskSafety task_safety_;
 
   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> encoder_queue_;
+
+  //  Required for automatic corruption detection.
+  std::unique_ptr<FrameInstrumentationGenerator>
+      frame_instrumentation_generator_;
 };
 
 }  // namespace webrtc

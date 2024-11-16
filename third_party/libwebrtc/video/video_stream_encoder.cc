@@ -20,6 +20,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/cleanup/cleanup.h"
+#include "absl/types/variant.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
@@ -30,13 +31,16 @@
 #include "api/video/video_bitrate_allocator_factory.h"
 #include "api/video/video_codec_constants.h"
 #include "api/video/video_layers_allocation.h"
+#include "api/video/video_stream_encoder_settings.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder.h"
 #include "call/adaptation/resource_adaptation_processor.h"
 #include "call/adaptation/video_source_restrictions.h"
 #include "call/adaptation/video_stream_adapter.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "media/base/media_channel.h"
 #include "modules/video_coding/include/video_codec_initializer.h"
+#include "modules/video_coding/include/video_codec_interface.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
 #include "modules/video_coding/svc/svc_rate_allocator.h"
 #include "modules/video_coding/utility/vp8_constants.h"
@@ -54,6 +58,8 @@
 #include "video/adaptation/video_stream_encoder_resource_manager.h"
 #include "video/alignment_adjuster.h"
 #include "video/config/encoder_stream_factory.h"
+#include "video/config/video_encoder_config.h"
+#include "video/corruption_detection/frame_instrumentation_generator.h"
 #include "video/frame_cadence_adapter.h"
 #include "video/frame_dumping_encoder.h"
 
@@ -757,6 +763,7 @@ void VideoStreamEncoder::Stop() {
     ReleaseEncoder();
     encoder_ = nullptr;
     frame_cadence_adapter_ = nullptr;
+    frame_instrumentation_generator_ = nullptr;
   });
   shutdown_event.Wait(rtc::Event::kForever);
 }
@@ -933,6 +940,12 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
     encoder_config_ = std::move(config);
     max_data_payload_length_ = max_data_payload_length;
     pending_encoder_reconfiguration_ = true;
+
+    if (settings_.enable_frame_instrumentation_generator) {
+      frame_instrumentation_generator_ =
+          std::make_unique<FrameInstrumentationGenerator>(
+              encoder_config_.codec_type);
+    }
 
     // Reconfigure the encoder now if the frame resolution is known.
     // Otherwise, the reconfiguration is deferred until the next frame to
@@ -1532,6 +1545,9 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
 
   encoder_stats_observer_->OnIncomingFrame(incoming_frame.width(),
                                            incoming_frame.height());
+  if (frame_instrumentation_generator_) {
+    frame_instrumentation_generator_->OnCapturedFrame(incoming_frame);
+  }
   ++captured_frame_count_;
   bool cwnd_frame_drop =
       cwnd_frame_drop_interval_ &&
@@ -2164,6 +2180,22 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
   // running in parallel on different threads.
   encoder_stats_observer_->OnSendEncodedImage(image_copy, codec_specific_info);
 
+  std::unique_ptr<CodecSpecificInfo> codec_specific_info_copy;
+  if (codec_specific_info && frame_instrumentation_generator_) {
+    std::optional<
+        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        frame_instrumentation_data =
+            frame_instrumentation_generator_->OnEncodedImage(image_copy);
+    RTC_CHECK(!codec_specific_info->frame_instrumentation_data.has_value())
+        << "CodecSpecificInfo must not have frame_instrumentation_data set.";
+    if (frame_instrumentation_data.has_value()) {
+      codec_specific_info_copy =
+          std::make_unique<CodecSpecificInfo>(*codec_specific_info);
+      codec_specific_info_copy->frame_instrumentation_data =
+          frame_instrumentation_data;
+      codec_specific_info = codec_specific_info_copy.get();
+    }
+  }
   EncodedImageCallback::Result result =
       sink_->OnEncodedImage(image_copy, codec_specific_info);
 
