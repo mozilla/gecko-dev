@@ -891,18 +891,12 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
       }
     }
   }
-  const bool signal_requested_resolution =
-      !settings_.use_standard_requested_resolution;
-  if ((signal_requested_resolution &&
-       requested_resolution !=
-           video_source_sink_controller_.requested_resolution()) ||
+  if (requested_resolution !=
+          video_source_sink_controller_.requested_resolution() ||
       active != video_source_sink_controller_.active() ||
       max_framerate !=
           video_source_sink_controller_.frame_rate_upper_limit().value_or(-1)) {
-    if (signal_requested_resolution) {
-      video_source_sink_controller_.SetRequestedResolution(
-          requested_resolution);
-    }
+    video_source_sink_controller_.SetRequestedResolution(requested_resolution);
     if (max_framerate >= 0) {
       video_source_sink_controller_.SetFrameRateUpperLimit(max_framerate);
     } else {

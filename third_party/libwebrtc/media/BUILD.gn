@@ -97,6 +97,7 @@ rtc_library("rtc_media_base") {
     "../api/transport/rtp:rtp_source",
     "../api/units:time_delta",
     "../api/video:recordable_encoded_frame",
+    "../api/video:resolution",
     "../api/video:video_bitrate_allocation",
     "../api/video:video_bitrate_allocator_factory",
     "../api/video:video_frame",
@@ -173,6 +174,7 @@ rtc_library("video_adapter") {
   ]
   deps = [
     ":video_common",
+    "../api/video:resolution",
     "../api/video:video_frame",
     "../common_video",
     "../rtc_base:checks",

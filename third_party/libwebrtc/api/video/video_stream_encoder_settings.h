@@ -57,25 +57,6 @@ struct VideoStreamEncoderSettings {
   // Enables the frame instrumentation generator that is required for automatic
   // corruption detection.
   bool enable_frame_instrumentation_generator = false;
-
-  // According to spec, `requested_resolution` (called scaleResolutionDownTo in
-  // the web API) MUST NOT modify the aspect ratio of the frame, e.g. a 1280x720
-  // frame being restricted to maxWidth by maxHeight 720x720 should result in
-  // 720x405. In order for this to work, the video source must not adapt the
-  // input frame to the value of `requested_resolution`, as that would result in
-  // stretched 720x720.
-  //
-  // In order not to break backwards compatibility with C++ usage of this API,
-  // when `use_standard_requested_resolution` is false, the
-  // `requested_resolution` is signaled back to the video source. This works as
-  // long as the aspect ratio is the same, but breaks the web API use case.
-  //
-  // Spec:
-  // https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-scaleresolutiondownto
-  //
-  // TODO(https://crbug.com/webrtc/366284861): Change the default to true,
-  // delete this flag and any code handling the legacy behavior.
-  bool use_standard_requested_resolution = false;
 };
 
 }  // namespace webrtc
