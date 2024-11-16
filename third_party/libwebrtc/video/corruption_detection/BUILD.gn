@@ -24,6 +24,7 @@ rtc_library("frame_instrumentation_generator") {
     "../../common_video:frame_instrumentation_data",
     "../../modules:module_api_public",
     "../../modules/video_coding:video_coding_utility",
+    "../../rtc_base:checks",
     "../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/types:variant",

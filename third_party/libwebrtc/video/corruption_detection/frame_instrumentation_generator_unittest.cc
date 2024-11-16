@@ -22,10 +22,12 @@
 #include "api/video/video_frame.h"
 #include "api/video/video_frame_type.h"
 #include "common_video/frame_instrumentation_data.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {
 namespace {
+using ::testing::ElementsAre;
 
 constexpr int kDefaultScaledWidth = 4;
 constexpr int kDefaultScaledHeight = 4;
@@ -39,6 +41,22 @@ scoped_refptr<I420Buffer> MakeDefaultI420FrameBuffer() {
   std::vector<uint8_t> kDefaultYContent(16, kDefaultPixelValue);
   std::vector<uint8_t> kDefaultUContent(4, kDefaultPixelValue);
   std::vector<uint8_t> kDefaultVContent(4, kDefaultPixelValue);
+
+  return I420Buffer::Copy(kDefaultLumaWidth, kDefaultLumaHeight,
+                          kDefaultYContent.data(), kDefaultLumaWidth,
+                          kDefaultUContent.data(), kDefaultChromaWidth,
+                          kDefaultVContent.data(), kDefaultChromaWidth);
+}
+
+scoped_refptr<I420Buffer> MakeI420FrameBufferWithDifferentPixelValues() {
+  // Create an I420 frame of size 4x4.
+  const int kDefaultLumaWidth = 4;
+  const int kDefaultLumaHeight = 4;
+  const int kDefaultChromaWidth = 2;
+  std::vector<uint8_t> kDefaultYContent = {1, 2,  3,  4,  5,  6,  7,  8,
+                                           9, 10, 11, 12, 13, 14, 15, 16};
+  std::vector<uint8_t> kDefaultUContent = {17, 18, 19, 20};
+  std::vector<uint8_t> kDefaultVContent = {21, 22, 23, 24};
 
   return I420Buffer::Copy(kDefaultLumaWidth, kDefaultLumaHeight,
                           kDefaultYContent.data(), kDefaultLumaWidth,
@@ -305,8 +323,7 @@ TEST(FrameInstrumentationGeneratorTest,
     encoded_image2._encodedWidth = kDefaultScaledWidth;
     encoded_image2._encodedHeight = kDefaultScaledHeight;
 
-    generator.OnCapturedFrame(frame1);
-    generator.OnCapturedFrame(frame2);
+    generator.OnCapturedFrame(frame);
 
     std::optional<
         absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
@@ -326,6 +343,70 @@ TEST(FrameInstrumentationGeneratorTest,
         absl::get<FrameInstrumentationData>(*data1).communicate_upper_bits);
     EXPECT_TRUE(
         absl::get<FrameInstrumentationData>(*data2).communicate_upper_bits);
+  }
+}
+
+TEST(FrameInstrumentationGeneratorTest,
+     SvcLayersSequenceIndicesIncreaseIndependentOnEachother) {
+  FrameInstrumentationGenerator generator(VideoCodecType::kVideoCodecVP9);
+  VideoFrame frame1 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(1)
+          .build();
+  VideoFrame frame2 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(2)
+          .build();
+  for (const VideoFrame& frame : {frame1, frame2}) {
+    EncodedImage encoded_image1;
+    encoded_image1.SetRtpTimestamp(frame.rtp_timestamp());
+    encoded_image1.SetFrameType(VideoFrameType::kVideoFrameKey);
+    encoded_image1.SetSpatialIndex(0);
+    encoded_image1.qp_ = 10;
+    encoded_image1._encodedWidth = kDefaultScaledWidth;
+    encoded_image1._encodedHeight = kDefaultScaledHeight;
+
+    EncodedImage encoded_image2;
+    encoded_image2.SetRtpTimestamp(frame.rtp_timestamp());
+    encoded_image2.SetFrameType(VideoFrameType::kVideoFrameDelta);
+    encoded_image2.SetSpatialIndex(1);
+    encoded_image2.qp_ = 10;
+    encoded_image2._encodedWidth = kDefaultScaledWidth;
+    encoded_image2._encodedHeight = kDefaultScaledHeight;
+
+    generator.OnCapturedFrame(frame);
+
+    std::optional<
+        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        data1 = generator.OnEncodedImage(encoded_image1);
+
+    std::optional<
+        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+        data2 = generator.OnEncodedImage(encoded_image2);
+
+    ASSERT_TRUE(data1.has_value());
+    ASSERT_TRUE(data2.has_value());
+    ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data1));
+
+    ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data2));
+
+    FrameInstrumentationData frame_instrumentation_data1 =
+        absl::get<FrameInstrumentationData>(*data1);
+    FrameInstrumentationData frame_instrumentation_data2 =
+        absl::get<FrameInstrumentationData>(*data2);
+
+    EXPECT_TRUE(frame_instrumentation_data1.communicate_upper_bits);
+    EXPECT_TRUE(frame_instrumentation_data2.communicate_upper_bits);
+
+    EXPECT_EQ(frame_instrumentation_data1.sequence_index,
+              frame_instrumentation_data2.sequence_index);
+
+    // In the test the frames have equal frame buffers so the sample values
+    // should be equal.
+    EXPECT_THAT(frame_instrumentation_data1.sample_values,
+                frame_instrumentation_data2.sample_values);
   }
 }
 
@@ -394,6 +475,215 @@ TEST(FrameInstrumentationGeneratorTest,
     }
   }
   EXPECT_TRUE(has_found_delta_frame);
+}
+
+TEST(FrameInstrumentationGeneratorTest,
+     SequenceIndexIncreasesCorrectlyAtNewKeyFrame) {
+  FrameInstrumentationGenerator generator(VideoCodecType::kVideoCodecVP8);
+  VideoFrame frame1 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(1)
+          .build();
+  VideoFrame frame2 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(2)
+          .build();
+  EncodedImage encoded_image1;
+  encoded_image1.SetRtpTimestamp(1);
+  encoded_image1.SetFrameType(VideoFrameType::kVideoFrameKey);
+  encoded_image1.qp_ = 10;
+  encoded_image1._encodedWidth = kDefaultScaledWidth;
+  encoded_image1._encodedHeight = kDefaultScaledHeight;
+
+  // Delta frame that is an upper layer of an SVC key frame.
+  EncodedImage encoded_image2;
+  encoded_image2.SetRtpTimestamp(2);
+  encoded_image2.SetFrameType(VideoFrameType::kVideoFrameKey);
+  encoded_image2.qp_ = 10;
+  encoded_image2._encodedWidth = kDefaultScaledWidth;
+  encoded_image2._encodedHeight = kDefaultScaledHeight;
+
+  generator.OnCapturedFrame(frame1);
+  generator.OnCapturedFrame(frame2);
+
+  ASSERT_EQ(generator.GetLayerId(encoded_image1),
+            generator.GetLayerId(encoded_image2));
+  generator.SetHaltonSequenceIndex(0b0010'1010,
+                                   generator.GetLayerId(encoded_image1));
+
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data1 = generator.OnEncodedImage(encoded_image1);
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data2 = generator.OnEncodedImage(encoded_image2);
+
+  ASSERT_TRUE(data1.has_value());
+  ASSERT_TRUE(data2.has_value());
+  ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data1));
+  ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data2));
+
+  FrameInstrumentationData frame_instrumentation_data1 =
+      absl::get<FrameInstrumentationData>(*data1);
+  FrameInstrumentationData frame_instrumentation_data2 =
+      absl::get<FrameInstrumentationData>(*data2);
+
+  EXPECT_EQ(frame_instrumentation_data1.sequence_index, 0b0000'1000'0000);
+  EXPECT_EQ(frame_instrumentation_data2.sequence_index, 0b0001'0000'0000);
+
+  EXPECT_THAT(frame_instrumentation_data1.sample_values,
+              ElementsAre(17, 10, 8, 24, 2, 12, 20, 13, 3, 21, 5, 15, 17));
+  EXPECT_THAT(frame_instrumentation_data2.sample_values,
+              ElementsAre(3, 21, 6, 16, 18, 9, 7, 23, 2, 12, 20, 14, 4));
+}
+
+TEST(FrameInstrumentationGeneratorTest,
+     SequenceIndexThatWouldOverflowTo15BitsIncreasesCorrectlyAtNewKeyFrame) {
+  FrameInstrumentationGenerator generator(VideoCodecType::kVideoCodecVP8);
+  VideoFrame frame1 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(1)
+          .build();
+  VideoFrame frame2 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(2)
+          .build();
+  EncodedImage encoded_image1;
+  encoded_image1.SetRtpTimestamp(1);
+  encoded_image1.SetFrameType(VideoFrameType::kVideoFrameKey);
+  encoded_image1.qp_ = 10;
+  encoded_image1._encodedWidth = kDefaultScaledWidth;
+  encoded_image1._encodedHeight = kDefaultScaledHeight;
+  encoded_image1.SetSimulcastIndex(0);
+
+  EncodedImage encoded_image2;
+  encoded_image2.SetRtpTimestamp(2);
+  encoded_image2.SetFrameType(VideoFrameType::kVideoFrameKey);
+  encoded_image2.qp_ = 10;
+  encoded_image2._encodedWidth = kDefaultScaledWidth;
+  encoded_image2._encodedHeight = kDefaultScaledHeight;
+  encoded_image2.SetSimulcastIndex(0);
+
+  generator.OnCapturedFrame(frame1);
+  generator.OnCapturedFrame(frame2);
+
+  ASSERT_EQ(generator.GetLayerId(encoded_image1),
+            generator.GetLayerId(encoded_image2));
+  generator.SetHaltonSequenceIndex(0b11'1111'1111'1111,
+                                   generator.GetLayerId(encoded_image1));
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data1 = generator.OnEncodedImage(encoded_image1);
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data2 = generator.OnEncodedImage(encoded_image2);
+
+  ASSERT_TRUE(data1.has_value());
+  ASSERT_TRUE(data2.has_value());
+  ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data1));
+  ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data2));
+
+  FrameInstrumentationData frame_instrumentation_data1 =
+      absl::get<FrameInstrumentationData>(*data1);
+  FrameInstrumentationData frame_instrumentation_data2 =
+      absl::get<FrameInstrumentationData>(*data2);
+
+  EXPECT_EQ(frame_instrumentation_data1.sequence_index, 0);
+  EXPECT_EQ(frame_instrumentation_data2.sequence_index, 0b1000'0000);
+
+  EXPECT_THAT(frame_instrumentation_data1.sample_values,
+              ElementsAre(1, 11, 19, 13, 3, 21, 6, 16, 18, 9, 7, 23, 1));
+  EXPECT_THAT(frame_instrumentation_data2.sample_values,
+              ElementsAre(17, 10, 8, 24, 2, 12, 20, 13, 3, 21, 5, 15, 17));
+}
+
+TEST(FrameInstrumentationGeneratorTest,
+     SequenceIndexIncreasesCorrectlyAtNewKeyFrameAlreadyZeroes) {
+  FrameInstrumentationGenerator generator(VideoCodecType::kVideoCodecVP8);
+  VideoFrame frame1 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(1)
+          .build();
+  VideoFrame frame2 =
+      VideoFrame::Builder()
+          .set_video_frame_buffer(MakeI420FrameBufferWithDifferentPixelValues())
+          .set_rtp_timestamp(2)
+          .build();
+  EncodedImage encoded_image1;
+  encoded_image1.SetRtpTimestamp(1);
+  encoded_image1.SetFrameType(VideoFrameType::kVideoFrameKey);
+  encoded_image1.qp_ = 10;
+  encoded_image1._encodedWidth = kDefaultScaledWidth;
+  encoded_image1._encodedHeight = kDefaultScaledHeight;
+
+  // Delta frame that is an upper layer of an SVC key frame.
+  EncodedImage encoded_image2;
+  encoded_image2.SetRtpTimestamp(2);
+  encoded_image2.SetFrameType(VideoFrameType::kVideoFrameKey);
+  encoded_image2.qp_ = 10;
+  encoded_image2._encodedWidth = kDefaultScaledWidth;
+  encoded_image2._encodedHeight = kDefaultScaledHeight;
+
+  generator.OnCapturedFrame(frame1);
+  generator.OnCapturedFrame(frame2);
+
+  ASSERT_EQ(generator.GetLayerId(encoded_image1),
+            generator.GetLayerId(encoded_image2));
+  generator.SetHaltonSequenceIndex(0b1000'0000,
+                                   generator.GetLayerId(encoded_image1));
+
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data1 = generator.OnEncodedImage(encoded_image1);
+  std::optional<
+      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      data2 = generator.OnEncodedImage(encoded_image2);
+
+  ASSERT_TRUE(data1.has_value());
+  ASSERT_TRUE(data2.has_value());
+  ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data1));
+  ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data2));
+
+  FrameInstrumentationData frame_instrumentation_data1 =
+      absl::get<FrameInstrumentationData>(*data1);
+  FrameInstrumentationData frame_instrumentation_data2 =
+      absl::get<FrameInstrumentationData>(*data2);
+
+  EXPECT_EQ(frame_instrumentation_data1.sequence_index, 0b0000'1000'0000);
+  EXPECT_EQ(frame_instrumentation_data2.sequence_index, 0b0001'0000'0000);
+}
+
+TEST(FrameInstrumentationGeneratorTest, GetterAndSetterOperatesAsExpected) {
+  FrameInstrumentationGenerator generator(VideoCodecType::kVideoCodecVP8);
+  // `std::nullopt` when uninitialized.
+  EXPECT_FALSE(generator.GetHaltonSequenceIndex(1).has_value());
+
+  // Zero is a valid index.
+  generator.SetHaltonSequenceIndex(0, 1);
+  std::optional<int> index = generator.GetHaltonSequenceIndex(1);
+  EXPECT_TRUE(index.has_value());
+  EXPECT_EQ(*index, 0);
+
+#if GTEST_HAS_DEATH_TEST
+  // Negative values are not allowed to be set.
+  EXPECT_DEATH(generator.SetHaltonSequenceIndex(-2, 1),
+               "Index must be non-negative");
+  index = generator.GetHaltonSequenceIndex(1);
+  EXPECT_TRUE(index.has_value());
+  EXPECT_EQ(*index, 0);
+
+  // Values requiring more than 15 bits are not allowed.
+  EXPECT_DEATH(generator.SetHaltonSequenceIndex(0x4000, 1),
+               "Index must not be larger than 0x3FFF");
+  index = generator.GetHaltonSequenceIndex(1);
+  EXPECT_TRUE(index.has_value());
+  EXPECT_EQ(*index, 0);
+#endif  // GTEST_HAS_DEATH_TEST
 }
 
 }  // namespace
