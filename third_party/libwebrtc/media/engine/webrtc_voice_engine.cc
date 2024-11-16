@@ -247,10 +247,6 @@ std::optional<int> ComputeSendBitrate(int max_send_bitrate_bps,
   }
 }
 
-bool IsEnabled(const webrtc::FieldTrialsView& config, absl::string_view trial) {
-  return absl::StartsWith(config.Lookup(trial), "Enabled");
-}
-
 struct AdaptivePtimeConfig {
   bool enabled = false;
   webrtc::DataRate min_payload_bitrate = webrtc::DataRate::KilobitsPerSec(16);
@@ -473,9 +469,9 @@ WebRtcVoiceEngine::WebRtcVoiceEngine(
       apm_(audio_processing),
       audio_frame_processor_(std::move(audio_frame_processor)),
       minimized_remsampling_on_mobile_trial_enabled_(
-          IsEnabled(trials, "WebRTC-Audio-MinimizeResamplingOnMobile")),
+          trials.IsEnabled("WebRTC-Audio-MinimizeResamplingOnMobile")),
       payload_types_in_transport_trial_enabled_(
-          IsEnabled(trials, "WebRTC-PayloadTypesInTransport")) {
+          trials.IsEnabled("WebRTC-PayloadTypesInTransport")) {
   RTC_LOG(LS_INFO) << "WebRtcVoiceEngine::WebRtcVoiceEngine";
   RTC_DCHECK(decoder_factory);
   RTC_DCHECK(encoder_factory);
