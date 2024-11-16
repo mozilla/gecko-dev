@@ -79,14 +79,28 @@ export class YelpSuggestions extends BaseFeature {
     }
   }
 
-  async makeResult(queryContext, suggestion, searchString) {
-    if (suggestion.source == "ml") {
-      suggestion = this.#convertMlSuggestion(suggestion);
-      if (!suggestion) {
-        return null;
-      }
+  async filterSuggestions(suggestions) {
+    // We leave Yelp Rust suggestions enabled even when Yelp ML suggestion are
+    // enabled because we need to fetch the Yelp icon, URL, etc. from Rust, and
+    // Rust still needs to ingest all of that. If Yelp ML is disabled, return
+    // only non-ML suggestions; if it's enabled, return only ML suggestions.
+    if (!lazy.UrlbarPrefs.get("yelpMlEnabled")) {
+      return suggestions.filter(s => s.source != "ml");
     }
 
+    // Suggestions must have their intended scores and URLs after this method
+    // returns because the Suggest provider sorts them and checks whether they
+    // can be added, so convert them now.
+    if (!this.#metadataCache) {
+      this.#metadataCache = await this.#makeMetadataCache();
+    }
+    return suggestions
+      .filter(s => s.source == "ml")
+      .map(s => this.#convertMlSuggestion(s))
+      .filter(s => !!s);
+  }
+
+  async makeResult(queryContext, suggestion, searchString) {
     // If the user clicked "Show less frequently" at least once or if the
     // subject wasn't typed in full, then apply the min length threshold and
     // return null if the entire search string is too short.
@@ -145,30 +159,6 @@ export class YelpSuggestions extends BaseFeature {
       ),
       resultProperties
     );
-  }
-
-  async filterSuggestions(suggestions) {
-    // We leave Yelp Rust suggestions enabled even when Yelp ML suggestion are
-    // enabled because we need to fetch the Yelp icon, URL, etc. from Rust, and
-    // Rust still needs to ingest all of that. If Yelp ML is disabled, return
-    // only non-ML suggestions; if it's enabled, return only ML suggestions.
-    if (!lazy.UrlbarPrefs.get("yelpMlEnabled")) {
-      return suggestions.filter(s => s.source != "ml");
-    }
-
-    let mlSuggestions = suggestions.filter(s => s.source == "ml");
-    if (mlSuggestions.length) {
-      // Suggestions must have their intended scores after this method returns
-      // because they're sorted after this, so set the score now. We defer
-      // setting other properties until `makeResult()`.
-      if (!this.#metadataCache) {
-        this.#metadataCache = await this.#makeMetadataCache();
-      }
-      for (let s of mlSuggestions) {
-        s.score = this.#metadataCache.score;
-      }
-    }
-    return mlSuggestions;
   }
 
   getResultCommands() {
@@ -321,6 +311,7 @@ export class YelpSuggestions extends BaseFeature {
       locationParam: this.#metadataCache.findLoc,
       hasLocationSign: false,
       icon_blob: this.#metadataCache.iconBlob,
+      score: this.#metadataCache.score,
       source: ml.source,
       provider: ml.provider,
     };

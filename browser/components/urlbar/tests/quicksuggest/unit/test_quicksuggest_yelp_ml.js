@@ -456,6 +456,81 @@ async function doCacheTest({ expectedScore, expectedRust }) {
   );
 }
 
+// Tests the "Not relevant" command: a dismissed suggestion shouldn't be added.
+add_task(async function notRelevant() {
+  gMakeSuggestionsStub.returns({ intent: "yelp_intent", subject: "burgers" });
+  let result = makeExpectedResult({
+    url: "https://www.yelp.com/search?find_desc=burgers&find_loc=Yokohama%2C+Kanagawa",
+    originalUrl: "https://www.yelp.com/search?find_desc=burgers",
+    displayUrl: "yelp.com/search?find_desc=burgers&find_loc=Yokohama,+Kanagawa",
+    title: "burgers in Yokohama, Kanagawa",
+  });
+
+  info("Doing initial search to verify the suggestion is matched");
+  await check_results({
+    context: createContext("burgers", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [result],
+  });
+
+  info("Triggering the 'Not relevant' command");
+  QuickSuggest.getFeature("YelpSuggestions").handleCommand(
+    {
+      controller: { removeResult() {} },
+    },
+    result,
+    "not_relevant"
+  );
+  await QuickSuggest.blockedSuggestions._test_readyPromise;
+
+  Assert.ok(
+    await QuickSuggest.blockedSuggestions.has(result.payload.originalUrl),
+    "The result's URL should be blocked"
+  );
+
+  info("Doing search for blocked suggestion");
+  await check_results({
+    context: createContext("burgers", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [],
+  });
+
+  info("Doing search for a suggestion that wasn't blocked");
+  gMakeSuggestionsStub.returns({ intent: "yelp_intent", subject: "ramen" });
+  await check_results({
+    context: createContext("ramen", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [
+      makeExpectedResult({
+        url: "https://www.yelp.com/search?find_desc=ramen&find_loc=Yokohama%2C+Kanagawa",
+        originalUrl: "https://www.yelp.com/search?find_desc=ramen",
+        displayUrl:
+          "yelp.com/search?find_desc=ramen&find_loc=Yokohama,+Kanagawa",
+        title: "ramen in Yokohama, Kanagawa",
+      }),
+    ],
+  });
+
+  info("Clearing blocked suggestions");
+  await QuickSuggest.blockedSuggestions.clear();
+
+  info("Doing search for unblocked suggestion");
+  gMakeSuggestionsStub.returns({ intent: "yelp_intent", subject: "burgers" });
+  await check_results({
+    context: createContext("burgers", {
+      providers: [UrlbarProviderQuickSuggest.name],
+      isPrivate: false,
+    }),
+    matches: [result],
+  });
+});
+
 function makeExpectedResult({
   url,
   title,
