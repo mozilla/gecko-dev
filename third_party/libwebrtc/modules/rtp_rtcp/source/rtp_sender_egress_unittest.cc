@@ -124,7 +124,7 @@ class RtpSenderEgressTest : public ::testing::Test {
       : time_controller_(kStartTime),
         env_(CreateEnvironment(time_controller_.GetClock())),
         transport_(&header_extensions_),
-        packet_history_(&env_.clock(),
+        packet_history_(env_,
                         RtpPacketHistory::PaddingMode::kRecentLargePacket),
         sequence_number_(kStartSequenceNumber) {}
 
