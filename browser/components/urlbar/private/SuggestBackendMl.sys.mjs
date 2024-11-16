@@ -8,6 +8,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   MLSuggest: "resource:///modules/urlbar/private/MLSuggest.sys.mjs",
+  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
 
@@ -52,14 +53,32 @@ export class SuggestBackendMl extends BaseFeature {
   async query(searchString) {
     this.logger.debug("Handling query: " + JSON.stringify(searchString));
 
+    // Don't waste time calling into `MLSuggest` if no ML intents are enabled.
+    if (
+      lazy.QuickSuggest.mlFeatures
+        .values()
+        .every(f => !f.isEnabled || !f.isMlIntentEnabled)
+    ) {
+      this.logger.debug("No ML intents enabled, ignoring query");
+      return [];
+    }
+
     let suggestion = await lazy.MLSuggest.makeSuggestions(searchString);
     this.logger.debug("Got suggestion: " + JSON.stringify(suggestion, null, 2));
 
     if (suggestion) {
+      // We can't force `MLSuggest` to return only enabled intents, so it can
+      // return a disabled intent. Discard the suggestion in that case.
+      let feature = lazy.QuickSuggest.getFeatureByMlIntent(suggestion.intent);
+      if (!feature?.isEnabled || !feature?.isMlIntentEnabled) {
+        this.logger.debug("No ML feature for suggestion, ignoring query");
+        return [];
+      }
       suggestion.source = "ml";
       suggestion.provider = suggestion.intent;
       return [suggestion];
     }
+
     return [];
   }
 }

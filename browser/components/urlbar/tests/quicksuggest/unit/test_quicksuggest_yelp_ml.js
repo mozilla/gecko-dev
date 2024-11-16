@@ -55,6 +55,69 @@ add_setup(async function init() {
   await MerinoTestUtils.initGeolocation();
 });
 
+// Yelp ML should be disabled when the relevant prefs are disabled.
+add_task(async function yelpDisabled() {
+  gMakeSuggestionsStub.returns({ intent: "yelp_intent", subject: "burgers" });
+  let expectedResult = makeExpectedResult({
+    url: "https://www.yelp.com/search?find_desc=burgers&find_loc=Yokohama%2C+Kanagawa",
+    originalUrl: "https://www.yelp.com/search?find_desc=burgers",
+    displayUrl: "yelp.com/search?find_desc=burgers&find_loc=Yokohama,+Kanagawa",
+    title: "burgers in Yokohama, Kanagawa",
+  });
+
+  let prefs = [
+    // These disable the Yelp feature itself, including Rust suggestions.
+    "suggest.quicksuggest.sponsored",
+    "suggest.yelp",
+    "yelp.featureGate",
+
+    // These disable Yelp ML suggestions but leave the Yelp feature enabled.
+    // This test doesn't add any Yelp data to remote settings, but if it did,
+    // Yelp Rust suggestions would still be triggered.
+    "yelp.mlEnabled",
+    "browser.ml.enable",
+    "quicksuggest.mlEnabled",
+  ];
+  for (let pref of prefs) {
+    info("Starting subtest for pref: " + pref);
+
+    // Before disabling the pref, first make sure the suggestion is added.
+    info("Doing search 1");
+    await check_results({
+      context: createContext("burgers", {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [expectedResult],
+    });
+
+    // Now disable the pref.
+    info("Disabling pref and doing search 2");
+    UrlbarPrefs.set(pref, false);
+    await check_results({
+      context: createContext("burgers", {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [],
+    });
+
+    // Revert.
+    UrlbarPrefs.set(pref, true);
+    await QuickSuggestTestUtils.forceSync();
+
+    // Make sure Yelp is added again.
+    info("Doing search 3 after re-enabling the pref");
+    await check_results({
+      context: createContext("burgers", {
+        providers: [UrlbarProviderQuickSuggest.name],
+        isPrivate: false,
+      }),
+      matches: [expectedResult],
+    });
+  }
+});
+
 // Runs through a variety of mock intents.
 add_task(async function intents() {
   let tests = [

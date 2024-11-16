@@ -45,6 +45,13 @@ export class YelpSuggestions extends BaseFeature {
     return "yelp_intent";
   }
 
+  get isMlIntentEnabled() {
+    // Note that even when ML is enabled, we still leave Yelp Rust suggestions
+    // enabled because we need to fetch the Yelp icon, URL, etc. from Rust, and
+    // Rust still needs to ingest all of that.
+    return lazy.UrlbarPrefs.get("yelpMlEnabled");
+  }
+
   get showLessFrequentlyCount() {
     const count = lazy.UrlbarPrefs.get("yelp.showLessFrequentlyCount") || 0;
     return Math.max(count, 0);
@@ -141,11 +148,10 @@ export class YelpSuggestions extends BaseFeature {
   }
 
   async filterSuggestions(suggestions) {
-    // Return only Rust suggestions if ML is enabled and vice versa. That will
-    // make it easier to understand which suggestions are being served as we're
-    // developing this new ML feature. As long as the ML backend is enabled, we
-    // can't control which intents it matches, so it might match Yelp even when
-    // Yelp ML is disabled.
+    // We leave Yelp Rust suggestions enabled even when Yelp ML suggestion are
+    // enabled because we need to fetch the Yelp icon, URL, etc. from Rust, and
+    // Rust still needs to ingest all of that. If Yelp ML is disabled, return
+    // only non-ML suggestions; if it's enabled, return only ML suggestions.
     if (!lazy.UrlbarPrefs.get("yelpMlEnabled")) {
       return suggestions.filter(s => s.source != "ml");
     }

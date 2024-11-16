@@ -159,7 +159,16 @@ class _QuickSuggest {
    *   each feature's `rustSuggestionTypes`.
    */
   get rustFeatures() {
-    return this.#rustFeatures;
+    return new Set(this.#featuresByRustSuggestionType.values());
+  }
+
+  /**
+   * @returns {Set}
+   *   The set of features that manage ML suggestion types, as determined by
+   *   each feature's `mlIntent`.
+   */
+  get mlFeatures() {
+    return new Set(this.#featuresByMlIntent.values());
   }
 
   get logger() {
@@ -189,9 +198,6 @@ class _QuickSuggest {
       }
       for (let type of feature.rustSuggestionTypes) {
         this.#featuresByRustSuggestionType.set(type, feature);
-      }
-      if (feature.rustSuggestionTypes.length) {
-        this.#rustFeatures.add(feature);
       }
       if (feature.mlIntent) {
         this.#featuresByMlIntent.set(feature.mlIntent, feature);
@@ -577,9 +583,6 @@ class _QuickSuggest {
 
   // Maps from ML intent strings to Suggest feature instances.
   #featuresByMlIntent = new Map();
-
-  // Set of feature instances that manage Rust suggestion types.
-  #rustFeatures = new Set();
 
   // Maps from preference names to the `Set` of feature instances they enable.
   #featuresByEnablingPrefs = new Map();
