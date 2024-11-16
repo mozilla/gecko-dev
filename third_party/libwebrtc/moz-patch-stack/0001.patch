@@ -1,95 +1,145 @@
-From: Michael Froman <mjfroman@mac.com>
-Date: Fri, 15 Nov 2024 19:16:56 -0600
-Subject: (tmp-cherry-pick) Revert "Disable TLS session ticket for DTLS"
- (4595711bf5)
+From: =?UTF-8?q?Henrik=20Bostr=C3=B6m?= <hbos@webrtc.org>
+Date: Tue, 1 Oct 2024 11:20:32 +0200
+Subject: (cherry-pick-branch-heads/6723) [Merge-130] Fix LibvpxVp9Encoder
+ simulcast bug.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-This reverts commit e77d75193f4f61cf90991569c5470ba5d1b78f2b.
+As of [1], a single VP9 encoder instance can produce simulcast 4:2:1.
+When it does, the EncodedImage has its simulcast index set (0, 1, 2).
 
-Reason for revert: Speculative rollback (breaks downstream test).
+The bug is that if you then go back to a single encoder instance,
+either because you're doing singlecast or because you're doing
+simulcast with scaling factors that are not power of two (not 4:2:1),
+then the simulcast index which was previously set to 2 is not reset due
+to the old code path never calling SetSimulcastIndex.
 
-Original change's description:
-> Disable TLS session ticket for DTLS
->
-> since it makes no sense for the WebRTC usage of DTLS and increases
-> the size of the last handshake flight considerably
-> Guarded by killswitch
->   WebRTC-DisableTlsSessionTicketKillswitch
->
-> BUG=webrtc:367181089
->
-> Co-authored-by: Jody Ho <jodyho@meta.com>
-> Change-Id: I4bb17bba8a17c65c8e0fefe2d8962974703feee7
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/362526
-> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-> Reviewed-by: David Benjamin <davidben@webrtc.org>
-> Commit-Queue: Philipp Hancke <phancke@meta.com>
-> Cr-Commit-Position: refs/heads/main@{#43046}
+Example repro:
+1. Send VP9 simulcast {180p, 360p, 720p}, i.e. 4:2.1.
+2. Reconfigure to {180p, 360p, 540p}, i.e. no longer 4:2:1.
 
-Bug: webrtc:367181089
-Change-Id: I02b59232fae9f729341811042a02f7cf346d4bbe
-No-Presubmit: true
-No-Tree-Checks: true
-No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/362982
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43052}
+What should happen: all three layers are sent.
+What actually happened: 180p is not sent and the 540p layer flips flops
+between 180p and 540p because the EncodedImage says simulcast index is
+2 for both encodings[0] and encodings[2].
+
+The fix is a one-line change: `SetSimulcastIndex(std::nullopt)` in the
+case that we don't have a `simulcast_to_svc_converter_` that sets it
+(0, 1, 2) for us.
+
+[1] https://webrtc-review.googlesource.com/c/src/+/360280
+
+(cherry picked from commit a6fbb35ac1849c5cd823ec90121d92fc5b776b35)
+
+Bug: chromium:370299916
+Change-Id: I94ce1a0bde43ef56cba930cb69b744877bbd4bf9
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/363941
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43109}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364302
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6723@{#2}
+Cr-Branched-From: 13e377b804f68aa9c20ea5e449666ea5248e3286-refs/heads/main@{#43019}
 ---
- experiments/field_trials.py        | 3 ---
- rtc_base/openssl_stream_adapter.cc | 7 +------
- rtc_base/openssl_stream_adapter.h  | 3 ---
- 3 files changed, 1 insertion(+), 12 deletions(-)
+ .../codecs/vp9/libvpx_vp9_encoder.cc          |  4 +-
+ ...er_connection_encodings_integrationtest.cc | 70 +++++++++++++++++++
+ 2 files changed, 73 insertions(+), 1 deletion(-)
 
-diff --git a/experiments/field_trials.py b/experiments/field_trials.py
-index cecca11c5b..c4455015a0 100755
---- a/experiments/field_trials.py
-+++ b/experiments/field_trials.py
-@@ -113,9 +113,6 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
-     FieldTrial('WebRTC-PermuteTlsClientHello',
-                42225803,
-                date(2025, 1, 1)),
--    FieldTrial('WebRTC-DisableTlsSessionTicketKillswitch',
--               367181089,
--               date(2025, 7, 1)),
-     FieldTrial('WebRTC-QCM-Dynamic-AV1',
-                349860657,
-                date(2025, 7, 1)),
-diff --git a/rtc_base/openssl_stream_adapter.cc b/rtc_base/openssl_stream_adapter.cc
-index d9f873b586..b7b1d1cfd1 100644
---- a/rtc_base/openssl_stream_adapter.cc
-+++ b/rtc_base/openssl_stream_adapter.cc
-@@ -306,9 +306,7 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
-           !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
- #endif
-       ssl_mode_(SSL_MODE_DTLS),
--      ssl_max_version_(SSL_PROTOCOL_DTLS_12),
--      disable_handshake_ticket_(!webrtc::field_trial::IsDisabled(
--          "WebRTC-DisableTlsSessionTicketKillswitch")) {
-+      ssl_max_version_(SSL_PROTOCOL_TLS_12) {
-   stream_->SetEventCallback(
-       [this](int events, int err) { OnEvent(events, err); });
- }
-@@ -1082,9 +1080,6 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
-   SSL_CTX_set_permute_extensions(ctx, permute_extension_);
- #endif
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index c2a17c59d4..2da0918062 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -1761,7 +1761,9 @@ void LibvpxVp9Encoder::DeliverBufferedFrame(bool end_of_picture) {
  
--  if (disable_handshake_ticket_) {
--    SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
--  }
-   return ctx;
+     codec_specific_.end_of_picture = end_of_picture;
+ 
+-    if (simulcast_to_svc_converter_) {
++    if (!simulcast_to_svc_converter_) {
++      encoded_image_.SetSimulcastIndex(std::nullopt);
++    } else {
+       simulcast_to_svc_converter_->ConvertFrame(encoded_image_,
+                                                 codec_specific_);
+     }
+diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
+index ed087894e7..d3bc97377a 100644
+--- a/pc/peer_connection_encodings_integrationtest.cc
++++ b/pc/peer_connection_encodings_integrationtest.cc
+@@ -2399,6 +2399,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+   EXPECT_THAT(*outbound_rtps[2]->scalability_mode, StrEq("L1T3"));
  }
  
-diff --git a/rtc_base/openssl_stream_adapter.h b/rtc_base/openssl_stream_adapter.h
-index e67992be45..92e8c1017e 100644
---- a/rtc_base/openssl_stream_adapter.h
-+++ b/rtc_base/openssl_stream_adapter.h
-@@ -250,9 +250,6 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter,
-   // A 50-ms initial timeout ensures rapid setup on fast connections, but may
-   // be too aggressive for low bandwidth links.
-   int dtls_handshake_timeout_ms_ = 50;
--
--  // Rollout killswitch for disabling session tickets.
--  const bool disable_handshake_ticket_;
- };
- 
- /////////////////////////////////////////////////////////////////////////////
++// Simulcast starting in 720p 4:2:1 then changing to {180p, 360p, 540p} using
++// the `scale_resolution_down_by` API.
++TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
++       SimulcastScaleDownByNoLongerPowerOfTwo) {
++  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
++  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
++    return;
++  }
++  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
++  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
++
++  std::vector<cricket::SimulcastLayer> layers =
++      CreateLayers({"q", "h", "f"}, /*active=*/true);
++  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
++      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
++                                        layers);
++  std::vector<RtpCodecCapability> codecs =
++      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
++  transceiver->SetCodecPreferences(codecs);
++  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
++
++  // Configure {180p, 360p, 720p}.
++  RtpParameters parameters = sender->GetParameters();
++  ASSERT_THAT(parameters.encodings, SizeIs(3));
++  parameters.encodings[0].scalability_mode = "L1T1";
++  parameters.encodings[0].scale_resolution_down_by = 4.0;
++  parameters.encodings[1].scalability_mode = "L1T1";
++  parameters.encodings[1].scale_resolution_down_by = 2.0;
++  parameters.encodings[2].scalability_mode = "L1T1";
++  parameters.encodings[2].scale_resolution_down_by = 1.0;
++  sender->SetParameters(parameters);
++
++  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
++  local_pc_wrapper->WaitForConnection();
++  remote_pc_wrapper->WaitForConnection();
++
++  // Wait for media to flow on all layers.
++  // Needed repro step of https://crbug.com/webrtc/369654168: When the same
++  // LibvpxVp9Encoder instance was used to first produce simulcast and later for
++  // a single encoding, the previously used simulcast index (= 2) would still be
++  // set when producing 180p since non-simulcast config does not reset this,
++  // resulting in the 180p encoding freezing and the 540p encoding having double
++  // frame rate and toggling between 180p and 540p in resolution.
++  ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, 3u),
++                   kLongTimeoutForRampingUp.ms());
++
++  // Configure {180p, 360p, 540p}.
++  parameters = sender->GetParameters();
++  parameters.encodings[0].scale_resolution_down_by = 4.0;
++  parameters.encodings[1].scale_resolution_down_by = 2.0;
++  parameters.encodings[2].scale_resolution_down_by = 1.333333;
++  sender->SetParameters(parameters);
++
++  // Wait for the new resolutions to be produced.
++  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "q") ==
++                       Resolution({.width = 320, .height = 180}),
++                   kLongTimeoutForRampingUp.ms());
++  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "h") ==
++                       Resolution({.width = 640, .height = 360}),
++                   kLongTimeoutForRampingUp.ms());
++  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "f") ==
++                       Resolution({.width = 960, .height = 540}),
++                   kLongTimeoutForRampingUp.ms());
++
++  // Ensure 180p frames continue to be encoded post reconfiguration.
++  int frames_encoded = EncodedFrames(local_pc_wrapper, "q");
++  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "q") > frames_encoded,
++                   kLongTimeoutForRampingUp.ms());
++}
++
+ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+        SimulcastEncodingStopWhenRtpEncodingChangeToInactive) {
+   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
