@@ -1,399 +1,145 @@
-From: Sergey Silkin <ssilkin@webrtc.org>
-Date: Tue, 17 Sep 2024 14:23:26 +0200
-Subject: (cherry-pick-branch-heads/6723) [M130] Increase AV1 QP threshold for
- quality convergence from 40 to 60
+From: =?UTF-8?q?Henrik=20Bostr=C3=B6m?= <hbos@webrtc.org>
+Date: Tue, 1 Oct 2024 11:20:32 +0200
+Subject: (cherry-pick-branch-heads/6723) [Merge-130] Fix LibvpxVp9Encoder
+ simulcast bug.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Merge approval: https://g-issues.chromium.org/issues/367752722#comment5
+As of [1], a single VP9 encoder instance can produce simulcast 4:2:1.
+When it does, the EncodedImage has its simulcast index set (0, 1, 2).
 
-(cherry picked from commit e81ba3089755e88292c135733ea187fdd278d858)
+The bug is that if you then go back to a single encoder instance,
+either because you're doing singlecast or because you're doing
+simulcast with scaling factors that are not power of two (not 4:2:1),
+then the simulcast index which was previously set to 2 is not reset due
+to the old code path never calling SetSimulcastIndex.
 
-Bug: chromium:328598314, chromium:367752722
-Change-Id: I132b4c30f132ace2bbef6359edd994c1ad75c9ad
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/362620
-Reviewed-by: Johannes Kron <kron@webrtc.org>
-Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43035}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/362981
-Commit-Queue: Johannes Kron <kron@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6723@{#1}
+Example repro:
+1. Send VP9 simulcast {180p, 360p, 720p}, i.e. 4:2.1.
+2. Reconfigure to {180p, 360p, 540p}, i.e. no longer 4:2:1.
+
+What should happen: all three layers are sent.
+What actually happened: 180p is not sent and the 540p layer flips flops
+between 180p and 540p because the EncodedImage says simulcast index is
+2 for both encodings[0] and encodings[2].
+
+The fix is a one-line change: `SetSimulcastIndex(std::nullopt)` in the
+case that we don't have a `simulcast_to_svc_converter_` that sets it
+(0, 1, 2) for us.
+
+[1] https://webrtc-review.googlesource.com/c/src/+/360280
+
+(cherry picked from commit a6fbb35ac1849c5cd823ec90121d92fc5b776b35)
+
+Bug: chromium:370299916
+Change-Id: I94ce1a0bde43ef56cba930cb69b744877bbd4bf9
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/363941
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43109}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364302
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6723@{#2}
 Cr-Branched-From: 13e377b804f68aa9c20ea5e449666ea5248e3286-refs/heads/main@{#43019}
 ---
- video/quality_convergence_controller.cc       | 60 +++++++++---
- ...quality_convergence_controller_unittest.cc | 96 ++++++++++++++++---
- video/quality_convergence_monitor.cc          | 25 +----
- video/quality_convergence_monitor_unittest.cc | 42 --------
- 4 files changed, 133 insertions(+), 90 deletions(-)
+ .../codecs/vp9/libvpx_vp9_encoder.cc          |  4 +-
+ ...er_connection_encodings_integrationtest.cc | 70 +++++++++++++++++++
+ 2 files changed, 73 insertions(+), 1 deletion(-)
 
-diff --git a/video/quality_convergence_controller.cc b/video/quality_convergence_controller.cc
-index d897635f96..c063f62b34 100644
---- a/video/quality_convergence_controller.cc
-+++ b/video/quality_convergence_controller.cc
-@@ -10,7 +10,11 @@
+diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+index 96d23c6c17..a82d33ab36 100644
+--- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
++++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
+@@ -1736,7 +1736,9 @@ void LibvpxVp9Encoder::DeliverBufferedFrame(bool end_of_picture) {
  
- #include "video/quality_convergence_controller.h"
+     codec_specific_.end_of_picture = end_of_picture;
  
-+#include <algorithm>
-+
- #include "rtc_base/checks.h"
-+#include "rtc_base/experiments/struct_parameters_parser.h"
-+#include "rtc_base/logging.h"
+-    if (simulcast_to_svc_converter_) {
++    if (!simulcast_to_svc_converter_) {
++      encoded_image_.SetSimulcastIndex(std::nullopt);
++    } else {
+       simulcast_to_svc_converter_->ConvertFrame(encoded_image_,
+                                                 codec_specific_);
+     }
+diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
+index ed087894e7..d3bc97377a 100644
+--- a/pc/peer_connection_encodings_integrationtest.cc
++++ b/pc/peer_connection_encodings_integrationtest.cc
+@@ -2399,6 +2399,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+   EXPECT_THAT(*outbound_rtps[2]->scalability_mode, StrEq("L1T3"));
+ }
  
- namespace webrtc {
- namespace {
-@@ -19,16 +23,38 @@ namespace {
- // default configurations used for the software encoders.
- constexpr int kVp8DefaultStaticQpThreshold = 15;
- constexpr int kVp9DefaultStaticQpThreshold = 32;
--constexpr int kAv1DefaultStaticQpThreshold = 40;
-+constexpr int kAv1DefaultStaticQpThreshold = 60;
-+
-+struct StaticDetectionConfig {
-+  // Overrides the static QP threshold if set to a higher value than what is
-+  // reported by the encoder.
-+  std::optional<int> static_qp_threshold_override;
-+  std::unique_ptr<StructParametersParser> Parser();
-+};
- 
--int GetDefaultStaticQpThreshold(VideoCodecType codec) {
-+std::unique_ptr<StructParametersParser> StaticDetectionConfig::Parser() {
-+  // The empty comments ensures that each pair is on a separate line.
-+  return StructParametersParser::Create("static_qp_threshold",
-+                                        &static_qp_threshold_override);
-+}
-+
-+int GetDefaultStaticQpThreshold(VideoCodecType codec,
-+                                const FieldTrialsView& trials) {
-+  StaticDetectionConfig static_config;
-+  int default_static_qp_threhsold = 0;
-   switch (codec) {
-     case kVideoCodecVP8:
--      return kVp8DefaultStaticQpThreshold;
-+      default_static_qp_threhsold = kVp8DefaultStaticQpThreshold;
-+      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-VP8"));
-+      break;
-     case kVideoCodecVP9:
--      return kVp9DefaultStaticQpThreshold;
-+      default_static_qp_threhsold = kVp9DefaultStaticQpThreshold;
-+      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-VP9"));
-+      break;
-     case kVideoCodecAV1:
--      return kAv1DefaultStaticQpThreshold;
-+      default_static_qp_threhsold = kAv1DefaultStaticQpThreshold;
-+      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-AV1"));
-+      break;
-     case kVideoCodecGeneric:
-     case kVideoCodecH264:
-     case kVideoCodecH265:
-@@ -36,21 +62,31 @@ int GetDefaultStaticQpThreshold(VideoCodecType codec) {
-       // always >= 0.
-       return -1;
-   }
-+
-+  if (static_config.static_qp_threshold_override.has_value()) {
-+    RTC_LOG(LS_INFO) << "static_qp_threshold_override: "
-+                     << *static_config.static_qp_threshold_override;
-+    return *static_config.static_qp_threshold_override;
++// Simulcast starting in 720p 4:2:1 then changing to {180p, 360p, 540p} using
++// the `scale_resolution_down_by` API.
++TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
++       SimulcastScaleDownByNoLongerPowerOfTwo) {
++  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
++  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
++    return;
 +  }
++  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
++  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 +
-+  return default_static_qp_threhsold;
- }
- }  // namespace
- 
--void QualityConvergenceController::Initialize(
--    int number_of_layers,
--    std::optional<int> static_qp_threshold,
--    VideoCodecType codec,
--    const FieldTrialsView& trials) {
-+void QualityConvergenceController::Initialize(int number_of_layers,
-+                                              std::optional<int> encoder_min_qp,
-+                                              VideoCodecType codec,
-+                                              const FieldTrialsView& trials) {
-   RTC_DCHECK(sequence_checker_.IsCurrent());
-   RTC_CHECK(number_of_layers > 0);
-   number_of_layers_ = number_of_layers;
-   convergence_monitors_.clear();
- 
--  int qp_threshold =
--      static_qp_threshold.value_or(GetDefaultStaticQpThreshold(codec));
-+  int qp_threshold = GetDefaultStaticQpThreshold(codec, trials);
-+  if (encoder_min_qp.has_value()) {
-+    qp_threshold = std::max(qp_threshold, *encoder_min_qp);
-+  }
++  std::vector<cricket::SimulcastLayer> layers =
++      CreateLayers({"q", "h", "f"}, /*active=*/true);
++  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
++      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
++                                        layers);
++  std::vector<RtpCodecCapability> codecs =
++      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
++  transceiver->SetCodecPreferences(codecs);
++  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
 +
-   for (int i = 0; i < number_of_layers_; ++i) {
-     convergence_monitors_.push_back(
-         QualityConvergenceMonitor::Create(qp_threshold, codec, trials));
-diff --git a/video/quality_convergence_controller_unittest.cc b/video/quality_convergence_controller_unittest.cc
-index c1378e06a9..46965d4bff 100644
---- a/video/quality_convergence_controller_unittest.cc
-+++ b/video/quality_convergence_controller_unittest.cc
-@@ -10,56 +10,124 @@
-  */
- #include "video/quality_convergence_controller.h"
- 
-+#include <optional>
++  // Configure {180p, 360p, 720p}.
++  RtpParameters parameters = sender->GetParameters();
++  ASSERT_THAT(parameters.encodings, SizeIs(3));
++  parameters.encodings[0].scalability_mode = "L1T1";
++  parameters.encodings[0].scale_resolution_down_by = 4.0;
++  parameters.encodings[1].scalability_mode = "L1T1";
++  parameters.encodings[1].scale_resolution_down_by = 2.0;
++  parameters.encodings[2].scalability_mode = "L1T1";
++  parameters.encodings[2].scale_resolution_down_by = 1.0;
++  sender->SetParameters(parameters);
 +
- #include "test/gtest.h"
- #include "test/scoped_key_value_config.h"
- 
- namespace webrtc {
- namespace {
--constexpr int kStaticQpThreshold = 15;
-+constexpr int kVp8DefaultStaticQpThreshold = 15;
- 
- TEST(QualityConvergenceController, Singlecast) {
-   test::ScopedKeyValueConfig field_trials;
-   QualityConvergenceController controller;
--  controller.Initialize(1, kStaticQpThreshold, kVideoCodecVP8, field_trials);
-+  controller.Initialize(1, /*encoder_min_qp=*/std::nullopt, kVideoCodecVP8,
-+                        field_trials);
- 
-   EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/0, kStaticQpThreshold + 1, /*is_refresh_frame=*/false));
-+      /*layer_index=*/0, kVp8DefaultStaticQpThreshold + 1,
-+      /*is_refresh_frame=*/false));
-   EXPECT_TRUE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/0, kStaticQpThreshold, /*is_refresh_frame=*/false));
-+      /*layer_index=*/0, kVp8DefaultStaticQpThreshold,
-+      /*is_refresh_frame=*/false));
- }
- 
- TEST(QualityConvergenceController, Simulcast) {
-   test::ScopedKeyValueConfig field_trials;
-   QualityConvergenceController controller;
--  controller.Initialize(2, kStaticQpThreshold, kVideoCodecVP8, field_trials);
-+  controller.Initialize(2, /*encoder_min_qp=*/std::nullopt, kVideoCodecVP8,
-+                        field_trials);
- 
-   EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/0, kStaticQpThreshold + 1, /*is_refresh_frame=*/false));
-+      /*layer_index=*/0, kVp8DefaultStaticQpThreshold + 1,
-+      /*is_refresh_frame=*/false));
-   EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/1, kStaticQpThreshold + 1, /*is_refresh_frame=*/false));
-+      /*layer_index=*/1, kVp8DefaultStaticQpThreshold + 1,
-+      /*is_refresh_frame=*/false));
- 
-   // Layer 0 reaches target quality.
-   EXPECT_TRUE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/0, kStaticQpThreshold, /*is_refresh_frame=*/false));
-+      /*layer_index=*/0, kVp8DefaultStaticQpThreshold,
-+      /*is_refresh_frame=*/false));
-   EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/1, kStaticQpThreshold + 1, /*is_refresh_frame=*/false));
-+      /*layer_index=*/1, kVp8DefaultStaticQpThreshold + 1,
-+      /*is_refresh_frame=*/false));
- 
-   // Frames are repeated for both layers. Layer 0 still at target quality.
-   EXPECT_TRUE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/0, kStaticQpThreshold, /*is_refresh_frame=*/true));
-+      /*layer_index=*/0, kVp8DefaultStaticQpThreshold,
-+      /*is_refresh_frame=*/true));
-   EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/1, kStaticQpThreshold + 1, /*is_refresh_frame=*/true));
-+      /*layer_index=*/1, kVp8DefaultStaticQpThreshold + 1,
-+      /*is_refresh_frame=*/true));
- }
- 
- TEST(QualityConvergenceController, InvalidLayerIndex) {
-   test::ScopedKeyValueConfig field_trials;
-   QualityConvergenceController controller;
--  controller.Initialize(2, kStaticQpThreshold, kVideoCodecVP8, field_trials);
-+  controller.Initialize(2, /*encoder_min_qp=*/std::nullopt, kVideoCodecVP8,
-+                        field_trials);
++  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
++  local_pc_wrapper->WaitForConnection();
++  remote_pc_wrapper->WaitForConnection();
 +
-+  EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/-1, kVp8DefaultStaticQpThreshold,
-+      /*is_refresh_frame=*/false));
-+  EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/3, kVp8DefaultStaticQpThreshold,
-+      /*is_refresh_frame=*/false));
++  // Wait for media to flow on all layers.
++  // Needed repro step of https://crbug.com/webrtc/369654168: When the same
++  // LibvpxVp9Encoder instance was used to first produce simulcast and later for
++  // a single encoding, the previously used simulcast index (= 2) would still be
++  // set when producing 180p since non-simulcast config does not reset this,
++  // resulting in the 180p encoding freezing and the 540p encoding having double
++  // frame rate and toggling between 180p and 540p in resolution.
++  ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, 3u),
++                   kLongTimeoutForRampingUp.ms());
++
++  // Configure {180p, 360p, 540p}.
++  parameters = sender->GetParameters();
++  parameters.encodings[0].scale_resolution_down_by = 4.0;
++  parameters.encodings[1].scale_resolution_down_by = 2.0;
++  parameters.encodings[2].scale_resolution_down_by = 1.333333;
++  sender->SetParameters(parameters);
++
++  // Wait for the new resolutions to be produced.
++  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "q") ==
++                       Resolution({.width = 320, .height = 180}),
++                   kLongTimeoutForRampingUp.ms());
++  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "h") ==
++                       Resolution({.width = 640, .height = 360}),
++                   kLongTimeoutForRampingUp.ms());
++  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "f") ==
++                       Resolution({.width = 960, .height = 540}),
++                   kLongTimeoutForRampingUp.ms());
++
++  // Ensure 180p frames continue to be encoded post reconfiguration.
++  int frames_encoded = EncodedFrames(local_pc_wrapper, "q");
++  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "q") > frames_encoded,
++                   kLongTimeoutForRampingUp.ms());
 +}
 +
-+TEST(QualityConvergenceController, UseMaxOfEncoderMinAndDefaultQpThresholds) {
-+  test::ScopedKeyValueConfig field_trials;
-+  QualityConvergenceController controller;
-+  controller.Initialize(1, kVp8DefaultStaticQpThreshold + 1, kVideoCodecVP8,
-+                        field_trials);
-+
-+  EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/0, kVp8DefaultStaticQpThreshold + 2,
-+      /*is_refresh_frame=*/false));
-+  EXPECT_TRUE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/0, kVp8DefaultStaticQpThreshold + 1,
-+      /*is_refresh_frame=*/false));
-+}
-+
-+TEST(QualityConvergenceController, OverrideVp8StaticThreshold) {
-+  test::ScopedKeyValueConfig field_trials(
-+      "WebRTC-QCM-Static-VP8/static_qp_threshold:22/");
-+  QualityConvergenceController controller;
-+  controller.Initialize(1, /*encoder_min_qp=*/std::nullopt, kVideoCodecVP8,
-+                        field_trials);
- 
-   EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/-1, kStaticQpThreshold, /*is_refresh_frame=*/false));
-+      /*layer_index=*/0, /*qp=*/23, /*is_refresh_frame=*/false));
-+  EXPECT_TRUE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/0, /*qp=*/22, /*is_refresh_frame=*/false));
-+}
-+
-+TEST(QualityConvergenceMonitorSetup, OverrideVp9StaticThreshold) {
-+  test::ScopedKeyValueConfig field_trials(
-+      "WebRTC-QCM-Static-VP9/static_qp_threshold:44/");
-+  QualityConvergenceController controller;
-+  controller.Initialize(1, /*encoder_min_qp=*/std::nullopt, kVideoCodecVP9,
-+                        field_trials);
-+
-   EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
--      /*layer_index=*/3, kStaticQpThreshold, /*is_refresh_frame=*/false));
-+      /*layer_index=*/0, /*qp=*/45, /*is_refresh_frame=*/false));
-+  EXPECT_TRUE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/0, /*qp=*/44, /*is_refresh_frame=*/false));
-+}
-+
-+TEST(QualityConvergenceMonitorSetup, OverrideAv1StaticThreshold) {
-+  test::ScopedKeyValueConfig field_trials(
-+      "WebRTC-QCM-Static-AV1/static_qp_threshold:46/");
-+  QualityConvergenceController controller;
-+  controller.Initialize(1, /*encoder_min_qp=*/std::nullopt, kVideoCodecAV1,
-+                        field_trials);
-+
-+  EXPECT_FALSE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/0, /*qp=*/47, /*is_refresh_frame=*/false));
-+  EXPECT_TRUE(controller.AddSampleAndCheckTargetQuality(
-+      /*layer_index=*/0, /*qp=*/46, /*is_refresh_frame=*/false));
- }
- 
- }  // namespace
-diff --git a/video/quality_convergence_monitor.cc b/video/quality_convergence_monitor.cc
-index 4094c7f408..98b470324f 100644
---- a/video/quality_convergence_monitor.cc
-+++ b/video/quality_convergence_monitor.cc
-@@ -22,19 +22,6 @@ constexpr size_t kDefaultRecentWindowLength = 6;
- constexpr size_t kDefaultPastWindowLength = 6;
- constexpr float kDefaultAlpha = 0.06;
- 
--struct StaticDetectionConfig {
--  // Overrides the static QP threshold if set to a higher value than what is
--  // reported by the encoder.
--  int static_qp_threshold_override = 0;
--  std::unique_ptr<StructParametersParser> Parser();
--};
--
--std::unique_ptr<StructParametersParser> StaticDetectionConfig::Parser() {
--  // The empty comments ensures that each pair is on a separate line.
--  return StructParametersParser::Create("static_qp_threshold",
--                                        &static_qp_threshold_override);
--}
--
- struct DynamicDetectionConfig {
-   bool enabled = false;
-   // alpha is a percentage of the codec-specific max QP value that is used to
-@@ -58,30 +45,27 @@ std::unique_ptr<StructParametersParser> DynamicDetectionConfig::Parser() {
- }
- 
- QualityConvergenceMonitor::Parameters GetParameters(
--    int static_min_qp_threshold,
-+    int static_qp_threshold,
-     VideoCodecType codec,
-     const FieldTrialsView& trials) {
-   QualityConvergenceMonitor::Parameters params;
-+  params.static_qp_threshold = static_qp_threshold;
- 
--  StaticDetectionConfig static_config;
-   DynamicDetectionConfig dynamic_config;
-   // Apply codec specific settings.
-   int max_qp = 0;
-   switch (codec) {
-     case kVideoCodecVP8:
--      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-VP8"));
-       dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-VP8"));
-       max_qp = 127;
-       break;
-     case kVideoCodecVP9:
--      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-VP9"));
-       // Change to enabled by default for VP9.
-       dynamic_config.enabled = true;
-       dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-VP9"));
-       max_qp = 255;
-       break;
-     case kVideoCodecAV1:
--      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-AV1"));
-       // Change to enabled by default for AV1.
-       dynamic_config.enabled = true;
-       dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-AV1"));
-@@ -93,13 +77,10 @@ QualityConvergenceMonitor::Parameters GetParameters(
-       break;
-   }
- 
--  params.static_qp_threshold = std::max(
--      static_min_qp_threshold, static_config.static_qp_threshold_override);
--
-   if (dynamic_config.enabled) {
-     params.dynamic_detection_enabled = dynamic_config.enabled;
-     params.dynamic_qp_threshold =
--        static_min_qp_threshold + max_qp * dynamic_config.alpha;
-+        static_qp_threshold + max_qp * dynamic_config.alpha;
-     params.recent_window_length = dynamic_config.recent_length;
-     params.past_window_length = dynamic_config.past_length;
-   }
-diff --git a/video/quality_convergence_monitor_unittest.cc b/video/quality_convergence_monitor_unittest.cc
-index 4560308b8a..2cb888d523 100644
---- a/video/quality_convergence_monitor_unittest.cc
-+++ b/video/quality_convergence_monitor_unittest.cc
-@@ -18,7 +18,6 @@
- namespace webrtc {
- namespace {
- constexpr int kStaticQpThreshold = 13;
--constexpr int kDefaultDynamicThreshold = 28;  // 13 + 0.06 * 255.
- 
- constexpr QualityConvergenceMonitor::Parameters kParametersOnlyStaticThreshold =
-     {.static_qp_threshold = kStaticQpThreshold,
-@@ -300,46 +299,5 @@ TEST(QualityConvergenceMonitorSetup, DisableAv1Dynamic) {
-   EXPECT_FALSE(p.dynamic_detection_enabled);
- }
- 
--TEST(QualityConvergenceMonitorSetup, OverrideVp8StaticThreshold) {
--  test::ScopedKeyValueConfig field_trials(
--      "WebRTC-QCM-Static-VP8/static_qp_threshold:22/");
--
--  auto monitor = QualityConvergenceMonitor::Create(
--      kStaticQpThreshold, kVideoCodecVP8, field_trials);
--  ASSERT_TRUE(monitor);
--  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
--  EXPECT_EQ(p.static_qp_threshold, 22);
--  EXPECT_NE(p.static_qp_threshold, kStaticQpThreshold);
--  // Dynamic threshold is not tested since it's not enabled by default for VP8.
--}
--
--TEST(QualityConvergenceMonitorSetup, OverrideVp9StaticThreshold) {
--  test::ScopedKeyValueConfig field_trials(
--      "WebRTC-QCM-Static-VP9/static_qp_threshold:44/");
--
--  auto monitor = QualityConvergenceMonitor::Create(
--      kStaticQpThreshold, kVideoCodecVP9, field_trials);
--  ASSERT_TRUE(monitor);
--  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
--  EXPECT_EQ(p.static_qp_threshold, 44);
--  EXPECT_NE(p.static_qp_threshold, kStaticQpThreshold);
--  // Dynamic QP threshold is unchanged.
--  EXPECT_EQ(p.dynamic_qp_threshold, kDefaultDynamicThreshold);
--}
--
--TEST(QualityConvergenceMonitorSetup, OverrideAv1StaticThreshold) {
--  test::ScopedKeyValueConfig field_trials(
--      "WebRTC-QCM-Static-AV1/static_qp_threshold:46/");
--
--  auto monitor = QualityConvergenceMonitor::Create(
--      kStaticQpThreshold, kVideoCodecAV1, field_trials);
--  ASSERT_TRUE(monitor);
--  QualityConvergenceMonitor::Parameters p = monitor->GetParametersForTesting();
--  EXPECT_EQ(p.static_qp_threshold, 46);
--  EXPECT_NE(p.static_qp_threshold, kStaticQpThreshold);
--  // Dynamic QP threshold is unchanged.
--  EXPECT_EQ(p.dynamic_qp_threshold, kDefaultDynamicThreshold);
--}
--
- }  // namespace
- }  // namespace webrtc
+ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+        SimulcastEncodingStopWhenRtpEncodingChangeToInactive) {
+   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
