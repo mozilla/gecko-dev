@@ -123,7 +123,7 @@ class AppLinksUseCases(
             // Only set fallback URL if url is not a Google PlayStore URL
             // The reason here is we already handled that case with the market place URL
             val fallbackUrl = redirectData.fallbackIntent?.data?.takeIf {
-                it.isHttpOrHttps && !isPlayStoreURL(it.toString())
+                it.isHttpOrHttps && (!isPlayStoreURL(it.toString()) || redirectData.resolveInfo == null)
             }?.toString()
 
             val appIntent = when {
