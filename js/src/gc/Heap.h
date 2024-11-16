@@ -526,7 +526,6 @@ class ArenaChunk : public ArenaChunkBase {
                        const AutoLockGC& lock);
 
   void releaseArena(GCRuntime* gc, Arena* arena, const AutoLockGC& lock);
-  void recycleArena(Arena* arena, SortedArenaList& dest, size_t thingsPerArena);
 
   void decommitFreeArenas(GCRuntime* gc, const bool& cancel, AutoLockGC& lock);
   [[nodiscard]] bool decommitOneFreePage(GCRuntime* gc, size_t pageIndex,

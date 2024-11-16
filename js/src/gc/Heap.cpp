@@ -331,12 +331,6 @@ void ArenaChunk::decommitFreeArenas(GCRuntime* gc, const bool& cancel,
   }
 }
 
-void ArenaChunk::recycleArena(Arena* arena, SortedArenaList& dest,
-                              size_t thingsPerArena) {
-  arena->setAsFullyUnused();
-  dest.insertAt(arena, thingsPerArena);
-}
-
 void ArenaChunk::releaseArena(GCRuntime* gc, Arena* arena,
                               const AutoLockGC& lock) {
   MOZ_ASSERT(!arena->allocated());

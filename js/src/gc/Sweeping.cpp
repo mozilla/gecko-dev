@@ -112,26 +112,27 @@ inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
   MOZ_ASSERT(thingSize == getThingSize());
   MOZ_ASSERT(!onDelayedMarkingList_);
 
-  uint_fast16_t firstThing = firstThingOffset(thingKind);
-  uint_fast16_t firstThingOrSuccessorOfLastMarkedThing = firstThing;
-  uint_fast16_t lastThing = ArenaSize - thingSize;
+  uint_fast16_t freeStart = firstThingOffset(thingKind);
 
-  FreeSpan newListHead;
-  FreeSpan* newListTail = &newListHead;
-  size_t nmarked = 0, nfinalized = 0;
+  // Update the free list as we go along. The cell iterator will always be ahead
+  // of this pointer when it is written through, so the write will not interfere
+  // with the iteration.
+  FreeSpan* newListTail = &firstFreeSpan;
+
+  size_t nmarked = 0;
+  size_t nfinalized = 0;
 
   for (ArenaCellIterUnderFinalize cell(this); !cell.done(); cell.next()) {
     T* t = cell.as<T>();
     if (TenuredThingIsMarkedAny(t)) {
       uint_fast16_t thing = uintptr_t(t) & ArenaMask;
-      if (thing != firstThingOrSuccessorOfLastMarkedThing) {
+      if (thing != freeStart) {
         // We just finished passing over one or more free things,
         // so record a new FreeSpan.
-        newListTail->initBounds(firstThingOrSuccessorOfLastMarkedThing,
-                                thing - thingSize, this);
+        newListTail->initBounds(freeStart, thing - thingSize, this);
         newListTail = newListTail->nextSpanUnchecked(this);
       }
-      firstThingOrSuccessorOfLastMarkedThing = thing + thingSize;
+      freeStart = thing + thingSize;
       nmarked++;
     } else {
       t->finalize(gcx);
@@ -151,33 +152,21 @@ inline size_t Arena::finalize(JS::GCContext* gcx, AllocKind thingKind,
   }
   isNewlyCreated_ = 0;
 
-  if (nmarked == 0) {
-    // Do nothing. The caller will update the arena appropriately.
-    MOZ_ASSERT(newListTail == &newListHead);
-    DebugOnlyPoison(data, JS_SWEPT_TENURED_PATTERN, sizeof(data),
-                    MemCheckKind::MakeUndefined);
-    return nmarked;
-  }
-
-  MOZ_ASSERT(firstThingOrSuccessorOfLastMarkedThing != firstThing);
-  uint_fast16_t lastMarkedThing =
-      firstThingOrSuccessorOfLastMarkedThing - thingSize;
-  if (lastThing == lastMarkedThing) {
+  if (freeStart == ArenaSize) {
     // If the last thing was marked, we will have already set the bounds of
     // the final span, and we just need to terminate the list.
     newListTail->initAsEmpty();
   } else {
     // Otherwise, end the list with a span that covers the final stretch of free
     // things.
-    newListTail->initFinal(firstThingOrSuccessorOfLastMarkedThing, lastThing,
-                           this);
+    newListTail->initFinal(freeStart, ArenaSize - thingSize, this);
   }
 
-  firstFreeSpan = newListHead;
 #ifdef DEBUG
   size_t nfree = numFreeThings(thingSize);
   MOZ_ASSERT(nfree + nmarked == thingsPerArena(thingKind));
 #endif
+
   return nmarked;
 }
 
@@ -207,11 +196,7 @@ static inline bool FinalizeTypedArenas(JS::GCContext* gcx, ArenaList& src,
 
     markCount += nmarked;
 
-    if (nmarked) {
-      dest.insertAt(arena, nfree);
-    } else {
-      arena->chunk()->recycleArena(arena, dest, thingsPerArena);
-    }
+    dest.insertAt(arena, nfree);
 
     budget.step(thingsPerArena);
     if (budget.isOverBudget()) {
