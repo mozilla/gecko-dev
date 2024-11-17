@@ -294,7 +294,9 @@ nsresult nsContentDLF::CreateDocument(
 
   nsCOMPtr<nsIURI> aURL;
   rv = aChannel->GetURI(getter_AddRefs(aURL));
-  if (NS_FAILED(rv)) return rv;
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
 #ifdef NOISY_CREATE_DOC
   if (nullptr != aURL) {

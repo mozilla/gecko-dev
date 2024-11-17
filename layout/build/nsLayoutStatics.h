@@ -41,7 +41,9 @@ class nsLayoutStatics {
     NS_LOG_RELEASE(&sLayoutStaticRefcnt, sLayoutStaticRefcnt,
                    "nsLayoutStatics");
 
-    if (!sLayoutStaticRefcnt) Shutdown();
+    if (!sLayoutStaticRefcnt) {
+      Shutdown();
+    }
   }
 
  private:

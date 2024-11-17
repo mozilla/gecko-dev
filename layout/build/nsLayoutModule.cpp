@@ -109,7 +109,9 @@ void nsLayoutModuleInitialize() {
 // static
 void Shutdown() {
   MOZ_ASSERT(gInitialized, "module not initialized");
-  if (!gInitialized) return;
+  if (!gInitialized) {
+    return;
+  }
 
   gInitialized = false;
 
@@ -196,12 +198,18 @@ MAKE_GENERIC_CTOR(nsIAccessibilityService, NS_GetAccessibilityService)
 #endif
 
 nsresult Construct_nsIScriptSecurityManager(REFNSIID aIID, void** aResult) {
-  if (!aResult) return NS_ERROR_NULL_POINTER;
+  if (!aResult) {
+    return NS_ERROR_NULL_POINTER;
+  }
   *aResult = nullptr;
   nsScriptSecurityManager* obj =
       nsScriptSecurityManager::GetScriptSecurityManager();
-  if (!obj) return NS_ERROR_OUT_OF_MEMORY;
-  if (NS_FAILED(obj->QueryInterface(aIID, aResult))) return NS_ERROR_FAILURE;
+  if (!obj) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  if (NS_FAILED(obj->QueryInterface(aIID, aResult))) {
+    return NS_ERROR_FAILURE;
+  }
   return NS_OK;
 }
 
