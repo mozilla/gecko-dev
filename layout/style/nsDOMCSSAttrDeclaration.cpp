@@ -97,7 +97,9 @@ DeclarationBlock* nsDOMCSSAttributeDeclaration::GetOrCreateCSSDeclaration(
     Operation aOperation, DeclarationBlock** aCreated) {
   MOZ_ASSERT(aOperation != Operation::Modify || aCreated);
 
-  if (!mElement) return nullptr;
+  if (!mElement) {
+    return nullptr;
+  }
 
   DeclarationBlock* declaration;
   if (mIsSMILOverride) {

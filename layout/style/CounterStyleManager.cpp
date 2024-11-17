@@ -420,12 +420,17 @@ static bool HebrewToText(CounterValue aOrdinal, nsAString& aResult) {
     }  // if
 
     // Process digit for 1 - 9
-    if (n3 > 0) thousandsGroup.Append(gHebrewDigit[n3 - 1]);
-    if (outputSep) thousandsGroup.Append((char16_t)HEBREW_GERESH);
-    if (allText.IsEmpty())
+    if (n3 > 0) {
+      thousandsGroup.Append(gHebrewDigit[n3 - 1]);
+    }
+    if (outputSep) {
+      thousandsGroup.Append((char16_t)HEBREW_GERESH);
+    }
+    if (allText.IsEmpty()) {
       allText = thousandsGroup;
-    else
+    } else {
       allText = thousandsGroup + allText;
+    }
     aOrdinal /= 1000;
     outputSep = true;
   } while (aOrdinal >= 1);

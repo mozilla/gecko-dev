@@ -452,7 +452,9 @@ void GlobalStyleSheetCache::InitFromProfile() {
   if (appInfo) {
     bool inSafeMode = false;
     appInfo->GetInSafeMode(&inSafeMode);
-    if (inSafeMode) return;
+    if (inSafeMode) {
+      return;
+    }
   }
   nsCOMPtr<nsIFile> contentFile;
   nsCOMPtr<nsIFile> chromeFile;
@@ -464,7 +466,9 @@ void GlobalStyleSheetCache::InitFromProfile() {
   }
 
   contentFile->Clone(getter_AddRefs(chromeFile));
-  if (!chromeFile) return;
+  if (!chromeFile) {
+    return;
+  }
 
   contentFile->Append(u"userContent.css"_ns);
   chromeFile->Append(u"userChrome.css"_ns);

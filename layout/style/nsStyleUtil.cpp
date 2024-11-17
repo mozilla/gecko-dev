@@ -115,18 +115,23 @@ bool nsStyleUtil::ValueIncludes(const nsAString& aValueList,
 
   while (p < p_end) {
     // skip leading space
-    while (p != p_end && nsContentUtils::IsHTMLWhitespace(*p)) ++p;
+    while (p != p_end && nsContentUtils::IsHTMLWhitespace(*p)) {
+      ++p;
+    }
 
     const char16_t* val_start = p;
 
     // look for space or end
-    while (p != p_end && !nsContentUtils::IsHTMLWhitespace(*p)) ++p;
+    while (p != p_end && !nsContentUtils::IsHTMLWhitespace(*p)) {
+      ++p;
+    }
 
     const char16_t* val_end = p;
 
     if (val_start < val_end &&
-        aValue.Equals(Substring(val_start, val_end), aComparator))
+        aValue.Equals(Substring(val_start, val_end), aComparator)) {
       return true;
+    }
 
     ++p;  // we know the next character is not whitespace
   }
@@ -180,7 +185,9 @@ void nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent,
   const char16_t* in = aIdent.BeginReading();
   const char16_t* const end = aIdent.EndReading();
 
-  if (in == end) return;
+  if (in == end) {
+    return;
+  }
 
   // A leading dash does not need to be escaped as long as it is not the
   // *only* character in the identifier.
