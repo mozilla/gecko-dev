@@ -62,7 +62,7 @@ index ec8993b191..344bb3f1e1 100644
  
    uint8_t generic_header = payload_data[0];
 diff --git a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
-index e8fd911efe..16d1c2c14c 100644
+index 49a4a3764c..cb11329b5a 100644
 --- a/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
 +++ b/modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
 @@ -63,7 +63,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
@@ -74,7 +74,7 @@ index e8fd911efe..16d1c2c14c 100644
    bool modified_buffer = false;
    parsed_payload->video_payload = rtp_payload;
    parsed_payload->video_header.width = 0;
-@@ -235,7 +235,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuaNalu(
+@@ -234,7 +234,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuaNalu(
      return std::nullopt;
    }
    std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
