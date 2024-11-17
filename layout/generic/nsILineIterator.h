@@ -129,7 +129,7 @@ struct LineFrameFinder {
  * and want to verify that no DOM mutations (which would invalidate the
  * iterator) occur while we're using it.
  */
-class MOZ_STACK_CLASS AutoAssertNoDomMutations final {
+class MOZ_RAII AutoAssertNoDomMutations final {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   nsMutationGuard mGuard;
 #endif

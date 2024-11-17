@@ -1151,7 +1151,7 @@ class nsFrameSelection final {
 /**
  * Selection Batcher class that supports multiple FrameSelections.
  */
-class MOZ_STACK_CLASS AutoFrameSelectionBatcher {
+class MOZ_RAII AutoFrameSelectionBatcher final {
  public:
   explicit AutoFrameSelectionBatcher(const char* aFunctionName,
                                      size_t aEstimatedSize = 1)
