@@ -1356,9 +1356,8 @@ nsCSSAnonBoxPseudoStaticAtom* nsTreeBodyFrame::GetItemWithinCellAt(
     if (aX >= twistyRect.x && aX < twistyRect.x + twistyRect.width) {
       if (hasTwisty) {
         return nsCSSAnonBoxes::mozTreeTwisty();
-      } else {
-        return nsCSSAnonBoxes::mozTreeCell();
       }
+      return nsCSSAnonBoxes::mozTreeCell();
     }
 
     if (!isRTL) {
@@ -1416,9 +1415,8 @@ nsCSSAnonBoxPseudoStaticAtom* nsTreeBodyFrame::GetItemWithinCellAt(
 
   if (aX >= textRect.x && aX < textRect.x + textRect.width) {
     return nsCSSAnonBoxes::mozTreeCellText();
-  } else {
-    return nsCSSAnonBoxes::mozTreeCell();
   }
+  return nsCSSAnonBoxes::mozTreeCell();
 }
 
 void nsTreeBodyFrame::GetCellAt(nscoord aX, nscoord aY, int32_t* aRow,

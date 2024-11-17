@@ -921,9 +921,8 @@ nsTableCellFrame* NS_NewTableCellFrame(PresShell* aPresShell,
                                        nsTableFrame* aTableFrame) {
   if (aTableFrame->IsBorderCollapse()) {
     return new (aPresShell) nsBCTableCellFrame(aStyle, aTableFrame);
-  } else {
-    return new (aPresShell) nsTableCellFrame(aStyle, aTableFrame);
   }
+  return new (aPresShell) nsTableCellFrame(aStyle, aTableFrame);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsBCTableCellFrame)

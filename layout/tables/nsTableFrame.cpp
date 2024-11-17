@@ -441,9 +441,8 @@ int32_t nsTableFrame::GetEffectiveRowSpan(const nsTableCellFrame& aCell,
 
   if (aCellMap) {
     return aCellMap->GetRowSpan(rowIndex, colIndex, true);
-  } else {
-    return tableCellMap->GetEffectiveRowSpan(rowIndex, colIndex);
   }
+  return tableCellMap->GetEffectiveRowSpan(rowIndex, colIndex);
 }
 
 int32_t nsTableFrame::GetEffectiveColSpan(const nsTableCellFrame& aCell,
@@ -456,9 +455,8 @@ int32_t nsTableFrame::GetEffectiveColSpan(const nsTableCellFrame& aCell,
 
   if (aCellMap) {
     return aCellMap->GetEffectiveColSpan(*tableCellMap, rowIndex, colIndex);
-  } else {
-    return tableCellMap->GetEffectiveColSpan(rowIndex, colIndex);
   }
+  return tableCellMap->GetEffectiveColSpan(rowIndex, colIndex);
 }
 
 bool nsTableFrame::HasMoreThanOneCell(int32_t aRowIndex) const {
