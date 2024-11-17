@@ -684,7 +684,9 @@ class nsDisplayVideo : public nsPaintedDisplayItem {
 
 void nsVideoFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                     const nsDisplayListSet& aLists) {
-  if (!IsVisibleForPainting()) return;
+  if (!IsVisibleForPainting()) {
+    return;
+  }
 
   DO_GLOBAL_REFLOW_COUNT_DSP("nsVideoFrame");
 

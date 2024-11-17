@@ -651,7 +651,9 @@ void MathMLTextRunFactory::RebuildTextRun(
         flags, nsTextFrameUtils::Flags(), aMFR);
     child = cachedChild.get();
   }
-  if (!child) return;
+  if (!child) {
+    return;
+  }
 
   typedef gfxTextRun::Range Range;
 

@@ -447,10 +447,11 @@ class nsContainerFrame : public nsSplittableFrame {
                                 const nsDisplayListSet& aLists) override;
 
   static void PlaceFrameView(nsIFrame* aFrame) {
-    if (aFrame->HasView())
+    if (aFrame->HasView()) {
       nsContainerFrame::PositionFrameView(aFrame);
-    else
+    } else {
       nsContainerFrame::PositionChildViews(aFrame);
+    }
   }
 
   /**
@@ -1012,10 +1013,14 @@ class nsOverflowContinuationTracker {
    public:
     AutoFinish(nsOverflowContinuationTracker* aTracker, nsIFrame* aChild)
         : mTracker(aTracker), mChild(aChild) {
-      if (mTracker) mTracker->BeginFinish(mChild);
+      if (mTracker) {
+        mTracker->BeginFinish(mChild);
+      }
     }
     ~AutoFinish() {
-      if (mTracker) mTracker->EndFinish(mChild);
+      if (mTracker) {
+        mTracker->EndFinish(mChild);
+      }
     }
 
    private:

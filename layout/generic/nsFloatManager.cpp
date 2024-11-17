@@ -63,7 +63,9 @@ void* nsFloatManager::operator new(size_t aSize) noexcept(true) {
 }
 
 void nsFloatManager::operator delete(void* aPtr, size_t aSize) {
-  if (!aPtr) return;
+  if (!aPtr) {
+    return;
+  }
   // This float manager is no longer used, if there's still room in
   // the cache we'll cache this float manager, unless the layout
   // module was already shut down.
@@ -91,7 +93,9 @@ void nsFloatManager::Shutdown() {
 
   for (i = 0; i < sCachedFloatManagerCount; i++) {
     void* floatManager = sCachedFloatManagers[i];
-    if (floatManager) free(floatManager);
+    if (floatManager) {
+      free(floatManager);
+    }
   }
 
   // Disable further caching.
@@ -287,7 +291,9 @@ void nsFloatManager::AddFloat(nsIFrame* aFloatFrame,
   nscoord& sideBEnd =
       floatStyle == StyleFloat::Left ? info.mLeftBEnd : info.mRightBEnd;
   nscoord thisBEnd = info.BEnd();
-  if (thisBEnd > sideBEnd) sideBEnd = thisBEnd;
+  if (thisBEnd > sideBEnd) {
+    sideBEnd = thisBEnd;
+  }
 
   mFloats.AppendElement(std::move(info));
 }
@@ -447,7 +453,9 @@ void DebugListFloatManager(const nsFloatManager* aFloatManager) {
 }
 
 nsresult nsFloatManager::List(FILE* out) const {
-  if (!HasAnyFloats()) return NS_OK;
+  if (!HasAnyFloats()) {
+    return NS_OK;
+  }
 
   for (uint32_t i = 0; i < mFloats.Length(); ++i) {
     const FloatInfo& fi = mFloats[i];

@@ -20,7 +20,9 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
                : aCoord.AsLengthPercentage().Resolve(0);
   };
 
-  if (GetPrevInFlow()) return;  // Already added.
+  if (GetPrevInFlow()) {
+    return;  // Already added.
+  }
 
   WritingMode wm = GetWritingMode();
   Side startSide = wm.PhysicalSideForInlineAxis(LogicalEdge::Start);

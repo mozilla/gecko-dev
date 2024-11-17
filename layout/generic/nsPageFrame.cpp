@@ -335,11 +335,19 @@ void nsPageFrame::DrawHeaderFooter(
     const nsString& aStrCenter, const nsString& aStrRight, const nsRect& aRect,
     nscoord aAscent, nscoord aHeight) {
   int32_t numStrs = 0;
-  if (!aStrLeft.IsEmpty()) numStrs++;
-  if (!aStrCenter.IsEmpty()) numStrs++;
-  if (!aStrRight.IsEmpty()) numStrs++;
+  if (!aStrLeft.IsEmpty()) {
+    numStrs++;
+  }
+  if (!aStrCenter.IsEmpty()) {
+    numStrs++;
+  }
+  if (!aStrRight.IsEmpty()) {
+    numStrs++;
+  }
 
-  if (numStrs == 0) return;
+  if (numStrs == 0) {
+    return;
+  }
   const nscoord contentWidth =
       aRect.width - (mPD->mEdgePaperMargin.left + mPD->mEdgePaperMargin.right);
   const nscoord strSpace = contentWidth / numStrs;

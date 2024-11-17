@@ -5551,7 +5551,9 @@ class nsIFrame : public nsQueryFrame {
 #ifdef DEBUG_FRAME_DUMP
  public:
   static void IndentBy(FILE* out, int32_t aIndent) {
-    while (--aIndent >= 0) fputs("  ", out);
+    while (--aIndent >= 0) {
+      fputs("  ", out);
+    }
   }
   void ListTag(FILE* out) const { fputs(ListTag().get(), out); }
   nsAutoCString ListTag() const;

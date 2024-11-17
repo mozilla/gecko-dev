@@ -802,8 +802,9 @@ static bool IsSelectionInlineWhitespace(const nsTextFragment* aFrag,
   NS_ASSERTION(aPos < aFrag->GetLength(),
                "No text for IsSelectionInlineWhitespace!");
   char16_t ch = aFrag->CharAt(aPos);
-  if (ch == ' ' || ch == CH_NBSP)
+  if (ch == ' ' || ch == CH_NBSP) {
     return !IsSpaceCombiningSequenceTail(aFrag, aPos + 1);
+  }
   return ch == '\t' || ch == '\f';
 }
 
@@ -857,8 +858,10 @@ static bool IsAllWhitespace(const nsTextFragment* aFrag, bool aAllowNewline) {
   const char* str = aFrag->Get1b();
   for (int32_t i = 0; i < len; ++i) {
     char ch = str[i];
-    if (ch == ' ' || ch == '\t' || ch == '\r' || (ch == '\n' && aAllowNewline))
+    if (ch == ' ' || ch == '\t' || ch == '\r' ||
+        (ch == '\n' && aAllowNewline)) {
       continue;
+    }
     return false;
   }
   return true;
@@ -1292,8 +1295,9 @@ BuildTextRunsScanner::FindBoundaryResult BuildTextRunsScanner::FindBoundaries(
         textFrame != aState->mLastTextFrame->GetNextInFlow() &&
         !ContinueTextRunAcrossFrames(aState->mLastTextFrame, textFrame)) {
       aState->mSeenTextRunBoundaryOnThisLine = true;
-      if (aState->mSeenSpaceForLineBreakingOnThisLine)
+      if (aState->mSeenSpaceForLineBreakingOnThisLine) {
         return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
+      }
     }
     if (!aState->mFirstTextFrame) {
       aState->mFirstTextFrame = textFrame;
@@ -1350,8 +1354,9 @@ BuildTextRunsScanner::FindBoundaryResult BuildTextRunsScanner::FindBoundaries(
   FrameTextTraversal traversal = CanTextCrossFrameBoundary(aFrame);
   if (!traversal.mTextRunCanCrossFrameBoundary) {
     aState->mSeenTextRunBoundaryOnThisLine = true;
-    if (aState->mSeenSpaceForLineBreakingOnThisLine)
+    if (aState->mSeenSpaceForLineBreakingOnThisLine) {
       return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
+    }
   }
 
   for (nsIFrame* f = traversal.NextFrameToScan(); f;
@@ -1364,8 +1369,9 @@ BuildTextRunsScanner::FindBoundaryResult BuildTextRunsScanner::FindBoundaries(
 
   if (!traversal.mTextRunCanCrossFrameBoundary) {
     aState->mSeenTextRunBoundaryOnThisLine = true;
-    if (aState->mSeenSpaceForLineBreakingOnThisLine)
+    if (aState->mSeenSpaceForLineBreakingOnThisLine) {
       return FB_FOUND_VALID_TEXTRUN_BOUNDARY;
+    }
   }
 
   return FB_CONTINUE;
@@ -3077,8 +3083,9 @@ static uint32_t GetEndOfTrimmedText(const nsTextFragment* aFrag,
   while (aIterator->GetSkippedOffset() > aStart) {
     aIterator->AdvanceSkipped(-1);
     if (!IsTrimmableSpace(aFrag, aIterator->GetOriginalOffset(), aStyleText,
-                          aAllowHangingWS))
+                          aAllowHangingWS)) {
       return aIterator->GetSkippedOffset() + 1;
+    }
   }
   return aStart;
 }
@@ -5449,8 +5456,9 @@ void nsTextFrame::UnionAdditionalOverflow(nsPresContext* aPresContext,
   // When this frame is not selected, the text-decoration area must be in
   // frame bounds.
   if (!IsSelected() ||
-      !CombineSelectionUnderlineRect(aPresContext, *aInkOverflowRect))
+      !CombineSelectionUnderlineRect(aPresContext, *aInkOverflowRect)) {
     return;
+  }
   AddStateBits(TEXT_SELECTION_UNDERLINE_OVERFLOWED);
 }
 
@@ -7268,8 +7276,9 @@ int16_t nsTextFrame::GetSelectionStatus(int16_t* aSelectionFlags) {
   nsCOMPtr<nsISelectionController> selectionController;
   nsresult rv = GetSelectionController(PresContext(),
                                        getter_AddRefs(selectionController));
-  if (NS_FAILED(rv) || !selectionController)
+  if (NS_FAILED(rv) || !selectionController) {
     return nsISelectionController::SELECTION_OFF;
+  }
 
   selectionController->GetSelectionFlags(aSelectionFlags);
 

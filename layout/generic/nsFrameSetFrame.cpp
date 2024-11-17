@@ -234,12 +234,16 @@ void nsHTMLFramesetFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   mVerBorders = MakeUnique<nsHTMLFramesetBorderFrame*[]>(
       mNumCols);  // 1 more than number of ver borders
 
-  for (int verX = 0; verX < mNumCols; verX++) mVerBorders[verX] = nullptr;
+  for (int verX = 0; verX < mNumCols; verX++) {
+    mVerBorders[verX] = nullptr;
+  }
 
   mHorBorders = MakeUnique<nsHTMLFramesetBorderFrame*[]>(
       mNumRows);  // 1 more than number of hor borders
 
-  for (int horX = 0; horX < mNumRows; horX++) mHorBorders[horX] = nullptr;
+  for (int horX = 0; horX < mNumRows; horX++) {
+    mHorBorders[horX] = nullptr;
+  }
 
   static_assert(NS_MAX_FRAMESET_SPEC_COUNT <
                     UINT_MAX / sizeof(int32_t) / NS_MAX_FRAMESET_SPEC_COUNT,
@@ -494,7 +498,9 @@ void nsHTMLFramesetFrame::GenerateRowCol(nsPresContext* aPresContext,
   int32_t i;
 
   for (i = 0; i < aNumSpecs; i++) {
-    if (!aNewAttr.IsEmpty()) aNewAttr.Append(char16_t(','));
+    if (!aNewAttr.IsEmpty()) {
+      aNewAttr.Append(char16_t(','));
+    }
 
     switch (aSpecs[i].mUnit) {
       case eFramesetUnit_Fixed:
@@ -789,10 +795,14 @@ void nsHTMLFramesetFrame::Reflow(nsPresContext* aPresContext,
   int32_t borderWidth = GetBorderWidth(aPresContext, true);
 
   width -= (mNumCols - 1) * borderWidth;
-  if (width < 0) width = 0;
+  if (width < 0) {
+    width = 0;
+  }
 
   height -= (mNumRows - 1) * borderWidth;
-  if (height < 0) height = 0;
+  if (height < 0) {
+    height = 0;
+  }
 
   HTMLFrameSetElement* ourContent = HTMLFrameSetElement::FromNode(mContent);
   NS_ASSERTION(ourContent, "Someone gave us a broken frameset element!");
@@ -1343,7 +1353,9 @@ void nsHTMLFramesetBorderFrame::PaintBorder(DrawTarget* aDrawTarget,
   nscoord widthInPixels = nsPresContext::AppUnitsToIntCSSPixels(mWidth);
   nscoord pixelWidth = nsPresContext::CSSPixelsToAppUnits(1);
 
-  if (widthInPixels <= 0) return;
+  if (widthInPixels <= 0) {
+    return;
+  }
 
   ColorPattern bgColor(ToDeviceColor(LookAndFeel::Color(
       LookAndFeel::ColorID::Window, this, NS_RGB(200, 200, 200))));
@@ -1387,7 +1399,9 @@ void nsHTMLFramesetBorderFrame::PaintBorder(DrawTarget* aDrawTarget,
     }
   }
 
-  if (!mVisibility) return;
+  if (!mVisibility) {
+    return;
+  }
 
   if (widthInPixels >= 5) {
     start.x = (mVertical) ? pixelWidth : 0;

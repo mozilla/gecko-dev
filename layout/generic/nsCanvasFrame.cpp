@@ -339,10 +339,13 @@ void nsDisplayCanvasBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
 bool nsDisplayCanvasBackgroundImage::IsSingleFixedPositionImage(
     nsDisplayListBuilder* aBuilder, const nsRect& aClipRect,
     gfxRect* aDestRect) {
-  if (!mBackgroundStyle) return false;
-
-  if (mBackgroundStyle->StyleBackground()->mImage.mLayers.Length() != 1)
+  if (!mBackgroundStyle) {
     return false;
+  }
+
+  if (mBackgroundStyle->StyleBackground()->mImage.mLayers.Length() != 1) {
+    return false;
+  }
 
   nsPresContext* presContext = mFrame->PresContext();
   uint32_t flags = aBuilder->GetBackgroundPaintFlags();
@@ -350,13 +353,17 @@ bool nsDisplayCanvasBackgroundImage::IsSingleFixedPositionImage(
   const nsStyleImageLayers::Layer& layer =
       mBackgroundStyle->StyleBackground()->mImage.mLayers[mLayer];
 
-  if (layer.mAttachment != StyleImageLayerAttachment::Fixed) return false;
+  if (layer.mAttachment != StyleImageLayerAttachment::Fixed) {
+    return false;
+  }
 
   nsBackgroundLayerState state = nsCSSRendering::PrepareImageLayer(
       presContext, mFrame, flags, borderArea, aClipRect, layer);
 
   // We only care about images here, not gradients.
-  if (!mIsRasterImage) return false;
+  if (!mIsRasterImage) {
+    return false;
+  }
 
   int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   *aDestRect =
@@ -576,9 +583,13 @@ void nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     BuildDisplayListForChild(aBuilder, kid, aLists);
   }
 
-  if (!mDoPaintFocus) return;
+  if (!mDoPaintFocus) {
+    return;
+  }
   // Only paint the focus if we're visible
-  if (!StyleVisibility()->IsVisible()) return;
+  if (!StyleVisibility()->IsVisible()) {
+    return;
+  }
 
   aLists.Outlines()->AppendNewToTop<nsDisplayCanvasFocus>(aBuilder, this);
 }

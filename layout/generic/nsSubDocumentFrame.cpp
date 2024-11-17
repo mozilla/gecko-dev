@@ -214,17 +214,23 @@ void nsSubDocumentFrame::ShowViewer() {
 }
 
 nsIFrame* nsSubDocumentFrame::GetSubdocumentRootFrame() {
-  if (!mInnerView) return nullptr;
+  if (!mInnerView) {
+    return nullptr;
+  }
   nsView* subdocView = mInnerView->GetFirstChild();
   return subdocView ? subdocView->GetFrame() : nullptr;
 }
 
 mozilla::PresShell* nsSubDocumentFrame::GetSubdocumentPresShellForPainting(
     uint32_t aFlags) {
-  if (!mInnerView) return nullptr;
+  if (!mInnerView) {
+    return nullptr;
+  }
 
   nsView* subdocView = mInnerView->GetFirstChild();
-  if (!subdocView) return nullptr;
+  if (!subdocView) {
+    return nullptr;
+  }
 
   mozilla::PresShell* presShell = nullptr;
 
@@ -258,9 +264,13 @@ mozilla::PresShell* nsSubDocumentFrame::GetSubdocumentPresShellForPainting(
     if (!presShell) {
       // If we don't have a frame we use this roundabout way to get the pres
       // shell.
-      if (!mFrameLoader) return nullptr;
+      if (!mFrameLoader) {
+        return nullptr;
+      }
       nsIDocShell* docShell = mFrameLoader->GetDocShell(IgnoreErrors());
-      if (!docShell) return nullptr;
+      if (!docShell) {
+        return nullptr;
+      }
       presShell = docShell->GetPresShell();
     }
   }

@@ -411,8 +411,12 @@ bool PolyArea::IsInside(nscoord x, nscoord y) const {
       yval = mCoords[pointer];
       pointer += 2;
       if (yval >= wherey) {
-        while ((pointer < end) && (mCoords[pointer] >= wherey)) pointer += 2;
-        if (pointer >= end) break;
+        while ((pointer < end) && (mCoords[pointer] >= wherey)) {
+          pointer += 2;
+        }
+        if (pointer >= end) {
+          break;
+        }
         if ((mCoords[pointer - 3] >= wherex) ==
             (mCoords[pointer - 1] >= wherex)) {
           intersects += (mCoords[pointer - 3] >= wherex) ? 1 : 0;
@@ -426,8 +430,12 @@ bool PolyArea::IsInside(nscoord x, nscoord y) const {
                   : 0;
         }
       } else {
-        while ((pointer < end) && (mCoords[pointer] < wherey)) pointer += 2;
-        if (pointer >= end) break;
+        while ((pointer < end) && (mCoords[pointer] < wherey)) {
+          pointer += 2;
+        }
+        if (pointer >= end) {
+          break;
+        }
         if ((mCoords[pointer - 3] >= wherex) ==
             (mCoords[pointer - 1] >= wherex)) {
           intersects += (mCoords[pointer - 3] >= wherex) ? 1 : 0;

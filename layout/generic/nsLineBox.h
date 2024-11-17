@@ -1003,7 +1003,9 @@ class nsLineList {
   void splice(iterator position, self_type& x, iterator first, iterator last) {
     NS_ASSERTION(!x.empty(), "Can't insert from empty list.");
 
-    if (first == last) return;
+    if (first == last) {
+      return;
+    }
 
     --last;  // so we now want to move [first, last]
     // remove from |x|

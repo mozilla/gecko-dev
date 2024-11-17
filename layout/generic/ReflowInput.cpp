@@ -1922,12 +1922,18 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
 // used in CalcQuirkContainingBlockHeight
 static nscoord GetBlockMarginBorderPadding(const ReflowInput* aReflowInput) {
   nscoord result = 0;
-  if (!aReflowInput) return result;
+  if (!aReflowInput) {
+    return result;
+  }
 
   // zero auto margins
   nsMargin margin = aReflowInput->ComputedPhysicalMargin();
-  if (NS_AUTOMARGIN == margin.top) margin.top = 0;
-  if (NS_AUTOMARGIN == margin.bottom) margin.bottom = 0;
+  if (NS_AUTOMARGIN == margin.top) {
+    margin.top = 0;
+  }
+  if (NS_AUTOMARGIN == margin.bottom) {
+    margin.bottom = 0;
+  }
 
   result += margin.top + margin.bottom;
   result += aReflowInput->ComputedPhysicalBorderPadding().top +
@@ -1986,7 +1992,9 @@ static nscoord CalcQuirkContainingBlockHeight(
       nsIFrame* prevInFlow = ri->mFrame->GetPrevInFlow();
       // only use the page content frame for a height basis if it is the first
       // in flow
-      if (prevInFlow) break;
+      if (prevInFlow) {
+        break;
+      }
     } else {
       break;
     }
@@ -1996,7 +2004,9 @@ static nscoord CalcQuirkContainingBlockHeight(
     result = (LayoutFrameType::PageContent == frameType) ? ri->AvailableHeight()
                                                          : ri->ComputedHeight();
     // if unconstrained - don't sutract borders - would result in huge height
-    if (NS_UNCONSTRAINEDSIZE == result) return result;
+    if (NS_UNCONSTRAINEDSIZE == result) {
+      return result;
+    }
 
     // if we got to the canvas or page content frame, then subtract out
     // margin/border/padding for the BODY and HTML elements

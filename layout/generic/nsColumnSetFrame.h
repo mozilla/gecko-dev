@@ -46,7 +46,9 @@ class nsColumnSetFrame final : public nsContainerFrame {
     nsIFrame* frame = PrincipalChildList().FirstChild();
 
     // if no children return nullptr
-    if (!frame) return nullptr;
+    if (!frame) {
+      return nullptr;
+    }
 
     return frame->GetContentInsertionFrame();
   }

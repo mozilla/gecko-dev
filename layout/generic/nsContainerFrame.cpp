@@ -561,7 +561,9 @@ nsIFrame::FrameSearchResult nsContainerFrame::PeekOffsetCharacter(
  */
 void nsContainerFrame::PositionFrameView(nsIFrame* aKidFrame) {
   nsIFrame* parentFrame = aKidFrame->GetParent();
-  if (!aKidFrame->HasView() || !parentFrame) return;
+  if (!aKidFrame->HasView() || !parentFrame) {
+    return;
+  }
 
   nsView* view = aKidFrame->GetView();
   nsViewManager* vm = view->GetViewManager();
@@ -736,9 +738,12 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
           : aPresContext->AppUnitsToDevPixels(aMaxSize.height));
 
   // MinSize has a priority over MaxSize
-  if (devMinSize.width > devMaxSize.width) devMaxSize.width = devMinSize.width;
-  if (devMinSize.height > devMaxSize.height)
+  if (devMinSize.width > devMaxSize.width) {
+    devMaxSize.width = devMinSize.width;
+  }
+  if (devMinSize.height > devMaxSize.height) {
     devMaxSize.height = devMinSize.height;
+  }
 
   nsIWidget* rootWidget = aPresContext->GetNearestWidget();
   DesktopToLayoutDeviceScale constraintsScale(MOZ_WIDGET_INVALID_SCALE);
@@ -2155,9 +2160,13 @@ void nsContainerFrame::ReparentFloatsForInlineChild(nsIFrame* aOurLineContainer,
   while (true) {
     ourBlock->ReparentFloats(aFrame, frameBlock, false);
 
-    if (!aReparentSiblings) return;
+    if (!aReparentSiblings) {
+      return;
+    }
     nsIFrame* next = aFrame->GetNextSibling();
-    if (!next) return;
+    if (!next) {
+      return;
+    }
     if (next->GetParent() == aFrame->GetParent()) {
       aFrame = next;
       continue;

@@ -1913,7 +1913,9 @@ ImgDrawResult nsImageFrame::DisplayAltFeedback(gfxContext& aRenderingContext,
 
     // If the icon in question is loaded, draw it.
     uint32_t imageStatus = 0;
-    if (request) request->GetImageStatus(&imageStatus);
+    if (request) {
+      request->GetImageStatus(&imageStatus);
+    }
     if (imageStatus & imgIRequest::STATUS_LOAD_COMPLETE &&
         !(imageStatus & imgIRequest::STATUS_ERROR)) {
       nsCOMPtr<imgIContainer> imgCon;
@@ -2085,7 +2087,9 @@ ImgDrawResult nsImageFrame::DisplayAltFeedbackWithoutLayer(
 
     // If the icon in question is loaded, draw it.
     uint32_t imageStatus = 0;
-    if (request) request->GetImageStatus(&imageStatus);
+    if (request) {
+      request->GetImageStatus(&imageStatus);
+    }
     if (imageStatus & imgIRequest::STATUS_LOAD_COMPLETE &&
         !(imageStatus & imgIRequest::STATUS_ERROR)) {
       nsCOMPtr<imgIContainer> imgCon;
@@ -2694,8 +2698,12 @@ nsresult nsImageFrame::HandleEvent(nsPresContext* aPresContext,
           // keeps the x,y coordinates positive as we do; IE doesn't
           // bother. Both of them send the click through even when the
           // mouse is over the border.
-          if (p.x < 0) p.x = 0;
-          if (p.y < 0) p.y = 0;
+          if (p.x < 0) {
+            p.x = 0;
+          }
+          if (p.y < 0) {
+            p.y = 0;
+          }
 
           nsAutoCString spec;
           nsresult rv = uri->GetSpec(spec);
@@ -2832,8 +2840,9 @@ void nsImageListener::Notify(imgIRequest* aRequest, int32_t aType,
 }
 
 static bool IsInAutoWidthTableCellForQuirk(nsIFrame* aFrame) {
-  if (eCompatibility_NavQuirks != aFrame->PresContext()->CompatibilityMode())
+  if (eCompatibility_NavQuirks != aFrame->PresContext()->CompatibilityMode()) {
     return false;
+  }
   // Check if the parent of the closest nsBlockFrame has auto width.
   nsBlockFrame* ancestor = nsLayoutUtils::FindNearestBlockAncestor(aFrame);
   if (ancestor->Style()->GetPseudoType() == PseudoStyleType::cellContent) {

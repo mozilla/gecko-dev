@@ -143,7 +143,9 @@ nscoord ScrollAnimationBezierPhysics::VelocityComponent(
     nscoord aDestination) const {
   double dt, dxy;
   aTimingFunction.GetSplineDerivativeValues(aTimeProgress, dt, dxy);
-  if (dt == 0) return dxy >= 0 ? nscoord_MAX : nscoord_MIN;
+  if (dt == 0) {
+    return dxy >= 0 ? nscoord_MAX : nscoord_MIN;
+  }
 
   const TimeDuration oneSecond = TimeDuration::FromSeconds(1);
   double slope = dxy / dt;

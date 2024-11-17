@@ -310,8 +310,9 @@ bool nsTextPaintStyle::GetSelectionUnderlineForPaint(
   nsSelectionStyle* selectionStyle = SelectionStyle(aIndex);
   if (selectionStyle->mUnderlineStyle == StyleTextDecorationStyle::None ||
       selectionStyle->mUnderlineColor == NS_TRANSPARENT ||
-      selectionStyle->mUnderlineRelativeSize <= 0.0f)
+      selectionStyle->mUnderlineRelativeSize <= 0.0f) {
     return false;
+  }
 
   *aLineColor = selectionStyle->mUnderlineColor;
   *aRelativeSize = selectionStyle->mUnderlineRelativeSize;

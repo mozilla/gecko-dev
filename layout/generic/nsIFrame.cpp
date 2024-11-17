@@ -372,7 +372,9 @@ bool nsIFrame::IsVisibleConsideringAncestors(uint32_t aFlags) const {
       frame = parent;
     } else {
       parent = nsLayoutUtils::GetCrossDocParentFrameInProcess(frame);
-      if (!parent) break;
+      if (!parent) {
+        break;
+      }
 
       if ((aFlags & nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY) == 0 &&
           parent->PresContext()->IsChrome() &&
@@ -2578,7 +2580,9 @@ void nsIFrame::DisplayOutlineUnconditional(nsDisplayListBuilder* aBuilder,
 
 void nsIFrame::DisplayOutline(nsDisplayListBuilder* aBuilder,
                               const nsDisplayListSet& aLists) {
-  if (!IsVisibleForPainting()) return;
+  if (!IsVisibleForPainting()) {
+    return;
+  }
 
   DisplayOutlineUnconditional(aBuilder, aLists);
 }
@@ -2596,7 +2600,9 @@ void nsIFrame::DisplayInsetBoxShadowUnconditional(
 
 void nsIFrame::DisplayInsetBoxShadow(nsDisplayListBuilder* aBuilder,
                                      nsDisplayList* aList) {
-  if (!IsVisibleForPainting()) return;
+  if (!IsVisibleForPainting()) {
+    return;
+  }
 
   DisplayInsetBoxShadowUnconditional(aBuilder, aList);
 }
@@ -2614,14 +2620,18 @@ void nsIFrame::DisplayOutsetBoxShadowUnconditional(
 
 void nsIFrame::DisplayOutsetBoxShadow(nsDisplayListBuilder* aBuilder,
                                       nsDisplayList* aList) {
-  if (!IsVisibleForPainting()) return;
+  if (!IsVisibleForPainting()) {
+    return;
+  }
 
   DisplayOutsetBoxShadowUnconditional(aBuilder, aList);
 }
 
 void nsIFrame::DisplayCaret(nsDisplayListBuilder* aBuilder,
                             nsDisplayList* aList) {
-  if (!IsVisibleForPainting()) return;
+  if (!IsVisibleForPainting()) {
+    return;
+  }
 
   aList->AppendNewToTop<nsDisplayCaret>(aBuilder, this);
 }
@@ -4460,8 +4470,9 @@ nsresult nsIFrame::GetDataForTableSelection(
     WidgetMouseEvent* aMouseEvent, nsIContent** aParentContent,
     int32_t* aContentOffset, TableSelectionMode* aTarget) {
   if (!aFrameSelection || !aPresShell || !aMouseEvent || !aParentContent ||
-      !aContentOffset || !aTarget)
+      !aContentOffset || !aTarget) {
     return NS_ERROR_NULL_POINTER;
+  }
 
   *aParentContent = nullptr;
   *aContentOffset = 0;
@@ -4496,7 +4507,9 @@ nsresult nsIFrame::GetDataForTableSelection(
                        (aMouseEvent->IsShift() && selectingTableCells);
 #endif
   }
-  if (!doTableSelection) return NS_OK;
+  if (!doTableSelection) {
+    return NS_OK;
+  }
 
   // Get the cell frame or table frame (or parent) of the current content node
   nsIFrame* frame = this;
@@ -4508,7 +4521,9 @@ nsresult nsIFrame::GetDataForTableSelection(
 
   // If our content node is an ancestor of the limiting node,
   // we should stop the search right now.
-  if (limiter && limiter->IsInclusiveDescendantOf(GetContent())) return NS_OK;
+  if (limiter && limiter->IsInclusiveDescendantOf(GetContent())) {
+    return NS_OK;
+  }
 
   // We don't initiate row/col selection from here now,
   //  but we may in future
@@ -4536,18 +4551,26 @@ nsresult nsIFrame::GetDataForTableSelection(
       } else {
         frame = frame->GetParent();
         // Stop if we have hit the selection's limiting content node
-        if (frame && frame->GetContent() == limiter) break;
+        if (frame && frame->GetContent() == limiter) {
+          break;
+        }
       }
     }
   }
   // We aren't in a cell or table
-  if (!foundCell && !foundTable) return NS_OK;
+  if (!foundCell && !foundTable) {
+    return NS_OK;
+  }
 
   nsIContent* tableOrCellContent = frame->GetContent();
-  if (!tableOrCellContent) return NS_ERROR_FAILURE;
+  if (!tableOrCellContent) {
+    return NS_ERROR_FAILURE;
+  }
 
   nsCOMPtr<nsIContent> parentContent = tableOrCellContent->GetParent();
-  if (!parentContent) return NS_ERROR_FAILURE;
+  if (!parentContent) {
+    return NS_ERROR_FAILURE;
+  }
 
   const int32_t offset =
       parentContent->ComputeIndexOf_Deprecated(tableOrCellContent);
@@ -5643,7 +5666,9 @@ static FrameTarget GetSelectionClosestFrameForBlock(nsIFrame* aFrame,
         closestLine = curLine;
         break;  // We found the line; stop looking
       }
-      if (BCoord < 0) break;
+      if (BCoord < 0) {
+        break;
+      }
       ++curLine;
     } while (curLine != end);
 
@@ -5651,8 +5676,12 @@ static FrameTarget GetSelectionClosestFrameForBlock(nsIFrame* aFrame,
       nsBlockFrame::LineIterator prevLine = curLine.prev();
       nsBlockFrame::LineIterator nextLine = curLine;
       // Avoid empty lines
-      while (nextLine != end && nextLine->IsEmpty()) ++nextLine;
-      while (prevLine != end && prevLine->IsEmpty()) --prevLine;
+      while (nextLine != end && nextLine->IsEmpty()) {
+        ++nextLine;
+      }
+      while (prevLine != end && prevLine->IsEmpty()) {
+        --prevLine;
+      }
 
       // This hidden pref dictates whether a point above or below all lines
       // comes up with a line or the beginning or end of the frame; 0 on
@@ -5661,18 +5690,21 @@ static FrameTarget GetSelectionClosestFrameForBlock(nsIFrame* aFrame,
           Preferences::GetInt("browser.drag_out_of_frame_style");
 
       if (prevLine == end) {
-        if (dragOutOfFrame == 1 || nextLine == end)
+        if (dragOutOfFrame == 1 || nextLine == end) {
           return DrillDownToSelectionFrame(aFrame, false, aFlags);
+        }
         closestLine = nextLine;
       } else if (nextLine == end) {
-        if (dragOutOfFrame == 1)
+        if (dragOutOfFrame == 1) {
           return DrillDownToSelectionFrame(aFrame, true, aFlags);
+        }
         closestLine = prevLine;
       } else {  // Figure out which line is closer
-        if (pt.B(wm) - prevLine->BEnd() < nextLine->BStart() - pt.B(wm))
+        if (pt.B(wm) - prevLine->BEnd() < nextLine->BStart() - pt.B(wm)) {
           closestLine = prevLine;
-        else
+        } else {
           closestLine = nextLine;
+        }
       }
     }
   }
@@ -5762,8 +5794,9 @@ static FrameTarget GetSelectionClosestFrame(nsIFrame* aFrame,
       kid->FindCloserFrameForSelection(aPoint, &closest);
     }
     if (closest.mFrame) {
-      if (closest.mFrame->IsInSVGTextSubtree())
+      if (closest.mFrame->IsInSVGTextSubtree()) {
         return FrameTarget{closest.mFrame, false, false};
+      }
       return GetSelectionClosestFrameForChild(closest.mFrame, aPoint, aFlags);
     }
   }
@@ -5794,16 +5827,18 @@ static nsIFrame::ContentOffsets OffsetsForSingleFrame(nsIFrame* aFrame,
       (!isBlock && ((isRtl && rect.x + rect.width / 2 > aPoint.x) ||
                     (!isRtl && rect.x + rect.width / 2 < aPoint.x)))) {
     offsets.offset = range.end;
-    if (rect.Contains(aPoint))
+    if (rect.Contains(aPoint)) {
       offsets.secondaryOffset = range.start;
-    else
+    } else {
       offsets.secondaryOffset = range.end;
+    }
   } else {
     offsets.offset = range.start;
-    if (rect.Contains(aPoint))
+    if (rect.Contains(aPoint)) {
       offsets.secondaryOffset = range.end;
-    else
+    } else {
       offsets.secondaryOffset = range.start;
+    }
   }
   offsets.associate = offsets.offset == range.start
                           ? CaretAssociationHint::After
@@ -5868,10 +5903,11 @@ nsIFrame::ContentOffsets nsIFrame::GetContentOffsetsFromPoint(
     ContentOffsets offsets;
     FrameContentRange range = GetRangeForFrame(closest.frame);
     offsets.content = range.content;
-    if (closest.afterFrame)
+    if (closest.afterFrame) {
       offsets.offset = range.end;
-    else
+    } else {
       offsets.offset = range.start;
+    }
     offsets.secondaryOffset = offsets.offset;
     offsets.associate = offsets.offset == range.start
                             ? CaretAssociationHint::After
@@ -6091,7 +6127,9 @@ void nsIFrame::InlineMinISizeData::OptionallyBreak(nscoord aHyphenWidth) {
   // text-indent or negative margin), don't break.  Otherwise, do the
   // same as ForceBreak.  it doesn't really matter when we accumulate
   // floats.
-  if (mCurrentLine + aHyphenWidth < 0 || mAtStartOfLine) return;
+  if (mCurrentLine + aHyphenWidth < 0 || mAtStartOfLine) {
+    return;
+  }
   mCurrentLine += aHyphenWidth;
   ForceBreak();
 }
@@ -7467,8 +7505,9 @@ void nsIFrame::SetView(nsView* aView) {
     // Let all of the ancestors know they have a descendant with a view.
     for (nsIFrame* f = GetParent();
          f && !f->HasAnyStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
-         f = f->GetParent())
+         f = f->GetParent()) {
       f->AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
+    }
   } else {
     MOZ_ASSERT_UNREACHABLE("Destroying a view while the frame is alive?");
     RemoveStateBits(NS_FRAME_HAS_VIEW);
@@ -7720,7 +7759,9 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
    * outparam to null (indicating that there's nothing left) and will hand back
    * the identity matrix.
    */
-  if (!*aOutAncestor) return Matrix4x4Flagged();
+  if (!*aOutAncestor) {
+    return Matrix4x4Flagged();
+  }
 
   /* Keep iterating while the frame can't possibly be transformed. */
   const nsIFrame* current = this;
@@ -7767,7 +7808,9 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
       currAPD = newAPD;
       docOffset += crossdocOffset;
 
-      if (!parent) break;
+      if (!parent) {
+        break;
+      }
     }
 
     current = *aOutAncestor;
@@ -8770,7 +8813,9 @@ bool nsIFrame::IsSelfEmpty() {
 
 nsresult nsIFrame::GetSelectionController(nsPresContext* aPresContext,
                                           nsISelectionController** aSelCon) {
-  if (!aPresContext || !aSelCon) return NS_ERROR_INVALID_ARG;
+  if (!aPresContext || !aSelCon) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   nsIFrame* frame = this;
   while (frame && frame->HasAnyStateBits(NS_FRAME_INDEPENDENT_SELECTION)) {
@@ -8863,9 +8908,10 @@ nsresult nsIFrame::GetChildFrameContainingOffset(int32_t inContentOffset,
     // possibly has the same content.  If we have no frames in flow then just
     // let us return 'this' frame
     nsIFrame* nextFlow = GetNextInFlow();
-    if (nextFlow)
+    if (nextFlow) {
       return nextFlow->GetChildFrameContainingOffset(
           inContentOffset, inHint, outFrameContentOffset, outChildFrame);
+    }
   }
   *outChildFrame = this;
   return NS_OK;
@@ -9780,7 +9826,9 @@ nsIFrame::FrameSearchResult nsIFrame::PeekOffsetCharacter(
   NS_ASSERTION(aOffset && *aOffset <= 1, "aOffset out of range");
   int32_t startOffset = *aOffset;
   // A negative offset means "end of frame", which in our case means offset 1.
-  if (startOffset < 0) startOffset = 1;
+  if (startOffset < 0) {
+    startOffset = 1;
+  }
   if (aForward == (startOffset == 0)) {
     // We're before the frame and moving forward, or after it and moving
     // backwards: skip to the other side and we're done.
@@ -9797,7 +9845,9 @@ nsIFrame::FrameSearchResult nsIFrame::PeekOffsetWord(
   int32_t startOffset = *aOffset;
   // This isn't text, so truncate the context
   aState->mContext.Truncate();
-  if (startOffset < 0) startOffset = 1;
+  if (startOffset < 0) {
+    startOffset = 1;
+  }
   if (aForward == (startOffset == 0)) {
     // We're before the frame and moving forward, or after it and moving
     // backwards. If we're looking for non-whitespace, we found it (without
@@ -9806,11 +9856,14 @@ nsIFrame::FrameSearchResult nsIFrame::PeekOffsetWord(
       if (aState->mLastCharWasPunctuation) {
         // We're not punctuation, so this is a punctuation boundary.
         if (BreakWordBetweenPunctuation(aState, aForward, false, false,
-                                        aIsKeyboardSelect))
+                                        aIsKeyboardSelect)) {
           return FOUND;
+        }
       } else {
         // This is not a punctuation boundary.
-        if (aWordSelectEatSpace && aState->mSawBeforeType) return FOUND;
+        if (aWordSelectEatSpace && aState->mSawBeforeType) {
+          return FOUND;
+        }
       }
     }
     // Otherwise skip to the other side and note that we encountered
@@ -9819,7 +9872,9 @@ nsIFrame::FrameSearchResult nsIFrame::PeekOffsetWord(
     aState->Update(false,  // not punctuation
                    false   // not whitespace
     );
-    if (!aWordSelectEatSpace) aState->SetSawBeforeType();
+    if (!aWordSelectEatSpace) {
+      aState->SetSawBeforeType();
+    }
   }
   return CONTINUE;
 }
@@ -10137,7 +10192,9 @@ nsView* nsIFrame::GetClosestView(nsPoint* aOffset) const {
   nsPoint offset(0, 0);
   for (const nsIFrame* f = this; f; f = f->GetParent()) {
     if (f->HasView()) {
-      if (aOffset) *aOffset = offset;
+      if (aOffset) {
+        *aOffset = offset;
+      }
       return f->GetView();
     }
     offset += f->GetPosition();
@@ -10384,7 +10441,9 @@ static void ComputeAndIncludeOutlineArea(nsIFrame* aFrame,
   nsIFrame* frameForArea = aFrame;
   do {
     PseudoStyleType pseudoType = frameForArea->Style()->GetPseudoType();
-    if (pseudoType != PseudoStyleType::mozBlockInsideInlineWrapper) break;
+    if (pseudoType != PseudoStyleType::mozBlockInsideInlineWrapper) {
+      break;
+    }
     // If we're done, we really want it and all its later siblings.
     frameForArea = frameForArea->PrincipalChildList().FirstChild();
     NS_ASSERTION(frameForArea, "anonymous block with no children?");
@@ -11041,11 +11100,15 @@ void nsIFrame::GetLastLeaf(nsIFrame** aFrame) {
 }
 
 void nsIFrame::GetFirstLeaf(nsIFrame** aFrame) {
-  if (!aFrame || !*aFrame) return;
+  if (!aFrame || !*aFrame) {
+    return;
+  }
   nsIFrame* child = *aFrame;
   while (true) {
     child = child->PrincipalChildList().FirstChild();
-    if (!child) return;  // nothing to do
+    if (!child) {
+      return;  // nothing to do
+    }
     *aFrame = child;
   }
 }

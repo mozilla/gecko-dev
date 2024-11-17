@@ -146,7 +146,9 @@ bool nsInlineFrame::IsEmpty() {
   }
 
   for (nsIFrame* kid : mFrames) {
-    if (!kid->IsEmpty()) return false;
+    if (!kid->IsEmpty()) {
+      return false;
+    }
   }
 
   return true;
@@ -157,7 +159,9 @@ nsIFrame::FrameSearchResult nsInlineFrame::PeekOffsetCharacter(
   // Override the implementation in nsFrame, to skip empty inline frames
   NS_ASSERTION(aOffset && *aOffset <= 1, "aOffset out of range");
   int32_t startOffset = *aOffset;
-  if (startOffset < 0) startOffset = 1;
+  if (startOffset < 0) {
+    startOffset = 1;
+  }
   if (aForward == (startOffset == 0)) {
     // We're before the frame and moving forward, or after it and moving
     // backwards: skip to the other side, but keep going.
@@ -854,8 +858,9 @@ a11y::AccType nsInlineFrame::AccessibleType() {
   // FIXME(emilio): This is broken, if the image has its default `display` value
   // overridden. Should be somewhere else.
   if (mContent->IsHTMLElement(
-          nsGkAtoms::img))  // Create accessible for broken <img>
+          nsGkAtoms::img)) {  // Create accessible for broken <img>
     return a11y::eHyperTextType;
+  }
 
   return a11y::eNoType;
 }

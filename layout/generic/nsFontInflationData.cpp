@@ -57,7 +57,9 @@ bool nsFontInflationData::UpdateFontInflationDataISizeFor(
 
   data->UpdateISize(aReflowInput);
 
-  if (oldInflationEnabled != data->mInflationEnabled) return true;
+  if (oldInflationEnabled != data->mInflationEnabled) {
+    return true;
+  }
 
   return oldInflationEnabled && oldUsableISize != data->mUsableISize;
 }
