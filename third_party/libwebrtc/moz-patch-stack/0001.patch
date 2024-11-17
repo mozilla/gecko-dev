@@ -1,145 +1,86 @@
-From: =?UTF-8?q?Henrik=20Bostr=C3=B6m?= <hbos@webrtc.org>
-Date: Tue, 1 Oct 2024 11:20:32 +0200
-Subject: (cherry-pick-branch-heads/6723) [Merge-130] Fix LibvpxVp9Encoder
- simulcast bug.
+From: Michael Froman <mjfroman@mac.com>
+Date: Sat, 16 Nov 2024 18:35:31 -0600
+Subject: (tmp-cherry-pick) Revert "Per defaul probe max to 2x current BWE if
+ max total allocated bitrate change" (0549950113)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-As of [1], a single VP9 encoder instance can produce simulcast 4:2:1.
-When it does, the EncodedImage has its simulcast index set (0, 1, 2).
+This reverts commit 37458ce40a1741f9d5358d49fe49beed20140502.
 
-The bug is that if you then go back to a single encoder instance,
-either because you're doing singlecast or because you're doing
-simulcast with scaling factors that are not power of two (not 4:2:1),
-then the simulcast index which was previously set to 2 is not reset due
-to the old code path never calling SetSimulcastIndex.
+Reason for revert: Will be wired up as an experiment instead.
 
-Example repro:
-1. Send VP9 simulcast {180p, 360p, 720p}, i.e. 4:2.1.
-2. Reconfigure to {180p, 360p, 540p}, i.e. no longer 4:2:1.
+Original change's description:
+> Per defaul probe max to 2x current BWE if max total allocated bitrate change
+>
+> This aligns to probe limits in ALR for example.
+>
+> Bug: webrtc:369044000, b/369021234
+> Change-Id: I3823b308cf97a8b7060b35b2ac38864e75d6f983
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/363301
+> Reviewed-by: Jonas Oreland <jonaso@webrtc.org>
+> Reviewed-by: Diep Bui <diepbp@webrtc.org>
+> Commit-Queue: Per Kjellander <perkj@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43074}
 
-What should happen: all three layers are sent.
-What actually happened: 180p is not sent and the 540p layer flips flops
-between 180p and 540p because the EncodedImage says simulcast index is
-2 for both encodings[0] and encodings[2].
-
-The fix is a one-line change: `SetSimulcastIndex(std::nullopt)` in the
-case that we don't have a `simulcast_to_svc_converter_` that sets it
-(0, 1, 2) for us.
-
-[1] https://webrtc-review.googlesource.com/c/src/+/360280
-
-(cherry picked from commit a6fbb35ac1849c5cd823ec90121d92fc5b776b35)
-
-Bug: chromium:370299916
-Change-Id: I94ce1a0bde43ef56cba930cb69b744877bbd4bf9
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/363941
-Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-Commit-Queue: Henrik Boström <hbos@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43109}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364302
-Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6723@{#2}
-Cr-Branched-From: 13e377b804f68aa9c20ea5e449666ea5248e3286-refs/heads/main@{#43019}
+Bug: webrtc:369044000, b/369021234
+Change-Id: I22b457254c9c21d2d951af2bda01a349ef83b3c7
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364242
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Commit-Queue: Per Kjellander <perkj@webrtc.org>
+Commit-Queue: Ranveer Aggarwal‎ <ranvr@webrtc.org>
+Reviewed-by: Diep Bui <diepbp@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43130}
 ---
- .../codecs/vp9/libvpx_vp9_encoder.cc          |  4 +-
- ...er_connection_encodings_integrationtest.cc | 70 +++++++++++++++++++
- 2 files changed, 73 insertions(+), 1 deletion(-)
+ .../congestion_controller/goog_cc/probe_controller.cc  |  2 +-
+ .../goog_cc/probe_controller_unittest.cc               | 10 +++++-----
+ 2 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index c2a17c59d4..2da0918062 100644
---- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-+++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-@@ -1761,7 +1761,9 @@ void LibvpxVp9Encoder::DeliverBufferedFrame(bool end_of_picture) {
- 
-     codec_specific_.end_of_picture = end_of_picture;
- 
--    if (simulcast_to_svc_converter_) {
-+    if (!simulcast_to_svc_converter_) {
-+      encoded_image_.SetSimulcastIndex(std::nullopt);
-+    } else {
-       simulcast_to_svc_converter_->ConvertFrame(encoded_image_,
-                                                 codec_specific_);
-     }
-diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
-index b8b7e18e58..8058379666 100644
---- a/pc/peer_connection_encodings_integrationtest.cc
-+++ b/pc/peer_connection_encodings_integrationtest.cc
-@@ -2417,6 +2417,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-   EXPECT_THAT(*outbound_rtps[2]->scalability_mode, StrEq("L1T3"));
+diff --git a/modules/congestion_controller/goog_cc/probe_controller.cc b/modules/congestion_controller/goog_cc/probe_controller.cc
+index adf71aa0c7..c1a39f8595 100644
+--- a/modules/congestion_controller/goog_cc/probe_controller.cc
++++ b/modules/congestion_controller/goog_cc/probe_controller.cc
+@@ -109,7 +109,7 @@ ProbeControllerConfig::ProbeControllerConfig(
+       probe_on_max_allocated_bitrate_change("probe_max_allocation", true),
+       first_allocation_probe_scale("alloc_p1", 1),
+       second_allocation_probe_scale("alloc_p2", 2),
+-      allocation_probe_limit_by_current_scale("alloc_current_bwe_limit", 2.0),
++      allocation_probe_limit_by_current_scale("alloc_current_bwe_limit"),
+       min_probe_packets_sent("min_probe_packets_sent", 5),
+       min_probe_duration("min_probe_duration", TimeDelta::Millis(15)),
+       min_probe_delta("min_probe_delta", TimeDelta::Millis(2)),
+diff --git a/modules/congestion_controller/goog_cc/probe_controller_unittest.cc b/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
+index b841c2bac2..bb3c79c466 100644
+--- a/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
++++ b/modules/congestion_controller/goog_cc/probe_controller_unittest.cc
+@@ -217,7 +217,9 @@ TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateIncreaseOnlyWhenInAlr) {
  }
  
-+// Simulcast starting in 720p 4:2:1 then changing to {180p, 360p, 540p} using
-+// the `scale_resolution_down_by` API.
-+TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-+       SimulcastScaleDownByNoLongerPowerOfTwo) {
-+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-+  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
-+    return;
-+  }
-+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
-+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
-+
-+  std::vector<cricket::SimulcastLayer> layers =
-+      CreateLayers({"q", "h", "f"}, /*active=*/true);
-+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
-+      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
-+                                        layers);
-+  std::vector<RtpCodecCapability> codecs =
-+      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
-+  transceiver->SetCodecPreferences(codecs);
-+  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
-+
-+  // Configure {180p, 360p, 720p}.
-+  RtpParameters parameters = sender->GetParameters();
-+  ASSERT_THAT(parameters.encodings, SizeIs(3));
-+  parameters.encodings[0].scalability_mode = "L1T1";
-+  parameters.encodings[0].scale_resolution_down_by = 4.0;
-+  parameters.encodings[1].scalability_mode = "L1T1";
-+  parameters.encodings[1].scale_resolution_down_by = 2.0;
-+  parameters.encodings[2].scalability_mode = "L1T1";
-+  parameters.encodings[2].scale_resolution_down_by = 1.0;
-+  sender->SetParameters(parameters);
-+
-+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
-+  local_pc_wrapper->WaitForConnection();
-+  remote_pc_wrapper->WaitForConnection();
-+
-+  // Wait for media to flow on all layers.
-+  // Needed repro step of https://crbug.com/webrtc/369654168: When the same
-+  // LibvpxVp9Encoder instance was used to first produce simulcast and later for
-+  // a single encoding, the previously used simulcast index (= 2) would still be
-+  // set when producing 180p since non-simulcast config does not reset this,
-+  // resulting in the 180p encoding freezing and the 540p encoding having double
-+  // frame rate and toggling between 180p and 540p in resolution.
-+  ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, 3u),
-+                   kLongTimeoutForRampingUp.ms());
-+
-+  // Configure {180p, 360p, 540p}.
-+  parameters = sender->GetParameters();
-+  parameters.encodings[0].scale_resolution_down_by = 4.0;
-+  parameters.encodings[1].scale_resolution_down_by = 2.0;
-+  parameters.encodings[2].scale_resolution_down_by = 1.333333;
-+  sender->SetParameters(parameters);
-+
-+  // Wait for the new resolutions to be produced.
-+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "q") ==
-+                       Resolution({.width = 320, .height = 180}),
-+                   kLongTimeoutForRampingUp.ms());
-+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "h") ==
-+                       Resolution({.width = 640, .height = 360}),
-+                   kLongTimeoutForRampingUp.ms());
-+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "f") ==
-+                       Resolution({.width = 960, .height = 540}),
-+                   kLongTimeoutForRampingUp.ms());
-+
-+  // Ensure 180p frames continue to be encoded post reconfiguration.
-+  int frames_encoded = EncodedFrames(local_pc_wrapper, "q");
-+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "q") > frames_encoded,
-+                   kLongTimeoutForRampingUp.ms());
-+}
-+
- // The code path that disables layers based on resolution size should NOT run
- // when `requested_resolution` is specified. (It shouldn't run in any case but
- // that is an existing legacy code and non-compliance problem that we don't have
+ TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe) {
+-  ProbeControllerFixture fixture;
++  ProbeControllerFixture fixture(
++      "WebRTC-Bwe-ProbingConfiguration/"
++      "alloc_current_bwe_limit:1.5/");
+   ASSERT_TRUE(kMaxBitrate > 1.5 * kStartBitrate);
+   std::unique_ptr<ProbeController> probe_controller =
+       fixture.CreateController();
+@@ -240,7 +242,7 @@ TEST(ProbeControllerTest, ProbesOnMaxAllocatedBitrateLimitedByCurrentBwe) {
+   probes = probe_controller->OnMaxTotalAllocatedBitrate(kMaxBitrate,
+                                                         fixture.CurrentTime());
+   EXPECT_EQ(probes.size(), 1u);
+-  EXPECT_EQ(probes.at(0).target_data_rate, 2 * kStartBitrate);
++  EXPECT_EQ(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
+ 
+   // Continue probing if probe succeeds.
+   probes = probe_controller->SetEstimatedBitrate(
+@@ -764,9 +766,7 @@ TEST(ProbeControllerTest, ConfigurableProbingFieldTrial) {
+   ProbeControllerFixture fixture(
+       "WebRTC-Bwe-ProbingConfiguration/"
+       "p1:2,p2:5,step_size:3,further_probe_threshold:0.8,"
+-      "alloc_p1:2,alloc_p2,alloc_current_bwe_limit:1000.0,min_probe_packets_"
+-      "sent:"
+-      "2/");
++      "alloc_p1:2,alloc_p2,min_probe_packets_sent:2/");
+   std::unique_ptr<ProbeController> probe_controller =
+       fixture.CreateController();
+   ASSERT_THAT(
