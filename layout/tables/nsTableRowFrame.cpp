@@ -636,8 +636,9 @@ static nscoord GetSpaceBetween(int32_t aPrevColIndex, int32_t aColIndex,
       const nsStyleVisibility* groupVis = cgFrame->StyleVisibility();
       bool collapseGroup = StyleVisibility::Collapse == groupVis->mVisible;
       isCollapsed = collapseCol || collapseGroup;
-      if (!isCollapsed)
+      if (!isCollapsed) {
         space += fifTable->GetColumnISizeFromFirstInFlow(colIdx);
+      }
     }
     if (!isCollapsed && aTableFrame.ColumnHasCellSpacingBefore(colIdx)) {
       space += aTableFrame.GetColSpacing(colIdx - 1);

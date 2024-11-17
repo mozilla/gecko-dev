@@ -127,7 +127,9 @@ void nsTableCellFrame::NotifyPercentBSize(const ReflowInput& aReflowInput) {
 // below that
 bool nsTableCellFrame::NeedsToObserve(const ReflowInput& aReflowInput) {
   const ReflowInput* rs = aReflowInput.mParentReflowInput;
-  if (!rs) return false;
+  if (!rs) {
+    return false;
+  }
   if (rs->mFrame == this) {
     // We always observe the child block.  It will never send any
     // notifications, but we need this so that the observer gets
@@ -917,10 +919,11 @@ nsTableCellFrame::GetCellIndexes(int32_t& aRowIndex, int32_t& aColIndex) {
 nsTableCellFrame* NS_NewTableCellFrame(PresShell* aPresShell,
                                        ComputedStyle* aStyle,
                                        nsTableFrame* aTableFrame) {
-  if (aTableFrame->IsBorderCollapse())
+  if (aTableFrame->IsBorderCollapse()) {
     return new (aPresShell) nsBCTableCellFrame(aStyle, aTableFrame);
-  else
+  } else {
     return new (aPresShell) nsTableCellFrame(aStyle, aTableFrame);
+  }
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsBCTableCellFrame)

@@ -124,7 +124,9 @@ class nsTableWrapperFrame : public nsContainerFrame {
    */
   int32_t GetIndexByRowAndColumn(int32_t aRowIdx, int32_t aColIdx) const {
     nsTableCellMap* cellMap = InnerTableFrame()->GetCellMap();
-    if (!cellMap) return -1;
+    if (!cellMap) {
+      return -1;
+    }
 
     return cellMap->GetIndexByRowAndColumn(aRowIdx, aColIdx);
   }

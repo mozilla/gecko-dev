@@ -65,8 +65,9 @@ void nsTableColFrame::SetColType(nsTableColType aType) {
 void nsTableColFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
   nsSplittableFrame::DidSetComputedStyle(aOldComputedStyle);
 
-  if (!aOldComputedStyle)  // avoid this on init
+  if (!aOldComputedStyle) {  // avoid this on init
     return;
+  }
 
   nsTableFrame* tableFrame = GetTableFrame();
   if (tableFrame->IsBorderCollapse() &&

@@ -481,7 +481,9 @@ void BasicTableLayoutStrategy::ComputeIntrinsicISizes(
         (nonpct_pref_total == nscoord_MAX
              ? nscoord_MAX
              : nscoord(float(nonpct_pref_total) / (1.0f - pct_total)));
-    if (large_pct_pref > pref_pct_expand) pref_pct_expand = large_pct_pref;
+    if (large_pct_pref > pref_pct_expand) {
+      pref_pct_expand = large_pct_pref;
+    }
   }
 
   // border-spacing isn't part of the basis for percentages
@@ -527,7 +529,9 @@ void BasicTableLayoutStrategy::ComputeColumnISizes(
 
   nsTableCellMap* cellMap = mTableFrame->GetCellMap();
   int32_t colCount = cellMap->GetColCount();
-  if (colCount <= 0) return;  // nothing to do
+  if (colCount <= 0) {
+    return;  // nothing to do
+  }
 
   DistributeISizeToColumns(iSize, 0, colCount, BtlsISizeType::FinalISize,
                            false);
@@ -877,8 +881,9 @@ void BasicTableLayoutStrategy::DistributeISizeToColumns(
               col_iSize = NSCoordSaturatingAdd(
                   col_iSize, NSToCoordRound(float(pref_minus_min) * c));
             }
-          } else
+          } else {
             col_iSize = col_iSize_before_adjust = colFrame->GetMinCoord();
+          }
         }
         break;
       case FLEX_FLEX_SMALL:

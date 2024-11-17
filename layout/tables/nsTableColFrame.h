@@ -154,8 +154,12 @@ class nsTableColFrame final : public nsSplittableFrame {
       aPrefCoord = aMinCoord;  // NOTE: modifying argument
     }
 
-    if (aMinCoord > mMinCoord) mMinCoord = aMinCoord;
-    if (aPrefCoord > mPrefCoord) mPrefCoord = aPrefCoord;
+    if (aMinCoord > mMinCoord) {
+      mMinCoord = aMinCoord;
+    }
+    if (aPrefCoord > mPrefCoord) {
+      mPrefCoord = aPrefCoord;
+    }
 
     NS_ASSERTION(mMinCoord <= mPrefCoord, "min larger than pref");
   }
@@ -166,7 +170,9 @@ class nsTableColFrame final : public nsSplittableFrame {
    * column-spanning cell.
    */
   void AddPrefPercent(float aPrefPercent) {
-    if (aPrefPercent > mPrefPercent) mPrefPercent = aPrefPercent;
+    if (aPrefPercent > mPrefPercent) {
+      mPrefPercent = aPrefPercent;
+    }
   }
 
   /**
@@ -204,8 +210,12 @@ class nsTableColFrame final : public nsSplittableFrame {
       aSpanPrefCoord = aSpanMinCoord;  // NOTE: modifying argument
     }
 
-    if (aSpanMinCoord > mSpanMinCoord) mSpanMinCoord = aSpanMinCoord;
-    if (aSpanPrefCoord > mSpanPrefCoord) mSpanPrefCoord = aSpanPrefCoord;
+    if (aSpanMinCoord > mSpanMinCoord) {
+      mSpanMinCoord = aSpanMinCoord;
+    }
+    if (aSpanPrefCoord > mSpanPrefCoord) {
+      mSpanPrefCoord = aSpanPrefCoord;
+    }
 
     NS_ASSERTION(mSpanMinCoord <= mSpanPrefCoord, "min larger than pref");
   }
@@ -215,8 +225,9 @@ class nsTableColFrame final : public nsSplittableFrame {
    * temporary variables.
    */
   void AddSpanPrefPercent(float aSpanPrefPercent) {
-    if (aSpanPrefPercent > mSpanPrefPercent)
+    if (aSpanPrefPercent > mSpanPrefPercent) {
       mSpanPrefPercent = aSpanPrefPercent;
+    }
   }
 
   /*
@@ -233,7 +244,9 @@ class nsTableColFrame final : public nsSplittableFrame {
   // starting at the first column, until they reach 100%).
   void AdjustPrefPercent(float* aTableTotalPercent) {
     float allowed = 1.0f - *aTableTotalPercent;
-    if (mPrefPercent > allowed) mPrefPercent = allowed;
+    if (mPrefPercent > allowed) {
+      mPrefPercent = allowed;
+    }
     *aTableTotalPercent += mPrefPercent;
   }
 
