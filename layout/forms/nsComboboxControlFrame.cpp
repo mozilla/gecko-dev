@@ -47,7 +47,9 @@ using namespace mozilla::gfx;
 
 NS_IMETHODIMP
 nsComboboxControlFrame::RedisplayTextEvent::Run() {
-  if (mControlFrame) mControlFrame->HandleRedisplayTextEvent();
+  if (mControlFrame) {
+    mControlFrame->HandleRedisplayTextEvent();
+  }
   return NS_OK;
 }
 

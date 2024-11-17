@@ -29,8 +29,9 @@ NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
 static nsListControlFrame* GetEnclosingListFrame(nsIFrame* aSelectsAreaFrame) {
   nsIFrame* frame = aSelectsAreaFrame->GetParent();
   while (frame) {
-    if (frame->IsListControlFrame())
+    if (frame->IsListControlFrame()) {
       return static_cast<nsListControlFrame*>(frame);
+    }
     frame = frame->GetParent();
   }
   return nullptr;
