@@ -236,8 +236,12 @@ void SVGForeignObjectFrame::ReflowSVG() {
       static_cast<SVGElement*>(GetContent()), &x, &y, &w, &h);
 
   // If mRect's width or height are negative, reflow blows up! We must clamp!
-  if (w < 0.0f) w = 0.0f;
-  if (h < 0.0f) h = 0.0f;
+  if (w < 0.0f) {
+    w = 0.0f;
+  }
+  if (h < 0.0f) {
+    h = 0.0f;
+  }
 
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(gfxRect(x, y, w, h),
                                                AppUnitsPerCSSPixel());
@@ -351,8 +355,12 @@ SVGBBox SVGForeignObjectFrame::GetBBoxContribution(
   SVGGeometryProperty::ResolveAll<SVGT::X, SVGT::Y, SVGT::Width, SVGT::Height>(
       content, &x, &y, &w, &h);
 
-  if (w < 0.0f) w = 0.0f;
-  if (h < 0.0f) h = 0.0f;
+  if (w < 0.0f) {
+    w = 0.0f;
+  }
+  if (h < 0.0f) {
+    h = 0.0f;
+  }
 
   if (aToBBoxUserspace.IsSingular()) {
     // XXX ReportToConsole

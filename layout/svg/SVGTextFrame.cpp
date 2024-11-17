@@ -140,7 +140,9 @@ static void IntersectInterval(uint32_t& aStart, uint32_t& aLength,
   if (aStartOther >= aEnd || aStart >= aEndOther) {
     aLength = 0;
   } else {
-    if (aStartOther >= aStart) aStart = aStartOther;
+    if (aStartOther >= aStart) {
+      aStart = aStartOther;
+    }
     aLength = std::min(aEnd, aEndOther) - aStart;
   }
 }

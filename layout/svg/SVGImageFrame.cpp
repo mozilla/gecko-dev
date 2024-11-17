@@ -320,12 +320,14 @@ void SVGImageFrame::PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
     nsCOMPtr<imgIRequest> currentRequest;
     nsCOMPtr<nsIImageLoadingContent> imageLoader =
         do_QueryInterface(GetContent());
-    if (imageLoader)
+    if (imageLoader) {
       imageLoader->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
                               getter_AddRefs(currentRequest));
+    }
 
-    if (currentRequest)
+    if (currentRequest) {
       currentRequest->GetImage(getter_AddRefs(mImageContainer));
+    }
   }
 
   if (mImageContainer) {

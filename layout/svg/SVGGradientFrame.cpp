@@ -301,12 +301,13 @@ already_AddRefed<gfxPattern> SVGGradientFrame::GetPaintServerPattern(
   }
 
   uint16_t aSpread = GetSpreadMethod();
-  if (aSpread == SVG_SPREADMETHOD_PAD)
+  if (aSpread == SVG_SPREADMETHOD_PAD) {
     gradient->SetExtend(ExtendMode::CLAMP);
-  else if (aSpread == SVG_SPREADMETHOD_REFLECT)
+  } else if (aSpread == SVG_SPREADMETHOD_REFLECT) {
     gradient->SetExtend(ExtendMode::REFLECT);
-  else if (aSpread == SVG_SPREADMETHOD_REPEAT)
+  } else if (aSpread == SVG_SPREADMETHOD_REPEAT) {
     gradient->SetExtend(ExtendMode::REPEAT);
+  }
 
   gradient->SetMatrix(patternMatrix);
 

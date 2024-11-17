@@ -1170,8 +1170,12 @@ static WrFiltersStatus WrFilterOpSVGFETurbulence(
   // for setting up the seed.
   int32_t m1 = 2147483647 - 1;
   int32_t seed = (int32_t)((uint32_t)aAttributes.mSeed);
-  if (seed <= 0) seed = -(seed % m1) + 1;
-  if (seed > m1) seed = m1;
+  if (seed <= 0) {
+    seed = -(seed % m1) + 1;
+  }
+  if (seed > m1) {
+    seed = m1;
+  }
   switch (aAttributes.mType) {
     case SVG_TURBULENCE_TYPE_FRACTALNOISE:
       if (aAttributes.mStitchable) {

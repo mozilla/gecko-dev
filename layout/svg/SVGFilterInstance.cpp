@@ -185,17 +185,21 @@ IntRect SVGFilterInstance::ComputeFilterPrimitiveSubregion(
   Rect region = ToRect(UserSpaceToFilterSpace(feArea));
 
   if (!fE->mLengthAttributes[SVGFilterPrimitiveElement::ATTR_X]
-           .IsExplicitlySet())
+           .IsExplicitlySet()) {
     region.x = defaultFilterSubregion.X();
+  }
   if (!fE->mLengthAttributes[SVGFilterPrimitiveElement::ATTR_Y]
-           .IsExplicitlySet())
+           .IsExplicitlySet()) {
     region.y = defaultFilterSubregion.Y();
+  }
   if (!fE->mLengthAttributes[SVGFilterPrimitiveElement::ATTR_WIDTH]
-           .IsExplicitlySet())
+           .IsExplicitlySet()) {
     region.width = defaultFilterSubregion.Width();
+  }
   if (!fE->mLengthAttributes[SVGFilterPrimitiveElement::ATTR_HEIGHT]
-           .IsExplicitlySet())
+           .IsExplicitlySet()) {
     region.height = defaultFilterSubregion.Height();
+  }
 
   // We currently require filter primitive subregions to be pixel-aligned.
   // Following the spec, any pixel partially in the region is included

@@ -134,8 +134,12 @@ SVGBBox SVGViewportFrame::GetBBoxContribution(const Matrix& aToBBoxUserspace,
     float x, y, w, h;
     static_cast<SVGViewportElement*>(GetContent())
         ->GetAnimatedLengthValues(&x, &y, &w, &h, nullptr);
-    if (w < 0.0f) w = 0.0f;
-    if (h < 0.0f) h = 0.0f;
+    if (w < 0.0f) {
+      w = 0.0f;
+    }
+    if (h < 0.0f) {
+      h = 0.0f;
+    }
     Rect viewport(x, y, w, h);
     bbox = aToBBoxUserspace.TransformBounds(viewport);
     if (StyleDisplay()->IsScrollableOverflow()) {
