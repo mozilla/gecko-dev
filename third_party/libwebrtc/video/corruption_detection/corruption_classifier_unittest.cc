@@ -20,6 +20,10 @@ namespace webrtc {
 namespace {
 
 using ::testing::DoubleNear;
+#if GTEST_HAS_DEATH_TEST
+using ::testing::_;
+using ::testing::HasSubstr;
+#endif  // GTEST_HAS_DEATH_TEST
 
 constexpr int kLumaThreshold = 3;
 constexpr int kChromaThreshold = 2;
@@ -55,6 +59,27 @@ std::vector<FilteredSample> GetCompressedSampleValues(
       {.value = kBaseOriginalChromaSampleValue1 + increase_value_chroma,
        .plane = ImagePlane::kChroma}};
 }
+
+#if GTEST_HAS_DEATH_TEST
+TEST(CorruptionClassifierTest, EmptySamplesShouldResultInDeath) {
+  CorruptionClassifier corruption_classifier(kScaleFactor);
+  EXPECT_DEATH(corruption_classifier.CalculateCorruptionProbablility(
+                   {}, {}, kLumaThreshold, kChromaThreshold),
+               _);
+}
+
+TEST(CorruptionClassifierTest, DifferentAmountOfSamplesShouldResultInDeath) {
+  CorruptionClassifier corruption_classifier(kScaleFactor);
+  const std::vector<FilteredSample> filtered_compressed_samples = {
+      {.value = 1.0, .plane = ImagePlane::kLuma}};
+
+  EXPECT_DEATH(corruption_classifier.CalculateCorruptionProbablility(
+                   kFilteredOriginalSampleValues, filtered_compressed_samples,
+                   kLumaThreshold, kChromaThreshold),
+               HasSubstr("The original and compressed frame have different "
+                         "amounts of filtered samples."));
+}
+#endif  // GTEST_HAS_DEATH_TEST
 
 TEST(CorruptionClassifierTest,
      SameSampleValuesShouldResultInNoCorruptionScalarConfig) {

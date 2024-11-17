@@ -43,13 +43,6 @@ double CorruptionClassifier::CalculateCorruptionProbablility(
     rtc::ArrayView<const FilteredSample> filtered_compressed_samples,
     int luma_threshold,
     int chroma_threshold) const {
-  RTC_DCHECK_GT(luma_threshold, 0) << "Luma threshold must be positive.";
-  RTC_DCHECK_GT(chroma_threshold, 0) << "Chroma threshold must be positive.";
-  RTC_DCHECK_EQ(filtered_original_samples.size(),
-                filtered_compressed_samples.size())
-      << "The original and compressed frame have a different amount of "
-         "filtered samples.";
-
   double loss = GetScore(filtered_original_samples, filtered_compressed_samples,
                          luma_threshold, chroma_threshold);
 
@@ -78,8 +71,13 @@ double CorruptionClassifier::GetScore(
     rtc::ArrayView<const FilteredSample> filtered_compressed_samples,
     int luma_threshold,
     int chroma_threshold) const {
+  RTC_DCHECK_GE(luma_threshold, 0);
+  RTC_DCHECK_GE(chroma_threshold, 0);
   RTC_CHECK_EQ(filtered_original_samples.size(),
-               filtered_compressed_samples.size());
+               filtered_compressed_samples.size())
+      << "The original and compressed frame have different amounts of "
+         "filtered samples.";
+  RTC_CHECK_GT(filtered_original_samples.size(), 0);
   const int num_samples = filtered_original_samples.size();
   double sum = 0.0;
   for (int i = 0; i < num_samples; ++i) {
