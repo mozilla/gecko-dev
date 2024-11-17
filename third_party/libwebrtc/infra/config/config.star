@@ -315,7 +315,7 @@ luci.cq_group(
     tree_status_host = "webrtc-status.appspot.com",
     watch = [cq.refset(repo = WEBRTC_GERRIT, refs = ["refs/heads/main"])],
     acls = [
-        acl.entry(acl.CQ_COMMITTER, groups = ["project-webrtc-committers"]),
+        acl.entry(acl.CQ_COMMITTER, groups = ["project-webrtc-submit-access"]),
         acl.entry(acl.CQ_DRY_RUNNER, groups = ["project-webrtc-tryjob-access"]),
     ],
     allow_owner_if_submittable = cq.ACTION_DRY_RUN,
@@ -327,7 +327,7 @@ luci.cq_group(
     name = "cq_branch",
     watch = [cq.refset(repo = WEBRTC_GERRIT, refs = ["refs/branch-heads/.+"])],
     acls = [
-        acl.entry(acl.CQ_COMMITTER, groups = ["project-webrtc-committers"]),
+        acl.entry(acl.CQ_COMMITTER, groups = ["project-webrtc-submit-access"]),
         acl.entry(acl.CQ_DRY_RUNNER, groups = ["project-webrtc-tryjob-access"]),
     ],
     retry_config = cq.RETRY_ALL_FAILURES,
