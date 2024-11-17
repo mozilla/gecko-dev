@@ -527,9 +527,12 @@ std::vector<webrtc::Resolution> EncoderStreamFactory::GetStreamResolutions(
     }
   } else {
     size_t min_num_layers = FindRequiredActiveLayers(encoder_config);
-    size_t max_num_layers = LimitSimulcastLayerCount(
-        min_num_layers, encoder_config.number_of_streams, width, height, trials,
-        encoder_config.codec_type);
+    size_t max_num_layers =
+        !encoder_config.HasRequestedResolution()
+            ? LimitSimulcastLayerCount(
+                  min_num_layers, encoder_config.number_of_streams, width,
+                  height, trials, encoder_config.codec_type)
+            : encoder_config.number_of_streams;
     RTC_DCHECK_LE(max_num_layers, encoder_config.number_of_streams);
 
     const bool has_scale_resolution_down_by = absl::c_any_of(

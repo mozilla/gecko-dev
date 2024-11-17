@@ -63,7 +63,7 @@ index c2a17c59d4..2da0918062 100644
                                                  codec_specific_);
      }
 diff --git a/pc/peer_connection_encodings_integrationtest.cc b/pc/peer_connection_encodings_integrationtest.cc
-index 208f33fc8f..df4122baa6 100644
+index b8b7e18e58..8058379666 100644
 --- a/pc/peer_connection_encodings_integrationtest.cc
 +++ b/pc/peer_connection_encodings_integrationtest.cc
 @@ -2417,6 +2417,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
@@ -140,6 +140,6 @@ index 208f33fc8f..df4122baa6 100644
 +                   kLongTimeoutForRampingUp.ms());
 +}
 +
- TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
-        SimulcastEncodingStopWhenRtpEncodingChangeToInactive) {
-   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+ // The code path that disables layers based on resolution size should NOT run
+ // when `requested_resolution` is specified. (It shouldn't run in any case but
+ // that is an existing legacy code and non-compliance problem that we don't have
