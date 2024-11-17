@@ -30,7 +30,9 @@ using namespace mozilla;
 using mozilla::dom::Document;
 
 static already_AddRefed<nsIDocumentViewer> doc_viewer(nsIDocShell* aDocShell) {
-  if (!aDocShell) return nullptr;
+  if (!aDocShell) {
+    return nullptr;
+  }
   nsCOMPtr<nsIDocumentViewer> viewer;
   aDocShell->GetDocViewer(getter_AddRefs(viewer));
   return viewer.forget();
@@ -38,7 +40,9 @@ static already_AddRefed<nsIDocumentViewer> doc_viewer(nsIDocShell* aDocShell) {
 
 static PresShell* GetPresShell(nsIDocShell* aDocShell) {
   nsCOMPtr<nsIDocumentViewer> viewer = doc_viewer(aDocShell);
-  if (!viewer) return nullptr;
+  if (!viewer) {
+    return nullptr;
+  }
   return viewer->GetPresShell();
 }
 
@@ -73,7 +77,9 @@ nsLayoutDebuggingTools::Init(mozIDOMWindow* aWin) {
   }
 
   {
-    if (!aWin) return NS_ERROR_UNEXPECTED;
+    if (!aWin) {
+      return NS_ERROR_UNEXPECTED;
+    }
     auto* window = nsPIDOMWindowInner::From(aWin);
     mDocShell = window->GetDocShell();
   }
@@ -301,7 +307,9 @@ nsLayoutDebuggingTools::DumpReflowStats() {
 
 nsresult nsLayoutDebuggingTools::ForceRefresh() {
   RefPtr<nsViewManager> vm(view_manager(mDocShell));
-  if (!vm) return NS_OK;
+  if (!vm) {
+    return NS_OK;
+  }
   nsView* root = vm->GetRootView();
   if (root) {
     vm->InvalidateView(root);

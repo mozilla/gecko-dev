@@ -35,7 +35,9 @@ static nsresult HandleFlagWithOptionalArgument(nsICommandLine* aCmdLine,
 
   rv = aCmdLine->FindFlag(aName, false, &idx);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (idx < 0) return NS_OK;
+  if (idx < 0) {
+    return NS_OK;
+  }
 
   aFlagPresent = true;
 
