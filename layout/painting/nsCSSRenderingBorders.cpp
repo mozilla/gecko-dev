@@ -428,10 +428,12 @@ BorderColorStyle nsCSSBorderRenderer::BorderColorStyleForSolidCorner(
 Rect nsCSSBorderRenderer::GetCornerRect(Corner aCorner) {
   Point offset(0.f, 0.f);
 
-  if (aCorner == C_TR || aCorner == C_BR)
+  if (aCorner == C_TR || aCorner == C_BR) {
     offset.x = mOuterRect.Width() - mBorderCornerDimensions[aCorner].width;
-  if (aCorner == C_BR || aCorner == C_BL)
+  }
+  if (aCorner == C_BR || aCorner == C_BL) {
     offset.y = mOuterRect.Height() - mBorderCornerDimensions[aCorner].height;
+  }
 
   return Rect(mOuterRect.TopLeft() + offset, mBorderCornerDimensions[aCorner]);
 }
@@ -464,10 +466,11 @@ Rect nsCSSBorderRenderer::GetSideClipWithoutCornersRect(mozilla::Side aSide) {
                        mBorderCornerDimensions[GetCWCorner(aSide)];
   Rect rect(mOuterRect.TopLeft() + offset, mOuterRect.Size() - sideCornerSum);
 
-  if (IsHorizontalSide(aSide))
+  if (IsHorizontalSide(aSide)) {
     rect.height = mBorderWidths[aSide];
-  else
+  } else {
     rect.width = mBorderWidths[aSide];
+  }
 
   return rect;
 }
@@ -3559,7 +3562,9 @@ ImgDrawResult nsCSSBorderImageRenderer::DrawBorderImage(
 
       nsRect destArea(borderX[i], borderY[j], borderWidth[i], borderHeight[j]);
       nsRect subArea(sliceX[i], sliceY[j], sliceWidth[i], sliceHeight[j]);
-      if (subArea.IsEmpty()) continue;
+      if (subArea.IsEmpty()) {
+        continue;
+      }
 
       nsIntRect intSubArea = subArea.ToOutsidePixels(AppUnitsPerCSSPixel());
       result &= mImageRenderer.DrawBorderImageComponent(

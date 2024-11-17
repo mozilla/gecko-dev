@@ -1519,7 +1519,9 @@ void nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
           shadowRect, shadowSpread, blurRadius, oneDevPixel, &aRenderingContext,
           aDirtyRect, useSkipGfxRect ? &skipGfxRect : nullptr,
           nsContextBoxBlur::FORCE_MASK);
-      if (!shadowContext) continue;
+      if (!shadowContext) {
+        continue;
+      }
 
       MOZ_ASSERT(shadowContext == blurringArea.GetContext());
 
@@ -1963,7 +1965,9 @@ ImgDrawResult nsCSSRendering::BuildWebRenderDisplayItemsForStyleImageLayer(
 
 static bool IsOpaqueBorderEdge(const nsStyleBorder& aBorder,
                                mozilla::Side aSide) {
-  if (aBorder.GetComputedBorder().Side(aSide) == 0) return true;
+  if (aBorder.GetComputedBorder().Side(aSide) == 0) {
+    return true;
+  }
   switch (aBorder.GetBorderStyle(aSide)) {
     case StyleBorderStyle::Solid:
     case StyleBorderStyle::Groove:
@@ -3145,7 +3149,9 @@ nsBackgroundLayerState nsCSSRendering::PrepareImageLayer(
   nsSize imageSize = ComputeDrawnSizeForBackground(
       intrinsicSize, bgPositionSize, aLayer.mSize, repeatX, repeatY);
 
-  if (imageSize.width <= 0 || imageSize.height <= 0) return state;
+  if (imageSize.width <= 0 || imageSize.height <= 0) {
+    return state;
+  }
 
   state.mImageRenderer.SetPreferredSize(intrinsicSize, imageSize);
 

@@ -1051,7 +1051,9 @@ void nsCSSGradientRenderer::Paint(gfxContext& aContext, const nsRect& aDest,
   // up by drawing tiles into temporary surfaces and copying those to the
   // destination, but after pixel-snapping tiles may not all be the same size.
   nsRect dirty;
-  if (!dirty.IntersectRect(aDirtyRect, aFillArea)) return;
+  if (!dirty.IntersectRect(aDirtyRect, aFillArea)) {
+    return;
+  }
 
   gfxRect areaToFill =
       nsLayoutUtils::RectToGfxRect(aFillArea, appUnitsPerDevPixel);

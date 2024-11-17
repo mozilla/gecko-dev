@@ -162,7 +162,9 @@ static bool IsInsideEllipse(nscoord aXRadius, nscoord aXCenter, nscoord aXPoint,
 }
 
 bool DisplayItemClip::IsRectClippedByRoundedCorner(const nsRect& aRect) const {
-  if (mRoundedClipRects.IsEmpty()) return false;
+  if (mRoundedClipRects.IsEmpty()) {
+    return false;
+  }
 
   nsRect rect;
   rect.IntersectRect(aRect, NonRoundedIntersection());
@@ -283,7 +285,9 @@ nsRect DisplayItemClip::ApplyNonRoundedIntersection(const nsRect& aRect) const {
 }
 
 void DisplayItemClip::RemoveRoundedCorners() {
-  if (mRoundedClipRects.IsEmpty()) return;
+  if (mRoundedClipRects.IsEmpty()) {
+    return;
+  }
 
   mClipRect = NonRoundedIntersection();
   mRoundedClipRects.Clear();
@@ -292,7 +296,9 @@ void DisplayItemClip::RemoveRoundedCorners() {
 // Computes the difference between aR1 and aR2, limited to aBounds.
 static void AccumulateRectDifference(const nsRect& aR1, const nsRect& aR2,
                                      const nsRect& aBounds, nsRegion* aOut) {
-  if (aR1.IsEqualInterior(aR2)) return;
+  if (aR1.IsEqualInterior(aR2)) {
+    return;
+  }
   nsRegion r;
   r.Xor(aR1, aR2);
   r.And(r, aBounds);
