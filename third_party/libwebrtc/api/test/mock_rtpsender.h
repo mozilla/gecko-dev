@@ -45,10 +45,8 @@ class MockRtpSender : public RtpSenderInterface {
               track,
               (),
               (const, override));
-  MOCK_METHOD(rtc::scoped_refptr<DtlsTransportInterface>,
-              dtls_transport,
-              (),
-              (const override));
+  MOCK_METHOD(rtc::scoped_refptr<DtlsTransportInterface>, dtls_transport, (),
+              (const, override));
   MOCK_METHOD(uint32_t, ssrc, (), (const, override));
   MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
   MOCK_METHOD(std::string, id, (), (const, override));

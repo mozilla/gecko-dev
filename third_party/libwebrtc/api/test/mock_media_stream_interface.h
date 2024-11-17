@@ -89,7 +89,7 @@ class MockAudioTrack : public rtc::RefCountedObject<AudioTrackInterface> {
 
 class MockMediaStream : public MediaStreamInterface {
  public:
-  MOCK_METHOD(std::string, id, (), (const override));
+  MOCK_METHOD(std::string, id, (), (const, override));
   MOCK_METHOD(AudioTrackVector, GetAudioTracks, (), (override));
   MOCK_METHOD(VideoTrackVector, GetVideoTracks, (), (override));
   MOCK_METHOD(rtc::scoped_refptr<AudioTrackInterface>,
