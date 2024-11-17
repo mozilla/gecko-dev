@@ -849,10 +849,11 @@ void nsSliderFrame::PageUpDown(nscoord change) {
 
   // get the new position and make sure it is in bounds
   int32_t newpos = curpos + change * pageIncrement;
-  if (newpos < minpos || maxpos < minpos)
+  if (newpos < minpos || maxpos < minpos) {
     newpos = minpos;
-  else if (newpos > maxpos)
+  } else if (newpos > maxpos) {
     newpos = maxpos;
+  }
 
   SetCurrentPositionInternal(scrollbar, newpos, true);
 }
@@ -1160,8 +1161,9 @@ nsresult nsSliderFrame::StartDrag(Event* aEvent) {
   printf("Begin dragging\n");
 #endif
   if (mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
-                                         nsGkAtoms::_true, eCaseMatters))
+                                         nsGkAtoms::_true, eCaseMatters)) {
     return NS_OK;
+  }
 
   WidgetGUIEvent* event = aEvent->WidgetEventPtr()->AsGUIEvent();
 
@@ -1265,7 +1267,9 @@ void nsSliderFrame::RemoveListener() {
   NS_ASSERTION(mMediator, "No listener was ever added!!");
 
   nsIFrame* thumbFrame = mFrames.FirstChild();
-  if (!thumbFrame) return;
+  if (!thumbFrame) {
+    return;
+  }
 
   thumbFrame->GetContent()->RemoveSystemEventListener(u"mousedown"_ns,
                                                       mMediator, false);
@@ -1367,12 +1371,14 @@ nsSliderFrame::HandlePress(nsPresContext* aPresContext, WidgetGUIEvent* aEvent,
   }
 
   nsIFrame* thumbFrame = mFrames.FirstChild();
-  if (!thumbFrame)  // display:none?
+  if (!thumbFrame) {  // display:none?
     return NS_OK;
+  }
 
   if (mContent->AsElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
-                                         nsGkAtoms::_true, eCaseMatters))
+                                         nsGkAtoms::_true, eCaseMatters)) {
     return NS_OK;
+  }
 
   nsRect thumbRect = thumbFrame->GetRect();
 
@@ -1447,15 +1453,23 @@ void nsSliderFrame::Notify() {
   // if it has we want to stop.
   if (isHorizontal) {
     if (mRepeatDirection < 0) {
-      if (thumbRect.x < mDestinationPoint.x) stop = true;
+      if (thumbRect.x < mDestinationPoint.x) {
+        stop = true;
+      }
     } else {
-      if (thumbRect.x + thumbRect.width > mDestinationPoint.x) stop = true;
+      if (thumbRect.x + thumbRect.width > mDestinationPoint.x) {
+        stop = true;
+      }
     }
   } else {
     if (mRepeatDirection < 0) {
-      if (thumbRect.y < mDestinationPoint.y) stop = true;
+      if (thumbRect.y < mDestinationPoint.y) {
+        stop = true;
+      }
     } else {
-      if (thumbRect.y + thumbRect.height > mDestinationPoint.y) stop = true;
+      if (thumbRect.y + thumbRect.height > mDestinationPoint.y) {
+        stop = true;
+      }
     }
   }
 

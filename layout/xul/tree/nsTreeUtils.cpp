@@ -25,20 +25,28 @@ nsresult nsTreeUtils::TokenizeProperties(const nsAString& aProperties,
 
   do {
     // Skip whitespace
-    while (iter != end && nsCRT::IsAsciiSpace(*iter)) ++iter;
+    while (iter != end && nsCRT::IsAsciiSpace(*iter)) {
+      ++iter;
+    }
 
     // If only whitespace, we're done
-    if (iter == end) break;
+    if (iter == end) {
+      break;
+    }
 
     // Note the first non-whitespace character
     nsAString::const_iterator first = iter;
 
     // Advance to the next whitespace character
-    while (iter != end && !nsCRT::IsAsciiSpace(*iter)) ++iter;
+    while (iter != end && !nsCRT::IsAsciiSpace(*iter)) {
+      ++iter;
+    }
 
     // XXX this would be nonsensical
     NS_ASSERTION(iter != first, "eh? something's wrong here");
-    if (iter == first) break;
+    if (iter == first) {
+      break;
+    }
 
     RefPtr<nsAtom> atom = NS_Atomize(Substring(first, iter));
     aPropertiesArray.AppendElement(atom);

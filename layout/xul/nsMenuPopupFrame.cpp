@@ -108,7 +108,9 @@ nsMenuPopupFrame::nsMenuPopupFrame(ComputedStyle* aStyle,
     : nsBlockFrame(aStyle, aPresContext, kClassID) {
   // the preference name is backwards here. True means that the 'top' level is
   // the default, and false means that the 'parent' level is the default.
-  if (sDefaultLevelIsTop >= 0) return;
+  if (sDefaultLevelIsTop >= 0) {
+    return;
+  }
   sDefaultLevelIsTop =
       Preferences::GetBool("ui.panel.default_level_parent", false);
 }  // ctor
@@ -289,14 +291,20 @@ nsresult nsMenuPopupFrame::CreateWidgetForView(nsView* aView) {
   nsCOMPtr<nsIWidget> parentWidget;
   if (widgetData.mPopupLevel != PopupLevel::Top) {
     nsCOMPtr<nsIDocShellTreeItem> dsti = PresContext()->GetDocShell();
-    if (!dsti) return NS_ERROR_FAILURE;
+    if (!dsti) {
+      return NS_ERROR_FAILURE;
+    }
 
     nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
     dsti->GetTreeOwner(getter_AddRefs(treeOwner));
-    if (!treeOwner) return NS_ERROR_FAILURE;
+    if (!treeOwner) {
+      return NS_ERROR_FAILURE;
+    }
 
     nsCOMPtr<nsIBaseWindow> baseWindow(do_QueryInterface(treeOwner));
-    if (baseWindow) baseWindow->GetMainWidget(getter_AddRefs(parentWidget));
+    if (baseWindow) {
+      baseWindow->GetMainWidget(getter_AddRefs(parentWidget));
+    }
   }
 
   nsresult rv = aView->CreateWidgetForPopup(&widgetData, parentWidget);
@@ -691,43 +699,45 @@ void nsMenuPopupFrame::InitPositionFromAnchorAlign(const nsAString& aAnchor,
                                                    const nsAString& aAlign) {
   mTriggerContent = nullptr;
 
-  if (aAnchor.EqualsLiteral("topleft"))
+  if (aAnchor.EqualsLiteral("topleft")) {
     mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
-  else if (aAnchor.EqualsLiteral("topright"))
+  } else if (aAnchor.EqualsLiteral("topright")) {
     mPopupAnchor = POPUPALIGNMENT_TOPRIGHT;
-  else if (aAnchor.EqualsLiteral("bottomleft"))
+  } else if (aAnchor.EqualsLiteral("bottomleft")) {
     mPopupAnchor = POPUPALIGNMENT_BOTTOMLEFT;
-  else if (aAnchor.EqualsLiteral("bottomright"))
+  } else if (aAnchor.EqualsLiteral("bottomright")) {
     mPopupAnchor = POPUPALIGNMENT_BOTTOMRIGHT;
-  else if (aAnchor.EqualsLiteral("leftcenter"))
+  } else if (aAnchor.EqualsLiteral("leftcenter")) {
     mPopupAnchor = POPUPALIGNMENT_LEFTCENTER;
-  else if (aAnchor.EqualsLiteral("rightcenter"))
+  } else if (aAnchor.EqualsLiteral("rightcenter")) {
     mPopupAnchor = POPUPALIGNMENT_RIGHTCENTER;
-  else if (aAnchor.EqualsLiteral("topcenter"))
+  } else if (aAnchor.EqualsLiteral("topcenter")) {
     mPopupAnchor = POPUPALIGNMENT_TOPCENTER;
-  else if (aAnchor.EqualsLiteral("bottomcenter"))
+  } else if (aAnchor.EqualsLiteral("bottomcenter")) {
     mPopupAnchor = POPUPALIGNMENT_BOTTOMCENTER;
-  else
+  } else {
     mPopupAnchor = POPUPALIGNMENT_NONE;
+  }
 
-  if (aAlign.EqualsLiteral("topleft"))
+  if (aAlign.EqualsLiteral("topleft")) {
     mPopupAlignment = POPUPALIGNMENT_TOPLEFT;
-  else if (aAlign.EqualsLiteral("topright"))
+  } else if (aAlign.EqualsLiteral("topright")) {
     mPopupAlignment = POPUPALIGNMENT_TOPRIGHT;
-  else if (aAlign.EqualsLiteral("bottomleft"))
+  } else if (aAlign.EqualsLiteral("bottomleft")) {
     mPopupAlignment = POPUPALIGNMENT_BOTTOMLEFT;
-  else if (aAlign.EqualsLiteral("bottomright"))
+  } else if (aAlign.EqualsLiteral("bottomright")) {
     mPopupAlignment = POPUPALIGNMENT_BOTTOMRIGHT;
-  else if (aAlign.EqualsLiteral("leftcenter"))
+  } else if (aAlign.EqualsLiteral("leftcenter")) {
     mPopupAlignment = POPUPALIGNMENT_LEFTCENTER;
-  else if (aAlign.EqualsLiteral("rightcenter"))
+  } else if (aAlign.EqualsLiteral("rightcenter")) {
     mPopupAlignment = POPUPALIGNMENT_RIGHTCENTER;
-  else if (aAlign.EqualsLiteral("topcenter"))
+  } else if (aAlign.EqualsLiteral("topcenter")) {
     mPopupAlignment = POPUPALIGNMENT_TOPCENTER;
-  else if (aAlign.EqualsLiteral("bottomcenter"))
+  } else if (aAlign.EqualsLiteral("bottomcenter")) {
     mPopupAlignment = POPUPALIGNMENT_BOTTOMCENTER;
-  else
+  } else {
     mPopupAlignment = POPUPALIGNMENT_NONE;
+  }
 
   mPosition = POPUPPOSITION_UNKNOWN;
 }
@@ -796,8 +806,9 @@ void nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
     if (aAttributesOverride) {
       // if the attributes are set, clear the offset position. Otherwise,
       // the offset is used to adjust the position from the anchor point
-      if (anchor.IsEmpty() && align.IsEmpty() && position.IsEmpty())
+      if (anchor.IsEmpty() && align.IsEmpty() && position.IsEmpty()) {
         position.Assign(aPosition);
+      }
     } else if (!aPosition.IsEmpty()) {
       position.Assign(aPosition);
     }
@@ -962,7 +973,9 @@ void nsMenuPopupFrame::ShowPopup(bool aIsContextMenu) {
 
     if (mPopupType == PopupType::Menu) {
       nsCOMPtr<nsISound> sound(do_GetService("@mozilla.org/sound;1"));
-      if (sound) sound->PlayEventSound(nsISound::EVENT_MENU_POPUP);
+      if (sound) {
+        sound->PlayEventSound(nsISound::EVENT_MENU_POPUP);
+      }
     }
   }
 }
@@ -1212,10 +1225,11 @@ nsPoint nsMenuPopupFrame::AdjustPositionForAnchorAlign(
       aHFlip = (popupAnchor == -popupAlign) ? FlipStyle_Outside : anchorEdge;
       if (((popupAnchor > 0) == (popupAlign > 0)) ||
           (popupAnchor == POPUPALIGNMENT_TOPLEFT &&
-           popupAlign == POPUPALIGNMENT_TOPLEFT))
+           popupAlign == POPUPALIGNMENT_TOPLEFT)) {
         aVFlip = FlipStyle_Outside;
-      else
+      } else {
         aVFlip = anchorEdge;
+      }
       break;
     }
   }

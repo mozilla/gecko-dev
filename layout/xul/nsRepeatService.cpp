@@ -56,7 +56,9 @@ void nsRepeatService::Start(Callback aCallback, void* aCallbackData,
 }
 
 void nsRepeatService::Stop(Callback aCallback, void* aCallbackData) {
-  if (mCallback != aCallback || mCallbackData != aCallbackData) return;
+  if (mCallback != aCallback || mCallbackData != aCallbackData) {
+    return;
+  }
 
   // printf("Stopping repeat timer\n");
   if (mRepeatTimer) {

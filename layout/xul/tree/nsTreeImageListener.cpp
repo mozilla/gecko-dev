@@ -100,12 +100,13 @@ nsTreeImageListener::InvalidationArea::InvalidationArea(nsTreeColumn* aCol)
       mNext(nullptr) {}
 
 void nsTreeImageListener::InvalidationArea::AddRow(int32_t aIndex) {
-  if (mMin == -1)
+  if (mMin == -1) {
     mMin = mMax = aIndex;
-  else if (aIndex < mMin)
+  } else if (aIndex < mMin) {
     mMin = aIndex;
-  else if (aIndex > mMax)
+  } else if (aIndex > mMax) {
     mMax = aIndex;
+  }
 }
 
 NS_IMETHODIMP

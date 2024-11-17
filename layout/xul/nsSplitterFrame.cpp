@@ -476,11 +476,16 @@ void nsSplitterFrameInner::RemoveListener() {
 nsresult nsSplitterFrameInner::HandleEvent(dom::Event* aEvent) {
   nsAutoString eventType;
   aEvent->GetType(eventType);
-  if (eventType.EqualsLiteral("mouseup")) return MouseUp(aEvent);
-  if (eventType.EqualsLiteral("mousedown")) return MouseDown(aEvent);
+  if (eventType.EqualsLiteral("mouseup")) {
+    return MouseUp(aEvent);
+  }
+  if (eventType.EqualsLiteral("mousedown")) {
+    return MouseDown(aEvent);
+  }
   if (eventType.EqualsLiteral("mousemove") ||
-      eventType.EqualsLiteral("mouseout"))
+      eventType.EqualsLiteral("mouseout")) {
     return MouseMove(aEvent);
+  }
 
   MOZ_ASSERT_UNREACHABLE("Unexpected eventType");
   return NS_OK;
@@ -534,8 +539,9 @@ nsresult nsSplitterFrameInner::MouseDown(Event* aMouseEvent) {
   }
 
   if (SplitterElement()->AttrValueIs(kNameSpaceID_None, nsGkAtoms::disabled,
-                                     nsGkAtoms::_true, eCaseMatters))
+                                     nsGkAtoms::_true, eCaseMatters)) {
     return NS_OK;
+  }
 
   mParentBox = GetValidParentBox(mOuter);
   if (!mParentBox) {

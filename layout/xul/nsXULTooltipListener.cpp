@@ -319,7 +319,9 @@ void nsXULTooltipListener::RemoveTooltipSupport(nsIContent* aNode) {
 
 void nsXULTooltipListener::CheckTreeBodyMove(MouseEvent* aMouseEvent) {
   nsCOMPtr<nsIContent> sourceNode = do_QueryReferent(mSourceNode);
-  if (!sourceNode) return;
+  if (!sourceNode) {
+    return;
+  }
 
   // get the documentElement of the document the tree is in
   Document* doc = sourceNode->GetComposedDoc();
@@ -653,7 +655,9 @@ void nsXULTooltipListener::KillTooltipTimer() {
 
 void nsXULTooltipListener::sTooltipCallback(nsITimer* aTimer, void* aListener) {
   RefPtr<nsXULTooltipListener> instance = sInstance;
-  if (instance) instance->ShowTooltip();
+  if (instance) {
+    instance->ShowTooltip();
+  }
 }
 
 XULTreeElement* nsXULTooltipListener::GetSourceTree() {

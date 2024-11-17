@@ -386,8 +386,9 @@ class nsTreeBodyFrame final : public mozilla::SimpleXULLeafFrame,
 
   void InvalidateDropFeedback(int32_t aRow, int16_t aOrientation) {
     InvalidateRow(aRow);
-    if (aOrientation != nsITreeView::DROP_ON)
+    if (aOrientation != nsITreeView::DROP_ON) {
       InvalidateRow(aRow + aOrientation);
+    }
   }
 
  public:

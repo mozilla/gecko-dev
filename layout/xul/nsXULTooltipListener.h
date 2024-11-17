@@ -38,7 +38,9 @@ class nsXULTooltipListener final : public nsIDOMEventListener {
   void AddTooltipSupport(nsIContent* aNode);
   void RemoveTooltipSupport(nsIContent* aNode);
   static nsXULTooltipListener* GetInstance() {
-    if (!sInstance) sInstance = new nsXULTooltipListener();
+    if (!sInstance) {
+      sInstance = new nsXULTooltipListener();
+    }
     return sInstance;
   }
 

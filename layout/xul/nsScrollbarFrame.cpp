@@ -348,11 +348,12 @@ void nsScrollbarFrame::SetIncrementToWhole(int32_t aDirection) {
 
   // get the scrollbar's content node
   nsIContent* content = GetContent();
-  if (aDirection == -1)
+  if (aDirection == -1) {
     mIncrement = -nsSliderFrame::GetCurrentPosition(content);
-  else
+  } else {
     mIncrement = nsSliderFrame::GetMaxPosition(content) -
                  nsSliderFrame::GetCurrentPosition(content);
+  }
 }
 
 int32_t nsScrollbarFrame::MoveToNewPosition(
