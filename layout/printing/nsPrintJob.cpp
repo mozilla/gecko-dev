@@ -410,8 +410,9 @@ nsresult nsPrintJob::DoCommonPrint(bool aIsPrintPreview,
   }
 
   // XXX This isn't really correct...
-  if (!mPrintObject->mDocument || !mPrintObject->mDocument->GetRootElement())
+  if (!mPrintObject->mDocument || !mPrintObject->mDocument->GetRootElement()) {
     return NS_ERROR_GFX_PRINTER_STARTDOC;
+  }
 
   mPrintSettings->GetShrinkToFit(&mShrinkToFit);
 
@@ -2061,7 +2062,9 @@ class nsPrintCompletionEvent : public Runnable {
   }
 
   NS_IMETHOD Run() override {
-    if (mDocViewerPrint) mDocViewerPrint->OnDonePrinting();
+    if (mDocViewerPrint) {
+      mDocViewerPrint->OnDonePrinting();
+    }
     return NS_OK;
   }
 
