@@ -53,6 +53,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">شارٹ کٹ سے ہٹائیں</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">سیٹنگیں</string>
     <string name="menu_about">کے بارے میں</string>
     <string name="menu_help">مدد</string>
@@ -83,10 +84,6 @@
          sharing an URL. -->
     <string name="share_dialog_title">کے زریعے شیئر کریں</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
     <string name="notification_erase_text">برائوزنگ سابقات مٹائیں</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -119,7 +116,7 @@
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s آپ کو کنٹرول دیتی ہے </p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s آپ کو کنٹرول دیتی ہے </p>
 <p> اسکو نجی برائوزر کی طرح استعمال کریں:
   <ul> 
     <li> اپلی کیشن میں ہی تلاش اور براؤز کریں </li>
@@ -462,7 +459,14 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">بند کریں</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">بند کریں</string>
+
+    <!-- New Onboarding flow first screen title -->
+    <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
+    <string name="onboarding_first_screen_title">%1$s میں خوشامدید </string>
+
+    <!-- New Onboarding flow first screen subtitle the one that appears under title -->
+    <string name="onboarding_first_screen_subtitle">تیز۔ نجی۔ کوئی خلفشار نہیں۔</string>
 
     <!-- New Onboarding flow first screen button label-->
     <string name="onboarding_first_screen_button_text">شروع کریں</string>
@@ -525,7 +529,7 @@
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox ڈائونلوڈ کریں</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox ڈائونلوڈ کریں</string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">صارف کا نام</string>

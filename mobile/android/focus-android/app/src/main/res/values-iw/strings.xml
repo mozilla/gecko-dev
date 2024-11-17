@@ -85,8 +85,6 @@
 
     <string name="notification_erase_title_android_14">למחוק את היסטוריית הגלישה?</string>
 
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">יש להקיש או לנקות התרעה זו כדי למחוק בצורה מאובטחת את היסטוריית הגלישה שלך.</string>
-
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
     <string name="notification_erase_text_android_14_1">יש להקיש או להחליק על התרעה זו כדי למחוק בצורה מאובטחת את היסטוריית הגלישה שלך.</string>
@@ -505,7 +503,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">סגירה</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">סגירה</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -615,6 +613,11 @@
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
     <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s זמין לשימוש תחת <a href="%2$s">תנאי הרשיון הציבורי של Mozilla</a> ורשיונות קוד פתוח אחרים.]]></string>
+
+    <!-- Text shown in the "Your rights" screen.
+    %1$s will be replaced with the name of the app (e.g. Firefox Focus)
+    %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[לא הוענקו לך זכויות או רישיונות כלשהם לסימנים המסחריים של קרן Mozilla או גורם כלשהו, לרבות השמות או סמלי הלוגו של Mozilla, ‏Firefox או %1$s. מידע נוסף ניתן למצוא <a href="%2$s">כאן</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
@@ -903,9 +906,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">מעבר</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">עברת למצב מסך מלא</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">מעבר לקישור בלשונית החדשה מיידית</string>
