@@ -96,7 +96,9 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
   aString.CompressWhitespace();  // aString is not a const in this code
 
   int32_t stringLength = aString.Length();
-  if (!stringLength) return false;
+  if (!stringLength) {
+    return false;
+  }
 
   nsAutoString number, unit;
 
@@ -111,8 +113,9 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
   } else if (aString[0] == '-') {
     aAttribute.mSign = Attribute::Sign::Minus;
     i++;
-  } else
+  } else {
     aAttribute.mSign = Attribute::Sign::Unspecified;
+  }
 
   // get the number
   bool gotDot = false, gotPercent = false;
@@ -123,9 +126,9 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
       return false;
     }
 
-    if (c == '.')
+    if (c == '.') {
       gotDot = true;
-    else if (!IsAsciiDigit(c)) {
+    } else if (!IsAsciiDigit(c)) {
       break;
     }
     number.Append(c);
@@ -205,10 +208,11 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
   // if we enter here, we have a number that will act as a multiplier on a
   // pseudo-unit
   if (aAttribute.mPseudoUnit != Attribute::PseudoUnit::Unspecified) {
-    if (gotPercent)
+    if (gotPercent) {
       aAttribute.mValue.SetPercentValue(floatValue / 100.0f);
-    else
+    } else {
       aAttribute.mValue.SetFloatValue(floatValue, eCSSUnit_Number);
+    }
 
     aAttribute.mState = Attribute::ParsingState::Valid;
     return true;
@@ -257,15 +261,16 @@ void nsMathMLmpaddedFrame::UpdateValue(const Attribute& aAttribute,
       }
     }
 
-    if (eCSSUnit_Number == unit)
+    if (eCSSUnit_Number == unit) {
       amount =
           NSToCoordRound(float(scaler) * aAttribute.mValue.GetFloatValue());
-    else if (eCSSUnit_Percent == unit)
+    } else if (eCSSUnit_Percent == unit) {
       amount =
           NSToCoordRound(float(scaler) * aAttribute.mValue.GetPercentValue());
-    else
+    } else {
       amount = CalcLength(PresContext(), mComputedStyle, aAttribute.mValue,
                           aFontSizeInflation);
+    }
 
     switch (aAttribute.mSign) {
       case Attribute::Sign::Plus:

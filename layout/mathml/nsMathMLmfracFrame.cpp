@@ -100,8 +100,9 @@ nscoord nsMathMLmfracFrame::CalcLineThickness(nsPresContext* aPresContext,
     }
   }
   // use minimum if the lineThickness is a non-zero value less than minimun
-  if (lineThickness && lineThickness < minimumThickness)
+  if (lineThickness && lineThickness < minimumThickness) {
     lineThickness = minimumThickness;
+  }
 
   return lineThickness;
 }
@@ -135,7 +136,9 @@ nsresult nsMathMLmfracFrame::AttributeChanged(int32_t aNameSpaceID,
 
 nscoord nsMathMLmfracFrame::FixInterFrameSpacing(ReflowOutput& aDesiredSize) {
   nscoord gap = nsMathMLContainerFrame::FixInterFrameSpacing(aDesiredSize);
-  if (!gap) return 0;
+  if (!gap) {
+    return 0;
+  }
 
   mLineRect.MoveBy(gap, 0);
   return gap;
@@ -152,7 +155,9 @@ nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget,
   ReflowOutput sizeDen(aDesiredSize.GetWritingMode());
   nsIFrame* frameDen = nullptr;
   nsIFrame* frameNum = mFrames.FirstChild();
-  if (frameNum) frameDen = frameNum->GetNextSibling();
+  if (frameNum) {
+    frameDen = frameNum->GetNextSibling();
+  }
   if (!frameNum || !frameDen || frameDen->GetNextSibling()) {
     // report an error, encourage people to get their markups in order
     if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
@@ -337,12 +342,14 @@ nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget,
   mBoundingMetrics.rightBearing =
       std::max(dxNum + bmNum.rightBearing + numMargin.LeftRight(),
                dxDen + bmDen.rightBearing + denMargin.LeftRight());
-  if (mBoundingMetrics.rightBearing < width - rightSpace)
+  if (mBoundingMetrics.rightBearing < width - rightSpace) {
     mBoundingMetrics.rightBearing = width - rightSpace;
+  }
   mBoundingMetrics.leftBearing =
       std::min(dxNum + bmNum.leftBearing, dxDen + bmDen.leftBearing);
-  if (mBoundingMetrics.leftBearing > leftSpace)
+  if (mBoundingMetrics.leftBearing > leftSpace) {
     mBoundingMetrics.leftBearing = leftSpace;
+  }
   mBoundingMetrics.ascent = bmNum.ascent + numShift + numMargin.top;
   mBoundingMetrics.descent = bmDen.descent + denShift + denMargin.bottom;
   mBoundingMetrics.width = width;

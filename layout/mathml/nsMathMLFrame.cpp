@@ -27,12 +27,14 @@ using namespace mozilla::gfx;
 
 eMathMLFrameType nsMathMLFrame::GetMathMLFrameType() {
   // see if it is an embellished operator (mapped to 'Op' in TeX)
-  if (mEmbellishData.coreFrame)
+  if (mEmbellishData.coreFrame) {
     return GetMathMLFrameTypeFor(mEmbellishData.coreFrame);
+  }
 
   // if it has a prescribed base, fetch the type from there
-  if (mPresentationData.baseFrame)
+  if (mPresentationData.baseFrame) {
     return GetMathMLFrameTypeFor(mPresentationData.baseFrame);
+  }
 
   // everything else is treated as ordinary (mapped to 'Ord' in TeX)
   return eMathMLFrameType_Ordinary;
@@ -127,7 +129,9 @@ void nsMathMLFrame::GetPresentationDataFrom(
     nsIContent* content = frame->GetContent();
     NS_ASSERTION(content || !frame->GetParent(),  // no assert for the root
                  "dangling frame without a content node");
-    if (!content) break;
+    if (!content) {
+      break;
+    }
 
     if (content->IsMathMLElement(nsGkAtoms::math)) {
       break;
@@ -289,7 +293,9 @@ void nsMathMLFrame::DisplayBar(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                                const nsRect& aRect,
                                const nsDisplayListSet& aLists,
                                uint32_t aIndex) {
-  if (!aFrame->StyleVisibility()->IsVisible() || aRect.IsEmpty()) return;
+  if (!aFrame->StyleVisibility()->IsVisible() || aRect.IsEmpty()) {
+    return;
+  }
 
   aLists.Content()->AppendNewToTopWithIndex<nsDisplayMathMLBar>(
       aBuilder, aFrame, aIndex, aRect);

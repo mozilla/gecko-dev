@@ -44,8 +44,9 @@ nsresult nsMathMLmrowFrame::AttributeChanged(int32_t aNameSpaceID,
     nsIFrame* frame = mFrames.FirstChild();
     for (; frame; frame = frame->PrincipalChildList().FirstChild()) {
       // drill down to the real mtable
-      if (frame->IsTableWrapperFrame())
+      if (frame->IsTableWrapperFrame()) {
         return frame->AttributeChanged(aNameSpaceID, aAttribute, aModType);
+      }
     }
     MOZ_ASSERT_UNREACHABLE("mtable wrapper without the real table frame");
   }

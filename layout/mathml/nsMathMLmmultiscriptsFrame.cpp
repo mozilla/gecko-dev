@@ -37,7 +37,9 @@ NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmmultiscriptsFrame)
 nsMathMLmmultiscriptsFrame::~nsMathMLmmultiscriptsFrame() = default;
 
 uint8_t nsMathMLmmultiscriptsFrame::ScriptIncrement(nsIFrame* aFrame) {
-  if (!aFrame) return 0;
+  if (!aFrame) {
+    return 0;
+  }
   if (mFrames.ContainsFrame(aFrame)) {
     if (mFrames.FirstChild() == aFrame ||
         aFrame->GetContent()->IsMathMLElement(nsGkAtoms::mprescripts_)) {
@@ -116,12 +118,13 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
   // This function deals with both munderover etc. as well as msubsup etc.
   // As the former behaves identically to the later, we treat it as such
   // to avoid additional checks later.
-  if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::mover_))
+  if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::mover_)) {
     tag = nsGkAtoms::msup_;
-  else if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::munder_))
+  } else if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::munder_)) {
     tag = nsGkAtoms::msub_;
-  else if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::munderover_))
+  } else if (aFrame->GetContent()->IsMathMLElement(nsGkAtoms::munderover_)) {
     tag = nsGkAtoms::msubsup_;
+  }
 
   nsBoundingMetrics bmFrame;
 
@@ -135,10 +138,11 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
   nsIFrame* baseFrame = aFrame->PrincipalChildList().FirstChild();
 
   if (!baseFrame) {
-    if (tag == nsGkAtoms::mmultiscripts_)
+    if (tag == nsGkAtoms::mmultiscripts_) {
       aFrame->ReportErrorToConsole("NoBase");
-    else
+    } else {
       aFrame->ReportChildCountError();
+    }
     return aFrame->PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
   }
 
@@ -425,10 +429,11 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
                      supScriptSize.Height() - supScriptSize.BlockStartAscent() +
                          supScriptMargin.bottom);
 
-        if (bmSupScript.width)
+        if (bmSupScript.width) {
           width =
               std::max(width, bmSupScript.width + supScriptMargin.LeftRight() +
                                   scriptSpace);
+        }
 
         if (!prescriptsFrame) {  // we are still looping over base & postscripts
           rightBearing = std::max(rightBearing,
@@ -525,8 +530,12 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
 
   // Zero out the shifts in where a frame isn't present to avoid the potential
   // for overflow.
-  if (!subScriptFrame) maxSubScriptShift = 0;
-  if (!supScriptFrame) maxSupScriptShift = 0;
+  if (!subScriptFrame) {
+    maxSubScriptShift = 0;
+  }
+  if (!supScriptFrame) {
+    maxSupScriptShift = 0;
+  }
 
   // we left out the base during our bounding box updates, so ...
   if (tag == nsGkAtoms::msub_) {
@@ -587,10 +596,11 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
     // With msub and msup there is only one element and
     // subscriptFrame/supScriptFrame have already been set above where
     // relevant.  In these cases we skip to the reflow part.
-    if (tag == nsGkAtoms::msub_ || tag == nsGkAtoms::msup_)
+    if (tag == nsGkAtoms::msub_ || tag == nsGkAtoms::msup_) {
       count = 1;
-    else
+    } else {
       count = 0;
+    }
     childFrame = prescriptsFrame;
     bool isPreScript = true;
     do {
@@ -630,7 +640,9 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
           subScriptFrame = childFrame;
           count = 1;
         } else if (1 == count) {
-          if (tag != nsGkAtoms::msub_) supScriptFrame = childFrame;
+          if (tag != nsGkAtoms::msub_) {
+            supScriptFrame = childFrame;
+          }
           count = 0;
 
           // get the ascent/descent of sup/subscripts stored in their rects

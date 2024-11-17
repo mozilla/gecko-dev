@@ -269,10 +269,12 @@ void nsMathMLContainerFrame::GetPreferredStretchSize(
             bmChild.rightBearing -= bmChild.leftBearing;
             bmChild.leftBearing = 0;
           }
-          if (bm.leftBearing > bmChild.leftBearing)
+          if (bm.leftBearing > bmChild.leftBearing) {
             bm.leftBearing = bmChild.leftBearing;
-          if (bm.rightBearing < bmChild.rightBearing)
+          }
+          if (bm.rightBearing < bmChild.rightBearing) {
             bm.rightBearing = bmChild.rightBearing;
+          }
         } else if (aStretchDirection == NS_STRETCH_DIRECTION_VERTICAL) {
           // just sum-up the sizes horizontally.
           bm += bmChild;
@@ -581,7 +583,9 @@ nsresult nsMathMLContainerFrame::FinalizeReflow(DrawTarget* aDrawTarget,
 /* static */
 void nsMathMLContainerFrame::PropagatePresentationDataFor(
     nsIFrame* aFrame, uint32_t aFlagsValues, uint32_t aFlagsToUpdate) {
-  if (!aFrame || !aFlagsToUpdate) return;
+  if (!aFrame || !aFlagsToUpdate) {
+    return;
+  }
   nsIMathMLFrame* mathMLFrame = do_QueryFrame(aFrame);
   if (mathMLFrame) {
     // update
@@ -602,7 +606,9 @@ void nsMathMLContainerFrame::PropagatePresentationDataFor(
 void nsMathMLContainerFrame::PropagatePresentationDataFromChildAt(
     nsIFrame* aParentFrame, int32_t aFirstChildIndex, int32_t aLastChildIndex,
     uint32_t aFlagsValues, uint32_t aFlagsToUpdate) {
-  if (!aParentFrame || !aFlagsToUpdate) return;
+  if (!aParentFrame || !aFlagsToUpdate) {
+    return;
+  }
   int32_t index = 0;
   for (nsIFrame* childFrame : aParentFrame->PrincipalChildList()) {
     if ((index >= aFirstChildIndex) &&
@@ -649,23 +655,33 @@ void nsMathMLContainerFrame::RebuildAutomaticDataForChildren(
 
 /* static */
 nsresult nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame) {
-  if (!aParentFrame) return NS_OK;
+  if (!aParentFrame) {
+    return NS_OK;
+  }
 
   // walk-up to the first frame that is a MathML frame, stop if we reach <math>
   nsIFrame* frame = aParentFrame;
   while (1) {
     nsIFrame* parent = frame->GetParent();
-    if (!parent || !parent->GetContent()) break;
+    if (!parent || !parent->GetContent()) {
+      break;
+    }
 
     // stop if it is a MathML frame
     nsIMathMLFrame* mathMLFrame = do_QueryFrame(frame);
-    if (mathMLFrame) break;
+    if (mathMLFrame) {
+      break;
+    }
 
     // stop if we reach the root <math> tag
     nsIContent* content = frame->GetContent();
     NS_ASSERTION(content, "dangling frame without a content node");
-    if (!content) break;
-    if (content->IsMathMLElement(nsGkAtoms::math)) break;
+    if (!content) {
+      break;
+    }
+    if (content->IsMathMLElement(nsGkAtoms::math)) {
+      break;
+    }
 
     frame = parent;
   }
@@ -676,7 +692,9 @@ nsresult nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame) {
   // Ask our parent frame to reflow us
   nsIFrame* parent = frame->GetParent();
   NS_ASSERTION(parent, "No parent to pass the reflow request up to");
-  if (!parent) return NS_OK;
+  if (!parent) {
+    return NS_OK;
+  }
 
   frame->PresShell()->FrameNeedsReflow(
       frame, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
@@ -698,7 +716,9 @@ nsresult nsMathMLContainerFrame::ChildListChanged(int32_t aModType) {
     nsEmbellishData embellishData;
     for (; parent; frame = parent, parent = parent->GetParent()) {
       GetEmbellishDataFrom(parent, embellishData);
-      if (embellishData.coreFrame != mEmbellishData.coreFrame) break;
+      if (embellishData.coreFrame != mEmbellishData.coreFrame) {
+        break;
+      }
     }
   }
   return ReLayoutChildren(frame);
@@ -1068,8 +1088,10 @@ static nscoord GetInterFrameSpacing(int32_t aScriptLevel,
     // If the second type is an operator (e.g., fence), it already has
     // built-in lspace & rspace, so we let them win. Otherwise we pick
     // the max between the two values that we have.
-    if (secondType != eMathMLFrameType_OperatorOrdinary && space < *aCarrySpace)
+    if (secondType != eMathMLFrameType_OperatorOrdinary &&
+        space < *aCarrySpace) {
       space = *aCarrySpace;
+    }
 
     // reset everything now that the carry-forward is done
     *aFromFrameType = eMathMLFrameType_UNKNOWN;
@@ -1102,7 +1124,9 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
       mChildFrame = aParentFrame->mFrames.LastChild();
     }
 
-    if (!mChildFrame) return;
+    if (!mChildFrame) {
+      return;
+    }
 
     InitMetricsForChild();
   }
@@ -1118,7 +1142,9 @@ class nsMathMLContainerFrame::RowChildFrameIterator {
       mChildFrame = mChildFrame->GetPrevSibling();
     }
 
-    if (!mChildFrame) return *this;
+    if (!mChildFrame) {
+      return *this;
+    }
 
     eMathMLFrameType prevFrameType = mChildFrameType;
     InitMetricsForChild();
@@ -1271,7 +1297,9 @@ static nscoord GetInterFrameSpacingFor(int32_t aScriptLevel,
                                        nsIFrame* aParentFrame,
                                        nsIFrame* aChildFrame) {
   nsIFrame* childFrame = aParentFrame->PrincipalChildList().FirstChild();
-  if (!childFrame || aChildFrame == childFrame) return 0;
+  if (!childFrame || aChildFrame == childFrame) {
+    return 0;
+  }
 
   int32_t carrySpace = 0;
   eMathMLFrameType fromFrameType = eMathMLFrameType_UNKNOWN;
@@ -1385,12 +1413,18 @@ nsresult nsMathMLContainerFrame::TransmitAutomaticDataForMrowLikeElement() {
   for (childFrame = PrincipalChildList().FirstChild(); childFrame;
        childFrame = childFrame->GetNextSibling()) {
     nsIMathMLFrame* mathMLFrame = do_QueryFrame(childFrame);
-    if (!mathMLFrame) break;
+    if (!mathMLFrame) {
+      break;
+    }
     if (!mathMLFrame->IsSpaceLike()) {
-      if (embellishedOpFound) break;
+      if (embellishedOpFound) {
+        break;
+      }
       baseFrame = childFrame;
       GetEmbellishDataFrom(baseFrame, embellishData);
-      if (!NS_MATHML_IS_EMBELLISH_OPERATOR(embellishData.flags)) break;
+      if (!NS_MATHML_IS_EMBELLISH_OPERATOR(embellishData.flags)) {
+        break;
+      }
       embellishedOpFound = true;
     }
   }
@@ -1430,7 +1464,9 @@ nsresult nsMathMLContainerFrame::TransmitAutomaticDataForMrowLikeElement() {
 /*static*/
 void nsMathMLContainerFrame::PropagateFrameFlagFor(nsIFrame* aFrame,
                                                    nsFrameState aFlags) {
-  if (!aFrame || !aFlags) return;
+  if (!aFrame || !aFlags) {
+    return;
+  }
 
   aFrame->AddStateBits(aFlags);
   for (nsIFrame* childFrame : aFrame->PrincipalChildList()) {

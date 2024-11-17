@@ -109,7 +109,9 @@ void nsMathMLmrootFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // paint the content we are square-rooting
   nsMathMLContainerFrame::BuildDisplayList(aBuilder, aLists);
 
-  if (ShouldUseRowFallback()) return;
+  if (ShouldUseRowFallback()) {
+    return;
+  }
 
   /////////////
   // paint the sqrt symbol
@@ -149,8 +151,12 @@ void nsMathMLmrootFrame::GetRadicalXOffsets(nscoord aIndexWidth,
 
   dxIndex = radicalKernBeforeDegree;
   dxSqr = radicalKernBeforeDegree + aIndexWidth + radicalKernAfterDegree;
-  if (aIndexOffset) *aIndexOffset = dxIndex;
-  if (aSqrOffset) *aSqrOffset = dxSqr;
+  if (aIndexOffset) {
+    *aIndexOffset = dxIndex;
+  }
+  if (aSqrOffset) {
+    *aSqrOffset = dxSqr;
+  }
 }
 
 nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
@@ -220,7 +226,9 @@ nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
   // adjust clearance psi to get an exact number of pixels -- this
   // gives a nicer & uniform look on stacked radicals (bug 130282)
   nscoord delta = psi % onePixel;
-  if (delta) psi += onePixel - delta;  // round up
+  if (delta) {
+    psi += onePixel - delta;  // round up
+  }
 
   // Stretch the radical symbol to the appropriate height if it is not big
   // enough.
