@@ -22,7 +22,9 @@ using namespace mozilla::dom;
 EventStateManager* inLayoutUtils::GetEventStateManagerFor(Element& aElement) {
   Document* doc = aElement.OwnerDoc();
   nsPresContext* presContext = doc->GetPresContext();
-  if (!presContext) return nullptr;
+  if (!presContext) {
+    return nullptr;
+  }
 
   return presContext->EventStateManager();
 }
