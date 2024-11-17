@@ -224,7 +224,9 @@ struct MOZ_STACK_CLASS BidiParagraphData {
           aPrevFrame ? aPrevFrame : aLineIter->GetLine()->mFirstChild;
       for (nsIFrame* frame = startFrame; frame && frame != endFrame;
            frame = frame->GetNextSibling()) {
-        if (frame == aFrame) return true;
+        if (frame == aFrame) {
+          return true;
+        }
       }
       return false;
     }
@@ -698,7 +700,9 @@ static void JoinInlineAncestors(nsIFrame* aFrame) {
       MakeContinuationFluid(frame, next);
     }
     // Join the parent only as long as we're its last child.
-    if (frame->GetNextSibling()) break;
+    if (frame->GetNextSibling()) {
+      break;
+    }
     frame = frame->GetParent();
   }
 }
@@ -1170,7 +1174,9 @@ nsresult nsBidiPresUtils::ResolveParagraph(BidiParagraphData* aBpd) {
 
 void nsBidiPresUtils::TraverseFrames(nsIFrame* aCurrentFrame,
                                      BidiParagraphData* aBpd) {
-  if (!aCurrentFrame) return;
+  if (!aCurrentFrame) {
+    return;
+  }
 
 #ifdef DEBUG
   nsBlockFrame* initialLineContainer =
@@ -1772,7 +1778,9 @@ nscoord nsBidiPresUtils::RepositionFrame(
       aContainerWM.IsVertical() ? aContainerSize.height : aContainerSize.width;
   NS_ASSERTION(lineSize != NS_UNCONSTRAINEDSIZE,
                "Unconstrained inline line size in bidi frame reordering");
-  if (!aFrame) return 0;
+  if (!aFrame) {
+    return 0;
+  }
 
   bool isFirst, isLast;
   WritingMode frameWM = aFrame->GetWritingMode();
@@ -2266,7 +2274,9 @@ nsresult nsBidiPresUtils::ProcessText(const char16_t* aText, size_t aLength,
         /*
          * Did we already resolve this position's visual metric? If so, skip.
          */
-        if (posResolve->visualLeftTwips != kNotFound) continue;
+        if (posResolve->visualLeftTwips != kNotFound) {
+          continue;
+        }
 
         /*
          * First find out if the logical position is within this run.

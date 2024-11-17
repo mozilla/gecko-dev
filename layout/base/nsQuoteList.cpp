@@ -26,10 +26,11 @@ bool nsQuoteNode::InitTextFrame(nsGenConList* aList, nsIFrame* aPseudoFrame,
   nsQuoteList* quoteList = static_cast<nsQuoteList*>(aList);
   bool dirty = false;
   quoteList->Insert(this);
-  if (quoteList->IsLast(this))
+  if (quoteList->IsLast(this)) {
     quoteList->Calc(this);
-  else
+  } else {
     dirty = true;
+  }
 
   // Don't set up text for 'no-open-quote' and 'no-close-quote'.
   if (IsRealQuote()) {
@@ -125,8 +126,9 @@ void nsQuoteList::RecalcAll() {
     int32_t oldDepth = node->mDepthBefore;
     Calc(node);
 
-    if (node->mDepthBefore != oldDepth && node->mText && node->IsRealQuote())
+    if (node->mDepthBefore != oldDepth && node->mText && node->IsRealQuote()) {
       node->mText->SetData(node->Text(), IgnoreErrors());
+    }
   }
 }
 

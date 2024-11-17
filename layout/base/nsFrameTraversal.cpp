@@ -38,7 +38,9 @@ nsFrameIterator::nsFrameIterator(nsPresContext* aPresContext, nsIFrame* aStart,
       mOffEdge(0) {}
 
 nsIFrame* nsFrameIterator::CurrentItem() {
-  if (mOffEdge) return nullptr;
+  if (mOffEdge) {
+    return nullptr;
+  }
 
   return mCurrent;
 }
@@ -55,8 +57,9 @@ void nsFrameIterator::Last() {
   // If the current frame is a popup, don't move farther up the tree.
   // Otherwise, get the nearest root frame or popup.
   if (mSkipPopupChecks || !parent->IsMenuPopupFrame()) {
-    while (!IsRootFrame(parent) && (result = GetParentFrameNotPopup(parent)))
+    while (!IsRootFrame(parent) && (result = GetParentFrameNotPopup(parent))) {
       parent = result;
+    }
   }
 
   while ((result = GetLastChild(parent))) {
@@ -64,14 +67,18 @@ void nsFrameIterator::Last() {
   }
 
   SetCurrent(parent);
-  if (!parent) SetOffEdge(1);
+  if (!parent) {
+    SetOffEdge(1);
+  }
 }
 
 void nsFrameIterator::Next() {
   // recursive-oid method to get next frame
   nsIFrame* result = nullptr;
   nsIFrame* parent = GetCurrent();
-  if (!parent) parent = GetLast();
+  if (!parent) {
+    parent = GetLast();
+  }
 
   if (mType == Type::Leaf) {
     // Drill down to first leaf
@@ -80,7 +87,9 @@ void nsFrameIterator::Next() {
     }
   } else if (mType == Type::PreOrder) {
     result = GetFirstChild(parent);
-    if (result) parent = result;
+    if (result) {
+      parent = result;
+    }
   }
 
   if (parent != GetCurrent()) {
@@ -122,7 +131,9 @@ void nsFrameIterator::Prev() {
   // recursive-oid method to get prev frame
   nsIFrame* result = nullptr;
   nsIFrame* parent = GetCurrent();
-  if (!parent) parent = GetLast();
+  if (!parent) {
+    parent = GetLast();
+  }
 
   if (mType == Type::Leaf) {
     // Drill down to last leaf
@@ -131,7 +142,9 @@ void nsFrameIterator::Prev() {
     }
   } else if (mType == Type::PostOrder) {
     result = GetLastChild(parent);
-    if (result) parent = result;
+    if (result) {
+      parent = result;
+    }
   }
 
   if (parent != GetCurrent()) {
@@ -170,19 +183,31 @@ void nsFrameIterator::Prev() {
 }
 
 nsIFrame* nsFrameIterator::GetParentFrame(nsIFrame* aFrame) {
-  if (mFollowOOFs) aFrame = GetPlaceholderFrame(aFrame);
-  if (aFrame == mLimiter) return nullptr;
-  if (aFrame) return aFrame->GetParent();
+  if (mFollowOOFs) {
+    aFrame = GetPlaceholderFrame(aFrame);
+  }
+  if (aFrame == mLimiter) {
+    return nullptr;
+  }
+  if (aFrame) {
+    return aFrame->GetParent();
+  }
 
   return nullptr;
 }
 
 nsIFrame* nsFrameIterator::GetParentFrameNotPopup(nsIFrame* aFrame) {
-  if (mFollowOOFs) aFrame = GetPlaceholderFrame(aFrame);
-  if (aFrame == mLimiter) return nullptr;
+  if (mFollowOOFs) {
+    aFrame = GetPlaceholderFrame(aFrame);
+  }
+  if (aFrame == mLimiter) {
+    return nullptr;
+  }
   if (aFrame) {
     nsIFrame* parent = aFrame->GetParent();
-    if (!IsPopupFrame(parent)) return parent;
+    if (!IsPopupFrame(parent)) {
+      return parent;
+    }
   }
 
   return nullptr;
@@ -222,8 +247,12 @@ nsIFrame* nsFrameIterator::GetLastChild(nsIFrame* aFrame) {
 
 nsIFrame* nsFrameIterator::GetNextSibling(nsIFrame* aFrame) {
   nsIFrame* result = nullptr;
-  if (mFollowOOFs) aFrame = GetPlaceholderFrame(aFrame);
-  if (aFrame == mLimiter) return nullptr;
+  if (mFollowOOFs) {
+    aFrame = GetPlaceholderFrame(aFrame);
+  }
+  if (aFrame == mLimiter) {
+    return nullptr;
+  }
   if (aFrame) {
     result = GetNextSiblingInner(aFrame);
     if (result && mFollowOOFs) {
@@ -239,8 +268,12 @@ nsIFrame* nsFrameIterator::GetNextSibling(nsIFrame* aFrame) {
 
 nsIFrame* nsFrameIterator::GetPrevSibling(nsIFrame* aFrame) {
   nsIFrame* result = nullptr;
-  if (mFollowOOFs) aFrame = GetPlaceholderFrame(aFrame);
-  if (aFrame == mLimiter) return nullptr;
+  if (mFollowOOFs) {
+    aFrame = GetPlaceholderFrame(aFrame);
+  }
+  if (aFrame == mLimiter) {
+    return nullptr;
+  }
   if (aFrame) {
     result = GetPrevSiblingInner(aFrame);
     if (result && mFollowOOFs) {

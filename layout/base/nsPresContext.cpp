@@ -442,14 +442,15 @@ void nsPresContext::GetUserPreferences() {
   // * image animation
   nsAutoCString animatePref;
   Preferences::GetCString("image.animation_mode", animatePref);
-  if (animatePref.EqualsLiteral("normal"))
+  if (animatePref.EqualsLiteral("normal")) {
     mImageAnimationModePref = imgIContainer::kNormalAnimMode;
-  else if (animatePref.EqualsLiteral("none"))
+  } else if (animatePref.EqualsLiteral("none")) {
     mImageAnimationModePref = imgIContainer::kDontAnimMode;
-  else if (animatePref.EqualsLiteral("once"))
+  } else if (animatePref.EqualsLiteral("once")) {
     mImageAnimationModePref = imgIContainer::kLoopOnceAnimMode;
-  else  // dynamic change to invalid value should act like it does initially
+  } else {  // dynamic change to invalid value should act like it does initially
     mImageAnimationModePref = imgIContainer::kNormalAnimMode;
+  }
 
   uint32_t bidiOptions = GetBidi();
 
@@ -938,10 +939,11 @@ void nsPresContext::AttachPresShell(mozilla::PresShell* aPresShell) {
   nsIURI* docURI = doc->GetDocumentURI();
 
   if (IsDynamic() && docURI) {
-    if (!docURI->SchemeIs("chrome") && !docURI->SchemeIs("resource"))
+    if (!docURI->SchemeIs("chrome") && !docURI->SchemeIs("resource")) {
       mImageAnimationMode = mImageAnimationModePref;
-    else
+    } else {
       mImageAnimationMode = imgIContainer::kNormalAnimMode;
+    }
   }
 
   UpdateCharSet(doc->GetDocumentCharacterSet());
@@ -1240,11 +1242,15 @@ nsPresContext* nsPresContext::GetParentPresContext() const {
 }
 
 nsPresContext* nsPresContext::GetInProcessRootContentDocumentPresContext() {
-  if (IsChrome()) return nullptr;
+  if (IsChrome()) {
+    return nullptr;
+  }
   nsPresContext* pc = this;
   for (;;) {
     nsPresContext* parent = pc->GetParentPresContext();
-    if (!parent || parent->IsChrome()) return pc;
+    if (!parent || parent->IsChrome()) {
+      return pc;
+    }
     pc = parent;
   }
 }
@@ -1273,7 +1279,9 @@ nsRootPresContext* nsPresContext::GetRootPresContext() const {
   nsPresContext* pc = const_cast<nsPresContext*>(this);
   for (;;) {
     nsPresContext* parent = pc->GetParentPresContext();
-    if (!parent) break;
+    if (!parent) {
+      break;
+    }
     pc = parent;
   }
   return pc->IsRoot() ? static_cast<nsRootPresContext*>(pc) : nullptr;
@@ -1394,13 +1402,15 @@ void nsPresContext::SetSMILAnimations(dom::Document* aDoc, uint16_t aNewMode,
     switch (aNewMode) {
       case imgIContainer::kNormalAnimMode:
       case imgIContainer::kLoopOnceAnimMode:
-        if (aOldMode == imgIContainer::kDontAnimMode)
+        if (aOldMode == imgIContainer::kDontAnimMode) {
           controller->Resume(SMILTimeContainer::PAUSE_USERPREF);
+        }
         break;
 
       case imgIContainer::kDontAnimMode:
-        if (aOldMode != imgIContainer::kDontAnimMode)
+        if (aOldMode != imgIContainer::kDontAnimMode) {
           controller->Pause(SMILTimeContainer::PAUSE_USERPREF);
+        }
         break;
     }
   }
@@ -1413,7 +1423,9 @@ void nsPresContext::SetImageAnimationMode(uint16_t aMode) {
                "Wrong Animation Mode is being set!");
 
   // Image animation mode cannot be changed when rendering to a printer.
-  if (!IsDynamic()) return;
+  if (!IsDynamic()) {
+    return;
+  }
 
   // Now walk the content tree and set the animation mode
   // on all the images.
@@ -2323,7 +2335,9 @@ void nsPresContext::FireDOMPaintEvent(
     nsTArray<nsRect>* aList, TransactionId aTransactionId,
     mozilla::TimeStamp aTimeStamp /* = mozilla::TimeStamp() */) {
   nsPIDOMWindowInner* ourWindow = mDocument->GetInnerWindow();
-  if (!ourWindow) return;
+  if (!ourWindow) {
+    return;
+  }
 
   nsCOMPtr<EventTarget> dispatchTarget = do_QueryInterface(ourWindow);
   nsCOMPtr<EventTarget> eventTarget = dispatchTarget;
@@ -2369,11 +2383,17 @@ void nsPresContext::FireDOMPaintEvent(
 }
 
 static bool MayHavePaintEventListener(nsPIDOMWindowInner* aInnerWindow) {
-  if (!aInnerWindow) return false;
-  if (aInnerWindow->HasPaintEventListeners()) return true;
+  if (!aInnerWindow) {
+    return false;
+  }
+  if (aInnerWindow->HasPaintEventListeners()) {
+    return true;
+  }
 
   EventTarget* parentTarget = aInnerWindow->GetParentTarget();
-  if (!parentTarget) return false;
+  if (!parentTarget) {
+    return false;
+  }
 
   EventListenerManager* manager = nullptr;
   if ((manager = parentTarget->GetExistingListenerManager()) &&

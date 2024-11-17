@@ -2071,10 +2071,11 @@ nsIFrame* nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   // Create the table wrapper frame which holds the caption and inner table
   // frame
   nsContainerFrame* newFrame;
-  if (isMathMLContent)
+  if (isMathMLContent) {
     newFrame = NS_NewMathMLmtableOuterFrame(mPresShell, outerComputedStyle);
-  else
+  } else {
     newFrame = NS_NewTableWrapperFrame(mPresShell, outerComputedStyle);
+  }
 
   nsContainerFrame* geometricParent = aState.GetGeometricParent(
       *outerComputedStyle->StyleDisplay(), aParentFrame);
@@ -2084,10 +2085,11 @@ nsIFrame* nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
 
   // Create the inner table frame
   nsContainerFrame* innerFrame;
-  if (isMathMLContent)
+  if (isMathMLContent) {
     innerFrame = NS_NewMathMLmtableFrame(mPresShell, computedStyle);
-  else
+  } else {
     innerFrame = NS_NewTableFrame(mPresShell, computedStyle);
+  }
 
   InitAndRestoreFrame(aState, content, newFrame, innerFrame);
   innerFrame->AddStateBits(NS_FRAME_OWNS_ANON_BOXES);
@@ -2168,10 +2170,11 @@ nsIFrame* nsCSSFrameConstructor::ConstructTableRowOrRowGroup(
 
   nsContainerFrame* newFrame;
   if (aDisplay->mDisplay == StyleDisplay::TableRow) {
-    if (content->IsMathMLElement())
+    if (content->IsMathMLElement()) {
       newFrame = NS_NewMathMLmtrFrame(mPresShell, computedStyle);
-    else
+    } else {
       newFrame = NS_NewTableRowFrame(mPresShell, computedStyle);
+    }
   } else {
     newFrame = NS_NewTableRowGroupFrame(mPresShell, computedStyle);
   }
@@ -3294,8 +3297,9 @@ static nsIFrame* FindAncestorWithGeneratedContentPseudo(nsIFrame* aFrame) {
                  "should not have exited generated content");
     auto pseudo = f->Style()->GetPseudoType();
     if (pseudo == PseudoStyleType::before || pseudo == PseudoStyleType::after ||
-        pseudo == PseudoStyleType::marker)
+        pseudo == PseudoStyleType::marker) {
       return f;
+    }
   }
   return nullptr;
 }
@@ -5352,28 +5356,32 @@ bool nsCSSFrameConstructor::AtLineBoundary(FCItemIterator& aIter) {
 
   if (aIter.AtStart()) {
     if (aIter.List()->HasLineBoundaryAtStart() &&
-        !aIter.item().mContent->GetPreviousSibling())
+        !aIter.item().mContent->GetPreviousSibling()) {
       return true;
+    }
   } else {
     FCItemIterator prev = aIter;
     prev.Prev();
     if (prev.item().IsLineBoundary() &&
         !prev.item().mSuppressWhiteSpaceOptimizations &&
-        aIter.item().mContent->GetPreviousSibling() == prev.item().mContent)
+        aIter.item().mContent->GetPreviousSibling() == prev.item().mContent) {
       return true;
+    }
   }
 
   FCItemIterator next = aIter;
   next.Next();
   if (next.IsDone()) {
     if (aIter.List()->HasLineBoundaryAtEnd() &&
-        !aIter.item().mContent->GetNextSibling())
+        !aIter.item().mContent->GetNextSibling()) {
       return true;
+    }
   } else {
     if (next.item().IsLineBoundary() &&
         !next.item().mSuppressWhiteSpaceOptimizations &&
-        aIter.item().mContent->GetNextSibling() == next.item().mContent)
+        aIter.item().mContent->GetNextSibling() == next.item().mContent) {
       return true;
+    }
   }
 
   return false;
@@ -5405,8 +5413,10 @@ void nsCSSFrameConstructor::ConstructFramesFromItem(
         !(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT) &&
         (item.mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) &&
         !(item.mFCData->mBits & FCDATA_IS_SVG_TEXT) &&
-        !mAlwaysCreateFramesForIgnorableWhitespace && item.IsWhitespace(aState))
+        !mAlwaysCreateFramesForIgnorableWhitespace &&
+        item.IsWhitespace(aState)) {
       return;
+    }
 
     ConstructTextFrame(item.mFCData, aState, item.mContent, aParentFrame,
                        computedStyle, aFrameList);
