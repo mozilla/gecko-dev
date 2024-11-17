@@ -560,6 +560,8 @@
     <string name="onboarding_add_on_reviews_label">评价数：%1$s</string>
     <!-- Content description for the add-on icon. -->
     <string name="onboarding_add_on_icon_content_description">附加组件图标</string>
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">已安装的附加组件的图标</string>
     <!-- Content description for the an installing add-on icon. -->
     <string name="onboarding_installing_add_on_icon_content_description">正在安装的附加组件的图标</string>
     <!-- Content description for the add add-on button. -->
