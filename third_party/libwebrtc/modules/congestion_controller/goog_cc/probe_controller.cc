@@ -574,7 +574,6 @@ std::vector<ProbeClusterConfig> ProbeController::InitiateProbing(
         std::min(max_probe_bitrate, max_total_allocated_bitrate_ * 2);
   }
 
-  DataRate estimate_capped_bitrate = DataRate::PlusInfinity();
   switch (bandwidth_limited_cause_) {
     case BandwidthLimitedCause::kRttBasedBackOffHighRtt:
     case BandwidthLimitedCause::kDelayBasedLimitedDelayIncreased:
@@ -583,7 +582,7 @@ std::vector<ProbeClusterConfig> ProbeController::InitiateProbing(
                        << static_cast<int>(bandwidth_limited_cause_);
       return {};
     case BandwidthLimitedCause::kLossLimitedBweIncreasing:
-      estimate_capped_bitrate =
+      max_probe_bitrate =
           std::min(max_probe_bitrate,
                    estimated_bitrate_ * config_.loss_limited_probe_scale);
       break;
@@ -599,8 +598,8 @@ std::vector<ProbeClusterConfig> ProbeController::InitiateProbing(
       RTC_LOG(LS_INFO) << "Not sending probe, Network state estimate is zero";
       return {};
     }
-    estimate_capped_bitrate = std::min(
-        {estimate_capped_bitrate, max_probe_bitrate,
+    max_probe_bitrate = std::min(
+        {max_probe_bitrate,
          std::max(estimated_bitrate_, network_estimate_->link_capacity_upper *
                                           config_.network_state_probe_scale)});
   }
@@ -608,12 +607,10 @@ std::vector<ProbeClusterConfig> ProbeController::InitiateProbing(
   std::vector<ProbeClusterConfig> pending_probes;
   for (DataRate bitrate : bitrates_to_probe) {
     RTC_DCHECK(!bitrate.IsZero());
-    bitrate = std::min(bitrate, estimate_capped_bitrate);
-    if (bitrate > max_probe_bitrate) {
+    if (bitrate >= max_probe_bitrate) {
       bitrate = max_probe_bitrate;
       probe_further = false;
     }
-
     pending_probes.push_back(CreateProbeClusterConfig(now, bitrate));
   }
   time_last_probing_initiated_ = now;
@@ -621,9 +618,8 @@ std::vector<ProbeClusterConfig> ProbeController::InitiateProbing(
     UpdateState(State::kWaitingForProbingResult);
     // Dont expect probe results to be larger than a fraction of the actual
     // probe rate.
-    min_bitrate_to_probe_further_ =
-        std::min(estimate_capped_bitrate, (*(bitrates_to_probe.end() - 1))) *
-        config_.further_probe_threshold;
+    min_bitrate_to_probe_further_ = pending_probes.back().target_data_rate *
+                                    config_.further_probe_threshold;
   } else {
     UpdateState(State::kProbingComplete);
   }

@@ -988,39 +988,6 @@ TEST(ProbeControllerTest, ProbeInAlrIfLossBasedIncreasing) {
   EXPECT_EQ(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
 }
 
-TEST(ProbeControllerTest, ProbeFurtherInAlrIfLossBasedIncreasing) {
-  ProbeControllerFixture fixture;
-  std::unique_ptr<ProbeController> probe_controller =
-      fixture.CreateController();
-  ASSERT_THAT(
-      probe_controller->OnNetworkAvailability({.network_available = true}),
-      IsEmpty());
-  auto probes = probe_controller->SetBitrates(
-      kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
-  probe_controller->EnablePeriodicAlrProbing(true);
-  probes = probe_controller->SetEstimatedBitrate(
-      kStartBitrate, BandwidthLimitedCause::kLossLimitedBweIncreasing,
-      fixture.CurrentTime());
-
-  // Wait long enough to time out exponential probing.
-  fixture.AdvanceTime(kExponentialProbingTimeout);
-  probes = probe_controller->Process(fixture.CurrentTime());
-  ASSERT_TRUE(probes.empty());
-
-  // Probe when in alr.
-  probe_controller->SetAlrStartTimeMs(fixture.CurrentTime().ms());
-  fixture.AdvanceTime(kAlrProbeInterval + TimeDelta::Millis(1));
-  probes = probe_controller->Process(fixture.CurrentTime());
-  ASSERT_EQ(probes.size(), 1u);
-  ASSERT_EQ(probes.at(0).target_data_rate, 1.5 * kStartBitrate);
-
-  probes = probe_controller->SetEstimatedBitrate(
-      1.5 * kStartBitrate, BandwidthLimitedCause::kLossLimitedBweIncreasing,
-      fixture.CurrentTime());
-  ASSERT_EQ(probes.size(), 1u);
-  EXPECT_EQ(probes[0].target_data_rate, 1.5 * 1.5 * kStartBitrate);
-}
-
 TEST(ProbeControllerTest, NotProbeWhenInAlrIfLossBasedDecreases) {
   ProbeControllerFixture fixture;
   std::unique_ptr<ProbeController> probe_controller =
@@ -1227,10 +1194,11 @@ TEST(ProbeControllerTest, ProbeFurtherWhenDelayBasedLimited) {
 }
 
 TEST(ProbeControllerTest,
-     ProbeFurtherIfNetworkStateEstimateIncreaseAfterProbeSent) {
+     ProbeAfterTimeoutIfNetworkStateEstimateIncreaseAfterProbeSent) {
   ProbeControllerFixture fixture(
       "WebRTC-Bwe-ProbingConfiguration/"
-      "network_state_interval:5s/");
+      "network_state_interval:5s,est_lower_than_network_interval:3s,est_lower_"
+      "than_network_ratio:0.7/");
   std::unique_ptr<ProbeController> probe_controller =
       fixture.CreateController();
   ASSERT_THAT(
@@ -1252,20 +1220,63 @@ TEST(ProbeControllerTest,
   probes = probe_controller->Process(fixture.CurrentTime());
   ASSERT_FALSE(probes.empty());
   EXPECT_LE(probes[0].target_data_rate, state_estimate.link_capacity_upper);
-  // If the network state estimate increase above the threshold to probe
-  // further, and the probe suceeed, expect a new probe.
+  // If the network state estimate increase, even before the probe result,
+  // expect a new probe after `est_lower_than_network_interval` timeout.
   state_estimate.link_capacity_upper = 3 * kStartBitrate;
   probe_controller->SetNetworkStateEstimate(state_estimate);
   probes = probe_controller->SetEstimatedBitrate(
       probes[0].target_data_rate, BandwidthLimitedCause::kDelayBasedLimited,
       fixture.CurrentTime());
-  EXPECT_FALSE(probes.empty());
+  EXPECT_THAT(probes, IsEmpty());
+
+  fixture.AdvanceTime(TimeDelta::Seconds(3));
+  probes = probe_controller->Process(fixture.CurrentTime());
+  EXPECT_THAT(probes, Not(IsEmpty()));
 
   // But no more probes if estimate is close to the link capacity.
   probes = probe_controller->SetEstimatedBitrate(
       state_estimate.link_capacity_upper * 0.9,
       BandwidthLimitedCause::kDelayBasedLimited, fixture.CurrentTime());
   EXPECT_TRUE(probes.empty());
+}
+
+TEST(ProbeControllerTest, SkipProbeFurtherIfAlreadyProbedToMaxRate) {
+  ProbeControllerFixture fixture(
+      "WebRTC-Bwe-ProbingConfiguration/"
+      "network_state_interval:2s,skip_if_est_larger_than_fraction_of_max:0.9/");
+  std::unique_ptr<ProbeController> probe_controller =
+      fixture.CreateController();
+  ASSERT_THAT(
+      probe_controller->OnNetworkAvailability({.network_available = true}),
+      IsEmpty());
+  auto probes = probe_controller->SetBitrates(
+      kMinBitrate, kStartBitrate, kMaxBitrate, fixture.CurrentTime());
+  ASSERT_FALSE(probes.empty());
+
+  probe_controller->SetNetworkStateEstimate(
+      {.link_capacity_upper = 2 * kMaxBitrate});
+
+  // Attempt to probe up to max rate.
+  probes = probe_controller->SetEstimatedBitrate(
+      kMaxBitrate * 0.8, BandwidthLimitedCause::kDelayBasedLimited,
+      fixture.CurrentTime());
+  ASSERT_FALSE(probes.empty());
+  EXPECT_EQ(probes[0].target_data_rate, kMaxBitrate);
+
+  // If the probe result arrives, dont expect a new probe immediately since we
+  // already tried to probe at the max rate.
+  probes = probe_controller->SetEstimatedBitrate(
+      kMaxBitrate * 0.8, BandwidthLimitedCause::kDelayBasedLimited,
+      fixture.CurrentTime());
+  EXPECT_TRUE(probes.empty());
+
+  fixture.AdvanceTime(TimeDelta::Millis(1000));
+  probes = probe_controller->Process(fixture.CurrentTime());
+  EXPECT_THAT(probes, IsEmpty());
+  // But when enough time has passed, expect a new probe.
+  fixture.AdvanceTime(TimeDelta::Millis(1000));
+  probes = probe_controller->Process(fixture.CurrentTime());
+  EXPECT_THAT(probes, Not(IsEmpty()));
 }
 
 TEST(ProbeControllerTest, MaxAllocatedBitrateNotReset) {
