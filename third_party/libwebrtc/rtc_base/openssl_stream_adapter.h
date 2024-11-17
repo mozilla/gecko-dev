@@ -250,6 +250,9 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter,
   // A 50-ms initial timeout ensures rapid setup on fast connections, but may
   // be too aggressive for low bandwidth links.
   int dtls_handshake_timeout_ms_ = 50;
+
+  // Rollout killswitch for disabling session tickets.
+  const bool disable_handshake_ticket_;
 };
 
 /////////////////////////////////////////////////////////////////////////////
