@@ -1031,6 +1031,8 @@ std::vector<VideoCodecSettings> WebRtcVideoSendChannel::SelectSendVideoCodecs(
       // following the spec in https://tools.ietf.org/html/rfc6184#section-8.2.2
       // since we should limit the encode level to the lower of local and remote
       // level when level asymmetry is not allowed.
+      // For H.265, the level asymmetry is implicitly allowed. We need to make
+      // sure the encode level is set to the remote offered level.
       if (format_it->IsSameCodec(
               {remote_codec.codec.name, remote_codec.codec.params})) {
         encoders.push_back(remote_codec);

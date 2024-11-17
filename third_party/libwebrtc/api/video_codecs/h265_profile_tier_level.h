@@ -107,10 +107,20 @@ RTC_EXPORT std::optional<H265Level> GetSupportedH265Level(
 RTC_EXPORT std::optional<H265ProfileTierLevel> ParseSdpForH265ProfileTierLevel(
     const CodecParameterMap& params);
 
-// Returns true if the parameters have the same H265 profile or neither contains
-// an H265 profile, otherwise false.
+// Returns true if the parameters have the same H265 profile/tier/level or
+// neither contains an H265 profile/tier/level, otherwise false.
 RTC_EXPORT bool H265IsSameProfileTierLevel(const CodecParameterMap& params1,
                                            const CodecParameterMap& params2);
+
+// Returns true if the parameters have the same H265 profile, or neither
+// contains an H265 profile, otherwise false.
+RTC_EXPORT bool H265IsSameProfile(const CodecParameterMap& params1,
+                                  const CodecParameterMap& params2);
+
+// Returns true if the parameters have the same H265 tier, or neither
+// contains an H265 tier, otherwise false.
+RTC_EXPORT bool H265IsSameTier(const CodecParameterMap& params1,
+                               const CodecParameterMap& params2);
 
 }  // namespace webrtc
 

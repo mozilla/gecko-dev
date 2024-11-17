@@ -420,8 +420,8 @@ TEST(CodecTest, TestH265CodecMatches) {
     Codec c_level_id_4 = cricket::CreateVideoCodec(95, cricket::kH265CodecName);
     c_level_id_4.params[cricket::kH265FmtpLevelId] = kLevel4;
 
-    // Does not match since different level-ids are specified.
-    EXPECT_FALSE(c_ptl_blank.Matches(c_level_id_4));
+    // Matches since we ignore level-id when matching H.265 codecs.
+    EXPECT_TRUE(c_ptl_blank.Matches(c_level_id_4));
   }
 
   {

@@ -285,6 +285,24 @@ bool H265IsSameProfileTierLevel(const CodecParameterMap& params1,
          ptl1->tier == ptl2->tier && ptl1->level == ptl2->level;
 }
 
+bool H265IsSameProfile(const CodecParameterMap& params1,
+                       const CodecParameterMap& params2) {
+  const std::optional<H265ProfileTierLevel> ptl1 =
+      ParseSdpForH265ProfileTierLevel(params1);
+  const std::optional<H265ProfileTierLevel> ptl2 =
+      ParseSdpForH265ProfileTierLevel(params2);
+  return ptl1 && ptl2 && ptl1->profile == ptl2->profile;
+}
+
+bool H265IsSameTier(const CodecParameterMap& params1,
+                    const CodecParameterMap& params2) {
+  const std::optional<H265ProfileTierLevel> ptl1 =
+      ParseSdpForH265ProfileTierLevel(params1);
+  const std::optional<H265ProfileTierLevel> ptl2 =
+      ParseSdpForH265ProfileTierLevel(params2);
+  return ptl1 && ptl2 && ptl1->tier == ptl2->tier;
+}
+
 std::optional<H265Level> GetSupportedH265Level(const Resolution& resolution,
                                                float max_fps) {
   int aligned_width =
