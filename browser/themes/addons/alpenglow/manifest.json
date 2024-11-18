@@ -9,7 +9,7 @@
 
   "name": "Firefox Alpenglow",
   "description": "Use a colorful appearance for buttons, menus, and windows.",
-  "version": "1.5",
+  "version": "1.4",
   "icons": { "32": "icon.svg" },
 
   "theme": {
@@ -60,7 +60,7 @@
       "popup_border": "hsla(255, 100%, 94%, .32)",
       "popup_highlight": "hsla(255, 100%, 94%, .12)",
       "popup_highlight_text": "hsla(0, 0%, 100%, 1)",
-      "sidebar": "rgb(255, 255, 255)",
+      "sidebar": "hsla(240, 15%, 95%, 1)",
       "sidebar_text": "hsla(261, 53%, 15%, 1)",
       "sidebar_border": "hsla(261, 53%, 15%, .24)",
       "sidebar_highlight": "hsla(265, 100%, 72%, 1)",

@@ -7,8 +7,6 @@
 
 :root {
   --sidebar-box-border: 0.5px solid var(--border-color-deemphasized);
-  --sidebar-box-background: light-dark(rgba(0, 0, 0, .03), rgba(255, 255, 255, .05));
-  --sidebar-box-color: currentColor;
   background-color: transparent;
   color: var(--sidebar-text-color);
   height: 100%;
@@ -21,9 +19,9 @@ body {
 
 moz-card {
   margin-block-start: var(--space-medium);
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
   box-shadow: none;
-  background-color: var(--sidebar-box-background);
-  color: var(--sidebar-box-color);
   border: var(--sidebar-box-border);
   border-radius: var(--border-radius-medium);
 
@@ -61,10 +59,10 @@ moz-card {
 
 fxview-search-textbox {
   &::part(input) {
-    background-color: var(--sidebar-box-background);
-    color: var(--sidebar-box-color);
-    border: var(--sidebar-box-border);
+    background-color: var(--toolbar-field-background-color);
+    color: var(--toolbar-field-color);
     border-radius: 2em;
+    border: var(--sidebar-box-border);
   }
 
   &::part(container) {
@@ -75,12 +73,12 @@ fxview-search-textbox {
 fxview-empty-state {
   &::part(container) {
     margin-block-start: var(--space-medium);
-    padding-block: 83px;
-    padding-inline: var(--space-medium);
-    background-color: var(--sidebar-box-background);
-    color: var(--sidebar-box-color);
+    background-color: var(--toolbar-bgcolor);
+    color: var(--toolbar-color);
     border: var(--sidebar-box-border);
     border-radius: var(--border-radius-medium);
+    padding-block: 83px;
+    padding-inline: var(--space-medium);
   }
 
   &::part(header) {

@@ -38,11 +38,11 @@
   display: flex;
   flex-direction: column;
   margin-top: var(--space-small);
-  padding-inline: var(--space-medium);
-  background-color: var(--sidebar-box-background);
-  color: var(--sidebar-box-color);
-  border: var(--sidebar-box-border);
+  border: 0.5px solid var(--panel-separator-color);
   border-radius: var(--border-radius-medium);
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
+  padding-inline: var(--space-medium);
 }
 
 .extension-item {
@@ -66,10 +66,10 @@ moz-fieldset {
   display: block;
 
   &::part(inputs) {
-    background-color: var(--sidebar-box-background);
-    color: var(--sidebar-box-color);
-    border: var(--sidebar-box-border);
+    border: 0.5px solid var(--panel-separator-color);
     border-radius: var(--border-radius-medium);
+    background-color: var(--toolbar-bgcolor);
+    color: var(--toolbar-color);
     gap: 0;
     padding-inline: var(--space-medium);
   }
