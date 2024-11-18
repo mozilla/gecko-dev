@@ -57,6 +57,10 @@ WINDOWS_WORKER_TYPES = {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",
     },
+    "windows11-a64-2009-shippable": {
+        "virtual": "win11-a64-24h2",
+        "virtual-with-gpu": "win11-a64-24h2",
+    },
     "windows11-64-2009": {
         "virtual": "win11-64-2009",
         "virtual-with-gpu": "win11-64-2009-gpu",

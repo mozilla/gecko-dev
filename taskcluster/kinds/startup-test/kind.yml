@@ -127,3 +127,20 @@ tasks:
             build_platform: win64-shippable
         treeherder:
             platform: windows2012-64-shippable/opt
+
+    win64-aarch64:
+        dependencies:
+            repackage-signing: repackage-signing-win64-aarch64-shippable/opt
+        run:
+            using: mach
+            python-version: 3
+        extra-config:
+            upstream_kind: repackage-signing
+            upstream_artifact: target.installer.exe
+            binary: core/firefox.exe
+        worker-type: win11-a64-24h2
+        shipping-product: firefox
+        attributes:
+            build_platform: win64-shippable
+        treeherder:
+            platform: windows2012-aarch64-shippable/opt

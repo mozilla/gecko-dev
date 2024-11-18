@@ -1011,6 +1011,11 @@ workers:
             implementation: generic-worker
             os: windows
             worker-type: '{alias}'
+        win11-a64-24h2:
+            provisioner: 'gecko-t'
+            implementation: generic-worker
+            os: windows
+            worker-type: '{alias}'
         t-win7-32-gpu:
             provisioner: '{trust-domain}-t'
             implementation: generic-worker

@@ -96,7 +96,7 @@ def support_vcs_checkout(config, job, taskdesc, sparse=False):
     if is_win:
         checkoutdir = "./build"
         geckodir = f"{checkoutdir}/src"
-        if "aarch64" in job["worker-type"]:
+        if "aarch64" in job["worker-type"] or "a64" in job["worker-type"]:
             # arm64 instances on azure don't support local ssds
             hgstore = f"{checkoutdir}/hg-store"
         else:
