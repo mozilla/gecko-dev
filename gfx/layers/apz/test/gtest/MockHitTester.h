@@ -25,8 +25,8 @@ class MockHitTester final : public IAPZHitTester {
       const RecursiveMutexAutoLock& aProofOfTreeLock) override;
 
   // Queue a hit test result whose target APZC is the APZC
-  // with scroll id |aScrollId|, and the provided hit test flags.
-  void QueueHitResult(ScrollableLayerGuid::ViewID aScrollId,
+  // with guid |aGuid|, and the provided hit test flags.
+  void QueueHitResult(ScrollableLayerGuid aGuid,
                       gfx::CompositorHitTestInfo aHitInfo);
 
   // Queue a hit test result whose target is the scrollbar of the APZC

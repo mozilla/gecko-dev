@@ -101,8 +101,16 @@ class APZCTreeManagerTester : public APZCTesterBase {
   void QueueMockHitResult(ScrollableLayerGuid::ViewID aScrollId,
                           gfx::CompositorHitTestInfo aHitInfo =
                               gfx::CompositorHitTestFlags::eVisibleToHitTest) {
+    QueueMockHitResult(ScrollableLayerGuid(LayersId{0}, 0, aScrollId),
+                       aHitInfo);
+  }
+
+  // This overload allows customizing the LayersId as well.
+  void QueueMockHitResult(ScrollableLayerGuid aGuid,
+                          gfx::CompositorHitTestInfo aHitInfo =
+                              gfx::CompositorHitTestFlags::eVisibleToHitTest) {
     MOZ_ASSERT(mMockHitTester);
-    mMockHitTester->QueueHitResult(aScrollId, aHitInfo);
+    mMockHitTester->QueueHitResult(aGuid, aHitInfo);
   }
 
   RefPtr<TestAPZCTreeManager> manager;
