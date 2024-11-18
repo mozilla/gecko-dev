@@ -108,6 +108,8 @@ pub struct AddonBase64 {
     #[serde(deserialize_with = "deserialize_base64")]
     pub addon: Vec<u8>,
     pub temporary: Option<bool>,
+    #[serde(rename = "allowPrivateBrowsing")]
+    pub allow_private_browsing: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -115,6 +117,8 @@ pub struct AddonBase64 {
 pub struct AddonPath {
     pub path: String,
     pub temporary: Option<bool>,
+    #[serde(rename = "allowPrivateBrowsing")]
+    pub allow_private_browsing: Option<bool>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -183,6 +187,7 @@ mod tests {
         let params = AddonPath {
             path: "/path/to.xpi".to_string(),
             temporary: Some(true),
+            allow_private_browsing: None,
         };
         assert_de(
             &AddonInstallParameters::AddonPath(params),
@@ -195,6 +200,7 @@ mod tests {
         let params = AddonPath {
             path: "/path/to.xpi".to_string(),
             temporary: None,
+            allow_private_browsing: None,
         };
         assert_de(
             &AddonInstallParameters::AddonPath(params),
@@ -203,8 +209,27 @@ mod tests {
     }
 
     #[test]
+    fn test_json_addon_install_parameters_with_path_and_allow_private_browsing() {
+        let params = AddonPath {
+            path: "/path/to.xpi".to_string(),
+            temporary: None,
+            allow_private_browsing: Some(true),
+        };
+        assert_de(
+            &AddonInstallParameters::AddonPath(params),
+            json!({"path": "/path/to.xpi", "allowPrivateBrowsing": true}),
+        );
+    }
+
+    #[test]
     fn test_json_addon_install_parameters_with_path_invalid_type() {
         let json = json!({"path": true, "temporary": true});
+        assert!(serde_json::from_value::<AddonInstallParameters>(json).is_err());
+    }
+
+    #[test]
+    fn test_json_addon_install_parameters_with_path_and_allow_private_browsing_invalid_type() {
+        let json = json!({"path": "/path/to.xpi", "allowPrivateBrowsing": "foo"});
         assert!(serde_json::from_value::<AddonInstallParameters>(json).is_err());
     }
 
@@ -222,6 +247,20 @@ mod tests {
         match data {
             AddonInstallParameters::AddonBase64(data) => {
                 assert_eq!(data.temporary, Some(true));
+                assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
+            }
+            _ => (),
+        }
+    }
+
+    #[test]
+    fn test_json_addon_install_parameters_with_addon_and_allow_private_browsing() {
+        let json = json!({"addon": "aGVsbG8=", "allowPrivateBrowsing": true});
+        let data = serde_json::from_value::<AddonInstallParameters>(json).unwrap();
+
+        match data {
+            AddonInstallParameters::AddonBase64(data) => {
+                assert_eq!(data.allow_private_browsing, Some(true));
                 assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
             }
             _ => (),
@@ -251,6 +290,12 @@ mod tests {
     #[test]
     fn test_json_addon_install_parameters_with_addon_and_temporary_invalid_type() {
         let json = json!({"addon": "aGVsbG8=", "temporary": "foo"});
+        assert!(serde_json::from_value::<AddonInstallParameters>(json).is_err());
+    }
+
+    #[test]
+    fn test_json_addon_install_parameters_with_addon_and_allow_private_browsing_invalid_type() {
+        let json = json!({"addon": "aGVsbG8=", "allowPrivateBrowsing": "foo"});
         assert!(serde_json::from_value::<AddonInstallParameters>(json).is_err());
     }
 

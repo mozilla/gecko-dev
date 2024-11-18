@@ -1115,6 +1115,7 @@ impl MarionetteCommand {
                             let addon = AddonPath {
                                 path: browser.create_file(&data.addon)?,
                                 temporary: data.temporary,
+                                allow_private_browsing: data.allow_private_browsing,
                             };
                             (Some("Addon:Install"), Some(addon.to_marionette()))
                         }
@@ -1457,6 +1458,12 @@ impl ToMarionette<Map<String, Value>> for AddonPath {
             data.insert(
                 "temporary".to_string(),
                 serde_json::to_value(self.temporary)?,
+            );
+        }
+        if self.allow_private_browsing.is_some() {
+            data.insert(
+                "allowPrivateBrowsing".to_string(),
+                serde_json::to_value(self.allow_private_browsing)?,
             );
         }
         Ok(data)
