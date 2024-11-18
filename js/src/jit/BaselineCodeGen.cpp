@@ -66,8 +66,7 @@ class PlainObject;
 
 namespace jit {
 
-BaselineCompilerHandler::BaselineCompilerHandler(JSContext* cx,
-                                                 MacroAssembler& masm,
+BaselineCompilerHandler::BaselineCompilerHandler(MacroAssembler& masm,
                                                  TempAllocator& alloc,
                                                  JSScript* script)
     : frame_(script, masm),
@@ -83,15 +82,14 @@ BaselineCompilerHandler::BaselineCompilerHandler(JSContext* cx,
       ionCompileable_(true) {
 }
 
-BaselineInterpreterHandler::BaselineInterpreterHandler(JSContext* cx,
-                                                       MacroAssembler& masm)
+BaselineInterpreterHandler::BaselineInterpreterHandler(MacroAssembler& masm)
     : frame_(masm) {}
 
 template <typename Handler>
 template <typename... HandlerArgs>
 BaselineCodeGen<Handler>::BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
                                           HandlerArgs&&... args)
-    : handler(cx, masm, std::forward<HandlerArgs>(args)...),
+    : handler(masm, std::forward<HandlerArgs>(args)...),
       cx(cx),
       runtime(CompileRuntime::get(cx->runtime())),
       masm(cx, alloc),

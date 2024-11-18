@@ -300,8 +300,8 @@ class BaselineCompilerHandler {
  public:
   using FrameInfoT = CompilerFrameInfo;
 
-  BaselineCompilerHandler(JSContext* cx, MacroAssembler& masm,
-                          TempAllocator& alloc, JSScript* script);
+  BaselineCompilerHandler(MacroAssembler& masm, TempAllocator& alloc,
+                          JSScript* script);
 
   [[nodiscard]] bool init(JSContext* cx);
 
@@ -428,7 +428,7 @@ class BaselineInterpreterHandler {
  public:
   using FrameInfoT = InterpreterFrameInfo;
 
-  explicit BaselineInterpreterHandler(JSContext* cx, MacroAssembler& masm);
+  explicit BaselineInterpreterHandler(MacroAssembler& masm);
 
   InterpreterFrameInfo& frame() { return frame_; }
 
