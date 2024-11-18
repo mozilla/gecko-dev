@@ -553,6 +553,9 @@
     }
 
     set docShellIsActive(val) {
+      if (!this.browsingContext) {
+        return;
+      }
       this.browsingContext.isActive = val;
       if (this.isRemoteBrowser) {
         let remoteTab = this.frameLoader?.remoteTab;

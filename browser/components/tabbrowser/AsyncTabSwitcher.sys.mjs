@@ -269,7 +269,7 @@ export class AsyncTabSwitcher {
     this.setTabStateNoAction(tab, state);
 
     let browser = tab.linkedBrowser;
-    let { remoteTab } = browser.frameLoader;
+    let remoteTab = browser.frameLoader?.remoteTab;
     if (state == this.STATE_LOADING) {
       this.assert(!this.windowHidden);
 
