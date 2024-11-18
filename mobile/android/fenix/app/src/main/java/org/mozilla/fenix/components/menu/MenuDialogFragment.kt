@@ -9,6 +9,7 @@ import android.app.Dialog
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -90,6 +91,7 @@ private const val PEEK_HEIGHT = 460
 private const val EXPANDED_MIN_RATIO = 0.0001f
 private const val EXPANDED_OFFSET = 56
 private const val HIDING_FRICTION = 0.9f
+private const val PRIVATE_HOME_MENU_BACKGROUND_ALPHA = 100
 
 /**
  * A bottom sheet fragment displaying the menu dialog.
@@ -113,6 +115,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 }
 
                 window?.setNavigationBarColorCompat(navigationBarColor)
+
+                if (browsingModeManager.mode.isPrivate && args.accesspoint == MenuAccessPoint.Home) {
+                    val backgroundColorDrawable = ColorDrawable(android.graphics.Color.BLACK).mutate()
+                    backgroundColorDrawable.alpha = PRIVATE_HOME_MENU_BACKGROUND_ALPHA
+                    window?.setBackgroundDrawable(backgroundColorDrawable)
+                }
 
                 val bottomSheet = findViewById<View?>(R.id.design_bottom_sheet)
                 bottomSheet?.setBackgroundResource(android.R.color.transparent)
