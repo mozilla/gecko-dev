@@ -32,7 +32,6 @@ class SettingsAdvancedTest : TestSetup() {
     private val youTubeSchemaLink = itemContainingText("Youtube schema link")
     private val playStoreLink = itemContainingText("Playstore link")
     private val playStoreUrl = "play.google.com"
-    private val youtubeUrl = "vnd.youtube://Mozilla"
 
     @get:Rule
     val activityIntentTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
@@ -140,7 +139,7 @@ class SettingsAdvancedTest : TestSetup() {
             clickPageObject(youTubeSchemaLink)
             verifyOpenLinkInAnotherAppPrompt()
             clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
-            verifyUrl(youtubeUrl)
+            verifyUrl(externalLinksPage.url.toString())
         }
     }
 
@@ -210,7 +209,7 @@ class SettingsAdvancedTest : TestSetup() {
                 pageObject = youTubeSchemaLink,
             )
             clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
-            verifyUrl(youtubeUrl)
+            verifyUrl(externalLinksPage.url.toString())
         }
     }
 
