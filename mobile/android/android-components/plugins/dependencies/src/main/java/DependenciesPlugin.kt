@@ -21,7 +21,7 @@ object Versions {
 
     const val mozilla_glean = "62.0.0"
 
-    const val robolectric = "4.13"
+    const val robolectric = "4.14"
     const val maven_ant_tasks = "2.1.3"
     const val jacoco = "0.8.12"
     const val okhttp = "4.12.0"
