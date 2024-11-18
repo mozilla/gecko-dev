@@ -147,10 +147,6 @@ typedef mozilla::MozPromise<LaunchResults, LaunchError, true>
 // process is given a non-zero ID.
 static Atomic<int32_t> gChildCounter;
 
-static inline nsISerialEventTarget* IOThread() {
-  return XRE_GetIOMessageLoop()->SerialEventTarget();
-}
-
 class BaseProcessLauncher {
  public:
   BaseProcessLauncher(GeckoChildProcessHost* aHost,
@@ -503,7 +499,7 @@ void GeckoChildProcessHost::Destroy() {
 
   using Value = ProcessHandlePromise::ResolveOrRejectValue;
   mDestroying = true;
-  whenReady->Then(XRE_GetIOMessageLoop()->SerialEventTarget(), __func__,
+  whenReady->Then(XRE_GetAsyncIOEventTarget(), __func__,
                   [this](const Value&) { delete this; });
 }
 
@@ -735,10 +731,10 @@ bool GeckoChildProcessHost::AsyncLaunch(
   MOZ_ASSERT(mHandlePromise == nullptr);
   mHandlePromise =
       mozilla::InvokeAsync<GeckoChildProcessHost*>(
-          IOThread(), launcher.get(), __func__, &BaseProcessLauncher::Launch,
-          this)
+          XRE_GetAsyncIOEventTarget(), launcher.get(), __func__,
+          &BaseProcessLauncher::Launch, this)
           ->Then(
-              IOThread(), __func__,
+              XRE_GetAsyncIOEventTarget(), __func__,
               [this](LaunchResults&& aResults) {
                 {
                   {

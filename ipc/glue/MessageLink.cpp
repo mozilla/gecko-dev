@@ -86,7 +86,7 @@ PortLink::PortLink(MessageChannel* aChan, ScopedPort aPort)
   if (aChan->mIsSameThreadChannel) {
     aChan->mWorkerThread->Dispatch(openRunnable.forget());
   } else {
-    XRE_GetIOMessageLoop()->PostTask(openRunnable.forget());
+    XRE_GetAsyncIOEventTarget()->Dispatch(openRunnable.forget());
   }
 }
 

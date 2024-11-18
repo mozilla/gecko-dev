@@ -32,7 +32,7 @@
 #include "nsISupportsImpl.h"         // for ImageBridgeParent::Release, etc
 #include "nsTArray.h"                // for nsTArray, nsTArray_Impl
 #include "nsTArrayForwardDeclare.h"  // for nsTArray
-#include "nsXULAppAPI.h"             // for XRE_GetIOMessageLoop
+#include "nsXULAppAPI.h"             // for XRE_GetAsyncIOEventTarget
 #include "mozilla/layers/TextureHost.h"
 #include "nsThreadUtils.h"
 
