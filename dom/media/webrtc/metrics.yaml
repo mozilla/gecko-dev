@@ -396,7 +396,7 @@ webrtcdtls:
       - technical
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 135
+    expires: 145
 
   cipher:
     type: labeled_counter
@@ -412,7 +412,7 @@ webrtcdtls:
       - technical
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 135
+    expires: 145
 
   srtp_cipher:
     type: labeled_counter
@@ -428,7 +428,7 @@ webrtcdtls:
       - technical
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 135
+    expires: 145
 
   client_handshake_result:
     type: labeled_counter
@@ -445,7 +445,7 @@ webrtcdtls:
       - technical
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 135
+    expires: 145
 
   server_handshake_result:
     type: labeled_counter
@@ -462,7 +462,7 @@ webrtcdtls:
       - technical
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 135
+    expires: 145
 
   client_handshake_started_counter:
     type: counter
@@ -476,7 +476,7 @@ webrtcdtls:
       - technical
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 140
+    expires: 145
 
   server_handshake_started_counter:
     type: counter
@@ -490,7 +490,7 @@ webrtcdtls:
       - technical
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 140
+    expires: 145
 
 webrtc.video:
   recv_codec_used:
