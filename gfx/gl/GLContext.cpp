@@ -383,6 +383,90 @@ bool GLContext::LoadFeatureSymbols(const SymbolLoader& loader,
   return true;
 };
 
+// -
+
+static std::optional<std::string> VendorMatchStr(const GLVendor v) {
+  switch (v) {
+    case GLVendor::Other:
+      return "";
+    case GLVendor::Apple:
+      return "Apple";
+    case GLVendor::ARM:
+      return "ARM";
+    case GLVendor::ATI:
+      return "ATI";
+    case GLVendor::Imagination:
+      return "Imagination";
+    case GLVendor::Intel:
+      return "Intel";
+    case GLVendor::Nouveau:
+      return "nouveau";
+    case GLVendor::NVIDIA:
+      return "NVIDIA";
+    case GLVendor::Qualcomm:
+      return "Qualcomm";
+    case GLVendor::Vivante:
+      return "Vivante";
+    case GLVendor::VMware:
+      return "VMware, Inc.";
+  }
+  return {};
+}
+
+bool IsEnumCase(const GLVendor v) { return bool(VendorMatchStr(v)); }
+
+// -
+
+static std::optional<std::string> RendererMatchStr(const GLRenderer v) {
+  switch (v) {
+    case GLRenderer::Other:
+      return "";
+    case GLRenderer::Adreno200:
+      return "Adreno 200";
+    case GLRenderer::Adreno205:
+      return "Adreno 205";
+    case GLRenderer::AdrenoTM200:
+      return "Adreno (TM) 200";
+    case GLRenderer::AdrenoTM205:
+      return "Adreno (TM) 205";
+    case GLRenderer::AdrenoTM305:
+      return "Adreno (TM) 305";
+    case GLRenderer::AdrenoTM320:
+      return "Adreno (TM) 320";
+    case GLRenderer::AdrenoTM330:
+      return "Adreno (TM) 330";
+    case GLRenderer::AdrenoTM420:
+      return "Adreno (TM) 420";
+    case GLRenderer::Mali400MP:
+      return "Mali-400 MP";
+    case GLRenderer::Mali450MP:
+      return "Mali-450 MP";
+    case GLRenderer::MaliT:
+      return "Mali-T";
+    case GLRenderer::SGX530:
+      return "PowerVR SGX 530";
+    case GLRenderer::SGX540:
+      return "PowerVR SGX 540";
+    case GLRenderer::SGX544MP:
+      return "PowerVR SGX 544MP";
+    case GLRenderer::Tegra:
+      return "NVIDIA Tegra";
+    case GLRenderer::AndroidEmulator:
+      return "Android Emulator";
+    case GLRenderer::GalliumLlvmpipe:
+      return "Gallium 0.4 on llvmpipe";
+    case GLRenderer::IntelHD3000:
+      return "Intel HD Graphics 3000 OpenGL Engine";
+    case GLRenderer::MicrosoftBasicRenderDriver:
+      return "Microsoft Basic Render Driver";
+    case GLRenderer::SamsungXclipse:
+      return "Samsung Xclipse";
+  }
+  return {};
+}
+
+// -
+
 bool GLContext::InitImpl() {
   if (!MakeCurrent(true)) return false;
 
@@ -630,63 +714,49 @@ bool GLContext::InitImpl() {
 
   ////////////////
 
-  const char* glVendorString = (const char*)fGetString(LOCAL_GL_VENDOR);
-  const char* glRendererString = (const char*)fGetString(LOCAL_GL_RENDERER);
-  if (!glVendorString || !glRendererString) return false;
+  const auto GetGlString = [&](const GLenum pname) -> std::string {
+    const auto raw = (const char*)fGetString(pname);
+    if (!raw) return "";
+    return raw;
+  };
 
-  // The order of these strings must match up with the order of the enum
-  // defined in GLContext.h for vendor IDs.
-  const char* vendorMatchStrings[size_t(GLVendor::Other) + 1] = {
-      "Intel",   "NVIDIA",  "ATI",          "Qualcomm", "Imagination",
-      "nouveau", "Vivante", "VMware, Inc.", "ARM",      "Unknown"};
+  const auto vendorStr = GetGlString(LOCAL_GL_VENDOR);
+  const auto rendererStr = GetGlString(LOCAL_GL_RENDERER);
+  if (vendorStr == "" || rendererStr == "") return false;
 
-  mVendor = GLVendor::Other;
-  for (size_t i = 0; i < size_t(GLVendor::Other); ++i) {
-    if (DoesStringMatch(glVendorString, vendorMatchStrings[i])) {
-      mVendor = GLVendor(i);
+  // -
+  // GLVendor detection
+
+  for (int i = 0;; i++) {
+    const auto e = static_cast<GLVendor>(i);
+    const auto matchStr = VendorMatchStr(e);
+    if (!matchStr) break;
+    if (vendorStr == matchStr) {
+      mVendor = e;
       break;
     }
   }
+  if (mVendor == GLVendor::Other) {
+    gfxCriticalNote << "Unrecognized GLVendor: \"" << vendorStr << "\"";
+  }
 
-  // The order of these strings must match up with the order of the enum
-  // defined in GLContext.h for renderer IDs.
-  const char* rendererMatchStrings[size_t(GLRenderer::Other) + 1] = {
-      "Adreno 200",
-      "Adreno 205",
-      "Adreno (TM) 200",
-      "Adreno (TM) 205",
-      "Adreno (TM) 305",
-      "Adreno (TM) 320",
-      "Adreno (TM) 330",
-      "Adreno (TM) 420",
-      "Mali-400 MP",
-      "Mali-450 MP",
-      "Mali-T",
-      "PowerVR SGX 530",
-      "PowerVR SGX 540",
-      "PowerVR SGX 544MP",
-      "NVIDIA Tegra",
-      "Android Emulator",
-      "Gallium 0.4 on llvmpipe",
-      "Intel HD Graphics 3000 OpenGL Engine",
-      "Microsoft Basic Render Driver",
-      "Samsung Xclipse",
-      "Unknown"};
+  // -
+  // GLRenderer detection
 
-  mRenderer = GLRenderer::Other;
-  for (size_t i = 0; i < size_t(GLRenderer::Other); ++i) {
-    if (DoesStringMatch(glRendererString, rendererMatchStrings[i])) {
-      mRenderer = GLRenderer(i);
+  for (int i = 0;; i++) {
+    const auto e = static_cast<GLRenderer>(i);
+    const auto matchStr = RendererMatchStr(e);
+    if (!matchStr) break;
+    if (rendererStr == matchStr) {
+      mRenderer = e;
       break;
     }
   }
-
-  {
-    const auto versionStr = (const char*)fGetString(LOCAL_GL_VERSION);
-    if (strstr(versionStr, "Mesa")) {
-      mIsMesa = true;
-    }
+  if (mRenderer == GLRenderer::Other) {
+    gfxCriticalNote << "Unrecognized GLRenderer: \"" << rendererStr << "\"";
   }
+
+  // -
 
   const auto Once = []() {
     static bool did = false;
@@ -698,10 +768,8 @@ bool GLContext::InitImpl() {
   bool printRenderer = ShouldSpew();
   printRenderer |= (kIsDebug && Once());
   if (printRenderer) {
-    printf_stderr("GL_VENDOR: %s\n", glVendorString);
-    printf_stderr("mVendor: %s\n", vendorMatchStrings[size_t(mVendor)]);
-    printf_stderr("GL_RENDERER: %s\n", glRendererString);
-    printf_stderr("mRenderer: %s\n", rendererMatchStrings[size_t(mRenderer)]);
+    printf_stderr("GL_VENDOR: %s\n", vendorStr.c_str());
+    printf_stderr("GL_RENDERER: %s\n", rendererStr.c_str());
     printf_stderr("mIsMesa: %i\n", int(mIsMesa));
   }
 

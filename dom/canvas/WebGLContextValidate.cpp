@@ -543,6 +543,8 @@ bool WebGLContext::InitAndValidateGL(FailureReason* const out_failReason) {
 
   mFakeVertexAttrib0BufferObject = 0;
 
+  // -
+
   mNeedsLegacyVertexAttrib0Handling = gl->IsCompatibilityProfile();
   if (gl->WorkAroundDriverBugs() && kIsMacOS) {
     // Failures in conformance/attribs/gl-disabled-vertex-attrib.
@@ -556,7 +558,22 @@ bool WebGLContext::InitAndValidateGL(FailureReason* const out_failReason) {
     // conformance/attribs/gl-vertex-attrib-unconsumed-out-of-bounds.html
     mMaybeNeedsLegacyVertexAttrib0Handling = true;
   }
+  const auto prefVertAttrib0Emulation =
+      StaticPrefs::webgl_vert_attrib0_emulation();
+  switch (prefVertAttrib0Emulation) {
+    case 0:
+      mNeedsLegacyVertexAttrib0Handling = false;
+      break;
+    case 1:
+      mNeedsLegacyVertexAttrib0Handling = true;
+      break;
+    case -1:
+    default:
+      break;
+  }
   mMaybeNeedsLegacyVertexAttrib0Handling |= mNeedsLegacyVertexAttrib0Handling;
+
+  // -
 
   if (const auto& env =
           gfxEnv::MOZ_WEBGL_WORKAROUND_FIRST_AFFECTS_INSTANCE_ID()) {

@@ -159,7 +159,10 @@ enum class ContextProfile : uint8_t {
   OpenGLES
 };
 
-enum class GLRenderer {
+// -
+
+enum class GLRenderer : uint8_t {
+  Other = 0,
   Adreno200,
   Adreno205,
   AdrenoTM200,
@@ -180,8 +183,9 @@ enum class GLRenderer {
   IntelHD3000,
   MicrosoftBasicRenderDriver,
   SamsungXclipse,
-  Other
 };
+
+// -
 
 class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
  public:
