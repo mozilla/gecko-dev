@@ -80,6 +80,15 @@
     hbox.hidden = false;
   }
 
+  async function getTotalMemoryUsage() {
+    const procInfo = await ChromeUtils.requestProcInfo();
+    let totalMemoryUsage = procInfo.memory;
+    for (const child of procInfo.children) {
+      totalMemoryUsage += child.memory;
+    }
+    return totalMemoryUsage;
+  }
+
   window.Tabbrowser = class {
     init() {
       this.tabContainer = document.getElementById("tabbrowser-tabs");
@@ -4876,20 +4885,36 @@
       if (unloadBlocked) {
         return;
       }
+      let unloadSelectedTab = false;
+      let allTabsUnloaded = false;
       if (tabs.some(tab => tab.selected)) {
         // Unloading the currently selected tab.
         // Need to select a different one before unloading.
+        unloadSelectedTab = true;
         let newTab = this._findTabToBlurTo(this.selectedTab, tabs);
         if (newTab) {
           this.selectedTab = newTab;
         } else if (FirefoxViewHandler.tab) {
           // probably unloading all tabs - show Firefox View
           FirefoxViewHandler.openTab("opentabs");
+          allTabsUnloaded = true;
         }
       }
+      let memoryUsageBeforeUnload = await getTotalMemoryUsage();
+      let timeBeforeUnload = performance.now();
+      let numberOfTabsUnloaded = 0;
       for (let tab of tabs) {
-        this.discardBrowser(tab, true);
+        numberOfTabsUnloaded += this.discardBrowser(tab, true) ? 1 : 0;
       }
+      let timeElapsed = Math.floor(performance.now() - timeBeforeUnload);
+      Glean.browserEngagement.tabExplicitUnload.record({
+        unload_selected_tab: unloadSelectedTab,
+        all_tabs_unloaded: allTabsUnloaded,
+        tabs_unloaded: numberOfTabsUnloaded,
+        memory_before: memoryUsageBeforeUnload,
+        memory_after: await getTotalMemoryUsage(),
+        time_to_unload_in_ms: timeElapsed,
+      });
     }
 
     /**

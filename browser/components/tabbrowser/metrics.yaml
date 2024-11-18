@@ -44,6 +44,41 @@ browser.engagement:
     expires: never
     telemetry_mirror: BROWSER_ENGAGEMENT_TAB_RELOAD_COUNT
 
+  tab_explicit_unload:
+    type: event
+    description: >
+      Recorded when the user explicitly unloads tab(s) from memory via
+      the tab context menu.
+    notification_emails:
+      - gstoll@mozilla.com
+      - haftandilian@mozilla.com
+    bugs:
+      - https://bugzil.la/1926390
+    data_reviews:
+      - https://bugzil.la/1926390
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      unload_selected_tab:
+        description: whether the currently-selected tab is unloaded
+        type: boolean
+      all_tabs_unloaded:
+        description: whether all tabs in the window were unloaded
+        type: boolean
+      tabs_unloaded:
+        description: The number of tabs unloaded in this operation
+        type: quantity
+      memory_before:
+        description: Memory usage before unloading tabs (in bytes)
+        type: quantity
+      memory_after:
+        description: Memory usage after unloading tabs (in bytes)
+        type: quantity
+      time_to_unload_in_ms:
+        description: Time to unload tabs (in ms)
+        type: quantity
+    expires: never
+
 browser.ui.interaction:
   all_tabs_panel_dragstart_tab_event_count:
     type: counter
