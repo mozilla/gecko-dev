@@ -306,6 +306,9 @@ class HasSeenObjectEmulateUndefinedFuse : public js::InvalidatingRuntimeFuse {
     // this invariant directly.
     return true;
   }
+
+ public:
+  virtual void popFuse(JSContext* cx) override;
 };
 
 }  // namespace js

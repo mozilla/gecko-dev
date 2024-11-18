@@ -861,3 +861,9 @@ void JSRuntime::ensureRealmIsRecordingAllocations(
     global->realm()->chooseAllocationSamplingProbability();
   }
 }
+
+void js::HasSeenObjectEmulateUndefinedFuse::popFuse(JSContext* cx) {
+  js::InvalidatingRuntimeFuse::popFuse(cx);
+  MOZ_ASSERT(cx->global());
+  cx->runtime()->setUseCounter(cx->global(), JSUseCounter::ISHTMLDDA_FUSE);
+}

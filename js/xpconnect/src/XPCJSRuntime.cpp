@@ -2644,6 +2644,9 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
     case JSUseCounter::WASM_LEGACY_EXCEPTIONS:
       SetUseCounter(obj, eUseCounter_custom_JS_wasm_legacy_exceptions);
       return;
+    case JSUseCounter::ISHTMLDDA_FUSE:
+      SetUseCounter(obj, eUseCounter_custom_JS_isHTMLDDA_fuse);
+      return;
     case JSUseCounter::COUNT:
       break;
   }
