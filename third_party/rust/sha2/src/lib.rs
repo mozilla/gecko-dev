@@ -6,7 +6,8 @@
 //! Algorithmically, there are only 2 core algorithms: SHA-256 and SHA-512.
 //! All other algorithms are just applications of these with different initial
 //! hash values, and truncated to different digest bit lengths. The first two
-//! algorithms in the list are based on SHA-256, while the last three on SHA-512.
+//! algorithms in the list are based on SHA-256, while the last four are based
+//! on SHA-512.
 //!
 //! # Usage
 //!
