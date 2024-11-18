@@ -68,7 +68,9 @@ namespace jit {
 
 BaselineCompilerHandler::BaselineCompilerHandler(MacroAssembler& masm,
                                                  TempAllocator& alloc,
-                                                 JSScript* script)
+                                                 JSScript* script,
+                                                 JSObject* globalLexical,
+                                                 JSObject* globalThis)
     : frame_(script, masm),
       alloc_(alloc),
       analysis_(alloc, script),
@@ -77,6 +79,8 @@ BaselineCompilerHandler::BaselineCompilerHandler(MacroAssembler& masm,
 #endif
       script_(script),
       pc_(script->code()),
+      globalLexicalEnvironment_(globalLexical),
+      globalThis_(globalThis),
       icEntryIndex_(0),
       compileDebugInstrumentation_(script->isDebuggee()),
       ionCompileable_(true) {
@@ -96,8 +100,10 @@ BaselineCodeGen<Handler>::BaselineCodeGen(JSContext* cx, TempAllocator& alloc,
       frame(handler.frame()) {}
 
 BaselineCompiler::BaselineCompiler(JSContext* cx, TempAllocator& alloc,
-                                   JSScript* script)
-    : BaselineCodeGen(cx, alloc, /* HandlerArgs = */ alloc, script) {
+                                   JSScript* script, JSObject* globalLexical,
+                                   JSObject* globalThis)
+    : BaselineCodeGen(cx, alloc, /* HandlerArgs = */ alloc, script,
+                      globalLexical, globalThis) {
 #ifdef JS_CODEGEN_NONE
   MOZ_CRASH();
 #endif
@@ -910,7 +916,7 @@ void BaselineInterpreterCodeGen::subtractScriptSlotsSize(Register reg,
 template <>
 void BaselineCompilerCodeGen::loadGlobalLexicalEnvironment(Register dest) {
   MOZ_ASSERT(!handler.script()->hasNonSyntacticScope());
-  masm.movePtr(ImmGCPtr(&cx->global()->lexicalEnvironment()), dest);
+  masm.movePtr(ImmGCPtr(handler.globalLexicalEnvironment()), dest);
 }
 
 template <>
@@ -923,7 +929,7 @@ void BaselineInterpreterCodeGen::loadGlobalLexicalEnvironment(Register dest) {
 template <>
 void BaselineCompilerCodeGen::pushGlobalLexicalEnvironmentValue(
     ValueOperand scratch) {
-  frame.push(ObjectValue(cx->global()->lexicalEnvironment()));
+  frame.push(ObjectValue(*handler.globalLexicalEnvironment()));
 }
 
 template <>
@@ -936,7 +942,7 @@ void BaselineInterpreterCodeGen::pushGlobalLexicalEnvironmentValue(
 
 template <>
 void BaselineCompilerCodeGen::loadGlobalThisValue(ValueOperand dest) {
-  JSObject* thisObj = cx->global()->lexicalEnvironment().thisObject();
+  JSObject* thisObj = handler.globalThis();
   masm.moveValue(ObjectValue(*thisObj), dest);
 }
 

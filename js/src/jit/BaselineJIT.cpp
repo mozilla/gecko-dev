@@ -216,7 +216,10 @@ MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
   TempAllocator temp(&cx->tempLifoAlloc());
   JitContext jctx(cx);
 
-  BaselineCompiler compiler(cx, temp, script);
+  GlobalLexicalEnvironmentObject* globalLexical =
+      &cx->global()->lexicalEnvironment();
+  JSObject* globalThis = globalLexical->thisObject();
+  BaselineCompiler compiler(cx, temp, script, globalLexical, globalThis);
   if (!compiler.init()) {
     ReportOutOfMemory(cx);
     return Method_Error;

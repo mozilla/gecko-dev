@@ -291,6 +291,9 @@ class BaselineCompilerHandler {
   JSScript* script_;
   jsbytecode* pc_;
 
+  JSObject* globalLexicalEnvironment_;
+  JSObject* globalThis_;
+
   // Index of the current ICEntry in the script's JitScript.
   uint32_t icEntryIndex_;
 
@@ -301,7 +304,8 @@ class BaselineCompilerHandler {
   using FrameInfoT = CompilerFrameInfo;
 
   BaselineCompilerHandler(MacroAssembler& masm, TempAllocator& alloc,
-                          JSScript* script);
+                          JSScript* script, JSObject* globalLexical,
+                          JSObject* globalThis);
 
   [[nodiscard]] bool init();
 
@@ -357,6 +361,11 @@ class BaselineCompilerHandler {
   }
 
   bool canHaveFixedSlots() const { return script()->nfixed() != 0; }
+
+  JSObject* globalLexicalEnvironment() const {
+    return globalLexicalEnvironment_;
+  }
+  JSObject* globalThis() const { return globalThis_; }
 };
 
 using BaselineCompilerCodeGen = BaselineCodeGen<BaselineCompilerHandler>;
@@ -376,7 +385,8 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   BaselinePerfSpewer perfSpewer_;
 
  public:
-  BaselineCompiler(JSContext* cx, TempAllocator& alloc, JSScript* script);
+  BaselineCompiler(JSContext* cx, TempAllocator& alloc, JSScript* script,
+                   JSObject* globalLexical, JSObject* globalThis);
   [[nodiscard]] bool init();
 
   MethodStatus compile();
