@@ -44,6 +44,7 @@ class InvalidatingRealmFuse : public InvalidatingFuse {
 struct OptimizeGetIteratorFuse final : public InvalidatingRealmFuse {
   virtual const char* name() override { return "OptimizeGetIteratorFuse"; }
   virtual bool checkInvariant(JSContext* cx) override;
+  virtual void popFuse(JSContext* cx, RealmFuses& realmFuses) override;
 };
 
 struct PopsOptimizedGetIteratorFuse : public RealmFuse {

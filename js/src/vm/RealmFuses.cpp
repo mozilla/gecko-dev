@@ -76,6 +76,14 @@ const char* js::RealmFuses::getFuseName(RealmFuses::FuseIndex index) {
   return fuseNames[rawIndex];
 }
 
+void js::OptimizeGetIteratorFuse::popFuse(JSContext* cx,
+                                          RealmFuses& realmFuses) {
+  InvalidatingRealmFuse::popFuse(cx, realmFuses);
+  MOZ_ASSERT(cx->global());
+  cx->runtime()->setUseCounter(cx->global(),
+                               JSUseCounter::OPTIMIZE_GET_ITERATOR_FUSE);
+}
+
 bool js::OptimizeGetIteratorFuse::checkInvariant(JSContext* cx) {
   // Simple invariant: this fuse merely reflects the conjunction of a group of
   // fuses, so if this fuse is intact, then the invariant it asserts is that

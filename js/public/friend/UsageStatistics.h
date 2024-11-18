@@ -99,7 +99,8 @@ extern JS_PUBLIC_API void JS_SetAccumulateTelemetryCallback(
   _(ASMJS, AsmJS)                                 \
   _(WASM, Wasm)                                   \
   _(WASM_LEGACY_EXCEPTIONS, WasmLegacyExceptions) \
-  _(ISHTMLDDA_FUSE, IsHTMLDDAFuse)
+  _(ISHTMLDDA_FUSE, IsHTMLDDAFuse)                \
+  _(OPTIMIZE_GET_ITERATOR_FUSE, OptimizeGetIteratorFuse)
 
 /*
  * Use counter names passed to the accumulate use counter callback.
