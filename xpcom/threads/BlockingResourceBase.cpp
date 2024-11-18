@@ -188,6 +188,40 @@ BlockingResourceBase::~BlockingResourceBase() {
   }
 }
 
+void BlockingResourceBase::AssertSafeToProcessEventLoop() {
+  for (BlockingResourceBase* res = ResourceChainFront(); res != nullptr;
+       res = res->mChainPrev) {
+    // It's more OK to hold reentrant/recursive types across nested event loops,
+    // as it should hopefully not lead to deadlocks, so allow them for now.
+    if (res->mType == eReentrantMonitor || res->mType == eRecursiveMutex) {
+      continue;
+    }
+
+    // Allow specifically named mutexes to be held across a nested event loop,
+    // in order to get this check landed.
+    nsDependentCString name(res->mName);
+    if (name != "GraphRunner::mMonitor"_ns ||            // Bug 1928770
+        name != "SourceSurfaceSkia::mChangeMutex"_ns) {  // Bug 1928772
+      continue;
+    }
+
+    // This is a potential deadlock, as ProcessNextEvent could process any
+    // runnable on the current thread, including one which could attempt to
+    // acquire the mutex.
+    fputs(
+        "###!!! ERROR: Potential deadlock detected:\n"
+        "=== Holding blocking resource across call to ProcessNextEvent\n",
+        stderr);
+    nsAutoCString out(
+        "Potential deadlock detected:\n"
+        "Holding blocking resource across call to ProcessNextEvent\n");
+    res->Print(out);
+    NS_ERROR(out.get());
+    MOZ_CRASH_UNSAFE_PRINTF("Holding '%s' across call to ProcessNextEvent",
+                            res->mName);
+  }
+}
+
 size_t BlockingResourceBase::SizeOfDeadlockDetector(
     MallocSizeOf aMallocSizeOf) {
   return sDeadlockDetector

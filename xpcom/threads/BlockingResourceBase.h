@@ -64,6 +64,8 @@ class BlockingResourceBase {
 
 #ifdef DEBUG
 
+  static void AssertSafeToProcessEventLoop();
+
   static size_t SizeOfDeadlockDetector(MallocSizeOf aMallocSizeOf);
 
   /**
