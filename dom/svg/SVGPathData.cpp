@@ -14,8 +14,7 @@
 #include "mozilla/RefPtr.h"
 #include "nsError.h"
 #include "nsString.h"
-#include "SVGPathDataParser.h"
-#include <stdarg.h>
+#include "SVGArcConverter.h"
 #include "nsStyleConsts.h"
 #include "SVGContentUtils.h"
 #include "SVGGeometryElement.h"

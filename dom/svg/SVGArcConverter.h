@@ -4,14 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef DOM_SVG_SVGPATHDATAPARSER_H_
-#define DOM_SVG_SVGPATHDATAPARSER_H_
+#ifndef DOM_SVG_SVGARCCONVERTER_H_
+#define DOM_SVG_SVGARCCONVERTER_H_
 
 #include "mozilla/gfx/Point.h"
 
 namespace mozilla {
 
-class SVGArcConverter {
+class MOZ_STACK_CLASS SVGArcConverter {
   using Point = mozilla::gfx::Point;
 
  public:
@@ -29,4 +29,4 @@ class SVGArcConverter {
 
 }  // namespace mozilla
 
-#endif  // DOM_SVG_SVGPATHDATAPARSER_H_
+#endif  // DOM_SVG_SVGARCCONVERTER_H_
