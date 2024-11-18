@@ -365,59 +365,6 @@ setupPrototype(RTCSessionDescription, {
   QueryInterface: ChromeUtils.generateQI(["nsIDOMGlobalPropertyInitializer"]),
 });
 
-// Records PC related telemetry
-class PeerConnectionTelemetry {
-  // ICE connection state enters connected or completed.
-  recordConnected() {
-    Services.telemetry.scalarAdd("webrtc.peerconnection.connected", 1);
-    this.recordConnected = () => {};
-  }
-  // DataChannel is created
-  _recordDataChannelCreated() {
-    Services.telemetry.scalarAdd(
-      "webrtc.peerconnection.datachannel_created",
-      1
-    );
-    this._recordDataChannelCreated = () => {};
-  }
-  // DataChannel initialized with maxRetransmitTime
-  _recordMaxRetransmitTime(maxRetransmitTime) {
-    if (maxRetransmitTime === undefined) {
-      return false;
-    }
-    Services.telemetry.scalarAdd(
-      "webrtc.peerconnection.datachannel_max_retx_used",
-      1
-    );
-    this._recordMaxRetransmitTime = () => true;
-    return true;
-  }
-  // DataChannel initialized with maxPacketLifeTime
-  _recordMaxPacketLifeTime(maxPacketLifeTime) {
-    if (maxPacketLifeTime === undefined) {
-      return false;
-    }
-    Services.telemetry.scalarAdd(
-      "webrtc.peerconnection.datachannel_max_life_used",
-      1
-    );
-    this._recordMaxPacketLifeTime = () => true;
-    return true;
-  }
-  // DataChannel initialized
-  recordDataChannelInit(maxRetransmitTime, maxPacketLifeTime) {
-    const retxUsed = this._recordMaxRetransmitTime(maxRetransmitTime);
-    if (this._recordMaxPacketLifeTime(maxPacketLifeTime) && retxUsed) {
-      Services.telemetry.scalarAdd(
-        "webrtc.peerconnection.datachannel_max_retx_and_life_used",
-        1
-      );
-      this.recordDataChannelInit = () => {};
-    }
-    this._recordDataChannelCreated();
-  }
-}
-
 export class RTCPeerConnection {
   constructor() {
     this._pc = null;
@@ -440,8 +387,6 @@ export class RTCPeerConnection {
 
     this._hasStunServer = this._hasTurnServer = false;
     this._iceGatheredRelayCandidates = false;
-    // Records telemetry
-    this._pcTelemetry = new PeerConnectionTelemetry();
   }
 
   init(win) {
@@ -1785,10 +1730,6 @@ export class RTCPeerConnection {
     } = {}
   ) {
     this._checkClosed();
-    this._pcTelemetry.recordDataChannelInit(
-      maxRetransmitTime,
-      maxPacketLifeTime
-    );
 
     if (maxPacketLifeTime === undefined) {
       maxPacketLifeTime = maxRetransmitTime;
