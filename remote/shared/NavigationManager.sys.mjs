@@ -36,7 +36,7 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 /**
  * @typedef {object} NavigationInfo
- * @property {'registered'|'started'|'finished'} state - The navigation state.
+ * @property {'initial-about-blank'|'registered'|'started'|'finished'} state - The navigation state.
  * @property {string} navigationId - The UUID for the navigation.
  * @property {string} navigable - The UUID for the navigable.
  * @property {string} url - The target url for the navigation.
@@ -83,6 +83,7 @@ class NavigationRegistry extends EventEmitter {
     this.#navigations = new Map();
 
     this.#contextListener = new lazy.BrowsingContextListener();
+    this.#contextListener.on("attached", this.#onContextAttached);
     this.#contextListener.on("discarded", this.#onContextDiscarded);
 
     this.#promptListener = new lazy.PromptListener();
@@ -301,36 +302,49 @@ class NavigationRegistry extends EventEmitter {
 
     const context = this.#getContextFromContextDetails(contextDetails);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
-
     let navigation = this.#navigations.get(navigableId);
-    if (navigation && navigation.state === "started") {
-      // Bug 1908952. As soon as we have support for the "url" field in case of beforeunload
-      // prompt being open, we can remove "!navigation.url" check.
-      if (!navigation.url || navigation.url === url) {
-        // If we are already monitoring a navigation for this navigable and the same url,
-        // for which we did not receive a navigation-stopped event, this navigation
-        // is already tracked and we don't want to create another id & event.
+    if (navigation) {
+      if (navigation.state === "started") {
+        // Bug 1908952. As soon as we have support for the "url" field in case of beforeunload
+        // prompt being open, we can remove "!navigation.url" check.
+        if (!navigation.url || navigation.url === url) {
+          // If we are already monitoring a navigation for this navigable and the same url,
+          // for which we did not receive a navigation-stopped event, this navigation
+          // is already tracked and we don't want to create another id & event.
+          lazy.logger.trace(
+            `[${navigableId}] Skipping already tracked navigation, navigationId: ${navigation.navigationId}`
+          );
+          return navigation;
+        }
+
         lazy.logger.trace(
-          `[${navigableId}] Skipping already tracked navigation, navigationId: ${navigation.navigationId}`
+          `[${navigableId}] We're going to fail the navigation for url: ${navigation.url} (${navigation.navigationId}), ` +
+            "since it was interrupted by a new navigation."
+        );
+
+        // If there is already a navigation in progress but with a different url,
+        // it means that this navigation was interrupted by a new navigation.
+        // Note: ideally we should monitor this using NS_BINDING_ABORTED,
+        // but due to intermittent issues, when monitoring this in content processes,
+        // we can't reliable use it.
+        notifyNavigationFailed({
+          contextDetails,
+          errorName: "A new navigation interrupted an unfinished navigation",
+          url: navigation.url,
+        });
+      }
+
+      // We don't want to notify that navigation for "about:blank" (or "about:blank" with parameter)
+      // has started if it happens when the top-level browsing context is created.
+      if (
+        navigation.state === "initial-about-blank" &&
+        new URL(url).pathname == "blank"
+      ) {
+        lazy.logger.trace(
+          `[${navigableId}] Skipping this navigation for url: ${navigation.url}, since it's an initial navigation.`
         );
         return navigation;
       }
-
-      lazy.logger.trace(
-        `[${navigableId}] We're going to fail the navigation for url: ${navigation.url} (${navigation.navigationId}), ` +
-          "since it was interrupted by a new navigation."
-      );
-
-      // If there is already a navigation in progress but with a different url,
-      // it means that this navigation was interrupted by a new navigation.
-      // Note: ideally we should monitor this using NS_BINDING_ABORTED,
-      // but due to intermittent issues, when monitoring this in content processes,
-      // we can't reliable use it.
-      notifyNavigationFailed({
-        contextDetails,
-        errorName: "A new navigation interrupted an unfinished navigation",
-        url: navigation.url,
-      });
     }
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
@@ -451,6 +465,36 @@ class NavigationRegistry extends EventEmitter {
     }
     return lazy.generateUUID();
   }
+
+  #onContextAttached = async (eventName, data) => {
+    const { browsingContext, why } = data;
+
+    // We only care about top-level browsing contexts.
+    if (browsingContext.parent !== null) {
+      return;
+    }
+    // Filter out top-level browsing contexts that are created because of a
+    // cross-group navigation.
+    if (why === "replace") {
+      return;
+    }
+
+    const navigableId =
+      lazy.TabManager.getIdForBrowsingContext(browsingContext);
+    let navigation = this.#navigations.get(navigableId);
+
+    if (navigation) {
+      return;
+    }
+
+    const navigationId = this.#getOrCreateNavigationId(navigableId);
+    navigation = {
+      state: "initial-about-blank",
+      navigationId,
+      url: browsingContext.currentURI.displaySpec,
+    };
+    this.#navigations.set(navigableId, navigation);
+  };
 
   #onContextDiscarded = async (eventName, data = {}) => {
     const { browsingContext, why } = data;
