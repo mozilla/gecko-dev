@@ -563,7 +563,7 @@ security:
           The `value` of the event. Mirrors to the Legacy Telemetry
           event's `value` parameter.
         type: string
-      principal_type:
+      principalType:
         description: >
           The type of principal that was received. Expected values for this field are
             NullPtr
