@@ -73,7 +73,8 @@ add_task(async function privateBrowsing() {
   await set("a.com", "foo", 6, context);
   await setGlobal("foo", 7, context);
   await new Promise(resolve =>
-    cps.removeAllDomainsSince(0, context, makeCallback(resolve))
+    // Passing context=null clears both normal and private browsing data.
+    cps.removeAllDomainsSince(0, null, makeCallback(resolve))
   );
   await dbOK([
     [null, "foo", 3],
@@ -90,6 +91,63 @@ add_task(async function privateBrowsing() {
   await getGlobalOK(["foo"], 3);
   await getGlobalOK(["bar"], 4);
   await getOK(["b.com", "foo"], undefined);
+  await reset();
+});
+
+/**
+ * Tests that when clearing data for normal browsing, private browsing is not
+ * affected and vice versa.
+ */
+add_task(async function privateBrowsingIsolatedRemoval() {
+  await set("a.com", "foo", 1);
+  await set("a.com", "bar", 2);
+  await setGlobal("foo", 3);
+  await setGlobal("bar", 4);
+  await setGlobal("qux", 5);
+  await set("b.com", "foo", 6);
+  await set("b.com", "bar", 7);
+
+  await set("a.com", "foo", 8, privateLoadContext);
+  await set("b.com", "foo", 9, privateLoadContext);
+  await setGlobal("foo", 10, privateLoadContext);
+
+  info("Clear all PBM data.");
+  await new Promise(resolve =>
+    cps.removeAllDomainsSince(0, privateLoadContext, makeCallback(resolve))
+  );
+
+  await getOK(["a.com", "foo", loadContext], 1);
+  await getOK(["a.com", "bar", loadContext], 2);
+  await getGlobalOK(["foo", loadContext], 3);
+  await getGlobalOK(["bar", loadContext], 4);
+  await getGlobalOK(["qux", loadContext], 5);
+  await getOK(["b.com", "foo", loadContext], 6);
+  await getOK(["b.com", "bar", loadContext], 7);
+
+  // This still returns an entry because even if a PBM load context is passed we
+  // will fall back to non PBM entries with the same key.
+  await getOK(["a.com", "foo", privateLoadContext], 1);
+  await getOK(["b.com", "foo", privateLoadContext], 6);
+  await getGlobalOK(["foo", privateLoadContext], 10);
+
+  info("Clear all non PBM data.");
+  await new Promise(resolve =>
+    cps.removeAllDomainsSince(0, loadContext, makeCallback(resolve))
+  );
+
+  info("Should have cleared all domain keyed entries");
+  await getOK(["a.com", "foo", loadContext], undefined);
+  await getOK(["a.com", "bar", loadContext], undefined);
+  await getGlobalOK(["foo", loadContext], 3);
+  await getGlobalOK(["bar", loadContext], 4);
+  await getGlobalOK(["qux", loadContext], 5);
+  await getOK(["b.com", "foo", loadContext], undefined);
+  await getOK(["b.com", "bar", loadContext], undefined);
+
+  await getOK(["a.com", "foo", privateLoadContext], undefined);
+  await getOK(["b.com", "foo", privateLoadContext], undefined);
+  await getGlobalOK(["foo", privateLoadContext], 10);
+
   await reset();
 });
 

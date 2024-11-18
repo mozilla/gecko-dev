@@ -529,16 +529,18 @@ ContentPrefService2.prototype = {
       this._cache.remove(sgroup, name);
     }
 
+    let isPrivate = context && context.usePrivateBrowsing;
     let stmts = [];
 
-    // First get the matching prefs.
-    stmts.push(this._commonGetStmt(group, name, includeSubdomains));
+    if (context == null || !isPrivate) {
+      // First get the matching prefs.
+      stmts.push(this._commonGetStmt(group, name, includeSubdomains));
 
-    // Delete the matching prefs.
-    let stmt = this._stmtWithGroupClause(
-      group,
-      includeSubdomains,
-      `
+      // Delete the matching prefs.
+      let stmt = this._stmtWithGroupClause(
+        group,
+        includeSubdomains,
+        `
       DELETE FROM prefs
       WHERE settingID = (SELECT id FROM settings WHERE name = :name) AND
             CASE typeof(:group)
@@ -546,45 +548,69 @@ ContentPrefService2.prototype = {
             ELSE prefs.groupID IN (${GROUP_CLAUSE})
             END
     `
-    );
-    stmt.params.name = name;
-    stmts.push(stmt);
+      );
+      stmt.params.name = name;
+      stmts.push(stmt);
 
-    stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
+      stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
+    }
 
-    let prefs = new ContentPrefStore();
+    let prefsNonPrivateBrowsing = new ContentPrefStore();
 
-    let isPrivate = context && context.usePrivateBrowsing;
-    this._execStmts(stmts, {
-      onRow: row => {
-        let grp = row.getResultByName("grp");
-        prefs.set(grp, name, undefined);
-        this._cache.set(grp, name, undefined);
-      },
-      onDone: (reason, ok) => {
-        if (ok) {
-          this._cache.set(group, name, undefined);
-          if (isPrivate) {
-            for (let [sgroup] of this._pbStore.match(
-              group,
-              name,
-              includeSubdomains
-            )) {
-              prefs.set(sgroup, name, undefined);
-              this._pbStore.remove(sgroup, name);
-            }
-          }
+    // Only execute if we have statements to run. stmts is empty for clearing
+    // only private browsing data.
+    let queryPromise = Promise.resolve([
+      Ci.nsIContentPrefService2.COMPLETE_OK,
+      false,
+    ]);
+
+    if (stmts.length) {
+      queryPromise = new Promise(resolve => {
+        this._execStmts(stmts, {
+          onRow: row => {
+            let grp = row.getResultByName("grp");
+            prefsNonPrivateBrowsing.set(grp, name, undefined);
+            this._cache.set(grp, name, undefined);
+          },
+          onDone: (reason, ok) => {
+            this._cache.set(group, name, undefined);
+            resolve([reason, ok]);
+          },
+          onError: nsresult => {
+            cbHandleError(callback, nsresult);
+          },
+        });
+      });
+    }
+
+    let prefsPrivateBrowsing = new ContentPrefStore();
+
+    if (isPrivate || context == null) {
+      for (let [sgroup] of this._pbStore.match(
+        group,
+        name,
+        includeSubdomains
+      )) {
+        prefsPrivateBrowsing.set(sgroup, name, undefined);
+        this._pbStore.remove(sgroup, name);
+      }
+    }
+
+    queryPromise.then(([reason, hasNonPrivateEntries]) => {
+      // Notify caller of completion.
+      cbHandleCompletion(callback, reason);
+
+      // Notify for non PBM changes.
+      if (hasNonPrivateEntries) {
+        for (let [sgroup] of prefsNonPrivateBrowsing) {
+          this._notifyPrefRemoved(sgroup, name, false);
         }
-        cbHandleCompletion(callback, reason);
-        if (ok) {
-          for (let [sgroup, ,] of prefs) {
-            this._notifyPrefRemoved(sgroup, name, isPrivate);
-          }
-        }
-      },
-      onError: nsresult => {
-        cbHandleError(callback, nsresult);
-      },
+      }
+
+      // Notify for PBM changes.
+      for (let [sgroup] of prefsPrivateBrowsing) {
+        this._notifyPrefRemoved(sgroup, name, true);
+      }
     });
   },
 
@@ -634,93 +660,126 @@ ContentPrefService2.prototype = {
       this._cache.removeGroup(sgroup);
     }
 
+    let isPrivate = context?.usePrivateBrowsing;
     let stmts = [];
 
-    // First get the matching prefs, then delete groups and prefs that reference
-    // deleted groups.
-    if (group) {
-      stmts.push(
-        this._stmtWithGroupClause(
-          group,
-          includeSubdomains,
-          `
-        SELECT groups.name AS grp, settings.name AS name
-        FROM prefs
-        JOIN settings ON settings.id = prefs.settingID
-        JOIN groups ON groups.id = prefs.groupID
-        WHERE prefs.groupID IN (${GROUP_CLAUSE})
-      `
-        )
-      );
-      stmts.push(
-        this._stmtWithGroupClause(
-          group,
-          includeSubdomains,
-          `DELETE FROM groups WHERE id IN (${GROUP_CLAUSE})`
-        )
-      );
+    // For null we clear normal and private browsing data. false only clears
+    // normal browsing data. true only clears private browsing data.
+    if (context == null || !isPrivate) {
+      // First get the matching prefs, then delete groups and prefs that reference
+      // deleted groups.
+      if (group) {
+        stmts.push(
+          this._stmtWithGroupClause(
+            group,
+            includeSubdomains,
+            `
+              SELECT groups.name AS grp, settings.name AS name
+              FROM prefs
+              JOIN settings ON settings.id = prefs.settingID
+              JOIN groups ON groups.id = prefs.groupID
+              WHERE prefs.groupID IN (${GROUP_CLAUSE})
+            `
+          )
+        );
+        stmts.push(
+          this._stmtWithGroupClause(
+            group,
+            includeSubdomains,
+            `DELETE FROM groups WHERE id IN (${GROUP_CLAUSE})`
+          )
+        );
+        stmts.push(
+          this._stmt(`
+          DELETE FROM prefs
+          WHERE groupID NOTNULL AND groupID NOT IN (SELECT id FROM groups)
+        `)
+        );
+      } else {
+        stmts.push(
+          this._stmt(`
+          SELECT NULL AS grp, settings.name AS name
+          FROM prefs
+          JOIN settings ON settings.id = prefs.settingID
+          WHERE prefs.groupID IS NULL
+        `)
+        );
+        stmts.push(this._stmt("DELETE FROM prefs WHERE groupID IS NULL"));
+      }
+
+      // Finally delete settings that are no longer referenced.
       stmts.push(
         this._stmt(`
-        DELETE FROM prefs
-        WHERE groupID NOTNULL AND groupID NOT IN (SELECT id FROM groups)
+        DELETE FROM settings
+        WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)
       `)
       );
-    } else {
-      stmts.push(
-        this._stmt(`
-        SELECT NULL AS grp, settings.name AS name
-        FROM prefs
-        JOIN settings ON settings.id = prefs.settingID
-        WHERE prefs.groupID IS NULL
-      `)
-      );
-      stmts.push(this._stmt("DELETE FROM prefs WHERE groupID IS NULL"));
     }
 
-    // Finally delete settings that are no longer referenced.
-    stmts.push(
-      this._stmt(`
-      DELETE FROM settings
-      WHERE id NOT IN (SELECT DISTINCT settingID FROM prefs)
-    `)
-    );
+    let prefsNonPrivateBrowsing = new ContentPrefStore();
 
-    let prefs = new ContentPrefStore();
+    // Only execute if we have statements to run. stmts is empty for clearing
+    // only private browsing data.
+    let queryPromise = Promise.resolve([
+      Ci.nsIContentPrefService2.COMPLETE_OK,
+      false,
+    ]);
+    if (stmts.length) {
+      queryPromise = new Promise(resolve => {
+        this._execStmts(stmts, {
+          onRow: row => {
+            let grp = row.getResultByName("grp");
+            let name = row.getResultByName("name");
+            prefsNonPrivateBrowsing.set(grp, name, undefined);
+            this._cache.set(grp, name, undefined);
+          },
+          onDone: (reason, ok) => {
+            resolve([reason, ok]);
+          },
+          onError: nsresult => {
+            cbHandleError(callback, nsresult);
+          },
+        });
+      });
+    }
 
-    let isPrivate = context && context.usePrivateBrowsing;
-    this._execStmts(stmts, {
-      onRow: row => {
-        let grp = row.getResultByName("grp");
-        let name = row.getResultByName("name");
-        prefs.set(grp, name, undefined);
-        this._cache.set(grp, name, undefined);
-      },
-      onDone: (reason, ok) => {
-        if (ok && isPrivate) {
-          for (let [sgroup, sname] of this._pbStore) {
-            if (
-              !group ||
-              (!includeSubdomains && group == sgroup) ||
-              (includeSubdomains &&
-                sgroup &&
-                this._pbStore.groupsMatchIncludingSubdomains(group, sgroup))
-            ) {
-              prefs.set(sgroup, sname, undefined);
-              this._pbStore.remove(sgroup, sname);
-            }
-          }
+    let prefsPrivateBrowsing = new ContentPrefStore();
+
+    if (isPrivate || context == null) {
+      for (let [sgroup, sname] of this._pbStore) {
+        if (
+          !group ||
+          (!includeSubdomains && group == sgroup) ||
+          (includeSubdomains &&
+            sgroup &&
+            this._pbStore.groupsMatchIncludingSubdomains(group, sgroup))
+        ) {
+          prefsPrivateBrowsing.set(sgroup, sname, undefined);
+          this._pbStore.remove(sgroup, sname);
         }
+      }
+    }
+
+    queryPromise
+      .then(([reason, hasNonPrivateEntries]) => {
+        // Notify caller of completion.
         cbHandleCompletion(callback, reason);
-        if (ok) {
-          for (let [sgroup, sname] of prefs) {
-            this._notifyPrefRemoved(sgroup, sname, isPrivate);
+
+        // Notify for non PBM changes.
+        if (hasNonPrivateEntries) {
+          for (let [sgroup, sname] of prefsNonPrivateBrowsing) {
+            this._notifyPrefRemoved(sgroup, sname, false);
           }
         }
-      },
-      onError: nsresult => {
+
+        // Notify for PBM changes.
+        for (let [sgroup, sname] of prefsPrivateBrowsing) {
+          this._notifyPrefRemoved(sgroup, sname, true);
+        }
+      })
+      .catch(nsresult => {
         cbHandleError(callback, nsresult);
-      },
-    });
+      });
   },
 
   _removeAllDomainsSince: function CPS2__removeAllDomainsSince(
@@ -737,60 +796,95 @@ ContentPrefService2.prototype = {
     // Invalidate all the group cache because we don't know which groups will be removed.
     this._cache.removeAllGroups();
 
+    let isPrivate = context?.usePrivateBrowsing;
     let stmts = [];
 
-    // Get prefs that are about to be removed to notify about their removal.
-    let stmt = this._stmt(`
-      SELECT groups.name AS grp, settings.name AS name
-      FROM prefs
-      JOIN settings ON settings.id = prefs.settingID
-      JOIN groups ON groups.id = prefs.groupID
-      WHERE timestamp >= :since
-    `);
-    stmt.params.since = since;
-    stmts.push(stmt);
+    // For null we clear normal and private browsing data. false only clears
+    // normal browsing data. true only clears private browsing data.
+    if (context == null || !isPrivate) {
+      // Get prefs that are about to be removed to notify about their removal.
+      let stmt = this._stmt(`
+        SELECT groups.name AS grp, settings.name AS name
+        FROM prefs
+        JOIN settings ON settings.id = prefs.settingID
+        JOIN groups ON groups.id = prefs.groupID
+        WHERE timestamp >= :since
+      `);
+      stmt.params.since = since;
+      stmts.push(stmt);
 
-    // Do the actual remove.
-    stmt = this._stmt(`
-      DELETE FROM prefs WHERE groupID NOTNULL AND timestamp >= :since
-    `);
-    stmt.params.since = since;
-    stmts.push(stmt);
+      // Do the actual remove.
+      stmt = this._stmt(`
+        DELETE FROM prefs WHERE groupID NOTNULL AND timestamp >= :since
+      `);
+      stmt.params.since = since;
+      stmts.push(stmt);
 
-    // Cleanup no longer used values.
-    stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
+      // Cleanup no longer used values.
+      stmts = stmts.concat(this._settingsAndGroupsCleanupStmts());
+    }
 
-    let prefs = new ContentPrefStore();
-    let isPrivate = context && context.usePrivateBrowsing;
-    this._execStmts(stmts, {
-      onRow: row => {
-        let grp = row.getResultByName("grp");
-        let name = row.getResultByName("name");
-        prefs.set(grp, name, undefined);
-        this._cache.set(grp, name, undefined);
-      },
-      onDone: (reason, ok) => {
-        // This nukes all the groups in _pbStore since we don't have their timestamp
-        // information.
-        if (ok && isPrivate) {
-          for (let [sgroup, sname] of this._pbStore) {
-            if (sgroup) {
-              prefs.set(sgroup, sname, undefined);
-            }
-          }
-          this._pbStore.removeAllGroups();
+    let prefsNonPrivateBrowsing = new ContentPrefStore();
+
+    // Only execute if we have statements to run. stmts is empty for clearing
+    // only private browsing data.
+    let queryPromise = Promise.resolve([
+      Ci.nsIContentPrefService2.COMPLETE_OK,
+      false,
+    ]);
+
+    if (stmts.length) {
+      queryPromise = new Promise(resolve => {
+        this._execStmts(stmts, {
+          onRow: row => {
+            let grp = row.getResultByName("grp");
+            let name = row.getResultByName("name");
+            prefsNonPrivateBrowsing.set(grp, name, undefined);
+            this._cache.set(grp, name, undefined);
+          },
+          onDone: (reason, ok) => {
+            resolve([reason, ok]);
+          },
+          onError: nsresult => {
+            cbHandleError(callback, nsresult);
+          },
+        });
+      });
+    }
+
+    let prefsPrivateBrowsing = new ContentPrefStore();
+
+    // This nukes all the groups in _pbStore since we don't have their timestamp
+    // information.
+    if (isPrivate || context == null) {
+      for (let [sgroup, sname] of this._pbStore) {
+        if (sgroup) {
+          prefsPrivateBrowsing.set(sgroup, sname, undefined);
         }
+      }
+      this._pbStore.removeAllGroups();
+    }
+
+    queryPromise
+      .then(([reason, hasNonPrivateEntries]) => {
+        // Notify caller of completion.
         cbHandleCompletion(callback, reason);
-        if (ok) {
-          for (let [sgroup, sname] of prefs) {
-            this._notifyPrefRemoved(sgroup, sname, isPrivate);
+
+        // Notify for non PBM changes.
+        if (hasNonPrivateEntries) {
+          for (let [sgroup, sname] of prefsNonPrivateBrowsing) {
+            this._notifyPrefRemoved(sgroup, sname, false);
           }
         }
-      },
-      onError: nsresult => {
+
+        // Notify for PBM changes.
+        for (let [sgroup, sname] of prefsPrivateBrowsing) {
+          this._notifyPrefRemoved(sgroup, sname, true);
+        }
+      })
+      .catch(nsresult => {
         cbHandleError(callback, nsresult);
-      },
-    });
+      });
   },
 
   removeAllDomainsSince: function CPS2_removeAllDomainsSince(
@@ -817,76 +911,110 @@ ContentPrefService2.prototype = {
       }
     }
 
+    let isPrivate = context?.usePrivateBrowsing;
     let stmts = [];
 
-    // First get the matching prefs.  Include null if any of those prefs are
-    // global.
-    let stmt = this._stmt(`
-      SELECT groups.name AS grp
-      FROM prefs
-      JOIN settings ON settings.id = prefs.settingID
-      JOIN groups ON groups.id = prefs.groupID
-      WHERE settings.name = :name
-      UNION
-      SELECT NULL AS grp
-      WHERE EXISTS (
-        SELECT prefs.id
+    // For null we clear normal and private browsing data. false only clears
+    // normal browsing data. true only clears private browsing data.
+    if (context == null || !isPrivate) {
+      // First get the matching prefs.  Include null if any of those prefs are
+      // global.
+      let stmt = this._stmt(`
+        SELECT groups.name AS grp
         FROM prefs
         JOIN settings ON settings.id = prefs.settingID
-        WHERE settings.name = :name AND prefs.groupID IS NULL
-      )
-    `);
-    stmt.params.name = name;
-    stmts.push(stmt);
+        JOIN groups ON groups.id = prefs.groupID
+        WHERE settings.name = :name
+        UNION
+        SELECT NULL AS grp
+        WHERE EXISTS (
+          SELECT prefs.id
+          FROM prefs
+          JOIN settings ON settings.id = prefs.settingID
+          WHERE settings.name = :name AND prefs.groupID IS NULL
+        )
+      `);
+      stmt.params.name = name;
+      stmts.push(stmt);
 
-    // Delete the target settings.
-    stmt = this._stmt("DELETE FROM settings WHERE name = :name");
-    stmt.params.name = name;
-    stmts.push(stmt);
+      // Delete the target settings.
+      stmt = this._stmt("DELETE FROM settings WHERE name = :name");
+      stmt.params.name = name;
+      stmts.push(stmt);
 
-    // Delete prefs and groups that are no longer used.
-    stmts.push(
-      this._stmt(
-        "DELETE FROM prefs WHERE settingID NOT IN (SELECT id FROM settings)"
-      )
-    );
-    stmts.push(
-      this._stmt(`
-      DELETE FROM groups WHERE id NOT IN (
-        SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL
-      )
-    `)
-    );
+      // Delete prefs and groups that are no longer used.
+      stmts.push(
+        this._stmt(
+          "DELETE FROM prefs WHERE settingID NOT IN (SELECT id FROM settings)"
+        )
+      );
+      stmts.push(
+        this._stmt(`
+        DELETE FROM groups WHERE id NOT IN (
+          SELECT DISTINCT groupID FROM prefs WHERE groupID NOTNULL
+        )
+      `)
+      );
+    }
 
-    let prefs = new ContentPrefStore();
-    let isPrivate = context && context.usePrivateBrowsing;
+    let prefsNonPrivateBrowsing = new ContentPrefStore();
 
-    this._execStmts(stmts, {
-      onRow: row => {
-        let grp = row.getResultByName("grp");
-        prefs.set(grp, name, undefined);
-        this._cache.set(grp, name, undefined);
-      },
-      onDone: (reason, ok) => {
-        if (ok && isPrivate) {
-          for (let [sgroup, sname] of this._pbStore) {
-            if (sname === name) {
-              prefs.set(sgroup, name, undefined);
-              this._pbStore.remove(sgroup, name);
-            }
-          }
+    // Only execute if we have statements to run. stmts is empty for clearing
+    // only private browsing data.
+    let queryPromise = Promise.resolve([
+      Ci.nsIContentPrefService2.COMPLETE_OK,
+      false,
+    ]);
+
+    if (stmts.length) {
+      queryPromise = new Promise(resolve => {
+        this._execStmts(stmts, {
+          onRow: row => {
+            let grp = row.getResultByName("grp");
+            prefsNonPrivateBrowsing.set(grp, name, undefined);
+            this._cache.set(grp, name, undefined);
+          },
+          onDone: (reason, ok) => {
+            resolve([reason, ok]);
+          },
+          onError: nsresult => {
+            cbHandleError(callback, nsresult);
+          },
+        });
+      });
+    }
+
+    let prefsPrivateBrowsing = new ContentPrefStore();
+
+    if (isPrivate || context == null) {
+      for (let [sgroup, sname] of this._pbStore) {
+        if (sname === name) {
+          prefsPrivateBrowsing.set(sgroup, name, undefined);
+          this._pbStore.remove(sgroup, name);
         }
+      }
+    }
+
+    queryPromise
+      .then(([reason, hasNonPrivateEntries]) => {
+        // Notify caller of completion.
         cbHandleCompletion(callback, reason);
-        if (ok) {
-          for (let [sgroup, ,] of prefs) {
-            this._notifyPrefRemoved(sgroup, name, isPrivate);
+
+        // Notify for non PBM changes.
+        if (hasNonPrivateEntries) {
+          for (let [sgroup, ,] of prefsNonPrivateBrowsing) {
+            this._notifyPrefRemoved(sgroup, name, false);
           }
         }
-      },
-      onError: nsresult => {
+
+        // Notify for PBM changes.
+        for (let [sgroup, ,] of prefsPrivateBrowsing) {
+          this._notifyPrefRemoved(sgroup, name, true);
+        }
+      })
+      .catch(nsresult => {
         cbHandleError(callback, nsresult);
-      },
-    });
+      });
   },
 
   /**

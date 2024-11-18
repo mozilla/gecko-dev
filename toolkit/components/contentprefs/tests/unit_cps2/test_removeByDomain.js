@@ -149,12 +149,14 @@ add_task(async function privateBrowsing() {
   await set("b.com", "foo", 7, context);
   await setGlobal("foo", 8, context);
   await new Promise(resolve =>
-    cps.removeByDomain("a.com", context, makeCallback(resolve))
+    // Passing context=null clears both normal and private browsing data.
+    cps.removeByDomain("a.com", null, makeCallback(resolve))
   );
   await getOK(["b.com", "foo", context], 7);
   await getGlobalOK(["foo", context], 8);
   await new Promise(resolve =>
-    cps.removeAllGlobals(context, makeCallback(resolve))
+    // Passing context=null clears both normal and private browsing data.
+    cps.removeAllGlobals(null, makeCallback(resolve))
   );
   await dbOK([["b.com", "foo", 5]]);
   await getOK(["a.com", "foo", context], undefined);
@@ -168,6 +170,65 @@ add_task(async function privateBrowsing() {
   await getGlobalOK(["foo"], undefined);
   await getGlobalOK(["bar"], undefined);
   await getOK(["b.com", "foo"], 5);
+  await reset();
+});
+
+/**
+ * Tests that when clearing data for normal browsing, private browsing is not
+ * affected and vice versa.
+ */
+add_task(async function privateBrowsingIsolatedRemoval() {
+  await set("a.com", "foo", 1);
+  await set("a.com", "bar", 2);
+  await setGlobal("foo", 3);
+  await setGlobal("bar", 4);
+  await setGlobal("qux", 5);
+  await set("b.com", "foo", 6);
+  await set("b.com", "bar", 7);
+
+  await set("a.com", "foo", 8, privateLoadContext);
+  await set("b.com", "foo", 9, privateLoadContext);
+  await setGlobal("foo", 10, privateLoadContext);
+
+  info("For a.com only clear the normal browsing entries.");
+  await new Promise(resolve =>
+    cps.removeByDomain("a.com", loadContext, makeCallback(resolve))
+  );
+
+  info("For a.com  only the PBM entries should remain.");
+  await getOK(["a.com", "foo", loadContext], undefined);
+  await getOK(["a.com", "bar", loadContext], undefined);
+  await getGlobalOK(["foo", loadContext], 3);
+  await getGlobalOK(["bar", loadContext], 4);
+  await getGlobalOK(["qux", loadContext], 5);
+  await getOK(["b.com", "foo", loadContext], 6);
+  await getOK(["b.com", "bar", loadContext], 7);
+
+  await getOK(["a.com", "foo", privateLoadContext], 8);
+  await getOK(["b.com", "foo", privateLoadContext], 9);
+  await getGlobalOK(["foo", privateLoadContext], 10);
+
+  info("For b.com only clear PBM entries.");
+  await new Promise(resolve =>
+    cps.removeByDomain("b.com", privateLoadContext, makeCallback(resolve))
+  );
+
+  info("For b.com only the non PBM entries should remain.");
+  await getOK(["a.com", "foo", loadContext], undefined);
+  await getOK(["a.com", "bar", loadContext], undefined);
+  await getGlobalOK(["foo", loadContext], 3);
+  await getGlobalOK(["bar", loadContext], 4);
+  await getGlobalOK(["qux", loadContext], 5);
+  await getOK(["b.com", "foo", loadContext], 6);
+  await getOK(["b.com", "bar", loadContext], 7);
+
+  await getOK(["a.com", "foo", privateLoadContext], 8);
+  info("b.com, foo, pbm should be cleared");
+  // This still returns an entry because even if a PBM load context is passed we
+  // will fall back to non PBM entries with the same key.
+  await getOK(["b.com", "foo", privateLoadContext], 6);
+  await getGlobalOK(["foo", privateLoadContext], 10);
+
   await reset();
 });
 

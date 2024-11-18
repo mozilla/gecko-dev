@@ -87,6 +87,11 @@ interface nsIContentPrefObserver : nsISupports
  * window or channel whose content pertains to the preferences being modified or
  * retrieved.
  *
+ * The remove methods, used to clear prefs, also accept an optional
+ * nsILoadContext. If you pass null, both private and normal browsing data will
+ * be removed. Passing a normal browsing context will remove only normal
+ * browsing data, and passing a private browsing context will remove only
+ * private browsing data.
  *
  * Callbacks
  *
@@ -255,7 +260,9 @@ interface nsIContentPrefService2 : nsISupports
    *
    * @param domain    The preference's domain.
    * @param name      The preference's name.
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeByDomainAndName(in AString domain,
@@ -269,7 +276,9 @@ interface nsIContentPrefService2 : nsISupports
    *
    * @param domain    The preferences' domain.
    * @param name      The preferences' name.
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeBySubdomainAndName(in AString domain,
@@ -281,7 +290,9 @@ interface nsIContentPrefService2 : nsISupports
    * Removes the preference with no domain and the given name.
    *
    * @param name      The preference's name.
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeGlobal(in AString name,
@@ -292,7 +303,9 @@ interface nsIContentPrefService2 : nsISupports
    * Removes all preferences with the given domain.
    *
    * @param domain    The preferences' domain.
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeByDomain(in AString domain,
@@ -304,7 +317,9 @@ interface nsIContentPrefService2 : nsISupports
    * of the given domain.
    *
    * @param domain    The preferences' domain.
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeBySubdomain(in AString domain,
@@ -316,7 +331,9 @@ interface nsIContentPrefService2 : nsISupports
    * global preferences with the given name.
    *
    * @param name      The preferences' name.
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeByName(in AString name,
@@ -327,7 +344,9 @@ interface nsIContentPrefService2 : nsISupports
    * Removes all non-global preferences -- in other words, all preferences that
    * have a domain.
    *
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeAllDomains(in nsILoadContext context,
@@ -337,7 +356,9 @@ interface nsIContentPrefService2 : nsISupports
    * Removes all non-global preferences created after and including |since|.
    *
    * @param since     Timestamp in milliseconds.
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeAllDomainsSince(in unsigned long long since,
@@ -348,7 +369,9 @@ interface nsIContentPrefService2 : nsISupports
    * Removes all global preferences -- in other words, all preferences that have
    * no domain.
    *
-   * @param context   The private-browsing context, if any.
+   * @param [context] Optional context to pass to indicate whether normal or
+   *                  private-browsing data should be removed. Passing null
+   *                  removes both private and normal browsing data.
    * @param callback  handleCompletion is called when the operation completes.
    */
   void removeAllGlobals(in nsILoadContext context,

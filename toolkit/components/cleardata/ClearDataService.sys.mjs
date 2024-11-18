@@ -1546,13 +1546,26 @@ const PermissionsCleaner = {
 };
 
 const PreferencesCleaner = {
-  deleteByHost(aHost) {
+  deleteByHost(aHost, aOriginAttributes = {}) {
+    aOriginAttributes =
+      ChromeUtils.fillNonDefaultOriginAttributes(aOriginAttributes);
+
+    let loadContext;
+    if (
+      aOriginAttributes.privateBrowsingId ==
+      Services.scriptSecurityManager.DEFAULT_PRIVATE_BROWSING_ID
+    ) {
+      loadContext = Cu.createLoadContext();
+    } else {
+      loadContext = Cu.createPrivateLoadContext();
+    }
+
     // Also clears subdomains of aHost.
     return new Promise((aResolve, aReject) => {
       let cps2 = Cc["@mozilla.org/content-pref/service;1"].getService(
         Ci.nsIContentPrefService2
       );
-      cps2.removeBySubdomain(aHost, null, {
+      cps2.removeBySubdomain(aHost, loadContext, {
         handleCompletion: aReason => {
           if (aReason === cps2.COMPLETE_ERROR) {
             aReject();
@@ -1560,7 +1573,6 @@ const PreferencesCleaner = {
             aResolve();
           }
         },
-        handleError() {},
       });
     });
   },
@@ -1569,23 +1581,74 @@ const PreferencesCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
-    return this.deleteByHost(aSchemelessSite, {});
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    // If aOriginAttributesPattern does not specify private or normal browsing
+    // clear both.
+    let loadContext = null;
+
+    // If the pattern filters by normal or private browsing mode only clear that mode.
+    if (aOriginAttributesPattern.privateBrowsingId != null) {
+      // The default private browsing ID is 0 which is non private browsing mode
+      // / normal mode.
+      let isPrivateBrowsing =
+        aOriginAttributesPattern.privateBrowsingId !=
+        Ci.nsIScriptSecurityManager.DEFAULT_PRIVATE_BROWSING_ID;
+      loadContext = isPrivateBrowsing
+        ? Cu.createPrivateLoadContext()
+        : Cu.createLoadContext();
+    }
+
+    let cps2 = Cc["@mozilla.org/content-pref/service;1"].getService(
+      Ci.nsIContentPrefService2
+    );
+
+    await new Promise((aResolve, aReject) => {
+      cps2.removeBySubdomain(aSchemelessSite, loadContext, {
+        handleCompletion: aReason => {
+          if (aReason === cps2.COMPLETE_ERROR) {
+            aReject();
+          } else {
+            aResolve();
+          }
+        },
+      });
+    });
   },
 
   async deleteByRange(aFrom) {
     let cps2 = Cc["@mozilla.org/content-pref/service;1"].getService(
       Ci.nsIContentPrefService2
     );
-    cps2.removeAllDomainsSince(aFrom / 1000, null);
+
+    await new Promise((aResolve, aReject) => {
+      cps2.removeAllDomainsSince(aFrom / 1000, null, {
+        handleCompletion: aReason => {
+          if (aReason === cps2.COMPLETE_ERROR) {
+            aReject();
+          } else {
+            aResolve();
+          }
+        },
+      });
+    });
   },
 
   async deleteAll() {
     let cps2 = Cc["@mozilla.org/content-pref/service;1"].getService(
       Ci.nsIContentPrefService2
     );
-    cps2.removeAllDomains(null);
+
+    await new Promise((aResolve, aReject) => {
+      cps2.removeAllDomains(null, {
+        handleCompletion: aReason => {
+          if (aReason === cps2.COMPLETE_ERROR) {
+            aReject();
+          } else {
+            aResolve();
+          }
+        },
+      });
+    });
   },
 };
 
