@@ -13,7 +13,7 @@
     ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_ssl_title">ਸੁਰੱਖਿਅਤ ਕੁਨੈਕਸ਼ਨ ਫੇਲ੍ਹ ਹੋਇਆ</string>
+    <string name="mozac_browser_errorpages_security_ssl_title">ਸੁਰੱਖਿਅਤ ਕਨੈਕਸ਼ਨ ਫੇਲ੍ਹ ਹੋਇਆ</string>
 
     <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
     <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[
@@ -24,7 +24,7 @@
         ]]></string>
 
     <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_title">ਸੁਰੱਖਿਅਤ ਕੁਨੈਕਸ਼ਨ ਫੇਲ੍ਹ ਹੋਇਆ</string>
+    <string name="mozac_browser_errorpages_security_bad_cert_title">ਸੁਰੱਖਿਅਤ ਕਨੈਕਸ਼ਨ ਫੇਲ੍ਹ ਹੋਇਆ</string>
 
     <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
@@ -35,7 +35,7 @@
     ]]></string>
 
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
-    <string name="mozac_browser_errorpages_security_bad_cert_advanced">ਤਕਨੀਕੀ…</string>
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">…ਤਕਨੀਕੀ</string>
     <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
         <label>ਕੋਈ ਸਾਈਟ ਦੀ ਨਕਲ ਕਰਦਾ ਹੋ ਸਕਦਾ ਹੈ ਅਤੇ ਤੁਹਾਨੂੰ ਜਾਰੀ ਨਹੀਂ ਰੱਖਣਾ ਚਾਹੀਦਾ ਹੈ।</label>
@@ -85,7 +85,7 @@
 
     <!-- The error message shown when a website took long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
-      <p>ਮੰਗ ਕੀਤੀ ਸਾਇਟ ਨੇ ਸੰਪਰਕ ਦੀ ਬੇਨਤੀ ਦਾ ਜਵਾਬ ਨਹੀਂ ਦਿੱਤਾ ਅਤੇ ਬਰਾਊਜ਼ਰ ਨੇ ਜਵਾਬ ਲਈ ਉਡੀਕ ਕਰਨੀ ਛੱਡ ਦਿੱਤੀ ਹੈ।</p>
+      <p>ਮੰਗ ਕੀਤੀ ਸਾਈਟ ਨੇ ਸੰਪਰਕ ਦੀ ਬੇਨਤੀ ਦਾ ਜਵਾਬ ਨਹੀਂ ਦਿੱਤਾ ਅਤੇ ਬਰਾਊਜ਼ਰ ਨੇ ਜਵਾਬ ਲਈ ਉਡੀਕ ਕਰਨੀ ਛੱਡ ਦਿੱਤੀ ਹੈ।</p>
       <ul>
         <li>ਕੀ ਸਰਵਰ ਦੀ ਮੰਗ ਬਹੁਤ ਵੱਧ ਹੋ ਗਈ ਹੋ ਸਕਦੀ ਹੈ ਜਾਂ ਆਰਜ਼ੀ ਤੌਰ ‘ਤੇ ਸਮੱਸਿਆ ਹੋ ਸਕਦੀ ਹੈ? ਬਾਅਦ ‘ਚ ਕੋਸ਼ਿਸ਼ ਕਰੋ।</li>
         <li>ਕੀ ਤੁਸੀਂ ਹੋਰ ਸਾਈਟਾਂ ਨੂੰ ਬਰਾਊਜ਼ ਕਰ ਸਕਦੇ ਹੋ? ਕੰਪਿਊਟਰ ਦੇ ਨੈੱਟਵਰਕ ਕਨੈਕਸ਼ਨ ਦੀ ਜਾਂਚ ਕਰੋ।</li>
@@ -102,16 +102,16 @@
     <string name="mozac_browser_errorpages_connection_failure_message"><![CDATA[
       <ul>
         <li>ਸਾਈਟ ਆਰਜ਼ੀ ਰੂਪ ਵਿੱਚ ਬੰਦ ਹੋ ਸਕਦੀ ਹੈ ਜਾਂ ਬਹੁਤ ਰੁੱਝੀ ਹੋ ਸਕਦੀ ਹੈ। ਕੁੱਝ ਕੁ ਪਲਾਂ ਵਿੱਚ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।</li>
-        <li>ਜੇ ਤੁਸੀਂ ਕੋਈ ਵੀ ਵਰਕਾ ਲੋਡ ਨਹੀਂ ਕਰ ਸਕਦੇ ਹੋ ਤਾਂ ਆਪਣੇ ਡਿਵਾਈਸ ਦੇ ਡਾਟੇ ਜਾਂ Wi-Fi ਕੁਨੈਕਸ਼ਨ ਦੀ ਜਾਂਚ ਕਰੋ ਜੀ।</li>
+        <li>ਜੇ ਤੁਸੀਂ ਕੋਈ ਵੀ ਸਫ਼ਾ ਲੋਡ ਨਹੀਂ ਕਰ ਸਕਦੇ ਹੋ ਤਾਂ ਆਪਣੇ ਡਿਵਾਈਸ ਦੇ ਡਾਟੇ ਜਾਂ Wi-Fi ਕਨੈਕਸ਼ਨ ਦੀ ਜਾਂਚ ਕਰੋ ਜੀ।</li>
       </ul>
     ]]></string>
 
     <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
-    <string name="mozac_browser_errorpages_unknown_socket_type_title">ਸਰਵਰ ਤੋਂ ਅਣਚਿਤਵਿਆ ਜਵਾਬ ਮਿਲਿਆ</string>
+    <string name="mozac_browser_errorpages_unknown_socket_type_title">ਸਰਵਰ ਤੋਂ ਗ਼ੈਰ-ਲੋੜੀਦਾ ਜਵਾਬ</string>
 
     <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
     <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[
-      <p>ਸਾਇਟ ਨੈੱਟਵਰਕ ਬੇਨਤੀ ਨੂੰ ਇੱਕ ਅਣਜਾਣੇ ਢੰਗ ਨਾਲ ਜਵਾਬ ਦੇ ਰਹੀ ਹੈ ਅਤੇ ਬਰਾਊਜ਼ਰ ਜਾਰੀ ਨਹੀਂ ਰੱਖ ਸਕਦਾ ਹੈ।</p>
+      <p>ਸਾਈਟ ਨੈੱਟਵਰਕ ਬੇਨਤੀ ਨੂੰ ਇੱਕ ਅਣਜਾਣੇ ਢੰਗ ਨਾਲ ਜਵਾਬ ਦੇ ਰਹੀ ਹੈ ਅਤੇ ਬਰਾਊਜ਼ਰ ਜਾਰੀ ਨਹੀਂ ਰੱਖ ਸਕਦਾ ਹੈ।</p>
     ]]></string>
 
     <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
@@ -119,7 +119,7 @@
 
     <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
-      <p>ਬਰਾਊਜਰ ਨੇ ਮੰਗ ਕੀਤੀ ਚੀਜ਼ ਪ੍ਰਾਪਤ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਨੂੰ ਰੋਕ ਦਿੱਤਾ ਹੈ। ਸਾਇਟ ਬੇਨਤੀ ਨੂੰ ਇਸ ਢੰਗ ਨਾਲ ਦਿਸ਼ਾ ਪਰਿਵਰਤਨ ਕਰ ਰਹੀ ਹੈ ਜੋ ਕਿ ਕਦੇ ਪੂਰੀ ਨਹੀਂ ਹੋਵੇਗੀ।</p>
+      <p>ਬਰਾਊਜਰ ਨੇ ਮੰਗ ਕੀਤੀ ਚੀਜ਼ ਪ੍ਰਾਪਤ ਕਰਨ ਦੀ ਕੋਸ਼ਿਸ਼ ਨੂੰ ਰੋਕ ਦਿੱਤਾ ਹੈ। ਸਾਈਟ ਬੇਨਤੀ ਨੂੰ ਇਸ ਢੰਗ ਨਾਲ ਦਿਸ਼ਾ ਪਰਿਵਰਤਨ ਕਰ ਰਹੀ ਹੈ ਜੋ ਕਿ ਕਦੇ ਪੂਰੀ ਨਹੀਂ ਹੋਵੇਗੀ।</p>
       <ul>
         <li>ਕੀ ਤੁਸੀਂ ਇਸ ਸਾਈਟ ਲਈ ਚਾਹੀਦੇ ਕੂਕੀਜ਼ ਅਸਮਰੱਥ ਕੀਤੇ ਜਾਂ ਪਾਬੰਦੀ ਲਗਾਏ ਹਨ?</li>
         <li>ਜੇ ਸਾਈਟ ਦੇ ਕੂਕੀਜ਼ ਨੂੰ ਮਨਜ਼ੂਰ ਕਰਨ ਨਾਲ ਸਮੱਸਿਆ ਹੱਲ ਨਹੀਂ ਹੁੰਦੀ ਹੈ ਤਾਂ ਇਹ ਸਰਵਰ ਦੀ ਸੰਰਚਨਾ ਨਾਲ ਮਸਲਾ ਹੋ ਸਕਦਾ, ਨਾ ਕਿ ਤੁਹਾਡੇ ਕੰਪਿਊਟਰ ਨਾਲ।</li>
@@ -194,7 +194,7 @@
     <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[
       <p>ਸਫ਼ਾ, ਜਿਸ ਨੂੰ ਤੁਸੀਂ ਵੇਖਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰ ਰਹੇ ਹੋ, ਵੇਖਾਇਆ ਨਹੀਂ ਜਾ ਸਕਦਾ, ਕਿਉਂਕਿ ਇਹ ਗਲਤ ਜਾਂ ਗ਼ੈਰ-ਸਹਾਇਕ ਕੰਪਰੈਸ਼ਨ ਫਾਰਮ ਵਰਤਦਾ ਹੈ।</p>
       <ul>
-        <li>ਇਹ ਸਮੱਸਿਆ ਬਾਰੇ ਵੈੱਬ ਸਾਇਟ ਦੇ ਓਨਰ (ਮਾਲਕ) ਨਾਲ ਸੰਪਰਕ ਕਰੋ ਜੀ।</li>
+        <li>ਇਹ ਸਮੱਸਿਆ ਬਾਰੇ ਵੈੱਬ ਸਾਈਟ ਦੇ ਓਨਰ (ਮਾਲਕ) ਨਾਲ ਸੰਪਰਕ ਕਰੋ ਜੀ।</li>
       </ul>
     ]]></string>
 
@@ -230,7 +230,7 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title">ਅਢੁੱਕਵਾਂ ਸਿਰਨਾਵਾਂ</string>
     <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
-      <p>ਦਿੱਤਾ ਗਿਆ ਪਤਾ ਪਰਵਾਨਤ ਬਣਤਰ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ। ਗਲਤੀਆਂ ਲਈ ਟਿਕਾਣਾ ਪੱਟੀ ਦੀ ਜਾਂਚ ਕਰੋ ਤੇ ਫੇਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜੀ।</p>
+      <p>ਦਿੱਤਾ ਗਿਆ ਸਿਰਨਾਵਾਂ ਪਰਵਾਨਤ ਬਣਤਰ ਨਾਲ ਮੇਲ ਨਹੀਂ ਖਾਂਦਾ। ਗਲਤੀਆਂ ਲਈ ਟਿਕਾਣਾ ਪੱਟੀ ਦੀ ਜਾਂਚ ਕਰੋ ਤੇ ਫੇਰ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜੀ।</p>
     ]]></string>
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_malformed_uri_title_alternative">ਸਿਰਨਾਵਾਂ ਵਾਜਬ ਨਹੀਂ ਹੈ</string>

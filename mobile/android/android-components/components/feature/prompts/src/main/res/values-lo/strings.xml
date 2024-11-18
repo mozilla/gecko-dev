@@ -110,6 +110,11 @@
     <!-- Pressing this will dismiss the suggested strong password dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_dismiss">ບໍ່ແມ່ນຕອນນີ້</string>
 
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">ອັບເດດລະຫັດຜ່ານແລ້ວ</string>
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">ອັບເດດຊື່ຜູ້ໃຊ້ແລ້ວ</string>
+
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">ສົ່ງຂໍ້ມູນຄືນສູ່ເວັບໄຊທນີ້ອີກບໍ?</string>
     <string name="mozac_feature_prompt_repost_message">ການລີເຟສຫນ້ານີ້ອາດຈະເຮັດໃຫ້ການກະທຳກ່ອນຫນ້ານີ້ຊໍ້າກັນເຊັ່ນວ່າ: ການສົ່ງລາຍການຈ່າຍເງິນ ຫລື ການໂພສຄອມເມັ້ນ 2 ຄັ້ງ.</string>
@@ -118,6 +123,9 @@
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
     <string name="mozac_feature_prompt_repost_negative_button_text">ຍົກເລີກ</string>
 
+    <!-- Credit Card Autofill -->
+    <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
+    <string name="mozac_feature_prompts_select_credit_card_2">ໃຊ້ບັດທີ່ບັນທຶກໄວ້</string>
     <!-- Option in the expanded select card prompt that links to cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards_2">ຈັດການບັດ</string>
     <!-- Text for the title of a save credit card dialog. -->

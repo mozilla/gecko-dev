@@ -15,7 +15,7 @@
     <!-- This text is shown in the URL bar when it's empty -->
     <string name="urlbar_hint">ਖੋਜੋ ਜਾਂ ਸਿਰਨਾਵਾਂ ਦਿਓ</string>
 
-    <string name="teaser">ਆਪਣੇ-ਆਪ ਨਿੱਜੀ ਬਰਾਊਜ਼ਿੰਗ।\nਬਰਾਊਜ਼ ਕਰੋ। ਸਾਫ਼ ਕਰੋ। ਦੁਹਰਾਓ।</string>
+    <string name="teaser">ਆਪਣੇ-ਆਪ ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ।\nਬਰਾਊਜ਼ ਕਰੋ। ਸਾਫ਼ ਕਰੋ। ਦੁਹਰਾਓ।</string>
 
     <!-- "Snackbar" shown after the user has pressed the 'erase' button at the end of a browsing session -->
     <string name="feedback_erase">ਤੁਹਾਡੇ ਬਰਾਊਜ਼ ਕਰਨ ਦੇ ਅਤੀਤ ਨੂੰ ਸਾਫ਼ ਕਰ ਦਿੱਤਾ ਜਾਵੇਗਾ।</string>
@@ -85,7 +85,6 @@
     <string name="share_dialog_title">ਇਸ ਰਾਹੀਂ ਸਾਂਝਾ ਕਰੋ</string>
 
     <string name="notification_erase_title_android_14">ਬਰਾਊਜ਼ ਕਰਨ ਦੇ ਅਤੀਤ ਨੂੰ ਮਿਟਾਉਣਾ ਹੈ?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">ਤੁਹਾਡੇ ਬਰਾਊਜ਼ ਕਰਨ ਦੇ ਅਤੀਤ ਨੂੰ ਸੁਰੱਖਿਅਤ ਢੰਗ ਨਾਲ ਮਿਟਾਉਣ ਲਈ ਇਸ ਨੋਟੀਫਿਕੇਸ਼ਨ ਨੂੰ ਛੂਹੋ ਜਾਂ ਸਾਫ਼ ਕਰੋ।</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -141,7 +140,7 @@
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
     <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ਕੰਟਰੋਲ ਤੁਹਾਡੇ ਹੱਥ ਦਿੰਦਾ ਹੈ।</p>
-<p>ਇਸ ਨੂੰ ਨਿੱਜੀ ਬਰਾਊਜ਼ਰ ਵਜੋਂ ਵਰਤੋਂ:
+<p>ਇਸ ਨੂੰ ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਰ ਵਜੋਂ ਵਰਤੋਂ:
   <ul>
     <li>ਐਪ ਦੇ ਵਿੱਚ ਖੋਲ੍ਹੋ ਅਤੇ ਬਰਾਊਜ਼ ਕਰੋp</li>
     <li>ਟਰੈਕਰਾਂ ਤੇ ਲਾਓ ਪਾਬੰਦੀ (ਜਾਂ ਟਰੈਕਰਾਂ ਨੂੰ ਇਜਾਜ਼ਤ ਦੇਣ ਲਈ ਸੈਟਿੰਗਾਂ ਅੱਪਡੇਟ ਕਰੋ)</li>
@@ -478,7 +477,7 @@
          the app store installed on the device (usually that's Google Play). -->
     <string name="external_app_prompt_no_app">ਤੁਹਾਡੇ ਯੰਤਰ ਉੱਪਰਲੀ ਕੋਈ ਵੀ ਐਪ ਇਸ ਤੰਦ ਨੂੰ ਖੋਲ੍ਹਣ ਦੇ ਕਾਬਲ ਨਹੀਂ ਹੈ। ਤੁਸੀਂ %2$s ਦੇ ਲਈ ਕਿਸੇ ਕਾਬਲ ਐਪ ਨੂੰ ਲੱਭਣ ਲਈ %1$s ਛੱਡ ਸਕਦੇ ਹੋ।</string>
     <!-- This label is shown above a list of apps that can be used to open a given link -->
-    <string name="external_multiple_apps_matched_exit">ਨਿੱਜੀ ਬਰਾਊਜ਼ਿੰਗ ਤੋਂ ਬਾਹਰ ਨਿਕਲਣਾ ਹੈ?</string>
+    <string name="external_multiple_apps_matched_exit">ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ ਤੋਂ ਬਾਹਰ ਨਿਕਲਣਾ ਹੈ?</string>
 
     <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s ਮੁਕੰਮਲ</string>
@@ -512,14 +511,14 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">ਬੰਦ ਕਰੋ</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">ਬੰਦ ਕਰੋ</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
     <string name="onboarding_first_screen_title">%1$s ਵਲੋਂ ਜੀ ਆਇਆਂ ਨੂੰ</string>
 
     <!-- New Onboarding flow first screen subtitle the one that appears under title -->
-    <string name="onboarding_first_screen_subtitle">ਤੇਜ਼। ਨਿੱਜੀ। ਬਿਨਾਂ ਕਿਸੇ ਰੋਕ ਟੋਕ ਦੇ।</string>
+    <string name="onboarding_first_screen_subtitle">ਤੇਜ਼। ਪ੍ਰਾਈਵੇਟ। ਬਿਨਾਂ ਕਿਸੇ ਰੋਕ ਟੋਕ ਦੇ।</string>
 
     <!-- New Onboarding flow first screen button label-->
     <string name="onboarding_first_screen_button_text">ਸ਼ੁਰੂ ਕਰੀਏ</string>
@@ -545,7 +544,7 @@
     <!-- First run tour (Default browser): Title -->
     <string name="firstrun_defaultbrowser_title">ਆਪਣੀ ਪਰਦੇਦਾਰੀ ਨੂੰ ਕੰਟਰੋਲ ਕਰੋ</string>
     <!-- First run tour (Default browser): Text. -->
-    <string name="firstrun_defaultbrowser_text2">ਨਿੱਜੀ ਬਰਾਊਜ਼ਿੰਗ ਨੂੰ ਅਗਲੇ ਪੱਧਰ ਤੇ ਲੈ ਜਾਓ। ਇਸ਼ਤਿਹਾਰ ਅਤੇ ਹੋਰ ਸਮੱਗਰੀ, ਜੋ ਕਿ ਤੁਹਾਨੂੰ ਸਾਈਟਾਂ ਉੱਤੇ ਟਰੈਕ ਕਰ ਅਤੇ ਸਫ਼ਾ ਲੋਡ ਕਰਨ ਨੂੰ ਹੌਲੀ ਕਰ ਸਕਦੀ ਹੈ, ਉੱਤੇ ਪਾਬੰਦੀ ਲਗਾਓ।</string>
+    <string name="firstrun_defaultbrowser_text2">ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ ਨੂੰ ਅਗਲੇ ਪੱਧਰ ਤੇ ਲੈ ਜਾਓ। ਇਸ਼ਤਿਹਾਰ ਅਤੇ ਹੋਰ ਸਮੱਗਰੀ, ਜੋ ਕਿ ਤੁਹਾਨੂੰ ਸਾਈਟਾਂ ਉੱਤੇ ਟਰੈਕ ਕਰ ਅਤੇ ਸਫ਼ਾ ਲੋਡ ਕਰਨ ਨੂੰ ਹੌਲੀ ਕਰ ਸਕਦੀ ਹੈ, ਉੱਤੇ ਪਾਬੰਦੀ ਲਗਾਓ।</string>
 
     <!-- First run tour (Search): Title -->
     <string name="firstrun_search_title">ਤੁਹਾਡੀ ਖੋਜ, ਤੁਹਾਡਾ ਢੰਗ</string>
@@ -562,7 +561,7 @@
     <string name="firstrun_privacy_title">ਪਰਦੇਦਾਰੀ ਨੂੰ ਆਦਤ ਬਣਾਓ</string>
 
     <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-    <string name="firstrun_privacy_text">%1$s ਨੂੰ ਆਪਣਾ ਮੂਲ ਬਰਾਊਜ਼ਰ ਬਣਾਓ ਅਤੇ ਜਦੋਂ ਵੀ ਤੁਸੀਂ ਹੋਰ ਐਪਾਂ ਤੋਂ ਵੈਬ-ਸਫ਼ੇ ਨੂੰ ਖੋਲ੍ਹੋ ਤਾਂ ਨਿੱਜੀ ਬਰਾਊਜ਼ਿੰਗ ਦਾ ਫਾਇਦਾ ਲਵੋ।</string>
+    <string name="firstrun_privacy_text">%1$s ਨੂੰ ਆਪਣਾ ਮੂਲ ਬਰਾਊਜ਼ਰ ਬਣਾਓ ਅਤੇ ਜਦੋਂ ਵੀ ਤੁਸੀਂ ਹੋਰ ਐਪਾਂ ਤੋਂ ਵੈਬ-ਸਫ਼ੇ ਨੂੰ ਖੋਲ੍ਹੋ ਤਾਂ ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ ਦਾ ਫਾਇਦਾ ਲਵੋ।</string>
 
     <string name="firstrun_close_button">ਠੀਕ ਹੈ, ਸਮਝ ਗਏ!</string>
     <string name="firstrun_skip_button">ਛੱਡੋ</string>
@@ -593,7 +592,7 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
     -->
-    <string name="notification_browsing_session_channel_name">ਨਿੱਜੀ ਬਰਾਊਜ਼ਿੰਗ ਸ਼ੈਸ਼ਨ</string>
+    <string name="notification_browsing_session_channel_name">ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ ਸ਼ੈਸ਼ਨ</string>
 
     <!-- The user visible description of the "notification channel" (Android 8+ feature) for the ongoing notification shown while a browsing session is active.
     The recommended maximum length is 300 characters; the value may be truncated if it is too long. %1$s will be replaced with the name of the app (e.g. Firefox Focus).
@@ -927,9 +926,6 @@
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">ਬਦਲੋ</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">ਪੂਰੀ ਸਕਰੀਨ ਢੰਗ ਵਿੱਚ ਜਾ ਰਿਹਾ ਹੈ</string>
-
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">ਲਿੰਕ ਨੂੰ ਤੁਰੰਤ ਨੂੰ ਨਵੀਂ ਟੈਬ ਵਿੱਚ ਬਦਲੋ</string>
 
@@ -964,7 +960,7 @@
     <!-- Headline for the tab crash report screen -->
     <string name="tab_crash_report_headline">ਅਫ਼ਸੋਸ। ਸਾਨੂੰ ਇਸ ਟੈਬ ਨਾਲ ਸਮੱਸਿਆ ਆ ਰਹੀ ਹੈ।</string>
     <!-- Subtitle for the tab crash report screen -->
-    <string name="tab_crash_report_description">ਨਿੱਜੀ ਬਰਾਊਜ਼ਰ ਵਜੋਂ, ਅਸੀਂ ਇਸ ਟੈਬ ਲਈ ਕੁਝ ਨਹੀਂ ਸੰਭਾਲਿਆ ਅਤੇ ਬਹਾਲ ਨਹੀਂ ਕਰ ਸਕਦੇ ਹਾਂ।</string>
+    <string name="tab_crash_report_description">ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਰ ਵਜੋਂ, ਅਸੀਂ ਇਸ ਟੈਬ ਲਈ ਕੁਝ ਨਹੀਂ ਸੰਭਾਲਿਆ ਅਤੇ ਬਹਾਲ ਨਹੀਂ ਕਰ ਸਕਦੇ ਹਾਂ।</string>
     <!-- Label for button to close the tab-->
     <string name="tab_crash_report_close_tab_button_label">ਟੈਬ ਬੰਦ ਕਰੋ</string>
 
@@ -1099,13 +1095,13 @@
     !-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. &quot;Focus&quot;) --&gt;
     <!-- Banner Info Message than will appear when user first enters in the app. The location is at the toolbar. -->
-    <string name="cfr_for_start_browsing">ਆਪਣਾ ਨਿੱਜੀ ਬਰਾਊਜ਼ਿੰਗ ਸ਼ੈਸ਼ਨ ਸ਼ੁਰੂ ਕਰੋ ਅਤੇ ਅਸੀਂ ਤੁਹਾਡੇ ਵਾਸਤੇ ਟਰੈਕਰਾਂ ਤੇ ਹੋਰ ਬੁਰੀਆਂ ਚੀਜ਼ਾਂ ਉੱਤੇ ਰੋਕ ਲਾਵਾਂਗੇ।</string>
+    <string name="cfr_for_start_browsing">ਆਪਣਾ ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ ਸ਼ੈਸ਼ਨ ਸ਼ੁਰੂ ਕਰੋ ਅਤੇ ਅਸੀਂ ਤੁਹਾਡੇ ਵਾਸਤੇ ਟਰੈਕਰਾਂ ਤੇ ਹੋਰ ਬੁਰੀਆਂ ਚੀਜ਼ਾਂ ਉੱਤੇ ਰੋਕ ਲਾਵਾਂਗੇ।</string>
 
     !-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. &quot;Focus&quot;) --&gt;
     <!-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
     of the app (e.g. "Focus") -->
-    <string name="promote_search_widget_dialog_subtitle">ਹੁਣ ਤੁਸੀਂ ਆਪਣੀ ਨਿੱਜੀ ਬਰਾਊਜ਼ਿੰਗ ਕਰੋ, ਪਰ ਅਗਲੀ ਵਾਰ ਫ਼ੌਰਨ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਆਪਣੀ ਮੁੱਖ ਸਕਰੀਨ ਤੋਂ %1$s ਵਿਜੈਟ ਵਰਤ ਸਕਦੇ ਹੋ।</string>
+    <string name="promote_search_widget_dialog_subtitle">ਹੁਣ ਤੁਸੀਂ ਆਪਣੀ ਪ੍ਰਾਈਵੇਟ ਬਰਾਊਜ਼ਿੰਗ ਕਰੋ, ਪਰ ਅਗਲੀ ਵਾਰ ਫ਼ੌਰਨ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਆਪਣੀ ਮੁੱਖ ਸਕਰੀਨ ਤੋਂ %1$s ਵਿਜੈਟ ਵਰਤ ਸਕਦੇ ਹੋ।</string>
 
     !-- This is te text from add search widget to home screen button .The button is located on
     promote search widget dialog. --&gt;
