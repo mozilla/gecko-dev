@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![allow(clippy::new_without_default)]
+
 #[macro_use]
 extern crate bitflags;
 
 #[macro_use]
 extern crate lazy_static;
 
-#[cfg(any(feature = "serde"))]
+#[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
 
