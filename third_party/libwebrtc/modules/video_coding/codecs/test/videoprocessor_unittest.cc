@@ -103,7 +103,8 @@ TEST_F(VideoProcessorTest, ProcessFrames_FixedFramerate) {
       SetRates(Field(&VideoEncoder::RateControlParameters::framerate_fps,
                      static_cast<double>(kFramerateFps))))
       .Times(1);
-  q_.SendTask([=] { video_processor_->SetRates(kBitrateKbps, kFramerateFps); });
+  q_.SendTask(
+      [this] { video_processor_->SetRates(kBitrateKbps, kFramerateFps); });
 
   EXPECT_CALL(frame_reader_mock_, PullFrame(_, _, _))
       .WillRepeatedly(Return(I420Buffer::Create(kWidth, kHeight)));
@@ -132,7 +133,7 @@ TEST_F(VideoProcessorTest, ProcessFrames_VariableFramerate) {
                      static_cast<double>(kStartFramerateFps))))
       .Times(1);
   q_.SendTask(
-      [=] { video_processor_->SetRates(kBitrateKbps, kStartFramerateFps); });
+      [this] { video_processor_->SetRates(kBitrateKbps, kStartFramerateFps); });
 
   EXPECT_CALL(frame_reader_mock_, PullFrame(_, _, _))
       .WillRepeatedly(Return(I420Buffer::Create(kWidth, kHeight)));
@@ -148,7 +149,7 @@ TEST_F(VideoProcessorTest, ProcessFrames_VariableFramerate) {
                      static_cast<double>(kNewFramerateFps))))
       .Times(1);
   q_.SendTask(
-      [=] { video_processor_->SetRates(kBitrateKbps, kNewFramerateFps); });
+      [this] { video_processor_->SetRates(kBitrateKbps, kNewFramerateFps); });
 
   EXPECT_CALL(encoder_mock_,
               Encode(Property(&VideoFrame::rtp_timestamp,
@@ -174,7 +175,8 @@ TEST_F(VideoProcessorTest, SetRates) {
                      Field(&VideoEncoder::RateControlParameters::framerate_fps,
                            static_cast<double>(kFramerateFps)))))
       .Times(1);
-  q_.SendTask([=] { video_processor_->SetRates(kBitrateKbps, kFramerateFps); });
+  q_.SendTask(
+      [this] { video_processor_->SetRates(kBitrateKbps, kFramerateFps); });
 
   const uint32_t kNewBitrateKbps = 456;
   const int kNewFramerateFps = 34;
@@ -188,8 +190,9 @@ TEST_F(VideoProcessorTest, SetRates) {
                      Field(&VideoEncoder::RateControlParameters::framerate_fps,
                            static_cast<double>(kNewFramerateFps)))))
       .Times(1);
-  q_.SendTask(
-      [=] { video_processor_->SetRates(kNewBitrateKbps, kNewFramerateFps); });
+  q_.SendTask([this] {
+    video_processor_->SetRates(kNewBitrateKbps, kNewFramerateFps);
+  });
 
   ExpectRelease();
 }

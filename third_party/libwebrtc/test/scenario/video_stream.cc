@@ -455,7 +455,7 @@ void SendVideoStream::UpdateConfig(
 }
 
 void SendVideoStream::UpdateActiveLayers(std::vector<bool> active_layers) {
-  sender_->task_queue_.PostTask([=] {
+  sender_->task_queue_.PostTask([this, active_layers] {
     MutexLock lock(&mutex_);
     VideoEncoderConfig encoder_config = CreateVideoEncoderConfig(config_);
     RTC_CHECK_EQ(encoder_config.simulcast_layers.size(), active_layers.size());
