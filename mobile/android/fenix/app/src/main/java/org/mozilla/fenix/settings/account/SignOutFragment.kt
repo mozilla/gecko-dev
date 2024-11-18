@@ -12,7 +12,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.findNavController
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.launch
@@ -73,7 +72,6 @@ class SignOutFragment : AppCompatDialogFragment() {
                     if (this.isVisible) {
                         dismiss()
                     }
-                    findNavController().popBackStack()
                 }
             }
         }
