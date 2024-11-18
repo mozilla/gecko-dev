@@ -1,5 +1,5 @@
-def install_addon(session, method, value, temp=False):
-    arg = {"temporary": temp}
+def install_addon(session, method, value, temp=False, allow_private_browsing=False):
+    arg = {"temporary": temp, "allowPrivateBrowsing": allow_private_browsing}
     arg[method] = value
     return session.transport.send(
         "POST",

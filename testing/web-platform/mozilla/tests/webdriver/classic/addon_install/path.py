@@ -3,6 +3,7 @@ import os
 import pytest
 from support.addons import (
     get_ids_for_installed_addons,
+    is_addon_private_browsing_allowed,
     is_addon_temporary_installed,
 )
 from tests.support.asserts import assert_error, assert_success
@@ -110,3 +111,23 @@ def test_install_mixed_separator_windows(session):
         finally:
             # Clean up the addon.
             uninstall_addon(session, addon_id)
+
+
+@pytest.mark.parametrize("allow_private_browsing", [True, False])
+def test_install_addon_with_private_browsing(session, allow_private_browsing):
+    addon_path = os.path.join(addon_folder_path, "amosigned.xpi")
+    response = install_addon(session, "path", addon_path, False, allow_private_browsing)
+    addon_id = assert_success(response)
+
+    installed_addon_ids = get_ids_for_installed_addons(session)
+
+    try:
+        assert addon_id in installed_addon_ids
+        assert addon_id == "amosigned-xpi@tests.mozilla.org"
+        assert (
+            is_addon_private_browsing_allowed(session, addon_id)
+            is allow_private_browsing
+        )
+    finally:
+        # Clean up the addon.
+        uninstall_addon(session, addon_id)

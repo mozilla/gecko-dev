@@ -57,3 +57,24 @@ def is_addon_temporary_installed(session, addon_id):
             """,
             args=[addon_id],
         )
+
+
+def is_addon_private_browsing_allowed(session, addon_id):
+    with using_context(session, "chrome"):
+        return session.execute_async_script(
+            """
+              const [addon_id, resolve] = arguments;
+
+              function getPrivateBrowsingAllowedAddonPolicyField() {
+                const policy = WebExtensionPolicy.getByID(addon_id);
+                if (policy) {
+                  resolve(policy.privateBrowsingAllowed);
+                } else {
+                  throw new Error(`Policy of add-on with ID ${addon_id} doesn't exist`)
+                }
+              }
+
+              return getPrivateBrowsingAllowedAddonPolicyField();
+            """,
+            args=[addon_id],
+        )
