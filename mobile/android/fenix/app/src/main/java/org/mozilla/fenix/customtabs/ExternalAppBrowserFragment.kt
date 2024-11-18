@@ -48,6 +48,7 @@ import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCookieBannerUIMode
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.theme.Theme
 
 /**
  * Fragment used for browsing the web within external apps.
@@ -243,9 +244,15 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
             toolbar = browserToolbarView,
         )
 
+        val openLinkInPrivate = requireContext().settings().openLinksInAPrivateTab
         val isToolbarAtBottom = requireComponents.settings.toolbarPosition == ToolbarPosition.BOTTOM
         bottomToolbarContainerView.updateContent {
-            FirefoxTheme {
+            val customTabTheme = if (openLinkInPrivate) {
+                Theme.Private
+            } else {
+                Theme.getTheme()
+            }
+            FirefoxTheme(theme = customTabTheme) {
                 val background = navbarIntegration.backgroundColor?.let { Color(it) } ?: FirefoxTheme.colors.layer1
                 Column(
                     modifier = Modifier.background(background),
