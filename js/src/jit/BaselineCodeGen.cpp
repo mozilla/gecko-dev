@@ -241,6 +241,12 @@ MethodStatus BaselineCompiler::compile() {
     return Method_Error;
   }
 
+  if (MOZ_UNLIKELY(compileDebugInstrumentation()) &&
+      !cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
+          cx, DebugTrapHandlerKind::Compiler)) {
+    return Method_Error;
+  }
+
   MOZ_ASSERT(!script->hasBaselineScript());
 
   perfSpewer_.recordOffset(masm, "Prologue");
@@ -1649,10 +1655,6 @@ bool BaselineCompiler::emitDebugTrap() {
                  DebugAPI::hasBreakpointsAt(script, handler.pc());
 
   // Emit patchable call to debug trap handler.
-  if (!cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
-          cx, DebugTrapHandlerKind::Compiler)) {
-    return false;
-  }
   JitCode* handlerCode =
       runtime->jitRuntime()->debugTrapHandler(DebugTrapHandlerKind::Compiler);
   CodeOffset nativeOffset = masm.toggledCall(handlerCode, enabled);
@@ -6830,10 +6832,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // Emit debug trap handler code (target of patchable call instructions). This
   // is just a tail call to the debug trap handler trampoline code.
   {
-    if (!cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
-            cx, DebugTrapHandlerKind::Interpreter)) {
-      return false;
-    }
     JitCode* handlerCode = runtime->jitRuntime()->debugTrapHandler(
         DebugTrapHandlerKind::Interpreter);
     debugTrapHandlerOffset_ = masm.currentOffset();
@@ -6904,6 +6902,11 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 
 bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
   AutoCreatedBy acb(masm, "BaselineInterpreterGenerator::generate");
+
+  if (!cx->runtime()->jitRuntime()->ensureDebugTrapHandler(
+          cx, DebugTrapHandlerKind::Interpreter)) {
+    return false;
+  }
 
   perfSpewer_.recordOffset(masm, "Prologue");
   if (!emitPrologue()) {
