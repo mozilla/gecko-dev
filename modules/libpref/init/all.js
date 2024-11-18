@@ -3333,11 +3333,6 @@ pref("dom.push.pingInterval", 1800000); // 30 minutes
 // How long before we timeout
 pref("dom.push.requestTimeout", 10000);
 
-// WebPush prefs:
-pref("dom.push.http2.reset_retry_count_after_ms", 60000);
-pref("dom.push.http2.maxRetries", 2);
-pref("dom.push.http2.retryInterval", 5000);
-
 // How long must we wait before declaring that a window is a "ghost" (i.e., a
 // likely leak)?  This should be longer than it usually takes for an eligible
 // window to be collected via the GC/CC.

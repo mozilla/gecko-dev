@@ -15,8 +15,7 @@ ChromeUtils.defineESModuleGetters(this, {
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
   PushCrypto: "resource://gre/modules/PushCrypto.sys.mjs",
   PushService: "resource://gre/modules/PushService.sys.mjs",
-  PushServiceHttp2: "resource://gre/modules/PushService.sys.mjs",
-  PushServiceWebSocket: "resource://gre/modules/PushService.sys.mjs",
+  PushServiceWebSocket: "resource://gre/modules/PushServiceWebSocket.sys.mjs",
   pushBroadcastService: "resource://gre/modules/PushBroadcastService.sys.mjs",
 });
 
@@ -169,9 +168,6 @@ function setPrefs(prefs = {}) {
       retryBaseInterval: 5000,
       pingInterval: 30 * 60 * 1000,
       // Misc. defaults.
-      "http2.maxRetries": 2,
-      "http2.retryInterval": 500,
-      "http2.reset_retry_count_after_ms": 60000,
       maxQuotaPerSubscription: 16,
       quotaUpdateDelay: 3000,
       "testing.notifyWorkers": false,

@@ -23,7 +23,6 @@ EXTRA_JS_MODULES += [
 if CONFIG["MOZ_BUILD_APP"] != "mobile/android":
     # Everything but GeckoView.
     EXTRA_JS_MODULES += [
-        "PushServiceHttp2.sys.mjs",
         "PushServiceWebSocket.sys.mjs",
     ]
 

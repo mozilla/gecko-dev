@@ -2,13 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
 import { clearTimeout, setTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-
-export var PushServiceWebSocket;
-export var PushServiceHttp2;
 
 const lazy = {};
 
@@ -20,21 +15,9 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 ChromeUtils.defineESModuleGetters(lazy, {
   PushCrypto: "resource://gre/modules/PushCrypto.sys.mjs",
+  PushServiceWebSocket: "resource://gre/modules/PushServiceWebSocket.sys.mjs",
   pushBroadcastService: "resource://gre/modules/PushBroadcastService.sys.mjs",
 });
-
-const CONNECTION_PROTOCOLS = (function () {
-  if ("android" != AppConstants.MOZ_WIDGET_TOOLKIT) {
-    ({ PushServiceWebSocket } = ChromeUtils.importESModule(
-      "resource://gre/modules/PushServiceWebSocket.sys.mjs"
-    ));
-    ({ PushServiceHttp2 } = ChromeUtils.importESModule(
-      "resource://gre/modules/PushServiceHttp2.sys.mjs"
-    ));
-    return [PushServiceWebSocket, PushServiceHttp2];
-  }
-  return [];
-})();
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
   let { ConsoleAPI } = ChromeUtils.importESModule(
@@ -84,17 +67,8 @@ function getServiceForServerURI(uri) {
     "testing.allowInsecureServerURL",
     false
   );
-  if (AppConstants.MOZ_WIDGET_TOOLKIT == "android") {
-    if (uri.scheme == "https" || (allowInsecure && uri.scheme == "http")) {
-      return CONNECTION_PROTOCOLS;
-    }
-    return null;
-  }
   if (uri.scheme == "wss" || (allowInsecure && uri.scheme == "ws")) {
-    return PushServiceWebSocket;
-  }
-  if (uri.scheme == "https" || (allowInsecure && uri.scheme == "http")) {
-    return PushServiceHttp2;
+    return lazy.PushServiceWebSocket;
   }
   return null;
 }
@@ -706,17 +680,6 @@ export var PushService = {
       .then(record => this._notifySubscriptionChangeObservers(record));
   },
 
-  /**
-   * Replaces an existing registration and notifies the associated service
-   * worker.
-   *
-   * @param {String} aOldKey The registration ID to replace.
-   * @param {PushRecord} aNewRecord The new record.
-   * @returns {Promise} Resolves once the worker has been notified.
-   */
-  updateRegistrationAndNotifyApp(aOldKey, aNewRecord) {
-    return this.updateRecordAndNotifyApp(aOldKey, _ => aNewRecord);
-  },
   /**
    * Updates a registration and notifies the associated service worker.
    *

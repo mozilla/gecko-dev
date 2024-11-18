@@ -1,5 +1,5 @@
 [DEFAULT]
-head = "head.js head-http2.js"
+head = "head.js"
 # Push notifications and alarms are currently disabled on Android.
 skip-if = ["os == 'android'"]
 support-files = ["broadcast_handler.sys.mjs"]
@@ -55,8 +55,6 @@ run-sequentially = "This will delete all existing push subscriptions."
 
 ["test_record.js"]
 
-["test_register_5xxCode_http2.js"]
-
 ["test_register_case.js"]
 
 ["test_register_flush.js"]
@@ -89,17 +87,9 @@ run-sequentially = "This will delete all existing push subscriptions."
 
 ["test_registration_success.js"]
 
-["test_resubscribe_4xxCode_http2.js"]
-
-["test_resubscribe_5xxCode_http2.js"]
-
-["test_resubscribe_listening_for_msg_error_http2.js"]
-
 ["test_retry_ws.js"]
 
 ["test_service_child.js"]
-
-#http2 test
 
 ["test_service_parent.js"]
 
@@ -114,8 +104,6 @@ run-sequentially = "very high failure rate in parallel"
 ["test_unregister_not_found.js"]
 
 ["test_unregister_success.js"]
-
-["test_updateRecordNoEncryptionKeys_http2.js"]
 
 ["test_updateRecordNoEncryptionKeys_ws.js"]
 skip-if = ["os == 'linux'"] # Bug 1265233
