@@ -58,7 +58,6 @@ export const DEFAULT_MODELS = Object.freeze({
  * Lists Firefox internal features
  */
 const FEATURES = [
-  "autofill-classification", // see toolkit/components/formautofill/MLAutofill.sys.mjs
   "pdfjs-alt-text", // see toolkit/components/pdfjs/content/PdfjsParent.sys.mjs
   "suggest-intent-classification", // see browser/components/urlbar/private/MLSuggest.sys.mjs
   "suggest-NER", // see browser/components/urlbar/private/MLSuggest.sys.mjs
