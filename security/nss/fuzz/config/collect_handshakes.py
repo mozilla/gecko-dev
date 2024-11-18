@@ -10,6 +10,7 @@ import dataclasses
 import hashlib
 import itertools
 import os
+import random
 import re
 import subprocess
 import sys
@@ -18,19 +19,12 @@ import threading
 EXTERNAL_PSK = "0x783666676F55306932745A32303354442B394A3271735A7A30714B464B645943"
 ECH_CONFIGS = "AEX+DQBBcQAgACDh4IuiuhhInUcKZx5uYcehlG9PQ1ZlzhvVZyjJl7dscQAEAAEAAQASY2xvdWRmbGFyZS1lY2guY29tAAA="
 
-TSTCLNT_ARGS = [
+DEFAULT_TSTCLNT_ARGS = [
     "-o",  # Override bad server cert. Make it OK.
     "-D",  # Run without a cert database
     "-Q",  # Quit after handshake
     "-b",  # Load the default "builtins" root CA module
     "-CCC",  # Include PEM format certificate dumps
-    "--enable-rfc8701-grease",
-    "--enable-ch-extension-permutation",
-    "--zlib-certificate-compression",
-    "-z",
-    EXTERNAL_PSK,
-    "-N",
-    ECH_CONFIGS,
 ]
 
 NS_CERT_HEADER = "-----BEGIN CERTIFICATE-----"
@@ -84,16 +78,64 @@ def parse_tstclnt_output(output):
     return hs_data
 
 
+def get_random_tstclnt_args():
+    tstclnt_args = []
+
+    # Use Encrypted Client Hello with the given Base64-encoded ECHConfigs.
+    if random.randint(0, 1):
+        tstclnt_args += ["-N", ECH_CONFIGS]
+
+    # Configure a TLS 1.3 External PSK with the given hex string for a key.
+    if random.randint(0, 1):
+        tstclnt_args += ["-z", EXTERNAL_PSK]
+
+    # Enable the session ticket extension.
+    if random.randint(0, 1):
+        tstclnt_args += ["-u"]
+
+    # Enable the signed_certificate_timestamp extension.
+    if random.randint(0, 1):
+        tstclnt_args += ["-U"]
+
+    # Enable the delegated credentials extension.
+    if random.randint(0, 1):
+        tstclnt_args += ["-B"]
+
+    # Enable the extended master secret extension [RFC7627].
+    if random.randint(0, 1):
+        tstclnt_args += ["-G"]
+
+    # Allow 0-RTT data (TLS 1.3 only).
+    if random.randint(0, 1):
+        tstclnt_args += ["-Z"]
+
+    # Enable middlebox compatibility mode (TLS 1.3 only).
+    if random.randint(0, 1):
+        tstclnt_args += ["-e"]
+
+    if random.randint(0, 1):
+        tstclnt_args += ["--enable-rfc8701-grease"]
+
+    if random.randint(0, 1):
+        tstclnt_args += ["--enable-ch-extension-permutation"]
+
+    if random.randint(0, 1):
+        tstclnt_args += ["--zlib-certificate-compression"]
+
+    return tstclnt_args
+
+
 def brrrrr(hosts, args):
     tstclnt_bin = os.path.join(args.nss_build, "bin/tstclnt")
     ld_libary_path = os.path.join(args.nss_build, "lib")
 
     for host in hosts:
+        tstclnt_args = get_random_tstclnt_args()
         try:
             result = subprocess.run([
                 "strace", "-f", "-x", "-s", "65535", "-e", "trace=network",
                 tstclnt_bin, "-h", host
-            ] + TSTCLNT_ARGS,
+            ] + DEFAULT_TSTCLNT_ARGS + tstclnt_args,
                                     env={
                                         "LD_LIBRARY_PATH": ld_libary_path,
                                     },
@@ -130,10 +172,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--nss-build",
                         required=True,
+                        type=str,
                         help="e.g. /path/to/dist/Debug")
-    parser.add_argument("--hosts", required=True)
+    parser.add_argument("--hosts", required=True, type=str)
     parser.add_argument("--threads", required=True, type=int)
-    parser.add_argument("--output", required=True)
+    parser.add_argument("--output", required=True, type=str)
 
     args = parser.parse_args()
 

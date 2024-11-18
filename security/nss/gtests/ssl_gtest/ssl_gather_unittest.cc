@@ -43,6 +43,21 @@ TEST_F(TlsConnectTest, GatherExcessiveV3Record) {
                    2000);
 }
 
+TEST_P(TlsConnectDatagram, DtlsGatherCIDRecord) {
+  TlsRecordHeader cidRecordHeader(ssl_variant_datagram, version_, 0x30, 0);
+  DataBuffer buffer = DataBuffer(10);
+  TlsRecord cidRecord = {cidRecordHeader, buffer};
+
+  EnsureTlsSetup();
+  Connect();
+  client_->SendRecordDirect(cidRecord);
+
+  // CIDs are not supported, invalid records in DTLS should be silently
+  // discarded.
+  server_->WaitForErrorCode(0, 1000);
+  client_->WaitForErrorCode(0, 1000);
+}
+
 // Gather a 3-byte v2 header, with a fragment length of 2.
 TEST_F(GatherV2ClientHelloTest, GatherV2RecordLongHeader) {
   DataBuffer buffer;

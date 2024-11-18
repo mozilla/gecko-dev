@@ -9,6 +9,7 @@ Releases
    :hidden:
 
    nss_3_106.rst
+   nss_3_105.rst
    nss_3_104.rst
    nss_3_103.rst
    nss_3_102_1.rst

@@ -544,21 +544,21 @@ tools_p12_import_pbmac1_samples()
   echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
   ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-iter.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
   ret=$?
-  html_msg $ret 19 "Fail to list private key with bad iterator"
+  html_msg $ret 17 "Fail to list private key with bad iterator"
   check_tmpfile
 
   echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
   ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-bad-salt.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
   ret=$?
   echo "Fail to list private key with bad salt val=$ret"
-  html_msg $ret 19 "Fail to import private key with bad salt"
+  html_msg $ret 17 "Fail to import private key with bad salt"
   check_tmpfile
 
   echo "${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234'"
   ${BINDIR}/pk12util -l ${TOOLSDIR}/data/pbmac1-invalid-no-length.p12 -d ${P_R_COPYDIR} -k ${R_PWFILE} -W '1234' 2>&1
   ret=$?
   echo "Fail to import private key with no length val=$ret"
-  html_msg $ret 19 "Fail to import private key with no length"
+  html_msg $ret 17 "Fail to import private key with no length"
   check_tmpfile
 }
 

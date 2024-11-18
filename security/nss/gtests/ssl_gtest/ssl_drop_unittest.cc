@@ -916,4 +916,42 @@ INSTANTIATE_TEST_SUITE_P(DatagramReorder13, TlsReorderDatagram13,
 INSTANTIATE_TEST_SUITE_P(DatagramFragment13, TlsFragmentationAndRecoveryTest,
                          ::testing::Values(true, false));
 
+class FirstDropThenKeepHandshakeFilter : public TlsHandshakeFilter {
+ public:
+  FirstDropThenKeepHandshakeFilter(const std::shared_ptr<TlsAgent>& a)
+      : TlsHandshakeFilter(a) {}
+
+  virtual PacketFilter::Action FilterHandshake(
+      const TlsHandshakeFilter::HandshakeHeader& header,
+      const DataBuffer& input, DataBuffer* output) {
+    if (enabled) {
+      return KEEP;
+    } else {
+      enabled = true;
+      return DROP;
+    }
+  }
+
+ private:
+  bool enabled = false;
+};
+
+// This test is responsible for checking that when DTLS fragments the message,
+// the hanshake will be successfully reconstructed, but if one of handshakes 
+// was dropped, they are not going to be glued all together. 
+
+// See: https://bugzilla.mozilla.org/show_bug.cgi?id=1874451
+TEST_F(TlsConnectDatagram13, PreviousHandshakeRemovedWhenDropped) {
+  EnsureTlsSetup();
+  static const std::vector<SSLNamedGroup> client_groups = {
+      ssl_grp_ec_secp384r1, ssl_grp_ec_secp521r1, ssl_grp_ec_curve25519};
+  client_->ConfigNamedGroups(client_groups);
+  // Ensure that the message is indeed longer than the MTU we install.
+  EXPECT_EQ(SECSuccess, SSL_SendAdditionalKeyShares(client_->ssl_fd(), 2));
+
+  SSLInt_SetMTU(client_->ssl_fd(), 150);
+  auto filter = MakeTlsFilter<FirstDropThenKeepHandshakeFilter>(client_);
+  Connect();
+}
+
 }  // namespace nss_test

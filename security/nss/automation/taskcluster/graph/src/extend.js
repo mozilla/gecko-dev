@@ -339,7 +339,7 @@ async function scheduleMac(name, base, args = "") {
   let build_base_without_command_symbol = merge(mac_base, {
     maxRunTime: 7200,
     artifacts: [{
-      expires: 24 * 7,
+      expires: 24 * (process.env.MOZ_SCM_LEVEL == "3" ? 90 : 7),
       type: "directory",
       path: "public"
     }],
@@ -409,7 +409,7 @@ async function scheduleLinux(name, overrides, args = "") {
   let artifacts_and_kind = {
     artifacts: {
       public: {
-        expires: 24 * 7,
+        expires: 24 * (process.env.MOZ_SCM_LEVEL == "3" ? 90 : 7),
         type: "directory",
         path: "/home/worker/artifacts"
       }
@@ -679,7 +679,7 @@ async function scheduleFuzzing() {
     ],
     artifacts: {
       public: {
-        expires: 24 * 7,
+        expires: 24 * (process.env.MOZ_SCM_LEVEL == "3" ? 90 : 7),
         type: "directory",
         path: "/home/worker/artifacts"
       }
@@ -786,7 +786,7 @@ async function scheduleFuzzing32() {
     ],
     artifacts: {
       public: {
-        expires: 24 * 7,
+        expires: 24 * (process.env.MOZ_SCM_LEVEL == "3" ? 90 : 7),
         type: "directory",
         path: "/home/worker/artifacts"
       }
@@ -887,7 +887,7 @@ async function scheduleWindows(name, base, build_script) {
 
   let artifacts_and_kind = {
     artifacts: [{
-      expires: 24 * 7,
+      expires: 24 * (process.env.MOZ_SCM_LEVEL == "3" ? 90 : 7),
       type: "directory",
       path: "public\\build"
     }],
@@ -1149,7 +1149,7 @@ async function scheduleTools() {
     },
     artifacts: {
       public: {
-        expires: 24 * 7,
+        expires: 24 * (process.env.MOZ_SCM_LEVEL == "3" ? 90 : 7),
         type: "directory",
         path: "/home/worker/artifacts"
       }
@@ -1180,7 +1180,7 @@ async function scheduleTools() {
     features: ["allowPtrace"],
     artifacts: {
       public: {
-        expires: 24 * 7,
+        expires: 24 * (process.env.MOZ_SCM_LEVEL == "3" ? 90 : 7),
         type: "directory",
         path: "/home/worker/artifacts"
       }

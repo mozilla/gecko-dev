@@ -358,7 +358,6 @@ dtls_GatherData(sslSocket *ss, sslGather *gs, int flags)
          * no alert is sent [RFC6347, Section 4.1.2.7].
          */
         if (contentType & 0x10) {
-            PORT_Assert(PR_FALSE);
             PORT_SetError(SSL_ERROR_RX_UNKNOWN_RECORD_TYPE);
             gs->dtlsPacketOffset = 0;
             gs->dtlsPacket.len = 0;
