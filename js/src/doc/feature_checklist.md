@@ -17,7 +17,7 @@ work directly top-down)
 -  ☐ Land feature disabled by pref.
 -  ☐ Import the test262 test cases for the feature, or enable them if they're
   already imported.  (See `js/src/test/Readme.txt` for guidance)
--  ☐ Contact `fuzzing@mozilla.com` to arrange fuzzing for the feature.
+-  ☐ Add the `fuzzing:needed` label to the proposal epic in the FFXP project in JIRA to request fuzzing for the feature.
 -  ☐ Add shell option to `js/src/shell/fuzz-flags.txt`. This signals to other
   fuzzers as well that the feature is ready for fuzzing.
 -  ☐ Send an Intent to Ship Email to `dev-platform`.  This is also part of the

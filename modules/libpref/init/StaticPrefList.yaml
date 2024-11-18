@@ -8212,6 +8212,13 @@
   mirror: always
   set_spidermonkey_pref: startup
 
+# Experimental support for RegExp.escape in JavaScript.
+- name: javascript.options.experimental.regexp_escape
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: startup
+
 #ifdef NIGHTLY_BUILD
   # Experimental support for Async Iterator Helpers in JavaScript.
 -   name: javascript.options.experimental.async_iterator_helpers
@@ -8232,13 +8239,6 @@
     type: bool
     value: false
     mirror: always
-
-  # Experimental support for RegExp.escape in JavaScript.
--   name: javascript.options.experimental.regexp_escape
-    type: bool
-    value: false
-    mirror: always
-    set_spidermonkey_pref: startup
 
   # Experimental support for Error.isError in JavaScript.
 -   name: javascript.options.experimental.error_iserror

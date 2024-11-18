@@ -990,7 +990,6 @@ const JSFunctionSpec js::regexp_methods[] = {
     JS_FS_END,
 };
 
-#ifdef NIGHTLY_BUILD
 static constexpr JS::Latin1Char SHOULD_HEX_ESCAPE = JSString::MAX_LATIN1_CHAR;
 
 /**
@@ -1285,7 +1284,6 @@ static bool regexp_escape(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setString(result);
   return true;
 }
-#endif
 
 #define STATIC_PAREN_GETTER_CODE(parenNum)                        \
   if (!res->createParen(cx, parenNum, args.rval())) return false; \
@@ -1389,9 +1387,7 @@ const JSPropertySpec js::regexp_static_props[] = {
 };
 
 const JSFunctionSpec js::regexp_static_methods[] = {
-#ifdef NIGHTLY_BUILD
     JS_FN("escape", regexp_escape, 1, 0),
-#endif
     JS_FS_END,
 };
 

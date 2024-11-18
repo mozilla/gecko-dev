@@ -290,7 +290,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
      "flags", "dotAll", "global", "hasIndices", "ignoreCase", "multiline", "source", "sticky",
      "unicode", "unicodeSets"];
   gConstructorProperties.RegExp =
-    constructorProps(["input", "lastMatch", "lastParen",
+    constructorProps(["escape", "input", "lastMatch", "lastParen",
                       "leftContext", "rightContext", "$1", "$2", "$3", "$4",
                       "$5", "$6", "$7", "$8", "$9", "$_", "$&", "$+",
                       "$`", "$'", Symbol.species])
@@ -953,7 +953,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
     // RegExp[@@species] is affected by above skip, but we don't fix it until
     // compelling use-case appears, as supporting RegExp[@@species] while
     // skipping other static properties makes things complicated.
-    let ctorPropsToSkip = ["input", "lastMatch", "lastParen",
+    // Since RegExp.escape is a method, there's no obvious reason to skip it,
+    // but it would require some changes in the Xray code (would need to special
+    // case it in xpc::JSXrayTraits::resolveOwnProperty and
+    // xpc::JSXrayTraits::enumerateNames) that are not necessarily worth the effort
+    // since it is a static method with no state.
+    let ctorPropsToSkip = ["escape", "input", "lastMatch", "lastParen",
                            "leftContext", "rightContext", "$1", "$2", "$3",
                            "$4", "$5", "$6", "$7", "$8", "$9", "$_", "$&",
                            "$+", "$`", "$'", Symbol.species];

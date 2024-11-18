@@ -12967,18 +12967,18 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   if (op.getBoolOption("enable-uint8array-base64")) {
     JS::Prefs::setAtStartup_experimental_uint8array_base64(true);
   }
+  if (op.getBoolOption("enable-regexp-escape")) {
+    JS::Prefs::setAtStartup_experimental_regexp_escape(true);
+  }
+  if (op.getBoolOption("enable-promise-try")) {
+    JS::Prefs::setAtStartup_experimental_promise_try(true);
+  }
 #ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-async-iterator-helpers")) {
     JS::Prefs::setAtStartup_experimental_async_iterator_helpers(true);
   }
   if (op.getBoolOption("enable-symbols-as-weakmap-keys")) {
     JS::Prefs::setAtStartup_experimental_symbols_as_weakmap_keys(true);
-  }
-  if (op.getBoolOption("enable-regexp-escape")) {
-    JS::Prefs::setAtStartup_experimental_regexp_escape(true);
-  }
-  if (op.getBoolOption("enable-promise-try")) {
-    JS::Prefs::setAtStartup_experimental_promise_try(true);
   }
   if (op.getBoolOption("enable-error-iserror")) {
     JS::Prefs::setAtStartup_experimental_error_iserror(true);
