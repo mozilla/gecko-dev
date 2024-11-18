@@ -1923,7 +1923,7 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
                                                          sThemeRegSuffix)));
   ThemeMode themeMode = static_cast<ThemeMode>(theme);
   if (themeMode == ThemeMode::Default) {
-    if (IsSystemDarkThemeEnabled() == true) {
+    if (IsSystemDarkThemeEnabled()) {
       themeMode = ThemeMode::Dark;
     }
   }
@@ -1952,7 +1952,7 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
   // mostly #FFFFFF. To avoid a bright flash when the window is first created,
   // cloak the window while showing it, and fill it with the appropriate
   // background color before uncloaking it.
-  if (sDwmGetWindowAttribute != nullptr) {
+  {
     constexpr static auto const CloakWindow = [](HWND hwnd, BOOL state) {
       sDwmSetWindowAttribute(sPreXULSkeletonUIWindow, DWMWA_CLOAK, &state,
                              sizeof(state));
