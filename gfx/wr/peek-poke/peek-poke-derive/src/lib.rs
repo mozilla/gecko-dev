@@ -15,9 +15,9 @@ use synstructure::{decl_derive, Structure, BindStyle, AddBounds};
 
 /// Calculates size type for number of variants (used for enums)
 fn get_discriminant_size_type(len: usize) -> TokenStream {
-    if len <= <u8>::max_value() as usize {
+    if len <= u8::MAX as usize {
         quote! { u8 }
-    } else if len <= <u16>::max_value() as usize {
+    } else if len <= u16::MAX as usize {
         quote! { u16 }
     } else {
         quote! { u32 }
@@ -26,7 +26,7 @@ fn get_discriminant_size_type(len: usize) -> TokenStream {
 
 fn is_struct(s: &Structure) -> bool {
     // a single variant with no prefix is 'struct'
-    matches!(&s.variants()[..], [v] if v.prefix.is_none())
+    matches!(s.variants(), [v] if v.prefix.is_none())
 }
 
 fn derive_max_size(s: &Structure) -> TokenStream {
@@ -119,7 +119,7 @@ fn derive_peek_from_for_enum(s: &mut Structure) -> TokenStream {
 }
 
 fn derive_peek_from_for_struct(s: &mut Structure) -> TokenStream {
-    assert!(is_struct(&s));
+    assert!(is_struct(s));
 
     s.variants_mut()[0].bind_with(|_| BindStyle::RefMut);
     let pat = s.variants()[0].pat();
@@ -149,7 +149,7 @@ fn derive_peek_from_for_struct(s: &mut Structure) -> TokenStream {
 }
 
 fn derive_poke_into(s: &Structure) -> TokenStream {
-    let is_struct = is_struct(&s);
+    let is_struct = is_struct(s);
     let discriminant_size_type = get_discriminant_size_type(s.variants().len());
     let body = s
         .variants()

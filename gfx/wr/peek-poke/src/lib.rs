@@ -32,6 +32,13 @@ union MaybeUninitShim<T: Copy> {
 
 /// Peek helper for constructing a `T` by `Copy`ing into an uninitialized stack
 /// allocation.
+///
+/// # Safety
+///
+/// * `bytes` must denote a valid pointer to a block of memory.
+///
+/// * `bytes` must point to at least the number of bytes returned by
+///   `Poke::max_size()`.
 pub unsafe fn peek_from_uninit<T: Copy + Peek>(bytes: *const u8) -> (T, *const u8) {
     let mut val = MaybeUninitShim { uninit: () };
     let bytes = <T>::peek_from(bytes, &mut val.init);
@@ -40,6 +47,13 @@ pub unsafe fn peek_from_uninit<T: Copy + Peek>(bytes: *const u8) -> (T, *const u
 
 /// Peek helper for constructing a `T` by `Default` initialized stack
 /// allocation.
+///
+/// # Safety
+///
+/// * `bytes` must denote a valid pointer to a block of memory.
+///
+/// * `bytes` must point to at least the number of bytes returned by
+///   `Poke::max_size()`.
 pub unsafe fn peek_from_default<T: Default + Peek>(bytes: *const u8) -> (T, *const u8) {
     let mut val = T::default();
     let bytes = <T>::peek_from(bytes, &mut val);
@@ -346,8 +360,7 @@ unsafe impl<T: Poke> Poke for Option<T> {
             None => 0u8.poke_into(bytes),
             Some(ref v) => {
                 let bytes = 1u8.poke_into(bytes);
-                let bytes = v.poke_into(bytes);
-                bytes
+                v.poke_into(bytes)
             }
         }
     }
@@ -391,7 +404,7 @@ macro_rules! impl_for_arrays {
 }
 
 impl_for_arrays! {
-    01 02 03 04 05 06 07 08 09 10
+     1  2  3  4  5  6  7  8  9 10
     11 12 13 14 15 16 17 18 19 20
     21 22 23 24 25 26 27 28 29 30
     31 32
