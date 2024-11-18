@@ -59,18 +59,21 @@ INSTANCE_RESERVED_SLOTS = 1
 GLOBAL_NAMES_PHF_SIZE = 256
 
 
+def reservedSlot(slotIndex, forXray):
+    base = "DOM_EXPANDO_RESERVED_SLOTS" if forXray else "DOM_INSTANCE_RESERVED_SLOTS"
+    return "(%s + %d)" % (base, slotIndex)
+
+
+def getSlotIndex(member, descriptor):
+    return member.slotIndices[descriptor.interface.identifier.name]
+
+
 def memberReservedSlot(member, descriptor):
-    return (
-        "(DOM_INSTANCE_RESERVED_SLOTS + %d)"
-        % member.slotIndices[descriptor.interface.identifier.name]
-    )
+    return reservedSlot(getSlotIndex(member, descriptor), False)
 
 
 def memberXrayExpandoReservedSlot(member, descriptor):
-    return (
-        "(xpc::JSSLOT_EXPANDO_COUNT + %d)"
-        % member.slotIndices[descriptor.interface.identifier.name]
-    )
+    return reservedSlot(getSlotIndex(member, descriptor), True)
 
 
 def mayUseXrayExpandoSlots(descriptor, attr):

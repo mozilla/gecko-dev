@@ -4315,5 +4315,8 @@ already_AddRefed<Promise> CreateRejectedPromiseFromThrownException(
 
 }  // namespace binding_detail
 
+static_assert(UnderlyingValue(DOM_EXPANDO_RESERVED_SLOTS) ==
+              UnderlyingValue(xpc::JSSLOT_EXPANDO_COUNT));
+
 }  // namespace dom
 }  // namespace mozilla

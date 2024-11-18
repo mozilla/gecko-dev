@@ -51,4 +51,14 @@ enum { LEGACY_FACTORY_FUNCTION_RESERVED_SLOT = 0 };
 // The slot index of backing list stored in observable array exotic object.
 #define OBSERVABLE_ARRAY_BACKING_LIST_OBJECT_SLOT 1
 
+namespace mozilla::dom {
+
+// This mimics xpc::JSSLOT_EXPANDO_COUNT (and we static assert that), but avoids
+// pulling in XPConnect headers.
+enum ExpandoSlots {
+  DOM_EXPANDO_RESERVED_SLOTS = 4,
+};
+
+}  // namespace mozilla::dom
+
 #endif /* mozilla_dom_DOMSlots_h */
