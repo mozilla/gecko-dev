@@ -55,7 +55,7 @@
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtrExtensions.h"
-#include "mozilla/ipc/IOThread.h"
+#include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/ipc/EnvironmentMap.h"
 #include "mozilla/ipc/NodeController.h"
 #include "mozilla/net/SocketProcessHost.h"
@@ -146,6 +146,10 @@ typedef mozilla::MozPromise<LaunchResults, LaunchError, true>
 // created. The parent process is given the ChildID of `0`, and each child
 // process is given a non-zero ID.
 static Atomic<int32_t> gChildCounter;
+
+static inline nsISerialEventTarget* IOThread() {
+  return XRE_GetIOMessageLoop()->SerialEventTarget();
+}
 
 class BaseProcessLauncher {
  public:
@@ -499,7 +503,7 @@ void GeckoChildProcessHost::Destroy() {
 
   using Value = ProcessHandlePromise::ResolveOrRejectValue;
   mDestroying = true;
-  whenReady->Then(XRE_GetAsyncIOEventTarget(), __func__,
+  whenReady->Then(XRE_GetIOMessageLoop()->SerialEventTarget(), __func__,
                   [this](const Value&) { delete this; });
 }
 
@@ -731,10 +735,10 @@ bool GeckoChildProcessHost::AsyncLaunch(
   MOZ_ASSERT(mHandlePromise == nullptr);
   mHandlePromise =
       mozilla::InvokeAsync<GeckoChildProcessHost*>(
-          XRE_GetAsyncIOEventTarget(), launcher.get(), __func__,
-          &BaseProcessLauncher::Launch, this)
+          IOThread(), launcher.get(), __func__, &BaseProcessLauncher::Launch,
+          this)
           ->Then(
-              XRE_GetAsyncIOEventTarget(), __func__,
+              IOThread(), __func__,
               [this](LaunchResults&& aResults) {
                 {
                   {

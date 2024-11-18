@@ -21,7 +21,6 @@ class JSString;
 class MessageLoop;
 class nsIDirectoryServiceProvider;
 class nsIFile;
-class nsISerialEventTarget;
 class nsISupports;
 struct JSContext;
 struct XREChildData;
@@ -341,7 +340,7 @@ nsresult XRE_DeinitCommandLine();
 
 void XRE_ShutdownChildProcess();
 
-nsISerialEventTarget* XRE_GetAsyncIOEventTarget();
+MessageLoop* XRE_GetIOMessageLoop();
 
 bool XRE_SendTestShellCommand(JSContext* aCx, JSString* aCommand,
                               JS::Value* aCallback);

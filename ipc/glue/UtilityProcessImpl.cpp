@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "UtilityProcessImpl.h"
 
+#include "mozilla/ipc/IOThreadChild.h"
 #include "mozilla/GeckoArgs.h"
 #include "mozilla/ProcInfo.h"
 

@@ -81,7 +81,7 @@ class FdWatcher : public MessageLoopForIO::Watcher, public nsIObserver {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(!strcmp(aTopic, "xpcom-shutdown"));
 
-    XRE_GetAsyncIOEventTarget()->Dispatch(mozilla::NewRunnableMethod(
+    XRE_GetIOMessageLoop()->PostTask(mozilla::NewRunnableMethod(
         "FdWatcher::StopWatching", this, &FdWatcher::StopWatching));
 
     return NS_OK;

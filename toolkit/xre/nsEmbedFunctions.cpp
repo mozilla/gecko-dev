@@ -69,7 +69,8 @@
 #include "mozilla/ipc/UtilityProcessImpl.h"
 #include "mozilla/UniquePtr.h"
 
-#include "mozilla/ipc/IOThread.h"
+#include "mozilla/ipc/BrowserProcessSubThread.h"
+#include "mozilla/ipc/IOThreadChild.h"
 #include "mozilla/ipc/ProcessChild.h"
 
 #include "mozilla/dom/ContentProcess.h"
@@ -128,8 +129,9 @@
 
 using namespace mozilla;
 
+using mozilla::ipc::BrowserProcessSubThread;
 using mozilla::ipc::GeckoChildProcessHost;
-using mozilla::ipc::IOThread;
+using mozilla::ipc::IOThreadChild;
 using mozilla::ipc::ProcessChild;
 
 using mozilla::dom::ContentParent;
@@ -595,8 +597,11 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   return XRE_DeinitCommandLine();
 }
 
-nsISerialEventTarget* XRE_GetAsyncIOEventTarget() {
-  return IOThread::Get()->GetEventTarget();
+MessageLoop* XRE_GetIOMessageLoop() {
+  if (GetGeckoProcessType() == GeckoProcessType_Default) {
+    return BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO);
+  }
+  return IOThreadChild::message_loop();
 }
 
 nsresult XRE_RunAppShell() {
@@ -649,9 +654,8 @@ nsresult XRE_RunAppShell() {
 void XRE_ShutdownChildProcess() {
   MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
 
-  mozilla::DebugOnly<nsISerialEventTarget*> ioTarget =
-      XRE_GetAsyncIOEventTarget();
-  MOZ_ASSERT(!!ioTarget, "Bad shutdown order");
+  mozilla::DebugOnly<MessageLoop*> ioLoop = XRE_GetIOMessageLoop();
+  MOZ_ASSERT(!!ioLoop, "Bad shutdown order");
 
   // Quit() sets off the following chain of events
   //  (1) UI loop starts quitting

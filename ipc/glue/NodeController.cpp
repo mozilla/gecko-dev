@@ -16,7 +16,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ToString.h"
-#include "mozilla/ipc/IOThread.h"
+#include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/mozalloc.h"
 #include "nsISerialEventTarget.h"
@@ -365,7 +365,7 @@ void NodeController::ContactRemotePeer(const NodeName& aNode,
     if (needsIntroduction) {
       // We have no broker and will never be able to be introduced to this node.
       // Queue a task to clean up any ports connected to it.
-      XRE_GetAsyncIOEventTarget()->Dispatch(NewRunnableMethod<NodeName>(
+      XRE_GetIOMessageLoop()->PostTask(NewRunnableMethod<NodeName>(
           "NodeController::DropPeer", this, &NodeController::DropPeer, aNode));
     }
     return;

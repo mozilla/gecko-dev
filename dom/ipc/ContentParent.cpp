@@ -4378,7 +4378,7 @@ void ContentParent::KillHard(const char* aReason) {
   }
 
   // EnsureProcessTerminated has responsibilty for closing otherProcessHandle.
-  XRE_GetAsyncIOEventTarget()->Dispatch(
+  XRE_GetIOMessageLoop()->PostTask(
       NewRunnableFunction("EnsureProcessTerminatedRunnable",
                           &ProcessWatcher::EnsureProcessTerminated,
                           otherProcessHandle, /*force=*/true));

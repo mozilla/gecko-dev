@@ -237,12 +237,12 @@ bool GMPProcessParent::Launch(int32_t aTimeoutMs) {
 
 void GMPProcessParent::Delete(nsCOMPtr<nsIRunnable> aCallback) {
   mDeletedCallback = aCallback;
-  XRE_GetAsyncIOEventTarget()->Dispatch(NewNonOwningRunnableMethod(
+  XRE_GetIOMessageLoop()->PostTask(NewNonOwningRunnableMethod(
       "gmp::GMPProcessParent::DoDelete", this, &GMPProcessParent::DoDelete));
 }
 
 void GMPProcessParent::DoDelete() {
-  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread());
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   if (mDeletedCallback) {
     mDeletedCallback->Run();

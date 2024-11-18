@@ -12,7 +12,6 @@
 #include <utility>
 
 #include "CrashAnnotations.h"
-#include "base/waitable_event.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DebugOnly.h"
