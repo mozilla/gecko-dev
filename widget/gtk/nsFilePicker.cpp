@@ -172,10 +172,8 @@ static nsAutoCString MakeCaseInsensitiveShellGlob(const char* aPattern) {
 NS_IMPL_ISUPPORTS(nsFilePicker, nsIFilePicker)
 
 nsFilePicker::nsFilePicker()
-    : mSelectedType(0), mAllowURLs(false), mFileChooserDelegate(nullptr) {
-  mUseNativeFileChooser =
-      widget::ShouldUsePortal(widget::PortalKind::FilePicker);
-}
+    : mUseNativeFileChooser(
+          widget::ShouldUsePortal(widget::PortalKind::FilePicker)) {}
 
 nsFilePicker::~nsFilePicker() = default;
 
@@ -369,7 +367,9 @@ nsFilePicker::GetFile(nsIFile** aFile) {
   *aFile = nullptr;
   nsCOMPtr<nsIURI> uri;
   nsresult rv = GetFileURL(getter_AddRefs(uri));
-  if (!uri) return rv;
+  if (!uri) {
+    return rv;
+  }
 
   nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(uri, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -402,7 +402,9 @@ nsFilePicker::GetFiles(nsISimpleEnumerator** aFiles) {
 NS_IMETHODIMP
 nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
   // Can't show two dialogs concurrently with the same filepicker
-  if (mFileChooser) return NS_ERROR_NOT_AVAILABLE;
+  if (mFileChooser) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   if (MaybeBlockFilePicker(aCallback)) {
     return NS_OK;
@@ -637,7 +639,9 @@ void nsFilePicker::Done(void* file_chooser, gint response) {
         if (file) {
           bool exists = false;
           file->Exists(&exists);
-          if (exists) result = nsIFilePicker::returnReplace;
+          if (exists) {
+            result = nsIFilePicker::returnReplace;
+          }
         }
       } else if (mMode == nsIFilePicker::modeOpen) {
         if (WarnForNonReadableFile(file_chooser)) {

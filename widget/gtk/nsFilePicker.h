@@ -16,7 +16,7 @@
 class nsIWidget;
 class nsIFile;
 
-class nsFilePicker : public nsBaseFilePicker {
+class nsFilePicker final : public nsBaseFilePicker {
  public:
   nsFilePicker();
 
@@ -60,8 +60,8 @@ class nsFilePicker : public nsBaseFilePicker {
   nsCOMPtr<nsIFilePickerShownCallback> mCallback;
   nsCOMArray<nsIFile> mFiles;
 
-  int16_t mSelectedType;
-  bool mAllowURLs;
+  int16_t mSelectedType = 0;
+  bool mAllowURLs = false;
   nsCString mFileURL;
   nsString mTitle;
   nsString mDefault;
@@ -81,7 +81,7 @@ class nsFilePicker : public nsBaseFilePicker {
   void GtkFileChooserSetModal(void* file_chooser, GtkWindow* parent_widget,
                               gboolean modal);
 
-  GtkFileChooserWidget* mFileChooserDelegate;
+  GtkFileChooserWidget* mFileChooserDelegate = nullptr;
   bool mUseNativeFileChooser;
 
   /**
