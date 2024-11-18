@@ -122,6 +122,12 @@ tasks:
         shipping-product: firefox-android
         dependencies:
             build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
+            baseline-profile: generate-baseline-profile-firebase-fenix
+        fetches:
+            baseline-profile:
+                - artifact: baseline-prof.txt
+                  extract: false
+                  dest: baselineProfiles
         description: 'Fenix release AAB build from source code'
         include-shippable-secrets: true
         include-release-version: true
@@ -130,6 +136,7 @@ tasks:
             gradle-build-type: release
             gradle-build-name: fenixRelease
             gradle-build: fenix
+            baseline-profile-path: /builds/worker/fetches/baselineProfiles
         shipping-phase: promote
         source-project-name: "fenix"
         treeherder:
