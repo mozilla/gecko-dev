@@ -336,6 +336,7 @@ class BaselineCompilerHandler {
   }
 
   bool maybeIonCompileable() const { return ionCompileable_; }
+  void setIonCompileable(bool value) { ionCompileable_ = value; }
 
   uint32_t icEntryIndex() const { return icEntryIndex_; }
   void moveToNextICEntry() { icEntryIndex_++; }
@@ -386,6 +387,7 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   void setCompileDebugInstrumentation() {
     handler.setCompileDebugInstrumentation();
   }
+  void setIonCompileable(bool value) { handler.setIonCompileable(value); }
 
  private:
   MethodStatus emitBody();
