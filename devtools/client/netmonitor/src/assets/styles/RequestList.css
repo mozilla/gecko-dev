@@ -435,11 +435,13 @@
   /* @see devtools/client/netmonitor/src/widgets/WaterfallBackground.js */
   background-image: -moz-element(#waterfall-background);
 
-  /* Make sure that the background is visible in high Contrast Mode */
-  forced-color-adjust: none;
-  & > * {
-    /* and reset forced-color-adjust on children so we respect HCM */
-    forced-color-adjust: auto;
+  :root[forced-colors-active] & {
+    /* Make sure that the background is visible in High Contrast Mode */
+    forced-color-adjust: none;
+    & > * {
+      /* and reset forced-color-adjust on children so we respect HCM */
+      forced-color-adjust: auto;
+    }
   }
 }
 
