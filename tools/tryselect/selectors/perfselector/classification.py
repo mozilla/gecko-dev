@@ -57,6 +57,7 @@ class Suites(ClassificationEnum):
     RAPTOR = {"value": "raptor", "index": 0}
     TALOS = {"value": "talos", "index": 1}
     AWSY = {"value": "awsy", "index": 2}
+    PERFTEST = {"value": "perftest", "index": 3}
 
 
 class Variants(ClassificationEnum):
@@ -196,6 +197,17 @@ def talos_test_finder(task_cmd, task_label, test):
             break
 
     return modified_task_label
+
+
+def perftest_test_finder(task_cmd, task_label, test):
+    """
+    This is a general finder for all performance tests, given
+    that mozperftest names don't include things like:
+    aarch64, shippable, or opt among other identifiers
+    """
+    raise NotImplementedError(
+        "Mozperftest tests cannot currently be found for --alert or --tests"
+    )
 
 
 def awsy_test_finder(task_cmd, task_label, test):
@@ -383,6 +395,14 @@ class ClassificationProvider:
                 "task-test-finder": awsy_test_finder,
                 "framework": 4,
             },
+            Suites.PERFTEST.value: {
+                "apps": list(self.apps.keys()),
+                "platforms": list(self.platforms.keys()),
+                "variants": [],
+                "task-specifier": "perftest",
+                "task-test-finder": perftest_test_finder,
+                "framework": 15,
+            },
         }
 
     """
@@ -554,6 +574,31 @@ class ClassificationProvider:
                 "description": (
                     "Similar to the Pageload category, but it provides a minimum set "
                     "of pageload tests to run for performance testing."
+                ),
+            },
+            "Startup": {
+                "query": {
+                    Suites.PERFTEST.value: ["'startup"],
+                    Suites.TALOS.value: ["'sessionrestore | 'other !damp"],
+                },
+                "suites": [Suites.PERFTEST.value, Suites.TALOS.value],
+                "platform-restrictions": [
+                    Platforms.ANDROID.value,
+                    Platforms.LINUX.value,
+                    Platforms.MACOSX.value,
+                    Platforms.WINDOWS.value,
+                ],
+                "app-restrictions": {
+                    Suites.PERFTEST.value: [
+                        Apps.FENIX.value,
+                        Apps.GECKOVIEW.value,
+                        Apps.CHROME_M.value,
+                        Apps.FIREFOX.value,
+                    ],
+                },
+                "tasks": [],
+                "description": (
+                    "A group of tests that monitor startup performance of our android and desktop browsers"
                 ),
             },
         }
