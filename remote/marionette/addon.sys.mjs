@@ -6,6 +6,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+  ExtensionPermissions: "resource://gre/modules/ExtensionPermissions.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
 
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
@@ -31,24 +32,25 @@ const ERRORS = {
     "ERROR_UNSUPPORTED_ADDON_TYPE: The add-on type is not supported by the platform.",
 };
 
-async function installAddon(file, temporary) {
+async function installAddon(file, temporary, allowPrivateBrowsing) {
+  let addon;
   try {
     if (temporary) {
-      return await lazy.AddonManager.installTemporaryAddon(file);
-    }
+      addon = await lazy.AddonManager.installTemporaryAddon(file);
+    } else {
+      const install = await lazy.AddonManager.getInstallForFile(file, null, {
+        source: "internal",
+      });
 
-    const install = await lazy.AddonManager.getInstallForFile(file, null, {
-      source: "internal",
-    });
+      if (install == null) {
+        throw new lazy.error.UnknownError("Unknown error");
+      }
 
-    if (install == null) {
-      throw new lazy.error.UnknownError("Unknown error");
-    }
-
-    try {
-      return await install.install();
-    } catch {
-      throw new lazy.error.UnknownError(ERRORS[install.error]);
+      try {
+        addon = await install.install();
+      } catch {
+        throw new lazy.error.UnknownError(ERRORS[install.error]);
+      }
     }
   } catch (e) {
     throw new lazy.error.UnknownError(
@@ -56,6 +58,17 @@ async function installAddon(file, temporary) {
       e
     );
   }
+
+  if (allowPrivateBrowsing) {
+    const perms = {
+      permissions: ["internal:privateBrowsingAllowed"],
+      origins: [],
+    };
+    await lazy.ExtensionPermissions.add(addon.id, perms);
+    await addon.reload();
+  }
+
+  return addon;
 }
 
 /** Installs addons by path and uninstalls by ID. */
@@ -70,6 +83,9 @@ export class Addon {
    *     Base64 string representation of the extension package archive.
    * @param {boolean=} temporary
    *     True to install the addon temporarily, false (default) otherwise.
+   * @param {boolean=} allowPrivateBrowsing
+   *     True to install the addon that is enabled in Private Browsing mode,
+   *     false (default) otherwise.
    *
    * @returns {Promise.<string>}
    *     Addon ID.
@@ -77,7 +93,7 @@ export class Addon {
    * @throws {UnknownError}
    *     If there is a problem installing the addon.
    */
-  static async installWithBase64(base64, temporary = false) {
+  static async installWithBase64(base64, temporary, allowPrivateBrowsing) {
     const decodedString = atob(base64);
     const fileContent = Uint8Array.from(decodedString, m => m.codePointAt(0));
 
@@ -98,7 +114,7 @@ export class Addon {
     let addon;
     try {
       const file = new lazy.FileUtils.File(path);
-      addon = await installAddon(file, temporary);
+      addon = await installAddon(file, temporary, allowPrivateBrowsing);
     } finally {
       await IOUtils.remove(path);
     }
@@ -116,6 +132,9 @@ export class Addon {
    *     Full path to the extension package archive.
    * @param {boolean=} temporary
    *     True to install the addon temporarily, false (default) otherwise.
+   * @param {boolean=} allowPrivateBrowsing
+   *     True to install the addon that is enabled in Private Browsing mode,
+   *     false (default) otherwise.
    *
    * @returns {Promise.<string>}
    *     Addon ID.
@@ -123,7 +142,7 @@ export class Addon {
    * @throws {UnknownError}
    *     If there is a problem installing the addon.
    */
-  static async installWithPath(path, temporary = false) {
+  static async installWithPath(path, temporary, allowPrivateBrowsing) {
     let file;
 
     // On Windows we can end up with a path with mixed \ and /
@@ -142,7 +161,7 @@ export class Addon {
       throw new lazy.error.UnknownError(`No such file or directory: ${path}`);
     }
 
-    const addon = await installAddon(file, temporary);
+    const addon = await installAddon(file, temporary, allowPrivateBrowsing);
 
     return addon.id;
   }

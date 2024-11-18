@@ -3311,7 +3311,17 @@ GeckoDriver.prototype.quit = async function (cmd) {
 };
 
 GeckoDriver.prototype.installAddon = function (cmd) {
-  const { addon = null, path = null, temporary = false } = cmd.parameters;
+  const {
+    addon = null,
+    allowPrivateBrowsing = false,
+    path = null,
+    temporary = false,
+  } = cmd.parameters;
+
+  lazy.assert.boolean(
+    allowPrivateBrowsing,
+    lazy.pprint`Expected "allowPrivateBrowsing" to be a boolean, got ${allowPrivateBrowsing}`
+  );
 
   lazy.assert.boolean(
     temporary,
@@ -3330,7 +3340,7 @@ GeckoDriver.prototype.installAddon = function (cmd) {
       lazy.pprint`Expected "addon" to be a string, got ${addon}`
     );
 
-    return lazy.Addon.installWithBase64(addon, temporary);
+    return lazy.Addon.installWithBase64(addon, temporary, allowPrivateBrowsing);
   }
 
   if (path !== null) {
@@ -3339,7 +3349,7 @@ GeckoDriver.prototype.installAddon = function (cmd) {
       lazy.pprint`Expected "path" to be a string, got ${path}`
     );
 
-    return lazy.Addon.installWithPath(path, temporary);
+    return lazy.Addon.installWithPath(path, temporary, allowPrivateBrowsing);
   }
 
   throw new lazy.error.InvalidArgumentError(
