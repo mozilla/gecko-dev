@@ -96,7 +96,7 @@ impl Ord for PremultipliedColorF {
     }
 }
 
-#[allow(clippy::derive_hash_xor_eq)]
+#[allow(clippy::derived_hash_with_manual_eq)]
 impl Hash for PremultipliedColorF {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Note: this is inconsistent with the Eq impl for -0.0 (don't care).

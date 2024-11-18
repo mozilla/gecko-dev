@@ -260,7 +260,7 @@ impl SyntheticItalics {
     pub const ANGLE_SCALE: f32 = 256.0;
 
     pub fn from_degrees(degrees: f32) -> Self {
-        SyntheticItalics { angle: (degrees.max(-89.0).min(89.0) * Self::ANGLE_SCALE) as i16 }
+        SyntheticItalics { angle: (degrees.clamp(-89.0, 89.0) * Self::ANGLE_SCALE) as i16 }
     }
 
     pub fn to_degrees(self) -> f32 {
@@ -437,7 +437,7 @@ impl Default for GlyphInstance {
 
 impl Eq for GlyphInstance {}
 
-#[allow(clippy::derive_hash_xor_eq)]
+#[allow(clippy::derived_hash_with_manual_eq)]
 impl Hash for GlyphInstance {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Note: this is inconsistent with the Eq impl for -0.0 (don't care).

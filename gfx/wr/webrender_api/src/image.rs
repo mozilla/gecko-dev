@@ -214,9 +214,10 @@ impl ImageFormat {
 
 /// Specifies the color depth of an image. Currently only used for YUV images.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize, PeekPoke)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize, PeekPoke)]
 pub enum ColorDepth {
     /// 8 bits image (most common)
+    #[default]
     Color8,
     /// 10 bits image
     Color10,
@@ -224,12 +225,6 @@ pub enum ColorDepth {
     Color12,
     /// 16 bits image
     Color16,
-}
-
-impl Default for ColorDepth {
-    fn default() -> Self {
-        ColorDepth::Color8
-    }
 }
 
 impl ColorDepth {

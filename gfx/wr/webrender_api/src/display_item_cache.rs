@@ -95,12 +95,7 @@ impl DisplayItemCache {
 
         let mut iter = display_list.cache_data_iter();
         let mut current_key: Option<ItemKey> = None;
-        loop {
-            let item = match iter.next() {
-                Some(item) => item,
-                None => break,
-            };
-
+        while let Some(item) = iter.next() {
             if let DisplayItem::RetainedItems(key) = item.item() {
                 current_key = Some(*key);
                 self.clear_entry(*key);
