@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.RelativeLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.ui.tabcounter.TabCounterMenu
@@ -48,6 +51,7 @@ fun NewTabButton(
     menu: TabCounterMenu? = null,
     onLongPress: () -> Unit = {},
 ) {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     AndroidView(
         factory = { context ->
             NewTabButton(context).apply {
@@ -71,6 +75,13 @@ fun NewTabButton(
         modifier = Modifier
             .minimumInteractiveComponentSize()
             .testTag(NavBarTestTags.newTabButton),
+        update = { newTabButton ->
+            newTabButton.layoutDirection = if (isRtl) {
+                View.TEXT_DIRECTION_RTL
+            } else {
+                View.TEXT_DIRECTION_LTR
+            }
+        },
     )
 }
 

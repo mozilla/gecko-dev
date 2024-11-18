@@ -5,14 +5,17 @@
 package org.mozilla.fenix.components.toolbar.navbar
 
 import android.content.res.Configuration
+import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import mozilla.components.ui.tabcounter.TabCounter
@@ -46,6 +49,7 @@ fun ToolbarTabCounterButton(
     menu: Lazy<TabCounterMenu>? = null,
     onLongPress: () -> Unit = {},
 ) {
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     AndroidView(
         factory = { context ->
             TabCounter(context).apply {
@@ -78,6 +82,11 @@ fun ToolbarTabCounterButton(
                 R.string.mozac_tab_counter_open_tab_tray,
                 tabCount.toString(),
             )
+            tabCounter.layoutDirection = if (isRtl) {
+                View.TEXT_DIRECTION_RTL
+            } else {
+                View.TEXT_DIRECTION_LTR
+            }
         },
     )
 }
