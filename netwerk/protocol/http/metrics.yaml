@@ -982,32 +982,6 @@ networking:
     expires: never
     telemetry_mirror: NETWORKING_DATA_TRANSFERRED_V3_KB
 
-  https_record_state:
-    type: labeled_counter
-    description: >
-      Gather the outcome of checking if a HTTPS record can be used:
-      - "invalid"
-      - "succeeded"
-      - "unmatched_cname"
-      - "all_excluded"
-      - "no_default_alpn"
-      - "others"
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1931349
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1931349
-    notification_emails:
-      - necko@mozilla.com
-      - kershaw@mozilla.com
-    expires: never
-    labels:
-      - invalid
-      - succeeded
-      - unmatched_cname
-      - all_excluded
-      - no_default_alpn
-      - others
-
 opaque.response.blocking:
   javascript_validation_count:
     type: counter

@@ -14283,7 +14283,7 @@
 # If not, the record will not be used.
 - name: network.dns.https_rr.check_record_with_cname
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: false
   mirror: always
 
 # This preference can be used to turn off IPv6 name lookups. See bug 68796.
