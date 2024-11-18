@@ -2349,7 +2349,7 @@ WidgetWheelEvent nsBaseWidget::MayStartSwipeForAPZ(
     return event;
   }
 
-  if (aPanInput.AllowsSwipe()) {
+  if (aPanInput.mHandledByAPZ && aPanInput.AllowsSwipe()) {
     SwipeInfo swipeInfo = SendMayStartSwipe(aPanInput);
     event.mCanTriggerSwipe = swipeInfo.wantsSwipe;
     if (swipeInfo.wantsSwipe) {
