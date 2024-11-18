@@ -58,13 +58,13 @@ impl FrameAllocator {
     /// Creates a `FrameAllocator` that defaults to the global allocator.
     ///
     /// Should only be used for testing purposes or desrialization in wrench replays.
-	pub fn fallback() -> Self {
-		FrameAllocator {
-			inner: std::ptr::null_mut(),
+    pub fn fallback() -> Self {
+        FrameAllocator {
+            inner: std::ptr::null_mut(),
             #[cfg(debug_assertions)]
             frame_id: None,
         }
-	}
+    }
 
     /// Shorthand for creating a FrameVec.
     #[inline]
@@ -168,7 +168,7 @@ unsafe impl Send for FrameAllocator {}
 
 unsafe impl Allocator for FrameAllocator {
     #[inline(never)]
-	fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
+    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         if self.inner.is_null() {
             return FrameAllocator::allocate_fallback(layout);
         }
@@ -176,7 +176,7 @@ unsafe impl Allocator for FrameAllocator {
         self.check_frame_id();
 
         FrameAllocator::allocate_impl(self.inner, layout)
-	}
+    }
 
     #[inline(never)]
     unsafe fn deallocate(&self, ptr: NonNull<u8>, layout: Layout) {
@@ -224,11 +224,11 @@ unsafe impl Allocator for FrameAllocator {
 
 #[cfg(feature = "capture")]
 impl serde::Serialize for FrameAllocator {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where S: serde::Serializer
-	{
-		().serialize(serializer)
-	}
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer
+    {
+        ().serialize(serializer)
+    }
 }
 
 #[cfg(feature = "replay")]
@@ -237,8 +237,8 @@ impl<'de> serde::Deserialize<'de> for FrameAllocator {
     where
         D: serde::Deserializer<'de>,
     {
-		let _ = <() as serde::Deserialize>::deserialize(deserializer)?;
-		Ok(FrameAllocator::fallback())
+        let _ = <() as serde::Deserialize>::deserialize(deserializer)?;
+        Ok(FrameAllocator::fallback())
     }
 }
 
@@ -348,7 +348,7 @@ impl FrameMemory {
     pub fn new_vec_with_capacity<T>(&self, cap: usize) -> FrameVec<T> {
         FrameVec::with_capacity_in(cap, self.allocator())
     }
-    
+
     /// Panics if there are still live allocations or `FrameAllocator`s.
     pub fn assert_memory_reusable(&self) {
         if let Some(ptr) = self.allocator {
@@ -407,11 +407,11 @@ unsafe impl Send for FrameMemory {}
 
 #[cfg(feature = "capture")]
 impl serde::Serialize for FrameMemory {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where S: serde::Serializer
-	{
-		().serialize(serializer)
-	}
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where S: serde::Serializer
+    {
+        ().serialize(serializer)
+    }
 }
 
 #[cfg(feature = "replay")]
@@ -420,8 +420,8 @@ impl<'de> serde::Deserialize<'de> for FrameMemory {
     where
         D: serde::Deserializer<'de>,
     {
-		let _ = <() as serde::Deserialize>::deserialize(deserializer)?;
-		Ok(FrameMemory::fallback())
+        let _ = <() as serde::Deserialize>::deserialize(deserializer)?;
+        Ok(FrameMemory::fallback())
     }
 }
 
