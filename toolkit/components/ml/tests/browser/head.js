@@ -337,6 +337,7 @@ async function perfSetup({ disabled = false, prefs = [] } = {}) {
         100,
         200
       );
+      await SpecialPowers.popPrefEnv();
     },
   };
 }

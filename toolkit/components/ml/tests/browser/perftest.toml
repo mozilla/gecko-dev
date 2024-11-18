@@ -9,6 +9,9 @@ disabled = "Disabled as we want to run this only as perftest, not regular CI"
 ["browser_ml_engine_perf.js"]
 disabled = "Disabled as we want to run this only as perftest, not regular CI"
 
+["browser_ml_suggest_inference.js"]
+disabled = "Disabled as we want to run this only as perftest, not regular CI"
+
 ["browser_ml_suggest_intent_perf.js"]
 disabled = "Disabled as we want to run this only as perftest, not regular CI"
 

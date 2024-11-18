@@ -444,3 +444,79 @@ ml-multi-perf:
             --flavor mochitest
             --output $MOZ_FETCHES_DIR/../artifacts
             toolkit/components/ml/tests/browser/browser_ml_engine_multi_perf.js
+
+ml-perf-suggest-inf:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - ort-training.wasm
+            - mozilla-ner
+            - mozilla-intent
+    description: Run ML Suggest Inference Model
+    treeherder:
+        symbol: perftest(linux-ml-perf-suggest-inf)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: []
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            toolkit/components/ml/tests/browser/browser_ml_suggest_inference.js
+
+ml-perf-suggest-int:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - ort-training.wasm
+            - mozilla-intent
+    description: Run ML Suggest Intent Model
+    treeherder:
+        symbol: perftest(linux-ml-perf-suggest-int)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: []
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            toolkit/components/ml/tests/browser/browser_ml_suggest_intent_perf.js
+
+ml-perf-suggest-ner:
+    fetches:
+        fetch:
+            - ort.wasm
+            - ort.jsep.wasm
+            - ort-training.wasm
+            - mozilla-ner
+    description: Run ML Suggest NER Model
+    treeherder:
+        symbol: perftest(linux-ml-perf-suggest-ner)
+        tier: 2
+    attributes:
+        batch: false
+        cron: false
+    run-on-projects: []
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --mochitest-binary ${MOZ_FETCHES_DIR}/firefox/firefox-bin
+            --flavor mochitest
+            --output $MOZ_FETCHES_DIR/../artifacts
+            toolkit/components/ml/tests/browser/browser_ml_suggest_ner_perf.js
