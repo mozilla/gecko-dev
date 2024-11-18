@@ -1,13 +1,12 @@
 [DEFAULT]
-support-files = [
-  "head.js",
-]
+support-files = ["head.js"]
 
-prefs = [
-  "browser.profiles.enabled=true",
-]
+prefs = ["browser.profiles.enabled=true"]
 
 ["browser_activate.js"]
+run-if = [
+  "os != 'linux'",
+] # This seems to mess up focus on Linux for some reason.
 
 ["browser_appmenu_menuitem_updates.js"]
 head = "../unit/head.js head.js"

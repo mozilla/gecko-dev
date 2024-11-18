@@ -13,8 +13,6 @@ async function promiseAppMenuOpened() {
 }
 
 add_task(async function test_appmenu_updates_on_edit() {
-  await gProfiles.init();
-
   // Mock the executable process so we don't launch a new process when we
   // create new profiles.
   SelectableProfileService._getExecutableProcess =
