@@ -7,23 +7,24 @@
 #ifndef nsBaseFilePicker_h__
 #define nsBaseFilePicker_h__
 
-#include "mozilla/dom/BrowsingContext.h"
 #include "nsISupports.h"
 #include "nsIFilePicker.h"
-#include "nsISimpleEnumerator.h"
-#include "nsArrayEnumerator.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
 
-class nsPIDOMWindowOuter;
+class nsISimpleEnumerator;
 class nsIWidget;
+
+namespace mozilla::dom {
+class BrowsingContext;
+}
 
 class nsBaseFilePicker : public nsIFilePicker {
  public:
   nsBaseFilePicker();
-  virtual ~nsBaseFilePicker();
 
+  // nsIFilePicker
   NS_IMETHOD Init(mozilla::dom::BrowsingContext* aBrowsingContext,
                   const nsAString& aTitle, nsIFilePicker::Mode aMode) override;
   NS_IMETHOD IsModeSupported(nsIFilePicker::Mode aMode, JSContext* aCx,
@@ -51,17 +52,19 @@ class nsBaseFilePicker : public nsIFilePicker {
       nsISimpleEnumerator** aValue) override;
 
  protected:
+  virtual ~nsBaseFilePicker();
+
   virtual void InitNative(nsIWidget* aParent, const nsAString& aTitle) = 0;
 
   virtual nsresult ResolveSpecialDirectory(const nsAString& aSpecialDirectory);
   bool MaybeBlockFilePicker(nsIFilePickerShownCallback* aCallback);
 
-  bool mAddToRecentDocs;
+  bool mAddToRecentDocs = true;
   nsCOMPtr<nsIFile> mDisplayDirectory;
   nsString mDisplaySpecialDirectory;
 
   RefPtr<mozilla::dom::BrowsingContext> mBrowsingContext;
-  nsIFilePicker::Mode mMode;
+  nsIFilePicker::Mode mMode = nsIFilePicker::modeOpen;
   nsString mOkButtonLabel;
   nsTArray<nsString> mRawFilters;
 };

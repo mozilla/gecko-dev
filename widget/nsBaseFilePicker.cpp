@@ -9,6 +9,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIWidget.h"
 
+#include "nsArrayEnumerator.h"
 #include "nsIStringBundle.h"
 #include "nsString.h"
 #include "nsCOMArray.h"
@@ -18,6 +19,7 @@
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_widget.h"
@@ -111,8 +113,7 @@ class nsBaseFilePickerEnumerator : public nsSimpleEnumerator {
   nsIFilePicker::Mode mMode;
 };
 
-nsBaseFilePicker::nsBaseFilePicker()
-    : mAddToRecentDocs(true), mMode(nsIFilePicker::modeOpen) {}
+nsBaseFilePicker::nsBaseFilePicker() = default;
 
 nsBaseFilePicker::~nsBaseFilePicker() = default;
 
@@ -162,17 +163,23 @@ NS_IMETHODIMP
 nsBaseFilePicker::AppendFilters(int32_t aFilterMask) {
   nsCOMPtr<nsIStringBundleService> stringService =
       mozilla::components::StringBundle::Service();
-  if (!stringService) return NS_ERROR_FAILURE;
+  if (!stringService) {
+    return NS_ERROR_FAILURE;
+  }
 
   nsCOMPtr<nsIStringBundle> titleBundle, filterBundle;
 
   nsresult rv = stringService->CreateBundle(FILEPICKER_TITLES,
                                             getter_AddRefs(titleBundle));
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
+  if (NS_FAILED(rv)) {
+    return NS_ERROR_FAILURE;
+  }
 
   rv = stringService->CreateBundle(FILEPICKER_FILTERS,
                                    getter_AddRefs(filterBundle));
-  if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
+  if (NS_FAILED(rv)) {
+    return NS_ERROR_FAILURE;
+  }
 
   nsAutoString title;
   nsAutoString filter;
@@ -288,7 +295,10 @@ NS_IMETHODIMP nsBaseFilePicker::SetDisplayDirectory(nsIFile* aDirectory) {
   }
   nsCOMPtr<nsIFile> directory;
   nsresult rv = aDirectory->Clone(getter_AddRefs(directory));
-  if (NS_FAILED(rv)) return rv;
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   mDisplayDirectory = directory;
   return NS_OK;
 }
@@ -303,7 +313,10 @@ NS_IMETHODIMP nsBaseFilePicker::GetDisplayDirectory(nsIFile** aDirectory) {
     return NS_OK;
   }
 
-  if (!mDisplayDirectory) return NS_OK;
+  if (!mDisplayDirectory) {
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIFile> directory;
   nsresult rv = mDisplayDirectory->Clone(getter_AddRefs(directory));
   if (NS_FAILED(rv)) {
