@@ -244,6 +244,9 @@ class Permissions(object):
                 user_prefs.append(("network.trr.uri", trrUri))
                 user_prefs.append(("network.trr.bootstrapAddr", "127.0.0.1"))
                 user_prefs.append(("network.dns.force_use_https_rr", True))
+                user_prefs.append(
+                    ("network.dns.https_rr.check_record_with_cname", False)
+                )
             else:
                 user_prefs = self.pac_prefs(proxy)
         else:

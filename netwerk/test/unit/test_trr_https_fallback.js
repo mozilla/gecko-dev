@@ -35,6 +35,10 @@ add_setup(async function setup() {
   Services.prefs.setBoolPref("network.dns.upgrade_with_https_rr", true);
   Services.prefs.setBoolPref("network.dns.use_https_rr_as_altsvc", true);
   Services.prefs.setBoolPref("network.dns.echconfig.enabled", true);
+  Services.prefs.setBoolPref(
+    "network.dns.https_rr.check_record_with_cname",
+    false
+  );
 
   registerCleanupFunction(async () => {
     trr_clear_prefs();
@@ -52,6 +56,9 @@ add_setup(async function setup() {
     Services.prefs.clearUserPref("network.http.speculative-parallel-limit");
     Services.prefs.clearUserPref("network.dns.localDomains");
     Services.prefs.clearUserPref("network.dns.http3_echconfig.enabled");
+    Services.prefs.clearUserPref(
+      "network.dns.https_rr.check_record_with_cname"
+    );
     if (trrServer) {
       await trrServer.stop();
     }

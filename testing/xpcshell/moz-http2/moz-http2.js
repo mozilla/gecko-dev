@@ -1168,7 +1168,7 @@ function handleRequest(req, res) {
           flush: false,
           data: {
             priority,
-            name: "foo.example.com",
+            name: packet.questions[0].name,
             values: [
               { key: "alpn", value: "h2" },
               { key: "port", value: serverPort },
