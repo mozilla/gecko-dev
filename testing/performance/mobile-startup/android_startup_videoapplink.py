@@ -12,6 +12,7 @@ sys.path.insert(0, os.environ["PYTHON_PACKAGES"])
 
 import cv2
 import numpy as np
+from mozdevice import ADBDevice
 
 APP_LINK_STARTUP_WEBSITE = "https://theme-crave-demo.myshopify.com/"
 PROD_FENIX = "fenix"
@@ -22,7 +23,7 @@ BACKGROUND_TABS = [
     "https://www.amazon.ca/gp/aw/gb?ref_=navm_cs_gb&discounts-widget",
     "https://www.espn.com/nfl/game/_/gameId/401671793/chiefs-falcons",
 ]
-ITERATIONS = 5
+ITERATIONS = 1
 
 
 class ImageAnalzer:
@@ -33,6 +34,7 @@ class ImageAnalzer:
         self.height = 0
         self.video_name = ""
         self.package_name = os.environ["BROWSER_BINARY"]
+        self.device = ADBDevice()
         if self.browser == PROD_FENIX:
             self.intent = "org.mozilla.fenix/org.mozilla.fenix.IntentReceiverActivity"
         elif self.browser == PROD_CHRM:
@@ -46,31 +48,31 @@ class ImageAnalzer:
             f"android.intent.action.VIEW -d "
         )
 
-        adb_shell("mkdir -p /sdcard/Download")
-        adb_shell("settings put global window_animation_scale 1")
-        adb_shell("settings put global transition_animation_scale 1")
-        adb_shell("settings put global animator_duration_scale 1")
+        self.device.shell("mkdir -p /sdcard/Download")
+        self.device.shell("settings put global window_animation_scale 1")
+        self.device.shell("settings put global transition_animation_scale 1")
+        self.device.shell("settings put global animator_duration_scale 1")
 
     def app_setup(self):
-        adb_shell(f"pm clear {self.package_name}")
+        self.device.shell(f"pm clear {self.package_name}")
         time.sleep(3)
         self.skip_onboarding()
-        adb_shell(
+        self.device.shell(
             f"pm grant {self.package_name} android.permission.POST_NOTIFICATIONS"
         )  # enabling notifications
         self.create_background_tabs()
-        force_stop(self.package_name)
+        self.device.shell(f"am force-stop {self.package_name}")
 
     def skip_onboarding(self):
         # Skip onboarding for chrome and fenix
         if self.browser == PROD_CHRM:
-            adb_shell(
+            self.device.shell(
                 '\'echo "chrome --no-default-browser-check --no-first-run --disable-fre" '
                 "> /data/local/tmp/chrome-command-line'"
             )
-            adb_shell("am set-debug-app --persistent com.android.chrome")
+            self.device.shell("am set-debug-app --persistent com.android.chrome")
         elif self.browser == PROD_FENIX:
-            adb_shell(
+            self.device.shell(
                 "am start-activity -W -a android.intent.action.MAIN --ez "
                 "performancetest true -n org.mozilla.fenix/org.mozilla.fenix.App"
             )
@@ -80,14 +82,15 @@ class ImageAnalzer:
         # when we do the cold applink startup test. This makes the test workload more realistic
         # and will also help catch regressions that affect per-open-tab startup work.
         for website in BACKGROUND_TABS:
-            adb_shell(self.nav_start_command + website)
+            self.device.shell(self.nav_start_command + website)
             time.sleep(3)
 
     def get_video(self, run):
         self.video_name = f"vid{run}_{self.browser}.mp4"
         video_location = f"/sdcard/Download/{self.video_name}"
 
-        # Start Recording
+        # Bug 1927548 - Recording command doesn't use mozdevice shell because the mozdevice shell
+        # outputs an adbprocess obj whose adbprocess.proc.kill() does not work when called
         recording = subprocess.Popen(
             [
                 "adb",
@@ -99,19 +102,12 @@ class ImageAnalzer:
         )
 
         # Navigate to a page
-        adb_shell(self.nav_start_command + APP_LINK_STARTUP_WEBSITE)
+        self.device.shell(self.nav_start_command + APP_LINK_STARTUP_WEBSITE)
         time.sleep(5)
         recording.kill()
-
         time.sleep(5)
-        subprocess.Popen(
-            [
-                "adb",
-                "pull",
-                "-a",
-                video_location,
-                os.environ["TESTING_DIR"],
-            ]
+        self.device.command_output(
+            ["pull", "-a", video_location, os.environ["TESTING_DIR"]]
         )
 
         time.sleep(4)
@@ -120,7 +116,7 @@ class ImageAnalzer:
         self.video = cv2.VideoCapture(video_location)
         self.width = self.video.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.height = self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        force_stop(self.package_name)
+        self.device.shell(f"am force-stop {self.package_name}")
 
     def get_image(self, frame_position):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_position)
@@ -166,14 +162,6 @@ class ImageAnalzer:
         self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
         self.video.read()
         return self.video.get(cv2.CAP_PROP_POS_MSEC)
-
-
-def adb_shell(args):
-    print(subprocess.getoutput([f"adb shell {args}"]))
-
-
-def force_stop(package_name):
-    adb_shell(f"am force-stop {package_name}")
 
 
 if __name__ == "__main__":
