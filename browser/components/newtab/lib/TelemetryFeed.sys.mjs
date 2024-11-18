@@ -65,6 +65,7 @@ export const TELEMETRY_PREF = "telemetry";
 export const EVENTS_TELEMETRY_PREF = "telemetry.ut.events";
 export const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
 export const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.tiles.enabled";
+const PREF_ENDPOINTS = "discoverystream.endpoints";
 const PREF_SHOW_SPONSORED_STORIES = "showSponsored";
 const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
 
@@ -966,6 +967,14 @@ export class TelemetryFeed {
     if (!data.position && data.position !== 0) {
       throw new Error(
         `[Unified ads callback] Missing argument (No position). Cannot send telemetry event.`
+      );
+    }
+
+    // Make sure the callback endpoint is allowed
+    const allowed = this._prefs.get(PREF_ENDPOINTS).split(",");
+    if (!allowed.some(prefix => data.url.startsWith(prefix))) {
+      throw new Error(
+        `[Unified ads callback] Not one of allowed prefixes (${allowed})`
       );
     }
 
