@@ -31,7 +31,18 @@ CURRENT_RELEASE_BASE=`git merge-base branch-heads/$MOZ_PRIOR_UPSTREAM_BRANCH_HEA
 
 # Write no-op files for the cherry-picked release branch commits.  For more
 # details on what this is doing, see make_upstream_revert_noop.sh.
-COMMITS=`git log -r $CURRENT_RELEASE_BASE..branch-heads/$MOZ_PRIOR_UPSTREAM_BRANCH_HEAD_NUM --format='%h'`
+COMMIT_RANGE="$CURRENT_RELEASE_BASE..branch-heads/$MOZ_PRIOR_UPSTREAM_BRANCH_HEAD_NUM"
+echo ""
+echo "Libwebrtc release branch commits are usually cherry-picked from upcoming"
+echo "commits.  Since these upcoming commits will result in near-zero files"
+echo "changed, hopefully exactly 0, we need to build no-op commit files"
+echo "so that processing doesn't stop unnecessarily when running the"
+echo "fast-forward process."
+echo "Previous update (Bug $MOZ_PRIOR_FASTFORWARD_BUG) release branch commits:"
+# might be nice to indent this output for better readability
+git log $COMMIT_RANGE --oneline
+
+COMMITS=`git log -r $COMMIT_RANGE --format='%h'`
 for commit in $COMMITS; do
 
   echo "Processing release branch commit $commit for no-op handling"
@@ -59,7 +70,15 @@ done
 # This section checks for commits that may have been cherry-picked in more
 # than one release branch.
 TARGET_RELEASE_BASE=`git merge-base $MOZ_TARGET_UPSTREAM_BRANCH_HEAD master`
-NEW_COMMITS=`git log -r $TARGET_RELEASE_BASE..$MOZ_TARGET_UPSTREAM_BRANCH_HEAD --format='%h'`
+
+COMMIT_RANGE="$TARGET_RELEASE_BASE..$MOZ_TARGET_UPSTREAM_BRANCH_HEAD"
+echo ""
+echo "Occasionally, successive libwebrtc release branches need to cherry-pick"
+echo "the same _far_ upstream commit.  We need to examine the upcoming release"
+echo "branch commits for our new v$MOZ_NEXT_LIBWEBRTC_MILESTONE update."
+echo "Upcoming (Bug $MOZ_FASTFORWARD_BUG) release branch commits:"
+# might be nice to indent this output for better readability
+git log $COMMIT_RANGE --oneline
 
 # Convert the files that we've already generated for no-op detection into
 # something that we can use as a regular expression for searching.
@@ -68,6 +87,7 @@ KNOWN_NO_OP_COMMITS=`cd $STATE_DIR ; \
   | sed 's/\.no-op-cherry-pick-msg//' \
   | paste -sd '|' /dev/stdin`
 
+NEW_COMMITS=`git log -r $COMMIT_RANGE --format='%h'`
 for commit in $NEW_COMMITS; do
 
   echo "Processing next release branch commit $commit for no-op handling"
