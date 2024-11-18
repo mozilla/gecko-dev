@@ -3763,11 +3763,7 @@ pref("browser.translations.chaos.errors", false);
 pref("browser.translations.chaos.timeoutMS", 0);
 
 // Enable the experimental machine learning inference engine.
-#ifdef NIGHTLY_BUILD
-  pref("browser.ml.enable", true);
-#else
-  pref("browser.ml.enable", false);
-#endif
+pref("browser.ml.enable", false);
 // Set to "All" to see all logs, which are useful for debugging.
 pref("browser.ml.logLevel", "Error");
 // Model hub root URL used to download models.
@@ -4140,10 +4136,6 @@ pref("extensions.formautofill.heuristics.captureOnFormRemoval", true);
 pref("extensions.formautofill.heuristics.captureOnPageNavigation", true);
 
 pref("extensions.formautofill.heuristics.autofillSameOriginWithTop", true);
-
-#ifdef NIGHTLY_BUILD
-  pref("extensions.formautofill.ml.experiment.enabled", true);
-#endif
 
 pref("toolkit.osKeyStore.loglevel", "Warn");
 
