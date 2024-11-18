@@ -1532,7 +1532,8 @@ bool XrayTraits::cloneExpandoChain(JSContext* cx, HandleObject dst,
   return true;
 }
 
-void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex) {
+void ClearXrayExpandoSlots(JS::RootingContext* cx, JSObject* target,
+                           size_t slotIndex) {
   if (!NS_IsMainThread()) {
     // No Xrays
     return;
@@ -1541,10 +1542,8 @@ void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex) {
   MOZ_ASSERT(slotIndex != JSSLOT_EXPANDO_NEXT);
   MOZ_ASSERT(slotIndex != JSSLOT_EXPANDO_EXCLUSIVE_WRAPPER_HOLDER);
   MOZ_ASSERT(GetXrayTraits(target) == &DOMXrayTraits::singleton);
-  RootingContext* rootingCx = RootingCx();
-  RootedObject rootedTarget(rootingCx, target);
-  RootedObject head(rootingCx,
-                    DOMXrayTraits::singleton.getExpandoChain(rootedTarget));
+  RootedObject rootedTarget(cx, target);
+  RootedObject head(cx, DOMXrayTraits::singleton.getExpandoChain(rootedTarget));
   while (head) {
     MOZ_ASSERT(JSCLASS_RESERVED_SLOTS(JS::GetClass(head)) > slotIndex);
     JS::SetReservedSlot(head, slotIndex, UndefinedValue());

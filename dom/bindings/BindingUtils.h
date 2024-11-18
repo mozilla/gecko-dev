@@ -3388,6 +3388,9 @@ inline bool ShouldExpose(JSContext* aCx, JS::Handle<JSObject*> aGlobal,
           ConstructorEnabled(aCx, aGlobal));
 }
 
+void ClearXrayExpandoSlots(JS::RootingContext* aCx, JSObject* aObject,
+                           size_t aSlotIndex);
+
 }  // namespace binding_detail
 
 }  // namespace dom

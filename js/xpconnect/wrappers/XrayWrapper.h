@@ -478,7 +478,8 @@ extern const JSClassOps XrayExpandoObjectClassOps;
  *
  * No-op when called on non-main threads (where Xrays don't exist).
  */
-void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex);
+void ClearXrayExpandoSlots(JS::RootingContext* cx, JSObject* target,
+                           size_t slotIndex);
 
 /*
  * Ensure the given wrapper has an expando object and return it.  This can

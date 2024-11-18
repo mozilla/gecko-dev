@@ -4986,10 +4986,15 @@ class CGClearCachedValueMethod(CGAbstractMethod):
             regetMember = ""
 
         if self.descriptor.wantsXrays:
+            if self.member.getExtendedAttribute("StoreInSlot"):
+                cx = "JS::RootingContext::get(aCx)"
+            else:
+                cx = "RootingCx()"
             clearXrayExpandoSlots = fill(
                 """
-                xpc::ClearXrayExpandoSlots(obj, ${xraySlotIndex});
+                ClearXrayExpandoSlots(${cx}, obj, ${xraySlotIndex});
                 """,
+                cx=cx,
                 xraySlotIndex=memberXrayExpandoReservedSlot(
                     self.member, self.descriptor
                 ),
