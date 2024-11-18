@@ -250,6 +250,7 @@ rtc_library("rtp_sender") {
     "../rtc_base/system:no_unique_address",
     "../rtc_base/task_utils:repeating_task",
     "//third_party/abseil-cpp/absl/algorithm:container",
+    "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
