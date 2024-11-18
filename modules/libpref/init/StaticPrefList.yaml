@@ -17197,12 +17197,6 @@
   value: true
   mirror: always
 
-# 0: force-disable, 1: force-enable, -1: driver-dependent
-- name: webgl.vert_attrib0_emulation
-  type: RelaxedAtomicInt32
-  value: -1
-  mirror: always
-
 #---------------------------------------------------------------------------
 # Prefs starting with "widget."
 #---------------------------------------------------------------------------

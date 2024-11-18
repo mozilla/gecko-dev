@@ -282,7 +282,6 @@ struct ParamTraits_IsEnumCase {
   struct ParamTraits<T> : public ParamTraits_IsEnumCase<T> {};
 
 USE_IS_ENUM_CASE(mozilla::webgl::OptionalRenderableFormatBits)
-USE_IS_ENUM_CASE(mozilla::gl::GLVendor)
 
 #undef USE_IS_ENUM_CASE
 
@@ -334,6 +333,13 @@ struct ParamTraits<mozilla::webgl::OpaqueFramebufferOptions> final
 };
 
 // -
+
+template <>
+struct ParamTraits<mozilla::gl::GLVendor>
+    : public ContiguousEnumSerializerInclusive<mozilla::gl::GLVendor,
+                                               mozilla::gl::GLVendor::Intel,
+                                               mozilla::gl::kHighestGLVendor> {
+};
 
 template <typename U>
 struct ParamTraits<mozilla::webgl::EnumMask<U>> final
