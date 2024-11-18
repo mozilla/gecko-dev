@@ -795,7 +795,8 @@ class CGXrayExpandoJSClass(CGThing):
             // allocating slots only for those would make the slot index
             // computations much more complicated, so let's do this the simple
             // way for now.
-            DEFINE_XRAY_EXPANDO_CLASS(static, sXrayExpandoObjectClass, ${memberSlots});
+            DEFINE_XRAY_EXPANDO_CLASS_WITH_OPS(static, sXrayExpandoObjectClass, ${memberSlots},
+                                               &xpc::XrayExpandoObjectClassOps);
             """,
             memberSlots=self.descriptor.interface.totalMembersInSlots,
         )

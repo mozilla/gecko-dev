@@ -12,6 +12,8 @@
 #ifndef mozilla_dom_XrayExpandoClass_h
 #define mozilla_dom_XrayExpandoClass_h
 
+#include "js/Class.h"
+
 /*
  * maybeStatic_ Should be either `static` or nothing (because some Xray expando
  * classes are not static).
@@ -20,13 +22,20 @@
  *
  * extraSlots_ should be how many extra slots to give the class, in addition to
  * the ones Xray expandos want.
+ *
+ * ops_ should be the JSClassOps to use for the class.
  */
-#define DEFINE_XRAY_EXPANDO_CLASS(maybeStatic_, name_, extraSlots_)           \
+#define DEFINE_XRAY_EXPANDO_CLASS_WITH_OPS(maybeStatic_, name_, extraSlots_,  \
+                                           ops_)                              \
   maybeStatic_ const JSClass name_ = {                                        \
       "XrayExpandoObject",                                                    \
       JSCLASS_HAS_RESERVED_SLOTS(xpc::JSSLOT_EXPANDO_COUNT + (extraSlots_)) | \
           JSCLASS_FOREGROUND_FINALIZE,                                        \
-      &xpc::XrayExpandoObjectClassOps}
+      ops_}
+
+#define DEFINE_XRAY_EXPANDO_CLASS(maybeStatic_, name_, extraSlots_)    \
+  DEFINE_XRAY_EXPANDO_CLASS_WITH_OPS(maybeStatic_, name_, extraSlots_, \
+                                     &xpc::XrayExpandoObjectClassOps)
 
 namespace mozilla::dom {
 
