@@ -4,14 +4,14 @@
 // attempting to create a too large array.
 
 // The maximum typed array length is limited to `(INT32_MAX/BYTES_PER_ELEMENT)`
-// on all 32-bit systems; on 64-bit systems the limit is 8GB presently.
+// on all 32-bit systems; on 64-bit systems the limit is 16GB presently.
 
 const INT32_MAX = 2**31 - 1;
-const EIGHTGB = 8 * 1024 * 1024 * 1024;
+const SIXTEENGB = 16 * 1024 * 1024 * 1024;
 
 function tooLarge(elementSize) {
     if (largeArrayBufferSupported()) {
-        return (EIGHTGB / elementSize) + 1;
+        return (SIXTEENGB / elementSize) + 1;
     }
     return (INT32_MAX + 1) / elementSize;
 }
