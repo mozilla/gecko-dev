@@ -9,14 +9,14 @@
 
 #include "nsBaseFilePicker.h"
 #include "nsString.h"
-#include "nsIFile.h"
 #include "nsCOMArray.h"
 #include "nsTArray.h"
 
+class nsIFile;
 class nsILocalFileMac;
 @class NSArray;
 
-class nsFilePicker : public nsBaseFilePicker {
+class nsFilePicker final : public nsBaseFilePicker {
   class AsyncShowFilePicker;
 
  public:
@@ -71,7 +71,7 @@ class nsFilePicker : public nsBaseFilePicker {
   nsTArray<nsString> mFilters;
   nsTArray<nsString> mTitles;
 
-  int32_t mSelectedTypeIndex;
+  int32_t mSelectedTypeIndex = 0;
 };
 
 #endif  // nsFilePicker_h_

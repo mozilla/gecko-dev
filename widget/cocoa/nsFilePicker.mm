@@ -62,7 +62,10 @@ static void SetShowHiddenFileState(NSSavePanel* panel) {
     SEL navViewSelector = @selector(_navView);
     NSMethodSignature* navViewSignature =
         [panel methodSignatureForSelector:navViewSelector];
-    if (!navViewSignature) return;
+    if (!navViewSignature) {
+      return;
+    }
+
     NSInvocation* navViewInvocation =
         [NSInvocation invocationWithMethodSignature:navViewSignature];
     [navViewInvocation setSelector:navViewSelector];
@@ -77,7 +80,10 @@ static void SetShowHiddenFileState(NSSavePanel* panel) {
     SEL showHiddenFilesSelector = @selector(setShowsHiddenFiles:);
     NSMethodSignature* showHiddenFilesSignature =
         [navView methodSignatureForSelector:showHiddenFilesSelector];
-    if (!showHiddenFilesSignature) return;
+    if (!showHiddenFilesSignature) {
+      return;
+    }
+
     NSInvocation* showHiddenFilesInvocation =
         [NSInvocation invocationWithMethodSignature:showHiddenFilesSignature];
     [showHiddenFilesInvocation setSelector:showHiddenFilesSelector];
@@ -125,9 +131,9 @@ class nsFilePicker::AsyncShowFilePicker : public mozilla::Runnable {
   RefPtr<nsIFilePickerShownCallback> mCallback;
 };
 
-nsFilePicker::nsFilePicker() : mSelectedTypeIndex(0) {}
+nsFilePicker::nsFilePicker() = default;
 
-nsFilePicker::~nsFilePicker() {}
+nsFilePicker::~nsFilePicker() = default;
 
 void nsFilePicker::InitNative(nsIWidget* aParent, const nsAString& aTitle) {
   mTitle = aTitle;
@@ -193,8 +199,9 @@ NSView* nsFilePicker::GetAccessoryView() {
     [popupButton addItemWithTitle:titleString];
     [titleString release];
   }
-  if (mSelectedTypeIndex >= 0 && (uint32_t)mSelectedTypeIndex < numMenuItems)
+  if (mSelectedTypeIndex >= 0 && (uint32_t)mSelectedTypeIndex < numMenuItems) {
     [popupButton selectItemAtIndex:mSelectedTypeIndex];
+  }
   [popupButton setTag:kSaveTypeControlTag];
   [popupButton sizeToFit];  // we have to do sizeToFit to get the height
                             // calculated for us
@@ -206,8 +213,9 @@ NSView* nsFilePicker::GetAccessoryView() {
   // padding on each side kAccessoryViewPadding pix horizontal padding between
   // controls
   float greatestHeight = [textField frame].size.height;
-  if ([popupButton frame].size.height > greatestHeight)
+  if ([popupButton frame].size.height > greatestHeight) {
     greatestHeight = [popupButton frame].size.height;
+  }
   float totalViewHeight = greatestHeight + kAccessoryViewPadding * 2;
   float totalViewWidth = [textField frame].size.width +
                          [popupButton frame].size.width +
@@ -268,7 +276,9 @@ nsresult nsFilePicker::Show(ResultCode* retval) {
       break;
   }
 
-  if (theFile) mFiles.AppendObject(theFile);
+  if (theFile) {
+    mFiles.AppendObject(theFile);
+  }
 
   *retval = userClicksOK;
   return NS_OK;
@@ -349,10 +359,11 @@ nsIFilePicker::ResultCode nsFilePicker::GetLocalFiles(
   // dir has been set, then use the Applications folder.
   if (!theDir) {
     if (filters && [filters count] == 1 &&
-        [(NSString*)[filters objectAtIndex:0] isEqualToString:@"app"])
+        [(NSString*)[filters objectAtIndex:0] isEqualToString:@"app"]) {
       theDir = @"/Applications/";
-    else
+    } else {
       theDir = @"";
+    }
   }
 
   if (theDir) {
@@ -394,7 +405,9 @@ nsIFilePicker::ResultCode nsFilePicker::GetLocalFiles(
   }
   nsCocoaUtils::CleanUpAfterNativeAppModalDialog();
 
-  if (result == NSModalResponseCancel) return retVal;
+  if (result == NSModalResponseCancel) {
+    return retVal;
+  }
 
   // Converts data from a NSArray of NSURL to the returned format.
   // We should be careful to not call [thePanel URLs] more than once given that
@@ -415,7 +428,9 @@ nsIFilePicker::ResultCode nsFilePicker::GetLocalFiles(
     }
   }
 
-  if (outFiles.Count() > 0) retVal = returnOK;
+  if (outFiles.Count() > 0) {
+    retVal = returnOK;
+  }
 
   return retVal;
 
@@ -456,7 +471,9 @@ nsIFilePicker::ResultCode nsFilePicker::GetLocalFolder(nsIFile** outFile) {
   int result = [thePanel runModal];
   nsCocoaUtils::CleanUpAfterNativeAppModalDialog();
 
-  if (result == NSModalResponseCancel) return retVal;
+  if (result == NSModalResponseCancel) {
+    return retVal;
+  }
 
   // get the path for the folder (we allow just 1, so that's all we get)
   NSURL* theURL = [[thePanel URLs] objectAtIndex:0];
@@ -542,7 +559,9 @@ nsIFilePicker::ResultCode nsFilePicker::PutLocalFile(nsIFile** outFile) {
   [thePanel setNameFieldStringValue:defaultFilename];
   int result = [thePanel runModal];
   nsCocoaUtils::CleanUpAfterNativeAppModalDialog();
-  if (result == NSModalResponseCancel) return retVal;
+  if (result == NSModalResponseCancel) {
+    return retVal;
+  }
 
   // get the save type
   NSPopUpButton* popupButton = [accessoryView viewWithTag:kSaveTypeControlTag];
@@ -562,10 +581,11 @@ nsIFilePicker::ResultCode nsFilePicker::PutLocalFile(nsIFile** outFile) {
       // We tell if we are replacing or not by just looking to see if the file
       // exists. The user could not have hit OK and not meant to replace the
       // file.
-      if ([[NSFileManager defaultManager] fileExistsAtPath:[fileURL path]])
+      if ([[NSFileManager defaultManager] fileExistsAtPath:[fileURL path]]) {
         retVal = returnReplace;
-      else
+      } else {
         retVal = returnOK;
+      }
     }
   }
 
@@ -672,7 +692,9 @@ NS_IMETHODIMP nsFilePicker::GetFileURL(nsIURI** aFileURL) {
   NS_ENSURE_ARG_POINTER(aFileURL);
   *aFileURL = nullptr;
 
-  if (mFiles.Count() == 0) return NS_OK;
+  if (mFiles.Count() == 0) {
+    return NS_OK;
+  }
 
   return NS_NewFileURI(aFileURL, mFiles.ObjectAt(0));
 }
