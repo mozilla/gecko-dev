@@ -2408,6 +2408,9 @@ privacy.ui.fpp:
       - all
     products:
       - firefox
+    extra_keys:
+      checked: >
+        The checked state of the fingerprinting protection checkbox.
 
 uptake.remotecontent.result:
   uptake:
