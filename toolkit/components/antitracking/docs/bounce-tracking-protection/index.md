@@ -42,6 +42,98 @@ Work for the Gecko implementation in tracked under following meta-bug:
 [Bug 1839915 - \[meta\] Bounce Tracking Protection](https://bugzilla.mozilla.org/show_bug.cgi?id=1839915).
 
 
+A simplified UML diagram of the BTP implementation in Gecko. Note that some
+classes and attributes have been omitted for readability. You can use the
+diagram feature in Searchfox to view the full diagram
+([example](https://searchfox.org/mozilla-central/query/default?q=class-diagram%3A%27mozilla%3A%3ABounceTrackingState%27+depth%3A2)).
+
+```{mermaid}
+classDiagram
+    class BounceTrackingProtection {
+        - mBounceTrackingPurgeTimer: nsITimer
+        - mStorage: BounceTrackingProtectionStorage
+        - mStorageObserver: BounceTrackingStorageObserver
+    }
+
+    note for BounceTrackingProtection "Singleton class to manage the feature."
+
+    class BounceTrackingProtectionStorage {
+        - mStateGlobal : nsTHashMap&lt;OriginAttributesHashKey, RefPtr&lt;BounceTrackingStateGlobal&gt;&gt;
+        - mDatabaseFile : nsCOMPtr&lt;nsIFile&gt;
+    }
+
+    class BounceTrackingStateGlobal {
+        - mUserActivation: nsTHashMap&lt;nsCStringHashKey, PRTime&gt;
+        - mBounceTrackers: nsTHashMap&lt;nsCStringHashKey, PRTime&gt;
+        - mOriginAttributes: OriginAttributes
+    }
+
+    note for BounceTrackingStateGlobal "Manages the global maps for bounce tracker candidates
+                                        and user activation for a specific OriginAttributes dict."
+
+    class BounceTrackingStorageObserver {
+        <!-- [...] -->
+    }
+
+    note for BounceTrackingStorageObserver "Listens to cookie/storage access
+                                            and notifies BounceTrackingState"
+
+    class BounceTrackingRecord {
+        - mInitialHost: nsAutoCString
+        - mBounceHosts: nsTHashSet&lt;nsCStringHashKey&gt;
+        - mFinalHost: nsAutoCString
+        - mStorageAccessHosts: nsTHashSet&lt;nsCStringHashKey&gt;
+    }
+
+    note for BounceTrackingRecord "Encapsulates the per-tab navigation state
+                                   during an extended navigation."
+
+    class BounceTrackingState {
+        - mBounceTrackingProtection: BounceTrackingProtection
+        - mBounceTrackingRecord: BounceTrackingRecord
+        - mClientBounceDetectionTimeout: nsReadOnlyTimer
+        - mOriginAttributes: OriginAttributes
+    }
+
+
+    class BrowsingContextWebProgress {
+        - mBounceTrackingState: BounceTrackingState
+    }
+
+    class nsIBTPExceptionList {
+        <!-- Bug 1930704: Empty classes lead to build errors. Adding a comment inside the class fixes the issue -->
+        <!-- [...] -->
+    }
+
+    class BounceTrackingAllowList {
+        <!-- [...] -->
+    }
+
+    class DocumentLoadListener{
+        <!-- [...] -->
+    }
+
+    note for BrowsingContextWebProgress "Every tab has a web progress
+                                         and therefore a BounceTrackingState"
+
+    BounceTrackingProtection *-- BounceTrackingProtectionStorage
+    BounceTrackingProtection *-- BounceTrackingStorageObserver
+    BounceTrackingState --o BounceTrackingProtection
+    BounceTrackingState --> BounceTrackingProtection : RecordStatefulBounces() on extended nav end
+    BounceTrackingState *-- BounceTrackingRecord
+    BounceTrackingStorageObserver --> BounceTrackingState : Storage access signals
+    BrowsingContextWebProgress *-- BounceTrackingState
+    BounceTrackingStateGlobal --* BounceTrackingProtectionStorage
+    BounceTrackingStateGlobal --> BounceTrackingProtectionStorage : Persists state changes in storage.
+    BounceTrackingProtection --> BounceTrackingStateGlobal : Manages global state
+    nsIBTPExceptionList --* BounceTrackingProtection
+    nsIBTPExceptionList --> BounceTrackingProtection : Site host purge exceptions from RemoteSettings.
+    BounceTrackingAllowList --* BounceTrackingProtection
+    BounceTrackingAllowList --> BounceTrackingProtection :  Site host purge exceptions from PermissionManager.
+    BrowsingContextWebProgress --> BounceTrackingState : Navigation signals
+    DocumentLoadListener --> BounceTrackingState : Navigation signals
+```
+
 ## Preferences
 
 The feature can be enabled and it's behavior can be adjusted using the
