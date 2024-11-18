@@ -38,6 +38,10 @@ add_setup(async function setup() {
   Services.prefs.setIntPref("network.trr.mode", 2); // TRR first
   Services.prefs.setBoolPref("network.http.http3.enable", true);
   Services.prefs.setIntPref("network.http.speculative-parallel-limit", 6);
+  Services.prefs.setBoolPref(
+    "network.dns.https_rr.check_record_with_cname",
+    false
+  );
 
   registerCleanupFunction(async () => {
     trr_clear_prefs();
@@ -60,6 +64,9 @@ add_setup(async function setup() {
     Services.prefs.clearUserPref("network.http.speculative-parallel-limit");
     Services.prefs.clearUserPref(
       "network.http.http3.parallel_fallback_conn_limit"
+    );
+    Services.prefs.clearUserPref(
+      "network.dns.https_rr.check_record_with_cname"
     );
     if (trrServer) {
       await trrServer.stop();

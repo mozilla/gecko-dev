@@ -23,12 +23,19 @@ add_setup(async function setup() {
 
   Services.prefs.setBoolPref("network.dns.upgrade_with_https_rr", true);
   Services.prefs.setBoolPref("network.dns.use_https_rr_as_altsvc", true);
+  Services.prefs.setBoolPref(
+    "network.dns.https_rr.check_record_with_cname",
+    false
+  );
 
   registerCleanupFunction(async () => {
     trr_clear_prefs();
     Services.prefs.clearUserPref("network.dns.upgrade_with_https_rr");
     Services.prefs.clearUserPref("network.dns.use_https_rr_as_altsvc");
     Services.prefs.clearUserPref("network.dns.disablePrefetch");
+    Services.prefs.clearUserPref(
+      "network.dns.https_rr.check_record_with_cname"
+    );
     await trrServer.stop();
   });
 

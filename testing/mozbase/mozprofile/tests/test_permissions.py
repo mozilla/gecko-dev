@@ -52,12 +52,13 @@ def test_nw_prefs(perms):
 
     prefs, user_prefs = perms.network_prefs({"dohServerPort": 443})
     print(user_prefs)
-    assert len(user_prefs) == 5
+    assert len(user_prefs) == 6
     assert user_prefs[0] == ("network.proxy.type", 0)
     assert user_prefs[1] == ("network.trr.mode", 3)
     assert user_prefs[2] == ("network.trr.uri", "https://foo.example.com:443/dns-query")
     assert user_prefs[3] == ("network.trr.bootstrapAddr", "127.0.0.1")
     assert user_prefs[4] == ("network.dns.force_use_https_rr", True)
+    assert user_prefs[5] == ("network.dns.https_rr.check_record_with_cname", False)
 
 
 if __name__ == "__main__":

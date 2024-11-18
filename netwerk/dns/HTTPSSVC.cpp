@@ -4,6 +4,7 @@
 
 #include "HTTPSSVC.h"
 #include "mozilla/net/DNS.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "nsHttp.h"
 #include "nsHttpHandler.h"
@@ -359,6 +360,12 @@ static nsTArray<SVCBWrapper> FlattenRecords(const nsTArray<SVCB>& aRecords) {
   return result;
 }
 
+static void TelemetryForServiceModeRecord(const nsACString& aKey) {
+#ifndef ANDROID
+  glean::networking::https_record_state.Get(aKey).Add(1);
+#endif
+}
+
 already_AddRefed<nsISVCBRecord>
 DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
     bool aNoHttp2, bool aNoHttp3, const nsTArray<SVCB>& aRecords,
@@ -368,6 +375,7 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
   RefPtr<SVCBRecord> h3RecordWithEchConfig;
   uint32_t recordHasNoDefaultAlpnCount = 0;
   uint32_t recordExcludedCount = 0;
+  uint32_t recordHasUnmatchedCname = 0;
   aRecordsAllExcluded = false;
   nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
   uint32_t h3ExcludedCount = 0;
@@ -376,6 +384,7 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
   for (const auto& record : records) {
     if (record.mRecord.mSvcFieldPriority == 0) {
       // In ServiceMode, the SvcPriority should never be 0.
+      TelemetryForServiceModeRecord("invalid"_ns);
       return nullptr;
     }
 
@@ -389,6 +398,7 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
     }
 
     if (!CheckRecordIsUsableWithCname(record.mRecord, aCname)) {
+      recordHasUnmatchedCname++;
       continue;
     }
 
@@ -427,11 +437,18 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
   if (!selectedRecord && !h3RecordWithEchConfig) {
     // If all records indicate "no-default-alpn", we should not use this RRSet.
     if (recordHasNoDefaultAlpnCount == records.Length()) {
+      TelemetryForServiceModeRecord("no_default_alpn"_ns);
       return nullptr;
     }
 
     if (recordExcludedCount == records.Length()) {
       aRecordsAllExcluded = true;
+      TelemetryForServiceModeRecord("all_excluded"_ns);
+      return nullptr;
+    }
+
+    if (recordHasUnmatchedCname == records.Length()) {
+      TelemetryForServiceModeRecord("unmatched_cname"_ns);
       return nullptr;
     }
 
@@ -444,6 +461,7 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
   }
 
   if (h3RecordWithEchConfig) {
+    TelemetryForServiceModeRecord("succeeded"_ns);
     if (selectedRecord && selectedRecord->mData.mHasEchConfig) {
       return selectedRecord.forget();
     }
@@ -451,6 +469,11 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
     return h3RecordWithEchConfig.forget();
   }
 
+  if (selectedRecord) {
+    TelemetryForServiceModeRecord("succeeded"_ns);
+  } else {
+    TelemetryForServiceModeRecord("others"_ns);
+  }
   return selectedRecord.forget();
 }
 
