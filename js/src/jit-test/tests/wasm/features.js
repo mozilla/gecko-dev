@@ -75,6 +75,11 @@ let releasedFeatures = [
     wasmExnRefEnabled(),
     `(module (func try_table end))`
   ],
+  [
+    'memory64',
+    wasmMemory64Enabled(),
+    `(module (memory i64 0))`,
+  ],
 ];
 
 for (let [name, enabled, test] of releasedFeatures) {

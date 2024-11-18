@@ -1044,16 +1044,15 @@ set_define("ENABLE_WASM_MOZ_INTGEMM", wasm_moz_intgemm)
 # ===========================
 
 
-@depends(milestone.is_nightly, "--enable-simulator", target)
-def default_wasm_memory64(is_nightly, simulator, target):
+@depends("--enable-simulator", target)
+def default_wasm_memory64(simulator, target):
     if target.cpu == "mips32":
         return
 
     if simulator and simulator[0] == "mips32":
         return
 
-    if is_nightly:
-        return True
+    return True
 
 
 option(
@@ -1063,11 +1062,9 @@ option(
 )
 
 
-@depends(
-    "--enable-wasm-memory64", "--enable-simulator", target, "--wasm-no-experimental"
-)
-def wasm_memory64(value, simulator, target, no_experimental):
-    if no_experimental or not value:
+@depends("--enable-wasm-memory64", "--enable-simulator", target)
+def wasm_memory64(value, simulator, target):
+    if not value:
         return
 
     if target.cpu == "mips32":
