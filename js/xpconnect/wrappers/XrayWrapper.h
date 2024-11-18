@@ -17,6 +17,7 @@
 #include "js/Object.h"              // JS::GetReservedSlot
 #include "js/Proxy.h"
 #include "js/Wrapper.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 // Slot where Xray functions for Web IDL methods store a pointer to
 // the Xray wrapper they're associated with.
@@ -138,6 +139,8 @@ class XrayTraits {
   XrayTraits(XrayTraits&) = delete;
   const XrayTraits& operator=(XrayTraits&) = delete;
 };
+
+void ExpandoObjectFinalize(JS::GCContext* gcx, JSObject* obj);
 
 class DOMXrayTraits : public XrayTraits {
  public:
@@ -474,12 +477,28 @@ enum ExpandoSlots {
 extern const JSClassOps XrayExpandoObjectClassOps;
 
 /*
- * Clear the given slot on all Xray expandos for the given object.
+ * Call aFunc on all Xray expandos for the given object. aFunc will be passed a
+ * JSObject pointer to an Xray expando object.
  *
  * No-op when called on non-main threads (where Xrays don't exist).
  */
-void ClearXrayExpandoSlots(JS::RootingContext* cx, JSObject* target,
-                           size_t slotIndex);
+template <typename F>
+void ForEachXrayExpandoObject(JS::RootingContext* aCx, JSObject* aTarget,
+                              F&& aFunc) {
+  if (!NS_IsMainThread()) {
+    // No Xrays
+    return;
+  }
+
+  MOZ_ASSERT(GetXrayTraits(aTarget) == &DOMXrayTraits::singleton);
+  JS::RootedObject rootedTarget(aCx, aTarget);
+  JS::RootedObject head(aCx,
+                        DOMXrayTraits::singleton.getExpandoChain(rootedTarget));
+  while (head) {
+    aFunc(head);
+    head = JS::GetReservedSlot(head, JSSLOT_EXPANDO_NEXT).toObjectOrNull();
+  }
+}
 
 /*
  * Ensure the given wrapper has an expando object and return it.  This can

@@ -171,3 +171,30 @@ def WebIDLTest(parser, harness):
         "Should have thrown because [ReflectedHTMLAttributeReturningFrozenArray] "
         "should not be used together with [Cached].",
     )
+
+    parser = parser.reset()
+    threw = False
+    try:
+        parseWithNode(
+            """
+            interface ReflectedAttributeBase {
+              [Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+              attribute sequence<Element>? reflectedHTMLAttributeBase;
+            };
+            interface ReflectedAttribute : ReflectedAttributeBase {
+              [Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+              attribute sequence<Element>? reflectedHTMLAttribute;
+            };
+            """
+        )
+
+        parser.finish()
+    except WebIDL.WebIDLError:
+        threw = True
+    harness.ok(
+        threw,
+        "Should have thrown because [ReflectedHTMLAttributeReturningFrozenArray] "
+        "should not be used on the attribute of an interface that inherits from "
+        "an interface that also has an attribute with "
+        "[ReflectedHTMLAttributeReturningFrozenArray].",
+    )

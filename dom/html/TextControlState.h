@@ -14,7 +14,6 @@
 #include "mozilla/TextControlElement.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/dom/HTMLInputElementBinding.h"
 #include "mozilla/dom/Nullable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsITimer.h"
@@ -40,6 +39,7 @@ enum class SelectionDirection : uint8_t {
 };
 
 namespace dom {
+enum class SelectionMode : uint8_t;
 class Element;
 class HTMLInputElement;
 }  // namespace dom

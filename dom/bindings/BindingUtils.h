@@ -3388,6 +3388,101 @@ inline bool ShouldExpose(JSContext* aCx, JS::Handle<JSObject*> aGlobal,
           ConstructorEnabled(aCx, aGlobal));
 }
 
+class ReflectedHTMLAttributeSlotsBase {
+ protected:
+  static void ForEachXrayReflectedHTMLAttributeSlots(
+      JS::RootingContext* aCx, JSObject* aObject, size_t aSlotIndex,
+      size_t aArrayIndex, void (*aFunc)(void* aSlots, size_t aArrayIndex));
+  static void XrayExpandoObjectFinalize(JS::GCContext* aCx, JSObject* aObject);
+};
+
+template <size_t SlotIndex, size_t XrayExpandoSlotIndex, size_t Count>
+class ReflectedHTMLAttributeSlots : public Array<JS::Heap<JS::Value>, Count>,
+                                    private ReflectedHTMLAttributeSlotsBase {
+ public:
+  using Array<JS::Heap<JS::Value>, Count>::Array;
+
+  static ReflectedHTMLAttributeSlots& GetOrCreate(JSObject* aSlotStorage,
+                                                  bool aIsXray) {
+    size_t slotIndex = aIsXray ? XrayExpandoSlotIndex : SlotIndex;
+    JS::Value v = JS::GetReservedSlot(aSlotStorage, slotIndex);
+    ReflectedHTMLAttributeSlots* array;
+    if (v.isUndefined()) {
+      array = new ReflectedHTMLAttributeSlots();
+      JS::SetReservedSlot(aSlotStorage, slotIndex, JS::PrivateValue(array));
+    } else {
+      array = static_cast<ReflectedHTMLAttributeSlots*>(v.toPrivate());
+    }
+    return *array;
+  }
+
+  static void Clear(JSObject* aObject, size_t aArrayIndex) {
+    JS::Value array = JS::GetReservedSlot(aObject, SlotIndex);
+    if (!array.isUndefined()) {
+      ReflectedHTMLAttributeSlots& slots =
+          *static_cast<ReflectedHTMLAttributeSlots*>(array.toPrivate());
+      slots[aArrayIndex] = JS::UndefinedValue();
+    }
+  }
+  static void ClearInXrays(JS::RootingContext* aCx, JSObject* aObject,
+                           size_t aArrayIndex) {
+    ReflectedHTMLAttributeSlotsBase::ForEachXrayReflectedHTMLAttributeSlots(
+        aCx, aObject, XrayExpandoSlotIndex, aArrayIndex,
+        [](void* aSlots, size_t aArrayIndex) {
+          ReflectedHTMLAttributeSlots& slots =
+              *static_cast<ReflectedHTMLAttributeSlots*>(aSlots);
+          slots[aArrayIndex] = JS::UndefinedValue();
+        });
+  }
+
+  static void Trace(JSTracer* aTracer, JSObject* aObject) {
+    Trace(aTracer, aObject, SlotIndex);
+  }
+
+  static void Finalize(JSObject* aObject) { Finalize(aObject, SlotIndex); }
+
+  static void XrayExpandoObjectTrace(JSTracer* aTracer, JSObject* aObject) {
+    Trace(aTracer, aObject, XrayExpandoSlotIndex);
+  }
+
+  static void XrayExpandoObjectFinalize(JS::GCContext* aCx, JSObject* aObject) {
+    Finalize(aObject, XrayExpandoSlotIndex);
+    ReflectedHTMLAttributeSlotsBase::XrayExpandoObjectFinalize(aCx, aObject);
+  }
+
+  static constexpr JSClassOps sXrayExpandoObjectClassOps = {
+      nullptr, /* addProperty */
+      nullptr, /* delProperty */
+      nullptr, /* enumerate */
+      nullptr, /* newEnumerate */
+      nullptr, /* resolve */
+      nullptr, /* mayResolve */
+      XrayExpandoObjectFinalize,
+      nullptr, /* call */
+      nullptr, /* construct */
+      XrayExpandoObjectTrace,
+  };
+
+ private:
+  static void Trace(JSTracer* aTracer, JSObject* aObject, size_t aSlotIndex) {
+    JS::Value slotValue = JS::GetReservedSlot(aObject, aSlotIndex);
+    if (!slotValue.isUndefined()) {
+      auto* array =
+          static_cast<ReflectedHTMLAttributeSlots*>(slotValue.toPrivate());
+      for (JS::Heap<JS::Value>& v : *array) {
+        JS::TraceEdge(aTracer, &v, "ReflectedHTMLAttributeSlots[i]");
+      }
+    }
+  }
+  static void Finalize(JSObject* aObject, size_t aSlotIndex) {
+    JS::Value slotValue = JS::GetReservedSlot(aObject, aSlotIndex);
+    if (!slotValue.isUndefined()) {
+      delete static_cast<ReflectedHTMLAttributeSlots*>(slotValue.toPrivate());
+      JS::SetReservedSlot(aObject, aSlotIndex, JS::UndefinedValue());
+    }
+  }
+};
+
 void ClearXrayExpandoSlots(JS::RootingContext* aCx, JSObject* aObject,
                            size_t aSlotIndex);
 

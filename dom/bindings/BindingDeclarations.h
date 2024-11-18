@@ -581,6 +581,9 @@ namespace binding_detail {
 template <typename Enum>
 struct EnumStrings;
 
+template <size_t SlotIndex, size_t XrayExpandoSlotIndex, size_t Count>
+class ReflectedHTMLAttributeSlots;
+
 }  // namespace binding_detail
 
 }  // namespace dom

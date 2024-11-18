@@ -1236,7 +1236,7 @@ static nsIPrincipal* GetExpandoObjectPrincipal(JSObject* expandoObject) {
   return static_cast<nsIPrincipal*>(v.toPrivate());
 }
 
-static void ExpandoObjectFinalize(JS::GCContext* gcx, JSObject* obj) {
+void ExpandoObjectFinalize(JS::GCContext* gcx, JSObject* obj) {
   // Release the principal.
   nsIPrincipal* principal = GetExpandoObjectPrincipal(obj);
   NS_RELEASE(principal);
@@ -1530,25 +1530,6 @@ bool XrayTraits::cloneExpandoChain(JSContext* cx, HandleObject dst,
         JS::GetReservedSlot(oldHead, JSSLOT_EXPANDO_NEXT).toObjectOrNull();
   }
   return true;
-}
-
-void ClearXrayExpandoSlots(JS::RootingContext* cx, JSObject* target,
-                           size_t slotIndex) {
-  if (!NS_IsMainThread()) {
-    // No Xrays
-    return;
-  }
-
-  MOZ_ASSERT(slotIndex != JSSLOT_EXPANDO_NEXT);
-  MOZ_ASSERT(slotIndex != JSSLOT_EXPANDO_EXCLUSIVE_WRAPPER_HOLDER);
-  MOZ_ASSERT(GetXrayTraits(target) == &DOMXrayTraits::singleton);
-  RootedObject rootedTarget(cx, target);
-  RootedObject head(cx, DOMXrayTraits::singleton.getExpandoChain(rootedTarget));
-  while (head) {
-    MOZ_ASSERT(JSCLASS_RESERVED_SLOTS(JS::GetClass(head)) > slotIndex);
-    JS::SetReservedSlot(head, slotIndex, UndefinedValue());
-    head = JS::GetReservedSlot(head, JSSLOT_EXPANDO_NEXT).toObjectOrNull();
-  }
 }
 
 JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper) {

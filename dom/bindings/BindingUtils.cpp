@@ -4313,9 +4313,37 @@ already_AddRefed<Promise> CreateRejectedPromiseFromThrownException(
   return Promise::RejectWithExceptionFromContext(global, aCx, aError);
 }
 
+/* static */
+void ReflectedHTMLAttributeSlotsBase::ForEachXrayReflectedHTMLAttributeSlots(
+    JS::RootingContext* aCx, JSObject* aObject, size_t aSlotIndex,
+    size_t aArrayIndex, void (*aFunc)(void* aSlots, size_t aArrayIndex)) {
+  xpc::ForEachXrayExpandoObject(
+      aCx, aObject, [aSlotIndex, aFunc, aArrayIndex](JSObject* aExpandObject) {
+        MOZ_ASSERT(JSCLASS_RESERVED_SLOTS(JS::GetClass(aExpandObject)) >
+                   aSlotIndex);
+        MOZ_ASSERT(aSlotIndex >= DOM_EXPANDO_RESERVED_SLOTS);
+        JS::Value array = JS::GetReservedSlot(aExpandObject, aSlotIndex);
+        if (!array.isUndefined()) {
+          aFunc(array.toPrivate(), aArrayIndex);
+        }
+      });
+}
+
+/* static */
+void ReflectedHTMLAttributeSlotsBase::XrayExpandoObjectFinalize(
+    JS::GCContext* aCx, JSObject* aObject) {
+  xpc::ExpandoObjectFinalize(aCx, aObject);
+}
+
 void ClearXrayExpandoSlots(JS::RootingContext* aCx, JSObject* aObject,
                            size_t aSlotIndex) {
-  xpc::ClearXrayExpandoSlots(aCx, aObject, aSlotIndex);
+  xpc::ForEachXrayExpandoObject(
+      aCx, aObject, [aSlotIndex](JSObject* aExpandObject) {
+        MOZ_ASSERT(JSCLASS_RESERVED_SLOTS(JS::GetClass(aExpandObject)) >
+                   aSlotIndex);
+        MOZ_ASSERT(aSlotIndex >= DOM_EXPANDO_RESERVED_SLOTS);
+        JS::SetReservedSlot(aExpandObject, aSlotIndex, JS::UndefinedValue());
+      });
 }
 
 }  // namespace binding_detail

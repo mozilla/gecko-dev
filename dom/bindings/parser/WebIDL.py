@@ -1044,6 +1044,17 @@ class IDLInterfaceMixin(IDLInterfaceOrInterfaceMixinOrNamespace):
         return set(self.members)
 
 
+class ReflectedHTMLAttributesReturningFrozenArray(object):
+    __slots__ = (
+        "slotIndex",
+        "totalMembersInSlots",
+    )
+
+    def __init__(self, slotIndex):
+        self.slotIndex = slotIndex
+        self.totalMembersInSlots = 0
+
+
 class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
     __slots__ = (
         "parent",
@@ -1057,6 +1068,7 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
         "_isOnGlobalProtoChain",
         "totalMembersInSlots",
         "_ownMembersInSlots",
+        "reflectedHTMLAttributesReturningFrozenArray",
         "iterableInterface",
         "asyncIterableInterface",
         "hasCrossOriginMembers",
@@ -1083,11 +1095,21 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
         self._hasChildInterfaces = False
         self._isOnGlobalProtoChain = False
 
-        # Tracking of the number of reserved slots we need for our
-        # members and those of ancestor interfaces.
+        # Tracking of the number of reserved slots we need for our members and
+        # those of ancestor interfaces. Note that reflected HTML attributes that
+        # have a FrozenArray<Element> return value also need to be stored in
+        # slots. Because we don't want to use a lot of memory to store them when
+        # they are not in use we use two levels of storage, the slot points to
+        # an array of slots, so these have two indices. These attributes share
+        # 1 slot in totalMembersInSlots, and count for 1 slot each in
+        # reflectedHTMLAttributesReturningFrozenArray.totalMembersInSlots.
         self.totalMembersInSlots = 0
         # Tracking of the number of own own members we have in slots
         self._ownMembersInSlots = 0
+        # Tracking the slot in the binding object for reflected HTML attributes
+        # that return a FrozenArray, and the slot in the array stored in that
+        # slot in the binding object.
+        self.reflectedHTMLAttributesReturningFrozenArray = None
         # If this is an iterator interface, we need to know what iterable
         # interface we're iterating for in order to get its nativeType.
         self.iterableInterface = None
@@ -1460,8 +1482,40 @@ class IDLInterfaceOrNamespace(IDLInterfaceOrInterfaceMixinOrNamespace):
                     )
                 if member.slotIndices is None:
                     member.slotIndices = dict()
-                member.slotIndices[self.identifier.name] = self.totalMembersInSlots
-                self.totalMembersInSlots += 1
+                if member.getExtendedAttribute(
+                    "ReflectedHTMLAttributeReturningFrozenArray"
+                ):
+                    parent = self.parent
+                    while parent:
+                        if self.parent.reflectedHTMLAttributesReturningFrozenArray:
+                            raise WebIDLError(
+                                "Interface %s has at least one attribute marked "
+                                "as[ReflectedHTMLAttributeReturningFrozenArray],"
+                                "but one of its ancestors also has an attribute "
+                                "marked as "
+                                "[ReflectedHTMLAttributeReturningFrozenArray]"
+                                % self.identifier.name,
+                                [self.location, member.location, parent.location],
+                            )
+                        parent = parent.parent
+
+                    if not self.reflectedHTMLAttributesReturningFrozenArray:
+                        self.reflectedHTMLAttributesReturningFrozenArray = (
+                            ReflectedHTMLAttributesReturningFrozenArray(
+                                self.totalMembersInSlots
+                            )
+                        )
+                        self.totalMembersInSlots += 1
+                    member.slotIndices[self.identifier.name] = (
+                        self.reflectedHTMLAttributesReturningFrozenArray.slotIndex,
+                        self.reflectedHTMLAttributesReturningFrozenArray.totalMembersInSlots,
+                    )
+                    self.reflectedHTMLAttributesReturningFrozenArray.totalMembersInSlots += (
+                        1
+                    )
+                else:
+                    member.slotIndices[self.identifier.name] = self.totalMembersInSlots
+                    self.totalMembersInSlots += 1
                 if member.getExtendedAttribute("StoreInSlot"):
                     self._ownMembersInSlots += 1
 
@@ -5416,6 +5470,10 @@ class IDLAttribute(IDLInterfaceMember):
         self.legacyLenientThis = False
         self._legacyUnforgeable = False
         self.stringifier = stringifier
+        # slotIndices can be a dictionary mapping concrete interface name to
+        # either a slot index in the binding object, or to a tuple of the slot
+        # index in the binding object and an index in the array that's stored
+        # in that slot.
         self.slotIndices = None
         assert maplikeOrSetlike is None or isinstance(
             maplikeOrSetlike, IDLMaplikeOrSetlike
