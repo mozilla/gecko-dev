@@ -47,6 +47,7 @@
 #include "nsMimeTypes.h"
 #include "imgITools.h"
 #include "imgIContainer.h"
+#include "WinUtils.h"
 
 using mozilla::LogLevel;
 
@@ -396,6 +397,35 @@ static void OleGetClipboardResultToString(const HRESULT aHres,
   }
 }
 
+static void MaybeLogClipboardCurrentOwner(const HRESULT aHres,
+                                          nsCString&& aMethodName) {
+  if (!MOZ_LOG_TEST(gWin32ClipboardLog, LogLevel::Debug)) {
+    return;
+  }
+
+  if (aHres != CLIPBRD_E_CANT_OPEN) {
+    return;
+  }
+  auto hwnd = ::GetOpenClipboardWindow();
+  if (!hwnd) {
+    MOZ_LOG(gWin32ClipboardLog, LogLevel::Debug,
+            ("IDataObject::%s | Clipboard already opened by unknown process",
+             aMethodName.get()));
+    return;
+  }
+  DWORD procId;
+  DWORD threadId = ::GetWindowThreadProcessId(hwnd, &procId);
+  NS_ENSURE_TRUE_VOID(threadId);
+  nsAutoString procName;
+  NS_ENSURE_SUCCESS_VOID(
+      mozilla::widget::WinUtils::GetProcessImageName(procId, procName));
+  MOZ_LOG(gWin32ClipboardLog, LogLevel::Debug,
+          ("IDataObject::%s | Clipboard already opened by HWND: %p | "
+           "Process ID: %lu | Thread ID: %lu | App name: %s",
+           aMethodName.get(), hwnd, procId, threadId,
+           NS_ConvertUTF16toUTF8(procName).get()));
+}
+
 // See
 // <https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-olegetclipboard>.
 static void LogOleGetClipboardResult(const HRESULT aHres) {
@@ -404,6 +434,7 @@ static void LogOleGetClipboardResult(const HRESULT aHres) {
     OleGetClipboardResultToString(aHres, hresString);
     MOZ_LOG(gWin32ClipboardLog, LogLevel::Debug,
             ("OleGetClipboard result: %s", hresString.get()));
+    MaybeLogClipboardCurrentOwner(aHres, nsCString("OleGetClipboard"));
   }
 }
 
@@ -443,6 +474,7 @@ static void LogOleSetClipboardResult(const HRESULT aHres) {
     OleSetClipboardResultToString(aHres, hresString);
     MOZ_LOG(gWin32ClipboardLog, LogLevel::Debug,
             ("OleSetClipboard result: %s", hresString.get()));
+    MaybeLogClipboardCurrentOwner(aHres, nsCString("OleSetClipboard"));
   }
 }
 
@@ -464,7 +496,9 @@ static HRESULT RepeatedlyTry(Function aFunction, LogFunction aLogFunction,
       break;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(kDelayInMs));
+    // TODO: This was formerly std::sleep_for, which wasn't actually sleeping
+    // in tests (bug 1927664).
+    ::SleepEx(kDelayInMs, TRUE);
   }
 
   return hres;
@@ -610,13 +644,14 @@ nsresult nsClipboard::GetNativeDataOffClipboard(nsIWidget* aWidget,
 // See methods listed at
 // <https://docs.microsoft.com/en-us/windows/win32/api/objidl/nn-objidl-idataobject#methods>.
 static void LogIDataObjectMethodResult(const HRESULT aHres,
-                                       const nsCString& aMethodName) {
+                                       nsCString&& aMethodName) {
   if (MOZ_LOG_TEST(gWin32ClipboardLog, LogLevel::Debug)) {
     nsAutoCString hresString;
     IDataObjectMethodResultToString(aHres, hresString);
     MOZ_LOG(
         gWin32ClipboardLog, LogLevel::Debug,
         ("IDataObject::%s result: %s", aMethodName.get(), hresString.get()));
+    MaybeLogClipboardCurrentOwner(aHres, std::move(aMethodName));
   }
 }
 
@@ -631,8 +666,9 @@ static HRESULT RepeatedlyTryGetData(IDataObject& aDataObject, LPFORMATETC pFE,
                                     LPSTGMEDIUM pSTM) {
   return RepeatedlyTry(
       [&aDataObject, &pFE, &pSTM]() { return aDataObject.GetData(pFE, pSTM); },
-      std::bind(LogIDataObjectMethodResult, std::placeholders::_1,
-                "GetData"_ns));
+      [](HRESULT hres) {
+        LogIDataObjectMethodResult(hres, nsCString("GetData"));
+      });
 }
 
 //-------------------------------------------------------------------------
@@ -646,7 +682,7 @@ HRESULT nsClipboard::FillSTGMedium(IDataObject* aDataObject, UINT aFormat,
   // memory
   HRESULT hres = S_FALSE;
   hres = aDataObject->QueryGetData(pFE);
-  LogIDataObjectMethodResult(hres, "QueryGetData"_ns);
+  LogIDataObjectMethodResult(hres, nsCString("QueryGetData"));
   if (S_OK == hres) {
     hres = RepeatedlyTryGetData(*aDataObject, pFE, pSTM);
   }

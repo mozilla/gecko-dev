@@ -618,6 +618,8 @@ class WinUtils {
 
   static bool GetAutoRotationState(AR_STATE* aRotationState);
 
+  static nsresult GetProcessImageName(DWORD aProcessId, nsAString& aName);
+
  private:
   static WhitelistVec BuildWhitelist();
 
