@@ -350,7 +350,8 @@ std::vector<ProbeClusterConfig> ProbeController::SetEstimatedBitrate(
     }
     DataRate network_state_estimate_probe_further_limit =
         config_.network_state_estimate_probing_interval->IsFinite() &&
-                network_estimate_
+                network_estimate_ &&
+                network_estimate_->link_capacity_upper.IsFinite()
             ? network_estimate_->link_capacity_upper *
                   config_.further_probe_threshold
             : DataRate::PlusInfinity();
