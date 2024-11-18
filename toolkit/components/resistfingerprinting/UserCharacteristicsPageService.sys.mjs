@@ -10,6 +10,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  ProcessType: "resource://gre/modules/ProcessType.sys.mjs",
 });
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
@@ -304,6 +305,7 @@ export class UserCharacteristicsPageService {
         noActor: 0,
         noDebugInfo: 0,
         notHW: 0,
+        remoteTypes: [],
       };
       // Try to find a window that supports hardware rendering
       let acceleratedActor = null;
@@ -317,6 +319,10 @@ export class UserCharacteristicsPageService {
 
         for (const tab of win.gBrowser.tabs) {
           diagnostics.tabCount++;
+          diagnostics.remoteTypes.push(
+            sanitizeRemoteType(tab.linkedBrowser.remoteType)
+          );
+
           const actor = await promiseTry(() =>
             tab.linkedBrowser.browsingContext?.currentWindowGlobal.getActor(
               actorName
@@ -947,4 +953,29 @@ function promiseTry(func) {
       reject(error);
     }
   });
+}
+
+// Remote type may include current site url, which is not needed.
+// We only need the remote type.
+// See https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html
+// and search for $SITE for processes that have site information.
+// We return unknown if it isn't one of the known types.
+function sanitizeRemoteType(remoteTypeStr) {
+  if (!remoteTypeStr) {
+    return "null";
+  }
+
+  const remoteTypes = remoteTypeStr.split("=");
+  if (remoteTypes.length >= 2) {
+    return isValidRemoteType(remoteTypes[0]) ? remoteTypes[0] : "unknown";
+  }
+
+  return isValidRemoteType(remoteTypeStr) ? remoteTypeStr : "unknown";
+}
+
+function isValidRemoteType(sanitizedRemoteType) {
+  return (
+    lazy.ProcessType.fluentNameFromProcessTypeString(sanitizedRemoteType) !==
+    lazy.ProcessType.kFallback
+  );
 }
