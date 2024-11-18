@@ -41,9 +41,6 @@ def test_gifft_codegen():
 
         expect(here_path / f"gifft_output_{probe_type}", output_fd.getvalue())
 
-        if probe_type == "Event":
-            expect(here_path / "gifft_output_EventExtra", cpp_fd.getvalue())
-
 
 if __name__ == "__main__":
     mozunit.main()

@@ -105,7 +105,6 @@ UNIFIED_SOURCES += [
 ]
 
 SOURCES += [
-    "!EventExtraGIFFTMaps.cpp",
     "!GleanJSMetricsLookup.cpp",
     "!GleanJSPingsLookup.cpp",
 ]

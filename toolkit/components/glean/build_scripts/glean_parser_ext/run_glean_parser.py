@@ -244,14 +244,6 @@ def output_gifft_map(output_fd, probe_type, all_objs, cpp_fd):
     )
     output_fd.write("\n")
 
-    # Events also need to output maps from event extra enum to strings.
-    # Sadly we need to generate code for all possible events, not just mirrored.
-    # Otherwise we won't compile.
-    if probe_type == "Event":
-        template = env.get_template("gifft_events.jinja2")
-        cpp_fd.write(template.render(all_objs=all_objs))
-        cpp_fd.write("\n")
-
 
 def jog_factory(output_fd, *args):
     all_objs, options = parse(args)
