@@ -12,6 +12,8 @@
     <string name="content_description_private_browsing_button">Activar il modus privat</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Deactivar il modus privat</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing">Modus privat</string>
     <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Tschertgar u endatar in\'adressa</string>
     <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -223,6 +225,8 @@
     <string name="browser_menu_discover_more_extensions">Scuvrir ulteriuras extensiuns</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
     <string name="browser_menu_extensions_disabled_description">Deactivà temporarmain</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
+    <string name="browser_menu_no_extensions_installed_description">Naginas extensiuns activadas</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Infurmaziuns davart il conto</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -312,6 +316,10 @@
     <string name="browser_menu_back_button_content_description">Enavos al menu principal</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
     <string name="browser_main_menu_handlebar_content_description">Serrar il menu principal</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">Agid</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">Parameters</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
     <string name="browser_extensions_menu_handlebar_content_description">Serrar il menu da las extensiuns</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -530,6 +538,10 @@
     <string name="onboarding_add_on_reviews_label">Recensiuns: %1$s</string>
     <!-- Content description for the add-on icon. -->
     <string name="onboarding_add_on_icon_content_description">Icona dal supplement</string>
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">Icona da supplements installads</string>
+    <!-- Content description for the an installing add-on icon. -->
+    <string name="onboarding_installing_add_on_icon_content_description">Icona da moduls che vegnan gist installads</string>
     <!-- Content description for the add add-on button. -->
     <string name="onboarding_add_on_add_button_content_description">Buttun per agiuntar in supplement</string>
     <!-- Content description for the star rating group. -->
@@ -1217,6 +1229,22 @@
     <string name="download_delete_item_1">Allontanar</string>
 
 
+    <!-- WebCompat Reporter -->
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">La website è plauna u na funcziuna betg</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Maletgs u videos</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Buttuns, colliaziuns ed auter cuntegn</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">S’annunziar u sortir</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Bloccada da reclamas</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Insatge auter</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Perstgisa. %1$s na po betg chargiar questa pagina.</string>
@@ -1239,6 +1267,8 @@
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Vuls ti propi stizzar quest ordinatur?</string>
+    <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items. -->
+    <string name="bookmark_delete_folders_confirmation_dialog">Vuls ti propi stizzar ils elements tschernids?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
     <string name="bookmark_delete_multiple_folders_confirmation_dialog">%s vegn a stizzar ils elements tschernids.</string>
     <!-- Text for the cancel button on delete bookmark dialog -->
@@ -1246,7 +1276,7 @@
     <!-- Screen title for adding a bookmarks folder -->
     <string name="bookmark_add_folder">Agiuntar in ordinatur</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
-    <string name="bookmark_saved_snackbar">Memorisà il segnapagina!</string>
+    <string name="bookmark_saved_snackbar" moz:removedIn="132" tools:ignore="UnusedResources">Memorisà il segnapagina!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
     <string name="bookmark_saved_in_folder_snackbar">Memorisà en «%s»</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
@@ -1313,7 +1343,7 @@
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
     <string name="bookmark_delete_single_item">Stizzà %s</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
-    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Elements stizzads: %s</string>
+    <string name="bookmark_delete_multiple_items">Elements stizzads: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Endatar terms da tschertga</string>
 
@@ -1342,7 +1372,7 @@
     <string name="bookmark_empty_list_folder_description">Agiuntescha segnapaginas durant che ti navigheschas per che ti chattias pli tard puspè tias websites preferidas.</string>
 
     <!-- Description for the add new folder button when selecting a folder. -->
-    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Nov ordinatur</string>
+    <string name="bookmark_select_folder_new_folder_button_title">Nov ordinatur</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1592,10 +1622,10 @@
     <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
     <string name="snackbar_num_tabs_closed">Tabs serrads: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
-    <string name="snackbar_message_bookmarks_saved">Memorisà ils segnapaginas!</string>
+    <string name="snackbar_message_bookmarks_saved" moz:removedIn="132" tools:ignore="UnusedResources">Memorisà ils segnapaginas!</string>
 
     <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
-    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Memorisà ils segnapaginas en «%s»!</string>
+    <string name="snackbar_message_bookmarks_saved_in">Memorisà ils segnapaginas en «%s»!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Agiuntà a las scursanidas!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
