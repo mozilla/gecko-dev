@@ -121,11 +121,6 @@ nsFilePickerProxy::GetFiles(nsISimpleEnumerator** aFiles) {
   return NS_ERROR_FAILURE;
 }
 
-nsresult nsFilePickerProxy::Show(nsIFilePicker::ResultCode* aReturn) {
-  MOZ_ASSERT(false, "Show is unimplemented; use Open");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 NS_IMETHODIMP
 nsFilePickerProxy::Open(nsIFilePickerShownCallback* aCallback) {
   mCallback = aCallback;

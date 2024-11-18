@@ -82,7 +82,6 @@ class nsFilePicker final : public nsBaseWinFilePicker {
  protected:
   /* method from nsBaseFilePicker */
   virtual void InitNative(nsIWidget* aParent, const nsAString& aTitle) override;
-  nsresult Show(nsIFilePicker::ResultCode* aReturnVal) override;
   void GetFilterListArray(nsString& aFilterList);
 
   NS_IMETHOD Open(nsIFilePickerShownCallback* aCallback) override;

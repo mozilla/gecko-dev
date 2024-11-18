@@ -22,7 +22,7 @@ class nsPIDOMWindowInner;
 
 /**
   This class creates a proxy file picker to be used in content processes.
-  The file picker just collects the initialization data and when Show() is
+  The file picker just collects the initialization data and when Open() is
   called, remotes everything to the chrome process which in turn can show a
   platform specific file picker.
 */
@@ -64,7 +64,6 @@ class nsFilePickerProxy : public nsBaseFilePicker,
  private:
   ~nsFilePickerProxy();
   void InitNative(nsIWidget*, const nsAString&) override;
-  nsresult Show(nsIFilePicker::ResultCode* aReturn) override;
   nsresult ResolveSpecialDirectory(const nsAString& aSpecialDirectory) override;
 
   void ActorDestroy(ActorDestroyReason aWhy) override;

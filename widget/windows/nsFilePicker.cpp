@@ -875,10 +875,6 @@ nsresult nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
   return NS_OK;
 }
 
-nsresult nsFilePicker::Show(nsIFilePicker::ResultCode* aReturnVal) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 NS_IMETHODIMP
 nsFilePicker::GetFile(nsIFile** aFile) {
   NS_ENSURE_ARG_POINTER(aFile);

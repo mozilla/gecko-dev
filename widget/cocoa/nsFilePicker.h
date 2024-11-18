@@ -17,6 +17,8 @@ class nsILocalFileMac;
 @class NSArray;
 
 class nsFilePicker : public nsBaseFilePicker {
+  class AsyncShowFilePicker;
+
  public:
   nsFilePicker();
   using nsIFilePicker::ResultCode;
@@ -24,6 +26,7 @@ class nsFilePicker : public nsBaseFilePicker {
   NS_DECL_ISUPPORTS
 
   // nsIFilePicker (less what's in nsBaseFilePicker)
+  NS_IMETHOD Open(nsIFilePickerShownCallback* aCallback) override;
   NS_IMETHOD GetDefaultString(nsAString& aDefaultString) override;
   NS_IMETHOD SetDefaultString(const nsAString& aDefaultString) override;
   NS_IMETHOD GetDefaultExtension(nsAString& aDefaultExtension) override;
@@ -47,7 +50,7 @@ class nsFilePicker : public nsBaseFilePicker {
   virtual ~nsFilePicker();
 
   virtual void InitNative(nsIWidget* aParent, const nsAString& aTitle) override;
-  nsresult Show(ResultCode* _retval) override;
+  nsresult Show(ResultCode* _retval);
 
   // actual implementations of get/put dialogs using NSOpenPanel & NSSavePanel
   // aFile is an existing but unspecified file. These functions must specify it.

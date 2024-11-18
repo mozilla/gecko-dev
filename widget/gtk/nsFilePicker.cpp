@@ -399,20 +399,6 @@ nsFilePicker::GetFiles(nsISimpleEnumerator** aFiles) {
   return NS_ERROR_FAILURE;
 }
 
-nsresult nsFilePicker::Show(nsIFilePicker::ResultCode* aReturn) {
-  NS_ENSURE_ARG_POINTER(aReturn);
-
-  nsresult rv = Open(nullptr);
-  if (NS_FAILED(rv)) return rv;
-
-  while (mFileChooser) {
-    g_main_context_iteration(nullptr, TRUE);
-  }
-
-  *aReturn = mResult;
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
   // Can't show two dialogs concurrently with the same filepicker
@@ -702,8 +688,6 @@ void nsFilePicker::Done(void* file_chooser, gint response) {
   if (mCallback) {
     mCallback->Done(result);
     mCallback = nullptr;
-  } else {
-    mResult = result;
   }
   NS_RELEASE_THIS();
 }

@@ -14,6 +14,7 @@
 #include "nsArrayEnumerator.h"
 #include "nsIStringBundle.h"
 #include "nsCocoaUtils.h"
+#include "nsThreadUtils.h"
 #include "mozilla/Preferences.h"
 
 // This must be included last:
@@ -87,6 +88,42 @@ static void SetShowHiddenFileState(NSSavePanel* panel) {
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
+
+/**
+ * A runnable to dispatch from the main thread to the main thread to display
+ * the file picker while letting the showAsync method return right away.
+ */
+class nsFilePicker::AsyncShowFilePicker : public mozilla::Runnable {
+ public:
+  AsyncShowFilePicker(nsFilePicker* aFilePicker,
+                      nsIFilePickerShownCallback* aCallback)
+      : mozilla::Runnable("AsyncShowFilePicker"),
+        mFilePicker(aFilePicker),
+        mCallback(aCallback) {}
+
+  NS_IMETHOD Run() override {
+    NS_ASSERTION(NS_IsMainThread(),
+                 "AsyncShowFilePicker should be on the main thread!");
+
+    // macOS requires require GUI operations to be on the main thread, so that's
+    // why we're not dispatching to another thread and calling back to the main
+    // after it's done.
+    nsIFilePicker::ResultCode result = nsIFilePicker::returnCancel;
+    nsresult rv = mFilePicker->Show(&result);
+    if (NS_FAILED(rv)) {
+      NS_ERROR("FilePicker's Show() implementation failed!");
+    }
+
+    if (mCallback) {
+      mCallback->Done(result);
+    }
+    return NS_OK;
+  }
+
+ private:
+  RefPtr<nsFilePicker> mFilePicker;
+  RefPtr<nsIFilePickerShownCallback> mCallback;
+};
 
 nsFilePicker::nsFilePicker() : mSelectedTypeIndex(0) {}
 
@@ -235,6 +272,17 @@ nsresult nsFilePicker::Show(ResultCode* retval) {
 
   *retval = userClicksOK;
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
+  if (MaybeBlockFilePicker(aCallback)) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIRunnable> filePickerEvent =
+      new AsyncShowFilePicker(this, aCallback);
+  return NS_DispatchToMainThread(filePickerEvent);
 }
 
 static void UpdatePanelFileTypes(NSOpenPanel* aPanel, NSArray* aFilters) {

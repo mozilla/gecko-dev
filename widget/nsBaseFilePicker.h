@@ -20,10 +20,6 @@ class nsPIDOMWindowOuter;
 class nsIWidget;
 
 class nsBaseFilePicker : public nsIFilePicker {
-#ifndef XP_WIN
-  class AsyncShowFilePicker;
-#endif
-
  public:
   nsBaseFilePicker();
   virtual ~nsBaseFilePicker();
@@ -32,9 +28,6 @@ class nsBaseFilePicker : public nsIFilePicker {
                   const nsAString& aTitle, nsIFilePicker::Mode aMode) override;
   NS_IMETHOD IsModeSupported(nsIFilePicker::Mode aMode, JSContext* aCx,
                              mozilla::dom::Promise** aPromise) override;
-#ifndef XP_WIN
-  NS_IMETHOD Open(nsIFilePickerShownCallback* aCallback) override;
-#endif
   NS_IMETHOD AppendFilters(int32_t filterMask) override;
   NS_IMETHOD AppendRawFilter(const nsAString& aFilter) override;
   NS_IMETHOD GetCapture(nsIFilePicker::CaptureTarget* aCapture) override;
@@ -59,7 +52,6 @@ class nsBaseFilePicker : public nsIFilePicker {
 
  protected:
   virtual void InitNative(nsIWidget* aParent, const nsAString& aTitle) = 0;
-  virtual nsresult Show(nsIFilePicker::ResultCode* _retval) = 0;
 
   virtual nsresult ResolveSpecialDirectory(const nsAString& aSpecialDirectory);
   bool MaybeBlockFilePicker(nsIFilePickerShownCallback* aCallback);
