@@ -51,6 +51,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FormAutofillPrompter: "resource://autofill/FormAutofillPrompter.sys.mjs",
   FirefoxRelay: "resource://gre/modules/FirefoxRelay.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
+  MLAutofill: "resource://autofill/MLAutofill.sys.mjs",
   OSKeyStore: "resource://gre/modules/OSKeyStore.sys.mjs",
 });
 
@@ -491,6 +492,11 @@ export class FormAutofillParent extends JSWindowActorParent {
     // but also called when the elements in a form are changed. When the elements
     // in a form are changed, we treat the "updated" section as a new detected section.
     sections.forEach(section => section.onDetected());
+
+    if (FormAutofill.isMLExperimentEnabled) {
+      const allFieldDetails = sections.flatMap(section => section.fieldDetails);
+      lazy.MLAutofill.runInference(allFieldDetails);
+    }
 
     // Inform all the child actors of the updated 'fieldDetails'
     const detailsByBC =
