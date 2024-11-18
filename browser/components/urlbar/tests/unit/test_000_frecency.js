@@ -181,6 +181,10 @@ add_task(async function test_frecency() {
   // Disable autoFill for this test.
   Services.prefs.setBoolPref("browser.urlbar.autoFill", false);
   Services.prefs.setBoolPref("browser.urlbar.suggest.searches", false);
+  Services.prefs.setBoolPref(
+    "browser.urlbar.scotchBonnet.enableOverride",
+    false
+  );
   // always search in history + bookmarks, no matter what the default is
   Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
   Services.prefs.setBoolPref("browser.urlbar.suggest.bookmarks", true);
@@ -189,6 +193,7 @@ add_task(async function test_frecency() {
     Services.prefs.clearUserPref("browser.urlbar.suggest.bookmarks");
     Services.prefs.clearUserPref("browser.urlbar.autoFill");
     Services.prefs.clearUserPref("browser.urlbar.suggest.searches");
+    Services.prefs.clearUserPref("browser.urlbar.scotchBonnet.enableOverride");
   });
   for (let bucket of bucketPrefs) {
     await task_initializeBucket(bucket);

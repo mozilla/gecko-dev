@@ -381,7 +381,7 @@ function testEngine_setup() {
     );
     Services.prefs.setBoolPref("browser.urlbar.suggest.searches", false);
     Services.prefs.setBoolPref(
-      "browser.urlbar.contextualSearch.enabled",
+      "browser.urlbar.scotchBonnet.enableOverride",
       false
     );
   });

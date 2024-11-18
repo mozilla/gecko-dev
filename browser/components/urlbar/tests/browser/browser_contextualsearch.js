@@ -60,10 +60,7 @@ let updateConfig = async config => {
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.contextualSearch.enabled", true],
-      ["browser.urlbar.scotchBonnet.enableOverride", true],
-    ],
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
   });
 
   registerCleanupFunction(async () => {
