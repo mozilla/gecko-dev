@@ -8,6 +8,7 @@
 #include "APZTestCommon.h"
 #include "InputUtils.h"
 #include "Units.h"
+#include "mozilla/BasicEvents.h"
 #include "mozilla/StaticPrefs_apz.h"
 
 class APZCTreeManagerGenericTester : public APZCTreeManagerTester {
@@ -408,4 +409,81 @@ TEST_F(APZCTreeManagerTester,
 
   // Check that the effect of the keyboard scroll has been composited.
   EXPECT_GT(compositedScrollOffset.y, 0);
+}
+
+TEST_F(APZCTreeManagerGenericTesterMock,
+       PanGestureWithCtrlModifier_Bug1917488) {
+  // The outer layer represents the browser chrome, and has layers id 0.
+  // The inner layer represents web content, and will initally get layers id 1.
+  const char* treeShape = "x(x)";
+  LayerIntRect layerVisibleRect[] = {
+      LayerIntRect(0, 0, 100, 100),
+      LayerIntRect(0, 0, 100, 100),
+  };
+  CreateScrollData(treeShape, layerVisibleRect);
+
+  // We need one of these for every LayersId the test will use!
+  ScopedLayerTreeRegistration registration0(LayersId{0}, mcc);
+  ScopedLayerTreeRegistration registration1(LayersId{1}, mcc);
+  ScopedLayerTreeRegistration registration2(LayersId{2}, mcc);
+
+  // In this test, we only bother to give the inner layer an APZC.
+  ScrollableLayerGuid::ViewID scrollId = ScrollableLayerGuid::START_SCROLL_ID;
+  SetScrollableFrameMetrics(layers[1], scrollId, CSSRect(0, 0, 100, 100));
+
+  // Set the referent id of the root layer to 1.
+  // Note that this causes the *descendants* of the root layer
+  // to get a layers id of 1 during the hit-testing tree update.
+  LayersId tab1LayersId{1};
+  ScrollableLayerGuid tab1Guid(tab1LayersId, 0, scrollId);
+  root->SetReferentId(tab1LayersId);
+  UpdateHitTestingTree();
+
+  // Perform a pan gesture on the content layer.
+  // For the START event, do not use the PanGesture() helper, because we want to
+  // check the mLayersId that APZ sets on the input event object. This
+  // determines what content process the event will gets dispatched to.
+  ScreenIntPoint panPoint(50, 50);
+  QueueMockHitResult(tab1Guid);
+  PanGestureInput panStart(PanGestureInput::PANGESTURE_START, mcc->Time(),
+                           panPoint, ScreenPoint(0, 10), MODIFIER_NONE);
+  manager->ReceiveInputEvent(panStart);
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(tab1Guid);
+  PanGesture(PanGestureInput::PANGESTURE_PAN, manager, panPoint,
+             ScreenPoint(0, 10), mcc->Time());
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(tab1Guid);
+  PanGesture(PanGestureInput::PANGESTURE_END, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time());
+
+  // The layers id assigned to the events of this gesture should be 1.
+  EXPECT_EQ(panStart.mLayersId, tab1LayersId);
+
+  // Simulate a tab switch by updating the referent id of the root layer
+  // to a new layers id, 2.
+  LayersId tab2LayersId{2};
+  ScrollableLayerGuid tab2Guid(tab2LayersId, 0, scrollId);
+  root->SetReferentId(tab2LayersId);
+  UpdateHitTestingTree();
+
+  // Perform another pan gesture on the content layer, but this time with
+  // the Control modifier held down.
+  QueueMockHitResult(tab2Guid);
+  PanGestureInput zoomStart(PanGestureInput::PANGESTURE_START, mcc->Time(),
+                            panPoint, ScreenPoint(0, 10), MODIFIER_CONTROL);
+  manager->ReceiveInputEvent(zoomStart);
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(tab2Guid);
+  PanGesture(PanGestureInput::PANGESTURE_PAN, manager, panPoint,
+             ScreenPoint(0, 10), mcc->Time(), MODIFIER_CONTROL);
+  mcc->AdvanceByMillis(5);
+  QueueMockHitResult(tab2Guid);
+  PanGesture(PanGestureInput::PANGESTURE_END, manager, panPoint,
+             ScreenPoint(0, 0), mcc->Time(), MODIFIER_CONTROL);
+
+  // The layers id assigned to the events in the zoom gesture should be 2.
+  // (In the buggy scenario, it's 1, meaning the events get incorrectly
+  // sent to the previous tab's content process.)
+  EXPECT_EQ(zoomStart.mLayersId, tab2LayersId);
 }

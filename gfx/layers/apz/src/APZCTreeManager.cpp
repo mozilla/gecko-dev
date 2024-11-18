@@ -2396,9 +2396,11 @@ void APZCTreeManager::MaybeOverrideLayersIdForWheelEvent(InputData& aEvent) {
   APZThreadUtils::AssertOnControllerThread();
 
   InputBlockState* txn = nullptr;
-  if (aEvent.mInputType == SCROLLWHEEL_INPUT) {
+  if (aEvent.mInputType == SCROLLWHEEL_INPUT &&
+      aEvent.AsScrollWheelInput().mHandledByAPZ) {
     txn = mInputQueue->GetActiveWheelTransaction();
-  } else if (aEvent.mInputType == PANGESTURE_INPUT) {
+  } else if (aEvent.mInputType == PANGESTURE_INPUT &&
+             aEvent.AsPanGestureInput().mHandledByAPZ) {
     txn = mInputQueue->GetCurrentPanGestureBlock();
   }
 
