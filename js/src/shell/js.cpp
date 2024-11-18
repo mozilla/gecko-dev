@@ -8680,6 +8680,7 @@ static bool AddMarkObservers(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     if (!markObservers->get().append(object)) {
+      ReportOutOfMemory(cx);
       return false;
     }
   }

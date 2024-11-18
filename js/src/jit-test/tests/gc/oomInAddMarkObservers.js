@@ -1,0 +1,3 @@
+oomTest(function() {
+    addMarkObservers([[]]);
+});
