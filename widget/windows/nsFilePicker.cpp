@@ -28,10 +28,13 @@
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WindowsVersion.h"
+#include "nsArrayEnumerator.h"
 #include "nsCRT.h"
 #include "nsEnumeratorUtils.h"
 #include "nsHashPropertyBag.h"
 #include "nsIContentAnalysis.h"
+#include "nsIFile.h"
+#include "nsISimpleEnumerator.h"
 #include "nsCExternalHandlerService.h"
 #include "nsIExternalHelperAppService.h"
 #include "nsNetUtil.h"
@@ -79,11 +82,15 @@ class AutoWidgetPickerState {
   explicit AutoWidgetPickerState(nsIWidget* aWidget)
       : mWindow(GetWindowForWidget(aWidget)) {
     MOZ_ASSERT(mWindow);
-    if (mWindow) mWindow->PickerOpen();
+    if (mWindow) {
+      mWindow->PickerOpen();
+    }
   }
   ~AutoWidgetPickerState() {
     // may be null if moved-from
-    if (mWindow) mWindow->PickerClosed();
+    if (mWindow) {
+      mWindow->PickerClosed();
+    }
   }
 
   AutoWidgetPickerState(AutoWidgetPickerState const&) = delete;
@@ -96,7 +103,7 @@ class AutoWidgetPickerState {
 ///////////////////////////////////////////////////////////////////////////////
 // nsIFilePicker
 
-nsFilePicker::nsFilePicker() : mSelectedType(1) {}
+nsFilePicker::nsFilePicker() = default;
 
 NS_IMPL_ISUPPORTS(nsFilePicker, nsIFilePicker)
 
@@ -577,7 +584,9 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
         fos |= FOS_NOREADONLYRETURN;
         // Don't follow shortcuts when saving a shortcut, this can be used
         // to trick users (bug 271732)
-        if (IsDefaultPathLink()) fos |= FOS_NODEREFERENCELINKS;
+        if (IsDefaultPathLink()) {
+          fos |= FOS_NODEREFERENCELINKS;
+        }
         break;
 
       case modeGetFolder:
@@ -788,7 +797,9 @@ nsresult nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
   }
 
   nsAutoString initialDir;
-  if (mDisplayDirectory) mDisplayDirectory->GetPath(initialDir);
+  if (mDisplayDirectory) {
+    mDisplayDirectory->GetPath(initialDir);
+  }
 
   // If no display directory, re-use the last one.
   if (initialDir.IsEmpty()) {
@@ -880,7 +891,9 @@ nsFilePicker::GetFile(nsIFile** aFile) {
   NS_ENSURE_ARG_POINTER(aFile);
   *aFile = nullptr;
 
-  if (mUnicodeFile.IsEmpty()) return NS_OK;
+  if (mUnicodeFile.IsEmpty()) {
+    return NS_OK;
+  }
 
   nsCOMPtr<nsIFile> file;
   nsresult rv = NS_NewLocalFile(mUnicodeFile, getter_AddRefs(file));
@@ -897,7 +910,9 @@ nsFilePicker::GetFileURL(nsIURI** aFileURL) {
   *aFileURL = nullptr;
   nsCOMPtr<nsIFile> file;
   nsresult rv = GetFile(getter_AddRefs(file));
-  if (!file) return rv;
+  if (!file) {
+    return rv;
+  }
 
   return NS_NewFileURI(aFileURL, file);
 }
@@ -916,16 +931,19 @@ nsBaseWinFilePicker::SetDefaultString(const nsAString& aString) {
   // First, make sure the file name is not too long.
   int32_t nameLength;
   int32_t nameIndex = mDefaultFilePath.RFind(u"\\");
-  if (nameIndex == kNotFound)
+  if (nameIndex == kNotFound) {
     nameIndex = 0;
-  else
+  } else {
     nameIndex++;
+  }
   nameLength = mDefaultFilePath.Length() - nameIndex;
   mDefaultFilename.Assign(Substring(mDefaultFilePath, nameIndex));
 
   if (nameLength > MAX_PATH) {
     int32_t extIndex = mDefaultFilePath.RFind(u".");
-    if (extIndex == kNotFound) extIndex = mDefaultFilePath.Length();
+    if (extIndex == kNotFound) {
+      extIndex = mDefaultFilePath.Length();
+    }
 
     // Let's try to shave the needed characters from the name part.
     int32_t charsToRemove = nameLength - MAX_PATH;
@@ -1041,8 +1059,9 @@ bool nsFilePicker::IsDefaultPathHtml() {
     mDefaultFilePath.Right(ext, mDefaultFilePath.Length() - extIndex);
     if (ext.LowerCaseEqualsLiteral(".htm") ||
         ext.LowerCaseEqualsLiteral(".html") ||
-        ext.LowerCaseEqualsLiteral(".shtml"))
+        ext.LowerCaseEqualsLiteral(".shtml")) {
       return true;
+    }
   }
   return false;
 }
@@ -1115,7 +1134,9 @@ void nsFilePicker::SendFailureNotification(nsFilePicker::ResultCode aResult,
   }
 
   nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
-  if (!obsSvc) return;  // normal during XPCOM shutdown
+  if (!obsSvc) {
+    return;  // normal during XPCOM shutdown
+  }
 
   RefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
   props->SetPropertyAsInterface(u"ctx"_ns, mBrowsingContext);
