@@ -17,6 +17,10 @@
   --markup-selected-focus-visible-non-highlighted-color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
 
   &[forced-colors-active] {
+    --markup-hidden-attr-name-color: GrayText;
+    --markup-hidden-attr-value-color: GrayText;
+    --markup-hidden-punctuation-color: GrayText;
+    --markup-hidden-tag-color: GrayText;
     /* In regular mode, this variable relies on --theme-body-color, which is already set
        to CanvasText for HCM, BUT: we still need to force it here because of Bug 1917523 */
     --markup-selected-focus-visible-non-highlighted-color: CanvasText;
@@ -419,6 +423,9 @@ ul.children + .tag-line::before {
 
 .editor.comment:not(.doctype) {
   color: var(--theme-highlight-green);
+  /* opt-out of forced color so comments gets a distinct color. This is safe as
+     --theme-highlight-green has a High Contrast specific declaration. */
+  forced-color-adjust: none;
 }
 
 .editor.text {
@@ -437,7 +444,9 @@ ul.children + .tag-line::before {
   }
 }
 
-.theme-dark .editor.text pre {
+/* Only override the color on non High Contrast dark theme so we can keep the inherited
+   colors in HCM */
+:root.theme-dark:not([forced-colors-active]) .editor.text pre {
   color: var(--theme-text-color-strong);
 }
 
@@ -515,11 +524,20 @@ ul.children + .tag-line::before {
      the selected + focused-visible style */
   :root[forced-colors-active] :is(
     .tag,
-    .attr-name,
-    .attr-value,
     .pseudo
   ) {
+    color: SelectedItem;
+  }
+
+  :root[forced-colors-active] .attr-name {
     color: CanvasText;
+  }
+
+  :root[forced-colors-active] .attr-value {
+    /* opt-out of forced color so attribute values gets a distinct color. This is safe as
+      --theme-highlight-blue has a High Contrast specific declaration. */
+    forced-color-adjust: none;
+    color: var(--theme-highlight-blue);
   }
 }
 
