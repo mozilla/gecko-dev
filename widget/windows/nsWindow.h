@@ -491,8 +491,6 @@ class nsWindow final : public nsBaseWidget {
     void SetSizeModeInternal(nsSizeMode, DoShowWindow);
 
     nsSizeMode mSizeMode = nsSizeMode_Normal;
-    // XXX mLastSizeMode is rather bizarre and needs some documentation.
-    nsSizeMode mLastSizeMode = nsSizeMode_Normal;
     // The old size mode before going into fullscreen mode. This should never
     // be nsSizeMode_Fullscreen.
     nsSizeMode mPreFullscreenSizeMode = nsSizeMode_Normal;

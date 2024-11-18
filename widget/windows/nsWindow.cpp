@@ -8592,7 +8592,6 @@ nsSizeMode nsWindow::FrameState::GetSizeMode() const { return mSizeMode; }
 
 void nsWindow::FrameState::CheckInvariant() const {
   MOZ_ASSERT(mSizeMode >= 0 && mSizeMode < nsSizeMode_Invalid);
-  MOZ_ASSERT(mLastSizeMode >= 0 && mLastSizeMode < nsSizeMode_Invalid);
   MOZ_ASSERT(mPreFullscreenSizeMode >= 0 &&
              mPreFullscreenSizeMode < nsSizeMode_Invalid);
   MOZ_ASSERT(mWindow);
@@ -8677,17 +8676,17 @@ void nsWindow::FrameState::OnFrameChanged() {
   // of activating as needed. We also don't want to potentially trigger
   // more focus / restore. Among other things, this addresses a bug on Win7
   // related to window docking. (bug 489258)
+  const auto oldSizeMode = mSizeMode;
   const auto newSizeMode =
       GetSizeModeForWindowFrame(mWindow->mWnd, mFullscreenMode);
   EnsureSizeMode(newSizeMode, DoShowWindow::No);
 
   // If window was restored, activate the window now to get correct attributes.
   if (mWindow->mIsVisible && mWindow->IsForegroundWindow() &&
-      mLastSizeMode == nsSizeMode_Minimized &&
+      oldSizeMode == nsSizeMode_Minimized &&
       mSizeMode != nsSizeMode_Minimized) {
     mWindow->DispatchFocusToTopLevelWindow(true);
   }
-  mLastSizeMode = mSizeMode;
 }
 
 static void MaybeLogSizeMode(nsSizeMode aMode) {
@@ -8707,7 +8706,6 @@ void nsWindow::FrameState::SetSizeModeInternal(nsSizeMode aMode,
       mSizeMode == nsSizeMode_Fullscreen || aMode == nsSizeMode_Fullscreen;
   const bool fullscreen = aMode == nsSizeMode_Fullscreen;
 
-  mLastSizeMode = mSizeMode;
   mSizeMode = aMode;
 
   MaybeLogSizeMode(mSizeMode);
