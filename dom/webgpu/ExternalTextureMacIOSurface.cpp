@@ -57,6 +57,25 @@ ExternalTextureMacIOSurface::ToSurfaceDescriptor(
 }
 
 void ExternalTextureMacIOSurface::GetSnapshot(const ipc::Shmem& aDestShmem,
-                                              const gfx::IntSize& aSize) {}
+                                              const gfx::IntSize& aSize) {
+  if (!mSurface->Lock()) {
+    gfxCriticalNoteOnce << "Failed to lock MacIOSurface";
+    return;
+  }
+
+  const size_t bytesPerRow = mSurface->GetBytesPerRow();
+  const uint32_t stride = layers::ImageDataSerializer::ComputeRGBStride(
+      gfx::SurfaceFormat::B8G8R8A8, aSize.width);
+  uint8_t* src = (uint8_t*)mSurface->GetBaseAddress();
+  uint8_t* dst = aDestShmem.get<uint8_t>();
+
+  MOZ_ASSERT(stride * aSize.height <= aDestShmem.Size<uint8_t>());
+
+  for (int y = 0; y < aSize.height; y++) {
+    memcpy(dst, src, stride);
+    src += bytesPerRow;
+    dst += stride;
+  }
+}
 
 }  // namespace mozilla::webgpu
