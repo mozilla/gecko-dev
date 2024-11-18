@@ -1,3 +1,5 @@
+// |jit-test| skip-if: !('Function' in WebAssembly)
+
 // Tests constants pools in the tail call trampoline
 
 const fun1 = new WebAssembly.Function({ parameters: [], results: [] }, () => { });
