@@ -2051,6 +2051,7 @@ export class TopSitesFeed {
             this.refresh({ broadcast: true });
             break;
           case SHOW_SPONSORED_PREF:
+          case PREF_UNIFIED_ADS_TILES_ENABLED:
             if (
               lazy.NimbusFeatures.newtab.getVariable(
                 NIMBUS_VARIABLE_CONTILE_ENABLED
