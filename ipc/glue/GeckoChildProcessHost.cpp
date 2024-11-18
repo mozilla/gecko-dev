@@ -982,13 +982,14 @@ NS_IMETHODIMP
 IPCLaunchThreadObserver::Observe(nsISupports* aSubject, const char* aTopic,
                                  const char16_t* aData) {
   MOZ_RELEASE_ASSERT(strcmp(aTopic, "xpcom-shutdown-threads") == 0);
-  StaticMutexAutoLock lock(gIPCLaunchThreadMutex);
 
-  nsresult rv = NS_OK;
-  if (gIPCLaunchThread) {
-    rv = gIPCLaunchThread->Shutdown();
-    gIPCLaunchThread = nullptr;
+  nsCOMPtr<nsIThread> thread;
+  {
+    StaticMutexAutoLock lock(gIPCLaunchThreadMutex);
+    thread = gIPCLaunchThread.forget();
   }
+
+  nsresult rv = thread ? thread->Shutdown() : NS_OK;
   mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
   return rv;
 }
