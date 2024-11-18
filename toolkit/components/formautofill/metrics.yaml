@@ -1443,6 +1443,41 @@ creditcard:
     extra_keys: *creditcard_detected_extra
     telemetry_mirror: Creditcard_Cleared_CcFormV2
 
+formautofill.ml:
+  field_infer_result:
+    type: event
+    description: >
+      Captures the result from both ML-based model and existing heuristics for autofill field classification.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928369
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1928369
+    notification_emails:
+      - autofill@lists.mozilla.org
+    expires: never
+    extra_keys:
+      infer_field_name:
+        description: The inferred result by the existing autofill heuristics.
+        type: string
+      infer_reason:
+        description: The inference method. Possible values are `autocomplete`, `fathom`, `regex-heuristic`, or `update-heuristic`.
+        type: string
+      fathom_infer_label:
+        description: The inferred result by the Fathom model.
+        type: string
+      fathom_infer_score:
+        description: The score of the inferred result by the Fathom model.
+        type: string
+      ml_revision:
+        description: The revision for the ML autofill model.
+        type: string
+      ml_infer_label:
+        description: The inferred result by the autofill ML model.
+        type: string
+      ml_infer_score:
+        description: The score of the inferred result by the autofill ML model.
+        type: string
+
 formautofill.addresses:
   detected_sections_count:
     type: counter
