@@ -303,7 +303,7 @@ class BaselineCompilerHandler {
   BaselineCompilerHandler(MacroAssembler& masm, TempAllocator& alloc,
                           JSScript* script);
 
-  [[nodiscard]] bool init(JSContext* cx);
+  [[nodiscard]] bool init();
 
   CompilerFrameInfo& frame() { return frame_; }
 
@@ -390,7 +390,7 @@ class BaselineCompiler final : private BaselineCompilerCodeGen {
   void setIonCompileable(bool value) { handler.setIonCompileable(value); }
 
  private:
-  MethodStatus emitBody();
+  bool emitBody();
 
   [[nodiscard]] bool emitDebugTrap();
 };

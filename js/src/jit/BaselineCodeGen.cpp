@@ -107,7 +107,7 @@ BaselineInterpreterGenerator::BaselineInterpreterGenerator(JSContext* cx,
                                                            TempAllocator& alloc)
     : BaselineCodeGen(cx, alloc /* no handlerArgs */) {}
 
-bool BaselineCompilerHandler::init(JSContext* cx) {
+bool BaselineCompilerHandler::init() {
   if (!analysis_.init(alloc_)) {
     return false;
   }
@@ -130,7 +130,7 @@ bool BaselineCompilerHandler::init(JSContext* cx) {
 }
 
 bool BaselineCompiler::init() {
-  if (!handler.init(cx)) {
+  if (!handler.init()) {
     return false;
   }
 
@@ -242,9 +242,8 @@ MethodStatus BaselineCompiler::compile() {
     return Method_Error;
   }
 
-  MethodStatus status = emitBody();
-  if (status != Method_Compiled) {
-    return status;
+  if (!emitBody()) {
+    return Method_Error;
   }
 
   perfSpewer_.recordOffset(masm, "Epilogue");
@@ -6601,7 +6600,7 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
   return true;
 }
 
-MethodStatus BaselineCompiler::emitBody() {
+bool BaselineCompiler::emitBody() {
   AutoCreatedBy acb(masm, "BaselineCompiler::emitBody");
 
   JSScript* script = handler.script();
@@ -6654,21 +6653,21 @@ MethodStatus BaselineCompiler::emitBody() {
       uint32_t nativeOffset = masm.currentOffset();
       if (!resumeOffsetEntries_.emplaceBack(pcOffset, nativeOffset)) {
         ReportOutOfMemory(cx);
-        return Method_Error;
+        return false;
       }
     }
 
     // Emit traps for breakpoints and step mode.
     if (MOZ_UNLIKELY(compileDebugInstrumentation()) && !emitDebugTrap()) {
-      return Method_Error;
+      return false;
     }
 
     perfSpewer_.recordInstruction(cx, masm, handler.pc(), frame);
 
-#define EMIT_OP(OP, ...)                                       \
-  case JSOp::OP: {                                             \
-    AutoCreatedBy acb(masm, "op=" #OP);                        \
-    if (MOZ_UNLIKELY(!this->emit_##OP())) return Method_Error; \
+#define EMIT_OP(OP, ...)                                \
+  case JSOp::OP: {                                      \
+    AutoCreatedBy acb(masm, "op=" #OP);                 \
+    if (MOZ_UNLIKELY(!this->emit_##OP())) return false; \
   } break;
 
     switch (op) {
@@ -6693,7 +6692,7 @@ MethodStatus BaselineCompiler::emitBody() {
   }
 
   MOZ_ASSERT(JSOp(*prevpc) == JSOp::RetRval || JSOp(*prevpc) == JSOp::Return);
-  return Method_Compiled;
+  return true;
 }
 
 bool BaselineInterpreterGenerator::emitDebugTrap() {
