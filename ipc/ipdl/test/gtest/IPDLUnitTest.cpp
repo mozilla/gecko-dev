@@ -7,10 +7,10 @@
 #include "gtest/gtest.h"
 
 #include "mozilla/_ipdltest/IPDLUnitTest.h"
-#include "mozilla/ipc/IOThreadChild.h"
 #include "mozilla/ipc/NodeController.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/ipc/ProcessChild.h"
+#include "mozilla/ipc/ProcessUtils.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "nsDebugImpl.h"
 #include "nsThreadManager.h"

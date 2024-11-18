@@ -16,7 +16,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ToString.h"
-#include "mozilla/ipc/BrowserProcessSubThread.h"
+#include "mozilla/ipc/IOThread.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/mozalloc.h"
 #include "nsISerialEventTarget.h"

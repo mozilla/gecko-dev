@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "RDDProcessImpl.h"
 
-#include "mozilla/ipc/IOThreadChild.h"
 #include "mozilla/GeckoArgs.h"
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)

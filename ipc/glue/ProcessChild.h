@@ -11,9 +11,8 @@
 #include "base/message_loop.h"
 #include "base/process.h"
 
-#include "chrome/common/child_process.h"
-
-#include "mozilla/ipc/ProcessUtils.h"
+#include "mozilla/GeckoArgs.h"
+#include "mozilla/ipc/IOThread.h"
 
 // ProcessChild is the base class for all subprocesses of the main
 // browser process.  Its code runs on the thread that started in
@@ -22,7 +21,7 @@
 namespace mozilla {
 namespace ipc {
 
-class ProcessChild : public ChildProcess {
+class ProcessChild {
  protected:
   typedef base::ProcessId ProcessId;
 
@@ -77,6 +76,7 @@ class ProcessChild : public ChildProcess {
   MessageLoop* mUILoop;
   ProcessId mParentPid;
   nsID mMessageChannelId;
+  UniquePtr<IOThreadChild> mChildThread;
 };
 
 }  // namespace ipc

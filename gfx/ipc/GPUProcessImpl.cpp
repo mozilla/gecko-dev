@@ -4,7 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "GPUProcessImpl.h"
-#include "mozilla/ipc/IOThreadChild.h"
 #include "nsXPCOM.h"
 #include "mozilla/ipc/ProcessUtils.h"
 #include "mozilla/GeckoArgs.h"

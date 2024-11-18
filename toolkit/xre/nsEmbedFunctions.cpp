@@ -69,8 +69,7 @@
 #include "mozilla/ipc/UtilityProcessImpl.h"
 #include "mozilla/UniquePtr.h"
 
-#include "mozilla/ipc/BrowserProcessSubThread.h"
-#include "mozilla/ipc/IOThreadChild.h"
+#include "mozilla/ipc/IOThread.h"
 #include "mozilla/ipc/ProcessChild.h"
 
 #include "mozilla/dom/ContentProcess.h"
@@ -129,9 +128,8 @@
 
 using namespace mozilla;
 
-using mozilla::ipc::BrowserProcessSubThread;
 using mozilla::ipc::GeckoChildProcessHost;
-using mozilla::ipc::IOThreadChild;
+using mozilla::ipc::IOThread;
 using mozilla::ipc::ProcessChild;
 
 using mozilla::dom::ContentParent;
@@ -598,14 +596,7 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 }
 
 nsISerialEventTarget* XRE_GetAsyncIOEventTarget() {
-  // FIXME: Consider cleaning up the IO thread situation.
-  MessageLoop* loop = nullptr;
-  if (GetGeckoProcessType() == GeckoProcessType_Default) {
-    loop = BrowserProcessSubThread::GetMessageLoop(BrowserProcessSubThread::IO);
-  } else {
-    loop = IOThreadChild::message_loop();
-  }
-  return loop ? loop->SerialEventTarget() : nullptr;
+  return IOThread::Get()->GetEventTarget();
 }
 
 nsresult XRE_RunAppShell() {
