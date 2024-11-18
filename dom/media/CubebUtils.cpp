@@ -685,12 +685,11 @@ uint32_t GetCubebMTGLatencyInFrames(cubeb_stream_params* params) {
   }
 
 #ifdef MOZ_WIDGET_ANDROID
-  int frames = AndroidGetAudioOutputFramesPerBuffer();
-  if (frames > 0) {
-    return frames;
-  } else {
-    return 512;
-  }
+  int32_t frames = AndroidGetAudioOutputFramesPerBuffer();
+  // Allow extra time until audioipc threads are scheduled with higher
+  // priority (bug 1931080).  768 was not sufficient on a Samsung SM-A528B
+  // when switching to the home screen.
+  return std::max(1024, frames);
 #else
   RefPtr<CubebHandle> handle = GetCubebUnlocked();
   if (!handle) {
