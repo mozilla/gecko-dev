@@ -8,7 +8,7 @@ use api::{
 };
 use api::units::*;
 use crate::scene_building::{CreateShadow, IsVisible};
-use crate::frame_builder::{FrameBuildingState};
+use crate::frame_builder::FrameBuildingState;
 use crate::gpu_cache::GpuDataRequest;
 use crate::intern;
 use crate::internal_types::LayoutPrimitiveInfo;

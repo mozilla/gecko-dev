@@ -9,7 +9,7 @@ use api::{TransformStyle, StickyOffsetBounds, SpatialTreeItemKey};
 use api::units::*;
 use crate::internal_types::PipelineInstanceId;
 use crate::spatial_tree::{CoordinateSystem, SpatialNodeIndex, TransformUpdateState};
-use crate::spatial_tree::{CoordinateSystemId};
+use crate::spatial_tree::CoordinateSystemId;
 use euclid::{Vector2D, SideOffsets2D};
 use crate::scene::SceneProperties;
 use crate::util::{LayoutFastTransform, MatrixHelpers, ScaleOffset, TransformedRectKind, PointHelpers};

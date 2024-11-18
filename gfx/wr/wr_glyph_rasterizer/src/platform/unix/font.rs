@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![allow(non_camel_case_types)]
+
 use api::{ColorU, GlyphDimensions, FontKey, FontRenderMode};
 use api::{FontInstancePlatformOptions, FontLCDFilter, FontHinting};
 use api::{FontInstanceFlags, FontTemplate, FontVariation, NativeFontHandle};
@@ -18,7 +20,7 @@ use freetype::freetype::{FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_FORCE_AUTOHINT}
 use freetype::freetype::{FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH, FT_LOAD_NO_AUTOHINT};
 use freetype::freetype::{FT_LOAD_NO_BITMAP, FT_LOAD_NO_HINTING};
 use freetype::freetype::{FT_FACE_FLAG_SCALABLE, FT_FACE_FLAG_FIXED_SIZES};
-use freetype::freetype::{FT_FACE_FLAG_MULTIPLE_MASTERS};
+use freetype::freetype::FT_FACE_FLAG_MULTIPLE_MASTERS;
 use freetype::succeeded;
 use crate::rasterizer::{FontInstance, GlyphFormat, GlyphKey};
 use crate::rasterizer::{GlyphRasterError, GlyphRasterResult, RasterizedGlyph};

@@ -19,7 +19,7 @@ use crate::{
     render_task::RenderTaskData,
 };
 
-use crate::internal_types::{FrameVec};
+use crate::internal_types::FrameVec;
 
 pub const VERTEX_TEXTURE_EXTRA_ROWS: i32 = 10;
 

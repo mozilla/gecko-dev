@@ -6,7 +6,7 @@
 use api::{DirtyRect, ImageDescriptor, ImageDescriptorFlags, SnapshotImageKey};
 use api::units::*;
 use crate::border::BorderSegmentCacheKey;
-use crate::box_shadow::{BoxShadowCacheKey};
+use crate::box_shadow::BoxShadowCacheKey;
 use crate::device::TextureFilter;
 use crate::freelist::{FreeList, FreeListHandle, WeakFreeListHandle};
 use crate::gpu_cache::GpuCache;

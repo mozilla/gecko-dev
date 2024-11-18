@@ -7,9 +7,9 @@
 //! TODO: document what this pass does!
 //!
 
-use api::{DebugFlags};
+use api::DebugFlags;
 use api::units::*;
-use std::{usize};
+use std::usize;
 use crate::clip::ClipStore;
 use crate::composite::CompositeState;
 use crate::profiler::TransactionProfile;
@@ -26,7 +26,7 @@ use crate::render_task_graph::RenderTaskGraphBuilder;
 use crate::resource_cache::ResourceCache;
 use crate::scene::SceneProperties;
 use crate::space::SpaceMapper;
-use crate::util::{MaxRect};
+use crate::util::MaxRect;
 
 pub struct FrameVisibilityContext<'a> {
     pub spatial_tree: &'a SpatialTree,

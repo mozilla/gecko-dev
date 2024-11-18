@@ -12,7 +12,7 @@ use crate::scene_builder_thread::Interners;
 use crate::spatial_tree::{SpatialNodeIndex, SpatialTree, get_external_scroll_offset};
 use crate::internal_types::{FastHashMap, LayoutPrimitiveInfo};
 use std::sync::{Arc, Mutex};
-use crate::util::{LayoutToWorldFastTransform};
+use crate::util::LayoutToWorldFastTransform;
 
 pub struct SharedHitTester {
     // We don't really need a mutex here. We could do with some sort of

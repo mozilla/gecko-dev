@@ -52,7 +52,7 @@
 use api::{BorderRadius, ClipMode};
 use api::units::*;
 use std::{cmp, usize};
-use crate::util::{extract_inner_rect_safe};
+use crate::util::extract_inner_rect_safe;
 use smallvec::SmallVec;
 
 // We don't want to generate too many segments in edge cases, as it will result in a lot of
