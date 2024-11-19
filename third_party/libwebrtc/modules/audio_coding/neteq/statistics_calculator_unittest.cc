@@ -17,6 +17,7 @@ namespace webrtc {
 TEST(LifetimeStatistics, TotalSamplesReceived) {
   TickTimer timer;
   StatisticsCalculator stats(&timer);
+  stats.DecodedOutputPlayed();
   for (int i = 0; i < 10; ++i) {
     stats.IncreaseCounter(480, 48000);  // 10 ms at 48 kHz.
   }
@@ -26,6 +27,7 @@ TEST(LifetimeStatistics, TotalSamplesReceived) {
 TEST(LifetimeStatistics, SamplesConcealed) {
   TickTimer timer;
   StatisticsCalculator stats(&timer);
+  stats.DecodedOutputPlayed();
   stats.ExpandedVoiceSamples(100, false);
   stats.ExpandedNoiseSamples(17, false);
   EXPECT_EQ(100u + 17u, stats.GetLifetimeStatistics().concealed_samples);
@@ -38,6 +40,7 @@ TEST(LifetimeStatistics, SamplesConcealed) {
 TEST(LifetimeStatistics, SamplesConcealedCorrection) {
   TickTimer timer;
   StatisticsCalculator stats(&timer);
+  stats.DecodedOutputPlayed();
   stats.ExpandedVoiceSamples(100, false);
   EXPECT_EQ(100u, stats.GetLifetimeStatistics().concealed_samples);
   stats.ExpandedVoiceSamplesCorrection(-10);
@@ -60,6 +63,7 @@ TEST(LifetimeStatistics, SamplesConcealedCorrection) {
 TEST(LifetimeStatistics, NoUpdateOnTimeStretch) {
   TickTimer timer;
   StatisticsCalculator stats(&timer);
+  stats.DecodedOutputPlayed();
   stats.ExpandedVoiceSamples(100, false);
   stats.AcceleratedSamples(4711);
   stats.PreemptiveExpandedSamples(17);
@@ -70,6 +74,7 @@ TEST(LifetimeStatistics, NoUpdateOnTimeStretch) {
 TEST(StatisticsCalculator, ExpandedSamplesCorrection) {
   TickTimer timer;
   StatisticsCalculator stats(&timer);
+  stats.DecodedOutputPlayed();
   NetEqNetworkStatistics stats_output;
   constexpr int kSampleRateHz = 48000;
   constexpr int k10MsSamples = kSampleRateHz / 100;
@@ -241,6 +246,21 @@ TEST(StatisticsCalculator, JitterBufferDelay) {
   EXPECT_EQ(lts.jitter_buffer_minimum_delay_ms / 960, 70ul);
   EXPECT_EQ(lts.total_processing_delay_us / 960, 100 * 1000ul);
   EXPECT_EQ(lts.jitter_buffer_emitted_count, 960ul);
+}
+
+TEST(StatisticsCalculator, CountStatsAfterFirstDecodedPacket) {
+  TickTimer timer;
+  StatisticsCalculator stats(&timer);
+  stats.IncreaseCounter(/*num_samples=*/480, /*fs_hz=*/48000);
+  stats.ExpandedVoiceSamples(/*num_samples=*/480,
+                             /*is_new_concealment_event=*/true);
+  NetEqLifetimeStatistics lts = stats.GetLifetimeStatistics();
+  EXPECT_EQ(lts.total_samples_received, 0u);
+  EXPECT_EQ(lts.concealed_samples, 0u);
+  stats.DecodedOutputPlayed();
+  stats.IncreaseCounter(/*num_samples=*/480, /*fs_hz=*/48000);
+  lts = stats.GetLifetimeStatistics();
+  EXPECT_EQ(lts.total_samples_received, 480u);
 }
 
 }  // namespace webrtc

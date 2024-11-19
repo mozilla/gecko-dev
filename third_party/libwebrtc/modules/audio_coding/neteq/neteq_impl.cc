@@ -201,6 +201,7 @@ int NetEqImpl::GetAudio(AudioFrame* audio_frame,
   if (GetAudioInternal(audio_frame, action_override) != 0) {
     return kFail;
   }
+  stats_->IncreaseCounter(output_size_samples_, fs_hz_);
   RTC_DCHECK_EQ(
       audio_frame->sample_rate_hz_,
       rtc::dchecked_cast<int>(audio_frame->samples_per_channel_ * 100));
@@ -733,7 +734,6 @@ int NetEqImpl::GetAudioInternal(AudioFrame* audio_frame,
   bool play_dtmf;
   last_decoded_packet_infos_.clear();
   tick_timer_->Increment();
-  stats_->IncreaseCounter(output_size_samples_, fs_hz_);
 
   // Check for muted state.
   if (enable_muted_state_ && expand_->Muted() && packet_buffer_->Empty()) {
