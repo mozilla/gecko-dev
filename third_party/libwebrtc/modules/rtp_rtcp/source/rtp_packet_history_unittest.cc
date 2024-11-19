@@ -160,7 +160,7 @@ TEST_P(RtpPacketHistoryTest, GetRtpPacket) {
 }
 
 TEST_P(RtpPacketHistoryTest, MinResendTime) {
-  static const TimeDelta kMinRetransmitInterval = TimeDelta::Millis(100);
+  static constexpr TimeDelta kMinRetransmitInterval = TimeDelta::Millis(100);
 
   hist_.SetStorePacketsStatus(StorageMode::kStoreAndCull, 10);
   hist_.SetRtt(kMinRetransmitInterval);

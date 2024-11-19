@@ -19,9 +19,12 @@
 #include "rtc_base/logging.h"
 
 namespace webrtc {
+namespace {
 
-static const size_t kGenericHeaderLength = 1;
-static const size_t kExtendedHeaderLength = 2;
+constexpr size_t kGenericHeaderLength = 1;
+constexpr size_t kExtendedHeaderLength = 2;
+
+}  // namespace
 
 RtpPacketizerGeneric::RtpPacketizerGeneric(
     rtc::ArrayView<const uint8_t> payload,
