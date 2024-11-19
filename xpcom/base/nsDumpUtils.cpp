@@ -69,7 +69,7 @@ void FdWatcher::Init() {
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
   os->AddObserver(this, "xpcom-shutdown", /* ownsWeak = */ false);
 
-  XRE_GetIOMessageLoop()->PostTask(NewRunnableMethod(
+  XRE_GetAsyncIOEventTarget()->Dispatch(NewRunnableMethod(
       "FdWatcher::StartWatching", this, &FdWatcher::StartWatching));
 }
 
@@ -77,7 +77,7 @@ void FdWatcher::Init() {
 // it's safe to call OpenFd() multiple times and they call StopWatching()
 // first.
 void FdWatcher::StartWatching() {
-  MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread());
   MOZ_ASSERT(mFd == -1);
 
   mFd = OpenFd();
@@ -94,7 +94,7 @@ void FdWatcher::StartWatching() {
 // Since implementations can call StartWatching() multiple times, they can of
 // course call StopWatching() multiple times.
 void FdWatcher::StopWatching() {
-  MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread());
 
   mReadWatcher.StopWatchingFileDescriptor();
   if (mFd != -1) {
@@ -159,7 +159,7 @@ SignalPipeWatcher::~SignalPipeWatcher() {
 }
 
 int SignalPipeWatcher::OpenFd() {
-  MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread());
 
   // Create a pipe.  When we receive a signal in our signal handler, we'll
   // write the signum to the write-end of this pipe.
@@ -181,7 +181,7 @@ int SignalPipeWatcher::OpenFd() {
 }
 
 void SignalPipeWatcher::StopWatching() {
-  MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread());
 
   // Close sDumpPipeWriteFd /after/ setting the fd to -1.
   // Otherwise we have the (admittedly far-fetched) race where we
@@ -197,7 +197,7 @@ void SignalPipeWatcher::StopWatching() {
 }
 
 void SignalPipeWatcher::OnFileCanReadWithoutBlocking(int aFd) {
-  MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread());
 
   uint8_t signum;
   ssize_t numReceived = read(aFd, &signum, sizeof(signum));
@@ -346,7 +346,7 @@ int FifoWatcher::OpenFd() {
 }
 
 void FifoWatcher::OnFileCanReadWithoutBlocking(int aFd) {
-  MOZ_ASSERT(XRE_GetIOMessageLoop() == MessageLoopForIO::current());
+  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread());
 
   char buf[1024];
   int nread;

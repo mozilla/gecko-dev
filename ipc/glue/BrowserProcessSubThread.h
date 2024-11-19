@@ -56,8 +56,8 @@ class BrowserProcessSubThread : public base::Thread {
 };
 
 inline void AssertIOThread() {
-  NS_ASSERTION(MessageLoop::TYPE_IO == MessageLoop::current()->type(),
-               "should be on the IO thread!");
+  MOZ_ASSERT(XRE_GetAsyncIOEventTarget()->IsOnCurrentThread(),
+             "should be on the async IO event target");
 }
 
 }  // namespace ipc
