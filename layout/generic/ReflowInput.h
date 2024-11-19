@@ -36,8 +36,8 @@ enum class LayoutFrameType : uint8_t;
  * @return aValue clamped to [aMinValue, aMaxValue].
  *
  * @note This function needs to handle aMinValue > aMaxValue. In that case,
- *       aMinValue is returned. That's why we cannot use std::clamp() and
- *       mozilla::clamped() since they both assert max >= min.
+ *       aMinValue is returned. That's why we cannot use std::clamp()
+ *       since it asserts max >= min.
  * @note If aMinValue and aMaxValue are computed min block-size and max
  *       block-size, it is simpler to use ReflowInput::ApplyMinMaxBSize().
  *       Similarly, there is ReflowInput::ApplyMinMaxISize() for clamping an

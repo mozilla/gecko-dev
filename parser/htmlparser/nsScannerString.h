@@ -379,9 +379,6 @@ inline bool SameFragment(const nsScannerIterator& a,
   return a.fragment().mFragmentStart == b.fragment().mFragmentStart;
 }
 
-/**
- * this class is needed in order to make use of the methods in nsAlgorithm.h
- */
 template <>
 struct nsCharSourceTraits<nsScannerIterator> {
   typedef nsScannerIterator::difference_type difference_type;
