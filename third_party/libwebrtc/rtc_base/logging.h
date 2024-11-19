@@ -67,6 +67,8 @@
 
 #include "absl/base/attributes.h"
 #include "absl/meta/type_traits.h"
+#include "absl/strings/has_absl_stringify.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/platform_thread_types.h"
@@ -348,20 +350,26 @@ ToStringVal MakeVal(const T& x) {
   return {ToLogString(x)};
 }
 
+template <typename T,
+          std::enable_if_t<absl::HasAbslStringify<T>::value>* = nullptr>
+ToStringVal MakeVal(const T& x) {
+  return {absl::StrCat(x)};
+}
+
 // Handle arbitrary types other than the above by falling back to stringstream.
 // TODO(bugs.webrtc.org/9278): Get rid of this overload when callers don't need
 // it anymore. No in-tree caller does, but some external callers still do.
-template <
-    typename T,
-    typename T1 = absl::decay_t<T>,
-    absl::enable_if_t<std::is_class<T1>::value &&
-                      !std::is_same<T1, std::string>::value &&
-                      !std::is_same<T1, LogMetadata>::value &&
-                      !has_to_log_string<T1>::value &&
+template <typename T,
+          typename T1 = absl::decay_t<T>,
+          std::enable_if_t<std::is_class<T1>::value &&               //
+                           !std::is_same<T1, std::string>::value &&  //
+                           !std::is_same<T1, LogMetadata>::value &&  //
+                           !has_to_log_string<T1>::value &&          //
+                           !absl::HasAbslStringify<T1>::value &&
 #ifdef WEBRTC_ANDROID
-                      !std::is_same<T1, LogMetadataTag>::value &&
+                           !std::is_same<T1, LogMetadataTag>::value &&  //
 #endif
-                      !std::is_same<T1, LogMetadataErr>::value>* = nullptr>
+                           !std::is_same<T1, LogMetadataErr>::value>* = nullptr>
 ToStringVal MakeVal(const T& x) {
   std::ostringstream os;  // no-presubmit-check TODO(webrtc:8982)
   os << x;

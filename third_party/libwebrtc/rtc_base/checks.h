@@ -55,6 +55,8 @@ RTC_NORETURN void rtc_FatalMessage(const char* file, int line, const char* msg);
 #include <string>
 
 #include "absl/meta/type_traits.h"
+#include "absl/strings/has_absl_stringify.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "api/scoped_refptr.h"
 #include "rtc_base/numerics/safe_compare.h"
@@ -218,6 +220,12 @@ inline decltype(MakeVal(std::declval<absl::underlying_type_t<T>>())) MakeVal(
 template <typename T, decltype(ToLogString(std::declval<T>()))* = nullptr>
 ToStringVal MakeVal(const T& x) {
   return {ToLogString(x)};
+}
+
+template <typename T,
+          std::enable_if_t<absl::HasAbslStringify<T>::value>* = nullptr>
+ToStringVal MakeVal(const T& x) {
+  return {absl::StrCat(x)};
 }
 
 // Ephemeral type that represents the result of the logging << operator.

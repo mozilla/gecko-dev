@@ -29,6 +29,8 @@ namespace rtc {
 
 namespace {
 
+using ::testing::HasSubstr;
+
 #if defined(WEBRTC_WIN)
 constexpr char kFakeFilePath[] = "some\\path\\myfile.cc";
 #else
@@ -365,6 +367,26 @@ TEST(LogTest, NoopSeverityDoesNotRunStringFormatting) {
   };
   RTC_LOG(LS_VERBOSE) << "This should not be logged: " << cb();
   EXPECT_FALSE(was_called);
+}
+
+struct StructWithStringfy {
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const StructWithStringfy& /*self*/) {
+    sink.Append("absl-stringify");
+  }
+};
+
+TEST(LogTest, UseAbslStringForCustomTypes) {
+  std::string str;
+  LogSinkImpl stream(&str);
+  LogMessage::AddLogToStream(&stream, LS_INFO);
+  StructWithStringfy t;
+
+  RTC_LOG(LS_INFO) << t;
+
+  EXPECT_THAT(str, HasSubstr("absl-stringify"));
+
+  LogMessage::RemoveLogToStream(&stream);
 }
 
 struct TestStruct {};

@@ -443,6 +443,7 @@ rtc_library("logging") {
     "synchronization:mutex",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/meta:type_traits",
+    "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 
@@ -497,6 +498,7 @@ rtc_library("checks") {
     "system:inline",
     "system:rtc_export",
     "//third_party/abseil-cpp/absl/meta:type_traits",
+    "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
   if (build_with_chromium) {
