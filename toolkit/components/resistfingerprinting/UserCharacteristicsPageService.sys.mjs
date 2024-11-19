@@ -296,7 +296,7 @@ export class UserCharacteristicsPageService {
 
     let data = {};
     // Returns true if we need to try again
-    const attemptRender = async () => {
+    const attemptRender = async allowSoftwareRenderer => {
       const diagnostics = {
         count: 0,
         closed: 0,
@@ -305,7 +305,7 @@ export class UserCharacteristicsPageService {
         notHW: 0,
       };
       // Try to find a window that supports hardware rendering
-      let foundActor = null;
+      let acceleratedActor = null;
       let fallbackActor = null;
       for (const win of Services.wm.getEnumerator("navigator:browser")) {
         diagnostics.count++;
@@ -341,14 +341,14 @@ export class UserCharacteristicsPageService {
 
         fallbackActor = actor;
         if (debugInfo.isAccelerated) {
-          foundActor = actor;
+          acceleratedActor = actor;
           break;
         }
         diagnostics.notHW++;
       }
 
       // If we didn't find a hardware accelerated window, we use the last one
-      const actor = foundActor || fallbackActor;
+      const actor = acceleratedActor || fallbackActor;
 
       if (!actor) {
         lazy.console.error("No actor found for canvas rendering");
@@ -360,42 +360,59 @@ export class UserCharacteristicsPageService {
       // Ask it to render the canvases.
       // Timeout after 1 minute to give multiple
       // chances to render canvases.
-      try {
-        data = await timeoutPromise(
-          actor.sendQuery("CanvasRendering:Render", {
-            hwRenderingExpected: !!foundActor,
-          }),
-          1 * 60 * 1000
-        );
-      } catch (e) {
-        lazy.console.error(
-          "Canvas rendering timed out or actor was destroyed (tab closed etc.)",
-          e
+      if (allowSoftwareRenderer || acceleratedActor) {
+        try {
+          data = await timeoutPromise(
+            actor.sendQuery("CanvasRendering:Render", {
+              hwRenderingExpected: !!acceleratedActor,
+            }),
+            1 * 60 * 1000
+          );
+        } catch (e) {
+          lazy.console.error(
+            "Canvas rendering timed out or actor was destroyed (tab closed etc.)",
+            e
+          );
+          return {
+            error: { message: await stringifyError(e), diagnostics },
+            retry: true,
+          };
+        }
+
+        // Successfully rendered at least some canvases, maybe all of them
+        lazy.console.debug(
+          `Canvases rendered because ${
+            acceleratedActor
+              ? "we found a hardware accelerated window"
+              : "we allowed software rendering"
+          }`
         );
         return {
-          error: { message: await stringifyError(e), diagnostics },
-          retry: true,
+          error: null,
+          retry: false,
         };
       }
 
-      // Successfully rendered at least some canvases, maybe all of them
-      return {
-        error:
-          !foundActor && fallbackActor
-            ? { message: "NO_HW_ACTOR", diagnostics }
-            : null,
-        retry: false,
-      };
+      // We have a fallback actor, but we don't want to use it for software rendering
+      lazy.console.error(
+        "No hardware accelerated windows found and software rendering is not allowed"
+      );
+      return { error: { message: "NO_HW_ACTOR", diagnostics }, retry: true };
     };
 
     // Try to render canvases
     let result = null;
-    while ((result = await attemptRender()).retry) {
+    let tries = 1;
+    while (
+      (result = await attemptRender(tries === 5 || Cu.isInAutomation)).retry
+    ) {
+      // We either don't have hardware accelerated windows or we failed to render canvases.
       this.handledErrors.push(result.error);
-      // If we failed to render canvases, try again.
-      // This can happen if the user closes the tab before we render the canvases.
+      // We allow software rendering on the fifth try.
+      tries++;
+      // Rendering might fail if the user closes the tab before we render the canvases.
       // Wait for a bit before trying again
-      await new Promise(resolve => lazy.setTimeout(resolve, 5 * 1000));
+      await new Promise(resolve => lazy.setTimeout(resolve, 10 * 1000));
     }
 
     if (!result.retry && result.error) {
