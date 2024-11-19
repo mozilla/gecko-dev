@@ -1508,11 +1508,12 @@ class _ContextMenuItem extends (external_React_default()).PureComponent {
     const {
       option
     } = this.props;
+    const className = [option.disabled ? "disabled" : ""].join(" ");
     return /*#__PURE__*/external_React_default().createElement("li", {
       role: "presentation",
       className: "context-menu-item"
     }, /*#__PURE__*/external_React_default().createElement("button", {
-      className: option.disabled ? "disabled" : "",
+      className: className,
       role: "menuitem",
       onClick: this.onClick,
       onKeyDown: this.onKeyDown,
@@ -1774,6 +1775,7 @@ const LinkMenuOptions = {
   SaveToPocket: (site, index, eventSource = "CARDGRID") => ({
     id: "newtab-menu-save-to-pocket",
     icon: "pocket-save",
+    className: "stp-context-menu",
     action: actionCreators.AlsoToMain({
       type: actionTypes.SAVE_TO_POCKET,
       data: {
@@ -9447,9 +9449,6 @@ function CardSections({
   } = data;
   const isEmpty = recommendations?.length === 0 || !sections;
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
-  const {
-    saveToPocketCard
-  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.DiscoveryStream);
   const showTopics = prefs[CardSections_PREF_TOPICS_ENABLED];
   const mayHaveSectionsCards = prefs[PREF_SECTIONS_CARDS_ENABLED];
   const mayHaveThumbsUpDown = prefs[CardSections_PREF_THUMBS_UP_DOWN_ENABLED];
@@ -9562,7 +9561,6 @@ function CardSections({
         ctaButtonSponsors: ctaButtonSponsors,
         ctaButtonVariant: ctaButtonVariant,
         spocMessageVariant: spocMessageVariant,
-        saveToPocketCard: saveToPocketCard,
         sectionsClassNames: classNames.join(" "),
         "data-position-one": position.col1,
         "data-position-two": position.col2,
