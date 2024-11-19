@@ -623,9 +623,9 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     CorruptionDetectionMessage message;
     rtp_packet.GetExtension<CorruptionDetectionExtension>(&message);
     if (message.sample_values().empty()) {
-      // TODO: bugs.webrtc.org/358039777 - Convert message to sync data and
-      // use that for assignment instead of `std::nullptr`.
-      video_header.frame_instrumentation_data = std::nullopt;
+      video_header.frame_instrumentation_data =
+          ConvertCorruptionDetectionMessageToFrameInstrumentationSyncData(
+              message, last_corruption_detection_index_);
     } else {
       video_header.frame_instrumentation_data =
           ConvertCorruptionDetectionMessageToFrameInstrumentationData(
