@@ -262,7 +262,7 @@ class AdsTelemetryTest {
     private fun createCookieList(): List<JSONObject> {
         val first = JSONObject()
         first.put("name", "SRCHS")
-        first.put("value", "PC=MOZL")
+        first.put("value", "PC=MOZL&ANOTHER=VALUE")
         val second = JSONObject()
         second.put("name", "RANDOM")
         second.put("value", "RANDOM")

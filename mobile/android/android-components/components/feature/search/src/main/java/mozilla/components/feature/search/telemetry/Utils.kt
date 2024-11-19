@@ -96,7 +96,9 @@ private fun getTrackKeyFromCookies(
             if (cookie.getString("name") != followOnCookie.name) {
                 continue
             }
+            // Cookie values may take the form of "foo=bar&baz=1".
             val valueList = cookie.getString("value")
+                .split("&")[0]
                 .split("=")
                 .map { item -> item.trim() }
 
