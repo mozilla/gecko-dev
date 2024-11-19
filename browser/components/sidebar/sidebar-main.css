@@ -11,11 +11,16 @@
   }
 }
 
+:host {
+  width: 100%;
+}
+
 .wrapper {
   display: grid;
   grid-template-rows: auto min-content min-content;
   box-sizing: border-box;
   height: 100%;
+  max-width: 100%;
   padding-inline: 0;
 
   /* stylelint-disable-next-line media-query-no-invalid */
@@ -24,7 +29,11 @@
       /* TODO: Should this be some other pixel value between 5/6? Need to be careful of Linux where font size is larger */
       --tab-pinned-horizontal-count: 5;
       /* TODO: These --space-* tokens should use semantic names shared with tabs.css */
-      min-width: calc(var(--tab-pinned-horizontal-count) * var(--tab-pinned-min-width-expanded) + 2 * var(--tab-pinned-container-margin-inline-expanded) + 1px);
+      width: calc(var(--tab-pinned-horizontal-count) * var(--tab-pinned-min-width-expanded) + 2 * var(--tab-pinned-container-margin-inline-expanded) + 1px);
+    }
+
+    :host([customWidth]) & {
+      width: 100%;
     }
   }
 }
@@ -34,6 +43,8 @@
   flex-direction: column;
   justify-content: center;
   align-items: start;
+  max-width: 100%;
+  overflow-x: hidden;
 
   > moz-button:not(.tools-overflow) {
     --button-outer-padding-inline: var(--space-medium);
@@ -96,7 +107,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  moz-button::part(label) {
+  moz-button::part(moz-button-label) {
     opacity: 0;
     transition: opacity 300ms ease-in-out;
   }
@@ -112,8 +123,11 @@
     padding-inline: calc((var(--button-size-icon) - var(--icon-size-default)) / 2 - var(--border-width));
   }
 
-  &::part(label) {
+  &::part(moz-button-label) {
     opacity: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 

@@ -15,6 +15,9 @@ const defaultTools = {
   viewBookmarksSidebar: "bookmarks",
 };
 
+const LAUNCHER_MINIMUM_WIDTH = 100;
+const SIDEBAR_MAXIMUM_WIDTH = "75vw";
+
 var SidebarController = {
   makeSidebar({ elementId, ...rest }) {
     return {
@@ -247,6 +250,7 @@ var SidebarController = {
   _mainResizeObserverAdded: false,
   _mainResizeObserver: null,
   _ongoingAnimations: [],
+  launcherWidth: null,
 
   /**
    * @type {MutationObserver | null}
@@ -290,12 +294,19 @@ var SidebarController = {
     return this._toolbarButton;
   },
 
+  get isLauncherDragging() {
+    return this._launcherSplitter.getAttribute("state") === "dragging";
+  },
+
   init() {
     // Initialize with side effects
     this.SidebarManager;
 
     this._box = document.getElementById("sidebar-box");
     this._splitter = document.getElementById("sidebar-splitter");
+    this._launcherSplitter = document.getElementById(
+      "sidebar-launcher-splitter"
+    );
     this._reversePositionButton = document.getElementById(
       "sidebar-reverse-position"
     );
@@ -329,10 +340,9 @@ var SidebarController = {
     if (this._mainResizeObserver) {
       this._mainResizeObserver.disconnect();
     }
-    this._mainResizeObserver = new ResizeObserver(async ([entry]) => {
-      let sidebarBox = document.getElementById("sidebar-box");
-      sidebarBox.style.maxWidth = `calc(75vw - ${entry.contentBoxSize[0].inlineSize}px)`;
-    });
+    this._mainResizeObserver = new ResizeObserver(([entry]) =>
+      this._handleLauncherResize(entry)
+    );
 
     if (this.sidebarRevampEnabled) {
       if (!customElements.get("sidebar-main")) {
@@ -365,6 +375,8 @@ var SidebarController = {
         };
         this._splitter.addEventListener("command", this._browserResizeObserver);
       }
+      this._enableLauncherDragging();
+
       // Record Glean metrics.
       this.recordVisibilitySetting();
       this.recordPositionSetting();
@@ -383,6 +395,7 @@ var SidebarController = {
         });
         this._switcherListenersAdded = true;
       }
+      this._disableLauncherDragging();
     }
     // We need to update the tab strip for vertical tabs during init
     // as there will be no tabstrip-orientation-change event
@@ -456,6 +469,24 @@ var SidebarController = {
       this.sidebarMain.remove();
     }
     this._splitter.removeEventListener("command", this._browserResizeObserver);
+    this._disableLauncherDragging();
+  },
+
+  /**
+   * Handle the launcher being resized (either manually or programmatically).
+   *
+   * @param {ResizeObserverEntry} entry
+   */
+  _handleLauncherResize(entry) {
+    let sidebarBox = document.getElementById("sidebar-box");
+    let launcherWidth = entry.contentBoxSize[0].inlineSize;
+    sidebarBox.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${launcherWidth}px)`;
+    if (this.isLauncherDragging) {
+      this.sidebarMain.toggleAttribute("customWidth", true);
+      // Expand the launcher when it gets wide enough.
+      const expanded = launcherWidth >= LAUNCHER_MINIMUM_WIDTH;
+      this.toggleExpanded(expanded);
+    }
   },
 
   getUIState() {
@@ -463,6 +494,7 @@ var SidebarController = {
     if (this.sidebarRevampEnabled) {
       state.expanded = this.sidebarMain.expanded;
       state.hidden = this.sidebarContainer.hidden;
+      state.launcherWidth = this.launcherWidth;
     }
     return state;
   },
@@ -479,6 +511,8 @@ var SidebarController = {
    *   Whether the sidebar launcher is expanded. (Revamp only)
    * @param {boolean} state.hidden
    *   Whether the sidebar is hidden. (Revamp only)
+   * @param {string} state.launcherWidth
+   *   Launcher width of the sidebar.
    */
   async setUIState(state) {
     if (!state) {
@@ -503,6 +537,9 @@ var SidebarController = {
       // Wait this out to ensure that it is connected to the DOM before making
       // any changes.
       await this.promiseInitialized;
+      if (state.launcherWidth) {
+        this.launcherWidth = state.launcherWidth;
+      }
       if (typeof state.expanded === "boolean") {
         this.toggleExpanded(state.expanded);
       }
@@ -510,6 +547,7 @@ var SidebarController = {
         this.sidebarContainer.hidden = state.hidden;
       }
       this.updateToolbarButton();
+      this._updateLauncherWidth();
     }
     this.uiStateInitialized = true;
   },
@@ -661,16 +699,18 @@ var SidebarController = {
     let sidebarContainer = document.getElementById("sidebar-main");
     let sidebarMain = document.querySelector("sidebar-main");
     if (!this._positionStart) {
-      // DOM ordering is:     sidebar-main |  sidebar-box  | splitter | tabbrowser-tabbox |
-      // Want to display as:  |   tabbrowser-tabbox  | splitter |  sidebar-box  | sidebar-main
+      // DOM ordering is:     sidebar-main |  launcher-splitter | sidebar-box  | splitter | tabbrowser-tabbox |
+      // Want to display as:  |   tabbrowser-tabbox  | splitter |  sidebar-box  | launcher-splitter | sidebar-main
       // So we just swap box and tabbrowser-tabbox ordering and move sidebar-main to the end
       let tabbox = document.getElementById("tabbrowser-tabbox");
       let boxOrdinal = this._box.style.order;
       this._box.style.order = tabbox.style.order;
 
       tabbox.style.order = boxOrdinal;
-      // the launcher should be on the right of the sidebar-box
-      sidebarContainer.style.order = parseInt(this._box.style.order) + 1;
+      const launcherSplitterOrdinal = parseInt(this._box.style.order) + 1;
+      this._launcherSplitter.style.order = launcherSplitterOrdinal;
+      // the launcher should be on the right of the launcher-splitter
+      sidebarContainer.style.order = launcherSplitterOrdinal + 1;
       // Indicate we've switched ordering to the box
       this._box.toggleAttribute("positionend", true);
       sidebarMain.toggleAttribute("positionend", true);
@@ -766,6 +806,8 @@ var SidebarController = {
       this.promiseInitialized.then(() => {
         this.sidebarContainer.hidden = sourceController.sidebarContainer.hidden;
         this.toggleExpanded(sourceController.sidebarMain.expanded);
+        this.launcherWidth = sourceController.launcherWidth;
+        this._updateLauncherWidth();
       });
     }
 
@@ -1150,6 +1192,77 @@ var SidebarController = {
       this.sidebarMain.expanded
     );
     this.updateToolbarButton();
+    this._updateLauncherWidth();
+  },
+
+  /**
+   * If the sidebar is expanded, resize the launcher to the user-preferred
+   * width (if available). If it is collapsed, reset the launcher width.
+   */
+  _updateLauncherWidth() {
+    if (this.isLauncherDragging) {
+      // Do not resize the launcher if it's currently being dragged.
+      return;
+    }
+    if (this.sidebarMain.expanded && this.launcherWidth) {
+      this.sidebarContainer.style.width = `${this.launcherWidth}px`;
+    } else if (!this.sidebarMain.expanded) {
+      this.sidebarContainer.style.width = "";
+    }
+    const panelWidth = this._box.getBoundingClientRect().width;
+    this.sidebarContainer.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${panelWidth}px)`;
+    this.sidebarMain.toggleAttribute("customWidth", !!this.launcherWidth);
+  },
+
+  /**
+   * Enable the splitter which can be used to resize the launcher.
+   */
+  _enableLauncherDragging() {
+    if (!this._launcherSplitter.hidden) {
+      // Already showing the launcher splitter with observers connected.
+      // Nothing to do.
+      return;
+    }
+    this._panelResizeObserver = new ResizeObserver(([entry]) => {
+      const panelWidth = entry.contentBoxSize[0].inlineSize;
+      this.sidebarContainer.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${panelWidth}px)`;
+    });
+    this._panelResizeObserver.observe(this._box);
+
+    this._launcherDropHandler = () => {
+      const newWidth = this.sidebarContainer.getBoundingClientRect().width;
+      if (newWidth >= LAUNCHER_MINIMUM_WIDTH) {
+        // Persist the new width.
+        this.launcherWidth = newWidth;
+      } else {
+        // Snap back to collapsed state when the new width is too narrow.
+        this.toggleExpanded(false);
+        if (this.sidebarRevampVisibility === "hide-sidebar") {
+          this._toggleHideSidebar();
+        }
+      }
+    };
+    this._launcherSplitter.addEventListener(
+      "command",
+      this._launcherDropHandler
+    );
+
+    this._launcherSplitter.hidden = false;
+  },
+
+  /**
+   * Disable the launcher splitter and remove any active observers.
+   */
+  _disableLauncherDragging() {
+    if (this._panelResizeObserver) {
+      this._panelResizeObserver.disconnect();
+    }
+    this._launcherSplitter.removeEventListener(
+      "command",
+      this._launcherDropHandler
+    );
+
+    this._launcherSplitter.hidden = true;
   },
 
   _loadSidebarExtension(commandID) {
