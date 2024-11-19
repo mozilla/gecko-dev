@@ -12,6 +12,8 @@
 
 #import "sdk/objc/base/RTCMacros.h"
 
+typedef NS_ENUM(NSInteger, RTCRtpTransceiverDirection);
+
 NS_ASSUME_NONNULL_BEGIN
 
 RTC_OBJC_EXPORT
@@ -25,6 +27,9 @@ RTC_OBJC_EXPORT
 
 /** Whether the header extension is encrypted or not. */
 @property(nonatomic, readonly, getter=isPreferredEncrypted) BOOL preferredEncrypted;
+
+/** Direction of the header extension. */
+@property(nonatomic) RTCRtpTransceiverDirection direction;
 
 - (instancetype)init NS_UNAVAILABLE;
 
