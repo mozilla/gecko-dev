@@ -32,6 +32,9 @@ class TrustedHTMLOrNullIsEmptyString;
 
 namespace TrustedTypeUtils {
 
+template <typename T>
+nsString GetTrustedTypeName();
+
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
 // specialized for TrustedHTML.
 //
