@@ -184,7 +184,7 @@ class SSLStreamAdapter : public StreamInterface {
 
   // Retrieves the IANA registration id of the cipher suite used for the
   // connection (e.g. 0x2F for "TLS_RSA_WITH_AES_128_CBC_SHA").
-  virtual bool GetSslCipherSuite(int* cipher_suite);
+  virtual bool GetSslCipherSuite(int* cipher_suite) const = 0;
   // Returns the name of the cipher suite used for the DTLS transport,
   // as defined in the "Description" column of the IANA cipher suite registry.
   virtual std::optional<absl::string_view> GetTlsCipherSuiteName() const = 0;
@@ -220,8 +220,9 @@ class SSLStreamAdapter : public StreamInterface {
   virtual uint16_t GetPeerSignatureAlgorithm() const = 0;
 
   // DTLS-SRTP interface
-  virtual bool SetDtlsSrtpCryptoSuites(const std::vector<int>& crypto_suites);
-  virtual bool GetDtlsSrtpCryptoSuite(int* crypto_suite);
+  virtual bool SetDtlsSrtpCryptoSuites(
+      const std::vector<int>& crypto_suites) = 0;
+  virtual bool GetDtlsSrtpCryptoSuite(int* crypto_suite) const = 0;
 
   // Returns true if a TLS connection has been established.
   // The only difference between this and "GetState() == SE_OPEN" is that if

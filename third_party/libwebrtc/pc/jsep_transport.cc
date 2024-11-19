@@ -317,7 +317,7 @@ std::optional<rtc::SSLRole> JsepTransport::GetDtlsRole() const {
   return std::optional<rtc::SSLRole>(dtls_role);
 }
 
-bool JsepTransport::GetStats(TransportStats* stats) {
+bool JsepTransport::GetStats(TransportStats* stats) const {
   TRACE_EVENT0("webrtc", "JsepTransport::GetStats");
   RTC_DCHECK_RUN_ON(network_thread_);
   stats->transport_name = mid();
@@ -634,7 +634,7 @@ webrtc::RTCError JsepTransport::NegotiateDtlsRole(
 
 bool JsepTransport::GetTransportStats(DtlsTransportInternal* dtls_transport,
                                       int component,
-                                      TransportStats* stats) {
+                                      TransportStats* stats) const {
   RTC_DCHECK_RUN_ON(network_thread_);
   RTC_DCHECK(dtls_transport);
   TransportChannelStats substats;

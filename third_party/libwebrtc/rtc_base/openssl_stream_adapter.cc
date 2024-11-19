@@ -330,7 +330,7 @@ std::optional<absl::string_view> OpenSSLStreamAdapter::GetTlsCipherSuiteName()
   return SSL_CIPHER_standard_name(current_cipher);
 }
 
-bool OpenSSLStreamAdapter::GetSslCipherSuite(int* cipher_suite) {
+bool OpenSSLStreamAdapter::GetSslCipherSuite(int* cipher_suite) const {
   if (state_ != SSL_CONNECTED) {
     return false;
   }
@@ -437,7 +437,7 @@ bool OpenSSLStreamAdapter::SetDtlsSrtpCryptoSuites(
   return true;
 }
 
-bool OpenSSLStreamAdapter::GetDtlsSrtpCryptoSuite(int* crypto_suite) {
+bool OpenSSLStreamAdapter::GetDtlsSrtpCryptoSuite(int* crypto_suite) const {
   RTC_DCHECK(state_ == SSL_CONNECTED);
   if (state_ != SSL_CONNECTED) {
     return false;

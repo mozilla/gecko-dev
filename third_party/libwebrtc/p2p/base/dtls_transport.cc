@@ -225,7 +225,7 @@ bool DtlsTransport::GetDtlsRole(rtc::SSLRole* role) const {
   return true;
 }
 
-bool DtlsTransport::GetSslCipherSuite(int* cipher) {
+bool DtlsTransport::GetSslCipherSuite(int* cipher) const {
   if (dtls_state() != webrtc::DtlsTransportState::kConnected) {
     return false;
   }
@@ -415,7 +415,7 @@ bool DtlsTransport::SetupDtls() {
   return true;
 }
 
-bool DtlsTransport::GetSrtpCryptoSuite(int* cipher) {
+bool DtlsTransport::GetSrtpCryptoSuite(int* cipher) const {
   if (dtls_state() != webrtc::DtlsTransportState::kConnected) {
     return false;
   }
