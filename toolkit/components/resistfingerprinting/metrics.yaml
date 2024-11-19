@@ -3916,3 +3916,20 @@ characteristics:
     expires: never
     data_sensitivity:
       - technical
+
+  using_accelerated_canvas:
+    type: boolean
+    description: >
+      Whether the user's device is using accelerated canvas
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1931573
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1931573#c0
+    expires: never
+    data_sensitivity:
+      - technical
