@@ -29,6 +29,7 @@ class _MLSuggest {
     featureId: "suggest-intent-classification",
     engineId: "ml-suggest-intent",
     timeoutMS: -1,
+    numThreads: 2,
   };
 
   NER_OPTIONS = {
@@ -36,6 +37,7 @@ class _MLSuggest {
     featureId: "suggest-NER",
     engineId: "ml-suggest-ner",
     timeoutMS: -1,
+    numThreads: 2,
   };
 
   // Helper to wrap createEngine for testing purpose
