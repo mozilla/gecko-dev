@@ -28,4 +28,4 @@ performance.pageload:
     notification_emails:
       - emilio@mozilla.com
       - perf-telemetry-alerts@mozilla.com
-    expires: 135
+    expires: 141
