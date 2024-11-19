@@ -67,11 +67,6 @@ using ::testing::UnorderedElementsAre;
 
 namespace webrtc {
 
-namespace internal {
-// This value comes from openssl/tls1.h
-static const int TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA = 0xC014;
-}  // namespace internal
-
 // Error return values
 const char kNotFound[] = "NOT FOUND";
 
@@ -674,8 +669,7 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     TransportChannelStats channel_stats;
     channel_stats.component = 1;
     channel_stats.srtp_crypto_suite = rtc::kSrtpAes128CmSha1_80;
-    channel_stats.ssl_cipher_suite =
-        internal::TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA;
+    channel_stats.tls_cipher_suite_name = "cipher_suite_for_test";
     pc->SetTransportStats(kTransportName, channel_stats);
 
     // Fake certificate to report.
@@ -722,9 +716,7 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     std::string dtls_cipher_suite =
         ExtractStatsValue(StatsReport::kStatsReportTypeComponent, reports,
                           StatsReport::kStatsValueNameDtlsCipher);
-    EXPECT_EQ(rtc::SSLStreamAdapter::SslCipherSuiteToName(
-                  internal::TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA),
-              dtls_cipher_suite);
+    EXPECT_EQ(dtls_cipher_suite, "cipher_suite_for_test");
     std::string srtp_crypto_suite =
         ExtractStatsValue(StatsReport::kStatsReportTypeComponent, reports,
                           StatsReport::kStatsValueNameSrtpCipher);

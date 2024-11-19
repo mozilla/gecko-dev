@@ -119,9 +119,6 @@ bool SSLStreamAdapter::IsAcceptableCipher(absl::string_view cipher,
                                           KeyType key_type) {
   return OpenSSLStreamAdapter::IsAcceptableCipher(cipher, key_type);
 }
-std::string SSLStreamAdapter::SslCipherSuiteToName(int cipher_suite) {
-  return OpenSSLStreamAdapter::SslCipherSuiteToName(cipher_suite);
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Test only settings

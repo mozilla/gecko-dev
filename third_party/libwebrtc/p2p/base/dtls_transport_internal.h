@@ -70,6 +70,7 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
   // Finds out which DTLS cipher was negotiated.
   // TODO(zhihuang): Remove this once all dependencies implement this.
   virtual bool GetSslCipherSuite(int* cipher) = 0;
+  virtual std::optional<absl::string_view> GetTlsCipherSuiteName() const = 0;
 
   // Find out which signature algorithm was used by the peer. Returns values
   // from

@@ -169,6 +169,7 @@ class DtlsTransport : public DtlsTransportInternal {
 
   // Find out which DTLS cipher was negotiated
   bool GetSslCipherSuite(int* cipher) override;
+  std::optional<absl::string_view> GetTlsCipherSuiteName() const override;
 
   // Once DTLS has been established, this method retrieves the certificate
   // chain in use by the remote peer, for use in external identity

@@ -1961,14 +1961,7 @@ void RTCStatsCollector::ProduceTransportStats_n(
         transport_stats->dtls_role = "unknown";
       }
 
-      if (channel_stats.ssl_cipher_suite != rtc::kTlsNullWithNullNull &&
-          rtc::SSLStreamAdapter::SslCipherSuiteToName(
-              channel_stats.ssl_cipher_suite)
-              .length()) {
-        transport_stats->dtls_cipher =
-            rtc::SSLStreamAdapter::SslCipherSuiteToName(
-                channel_stats.ssl_cipher_suite);
-      }
+      transport_stats->dtls_cipher = channel_stats.tls_cipher_suite_name;
       if (channel_stats.srtp_crypto_suite != rtc::kSrtpInvalidCryptoSuite &&
           rtc::SrtpCryptoSuiteToName(channel_stats.srtp_crypto_suite)
               .length()) {

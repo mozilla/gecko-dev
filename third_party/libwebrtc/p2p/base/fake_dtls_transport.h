@@ -213,6 +213,10 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   void SetSslCipherSuite(std::optional<int> cipher_suite) {
     ssl_cipher_suite_ = cipher_suite;
   }
+
+  std::optional<absl::string_view> GetTlsCipherSuiteName() const override {
+    return "FakeTlsCipherSuite";
+  }
   uint16_t GetSslPeerSignatureAlgorithm() const override { return 0; }
   rtc::scoped_refptr<rtc::RTCCertificate> GetLocalCertificate() const override {
     return local_cert_;

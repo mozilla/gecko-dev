@@ -2942,8 +2942,8 @@ TEST_F(RTCStatsCollectorTest, CollectRTCTransportStatsWithCrypto) {
       "thelocalufrag";
   rtp_transport_channel_stats.ice_transport_stats.ice_state =
       IceTransportState::kConnected;
-  // 0x2F is TLS_RSA_WITH_AES_128_CBC_SHA according to IANA
-  rtp_transport_channel_stats.ssl_cipher_suite = 0x2F;
+  rtp_transport_channel_stats.tls_cipher_suite_name =
+      "TLS_RSA_WITH_AES_128_CBC_SHA";
   rtp_transport_channel_stats.srtp_crypto_suite = rtc::kSrtpAes128CmSha1_80;
   pc_->SetTransportStats(kTransportName, {rtp_transport_channel_stats});
 

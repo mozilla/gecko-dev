@@ -233,6 +233,13 @@ bool DtlsTransport::GetSslCipherSuite(int* cipher) {
   return dtls_->GetSslCipherSuite(cipher);
 }
 
+std::optional<absl::string_view> DtlsTransport::GetTlsCipherSuiteName() const {
+  if (dtls_state() != webrtc::DtlsTransportState::kConnected) {
+    return std::nullopt;
+  }
+  return dtls_->GetTlsCipherSuiteName();
+}
+
 webrtc::RTCError DtlsTransport::SetRemoteParameters(
     absl::string_view digest_alg,
     const uint8_t* digest,
