@@ -142,7 +142,7 @@ FrameInstrumentationGenerator::OnEncodedImage(
       contexts_[layer_id]
           .frame_sampler.GetSampleCoordinatesForFrameIfFrameShouldBeSampled(
               is_key_frame, captured_frame.rtp_timestamp(),
-              /*sample_size=*/13);
+              /*num_samples=*/13);
   if (sample_coordinates.empty()) {
     if (!is_key_frame) {
       return std::nullopt;
