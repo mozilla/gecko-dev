@@ -142,21 +142,21 @@ static nsPIDOMWindowInner* GetScopeObjectAsInnerWindow(
 
 constexpr size_t kNumArgumentsForDetermineTrustedTypePolicyValue = 2;
 
+template <typename ExpectedType>
 void ProcessValueWithADefaultPolicy(const Document& aDocument,
                                     const nsAString& aInput,
                                     const nsAString& aSink,
-                                    TrustedHTML** aResult,
+                                    ExpectedType** aResult,
                                     ErrorResult& aError) {
   *aResult = nullptr;
 
+  // TODO(bug 1928929): We should also be able to get the policy factory from
+  // a worker's global scope.
   nsPIDOMWindowInner* piDOMWindowInner =
       GetScopeObjectAsInnerWindow(aDocument, aError);
   if (aError.Failed()) {
     return;
   }
-
-  // Since this function is for `TrustedHTML`, the `TrustedTypePolicyFactory`
-  // has to stem from the inner window, not from a Worker.
   nsGlobalWindowInner* globalWindowInner =
       nsGlobalWindowInner::Cast(piDOMWindowInner);
   const TrustedTypePolicyFactory* trustedTypePolicyFactory =
@@ -172,11 +172,10 @@ void ProcessValueWithADefaultPolicy(const Document& aDocument,
     return;
   }
 
-  RefPtr<CreateHTMLCallback> callbackObject =
-      defaultPolicy->GetOptions().mCreateHTMLCallback;
-
   JS::Rooted<JS::Value> trustedTypeName{cx};
-  if (!xpc::NonVoidStringToJsval(cx, GetTrustedTypeName<TrustedHTML>(),
+  using ExpectedTypeArg =
+      std::remove_const_t<std::remove_reference_t<decltype(**aResult)>>;
+  if (!xpc::NonVoidStringToJsval(cx, GetTrustedTypeName<ExpectedTypeArg>(),
                                  &trustedTypeName)) {
     aError.StealExceptionFromJSContext(cx);
     return;
@@ -192,9 +191,26 @@ void ProcessValueWithADefaultPolicy(const Document& aDocument,
       arguments = {trustedTypeName, sink};
 
   nsString policyValue;
-  defaultPolicy->DetermineTrustedPolicyValue(callbackObject, aInput, arguments,
-                                             /* aThrowIfMissing */ false,
-                                             aError, policyValue);
+  if constexpr (std::is_same_v<ExpectedTypeArg, TrustedHTML>) {
+    RefPtr<CreateHTMLCallback> callbackObject =
+        defaultPolicy->GetOptions().mCreateHTMLCallback;
+    defaultPolicy->DetermineTrustedPolicyValue(
+        callbackObject, aInput, arguments,
+        /* aThrowIfMissing */ false, aError, policyValue);
+  } else if constexpr (std::is_same_v<ExpectedTypeArg, TrustedScript>) {
+    RefPtr<CreateScriptCallback> callbackObject =
+        defaultPolicy->GetOptions().mCreateScriptCallback;
+    defaultPolicy->DetermineTrustedPolicyValue(
+        callbackObject, aInput, arguments,
+        /* aThrowIfMissing */ false, aError, policyValue);
+  } else {
+    MOZ_ASSERT((std::is_same_v<ExpectedTypeArg, TrustedScriptURL>));
+    RefPtr<CreateScriptURLCallback> callbackObject =
+        defaultPolicy->GetOptions().mCreateScriptURLCallback;
+    defaultPolicy->DetermineTrustedPolicyValue(
+        callbackObject, aInput, arguments,
+        /* aThrowIfMissing */ false, aError, policyValue);
+  }
 
   if (aError.Failed()) {
     return;
@@ -204,7 +220,7 @@ void ProcessValueWithADefaultPolicy(const Document& aDocument,
     return;
   }
 
-  RefPtr<TrustedHTML>{new TrustedHTML(policyValue)}.forget(aResult);
+  MakeRefPtr<ExpectedType>(policyValue).forget(aResult);
 }
 
 #define IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING_FOR_TRUSTED_HTML(              \
@@ -254,8 +270,9 @@ void ProcessValueWithADefaultPolicy(const Document& aDocument,
                                                                                \
     RefPtr<TrustedHTML> convertedInput;                                        \
     RefPtr<const Document> pinnedDoc{ownerDoc};                                \
-    ProcessValueWithADefaultPolicy(*pinnedDoc, aInput._stringGetter(), aSink,  \
-                                   getter_AddRefs(convertedInput), aError);    \
+    ProcessValueWithADefaultPolicy<TrustedHTML>(                               \
+        *pinnedDoc, aInput._stringGetter(), aSink,                             \
+        getter_AddRefs(convertedInput), aError);                               \
                                                                                \
     if (aError.Failed()) {                                                     \
       return nullptr;                                                          \
