@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/types/variant.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment.h"
 #include "api/sequence_checker.h"
@@ -26,6 +27,7 @@
 #include "call/rtp_packet_sink_interface.h"
 #include "call/syncable.h"
 #include "call/video_receive_stream.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/recovered_packet_receiver.h"
 #include "modules/rtp_rtcp/include/remote_ntp_time_estimator.h"
@@ -322,6 +324,10 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   void UpdatePacketReceiveTimestamps(const RtpPacketReceived& packet,
                                      bool is_keyframe)
       RTC_RUN_ON(packet_sequence_checker_);
+  void SetLastCorruptionDetectionIndex(
+      const absl::variant<FrameInstrumentationSyncData,
+                          FrameInstrumentationData>&
+          frame_instrumentation_data);
 
   const Environment env_;
   TaskQueueBase* const worker_queue_;
@@ -455,6 +461,7 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   Timestamp next_keyframe_request_for_missing_video_structure_ =
       Timestamp::MinusInfinity();
   bool sps_pps_idr_is_h264_keyframe_ = false;
+  int last_corruption_detection_index_ = 0;
 };
 
 }  // namespace webrtc

@@ -19,12 +19,17 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
+#include "absl/types/variant.h"
 #include "api/video/video_codec_type.h"
+#include "common_video/corruption_detection_converters.h"
+#include "common_video/corruption_detection_message.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "media/base/media_constants.h"
 #include "modules/pacing/packet_router.h"
 #include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_cvo.h"
+#include "modules/rtp_rtcp/source/corruption_detection_extension.h"
 #include "modules/rtp_rtcp/source/create_video_rtp_depacketizer.h"
 #include "modules/rtp_rtcp/source/frame_object.h"
 #include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
@@ -503,6 +508,21 @@ RtpVideoStreamReceiver2::ParseGenericDependenciesExtension(
   return kHasGenericDescriptor;
 }
 
+void RtpVideoStreamReceiver2::SetLastCorruptionDetectionIndex(
+    const absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>&
+        frame_instrumentation_data) {
+  if (const auto* sync_data = absl::get_if<FrameInstrumentationSyncData>(
+          &frame_instrumentation_data)) {
+    last_corruption_detection_index_ = sync_data->sequence_index;
+  } else if (const auto* data = absl::get_if<FrameInstrumentationData>(
+                 &frame_instrumentation_data)) {
+    last_corruption_detection_index_ =
+        data->sequence_index + data->sample_values.size();
+  } else {
+    RTC_DCHECK_NOTREACHED();
+  }
+}
+
 bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     rtc::CopyOnWriteBuffer codec_payload,
     const RtpPacketReceived& rtp_packet,
@@ -588,9 +608,7 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     return false;
   }
 
-  // Color space should only be transmitted in the last packet of a frame,
-  // therefore, neglect it otherwise so that last_color_space_ is not reset by
-  // mistake.
+  // Extensions that should only be transmitted in the last packet of a frame.
   if (video_header.is_last_packet_in_frame) {
     video_header.color_space = rtp_packet.GetExtension<ColorSpaceExtension>();
     if (video_header.color_space ||
@@ -601,6 +619,20 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
       last_color_space_ = video_header.color_space;
     } else if (last_color_space_) {
       video_header.color_space = last_color_space_;
+    }
+    CorruptionDetectionMessage message;
+    rtp_packet.GetExtension<CorruptionDetectionExtension>(&message);
+    if (message.sample_values().empty()) {
+      // TODO: bugs.webrtc.org/358039777 - Convert message to sync data and
+      // use that for assignment instead of `std::nullptr`.
+      video_header.frame_instrumentation_data = std::nullopt;
+    } else {
+      video_header.frame_instrumentation_data =
+          ConvertCorruptionDetectionMessageToFrameInstrumentationData(
+              message, last_corruption_detection_index_);
+    }
+    if (video_header.frame_instrumentation_data.has_value()) {
+      SetLastCorruptionDetectionIndex(*video_header.frame_instrumentation_data);
     }
   }
   video_header.video_frame_tracking_id =

@@ -117,6 +117,9 @@ rtc_library("video") {
     "../call:rtp_sender",
     "../call:video_stream_api",
     "../common_video",
+    "../common_video:corruption_detection_converters",
+    "../common_video:corruption_detection_message",
+    "../common_video:frame_instrumentation_data",
     "../media:media_constants",
     "../media:rtc_sdp_video_format_utils",
     "../modules:module_api",
@@ -170,6 +173,7 @@ rtc_library("video") {
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/types:variant",
   ]
 
   if (!build_with_mozilla) {
