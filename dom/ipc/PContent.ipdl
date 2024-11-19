@@ -1143,10 +1143,6 @@ parent:
 
     async CloseAlert(nsString name, bool contextClosed);
 
-    async DisableNotifications(nullable nsIPrincipal principal);
-
-    async OpenNotificationSettings(nullable nsIPrincipal principal);
-
     async AddSecurityState(MaybeDiscardedWindowContext aContext, uint32_t aStateFlags);
 
     // Creates a helper for forwarding data from an nsExternalAppHandler

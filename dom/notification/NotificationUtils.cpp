@@ -267,6 +267,7 @@ nsresult OpenSettings(nsIPrincipal* aPrincipal) {
 
 nsresult AdjustPushQuota(nsIPrincipal* aPrincipal,
                          NotificationStatusChange aChange) {
+  MOZ_ASSERT(XRE_IsParentProcess());
   nsCOMPtr<nsIPushQuotaManager> pushQuotaManager =
       do_GetService("@mozilla.org/push/Service;1");
   if (!pushQuotaManager) {

@@ -1006,11 +1006,6 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvCloseAlert(const nsAString& aName,
                                          bool aContextClosed);
 
-  mozilla::ipc::IPCResult RecvDisableNotifications(nsIPrincipal* aPrincipal);
-
-  mozilla::ipc::IPCResult RecvOpenNotificationSettings(
-      nsIPrincipal* aPrincipal);
-
   mozilla::ipc::IPCResult RecvLoadURIExternal(
       nsIURI* uri, nsIPrincipal* triggeringPrincipal,
       nsIPrincipal* redirectPrincipal,

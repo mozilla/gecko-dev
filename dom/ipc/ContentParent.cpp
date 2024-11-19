@@ -4723,32 +4723,6 @@ mozilla::ipc::IPCResult ContentParent::RecvCloseAlert(const nsAString& aName,
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentParent::RecvDisableNotifications(
-    nsIPrincipal* aPrincipal) {
-  if (!aPrincipal) {
-    return IPC_FAIL(this, "No principal");
-  }
-
-  if (!ValidatePrincipal(aPrincipal)) {
-    LogAndAssertFailedPrincipalValidationInfo(aPrincipal, __func__);
-  }
-  Unused << notification::RemovePermission(aPrincipal);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentParent::RecvOpenNotificationSettings(
-    nsIPrincipal* aPrincipal) {
-  if (!aPrincipal) {
-    return IPC_FAIL(this, "No principal");
-  }
-
-  if (!ValidatePrincipal(aPrincipal)) {
-    LogAndAssertFailedPrincipalValidationInfo(aPrincipal, __func__);
-  }
-  Unused << notification::OpenSettings(aPrincipal);
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentParent::RecvSyncMessage(
     const nsAString& aMsg, const ClonedMessageData& aData,
     nsTArray<StructuredCloneData>* aRetvals) {
