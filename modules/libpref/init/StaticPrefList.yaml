@@ -4998,8 +4998,8 @@
   value: false
   mirror: always
 
-# Are WebGPU indirect draws/dispatches enabled?
-- name: dom.webgpu.indirect-dispatch.enabled
+# Are WebGPU indirect draws enabled?
+- name: dom.webgpu.indirect-draw.enabled
   type: RelaxedAtomicBool
   value: false
   mirror: always
