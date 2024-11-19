@@ -30,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
+import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.feature.accounts.push.CloseTabsUseCases
@@ -70,6 +71,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.utils.allowUndo
+import kotlin.math.abs
 import kotlin.math.max
 
 /**
@@ -268,6 +270,25 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         },
                         onTabMediaClick = tabsTrayInteractor::onMediaClicked,
                         onTabClick = { tab ->
+                            run outer@{
+                                if (!requireContext().settings().hasShownTabSwipeCFR) {
+                                    val normalTabs = tabsTrayStore.state.normalTabs
+                                    val currentTabId = tabsTrayStore.state.selectedTabId
+
+                                    if (normalTabs.size >= 2) {
+                                        val currentTabPosition = currentTabId
+                                            ?.let { getTabPositionFromId(normalTabs, it) }
+                                            ?: return@outer
+                                        val newTabPosition =
+                                            getTabPositionFromId(normalTabs, tab.id)
+
+                                        if (abs(currentTabPosition - newTabPosition) == 1) {
+                                            requireContext().settings().shouldShowTabSwipeCFR = true
+                                        }
+                                    }
+                                }
+                            }
+
                             tabsTrayInteractor.onTabSelected(tab, TABS_TRAY_FEATURE_NAME)
                         },
                         onTabLongClick = tabsTrayInteractor::onTabLongClicked,
@@ -808,6 +829,12 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             tabsTrayBinding.tabsTray.setCurrentItem(position, smoothScroll)
             tabsTrayBinding.tabLayout.getTabAt(position)?.select()
         }
+    }
+
+    @VisibleForTesting
+    internal fun getTabPositionFromId(tabsList: List<TabSessionState>, tabId: String): Int {
+        tabsList.forEachIndexed { index, tab -> if (tab.id == tabId) return index }
+        return -1
     }
 
     @VisibleForTesting

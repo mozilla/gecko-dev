@@ -20,14 +20,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.getColor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.transformWhile
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
+import mozilla.components.browser.state.selector.selectedNormalTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.cfr.CFRPopup
+import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.BODY_TO_ANCHOR_CENTER
 import mozilla.components.compose.cfr.CFRPopup.PopupAlignment.INDICATOR_CENTERED_IN_ANCHOR
 import mozilla.components.compose.cfr.CFRPopupProperties
 import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingStatus
@@ -37,6 +40,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.CookieBanners
 import org.mozilla.fenix.GleanMetrics.TrackingProtection
 import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.Settings
 
@@ -44,6 +48,7 @@ import org.mozilla.fenix.utils.Settings
  * Vertical padding needed to improve the visual alignment of the popup and respect the UX design.
  */
 private const val CFR_TO_ANCHOR_VERTICAL_PADDING = -6
+private const val TAB_SWIPE_CFR_ARROW_OFFSET = 160
 
 /**
  * Delegate for handling all the business logic for showing CFRs in the toolbar.
@@ -75,6 +80,21 @@ class BrowserToolbarCFRPresenter(
      */
     @Suppress("MagicNumber")
     fun start() {
+        if (!isPrivate && !settings.hasShownTabSwipeCFR) {
+            scope = browserStore.flowScoped { flow ->
+                flow
+                    .distinctUntilChangedBy { it.selectedNormalTab?.id }
+                    .collect {
+                        if (settings.shouldShowTabSwipeCFR && !settings.hasShownTabSwipeCFR) {
+                            scope?.cancel()
+                            settings.shouldShowTabSwipeCFR = false
+                            settings.hasShownTabSwipeCFR = true
+                            showTabSwipeCFR()
+                        }
+                    }
+            }
+        }
+
         when (getCFRToShow()) {
             ToolbarCFR.COOKIE_BANNERS -> {
                 scope = browserStore.flowScoped { flow ->
@@ -240,6 +260,57 @@ class BrowserToolbarCFRPresenter(
             popup = this
             show()
             CookieBanners.cfrShown.record(NoExtras())
+        }
+    }
+
+    @VisibleForTesting
+    @Suppress("LongMethod")
+    internal fun showTabSwipeCFR() {
+        CFRPopup(
+            anchor = toolbar.findViewById(
+                R.id.mozac_browser_toolbar_background,
+            ),
+            properties = CFRPopupProperties(
+                popupAlignment = BODY_TO_ANCHOR_CENTER,
+                popupBodyColors = listOf(
+                    getColor(context, R.color.fx_mobile_layer_color_gradient_end),
+                    getColor(context, R.color.fx_mobile_layer_color_gradient_start),
+                ),
+                dismissButtonColor = getColor(context, R.color.fx_mobile_icon_color_oncolor),
+                indicatorDirection = if (context.settings().toolbarPosition == ToolbarPosition.TOP) {
+                    CFRPopup.IndicatorDirection.UP
+                } else {
+                    CFRPopup.IndicatorDirection.DOWN
+                },
+                indicatorArrowStartOffset = TAB_SWIPE_CFR_ARROW_OFFSET.dp,
+            ),
+            onDismiss = {
+                popup = null
+            },
+            text = {
+                FirefoxTheme {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = context.getString(R.string.address_bar_swipe_cfr_title),
+                                color = FirefoxTheme.colors.textOnColorPrimary,
+                                style = FirefoxTheme.typography.subtitle2,
+                            )
+                        }
+                        Text(
+                            text = context.getString(R.string.address_bar_swipe_cfr_message),
+                            color = FirefoxTheme.colors.textOnColorPrimary,
+                            style = FirefoxTheme.typography.body2,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
+            },
+        ).run {
+            popup = this
+            show()
         }
     }
 }

@@ -811,6 +811,16 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = { shouldShowCookieBannerUI },
     )
 
+    var shouldShowTabSwipeCFR by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_toolbar_tab_swipe_cfr),
+        default = false,
+    )
+
+    var hasShownTabSwipeCFR by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_toolbar_has_shown_tab_swipe_cfr),
+        default = false,
+    )
+
     val blockCookiesSelectionInCustomTrackingProtection by stringPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_tracking_protection_custom_cookies_select),
         default = if (enabledTotalCookieProtection) {
