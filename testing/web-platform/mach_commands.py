@@ -100,11 +100,6 @@ class WebPlatformTestsRunnerSetup(MozbuildObject):
         if kwargs["stackfix_dir"] is None:
             kwargs["stackfix_dir"] = self.bindir
 
-        kwargs["gmp_path"] = os.pathsep.join(
-            os.path.join(self.distdir, "bin", p, "1.0")
-            for p in ("gmp-fake", "gmp-fakeopenh264")
-        )
-
         kwargs = wptcommandline.check_args(kwargs)
 
         return kwargs
