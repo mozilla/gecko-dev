@@ -162,10 +162,9 @@ bool NodeController::SendUserMessage(const PortRef& aPort,
   return false;
 }
 
-auto NodeController::SerializeEventMessage(UniquePtr<Event> aEvent,
-                                           const NodeName* aRelayTarget,
-                                           uint32_t aType)
-    -> UniquePtr<IPC::Message> {
+auto NodeController::SerializeEventMessage(
+    UniquePtr<Event> aEvent, const NodeName* aRelayTarget,
+    uint32_t aType) -> UniquePtr<IPC::Message> {
   UniquePtr<IPC::Message> message;
   if (aEvent->type() == Event::kUserMessage) {
     MOZ_DIAGNOSTIC_ASSERT(
