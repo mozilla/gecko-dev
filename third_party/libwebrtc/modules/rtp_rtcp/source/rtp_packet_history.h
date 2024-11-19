@@ -59,10 +59,6 @@ class RtpPacketHistory {
 
   RtpPacketHistory(const Environment& env, PaddingMode padding_mode);
 
-  [[deprecated("Use Environment constructor")]] RtpPacketHistory(
-      Clock* clock,
-      PaddingMode padding_mode);
-
   RtpPacketHistory() = delete;
   RtpPacketHistory(const RtpPacketHistory&) = delete;
   RtpPacketHistory& operator=(const RtpPacketHistory&) = delete;

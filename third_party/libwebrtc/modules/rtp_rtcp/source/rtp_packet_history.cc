@@ -59,14 +59,6 @@ RtpPacketHistory::RtpPacketHistory(const Environment& env,
       rtt_(TimeDelta::MinusInfinity()),
       packets_inserted_(0) {}
 
-RtpPacketHistory::RtpPacketHistory(Clock* clock, PaddingMode padding_mode)
-    : clock_(clock),
-      padding_mode_(padding_mode),
-      number_to_store_(0),
-      mode_(StorageMode::kDisabled),
-      rtt_(TimeDelta::MinusInfinity()),
-      packets_inserted_(0) {}
-
 RtpPacketHistory::~RtpPacketHistory() {}
 
 void RtpPacketHistory::SetStorePacketsStatus(StorageMode mode,
