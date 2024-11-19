@@ -4336,27 +4336,17 @@ static DeviceColor QuantizePreblendColor(const DeviceColor& aColor,
   int32_t r = int32_t(aColor.r * 255.0f + 0.5f);
   int32_t g = int32_t(aColor.g * 255.0f + 0.5f);
   int32_t b = int32_t(aColor.b * 255.0f + 0.5f);
-  // Ensure that even if two values would normally quantize to the same bucket,
-  // that the reference value within the bucket still allows for accurate
-  // determination of whether light-on-dark or dark-on-light rasterization will
-  // be used (as on macOS).
-  bool lightOnDark = r >= 85 && g >= 85 && b >= 85 && r + g + b >= 2 * 255;
   // Skia only uses the high 3 bits of each color component to cache preblend
   // ramp tables.
   constexpr int32_t lumBits = 3;
-  constexpr int32_t ceilMask = (1 << (8 - lumBits)) - 1;
   constexpr int32_t floorMask = ((1 << lumBits) - 1) << (8 - lumBits);
   if (!aUseSubpixelAA) {
     // If not using subpixel AA, then quantize only the luminance, stored in the
     // G channel.
     g = (r * 54 + g * 183 + b * 19) >> 8;
-    g |= ceilMask;
-    // Still distinguish between light and dark in the key.
-    r = b = lightOnDark ? 255 : 0;
-  } else if (lightOnDark) {
-    r |= ceilMask;
-    g |= ceilMask;
-    b |= ceilMask;
+    g &= floorMask;
+    r = g;
+    b = g;
   } else {
     r &= floorMask;
     g &= floorMask;
@@ -4415,8 +4405,7 @@ bool SharedContextWebgl::DrawGlyphsAccel(ScaledFont* aFont,
 #endif
 
   // If the font has bitmaps, use the color directly. Otherwise, the texture
-  // will hold a grayscale mask, so encode the key's subpixel and light-or-dark
-  // state in the color.
+  // holds a grayscale mask, so encode the key's subpixel state in the color.
   const Matrix& currentTransform = mCurrentTarget->GetTransform();
   IntPoint quantizeScale = QuantizeScale(aFont, currentTransform);
   Matrix quantizeTransform = currentTransform;
