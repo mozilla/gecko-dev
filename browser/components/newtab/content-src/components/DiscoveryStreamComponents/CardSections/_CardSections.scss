@@ -2,7 +2,6 @@
   grid-row: span 1;
   grid-column: span 1;
   flex-direction: row;
-  height: 160px;
   position: relative;
   align-items: center;
   gap: var(--space-medium);
@@ -71,19 +70,54 @@
 }
 
 @mixin section-card-medium {
-  // styles
   grid-row: span 2;
   grid-column: span 1;
+  flex-direction: column;
+  padding: 0;
+  align-items: initial;
+  gap: initial;
+
+  .img-wrapper {
+    width: 100%;
+    position: relative;
+    // reset values inherited from small card mixin
+    flex-grow: initial;
+    flex-shrink: initial;
+    aspect-ratio: initial;
+  }
+
+  &:not(.placeholder) {
+    .img-wrapper>.ds-image.img>img {
+      border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
+    }
+  }
+
+  .meta {
+    padding: var(--space-large);
+
+    .info-wrap {
+      .title {
+        // show only 2 lines of copy
+        font-size: var(--font-size-root);
+        margin-bottom: var(--space-small);
+      }
+
+      .excerpt {
+        display: block;
+        -webkit-line-clamp: 2;
+      }
+    }
+  }
 }
 
 // DS Large Card
 @mixin section-card-large {
-  // styles
   grid-row: span 2;
   grid-column: span 2;
 
   &.ds-card.sections-card-ui {
-    @media (min-width: $break-point-widest) {
+    @media (min-width: $break-point-layout-variant ) and (max-width: $break-point-widest ),
+      (min-width: $break-point-sections-variant ) {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--space-xlarge);
@@ -121,8 +155,9 @@
     width: auto;
 
     .ds-card {
-      // TODO update width once new card layouts have been added
-      max-width: 100%;
+      // card should take up availible space in grid
+      width: 100%;
+      height: 100%;
     }
 
     .body-wrapper {
@@ -249,7 +284,7 @@
 
   @media (min-width: $break-point-widest) {
     grid-template-columns: repeat(3, 300px);
-    grid-gap: var(--space-xlarge);
+    gap: var(--space-large);
 
     @for $i from 0 through 6 {
       .ds-card[data-property-three="#{$i}"] {
