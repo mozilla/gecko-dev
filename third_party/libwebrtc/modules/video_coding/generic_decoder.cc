@@ -238,11 +238,11 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
 
   decodedImage.set_timestamp_us(
       frame_info->render_time ? frame_info->render_time->us() : -1);
-  _receiveCallback->FrameToRender({.video_frame = decodedImage,
-                                   .qp = qp,
-                                   .decode_time = decode_time,
-                                   .content_type = frame_info->content_type,
-                                   .frame_type = frame_info->frame_type});
+  _receiveCallback->OnFrameToRender({.video_frame = decodedImage,
+                                     .qp = qp,
+                                     .decode_time = decode_time,
+                                     .content_type = frame_info->content_type,
+                                     .frame_type = frame_info->frame_type});
 }
 
 void VCMDecodedFrameCallback::OnDecoderInfoChanged(

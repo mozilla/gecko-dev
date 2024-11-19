@@ -51,7 +51,7 @@ class VideoStreamDecoder : public VCMReceiveCallback {
                         TimeDelta decode_time,
                         VideoContentType content_type,
                         VideoFrameType frame_type) override;
-  int32_t FrameToRender(const struct FrameToRender& arguments) override;
+  int32_t OnFrameToRender(const struct FrameToRender& arguments) override;
   void OnDroppedFrames(uint32_t frames_dropped) override;
   void OnIncomingPayloadType(int payload_type) override;
   void OnDecoderInfoChanged(

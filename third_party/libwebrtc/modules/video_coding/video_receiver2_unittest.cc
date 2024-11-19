@@ -50,7 +50,7 @@ class MockVCMReceiveCallback : public VCMReceiveCallback {
                VideoFrameType),
               (override));
   MOCK_METHOD(int32_t,
-              FrameToRender,
+              OnFrameToRender,
               (const struct FrameToRender&),
               (override));
   MOCK_METHOD(void, OnIncomingPayloadType, (int), (override));

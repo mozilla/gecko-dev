@@ -55,13 +55,13 @@ int32_t VideoStreamDecoder::FrameToRender(VideoFrame& video_frame,
                                           TimeDelta decode_time,
                                           VideoContentType content_type,
                                           VideoFrameType frame_type) {
-  return FrameToRender({.video_frame = video_frame,
-                        .qp = qp,
-                        .decode_time = decode_time,
-                        .content_type = content_type,
-                        .frame_type = frame_type});
+  return OnFrameToRender({.video_frame = video_frame,
+                          .qp = qp,
+                          .decode_time = decode_time,
+                          .content_type = content_type,
+                          .frame_type = frame_type});
 }
-int32_t VideoStreamDecoder::FrameToRender(
+int32_t VideoStreamDecoder::OnFrameToRender(
     const struct FrameToRender& arguments) {
   receive_stats_callback_->OnDecodedFrame(
       arguments.video_frame, arguments.qp, arguments.decode_time,

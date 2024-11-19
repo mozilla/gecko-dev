@@ -56,14 +56,14 @@ class ReceiveCallback : public VCMReceiveCallback {
                         TimeDelta decode_time,
                         VideoContentType content_type,
                         VideoFrameType frame_type) override {
-    return FrameToRender({.video_frame = frame,
-                          .qp = qp,
-                          .decode_time = decode_time,
-                          .content_type = content_type,
-                          .frame_type = frame_type});
+    return OnFrameToRender({.video_frame = frame,
+                            .qp = qp,
+                            .decode_time = decode_time,
+                            .content_type = content_type,
+                            .frame_type = frame_type});
   }
 
-  int32_t FrameToRender(const struct FrameToRender& arguments) override {
+  int32_t OnFrameToRender(const struct FrameToRender& arguments) override {
     frames_.push_back(arguments.video_frame);
     return 0;
   }
