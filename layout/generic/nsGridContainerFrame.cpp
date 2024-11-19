@@ -833,6 +833,12 @@ struct nsGridContainerFrame::GridItemInfo {
   bool ShouldApplyAutoMinSize(WritingMode aContainerWM,
                               LogicalAxis aContainerAxis,
                               nscoord aPercentageBasis) const {
+    if ((mState[aContainerAxis] & StateBits::eIsFlexing) &&
+        mArea.LineRangeForAxis(aContainerAxis).Extent() > 1) {
+      // If the item spans multiple tracks in a given axis, none of those
+      // tracks may be flexible.
+      return false;
+    }
     const bool isInlineAxis = aContainerAxis == LogicalAxis::Inline;
     const auto* pos =
         mFrame->IsTableWrapperFrame()
@@ -2389,11 +2395,8 @@ struct nsGridContainerFrame::Tracks {
    * Helper for ResolveIntrinsicSize. It implements "Resolve Intrinsic Track
    * Sizes" step 2: "Size tracks to fit non-spanning items" in the spec.
    * https://drafts.csswg.org/css-grid-2/#algo-single-span-items
-   *
-   * @return true if the track has a <flex> max-sizing function, false
-   * otherwise.
    */
-  bool ResolveIntrinsicSizeForNonSpanningItems(
+  void ResolveIntrinsicSizeForNonSpanningItems(
       GridReflowInput& aState, const TrackSizingFunctions& aFunctions,
       nscoord aPercentageBasis, SizingConstraint aConstraint,
       const LineRange& aRange, const GridItemInfo& aGridItem);
@@ -5966,7 +5969,7 @@ static void AddSubgridContribution(TrackSize& aSize,
   }
 }
 
-bool nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
+void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
     GridReflowInput& aState, const TrackSizingFunctions& aFunctions,
     nscoord aPercentageBasis, SizingConstraint aConstraint,
     const LineRange& aRange, const GridItemInfo& aGridItem) {
@@ -6034,8 +6037,6 @@ bool nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
   if (sz.mLimit < sz.mBase) {
     sz.mLimit = sz.mBase;
   }
-
-  return sz.mState & TrackSize::eFlexMaxSizing;
 }
 
 void nsGridContainerFrame::Tracks::CalculateItemBaselines(
@@ -6681,6 +6682,12 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
 
     const GridArea& area = gridItem.mArea;
     const LineRange& lineRange = area.*aRange;
+    const TrackSize::StateBits state = StateBitsForRange(lineRange);
+    // Set flex sizing flag as soon as possible to ensure
+    // ShouldApplyAutoMinSize will function properly.
+    if (state & TrackSize::eFlexMaxSizing) {
+      gridItem.mState[mAxis] |= ItemState::eIsFlexing;
+    }
 
     // If we have masonry layout in the other axis then skip this item unless
     // it's in the first masonry track, or has definite placement in this axis,
@@ -6724,15 +6731,12 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
     if (span == 1) {
       // Step 2. Size tracks to fit non-spanning items.
       // https://drafts.csswg.org/css-grid-2/#algo-single-span-items
-      if (ResolveIntrinsicSizeForNonSpanningItems(aState, aFunctions,
-                                                  aPercentageBasis, aConstraint,
-                                                  lineRange, gridItem)) {
-        gridItem.mState[mAxis] |= ItemState::eIsFlexing;
-      }
+      ResolveIntrinsicSizeForNonSpanningItems(aState, aFunctions,
+                                              aPercentageBasis, aConstraint,
+                                              lineRange, gridItem);
     } else {
       // Collect information for step 3.
       // https://drafts.csswg.org/css-grid-2/#algo-spanning-items
-      TrackSize::StateBits state = StateBitsForRange(lineRange);
 
       // Check if we need to apply "Automatic Minimum Size" and cache it.
       if ((state & TrackSize::eAutoMinSizing) &&
