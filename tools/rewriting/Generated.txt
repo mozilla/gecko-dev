@@ -89,6 +89,8 @@ python/mozperftest/mozperftest/tests/data/
 security/manager/tools/KnownRootHashes.json
 security/manager/tools/PreloadedHPKPins.json
 services/settings/dumps/
+toolkit/components/nimbus/schemas/ExperimentFeature.schema.json
+toolkit/components/nimbus/schemas/ExperimentFeatureManifest.schema.json
 toolkit/components/nimbus/schemas/NimbusExperiment.schema.json
 toolkit/components/pdfjs/PdfJsDefaultPrefs.js
 toolkit/components/uniffi-js/UniFFIGeneratedScaffolding.cpp

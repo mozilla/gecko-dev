@@ -5,27 +5,24 @@ bugzilla:
   component: "Nimbus Desktop Client"
 
 origin:
-  name: "nimbus-shared"
-  description: "Shared data and schemas for Project Nimbus"
-  url: "https://github.com/mozilla/nimbus-shared"
+  name: "mozilla-nimbus-schemas"
+  description: "Schemas used by Mozilla Nimbus and related projects."
+  url: "https://github.com/mozilla/experimenter"
   license: "MPL-2.0"
-  release: "version 2.5.2"
-  revision: "v2.5.2"
+  revision: "902e80c57dee68d44bf65211cbc23247082650f4"
+  release: "version 2024.11.4"
 
 vendoring:
-  url: "https://github.com/mozilla/nimbus-shared"
+  url: "https://github.com/mozilla/experimenter"
   source-hosting: "github"
-  tracking: "tag"
-  skip-vendoring-steps:
-    - "fetch"
-    - "update-moz-build"
+  tracking: "commit"
+  flavor: "individual-files"
+  individual-files:
+    - upstream: schemas/schemas/DesktopNimbusExperiment.schema.json
+      destination: NimbusExperiment.schema.json
 
-  keep:
-   - "*.schema.json"
-   - "vendor.sh"
+    - upstream: schemas/schemas/DesktopFeature.schema.json
+      destination: ExperimentFeature.schema.json
 
-  update-actions:
-    - action: "run-script"
-      script: "vendor.sh"
-      cwd: "{yaml_dir}"
-      args: ["{revision}"]
+    - upstream: schemas/schemas/DesktopFeatureManifest.schema.json
+      destination: ExperimentFeatureManifest.schema.json
