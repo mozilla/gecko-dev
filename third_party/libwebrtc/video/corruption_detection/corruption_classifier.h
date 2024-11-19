@@ -18,7 +18,7 @@
 
 namespace webrtc {
 
-// Based on the given filtered samples to `CalculateCorruptionProbablility` this
+// Based on the given filtered samples to `CalculateCorruptionProbability` this
 // class calculates a probability to indicate whether the frame is corrupted.
 // The classification is done either by scaling the loss to the interval of [0,
 // 1] using a simple `scale_factor` or by applying a logistic function to the
@@ -41,6 +41,14 @@ class CorruptionClassifier {
   // scaling the loss to the interval of [0, 1] using a simple `scale_factor`
   // or by applying a logistic function to the loss. The method is chosen
   // depending on the used constructor.
+  double CalculateCorruptionProbability(
+      rtc::ArrayView<const FilteredSample> filtered_original_samples,
+      rtc::ArrayView<const FilteredSample> filtered_compressed_samples,
+      int luma_threshold,
+      int chroma_threshold) const;
+
+  // TODO: bugs.webrtc.org/358039777 - Remove this function when Google
+  // downstream projects start using the correctly spelled function.
   double CalculateCorruptionProbablility(
       rtc::ArrayView<const FilteredSample> filtered_original_samples,
       rtc::ArrayView<const FilteredSample> filtered_compressed_samples,

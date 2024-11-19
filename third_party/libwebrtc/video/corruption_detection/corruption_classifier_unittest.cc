@@ -63,7 +63,7 @@ std::vector<FilteredSample> GetCompressedSampleValues(
 #if GTEST_HAS_DEATH_TEST
 TEST(CorruptionClassifierTest, EmptySamplesShouldResultInDeath) {
   CorruptionClassifier corruption_classifier(kScaleFactor);
-  EXPECT_DEATH(corruption_classifier.CalculateCorruptionProbablility(
+  EXPECT_DEATH(corruption_classifier.CalculateCorruptionProbability(
                    {}, {}, kLumaThreshold, kChromaThreshold),
                _);
 }
@@ -73,7 +73,7 @@ TEST(CorruptionClassifierTest, DifferentAmountOfSamplesShouldResultInDeath) {
   const std::vector<FilteredSample> filtered_compressed_samples = {
       {.value = 1.0, .plane = ImagePlane::kLuma}};
 
-  EXPECT_DEATH(corruption_classifier.CalculateCorruptionProbablility(
+  EXPECT_DEATH(corruption_classifier.CalculateCorruptionProbability(
                    kFilteredOriginalSampleValues, filtered_compressed_samples,
                    kLumaThreshold, kChromaThreshold),
                HasSubstr("The original and compressed frame have different "
@@ -95,7 +95,7 @@ TEST(CorruptionClassifierTest,
   // Logistic function giving the expected result inside DoubleNear. This
   // applies for all the following tests.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.0, kMaxAbsoluteError));
@@ -111,7 +111,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = 0. See above for explanation why we have `0.0009` below.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.0009, kMaxAbsoluteError));
@@ -128,7 +128,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = 0.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.0, kMaxAbsoluteError));
@@ -145,7 +145,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = 0.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.0009, kMaxAbsoluteError));
@@ -162,7 +162,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = (0.5)^2 / 3.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.0060, kMaxAbsoluteError));
@@ -179,7 +179,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = (0.5)^2 / 3.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.001, kMaxAbsoluteError));
@@ -196,7 +196,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = ((0.5)^2 + 2*(1.2)^2) / 3.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.07452, kMaxAbsoluteError));
@@ -213,7 +213,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = ((0.5)^2 + 2*(1.2)^2) / 3.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.0026, kMaxAbsoluteError));
@@ -233,7 +233,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = ((3)^2 + 2*(2)^2) / 3.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.4048, kMaxAbsoluteError));
@@ -250,7 +250,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = ((3)^2 + 2*(2)^2) / 3.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(0.2086, kMaxAbsoluteError));
@@ -267,7 +267,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = ((5)^2 + 2*(4)^2) / 3. Expected 1 because of capping.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(1, kMaxAbsoluteError));
@@ -284,7 +284,7 @@ TEST(CorruptionClassifierTest,
 
   // Expected: score = ((5)^2 + 2*(4)^2) / 3.
   EXPECT_THAT(
-      corruption_classifier.CalculateCorruptionProbablility(
+      corruption_classifier.CalculateCorruptionProbability(
           kFilteredOriginalSampleValues, kFilteredCompressedSampleValues,
           kLumaThreshold, kChromaThreshold),
       DoubleNear(1, kMaxAbsoluteError));

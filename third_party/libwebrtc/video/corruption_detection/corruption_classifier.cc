@@ -38,7 +38,7 @@ CorruptionClassifier::CorruptionClassifier(float growth_rate, float midpoint)
       << "Calculating corruption probability using logistic function.";
 }
 
-double CorruptionClassifier::CalculateCorruptionProbablility(
+double CorruptionClassifier::CalculateCorruptionProbability(
     rtc::ArrayView<const FilteredSample> filtered_original_samples,
     rtc::ArrayView<const FilteredSample> filtered_compressed_samples,
     int luma_threshold,
@@ -57,6 +57,18 @@ double CorruptionClassifier::CalculateCorruptionProbablility(
   // Fitting the unbounded loss to the interval of [0, 1] using the logistic
   // function.
   return 1 / (1 + std::exp(-config->growth_rate * (loss - config->midpoint)));
+}
+
+// TODO: bugs.webrtc.org/358039777 - Remove this function when Google
+// downstream projects start using the correctly spelled function.
+double CorruptionClassifier::CalculateCorruptionProbablility(
+    rtc::ArrayView<const FilteredSample> filtered_original_samples,
+    rtc::ArrayView<const FilteredSample> filtered_compressed_samples,
+    int luma_threshold,
+    int chroma_threshold) const {
+  return CalculateCorruptionProbability(filtered_original_samples,
+                                        filtered_compressed_samples,
+                                        luma_threshold, chroma_threshold);
 }
 
 // The score is calculated according to the following formula :
