@@ -273,7 +273,7 @@ nsresult nsEditingSession::SetupEditorOnWindow(nsPIDOMWindowOuter& aWindow) {
     // presshell is set up if it needs to be.
     doc->FlushPendingNotifications(mozilla::FlushType::Frames);
     if (mMakeWholeDocumentEditable) {
-      doc->SetEditableFlag(true);
+      doc->SetDocumentEditableFlag(true);
       // Enable usage of the execCommand API
       doc->SetEditingState(Document::EditingState::eDesignMode);
     }
@@ -495,7 +495,7 @@ nsEditingSession::TearDownEditorOnWindow(mozIDOMWindowProxy* aWindow) {
     RestoreAnimationMode(window);
 
     if (mMakeWholeDocumentEditable) {
-      doc->SetEditableFlag(false);
+      doc->SetDocumentEditableFlag(false);
       doc->SetEditingState(Document::EditingState::eOff);
     }
   }
